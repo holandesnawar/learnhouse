@@ -33,6 +33,16 @@ import {
 const BRAND_DARK = '#1D0084'
 const ACTIVE_BG = 'rgba(77,163,255,0.22)' // #4da3ff @ 22%
 
+// Darken a hex colour by a 0..1 amount (keeps the brand hue, deepens it).
+const darken = (hex: string, amount: number): string => {
+  if (!hex || hex.length < 7) return hex
+  const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n)))
+  const r = clamp(parseInt(hex.slice(1, 3), 16) * (1 - amount))
+  const g = clamp(parseInt(hex.slice(3, 5), 16) * (1 - amount))
+  const b = clamp(parseInt(hex.slice(5, 7), 16) * (1 - amount))
+  return `#${[r, g, b].map((x) => x.toString(16).padStart(2, '0')).join('')}`
+}
+
 type NavItem = {
   key: string
   href: string
@@ -58,6 +68,15 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   // dark enough; otherwise fall back to the Nawar dark blue so the white text
   // stays legible (the main content area keeps its own light background).
   const sidebarBg = primaryColor && !isLightColor(primaryColor) ? primaryColor : BRAND_DARK
+  // Deepen the base, then layer a soft white glow + subtle dot texture on top
+  // (the "fades blancos" look from holandesnawar.com).
+  const sidebarBase = darken(sidebarBg, 0.22)
+  const surfaceStyle: React.CSSProperties = {
+    backgroundColor: sidebarBase,
+    backgroundImage:
+      'radial-gradient(120% 70% at 50% 0%, rgba(255,255,255,0.09), transparent 55%), radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0)',
+    backgroundSize: '100% 100%, 24px 24px',
+  }
 
   const rf = config?.resolved_features
   const isEnabled = (f: string) => rf?.[f]?.enabled === true
@@ -230,7 +249,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
       {/* Desktop sidebar */}
       <aside
         className={`${collapsed ? 'hidden' : 'hidden md:flex'} flex-col w-64 shrink-0 sticky top-0 h-screen border-r border-white/10`}
-        style={{ backgroundColor: sidebarBg }}
+        style={surfaceStyle}
       >
         <SidebarInner />
       </aside>
@@ -240,7 +259,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         <button
           onClick={toggleCollapsed}
           className="hidden md:flex fixed top-3 left-3 items-center justify-center w-10 h-10 rounded-xl text-white shadow-lg hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: sidebarBg, zIndex: 'var(--z-nav)' }}
+          style={{ backgroundColor: sidebarBase, zIndex: 'var(--z-nav)' }}
           aria-label="Mostrar barra lateral"
           title="Mostrar barra"
         >
@@ -251,7 +270,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
       {/* Mobile top bar */}
       <header
         className="md:hidden fixed top-0 inset-x-0 h-14 flex items-center justify-between px-4 border-b border-white/10"
-        style={{ backgroundColor: sidebarBg, zIndex: 'var(--z-nav)' }}
+        style={{ backgroundColor: sidebarBase, zIndex: 'var(--z-nav)' }}
       >
         <Logo height={32} />
         <button
@@ -269,7 +288,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsOpen(false)} />
           <aside
             className="absolute left-0 top-0 h-full w-72 max-w-[80%] shadow-xl flex flex-col"
-            style={{ backgroundColor: sidebarBg }}
+            style={surfaceStyle}
           >
             <div className="flex justify-end p-2">
               <button
