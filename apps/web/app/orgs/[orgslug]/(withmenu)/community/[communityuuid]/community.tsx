@@ -8,6 +8,7 @@ import { MessageCircle } from 'lucide-react'
 import { getUriWithOrg } from '@services/config/config'
 import { CommunityActionsMobile } from '@components/Objects/Communities/CommunityActionsMobile'
 import { DiscussionList } from '@components/Objects/Communities/DiscussionList'
+import { ChannelComposer } from '@components/Objects/Communities/ChannelComposer'
 import { CreateDiscussionModal } from '@components/Objects/Modals/Communities/CreateDiscussionModal'
 import { Community } from '@services/communities/communities'
 import { DiscussionWithAuthor } from '@services/communities/discussions'
@@ -65,6 +66,9 @@ const CommunityClient = ({
                 </p>
               )}
             </div>
+
+            {/* Inline chat-style composer */}
+            <ChannelComposer communityUuid={community.community_uuid} channelName={community.name} />
 
             {/* Discussions List */}
             <div className="bg-white nice-shadow rounded-lg overflow-hidden">
