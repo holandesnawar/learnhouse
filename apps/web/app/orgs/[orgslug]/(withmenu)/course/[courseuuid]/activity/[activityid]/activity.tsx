@@ -29,7 +29,7 @@ import { useContributorStatus } from '../../../../../../../../hooks/useContribut
 import ToolTip from '@components/Objects/StyledElements/Tooltip/Tooltip'
 import ActivityChapterDropdown from '@components/Pages/Activity/ActivityChapterDropdown'
 import ActivityShareDropdown from '@components/Pages/Activity/ActivityShareDropdown'
-import CourseLessonsSidebar from '@components/Pages/Activity/CourseLessonsSidebar'
+import CourseLessonsSidebar, { MobileCourseLessons } from '@components/Pages/Activity/CourseLessonsSidebar'
 import CourseEndView from '@components/Pages/Activity/CourseEndView'
 import { motion, AnimatePresence } from 'motion/react'
 import { Breadcrumbs } from '@components/Objects/Breadcrumbs/Breadcrumbs'
@@ -747,23 +747,23 @@ function ActivityClient(props: ActivityClientProps) {
                     trailData={trailData}
                   />
                 ) : (
-                  <div className="space-y-4 pt-0 relative">
-                    <div className="pt-2 pb-3 sm:pb-6">
+                  <div className="space-y-3 pt-0 relative">
+                    <div className="pt-1 pb-1 sm:pb-2">
                       <Breadcrumbs items={[
                         { label: t('courses.courses'), href: getUriWithOrg(orgslug, '/courses'), icon: <BookCopy size={14} /> },
                         { label: course.name, href: getUriWithOrg(orgslug, `/course/${courseuuid}`) },
                         { label: displayName }
                       ]} />
                     </div>
-                    <div className="space-y-3 sm:space-y-4 activity-info-section relative" style={{ zIndex: 'var(--z-content)' }}>
+                    <div className="space-y-2 sm:space-y-3 activity-info-section relative" style={{ zIndex: 'var(--z-content)' }}>
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-                          <div className="flex space-x-4 sm:space-x-6 items-center">
+                          <div className="flex space-x-3 sm:space-x-4 items-center">
                             <div className="flex shrink-0">
                               <Link
                                 href={getUriWithOrg(orgslug, '') + `/course/${courseuuid}`}
                               >
                                 <img
-                                  className="w-[60px] h-[34px] sm:w-[100px] sm:h-[57px] rounded-md drop-shadow-md"
+                                  className="w-[48px] h-[27px] sm:w-[72px] sm:h-[41px] rounded-md drop-shadow-md"
                                   src={course.thumbnail_image
                                     ? getCourseThumbnailMediaDirectory(
                                         org?.org_uuid,
@@ -777,24 +777,12 @@ function ActivityClient(props: ActivityClientProps) {
                               </Link>
                             </div>
                             <div className="flex flex-col -space-y-1">
-                              <p className="font-bold text-gray-700 text-xs sm:text-md">{t('search.course')} </p>
-                              <h1 className="font-bold text-gray-950 text-lg sm:text-3xl first-letter:uppercase">
+                              <p className="font-bold text-gray-700 text-[11px] sm:text-sm">{t('search.course')} </p>
+                              <h1 className="font-bold text-gray-950 text-base sm:text-xl first-letter:uppercase">
                                 {course.name}
                               </h1>
                             </div>
                           </div>
-                          {activity && (
-                            <div className="hidden sm:block">
-                              <ActivityShareDropdown
-                                activityName={activity.name}
-                                activityUrl={typeof window !== 'undefined' ? window.location.href : ''}
-                                orgslug={orgslug}
-                                courseUuid={course.course_uuid}
-                                activityId={activity.activity_uuid ? activity.activity_uuid.replace('activity_', '') : activityid.replace('activity_', '')}
-                                activityType={activity.activity_type}
-                              />
-                            </div>
-                          )}
                         </div>
 
                         <ActivityIndicators
@@ -815,80 +803,6 @@ function ActivityClient(props: ActivityClientProps) {
                               <h1 className="font-bold text-gray-950 text-base sm:text-2xl first-letter:uppercase">
                                 {displayName}
                               </h1>
-                              {/* Authors and Dates Section */}
-                              <div className="flex flex-wrap items-center gap-3 mt-2">
-                                {/* Avatars */}
-                                {course.authors && course.authors.length > 0 && (
-                                  <div className="flex -space-x-3">
-                                    {course.authors.filter((a: any) => a.authorship_status === 'ACTIVE').slice(0, 3).map((author: any, idx: number) => (
-                                      <div key={author.user.user_uuid} className="relative" style={{ zIndex: 10 - idx }}>
-                                        <UserAvatar
-                                          border="border-2"
-                                          rounded="rounded-full"
-                                          avatar_url={author.user.avatar_image ? getUserAvatarMediaDirectory(author.user.user_uuid, author.user.avatar_image) : ''}
-                                          predefined_avatar={author.user.avatar_image ? undefined : 'empty'}
-                                          width={26}
-                                          showProfilePopup={true}
-                                          userId={author.user.id}
-                                        />
-                                      </div>
-                                    ))}
-                                    {course.authors.filter((a: any) => a.authorship_status === 'ACTIVE').length > 3 && (
-                                      <div className="flex items-center justify-center bg-neutral-100 text-neutral-600 font-medium rounded-full border-2 border-white shadow-sm w-9 h-9 text-xs z-0">
-                                        +{course.authors.filter((a: any) => a.authorship_status === 'ACTIVE').length - 3}
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                                {/* Author names */}
-                                {course.authors && course.authors.length > 0 && (
-                                  <div className="text-xs text-gray-700 font-medium flex items-center gap-1">
-                                    {course.authors.filter((a: any) => a.authorship_status === 'ACTIVE').length > 1 && (
-                                      <span>{t('courses.co_created_by')} </span>
-                                    )}
-                                    {course.authors.filter((a: any) => a.authorship_status === 'ACTIVE').slice(0, 2).map((author: any, idx: number, arr: any[]) => (
-                                      <span key={author.user.user_uuid}>
-                                        {author.user.first_name && author.user.last_name
-                                          ? `${author.user.first_name} ${author.user.last_name}`
-                                          : `@${author.user.username}`}
-                                        {idx === 0 && arr.length > 1 ? ' & ' : ''}
-                                      </span>
-                                    ))}
-                                    {course.authors.filter((a: any) => a.authorship_status === 'ACTIVE').length > 2 && (
-                                      <ToolTip
-                                        content={
-                                          <div className="p-2">
-                                            {course.authors
-                                              .filter((a: any) => a.authorship_status === 'ACTIVE')
-                                              .slice(2)
-                                              .map((author: any) => (
-                                                <div key={author.user.user_uuid} className="text-white text-sm py-1">
-                                                  {author.user.first_name && author.user.last_name
-                                                    ? `${author.user.first_name} ${author.user.last_name}`
-                                                    : `@${author.user.username}`}
-                                                </div>
-                                              ))}
-                                          </div>
-                                        }
-                                      >
-                                        <div className="bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-0.5 rounded-md cursor-pointer text-xs font-medium transition-colors duration-200">
-                                          +{course.authors.filter((a: any) => a.authorship_status === 'ACTIVE').length - 2}
-                                        </div>
-                                      </ToolTip>
-                                    )}
-                                  </div>
-                                )}
-                                {/* Dates */}
-                                <div className="flex flex-wrap items-center text-xs text-gray-500 gap-1 sm:gap-2">
-                                  <span>
-                                    {t('courses.created_on')} {new Date(course.creation_date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
-                                  </span>
-                                  <span className="mx-1">•</span>
-                                  <span>
-                                    {t('courses.last_updated')} {getRelativeTime(new Date(course.updated_at || course.last_updated || course.creation_date))}
-                                  </span>
-                                </div>
-                              </div>
                             </div>
                           </div>
                           <div className="hidden sm:flex space-x-2 items-center relative shrink-0" style={{ zIndex: 'var(--z-interactive)' }}>
@@ -896,13 +810,6 @@ function ActivityClient(props: ActivityClientProps) {
                               <AuthenticatedClientElement checkMethod="authentication">
                                 {activity.activity_type != 'TYPE_ASSIGNMENT' && (
                                   <>
-                                    <AIActivityAsk activity={activity} />
-                                    <ActivityChapterDropdown
-                                      course={course}
-                                      currentActivityId={activity.activity_uuid ? activity.activity_uuid.replace('activity_', '') : activityid.replace('activity_', '')}
-                                      orgslug={orgslug}
-                                      trailData={trailData}
-                                    />
                                     {contributorStatus === 'ACTIVE' && activity.activity_type == 'TYPE_DYNAMIC' && (
                                       <Link
                                         href={getUriWithOrg(orgslug, '') + `/course/${courseuuid}/activity/${activityid}/edit`}
@@ -964,10 +871,14 @@ function ActivityClient(props: ActivityClientProps) {
                                     </p>
                                   </div>
                                 )}
+                                {/* Mobile lessons (collapsible) */}
+                                <MobileCourseLessons
+                                  course={course}
+                                  currentActivityId={activityid}
+                                  orgslug={orgslug}
+                                  trailData={trailData}
+                                />
                               </div>
-                              <Suspense fallback={null}>
-                                <AISidePanelInline activity={activity} />
-                              </Suspense>
                               <CourseLessonsSidebar
                                 course={course}
                                 currentActivityId={activityid}
@@ -1252,7 +1163,7 @@ export function MarkStatus(props: {
         <div className="flex items-center space-x-2">
           <div className="relative">
             <div
-              className={`${isLoading ? 'opacity-90 cursor-not-allowed' : 'hover:bg-[#0b6df0]'} bg-[#025dc7] rounded-lg px-4 py-2.5 nice-shadow flex items-center gap-2 text-white hover:cursor-pointer transition-colors`}
+              className={`${isLoading ? 'opacity-90 cursor-not-allowed' : 'hover:bg-emerald-700'} bg-emerald-600 rounded-lg px-4 py-2.5 nice-shadow flex items-center gap-2 text-white hover:cursor-pointer transition-colors`}
               onClick={!isLoading ? markActivityAsCompleteFront : undefined}
             >
               {isLoading ? (
@@ -1327,9 +1238,9 @@ function NextActivityButton({ course, currentActivityId, orgslug }: { course: an
   return (
     <div
       onClick={navigateToActivity}
-      className="bg-gray-200 rounded-md px-3 sm:px-4 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] flex flex-col p-2 sm:p-2.5 text-gray-600 hover:cursor-pointer transition delay-150 duration-300 ease-in-out hover:bg-gray-200"
+      className="bg-[#025dc7] rounded-lg px-3 sm:px-4 nice-shadow flex flex-col p-2 sm:p-2.5 text-white hover:cursor-pointer hover:bg-[#0b6df0] transition-colors"
     >
-      <span className="text-[10px] font-bold text-gray-500 mb-1 uppercase">{t('common.next')}</span>
+      <span className="text-[10px] font-bold text-blue-100 mb-1 uppercase">{t('common.next')}</span>
       <div className="flex items-center space-x-1">
         <span className="text-xs sm:text-sm font-semibold truncate max-w-[120px] sm:max-w-[200px]">{nextActivity.name}</span>
         <ChevronRight size={17} className="shrink-0" />
@@ -1380,7 +1291,7 @@ function PreviousActivityButton({ course, currentActivityId, orgslug }: { course
   return (
     <div
       onClick={navigateToActivity}
-      className="bg-white rounded-md px-3 sm:px-4 nice-shadow flex flex-col p-2 sm:p-2.5 text-gray-600 hover:cursor-pointer transition delay-150 duration-300 ease-in-out"
+      className="bg-gray-100 rounded-lg px-3 sm:px-4 flex flex-col p-2 sm:p-2.5 text-gray-600 hover:cursor-pointer hover:bg-gray-200 transition-colors"
     >
       <span className="text-[10px] font-bold text-gray-500 mb-1 uppercase">{t('common.previous')}</span>
       <div className="flex items-center space-x-1">
