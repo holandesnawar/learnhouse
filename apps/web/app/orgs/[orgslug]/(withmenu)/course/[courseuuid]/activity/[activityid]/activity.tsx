@@ -29,7 +29,7 @@ import { useContributorStatus } from '../../../../../../../../hooks/useContribut
 import ToolTip from '@components/Objects/StyledElements/Tooltip/Tooltip'
 import ActivityChapterDropdown from '@components/Pages/Activity/ActivityChapterDropdown'
 import ActivityShareDropdown from '@components/Pages/Activity/ActivityShareDropdown'
-import FixedActivitySecondaryBar from '@components/Pages/Activity/FixedActivitySecondaryBar'
+import CourseLessonsSidebar from '@components/Pages/Activity/CourseLessonsSidebar'
 import CourseEndView from '@components/Pages/Activity/CourseEndView'
 import { motion, AnimatePresence } from 'motion/react'
 import { Breadcrumbs } from '@components/Objects/Breadcrumbs/Breadcrumbs'
@@ -936,70 +936,83 @@ function ActivityClient(props: ActivityClientProps) {
                             <PaidCourseActivityDisclaimer course={course} />
                           ) : (
                             <div className="flex gap-6">
-                              <div className={`flex-1 min-w-0 ${activity.activity_type === 'TYPE_SCORM' ? 'rounded-xl overflow-hidden' : 'p-3 sm:p-7 rounded-lg'} ${bgColor} relative isolate`} style={{ zIndex: 'var(--z-base)' }}>
-                                <button
-                                  onClick={() => setIsFocusMode(true)}
-                                  className={`absolute ${activity.activity_type === 'TYPE_SCORM' ? 'top-2 right-2' : 'top-4 right-4'} hidden sm:flex bg-white/80 hover:bg-white nice-shadow p-2 rounded-full cursor-pointer transition-all duration-200 group overflow-hidden pointer-events-auto`}
-                                  style={{ zIndex: 'var(--z-interactive)' }}
-                                  title={t('activities.focus_mode')}
-                                >
-                                  <div className="flex items-center">
-                                    <Maximize2 size={16} className="text-gray-700" />
-                                    <span className="text-xs font-bold text-gray-700 opacity-0 group-hover:opacity-100 transition-all duration-200 w-0 group-hover:w-auto group-hover:ml-2 whitespace-nowrap">
-                                      {t('activities.focus_mode')}
-                                    </span>
+                              <div className="flex-1 min-w-0 space-y-4">
+                                <div className={`${activity.activity_type === 'TYPE_SCORM' ? 'rounded-xl overflow-hidden' : 'p-3 sm:p-7 rounded-lg'} ${bgColor} relative isolate`} style={{ zIndex: 'var(--z-base)' }}>
+                                  <button
+                                    onClick={() => setIsFocusMode(true)}
+                                    className={`absolute ${activity.activity_type === 'TYPE_SCORM' ? 'top-2 right-2' : 'top-4 right-4'} hidden sm:flex bg-white/80 hover:bg-white nice-shadow p-2 rounded-full cursor-pointer transition-all duration-200 group overflow-hidden pointer-events-auto`}
+                                    style={{ zIndex: 'var(--z-interactive)' }}
+                                    title={t('activities.focus_mode')}
+                                  >
+                                    <div className="flex items-center">
+                                      <Maximize2 size={16} className="text-gray-700" />
+                                      <span className="text-xs font-bold text-gray-700 opacity-0 group-hover:opacity-100 transition-all duration-200 w-0 group-hover:w-auto group-hover:ml-2 whitespace-nowrap">
+                                        {t('activities.focus_mode')}
+                                      </span>
+                                    </div>
+                                  </button>
+                                  {activityContent}
+                                </div>
+                                {/* Description below the content */}
+                                {course.description && (
+                                  <div className="bg-white nice-shadow rounded-lg p-4 sm:p-6">
+                                    <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-2 first-letter:uppercase">
+                                      {displayName}
+                                    </h2>
+                                    <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+                                      {course.description}
+                                    </p>
                                   </div>
-                                </button>
-                                {activityContent}
+                                )}
                               </div>
                               <Suspense fallback={null}>
                                 <AISidePanelInline activity={activity} />
                               </Suspense>
+                              <CourseLessonsSidebar
+                                course={course}
+                                currentActivityId={activityid}
+                                orgslug={orgslug}
+                                trailData={trailData}
+                              />
                             </div>
                           )}
                         </>
                       ) : null}
 
-                      {/* Activity Actions below the content box */}
+                      {/* Sticky action bar — always visible without scrolling */}
                       {activity && activity.published == true && activity.content.paid_access != false && (
-                        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center mt-4 w-full gap-2 sm:gap-0">
-                          <div className="order-1 sm:order-none">
-                            <PreviousActivityButton
-                              course={course}
-                              currentActivityId={activity.id}
-                              orgslug={orgslug}
-                            />
-                          </div>
-                          <div className="flex items-center justify-between sm:justify-end space-x-2 order-2 sm:order-none">
-                            <ActivityActions
-                              activity={activity}
-                              activityid={activityid}
-                              course={course}
-                              orgslug={orgslug}
-                              assignment={assignment}
-                              showNavigation={false}
-                              trailData={trailData}
-                            />
-                            <NextActivityButton
-                              course={course}
-                              currentActivityId={activity.id}
-                              orgslug={orgslug}
-                            />
+                        <div className="sticky bottom-3 sm:bottom-4 mt-4" style={{ zIndex: 'var(--z-interactive)' }}>
+                          <div className="bg-white/95 backdrop-blur-md nice-shadow rounded-xl border border-gray-100 px-3 sm:px-4 py-2.5">
+                            <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 sm:gap-0">
+                              <div className="order-1 sm:order-none">
+                                <PreviousActivityButton
+                                  course={course}
+                                  currentActivityId={activity.id}
+                                  orgslug={orgslug}
+                                />
+                              </div>
+                              <div className="flex items-center justify-between sm:justify-end space-x-2 order-2 sm:order-none">
+                                <ActivityActions
+                                  activity={activity}
+                                  activityid={activityid}
+                                  course={course}
+                                  orgslug={orgslug}
+                                  assignment={assignment}
+                                  showNavigation={false}
+                                  trailData={trailData}
+                                />
+                                <NextActivityButton
+                                  course={course}
+                                  currentActivityId={activity.id}
+                                  orgslug={orgslug}
+                                />
+                              </div>
+                            </div>
                           </div>
                         </div>
                       )}
 
-                      {/* Fixed Activity Secondary Bar */}
-                      {activity && activity.published == true && activity.content.paid_access != false && (
-                        <FixedActivitySecondaryBar
-                          course={course}
-                          currentActivityId={activityid}
-                          orgslug={orgslug}
-                          activity={activity}
-                        />
-                      )}
-                      
-                      <div style={{ height: '100px' }}></div>
+                      <div style={{ height: '40px' }}></div>
                     </div>
                 )}
               </GeneralWrapperStyled>
