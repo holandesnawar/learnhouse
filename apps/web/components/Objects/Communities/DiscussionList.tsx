@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next'
 import { MessageCircle, Plus, Loader2, Search, X, Trash2, CheckSquare, Square } from 'lucide-react'
 import { DiscussionCard } from './DiscussionCard'
 import { SortDropdown } from './SortDropdown'
-import { LabelFilter } from './LabelFilter'
 import {
   deleteDiscussion,
   getCommentCount,
@@ -43,7 +42,6 @@ export function DiscussionList({
   const [sortBy, setSortBy] = useState<DiscussionSortBy>('recent')
   const [searchQuery, setSearchQuery] = useState('')
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({})
-  const [selectedLabel, setSelectedLabel] = useState<string | null>(null)
 
   // Selection state
   const [isSelectMode, setIsSelectMode] = useState(false)
@@ -56,7 +54,6 @@ export function DiscussionList({
     sortBy,
     page: 1,
     limit: 50, // Fetch more initially since we're not paginating for now
-    label: selectedLabel,
   })
 
   // Use SWR data, fall back to initial data if SWR hasn't loaded yet
@@ -100,10 +97,6 @@ export function DiscussionList({
 
   const handleSortChange = (newSort: DiscussionSortBy) => {
     setSortBy(newSort)
-  }
-
-  const handleLabelChange = (label: string | null) => {
-    setSelectedLabel(label)
   }
 
   // Filter discussions based on search query
@@ -211,7 +204,6 @@ export function DiscussionList({
         {/* Filters and Actions Row */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <LabelFilter value={selectedLabel} onChange={handleLabelChange} />
             <SortDropdown value={sortBy} onChange={handleSortChange} />
             <span className="text-xs text-gray-400">
               {filteredDiscussions.length} {filteredDiscussions.length === 1 ? t('communities.discussion') : t('communities.discussions')}
@@ -238,7 +230,7 @@ export function DiscussionList({
             {canCreateDiscussion && onCreateClick && !isSelectMode && (
               <button
                 onClick={onCreateClick}
-                className="hidden md:flex items-center gap-2 px-3 py-2 h-8 bg-neutral-900 hover:bg-neutral-800 text-white rounded-md transition-colors text-xs font-medium"
+                className="hidden md:flex items-center gap-2 px-3 py-2 h-8 bg-[#025dc7] hover:bg-[#0b6df0] text-white rounded-md transition-colors text-xs font-medium"
               >
                 <Plus size={14} />
                 {t('communities.discussion_list.new_discussion')}
@@ -316,7 +308,7 @@ export function DiscussionList({
                 {canCreateDiscussion && onCreateClick && (
                   <button
                     onClick={onCreateClick}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg transition-colors text-sm font-medium"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#025dc7] hover:bg-[#0b6df0] text-white rounded-lg transition-colors text-sm font-medium"
                   >
                     <Plus size={16} />
                     {t('communities.discussion_list.start_discussion')}

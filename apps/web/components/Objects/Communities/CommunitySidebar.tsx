@@ -170,7 +170,7 @@ export function CommunitySidebar({
           {canCreateDiscussion && onCreateDiscussion && (
             <button
               onClick={onCreateDiscussion}
-              className="w-full py-2.5 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer bg-neutral-900 text-white hover:bg-neutral-800 text-sm"
+              className="w-full py-2.5 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer bg-[#025dc7] text-white hover:bg-[#0b6df0] text-sm"
             >
               <Plus className="w-4 h-4" />
               <span>{t('communities.new_discussion')}</span>

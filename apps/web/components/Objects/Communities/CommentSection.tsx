@@ -170,7 +170,7 @@ export function CommentSection({ discussionUuid, communityUuid, isLocked = false
                     <button
                       type="submit"
                       disabled={!newComment.trim() || isSubmitting}
-                      className="px-3 py-1 text-xs font-medium text-white bg-neutral-900 hover:bg-neutral-800 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                      className="px-3 py-1 text-xs font-medium text-white bg-[#025dc7] hover:bg-[#0b6df0] rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                     >
                       {isSubmitting ? (
                         <Loader2 size={12} className="animate-spin" />
