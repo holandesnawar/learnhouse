@@ -23,6 +23,7 @@ import {
   Signpost,
   ChalkboardSimple,
   ChatCircle,
+  Question,
   List,
   X,
   CaretLeft,
@@ -128,6 +129,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     { key: 'communities', href: '/communities', label: t('communities.title'), icon: <ChatsCircle size={20} weight="fill" />, show: isEnabled('communities') },
     { key: 'playgrounds', href: '/playgrounds', label: 'Playgrounds', icon: <Cube size={20} weight="fill" />, show: isEnabled('playgrounds') },
     { key: 'store', href: '/store', label: 'Store', icon: <ShoppingBag size={20} weight="fill" />, show: isEnabled('payments') },
+    { key: 'consultas', href: '/consultas', label: 'Consultas', icon: <Question size={20} weight="fill" />, show: true },
   ]
 
   const authItems: NavItem[] = [
