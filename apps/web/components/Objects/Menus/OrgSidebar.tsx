@@ -13,7 +13,6 @@ import { HeaderProfileBox } from '@components/Security/HeaderProfileBox'
 import { SearchBar } from '@components/Objects/Search/SearchBar'
 import { DASHBOARD_MENU_ITEMS, DashboardMenuItem } from '@/lib/dashboard-menu-items'
 import { isFeatureAvailable } from '@services/plans/plans'
-import { isLightColor } from '@services/utils/ts/colorUtils'
 import {
   Books,
   SquaresFour,
@@ -29,19 +28,16 @@ import {
   CaretLeft,
 } from '@phosphor-icons/react'
 
-// Holandés Nawar brand palette
-const BRAND_DARK = '#1D0084'
-const ACTIVE_BG = 'rgba(77,163,255,0.22)' // #4da3ff @ 22%
-
-// Darken a hex colour by a 0..1 amount (keeps the brand hue, deepens it).
-const darken = (hex: string, amount: number): string => {
-  if (!hex || hex.length < 7) return hex
-  const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n)))
-  const r = clamp(parseInt(hex.slice(1, 3), 16) * (1 - amount))
-  const g = clamp(parseInt(hex.slice(3, 5), 16) * (1 - amount))
-  const b = clamp(parseInt(hex.slice(5, 7), 16) * (1 - amount))
-  return `#${[r, g, b].map((x) => x.toString(16).padStart(2, '0')).join('')}`
-}
+// Holandés Nawar — superficie de la barra: AZUL NAVY profundo (no morado).
+// El #1D0084 de marca tira a violeta en plano; aquí usamos un azul más
+// limpio + glow azul (#0b6df0) como las secciones oscuras de holandesnawar.com.
+// Si hay que afinar el tono, se cambian estos valores.
+const SIDE_TOP = '#152a86' // azul profundo (arriba)
+const SIDE_BOTTOM = '#0a1656' // navy más oscuro (abajo)
+const SIDE_SOLID = '#0f1f6b' // color sólido para superficies finas (barra móvil, botón)
+const BLUE_GLOW = 'rgba(11,109,240,0.30)' // #0b6df0 — el tono azul de la web
+const ACTIVE_BG = 'rgba(77,163,255,0.22)' // #4da3ff @ 22% (ítem activo)
+const THEME_DARK = SIDE_TOP // color oscuro que pasamos a subcomponentes para que rendericen texto blanco
 
 type NavItem = {
   key: string
@@ -63,19 +59,14 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const [isFocusMode, setIsFocusMode] = useState(false)
 
   const config = org?.config?.config
-  const primaryColor = config?.customization?.general?.color || config?.general?.color || ''
-  // The sidebar is always a dark brand surface. Use the org colour when it is
-  // dark enough; otherwise fall back to the Nawar dark blue so the white text
-  // stays legible (the main content area keeps its own light background).
-  const sidebarBg = primaryColor && !isLightColor(primaryColor) ? primaryColor : BRAND_DARK
-  // Deepen the base, then layer a soft white glow + subtle dot texture on top
-  // (the "fades blancos" look from holandesnawar.com).
-  const sidebarBase = darken(sidebarBg, 0.22)
+
   const surfaceStyle: React.CSSProperties = {
-    backgroundColor: sidebarBase,
+    backgroundColor: SIDE_BOTTOM,
     backgroundImage:
-      'radial-gradient(120% 70% at 50% 0%, rgba(255,255,255,0.09), transparent 55%), radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0)',
-    backgroundSize: '100% 100%, 24px 24px',
+      `radial-gradient(130% 80% at 50% -10%, ${BLUE_GLOW}, transparent 60%), ` +
+      `radial-gradient(circle at 1px 1px, rgba(255,255,255,0.06) 1px, transparent 0), ` +
+      `linear-gradient(168deg, ${SIDE_TOP} 0%, ${SIDE_BOTTOM} 100%)`,
+    backgroundSize: '100% 100%, 24px 24px, 100% 100%',
   }
 
   const rf = config?.resolved_features
@@ -207,7 +198,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         </button>
       </div>
       <div className="px-3 pb-3">
-        <SearchBar orgslug={orgslug} className="w-full" primaryColor={sidebarBg} />
+        <SearchBar orgslug={orgslug} className="w-full" primaryColor={THEME_DARK} />
       </div>
       <nav className="flex-1 overflow-y-auto px-3 space-y-1 pb-3">
         {navItems.filter((i) => i.show).map((i) => (
@@ -239,7 +230,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         )}
       </nav>
       <div className="px-3 py-3 border-t border-white/10">
-        <HeaderProfileBox primaryColor={sidebarBg} />
+        <HeaderProfileBox primaryColor={THEME_DARK} />
       </div>
     </div>
   )
@@ -259,7 +250,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         <button
           onClick={toggleCollapsed}
           className="hidden md:flex fixed top-3 left-3 items-center justify-center w-10 h-10 rounded-xl text-white shadow-lg hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: sidebarBase, zIndex: 'var(--z-nav)' }}
+          style={{ backgroundColor: SIDE_SOLID, zIndex: 'var(--z-nav)' }}
           aria-label="Mostrar barra lateral"
           title="Mostrar barra"
         >
@@ -270,7 +261,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
       {/* Mobile top bar */}
       <header
         className="md:hidden fixed top-0 inset-x-0 h-14 flex items-center justify-between px-4 border-b border-white/10"
-        style={{ backgroundColor: sidebarBase, zIndex: 'var(--z-nav)' }}
+        style={{ backgroundColor: SIDE_SOLID, zIndex: 'var(--z-nav)' }}
       >
         <Logo height={32} />
         <button
