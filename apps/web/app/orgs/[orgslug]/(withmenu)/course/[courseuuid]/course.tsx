@@ -12,11 +12,9 @@ import {
 } from '@services/media/media'
 import { ArrowRight, Backpack, Check, File, StickyNote, Video, Square, Image as ImageIcon, Layers, BookCopy, Lock } from 'lucide-react'
 import { useOrg } from '@components/Contexts/OrgContext'
-import { CourseProvider } from '@components/Contexts/CourseContext'
 import { useMediaQuery } from 'usehooks-ts'
 import CoursesActions from '@components/Objects/Courses/CourseActions/CoursesActions'
 import CourseActionsMobile from '@components/Objects/Courses/CourseActions/CourseActionsMobile'
-import CourseAuthors from '@components/Objects/Courses/CourseAuthors/CourseAuthors'
 import { Breadcrumbs } from '@components/Objects/Breadcrumbs/Breadcrumbs'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -475,13 +473,6 @@ const CourseClient = (props: any) => {
               <div className='course_metadata_right w-full md:w-1/4 space-y-4'>
                 {/* Actions Box */}
                 <CoursesActions courseuuid={courseuuid} orgslug={orgslug} course={course} trailData={trailData} />
-                
-                {/* Authors & Updates Box */}
-                <div className="bg-white shadow-md shadow-gray-300/25 outline outline-1 outline-neutral-200/40 rounded-lg overflow-hidden p-4">
-                  <CourseProvider courseuuid={course.course_uuid}>
-                    <CourseAuthors authors={course.authors} />
-                  </CourseProvider>
-                </div>
               </div>
             </div>
 
