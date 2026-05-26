@@ -2,7 +2,8 @@
 import CreateCourseModal from '@components/Objects/Modals/Course/Create/CreateCourse'
 import Modal from '@components/Objects/StyledElements/Modal/Modal'
 import React, { useState, useMemo, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { getUriWithOrg } from '@services/config/config'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import TypeOfContentTitle from '@components/Objects/StyledElements/Titles/TypeOfContentTitle'
 import AuthenticatedClientElement from '@components/Security/AuthenticatedClientElement'
@@ -36,8 +37,20 @@ function Courses(props: CourseProps) {
   const access_token = session?.data?.tokens?.access_token
   const currentPlan = usePlan()
   const { data: coursesData, isLoading: coursesLoading } = useCourses(orgslug)
+  const router = useRouter()
 
   const allCourses = coursesData || []
+
+  // With a single course, "Formación" opens it directly instead of a 1-item
+  // catalog. (Admins can still reach the create flow via /courses?new.)
+  const redirectingToSingle = !coursesLoading && allCourses.length === 1 && !isCreatingCourse
+  useEffect(() => {
+    if (!redirectingToSingle) return
+    const cleanUuid = allCourses[0]?.course_uuid?.replace('course_', '')
+    if (cleanUuid) {
+      router.replace(getUriWithOrg(orgslug, '') + `/course/${cleanUuid}`)
+    }
+  }, [redirectingToSingle, allCourses, orgslug, router])
 
   // Usergroup filter — only shown on personal/family plans
   const usergroupsAvailable = currentPlan === 'personal' || currentPlan === 'family'
@@ -164,7 +177,7 @@ function Courses(props: CourseProps) {
     setNewCourseModal(false)
   }
 
-  if (coursesLoading && !coursesData) {
+  if ((coursesLoading && !coursesData) || redirectingToSingle) {
     return (
       <div className="w-full animate-pulse">
         <GeneralWrapperStyled>
