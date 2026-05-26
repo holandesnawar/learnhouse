@@ -7,7 +7,6 @@ import { getOrgLogoMediaDirectory, getOrgAuthBackgroundMediaDirectory } from '@s
 import { getUriWithOrg } from '@services/config/config'
 import { cn } from '@/lib/utils'
 import { isOSSMode } from '@services/config/config'
-import { usePlan } from '@components/Hooks/usePlan'
 
 interface AuthBrandingPanelProps {
   org: any
@@ -28,16 +27,12 @@ export default function AuthBrandingPanel({ org, welcomeText }: AuthBrandingPane
   const UNSPLASH_UTM = '?utm_source=LearnHouse&utm_medium=referral'
   const withUtm = (url: string) => (url ? `${url}${UNSPLASH_UTM}` : '')
 
-  // Check if org has enterprise plan - hide LearnHouse branding for enterprise users
-  // In OSS mode, always show branding regardless of plan
-  const plan = usePlan()
-  const isEnterprise = plan === 'enterprise'
-
   const getBackgroundStyle = (): React.CSSProperties => {
     if (background_type === 'gradient' || !background_image) {
       // Keep the original black gradient
       return {
-        background: 'linear-gradient(041.61deg, #202020 7.15%, #000000 90.96%)',
+        background:
+          'radial-gradient(120% 80% at 50% 0%, rgba(11,109,240,0.28) 0%, rgba(11,109,240,0) 55%), linear-gradient(168deg, #152a86 0%, #0a1656 100%)',
       }
     }
     if (background_type === 'custom' && background_image) {
@@ -74,24 +69,6 @@ export default function AuthBrandingPanel({ org, welcomeText }: AuthBrandingPane
 
       {/* Content */}
       <div className="relative z-10 flex flex-col h-full p-10">
-        {/* Top bar with LearnHouse lrn.svg logo - hidden for enterprise users */}
-        {!isEnterprise && (
-          <div className="login-topbar">
-            <Link prefetch href="https://learnhouse.app" target="_blank">
-              <img
-                src="/lrn.svg"
-                alt="LearnHouse"
-                width={30}
-                height={30}
-                className={cn(
-                  "transition-opacity hover:opacity-100",
-                  text_color === 'light' ? "opacity-60 invert" : "opacity-40"
-                )}
-              />
-            </Link>
-          </div>
-        )}
-
         {/* Content - vertically and horizontally centered */}
         <div className="flex-1 flex items-center justify-center">
           <div className={cn(
