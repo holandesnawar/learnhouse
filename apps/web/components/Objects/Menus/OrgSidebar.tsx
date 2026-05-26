@@ -14,6 +14,7 @@ import { DASHBOARD_MENU_ITEMS, DashboardMenuItem } from '@/lib/dashboard-menu-it
 import { isFeatureAvailable } from '@services/plans/plans'
 import {
   Books,
+  House,
   SquaresFour,
   ChatsCircle,
   Headphones,
@@ -122,6 +123,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   if (pathname?.includes('/activity/') && isFocusMode) return null
 
   const navItems: NavItem[] = [
+    { key: 'home', href: '/', label: 'Inicio', icon: <House size={20} weight="fill" />, show: true },
     { key: 'courses', href: '/courses', label: t('courses.courses'), icon: <Books size={20} weight="fill" />, show: isEnabled('courses') },
     { key: 'collections', href: '/collections', label: t('collections.collections'), icon: <SquaresFour size={20} weight="fill" />, show: isEnabled('collections') },
     { key: 'podcasts', href: '/podcasts', label: t('podcasts.podcasts'), icon: <Headphones size={20} weight="fill" />, show: isEnabled('podcasts') },
@@ -144,7 +146,8 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   })
 
   const isActive = (href: string) => {
-    if (!pathname || href === '/') return false
+    if (!pathname) return false
+    if (href === '/') return pathname === '/' || pathname === getUriWithOrg(orgslug, '/')
     return pathname.includes(href)
   }
 
