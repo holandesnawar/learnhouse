@@ -355,14 +355,6 @@ const LoginClient = (props: LoginClientProps) => {
               </Form.Submit>
             </div>
           </FormLayout>
-
-          {/* Sign Up Link */}
-          <p className="text-center text-white/60 text-sm mt-6">
-            {t('auth.no_account')}{' '}
-            <Link href="/signup" className="font-semibold text-white hover:underline">
-              {t('auth.sign_up')}
-            </Link>
-          </p>
         </div>
     </div>
   )
