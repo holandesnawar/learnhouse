@@ -79,30 +79,32 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
         </div>
       )}
 
-      {/* All courses */}
-      <div className="mb-6">
-        <h2 className="text-lg font-bold text-gray-900 mb-4">
-          {runs.length > 0 ? 'Todos los cursos' : 'Tus cursos'}
-        </h2>
-        {courseList.length === 0 ? (
-          <div className="flex flex-col justify-center items-center py-12 px-4 border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/30">
-            <div className="p-4 bg-white rounded-full nice-shadow mb-4">
-              <BookOpen className="w-8 h-8 text-gray-300" strokeWidth={1.5} />
-            </div>
-            <p className="text-md text-gray-400 text-center max-w-xs">
-              Aún no hay cursos disponibles.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {courseList.map((course: any) => (
-              <div key={course.course_uuid} className="flex flex-col">
-                <CourseThumbnail course={course} orgslug={orgslug} />
+      {/* Courses — only shown to learners who haven't started yet, so they
+          can begin. Once a course is in progress, "Continúa donde lo dejaste"
+          covers it and we don't repeat the (currently single) course list. */}
+      {runs.length === 0 && (
+        <div className="mb-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Tus cursos</h2>
+          {courseList.length === 0 ? (
+            <div className="flex flex-col justify-center items-center py-12 px-4 border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/30">
+              <div className="p-4 bg-white rounded-full nice-shadow mb-4">
+                <BookOpen className="w-8 h-8 text-gray-300" strokeWidth={1.5} />
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+              <p className="text-md text-gray-400 text-center max-w-xs">
+                Aún no hay cursos disponibles.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {courseList.map((course: any) => (
+                <div key={course.course_uuid} className="flex flex-col">
+                  <CourseThumbnail course={course} orgslug={orgslug} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </GeneralWrapperStyled>
   )
 }

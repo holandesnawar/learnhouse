@@ -71,12 +71,12 @@ export default function RoadmapSection({ canEdit }: { canEdit: boolean }) {
         <div className="space-y-5">
           {draft.weeks.map((week, wi) => (
             <div key={wi} className="rounded-lg border border-gray-200 p-4 space-y-3">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <input
                   value={week.title}
                   onChange={(e) => setDraft((d) => ({ ...d, weeks: d.weeks.map((w, i) => (i === wi ? { ...w, title: e.target.value } : w)) }))}
                   placeholder={`Semana ${wi + 1}`}
-                  className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-[#025dc7]/30"
+                  className="flex-1 min-w-[150px] rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-[#025dc7]/30"
                 />
                 <label className="flex items-center gap-1.5 text-xs text-gray-600 whitespace-nowrap cursor-pointer">
                   <input type="radio" name="current-week" checked={draft.current === wi} onChange={() => setDraft((d) => ({ ...d, current: wi }))} />
