@@ -31,6 +31,13 @@ function VideoActivity({ activity, course, orgUuid }: VideoActivityProps) {
   const org = useOrg() as any
   const resolvedOrgUuid = orgUuid || org?.org_uuid
   const [videoId, setVideoId] = React.useState('')
+  // Real aspect ratio reported by the player once metadata loads. Portrait
+  // clips (ratio < 1) are capped by height so they stay compact.
+  const [ar, setAr] = React.useState<number | null>(null)
+  const isPortrait = ar !== null && ar < 1
+  const hostedFrameStyle: React.CSSProperties = isPortrait
+    ? { width: '100%', maxWidth: `calc(58vh * ${ar})`, maxHeight: '58vh' }
+    : { width: '100%', maxWidth: '900px' }
 
   React.useEffect(() => {
     if (activity?.content?.uri) {
@@ -54,8 +61,8 @@ function VideoActivity({ activity, course, orgUuid }: VideoActivityProps) {
       {activity && (
         <>
           {activity.activity_sub_type === 'SUBTYPE_VIDEO_HOSTED' && (
-            <div className="my-0 sm:my-3 md:my-5 w-full">
-              <div className="relative w-full aspect-video max-h-[52vh] max-w-[92vh] mx-auto sm:rounded-lg overflow-hidden ring-0 sm:ring-1 sm:ring-gray-200/10 sm:dark:ring-gray-700/20 shadow-none">
+            <div className="my-0 sm:my-3 md:my-5 w-full flex justify-start">
+              <div className="relative sm:rounded-lg overflow-hidden" style={hostedFrameStyle}>
                 {(() => {
                   const src = getVideoSrc()
                   return src ? (
@@ -63,6 +70,7 @@ function VideoActivity({ activity, course, orgUuid }: VideoActivityProps) {
                       key={activity.activity_uuid}
                       src={src}
                       details={activity.details}
+                      onAspectRatio={setAr}
                     />
                   ) : null
                 })()}
@@ -70,8 +78,8 @@ function VideoActivity({ activity, course, orgUuid }: VideoActivityProps) {
             </div>
           )}
           {activity.activity_sub_type === 'SUBTYPE_VIDEO_YOUTUBE' && (
-            <div className="my-0 sm:my-3 md:my-5 w-full">
-              <div className="relative w-full aspect-video max-h-[52vh] max-w-[92vh] mx-auto sm:rounded-lg overflow-hidden ring-0 sm:ring-1 sm:ring-gray-200/10 sm:dark:ring-gray-700/20 shadow-none">
+            <div className="my-0 sm:my-3 md:my-5 w-full flex justify-start">
+              <div className="relative w-full max-w-[900px] aspect-video max-h-[56vh] sm:rounded-lg overflow-hidden ring-0 sm:ring-1 sm:ring-gray-200/10 sm:dark:ring-gray-700/20 shadow-none">
                 <YouTube
                   className="w-full h-full"
                   opts={{

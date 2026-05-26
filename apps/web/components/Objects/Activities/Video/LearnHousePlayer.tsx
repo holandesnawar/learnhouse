@@ -25,6 +25,7 @@ interface LearnHousePlayerProps {
   details?: VideoDetails
   onReady?: () => void
   poster?: string
+  onAspectRatio?: (ratio: number) => void
 }
 
 function formatTime(seconds: number): string {
@@ -45,10 +46,12 @@ const LearnHousePlayer: React.FC<LearnHousePlayerProps> = ({
   details,
   onReady,
   poster,
+  onAspectRatio,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const hideControlsTimeout = useRef<NodeJS.Timeout | null>(null)
+  const [aspectRatio, setAspectRatio] = useState<string>('16 / 9')
 
   const [isReady, setIsReady] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -152,6 +155,14 @@ const LearnHousePlayer: React.FC<LearnHousePlayerProps> = ({
     setIsReady(true)
     setIsBuffering(false)
 
+    // Match the player box to the video's real aspect ratio so portrait
+    // clips don't sit inside a wide black 16:9 letterbox.
+    if (video.videoWidth && video.videoHeight) {
+      const ratio = video.videoWidth / video.videoHeight
+      setAspectRatio(String(ratio))
+      onAspectRatio?.(ratio)
+    }
+
     // Seek to start time if specified
     if (details?.startTime) {
       video.currentTime = details.startTime
@@ -231,7 +242,8 @@ const LearnHousePlayer: React.FC<LearnHousePlayerProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`learnhouse-player relative w-full aspect-video overflow-hidden bg-black ${
+      style={{ aspectRatio }}
+      className={`learnhouse-player relative w-full overflow-hidden bg-black ${
         isMobile ? 'rounded-none' : 'rounded-xl shadow-md shadow-gray-300/25 outline outline-1 outline-neutral-200/40'
       }`}
       onMouseMove={!isMobile ? resetHideControlsTimer : undefined}
