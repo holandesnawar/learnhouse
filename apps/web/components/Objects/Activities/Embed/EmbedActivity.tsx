@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { WarningCircle, Globe, FloppyDisk, SpinnerGap } from '@phosphor-icons/react'
 import { updateActivity } from '@services/courses/activities'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
@@ -62,6 +62,25 @@ function EmbedActivity({ activity, editable = false, style }: EmbedActivityProps
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(!embedUrl)
 
+  // When the embedded page reports its own content height (via postMessage),
+  // we size the iframe to exactly that height so there's no inner scrollbar
+  // (no "double scroll"). Pages that don't report a height keep the 16:9 box.
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const [autoHeight, setAutoHeight] = useState<number | null>(null)
+
+  useEffect(() => {
+    function onMessage(e: MessageEvent) {
+      if (e.source !== iframeRef.current?.contentWindow) return
+      const data = e.data
+      const h = data?.type === 'lh-embed-height' ? data.height : undefined
+      if (typeof h === 'number' && isFinite(h)) {
+        setAutoHeight(Math.min(Math.max(Math.round(h), 200), 6000))
+      }
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [])
+
   const handleSaveUrl = async () => {
     if (!editUrl.trim()) return
     setSaving(true)
@@ -92,7 +111,7 @@ function EmbedActivity({ activity, editable = false, style }: EmbedActivityProps
   }
 
   return (
-    <div className="w-full px-6 py-6" style={style}>
+    <div className={editable ? 'w-full px-6 py-6' : 'w-full'} style={style}>
       {editable && (
         <div className="mb-6 flex items-center gap-3">
           <Globe size={20} weight="duotone" className="text-cyan-400 flex-shrink-0" />
@@ -119,8 +138,12 @@ function EmbedActivity({ activity, editable = false, style }: EmbedActivityProps
       )}
 
       {displayUrl ? (
-        <div className="w-full rounded-xl overflow-hidden nice-shadow" style={{ aspectRatio: '16/9' }}>
+        <div
+          className="w-full rounded-xl overflow-hidden"
+          style={autoHeight ? { height: autoHeight } : { aspectRatio: '16/9' }}
+        >
           <iframe
+            ref={iframeRef}
             src={toEmbedUrl(displayUrl)}
             className="w-full h-full border-0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"

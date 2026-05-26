@@ -1,13 +1,14 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import { Breadcrumbs } from '@components/Objects/Breadcrumbs/Breadcrumbs'
 import { CommunitySidebar } from '@components/Objects/Communities/CommunitySidebar'
-import { MessageCircle } from 'lucide-react'
+import { MessageCircle, MessagesSquare, LayoutList } from 'lucide-react'
 import { getUriWithOrg } from '@services/config/config'
 import { CommunityActionsMobile } from '@components/Objects/Communities/CommunityActionsMobile'
 import { DiscussionList } from '@components/Objects/Communities/DiscussionList'
+import { ChannelChat } from '@components/Objects/Communities/ChannelChat'
 import { CreateDiscussionModal } from '@components/Objects/Modals/Communities/CreateDiscussionModal'
 import { Community } from '@services/communities/communities'
 import { DiscussionWithAuthor } from '@services/communities/discussions'
@@ -28,6 +29,17 @@ const CommunityClient = ({
 }: CommunityClientProps) => {
   const [isCreateDiscussionModalOpen, setIsCreateDiscussionModalOpen] = useState(false)
   const isMobile = useMediaQuery('(max-width: 768px)')
+
+  const viewKey = `lh-community-view-${community.community_uuid}`
+  const [view, setView] = useState<'chat' | 'forum'>('chat')
+  useEffect(() => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem(viewKey) : null
+    if (saved === 'chat' || saved === 'forum') setView(saved)
+  }, [viewKey])
+  const changeView = (v: 'chat' | 'forum') => {
+    setView(v)
+    if (typeof window !== 'undefined') localStorage.setItem(viewKey, v)
+  }
 
   return (
     <>
@@ -66,14 +78,43 @@ const CommunityClient = ({
               )}
             </div>
 
-            {/* Discussions List */}
+            {/* Chat / Forum toggle */}
+            <div className="mb-4 inline-flex items-center gap-1 p-1 bg-white nice-shadow rounded-lg">
+              <button
+                onClick={() => changeView('chat')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  view === 'chat' ? 'bg-[#025dc7] text-white' : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <MessagesSquare size={15} />
+                Chat
+              </button>
+              <button
+                onClick={() => changeView('forum')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  view === 'forum' ? 'bg-[#025dc7] text-white' : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <LayoutList size={15} />
+                Foro
+              </button>
+            </div>
+
+            {/* Content */}
             <div className="bg-white nice-shadow rounded-lg overflow-hidden">
-              <DiscussionList
-                communityUuid={community.community_uuid}
-                orgslug={orgslug}
-                onCreateClick={() => setIsCreateDiscussionModalOpen(true)}
-                initialDiscussions={initialDiscussions}
-              />
+              {view === 'chat' ? (
+                <ChannelChat
+                  communityUuid={community.community_uuid}
+                  channelName={community.name}
+                />
+              ) : (
+                <DiscussionList
+                  communityUuid={community.community_uuid}
+                  orgslug={orgslug}
+                  onCreateClick={() => setIsCreateDiscussionModalOpen(true)}
+                  initialDiscussions={initialDiscussions}
+                />
+              )}
             </div>
           </div>
         </div>
