@@ -356,25 +356,6 @@ const LoginClient = (props: LoginClientProps) => {
             </div>
           </FormLayout>
 
-          {/* Secondary sign-in options */}
-          <button
-            onClick={handleGoogleSignIn}
-            className="mt-4 w-full py-2.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/15 text-white/90 text-sm font-medium flex items-center justify-center gap-2 transition-colors"
-          >
-            <img src="https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg" alt="" className="w-4 h-4 bg-white rounded-full p-0.5" />
-            <span>{t('auth.sign_in_with_google')}</span>
-          </button>
-          {ssoEnabled && (
-            <button
-              onClick={handleSSOLogin}
-              disabled={ssoLoading}
-              className="mt-2 w-full py-2.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/15 text-white/90 text-sm font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-            >
-              <Shield size={16} />
-              <span>{ssoLoading ? t('common.loading') : t('auth.sign_in_with_sso')}</span>
-            </button>
-          )}
-
           {/* Sign Up Link */}
           <p className="text-center text-white/60 text-sm mt-6">
             {t('auth.no_account')}{' '}
