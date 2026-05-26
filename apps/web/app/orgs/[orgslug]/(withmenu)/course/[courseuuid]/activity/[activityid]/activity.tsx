@@ -30,6 +30,8 @@ import ToolTip from '@components/Objects/StyledElements/Tooltip/Tooltip'
 import ActivityChapterDropdown from '@components/Pages/Activity/ActivityChapterDropdown'
 import ActivityShareDropdown from '@components/Pages/Activity/ActivityShareDropdown'
 import CourseLessonsSidebar, { MobileCourseLessons } from '@components/Pages/Activity/CourseLessonsSidebar'
+import LessonExtras from '@components/Pages/Activity/LessonExtras'
+import useAdminStatus from '@components/Hooks/useAdminStatus'
 import CourseEndView from '@components/Pages/Activity/CourseEndView'
 import { motion, AnimatePresence } from 'motion/react'
 import { Breadcrumbs } from '@components/Objects/Breadcrumbs/Breadcrumbs'
@@ -244,6 +246,8 @@ function ActivityClient(props: ActivityClientProps) {
   const [isFocusMode, setIsFocusMode] = React.useState(false);
   const isInitialRender = useRef(true);
   const { contributorStatus } = useContributorStatus(courseuuid);
+  const { isAdmin } = useAdminStatus() as any;
+  const canEditLesson = !!isAdmin || contributorStatus === 'ACTIVE';
   const router = useRouter();
 
   const { track } = useAnalytics()
@@ -853,16 +857,25 @@ function ActivityClient(props: ActivityClientProps) {
                                   </button>
                                   {activityContent}
                                 </div>
-                                {/* Description below the content */}
-                                {course.description && (
-                                  <div className="bg-white nice-shadow rounded-lg p-4 sm:p-6">
-                                    <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-2 first-letter:uppercase">
-                                      {displayName}
-                                    </h2>
-                                    <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
-                                      {course.description}
-                                    </p>
-                                  </div>
+                                {/* Per-lesson description + tasks + Consultas (video lessons) */}
+                                {activity.activity_type === 'TYPE_VIDEO' ? (
+                                  <LessonExtras
+                                    activity={activity}
+                                    activityid={activityid}
+                                    orgslug={orgslug}
+                                    canEdit={canEditLesson}
+                                  />
+                                ) : (
+                                  course.description && (
+                                    <div className="bg-white nice-shadow rounded-lg p-4 sm:p-6">
+                                      <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-2 first-letter:uppercase">
+                                        {displayName}
+                                      </h2>
+                                      <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+                                        {course.description}
+                                      </p>
+                                    </div>
+                                  )
                                 )}
                                 {/* Mobile lessons (collapsible) */}
                                 <MobileCourseLessons
