@@ -787,25 +787,6 @@ function ActivityClient(props: ActivityClientProps) {
                               </h1>
                             </div>
                           </div>
-                          <div className="hidden sm:flex space-x-2 items-center relative shrink-0" style={{ zIndex: 'var(--z-interactive)' }}>
-                            {activity && activity.published == true && activity.content.paid_access != false && (
-                              <AuthenticatedClientElement checkMethod="authentication">
-                                {activity.activity_type != 'TYPE_ASSIGNMENT' && (
-                                  <>
-                                    {contributorStatus === 'ACTIVE' && activity.activity_type == 'TYPE_DYNAMIC' && (
-                                      <Link
-                                        href={getUriWithOrg(orgslug, '') + `/course/${courseuuid}/activity/${activityid}/edit`}
-                                        className="bg-emerald-600 rounded-full px-5 drop-shadow-md flex items-center space-x-2 p-2.5 text-white hover:cursor-pointer transition delay-150 duration-300 ease-in-out"
-                                      >
-                                        <Edit2 size={17} />
-                                        <span className="text-xs font-bold">{t('courses.contribute')}</span>
-                                      </Link>
-                                    )}
-                                  </>
-                                )}
-                              </AuthenticatedClientElement>
-                            )}
-                          </div>
                         </div>
 
                         <ActivityIndicators
