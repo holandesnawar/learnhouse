@@ -844,7 +844,13 @@ function ActivityClient(props: ActivityClientProps) {
                           ) : (
                             <div className="flex gap-6">
                               <div className="flex-1 min-w-0 space-y-4">
-                                <div className={`${activity.activity_type === 'TYPE_SCORM' ? 'rounded-xl overflow-hidden' : 'p-3 sm:p-7 rounded-lg'} ${bgColor} relative isolate`} style={{ zIndex: 'var(--z-base)' }}>
+                                <div className={`${
+                                  activity.activity_type === 'TYPE_SCORM'
+                                    ? 'rounded-xl overflow-hidden'
+                                    : activity.activity_type === 'TYPE_VIDEO'
+                                    ? 'rounded-lg nice-shadow'
+                                    : 'p-3 sm:p-7 rounded-lg'
+                                } ${activity.activity_type === 'TYPE_VIDEO' ? '' : bgColor} relative isolate`} style={{ zIndex: 'var(--z-base)' }}>
                                   <button
                                     onClick={() => setIsFocusMode(true)}
                                     className={`absolute ${activity.activity_type === 'TYPE_SCORM' ? 'top-2 right-2' : 'top-4 right-4'} hidden sm:flex bg-white/80 hover:bg-white nice-shadow p-2 rounded-full cursor-pointer transition-all duration-200 group overflow-hidden pointer-events-auto`}

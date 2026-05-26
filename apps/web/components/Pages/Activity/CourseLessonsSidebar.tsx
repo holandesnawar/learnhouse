@@ -36,7 +36,7 @@ function useProgress(course: any, trailData: any) {
   let total = 0
   let done = 0
   course?.chapters?.forEach((ch: any) =>
-    ch.activities.forEach((a: any) => {
+    (ch?.activities ?? []).forEach((a: any) => {
       total++
       if (run?.steps?.find((s: any) => s.activity_id === a.id && s.complete === true)) done++
     })
@@ -51,7 +51,7 @@ function LessonsList({ course, currentActivityId, orgslug, trailData }: CourseLe
 
   return (
     <div className="py-1">
-      {course.chapters.map((chapter: any, index: number) => (
+      {(course.chapters ?? []).map((chapter: any, index: number) => (
         <div key={chapter.id} className="mb-1">
           <div className="px-4 py-1.5 flex items-center gap-1.5 bg-gray-50/70 border-y border-gray-100">
             <div className="bg-gray-400 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shrink-0">
@@ -60,7 +60,7 @@ function LessonsList({ course, currentActivityId, orgslug, trailData }: CourseLe
             <span className="text-xs font-semibold text-gray-600 truncate">{chapter.name}</span>
           </div>
           <div className="py-0.5">
-            {chapter.activities.map((activity: any) => {
+            {(chapter.activities ?? []).map((activity: any) => {
               const cleanUuid = activity.activity_uuid?.replace('activity_', '')
               const isCurrent = cleanUuid === cleanCurrent
               const isComplete = run?.steps?.find(
