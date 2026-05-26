@@ -783,28 +783,6 @@ function ActivityClient(props: ActivityClientProps) {
                               </h1>
                             </div>
                           </div>
-                        </div>
-
-                        <ActivityIndicators
-                          course_uuid={courseuuid}
-                          current_activity={activityid}
-                          orgslug={orgslug}
-                          course={course}
-                          enableNavigation={true}
-                          trailData={trailData}
-                        />
-
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center w-full gap-3">
-                          <div className="flex flex-1 items-center space-x-3 min-w-0">
-                            <div className="flex flex-col -space-y-1 min-w-0">
-                              <p className="font-bold text-gray-700 text-xs sm:text-md">
-                                {getChapterNameByActivityId(course, activity?.id) ?? chapterNameFromCourse}
-                              </p>
-                              <h1 className="font-bold text-gray-950 text-base sm:text-2xl first-letter:uppercase">
-                                {displayName}
-                              </h1>
-                            </div>
-                          </div>
                           <div className="hidden sm:flex space-x-2 items-center relative shrink-0" style={{ zIndex: 'var(--z-interactive)' }}>
                             {activity && activity.published == true && activity.content.paid_access != false && (
                               <AuthenticatedClientElement checkMethod="authentication">
@@ -825,6 +803,15 @@ function ActivityClient(props: ActivityClientProps) {
                             )}
                           </div>
                         </div>
+
+                        <ActivityIndicators
+                          course_uuid={courseuuid}
+                          current_activity={activityid}
+                          orgslug={orgslug}
+                          course={course}
+                          enableNavigation={true}
+                          trailData={trailData}
+                        />
                       </div>
 
                       {activityLoading || !activity ? (

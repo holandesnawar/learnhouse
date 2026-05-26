@@ -263,7 +263,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
       {/* Mobile top bar */}
       <header
         className="md:hidden fixed top-0 inset-x-0 h-14 flex items-center justify-between px-4 border-b border-white/10"
-        style={{ backgroundColor: SIDE_SOLID, zIndex: 'var(--z-nav)' }}
+        style={{ ...surfaceStyle, zIndex: 'var(--z-nav)' }}
       >
         <Logo height={32} />
         <button
