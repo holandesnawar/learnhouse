@@ -171,7 +171,6 @@ export function ChannelChat({
                         predefined_avatar={m.author?.avatar_image ? undefined : 'empty'}
                         showProfilePopup={true}
                         userId={m.author?.id?.toString()}
-                        border="border-0"
                       />
                     )}
                   </div>
