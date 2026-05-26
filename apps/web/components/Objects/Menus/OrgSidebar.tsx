@@ -33,10 +33,10 @@ import {
 // El #1D0084 de marca tira a violeta en plano; aquí usamos un azul más
 // limpio + glow azul (#0b6df0) como las secciones oscuras de holandesnawar.com.
 // Si hay que afinar el tono, se cambian estos valores.
-const SIDE_TOP = '#1d4ed8' // azul real de marca (arriba) — más claro, como holandesnawar.com
-const SIDE_BOTTOM = '#122e86' // azul profundo (abajo), no casi negro
-const SIDE_SOLID = '#1a44bf' // color sólido para superficies finas (barra móvil, botón)
-const BLUE_GLOW = 'rgba(96,165,250,0.42)' // glow azul claro
+const SIDE_TOP = '#1c3f9e' // azul real de marca (arriba) — medio, con fade visible
+const SIDE_BOTTOM = '#0e2068' // azul profundo (abajo) para que se note el degradado
+const SIDE_SOLID = '#173a96' // color sólido para superficies finas (barra móvil, botón)
+const BLUE_GLOW = 'rgba(96,165,250,0.50)' // glow azul claro (da profundidad al fade)
 const ACTIVE_BG = 'rgba(147,197,253,0.26)' // azul claro (ítem activo)
 const THEME_DARK = SIDE_TOP // color oscuro que pasamos a subcomponentes para que rendericen texto blanco
 

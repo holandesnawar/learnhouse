@@ -32,7 +32,7 @@ export default function AuthBrandingPanel({ org, welcomeText }: AuthBrandingPane
       // Keep the original black gradient
       return {
         background:
-          'radial-gradient(120% 85% at 50% 0%, rgba(96,165,250,0.45) 0%, rgba(96,165,250,0) 55%), linear-gradient(165deg, #1d4ed8 0%, #122e86 100%)',
+          'radial-gradient(100% 75% at 50% 0%, rgba(96,165,250,0.50) 0%, rgba(96,165,250,0) 58%), linear-gradient(180deg, #1c3f9e 0%, #0e2068 100%)',
       }
     }
     if (background_type === 'custom' && background_image) {

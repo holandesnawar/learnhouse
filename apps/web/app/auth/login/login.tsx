@@ -205,7 +205,7 @@ const LoginClient = (props: LoginClientProps) => {
       className="relative min-h-screen w-full flex flex-col items-center justify-center px-4 py-12"
       style={{
         background:
-          'radial-gradient(120% 85% at 50% 0%, rgba(96,165,250,0.45) 0%, rgba(96,165,250,0) 55%), linear-gradient(165deg, #1d4ed8 0%, #122e86 100%)',
+          'radial-gradient(100% 75% at 50% 0%, rgba(96,165,250,0.50) 0%, rgba(96,165,250,0) 58%), linear-gradient(180deg, #1c3f9e 0%, #0e2068 100%)',
       }}
     >
         {/* Error Top Bar */}
