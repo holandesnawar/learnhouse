@@ -9,6 +9,7 @@ import { useTrail } from '@/hooks/queries/useTrail'
 import { useCourses } from '@/hooks/queries/useCourses'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import RoadmapSection from '@components/Pages/Home/RoadmapSection'
+import ExerciseProgressCard from '@components/Pages/Home/ExerciseProgressCard'
 import { getUriWithOrg } from '@services/config/config'
 import Link from 'next/link'
 import { BookOpen, HelpCircle, ArrowRight } from 'lucide-react'
@@ -63,6 +64,9 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
           Ir a Consultas <ArrowRight size={16} />
         </Link>
       </div>
+
+      {/* Weekly exercise progress */}
+      <ExerciseProgressCard orgslug={orgslug} />
 
       {/* Weekly roadmap */}
       <RoadmapSection canEdit={!!isAdmin} />

@@ -105,3 +105,31 @@ export async function saveItemResult(
     }),
   })
 }
+
+export interface WeekProgress {
+  practiced: number
+  correct: number
+  toReview: number
+}
+
+// Progress made since the start of the current week (Monday).
+export async function getWeekProgress(userUuid: string): Promise<WeekProgress> {
+  const empty = { practiced: 0, correct: 0, toReview: 0 }
+  if (!userUuid || !exercisesEnabled) return empty
+  const now = new Date()
+  const day = (now.getDay() + 6) % 7 // 0 = Monday
+  const monday = new Date(now)
+  monday.setDate(now.getDate() - day)
+  monday.setHours(0, 0, 0, 0)
+  try {
+    const rows: { correct: boolean }[] =
+      (await rest(
+        `student_progress?user_uuid=eq.${encodeURIComponent(userUuid)}&updated_at=gte.${monday.toISOString()}&select=correct`
+      )) || []
+    const correct = rows.filter((r) => r.correct).length
+    return { practiced: rows.length, correct, toReview: rows.length - correct }
+  } catch {
+    return empty
+  }
+}
+
