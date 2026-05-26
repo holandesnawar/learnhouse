@@ -7,6 +7,8 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useTrail } from '@/hooks/queries/useTrail'
 import { useCourses } from '@/hooks/queries/useCourses'
+import useAdminStatus from '@components/Hooks/useAdminStatus'
+import RoadmapSection from '@components/Pages/Home/RoadmapSection'
 import { getUriWithOrg } from '@services/config/config'
 import Link from 'next/link'
 import { BookOpen, HelpCircle, ArrowRight } from 'lucide-react'
@@ -16,6 +18,7 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
   const session = useLHSession() as any
   const { data: courses } = useCourses(orgslug)
   const { data: trailData } = useTrail(org?.id)
+  const { isAdmin } = useAdminStatus() as any
 
   const firstName: string =
     session?.data?.user?.first_name || session?.data?.user?.username || ''
@@ -55,6 +58,9 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
           Ir a Consultas <ArrowRight size={16} />
         </Link>
       </div>
+
+      {/* Weekly roadmap */}
+      <RoadmapSection canEdit={!!isAdmin} />
 
       {/* Continue / in-progress */}
       {runs.length > 0 && (

@@ -55,6 +55,7 @@ from src.services.orgs.orgs import (
     update_org_watermark_config,
     update_org_thumbnail,
     update_org_landing,
+    update_org_roadmap,
     upload_org_landing_content_service,
     update_org_auth_branding_config,
     upload_org_auth_background_service,
@@ -1244,6 +1245,30 @@ async def api_update_org_landing(
     Update organization landing object
     """
     return await update_org_landing(request, landing_object, org_id, current_user, db_session)
+
+
+@router.put(
+    "/{org_id}/roadmap",
+    summary="Update organization roadmap",
+    description="Update the organization's weekly roadmap object.",
+    responses={
+        200: {"description": "Roadmap updated."},
+        401: {"description": "Not authenticated"},
+        403: {"description": "Caller is not an organization administrator"},
+        404: {"description": "Organization not found"},
+    },
+)
+async def api_update_org_roadmap(
+    request: Request,
+    org_id: int,
+    roadmap_object: dict,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    """
+    Update organization roadmap object
+    """
+    return await update_org_roadmap(request, roadmap_object, org_id, current_user, db_session)
 
 
 @router.post(
