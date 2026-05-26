@@ -10,7 +10,6 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { HeaderProfileBox } from '@components/Security/HeaderProfileBox'
-import { SearchBar } from '@components/Objects/Search/SearchBar'
 import { DASHBOARD_MENU_ITEMS, DashboardMenuItem } from '@/lib/dashboard-menu-items'
 import { isFeatureAvailable } from '@services/plans/plans'
 import {
@@ -199,10 +198,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
           <CaretLeft size={18} weight="bold" />
         </button>
       </div>
-      <div className="px-3 pb-3">
-        <SearchBar orgslug={orgslug} className="w-full" primaryColor={THEME_DARK} />
-      </div>
-      <nav className="flex-1 overflow-y-auto px-3 space-y-1 pb-3">
+      <nav className="flex-1 overflow-y-auto px-3 space-y-1 pb-3 pt-1">
         {navItems.filter((i) => i.show).map((i) => (
           <NavLink key={i.key} item={i} />
         ))}

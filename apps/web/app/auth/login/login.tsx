@@ -26,6 +26,7 @@ const LoginClient = (props: LoginClientProps) => {
   const { t } = useTranslation()
   const { signIn } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
   const [ssoEnabled, setSsoEnabled] = useState(false)
   const [ssoLoading, setSsoLoading] = useState(false)
   const router = useRouter();
@@ -311,7 +312,16 @@ const LoginClient = (props: LoginClientProps) => {
                 </Form.Control>
               </FormField>
 
-              <div className="flex justify-end">
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-gray-300 text-[#025dc7] focus:ring-[#025dc7]/30 cursor-pointer"
+                  />
+                  Recuérdame
+                </label>
                 <Link
                   href="/forgot"
                   className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
@@ -323,7 +333,7 @@ const LoginClient = (props: LoginClientProps) => {
               <div className="pt-2">
                 <Form.Submit asChild>
                   <button className="w-full bg-[#025dc7] text-white font-semibold text-center py-2.5 rounded-lg hover:bg-[#0b6df0] transition-colors">
-                    {isSubmitting ? t('common.loading') : t('auth.login')}
+                    {isSubmitting ? t('common.loading') : 'Acceder'}
                   </button>
                 </Form.Submit>
               </div>
