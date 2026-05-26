@@ -292,7 +292,9 @@ const LoginClient = (props: LoginClientProps) => {
           </div>
 
           {/* Heading */}
-          <h1 className="text-3xl font-bold text-white">{t('auth.welcome_back')}</h1>
+          <h1 className="text-3xl font-bold text-white">
+            Bienvenid<span className="text-[#4da3ff]">@</span> de vuelta
+          </h1>
           <p className="text-white/70 mt-1.5 mb-8">{t('auth.enter_credentials')}</p>
 
           {/* Form */}

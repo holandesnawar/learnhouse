@@ -99,7 +99,7 @@ export default function LessonExtras({ activity, activityid, orgslug, canEdit }:
             <button
               onClick={save}
               disabled={saving}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#025dc7] text-white text-sm font-semibold hover:bg-[#0b6df0] disabled:opacity-60"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] text-[#0a1656] text-sm font-semibold hover:bg-[#6cb5ff] disabled:opacity-60"
             >
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />} Guardar
             </button>
@@ -150,7 +150,7 @@ export default function LessonExtras({ activity, activityid, orgslug, canEdit }:
           </div>
           <Link
             href={getUriWithOrg(orgslug, '/consultas')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#025dc7] text-white text-sm font-semibold hover:bg-[#0b6df0] transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] text-[#0a1656] text-sm font-semibold hover:bg-[#6cb5ff] transition-colors"
           >
             <HelpCircle size={16} /> Ir a Consultas
           </Link>

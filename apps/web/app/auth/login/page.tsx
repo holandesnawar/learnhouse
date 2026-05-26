@@ -1,6 +1,6 @@
 import { getOrganizationContextInfo } from '@services/organizations/orgs'
 import { getOrgSlug } from '@services/org/orgResolution'
-import { getOrgLogoMediaDirectory } from '@services/media/media'
+import { getOrgLogoMediaDirectory, getOrgFaviconMediaDirectory } from '@services/media/media'
 import LoginClient from './login'
 import { Metadata } from 'next'
 import OrgNotFound from '@components/Objects/StyledElements/Error/OrgNotFound'
@@ -22,7 +22,13 @@ export async function generateMetadata(): Promise<Metadata> {
     // Stale cookie or unknown org — fall back to generic title
   }
 
-  const favicon = org?.logo_image
+  // Match the platform favicon: configured favicon first, then the org logo.
+  const faviconImage =
+    org?.config?.config?.customization?.general?.favicon_image ||
+    org?.config?.config?.general?.favicon_image
+  const favicon = faviconImage
+    ? getOrgFaviconMediaDirectory(org.org_uuid, faviconImage)
+    : org?.logo_image
     ? getOrgLogoMediaDirectory(org.org_uuid, org.logo_image)
     : undefined
 

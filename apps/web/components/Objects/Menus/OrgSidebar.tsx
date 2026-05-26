@@ -127,7 +127,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const navItems: NavItem[] = [
     { key: 'home', href: '/', label: 'Inicio', icon: <House size={20} weight="fill" />, show: true },
     { key: 'courses', href: '/courses', label: 'Formación', icon: <Books size={20} weight="fill" />, show: isEnabled('courses') },
-    { key: 'calendario', href: '/calendario', label: 'Calendario', icon: <CalendarBlank size={20} weight="fill" />, show: true },
+    { key: 'calendario', href: '/calendario', label: 'Eventos', icon: <CalendarBlank size={20} weight="fill" />, show: true },
     { key: 'collections', href: '/collections', label: t('collections.collections'), icon: <SquaresFour size={20} weight="fill" />, show: isEnabled('collections') },
     { key: 'podcasts', href: '/podcasts', label: t('podcasts.podcasts'), icon: <Headphones size={20} weight="fill" />, show: isEnabled('podcasts') },
     { key: 'communities', href: '/communities', label: t('communities.title'), icon: <ChatsCircle size={20} weight="fill" />, show: isEnabled('communities') },

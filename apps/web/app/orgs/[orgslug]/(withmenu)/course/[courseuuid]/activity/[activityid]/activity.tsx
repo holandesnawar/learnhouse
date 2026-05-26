@@ -722,7 +722,7 @@ function ActivityClient(props: ActivityClientProps) {
                               onClick={() => navigateToActivity(nextActivity)}
                               className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-colors ${
                                 nextActivity
-                                  ? 'bg-[#025dc7] text-white hover:bg-[#0b6df0] cursor-pointer'
+                                  ? 'bg-[#4da3ff] text-[#0a1656] hover:bg-[#6cb5ff] cursor-pointer'
                                   : 'opacity-40 bg-gray-200 text-gray-400 cursor-not-allowed'
                               }`}
                               disabled={!nextActivity}
@@ -1244,9 +1244,9 @@ function NextActivityButton({ course, currentActivityId, orgslug }: { course: an
   return (
     <div
       onClick={navigateToActivity}
-      className="bg-[#025dc7] rounded-lg px-3 sm:px-4 nice-shadow flex flex-col p-2 sm:p-2.5 text-white hover:cursor-pointer hover:bg-[#0b6df0] transition-colors"
+      className="bg-[#4da3ff] rounded-lg px-3 sm:px-4 nice-shadow flex flex-col p-2 sm:p-2.5 text-[#0a1656] hover:cursor-pointer hover:bg-[#6cb5ff] transition-colors"
     >
-      <span className="text-[10px] font-bold text-blue-100 mb-1 uppercase">{t('common.next')}</span>
+      <span className="text-[10px] font-bold text-[#0a1656]/60 mb-1 uppercase">{t('common.next')}</span>
       <div className="flex items-center space-x-1">
         <span className="text-xs sm:text-sm font-semibold truncate max-w-[120px] sm:max-w-[200px]">{nextActivity.name}</span>
         <ChevronRight size={17} className="shrink-0" />

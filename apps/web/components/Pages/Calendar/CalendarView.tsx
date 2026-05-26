@@ -137,12 +137,12 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 pb-5">
         <div className="flex items-center gap-2">
           <CalendarDays size={24} className="text-[#025dc7]" />
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Calendario</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Eventos</h1>
         </div>
         {canEdit && (
           <button
             onClick={() => openNew()}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#025dc7] hover:bg-[#0b6df0] text-white text-sm font-semibold transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] text-sm font-semibold transition-colors"
           >
             <Plus size={16} /> Añadir evento
           </button>
@@ -349,7 +349,7 @@ function EventModal({
           )}
           <div className="flex items-center gap-2">
             <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100">Cancelar</button>
-            <button onClick={() => onSave(form)} disabled={saving} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#025dc7] text-white text-sm font-semibold hover:bg-[#0b6df0] disabled:opacity-60">
+            <button onClick={() => onSave(form)} disabled={saving} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] text-[#0a1656] text-sm font-semibold hover:bg-[#6cb5ff] disabled:opacity-60">
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />} Guardar
             </button>
           </div>

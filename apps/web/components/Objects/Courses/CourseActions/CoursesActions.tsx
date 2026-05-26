@@ -452,11 +452,10 @@ function CoursesActions({ courseuuid, orgslug, course, trailData }: CourseAction
           return (
             <Link
               href={getUriWithOrg(orgslug, '') + `/course/${cleanCourseUuid}/activity/${cleanUuid}`}
-              className="w-full py-3 rounded-lg nice-shadow font-semibold transition-colors flex items-center justify-center gap-2 cursor-pointer bg-[#025dc7] text-white hover:bg-[#0b6df0]"
+              className="w-full py-3 px-3 rounded-lg nice-shadow font-semibold text-sm leading-tight text-center transition-colors flex items-center justify-center gap-2 cursor-pointer bg-[#4da3ff] text-[#0a1656] hover:bg-[#6cb5ff]"
             >
-              <BookOpen className="w-5 h-5" />
+              <BookOpen className="w-4 h-4 shrink-0" />
               <span>Continuar donde lo dejaste</span>
-              <ArrowRight className="w-5 h-5" />
             </Link>
           )
         })()}
@@ -467,10 +466,10 @@ function CoursesActions({ courseuuid, orgslug, course, trailData }: CourseAction
             onClick={handleCourseAction}
             disabled={isActionLoading}
             aria-label={t('courses.start_course')}
-            className="w-full py-3 rounded-lg nice-shadow font-semibold transition-colors flex items-center justify-center gap-2 cursor-pointer bg-[#025dc7] text-white hover:bg-[#0b6df0] disabled:opacity-70"
+            className="w-full py-3 px-3 rounded-lg nice-shadow font-semibold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer bg-[#4da3ff] text-[#0a1656] hover:bg-[#6cb5ff] disabled:opacity-70"
           >
             {isActionLoading ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-[#0a1656] border-t-transparent rounded-full animate-spin" />
             ) : (
               renderActionButton('start')
             )}

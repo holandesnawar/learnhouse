@@ -111,7 +111,7 @@ export default function RoadmapSection({ canEdit }: { canEdit: boolean }) {
           </button>
         </div>
         <div className="flex items-center gap-2 pt-1">
-          <button onClick={save} disabled={saving} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#025dc7] text-white text-sm font-semibold hover:bg-[#0b6df0] disabled:opacity-60">
+          <button onClick={save} disabled={saving} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] text-[#0a1656] text-sm font-semibold hover:bg-[#6cb5ff] disabled:opacity-60">
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />} Guardar
           </button>
           <button onClick={() => setEditing(false)} className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100">Cancelar</button>
