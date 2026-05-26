@@ -204,8 +204,13 @@ const LoginClient = (props: LoginClientProps) => {
     <div
       className="relative min-h-screen w-full flex flex-col items-center justify-center px-4 py-12"
       style={{
-        background:
-          'radial-gradient(100% 75% at 50% 0%, rgba(96,165,250,0.50) 0%, rgba(96,165,250,0) 58%), linear-gradient(180deg, #1c3f9e 0%, #0e2068 100%)',
+        backgroundColor: '#1D0084',
+        backgroundImage:
+          'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
+          'radial-gradient(circle 700px at 100% 0%, rgba(11,109,240,0.40) 0%, transparent 65%), ' +
+          'radial-gradient(circle 600px at 0% 100%, rgba(11,109,240,0.18) 0%, transparent 65%)',
+        backgroundSize: '28px 28px, auto, auto',
+        backgroundRepeat: 'repeat, no-repeat, no-repeat',
       }}
     >
         {/* Error Top Bar */}

@@ -38,10 +38,15 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
 
       {/* Consultas box */}
       <div
-        className="mb-10 rounded-xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 text-white"
+        className="mb-10 rounded-xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 text-white overflow-hidden"
         style={{
-          background:
-            'radial-gradient(120% 130% at 0% 0%, rgba(96,165,250,0.55) 0%, rgba(96,165,250,0) 60%), linear-gradient(135deg, #1c3f9e 0%, #0e2068 100%)',
+          backgroundColor: '#1D0084',
+          backgroundImage:
+            'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
+            'radial-gradient(circle 420px at 100% 0%, rgba(11,109,240,0.40) 0%, transparent 65%), ' +
+            'radial-gradient(circle 360px at 0% 100%, rgba(11,109,240,0.18) 0%, transparent 65%)',
+          backgroundSize: '28px 28px, auto, auto',
+          backgroundRepeat: 'repeat, no-repeat, no-repeat',
         }}
       >
         <div className="shrink-0 w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">

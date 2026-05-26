@@ -29,10 +29,15 @@ export default function AuthBrandingPanel({ org, welcomeText }: AuthBrandingPane
 
   const getBackgroundStyle = (): React.CSSProperties => {
     if (background_type === 'gradient' || !background_image) {
-      // Keep the original black gradient
+      // "Azul Nawar con fade": base #1D0084 + glows #0b6df0 + puntos blancos.
       return {
-        background:
-          'radial-gradient(100% 75% at 50% 0%, rgba(96,165,250,0.50) 0%, rgba(96,165,250,0) 58%), linear-gradient(180deg, #1c3f9e 0%, #0e2068 100%)',
+        backgroundColor: '#1D0084',
+        backgroundImage:
+          'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
+          'radial-gradient(circle 700px at 100% 0%, rgba(11,109,240,0.40) 0%, transparent 65%), ' +
+          'radial-gradient(circle 600px at 0% 100%, rgba(11,109,240,0.18) 0%, transparent 65%)',
+        backgroundSize: '28px 28px, auto, auto',
+        backgroundRepeat: 'repeat, no-repeat, no-repeat',
       }
     }
     if (background_type === 'custom' && background_image) {

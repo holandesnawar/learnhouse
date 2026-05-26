@@ -33,12 +33,10 @@ import {
 // El #1D0084 de marca tira a violeta en plano; aquí usamos un azul más
 // limpio + glow azul (#0b6df0) como las secciones oscuras de holandesnawar.com.
 // Si hay que afinar el tono, se cambian estos valores.
-const SIDE_TOP = '#1c3f9e' // azul real de marca (arriba) — medio, con fade visible
-const SIDE_BOTTOM = '#0e2068' // azul profundo (abajo) para que se note el degradado
-const SIDE_SOLID = '#173a96' // color sólido para superficies finas (barra móvil, botón)
-const BLUE_GLOW = 'rgba(96,165,250,0.50)' // glow azul claro (da profundidad al fade)
-const ACTIVE_BG = 'rgba(147,197,253,0.26)' // azul claro (ítem activo)
-const THEME_DARK = SIDE_TOP // color oscuro que pasamos a subcomponentes para que rendericen texto blanco
+const SIDE_BASE = '#1D0084' // azul Nawar — base sólida (SIEMPRE este)
+const SIDE_SOLID = '#1D0084' // superficies finas (botón flotante)
+const ACTIVE_BG = 'rgba(77,163,255,0.20)' // #4da3ff (ítem activo)
+const THEME_DARK = SIDE_BASE // color oscuro para subcomponentes (texto blanco)
 
 type NavItem = {
   key: string
@@ -62,12 +60,15 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const config = org?.config?.config
 
   const surfaceStyle: React.CSSProperties = {
-    backgroundColor: SIDE_BOTTOM,
+    // "Azul Nawar con fade": base sólida #1D0084 + 2 glows #0b6df0 en esquinas
+    // + patrón de puntos blancos al 6%.
+    backgroundColor: SIDE_BASE,
     backgroundImage:
-      `radial-gradient(130% 80% at 50% -10%, ${BLUE_GLOW}, transparent 60%), ` +
-      `radial-gradient(circle at 1px 1px, rgba(255,255,255,0.06) 1px, transparent 0), ` +
-      `linear-gradient(168deg, ${SIDE_TOP} 0%, ${SIDE_BOTTOM} 100%)`,
-    backgroundSize: '100% 100%, 24px 24px, 100% 100%',
+      'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
+      'radial-gradient(circle 700px at 100% 0%, rgba(11,109,240,0.40) 0%, transparent 65%), ' +
+      'radial-gradient(circle 600px at 0% 100%, rgba(11,109,240,0.18) 0%, transparent 65%)',
+    backgroundSize: '28px 28px, auto, auto',
+    backgroundRepeat: 'repeat, no-repeat, no-repeat',
   }
 
   const rf = config?.resolved_features
