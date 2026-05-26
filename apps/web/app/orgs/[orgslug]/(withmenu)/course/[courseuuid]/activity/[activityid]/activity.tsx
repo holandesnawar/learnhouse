@@ -877,20 +877,25 @@ function ActivityClient(props: ActivityClientProps) {
                                     </div>
                                   )
                                 )}
-                                {/* Mobile lessons (collapsible) */}
-                                <MobileCourseLessons
+                                {/* Mobile lessons (collapsible) — hidden for full-page embeds */}
+                                {activity.activity_sub_type !== 'SUBTYPE_DYNAMIC_EMBED' && (
+                                  <MobileCourseLessons
+                                    course={course}
+                                    currentActivityId={activityid}
+                                    orgslug={orgslug}
+                                    trailData={trailData}
+                                  />
+                                )}
+                              </div>
+                              {/* Lessons sidebar — hidden for embeds so exercises get full width */}
+                              {activity.activity_sub_type !== 'SUBTYPE_DYNAMIC_EMBED' && (
+                                <CourseLessonsSidebar
                                   course={course}
                                   currentActivityId={activityid}
                                   orgslug={orgslug}
                                   trailData={trailData}
                                 />
-                              </div>
-                              <CourseLessonsSidebar
-                                course={course}
-                                currentActivityId={activityid}
-                                orgslug={orgslug}
-                                trailData={trailData}
-                              />
+                              )}
                             </div>
                           )}
                         </>

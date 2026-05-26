@@ -72,7 +72,9 @@ function EmbedActivity({ activity, editable = false, style }: EmbedActivityProps
     function onMessage(e: MessageEvent) {
       if (e.source !== iframeRef.current?.contentWindow) return
       const data = e.data
-      const h = data?.type === 'lh-embed-height' ? data.height : undefined
+      // Accept our own protocol and the Nawar exercises app's ('vocab-height').
+      const h =
+        data?.type === 'lh-embed-height' || data?.type === 'vocab-height' ? data.height : undefined
       if (typeof h === 'number' && isFinite(h)) {
         setAutoHeight(Math.min(Math.max(Math.round(h), 200), 6000))
       }
