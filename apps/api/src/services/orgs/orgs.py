@@ -1411,6 +1411,53 @@ async def update_org_roadmap(
 
     return {"detail": "Roadmap object updated"}
 
+async def update_org_events(
+    request: Request,
+    events_object: dict,
+    org_id: int,
+    current_user: PublicUser | AnonymousUser,
+    db_session: AsyncSession,
+):
+    statement = select(Organization).where(Organization.id == org_id)
+    org = (await db_session.execute(statement)).scalars().first()
+
+    if not org:
+        raise HTTPException(
+            status_code=404,
+            detail="Organization not found",
+        )
+
+    # RBAC check
+    await rbac_check(request, org.org_uuid, current_user, "update", db_session)
+
+    # Get org config
+    statement = select(OrganizationConfig).where(OrganizationConfig.org_id == org.id)
+    org_config = (await db_session.execute(statement)).scalars().first()
+
+    if org_config is None:
+        logging.error(f"Organization {org_id} has no config")
+        raise HTTPException(
+            status_code=404,
+            detail="Organization config not found",
+        )
+
+    updated_config = _deep_copy_config(org_config)
+
+    if _is_v2_config(updated_config):
+        updated_config.setdefault("customization", {})
+        updated_config["customization"]["events"] = events_object
+    else:
+        updated_config["events"] = events_object
+
+    org_config.config = updated_config
+    org_config.update_date = str(datetime.now())
+
+    db_session.add(org_config)
+    await db_session.commit()
+    await db_session.refresh(org_config)
+
+    return {"detail": "Events object updated"}
+
 async def upload_org_landing_content_service(
     request: Request,
     content_file: UploadFile,

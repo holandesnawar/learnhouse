@@ -41,7 +41,7 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
         className="mb-10 rounded-xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 text-white"
         style={{
           background:
-            'radial-gradient(120% 120% at 0% 0%, rgba(11,109,240,0.45) 0%, rgba(11,109,240,0) 60%), linear-gradient(135deg, #152a86 0%, #0a1656 100%)',
+            'radial-gradient(120% 120% at 0% 0%, rgba(96,165,250,0.5) 0%, rgba(96,165,250,0) 60%), linear-gradient(135deg, #1d4ed8 0%, #122e86 100%)',
         }}
       >
         <div className="shrink-0 w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">

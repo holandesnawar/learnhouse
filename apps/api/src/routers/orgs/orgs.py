@@ -56,6 +56,7 @@ from src.services.orgs.orgs import (
     update_org_thumbnail,
     update_org_landing,
     update_org_roadmap,
+    update_org_events,
     upload_org_landing_content_service,
     update_org_auth_branding_config,
     upload_org_auth_background_service,
@@ -1269,6 +1270,30 @@ async def api_update_org_roadmap(
     Update organization roadmap object
     """
     return await update_org_roadmap(request, roadmap_object, org_id, current_user, db_session)
+
+
+@router.put(
+    "/{org_id}/events",
+    summary="Update organization events",
+    description="Update the organization's events/calendar object.",
+    responses={
+        200: {"description": "Events updated."},
+        401: {"description": "Not authenticated"},
+        403: {"description": "Caller is not an organization administrator"},
+        404: {"description": "Organization not found"},
+    },
+)
+async def api_update_org_events(
+    request: Request,
+    org_id: int,
+    events_object: dict,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    """
+    Update organization events object
+    """
+    return await update_org_events(request, events_object, org_id, current_user, db_session)
 
 
 @router.post(

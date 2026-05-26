@@ -33,11 +33,11 @@ import {
 // El #1D0084 de marca tira a violeta en plano; aquí usamos un azul más
 // limpio + glow azul (#0b6df0) como las secciones oscuras de holandesnawar.com.
 // Si hay que afinar el tono, se cambian estos valores.
-const SIDE_TOP = '#152a86' // azul profundo (arriba)
-const SIDE_BOTTOM = '#0a1656' // navy más oscuro (abajo)
-const SIDE_SOLID = '#0f1f6b' // color sólido para superficies finas (barra móvil, botón)
-const BLUE_GLOW = 'rgba(11,109,240,0.30)' // #0b6df0 — el tono azul de la web
-const ACTIVE_BG = 'rgba(77,163,255,0.22)' // #4da3ff @ 22% (ítem activo)
+const SIDE_TOP = '#1d4ed8' // azul real de marca (arriba) — más claro, como holandesnawar.com
+const SIDE_BOTTOM = '#122e86' // azul profundo (abajo), no casi negro
+const SIDE_SOLID = '#1a44bf' // color sólido para superficies finas (barra móvil, botón)
+const BLUE_GLOW = 'rgba(96,165,250,0.42)' // glow azul claro
+const ACTIVE_BG = 'rgba(147,197,253,0.26)' // azul claro (ítem activo)
 const THEME_DARK = SIDE_TOP // color oscuro que pasamos a subcomponentes para que rendericen texto blanco
 
 type NavItem = {

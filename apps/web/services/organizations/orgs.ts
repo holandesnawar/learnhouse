@@ -131,6 +131,19 @@ export async function updateOrgRoadmap(
   return res
 }
 
+export async function updateOrgEvents(
+  org_id: any,
+  events_object: any,
+  access_token: string
+) {
+  const result = await fetch(
+    `${getAPIUrl()}orgs/${org_id}/events`,
+    RequestBodyWithAuthHeader('PUT', events_object, null, access_token)
+  )
+  const res = await getResponseMetadata(result)
+  return res
+}
+
 export async function uploadLandingContent(
   org_uuid: any,
   content_file: File,
