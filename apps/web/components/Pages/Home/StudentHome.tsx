@@ -10,6 +10,7 @@ import { useCourses } from '@/hooks/queries/useCourses'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import RoadmapSection from '@components/Pages/Home/RoadmapSection'
 import ExerciseProgressCard from '@components/Pages/Home/ExerciseProgressCard'
+import UpcomingEvents from '@components/Pages/Home/UpcomingEvents'
 import { getUriWithOrg } from '@services/config/config'
 import Link from 'next/link'
 import { BookOpen, HelpCircle, ArrowRight } from 'lucide-react'
@@ -36,40 +37,6 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
         </h1>
         <p className="text-gray-500 mt-1">Continúa tu aprendizaje donde lo dejaste.</p>
       </div>
-
-      {/* Consultas box */}
-      <div
-        className="mb-10 rounded-xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 text-white overflow-hidden"
-        style={{
-          backgroundColor: '#1D0084',
-          backgroundImage:
-            'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
-            'radial-gradient(circle 420px at 100% 0%, rgba(11,109,240,0.40) 0%, transparent 65%), ' +
-            'radial-gradient(circle 360px at 0% 100%, rgba(11,109,240,0.18) 0%, transparent 65%)',
-          backgroundSize: '28px 28px, auto, auto',
-          backgroundRepeat: 'repeat, no-repeat, no-repeat',
-        }}
-      >
-        <div className="shrink-0 w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
-          <HelpCircle size={24} className="text-white" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-lg font-bold">¿Tienes dudas?</h2>
-          <p className="text-sm text-white/70">Crea tu consulta y te ayudamos a resolverla.</p>
-        </div>
-        <Link
-          href={getUriWithOrg(orgslug, '/consultas')}
-          className="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] font-bold text-sm transition-colors"
-        >
-          Ir a Consultas <ArrowRight size={16} />
-        </Link>
-      </div>
-
-      {/* Weekly exercise progress */}
-      <ExerciseProgressCard orgslug={orgslug} />
-
-      {/* Weekly roadmap */}
-      <RoadmapSection canEdit={!!isAdmin} />
 
       {/* Continue / in-progress */}
       {runs.length > 0 && (
@@ -114,6 +81,43 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
           )}
         </div>
       )}
+
+      {/* Upcoming events */}
+      <UpcomingEvents orgslug={orgslug} />
+
+      {/* Weekly roadmap */}
+      <RoadmapSection canEdit={!!isAdmin} />
+
+      {/* Weekly exercise progress */}
+      <ExerciseProgressCard orgslug={orgslug} />
+
+      {/* Consultas — moved to the bottom (a quiet helper, not the headline) */}
+      <div
+        className="mt-2 rounded-xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 text-white overflow-hidden"
+        style={{
+          backgroundColor: '#1D0084',
+          backgroundImage:
+            'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
+            'radial-gradient(circle 420px at 100% 0%, rgba(11,109,240,0.40) 0%, transparent 65%), ' +
+            'radial-gradient(circle 360px at 0% 100%, rgba(11,109,240,0.18) 0%, transparent 65%)',
+          backgroundSize: '28px 28px, auto, auto',
+          backgroundRepeat: 'repeat, no-repeat, no-repeat',
+        }}
+      >
+        <div className="shrink-0 w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
+          <HelpCircle size={24} className="text-white" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-lg font-bold">¿Tienes dudas?</h2>
+          <p className="text-sm text-white/70">Crea tu consulta y te ayudamos a resolverla.</p>
+        </div>
+        <Link
+          href={getUriWithOrg(orgslug, '/consultas')}
+          className="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] font-bold text-sm transition-colors"
+        >
+          Ir a Consultas <ArrowRight size={16} />
+        </Link>
+      </div>
     </GeneralWrapperStyled>
   )
 }

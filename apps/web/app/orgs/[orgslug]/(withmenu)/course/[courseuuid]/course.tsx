@@ -511,25 +511,25 @@ const CourseClient = (props: any) => {
             })()}
 
             <div className="w-full my-5 mb-10">
-              <h2 className="py-5 text-xl md:text-2xl font-bold">{t('courses.course_lessons')}</h2>
-              <div className="bg-white shadow-md shadow-gray-300/25 outline outline-1 outline-neutral-200/40 rounded-lg overflow-hidden">
+              <h2 className="py-5 text-xl md:text-2xl font-bold text-[#1D0084]" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>{t('courses.course_lessons')}</h2>
+              <div className="bg-white nice-shadow rounded-2xl overflow-hidden border border-[#DDE6F5] divide-y divide-[#DDE6F5]">
                 {(course.chapters ?? []).map((chapter: any, idx: number) => {
                   const isExpanded = expandedChapters[chapter.chapter_uuid] ?? (idx === 0); // Default to expanded for first chapter
                   return (
                     <div key={chapter.chapter_uuid || `chapter-${chapter.name}`} className="">
-                      <div 
-                        className="flex items-start py-4 px-4 outline outline-1 outline-neutral-200/40 font-bold bg-neutral-50 text-neutral-600 cursor-pointer hover:bg-neutral-100 transition-colors"
+                      <div
+                        className="flex items-start py-4 px-5 bg-[#F8FAFF] cursor-pointer hover:bg-[#F0F5FF] transition-colors"
                         onClick={() => setExpandedChapters(prev => ({
                           ...prev,
                           [chapter.chapter_uuid]: !isExpanded
                         }))}
                       >
                         {/* Chevron on the far left, vertically centered with the title */}
-                        <div className="flex flex-col justify-center mr-3 pt-1">
-                          <svg 
-                            className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
-                            fill="none" 
-                            stroke="currentColor" 
+                        <div className="flex flex-col justify-center mr-3 pt-1 text-[#025dc7]">
+                          <svg
+                            className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                            fill="none"
+                            stroke="currentColor"
                             viewBox="0 0 24 24"
                           >
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -539,10 +539,10 @@ const CourseClient = (props: any) => {
                         <div className="flex flex-col items-start w-full">
                           <div className="flex items-center flex-wrap mb-1 w-full min-w-0">
                             {/* Numbered badge */}
-                            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-neutral-200 text-neutral-600 text-xs font-semibold mr-2 border border-neutral-300 flex-shrink-0">
+                            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-[#1D0084] text-white text-xs font-bold mr-2.5 flex-shrink-0">
                               {idx + 1}
                             </span>
-                            <h3 className="text-lg font-bold leading-tight truncate min-w-0 sm:text-base md:text-lg" style={{lineHeight: '1.2'}}>{chapter.name}</h3>
+                            <h3 className="text-lg font-bold leading-tight truncate min-w-0 sm:text-base md:text-lg text-[#1D0084]" style={{lineHeight: '1.2', fontFamily: 'var(--font-poppins), system-ui, sans-serif'}}>{chapter.name}</h3>
                             {chapter.is_locked && (
                               <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-600 text-[10px] font-semibold">
                                 <Lock size={10} />
@@ -557,7 +557,7 @@ const CourseClient = (props: any) => {
                         </div>
                       </div>
                       <div className={`transition-all duration-200 ${isExpanded ? 'block' : 'hidden'}`}>
-                        <div className="">
+                        <div className="divide-y divide-[#EEF2FB]">
                           {chapter.activities.map((activity: any) => {
                             const locked = !!activity.is_locked
                             const RowInner = (
@@ -588,7 +588,7 @@ const CourseClient = (props: any) => {
                                       </span>
                                     )}
                                     {!locked && isActivityCurrent(activity) && (
-                                      <div className="flex items-center space-x-1 text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full text-xs font-semibold animate-pulse">
+                                      <div className="flex items-center space-x-1 text-[#025dc7] bg-[#025dc7]/10 px-2 py-0.5 rounded-full text-xs font-semibold">
                                         <span>{t('activities.current')}</span>
                                       </div>
                                     )}
@@ -619,7 +619,7 @@ const CourseClient = (props: any) => {
                               return (
                                 <div
                                   key={activity.activity_uuid}
-                                  className="block activity-container px-4 py-4 cursor-not-allowed select-none"
+                                  className="block activity-container px-5 py-3.5 cursor-not-allowed select-none"
                                   title={t('course.activity_locked_hint', 'Sign in or join the right user group to unlock this.')}
                                 >
                                   {RowInner}
@@ -636,7 +636,7 @@ const CourseClient = (props: any) => {
                                 }
                                 rel="noopener noreferrer"
                                 prefetch={false}
-                                className="block group activity-container transition-all duration-200 px-4 py-4"
+                                className="block group activity-container transition-all duration-200 px-5 py-3.5 hover:bg-[#F8FAFF]"
                                 onMouseEnter={() => handleActivityMouseEnter(activity)}
                               >
                                 {RowInner}
