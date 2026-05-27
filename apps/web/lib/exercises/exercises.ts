@@ -26,23 +26,19 @@ export interface ExModule {
 
 export interface ExLesson {
   id: string
-  module_id: string
+  module_id?: string
   title: string
-  subtitle?: string
-  sort_order?: number
 }
 
+// Real Supabase columns: word_nl, translation_es, article, audio_url, sort_order
 export interface ExVocab {
   id: string
   lesson_id: string
   sort_order?: number
-  dutch: string
-  spanish: string
+  word_nl: string
+  translation_es: string
   article?: string | null
-  emoji?: string | null
   audio_url?: string | null
-  example_nl?: string | null
-  example_es?: string | null
 }
 
 export interface ItemProgress {
@@ -82,20 +78,31 @@ export async function getVocabulary(lessonId: string): Promise<ExVocab[]> {
   return (await rest(`vocabulary_items?lesson_id=eq.${encodeURIComponent(lessonId)}&order=sort_order.asc`)) || []
 }
 
-// Walk modules/lessons in order and return the first lesson that actually has
-// vocabulary, so the practice lands on real content (not an empty intro module).
+// vocabulary_items is the table the app actually reads (modules/lessons may be
+// local-only / not anon-readable). Pull all vocab, group by lesson, and use the
+// lesson with the most words (a "full" lesson). Look up its title best-effort.
 export async function getFirstVocabLesson(): Promise<{ lesson: ExLesson; vocab: ExVocab[] } | null> {
-  const modules = await getModules()
-  let scanned = 0
-  for (const m of modules) {
-    const lessons = await getLessons(m.id)
-    for (const l of lessons) {
-      if (scanned++ > 40) return null
-      const vocab = await getVocabulary(l.id)
-      if (vocab.length > 0) return { lesson: l, vocab }
-    }
+  const all: ExVocab[] = (await rest(`vocabulary_items?select=*&limit=3000`)) || []
+  if (all.length === 0) return null
+  const byLesson: Record<string, ExVocab[]> = {}
+  for (const v of all) {
+    if (!v?.lesson_id) continue
+    ;(byLesson[v.lesson_id] ||= []).push(v)
   }
-  return null
+  const lessonId = Object.keys(byLesson).sort((a, b) => byLesson[b].length - byLesson[a].length)[0]
+  if (!lessonId) return null
+  const vocab = byLesson[lessonId].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+
+  let lesson: ExLesson = { id: lessonId, title: 'Vocabulario' }
+  try {
+    const rows: any[] = (await rest(`lessons?id=eq.${encodeURIComponent(lessonId)}&select=*`)) || []
+    if (rows[0]) {
+      lesson = { id: lessonId, module_id: rows[0].module_id, title: rows[0].title_nl || rows[0].title_es || 'Vocabulario' }
+    }
+  } catch {
+    // lessons table not readable — keep the default title
+  }
+  return { lesson, vocab }
 }
 
 export async function getLessonProgress(userUuid: string, lessonId: string): Promise<ItemProgress[]> {

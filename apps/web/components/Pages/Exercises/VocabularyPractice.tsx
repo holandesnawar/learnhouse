@@ -162,10 +162,9 @@ export default function VocabularyPractice({ orgslug }: { orgslug: string }) {
 
             {/* Card */}
             <div className="bg-white nice-shadow rounded-2xl p-8 min-h-[260px] flex flex-col items-center justify-center text-center">
-              {current?.emoji && <div className="text-4xl mb-3">{current.emoji}</div>}
               <div className="text-3xl font-bold text-gray-900">
                 {current?.article ? <span className="text-gray-400">{current.article} </span> : null}
-                {current?.dutch}
+                {current?.word_nl}
               </div>
               {current?.audio_url && (
                 <button onClick={playAudio} className="mt-3 inline-flex items-center gap-1.5 text-sm text-[#025dc7] font-medium hover:underline">
@@ -175,10 +174,7 @@ export default function VocabularyPractice({ orgslug }: { orgslug: string }) {
 
               {revealed ? (
                 <div className="mt-5 pt-5 border-t border-gray-100 w-full">
-                  <div className="text-xl font-semibold text-gray-700">{current?.spanish}</div>
-                  {current?.example_nl && (
-                    <p className="mt-2 text-sm text-gray-500 italic">{current.example_nl}</p>
-                  )}
+                  <div className="text-xl font-semibold text-gray-700">{current?.translation_es}</div>
                 </div>
               ) : (
                 <button
