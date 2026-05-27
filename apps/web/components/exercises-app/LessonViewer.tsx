@@ -10,7 +10,6 @@ import {
   markPreviousAsCompleted,
 } from '@/lib/exercises-app/progress';
 import AudioPlayer from './AudioPlayer';
-import VideoLessonSection from './VideoLessonSection';
 import { getConfig, getUriWithOrg } from '@services/config/config';
 import { useLHSession } from '@components/Contexts/LHSessionContext';
 import { saveItemResult } from '@/lib/exercises/exercises';
@@ -125,10 +124,9 @@ function GradientBar({ pct, label, subLabel }: { pct: number; label?: string; su
    SECTION TYPE
 ───────────────────────────────────────────────────────────────────────────── */
 
-type SectionId = 'video' | 'resumen' | 'vocabulary' | 'flashcards' | 'lezen' | 'luisteren';
+type SectionId = 'resumen' | 'vocabulary' | 'flashcards' | 'lezen' | 'luisteren';
 
 const SECTION_META: Record<SectionId, { label: string; emoji: string; desc: string }> = {
-  video:       { label: 'Vídeo',       emoji: '🎬', desc: 'Mira la clase en vídeo' },
   resumen:     { label: 'Resumen',     emoji: '📋', desc: 'Los puntos clave de la lección' },
   vocabulary:  { label: 'Vocabulario', emoji: '📖', desc: 'Palabras, frases y ejercicios de práctica' },
   flashcards:  { label: 'Flashcards',  emoji: '🃏', desc: 'Practica con tarjetas' },
@@ -3318,11 +3316,6 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
   // Build available sections from blocks (order matters → landing)
   const availableSections: SectionId[] = (() => {
     const result: SectionId[] = [];
-    // Video always comes first when the lesson has one (with a real URL).
-    const vBlock = lesson.blocks.find(b => b.type === 'video');
-    if (vBlock && vBlock.type === 'video' && vBlock.url.trim()) {
-      result.push('video');
-    }
     for (const block of lesson.blocks) {
       if (block.type === 'summary') {
         result.push('resumen');
@@ -3384,7 +3377,6 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
     setActiveSection(null);
   }
 
-  const videoBlock    = lesson.blocks.find(b => b.type === 'video');
   const summaryBlock  = lesson.blocks.find(b => b.type === 'summary');
   const vocabBlock    = lesson.blocks.find(b => b.type === 'vocabulary');
   const phraseBlock   = lesson.blocks.find(b => b.type === 'phrases');
@@ -3488,15 +3480,6 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
                 inCourse={inCourse}
               />
             </>
-          )}
-
-          {/* VÍDEO — la clase en vídeo, primer paso de la lección */}
-          {activeSection === 'video' && videoBlock && videoBlock.type === 'video' && (
-            <VideoLessonSection
-              url={videoBlock.url}
-              title={videoBlock.title}
-              onComplete={() => completeSection('video')}
-            />
           )}
 
           {/* RESUMEN — puntos clave de la lección */}

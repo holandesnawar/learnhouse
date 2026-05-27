@@ -374,30 +374,6 @@ async function assembleLessonBlocks(lessonRow: DbLesson, moduleSlug: string): Pr
   // Assemble blocks
   const blocks: LessonBlock[] = [];
 
-  // Vídeo de la clase — primer paso de la lección.
-  // Fuente: columna lessons.video_url (lo pone el profe); si no existe la
-  // columna o está vacía, usa el bloque `video` local de courseData.ts.
-  // La consulta va aparte y protegida para que, si la columna aún no existe,
-  // no rompa la carga del resto del contenido.
-  let videoUrl: string | null = null;
-  try {
-    const { data: vRow } = await db
-      .from('lessons')
-      .select('video_url')
-      .eq('id', lessonDbId)
-      .single();
-    videoUrl = (vRow as { video_url?: string | null } | null)?.video_url?.trim() || null;
-  } catch {
-    /* la columna puede no existir todavía — se ignora */
-  }
-  if (!videoUrl) {
-    const localVideo = localLesson?.blocks.find(b => b.type === 'video');
-    if (localVideo && localVideo.type === 'video' && localVideo.url.trim()) {
-      videoUrl = localVideo.url.trim();
-    }
-  }
-  if (videoUrl) blocks.push({ type: 'video', url: videoUrl, title: 'Clase en vídeo' });
-
   // Summary (local-only por ahora — el contenido vive en courseData.ts)
   const localSummary = localLesson?.blocks.find(b => b.type === 'summary');
   if (localSummary) blocks.push(localSummary);
