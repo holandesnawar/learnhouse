@@ -57,6 +57,7 @@ const AIChatBotProvider = lazy(() => import('@components/Contexts/AI/AIChatBotCo
 const ScormActivity = lazy(() => import('../../../../../../../../ee/components/Activities/ScormActivity'))
 const MarkdownActivity = lazy(() => import('@components/Objects/Activities/Markdown/MarkdownActivity'))
 const EmbedActivity = lazy(() => import('@components/Objects/Activities/Embed/EmbedActivity'))
+const NativeExerciseActivity = lazy(() => import('@components/exercises-app/NativeExerciseActivity'))
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -292,6 +293,12 @@ function ActivityClient(props: ActivityClientProps) {
   const prevActivity = currentIndex > 0 ? allActivities[currentIndex - 1] : null;
   const nextActivity = currentIndex < allActivities.length - 1 ? allActivities[currentIndex + 1] : null;
 
+  // Native Nawar exercise embeds keep the course action bar (Next + mark
+  // complete) so course progress/trail still works; iframe embeds hide it.
+  const isNativeExercise =
+    activity?.activity_sub_type === 'SUBTYPE_DYNAMIC_EMBED' &&
+    /^nawar:/.test(activity?.content?.embed_url || '');
+
   // Memoize activity content
   const activityContent = useMemo(() => {
     if (!activity || !activity.published || activity.content.paid_access === false) {
@@ -308,6 +315,20 @@ function ActivityClient(props: ActivityClientProps) {
           );
         }
         if (activity.activity_sub_type === 'SUBTYPE_DYNAMIC_EMBED') {
+          // Native Nawar exercise: embed_url stored as "nawar:<moduleId>/<lessonId>".
+          const embedUrl: string = activity.content?.embed_url || '';
+          const nativeMatch = embedUrl.match(/^nawar:([^/]+)\/(.+)$/);
+          if (nativeMatch) {
+            return (
+              <Suspense fallback={<LoadingFallback />}>
+                <NativeExerciseActivity
+                  moduleId={nativeMatch[1]}
+                  lessonId={nativeMatch[2]}
+                  orgslug={orgslug}
+                />
+              </Suspense>
+            );
+          }
           return (
             <Suspense fallback={<LoadingFallback />}>
               <EmbedActivity activity={activity} />
@@ -358,7 +379,7 @@ function ActivityClient(props: ActivityClientProps) {
       default:
         return null;
     }
-  }, [activity, course, assignment]);
+  }, [activity, course, assignment, orgslug]);
 
   // Navigate to an activity
   const navigateToActivity = (activity: any) => {
@@ -882,8 +903,9 @@ function ActivityClient(props: ActivityClientProps) {
                         </>
                       ) : null}
 
-                      {/* Sticky action bar — hidden for embeds (the embedded page has its own nav) */}
-                      {activity && activity.published == true && activity.content.paid_access != false && activity.activity_sub_type !== 'SUBTYPE_DYNAMIC_EMBED' && (
+                      {/* Sticky action bar — hidden for iframe embeds (their page has its own nav),
+                          but shown for native Nawar exercises so course completion + Next work. */}
+                      {activity && activity.published == true && activity.content.paid_access != false && (activity.activity_sub_type !== 'SUBTYPE_DYNAMIC_EMBED' || isNativeExercise) && (
                         <div className="sticky bottom-3 sm:bottom-4 mt-4" style={{ zIndex: 'var(--z-interactive)' }}>
                           <div className="bg-white/95 backdrop-blur-md nice-shadow rounded-xl border border-gray-100 px-3 sm:px-4 py-2.5">
                             <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 sm:gap-0">

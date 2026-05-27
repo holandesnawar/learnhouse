@@ -10,8 +10,9 @@ import {
   markPreviousAsCompleted,
 } from '@/lib/exercises-app/progress';
 import AudioPlayer from './AudioPlayer';
-import { getConfig } from '@services/config/config';
-import { getUriWithOrg } from '@services/config/config';
+import { getConfig, getUriWithOrg } from '@services/config/config';
+import { useLHSession } from '@components/Contexts/LHSessionContext';
+import { saveItemResult } from '@/lib/exercises/exercises';
 
 /* ─────────────────────────────────────────────────────────────────────────────
    HELPERS
@@ -578,13 +579,14 @@ function PhrasesStep({ items, onDone, onBack, onSubProgress }: {
    pasa al step siguiente.
 ───────────────────────────────────────────────────────────────────────────── */
 
-function ExerciseRunner({ exercises, onDone, onBack, hasBackStep, onSubProgress, cacheKey }: {
+function ExerciseRunner({ exercises, onDone, onBack, hasBackStep, onSubProgress, cacheKey, onItemResult }: {
   exercises: ExerciseItem[];
   onDone: () => void;
   onBack: () => void;
   hasBackStep?: boolean;
   onSubProgress?: (done: number, total: number) => void;
   cacheKey?: string;
+  onItemResult?: (itemId: string, correct: boolean) => void;
 }) {
   const answersKey = cacheKey ? `vp-ex-${cacheKey}-data` : null;
   const indexKey = cacheKey ? `vp-ex-${cacheKey}` : null;
@@ -661,6 +663,12 @@ function ExerciseRunner({ exercises, onDone, onBack, hasBackStep, onSubProgress,
 
   function handleAnswer(correct: boolean, answer: string) {
     setAnswers(prev => {
+      // Only report the first answer for each item (avoid overwriting a recorded
+      // result when the student navigates back to a previously answered step).
+      if (!(index in prev)) {
+        const itemId = exercises[index]?.id;
+        if (itemId) onItemResult?.(itemId, correct);
+      }
       const next = { ...prev, [index]: answer };
       if (answersKey) try { sessionStorage.setItem(answersKey, JSON.stringify(next)); } catch {}
       return next;
@@ -897,11 +905,13 @@ function VocabPracticeSection({
   phraseItems,
   practiceExercises,
   onComplete,
+  onItemResult,
 }: {
   vocabItems: VocabularyItem[];
   phraseItems: PhraseItem[];
   practiceExercises: ExerciseItem[];
   onComplete: () => void;
+  onItemResult?: (itemId: string, correct: boolean) => void;
 }) {
   const steps = useMemo(
     () => buildVPSteps(vocabItems, phraseItems, practiceExercises),
@@ -1020,6 +1030,7 @@ function VocabPracticeSection({
           hasBackStep={stepIndex > 0}
           onSubProgress={(done, total) => setSubProgress({ done, total })}
           cacheKey={step.type}
+          onItemResult={onItemResult}
         />
       )}
       {step.type === 'classify' && (
@@ -3103,6 +3114,7 @@ function SectionLanding({
   nextLesson,
   moduleId,
   orgslug,
+  inCourse,
 }: {
   sections: SectionId[];
   completedSections: Set<SectionId>;
@@ -3110,6 +3122,7 @@ function SectionLanding({
   nextLesson?: Lesson | null;
   moduleId?: string;
   orgslug: string;
+  inCourse?: boolean;
 }) {
   const allComplete = sections.length > 0 && sections.every(s => completedSections.has(s));
   return (
@@ -3166,7 +3179,8 @@ function SectionLanding({
           </button>
         );
       })}
-      {allComplete && nextLesson && moduleId && (
+      {/* In a course, the course's own action bar handles next/completion. */}
+      {inCourse ? null : allComplete && nextLesson && moduleId ? (
         <Link
           href={getUriWithOrg(orgslug, `/ejercicios/modulo/${moduleId}/leccion/${nextLesson.id}`)}
           className="w-full flex items-center justify-center gap-3 px-5 py-4 rounded-2xl text-white text-[16px] font-bold transition-all duration-150 mt-2 brand-accent-line hover:brightness-110"
@@ -3177,7 +3191,7 @@ function SectionLanding({
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         </Link>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -3192,11 +3206,24 @@ interface LessonViewerProps {
   prevLesson?: Lesson | null;
   nextLesson?: Lesson | null;
   orgslug: string;
+  /** When embedded inside a course activity, the course's own action bar handles
+   *  completion + next, so the viewer hides its lesson-level "next" button. */
+  inCourse?: boolean;
 }
 
-export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLesson, orgslug }: LessonViewerProps) {
+export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLesson, orgslug, inCourse }: LessonViewerProps) {
+  const session = useLHSession() as any;
+  const userUuid: string = session?.data?.user?.user_uuid || '';
   const [activeSection, setActiveSection] = useState<SectionId | null>(null);
   const [completedSections, setCompletedSections] = useState<Set<SectionId>>(new Set());
+
+  // Persist each graded answer to the per-student progress table (Supabase) so
+  // the academy remembers what each student got right/wrong. Fire-and-forget;
+  // failures are swallowed (e.g. anon write policy missing) to never block the UI.
+  function handleItemResult(itemId: string, correct: boolean) {
+    if (!userUuid) return;
+    saveItemResult(userUuid, lesson.id, itemId, correct, 'practice').catch(() => {});
+  }
 
   useEffect(() => {
     // Direct URL access (typically from Circle): mark all prior lessons as
@@ -3376,6 +3403,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
                 nextLesson={nextLesson}
                 moduleId={module.id}
                 orgslug={orgslug}
+                inCourse={inCourse}
               />
             </>
           )}
@@ -3395,6 +3423,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
               phraseItems={phraseItems}
               practiceExercises={practiceItems}
               onComplete={() => completeSection('vocabulary')}
+              onItemResult={handleItemResult}
             />
           )}
 
