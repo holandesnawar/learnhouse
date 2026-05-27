@@ -3318,6 +3318,20 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
     return result;
   })();
 
+  // In a course, skip the section landing and drop the student straight into the
+  // vocabulary exercise (woordenschat); fall back to the first section otherwise.
+  const didAutoEnter = useRef(false);
+  useEffect(() => {
+    if (!inCourse || didAutoEnter.current || activeSection !== null) return;
+    const target = availableSections.includes('vocabulary')
+      ? 'vocabulary'
+      : availableSections[0];
+    if (target) {
+      didAutoEnter.current = true;
+      setActiveSection(target);
+    }
+  }, [inCourse, availableSections]); // eslint-disable-line react-hooks/exhaustive-deps
+
   function completeSection(id: SectionId) {
     setCompletedSections(prev => {
       const next = new Set([...prev, id]);
