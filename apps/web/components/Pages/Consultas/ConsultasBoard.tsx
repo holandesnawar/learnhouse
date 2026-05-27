@@ -4,6 +4,8 @@ import {
   Plus, X, Loader2, CheckCircle2, Clock, Pencil, Trash2, MessageCircleQuestion,
 } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
+import { useOrg } from '@components/Contexts/OrgContext'
+import { getOrgLogoMediaDirectory } from '@services/media/media'
 import {
   CONSULTA_CATEGORIES, CATEGORY_BY_ID, listConsultas, createConsulta,
   updateMyConsulta, deleteMyConsulta, isMyConsulta, htmlToText,
@@ -53,6 +55,8 @@ const EMPTY_FORM: FormState = {
 export default function ConsultasBoard() {
   const session = useLHSession() as any
   const user = session?.data?.user
+  const org = useOrg() as any
+  const teamLogo = org?.logo_image ? `${getOrgLogoMediaDirectory(org.org_uuid, org.logo_image)}` : ''
   const sessionName = useMemo(
     () => [user?.first_name, user?.last_name].filter(Boolean).join(' ').trim() || user?.username || '',
     [user?.first_name, user?.last_name, user?.username]
@@ -248,6 +252,7 @@ export default function ConsultasBoard() {
         <Overlay onClose={() => setSelected(null)}>
           <DetailView
             consulta={selected}
+            teamLogo={teamLogo}
             onEdit={() => openEdit(selected)}
             onDelete={() => handleDelete(selected)}
             onClose={() => setSelected(null)}
@@ -374,9 +379,10 @@ function Overlay({ children, onClose }: { children: React.ReactNode; onClose: ()
 }
 
 function DetailView({
-  consulta, onEdit, onDelete, onClose,
+  consulta, teamLogo, onEdit, onDelete, onClose,
 }: {
   consulta: Consulta
+  teamLogo: string
   onEdit: () => void
   onDelete: () => void
   onClose: () => void
@@ -385,45 +391,60 @@ function DetailView({
   const own = isMyConsulta(consulta.id)
   const answer = htmlToText(consulta.respuesta_nawar)
   return (
-    <div className="w-full max-w-lg bg-white rounded-2xl nice-shadow max-h-[90vh] overflow-y-auto">
-      <div className="flex items-start justify-between px-5 py-4 border-b border-[#DDE6F5] sticky top-0 bg-white rounded-t-2xl">
+    <div className="w-full max-w-2xl bg-white rounded-2xl nice-shadow max-h-[90vh] overflow-y-auto">
+      <div className="flex items-start justify-between px-6 py-4 border-b border-[#DDE6F5] sticky top-0 bg-white rounded-t-2xl z-10">
         <div className="flex flex-wrap items-center gap-2">
-          <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${catClasses(cat?.color)}`}>
+          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${catClasses(cat?.color)}`}>
             {cat?.name || consulta.category || 'General'}
           </span>
           {consulta.resolved ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#1D0084]/5 text-[#1D0084]">
-              <CheckCircle2 size={12} /> Respondida
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#1D0084]/5 text-[#1D0084]">
+              <CheckCircle2 size={13} /> Respondida
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700">
-              <Clock size={12} /> Pendiente
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700">
+              <Clock size={13} /> Pendiente
             </span>
           )}
         </div>
         <button onClick={onClose} className="text-gray-400 hover:text-gray-700 shrink-0 ml-2">
-          <X size={20} />
+          <X size={22} />
         </button>
       </div>
 
-      <div className="p-5">
-        <h2 className="text-xl font-bold text-gray-900 leading-snug">{consulta.title}</h2>
-        <p className="text-[12px] text-gray-400 mt-1">
+      <div className="p-6">
+        <h2 className="text-2xl font-bold text-gray-900 leading-snug">{consulta.title}</h2>
+        <p className="text-[13px] text-gray-400 mt-1.5">
           {consulta.author_name || 'Anónimo'} · {formatDate(consulta.created_at)}
         </p>
-        <p className="text-[15px] text-gray-700 leading-relaxed mt-4 whitespace-pre-wrap">
+        <p className="text-[17px] text-gray-700 leading-relaxed mt-4 whitespace-pre-wrap">
           {htmlToText(consulta.content)}
         </p>
 
         {answer && (
-          <div className="mt-5 p-4 rounded-xl bg-[#F0F5FF] border border-[#DDE6F5]">
-            <p className="text-[12px] font-bold text-[#1D0084] uppercase tracking-wide mb-1.5">Respuesta de Holandés Nawar</p>
-            <p className="text-[15px] text-gray-800 leading-relaxed whitespace-pre-wrap">{answer}</p>
+          <div className="mt-7 flex gap-3 items-start">
+            <div className="w-11 h-11 rounded-full overflow-hidden shrink-0 bg-[#1D0084] flex items-center justify-center ring-2 ring-[#F0F5FF]">
+              {teamLogo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={teamLogo} alt="Team Nawar" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-white font-bold">N</span>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <span className="font-bold text-gray-900 text-[15px]">Team Nawar</span>
+                <CheckCircle2 size={15} className="text-[#025dc7]" />
+              </div>
+              <div className="p-4 rounded-2xl rounded-tl-md bg-[#F0F5FF] border border-[#DDE6F5]">
+                <p className="text-[16px] text-gray-800 leading-relaxed whitespace-pre-wrap">{answer}</p>
+              </div>
+            </div>
           </div>
         )}
 
         {own && !consulta.resolved && (
-          <div className="flex gap-2 mt-5">
+          <div className="flex gap-2 mt-6">
             <button
               onClick={onEdit}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-[#025dc7] hover:bg-[#F0F5FF]"
