@@ -60,6 +60,11 @@ const m1_les1: Lesson = {
   learningObjective: 'Presentarte y hablar de ti mismo en neerlandés',
   estimatedMinutes: 20,
   blocks: [
+    // 🎬 Vídeo de la clase — EJEMPLO para previsualizar cómo queda el flujo.
+    // Reemplaza la `url` por el enlace de tu vídeo (YouTube, Vimeo o un .mp4),
+    // o —mejor— gestiónalo sin tocar código desde Supabase: añade la columna
+    // `video_url` a la tabla `lessons` y pega ahí el enlace de cada lección.
+    { type: 'video', title: 'Clase en vídeo', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' },
     {
       type: 'vocabulary',
       items: [

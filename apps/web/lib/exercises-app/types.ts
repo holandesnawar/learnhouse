@@ -119,6 +119,7 @@ export interface SummaryBlock {
 
 export type LessonBlock =
   | SummaryBlock
+  | { type: 'video';      title?: string; url: string } // clase en vídeo (YouTube, Vimeo o archivo .mp4)
   | { type: 'vocabulary'; title?: string; items: VocabularyItem[] }
   | { type: 'phrases';    title?: string; items: PhraseItem[] }
   | { type: 'practice';   title?: string; exercises: ExerciseItem[] }
