@@ -133,7 +133,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     { key: 'collections', href: '/collections', label: t('collections.collections'), icon: <SquaresFour size={20} weight="fill" />, show: isEnabled('collections') },
     { key: 'podcasts', href: '/podcasts', label: t('podcasts.podcasts'), icon: <Headphones size={20} weight="fill" />, show: isEnabled('podcasts') },
     { key: 'communities', href: '/communities', label: t('communities.title'), icon: <ChatsCircle size={20} weight="fill" />, show: isEnabled('communities') },
-    { key: 'playgrounds', href: '/playgrounds', label: 'Playgrounds', icon: <Cube size={20} weight="fill" />, show: isEnabled('playgrounds') },
+    { key: 'playgrounds', href: '/playgrounds', label: 'Playgrounds', icon: <Cube size={20} weight="fill" />, show: false },
     { key: 'store', href: '/store', label: 'Store', icon: <ShoppingBag size={20} weight="fill" />, show: isEnabled('payments') },
     { key: 'consultas', href: '/consultas', label: 'Consultas', icon: <Question size={20} weight="fill" />, show: true },
   ]

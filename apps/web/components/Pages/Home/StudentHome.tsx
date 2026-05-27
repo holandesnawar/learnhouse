@@ -12,6 +12,7 @@ import RoadmapSection from '@components/Pages/Home/RoadmapSection'
 import ExerciseProgressCard from '@components/Pages/Home/ExerciseProgressCard'
 import UpcomingEvents from '@components/Pages/Home/UpcomingEvents'
 import { getUriWithOrg } from '@services/config/config'
+import CommunityChannelsCards from '@components/Objects/Communities/CommunityChannelsCards'
 import Link from 'next/link'
 import { BookOpen, HelpCircle, ArrowRight } from 'lucide-react'
 
@@ -81,6 +82,9 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
           )}
         </div>
       )}
+
+      {/* Community channels — quick access to the chats */}
+      <CommunityChannelsCards orgslug={orgslug} />
 
       {/* Upcoming events */}
       <UpcomingEvents orgslug={orgslug} />

@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import React, { useEffect, useState, Suspense } from 'react'
+import React, { useEffect, useState } from 'react'
 import { getUriWithOrg } from '@services/config/config'
 import { getCourseMetadata } from '@services/courses/courses'
 import { useTrail } from '@/hooks/queries/useTrail'
@@ -20,7 +20,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/lib/query/keys'
 import { getActivityWithAuthHeader } from '@services/courses/activities'
 import { useTranslation } from 'react-i18next'
-import CourseCommunitySection from '@components/Objects/Communities/CourseCommunitySection'
+import CommunityChannelsCards from '@components/Objects/Communities/CommunityChannelsCards'
 import { useAnalytics } from '@/hooks/useAnalytics'
 
 const CourseClient = (props: any) => {
@@ -538,10 +538,6 @@ const CourseClient = (props: any) => {
                         {/* Title and badge column */}
                         <div className="flex flex-col items-start w-full">
                           <div className="flex items-center flex-wrap mb-1 w-full min-w-0">
-                            {/* Numbered badge */}
-                            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-[#1D0084] text-white text-xs font-bold mr-2.5 flex-shrink-0">
-                              {idx + 1}
-                            </span>
                             <h3 className="text-lg font-bold leading-tight truncate min-w-0 sm:text-base md:text-lg text-[#1D0084]" style={{lineHeight: '1.2', fontFamily: 'var(--font-poppins), system-ui, sans-serif'}}>{chapter.name}</h3>
                             {chapter.is_locked && (
                               <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-600 text-[10px] font-semibold">
@@ -651,10 +647,10 @@ const CourseClient = (props: any) => {
               </div>
             </div>
 
-            {/* Community Section */}
-            <Suspense fallback={<div className="animate-pulse h-48 bg-gray-100 rounded-lg mt-4" />}>
-              <CourseCommunitySection courseUuid={course.course_uuid} orgslug={orgslug} />
-            </Suspense>
+            {/* Community channels — quick access to the chats */}
+            <div className="mt-8">
+              <CommunityChannelsCards orgslug={orgslug} />
+            </div>
           </GeneralWrapperStyled>
 
           {/* Mobile Actions Box */}

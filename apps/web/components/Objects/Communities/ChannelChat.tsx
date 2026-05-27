@@ -215,7 +215,7 @@ export function ChannelChat({
               onKeyDown={onKeyDown}
               rows={1}
               placeholder={`${t('communities.discussion')} en ${channelName}…`}
-              className="flex-1 resize-none bg-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none max-h-32 py-1.5"
+              className="flex-1 resize-none bg-transparent text-base sm:text-sm text-gray-900 placeholder:text-gray-400 outline-none max-h-32 py-1.5"
             />
             <button
               onClick={send}
