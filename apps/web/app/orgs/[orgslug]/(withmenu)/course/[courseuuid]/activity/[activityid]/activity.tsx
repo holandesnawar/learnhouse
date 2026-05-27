@@ -882,8 +882,8 @@ function ActivityClient(props: ActivityClientProps) {
                         </>
                       ) : null}
 
-                      {/* Sticky action bar — always visible without scrolling */}
-                      {activity && activity.published == true && activity.content.paid_access != false && (
+                      {/* Sticky action bar — hidden for embeds (the embedded page has its own nav) */}
+                      {activity && activity.published == true && activity.content.paid_access != false && activity.activity_sub_type !== 'SUBTYPE_DYNAMIC_EMBED' && (
                         <div className="sticky bottom-3 sm:bottom-4 mt-4" style={{ zIndex: 'var(--z-interactive)' }}>
                           <div className="bg-white/95 backdrop-blur-md nice-shadow rounded-xl border border-gray-100 px-3 sm:px-4 py-2.5">
                             <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 sm:gap-0">
