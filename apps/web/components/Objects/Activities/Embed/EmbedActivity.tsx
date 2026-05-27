@@ -6,10 +6,10 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import NativeExercisePicker from '@components/exercises-app/NativeExercisePicker'
 import toast from 'react-hot-toast'
 
-// "nawar:<moduleId>/<lessonId>" marks a native Nawar exercise instead of a web URL.
-function parseNawar(url: string): { moduleId: string; lessonId: string } | null {
-  const m = url.match(/^nawar:([^/]+)\/(.+)$/)
-  return m ? { moduleId: m[1], lessonId: m[2] } : null
+// "nawar:<moduleId>/<lessonId>[/<section>]" marks a native Nawar exercise.
+function parseNawar(url: string): { moduleId: string; lessonId: string; section: string } | null {
+  const m = url.match(/^nawar:([^/]+)\/([^/]+)(?:\/([^/]+))?$/)
+  return m ? { moduleId: m[1], lessonId: m[2], section: m[3] || 'vocabulary' } : null
 }
 
 function toEmbedUrl(url: string): string {
@@ -74,13 +74,15 @@ function EmbedActivity({ activity, editable = false, style }: EmbedActivityProps
   const [mode, setMode] = useState<'web' | 'nawar'>(nawarInit ? 'nawar' : 'web')
   const [exModuleId, setExModuleId] = useState(nawarInit?.moduleId ?? '')
   const [exLessonId, setExLessonId] = useState(nawarInit?.lessonId ?? '')
+  const [exSection, setExSection] = useState(nawarInit?.section ?? 'vocabulary')
+  const nativeToken = `nawar:${exModuleId}/${exLessonId}/${exSection}`
 
   const handleSaveNative = async () => {
-    if (!exModuleId || !exLessonId) return
+    if (!exModuleId || !exLessonId || !exSection) return
     setSaving(true)
     try {
       await updateActivity(
-        { content: { embed_url: `nawar:${exModuleId}/${exLessonId}` } },
+        { content: { embed_url: nativeToken } },
         activity.activity_uuid,
         access_token
       )
@@ -201,15 +203,17 @@ function EmbedActivity({ activity, editable = false, style }: EmbedActivityProps
               <NativeExercisePicker
                 moduleId={exModuleId}
                 lessonId={exLessonId}
-                onChange={(m, l) => {
+                section={exSection}
+                onChange={(m, l, s) => {
                   setExModuleId(m)
                   setExLessonId(l)
+                  setExSection(s)
                 }}
               />
               <div className="flex justify-end">
                 <button
                   onClick={handleSaveNative}
-                  disabled={saving || !exModuleId || !exLessonId || `nawar:${exModuleId}/${exLessonId}` === embedUrl}
+                  disabled={saving || !exModuleId || !exLessonId || nativeToken === embedUrl}
                   className="inline-flex items-center gap-2 h-9 px-4 text-sm font-medium text-white bg-black rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
                 >
                   {saving ? <SpinnerGap size={16} className="animate-spin" /> : <FloppyDisk size={16} />}

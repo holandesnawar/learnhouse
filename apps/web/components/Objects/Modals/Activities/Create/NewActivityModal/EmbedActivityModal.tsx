@@ -10,16 +10,17 @@ function EmbedActivityModal({ submitActivity, chapterId, course }: any) {
   const [embedUrl, setEmbedUrl] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Mode: web embed (URL) vs native Nawar exercise (module/lesson picker)
+  // Mode: web embed (URL) vs native Nawar exercise (module/lesson/part picker)
   const [mode, setMode] = useState<'web' | 'nawar'>('web')
   const [exModuleId, setExModuleId] = useState('')
   const [exLessonId, setExLessonId] = useState('')
+  const [exSection, setExSection] = useState('vocabulary')
 
   const handleSubmit = async (e: any) => {
     e.preventDefault()
     const content =
       mode === 'nawar'
-        ? { embed_url: `nawar:${exModuleId}/${exLessonId}` }
+        ? { embed_url: `nawar:${exModuleId}/${exLessonId}/${exSection}` }
         : { embed_url: embedUrl }
     if (mode === 'nawar' && (!exModuleId || !exLessonId)) return
     setIsSubmitting(true)
@@ -116,9 +117,11 @@ function EmbedActivityModal({ submitActivity, chapterId, course }: any) {
             <NativeExercisePicker
               moduleId={exModuleId}
               lessonId={exLessonId}
-              onChange={(m, l) => {
+              section={exSection}
+              onChange={(m, l, s) => {
                 setExModuleId(m)
                 setExLessonId(l)
+                setExSection(s)
               }}
             />
           </div>

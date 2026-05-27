@@ -906,12 +906,14 @@ function VocabPracticeSection({
   practiceExercises,
   onComplete,
   onItemResult,
+  inCourse,
 }: {
   vocabItems: VocabularyItem[];
   phraseItems: PhraseItem[];
   practiceExercises: ExerciseItem[];
   onComplete: () => void;
   onItemResult?: (itemId: string, correct: boolean) => void;
+  inCourse?: boolean;
 }) {
   const steps = useMemo(
     () => buildVPSteps(vocabItems, phraseItems, practiceExercises),
@@ -985,12 +987,16 @@ function VocabPracticeSection({
           </svg>
           Hacer la práctica de nuevo
         </button>
-        <button
-          onClick={onComplete}
-          className="w-full py-3 rounded-xl bg-white text-[#5A6480] text-[14px] font-semibold border border-[#DDE6F5] hover:bg-[#F0F5FF] hover:text-[#1D0084] transition-colors duration-200"
-        >
-          Salir al menú de la lección
-        </button>
+        {inCourse ? (
+          <p className="text-center text-[13px] text-[#5A6480]">Pulsa «Siguiente» abajo para continuar.</p>
+        ) : (
+          <button
+            onClick={onComplete}
+            className="w-full py-3 rounded-xl bg-white text-[#5A6480] text-[14px] font-semibold border border-[#DDE6F5] hover:bg-[#F0F5FF] hover:text-[#1D0084] transition-colors duration-200"
+          >
+            Salir al menú de la lección
+          </button>
+        )}
       </div>
     );
   }
@@ -3209,13 +3215,17 @@ interface LessonViewerProps {
   /** When embedded inside a course activity, the course's own action bar handles
    *  completion + next, so the viewer hides its lesson-level "next" button. */
   inCourse?: boolean;
+  /** Show ONLY this part of the lesson (e.g. 'vocabulary', 'lezen'): no landing,
+   *  no back button. Used so each exercise part is its own course class. */
+  forcedSection?: string;
 }
 
-export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLesson, orgslug, inCourse }: LessonViewerProps) {
+export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLesson, orgslug, inCourse, forcedSection }: LessonViewerProps) {
   const session = useLHSession() as any;
   const userUuid: string = session?.data?.user?.user_uuid || '';
   const [activeSection, setActiveSection] = useState<SectionId | null>(null);
   const [completedSections, setCompletedSections] = useState<Set<SectionId>>(new Set());
+  const [forcedDone, setForcedDone] = useState(false);
 
   // Persist each graded answer to the per-student progress table (Supabase) so
   // the academy remembers what each student got right/wrong. Fire-and-forget;
@@ -3318,14 +3328,28 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
     return result;
   })();
 
-  // In a course, skip the section landing and drop the student straight into the
-  // vocabulary exercise (woordenschat); fall back to the first section otherwise.
+  // A forced section (e.g. 'vocabulary' / 'lezen') is shown on its own, only if
+  // the lesson actually has it.
+  const forced = (forcedSection && availableSections.includes(forcedSection as SectionId))
+    ? (forcedSection as SectionId)
+    : null;
+  const forcedMissing = Boolean(forcedSection) && !forced;
+
+  // In a course: jump straight into the requested part (or vocabulary by default),
+  // skipping the section landing.
   const didAutoEnter = useRef(false);
   useEffect(() => {
     if (!inCourse || didAutoEnter.current || activeSection !== null) return;
-    const target = availableSections.includes('vocabulary')
-      ? 'vocabulary'
-      : availableSections[0];
+    // A specific part was requested: enter it, or (if the lesson lacks it) leave
+    // null so the "missing" panel shows — never silently enter another part.
+    if (forcedSection) {
+      if (forced) {
+        didAutoEnter.current = true;
+        setActiveSection(forced);
+      }
+      return;
+    }
+    const target = availableSections.includes('vocabulary') ? 'vocabulary' : availableSections[0];
     if (target) {
       didAutoEnter.current = true;
       setActiveSection(target);
@@ -3340,6 +3364,9 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
       }
       return next;
     });
+    // In single-part (forced) mode there's no landing to return to — show a small
+    // "done" panel; the course action bar handles moving on.
+    if (forced) { setForcedDone(true); setActiveSection(null); return; }
     setActiveSection(null);
   }
 
@@ -3360,8 +3387,9 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
       {/* ── Header (minimal — no banner, just the section title) ── */}
       <div className="bg-white">
         <div className="max-w-5xl mx-auto px-6 pt-6 pb-2">
-          {/* Inside a section: a subtle link back to the lesson landing */}
-          {activeSection !== null && (
+          {/* Inside a section: a subtle link back to the lesson landing
+              (hidden in single-part mode — there's no landing to return to) */}
+          {activeSection !== null && !forced && (
             <button
               onClick={() => setActiveSection(null)}
               className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#5A6480] hover:text-[#1D0084] transition-colors duration-200 mb-3"
@@ -3394,8 +3422,25 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
       <div className="bg-white min-h-[70vh] py-8 pb-20">
         <div className="mx-auto px-6 max-w-5xl">
 
+          {/* Requested part doesn't exist in this lesson */}
+          {forcedMissing && (
+            <div className="rounded-2xl border border-[#DDE6F5] bg-[#F0F5FF] px-6 py-10 text-center">
+              <p className="text-[15px] font-semibold text-[#1D0084]">Esta lección no tiene esa parte todavía.</p>
+              <p className="text-[13px] text-[#5A6480] mt-1">Pulsa «Siguiente» abajo para continuar.</p>
+            </div>
+          )}
+
+          {/* Single-part completed */}
+          {forcedDone && (
+            <div className="flex flex-col items-center text-center rounded-2xl py-12 px-6 gap-3" style={{ background: 'linear-gradient(135deg, #1D0084 0%, #025dc7 100%)' }}>
+              <span className="text-5xl">⭐</span>
+              <p className="text-white font-bold text-[22px]" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>¡Parte completada!</p>
+              <p className="text-white/70 text-[14px]">Pulsa «Siguiente» abajo para continuar.</p>
+            </div>
+          )}
+
           {/* LANDING */}
-          {activeSection === null && (
+          {!forcedMissing && !forcedDone && activeSection === null && (
             <>
               {/* Recordatorio: apunta tus errores (las respuestas no se guardan) */}
               <div className="rounded-2xl bg-[#FFF8E1] border border-[#F5D96A]/50 px-4 py-3 mb-6 flex gap-3">
@@ -3438,6 +3483,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
               practiceExercises={practiceItems}
               onComplete={() => completeSection('vocabulary')}
               onItemResult={handleItemResult}
+              inCourse={inCourse}
             />
           )}
 

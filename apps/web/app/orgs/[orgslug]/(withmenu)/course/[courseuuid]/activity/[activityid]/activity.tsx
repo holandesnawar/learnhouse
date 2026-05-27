@@ -299,21 +299,6 @@ function ActivityClient(props: ActivityClientProps) {
     activity?.activity_sub_type === 'SUBTYPE_DYNAMIC_EMBED' &&
     /^nawar:/.test(activity?.content?.embed_url || '');
 
-  // Automatic exercises: each video lesson is followed by its matching vocabulary
-  // exercise, mapped by the video's position among all videos (1-to-1 by order).
-  const currentVideoIndex = useMemo(() => {
-    if (activity?.activity_type !== 'TYPE_VIDEO') return -1;
-    const cleanUuid = activity.activity_uuid?.replace('activity_', '');
-    let idx = -1;
-    for (const a of allActivities) {
-      if (a.activity_type === 'TYPE_VIDEO') {
-        idx += 1;
-        if (a.cleanUuid === cleanUuid) return idx;
-      }
-    }
-    return -1;
-  }, [activity, allActivities]);
-
   // Memoize activity content
   const activityContent = useMemo(() => {
     if (!activity || !activity.published || activity.content.paid_access === false) {
@@ -330,15 +315,17 @@ function ActivityClient(props: ActivityClientProps) {
           );
         }
         if (activity.activity_sub_type === 'SUBTYPE_DYNAMIC_EMBED') {
-          // Native Nawar exercise: embed_url stored as "nawar:<moduleId>/<lessonId>".
+          // Native Nawar exercise: embed_url stored as
+          // "nawar:<moduleId>/<lessonId>" or "nawar:<moduleId>/<lessonId>/<section>".
           const embedUrl: string = activity.content?.embed_url || '';
-          const nativeMatch = embedUrl.match(/^nawar:([^/]+)\/(.+)$/);
+          const nativeMatch = embedUrl.match(/^nawar:([^/]+)\/([^/]+)(?:\/([^/]+))?$/);
           if (nativeMatch) {
             return (
               <Suspense fallback={<LoadingFallback />}>
                 <NativeExerciseActivity
                   moduleId={nativeMatch[1]}
                   lessonId={nativeMatch[2]}
+                  section={nativeMatch[3]}
                   orgslug={orgslug}
                 />
               </Suspense>
@@ -359,11 +346,6 @@ function ActivityClient(props: ActivityClientProps) {
         return (
           <Suspense fallback={<LoadingFallback />}>
             <VideoActivity course={course} activity={activity} />
-            {currentVideoIndex >= 0 && (
-              <div className="mt-8">
-                <NativeExerciseActivity videoIndex={currentVideoIndex} orgslug={orgslug} />
-              </div>
-            )}
           </Suspense>
         );
       case 'TYPE_DOCUMENT':
@@ -399,7 +381,7 @@ function ActivityClient(props: ActivityClientProps) {
       default:
         return null;
     }
-  }, [activity, course, assignment, orgslug, currentVideoIndex]);
+  }, [activity, course, assignment, orgslug]);
 
   // Navigate to an activity
   const navigateToActivity = (activity: any) => {
