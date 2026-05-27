@@ -2236,16 +2236,21 @@
   display: block;
 }
 
-/* Holandés Nawar — botones de acción en azul de marca (#025dc7) en vez de negro.
-   `button.bg-black` / `a.bg-black` tiene más especificidad que la utilidad
-   `.bg-black`, así que recolorea solo botones/enlaces (no overlays ni texto). */
+/* Holandés Nawar — identidad de botón unificada: fondo azul claro + letra azul
+   oscuro (igual que el login). LearnHouse pinta sus botones primarios con
+   `bg-black`; `button.bg-black`/`a.bg-black` tiene más especificidad que la
+   utilidad `.bg-black`, así que recolorea solo botones/enlaces (no overlays).
+   Los botones de la lección/ejercicio usan sus propios hex (#1D0084, verdes…)
+   y NO se ven afectados — quedan con su color. */
 button.bg-black:not(:disabled),
 a.bg-black {
-  background-color: #025dc7 !important;
+  background-color: #4da3ff !important;
+  color: #0a1656 !important;
 }
 button.bg-black:not(:disabled):hover,
 a.bg-black:hover {
-  background-color: #0b6df0 !important;
+  background-color: #6cb5ff !important;
+  color: #0a1656 !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
