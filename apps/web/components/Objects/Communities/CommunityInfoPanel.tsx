@@ -64,7 +64,7 @@ export default function CommunityInfoPanel({ org_id }: Props) {
   }
 
   return (
-    <aside className="w-full lg:w-[300px] shrink-0">
+    <aside className="w-full min-w-0">
       <div className="lg:sticky lg:top-24 bg-white nice-shadow rounded-2xl border border-[#DDE6F5] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-[#DDE6F5]">

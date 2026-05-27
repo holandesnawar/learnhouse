@@ -29,8 +29,8 @@ const CommunitiesClient = ({ communities, orgslug, org_id }: CommunitiesClientPr
   return (
     <FeatureGate feature="communities" orgslug={orgslug} context="public">
       <GeneralWrapperStyled>
-       <div className="flex flex-col lg:flex-row gap-6 items-start">
-        <div className="flex-1 min-w-0 w-full">
+       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
+        <div className="min-w-0">
         {/* Header + intro */}
         <div className="flex items-start justify-between gap-3 mb-5">
           <div>
