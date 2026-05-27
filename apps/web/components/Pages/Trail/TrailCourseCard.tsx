@@ -1,26 +1,16 @@
 'use client'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { getUriWithOrg } from '@services/config/config'
-import { removeCourse } from '@services/courses/activity'
 import { getCourseMetadata } from '@services/courses/courses'
 import { getCourseThumbnailMediaDirectory } from '@services/media/media'
-import { revalidateTags } from '@services/utils/ts/requests'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { getUserCertificates } from '@services/courses/certifications'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/lib/query/keys'
-import { Award, ExternalLink, BookOpen, MoreVertical, Trash2 } from 'lucide-react'
+import { Award, ExternalLink, BookOpen } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import ConfirmationModal from '@components/Objects/StyledElements/ConfirmationModal/ConfirmationModal'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@components/ui/dropdown-menu"
 
 interface TrailCourseCardProps {
   course: any
@@ -35,7 +25,6 @@ function TrailCourseCard(props: TrailCourseCardProps) {
   const access_token = session?.data?.tokens?.access_token;
   const courseid = props.course.course_uuid.replace('course_', '')
   const course = props.course
-  const router = useRouter()
   const course_total_steps = props.run.course_total_steps
   const course_completed_steps = props.run.steps.length
   const orgID = org?.id
@@ -55,14 +44,6 @@ function TrailCourseCard(props: TrailCourseCardProps) {
     })
   }
 
-  async function quitCourse(course_uuid: string) {
-    let activity = await removeCourse(course_uuid, props.orgslug, access_token)
-    await revalidateTags(['courses'], props.orgslug)
-    router.refresh()
-    if (orgID) {
-      queryClient.invalidateQueries({ queryKey: queryKeys.trail.org(orgID) })
-    }
-  }
 
   useEffect(() => {
     const fetchCourseCertificate = async () => {
@@ -95,33 +76,6 @@ function TrailCourseCard(props: TrailCourseCardProps) {
 
   return (
     <div className="group relative flex flex-col bg-white rounded-xl nice-shadow overflow-hidden w-full transition-all duration-300 hover:scale-[1.01]" onMouseEnter={handleMouseEnter}>
-      {/* Dropdown Menu */}
-      <div className="absolute top-2 right-2 z-20">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="p-1.5 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-all shadow-md">
-              <MoreVertical size={18} className="text-gray-700" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem asChild>
-              <ConfirmationModal
-                confirmationMessage={t('courses.quit_course_confirm')}
-                confirmationButtonText={t('courses.quit_course')}
-                dialogTitle={t('courses.quit_course_title')}
-                dialogTrigger={
-                  <button className="w-full text-left flex items-center px-2 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors">
-                    <Trash2 className="mr-2 h-4 w-4" /> {t('courses.quit_course')}
-                  </button>
-                }
-                functionToExecute={() => quitCourse(course.course_uuid)}
-                status="warning"
-              />
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
       {/* Thumbnail */}
       <Link
         href={courseLink}

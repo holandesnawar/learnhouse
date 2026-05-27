@@ -140,8 +140,8 @@ export const OrgSidebar = (props: { orgslug: string }) => {
 
   const authItems: NavItem[] = [
     { key: 'trail', href: '/trail', label: t('courses.progress'), icon: <Signpost size={20} weight="fill" />, show: isAuthenticated },
-    { key: 'boards', href: '/boards', label: 'Boards', icon: <ChalkboardSimple size={20} weight="fill" />, show: isAuthenticated && isEnabled('boards') },
-    { key: 'copilot', href: '/copilot', label: 'Copilot', icon: <ChatCircle size={20} weight="fill" />, show: isAuthenticated && isEnabled('ai') && config?.admin_toggles?.ai?.copilot_enabled !== false },
+    { key: 'boards', href: '/boards', label: 'Boards', icon: <ChalkboardSimple size={20} weight="fill" />, show: false },
+    { key: 'copilot', href: '/copilot', label: 'Copilot', icon: <ChatCircle size={20} weight="fill" />, show: false },
   ]
 
   const dashItems = DASHBOARD_MENU_ITEMS.filter((item: DashboardMenuItem) => {

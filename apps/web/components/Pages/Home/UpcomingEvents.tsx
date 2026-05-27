@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { getUriWithOrg } from '@services/config/config'
 import { CalendarDays, Clock, ArrowRight } from 'lucide-react'
+import { CalendarBlank } from '@phosphor-icons/react'
 
 interface LhEvent {
   id: string
@@ -35,7 +36,10 @@ export default function UpcomingEvents({ orgslug }: { orgslug: string }) {
   return (
     <div className="mb-10">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold text-gray-900">Próximos eventos</h2>
+        <div className="flex items-center gap-2">
+          <CalendarBlank size={20} weight="fill" className="text-[#025dc7]" />
+          <h2 className="text-lg font-bold text-gray-900">Próximos eventos</h2>
+        </div>
         <Link
           href={getUriWithOrg(orgslug, '/calendario')}
           className="inline-flex items-center gap-1 text-sm font-semibold text-[#025dc7] hover:underline"

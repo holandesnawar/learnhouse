@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Loader2, Lock, Dumbbell } from 'lucide-react'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import { getModules, getLessonsForModule } from '@/lib/exercises-app/courseService'
-import { getModuleStats, isModuleUnlocked } from '@/lib/exercises-app/progress'
+import { getModuleStats } from '@/lib/exercises-app/progress'
 import { getUriWithOrg } from '@services/config/config'
 
 type ModState = { unlocked: boolean; completed: number; total: number }
@@ -22,7 +22,7 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
     for (const m of modules) {
       const lessonIds = getLessonsForModule(m.id).map((l) => l.id)
       const stats = getModuleStats(m.id, lessonIds)
-      s[m.id] = { unlocked: isModuleUnlocked(m.id), completed: stats.completed, total: stats.total }
+      s[m.id] = { unlocked: true, completed: stats.completed, total: stats.total }
     }
     setState(s)
     setMounted(true)
@@ -37,8 +37,7 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Centro de ejercicios</h1>
       </div>
       <p className="text-sm text-gray-500 mt-1 mb-6 max-w-lg">
-        Repasa cualquier módulo o lección cuando quieras. Cada módulo se desbloquea al
-        terminar el anterior.
+        Repasa cualquier módulo o lección cuando quieras, en el orden que prefieras.
       </p>
 
       <div>

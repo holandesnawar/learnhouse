@@ -909,25 +909,14 @@ function ActivityClient(props: ActivityClientProps) {
                                   </button>
                                   {activityContent}
                                 </div>
-                                {/* Per-lesson description + tasks + Consultas (video lessons) */}
-                                {activity.activity_type === 'TYPE_VIDEO' ? (
+                                {/* Per-lesson description + tasks + Consultas (video lessons only) */}
+                                {activity.activity_type === 'TYPE_VIDEO' && (
                                   <LessonExtras
                                     activity={activity}
                                     activityid={activityid}
                                     orgslug={orgslug}
                                     canEdit={canEditLesson}
                                   />
-                                ) : (
-                                  course.description && (
-                                    <div className="bg-white nice-shadow rounded-lg p-4 sm:p-6">
-                                      <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-2 first-letter:uppercase">
-                                        {displayName}
-                                      </h2>
-                                      <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
-                                        {course.description}
-                                      </p>
-                                    </div>
-                                  )
                                 )}
                                 {/* Mobile lessons (collapsible) — hidden for full-page embeds */}
                                 {activity.activity_sub_type !== 'SUBTYPE_DYNAMIC_EMBED' && (
