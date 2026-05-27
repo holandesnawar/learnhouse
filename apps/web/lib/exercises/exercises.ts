@@ -61,7 +61,10 @@ async function rest(path: string, init?: RequestInit) {
     },
     cache: 'no-store',
   })
-  if (!res.ok) throw new Error(`Supabase ${res.status}`)
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`HTTP ${res.status} ${body.slice(0, 160)}`)
+  }
   const text = await res.text()
   return text ? JSON.parse(text) : null
 }

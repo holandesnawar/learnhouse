@@ -39,13 +39,13 @@ export default function VocabularyPractice({ orgslug }: { orgslug: string }) {
         const found = await getFirstVocabLesson()
         if (cancelled) return
         if (!found) {
-          setError('No se encontró vocabulario en el curso.')
+          setError('No se encontró vocabulario (0 filas). Revisa que la tabla vocabulary_items tenga datos y permita lectura (RLS) al rol anon.')
           return
         }
         setLesson(found.lesson)
         setVocab(found.vocab)
       } catch (e: any) {
-        if (!cancelled) setError('No se pudo cargar el vocabulario.')
+        if (!cancelled) setError(`No se pudo cargar el vocabulario. Detalle: ${e?.message || e}`)
       } finally {
         if (!cancelled) setLoading(false)
       }
