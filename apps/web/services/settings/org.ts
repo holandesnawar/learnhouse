@@ -106,6 +106,19 @@ export async function updateOrgFooterTextConfig(
   return res
 }
 
+export async function updateOrgCommunityPanelConfig(
+  org_id: string,
+  panel: { welcome: string; rules: string; tips: string },
+  access_token: string
+) {
+  const result: any = await fetch(
+    `${getAPIUrl()}orgs/${org_id}/config/community_panel`,
+    RequestBodyWithAuthHeader('PUT', panel, null, access_token)
+  )
+  const res = await errorHandling(result)
+  return res
+}
+
 export async function updateOrgFontConfig(
   org_id: string,
   font: string,

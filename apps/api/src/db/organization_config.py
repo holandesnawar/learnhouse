@@ -54,6 +54,12 @@ class CommunitiesOrgConfig(BaseModel):
     enabled: bool = True
 
 
+class CommunityPanelConfig(BaseModel):
+    welcome: str = ""
+    rules: str = ""
+    tips: str = ""
+
+
 class CollectionsOrgConfig(BaseModel):
     enabled: bool = True
 

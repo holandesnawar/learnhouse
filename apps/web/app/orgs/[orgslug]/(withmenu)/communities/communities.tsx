@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { Community } from '@services/communities/communities'
 import FeatureGate from '@components/Dashboard/Shared/FeatureGate/FeatureGate'
 import { splitChannelEmoji } from '@/lib/communities/channelEmoji'
+import CommunityInfoPanel from '@components/Objects/Communities/CommunityInfoPanel'
 
 interface CommunitiesClientProps {
   communities: Community[]
@@ -28,6 +29,8 @@ const CommunitiesClient = ({ communities, orgslug, org_id }: CommunitiesClientPr
   return (
     <FeatureGate feature="communities" orgslug={orgslug} context="public">
       <GeneralWrapperStyled>
+       <div className="flex flex-col lg:flex-row gap-6 items-start">
+        <div className="flex-1 min-w-0 w-full">
         {/* Header + intro */}
         <div className="flex items-start justify-between gap-3 mb-5">
           <div>
@@ -103,6 +106,10 @@ const CommunitiesClient = ({ communities, orgslug, org_id }: CommunitiesClientPr
             })}
           </div>
         )}
+        </div>
+
+        <CommunityInfoPanel org_id={org_id} />
+       </div>
       </GeneralWrapperStyled>
 
       <CreateCommunityModal
