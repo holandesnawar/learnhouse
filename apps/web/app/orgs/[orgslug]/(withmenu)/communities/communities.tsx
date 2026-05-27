@@ -3,13 +3,12 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import AuthenticatedClientElement from '@components/Security/AuthenticatedClientElement'
-import TypeOfContentTitle from '@components/Objects/StyledElements/Titles/TypeOfContentTitle'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
-import CommunityCard from '@components/Objects/Communities/CommunityCard'
 import { CreateCommunityModal } from '@components/Objects/Modals/Communities/CreateCommunityModal'
-import { EditCommunityModal } from '@components/Objects/Modals/Communities/EditCommunityModal'
 import ContentPlaceHolderIfUserIsNotAdmin from '@components/Objects/ContentPlaceHolder'
-import { Users, Plus, MessagesSquare } from 'lucide-react'
+import { getUriWithOrg } from '@services/config/config'
+import { Plus, Hash, ChevronRight, MessagesSquare } from 'lucide-react'
+import Link from 'next/link'
 import { Community } from '@services/communities/communities'
 import FeatureGate from '@components/Dashboard/Shared/FeatureGate/FeatureGate'
 
@@ -19,17 +18,24 @@ interface CommunitiesClientProps {
   org_id: number
 }
 
+const channelId = (uuid: string) => uuid.replace('community_', '')
+
 const CommunitiesClient = ({ communities, orgslug, org_id }: CommunitiesClientProps) => {
   const { t } = useTranslation()
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [editingCommunity, setEditingCommunity] = useState<Community | null>(null)
 
   return (
     <FeatureGate feature="communities" orgslug={orgslug} context="public">
-    <GeneralWrapperStyled>
-      <div className="flex flex-col space-y-2 mb-6">
-        <div className="flex items-center justify-between">
-          <TypeOfContentTitle title={t('communities.title')} type="col" />
+      <GeneralWrapperStyled>
+        {/* Header + intro */}
+        <div className="flex items-start justify-between gap-3 mb-5">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Comunidad</h1>
+            <p className="text-sm text-gray-500 mt-1 max-w-lg">
+              Estos son nuestros canales. Entra en uno para escribir y charlar con el resto
+              de la comunidad.
+            </p>
+          </div>
           <AuthenticatedClientElement
             ressourceType="communities"
             action="create"
@@ -38,58 +44,55 @@ const CommunitiesClient = ({ communities, orgslug, org_id }: CommunitiesClientPr
           >
             <button
               onClick={() => setIsCreateModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-black hover:bg-black/90 text-white rounded-lg transition-colors text-sm font-medium"
+              className="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] text-[#0a1656] font-semibold text-sm hover:bg-[#6cb5ff] transition-colors"
             >
               <Plus size={16} />
-              {t('communities.new_community')}
+              Nuevo canal
             </button>
           </AuthenticatedClientElement>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {communities.map((community: Community) => (
-            <div key={community.community_uuid}>
-              <CommunityCard
-                community={community}
-                orgslug={orgslug}
-                org_id={org_id}
-                variant="public"
-              />
+        {/* Channel list */}
+        {communities.length === 0 ? (
+          <div className="flex flex-col justify-center items-center py-12 px-4 border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/30">
+            <div className="p-4 bg-white rounded-full nice-shadow mb-4">
+              <MessagesSquare className="w-8 h-8 text-gray-300" strokeWidth={1.5} />
             </div>
-          ))}
-          {communities.length === 0 && (
-            <div className="col-span-full flex flex-col justify-center items-center py-12 px-4 border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/30">
-              <div className="p-4 bg-white rounded-full nice-shadow mb-4">
-                <Users className="w-8 h-8 text-gray-300" strokeWidth={1.5} />
-              </div>
-              <h1 className="text-xl font-bold text-gray-600 mb-2">
-                {t('communities.no_communities')}
-              </h1>
-              <p className="text-md text-gray-400 mb-6 text-center max-w-xs">
-                <ContentPlaceHolderIfUserIsNotAdmin
-                  text={t('communities.no_communities_description')}
+            <h2 className="text-lg font-bold text-gray-600 mb-2">{t('communities.no_communities')}</h2>
+            <p className="text-sm text-gray-400 text-center max-w-xs">
+              <ContentPlaceHolderIfUserIsNotAdmin text={t('communities.no_communities_description')} />
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {communities.map((community) => (
+              <Link
+                key={community.community_uuid}
+                href={getUriWithOrg(orgslug, `/community/${channelId(community.community_uuid)}`)}
+                className="group flex items-center gap-4 px-4 py-3.5 rounded-2xl bg-white nice-shadow border border-transparent hover:border-[#4da3ff]/40 transition-all"
+              >
+                <div className="w-11 h-11 rounded-xl bg-[#F0F5FF] flex items-center justify-center shrink-0">
+                  <Hash size={20} className="text-[#025dc7]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[15px] font-bold text-gray-900 leading-tight truncate">
+                    {community.name}
+                  </p>
+                  {community.description && (
+                    <p className="text-[13px] text-gray-500 leading-snug line-clamp-1">
+                      {community.description}
+                    </p>
+                  )}
+                </div>
+                <ChevronRight
+                  size={18}
+                  className="text-gray-300 group-hover:text-[#025dc7] group-hover:translate-x-0.5 transition-all shrink-0"
                 />
-              </p>
-              <div className="flex justify-center">
-                <AuthenticatedClientElement
-                  checkMethod="roles"
-                  ressourceType="communities"
-                  action="create"
-                  orgId={org_id}
-                >
-                  <button
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-black hover:bg-black/90 text-white rounded-lg transition-colors text-sm font-medium"
-                  >
-                    <Plus size={16} />
-                    {t('communities.new_community')}
-                  </button>
-                </AuthenticatedClientElement>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </GeneralWrapperStyled>
 
       <CreateCommunityModal
         isOpen={isCreateModalOpen}
@@ -97,16 +100,6 @@ const CommunitiesClient = ({ communities, orgslug, org_id }: CommunitiesClientPr
         orgId={org_id}
         orgSlug={orgslug}
       />
-
-      {editingCommunity && (
-        <EditCommunityModal
-          isOpen={!!editingCommunity}
-          onClose={() => setEditingCommunity(null)}
-          community={editingCommunity}
-          orgSlug={orgslug}
-        />
-      )}
-    </GeneralWrapperStyled>
     </FeatureGate>
   )
 }

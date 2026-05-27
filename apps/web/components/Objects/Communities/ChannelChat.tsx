@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
+import utc from 'dayjs/plugin/utc'
+import 'dayjs/locale/es'
 import { PaperPlaneRight } from '@phosphor-icons/react'
 import { Loader2, MessageCircle } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
@@ -18,6 +20,17 @@ import UserAvatar from '@components/Objects/UserAvatar'
 import AuthenticatedClientElement from '@components/Security/AuthenticatedClientElement'
 
 dayjs.extend(relativeTime)
+dayjs.extend(utc)
+
+// Relative time in Spanish. The API serialises creation_date as a naive UTC
+// string (no timezone), which dayjs would otherwise read as local time and
+// report e.g. "hace 2 horas" for a brand-new message. Treat tz-less strings as
+// UTC, then convert to the viewer's local time.
+function relativeFromNow(date: string): string {
+  const hasTz = /[zZ]|[+-]\d{2}:?\d{2}$/.test(date)
+  const d = hasTz ? dayjs(date) : dayjs.utc(date).local()
+  return d.locale('es').fromNow()
+}
 
 function getAvatarUrl(author: DiscussionAuthor | null): string | null {
   if (!author?.avatar_image) return null
@@ -178,7 +191,7 @@ export function ChannelChat({
                     {!grouped && (
                       <div className="flex items-baseline gap-2">
                         <span className="text-sm font-semibold text-gray-900">{authorName(m.author)}</span>
-                        <span className="text-[11px] text-gray-400">{dayjs(m.creation_date).fromNow()}</span>
+                        <span className="text-[11px] text-gray-400">{relativeFromNow(m.creation_date)}</span>
                       </div>
                     )}
                     <p className="text-sm text-gray-700 whitespace-pre-wrap break-words leading-relaxed">
