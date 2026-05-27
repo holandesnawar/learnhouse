@@ -19,11 +19,13 @@ export default function NativeExerciseActivity({
   lessonId,
   section,
   orgslug,
+  onComplete,
 }: {
   moduleId: string
   lessonId: string
   section?: string
   orgslug: string
+  onComplete?: () => void
 }) {
   const [loading, setLoading] = useState(true)
   const [module, setModule] = useState<CourseModule | null>(null)
@@ -76,6 +78,7 @@ export default function NativeExerciseActivity({
       orgslug={orgslug}
       inCourse
       forcedSection={section}
+      onComplete={onComplete}
     />
   )
 }

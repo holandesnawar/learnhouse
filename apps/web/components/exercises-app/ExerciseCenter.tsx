@@ -1,7 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Loader2, Lock } from 'lucide-react'
+import { Loader2, Lock, Dumbbell } from 'lucide-react'
+import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import { getModules, getLessonsForModule } from '@/lib/exercises-app/courseService'
 import { getModuleStats, isModuleUnlocked } from '@/lib/exercises-app/progress'
 import { getUriWithOrg } from '@services/config/config'
@@ -29,22 +30,18 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
   }, [])
 
   return (
-    <main className="min-h-screen bg-white">
-      {/* Header — matches the module page layout (max-w-5xl, blue Poppins title) */}
-      <div className="max-w-5xl mx-auto px-6 pt-6 pb-2">
-        <h1
-          className="text-[24px] font-bold text-[#1D0084] leading-tight"
-          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
-        >
-          Centro de ejercicios
-        </h1>
-        <p className="text-[13px] text-[#5A6480] mt-1 leading-snug max-w-md">
-          Repasa cualquier módulo o lección cuando quieras. Cada módulo se desbloquea al
-          terminar el anterior.
-        </p>
+    <GeneralWrapperStyled>
+      {/* Standard section title (consistent with the rest of the app) */}
+      <div className="flex items-center gap-2 pt-2">
+        <Dumbbell size={24} className="text-[#025dc7]" />
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Centro de ejercicios</h1>
       </div>
+      <p className="text-sm text-gray-500 mt-1 mb-6 max-w-lg">
+        Repasa cualquier módulo o lección cuando quieras. Cada módulo se desbloquea al
+        terminar el anterior.
+      </p>
 
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div>
       {!mounted ? (
         <div className="flex justify-center py-20">
           <Loader2 className="animate-spin text-gray-400" size={28} />
@@ -141,6 +138,6 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
         </div>
       )}
       </div>
-    </main>
+    </GeneralWrapperStyled>
   )
 }

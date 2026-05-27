@@ -3218,9 +3218,12 @@ interface LessonViewerProps {
   /** Show ONLY this part of the lesson (e.g. 'vocabulary', 'lezen'): no landing,
    *  no back button. Used so each exercise part is its own course class. */
   forcedSection?: string;
+  /** Fired when the lesson (or the forced part) is finished — lets a course
+   *  activity auto-mark itself complete so progress saves without a manual click. */
+  onComplete?: () => void;
 }
 
-export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLesson, orgslug, inCourse, forcedSection }: LessonViewerProps) {
+export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLesson, orgslug, inCourse, forcedSection, onComplete }: LessonViewerProps) {
   const session = useLHSession() as any;
   const userUuid: string = session?.data?.user?.user_uuid || '';
   const [activeSection, setActiveSection] = useState<SectionId | null>(null);
@@ -3357,16 +3360,20 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
   }, [inCourse, availableSections]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function completeSection(id: SectionId) {
-    setCompletedSections(prev => {
-      const next = new Set([...prev, id]);
-      if (availableSections.length > 0 && availableSections.every(s => next.has(s))) {
-        markLessonCompleted(lesson.id, lesson.moduleId, 0, 0, []);
-      }
-      return next;
-    });
-    // In single-part (forced) mode there's no landing to return to — show a small
-    // "done" panel; the course action bar handles moving on.
-    if (forced) { setForcedDone(true); setActiveSection(null); return; }
+    const next = new Set([...completedSections, id]);
+    setCompletedSections(next);
+    const allDone = availableSections.length > 0 && availableSections.every(s => next.has(s));
+    if (allDone) markLessonCompleted(lesson.id, lesson.moduleId, 0, 0, []);
+
+    // In single-part (forced) mode the activity IS this part: finishing it
+    // completes the activity. In whole-lesson mode, only when every part is done.
+    if (forced) {
+      setForcedDone(true);
+      setActiveSection(null);
+      onComplete?.();
+      return;
+    }
+    if (allDone) onComplete?.();
     setActiveSection(null);
   }
 
@@ -3384,9 +3391,11 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
 
   return (
     <>
-      {/* ── Header (minimal — no banner, just the section title) ── */}
+      {/* ── Header ── In a course the activity page already shows the lesson
+           name, so we drop the big banner-like title + extra padding and keep
+           only the "back to parts" link (whole-lesson mode). ── */}
       <div className="bg-white">
-        <div className="max-w-5xl mx-auto px-6 pt-6 pb-2">
+        <div className={inCourse ? '' : 'max-w-5xl mx-auto px-6 pt-6 pb-2'}>
           {/* Inside a section: a subtle link back to the lesson landing
               (hidden in single-part mode — there's no landing to return to) */}
           {activeSection !== null && !forced && (
@@ -3401,26 +3410,28 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
             </button>
           )}
 
-          <div className="flex items-start gap-3">
-            <span className="text-4xl">{module.emoji}</span>
-            <div>
-              <h1
-                className="text-[24px] font-bold text-[#1D0084] leading-tight"
-                style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
-              >
-                {activeSection ? activeMeta!.label : lesson.title}
-              </h1>
-              <p className="text-[13px] text-[#5A6480] mt-0.5">
-                {activeSection ? activeMeta!.desc : `${lesson.subtitle} · ${lesson.estimatedMinutes} min`}
-              </p>
+          {!inCourse && (
+            <div className="flex items-start gap-3">
+              <span className="text-4xl">{module.emoji}</span>
+              <div>
+                <h1
+                  className="text-[24px] font-bold text-[#1D0084] leading-tight"
+                  style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+                >
+                  {activeSection ? activeMeta!.label : lesson.title}
+                </h1>
+                <p className="text-[13px] text-[#5A6480] mt-0.5">
+                  {activeSection ? activeMeta!.desc : `${lesson.subtitle} · ${lesson.estimatedMinutes} min`}
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
       {/* ── Content ── */}
-      <div className="bg-white min-h-[70vh] py-8 pb-20">
-        <div className="mx-auto px-6 max-w-5xl">
+      <div className={`bg-white ${inCourse ? 'pt-1 pb-4' : 'min-h-[70vh] py-8 pb-20'}`}>
+        <div className={`mx-auto max-w-5xl ${inCourse ? 'px-0' : 'px-6'}`}>
 
           {/* Requested part doesn't exist in this lesson */}
           {forcedMissing && (
@@ -3442,18 +3453,21 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
           {/* LANDING */}
           {!forcedMissing && !forcedDone && activeSection === null && (
             <>
-              {/* Recordatorio: apunta tus errores (las respuestas no se guardan) */}
-              <div className="rounded-2xl bg-[#FFF8E1] border border-[#F5D96A]/50 px-4 py-3 mb-6 flex gap-3">
-                <span className="text-xl shrink-0" aria-hidden>📝</span>
-                <div className="min-w-0">
-                  <p className="text-[13px] font-semibold text-[#7A5A0E] leading-tight mb-0.5">
-                    Consejo: apunta las palabras que falles
-                  </p>
-                  <p className="text-[12px] text-[#9C793B] leading-snug">
-                    Tus respuestas no se guardan entre sesiones. Llevar un cuaderno con los errores te ayuda a repasarlos después.
-                  </p>
+              {/* Recordatorio: apunta tus errores. Dentro del curso el progreso
+                  sí se guarda, así que el aviso solo aplica al modo standalone. */}
+              {!inCourse && (
+                <div className="rounded-2xl bg-[#FFF8E1] border border-[#F5D96A]/50 px-4 py-3 mb-6 flex gap-3">
+                  <span className="text-xl shrink-0" aria-hidden>📝</span>
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-semibold text-[#7A5A0E] leading-tight mb-0.5">
+                      Consejo: apunta las palabras que falles
+                    </p>
+                    <p className="text-[12px] text-[#9C793B] leading-snug">
+                      Tus respuestas no se guardan entre sesiones. Llevar un cuaderno con los errores te ayuda a repasarlos después.
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <SectionLanding
                 sections={availableSections}

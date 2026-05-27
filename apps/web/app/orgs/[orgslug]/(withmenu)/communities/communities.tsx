@@ -30,7 +30,10 @@ const CommunitiesClient = ({ communities, orgslug, org_id }: CommunitiesClientPr
         {/* Header + intro */}
         <div className="flex items-start justify-between gap-3 mb-5">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Comunidad</h1>
+            <div className="flex items-center gap-2">
+              <MessagesSquare size={24} className="text-[#025dc7]" />
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Comunidad</h1>
+            </div>
             <p className="text-sm text-gray-500 mt-1 max-w-lg">
               Estos son nuestros canales. Entra en uno para escribir y charlar con el resto
               de la comunidad.

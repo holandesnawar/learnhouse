@@ -5,6 +5,7 @@ import {
   getExtrasForModuleAsync,
 } from '@/lib/exercises-app/courseService'
 import LessonList from '@components/exercises-app/LessonList'
+import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,30 +24,21 @@ export default async function ModulePage({
   ])
 
   return (
-    <main className="min-h-screen bg-white">
-      {/* Minimal header */}
-      <div className="max-w-5xl mx-auto px-6 pt-6 pb-2">
-        <div className="flex items-start gap-3">
-          <span className="text-4xl">{module.emoji}</span>
-          <div>
-            <h1
-              className="text-[24px] font-bold text-[#1D0084] leading-tight"
-              style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
-            >
-              {module.title}
-            </h1>
-            {module.subtitle && (
-              <p className="text-[13px] font-semibold text-[#025dc7] mt-0.5">{module.subtitle}</p>
-            )}
-            <p className="text-[13px] text-[#5A6480] mt-1 leading-snug max-w-md">
-              {module.description}
-            </p>
-          </div>
+    <GeneralWrapperStyled>
+      {/* Header — standard left-aligned title (consistent with the app) */}
+      <div className="flex items-start gap-3 pt-2 pb-1">
+        <span className="text-4xl">{module.emoji}</span>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight">{module.title}</h1>
+          {module.subtitle && (
+            <p className="text-[13px] font-semibold text-[#025dc7] mt-0.5">{module.subtitle}</p>
+          )}
+          <p className="text-sm text-gray-500 mt-1 leading-snug max-w-md">{module.description}</p>
         </div>
       </div>
 
       {/* Lesson list */}
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="py-6">
         <LessonList lessons={lessons} moduleId={module.id} orgslug={orgslug} />
 
         {extras.length > 0 && (
@@ -59,6 +51,6 @@ export default async function ModulePage({
           </div>
         )}
       </div>
-    </main>
+    </GeneralWrapperStyled>
   )
 }

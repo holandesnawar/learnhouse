@@ -10,7 +10,7 @@ import { getCourseThumbnailMediaDirectory, getUserAvatarMediaDirectory } from '@
 import { useOrg, useOrgMembership } from '@components/Contexts/OrgContext'
 import { CourseProvider } from '@components/Contexts/CourseContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
-import React, { useEffect, useRef, useMemo, lazy, Suspense } from 'react'
+import React, { useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react'
 import { getAssignmentFromActivityUUID, getFinalGrade, retryAssignmentSubmission, submitAssignmentForGrading } from '@services/courses/assignments'
 import { AssignmentProvider } from '@components/Contexts/Assignments/AssignmentContext'
 import { AssignmentsTaskProvider } from '@components/Contexts/Assignments/AssignmentsTaskContext'
@@ -68,6 +68,24 @@ const LoadingFallback = () => (
     </div>
   </div>
 );
+
+// A native Nawar exercise can be stored on an Embed activity in two ways:
+//   1. the explicit token  "nawar:<moduleId>/<lessonId>[/<section>]"  (picker), or
+//   2. a plain URL to the Nawar exercises app  ".../modulo/<m>/leccion/<l>"
+// Both map to the same local module/lesson ids, so we render them natively
+// (no external iframe → no banner, brand colours, course progress works).
+// Anything else returns null and falls back to the regular iframe embed.
+function parseNativeExercise(
+  embedUrl: string
+): { moduleId: string; lessonId: string; section?: string } | null {
+  if (!embedUrl) return null;
+  const token = embedUrl.match(/^nawar:([^/]+)\/([^/]+)(?:\/([^/]+))?$/);
+  if (token) return { moduleId: token[1], lessonId: token[2], section: token[3] };
+  const appUrl = embedUrl.match(/\/modulo\/([^/?#]+)\/leccion\/([^/?#]+)/);
+  if (appUrl) return { moduleId: appUrl[1], lessonId: appUrl[2] };
+  return null;
+}
+
 
 function ActivityContentSkeleton({ activityType }: { activityType?: string }) {
   const isVideo = activityType === 'TYPE_VIDEO' || activityType === 'TYPE_SCORM'
@@ -295,9 +313,30 @@ function ActivityClient(props: ActivityClientProps) {
 
   // Native Nawar exercise embeds keep the course action bar (Next + mark
   // complete) so course progress/trail still works; iframe embeds hide it.
-  const isNativeExercise =
-    activity?.activity_sub_type === 'SUBTYPE_DYNAMIC_EMBED' &&
-    /^nawar:/.test(activity?.content?.embed_url || '');
+  const nativeExercise =
+    activity?.activity_sub_type === 'SUBTYPE_DYNAMIC_EMBED'
+      ? parseNativeExercise(activity?.content?.embed_url || '')
+      : null;
+  const isNativeExercise = !!nativeExercise;
+
+  // Auto-mark a native exercise activity complete when the student finishes it,
+  // so progress saves without a manual click. Fires once per activity; marking
+  // an already-complete activity is harmless.
+  const nativeCompleteFired = useRef(false);
+  useEffect(() => { nativeCompleteFired.current = false }, [activityid]);
+  const handleNativeComplete = useCallback(async () => {
+    if (nativeCompleteFired.current) return;
+    if (!activity?.activity_uuid || !course?.course_uuid || !access_token) return;
+    nativeCompleteFired.current = true;
+    try {
+      await markActivityAsComplete(orgslug, course.course_uuid, activity.activity_uuid, access_token);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.trail.org(org?.id) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.courses.meta(course.course_uuid.replace('course_', '')) });
+    } catch {
+      nativeCompleteFired.current = false;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activity?.activity_uuid, course?.course_uuid, access_token, orgslug, org?.id]);
 
   // Memoize activity content
   const activityContent = useMemo(() => {
@@ -315,18 +354,18 @@ function ActivityClient(props: ActivityClientProps) {
           );
         }
         if (activity.activity_sub_type === 'SUBTYPE_DYNAMIC_EMBED') {
-          // Native Nawar exercise: embed_url stored as
-          // "nawar:<moduleId>/<lessonId>" or "nawar:<moduleId>/<lessonId>/<section>".
-          const embedUrl: string = activity.content?.embed_url || '';
-          const nativeMatch = embedUrl.match(/^nawar:([^/]+)\/([^/]+)(?:\/([^/]+))?$/);
-          if (nativeMatch) {
+          // Render natively when the embed points at a Nawar exercise (either the
+          // "nawar:" token or a plain URL to the exercises app); otherwise iframe.
+          const native = parseNativeExercise(activity.content?.embed_url || '');
+          if (native) {
             return (
               <Suspense fallback={<LoadingFallback />}>
                 <NativeExerciseActivity
-                  moduleId={nativeMatch[1]}
-                  lessonId={nativeMatch[2]}
-                  section={nativeMatch[3]}
+                  moduleId={native.moduleId}
+                  lessonId={native.lessonId}
+                  section={native.section}
                   orgslug={orgslug}
+                  onComplete={handleNativeComplete}
                 />
               </Suspense>
             );
@@ -381,7 +420,7 @@ function ActivityClient(props: ActivityClientProps) {
       default:
         return null;
     }
-  }, [activity, course, assignment, orgslug]);
+  }, [activity, course, assignment, orgslug, handleNativeComplete]);
 
   // Navigate to an activity
   const navigateToActivity = (activity: any) => {
