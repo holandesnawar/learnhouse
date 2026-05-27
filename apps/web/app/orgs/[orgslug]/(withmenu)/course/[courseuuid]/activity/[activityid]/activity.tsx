@@ -804,9 +804,14 @@ function ActivityClient(props: ActivityClientProps) {
                               </Link>
                             </div>
                             <div className="flex flex-col -space-y-1">
-                              <p className="font-bold text-gray-700 text-[11px] sm:text-sm">{t('search.course')} </p>
-                              <h1 className="font-bold text-gray-950 text-base sm:text-xl first-letter:uppercase">
+                              <Link
+                                href={getUriWithOrg(orgslug, '') + `/course/${courseuuid}`}
+                                className="font-bold text-gray-500 hover:text-[#1D0084] transition-colors text-[11px] sm:text-sm first-letter:uppercase"
+                              >
                                 {course.name}
+                              </Link>
+                              <h1 className="font-bold text-gray-950 text-base sm:text-xl first-letter:uppercase">
+                                {displayName}
                               </h1>
                             </div>
                           </div>
