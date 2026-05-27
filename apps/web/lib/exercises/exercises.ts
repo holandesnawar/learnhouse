@@ -1,13 +1,17 @@
 'use client'
 // Native access to the Nawar exercises content stored in Supabase, via its
-// REST API (no extra dependency). Reads NEXT_PUBLIC_SUPABASE_URL/ANON_KEY,
-// set in Railway. Per-student progress is saved in a `student_progress`
-// table keyed by the LearnHouse user uuid.
+// REST API (no extra dependency). The Supabase URL/anon key come from the
+// runtime config (getConfig), since NEXT_PUBLIC_* vars are injected at runtime
+// in this deployment, not inlined at build time. Per-student progress is saved
+// in a `student_progress` table keyed by the LearnHouse user uuid.
+import { getConfig } from '@services/config/config'
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
-const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+const supaUrl = () => getConfig('NEXT_PUBLIC_SUPABASE_URL', '')
+const supaKey = () => getConfig('NEXT_PUBLIC_SUPABASE_ANON_KEY', '')
 
-export const exercisesEnabled = Boolean(SUPABASE_URL && SUPABASE_ANON)
+export function isExercisesEnabled(): boolean {
+  return Boolean(supaUrl() && supaKey())
+}
 
 export interface ExModule {
   id: string
@@ -48,7 +52,9 @@ export interface ItemProgress {
 }
 
 async function rest(path: string, init?: RequestInit) {
-  if (!exercisesEnabled) return null
+  const SUPABASE_URL = supaUrl()
+  const SUPABASE_ANON = supaKey()
+  if (!SUPABASE_URL || !SUPABASE_ANON) return null
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...init,
     headers: {
@@ -74,6 +80,22 @@ export async function getLessons(moduleId: string): Promise<ExLesson[]> {
 
 export async function getVocabulary(lessonId: string): Promise<ExVocab[]> {
   return (await rest(`vocabulary_items?lesson_id=eq.${encodeURIComponent(lessonId)}&order=sort_order.asc`)) || []
+}
+
+// Walk modules/lessons in order and return the first lesson that actually has
+// vocabulary, so the practice lands on real content (not an empty intro module).
+export async function getFirstVocabLesson(): Promise<{ lesson: ExLesson; vocab: ExVocab[] } | null> {
+  const modules = await getModules()
+  let scanned = 0
+  for (const m of modules) {
+    const lessons = await getLessons(m.id)
+    for (const l of lessons) {
+      if (scanned++ > 40) return null
+      const vocab = await getVocabulary(l.id)
+      if (vocab.length > 0) return { lesson: l, vocab }
+    }
+  }
+  return null
 }
 
 export async function getLessonProgress(userUuid: string, lessonId: string): Promise<ItemProgress[]> {
@@ -115,7 +137,7 @@ export interface WeekProgress {
 // Progress made since the start of the current week (Monday).
 export async function getWeekProgress(userUuid: string): Promise<WeekProgress> {
   const empty = { practiced: 0, correct: 0, toReview: 0 }
-  if (!userUuid || !exercisesEnabled) return empty
+  if (!userUuid || !isExercisesEnabled()) return empty
   const now = new Date()
   const day = (now.getDay() + 6) % 7 // 0 = Monday
   const monday = new Date(now)

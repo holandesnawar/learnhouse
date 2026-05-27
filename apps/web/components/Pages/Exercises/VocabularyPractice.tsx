@@ -3,10 +3,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import {
-  exercisesEnabled,
-  getModules,
-  getLessons,
-  getVocabulary,
+  isExercisesEnabled,
+  getFirstVocabLesson,
   saveItemResult,
   type ExVocab,
   type ExLesson,
@@ -32,22 +30,20 @@ export default function VocabularyPractice({ orgslug }: { orgslug: string }) {
   useEffect(() => {
     let cancelled = false
     async function load() {
-      if (!exercisesEnabled) {
+      if (!isExercisesEnabled()) {
         setError('Los ejercicios no están configurados (faltan las claves de Supabase).')
         setLoading(false)
         return
       }
       try {
-        const modules = await getModules()
-        const firstModule = modules[0]
-        if (!firstModule) throw new Error('Sin módulos')
-        const lessons = await getLessons(firstModule.id)
-        const firstLesson = lessons[0]
-        if (!firstLesson) throw new Error('Sin lecciones')
-        const v = await getVocabulary(firstLesson.id)
+        const found = await getFirstVocabLesson()
         if (cancelled) return
-        setLesson(firstLesson)
-        setVocab(v)
+        if (!found) {
+          setError('No se encontró vocabulario en el curso.')
+          return
+        }
+        setLesson(found.lesson)
+        setVocab(found.vocab)
       } catch (e: any) {
         if (!cancelled) setError('No se pudo cargar el vocabulario.')
       } finally {
