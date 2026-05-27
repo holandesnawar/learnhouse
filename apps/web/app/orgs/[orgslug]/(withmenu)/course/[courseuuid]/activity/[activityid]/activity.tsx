@@ -34,8 +34,6 @@ import LessonExtras from '@components/Pages/Activity/LessonExtras'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import CourseEndView from '@components/Pages/Activity/CourseEndView'
 import { motion, AnimatePresence } from 'motion/react'
-import { Breadcrumbs } from '@components/Objects/Breadcrumbs/Breadcrumbs'
-import { BookCopy } from 'lucide-react'
 import MiniInfoTooltip from '@components/Objects/MiniInfoTooltip'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import ActivityIndicators from '@components/Pages/Courses/ActivityIndicators'
@@ -815,11 +813,12 @@ function ActivityClient(props: ActivityClientProps) {
                 ) : (
                   <div className="space-y-3 pt-0 relative">
                     <div className="pt-1 pb-1 sm:pb-2">
-                      <Breadcrumbs items={[
-                        { label: t('courses.courses'), href: getUriWithOrg(orgslug, '/courses'), icon: <BookCopy size={14} /> },
-                        { label: course.name, href: getUriWithOrg(orgslug, `/course/${courseuuid}`) },
-                        { label: displayName }
-                      ]} />
+                      <Link
+                        href={getUriWithOrg(orgslug, `/course/${courseuuid}`)}
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-[#5A6480] hover:text-[#1D0084] transition-colors"
+                      >
+                        <ChevronLeft size={16} /> Volver al curso
+                      </Link>
                     </div>
                     <div className="space-y-2 sm:space-y-3 activity-info-section relative" style={{ zIndex: 'var(--z-content)' }}>
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
@@ -1260,6 +1259,9 @@ function NextActivityButton({ course, currentActivityId, orgslug }: { course: an
   const { t } = useTranslation();
   const router = useRouter();
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const session = useLHSession() as any;
+  const org = useOrg() as any;
+  const queryClient = useQueryClient();
 
   const findNextActivity = () => {
     let allActivities: any[] = [];
@@ -1290,8 +1292,23 @@ function NextActivityButton({ course, currentActivityId, orgslug }: { course: an
 
   if (!nextActivity) return null;
 
-  const navigateToActivity = () => {
+  const navigateToActivity = async () => {
     const cleanCourseUuid = course.course_uuid?.replace('course_', '');
+    // Moving on counts as finishing the current activity: mark it complete so
+    // progress is recorded without an extra click (best-effort, never blocks nav).
+    try {
+      const current = (course.chapters ?? [])
+        .flatMap((c: any) => c.activities ?? [])
+        .find((a: any) => a.id === currentActivityId);
+      const token = session?.data?.tokens?.access_token;
+      if (current?.activity_uuid && token) {
+        await markActivityAsComplete(orgslug, course.course_uuid, current.activity_uuid, token);
+        queryClient.invalidateQueries({ queryKey: queryKeys.trail.org(org?.id) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.courses.meta(cleanCourseUuid) });
+      }
+    } catch {
+      /* non-blocking — navigation continues even if marking fails */
+    }
     router.push(getUriWithOrg(orgslug, '') + `/course/${cleanCourseUuid}/activity/${nextActivity.cleanUuid}`);
   };
 

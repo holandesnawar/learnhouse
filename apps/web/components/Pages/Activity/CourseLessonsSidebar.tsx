@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { Check, FileText, Video, StickyNote, Backpack, ListTree, ChevronDown } from 'lucide-react'
 import { getUriWithOrg } from '@services/config/config'
@@ -48,19 +48,64 @@ function useProgress(course: any, trailData: any) {
 function LessonsList({ course, currentActivityId, orgslug, trailData }: CourseLessonsProps) {
   const { run, cleanCourseUuid } = useProgress(course, trailData)
   const cleanCurrent = currentActivityId?.replace('activity_', '')
+  const chapters = course.chapters ?? []
+
+  // The chapter holding the current activity opens by default; the rest start
+  // collapsed so the list doesn't force endless scrolling.
+  const currentChapterIdx = useMemo(
+    () =>
+      chapters.findIndex((ch: any) =>
+        (ch?.activities ?? []).some(
+          (a: any) => a.activity_uuid?.replace('activity_', '') === cleanCurrent
+        )
+      ),
+    [chapters, cleanCurrent]
+  )
+  const [openIdx, setOpenIdx] = useState<Set<number>>(
+    () => new Set([currentChapterIdx >= 0 ? currentChapterIdx : 0])
+  )
+  useEffect(() => {
+    if (currentChapterIdx >= 0) {
+      setOpenIdx((prev) => new Set(prev).add(currentChapterIdx))
+    }
+  }, [currentChapterIdx])
+
+  function toggle(i: number) {
+    setOpenIdx((prev) => {
+      const next = new Set(prev)
+      if (next.has(i)) next.delete(i)
+      else next.add(i)
+      return next
+    })
+  }
 
   return (
     <div className="py-1">
-      {(course.chapters ?? []).map((chapter: any, index: number) => (
+      {chapters.map((chapter: any, index: number) => {
+        const acts = chapter.activities ?? []
+        const isOpen = openIdx.has(index)
+        const doneCount = acts.filter((a: any) =>
+          run?.steps?.find((s: any) => s.activity_id === a.id && s.complete === true)
+        ).length
+        return (
         <div key={chapter.id} className="mb-1">
-          <div className="px-4 py-1.5 flex items-center gap-1.5 bg-gray-50/70 border-y border-gray-100">
+          <button
+            onClick={() => toggle(index)}
+            className="w-full px-4 py-2 flex items-center gap-1.5 bg-gray-50/70 border-y border-gray-100 text-left hover:bg-gray-100/70 transition-colors"
+          >
             <div className="bg-gray-400 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shrink-0">
               {index + 1}
             </div>
-            <span className="text-xs font-semibold text-gray-600 truncate">{chapter.name}</span>
-          </div>
+            <span className="text-xs font-semibold text-gray-600 truncate flex-1">{chapter.name}</span>
+            <span className="text-[10px] text-gray-400 shrink-0 tabular-nums">{doneCount}/{acts.length}</span>
+            <ChevronDown
+              size={14}
+              className={`text-gray-400 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+          {isOpen && (
           <div className="py-0.5">
-            {(chapter.activities ?? []).map((activity: any) => {
+            {acts.map((activity: any) => {
               const cleanUuid = activity.activity_uuid?.replace('activity_', '')
               const isCurrent = cleanUuid === cleanCurrent
               const isComplete = run?.steps?.find(
@@ -106,8 +151,10 @@ function LessonsList({ course, currentActivityId, orgslug, trailData }: CourseLe
               )
             })}
           </div>
+          )}
         </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
