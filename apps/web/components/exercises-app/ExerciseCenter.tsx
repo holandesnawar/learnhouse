@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Loader2, Lock } from 'lucide-react'
-import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import { getModules, getLessonsForModule } from '@/lib/exercises-app/courseService'
 import { getModuleStats, isModuleUnlocked } from '@/lib/exercises-app/progress'
 import { getUriWithOrg } from '@services/config/config'
@@ -30,15 +29,22 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
   }, [])
 
   return (
-    <GeneralWrapperStyled>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Centro de ejercicios</h1>
-        <p className="text-sm text-gray-500 mt-1 max-w-lg">
+    <main className="min-h-screen bg-white">
+      {/* Header — matches the module page layout (max-w-5xl, blue Poppins title) */}
+      <div className="max-w-5xl mx-auto px-6 pt-6 pb-2">
+        <h1
+          className="text-[24px] font-bold text-[#1D0084] leading-tight"
+          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+        >
+          Centro de ejercicios
+        </h1>
+        <p className="text-[13px] text-[#5A6480] mt-1 leading-snug max-w-md">
           Repasa cualquier módulo o lección cuando quieras. Cada módulo se desbloquea al
           terminar el anterior.
         </p>
       </div>
 
+      <div className="max-w-5xl mx-auto px-6 py-8">
       {!mounted ? (
         <div className="flex justify-center py-20">
           <Loader2 className="animate-spin text-gray-400" size={28} />
@@ -134,6 +140,7 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
           })}
         </div>
       )}
-    </GeneralWrapperStyled>
+      </div>
+    </main>
   )
 }
