@@ -57,6 +57,7 @@ from src.services.orgs.orgs import (
     update_org_landing,
     update_org_roadmap,
     update_org_events,
+    update_org_faq,
     upload_org_landing_content_service,
     update_org_auth_branding_config,
     upload_org_auth_background_service,
@@ -1294,6 +1295,30 @@ async def api_update_org_events(
     Update organization events object
     """
     return await update_org_events(request, events_object, org_id, current_user, db_session)
+
+
+@router.put(
+    "/{org_id}/faq",
+    summary="Update organization FAQ",
+    description="Update the organization's frequently-asked-questions object.",
+    responses={
+        200: {"description": "FAQ updated."},
+        401: {"description": "Not authenticated"},
+        403: {"description": "Caller is not an organization administrator"},
+        404: {"description": "Organization not found"},
+    },
+)
+async def api_update_org_faq(
+    request: Request,
+    org_id: int,
+    faq_object: dict,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    """
+    Update organization FAQ object
+    """
+    return await update_org_faq(request, faq_object, org_id, current_user, db_session)
 
 
 @router.post(
