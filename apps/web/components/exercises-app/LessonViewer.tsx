@@ -11,6 +11,8 @@ import {
 } from '@/lib/exercises-app/progress';
 import AudioPlayer from './AudioPlayer';
 import { getConfig, getUriWithOrg } from '@services/config/config';
+import { Breadcrumbs } from '@components/Objects/Breadcrumbs/Breadcrumbs';
+import { Dumbbell } from 'lucide-react';
 import { useLHSession } from '@components/Contexts/LHSessionContext';
 import { saveItemResult } from '@/lib/exercises/exercises';
 
@@ -3396,6 +3398,16 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
            only the "back to parts" link (whole-lesson mode). ── */}
       <div className="bg-white">
         <div className={inCourse ? '' : 'max-w-(--breakpoint-2xl) mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2'}>
+          {/* Breadcrumb — where am I (whole-lesson mode only) */}
+          {!inCourse && (
+            <div className="mb-3">
+              <Breadcrumbs items={[
+                { label: 'Ejercicios', href: getUriWithOrg(orgslug, '/ejercicios'), icon: <Dumbbell size={14} /> },
+                { label: module.title, href: getUriWithOrg(orgslug, `/ejercicios/modulo/${module.id}`) },
+                { label: lesson.title },
+              ]} />
+            </div>
+          )}
           {/* Inside a section: a subtle link back to the lesson landing
               (hidden in single-part mode — there's no landing to return to) */}
           {activeSection !== null && !forced && (
