@@ -161,7 +161,7 @@ export default function ConsultasBoard() {
         </div>
         <button
           onClick={openNew}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#025dc7] hover:bg-[#0a4fa0] text-white text-sm font-bold transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] text-sm font-bold transition-colors"
         >
           <Plus size={17} /> Nueva consulta
         </button>
@@ -347,7 +347,7 @@ export default function ConsultasBoard() {
               <button
                 onClick={submitForm}
                 disabled={submitting}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#025dc7] hover:bg-[#0a4fa0] text-white text-sm font-bold disabled:opacity-60"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] text-sm font-bold disabled:opacity-60"
               >
                 {submitting && <Loader2 size={15} className="animate-spin" />}
                 {form.editingId ? 'Guardar cambios' : 'Publicar consulta'}
