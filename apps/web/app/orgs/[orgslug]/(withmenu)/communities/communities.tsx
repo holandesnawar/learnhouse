@@ -11,6 +11,7 @@ import { Plus, Hash, ChevronRight, MessagesSquare } from 'lucide-react'
 import Link from 'next/link'
 import { Community } from '@services/communities/communities'
 import FeatureGate from '@components/Dashboard/Shared/FeatureGate/FeatureGate'
+import { splitChannelEmoji } from '@/lib/communities/channelEmoji'
 
 interface CommunitiesClientProps {
   communities: Community[]
@@ -68,18 +69,24 @@ const CommunitiesClient = ({ communities, orgslug, org_id }: CommunitiesClientPr
           </div>
         ) : (
           <div className="space-y-2">
-            {communities.map((community) => (
+            {communities.map((community) => {
+              const { emoji, text } = splitChannelEmoji(community.name)
+              return (
               <Link
                 key={community.community_uuid}
                 href={getUriWithOrg(orgslug, `/community/${channelId(community.community_uuid)}`)}
                 className="group flex items-center gap-4 px-4 py-3.5 rounded-2xl bg-white nice-shadow border border-transparent hover:border-[#4da3ff]/40 transition-all"
               >
                 <div className="w-11 h-11 rounded-xl bg-[#F0F5FF] flex items-center justify-center shrink-0">
-                  <Hash size={20} className="text-[#025dc7]" />
+                  {emoji ? (
+                    <span className="text-xl leading-none" aria-hidden>{emoji}</span>
+                  ) : (
+                    <Hash size={20} className="text-[#025dc7]" />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[15px] font-bold text-gray-900 leading-tight truncate">
-                    {community.name}
+                    {text}
                   </p>
                   {community.description && (
                     <p className="text-[13px] text-gray-500 leading-snug line-clamp-1">
@@ -92,7 +99,8 @@ const CommunitiesClient = ({ communities, orgslug, org_id }: CommunitiesClientPr
                   className="text-gray-300 group-hover:text-[#025dc7] group-hover:translate-x-0.5 transition-all shrink-0"
                 />
               </Link>
-            ))}
+              )
+            })}
           </div>
         )}
       </GeneralWrapperStyled>

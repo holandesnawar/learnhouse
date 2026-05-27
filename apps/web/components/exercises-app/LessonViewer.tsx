@@ -3395,7 +3395,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
            name, so we drop the big banner-like title + extra padding and keep
            only the "back to parts" link (whole-lesson mode). ── */}
       <div className="bg-white">
-        <div className={inCourse ? '' : 'max-w-5xl mx-auto px-6 pt-6 pb-2'}>
+        <div className={inCourse ? '' : 'max-w-(--breakpoint-2xl) mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2'}>
           {/* Inside a section: a subtle link back to the lesson landing
               (hidden in single-part mode — there's no landing to return to) */}
           {activeSection !== null && !forced && (
@@ -3431,7 +3431,8 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
 
       {/* ── Content ── */}
       <div className={`bg-white ${inCourse ? 'pt-1 pb-4' : 'min-h-[70vh] py-8 pb-20'}`}>
-        <div className={`mx-auto max-w-5xl ${inCourse ? 'px-0' : 'px-6'}`}>
+        <div className={inCourse ? 'mx-auto max-w-5xl px-0' : 'max-w-(--breakpoint-2xl) mx-auto px-4 sm:px-6 lg:px-8'}>
+         <div className={inCourse ? 'contents' : 'max-w-5xl'}>
 
           {/* Requested part doesn't exist in this lesson */}
           {forcedMissing && (
@@ -3528,6 +3529,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
             />
           )}
 
+         </div>
         </div>
       </div>
     </>
