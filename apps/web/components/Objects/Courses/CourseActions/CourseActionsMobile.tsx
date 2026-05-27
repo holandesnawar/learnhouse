@@ -296,10 +296,10 @@ const CourseActionsMobile = ({ courseuuid, orgslug, course, trailData }: CourseA
           <button
             onClick={handleCourseAction}
             disabled={isActionLoading}
-            className="w-full py-2 px-4 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2 bg-[#025dc7] text-white hover:bg-[#0b6df0] disabled:opacity-70"
+            className="w-full py-2 px-4 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2 bg-[#4da3ff] text-[#0a1656] hover:bg-[#6cb5ff] disabled:opacity-70"
           >
             {isActionLoading ? (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-[#0a1656] border-t-transparent rounded-full animate-spin" />
             ) : !session.data?.user ? (
               <>
                 <LogIn className="w-4 h-4" />
