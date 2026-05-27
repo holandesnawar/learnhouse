@@ -855,14 +855,19 @@ function ActivityClient(props: ActivityClientProps) {
                           </div>
                         </div>
 
-                        <ActivityIndicators
-                          course_uuid={courseuuid}
-                          current_activity={activityid}
-                          orgslug={orgslug}
-                          course={course}
-                          enableNavigation={true}
-                          trailData={trailData}
-                        />
+                        {/* Top progress strip — only on full-width activities (exercises/embeds)
+                            where the "Contenido del curso" sidebar isn't shown, to avoid
+                            two redundant progress indicators on normal lessons. */}
+                        {activity?.activity_sub_type === 'SUBTYPE_DYNAMIC_EMBED' && (
+                          <ActivityIndicators
+                            course_uuid={courseuuid}
+                            current_activity={activityid}
+                            orgslug={orgslug}
+                            course={course}
+                            enableNavigation={true}
+                            trailData={trailData}
+                          />
+                        )}
                       </div>
 
                       {activityLoading || !activity ? (
@@ -962,15 +967,17 @@ function ActivityClient(props: ActivityClientProps) {
                                 />
                               </div>
                               <div className="flex items-center justify-between sm:justify-end space-x-2 order-2 sm:order-none">
-                                <ActivityActions
-                                  activity={activity}
-                                  activityid={activityid}
-                                  course={course}
-                                  orgslug={orgslug}
-                                  assignment={assignment}
-                                  showNavigation={false}
-                                  trailData={trailData}
-                                />
+                                {activity.activity_type === 'TYPE_ASSIGNMENT' && (
+                                  <ActivityActions
+                                    activity={activity}
+                                    activityid={activityid}
+                                    course={course}
+                                    orgslug={orgslug}
+                                    assignment={assignment}
+                                    showNavigation={false}
+                                    trailData={trailData}
+                                  />
+                                )}
                                 <NextActivityButton
                                   course={course}
                                   currentActivityId={activity.id}
@@ -1289,8 +1296,7 @@ function NextActivityButton({ course, currentActivityId, orgslug }: { course: an
   };
 
   const nextActivity = findNextActivity();
-
-  if (!nextActivity) return null;
+  const isLast = !nextActivity;
 
   const navigateToActivity = async () => {
     const cleanCourseUuid = course.course_uuid?.replace('course_', '');
@@ -1309,7 +1315,10 @@ function NextActivityButton({ course, currentActivityId, orgslug }: { course: an
     } catch {
       /* non-blocking — navigation continues even if marking fails */
     }
-    router.push(getUriWithOrg(orgslug, '') + `/course/${cleanCourseUuid}/activity/${nextActivity.cleanUuid}`);
+    router.push(
+      getUriWithOrg(orgslug, '') +
+        `/course/${cleanCourseUuid}/activity/${isLast ? 'end' : nextActivity.cleanUuid}`
+    );
   };
 
   return (
@@ -1317,10 +1326,14 @@ function NextActivityButton({ course, currentActivityId, orgslug }: { course: an
       onClick={navigateToActivity}
       className="bg-[#4da3ff] rounded-lg px-3 sm:px-4 nice-shadow flex flex-col p-2 sm:p-2.5 text-[#0a1656] hover:cursor-pointer hover:bg-[#6cb5ff] transition-colors"
     >
-      <span className="text-[10px] font-bold text-[#0a1656]/60 mb-1 uppercase">{t('common.next')}</span>
+      <span className="text-[10px] font-bold text-[#0a1656]/60 mb-1 uppercase">
+        {isLast ? 'Finalizar' : t('common.next')}
+      </span>
       <div className="flex items-center space-x-1">
-        <span className="text-xs sm:text-sm font-semibold truncate max-w-[120px] sm:max-w-[200px]">{nextActivity.name}</span>
-        <ChevronRight size={17} className="shrink-0" />
+        <span className="text-xs sm:text-sm font-semibold truncate max-w-[120px] sm:max-w-[200px]">
+          {isLast ? 'Completar curso' : nextActivity.name}
+        </span>
+        {isLast ? <Trophy size={16} className="shrink-0" /> : <ChevronRight size={17} className="shrink-0" />}
       </div>
     </div>
   );

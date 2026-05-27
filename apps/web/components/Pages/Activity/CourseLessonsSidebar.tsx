@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { Check, FileText, Video, StickyNote, Backpack, ListTree, ChevronDown } from 'lucide-react'
 import { getUriWithOrg } from '@services/config/config'
@@ -79,6 +79,13 @@ function LessonsList({ course, currentActivityId, orgslug, trailData }: CourseLe
     })
   }
 
+  // Bring the current lesson into view inside the scroll box when it changes,
+  // so you always land on "where you are" no matter how long the course is.
+  const activeRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ block: 'nearest' })
+  }, [cleanCurrent])
+
   return (
     <div className="py-1">
       {chapters.map((chapter: any, index: number) => {
@@ -118,6 +125,7 @@ function LessonsList({ course, currentActivityId, orgslug, trailData }: CourseLe
                   prefetch={false}
                 >
                   <div
+                    ref={isCurrent ? activeRef : undefined}
                     className={`group flex items-center gap-2.5 px-4 py-2 transition-colors ${
                       isCurrent
                         ? 'bg-[#025dc7]/5 border-l-2 border-[#025dc7] pl-[14px]'
