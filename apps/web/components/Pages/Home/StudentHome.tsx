@@ -13,6 +13,7 @@ import ExerciseProgressCard from '@components/Pages/Home/ExerciseProgressCard'
 import UpcomingEvents from '@components/Pages/Home/UpcomingEvents'
 import { getUriWithOrg } from '@services/config/config'
 import CommunityChannelsCards from '@components/Objects/Communities/CommunityChannelsCards'
+import OnboardingCard from '@components/Pages/Home/OnboardingCard'
 import Link from 'next/link'
 import { BookOpen, HelpCircle, ArrowRight } from 'lucide-react'
 
@@ -38,6 +39,9 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
         </h1>
         <p className="text-gray-500 mt-1">Continúa tu aprendizaje donde lo dejaste.</p>
       </div>
+
+      {/* Onboarding — only visible while at least one step is pending */}
+      <OnboardingCard orgslug={orgslug} hasStartedCourse={runs.length > 0} />
 
       {/* Continue / in-progress */}
       {runs.length > 0 && (

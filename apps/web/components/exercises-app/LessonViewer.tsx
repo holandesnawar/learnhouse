@@ -15,6 +15,7 @@ import { Breadcrumbs } from '@components/Objects/Breadcrumbs/Breadcrumbs';
 import { Dumbbell } from 'lucide-react';
 import { useLHSession } from '@components/Contexts/LHSessionContext';
 import { saveItemResult } from '@/lib/exercises/exercises';
+import { saveLastAttempt, getLastAttempt, type LastAttempt } from '@/lib/exercises-app/lastAttempts';
 
 /* ─────────────────────────────────────────────────────────────────────────────
    HELPERS
@@ -2866,20 +2867,38 @@ function LuisterenSection({
   dialogue,
   practiceExercises,
   onComplete: _onComplete,
+  cacheKey,
 }: {
   dialogue: Dialogue;
   practiceExercises: ExerciseItem[];
   onComplete: () => void;
+  cacheKey?: string;
 }) {
   const hasExercises = practiceExercises.length > 0;
   // Tres vistas: landing (solo audios + CTAs) → dialogue (transcript) → exercises
   const [view, setView] = useState<'landing' | 'dialogue' | 'exercises'>('landing');
   const [exerciseIndex, setExerciseIndex] = useState(0);
   const [score, setScore] = useState(0);
+  const [wrongIndices, setWrongIndices] = useState<Set<number>>(new Set());
   const [answered, setAnswered] = useState(false);
   const [exKey, setExKey] = useState(0);
   const [showTranslation, setShowTranslation] = useState(false);
   const [exercisesDone, setExercisesDone] = useState(false);
+  const [lastAttempt, setLastAttempt] = useState<LastAttempt | null>(null);
+
+  // Load any previous attempt for this section on mount.
+  useEffect(() => {
+    if (cacheKey) setLastAttempt(getLastAttempt(cacheKey));
+  }, [cacheKey]);
+
+  function resetAttempt() {
+    setExerciseIndex(0);
+    setScore(0);
+    setWrongIndices(new Set());
+    setAnswered(false);
+    setExKey((k) => k + 1);
+    setExercisesDone(false);
+  }
 
   const exercise = practiceExercises[exerciseIndex];
   const pct = view !== 'exercises' ? 0
@@ -2895,6 +2914,30 @@ function LuisterenSection({
           </h3>
           <p className="text-[13px] text-[#5A6480]">Escucha primero el audio antes de leer el texto.</p>
         </div>
+
+        {/* Last-attempt banner — only when we have one and there are exercises. */}
+        {lastAttempt && hasExercises && (
+          <div className="rounded-lg border border-[#DDE6F5] bg-[#F0F5FF] px-4 py-3">
+            <div className="flex items-center justify-between gap-3 mb-1.5">
+              <p className="text-[13px] font-bold text-[#1D0084]">
+                Última vez: {lastAttempt.score} / {lastAttempt.total} correctas
+              </p>
+              <button
+                onClick={() => { resetAttempt(); setView('exercises'); }}
+                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[12px] font-semibold hover:bg-[#6cb5ff] transition-colors"
+              >
+                🔄 Repetir test
+              </button>
+            </div>
+            {lastAttempt.failedLabels.length > 0 && (
+              <p className="text-[12px] text-[#5A6480] leading-snug">
+                <span className="font-semibold text-[#1D0084]">Fallaste en:</span>{' '}
+                {lastAttempt.failedLabels.slice(0, 3).join(' · ')}
+                {lastAttempt.failedLabels.length > 3 && ` · +${lastAttempt.failedLabels.length - 3}`}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Dos audios: normal y lento */}
         <div className="space-y-5">
@@ -3031,6 +3074,10 @@ function LuisterenSection({
 
   // Results banner shown after last exercise
   if (exercisesDone) {
+    const failedLabels = Array.from(wrongIndices)
+      .sort((a, b) => a - b)
+      .map((i) => practiceExercises[i]?.prompt)
+      .filter(Boolean) as string[];
     return (
       <div className="space-y-4">
         <GradientBar pct={100} />
@@ -3043,15 +3090,26 @@ function LuisterenSection({
             </p>
           </div>
         </div>
+
+        {/* Failed-items list — apuntar las palabras que falles, justo aquí. */}
+        {failedLabels.length > 0 && (
+          <div className="rounded-lg border border-[#DDE6F5] bg-white p-4">
+            <p className="text-[12px] font-bold text-[#1D0084] uppercase tracking-wide mb-2">
+              Fallaste en {failedLabels.length}
+            </p>
+            <ul className="space-y-1.5">
+              {failedLabels.map((label, i) => (
+                <li key={i} className="flex gap-2 text-[13px] text-gray-700 leading-snug">
+                  <span className="text-[#4da3ff] mt-px shrink-0">•</span>
+                  <span>{label}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <button
-          onClick={() => {
-            setView('landing');
-            setExerciseIndex(0);
-            setScore(0);
-            setAnswered(false);
-            setExKey(k => k + 1);
-            setExercisesDone(false);
-          }}
+          onClick={() => { resetAttempt(); setView('landing'); }}
           className="w-full py-3.5 rounded-lg bg-[#F0F5FF] text-[#1D0084] text-[15px] font-semibold border border-[#DDE6F5] hover:bg-[#e0eaff] transition-colors duration-200"
         >
           🔄 Volver al diálogo
@@ -3065,7 +3123,7 @@ function LuisterenSection({
       <GradientBar pct={pct} />
       <div className="flex items-center justify-between">
         <button
-          onClick={() => { setView('landing'); setExerciseIndex(0); setScore(0); setAnswered(false); setExKey(k => k + 1); }}
+          onClick={() => { resetAttempt(); setView('landing'); }}
           className="flex items-center gap-1.5 text-[13px] font-semibold text-[#9CA3AF] hover:text-[#1D0084] transition-colors duration-200"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -3084,7 +3142,18 @@ function LuisterenSection({
         <div key={exKey}>
           <ExerciseStep
             exercise={exercise}
-            onAnswer={(correct) => { setAnswered(true); if (correct) setScore(s => s + 1); }}
+            onAnswer={(correct) => {
+              setAnswered(true);
+              if (correct) {
+                setScore((s) => s + 1);
+              } else {
+                setWrongIndices((w) => {
+                  const next = new Set(w);
+                  next.add(exerciseIndex);
+                  return next;
+                });
+              }
+            }}
           />
         </div>
       )}
@@ -3092,6 +3161,19 @@ function LuisterenSection({
         <button
           onClick={() => {
             if (exerciseIndex + 1 >= practiceExercises.length) {
+              // Snapshot the attempt so the student sees "last time…" next visit.
+              if (cacheKey) {
+                const failed = Array.from(wrongIndices)
+                  .sort((a, b) => a - b)
+                  .map((i) => practiceExercises[i]?.prompt)
+                  .filter((p): p is string => !!p);
+                saveLastAttempt(cacheKey, {
+                  score,
+                  total: practiceExercises.length,
+                  failedLabels: failed,
+                  date: new Date().toISOString(),
+                });
+              }
               setExercisesDone(true);
             } else {
               setExerciseIndex(i => i + 1);
@@ -3538,6 +3620,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
               dialogue={dialogueBlock.dialogue}
               practiceExercises={practiceItems}
               onComplete={() => completeSection('luisteren')}
+              cacheKey={`${lesson.id}-luisteren`}
             />
           )}
 
