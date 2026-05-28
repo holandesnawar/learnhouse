@@ -3397,10 +3397,10 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
            name, so we drop the big banner-like title + extra padding and keep
            only the "back to parts" link (whole-lesson mode). ── */}
       <div className="bg-white">
-        <div className={inCourse ? '' : 'max-w-(--breakpoint-2xl) mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-3'}>
+        <div className={inCourse ? '' : 'max-w-(--breakpoint-2xl) mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-0'}>
           {/* Breadcrumb — where am I (whole-lesson mode only) */}
           {!inCourse && (
-            <div className="mb-3">
+            <div className="mb-6">
               <Breadcrumbs items={[
                 { label: 'Ejercicios', href: getUriWithOrg(orgslug, '/ejercicios'), icon: <Dumbbell size={14} /> },
                 { label: module.title, href: getUriWithOrg(orgslug, `/ejercicios/modulo/${module.id}`) },
@@ -3442,7 +3442,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
       </div>
 
       {/* ── Content ── */}
-      <div className={`bg-white ${inCourse ? 'pt-1 pb-4' : 'pt-6 pb-4'}`}>
+      <div className={`bg-white ${inCourse ? 'pt-1 pb-4' : 'pt-2 pb-4'}`}>
         <div className={inCourse ? 'mx-auto max-w-5xl px-0' : 'max-w-(--breakpoint-2xl) mx-auto px-4 sm:px-6 lg:px-8'}>
          <div className={inCourse ? 'contents' : 'max-w-5xl'}>
 
