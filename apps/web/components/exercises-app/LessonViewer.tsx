@@ -2669,18 +2669,34 @@ function LezenSection({
   textEs,
   exercises,
   onComplete: _onComplete,
+  cacheKey,
 }: {
   textNl: string;
   textEs: string;
   exercises: ExerciseItem[];
   onComplete: () => void;
+  cacheKey?: string;
 }) {
   const totalSteps = exercises.length > 0 ? 3 : 2; // text, [exercises,] translation
   const [step, setStep] = useState<'text' | 'exercises' | 'translation'>('text');
   const [exerciseIndex, setExerciseIndex] = useState(0);
   const [score, setScore] = useState(0);
+  const [wrongIndices, setWrongIndices] = useState<Set<number>>(new Set());
   const [answered, setAnswered] = useState(false);
   const [exKey, setExKey] = useState(0);
+  const [lastAttempt, setLastAttempt] = useState<LastAttempt | null>(null);
+  const session = useLHSession() as any;
+  const accessToken: string | undefined = session?.data?.tokens?.access_token;
+
+  // Load any previous attempt for this section on mount.
+  useEffect(() => {
+    if (!cacheKey) return;
+    let active = true;
+    getLastAttempt(cacheKey, accessToken).then((a) => {
+      if (active) setLastAttempt(a);
+    });
+    return () => { active = false; };
+  }, [cacheKey, accessToken]);
 
   const exercise = exercises[exerciseIndex];
 
@@ -2689,11 +2705,39 @@ function LezenSection({
 
   function handleAnswer(correct: boolean) {
     setAnswered(true);
-    if (correct) setScore(s => s + 1);
+    if (correct) {
+      setScore((s) => s + 1);
+    } else {
+      setWrongIndices((w) => {
+        const next = new Set(w);
+        next.add(exerciseIndex);
+        return next;
+      });
+    }
+  }
+
+  function resetExercises() {
+    setExerciseIndex(0);
+    setScore(0);
+    setWrongIndices(new Set());
+    setAnswered(false);
+    setExKey((k) => k + 1);
   }
 
   function handleNext() {
     if (exerciseIndex + 1 >= exercises.length) {
+      // Snapshot the attempt so the student sees "last time…" next visit.
+      if (cacheKey) {
+        const failed = Array.from(wrongIndices)
+          .sort((a, b) => a - b)
+          .map((i) => exercises[i]?.prompt)
+          .filter((p): p is string => !!p);
+        saveLastAttempt(
+          cacheKey,
+          { score, total: exercises.length, failedLabels: failed },
+          accessToken,
+        );
+      }
       setStep('translation');
     } else {
       setExerciseIndex(i => i + 1);
@@ -2710,6 +2754,29 @@ function LezenSection({
     return (
       <div className="space-y-5">
         {progressBar}
+        {/* Last-attempt banner — shown only when we have a previous attempt. */}
+        {lastAttempt && exercises.length > 0 && (
+          <div className="rounded-lg border border-[#DDE6F5] bg-[#F0F5FF] px-4 py-3">
+            <div className="flex items-center justify-between gap-3 mb-1.5">
+              <p className="text-[13px] font-bold text-[#1D0084]">
+                Última vez: {lastAttempt.score} / {lastAttempt.total} correctas
+              </p>
+              <button
+                onClick={() => { resetExercises(); setStep('exercises'); }}
+                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[12px] font-semibold hover:bg-[#6cb5ff] transition-colors"
+              >
+                🔄 Repetir test
+              </button>
+            </div>
+            {lastAttempt.failedLabels.length > 0 && (
+              <p className="text-[12px] text-[#5A6480] leading-snug">
+                <span className="font-semibold text-[#1D0084]">Fallaste en:</span>{' '}
+                {lastAttempt.failedLabels.slice(0, 3).join(' · ')}
+                {lastAttempt.failedLabels.length > 3 && ` · +${lastAttempt.failedLabels.length - 3}`}
+              </p>
+            )}
+          </div>
+        )}
         {exercises.length > 0 && (
           <div className="flex items-start gap-3 rounded-lg bg-[#FEF3C7] border border-[#FCD34D] px-4 py-3">
             <span className="text-[20px] shrink-0">💡</span>
@@ -2768,16 +2835,36 @@ function LezenSection({
   }
 
   // translation step
+  const failedLabels = Array.from(wrongIndices)
+    .sort((a, b) => a - b)
+    .map((i) => exercises[i]?.prompt)
+    .filter((p): p is string => !!p);
   return (
     <div className="space-y-6">
       <GradientBar pct={100} />
       {exercises.length > 0 && (
         <div className="flex items-center gap-3 rounded-2xl px-5 py-4" style={{ background: 'linear-gradient(135deg, #1D0084 0%, #025dc7 100%)' }}>
-          <span className="text-2xl">🎉</span>
+          <span className="text-2xl">{score >= exercises.length * 0.8 ? '🎉' : '📝'}</span>
           <div>
             <p className="text-white font-bold text-[15px]">¡Ejercicios completados!</p>
             <p className="text-white/60 text-[13px]">{score} de {exercises.length} respuestas correctas</p>
           </div>
+        </div>
+      )}
+      {/* Failed-items list — apuntar las palabras que falles, justo aquí. */}
+      {failedLabels.length > 0 && (
+        <div className="rounded-lg border border-[#DDE6F5] bg-white p-4">
+          <p className="text-[12px] font-bold text-[#1D0084] uppercase tracking-wide mb-2">
+            Fallaste en {failedLabels.length}
+          </p>
+          <ul className="space-y-1.5">
+            {failedLabels.map((label, i) => (
+              <li key={i} className="flex gap-2 text-[13px] text-gray-700 leading-snug">
+                <span className="text-[#4da3ff] mt-px shrink-0">•</span>
+                <span>{label}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
       <div className="rounded-2xl border border-[#DDE6F5] bg-white p-6 space-y-4">
@@ -2791,7 +2878,7 @@ function LezenSection({
         </div>
       </div>
       <button
-        onClick={() => { setStep('exercises'); setExerciseIndex(0); setScore(0); setAnswered(false); setExKey(k => k + 1); }}
+        onClick={() => { resetExercises(); setStep('exercises'); }}
         className="w-full py-3.5 rounded-lg bg-[#F0F5FF] text-[#1D0084] text-[15px] font-semibold border border-[#DDE6F5] hover:bg-[#e0eaff] transition-colors duration-200"
       >
         🔄 Repetir ejercicios
@@ -3536,7 +3623,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
       </div>
 
       {/* ── Content ── */}
-      <div className={`bg-white ${inCourse ? 'pt-1 pb-4' : 'pt-5 pb-6'}`}>
+      <div className={`bg-white ${inCourse ? 'pt-1 pb-4' : 'pt-2 pb-6'}`}>
         <div className={inCourse ? 'mx-auto max-w-5xl px-0' : 'max-w-(--breakpoint-2xl) mx-auto px-4 sm:px-6 lg:px-8'}>
          <div className={inCourse ? 'contents' : 'max-w-5xl'}>
 
@@ -3623,6 +3710,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
               textEs={lezenBlock.textEs}
               exercises={lezenBlock.exercises}
               onComplete={() => completeSection('lezen')}
+              cacheKey={`${lesson.id}-lezen`}
             />
           )}
 

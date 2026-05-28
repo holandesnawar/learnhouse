@@ -1406,6 +1406,13 @@
   cursor: not-allowed;
 }
 
+/* Prevent iOS Safari from auto-zooming when focusing any form field on
+   mobile — anything under 16px triggers the zoom and shrinks the visible
+   area. Applied app-wide so we don't have to remember per-input. */
+@media (max-width: 768px) {
+  input, textarea, select { font-size: 16px !important; }
+}
+
 /* ─── Board Mobile ─── */
 @media (max-width: 768px) {
   /* Hide: toolbar, back bar, feedback */

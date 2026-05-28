@@ -1,11 +1,15 @@
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import {
   getModuleAsync,
   getLessonsForModuleAsync,
   getExtrasForModuleAsync,
+  getModulesAsync,
 } from '@/lib/exercises-app/courseService'
 import LessonList from '@components/exercises-app/LessonList'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
+import { getUriWithOrg } from '@services/config/config'
+import { Dumbbell } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,13 +22,44 @@ export default async function ModulePage({
   const module = await getModuleAsync(moduleId)
   if (!module) notFound()
 
-  const [lessons, extras] = await Promise.all([
+  const [lessons, extras, allModules] = await Promise.all([
     getLessonsForModuleAsync(module.id),
     getExtrasForModuleAsync(module.id),
+    getModulesAsync(),
   ])
 
   return (
     <GeneralWrapperStyled>
+      {/* Module switcher — quick jump to other modules without going up */}
+      <div className="-mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-4 pb-3 overflow-x-auto">
+        <div className="flex items-center gap-2 min-w-min">
+          <Link
+            href={getUriWithOrg(orgslug, '/ejercicios')}
+            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#DDE6F5] text-[12px] font-semibold text-[#5A6480] hover:text-[#1D0084] hover:border-[#1D0084]/30 transition-colors"
+          >
+            <Dumbbell size={13} />
+            <span>Todos</span>
+          </Link>
+          {allModules.map((m) => {
+            const isCurrent = m.id === module.id
+            return (
+              <Link
+                key={m.id}
+                href={getUriWithOrg(orgslug, `/ejercicios/modulo/${m.id}`)}
+                className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors border ${
+                  isCurrent
+                    ? 'bg-[#1D0084] text-white border-[#1D0084]'
+                    : 'bg-white border-[#DDE6F5] text-[#5A6480] hover:text-[#1D0084] hover:border-[#1D0084]/30'
+                }`}
+              >
+                <span aria-hidden>{m.emoji}</span>
+                <span className="max-w-[120px] truncate">{m.title}</span>
+              </Link>
+            )
+          })}
+        </div>
+      </div>
+
       {/* Header — standard left-aligned title (consistent with the app) */}
       <div className="flex items-start gap-3 pt-2 pb-1">
         <span className="text-4xl">{module.emoji}</span>
