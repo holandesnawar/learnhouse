@@ -342,7 +342,7 @@ function WordCard({ word }: { word: VocabularyItem }) {
 
   return (
     <div className="rounded-2xl border border-[#DDE6F5] bg-white overflow-hidden flex flex-col">
-      <div className="h-1.5 w-full bg-[#4da3ff]" />
+      <div className="h-1.5 w-full bg-[#1D0084]" />
       <div className="flex-1 px-3 py-2.5 space-y-1">
         <div className="flex items-center gap-1.5 flex-wrap">
           {word.article && (
@@ -3397,7 +3397,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
            name, so we drop the big banner-like title + extra padding and keep
            only the "back to parts" link (whole-lesson mode). ── */}
       <div className="bg-white">
-        <div className={inCourse ? '' : 'max-w-(--breakpoint-2xl) mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-3'}>
+        <div className={inCourse ? '' : 'max-w-(--breakpoint-2xl) mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-3'}>
           {/* Breadcrumb — where am I (whole-lesson mode only) */}
           {!inCourse && (
             <div className="mb-3">
@@ -3442,7 +3442,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
       </div>
 
       {/* ── Content ── */}
-      <div className={`bg-white ${inCourse ? 'pt-1 pb-4' : 'py-6 pb-10'}`}>
+      <div className={`bg-white ${inCourse ? 'pt-1 pb-4' : 'pt-6 pb-4'}`}>
         <div className={inCourse ? 'mx-auto max-w-5xl px-0' : 'max-w-(--breakpoint-2xl) mx-auto px-4 sm:px-6 lg:px-8'}>
          <div className={inCourse ? 'contents' : 'max-w-5xl'}>
 
