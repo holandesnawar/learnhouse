@@ -342,7 +342,7 @@ function WordCard({ word }: { word: VocabularyItem }) {
 
   return (
     <div className="rounded-2xl border border-[#DDE6F5] bg-white overflow-hidden flex flex-col">
-      <div className="h-1.5 w-full brand-accent-line" />
+      <div className="h-1.5 w-full bg-[#4da3ff]" />
       <div className="flex-1 px-3 py-2.5 space-y-1">
         <div className="flex items-center gap-1.5 flex-wrap">
           {word.article && (
@@ -3147,8 +3147,8 @@ function SectionLanding({
             {/* Icon / Done badge */}
             <div className="w-12 h-12 flex items-center justify-center shrink-0">
               {done ? (
-                <div className="w-10 h-10 rounded-xl bg-[#1D0084] flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                <div className="w-10 h-10 rounded-xl bg-[#4da3ff] flex items-center justify-center">
+                  <svg className="w-5 h-5 text-[#0a1656]" fill="none" stroke="currentColor" strokeWidth={2.8} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
@@ -3166,12 +3166,12 @@ function SectionLanding({
             {/* Labels */}
             <div className="flex-1 min-w-0">
               <p
-                className="text-[16px] font-bold text-[#1D0084] leading-tight"
+                className="text-[16px] font-bold text-gray-900 leading-tight"
                 style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
               >
                 {meta.label}
               </p>
-              <p className="text-[13px] text-[#5A6480] mt-0.5">{meta.desc}</p>
+              <p className="text-[13px] font-semibold text-[#025dc7] mt-0.5">{meta.desc}</p>
             </div>
 
             {/* Arrow */}
@@ -3397,7 +3397,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
            name, so we drop the big banner-like title + extra padding and keep
            only the "back to parts" link (whole-lesson mode). ── */}
       <div className="bg-white">
-        <div className={inCourse ? '' : 'max-w-(--breakpoint-2xl) mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2'}>
+        <div className={inCourse ? '' : 'max-w-(--breakpoint-2xl) mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-3'}>
           {/* Breadcrumb — where am I (whole-lesson mode only) */}
           {!inCourse && (
             <div className="mb-3">
@@ -3427,12 +3427,12 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
               <span className="text-4xl">{module.emoji}</span>
               <div>
                 <h1
-                  className="text-[24px] font-bold text-[#1D0084] leading-tight"
+                  className="text-[24px] font-bold text-gray-900 leading-tight"
                   style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
                 >
                   {activeSection ? activeMeta!.label : lesson.title}
                 </h1>
-                <p className="text-[13px] text-[#5A6480] mt-0.5">
+                <p className="text-[13px] font-semibold text-[#025dc7] mt-0.5">
                   {activeSection ? activeMeta!.desc : `${lesson.subtitle} · ${lesson.estimatedMinutes} min`}
                 </p>
               </div>
@@ -3442,7 +3442,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
       </div>
 
       {/* ── Content ── */}
-      <div className={`bg-white ${inCourse ? 'pt-1 pb-4' : 'min-h-[70vh] py-8 pb-20'}`}>
+      <div className={`bg-white ${inCourse ? 'pt-1 pb-4' : 'py-6 pb-10'}`}>
         <div className={inCourse ? 'mx-auto max-w-5xl px-0' : 'max-w-(--breakpoint-2xl) mx-auto px-4 sm:px-6 lg:px-8'}>
          <div className={inCourse ? 'contents' : 'max-w-5xl'}>
 
