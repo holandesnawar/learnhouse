@@ -1,5 +1,6 @@
 import html
 import logging
+from datetime import datetime
 from typing import Optional
 from urllib.parse import quote
 
@@ -27,6 +28,12 @@ BANNER_HTML = (
 )
 ACADEMY_URL = "https://academia.holandesnawar.nl"
 SUPPORT_EMAIL = "info@holandesnawar.com"
+# Social + legal — adjust these if the handles or pages change.
+INSTAGRAM_URL = "https://instagram.com/holandesnawar"
+YOUTUBE_URL = "https://www.youtube.com/@holandesnawar"
+TIKTOK_URL = "https://www.tiktok.com/@holandesnawar"
+TERMS_URL = f"{ACADEMY_URL}/terminos"
+PRIVACY_URL = f"{ACADEMY_URL}/privacidad"
 
 
 # Shared email styles matching the platform's design system
@@ -37,8 +44,8 @@ STYLES = {
     "header": "padding: 48px 48px 0 48px; text-align: center;",
     "content": "padding: 36px 48px 48px 48px; text-align: center;",
     "h1": "margin: 0 0 12px 0; font-size: 22px; font-weight: 900; color: #000000; letter-spacing: -0.02em; line-height: 1.3;",
-    "p": "margin: 0 0 20px 0; font-size: 14px; color: rgba(0,0,0,0.45); font-weight: 500; line-height: 1.7;",
-    "button": "display: inline-block; padding: 14px 32px; background-color: #4da3ff; color: #0a1656; text-decoration: none; border-radius: 10px; font-size: 14px; font-weight: 800; line-height: 1;",
+    "p": "margin: 0 0 20px 0; font-size: 14px; color: rgba(0,0,0,0.78); font-weight: 500; line-height: 1.7;",
+    "button": "display: inline-block; padding: 14px 32px; background-color: #4da3ff; color: #0a1656; text-decoration: none; border-radius: 10px; font-size: 14px; font-weight: 900; line-height: 1;",
     "link_text": "margin: 24px 0 0 0; font-size: 11px; color: rgba(0,0,0,0.2); word-break: break-all; font-weight: 500; line-height: 1.6;",
     "divider": "margin: 28px 0; border: none; border-top: 1px solid #f0f0f0;",
     "footer": "padding: 0 48px 40px 48px; text-align: center;",
@@ -47,18 +54,70 @@ STYLES = {
 }
 
 
-def _email_layout(title: str, body_content: str, footer_note: str = "") -> str:
-    """Flat Nawar layout — full-width banner glued to the top, content, brand footer.
+def _company_footer() -> str:
+    """Brand-coloured company footer used on every transactional email.
 
-    No nested cards, shadows or background tints. The banner is the only "visual";
-    everything else is type on white so it reads as a single-surface message.
+    Sign-off, wordmark, support email, social row, copyright and legal links.
+    """
+    year = datetime.now().year
+    return f"""
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #1D0084;">
+        <tr>
+            <td align="center" style="padding: 0;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width: 600px; width: 100%;">
+                    <tr>
+                        <td style="padding: 44px 32px 40px 32px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+                            <p style="margin: 0 0 4px 0; font-size: 14px; color: rgba(255,255,255,0.85); line-height: 1.6;">Un saludo,</p>
+                            <p style="margin: 0 0 26px 0; font-size: 16px; font-weight: 800; color: #ffffff; line-height: 1.4;">El equipo de Nawar</p>
+
+                            <div style="font-size: 22px; font-weight: 900; color: #ffffff; letter-spacing: -0.02em; line-height: 1; margin-bottom: 6px;">Holandés Nawar</div>
+                            <p style="margin: 0 0 22px 0; font-size: 12px; color: rgba(255,255,255,0.65); line-height: 1.6;">
+                                ¿Dudas? Escríbenos a <a href="mailto:{SUPPORT_EMAIL}" style="color: #4da3ff; text-decoration: none; font-weight: 700;">{SUPPORT_EMAIL}</a>
+                            </p>
+
+                            <p style="margin: 0 0 24px 0;">
+                                <a href="{INSTAGRAM_URL}" style="color: #ffffff; text-decoration: none; font-size: 13px; font-weight: 700; padding: 0 8px;">Instagram</a>
+                                <span style="color: rgba(255,255,255,0.3);">·</span>
+                                <a href="{YOUTUBE_URL}" style="color: #ffffff; text-decoration: none; font-size: 13px; font-weight: 700; padding: 0 8px;">YouTube</a>
+                                <span style="color: rgba(255,255,255,0.3);">·</span>
+                                <a href="{TIKTOK_URL}" style="color: #ffffff; text-decoration: none; font-size: 13px; font-weight: 700; padding: 0 8px;">TikTok</a>
+                            </p>
+
+                            <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.12); margin: 0 auto 16px auto; max-width: 280px;" />
+
+                            <p style="margin: 0 0 6px 0; font-size: 11px; color: rgba(255,255,255,0.45); line-height: 1.6;">
+                                © {year} Holandés Nawar. Todos los derechos reservados.
+                            </p>
+                            <p style="margin: 0; font-size: 11px; color: rgba(255,255,255,0.35); line-height: 1.6;">
+                                <a href="{TERMS_URL}" style="color: rgba(255,255,255,0.5); text-decoration: none;">Términos</a>
+                                <span style="margin: 0 6px;">·</span>
+                                <a href="{PRIVACY_URL}" style="color: rgba(255,255,255,0.5); text-decoration: none;">Privacidad</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>"""
+
+
+def _email_layout(title: str, body_content: str, footer_note: str = "") -> str:
+    """Flat Nawar layout — full-width banner, white content, brand-coloured footer.
+
+    The white section carries the message (banner + content + an optional small
+    security/disclaimer note). The brand-coloured company block at the bottom
+    carries the signature, wordmark, support email, socials, copyright and legal.
     """
     note_block = ""
     if footer_note:
         note_block = f"""
-                            <p style="margin: 0 0 24px 0; font-size: 12px; color: #5A6480; line-height: 1.6; text-align: center;">
+                    <tr>
+                        <td style="padding: 0 32px 32px 32px;">
+                            <p style="margin: 0; font-size: 12px; color: rgba(0,0,0,0.55); line-height: 1.6; text-align: center;">
                                 {footer_note}
-                            </p>"""
+                            </p>
+                        </td>
+                    </tr>"""
 
     return f"""<!DOCTYPE html>
 <html>
@@ -76,9 +135,6 @@ def _email_layout(title: str, body_content: str, footer_note: str = "") -> str:
         @media (prefers-color-scheme: dark) {{
             body, .brand-surface {{ background-color: #0a1020 !important; }}
             .brand-btn {{ background-color: #0a1656 !important; color: #4da3ff !important; }}
-            .brand-wordmark {{ color: #4da3ff !important; }}
-            .brand-text {{ color: #B8C5D6 !important; }}
-            .brand-divider {{ border-color: #1f2937 !important; }}
         }}
     </style>
 </head>
@@ -93,28 +149,15 @@ def _email_layout(title: str, body_content: str, footer_note: str = "") -> str:
                         </td>
                     </tr>
                     <tr>
-                        <td style="padding: 40px 32px 24px 32px; text-align: center;">
+                        <td style="padding: 40px 32px 32px 32px; text-align: center;">
                             {body_content}
                         </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 16px 32px 40px 32px;">
-                            {note_block}
-                            <hr class="brand-divider" style="border: none; border-top: 1px solid #DDE6F5; margin: 0 0 20px 0;" />
-                            <div style="text-align: center;">
-                                <div class="brand-wordmark" style="font-size: 18px; font-weight: 900; color: #1D0084; letter-spacing: -0.02em; line-height: 1;">
-                                    Holandés Nawar
-                                </div>
-                                <div class="brand-text" style="margin-top: 10px; font-size: 12px; color: #5A6480; line-height: 1.6;">
-                                    ¿Dudas? Escríbenos a <a href="mailto:{SUPPORT_EMAIL}" style="color: #025dc7; text-decoration: none; font-weight: 700;">{SUPPORT_EMAIL}</a>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
+                    </tr>{note_block}
                 </table>
             </td>
         </tr>
     </table>
+    {_company_footer()}
 </body>
 </html>"""
 
