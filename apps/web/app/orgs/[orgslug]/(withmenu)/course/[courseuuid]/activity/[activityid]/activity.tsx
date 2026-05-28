@@ -1370,9 +1370,9 @@ function PreviousActivityButton({ course, currentActivityId, orgslug }: { course
   return (
     <div
       onClick={navigateToActivity}
-      className="bg-gray-100 rounded-lg px-3 sm:px-4 flex flex-col p-2 sm:p-2.5 text-gray-600 hover:cursor-pointer hover:bg-gray-200 transition-colors"
+      className="bg-[#F0F5FF] rounded-lg px-3 sm:px-4 flex flex-col p-2 sm:p-2.5 text-[#1D0084] hover:cursor-pointer hover:bg-[#e0eaff] transition-colors border border-[#DDE6F5]"
     >
-      <span className="text-[10px] font-bold text-gray-500 mb-1 uppercase">{t('common.previous')}</span>
+      <span className="text-[10px] font-bold text-[#1D0084]/60 mb-1 uppercase">{t('common.previous')}</span>
       <div className="flex items-center space-x-1">
         <ChevronLeft size={17} className="shrink-0" />
         <span className="text-xs sm:text-sm font-semibold truncate max-w-[120px] sm:max-w-[200px]">{previousActivity.name}</span>
