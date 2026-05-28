@@ -414,3 +414,169 @@ def send_email_verification_email(
             footer_note=t(lang, "email_verification.footer"),
         ),
     )
+
+
+# ============================================================================
+# Automation emails (intern) — sample/test versions used until each automation
+# is wired to real product events. All Spanish, all share the same _email_layout.
+# ============================================================================
+
+def send_weekly_digest_email(
+    email: EmailStr,
+    name: str = "alumno/a",
+    lessons_done: int = 3,
+    progress_pct: int = 45,
+    next_lesson: str = "1.4 Lezen — Anna & Marco",
+):
+    """Lunes por la mañana: resumen de la semana del alumno."""
+    safe_name = html.escape(name)
+    safe_next = html.escape(next_lesson)
+    heading = "Tu semana en Holandés Nawar"
+
+    body_content = f"""
+        <h1 style="{STYLES['h1']}">{heading}</h1>
+        <p style="{STYLES['p']}">
+            Hola {safe_name}, esto es lo que ha pasado esta semana en la academia:
+        </p>
+        <ul style="padding: 0; margin: 0 0 24px 0; list-style: none; text-align: left;">
+            <li style="margin: 0 0 8px 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.6;">
+                ✅ <strong>{lessons_done} lecciones</strong> completadas
+            </li>
+            <li style="margin: 0 0 8px 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.6;">
+                🎯 Vas por el <strong>{progress_pct}%</strong> del Module 1
+            </li>
+            <li style="margin: 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.6;">
+                📌 Te toca <strong>{safe_next}</strong>
+            </li>
+        </ul>
+        <p style="{STYLES['p']}">Vamos a por la siguiente.</p>
+        <a href="{ACADEMY_URL}/courses" class="brand-btn" style="{STYLES['button']}">
+            Continuar mi formación
+        </a>
+    """
+
+    return send_email(
+        to=email,
+        subject="Tu semana en Holandés Nawar",
+        body=_email_layout(
+            title=heading,
+            body_content=body_content,
+            footer_note="Recibes este resumen cada lunes. Si prefieres no recibirlo, contéstanos a este correo.",
+        ),
+    )
+
+
+def send_module_unlocked_email(
+    email: EmailStr,
+    name: str = "alumno/a",
+    module_name: str = "Module 2 — Familie & vrienden",
+    lesson_count: int = 11,
+):
+    """Notificación: el alumno acaba de desbloquear un nuevo módulo."""
+    safe_name = html.escape(name)
+    safe_module = html.escape(module_name)
+    heading = f"Has desbloqueado {safe_module}"
+
+    body_content = f"""
+        <h1 style="{STYLES['h1']}">{heading}</h1>
+        <p style="{STYLES['p']}">
+            ¡Buen trabajo, {safe_name}! Acabas de terminar el módulo anterior.
+        </p>
+        <p style="{STYLES['p']}">
+            Tienes vía libre en <strong>{safe_module}</strong> — te tocan
+            <strong>{lesson_count} lecciones nuevas</strong>.
+        </p>
+        <a href="{ACADEMY_URL}/courses" class="brand-btn" style="{STYLES['button']}">
+            Empezar el módulo
+        </a>
+    """
+
+    return send_email(
+        to=email,
+        subject=f"Has desbloqueado {module_name}",
+        body=_email_layout(
+            title=heading,
+            body_content=body_content,
+            footer_note="Te avisamos cada vez que abres un módulo nuevo.",
+        ),
+    )
+
+
+def send_announcement_email(
+    email: EmailStr,
+    name: str = "alumno/a",
+    title: str = "Nueva quedada online el jueves",
+    excerpt: str = "El jueves a las 19h tenemos sesión de conversación en grupo. Plazas limitadas.",
+):
+    """Anuncio nuevo publicado en la academia."""
+    safe_name = html.escape(name)
+    safe_title = html.escape(title)
+    safe_excerpt = html.escape(excerpt)
+    heading = "Nuevo anuncio en la academia"
+
+    body_content = f"""
+        <h1 style="{STYLES['h1']}">{heading}</h1>
+        <p style="{STYLES['p']}">
+            Hola {safe_name}, tenemos algo nuevo que contarte:
+        </p>
+        <div style="border-left: 3px solid #4da3ff; padding: 4px 0 4px 14px; margin: 0 0 22px 0;">
+            <p style="margin: 0 0 6px 0; font-size: 15px; font-weight: 800; color: #1D0084; line-height: 1.4;">
+                {safe_title}
+            </p>
+            <p style="margin: 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.6;">
+                {safe_excerpt}
+            </p>
+        </div>
+        <a href="{ACADEMY_URL}" class="brand-btn" style="{STYLES['button']}">
+            Ver en la academia
+        </a>
+    """
+
+    return send_email(
+        to=email,
+        subject=f"Anuncio: {title}",
+        body=_email_layout(
+            title=heading,
+            body_content=body_content,
+            footer_note="Recibes los anuncios importantes para no perderte nada.",
+        ),
+    )
+
+
+def send_consulta_answered_email(
+    email: EmailStr,
+    name: str = "alumno/a",
+    question_excerpt: str = "¿Cuándo uso 'de' y cuándo 'het' en holandés?",
+):
+    """Notificación: el equipo respondió una consulta del alumno."""
+    safe_name = html.escape(name)
+    safe_question = html.escape(question_excerpt)
+    heading = "Te respondimos tu consulta"
+
+    body_content = f"""
+        <h1 style="{STYLES['h1']}">{heading}</h1>
+        <p style="{STYLES['p']}">
+            Hola {safe_name}, ya tienes respuesta a tu consulta:
+        </p>
+        <div style="border-left: 3px solid #DDE6F5; padding: 4px 0 4px 14px; margin: 0 0 22px 0;">
+            <p style="margin: 0; font-size: 14px; color: rgba(0,0,0,0.65); line-height: 1.6; font-style: italic;">
+                "{safe_question}"
+            </p>
+        </div>
+        <p style="{STYLES['p']}">
+            Entra en la academia para leer la respuesta completa.
+        </p>
+        <a href="{ACADEMY_URL}/consultas" class="brand-btn" style="{STYLES['button']}">
+            Ver respuesta
+        </a>
+    """
+
+    return send_email(
+        to=email,
+        subject="Tienes respuesta a tu consulta",
+        body=_email_layout(
+            title=heading,
+            body_content=body_content,
+            footer_note="Recibes esto cuando contestamos a una consulta que abriste.",
+        ),
+    )

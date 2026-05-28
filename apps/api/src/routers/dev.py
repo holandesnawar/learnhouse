@@ -147,3 +147,61 @@ async def migratev1_2(
         await db_session.commit()
 
     return {"message": "Migration successful"}
+
+
+@router.get(
+    "/email-test/all",
+    summary="Send sample automation emails to an address (superadmin only).",
+    description=(
+        "Renders fake-data versions of each automation email (weekly digest, "
+        "module unlocked, announcement, consulta answered) and sends them to "
+        "the provided address so the design and content can be reviewed end-to-end."
+    ),
+    responses={
+        200: {"description": "Emails dispatched"},
+        401: {"description": "Authentication required"},
+        403: {"description": "Superadmin access required"},
+    },
+)
+async def email_test_all(
+    to: str,
+    name: str = "Juan",
+    current_user: PublicUser = Depends(get_authenticated_user),
+):
+    _require_superadmin(current_user)
+    from src.services.users.emails import (
+        send_weekly_digest_email,
+        send_module_unlocked_email,
+        send_announcement_email,
+        send_consulta_answered_email,
+    )
+
+    sent: list[str] = []
+    try:
+        send_weekly_digest_email(to, name)
+        sent.append("weekly_digest")
+    except Exception as e:
+        logger.exception("weekly_digest test failed: %s", e)
+
+    try:
+        send_module_unlocked_email(to, name)
+        sent.append("module_unlocked")
+    except Exception as e:
+        logger.exception("module_unlocked test failed: %s", e)
+
+    try:
+        send_announcement_email(to, name)
+        sent.append("announcement")
+    except Exception as e:
+        logger.exception("announcement test failed: %s", e)
+
+    try:
+        send_consulta_answered_email(to, name)
+        sent.append("consulta_answered")
+    except Exception as e:
+        logger.exception("consulta_answered test failed: %s", e)
+
+    return {
+        "detail": f"Sent {len(sent)} of 4 test emails to {to}",
+        "templates": sent,
+    }
