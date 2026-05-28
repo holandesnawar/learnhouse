@@ -68,7 +68,7 @@ def _company_footer() -> str:
                     <tr>
                         <td style="padding: 8px 32px 12px 32px; text-align: left; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
                             <p style="margin: 0 0 2px 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.6;">Un saludo,</p>
-                            <p style="margin: 0 0 18px 0; font-size: 15px; font-weight: 800; color: #1D0084; line-height: 1.4;">El equipo de Nawar</p>
+                            <p style="margin: 0 0 18px 0; font-size: 15px; font-weight: 800; color: #0a1656; line-height: 1.4;">El equipo de Nawar</p>
                             {FOOTER_LOGO_HTML}
                         </td>
                     </tr>
@@ -113,10 +113,6 @@ def _email_layout(title: str, body_content: str, footer_note: str = "") -> str:
     <style>
         body {{ margin: 0; padding: 0; background-color: #ffffff; }}
         a {{ text-decoration: none; }}
-        /* Keep the CTA legible when the client switches to dark mode. */
-        @media (prefers-color-scheme: dark) {{
-            .brand-btn {{ background-color: #0a1656 !important; color: #4da3ff !important; }}
-        }}
     </style>
 </head>
 <body style="margin: 0; padding: 0; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
@@ -483,7 +479,7 @@ def send_module_unlocked_email(
             ¡Buen trabajo, {safe_name}! Acabas de terminar el módulo anterior.
         </p>
         <p style="{STYLES['p']}">
-            Tienes vía libre en <strong>{safe_module}</strong> — te tocan
+            Tienes vía libre en <strong>{safe_module}</strong>, te tocan
             <strong>{lesson_count} lecciones nuevas</strong>.
         </p>
         <a href="{ACADEMY_URL}/courses" class="brand-btn" style="{STYLES['button']}">
@@ -564,7 +560,7 @@ def send_consulta_answered_email(
             </p>
         </div>
         <p style="{STYLES['p']}">
-            Entra en la academia para leer la respuesta completa.
+            Entra en la plataforma para leer la respuesta completa.
         </p>
         <a href="{ACADEMY_URL}/consultas" class="brand-btn" style="{STYLES['button']}">
             Ver respuesta
