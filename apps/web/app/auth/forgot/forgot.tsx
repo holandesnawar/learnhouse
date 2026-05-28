@@ -54,7 +54,7 @@ function ForgotPasswordClient({ org }: ForgotPasswordClientProps) {
 
   return (
     <div
-      className="relative min-h-screen w-full flex flex-col items-center justify-center px-4 py-12"
+      className="relative min-h-screen w-full flex flex-col items-center justify-center px-6 py-16 sm:px-4 sm:py-12"
       style={{
         backgroundColor: '#1D0084',
         backgroundImage:
