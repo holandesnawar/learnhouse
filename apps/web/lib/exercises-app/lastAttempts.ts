@@ -1,8 +1,11 @@
 /**
- * Tiny local-storage memory of the most recent attempt at an exercise practice
- * (Vocabulario, Luisteren, etc.) so the student can see "last time you got X
- * and failed on Y" and re-practice just the failed items.
+ * Per-user memory of the most recent attempt at an exercise practice. Backed
+ * by the API (so it follows the student across devices) — falls back to
+ * silent no-op when the user is not signed in.
  */
+
+import { getAPIUrl } from '@services/config/config'
+import { RequestBodyWithAuthHeader } from '@services/utils/ts/requests'
 
 export interface LastAttempt {
   score: number
@@ -11,43 +14,64 @@ export interface LastAttempt {
   date: string
 }
 
-const PREFIX = 'nawar-last-attempt-'
+interface ApiAttempt {
+  score: number
+  total: number
+  failed_labels: string[]
+  date: string
+}
 
-const isClient = () => typeof window !== 'undefined' && !!window.localStorage
-
-export function saveLastAttempt(sectionKey: string, attempt: LastAttempt): void {
-  if (!isClient()) return
-  try {
-    localStorage.setItem(PREFIX + sectionKey, JSON.stringify(attempt))
-  } catch {
-    /* ignore storage errors */
+function toLocal(a: ApiAttempt | null | undefined): LastAttempt | null {
+  if (!a || typeof a.score !== 'number' || typeof a.total !== 'number') {
+    return null
+  }
+  return {
+    score: a.score,
+    total: a.total,
+    failedLabels: Array.isArray(a.failed_labels) ? a.failed_labels : [],
+    date: a.date || '',
   }
 }
 
-export function getLastAttempt(sectionKey: string): LastAttempt | null {
-  if (!isClient()) return null
+export async function getLastAttempt(
+  sectionKey: string,
+  accessToken: string | undefined
+): Promise<LastAttempt | null> {
+  if (!accessToken) return null
   try {
-    const raw = localStorage.getItem(PREFIX + sectionKey)
-    if (!raw) return null
-    const parsed = JSON.parse(raw)
-    if (
-      typeof parsed?.score !== 'number' ||
-      typeof parsed?.total !== 'number' ||
-      !Array.isArray(parsed?.failedLabels)
-    ) {
-      return null
-    }
-    return parsed as LastAttempt
+    const result = await fetch(
+      `${getAPIUrl()}exercise-attempts/${encodeURIComponent(sectionKey)}`,
+      RequestBodyWithAuthHeader('GET', null, null, accessToken)
+    )
+    if (!result.ok) return null
+    const data: ApiAttempt | null = await result.json()
+    return toLocal(data)
   } catch {
     return null
   }
 }
 
-export function clearLastAttempt(sectionKey: string): void {
-  if (!isClient()) return
+export async function saveLastAttempt(
+  sectionKey: string,
+  attempt: Omit<LastAttempt, 'date'>,
+  accessToken: string | undefined
+): Promise<void> {
+  if (!accessToken) return
   try {
-    localStorage.removeItem(PREFIX + sectionKey)
+    await fetch(
+      `${getAPIUrl()}exercise-attempts/${encodeURIComponent(sectionKey)}`,
+      RequestBodyWithAuthHeader(
+        'PUT',
+        {
+          score: attempt.score,
+          total: attempt.total,
+          failed_labels: attempt.failedLabels,
+        },
+        null,
+        accessToken
+      )
+    )
   } catch {
-    /* ignore */
+    /* swallow network errors — the UI is best-effort here */
   }
 }

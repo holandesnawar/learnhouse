@@ -2885,11 +2885,20 @@ function LuisterenSection({
   const [showTranslation, setShowTranslation] = useState(false);
   const [exercisesDone, setExercisesDone] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<LastAttempt | null>(null);
+  const session = useLHSession() as any;
+  const accessToken: string | undefined = session?.data?.tokens?.access_token;
 
   // Load any previous attempt for this section on mount.
   useEffect(() => {
-    if (cacheKey) setLastAttempt(getLastAttempt(cacheKey));
-  }, [cacheKey]);
+    if (!cacheKey) return;
+    let active = true;
+    getLastAttempt(cacheKey, accessToken).then((a) => {
+      if (active) setLastAttempt(a);
+    });
+    return () => {
+      active = false;
+    };
+  }, [cacheKey, accessToken]);
 
   function resetAttempt() {
     setExerciseIndex(0);
@@ -3167,12 +3176,15 @@ function LuisterenSection({
                   .sort((a, b) => a - b)
                   .map((i) => practiceExercises[i]?.prompt)
                   .filter((p): p is string => !!p);
-                saveLastAttempt(cacheKey, {
-                  score,
-                  total: practiceExercises.length,
-                  failedLabels: failed,
-                  date: new Date().toISOString(),
-                });
+                saveLastAttempt(
+                  cacheKey,
+                  {
+                    score,
+                    total: practiceExercises.length,
+                    failedLabels: failed,
+                  },
+                  accessToken,
+                );
               }
               setExercisesDone(true);
             } else {
