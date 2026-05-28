@@ -30,11 +30,11 @@ ACADEMY_URL = "https://academia.holandesnawar.nl"
 SUPPORT_EMAIL = "info@holandesnawar.com"
 TERMS_URL = f"{ACADEMY_URL}/terminos"
 PRIVACY_URL = f"{ACADEMY_URL}/privacidad"
-# Small logo shown at the bottom of every email (same image as the top banner,
-# rendered at a smaller width — swap for a square mark URL if you have one).
+# Org logo (the square/compact mark) used at the bottom of every email.
+LOGO_URL = "https://academia.holandesnawar.nl/content/orgs/org_d790ce63-390e-4c87-85c9-e773f5d6ac6a/logos/3e936ab0-c03f-4bcb-b27f-48181fcb510a_logo.png"
 FOOTER_LOGO_HTML = (
-    f'<img src="{BANNER_URL}" alt="Holandés Nawar" width="180" '
-    f'style="display: block; width: 180px; max-width: 60%; height: auto; border: 0;" />'
+    f'<img src="{LOGO_URL}" alt="Holandés Nawar" width="120" '
+    f'style="display: block; width: 120px; height: auto; border: 0;" />'
 )
 
 
