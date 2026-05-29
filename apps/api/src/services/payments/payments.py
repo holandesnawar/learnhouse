@@ -240,18 +240,23 @@ async def process_webhook_event(
 ) -> dict:
     secret = _webhook_secret()
     try:
-        event = stripe.Webhook.construct_event(payload, signature, secret)
+        event_obj = stripe.Webhook.construct_event(payload, signature, secret)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid payload")
     except Exception as exc:  # signature, parsing — surface as 400
         raise HTTPException(status_code=400, detail=f"Webhook signature check failed: {exc}")
+
+    # Stripe's StripeObject doesn't behave like a plain dict on every Python
+    # release (no .get() in 3.14+). Convert to a real dict so the rest of the
+    # handler can use ordinary mapping semantics.
+    event = event_obj.to_dict_recursive() if hasattr(event_obj, "to_dict_recursive") else dict(event_obj)
 
     event_type = event.get("type")
     if event_type != "checkout.session.completed":
         return {"detail": f"ignored:{event_type}"}
 
     try:
-        obj = event["data"]["object"]
+        obj = (event.get("data") or {}).get("object") or {}
         if obj.get("payment_status") != "paid":
             return {"detail": "session not paid"}
 
