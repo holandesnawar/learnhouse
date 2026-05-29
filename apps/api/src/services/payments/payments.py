@@ -81,19 +81,20 @@ async def create_formacion_checkout_session() -> str:
     try:
         session = stripe.checkout.Session.create(
             mode="payment",
-            payment_method_types=["card"],
             line_items=[{"price": _formacion_price_id(), "quantity": 1}],
             success_url=f"{academy}/bienvenido?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{academy}/",
             allow_promotion_codes=True,
-            customer_creation="always",
             metadata={"product": "formacion-a0-a1"},
         )
-    except stripe.error.StripeError as exc:  # type: ignore[attr-defined]
+    except Exception as exc:
         logger.exception("Stripe checkout creation failed: %s", exc)
-        raise HTTPException(status_code=502, detail="Could not create checkout session")
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not create checkout session: {exc}",
+        )
 
-    url = session.get("url")
+    url = session.get("url") if hasattr(session, "get") else getattr(session, "url", None)
     if not url:
         raise HTTPException(status_code=502, detail="Stripe did not return a checkout URL")
     return url
