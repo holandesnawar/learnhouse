@@ -417,6 +417,52 @@ def send_email_verification_email(
 # is wired to real product events. All Spanish, all share the same _email_layout.
 # ============================================================================
 
+
+def send_payment_welcome_email(
+    email: EmailStr,
+    name: str,
+    reset_code: str,
+    base_url: str,
+):
+    """Trigger after Stripe confirms the payment: welcome + "set your password"
+    in a single email so the student lands in the academy with one click."""
+    safe_name = html.escape(name or "alumno/a")
+    safe_email = quote(str(email), safe='')
+    safe_code_param = quote(reset_code, safe='')
+    reset_url = f"{base_url}/reset?email={safe_email}&amp;resetCode={safe_code_param}"
+
+    heading = f"¡Bienvenido a Holandés Nawar, {safe_name}!"
+    body_content = f"""
+        <h1 style="{STYLES['h1']}">{heading}</h1>
+        <p style="{STYLES['p']}">
+            Tu compra está confirmada. Tienes acceso completo a la formación A0-A1
+            y a toda la academia.
+        </p>
+        <p style="{STYLES['p']}">
+            Para entrar la primera vez, crea tu contraseña pulsando el botón.
+            El enlace caduca en 1 hora.
+        </p>
+        <a href="{reset_url}" class="brand-btn" style="{STYLES['button']}">
+            Crear mi contraseña y empezar
+        </a>
+        <p style="{STYLES['p']}" style="margin-top: 28px;">
+            Te recomendamos arrancar por el bloque <strong>«Empieza aquí»</strong>
+            del Inicio: vídeo de bienvenida, completar perfil y tu primera lección.
+        </p>
+    """
+
+    return send_email(
+        to=email,
+        subject="¡Bienvenido a Holandés Nawar! Crea tu contraseña",
+        body=_email_layout(
+            title=heading,
+            body_content=body_content,
+            footer_note="Recibes este correo porque acabas de comprar la formación. "
+                        "Si no fuiste tú, contesta a este correo y lo miramos.",
+        ),
+    )
+
+
 def send_weekly_digest_email(
     email: EmailStr,
     name: str = "alumno/a",
