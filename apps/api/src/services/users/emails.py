@@ -429,7 +429,7 @@ def send_payment_welcome_email(
     safe_name = html.escape(name or "alumno/a")
     safe_email = quote(str(email), safe='')
     safe_code_param = quote(reset_code, safe='')
-    reset_url = f"{base_url}/reset?email={safe_email}&amp;resetCode={safe_code_param}"
+    reset_url = f"{base_url}/crear-cuenta?email={safe_email}&amp;resetCode={safe_code_param}"
 
     heading = f"¡Bienvenido a Holandés Nawar, {safe_name}!"
     body_content = f"""

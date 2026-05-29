@@ -2,7 +2,7 @@
 import React from 'react'
 import FormLayout from '@components/Objects/StyledElements/Form/Form'
 import * as Form from '@radix-ui/react-form'
-import { AlertTriangle, ArrowLeft, CheckCircle, Eye, EyeOff, X } from 'lucide-react'
+import { AlertTriangle, CheckCircle, Eye, EyeOff, X } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useFormik } from 'formik'
@@ -16,46 +16,39 @@ import {
 
 const validate = (values: any, t: any) => {
   const errors: any = {}
-
   if (!values.email) {
     errors.email = t('validation.required')
   } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(values.email)) {
     errors.email = t('validation.invalid_email')
   }
-
   if (!values.new_password) {
     errors.new_password = t('validation.required')
-  } else {
-    const passwordValidation = validatePasswordStrength(values.new_password)
-    if (!passwordValidation.isValid) {
-      errors.new_password = t('auth.password_requirements_not_met')
-    }
+  } else if (!validatePasswordStrength(values.new_password).isValid) {
+    errors.new_password = t('auth.password_requirements_not_met')
   }
-
   if (!values.confirm_password) {
     errors.confirm_password = t('validation.required')
   }
-
   if (values.new_password !== values.confirm_password) {
     errors.confirm_password = t('auth.passwords_do_not_match')
   }
-
   if (!values.reset_code) {
     errors.reset_code = t('validation.required')
   }
   return errors
 }
 
-interface ResetPasswordClientProps {
+interface CrearCuentaClientProps {
   org: any
 }
 
-function ResetPasswordClient({ org }: ResetPasswordClientProps) {
+function CrearCuentaClient({ org }: CrearCuentaClientProps) {
   const { t } = useTranslation()
-  const [isSubmitting, setIsSubmitting] = React.useState(false)
   const searchParams = useSearchParams()
   const reset_code = searchParams.get('resetCode') || ''
   const email = searchParams.get('email') || ''
+
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [error, setError] = React.useState('')
   const [message, setMessage] = React.useState('')
   const [showMessage, setShowMessage] = React.useState(false)
@@ -64,10 +57,10 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
 
   const formik = useFormik({
     initialValues: {
-      email: email,
+      email,
       new_password: '',
       confirm_password: '',
-      reset_code: reset_code,
+      reset_code,
     },
     validate: (values) => validate(values, t),
     enableReinitialize: true,
@@ -83,7 +76,7 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
         values.reset_code
       )
       if (res.status == 200) {
-        setMessage(res.data)
+        setMessage('Cuenta creada. Ya puedes entrar a la academia.')
         setShowMessage(true)
         setIsSubmitting(false)
       } else {
@@ -94,8 +87,9 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
     },
   })
 
-  const fieldInputClass =
+  const inputBase =
     'w-full rounded-lg bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-[#4da3ff]/60'
+  const inputWithEye = `${inputBase} pr-11`
 
   return (
     <div
@@ -110,7 +104,6 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
         backgroundRepeat: 'repeat, no-repeat, no-repeat',
       }}
     >
-      {/* Message Top Bar */}
       {showMessage && (error || message) && (
         <div
           className={`
@@ -130,7 +123,7 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
                 <span className="text-sm ml-2">
                   ·{' '}
                   <Link href="/login" className="underline hover:no-underline">
-                    {t('auth.proceed_to_login')}
+                    Entrar
                   </Link>
                 </span>
               )}
@@ -146,7 +139,6 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
       )}
 
       <div className="relative z-0 w-full max-w-sm text-center">
-        {/* Logo */}
         <div className="flex justify-center mb-6">
           {org?.logo_image ? (
             <img
@@ -159,17 +151,14 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
           )}
         </div>
 
-        {/* Heading */}
-        <h1 className="text-3xl font-bold text-white">
-          {t('auth.reset_password_title')}
-        </h1>
+        <h1 className="text-3xl font-bold text-white">Crea tu cuenta</h1>
         <p className="text-white/70 mt-1.5 mb-8">
-          {t('auth.reset_password_description')}
+          Pon una contraseña para entrar a la academia.
         </p>
 
-        {/* Form */}
         <FormLayout onSubmit={formik.handleSubmit}>
           <div className="space-y-4 text-left">
+            {/* Email — pre-llenado y solo lectura porque viene del email de bienvenida */}
             <Form.Field name="email" className="space-y-1.5">
               <Form.Label className="block text-sm font-semibold text-white">
                 {t('auth.email')}
@@ -177,36 +166,19 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
               <Form.Control asChild>
                 <input
                   type="email"
-                  onChange={formik.handleChange}
                   value={formik.values.email}
-                  className={fieldInputClass}
+                  readOnly
+                  className={`${inputBase} bg-white/90 cursor-not-allowed`}
                 />
               </Form.Control>
-              {formik.touched.email && formik.errors.email && (
-                <p className="text-xs text-rose-300">{formik.errors.email as string}</p>
-              )}
             </Form.Field>
 
-            <Form.Field name="reset_code" className="space-y-1.5">
-              <Form.Label className="block text-sm font-semibold text-white">
-                {t('auth.reset_code')}
-              </Form.Label>
-              <Form.Control asChild>
-                <input
-                  type="text"
-                  onChange={formik.handleChange}
-                  value={formik.values.reset_code}
-                  className={fieldInputClass}
-                />
-              </Form.Control>
-              {formik.touched.reset_code && formik.errors.reset_code && (
-                <p className="text-xs text-rose-300">{formik.errors.reset_code as string}</p>
-              )}
-            </Form.Field>
+            {/* Hidden reset_code — viene de la URL, no la mostramos */}
+            <input type="hidden" name="reset_code" value={formik.values.reset_code} />
 
             <Form.Field name="new_password" className="space-y-1.5">
               <Form.Label className="block text-sm font-semibold text-white">
-                {t('auth.new_password')}
+                Contraseña
               </Form.Label>
               <div className="relative">
                 <Form.Control asChild>
@@ -215,7 +187,7 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
                     autoComplete="new-password"
                     onChange={formik.handleChange}
                     value={formik.values.new_password}
-                    className={`${fieldInputClass} pr-11`}
+                    className={inputWithEye}
                   />
                 </Form.Control>
                 <button
@@ -235,7 +207,7 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
 
             <Form.Field name="confirm_password" className="space-y-1.5">
               <Form.Label className="block text-sm font-semibold text-white">
-                {t('auth.confirm_password')}
+                Confirmar contraseña
               </Form.Label>
               <div className="relative">
                 <Form.Control asChild>
@@ -244,7 +216,7 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
                     autoComplete="new-password"
                     onChange={formik.handleChange}
                     value={formik.values.confirm_password}
-                    className={`${fieldInputClass} pr-11`}
+                    className={inputWithEye}
                   />
                 </Form.Control>
                 <button
@@ -263,20 +235,18 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
 
             <Form.Submit asChild>
               <button className="w-full bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
-                {isSubmitting ? t('common.loading') : t('auth.change_password')}
+                {isSubmitting ? t('common.loading') : 'Crear cuenta y entrar'}
               </button>
             </Form.Submit>
           </div>
         </FormLayout>
 
-        {/* Back to Login */}
         <p className="mt-6">
           <Link
             href="/login"
             className="inline-flex items-center gap-2 text-sm text-white/80 hover:text-white transition-colors"
           >
-            <ArrowLeft size={16} />
-            {t('auth.back_to_login')}
+            Ya tengo cuenta — Entrar
           </Link>
         </p>
       </div>
@@ -284,4 +254,4 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
   )
 }
 
-export default ResetPasswordClient
+export default CrearCuentaClient
