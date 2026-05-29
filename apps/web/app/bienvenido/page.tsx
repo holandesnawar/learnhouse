@@ -8,6 +8,7 @@ export const metadata: Metadata = {
 
 // Always render on request so Stripe's session_id reaches the page intact.
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 /**
  * Landing the student sees right after Stripe Checkout succeeds.
