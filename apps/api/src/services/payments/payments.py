@@ -240,16 +240,22 @@ async def process_webhook_event(
 ) -> dict:
     secret = _webhook_secret()
     try:
-        event_obj = stripe.Webhook.construct_event(payload, signature, secret)
+        # Verify the signature only — we don't need the StripeObject Stripe
+        # returns, since its proxy doesn't expose plain-dict semantics on
+        # every Python release (no .get() on 3.14+) and trips the handler.
+        stripe.Webhook.construct_event(payload, signature, secret)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid payload")
     except Exception as exc:  # signature, parsing — surface as 400
         raise HTTPException(status_code=400, detail=f"Webhook signature check failed: {exc}")
 
-    # Stripe's StripeObject doesn't behave like a plain dict on every Python
-    # release (no .get() in 3.14+). Convert to a real dict so the rest of the
-    # handler can use ordinary mapping semantics.
-    event = event_obj.to_dict_recursive() if hasattr(event_obj, "to_dict_recursive") else dict(event_obj)
+    # Parse the raw payload as a plain dict so every downstream .get() works.
+    try:
+        event = json.loads(payload.decode("utf-8") if isinstance(payload, (bytes, bytearray)) else payload)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON payload: {exc}")
+    if not isinstance(event, dict):
+        raise HTTPException(status_code=400, detail="Webhook payload is not an object")
 
     event_type = event.get("type")
     if event_type != "checkout.session.completed":
