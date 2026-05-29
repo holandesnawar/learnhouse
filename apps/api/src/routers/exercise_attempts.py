@@ -1,5 +1,7 @@
 """Public endpoints for the per-user exercise attempt memory."""
 
+from typing import List
+
 from fastapi import APIRouter, Depends, Request
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -9,11 +11,24 @@ from src.db.users import PublicUser
 from src.security.auth import get_current_user
 from src.services.exercise_attempts.exercise_attempts import (
     get_attempt,
+    list_attempts,
     save_attempt,
 )
 
 
 router = APIRouter()
+
+
+@router.get(
+    "/all",
+    summary="List every saved attempt for the current student.",
+)
+async def api_list_attempts(
+    request: Request,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+) -> List[dict]:
+    return await list_attempts(current_user, db_session)
 
 
 @router.get(

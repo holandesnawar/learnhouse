@@ -51,6 +51,40 @@ export async function getLastAttempt(
   }
 }
 
+interface ApiAttemptWithKey extends ApiAttempt {
+  section_key: string
+}
+
+/**
+ * Fetch every saved attempt for the current student and return a map keyed by
+ * section_key. Used by the lesson list to render per-section completion dots
+ * without making one request per lesson.
+ */
+export async function getAllAttempts(
+  accessToken: string | undefined
+): Promise<Record<string, LastAttempt>> {
+  if (!accessToken) return {}
+  try {
+    const result = await fetch(
+      `${getAPIUrl()}exercise-attempts/all`,
+      RequestBodyWithAuthHeader('GET', null, null, accessToken)
+    )
+    if (!result.ok) return {}
+    const data: ApiAttemptWithKey[] = await result.json()
+    if (!Array.isArray(data)) return {}
+    const out: Record<string, LastAttempt> = {}
+    for (const row of data) {
+      const local = toLocal(row)
+      if (row?.section_key && local) {
+        out[row.section_key] = local
+      }
+    }
+    return out
+  } catch {
+    return {}
+  }
+}
+
 export async function saveLastAttempt(
   sectionKey: string,
   attempt: Omit<LastAttempt, 'date'>,

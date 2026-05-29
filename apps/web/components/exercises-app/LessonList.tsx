@@ -4,7 +4,49 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getLessonProgress } from '@/lib/exercises-app/progress';
 import { getUriWithOrg } from '@services/config/config';
+import { useLHSession } from '@components/Contexts/LHSessionContext';
+import { getAllAttempts, type LastAttempt } from '@/lib/exercises-app/lastAttempts';
 import type { Lesson, LessonStatus } from '@/lib/exercises-app/types';
+
+type SectionId = 'vocabulary' | 'flashcards' | 'lezen' | 'luisteren';
+
+/* Section-completion dots — one per section available in this lesson,
+   filled blue when the student has at least one saved attempt for it. */
+function SectionDots({
+    lesson,
+    attempts,
+}: {
+    lesson: Lesson;
+    attempts: Record<string, LastAttempt>;
+}) {
+    const hasVocab = lesson.blocks.some((b) => b.type === 'vocabulary');
+    const hasLezen = lesson.blocks.some((b) => b.type === 'lezen');
+    const hasDialogue = lesson.blocks.some((b) => b.type === 'dialogue');
+    const sections: { id: SectionId; label: string }[] = [];
+    if (hasVocab) sections.push({ id: 'vocabulary', label: 'Vocabulario' });
+    if (hasVocab) sections.push({ id: 'flashcards', label: 'Flashcards' });
+    if (hasLezen) sections.push({ id: 'lezen', label: 'Lezen' });
+    if (hasDialogue) sections.push({ id: 'luisteren', label: 'Luisteren' });
+    if (sections.length === 0) return null;
+    const done = sections.filter((s) => !!attempts[`${lesson.id}-${s.id}`]).length;
+    return (
+        <div className="flex items-center gap-1.5 mt-2">
+            {sections.map((s) => {
+                const isDone = !!attempts[`${lesson.id}-${s.id}`];
+                return (
+                    <span
+                        key={s.id}
+                        title={`${s.label} — ${isDone ? 'hecha' : 'pendiente'}`}
+                        className={`w-2 h-2 rounded-full ${isDone ? 'bg-[#4da3ff]' : 'bg-[#DDE6F5]'}`}
+                    />
+                );
+            })}
+            <span className="text-[10px] font-semibold text-[#9CA3AF] ml-1 tabular-nums">
+                {done}/{sections.length}
+            </span>
+        </div>
+    );
+}
 
 /* ─────────────────────────────────────────────────────────────────────────────
    STATUS BADGE
@@ -44,6 +86,9 @@ function StatusBadge({ status }: { status: LessonStatus }) {
 
 export default function LessonList({ lessons, moduleId, orgslug }: { lessons: Lesson[]; moduleId: string; orgslug: string }) {
     const [statuses, setStatuses] = useState<Record<string, LessonStatus>>({});
+    const [attempts, setAttempts] = useState<Record<string, LastAttempt>>({});
+    const session = useLHSession() as any;
+    const accessToken: string | undefined = session?.data?.tokens?.access_token;
 
     useEffect(() => {
         const s: Record<string, LessonStatus> = {};
@@ -53,6 +98,18 @@ export default function LessonList({ lessons, moduleId, orgslug }: { lessons: Le
         }
         setStatuses(s);
     }, [lessons]);
+
+    // Per-section progress dots: fetch every saved attempt for this student in
+    // a single call so each lesson card can render the right state without N
+    // round-trips.
+    useEffect(() => {
+        if (!accessToken) return;
+        let active = true;
+        getAllAttempts(accessToken).then((map) => {
+            if (active) setAttempts(map);
+        });
+        return () => { active = false; };
+    }, [accessToken]);
 
     // First non-completed lesson is the "next" one
     const nextLessonId = lessons.find(l => statuses[l.id] !== 'completed')?.id;
@@ -100,6 +157,7 @@ export default function LessonList({ lessons, moduleId, orgslug }: { lessons: Le
                                 <StatusBadge status={status} />
                             </div>
                             <p className="text-[13px] text-[#9CA3AF] leading-snug mb-2">{lesson.subtitle}</p>
+                            <SectionDots lesson={lesson} attempts={attempts} />
                             <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-3 text-[12px] text-[#5A6480]">
                                 <span className="flex items-center gap-1 shrink-0">
                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">

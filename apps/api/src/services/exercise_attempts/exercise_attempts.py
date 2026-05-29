@@ -46,6 +46,16 @@ async def get_attempt(
     return _as_dict(attempt)
 
 
+async def list_attempts(
+    current_user,
+    db_session: AsyncSession,
+) -> list:
+    user_id = _user_id_or_401(current_user)
+    statement = select(ExerciseAttempt).where(ExerciseAttempt.user_id == user_id)
+    rows = (await db_session.execute(statement)).scalars().all()
+    return [{"section_key": r.section_key, **_as_dict(r)} for r in rows]
+
+
 async def save_attempt(
     section_key: str,
     data: ExerciseAttemptCreate,

@@ -3548,6 +3548,18 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
     const allDone = availableSections.length > 0 && availableSections.every(s => next.has(s));
     if (allDone) markLessonCompleted(lesson.id, lesson.moduleId, 0, 0, []);
 
+    // Persist "section done" on the backend so the lesson cards can show the
+    // per-section progress without forcing the student to re-open every lesson.
+    // Lezen and Luisteren already write their own (richer) attempt records.
+    if (id !== 'lezen' && id !== 'luisteren' && id !== 'resumen') {
+      const token: string | undefined = session?.data?.tokens?.access_token;
+      saveLastAttempt(
+        `${lesson.id}-${id}`,
+        { score: 0, total: 0, failedLabels: [] },
+        token,
+      );
+    }
+
     // In single-part (forced) mode the activity IS this part: finishing it
     // completes the activity. In whole-lesson mode, only when every part is done.
     if (forced) {
