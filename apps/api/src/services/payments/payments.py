@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 def _stripe_secret() -> str:
     cfg = get_learnhouse_config()
-    key = getattr(cfg.payments_config, "stripe_secret_key", None)
+    key = getattr(getattr(cfg.payments_config, "stripe", None), "stripe_secret_key", None)
     if not key:
         raise HTTPException(status_code=500, detail="Stripe secret key not configured")
     return key
@@ -48,7 +48,11 @@ def _stripe_secret() -> str:
 
 def _webhook_secret() -> str:
     cfg = get_learnhouse_config()
-    key = getattr(cfg.payments_config, "stripe_webhook_standard_secret", None)
+    key = getattr(
+        getattr(cfg.payments_config, "stripe", None),
+        "stripe_webhook_standard_secret",
+        None,
+    )
     if not key:
         raise HTTPException(status_code=500, detail="Stripe webhook secret not configured")
     return key
