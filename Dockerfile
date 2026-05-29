@@ -12,6 +12,9 @@ RUN bun install --frozen-lockfile
 # Stage 2: Frontend build
 # ───────────────────────────────────────────────
 FROM oven/bun:1-alpine AS frontend-builder
+# CACHE-BUST: 2026-05-29 — Railway was serving an older image without
+# /bienvenido (Stripe success page). Touching the Dockerfile invalidates the
+# build-layer cache so the next push gets a clean rebuild.
 WORKDIR /app
 COPY --from=frontend-deps /app/node_modules ./node_modules
 COPY apps/web .
