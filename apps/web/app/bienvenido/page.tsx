@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
+// Always render on request so Stripe's session_id reaches the page intact.
+export const dynamic = 'force-dynamic'
+
 /**
  * Landing the student sees right after Stripe Checkout succeeds.
  * Account provisioning happens server-side via the webhook (seconds), so we
