@@ -15,7 +15,7 @@ FROM oven/bun:1-alpine AS frontend-builder
 # CACHE-BUST: 2026-05-29 — Railway was serving an older image without
 # /bienvenido (Stripe success page). The RUN below forces BuildKit to
 # invalidate every downstream layer (COPY apps/web ., bun run build).
-RUN echo "cache-bust: 2026-05-29-fc5b0fc"
+RUN echo "cache-bust: 2026-05-29-c-bienvenido-route-missing"
 WORKDIR /app
 COPY --from=frontend-deps /app/node_modules ./node_modules
 COPY apps/web .
