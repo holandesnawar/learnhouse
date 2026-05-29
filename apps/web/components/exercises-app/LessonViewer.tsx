@@ -16,6 +16,7 @@ import { Dumbbell } from 'lucide-react';
 import { useLHSession } from '@components/Contexts/LHSessionContext';
 import { saveItemResult } from '@/lib/exercises/exercises';
 import { saveLastAttempt, getLastAttempt, type LastAttempt } from '@/lib/exercises-app/lastAttempts';
+import { markLessonCompletedRemote } from '@services/student/progress';
 
 /* ─────────────────────────────────────────────────────────────────────────────
    HELPERS
@@ -3548,14 +3549,25 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
     const allDone = availableSections.length > 0 && availableSections.every(s => next.has(s));
     if (allDone) markLessonCompleted(lesson.id, lesson.moduleId, 0, 0, []);
 
+    const token: string | undefined = session?.data?.tokens?.access_token;
+
     // Persist "section done" on the backend so the lesson cards can show the
     // per-section progress without forcing the student to re-open every lesson.
     // Lezen and Luisteren already write their own (richer) attempt records.
     if (id !== 'lezen' && id !== 'luisteren' && id !== 'resumen') {
-      const token: string | undefined = session?.data?.tokens?.access_token;
       saveLastAttempt(
         `${lesson.id}-${id}`,
         { score: 0, total: 0, failedLabels: [] },
+        token,
+      );
+    }
+
+    // When every section of the lesson is done, register the lesson completion
+    // server-side so /progreso and "continúa donde lo dejaste" can read it.
+    if (allDone) {
+      markLessonCompletedRemote(
+        lesson.id,
+        { module_id: lesson.moduleId },
         token,
       );
     }

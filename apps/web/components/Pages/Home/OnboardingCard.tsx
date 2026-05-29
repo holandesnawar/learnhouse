@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { getUriWithOrg } from '@services/config/config'
 import { Check, Video, User, MessagesSquare, BookOpen, X } from 'lucide-react'
+import { getStudentProgress, patchStudentProgress } from '@services/student/progress'
 
 interface Props {
   orgslug: string
@@ -19,37 +20,35 @@ interface CheckItem {
   isDone: boolean
 }
 
-const DISMISS_KEY = 'nawar-onboarding-dismissed'
-const VISITED_KEY = 'nawar-onboarding-visited'
 // Items the user marks "done" by visiting (vs auto-detected from real state).
 const VISITABLE: string[] = ['welcome_video', 'community']
 
-function readVisited(): Set<string> {
-  try {
-    const raw = localStorage.getItem(VISITED_KEY)
-    return raw ? new Set(JSON.parse(raw)) : new Set()
-  } catch {
-    return new Set()
-  }
-}
-
-function writeVisited(set: Set<string>) {
-  try {
-    localStorage.setItem(VISITED_KEY, JSON.stringify(Array.from(set)))
-  } catch {}
-}
-
 export default function OnboardingCard({ orgslug, hasStartedCourse }: Props) {
   const session = useLHSession() as any
+  const accessToken: string | undefined = session?.data?.tokens?.access_token
   const user = session?.data?.user
   const hasAvatar = !!user?.avatar_image
-  const [dismissed, setDismissed] = useState(true) // start hidden until we know
+  // Start hidden until we have backend state — avoids flashing the card on
+  // first paint for students who have already finished onboarding.
+  const [loaded, setLoaded] = useState(false)
+  const [dismissed, setDismissed] = useState(true)
   const [visited, setVisited] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    setDismissed(localStorage.getItem(DISMISS_KEY) === 'true')
-    setVisited(readVisited())
-  }, [])
+    if (!accessToken) {
+      setLoaded(true)
+      return
+    }
+    let active = true
+    getStudentProgress(accessToken).then((p) => {
+      if (!active) return
+      const state = (p?.onboarding_state ?? {}) as Record<string, any>
+      setDismissed(state.dismissed === true)
+      setVisited(new Set(Array.isArray(state.visited) ? state.visited : []))
+      setLoaded(true)
+    })
+    return () => { active = false }
+  }, [accessToken])
 
   const checks: CheckItem[] = [
     {
@@ -86,11 +85,24 @@ export default function OnboardingCard({ orgslug, hasStartedCourse }: Props) {
   const total = checks.length
   const allDone = done === total
 
-  if (dismissed || allDone) return null
+  if (!loaded || dismissed || allDone) return null
+
+  function persist(nextDismissed: boolean, nextVisited: Set<string>) {
+    if (!accessToken) return
+    patchStudentProgress(
+      {
+        onboarding_state: {
+          dismissed: nextDismissed,
+          visited: Array.from(nextVisited),
+        },
+      },
+      accessToken,
+    )
+  }
 
   function dismiss() {
-    localStorage.setItem(DISMISS_KEY, 'true')
     setDismissed(true)
+    persist(true, visited)
   }
 
   function markVisited(id: string) {
@@ -98,7 +110,7 @@ export default function OnboardingCard({ orgslug, hasStartedCourse }: Props) {
     const next = new Set(visited)
     next.add(id)
     setVisited(next)
-    writeVisited(next)
+    persist(dismissed, next)
   }
 
   return (

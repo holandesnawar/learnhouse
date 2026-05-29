@@ -7,7 +7,7 @@ from src.routers import health
 from src.routers import instance
 from src.routers import plans
 from src.routers import usergroups
-from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts
+from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress
 from src.routers import monitoring
 from src.routers import stream
 from src.routers import api_tokens
@@ -326,6 +326,15 @@ v1_router.include_router(
     exercise_attempts.router,
     prefix="/exercise-attempts",
     tags=["exercise-attempts"],
+    dependencies=[Depends(get_non_api_token_user)],
+)
+
+# Per-student progress signals: streak, last position, onboarding, theme,
+# lesson completions, weak words.
+v1_router.include_router(
+    student_progress.router,
+    prefix="/student",
+    tags=["student"],
     dependencies=[Depends(get_non_api_token_user)],
 )
 

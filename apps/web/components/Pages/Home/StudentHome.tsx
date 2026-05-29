@@ -1,5 +1,5 @@
 'use client'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import CourseThumbnail from '@components/Objects/Thumbnails/CourseThumbnail'
 import TrailCourseCard from '@components/Pages/Trail/TrailCourseCard'
@@ -14,12 +14,15 @@ import UpcomingEvents from '@components/Pages/Home/UpcomingEvents'
 import { getUriWithOrg } from '@services/config/config'
 import CommunityChannelsCards from '@components/Objects/Communities/CommunityChannelsCards'
 import OnboardingCard from '@components/Pages/Home/OnboardingCard'
+import StreakBadge from '@components/Pages/Home/StreakBadge'
+import { registerVisit, type StudentVisit } from '@services/student/progress'
 import Link from 'next/link'
 import { BookOpen, HelpCircle, ArrowRight } from 'lucide-react'
 
 export default function StudentHome({ orgslug }: { orgslug: string }) {
   const org = useOrg() as any
   const session = useLHSession() as any
+  const accessToken: string | undefined = session?.data?.tokens?.access_token
   const { data: courses } = useCourses(orgslug)
   const { data: trailData } = useTrail(org?.id)
   const { isAdmin } = useAdminStatus() as any
@@ -30,14 +33,33 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
   const runs: any[] = Array.isArray(trailData?.runs) ? trailData.runs : []
   const courseList: any[] = Array.isArray(courses) ? courses : []
 
+  // Register today's visit so the streak counter advances. Idempotent within
+  // the same day, fire-and-forget — never blocks the page.
+  const [visit, setVisit] = useState<StudentVisit | null>(null)
+  useEffect(() => {
+    if (!accessToken) return
+    let active = true
+    registerVisit(accessToken).then((v) => {
+      if (active) setVisit(v)
+    })
+    return () => { active = false }
+  }, [accessToken])
+
   return (
     <GeneralWrapperStyled>
       {/* Welcome */}
-      <div className="pt-2 pb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-          Hola{firstName ? `, ${firstName}` : ''} 👋
-        </h1>
-        <p className="text-gray-500 mt-1">Continúa tu aprendizaje donde lo dejaste.</p>
+      <div className="pt-2 pb-6 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            Hola{firstName ? `, ${firstName}` : ''} 👋
+          </h1>
+          <p className="text-gray-500 mt-1">Continúa tu aprendizaje donde lo dejaste.</p>
+        </div>
+        {visit && (
+          <div className="pt-1 shrink-0">
+            <StreakBadge current={visit.current_streak} longest={visit.longest_streak} />
+          </div>
+        )}
       </div>
 
       {/* Onboarding — only visible while at least one step is pending */}
