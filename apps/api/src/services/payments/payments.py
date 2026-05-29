@@ -89,6 +89,16 @@ async def create_formacion_checkout_session() -> str:
             success_url=f"{academy}/bienvenido?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{academy}/",
             allow_promotion_codes=True,
+            # Generate an actual Stripe Invoice (PDF) and attach it to the
+            # receipt email — same experience the old Payment Links had.
+            invoice_creation={
+                "enabled": True,
+                "invoice_data": {
+                    "description": "Formación Nawar A0-A1",
+                    "footer": "Gracias por unirte a Holandés Nawar.",
+                    "metadata": {"product": "formacion-a0-a1"},
+                },
+            },
             metadata={"product": "formacion-a0-a1"},
         )
     except Exception as exc:
