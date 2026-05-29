@@ -16,7 +16,7 @@ import { Dumbbell } from 'lucide-react';
 import { useLHSession } from '@components/Contexts/LHSessionContext';
 import { saveItemResult } from '@/lib/exercises/exercises';
 import { saveLastAttempt, getLastAttempt, type LastAttempt } from '@/lib/exercises-app/lastAttempts';
-import { markLessonCompletedRemote } from '@services/student/progress';
+import { markLessonCompletedRemote, patchStudentProgress } from '@services/student/progress';
 
 /* ─────────────────────────────────────────────────────────────────────────────
    HELPERS
@@ -3409,10 +3409,31 @@ interface LessonViewerProps {
 
 export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLesson, orgslug, inCourse, forcedSection, onComplete }: LessonViewerProps) {
   const session = useLHSession() as any;
+  const accessToken: string | undefined = session?.data?.tokens?.access_token;
   const userUuid: string = session?.data?.user?.user_uuid || '';
   const [activeSection, setActiveSection] = useState<SectionId | null>(null);
   const [completedSections, setCompletedSections] = useState<Set<SectionId>>(new Set());
   const [forcedDone, setForcedDone] = useState(false);
+
+  // Track the student's last position so the home can show "Continúa donde lo
+  // dejaste" with the exact lesson + section. Standalone ejercicios only —
+  // inside a course the trail system already covers it. Fire-and-forget.
+  useEffect(() => {
+    if (inCourse || !accessToken || !lesson?.id) return;
+    patchStudentProgress(
+      {
+        current_position: {
+          area: 'ejercicios',
+          module_id: lesson.moduleId,
+          lesson_id: lesson.id,
+          lesson_title: lesson.title,
+          section_id: activeSection,
+          updated_at: new Date().toISOString(),
+        },
+      },
+      accessToken,
+    );
+  }, [accessToken, inCourse, lesson?.id, lesson?.moduleId, lesson?.title, activeSection]);
 
   // Persist each graded answer to the per-student progress table (Supabase) so
   // the academy remembers what each student got right/wrong. Fire-and-forget;

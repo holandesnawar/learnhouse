@@ -15,6 +15,7 @@ import { getUriWithOrg } from '@services/config/config'
 import CommunityChannelsCards from '@components/Objects/Communities/CommunityChannelsCards'
 import OnboardingCard from '@components/Pages/Home/OnboardingCard'
 import StreakBadge from '@components/Pages/Home/StreakBadge'
+import ContinueWhereLeftOff from '@components/Pages/Home/ContinueWhereLeftOff'
 import { registerVisit, type StudentVisit } from '@services/student/progress'
 import Link from 'next/link'
 import { BookOpen, HelpCircle, ArrowRight } from 'lucide-react'
@@ -64,6 +65,9 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
 
       {/* Onboarding — only visible while at least one step is pending */}
       <OnboardingCard orgslug={orgslug} hasStartedCourse={runs.length > 0} />
+
+      {/* "Sigue donde lo dejaste" — only shows when there's a saved position */}
+      <ContinueWhereLeftOff orgslug={orgslug} />
 
       {/* Continue / in-progress */}
       {runs.length > 0 && (
