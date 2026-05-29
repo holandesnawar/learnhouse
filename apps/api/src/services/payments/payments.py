@@ -243,46 +243,56 @@ async def process_webhook_event(
         event = stripe.Webhook.construct_event(payload, signature, secret)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid payload")
-    except stripe.error.SignatureVerificationError:  # type: ignore[attr-defined]
-        raise HTTPException(status_code=400, detail="Invalid signature")
+    except Exception as exc:  # signature, parsing — surface as 400
+        raise HTTPException(status_code=400, detail=f"Webhook signature check failed: {exc}")
 
     event_type = event.get("type")
     if event_type != "checkout.session.completed":
-        # Quietly acknowledge other events so Stripe stops retrying.
         return {"detail": f"ignored:{event_type}"}
 
-    obj = event["data"]["object"]
-    if obj.get("payment_status") != "paid":
-        return {"detail": "session not paid"}
-
-    email = (
-        (obj.get("customer_details") or {}).get("email")
-        or obj.get("customer_email")
-        or ""
-    ).strip().lower()
-    name = ((obj.get("customer_details") or {}).get("name") or "").strip()
-
-    if not email:
-        logger.error("checkout.session.completed without email — cannot provision")
-        return {"detail": "no email"}
-
-    user = await _create_paid_user(email, name, db_session)
-
-    code = _store_reset_code(user)
-    if not code:
-        logger.error("Could not generate reset code for %s; will not send welcome email", email)
-        return {"detail": "user created but reset email could not be sent"}
-
-    user_read = UserRead.model_validate(user)
     try:
-        send_payment_welcome_email(
-            email=user_read.email,
-            name=name or user.first_name or "",
-            reset_code=code,
-            base_url=_academy_url(),
-        )
-    except Exception:
-        logger.exception("Welcome email send failed for %s", email)
-        # We don't fail the webhook — the user exists, we can resend manually.
+        obj = event["data"]["object"]
+        if obj.get("payment_status") != "paid":
+            return {"detail": "session not paid"}
 
-    return {"detail": "ok"}
+        email = (
+            (obj.get("customer_details") or {}).get("email")
+            or obj.get("customer_email")
+            or ""
+        ).strip().lower()
+        name = ((obj.get("customer_details") or {}).get("name") or "").strip()
+
+        if not email:
+            logger.error("checkout.session.completed without email — cannot provision")
+            return {"detail": "no email"}
+
+        user = await _create_paid_user(email, name, db_session)
+
+        code = _store_reset_code(user)
+        if not code:
+            logger.error("Could not generate reset code for %s; user exists, email not sent", email)
+            return {"detail": "user created but reset email could not be sent"}
+
+        user_read = UserRead.model_validate(user)
+        try:
+            send_payment_welcome_email(
+                email=user_read.email,
+                name=name or user.first_name or "",
+                reset_code=code,
+                base_url=_academy_url(),
+            )
+        except Exception:
+            logger.exception("Welcome email send failed for %s", email)
+            # We don't fail the webhook — the user exists, we can resend manually.
+
+        return {"detail": "ok"}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        # Surface the actual error in the response so Stripe's webhook delivery
+        # log shows what broke (otherwise we only see "Internal Server Error").
+        logger.exception("Webhook processing failed: %s", exc)
+        raise HTTPException(
+            status_code=500,
+            detail=f"{type(exc).__name__}: {exc}",
+        )
