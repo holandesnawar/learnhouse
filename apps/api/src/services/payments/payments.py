@@ -86,7 +86,7 @@ async def create_formacion_checkout_session() -> str:
         session = stripe.checkout.Session.create(
             mode="payment",
             line_items=[{"price": _formacion_price_id(), "quantity": 1}],
-            success_url=f"{academy}/bienvenido?session_id={{CHECKOUT_SESSION_ID}}",
+            success_url=f"{academy}/auth/bienvenido?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{academy}/",
             allow_promotion_codes=True,
             # Force a Customer to be created with the buyer's email so Stripe

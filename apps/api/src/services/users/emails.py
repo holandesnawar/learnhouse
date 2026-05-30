@@ -28,8 +28,8 @@ BANNER_HTML = (
 )
 ACADEMY_URL = "https://academia.holandesnawar.nl"
 SUPPORT_EMAIL = "info@holandesnawar.com"
-TERMS_URL = f"{ACADEMY_URL}/terminos"
-PRIVACY_URL = f"{ACADEMY_URL}/privacidad"
+TERMS_URL = "https://www.holandesnawar.com/terminos-y-condiciones"
+PRIVACY_URL = "https://www.holandesnawar.com/politica-de-privacidad"
 # Org logo (the square/compact mark) used at the bottom of every email.
 LOGO_URL = "https://academia.holandesnawar.nl/content/orgs/org_d790ce63-390e-4c87-85c9-e773f5d6ac6a/logos/3e936ab0-c03f-4bcb-b27f-48181fcb510a_logo.png"
 FOOTER_LOGO_HTML = (
@@ -68,7 +68,7 @@ def _company_footer() -> str:
                     <tr>
                         <td style="padding: 8px 32px 12px 32px; text-align: left; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
                             <p style="margin: 0 0 2px 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.6;">Un saludo,</p>
-                            <p style="margin: 0 0 18px 0; font-size: 15px; font-weight: 800; color: #0a1656; line-height: 1.4;">El equipo de Nawar</p>
+                            <p style="margin: 0 0 18px 0; font-size: 15px; font-weight: 800; color: #4da3ff; line-height: 1.4;">El equipo de Nawar</p>
                             {FOOTER_LOGO_HTML}
                         </td>
                     </tr>
@@ -445,7 +445,8 @@ def send_payment_welcome_email(
         <a href="{reset_url}" class="brand-btn" style="{STYLES['button']}">
             Crear mi contraseña y empezar
         </a>
-        <p style="{STYLES['p']}" style="margin-top: 28px;">
+        <div style="height: 32px; line-height: 32px;">&nbsp;</div>
+        <p style="margin: 0; font-size: 14px; color: rgba(0,0,0,0.78); font-weight: 500; line-height: 1.7;">
             Te recomendamos arrancar por el bloque <strong>«Empieza aquí»</strong>
             del Inicio: vídeo de bienvenida, completar perfil y tu primera lección.
         </p>
