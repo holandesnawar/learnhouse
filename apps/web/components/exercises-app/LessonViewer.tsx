@@ -1193,7 +1193,7 @@ function FlashcardSection({
       {/* Card */}
       <div
         onClick={() => setFlipped(f => !f)}
-        className="w-full h-[220px] cursor-pointer"
+        className="w-full max-w-sm mx-auto h-[180px] cursor-pointer"
         style={{ perspective: '1000px' }}
       >
         <div
@@ -1202,7 +1202,7 @@ function FlashcardSection({
             transformStyle: 'preserve-3d',
             transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
             position: 'relative',
-            height: '220px',
+            height: '180px',
           }}
         >
           {/* Front */}
@@ -1214,7 +1214,7 @@ function FlashcardSection({
               {mode === 'nl-es' ? 'Nederlands' : 'Español'}
             </p>
             <p
-              className="text-[26px] font-bold text-[#1D0084] text-center leading-tight"
+              className="text-[22px] font-bold text-[#1D0084] text-center leading-tight"
               style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
             >
               {front}
@@ -1242,7 +1242,7 @@ function FlashcardSection({
               {mode === 'nl-es' ? 'Español' : 'Nederlands'}
             </p>
             <p
-              className="text-[26px] font-bold text-[#1D0084] text-center leading-tight"
+              className="text-[22px] font-bold text-[#1D0084] text-center leading-tight"
               style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
             >
               {back}

@@ -277,7 +277,7 @@ const LoginClient = (props: LoginClientProps) => {
           </div>
         )}
 
-        <div className="relative z-0 w-full max-w-sm text-center">
+        <div className="relative z-0 w-full max-w-md text-center">
           {/* Logo */}
           <div className="flex justify-center mb-6">
             {props.org?.logo_image ? (
@@ -291,15 +291,29 @@ const LoginClient = (props: LoginClientProps) => {
             )}
           </div>
 
-          {/* Heading */}
-          <h1 className="text-3xl font-bold text-white">
-            Bienvenid<span className="text-[#4da3ff]">@</span> de vuelta
-          </h1>
-          <p className="text-white/70 mt-1.5 mb-8">{t('auth.enter_credentials')}</p>
+          {/* Pill */}
+          <div className="flex justify-center mb-4">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-[11px] font-bold uppercase tracking-wider text-white/85">
+              Acceso de alumnos
+            </span>
+          </div>
 
-          {/* Form */}
+          {/* Heading — Poppins, big and slightly translucent so it sits on the dark bg like matricula */}
+          <h1
+            className="font-extrabold leading-[1.05] text-white"
+            style={{
+              fontFamily: 'var(--font-poppins), system-ui, sans-serif',
+              fontSize: 'clamp(32px, 6vw, 44px)',
+            }}
+          >
+            Bienvenid<span className="text-[#4da3ff]">@</span>
+            <span className="block text-white/85">de vuelta</span>
+          </h1>
+          <p className="text-white/65 mt-3 mb-8 text-[15px]">{t('auth.enter_credentials')}</p>
+
+          {/* Form — wrapped in a subtle glass card so the heading above feels framed */}
           <FormLayout onSubmit={formik.handleSubmit}>
-            <div className="space-y-4 text-left">
+            <div className="space-y-4 text-left bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-5 sm:p-6">
               <Form.Field name="email" className="space-y-1.5">
                 <Form.Label className="block text-sm font-semibold text-white">{t('auth.email')}</Form.Label>
                 <Form.Control asChild>

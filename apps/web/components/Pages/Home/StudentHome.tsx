@@ -127,7 +127,7 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
 
       {/* Consultas — moved to the bottom (a quiet helper, not the headline) */}
       <div
-        className="mt-2 rounded-xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 text-white overflow-hidden"
+        className="mt-2 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 text-white overflow-hidden"
         style={{
           backgroundColor: '#1D0084',
           backgroundImage:

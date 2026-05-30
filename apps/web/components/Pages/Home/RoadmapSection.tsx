@@ -66,7 +66,7 @@ export default function RoadmapSection({ canEdit }: { canEdit: boolean }) {
 
   if (editing) {
     return (
-      <div className="mb-10 bg-white nice-shadow rounded-lg p-5 sm:p-6 space-y-5">
+      <div className="mb-10 bg-white nice-shadow rounded-2xl p-5 sm:p-6 space-y-5">
         <h2 className="text-lg font-bold text-gray-900">Editar hoja de ruta</h2>
         <div className="space-y-5">
           {draft.weeks.map((week, wi) => (
@@ -124,7 +124,7 @@ export default function RoadmapSection({ canEdit }: { canEdit: boolean }) {
     <div className="mb-10 space-y-6">
       {/* Esta semana te toca */}
       {currentWeek && (
-        <div className="bg-white nice-shadow rounded-lg p-5 sm:p-6">
+        <div className="bg-white nice-shadow rounded-2xl p-5 sm:p-6">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <div className="w-10 h-10 rounded-xl bg-[#025dc7]/10 flex items-center justify-center shrink-0">
