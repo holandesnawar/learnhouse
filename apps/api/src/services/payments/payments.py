@@ -17,7 +17,7 @@ import logging
 import os
 import secrets
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from uuid import uuid4
 
 import stripe
@@ -115,6 +115,105 @@ async def create_formacion_checkout_session() -> str:
     if not url:
         raise HTTPException(status_code=502, detail="Stripe did not return a checkout URL")
     return url
+
+
+# ── enrollment (matricula form → pre-filled checkout) ───────────────────────
+
+async def enroll_and_checkout(
+    data,
+    db_session: AsyncSession,
+) -> str:
+    """Save the prospect, create a Stripe Customer with their data, open a
+    Checkout Session pre-filled with all of it, and return the URL."""
+    from src.db.enrollment import Enrollment, EnrollmentCreate  # noqa: F401
+
+    stripe.api_key = _stripe_secret()
+    academy = _academy_url()
+
+    email = str(data.email).strip().lower()
+    full_name = f"{data.first_name} {data.last_name}".strip() or data.first_name or "Alumno"
+
+    # Stripe Customer first so checkout opens with name/email/phone pre-filled.
+    try:
+        customer = stripe.Customer.create(
+            email=email,
+            name=full_name,
+            phone=data.phone or None,
+            metadata={
+                "country": data.country or "",
+                "city": data.city or "",
+                "source": "matricula-form",
+            },
+        )
+    except Exception as exc:
+        logger.exception("Stripe customer creation failed: %s", exc)
+        raise HTTPException(status_code=502, detail=f"Could not create Stripe customer: {exc}")
+
+    try:
+        session = stripe.checkout.Session.create(
+            mode="payment",
+            customer=customer.id,
+            line_items=[{"price": _formacion_price_id(), "quantity": 1}],
+            success_url=f"{academy}/auth/bienvenido?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{academy}/auth/matricula-formacion-nawar-a0-a1",
+            allow_promotion_codes=True,
+            invoice_creation={
+                "enabled": True,
+                "invoice_data": {
+                    "description": "Formación Nawar A0-A1",
+                    "footer": "Gracias por unirte a Holandés Nawar.",
+                    "metadata": {"product": "formacion-a0-a1"},
+                },
+            },
+            metadata={
+                "product": "formacion-a0-a1",
+                "source": "matricula-form",
+                "country": data.country or "",
+                "city": data.city or "",
+                "phone": data.phone or "",
+            },
+        )
+    except Exception as exc:
+        logger.exception("Stripe checkout creation failed: %s", exc)
+        raise HTTPException(status_code=502, detail=f"Could not create checkout session: {exc}")
+
+    now = datetime.now().isoformat()
+    row = Enrollment(
+        email=email,
+        first_name=data.first_name,
+        last_name=data.last_name,
+        phone=data.phone or "",
+        country=data.country or "",
+        city=data.city or "",
+        status="pending",
+        stripe_customer_id=customer.id,
+        stripe_session_id=session.id,
+        created_at=now,
+        updated_at=now,
+    )
+    db_session.add(row)
+    await db_session.commit()
+
+    url = session.get("url") if hasattr(session, "get") else getattr(session, "url", None)
+    if not url:
+        raise HTTPException(status_code=502, detail="Stripe did not return a checkout URL")
+    return url
+
+
+async def _mark_enrollment_paid(session_id: str, db_session: AsyncSession) -> None:
+    """Best-effort update of the matching enrollment row when payment succeeds."""
+    try:
+        from src.db.enrollment import Enrollment
+        statement = select(Enrollment).where(Enrollment.stripe_session_id == session_id)
+        row = (await db_session.execute(statement)).scalars().first()
+        if not row:
+            return
+        row.status = "paid"
+        row.updated_at = datetime.now().isoformat()
+        db_session.add(row)
+        await db_session.commit()
+    except Exception:
+        logger.exception("Could not mark enrollment %s as paid", session_id)
 
 
 # ── user provisioning (internal — no RBAC, trusted webhook) ────────────────
@@ -268,6 +367,11 @@ async def process_webhook_event(
         obj = (event.get("data") or {}).get("object") or {}
         if obj.get("payment_status") != "paid":
             return {"detail": "session not paid"}
+
+        # Link this payment back to the enrollment row, if there is one.
+        session_id = obj.get("id") or ""
+        if session_id:
+            await _mark_enrollment_paid(session_id, db_session)
 
         email = (
             (obj.get("customer_details") or {}).get("email")

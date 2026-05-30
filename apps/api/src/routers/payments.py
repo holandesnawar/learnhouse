@@ -7,8 +7,10 @@ from fastapi.responses import RedirectResponse
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.core.events.database import get_db_session
+from src.db.enrollment import EnrollmentCreate, EnrollmentResponse
 from src.services.payments.payments import (
     create_formacion_checkout_session,
+    enroll_and_checkout,
     process_webhook_event,
 )
 
@@ -17,6 +19,20 @@ logger = logging.getLogger(__name__)
 
 
 router = APIRouter()
+
+
+@router.post(
+    "/enroll",
+    response_model=EnrollmentResponse,
+    summary="Save the enrollment intent + open a pre-filled Stripe Checkout.",
+)
+async def api_enroll(
+    data: EnrollmentCreate,
+    request: Request,
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    url = await enroll_and_checkout(data, db_session)
+    return EnrollmentResponse(checkout_url=url)
 
 
 @router.get(
