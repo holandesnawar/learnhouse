@@ -32,6 +32,9 @@ export default function NotFound() {
         Go back to homepage
         <ArrowRight className="tracking-tight transition-transform duration-150 ease-in-out ml-1" />
       </Link>
+      {/* DEPLOY-CHECK-9cf8f53 — if this string is visible in the rendered 404,
+          Railway is serving the up-to-date frontend; otherwise the build is stale. */}
+      <p className="text-xs text-gray-400 mt-8 select-all">build: nawar-9cf8f53</p>
     </div>
     </div>
   )

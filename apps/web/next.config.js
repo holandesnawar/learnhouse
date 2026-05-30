@@ -1,5 +1,6 @@
 const { withSentryConfig } = require("@sentry/nextjs");
 
+// CACHE-BUST 2026-05-29-c — force Railway's frontend-builder layer to recompute.
 /** @type {import('common.next').NextConfig} */
 const nextConfig = {
   async rewrites() {

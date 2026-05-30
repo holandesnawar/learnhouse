@@ -231,6 +231,31 @@ export default async function proxy(req: NextRequest) {
   const fullhost = req.headers.get('host')
 
   // -------------------------------------------------------------------------
+  // 0. Auth gate — the whole platform is members-only. Visitors without a
+  //    session are sent to /login. Auth pages, the admin area, OAuth/SSO
+  //    callbacks and SEO/health endpoints stay public so login can work.
+  // -------------------------------------------------------------------------
+  const isPublicPath =
+    ['/login', '/signup', '/reset', '/forgot', '/verify-email'].includes(pathname) ||
+    pathname.startsWith('/auth/') ||
+    pathname === '/admin' || pathname.startsWith('/admin/') ||
+    pathname === '/redirect_from_auth' ||
+    pathname.startsWith('/health') ||
+    pathname.startsWith('/payments/stripe/connect/oauth') ||
+    pathname === '/sitemap.xml' || pathname === '/robots.txt' ||
+    /^\/podcast\/[^/]+\/feed$/.test(pathname)
+
+  const hasSession = !!(
+    req.cookies.get('LH_access') ||
+    req.cookies.get('LH_refresh') ||
+    req.cookies.get('LH_session')
+  )
+
+  if (!isPublicPath && !hasSession) {
+    return NextResponse.redirect(new URL('/login', req.url))
+  }
+
+  // -------------------------------------------------------------------------
   // 1. Admin subdomain (multi only) → rewrite to /admin route group.
   //    Idempotent: if the path already starts with /admin (e.g. internal nav
   //    uses /admin/organizations so it works in both subdomain and path mode),

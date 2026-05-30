@@ -1,0 +1,71 @@
+import { getOrganizationContextInfo } from '@services/organizations/orgs'
+import { getOrgSlug } from '@services/org/orgResolution'
+import { getOrgLogoMediaDirectory, getOrgFaviconMediaDirectory } from '@services/media/media'
+import CrearCuentaClient from './crear-cuenta'
+import { Metadata } from 'next'
+import OrgNotFound from '@components/Objects/StyledElements/Error/OrgNotFound'
+import { Suspense } from 'react'
+import PageLoading from '@components/Objects/Loaders/PageLoading'
+
+export async function generateMetadata(): Promise<Metadata> {
+  const orgslug = await getOrgSlug()
+
+  if (!orgslug) {
+    return { title: 'Crear cuenta' }
+  }
+
+  let org: any = null
+  try {
+    org = await getOrganizationContextInfo(orgslug, {
+      revalidate: 60,
+      tags: ['organizations'],
+    })
+  } catch {
+    // Stale cookie or unknown org — fall back to generic title
+  }
+
+  const faviconImage =
+    org?.config?.config?.customization?.general?.favicon_image ||
+    org?.config?.config?.general?.favicon_image
+  const favicon = faviconImage
+    ? getOrgFaviconMediaDirectory(org.org_uuid, faviconImage)
+    : org?.logo_image
+    ? getOrgLogoMediaDirectory(org.org_uuid, org.logo_image)
+    : undefined
+
+  return {
+    title: 'Crear cuenta' + ` — ${org?.name || 'Nawar'}`,
+    ...(favicon && { icons: { icon: favicon } }),
+    robots: { index: false, follow: false },
+  }
+}
+
+const CrearCuentaPage = async () => {
+  const orgslug = await getOrgSlug()
+
+  if (!orgslug) {
+    return <OrgNotFound />
+  }
+
+  let org: any = null
+  try {
+    org = await getOrganizationContextInfo(orgslug, {
+      revalidate: 60,
+      tags: ['organizations'],
+    })
+  } catch {
+    return <OrgNotFound />
+  }
+
+  if (!org) {
+    return <OrgNotFound />
+  }
+
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <CrearCuentaClient org={org} />
+    </Suspense>
+  )
+}
+
+export default CrearCuentaPage

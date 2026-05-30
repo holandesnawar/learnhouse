@@ -260,11 +260,11 @@ export const HeaderProfileBox = ({ primaryColor = '' }: { primaryColor?: string 
                 </DropdownMenuSub>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={() => signOut({ callbackUrl: '/' })}
+                  onClick={() => signOut({ callbackUrl: '/login' })}
                   className="flex items-center space-x-2 text-red-600 focus:text-red-600"
                 >
                   <SignOut size={16} weight="fill" />
-                  <span>Sign Out</span>
+                  <span>{t('user.sign_out')}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

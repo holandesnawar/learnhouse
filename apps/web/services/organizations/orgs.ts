@@ -118,6 +118,45 @@ export async function updateOrgLanding(
   return res
 }
 
+export async function updateOrgRoadmap(
+  org_id: any,
+  roadmap_object: any,
+  access_token: string
+) {
+  const result = await fetch(
+    `${getAPIUrl()}orgs/${org_id}/roadmap`,
+    RequestBodyWithAuthHeader('PUT', roadmap_object, null, access_token)
+  )
+  const res = await getResponseMetadata(result)
+  return res
+}
+
+export async function updateOrgEvents(
+  org_id: any,
+  events_object: any,
+  access_token: string
+) {
+  const result = await fetch(
+    `${getAPIUrl()}orgs/${org_id}/events`,
+    RequestBodyWithAuthHeader('PUT', events_object, null, access_token)
+  )
+  const res = await getResponseMetadata(result)
+  return res
+}
+
+export async function updateOrgFaq(
+  org_id: any,
+  faq_object: any,
+  access_token: string
+) {
+  const result = await fetch(
+    `${getAPIUrl()}orgs/${org_id}/faq`,
+    RequestBodyWithAuthHeader('PUT', faq_object, null, access_token)
+  )
+  const res = await getResponseMetadata(result)
+  return res
+}
+
 export async function uploadLandingContent(
   org_uuid: any,
   content_file: File,

@@ -2,7 +2,7 @@ import '../styles/globals.css'
 import { getLEARNHOUSE_TOP_DOMAIN_VAL, getLEARNHOUSE_TELEMETRY_DISABLED_VAL } from '@services/config/config'
 import Script from 'next/script'
 import Providers from '@components/Providers'
-import { Wix_Madefor_Text } from 'next/font/google'
+import { Wix_Madefor_Text, Poppins, Inter } from 'next/font/google'
 
 const isDevEnv = getLEARNHOUSE_TOP_DOMAIN_VAL() === 'localhost'
 const isTelemetryDisabled = getLEARNHOUSE_TELEMETRY_DISABLED_VAL() === 'true'
@@ -13,13 +13,28 @@ const wixMadeforText = Wix_Madefor_Text({
   variable: '--font-default',
 })
 
+// Brand fonts for the native exercises (Holandés Nawar): Poppins for titles,
+// Inter for body. Exposed as CSS variables consumed via var(--font-poppins).
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['400', '600', '700', '800'],
+  display: 'swap',
+  variable: '--font-poppins',
+})
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+})
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
-    <html className={wixMadeforText.variable} lang="en" suppressHydrationWarning>
+    <html className={`${wixMadeforText.variable} ${poppins.variable} ${inter.variable}`} lang="en" suppressHydrationWarning>
       <head>
         {/* Synchronous script — blocks parsing to guarantee window.__RUNTIME_CONFIG__ exists before any JS runs.
             Next.js <Script strategy="beforeInteractive"> is not truly blocking in all browsers (Safari). */}

@@ -3,7 +3,7 @@ import { use, useEffect } from "react";
 import '@styles/globals.css'
 import Watermark from '@components/Objects/Watermark'
 import { SessionGate } from '@components/Contexts/LHSessionContext'
-import { OrgMenu } from '@components/Objects/Menus/OrgMenu'
+import { OrgSidebar } from '@components/Objects/Menus/OrgSidebar'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { OrgJoinBanner, OrgJoinBannerProvider } from '@components/Objects/Banners/OrgJoinBanner'
 import { PodcastPlayerProvider } from '@components/Contexts/PodcastPlayerContext'
@@ -102,7 +102,7 @@ function LayoutContent({ children, orgslug }: { children: React.ReactNode; orgsl
 
   return (
     <div
-      className="flex flex-col min-h-screen"
+      className="min-h-screen"
       style={{
         backgroundColor: primaryColor ? hexToRgba(primaryColor, 0.05) : 'transparent',
         ...(customFont ? { fontFamily: `'${customFont}', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif` } : {}),
@@ -110,12 +110,16 @@ function LayoutContent({ children, orgslug }: { children: React.ReactNode; orgsl
     >
       <PageViewTracker />
       <OrgJoinBanner />
-      <OrgMenu orgslug={orgslug} />
-      <div className="flex-1 relative" style={{ zIndex: 'var(--z-content)' }}>
-        {children}
+      <div className="flex min-h-screen">
+        <OrgSidebar orgslug={orgslug} />
+        <div className="flex flex-1 min-w-0 flex-col pt-14 md:pt-0">
+          <div className="flex-1 relative" style={{ zIndex: 'var(--z-content)' }}>
+            {children}
+          </div>
+          {!isFullBleedPage && <OrgFooter />}
+          {!isFullBleedPage && <Watermark />}
+        </div>
       </div>
-      {!isFullBleedPage && <OrgFooter />}
-      {!isFullBleedPage && <Watermark />}
     </div>
   )
 }

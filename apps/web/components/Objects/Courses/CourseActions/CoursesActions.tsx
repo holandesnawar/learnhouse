@@ -76,6 +76,16 @@ function CoursesActions({ courseuuid, orgslug, course, trailData }: CourseAction
     }
   ) ?? false;
 
+  // First not-yet-completed activity (falls back to the very first one).
+  const findContinueActivity = () => {
+    const run = trailData?.runs?.find((r: any) => r.course?.course_uuid?.replace('course_', '') === cleanCourseUuid)
+    const flat: any[] = []
+    course.chapters?.forEach((ch: any) => (ch.activities ?? []).forEach((a: any) => flat.push(a)))
+    if (flat.length === 0) return null
+    const completed = new Set((run?.steps ?? []).filter((s: any) => s.complete).map((s: any) => s.activity_id))
+    return flat.find((a: any) => !completed.has(a.id)) ?? flat[0]
+  }
+
   // Public endpoint — no auth needed, works for unauthenticated visitors too
   const { data: offersResult, isLoading } = useQuery({
     queryKey: ['offers', 'by-resource', org?.id, resourceUuid],
@@ -406,17 +416,6 @@ function CoursesActions({ courseuuid, orgslug, course, trailData }: CourseAction
                 {t('courses.you_own_this_course_description')}
               </p>
             </div>
-            <button
-              onClick={handleCourseAction}
-              disabled={isActionLoading}
-              aria-label={t('courses.leave_course')}
-              className="w-full py-3 rounded-lg nice-shadow font-semibold transition-colors flex items-center justify-center gap-2 cursor-pointer bg-red-500 text-white hover:bg-red-600 disabled:bg-red-400"
-            >
-              {isActionLoading
-                ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                : renderActionButton('leave')
-              }
-            </button>
             {renderContributorButton()}
           </div>
         </div>
@@ -445,23 +444,37 @@ function CoursesActions({ courseuuid, orgslug, course, trailData }: CourseAction
         {/* Progress Section */}
         {renderProgressSection()}
 
-        {/* Start/Leave Course Button */}
-        <button
-          onClick={handleCourseAction}
-          disabled={isActionLoading}
-          aria-label={isStarted ? t('courses.leave_course') : t('courses.start_course')}
-          className={`w-full py-3 rounded-lg nice-shadow font-semibold transition-colors flex items-center justify-center gap-2 cursor-pointer ${
-            isStarted
-              ? 'bg-red-500 text-white hover:bg-red-600 disabled:bg-red-400'
-              : 'bg-neutral-900 text-white hover:bg-neutral-800 disabled:bg-neutral-700'
-          }`}
-        >
-          {isActionLoading ? (
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          ) : (
-            renderActionButton(isStarted ? 'leave' : 'start')
-          )}
-        </button>
+        {/* Continue where you left off */}
+        {isStarted && (() => {
+          const next = findContinueActivity()
+          if (!next?.activity_uuid) return null
+          const cleanUuid = next.activity_uuid.replace('activity_', '')
+          return (
+            <Link
+              href={getUriWithOrg(orgslug, '') + `/course/${cleanCourseUuid}/activity/${cleanUuid}`}
+              className="w-full py-3 px-3 rounded-lg nice-shadow font-semibold text-sm leading-tight text-center transition-colors flex items-center justify-center gap-2 cursor-pointer bg-[#4da3ff] text-[#0a1656] hover:bg-[#6cb5ff]"
+            >
+              <BookOpen className="w-4 h-4 shrink-0" />
+              <span>Continuar donde lo dejaste</span>
+            </Link>
+          )
+        })()}
+
+        {/* Start Course Button (hidden once enrolled — no "leave" on paid courses) */}
+        {!isStarted && (
+          <button
+            onClick={handleCourseAction}
+            disabled={isActionLoading}
+            aria-label={t('courses.start_course')}
+            className="w-full py-3 px-3 rounded-lg nice-shadow font-semibold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer bg-[#4da3ff] text-[#0a1656] hover:bg-[#6cb5ff] disabled:opacity-70"
+          >
+            {isActionLoading ? (
+              <div className="w-5 h-5 border-2 border-[#0a1656] border-t-transparent rounded-full animate-spin" />
+            ) : (
+              renderActionButton('start')
+            )}
+          </button>
+        )}
 
         {/* Contributor Button */}
         {renderContributorButton()}

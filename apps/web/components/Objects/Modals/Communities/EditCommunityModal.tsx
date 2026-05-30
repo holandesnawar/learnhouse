@@ -12,6 +12,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/lib/query/keys'
 import Modal from '@components/Objects/StyledElements/Modal/Modal'
 import { Loader2 } from 'lucide-react'
+import ChannelEmojiPicker from '@components/Objects/Communities/ChannelEmojiPicker'
+import { joinChannelEmoji, splitChannelEmoji } from '@/lib/communities/channelEmoji'
 
 interface EditCommunityModalProps {
   isOpen: boolean
@@ -50,7 +52,7 @@ export function EditCommunityModal({
       const result = await updateCommunity(
         community.community_uuid,
         {
-          name: values.name,
+          name: joinChannelEmoji(values.emoji, values.name),
           description: values.description || null,
           public: values.public,
         },
@@ -86,16 +88,28 @@ export function EditCommunityModal({
       dialogContent={
         <Formik
           initialValues={{
-            name: community.name,
+            name: splitChannelEmoji(community.name).text,
             description: community.description || '',
             public: community.public,
+            emoji: splitChannelEmoji(community.name).emoji,
           }}
           validationSchema={validationSchema}
           onSubmit={handleSubmit}
           enableReinitialize
         >
-          {({ isValid, dirty }) => (
+          {({ isValid, dirty, values, setFieldValue }) => (
             <Form className="space-y-6">
+              {/* Emoji */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Emoji del canal
+                </label>
+                <ChannelEmojiPicker
+                  value={values.emoji}
+                  onChange={(emoji) => setFieldValue('emoji', emoji)}
+                />
+              </div>
+
               {/* Name */}
               <div>
                 <label
@@ -169,7 +183,7 @@ export function EditCommunityModal({
                 <button
                   type="submit"
                   disabled={isSubmitting || !isValid || !dirty}
-                  className="px-4 py-2 text-sm font-medium text-white bg-black hover:bg-black/90 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-4 py-2 text-sm font-medium text-white bg-[#025dc7] hover:bg-[#0b6df0] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {isSubmitting && <Loader2 size={16} className="animate-spin" />}
                   Save Changes

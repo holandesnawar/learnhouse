@@ -111,7 +111,7 @@ export function CommunityActions({
         {canCreateDiscussion && onCreateDiscussion && (
           <button
             onClick={onCreateDiscussion}
-            className="w-full py-3 rounded-lg nice-shadow font-semibold transition-colors flex items-center justify-center gap-2 cursor-pointer bg-neutral-900 text-white hover:bg-neutral-800"
+            className="w-full py-3 rounded-lg nice-shadow font-semibold transition-colors flex items-center justify-center gap-2 cursor-pointer bg-[#025dc7] text-white hover:bg-[#0b6df0]"
           >
             <Plus className="w-5 h-5" />
             <span>New Discussion</span>

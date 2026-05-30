@@ -1,9 +1,5 @@
 'use client'
-import FormLayout, {
-  FormField,
-  FormLabelAndMessage,
-  Input,
-} from '@components/Objects/StyledElements/Form/Form'
+import FormLayout from '@components/Objects/StyledElements/Form/Form'
 import * as Form from '@radix-ui/react-form'
 import { useFormik } from 'formik'
 import React, { useState, useEffect } from 'react'
@@ -16,7 +12,7 @@ import { getLEARNHOUSE_TOP_DOMAIN_VAL, getDeploymentMode } from '@services/confi
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useTranslation } from 'react-i18next'
 import { resendVerificationEmail } from '@services/auth/auth'
-import AuthLayout from '@components/Auth/AuthLayout'
+import { getOrgLogoMediaDirectory } from '@services/media/media'
 
 interface LoginClientProps {
   org: any
@@ -26,6 +22,7 @@ const LoginClient = (props: LoginClientProps) => {
   const { t } = useTranslation()
   const { signIn } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
   const [ssoEnabled, setSsoEnabled] = useState(false)
   const [ssoLoading, setSsoLoading] = useState(false)
   const router = useRouter();
@@ -204,11 +201,22 @@ const LoginClient = (props: LoginClientProps) => {
   })
 
   return (
-    <AuthLayout org={props.org} welcomeText={t('auth.login_to')}>
+    <div
+      className="relative min-h-screen w-full flex flex-col items-center justify-center px-6 py-16 sm:px-4 sm:py-12"
+      style={{
+        backgroundColor: '#1D0084',
+        backgroundImage:
+          'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
+          'radial-gradient(circle 700px at 100% 0%, rgba(11,109,240,0.40) 0%, transparent 65%), ' +
+          'radial-gradient(circle 600px at 0% 100%, rgba(11,109,240,0.18) 0%, transparent 65%)',
+        backgroundSize: '28px 28px, auto, auto',
+        backgroundRepeat: 'repeat, no-repeat, no-repeat',
+      }}
+    >
         {/* Error Top Bar */}
         {showErrorModal && (
           <div className={`
-            w-full px-4 py-3 flex items-center justify-between gap-3 animate-in slide-in-from-top duration-200
+            absolute top-0 inset-x-0 z-10 w-full px-4 py-3 flex items-center justify-between gap-3 animate-in slide-in-from-top duration-200
             ${errorType === 'EMAIL_NOT_VERIFIED' && !verificationResent ? 'bg-amber-500 text-white' : ''}
             ${verificationResent ? 'bg-green-500 text-white' : ''}
             ${errorType === 'ACCOUNT_LOCKED' ? 'bg-red-500 text-white' : ''}
@@ -269,109 +277,88 @@ const LoginClient = (props: LoginClientProps) => {
           </div>
         )}
 
-        <div className="flex-1 flex flex-row">
-        <div className="m-auto w-full max-w-sm px-6 py-8 sm:py-0">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900">{t('auth.welcome_back')}</h1>
-            <p className="text-gray-500 mt-1">{t('auth.enter_credentials')}</p>
+        <div className="relative z-0 w-full max-w-sm text-center">
+          {/* Logo */}
+          <div className="flex justify-center mb-6">
+            {props.org?.logo_image ? (
+              <img
+                src={getOrgLogoMediaDirectory(props.org.org_uuid, props.org.logo_image)}
+                alt={props.org?.name}
+                className="h-12 object-contain"
+              />
+            ) : (
+              <span className="text-2xl font-bold text-white">{props.org?.name}</span>
+            )}
           </div>
 
-          {/* Login Form Card */}
-          <div className="bg-white rounded-xl p-6 nice-shadow">
-            <FormLayout onSubmit={formik.handleSubmit}>
-              <FormField name="email">
-                <FormLabelAndMessage
-                  label={t('auth.email')}
-                  message={formik.touched.email ? formik.errors.email : undefined}
-                />
+          {/* Heading */}
+          <h1 className="text-3xl font-bold text-white">
+            Bienvenid<span className="text-[#4da3ff]">@</span> de vuelta
+          </h1>
+          <p className="text-white/70 mt-1.5 mb-8">{t('auth.enter_credentials')}</p>
+
+          {/* Form */}
+          <FormLayout onSubmit={formik.handleSubmit}>
+            <div className="space-y-4 text-left">
+              <Form.Field name="email" className="space-y-1.5">
+                <Form.Label className="block text-sm font-semibold text-white">{t('auth.email')}</Form.Label>
                 <Form.Control asChild>
-                  <Input
+                  <input
+                    type="email"
+                    placeholder="tu@email.com"
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
                     value={formik.values.email}
-                    type="email"
+                    className="w-full rounded-lg bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-[#4da3ff]/60"
                   />
                 </Form.Control>
-              </FormField>
+                {formik.touched.email && formik.errors.email && (
+                  <p className="text-xs text-rose-300">{formik.errors.email as string}</p>
+                )}
+              </Form.Field>
 
-              <FormField name="password">
-                <FormLabelAndMessage
-                  label={t('auth.password')}
-                  message={formik.touched.password ? formik.errors.password : undefined}
-                />
+              <Form.Field name="password" className="space-y-1.5">
+                <Form.Label className="block text-sm font-semibold text-white">{t('auth.password')}</Form.Label>
                 <Form.Control asChild>
-                  <Input
+                  <input
+                    type="password"
+                    autoComplete="current-password"
+                    placeholder="••••••••"
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
                     value={formik.values.password}
-                    type="password"
-                    autoComplete="current-password"
+                    className="w-full rounded-lg bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-[#4da3ff]/60"
                   />
                 </Form.Control>
-              </FormField>
+                {formik.touched.password && formik.errors.password && (
+                  <p className="text-xs text-rose-300">{formik.errors.password as string}</p>
+                )}
+              </Form.Field>
 
-              <div className="flex justify-end">
-                <Link
-                  href="/forgot"
-                  className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
-                >
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 text-xs text-white/80 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-white/30 text-[#4da3ff] cursor-pointer"
+                  />
+                  Recuérdame
+                </label>
+                <Link href="/forgot" className="text-xs text-white/80 hover:text-white transition-colors">
                   {t('auth.forgot_password')}
                 </Link>
               </div>
 
-              <div className="pt-2">
-                <Form.Submit asChild>
-                  <button className="w-full bg-black text-white font-semibold text-center py-2.5 rounded-lg hover:bg-gray-800 transition-colors">
-                    {isSubmitting ? t('common.loading') : t('auth.login')}
-                  </button>
-                </Form.Submit>
-              </div>
-            </FormLayout>
-
-            {/* Divider */}
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-3 bg-white text-gray-400">{t('common.or')}</span>
-              </div>
-            </div>
-
-            {/* Social & SSO Buttons */}
-            <div className="space-y-2.5">
-              <button
-                onClick={handleGoogleSignIn}
-                className="flex items-center justify-center gap-2 w-full py-2.5 bg-white border border-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <img src="https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg" alt="" className="w-4 h-4" />
-                <span>{t('auth.sign_in_with_google')}</span>
-              </button>
-
-              {ssoEnabled && (
-                <button
-                  onClick={handleSSOLogin}
-                  disabled={ssoLoading}
-                  className="flex items-center justify-center gap-2 w-full py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
-                >
-                  <Shield size={16} />
-                  <span>{ssoLoading ? t('common.loading') : t('auth.sign_in_with_sso')}</span>
+              <Form.Submit asChild>
+                <button className="w-full bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
+                  {isSubmitting ? t('common.loading') : <>Acceder <span aria-hidden>→</span></>}
                 </button>
-              )}
+              </Form.Submit>
             </div>
-          </div>
-
-          {/* Sign Up Link */}
-          <p className="text-center text-gray-600 mt-6">
-            {t('auth.no_account')}{' '}
-            <Link href="/signup" className="font-semibold text-gray-900 hover:underline">
-              {t('auth.sign_up')}
-            </Link>
-          </p>
+          </FormLayout>
         </div>
-        </div>
-    </AuthLayout>
+    </div>
   )
 }
 

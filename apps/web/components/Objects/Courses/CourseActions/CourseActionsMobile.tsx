@@ -246,8 +246,6 @@ const CourseActionsMobile = ({ courseuuid, orgslug, course, trailData }: CourseA
   return (
     <div className="bg-white/90 backdrop-blur-sm shadow-md shadow-gray-300/25 outline outline-1 outline-neutral-200/40 rounded-lg overflow-hidden p-4 my-6 mx-2">
       <div className="flex flex-col space-y-4">
-        <MultipleAuthors authors={sortedAuthors} />
-        
         {linkedOffers.length > 0 ? (() => {
           const offer = linkedOffers[0];
           const formattedPrice = offer?.amount != null
@@ -258,28 +256,12 @@ const CourseActionsMobile = ({ courseuuid, orgslug, course, trailData }: CourseA
           return (
             <div className="space-y-3">
               {!!isStarted ? (
-                <>
-                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                      <span className="text-green-800 text-sm font-semibold">You Own This Course</span>
-                    </div>
+                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                    <span className="text-green-800 text-sm font-semibold">You Own This Course</span>
                   </div>
-                  <button
-                    onClick={handleCourseAction}
-                    disabled={isActionLoading}
-                    className="w-full py-2 px-4 rounded-lg bg-red-500 text-white font-semibold text-sm hover:bg-red-600 transition-colors flex items-center justify-center gap-2 disabled:bg-red-400"
-                  >
-                    {isActionLoading ? (
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        <LogOut className="w-4 h-4" />
-                        Leave Course
-                      </>
-                    )}
-                  </button>
-                </>
+                </div>
               ) : (
                 <>
                   <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
@@ -303,27 +285,25 @@ const CourseActionsMobile = ({ courseuuid, orgslug, course, trailData }: CourseA
               )}
             </div>
           );
-        })() : (
+        })() : isStarted ? (
+          <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-green-800 text-sm font-semibold">Estás inscrito</span>
+            </div>
+          </div>
+        ) : (
           <button
             onClick={handleCourseAction}
             disabled={isActionLoading}
-            className={`w-full py-2 px-4 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
-              isStarted
-                ? 'bg-red-500 text-white hover:bg-red-600 disabled:bg-red-400'
-                : 'bg-neutral-900 text-white hover:bg-neutral-800 disabled:bg-neutral-700'
-            }`}
+            className="w-full py-2 px-4 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2 bg-[#4da3ff] text-[#0a1656] hover:bg-[#6cb5ff] disabled:opacity-70"
           >
             {isActionLoading ? (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-[#0a1656] border-t-transparent rounded-full animate-spin" />
             ) : !session.data?.user ? (
               <>
                 <LogIn className="w-4 h-4" />
                 Sign In
-              </>
-            ) : isStarted ? (
-              <>
-                <LogOut className="w-4 h-4" />
-                Leave Course
               </>
             ) : (
               <>

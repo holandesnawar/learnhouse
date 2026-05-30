@@ -692,6 +692,15 @@ function DashLeftMenu() {
               })()}
             </HoverMenu>
 
+            {/* Consultas (external admin panel embedded) */}
+            <MenuLink
+              href="/dash/consultas"
+              icon={<ChatCircleDots size={20} weight="fill" />}
+              label="Consultas"
+              isCollapsed={isCollapsed}
+              active={isActivePath('/dash/consultas')}
+            />
+
             {/* Disabled features shown in an "Other" hover menu */}
             {(!showCommunities || !showPodcasts || !showBoards || !showPlaygrounds || !showPayments) && (
               <HoverMenu

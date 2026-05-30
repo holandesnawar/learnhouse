@@ -10,7 +10,7 @@ import { getCourseThumbnailMediaDirectory, getUserAvatarMediaDirectory } from '@
 import { useOrg, useOrgMembership } from '@components/Contexts/OrgContext'
 import { CourseProvider } from '@components/Contexts/CourseContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
-import React, { useEffect, useRef, useMemo, lazy, Suspense } from 'react'
+import React, { useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react'
 import { getAssignmentFromActivityUUID, getFinalGrade, retryAssignmentSubmission, submitAssignmentForGrading } from '@services/courses/assignments'
 import { AssignmentProvider } from '@components/Contexts/Assignments/AssignmentContext'
 import { AssignmentsTaskProvider } from '@components/Contexts/Assignments/AssignmentsTaskContext'
@@ -29,11 +29,11 @@ import { useContributorStatus } from '../../../../../../../../hooks/useContribut
 import ToolTip from '@components/Objects/StyledElements/Tooltip/Tooltip'
 import ActivityChapterDropdown from '@components/Pages/Activity/ActivityChapterDropdown'
 import ActivityShareDropdown from '@components/Pages/Activity/ActivityShareDropdown'
-import FixedActivitySecondaryBar from '@components/Pages/Activity/FixedActivitySecondaryBar'
+import CourseLessonsSidebar, { MobileCourseLessons } from '@components/Pages/Activity/CourseLessonsSidebar'
+import LessonExtras from '@components/Pages/Activity/LessonExtras'
+import useAdminStatus from '@components/Hooks/useAdminStatus'
 import CourseEndView from '@components/Pages/Activity/CourseEndView'
 import { motion, AnimatePresence } from 'motion/react'
-import { Breadcrumbs } from '@components/Objects/Breadcrumbs/Breadcrumbs'
-import { BookCopy } from 'lucide-react'
 import MiniInfoTooltip from '@components/Objects/MiniInfoTooltip'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import ActivityIndicators from '@components/Pages/Courses/ActivityIndicators'
@@ -55,6 +55,7 @@ const AIChatBotProvider = lazy(() => import('@components/Contexts/AI/AIChatBotCo
 const ScormActivity = lazy(() => import('../../../../../../../../ee/components/Activities/ScormActivity'))
 const MarkdownActivity = lazy(() => import('@components/Objects/Activities/Markdown/MarkdownActivity'))
 const EmbedActivity = lazy(() => import('@components/Objects/Activities/Embed/EmbedActivity'))
+const NativeExerciseActivity = lazy(() => import('@components/exercises-app/NativeExerciseActivity'))
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -65,6 +66,24 @@ const LoadingFallback = () => (
     </div>
   </div>
 );
+
+// A native Nawar exercise can be stored on an Embed activity in two ways:
+//   1. the explicit token  "nawar:<moduleId>/<lessonId>[/<section>]"  (picker), or
+//   2. a plain URL to the Nawar exercises app  ".../modulo/<m>/leccion/<l>"
+// Both map to the same local module/lesson ids, so we render them natively
+// (no external iframe → no banner, brand colours, course progress works).
+// Anything else returns null and falls back to the regular iframe embed.
+function parseNativeExercise(
+  embedUrl: string
+): { moduleId: string; lessonId: string; section?: string } | null {
+  if (!embedUrl) return null;
+  const token = embedUrl.match(/^nawar:([^/]+)\/([^/]+)(?:\/([^/]+))?$/);
+  if (token) return { moduleId: token[1], lessonId: token[2], section: token[3] };
+  const appUrl = embedUrl.match(/\/modulo\/([^/?#]+)\/leccion\/([^/?#]+)/);
+  if (appUrl) return { moduleId: appUrl[1], lessonId: appUrl[2] };
+  return null;
+}
+
 
 function ActivityContentSkeleton({ activityType }: { activityType?: string }) {
   const isVideo = activityType === 'TYPE_VIDEO' || activityType === 'TYPE_SCORM'
@@ -244,6 +263,8 @@ function ActivityClient(props: ActivityClientProps) {
   const [isFocusMode, setIsFocusMode] = React.useState(false);
   const isInitialRender = useRef(true);
   const { contributorStatus } = useContributorStatus(courseuuid);
+  const { isAdmin } = useAdminStatus() as any;
+  const canEditLesson = !!isAdmin || contributorStatus === 'ACTIVE';
   const router = useRouter();
 
   const { track } = useAnalytics()
@@ -288,6 +309,33 @@ function ActivityClient(props: ActivityClientProps) {
   const prevActivity = currentIndex > 0 ? allActivities[currentIndex - 1] : null;
   const nextActivity = currentIndex < allActivities.length - 1 ? allActivities[currentIndex + 1] : null;
 
+  // Native Nawar exercise embeds keep the course action bar (Next + mark
+  // complete) so course progress/trail still works; iframe embeds hide it.
+  const nativeExercise =
+    activity?.activity_sub_type === 'SUBTYPE_DYNAMIC_EMBED'
+      ? parseNativeExercise(activity?.content?.embed_url || '')
+      : null;
+  const isNativeExercise = !!nativeExercise;
+
+  // Auto-mark a native exercise activity complete when the student finishes it,
+  // so progress saves without a manual click. Fires once per activity; marking
+  // an already-complete activity is harmless.
+  const nativeCompleteFired = useRef(false);
+  useEffect(() => { nativeCompleteFired.current = false }, [activityid]);
+  const handleNativeComplete = useCallback(async () => {
+    if (nativeCompleteFired.current) return;
+    if (!activity?.activity_uuid || !course?.course_uuid || !access_token) return;
+    nativeCompleteFired.current = true;
+    try {
+      await markActivityAsComplete(orgslug, course.course_uuid, activity.activity_uuid, access_token);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.trail.org(org?.id) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.courses.meta(course.course_uuid.replace('course_', '')) });
+    } catch {
+      nativeCompleteFired.current = false;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activity?.activity_uuid, course?.course_uuid, access_token, orgslug, org?.id]);
+
   // Memoize activity content
   const activityContent = useMemo(() => {
     if (!activity || !activity.published || activity.content.paid_access === false) {
@@ -304,6 +352,22 @@ function ActivityClient(props: ActivityClientProps) {
           );
         }
         if (activity.activity_sub_type === 'SUBTYPE_DYNAMIC_EMBED') {
+          // Render natively when the embed points at a Nawar exercise (either the
+          // "nawar:" token or a plain URL to the exercises app); otherwise iframe.
+          const native = parseNativeExercise(activity.content?.embed_url || '');
+          if (native) {
+            return (
+              <Suspense fallback={<LoadingFallback />}>
+                <NativeExerciseActivity
+                  moduleId={native.moduleId}
+                  lessonId={native.lessonId}
+                  section={native.section}
+                  orgslug={orgslug}
+                  onComplete={handleNativeComplete}
+                />
+              </Suspense>
+            );
+          }
           return (
             <Suspense fallback={<LoadingFallback />}>
               <EmbedActivity activity={activity} />
@@ -354,7 +418,7 @@ function ActivityClient(props: ActivityClientProps) {
       default:
         return null;
     }
-  }, [activity, course, assignment]);
+  }, [activity, course, assignment, orgslug, handleNativeComplete]);
 
   // Navigate to an activity
   const navigateToActivity = (activity: any) => {
@@ -716,21 +780,16 @@ function ActivityClient(props: ActivityClientProps) {
                             />
                             <button
                               onClick={() => navigateToActivity(nextActivity)}
-                              className={`flex items-center space-x-1.5 p-2 rounded-md transition-all duration-200 cursor-pointer ${
+                              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-colors ${
                                 nextActivity
-                                  ? 'text-gray-700'
-                                  : 'opacity-50 text-gray-400 cursor-not-allowed'
+                                  ? 'bg-[#4da3ff] text-[#0a1656] hover:bg-[#6cb5ff] cursor-pointer'
+                                  : 'opacity-40 bg-gray-200 text-gray-400 cursor-not-allowed'
                               }`}
                               disabled={!nextActivity}
                               title={nextActivity ? `${t('common.next')}: ${nextActivity.name}` : t('activities.no_next_activity')}
                             >
-                              <div className="flex flex-col items-end">
-                                <span className="text-xs text-gray-500">{t('common.next')}</span>
-                                <span className="text-sm capitalize font-semibold text-right">
-                                  {nextActivity ? nextActivity.name : t('activities.no_next_activity')}
-                                </span>
-                              </div>
-                              <ChevronRight size={20} className="text-gray-800 shrink-0" />
+                              <span>{t('common.next')}</span>
+                              <ChevronRight size={18} className="shrink-0" />
                             </button>
                           </div>
                         </div>
@@ -752,23 +811,24 @@ function ActivityClient(props: ActivityClientProps) {
                     trailData={trailData}
                   />
                 ) : (
-                  <div className="space-y-4 pt-0 relative">
-                    <div className="pt-2 pb-3 sm:pb-6">
-                      <Breadcrumbs items={[
-                        { label: t('courses.courses'), href: getUriWithOrg(orgslug, '/courses'), icon: <BookCopy size={14} /> },
-                        { label: course.name, href: getUriWithOrg(orgslug, `/course/${courseuuid}`) },
-                        { label: displayName }
-                      ]} />
+                  <div className="space-y-3 pt-0 relative">
+                    <div className="pt-1 pb-1 sm:pb-2">
+                      <Link
+                        href={getUriWithOrg(orgslug, `/course/${courseuuid}`)}
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-[#5A6480] hover:text-[#1D0084] transition-colors"
+                      >
+                        <ChevronLeft size={16} /> Volver al curso
+                      </Link>
                     </div>
-                    <div className="space-y-3 sm:space-y-4 activity-info-section relative" style={{ zIndex: 'var(--z-content)' }}>
+                    <div className="space-y-2 sm:space-y-3 activity-info-section relative" style={{ zIndex: 'var(--z-content)' }}>
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-                          <div className="flex space-x-4 sm:space-x-6 items-center">
+                          <div className="flex space-x-3 sm:space-x-4 items-center">
                             <div className="flex shrink-0">
                               <Link
                                 href={getUriWithOrg(orgslug, '') + `/course/${courseuuid}`}
                               >
                                 <img
-                                  className="w-[60px] h-[34px] sm:w-[100px] sm:h-[57px] rounded-md drop-shadow-md"
+                                  className="w-[48px] h-[27px] sm:w-[72px] sm:h-[41px] rounded-md drop-shadow-md"
                                   src={course.thumbnail_image
                                     ? getCourseThumbnailMediaDirectory(
                                         org?.org_uuid,
@@ -782,147 +842,32 @@ function ActivityClient(props: ActivityClientProps) {
                               </Link>
                             </div>
                             <div className="flex flex-col -space-y-1">
-                              <p className="font-bold text-gray-700 text-xs sm:text-md">{t('search.course')} </p>
-                              <h1 className="font-bold text-gray-950 text-lg sm:text-3xl first-letter:uppercase">
+                              <Link
+                                href={getUriWithOrg(orgslug, '') + `/course/${courseuuid}`}
+                                className="font-bold text-gray-500 hover:text-[#1D0084] transition-colors text-[11px] sm:text-sm first-letter:uppercase"
+                              >
                                 {course.name}
-                              </h1>
-                            </div>
-                          </div>
-                          {activity && (
-                            <div className="hidden sm:block">
-                              <ActivityShareDropdown
-                                activityName={activity.name}
-                                activityUrl={typeof window !== 'undefined' ? window.location.href : ''}
-                                orgslug={orgslug}
-                                courseUuid={course.course_uuid}
-                                activityId={activity.activity_uuid ? activity.activity_uuid.replace('activity_', '') : activityid.replace('activity_', '')}
-                                activityType={activity.activity_type}
-                              />
-                            </div>
-                          )}
-                        </div>
-
-                        <ActivityIndicators
-                          course_uuid={courseuuid}
-                          current_activity={activityid}
-                          orgslug={orgslug}
-                          course={course}
-                          enableNavigation={true}
-                          trailData={trailData}
-                        />
-
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center w-full gap-3">
-                          <div className="flex flex-1 items-center space-x-3 min-w-0">
-                            <div className="flex flex-col -space-y-1 min-w-0">
-                              <p className="font-bold text-gray-700 text-xs sm:text-md">
-                                {getChapterNameByActivityId(course, activity?.id) ?? chapterNameFromCourse}
-                              </p>
-                              <h1 className="font-bold text-gray-950 text-base sm:text-2xl first-letter:uppercase">
+                              </Link>
+                              <h1 className="font-bold text-gray-950 text-base sm:text-xl first-letter:uppercase">
                                 {displayName}
                               </h1>
-                              {/* Authors and Dates Section */}
-                              <div className="flex flex-wrap items-center gap-3 mt-2">
-                                {/* Avatars */}
-                                {course.authors && course.authors.length > 0 && (
-                                  <div className="flex -space-x-3">
-                                    {course.authors.filter((a: any) => a.authorship_status === 'ACTIVE').slice(0, 3).map((author: any, idx: number) => (
-                                      <div key={author.user.user_uuid} className="relative" style={{ zIndex: 10 - idx }}>
-                                        <UserAvatar
-                                          border="border-2"
-                                          rounded="rounded-full"
-                                          avatar_url={author.user.avatar_image ? getUserAvatarMediaDirectory(author.user.user_uuid, author.user.avatar_image) : ''}
-                                          predefined_avatar={author.user.avatar_image ? undefined : 'empty'}
-                                          width={26}
-                                          showProfilePopup={true}
-                                          userId={author.user.id}
-                                        />
-                                      </div>
-                                    ))}
-                                    {course.authors.filter((a: any) => a.authorship_status === 'ACTIVE').length > 3 && (
-                                      <div className="flex items-center justify-center bg-neutral-100 text-neutral-600 font-medium rounded-full border-2 border-white shadow-sm w-9 h-9 text-xs z-0">
-                                        +{course.authors.filter((a: any) => a.authorship_status === 'ACTIVE').length - 3}
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                                {/* Author names */}
-                                {course.authors && course.authors.length > 0 && (
-                                  <div className="text-xs text-gray-700 font-medium flex items-center gap-1">
-                                    {course.authors.filter((a: any) => a.authorship_status === 'ACTIVE').length > 1 && (
-                                      <span>{t('courses.co_created_by')} </span>
-                                    )}
-                                    {course.authors.filter((a: any) => a.authorship_status === 'ACTIVE').slice(0, 2).map((author: any, idx: number, arr: any[]) => (
-                                      <span key={author.user.user_uuid}>
-                                        {author.user.first_name && author.user.last_name
-                                          ? `${author.user.first_name} ${author.user.last_name}`
-                                          : `@${author.user.username}`}
-                                        {idx === 0 && arr.length > 1 ? ' & ' : ''}
-                                      </span>
-                                    ))}
-                                    {course.authors.filter((a: any) => a.authorship_status === 'ACTIVE').length > 2 && (
-                                      <ToolTip
-                                        content={
-                                          <div className="p-2">
-                                            {course.authors
-                                              .filter((a: any) => a.authorship_status === 'ACTIVE')
-                                              .slice(2)
-                                              .map((author: any) => (
-                                                <div key={author.user.user_uuid} className="text-white text-sm py-1">
-                                                  {author.user.first_name && author.user.last_name
-                                                    ? `${author.user.first_name} ${author.user.last_name}`
-                                                    : `@${author.user.username}`}
-                                                </div>
-                                              ))}
-                                          </div>
-                                        }
-                                      >
-                                        <div className="bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-0.5 rounded-md cursor-pointer text-xs font-medium transition-colors duration-200">
-                                          +{course.authors.filter((a: any) => a.authorship_status === 'ACTIVE').length - 2}
-                                        </div>
-                                      </ToolTip>
-                                    )}
-                                  </div>
-                                )}
-                                {/* Dates */}
-                                <div className="flex flex-wrap items-center text-xs text-gray-500 gap-1 sm:gap-2">
-                                  <span>
-                                    {t('courses.created_on')} {new Date(course.creation_date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
-                                  </span>
-                                  <span className="mx-1">•</span>
-                                  <span>
-                                    {t('courses.last_updated')} {getRelativeTime(new Date(course.updated_at || course.last_updated || course.creation_date))}
-                                  </span>
-                                </div>
-                              </div>
                             </div>
                           </div>
-                          <div className="hidden sm:flex space-x-2 items-center relative shrink-0" style={{ zIndex: 'var(--z-interactive)' }}>
-                            {activity && activity.published == true && activity.content.paid_access != false && (
-                              <AuthenticatedClientElement checkMethod="authentication">
-                                {activity.activity_type != 'TYPE_ASSIGNMENT' && (
-                                  <>
-                                    <AIActivityAsk activity={activity} />
-                                    <ActivityChapterDropdown
-                                      course={course}
-                                      currentActivityId={activity.activity_uuid ? activity.activity_uuid.replace('activity_', '') : activityid.replace('activity_', '')}
-                                      orgslug={orgslug}
-                                      trailData={trailData}
-                                    />
-                                    {contributorStatus === 'ACTIVE' && activity.activity_type == 'TYPE_DYNAMIC' && (
-                                      <Link
-                                        href={getUriWithOrg(orgslug, '') + `/course/${courseuuid}/activity/${activityid}/edit`}
-                                        className="bg-emerald-600 rounded-full px-5 drop-shadow-md flex items-center space-x-2 p-2.5 text-white hover:cursor-pointer transition delay-150 duration-300 ease-in-out"
-                                      >
-                                        <Edit2 size={17} />
-                                        <span className="text-xs font-bold">{t('courses.contribute')}</span>
-                                      </Link>
-                                    )}
-                                  </>
-                                )}
-                              </AuthenticatedClientElement>
-                            )}
-                          </div>
                         </div>
+
+                        {/* Top progress strip — only on full-width activities (exercises/embeds)
+                            where the "Contenido del curso" sidebar isn't shown, to avoid
+                            two redundant progress indicators on normal lessons. */}
+                        {activity?.activity_sub_type === 'SUBTYPE_DYNAMIC_EMBED' && (
+                          <ActivityIndicators
+                            course_uuid={courseuuid}
+                            current_activity={activityid}
+                            orgslug={orgslug}
+                            course={course}
+                            enableNavigation={true}
+                            trailData={trailData}
+                          />
+                        )}
                       </div>
 
                       {activityLoading || !activity ? (
@@ -941,70 +886,99 @@ function ActivityClient(props: ActivityClientProps) {
                             <PaidCourseActivityDisclaimer course={course} />
                           ) : (
                             <div className="flex gap-6">
-                              <div className={`flex-1 min-w-0 ${activity.activity_type === 'TYPE_SCORM' ? 'rounded-xl overflow-hidden' : 'p-3 sm:p-7 rounded-lg'} ${bgColor} relative isolate`} style={{ zIndex: 'var(--z-base)' }}>
-                                <button
-                                  onClick={() => setIsFocusMode(true)}
-                                  className={`absolute ${activity.activity_type === 'TYPE_SCORM' ? 'top-2 right-2' : 'top-4 right-4'} hidden sm:flex bg-white/80 hover:bg-white nice-shadow p-2 rounded-full cursor-pointer transition-all duration-200 group overflow-hidden pointer-events-auto`}
-                                  style={{ zIndex: 'var(--z-interactive)' }}
-                                  title={t('activities.focus_mode')}
-                                >
-                                  <div className="flex items-center">
-                                    <Maximize2 size={16} className="text-gray-700" />
-                                    <span className="text-xs font-bold text-gray-700 opacity-0 group-hover:opacity-100 transition-all duration-200 w-0 group-hover:w-auto group-hover:ml-2 whitespace-nowrap">
-                                      {t('activities.focus_mode')}
-                                    </span>
-                                  </div>
-                                </button>
-                                {activityContent}
+                              <div className="flex-1 min-w-0 space-y-4">
+                                <div className={`${
+                                  activity.activity_type === 'TYPE_SCORM'
+                                    ? 'rounded-xl overflow-hidden'
+                                    : activity.activity_type === 'TYPE_VIDEO'
+                                    ? 'rounded-lg nice-shadow'
+                                    : 'p-3 sm:p-7 rounded-lg'
+                                } ${activity.activity_type === 'TYPE_VIDEO' ? '' : bgColor} relative isolate`} style={{ zIndex: 'var(--z-base)' }}>
+                                  <button
+                                    onClick={() => setIsFocusMode(true)}
+                                    className={`absolute ${activity.activity_type === 'TYPE_SCORM' ? 'top-2 right-2' : 'top-4 right-4'} hidden sm:flex bg-white/80 hover:bg-white nice-shadow p-2 rounded-full cursor-pointer transition-all duration-200 group overflow-hidden pointer-events-auto`}
+                                    style={{ zIndex: 'var(--z-interactive)' }}
+                                    title={t('activities.focus_mode')}
+                                  >
+                                    <div className="flex items-center">
+                                      <Maximize2 size={16} className="text-gray-700" />
+                                      <span className="text-xs font-bold text-gray-700 opacity-0 group-hover:opacity-100 transition-all duration-200 w-0 group-hover:w-auto group-hover:ml-2 whitespace-nowrap">
+                                        {t('activities.focus_mode')}
+                                      </span>
+                                    </div>
+                                  </button>
+                                  {activityContent}
+                                </div>
+                                {/* Per-lesson description + tasks + Consultas (video lessons only) */}
+                                {activity.activity_type === 'TYPE_VIDEO' && (
+                                  <LessonExtras
+                                    activity={activity}
+                                    activityid={activityid}
+                                    orgslug={orgslug}
+                                    canEdit={canEditLesson}
+                                  />
+                                )}
+                                {/* Mobile lessons (collapsible) — hidden for full-page embeds */}
+                                {activity.activity_sub_type !== 'SUBTYPE_DYNAMIC_EMBED' && (
+                                  <MobileCourseLessons
+                                    course={course}
+                                    currentActivityId={activityid}
+                                    orgslug={orgslug}
+                                    trailData={trailData}
+                                  />
+                                )}
                               </div>
-                              <Suspense fallback={null}>
-                                <AISidePanelInline activity={activity} />
-                              </Suspense>
+                              {/* Lessons sidebar — hidden for embeds so exercises get full width */}
+                              {activity.activity_sub_type !== 'SUBTYPE_DYNAMIC_EMBED' && (
+                                <CourseLessonsSidebar
+                                  course={course}
+                                  currentActivityId={activityid}
+                                  orgslug={orgslug}
+                                  trailData={trailData}
+                                />
+                              )}
                             </div>
                           )}
                         </>
                       ) : null}
 
-                      {/* Activity Actions below the content box */}
-                      {activity && activity.published == true && activity.content.paid_access != false && (
-                        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center mt-4 w-full gap-2 sm:gap-0">
-                          <div className="order-1 sm:order-none">
-                            <PreviousActivityButton
-                              course={course}
-                              currentActivityId={activity.id}
-                              orgslug={orgslug}
-                            />
-                          </div>
-                          <div className="flex items-center justify-between sm:justify-end space-x-2 order-2 sm:order-none">
-                            <ActivityActions
-                              activity={activity}
-                              activityid={activityid}
-                              course={course}
-                              orgslug={orgslug}
-                              assignment={assignment}
-                              showNavigation={false}
-                              trailData={trailData}
-                            />
-                            <NextActivityButton
-                              course={course}
-                              currentActivityId={activity.id}
-                              orgslug={orgslug}
-                            />
+                      {/* Sticky action bar — hidden for iframe embeds (their page has its own nav),
+                          but shown for native Nawar exercises so course completion + Next work. */}
+                      {activity && activity.published == true && activity.content.paid_access != false && (activity.activity_sub_type !== 'SUBTYPE_DYNAMIC_EMBED' || isNativeExercise) && (
+                        <div className="sticky bottom-3 sm:bottom-4 mt-4" style={{ zIndex: 'var(--z-interactive)' }}>
+                          <div className="bg-white/95 backdrop-blur-md nice-shadow rounded-xl border border-gray-100 px-3 sm:px-4 py-2.5">
+                            <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 sm:gap-0">
+                              <div className="order-1 sm:order-none">
+                                <PreviousActivityButton
+                                  course={course}
+                                  currentActivityId={activity.id}
+                                  orgslug={orgslug}
+                                />
+                              </div>
+                              <div className="flex items-center justify-between sm:justify-end space-x-2 order-2 sm:order-none">
+                                {activity.activity_type === 'TYPE_ASSIGNMENT' && (
+                                  <ActivityActions
+                                    activity={activity}
+                                    activityid={activityid}
+                                    course={course}
+                                    orgslug={orgslug}
+                                    assignment={assignment}
+                                    showNavigation={false}
+                                    trailData={trailData}
+                                  />
+                                )}
+                                <NextActivityButton
+                                  course={course}
+                                  currentActivityId={activity.id}
+                                  orgslug={orgslug}
+                                />
+                              </div>
+                            </div>
                           </div>
                         </div>
                       )}
 
-                      {/* Fixed Activity Secondary Bar */}
-                      {activity && activity.published == true && activity.content.paid_access != false && (
-                        <FixedActivitySecondaryBar
-                          course={course}
-                          currentActivityId={activityid}
-                          orgslug={orgslug}
-                          activity={activity}
-                        />
-                      )}
-                      
-                      <div style={{ height: '100px' }}></div>
+                      <div style={{ height: '40px' }}></div>
                     </div>
                 )}
               </GeneralWrapperStyled>
@@ -1209,24 +1183,20 @@ export function MarkStatus(props: {
               confirmationMessage={t('activities.unmark_activity_confirm')}
               dialogTitle={t('activities.unmark_activity_title')}
               dialogTrigger={
-                <div className="bg-teal-600 rounded-md px-4 nice-shadow flex flex-col p-2.5 text-white hover:cursor-pointer transition delay-150 duration-300 ease-in-out">
-                  <span className="text-[10px] font-bold mb-1 uppercase">{t('common.status')}</span>
-                  <div className="flex items-center space-x-2">
-                    <svg 
-                      width="17" 
-                      height="17" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round"
-                    >
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <path d="M7 12l3 3 7-7" />
-                    </svg>
-                    <span className="text-xs font-bold">{t('common.complete')}</span>
-                  </div>
+                <div className="bg-teal-600 rounded-lg px-4 py-2.5 nice-shadow flex items-center gap-2 text-white hover:cursor-pointer hover:bg-teal-700 transition-colors">
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
+                  <span className="text-sm font-semibold whitespace-nowrap">{t('common.complete')}</span>
                 </div>
               }
               functionToExecute={unmarkActivityAsCompleteFront}
@@ -1248,42 +1218,21 @@ export function MarkStatus(props: {
         <div className="flex items-center space-x-2">
           <div className="relative">
             <div
-              className={`${isLoading ? 'opacity-90' : ''} bg-gray-800 rounded-md px-4 nice-shadow flex flex-col p-2.5 text-white hover:cursor-pointer transition-all duration-200 ${isLoading ? 'cursor-not-allowed' : 'hover:bg-gray-700'}`}
+              className={`${isLoading ? 'opacity-90 cursor-not-allowed' : 'hover:bg-emerald-700'} bg-emerald-600 rounded-lg px-4 py-2.5 nice-shadow flex items-center gap-2 text-white hover:cursor-pointer transition-colors`}
               onClick={!isLoading ? markActivityAsCompleteFront : undefined}
             >
-              <span className="text-[10px] font-bold mb-1 uppercase">{t('common.status')}</span>
-              <div className="flex items-center space-x-2">
-                {isLoading ? (
-                  <div className="animate-spin">
-                    <svg 
-                      width="17" 
-                      height="17" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round"
-                    >
-                      <path d="M21 12a9 9 0 11-6.219-8.56" />
-                    </svg>
-                  </div>
-                ) : (
-                  <svg 
-                    width="17" 
-                    height="17" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round"
-                  >
-                    <rect x="3" y="3" width="18" height="18" rx="2" />
+              {isLoading ? (
+                <div className="animate-spin">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 12a9 9 0 11-6.219-8.56" />
                   </svg>
-                )}
-                <span className="text-xs font-bold min-w-[90px]">{isLoading ? t('activities.marking') : t('activities.mark_as_complete')}</span>
-              </div>
+                </div>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              )}
+              <span className="text-sm font-semibold whitespace-nowrap">{isLoading ? t('activities.marking') : t('activities.mark_as_complete')}</span>
             </div>
             {showUnmarkedTooltip && (
               <MiniInfoTooltip
@@ -1306,6 +1255,9 @@ function NextActivityButton({ course, currentActivityId, orgslug }: { course: an
   const { t } = useTranslation();
   const router = useRouter();
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const session = useLHSession() as any;
+  const org = useOrg() as any;
+  const queryClient = useQueryClient();
 
   const findNextActivity = () => {
     let allActivities: any[] = [];
@@ -1333,23 +1285,44 @@ function NextActivityButton({ course, currentActivityId, orgslug }: { course: an
   };
 
   const nextActivity = findNextActivity();
+  const isLast = !nextActivity;
 
-  if (!nextActivity) return null;
-
-  const navigateToActivity = () => {
+  const navigateToActivity = async () => {
     const cleanCourseUuid = course.course_uuid?.replace('course_', '');
-    router.push(getUriWithOrg(orgslug, '') + `/course/${cleanCourseUuid}/activity/${nextActivity.cleanUuid}`);
+    // Moving on counts as finishing the current activity: mark it complete so
+    // progress is recorded without an extra click (best-effort, never blocks nav).
+    try {
+      const current = (course.chapters ?? [])
+        .flatMap((c: any) => c.activities ?? [])
+        .find((a: any) => a.id === currentActivityId);
+      const token = session?.data?.tokens?.access_token;
+      if (current?.activity_uuid && token) {
+        await markActivityAsComplete(orgslug, course.course_uuid, current.activity_uuid, token);
+        queryClient.invalidateQueries({ queryKey: queryKeys.trail.org(org?.id) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.courses.meta(cleanCourseUuid) });
+      }
+    } catch {
+      /* non-blocking — navigation continues even if marking fails */
+    }
+    router.push(
+      getUriWithOrg(orgslug, '') +
+        `/course/${cleanCourseUuid}/activity/${isLast ? 'end' : nextActivity.cleanUuid}`
+    );
   };
 
   return (
     <div
       onClick={navigateToActivity}
-      className="bg-gray-200 rounded-md px-3 sm:px-4 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] flex flex-col p-2 sm:p-2.5 text-gray-600 hover:cursor-pointer transition delay-150 duration-300 ease-in-out hover:bg-gray-200"
+      className="bg-[#4da3ff] rounded-lg px-3 sm:px-4 nice-shadow flex flex-col p-2 sm:p-2.5 text-[#0a1656] hover:cursor-pointer hover:bg-[#6cb5ff] transition-colors"
     >
-      <span className="text-[10px] font-bold text-gray-500 mb-1 uppercase">{t('common.next')}</span>
+      <span className="text-[10px] font-bold text-[#0a1656]/60 mb-1 uppercase">
+        {isLast ? 'Finalizar' : t('common.next')}
+      </span>
       <div className="flex items-center space-x-1">
-        <span className="text-xs sm:text-sm font-semibold truncate max-w-[120px] sm:max-w-[200px]">{nextActivity.name}</span>
-        <ChevronRight size={17} className="shrink-0" />
+        <span className="text-xs sm:text-sm font-semibold truncate max-w-[120px] sm:max-w-[200px]">
+          {isLast ? 'Completar curso' : nextActivity.name}
+        </span>
+        {isLast ? <Trophy size={16} className="shrink-0" /> : <ChevronRight size={17} className="shrink-0" />}
       </div>
     </div>
   );
@@ -1397,9 +1370,9 @@ function PreviousActivityButton({ course, currentActivityId, orgslug }: { course
   return (
     <div
       onClick={navigateToActivity}
-      className="bg-white rounded-md px-3 sm:px-4 nice-shadow flex flex-col p-2 sm:p-2.5 text-gray-600 hover:cursor-pointer transition delay-150 duration-300 ease-in-out"
+      className="bg-[#F0F5FF] rounded-lg px-3 sm:px-4 flex flex-col p-2 sm:p-2.5 text-[#1D0084] hover:cursor-pointer hover:bg-[#e0eaff] transition-colors border border-[#DDE6F5]"
     >
-      <span className="text-[10px] font-bold text-gray-500 mb-1 uppercase">{t('common.previous')}</span>
+      <span className="text-[10px] font-bold text-[#1D0084]/60 mb-1 uppercase">{t('common.previous')}</span>
       <div className="flex items-center space-x-1">
         <ChevronLeft size={17} className="shrink-0" />
         <span className="text-xs sm:text-sm font-semibold truncate max-w-[120px] sm:max-w-[200px]">{previousActivity.name}</span>

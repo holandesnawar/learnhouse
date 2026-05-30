@@ -253,16 +253,6 @@ export function DiscussionCard({
             </div>
 
             <div className="mt-1 flex items-center flex-wrap gap-x-2 gap-y-1 text-xs text-gray-500">
-              {/* Label badge */}
-              <span
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium"
-                style={{
-                  backgroundColor: `${labelInfo.color}15`,
-                  color: labelInfo.color,
-                }}
-              >
-                {t(`communities.labels.${discussion.label || 'general'}`)}
-              </span>
               {isSelectMode ? (
                 <span>{authorName}</span>
               ) : (

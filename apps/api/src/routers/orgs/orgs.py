@@ -51,10 +51,14 @@ from src.services.orgs.orgs import (
     update_org_color_config,
     update_org_font_config,
     update_org_footer_text_config,
+    update_org_community_panel_config,
     update_org_default_language_config,
     update_org_watermark_config,
     update_org_thumbnail,
     update_org_landing,
+    update_org_roadmap,
+    update_org_events,
+    update_org_faq,
     upload_org_landing_content_service,
     update_org_auth_branding_config,
     upload_org_auth_background_service,
@@ -62,7 +66,7 @@ from src.services.orgs.orgs import (
     upload_org_og_image_service,
     update_org_favicon,
 )
-from src.db.organization_config import AuthBrandingConfig, SeoOrgConfig
+from src.db.organization_config import AuthBrandingConfig, SeoOrgConfig, CommunityPanelConfig
 
 
 router = APIRouter()
@@ -641,6 +645,32 @@ async def api_update_org_footer_text_config(
     """
     return await update_org_footer_text_config(
         request, footer_text, org_id, current_user, db_session
+    )
+
+
+@router.put(
+    "/{org_id}/config/community_panel",
+    summary="Update community info panel",
+    description="Update the editable welcome/rules/tips panel shown on the Community page. Admin only.",
+    responses={
+        200: {"description": "Community panel configuration updated."},
+        401: {"description": "Not authenticated"},
+        403: {"description": "Caller is not an organization administrator"},
+        404: {"description": "Organization not found"},
+    },
+)
+async def api_update_org_community_panel_config(
+    request: Request,
+    org_id: int,
+    panel: CommunityPanelConfig,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    """
+    Update organization community info panel configuration
+    """
+    return await update_org_community_panel_config(
+        request, panel.model_dump(), org_id, current_user, db_session
     )
 
 
@@ -1244,6 +1274,78 @@ async def api_update_org_landing(
     Update organization landing object
     """
     return await update_org_landing(request, landing_object, org_id, current_user, db_session)
+
+
+@router.put(
+    "/{org_id}/roadmap",
+    summary="Update organization roadmap",
+    description="Update the organization's weekly roadmap object.",
+    responses={
+        200: {"description": "Roadmap updated."},
+        401: {"description": "Not authenticated"},
+        403: {"description": "Caller is not an organization administrator"},
+        404: {"description": "Organization not found"},
+    },
+)
+async def api_update_org_roadmap(
+    request: Request,
+    org_id: int,
+    roadmap_object: dict,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    """
+    Update organization roadmap object
+    """
+    return await update_org_roadmap(request, roadmap_object, org_id, current_user, db_session)
+
+
+@router.put(
+    "/{org_id}/events",
+    summary="Update organization events",
+    description="Update the organization's events/calendar object.",
+    responses={
+        200: {"description": "Events updated."},
+        401: {"description": "Not authenticated"},
+        403: {"description": "Caller is not an organization administrator"},
+        404: {"description": "Organization not found"},
+    },
+)
+async def api_update_org_events(
+    request: Request,
+    org_id: int,
+    events_object: dict,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    """
+    Update organization events object
+    """
+    return await update_org_events(request, events_object, org_id, current_user, db_session)
+
+
+@router.put(
+    "/{org_id}/faq",
+    summary="Update organization FAQ",
+    description="Update the organization's frequently-asked-questions object.",
+    responses={
+        200: {"description": "FAQ updated."},
+        401: {"description": "Not authenticated"},
+        403: {"description": "Caller is not an organization administrator"},
+        404: {"description": "Organization not found"},
+    },
+)
+async def api_update_org_faq(
+    request: Request,
+    org_id: int,
+    faq_object: dict,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    """
+    Update organization FAQ object
+    """
+    return await update_org_faq(request, faq_object, org_id, current_user, db_session)
 
 
 @router.post(

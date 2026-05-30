@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import React, { useEffect, useState, Suspense } from 'react'
+import React, { useEffect, useState } from 'react'
 import { getUriWithOrg } from '@services/config/config'
 import { getCourseMetadata } from '@services/courses/courses'
 import { useTrail } from '@/hooks/queries/useTrail'
@@ -10,21 +10,17 @@ import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/Ge
 import {
   getCourseThumbnailMediaDirectory,
 } from '@services/media/media'
-import { ArrowRight, Backpack, Check, File, StickyNote, Video, Square, Image as ImageIcon, Layers, BookCopy, Lock } from 'lucide-react'
+import { ArrowRight, Backpack, Check, File, StickyNote, Video, Square, Image as ImageIcon, Layers, Lock } from 'lucide-react'
 import { useOrg } from '@components/Contexts/OrgContext'
-import { CourseProvider } from '@components/Contexts/CourseContext'
 import { useMediaQuery } from 'usehooks-ts'
 import CoursesActions from '@components/Objects/Courses/CourseActions/CoursesActions'
 import CourseActionsMobile from '@components/Objects/Courses/CourseActions/CourseActionsMobile'
-import CourseAuthors from '@components/Objects/Courses/CourseAuthors/CourseAuthors'
-import { Breadcrumbs } from '@components/Objects/Breadcrumbs/Breadcrumbs'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/lib/query/keys'
 import { getActivityWithAuthHeader } from '@services/courses/activities'
 import { useTranslation } from 'react-i18next'
-import CourseCommunitySection from '@components/Objects/Communities/CourseCommunitySection'
-import CourseShare from '@components/Objects/Courses/CourseShare/CourseShare'
+import CommunityChannelsCards from '@components/Objects/Communities/CommunityChannelsCards'
 import { useAnalytics } from '@/hooks/useAnalytics'
 
 const CourseClient = (props: any) => {
@@ -108,7 +104,7 @@ const CourseClient = (props: any) => {
             {/* Left column */}
             <div className="w-full md:w-3/4 space-y-4">
               {/* Thumbnail */}
-              <div className="bg-gray-200 rounded-lg w-full h-[200px] md:h-[400px]" />
+              <div className="bg-gray-200 rounded-lg w-full h-[160px] md:h-[260px]" />
               {/* About text block */}
               <div className="space-y-2 py-2">
                 <div className="h-3 bg-gray-200 rounded w-full" />
@@ -316,18 +312,8 @@ const CourseClient = (props: any) => {
       {!course || !org ? null : (
         <>
           <GeneralWrapperStyled>
-            <div className="pb-4">
-              <Breadcrumbs items={[
-                { label: t('courses.courses'), href: getUriWithOrg(orgslug, '/courses'), icon: <BookCopy size={14} /> },
-                { label: course.name }
-              ]} />
-            </div>
-            <div className="pb-2 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+            <div className="pb-2 pt-2">
               <h1 className="text-3xl md:text-3xl font-bold">{course.name}</h1>
-              <CourseShare
-                courseName={course.name}
-                courseUrl={getUriWithOrg(orgslug, `/course/${courseuuid}`)}
-              />
             </div>
 
             <div className="flex flex-col md:flex-row gap-8 pt-2">
@@ -338,7 +324,7 @@ const CourseClient = (props: any) => {
 
                   if (showVideo && course.thumbnail_video) {
                     return (
-                      <div className="relative inset-0 ring-1 ring-inset ring-black/10 rounded-lg shadow-xl w-full h-[200px] md:h-[400px]">
+                      <div className="relative inset-0 ring-1 ring-inset ring-black/10 rounded-lg shadow-xl w-full h-[160px] md:h-[260px]">
                         {course.thumbnail_type === 'both' && (
                           <div className="absolute top-3 right-3 z-10">
                             <div className="bg-black/20 backdrop-blur-sm rounded-lg p-1 flex space-x-1">
@@ -386,7 +372,7 @@ const CourseClient = (props: any) => {
                     );
                   } else if (showImage && course.thumbnail_image) {
                     return (
-                      <div className="relative inset-0 ring-1 ring-inset ring-black/10 rounded-lg shadow-xl w-full h-[200px] md:h-[400px] bg-cover bg-center"
+                      <div className="relative inset-0 ring-1 ring-inset ring-black/10 rounded-lg shadow-xl w-full h-[160px] md:h-[260px] bg-cover bg-center"
                         style={{
                           backgroundImage: `url(${getCourseThumbnailMediaDirectory(
                             org?.org_uuid,
@@ -437,7 +423,7 @@ const CourseClient = (props: any) => {
                   } else {
                     return (
                       <div
-                        className="inset-0 ring-1 ring-inset ring-black/10 rounded-lg shadow-xl relative w-full h-[400px] bg-cover bg-center"
+                        className="inset-0 ring-1 ring-inset ring-black/10 rounded-lg shadow-xl relative w-full h-[160px] md:h-[260px] bg-cover bg-center"
                         style={{
                           backgroundImage: `url('/empty_thumbnail.png')`,
                           backgroundSize: 'auto',
@@ -475,13 +461,6 @@ const CourseClient = (props: any) => {
               <div className='course_metadata_right w-full md:w-1/4 space-y-4'>
                 {/* Actions Box */}
                 <CoursesActions courseuuid={courseuuid} orgslug={orgslug} course={course} trailData={trailData} />
-                
-                {/* Authors & Updates Box */}
-                <div className="bg-white shadow-md shadow-gray-300/25 outline outline-1 outline-neutral-200/40 rounded-lg overflow-hidden p-4">
-                  <CourseProvider courseuuid={course.course_uuid}>
-                    <CourseAuthors authors={course.authors} />
-                  </CourseProvider>
-                </div>
               </div>
             </div>
 
@@ -532,25 +511,25 @@ const CourseClient = (props: any) => {
             })()}
 
             <div className="w-full my-5 mb-10">
-              <h2 className="py-5 text-xl md:text-2xl font-bold">{t('courses.course_lessons')}</h2>
-              <div className="bg-white shadow-md shadow-gray-300/25 outline outline-1 outline-neutral-200/40 rounded-lg overflow-hidden">
+              <h2 className="py-5 text-xl md:text-2xl font-bold text-[#1D0084]" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>{t('courses.course_lessons')}</h2>
+              <div className="bg-white nice-shadow rounded-2xl overflow-hidden border border-[#DDE6F5] divide-y divide-[#DDE6F5]">
                 {(course.chapters ?? []).map((chapter: any, idx: number) => {
                   const isExpanded = expandedChapters[chapter.chapter_uuid] ?? (idx === 0); // Default to expanded for first chapter
                   return (
                     <div key={chapter.chapter_uuid || `chapter-${chapter.name}`} className="">
-                      <div 
-                        className="flex items-start py-4 px-4 outline outline-1 outline-neutral-200/40 font-bold bg-neutral-50 text-neutral-600 cursor-pointer hover:bg-neutral-100 transition-colors"
+                      <div
+                        className="flex items-start py-4 px-5 bg-[#F8FAFF] cursor-pointer hover:bg-[#F0F5FF] transition-colors"
                         onClick={() => setExpandedChapters(prev => ({
                           ...prev,
                           [chapter.chapter_uuid]: !isExpanded
                         }))}
                       >
                         {/* Chevron on the far left, vertically centered with the title */}
-                        <div className="flex flex-col justify-center mr-3 pt-1">
-                          <svg 
-                            className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
-                            fill="none" 
-                            stroke="currentColor" 
+                        <div className="flex flex-col justify-center mr-3 pt-1 text-[#025dc7]">
+                          <svg
+                            className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                            fill="none"
+                            stroke="currentColor"
                             viewBox="0 0 24 24"
                           >
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -559,11 +538,7 @@ const CourseClient = (props: any) => {
                         {/* Title and badge column */}
                         <div className="flex flex-col items-start w-full">
                           <div className="flex items-center flex-wrap mb-1 w-full min-w-0">
-                            {/* Numbered badge */}
-                            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-neutral-200 text-neutral-600 text-xs font-semibold mr-2 border border-neutral-300 flex-shrink-0">
-                              {idx + 1}
-                            </span>
-                            <h3 className="text-lg font-bold leading-tight truncate min-w-0 sm:text-base md:text-lg" style={{lineHeight: '1.2'}}>{chapter.name}</h3>
+                            <h3 className="text-lg font-bold leading-tight truncate min-w-0 sm:text-base md:text-lg text-[#1D0084]" style={{lineHeight: '1.2', fontFamily: 'var(--font-poppins), system-ui, sans-serif'}}>{chapter.name}</h3>
                             {chapter.is_locked && (
                               <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-600 text-[10px] font-semibold">
                                 <Lock size={10} />
@@ -578,7 +553,7 @@ const CourseClient = (props: any) => {
                         </div>
                       </div>
                       <div className={`transition-all duration-200 ${isExpanded ? 'block' : 'hidden'}`}>
-                        <div className="">
+                        <div className="divide-y divide-[#EEF2FB]">
                           {chapter.activities.map((activity: any) => {
                             const locked = !!activity.is_locked
                             const RowInner = (
@@ -609,7 +584,7 @@ const CourseClient = (props: any) => {
                                       </span>
                                     )}
                                     {!locked && isActivityCurrent(activity) && (
-                                      <div className="flex items-center space-x-1 text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full text-xs font-semibold animate-pulse">
+                                      <div className="flex items-center space-x-1 text-[#025dc7] bg-[#025dc7]/10 px-2 py-0.5 rounded-full text-xs font-semibold">
                                         <span>{t('activities.current')}</span>
                                       </div>
                                     )}
@@ -640,7 +615,7 @@ const CourseClient = (props: any) => {
                               return (
                                 <div
                                   key={activity.activity_uuid}
-                                  className="block activity-container px-4 py-4 cursor-not-allowed select-none"
+                                  className="block activity-container px-5 py-3.5 cursor-not-allowed select-none"
                                   title={t('course.activity_locked_hint', 'Sign in or join the right user group to unlock this.')}
                                 >
                                   {RowInner}
@@ -657,7 +632,7 @@ const CourseClient = (props: any) => {
                                 }
                                 rel="noopener noreferrer"
                                 prefetch={false}
-                                className="block group activity-container transition-all duration-200 px-4 py-4"
+                                className="block group activity-container transition-all duration-200 px-5 py-3.5 hover:bg-[#F8FAFF]"
                                 onMouseEnter={() => handleActivityMouseEnter(activity)}
                               >
                                 {RowInner}
@@ -672,10 +647,10 @@ const CourseClient = (props: any) => {
               </div>
             </div>
 
-            {/* Community Section */}
-            <Suspense fallback={<div className="animate-pulse h-48 bg-gray-100 rounded-lg mt-4" />}>
-              <CourseCommunitySection courseUuid={course.course_uuid} orgslug={orgslug} />
-            </Suspense>
+            {/* Community channels — quick access to the chats */}
+            <div className="mt-8">
+              <CommunityChannelsCards orgslug={orgslug} />
+            </div>
           </GeneralWrapperStyled>
 
           {/* Mobile Actions Box */}

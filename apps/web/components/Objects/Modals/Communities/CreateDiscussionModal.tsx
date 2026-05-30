@@ -141,37 +141,6 @@ export function CreateDiscussionModal({
       minWidth="lg"
       dialogContent={
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Label Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t('communities.create_discussion.category_label')}
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {DISCUSSION_LABELS.map((label) => (
-                <button
-                  key={label.id}
-                  type="button"
-                  onClick={() => setSelectedLabel(label.id)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
-                    selectedLabel === label.id
-                      ? 'border-gray-900 bg-gray-50'
-                      : 'border-gray-200 hover:border-gray-300 bg-white'
-                  }`}
-                >
-                  <span style={{ color: label.color }}>
-                    {getLabelIcon(label.icon, 16)}
-                  </span>
-                  <span className={`text-sm ${selectedLabel === label.id ? 'font-medium text-gray-900' : 'text-gray-600'}`}>
-                    {t(`communities.labels.${label.id}`)}
-                  </span>
-                  {selectedLabel === label.id && (
-                    <Check size={14} className="text-gray-900" />
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Title with Emoji */}
           <div>
             <label
@@ -247,7 +216,7 @@ export function CreateDiscussionModal({
             <button
               type="submit"
               disabled={isSubmitting || !isValid}
-              className="px-4 py-2 text-sm font-medium text-white bg-neutral-900 hover:bg-neutral-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-4 py-2 text-sm font-medium text-white bg-[#025dc7] hover:bg-[#0b6df0] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isSubmitting && <Loader2 size={16} className="animate-spin" />}
               {t('communities.create_discussion.submit')}

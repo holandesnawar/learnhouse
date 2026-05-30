@@ -4,6 +4,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import en from '../locales/en.json';
+import es from '../locales/es.json';
 
 const LOCALE_LOADERS: Record<string, () => Promise<{ default: any }>> = {
   fr: () => import('../locales/fr.json'),
@@ -26,9 +27,11 @@ const LOCALE_LOADERS: Record<string, () => Promise<{ default: any }>> = {
   bn: () => import('../locales/bn.json'),
 };
 
-// Only bundle English; lazy-load all other locales on demand
+// Bundle English and Spanish synchronously (Spanish is the default UI
+// language) so labels never flash as raw keys; other locales lazy-load.
 const resources = {
   en: { common: en },
+  es: { common: es },
 };
 
 async function loadLocale(lng: string) {
@@ -49,14 +52,16 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
-    fallbackLng: 'en',
+    fallbackLng: 'es',
     ns: ['common'],
     defaultNS: 'common',
     interpolation: {
       escapeValue: false, // react already safes from xss
     },
     detection: {
-      order: ['localStorage', 'cookie', 'querystring', 'navigator', 'path', 'subdomain'],
+      // No 'navigator' so a fresh session defaults to Spanish (fallbackLng)
+      // instead of the browser language; an explicit choice is still cached.
+      order: ['localStorage', 'cookie', 'querystring'],
       caches: ['localStorage', 'cookie'],
       lookupLocalStorage: 'i18nextLng',
       lookupCookie: 'i18next',

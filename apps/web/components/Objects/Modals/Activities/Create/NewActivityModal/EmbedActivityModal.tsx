@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import * as Form from '@radix-ui/react-form'
 import BarLoader from 'react-spinners/BarLoader'
-import { Globe } from '@phosphor-icons/react'
+import { Globe, PuzzlePiece } from '@phosphor-icons/react'
+import NativeExercisePicker from '@components/exercises-app/NativeExercisePicker'
 
 function EmbedActivityModal({ submitActivity, chapterId, course }: any) {
   const [activityName, setActivityName] = useState('')
@@ -9,15 +10,26 @@ function EmbedActivityModal({ submitActivity, chapterId, course }: any) {
   const [embedUrl, setEmbedUrl] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Mode: web embed (URL) vs native Nawar exercise (module/lesson/part picker)
+  const [mode, setMode] = useState<'web' | 'nawar'>('web')
+  const [exModuleId, setExModuleId] = useState('')
+  const [exLessonId, setExLessonId] = useState('')
+  const [exSection, setExSection] = useState('vocabulary')
+
   const handleSubmit = async (e: any) => {
     e.preventDefault()
+    const content =
+      mode === 'nawar'
+        ? { embed_url: `nawar:${exModuleId}/${exLessonId}/${exSection}` }
+        : { embed_url: embedUrl }
+    if (mode === 'nawar' && (!exModuleId || !exLessonId)) return
     setIsSubmitting(true)
     await submitActivity({
       name: activityName,
       chapter_id: chapterId,
       activity_type: 'TYPE_DYNAMIC',
       activity_sub_type: 'SUBTYPE_DYNAMIC_EMBED',
-      content: { embed_url: embedUrl },
+      content,
       published_version: 1,
       version: 1,
       course_id: course.id,
@@ -60,26 +72,60 @@ function EmbedActivityModal({ submitActivity, chapterId, course }: any) {
           </Form.Control>
         </Form.Field>
 
-        <Form.Field name="embed-activity-url" className="space-y-1.5">
-          <Form.Label className="text-sm font-medium text-gray-700">
-            Embed URL
-          </Form.Label>
-          <Form.Message match="valueMissing" className="text-xs text-red-500">
-            Please provide an embed URL
-          </Form.Message>
-          <Form.Message match="typeMismatch" className="text-xs text-red-500">
-            Please provide a valid URL
-          </Form.Message>
-          <Form.Control asChild>
-            <input
-              onChange={(e) => setEmbedUrl(e.target.value)}
-              type="url"
-              required
-              placeholder="https://docs.google.com/document/d/..."
-              className="w-full h-9 px-3 text-sm rounded-lg bg-gray-50 border border-gray-200 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-200 transition-colors"
+        {/* Mode toggle: web embed vs native Nawar exercise */}
+        <div className="inline-flex rounded-lg border border-gray-200 p-0.5 bg-gray-50">
+          <button
+            type="button"
+            onClick={() => setMode('web')}
+            className={`inline-flex items-center gap-1.5 h-8 px-3 text-sm font-medium rounded-md transition-colors ${mode === 'web' ? 'bg-white text-gray-900 nice-shadow' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            <Globe size={16} weight="duotone" /> Web
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('nawar')}
+            className={`inline-flex items-center gap-1.5 h-8 px-3 text-sm font-medium rounded-md transition-colors ${mode === 'nawar' ? 'bg-white text-gray-900 nice-shadow' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            <PuzzlePiece size={16} weight="duotone" /> Ejercicio Nawar
+          </button>
+        </div>
+
+        {mode === 'web' ? (
+          <Form.Field name="embed-activity-url" className="space-y-1.5">
+            <Form.Label className="text-sm font-medium text-gray-700">
+              Embed URL
+            </Form.Label>
+            <Form.Message match="valueMissing" className="text-xs text-red-500">
+              Please provide an embed URL
+            </Form.Message>
+            <Form.Message match="typeMismatch" className="text-xs text-red-500">
+              Please provide a valid URL
+            </Form.Message>
+            <Form.Control asChild>
+              <input
+                onChange={(e) => setEmbedUrl(e.target.value)}
+                type="url"
+                required
+                placeholder="https://docs.google.com/document/d/..."
+                className="w-full h-9 px-3 text-sm rounded-lg bg-gray-50 border border-gray-200 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-200 transition-colors"
+              />
+            </Form.Control>
+          </Form.Field>
+        ) : (
+          <div className="space-y-1.5">
+            <span className="text-sm font-medium text-gray-700">Ejercicio Nawar</span>
+            <NativeExercisePicker
+              moduleId={exModuleId}
+              lessonId={exLessonId}
+              section={exSection}
+              onChange={(m, l, s) => {
+                setExModuleId(m)
+                setExLessonId(l)
+                setExSection(s)
+              }}
             />
-          </Form.Control>
-        </Form.Field>
+          </div>
+        )}
 
         <Form.Field name="embed-activity-desc" className="space-y-1.5">
           <Form.Label className="text-sm font-medium text-gray-700">
