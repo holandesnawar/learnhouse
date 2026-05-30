@@ -1,8 +1,6 @@
 'use client'
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { MessageCircle } from 'lucide-react'
-import { FeedbackModal } from '@components/Objects/Modals/FeedbackModal'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Collaboration from '@tiptap/extension-collaboration'
@@ -145,7 +143,6 @@ function BoardEditorInner({
   }, [activePlacement])
 
   const userColor = useMemo(() => getRandomColor(), [])
-  const [feedbackOpen, setFeedbackOpen] = useState(false)
 
   // Set user info on awareness (for RemoteCursors and PresenceAvatars)
   useEffect(() => {
@@ -869,24 +866,6 @@ function BoardEditorInner({
           onZoomReset={handleZoomReset}
         />
       </div>
-
-      {/* Feedback button — bottom left */}
-      <button
-        onClick={() => setFeedbackOpen(true)}
-        className="absolute bottom-5 left-5 z-20 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-neutral-500 hover:text-neutral-700 nice-shadow transition-colors board-enter-delayed board-feedback"
-        style={{
-          background: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(12px)',
-        }}
-      >
-        <MessageCircle size={14} />
-        Feedback
-      </button>
-      <FeedbackModal
-        open={feedbackOpen}
-        onOpenChange={setFeedbackOpen}
-        userName={username}
-      />
 
     </div>
     </BoardSelectionProvider>

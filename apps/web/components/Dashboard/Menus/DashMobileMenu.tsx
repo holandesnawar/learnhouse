@@ -39,7 +39,6 @@ import { AVAILABLE_LANGUAGES } from '@/lib/languages'
 import { getOrgLogoMediaDirectory } from '@services/media/media'
 import { cn } from '@/lib/utils'
 import { usePlan } from '@components/Hooks/usePlan'
-import { FeedbackModal } from '@components/Objects/Modals/FeedbackModal'
 import { useCommandPalette } from '@components/Dashboard/CommandPalette/CommandPaletteContext'
 
 function DashMobileMenu() {
@@ -50,7 +49,6 @@ function DashMobileMenu() {
   const plan = usePlan()
   const { toggle: openSearch } = useCommandPalette()
   const [menuOpen, setMenuOpen] = useState(false)
-  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false)
   const [langExpanded, setLangExpanded] = useState(false)
   const [mounted, setMounted] = useState(false)
 
@@ -266,13 +264,6 @@ function DashMobileMenu() {
                   <DiscordIcon size={15} />
                   <span className="text-sm font-medium">{t('common.help_menu.discord')}</span>
                 </a>
-                <button
-                  onClick={() => { setFeedbackModalOpen(true); close() }}
-                  className="flex items-center w-full rounded-lg px-2.5 py-2 gap-2.5 text-white/40 hover:text-white/80 hover:bg-white/[0.05] transition-all"
-                >
-                  <ChatCircleDots size={15} weight="fill" />
-                  <span className="text-sm font-medium">{t('common.help_menu.report_feedback')}</span>
-                </button>
               </div>
 
               {/* User footer */}
@@ -298,13 +289,6 @@ function DashMobileMenu() {
         )}
       </AnimatePresence>
 
-      <FeedbackModal
-        open={feedbackModalOpen}
-        onOpenChange={setFeedbackModalOpen}
-        theme="dark"
-        userName={session?.data?.user?.username}
-        userEmail={session?.data?.user?.email}
-      />
     </>,
     document.body
   )
