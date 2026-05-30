@@ -18,12 +18,15 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Install pg_dump + AWS CLI
+      - name: Install pg_dump
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          # Pin to the major version Railway runs so dumps are restore-compatible.
-          sudo apt-get install -y --no-install-recommends postgresql-client awscli
+          # AWS CLI v2 is preinstalled on GitHub's ubuntu-latest runners — no apt
+          # package is published anymore (Ubuntu 24.04 dropped it). We only need
+          # postgresql-client here for pg_dump.
+          sudo apt-get install -y --no-install-recommends postgresql-client
+          aws --version  # sanity: fail fast if the preinstalled CLI ever disappears
 
       - name: Compute timestamp
         id: ts
