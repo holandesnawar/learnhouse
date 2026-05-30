@@ -2,7 +2,7 @@
 import React from 'react'
 import FormLayout from '@components/Objects/StyledElements/Form/Form'
 import * as Form from '@radix-ui/react-form'
-import { AlertTriangle, ArrowLeft, CheckCircle, X } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, ArrowRight, CheckCircle, X } from 'lucide-react'
 import Link from 'next/link'
 import { useFormik } from 'formik'
 import { sendResetLink } from '@services/auth/auth'
@@ -22,6 +22,12 @@ const validate = (values: any, t: any) => {
 interface ForgotPasswordClientProps {
   org: any
 }
+
+// Matches the visual language of nawar-web/src/pages/acceso.astro:
+// dark Nawar gradient, logo on top, Poppins title with a soft white→translucent
+// gradient + #4da3ff accent, and #F0F5FF inputs with brand-blue text.
+const inputClass =
+  'w-full px-4 py-3.5 rounded-xl bg-[#F0F5FF] hover:bg-[#E5ECFF] focus:bg-white text-[#1D0084] placeholder:text-[#1D0084]/45 outline-none border border-transparent focus:border-[#4da3ff] focus:ring-[3px] focus:ring-[#4da3ff]/22 text-[15px] transition-colors'
 
 function ForgotPasswordClient({ org }: ForgotPasswordClientProps) {
   const { t } = useTranslation()
@@ -90,71 +96,92 @@ function ForgotPasswordClient({ org }: ForgotPasswordClientProps) {
         </div>
       )}
 
-      <div className="relative z-0 w-full max-w-sm text-center">
+      <div className="relative z-0 w-full max-w-[420px] flex flex-col items-center gap-8">
         {/* Logo */}
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-center">
           {org?.logo_image ? (
             <img
               src={getOrgLogoMediaDirectory(org.org_uuid, org.logo_image)}
               alt={org?.name}
-              className="h-12 object-contain"
+              className="h-12 sm:h-14 object-contain"
             />
           ) : (
             <span className="text-2xl font-bold text-white">{org?.name}</span>
           )}
         </div>
 
-        {/* Heading */}
-        <h1 className="text-3xl font-bold text-white">
-          {t('auth.forgot_password_title')}
-        </h1>
-        <p className="text-white/70 mt-1.5 mb-8">
-          {t('auth.forgot_password_description')}
-        </p>
-
-        {/* Form */}
-        <FormLayout onSubmit={formik.handleSubmit}>
-          <div className="space-y-4 text-left">
-            <Form.Field name="email" className="space-y-1.5">
-              <Form.Label className="block text-sm font-semibold text-white">
-                {t('auth.email')}
-              </Form.Label>
-              <Form.Control asChild>
-                <input
-                  type="email"
-                  placeholder="tu@email.com"
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  value={formik.values.email}
-                  required
-                  className="w-full rounded-lg bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-[#4da3ff]/60"
-                />
-              </Form.Control>
-              {formik.touched.email && formik.errors.email && (
-                <p className="text-xs text-rose-300">
-                  {formik.errors.email as string}
-                </p>
-              )}
-            </Form.Field>
-
-            <Form.Submit asChild>
-              <button className="w-full bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
-                {isSubmitting ? t('common.loading') : t('auth.send_reset_link')}
-              </button>
-            </Form.Submit>
-          </div>
-        </FormLayout>
-
-        {/* Back to Login */}
-        <p className="mt-6">
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 text-sm text-white/80 hover:text-white transition-colors"
+        <div className="w-full text-white/95">
+          <h1
+            className="text-center font-bold leading-[1.15]"
+            style={{
+              fontFamily: 'var(--font-poppins), system-ui, sans-serif',
+              fontSize: 'clamp(26px, 4vw, 32px)',
+              letterSpacing: '-0.02em',
+            }}
           >
-            <ArrowLeft size={16} />
-            {t('auth.back_to_login')}
-          </Link>
-        </p>
+            <span
+              style={{
+                background:
+                  'linear-gradient(180deg, #ffffff 0%, rgba(255,255,255,0.72) 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              ¿Olvidaste tu
+            </span>{' '}
+            <span style={{ color: '#4da3ff' }}>contraseña?</span>
+          </h1>
+          <p className="text-center text-[15px] text-white/70 mt-2 mb-7">
+            Dinos tu correo y te enviamos un enlace para recuperarla.
+          </p>
+
+          <FormLayout onSubmit={formik.handleSubmit}>
+            <div className="flex flex-col gap-4 text-left">
+              <Form.Field name="email" className="flex flex-col gap-1.5">
+                <Form.Label className="text-[13px] font-semibold text-white/90 tracking-[0.01em]">
+                  {t('auth.email')}
+                </Form.Label>
+                <Form.Control asChild>
+                  <input
+                    type="email"
+                    placeholder="tu@email.com"
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    value={formik.values.email}
+                    autoComplete="email"
+                    required
+                    className={inputClass}
+                  />
+                </Form.Control>
+                {formik.touched.email && formik.errors.email && (
+                  <p className="text-xs text-rose-300">
+                    {formik.errors.email as string}
+                  </p>
+                )}
+              </Form.Field>
+
+              <Form.Submit asChild>
+                <button className="mt-2 w-full inline-flex items-center justify-center gap-2.5 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#1D0084] font-bold py-3.5 rounded-xl transition-colors text-[15px]">
+                  {isSubmitting ? t('common.loading') : (
+                    <>
+                      {t('auth.send_reset_link')}
+                      <ArrowRight size={15} strokeWidth={2.5} />
+                    </>
+                  )}
+                </button>
+              </Form.Submit>
+            </div>
+          </FormLayout>
+        </div>
+
+        <Link
+          href="/login"
+          className="inline-flex items-center gap-2 text-[13px] text-white/55 hover:text-white/90 transition-colors"
+        >
+          <ArrowLeft size={14} />
+          {t('auth.back_to_login')}
+        </Link>
       </div>
     </div>
   )

@@ -2,7 +2,7 @@
 import React from 'react'
 import FormLayout from '@components/Objects/StyledElements/Form/Form'
 import * as Form from '@radix-ui/react-form'
-import { AlertTriangle, CheckCircle, Eye, EyeOff, X } from 'lucide-react'
+import { AlertTriangle, ArrowRight, CheckCircle, Eye, EyeOff, X } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useFormik } from 'formik'
@@ -41,6 +41,10 @@ const validate = (values: any, t: any) => {
 interface CrearCuentaClientProps {
   org: any
 }
+
+const inputBase =
+  'w-full px-4 py-3.5 rounded-xl bg-[#F0F5FF] hover:bg-[#E5ECFF] focus:bg-white text-[#1D0084] placeholder:text-[#1D0084]/45 outline-none border border-transparent focus:border-[#4da3ff] focus:ring-[3px] focus:ring-[#4da3ff]/22 text-[15px] transition-colors'
+const inputWithEye = `${inputBase} pr-11`
 
 function CrearCuentaClient({ org }: CrearCuentaClientProps) {
   const { t } = useTranslation()
@@ -86,10 +90,6 @@ function CrearCuentaClient({ org }: CrearCuentaClientProps) {
       }
     },
   })
-
-  const inputBase =
-    'w-full rounded-lg bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-[#4da3ff]/60'
-  const inputWithEye = `${inputBase} pr-11`
 
   return (
     <div
@@ -138,117 +138,144 @@ function CrearCuentaClient({ org }: CrearCuentaClientProps) {
         </div>
       )}
 
-      <div className="relative z-0 w-full max-w-sm text-center">
-        <div className="flex justify-center mb-6">
+      <div className="relative z-0 w-full max-w-[420px] flex flex-col items-center gap-8">
+        <div className="flex justify-center">
           {org?.logo_image ? (
             <img
               src={getOrgLogoMediaDirectory(org.org_uuid, org.logo_image)}
               alt={org?.name}
-              className="h-12 object-contain"
+              className="h-12 sm:h-14 object-contain"
             />
           ) : (
             <span className="text-2xl font-bold text-white">{org?.name}</span>
           )}
         </div>
 
-        <h1 className="text-3xl font-bold text-white">Crea tu cuenta</h1>
-        <p className="text-white/70 mt-1.5 mb-8">
-          Pon una contraseña para entrar a la academia.
-        </p>
-
-        <FormLayout onSubmit={formik.handleSubmit}>
-          <div className="space-y-4 text-left">
-            {/* Email — pre-llenado y solo lectura porque viene del email de bienvenida */}
-            <Form.Field name="email" className="space-y-1.5">
-              <Form.Label className="block text-sm font-semibold text-white">
-                {t('auth.email')}
-              </Form.Label>
-              <Form.Control asChild>
-                <input
-                  type="email"
-                  value={formik.values.email}
-                  readOnly
-                  className={`${inputBase} bg-white/90 cursor-not-allowed`}
-                />
-              </Form.Control>
-            </Form.Field>
-
-            {/* Hidden reset_code — viene de la URL, no la mostramos */}
-            <input type="hidden" name="reset_code" value={formik.values.reset_code} />
-
-            <Form.Field name="new_password" className="space-y-1.5">
-              <Form.Label className="block text-sm font-semibold text-white">
-                Contraseña
-              </Form.Label>
-              <div className="relative">
-                <Form.Control asChild>
-                  <input
-                    type={showNewPassword ? 'text' : 'password'}
-                    autoComplete="new-password"
-                    onChange={formik.handleChange}
-                    value={formik.values.new_password}
-                    className={inputWithEye}
-                  />
-                </Form.Control>
-                <button
-                  type="button"
-                  onClick={() => setShowNewPassword((v) => !v)}
-                  aria-label={showNewPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                  className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors"
-                >
-                  {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              <PasswordStrengthIndicator password={formik.values.new_password} />
-              {formik.touched.new_password && formik.errors.new_password && (
-                <p className="text-xs text-rose-300">{formik.errors.new_password as string}</p>
-              )}
-            </Form.Field>
-
-            <Form.Field name="confirm_password" className="space-y-1.5">
-              <Form.Label className="block text-sm font-semibold text-white">
-                Confirmar contraseña
-              </Form.Label>
-              <div className="relative">
-                <Form.Control asChild>
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    autoComplete="new-password"
-                    onChange={formik.handleChange}
-                    value={formik.values.confirm_password}
-                    className={inputWithEye}
-                  />
-                </Form.Control>
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword((v) => !v)}
-                  aria-label={showConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                  className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors"
-                >
-                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              {formik.touched.confirm_password && formik.errors.confirm_password && (
-                <p className="text-xs text-rose-300">{formik.errors.confirm_password as string}</p>
-              )}
-            </Form.Field>
-
-            <Form.Submit asChild>
-              <button className="w-full bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
-                {isSubmitting ? t('common.loading') : 'Crear cuenta y entrar'}
-              </button>
-            </Form.Submit>
-          </div>
-        </FormLayout>
-
-        <p className="mt-6">
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 text-sm text-white/80 hover:text-white transition-colors"
+        <div className="w-full text-white/95">
+          <h1
+            className="text-center font-bold leading-[1.15]"
+            style={{
+              fontFamily: 'var(--font-poppins), system-ui, sans-serif',
+              fontSize: 'clamp(26px, 4vw, 32px)',
+              letterSpacing: '-0.02em',
+            }}
           >
-            Ya tengo cuenta — Entrar
-          </Link>
-        </p>
+            <span
+              style={{
+                background:
+                  'linear-gradient(180deg, #ffffff 0%, rgba(255,255,255,0.72) 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              Crea tu
+            </span>{' '}
+            <span style={{ color: '#4da3ff' }}>cuenta</span>
+          </h1>
+          <p className="text-center text-[15px] text-white/70 mt-2 mb-7">
+            Pon una contraseña para entrar a la academia.
+          </p>
+
+          <FormLayout onSubmit={formik.handleSubmit}>
+            <div className="flex flex-col gap-4 text-left">
+              {/* Email — pre-llenado y solo lectura porque viene del email de bienvenida */}
+              <Form.Field name="email" className="flex flex-col gap-1.5">
+                <Form.Label className="text-[13px] font-semibold text-white/90 tracking-[0.01em]">
+                  {t('auth.email')}
+                </Form.Label>
+                <Form.Control asChild>
+                  <input
+                    type="email"
+                    value={formik.values.email}
+                    readOnly
+                    className={`${inputBase} cursor-not-allowed opacity-90`}
+                  />
+                </Form.Control>
+              </Form.Field>
+
+              {/* Hidden reset_code — viene de la URL, no la mostramos */}
+              <input type="hidden" name="reset_code" value={formik.values.reset_code} />
+
+              <Form.Field name="new_password" className="flex flex-col gap-1.5">
+                <Form.Label className="text-[13px] font-semibold text-white/90 tracking-[0.01em]">
+                  Contraseña
+                </Form.Label>
+                <div className="relative">
+                  <Form.Control asChild>
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      autoComplete="new-password"
+                      onChange={formik.handleChange}
+                      value={formik.values.new_password}
+                      className={inputWithEye}
+                    />
+                  </Form.Control>
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword((v) => !v)}
+                    tabIndex={-1}
+                    aria-label={showNewPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    className="absolute top-1/2 right-3 -translate-y-1/2 text-[#1D0084]/60 hover:text-[#1D0084] transition-colors"
+                  >
+                    {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <PasswordStrengthIndicator password={formik.values.new_password} />
+                {formik.touched.new_password && formik.errors.new_password && (
+                  <p className="text-xs text-rose-300">{formik.errors.new_password as string}</p>
+                )}
+              </Form.Field>
+
+              <Form.Field name="confirm_password" className="flex flex-col gap-1.5">
+                <Form.Label className="text-[13px] font-semibold text-white/90 tracking-[0.01em]">
+                  Confirmar contraseña
+                </Form.Label>
+                <div className="relative">
+                  <Form.Control asChild>
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      autoComplete="new-password"
+                      onChange={formik.handleChange}
+                      value={formik.values.confirm_password}
+                      className={inputWithEye}
+                    />
+                  </Form.Control>
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((v) => !v)}
+                    tabIndex={-1}
+                    aria-label={showConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    className="absolute top-1/2 right-3 -translate-y-1/2 text-[#1D0084]/60 hover:text-[#1D0084] transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                {formik.touched.confirm_password && formik.errors.confirm_password && (
+                  <p className="text-xs text-rose-300">{formik.errors.confirm_password as string}</p>
+                )}
+              </Form.Field>
+
+              <Form.Submit asChild>
+                <button className="mt-2 w-full inline-flex items-center justify-center gap-2.5 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#1D0084] font-bold py-3.5 rounded-xl transition-colors text-[15px]">
+                  {isSubmitting ? t('common.loading') : (
+                    <>
+                      Crear cuenta y entrar
+                      <ArrowRight size={15} strokeWidth={2.5} />
+                    </>
+                  )}
+                </button>
+              </Form.Submit>
+            </div>
+          </FormLayout>
+        </div>
+
+        <Link
+          href="/login"
+          className="text-[13px] text-white/55 hover:text-white/90 transition-colors"
+        >
+          Ya tengo cuenta — Entrar
+        </Link>
       </div>
     </div>
   )
