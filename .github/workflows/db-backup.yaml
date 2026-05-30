@@ -18,15 +18,24 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Install pg_dump
+      - name: Install pg_dump (matching Railway's Postgres major)
         run: |
           set -euo pipefail
+          # Railway runs Postgres 18, and pg_dump refuses to dump a newer server
+          # than itself. Ubuntu 24.04 only ships pg 16 in default repos, so we
+          # add the PGDG repository to get postgresql-client-18.
           sudo apt-get update -qq
-          # AWS CLI v2 is preinstalled on GitHub's ubuntu-latest runners — no apt
-          # package is published anymore (Ubuntu 24.04 dropped it). We only need
-          # postgresql-client here for pg_dump.
-          sudo apt-get install -y --no-install-recommends postgresql-client
-          aws --version  # sanity: fail fast if the preinstalled CLI ever disappears
+          sudo apt-get install -y --no-install-recommends curl ca-certificates lsb-release gnupg
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] \
+            https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends postgresql-client-18
+          pg_dump --version  # should show 18.x
+          aws --version       # CLI v2 is preinstalled on ubuntu-latest
 
       - name: Compute timestamp
         id: ts
