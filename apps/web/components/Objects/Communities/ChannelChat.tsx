@@ -7,17 +7,19 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 import utc from 'dayjs/plugin/utc'
 import 'dayjs/locale/es'
 import { PaperPlaneRight } from '@phosphor-icons/react'
-import { Loader2, MessageCircle } from 'lucide-react'
+import { Loader2, MessageCircle, Pin, PinOff } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useDiscussions, useMutateDiscussions } from '@components/Hooks/useDiscussions'
 import {
   createDiscussion,
+  pinDiscussion,
   DiscussionWithAuthor,
   DiscussionAuthor,
 } from '@services/communities/discussions'
 import { getUserAvatarMediaDirectory } from '@services/media/media'
 import UserAvatar from '@components/Objects/UserAvatar'
 import AuthenticatedClientElement from '@components/Security/AuthenticatedClientElement'
+import useAdminStatus from '@components/Hooks/useAdminStatus'
 
 dayjs.extend(relativeTime)
 dayjs.extend(utc)
@@ -84,7 +86,22 @@ export function ChannelChat({
   const { t } = useTranslation()
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
+  const { isAdmin } = useAdminStatus() as any
   const mutateDiscussions = useMutateDiscussions()
+  const [pinningUuid, setPinningUuid] = useState<string | null>(null)
+
+  const togglePin = async (uuid: string, next: boolean) => {
+    if (!accessToken || pinningUuid) return
+    setPinningUuid(uuid)
+    try {
+      await pinDiscussion(uuid, next, accessToken)
+      mutateDiscussions(communityUuid)
+    } catch (e: any) {
+      toast.error('No se pudo cambiar el estado del mensaje.')
+    } finally {
+      setPinningUuid(null)
+    }
+  }
 
   const { discussions, isLoading } = useDiscussions({
     communityUuid,
@@ -174,7 +191,10 @@ export function ChannelChat({
               const prev = messages[i - 1]
               const grouped = prev && prev.author?.id === m.author?.id
               return (
-                <div key={m.discussion_uuid} className={`flex gap-2.5 px-4 ${grouped ? 'py-0.5' : 'pt-3 pb-0.5'}`}>
+                <div
+                  key={m.discussion_uuid}
+                  className={`group/msg relative flex gap-2.5 px-4 ${grouped ? 'py-0.5' : 'pt-3 pb-0.5'} ${m.is_pinned ? 'bg-[#F0F5FF]/50' : ''}`}
+                >
                   <div className="w-8 shrink-0">
                     {!grouped && (
                       <UserAvatar
@@ -192,12 +212,39 @@ export function ChannelChat({
                       <div className="flex items-baseline gap-2">
                         <span className="text-sm font-semibold text-gray-900">{authorName(m.author)}</span>
                         <span className="text-[11px] text-gray-400">{relativeFromNow(m.creation_date)}</span>
+                        {m.is_pinned && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wider text-[#025dc7]">
+                            <Pin size={10} /> Fijado
+                          </span>
+                        )}
                       </div>
                     )}
                     <p className="text-sm text-gray-700 whitespace-pre-wrap break-words leading-relaxed">
                       {messageText(m)}
                     </p>
                   </div>
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => togglePin(m.discussion_uuid, !m.is_pinned)}
+                      disabled={pinningUuid === m.discussion_uuid}
+                      title={m.is_pinned ? 'Desfijar' : 'Fijar mensaje'}
+                      aria-label={m.is_pinned ? 'Desfijar mensaje' : 'Fijar mensaje'}
+                      className={`absolute top-2 right-3 inline-flex items-center justify-center w-7 h-7 rounded-md transition-all ${
+                        m.is_pinned
+                          ? 'text-[#025dc7] hover:bg-[#025dc7]/10'
+                          : 'text-gray-400 hover:text-[#025dc7] hover:bg-[#025dc7]/10 opacity-0 group-hover/msg:opacity-100'
+                      } ${pinningUuid === m.discussion_uuid ? 'opacity-60 pointer-events-none' : ''}`}
+                    >
+                      {pinningUuid === m.discussion_uuid ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : m.is_pinned ? (
+                        <PinOff size={14} />
+                      ) : (
+                        <Pin size={14} />
+                      )}
+                    </button>
+                  )}
                 </div>
               )
             })}
