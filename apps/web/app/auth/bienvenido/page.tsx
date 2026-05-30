@@ -43,7 +43,7 @@ export default function BienvenidoPage() {
 
         <div className="mt-8 space-y-3">
           <Link
-            href="/login"
+            href="/auth/login"
             className="inline-flex items-center justify-center w-full px-5 py-3 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] font-bold transition-colors"
           >
             Ya creé mi contraseña — Entrar
