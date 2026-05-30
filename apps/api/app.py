@@ -12,8 +12,6 @@
 import logging
 
 import uvicorn
-import sentry_sdk
-from sentry_sdk.integrations.logging import LoggingIntegration
 from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
 
@@ -27,23 +25,6 @@ from src.routers.local_content import router as local_content_router
 
 
 learnhouse_config: LearnHouseConfig = get_learnhouse_config()
-
-if learnhouse_config.general_config.sentry_config.dsn:
-    sentry_sdk.init(
-        dsn=learnhouse_config.general_config.sentry_config.dsn,
-        environment=learnhouse_config.general_config.env,
-        send_default_pii=False,
-        enable_logs=True,
-        traces_sample_rate=1.0 if learnhouse_config.general_config.development_mode else 0.3,
-        profile_session_sample_rate=1.0 if learnhouse_config.general_config.development_mode else 0.1,
-        profile_lifecycle="trace",
-        integrations=[
-            LoggingIntegration(
-                level=logging.INFO,
-                event_level=logging.ERROR,
-            ),
-        ],
-    )
 
 app = FastAPI(
     title=learnhouse_config.site_name,

@@ -26,7 +26,7 @@ export default function ExerciseProgressCard({ orgslug }: { orgslug: string }) {
   const practiced = data?.practiced ?? 0
 
   return (
-    <div className="mb-10 bg-white nice-shadow rounded-lg p-5 sm:p-6">
+    <div className="mb-10 bg-white nice-shadow rounded-2xl p-5 sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <div className="w-10 h-10 rounded-xl bg-[#025dc7]/10 flex items-center justify-center shrink-0">
@@ -41,7 +41,7 @@ export default function ExerciseProgressCard({ orgslug }: { orgslug: string }) {
         </div>
         <Link
           href={getUriWithOrg(orgslug, '/ejercicios')}
-          className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#4da3ff] text-[#0a1656] text-sm font-semibold hover:bg-[#6cb5ff]"
+          className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#4da3ff] text-[#1D0084] text-sm font-semibold hover:bg-[#6cb5ff]"
         >
           Practicar <ArrowRight size={15} />
         </Link>

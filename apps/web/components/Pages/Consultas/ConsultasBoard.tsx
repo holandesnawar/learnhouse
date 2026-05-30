@@ -14,7 +14,7 @@ import {
 
 function catClasses(color?: string): string {
   switch (color) {
-    case 'blue':   return 'bg-blue-50 text-blue-700 border-blue-100'
+    case 'blue':   return 'bg-[#F0F5FF] text-[#025dc7] border-[#DDE6F5]'
     case 'green':  return 'bg-emerald-50 text-emerald-700 border-emerald-100'
     case 'purple': return 'bg-purple-50 text-purple-700 border-purple-100'
     case 'yellow': return 'bg-amber-50 text-amber-700 border-amber-100'
@@ -165,7 +165,7 @@ export default function ConsultasBoard() {
         </div>
         <button
           onClick={openNew}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] text-sm font-bold transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#1D0084] text-sm font-bold transition-colors"
         >
           <Plus size={17} /> Nueva consulta
         </button>
@@ -352,7 +352,7 @@ export default function ConsultasBoard() {
               <button
                 onClick={submitForm}
                 disabled={submitting}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] text-sm font-bold disabled:opacity-60"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#1D0084] text-sm font-bold disabled:opacity-60"
               >
                 {submitting && <Loader2 size={15} className="animate-spin" />}
                 {form.editingId ? 'Guardar cambios' : 'Publicar consulta'}

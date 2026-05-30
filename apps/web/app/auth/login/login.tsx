@@ -3,7 +3,7 @@ import FormLayout from '@components/Objects/StyledElements/Form/Form'
 import * as Form from '@radix-ui/react-form'
 import { useFormik } from 'formik'
 import React, { useState, useEffect } from 'react'
-import { AlertTriangle, Lock, Mail, Shield, X, Clock } from 'lucide-react'
+import { AlertTriangle, Lock, Mail, Shield, X, Clock, Eye, EyeOff, ArrowRight } from 'lucide-react'
 import { checkSSOEnabled, redirectToSSOLogin } from '@services/auth/sso'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -34,6 +34,7 @@ const LoginClient = (props: LoginClientProps) => {
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null)
   const [isResendingVerification, setIsResendingVerification] = useState(false)
   const [verificationResent, setVerificationResent] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [showErrorModal, setShowErrorModal] = useState(false)
   const [retryAfter, setRetryAfter] = useState<number | null>(null)
 
@@ -277,31 +278,56 @@ const LoginClient = (props: LoginClientProps) => {
           </div>
         )}
 
-        <div className="relative z-0 w-full max-w-sm text-center">
-          {/* Logo */}
-          <div className="flex justify-center mb-6">
+        <div className="relative z-0 w-full max-w-[420px] flex flex-col items-center gap-8">
+          {/* Logo — same scale as nawar-web acceso.astro */}
+          <div className="flex justify-center">
             {props.org?.logo_image ? (
               <img
                 src={getOrgLogoMediaDirectory(props.org.org_uuid, props.org.logo_image)}
                 alt={props.org?.name}
-                className="h-12 object-contain"
+                className="h-12 sm:h-14 object-contain"
               />
             ) : (
               <span className="text-2xl font-bold text-white">{props.org?.name}</span>
             )}
           </div>
 
-          {/* Heading */}
-          <h1 className="text-3xl font-bold text-white">
-            Bienvenid<span className="text-[#4da3ff]">@</span> de vuelta
-          </h1>
-          <p className="text-white/70 mt-1.5 mb-8">{t('auth.enter_credentials')}</p>
+          {/* Open block — no glass card, matches the nawar-web look */}
+          <div className="w-full text-white/95">
+            {/* Title: "Bienvenid@" in a soft white gradient + "de vuelta" in #4da3ff,
+                stacked the same way as nawar-web/src/pages/acceso.astro */}
+            <h1
+              className="text-center font-bold leading-[1.15]"
+              style={{
+                fontFamily: 'var(--font-poppins), system-ui, sans-serif',
+                fontSize: 'clamp(26px, 4vw, 32px)',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              <span
+                style={{
+                  background:
+                    'linear-gradient(180deg, #ffffff 0%, rgba(255,255,255,0.72) 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }}
+              >
+                Bienvenid@
+              </span>{' '}
+              <span style={{ color: '#4da3ff' }}>de vuelta</span>
+            </h1>
+            <p className="text-center text-[15px] text-white/70 mt-2 mb-7">
+              Accede a tu plataforma de alumno.
+            </p>
 
-          {/* Form */}
+          {/* Form — open block (no card), inputs in #F0F5FF with brand-blue text */}
           <FormLayout onSubmit={formik.handleSubmit}>
-            <div className="space-y-4 text-left">
-              <Form.Field name="email" className="space-y-1.5">
-                <Form.Label className="block text-sm font-semibold text-white">{t('auth.email')}</Form.Label>
+            <div className="flex flex-col gap-4 text-left">
+              <Form.Field name="email" className="flex flex-col gap-1.5">
+                <Form.Label className="text-[13px] font-semibold text-white/90 tracking-[0.01em]">
+                  {t('auth.email')}
+                </Form.Label>
                 <Form.Control asChild>
                   <input
                     type="email"
@@ -309,7 +335,8 @@ const LoginClient = (props: LoginClientProps) => {
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
                     value={formik.values.email}
-                    className="w-full rounded-lg bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-[#4da3ff]/60"
+                    autoComplete="email"
+                    className="w-full px-4 py-3.5 rounded-xl bg-[#F0F5FF] hover:bg-[#E5ECFF] focus:bg-white text-[#1D0084] placeholder:text-[#1D0084]/45 outline-none border border-transparent focus:border-[#4da3ff] focus:ring-[3px] focus:ring-[#4da3ff]/22 text-[15px] transition-colors"
                   />
                 </Form.Control>
                 {formik.touched.email && formik.errors.email && (
@@ -317,26 +344,39 @@ const LoginClient = (props: LoginClientProps) => {
                 )}
               </Form.Field>
 
-              <Form.Field name="password" className="space-y-1.5">
-                <Form.Label className="block text-sm font-semibold text-white">{t('auth.password')}</Form.Label>
-                <Form.Control asChild>
-                  <input
-                    type="password"
-                    autoComplete="current-password"
-                    placeholder="••••••••"
-                    onChange={formik.handleChange}
-                    onBlur={formik.handleBlur}
-                    value={formik.values.password}
-                    className="w-full rounded-lg bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-[#4da3ff]/60"
-                  />
-                </Form.Control>
+              <Form.Field name="password" className="flex flex-col gap-1.5">
+                <Form.Label className="text-[13px] font-semibold text-white/90 tracking-[0.01em]">
+                  {t('auth.password')}
+                </Form.Label>
+                <div className="relative">
+                  <Form.Control asChild>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      placeholder="••••••••"
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                      value={formik.values.password}
+                      className="w-full px-4 py-3.5 pr-11 rounded-xl bg-[#F0F5FF] hover:bg-[#E5ECFF] focus:bg-white text-[#1D0084] placeholder:text-[#1D0084]/45 outline-none border border-transparent focus:border-[#4da3ff] focus:ring-[3px] focus:ring-[#4da3ff]/22 text-[15px] transition-colors"
+                    />
+                  </Form.Control>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    tabIndex={-1}
+                    aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#1D0084]/60 hover:text-[#1D0084] transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
                 {formik.touched.password && formik.errors.password && (
                   <p className="text-xs text-rose-300">{formik.errors.password as string}</p>
                 )}
               </Form.Field>
 
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 text-xs text-white/80 cursor-pointer select-none">
+              <div className="flex items-center justify-between pt-1">
+                <label className="flex items-center gap-2 text-[12.5px] text-white/75 cursor-pointer select-none">
                   <input
                     type="checkbox"
                     checked={rememberMe}
@@ -345,18 +385,45 @@ const LoginClient = (props: LoginClientProps) => {
                   />
                   Recuérdame
                 </label>
-                <Link href="/forgot" className="text-xs text-white/80 hover:text-white transition-colors">
+                <Link
+                  href="/forgot"
+                  className="text-[12.5px] text-white/75 hover:text-white underline underline-offset-2 transition-colors"
+                >
                   {t('auth.forgot_password')}
                 </Link>
               </div>
 
               <Form.Submit asChild>
-                <button className="w-full bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
-                  {isSubmitting ? t('common.loading') : <>Acceder <span aria-hidden>→</span></>}
+                <button className="mt-2 w-full inline-flex items-center justify-center gap-2.5 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#1D0084] font-bold py-3.5 rounded-xl transition-colors text-[15px]">
+                  {isSubmitting ? t('common.loading') : (
+                    <>
+                      Entrar
+                      <ArrowRight size={15} strokeWidth={2.5} />
+                    </>
+                  )}
                 </button>
               </Form.Submit>
+
+              <p className="text-center text-[13px] text-white/55 mt-4">
+                ¿Problemas para entrar?{' '}
+                <a
+                  href="mailto:info@holandesnawar.com"
+                  className="text-white/85 underline underline-offset-2 hover:text-white transition-colors"
+                >
+                  Escríbenos
+                </a>
+                .
+              </p>
             </div>
           </FormLayout>
+          </div>
+
+          <a
+            href="https://www.holandesnawar.com"
+            className="text-[13px] text-white/55 hover:text-white/90 transition-colors"
+          >
+            ← Volver a la web
+          </a>
         </div>
     </div>
   )

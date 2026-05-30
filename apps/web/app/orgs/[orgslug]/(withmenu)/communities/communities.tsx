@@ -51,7 +51,7 @@ const CommunitiesClient = ({ communities, orgslug, org_id }: CommunitiesClientPr
           >
             <button
               onClick={() => setIsCreateModalOpen(true)}
-              className="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] text-[#0a1656] font-semibold text-sm hover:bg-[#6cb5ff] transition-colors"
+              className="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] text-[#1D0084] font-semibold text-sm hover:bg-[#6cb5ff] transition-colors"
             >
               <Plus size={16} />
               Nuevo canal

@@ -782,7 +782,7 @@ function ActivityClient(props: ActivityClientProps) {
                               onClick={() => navigateToActivity(nextActivity)}
                               className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-colors ${
                                 nextActivity
-                                  ? 'bg-[#4da3ff] text-[#0a1656] hover:bg-[#6cb5ff] cursor-pointer'
+                                  ? 'bg-[#4da3ff] text-[#1D0084] hover:bg-[#6cb5ff] cursor-pointer'
                                   : 'opacity-40 bg-gray-200 text-gray-400 cursor-not-allowed'
                               }`}
                               disabled={!nextActivity}
@@ -1313,9 +1313,9 @@ function NextActivityButton({ course, currentActivityId, orgslug }: { course: an
   return (
     <div
       onClick={navigateToActivity}
-      className="bg-[#4da3ff] rounded-lg px-3 sm:px-4 nice-shadow flex flex-col p-2 sm:p-2.5 text-[#0a1656] hover:cursor-pointer hover:bg-[#6cb5ff] transition-colors"
+      className="bg-[#4da3ff] rounded-lg px-3 sm:px-4 nice-shadow flex flex-col p-2 sm:p-2.5 text-[#1D0084] hover:cursor-pointer hover:bg-[#6cb5ff] transition-colors"
     >
-      <span className="text-[10px] font-bold text-[#0a1656]/60 mb-1 uppercase">
+      <span className="text-[10px] font-bold text-[#1D0084]/60 mb-1 uppercase">
         {isLast ? 'Finalizar' : t('common.next')}
       </span>
       <div className="flex items-center space-x-1">

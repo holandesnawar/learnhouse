@@ -103,7 +103,7 @@ function GradientBar({ pct, label, subLabel }: { pct: number; label?: string; su
       {(label || subLabel) && (
         <div className="flex items-center justify-between gap-3">
           <div>
-            {label && <p className="text-[14px] font-bold text-[#1D0084] leading-tight">{label}</p>}
+            {label && <p className="text-[14px] font-bold text-gray-900 leading-tight">{label}</p>}
             {subLabel && <p className="text-[11px] text-[#9CA3AF] font-medium leading-tight">{subLabel}</p>}
           </div>
           <span className="text-[12px] font-bold text-[#025dc7] bg-[#EEF4FF] px-2 py-0.5 rounded-full shrink-0">{pct}%</span>
@@ -309,7 +309,7 @@ function StepBar({ steps, current }: {
 
   return (
     <div className="flex-1 flex items-center gap-3 min-w-0">
-      <p className="text-[20px] font-bold text-[#1D0084] leading-tight truncate" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+      <p className="text-[20px] font-bold text-gray-900 leading-tight truncate" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
         {meta.emoji} {meta.label}
       </p>
       {!isContentStep && (
@@ -352,7 +352,7 @@ function WordCard({ word }: { word: VocabularyItem }) {
               {word.article}
             </span>
           )}
-          <span className="text-[14px] font-bold text-[#1D0084] leading-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+          <span className="text-[14px] font-bold text-gray-900 leading-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
             {word.dutch}
           </span>
         </div>
@@ -413,7 +413,7 @@ function WordsStep({ items, onDone, onSubProgress }: {
         <button
           onClick={() => setPage(p => p - 1)}
           disabled={page === 0}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#F0F5FF] text-[#1D0084] text-[14px] font-semibold border border-[#DDE6F5] hover:bg-[#e0eaff] transition-colors duration-200 disabled:opacity-30 disabled:pointer-events-none"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#F0F5FF] text-gray-900 text-[14px] font-semibold border border-[#DDE6F5] hover:bg-[#e0eaff] transition-colors duration-200 disabled:opacity-30 disabled:pointer-events-none"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -429,14 +429,14 @@ function WordsStep({ items, onDone, onSubProgress }: {
           ))}
         </div>
         {isLastPage ? (
-          <button onClick={onDone} className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[14px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200">
+          <button onClick={onDone} className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[14px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200">
             Siguiente paso
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </button>
         ) : (
-          <button onClick={() => setPage(p => p + 1)} className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[14px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200">
+          <button onClick={() => setPage(p => p + 1)} className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[14px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200">
             Siguiente
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -527,7 +527,7 @@ function PhrasesStep({ items, onDone, onBack, onSubProgress }: {
 
       <div className="bg-white rounded-2xl border border-[#DDE6F5] p-6 space-y-4">
         <div className="flex items-start justify-between gap-3">
-          <h2 className="text-[22px] font-bold text-[#1D0084] leading-tight flex-1" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+          <h2 className="text-[22px] font-bold text-gray-900 leading-tight flex-1" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
             {phrase.dutch}
           </h2>
           <button
@@ -547,14 +547,14 @@ function PhrasesStep({ items, onDone, onBack, onSubProgress }: {
         </div>
         <div className="rounded-lg bg-[#F0F5FF] px-4 py-3 border border-[#DDE6F5]">
           <p className="text-[11px] font-semibold text-[#9CA3AF] mb-1 uppercase tracking-widest">Traducción</p>
-          <p className="text-[15px] text-[#1D0084] font-medium leading-snug">{phrase.spanish}</p>
+          <p className="text-[15px] text-gray-900 font-medium leading-snug">{phrase.spanish}</p>
         </div>
       </div>
 
       <div className="flex items-center gap-3">
         <button
           onClick={() => { stopAudio(); if (index === 0) onBack(); else navigate(index - 1); }}
-          className="flex items-center gap-2 px-5 py-3 rounded-lg bg-[#F0F5FF] text-[#1D0084] text-[14px] font-semibold border border-[#DDE6F5] hover:bg-[#e0eaff] transition-colors duration-200 shrink-0"
+          className="flex items-center gap-2 px-5 py-3 rounded-lg bg-[#F0F5FF] text-gray-900 text-[14px] font-semibold border border-[#DDE6F5] hover:bg-[#e0eaff] transition-colors duration-200 shrink-0"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -563,7 +563,7 @@ function PhrasesStep({ items, onDone, onBack, onSubProgress }: {
         </button>
         <button
           onClick={() => { stopAudio(); if (isLast) handleDone(); else navigate(index + 1); }}
-          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[14px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200"
+          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[14px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200"
         >
           {isLast ? 'Siguiente paso' : 'Siguiente'}
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -755,7 +755,7 @@ function ExerciseRunner({ exercises, onDone, onBack, hasBackStep, onSubProgress,
           onClick={canGoBack ? handlePrev : undefined}
           aria-label="Anterior"
           className={`hidden md:flex absolute left-0 top-5 w-11 h-11 items-center justify-center rounded-2xl transition-all duration-200 ${
-            canGoBack ? 'text-[#9CA3AF] hover:bg-[#F0F5FF] hover:text-[#1D0084] cursor-pointer' : 'text-[#E8ECF4] pointer-events-none'
+            canGoBack ? 'text-[#9CA3AF] hover:bg-[#F0F5FF] hover:text-[#025dc7] cursor-pointer' : 'text-[#E8ECF4] pointer-events-none'
           }`}
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -772,8 +772,8 @@ function ExerciseRunner({ exercises, onDone, onBack, hasBackStep, onSubProgress,
           aria-label={isLast ? 'Siguiente paso' : 'Siguiente ejercicio'}
           className={`hidden md:flex absolute right-0 top-5 w-11 h-11 items-center justify-center rounded-2xl transition-all duration-300 ${
             currentAnswered
-              ? 'bg-[#4da3ff] text-[#0a1656] cursor-pointer hover:bg-[#6cb5ff]'
-              : 'bg-[#F0F5FF] text-[#1D0084] cursor-pointer hover:bg-[#e0eaff] border border-[#DDE6F5]'
+              ? 'bg-[#4da3ff] text-[#1D0084] cursor-pointer hover:bg-[#6cb5ff]'
+              : 'bg-[#F0F5FF] text-gray-900 cursor-pointer hover:bg-[#e0eaff] border border-[#DDE6F5]'
           }`}
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -787,7 +787,7 @@ function ExerciseRunner({ exercises, onDone, onBack, hasBackStep, onSubProgress,
         <button
           onClick={handlePrev}
           disabled={!canGoBack}
-          className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-white text-[#5A6480] text-[13px] font-semibold border border-[#DDE6F5] hover:text-[#1D0084] hover:border-[#1D0084]/30 disabled:opacity-40 transition-colors duration-200 shrink-0"
+          className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-white text-[#5A6480] text-[13px] font-semibold border border-[#DDE6F5] hover:text-[#025dc7] hover:border-[#1D0084]/30 disabled:opacity-40 transition-colors duration-200 shrink-0"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -797,8 +797,8 @@ function ExerciseRunner({ exercises, onDone, onBack, hasBackStep, onSubProgress,
           onClick={handleNext}
           className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-[15px] font-semibold transition-colors duration-200 ${
             currentAnswered
-              ? 'bg-[#4da3ff] text-[#0a1656] hover:bg-[#6cb5ff]'
-              : 'bg-[#F0F5FF] text-[#1D0084] border border-[#DDE6F5] hover:bg-[#e0eaff]'
+              ? 'bg-[#4da3ff] text-[#1D0084] hover:bg-[#6cb5ff]'
+              : 'bg-[#F0F5FF] text-gray-900 border border-[#DDE6F5] hover:bg-[#e0eaff]'
           }`}
         >
           {currentAnswered ? (isLast ? 'Siguiente paso' : 'Siguiente') : (isLast ? 'Saltar al siguiente paso' : 'Saltar')}
@@ -839,7 +839,7 @@ function ClassifyStep({ groups, items, onDone, onBack }: { groups: ClassifyGroup
       <div className="flex items-center justify-between">
         <button
           onClick={() => { if (index > 0) { setIndex(i => i - 1); setResult(null); } else { onBack(); } }}
-          className="flex items-center gap-1.5 text-[12px] font-semibold text-[#9CA3AF] hover:text-[#1D0084] transition-colors duration-200"
+          className="flex items-center gap-1.5 text-[12px] font-semibold text-[#9CA3AF] hover:text-[#025dc7] transition-colors duration-200"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -856,10 +856,10 @@ function ClassifyStep({ groups, items, onDone, onBack }: { groups: ClassifyGroup
 
       <div className="flex flex-col items-center justify-center rounded-2xl border border-[#DDE6F5] bg-white py-10 px-6 gap-3 text-center">
         <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest">¿A qué grupo pertenece? · {index + 1}/{queue.length}</p>
-        <p className="text-[30px] font-bold text-[#1D0084]" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+        <p className="text-[30px] font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
           {current.dutch}
         </p>
-        <button onClick={() => speakDutch(current.dutch)} className="flex items-center gap-1.5 text-[12px] font-medium text-[#025dc7] hover:text-[#1D0084] transition-colors duration-200">
+        <button onClick={() => speakDutch(current.dutch)} className="flex items-center gap-1.5 text-[12px] font-medium text-[#025dc7] hover:text-[#025dc7] transition-colors duration-200">
           <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
           Escuchar
         </button>
@@ -876,7 +876,7 @@ function ClassifyStep({ groups, items, onDone, onBack }: { groups: ClassifyGroup
                 ? result.correctId === group.id
                   ? 'bg-green-50 border-green-400 text-green-800'
                   : 'bg-[#F8F9FA] border-[#DDE6F5] text-[#9CA3AF]'
-                : 'bg-[#F0F5FF] border-[#DDE6F5] text-[#1D0084] hover:border-[#025dc7]/40 hover:bg-[#e8f0ff]'
+                : 'bg-[#F0F5FF] border-[#DDE6F5] text-gray-900 hover:border-[#025dc7]/40 hover:bg-[#e8f0ff]'
             }`}
           >
             {group.label}
@@ -891,7 +891,7 @@ function ClassifyStep({ groups, items, onDone, onBack }: { groups: ClassifyGroup
       )}
 
       {result && (
-        <button onClick={handleNext} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200">
+        <button onClick={handleNext} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200">
           {index + 1 < queue.length ? 'Siguiente' : 'Siguiente paso'}
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -984,7 +984,7 @@ function VocabPracticeSection({
         </div>
         <button
           onClick={() => handleReset(false)}
-          className="w-full py-4 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[16px] font-bold hover:bg-[#6cb5ff] transition-colors duration-200 flex items-center justify-center gap-2"
+          className="w-full py-4 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[16px] font-bold hover:bg-[#6cb5ff] transition-colors duration-200 flex items-center justify-center gap-2"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -996,7 +996,7 @@ function VocabPracticeSection({
         ) : (
           <button
             onClick={onComplete}
-            className="w-full py-3 rounded-lg bg-white text-[#5A6480] text-[14px] font-semibold border border-[#DDE6F5] hover:bg-[#F0F5FF] hover:text-[#1D0084] transition-colors duration-200"
+            className="w-full py-3 rounded-lg bg-white text-[#5A6480] text-[14px] font-semibold border border-[#DDE6F5] hover:bg-[#F0F5FF] hover:text-[#025dc7] transition-colors duration-200"
           >
             Salir al menú de la lección
           </button>
@@ -1014,7 +1014,7 @@ function VocabPracticeSection({
         <button
           onClick={() => handleReset(true)}
           title="Reiniciar todas las respuestas"
-          className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-[#9CA3AF] hover:text-[#1D0084] hover:bg-[#F0F5FF] transition-colors duration-200 -mt-1"
+          className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-[#9CA3AF] hover:text-[#025dc7] hover:bg-[#F0F5FF] transition-colors duration-200 -mt-1"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -1147,10 +1147,10 @@ function FlashcardSection({
           </p>
           <p className="text-white/60 text-[14px]">{knownCount} de {items.length} palabras dominadas</p>
         </div>
-        <button onClick={handleRestart} className="w-full py-3.5 rounded-lg bg-[#F0F5FF] text-[#1D0084] text-[15px] font-semibold border border-[#DDE6F5] hover:bg-[#e0eaff] transition-colors duration-200">
+        <button onClick={handleRestart} className="w-full py-3.5 rounded-lg bg-[#F0F5FF] text-gray-900 text-[15px] font-semibold border border-[#DDE6F5] hover:bg-[#e0eaff] transition-colors duration-200">
           Repetir flashcards 🔄
         </button>
-        <button onClick={onComplete} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-lg bg-[#F0F5FF] text-[#1D0084] text-[15px] font-semibold border border-[#DDE6F5] hover:bg-[#e0eaff] transition-colors duration-200">
+        <button onClick={onComplete} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-lg bg-[#F0F5FF] text-gray-900 text-[15px] font-semibold border border-[#DDE6F5] hover:bg-[#e0eaff] transition-colors duration-200">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M7 16l-4-4m0 0l4-4m-4 4h18" />
           </svg>
@@ -1170,18 +1170,18 @@ function FlashcardSection({
         <div className="flex rounded-lg border border-[#DDE6F5] overflow-hidden">
           <button
             onClick={() => { setMode('nl-es'); setFlipped(false); }}
-            className={`px-3 py-2 text-[12px] font-semibold transition-colors duration-200 ${mode === 'nl-es' ? 'bg-[#4da3ff] text-[#0a1656]' : 'bg-white text-[#9CA3AF] hover:text-[#1D0084]'}`}
+            className={`px-3 py-2 text-[12px] font-semibold transition-colors duration-200 ${mode === 'nl-es' ? 'bg-[#4da3ff] text-[#1D0084]' : 'bg-white text-[#9CA3AF] hover:text-[#025dc7]'}`}
           >
             NL → ES
           </button>
           <button
             onClick={() => { setMode('es-nl'); setFlipped(false); }}
-            className={`px-3 py-2 text-[12px] font-semibold transition-colors duration-200 ${mode === 'es-nl' ? 'bg-[#4da3ff] text-[#0a1656]' : 'bg-white text-[#9CA3AF] hover:text-[#1D0084]'}`}
+            className={`px-3 py-2 text-[12px] font-semibold transition-colors duration-200 ${mode === 'es-nl' ? 'bg-[#4da3ff] text-[#1D0084]' : 'bg-white text-[#9CA3AF] hover:text-[#025dc7]'}`}
           >
             ES → NL
           </button>
         </div>
-        <button onClick={handleShuffle} className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#DDE6F5] text-[12px] font-semibold text-[#5A6480] hover:text-[#1D0084] hover:bg-[#F0F5FF] transition-colors duration-200">
+        <button onClick={handleShuffle} className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#DDE6F5] text-[12px] font-semibold text-[#5A6480] hover:text-[#025dc7] hover:bg-[#F0F5FF] transition-colors duration-200">
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
           </svg>
@@ -1193,7 +1193,7 @@ function FlashcardSection({
       {/* Card */}
       <div
         onClick={() => setFlipped(f => !f)}
-        className="w-full h-[220px] cursor-pointer"
+        className="w-full max-w-sm mx-auto h-[180px] cursor-pointer"
         style={{ perspective: '1000px' }}
       >
         <div
@@ -1202,7 +1202,7 @@ function FlashcardSection({
             transformStyle: 'preserve-3d',
             transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
             position: 'relative',
-            height: '220px',
+            height: '180px',
           }}
         >
           {/* Front */}
@@ -1214,7 +1214,7 @@ function FlashcardSection({
               {mode === 'nl-es' ? 'Nederlands' : 'Español'}
             </p>
             <p
-              className="text-[26px] font-bold text-[#1D0084] text-center leading-tight"
+              className="text-[22px] font-bold text-gray-900 text-center leading-tight"
               style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
             >
               {front}
@@ -1242,7 +1242,7 @@ function FlashcardSection({
               {mode === 'nl-es' ? 'Español' : 'Nederlands'}
             </p>
             <p
-              className="text-[26px] font-bold text-[#1D0084] text-center leading-tight"
+              className="text-[22px] font-bold text-gray-900 text-center leading-tight"
               style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
             >
               {back}
@@ -1328,7 +1328,7 @@ function MultipleChoiceExercise({
     const base =
       'w-full text-left px-4 py-3.5 rounded-lg text-[15px] font-medium transition-all duration-200 border ';
     if (!isAnswered)
-      return base + 'bg-[#F0F5FF] border-[#DDE6F5] text-[#1D0084] hover:border-[#025dc7]/40 hover:bg-[#e8f0ff] active:scale-[0.98]';
+      return base + 'bg-[#F0F5FF] border-[#DDE6F5] text-gray-900 hover:border-[#025dc7]/40 hover:bg-[#e8f0ff] active:scale-[0.98]';
     if (opt === exercise.correctAnswer) return base + 'bg-green-50 border-green-400 text-green-800';
     if (opt === selected) return base + 'bg-red-50 border-red-400 text-red-700';
     return base + 'bg-[#F8F9FA] border-[#DDE6F5] text-[#9CA3AF]';
@@ -1339,14 +1339,14 @@ function MultipleChoiceExercise({
   return (
     <div className="space-y-4">
       <div className="rounded-2xl p-5 border border-[#DDE6F5] bg-white">
-        <p className="text-[17px] font-semibold text-[#1D0084] leading-snug">{exercise.prompt}</p>
+        <p className="text-[17px] font-semibold text-gray-900 leading-snug">{exercise.prompt}</p>
       </div>
       <div className="grid grid-cols-1 gap-2">
         {shuffledOptions.map((opt, idx) => (
           <button key={opt} className={optionStyle(opt)} onClick={() => handleSelect(opt)}>
             <span className="flex items-center gap-3">
               <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-[12px] font-bold shrink-0 transition-all duration-200 ${
-                !isAnswered ? 'bg-white/70 text-[#1D0084]' :
+                !isAnswered ? 'bg-white/70 text-gray-900' :
                 opt === exercise.correctAnswer ? 'bg-green-500 text-white' :
                 opt === selected ? 'bg-red-400 text-white' : 'bg-[#E5E7EB] text-[#9CA3AF]'
               }`}>
@@ -1400,8 +1400,8 @@ function WriteAnswerExercise({
 
   return (
     <div className="space-y-4">
-      <div className="bg-[#F0F5FF] rounded-2xl p-5 border border-[#DDE6F5]">
-        <p className="text-[16px] font-semibold text-[#1D0084] leading-snug">{exercise.prompt}</p>
+      <div className="rounded-2xl p-5 border border-[#DDE6F5] bg-white">
+        <p className="text-[16px] font-semibold text-gray-900 leading-snug">{exercise.prompt}</p>
         {exercise.hint && (
           <p className="text-[13px] text-[#9CA3AF] mt-2">💡 {exercise.hint}</p>
         )}
@@ -1413,13 +1413,13 @@ function WriteAnswerExercise({
         onKeyDown={e => e.key === 'Enter' && handleSubmit()}
         disabled={submitted}
         placeholder="Escribe tu respuesta..."
-        className="w-full px-4 py-3.5 rounded-lg border border-[#DDE6F5] text-[15px] text-[#1D0084] bg-white focus:outline-none focus:border-[#025dc7] transition-colors duration-200 disabled:opacity-60"
+        className="w-full px-4 py-3.5 rounded-lg border border-[#DDE6F5] text-[15px] text-gray-900 bg-white focus:outline-none focus:border-[#025dc7] transition-colors duration-200 disabled:opacity-60"
       />
       {!submitted && (
         <button
           onClick={handleSubmit}
           disabled={!value.trim()}
-          className="w-full py-3.5 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200 disabled:opacity-40 disabled:pointer-events-none"
+          className="w-full py-3.5 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200 disabled:opacity-40 disabled:pointer-events-none"
         >
           Comprobar
         </button>
@@ -1506,9 +1506,9 @@ function FillBlankExercise({
           return base + 'bg-[#1D0084] border-[#1D0084] text-white';
         }
         if (opt === playingChip) {
-          return base + 'bg-[#1D0084]/10 border-[#1D0084]/40 text-[#1D0084] scale-[0.97]';
+          return base + 'bg-[#1D0084]/10 border-[#1D0084]/40 text-gray-900 scale-[0.97]';
         }
-        return base + 'bg-[#F0F5FF] border-[#DDE6F5] text-[#1D0084] hover:border-[#025dc7]/40 hover:bg-[#e8f0ff] active:scale-[0.97]';
+        return base + 'bg-[#F0F5FF] border-[#DDE6F5] text-gray-900 hover:border-[#025dc7]/40 hover:bg-[#e8f0ff] active:scale-[0.97]';
       }
       // Después de comprobar: verde la correcta, rojo la elegida si era incorrecta
       if (opt === exercise.correctAnswer) return base + 'bg-green-50 border-green-400 text-green-800';
@@ -1519,8 +1519,8 @@ function FillBlankExercise({
     return (
       <div className="space-y-4">
         {/* Sentence with blank */}
-        <div className="bg-[#F0F5FF] rounded-2xl p-5 border border-[#DDE6F5]">
-          <p className="text-[16px] font-semibold text-[#1D0084] leading-snug">
+        <div className="rounded-2xl p-5 border border-[#DDE6F5] bg-white">
+          <p className="text-[16px] font-semibold text-gray-900 leading-snug">
             {parts[0]}
             <span className={`fill-blank-slot ${
               chipSubmitted
@@ -1556,7 +1556,7 @@ function FillBlankExercise({
           <button
             onClick={handleChipSubmit}
             disabled={!chipSelected}
-            className="w-full py-3.5 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200 disabled:opacity-40 disabled:pointer-events-none"
+            className="w-full py-3.5 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200 disabled:opacity-40 disabled:pointer-events-none"
           >
             Comprobar
           </button>
@@ -1576,8 +1576,8 @@ function FillBlankExercise({
   // ── Text-input variant (when no options) ──
   return (
     <div className="space-y-4">
-      <div className="bg-[#F0F5FF] rounded-2xl p-5 border border-[#DDE6F5]">
-        <p className="text-[16px] font-semibold text-[#1D0084] leading-snug flex flex-wrap items-center gap-1">
+      <div className="rounded-2xl p-5 border border-[#DDE6F5] bg-white">
+        <p className="text-[16px] font-semibold text-gray-900 leading-snug flex flex-wrap items-center gap-1">
           {parts[0]}
           <input
             type="text"
@@ -1591,7 +1591,7 @@ function FillBlankExercise({
                 ? isCorrect
                   ? 'bg-green-50 border-green-400 text-green-800'
                   : 'bg-red-50 border-red-400 text-red-700'
-                : 'bg-white border-[#025dc7] text-[#1D0084] focus:border-[#1D0084]'
+                : 'bg-white border-[#025dc7] text-gray-900 focus:border-[#1D0084]'
             }`}
           />
           {parts[1] ?? ''}
@@ -1605,7 +1605,7 @@ function FillBlankExercise({
         <button
           onClick={handleTextSubmit}
           disabled={!value.trim()}
-          className="w-full py-3.5 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200 disabled:opacity-40 disabled:pointer-events-none"
+          className="w-full py-3.5 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200 disabled:opacity-40 disabled:pointer-events-none"
         >
           Comprobar
         </button>
@@ -1661,7 +1661,7 @@ function ListenAndChooseExercise({
     const base =
       'w-full text-left px-4 py-3.5 rounded-lg text-[15px] font-medium transition-all duration-200 border ';
     if (!isAnswered)
-      return base + 'bg-[#F0F5FF] border-[#DDE6F5] text-[#1D0084] hover:border-[#025dc7]/40 hover:bg-[#e8f0ff] active:scale-[0.98]';
+      return base + 'bg-[#F0F5FF] border-[#DDE6F5] text-gray-900 hover:border-[#025dc7]/40 hover:bg-[#e8f0ff] active:scale-[0.98]';
     if (opt === exercise.correctAnswer) return base + 'bg-green-50 border-green-400 text-green-800';
     if (opt === selected) return base + 'bg-red-50 border-red-400 text-red-700';
     return base + 'bg-[#F8F9FA] border-[#DDE6F5] text-[#9CA3AF]';
@@ -1673,14 +1673,14 @@ function ListenAndChooseExercise({
     <div className="space-y-4">
       <div className="rounded-2xl p-5 border border-[#DDE6F5] bg-white space-y-4">
         <div>
-          <p className="text-[17px] font-semibold text-[#1D0084] leading-snug">{visiblePrompt}</p>
+          <p className="text-[17px] font-semibold text-gray-900 leading-snug">{visiblePrompt}</p>
         </div>
         {exercise.audio?.url ? (
           <AudioPlayer src={exercise.audio.url} compact />
         ) : (
           <button
             onClick={() => speakDutch(dutchText)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[13px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[13px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
             Escuchar
@@ -1692,7 +1692,7 @@ function ListenAndChooseExercise({
           <button key={opt} className={optionStyle(opt)} onClick={() => handleSelect(opt)}>
             <span className="flex items-center gap-3">
               <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-[12px] font-bold shrink-0 transition-all duration-200 ${
-                !isAnswered ? 'bg-white/70 text-[#1D0084]' :
+                !isAnswered ? 'bg-white/70 text-gray-900' :
                 opt === exercise.correctAnswer ? 'bg-green-500 text-white' :
                 opt === selected ? 'bg-red-400 text-white' : 'bg-[#E5E7EB] text-[#9CA3AF]'
               }`}>
@@ -1765,8 +1765,8 @@ function OrderSentenceExercise({
 
   return (
     <div className="space-y-4">
-      <div className="bg-[#F0F5FF] rounded-2xl p-5 border border-[#DDE6F5]">
-        <p className="text-[16px] font-semibold text-[#1D0084] leading-snug">{exercise.prompt}</p>
+      <div className="rounded-2xl p-5 border border-[#DDE6F5] bg-white">
+        <p className="text-[16px] font-semibold text-gray-900 leading-snug">{exercise.prompt}</p>
       </div>
 
       <div className="min-h-[52px] rounded-lg border-2 border-dashed border-[#DDE6F5] bg-white p-3 flex flex-wrap gap-2 items-center">
@@ -1778,7 +1778,7 @@ function OrderSentenceExercise({
             key={`${word}-${i}`}
             onClick={() => removeWord(word, i)}
             disabled={submitted}
-            className="px-3 py-1.5 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[14px] font-medium hover:bg-[#6cb5ff] transition-colors duration-200 disabled:opacity-70"
+            className="px-3 py-1.5 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[14px] font-medium hover:bg-[#6cb5ff] transition-colors duration-200 disabled:opacity-70"
           >
             {word}
           </button>
@@ -1791,7 +1791,7 @@ function OrderSentenceExercise({
             key={`${word}-${i}`}
             onClick={() => addWord(word, i)}
             disabled={submitted}
-            className="px-3 py-1.5 rounded-lg bg-[#F0F5FF] border border-[#DDE6F5] text-[#1D0084] text-[14px] font-medium hover:border-[#025dc7]/40 hover:bg-[#e8f0ff] transition-colors duration-200 disabled:opacity-50"
+            className="px-3 py-1.5 rounded-lg bg-[#F0F5FF] border border-[#DDE6F5] text-gray-900 text-[14px] font-medium hover:border-[#025dc7]/40 hover:bg-[#e8f0ff] transition-colors duration-200 disabled:opacity-50"
           >
             {word}
           </button>
@@ -1809,7 +1809,7 @@ function OrderSentenceExercise({
           <button
             onClick={handleSubmit}
             disabled={sentence.length === 0}
-            className="flex-1 py-3 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[14px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200 disabled:opacity-40 disabled:pointer-events-none"
+            className="flex-1 py-3 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[14px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200 disabled:opacity-40 disabled:pointer-events-none"
           >
             Comprobar
           </button>
@@ -1859,7 +1859,7 @@ function WordScrambleExercise({ exercise, onAnswer }: { exercise: ExerciseItem; 
   return (
     <div className="space-y-4">
       <div className="rounded-2xl p-5 border border-[#DDE6F5] bg-white">
-        <p className="text-[17px] font-semibold text-[#1D0084] leading-snug">{exercise.prompt}</p>
+        <p className="text-[17px] font-semibold text-gray-900 leading-snug">{exercise.prompt}</p>
         {exercise.hint && <p className="text-[14px] text-[#025dc7] font-medium mt-1">💡 {exercise.hint}</p>}
       </div>
 
@@ -1891,7 +1891,7 @@ function WordScrambleExercise({ exercise, onAnswer }: { exercise: ExerciseItem; 
             key={key}
             onClick={() => pick(key)}
             disabled={submitted}
-            className="w-9 h-9 rounded-lg text-[16px] font-bold bg-[#F0F5FF] border border-[#DDE6F5] text-[#1D0084] hover:border-[#025dc7] hover:bg-[#e0eaff] transition-all duration-200 uppercase disabled:opacity-40"
+            className="w-9 h-9 rounded-lg text-[16px] font-bold bg-[#F0F5FF] border border-[#DDE6F5] text-gray-900 hover:border-[#025dc7] hover:bg-[#e0eaff] transition-all duration-200 uppercase disabled:opacity-40"
           >
             {key.split('__')[0]}
           </button>
@@ -1904,7 +1904,7 @@ function WordScrambleExercise({ exercise, onAnswer }: { exercise: ExerciseItem; 
             Reiniciar
           </button>
           <button onClick={handleSubmit} disabled={selected.length === 0}
-            className="flex-1 py-3 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[14px] font-semibold hover:bg-[#6cb5ff] transition-colors disabled:opacity-40 disabled:pointer-events-none">
+            className="flex-1 py-3 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[14px] font-semibold hover:bg-[#6cb5ff] transition-colors disabled:opacity-40 disabled:pointer-events-none">
             Comprobar
           </button>
         </div>
@@ -1957,7 +1957,7 @@ function MatchPairsExercise({ exercise, onAnswer }: { exercise: ExerciseItem; on
     if (isMatched) return 'bg-green-50 border-green-400 text-green-800 cursor-default';
     if (isWrong) return 'bg-red-50 border-red-300 text-red-600 animate-pulse';
     if (isSelected) return 'bg-[#1D0084] border-[#1D0084] text-white';
-    return 'bg-white border-[#DDE6F5] text-[#1D0084] hover:border-[#025dc7] hover:bg-[#F8FAFF]';
+    return 'bg-white border-[#DDE6F5] text-gray-900 hover:border-[#025dc7] hover:bg-[#F8FAFF]';
   }
   function rightStyle(right: string) {
     const isMatched = Object.values(matched).includes(right);
@@ -1972,7 +1972,7 @@ function MatchPairsExercise({ exercise, onAnswer }: { exercise: ExerciseItem; on
   return (
     <div className="space-y-4">
       <div className="rounded-2xl p-5 border border-[#DDE6F5] bg-white">
-        <p className="text-[17px] font-semibold text-[#1D0084]">{exercise.prompt}</p>
+        <p className="text-[17px] font-semibold text-gray-900">{exercise.prompt}</p>
         <p className="text-[12px] text-[#9CA3AF] mt-1">{Object.keys(matched).length}/{pairs.length} emparejadas</p>
       </div>
       <div className="grid grid-cols-2 gap-2">
@@ -2052,7 +2052,7 @@ function TrueFalseExercise({
     <div className="space-y-4">
       <div className="rounded-2xl p-5 border border-[#DDE6F5] bg-white">
         <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-2">¿Es verdadero o falso?</p>
-        <p className="text-[20px] font-bold text-[#1D0084] leading-snug text-center py-2">{exercise.prompt}</p>
+        <p className="text-[20px] font-bold text-gray-900 leading-snug text-center py-2">{exercise.prompt}</p>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <button onClick={() => pick('verdadero')} disabled={isAnswered} className={styleFor('verdadero')}>
@@ -2111,7 +2111,7 @@ function EmojiChoiceExercise({
     <div className="space-y-4">
       <div className="rounded-2xl p-5 border border-[#DDE6F5] bg-white">
         <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-2">Toca el emoji que corresponde a:</p>
-        <p className="text-[24px] font-bold text-[#1D0084] leading-snug text-center py-2">{exercise.prompt}</p>
+        <p className="text-[24px] font-bold text-gray-900 leading-snug text-center py-2">{exercise.prompt}</p>
       </div>
       <div className="grid grid-cols-2 gap-3">
         {options.map(opt => (
@@ -2157,7 +2157,7 @@ function OddOneOutExercise({
 
   function styleFor(opt: string) {
     const base = 'py-6 rounded-2xl border-2 text-[17px] font-bold transition-all duration-200';
-    if (!isAnswered) return `${base} bg-[#F0F5FF] border-[#DDE6F5] text-[#1D0084] hover:border-[#025dc7]/50 hover:bg-[#e8f0ff] active:scale-[0.97]`;
+    if (!isAnswered) return `${base} bg-[#F0F5FF] border-[#DDE6F5] text-gray-900 hover:border-[#025dc7]/50 hover:bg-[#e8f0ff] active:scale-[0.97]`;
     if (opt === exercise.correctAnswer) return `${base} bg-green-50 border-green-400 text-green-800`;
     if (opt === selected) return `${base} bg-red-50 border-red-400 text-red-700`;
     return `${base} bg-gray-50 border-gray-200 text-gray-400`;
@@ -2167,7 +2167,7 @@ function OddOneOutExercise({
     <div className="space-y-4">
       <div className="rounded-2xl p-5 border border-[#DDE6F5] bg-white">
         <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-2">Elige la intrusa</p>
-        <p className="text-[17px] font-semibold text-[#1D0084] leading-snug">{exercise.prompt}</p>
+        <p className="text-[17px] font-semibold text-gray-900 leading-snug">{exercise.prompt}</p>
       </div>
       <div className="grid grid-cols-2 gap-3">
         {options.map(opt => (
@@ -2237,9 +2237,9 @@ function LetterDashExercise({
     <div className="space-y-4">
       <div className="rounded-2xl p-5 border border-[#DDE6F5] bg-white space-y-3">
         <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest">Letras que faltan</p>
-        <p className="text-[15px] text-[#1D0084] font-medium leading-snug">{exercise.prompt}</p>
+        <p className="text-[15px] text-gray-900 font-medium leading-snug">{exercise.prompt}</p>
         <div className="text-center py-3">
-          <p className="text-[34px] font-bold text-[#1D0084] tracking-[0.4em] tabular-nums" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+          <p className="text-[34px] font-bold text-gray-900 tracking-[0.4em] tabular-nums" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
             {masked}
           </p>
         </div>
@@ -2265,14 +2265,14 @@ function LetterDashExercise({
             ? isCorrect
               ? 'bg-green-50 border-green-400 text-green-800'
               : 'bg-red-50 border-red-400 text-red-700'
-            : 'bg-white border-[#DDE6F5] text-[#1D0084] focus:border-[#025dc7]'
+            : 'bg-white border-[#DDE6F5] text-gray-900 focus:border-[#025dc7]'
         }`}
       />
       {!submitted && (
         <button
           onClick={handleSubmit}
           disabled={!value.trim()}
-          className="w-full py-3 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[14px] font-semibold hover:bg-[#6cb5ff] disabled:bg-[#DDE6F5] disabled:text-[#9CA3AF] transition-colors duration-200"
+          className="w-full py-3 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[14px] font-semibold hover:bg-[#6cb5ff] disabled:bg-[#DDE6F5] disabled:text-[#9CA3AF] transition-colors duration-200"
         >
           Comprobar
         </button>
@@ -2358,7 +2358,7 @@ function PairMemoryExercise({ exercise, onAnswer }: { exercise: ExerciseItem; on
     const isMatched = matched.has(card.pairKey);
     const base = 'aspect-[3/4] rounded-lg border-2 flex items-center justify-center text-center px-2 text-[13px] font-semibold transition-all duration-300 select-none';
     if (isMatched) return `${base} bg-green-50 border-green-300 text-green-800`;
-    if (isRevealed) return `${base} bg-white border-[#1D0084] text-[#1D0084] shadow-sm`;
+    if (isRevealed) return `${base} bg-white border-[#1D0084] text-gray-900 shadow-sm`;
     return `${base} bg-[#1D0084] border-[#1D0084] text-white hover:bg-[#025dc7] active:scale-[0.97] cursor-pointer`;
   }
 
@@ -2366,7 +2366,7 @@ function PairMemoryExercise({ exercise, onAnswer }: { exercise: ExerciseItem; on
     <div className="space-y-4">
       <div className="rounded-2xl p-5 border border-[#DDE6F5] bg-white">
         <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-1">Memory cards</p>
-        <p className="text-[17px] font-semibold text-[#1D0084]">{exercise.prompt}</p>
+        <p className="text-[17px] font-semibold text-gray-900">{exercise.prompt}</p>
         <p className="text-[12px] text-[#9CA3AF] mt-1">{matched.size}/{pairs.length} encontradas · {attempts} intentos</p>
       </div>
       <div className="grid grid-cols-4 gap-2">
@@ -2449,13 +2449,13 @@ function ListenTranslateExercise({ exercise, onAnswer }: { exercise: ExerciseIte
       {/* Frase NL + audio */}
       <div className="rounded-2xl p-5 border border-[#DDE6F5] bg-white space-y-3">
         <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest">{visibleHint}</p>
-        <p className="text-[20px] font-bold text-[#1D0084] leading-snug text-center" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+        <p className="text-[20px] font-bold text-gray-900 leading-snug text-center" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
           {dutchPhrase}
         </p>
         <div className="flex justify-center">
           <button
             onClick={() => speakDutch(dutchPhrase)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[13px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[13px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
             Escuchar
@@ -2473,7 +2473,7 @@ function ListenTranslateExercise({ exercise, onAnswer }: { exercise: ExerciseIte
             key={`${word}-${i}`}
             onClick={() => removeWord(word, i)}
             disabled={submitted}
-            className="px-3 py-1.5 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[14px] font-medium hover:bg-[#6cb5ff] transition-colors duration-200 disabled:opacity-70"
+            className="px-3 py-1.5 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[14px] font-medium hover:bg-[#6cb5ff] transition-colors duration-200 disabled:opacity-70"
           >
             {word}
           </button>
@@ -2487,7 +2487,7 @@ function ListenTranslateExercise({ exercise, onAnswer }: { exercise: ExerciseIte
             key={`${word}-${i}`}
             onClick={() => addWord(word, i)}
             disabled={submitted}
-            className="px-3 py-1.5 rounded-lg bg-[#F0F5FF] border border-[#DDE6F5] text-[#1D0084] text-[14px] font-medium hover:border-[#025dc7]/40 hover:bg-[#e8f0ff] transition-colors duration-200 disabled:opacity-50"
+            className="px-3 py-1.5 rounded-lg bg-[#F0F5FF] border border-[#DDE6F5] text-gray-900 text-[14px] font-medium hover:border-[#025dc7]/40 hover:bg-[#e8f0ff] transition-colors duration-200 disabled:opacity-50"
           >
             {word}
           </button>
@@ -2505,7 +2505,7 @@ function ListenTranslateExercise({ exercise, onAnswer }: { exercise: ExerciseIte
           <button
             onClick={handleSubmit}
             disabled={sentence.length === 0}
-            className="flex-1 py-3 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[14px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200 disabled:opacity-40 disabled:pointer-events-none"
+            className="flex-1 py-3 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[14px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200 disabled:opacity-40 disabled:pointer-events-none"
           >
             Comprobar
           </button>
@@ -2558,7 +2558,7 @@ function renderInlineBold(text: string): React.ReactNode[] {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return parts.map((p, i) =>
     /^\*\*[^*]+\*\*$/.test(p)
-      ? <strong key={i} className="font-bold text-[#1D0084]">{p.slice(2, -2)}</strong>
+      ? <strong key={i} className="font-bold text-gray-900">{p.slice(2, -2)}</strong>
       : <span key={i}>{p}</span>
   );
 }
@@ -2571,7 +2571,7 @@ function ResumenSection({ block, onComplete }: { block: SummaryBlock; onComplete
         <div className="rounded-2xl border border-[#DDE6F5] bg-[#F0F5FF] p-6">
           {block.title && (
             <h2
-              className="text-[22px] font-bold text-[#1D0084] leading-tight mb-2"
+              className="text-[22px] font-bold text-gray-900 leading-tight mb-2"
               style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
             >
               {block.title}
@@ -2597,7 +2597,7 @@ function ResumenSection({ block, onComplete }: { block: SummaryBlock; onComplete
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 </span>
-                <span className="text-[14px] text-[#1D0084] leading-snug">{obj}</span>
+                <span className="text-[14px] text-gray-900 leading-snug">{obj}</span>
               </li>
             ))}
           </ul>
@@ -2608,7 +2608,7 @@ function ResumenSection({ block, onComplete }: { block: SummaryBlock; onComplete
       {block.sections.map((sec, i) => (
         <div key={i} className="rounded-2xl border border-[#DDE6F5] bg-white p-5 space-y-3">
           <h3
-            className="text-[17px] font-bold text-[#1D0084] leading-tight"
+            className="text-[17px] font-bold text-gray-900 leading-tight"
             style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
           >
             {sec.heading}
@@ -2623,7 +2623,7 @@ function ResumenSection({ block, onComplete }: { block: SummaryBlock; onComplete
               {sec.items.map((item, j) => (
                 <div key={j} className="flex items-start gap-3 px-4 py-2.5">
                   {item.nl && (
-                    <span className="text-[14px] font-semibold text-[#1D0084] flex-1 min-w-0 leading-snug">
+                    <span className="text-[14px] font-semibold text-gray-900 flex-1 min-w-0 leading-snug">
                       {item.nl}
                     </span>
                   )}
@@ -2650,7 +2650,7 @@ function ResumenSection({ block, onComplete }: { block: SummaryBlock; onComplete
       {/* CTA a la siguiente sección */}
       <button
         onClick={onComplete}
-        className="w-full py-4 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200 flex items-center justify-center gap-2"
+        className="w-full py-4 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200 flex items-center justify-center gap-2"
       >
         Empezar con el vocabulario
         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -2759,19 +2759,19 @@ function LezenSection({
         {lastAttempt && exercises.length > 0 && (
           <div className="rounded-lg border border-[#DDE6F5] bg-[#F0F5FF] px-4 py-3">
             <div className="flex items-center justify-between gap-3 mb-1.5">
-              <p className="text-[13px] font-bold text-[#1D0084]">
+              <p className="text-[13px] font-bold text-gray-900">
                 Última vez: {lastAttempt.score} / {lastAttempt.total} correctas
               </p>
               <button
                 onClick={() => { resetExercises(); setStep('exercises'); }}
-                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[12px] font-semibold hover:bg-[#6cb5ff] transition-colors"
+                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[12px] font-semibold hover:bg-[#6cb5ff] transition-colors"
               >
                 🔄 Repetir test
               </button>
             </div>
             {lastAttempt.failedLabels.length > 0 && (
               <p className="text-[12px] text-[#5A6480] leading-snug">
-                <span className="font-semibold text-[#1D0084]">Fallaste en:</span>{' '}
+                <span className="font-semibold text-gray-900">Fallaste en:</span>{' '}
                 {lastAttempt.failedLabels.slice(0, 3).join(' · ')}
                 {lastAttempt.failedLabels.length > 3 && ` · +${lastAttempt.failedLabels.length - 3}`}
               </p>
@@ -2788,13 +2788,13 @@ function LezenSection({
         )}
         <div className="rounded-2xl border border-[#DDE6F5] bg-white p-6">
           <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-4">Texto en neerlandés</p>
-          <div className="text-[16px] text-[#1D0084] leading-relaxed whitespace-pre-line font-medium text-left max-w-prose">
+          <div className="text-[16px] text-gray-900 leading-relaxed whitespace-pre-line font-medium text-left max-w-prose">
             {textNl.replace(/^[ \t]+/gm, '').trim()}
           </div>
         </div>
         <button
           onClick={() => exercises.length > 0 ? setStep('exercises') : setStep('translation')}
-          className="w-full py-3.5 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200"
+          className="w-full py-3.5 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200"
         >
           {exercises.length > 0 ? 'Ir a los ejercicios →' : 'Ver traducción →'}
         </button>
@@ -2807,7 +2807,7 @@ function LezenSection({
       <div className="space-y-5">
         {progressBar}
         <div className="flex items-center justify-between gap-4">
-          <button onClick={() => setStep('text')} className="flex items-center gap-1.5 text-[13px] font-semibold text-[#9CA3AF] hover:text-[#1D0084] transition-colors duration-200">
+          <button onClick={() => setStep('text')} className="flex items-center gap-1.5 text-[13px] font-semibold text-[#9CA3AF] hover:text-[#025dc7] transition-colors duration-200">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
@@ -2824,7 +2824,7 @@ function LezenSection({
           <ExerciseStep exercise={exercise} onAnswer={handleAnswer} />
         </div>
         {answered && (
-          <button onClick={handleNext} className="w-full flex items-center justify-center gap-2 py-4 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200">
+          <button onClick={handleNext} className="w-full flex items-center justify-center gap-2 py-4 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200">
             {exerciseIndex + 1 < exercises.length ? 'Siguiente ejercicio' : 'Ver traducción del texto'}
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -2855,7 +2855,7 @@ function LezenSection({
       {/* Failed-items list — apuntar las palabras que falles, justo aquí. */}
       {failedLabels.length > 0 && (
         <div className="rounded-lg border border-[#DDE6F5] bg-white p-4">
-          <p className="text-[12px] font-bold text-[#1D0084] uppercase tracking-wide mb-2">
+          <p className="text-[12px] font-bold text-gray-900 uppercase tracking-wide mb-2">
             Fallaste en {failedLabels.length}
           </p>
           <ul className="space-y-1.5">
@@ -2875,12 +2875,12 @@ function LezenSection({
         </div>
         <div className="border-t border-[#DDE6F5] pt-4">
           <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-3">Traducción al español</p>
-          <p className="text-[15px] text-[#1D0084] font-medium leading-relaxed whitespace-pre-line text-left max-w-prose">{textEs.replace(/^[ \t]+/gm, '').trim()}</p>
+          <p className="text-[15px] text-gray-900 font-medium leading-relaxed whitespace-pre-line text-left max-w-prose">{textEs.replace(/^[ \t]+/gm, '').trim()}</p>
         </div>
       </div>
       <button
         onClick={() => { resetExercises(); setStep('exercises'); }}
-        className="w-full py-3.5 rounded-lg bg-[#F0F5FF] text-[#1D0084] text-[15px] font-semibold border border-[#DDE6F5] hover:bg-[#e0eaff] transition-colors duration-200"
+        className="w-full py-3.5 rounded-lg bg-[#F0F5FF] text-gray-900 text-[15px] font-semibold border border-[#DDE6F5] hover:bg-[#e0eaff] transition-colors duration-200"
       >
         🔄 Repetir ejercicios
       </button>
@@ -3006,7 +3006,7 @@ function LuisterenSection({
     return (
       <div className="space-y-5">
         <div className="text-center space-y-1">
-          <h3 className="text-[22px] font-bold text-[#1D0084] leading-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+          <h3 className="text-[22px] font-bold text-gray-900 leading-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
             {dialogue.title}
           </h3>
           <p className="text-[13px] text-[#5A6480]">Escucha primero el audio antes de leer el texto.</p>
@@ -3016,19 +3016,19 @@ function LuisterenSection({
         {lastAttempt && hasExercises && (
           <div className="rounded-lg border border-[#DDE6F5] bg-[#F0F5FF] px-4 py-3">
             <div className="flex items-center justify-between gap-3 mb-1.5">
-              <p className="text-[13px] font-bold text-[#1D0084]">
+              <p className="text-[13px] font-bold text-gray-900">
                 Última vez: {lastAttempt.score} / {lastAttempt.total} correctas
               </p>
               <button
                 onClick={() => { resetAttempt(); setView('exercises'); }}
-                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[12px] font-semibold hover:bg-[#6cb5ff] transition-colors"
+                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[12px] font-semibold hover:bg-[#6cb5ff] transition-colors"
               >
                 🔄 Repetir test
               </button>
             </div>
             {lastAttempt.failedLabels.length > 0 && (
               <p className="text-[12px] text-[#5A6480] leading-snug">
-                <span className="font-semibold text-[#1D0084]">Fallaste en:</span>{' '}
+                <span className="font-semibold text-gray-900">Fallaste en:</span>{' '}
                 {lastAttempt.failedLabels.slice(0, 3).join(' · ')}
                 {lastAttempt.failedLabels.length > 3 && ` · +${lastAttempt.failedLabels.length - 3}`}
               </p>
@@ -3042,7 +3042,7 @@ function LuisterenSection({
             <div className="flex items-center gap-2.5 mb-2.5">
               <span className="text-2xl leading-none">⚡</span>
               <div>
-                <p className="text-[15px] font-bold text-[#1D0084] leading-tight">Velocidad normal</p>
+                <p className="text-[15px] font-bold text-gray-900 leading-tight">Velocidad normal</p>
                 <p className="text-[12px] text-[#9CA3AF] leading-tight">Ritmo natural</p>
               </div>
             </div>
@@ -3056,7 +3056,7 @@ function LuisterenSection({
             <div className="flex items-center gap-2.5 mb-2.5">
               <span className="text-2xl leading-none">🐢</span>
               <div>
-                <p className="text-[15px] font-bold text-[#1D0084] leading-tight">Versión lenta</p>
+                <p className="text-[15px] font-bold text-gray-900 leading-tight">Versión lenta</p>
                 <p className="text-[12px] text-[#9CA3AF] leading-tight">Para entender cada palabra</p>
               </div>
             </div>
@@ -3072,7 +3072,7 @@ function LuisterenSection({
         <div className="space-y-2 pt-2">
           <button
             onClick={() => setView('dialogue')}
-            className="w-full flex items-center justify-center gap-2 py-4 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200"
+            className="w-full flex items-center justify-center gap-2 py-4 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
@@ -3082,7 +3082,7 @@ function LuisterenSection({
           {hasExercises && (
             <button
               onClick={() => setView('exercises')}
-              className="w-full flex items-center justify-center gap-2 py-4 rounded-lg bg-white border border-[#DDE6F5] text-[#1D0084] text-[15px] font-semibold hover:bg-[#F0F5FF] transition-colors duration-200"
+              className="w-full flex items-center justify-center gap-2 py-4 rounded-lg bg-white border border-[#DDE6F5] text-gray-900 text-[15px] font-semibold hover:bg-[#F0F5FF] transition-colors duration-200"
             >
               Ir directamente a los ejercicios
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -3103,7 +3103,7 @@ function LuisterenSection({
         <div className="flex items-center justify-between gap-2">
           <button
             onClick={() => setView('landing')}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-[#5A6480] hover:text-[#1D0084] hover:bg-[#F0F5FF] transition-colors duration-200"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-[#5A6480] hover:text-[#025dc7] hover:bg-[#F0F5FF] transition-colors duration-200"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -3114,8 +3114,8 @@ function LuisterenSection({
             onClick={() => setShowTranslation(t => !t)}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors duration-200 ${
               showTranslation
-                ? 'bg-[#4da3ff] text-[#0a1656] hover:bg-[#6cb5ff]'
-                : 'bg-white border border-[#DDE6F5] text-[#1D0084] hover:bg-[#F0F5FF]'
+                ? 'bg-[#4da3ff] text-[#1D0084] hover:bg-[#6cb5ff]'
+                : 'bg-white border border-[#DDE6F5] text-gray-900 hover:bg-[#F0F5FF]'
             }`}
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -3127,7 +3127,7 @@ function LuisterenSection({
 
         {/* Título arriba */}
         <div className="border-b border-[#DDE6F5] pb-3">
-          <h3 className="text-[18px] font-bold text-[#1D0084] leading-snug" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+          <h3 className="text-[18px] font-bold text-gray-900 leading-snug" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
             {dialogue.title}
           </h3>
         </div>
@@ -3139,7 +3139,7 @@ function LuisterenSection({
               <p className="text-[11px] font-bold uppercase tracking-wider text-[#9CA3AF]">
                 {line.speaker}
               </p>
-              <p className="text-[16px] text-[#1D0084] leading-relaxed font-medium">
+              <p className="text-[16px] text-gray-900 leading-relaxed font-medium">
                 {line.dutch}
               </p>
               {showTranslation && (
@@ -3155,7 +3155,7 @@ function LuisterenSection({
         {hasExercises && (
           <button
             onClick={() => setView('exercises')}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200 mt-6"
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200 mt-6"
           >
             Ir a los ejercicios
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -3191,7 +3191,7 @@ function LuisterenSection({
         {/* Failed-items list — apuntar las palabras que falles, justo aquí. */}
         {failedLabels.length > 0 && (
           <div className="rounded-lg border border-[#DDE6F5] bg-white p-4">
-            <p className="text-[12px] font-bold text-[#1D0084] uppercase tracking-wide mb-2">
+            <p className="text-[12px] font-bold text-gray-900 uppercase tracking-wide mb-2">
               Fallaste en {failedLabels.length}
             </p>
             <ul className="space-y-1.5">
@@ -3207,7 +3207,7 @@ function LuisterenSection({
 
         <button
           onClick={() => { resetAttempt(); setView('landing'); }}
-          className="w-full py-3.5 rounded-lg bg-[#F0F5FF] text-[#1D0084] text-[15px] font-semibold border border-[#DDE6F5] hover:bg-[#e0eaff] transition-colors duration-200"
+          className="w-full py-3.5 rounded-lg bg-[#F0F5FF] text-gray-900 text-[15px] font-semibold border border-[#DDE6F5] hover:bg-[#e0eaff] transition-colors duration-200"
         >
           🔄 Volver al diálogo
         </button>
@@ -3221,7 +3221,7 @@ function LuisterenSection({
       <div className="flex items-center justify-between">
         <button
           onClick={() => { resetAttempt(); setView('landing'); }}
-          className="flex items-center gap-1.5 text-[13px] font-semibold text-[#9CA3AF] hover:text-[#1D0084] transition-colors duration-200"
+          className="flex items-center gap-1.5 text-[13px] font-semibold text-[#9CA3AF] hover:text-[#025dc7] transition-colors duration-200"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -3281,7 +3281,7 @@ function LuisterenSection({
               setExKey(k => k + 1);
             }
           }}
-          className="w-full flex items-center justify-center gap-2 py-4 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200"
+          className="w-full flex items-center justify-center gap-2 py-4 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200"
         >
           {exerciseIndex + 1 < practiceExercises.length ? 'Siguiente ejercicio' : 'Ver resultado'}
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -3330,7 +3330,7 @@ function SectionLanding({
             <div className="w-12 h-12 flex items-center justify-center shrink-0">
               {done ? (
                 <div className="w-10 h-10 rounded-lg bg-[#4da3ff] flex items-center justify-center">
-                  <svg className="w-5 h-5 text-[#0a1656]" fill="none" stroke="currentColor" strokeWidth={2.8} viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-[#1D0084]" fill="none" stroke="currentColor" strokeWidth={2.8} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
@@ -3358,7 +3358,7 @@ function SectionLanding({
 
             {/* Arrow */}
             <svg
-              className="w-4 h-4 text-[#9CA3AF] group-hover:text-[#1D0084] transition-colors duration-200 shrink-0"
+              className="w-4 h-4 text-[#9CA3AF] group-hover:text-[#025dc7] transition-colors duration-200 shrink-0"
               fill="none"
               stroke="currentColor"
               strokeWidth={2.5}
@@ -3622,7 +3622,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
       {/* ── Header ── In a course the activity page already shows the lesson
            name, so we drop the big banner-like title + extra padding and keep
            only the "back to parts" link (whole-lesson mode). ── */}
-      <div className="bg-white">
+      <div>
         <div className={inCourse ? '' : 'max-w-(--breakpoint-2xl) mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-2'}>
           {/* Breadcrumb — where am I (whole-lesson mode only) */}
           {!inCourse && (
@@ -3639,7 +3639,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
           {activeSection !== null && !forced && (
             <button
               onClick={() => setActiveSection(null)}
-              className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#5A6480] hover:text-[#1D0084] transition-colors duration-200 mb-3"
+              className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#5A6480] hover:text-[#025dc7] transition-colors duration-200 mb-3"
             >
               <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M7 16l-4-4m0 0l4-4m-4 4h18" />
@@ -3668,14 +3668,14 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
       </div>
 
       {/* ── Content ── */}
-      <div className={`bg-white ${inCourse ? 'pt-1 pb-4' : 'pt-2 pb-6'}`}>
+      <div className={inCourse ? 'pt-1 pb-4' : 'pt-2 pb-6'}>
         <div className={inCourse ? 'mx-auto max-w-5xl px-0' : 'max-w-(--breakpoint-2xl) mx-auto px-4 sm:px-6 lg:px-8'}>
          <div className={inCourse ? 'contents' : 'max-w-5xl'}>
 
           {/* Requested part doesn't exist in this lesson */}
           {forcedMissing && (
             <div className="rounded-2xl border border-[#DDE6F5] bg-[#F0F5FF] px-6 py-10 text-center">
-              <p className="text-[15px] font-semibold text-[#1D0084]">Esta lección no tiene esa parte todavía.</p>
+              <p className="text-[15px] font-semibold text-gray-900">Esta lección no tiene esa parte todavía.</p>
               <p className="text-[13px] text-[#5A6480] mt-1">Pulsa «Siguiente» abajo para continuar.</p>
             </div>
           )}

@@ -75,7 +75,7 @@ function TrailCourseCard(props: TrailCourseCardProps) {
   const courseLink = getUriWithOrg(props.orgslug, '/course/' + courseid)
 
   return (
-    <div className="group relative flex flex-col bg-white rounded-xl nice-shadow overflow-hidden w-full transition-all duration-300 hover:scale-[1.01]" onMouseEnter={handleMouseEnter}>
+    <div className="group relative flex flex-col bg-white rounded-2xl nice-shadow overflow-hidden w-full transition-all duration-300 hover:scale-[1.01]" onMouseEnter={handleMouseEnter}>
       {/* Thumbnail */}
       <Link
         href={courseLink}
@@ -154,7 +154,7 @@ function TrailCourseCard(props: TrailCourseCardProps) {
               href={getUriWithOrg(props.orgslug, `/certificates/${courseCertificate.certificate_user.user_certification_uuid}/verify`)}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 uppercase tracking-wider"
+              className="inline-flex items-center gap-1 text-[10px] font-bold text-[#025dc7] hover:text-[#1D0084] uppercase tracking-wider"
             >
               {t('certificate.verify')}
               <ExternalLink className="w-3 h-3" />

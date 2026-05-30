@@ -35,7 +35,7 @@ function getActivityTypeLabel(activityType: string, t: any): string {
 function getActivityTypeBadgeColor(activityType: string): string {
   switch (activityType) {
     case 'TYPE_VIDEO':
-      return 'bg-blue-100 text-blue-700'
+      return 'bg-[#F0F5FF] text-[#025dc7]'
     case 'TYPE_DOCUMENT':
       return 'bg-purple-100 text-purple-700'
     case 'TYPE_DYNAMIC':

@@ -403,6 +403,15 @@ async def process_webhook_event(
             logger.exception("Welcome email send failed for %s", email)
             # We don't fail the webhook — the user exists, we can resend manually.
 
+        # CRM (systeme.io): drop "Matriculado sin pagar" + add "Alumno" so the
+        # re-engagement campaign skips this person. Best-effort: a CRM hiccup
+        # must never roll back a confirmed payment.
+        try:
+            from src.services.crm.systeme import mark_as_alumno
+            await mark_as_alumno(email)
+        except Exception:
+            logger.exception("Systeme tag update failed for %s", email)
+
         return {"detail": "ok"}
     except HTTPException:
         raise

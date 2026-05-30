@@ -58,7 +58,14 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
               <>
                 <div
                   className="relative flex items-center justify-center py-8 text-5xl overflow-hidden"
-                  style={{ background: m.color || '#1D0084' }}
+                  style={{
+                    backgroundColor: '#1D0084',
+                    backgroundImage:
+                      'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
+                      'radial-gradient(circle 280px at 100% 0%, rgba(11,109,240,0.40) 0%, transparent 70%)',
+                    backgroundSize: '24px 24px, auto',
+                    backgroundRepeat: 'repeat, no-repeat',
+                  }}
                 >
                   <div aria-hidden className="absolute inset-0 dots-dark pointer-events-none" />
                   {unlocked ? (
@@ -78,7 +85,7 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
                   </span>
                   <div>
                     <h2
-                      className="text-[18px] font-bold text-[#1D0084] leading-tight"
+                      className="text-[18px] font-bold text-gray-900 leading-tight"
                       style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
                     >
                       {m.title}

@@ -1,0 +1,83 @@
+name: DB Backup → Cloudflare R2
+
+# Off-site backup of the academy Postgres into Cloudflare R2.
+# Hobby plan on Railway has no native snapshots, so this is what keeps
+# the data safe if Railway goes down or the account is locked.
+#
+# Schedule: every Sunday at 04:00 UTC (06:00 Madrid in winter / 05:00 in summer).
+# Also runnable on demand from the Actions tab → "Run workflow".
+
+on:
+  schedule:
+    - cron: '0 4 * * 0'
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Install pg_dump + AWS CLI
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          # Pin to the major version Railway runs so dumps are restore-compatible.
+          sudo apt-get install -y --no-install-recommends postgresql-client awscli
+
+      - name: Compute timestamp
+        id: ts
+        # YYYYMMDD-HHMMSS sorts lexicographically === chronologically, so the
+        # prune step can pick "newest 12" with a plain sort.
+        run: echo "stamp=$(date -u +%Y%m%d-%H%M%S)" >> "$GITHUB_OUTPUT"
+
+      - name: Dump + gzip
+        env:
+          DATABASE_URL: ${{ secrets.RAILWAY_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          out="nawar-${{ steps.ts.outputs.stamp }}.sql.gz"
+          # --no-owner / --no-acl: restore works against any user/role, not
+          #   only the one that produced the dump.
+          # gzip -9: maximum compression — backups are read once a quarter at most.
+          pg_dump --no-owner --no-acl "$DATABASE_URL" | gzip -9 > "$out"
+          ls -lh "$out"
+          # Hard sanity: empty dumps are a silent disaster.
+          test -s "$out"
+
+      - name: Upload to R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          set -euo pipefail
+          out="nawar-${{ steps.ts.outputs.stamp }}.sql.gz"
+          aws s3 cp "$out" \
+            "s3://${{ secrets.R2_BUCKET }}/$out" \
+            --endpoint-url "${{ secrets.R2_ENDPOINT }}" \
+            --only-show-errors
+          echo "Uploaded $out"
+
+      - name: Prune (keep newest 12)
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          set -euo pipefail
+          # List → keep only the nawar-* dumps → newest first → skip first 12 →
+          # delete the rest. 12 weekly backups ≈ 3 months of retention.
+          aws s3 ls "s3://${{ secrets.R2_BUCKET }}/" \
+            --endpoint-url "${{ secrets.R2_ENDPOINT }}" \
+            | awk '{print $4}' \
+            | grep '^nawar-.*\.sql\.gz$' \
+            | sort -r \
+            | tail -n +13 \
+            | while read -r f; do
+                echo "Pruning old backup: $f"
+                aws s3 rm "s3://${{ secrets.R2_BUCKET }}/$f" \
+                  --endpoint-url "${{ secrets.R2_ENDPOINT }}" \
+                  --only-show-errors
+              done
+          echo "Done."

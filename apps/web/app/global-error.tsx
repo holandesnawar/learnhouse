@@ -1,6 +1,5 @@
 "use client";
 
-import * as Sentry from "@sentry/nextjs";
 import '../styles/globals.css'
 import { AlertTriangle, RefreshCcw } from 'lucide-react'
 import { useEffect } from 'react'
@@ -13,12 +12,6 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Capture error to Sentry if initialized
-    if (Sentry.isInitialized()) {
-      Sentry.captureException(error);
-    }
-
-    // Check if it's a Server Action version mismatch error
     if (error.message.includes('Failed to find Server Action') ||
         error.message.includes('older or newer deployment')) {
       console.log('Version mismatch detected, reloading page...')
@@ -42,7 +35,7 @@ export default function GlobalError({
                     {error.message}
                 </div>
             )}
-            <button 
+            <button
                 onClick={() => reset()}
                 className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition-colors shadow-sm"
             >

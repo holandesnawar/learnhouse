@@ -3,6 +3,7 @@
 import React from 'react'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import { ChannelChat } from '@components/Objects/Communities/ChannelChat'
+import PinnedFeed from '@components/Objects/Communities/PinnedFeed'
 import { getUriWithOrg } from '@services/config/config'
 import { ArrowLeft, Hash } from 'lucide-react'
 import Link from 'next/link'
@@ -47,9 +48,14 @@ const CommunityClient = ({ community, orgslug }: CommunityClientProps) => {
         </div>
       </div>
 
-      {/* Chat */}
-      <div className="bg-white nice-shadow rounded-2xl overflow-hidden">
-        <ChannelChat communityUuid={community.community_uuid} channelName={text} />
+      {/* Chat + pinned feed */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 bg-white nice-shadow rounded-2xl overflow-hidden">
+          <ChannelChat communityUuid={community.community_uuid} channelName={text} />
+        </div>
+        <div className="lg:col-span-1">
+          <PinnedFeed communityUuid={community.community_uuid} />
+        </div>
       </div>
     </GeneralWrapperStyled>
   )

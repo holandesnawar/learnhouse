@@ -195,7 +195,7 @@ export default function MatriculaClient() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] font-bold py-3.5 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+            className="w-full bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#1D0084] font-bold py-3.5 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
           >
             {isSubmitting ? 'Preparando tu pago…' : 'Continuar al pago →'}
           </button>

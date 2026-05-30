@@ -149,6 +149,22 @@ def check_login_rate_limit(request: Request) -> Tuple[bool, int]:
     return is_allowed, retry_after
 
 
+def check_enroll_rate_limit(request: Request) -> Tuple[bool, int]:
+    """Cap matricula submissions per IP so bots can't spam Stripe customers
+    + enrollment rows + CRM tags. 5 per hour per IP is comfortably above any
+    real human while killing scripted abuse."""
+    ip = get_client_ip(request)
+    key = f"enroll:{ip}"
+
+    is_allowed, count, retry_after = check_rate_limit(
+        key=key,
+        max_attempts=5,
+        window_seconds=60 * 60,
+    )
+
+    return is_allowed, retry_after
+
+
 def check_signup_rate_limit(request: Request) -> Tuple[bool, int]:
     """
     Check signup rate limit: 10 attempts per hour per IP.

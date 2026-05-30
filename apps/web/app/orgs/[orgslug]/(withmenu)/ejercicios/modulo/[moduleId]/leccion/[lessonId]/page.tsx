@@ -30,7 +30,7 @@ export default async function LessonPage({
   const nextLesson = getNextLesson(moduleId, lessonId)
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen">
       <LessonViewer
         lesson={lesson}
         module={module}
