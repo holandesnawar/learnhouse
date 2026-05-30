@@ -2,7 +2,7 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -13,12 +13,26 @@ from src.services.payments.payments import (
     enroll_and_checkout,
     process_webhook_event,
 )
+from src.services.security.rate_limiting import check_enroll_rate_limit
 
 
 logger = logging.getLogger(__name__)
 
 
 router = APIRouter()
+
+
+def _enforce_enroll_rate_limit(request: Request) -> None:
+    """5/hour/IP. Returns 429 with a Retry-After header when exhausted so
+    the client (matrícula form on holandesnawar.com) can surface a useful
+    message and Cloudflare will honour the backoff."""
+    is_allowed, retry_after = check_enroll_rate_limit(request)
+    if not is_allowed:
+        raise HTTPException(
+            status_code=429,
+            detail="Demasiados intentos. Vuelve a probar en unos minutos.",
+            headers={"Retry-After": str(max(1, retry_after))},
+        )
 
 
 @router.post(
@@ -31,6 +45,7 @@ async def api_enroll(
     request: Request,
     db_session: AsyncSession = Depends(get_db_session),
 ):
+    _enforce_enroll_rate_limit(request)
     url = await enroll_and_checkout(data, db_session)
     return EnrollmentResponse(checkout_url=url)
 
@@ -44,6 +59,7 @@ async def api_enroll(
     ),
 )
 async def api_checkout_formacion(request: Request):
+    _enforce_enroll_rate_limit(request)
     url = await create_formacion_checkout_session()
     return RedirectResponse(url=url, status_code=303)
 

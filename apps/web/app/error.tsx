@@ -1,7 +1,6 @@
 'use client'
 
 import ErrorUI from '@components/Objects/StyledElements/Error/Error'
-import * as Sentry from '@sentry/nextjs'
 import { useEffect } from 'react'
 
 export default function Error({
@@ -12,9 +11,6 @@ export default function Error({
   reset: () => void
 }) {
   useEffect(() => {
-    if (Sentry.isInitialized()) {
-      Sentry.captureException(error)
-    }
     console.error(error)
 
     if (
