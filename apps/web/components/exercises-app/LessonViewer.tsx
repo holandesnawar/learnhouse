@@ -3622,7 +3622,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
       {/* ── Header ── In a course the activity page already shows the lesson
            name, so we drop the big banner-like title + extra padding and keep
            only the "back to parts" link (whole-lesson mode). ── */}
-      <div className="bg-white">
+      <div>
         <div className={inCourse ? '' : 'max-w-(--breakpoint-2xl) mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-2'}>
           {/* Breadcrumb — where am I (whole-lesson mode only) */}
           {!inCourse && (
@@ -3668,7 +3668,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
       </div>
 
       {/* ── Content ── */}
-      <div className={`bg-white ${inCourse ? 'pt-1 pb-4' : 'pt-2 pb-6'}`}>
+      <div className={inCourse ? 'pt-1 pb-4' : 'pt-2 pb-6'}>
         <div className={inCourse ? 'mx-auto max-w-5xl px-0' : 'max-w-(--breakpoint-2xl) mx-auto px-4 sm:px-6 lg:px-8'}>
          <div className={inCourse ? 'contents' : 'max-w-5xl'}>
 

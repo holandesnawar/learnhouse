@@ -70,7 +70,7 @@ export default function OnboardingCard({ orgslug, hasStartedCourse }: Props) {
       title: 'Completa tu perfil',
       description: 'Añade tu foto y datos para que el resto te conozca.',
       cta: 'Ir a mi perfil',
-      href: getUriWithOrg(orgslug, '/account/settings'),
+      href: getUriWithOrg(orgslug, '/account/profile'),
       icon: <User size={16} />,
       isDone: hasAvatar,
     },
