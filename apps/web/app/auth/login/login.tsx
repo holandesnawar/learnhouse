@@ -348,8 +348,8 @@ const LoginClient = (props: LoginClientProps) => {
                 <Form.Label className="text-[13px] font-semibold text-white/90 tracking-[0.01em]">
                   {t('auth.password')}
                 </Form.Label>
-                <Form.Control asChild>
-                  <div className="relative">
+                <div className="relative">
+                  <Form.Control asChild>
                     <input
                       type={showPassword ? 'text' : 'password'}
                       autoComplete="current-password"
@@ -359,17 +359,17 @@ const LoginClient = (props: LoginClientProps) => {
                       value={formik.values.password}
                       className="w-full px-4 py-3.5 pr-11 rounded-xl bg-[#F0F5FF] hover:bg-[#E5ECFF] focus:bg-white text-[#1D0084] placeholder:text-[#1D0084]/45 outline-none border border-transparent focus:border-[#4da3ff] focus:ring-[3px] focus:ring-[#4da3ff]/22 text-[15px] transition-colors"
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((v) => !v)}
-                      tabIndex={-1}
-                      aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#1D0084]/60 hover:text-[#1D0084] transition-colors"
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </Form.Control>
+                  </Form.Control>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    tabIndex={-1}
+                    aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#1D0084]/60 hover:text-[#1D0084] transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
                 {formik.touched.password && formik.errors.password && (
                   <p className="text-xs text-rose-300">{formik.errors.password as string}</p>
                 )}
