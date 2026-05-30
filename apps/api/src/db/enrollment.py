@@ -9,29 +9,22 @@ Lets us:
 from typing import Optional
 
 from pydantic import BaseModel, EmailStr
-from sqlalchemy import Column, ForeignKey, Index, Integer, JSON, String
 from sqlmodel import Field, SQLModel
 
 
 class Enrollment(SQLModel, table=True):
     __tablename__ = "enrollment"
-    __table_args__ = (
-        Index("ix_enrollment_email", "email"),
-        Index("ix_enrollment_stripe_session", "stripe_session_id"),
-    )
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    email: str = Field(sa_column=Column(String(255), index=True))
+    email: str = Field(default="", index=True, max_length=255)
     first_name: str = ""
     last_name: str = ""
     phone: str = ""
     country: str = ""
     city: str = ""
-    # "pending" → just filled the form. "paid" → Stripe confirmed. "abandoned" → session expired.
-    status: str = "pending"
+    status: str = Field(default="pending", index=True)
     stripe_customer_id: str = ""
-    stripe_session_id: str = ""
-    extra: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    stripe_session_id: str = Field(default="", index=True)
     created_at: str = ""
     updated_at: str = ""
 
@@ -47,3 +40,4 @@ class EnrollmentCreate(BaseModel):
 
 class EnrollmentResponse(BaseModel):
     checkout_url: str
+
