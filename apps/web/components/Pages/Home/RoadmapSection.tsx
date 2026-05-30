@@ -70,7 +70,7 @@ export default function RoadmapSection({ canEdit }: { canEdit: boolean }) {
         <h2 className="text-lg font-bold text-gray-900">Editar hoja de ruta</h2>
         <div className="space-y-5">
           {draft.weeks.map((week, wi) => (
-            <div key={wi} className="rounded-lg border border-gray-200 p-4 space-y-3">
+            <div key={wi} className="rounded-xl border border-gray-200 p-4 space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <input
                   value={week.title}
@@ -111,7 +111,7 @@ export default function RoadmapSection({ canEdit }: { canEdit: boolean }) {
           </button>
         </div>
         <div className="flex items-center gap-2 pt-1">
-          <button onClick={save} disabled={saving} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] text-[#0a1656] text-sm font-semibold hover:bg-[#6cb5ff] disabled:opacity-60">
+          <button onClick={save} disabled={saving} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] text-[#1D0084] text-sm font-semibold hover:bg-[#6cb5ff] disabled:opacity-60">
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />} Guardar
           </button>
           <button onClick={() => setEditing(false)} className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100">Cancelar</button>
@@ -162,7 +162,7 @@ export default function RoadmapSection({ canEdit }: { canEdit: boolean }) {
             {roadmap.weeks.map((week, wi) => (
               <div
                 key={wi}
-                className={`rounded-lg border p-4 ${
+                className={`rounded-xl border p-4 ${
                   wi === roadmap.current ? 'border-[#025dc7] bg-[#025dc7]/5' : 'border-gray-200 bg-white'
                 }`}
               >
@@ -192,7 +192,7 @@ export default function RoadmapSection({ canEdit }: { canEdit: boolean }) {
       {!hasRoadmap && canEdit && (
         <button
           onClick={startEdit}
-          className="w-full flex items-center justify-center gap-2 py-4 rounded-lg border-2 border-dashed border-gray-200 text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+          className="w-full flex items-center justify-center gap-2 py-4 rounded-xl border-2 border-dashed border-gray-200 text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700"
         >
           <Plus size={16} /> Crear hoja de ruta semanal
         </button>

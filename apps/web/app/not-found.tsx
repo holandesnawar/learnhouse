@@ -55,7 +55,7 @@ export default async function NotFound() {
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
             href="/"
-            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] font-bold transition-colors w-full sm:w-auto"
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#1D0084] font-bold transition-colors w-full sm:w-auto"
           >
             Volver al inicio
             <ArrowRight size={18} />

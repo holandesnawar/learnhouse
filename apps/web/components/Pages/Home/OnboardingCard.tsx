@@ -153,8 +153,8 @@ export default function OnboardingCard({ orgslug, hasStartedCourse }: Props) {
             <div
               className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-bold text-[14px] transition-colors ${
                 s.isDone
-                  ? 'bg-[#4da3ff] text-[#0a1656]'
-                  : 'bg-[#F0F5FF] text-[#1D0084] border border-[#DDE6F5]'
+                  ? 'bg-[#4da3ff] text-[#1D0084]'
+                  : 'bg-white text-[#025dc7] border-2 border-[#025dc7]/30'
               }`}
             >
               {s.isDone ? <Check size={16} strokeWidth={3} /> : idx + 1}
@@ -187,7 +187,7 @@ export default function OnboardingCard({ orgslug, hasStartedCourse }: Props) {
               <Link
                 href={s.href}
                 onClick={() => markVisited(s.id)}
-                className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] font-bold text-[12px] sm:text-[13px] transition-colors whitespace-nowrap"
+                className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#1D0084] font-bold text-[12px] sm:text-[13px] transition-colors whitespace-nowrap"
               >
                 <span className="hidden sm:inline">{s.cta}</span>
                 <span className="sm:hidden">Ir</span>

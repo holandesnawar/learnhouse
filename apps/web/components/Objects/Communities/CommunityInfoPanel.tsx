@@ -131,7 +131,7 @@ export default function CommunityInfoPanel({ org_id }: Props) {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[13px] font-semibold hover:bg-[#6cb5ff] transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[13px] font-semibold hover:bg-[#6cb5ff] transition-colors disabled:opacity-50"
               >
                 <Check size={14} /> {saving ? 'Guardando…' : 'Guardar'}
               </button>

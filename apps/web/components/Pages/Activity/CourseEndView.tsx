@@ -463,7 +463,7 @@ const CourseEndView: React.FC<CourseEndViewProps> = ({
 
           {isLoadingCertificate ? (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4da3ff]"></div>
               <span className="ml-3 text-gray-600">{t('certificate.loading_certificate')}</span>
             </div>
           ) : certificateError ? (
@@ -505,7 +505,7 @@ const CourseEndView: React.FC<CourseEndViewProps> = ({
                   href={getUriWithOrg(orgslug, `/certificates/${userCertificate.certificate_user.user_certification_uuid}/verify`)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-blue-700 transition duration-200"
+                  className="inline-flex items-center space-x-2 bg-[#4da3ff] text-[#1D0084] px-6 py-3 rounded-full hover:bg-[#5eb4ff] transition duration-200"
                 >
                   <Shield className="w-5 h-5" />
                   <span>{t('certificate.verify_certificate')}</span>
@@ -550,8 +550,8 @@ const CourseEndView: React.FC<CourseEndViewProps> = ({
               />
             )}
             
-            <div className="bg-blue-100 p-4 rounded-full">
-              <Target className="w-16 h-16 text-blue-600" />
+            <div className="bg-[#F0F5FF] p-4 rounded-full">
+              <Target className="w-16 h-16 text-[#025dc7]" />
             </div>
           </div>
           
@@ -579,7 +579,7 @@ const CourseEndView: React.FC<CourseEndViewProps> = ({
                 
                 <div className="w-full bg-gray-200 rounded-full h-3">
                   <div 
-                    className="bg-blue-600 h-3 rounded-full transition-all duration-500"
+                    className="bg-[#4da3ff] h-3 rounded-full transition-all duration-500"
                     style={{ width: `${progressInfo.percentage}%` }}
                   ></div>
                 </div>
@@ -598,7 +598,7 @@ const CourseEndView: React.FC<CourseEndViewProps> = ({
           <div className="pt-6">
             <Link
               href={getUriWithOrg(orgslug, `/course/${courseUuid.replace('course_', '')}`)}
-              className="inline-flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-blue-700 transition duration-200"
+              className="inline-flex items-center space-x-2 bg-[#4da3ff] text-[#1D0084] px-6 py-3 rounded-full hover:bg-[#5eb4ff] transition duration-200"
             >
               <ArrowLeft className="w-5 h-5" />
               <span>{t('courses.continue_learning')}</span>

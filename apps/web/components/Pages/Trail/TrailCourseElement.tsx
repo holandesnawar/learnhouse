@@ -158,7 +158,7 @@ function TrailCourseElement(props: TrailCourseElementProps) {
                   href={getUriWithOrg(props.orgslug, `/certificates/${courseCertificate.certificate_user.user_certification_uuid}/verify`)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-700 text-xs font-medium"
+                  className="inline-flex items-center space-x-1 text-[#025dc7] hover:text-[#1D0084] text-xs font-medium"
                 >
                   <span>{t('certificate.verify')}</span>
                   <ExternalLink className="w-3 h-3" />

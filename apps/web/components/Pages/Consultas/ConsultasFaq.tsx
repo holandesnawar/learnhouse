@@ -94,7 +94,7 @@ export default function ConsultasFaq() {
         {canEdit && (
           <button
             onClick={() => setEditing({ id: newId(), question: '', answer: '' })}
-            className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#4da3ff] text-[#0a1656] text-sm font-semibold hover:bg-[#6cb5ff] transition-colors"
+            className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#4da3ff] text-[#1D0084] text-sm font-semibold hover:bg-[#6cb5ff] transition-colors"
           >
             <Plus size={15} /> Añadir
           </button>
@@ -222,7 +222,7 @@ function FaqModal({
             <button
               onClick={() => onSave(form)}
               disabled={saving}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] text-[#0a1656] text-sm font-semibold hover:bg-[#6cb5ff] disabled:opacity-60"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] text-[#1D0084] text-sm font-semibold hover:bg-[#6cb5ff] disabled:opacity-60"
             >
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />} Guardar
             </button>

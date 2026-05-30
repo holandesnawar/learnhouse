@@ -147,7 +147,7 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
         </div>
         <Link
           href={getUriWithOrg(orgslug, '/consultas')}
-          className="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] font-bold text-sm transition-colors"
+          className="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#1D0084] font-bold text-sm transition-colors"
         >
           Ir a Consultas <ArrowRight size={16} />
         </Link>

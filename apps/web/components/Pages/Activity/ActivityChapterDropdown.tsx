@@ -169,7 +169,7 @@ export default function ActivityChapterDropdown(props: ActivityChapterDropdownPr
                                   {activity.name}
                                 </p>
                                 {isCurrent && (
-                                  <div className="flex items-center space-x-1 text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full text-[10px] font-medium animate-pulse">
+                                  <div className="flex items-center space-x-1 text-[#025dc7] bg-[#F0F5FF] px-1.5 py-0.5 rounded-full text-[10px] font-medium animate-pulse">
                                     <span>{t('activities.current')}</span>
                                   </div>
                                 )}

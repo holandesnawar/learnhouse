@@ -41,7 +41,7 @@ export default function ExerciseProgressCard({ orgslug }: { orgslug: string }) {
         </div>
         <Link
           href={getUriWithOrg(orgslug, '/ejercicios')}
-          className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#4da3ff] text-[#0a1656] text-sm font-semibold hover:bg-[#6cb5ff]"
+          className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#4da3ff] text-[#1D0084] text-sm font-semibold hover:bg-[#6cb5ff]"
         >
           Practicar <ArrowRight size={15} />
         </Link>

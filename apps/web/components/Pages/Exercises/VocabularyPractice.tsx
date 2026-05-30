@@ -136,7 +136,7 @@ export default function VocabularyPractice({ orgslug }: { orgslug: string }) {
               {failedCount > 0 && (
                 <button
                   onClick={() => restart(true)}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#4da3ff] text-[#0a1656] font-bold text-sm hover:bg-[#6cb5ff]"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#4da3ff] text-[#1D0084] font-bold text-sm hover:bg-[#6cb5ff]"
                 >
                   <RotateCcw size={16} /> Repasar los que fallé
                 </button>
@@ -179,7 +179,7 @@ export default function VocabularyPractice({ orgslug }: { orgslug: string }) {
               ) : (
                 <button
                   onClick={() => setRevealed(true)}
-                  className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#4da3ff] text-[#0a1656] font-bold text-sm hover:bg-[#6cb5ff]"
+                  className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#4da3ff] text-[#1D0084] font-bold text-sm hover:bg-[#6cb5ff]"
                 >
                   <Eye size={16} /> Mostrar significado
                 </button>
