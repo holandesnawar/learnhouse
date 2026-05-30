@@ -34,8 +34,14 @@ jobs:
             | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends postgresql-client-18
-          pg_dump --version  # should show 18.x
-          aws --version       # CLI v2 is preinstalled on ubuntu-latest
+          # The runner already has postgresql-client (v16) preinstalled, and
+          # postgresql-common's /usr/bin/pg_dump wrapper picks v16 over v18.
+          # Sidestep the wrapper by calling the v18 binary directly.
+          PG_DUMP_18=/usr/lib/postgresql/18/bin/pg_dump
+          test -x "$PG_DUMP_18"
+          "$PG_DUMP_18" --version  # must report 18.x
+          echo "PG_DUMP=$PG_DUMP_18" >> "$GITHUB_ENV"
+          aws --version            # CLI v2 is preinstalled on ubuntu-latest
 
       - name: Compute timestamp
         id: ts
@@ -52,7 +58,7 @@ jobs:
           # --no-owner / --no-acl: restore works against any user/role, not
           #   only the one that produced the dump.
           # gzip -9: maximum compression — backups are read once a quarter at most.
-          pg_dump --no-owner --no-acl "$DATABASE_URL" | gzip -9 > "$out"
+          "$PG_DUMP" --no-owner --no-acl "$DATABASE_URL" | gzip -9 > "$out"
           ls -lh "$out"
           # Hard sanity: empty dumps are a silent disaster.
           test -s "$out"
