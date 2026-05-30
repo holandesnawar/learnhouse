@@ -511,7 +511,7 @@ const CourseClient = (props: any) => {
             })()}
 
             <div className="w-full my-5 mb-10">
-              <h2 className="py-5 text-xl md:text-2xl font-bold text-[#1D0084]" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>{t('courses.course_lessons')}</h2>
+              <h2 className="py-5 text-xl md:text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>{t('courses.course_lessons')}</h2>
               <div className="bg-white nice-shadow rounded-2xl overflow-hidden border border-[#DDE6F5] divide-y divide-[#DDE6F5]">
                 {(course.chapters ?? []).map((chapter: any, idx: number) => {
                   const isExpanded = expandedChapters[chapter.chapter_uuid] ?? (idx === 0); // Default to expanded for first chapter
@@ -538,7 +538,7 @@ const CourseClient = (props: any) => {
                         {/* Title and badge column */}
                         <div className="flex flex-col items-start w-full">
                           <div className="flex items-center flex-wrap mb-1 w-full min-w-0">
-                            <h3 className="text-lg font-bold leading-tight truncate min-w-0 sm:text-base md:text-lg text-[#1D0084]" style={{lineHeight: '1.2', fontFamily: 'var(--font-poppins), system-ui, sans-serif'}}>{chapter.name}</h3>
+                            <h3 className="text-lg font-bold leading-tight truncate min-w-0 sm:text-base md:text-lg text-gray-900" style={{lineHeight: '1.2', fontFamily: 'var(--font-poppins), system-ui, sans-serif'}}>{chapter.name}</h3>
                             {chapter.is_locked && (
                               <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-600 text-[10px] font-semibold">
                                 <Lock size={10} />
