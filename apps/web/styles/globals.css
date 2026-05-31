@@ -87,6 +87,34 @@ html.dark .bg-neutral-100 {
   background-color: rgba(255, 255, 255, 0.06) !important;
 }
 
+/* Nawar pale-blue brand backgrounds — these are hex literals (not Tailwind
+   palette classes), so the *-50/100 overrides above don't catch them. They
+   turn into the same translucent navy treatment so chapter headers, chips,
+   and hover states stop looking like bright bars on the dark page. */
+html.dark .bg-\[\#F8FAFF\],
+html.dark .bg-\[\#F0F5FF\],
+html.dark .bg-\[\#F8F9FA\],
+html.dark .bg-\[\#E5ECFF\],
+html.dark .bg-\[\#e0eaff\],
+html.dark .bg-\[\#e8f0ff\] {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+html.dark .hover\:bg-\[\#F0F5FF\]:hover,
+html.dark .hover\:bg-\[\#F8FAFF\]:hover,
+html.dark .hover\:bg-\[\#e0eaff\]:hover,
+html.dark .hover\:bg-\[\#e8f0ff\]:hover,
+html.dark .hover\:bg-\[\#E5ECFF\]:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Brand hex borders — match the rest of the surface palette */
+html.dark .border-\[\#DDE6F5\] {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+html.dark .divide-\[\#DDE6F5\] > :not(:last-child) {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
 /* Borders → faint whites so cards have a soft outline in dark mode */
 html.dark .border-gray-100,
 html.dark .border-gray-200,
