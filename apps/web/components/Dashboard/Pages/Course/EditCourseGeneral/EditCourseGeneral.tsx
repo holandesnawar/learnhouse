@@ -10,6 +10,7 @@ import { AlertTriangle } from 'lucide-react';
 import * as Form from '@radix-ui/react-form';
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import ThumbnailUpdate from './ThumbnailUpdate';
+import BannerUpdate from './BannerUpdate';
 import { useCourseFieldSync } from '@components/Contexts/CourseContext';
 import FormTagInput from '@components/Objects/StyledElements/Form/TagInput';
 import LearningItemsList from './LearningItemsList';
@@ -333,6 +334,13 @@ function EditCourseGeneral(props: EditCourseStructureProps) {
                 <FormLabelAndMessage label={t('dashboard.courses.general.form.thumbnail_label')} />
                 <Form.Control asChild>
                   <ThumbnailUpdate thumbnailType={formik.values.thumbnail_type} />
+                </Form.Control>
+              </FormField>
+
+              <FormField name="banner">
+                <FormLabelAndMessage label="Banner de cabecera (21:9)" />
+                <Form.Control asChild>
+                  <BannerUpdate />
                 </Form.Control>
               </FormField>
             </div>

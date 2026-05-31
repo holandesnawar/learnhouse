@@ -8,6 +8,7 @@ import ActivityIndicators from '@components/Pages/Courses/ActivityIndicators'
 import { useRouter } from 'next/navigation'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import {
+  getCourseBannerMediaDirectory,
   getCourseThumbnailMediaDirectory,
 } from '@services/media/media'
 import { ArrowRight, Backpack, Check, File, StickyNote, Video, Square, Image as ImageIcon, Layers, Lock } from 'lucide-react'
@@ -312,6 +313,22 @@ const CourseClient = (props: any) => {
       {!course || !org ? null : (
         <>
           <GeneralWrapperStyled>
+            {/* Wide hero banner — only when the admin has uploaded one.
+                Falls back to nothing if absent; the 16:9 thumbnail below
+                still renders as before so the page never looks empty. */}
+            {course.extra_metadata?.banner_image && org?.org_uuid && (
+              <div className="w-full aspect-[21/9] overflow-hidden rounded-2xl mb-4">
+                <img
+                  src={getCourseBannerMediaDirectory(
+                    org.org_uuid,
+                    course.course_uuid,
+                    course.extra_metadata.banner_image,
+                  )}
+                  alt={course.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
             <div className="pb-2 pt-2">
               <h1 className="text-3xl md:text-3xl font-bold">{course.name}</h1>
             </div>

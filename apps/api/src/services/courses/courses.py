@@ -773,6 +773,69 @@ async def update_course_thumbnail(
     return course
 
 
+async def update_course_banner(
+    request: Request,
+    course_uuid: str,
+    current_user: PublicUser | AnonymousUser,
+    db_session: AsyncSession,
+    banner_file: UploadFile | None = None,
+):
+    """Replace the hero banner image (≈21:9) shown at the top of the
+    course detail page. Stored under `course.extra_metadata.banner_image`
+    so no schema change is needed."""
+    from src.services.courses.banners import upload_banner
+
+    statement = select(Course).where(Course.course_uuid == course_uuid)
+    course = (await db_session.execute(statement)).scalars().first()
+
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    await check_resource_access(
+        request, db_session, current_user, course.course_uuid, AccessAction.UPDATE
+    )
+
+    if not banner_file or not banner_file.filename:
+        raise HTTPException(status_code=422, detail="Banner file is required")
+
+    org_statement = select(Organization).where(Organization.id == course.org_id)
+    org = (await db_session.execute(org_statement)).scalars().first()
+
+    name_in_disk = await upload_banner(banner_file, org.org_uuid, course.course_uuid)  # type: ignore
+    if not name_in_disk:
+        raise HTTPException(status_code=500, detail="Issue with banner upload")
+
+    # SQLAlchemy doesn't track mutations inside a JSONB dict — assign a new
+    # dict so the change is detected on commit.
+    metadata = dict(course.extra_metadata or {})
+    metadata["banner_image"] = name_in_disk
+    course.extra_metadata = metadata
+    course.update_date = str(datetime.now())
+
+    db_session.add(course)
+    await db_session.commit()
+    await db_session.refresh(course)
+
+    authors_statement = (
+        select(ResourceAuthor, User)
+        .join(User, ResourceAuthor.user_id == User.id)  # type: ignore
+        .where(ResourceAuthor.resource_uuid == course.course_uuid)
+        .order_by(ResourceAuthor.id.asc())  # type: ignore
+    )
+    author_results = (await db_session.execute(authors_statement)).all()
+    authors = [
+        AuthorWithRole(
+            user=UserRead.model_validate(user),
+            authorship=resource_author.authorship,
+            authorship_status=resource_author.authorship_status,
+            creation_date=resource_author.creation_date,
+            update_date=resource_author.update_date,
+        )
+        for resource_author, user in author_results
+    ]
+    return CourseRead(**course.model_dump(), authors=authors)
+
+
 async def update_course(
     request: Request,
     course_object: CourseUpdate,

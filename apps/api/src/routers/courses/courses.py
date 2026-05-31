@@ -31,6 +31,7 @@ from src.services.courses.courses import (
     get_courses_count_orgslug,
     update_course,
     delete_course,
+    update_course_banner,
     update_course_thumbnail,
     search_courses,
     get_course_user_rights,
@@ -349,6 +350,36 @@ async def api_create_course_thumbnail(
     """
     return await update_course_thumbnail(
         request, course_uuid, current_user, db_session, thumbnail, thumbnail_type
+    )
+
+
+@router.put(
+    "/{course_uuid}/banner",
+    response_model=CourseRead,
+    summary="Update course banner",
+    description=(
+        "Replace the wide hero banner (≈21:9) shown at the top of the course "
+        "detail page. Stored on disk under "
+        "`/content/orgs/{org_uuid}/courses/{course_uuid}/banners/` and the "
+        "filename is tracked in `course.extra_metadata.banner_image`."
+    ),
+    responses={
+        200: {"description": "Banner updated successfully", "model": CourseRead},
+        403: {"description": "User lacks permission to update the course"},
+        404: {"description": "Course not found"},
+        422: {"description": "Banner file missing or invalid"},
+    },
+)
+async def api_create_course_banner(
+    request: Request,
+    course_uuid: str,
+    banner: UploadFile | None = None,
+    db_session: AsyncSession = Depends(get_db_session),
+    current_user: PublicUser = Depends(get_current_user),
+) -> CourseRead:
+    """Update the wide hero banner of a course."""
+    return await update_course_banner(
+        request, course_uuid, current_user, db_session, banner
     )
 
 
