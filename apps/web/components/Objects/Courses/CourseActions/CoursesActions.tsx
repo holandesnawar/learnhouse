@@ -270,7 +270,7 @@ function CoursesActions({ courseuuid, orgslug, course, trailData }: CourseAction
 
     if (!isStarted) {
       return (
-        <div className="relative bg-white nice-shadow rounded-lg overflow-hidden">
+        <div className="relative bg-white nice-shadow rounded-2xl overflow-hidden">
           <div
             className="absolute inset-0 opacity-[0.05]"
             style={{
@@ -312,7 +312,7 @@ function CoursesActions({ courseuuid, orgslug, course, trailData }: CourseAction
     }
 
     return (
-        <div className="relative bg-white nice-shadow rounded-lg overflow-hidden">
+        <div className="relative bg-white nice-shadow rounded-2xl overflow-hidden">
           <div
           className="absolute inset-0 opacity-[0.05]"
           style={{
@@ -378,7 +378,7 @@ function CoursesActions({ courseuuid, orgslug, course, trailData }: CourseAction
   // Show join organization prompt for authenticated users who are not part of the org
   if (session.data?.user && !isUserPartOfTheOrg) {
     return (
-      <div className="bg-white shadow-md shadow-gray-300/25 outline outline-1 outline-neutral-200/40 rounded-lg overflow-hidden p-4">
+      <div className="bg-white shadow-md shadow-gray-300/25 outline outline-1 outline-neutral-200/40 rounded-2xl overflow-hidden p-4">
         <div className="space-y-4">
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg nice-shadow">
             <div className="flex items-center gap-3">

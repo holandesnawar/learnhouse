@@ -313,22 +313,6 @@ const CourseClient = (props: any) => {
       {!course || !org ? null : (
         <>
           <GeneralWrapperStyled>
-            {/* Wide hero banner — only when the admin has uploaded one.
-                Falls back to nothing if absent; the 16:9 thumbnail below
-                still renders as before so the page never looks empty. */}
-            {course.extra_metadata?.banner_image && org?.org_uuid && (
-              <div className="w-full aspect-[21/9] overflow-hidden rounded-2xl mb-4">
-                <img
-                  src={getCourseBannerMediaDirectory(
-                    org.org_uuid,
-                    course.course_uuid,
-                    course.extra_metadata.banner_image,
-                  )}
-                  alt={course.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
             <div className="pb-2 pt-2">
               <h1 className="text-3xl md:text-3xl font-bold">{course.name}</h1>
             </div>
@@ -341,7 +325,7 @@ const CourseClient = (props: any) => {
 
                   if (showVideo && course.thumbnail_video) {
                     return (
-                      <div className="relative inset-0 ring-1 ring-inset ring-black/10 rounded-lg shadow-xl w-full h-[160px] md:h-[260px]">
+                      <div className="relative inset-0 ring-1 ring-inset ring-black/10 rounded-2xl shadow-xl w-full h-[160px] md:h-[260px] overflow-hidden">
                         {course.thumbnail_type === 'both' && (
                           <div className="absolute top-3 right-3 z-10">
                             <div className="bg-black/20 backdrop-blur-sm rounded-lg p-1 flex space-x-1">
@@ -377,7 +361,7 @@ const CourseClient = (props: any) => {
                               course?.course_uuid,
                               course?.thumbnail_video
                             )}
-                            className="w-full h-full bg-black rounded-lg"
+                            className="w-full h-full bg-black rounded-2xl"
                             controls
                             autoPlay
                             muted
@@ -387,16 +371,18 @@ const CourseClient = (props: any) => {
                         </div>
                       </div>
                     );
-                  } else if (showImage && course.thumbnail_image) {
+                  } else if (showImage && (course.extra_metadata?.banner_image || course.thumbnail_image)) {
+                    // Prefer the banner_image (uploaded separately for the
+                    // hero slot) over the thumbnail_image. Falls back to the
+                    // thumbnail so existing courses without a banner keep
+                    // rendering exactly as before.
+                    const heroFile = course.extra_metadata?.banner_image || course.thumbnail_image;
+                    const heroUrl = course.extra_metadata?.banner_image
+                      ? getCourseBannerMediaDirectory(org?.org_uuid, course.course_uuid, heroFile)
+                      : getCourseThumbnailMediaDirectory(org?.org_uuid, course.course_uuid, heroFile);
                     return (
-                      <div className="relative inset-0 ring-1 ring-inset ring-black/10 rounded-lg shadow-xl w-full h-[160px] md:h-[260px] bg-cover bg-center"
-                        style={{
-                          backgroundImage: `url(${getCourseThumbnailMediaDirectory(
-                            org?.org_uuid,
-                            course?.course_uuid,
-                            course?.thumbnail_image
-                          )})`,
-                        }}
+                      <div className="relative inset-0 ring-1 ring-inset ring-black/10 rounded-2xl shadow-xl w-full h-[160px] md:h-[260px] bg-cover bg-center overflow-hidden"
+                        style={{ backgroundImage: `url(${heroUrl})` }}
                       >
                         {/* Hidden img with fetchpriority="high" so the browser fetches this LCP image immediately */}
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -440,7 +426,7 @@ const CourseClient = (props: any) => {
                   } else {
                     return (
                       <div
-                        className="inset-0 ring-1 ring-inset ring-black/10 rounded-lg shadow-xl relative w-full h-[160px] md:h-[260px] bg-cover bg-center"
+                        className="inset-0 ring-1 ring-inset ring-black/10 rounded-2xl shadow-xl relative w-full h-[160px] md:h-[260px] bg-cover bg-center overflow-hidden"
                         style={{
                           backgroundImage: `url('/empty_thumbnail.png')`,
                           backgroundSize: 'auto',
