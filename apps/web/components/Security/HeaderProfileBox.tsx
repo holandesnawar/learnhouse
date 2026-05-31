@@ -2,7 +2,8 @@
 import React, { useEffect, useMemo } from 'react'
 
 import Link from 'next/link'
-import { Package, Crown, Shield, User, Users, SignOut, CaretDown, Globe, Check, ShoppingBag } from '@phosphor-icons/react'
+import { Package, Crown, Shield, User, Users, SignOut, CaretDown, Globe, Check, ShoppingBag, Palette, Sun, Moon, Desktop } from '@phosphor-icons/react'
+import { useTheme, type Theme } from '@components/Contexts/ThemeContext'
 import UserAvatar from '@components/Objects/UserAvatar'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
@@ -46,7 +47,14 @@ export const HeaderProfileBox = ({ primaryColor = '' }: { primaryColor?: string 
   const { isAdmin, loading, userRoles, rights } = useAdminStatus()
   const org = useOrg() as any
   const { t, i18n } = useTranslation()
+  const { theme, setTheme } = useTheme()
   const colors = getMenuColorClasses(primaryColor)
+
+  const themeOptions: { value: Theme; label: string; icon: React.ReactNode }[] = [
+    { value: 'light', label: 'Claro', icon: <Sun size={14} weight="fill" /> },
+    { value: 'dark', label: 'Oscuro', icon: <Moon size={14} weight="fill" /> },
+    { value: 'system', label: 'Sistema', icon: <Desktop size={14} weight="fill" /> },
+  ]
 
 
   useEffect(() => { }
@@ -246,13 +254,36 @@ export const HeaderProfileBox = ({ primaryColor = '' }: { primaryColor?: string 
                   <DropdownMenuPortal>
                     <DropdownMenuSubContent>
                       {AVAILABLE_LANGUAGES.map((language) => (
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           key={language.code}
                           onClick={() => changeLanguage(language.code)}
                           className="flex items-center justify-between"
                         >
                           <span>{t(language.translationKey)} ({language.nativeName})</span>
                           {i18n.language.split('-')[0] === language.code && <Check size={14} weight="bold" />}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+                </DropdownMenuSub>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="flex items-center space-x-2">
+                    <Palette size={14} weight="fill" />
+                    <span>Apariencia</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuSubContent>
+                      {themeOptions.map((opt) => (
+                        <DropdownMenuItem
+                          key={opt.value}
+                          onClick={() => setTheme(opt.value)}
+                          className="flex items-center justify-between gap-3"
+                        >
+                          <span className="flex items-center gap-2">
+                            {opt.icon}
+                            {opt.label}
+                          </span>
+                          {theme === opt.value && <Check size={14} weight="bold" />}
                         </DropdownMenuItem>
                       ))}
                     </DropdownMenuSubContent>

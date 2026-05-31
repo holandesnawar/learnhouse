@@ -56,15 +56,15 @@ export default function ContinueWhereLeftOff({ orgslug }: Props) {
   return (
     <Link
       href={href}
-      className="block mb-6 group rounded-2xl bg-white nice-shadow border border-[#DDE6F5] hover:border-[#4da3ff]/60 transition-colors overflow-hidden"
+      className="block mb-6 group rounded-2xl bg-white dark:bg-white/5 nice-shadow border border-[#DDE6F5] dark:border-white/10 hover:border-[#4da3ff]/60 transition-colors overflow-hidden"
     >
       <div className="flex items-center gap-3 px-4 py-4">
         <div className="w-10 h-10 rounded-xl bg-[#F0F5FF] text-[#1D0084] flex items-center justify-center shrink-0">
           <Dumbbell size={18} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wide">Continúa donde lo dejaste</p>
-          <p className="text-[15px] font-bold text-gray-900 leading-tight truncate">
+          <p className="text-[11px] font-bold text-[#9CA3AF] dark:text-white/55 uppercase tracking-wide">Continúa donde lo dejaste</p>
+          <p className="text-[15px] font-bold text-gray-900 dark:text-white leading-tight truncate">
             {lessonTitle}
           </p>
           {sectionLabel && (

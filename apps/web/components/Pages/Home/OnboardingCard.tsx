@@ -112,7 +112,7 @@ export default function OnboardingCard({ orgslug, hasStartedCourse }: Props) {
   }
 
   return (
-    <div className="mb-8 bg-white rounded-2xl border border-[#DDE6F5] nice-shadow overflow-hidden">
+    <div className="mb-8 bg-white dark:bg-white/5 rounded-2xl border border-[#DDE6F5] dark:border-white/10 nice-shadow overflow-hidden">
       {/* Header */}
       <div
         className="px-5 py-5 text-white relative"
@@ -146,7 +146,9 @@ export default function OnboardingCard({ orgslug, hasStartedCourse }: Props) {
           <li
             key={s.id}
             className={`px-4 sm:px-5 py-4 flex items-center gap-3 sm:gap-4 transition-colors ${
-              s.isDone ? 'bg-[#F0F5FF]/40' : 'hover:bg-[#F0F5FF]/60'
+              s.isDone
+                ? 'bg-[#F0F5FF]/40 dark:bg-white/[0.03]'
+                : 'hover:bg-[#F0F5FF]/60 dark:hover:bg-white/[0.04]'
             }`}
           >
             {/* Number / Check badge */}
@@ -164,14 +166,18 @@ export default function OnboardingCard({ orgslug, hasStartedCourse }: Props) {
             <div className="flex-1 min-w-0">
               <p
                 className={`text-[14px] sm:text-[15px] font-bold leading-tight ${
-                  s.isDone ? 'text-gray-400 line-through' : 'text-gray-900'
+                  s.isDone
+                    ? 'text-gray-400 dark:text-white/35 line-through'
+                    : 'text-gray-900 dark:text-white'
                 }`}
               >
                 {s.title}
               </p>
               <p
                 className={`text-[12px] sm:text-[13px] leading-snug mt-0.5 ${
-                  s.isDone ? 'text-gray-300' : 'text-gray-500'
+                  s.isDone
+                    ? 'text-gray-300 dark:text-white/25'
+                    : 'text-gray-500 dark:text-white/60'
                 }`}
               >
                 {s.description}

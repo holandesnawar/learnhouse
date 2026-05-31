@@ -51,10 +51,10 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
       {/* Welcome */}
       <div className="pt-2 pb-6 flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
             Hola{firstName ? `, ${firstName}` : ''} 👋
           </h1>
-          <p className="text-gray-500 mt-1">Continúa tu aprendizaje donde lo dejaste.</p>
+          <p className="text-gray-500 dark:text-white/70 mt-1">Continúa tu aprendizaje donde lo dejaste.</p>
         </div>
         {visit && (
           <div className="pt-1 shrink-0">
@@ -72,7 +72,7 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
       {/* Continue / in-progress */}
       {runs.length > 0 && (
         <div className="mb-10">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Continúa donde lo dejaste</h2>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Continúa donde lo dejaste</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {runs.map((run: any) => (
               <TrailCourseCard
@@ -91,7 +91,7 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
           covers it and we don't repeat the (currently single) course list. */}
       {runs.length === 0 && (
         <div className="mb-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Tus cursos</h2>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Tus cursos</h2>
           {courseList.length === 0 ? (
             <div className="flex flex-col justify-center items-center py-12 px-4 border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/30">
               <div className="p-4 bg-white rounded-full nice-shadow mb-4">

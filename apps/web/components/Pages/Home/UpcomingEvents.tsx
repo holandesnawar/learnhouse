@@ -81,7 +81,7 @@ export default function UpcomingEvents({ orgslug }: { orgslug: string }) {
                 href={ev.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-white nice-shadow rounded-2xl p-4 border border-transparent hover:border-[#4da3ff]/40 transition-all"
+                className="bg-white dark:bg-white/5 nice-shadow rounded-2xl p-4 border border-transparent dark:border-white/10 hover:border-[#4da3ff]/40 transition-all"
               >
                 {card}
               </a>
@@ -89,7 +89,7 @@ export default function UpcomingEvents({ orgslug }: { orgslug: string }) {
               <Link
                 key={ev.id}
                 href={getUriWithOrg(orgslug, '/calendario')}
-                className="bg-white nice-shadow rounded-2xl p-4 border border-transparent hover:border-[#4da3ff]/40 transition-all"
+                className="bg-white dark:bg-white/5 nice-shadow rounded-2xl p-4 border border-transparent dark:border-white/10 hover:border-[#4da3ff]/40 transition-all"
               >
                 {card}
               </Link>

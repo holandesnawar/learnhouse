@@ -75,7 +75,7 @@ function TrailCourseCard(props: TrailCourseCardProps) {
   const courseLink = getUriWithOrg(props.orgslug, '/course/' + courseid)
 
   return (
-    <div className="group relative flex flex-col bg-white rounded-2xl nice-shadow overflow-hidden w-full transition-all duration-300 hover:scale-[1.01]" onMouseEnter={handleMouseEnter}>
+    <div className="group relative flex flex-col bg-white dark:bg-white/5 dark:border dark:border-white/10 rounded-2xl nice-shadow overflow-hidden w-full transition-all duration-300 hover:scale-[1.01]" onMouseEnter={handleMouseEnter}>
       {/* Thumbnail */}
       <Link
         href={courseLink}
@@ -109,7 +109,7 @@ function TrailCourseCard(props: TrailCourseCardProps) {
       <div className="p-3 flex flex-col space-y-1.5">
         <Link
           href={courseLink}
-          className="text-base font-bold text-gray-900 leading-tight hover:text-black transition-colors line-clamp-1"
+          className="text-base font-bold text-gray-900 dark:text-white leading-tight hover:text-black dark:hover:text-white transition-colors line-clamp-1"
         >
           {course.name}
         </Link>

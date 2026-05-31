@@ -8,6 +8,22 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ─── Dark mode (Nawar) ──────────────────────────────────────────────────────
+   Triggered by ThemeContext adding `.dark` on <html>. We don't override the
+   sidebar (it's always Nawar blue) — only the content area to the right and
+   the cards. Per-component dark: variants live in the components themselves
+   for surfaces that need bespoke treatment. */
+html.dark {
+  color-scheme: dark;
+}
+html.dark body {
+  background-color: #0a0540;
+}
+/* Stop the (withmenu) layout's primaryColor tint from washing the page. */
+html.dark [data-platform-bg] {
+  background-color: #0a0540 !important;
+}
+
 /* Root layout fade-in (replaces framer-motion) */
 @keyframes fadeIn {
   from { opacity: 0; }

@@ -26,15 +26,15 @@ export default function ExerciseProgressCard({ orgslug }: { orgslug: string }) {
   const practiced = data?.practiced ?? 0
 
   return (
-    <div className="mb-10 bg-white nice-shadow rounded-2xl p-5 sm:p-6">
+    <div className="mb-10 bg-white dark:bg-white/5 dark:border dark:border-white/10 nice-shadow rounded-2xl p-5 sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <div className="w-10 h-10 rounded-xl bg-[#025dc7]/10 flex items-center justify-center shrink-0">
             <Dumbbell size={20} className="text-[#025dc7]" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Tu práctica esta semana</h2>
-            <p className="text-sm text-gray-500">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Tu práctica esta semana</h2>
+            <p className="text-sm text-gray-500 dark:text-white/65">
               {practiced === 0 ? 'Aún no has practicado esta semana.' : `${practiced} palabras practicadas`}
             </p>
           </div>

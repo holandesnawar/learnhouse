@@ -102,6 +102,7 @@ function LayoutContent({ children, orgslug }: { children: React.ReactNode; orgsl
 
   return (
     <div
+      data-platform-bg
       className="min-h-screen"
       style={{
         backgroundColor: primaryColor ? hexToRgba(primaryColor, 0.05) : 'transparent',
