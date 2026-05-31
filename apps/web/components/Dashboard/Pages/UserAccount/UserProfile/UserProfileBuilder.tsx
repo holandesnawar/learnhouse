@@ -179,6 +179,40 @@ const UserProfileBuilder = () => {
   const [isLoading, setIsLoading] = React.useState(true)
   const { t } = useTranslation()
 
+  // Sensible starting sections for a Holandés Nawar student — used only when
+  // the user has never touched their profile, so existing profiles are never
+  // overwritten. They land on a structured page instead of "añadir sección"
+  // and a blank canvas.
+  const getDefaultNawarSections = React.useCallback((): ProfileSection[] => {
+    const stamp = Date.now()
+    return [
+      {
+        id: `section-${stamp}`,
+        type: 'text',
+        title: 'Sobre mí',
+        content: '',
+      } as TextSection,
+      {
+        id: `section-${stamp + 1}`,
+        type: 'text',
+        title: 'Por qué aprendo holandés',
+        content: '',
+      } as TextSection,
+      {
+        id: `section-${stamp + 2}`,
+        type: 'text',
+        title: 'Mis objetivos con el idioma',
+        content: '',
+      } as TextSection,
+      {
+        id: `section-${stamp + 3}`,
+        type: 'skills',
+        title: 'Idiomas que hablo',
+        skills: [],
+      } as SkillsSection,
+    ]
+  }, [])
+
   // Initialize profile data from user data
   React.useEffect(() => {
     const fetchUserData = async () => {
@@ -186,21 +220,28 @@ const UserProfileBuilder = () => {
         try {
           setIsLoading(true)
           const userData = await getUser(session.data.user.id, access_token)
-          
+
+          let sections: ProfileSection[] | null = null
           if (userData.profile) {
             try {
-              const profileSections = typeof userData.profile === 'string'
+              sections = typeof userData.profile === 'string'
                 ? JSON.parse(userData.profile).sections
                 : userData.profile.sections;
-
-              setProfileData({
-                sections: profileSections || []
-              });
             } catch (error) {
               console.error('Error parsing profile data:', error);
-              setProfileData({ sections: [] });
+              sections = null
             }
           }
+
+          // First-time visitors (no profile saved, or empty sections array) get
+          // the Nawar starter pack so the page is never blank. Once they save
+          // anything — even just renaming a section — those become "their"
+          // sections and we never inject defaults again.
+          if (!sections || sections.length === 0) {
+            sections = getDefaultNawarSections()
+          }
+
+          setProfileData({ sections });
         } catch (error) {
           console.error('Error fetching user data:', error);
           toast.error(t('user.settings.profile_builder.toasts.loading_error'));
@@ -211,7 +252,7 @@ const UserProfileBuilder = () => {
     };
 
     fetchUserData();
-  }, [session?.data?.user?.id, access_token, t])
+  }, [session?.data?.user?.id, access_token, t, getDefaultNawarSections])
 
   const createEmptySection = (type: keyof typeof SECTION_TYPES): ProfileSection => {
     const baseSection = {
