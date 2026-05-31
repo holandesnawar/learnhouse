@@ -105,7 +105,7 @@ const CourseClient = (props: any) => {
             {/* Left column */}
             <div className="w-full md:w-3/4 space-y-4">
               {/* Thumbnail */}
-              <div className="bg-gray-200 rounded-lg w-full h-[160px] md:h-[260px]" />
+              <div className="bg-gray-200 rounded-lg w-full h-[180px] md:h-[340px]" />
               {/* About text block */}
               <div className="space-y-2 py-2">
                 <div className="h-3 bg-gray-200 rounded w-full" />
@@ -325,7 +325,7 @@ const CourseClient = (props: any) => {
 
                   if (showVideo && course.thumbnail_video) {
                     return (
-                      <div className="relative inset-0 ring-1 ring-inset ring-black/10 rounded-2xl shadow-xl w-full h-[160px] md:h-[260px] overflow-hidden">
+                      <div className="relative inset-0 ring-1 ring-inset ring-black/10 rounded-2xl shadow-xl w-full h-[180px] md:h-[340px] overflow-hidden">
                         {course.thumbnail_type === 'both' && (
                           <div className="absolute top-3 right-3 z-10">
                             <div className="bg-black/20 backdrop-blur-sm rounded-lg p-1 flex space-x-1">
@@ -381,7 +381,7 @@ const CourseClient = (props: any) => {
                       ? getCourseBannerMediaDirectory(org?.org_uuid, course.course_uuid, heroFile)
                       : getCourseThumbnailMediaDirectory(org?.org_uuid, course.course_uuid, heroFile);
                     return (
-                      <div className="relative inset-0 ring-1 ring-inset ring-black/10 rounded-2xl shadow-xl w-full h-[160px] md:h-[260px] bg-cover bg-center overflow-hidden"
+                      <div className="relative inset-0 ring-1 ring-inset ring-black/10 rounded-2xl shadow-xl w-full h-[180px] md:h-[340px] bg-cover bg-center overflow-hidden"
                         style={{ backgroundImage: `url(${heroUrl})` }}
                       >
                         {/* Hidden img with fetchpriority="high" so the browser fetches this LCP image immediately */}
@@ -426,7 +426,7 @@ const CourseClient = (props: any) => {
                   } else {
                     return (
                       <div
-                        className="inset-0 ring-1 ring-inset ring-black/10 rounded-2xl shadow-xl relative w-full h-[160px] md:h-[260px] bg-cover bg-center overflow-hidden"
+                        className="inset-0 ring-1 ring-inset ring-black/10 rounded-2xl shadow-xl relative w-full h-[180px] md:h-[340px] bg-cover bg-center overflow-hidden"
                         style={{
                           backgroundImage: `url('/empty_thumbnail.png')`,
                           backgroundSize: 'auto',

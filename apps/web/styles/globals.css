@@ -24,6 +24,85 @@ html.dark [data-platform-bg] {
   background-color: #0a0540 !important;
 }
 
+/* Blanket overrides for components we haven't explicitly swept yet so the
+   page reads as proper dark mode instead of half-light/half-dark. Scoped
+   under html.dark so light mode is never touched. */
+
+/* Text greyscale → translucent whites */
+html.dark .text-gray-900,
+html.dark .text-gray-800,
+html.dark .text-neutral-900,
+html.dark .text-neutral-800,
+html.dark .text-zinc-900,
+html.dark .text-slate-900,
+html.dark .text-black {
+  color: rgba(255, 255, 255, 0.95);
+}
+html.dark .text-gray-700,
+html.dark .text-neutral-700,
+html.dark .text-zinc-700,
+html.dark .text-slate-700 {
+  color: rgba(255, 255, 255, 0.85);
+}
+html.dark .text-gray-600,
+html.dark .text-neutral-600,
+html.dark .text-zinc-600,
+html.dark .text-slate-600 {
+  color: rgba(255, 255, 255, 0.72);
+}
+html.dark .text-gray-500,
+html.dark .text-neutral-500,
+html.dark .text-zinc-500,
+html.dark .text-slate-500 {
+  color: rgba(255, 255, 255, 0.6);
+}
+html.dark .text-gray-400,
+html.dark .text-neutral-400,
+html.dark .text-zinc-400,
+html.dark .text-slate-400 {
+  color: rgba(255, 255, 255, 0.48);
+}
+
+/* Card-style white surfaces — adopt a dark translucent navy with a faint
+   border so the whole page doesn't look like a single blue blob. We target
+   only backgrounds that come with a card shape (radius or shadow) so plain
+   white buttons inside the dark cards keep their intent. */
+html.dark .nice-shadow.bg-white,
+html.dark .rounded-2xl.bg-white,
+html.dark .rounded-xl.bg-white,
+html.dark .rounded-lg.bg-white,
+html.dark .bg-white\/90,
+html.dark .bg-white\/95 {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+html.dark .bg-gray-50,
+html.dark .bg-neutral-50,
+html.dark .bg-zinc-50,
+html.dark .bg-slate-50 {
+  background-color: rgba(255, 255, 255, 0.025) !important;
+}
+html.dark .bg-gray-100,
+html.dark .bg-neutral-100 {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Borders → faint whites so cards have a soft outline in dark mode */
+html.dark .border-gray-100,
+html.dark .border-gray-200,
+html.dark .border-neutral-100,
+html.dark .border-neutral-200 {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Drop the bright shadows on dark — they look like halos on dark navy */
+html.dark .nice-shadow,
+html.dark .shadow-md,
+html.dark .shadow-lg,
+html.dark .shadow-xl {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 32px rgba(0, 0, 0, 0.35) !important;
+}
+
 /* Root layout fade-in (replaces framer-motion) */
 @keyframes fadeIn {
   from { opacity: 0; }
