@@ -1,42 +1,42 @@
 'use client'
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import { HelpCircle, Search, Loader2, ArrowUpRight, Plus } from 'lucide-react'
-import { listConsultas, type Consulta, CATEGORY_BY_ID } from '@/lib/consultas/consultas'
-
-// Public URL of the standalone Consultas app. Deep-linking patterns:
-//   ?q={query}  → search results
-//   ?id={uuid}  → open a single consulta
-const CONSULTAS_APP_URL = 'https://consultas-tau.vercel.app'
+import {
+  listConsultas,
+  htmlToText,
+  type Consulta,
+  CATEGORY_BY_ID,
+} from '@/lib/consultas/consultas'
+import { getUriWithOrg } from '@services/config/config'
+import { useOrg } from '@components/Contexts/OrgContext'
 
 interface ConsultaSearchBarProps {
-  /** Optional pre-filled query (useful if we ever want to deep-link from
-   *  another part of the app). */
   initialQuery?: string
 }
 
 /**
  * Search bar shown below each lesson. The student types their doubt, sees the
- * top 3 matching consultas inline (already-answered get a green badge), and
- * can either jump to one of them in the Consultas app or open the full
- * results page there.
+ * top 3 matching consultas inline (already-answered get a "Respondida" badge),
+ * and can either jump to one of them or open the full /consultas page in the
+ * academy with the query pre-applied. Everything stays inside the academy —
+ * no jumps to the legacy external Consultas app.
  */
 export default function ConsultaSearchBar({ initialQuery = '' }: ConsultaSearchBarProps) {
+  const org = useOrg() as any
+  const orgslug = org?.slug || ''
   const [query, setQuery] = useState(initialQuery)
   const [all, setAll] = useState<Consulta[] | null>(null)
   const [loading, setLoading] = useState(false)
   const fetched = useRef(false)
 
-  // Pull the full list once per page — we only render up to 3 matches at a
-  // time so client-side filtering is cheap. The Supabase free tier hates
-  // per-keystroke queries anyway.
   async function ensureLoaded() {
     if (fetched.current || loading) return
     fetched.current = true
     setLoading(true)
     try {
-      const data = await listConsultas()
-      setAll(data)
+      setAll(await listConsultas())
     } catch {
       setAll([])
     } finally {
@@ -52,19 +52,25 @@ export default function ConsultaSearchBar({ initialQuery = '' }: ConsultaSearchB
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q || !all) return []
+    // Match the search term across title, content and the published answer
+    // (respuesta_nawar) so any consulta that mentions the word — whether in
+    // the question or in our reply — surfaces here.
     return all
       .filter((c) => {
-        return (
-          c.title.toLowerCase().includes(q) ||
-          (c.content ?? '').toLowerCase().includes(q)
-        )
+        const blob = [
+          c.title,
+          c.content,
+          c.respuesta_nawar ?? '',
+        ]
+          .map((s) => (s ? htmlToText(s).toLowerCase() : ''))
+          .join(' ')
+        return blob.includes(q)
       })
       .slice(0, 3)
   }, [all, query])
 
-  function urlForApp(extra: string) {
-    return `${CONSULTAS_APP_URL}${extra}`
-  }
+  const consultasHref = (extra: string = '') =>
+    getUriWithOrg(orgslug, `/consultas${extra}`)
 
   return (
     <div className="rounded-2xl border border-[#DDE6F5] bg-white p-4 sm:p-5 space-y-3">
@@ -83,7 +89,7 @@ export default function ConsultaSearchBar({ initialQuery = '' }: ConsultaSearchB
           e.preventDefault()
           const q = query.trim()
           if (!q) return
-          window.open(urlForApp(`/?q=${encodeURIComponent(q)}`), '_blank', 'noopener')
+          window.location.href = consultasHref(`?q=${encodeURIComponent(q)}`)
         }}
         className="flex gap-2"
       >
@@ -132,10 +138,8 @@ export default function ConsultaSearchBar({ initialQuery = '' }: ConsultaSearchB
                   const cat = CATEGORY_BY_ID[c.category]
                   return (
                     <li key={c.id}>
-                      <a
-                        href={urlForApp(`/?id=${c.id}`)}
-                        target="_blank"
-                        rel="noopener"
+                      <Link
+                        href={consultasHref(`?id=${c.id}`)}
                         className="group flex items-start gap-2 px-3 py-2 rounded-lg bg-[#F0F5FF] hover:bg-[#E5ECFF] transition-colors"
                       >
                         <div className="flex-1 min-w-0">
@@ -145,7 +149,7 @@ export default function ConsultaSearchBar({ initialQuery = '' }: ConsultaSearchB
                             </p>
                             {c.resolved && (
                               <span className="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-green-50 text-green-700 text-[10px] font-bold uppercase tracking-wider">
-                                Resuelta
+                                Respondida
                               </span>
                             )}
                           </div>
@@ -159,7 +163,7 @@ export default function ConsultaSearchBar({ initialQuery = '' }: ConsultaSearchB
                           size={14}
                           className="text-gray-400 group-hover:text-[#025dc7] mt-0.5 shrink-0"
                         />
-                      </a>
+                      </Link>
                     </li>
                   )
                 })}
@@ -171,14 +175,12 @@ export default function ConsultaSearchBar({ initialQuery = '' }: ConsultaSearchB
               <span>
                 No encontramos consultas con <strong>{query.trim()}</strong>.
               </span>
-              <a
-                href={urlForApp(`/?q=${encodeURIComponent(query.trim())}&new=1`)}
-                target="_blank"
-                rel="noopener"
+              <Link
+                href={consultasHref(`?q=${encodeURIComponent(query.trim())}&new=1`)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#1D0084] text-xs font-bold transition-colors"
               >
                 <Plus size={12} /> Crear consulta
-              </a>
+              </Link>
             </div>
           )}
         </div>

@@ -1,7 +1,7 @@
 'use client'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  Plus, X, Loader2, CheckCircle2, Clock, Pencil, Trash2, MessageCircleQuestion,
+  Plus, X, Loader2, CheckCircle2, Clock, Pencil, Trash2, MessageCircleQuestion, Search,
 } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
@@ -52,7 +52,20 @@ const EMPTY_FORM: FormState = {
   open: false, editingId: null, category: '', title: '', content: '', name: '', email: '',
 }
 
-export default function ConsultasBoard() {
+interface ConsultasBoardProps {
+  /** Pre-fill the search box and pre-filter the feed on mount. */
+  initialQuery?: string
+  /** UUID of a consulta to open in the detail modal on mount. */
+  initialOpenId?: string
+  /** Open the "Nueva consulta" modal on mount (used by ?new=1 deep-link). */
+  startNew?: boolean
+}
+
+export default function ConsultasBoard({
+  initialQuery = '',
+  initialOpenId = '',
+  startNew = false,
+}: ConsultasBoardProps = {}) {
   const session = useLHSession() as any
   const user = session?.data?.user
   const org = useOrg() as any
@@ -68,6 +81,7 @@ export default function ConsultasBoard() {
   const [error, setError] = useState<string | null>(null)
   const [status, setStatus] = useState<StatusFilter>('all')
   const [category, setCategory] = useState<string>('')
+  const [query, setQuery] = useState<string>(initialQuery)
 
   const [selected, setSelected] = useState<Consulta | null>(null)
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
@@ -88,6 +102,43 @@ export default function ConsultasBoard() {
   }, [category, status])
 
   useEffect(() => { loadFeed() }, [loadFeed])
+
+  // Open the "Nueva consulta" modal automatically when arriving via ?new=1.
+  // We do this once on mount; subsequent state changes don't trigger it.
+  useEffect(() => {
+    if (startNew) {
+      setFormError(null)
+      setForm({
+        ...EMPTY_FORM,
+        open: true,
+        name: sessionName,
+        email: sessionEmail,
+        title: initialQuery,
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Open the detail modal for ?id=... once the feed lands.
+  useEffect(() => {
+    if (!initialOpenId || consultas.length === 0) return
+    const target = consultas.find((c) => c.id === initialOpenId)
+    if (target) setSelected(target)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialOpenId, consultas.length])
+
+  // Filter the loaded feed by the user's typed query. Matches against title,
+  // content, AND the team's answer so anything mentioning the term surfaces.
+  const visibleConsultas = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return consultas
+    return consultas.filter((c) => {
+      const blob = [c.title, c.content, c.respuesta_nawar ?? '']
+        .map((s) => (s ? htmlToText(s).toLowerCase() : ''))
+        .join(' ')
+      return blob.includes(q)
+    })
+  }, [consultas, query])
 
   function openNew() {
     setFormError(null)
@@ -148,6 +199,23 @@ export default function ConsultasBoard() {
 
   return (
     <div>
+      {/* Search bar — matches the lesson search bar visually so deep-linking
+          from a lesson feels seamless. Filters the feed client-side over
+          title + content + the team's answer. */}
+      <div className="relative mb-4">
+        <Search
+          size={16}
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+        />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar en consultas…"
+          className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-[#F0F5FF] hover:bg-[#E5ECFF] focus:bg-white text-[#1D0084] placeholder:text-[#1D0084]/45 outline-none border border-transparent focus:border-[#4da3ff] focus:ring-[3px] focus:ring-[#4da3ff]/22 text-[14px] transition-colors"
+        />
+      </div>
+
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[#F0F5FF] border border-[#DDE6F5]">
@@ -206,15 +274,40 @@ export default function ConsultasBoard() {
             Reintentar
           </button>
         </div>
-      ) : consultas.length === 0 ? (
+      ) : visibleConsultas.length === 0 ? (
         <div className="text-center py-16">
           <MessageCircleQuestion className="mx-auto text-[#9CA3AF]" size={36} />
-          <p className="text-gray-900 font-bold mt-3">Aún no hay consultas aquí</p>
-          <p className="text-gray-500 text-sm mt-1">Sé el primero en preguntar — te respondemos en menos de 24&nbsp;h.</p>
+          <p className="text-gray-900 font-bold mt-3">
+            {query.trim()
+              ? `Ninguna consulta menciona "${query.trim()}"`
+              : 'Aún no hay consultas aquí'}
+          </p>
+          <p className="text-gray-500 text-sm mt-1">
+            {query.trim()
+              ? 'Crea la tuya y te avisamos por email cuando la respondamos.'
+              : 'Sé el primero en preguntar — te respondemos en menos de 24 h.'}
+          </p>
+          {query.trim() && (
+            <button
+              onClick={() => {
+                setFormError(null)
+                setForm({
+                  ...EMPTY_FORM,
+                  open: true,
+                  name: sessionName,
+                  email: sessionEmail,
+                  title: query.trim(),
+                })
+              }}
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#1D0084] text-sm font-bold transition-colors"
+            >
+              <Plus size={15} /> Crear consulta sobre "{query.trim()}"
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-3">
-          {consultas.map((c) => {
+          {visibleConsultas.map((c) => {
             const cat = CATEGORY_BY_ID[c.category]
             return (
               <button
