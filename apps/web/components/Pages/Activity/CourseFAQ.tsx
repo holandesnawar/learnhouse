@@ -53,7 +53,10 @@ interface CourseFAQProps {
 
 export default function CourseFAQ({ courseUuid, compact = false }: CourseFAQProps) {
   const [openIdx, setOpenIdx] = useState<number | null>(0)
-  const data = COURSE_FAQS[courseUuid]
+  // course.course_uuid comes as "course_<uuid>" from the API while the URL
+  // form is the bare uuid. Normalise so callers don't have to.
+  const key = (courseUuid || '').replace(/^course_/, '')
+  const data = COURSE_FAQS[key]
   if (!data) return null
 
   if (compact) {

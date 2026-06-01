@@ -28,9 +28,17 @@ import { useAnalytics } from '@/hooks/useAnalytics'
 // Courses that are "session libraries" (e.g. Clase semanal) rather than a
 // real progression. For these we hide the start/leave-course actions box,
 // the per-lesson progress tracker, and relabel "Lecciones" → "Sesiones".
-const COURSES_AS_SESSIONS = new Set<string>([
+// Stored without the `course_` prefix so we can match both the URL form and
+// the DB form via a helper.
+const COURSES_AS_SESSIONS_UUIDS = new Set<string>([
   'bfbcb42b-7dc3-4448-9df8-5d7b96135859', // Clase semanal — recordings
 ])
+const COURSES_AS_SESSIONS = {
+  has(uuid: string | undefined | null): boolean {
+    if (!uuid) return false
+    return COURSES_AS_SESSIONS_UUIDS.has(uuid.replace(/^course_/, ''))
+  },
+}
 
 const CourseClient = (props: any) => {
   const { t } = useTranslation()
