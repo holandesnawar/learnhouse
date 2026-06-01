@@ -69,7 +69,9 @@ export default function ConsultasBoard({
   const session = useLHSession() as any
   const user = session?.data?.user
   const org = useOrg() as any
-  const teamLogo = org?.logo_image ? `${getOrgLogoMediaDirectory(org.org_uuid, org.logo_image)}` : ''
+  // Hardcoded Nawar avatar for the team reply, so the answer always carries
+  // the brand mark regardless of whatever org logo is currently uploaded.
+  const teamLogo = 'https://docs.holandesnawar.com/img/Nawar.favicon.png'
   const sessionName = useMemo(
     () => [user?.first_name, user?.last_name].filter(Boolean).join(' ').trim() || user?.username || '',
     [user?.first_name, user?.last_name, user?.username]

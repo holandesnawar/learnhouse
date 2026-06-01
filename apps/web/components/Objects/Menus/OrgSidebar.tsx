@@ -131,7 +131,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     { key: 'courses', href: '/courses', label: 'Formación', icon: <Books size={20} weight="fill" />, show: isEnabled('courses') },
     { key: 'ejercicios', href: '/ejercicios', label: 'Ejercicios', icon: <Barbell size={20} weight="fill" />, show: true },
     { key: 'calendario', href: '/calendario', label: 'Eventos', icon: <CalendarBlank size={20} weight="fill" />, show: true },
-    { key: 'clase-semanal', href: '/clase-semanal', label: 'Clase semanal', icon: <VideoCamera size={20} weight="fill" />, show: true },
+    { key: 'clase-semanal', href: '/course/bfbcb42b-7dc3-4448-9df8-5d7b96135859', label: 'Clase semanal', icon: <VideoCamera size={20} weight="fill" />, show: true },
     { key: 'collections', href: '/collections', label: t('collections.collections'), icon: <SquaresFour size={20} weight="fill" />, show: isEnabled('collections') },
     { key: 'podcasts', href: '/podcasts', label: t('podcasts.podcasts'), icon: <Headphones size={20} weight="fill" />, show: isEnabled('podcasts') },
     { key: 'communities', href: '/communities', label: t('communities.title'), icon: <ChatsCircle size={20} weight="fill" />, show: isEnabled('communities') },

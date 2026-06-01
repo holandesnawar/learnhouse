@@ -22,6 +22,7 @@ import { queryKeys } from '@/lib/query/keys'
 import { getActivityWithAuthHeader } from '@services/courses/activities'
 import { useTranslation } from 'react-i18next'
 import CommunityChannelsCards from '@components/Objects/Communities/CommunityChannelsCards'
+import CourseFAQ from '@components/Pages/Activity/CourseFAQ'
 import { useAnalytics } from '@/hooks/useAnalytics'
 
 const CourseClient = (props: any) => {
@@ -512,6 +513,10 @@ const CourseClient = (props: any) => {
                 </div>
               )
             })()}
+
+            {/* Per-course FAQ (only renders for courses with a curated set
+                of frequently-asked questions, e.g. "Clase semanal"). */}
+            <CourseFAQ courseUuid={course.course_uuid} />
 
             <div className="w-full my-5 mb-10">
               <h2 className="py-5 text-xl md:text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>{t('courses.course_lessons')}</h2>
