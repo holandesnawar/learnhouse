@@ -45,6 +45,25 @@ def _check_secret(provided: str) -> None:
         raise HTTPException(status_code=401, detail="invalid secret")
 
 
+@router.get(
+    "/health",
+    summary="Quick diagnostic for the consulta-answered webhook secret.",
+    description=(
+        "Hit this from a browser to confirm whether the running container "
+        "actually sees LEARNHOUSE_CONSULTAS_WEBHOOK_SECRET. Returns only "
+        "whether it's set and how long it is — never the value itself."
+    ),
+)
+async def api_notifications_health():
+    raw = os.environ.get("LEARNHOUSE_CONSULTAS_WEBHOOK_SECRET", "")
+    stripped = raw.strip()
+    return {
+        "consulta_webhook_secret_configured": bool(stripped),
+        "secret_length": len(stripped),
+        "had_whitespace_padding": len(raw) != len(stripped),
+    }
+
+
 @router.post(
     "/consulta-answered",
     summary="Inbound webhook: a consulta got a reply — email the student.",
