@@ -4,7 +4,6 @@ import '../lib/i18n'
 import { SessionProvider } from '@components/Contexts/AuthContext'
 import LHSessionProvider from '@components/Contexts/LHSessionContext'
 import I18nProvider from '@components/Contexts/I18nContext'
-import { ThemeProvider } from '@components/Contexts/ThemeContext'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { makeQueryClient } from '@/lib/query/client'
@@ -16,9 +15,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <SessionProvider refetchInterval={600000}>
         <LHSessionProvider>
-          <ThemeProvider>
-            <I18nProvider>{children}</I18nProvider>
-          </ThemeProvider>
+          <I18nProvider>{children}</I18nProvider>
         </LHSessionProvider>
       </SessionProvider>
       {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}

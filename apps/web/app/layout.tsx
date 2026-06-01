@@ -44,15 +44,6 @@ export default function RootLayout({
             Reads the optional ?bgcolor param (hex-validated) or defaults to dark. */}
         {/* eslint-disable-next-line @next/next/no-sync-scripts */}
         <script src="/embed-bg.js" />
-        {/* Apply the stored theme synchronously, before React mounts, so the
-            page doesn't flash light-then-dark on every navigation. The backend
-            still wins once ThemeProvider hydrates, but at first paint we use
-            whatever the user picked last from this device. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('lh_theme');var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches)||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches&&false);/* default to light when no preference */ if(t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark');}}catch(e){}})();`,
-          }}
-        />
       </head>
       <body suppressHydrationWarning>
         {
