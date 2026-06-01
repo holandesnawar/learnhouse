@@ -1,13 +1,12 @@
 'use client'
 import React, { useState } from 'react'
-import Link from 'next/link'
-import { HelpCircle, Pencil, Plus, X, Check, Loader2 } from 'lucide-react'
-import { getUriWithOrg } from '@services/config/config'
+import { Pencil, Plus, X, Check, Loader2 } from 'lucide-react'
 import { updateActivity } from '@services/courses/activities'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/lib/query/keys'
 import toast from 'react-hot-toast'
+import ConsultaSearchBar from './ConsultaSearchBar'
 
 interface LessonExtrasProps {
   activity: any
@@ -53,7 +52,8 @@ export default function LessonExtras({ activity, activityid, orgslug, canEdit }:
   }
 
   return (
-    <div className="bg-white nice-shadow rounded-lg p-4 sm:p-6 space-y-4">
+    <div className="space-y-4">
+      <div className="bg-white nice-shadow rounded-2xl p-4 sm:p-6 space-y-4">
       {editing ? (
         <div className="space-y-4">
           <div>
@@ -148,14 +148,10 @@ export default function LessonExtras({ activity, activityid, orgslug, canEdit }:
               </button>
             )}
           </div>
-          <Link
-            href={getUriWithOrg(orgslug, '/consultas')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] text-[#1D0084] text-sm font-semibold hover:bg-[#6cb5ff] transition-colors"
-          >
-            <HelpCircle size={16} /> Ir a Consultas
-          </Link>
         </>
       )}
+      </div>
+      <ConsultaSearchBar />
     </div>
   )
 }
