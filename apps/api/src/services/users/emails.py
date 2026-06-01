@@ -68,7 +68,7 @@ def _company_footer() -> str:
                     <tr>
                         <td style="padding: 8px 32px 12px 32px; text-align: left; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
                             <p style="margin: 0 0 2px 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.6;">Un saludo,</p>
-                            <p style="margin: 0 0 18px 0; font-size: 15px; font-weight: 800; color: #4da3ff; line-height: 1.4;">El equipo de Nawar</p>
+                            <p style="margin: 0 0 18px 0; font-size: 15px; font-weight: 800; color: #4da3ff !important; line-height: 1.4;">El equipo de Nawar</p>
                             {FOOTER_LOGO_HTML}
                         </td>
                     </tr>
@@ -625,7 +625,7 @@ def send_consulta_answered_email(
 
     return send_email(
         to=email,
-        subject="Tienes respuesta a tu consulta",
+        subject="Consulta respondida",
         body=_email_layout(
             title=heading,
             body_content=body_content,
