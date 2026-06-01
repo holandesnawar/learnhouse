@@ -356,7 +356,7 @@ export default function ConsultasBoard({
       {/* Create / edit modal */}
       {form.open && (
         <Overlay onClose={() => !submitting && setForm(EMPTY_FORM)}>
-          <div className="w-full max-w-lg bg-white rounded-2xl nice-shadow max-h-[90vh] overflow-y-auto">
+          <div className="w-full max-w-lg bg-white rounded-t-2xl sm:rounded-2xl nice-shadow max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#DDE6F5] sticky top-0 bg-white rounded-t-2xl">
               <h2 className="font-bold text-lg text-gray-900">
                 {form.editingId ? 'Editar consulta' : 'Abre una nueva consulta'}
@@ -461,7 +461,7 @@ export default function ConsultasBoard({
 function Overlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm"
       onClick={onClose}
     >
       <div onClick={(e) => e.stopPropagation()} className="w-full flex justify-center">
@@ -484,7 +484,7 @@ function DetailView({
   const own = isMyConsulta(consulta.id)
   const answer = htmlToText(consulta.respuesta_nawar)
   return (
-    <div className="w-full max-w-2xl bg-white rounded-2xl nice-shadow max-h-[90vh] overflow-y-auto">
+    <div className="w-full max-w-2xl bg-white rounded-t-2xl sm:rounded-2xl nice-shadow max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto">
       <div className="flex items-start justify-between px-6 py-4 border-b border-[#DDE6F5] sticky top-0 bg-white rounded-t-2xl z-10">
         <div className="flex flex-wrap items-center gap-2">
           <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${catClasses(cat?.color)}`}>
