@@ -8,6 +8,7 @@ from src.routers import instance
 from src.routers import plans
 from src.routers import usergroups
 from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments
+from src.routers import notifications as notifications_router_module
 from src.routers import stream
 from src.routers import api_tokens
 from src.routers import webhooks
@@ -335,6 +336,15 @@ v1_router.include_router(
     payments.router,
     prefix="/payments",
     tags=["payments"],
+)
+
+# Inbound webhooks from sibling services (currently the consultas Supabase
+# edge function). Each endpoint inside this router validates its own shared
+# secret, so no FastAPI-level auth dependency here.
+v1_router.include_router(
+    notifications_router_module.router,
+    prefix="/notifications",
+    tags=["notifications"],
 )
 
 v1_router.include_router(

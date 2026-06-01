@@ -590,11 +590,20 @@ def send_consulta_answered_email(
     email: EmailStr,
     name: str = "alumno/a",
     question_excerpt: str = "¿Cuándo uso 'de' y cuándo 'het' en holandés?",
+    link: str | None = None,
 ):
-    """Notificación: el equipo respondió una consulta del alumno."""
+    """Notificación: el equipo respondió una consulta del alumno.
+
+    ``link`` is the deep-link the CTA points to. When omitted (test
+    endpoint, legacy caller) we fall back to the generic /consultas page
+    on the academy. When the consultas Supabase webhook calls us with a
+    specific consulta id we honour that link so the student lands on the
+    answer directly.
+    """
     safe_name = html.escape(name)
     safe_question = html.escape(question_excerpt)
     heading = "Te respondimos tu consulta"
+    target_link = link if link else f"{ACADEMY_URL}/consultas"
 
     body_content = f"""
         <h1 style="{STYLES['h1']}">{heading}</h1>
@@ -609,7 +618,7 @@ def send_consulta_answered_email(
         <p style="{STYLES['p']}">
             Entra en la plataforma para leer la respuesta completa.
         </p>
-        <a href="{ACADEMY_URL}/consultas" class="brand-btn" style="{STYLES['button']}">
+        <a href="{target_link}" class="brand-btn" style="{STYLES['button']}">
             Ver respuesta
         </a>
     """
