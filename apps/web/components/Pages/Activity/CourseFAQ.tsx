@@ -44,10 +44,56 @@ const COURSE_FAQS: Record<string, { intro?: string; items: FAQ[] }> = {
   },
 }
 
-export default function CourseFAQ({ courseUuid }: { courseUuid: string }) {
+interface CourseFAQProps {
+  courseUuid: string
+  /** Compact = sidebar variant: smaller header, no intro paragraph, tighter
+   *  paddings. Useful when the FAQ replaces the right-rail actions box. */
+  compact?: boolean
+}
+
+export default function CourseFAQ({ courseUuid, compact = false }: CourseFAQProps) {
   const [openIdx, setOpenIdx] = useState<number | null>(0)
   const data = COURSE_FAQS[courseUuid]
   if (!data) return null
+
+  if (compact) {
+    return (
+      <div className="bg-white rounded-2xl nice-shadow border border-[#DDE6F5] overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-[#DDE6F5] bg-[#F0F5FF]/40">
+          <Video size={16} className="text-[#025dc7]" />
+          <h3 className="text-sm font-bold text-gray-900">Preguntas frecuentes</h3>
+        </div>
+        <div className="divide-y divide-[#DDE6F5]">
+          {data.items.map((faq, i) => {
+            const open = openIdx === i
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setOpenIdx(open ? null : i)}
+                className="w-full text-left flex items-start gap-2.5 px-4 py-3 hover:bg-[#F0F5FF]/60 transition-colors"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-bold text-gray-900 leading-snug">
+                    {faq.q}
+                  </p>
+                  {open && (
+                    <p className="text-[12.5px] text-gray-600 leading-relaxed mt-2 whitespace-pre-line">
+                      {faq.a}
+                    </p>
+                  )}
+                </div>
+                <ChevronDown
+                  size={14}
+                  className={`shrink-0 mt-0.5 text-[#025dc7] transition-transform ${open ? 'rotate-180' : ''}`}
+                />
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="my-6">

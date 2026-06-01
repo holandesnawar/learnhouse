@@ -69,30 +69,9 @@ function Trail(params: any) {
       <div className="flex flex-col space-y-2 mb-6">
         <div className="flex items-center justify-between">
           <TypeOfContentTitle title={t('courses.progress')} type="tra" />
-          {trail?.runs?.length > 0 && (
-            <ConfirmationModal
-              confirmationButtonText={isQuittingAll ? t('courses.quitting_courses', { progress: quittingProgress }) : t('courses.quit_all_courses')}
-              confirmationMessage={t('courses.quit_all_courses_confirm')}
-              dialogTitle={t('courses.quit_all_courses_title')}
-              dialogTrigger={
-                <button
-                  disabled={isQuittingAll}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors
-                    ${isQuittingAll
-                      ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                      : 'bg-red-50 text-red-700 hover:bg-red-100'
-                    }`}
-                >
-                  {isQuittingAll
-                    ? t('courses.quitting_courses', { progress: quittingProgress })
-                    : t('courses.quit_all_courses')
-                  }
-                </button>
-              }
-              functionToExecute={handleQuitAllCourses}
-              status="warning"
-            />
-          )}
+          {/* "Abandonar todos los cursos" button removed — students shouldn't
+              be able to wipe their progress trail with one click, and it
+              never made sense for a single-course academy like Nawar. */}
         </div>
 
         {!trail ? (

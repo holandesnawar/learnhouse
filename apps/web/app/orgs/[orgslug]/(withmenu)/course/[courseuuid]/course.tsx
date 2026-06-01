@@ -25,6 +25,13 @@ import CommunityChannelsCards from '@components/Objects/Communities/CommunityCha
 import CourseFAQ from '@components/Pages/Activity/CourseFAQ'
 import { useAnalytics } from '@/hooks/useAnalytics'
 
+// Courses that are "session libraries" (e.g. Clase semanal) rather than a
+// real progression. For these we hide the start/leave-course actions box,
+// the per-lesson progress tracker, and relabel "Lecciones" → "Sesiones".
+const COURSES_AS_SESSIONS = new Set<string>([
+  'bfbcb42b-7dc3-4448-9df8-5d7b96135859', // Clase semanal — recordings
+])
+
 const CourseClient = (props: any) => {
   const { t } = useTranslation()
   const [learnings, setLearnings] = useState<any>([])
@@ -463,8 +470,14 @@ const CourseClient = (props: any) => {
               </div>
 
               <div className='course_metadata_right w-full md:w-1/4 space-y-4'>
-                {/* Actions Box */}
-                <CoursesActions courseuuid={courseuuid} orgslug={orgslug} course={course} trailData={trailData} />
+                {COURSES_AS_SESSIONS.has(course.course_uuid) ? (
+                  // Session-library courses: no enrolment, no progress —
+                  // surface the FAQ here instead so the right rail isn't
+                  // empty for these courses.
+                  <CourseFAQ courseUuid={course.course_uuid} compact />
+                ) : (
+                  <CoursesActions courseuuid={courseuuid} orgslug={orgslug} course={course} trailData={trailData} />
+                )}
               </div>
             </div>
 
@@ -514,12 +527,12 @@ const CourseClient = (props: any) => {
               )
             })()}
 
-            {/* Per-course FAQ (only renders for courses with a curated set
-                of frequently-asked questions, e.g. "Clase semanal"). */}
-            <CourseFAQ courseUuid={course.course_uuid} />
-
             <div className="w-full my-5 mb-10">
-              <h2 className="py-5 text-xl md:text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>{t('courses.course_lessons')}</h2>
+              <h2 className="py-5 text-xl md:text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+                {COURSES_AS_SESSIONS.has(course.course_uuid)
+                  ? 'Sesiones grabadas'
+                  : t('courses.course_lessons')}
+              </h2>
               <div className="bg-white nice-shadow rounded-2xl overflow-hidden border border-[#DDE6F5] divide-y divide-[#DDE6F5]">
                 {(course.chapters ?? []).map((chapter: any, idx: number) => {
                   const isExpanded = expandedChapters[chapter.chapter_uuid] ?? (idx === 0); // Default to expanded for first chapter
@@ -661,8 +674,10 @@ const CourseClient = (props: any) => {
             </div>
           </GeneralWrapperStyled>
 
-          {/* Mobile Actions Box */}
-          {isMobile && (
+          {/* Mobile Actions Box — hidden for session-library courses, where
+              the FAQ on the right rail (rendered above the chapters on
+              mobile) already conveys everything the student needs. */}
+          {isMobile && !COURSES_AS_SESSIONS.has(course.course_uuid) && (
             <CourseActionsMobile courseuuid={courseuuid} orgslug={orgslug} course={course} trailData={trailData} />
           )}
         </>

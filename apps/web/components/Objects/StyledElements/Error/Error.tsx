@@ -5,7 +5,11 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import React from 'react'
 
-function ErrorUI(params: { message?: string, submessage?: string }) {
+// Branded Nawar variant of the generic LearnHouse error UI. Renders inside
+// any page wrapper, so it inherits the platform layout (sidebar stays put).
+// Copy is Spanish + neutral so it works whether the error is "couldn't fetch
+// the org", "the api timed out", or a one-off 500.
+function ErrorUI(params: { message?: string; submessage?: string }) {
   const router = useRouter()
 
   function reloadPage() {
@@ -14,29 +18,45 @@ function ErrorUI(params: { message?: string, submessage?: string }) {
   }
 
   return (
-    <div className="flex flex-col py-10 mx-auto antialiased items-center space-y-6 bg-linear-to-b from-rose-100 to-rose-100/5 ">
-      <div className="flex flex-row  items-center space-x-5  rounded-xl ">
-        <AlertTriangle className="text-rose-700" size={45} />
-        <div className='flex flex-col'>
-          <p className="text-3xl font-bold text-rose-700">{params.message ? params.message : 'Something went wrong'}</p>
-          <p className="text-lg font-bold text-rose-700">{params.submessage ? params.submessage : ''}</p>
+    <div className="w-full px-4 py-16 sm:py-20 flex flex-col items-center justify-center">
+      <div className="max-w-md w-full bg-white rounded-2xl nice-shadow border border-[#DDE6F5] p-6 sm:p-8 text-center space-y-4">
+        <div className="mx-auto w-12 h-12 rounded-full bg-[#F0F5FF] flex items-center justify-center">
+          <AlertTriangle className="text-[#025dc7]" size={22} />
         </div>
-      </div>
-      <div className='flex space-x-4'>
-        <button
-          onClick={() => reloadPage()}
-          className="flex space-x-2 items-center rounded-full px-4 py-1 text-rose-200 bg-rose-700 hover:bg-rose-800 transition-all ease-linear shadow-lg "
-        >
-          <RefreshCcw className="text-rose-200" size={17} />
-          <span className="text-md font-bold">Retry</span>
-        </button>
-        <Link
-          href={getUriWithoutOrg('/home')}
-          className="flex space-x-2 items-center rounded-full px-4 py-1 text-gray-200 bg-gray-700 hover:bg-gray-800 transition-all ease-linear shadow-lg "
-        >
-          <HomeIcon className="text-gray-200" size={17} />
-          <span className="text-md font-bold">Home</span>
-        </Link>
+        <div>
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">
+            {params.message || 'Hubo un problema cargando la página'}
+          </h2>
+          {params.submessage && (
+            <p className="text-sm text-gray-500 mt-1.5">{params.submessage}</p>
+          )}
+          <p className="text-sm text-gray-500 mt-3 leading-relaxed">
+            Suele resolverse recargando. Si sigue pasando, escríbenos a{' '}
+            <a
+              href="mailto:info@holandesnawar.com"
+              className="text-[#025dc7] font-semibold hover:underline"
+            >
+              info@holandesnawar.com
+            </a>
+            .
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2 pt-2">
+          <button
+            onClick={() => reloadPage()}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#1D0084] text-sm font-bold transition-colors"
+          >
+            <RefreshCcw size={15} strokeWidth={2.5} />
+            Reintentar
+          </button>
+          <Link
+            href={getUriWithoutOrg('/home')}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-[#5A6480] border border-[#DDE6F5] hover:text-[#1D0084] hover:border-[#4da3ff] text-sm font-bold transition-colors"
+          >
+            <HomeIcon size={15} strokeWidth={2.5} />
+            Inicio
+          </Link>
+        </div>
       </div>
     </div>
   )
