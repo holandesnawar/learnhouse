@@ -209,11 +209,11 @@ function FooterLanding() {
 
           {/* Navegación */}
           <div>
-            <p className="text-[12px] font-bold uppercase tracking-wider text-white/55 mb-3">Navegación</p>
+            <p className="text-base font-bold text-white mb-4">Navegación</p>
             <ul className="space-y-2 text-[14px]">
               {NAV_LINKS.map((l) => (
                 <li key={l.href}>
-                  <a href={l.href} className="text-white/80 hover:text-white transition-colors">
+                  <a href={l.href} className="text-white/75 hover:text-white transition-colors">
                     {l.label}
                   </a>
                 </li>
@@ -223,12 +223,12 @@ function FooterLanding() {
 
           {/* Contacto */}
           <div>
-            <p className="text-[12px] font-bold uppercase tracking-wider text-white/55 mb-3">Contacto</p>
+            <p className="text-base font-bold text-white mb-4">Contacto</p>
             <ul className="space-y-2 text-[14px]">
               <li>
                 <a
                   href="mailto:info@holandesnawar.com"
-                  className="text-white/80 hover:text-white transition-colors"
+                  className="text-white/75 hover:text-white transition-colors"
                 >
                   info@holandesnawar.com
                 </a>
@@ -238,7 +238,7 @@ function FooterLanding() {
                   href="https://www.instagram.com/holandes.nawar"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-white/80 hover:text-white transition-colors"
+                  className="text-white/75 hover:text-white transition-colors"
                 >
                   @holandes.nawar
                 </a>
@@ -248,12 +248,12 @@ function FooterLanding() {
 
           {/* Legal */}
           <div>
-            <p className="text-[12px] font-bold uppercase tracking-wider text-white/55 mb-3">Legal</p>
+            <p className="text-base font-bold text-white mb-4">Legal</p>
             <ul className="space-y-2 text-[14px]">
               <li>
                 <a
                   href="https://www.holandesnawar.com/terminos-y-condiciones"
-                  className="text-white/80 hover:text-white transition-colors"
+                  className="text-white/75 hover:text-white transition-colors"
                 >
                   Términos y condiciones
                 </a>
@@ -261,7 +261,7 @@ function FooterLanding() {
               <li>
                 <a
                   href="https://www.holandesnawar.com/politica-de-privacidad"
-                  className="text-white/80 hover:text-white transition-colors"
+                  className="text-white/75 hover:text-white transition-colors"
                 >
                   Política de privacidad
                 </a>
@@ -269,7 +269,7 @@ function FooterLanding() {
               <li>
                 <a
                   href="https://www.holandesnawar.com/cookies"
-                  className="text-white/80 hover:text-white transition-colors"
+                  className="text-white/75 hover:text-white transition-colors"
                 >
                   Cookies
                 </a>
@@ -309,10 +309,15 @@ export default function AuthShell({ children }: { children: React.ReactNode }) {
       }}
     >
       <NavbarLanding />
-      {/* min-h calc keeps the form vertically centred in the viewport on the
-          first paint, regardless of how tall the footer gets when it stacks
-          on mobile. pt-[72px] reserves space for the fixed navbar. */}
-      <main className="relative flex items-center justify-center px-6 py-12 sm:px-4 sm:py-16 pt-[88px]" style={{ minHeight: 'calc(100vh - 72px)' }}>
+      {/* min-h calc keeps the form vertically centred in the viewport on
+          the first paint, regardless of how tall the footer gets when it
+          stacks on mobile. Generous top padding so the title sits well
+          below the fixed navbar with breathing room instead of crammed up
+          against it. */}
+      <main
+        className="relative flex items-center justify-center px-6 pt-32 pb-12 sm:px-4 sm:pt-40 sm:pb-16"
+        style={{ minHeight: 'calc(100vh - 72px)' }}
+      >
         {children}
       </main>
       <FooterLanding />
