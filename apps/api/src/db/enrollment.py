@@ -41,3 +41,18 @@ class EnrollmentCreate(BaseModel):
 class EnrollmentResponse(BaseModel):
     checkout_url: str
 
+
+class EnrollmentIntentResponse(BaseModel):
+    """Returned by /payments/enroll-intent.
+
+    Used by the embedded Stripe Elements checkout we host ourselves at
+    /auth/matricula-formacion-nawar-a0-a1/pago. The matricula form
+    redirects to `payment_url`; the page then mounts the PaymentElement
+    against `client_secret` using `publishable_key`.
+    """
+
+    enrollment_id: int
+    client_secret: str
+    publishable_key: str
+    payment_url: str
+

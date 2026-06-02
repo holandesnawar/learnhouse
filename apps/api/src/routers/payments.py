@@ -7,10 +7,11 @@ from fastapi.responses import RedirectResponse
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.core.events.database import get_db_session
-from src.db.enrollment import EnrollmentCreate, EnrollmentResponse
+from src.db.enrollment import EnrollmentCreate, EnrollmentIntentResponse, EnrollmentResponse
 from src.services.payments.payments import (
     create_formacion_checkout_session,
     enroll_and_checkout,
+    enroll_and_payment_intent,
     process_webhook_event,
 )
 from src.services.security.rate_limiting import check_enroll_rate_limit
@@ -48,6 +49,28 @@ async def api_enroll(
     _enforce_enroll_rate_limit(request)
     url = await enroll_and_checkout(data, db_session)
     return EnrollmentResponse(checkout_url=url)
+
+
+@router.post(
+    "/enroll-intent",
+    response_model=EnrollmentIntentResponse,
+    summary="Save the enrollment intent + create a PaymentIntent for our embedded checkout.",
+    description=(
+        "Use when the buyer should stay on the Nawar-branded payment page "
+        "(/auth/matricula-formacion-nawar-a0-a1/pago) instead of being "
+        "redirected to Stripe-hosted Checkout. Returns a client_secret the "
+        "front-end mounts against Stripe Elements + a publishable_key + a "
+        "payment_url to redirect to."
+    ),
+)
+async def api_enroll_intent(
+    data: EnrollmentCreate,
+    request: Request,
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    _enforce_enroll_rate_limit(request)
+    result = await enroll_and_payment_intent(data, db_session)
+    return EnrollmentIntentResponse(**result)
 
 
 @router.get(

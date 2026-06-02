@@ -42,7 +42,11 @@ export default function MatriculaClient() {
     }
     setIsSubmitting(true)
     try {
-      const r = await fetch(`${getAPIUrl()}payments/enroll`, {
+      // enroll-intent returns the URL of our embedded Nawar-branded
+      // checkout (Stripe Elements under the hood). The buyer never leaves
+      // the academia.holandesnawar.nl domain — better conversion + a
+      // consistent brand experience all the way through payment.
+      const r = await fetch(`${getAPIUrl()}payments/enroll-intent`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -55,12 +59,12 @@ export default function MatriculaClient() {
         }),
       })
       const data = await r.json()
-      if (!r.ok || !data?.checkout_url) {
+      if (!r.ok || !data?.payment_url) {
         setError(data?.detail || 'No se pudo crear la matrícula. Vuelve a intentarlo en un momento.')
         setIsSubmitting(false)
         return
       }
-      window.location.href = data.checkout_url
+      window.location.href = data.payment_url
     } catch (err) {
       setError('Hubo un problema de red. Revisa tu conexión y vuelve a intentarlo.')
       setIsSubmitting(false)

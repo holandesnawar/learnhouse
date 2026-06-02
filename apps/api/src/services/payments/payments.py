@@ -65,6 +65,20 @@ def _formacion_price_id() -> str:
     return price
 
 
+def _stripe_publishable() -> str:
+    """Public key the embedded Elements checkout needs to talk to Stripe.
+
+    Plain LEARNHOUSE_STRIPE_PUBLISHABLE_KEY env var — no `NEXT_PUBLIC_`
+    prefix because the value is served by the API, not baked into the
+    Next.js bundle (so it doesn't matter which mode the page renders in
+    and we can swap test ↔ live without rebuilding the front-end).
+    """
+    key = os.environ.get("LEARNHOUSE_STRIPE_PUBLISHABLE_KEY", "")
+    if not key:
+        raise HTTPException(status_code=500, detail="Stripe publishable key not configured")
+    return key
+
+
 def _academy_url() -> str:
     cfg = get_learnhouse_config()
     domain = getattr(cfg.hosting_config, "domain", None)
@@ -216,6 +230,154 @@ async def _mark_enrollment_paid(session_id: str, db_session: AsyncSession) -> No
         logger.exception("Could not mark enrollment %s as paid", session_id)
 
 
+# ── embedded checkout (Stripe Elements) ────────────────────────────────────
+
+async def enroll_and_payment_intent(data, db_session: AsyncSession) -> dict:
+    """Save the prospect + create a PaymentIntent for our embedded Elements
+    checkout (the page at /auth/matricula-formacion-nawar-a0-a1/pago).
+
+    Returns {enrollment_id, client_secret, publishable_key, payment_url}.
+    Stripe will surface card + Apple Pay + Google Pay + Klarna + iDEAL +
+    everything else enabled in Dashboard via `automatic_payment_methods`.
+    """
+    from src.db.enrollment import Enrollment
+
+    stripe.api_key = _stripe_secret()
+    academy = _academy_url()
+
+    email = str(data.email).strip().lower()
+    full_name = f"{data.first_name} {data.last_name}".strip() or data.first_name or "Alumno"
+
+    # Pull amount + currency off the Price so we don't hardcode the figure.
+    try:
+        price = stripe.Price.retrieve(_formacion_price_id())
+        unit_amount = price.get("unit_amount") if hasattr(price, "get") else getattr(price, "unit_amount", None)
+        currency_raw = price.get("currency") if hasattr(price, "get") else getattr(price, "currency", "eur")
+    except Exception as exc:
+        logger.exception("Stripe price retrieval failed: %s", exc)
+        raise HTTPException(status_code=502, detail=f"Could not load price: {exc}")
+    amount = int(unit_amount or 0)
+    currency = (currency_raw or "eur").lower()
+    if amount <= 0:
+        raise HTTPException(status_code=500, detail="Configured price has empty unit_amount")
+
+    # Stripe Customer first so the PI is linked + receipt/wallet UIs show the name.
+    try:
+        customer = stripe.Customer.create(
+            email=email,
+            name=full_name,
+            phone=data.phone or None,
+            metadata={
+                "country": data.country or "",
+                "city": data.city or "",
+                "source": "matricula-form-elements",
+            },
+        )
+    except Exception as exc:
+        logger.exception("Stripe customer creation failed: %s", exc)
+        raise HTTPException(status_code=502, detail=f"Could not create Stripe customer: {exc}")
+
+    # Persist the enrollment row first so we have its id for the PI metadata.
+    now = datetime.now().isoformat()
+    row = Enrollment(
+        email=email,
+        first_name=data.first_name,
+        last_name=data.last_name,
+        phone=data.phone or "",
+        country=data.country or "",
+        city=data.city or "",
+        status="pending",
+        stripe_customer_id=customer.id,
+        stripe_session_id="",
+        created_at=now,
+        updated_at=now,
+    )
+    db_session.add(row)
+    await db_session.commit()
+    await db_session.refresh(row)
+
+    try:
+        intent = stripe.PaymentIntent.create(
+            amount=amount,
+            currency=currency,
+            customer=customer.id,
+            receipt_email=email,
+            description="Formación Nawar A0-A1",
+            automatic_payment_methods={"enabled": True},
+            metadata={
+                "product": "formacion-a0-a1",
+                "source": "matricula-form-elements",
+                "enrollment_id": str(row.id or ""),
+                "country": data.country or "",
+                "city": data.city or "",
+                "phone": data.phone or "",
+                "first_name": data.first_name,
+                "last_name": data.last_name,
+            },
+        )
+    except Exception as exc:
+        logger.exception("Stripe PaymentIntent creation failed: %s", exc)
+        raise HTTPException(status_code=502, detail=f"Could not create payment intent: {exc}")
+
+    # Stash the PI id on the same column we already use for Checkout Sessions,
+    # so /webhook lookups + admin queries see one identifier regardless of flow.
+    row.stripe_session_id = intent.id
+    row.updated_at = datetime.now().isoformat()
+    db_session.add(row)
+    await db_session.commit()
+
+    client_secret = (
+        intent.client_secret
+        if hasattr(intent, "client_secret")
+        else (intent.get("client_secret") if hasattr(intent, "get") else None)
+    )
+    if not client_secret:
+        raise HTTPException(status_code=502, detail="Stripe did not return a client secret")
+
+    publishable_key = _stripe_publishable()
+
+    return {
+        "enrollment_id": row.id or 0,
+        "client_secret": client_secret,
+        "publishable_key": publishable_key,
+        # pk is public by definition (Stripe.js needs it client-side, prefix
+        # `pk_test_` / `pk_live_`); URL param avoids a round-trip on page load.
+        "payment_url": (
+            f"{academy}/auth/pago-formacion-a0-a1"
+            f"?ei={row.id or 0}&cs={client_secret}&pk={publishable_key}"
+        ),
+    }
+
+
+def _create_post_hoc_invoice(
+    customer_id: str,
+    amount: int,
+    currency: str,
+    description: str,
+) -> None:
+    """Generate a finalized 'paid out of band' Invoice for a PaymentIntent
+    that already settled, so the buyer still gets the same NAWAR-XXXX PDF
+    Stripe Checkout produced automatically. Best-effort: a Stripe hiccup
+    here must never block account provisioning."""
+    try:
+        stripe.InvoiceItem.create(
+            customer=customer_id,
+            amount=amount,
+            currency=currency,
+            description=description,
+        )
+        invoice = stripe.Invoice.create(
+            customer=customer_id,
+            collection_method="send_invoice",
+            days_until_due=0,
+            auto_advance=False,
+        )
+        stripe.Invoice.finalize_invoice(invoice.id)
+        stripe.Invoice.pay(invoice.id, paid_out_of_band=True)
+    except Exception:
+        logger.exception("Post-hoc invoice creation failed for customer %s", customer_id)
+
+
 # ── user provisioning (internal — no RBAC, trusted webhook) ────────────────
 
 async def _get_default_org(db_session: AsyncSession) -> Organization:
@@ -360,59 +522,14 @@ async def process_webhook_event(
         raise HTTPException(status_code=400, detail="Webhook payload is not an object")
 
     event_type = event.get("type")
-    if event_type != "checkout.session.completed":
-        return {"detail": f"ignored:{event_type}"}
+    obj = (event.get("data") or {}).get("object") or {}
 
     try:
-        obj = (event.get("data") or {}).get("object") or {}
-        if obj.get("payment_status") != "paid":
-            return {"detail": "session not paid"}
-
-        # Link this payment back to the enrollment row, if there is one.
-        session_id = obj.get("id") or ""
-        if session_id:
-            await _mark_enrollment_paid(session_id, db_session)
-
-        email = (
-            (obj.get("customer_details") or {}).get("email")
-            or obj.get("customer_email")
-            or ""
-        ).strip().lower()
-        name = ((obj.get("customer_details") or {}).get("name") or "").strip()
-
-        if not email:
-            logger.error("checkout.session.completed without email — cannot provision")
-            return {"detail": "no email"}
-
-        user = await _create_paid_user(email, name, db_session)
-
-        code = _store_reset_code(user)
-        if not code:
-            logger.error("Could not generate reset code for %s; user exists, email not sent", email)
-            return {"detail": "user created but reset email could not be sent"}
-
-        user_read = UserRead.model_validate(user)
-        try:
-            send_payment_welcome_email(
-                email=user_read.email,
-                name=name or user.first_name or "",
-                reset_code=code,
-                base_url=_academy_url(),
-            )
-        except Exception:
-            logger.exception("Welcome email send failed for %s", email)
-            # We don't fail the webhook — the user exists, we can resend manually.
-
-        # CRM (systeme.io): drop "Matriculado sin pagar" + add "Alumno" so the
-        # re-engagement campaign skips this person. Best-effort: a CRM hiccup
-        # must never roll back a confirmed payment.
-        try:
-            from src.services.crm.systeme import mark_as_alumno
-            await mark_as_alumno(email)
-        except Exception:
-            logger.exception("Systeme tag update failed for %s", email)
-
-        return {"detail": "ok"}
+        if event_type == "checkout.session.completed":
+            return await _handle_checkout_session(obj, db_session)
+        if event_type == "payment_intent.succeeded":
+            return await _handle_payment_intent(obj, db_session)
+        return {"detail": f"ignored:{event_type}"}
     except HTTPException:
         raise
     except Exception as exc:
@@ -423,3 +540,107 @@ async def process_webhook_event(
             status_code=500,
             detail=f"{type(exc).__name__}: {exc}",
         )
+
+
+async def _provision_after_payment(
+    email: str,
+    name: str,
+    db_session: AsyncSession,
+) -> dict:
+    """Shared post-payment work: create the user, store a reset code, send
+    the welcome email, tag in the CRM. Used by both webhook flows so behaviour
+    stays identical whether the buyer paid via Checkout or Elements."""
+    if not email:
+        logger.error("post-payment provisioning called without email")
+        return {"detail": "no email"}
+
+    user = await _create_paid_user(email, name, db_session)
+
+    code = _store_reset_code(user)
+    if not code:
+        logger.error("Could not generate reset code for %s; user exists, email not sent", email)
+        return {"detail": "user created but reset email could not be sent"}
+
+    user_read = UserRead.model_validate(user)
+    try:
+        send_payment_welcome_email(
+            email=user_read.email,
+            name=name or user.first_name or "",
+            reset_code=code,
+            base_url=_academy_url(),
+        )
+    except Exception:
+        logger.exception("Welcome email send failed for %s", email)
+
+    try:
+        from src.services.crm.systeme import mark_as_alumno
+        await mark_as_alumno(email)
+    except Exception:
+        logger.exception("Systeme tag update failed for %s", email)
+
+    return {"detail": "ok"}
+
+
+async def _handle_checkout_session(obj: dict, db_session: AsyncSession) -> dict:
+    """Legacy flow: Stripe-hosted Checkout Session has completed."""
+    if obj.get("payment_status") != "paid":
+        return {"detail": "session not paid"}
+
+    session_id = obj.get("id") or ""
+    if session_id:
+        await _mark_enrollment_paid(session_id, db_session)
+
+    email = (
+        (obj.get("customer_details") or {}).get("email")
+        or obj.get("customer_email")
+        or ""
+    ).strip().lower()
+    name = ((obj.get("customer_details") or {}).get("name") or "").strip()
+    return await _provision_after_payment(email, name, db_session)
+
+
+async def _handle_payment_intent(obj: dict, db_session: AsyncSession) -> dict:
+    """Embedded Elements flow: PaymentIntent succeeded. We look up the
+    enrollment by metadata.enrollment_id (set when the PI was created)
+    so we have an authoritative email + name to provision against."""
+    intent_id = obj.get("id") or ""
+    enrollment_id_str = (obj.get("metadata") or {}).get("enrollment_id") or ""
+
+    enrollment = None
+    if enrollment_id_str:
+        try:
+            from src.db.enrollment import Enrollment
+            statement = select(Enrollment).where(Enrollment.id == int(enrollment_id_str))
+            enrollment = (await db_session.execute(statement)).scalars().first()
+        except Exception:
+            logger.exception("Lookup of enrollment %s failed", enrollment_id_str)
+
+    if not enrollment:
+        logger.error("payment_intent.succeeded without enrollment match (intent=%s)", intent_id)
+        return {"detail": "no enrollment"}
+
+    if enrollment.status != "paid":
+        enrollment.status = "paid"
+        enrollment.updated_at = datetime.now().isoformat()
+        db_session.add(enrollment)
+        await db_session.commit()
+
+    email = (enrollment.email or "").strip().lower()
+    name = f"{enrollment.first_name} {enrollment.last_name}".strip()
+
+    result = await _provision_after_payment(email, name, db_session)
+
+    # Post-hoc invoice so the buyer still gets the same NAWAR-XXXX PDF Checkout
+    # would have generated automatically. Best-effort — never block on it.
+    amount = int(obj.get("amount_received") or obj.get("amount") or 0)
+    currency = (obj.get("currency") or "eur").lower()
+    customer_id = obj.get("customer") or enrollment.stripe_customer_id or ""
+    if customer_id and amount > 0:
+        _create_post_hoc_invoice(
+            customer_id=customer_id,
+            amount=amount,
+            currency=currency,
+            description="Formación Nawar A0-A1",
+        )
+
+    return result
