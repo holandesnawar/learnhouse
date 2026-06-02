@@ -65,11 +65,11 @@ export default function CourseFAQ({ courseUuid, compact = false }: CourseFAQProp
         {/* Section title outside the card, same rhythm as the other sidebar
             sections in the rest of the platform. Emoji over icon to keep the
             HelpCircle for the search bar in lessons. */}
-        <div className="flex items-center gap-2 mb-3 px-1">
-          <HelpCircle size={18} className="text-[#025dc7] shrink-0" />
-          <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+        <div className="flex items-center gap-2.5 mb-3 px-1">
+          <HelpCircle size={22} className="text-[#025dc7] shrink-0" />
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
             Preguntas frecuentes
-          </h3>
+          </h2>
         </div>
         <div className="bg-white rounded-2xl nice-shadow border border-[#DDE6F5] overflow-hidden divide-y divide-[#DDE6F5]">
           {data.items.map((faq, i) => {
