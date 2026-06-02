@@ -136,18 +136,7 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
       )}
 
       <div className="relative z-0 w-full max-w-[420px] flex flex-col items-center gap-8">
-        <div className="flex justify-center">
-          {org?.logo_image ? (
-            <img
-              src={getOrgLogoMediaDirectory(org.org_uuid, org.logo_image)}
-              alt={org?.name}
-              className="h-12 sm:h-14 object-contain"
-            />
-          ) : (
-            <span className="text-2xl font-bold text-white">{org?.name}</span>
-          )}
-        </div>
-
+        {/* Logo omitted: AuthShell navbar already shows it. */}
         <div className="w-full text-white/95">
           <h1
             className="text-center font-bold leading-[1.15]"

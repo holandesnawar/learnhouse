@@ -79,20 +79,20 @@ export default function CourseFAQ({ courseUuid, compact = false }: CourseFAQProp
                 key={i}
                 type="button"
                 onClick={() => setOpenIdx(open ? null : i)}
-                className="w-full text-left flex items-start gap-3 px-4 py-3.5 hover:bg-[#F0F5FF]/60 transition-colors"
+                className="w-full text-left flex items-start gap-3 px-4 py-4 hover:bg-[#F0F5FF]/60 transition-colors"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-[14.5px] font-bold text-gray-900 leading-snug">
+                  <p className="text-[15.5px] font-bold text-gray-900 leading-snug">
                     {faq.q}
                   </p>
                   {open && (
-                    <p className="text-[14px] text-gray-600 leading-relaxed mt-2 whitespace-pre-line">
+                    <p className="text-[15px] text-gray-600 leading-relaxed mt-2.5 whitespace-pre-line">
                       {faq.a}
                     </p>
                   )}
                 </div>
                 <ChevronDown
-                  size={16}
+                  size={18}
                   className={`shrink-0 mt-1 text-[#025dc7] transition-transform ${open ? 'rotate-180' : ''}`}
                 />
               </button>

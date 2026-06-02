@@ -269,20 +269,9 @@ const LoginClient = (props: LoginClientProps) => {
         )}
 
         <div className="relative z-0 w-full max-w-[420px] flex flex-col items-center gap-8">
-          {/* Logo — same scale as nawar-web acceso.astro */}
-          <div className="flex justify-center">
-            {props.org?.logo_image ? (
-              <img
-                src={getOrgLogoMediaDirectory(props.org.org_uuid, props.org.logo_image)}
-                alt={props.org?.name}
-                className="h-12 sm:h-14 object-contain"
-              />
-            ) : (
-              <span className="text-2xl font-bold text-white">{props.org?.name}</span>
-            )}
-          </div>
-
-          {/* Open block — no glass card, matches the nawar-web look */}
+          {/* Open block — no glass card, matches the nawar-web look.
+              Logo intentionally omitted: the AuthShell navbar already
+              carries the Nawar logo at the top of every auth screen. */}
           <div className="w-full text-white/95">
             {/* Title: "Bienvenid@" in a soft white gradient + "de vuelta" in #4da3ff,
                 stacked the same way as nawar-web/src/pages/acceso.astro */}

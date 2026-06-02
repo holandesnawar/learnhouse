@@ -333,7 +333,7 @@ const CourseClient = (props: any) => {
               <h1 className="text-3xl md:text-3xl font-bold">{course.name}</h1>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-8 pt-2">
+            <div className="flex flex-col md:flex-row md:items-start gap-8 pt-2">
               <div className="w-full md:w-3/4 space-y-4">
                 {(() => {
                   const showVideo = course.thumbnail_type === 'video' || (course.thumbnail_type === 'both' && activeThumbnailType === 'video');
@@ -477,12 +477,16 @@ const CourseClient = (props: any) => {
                 </div>
               </div>
 
-              <div className='course_metadata_right w-full md:w-1/4 space-y-4'>
+              <div className={`course_metadata_right w-full md:w-1/4 ${COURSES_AS_SESSIONS.has(course.course_uuid) ? 'md:self-start md:sticky md:top-6' : 'space-y-4'}`}>
                 {COURSES_AS_SESSIONS.has(course.course_uuid) ? (
                   // Session-library courses: no enrolment, no progress —
                   // surface the FAQ here instead so the right rail isn't
-                  // empty for these courses.
-                  <CourseFAQ courseUuid={course.course_uuid} compact />
+                  // empty for these courses. Cap the rail at the banner
+                  // height with an internal scroll so expanding answers
+                  // doesn't push the chapter list below.
+                  <div className="md:max-h-[340px] md:overflow-y-auto">
+                    <CourseFAQ courseUuid={course.course_uuid} compact />
+                  </div>
                 ) : (
                   <CoursesActions courseuuid={courseuuid} orgslug={orgslug} course={course} trailData={trailData} />
                 )}
@@ -535,8 +539,8 @@ const CourseClient = (props: any) => {
               )
             })()}
 
-            <div className="w-full my-5 mb-10">
-              <h2 className="py-5 text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2.5" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+            <div className="w-full mt-10 mb-12">
+              <h2 className="pb-5 text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2.5" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
                 {COURSES_AS_SESSIONS.has(course.course_uuid) ? (
                   <>
                     <Video size={22} className="text-[#025dc7]" />
