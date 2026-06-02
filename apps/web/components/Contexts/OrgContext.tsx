@@ -24,11 +24,17 @@ export function OrgProvider({
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
 
-  const { data: org, error: orgError, isLoading } = useQuery({
-    queryKey: queryKeys.org.detail(orgslug),
+  // accessToken sits in the queryKey on purpose: when AuthContext refreshes a
+  // stale token in the background (typical after the tab has been idle for >
+  // 30 min), the new token flips the key and useQuery refetches with the
+  // fresh auth instead of leaving the page stuck on the stale 401 error.
+  const { data: org, error: orgError, isLoading, isFetching } = useQuery({
+    queryKey: [...queryKeys.org.detail(orgslug), accessToken || 'anon'],
     queryFn: () => getOrganizationContextInfo(orgslug, {}, accessToken),
     staleTime: 5 * 60_000,
-    enabled: !!orgslug,
+    enabled: !!orgslug && session.status !== 'loading',
+    retry: 2,
+    retryDelay: 1500,
   })
 
   const isOrgActive = useMemo(() => (org?.config?.config?.active ?? org?.config?.config?.general?.enabled) !== false, [org])
@@ -57,7 +63,12 @@ export function OrgProvider({
     orgslug,
   }), [org, isUserPartOfTheOrg, orgslug])
 
-  if (orgError) return <ErrorUI message='An error occurred while fetching data' />
+  // While a refetch is in flight (e.g. AuthContext just refreshed the token
+  // and the new queryKey is fetching), don't blink the error UI — wait for
+  // the refetch to settle.
+  if (orgError && !isFetching && session.status !== 'loading') {
+    return <ErrorUI message='Hubo un problema cargando la página' />
+  }
   if (!isLoading && org && !isOrgActive) return <ErrorUI message='This organization is no longer active' />
 
   return <OrgContext.Provider value={contextValue}>{children}</OrgContext.Provider>
