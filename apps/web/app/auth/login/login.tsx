@@ -273,20 +273,22 @@ const LoginClient = (props: LoginClientProps) => {
               Logo intentionally omitted: the AuthShell navbar already
               carries the Nawar logo at the top of every auth screen. */}
           <div className="w-full text-white/95">
-            {/* Title: "Bienvenid@" in a soft white gradient + "de vuelta" in #4da3ff,
-                stacked the same way as nawar-web/src/pages/acceso.astro */}
+            {/* Title — same treatment as nawar-web hero on the landing:
+                Poppins 700, -0.03em tracking, white→45%-white gradient
+                identical to .text-gradient-white in the brand stylesheet.
+                Continues the home hero look on the auth screens. */}
             <h1
-              className="text-center font-bold leading-[1.15]"
+              className="text-center font-bold leading-[1.1]"
               style={{
                 fontFamily: 'var(--font-poppins), system-ui, sans-serif',
-                fontSize: 'clamp(26px, 4vw, 32px)',
-                letterSpacing: '-0.02em',
+                fontSize: 'clamp(32px, 5vw, 44px)',
+                letterSpacing: '-0.03em',
               }}
             >
               <span
                 style={{
                   background:
-                    'linear-gradient(180deg, #ffffff 0%, rgba(255,255,255,0.72) 100%)',
+                    'linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.45) 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text',
@@ -401,7 +403,7 @@ const LoginClient = (props: LoginClientProps) => {
             href="https://www.holandesnawar.com"
             className="text-[13px] text-white/55 hover:text-white/90 transition-colors"
           >
-            ← Volver a la web
+            ← Volver al inicio
           </a>
         </div>
     </AuthShell>

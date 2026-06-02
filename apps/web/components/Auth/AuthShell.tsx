@@ -2,11 +2,10 @@
 
 import React from 'react'
 
-// Auth-shell variant of the holandesnawar.com landing chrome. The full
-// landing navbar fades its background based on the colour of the section
-// underneath; auth pages have one dark gradient end to end, so we lock the
-// navbar to solid dark and drop the scroll logic. Same logo + links so the
-// student sees the same brand surface from .com to the academy.
+// Auth-shell variant of the holandesnawar.com landing chrome. Navbar fades
+// from transparent to dark Nawar as the page scrolls — same behaviour the
+// landing has — instead of locking to a solid dark bar, so it feels like a
+// continuation of the brand site rather than a separate "app".
 
 const NAV_LINKS = [
   { label: 'Inicio',         href: 'https://www.holandesnawar.com/' },
@@ -19,6 +18,27 @@ const LOGO_URL = 'https://d1yei2z3i6k35z.cloudfront.net/9533860/671a9c9265e23_Lo
 
 function NavbarLanding() {
   const [menuOpen, setMenuOpen] = React.useState(false)
+  const headerRef = React.useRef<HTMLElement>(null)
+
+  // Identical scroll-fade logic to nawar-web's NavbarLanding: opacity
+  // goes from 0 at scroll < 38% of viewport to 1 at scroll > 84%.
+  React.useEffect(() => {
+    const header = headerRef.current
+    if (!header) return
+    const update = () => {
+      const sy = window.scrollY
+      const vh = window.innerHeight
+      const fadeStart = vh * 0.18
+      const fadeEnd = vh * 0.5
+      const opacity = Math.min(1, Math.max(0, (sy - fadeStart) / (fadeEnd - fadeStart)))
+      header.style.transition = 'none'
+      header.style.backgroundColor = `rgba(29,0,132,${opacity.toFixed(3)})`
+      header.style.backdropFilter = opacity > 0.1 ? 'blur(8px)' : 'none'
+    }
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    return () => window.removeEventListener('scroll', update)
+  }, [])
 
   React.useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : ''
@@ -28,8 +48,9 @@ function NavbarLanding() {
   return (
     <>
       <header
-        className="sticky top-0 inset-x-0 z-40"
-        style={{ backgroundColor: 'rgba(29,0,132,0.96)', backdropFilter: 'blur(8px)' }}
+        ref={headerRef}
+        className="fixed top-0 inset-x-0 z-40"
+        style={{ backgroundColor: 'rgba(29,0,132,0)' }}
       >
         <div className="max-w-6xl mx-auto px-6">
           <div className="h-[72px] flex items-center justify-between gap-8">
@@ -151,9 +172,9 @@ function FooterLanding() {
             <img
               src={LOGO_URL}
               alt="Holandés Nawar"
-              className="h-10 w-auto object-contain mb-4"
+              className="h-14 w-auto object-contain mb-4"
             />
-            <p className="text-[13px] text-white/65 leading-relaxed max-w-xs">
+            <p className="text-[14px] text-white/70 leading-relaxed max-w-xs">
               Academia online de neerlandés para hispanohablantes. Aprende de
               verdad, con método y comunidad.
             </p>
@@ -163,25 +184,25 @@ function FooterLanding() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Instagram"
-                className="w-9 h-9 inline-flex items-center justify-center rounded-full bg-white/8 hover:bg-white/15 text-white/85 hover:text-white transition-colors"
+                className="w-10 h-10 inline-flex items-center justify-center rounded-xl bg-white/8 hover:bg-white/15 text-white/85 hover:text-white transition-colors"
               >
-                <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" /></svg>
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" /></svg>
               </a>
               <a
                 href="https://www.facebook.com/holandes.nawar/"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Facebook"
-                className="w-9 h-9 inline-flex items-center justify-center rounded-full bg-white/8 hover:bg-white/15 text-white/85 hover:text-white transition-colors"
+                className="w-10 h-10 inline-flex items-center justify-center rounded-xl bg-white/8 hover:bg-white/15 text-white/85 hover:text-white transition-colors"
               >
-                <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
               </a>
               <a
                 href="mailto:info@holandesnawar.com"
                 aria-label="Email"
-                className="w-9 h-9 inline-flex items-center justify-center rounded-full bg-white/8 hover:bg-white/15 text-white/85 hover:text-white transition-colors"
+                className="w-10 h-10 inline-flex items-center justify-center rounded-xl bg-white/8 hover:bg-white/15 text-white/85 hover:text-white transition-colors"
               >
-                <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
               </a>
             </div>
           </div>
@@ -288,7 +309,10 @@ export default function AuthShell({ children }: { children: React.ReactNode }) {
       }}
     >
       <NavbarLanding />
-      <main className="relative flex-1 flex items-center justify-center px-6 py-12 sm:px-4 sm:py-16">
+      {/* min-h calc keeps the form vertically centred in the viewport on the
+          first paint, regardless of how tall the footer gets when it stacks
+          on mobile. pt-[72px] reserves space for the fixed navbar. */}
+      <main className="relative flex items-center justify-center px-6 py-12 sm:px-4 sm:py-16 pt-[88px]" style={{ minHeight: 'calc(100vh - 72px)' }}>
         {children}
       </main>
       <FooterLanding />

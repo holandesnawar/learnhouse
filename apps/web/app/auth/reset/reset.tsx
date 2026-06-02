@@ -139,17 +139,17 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
         {/* Logo omitted: AuthShell navbar already shows it. */}
         <div className="w-full text-white/95">
           <h1
-            className="text-center font-bold leading-[1.15]"
+            className="text-center font-bold leading-[1.1]"
             style={{
               fontFamily: 'var(--font-poppins), system-ui, sans-serif',
-              fontSize: 'clamp(26px, 4vw, 32px)',
-              letterSpacing: '-0.02em',
+              fontSize: 'clamp(32px, 5vw, 44px)',
+              letterSpacing: '-0.03em',
             }}
           >
             <span
               style={{
                 background:
-                  'linear-gradient(180deg, #ffffff 0%, rgba(255,255,255,0.72) 100%)',
+                  'linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.45) 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
