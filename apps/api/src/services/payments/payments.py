@@ -342,8 +342,11 @@ async def enroll_and_payment_intent(data, db_session: AsyncSession) -> dict:
         "publishable_key": publishable_key,
         # pk is public by definition (Stripe.js needs it client-side, prefix
         # `pk_test_` / `pk_live_`); URL param avoids a round-trip on page load.
+        # Living under /matricula-formacion-nawar-a0-a1/pago — sibling new
+        # auth folders kept 404ing in the Railway image even after cache-busts,
+        # so we tuck this inside a parent folder that's been deployed for weeks.
         "payment_url": (
-            f"{academy}/auth/pago-formacion-a0-a1"
+            f"{academy}/auth/matricula-formacion-nawar-a0-a1/pago"
             f"?ei={row.id or 0}&cs={client_secret}&pk={publishable_key}"
         ),
     }
