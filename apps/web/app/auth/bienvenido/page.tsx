@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
+import AuthShell from '@components/Auth/AuthShell'
 
 export const metadata: Metadata = {
   title: 'Bienvenido a Holandés Nawar',
@@ -21,18 +22,7 @@ export const dynamic = 'force-dynamic'
  */
 export default function BienvenidoPage() {
   return (
-    <div
-      className="relative min-h-screen w-full flex flex-col items-center justify-center px-6 py-16 sm:px-4 sm:py-12"
-      style={{
-        backgroundColor: '#1D0084',
-        backgroundImage:
-          'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
-          'radial-gradient(circle 700px at 100% 0%, rgba(11,109,240,0.40) 0%, transparent 65%), ' +
-          'radial-gradient(circle 600px at 0% 100%, rgba(11,109,240,0.18) 0%, transparent 65%)',
-        backgroundSize: '28px 28px, auto, auto',
-        backgroundRepeat: 'repeat, no-repeat, no-repeat',
-      }}
-    >
+    <AuthShell>
       <div className="relative z-0 w-full max-w-[480px] flex flex-col items-center gap-8 text-center">
         <span className="text-5xl block" aria-hidden>🎉</span>
 
@@ -79,6 +69,6 @@ export default function BienvenidoPage() {
           </p>
         </div>
       </div>
-    </div>
+    </AuthShell>
   )
 }

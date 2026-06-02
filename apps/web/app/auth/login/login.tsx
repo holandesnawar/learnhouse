@@ -13,6 +13,7 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useTranslation } from 'react-i18next'
 import { resendVerificationEmail } from '@services/auth/auth'
 import { getOrgLogoMediaDirectory } from '@services/media/media'
+import AuthShell from '@components/Auth/AuthShell'
 
 interface LoginClientProps {
   org: any
@@ -202,18 +203,7 @@ const LoginClient = (props: LoginClientProps) => {
   })
 
   return (
-    <div
-      className="relative min-h-screen w-full flex flex-col items-center justify-center px-6 py-16 sm:px-4 sm:py-12"
-      style={{
-        backgroundColor: '#1D0084',
-        backgroundImage:
-          'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
-          'radial-gradient(circle 700px at 100% 0%, rgba(11,109,240,0.40) 0%, transparent 65%), ' +
-          'radial-gradient(circle 600px at 0% 100%, rgba(11,109,240,0.18) 0%, transparent 65%)',
-        backgroundSize: '28px 28px, auto, auto',
-        backgroundRepeat: 'repeat, no-repeat, no-repeat',
-      }}
-    >
+    <AuthShell>
         {/* Error Top Bar */}
         {showErrorModal && (
           <div className={`
@@ -425,7 +415,7 @@ const LoginClient = (props: LoginClientProps) => {
             ← Volver a la web
           </a>
         </div>
-    </div>
+    </AuthShell>
   )
 }
 

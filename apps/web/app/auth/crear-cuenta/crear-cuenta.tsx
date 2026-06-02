@@ -9,6 +9,7 @@ import { useFormik } from 'formik'
 import { resetPassword } from '@services/auth/auth'
 import { useTranslation } from 'react-i18next'
 import { getOrgLogoMediaDirectory } from '@services/media/media'
+import AuthShell from '@components/Auth/AuthShell'
 import {
   PasswordStrengthIndicator,
   validatePasswordStrength,
@@ -92,18 +93,7 @@ function CrearCuentaClient({ org }: CrearCuentaClientProps) {
   })
 
   return (
-    <div
-      className="relative min-h-screen w-full flex flex-col items-center justify-center px-6 py-16 sm:px-4 sm:py-12"
-      style={{
-        backgroundColor: '#1D0084',
-        backgroundImage:
-          'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
-          'radial-gradient(circle 700px at 100% 0%, rgba(11,109,240,0.40) 0%, transparent 65%), ' +
-          'radial-gradient(circle 600px at 0% 100%, rgba(11,109,240,0.18) 0%, transparent 65%)',
-        backgroundSize: '28px 28px, auto, auto',
-        backgroundRepeat: 'repeat, no-repeat, no-repeat',
-      }}
-    >
+    <AuthShell>
       {showMessage && (error || message) && (
         <div
           className={`
@@ -277,7 +267,7 @@ function CrearCuentaClient({ org }: CrearCuentaClientProps) {
           Ya tengo cuenta — Entrar
         </Link>
       </div>
-    </div>
+    </AuthShell>
   )
 }
 
