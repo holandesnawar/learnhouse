@@ -1,6 +1,6 @@
 'use client'
 import React, { useState } from 'react'
-import { ChevronDown, Video } from 'lucide-react'
+import { ChevronDown, HelpCircle, Video } from 'lucide-react'
 
 interface FAQ {
   q: string
@@ -61,12 +61,17 @@ export default function CourseFAQ({ courseUuid, compact = false }: CourseFAQProp
 
   if (compact) {
     return (
-      <div className="bg-white rounded-2xl nice-shadow border border-[#DDE6F5] overflow-hidden">
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-[#DDE6F5] bg-[#F0F5FF]/40">
-          <Video size={16} className="text-[#025dc7]" />
-          <h3 className="text-sm font-bold text-gray-900">Preguntas frecuentes</h3>
+      <div>
+        {/* Section title outside the card, same rhythm as the other sidebar
+            sections in the rest of the platform. Emoji over icon to keep the
+            HelpCircle for the search bar in lessons. */}
+        <div className="flex items-center gap-2 mb-3 px-1">
+          <HelpCircle size={18} className="text-[#025dc7] shrink-0" />
+          <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+            Preguntas frecuentes
+          </h3>
         </div>
-        <div className="divide-y divide-[#DDE6F5]">
+        <div className="bg-white rounded-2xl nice-shadow border border-[#DDE6F5] overflow-hidden divide-y divide-[#DDE6F5]">
           {data.items.map((faq, i) => {
             const open = openIdx === i
             return (
@@ -74,21 +79,21 @@ export default function CourseFAQ({ courseUuid, compact = false }: CourseFAQProp
                 key={i}
                 type="button"
                 onClick={() => setOpenIdx(open ? null : i)}
-                className="w-full text-left flex items-start gap-2.5 px-4 py-3 hover:bg-[#F0F5FF]/60 transition-colors"
+                className="w-full text-left flex items-start gap-3 px-4 py-3.5 hover:bg-[#F0F5FF]/60 transition-colors"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-bold text-gray-900 leading-snug">
+                  <p className="text-[14.5px] font-bold text-gray-900 leading-snug">
                     {faq.q}
                   </p>
                   {open && (
-                    <p className="text-[12.5px] text-gray-600 leading-relaxed mt-2 whitespace-pre-line">
+                    <p className="text-[14px] text-gray-600 leading-relaxed mt-2 whitespace-pre-line">
                       {faq.a}
                     </p>
                   )}
                 </div>
                 <ChevronDown
-                  size={14}
-                  className={`shrink-0 mt-0.5 text-[#025dc7] transition-transform ${open ? 'rotate-180' : ''}`}
+                  size={16}
+                  className={`shrink-0 mt-1 text-[#025dc7] transition-transform ${open ? 'rotate-180' : ''}`}
                 />
               </button>
             )

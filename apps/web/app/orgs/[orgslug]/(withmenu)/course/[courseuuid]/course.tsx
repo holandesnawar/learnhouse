@@ -536,10 +536,15 @@ const CourseClient = (props: any) => {
             })()}
 
             <div className="w-full my-5 mb-10">
-              <h2 className="py-5 text-xl md:text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
-                {COURSES_AS_SESSIONS.has(course.course_uuid)
-                  ? 'Sesiones grabadas'
-                  : t('courses.course_lessons')}
+              <h2 className="py-5 text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2.5" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+                {COURSES_AS_SESSIONS.has(course.course_uuid) ? (
+                  <>
+                    <Video size={22} className="text-[#025dc7]" />
+                    Sesiones grabadas
+                  </>
+                ) : (
+                  t('courses.course_lessons')
+                )}
               </h2>
               <div className="bg-white nice-shadow rounded-2xl overflow-hidden border border-[#DDE6F5] divide-y divide-[#DDE6F5]">
                 {(course.chapters ?? []).map((chapter: any, idx: number) => {
