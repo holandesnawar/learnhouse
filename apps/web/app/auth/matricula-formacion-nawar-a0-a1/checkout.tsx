@@ -365,8 +365,8 @@ export default function PagoClient() {
         backgroundColor: '#1D0084',
         backgroundImage:
           'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
-          'radial-gradient(circle 700px at 100% 0%, rgba(11,109,240,0.40) 0%, transparent 65%), ' +
-          'radial-gradient(circle 600px at 0% 100%, rgba(11,109,240,0.18) 0%, transparent 65%)',
+          'radial-gradient(ellipse 960px 560px at 50% 0%, rgba(11,109,240,0.50) 0%, transparent 65%), ' +
+          'radial-gradient(ellipse 600px 400px at 100% 100%, rgba(77,163,255,0.16) 0%, transparent 65%)',
         backgroundSize: '28px 28px, auto, auto',
         backgroundRepeat: 'repeat, no-repeat, no-repeat',
       }}
