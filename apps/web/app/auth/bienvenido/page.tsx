@@ -38,25 +38,19 @@ export default function BienvenidoPage() {
 
         <div className="w-full text-white/95">
           <h1
-            className="text-center font-bold leading-[1.15]"
+            className="text-center font-bold leading-[1.2]"
             style={{
               fontFamily: 'var(--font-poppins), system-ui, sans-serif',
-              fontSize: 'clamp(26px, 4vw, 32px)',
+              fontSize: 'clamp(22px, 3.2vw, 27px)',
               letterSpacing: '-0.02em',
+              background:
+                'linear-gradient(180deg, #ffffff 0%, rgba(255,255,255,0.72) 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
             }}
           >
-            <span
-              style={{
-                background:
-                  'linear-gradient(180deg, #ffffff 0%, rgba(255,255,255,0.72) 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}
-            >
-              ¡Bienvenid@ a
-            </span>{' '}
-            <span style={{ color: '#4da3ff' }}>Holandés Nawar!</span>
+            ¡Bienvenid@ a Holandés Nawar!
           </h1>
 
           <p className="text-[15px] text-white/70 mt-4 leading-relaxed">
