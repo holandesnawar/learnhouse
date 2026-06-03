@@ -31,11 +31,15 @@ Páginas creadas en `apps/web/app/<nombre>/page.tsx` (root level, fuera de subca
 **Workaround:** poner las páginas nuevas **dentro de subcarpetas que ya existen** (ej. `app/auth/<nombre>/page.tsx` funciona). Por eso `/auth/bienvenido`, `/auth/crear-cuenta`, `/auth/matricula-formacion-nawar-a0-a1` viven bajo `/auth/`.
 **Solución limpia futura:** mover esas páginas (matricula, bienvenido) a `holandesnawar.com` y dejar la academia solo para el producto.
 
+### ⚠️ Bug del middleware `/auth/*` (RESUELTO, importante para futuras páginas auth)
+`proxy.ts` (el middleware de Next que mete tenancy/rewrite) **reescribía cualquier `/auth/<x>` no listado explícitamente** hacia `/orgs/<slug>/auth/<x>`, ruta que no existe → 404 silencioso. Por eso `/login`, `/forgot`, `/reset`, etc. funcionaban (estaban listados en step 3) pero `/auth/bienvenido`, `/auth/crear-cuenta`, `/auth/matricula-…` y cualquier página nueva caía al catch-all → 404. Nos confundió durante mucho tiempo porque parecía bug de cache de Docker.
+**Fix (commit `6d52a62`):** se añadió step 4b en `proxy.ts` que pasa por defecto cualquier `/auth/*` directamente a su ruta resolviendo tenant para cookies (sin reescribir a `/orgs/...`). Cualquier `/auth/<x>/page.tsx` nuevo a partir de ahora funcionará sin tocar el middleware.
+
 ### Variables clave (nombres, NO valores)
 **Backend:** `LEARNHOUSE_TENANCY=single`, `LEARNHOUSE_DOMAIN`, `LEARNHOUSE_FRONTEND_DOMAIN` (academia.holandesnawar.nl), `LEARNHOUSE_SSL=true`, `LEARNHOUSE_AUTH_JWT_SECRET_KEY` (≥32 chars), `LEARNHOUSE_SQL_CONNECTION_STRING`, `LEARNHOUSE_REDIS_CONNECTION_STRING`.
 **Frontend:** `NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL` (con `/`), `NEXT_PUBLIC_LEARNHOUSE_DOMAIN`, `NEXT_PUBLIC_LEARNHOUSE_HTTPS=true`, `PORT=8000`.
 **Email (Resend):** `LEARNHOUSE_EMAIL_PROVIDER=resend`, `LEARNHOUSE_RESEND_API_KEY`, `LEARNHOUSE_SYSTEM_EMAIL_ADDRESS=noreply@mail.holandesnawar.com` (subdominio `mail.holandesnawar.com` verificado en Resend).
-**Stripe (test ahora):** `LEARNHOUSE_STRIPE_SECRET_KEY=sk_test_...`, `LEARNHOUSE_STRIPE_WEBHOOK_STANDARD_SECRET=whsec_test_...`, `LEARNHOUSE_STRIPE_FORMACION_PRICE_ID=price_...` (el del producto "Formación Nawar A0-A1" en modo test). Para Live: misma config con `sk_live_` y `whsec_` de Live.
+**Stripe (test ahora):** `LEARNHOUSE_STRIPE_SECRET_KEY=sk_test_...`, `LEARNHOUSE_STRIPE_PUBLISHABLE_KEY=pk_test_...` (necesaria para el embedded checkout Elements), `LEARNHOUSE_STRIPE_WEBHOOK_STANDARD_SECRET=whsec_test_...`, `LEARNHOUSE_STRIPE_FORMACION_PRICE_ID=price_...` (el del producto "Formación Nawar A0-A1" en modo test). Para Live: misma config con `sk_live_` / `pk_live_` / `whsec_` de Live.
 
 ## Cloudflare (DNS)
 Zona `holandesnawar.nl`. Registros `academia` y `*.academia` → CNAME a los targets de Railway, en **"Solo DNS" (gris, NO proxied)**. Proxied (naranja) causó **Error 1000**. SSL lo gestiona Railway.
@@ -64,20 +68,50 @@ Usuario `admin`, email **holandesnawar@gmail.com** (superadmin). Creado vía cli
 - **Statement descriptor**: `HOLANDES NAWAR` (lo que ve el alumno en el extracto bancario).
 - **Customer emails** (Settings → Customer emails): activar "Successful payments" + "Email customers for finalized invoices" — **¡por separado para Test y Live!** Test mode no manda emails por defecto.
 - **Invoice number prefix**: `NAWAR` → facturas salen `NAWAR-0001`, `NAWAR-0002`...
-- **Webhook** en Test mode: endpoint `https://academia.holandesnawar.nl/api/v1/payments/webhook`, evento `checkout.session.completed`, signing secret va en `LEARNHOUSE_STRIPE_WEBHOOK_STANDARD_SECRET`. Live tendrá el suyo aparte.
+- **Webhook** en Test mode: endpoint `https://academia.holandesnawar.nl/api/v1/payments/webhook`, eventos **`checkout.session.completed` + `payment_intent.succeeded`** (los dos), signing secret va en `LEARNHOUSE_STRIPE_WEBHOOK_STANDARD_SECRET`. Live tendrá el suyo aparte.
+- **Métodos de pago activos**: tarjeta + iDEAL + Klarna + Bancontact (Apple Pay / Google Pay van solos como overlay sobre `card`). **Stripe Link y SEPA Direct Debit están desactivados a nivel de código** (`payment_method_types` explícito en `enroll_and_payment_intent`) — no depende del Dashboard.
 
-### Flujo end-to-end (cuando esté todo en holandesnawar.com)
-1. Botón en landing de holandesnawar.com → `/matricula-formacion-nawar-a0-a1`.
-2. Form Nawar (nombre, apellidos, email, teléfono, país, ciudad) → POST a `https://academia.holandesnawar.nl/api/v1/payments/enroll`.
-3. Backend (`apps/api/src/services/payments/payments.py::enroll_and_checkout`) crea: row en tabla `enrollment` (status=pending), Stripe Customer con los datos pre-rellenos, Checkout Session vinculado al Customer + `invoice_creation.enabled=true` + `allow_promotion_codes=true`. Devuelve `checkout_url`.
-4. Front redirige a Stripe (pre-rellenado).
-5. Tras pagar → `success_url` = `https://www.holandesnawar.com/bienvenido?session_id=...` (cuando esté la web nueva; por ahora `https://academia.holandesnawar.nl/auth/bienvenido`).
-6. Webhook `checkout.session.completed` (`apps/api/src/services/payments/payments.py::process_webhook_event`):
-   - Marca enrollment como `paid`.
+### Flujo end-to-end actual — Embedded Checkout (Stripe Elements, sin Stripe-hosted)
+1. Botón en landing de holandesnawar.com → `/matricula-formacion-nawar-a0-a1` (Astro en `nawar-web`).
+2. Form Nawar (nombre, apellidos, email, teléfono, país, ciudad) → POST a `/api/enroll` (proxy Astro) → `https://academia.holandesnawar.nl/api/v1/payments/enroll-intent`.
+3. Backend (`apps/api/src/services/payments/payments.py::enroll_and_payment_intent`) crea: row en tabla `enrollment` (status=pending), Stripe Customer con datos pre-rellenos, **`PaymentIntent`** con `payment_method_types=["card","ideal","klarna","bancontact"]`, devuelve `{enrollment_id, client_secret, publishable_key, payment_url}`.
+4. El `payment_url` apunta a `https://academia.holandesnawar.nl/auth/matricula-formacion-nawar-a0-a1?ei=…&cs=…&pk=…&amt=…&cur=…&em=…&nm=…&ph=…`. Toda la data del paso 1 viaja en URL params para que el paso 2 la muestre ("Pagando como X · email") y pre-rellene los campos de Stripe.
+5. La página `apps/web/app/auth/matricula-formacion-nawar-a0-a1/page.tsx` dispatchea: sin `cs/pk` → renderiza form de matricula (fallback). Con `cs/pk` → renderiza `checkout.tsx` (Stripe Elements). Por qué el dispatch en la misma ruta y no `/auth/pago-…`: cualquier subruta nueva 404aba por el bug del middleware antes de descubrir el fix; el embedded sigue viviendo aquí hasta que migremos.
+6. `confirmPayment` → 3DS si toca → `return_url = https://academia.holandesnawar.nl/auth/bienvenido`.
+7. Webhook `payment_intent.succeeded` (`process_webhook_event` → `_handle_payment_intent`):
+   - Busca enrollment por `metadata.enrollment_id`, lo marca `paid`.
    - Crea cuenta en LearnHouse (`_create_paid_user`) con email_verified=true, linkeada a la org como rol 4 (alumno).
    - Genera reset_code en Redis.
-   - Manda email "¡Bienvenido a Holandés Nawar! Crea tu contraseña" (Resend) con enlace a `https://academia.holandesnawar.nl/auth/crear-cuenta?email=...&resetCode=...`.
-7. Alumno hace click → crea contraseña → entra a academia con onboarding "Empieza aquí".
+   - Manda email "¡Bienvenido a Holandés Nawar! Crea tu contraseña" (Resend) con enlace a `https://academia.holandesnawar.nl/auth/crear-cuenta?email=…&resetCode=…`.
+   - Genera **factura post-hoc** (`_create_post_hoc_invoice`): InvoiceItem + Invoice + finalize + pay_out_of_band → así sigues teniendo el PDF con numeración `NAWAR-XXXX` que daba el Checkout Session.
+   - Tagging Systeme.io (`mark_as_alumno`).
+8. Alumno hace click en email → crea contraseña → entra a academia con onboarding "Empieza aquí".
+
+> El handler viejo `checkout.session.completed` (`_handle_checkout_session`) sigue activo en el webhook por si quedan matrículas colgadas del flujo Stripe-hosted, pero todos los pagos nuevos vienen por PaymentIntent.
+
+### Design tokens del checkout (para clavar el look en otras páginas — ej. matricula en `nawar-web`)
+Fichero canónico: `apps/web/app/auth/matricula-formacion-nawar-a0-a1/checkout.tsx`. Copiar de ahí para mantener consistencia.
+
+- **Fondo de página**: `#1D0084` base + 3 capas de `background-image` apiladas:
+  ```css
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px),
+    radial-gradient(circle 700px at 100% 0%, rgba(11,109,240,0.40) 0%, transparent 65%),
+    radial-gradient(circle 600px at 0% 100%, rgba(11,109,240,0.18) 0%, transparent 65%);
+  background-size: 28px 28px, auto, auto;
+  background-repeat: repeat, no-repeat, no-repeat;
+  ```
+  Aplicar en el contenedor de la página (no `position: fixed`) para que escrolle con el contenido.
+- **Card central**: `bg-white rounded-2xl p-4 sm:p-7 shadow-xl`, centrada con `max-w-md mx-auto` (form) o `max-w-5xl` + grid `lg:grid-cols-[minmax(0,1fr)_360px]` (checkout con summary lateral).
+- **Logo**: `https://d1yei2z3i6k35z.cloudfront.net/9533860/671a9c9265e23_Logo_Nawar_2.png` arriba dentro del contenedor (no fixed al viewport): `h-10 sm:h-11 mb-5 sm:mb-6`, linkeado a `https://www.holandesnawar.com/`. Sin navbar ni footer.
+- **Eyebrow** encima del título: `text-[12px] font-bold text-[#4da3ff] tracking-wider uppercase` → "PASO 1 DE 2" / "PASO 2 DE 2".
+- **Título**: Poppins, `text-[24px] sm:text-[30px] font-bold text-[#1D0084] leading-tight mt-1`.
+- **Inputs**: `bg-[#F0F5FF] rounded-xl px-4 py-3 text-[#1D0084] placeholder:text-[#1D0084]/45 border border-transparent outline-none focus:bg-white focus:border-[#4da3ff] focus:ring-[3px] focus:ring-[#4da3ff]/22 transition-colors`.
+- **Labels**: `text-[13px] font-semibold text-[#0a1656] tracking-[0.01em] mb-1.5`.
+- **Botón primario**: `bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold py-3.5 rounded-xl text-[15px] inline-flex items-center justify-center gap-2.5`, con `ArrowRight size={15} strokeWidth={2.5}` al final.
+- **Banner info** (`#F0F5FF` rounded-xl px-3 sm:px-4 py-3) con icono `Info` size=16 `text-[#4da3ff]` a la izquierda + texto `text-[13px] text-[#0a1656] leading-relaxed`.
+- **Errores**: `bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-[13.5px]` con `AlertTriangle size={16}`.
+- **Mobile**: `overflow-x-hidden` en root, `px-3 sm:px-6` en main, `min-w-0` en grid children, `p-4 sm:p-7` en cards.
 
 ### Notas / gotchas Stripe
 - `stripe.Webhook.construct_event` devuelve un `StripeObject` que NO soporta `.get()` en Python 3.14 — siempre parsear el payload con `json.loads(payload)` después de verificar firma. Aprendido a las malas.
@@ -107,12 +141,14 @@ Usuario `admin`, email **holandesnawar@gmail.com** (superadmin). Creado vía cli
 - **CORS**: ya abierto a cualquier origen http(s) en single-tenancy (`src/core/middleware/cors.py`). holandesnawar.com → academia.holandesnawar.nl funciona sin tocar nada.
 - **Boards, Copilot, Playgrounds** ocultos del sidebar (no aportan para academia).
 - **Volumen** para uploads (logos persisten).
+- **Embedded checkout Nawar** (`checkout.tsx`): el alumno NO sale del dominio. Logo arriba-izquierda, card blanca con resumen del curso a la derecha (imagen 16:9, features con checks `#4da3ff`, total dinámico tirando del Stripe Price vía URL params), tabs de pago Tarjeta/iDEAL/Klarna/Bancontact con Appearance API Nawar (`#F0F5FF` inputs, `#4da3ff` focus, texto pinned a `#1D0084` en cualquier estado del tab para no quedarse en blanco-sobre-blanco), banner "Pagando como X · email" con botón Cambiar que vuelve al form, mobile-friendly (`overflow-x-hidden`, `min-w-0`, paddings reducidos en sm).
+- **Middleware proxy.ts arreglado**: ya pasa cualquier `/auth/<x>` directamente a su ruta (antes 404aba todas las nuevas).
 
 ### Hoja de ruta inmediata (sigue aquí)
-1. **Migrar landing + matrícula + bienvenido a `holandesnawar.com`** (repo `nawar-web`, otra sesión Claude):
-   - Páginas listas como HTML standalone en `/tmp/nawar-web-files/{matricula.html,bienvenido.html}` (ya entregadas al usuario por SendUserFile).
-   - El form POSTea a `https://academia.holandesnawar.nl/api/v1/payments/enroll` (CORS abierto).
-   - Cuando estén desplegadas en holandesnawar.com, **cambiar `success_url` y `cancel_url` en `payments.py`** para apuntar ahí (1 línea cada uno).
+1. **Rebrandear `/matricula-formacion-nawar-a0-a1` en `nawar-web`** para que case con el embedded checkout (mismo logo arriba, misma card blanca sobre fondo Nawar, mismos inputs `#F0F5FF`, mismo botón `#4da3ff` con texto `#0a1656`). Otra sesión Claude del repo `nawar-web` — pásale los tokens de la sección "Design tokens del checkout" más arriba. Mantener todos los campos del form (`first_name`, `last_name`, `email`, `phone`, `country`, `city`, honeypot `website`) y el POST a `/api/enroll`.
+2. **Migrar landing + bienvenido a `holandesnawar.com`** (repo `nawar-web`, otra sesión Claude):
+   - Página `bienvenido` lista como HTML standalone en `/tmp/nawar-web-files/bienvenido.html` (ya entregada al usuario por SendUserFile).
+   - Cuando esté desplegada en holandesnawar.com, **cambiar `return_url` en `checkout.tsx`** + `success_url` (flujo viejo) en `payments.py` para apuntar ahí.
 2. **CRM para matriculados sin pagar** (re-engagement):
    - Datos ya guardados en tabla `enrollment` (status=`pending` = se matriculó pero no pagó).
    - Plan: webhook desde nuestro `enroll_and_checkout` → push a Brevo (o el CRM elegido) con tags `matriculado-sin-pagar` para que el usuario lance campañas de recuperación.
