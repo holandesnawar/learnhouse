@@ -12,7 +12,7 @@ import { getLEARNHOUSE_TOP_DOMAIN_VAL, getDeploymentMode } from '@services/confi
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useTranslation } from 'react-i18next'
 import { resendVerificationEmail } from '@services/auth/auth'
-import { getOrgLogoMediaDirectory } from '@services/media/media'
+import AuthChrome from '../AuthChrome'
 
 interface LoginClientProps {
   org: any
@@ -202,18 +202,7 @@ const LoginClient = (props: LoginClientProps) => {
   })
 
   return (
-    <div
-      className="relative min-h-screen w-full flex flex-col items-center justify-center px-6 py-16 sm:px-4 sm:py-12"
-      style={{
-        backgroundColor: '#1D0084',
-        backgroundImage:
-          'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
-          'radial-gradient(circle 700px at 100% 0%, rgba(11,109,240,0.40) 0%, transparent 65%), ' +
-          'radial-gradient(circle 600px at 0% 100%, rgba(11,109,240,0.18) 0%, transparent 65%)',
-        backgroundSize: '28px 28px, auto, auto',
-        backgroundRepeat: 'repeat, no-repeat, no-repeat',
-      }}
-    >
+    <AuthChrome>
         {/* Error Top Bar */}
         {showErrorModal && (
           <div className={`
@@ -279,19 +268,6 @@ const LoginClient = (props: LoginClientProps) => {
         )}
 
         <div className="relative z-0 w-full max-w-[420px] flex flex-col items-center gap-8">
-          {/* Logo — same scale as nawar-web acceso.astro */}
-          <div className="flex justify-center">
-            {props.org?.logo_image ? (
-              <img
-                src={getOrgLogoMediaDirectory(props.org.org_uuid, props.org.logo_image)}
-                alt={props.org?.name}
-                className="h-12 sm:h-14 object-contain"
-              />
-            ) : (
-              <span className="text-2xl font-bold text-white">{props.org?.name}</span>
-            )}
-          </div>
-
           {/* Open block — no glass card, matches the nawar-web look */}
           <div className="w-full text-white/95">
             {/* Title: "Bienvenid@" in a soft white gradient + "de vuelta" in #4da3ff,
@@ -412,14 +388,8 @@ const LoginClient = (props: LoginClientProps) => {
           </FormLayout>
           </div>
 
-          <a
-            href="https://www.holandesnawar.com"
-            className="text-[13px] text-white/55 hover:text-white/90 transition-colors"
-          >
-            ← Volver a la web
-          </a>
         </div>
-    </div>
+    </AuthChrome>
   )
 }
 
