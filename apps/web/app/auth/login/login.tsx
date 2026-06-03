@@ -388,7 +388,7 @@ const LoginClient = (props: LoginClientProps) => {
               <p className="text-center text-[13px] text-white/55 mt-4">
                 ¿Problemas para entrar?{' '}
                 <a
-                  href="mailto:info@holandesnawar.com"
+                  href="https://www.holandesnawar.com/contacto"
                   className="text-white/85 underline underline-offset-2 hover:text-white transition-colors"
                 >
                   Escríbenos
