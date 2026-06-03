@@ -142,7 +142,7 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
             className="text-center font-bold leading-[1.1]"
             style={{
               fontFamily: 'var(--font-poppins), system-ui, sans-serif',
-              fontSize: 'clamp(32px, 5vw, 44px)',
+              fontSize: 'clamp(26px, 4vw, 36px)',
               letterSpacing: '-0.03em',
             }}
           >
@@ -156,8 +156,7 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
               }}
             >
               Cambia tu
-            </span>
-            <br />
+            </span>{' '}
             <span style={{ color: '#4da3ff' }}>contraseña</span>
           </h1>
           <p className="text-center text-[15px] text-white/70 mt-2 mb-7">
