@@ -1,6 +1,7 @@
 'use client'
 
 import React, { Suspense } from 'react'
+import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { loadStripe, type Stripe as StripeJS } from '@stripe/stripe-js'
 import {
@@ -9,8 +10,12 @@ import {
   useElements,
   useStripe,
 } from '@stripe/react-stripe-js'
-import { AlertTriangle, CheckCircle, CreditCard, Info, ShieldCheck } from 'lucide-react'
-import AuthShell from '@components/Auth/AuthShell'
+import { AlertTriangle, CheckCircle, CreditCard, Info, Mail, ShieldCheck } from 'lucide-react'
+
+// Minimal chrome on the checkout: just the Nawar logo top-left linking back
+// to the landing. Full navbar + footer kill the focus the buyer needs on a
+// payment page.
+const LOGO_URL = 'https://d1yei2z3i6k35z.cloudfront.net/9533860/671a9c9265e23_Logo_Nawar_2.png'
 
 // What lands on the right rail. Tweak the copy here without touching layout.
 const COURSE_IMAGE = 'https://docs.holandesnawar.com/img/Portada%20Nawar%20169.png'
@@ -115,7 +120,15 @@ function MissingParams() {
   )
 }
 
-function CheckoutInner() {
+function CheckoutInner({
+  email,
+  fullName,
+  phone,
+}: {
+  email: string
+  fullName: string
+  phone: string
+}) {
   const stripe = useStripe()
   const elements = useElements()
   const [submitting, setSubmitting] = React.useState(false)
@@ -163,11 +176,51 @@ function CheckoutInner() {
           Pago seguro
         </h1>
         <p className="text-[14.5px] text-gray-600 mt-1.5">
-          Elige tarjeta, Apple&nbsp;Pay, Google&nbsp;Pay, Klarna o iDEAL.
+          Elige tarjeta, Apple&nbsp;Pay, Google&nbsp;Pay, Klarna, iDEAL o Bancontact.
         </p>
       </div>
 
-      <PaymentElement options={{ layout: 'tabs' }} />
+      {/* Echo back the data from the matricula form so the buyer can see they
+          got carried through correctly. "Cambiar" lets them fix a typo
+          without having to re-do the payment intent. */}
+      {email && (
+        <div className="flex items-center gap-3 bg-[#F0F5FF] rounded-xl px-4 py-3">
+          <div className="shrink-0 w-9 h-9 rounded-full bg-white flex items-center justify-center">
+            <Mail size={16} className="text-[#4da3ff]" strokeWidth={2.5} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[11px] uppercase tracking-wider font-semibold text-gray-500">
+              Pagando como
+            </div>
+            <div className="text-[14px] font-semibold text-[#1D0084] truncate">
+              {fullName ? `${fullName} · ` : ''}
+              <span className="font-normal text-[#0a1656]">{email}</span>
+            </div>
+          </div>
+          <a
+            href="https://www.holandesnawar.com/matricula-formacion-nawar-a0-a1"
+            className="shrink-0 text-[12px] font-semibold text-[#4da3ff] hover:underline"
+          >
+            Cambiar
+          </a>
+        </div>
+      )}
+
+      <PaymentElement
+        options={{
+          layout: 'tabs',
+          defaultValues: {
+            billingDetails: {
+              name: fullName || undefined,
+              email: email || undefined,
+              phone: phone || undefined,
+            },
+          },
+          // Hide "Save my info" — Stripe Link is overkill for a one-time
+          // formación and adds visual noise on the form.
+          wallets: { applePay: 'auto', googlePay: 'auto' },
+        }}
+      />
 
       <div className="flex items-start gap-2.5 bg-[#F0F5FF] rounded-xl px-4 py-3 text-[13px] text-[#0a1656] leading-relaxed">
         <Info size={16} className="shrink-0 mt-0.5 text-[#4da3ff]" />
@@ -268,6 +321,9 @@ function CheckoutPageBody() {
   const publishableKey = sp.get('pk') || ''
   const amountCents = parseInt(sp.get('amt') || '0', 10)
   const currency = sp.get('cur') || 'eur'
+  const email = decodeURIComponent(sp.get('em') || '')
+  const fullName = decodeURIComponent(sp.get('nm') || '')
+  const phone = decodeURIComponent(sp.get('ph') || '')
 
   const stripePromise = React.useMemo<Promise<StripeJS | null> | null>(() => {
     if (!publishableKey) return null
@@ -285,7 +341,7 @@ function CheckoutPageBody() {
           stripe={stripePromise}
           options={{ clientSecret, appearance: NAWAR_APPEARANCE, locale: 'es' }}
         >
-          <CheckoutInner />
+          <CheckoutInner email={email} fullName={fullName} phone={phone} />
         </Elements>
       </div>
       <div className="order-1 lg:order-2 lg:sticky lg:top-32">
@@ -295,12 +351,44 @@ function CheckoutPageBody() {
   )
 }
 
+// Minimal page chrome: just the Nawar gradient background + logo top-left
+// linking back to the landing. No navbar, no footer — a payment page has
+// one job and every other element competes with it.
+function PageBackground() {
+  return (
+    <div
+      className="fixed inset-0 -z-10"
+      style={{
+        backgroundColor: '#1D0084',
+        backgroundImage:
+          'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
+          'radial-gradient(circle 700px at 100% 0%, rgba(11,109,240,0.40) 0%, transparent 65%), ' +
+          'radial-gradient(circle 600px at 0% 100%, rgba(11,109,240,0.18) 0%, transparent 65%)',
+        backgroundSize: '28px 28px, auto, auto',
+        backgroundRepeat: 'repeat, no-repeat, no-repeat',
+      }}
+    />
+  )
+}
+
 export default function PagoClient() {
   return (
-    <AuthShell>
-      <Suspense fallback={<div className="text-white/70">Cargando pago…</div>}>
-        <CheckoutPageBody />
-      </Suspense>
-    </AuthShell>
+    <>
+      <PageBackground />
+      <Link
+        href="https://www.holandesnawar.com/"
+        className="fixed top-5 left-5 sm:top-6 sm:left-8 z-30 inline-flex items-center"
+        aria-label="Volver a Holandés Nawar"
+      >
+        <img src={LOGO_URL} alt="Holandés Nawar" className="h-9 sm:h-10 w-auto" />
+      </Link>
+      <main className="min-h-screen flex items-start justify-center px-4 sm:px-6 pt-24 sm:pt-28 pb-12 sm:pb-16">
+        <Suspense
+          fallback={<div className="text-white/70 mt-12">Cargando pago…</div>}
+        >
+          <CheckoutPageBody />
+        </Suspense>
+      </main>
+    </>
   )
 }

@@ -18,6 +18,7 @@ import os
 import secrets
 from datetime import datetime, timezone
 from typing import Optional, TYPE_CHECKING
+from urllib.parse import quote
 from uuid import uuid4
 
 import stripe
@@ -336,6 +337,14 @@ async def enroll_and_payment_intent(data, db_session: AsyncSession) -> dict:
 
     publishable_key = _stripe_publishable()
 
+    # Carry the buyer's data forward into the URL so the checkout page can
+    # confirm it back to them ("Pagando como X — email@y.com") and pre-fill
+    # Stripe's billing fields. quote() handles +/spaces in phone numbers
+    # and names; email goes through too for safety.
+    em = quote(email, safe="")
+    nm = quote(full_name, safe="")
+    ph = quote(data.phone or "", safe="")
+
     return {
         "enrollment_id": row.id or 0,
         "client_secret": client_secret,
@@ -353,6 +362,7 @@ async def enroll_and_payment_intent(data, db_session: AsyncSession) -> dict:
             f"{academy}/auth/matricula-formacion-nawar-a0-a1"
             f"?ei={row.id or 0}&cs={client_secret}&pk={publishable_key}"
             f"&amt={amount}&cur={currency}"
+            f"&em={em}&nm={nm}&ph={ph}"
         ),
     }
 
