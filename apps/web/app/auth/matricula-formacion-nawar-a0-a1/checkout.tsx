@@ -223,8 +223,9 @@ function CheckoutInner({
         <Info size={16} className="shrink-0 mt-0.5 text-[#4da3ff]" />
         <div>
           <strong className="text-[#1D0084]">¿Quieres pagar a plazos?</strong>{' '}
-          Selecciona <strong>Klarna</strong> y elige entre <strong>30 días sin
-          comisiones</strong> o <strong>3 plazos sin intereses</strong>.
+          Selecciona <strong className="text-[#1D0084]">Klarna</strong> y elige entre{' '}
+          <strong className="text-[#1D0084]">30 días sin comisiones</strong> o{' '}
+          <strong className="text-[#1D0084]">3 plazos sin intereses</strong>.
         </div>
       </div>
 
@@ -258,7 +259,7 @@ function CourseSummary({ amountCents, currency }: { amountCents: number; currenc
   }).format(totalValue)
 
   return (
-    <aside className="min-w-0 bg-white rounded-2xl p-4 sm:p-7 shadow-xl order-1 lg:order-2 lg:sticky lg:top-8">
+    <aside className="min-w-0 bg-white rounded-2xl p-4 sm:p-7 shadow-xl order-1 lg:order-2 lg:sticky lg:top-8 lg:self-start">
       <div className="rounded-xl overflow-hidden aspect-[16/9] mb-5 bg-[#F0F5FF]">
         <img
           src={COURSE_IMAGE}
@@ -298,7 +299,7 @@ function CourseSummary({ amountCents, currency }: { amountCents: number; currenc
           Total
         </span>
         <div className="text-right">
-          <div className="text-[24px] font-bold text-[#1D0084] leading-none">
+          <div className="text-[24px] font-extrabold text-[#1D0084] leading-none">
             {totalLabel}
           </div>
           <div className="text-[12px] text-gray-500 mt-1">Pago único · IVA incl.</div>
