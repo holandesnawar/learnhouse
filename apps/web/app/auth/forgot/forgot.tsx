@@ -107,7 +107,8 @@ function ForgotPasswordClient({ org }: ForgotPasswordClientProps) {
               }}
             >
               ¿Olvidaste tu
-            </span>{' '}
+            </span>
+            <br />
             <span style={{ color: '#4da3ff' }}>contraseña?</span>
           </h1>
           <p className="text-center text-[15px] text-white/70 mt-2 mb-7">
