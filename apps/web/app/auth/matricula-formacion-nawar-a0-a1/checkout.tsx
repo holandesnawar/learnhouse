@@ -13,8 +13,7 @@ import { AlertTriangle, CheckCircle, CreditCard, Info, ShieldCheck } from 'lucid
 import AuthShell from '@components/Auth/AuthShell'
 
 // What lands on the right rail. Tweak the copy here without touching layout.
-const COURSE_IMAGE =
-  'https://d1yei2z3i6k35z.cloudfront.net/9533860/671a9c9265e23_Logo_Nawar_2.png'
+const COURSE_IMAGE = 'https://docs.holandesnawar.com/img/Portada%20Nawar%20169.png'
 const COURSE_TITLE = 'Formación Nawar A0-A1'
 const COURSE_SUBTITLE = 'De cero a A1 en neerlandés'
 const COURSE_FEATURES = [
@@ -34,6 +33,7 @@ const NAWAR_APPEARANCE = {
     colorPrimary: '#4da3ff',
     colorBackground: '#F0F5FF',
     colorText: '#1D0084',
+    colorTextSecondary: '#1D0084',
     colorDanger: '#dc2626',
     fontFamily:
       'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
@@ -65,14 +65,26 @@ const NAWAR_APPEARANCE = {
       backgroundColor: '#F0F5FF',
       border: '1px solid transparent',
       padding: '12px',
+      color: '#1D0084',
     },
-    '.Tab:hover': { backgroundColor: '#E5ECFF' },
+    '.Tab:hover': { backgroundColor: '#E5ECFF', color: '#1D0084' },
     '.Tab--selected': {
       backgroundColor: '#ffffff',
       border: '1px solid #4da3ff',
       boxShadow: '0 0 0 3px rgba(77,163,255,0.22)',
+      color: '#1D0084',
     },
-    '.TabLabel': { fontWeight: '600' },
+    '.Tab--selected:hover': {
+      backgroundColor: '#ffffff',
+      color: '#1D0084',
+    },
+    // Stripe flips Tab text to white on selection by default — pin it to
+    // the brand dark in every state so the label never disappears against
+    // the white selected background.
+    '.TabLabel': { fontWeight: '600', color: '#1D0084' },
+    '.TabLabel--selected': { color: '#1D0084' },
+    '.TabIcon': { color: '#1D0084', fill: '#1D0084' },
+    '.TabIcon--selected': { color: '#1D0084', fill: '#1D0084' },
     '.Block': {
       backgroundColor: '#F0F5FF',
       border: '1px solid transparent',
@@ -187,14 +199,25 @@ function CheckoutInner() {
   )
 }
 
-function CourseSummary() {
+function CourseSummary({ amountCents, currency }: { amountCents: number; currency: string }) {
+  // Price comes off the Stripe Price object via the payment_url so the
+  // displayed total tracks whatever you set in Dashboard without a redeploy.
+  // Fallback to 297 EUR if the params are missing for any reason.
+  const totalValue = amountCents > 0 ? amountCents / 100 : 297
+  const totalLabel = new Intl.NumberFormat('es-ES', {
+    style: 'currency',
+    currency: (currency || 'eur').toUpperCase(),
+    minimumFractionDigits: totalValue % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(totalValue)
+
   return (
     <aside className="bg-white rounded-2xl p-6 sm:p-7 shadow-xl">
-      <div className="rounded-xl overflow-hidden bg-gradient-to-br from-[#1D0084] to-[#4da3ff] aspect-[16/9] mb-5 flex items-center justify-center p-6">
+      <div className="rounded-xl overflow-hidden aspect-[16/9] mb-5 bg-[#F0F5FF]">
         <img
           src={COURSE_IMAGE}
           alt={COURSE_TITLE}
-          className="max-h-full max-w-full object-contain drop-shadow-lg"
+          className="w-full h-full object-cover"
         />
       </div>
 
@@ -230,7 +253,7 @@ function CourseSummary() {
         </span>
         <div className="text-right">
           <div className="text-[24px] font-bold text-[#1D0084] leading-none">
-            297&nbsp;€
+            {totalLabel}
           </div>
           <div className="text-[12px] text-gray-500 mt-1">Pago único · IVA incl.</div>
         </div>
@@ -243,6 +266,8 @@ function CheckoutPageBody() {
   const sp = useSearchParams()
   const clientSecret = sp.get('cs') || ''
   const publishableKey = sp.get('pk') || ''
+  const amountCents = parseInt(sp.get('amt') || '0', 10)
+  const currency = sp.get('cur') || 'eur'
 
   const stripePromise = React.useMemo<Promise<StripeJS | null> | null>(() => {
     if (!publishableKey) return null
@@ -264,7 +289,7 @@ function CheckoutPageBody() {
         </Elements>
       </div>
       <div className="order-1 lg:order-2 lg:sticky lg:top-32">
-        <CourseSummary />
+        <CourseSummary amountCents={amountCents} currency={currency} />
       </div>
     </div>
   )

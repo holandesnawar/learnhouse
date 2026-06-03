@@ -342,6 +342,9 @@ async def enroll_and_payment_intent(data, db_session: AsyncSession) -> dict:
         "publishable_key": publishable_key,
         # pk is public by definition (Stripe.js needs it client-side, prefix
         # `pk_test_` / `pk_live_`); URL param avoids a round-trip on page load.
+        # `amt` is the unit_amount in cents straight off the Price object so
+        # the checkout summary stays in sync when you bump the price in
+        # Stripe Dashboard without redeploying anything.
         # We re-use the matricula route + dispatch on cs/pk presence inside
         # the page itself — every attempt at a new sub/sibling auth route
         # kept 404ing in the Railway image, but the matricula path has been
@@ -349,6 +352,7 @@ async def enroll_and_payment_intent(data, db_session: AsyncSession) -> dict:
         "payment_url": (
             f"{academy}/auth/matricula-formacion-nawar-a0-a1"
             f"?ei={row.id or 0}&cs={client_secret}&pk={publishable_key}"
+            f"&amt={amount}&cur={currency}"
         ),
     }
 
