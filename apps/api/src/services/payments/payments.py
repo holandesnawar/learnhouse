@@ -298,13 +298,21 @@ async def enroll_and_payment_intent(data, db_session: AsyncSession) -> dict:
     await db_session.refresh(row)
 
     try:
+        # Explicit list instead of automatic_payment_methods so we control
+        # exactly what shows up:
+        #   - no 'link'        → no "Save my info / Stripe Link" prompt
+        #     (Stripe's account-level toggle keeps moving around the dashboard
+        #     so we kill it deterministically here)
+        #   - no 'sepa_debit'  → no "Adeudo SEPA" tab (slow, refundable, niche)
+        #   Card automatically surfaces Apple Pay / Google Pay as wallets
+        #   when the device + browser support them; nothing to add for those.
         intent = stripe.PaymentIntent.create(
             amount=amount,
             currency=currency,
             customer=customer.id,
             receipt_email=email,
             description="Formación Nawar A0-A1",
-            automatic_payment_methods={"enabled": True},
+            payment_method_types=["card", "ideal", "klarna", "bancontact"],
             metadata={
                 "product": "formacion-a0-a1",
                 "source": "matricula-form-elements",
