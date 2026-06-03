@@ -170,29 +170,26 @@ function CheckoutInner({
           Paso 2 de 2
         </div>
         <h1
-          className="text-[26px] sm:text-[30px] font-bold text-[#1D0084] leading-tight mt-1"
+          className="text-[24px] sm:text-[30px] font-bold text-[#1D0084] leading-tight mt-1"
           style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
         >
           Pago seguro
         </h1>
-        <p className="text-[14.5px] text-gray-600 mt-1.5">
-          Elige tarjeta, Apple&nbsp;Pay, Google&nbsp;Pay, Klarna, iDEAL o Bancontact.
-        </p>
       </div>
 
       {/* Echo back the data from the matricula form so the buyer can see they
           got carried through correctly. "Cambiar" lets them fix a typo
           without having to re-do the payment intent. */}
       {email && (
-        <div className="flex items-center gap-3 bg-[#F0F5FF] rounded-xl px-4 py-3">
-          <div className="shrink-0 w-9 h-9 rounded-full bg-white flex items-center justify-center">
-            <Mail size={16} className="text-[#4da3ff]" strokeWidth={2.5} />
+        <div className="flex items-center gap-2.5 sm:gap-3 bg-[#F0F5FF] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3">
+          <div className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white flex items-center justify-center">
+            <Mail size={15} className="text-[#4da3ff]" strokeWidth={2.5} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-[11px] uppercase tracking-wider font-semibold text-gray-500">
               Pagando como
             </div>
-            <div className="text-[14px] font-semibold text-[#1D0084] truncate">
+            <div className="text-[13.5px] sm:text-[14px] font-semibold text-[#1D0084] truncate">
               {fullName ? `${fullName} · ` : ''}
               <span className="font-normal text-[#0a1656]">{email}</span>
             </div>
@@ -222,16 +219,12 @@ function CheckoutInner({
         }}
       />
 
-      <div className="flex items-start gap-2.5 bg-[#F0F5FF] rounded-xl px-4 py-3 text-[13px] text-[#0a1656] leading-relaxed">
+      <div className="flex items-start gap-2.5 bg-[#F0F5FF] rounded-xl px-3 sm:px-4 py-3 text-[13px] text-[#0a1656] leading-relaxed">
         <Info size={16} className="shrink-0 mt-0.5 text-[#4da3ff]" />
         <div>
           <strong className="text-[#1D0084]">¿Quieres pagar a plazos?</strong>{' '}
           Selecciona <strong>Klarna</strong> y elige entre <strong>30 días sin
-          comisiones</strong> o <strong>3 plazos sin intereses</strong>. Necesitas
-          una cuenta de Klarna (la creas en 2 minutos al pagar).
-          <br />
-          Con <strong>iDEAL</strong> el pago es único — con tu banco neerlandés en
-          un toque.
+          comisiones</strong> o <strong>3 plazos sin intereses</strong>.
         </div>
       </div>
 
@@ -265,7 +258,7 @@ function CourseSummary({ amountCents, currency }: { amountCents: number; currenc
   }).format(totalValue)
 
   return (
-    <aside className="bg-white rounded-2xl p-6 sm:p-7 shadow-xl">
+    <aside className="min-w-0 bg-white rounded-2xl p-4 sm:p-7 shadow-xl order-1 lg:order-2 lg:sticky lg:top-8">
       <div className="rounded-xl overflow-hidden aspect-[16/9] mb-5 bg-[#F0F5FF]">
         <img
           src={COURSE_IMAGE}
@@ -335,16 +328,23 @@ function CheckoutPageBody() {
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto grid lg:grid-cols-[1fr_360px] gap-6 lg:gap-8 items-start">
-      <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-xl order-2 lg:order-1">
-        <Elements
-          stripe={stripePromise}
-          options={{ clientSecret, appearance: NAWAR_APPEARANCE, locale: 'es' }}
-        >
-          <CheckoutInner email={email} fullName={fullName} phone={phone} />
-        </Elements>
-      </div>
-      <div className="order-1 lg:order-2 lg:sticky lg:top-32">
+    <div className="w-full max-w-5xl mx-auto min-w-0">
+      <Link
+        href="https://www.holandesnawar.com/"
+        className="inline-flex items-center mb-5 sm:mb-6"
+        aria-label="Volver a Holandés Nawar"
+      >
+        <img src={LOGO_URL} alt="Holandés Nawar" className="h-10 sm:h-11 w-auto" />
+      </Link>
+      <div className="grid lg:grid-cols-[minmax(0,1fr)_360px] gap-5 sm:gap-6 lg:gap-8 items-start">
+        <div className="min-w-0 bg-white rounded-2xl p-4 sm:p-7 shadow-xl order-2 lg:order-1">
+          <Elements
+            stripe={stripePromise}
+            options={{ clientSecret, appearance: NAWAR_APPEARANCE, locale: 'es' }}
+          >
+            <CheckoutInner email={email} fullName={fullName} phone={phone} />
+          </Elements>
+        </div>
         <CourseSummary amountCents={amountCents} currency={currency} />
       </div>
     </div>
@@ -360,7 +360,7 @@ function CheckoutPageBody() {
 export default function PagoClient() {
   return (
     <div
-      className="relative min-h-screen flex flex-col text-white"
+      className="relative min-h-screen flex flex-col text-white overflow-x-hidden"
       style={{
         backgroundColor: '#1D0084',
         backgroundImage:
@@ -371,14 +371,7 @@ export default function PagoClient() {
         backgroundRepeat: 'repeat, no-repeat, no-repeat',
       }}
     >
-      <Link
-        href="https://www.holandesnawar.com/"
-        className="fixed top-5 left-5 sm:top-6 sm:left-8 z-30 inline-flex items-center"
-        aria-label="Volver a Holandés Nawar"
-      >
-        <img src={LOGO_URL} alt="Holandés Nawar" className="h-9 sm:h-10 w-auto" />
-      </Link>
-      <main className="relative flex items-start justify-center px-4 sm:px-6 pt-24 sm:pt-28 pb-12 sm:pb-16">
+      <main className="relative w-full flex items-start justify-center px-3 sm:px-6 pt-6 sm:pt-12 pb-10 sm:pb-16">
         <Suspense
           fallback={<div className="text-white/70 mt-12">Cargando pago…</div>}
         >
