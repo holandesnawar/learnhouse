@@ -353,11 +353,14 @@ function CheckoutPageBody() {
 
 // Minimal page chrome: just the Nawar gradient background + logo top-left
 // linking back to the landing. No navbar, no footer — a payment page has
-// one job and every other element competes with it.
-function PageBackground() {
+// one job and every other element competes with it. Background is the
+// EXACT same recipe as AuthShell (color + dots + corner glows) on the
+// page container, so it scrolls with content the way the other auth
+// pages do — not pinned to the viewport.
+export default function PagoClient() {
   return (
     <div
-      className="fixed inset-0 -z-10"
+      className="relative min-h-screen flex flex-col text-white"
       style={{
         backgroundColor: '#1D0084',
         backgroundImage:
@@ -367,14 +370,7 @@ function PageBackground() {
         backgroundSize: '28px 28px, auto, auto',
         backgroundRepeat: 'repeat, no-repeat, no-repeat',
       }}
-    />
-  )
-}
-
-export default function PagoClient() {
-  return (
-    <>
-      <PageBackground />
+    >
       <Link
         href="https://www.holandesnawar.com/"
         className="fixed top-5 left-5 sm:top-6 sm:left-8 z-30 inline-flex items-center"
@@ -382,13 +378,13 @@ export default function PagoClient() {
       >
         <img src={LOGO_URL} alt="Holandés Nawar" className="h-9 sm:h-10 w-auto" />
       </Link>
-      <main className="min-h-screen flex items-start justify-center px-4 sm:px-6 pt-24 sm:pt-28 pb-12 sm:pb-16">
+      <main className="relative flex items-start justify-center px-4 sm:px-6 pt-24 sm:pt-28 pb-12 sm:pb-16">
         <Suspense
           fallback={<div className="text-white/70 mt-12">Cargando pago…</div>}
         >
           <CheckoutPageBody />
         </Suspense>
       </main>
-    </>
+    </div>
   )
 }
