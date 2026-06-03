@@ -426,8 +426,13 @@ async def _create_paid_user(
     email: str,
     full_name: str,
     db_session: AsyncSession,
-) -> User:
+) -> tuple[User, bool]:
     """Create the user + link to the org as a regular member.
+
+    Returns (user, created) where `created` is True only the first time the
+    account is provisioned. On Stripe webhook retries the email already exists,
+    so we reuse it and return created=False — the caller uses that to avoid
+    sending duplicate welcome emails / generating duplicate invoices.
 
     Bypasses RBAC because the caller is the Stripe webhook (signature-verified).
     Password is a random throwaway — the student picks their real one via the
@@ -459,7 +464,7 @@ async def _create_paid_user(
             )
             db_session.add(link)
             await db_session.commit()
-        return existing
+        return existing, False
 
     first_name, _, last_name = (full_name or "").strip().partition(" ")
 
@@ -489,7 +494,7 @@ async def _create_paid_user(
     )
     db_session.add(link)
     await db_session.commit()
-    return user
+    return user, True
 
 
 def _store_reset_code(user: User) -> Optional[str]:
@@ -578,14 +583,27 @@ async def _provision_after_payment(
     stays identical whether the buyer paid via Checkout or Elements."""
     if not email:
         logger.error("post-payment provisioning called without email")
-        return {"detail": "no email"}
+        return {"detail": "no email", "created": False}
 
-    user = await _create_paid_user(email, name, db_session)
+    user, created = await _create_paid_user(email, name, db_session)
+
+    if not created:
+        # Stripe retried the webhook (or it was delivered twice): the account
+        # was already provisioned. Re-assert the CRM tag (idempotent) but do
+        # NOT re-send the welcome email — otherwise the student gets a fresh
+        # "create your password" mail on every duplicate delivery.
+        try:
+            from src.services.crm.systeme import mark_as_alumno
+            await mark_as_alumno(email)
+        except Exception:
+            logger.exception("Systeme tag update failed for %s", email)
+        logger.info("Account for %s already provisioned — skipping welcome email", email)
+        return {"detail": "already provisioned", "created": False}
 
     code = _store_reset_code(user)
     if not code:
         logger.error("Could not generate reset code for %s; user exists, email not sent", email)
-        return {"detail": "user created but reset email could not be sent"}
+        return {"detail": "user created but reset email could not be sent", "created": True}
 
     user_read = UserRead.model_validate(user)
     try:
@@ -604,7 +622,7 @@ async def _provision_after_payment(
     except Exception:
         logger.exception("Systeme tag update failed for %s", email)
 
-    return {"detail": "ok"}
+    return {"detail": "ok", "created": True}
 
 
 async def _handle_checkout_session(obj: dict, db_session: AsyncSession) -> dict:
@@ -658,10 +676,12 @@ async def _handle_payment_intent(obj: dict, db_session: AsyncSession) -> dict:
 
     # Post-hoc invoice so the buyer still gets the same NAWAR-XXXX PDF Checkout
     # would have generated automatically. Best-effort — never block on it.
+    # Only on first provisioning: on a Stripe retry the account already existed
+    # (created=False) and we must NOT cut a second invoice for the same payment.
     amount = int(obj.get("amount_received") or obj.get("amount") or 0)
     currency = (obj.get("currency") or "eur").lower()
     customer_id = obj.get("customer") or enrollment.stripe_customer_id or ""
-    if customer_id and amount > 0:
+    if result.get("created") and customer_id and amount > 0:
         _create_post_hoc_invoice(
             customer_id=customer_id,
             amount=amount,

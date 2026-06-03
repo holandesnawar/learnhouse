@@ -7,9 +7,12 @@ Rate limits:
 - Verification resend: 5 attempts per 5 minutes per email
 """
 import ipaddress
+import logging
 from typing import Tuple
 from fastapi import HTTPException, Request
 from src.core.redis import get_redis_client as _get_redis_pool_client
+
+logger = logging.getLogger(__name__)
 
 
 class RateLimitExceeded(Exception):
@@ -105,29 +108,47 @@ def check_rate_limit(
     Returns:
         Tuple of (is_allowed, current_count, seconds_until_reset)
     """
-    if r is None:
-        r = get_redis_connection()
+    try:
+        if r is None:
+            r = _get_redis_pool_client()
+        if r is None:
+            # Redis not configured at all — fail OPEN so auth keeps working.
+            logger.warning(
+                "Rate limiting disabled (no Redis client) for key '%s' — allowing", key
+            )
+            return True, 0, window_seconds
 
-    rate_limit_key = f"rate_limit:{key}"
+        rate_limit_key = f"rate_limit:{key}"
 
-    # Get current count
-    current_count = r.get(rate_limit_key)
-    ttl = r.ttl(rate_limit_key)
+        # Get current count
+        current_count = r.get(rate_limit_key)
+        ttl = r.ttl(rate_limit_key)
 
-    if current_count is None:
-        # First attempt - set counter with expiry
-        r.setex(rate_limit_key, window_seconds, 1)
-        return True, 1, window_seconds
+        if current_count is None:
+            # First attempt - set counter with expiry
+            r.setex(rate_limit_key, window_seconds, 1)
+            return True, 1, window_seconds
 
-    current_count = int(current_count)
+        current_count = int(current_count)
 
-    if current_count >= max_attempts:
-        # Rate limit exceeded
-        return False, current_count, ttl if ttl > 0 else window_seconds
+        if current_count >= max_attempts:
+            # Rate limit exceeded
+            return False, current_count, ttl if ttl > 0 else window_seconds
 
-    # Increment counter
-    new_count = r.incr(rate_limit_key)
-    return True, new_count, ttl if ttl > 0 else window_seconds
+        # Increment counter
+        new_count = r.incr(rate_limit_key)
+        return True, new_count, ttl if ttl > 0 else window_seconds
+    except Exception:
+        # Redis is down / unreachable. FAIL OPEN: a real user must never be
+        # locked out of login just because the rate-limiter's backing store
+        # is unavailable. We log it (Sentry/uptime should catch the outage)
+        # and let the request through without rate limiting.
+        logger.warning(
+            "Rate limit check failed (Redis unavailable) for key '%s' — allowing",
+            key,
+            exc_info=True,
+        )
+        return True, 0, window_seconds
 
 
 def check_login_rate_limit(request: Request) -> Tuple[bool, int]:
