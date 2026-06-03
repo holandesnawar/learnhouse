@@ -21,8 +21,11 @@ function NawarBrandBar() {
           </a>
           <a
             href={WEB_URL}
-            className="text-[14px] font-semibold text-white/80 hover:text-white transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/25 text-[14px] font-semibold text-white/90 hover:text-white hover:border-white/55 hover:bg-white/[0.06] transition-colors"
           >
+            <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 11l9-8 9 8M5 10v10a1 1 0 001 1h12a1 1 0 001-1V10" />
+            </svg>
             Volver a la web
           </a>
         </div>
@@ -112,17 +115,33 @@ function NawarFooter() {
 export default function AuthChrome({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="relative min-h-screen w-full flex flex-col"
-      style={{
-        backgroundColor: '#1D0084',
-        backgroundImage:
-          'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
-          'radial-gradient(circle 700px at 100% 0%, rgba(11,109,240,0.40) 0%, transparent 65%), ' +
-          'radial-gradient(circle 600px at 0% 100%, rgba(11,109,240,0.18) 0%, transparent 65%)',
-        backgroundSize: '28px 28px, auto, auto',
-        backgroundRepeat: 'repeat, no-repeat, no-repeat',
-      }}
+      className="relative min-h-screen w-full flex flex-col overflow-hidden"
+      style={{ backgroundColor: '#1D0084' }}
     >
+      {/* Fondo: glow central arriba + puntos (misma estética que el hero/acceso de nawar-web) */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute"
+        style={{
+          top: '-20%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '900px',
+          height: '700px',
+          background:
+            'radial-gradient(ellipse at center, rgba(11,109,240,0.40) 0%, transparent 60%)',
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          opacity: 0.5,
+          backgroundImage:
+            'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)',
+          backgroundSize: '28px 28px',
+        }}
+      />
       <NawarBrandBar />
       <main className="relative z-10 flex-1 w-full flex flex-col items-center justify-center px-6 py-10 sm:px-4">
         {children}

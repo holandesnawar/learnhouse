@@ -88,19 +88,25 @@ function ForgotPasswordClient({ org }: ForgotPasswordClientProps) {
       <div className="relative z-0 w-full max-w-[420px] flex flex-col items-center gap-8">
         <div className="w-full text-white/95">
           <h1
-            className="text-center font-bold leading-[1.2]"
+            className="text-center font-bold leading-[1.15]"
             style={{
               fontFamily: 'var(--font-poppins), system-ui, sans-serif',
-              fontSize: 'clamp(22px, 3.2vw, 27px)',
+              fontSize: 'clamp(26px, 4vw, 32px)',
               letterSpacing: '-0.02em',
-              background:
-                'linear-gradient(180deg, #ffffff 0%, rgba(255,255,255,0.72) 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
             }}
           >
-            ¿Olvidaste tu contraseña?
+            <span
+              style={{
+                background:
+                  'linear-gradient(180deg, #ffffff 0%, rgba(255,255,255,0.72) 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              ¿Olvidaste tu
+            </span>{' '}
+            <span style={{ color: '#4da3ff' }}>contraseña?</span>
           </h1>
           <p className="text-center text-[15px] text-white/70 mt-2 mb-7">
             Dinos tu correo y te enviamos un enlace para recuperarla.

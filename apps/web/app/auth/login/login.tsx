@@ -273,19 +273,25 @@ const LoginClient = (props: LoginClientProps) => {
             {/* Title: "Bienvenid@" in a soft white gradient + "de vuelta" in #4da3ff,
                 stacked the same way as nawar-web/src/pages/acceso.astro */}
             <h1
-              className="text-center font-bold leading-[1.2]"
+              className="text-center font-bold leading-[1.15]"
               style={{
                 fontFamily: 'var(--font-poppins), system-ui, sans-serif',
-                fontSize: 'clamp(22px, 3.2vw, 27px)',
+                fontSize: 'clamp(26px, 4vw, 32px)',
                 letterSpacing: '-0.02em',
-                background:
-                  'linear-gradient(180deg, #ffffff 0%, rgba(255,255,255,0.72) 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
               }}
             >
-              Bienvenid@ de vuelta
+              <span
+                style={{
+                  background:
+                    'linear-gradient(180deg, #ffffff 0%, rgba(255,255,255,0.72) 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }}
+              >
+                Bienvenid@
+              </span>{' '}
+              <span style={{ color: '#4da3ff' }}>de vuelta</span>
             </h1>
             <p className="text-center text-[15px] text-white/70 mt-2 mb-7">
               Accede a tu plataforma de alumno.
