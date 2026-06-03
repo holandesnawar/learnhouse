@@ -268,7 +268,15 @@ def get_learnhouse_config() -> LearnHouseConfig:
         )
         _has_shared_cookie_domain = bool(_ck_for_inf) and str(_ck_for_inf).startswith(".")
         _multi_intent = bool(saas_mode) or (_ee_available and _has_shared_cookie_domain)
-        tenancy_raw = "multi" if (_multi_intent and _has_real_domain and not _is_self_or_dev) else "single"
+        # BLINDAJE single-tenant (Holandés Nawar): esta academia es siempre
+        # single-org. Cuando NO hay valor explícito (env LEARNHOUSE_TENANCY ni
+        # tenancy en el yaml) nunca inferimos "multi" — el multi-tenant
+        # (subdominios slug.dominio + login "Enter Your Organization") solo se
+        # activa si alguien lo pide EXPLÍCITAMENTE arriba. Así, aunque se
+        # pierdan la variable Y el yaml a la vez, jamás cae en multi y rompe.
+        _inferred_tenancy = "multi" if (_multi_intent and _has_real_domain and not _is_self_or_dev) else "single"
+        _ = _inferred_tenancy  # (cálculo conservado solo como referencia)
+        tenancy_raw = "single"
 
     tenancy = str(tenancy_raw).strip().lower()
     if tenancy not in ("multi", "single"):
