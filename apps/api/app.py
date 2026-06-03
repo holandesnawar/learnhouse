@@ -26,6 +26,27 @@ from src.routers.local_content import router as local_content_router
 
 learnhouse_config: LearnHouseConfig = get_learnhouse_config()
 
+# Sentry — error tracking. Fully guarded: a missing DSN or a missing/broken
+# SDK can NEVER stop the API from booting. When LEARNHOUSE_SENTRY_DSN is set,
+# unhandled errors (e.g. the login 500s we used to fly blind on) get reported.
+if learnhouse_config.sentry_config.dsn:
+    try:
+        import sentry_sdk
+
+        sentry_sdk.init(
+            dsn=learnhouse_config.sentry_config.dsn,
+            traces_sample_rate=0.1,
+            send_default_pii=False,
+            environment=(
+                "development"
+                if learnhouse_config.general_config.development_mode
+                else "production"
+            ),
+        )
+        logging.getLogger(__name__).info("Sentry initialised")
+    except Exception:
+        logging.getLogger(__name__).warning("Sentry init skipped", exc_info=True)
+
 app = FastAPI(
     title=learnhouse_config.site_name,
     description=learnhouse_config.site_description,
