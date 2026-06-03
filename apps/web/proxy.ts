@@ -316,7 +316,9 @@ export default async function proxy(req: NextRequest) {
   }
 
   // -------------------------------------------------------------------------
-  // 4. Auth callbacks — pass through without org rewrite
+  // 4. Auth callbacks — pass through without org rewrite. These flows run
+  //    before org context exists (SSO handshake, OAuth callback) so we
+  //    don't resolve tenant or set org cookies.
   // -------------------------------------------------------------------------
   if (
     pathname.startsWith('/auth/sso/')
@@ -324,6 +326,27 @@ export default async function proxy(req: NextRequest) {
     || pathname.startsWith('/auth/token-exchange')
   ) {
     const response = NextResponse.rewrite(new URL(`${pathname}${search}`, req.url))
+    setInstanceCookies(response, instance)
+    return response
+  }
+
+  // -------------------------------------------------------------------------
+  // 4b. All other /auth/* pages (bienvenido, crear-cuenta, matricula-…,
+  //     including any new ones we add) — pass through to the real /auth/x
+  //     route but resolve tenant first so the auth layout's OrgProvider can
+  //     render the right branding. Without this passthrough the catch-all
+  //     at step 11 rewrites them to /orgs/<slug>/auth/x — a route that
+  //     doesn't exist, so they 404. That's the bug that has been killing
+  //     every new auth subpath we've tried to deploy.
+  // -------------------------------------------------------------------------
+  if (pathname.startsWith('/auth/')) {
+    const resolved = await resolveTenant(req, instance)
+    const requestHeaders = tenantRequestHeaders(req, resolved, instance)
+    const response = NextResponse.rewrite(
+      new URL(`${pathname}${search}`, req.url),
+      { request: { headers: requestHeaders } },
+    )
+    setOrgCookies(response, resolved, instance)
     setInstanceCookies(response, instance)
     return response
   }
