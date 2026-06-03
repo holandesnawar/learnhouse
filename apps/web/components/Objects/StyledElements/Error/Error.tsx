@@ -11,10 +11,43 @@ import React from 'react'
 // the org", "the api timed out", or a one-off 500.
 function ErrorUI(params: { message?: string; submessage?: string }) {
   const router = useRouter()
+  const [retrying, setRetrying] = React.useState(false)
 
   function reloadPage() {
     router.refresh()
     window.location.reload()
+  }
+
+  // Auto-retry once on a transient error (e.g. the API was asleep after a
+  // period of inactivity and the first request raced its cold start). We
+  // recharge silently instead of dumping the user on the error screen. An
+  // anti-loop guard in sessionStorage means that if it STILL fails within
+  // 30s we stop auto-retrying and show the real error + buttons.
+  React.useEffect(() => {
+    try {
+      const KEY = 'nawar_auto_retry_ts'
+      const now = Date.now()
+      const last = Number(sessionStorage.getItem(KEY) || '0')
+      if (now - last > 30000) {
+        sessionStorage.setItem(KEY, String(now))
+        setRetrying(true)
+        const t = setTimeout(() => reloadPage(), 1200)
+        return () => clearTimeout(t)
+      }
+    } catch {
+      /* sessionStorage unavailable — just show the error UI */
+    }
+  }, [])
+
+  if (retrying) {
+    return (
+      <div className="w-full px-4 py-16 sm:py-20 flex flex-col items-center justify-center">
+        <div className="flex items-center gap-3 text-[#5A6480]">
+          <RefreshCcw className="animate-spin text-[#4da3ff]" size={18} strokeWidth={2.5} />
+          <span className="text-sm font-medium">Reconectando…</span>
+        </div>
+      </div>
+    )
   }
 
   return (
