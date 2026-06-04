@@ -1,5 +1,6 @@
 'use client'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   Plus, X, Loader2, CheckCircle2, Clock, Pencil, Trash2, MessageCircleQuestion, Search,
 } from 'lucide-react'
@@ -66,6 +67,16 @@ export default function ConsultasBoard({
   initialOpenId = '',
   startNew = false,
 }: ConsultasBoardProps = {}) {
+  // Read the deep-link params CLIENT-SIDE from the real browser URL. The server
+  // `searchParams` prop can arrive empty because the tenancy middleware rewrites
+  // /consultas internally and drops the query string — but the browser URL still
+  // carries ?id=/?q=/?new=, and useSearchParams reads that. Props are kept as a
+  // fallback.
+  const searchParams = useSearchParams()
+  const effOpenId = initialOpenId || searchParams.get('id') || ''
+  const effQuery = initialQuery || searchParams.get('q') || ''
+  const effStartNew = startNew || searchParams.get('new') === '1'
+
   const session = useLHSession() as any
   const user = session?.data?.user
   const org = useOrg() as any
@@ -83,7 +94,7 @@ export default function ConsultasBoard({
   const [error, setError] = useState<string | null>(null)
   const [status, setStatus] = useState<StatusFilter>('all')
   const [category, setCategory] = useState<string>('')
-  const [query, setQuery] = useState<string>(initialQuery)
+  const [query, setQuery] = useState<string>(effQuery)
 
   const [selected, setSelected] = useState<Consulta | null>(null)
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
@@ -108,14 +119,14 @@ export default function ConsultasBoard({
   // Open the "Nueva consulta" modal automatically when arriving via ?new=1.
   // We do this once on mount; subsequent state changes don't trigger it.
   useEffect(() => {
-    if (startNew) {
+    if (effStartNew) {
       setFormError(null)
       setForm({
         ...EMPTY_FORM,
         open: true,
         name: sessionName,
         email: sessionEmail,
-        title: initialQuery,
+        title: effQuery,
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -125,23 +136,23 @@ export default function ConsultasBoard({
   // from the feed) so the deep-link from a lesson ALWAYS opens it — regardless
   // of feed timing, filters, or whether the id comes back as text or number.
   useEffect(() => {
-    if (!initialOpenId) return
+    if (!effOpenId) return
     let cancelled = false
     // Open immediately if it's already in the loaded feed…
-    const inFeed = consultas.find((c) => String(c.id) === String(initialOpenId))
+    const inFeed = consultas.find((c) => String(c.id) === String(effOpenId))
     if (inFeed) {
       setSelected(inFeed)
       return
     }
     // …otherwise fetch it straight from the source.
-    getConsulta(initialOpenId).then((c) => {
+    getConsulta(effOpenId).then((c) => {
       if (!cancelled && c) setSelected(c)
     })
     return () => {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialOpenId, consultas.length])
+  }, [effOpenId, consultas.length])
 
   // Filter the loaded feed by the user's typed query. Matches against title,
   // content, AND the team's answer so anything mentioning the term surfaces.
