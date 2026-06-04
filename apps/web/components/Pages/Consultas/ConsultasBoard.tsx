@@ -7,7 +7,7 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { getOrgLogoMediaDirectory } from '@services/media/media'
 import {
-  CONSULTA_CATEGORIES, CATEGORY_BY_ID, listConsultas, createConsulta,
+  CONSULTA_CATEGORIES, CATEGORY_BY_ID, listConsultas, getConsulta, createConsulta,
   updateMyConsulta, deleteMyConsulta, isMyConsulta, htmlToText,
   type Consulta, type StatusFilter,
 } from '@/lib/consultas/consultas'
@@ -121,14 +121,25 @@ export default function ConsultasBoard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Open the detail modal for ?id=... once the feed lands. Compare as strings:
-  // the URL param is always a string, but the consulta id from Supabase can come
-  // back as a number, so a strict === would silently never match (and the user
-  // would just land on the board instead of the consulta they clicked).
+  // Open the detail modal for ?id=... Fetch the consulta DIRECTLY by id (not
+  // from the feed) so the deep-link from a lesson ALWAYS opens it — regardless
+  // of feed timing, filters, or whether the id comes back as text or number.
   useEffect(() => {
-    if (!initialOpenId || consultas.length === 0) return
-    const target = consultas.find((c) => String(c.id) === String(initialOpenId))
-    if (target) setSelected(target)
+    if (!initialOpenId) return
+    let cancelled = false
+    // Open immediately if it's already in the loaded feed…
+    const inFeed = consultas.find((c) => String(c.id) === String(initialOpenId))
+    if (inFeed) {
+      setSelected(inFeed)
+      return
+    }
+    // …otherwise fetch it straight from the source.
+    getConsulta(initialOpenId).then((c) => {
+      if (!cancelled && c) setSelected(c)
+    })
+    return () => {
+      cancelled = true
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialOpenId, consultas.length])
 

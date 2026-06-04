@@ -55,6 +55,25 @@ export async function listConsultas(opts: {
   return (data ?? []) as Consulta[]
 }
 
+// Fetch a single consulta by id (used by the lesson deep-link "?id=..." so the
+// detail modal opens reliably, independent of whatever the feed currently has
+// loaded or filtered). Compares loosely on the DB side, so it works whether the
+// id column is text/uuid or numeric. Never throws — returns null on any miss.
+export async function getConsulta(id: string): Promise<Consulta | null> {
+  if (!id) return null
+  try {
+    const { data, error } = await consultasClient
+      .from('consultas')
+      .select(FEED_COLUMNS)
+      .eq('id', id)
+      .maybeSingle()
+    if (error) return null
+    return (data as Consulta) ?? null
+  } catch {
+    return null
+  }
+}
+
 export async function createConsulta(input: {
   title: string
   content: string
