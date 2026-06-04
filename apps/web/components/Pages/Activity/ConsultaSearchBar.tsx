@@ -139,7 +139,9 @@ export default function ConsultaSearchBar({ initialQuery = '' }: ConsultaSearchB
                   return (
                     <li key={c.id}>
                       <Link
-                        href={consultasHref(`?id=${c.id}`)}
+                        href={consultasHref(
+                          `?id=${encodeURIComponent(String(c.id))}&q=${encodeURIComponent(query.trim())}`
+                        )}
                         className="group flex items-start gap-2 px-3 py-2 rounded-lg bg-[#F0F5FF] hover:bg-[#E5ECFF] transition-colors"
                       >
                         <div className="flex-1 min-w-0">

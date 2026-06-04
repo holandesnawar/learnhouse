@@ -121,10 +121,13 @@ export default function ConsultasBoard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Open the detail modal for ?id=... once the feed lands.
+  // Open the detail modal for ?id=... once the feed lands. Compare as strings:
+  // the URL param is always a string, but the consulta id from Supabase can come
+  // back as a number, so a strict === would silently never match (and the user
+  // would just land on the board instead of the consulta they clicked).
   useEffect(() => {
     if (!initialOpenId || consultas.length === 0) return
-    const target = consultas.find((c) => c.id === initialOpenId)
+    const target = consultas.find((c) => String(c.id) === String(initialOpenId))
     if (target) setSelected(target)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialOpenId, consultas.length])
