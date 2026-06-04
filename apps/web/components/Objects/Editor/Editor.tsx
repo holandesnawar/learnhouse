@@ -27,6 +27,7 @@ import Callout from './Extensions/Callout/Callout'
 import ImageBlock from './Extensions/Image/ImageBlock'
 import Youtube from '@tiptap/extension-youtube'
 import VideoBlock from './Extensions/Video/VideoBlock'
+import BunnyBlock from './Extensions/Bunny/BunnyBlock'
 import AudioBlock from './Extensions/Audio/AudioBlock'
 import { Eye, Monitor, History, AlertTriangle, RefreshCw, GitMerge, Loader2 } from 'lucide-react'
 import MathEquationBlock from './Extensions/MathEquation/MathEquationBlock'
@@ -158,6 +159,7 @@ function Editor(props: Editor) {
       WarningCallout.configure({ editable: true }),
       ImageBlock.configure({ editable: true, activity: stableActivity }),
       VideoBlock.configure({ editable: true, activity: stableActivity }),
+      BunnyBlock.configure({ editable: true, activity: stableActivity }),
       AudioBlock.configure({ editable: true, activity: stableActivity }),
       MathEquationBlock.configure({ editable: true, activity: stableActivity }),
       PDFBlock.configure({ editable: true, activity: stableActivity }),

@@ -11,6 +11,7 @@ import WarningCallout from './Extensions/Callout/Warning/WarningCallout'
 import ImageBlock from './Extensions/Image/ImageBlock'
 import Youtube from '@tiptap/extension-youtube'
 import VideoBlock from './Extensions/Video/VideoBlock'
+import BunnyBlock from './Extensions/Bunny/BunnyBlock'
 import AudioBlock from './Extensions/Audio/AudioBlock'
 import MathEquationBlock from './Extensions/MathEquation/MathEquationBlock'
 import PDFBlock from './Extensions/PDF/PDFBlock'
@@ -70,6 +71,10 @@ function EditorPreview({ content, activity }: EditorPreviewProps) {
         activity: activity,
       }),
       VideoBlock.configure({
+        editable: false,
+        activity: activity,
+      }),
+      BunnyBlock.configure({
         editable: false,
         activity: activity,
       }),

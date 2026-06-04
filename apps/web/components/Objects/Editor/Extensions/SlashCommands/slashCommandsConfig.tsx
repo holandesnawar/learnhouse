@@ -200,6 +200,17 @@ export const slashCommands: SlashCommandItem[] = [
     },
   },
   {
+    id: 'bunny',
+    title: 'Bunny (vídeo)',
+    description: 'Incrusta un vídeo de Bunny Stream',
+    icon: <Video size={18} />,
+    category: 'media',
+    keywords: ['bunny', 'video', 'vídeo', 'stream', 'mediadelivery', 'embed'],
+    command: (editor) => {
+      editor.chain().focus().insertContent({ type: 'blockBunny' }).run()
+    },
+  },
+  {
     id: 'pdf',
     title: 'PDF',
     description: 'Embed a PDF document',
