@@ -97,15 +97,15 @@ export default function ActivityNavigation(props: ActivityNavigationProps): Reac
   const NavigationButtons = ({ isFloating = false }) => {
     const { t } = useTranslation();
     return (
-      <div className={`${isFloating ? 'flex justify-between' : 'grid grid-cols-3'} items-center w-full`}>
+      <div className={`${isFloating ? 'flex justify-between' : 'flex sm:grid sm:grid-cols-3 gap-2'} items-center w-full`}>
         {isFloating ? (
           // Floating navigation - original flex layout
           <>
             <button
               onClick={() => navigateToActivity(prevActivity)}
               className={`flex items-center space-x-1.5 p-2 rounded-md transition-all duration-200 cursor-pointer ${
-                prevActivity 
-                  ? 'text-gray-700' 
+                prevActivity
+                  ? 'text-gray-700'
                   : 'opacity-50 text-gray-400 cursor-not-allowed'
               }`}
               disabled={!prevActivity}
@@ -114,17 +114,17 @@ export default function ActivityNavigation(props: ActivityNavigationProps): Reac
               <ChevronLeft size={20} className="text-gray-800 shrink-0" />
               <div className="flex flex-col items-start">
                 <span className="text-xs text-gray-500">{t('common.previous')}</span>
-                <span className="text-sm capitalize font-semibold text-left">
+                <span className="hidden sm:block text-sm capitalize font-semibold text-left">
                   {prevActivity ? prevActivity.name : t('activities.no_previous_activity')}
                 </span>
               </div>
             </button>
-            
+
             <button
               onClick={() => navigateToActivity(nextActivity)}
               className={`flex items-center space-x-1.5 p-2 rounded-md transition-all duration-200 cursor-pointer ${
-                nextActivity 
-                  ? 'text-gray-700' 
+                nextActivity
+                  ? 'text-gray-700'
                   : 'opacity-50 text-gray-400 cursor-not-allowed'
               }`}
               disabled={!nextActivity}
@@ -132,7 +132,7 @@ export default function ActivityNavigation(props: ActivityNavigationProps): Reac
             >
               <div className="flex flex-col items-end">
                 <span className="text-xs text-gray-500">{t('common.next')}</span>
-                <span className="text-sm capitalize font-semibold text-right">
+                <span className="hidden sm:block text-sm capitalize font-semibold text-right">
                   {nextActivity ? nextActivity.name : t('activities.no_next_activity')}
                 </span>
               </div>
@@ -140,14 +140,16 @@ export default function ActivityNavigation(props: ActivityNavigationProps): Reac
             </button>
           </>
         ) : (
-          // Regular navigation - grid layout with centered counter
+          // Regular navigation. On mobile: "Anterior" compact (secondary) and
+          // "Siguiente" the primary, wider button — the forward action is the
+          // main one. On desktop: the original 3-column layout with the counter.
           <>
-            <div className="justify-self-start">
+            <div className="shrink-0 sm:justify-self-start">
               <button
                 onClick={() => navigateToActivity(prevActivity)}
                 className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-md transition-all duration-200 cursor-pointer ${
-                  prevActivity 
-                    ? 'bg-white nice-shadow text-gray-700' 
+                  prevActivity
+                    ? 'bg-white nice-shadow text-gray-700'
                     : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 }`}
                 disabled={!prevActivity}
@@ -156,31 +158,31 @@ export default function ActivityNavigation(props: ActivityNavigationProps): Reac
                 <ChevronLeft size={16} className="shrink-0" />
                 <div className="flex flex-col items-start">
                   <span className="text-xs text-gray-500">{t('common.previous')}</span>
-                  <span className="text-sm capitalize font-semibold text-left">
+                  <span className="hidden sm:block text-sm capitalize font-semibold text-left">
                     {prevActivity ? prevActivity.name : t('activities.no_previous_activity')}
                   </span>
                 </div>
               </button>
             </div>
-            
-            <div className="text-sm text-gray-500 justify-self-center">
+
+            <div className="hidden sm:block text-sm text-gray-500 justify-self-center">
               {currentIndex + 1} {t('common.of')} {allActivities.length}
             </div>
-            
-            <div className="justify-self-end">
+
+            <div className="flex-1 sm:flex-none sm:justify-self-end">
               <button
                 onClick={() => navigateToActivity(nextActivity)}
-                className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-md transition-all duration-200 cursor-pointer ${
-                  nextActivity 
-                    ? 'bg-white nice-shadow text-gray-700' 
+                className={`w-full sm:w-auto flex items-center justify-center sm:justify-start space-x-1.5 px-3.5 py-2 rounded-md transition-all duration-200 cursor-pointer nice-shadow ${
+                  nextActivity
+                    ? 'bg-[#4da3ff] text-[#0a1656] sm:bg-white sm:text-gray-700'
                     : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 }`}
                 disabled={!nextActivity}
                 title={nextActivity ? `${t('common.next')}: ${nextActivity.name}` : t('activities.no_next_activity')}
               >
                 <div className="flex flex-col items-end">
-                  <span className="text-xs text-gray-500">{t('common.next')}</span>
-                  <span className="text-sm capitalize font-semibold text-right">
+                  <span className={`text-xs ${nextActivity ? 'text-[#0a1656]/75 sm:text-gray-500' : 'text-gray-400'}`}>{t('common.next')}</span>
+                  <span className="hidden sm:block text-sm capitalize font-semibold text-right">
                     {nextActivity ? nextActivity.name : t('activities.no_next_activity')}
                   </span>
                 </div>
