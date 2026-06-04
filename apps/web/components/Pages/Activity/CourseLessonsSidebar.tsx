@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useMemo, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { Check, FileText, Video, StickyNote, Backpack, ListTree, ChevronDown } from 'lucide-react'
+import { Check, FileText, Video, StickyNote, Backpack, ListTree, ChevronDown, X } from 'lucide-react'
 import { getUriWithOrg } from '@services/config/config'
 import { useTranslation } from 'react-i18next'
 
@@ -45,7 +45,13 @@ function useProgress(course: any, trailData: any) {
   return { run, total, done, pct, cleanCourseUuid }
 }
 
-function LessonsList({ course, currentActivityId, orgslug, trailData }: CourseLessonsProps) {
+function LessonsList({
+  course,
+  currentActivityId,
+  orgslug,
+  trailData,
+  onLessonClick,
+}: CourseLessonsProps & { onLessonClick?: () => void }) {
   const { run, cleanCourseUuid } = useProgress(course, trailData)
   const cleanCurrent = currentActivityId?.replace('activity_', '')
   const chapters = course.chapters ?? []
@@ -123,6 +129,7 @@ function LessonsList({ course, currentActivityId, orgslug, trailData }: CourseLe
                   key={activity.id}
                   href={getUriWithOrg(orgslug, '') + `/course/${cleanCourseUuid}/activity/${cleanUuid}`}
                   prefetch={false}
+                  onClick={onLessonClick}
                 >
                   <div
                     ref={isCurrent ? activeRef : undefined}
@@ -213,19 +220,32 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
   )
 }
 
-// Mobile / tablet: collapsible accordion shown inline in the content column
+// Mobile / tablet: a compact trigger that opens the lesson list FULL SCREEN
+// (instead of a cramped inline accordion). Tapping a lesson navigates and
+// closes the panel. Body scroll is locked while it's open.
 export function MobileCourseLessons(props: CourseLessonsProps) {
   const { t } = useTranslation()
   const { course, trailData } = props
   const { total, done, pct } = useProgress(course, trailData)
   const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [open])
+
   if (!course?.chapters) return null
 
   return (
-    <div className="lg:hidden bg-white nice-shadow rounded-lg overflow-hidden">
+    <div className="lg:hidden">
+      {/* Trigger button */}
       <button
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left"
+        onClick={() => setOpen(true)}
+        className="w-full flex items-center gap-3 px-4 py-3 bg-white nice-shadow rounded-lg text-left"
       >
         <ListTree size={18} className="text-[#025dc7] shrink-0" />
         <div className="flex-1 min-w-0">
@@ -242,14 +262,47 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
             />
           </div>
         </div>
-        <ChevronDown
-          size={18}
-          className={`text-gray-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
-        />
+        <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold text-[#025dc7] uppercase tracking-wide">
+          Ver
+          <ChevronDown size={14} className="-rotate-90" />
+        </span>
       </button>
+
+      {/* Full-screen panel */}
       {open && (
-        <div className="border-t border-gray-100 max-h-[60vh] overflow-y-auto">
-          <LessonsList {...props} />
+        <div className="fixed inset-0 z-[80] bg-white flex flex-col">
+          <div className="shrink-0 px-4 pt-4 pb-3 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-gray-900">
+                <ListTree size={18} className="text-[#025dc7]" />
+                <h3 className="text-base font-semibold">{t('courses.course_content')}</h3>
+              </div>
+              <button
+                onClick={() => setOpen(false)}
+                aria-label="Cerrar"
+                className="-mr-1 w-9 h-9 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors"
+              >
+                <X size={22} />
+              </button>
+            </div>
+            <div className="mt-3">
+              <div className="flex items-center justify-between text-[11px] text-gray-500 mb-1">
+                <span>
+                  {done} / {total}
+                </span>
+                <span>{pct}%</span>
+              </div>
+              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[#025dc7] rounded-full transition-all duration-300"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto overscroll-contain">
+            <LessonsList {...props} onLessonClick={() => setOpen(false)} />
+          </div>
         </div>
       )}
     </div>
