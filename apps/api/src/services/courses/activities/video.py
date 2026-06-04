@@ -160,7 +160,7 @@ async def create_video_activity(
 class ExternalVideo(BaseModel):
     name: str
     uri: str
-    type: Literal["youtube", "vimeo"]
+    type: Literal["youtube", "vimeo", "bunny"]
     chapter_id: int
     details: str = "{}"
     extra_metadata: Optional[dict] = None

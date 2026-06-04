@@ -31,9 +31,10 @@ function VideoModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [name, setName] = React.useState('')
   const [youtubeUrl, setYoutubeUrl] = React.useState('')
-  const [selectedView, setSelectedView] = React.useState<'file' | 'youtube'>(
-    'file'
-  )
+  const [bunnyUrl, setBunnyUrl] = React.useState('')
+  const [selectedView, setSelectedView] = React.useState<
+    'file' | 'youtube' | 'bunny'
+  >('file')
   const [videoDetails, setVideoDetails] = React.useState<VideoDetails>({
     startTime: 0,
     endTime: null,
@@ -75,6 +76,18 @@ function VideoModal({
           name,
           type: 'youtube',
           uri: youtubeUrl,
+          chapter_id: chapterId,
+          details: videoDetails,
+        }
+
+        await submitExternalVideo(external_video_object, 'activity', chapterId)
+      }
+
+      if (selectedView === 'bunny') {
+        const external_video_object: ExternalVideoObject = {
+          name,
+          type: 'bunny',
+          uri: bunnyUrl.trim(),
           chapter_id: chapterId,
           details: videoDetails,
         }
@@ -130,7 +143,7 @@ function VideoModal({
 
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-gray-700">Source</label>
-          <div className="grid grid-cols-2 gap-0 rounded-lg overflow-hidden border border-gray-200">
+          <div className="grid grid-cols-3 gap-0 rounded-lg overflow-hidden border border-gray-200">
             <button
               type="button"
               onClick={() => setSelectedView('file')}
@@ -154,6 +167,18 @@ function VideoModal({
             >
               <YoutubeLogo size={16} weight="duotone" />
               YouTube
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedView('bunny')}
+              className={`flex items-center justify-center py-2.5 gap-2 text-sm font-medium border-l border-gray-200 transition-colors ${
+                selectedView === 'bunny'
+                  ? 'bg-gray-100 text-gray-900'
+                  : 'bg-white text-gray-500 hover:bg-gray-50'
+              }`}
+            >
+              <PlayCircle size={16} weight="duotone" />
+              Bunny
             </button>
           </div>
         </div>
@@ -186,6 +211,26 @@ function VideoModal({
               placeholder="https://youtube.com/watch?v=..."
               className="w-full h-9 px-3 text-sm rounded-lg bg-gray-50 border border-gray-200 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-200 transition-colors"
             />
+          </div>
+        )}
+
+        {selectedView === 'bunny' && (
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-gray-700">
+              Enlace de Bunny
+            </label>
+            <input
+              value={bunnyUrl}
+              onChange={(e) => setBunnyUrl(e.target.value)}
+              type="text"
+              required
+              placeholder="https://iframe.mediadelivery.net/embed/675650/..."
+              className="w-full h-9 px-3 text-sm rounded-lg bg-gray-50 border border-gray-200 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-200 transition-colors"
+            />
+            <p className="text-[11px] text-gray-400 leading-relaxed">
+              En Bunny → tu vídeo → Embed → copia el enlace del reproductor
+              (iframe.mediadelivery.net/embed/...). Pega solo el enlace.
+            </p>
           </div>
         )}
       </div>

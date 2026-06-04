@@ -18,6 +18,7 @@ interface VideoActivityProps {
     content: {
       filename?: string
       uri?: string
+      type?: string
     }
     details?: VideoDetails
   }
@@ -49,6 +50,26 @@ function VideoActivity({ activity, course, orgUuid }: VideoActivityProps) {
     )
   }
 
+  // External videos are all stored under SUBTYPE_VIDEO_YOUTUBE and told apart
+  // by content.type. Bunny Stream is an iframe embed (not a YouTube id), so it
+  // gets its own render path inside the same video layout.
+  const isBunny =
+    activity.content?.type === 'bunny' ||
+    /mediadelivery\.net/.test(activity.content?.uri || '')
+
+  const getBunnySrc = () => {
+    const uri = activity.content?.uri || ''
+    const m = uri.match(/mediadelivery\.net\/embed\/(\d+)\/([0-9a-fA-F-]{8,})/)
+    const base = m
+      ? `https://iframe.mediadelivery.net/embed/${m[1]}/${m[2]}`
+      : uri
+    const params = new URLSearchParams()
+    if (activity.details?.autoplay) params.set('autoplay', 'true')
+    if (activity.details?.muted) params.set('muted', 'true')
+    const q = params.toString()
+    return q ? `${base}?${q}` : base
+  }
+
   return (
     <div className="w-full max-w-full">
       {activity && (
@@ -69,7 +90,22 @@ function VideoActivity({ activity, course, orgUuid }: VideoActivityProps) {
               </div>
             </div>
           )}
-          {activity.activity_sub_type === 'SUBTYPE_VIDEO_YOUTUBE' && (
+          {activity.activity_sub_type === 'SUBTYPE_VIDEO_YOUTUBE' && isBunny && (
+            <div className="w-full">
+              <div className="relative w-full aspect-video rounded-lg overflow-hidden">
+                <iframe
+                  key={activity.activity_uuid}
+                  src={getBunnySrc()}
+                  loading="lazy"
+                  className="absolute inset-0 w-full h-full"
+                  style={{ border: 0 }}
+                  allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;fullscreen;"
+                  allowFullScreen
+                />
+              </div>
+            </div>
+          )}
+          {activity.activity_sub_type === 'SUBTYPE_VIDEO_YOUTUBE' && !isBunny && (
             <div className="w-full">
               <div className="relative w-full aspect-video rounded-lg overflow-hidden">
                 <YouTube
