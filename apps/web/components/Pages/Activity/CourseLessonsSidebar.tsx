@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useMemo, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { Check, FileText, Video, StickyNote, Backpack, ListTree, ChevronDown, X } from 'lucide-react'
+import { Check, FileText, Video, StickyNote, Backpack, ListTree, ChevronDown, X, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { getUriWithOrg } from '@services/config/config'
 import { useTranslation } from 'react-i18next'
 
@@ -200,18 +200,49 @@ function ProgressHeader({ done, total, pct }: { done: number; total: number; pct
   )
 }
 
-// Desktop: sticky right-hand column
+// Desktop: course-content panel on the LEFT (Thinkific-style course player),
+// collapsible so the lesson can take the full width when the student wants to
+// focus. `lg:order-first` floats it before the lesson content in the flex row.
 export default function CourseLessonsSidebar(props: CourseLessonsProps) {
+  const { t } = useTranslation()
   const { course, trailData } = props
   const { total, done, pct } = useProgress(course, trailData)
+  const [collapsed, setCollapsed] = useState(false)
   if (!course?.chapters) return null
 
+  if (collapsed) {
+    return (
+      <aside className="hidden lg:block shrink-0 lg:order-first">
+        <div className="sticky top-6">
+          <button
+            onClick={() => setCollapsed(false)}
+            title={t('courses.course_content')}
+            aria-label={t('courses.course_content')}
+            className="w-11 h-11 bg-white nice-shadow rounded-lg flex items-center justify-center text-[#025dc7] hover:bg-gray-50 transition-colors"
+          >
+            <PanelLeftOpen size={20} />
+          </button>
+        </div>
+      </aside>
+    )
+  }
+
   return (
-    <aside className="hidden lg:block w-[300px] shrink-0">
-      <div className="sticky top-24">
+    <aside className="hidden lg:block w-[300px] shrink-0 lg:order-first">
+      <div className="sticky top-6">
         <div className="bg-white nice-shadow rounded-lg overflow-hidden">
-          <ProgressHeader done={done} total={total} pct={pct} />
-          <div className="max-h-[calc(100vh-220px)] overflow-y-auto">
+          <div className="relative">
+            <ProgressHeader done={done} total={total} pct={pct} />
+            <button
+              onClick={() => setCollapsed(true)}
+              title="Ocultar contenido"
+              aria-label="Ocultar contenido"
+              className="absolute top-3.5 right-2 w-7 h-7 flex items-center justify-center rounded-md text-gray-400 hover:text-[#025dc7] hover:bg-gray-100 transition-colors"
+            >
+              <PanelLeftClose size={16} />
+            </button>
+          </div>
+          <div className="max-h-[calc(100vh-160px)] overflow-y-auto">
             <LessonsList {...props} />
           </div>
         </div>
