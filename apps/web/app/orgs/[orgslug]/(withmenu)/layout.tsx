@@ -100,6 +100,13 @@ function LayoutContent({ children, orgslug }: { children: React.ReactNode; orgsl
   const noFooterPaths = ['copilot']
   const isFullBleedPage = noFooterPaths.some((p) => pathParts.includes(p))
 
+  // Inside a lesson (course player) → focus mode: hide the platform sidebar,
+  // footer and watermark so the lesson + its own "Contenido del curso" panel
+  // get the whole screen (Thinkific-style). Leaving the lesson restores the
+  // normal chrome.
+  const isLessonPage =
+    pathParts.includes('course') && pathParts.includes('activity')
+
   return (
     <div
       data-platform-bg
@@ -112,13 +119,13 @@ function LayoutContent({ children, orgslug }: { children: React.ReactNode; orgsl
       <PageViewTracker />
       <OrgJoinBanner />
       <div className="flex min-h-screen">
-        <OrgSidebar orgslug={orgslug} />
-        <div className="flex flex-1 min-w-0 flex-col pt-14 md:pt-0">
+        {!isLessonPage && <OrgSidebar orgslug={orgslug} />}
+        <div className={`flex flex-1 min-w-0 flex-col ${isLessonPage ? '' : 'pt-14 md:pt-0'}`}>
           <div className="flex-1 relative" style={{ zIndex: 'var(--z-content)' }}>
             {children}
           </div>
-          {!isFullBleedPage && <OrgFooter />}
-          {!isFullBleedPage && <Watermark />}
+          {!isFullBleedPage && !isLessonPage && <OrgFooter />}
+          {!isFullBleedPage && !isLessonPage && <Watermark />}
         </div>
       </div>
     </div>
