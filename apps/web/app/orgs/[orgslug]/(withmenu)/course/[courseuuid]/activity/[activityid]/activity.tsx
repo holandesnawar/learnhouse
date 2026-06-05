@@ -812,7 +812,7 @@ function ActivityClient(props: ActivityClientProps) {
                   />
                 ) : (
                   <div className="space-y-3 pt-0 relative">
-                    <div className="pt-1 pb-1 sm:pb-2">
+                    <div className="pt-1 pb-1 sm:pb-2 lg:hidden">
                       <Link
                         href={getUriWithOrg(orgslug, `/course/${courseuuid}`)}
                         className="inline-flex items-center gap-1.5 text-sm font-medium text-[#5A6480] hover:text-[#1D0084] transition-colors"

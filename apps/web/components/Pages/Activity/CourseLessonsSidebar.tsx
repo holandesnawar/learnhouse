@@ -250,11 +250,11 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
   }
 
   return (
-    <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-[300px] bg-[#1D0084] text-white z-30">
+    <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-[340px] bg-[#1D0084] text-white z-30">
       {/* Volver al curso */}
       <Link
         href={courseHref}
-        className="flex items-center gap-2 px-4 h-14 shrink-0 text-sm font-semibold text-white/85 hover:text-white border-b border-white/10 transition-colors"
+        className="flex items-center gap-2 px-4 h-14 shrink-0 text-sm font-semibold text-white/90 hover:text-white border-b border-white/10 transition-colors"
       >
         <ChevronLeft size={18} className="shrink-0" />
         Volver al curso
@@ -311,21 +311,25 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
             <div key={chapter.id}>
               <button
                 onClick={() => !q && toggle(index)}
-                className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-white/5 border-b border-white/5 transition-colors"
+                className="w-full flex items-center gap-2.5 px-4 py-3.5 text-left hover:bg-white/5 border-b border-white/5 transition-colors"
               >
-                <span className="shrink-0 w-5 h-5 rounded-full bg-white/10 text-[10px] font-bold flex items-center justify-center text-white/80">
-                  {index + 1}
-                </span>
-                <span className="flex-1 text-[12px] font-bold uppercase tracking-wide text-white/75 truncate">
+                <span
+                  className={`shrink-0 w-4 h-4 rounded-full border-2 ${
+                    index === currentChapterIdx
+                      ? 'bg-[#4da3ff] border-[#4da3ff]'
+                      : 'border-white/40'
+                  }`}
+                />
+                <span className="flex-1 text-[14px] font-bold uppercase tracking-wide text-white/95 truncate">
                   {chapter.name}
                 </span>
-                <span className="text-[10px] text-white/45 tabular-nums shrink-0">
+                <span className="text-[11px] text-white/55 tabular-nums shrink-0">
                   {doneCount}/{allActs.length}
                 </span>
                 {!q && (
                   <ChevronDown
-                    size={14}
-                    className={`text-white/45 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                    size={16}
+                    className={`text-white/55 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
                   />
                 )}
               </button>
@@ -358,7 +362,7 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
                           ) : (
                             <div
                               className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                                isCurrent ? 'border-[#4da3ff] text-[#4da3ff]' : 'border-white/25 text-white/40'
+                                isCurrent ? 'border-[#4da3ff] text-[#4da3ff]' : 'border-white/35 text-white/50'
                               }`}
                             >
                               {getActivityTypeIcon(activity.activity_type)}
@@ -366,8 +370,8 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
                           )}
                         </div>
                         <span
-                          className={`text-[13px] leading-snug line-clamp-2 ${
-                            isCurrent ? 'font-semibold text-white' : 'text-white/75 group-hover:text-white'
+                          className={`text-[13.5px] leading-snug line-clamp-2 ${
+                            isCurrent ? 'font-semibold text-white' : 'text-white/85 group-hover:text-white'
                           }`}
                         >
                           {activity.name}
