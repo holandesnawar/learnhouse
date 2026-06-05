@@ -32,6 +32,7 @@ function EditVideoActivityModal({ activity, courseUuid, orgSlug, onClose }: Edit
 
   const [name, setName] = useState(activity.name || '')
   const [youtubeUrl, setYoutubeUrl] = useState('')
+  const [isBunny, setIsBunny] = useState(activity?.content?.type === 'bunny')
   const [videoFile, setVideoFile] = useState<File | null>(null)
   const [videoDetails, setVideoDetails] = useState<VideoDetails>({
     startTime: 0,
@@ -56,6 +57,12 @@ function EditVideoActivityModal({ activity, courseUuid, orgSlug, onClose }: Edit
       if (data?.content?.uri) {
         setYoutubeUrl(data.content.uri)
       }
+      // A Bunny video is stored as an external video too; tell it apart by its
+      // content.type or its mediadelivery.net URL so we show the right field.
+      setIsBunny(
+        data?.content?.type === 'bunny' ||
+          /mediadelivery\.net/.test(data?.content?.uri || '')
+      )
       setIsLoading(false)
     }
     loadActivity()
@@ -128,7 +135,7 @@ function EditVideoActivityModal({ activity, courseUuid, orgSlug, onClose }: Edit
       >
         <span className="flex items-center gap-2 bg-white nice-shadow rounded-full px-4 py-1.5 text-sm font-medium text-gray-600">
           <PlayCircle size={18} weight="duotone" className="text-violet-400" />
-          {isYouTube ? 'YouTube Video' : 'Hosted Video'}
+          {isBunny ? 'Vídeo Bunny' : isYouTube ? 'YouTube Video' : 'Hosted Video'}
         </span>
       </div>
 
@@ -147,17 +154,27 @@ function EditVideoActivityModal({ activity, courseUuid, orgSlug, onClose }: Edit
 
         {isYouTube ? (
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-gray-700">YouTube URL</label>
+            <label className="text-sm font-medium text-gray-700">
+              {isBunny ? 'Enlace de Bunny' : 'YouTube URL'}
+            </label>
             <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
-              <YoutubeLogo size={14} weight="duotone" />
-              <span>Update the YouTube link below</span>
+              {isBunny ? <PlayCircle size={14} weight="duotone" /> : <YoutubeLogo size={14} weight="duotone" />}
+              <span>
+                {isBunny
+                  ? 'Actualiza el enlace del reproductor de Bunny'
+                  : 'Update the YouTube link below'}
+              </span>
             </div>
             <input
               value={youtubeUrl}
               onChange={(e) => setYoutubeUrl(e.target.value)}
               type="text"
               required
-              placeholder="https://youtube.com/watch?v=..."
+              placeholder={
+                isBunny
+                  ? 'https://iframe.mediadelivery.net/embed/675650/...'
+                  : 'https://youtube.com/watch?v=...'
+              }
               className="w-full h-9 px-3 text-sm rounded-lg bg-gray-50 border border-gray-200 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-200 transition-colors"
             />
           </div>
