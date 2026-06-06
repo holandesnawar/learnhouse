@@ -809,7 +809,7 @@ function ActivityClient(props: ActivityClientProps) {
                         aparece en la barra lateral, evitando el título duplicado). */}
                     <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 lg:-mx-8 -mt-5 px-4 sm:px-6 lg:px-8 py-3 bg-white/95 backdrop-blur-md border-b border-[#DDE6F5]">
                       <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0 lg:[padding-left:var(--course-focus-pad,0px)] transition-[padding] duration-200">
                           <Link
                             href={getUriWithOrg(orgslug, `/course/${courseuuid}`)}
                             className="lg:hidden shrink-0 text-gray-400 hover:text-[#1D0084] transition-colors"
@@ -870,7 +870,7 @@ function ActivityClient(props: ActivityClientProps) {
                             <div className="flex justify-center">
                               {/* Columna de contenido contenida y centrada (estilo Thinkific):
                                   no ocupa todo el ancho para que el vídeo/lección no abrume. */}
-                              <div className="flex-1 min-w-0 w-full lg:max-w-3xl space-y-4">
+                              <div className="flex-1 min-w-0 w-full lg:max-w-4xl space-y-4">
                                 <div className={`${
                                   activity.activity_type === 'TYPE_SCORM'
                                     ? 'rounded-xl overflow-hidden'

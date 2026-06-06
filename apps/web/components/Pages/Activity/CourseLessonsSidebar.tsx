@@ -249,6 +249,9 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
   useEffect(() => {
     const root = document.documentElement
     root.style.setProperty('--course-sidebar-w', collapsed ? '0px' : '340px')
+    // Hueco que la barra superior de la lección reserva a su izquierda para no
+    // quedar tapada por el icono flotante de "salir de modo enfoque".
+    root.style.setProperty('--course-focus-pad', collapsed ? '38px' : '0px')
     try {
       localStorage.setItem('nawar_course_sidebar_collapsed', collapsed ? '1' : '0')
     } catch {
@@ -256,6 +259,7 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
     }
     return () => {
       root.style.removeProperty('--course-sidebar-w')
+      root.style.removeProperty('--course-focus-pad')
     }
   }, [collapsed])
 
@@ -280,9 +284,9 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
         onClick={() => setCollapsed(false)}
         title="Salir del modo enfoque"
         aria-label="Salir del modo enfoque"
-        className="hidden lg:flex fixed left-3 top-3 z-30 w-10 h-10 rounded-lg bg-[#1D0084] text-white items-center justify-center nice-shadow hover:bg-[#2a0fa0] transition-colors"
+        className="hidden lg:flex fixed left-4 top-4 z-40 items-center justify-center text-[#4da3ff] hover:text-[#6cb5ff] transition-colors"
       >
-        <PanelLeftOpen size={20} />
+        <PanelLeftOpen size={22} />
       </button>
     )
   }
@@ -312,11 +316,14 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
         </Link>
         <button
           onClick={() => setCollapsed(true)}
-          title="Modo enfoque (ocultar panel)"
+          title="Modo enfoque"
           aria-label="Modo enfoque"
-          className="shrink-0 -mr-1 w-8 h-8 flex items-center justify-center rounded-md text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+          className="group shrink-0 -mr-1 h-8 px-1.5 flex items-center rounded-md text-white/70 hover:text-white hover:bg-white/10 transition-colors"
         >
-          <PanelLeftClose size={18} />
+          <span className="overflow-hidden w-0 group-hover:w-auto opacity-0 group-hover:opacity-100 group-hover:mr-1.5 text-[12px] font-semibold whitespace-nowrap transition-all duration-200">
+            Modo enfoque
+          </span>
+          <PanelLeftClose size={18} className="shrink-0" />
         </button>
       </div>
 
@@ -329,7 +336,7 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
           {course.name}
         </h2>
         <div className="mt-2.5 flex items-baseline gap-1.5">
-          <span className="text-[22px] font-extrabold text-white leading-none">{pct}%</span>
+          <span className="text-[22px] font-bold text-white leading-none">{pct}%</span>
           <span className="text-[11px] text-white/55">completado</span>
         </div>
         <div className="mt-2 h-1.5 bg-white/15 rounded-full overflow-hidden">
@@ -407,14 +414,14 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
                     >
                       <div
                         ref={isCurrent ? activeRef : undefined}
-                        className={`group flex items-start gap-2.5 px-4 py-2.5 transition-colors ${
+                        className={`group flex items-center gap-2.5 px-4 py-2.5 transition-colors ${
                           isCurrent
                             ? 'bg-white/10 border-l-2 border-[#4da3ff] pl-[14px]'
                             : 'border-l-2 border-transparent hover:bg-white/5'
                         }`}
                       >
                         {/* Círculo de la lección: vacío (solo borde); verde con check si completada */}
-                        <div className="shrink-0 mt-0.5">
+                        <div className="shrink-0">
                           {isComplete ? (
                             <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
                               <Check size={12} className="text-white stroke-[3]" />
