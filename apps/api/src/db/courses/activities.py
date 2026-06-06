@@ -108,3 +108,6 @@ class ActivityRead(ActivityBase):
     last_modified_by_username: Optional[str] = None
     # Computed per-request: true if current user cannot access this activity.
     is_locked: bool = False
+    # Computed per-request: ISO date when a drip-locked activity unlocks for this
+    # user (enrollment date + configured day offset). None when not drip-locked.
+    unlock_date: Optional[str] = None

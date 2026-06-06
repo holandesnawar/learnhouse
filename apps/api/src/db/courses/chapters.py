@@ -62,6 +62,9 @@ class ChapterRead(ChapterBase):
     # content (and, by cascade, its activities). Metadata (name, thumbnail) is still
     # returned so TOC navigation still renders a lock placeholder.
     is_locked: bool = False
+    # Computed per-request: ISO date when a drip-locked chapter unlocks for this
+    # user (enrollment date + configured day offset). None when not drip-locked.
+    unlock_date: Optional[str] = None
     pass
 
 

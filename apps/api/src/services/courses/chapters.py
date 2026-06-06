@@ -21,6 +21,7 @@ from fastapi import HTTPException, status, Request
 from src.security.rbac import check_resource_access, AccessAction
 from src.services.courses.locks import (
     batch_accessible_restricted_uuids,
+    drip_locked_chapters,
     is_locked_for_user,
     is_org_admin,
 )
@@ -409,8 +410,19 @@ async def _apply_locks_to_chapters(
     # Course-level usergroup membership unlocks everything below it.
     course_grants_access = course.course_uuid in accessible
 
+    # Drip content: chapters that haven't unlocked yet for this user (time-based,
+    # independent of the usergroup lock_type axis above).
+    drip_locked = await drip_locked_chapters(
+        [c.chapter_uuid for c in chapters],
+        course.org_id,
+        current_user,
+        db_session,
+        is_admin=admin,
+    )
+
     for chapter in chapters:
-        chapter_locked = False if course_grants_access else await is_locked_for_user(
+        drip_unlock = drip_locked.get(chapter.chapter_uuid)
+        usergroup_locked = False if course_grants_access else await is_locked_for_user(
             chapter.lock_type,
             chapter.chapter_uuid,
             course.org_id,
@@ -419,7 +431,10 @@ async def _apply_locks_to_chapters(
             accessible_restricted_uuids=accessible,
             is_admin=admin,
         )
+        chapter_locked = usergroup_locked or (drip_unlock is not None)
         chapter.is_locked = chapter_locked
+        if drip_unlock is not None:
+            chapter.unlock_date = drip_unlock
         if chapter_locked:
             chapter.description = ""
             chapter.thumbnail_image = ""
@@ -440,6 +455,8 @@ async def _apply_locks_to_chapters(
                     is_admin=admin,
                 )
             activity.is_locked = activity_locked
+            if drip_unlock is not None:
+                activity.unlock_date = drip_unlock
             if activity_locked:
                 activity.content = {}
                 activity.details = None

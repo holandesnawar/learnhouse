@@ -22,6 +22,7 @@ from src.security.rbac import check_resource_access, AccessAction
 from src.services.courses.activities.versioning import create_activity_version
 from src.services.courses.locks import (
     batch_accessible_restricted_uuids,
+    drip_locked_chapters,
     is_locked_for_user,
     is_org_admin,
 )
@@ -302,6 +303,7 @@ async def _apply_activity_lock(
         return
 
     chapter_locked = False
+    drip_unlock = None
     if parent_chapter_row:
         chapter_locked = await is_locked_for_user(
             parent_chapter_row.lock_type,
@@ -312,8 +314,17 @@ async def _apply_activity_lock(
             accessible_restricted_uuids=accessible,
             is_admin=admin,
         )
+        # Drip content: parent chapter may not have unlocked yet for this user.
+        drip = await drip_locked_chapters(
+            [parent_chapter_row.chapter_uuid],
+            course.org_id,
+            current_user,
+            db_session,
+            is_admin=admin,
+        )
+        drip_unlock = drip.get(parent_chapter_row.chapter_uuid)
 
-    activity_locked = chapter_locked or await is_locked_for_user(
+    activity_locked = chapter_locked or (drip_unlock is not None) or await is_locked_for_user(
         activity.lock_type,
         activity.activity_uuid,
         course.org_id,
@@ -323,6 +334,8 @@ async def _apply_activity_lock(
         is_admin=admin,
     )
 
+    if drip_unlock is not None:
+        activity_read.unlock_date = drip_unlock
     if activity_locked:
         activity_read.content = {}
         activity_read.details = None

@@ -11,11 +11,13 @@ Batch helpers are provided for TOC-style reads where many resources need
 to be checked at once without N+1 queries.
 """
 
+from datetime import datetime, timedelta
 from typing import Iterable
 
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from src.db.organization_config import OrganizationConfig
 from src.db.user_organizations import UserOrganization
 from src.db.usergroup_resources import UserGroupResource
 from src.db.usergroup_user import UserGroupUser
@@ -64,6 +66,98 @@ async def batch_accessible_restricted_uuids(
         )).scalars().all()
     )
     return {resource_uuid for resource_uuid, ug_id in ugrs if ug_id in member_ug_ids}
+
+
+# ---------------------------------------------------------------------------
+# Drip content (time-based unlocking)
+#
+# A chapter can be configured to unlock a number of days AFTER each student's
+# enrollment date (the date they joined the org). Settings live in
+# OrganizationConfig.config["drip_content"]:
+#
+#     {"enabled": true, "chapters": {"<chapter_uuid>": <day_offset:int>}}
+#
+# A day_offset of 0 (or a chapter absent from the map) means "open from day 1".
+# This is an independent axis from the usergroup lock_type system above.
+# ---------------------------------------------------------------------------
+
+
+async def get_drip_settings(org_id: int, db_session: AsyncSession) -> dict:
+    """Read drip-content settings from org config. Returns {} when disabled/absent."""
+    row = (await db_session.execute(
+        select(OrganizationConfig).where(OrganizationConfig.org_id == org_id)
+    )).scalars().first()
+    if not row or not isinstance(row.config, dict):
+        return {}
+    drip = row.config.get("drip_content") or {}
+    if not isinstance(drip, dict) or not drip.get("enabled"):
+        return {}
+    return drip
+
+
+def _parse_dt(value) -> "datetime | None":
+    if not value or not isinstance(value, str):
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except (ValueError, TypeError):
+        return None
+
+
+async def drip_locked_chapters(
+    chapter_uuids: Iterable[str],
+    org_id: int,
+    current_user: PublicUser | AnonymousUser | APITokenUser,
+    db_session: AsyncSession,
+    *,
+    drip: dict | None = None,
+    is_admin: bool = False,
+) -> dict[str, str]:
+    """Map ``{chapter_uuid: unlock_date_iso}`` for chapters still locked by drip.
+
+    A chapter absent from the returned map is NOT drip-locked for this user.
+    Admins and chapters with offset <= 0 are never drip-locked. When the
+    enrollment date can't be resolved we fail OPEN (no drip lock) so paying
+    students never get accidentally shut out.
+    """
+    if is_admin:
+        return {}
+    settings = drip if drip is not None else await get_drip_settings(org_id, db_session)
+    if not settings:
+        return {}
+    offsets = settings.get("chapters") or {}
+    if not isinstance(offsets, dict) or not offsets:
+        return {}
+
+    # Enrollment date = when the user joined this org.
+    if isinstance(current_user, AnonymousUser):
+        return {}
+    acting_user_id = resolve_acting_user_id(current_user)
+    uo = (await db_session.execute(
+        select(UserOrganization).where(
+            UserOrganization.user_id == acting_user_id,
+            UserOrganization.org_id == org_id,
+        )
+    )).scalars().first()
+    enrolled_at = _parse_dt(uo.creation_date) if uo else None
+    if enrolled_at is None:
+        return {}  # fail open
+
+    now = datetime.now()
+    locked: dict[str, str] = {}
+    for cu in chapter_uuids:
+        if not cu:
+            continue
+        try:
+            offset = int(offsets.get(cu, 0) or 0)
+        except (ValueError, TypeError):
+            offset = 0
+        if offset <= 0:
+            continue
+        unlock_at = enrolled_at + timedelta(days=offset)
+        if now < unlock_at:
+            locked[cu] = unlock_at.isoformat()
+    return locked
 
 
 async def is_locked_for_user(
