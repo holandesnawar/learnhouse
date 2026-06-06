@@ -24,14 +24,35 @@ import useAdminStatus from '@components/Hooks/useAdminStatus'
 dayjs.extend(relativeTime)
 dayjs.extend(utc)
 
-// Relative time in Spanish. The API serialises creation_date as a naive UTC
-// string (no timezone), which dayjs would otherwise read as local time and
-// report e.g. "hace 2 horas" for a brand-new message. Treat tz-less strings as
-// UTC, then convert to the viewer's local time.
-function relativeFromNow(date: string): string {
+// The API serialises creation_date as a naive UTC string (no timezone), which
+// dayjs would otherwise read as local time. Treat tz-less strings as UTC, then
+// convert to the viewer's local time.
+function localDay(date: string) {
   const hasTz = /[zZ]|[+-]\d{2}:?\d{2}$/.test(date)
-  const d = hasTz ? dayjs(date) : dayjs.utc(date).local()
-  return d.locale('es').fromNow()
+  return hasTz ? dayjs(date) : dayjs.utc(date).local()
+}
+
+// Clock time (HH:mm) shown per message — the "hora de envío".
+function clockTime(date: string): string {
+  return localDay(date).locale('es').format('HH:mm')
+}
+
+// Epoch ms, to measure the gap between two consecutive messages.
+function msOf(date: string): number {
+  return localDay(date).valueOf()
+}
+
+// "Hoy" / "Ayer" / "3 de junio" — for the day separators between message groups.
+function dayLabel(date: string): string {
+  const d = localDay(date)
+  const today = dayjs()
+  if (d.isSame(today, 'day')) return 'Hoy'
+  if (d.isSame(today.subtract(1, 'day'), 'day')) return 'Ayer'
+  return d.locale('es').format('D [de] MMMM')
+}
+
+function dayKey(date: string): string {
+  return localDay(date).format('YYYY-MM-DD')
 }
 
 function getAvatarUrl(author: DiscussionAuthor | null): string | null {
@@ -189,63 +210,98 @@ export function ChannelChat({
           <div className="space-y-0.5">
             {messages.map((m, i) => {
               const prev = messages[i - 1]
-              const grouped = prev && prev.author?.id === m.author?.id
+              const newDay = !prev || dayKey(prev.creation_date) !== dayKey(m.creation_date)
+              // Group with the previous bubble only if it's the same author, within
+              // 5 minutes, the same day, and neither message is pinned. Otherwise we
+              // start a fresh block with avatar + name + time (WhatsApp-style).
+              const grouped =
+                !!prev &&
+                !newDay &&
+                prev.author?.id === m.author?.id &&
+                Math.abs(msOf(m.creation_date) - msOf(prev.creation_date)) < 5 * 60 * 1000 &&
+                !m.is_pinned &&
+                !prev.is_pinned
               return (
-                <div
-                  key={m.discussion_uuid}
-                  className={`group/msg relative flex gap-2.5 px-4 ${grouped ? 'py-0.5' : 'pt-3 pb-0.5'} ${m.is_pinned ? 'bg-[#F0F5FF]/50' : ''}`}
-                >
-                  <div className="w-8 shrink-0">
-                    {!grouped && (
-                      <UserAvatar
-                        width={32}
-                        rounded="rounded-full"
-                        avatar_url={getAvatarUrl(m.author) || undefined}
-                        predefined_avatar={m.author?.avatar_image ? undefined : 'empty'}
-                        showProfilePopup={true}
-                        userId={m.author?.id?.toString()}
-                      />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    {!grouped && (
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-sm font-semibold text-gray-900">{authorName(m.author)}</span>
-                        <span className="text-[11px] text-gray-400">{relativeFromNow(m.creation_date)}</span>
-                        {m.is_pinned && (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wider text-[#025dc7]">
-                            <Pin size={10} /> Fijado
-                          </span>
-                        )}
-                      </div>
-                    )}
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap break-words leading-relaxed">
-                      {messageText(m)}
-                    </p>
-                  </div>
-                  {isAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => togglePin(m.discussion_uuid, !m.is_pinned)}
-                      disabled={pinningUuid === m.discussion_uuid}
-                      title={m.is_pinned ? 'Desfijar' : 'Fijar mensaje'}
-                      aria-label={m.is_pinned ? 'Desfijar mensaje' : 'Fijar mensaje'}
-                      className={`absolute top-2 right-3 inline-flex items-center justify-center w-7 h-7 rounded-md transition-all ${
-                        m.is_pinned
-                          ? 'text-[#025dc7] hover:bg-[#025dc7]/10'
-                          : 'text-gray-400 hover:text-[#025dc7] hover:bg-[#025dc7]/10 opacity-0 group-hover/msg:opacity-100'
-                      } ${pinningUuid === m.discussion_uuid ? 'opacity-60 pointer-events-none' : ''}`}
-                    >
-                      {pinningUuid === m.discussion_uuid ? (
-                        <Loader2 size={14} className="animate-spin" />
-                      ) : m.is_pinned ? (
-                        <PinOff size={14} />
-                      ) : (
-                        <Pin size={14} />
-                      )}
-                    </button>
+                <React.Fragment key={m.discussion_uuid}>
+                  {newDay && (
+                    <div className="flex items-center gap-3 px-4 py-3">
+                      <div className="h-px flex-1 bg-gray-100" />
+                      <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                        {dayLabel(m.creation_date)}
+                      </span>
+                      <div className="h-px flex-1 bg-gray-100" />
+                    </div>
                   )}
-                </div>
+                  <div
+                    className={`group/msg relative flex gap-2.5 px-4 ${grouped ? 'mt-0.5' : 'mt-2'}`}
+                  >
+                    {/* Avatar (first of a block) — or the clock time on hover when grouped */}
+                    <div className="w-9 shrink-0 flex justify-center">
+                      {!grouped ? (
+                        <UserAvatar
+                          width={36}
+                          rounded="rounded-full"
+                          avatar_url={getAvatarUrl(m.author) || undefined}
+                          predefined_avatar={m.author?.avatar_image ? undefined : 'empty'}
+                          showProfilePopup={true}
+                          userId={m.author?.id?.toString()}
+                        />
+                      ) : (
+                        <span className="mt-1.5 text-[10px] text-gray-400 tabular-nums opacity-0 group-hover/msg:opacity-100 transition-opacity">
+                          {clockTime(m.creation_date)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      {!grouped && (
+                        <div className="flex items-baseline gap-2 mb-0.5">
+                          <span className="text-sm font-semibold text-gray-900">{authorName(m.author)}</span>
+                          <span className="text-[11px] text-gray-400 tabular-nums">{clockTime(m.creation_date)}</span>
+                          {m.is_pinned && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wider text-[#025dc7]">
+                              <Pin size={10} /> Fijado
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {/* Each message is its own bubble so consecutive ones read as
+                          separate messages, not one merged block. */}
+                      <div
+                        className={`inline-block max-w-full rounded-2xl px-3 py-2 ${
+                          m.is_pinned
+                            ? 'bg-white ring-1 ring-[#025dc7]/30'
+                            : 'bg-[#F0F5FF]'
+                        } ${grouped ? 'rounded-tl-md' : 'rounded-tl-sm'}`}
+                      >
+                        <p className="text-sm text-gray-800 whitespace-pre-wrap break-words leading-relaxed">
+                          {messageText(m)}
+                        </p>
+                      </div>
+                    </div>
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => togglePin(m.discussion_uuid, !m.is_pinned)}
+                        disabled={pinningUuid === m.discussion_uuid}
+                        title={m.is_pinned ? 'Desfijar' : 'Fijar mensaje'}
+                        aria-label={m.is_pinned ? 'Desfijar mensaje' : 'Fijar mensaje'}
+                        className={`absolute top-1 right-3 inline-flex items-center justify-center w-7 h-7 rounded-md transition-all ${
+                          m.is_pinned
+                            ? 'text-[#025dc7] hover:bg-[#025dc7]/10'
+                            : 'text-gray-400 hover:text-[#025dc7] hover:bg-[#025dc7]/10 opacity-0 group-hover/msg:opacity-100'
+                        } ${pinningUuid === m.discussion_uuid ? 'opacity-60 pointer-events-none' : ''}`}
+                      >
+                        {pinningUuid === m.discussion_uuid ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : m.is_pinned ? (
+                          <PinOff size={14} />
+                        ) : (
+                          <Pin size={14} />
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </React.Fragment>
               )
             })}
           </div>
