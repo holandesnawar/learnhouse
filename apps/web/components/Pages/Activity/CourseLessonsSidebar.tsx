@@ -207,34 +207,11 @@ function ProgressHeader({ done, total, pct }: { done: number; total: number; pct
 // on lesson pages). Mobile keeps the full-screen panel (MobileCourseLessons).
 export default function CourseLessonsSidebar(props: CourseLessonsProps) {
   const { course, currentActivityId, orgslug, trailData } = props
-  const { run, total, done, pct, cleanCourseUuid } = useProgress(course, trailData)
+  const { run, pct, cleanCourseUuid } = useProgress(course, trailData)
   const cleanCurrent = currentActivityId?.replace('activity_', '')
   const chapters = course?.chapters ?? []
   const [search, setSearch] = useState('')
   const [collapsed, setCollapsed] = useState(false)
-
-  // Remember the open/closed choice across lessons, and drive the lesson
-  // reflow through a CSS variable the layout reads (`--course-sidebar-w`), so
-  // collapsing here makes the lesson go full-width with no layout coupling.
-  useEffect(() => {
-    try {
-      if (localStorage.getItem('nawar_course_sidebar_collapsed') === '1') setCollapsed(true)
-    } catch {
-      /* localStorage unavailable */
-    }
-  }, [])
-  useEffect(() => {
-    const root = document.documentElement
-    root.style.setProperty('--course-sidebar-w', collapsed ? '0px' : '340px')
-    try {
-      localStorage.setItem('nawar_course_sidebar_collapsed', collapsed ? '1' : '0')
-    } catch {
-      /* ignore */
-    }
-    return () => {
-      root.style.removeProperty('--course-sidebar-w')
-    }
-  }, [collapsed])
 
   const currentChapterIdx = useMemo(
     () =>
@@ -259,6 +236,29 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
     activeRef.current?.scrollIntoView({ block: 'nearest' })
   }, [cleanCurrent])
 
+  // Focus mode: collapsing hides the sidebar and makes the lesson full-width
+  // through the --course-sidebar-w CSS var the layout reads. Remembered across
+  // lessons so the student's choice sticks.
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('nawar_course_sidebar_collapsed') === '1') setCollapsed(true)
+    } catch {
+      /* localStorage unavailable */
+    }
+  }, [])
+  useEffect(() => {
+    const root = document.documentElement
+    root.style.setProperty('--course-sidebar-w', collapsed ? '0px' : '340px')
+    try {
+      localStorage.setItem('nawar_course_sidebar_collapsed', collapsed ? '1' : '0')
+    } catch {
+      /* ignore */
+    }
+    return () => {
+      root.style.removeProperty('--course-sidebar-w')
+    }
+  }, [collapsed])
+
   if (!course?.chapters) return null
 
   const courseHref = getUriWithOrg(orgslug, '') + `/course/${cleanCourseUuid}`
@@ -273,14 +273,13 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
     })
   }
 
-  // Collapsed → only a small floating button to bring the panel back. The
-  // lesson is already full-width because --course-sidebar-w is 0.
+  // Focus mode ON → only a small floating button to bring the panel back.
   if (collapsed) {
     return (
       <button
         onClick={() => setCollapsed(false)}
-        title="Mostrar contenido del curso"
-        aria-label="Mostrar contenido del curso"
+        title="Salir del modo enfoque"
+        aria-label="Salir del modo enfoque"
         className="hidden lg:flex fixed left-3 top-3 z-30 w-10 h-10 rounded-lg bg-[#1D0084] text-white items-center justify-center nice-shadow hover:bg-[#2a0fa0] transition-colors"
       >
         <PanelLeftOpen size={20} />
@@ -292,8 +291,7 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
     <aside
       className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-[340px] text-white z-30"
       style={{
-        // Mismo fondo exacto que la barra lateral de la plataforma (OrgSidebar):
-        // base #1D0084 + 2 glows #0b6df0 en esquinas + puntos sutiles.
+        // Mismo fondo exacto que la barra lateral de la plataforma (OrgSidebar).
         backgroundColor: '#1D0084',
         backgroundImage:
           'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
@@ -303,40 +301,38 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
         backgroundRepeat: 'repeat, no-repeat, no-repeat',
       }}
     >
-      {/* Volver al curso */}
-      <Link
-        href={courseHref}
-        className="flex items-center gap-2 px-4 h-14 shrink-0 text-sm font-semibold text-white/90 hover:text-white border-b border-white/10 transition-colors"
-      >
-        <ChevronLeft size={18} className="shrink-0" />
-        Volver al curso
-      </Link>
+      {/* Volver + botón modo enfoque (a la derecha, misma fila) */}
+      <div className="flex items-center justify-between px-4 h-14 shrink-0 border-b border-white/10">
+        <Link
+          href={courseHref}
+          className="flex items-center gap-1.5 text-sm font-semibold text-white/90 hover:text-white transition-colors"
+        >
+          <ChevronLeft size={18} className="shrink-0" />
+          Volver
+        </Link>
+        <button
+          onClick={() => setCollapsed(true)}
+          title="Modo enfoque (ocultar panel)"
+          aria-label="Modo enfoque"
+          className="shrink-0 -mr-1 w-8 h-8 flex items-center justify-center rounded-md text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+        >
+          <PanelLeftClose size={18} />
+        </button>
+      </div>
 
-      {/* Título + progreso */}
+      {/* Título del curso + progreso (% grande y bold a la izquierda) */}
       <div className="px-4 py-3 border-b border-white/10 shrink-0">
-        <div className="flex items-start justify-between gap-2">
-          <h2
-            className="text-[15px] font-bold leading-tight line-clamp-2"
-            style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
-          >
-            {course.name}
-          </h2>
-          <button
-            onClick={() => setCollapsed(true)}
-            title="Ocultar contenido"
-            aria-label="Ocultar contenido"
-            className="shrink-0 -mr-1 -mt-0.5 w-7 h-7 flex items-center justify-center rounded-md text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-          >
-            <PanelLeftClose size={16} />
-          </button>
+        <h2
+          className="text-[14px] font-bold leading-tight line-clamp-2 text-white/90"
+          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+        >
+          {course.name}
+        </h2>
+        <div className="mt-2.5 flex items-baseline gap-1.5">
+          <span className="text-[22px] font-extrabold text-white leading-none">{pct}%</span>
+          <span className="text-[11px] text-white/55">completado</span>
         </div>
-        <div className="mt-2 flex items-center justify-between text-[11px] text-white/60">
-          <span>
-            {done} / {total}
-          </span>
-          <span>{pct}%</span>
-        </div>
-        <div className="mt-1 h-1.5 bg-white/15 rounded-full overflow-hidden">
+        <div className="mt-2 h-1.5 bg-white/15 rounded-full overflow-hidden">
           <div
             className="h-full bg-[#4da3ff] rounded-full transition-all duration-300"
             style={{ width: `${pct}%` }}
@@ -375,6 +371,7 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
                 onClick={() => !q && toggle(index)}
                 className="w-full flex items-center gap-2.5 px-4 py-3.5 text-left hover:bg-white/5 border-b border-white/5 transition-colors"
               >
+                {/* Círculo del módulo: vacío; relleno azul cuando es el módulo actual */}
                 <span
                   className={`shrink-0 w-4 h-4 rounded-full border-2 ${
                     index === currentChapterIdx
@@ -382,7 +379,7 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
                       : 'border-white/40'
                   }`}
                 />
-                <span className="flex-1 text-[14px] font-bold uppercase tracking-wide text-white/95 truncate">
+                <span className="flex-1 text-[15px] font-bold uppercase tracking-wide text-white truncate">
                   {chapter.name}
                 </span>
                 <span className="text-[11px] text-white/55 tabular-nums shrink-0">
@@ -416,6 +413,7 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
                             : 'border-l-2 border-transparent hover:bg-white/5'
                         }`}
                       >
+                        {/* Círculo de la lección: vacío (solo borde); verde con check si completada */}
                         <div className="shrink-0 mt-0.5">
                           {isComplete ? (
                             <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
@@ -423,17 +421,16 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
                             </div>
                           ) : (
                             <div
-                              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                                isCurrent ? 'border-[#4da3ff] text-[#4da3ff]' : 'border-white/35 text-white/50'
+                              className={`w-5 h-5 rounded-full border-2 ${
+                                isCurrent ? 'border-[#4da3ff]' : 'border-white/35'
                               }`}
-                            >
-                              {getActivityTypeIcon(activity.activity_type)}
-                            </div>
+                            />
                           )}
                         </div>
+                        {/* Lecciones SIN negrita (solo los títulos de módulo van en bold) */}
                         <span
                           className={`text-[13.5px] leading-snug line-clamp-2 ${
-                            isCurrent ? 'font-semibold text-white' : 'text-white/85 group-hover:text-white'
+                            isCurrent ? 'text-white' : 'text-white/85 group-hover:text-white'
                           }`}
                         >
                           {activity.name}

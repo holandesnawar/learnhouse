@@ -428,11 +428,14 @@ function ActivityClient(props: ActivityClientProps) {
     router.push(getUriWithOrg(orgslug, '') + `/course/${cleanCourseUuid}/activity/${activity.cleanUuid}`);
   };
 
-  // Initialize focus mode from localStorage
+  // El "modo enfoque" antiguo (superposición a pantalla completa) se ha jubilado:
+  // ahora "enfocarse" = ocultar la barra lateral del curso desde su propio icono.
+  // Forzamos OFF y limpiamos el flag viejo para que nadie quede atrapado en la
+  // superposición por un valor antiguo de localStorage.
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('globalFocusMode');
-      setIsFocusMode(saved === 'true');
+      setIsFocusMode(false);
+      localStorage.removeItem('globalFocusMode');
     }
   }, []);
 
@@ -679,18 +682,6 @@ function ActivityClient(props: ActivityClientProps) {
                           transition={{ delay: 0.2 }}
                           className="flex items-center space-x-2"
                         >
-                          {activity && (
-                            <div className="hidden sm:block">
-                              <ActivityShareDropdown
-                                activityName={activity.name}
-                                activityUrl={typeof window !== 'undefined' ? window.location.href : ''}
-                                orgslug={orgslug}
-                                courseUuid={course.course_uuid}
-                                activityId={activity.activity_uuid ? activity.activity_uuid.replace('activity_', '') : activityid.replace('activity_', '')}
-                                activityType={activity.activity_type}
-                              />
-                            </div>
-                          )}
                           <ActivityChapterDropdown
                             course={course}
                             currentActivityId={activity ? (activity.activity_uuid ? activity.activity_uuid.replace('activity_', '') : activityid.replace('activity_', '')) : activityid.replace('activity_', '')}
@@ -812,65 +803,54 @@ function ActivityClient(props: ActivityClientProps) {
                   />
                 ) : (
                   <div className="space-y-3 pt-0 relative">
-                    <div className="pt-1 pb-1 sm:pb-2 lg:hidden">
-                      <Link
-                        href={getUriWithOrg(orgslug, `/course/${courseuuid}`)}
-                        className="inline-flex items-center gap-1.5 text-sm font-medium text-[#5A6480] hover:text-[#1D0084] transition-colors"
-                      >
-                        <ChevronLeft size={16} /> Volver al curso
-                      </Link>
-                    </div>
-                    <div className="space-y-2 sm:space-y-3 activity-info-section relative" style={{ zIndex: 'var(--z-content)' }}>
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-                          <div className="flex space-x-3 sm:space-x-4 items-center">
-                            <div className="flex shrink-0">
-                              <Link
-                                href={getUriWithOrg(orgslug, '') + `/course/${courseuuid}`}
-                              >
-                                <img
-                                  className="w-[48px] h-[27px] sm:w-[72px] sm:h-[41px] rounded-md drop-shadow-md"
-                                  src={course.thumbnail_image
-                                    ? getCourseThumbnailMediaDirectory(
-                                        org?.org_uuid,
-                                        course.course_uuid,
-                                        course.thumbnail_image
-                                      )
-                                    : '/empty_thumbnail.png'
-                                  }
-                                  alt=""
-                                />
-                              </Link>
-                            </div>
-                            <div className="flex flex-col -space-y-1">
-                              <Link
-                                href={getUriWithOrg(orgslug, '') + `/course/${courseuuid}`}
-                                className="font-bold text-gray-500 hover:text-[#1D0084] transition-colors text-[11px] sm:text-sm first-letter:uppercase"
-                              >
-                                {course.name}
-                              </Link>
-                              <h1 className="font-bold text-gray-950 text-base sm:text-xl first-letter:uppercase">
-                                {displayName}
-                              </h1>
-                            </div>
-                          </div>
+                    {/* Barra superior fija (estilo Thinkific): a la izquierda el título de la
+                        lección, a la derecha el botón de marcar/desmarcar como completada.
+                        Sustituye al antiguo encabezado que repetía el nombre del curso (ese ya
+                        aparece en la barra lateral, evitando el título duplicado). */}
+                    <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 lg:-mx-8 -mt-5 px-4 sm:px-6 lg:px-8 py-3 bg-white/95 backdrop-blur-md border-b border-[#DDE6F5]">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Link
+                            href={getUriWithOrg(orgslug, `/course/${courseuuid}`)}
+                            className="lg:hidden shrink-0 text-gray-400 hover:text-[#1D0084] transition-colors"
+                            aria-label="Volver al curso"
+                          >
+                            <ChevronLeft size={20} />
+                          </Link>
+                          <h1 className="font-bold text-gray-950 text-base sm:text-lg first-letter:uppercase truncate">
+                            {displayName}
+                          </h1>
                         </div>
-
-                        {/* Top progress strip — only on full-width activities (exercises/embeds)
-                            where the "Contenido del curso" sidebar isn't shown, to avoid
-                            two redundant progress indicators on normal lessons. */}
-                        {activity?.activity_sub_type === 'SUBTYPE_DYNAMIC_EMBED' && (
-                          <div className="lg:hidden">
-                            <ActivityIndicators
-                              course_uuid={courseuuid}
-                              current_activity={activityid}
-                              orgslug={orgslug}
-                              course={course}
-                              enableNavigation={true}
-                              trailData={trailData}
-                            />
+                        {activity && activity.activity_type !== 'TYPE_ASSIGNMENT' && activity.published == true && activity.content.paid_access != false && (
+                          <div className="shrink-0">
+                            <AuthenticatedClientElement checkMethod="authentication">
+                              <MarkStatus
+                                activity={activity}
+                                activityid={activityid}
+                                course={course}
+                                orgslug={orgslug}
+                                trailData={trailData}
+                              />
+                            </AuthenticatedClientElement>
                           </div>
                         )}
                       </div>
+                    </div>
+
+                    {/* Tira de progreso: solo para embeds/ejercicios y solo en móvil
+                        (en escritorio la barra lateral ya muestra el progreso). */}
+                    {activity?.activity_sub_type === 'SUBTYPE_DYNAMIC_EMBED' && (
+                      <div className="lg:hidden mt-3">
+                        <ActivityIndicators
+                          course_uuid={courseuuid}
+                          current_activity={activityid}
+                          orgslug={orgslug}
+                          course={course}
+                          enableNavigation={true}
+                          trailData={trailData}
+                        />
+                      </div>
+                    )}
 
                       {activityLoading || !activity ? (
                         <ActivityContentSkeleton activityType={displayActivityType} />
@@ -887,8 +867,10 @@ function ActivityClient(props: ActivityClientProps) {
                           {activity.content.paid_access == false ? (
                             <PaidCourseActivityDisclaimer course={course} />
                           ) : (
-                            <div className="flex gap-6">
-                              <div className="flex-1 min-w-0 space-y-4">
+                            <div className="flex justify-center">
+                              {/* Columna de contenido contenida y centrada (estilo Thinkific):
+                                  no ocupa todo el ancho para que el vídeo/lección no abrume. */}
+                              <div className="flex-1 min-w-0 w-full lg:max-w-3xl space-y-4">
                                 <div className={`${
                                   activity.activity_type === 'TYPE_SCORM'
                                     ? 'rounded-xl overflow-hidden'
@@ -896,19 +878,6 @@ function ActivityClient(props: ActivityClientProps) {
                                     ? 'rounded-lg nice-shadow'
                                     : 'p-3 sm:p-7 rounded-lg'
                                 } ${activity.activity_type === 'TYPE_VIDEO' ? '' : bgColor} relative isolate`} style={{ zIndex: 'var(--z-base)' }}>
-                                  <button
-                                    onClick={() => setIsFocusMode(true)}
-                                    className={`absolute ${activity.activity_type === 'TYPE_SCORM' ? 'top-2 right-2' : 'top-4 right-4'} hidden sm:flex bg-white/80 hover:bg-white nice-shadow p-2 rounded-full cursor-pointer transition-all duration-200 group overflow-hidden pointer-events-auto`}
-                                    style={{ zIndex: 'var(--z-interactive)' }}
-                                    title={t('activities.focus_mode')}
-                                  >
-                                    <div className="flex items-center">
-                                      <Maximize2 size={16} className="text-gray-700" />
-                                      <span className="text-xs font-bold text-gray-700 opacity-0 group-hover:opacity-100 transition-all duration-200 w-0 group-hover:w-auto group-hover:ml-2 whitespace-nowrap">
-                                        {t('activities.focus_mode')}
-                                      </span>
-                                    </div>
-                                  </button>
                                   {activityContent}
                                 </div>
                                 {/* Per-lesson description + tasks + Consultas (video lessons only) */}
@@ -920,7 +889,7 @@ function ActivityClient(props: ActivityClientProps) {
                                     canEdit={canEditLesson}
                                   />
                                 )}
-                                {/* Mobile lessons menu — on every activity type (incl. exercises) */}
+                                {/* Lista de lecciones en móvil (la barra lateral va oculta en móvil) */}
                                 <MobileCourseLessons
                                   course={course}
                                   currentActivityId={activityid}
@@ -928,7 +897,8 @@ function ActivityClient(props: ActivityClientProps) {
                                   trailData={trailData}
                                 />
                               </div>
-                              {/* Course-content sidebar — on every activity type (incl. exercises) */}
+                              {/* Barra lateral del curso — siempre presente (incluso en ejercicios/embeds);
+                                  se puede ocultar desde su propio icono para enfocarse. */}
                               <CourseLessonsSidebar
                                 course={course}
                                 currentActivityId={activityid}
@@ -1090,10 +1060,10 @@ export function MarkStatus(props: {
     return currentIndex >= 0 && currentIndex < flat.length - 1 ? flat[currentIndex + 1] : null;
   };
 
+  // Marcar como completada SIN navegar: es un toggle in situ (la navegación la
+  // gestiona el botón "Siguiente"). Así marcar/desmarcar no te saca de la lección.
   async function markActivityAsCompleteFront() {
     try {
-      const willCompleteAll = areAllActivitiesCompleted();
-      const nextActivity = findNextActivity();
       setIsLoading(true);
 
       await markActivityAsComplete(
@@ -1104,15 +1074,8 @@ export function MarkStatus(props: {
       );
 
       await queryClient.invalidateQueries({ queryKey: queryKeys.trail.org(org?.id) });
-
       const cleanCourseUuid = props.course.course_uuid.replace('course_', '');
       await queryClient.invalidateQueries({ queryKey: queryKeys.courses.meta(cleanCourseUuid) });
-      if (willCompleteAll || !nextActivity) {
-        router.push(getUriWithOrg(props.orgslug, '') + `/course/${cleanCourseUuid}/activity/end`);
-      } else {
-        const nextUuid = nextActivity.activity_uuid?.replace('activity_', '');
-        router.push(getUriWithOrg(props.orgslug, '') + `/course/${cleanCourseUuid}/activity/${nextUuid}`);
-      }
     } catch (error) {
       console.error('Error marking activity as complete:', error);
       toast.error(t('activities.failed_mark_complete'));
@@ -1171,78 +1134,44 @@ export function MarkStatus(props: {
     return null;
   }
 
+  const spinnerIcon = (
+    <div className="animate-spin">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 12a9 9 0 11-6.219-8.56" />
+      </svg>
+    </div>
+  );
+  const checkIcon = (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 6L9 17l-5-5" />
+    </svg>
+  );
+
   return (
     <>
       {isActivityCompleted() ? (
-        <div className="flex items-center space-x-2">
-          <div className="relative">
-            <ConfirmationModal
-              confirmationButtonText={t('activities.unmark_activity')}
-              confirmationMessage={t('activities.unmark_activity_confirm')}
-              dialogTitle={t('activities.unmark_activity_title')}
-              dialogTrigger={
-                <div className="bg-teal-600 rounded-lg px-4 py-2.5 nice-shadow flex items-center gap-2 text-white hover:cursor-pointer hover:bg-teal-700 transition-colors">
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                  <span className="text-sm font-semibold whitespace-nowrap">{t('common.complete')}</span>
-                </div>
-              }
-              functionToExecute={unmarkActivityAsCompleteFront}
-              status="warning"
-            />
-            {showMarkedTooltip && (
-              <MiniInfoTooltip
-                icon={infoIcon}
-                message={t('activities.unmark_tooltip')}
-                onClose={handleMarkedTooltipClose}
-                iconColor="text-teal-600"
-                iconSize={24}
-                width="w-64"
-              />
-            )}
-          </div>
-        </div>
+        // Completada → botón fantasma como el de "Anterior": sin fondo verde, solo
+        // texto/icono en azul oscuro de marca. Vuelve a hacer clic para desmarcar.
+        <button
+          type="button"
+          onClick={!isLoading ? unmarkActivityAsCompleteFront : undefined}
+          disabled={isLoading}
+          title={t('activities.unmark_activity')}
+          className={`rounded-lg px-3 sm:px-4 py-2.5 flex items-center gap-2 text-[#1D0084] border border-transparent transition-colors ${
+            isLoading ? 'opacity-60 cursor-not-allowed' : 'hover:bg-[#F0F5FF] hover:cursor-pointer'
+          }`}
+        >
+          {isLoading ? spinnerIcon : checkIcon}
+          <span className="text-sm font-semibold whitespace-nowrap">{t('common.completed', 'Completada')}</span>
+        </button>
       ) : (
-        <div className="flex items-center space-x-2">
-          <div className="relative">
-            <div
-              className={`${isLoading ? 'opacity-90 cursor-not-allowed' : 'hover:bg-emerald-700'} bg-emerald-600 rounded-lg px-4 py-2.5 nice-shadow flex items-center gap-2 text-white hover:cursor-pointer transition-colors`}
-              onClick={!isLoading ? markActivityAsCompleteFront : undefined}
-            >
-              {isLoading ? (
-                <div className="animate-spin">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 12a9 9 0 11-6.219-8.56" />
-                  </svg>
-                </div>
-              ) : (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 6L9 17l-5-5" />
-                </svg>
-              )}
-              <span className="text-sm font-semibold whitespace-nowrap">{isLoading ? t('activities.marking') : t('activities.mark_as_complete')}</span>
-            </div>
-            {showUnmarkedTooltip && (
-              <MiniInfoTooltip
-                icon={infoIcon}
-                message={t('activities.mark_tooltip')}
-                onClose={handleUnmarkedTooltipClose}
-                iconColor="text-gray-600"
-                iconSize={24}
-                width="w-64"
-              />
-            )}
-          </div>
+        // Sin completar → CTA verde "Marcar como completada".
+        <div
+          className={`${isLoading ? 'opacity-90 cursor-not-allowed' : 'hover:bg-emerald-700'} bg-emerald-600 rounded-lg px-3 sm:px-4 py-2.5 nice-shadow flex items-center gap-2 text-white hover:cursor-pointer transition-colors`}
+          onClick={!isLoading ? markActivityAsCompleteFront : undefined}
+        >
+          {isLoading ? spinnerIcon : checkIcon}
+          <span className="text-sm font-semibold whitespace-nowrap">{isLoading ? t('activities.marking') : t('activities.mark_as_complete')}</span>
         </div>
       )}
     </>
