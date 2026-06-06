@@ -52,9 +52,16 @@ export interface DiscussionAuthor {
   bio: string | null
 }
 
+export interface ReactionLite {
+  emoji: string
+  count: number
+  has_reacted: boolean
+}
+
 export interface DiscussionWithAuthor extends Discussion {
   author: DiscussionAuthor | null
   has_voted: boolean
+  reactions?: ReactionLite[]
 }
 
 export interface DiscussionCreate {

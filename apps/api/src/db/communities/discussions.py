@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from sqlalchemy import Column, ForeignKey, Integer, Text, Boolean, String
 from sqlmodel import Field, SQLModel
 from src.db.users import UserRead
@@ -88,8 +88,19 @@ class DiscussionReadWithAuthor(DiscussionRead):
     author: Optional[UserRead] = None
 
 
+class ReactionLite(SQLModel):
+    """Lightweight reaction summary embedded in the discussion read (emoji +
+    count + whether the current user reacted) — enough to render the chat pills
+    without a request per message."""
+
+    emoji: str
+    count: int
+    has_reacted: bool = False
+
+
 class DiscussionReadWithVoteStatus(DiscussionReadWithAuthor):
     has_voted: bool = False
+    reactions: List[ReactionLite] = []
 
 
 class DiscussionLabelInfo(SQLModel):

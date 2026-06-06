@@ -7,15 +7,19 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 import utc from 'dayjs/plugin/utc'
 import 'dayjs/locale/es'
 import { PaperPlaneRight } from '@phosphor-icons/react'
-import { Loader2, MessageCircle, Pin, PinOff } from 'lucide-react'
+import { Loader2, MessageCircle, Pin, PinOff, SmilePlus } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useDiscussions, useMutateDiscussions } from '@components/Hooks/useDiscussions'
 import {
   createDiscussion,
   pinDiscussion,
+  toggleReaction,
   DiscussionWithAuthor,
   DiscussionAuthor,
 } from '@services/communities/discussions'
+
+// Quick emoji set for the chat reaction picker.
+const QUICK_EMOJIS = ['👍', '❤️', '😂', '🔥', '🎉', '🙌', '👏', '🤔']
 import { getUserAvatarMediaDirectory } from '@services/media/media'
 import UserAvatar from '@components/Objects/UserAvatar'
 import AuthenticatedClientElement from '@components/Security/AuthenticatedClientElement'
@@ -110,6 +114,19 @@ export function ChannelChat({
   const { isAdmin } = useAdminStatus() as any
   const mutateDiscussions = useMutateDiscussions()
   const [pinningUuid, setPinningUuid] = useState<string | null>(null)
+  const [pickerUuid, setPickerUuid] = useState<string | null>(null)
+
+  // Toggle an emoji reaction on a message and refresh the list.
+  const react = async (uuid: string, emoji: string) => {
+    if (!accessToken) return
+    setPickerUuid(null)
+    try {
+      await toggleReaction(uuid, emoji, accessToken)
+      mutateDiscussions(communityUuid)
+    } catch {
+      toast.error('No se pudo reaccionar.')
+    }
+  }
 
   const togglePin = async (uuid: string, next: boolean) => {
     if (!accessToken || pinningUuid) return
@@ -266,17 +283,73 @@ export function ChannelChat({
                       )}
                       {/* Each message is its own bubble so consecutive ones read as
                           separate messages, not one merged block. */}
-                      <div
-                        className={`inline-block max-w-full rounded-2xl px-3 py-2 ${
-                          m.is_pinned
-                            ? 'bg-white ring-1 ring-[#025dc7]/30'
-                            : 'bg-[#F0F5FF]'
-                        } ${grouped ? 'rounded-tl-md' : 'rounded-tl-sm'}`}
-                      >
-                        <p className="text-sm text-gray-800 whitespace-pre-wrap break-words leading-relaxed">
-                          {messageText(m)}
-                        </p>
+                      <div className="flex items-center gap-1.5">
+                        <div
+                          className={`inline-block max-w-full rounded-2xl px-3 py-2 ${
+                            m.is_pinned
+                              ? 'bg-white ring-1 ring-[#025dc7]/30'
+                              : 'bg-[#F0F5FF]'
+                          } ${grouped ? 'rounded-tl-md' : 'rounded-tl-sm'}`}
+                        >
+                          <p className="text-sm text-gray-800 whitespace-pre-wrap break-words leading-relaxed">
+                            {messageText(m)}
+                          </p>
+                        </div>
+                        {/* Añadir reacción (aparece al pasar el ratón) */}
+                        {accessToken && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPickerUuid((cur) => (cur === m.discussion_uuid ? null : m.discussion_uuid))
+                            }
+                            title="Reaccionar"
+                            aria-label="Reaccionar"
+                            className={`shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-[#025dc7] hover:bg-[#025dc7]/10 transition-all ${
+                              pickerUuid === m.discussion_uuid ? 'opacity-100' : 'opacity-0 group-hover/msg:opacity-100'
+                            }`}
+                          >
+                            <SmilePlus size={16} />
+                          </button>
+                        )}
                       </div>
+
+                      {/* Selector rápido de emojis */}
+                      {pickerUuid === m.discussion_uuid && (
+                        <div className="mt-1 inline-flex gap-0.5 bg-white border border-gray-200 rounded-full px-1.5 py-1 nice-shadow">
+                          {QUICK_EMOJIS.map((e) => (
+                            <button
+                              key={e}
+                              type="button"
+                              onClick={() => react(m.discussion_uuid, e)}
+                              className="text-base leading-none p-1 rounded-full hover:bg-gray-100 hover:scale-110 transition-transform"
+                            >
+                              {e}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Pills de reacciones existentes */}
+                      {m.reactions && m.reactions.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {m.reactions.map((r) => (
+                            <button
+                              key={r.emoji}
+                              type="button"
+                              onClick={() => accessToken && react(m.discussion_uuid, r.emoji)}
+                              disabled={!accessToken}
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${
+                                r.has_reacted
+                                  ? 'bg-[#025dc7]/10 border-[#025dc7]/40 text-[#025dc7]'
+                                  : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                              } ${accessToken ? 'cursor-pointer' : 'cursor-default'}`}
+                            >
+                              <span className="leading-none">{r.emoji}</span>
+                              <span className="tabular-nums font-semibold">{r.count}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     {isAdmin && (
                       <button

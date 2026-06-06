@@ -16,9 +16,11 @@ from src.db.communities.discussions import (
     Discussion,
     DiscussionReadWithVoteStatus,
     DiscussionUpdate,
+    ReactionLite,
     DISCUSSION_LABELS,
 )
 from src.db.communities.discussion_votes import DiscussionVote
+from src.db.communities.discussion_reactions import DiscussionReaction
 from src.security.rbac import (
     check_resource_access,
     AccessAction,
@@ -331,6 +333,31 @@ async def get_discussions_by_community(
         votes = (await db_session.execute(votes_query)).scalars().all()
         user_votes = {v.discussion_id for v in votes}
 
+    # Batch fetch reactions for all listed discussions in a single query, then
+    # aggregate per (discussion, emoji) so the chat can render pills inline.
+    reactions_by_discussion: dict = {}
+    if discussion_ids:
+        reactions_query = select(DiscussionReaction).where(
+            DiscussionReaction.discussion_id.in_(discussion_ids)  # type: ignore
+        )
+        all_reactions = (await db_session.execute(reactions_query)).scalars().all()
+        for r in all_reactions:
+            per_emoji = reactions_by_discussion.setdefault(r.discussion_id, {})
+            cell = per_emoji.setdefault(r.emoji, {"count": 0, "has_reacted": False})
+            cell["count"] += 1
+            if current_user.id != 0 and r.user_id == current_user.id:
+                cell["has_reacted"] = True
+
+    def reactions_for(discussion_id: int) -> list:
+        per_emoji = reactions_by_discussion.get(discussion_id, {})
+        items = [
+            ReactionLite(emoji=emoji, count=c["count"], has_reacted=c["has_reacted"])
+            for emoji, c in per_emoji.items()
+        ]
+        # Most-reacted first, stable for equal counts.
+        items.sort(key=lambda x: x.count, reverse=True)
+        return items
+
     # Build response
     result = []
     for discussion in discussions:
@@ -342,6 +369,7 @@ async def get_discussions_by_community(
                 **discussion.model_dump(),
                 author=UserRead.model_validate(author.model_dump()) if author else None,
                 has_voted=has_voted,
+                reactions=reactions_for(discussion.id),
             )
         )
 
