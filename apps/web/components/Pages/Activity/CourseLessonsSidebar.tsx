@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useMemo, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { Check, FileText, Video, StickyNote, Backpack, ListTree, ChevronDown, X, Search, ChevronLeft, PanelLeftClose, PanelLeftOpen, Lock } from 'lucide-react'
 import { getUriWithOrg } from '@services/config/config'
@@ -513,9 +514,11 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
         <PanelLeftOpen size={20} />
       </button>
 
-      {/* Panel a pantalla completa */}
-      {open && (
-        <div className="fixed inset-0 z-[80] bg-white flex flex-col">
+      {/* Panel a pantalla completa — vía portal a document.body para escapar del
+          contenedor de la barra superior (que usa backdrop-blur y atraparía un
+          position:fixed dentro de su caja en vez de cubrir toda la pantalla). */}
+      {open && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] bg-white flex flex-col">
           <div className="shrink-0 px-4 pt-4 pb-3 border-b border-gray-100">
             <div className="flex items-center justify-between">
               <Link
@@ -552,7 +555,8 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
           <div className="flex-1 overflow-y-auto overscroll-contain">
             <LessonsList {...props} onLessonClick={() => setOpen(false)} />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
