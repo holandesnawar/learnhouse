@@ -119,6 +119,19 @@ export async function updateOrgCommunityPanelConfig(
   return res
 }
 
+export async function updateOrgDripConfig(
+  org_id: string,
+  drip: { enabled: boolean; chapters: { [chapterUuid: string]: number } },
+  access_token: string
+) {
+  const result: any = await fetch(
+    `${getAPIUrl()}orgs/${org_id}/config/drip_content`,
+    RequestBodyWithAuthHeader('PUT', drip, null, access_token)
+  )
+  const res = await errorHandling(result)
+  return res
+}
+
 export async function updateOrgFontConfig(
   org_id: string,
   font: string,
