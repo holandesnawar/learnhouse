@@ -289,7 +289,20 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
   }
 
   return (
-    <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-[340px] bg-[#1D0084] text-white z-30">
+    <aside
+      className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-[340px] text-white z-30"
+      style={{
+        // Mismo fondo exacto que la barra lateral de la plataforma (OrgSidebar):
+        // base #1D0084 + 2 glows #0b6df0 en esquinas + puntos sutiles.
+        backgroundColor: '#1D0084',
+        backgroundImage:
+          'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
+          'radial-gradient(circle 700px at 100% 0%, rgba(11,109,240,0.40) 0%, transparent 65%), ' +
+          'radial-gradient(circle 600px at 0% 100%, rgba(11,109,240,0.18) 0%, transparent 65%)',
+        backgroundSize: '28px 28px, auto, auto',
+        backgroundRepeat: 'repeat, no-repeat, no-repeat',
+      }}
+    >
       {/* Volver al curso */}
       <Link
         href={courseHref}
