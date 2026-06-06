@@ -307,7 +307,7 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
                         </div>
                         {/* Lecciones SIN negrita (solo los títulos de módulo van en bold) */}
                         <span
-                          className={`text-[13.5px] leading-snug line-clamp-2 ${
+                          className={`text-[14.5px] leading-snug line-clamp-2 ${
                             isCurrent ? 'text-white' : 'text-white/85 group-hover:text-white'
                           }`}
                         >
@@ -534,7 +534,7 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
                           )}
                         </div>
                         <span
-                          className={`text-[13.5px] leading-snug line-clamp-2 ${
+                          className={`text-[14.5px] leading-snug line-clamp-2 ${
                             isCurrent ? 'text-white' : 'text-white/85 group-hover:text-white'
                           }`}
                         >

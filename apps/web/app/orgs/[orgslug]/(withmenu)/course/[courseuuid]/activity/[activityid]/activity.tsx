@@ -31,12 +31,12 @@ import ActivityChapterDropdown from '@components/Pages/Activity/ActivityChapterD
 import ActivityShareDropdown from '@components/Pages/Activity/ActivityShareDropdown'
 import CourseLessonsSidebar, { MobileCourseLessons } from '@components/Pages/Activity/CourseLessonsSidebar'
 import LessonExtras from '@components/Pages/Activity/LessonExtras'
+import ConsultaSearchBar from '@components/Pages/Activity/ConsultaSearchBar'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import CourseEndView from '@components/Pages/Activity/CourseEndView'
 import { motion, AnimatePresence } from 'motion/react'
 import MiniInfoTooltip from '@components/Objects/MiniInfoTooltip'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
-import ActivityIndicators from '@components/Pages/Courses/ActivityIndicators'
 import UserAvatar from '@components/Objects/UserAvatar'
 import { useTranslation } from 'react-i18next'
 import { useAnalytics } from '@/hooks/useAnalytics'
@@ -853,20 +853,6 @@ function ActivityClient(props: ActivityClientProps) {
                       </div>
                     </div>
 
-                    {/* Tira de progreso: solo para embeds/ejercicios y solo en móvil
-                        (en escritorio la barra lateral ya muestra el progreso). */}
-                    {activity?.activity_sub_type === 'SUBTYPE_DYNAMIC_EMBED' && (
-                      <div className="lg:hidden mt-3">
-                        <ActivityIndicators
-                          course_uuid={courseuuid}
-                          current_activity={activityid}
-                          orgslug={orgslug}
-                          course={course}
-                          enableNavigation={true}
-                          trailData={trailData}
-                        />
-                      </div>
-                    )}
 
                       {activityLoading || !activity ? (
                         <ActivityContentSkeleton activityType={displayActivityType} />
@@ -896,7 +882,7 @@ function ActivityClient(props: ActivityClientProps) {
                                 } ${activity.activity_type === 'TYPE_VIDEO' ? '' : bgColor} relative isolate`} style={{ zIndex: 'var(--z-base)' }}>
                                   {activityContent}
                                 </div>
-                                {/* Per-lesson description + tasks + Consultas (video lessons only) */}
+                                {/* Per-lesson description + tasks + Consultas (video lessons) */}
                                 {activity.activity_type === 'TYPE_VIDEO' && (
                                   <LessonExtras
                                     activity={activity}
@@ -904,6 +890,10 @@ function ActivityClient(props: ActivityClientProps) {
                                     orgslug={orgslug}
                                     canEdit={canEditLesson}
                                   />
+                                )}
+                                {/* Consultas en el resto de lecciones (flashcards/ejercicios/etc.) — siempre abajo */}
+                                {activity.activity_type !== 'TYPE_VIDEO' && (
+                                  <ConsultaSearchBar />
                                 )}
                               </div>
                               {/* Barra lateral del curso — siempre presente (incluso en ejercicios/embeds);
@@ -1254,8 +1244,8 @@ function NextActivityButton({ course, currentActivityId, orgslug }: { course: an
       <span className="text-[10px] font-bold text-[#1D0084]/60 mb-1 uppercase">
         {isLast ? 'Finalizar' : t('common.next')}
       </span>
-      <div className="flex items-center space-x-1">
-        <span className="text-xs sm:text-sm font-semibold truncate max-w-[120px] sm:max-w-[200px]">
+      <div className="flex items-center space-x-1 min-w-0">
+        <span className="text-xs sm:text-sm font-semibold truncate min-w-0">
           {isLast ? 'Completar curso' : nextActivity.name}
         </span>
         {isLast ? <Trophy size={16} className="shrink-0" /> : <ChevronRight size={17} className="shrink-0" />}
@@ -1309,9 +1299,9 @@ function PreviousActivityButton({ course, currentActivityId, orgslug }: { course
       className="w-full sm:w-[230px] bg-transparent rounded-lg px-3 sm:px-4 flex flex-col p-2 sm:p-2.5 text-[#1D0084] hover:cursor-pointer hover:bg-[#F0F5FF] transition-colors border border-[#DDE6F5]"
     >
       <span className="text-[10px] font-bold text-[#1D0084]/60 mb-1 uppercase">{t('common.previous')}</span>
-      <div className="flex items-center space-x-1">
+      <div className="flex items-center space-x-1 min-w-0">
         <ChevronLeft size={17} className="shrink-0" />
-        <span className="text-xs sm:text-sm font-semibold truncate max-w-[120px] sm:max-w-[200px]">{previousActivity.name}</span>
+        <span className="text-xs sm:text-sm font-semibold truncate min-w-0">{previousActivity.name}</span>
       </div>
     </div>
   );

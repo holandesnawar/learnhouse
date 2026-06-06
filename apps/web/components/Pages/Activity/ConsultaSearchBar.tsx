@@ -76,11 +76,11 @@ export default function ConsultaSearchBar({ initialQuery = '' }: ConsultaSearchB
     <div className="rounded-2xl border border-[#DDE6F5] bg-white p-4 sm:p-5 space-y-3">
       <div className="flex items-center gap-2">
         <HelpCircle size={18} className="text-[#025dc7] shrink-0" />
-        <p className="text-sm font-semibold text-gray-900">
+        <p className="text-[15px] font-semibold text-gray-900">
           ¿Tienes una duda sobre esta lección?
         </p>
       </div>
-      <p className="text-xs text-gray-500 -mt-1">
+      <p className="text-[13px] text-gray-500 -mt-1">
         Busca primero en las consultas que ya hemos respondido — ahorra tiempo.
       </p>
 
@@ -107,7 +107,7 @@ export default function ConsultaSearchBar({ initialQuery = '' }: ConsultaSearchB
               if (e.target.value) ensureLoaded()
             }}
             placeholder={'p. ej. "zijn", "trabajar", "saludos"…'}
-            className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-[#F0F5FF] hover:bg-[#E5ECFF] focus:bg-white text-[#1D0084] placeholder:text-[#1D0084]/45 outline-none border border-transparent focus:border-[#4da3ff] focus:ring-[3px] focus:ring-[#4da3ff]/22 text-[14px] transition-colors"
+            className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-[#F0F5FF] hover:bg-[#E5ECFF] focus:bg-white text-[#1D0084] placeholder:text-[#1D0084]/45 outline-none border border-transparent focus:border-[#4da3ff] focus:ring-[3px] focus:ring-[#4da3ff]/22 text-[13px] placeholder:text-[13px] transition-colors"
           />
         </div>
         <button
