@@ -2,9 +2,8 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
-import { Check, FileText, Video, StickyNote, Backpack, ListTree, ChevronDown, X, Search, ChevronLeft, PanelLeftClose, PanelLeftOpen, Lock } from 'lucide-react'
+import { Check, FileText, Video, StickyNote, Backpack, ChevronDown, X, Search, ChevronLeft, PanelLeftClose, PanelLeftOpen, Lock } from 'lucide-react'
 import { getUriWithOrg } from '@services/config/config'
-import { useTranslation } from 'react-i18next'
 
 // Format an ISO unlock date for the "Se desbloquea el ..." note (Spanish).
 function formatUnlockDate(iso?: string | null): string {
@@ -52,161 +51,6 @@ function useProgress(course: any, trailData: any) {
   )
   const pct = total > 0 ? Math.round((done / total) * 100) : 0
   return { run, total, done, pct, cleanCourseUuid }
-}
-
-function LessonsList({
-  course,
-  currentActivityId,
-  orgslug,
-  trailData,
-  onLessonClick,
-}: CourseLessonsProps & { onLessonClick?: () => void }) {
-  const { run, cleanCourseUuid } = useProgress(course, trailData)
-  const cleanCurrent = currentActivityId?.replace('activity_', '')
-  const chapters = course.chapters ?? []
-
-  // The chapter holding the current activity opens by default; the rest start
-  // collapsed so the list doesn't force endless scrolling.
-  const currentChapterIdx = useMemo(
-    () =>
-      chapters.findIndex((ch: any) =>
-        (ch?.activities ?? []).some(
-          (a: any) => a.activity_uuid?.replace('activity_', '') === cleanCurrent
-        )
-      ),
-    [chapters, cleanCurrent]
-  )
-  const [openIdx, setOpenIdx] = useState<Set<number>>(
-    () => new Set([currentChapterIdx >= 0 ? currentChapterIdx : 0])
-  )
-  useEffect(() => {
-    if (currentChapterIdx >= 0) {
-      setOpenIdx((prev) => new Set(prev).add(currentChapterIdx))
-    }
-  }, [currentChapterIdx])
-
-  function toggle(i: number) {
-    setOpenIdx((prev) => {
-      const next = new Set(prev)
-      if (next.has(i)) next.delete(i)
-      else next.add(i)
-      return next
-    })
-  }
-
-  // Bring the current lesson into view inside the scroll box when it changes,
-  // so you always land on "where you are" no matter how long the course is.
-  const activeRef = useRef<HTMLDivElement | null>(null)
-  useEffect(() => {
-    activeRef.current?.scrollIntoView({ block: 'nearest' })
-  }, [cleanCurrent])
-
-  return (
-    <div className="py-1">
-      {chapters.map((chapter: any, index: number) => {
-        const acts = chapter.activities ?? []
-        const isOpen = openIdx.has(index)
-        const doneCount = acts.filter((a: any) =>
-          run?.steps?.find((s: any) => s.activity_id === a.id && s.complete === true)
-        ).length
-        return (
-        <div key={chapter.id} className="mb-1">
-          <button
-            onClick={() => toggle(index)}
-            className="w-full px-4 py-2 flex items-center gap-1.5 bg-gray-50/70 border-y border-gray-100 text-left hover:bg-gray-100/70 transition-colors"
-          >
-            <div className="bg-gray-400 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shrink-0">
-              {index + 1}
-            </div>
-            <span className="text-xs font-semibold text-gray-600 truncate flex-1">{chapter.name}</span>
-            <span className="text-[10px] text-gray-400 shrink-0 tabular-nums">{doneCount}/{acts.length}</span>
-            <ChevronDown
-              size={14}
-              className={`text-gray-400 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-            />
-          </button>
-          {isOpen && (
-          <div className="py-0.5">
-            {acts.map((activity: any) => {
-              const cleanUuid = activity.activity_uuid?.replace('activity_', '')
-              const isCurrent = cleanUuid === cleanCurrent
-              const isComplete = run?.steps?.find(
-                (s: any) => s.activity_id === activity.id && s.complete === true
-              )
-              return (
-                <Link
-                  key={activity.id}
-                  href={getUriWithOrg(orgslug, '') + `/course/${cleanCourseUuid}/activity/${cleanUuid}`}
-                  prefetch={false}
-                  onClick={onLessonClick}
-                >
-                  <div
-                    ref={isCurrent ? activeRef : undefined}
-                    className={`group flex items-center gap-2.5 px-4 py-2 transition-colors ${
-                      isCurrent
-                        ? 'bg-[#025dc7]/5 border-l-2 border-[#025dc7] pl-[14px]'
-                        : 'border-l-2 border-transparent hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="shrink-0">
-                      {isComplete ? (
-                        <div className="w-5 h-5 rounded-full bg-emerald-600 flex items-center justify-center">
-                          <Check size={12} className="text-white stroke-[3]" />
-                        </div>
-                      ) : (
-                        <div
-                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                            isCurrent ? 'border-[#025dc7] text-[#025dc7]' : 'border-gray-200 text-gray-300'
-                          }`}
-                        >
-                          {getActivityTypeIcon(activity.activity_type)}
-                        </div>
-                      )}
-                    </div>
-                    <span
-                      className={`text-[13px] leading-snug line-clamp-2 ${
-                        isCurrent ? 'font-semibold text-[#025dc7]' : 'text-gray-700 group-hover:text-gray-900'
-                      }`}
-                    >
-                      {activity.name}
-                    </span>
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
-          )}
-        </div>
-        )
-      })}
-    </div>
-  )
-}
-
-function ProgressHeader({ done, total, pct }: { done: number; total: number; pct: number }) {
-  const { t } = useTranslation()
-  return (
-    <div className="px-4 pt-4 pb-3 border-b border-gray-100">
-      <div className="flex items-center gap-2 text-gray-900">
-        <ListTree size={16} className="text-[#025dc7]" />
-        <h3 className="text-sm font-semibold">{t('courses.course_content')}</h3>
-      </div>
-      <div className="mt-3">
-        <div className="flex items-center justify-between text-[11px] text-gray-500 mb-1">
-          <span>
-            {done} / {total}
-          </span>
-          <span>{pct}%</span>
-        </div>
-        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-[#025dc7] rounded-full transition-all duration-300"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-      </div>
-    </div>
-  )
 }
 
 // Desktop: a dedicated, full-height course-player sidebar pinned to the left
@@ -481,26 +325,231 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
   )
 }
 
-// Mobile / tablet: a compact trigger that opens the lesson list FULL SCREEN
-// (instead of a cramped inline accordion). Tapping a lesson navigates and
-// closes the panel. Body scroll is locked while it's open.
+// Mobile / tablet: tapping the icon opens the lesson list FULL SCREEN with the
+// exact same dark-blue design as the desktop sidebar (gradient background, big
+// bold %, search, collapsible modules, locks/drip). Rendered via createPortal
+// to document.body so the sticky top bar's backdrop-blur can't trap it.
 export function MobileCourseLessons(props: CourseLessonsProps) {
-  const { course, orgslug, trailData } = props
-  const { total, done, pct, cleanCourseUuid } = useProgress(course, trailData)
+  const { course, currentActivityId, orgslug, trailData } = props
+  const { run, pct, cleanCourseUuid } = useProgress(course, trailData)
+  const cleanCurrent = currentActivityId?.replace('activity_', '')
+  const chapters = course?.chapters ?? []
   const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const activeRef = useRef<HTMLDivElement | null>(null)
+
+  const currentChapterIdx = useMemo(
+    () =>
+      chapters.findIndex((ch: any) =>
+        (ch?.activities ?? []).some(
+          (a: any) => a.activity_uuid?.replace('activity_', '') === cleanCurrent
+        )
+      ),
+    [chapters, cleanCurrent]
+  )
+  const [openIdx, setOpenIdx] = useState<Set<number>>(
+    () => new Set([currentChapterIdx >= 0 ? currentChapterIdx : 0])
+  )
+  useEffect(() => {
+    if (currentChapterIdx >= 0) {
+      setOpenIdx((prev) => new Set(prev).add(currentChapterIdx))
+    }
+  }, [currentChapterIdx])
 
   useEffect(() => {
     if (!open) return
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = prev
-    }
+    activeRef.current?.scrollIntoView({ block: 'nearest' })
+    return () => { document.body.style.overflow = prev }
   }, [open])
 
   if (!course?.chapters) return null
 
   const courseHref = getUriWithOrg(orgslug, '') + `/course/${cleanCourseUuid}`
+  const q = search.trim().toLowerCase()
+
+  function toggle(i: number) {
+    setOpenIdx((prev) => {
+      const next = new Set(prev)
+      if (next.has(i)) next.delete(i)
+      else next.add(i)
+      return next
+    })
+  }
+
+  const panel = (
+    <div
+      className="fixed inset-0 z-[9999] text-white flex flex-col"
+      style={{
+        // Mismo fondo exacto que el sidebar de escritorio.
+        backgroundColor: '#1D0084',
+        backgroundImage:
+          'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
+          'radial-gradient(circle 700px at 100% 0%, rgba(11,109,240,0.40) 0%, transparent 65%), ' +
+          'radial-gradient(circle 600px at 0% 100%, rgba(11,109,240,0.18) 0%, transparent 65%)',
+        backgroundSize: '28px 28px, auto, auto',
+        backgroundRepeat: 'repeat, no-repeat, no-repeat',
+      }}
+    >
+      {/* Volver al curso + cerrar */}
+      <div className="flex items-center justify-between px-4 h-14 shrink-0 border-b border-white/10">
+        <Link
+          href={courseHref}
+          onClick={() => setOpen(false)}
+          className="flex items-center gap-1.5 text-sm font-semibold text-white/90 hover:text-white transition-colors"
+        >
+          <ChevronLeft size={18} className="shrink-0" />
+          Volver al curso
+        </Link>
+        <button
+          onClick={() => setOpen(false)}
+          aria-label="Cerrar"
+          className="-mr-1 w-9 h-9 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+        >
+          <X size={22} />
+        </button>
+      </div>
+
+      {/* Título del curso + progreso (% grande y bold) */}
+      <div className="px-4 py-3 border-b border-white/10 shrink-0">
+        <h2
+          className="text-[14px] font-bold leading-tight line-clamp-2 text-white/90"
+          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+        >
+          {course.name}
+        </h2>
+        <div className="mt-2.5 flex items-baseline gap-1.5">
+          <span className="text-[22px] font-bold text-white leading-none">{pct}%</span>
+          <span className="text-[11px] text-white/55">completado</span>
+        </div>
+        <div className="mt-2 h-1.5 bg-white/15 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-[#4da3ff] rounded-full transition-all duration-300"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Buscar lección */}
+      <div className="px-3 py-2.5 shrink-0">
+        <div className="relative">
+          <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar lección…"
+            className="w-full pl-8 pr-3 py-2 rounded-lg bg-white/10 text-white placeholder:text-white/40 text-[13px] outline-none border border-transparent focus:bg-white/15 focus:border-[#4da3ff]/40 transition-colors"
+          />
+        </div>
+      </div>
+
+      {/* Módulos — idéntico al sidebar de escritorio */}
+      <div className="flex-1 overflow-y-auto pb-6 overscroll-contain">
+        {chapters.map((chapter: any, index: number) => {
+          const allActs = chapter.activities ?? []
+          const acts = q
+            ? allActs.filter((a: any) => (a.name || '').toLowerCase().includes(q))
+            : allActs
+          if (q && acts.length === 0) return null
+          const isOpen = q ? true : openIdx.has(index)
+          const doneCount = allActs.filter((a: any) =>
+            run?.steps?.find((s: any) => s.activity_id === a.id && s.complete === true)
+          ).length
+          const locked = !!chapter.is_locked
+          return (
+            <div key={chapter.id}>
+              <button
+                onClick={() => !q && !locked && toggle(index)}
+                className={`w-full flex items-center gap-2.5 px-4 py-3.5 text-left border-b border-white/5 transition-colors ${
+                  locked ? 'cursor-default' : 'hover:bg-white/5'
+                }`}
+              >
+                {locked ? (
+                  <Lock size={15} className="shrink-0 text-white/45" />
+                ) : (
+                  <span
+                    className={`shrink-0 w-4 h-4 rounded-full border-2 ${
+                      index === currentChapterIdx ? 'bg-[#4da3ff] border-[#4da3ff]' : 'border-white/40'
+                    }`}
+                  />
+                )}
+                <span className="flex-1 min-w-0">
+                  <span className={`block text-[15px] font-bold uppercase tracking-wide truncate ${locked ? 'text-white/55' : 'text-white'}`}>
+                    {chapter.name}
+                  </span>
+                  {locked && chapter.unlock_date && (
+                    <span className="block normal-case font-normal tracking-normal text-[11px] text-[#4da3ff] mt-0.5">
+                      Se desbloquea el {formatUnlockDate(chapter.unlock_date)}
+                    </span>
+                  )}
+                </span>
+                {!locked && (
+                  <>
+                    <span className="text-[11px] text-white/55 tabular-nums shrink-0">
+                      {doneCount}/{allActs.length}
+                    </span>
+                    {!q && (
+                      <ChevronDown
+                        size={16}
+                        className={`text-white/55 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                      />
+                    )}
+                  </>
+                )}
+              </button>
+              {isOpen && !locked &&
+                acts.map((activity: any) => {
+                  const cleanUuid = activity.activity_uuid?.replace('activity_', '')
+                  const isCurrent = cleanUuid === cleanCurrent
+                  const isComplete = run?.steps?.find(
+                    (s: any) => s.activity_id === activity.id && s.complete === true
+                  )
+                  return (
+                    <Link
+                      key={activity.id}
+                      href={getUriWithOrg(orgslug, '') + `/course/${cleanCourseUuid}/activity/${cleanUuid}`}
+                      prefetch={false}
+                      onClick={() => setOpen(false)}
+                    >
+                      <div
+                        ref={isCurrent ? activeRef : undefined}
+                        className={`group flex items-center gap-2.5 px-4 py-2.5 transition-colors ${
+                          isCurrent
+                            ? 'bg-white/10 border-l-2 border-[#4da3ff] pl-[14px]'
+                            : 'border-l-2 border-transparent hover:bg-white/5'
+                        }`}
+                      >
+                        <div className="shrink-0">
+                          {isComplete ? (
+                            <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
+                              <Check size={12} className="text-white stroke-[3]" />
+                            </div>
+                          ) : (
+                            <div
+                              className={`w-5 h-5 rounded-full border-2 ${
+                                isCurrent ? 'border-[#4da3ff]' : 'border-white/35'
+                              }`}
+                            />
+                          )}
+                        </div>
+                        <span
+                          className={`text-[13.5px] leading-snug line-clamp-2 ${
+                            isCurrent ? 'text-white' : 'text-white/85 group-hover:text-white'
+                          }`}
+                        >
+                          {activity.name}
+                        </span>
+                      </div>
+                    </Link>
+                  )
+                })}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
 
   return (
     <div className="lg:hidden">
@@ -514,50 +563,7 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
         <PanelLeftOpen size={20} />
       </button>
 
-      {/* Panel a pantalla completa — vía portal a document.body para escapar del
-          contenedor de la barra superior (que usa backdrop-blur y atraparía un
-          position:fixed dentro de su caja en vez de cubrir toda la pantalla). */}
-      {open && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[9999] bg-white flex flex-col">
-          <div className="shrink-0 px-4 pt-4 pb-3 border-b border-gray-100">
-            <div className="flex items-center justify-between">
-              <Link
-                href={courseHref}
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-1.5 text-sm font-semibold text-[#1D0084] hover:opacity-80 transition-opacity"
-              >
-                <ChevronLeft size={18} className="shrink-0" />
-                Volver al curso
-              </Link>
-              <button
-                onClick={() => setOpen(false)}
-                aria-label="Cerrar"
-                className="-mr-1 w-9 h-9 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors"
-              >
-                <X size={22} />
-              </button>
-            </div>
-            <div className="mt-3">
-              <div className="flex items-center justify-between text-[11px] text-gray-500 mb-1">
-                <span>
-                  {done} / {total}
-                </span>
-                <span>{pct}%</span>
-              </div>
-              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-[#025dc7] rounded-full transition-all duration-300"
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-            </div>
-          </div>
-          <div className="flex-1 overflow-y-auto overscroll-contain">
-            <LessonsList {...props} onLessonClick={() => setOpen(false)} />
-          </div>
-        </div>,
-        document.body
-      )}
+      {open && typeof document !== 'undefined' && createPortal(panel, document.body)}
     </div>
   )
 }
