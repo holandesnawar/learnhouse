@@ -539,17 +539,33 @@ function ActivityClient(props: ActivityClientProps) {
 
   if (activity?.is_locked) {
     const isAuthenticated = session?.status === 'authenticated'
+    // Drip lock → show when it opens, with a softer "coming soon" tone.
+    const dripDate: string | null = activity?.unlock_date || null
+    const dripDateLabel = dripDate
+      ? (() => {
+          const d = new Date(dripDate)
+          return isNaN(d.getTime())
+            ? ''
+            : d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+        })()
+      : ''
     return (
       <GeneralWrapperStyled>
         <div className="max-w-2xl mx-auto my-16 bg-white rounded-2xl border border-gray-200/80 shadow-sm p-8 text-center">
-          <div className="mx-auto w-14 h-14 rounded-full bg-rose-50 flex items-center justify-center mb-4">
-            <Lock className="text-rose-500" size={24} />
+          <div className={`mx-auto w-14 h-14 rounded-full flex items-center justify-center mb-4 ${dripDate ? 'bg-[#F0F5FF]' : 'bg-rose-50'}`}>
+            <Lock className={dripDate ? 'text-[#4da3ff]' : 'text-rose-500'} size={24} />
           </div>
           <h1 className="text-xl font-semibold text-gray-900 mb-2">
-            {t('course.locked_title', 'This activity is locked')}
+            {dripDate
+              ? 'Este módulo aún no está disponible'
+              : t('course.locked_title', 'This activity is locked')}
           </h1>
           <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-            {isAuthenticated
+            {dripDate
+              ? (dripDateLabel
+                  ? `Se desbloquea el ${dripDateLabel}. ¡Aprovecha para repasar lo anterior mientras tanto!`
+                  : 'Se desbloqueará automáticamente más adelante. ¡Sigue con lo que ya tienes disponible!')
+              : isAuthenticated
               ? t('course.locked_restricted', 'You need to be a member of the right user group to access this. Ask a course admin to add you.')
               : t('course.locked_auth_required', 'You need to sign in to access this activity.')}
           </p>

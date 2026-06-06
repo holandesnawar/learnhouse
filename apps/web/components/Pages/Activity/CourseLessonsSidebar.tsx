@@ -1,9 +1,17 @@
 'use client'
 import React, { useState, useMemo, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { Check, FileText, Video, StickyNote, Backpack, ListTree, ChevronDown, X, Search, ChevronLeft, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { Check, FileText, Video, StickyNote, Backpack, ListTree, ChevronDown, X, Search, ChevronLeft, PanelLeftClose, PanelLeftOpen, Lock } from 'lucide-react'
 import { getUriWithOrg } from '@services/config/config'
 import { useTranslation } from 'react-i18next'
+
+// Format an ISO unlock date for the "Se desbloquea el ..." note (Spanish).
+function formatUnlockDate(iso?: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+}
 
 interface CourseLessonsProps {
   course: any
@@ -372,34 +380,52 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
           const doneCount = allActs.filter((a: any) =>
             run?.steps?.find((s: any) => s.activity_id === a.id && s.complete === true)
           ).length
+          const locked = !!chapter.is_locked
           return (
             <div key={chapter.id}>
               <button
-                onClick={() => !q && toggle(index)}
-                className="w-full flex items-center gap-2.5 px-4 py-3.5 text-left hover:bg-white/5 border-b border-white/5 transition-colors"
+                onClick={() => !q && !locked && toggle(index)}
+                className={`w-full flex items-center gap-2.5 px-4 py-3.5 text-left border-b border-white/5 transition-colors ${
+                  locked ? 'cursor-default' : 'hover:bg-white/5'
+                }`}
               >
-                {/* Círculo del módulo: vacío; relleno azul cuando es el módulo actual */}
-                <span
-                  className={`shrink-0 w-4 h-4 rounded-full border-2 ${
-                    index === currentChapterIdx
-                      ? 'bg-[#4da3ff] border-[#4da3ff]'
-                      : 'border-white/40'
-                  }`}
-                />
-                <span className="flex-1 text-[15px] font-bold uppercase tracking-wide text-white truncate">
-                  {chapter.name}
-                </span>
-                <span className="text-[11px] text-white/55 tabular-nums shrink-0">
-                  {doneCount}/{allActs.length}
-                </span>
-                {!q && (
-                  <ChevronDown
-                    size={16}
-                    className={`text-white/55 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                {/* Módulo: candado si está bloqueado; círculo (relleno azul en el actual) si no */}
+                {locked ? (
+                  <Lock size={15} className="shrink-0 text-white/45" />
+                ) : (
+                  <span
+                    className={`shrink-0 w-4 h-4 rounded-full border-2 ${
+                      index === currentChapterIdx
+                        ? 'bg-[#4da3ff] border-[#4da3ff]'
+                        : 'border-white/40'
+                    }`}
                   />
                 )}
+                <span className="flex-1 min-w-0">
+                  <span className={`block text-[15px] font-bold uppercase tracking-wide truncate ${locked ? 'text-white/55' : 'text-white'}`}>
+                    {chapter.name}
+                  </span>
+                  {locked && chapter.unlock_date && (
+                    <span className="block normal-case font-normal tracking-normal text-[11px] text-[#4da3ff] mt-0.5">
+                      Se desbloquea el {formatUnlockDate(chapter.unlock_date)}
+                    </span>
+                  )}
+                </span>
+                {!locked && (
+                  <>
+                    <span className="text-[11px] text-white/55 tabular-nums shrink-0">
+                      {doneCount}/{allActs.length}
+                    </span>
+                    {!q && (
+                      <ChevronDown
+                        size={16}
+                        className={`text-white/55 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                      />
+                    )}
+                  </>
+                )}
               </button>
-              {isOpen &&
+              {isOpen && !locked &&
                 acts.map((activity: any) => {
                   const cleanUuid = activity.activity_uuid?.replace('activity_', '')
                   const isCurrent = cleanUuid === cleanCurrent
