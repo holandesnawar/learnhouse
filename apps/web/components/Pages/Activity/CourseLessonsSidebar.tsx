@@ -458,9 +458,8 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
 // (instead of a cramped inline accordion). Tapping a lesson navigates and
 // closes the panel. Body scroll is locked while it's open.
 export function MobileCourseLessons(props: CourseLessonsProps) {
-  const { t } = useTranslation()
-  const { course, trailData } = props
-  const { total, done, pct } = useProgress(course, trailData)
+  const { course, orgslug, trailData } = props
+  const { total, done, pct, cleanCourseUuid } = useProgress(course, trailData)
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
@@ -474,43 +473,33 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
 
   if (!course?.chapters) return null
 
+  const courseHref = getUriWithOrg(orgslug, '') + `/course/${cleanCourseUuid}`
+
   return (
     <div className="lg:hidden">
-      {/* Trigger button */}
+      {/* Icono: abre el listado de lecciones a pantalla completa */}
       <button
         onClick={() => setOpen(true)}
-        className="w-full flex items-center gap-3 px-4 py-3 bg-white nice-shadow rounded-lg text-left"
+        aria-label="Elegir lección"
+        title="Elegir lección"
+        className="shrink-0 w-9 h-9 flex items-center justify-center rounded-md text-gray-500 hover:text-[#1D0084] hover:bg-[#F0F5FF] transition-colors"
       >
-        <ListTree size={18} className="text-[#025dc7] shrink-0" />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-900">{t('courses.course_content')}</h3>
-            <span className="text-[11px] text-gray-500 ml-2">
-              {done} / {total}
-            </span>
-          </div>
-          <div className="mt-1.5 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-[#025dc7] rounded-full transition-all duration-300"
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-        </div>
-        <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold text-[#025dc7] uppercase tracking-wide">
-          Ver
-          <ChevronDown size={14} className="-rotate-90" />
-        </span>
+        <PanelLeftOpen size={20} />
       </button>
 
-      {/* Full-screen panel */}
+      {/* Panel a pantalla completa */}
       {open && (
         <div className="fixed inset-0 z-[80] bg-white flex flex-col">
           <div className="shrink-0 px-4 pt-4 pb-3 border-b border-gray-100">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-gray-900">
-                <ListTree size={18} className="text-[#025dc7]" />
-                <h3 className="text-base font-semibold">{t('courses.course_content')}</h3>
-              </div>
+              <Link
+                href={courseHref}
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-1.5 text-sm font-semibold text-[#1D0084] hover:opacity-80 transition-opacity"
+              >
+                <ChevronLeft size={18} className="shrink-0" />
+                Volver al curso
+              </Link>
               <button
                 onClick={() => setOpen(false)}
                 aria-label="Cerrar"

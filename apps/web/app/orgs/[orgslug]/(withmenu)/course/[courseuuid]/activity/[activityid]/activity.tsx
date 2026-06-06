@@ -810,13 +810,13 @@ function ActivityClient(props: ActivityClientProps) {
                     <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 lg:-mx-8 -mt-5 px-4 sm:px-6 lg:px-8 py-3 bg-white/95 backdrop-blur-md border-b border-[#DDE6F5]">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 min-w-0 lg:[padding-left:var(--course-focus-pad,0px)] transition-[padding] duration-200">
-                          <Link
-                            href={getUriWithOrg(orgslug, `/course/${courseuuid}`)}
-                            className="lg:hidden shrink-0 text-gray-400 hover:text-[#1D0084] transition-colors"
-                            aria-label="Volver al curso"
-                          >
-                            <ChevronLeft size={20} />
-                          </Link>
+                          {/* Móvil: icono que abre el listado de lecciones a pantalla completa */}
+                          <MobileCourseLessons
+                            course={course}
+                            currentActivityId={activityid}
+                            orgslug={orgslug}
+                            trailData={trailData}
+                          />
                           <h1 className="font-bold text-gray-950 text-base sm:text-lg first-letter:uppercase truncate">
                             {displayName}
                           </h1>
@@ -889,13 +889,6 @@ function ActivityClient(props: ActivityClientProps) {
                                     canEdit={canEditLesson}
                                   />
                                 )}
-                                {/* Lista de lecciones en móvil (la barra lateral va oculta en móvil) */}
-                                <MobileCourseLessons
-                                  course={course}
-                                  currentActivityId={activityid}
-                                  orgslug={orgslug}
-                                  trailData={trailData}
-                                />
                               </div>
                               {/* Barra lateral del curso — siempre presente (incluso en ejercicios/embeds);
                                   se puede ocultar desde su propio icono para enfocarse. */}
@@ -1240,7 +1233,7 @@ function NextActivityButton({ course, currentActivityId, orgslug }: { course: an
   return (
     <div
       onClick={navigateToActivity}
-      className="bg-[#4da3ff] rounded-lg px-3 sm:px-4 nice-shadow flex flex-col p-2 sm:p-2.5 text-[#1D0084] hover:cursor-pointer hover:bg-[#6cb5ff] transition-colors"
+      className="w-full sm:w-[230px] bg-[#4da3ff] rounded-lg px-3 sm:px-4 nice-shadow flex flex-col p-2 sm:p-2.5 text-[#1D0084] hover:cursor-pointer hover:bg-[#6cb5ff] transition-colors"
     >
       <span className="text-[10px] font-bold text-[#1D0084]/60 mb-1 uppercase">
         {isLast ? 'Finalizar' : t('common.next')}
@@ -1297,7 +1290,7 @@ function PreviousActivityButton({ course, currentActivityId, orgslug }: { course
   return (
     <div
       onClick={navigateToActivity}
-      className="bg-[#F0F5FF] rounded-lg px-3 sm:px-4 flex flex-col p-2 sm:p-2.5 text-[#1D0084] hover:cursor-pointer hover:bg-[#e0eaff] transition-colors border border-[#DDE6F5]"
+      className="w-full sm:w-[230px] bg-transparent rounded-lg px-3 sm:px-4 flex flex-col p-2 sm:p-2.5 text-[#1D0084] hover:cursor-pointer hover:bg-[#F0F5FF] transition-colors border border-[#DDE6F5]"
     >
       <span className="text-[10px] font-bold text-[#1D0084]/60 mb-1 uppercase">{t('common.previous')}</span>
       <div className="flex items-center space-x-1">
