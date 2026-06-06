@@ -859,14 +859,16 @@ function ActivityClient(props: ActivityClientProps) {
                             where the "Contenido del curso" sidebar isn't shown, to avoid
                             two redundant progress indicators on normal lessons. */}
                         {activity?.activity_sub_type === 'SUBTYPE_DYNAMIC_EMBED' && (
-                          <ActivityIndicators
-                            course_uuid={courseuuid}
-                            current_activity={activityid}
-                            orgslug={orgslug}
-                            course={course}
-                            enableNavigation={true}
-                            trailData={trailData}
-                          />
+                          <div className="lg:hidden">
+                            <ActivityIndicators
+                              course_uuid={courseuuid}
+                              current_activity={activityid}
+                              orgslug={orgslug}
+                              course={course}
+                              enableNavigation={true}
+                              trailData={trailData}
+                            />
+                          </div>
                         )}
                       </div>
 
@@ -918,25 +920,21 @@ function ActivityClient(props: ActivityClientProps) {
                                     canEdit={canEditLesson}
                                   />
                                 )}
-                                {/* Mobile lessons (collapsible) — hidden for full-page embeds */}
-                                {activity.activity_sub_type !== 'SUBTYPE_DYNAMIC_EMBED' && (
-                                  <MobileCourseLessons
-                                    course={course}
-                                    currentActivityId={activityid}
-                                    orgslug={orgslug}
-                                    trailData={trailData}
-                                  />
-                                )}
-                              </div>
-                              {/* Lessons sidebar — hidden for embeds so exercises get full width */}
-                              {activity.activity_sub_type !== 'SUBTYPE_DYNAMIC_EMBED' && (
-                                <CourseLessonsSidebar
+                                {/* Mobile lessons menu — on every activity type (incl. exercises) */}
+                                <MobileCourseLessons
                                   course={course}
                                   currentActivityId={activityid}
                                   orgslug={orgslug}
                                   trailData={trailData}
                                 />
-                              )}
+                              </div>
+                              {/* Course-content sidebar — on every activity type (incl. exercises) */}
+                              <CourseLessonsSidebar
+                                course={course}
+                                currentActivityId={activityid}
+                                orgslug={orgslug}
+                                trailData={trailData}
+                              />
                             </div>
                           )}
                         </>

@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useMemo, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { Check, FileText, Video, StickyNote, Backpack, ListTree, ChevronDown, X, Search, ChevronLeft } from 'lucide-react'
+import { Check, FileText, Video, StickyNote, Backpack, ListTree, ChevronDown, X, Search, ChevronLeft, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { getUriWithOrg } from '@services/config/config'
 import { useTranslation } from 'react-i18next'
 
@@ -211,6 +211,30 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
   const cleanCurrent = currentActivityId?.replace('activity_', '')
   const chapters = course?.chapters ?? []
   const [search, setSearch] = useState('')
+  const [collapsed, setCollapsed] = useState(false)
+
+  // Remember the open/closed choice across lessons, and drive the lesson
+  // reflow through a CSS variable the layout reads (`--course-sidebar-w`), so
+  // collapsing here makes the lesson go full-width with no layout coupling.
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('nawar_course_sidebar_collapsed') === '1') setCollapsed(true)
+    } catch {
+      /* localStorage unavailable */
+    }
+  }, [])
+  useEffect(() => {
+    const root = document.documentElement
+    root.style.setProperty('--course-sidebar-w', collapsed ? '0px' : '340px')
+    try {
+      localStorage.setItem('nawar_course_sidebar_collapsed', collapsed ? '1' : '0')
+    } catch {
+      /* ignore */
+    }
+    return () => {
+      root.style.removeProperty('--course-sidebar-w')
+    }
+  }, [collapsed])
 
   const currentChapterIdx = useMemo(
     () =>
@@ -249,6 +273,21 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
     })
   }
 
+  // Collapsed → only a small floating button to bring the panel back. The
+  // lesson is already full-width because --course-sidebar-w is 0.
+  if (collapsed) {
+    return (
+      <button
+        onClick={() => setCollapsed(false)}
+        title="Mostrar contenido del curso"
+        aria-label="Mostrar contenido del curso"
+        className="hidden lg:flex fixed left-3 top-3 z-30 w-10 h-10 rounded-lg bg-[#1D0084] text-white items-center justify-center nice-shadow hover:bg-[#2a0fa0] transition-colors"
+      >
+        <PanelLeftOpen size={20} />
+      </button>
+    )
+  }
+
   return (
     <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-[340px] bg-[#1D0084] text-white z-30">
       {/* Volver al curso */}
@@ -262,12 +301,22 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
 
       {/* Título + progreso */}
       <div className="px-4 py-3 border-b border-white/10 shrink-0">
-        <h2
-          className="text-[15px] font-bold leading-tight line-clamp-2"
-          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
-        >
-          {course.name}
-        </h2>
+        <div className="flex items-start justify-between gap-2">
+          <h2
+            className="text-[15px] font-bold leading-tight line-clamp-2"
+            style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+          >
+            {course.name}
+          </h2>
+          <button
+            onClick={() => setCollapsed(true)}
+            title="Ocultar contenido"
+            aria-label="Ocultar contenido"
+            className="shrink-0 -mr-1 -mt-0.5 w-7 h-7 flex items-center justify-center rounded-md text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+          >
+            <PanelLeftClose size={16} />
+          </button>
+        </div>
         <div className="mt-2 flex items-center justify-between text-[11px] text-white/60">
           <span>
             {done} / {total}
