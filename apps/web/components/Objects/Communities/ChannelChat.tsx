@@ -7,7 +7,7 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 import utc from 'dayjs/plugin/utc'
 import 'dayjs/locale/es'
 import { PaperPlaneRight } from '@phosphor-icons/react'
-import { Loader2, MessageCircle, Pin, PinOff, SmilePlus } from 'lucide-react'
+import { Loader2, MessageCircle, Pin, PinOff, SmilePlus, Reply, X } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useDiscussions, useMutateDiscussions } from '@components/Hooks/useDiscussions'
 import {
@@ -101,6 +101,21 @@ function messageText(d: DiscussionWithAuthor): string {
   return d.title
 }
 
+// Reply reference is stored inside the message's own content JSON (replyToAuthor
+// / replyToText), so quoting works with zero DB schema changes.
+function replyMeta(d: DiscussionWithAuthor): { author: string; text: string } | null {
+  if (!d.content) return null
+  try {
+    const doc = JSON.parse(d.content)
+    if (doc?.replyToAuthor || doc?.replyToText) {
+      return { author: doc.replyToAuthor || '', text: doc.replyToText || '' }
+    }
+  } catch {
+    /* ignore */
+  }
+  return null
+}
+
 export function ChannelChat({
   communityUuid,
   channelName,
@@ -115,6 +130,7 @@ export function ChannelChat({
   const mutateDiscussions = useMutateDiscussions()
   const [pinningUuid, setPinningUuid] = useState<string | null>(null)
   const [pickerUuid, setPickerUuid] = useState<string | null>(null)
+  const [replyingTo, setReplyingTo] = useState<{ author: string; text: string } | null>(null)
 
   // Toggle an emoji reaction on a message and refresh the list.
   const react = async (uuid: string, emoji: string) => {
@@ -178,7 +194,12 @@ export function ChannelChat({
         type: 'paragraph',
         content: line.trim() ? [{ type: 'text', text: line }] : [],
       }))
-      const content = JSON.stringify({ type: 'doc', content: docContent })
+      const doc: any = { type: 'doc', content: docContent }
+      if (replyingTo) {
+        doc.replyToAuthor = replyingTo.author
+        doc.replyToText = replyingTo.text
+      }
+      const content = JSON.stringify(doc)
 
       await createDiscussion(
         communityUuid,
@@ -186,6 +207,7 @@ export function ChannelChat({
         accessToken
       )
       setText('')
+      setReplyingTo(null)
       mutateDiscussions(communityUuid)
     } catch (e: any) {
       toast.error(
@@ -253,16 +275,18 @@ export function ChannelChat({
                     className={`group/msg relative flex gap-2.5 px-4 ${grouped ? 'mt-0.5' : 'mt-2'}`}
                   >
                     {/* Avatar (first of a block) — or the clock time on hover when grouped */}
-                    <div className="w-9 shrink-0 flex justify-center">
+                    <div className="w-9 shrink-0 flex justify-center items-start">
                       {!grouped ? (
-                        <UserAvatar
-                          width={36}
-                          rounded="rounded-full"
-                          avatar_url={getAvatarUrl(m.author) || undefined}
-                          predefined_avatar={m.author?.avatar_image ? undefined : 'empty'}
-                          showProfilePopup={true}
-                          userId={m.author?.id?.toString()}
-                        />
+                        <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 flex items-center justify-center bg-gray-100 [&_img]:w-full [&_img]:h-full [&_img]:object-cover">
+                          <UserAvatar
+                            width={36}
+                            rounded="rounded-full"
+                            avatar_url={getAvatarUrl(m.author) || undefined}
+                            predefined_avatar={m.author?.avatar_image ? undefined : 'empty'}
+                            showProfilePopup={true}
+                            userId={m.author?.id?.toString()}
+                          />
+                        </div>
                       ) : (
                         <span className="mt-1.5 text-[10px] text-gray-400 tabular-nums opacity-0 group-hover/msg:opacity-100 transition-opacity">
                           {clockTime(m.creation_date)}
@@ -291,6 +315,19 @@ export function ChannelChat({
                               : 'bg-[#F0F5FF]'
                           } ${grouped ? 'rounded-tl-md' : 'rounded-tl-sm'}`}
                         >
+                          {(() => {
+                            const rm = replyMeta(m)
+                            return rm ? (
+                              <div className="mb-1 border-l-2 border-[#4da3ff] pl-2 py-0.5">
+                                <span className="block text-[11px] font-semibold text-[#025dc7] leading-tight">
+                                  {rm.author}
+                                </span>
+                                <span className="block text-[11px] text-gray-500 line-clamp-1 leading-tight">
+                                  {rm.text}
+                                </span>
+                              </div>
+                            ) : null
+                          })()}
                           <p className="text-sm text-gray-800 whitespace-pre-wrap break-words leading-relaxed">
                             {messageText(m)}
                           </p>
@@ -309,6 +346,23 @@ export function ChannelChat({
                             }`}
                           >
                             <SmilePlus size={16} />
+                          </button>
+                        )}
+                        {/* Responder (aparece al pasar el ratón) */}
+                        {accessToken && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setReplyingTo({
+                                author: authorName(m.author),
+                                text: messageText(m).slice(0, 140),
+                              })
+                            }
+                            title="Responder"
+                            aria-label="Responder"
+                            className="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-[#025dc7] hover:bg-[#025dc7]/10 transition-all opacity-0 group-hover/msg:opacity-100"
+                          >
+                            <Reply size={15} />
                           </button>
                         )}
                       </div>
@@ -384,6 +438,23 @@ export function ChannelChat({
       {/* Composer */}
       <AuthenticatedClientElement checkMethod="authentication">
         <div className="border-t border-gray-100 p-3">
+          {replyingTo && (
+            <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-[#F0F5FF] rounded-lg border-l-2 border-[#4da3ff]">
+              <Reply size={14} className="shrink-0 text-[#025dc7]" />
+              <div className="min-w-0 flex-1 text-xs">
+                <span className="font-semibold text-[#025dc7]">Respondiendo a {replyingTo.author}</span>
+                <p className="text-gray-500 truncate">{replyingTo.text}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReplyingTo(null)}
+                aria-label="Cancelar respuesta"
+                className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-200/70 transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
           <div className="flex items-end gap-2 bg-gray-50 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:ring-[#025dc7]/20">
             <textarea
               value={text}
