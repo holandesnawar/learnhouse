@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react'
 import { getUriWithOrg } from '@services/config/config'
 import { getCourseMetadata } from '@services/courses/courses'
 import { useTrail } from '@/hooks/queries/useTrail'
-import ActivityIndicators from '@components/Pages/Courses/ActivityIndicators'
 import { useRouter } from 'next/navigation'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import {
@@ -453,29 +452,11 @@ const CourseClient = (props: any) => {
                   }
                 })()}
 
-                {(() => {
-                  const cleanCourseUuid = course.course_uuid?.replace('course_', '');
-                  const run = trailData?.runs?.find(
-                    (run: any) => {
-                      const cleanRunCourseUuid = run.course?.course_uuid?.replace('course_', '');
-                      return cleanRunCourseUuid === cleanCourseUuid;
-                    }
-                  );
-                  return run;
-                })() && (
-                  <ActivityIndicators
-                    course_uuid={course.course_uuid}
-                    orgslug={orgslug}
-                    course={course}
-                    trailData={trailData}
-                  />
-                )}
-
-                <div className="course_metadata_left space-y-2">
-                  <div className="">
-                    <p className="py-5 whitespace-pre-line break-words w-full leading-relaxed tracking-normal text-pretty hyphens-auto">{course.about}</p>
+                {course.about && course.about.trim() && (
+                  <div className="course_metadata_left">
+                    <p className="whitespace-pre-line break-words w-full leading-relaxed tracking-normal text-pretty hyphens-auto">{course.about}</p>
                   </div>
-                </div>
+                )}
               </div>
 
               <div className={`course_metadata_right w-full md:w-1/4 ${COURSES_AS_SESSIONS.has(course.course_uuid) ? 'md:self-start md:sticky md:top-6' : 'space-y-4'}`}>
@@ -540,7 +521,7 @@ const CourseClient = (props: any) => {
               )
             })()}
 
-            <div className="w-full mt-10 mb-12">
+            <div className="w-full mt-4 mb-12">
               <h2 className="pb-5 text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2.5" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
                 {COURSES_AS_SESSIONS.has(course.course_uuid) ? (
                   <>
