@@ -159,6 +159,58 @@ Fichero canónico: `apps/web/app/auth/matricula-formacion-nawar-a0-a1/checkout.t
 6. **Modo nocturno** plataforma (ThemeProvider + variantes `dark:` clave + persistir en `student_progress.theme`).
 7. **Certificado PDF** al terminar formación (motivación).
 
+## Estrategia de negocio y lanzamiento (plan 2026)
+
+> Decidido con el usuario en sesiones de junio 2026. Filosofía base (Hormozi): no competir en el medio indiferenciado; el negocio es de **entrega limitada**, así que el polo es **premium**, no barato. Subir precios con prueba es lo normal y sano (NO bajar). High-ticket = **acceso + personalización + velocidad + accountability + garantía**, NUNCA "más contenido".
+
+### Principio de foco (recordar siempre)
+El lanzamiento se decide por **(1) audiencia/lista de email, (2) claridad de la oferta, (3) resultados reales de los primeros alumnos → testimonios**. NO por pulir la plataforma. La plataforma ya está lista para lanzar. Done > perfect.
+
+### Hoja de ruta de lanzamientos
+- **Septiembre 2026:** lanzar **Formación A0-A1**, cohorte fundadora **30-40 plazas**, **solo por email** (sin redes todavía), precio **397€ "fundador"**. Objetivo: feedback + testimonios. Escasez real.
+- **Sept→dic:** entregar excelente, recoger feedback y testimonios. Pedir testimonio "en caliente" al lograr el resultado.
+- **Enero 2027:** mejorar A0-A1 (con feedback) + lanzar **A1-A2** como continuación (ascensión) + montar el **VIP**. Subir Formación a **497€**. Bundle "ruta A0→A2" opcional (no obligar).
+- **Feb/Mar 2027:** lanzar **Nawar+** (suscripción de entrada). NO en enero (no saturar; evitar canibalizar).
+
+### Escalera de productos / precios
+| Producto | Cuándo | Precio | Rol |
+|---|---|---|---|
+| Guías gratis (hebben-zijn…) | ya | 0€ | Captar emails |
+| **Nawar+** (suscripción) | feb/mar | ~mensual | Puerta de entrada / "los que no se atreven" |
+| **Formación A0-A1** | sept 397 fundador → enero **497** | 397→497 | Camino estructurado al resultado |
+| **A0-A1 VIP** | enero | **997** (plazas limitadas) | Acceso + personalización |
+| **A1-A2** (+ VIP / bundle) | enero | — | Ascensión |
+
+- VIP a **997** (no 897): el hueco 497→997 (el doble) **auto-selecciona** a los comprometidos y cubre el coste de TU tiempo. Se puede subir luego.
+- **Nawar+ posicionamiento (clave anti-canibalización):** Nawar+ = comunidad + clase semanal en grupo + práctica ("mantente conectado"). Formación = camino estructurado A0-A1 con sistema, progreso y certificado ("de verdad aprendes el nivel"). Nawar+ **alimenta** la formación y capta gente **entre cohortes**.
+
+### Diferenciadores del VIP (sin quitar nada al base)
+El base (497) debe lograr el resultado A0-A1 **completo y satisfactorio por sí solo**. El VIP **AÑADE** (no quita): correcciones personales async + notas de voz de pronunciación + consultas con prioridad (<24h) + clase de conversación en grupo reducido + plan de estudio personalizado + prep examen inburgering/NT2 + canal de comunidad exclusivo VIP + insignia + certificado + acceso anticipado + **garantía de esfuerzo** ("si completas y no llegas a X, sesiones extra gratis"). Elegir 4-5 que cuesten poco entregar pero se perciban mucho (las async + grupo reducido + prioridad + certificado).
+
+### Separación de grupos en la plataforma (construir en ENERO)
+Usar el sistema de **grupos de usuarios** (el mismo que usan los bloqueos del drip):
+- Crear grupo **"VIP / Nawar Pro"**.
+- Contenido + **canal de comunidad exclusivos** gateados a ese grupo (como el drip oculta módulos).
+- **Insignia VIP** en comunidad + marca visible para el admin para saber a quién responder primero (prioridad).
+- El base no ve lo VIP; el VIP ve todo + lo suyo. (Es código que se puede construir: pendiente para enero.)
+
+### Mecánica de venta del high-ticket (VIP) — solicitud → reunión, en oleadas
+La formación 497 se vende por **email a la lista filtrada** con checkout normal. El VIP NO: se vende **por solicitud + reunión** (a 997 convierte mucho mejor hablando que con un botón).
+1. Formulario de cualificación en la lista (urgencia, para qué, cuándo) → etiquetar a los **más calientes/urgentes**.
+2. A los **~10 más comprometidos** → email SEPARADO (antes de que compren la 497 por su cuenta) invitando a **reservar una reunión** (Calendly). En la llamada se vende el VIP.
+3. Si de esos 10 compran solo ~5 → **segunda oleada**: email a los siguientes 10 más comprometidos. Escasez real ("quedan X plazas VIP").
+4. Plazas VIP limitadas (~5-10) = escasez + capacidad de entrega real.
+
+### Equipo / entrega (staffing)
+- **Ahora: NO sueldos fijos.** Demanda no probada → coste variable. Usar los **profes ZZP (freelance) que ya hay, pago por clase/hora**. El coste de una clase grupal es trivial frente a los ingresos.
+- El **director académico** coordina + entrega los 1-a-1 del VIP + accountability.
+- **VIP:** mezclar — pocos 1-a-1 puros (2-3 sesiones clave) + **conversación en grupo reducido** + **async** (correcciones, notas de voz) para no vivir en la agenda. Limitar plazas.
+- **Sueldo fijo solo más adelante**, con demanda estable y utilización casi plena. Hasta entonces, freelance = más rentable y sin coste muerto. NO sobre-contratar antes de ingresos probados.
+
+### Otros motores (después de tener prueba B2C)
+- **Referidos:** orgánico (pedirlo a alumnos felices en el pico de su victoria) desde ya; **incentivado en enero** (trae a un amigo → crédito siguiente nivel / sesión extra / cash) con **cupones manuales** (sin plataforma de afiliados aún); afiliación formal con comisiones más adelante (promotores/influencers).
+- **B2B:** gran potencial (empresas con extranjeros, inburgering/gemeente con presupuesto público, expats), pero es **otro deporte** (ciclo largo, facturas, contratos). **Aparcar hasta tener prueba B2C**; coger leads calientes de forma oportunista.
+
 ## Notas de flujo de trabajo
 - Desarrollar en `claude/adoring-dijkstra-rI3FL`.
 - `git push` está bloqueado en el contenedor → usar MCP GitHub (`mcp__github__push_files`) o, en este entorno, el sandbox permite `git push` directo via http://127.0.0.1.
