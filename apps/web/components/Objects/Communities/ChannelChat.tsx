@@ -7,16 +7,21 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 import utc from 'dayjs/plugin/utc'
 import 'dayjs/locale/es'
 import { PaperPlaneRight } from '@phosphor-icons/react'
-import { Loader2, MessageCircle, Pin, PinOff, SmilePlus, Reply, X } from 'lucide-react'
+import { Loader2, MessageCircle, Pin, PinOff, SmilePlus, Reply, X, Pencil, Trash2 } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useDiscussions, useMutateDiscussions } from '@components/Hooks/useDiscussions'
 import {
   createDiscussion,
   pinDiscussion,
   toggleReaction,
+  updateDiscussion,
+  deleteDiscussion,
   DiscussionWithAuthor,
   DiscussionAuthor,
 } from '@services/communities/discussions'
+
+// Ventana en la que el autor puede editar/eliminar su propio mensaje (12 h).
+const EDIT_WINDOW_MS = 12 * 60 * 60 * 1000
 
 // Quick emoji set for the chat reaction picker.
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '🔥', '🎉', '🙌', '👏', '🤔']
@@ -46,13 +51,14 @@ function msOf(date: string): number {
   return localDay(date).valueOf()
 }
 
-// "Hoy" / "Ayer" / "3 de junio" — for the day separators between message groups.
+// "Hoy" / "Ayer" / "1 de junio" — meses en español fijos (sin depender del locale).
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
 function dayLabel(date: string): string {
   const d = localDay(date)
   const today = dayjs()
   if (d.isSame(today, 'day')) return 'Hoy'
   if (d.isSame(today.subtract(1, 'day'), 'day')) return 'Ayer'
-  return d.locale('es').format('D [de] MMMM')
+  return `${d.date()} de ${MESES[d.month()]}`
 }
 
 function dayKey(date: string): string {
@@ -131,6 +137,15 @@ export function ChannelChat({
   const [pinningUuid, setPinningUuid] = useState<string | null>(null)
   const [pickerUuid, setPickerUuid] = useState<string | null>(null)
   const [replyingTo, setReplyingTo] = useState<{ author: string; text: string } | null>(null)
+  const [editingUuid, setEditingUuid] = useState<string | null>(null)
+  const [editText, setEditText] = useState('')
+  const currentUserId = session?.data?.user?.id
+
+  // El autor puede editar/eliminar su propio mensaje durante las primeras 12 h.
+  const canModify = (m: DiscussionWithAuthor) =>
+    !!currentUserId &&
+    m.author?.id === currentUserId &&
+    Date.now() - msOf(m.creation_date) < EDIT_WINDOW_MS
 
   // Toggle an emoji reaction on a message and refresh the list.
   const react = async (uuid: string, emoji: string) => {
@@ -141,6 +156,50 @@ export function ChannelChat({
       mutateDiscussions(communityUuid)
     } catch {
       toast.error('No se pudo reaccionar.')
+    }
+  }
+
+  const startEdit = (m: DiscussionWithAuthor) => {
+    setEditingUuid(m.discussion_uuid)
+    setEditText(messageText(m))
+    setPickerUuid(null)
+  }
+
+  // Guardar la edición — reconstruye el JSON conservando la cita (reply) si la había.
+  const saveEdit = async () => {
+    const msg = editText.trim()
+    if (!msg || !editingUuid || !accessToken) return
+    const original = messages.find((x) => x.discussion_uuid === editingUuid)
+    try {
+      const firstLine = msg.split('\n')[0].trim()
+      const title = firstLine.length > 100 ? firstLine.slice(0, 100).trim() : firstLine
+      const docContent = msg.split('\n').map((line) => ({
+        type: 'paragraph',
+        content: line.trim() ? [{ type: 'text', text: line }] : [],
+      }))
+      const doc: any = { type: 'doc', content: docContent }
+      const rm = original ? replyMeta(original) : null
+      if (rm) {
+        doc.replyToAuthor = rm.author
+        doc.replyToText = rm.text
+      }
+      await updateDiscussion(editingUuid, { title: title || msg.slice(0, 100), content: JSON.stringify(doc) }, accessToken)
+      setEditingUuid(null)
+      setEditText('')
+      mutateDiscussions(communityUuid)
+    } catch (e: any) {
+      toast.error(e?.message || 'No se pudo editar el mensaje.')
+    }
+  }
+
+  const removeMessage = async (uuid: string) => {
+    if (!accessToken) return
+    if (!window.confirm('¿Eliminar este mensaje? No se puede deshacer.')) return
+    try {
+      await deleteDiscussion(uuid, accessToken)
+      mutateDiscussions(communityUuid)
+    } catch {
+      toast.error('No se pudo eliminar el mensaje.')
     }
   }
 
@@ -307,6 +366,33 @@ export function ChannelChat({
                       )}
                       {/* Each message is its own bubble so consecutive ones read as
                           separate messages, not one merged block. */}
+                      {editingUuid === m.discussion_uuid ? (
+                        <div className="min-w-0">
+                          <textarea
+                            value={editText}
+                            onChange={(e) => setEditText(e.target.value)}
+                            rows={2}
+                            autoFocus
+                            className="w-full resize-none rounded-xl bg-white border border-[#4da3ff] px-3 py-2 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#4da3ff]/25"
+                          />
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <button
+                              type="button"
+                              onClick={saveEdit}
+                              className="inline-flex items-center px-3 py-1.5 rounded-lg bg-[#025dc7] text-white text-xs font-semibold hover:bg-[#0b6df0]"
+                            >
+                              Guardar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { setEditingUuid(null); setEditText('') }}
+                              className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
                       <div className="flex items-center gap-1.5">
                         <div
                           className={`inline-block max-w-full rounded-2xl px-3 py-2 ${
@@ -330,6 +416,9 @@ export function ChannelChat({
                           })()}
                           <p className="text-sm text-gray-800 whitespace-pre-wrap break-words leading-relaxed">
                             {messageText(m)}
+                            {m.edit_count > 0 && (
+                              <span className="text-[10px] text-gray-400 ml-1.5">· editado</span>
+                            )}
                           </p>
                         </div>
                         {/* Añadir reacción (aparece al pasar el ratón) */}
@@ -365,7 +454,32 @@ export function ChannelChat({
                             <Reply size={15} />
                           </button>
                         )}
+                        {/* Editar (solo el autor, primeras 12 h) */}
+                        {canModify(m) && (
+                          <button
+                            type="button"
+                            onClick={() => startEdit(m)}
+                            title="Editar"
+                            aria-label="Editar"
+                            className="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-[#025dc7] hover:bg-[#025dc7]/10 transition-all opacity-0 group-hover/msg:opacity-100"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                        )}
+                        {/* Eliminar (solo el autor, primeras 12 h) */}
+                        {canModify(m) && (
+                          <button
+                            type="button"
+                            onClick={() => removeMessage(m.discussion_uuid)}
+                            title="Eliminar"
+                            aria-label="Eliminar"
+                            className="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-rose-500 hover:bg-rose-50 transition-all opacity-0 group-hover/msg:opacity-100"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
+                      )}
 
                       {/* Selector rápido de emojis */}
                       {pickerUuid === m.discussion_uuid && (
