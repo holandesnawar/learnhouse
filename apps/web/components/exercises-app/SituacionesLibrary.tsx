@@ -65,9 +65,6 @@ export default function SituacionesLibrary({ orgslug }: { orgslug: string }) {
                     <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#025dc7] bg-[#EEF4FF] px-2 py-0.5 rounded-full">
                       <span aria-hidden>{cat.emoji}</span> {cat.label}
                     </span>
-                    <span className="text-[11px] font-bold text-[#1D0084] bg-[#F0F5FF] px-2 py-0.5 rounded-full">
-                      {s.level}
-                    </span>
                     {s.durationLabel && (
                       <span className="text-[11px] font-medium text-[#9CA3AF]">{s.durationLabel}</span>
                     )}

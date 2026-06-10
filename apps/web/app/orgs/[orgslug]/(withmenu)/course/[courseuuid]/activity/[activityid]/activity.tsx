@@ -394,6 +394,8 @@ function ActivityClient(props: ActivityClientProps) {
                     orgslug={orgslug}
                     inCourse
                     onComplete={handleNativeComplete}
+                    titleOverride={activity.content?.video_title}
+                    contextOverride={activity.content?.video_desc}
                   />
                 </Suspense>
               );

@@ -4,6 +4,7 @@ import BarLoader from 'react-spinners/BarLoader'
 import { Globe, PuzzlePiece, FilmSlate } from '@phosphor-icons/react'
 import NativeExercisePicker from '@components/exercises-app/NativeExercisePicker'
 import SituacionPicker from '@components/exercises-app/SituacionPicker'
+import { getSituacion } from '@/lib/exercises-app/situaciones'
 
 function EmbedActivityModal({ submitActivity, chapterId, course }: any) {
   const [activityName, setActivityName] = useState('')
@@ -17,6 +18,17 @@ function EmbedActivityModal({ submitActivity, chapterId, course }: any) {
   const [exLessonId, setExLessonId] = useState('')
   const [exSection, setExSection] = useState('vocabulary')
   const [situacionId, setSituacionId] = useState('')
+  const [videoTitle, setVideoTitle] = useState('')
+  const [videoDesc, setVideoDesc] = useState('')
+
+  const handlePickSituacion = (id: string) => {
+    setSituacionId(id)
+    const s = id ? getSituacion(id) : null
+    if (s) {
+      setVideoTitle((t) => (t.trim() ? t : s.title))
+      setVideoDesc((d) => (d.trim() ? d : s.context))
+    }
+  }
 
   const handleSubmit = async (e: any) => {
     e.preventDefault()
@@ -24,7 +36,7 @@ function EmbedActivityModal({ submitActivity, chapterId, course }: any) {
       mode === 'nawar'
         ? { embed_url: `nawar:${exModuleId}/${exLessonId}/${exSection}` }
         : mode === 'video'
-        ? { embed_url: `nawar-video:${situacionId}` }
+        ? { embed_url: `nawar-video:${situacionId}`, video_title: videoTitle.trim(), video_desc: videoDesc.trim() }
         : { embed_url: embedUrl }
     if (mode === 'nawar' && (!exModuleId || !exLessonId)) return
     if (mode === 'video' && !situacionId) return
@@ -138,7 +150,33 @@ function EmbedActivityModal({ submitActivity, chapterId, course }: any) {
             />
           </div>
         ) : (
-          <SituacionPicker situacionId={situacionId} onChange={setSituacionId} />
+          <div className="space-y-3">
+            <SituacionPicker situacionId={situacionId} onChange={handlePickSituacion} />
+            {situacionId && (
+              <>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-gray-700">Título (lo que ve el alumno)</label>
+                  <input
+                    type="text"
+                    value={videoTitle}
+                    onChange={(e) => setVideoTitle(e.target.value)}
+                    placeholder="Título de la lección…"
+                    className="w-full h-9 px-3 text-sm rounded-lg bg-gray-50 border border-gray-200 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-200 transition-colors"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-gray-700">Descripción</label>
+                  <textarea
+                    value={videoDesc}
+                    onChange={(e) => setVideoDesc(e.target.value)}
+                    placeholder="Una línea de contexto…"
+                    rows={2}
+                    className="w-full px-3 py-2 text-sm rounded-lg bg-gray-50 border border-gray-200 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-200 transition-colors resize-none"
+                  />
+                </div>
+              </>
+            )}
+          </div>
         )}
 
         <Form.Field name="embed-activity-desc" className="space-y-1.5">

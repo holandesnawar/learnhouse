@@ -5,6 +5,7 @@ import { updateActivity } from '@services/courses/activities'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import NativeExercisePicker from '@components/exercises-app/NativeExercisePicker'
 import SituacionPicker from '@components/exercises-app/SituacionPicker'
+import { getSituacion } from '@/lib/exercises-app/situaciones'
 import { Clapperboard } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -89,13 +90,37 @@ function EmbedActivity({ activity, editable = false, style }: EmbedActivityProps
   const nativeToken = `nawar:${exModuleId}/${exLessonId}/${exSection}`
 
   const [situacionId, setSituacionId] = useState(videoInit?.situacionId ?? '')
+  const [videoTitle, setVideoTitle] = useState<string>(activity.content?.video_title ?? '')
+  const [videoDesc, setVideoDesc] = useState<string>(activity.content?.video_desc ?? '')
   const videoToken = `nawar-video:${situacionId}`
+
+  // When the admin picks a situación, prefill the title/description with the
+  // situación's own values if the fields are still empty (so they have a
+  // starting point they can tweak).
+  const handlePickSituacion = (id: string) => {
+    setSituacionId(id)
+    const s = id ? getSituacion(id) : null
+    if (s) {
+      setVideoTitle((t) => (t.trim() ? t : s.title))
+      setVideoDesc((d) => (d.trim() ? d : s.context))
+    }
+  }
 
   const handleSaveVideo = async () => {
     if (!situacionId) return
     setSaving(true)
     try {
-      await updateActivity({ content: { embed_url: videoToken } }, activity.activity_uuid, access_token)
+      await updateActivity(
+        {
+          content: {
+            embed_url: videoToken,
+            video_title: videoTitle.trim(),
+            video_desc: videoDesc.trim(),
+          },
+        },
+        activity.activity_uuid,
+        access_token
+      )
       toast.success('Situación guardada')
       setError(false)
     } catch {
@@ -264,11 +289,35 @@ function EmbedActivity({ activity, editable = false, style }: EmbedActivityProps
             </div>
           ) : (
             <div className="space-y-3">
-              <SituacionPicker situacionId={situacionId} onChange={setSituacionId} />
+              <SituacionPicker situacionId={situacionId} onChange={handlePickSituacion} />
+              {situacionId && (
+                <>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-gray-600">Título (lo que ve el alumno)</label>
+                    <input
+                      type="text"
+                      value={videoTitle}
+                      onChange={(e) => setVideoTitle(e.target.value)}
+                      placeholder="Título de la lección…"
+                      className="w-full h-9 px-3 text-sm rounded-lg bg-gray-50 border border-gray-200 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-200 transition-colors"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-gray-600">Descripción</label>
+                    <textarea
+                      value={videoDesc}
+                      onChange={(e) => setVideoDesc(e.target.value)}
+                      placeholder="Una línea de contexto…"
+                      rows={2}
+                      className="w-full px-3 py-2 text-sm rounded-lg bg-gray-50 border border-gray-200 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-200 transition-colors resize-none"
+                    />
+                  </div>
+                </>
+              )}
               <div className="flex justify-end">
                 <button
                   onClick={handleSaveVideo}
-                  disabled={saving || !situacionId || videoToken === embedUrl}
+                  disabled={saving || !situacionId}
                   className="inline-flex items-center gap-2 h-9 px-4 text-sm font-medium text-white bg-black rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
                 >
                   {saving ? <SpinnerGap size={16} className="animate-spin" /> : <FloppyDisk size={16} />}

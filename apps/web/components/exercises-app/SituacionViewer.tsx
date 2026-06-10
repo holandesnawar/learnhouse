@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, ChevronDown, FileText, RotateCcw, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ChevronDown, FileText, RotateCcw, CheckCircle2, Dumbbell } from 'lucide-react'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import { getUriWithOrg } from '@services/config/config'
 import { ExerciseRunner } from './LessonViewer'
@@ -19,12 +19,18 @@ export default function SituacionViewer({
   orgslug,
   inCourse = false,
   onComplete,
+  titleOverride,
+  contextOverride,
 }: {
   situacion: Situacion
   orgslug: string
   inCourse?: boolean
   onComplete?: () => void
+  /** Optional per-embed overrides set by the admin in the course editor. */
+  titleOverride?: string
+  contextOverride?: string
 }) {
+  const [started, setStarted] = useState(false)
   const [done, setDone] = useState(false)
   const [showTranscript, setShowTranscript] = useState(false)
   const [runnerKey, setRunnerKey] = useState(0)
@@ -33,6 +39,8 @@ export default function SituacionViewer({
   const embedSrc = toEmbedSrc(situacion.video)
   const cat = CATEGORY_META[situacion.category]
   const hasTranscript = Boolean(situacion.transcriptNl || situacion.transcriptEs)
+  const title = (titleOverride && titleOverride.trim()) || situacion.title
+  const context = contextOverride !== undefined ? contextOverride : situacion.context
 
   function handleDone() {
     setDone(true)
@@ -45,6 +53,7 @@ export default function SituacionViewer({
 
   function restart() {
     setDone(false)
+    setStarted(true)
     setRunnerKey((k) => k + 1)
   }
 
@@ -67,9 +76,6 @@ export default function SituacionViewer({
           <span className="inline-flex items-center gap-1 text-[12px] font-bold text-[#025dc7] bg-[#EEF4FF] px-2.5 py-1 rounded-full">
             <span aria-hidden>{cat.emoji}</span> {cat.label}
           </span>
-          <span className="text-[12px] font-bold text-[#1D0084] bg-[#F0F5FF] px-2.5 py-1 rounded-full">
-            Nivel {situacion.level}
-          </span>
           {situacion.durationLabel && (
             <span className="text-[12px] font-medium text-[#9CA3AF]">{situacion.durationLabel}</span>
           )}
@@ -78,10 +84,10 @@ export default function SituacionViewer({
           className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight"
           style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
         >
-          {situacion.title}
+          {title}
         </h1>
-        {situacion.context && (
-          <p className="text-[14px] sm:text-[15px] text-gray-500 mt-1.5 leading-relaxed">{situacion.context}</p>
+        {context && (
+          <p className="text-[14px] sm:text-[15px] text-gray-500 mt-1.5 leading-relaxed">{context}</p>
         )}
       </div>
 
@@ -135,9 +141,32 @@ export default function SituacionViewer({
         </div>
       )}
 
-      {/* Exercises / done */}
+      {/* Portada de ejercicios / ejercicios / done */}
       <div className="rounded-2xl border border-[#DDE6F5] bg-white p-4 sm:p-6">
-        {done ? (
+        {!done && situacion.exercises.length > 0 && !started ? (
+          // Mini portada: el alumno ve el vídeo primero y arranca los ejercicios
+          // cuando quiere, con un botón.
+          <div className="flex flex-col items-center text-center gap-3 py-6">
+            <div className="w-14 h-14 rounded-2xl bg-[#EEF4FF] flex items-center justify-center">
+              <Dumbbell size={26} className="text-[#025dc7]" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+              ¿List@ para practicar?
+            </h2>
+            <p className="text-[14px] text-gray-500 max-w-sm leading-relaxed">
+              Mira el vídeo con calma y, cuando quieras, pon a prueba lo que has entendido con{' '}
+              {situacion.exercises.length} ejercicio{situacion.exercises.length !== 1 ? 's' : ''} rápido
+              {situacion.exercises.length !== 1 ? 's' : ''}.
+            </p>
+            <button
+              onClick={() => setStarted(true)}
+              className="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] text-[15px] font-bold transition-colors mt-1"
+            >
+              Empezar ejercicios
+              <ArrowRight size={16} strokeWidth={2.5} />
+            </button>
+          </div>
+        ) : done ? (
           <div className="flex flex-col items-center text-center gap-3 py-6">
             <CheckCircle2 size={44} className="text-green-500" />
             <h2 className="text-xl font-bold text-gray-900">¡Bien hecho!</h2>
