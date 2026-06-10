@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
 import * as Form from '@radix-ui/react-form'
 import BarLoader from 'react-spinners/BarLoader'
-import { Globe, PuzzlePiece } from '@phosphor-icons/react'
+import { Globe, PuzzlePiece, FilmSlate } from '@phosphor-icons/react'
 import NativeExercisePicker from '@components/exercises-app/NativeExercisePicker'
+import SituacionPicker from '@components/exercises-app/SituacionPicker'
 
 function EmbedActivityModal({ submitActivity, chapterId, course }: any) {
   const [activityName, setActivityName] = useState('')
@@ -10,19 +11,23 @@ function EmbedActivityModal({ submitActivity, chapterId, course }: any) {
   const [embedUrl, setEmbedUrl] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Mode: web embed (URL) vs native Nawar exercise (module/lesson/part picker)
-  const [mode, setMode] = useState<'web' | 'nawar'>('web')
+  // Mode: web embed (URL) vs native Nawar exercise vs Nawar video situación
+  const [mode, setMode] = useState<'web' | 'nawar' | 'video'>('web')
   const [exModuleId, setExModuleId] = useState('')
   const [exLessonId, setExLessonId] = useState('')
   const [exSection, setExSection] = useState('vocabulary')
+  const [situacionId, setSituacionId] = useState('')
 
   const handleSubmit = async (e: any) => {
     e.preventDefault()
     const content =
       mode === 'nawar'
         ? { embed_url: `nawar:${exModuleId}/${exLessonId}/${exSection}` }
+        : mode === 'video'
+        ? { embed_url: `nawar-video:${situacionId}` }
         : { embed_url: embedUrl }
     if (mode === 'nawar' && (!exModuleId || !exLessonId)) return
+    if (mode === 'video' && !situacionId) return
     setIsSubmitting(true)
     await submitActivity({
       name: activityName,
@@ -88,6 +93,13 @@ function EmbedActivityModal({ submitActivity, chapterId, course }: any) {
           >
             <PuzzlePiece size={16} weight="duotone" /> Ejercicio Nawar
           </button>
+          <button
+            type="button"
+            onClick={() => setMode('video')}
+            className={`inline-flex items-center gap-1.5 h-8 px-3 text-sm font-medium rounded-md transition-colors ${mode === 'video' ? 'bg-white text-gray-900 nice-shadow' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            <FilmSlate size={16} weight="duotone" /> Situación (vídeo)
+          </button>
         </div>
 
         {mode === 'web' ? (
@@ -111,7 +123,7 @@ function EmbedActivityModal({ submitActivity, chapterId, course }: any) {
               />
             </Form.Control>
           </Form.Field>
-        ) : (
+        ) : mode === 'nawar' ? (
           <div className="space-y-1.5">
             <span className="text-sm font-medium text-gray-700">Ejercicio Nawar</span>
             <NativeExercisePicker
@@ -125,6 +137,8 @@ function EmbedActivityModal({ submitActivity, chapterId, course }: any) {
               }}
             />
           </div>
+        ) : (
+          <SituacionPicker situacionId={situacionId} onChange={setSituacionId} />
         )}
 
         <Form.Field name="embed-activity-desc" className="space-y-1.5">

@@ -583,7 +583,7 @@ function PhrasesStep({ items, onDone, onBack, onSubProgress }: {
    pasa al step siguiente.
 ───────────────────────────────────────────────────────────────────────────── */
 
-function ExerciseRunner({ exercises, onDone, onBack, hasBackStep, onSubProgress, cacheKey, onItemResult }: {
+export function ExerciseRunner({ exercises, onDone, onBack, hasBackStep, onSubProgress, cacheKey, onItemResult }: {
   exercises: ExerciseItem[];
   onDone: () => void;
   onBack: () => void;

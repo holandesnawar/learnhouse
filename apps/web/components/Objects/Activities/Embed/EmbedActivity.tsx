@@ -4,12 +4,20 @@ import { WarningCircle, Globe, FloppyDisk, SpinnerGap, PuzzlePiece } from '@phos
 import { updateActivity } from '@services/courses/activities'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import NativeExercisePicker from '@components/exercises-app/NativeExercisePicker'
+import SituacionPicker from '@components/exercises-app/SituacionPicker'
+import { Clapperboard } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 // "nawar:<moduleId>/<lessonId>[/<section>]" marks a native Nawar exercise.
 function parseNawar(url: string): { moduleId: string; lessonId: string; section: string } | null {
   const m = url.match(/^nawar:([^/]+)\/([^/]+)(?:\/([^/]+))?$/)
   return m ? { moduleId: m[1], lessonId: m[2], section: m[3] || 'vocabulary' } : null
+}
+
+// "nawar-video:<situacionId>" marks a native Nawar "situación real" (video + exercises).
+function parseNawarVideo(url: string): { situacionId: string } | null {
+  const m = url.match(/^nawar-video:(.+)$/)
+  return m ? { situacionId: m[1] } : null
 }
 
 function toEmbedUrl(url: string): string {
@@ -71,11 +79,31 @@ function EmbedActivity({ activity, editable = false, style }: EmbedActivityProps
 
   // Native Nawar exercise support
   const nawarInit = parseNawar(embedUrl)
-  const [mode, setMode] = useState<'web' | 'nawar'>(nawarInit ? 'nawar' : 'web')
+  const videoInit = parseNawarVideo(embedUrl)
+  const [mode, setMode] = useState<'web' | 'nawar' | 'video'>(
+    videoInit ? 'video' : nawarInit ? 'nawar' : 'web'
+  )
   const [exModuleId, setExModuleId] = useState(nawarInit?.moduleId ?? '')
   const [exLessonId, setExLessonId] = useState(nawarInit?.lessonId ?? '')
   const [exSection, setExSection] = useState(nawarInit?.section ?? 'vocabulary')
   const nativeToken = `nawar:${exModuleId}/${exLessonId}/${exSection}`
+
+  const [situacionId, setSituacionId] = useState(videoInit?.situacionId ?? '')
+  const videoToken = `nawar-video:${situacionId}`
+
+  const handleSaveVideo = async () => {
+    if (!situacionId) return
+    setSaving(true)
+    try {
+      await updateActivity({ content: { embed_url: videoToken } }, activity.activity_uuid, access_token)
+      toast.success('Situación guardada')
+      setError(false)
+    } catch {
+      toast.error('No se pudo guardar la situación')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const handleSaveNative = async () => {
     if (!exModuleId || !exLessonId || !exSection) return
@@ -139,11 +167,17 @@ function EmbedActivity({ activity, editable = false, style }: EmbedActivityProps
   // Native Nawar exercise stored on this activity — the course view renders it
   // natively, so here (non-editable, e.g. the standalone /embed page) we just
   // show a hint instead of a broken iframe.
-  if (nawarInit && !editable) {
+  if ((nawarInit || videoInit) && !editable) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3" style={style}>
-        <PuzzlePiece size={36} weight="duotone" className="text-[#025dc7]" />
-        <p className="text-sm text-gray-600">Ejercicio Nawar — se muestra dentro del curso.</p>
+        {videoInit ? (
+          <Clapperboard size={34} className="text-[#025dc7]" />
+        ) : (
+          <PuzzlePiece size={36} weight="duotone" className="text-[#025dc7]" />
+        )}
+        <p className="text-sm text-gray-600">
+          {videoInit ? 'Situación Nawar' : 'Ejercicio Nawar'} — se muestra dentro del curso.
+        </p>
       </div>
     )
   }
@@ -177,6 +211,13 @@ function EmbedActivity({ activity, editable = false, style }: EmbedActivityProps
             >
               <PuzzlePiece size={16} weight="duotone" /> Ejercicio Nawar
             </button>
+            <button
+              type="button"
+              onClick={() => setMode('video')}
+              className={`inline-flex items-center gap-1.5 h-8 px-3 text-sm font-medium rounded-md transition-colors ${mode === 'video' ? 'bg-white text-gray-900 nice-shadow' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              <Clapperboard size={16} /> Situación (vídeo)
+            </button>
           </div>
 
           {mode === 'web' ? (
@@ -198,7 +239,7 @@ function EmbedActivity({ activity, editable = false, style }: EmbedActivityProps
                 Save
               </button>
             </div>
-          ) : (
+          ) : mode === 'nawar' ? (
             <div className="space-y-3">
               <NativeExercisePicker
                 moduleId={exModuleId}
@@ -221,6 +262,20 @@ function EmbedActivity({ activity, editable = false, style }: EmbedActivityProps
                 </button>
               </div>
             </div>
+          ) : (
+            <div className="space-y-3">
+              <SituacionPicker situacionId={situacionId} onChange={setSituacionId} />
+              <div className="flex justify-end">
+                <button
+                  onClick={handleSaveVideo}
+                  disabled={saving || !situacionId || videoToken === embedUrl}
+                  className="inline-flex items-center gap-2 h-9 px-4 text-sm font-medium text-white bg-black rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
+                >
+                  {saving ? <SpinnerGap size={16} className="animate-spin" /> : <FloppyDisk size={16} />}
+                  Guardar situación
+                </button>
+              </div>
+            </div>
           )}
         </div>
       )}
@@ -232,6 +287,15 @@ function EmbedActivity({ activity, editable = false, style }: EmbedActivityProps
             {exModuleId && exLessonId
               ? 'Ejercicio Nawar seleccionado. Se mostrará aquí dentro del curso.'
               : 'Elige un módulo y una lección para asignar el ejercicio.'}
+          </p>
+        </div>
+      ) : editable && mode === 'video' ? (
+        <div className="flex flex-col items-center justify-center py-16 gap-3 rounded-xl border-2 border-dashed border-[#DDE6F5] bg-[#F0F5FF]">
+          <Clapperboard size={30} className="text-[#025dc7]" />
+          <p className="text-sm text-gray-500">
+            {situacionId
+              ? 'Situación seleccionada. El vídeo y sus ejercicios se mostrarán aquí dentro del curso.'
+              : 'Elige una situación (vídeo + ejercicios) para esta lección auditiva.'}
           </p>
         </div>
       ) : displayUrl ? (

@@ -56,6 +56,8 @@ const ScormActivity = lazy(() => import('../../../../../../../../ee/components/A
 const MarkdownActivity = lazy(() => import('@components/Objects/Activities/Markdown/MarkdownActivity'))
 const EmbedActivity = lazy(() => import('@components/Objects/Activities/Embed/EmbedActivity'))
 const NativeExerciseActivity = lazy(() => import('@components/exercises-app/NativeExerciseActivity'))
+const SituacionViewer = lazy(() => import('@components/exercises-app/SituacionViewer'))
+import { getSituacion } from '@/lib/exercises-app/situaciones'
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -82,6 +84,14 @@ function parseNativeExercise(
   const appUrl = embedUrl.match(/\/modulo\/([^/?#]+)\/leccion\/([^/?#]+)/);
   if (appUrl) return { moduleId: appUrl[1], lessonId: appUrl[2] };
   return null;
+}
+
+// A native Nawar "situación real" (video + exercises) embedded in a course:
+//   embed_url = "nawar-video:<situacionId>"
+function parseNativeVideo(embedUrl: string): { situacionId: string } | null {
+  if (!embedUrl) return null;
+  const m = embedUrl.match(/^nawar-video:(.+)$/);
+  return m ? { situacionId: m[1] } : null;
 }
 
 
@@ -315,7 +325,11 @@ function ActivityClient(props: ActivityClientProps) {
     activity?.activity_sub_type === 'SUBTYPE_DYNAMIC_EMBED'
       ? parseNativeExercise(activity?.content?.embed_url || '')
       : null;
-  const isNativeExercise = !!nativeExercise;
+  const nativeVideo =
+    activity?.activity_sub_type === 'SUBTYPE_DYNAMIC_EMBED'
+      ? parseNativeVideo(activity?.content?.embed_url || '')
+      : null;
+  const isNativeExercise = !!nativeExercise || !!nativeVideo;
 
   // Auto-mark a native exercise activity complete when the student finishes it,
   // so progress saves without a manual click. Fires once per activity; marking
@@ -367,6 +381,23 @@ function ActivityClient(props: ActivityClientProps) {
                 />
               </Suspense>
             );
+          }
+          // Native "situación real" (video + exercises) → render inline.
+          const video = parseNativeVideo(activity.content?.embed_url || '');
+          if (video) {
+            const situacion = getSituacion(video.situacionId);
+            if (situacion) {
+              return (
+                <Suspense fallback={<LoadingFallback />}>
+                  <SituacionViewer
+                    situacion={situacion}
+                    orgslug={orgslug}
+                    inCourse
+                    onComplete={handleNativeComplete}
+                  />
+                </Suspense>
+              );
+            }
           }
           return (
             <Suspense fallback={<LoadingFallback />}>
