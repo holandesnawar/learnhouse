@@ -111,11 +111,6 @@ export default function CourseFAQ({ courseUuid, compact = false }: CourseFAQProp
           Preguntas frecuentes
         </h2>
       </div>
-      {data.intro && (
-        <p className="text-[14px] sm:text-[15px] text-gray-600 leading-relaxed mb-4 max-w-2xl">
-          {data.intro}
-        </p>
-      )}
       <div className="bg-white rounded-2xl nice-shadow overflow-hidden border border-[#DDE6F5] divide-y divide-[#DDE6F5]">
         {data.items.map((faq, i) => {
           const open = openIdx === i

@@ -14,11 +14,14 @@ const channelId = (uuid: string) => uuid.replace('community_', '')
 interface Props {
   orgslug: string
   title?: string
+  /** Stack the channels in a single vertical column (one row each) instead of
+   *  the responsive 2-3 column grid. Used in the narrow right rail. */
+  singleColumn?: boolean
 }
 
 // Quick-access cards for the community channels: pick one and go straight to its
 // chat. Used on the home and at the bottom of a course page.
-export default function CommunityChannelsCards({ orgslug, title = 'Comunidad' }: Props) {
+export default function CommunityChannelsCards({ orgslug, title = 'Comunidad', singleColumn = false }: Props) {
   const org = useOrg() as any
   const session = useLHSession() as any
   const orgId = org?.id as number | undefined
@@ -40,12 +43,12 @@ export default function CommunityChannelsCards({ orgslug, title = 'Comunidad' }:
   if (!channels.length) return null
 
   return (
-    <div className="mb-10">
+    <div className={singleColumn ? '' : 'mb-10'}>
       <div className="flex items-center gap-2 mb-4">
         <MessagesSquare size={20} className="text-[#025dc7]" />
         <h2 className="text-lg font-bold text-gray-900">{title}</h2>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className={singleColumn ? 'flex flex-col gap-3' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'}>
         {channels.map((c) => {
           const { emoji, text } = splitChannelEmoji(c.name)
           return (

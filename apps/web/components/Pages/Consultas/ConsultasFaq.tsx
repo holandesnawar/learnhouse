@@ -87,7 +87,7 @@ export default function ConsultasFaq() {
             <HelpCircle size={18} className="text-[#025dc7]" />
           </div>
           <div>
-            <h2 className="text-[15px] font-bold text-gray-900 leading-tight">Preguntas frecuentes</h2>
+            <h2 className="text-[15px] font-bold text-gray-900 leading-tight">Consultas frecuentes</h2>
             <p className="text-[12px] text-gray-500">Dudas habituales, ya resueltas.</p>
           </div>
         </div>

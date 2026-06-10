@@ -162,7 +162,7 @@ export default function RoadmapSection({ canEdit }: { canEdit: boolean }) {
             {roadmap.weeks.map((week, wi) => (
               <div
                 key={wi}
-                className={`rounded-xl border p-4 ${
+                className={`rounded-2xl border p-4 ${
                   wi === roadmap.current ? 'border-[#025dc7] bg-[#025dc7]/5' : 'border-gray-200 bg-white'
                 }`}
               >

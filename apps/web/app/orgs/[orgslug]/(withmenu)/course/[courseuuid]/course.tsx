@@ -462,9 +462,9 @@ const CourseClient = (props: any) => {
               <div className={`course_metadata_right w-full md:w-1/4 ${COURSES_AS_SESSIONS.has(course.course_uuid) ? 'md:self-start md:sticky md:top-6' : 'space-y-4'}`}>
                 {COURSES_AS_SESSIONS.has(course.course_uuid) ? (
                   // Session-library courses: no enrolment/progress — surface the
-                  // community channel cards in the right rail. The FAQ moves down
-                  // next to "Sesiones grabadas".
-                  <CommunityChannelsCards orgslug={orgslug} />
+                  // community channel cards in the right rail, stacked one per row.
+                  // The FAQ moves down next to "Sesiones grabadas".
+                  <CommunityChannelsCards orgslug={orgslug} title="Comunidades" singleColumn />
                 ) : (
                   <CoursesActions courseuuid={courseuuid} orgslug={orgslug} course={course} trailData={trailData} />
                 )}
