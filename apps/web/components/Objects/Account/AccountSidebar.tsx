@@ -14,7 +14,7 @@ interface AccountSidebarProps {
 
 const NAV_ITEMS = [
   { id: 'general', icon: Settings, labelKey: 'account.general' },
-  { id: 'profile', icon: User, labelKey: 'account.profile' },
+  // 'profile' (Constructor de perfil, BETA) oculto de momento.
   { id: 'security', icon: Lock, labelKey: 'account.security' },
   { id: 'purchases', icon: ShoppingBag, labelKey: 'account.purchases' },
 ]

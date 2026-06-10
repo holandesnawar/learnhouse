@@ -461,14 +461,10 @@ const CourseClient = (props: any) => {
 
               <div className={`course_metadata_right w-full md:w-1/4 ${COURSES_AS_SESSIONS.has(course.course_uuid) ? 'md:self-start md:sticky md:top-6' : 'space-y-4'}`}>
                 {COURSES_AS_SESSIONS.has(course.course_uuid) ? (
-                  // Session-library courses: no enrolment, no progress —
-                  // surface the FAQ here instead so the right rail isn't
-                  // empty for these courses. Cap the rail at the banner
-                  // height with an internal scroll so expanding answers
-                  // doesn't push the chapter list below.
-                  <div className="md:max-h-[340px] md:overflow-y-auto">
-                    <CourseFAQ courseUuid={course.course_uuid} compact />
-                  </div>
+                  // Session-library courses: no enrolment/progress — surface the
+                  // community channel cards in the right rail. The FAQ moves down
+                  // next to "Sesiones grabadas".
+                  <CommunityChannelsCards orgslug={orgslug} />
                 ) : (
                   <CoursesActions courseuuid={courseuuid} orgslug={orgslug} course={course} trailData={trailData} />
                 )}
@@ -675,10 +671,18 @@ const CourseClient = (props: any) => {
               </div>
             </div>
 
-            {/* Community channels — quick access to the chats */}
-            <div className="mt-8">
-              <CommunityChannelsCards orgslug={orgslug} />
-            </div>
+            {COURSES_AS_SESSIONS.has(course.course_uuid) ? (
+              // Session courses: communities are in the right rail, so here we
+              // surface the FAQ (its own heading matches "Sesiones grabadas").
+              <div className="mt-8">
+                <CourseFAQ courseUuid={course.course_uuid} />
+              </div>
+            ) : (
+              /* Community channels — quick access to the chats */
+              <div className="mt-8">
+                <CommunityChannelsCards orgslug={orgslug} />
+              </div>
+            )}
           </GeneralWrapperStyled>
 
           {/* Mobile Actions Box — hidden for session-library courses, where

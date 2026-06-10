@@ -41,8 +41,9 @@ const AccountClient = ({ orgslug, org_id, subpage }: AccountClientProps) => {
     switch (subpage) {
       case 'general':
         return <AccountGeneral />
+      // 'profile' (Constructor de perfil, BETA) oculto de momento → cae en General.
       case 'profile':
-        return <AccountProfile />
+        return <AccountGeneral />
       case 'security':
         return <AccountSecurity />
       case 'purchases':
