@@ -1,16 +1,20 @@
 'use client'
 import React, { useState } from 'react'
-import { ChevronDown, HelpCircle, Video } from 'lucide-react'
+import { ChevronDown, HelpCircle, Pencil, Plus, Trash2, X, Check, Loader2 } from 'lucide-react'
+import { useOrg } from '@components/Contexts/OrgContext'
+import { useLHSession } from '@components/Contexts/LHSessionContext'
+import useAdminStatus from '@components/Hooks/useAdminStatus'
+import { updateOrgFaq } from '@services/organizations/orgs'
+import toast from 'react-hot-toast'
 
 interface FAQ {
   q: string
   a: string
 }
 
-// Per-course static FAQ blocks. Keyed by course_uuid. Anything not in the map
-// renders nothing — only the specific courses we want to "introduce" with a
-// FAQ get one. Future-proof: when we want admin-edited FAQs, swap this for
-// `course.extra_metadata.faq` and surface an editor.
+// Per-course default FAQ blocks. Keyed by course_uuid. Only the courses we want
+// to "introduce" with a FAQ get one. Admins can override the items live (stored
+// in the org config at customization.faq); these are the fallback defaults.
 const COURSE_FAQS: Record<string, { intro?: string; items: FAQ[] }> = {
   'bfbcb42b-7dc3-4448-9df8-5d7b96135859': {
     intro:
@@ -46,25 +50,58 @@ const COURSE_FAQS: Record<string, { intro?: string; items: FAQ[] }> = {
 
 interface CourseFAQProps {
   courseUuid: string
-  /** Compact = sidebar variant: smaller header, no intro paragraph, tighter
-   *  paddings. Useful when the FAQ replaces the right-rail actions box. */
+  /** Compact = sidebar variant: smaller header, tighter paddings. */
   compact?: boolean
 }
 
 export default function CourseFAQ({ courseUuid, compact = false }: CourseFAQProps) {
-  const [openIdx, setOpenIdx] = useState<number | null>(0)
-  // course.course_uuid comes as "course_<uuid>" from the API while the URL
-  // form is the bare uuid. Normalise so callers don't have to.
-  const key = (courseUuid || '').replace(/^course_/, '')
-  const data = COURSE_FAQS[key]
-  if (!data) return null
+  const org = useOrg() as any
+  const session = useLHSession() as any
+  const { isAdmin } = (useAdminStatus() as any) || {}
+  const accessToken = session?.data?.tokens?.access_token
 
+  // course.course_uuid comes as "course_<uuid>" from the API while the URL form
+  // is the bare uuid. Normalise so callers don't have to.
+  const key = (courseUuid || '').replace(/^course_/, '')
+  const hardcoded = COURSE_FAQS[key]
+
+  // Admin-edited FAQ lives in the org config; fall back to the hardcoded default.
+  const orgFaq = org?.config?.config?.customization?.faq || org?.config?.config?.faq
+  const orgItems = Array.isArray(orgFaq?.items) ? (orgFaq.items as FAQ[]) : null
+
+  const [items, setItems] = useState<FAQ[]>(orgItems && orgItems.length ? orgItems : hardcoded?.items ?? [])
+  const [openIdx, setOpenIdx] = useState<number | null>(0)
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [draft, setDraft] = useState<FAQ[]>([])
+
+  // FAQ only on designated courses.
+  if (!hardcoded) return null
+
+  const startEdit = () => {
+    setDraft(JSON.parse(JSON.stringify(items)))
+    setEditing(true)
+  }
+
+  const save = async () => {
+    setSaving(true)
+    try {
+      const cleaned = draft.map((f) => ({ q: f.q.trim(), a: f.a.trim() })).filter((f) => f.q || f.a)
+      await updateOrgFaq(org.id, { items: cleaned }, accessToken)
+      setItems(cleaned)
+      setEditing(false)
+      toast.success('Preguntas frecuentes guardadas')
+    } catch {
+      toast.error('No se pudieron guardar las preguntas')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // ── Compact (sidebar) variant ──
   if (compact) {
     return (
       <div>
-        {/* Section title outside the card, same rhythm as the other sidebar
-            sections in the rest of the platform. Emoji over icon to keep the
-            HelpCircle for the search bar in lessons. */}
         <div className="flex items-center gap-2.5 mb-3 px-1">
           <HelpCircle size={22} className="text-[#025dc7] shrink-0" />
           <h2 className="text-xl md:text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
@@ -72,7 +109,7 @@ export default function CourseFAQ({ courseUuid, compact = false }: CourseFAQProp
           </h2>
         </div>
         <div className="bg-white rounded-2xl nice-shadow border border-[#DDE6F5] overflow-hidden divide-y divide-[#DDE6F5]">
-          {data.items.map((faq, i) => {
+          {items.map((faq, i) => {
             const open = openIdx === i
             return (
               <button
@@ -82,19 +119,12 @@ export default function CourseFAQ({ courseUuid, compact = false }: CourseFAQProp
                 className="w-full text-left flex items-start gap-3 px-4 py-4 hover:bg-[#F0F5FF]/60 transition-colors"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-[15.5px] font-bold text-gray-900 leading-snug">
-                    {faq.q}
-                  </p>
+                  <p className="text-[15.5px] font-bold text-gray-900 leading-snug">{faq.q}</p>
                   {open && (
-                    <p className="text-[15px] text-gray-600 leading-relaxed mt-2.5 whitespace-pre-line">
-                      {faq.a}
-                    </p>
+                    <p className="text-[15px] text-gray-600 leading-relaxed mt-2.5 whitespace-pre-line">{faq.a}</p>
                   )}
                 </div>
-                <ChevronDown
-                  size={18}
-                  className={`shrink-0 mt-1 text-[#025dc7] transition-transform ${open ? 'rotate-180' : ''}`}
-                />
+                <ChevronDown size={18} className={`shrink-0 mt-1 text-[#025dc7] transition-transform ${open ? 'rotate-180' : ''}`} />
               </button>
             )
           })}
@@ -103,42 +133,92 @@ export default function CourseFAQ({ courseUuid, compact = false }: CourseFAQProp
     )
   }
 
+  // ── Full variant (course page) — admin-editable ──
   return (
     <div className="my-6">
-      <div className="flex items-center gap-2 mb-3">
-        <Video size={20} className="text-[#025dc7]" />
-        <h2 className="text-xl md:text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
-          Preguntas frecuentes
-        </h2>
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="flex items-center gap-2.5">
+          <HelpCircle size={22} className="text-[#025dc7]" />
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+            Preguntas frecuentes
+          </h2>
+        </div>
+        {isAdmin && !editing && (
+          <button
+            onClick={startEdit}
+            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"
+          >
+            <Pencil size={13} /> Editar
+          </button>
+        )}
       </div>
-      <div className="bg-white rounded-2xl nice-shadow overflow-hidden border border-[#DDE6F5] divide-y divide-[#DDE6F5]">
-        {data.items.map((faq, i) => {
-          const open = openIdx === i
-          return (
-            <button
-              key={i}
-              type="button"
-              onClick={() => setOpenIdx(open ? null : i)}
-              className="w-full text-left flex items-start gap-3 px-5 py-4 hover:bg-[#F0F5FF]/60 transition-colors"
-            >
-              <div className="flex-1 min-w-0">
-                <p className="text-[14px] sm:text-[15px] font-bold text-gray-900 leading-snug">
-                  {faq.q}
-                </p>
-                {open && (
-                  <p className="text-[13px] sm:text-[14px] text-gray-600 leading-relaxed mt-2 whitespace-pre-line">
-                    {faq.a}
-                  </p>
-                )}
+
+      {editing ? (
+        <div className="bg-white nice-shadow rounded-2xl border border-[#DDE6F5] p-4 sm:p-5 space-y-4">
+          {draft.map((faq, i) => (
+            <div key={i} className="rounded-xl border border-gray-200 p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  value={faq.q}
+                  onChange={(e) => setDraft((d) => d.map((f, j) => (j === i ? { ...f, q: e.target.value } : f)))}
+                  placeholder="Pregunta…"
+                  className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-[#025dc7]/30"
+                />
+                <button onClick={() => setDraft((d) => d.filter((_, j) => j !== i))} className="p-2 text-gray-400 hover:text-rose-500">
+                  <Trash2 size={16} />
+                </button>
               </div>
-              <ChevronDown
-                size={18}
-                className={`shrink-0 mt-1 text-[#025dc7] transition-transform ${open ? 'rotate-180' : ''}`}
+              <textarea
+                value={faq.a}
+                onChange={(e) => setDraft((d) => d.map((f, j) => (j === i ? { ...f, a: e.target.value } : f)))}
+                placeholder="Respuesta…"
+                rows={2}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#025dc7]/30 resize-none"
               />
+            </div>
+          ))}
+          <button
+            onClick={() => setDraft((d) => [...d, { q: '', a: '' }])}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50"
+          >
+            <Plus size={15} /> Añadir pregunta
+          </button>
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              onClick={save}
+              disabled={saving}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] text-[#0a1656] text-sm font-semibold hover:bg-[#6cb5ff] disabled:opacity-60"
+            >
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />} Guardar
             </button>
-          )
-        })}
-      </div>
+            <button onClick={() => setEditing(false)} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100">
+              <X size={15} /> Cancelar
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl nice-shadow overflow-hidden border border-[#DDE6F5] divide-y divide-[#DDE6F5]">
+          {items.map((faq, i) => {
+            const open = openIdx === i
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setOpenIdx(open ? null : i)}
+                className="w-full text-left flex items-start gap-3 px-5 py-4 hover:bg-[#F0F5FF]/60 transition-colors"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] sm:text-[15px] font-bold text-gray-900 leading-snug">{faq.q}</p>
+                  {open && (
+                    <p className="text-[13px] sm:text-[14px] text-gray-600 leading-relaxed mt-2 whitespace-pre-line">{faq.a}</p>
+                  )}
+                </div>
+                <ChevronDown size={18} className={`shrink-0 mt-1 text-[#025dc7] transition-transform ${open ? 'rotate-180' : ''}`} />
+              </button>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

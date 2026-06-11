@@ -120,7 +120,7 @@ function LayoutContent({ children, orgslug }: { children: React.ReactNode; orgsl
       <OrgJoinBanner />
       <div className="flex min-h-screen">
         {!isLessonPage && <OrgSidebar orgslug={orgslug} />}
-        <div className={`flex flex-1 min-w-0 flex-col transition-[padding] duration-200 ${isLessonPage ? 'lg:pl-[var(--course-sidebar-w,340px)]' : 'pt-14 md:pt-0 md:pl-[var(--org-collapsed-pad,0px)]'}`}>
+        <div className={`flex flex-1 min-w-0 flex-col ${isLessonPage ? 'lg:pl-[var(--course-sidebar-w,340px)] transition-[padding] duration-200' : 'pt-14 md:pt-0 md:pl-[var(--org-collapsed-pad,0px)]'}`}>
           <div className="flex-1 relative" style={{ zIndex: 'var(--z-content)' }}>
             {children}
           </div>

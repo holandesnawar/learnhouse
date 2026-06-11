@@ -36,8 +36,13 @@ export interface Situacion {
   context: string
   /** Etiqueta de duración opcional, p.ej. "2 min". */
   durationLabel?: string
-  /** Emoji de portada (encima del vídeo en la tarjeta). */
+  /** Emoji de portada (fallback en la tarjeta si no hay miniatura). */
   emoji?: string
+  /** Miniatura de la tarjeta (p.ej. la que elegiste en Bunny). Si falta, se usa
+   *  el fondo azul + emoji. URL de imagen. */
+  thumbnail?: string
+  /** Módulo de Ejercicios donde aparece como "lección extra" (id de getModules). */
+  moduleId?: string
   video: SituacionVideo
   /** Transcripción opcional (se muestra como desplegable bajo el vídeo). */
   transcriptNl?: string
@@ -65,6 +70,11 @@ const SITUACIONES: Situacion[] = [
       'Telediario en holandés fácil (NOS Journaal in makkelijke taal) sobre la ola de calor, el plan nacional contra el calor y los consejos para protegerte.',
     durationLabel: '15 min',
     emoji: '☀️',
+    // Miniatura elegida en Bunny (pega aquí la URL del thumbnail). Mientras esté
+    // vacía, la tarjeta usa el fondo azul + emoji.
+    thumbnail: undefined,
+    // Aparece como lección extra en el Módulo 1 (over-jou) de Ejercicios.
+    moduleId: 'over-jou',
     video: {
       provider: 'bunny',
       src: 'https://iframe.mediadelivery.net/embed/675650/830df70b-2217-4690-80b5-727396ddfa11',
@@ -276,6 +286,11 @@ export function getSituaciones(): Situacion[] {
 
 export function getSituacion(id: string): Situacion | null {
   return SITUACIONES.find((s) => s.id === id) ?? null
+}
+
+/** Situaciones que aparecen como lección extra en un módulo de Ejercicios. */
+export function getSituacionesForModule(moduleId: string): Situacion[] {
+  return SITUACIONES.filter((s) => s.moduleId === moduleId)
 }
 
 /** Normaliza el dato del vídeo a una URL incrustable (iframe src). */

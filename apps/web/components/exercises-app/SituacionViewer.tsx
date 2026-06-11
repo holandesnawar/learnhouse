@@ -234,7 +234,7 @@ export default function SituacionViewer({
             </button>
             {lockHint && (
               <p className="px-4 pb-3 -mt-1 text-[13px] text-[#0a1656] leading-relaxed">
-                Completa los ejercicios para ver la transcripción. (No importa si fallas alguna.)
+                Completa los ejercicios para ver la transcripción.
               </p>
             )}
           </div>

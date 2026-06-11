@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Loader2, Lock, Dumbbell, Clapperboard, ArrowRight } from 'lucide-react'
+import { Loader2, Lock, Dumbbell } from 'lucide-react'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import { getModules, getLessonsForModule } from '@/lib/exercises-app/courseService'
 import { getModuleStats } from '@/lib/exercises-app/progress'
@@ -39,31 +39,6 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
       <p className="text-sm text-gray-500 mt-1 mb-6 max-w-lg">
         Repasa cualquier módulo o lección cuando quieras, en el orden que prefieras.
       </p>
-
-      {/* Situaciones reales — biblioteca de vídeos con ejercicios */}
-      <Link
-        href={getUriWithOrg(orgslug, '/ejercicios/situaciones')}
-        className="group flex items-center gap-4 rounded-2xl overflow-hidden mb-6 p-4 sm:p-5 nice-shadow border border-transparent hover:border-[#4da3ff]/40 transition-all"
-        style={{
-          backgroundColor: '#1D0084',
-          backgroundImage:
-            'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
-            'radial-gradient(circle 360px at 100% 0%, rgba(11,109,240,0.45) 0%, transparent 70%)',
-          backgroundSize: '24px 24px, auto',
-          backgroundRepeat: 'repeat, no-repeat',
-        }}
-      >
-        <div className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
-          <Clapperboard size={24} className="text-white" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-[17px] sm:text-[18px] font-bold text-white leading-tight">Echt Nederlands</h2>
-          <p className="text-[13px] text-white/70 leading-snug mt-0.5">
-            Holandés real: noticias, entrevistas y día a día, con ejercicios para entrenar el oído.
-          </p>
-        </div>
-        <ArrowRight size={20} className="text-white/80 group-hover:translate-x-0.5 transition-transform shrink-0" />
-      </Link>
 
       <div>
       {!mounted ? (
