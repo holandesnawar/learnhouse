@@ -29,8 +29,10 @@ import {
   VideoCamera,
   List,
   X,
-  CaretLeft,
 } from '@phosphor-icons/react'
+// Iconos del "modo enfoque" — los mismos que el sidebar de lecciones del curso,
+// para que abrir/cerrar la barra se vea igual dentro y fuera de una lección.
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 
 // Holandés Nawar — superficie de la barra: AZUL NAVY profundo (no morado).
 // El #1D0084 de marca tira a violeta en plano; aquí usamos un azul más
@@ -95,6 +97,16 @@ export const OrgSidebar = (props: { orgslug: string }) => {
       return next
     })
   }
+
+  // Focus mode (desktop): when the sidebar is collapsed, reserve a little space
+  // on the left so the floating "show sidebar" button doesn't cover the page
+  // title. The layout reads --org-collapsed-pad for the content padding.
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const root = document.documentElement
+    root.style.setProperty('--org-collapsed-pad', collapsed ? '56px' : '0px')
+    return () => root.style.setProperty('--org-collapsed-pad', '0px')
+  }, [collapsed])
 
   // Hide the nav while reading an activity in focus mode (mirrors OrgMenu behaviour)
   useEffect(() => {
@@ -203,9 +215,9 @@ export const OrgSidebar = (props: { orgslug: string }) => {
           onClick={toggleCollapsed}
           className="hidden md:flex p-1.5 rounded-lg text-white/55 hover:text-white hover:bg-white/[0.06] transition-colors"
           aria-label="Ocultar barra lateral"
-          title="Ocultar barra"
+          title="Modo enfoque"
         >
-          <CaretLeft size={18} weight="bold" />
+          <PanelLeftClose size={18} />
         </button>
       </div>
       <nav className="flex-1 overflow-y-auto px-3 space-y-1 pb-3 pt-1">
@@ -253,16 +265,17 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         <SidebarInner />
       </aside>
 
-      {/* Desktop "show sidebar" button (visible when collapsed) */}
+      {/* Desktop "show sidebar" button (visible when collapsed) — same look and
+          icon as the course lesson focus mode. */}
       {collapsed && (
         <button
           onClick={toggleCollapsed}
-          className="hidden md:flex fixed top-3 left-3 items-center justify-center w-10 h-10 rounded-xl text-white shadow-lg hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: SIDE_SOLID, zIndex: 'var(--z-nav)' }}
+          className="hidden md:flex fixed top-4 left-4 items-center justify-center text-[#025dc7] hover:text-[#4da3ff] transition-colors"
+          style={{ zIndex: 'var(--z-nav)' }}
           aria-label="Mostrar barra lateral"
-          title="Mostrar barra"
+          title="Salir del modo enfoque"
         >
-          <List size={20} weight="bold" />
+          <PanelLeftOpen size={22} />
         </button>
       )}
 
