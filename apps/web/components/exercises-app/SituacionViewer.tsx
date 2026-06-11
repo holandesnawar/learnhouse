@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, ChevronDown, FileText, RotateCcw, CheckCircle2, Dumbbell } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ChevronDown, FileText, RotateCcw, CheckCircle2, Dumbbell, Lock } from 'lucide-react'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import { getUriWithOrg } from '@services/config/config'
 import { ExerciseRunner } from './LessonViewer'
@@ -33,12 +33,15 @@ export default function SituacionViewer({
   const [started, setStarted] = useState(false)
   const [done, setDone] = useState(false)
   const [showTranscript, setShowTranscript] = useState(false)
+  const [lockHint, setLockHint] = useState(false)
   const [runnerKey, setRunnerKey] = useState(0)
   const completeFired = useRef(false)
 
   const embedSrc = toEmbedSrc(situacion.video)
   const cat = CATEGORY_META[situacion.category]
   const hasTranscript = Boolean(situacion.transcriptNl || situacion.transcriptEs)
+  // La transcripción se desbloquea al terminar los ejercicios (aunque se fallen).
+  const transcriptUnlocked = situacion.exercises.length === 0 || done
   const title = (titleOverride && titleOverride.trim()) || situacion.title
   const context = contextOverride !== undefined ? contextOverride : situacion.context
 
@@ -108,39 +111,6 @@ export default function SituacionViewer({
         </div>
       )}
 
-      {/* Transcript toggle */}
-      {hasTranscript && (
-        <div className="rounded-2xl border border-[#DDE6F5] bg-white overflow-hidden">
-          <button
-            type="button"
-            onClick={() => setShowTranscript((v) => !v)}
-            className="w-full flex items-center justify-between gap-3 px-4 py-3 hover:bg-[#F0F5FF]/60 transition-colors"
-          >
-            <span className="inline-flex items-center gap-2 text-[14px] font-bold text-gray-900">
-              <FileText size={16} className="text-[#025dc7]" />
-              Ver transcripción
-            </span>
-            <ChevronDown size={18} className={`text-[#025dc7] transition-transform ${showTranscript ? 'rotate-180' : ''}`} />
-          </button>
-          {showTranscript && (
-            <div className="px-4 pb-4 pt-1 grid gap-4 sm:grid-cols-2">
-              {situacion.transcriptNl && (
-                <div>
-                  <p className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-1.5">Holandés</p>
-                  <p className="text-[14px] text-gray-800 leading-relaxed whitespace-pre-line">{situacion.transcriptNl}</p>
-                </div>
-              )}
-              {situacion.transcriptEs && (
-                <div>
-                  <p className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-1.5">Español</p>
-                  <p className="text-[14px] text-gray-600 leading-relaxed whitespace-pre-line">{situacion.transcriptEs}</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Portada de ejercicios / ejercicios / done */}
       <div className="rounded-2xl border border-[#DDE6F5] bg-white p-4 sm:p-6">
         {!done && situacion.exercises.length > 0 && !started ? (
@@ -171,8 +141,16 @@ export default function SituacionViewer({
             <CheckCircle2 size={44} className="text-green-500" />
             <h2 className="text-xl font-bold text-gray-900">¡Bien hecho!</h2>
             <p className="text-[14px] text-gray-500 max-w-sm">
-              Has terminado los ejercicios de esta situación. Puedes repetirlos cuando quieras para soltarte más el oído.
+              Has terminado los ejercicios. Puedes repetirlos cuando quieras para soltarte más el oído.
             </p>
+            {hasTranscript && (
+              <div className="flex items-start gap-2.5 bg-[#F0F5FF] rounded-xl px-4 py-3 text-left max-w-sm">
+                <FileText size={18} className="text-[#4da3ff] shrink-0 mt-0.5" />
+                <p className="text-[13px] text-[#0a1656] leading-relaxed">
+                  Ya puedes ver la <strong>transcripción</strong> de este vídeo, con su traducción al español, aquí abajo.
+                </p>
+              </div>
+            )}
             <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
               <button
                 onClick={restart}
@@ -208,6 +186,60 @@ export default function SituacionViewer({
           <p className="text-center text-sm text-gray-500 py-6">Esta situación todavía no tiene ejercicios.</p>
         )}
       </div>
+
+      {/* Transcript — locked until the exercises are finished (even if failed). */}
+      {hasTranscript && (
+        transcriptUnlocked ? (
+          <div className="rounded-2xl border border-[#DDE6F5] bg-white overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowTranscript((v) => !v)}
+              className="w-full flex items-center justify-between gap-3 px-4 py-3 hover:bg-[#F0F5FF]/60 transition-colors"
+            >
+              <span className="inline-flex items-center gap-2 text-[14px] font-bold text-gray-900">
+                <FileText size={16} className="text-[#025dc7]" />
+                Ver transcripción
+              </span>
+              <ChevronDown size={18} className={`text-[#025dc7] transition-transform ${showTranscript ? 'rotate-180' : ''}`} />
+            </button>
+            {showTranscript && (
+              <div className="px-4 pb-4 pt-1 grid gap-4 sm:grid-cols-2">
+                {situacion.transcriptNl && (
+                  <div>
+                    <p className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-1.5">Holandés</p>
+                    <p className="text-[14px] text-gray-800 leading-relaxed whitespace-pre-line">{situacion.transcriptNl}</p>
+                  </div>
+                )}
+                {situacion.transcriptEs && (
+                  <div>
+                    <p className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-1.5">Español</p>
+                    <p className="text-[14px] text-gray-600 leading-relaxed whitespace-pre-line">{situacion.transcriptEs}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-[#DDE6F5] bg-[#F0F5FF]/60 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setLockHint(true)}
+              className="w-full flex items-center justify-between gap-3 px-4 py-3 cursor-not-allowed"
+            >
+              <span className="inline-flex items-center gap-2 text-[14px] font-bold text-gray-400">
+                <Lock size={16} className="text-gray-400" />
+                Ver transcripción
+              </span>
+              <span className="text-[11px] font-semibold text-gray-400">Bloqueada</span>
+            </button>
+            {lockHint && (
+              <p className="px-4 pb-3 -mt-1 text-[13px] text-[#0a1656] leading-relaxed">
+                Completa los ejercicios para ver la transcripción. (No importa si fallas alguna.)
+              </p>
+            )}
+          </div>
+        )
+      )}
     </div>
   )
 
