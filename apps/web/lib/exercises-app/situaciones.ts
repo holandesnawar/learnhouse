@@ -70,9 +70,8 @@ const SITUACIONES: Situacion[] = [
       'Telediario en holandés fácil (NOS Journaal in makkelijke taal) sobre la ola de calor, el plan nacional contra el calor y los consejos para protegerte.',
     durationLabel: '15 min',
     emoji: '☀️',
-    // Miniatura elegida en Bunny (pega aquí la URL del thumbnail). Mientras esté
-    // vacía, la tarjeta usa el fondo azul + emoji.
-    thumbnail: undefined,
+    // Miniatura elegida en Bunny. Si falta, la tarjeta usa el fondo azul + emoji.
+    thumbnail: 'https://vz-ebcbc57d-555.b-cdn.net/830df70b-2217-4690-80b5-727396ddfa11/thumbnail_35ba7566.jpg',
     // Aparece como lección extra en el Módulo 1 (over-jou) de Ejercicios.
     moduleId: 'over-jou',
     video: {
