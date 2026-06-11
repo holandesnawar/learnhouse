@@ -57,9 +57,9 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
           <Clapperboard size={24} className="text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <h2 className="text-[17px] sm:text-[18px] font-bold text-white leading-tight">Situaciones reales</h2>
+          <h2 className="text-[17px] sm:text-[18px] font-bold text-white leading-tight">Echt Nederlands</h2>
           <p className="text-[13px] text-white/70 leading-snug mt-0.5">
-            Vídeos en holandés —noticias, entrevistas, día a día— con ejercicios para entrenar el oído.
+            Holandés real: noticias, entrevistas y día a día, con ejercicios para entrenar el oído.
           </p>
         </div>
         <ArrowRight size={20} className="text-white/80 group-hover:translate-x-0.5 transition-transform shrink-0" />

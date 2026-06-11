@@ -66,7 +66,7 @@ export default function SituacionViewer({
           className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#025dc7] hover:text-[#1D0084] transition-colors"
         >
           <ArrowLeft size={15} strokeWidth={2.5} />
-          Situaciones reales
+          Echt Nederlands
         </Link>
       )}
 
@@ -185,7 +185,7 @@ export default function SituacionViewer({
                   href={getUriWithOrg(orgslug, '/ejercicios/situaciones')}
                   className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-600 border border-[#DDE6F5] hover:bg-gray-50 transition-colors"
                 >
-                  Más situaciones
+                  Más vídeos
                 </Link>
               )}
             </div>

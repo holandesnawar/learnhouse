@@ -22,11 +22,11 @@ export default function SituacionesLibrary({ orgslug }: { orgslug: string }) {
 
       <div className="flex items-center gap-2 pt-3">
         <Clapperboard size={24} className="text-[#025dc7]" />
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Situaciones reales</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Echt Nederlands</h1>
       </div>
       <p className="text-sm text-gray-500 mt-1 mb-6 max-w-xl">
-        Vídeos reales en holandés —noticias, entrevistas y situaciones del día a día— con ejercicios
-        para entrenar el oído y sentirte cómodo escuchando.
+        Holandés de verdad: vídeos reales —noticias, entrevistas y situaciones del día a día— con
+        ejercicios para entrenar el oído y sentirte cómodo escuchando.
       </p>
 
       {situaciones.length === 0 ? (

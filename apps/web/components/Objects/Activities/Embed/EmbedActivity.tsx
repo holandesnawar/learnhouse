@@ -201,7 +201,7 @@ function EmbedActivity({ activity, editable = false, style }: EmbedActivityProps
           <PuzzlePiece size={36} weight="duotone" className="text-[#025dc7]" />
         )}
         <p className="text-sm text-gray-600">
-          {videoInit ? 'Situación Nawar' : 'Ejercicio Nawar'} — se muestra dentro del curso.
+          {videoInit ? 'Vídeo Echt Nederlands' : 'Ejercicio Nawar'} — se muestra dentro del curso.
         </p>
       </div>
     )
@@ -241,7 +241,7 @@ function EmbedActivity({ activity, editable = false, style }: EmbedActivityProps
               onClick={() => setMode('video')}
               className={`inline-flex items-center gap-1.5 h-8 px-3 text-sm font-medium rounded-md transition-colors ${mode === 'video' ? 'bg-white text-gray-900 nice-shadow' : 'text-gray-500 hover:text-gray-700'}`}
             >
-              <Clapperboard size={16} /> Situación (vídeo)
+              <Clapperboard size={16} /> Echt Nederlands
             </button>
           </div>
 

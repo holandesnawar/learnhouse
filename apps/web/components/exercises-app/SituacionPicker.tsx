@@ -16,7 +16,7 @@ export default function SituacionPicker({
 
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-medium text-gray-600">Situación (vídeo + ejercicios)</label>
+      <label className="text-xs font-medium text-gray-600">Echt Nederlands (vídeo + ejercicios)</label>
       <select
         value={situacionId}
         onChange={(e) => onChange(e.target.value)}
