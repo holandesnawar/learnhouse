@@ -167,9 +167,17 @@ const LoginClient = (props: LoginClientProps) => {
           const errorData = JSON.parse(res.error);
           if (errorData.code) {
             setErrorType(errorData.code);
-            setError(errorData.message || t('auth.wrong_email_password'));
+            // Use our Spanish copy for known codes; never surface the backend's
+            // English message (e.g. "Incorrect Email or password").
             if (errorData.code === 'EMAIL_NOT_VERIFIED') {
+              setError(t('auth.email_not_verified_message'));
               setUnverifiedEmail(errorData.email || values.email);
+            } else if (errorData.code === 'ACCOUNT_LOCKED') {
+              setError(t('auth.account_locked_message'));
+            } else if (errorData.code === 'RATE_LIMITED') {
+              setError(t('auth.rate_limited_message'));
+            } else {
+              setError(t('auth.wrong_email_password'));
             }
             if (errorData.retry_after) {
               setRetryAfter(errorData.retry_after);

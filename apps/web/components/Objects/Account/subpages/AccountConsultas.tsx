@@ -4,12 +4,16 @@ import React, { useEffect, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { listMyConsultas, htmlToText, type Consulta, CATEGORY_BY_ID } from '@/lib/consultas/consultas'
 import { HelpCircle, CheckCircle2, Clock, Loader2 } from 'lucide-react'
-import dayjs from 'dayjs'
-import 'dayjs/locale/es'
+
+const MESES_ES = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+]
 
 function formatDate(iso: string): string {
-  const d = dayjs(iso)
-  return d.isValid() ? d.locale('es').format('D [de] MMMM, YYYY') : ''
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  return `${d.getDate()} de ${MESES_ES[d.getMonth()]}, ${d.getFullYear()}`
 }
 
 export default function AccountConsultas() {
@@ -100,7 +104,7 @@ export default function AccountConsultas() {
                     {/* Respuesta */}
                     {c.resolved && answer ? (
                       <div className="rounded-xl bg-[#F0F5FF] border-l-2 border-[#4da3ff] px-3.5 py-3">
-                        <p className="text-[11px] font-bold text-[#025dc7] uppercase tracking-wider mb-1">Respuesta de Holandés Nawar</p>
+                        <p className="text-[11px] font-bold text-[#025dc7] uppercase tracking-wider mb-1">Respuesta de Team Nawar</p>
                         <p className="text-[14px] text-gray-800 leading-relaxed whitespace-pre-line">{answer}</p>
                       </div>
                     ) : (

@@ -81,18 +81,24 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
       setError('')
       setMessage('')
       setShowMessage(false)
-      const res = await resetPassword(
-        values.email,
-        values.new_password,
-        org?.id,
-        values.reset_code
-      )
-      if (res.status == 200) {
-        setMessage(res.data)
-        setShowMessage(true)
-        setIsSubmitting(false)
-      } else {
-        setError(res.data?.detail ?? t('auth.error_generic'))
+      try {
+        const res = await resetPassword(
+          values.email,
+          values.new_password,
+          org?.id,
+          values.reset_code
+        )
+        if (res.status == 200) {
+          setMessage(typeof res.data === 'string' ? res.data : t('auth.password_reset_success'))
+        } else {
+          const detail = res.data?.detail
+          setError(typeof detail === 'string' ? detail : t('auth.error_generic'))
+        }
+      } catch (e) {
+        // Never leave the button stuck on "loading": surface a friendly error
+        // if the request itself fails (network, non-JSON 5xx, etc.).
+        setError(t('auth.error_generic'))
+      } finally {
         setShowMessage(true)
         setIsSubmitting(false)
       }

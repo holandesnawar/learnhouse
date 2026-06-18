@@ -46,13 +46,18 @@ function ForgotPasswordClient({ org }: ForgotPasswordClientProps) {
       setError('')
       setMessage('')
       setShowMessage(false)
-      const res = await sendResetLink(values.email, org?.id)
-      if (res.status == 200) {
-        setMessage(res.data + ', ' + t('auth.check_email_message'))
-        setShowMessage(true)
-        setIsSubmitting(false)
-      } else {
-        setError(res.data.detail)
+      try {
+        const res = await sendResetLink(values.email, org?.id)
+        if (res.status == 200) {
+          const base = typeof res.data === 'string' ? res.data : t('auth.check_email_message')
+          setMessage(base)
+        } else {
+          const detail = res.data?.detail
+          setError(typeof detail === 'string' ? detail : t('auth.error_generic'))
+        }
+      } catch (e) {
+        setError(t('auth.error_generic'))
+      } finally {
         setShowMessage(true)
         setIsSubmitting(false)
       }

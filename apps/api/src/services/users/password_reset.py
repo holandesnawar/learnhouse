@@ -299,7 +299,7 @@ async def change_password_with_reset_code(
     r.delete(reset_key)
 
     logging.info(f"Password successfully changed for user: {user.user_uuid}")
-    return "Password changed"
+    return "Tu contraseña se ha cambiado correctamente"
 
 
 async def send_reset_password_code_platform(
@@ -443,4 +443,4 @@ async def change_password_with_reset_code_platform(
     r.delete(reset_key)
 
     logging.info(f"Password successfully changed for user: {user.user_uuid}")
-    return "Password changed"
+    return "Tu contraseña se ha cambiado correctamente"

@@ -46,8 +46,8 @@ export default function ProgressSummary({ orgslug }: { orgslug: string }) {
     <div className="mb-8 bg-white dark:bg-white/5 rounded-2xl border border-[#DDE6F5] dark:border-white/10 p-5 sm:p-6">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0">
-            <TrendingUp size={20} className="text-[#025dc7]" />
+          <div className="w-11 h-11 flex items-center justify-center shrink-0">
+            <TrendingUp size={26} className="text-[#025dc7]" />
           </div>
           <div>
             <h2

@@ -234,6 +234,7 @@
     "reset_password_title": "Restablecer contraseña",
     "reset_password_description": "Introduce tu correo y el código de restablecimiento para cambiar tu contraseña",
     "reset_code": "Código de restablecimiento",
+    "password_reset_success": "Tu contraseña se ha cambiado correctamente",
     "new_password": "Nueva contraseña",
     "confirm_password": "Confirmar contraseña",
     "passwords_do_not_match": "Las contraseñas no coinciden",
