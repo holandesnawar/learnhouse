@@ -35,9 +35,9 @@ function InfoBlock({ icon, label, value }: { icon: React.ReactNode; label: strin
     <div className="bg-white/10 rounded-xl px-3.5 py-3 border border-white/10">
       <div className="flex items-center gap-1.5 text-[#4da3ff] mb-1">
         {icon}
-        <span className="text-[10.5px] font-bold uppercase tracking-wider text-white/70">{label}</span>
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-[#4da3ff]">{label}</span>
       </div>
-      <p className="text-[14px] font-semibold text-white leading-snug break-words">{value || '—'}</p>
+      <p className="text-[15px] font-semibold text-white leading-snug break-words tracking-normal">{value || '—'}</p>
     </div>
   )
 }
@@ -178,7 +178,7 @@ export default function WeeklyClassBanner() {
           >
             {v.title}
           </h2>
-          <p className="mt-2 text-[14px] sm:text-[15px] text-white/80 leading-relaxed max-w-xl">{v.subtitle}</p>
+          <p className="mt-2 text-[14px] sm:text-[15px] text-white/80 leading-relaxed tracking-normal max-w-xl">{v.subtitle}</p>
           <div className="mt-5 flex flex-wrap gap-2.5">
             {v.live_url ? (
               <a
@@ -192,7 +192,7 @@ export default function WeeklyClassBanner() {
             ) : (
               <button
                 onClick={() => toast('El enlace del directo aún no está configurado.')}
-                className="inline-flex items-center gap-2 bg-[#4da3ff]/60 text-white font-bold py-2.5 px-4 rounded-lg text-[14px] cursor-not-allowed"
+                className="inline-flex items-center gap-2 bg-[#4da3ff] hover:bg-[#5eb4ff] text-white font-bold py-2.5 px-4 rounded-lg text-[14px] transition-colors"
               >
                 <Radio size={16} strokeWidth={2.5} /> Ir al directo
               </button>
