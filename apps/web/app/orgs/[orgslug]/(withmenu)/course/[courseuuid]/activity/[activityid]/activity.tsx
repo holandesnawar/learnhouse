@@ -907,12 +907,10 @@ function ActivityClient(props: ActivityClientProps) {
                                   no ocupa todo el ancho para que el vídeo/lección no abrume. */}
                               <div className="flex-1 min-w-0 w-full lg:max-w-4xl space-y-4">
                                 <div className={`${
-                                  activity.activity_type === 'TYPE_SCORM'
-                                    ? 'rounded-xl overflow-hidden'
-                                    : activity.activity_type === 'TYPE_VIDEO'
-                                    ? 'rounded-lg nice-shadow'
-                                    : 'p-3 sm:p-7 rounded-lg'
-                                } ${activity.activity_type === 'TYPE_VIDEO' ? '' : bgColor} relative isolate`} style={{ zIndex: 'var(--z-base)' }}>
+                                  activity.activity_type === 'TYPE_SCORM' || activity.activity_type === 'TYPE_VIDEO'
+                                    ? 'rounded-2xl overflow-hidden border border-[#DDE6F5]'
+                                    : 'p-3 sm:p-7 rounded-2xl border border-[#DDE6F5] bg-white'
+                                } relative isolate`} style={{ zIndex: 'var(--z-base)' }}>
                                   {activityContent}
                                 </div>
                                 {/* Per-lesson description + tasks + Consultas (video lessons) */}
@@ -946,7 +944,7 @@ function ActivityClient(props: ActivityClientProps) {
                           but shown for native Nawar exercises so course completion + Next work. */}
                       {activity && activity.published == true && activity.content.paid_access != false && (activity.activity_sub_type !== 'SUBTYPE_DYNAMIC_EMBED' || isNativeExercise) && (
                         <div className="sticky bottom-3 sm:bottom-4 mt-4" style={{ zIndex: 'var(--z-interactive)' }}>
-                          <div className="bg-white/95 backdrop-blur-md nice-shadow rounded-xl border border-gray-100 px-3 sm:px-4 py-2.5">
+                          <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-[#DDE6F5] px-3 sm:px-4 py-2.5">
                             <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 sm:gap-0">
                               <div className="order-1 sm:order-none">
                                 <PreviousActivityButton

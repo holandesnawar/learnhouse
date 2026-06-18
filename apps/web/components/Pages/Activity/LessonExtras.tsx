@@ -53,7 +53,7 @@ export default function LessonExtras({ activity, activityid, orgslug, canEdit }:
 
   return (
     <div className="space-y-4">
-      <div className="bg-white nice-shadow rounded-2xl p-4 sm:p-6 space-y-4">
+      <div className="bg-white rounded-2xl border border-[#DDE6F5] p-4 sm:p-6 space-y-4">
       {editing ? (
         <div className="space-y-4">
           <div>
