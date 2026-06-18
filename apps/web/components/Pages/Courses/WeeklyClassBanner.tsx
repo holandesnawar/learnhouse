@@ -185,14 +185,14 @@ export default function WeeklyClassBanner() {
                 href={v.live_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold py-2.5 px-4 rounded-lg text-[14px] transition-colors"
+                className="inline-flex items-center gap-2 bg-[#4da3ff] hover:bg-[#5eb4ff] text-white font-bold py-2.5 px-4 rounded-lg text-[14px] transition-colors"
               >
                 <Radio size={16} strokeWidth={2.5} /> Ir al directo
               </a>
             ) : (
               <button
                 onClick={() => toast('El enlace del directo aún no está configurado.')}
-                className="inline-flex items-center gap-2 bg-[#4da3ff]/60 text-[#0a1656] font-bold py-2.5 px-4 rounded-lg text-[14px] cursor-not-allowed"
+                className="inline-flex items-center gap-2 bg-[#4da3ff]/60 text-white font-bold py-2.5 px-4 rounded-lg text-[14px] cursor-not-allowed"
               >
                 <Radio size={16} strokeWidth={2.5} /> Ir al directo
               </button>
