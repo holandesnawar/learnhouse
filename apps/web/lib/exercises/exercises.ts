@@ -165,3 +165,22 @@ export async function getWeekProgress(userUuid: string): Promise<WeekProgress> {
   }
 }
 
+// All-time exercise progress for the student: how many items practiced and how
+// many correct → used for the "calificación promedio" on the home progress block.
+export async function getOverallProgress(
+  userUuid: string
+): Promise<{ practiced: number; correct: number }> {
+  const empty = { practiced: 0, correct: 0 }
+  if (!userUuid || !isExercisesEnabled()) return empty
+  try {
+    const rows: { correct: boolean }[] =
+      (await rest(
+        `student_progress?user_uuid=eq.${encodeURIComponent(userUuid)}&select=correct&limit=5000`
+      )) || []
+    const correct = rows.filter((r) => r.correct).length
+    return { practiced: rows.length, correct }
+  } catch {
+    return empty
+  }
+}
+

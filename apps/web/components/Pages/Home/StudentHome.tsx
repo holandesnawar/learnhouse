@@ -15,6 +15,7 @@ import { getUriWithOrg } from '@services/config/config'
 import CommunityChannelsCards from '@components/Objects/Communities/CommunityChannelsCards'
 import StreakBadge from '@components/Pages/Home/StreakBadge'
 import ContinueWhereLeftOff from '@components/Pages/Home/ContinueWhereLeftOff'
+import ProgressSummary from '@components/Pages/Home/ProgressSummary'
 import { registerVisit, type StudentVisit } from '@services/student/progress'
 import Link from 'next/link'
 import { BookOpen, HelpCircle, ArrowRight } from 'lucide-react'
@@ -61,6 +62,9 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
           </div>
         )}
       </div>
+
+      {/* Bloque de progreso "Así estás progresando" */}
+      <ProgressSummary orgslug={orgslug} />
 
       {/* Onboarding del alumno → ahora es un widget flotante "Primeros pasos"
           (StudentOnboarding), montado en el layout. Ya no ocupa el Inicio. */}
