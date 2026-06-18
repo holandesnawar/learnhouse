@@ -56,7 +56,8 @@ import { getLinkExtension } from '@components/Objects/Editor/EditorConf'
 import TableOfContents from './TableOfContents'
 import { CustomHeading } from './CustomHeadingExtenstion'
 import WebPreview from '@components/Objects/Editor/Extensions/WebPreview/WebPreview'
-import AICanvaToolkit from './AI/AICanvaToolkit'
+import LessonHighlightExtension from './Highlights/LessonHighlightExtension'
+import HighlightLayer from './Highlights/HighlightLayer'
 
 interface Editor {
   content: string
@@ -189,6 +190,8 @@ function Canva(props: Editor) {
       TableRow,
       TableHeader,
       TableCell,
+      // Per-student highlights / notes (painted via decorations, read-only safe).
+      LessonHighlightExtension,
     ],
 
     content: normalizedContent,
@@ -197,7 +200,7 @@ function Canva(props: Editor) {
   return (
     <EditorOptionsProvider options={{ isEditable: false }}>
       <div className="w-full mx-auto">
-        <AICanvaToolkit activity={props.activity} editor={editor} />
+        {editor && <HighlightLayer activity={props.activity} editor={editor} />}
         <div className="canva-content-wrapper">
           {!props.hideTableOfContents && <TableOfContents editor={editor} />}
           <EditorContent editor={editor} />

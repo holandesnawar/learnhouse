@@ -16,6 +16,18 @@ from src.db.student_progress import (
 )
 from src.db.users import PublicUser
 from src.security.auth import get_current_user
+from src.db.lesson_highlights import (
+    LessonHighlightCreate,
+    LessonHighlightPatch,
+    LessonHighlightRead,
+)
+from src.services.lesson_highlights.lesson_highlights import (
+    create_highlight,
+    delete_highlight,
+    list_all_highlights,
+    list_highlights_for_activity,
+    patch_highlight,
+)
 from src.services.student_progress.student_progress import (
     get_progress,
     get_weak_words,
@@ -117,3 +129,74 @@ async def api_weak_words(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     return await get_weak_words(current_user, db_session, limit=limit)
+
+
+# ── lesson highlights / notes ────────────────────────────────────────────────
+
+@router.get(
+    "/highlights",
+    response_model=List[LessonHighlightRead],
+    summary="List the student's highlights for one lesson (by activity_uuid).",
+)
+async def api_list_highlights(
+    activity_uuid: str,
+    request: Request,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    return await list_highlights_for_activity(activity_uuid, current_user, db_session)
+
+
+@router.get(
+    "/highlights/all",
+    response_model=List[LessonHighlightRead],
+    summary="List every highlight/note the student has saved (for 'Mis notas').",
+)
+async def api_list_all_highlights(
+    request: Request,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    return await list_all_highlights(current_user, db_session)
+
+
+@router.post(
+    "/highlights",
+    response_model=LessonHighlightRead,
+    summary="Create a highlight (optionally with a note) on a lesson.",
+)
+async def api_create_highlight(
+    data: LessonHighlightCreate,
+    request: Request,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    return await create_highlight(data, current_user, db_session)
+
+
+@router.patch(
+    "/highlights/{highlight_id}",
+    response_model=LessonHighlightRead,
+    summary="Update a highlight's colour or note.",
+)
+async def api_patch_highlight(
+    highlight_id: int,
+    data: LessonHighlightPatch,
+    request: Request,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    return await patch_highlight(highlight_id, data, current_user, db_session)
+
+
+@router.delete(
+    "/highlights/{highlight_id}",
+    summary="Delete a highlight.",
+)
+async def api_delete_highlight(
+    highlight_id: int,
+    request: Request,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    return await delete_highlight(highlight_id, current_user, db_session)

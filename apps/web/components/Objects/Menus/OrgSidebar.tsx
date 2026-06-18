@@ -27,6 +27,8 @@ import {
   ChatCircle,
   Question,
   VideoCamera,
+  NotePencil,
+  ChatCircleDots,
   List,
   X,
 } from '@phosphor-icons/react'
@@ -152,6 +154,12 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     { key: 'consultas', href: '/consultas', label: 'Consultas', icon: <Question size={20} weight="fill" />, show: true },
   ]
 
+  // "Tu espacio" — zona personal del alumno (separada de las páginas generales).
+  const personalItems: NavItem[] = [
+    { key: 'mis-consultas', href: '/account/consultas', label: 'Mis consultas', icon: <ChatCircleDots size={20} weight="fill" />, show: isAuthenticated },
+    { key: 'mis-notas', href: '/mis-notas', label: 'Mis notas', icon: <NotePencil size={20} weight="fill" />, show: isAuthenticated },
+  ]
+
   const authItems: NavItem[] = [
     { key: 'trail', href: '/trail', label: t('courses.progress'), icon: <Signpost size={20} weight="fill" />, show: isAuthenticated },
     { key: 'boards', href: '/boards', label: 'Boards', icon: <ChalkboardSimple size={20} weight="fill" />, show: false },
@@ -223,6 +231,17 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         {navItems.filter((i) => i.show).map((i) => (
           <NavLink key={i.key} item={i} />
         ))}
+        {personalItems.some((i) => i.show) && (
+          <>
+            <div className="my-2 border-t border-white/10" />
+            <p className="px-3 pt-1 pb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/55">
+              Tu espacio
+            </p>
+            {personalItems.filter((i) => i.show).map((i) => (
+              <NavLink key={i.key} item={i} />
+            ))}
+          </>
+        )}
         {authItems.some((i) => i.show) && <div className="my-2 border-t border-white/10" />}
         {authItems.filter((i) => i.show).map((i) => (
           <NavLink key={i.key} item={i} />
