@@ -13,7 +13,6 @@ import ExerciseProgressCard from '@components/Pages/Home/ExerciseProgressCard'
 import UpcomingEvents from '@components/Pages/Home/UpcomingEvents'
 import { getUriWithOrg } from '@services/config/config'
 import CommunityChannelsCards from '@components/Objects/Communities/CommunityChannelsCards'
-import OnboardingCard from '@components/Pages/Home/OnboardingCard'
 import StreakBadge from '@components/Pages/Home/StreakBadge'
 import ContinueWhereLeftOff from '@components/Pages/Home/ContinueWhereLeftOff'
 import { registerVisit, type StudentVisit } from '@services/student/progress'
@@ -63,8 +62,8 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
         )}
       </div>
 
-      {/* Onboarding — only visible while at least one step is pending */}
-      <OnboardingCard orgslug={orgslug} hasStartedCourse={runs.length > 0} />
+      {/* Onboarding del alumno → ahora es un widget flotante "Primeros pasos"
+          (StudentOnboarding), montado en el layout. Ya no ocupa el Inicio. */}
 
       {/* "Sigue donde lo dejaste" — only shows when there's a saved position */}
       <ContinueWhereLeftOff orgslug={orgslug} />

@@ -4,6 +4,7 @@ import '@styles/globals.css'
 import Watermark from '@components/Objects/Watermark'
 import { SessionGate } from '@components/Contexts/LHSessionContext'
 import { OrgSidebar } from '@components/Objects/Menus/OrgSidebar'
+import StudentOnboarding from '@components/Pages/Home/StudentOnboarding'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { OrgJoinBanner, OrgJoinBannerProvider } from '@components/Objects/Banners/OrgJoinBanner'
 import { PodcastPlayerProvider } from '@components/Contexts/PodcastPlayerContext'
@@ -129,6 +130,9 @@ function LayoutContent({ children, orgslug }: { children: React.ReactNode; orgsl
           {!isFullBleedPage && !isLessonPage && <Watermark />}
         </div>
       </div>
+      {/* Widget flotante "Primeros pasos" del alumno (se auto-oculta en lecciones,
+          sin sesión, o cuando se completan todos los pasos). */}
+      <StudentOnboarding orgslug={orgslug} />
     </div>
   )
 }
