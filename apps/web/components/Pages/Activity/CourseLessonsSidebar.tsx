@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
-import { Check, FileText, Video, StickyNote, Backpack, ChevronDown, X, Search, ChevronLeft, PanelLeftClose, PanelLeftOpen, Lock } from 'lucide-react'
+import { Check, FileText, Video, StickyNote, Backpack, ChevronDown, X, Search, ChevronLeft, PanelLeftClose, PanelLeftOpen, Lock, Layers, BookOpen, Headphones, NotebookText, Languages, MessagesSquare, ListChecks } from 'lucide-react'
 import { getUriWithOrg } from '@services/config/config'
 
 // Format an ISO unlock date for the "Se desbloquea el ..." note (Spanish).
@@ -20,18 +20,32 @@ interface CourseLessonsProps {
   trailData?: any
 }
 
-function getActivityTypeIcon(activityType: string) {
+// Icono de la lección según lo que toque, deducido del título (vídeo, flashcards,
+// lezen, luisteren, samenvatting, vocabulario, situación…) con fallback al tipo.
+// Siempre en azul claro de marca para que el listado quede limpio y profesional.
+function getLessonIcon(name: string, activityType?: string) {
+  const n = (name || '').toLowerCase()
+  const cls = 'shrink-0 text-[#4da3ff]'
+  const sz = 17
+  if (/v[ií]deo/.test(n)) return <Video size={sz} className={cls} />
+  if (/flashcard/.test(n)) return <Layers size={sz} className={cls} />
+  if (/lezen|lectura|leer|reading/.test(n)) return <BookOpen size={sz} className={cls} />
+  if (/luister|escucha|audio|listening/.test(n)) return <Headphones size={sz} className={cls} />
+  if (/samenvatting|resumen|summary/.test(n)) return <NotebookText size={sz} className={cls} />
+  if (/woordenschat|vocabular|woorden/.test(n)) return <Languages size={sz} className={cls} />
+  if (/situaci|situatie|gesprek|conversa|spreek|real/.test(n)) return <MessagesSquare size={sz} className={cls} />
+  if (/ejercicio|oefening|quiz|test|examen/.test(n)) return <ListChecks size={sz} className={cls} />
   switch (activityType) {
     case 'TYPE_VIDEO':
-      return <Video size={11} />
+      return <Video size={sz} className={cls} />
     case 'TYPE_DOCUMENT':
-      return <FileText size={11} />
-    case 'TYPE_DYNAMIC':
-      return <StickyNote size={11} />
+      return <FileText size={sz} className={cls} />
     case 'TYPE_ASSIGNMENT':
-      return <Backpack size={11} />
+      return <Backpack size={sz} className={cls} />
+    case 'TYPE_DYNAMIC':
+      return <StickyNote size={sz} className={cls} />
     default:
-      return <FileText size={11} />
+      return <FileText size={sz} className={cls} />
   }
 }
 
@@ -291,28 +305,20 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
                             : 'border-l-2 border-transparent hover:bg-white/5'
                         }`}
                       >
-                        {/* Círculo de la lección: vacío (solo borde); verde con check si completada */}
-                        <div className="shrink-0">
-                          {isComplete ? (
-                            <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
-                              <Check size={12} className="text-white stroke-[3]" />
-                            </div>
-                          ) : (
-                            <div
-                              className={`w-5 h-5 rounded-full border-2 ${
-                                isCurrent ? 'border-[#4da3ff]' : 'border-white/35'
-                              }`}
-                            />
-                          )}
-                        </div>
+                        {/* Icono según el tipo de lección (azul claro de marca) */}
+                        {getLessonIcon(activity.name, activity.activity_type)}
                         {/* Lecciones SIN negrita (solo los títulos de módulo van en bold) */}
                         <span
-                          className={`text-[14.5px] leading-snug line-clamp-2 ${
+                          className={`flex-1 min-w-0 text-[14.5px] leading-snug line-clamp-2 ${
                             isCurrent ? 'text-white' : 'text-white/85 group-hover:text-white'
                           }`}
                         >
                           {activity.name}
                         </span>
+                        {/* Check verde de completada, a la derecha */}
+                        {isComplete && (
+                          <Check size={16} className="shrink-0 text-emerald-400 stroke-[3]" />
+                        )}
                       </div>
                     </Link>
                   )
@@ -520,26 +526,17 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
                             : 'border-l-2 border-transparent hover:bg-white/5'
                         }`}
                       >
-                        <div className="shrink-0">
-                          {isComplete ? (
-                            <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
-                              <Check size={12} className="text-white stroke-[3]" />
-                            </div>
-                          ) : (
-                            <div
-                              className={`w-5 h-5 rounded-full border-2 ${
-                                isCurrent ? 'border-[#4da3ff]' : 'border-white/35'
-                              }`}
-                            />
-                          )}
-                        </div>
+                        {getLessonIcon(activity.name, activity.activity_type)}
                         <span
-                          className={`text-[14.5px] leading-snug line-clamp-2 ${
+                          className={`flex-1 min-w-0 text-[14.5px] leading-snug line-clamp-2 ${
                             isCurrent ? 'text-white' : 'text-white/85 group-hover:text-white'
                           }`}
                         >
                           {activity.name}
                         </span>
+                        {isComplete && (
+                          <Check size={16} className="shrink-0 text-emerald-400 stroke-[3]" />
+                        )}
                       </div>
                     </Link>
                   )
