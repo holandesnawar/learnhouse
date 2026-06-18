@@ -138,13 +138,17 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
         className="fixed bottom-4 right-4 z-40 flex items-center gap-3 bg-white rounded-2xl nice-shadow border border-[#DDE6F5] pl-3 pr-3.5 py-2.5 hover:shadow-lg transition-shadow"
         aria-label="Abrir Primeros pasos"
       >
-        <Rocket size={18} className="text-[#1D0084] shrink-0" />
-        <span className="text-[13px] font-bold text-gray-900">Primeros pasos</span>
-        <span className="w-16 h-1.5 rounded-full bg-gray-100 overflow-hidden">
-          <span className="block h-full bg-[#4da3ff] rounded-full transition-all" style={{ width: `${pct}%` }} />
-        </span>
-        <span className="text-[12px] text-gray-400 tabular-nums">{done}/{total}</span>
-        <ChevronUp size={16} className="text-gray-400 shrink-0" />
+        <Rocket size={20} className="text-[#1D0084] shrink-0" />
+        <div className="flex flex-col gap-1 min-w-0">
+          <span className="text-[13px] font-bold text-gray-900 leading-none text-left">Primeros pasos</span>
+          <div className="flex items-center gap-2">
+            <span className="w-24 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+              <span className="block h-full bg-[#4da3ff] rounded-full transition-all" style={{ width: `${pct}%` }} />
+            </span>
+            <span className="text-[12px] text-gray-400 tabular-nums">{done}/{total}</span>
+          </div>
+        </div>
+        <ChevronUp size={16} className="text-gray-400 shrink-0 ml-1" />
       </button>
     )
   }
