@@ -9,6 +9,8 @@ import { useTrail } from '@/hooks/queries/useTrail'
 import { getUriWithOrg } from '@services/config/config'
 import { Check, Video, User, MessagesSquare, BookOpen, ArrowRight, Rocket, ChevronUp, ChevronDown } from 'lucide-react'
 import { getStudentProgress, patchStudentProgress } from '@services/student/progress'
+import { getCommunities } from '@services/communities/communities'
+import { getDiscussions } from '@services/communities/discussions'
 
 interface StepItem {
   id: string
@@ -19,9 +21,15 @@ interface StepItem {
   isDone: boolean
 }
 
-// Pasos que se marcan al visitar (vs. los auto-detectados del estado real).
-const VISITABLE: string[] = ['welcome_video', 'community']
+// Pasos que se marcan al hacer clic (visitar). El de comunidad NO está aquí:
+// se marca solo cuando el alumno publica de verdad en el canal de presentaciones.
+const VISITABLE: string[] = ['welcome_video']
 const COLLAPSE_KEY = 'nawar_student_onboarding_collapsed'
+
+// Ruta del vídeo de bienvenida. Cuando exista, cambia esto por la ruta de la
+// lección/actividad del vídeo (p. ej. `/course/<uuid>/activity/<uuid>`). El paso
+// se marca cuando el alumno hace clic en "Ver".
+const WELCOME_VIDEO_PATH = '/courses'
 
 // Widget flotante "Primeros pasos" para el alumno (abajo-derecha, plegable).
 // Sustituye a la tarjeta grande del Inicio: aparece al entrar, se puede minimizar
@@ -36,10 +44,34 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
 
   const { data: trailData } = useTrail(org?.id)
   const hasStartedCourse = (trailData?.runs?.length || 0) > 0
+  const currentUserId = user?.id
 
   const [loaded, setLoaded] = useState(false)
   const [visited, setVisited] = useState<Set<string>>(new Set())
   const [collapsed, setCollapsed] = useState(false)
+  const [presented, setPresented] = useState(false)
+
+  // Detecta si el alumno YA ha publicado en el canal de presentaciones (de verdad,
+  // no solo al hacer clic). Marca el paso "Preséntate en Comunidad".
+  useEffect(() => {
+    if (!accessToken || !org?.id || !currentUserId) return
+    let active = true
+    ;(async () => {
+      try {
+        const comms: any[] = await getCommunities(org.id, 1, 100, null, accessToken)
+        if (!active || !Array.isArray(comms) || comms.length === 0) return
+        const target = comms.find((c) => /present/i.test(c?.name || '')) || comms[0]
+        const discussions: any[] = await getDiscussions(target.community_uuid, 'recent', 1, 100, null, accessToken)
+        if (!active) return
+        setPresented(Array.isArray(discussions) && discussions.some((d) => d?.author?.id === currentUserId))
+      } catch {
+        /* ignore */
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [accessToken, org?.id, currentUserId])
 
   useEffect(() => {
     try {
@@ -74,7 +106,7 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
       id: 'welcome_video',
       title: 'Mira el vídeo de bienvenida',
       cta: 'Ver',
-      href: getUriWithOrg(orgslug, '/courses'),
+      href: getUriWithOrg(orgslug, WELCOME_VIDEO_PATH),
       icon: <Video size={15} />,
       isDone: visited.has('welcome_video'),
     },
@@ -92,7 +124,7 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
       cta: 'Entrar',
       href: getUriWithOrg(orgslug, '/communities'),
       icon: <MessagesSquare size={15} />,
-      isDone: visited.has('community'),
+      isDone: presented,
     },
     {
       id: 'first_lesson',
