@@ -19,8 +19,9 @@ function Watermark() {
     //   1. EE         → always hidden (white-label is part of the EE license).
     //   2. SaaS free  → always shown (free tier is branded).
     //   3. Otherwise  → respect the admin's toggle (default on).
+    // White-label Holandés Nawar: nunca mostramos la marca de LearnHouse.
     if (mode === 'ee') return null
-    const showWatermark = plan === 'free' || watermarkConfig !== false
+    const showWatermark = false && (plan === 'free' || watermarkConfig !== false)
     if (!showWatermark) return null
 
     return (

@@ -196,12 +196,11 @@ export const OrgSidebar = (props: { orgslug: string }) => {
           className="rounded-md"
         />
       ) : (
-        <Image
-          src="/lrn-text.svg"
-          alt="LearnHouse"
-          width={120}
-          height={32}
-          style={{ height: 'auto', maxHeight: height, filter: 'brightness(0) invert(1)' }}
+        <img
+          src="https://d1yei2z3i6k35z.cloudfront.net/9533860/671a9c9265e23_Logo_Nawar_2.png"
+          alt="Holandés Nawar"
+          style={{ height: '100%', width: 'auto' }}
+          className="rounded-md"
         />
       )}
     </Link>
