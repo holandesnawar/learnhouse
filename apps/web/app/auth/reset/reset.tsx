@@ -90,6 +90,8 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
         )
         if (res.status == 200) {
           setMessage(typeof res.data === 'string' ? res.data : t('auth.password_reset_success'))
+        } else if (res.status === 0) {
+          setError('No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.')
         } else {
           const detail = res.data?.detail
           const msg =
@@ -97,7 +99,9 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
               ? detail
               : detail && typeof detail.message === 'string'
                 ? detail.message
-                : t('auth.error_generic')
+                : typeof res.data === 'string' && res.data
+                  ? res.data
+                  : t('auth.error_generic')
           setError(msg)
         }
       } catch (e) {

@@ -75,12 +75,21 @@ export async function loginWithOAuthToken(
 }
 
 export async function sendResetLink(email: string, org_id: number) {
-  const result = await fetch(
-    `${getAPIUrl()}users/reset_password/send_reset_code/${email}?org_id=${org_id}`,
-    RequestBody('POST', null, null)
-  )
-  const res = await getResponseMetadata(result)
-  return res
+  // v2 endpoint: email goes in the body (the legacy path-variant put the email
+  // in the URL, which the relative-path proxy could mishandle when it ended in
+  // ".com" → non-JSON response → confusing generic error).
+  try {
+    const result = await fetch(
+      `${getAPIUrl()}users/reset_password/send_reset_code`,
+      RequestBody('POST', { email, org_id }, null)
+    )
+    const text = await result.text()
+    let data: any = text
+    try { data = text ? JSON.parse(text) : null } catch { /* keep raw text */ }
+    return { success: result.ok, status: result.status, data }
+  } catch {
+    return { success: false, status: 0, data: { detail: 'NETWORK' } }
+  }
 }
 
 export async function resetPassword(
@@ -89,12 +98,18 @@ export async function resetPassword(
   org_id: number,
   reset_code: string
 ) {
-  const result = await fetch(
-    `${getAPIUrl()}users/reset_password/change_password/${email}`,
-    RequestBody('POST', { new_password, org_id, reset_code }, null)
-  )
-  const res = await getResponseMetadata(result)
-  return res
+  try {
+    const result = await fetch(
+      `${getAPIUrl()}users/reset_password/change_password`,
+      RequestBody('POST', { email, new_password, org_id, reset_code }, null)
+    )
+    const text = await result.text()
+    let data: any = text
+    try { data = text ? JSON.parse(text) : null } catch { /* keep raw text */ }
+    return { success: result.ok, status: result.status, data }
+  } catch {
+    return { success: false, status: 0, data: { detail: 'NETWORK' } }
+  }
 }
 
 export async function logout(): Promise<any> {

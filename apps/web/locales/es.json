@@ -1081,7 +1081,7 @@
     "stripe_denied": "La conexión con Stripe fue cancelada."
   },
   "account": {
-    "title": "Cuenta",
+    "title": "Mi cuenta",
     "general": "General",
     "profile": "Perfil",
     "security": "Seguridad",

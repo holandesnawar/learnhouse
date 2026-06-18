@@ -51,9 +51,17 @@ function ForgotPasswordClient({ org }: ForgotPasswordClientProps) {
         if (res.status == 200) {
           const base = typeof res.data === 'string' ? res.data : t('auth.check_email_message')
           setMessage(base)
+        } else if (res.status === 0) {
+          setError('No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.')
         } else {
           const detail = res.data?.detail
-          setError(typeof detail === 'string' ? detail : t('auth.error_generic'))
+          const msg =
+            typeof detail === 'string'
+              ? detail
+              : detail && typeof detail.message === 'string'
+                ? detail.message
+                : t('auth.error_generic')
+          setError(msg)
         }
       } catch (e) {
         setError(t('auth.error_generic'))
