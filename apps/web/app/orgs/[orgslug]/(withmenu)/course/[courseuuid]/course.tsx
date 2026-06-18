@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next'
 import CommunityChannelsCards from '@components/Objects/Communities/CommunityChannelsCards'
 import CourseFAQ from '@components/Pages/Activity/CourseFAQ'
 import DripContentSettings from '@components/Pages/Courses/DripContentSettings'
+import WeeklyClassBanner from '@components/Pages/Courses/WeeklyClassBanner'
 import { useAnalytics } from '@/hooks/useAnalytics'
 
 // Courses that are "session libraries" (e.g. Clase semanal) rather than a
@@ -339,6 +340,11 @@ const CourseClient = (props: any) => {
                   const showVideo = course.thumbnail_type === 'video' || (course.thumbnail_type === 'both' && activeThumbnailType === 'video');
                   const showImage = course.thumbnail_type === 'image' || (course.thumbnail_type === 'both' && activeThumbnailType === 'image') || !course.thumbnail_type;
 
+                  // Clase semanal: banner HTML editable (en vez de la foto estática).
+                  if (COURSES_AS_SESSIONS.has(course.course_uuid)) {
+                    return <WeeklyClassBanner />;
+                  }
+
                   if (showVideo && course.thumbnail_video) {
                     return (
                       <div className="relative inset-0 ring-1 ring-inset ring-black/10 rounded-2xl shadow-xl w-full h-[180px] md:h-[340px] overflow-hidden">
@@ -517,7 +523,7 @@ const CourseClient = (props: any) => {
               )
             })()}
 
-            <div className="w-full mt-4 mb-12">
+            <div id="sesiones-grabadas" className="w-full mt-4 mb-12 scroll-mt-24">
               <h2 className="pb-5 text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2.5" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
                 {COURSES_AS_SESSIONS.has(course.course_uuid) ? (
                   <>

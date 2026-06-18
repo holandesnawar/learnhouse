@@ -60,6 +60,17 @@ class CommunityPanelConfig(BaseModel):
     tips: str = ""
 
 
+class WeeklyClassBannerConfig(BaseModel):
+    # Editable HTML-style banner for the "Clase semanal" course page.
+    title: str = ""
+    subtitle: str = ""
+    live_url: str = ""
+    next_day: str = ""
+    schedule: str = ""
+    teacher: str = ""
+    duration: str = ""
+
+
 class DripContentConfig(BaseModel):
     # Time-based chapter unlocking. ``chapters`` maps chapter_uuid -> day offset
     # from each student's enrollment date (0 = open from day 1).

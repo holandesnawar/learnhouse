@@ -52,6 +52,7 @@ from src.services.orgs.orgs import (
     update_org_font_config,
     update_org_footer_text_config,
     update_org_community_panel_config,
+    update_org_weekly_class_banner_config,
     update_org_drip_config,
     update_org_default_language_config,
     update_org_watermark_config,
@@ -67,7 +68,7 @@ from src.services.orgs.orgs import (
     upload_org_og_image_service,
     update_org_favicon,
 )
-from src.db.organization_config import AuthBrandingConfig, SeoOrgConfig, CommunityPanelConfig, DripContentConfig
+from src.db.organization_config import AuthBrandingConfig, SeoOrgConfig, CommunityPanelConfig, WeeklyClassBannerConfig, DripContentConfig
 
 
 router = APIRouter()
@@ -672,6 +673,32 @@ async def api_update_org_community_panel_config(
     """
     return await update_org_community_panel_config(
         request, panel.model_dump(), org_id, current_user, db_session
+    )
+
+
+@router.put(
+    "/{org_id}/config/weekly_class_banner",
+    summary="Update weekly class banner",
+    description="Update the editable banner shown on the Clase semanal course page. Admin only.",
+    responses={
+        200: {"description": "Weekly class banner configuration updated."},
+        401: {"description": "Not authenticated"},
+        403: {"description": "Caller is not an organization administrator"},
+        404: {"description": "Organization not found"},
+    },
+)
+async def api_update_org_weekly_class_banner_config(
+    request: Request,
+    org_id: int,
+    banner: WeeklyClassBannerConfig,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    """
+    Update organization weekly class banner configuration
+    """
+    return await update_org_weekly_class_banner_config(
+        request, banner.model_dump(), org_id, current_user, db_session
     )
 
 

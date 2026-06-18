@@ -119,6 +119,29 @@ export async function updateOrgCommunityPanelConfig(
   return res
 }
 
+export interface WeeklyClassBanner {
+  title: string
+  subtitle: string
+  live_url: string
+  next_day: string
+  schedule: string
+  teacher: string
+  duration: string
+}
+
+export async function updateOrgWeeklyClassBannerConfig(
+  org_id: string,
+  banner: WeeklyClassBanner,
+  access_token: string
+) {
+  const result: any = await fetch(
+    `${getAPIUrl()}orgs/${org_id}/config/weekly_class_banner`,
+    RequestBodyWithAuthHeader('PUT', banner, null, access_token)
+  )
+  const res = await errorHandling(result)
+  return res
+}
+
 export async function updateOrgDripConfig(
   org_id: string,
   drip: { enabled: boolean; chapters: { [chapterUuid: string]: number } },
