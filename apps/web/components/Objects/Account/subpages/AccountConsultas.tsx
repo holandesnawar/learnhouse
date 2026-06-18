@@ -37,14 +37,13 @@ export default function AccountConsultas() {
   }, [email])
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
-          Mis consultas
-        </h2>
-        <p className="text-sm text-gray-500 mt-0.5">Tus preguntas y el estado de cada una.</p>
+    <div className="bg-white rounded-xl nice-shadow">
+      <div className="flex flex-col bg-gray-50 -space-y-1 px-5 py-3 mx-3 my-3 rounded-md">
+        <h1 className="font-bold text-xl text-gray-800">Mis consultas</h1>
+        <h2 className="text-gray-500 text-md">Tus preguntas y el estado de cada una.</h2>
       </div>
 
+      <div className="mx-5 mb-5 min-h-[200px]">
       {items === null ? (
         <div className="flex justify-center py-12">
           <Loader2 size={22} className="animate-spin text-gray-400" />
@@ -117,6 +116,7 @@ export default function AccountConsultas() {
           })}
         </div>
       )}
+      </div>
     </div>
   )
 }

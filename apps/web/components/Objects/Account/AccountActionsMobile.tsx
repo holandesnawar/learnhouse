@@ -15,7 +15,6 @@ const NAV_ITEMS = [
   // 'profile' (Constructor de perfil, BETA) oculto de momento.
   { id: 'security', icon: Lock, labelKey: 'account.security' },
   { id: 'consultas', icon: MessageCircleQuestion, labelKey: 'account.consultas' },
-  { id: 'purchases', icon: ShoppingBag, labelKey: 'account.purchases' },
 ]
 
 export function AccountActionsMobile({ orgslug, currentSubpage }: AccountActionsMobileProps) {

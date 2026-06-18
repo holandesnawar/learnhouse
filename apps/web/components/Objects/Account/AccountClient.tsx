@@ -60,20 +60,6 @@ const AccountClient = ({ orgslug, org_id, subpage }: AccountClientProps) => {
   return (
     <>
       <GeneralWrapperStyled>
-        {/* Breadcrumbs */}
-        <div className="pb-4">
-          <Breadcrumbs
-            items={[
-              {
-                label: t('account.title'),
-                href: getUriWithOrg(orgslug, '/account'),
-                icon: <User size={14} />,
-              },
-              { label: getSubpageTitle(subpage, t) },
-            ]}
-          />
-        </div>
-
         {/* Layout - Sidebar Left, Content Right */}
         <div className="flex flex-col md:flex-row gap-6 pt-2">
           {/* Left Sidebar - User Info (Desktop only) */}

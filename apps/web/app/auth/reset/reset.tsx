@@ -92,7 +92,13 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
           setMessage(typeof res.data === 'string' ? res.data : t('auth.password_reset_success'))
         } else {
           const detail = res.data?.detail
-          setError(typeof detail === 'string' ? detail : t('auth.error_generic'))
+          const msg =
+            typeof detail === 'string'
+              ? detail
+              : detail && typeof detail.message === 'string'
+                ? detail.message
+                : t('auth.error_generic')
+          setError(msg)
         }
       } catch (e) {
         // Never leave the button stuck on "loading": surface a friendly error

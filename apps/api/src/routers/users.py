@@ -493,7 +493,7 @@ async def api_change_password_with_reset_code_v2(
     if not is_allowed:
         raise HTTPException(
             status_code=429,
-            detail=f"Too many password reset attempts. Please try again in {retry_after // 60} minutes.",
+            detail=f"Demasiados intentos. Vuelve a intentarlo en {max(1, retry_after // 60)} minutos.",
         )
 
     return await change_password_with_reset_code(
@@ -531,7 +531,7 @@ async def api_change_password_with_reset_code(
     if not is_allowed:
         raise HTTPException(
             status_code=429,
-            detail=f"Too many password reset attempts. Please try again in {retry_after // 60} minutes.",
+            detail=f"Demasiados intentos. Vuelve a intentarlo en {max(1, retry_after // 60)} minutos.",
         )
 
     return await change_password_with_reset_code(
@@ -616,7 +616,7 @@ async def api_send_password_reset_email_platform_v2(
     if not is_allowed:
         raise HTTPException(
             status_code=429,
-            detail=f"Too many password reset attempts. Please try again in {retry_after // 60} minutes.",
+            detail=f"Demasiados intentos. Vuelve a intentarlo en {max(1, retry_after // 60)} minutos.",
         )
     return await send_reset_password_code_platform(
         request, db_session, current_user, body.email
@@ -645,7 +645,7 @@ async def api_send_password_reset_email_platform(
     if not is_allowed:
         raise HTTPException(
             status_code=429,
-            detail=f"Too many password reset attempts. Please try again in {retry_after // 60} minutes.",
+            detail=f"Demasiados intentos. Vuelve a intentarlo en {max(1, retry_after // 60)} minutos.",
         )
 
     return await send_reset_password_code_platform(
@@ -676,7 +676,7 @@ async def api_change_password_with_reset_code_platform_v2(
     if not is_allowed:
         raise HTTPException(
             status_code=429,
-            detail=f"Too many password reset attempts. Please try again in {retry_after // 60} minutes.",
+            detail=f"Demasiados intentos. Vuelve a intentarlo en {max(1, retry_after // 60)} minutos.",
         )
     return await change_password_with_reset_code_platform(
         request, db_session, current_user, body.new_password, body.email, body.reset_code
@@ -706,7 +706,7 @@ async def api_change_password_with_reset_code_platform(
     if not is_allowed:
         raise HTTPException(
             status_code=429,
-            detail=f"Too many password reset attempts. Please try again in {retry_after // 60} minutes.",
+            detail=f"Demasiados intentos. Vuelve a intentarlo en {max(1, retry_after // 60)} minutos.",
         )
 
     return await change_password_with_reset_code_platform(

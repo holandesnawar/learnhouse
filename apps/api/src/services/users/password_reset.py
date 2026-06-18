@@ -88,7 +88,7 @@ async def send_reset_password_code(
         if _attempts == 1:
             _r_ip.expire(ip_rate_key, 1800)  # 30-minute window
         if _attempts > 10:
-            raise HTTPException(status_code=429, detail="Too many requests")
+            raise HTTPException(status_code=429, detail="Demasiados intentos. Espera unos minutos e inténtalo de nuevo.")
     except HTTPException:
         raise
     except Exception:
@@ -101,7 +101,7 @@ async def send_reset_password_code(
     if not org:
         raise HTTPException(
             status_code=400,
-            detail="Organization not found",
+            detail="No encontramos tu organización. Recarga la página e inténtalo de nuevo.",
         )
 
     # Get user - SECURITY: Don't reveal if user exists or not
@@ -177,7 +177,7 @@ async def send_reset_password_code(
         logging.error(f"Failed to send password reset email to user: {user.user_uuid}")
         raise HTTPException(
             status_code=500,
-            detail="Issue with sending reset code",
+            detail="No pudimos enviar el correo en este momento. Inténtalo de nuevo en unos minutos.",
         )
 
     logging.info(f"Password reset code sent to user: {user.user_uuid}")
@@ -208,7 +208,7 @@ async def change_password_with_reset_code(
             status_code=400,
             detail={
                 "code": "WEAK_PASSWORD",
-                "message": "Password does not meet security requirements",
+                "message": "La contraseña no cumple los requisitos: mínimo 8 caracteres, con mayúscula, minúscula, número y un símbolo.",
                 "errors": validation_result.errors,
                 "requirements": validation_result.requirements,
             },
@@ -221,7 +221,7 @@ async def change_password_with_reset_code(
     if not org:
         raise HTTPException(
             status_code=400,
-            detail="Organization not found",
+            detail="No encontramos tu organización. Recarga la página e inténtalo de nuevo.",
         )
 
     # Get user - SECURITY: Use generic error message
@@ -233,7 +233,7 @@ async def change_password_with_reset_code(
         logging.warning(f"Password change attempted for non-existent email: {email[:3]}***")
         raise HTTPException(
             status_code=400,
-            detail="Invalid reset code or email",
+            detail="El enlace ya no es válido o ha caducado. Pide uno nuevo en «¿Olvidaste tu contraseña?».",
         )
 
     # Redis init
@@ -261,7 +261,7 @@ async def change_password_with_reset_code(
         logging.warning(f"Invalid reset code format for user: {user.user_uuid}")
         raise HTTPException(
             status_code=400,
-            detail="Invalid or expired reset code",
+            detail="El enlace ya no es válido o ha caducado. Pide uno nuevo en «¿Olvidaste tu contraseña?».",
         )
 
     # Direct deterministic key lookup — no wildcards or scan_iter needed
@@ -272,7 +272,7 @@ async def change_password_with_reset_code(
         logging.warning(f"Invalid reset code attempt for user: {user.user_uuid}")
         raise HTTPException(
             status_code=400,
-            detail="Invalid or expired reset code",
+            detail="El enlace ya no es válido o ha caducado. Pide uno nuevo en «¿Olvidaste tu contraseña?».",
         )
 
     reset_code_object = json.loads(reset_code_value)
@@ -284,7 +284,7 @@ async def change_password_with_reset_code(
         logging.info(f"Expired reset code used for user: {user.user_uuid}")
         raise HTTPException(
             status_code=400,
-            detail="Invalid or expired reset code",
+            detail="El enlace ya no es válido o ha caducado. Pide uno nuevo en «¿Olvidaste tu contraseña?».",
         )
 
     # Change password
@@ -358,7 +358,7 @@ async def send_reset_password_code_platform(
         logging.error(f"Failed to send password reset email to user: {user.user_uuid}")
         raise HTTPException(
             status_code=500,
-            detail="Issue with sending reset code",
+            detail="No pudimos enviar el correo en este momento. Inténtalo de nuevo en unos minutos.",
         )
 
     logging.info(f"Password reset code sent to user: {user.user_uuid}")
@@ -387,7 +387,7 @@ async def change_password_with_reset_code_platform(
             status_code=400,
             detail={
                 "code": "WEAK_PASSWORD",
-                "message": "Password does not meet security requirements",
+                "message": "La contraseña no cumple los requisitos: mínimo 8 caracteres, con mayúscula, minúscula, número y un símbolo.",
                 "errors": validation_result.errors,
                 "requirements": validation_result.requirements,
             },
@@ -400,7 +400,7 @@ async def change_password_with_reset_code_platform(
         logging.warning(f"Password change attempted for non-existent email: {email[:3]}***")
         raise HTTPException(
             status_code=400,
-            detail="Invalid reset code or email",
+            detail="El enlace ya no es válido o ha caducado. Pide uno nuevo en «¿Olvidaste tu contraseña?».",
         )
 
     r = _get_redis_connection()
@@ -409,7 +409,7 @@ async def change_password_with_reset_code_platform(
         logging.warning(f"Invalid reset code format for user: {user.user_uuid}")
         raise HTTPException(
             status_code=400,
-            detail="Invalid or expired reset code",
+            detail="El enlace ya no es válido o ha caducado. Pide uno nuevo en «¿Olvidaste tu contraseña?».",
         )
 
     # Direct deterministic key lookup — no wildcards or scan_iter needed
@@ -420,7 +420,7 @@ async def change_password_with_reset_code_platform(
         logging.warning(f"Invalid reset code attempt for user: {user.user_uuid}")
         raise HTTPException(
             status_code=400,
-            detail="Invalid or expired reset code",
+            detail="El enlace ya no es válido o ha caducado. Pide uno nuevo en «¿Olvidaste tu contraseña?».",
         )
 
     reset_code_object = json.loads(reset_code_value)
@@ -430,7 +430,7 @@ async def change_password_with_reset_code_platform(
         logging.info(f"Expired reset code used for user: {user.user_uuid}")
         raise HTTPException(
             status_code=400,
-            detail="Invalid or expired reset code",
+            detail="El enlace ya no es válido o ha caducado. Pide uno nuevo en «¿Olvidaste tu contraseña?».",
         )
 
     user.password = security_hash_password(new_password)
