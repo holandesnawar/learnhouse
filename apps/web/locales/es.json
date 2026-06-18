@@ -1087,7 +1087,8 @@
     "my_courses": "Mis Cursos",
     "no_purchased_courses": "Aún no hay cursos comprados",
     "purchased_courses_description": "Los cursos que hayas comprado o a los que te hayas suscrito aparecerán aquí",
-    "purchases": "Compras"
+    "purchases": "Compras",
+    "consultas": "Mis consultas"
   },
   "user": {
     "user_settings": "Ajustes de usuario",

@@ -1,7 +1,7 @@
 'use client'
 import React from 'react'
 import Link from 'next/link'
-import { User, Lock, ShoppingBag, Settings } from 'lucide-react'
+import { User, Lock, ShoppingBag, Settings, MessageCircleQuestion } from 'lucide-react'
 import { getUriWithOrg } from '@services/config/config'
 import { useTranslation } from 'react-i18next'
 
@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { id: 'general', icon: Settings, labelKey: 'account.general' },
   // 'profile' (Constructor de perfil, BETA) oculto de momento.
   { id: 'security', icon: Lock, labelKey: 'account.security' },
+  { id: 'consultas', icon: MessageCircleQuestion, labelKey: 'account.consultas' },
   { id: 'purchases', icon: ShoppingBag, labelKey: 'account.purchases' },
 ]
 

@@ -113,7 +113,7 @@ async def send_reset_password_code(
     if not user:
         logging.info(f"Password reset requested for non-existent email: {email[:3]}***")
         # Return same message as success to prevent enumeration
-        return "If an account with that email exists, a reset code has been sent"
+        return "Si existe una cuenta con ese correo, te hemos enviado un código. Por favor, revisa tu correo"
 
     # Redis init
     LH_CONFIG = get_learnhouse_config()
@@ -181,7 +181,7 @@ async def send_reset_password_code(
         )
 
     logging.info(f"Password reset code sent to user: {user.user_uuid}")
-    return "If an account with that email exists, a reset code has been sent"
+    return "Si existe una cuenta con ese correo, te hemos enviado un código. Por favor, revisa tu correo"
 
 
 async def change_password_with_reset_code(
@@ -321,7 +321,7 @@ async def send_reset_password_code_platform(
 
     if not user:
         logging.info(f"Password reset requested for non-existent email: {email[:3]}***")
-        return "If an account with that email exists, a reset code has been sent"
+        return "Si existe una cuenta con ese correo, te hemos enviado un código. Por favor, revisa tu correo"
 
     r = _get_redis_connection()
 
@@ -362,7 +362,7 @@ async def send_reset_password_code_platform(
         )
 
     logging.info(f"Password reset code sent to user: {user.user_uuid}")
-    return "If an account with that email exists, a reset code has been sent"
+    return "Si existe una cuenta con ese correo, te hemos enviado un código. Por favor, revisa tu correo"
 
 
 async def change_password_with_reset_code_platform(

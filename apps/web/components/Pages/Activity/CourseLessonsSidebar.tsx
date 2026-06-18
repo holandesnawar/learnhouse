@@ -23,7 +23,7 @@ interface CourseLessonsProps {
 // Icono de la lección según lo que toque, deducido del título (vídeo, flashcards,
 // lezen, luisteren, samenvatting, vocabulario, situación…) con fallback al tipo.
 // Siempre en azul claro de marca para que el listado quede limpio y profesional.
-function getLessonIcon(name: string, activityType?: string) {
+export function getLessonIcon(name: string, activityType?: string) {
   const n = (name || '').toLowerCase()
   const cls = 'shrink-0 text-[#4da3ff]'
   const sz = 17

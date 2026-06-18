@@ -216,7 +216,7 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
                 s.isDone ? 'bg-emerald-500 text-white' : 'bg-[#F0F5FF] text-[#025dc7]'
               }`}
             >
-              {s.isDone ? <Check size={15} strokeWidth={3} /> : idx + 1}
+              {s.isDone ? <Check size={15} strokeWidth={3} /> : s.icon}
             </div>
             <span
               className={`flex-1 min-w-0 text-[13px] leading-snug ${

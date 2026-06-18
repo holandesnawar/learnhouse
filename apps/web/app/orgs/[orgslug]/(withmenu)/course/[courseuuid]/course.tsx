@@ -24,6 +24,7 @@ import CommunityChannelsCards from '@components/Objects/Communities/CommunityCha
 import CourseFAQ from '@components/Pages/Activity/CourseFAQ'
 import DripContentSettings from '@components/Pages/Courses/DripContentSettings'
 import WeeklyClassBanner from '@components/Pages/Courses/WeeklyClassBanner'
+import { getLessonIcon } from '@components/Pages/Activity/CourseLessonsSidebar'
 import { useAnalytics } from '@/hooks/useAnalytics'
 
 // Courses that are "session libraries" (e.g. Clase semanal) rather than a
@@ -523,7 +524,7 @@ const CourseClient = (props: any) => {
               )
             })()}
 
-            <div id="sesiones-grabadas" className="w-full mt-4 mb-12 scroll-mt-24">
+            <div id="sesiones-grabadas" className="w-full mt-10 mb-12 scroll-mt-24">
               <h2 className="pb-5 text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2.5" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
                 {COURSES_AS_SESSIONS.has(course.course_uuid) ? (
                   <>
@@ -587,26 +588,18 @@ const CourseClient = (props: any) => {
                           {chapter.activities.map((activity: any) => {
                             const locked = !!activity.is_locked
                             const RowInner = (
-                              <div className="flex space-x-3 items-center">
-                                <div className="flex items-center">
+                              <div className="flex items-center gap-3">
+                                {/* Icono según el tipo de lección (delante), igual que el sidebar */}
+                                <div className="shrink-0">
                                   {locked ? (
-                                    <div className="text-rose-400">
-                                      <Lock size={14} className="stroke-[2]" />
-                                    </div>
-                                  ) : isActivityDone(activity) ? (
-                                    <div className="relative cursor-pointer">
-                                      <Square size={16} className="stroke-[2] text-teal-600" />
-                                      <Check size={16} className="stroke-[2.5] text-teal-600 absolute top-0 left-0" />
-                                    </div>
+                                    <Lock size={16} className="stroke-[2] text-rose-400" />
                                   ) : (
-                                    <div className="text-neutral-300 cursor-pointer">
-                                      <Square size={16} className="stroke-[2]" />
-                                    </div>
+                                    getLessonIcon(activity.name, activity.activity_type)
                                   )}
                                 </div>
-                                <div className="flex flex-col grow">
-                                  <div className="flex items-center space-x-2 w-full">
-                                    <p className={`font-semibold transition-colors ${locked ? 'text-neutral-400' : 'text-neutral-600 group-hover:text-neutral-800'}`}>{activity.name}</p>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <p className={`font-semibold transition-colors ${locked ? 'text-neutral-400' : 'text-neutral-700 group-hover:text-neutral-900'}`}>{activity.name}</p>
                                     {locked && (
                                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-600 text-[10px] font-semibold">
                                         <Lock size={10} />
@@ -619,25 +612,13 @@ const CourseClient = (props: any) => {
                                       </div>
                                     )}
                                   </div>
-                                  <div className="flex items-center space-x-1.5 mt-0.5 text-neutral-400">
-                                    {activity.activity_type === 'TYPE_DYNAMIC' && (
-                                      <StickyNote size={10} />
-                                    )}
-                                    {activity.activity_type === 'TYPE_VIDEO' && (
-                                      <Video size={10} />
-                                    )}
-                                    {activity.activity_type === 'TYPE_DOCUMENT' && (
-                                      <File size={10} />
-                                    )}
-                                    {activity.activity_type === 'TYPE_ASSIGNMENT' && (
-                                      <Backpack size={10} />
-                                    )}
-                                    <span className="text-xs font-medium">{getActivityTypeLabel(activity.activity_type)}</span>
-                                  </div>
                                 </div>
-                                <div className={`transition-colors ${locked ? 'text-neutral-200' : 'text-neutral-300 group-hover:text-neutral-400 cursor-pointer'}`}>
-                                  <ArrowRight size={14} />
-                                </div>
+                                {/* Check verde de completada (detrás), o flecha si no */}
+                                {!locked && isActivityDone(activity) ? (
+                                  <Check size={18} className="shrink-0 text-emerald-500 stroke-[3]" />
+                                ) : (
+                                  <ArrowRight size={14} className={`shrink-0 transition-colors ${locked ? 'text-neutral-200' : 'text-neutral-300 group-hover:text-neutral-400'}`} />
+                                )}
                               </div>
                             )
 

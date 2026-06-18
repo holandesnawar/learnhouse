@@ -74,6 +74,23 @@ export async function getConsulta(id: string): Promise<Consulta | null> {
   }
 }
 
+// "Mis consultas": las creadas por el usuario actual (por su email), con su
+// estado (resuelta/pendiente) y la respuesta. Nunca lanza — devuelve [] si falla.
+export async function listMyConsultas(email: string): Promise<Consulta[]> {
+  if (!email) return []
+  try {
+    const { data, error } = await consultasClient
+      .from('consultas')
+      .select(FEED_COLUMNS)
+      .eq('author_email', email)
+      .order('created_at', { ascending: false })
+    if (error) return []
+    return (data ?? []) as Consulta[]
+  } catch {
+    return []
+  }
+}
+
 export async function createConsulta(input: {
   title: string
   content: string

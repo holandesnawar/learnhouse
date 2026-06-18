@@ -57,7 +57,7 @@ export default function CommunityChannelsCards({ orgslug, title = 'Comunidad', s
               href={getUriWithOrg(orgslug, `/community/${channelId(c.community_uuid)}`)}
               className="group flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-white dark:bg-white/5 nice-shadow border border-transparent dark:border-white/10 hover:border-[#4da3ff]/40 transition-all"
             >
-              <div className="w-11 h-11 rounded-xl bg-[#F0F5FF] flex items-center justify-center shrink-0">
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0">
                 {emoji ? (
                   <span className="text-xl leading-none" aria-hidden>{emoji}</span>
                 ) : (

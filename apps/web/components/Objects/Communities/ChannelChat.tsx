@@ -319,6 +319,13 @@ export function ChannelChat({
                 Math.abs(msOf(m.creation_date) - msOf(prev.creation_date)) < 5 * 60 * 1000 &&
                 !m.is_pinned &&
                 !prev.is_pinned
+              // Mensajes propios → a la derecha (estilo WhatsApp).
+              const isOwn = !!currentUserId && m.author?.id === currentUserId
+              const bubbleBg = m.is_pinned
+                ? 'bg-white ring-1 ring-[#025dc7]/30 text-gray-800'
+                : isOwn
+                ? 'bg-[#025dc7] text-white'
+                : 'bg-[#F0F5FF] text-gray-800'
               return (
                 <React.Fragment key={m.discussion_uuid}>
                   {newDay && (
@@ -331,9 +338,10 @@ export function ChannelChat({
                     </div>
                   )}
                   <div
-                    className={`group/msg relative flex gap-2.5 px-4 ${grouped ? 'mt-0.5' : 'mt-2'}`}
+                    className={`group/msg relative flex gap-2.5 px-4 ${grouped ? 'mt-0.5' : 'mt-2'} ${isOwn ? 'flex-row-reverse' : ''}`}
                   >
-                    {/* Avatar (first of a block) — or the clock time on hover when grouped */}
+                    {/* Avatar — solo para mensajes de otros (los tuyos van a la derecha sin avatar) */}
+                    {!isOwn && (
                     <div className="w-9 shrink-0 flex justify-center items-start">
                       {!grouped ? (
                         <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 flex items-center justify-center bg-gray-100 [&_img]:w-full [&_img]:h-full [&_img]:object-cover">
@@ -352,10 +360,11 @@ export function ChannelChat({
                         </span>
                       )}
                     </div>
-                    <div className="min-w-0 flex-1">
+                    )}
+                    <div className={`min-w-0 flex-1 flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
                       {!grouped && (
-                        <div className="flex items-baseline gap-2 mb-0.5">
-                          <span className="text-sm font-semibold text-gray-900">{authorName(m.author)}</span>
+                        <div className={`flex items-baseline gap-2 mb-0.5 ${isOwn ? 'flex-row-reverse' : ''}`}>
+                          {!isOwn && <span className="text-sm font-semibold text-gray-900">{authorName(m.author)}</span>}
                           <span className="text-[11px] text-gray-400 tabular-nums">{clockTime(m.creation_date)}</span>
                           {m.is_pinned && (
                             <span className="inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wider text-[#025dc7]">
@@ -393,31 +402,31 @@ export function ChannelChat({
                           </div>
                         </div>
                       ) : (
-                      <div className="flex items-center gap-1.5">
+                      <div className={`flex items-center gap-1.5 ${isOwn ? 'flex-row-reverse' : ''}`}>
                         <div
-                          className={`inline-block max-w-full rounded-2xl px-3 py-2 ${
-                            m.is_pinned
-                              ? 'bg-white ring-1 ring-[#025dc7]/30'
-                              : 'bg-[#F0F5FF]'
-                          } ${grouped ? 'rounded-tl-md' : 'rounded-tl-sm'}`}
+                          className={`inline-block max-w-full rounded-2xl px-3 py-2 ${bubbleBg} ${
+                            isOwn
+                              ? grouped ? 'rounded-tr-md' : 'rounded-tr-sm'
+                              : grouped ? 'rounded-tl-md' : 'rounded-tl-sm'
+                          }`}
                         >
                           {(() => {
                             const rm = replyMeta(m)
                             return rm ? (
-                              <div className="mb-1 border-l-2 border-[#4da3ff] pl-2 py-0.5">
-                                <span className="block text-[11px] font-semibold text-[#025dc7] leading-tight">
+                              <div className={`mb-1 border-l-2 pl-2 py-0.5 ${isOwn ? 'border-white/50' : 'border-[#4da3ff]'}`}>
+                                <span className={`block text-[11px] font-semibold leading-tight ${isOwn ? 'text-white' : 'text-[#025dc7]'}`}>
                                   {rm.author}
                                 </span>
-                                <span className="block text-[11px] text-gray-500 line-clamp-1 leading-tight">
+                                <span className={`block text-[11px] line-clamp-1 leading-tight ${isOwn ? 'text-white/75' : 'text-gray-500'}`}>
                                   {rm.text}
                                 </span>
                               </div>
                             ) : null
                           })()}
-                          <p className="text-sm text-gray-800 whitespace-pre-wrap break-words leading-relaxed">
+                          <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
                             {messageText(m)}
                             {m.edit_count > 0 && (
-                              <span className="text-[10px] text-gray-400 ml-1.5">· editado</span>
+                              <span className="text-[10px] opacity-60 ml-1.5">· editado</span>
                             )}
                           </p>
                         </div>
