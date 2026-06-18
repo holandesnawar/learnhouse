@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import {
   BookOpen,
   CheckCircle,
+  EnvelopeSimple,
   CaretDown,
   CaretUp,
   RocketLaunch,
@@ -656,16 +657,14 @@ export default function OnboardingBar() {
                                     !step.completed && (
                                       <div className="relative px-3 pb-3 space-y-2">
                                         <a
-                                          href="https://university.learnhouse.io"
+                                          href="https://www.holandesnawar.com"
                                           target="_blank"
                                           rel="noopener noreferrer"
                                           className="flex items-center gap-3 px-4 py-3 rounded-lg bg-white nice-shadow hover:bg-gray-50 transition-colors"
                                         >
-                                          <img
-                                            src="/UNI_LOGO.png"
-                                            alt="LearnHouse University"
-                                            className="h-9 w-auto shrink-0 rounded"
-                                          />
+                                          <div className="h-9 w-9 shrink-0 rounded-lg bg-[#F0F5FF] flex items-center justify-center">
+                                            <BookOpen size={18} weight="duotone" className="text-[#025dc7]" />
+                                          </div>
                                           <div className="min-w-0">
                                             <p className="text-xs font-semibold text-gray-700">
                                               {t('onboarding.steps.teach_the_world.university')}
@@ -677,16 +676,12 @@ export default function OnboardingBar() {
                                           <span className="text-gray-300 shrink-0 ml-auto">→</span>
                                         </a>
                                         <a
-                                          href="https://classroom.learnhouse.io"
-                                          target="_blank"
-                                          rel="noopener noreferrer"
+                                          href="mailto:info@holandesnawar.com"
                                           className="flex items-center gap-3 px-4 py-3 rounded-lg bg-white nice-shadow hover:bg-gray-50 transition-colors"
                                         >
-                                          <img
-                                            src="/theclassroom.png"
-                                            alt="The Classroom"
-                                            className="h-9 w-auto shrink-0 rounded"
-                                          />
+                                          <div className="h-9 w-9 shrink-0 rounded-lg bg-[#F0F5FF] flex items-center justify-center">
+                                            <EnvelopeSimple size={18} weight="duotone" className="text-[#025dc7]" />
+                                          </div>
                                           <div className="min-w-0">
                                             <p className="text-xs font-semibold text-gray-700">
                                               {t('onboarding.steps.teach_the_world.classroom')}

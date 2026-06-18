@@ -4744,15 +4744,15 @@
       },
       "teach_the_world": {
         "title": "Aprende y crece",
-        "description": "Recursos para ayudarte a sacar el máximo provecho de LearnHouse.",
-        "classroom": "El aula",
-        "classroom_desc": "Aprende a hacer crecer y gestionar tus cursos",
-        "university": "Universidad LearnHouse",
-        "university_desc": "Guías, consejos y mejores prácticas"
+        "description": "Recursos para sacar el máximo provecho de tu academia.",
+        "classroom": "¿Necesitas ayuda?",
+        "classroom_desc": "Escríbenos a info@holandesnawar.com",
+        "university": "Centro de ayuda",
+        "university_desc": "Guías y recursos de Holandés Nawar"
       }
     },
     "welcome": {
-      "title": "Bienvenido a LearnHouse",
+      "title": "Bienvenido a Holandés Nawar",
       "subtitle": "Crea cursos, invita estudiantes y comparte conocimiento con el mundo.",
       "get_started": "Comenzar",
       "features_title": "Todo lo que necesitas",
