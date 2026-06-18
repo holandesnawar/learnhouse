@@ -174,7 +174,7 @@ async def api_create_highlight(
     return await create_highlight(data, current_user, db_session)
 
 
-@router.patch(
+@router.put(
     "/highlights/{highlight_id}",
     response_model=LessonHighlightRead,
     summary="Update a highlight's colour or note.",

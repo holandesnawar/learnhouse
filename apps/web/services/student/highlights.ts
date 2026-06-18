@@ -98,7 +98,7 @@ export async function updateHighlight(
   try {
     const r = await fetch(
       `${getAPIUrl()}student/highlights/${id}`,
-      RequestBodyWithAuthHeader('PATCH', patch, null, accessToken)
+      RequestBodyWithAuthHeader('PUT', patch, null, accessToken)
     )
     return ok<LessonHighlight | null>(r, null)
   } catch {
