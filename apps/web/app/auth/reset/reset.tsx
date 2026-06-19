@@ -4,7 +4,7 @@ import FormLayout from '@components/Objects/StyledElements/Form/Form'
 import * as Form from '@radix-ui/react-form'
 import { AlertTriangle, ArrowLeft, ArrowRight, CheckCircle, Eye, EyeOff, X } from 'lucide-react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { useFormik } from 'formik'
 import { resetPassword } from '@services/auth/auth'
 import { useTranslation } from 'react-i18next'
@@ -57,6 +57,7 @@ const inputWithEye = `${inputBase} pr-11`
 
 function ResetPasswordClient({ org }: ResetPasswordClientProps) {
   const { t } = useTranslation()
+  const router = useRouter()
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const searchParams = useSearchParams()
   const reset_code = searchParams.get('resetCode') || ''
@@ -90,6 +91,11 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
         )
         if (res.status == 200) {
           setMessage(typeof res.data === 'string' ? res.data : t('auth.password_reset_success'))
+          setShowMessage(true)
+          // Como siempre: enseña el mensaje de éxito arriba y manda al login
+          // con la contraseña nueva (no dejes el formulario abierto).
+          setTimeout(() => router.push('/login'), 1600)
+          return
         } else if (res.status === 0) {
           setError('No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.')
         } else {
