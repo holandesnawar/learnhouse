@@ -289,7 +289,10 @@ async def change_password_with_reset_code(
 
     # Change password
     user.password = security_hash_password(new_password)
-    user.password_changed_at = datetime.now(timezone.utc)
+    # Store as a naive UTC timestamp: the DB column is TIMESTAMP WITHOUT TIME
+    # ZONE, and asyncpg rejects tz-aware datetimes for it (→ 500). The reader in
+    # security/auth.py re-applies UTC when tzinfo is missing.
+    user.password_changed_at = datetime.now(timezone.utc).replace(tzinfo=None)
     db_session.add(user)
 
     await db_session.commit()
@@ -434,7 +437,10 @@ async def change_password_with_reset_code_platform(
         )
 
     user.password = security_hash_password(new_password)
-    user.password_changed_at = datetime.now(timezone.utc)
+    # Store as a naive UTC timestamp: the DB column is TIMESTAMP WITHOUT TIME
+    # ZONE, and asyncpg rejects tz-aware datetimes for it (→ 500). The reader in
+    # security/auth.py re-applies UTC when tzinfo is missing.
+    user.password_changed_at = datetime.now(timezone.utc).replace(tzinfo=None)
     db_session.add(user)
 
     await db_session.commit()
