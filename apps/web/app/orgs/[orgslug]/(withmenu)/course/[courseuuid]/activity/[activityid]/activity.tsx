@@ -419,8 +419,10 @@ function ActivityClient(props: ActivityClientProps) {
     const t = setTimeout(() => setEngaged(true), 20000);
     return () => clearTimeout(t);
   }, [activity?.activity_uuid, activity?.activity_type, isIntroChapter]);
-  // ¿Se puede avanzar? Admin libre, contenido/intro libre, o ya interactuó.
-  const canAdvanceCurrent = !!isAdmin || !requiresInteraction || engaged;
+  // ¿Se puede avanzar? Contenido/intro libre, o ya interactuó (play / ejercicios
+  // hechos / ya completado antes). El admin NO se salta el bloqueo automáticamente
+  // (para poder verlo al probar), pero tiene un botón "Saltar (admin)" al lado.
+  const canAdvanceCurrent = !requiresInteraction || engaged;
   const lockMessageCurrent = activity?.activity_type === 'TYPE_VIDEO'
     ? 'Debes ver la lección antes de continuar.'
     : 'Debes hacer los ejercicios antes de continuar.';
@@ -1061,6 +1063,7 @@ function ActivityClient(props: ActivityClientProps) {
                                   orgslug={orgslug}
                                   canAdvance={canAdvanceCurrent}
                                   lockMessage={lockMessageCurrent}
+                                  isAdmin={!!isAdmin}
                                 />
                               </div>
                             </div>
@@ -1300,7 +1303,7 @@ export function MarkStatus(props: {
   )
 }
 
-function NextActivityButton({ course, currentActivityId, orgslug, canAdvance = true, lockMessage }: { course: any, currentActivityId: string, orgslug: string, canAdvance?: boolean, lockMessage?: string }) {
+function NextActivityButton({ course, currentActivityId, orgslug, canAdvance = true, lockMessage, isAdmin = false }: { course: any, currentActivityId: string, orgslug: string, canAdvance?: boolean, lockMessage?: string, isAdmin?: boolean }) {
   const { t } = useTranslation();
   const router = useRouter();
   const [showHint, setShowHint] = useState(false);
@@ -1330,17 +1333,21 @@ function NextActivityButton({ course, currentActivityId, orgslug, canAdvance = t
   const nextActivity = findNextActivity();
   const isLast = !nextActivity;
 
+  const goNext = () => {
+    const cleanCourseUuid = course.course_uuid?.replace('course_', '');
+    router.push(
+      getUriWithOrg(orgslug, '') +
+        `/course/${cleanCourseUuid}/activity/${isLast ? 'end' : nextActivity.cleanUuid}`
+    );
+  };
+
   const handleClick = () => {
     if (!canAdvance) {
       setShowHint(true);
       setTimeout(() => setShowHint(false), 4000);
       return;
     }
-    const cleanCourseUuid = course.course_uuid?.replace('course_', '');
-    router.push(
-      getUriWithOrg(orgslug, '') +
-        `/course/${cleanCourseUuid}/activity/${isLast ? 'end' : nextActivity.cleanUuid}`
-    );
+    goNext();
   };
 
   return (
@@ -1367,6 +1374,15 @@ function NextActivityButton({ course, currentActivityId, orgslug, canAdvance = t
           {isLast ? <Trophy size={16} className="shrink-0" /> : <ChevronRight size={17} className="shrink-0" />}
         </div>
       </div>
+      {/* Solo admin: saltarse el bloqueo de esta actividad al revisar. */}
+      {isAdmin && !canAdvance && (
+        <button
+          onClick={goNext}
+          className="mt-1.5 w-full text-[11px] font-bold uppercase tracking-wide text-amber-700 bg-amber-50 border border-amber-200 rounded-lg py-1.5 hover:bg-amber-100 transition-colors"
+        >
+          Saltar (admin) →
+        </button>
+      )}
     </div>
   );
 }
