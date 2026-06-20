@@ -14,6 +14,7 @@ import { getConfig, getUriWithOrg } from '@services/config/config';
 import { Breadcrumbs } from '@components/Objects/Breadcrumbs/Breadcrumbs';
 import { Dumbbell } from 'lucide-react';
 import { useLHSession } from '@components/Contexts/LHSessionContext';
+import useAdminStatus from '@components/Hooks/useAdminStatus';
 import { saveItemResult } from '@/lib/exercises/exercises';
 import { saveLastAttempt, getLastAttempt, type LastAttempt } from '@/lib/exercises-app/lastAttempts';
 import { markLessonCompletedRemote, patchStudentProgress } from '@services/student/progress';
@@ -3409,6 +3410,7 @@ interface LessonViewerProps {
 
 export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLesson, orgslug, inCourse, forcedSection, onComplete }: LessonViewerProps) {
   const session = useLHSession() as any;
+  const { isAdmin } = useAdminStatus() as any;
   const accessToken: string | undefined = session?.data?.tokens?.access_token;
   const userUuid: string = session?.data?.user?.user_uuid || '';
   const [activeSection, setActiveSection] = useState<SectionId | null>(null);
@@ -3645,6 +3647,17 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
                 <path strokeLinecap="round" strokeLinejoin="round" d="M7 16l-4-4m0 0l4-4m-4 4h18" />
               </svg>
               <span className="truncate">{lesson.title}</span>
+            </button>
+          )}
+          {/* Solo admin: saltar esta sección (marcarla como vista) sin completar
+              los ejercicios. Los alumnos NO ven este botón. */}
+          {activeSection !== null && isAdmin && (
+            <button
+              onClick={() => completeSection(activeSection)}
+              title="Solo admin: marca esta sección como vista y vuelve, sin completar los ejercicios"
+              className="ml-3 inline-flex items-center gap-1.5 text-[12px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1 hover:bg-amber-100 transition-colors mb-3"
+            >
+              Saltar (admin) →
             </button>
           )}
 

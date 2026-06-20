@@ -1341,6 +1341,60 @@ const m3_les1: Lesson = {
   isExtra: false,
   blocks: [
     {
+      type: 'summary',
+      title: 'Eten en drinken — lo básico',
+      intro: 'En esta lección aprendes el vocabulario más usado de comida y bebida, las tres comidas del día, las palabras del supermercado y cómo preguntar dónde está algo.',
+      objectives: [
+        'Usar las palabras más comunes de comida y bebida',
+        'Nombrar las tres comidas principales (ontbijt, lunch, avondeten)',
+        'Usar el vocabulario del supermercado y de los envases',
+        'Preguntar "Waar vind ik…?" / "Waar is de kassa?"',
+      ],
+      sections: [
+        {
+          heading: '🍽️ Comida y bebida',
+          items: [
+            { nl: 'water', es: 'agua' }, { nl: 'brood', es: 'pan' }, { nl: 'kaas', es: 'queso' },
+            { nl: 'melk', es: 'leche' }, { nl: 'fruit', es: 'fruta' }, { nl: 'groenten', es: 'verduras' },
+            { nl: 'vlees', es: 'carne' }, { nl: 'vis', es: 'pescado' }, { nl: 'rijst', es: 'arroz' }, { nl: 'soep', es: 'sopa' },
+          ],
+        },
+        {
+          heading: '🕒 Las tres comidas',
+          items: [
+            { nl: 'het ontbijt', es: 'el desayuno' },
+            { nl: 'de lunch', es: 'el almuerzo' },
+            { nl: 'het avondeten', es: 'la cena' },
+          ],
+        },
+        {
+          heading: '🛒 En el supermercado',
+          items: [
+            { nl: 'de supermarkt', es: 'el supermercado' }, { nl: 'het mandje', es: 'la cesta' },
+            { nl: 'het winkelwagentje', es: 'el carrito' }, { nl: 'het schap', es: 'el estante' },
+            { nl: 'de aanbieding', es: 'la oferta' }, { nl: 'de kassa', es: 'la caja' }, { nl: 'de rij', es: 'la fila' },
+          ],
+        },
+        {
+          heading: '📦 Envases (verpakkingen)',
+          body: 'Recuerda: **"een zak rijst"**, **"een pak melk"**, **"een fles water"**, **"een blik soep"**, **"een doos fruit"**.',
+          items: [
+            { nl: 'de zak', es: 'la bolsa' }, { nl: 'het pak', es: 'el cartón' }, { nl: 'de fles', es: 'la botella' },
+            { nl: 'het blik', es: 'la lata' }, { nl: 'de doos', es: 'la caja' },
+          ],
+        },
+        {
+          heading: '❓ Preguntas clave',
+          items: [
+            { nl: 'Waar vind ik de melk?', es: '¿Dónde encuentro la leche?' },
+            { nl: 'Waar is de kassa?', es: '¿Dónde está la caja?' },
+            { nl: 'Mag ik pinnen, alstublieft?', es: '¿Puedo pagar con tarjeta, por favor?' },
+          ],
+        },
+      ],
+      tip: 'En la cena holandesa típica (AVG) hay Aardappelen, Vlees en Groente (patatas, carne y verdura).',
+    },
+    {
       type: 'vocabulary',
       items: [
         { id: 'm3v-brood',     dutch: 'het brood',    spanish: 'el pan',          article: 'het', emoji: '🍞', color: '#0b7a4d', exampleNl: 'Ik koop brood in de bakkerij.', exampleEs: 'Compro pan en la panadería.',      category: 'eten', difficulty: 'A1' },
@@ -1359,6 +1413,20 @@ const m3_les1: Lesson = {
         { id: 'm3v-eten',      dutch: 'eten',         spanish: 'comer',            article: null,  emoji: '🍽️', color: '#1a7a40', exampleNl: 'Wat eet jij het liefst?',   exampleEs: '¿Qué es lo que más te gusta comer?', category: '', difficulty: 'A1' },
         { id: 'm3v-drinken',   dutch: 'drinken',      spanish: 'beber',            article: null,  emoji: '🥤', color: '#0d6e33', exampleNl: 'Wat wil je drinken?',        exampleEs: '¿Qué quieres beber?',             category: '', difficulty: 'A1' },
         { id: 'm3v-lekker',    dutch: 'lekker',       spanish: 'rico / delicioso', article: null,  emoji: '😋', color: '#2e7d52', exampleNl: 'Dit is erg lekker!',         exampleEs: '¡Esto está muy rico!',            category: '', difficulty: 'A1' },
+        // Las tres comidas
+        { id: 'm3v-ontbijt',   dutch: 'het ontbijt',  spanish: 'el desayuno',      article: 'het', emoji: '🥐', color: '#0b7a4d', exampleNl: 'Wat eet jij als ontbijt?',   exampleEs: '¿Qué desayunas?',                 category: 'maaltijden', difficulty: 'A1' },
+        { id: 'm3v-lunch',     dutch: 'de lunch',     spanish: 'el almuerzo',      article: 'de',  emoji: '🥪', color: '#1a7a40', exampleNl: 'Als lunch eet ik soep.',     exampleEs: 'De almuerzo como sopa.',          category: 'maaltijden', difficulty: 'A1' },
+        { id: 'm3v-avondeten', dutch: 'het avondeten',spanish: 'la cena',          article: 'het', emoji: '🍛', color: '#0d6e33', exampleNl: 'Het avondeten is om zes uur.', exampleEs: 'La cena es a las seis.',        category: 'maaltijden', difficulty: 'A1' },
+        // Supermercado
+        { id: 'm3v-supermarkt',dutch: 'de supermarkt',spanish: 'el supermercado',  article: 'de',  emoji: '🏪', color: '#2e7d52', exampleNl: 'Ik ga naar de supermarkt.',  exampleEs: 'Voy al supermercado.',            category: 'supermarkt', difficulty: 'A1' },
+        { id: 'm3v-schap',     dutch: 'het schap',    spanish: 'el estante',       article: 'het', emoji: '🗄️', color: '#0b7a4d', exampleNl: 'De melk staat in het schap.', exampleEs: 'La leche está en el estante.',   category: 'supermarkt', difficulty: 'A1' },
+        { id: 'm3v-aanbieding',dutch: 'de aanbieding',spanish: 'la oferta',        article: 'de',  emoji: '🏷️', color: '#1a7a40', exampleNl: 'De kaas is in de aanbieding.', exampleEs: 'El queso está en oferta.',      category: 'supermarkt', difficulty: 'A1' },
+        { id: 'm3v-kassa',     dutch: 'de kassa',     spanish: 'la caja',          article: 'de',  emoji: '🧾', color: '#0d6e33', exampleNl: 'Waar is de kassa?',          exampleEs: '¿Dónde está la caja?',            category: 'supermarkt', difficulty: 'A1' },
+        // Envases
+        { id: 'm3v-zak',       dutch: 'de zak',       spanish: 'la bolsa',         article: 'de',  emoji: '🛍️', color: '#2e7d52', exampleNl: 'Een zak rijst, alstublieft.', exampleEs: 'Una bolsa de arroz, por favor.', category: 'verpakkingen', difficulty: 'A1' },
+        { id: 'm3v-pak',       dutch: 'het pak',      spanish: 'el cartón / paquete', article: 'het', emoji: '📦', color: '#0b7a4d', exampleNl: 'Een pak melk kost €1.',    exampleEs: 'Un cartón de leche cuesta 1 €.',  category: 'verpakkingen', difficulty: 'A1' },
+        { id: 'm3v-fles',      dutch: 'de fles',      spanish: 'la botella',       article: 'de',  emoji: '🍾', color: '#1a7a40', exampleNl: 'Een fles water, graag.',     exampleEs: 'Una botella de agua, por favor.', category: 'verpakkingen', difficulty: 'A1' },
+        { id: 'm3v-blik',      dutch: 'het blik',     spanish: 'la lata',          article: 'het', emoji: '🥫', color: '#0d6e33', exampleNl: 'Soep zit in een blik.',      exampleEs: 'La sopa viene en lata.',          category: 'verpakkingen', difficulty: 'A1' },
       ],
     },
     {
@@ -1407,6 +1475,17 @@ const m3_les1: Lesson = {
         { id: 'm3e-6', type: 'order_sentence', prompt: 'Ordena: "Quiero un vaso de agua, por favor."', options: ['Ik', 'wil', 'een', 'glas', 'water,', 'alsjeblieft.'], correctAnswer: 'Ik wil een glas water, alsjeblieft.' },
         { id: 'm3e-7', type: 'fill_blank', prompt: 'Dit broodje is erg ___! (delicioso)', correctAnswer: 'lekker', hint: 'rico / delicioso' },
         { id: 'm3e-8', type: 'multiple_choice', prompt: '¿Qué artículo lleva "brood"?', options: ['de', 'het', 'een', 'geen'], correctAnswer: 'het', explanation: '"Het brood" — los sustantivos neutros llevan "het".' },
+        { id: 'm3e-9',  type: 'match_pairs', prompt: 'Une cada producto con su envase (verpakking)', correctAnswer: '', pairs: [
+          { left: 'rijst', right: 'de zak' },
+          { left: 'melk', right: 'het pak' },
+          { left: 'water', right: 'de fles' },
+          { left: 'soep', right: 'het blik' },
+        ] },
+        { id: 'm3e-10', type: 'odd_one_out', prompt: '¿Cuál NO es un envase?', options: ['de zak', 'het pak', 'de kassa', 'de fles'], correctAnswer: 'de kassa', explanation: '"De kassa" es la caja del supermercado, no un envase.' },
+        { id: 'm3e-11', type: 'letter_dash', prompt: 'Completa: "el supermercado"', correctAnswer: 'supermarkt', hint: 'de ___' },
+        { id: 'm3e-12', type: 'true_false', prompt: '"Het ontbijt" significa "la cena".', correctAnswer: 'falso', explanation: '"Het ontbijt" es el desayuno. La cena es "het avondeten".' },
+        { id: 'm3e-13', type: 'word_scramble', prompt: '¿Cómo se dice "el estante"?', correctAnswer: 'schap', hint: 'estante' },
+        { id: 'm3e-14', type: 'order_sentence', prompt: 'Ordena: "¿Dónde encuentro la leche?"', options: ['Waar', 'vind', 'ik', 'de', 'melk?'], correctAnswer: 'Waar vind ik de melk?' },
       ],
     },
     { type: 'review' },
@@ -1594,6 +1673,51 @@ const m3_les3: Lesson = {
   isExtra: false,
   blocks: [
     {
+      type: 'summary',
+      title: 'Vragende woorden — hacer preguntas',
+      intro: 'En esta lección aprendes a hacer preguntas de sí/no y con palabras interrogativas, y a negar con "geen".',
+      objectives: [
+        'Hacer preguntas de sí/no (verbo + sujeto)',
+        'Hacer preguntas con W-vragen (wat, waar, wanneer, wie, hoeveel)',
+        'Negar con "geen"',
+        'Decir el orden de palabras correcto en una pregunta',
+      ],
+      sections: [
+        {
+          heading: '❓ Preguntas sí/no',
+          body: 'Empiezan con el **verbo + sujeto**. ¡Con "jij" la -t desaparece!',
+          items: [
+            { nl: 'Drink je koffie?', es: '¿Bebes café?' },
+            { nl: 'Eet hij vlees?', es: '¿Come él carne?' },
+            { nl: 'Wil je nog iets?', es: '¿Quieres algo más?' },
+          ],
+        },
+        {
+          heading: '🔤 W-vragen',
+          items: [
+            { nl: 'wat', es: 'qué' }, { nl: 'waar', es: 'dónde' }, { nl: 'wanneer', es: 'cuándo' },
+            { nl: 'wie', es: 'quién' }, { nl: 'hoeveel', es: 'cuánto/cuántos' },
+          ],
+        },
+        {
+          heading: '🚫 Negación con "geen"',
+          body: '**"geen"** niega un sustantivo: **"Nee, ik drink geen koffie."**',
+          items: [
+            { nl: 'Nee, ik drink geen koffie.', es: 'No, no bebo café.' },
+            { nl: 'Ik eet geen vlees.', es: 'No como carne.' },
+          ],
+        },
+        {
+          heading: '⚠️ Errores comunes',
+          items: [
+            { nl: 'Drink jij koffie? (no "Jij drinkt koffie?")', es: 'el verbo va primero y sin -t' },
+            { nl: 'Wat drink jij? (no "Wat jij drinkt?")', es: 'palabra interrogativa + verbo + sujeto' },
+          ],
+        },
+      ],
+      tip: 'Entonación: en una pregunta de sí/no la voz sube al final ↗.',
+    },
+    {
       type: 'vocabulary',
       items: [
         // Palabras interrogativas
@@ -1667,6 +1791,313 @@ const m3_les3: Lesson = {
         { id: 'm3l3e-6', type: 'multiple_choice', prompt: '¿Cuál es la forma correcta de hacer una pregunta sí/no?',     options: ['Jij drinkt koffie?', 'Drink jij koffie?', 'Koffie drink jij?'], correctAnswer: 'Drink jij koffie?', explanation: 'Ja/nee-vraag: verbo + sujeto + complemento.' },
         { id: 'm3l3e-7', type: 'order_sentence',  prompt: 'Ordena: "¿Cuánta azúcar quieres?" → suiker / hoeveel / wil / je', options: ['suiker', 'hoeveel', 'wil', 'je'], correctAnswer: 'Hoeveel suiker wil je?' },
         { id: 'm3l3e-8', type: 'fill_blank',      prompt: 'Wil je thee? → Nee, ik wil ______ thee.',                     correctAnswer: 'geen',           hint: 'Pista: negación con sustantivos' },
+        { id: 'm3l3e-9',  type: 'match_pairs',     prompt: 'Une cada palabra interrogativa con su significado', correctAnswer: '', pairs: [
+          { left: 'wat', right: 'qué' },
+          { left: 'waar', right: 'dónde' },
+          { left: 'wanneer', right: 'cuándo' },
+          { left: 'wie', right: 'quién' },
+        ] },
+        { id: 'm3l3e-10', type: 'true_false',      prompt: 'En una pregunta sí/no el verbo va PRIMERO: "Drink jij koffie?".', correctAnswer: 'verdadero', explanation: 'Correcto: verbo + sujeto. "Jij drinkt koffie?" es incorrecto.' },
+        { id: 'm3l3e-11', type: 'odd_one_out',     prompt: '¿Cuál NO es una palabra interrogativa?', options: ['wat', 'waar', 'geen', 'wie'], correctAnswer: 'geen', explanation: '"geen" es una negación, no una pregunta.' },
+        { id: 'm3l3e-12', type: 'order_sentence',  prompt: 'Ordena la pregunta: "¿Qué bebes?"', options: ['Wat', 'drink', 'jij?'], correctAnswer: 'Wat drink jij?' },
+        { id: 'm3l3e-13', type: 'multiple_choice', prompt: 'Corrige: "Jij drinkt koffie?"', options: ['Drink jij koffie?', 'Drinkt jij koffie?', 'Koffie jij drinkt?'], correctAnswer: 'Drink jij koffie?', explanation: 'Verbo primero y sin -t con "jij".' },
+      ],
+    },
+    { type: 'review' },
+  ],
+};
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   MODULE 3 — BOODSCHAPPEN — Les 4 (Voegwoorden)
+───────────────────────────────────────────────────────────────────────────── */
+
+const m3_les4: Lesson = {
+  id: 'm3-les-4-voegwoorden',
+  moduleId: 'boodschappen',
+  title: 'Les 4 — Grammatica | Voegwoorden',
+  subtitle: 'Conectar frases: en, maar, of, want',
+  order: 4,
+  learningObjective: 'Unir dos frases cortas con en, maar, of y want manteniendo el orden de palabras',
+  estimatedMinutes: 25,
+  isExtra: false,
+  blocks: [
+    {
+      type: 'summary',
+      title: 'Voegwoorden — conectar frases',
+      intro: 'Las conjunciones unen dos frases o palabras. Con en, maar, of y want el orden de palabras se mantiene igual.',
+      objectives: [
+        'Reconocer las conjunciones en, maar, of, want',
+        'Unir dos frases cortas en una sola',
+        'Entender que el orden de palabras no cambia',
+      ],
+      sections: [
+        {
+          heading: '🔗 Las cuatro conjunciones',
+          items: [
+            { nl: 'en', es: 'y (añadir información)' },
+            { nl: 'maar', es: 'pero (contraste)' },
+            { nl: 'of', es: 'o (elección)' },
+            { nl: 'want', es: 'porque (dar una razón)' },
+          ],
+        },
+        {
+          heading: '🧩 Ejemplos',
+          items: [
+            { nl: 'Ik drink koffie en ik eet een koekje.', es: 'Bebo café y como una galleta.' },
+            { nl: 'Ik hou van pizza, maar ik eet niet elke dag pizza.', es: 'Me gusta la pizza, pero no como pizza cada día.' },
+            { nl: 'Wil je thee of koffie?', es: '¿Quieres té o café?' },
+            { nl: 'Ik ga naar de supermarkt, want ik heb geen brood.', es: 'Voy al super porque no tengo pan.' },
+          ],
+        },
+        {
+          heading: '📐 Orden de palabras',
+          body: 'sujeto + verbo + resto **+ voegwoord +** sujeto + verbo + resto. El orden **no cambia**.',
+        },
+      ],
+      tip: 'Usa "want" para dar una razón y "maar" solo cuando hay un contraste de verdad.',
+    },
+    {
+      type: 'vocabulary',
+      items: [
+        { id: 'm3l4v-en',     dutch: 'en',     spanish: 'y',                article: null, emoji: '➕', color: '#0b7a4d', exampleNl: 'brood en kaas',                       exampleEs: 'pan y queso',                      category: 'voegwoorden', difficulty: 'A1' },
+        { id: 'm3l4v-maar',   dutch: 'maar',   spanish: 'pero',             article: null, emoji: '↔️', color: '#1a7a40', exampleNl: 'lekker, maar koud',                   exampleEs: 'rico, pero frío',                  category: 'voegwoorden', difficulty: 'A1' },
+        { id: 'm3l4v-of',     dutch: 'of',     spanish: 'o',                article: null, emoji: '🔀', color: '#0d6e33', exampleNl: 'soep of salade',                      exampleEs: 'sopa o ensalada',                  category: 'voegwoorden', difficulty: 'A1' },
+        { id: 'm3l4v-want',   dutch: 'want',   spanish: 'porque',           article: null, emoji: '💡', color: '#2e7d52', exampleNl: 'Ik drink water, want ik heb dorst.',  exampleEs: 'Bebo agua porque tengo sed.',      category: 'voegwoorden', difficulty: 'A1' },
+        { id: 'm3l4v-koekje', dutch: 'het koekje', spanish: 'la galleta',   article: 'het', emoji: '🍪', color: '#0b7a4d', exampleNl: 'Ik eet een koekje bij de koffie.',  exampleEs: 'Como una galleta con el café.',    category: 'eten', difficulty: 'A1' },
+        { id: 'm3l4v-honger', dutch: 'de honger', spanish: 'el hambre',     article: 'de',  emoji: '😋', color: '#1a7a40', exampleNl: 'Ik heb honger.',                     exampleEs: 'Tengo hambre.',                    category: 'gevoel', difficulty: 'A1' },
+        { id: 'm3l4v-dorst',  dutch: 'de dorst',  spanish: 'la sed',        article: 'de',  emoji: '💦', color: '#0d6e33', exampleNl: 'Ik heb dorst.',                      exampleEs: 'Tengo sed.',                       category: 'gevoel', difficulty: 'A1' },
+        { id: 'm3l4v-moe',    dutch: 'moe',    spanish: 'cansado/a',        article: null, emoji: '😴', color: '#2e7d52', exampleNl: 'Ik ga naar huis, want ik ben moe.',  exampleEs: 'Voy a casa porque estoy cansado.', category: 'gevoel', difficulty: 'A1' },
+        { id: 'm3l4v-dicht',  dutch: 'dicht',  spanish: 'cerrado',          article: null, emoji: '🔒', color: '#0b7a4d', exampleNl: 'Het restaurant is dicht.',           exampleEs: 'El restaurante está cerrado.',     category: 'plek', difficulty: 'A1' },
+      ],
+    },
+    {
+      type: 'phrases',
+      items: [
+        { id: 'm3l4p-1',  dutch: 'Ik drink koffie en ik eet een koekje.',          spanish: 'Bebo café y como una galleta.',           context: 'en' },
+        { id: 'm3l4p-2',  dutch: 'Ik wil koffie, maar ik neem thee.',              spanish: 'Quiero café, pero tomo té.',              context: 'maar' },
+        { id: 'm3l4p-3',  dutch: 'Wil je thee of koffie?',                          spanish: '¿Quieres té o café?',                     context: 'of' },
+        { id: 'm3l4p-4',  dutch: 'Ik ga naar de supermarkt, want ik heb geen brood.', spanish: 'Voy al super porque no tengo pan.',     context: 'want' },
+        { id: 'm3l4p-5',  dutch: 'Ik drink water, want ik heb dorst.',             spanish: 'Bebo agua porque tengo sed.',             context: 'want' },
+        { id: 'm3l4p-6',  dutch: 'Hij eet vlees, maar zij eet vis.',               spanish: 'Él come carne, pero ella come pescado.',  context: 'maar' },
+        { id: 'm3l4p-7',  dutch: 'Eet je brood of rijst?',                          spanish: '¿Comes pan o arroz?',                     context: 'of' },
+        { id: 'm3l4p-8',  dutch: 'Ik eet thuis, want het restaurant is dicht.',    spanish: 'Como en casa porque el restaurante está cerrado.', context: 'want' },
+      ],
+    },
+    {
+      type: 'practice',
+      exercises: [
+        { id: 'm3l4e-1',  type: 'multiple_choice', prompt: 'Wil je thee ___ koffie?', options: ['en', 'maar', 'of', 'want'], correctAnswer: 'of', explanation: '"of" = elección entre dos opciones.' },
+        { id: 'm3l4e-2',  type: 'multiple_choice', prompt: 'Ik ga naar de supermarkt, ___ ik heb geen melk.', options: ['en', 'maar', 'of', 'want'], correctAnswer: 'want', explanation: '"want" da una razón.' },
+        { id: 'm3l4e-3',  type: 'multiple_choice', prompt: 'Ik wil pizza, ___ ik neem soep.', options: ['en', 'maar', 'of', 'want'], correctAnswer: 'maar', explanation: '"maar" = contraste.' },
+        { id: 'm3l4e-4',  type: 'multiple_choice', prompt: 'Ik drink koffie ___ ik eet een koekje.', options: ['en', 'maar', 'of', 'want'], correctAnswer: 'en', explanation: '"en" añade información.' },
+        { id: 'm3l4e-5',  type: 'match_pairs', prompt: 'Une cada conjunción con su función', correctAnswer: '', pairs: [
+          { left: 'en', right: 'añadir (y)' },
+          { left: 'maar', right: 'contraste (pero)' },
+          { left: 'of', right: 'elección (o)' },
+          { left: 'want', right: 'razón (porque)' },
+        ] },
+        { id: 'm3l4e-6',  type: 'order_sentence', prompt: 'Ordena: "Bebo café y como pan."', options: ['Ik', 'drink', 'koffie', 'en', 'ik', 'eet', 'brood.'], correctAnswer: 'Ik drink koffie en ik eet brood.' },
+        { id: 'm3l4e-7',  type: 'order_sentence', prompt: 'Ordena: "Voy a casa porque estoy cansado."', options: ['Ik', 'ga', 'naar', 'huis,', 'want', 'ik', 'ben', 'moe.'], correctAnswer: 'Ik ga naar huis, want ik ben moe.' },
+        { id: 'm3l4e-8',  type: 'fill_blank', prompt: 'Ik hou van pizza, ___ ik eet niet elke dag pizza. (pero)', correctAnswer: 'maar', hint: 'contraste' },
+        { id: 'm3l4e-9',  type: 'true_false', prompt: '"want" significa "pero".', correctAnswer: 'falso', explanation: '"want" = porque. "maar" = pero.' },
+        { id: 'm3l4e-10', type: 'odd_one_out', prompt: '¿Cuál NO es una conjunción?', options: ['en', 'maar', 'want', 'koffie'], correctAnswer: 'koffie', explanation: '"koffie" es café; las demás son conjunciones.' },
+        { id: 'm3l4e-11', type: 'multiple_choice', prompt: 'Corrige: "Ik wil thee want ik neem koffie."', options: ['Ik wil thee, maar ik neem koffie.', 'Ik wil thee of ik neem koffie.', 'Ik wil thee en ik neem koffie.'], correctAnswer: 'Ik wil thee, maar ik neem koffie.', explanation: 'Hay contraste (querer una cosa, tomar otra) → "maar".' },
+        { id: 'm3l4e-12', type: 'fill_blank', prompt: 'Wij eten soep, ___ het is koud. (porque)', correctAnswer: 'want', hint: 'razón' },
+        { id: 'm3l4e-13', type: 'word_scramble', prompt: '¿Cómo se dice "galleta"?', correctAnswer: 'koekje', hint: 'galleta' },
+      ],
+    },
+    { type: 'review' },
+  ],
+};
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   MODULE 3 — BOODSCHAPPEN — Les 5 (Aantallen, graag & houden van)
+───────────────────────────────────────────────────────────────────────────── */
+
+const m3_les5: Lesson = {
+  id: 'm3-les-5-aantallen',
+  moduleId: 'boodschappen',
+  title: 'Les 5 — Grammatica | Aantallen & graag',
+  subtitle: 'Cantidades, pedir más y decir qué te gusta',
+  order: 5,
+  learningObjective: 'Pedir cantidades (números, kilos, veel/een beetje), ser educado con graag y decir qué te gusta con houden van',
+  estimatedMinutes: 25,
+  isExtra: false,
+  blocks: [
+    {
+      type: 'summary',
+      title: 'Aantallen, graag & houden van',
+      intro: 'En esta lección pides cantidades (números, kilos y gramos, veel / een beetje), pides "uno más" (nog een), eres más educado con graag y dices lo que te gusta con houden van.',
+      objectives: [
+        'Usar números y cantidades (veel, een beetje, weinig)',
+        'Pedir en kilos y gramos y pedir "nog een"',
+        'Preguntar con "hoeveel"',
+        'Usar "graag" para ser educado',
+        'Decir lo que te gusta con "houden van"',
+      ],
+      sections: [
+        {
+          heading: '🔢 Contable vs. no contable',
+          body: 'Con cosas **contables** usa números (twee koffie). Con **no contables** usa veel / een beetje (veel water).',
+          items: [
+            { nl: 'veel', es: 'mucho' }, { nl: 'een beetje', es: 'un poco' }, { nl: 'weinig', es: 'poco' },
+            { nl: 'nog een koffie', es: 'otro café' },
+          ],
+        },
+        {
+          heading: '⚖️ Kilos y gramos',
+          items: [
+            { nl: 'Ik wil graag een kilo kip.', es: 'Quiero un kilo de pollo.' },
+            { nl: 'Ik wil graag 500 gram druiven.', es: 'Quiero 500 gramos de uvas.' },
+          ],
+        },
+        {
+          heading: '🙏 La palabra "graag"',
+          body: 'Va **después del verbo**: "Ik wil **graag** koffie" (no "Ik wil koffie graag"). Hace la frase más educada y natural.',
+        },
+        {
+          heading: '❤️ Houden van — gustar',
+          body: 'Para decir lo que te gusta: **"Ik hou van friet."** La negación lleva **niet** entre houden y van: "Ik hou **niet** van vis."',
+          items: [
+            { nl: 'Ik hou van koffie.', es: 'Me gusta el café.' },
+            { nl: 'Hou je van pizza?', es: '¿Te gusta la pizza?' },
+            { nl: 'Ik hou niet van vis.', es: 'No me gusta el pescado.' },
+          ],
+        },
+      ],
+      tip: '"nog een" va siempre junto (otro/una más). "hoeveel" + producto + verbo + sujeto: "Hoeveel koffie wil je?".',
+    },
+    {
+      type: 'vocabulary',
+      items: [
+        { id: 'm3l5v-veel',     dutch: 'veel',          spanish: 'mucho',           article: null,  emoji: '🔝', color: '#0b7a4d', exampleNl: 'Ik wil veel water.',           exampleEs: 'Quiero mucha agua.',            category: 'hoeveelheid', difficulty: 'A1' },
+        { id: 'm3l5v-beetje',   dutch: 'een beetje',    spanish: 'un poco',         article: null,  emoji: '🤏', color: '#1a7a40', exampleNl: 'Een beetje melk, graag.',      exampleEs: 'Un poco de leche, por favor.',  category: 'hoeveelheid', difficulty: 'A1' },
+        { id: 'm3l5v-weinig',   dutch: 'weinig',        spanish: 'poco',            article: null,  emoji: '📉', color: '#0d6e33', exampleNl: 'Ik eet weinig vlees.',         exampleEs: 'Como poca carne.',              category: 'hoeveelheid', difficulty: 'A1' },
+        { id: 'm3l5v-nogeen',   dutch: 'nog een',       spanish: 'otro / uno más',  article: null,  emoji: '➕', color: '#2e7d52', exampleNl: 'Nog een broodje, alstublieft.', exampleEs: 'Otro bocadillo, por favor.',   category: 'hoeveelheid', difficulty: 'A1' },
+        { id: 'm3l5v-kilo',     dutch: 'de kilo',       spanish: 'el kilo',         article: 'de',  emoji: '⚖️', color: '#0b7a4d', exampleNl: 'Een kilo aardappels.',         exampleEs: 'Un kilo de patatas.',           category: 'hoeveelheid', difficulty: 'A1' },
+        { id: 'm3l5v-gram',     dutch: 'het gram',      spanish: 'el gramo',        article: 'het', emoji: '🧮', color: '#1a7a40', exampleNl: '500 gram druiven.',            exampleEs: '500 gramos de uvas.',           category: 'hoeveelheid', difficulty: 'A1' },
+        { id: 'm3l5v-houvan',   dutch: 'houden van',    spanish: 'gustar / amar',   article: null,  emoji: '❤️', color: '#0d6e33', exampleNl: 'Ik hou van friet.',            exampleEs: 'Me gusta la patata frita.',     category: 'werkwoorden', difficulty: 'A1' },
+        { id: 'm3l5v-lieveling',dutch: 'het lievelingseten', spanish: 'la comida favorita', article: 'het', emoji: '😍', color: '#2e7d52', exampleNl: 'Wat is jouw lievelingseten?', exampleEs: '¿Cuál es tu comida favorita?', category: 'eten', difficulty: 'A1' },
+        { id: 'm3l5v-kip',      dutch: 'de kip',        spanish: 'el pollo',        article: 'de',  emoji: '🍗', color: '#0b7a4d', exampleNl: 'Ik wil graag een kilo kip.',   exampleEs: 'Quiero un kilo de pollo.',      category: 'eten', difficulty: 'A1' },
+        { id: 'm3l5v-appel',    dutch: 'de appel',      spanish: 'la manzana',      article: 'de',  emoji: '🍏', color: '#1a7a40', exampleNl: 'Ik koop twee appels.',         exampleEs: 'Compro dos manzanas.',          category: 'eten', difficulty: 'A1' },
+        { id: 'm3l5v-aardappel',dutch: 'de aardappel',  spanish: 'la patata',       article: 'de',  emoji: '🥔', color: '#0d6e33', exampleNl: 'Twee kilo aardappels, graag.', exampleEs: 'Dos kilos de patatas, por favor.', category: 'eten', difficulty: 'A1' },
+        { id: 'm3l5v-druiven',  dutch: 'de druiven',    spanish: 'las uvas',        article: 'de',  emoji: '🍇', color: '#2e7d52', exampleNl: '250 gram druiven.',            exampleEs: '250 gramos de uvas.',           category: 'eten', difficulty: 'A1' },
+      ],
+    },
+    {
+      type: 'practice',
+      exercises: [
+        { id: 'm3l5e-1',  type: 'multiple_choice', prompt: 'Con algo NO contable usamos…', options: ['twee water', 'veel water', 'water twee', 'een water'], correctAnswer: 'veel water', explanation: '"water" no es contable → veel water (no "twee water").' },
+        { id: 'm3l5e-2',  type: 'fill_blank', prompt: 'Ik wil ___ koffie. (educado: usa "graag")', correctAnswer: 'graag', hint: 'va después del verbo' },
+        { id: 'm3l5e-3',  type: 'match_pairs', prompt: 'Une cada palabra de cantidad con su significado', correctAnswer: '', pairs: [
+          { left: 'veel', right: 'mucho' },
+          { left: 'een beetje', right: 'un poco' },
+          { left: 'weinig', right: 'poco' },
+          { left: 'nog een', right: 'otro' },
+        ] },
+        { id: 'm3l5e-4',  type: 'order_sentence', prompt: 'Ordena: "Quiero dos cafés." (educado)', options: ['Ik', 'wil', 'graag', 'twee', 'koffie.'], correctAnswer: 'Ik wil graag twee koffie.' },
+        { id: 'm3l5e-5',  type: 'true_false', prompt: '"een beetje appels" es correcto.', correctAnswer: 'falso', explanation: 'Las manzanas son contables → "twee appels" o "een paar appels", no "een beetje".' },
+        { id: 'm3l5e-6',  type: 'multiple_choice', prompt: '¿Dónde va "graag"?', options: ['Ik wil koffie graag.', 'Ik wil graag koffie.', 'Graag ik wil koffie.'], correctAnswer: 'Ik wil graag koffie.', explanation: 'Después del verbo conjugado.' },
+        { id: 'm3l5e-7',  type: 'fill_blank', prompt: 'Ik ___ van pizza. (gustar: houden van — ik)', correctAnswer: 'hou', hint: '"houden van" → ik hou van' },
+        { id: 'm3l5e-8',  type: 'multiple_choice', prompt: '¿Cómo se dice "No me gusta el pescado"?', options: ['Ik hou geen van vis.', 'Ik hou niet van vis.', 'Ik niet hou van vis.'], correctAnswer: 'Ik hou niet van vis.', explanation: '"niet" va entre houden y van.' },
+        { id: 'm3l5e-9',  type: 'order_sentence', prompt: 'Ordena la pregunta: "¿Cuánto café quieres?"', options: ['Hoeveel', 'koffie', 'wil', 'je?'], correctAnswer: 'Hoeveel koffie wil je?' },
+        { id: 'm3l5e-10', type: 'odd_one_out', prompt: '¿Cuál NO es una palabra de cantidad?', options: ['veel', 'weinig', 'een beetje', 'lekker'], correctAnswer: 'lekker', explanation: '"lekker" significa rico; las demás son cantidades.' },
+        { id: 'm3l5e-11', type: 'letter_dash', prompt: 'Completa: "la patata"', correctAnswer: 'aardappel', hint: 'de ___' },
+        { id: 'm3l5e-12', type: 'word_scramble', prompt: '¿Cómo se dice "poco"?', correctAnswer: 'weinig', hint: 'poco' },
+        { id: 'm3l5e-13', type: 'fill_blank', prompt: '___ een koffie, alstublieft. (otro / uno más)', correctAnswer: 'Nog', hint: '"nog een" va junto' },
+      ],
+    },
+    { type: 'review' },
+  ],
+};
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   MODULE 3 — BOODSCHAPPEN — Les 6 (Boodschappen doen + gran repaso)
+───────────────────────────────────────────────────────────────────────────── */
+
+const m3_les6: Lesson = {
+  id: 'm3-les-6-repaso',
+  moduleId: 'boodschappen',
+  title: 'Les 6 — Boodschappen doen | El gran repaso',
+  subtitle: 'Pronunciación OO/OE y repaso de todo el módulo',
+  order: 6,
+  learningObjective: 'Distinguir los sonidos OO y OE y repasar todo lo aprendido en el módulo (verbos, preguntas, conjunciones y cantidades)',
+  estimatedMinutes: 25,
+  isExtra: false,
+  blocks: [
+    {
+      type: 'summary',
+      title: 'Boodschappen doen & el gran repaso',
+      intro: 'En esta última lección practicas la diferencia entre los sonidos OO y OE, y repasas todo lo aprendido en el módulo: pedir (willen/nemen/mogen), preguntar, unir frases y cantidades.',
+      objectives: [
+        'Oír y pronunciar la diferencia entre OO y OE',
+        'Reconocer palabras con estos sonidos',
+        'Repasar la lengua clave de las lecciones 1–5',
+      ],
+      sections: [
+        {
+          heading: '🅾️ El sonido OO (vocal larga)',
+          body: 'Boca abierta, sonido largo: **brood, koken, boter, boodschappen**. ¡No es "brod"!',
+          items: [
+            { nl: 'brood', es: 'pan' }, { nl: 'koken', es: 'cocinar' }, { nl: 'de boter', es: 'la mantequilla' },
+          ],
+        },
+        {
+          heading: '🆗 El sonido OE (labios redondos)',
+          body: 'Como la "u" española pero más larga: **soep, koek, bloemen, schoenen**.',
+          items: [
+            { nl: 'soep', es: 'sopa' }, { nl: 'de koek', es: 'el bizcocho' }, { nl: 'boodschappen doen', es: 'hacer la compra' },
+          ],
+        },
+        {
+          heading: '🔁 Repaso del módulo',
+          items: [
+            { nl: 'Ik wil graag… / Ik neem… / Mag ik…?', es: 'pedir (les 2)' },
+            { nl: 'Drink je koffie? / Wat drink je?', es: 'preguntar (les 3)' },
+            { nl: 'en · maar · of · want', es: 'unir frases (les 4)' },
+            { nl: 'twee koffie · veel water · graag · houden van', es: 'cantidades (les 5)' },
+          ],
+        },
+      ],
+      tip: 'Repite en voz alta: "Wij doen boodschappen in de supermarkt. Ik koop brood en soep. Ik kook met boter."',
+    },
+    {
+      type: 'vocabulary',
+      items: [
+        { id: 'm3l6v-koken',    dutch: 'koken',            spanish: 'cocinar',          article: null,  emoji: '🍳', color: '#0b7a4d', exampleNl: 'Ik kook met boter.',           exampleEs: 'Cocino con mantequilla.',        category: 'koken', difficulty: 'A1' },
+        { id: 'm3l6v-boter',    dutch: 'de boter',         spanish: 'la mantequilla',   article: 'de',  emoji: '🧈', color: '#1a7a40', exampleNl: 'Brood met boter.',             exampleEs: 'Pan con mantequilla.',           category: 'eten', difficulty: 'A1' },
+        { id: 'm3l6v-koek',     dutch: 'de koek',          spanish: 'el bizcocho',      article: 'de',  emoji: '🍰', color: '#0d6e33', exampleNl: 'Een stuk koek, graag.',        exampleEs: 'Un trozo de bizcocho, por favor.', category: 'eten', difficulty: 'A1' },
+        { id: 'm3l6v-boodsch',  dutch: 'boodschappen doen',spanish: 'hacer la compra',  article: null,  emoji: '🛒', color: '#2e7d52', exampleNl: 'Wij doen boodschappen.',       exampleEs: 'Hacemos la compra.',             category: 'supermarkt', difficulty: 'A1' },
+        { id: 'm3l6v-winkel',   dutch: 'de winkel',        spanish: 'la tienda',        article: 'de',  emoji: '🏬', color: '#0b7a4d', exampleNl: 'De winkel is open.',           exampleEs: 'La tienda está abierta.',        category: 'supermarkt', difficulty: 'A1' },
+      ],
+    },
+    {
+      type: 'practice',
+      exercises: [
+        // OO / OE pronunciación
+        { id: 'm3l6e-1',  type: 'odd_one_out', prompt: '¿Cuál tiene el sonido OE (como "u")?', options: ['brood', 'soep', 'koken', 'boter'], correctAnswer: 'soep', explanation: '"soep" suena OE; las otras tienen OO.' },
+        { id: 'm3l6e-2',  type: 'odd_one_out', prompt: '¿Cuál tiene el sonido OO (vocal larga)?', options: ['soep', 'koek', 'brood', 'bloemen'], correctAnswer: 'brood', explanation: '"brood" suena OO; las otras OE.' },
+        { id: 'm3l6e-3',  type: 'letter_dash', prompt: 'Completa: "cocinar"', correctAnswer: 'koken', hint: 'sonido OO' },
+        { id: 'm3l6e-4',  type: 'word_scramble', prompt: '¿Cómo se dice "hacer la compra"? (2 palabras)', correctAnswer: 'boodschappen doen', hint: 'OO + OE' },
+        // Repaso les 2 (verbos)
+        { id: 'm3l6e-5',  type: 'fill_blank', prompt: 'Repaso: Ik ___ graag koffie. (willen — ik)', correctAnswer: 'wil', hint: 'willen → ik wil' },
+        { id: 'm3l6e-6',  type: 'multiple_choice', prompt: 'Repaso: ¿forma educada para pedir permiso?', options: ['Ik wil de rekening!', 'Mag ik de rekening?', 'De rekening!'], correctAnswer: 'Mag ik de rekening?', explanation: '"Mag ik…?" es lo más educado.' },
+        // Repaso les 3 (preguntas)
+        { id: 'm3l6e-7',  type: 'multiple_choice', prompt: 'Repaso: corrige "Jij drinkt koffie?"', options: ['Drink jij koffie?', 'Drinkt jij koffie?', 'Koffie jij drinkt?'], correctAnswer: 'Drink jij koffie?', explanation: 'Verbo primero y sin -t con "jij".' },
+        // Repaso les 4 (conjunciones)
+        { id: 'm3l6e-8',  type: 'fill_blank', prompt: 'Repaso: Ik koop brood ___ ik heb honger. (porque)', correctAnswer: 'want', hint: 'razón' },
+        { id: 'm3l6e-9',  type: 'multiple_choice', prompt: 'Repaso: "¿Quieres té ___ café?"', options: ['en', 'maar', 'of', 'want'], correctAnswer: 'of', explanation: 'elección → of.' },
+        // Repaso les 5 (cantidades + houden van)
+        { id: 'm3l6e-10', type: 'true_false', prompt: 'Repaso: "twee koffie’s" es la forma correcta del plural.', correctAnswer: 'falso', explanation: '"koffie" no es contable como plural → "twee koffie".' },
+        { id: 'm3l6e-11', type: 'multiple_choice', prompt: 'Repaso: "No me gusta el pescado"', options: ['Ik hou niet van vis.', 'Ik hou geen vis.', 'Ik niet van vis hou.'], correctAnswer: 'Ik hou niet van vis.' },
+        // Frase grande con todo
+        { id: 'm3l6e-12', type: 'order_sentence', prompt: 'Ordena: "Quiero un café y dos bocadillos porque tengo hambre."', options: ['Ik', 'wil', 'graag', 'een', 'koffie', 'en', 'twee', 'broodjes', 'want', 'ik', 'heb', 'honger.'], correctAnswer: 'Ik wil graag een koffie en twee broodjes want ik heb honger.' },
+        { id: 'm3l6e-13', type: 'match_pairs', prompt: 'Repaso: une cada palabra con su traducción', correctAnswer: '', pairs: [
+          { left: 'koken', right: 'cocinar' },
+          { left: 'de boter', right: 'la mantequilla' },
+          { left: 'boodschappen doen', right: 'hacer la compra' },
+          { left: 'de winkel', right: 'la tienda' },
+        ] },
       ],
     },
     { type: 'review' },
@@ -1769,7 +2200,7 @@ export const LESSONS: Lesson[] = [
   m2_les1, m2_les2, m2_les3, m2_les4, m2_les5, m2_les6,
   m2_extra1, m2_extra2, m2_extra3,
   // Module 3
-  m3_les1, m3_les2, m3_les3,
+  m3_les1, m3_les2, m3_les3, m3_les4, m3_les5, m3_les6,
   // Module 4
   m4_les1,
 ];
