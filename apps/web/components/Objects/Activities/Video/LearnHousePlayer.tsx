@@ -25,6 +25,8 @@ interface LearnHousePlayerProps {
   details?: VideoDetails
   onReady?: () => void
   onPlay?: () => void
+  /** Progreso de reproducción 0..1 (para el bloqueo "ver casi todo el vídeo"). */
+  onProgress?: (fraction: number) => void
   poster?: string
 }
 
@@ -46,6 +48,7 @@ const LearnHousePlayer: React.FC<LearnHousePlayerProps> = ({
   details,
   onReady,
   onPlay,
+  onProgress,
   poster,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -180,6 +183,11 @@ const LearnHousePlayer: React.FC<LearnHousePlayerProps> = ({
     if (!video) return
 
     setCurrentTime(video.currentTime)
+
+    // Reporta el progreso real (segundos vistos / duración) para el bloqueo.
+    if (video.duration > 0) {
+      onProgress?.(video.currentTime / video.duration)
+    }
 
     // Update buffered
     if (video.buffered.length > 0) {

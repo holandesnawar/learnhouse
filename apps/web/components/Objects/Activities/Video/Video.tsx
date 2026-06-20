@@ -28,28 +28,58 @@ interface VideoActivityProps {
   orgUuid?: string
   /** Se llama cuando el alumno le da PLAY (para el bloqueo por interacción). */
   onPlay?: () => void
+  /** Progreso de reproducción 0..1 (para el bloqueo "ver casi todo el vídeo"). */
+  onProgress?: (fraction: number) => void
 }
 
-function VideoActivity({ activity, course, orgUuid, onPlay }: VideoActivityProps) {
+function VideoActivity({ activity, course, orgUuid, onPlay, onProgress }: VideoActivityProps) {
   const org = useOrg() as any
   const resolvedOrgUuid = orgUuid || org?.org_uuid
   const [videoId, setVideoId] = React.useState('')
+  const ytPollRef = React.useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Bunny Stream (iframe): no podemos leer el <video> directamente, pero su
-  // reproductor emite eventos por postMessage. Tratamos cualquier señal de
-  // reproducción como "le dio play".
+  // reproductor emite eventos por postMessage. Intentamos sacar el progreso real
+  // (segundos / duración); si no, al menos detectamos el PLAY.
   React.useEffect(() => {
-    if (!onPlay) return
+    if (!onPlay && !onProgress) return
     function handler(e: MessageEvent) {
       if (typeof e.origin === 'string' && e.origin.includes('mediadelivery.net')) {
         const d: any = e.data
+        let parsed: any = d
+        if (typeof d === 'string') { try { parsed = JSON.parse(d) } catch { parsed = d } }
+        // Player.js (Bunny) manda { event:'timeupdate', value:{ seconds, duration } }
+        // o variantes con seconds/duration/currentTime en la raíz.
+        const v = parsed?.value ?? parsed
+        const seconds = Number(v?.seconds ?? v?.currentTime ?? v?.time)
+        const dur = Number(v?.duration ?? v?.totalTime)
+        if (isFinite(seconds) && isFinite(dur) && dur > 0) {
+          onProgress?.(seconds / dur)
+        }
         const s = typeof d === 'string' ? d : (() => { try { return JSON.stringify(d) } catch { return '' } })()
         if (/play|timeupdate|playing/i.test(s)) onPlay?.()
       }
     }
     window.addEventListener('message', handler)
     return () => window.removeEventListener('message', handler)
-  }, [onPlay])
+  }, [onPlay, onProgress])
+
+  // YouTube: sondeamos el reproductor mientras está en marcha para reportar el
+  // progreso real (la API de eventos no da "timeupdate" continuo).
+  const startYtPoll = (player: any) => {
+    if (ytPollRef.current) return
+    ytPollRef.current = setInterval(() => {
+      try {
+        const cur = player?.getCurrentTime?.()
+        const dur = player?.getDuration?.()
+        if (isFinite(cur) && isFinite(dur) && dur > 0) onProgress?.(cur / dur)
+      } catch { /* player not ready */ }
+    }, 1000)
+  }
+  const stopYtPoll = () => {
+    if (ytPollRef.current) { clearInterval(ytPollRef.current); ytPollRef.current = null }
+  }
+  React.useEffect(() => () => stopYtPoll(), [])
 
   React.useEffect(() => {
     if (activity?.content?.uri) {
@@ -103,6 +133,7 @@ function VideoActivity({ activity, course, orgUuid, onPlay }: VideoActivityProps
                       src={src}
                       details={activity.details}
                       onPlay={onPlay}
+                      onProgress={onProgress}
                     />
                   ) : null
                 })()}
@@ -143,7 +174,9 @@ function VideoActivity({ activity, course, orgUuid, onPlay }: VideoActivityProps
                     },
                   }}
                   videoId={videoId}
-                  onPlay={() => onPlay?.()}
+                  onPlay={(event) => { onPlay?.(); startYtPoll(event.target) }}
+                  onPause={() => stopYtPoll()}
+                  onEnd={(event) => { onProgress?.(1); stopYtPoll() }}
                   onReady={(event) => {
                     if (activity.details?.startTime) {
                       event.target.seekTo(activity.details.startTime, true)

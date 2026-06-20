@@ -369,7 +369,15 @@ function ActivityClient(props: ActivityClientProps) {
   // se pone a true al darle PLAY al vídeo, al terminar los ejercicios, o al abrir
   // contenido que no requiere interacción. El botón "Siguiente" lo usa al momento.
   const [engaged, setEngaged] = useState(false);
-  useEffect(() => { setEngaged(false); }, [activityid]);
+  const [videoPct, setVideoPct] = useState(0);            // máx. fracción de vídeo vista (0..1)
+  const [showWatchedFallback, setShowWatchedFallback] = useState(false); // revela "Ya lo he visto"
+  const videoUnlockFired = useRef(false);
+  useEffect(() => {
+    setEngaged(false);
+    setVideoPct(0);
+    setShowWatchedFallback(false);
+    videoUnlockFired.current = false;
+  }, [activityid]);
 
   const markCurrentComplete = useCallback(async () => {
     if (!access_token || !activity?.activity_uuid || !course?.course_uuid) return;
@@ -380,15 +388,33 @@ function ActivityClient(props: ActivityClientProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [access_token, activity?.activity_uuid, course?.course_uuid, orgslug, org?.id, queryClient]);
 
-  // El alumno le dio PLAY al vídeo → desbloquea al instante (+ guarda progreso).
-  const handleVideoPlay = useCallback(() => {
+  // El alumno le dio PLAY al vídeo. No desbloquea por sí solo (eso se hace por
+  // progreso real, abajo); se mantiene por si algún reproductor solo emite "play".
+  const handleVideoPlay = useCallback(() => {}, []);
+
+  // Progreso real del vídeo (0..1). Al ver ~90% se da por visto: desbloquea
+  // "Siguiente" al instante y guarda el progreso en el servidor (una sola vez).
+  const VIDEO_UNLOCK_FRACTION = 0.9;
+  const handleVideoProgress = useCallback((fraction: number) => {
+    if (!isFinite(fraction) || fraction <= 0) return;
+    setVideoPct((p) => (fraction > p ? fraction : p));
+    if (fraction >= VIDEO_UNLOCK_FRACTION && !videoUnlockFired.current) {
+      videoUnlockFired.current = true;
+      setEngaged(true);
+      markCurrentComplete();
+    }
+  }, [markCurrentComplete]);
+
+  // Confirmación manual "Ya lo he visto" (escape por si el reproductor no reporta
+  // progreso). Solo aparece tras una espera y requiere el clic del alumno.
+  const handleVideoAck = useCallback(() => {
     setEngaged(true);
     markCurrentComplete();
   }, [markCurrentComplete]);
 
   // Contenido que NO requiere interacción (resumen, texto, documento) y TODA la
-  // Introducción → desbloqueado al abrir. El vídeo se desbloquea con PLAY y los
-  // ejercicios al terminarlos.
+  // Introducción → desbloqueado al abrir. El vídeo se desbloquea al verlo casi
+  // entero y los ejercicios al terminarlos.
   const requiresInteraction =
     !isIntroChapter &&
     (activity?.activity_type === 'TYPE_VIDEO' || isExerciseActivity(activity));
@@ -412,20 +438,28 @@ function ActivityClient(props: ActivityClientProps) {
     if (run?.steps?.find((s: any) => s.activity_id === activity?.id && s.complete === true)) setEngaged(true);
   }, [trailData, activity?.id, course?.course_uuid]);
 
-  // Red de seguridad SOLO para vídeo: si el reproductor no emite "play" (p. ej.
-  // ciertos iframes), se desbloquea tras 20s para que nadie se quede atascado.
+  // Red de seguridad SOLO para vídeo: si el reproductor no reporta progreso (p. ej.
+  // ciertos iframes), tras 45s revelamos un enlace "Ya lo he visto" para que el
+  // alumno lo confirme a mano. NO desbloquea solo (requiere su clic) — así no se
+  // puede saltar el vídeo sin más, como pasaba con el auto-desbloqueo anterior.
   useEffect(() => {
     if (isIntroChapter || activity?.activity_type !== 'TYPE_VIDEO') return;
-    const t = setTimeout(() => setEngaged(true), 20000);
+    const t = setTimeout(() => setShowWatchedFallback(true), 45000);
     return () => clearTimeout(t);
   }, [activity?.activity_uuid, activity?.activity_type, isIntroChapter]);
-  // ¿Se puede avanzar? Contenido/intro libre, o ya interactuó (play / ejercicios
-  // hechos / ya completado antes). El admin NO se salta el bloqueo automáticamente
-  // (para poder verlo al probar), pero tiene un botón "Saltar (admin)" al lado.
+  // ¿Se puede avanzar? Contenido/intro libre, o ya interactuó (vídeo visto ~90% /
+  // ejercicios hechos / ya completado antes). El admin NO se salta el bloqueo
+  // automáticamente (para poder verlo al probar), pero tiene "Saltar (admin)".
   const canAdvanceCurrent = !requiresInteraction || engaged;
   const lockMessageCurrent = activity?.activity_type === 'TYPE_VIDEO'
-    ? 'Debes ver la lección antes de continuar.'
+    ? `Sigue viendo el vídeo para continuar${videoPct > 0 ? ` (${Math.round(videoPct * 100)}%)` : ''}.`
     : 'Debes hacer los ejercicios antes de continuar.';
+  // Mostrar el enlace "Ya lo he visto" (solo vídeo, solo tras la espera de 45s).
+  const showVideoAck =
+    requiresInteraction &&
+    activity?.activity_type === 'TYPE_VIDEO' &&
+    showWatchedFallback &&
+    !engaged;
 
   const handleNativeComplete = useCallback(async () => {
     setEngaged(true); // terminó el ejercicio → desbloquea "Siguiente" al instante
@@ -507,7 +541,7 @@ function ActivityClient(props: ActivityClientProps) {
       case 'TYPE_VIDEO':
         return (
           <Suspense fallback={<LoadingFallback />}>
-            <VideoActivity course={course} activity={activity} onPlay={handleVideoPlay} />
+            <VideoActivity course={course} activity={activity} onPlay={handleVideoPlay} onProgress={handleVideoProgress} />
           </Suspense>
         );
       case 'TYPE_DOCUMENT':
@@ -543,7 +577,7 @@ function ActivityClient(props: ActivityClientProps) {
       default:
         return null;
     }
-  }, [activity, course, assignment, orgslug, handleNativeComplete]);
+  }, [activity, course, assignment, orgslug, handleNativeComplete, handleVideoPlay, handleVideoProgress]);
 
   // Navigate to an activity
   const navigateToActivity = (activity: any) => {
@@ -1064,6 +1098,8 @@ function ActivityClient(props: ActivityClientProps) {
                                   canAdvance={canAdvanceCurrent}
                                   lockMessage={lockMessageCurrent}
                                   isAdmin={!!isAdmin}
+                                  showWatchedAck={showVideoAck}
+                                  onWatchedAck={handleVideoAck}
                                 />
                               </div>
                             </div>
@@ -1303,7 +1339,7 @@ export function MarkStatus(props: {
   )
 }
 
-function NextActivityButton({ course, currentActivityId, orgslug, canAdvance = true, lockMessage, isAdmin = false }: { course: any, currentActivityId: string, orgslug: string, canAdvance?: boolean, lockMessage?: string, isAdmin?: boolean }) {
+function NextActivityButton({ course, currentActivityId, orgslug, canAdvance = true, lockMessage, isAdmin = false, showWatchedAck = false, onWatchedAck }: { course: any, currentActivityId: string, orgslug: string, canAdvance?: boolean, lockMessage?: string, isAdmin?: boolean, showWatchedAck?: boolean, onWatchedAck?: () => void }) {
   const { t } = useTranslation();
   const router = useRouter();
   const [showHint, setShowHint] = useState(false);
@@ -1374,6 +1410,16 @@ function NextActivityButton({ course, currentActivityId, orgslug, canAdvance = t
           {isLast ? <Trophy size={16} className="shrink-0" /> : <ChevronRight size={17} className="shrink-0" />}
         </div>
       </div>
+      {/* Escape para el alumno: "Ya lo he visto" (solo si el reproductor no
+          reportó progreso y tras la espera). Requiere su clic. */}
+      {showWatchedAck && !canAdvance && (
+        <button
+          onClick={() => onWatchedAck?.()}
+          className="mt-1.5 w-full text-[11px] font-semibold text-[#025dc7] hover:text-[#1D0084] underline underline-offset-2 transition-colors"
+        >
+          Ya lo he visto
+        </button>
+      )}
       {/* Solo admin: saltarse el bloqueo de esta actividad al revisar. */}
       {isAdmin && !canAdvance && (
         <button

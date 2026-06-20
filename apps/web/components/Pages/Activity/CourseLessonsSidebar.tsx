@@ -49,6 +49,81 @@ export function getLessonIcon(name: string, activityType?: string, colorClass = 
   }
 }
 
+function isStepComplete(run: any, a: any) {
+  return !!run?.steps?.find((s: any) => s.activity_id === a.id && s.complete === true)
+}
+
+// Desbloqueo secuencial: una lección se abre solo cuando la ANTERIOR está
+// completada. La "Introducción" va siempre abierta y no bloquea lo que sigue.
+// Los módulos con goteo (is_locked) cierran el paso a todo lo posterior.
+// Una vez completada una lección, queda abierta para siempre (se navega libre
+// hacia atrás). Devuelve el conjunto de IDs de actividad accesibles.
+function buildUnlockedSet(course: any, run: any): Set<number> {
+  const set = new Set<number>()
+  let gateOpen = true // la primera lección siempre está abierta
+  for (const ch of course?.chapters ?? []) {
+    const intro = /introduc/i.test(ch?.name || '')
+    const chLocked = !!ch?.is_locked
+    for (const a of ch?.activities ?? []) {
+      if (chLocked) { gateOpen = false; continue } // goteo: ni esta ni las siguientes
+      if (intro) { set.add(a.id); continue }       // intro: abierta, no toca el paso
+      if (gateOpen || isStepComplete(run, a)) set.add(a.id)
+      if (!isStepComplete(run, a)) gateOpen = false // la 1ª incompleta cierra el resto
+    }
+  }
+  return set
+}
+
+// Una fila de lección. Si está desbloqueada (o es la actual) navega; si no,
+// al pulsarla muestra un aviso y NO navega (sin candado por lección, solo
+// atenuada — los candados se reservan para el goteo de módulos).
+function LessonItem({
+  activity, href, isCurrent, isComplete, unlocked, hintShown, onLockedClick, onNavigate, activeRef,
+}: {
+  activity: any; href: string; isCurrent: boolean; isComplete: boolean; unlocked: boolean
+  hintShown: boolean; onLockedClick: () => void; onNavigate?: () => void
+  activeRef?: React.RefObject<HTMLDivElement | null>
+}) {
+  const accessible = unlocked || isCurrent
+  const inner = (
+    <div
+      ref={isCurrent ? (activeRef as any) : undefined}
+      className={`group flex items-center gap-2.5 px-4 py-2.5 transition-colors ${
+        isCurrent
+          ? 'bg-white/10 border-l-2 border-[#4da3ff] pl-[14px]'
+          : accessible
+            ? 'border-l-2 border-transparent hover:bg-white/5'
+            : 'border-l-2 border-transparent cursor-default'
+      }`}
+    >
+      {getLessonIcon(activity.name, activity.activity_type, accessible ? 'text-[#4da3ff]' : 'text-white/25')}
+      <span
+        className={`flex-1 min-w-0 text-[14.5px] leading-snug line-clamp-2 ${
+          isCurrent ? 'text-white' : accessible ? 'text-white/85 group-hover:text-white' : 'text-white/35'
+        }`}
+      >
+        {activity.name}
+      </span>
+      {isComplete && <Check size={16} className="shrink-0 text-emerald-400 stroke-[3]" />}
+    </div>
+  )
+  return (
+    <div>
+      {accessible ? (
+        <Link href={href} prefetch={false} onClick={onNavigate}>{inner}</Link>
+      ) : (
+        <button type="button" onClick={onLockedClick} className="w-full text-left">{inner}</button>
+      )}
+      {hintShown && !accessible && (
+        <div className="px-4 pb-2 -mt-0.5 flex items-center gap-1.5 text-[11px] text-[#4da3ff]">
+          <Lock size={12} className="shrink-0" />
+          <span>Debes completar la lección actual antes de continuar.</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function useProgress(course: any, trailData: any) {
   const cleanCourseUuid = course?.course_uuid?.replace('course_', '')
   const run = trailData?.runs?.find((r: any) => {
@@ -79,6 +154,12 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
   const chapters = course?.chapters ?? []
   const [search, setSearch] = useState('')
   const [collapsed, setCollapsed] = useState(false)
+  const unlockedSet = useMemo(() => buildUnlockedSet(course, run), [course, run])
+  const [lockedHintId, setLockedHintId] = useState<number | null>(null)
+  const flashLockedHint = (id: number) => {
+    setLockedHintId(id)
+    setTimeout(() => setLockedHintId((c) => (c === id ? null : c)), 4000)
+  }
 
   const currentChapterIdx = useMemo(
     () =>
@@ -288,39 +369,21 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
                 acts.map((activity: any) => {
                   const cleanUuid = activity.activity_uuid?.replace('activity_', '')
                   const isCurrent = cleanUuid === cleanCurrent
-                  const isComplete = run?.steps?.find(
+                  const isComplete = !!run?.steps?.find(
                     (s: any) => s.activity_id === activity.id && s.complete === true
                   )
                   return (
-                    <Link
+                    <LessonItem
                       key={activity.id}
+                      activity={activity}
                       href={getUriWithOrg(orgslug, '') + `/course/${cleanCourseUuid}/activity/${cleanUuid}`}
-                      prefetch={false}
-                    >
-                      <div
-                        ref={isCurrent ? activeRef : undefined}
-                        className={`group flex items-center gap-2.5 px-4 py-2.5 transition-colors ${
-                          isCurrent
-                            ? 'bg-white/10 border-l-2 border-[#4da3ff] pl-[14px]'
-                            : 'border-l-2 border-transparent hover:bg-white/5'
-                        }`}
-                      >
-                        {/* Icono según el tipo de lección (azul claro de marca) */}
-                        {getLessonIcon(activity.name, activity.activity_type)}
-                        {/* Lecciones SIN negrita (solo los títulos de módulo van en bold) */}
-                        <span
-                          className={`flex-1 min-w-0 text-[14.5px] leading-snug line-clamp-2 ${
-                            isCurrent ? 'text-white' : 'text-white/85 group-hover:text-white'
-                          }`}
-                        >
-                          {activity.name}
-                        </span>
-                        {/* Check verde de completada, a la derecha */}
-                        {isComplete && (
-                          <Check size={16} className="shrink-0 text-emerald-400 stroke-[3]" />
-                        )}
-                      </div>
-                    </Link>
+                      isCurrent={isCurrent}
+                      isComplete={isComplete}
+                      unlocked={unlockedSet.has(activity.id)}
+                      hintShown={lockedHintId === activity.id}
+                      onLockedClick={() => flashLockedHint(activity.id)}
+                      activeRef={activeRef}
+                    />
                   )
                 })}
             </div>
@@ -343,6 +406,12 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const activeRef = useRef<HTMLDivElement | null>(null)
+  const unlockedSet = useMemo(() => buildUnlockedSet(course, run), [course, run])
+  const [lockedHintId, setLockedHintId] = useState<number | null>(null)
+  const flashLockedHint = (id: number) => {
+    setLockedHintId(id)
+    setTimeout(() => setLockedHintId((c) => (c === id ? null : c)), 4000)
+  }
 
   const currentChapterIdx = useMemo(
     () =>
@@ -508,37 +577,22 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
                 acts.map((activity: any) => {
                   const cleanUuid = activity.activity_uuid?.replace('activity_', '')
                   const isCurrent = cleanUuid === cleanCurrent
-                  const isComplete = run?.steps?.find(
+                  const isComplete = !!run?.steps?.find(
                     (s: any) => s.activity_id === activity.id && s.complete === true
                   )
                   return (
-                    <Link
+                    <LessonItem
                       key={activity.id}
+                      activity={activity}
                       href={getUriWithOrg(orgslug, '') + `/course/${cleanCourseUuid}/activity/${cleanUuid}`}
-                      prefetch={false}
-                      onClick={() => setOpen(false)}
-                    >
-                      <div
-                        ref={isCurrent ? activeRef : undefined}
-                        className={`group flex items-center gap-2.5 px-4 py-2.5 transition-colors ${
-                          isCurrent
-                            ? 'bg-white/10 border-l-2 border-[#4da3ff] pl-[14px]'
-                            : 'border-l-2 border-transparent hover:bg-white/5'
-                        }`}
-                      >
-                        {getLessonIcon(activity.name, activity.activity_type)}
-                        <span
-                          className={`flex-1 min-w-0 text-[14.5px] leading-snug line-clamp-2 ${
-                            isCurrent ? 'text-white' : 'text-white/85 group-hover:text-white'
-                          }`}
-                        >
-                          {activity.name}
-                        </span>
-                        {isComplete && (
-                          <Check size={16} className="shrink-0 text-emerald-400 stroke-[3]" />
-                        )}
-                      </div>
-                    </Link>
+                      isCurrent={isCurrent}
+                      isComplete={isComplete}
+                      unlocked={unlockedSet.has(activity.id)}
+                      hintShown={lockedHintId === activity.id}
+                      onLockedClick={() => flashLockedHint(activity.id)}
+                      onNavigate={() => setOpen(false)}
+                      activeRef={activeRef}
+                    />
                   )
                 })}
             </div>
