@@ -116,7 +116,7 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {courseList.map((course: any) => (
                 <div key={course.course_uuid} className="flex flex-col">
-                  <CourseThumbnail course={course} orgslug={orgslug} />
+                  <CourseThumbnail course={course} orgslug={orgslug} hideMeta />
                 </div>
               ))}
             </div>

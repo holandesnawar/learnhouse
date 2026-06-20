@@ -55,11 +55,13 @@ type PropsType = {
   isSelected?: boolean
   onToggleSelect?: (courseUuid: string) => void
   isPriority?: boolean
+  /** Ocultar el pie con autores + fecha + "Empezar a aprender" (vista alumno). */
+  hideMeta?: boolean
 }
 
 export const removeCoursePrefix = (course_uuid: string) => course_uuid.replace('course_', '')
 
-function CourseThumbnail({ course, orgslug, customLink, isDashboard = false, isSelected = false, onToggleSelect, isPriority = false }: PropsType) {
+function CourseThumbnail({ course, orgslug, customLink, isDashboard = false, isSelected = false, onToggleSelect, isPriority = false, hideMeta = false }: PropsType) {
   const { t, i18n } = useTranslation()
   const org = useOrg() as any
   const session = useLHSession() as any
@@ -220,7 +222,7 @@ function CourseThumbnail({ course, orgslug, customLink, isDashboard = false, isS
           </p>
         )}
 
-        <div className="pt-1.5 flex items-center justify-between border-t border-gray-100">
+        <div className={`pt-1.5 flex items-center justify-between border-t border-gray-100 ${hideMeta ? 'hidden' : ''}`}>
           <div className="flex items-center gap-2">
             {displayedAuthors.length > 0 && (
               <div className="flex -space-x-2 items-center">
