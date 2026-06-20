@@ -2564,7 +2564,7 @@ function renderInlineBold(text: string): React.ReactNode[] {
   );
 }
 
-function ResumenSection({ block, vocabItems = [], onComplete }: { block: SummaryBlock; vocabItems?: VocabularyItem[]; onComplete: () => void }) {
+function ResumenSection({ block, vocabItems = [], inCourse, onComplete }: { block: SummaryBlock; vocabItems?: VocabularyItem[]; inCourse?: boolean; onComplete: () => void }) {
   return (
     <div className="space-y-6">
       {/* Hero con intro */}
@@ -2656,13 +2656,13 @@ function ResumenSection({ block, vocabItems = [], onComplete }: { block: Summary
                 <span className="text-[13px] text-[#5A6480] flex-1 min-w-0 leading-snug text-right">{v.spanish}</span>
                 <button
                   onClick={() => speakDutch(v.dutch)}
-                  title="Escuchar"
-                  aria-label="Escuchar pronunciación"
-                  className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-[#025dc7] hover:bg-[#F0F5FF] transition-colors"
+                  aria-label={`Escuchar ${v.dutch}`}
+                  className="shrink-0 inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[12px] font-semibold text-[#025dc7] hover:bg-[#F0F5FF] transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M19 5a9 9 0 010 14M5 9v6h4l5 4V5L9 9H5z" />
                   </svg>
+                  <span className="hidden sm:inline">Escuchar</span>
                 </button>
               </div>
             ))}
@@ -2670,9 +2670,9 @@ function ResumenSection({ block, vocabItems = [], onComplete }: { block: Summary
         </div>
       )}
 
-      {/* Tip final */}
+      {/* Tip final — se ajusta al contenido (no ocupa todo el ancho) */}
       {block.tip && (
-        <div className="rounded-2xl border border-[#FCD34D]/50 bg-[#FEF3C7] p-5 flex items-start gap-3">
+        <div className="w-fit max-w-full rounded-2xl border border-[#FCD34D]/50 bg-[#FEF3C7] p-5 flex items-start gap-3">
           <span className="text-[20px] shrink-0">💡</span>
           <p className="text-[14px] text-[#92400E] leading-relaxed">
             {renderInlineBold(block.tip)}
@@ -2680,16 +2680,19 @@ function ResumenSection({ block, vocabItems = [], onComplete }: { block: Summary
         </div>
       )}
 
-      {/* CTA a la siguiente sección */}
-      <button
-        onClick={onComplete}
-        className="w-full py-4 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200 flex items-center justify-center gap-2"
-      >
-        Empezar con los ejercicios
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
+      {/* CTA — solo fuera del curso. Dentro del curso, el botón "Siguiente" de
+          abajo ya lleva al paso de Flashcards, así que este sería redundante. */}
+      {!inCourse && (
+        <button
+          onClick={onComplete}
+          className="w-full py-4 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200 flex items-center justify-center gap-2"
+        >
+          Empezar con los ejercicios
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
@@ -3770,6 +3773,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
             <ResumenSection
               block={summaryBlock}
               vocabItems={vocabBlock && vocabBlock.type === 'vocabulary' ? vocabBlock.items : []}
+              inCourse={inCourse}
               onComplete={() => completeSection('resumen')}
             />
           )}

@@ -80,8 +80,10 @@ export default function ConsultaSearchBar({ initialQuery = '' }: ConsultaSearchB
           ¿Tienes una duda sobre esta lección?
         </p>
       </div>
-      <p className="text-[13px] text-gray-500 -mt-1">
-        Busca primero en las consultas que ya hemos respondido — ahorra tiempo.
+      <p className="text-[13px] text-gray-500 -mt-1 leading-relaxed">
+        Escribe las palabras clave de tu duda. Por ejemplo, si no entiendes el verbo
+        «nemen», busca <strong>nemen</strong> (mejor que escribir «¿Cómo se usa el verbo nemen?»).
+        Si no aparece nada, puedes crear una consulta nueva.
       </p>
 
       <form
