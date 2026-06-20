@@ -26,12 +26,30 @@ interface VideoActivityProps {
     course_uuid: string
   }
   orgUuid?: string
+  /** Se llama cuando el alumno le da PLAY (para el bloqueo por interacción). */
+  onPlay?: () => void
 }
 
-function VideoActivity({ activity, course, orgUuid }: VideoActivityProps) {
+function VideoActivity({ activity, course, orgUuid, onPlay }: VideoActivityProps) {
   const org = useOrg() as any
   const resolvedOrgUuid = orgUuid || org?.org_uuid
   const [videoId, setVideoId] = React.useState('')
+
+  // Bunny Stream (iframe): no podemos leer el <video> directamente, pero su
+  // reproductor emite eventos por postMessage. Tratamos cualquier señal de
+  // reproducción como "le dio play".
+  React.useEffect(() => {
+    if (!onPlay) return
+    function handler(e: MessageEvent) {
+      if (typeof e.origin === 'string' && e.origin.includes('mediadelivery.net')) {
+        const d: any = e.data
+        const s = typeof d === 'string' ? d : (() => { try { return JSON.stringify(d) } catch { return '' } })()
+        if (/play|timeupdate|playing/i.test(s)) onPlay()
+      }
+    }
+    window.addEventListener('message', handler)
+    return () => window.removeEventListener('message', handler)
+  }, [onPlay])
 
   React.useEffect(() => {
     if (activity?.content?.uri) {
@@ -84,6 +102,7 @@ function VideoActivity({ activity, course, orgUuid }: VideoActivityProps) {
                       key={activity.activity_uuid}
                       src={src}
                       details={activity.details}
+                      onPlay={onPlay}
                     />
                   ) : null
                 })()}
@@ -124,6 +143,7 @@ function VideoActivity({ activity, course, orgUuid }: VideoActivityProps) {
                     },
                   }}
                   videoId={videoId}
+                  onPlay={() => onPlay?.()}
                   onReady={(event) => {
                     if (activity.details?.startTime) {
                       event.target.seekTo(activity.details.startTime, true)

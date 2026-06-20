@@ -4,26 +4,6 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { Check, FileText, Video, StickyNote, Backpack, ChevronDown, X, Search, ChevronLeft, PanelLeftClose, PanelLeftOpen, Lock, Layers, BookOpen, Headphones, NotebookText, Languages, MessagesSquare, ListChecks } from 'lucide-react'
 import { getUriWithOrg } from '@services/config/config'
-import useAdminStatus from '@components/Hooks/useAdminStatus'
-
-/**
- * Bloqueo secuencial: una actividad está desbloqueada si es la primera del curso,
- * si ya está completada, o si la ANTERIOR (en orden global) está completada.
- * Los administradores tienen acceso libre (isAdmin). Devuelve un Set de activity.id.
- */
-function buildUnlockedSet(chapters: any[], run: any, isAdmin: boolean): Set<any> {
-  const flat = (chapters ?? []).flatMap((c: any) => c?.activities ?? [])
-  const complete = new Set(
-    (run?.steps ?? []).filter((s: any) => s.complete === true).map((s: any) => s.activity_id)
-  )
-  const unlocked = new Set<any>()
-  flat.forEach((a: any, i: number) => {
-    if (isAdmin || i === 0 || complete.has(a.id) || (flat[i - 1] && complete.has(flat[i - 1].id))) {
-      unlocked.add(a.id)
-    }
-  })
-  return unlocked
-}
 
 // Format an ISO unlock date for the "Se desbloquea el ..." note (Spanish).
 function formatUnlockDate(iso?: string | null): string {
@@ -95,8 +75,6 @@ function useProgress(course: any, trailData: any) {
 export default function CourseLessonsSidebar(props: CourseLessonsProps) {
   const { course, currentActivityId, orgslug, trailData } = props
   const { run, pct, cleanCourseUuid } = useProgress(course, trailData)
-  const { isAdmin: _isAdminLock } = useAdminStatus()
-  const unlockedSet = useMemo(() => buildUnlockedSet(course?.chapters ?? [], run, !!_isAdminLock), [course?.chapters, run, _isAdminLock])
   const cleanCurrent = currentActivityId?.replace('activity_', '')
   const chapters = course?.chapters ?? []
   const [search, setSearch] = useState('')
@@ -313,21 +291,6 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
                   const isComplete = run?.steps?.find(
                     (s: any) => s.activity_id === activity.id && s.complete === true
                   )
-                  const actLocked = !unlockedSet.has(activity.id)
-                  if (actLocked) {
-                    return (
-                      <div
-                        key={activity.id}
-                        title="Completa la actividad anterior para desbloquearla"
-                        className="flex items-center gap-2.5 px-4 py-2.5 border-l-2 border-transparent cursor-not-allowed opacity-50"
-                      >
-                        <Lock size={15} className="shrink-0 text-white/45" />
-                        <span className="flex-1 min-w-0 text-[14.5px] leading-snug line-clamp-2 text-white/45">
-                          {activity.name}
-                        </span>
-                      </div>
-                    )
-                  }
                   return (
                     <Link
                       key={activity.id}
@@ -375,8 +338,6 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
 export function MobileCourseLessons(props: CourseLessonsProps) {
   const { course, currentActivityId, orgslug, trailData } = props
   const { run, pct, cleanCourseUuid } = useProgress(course, trailData)
-  const { isAdmin: _isAdminLock } = useAdminStatus()
-  const unlockedSet = useMemo(() => buildUnlockedSet(course?.chapters ?? [], run, !!_isAdminLock), [course?.chapters, run, _isAdminLock])
   const cleanCurrent = currentActivityId?.replace('activity_', '')
   const chapters = course?.chapters ?? []
   const [open, setOpen] = useState(false)
@@ -550,20 +511,6 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
                   const isComplete = run?.steps?.find(
                     (s: any) => s.activity_id === activity.id && s.complete === true
                   )
-                  const actLocked = !unlockedSet.has(activity.id)
-                  if (actLocked) {
-                    return (
-                      <div
-                        key={activity.id}
-                        className="flex items-center gap-2.5 px-4 py-2.5 border-l-2 border-transparent cursor-not-allowed opacity-50"
-                      >
-                        <Lock size={15} className="shrink-0 text-white/45" />
-                        <span className="flex-1 min-w-0 text-[14.5px] leading-snug line-clamp-2 text-white/45">
-                          {activity.name}
-                        </span>
-                      </div>
-                    )
-                  }
                   return (
                     <Link
                       key={activity.id}

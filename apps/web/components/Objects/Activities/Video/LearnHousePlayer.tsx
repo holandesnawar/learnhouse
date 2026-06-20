@@ -24,6 +24,7 @@ interface LearnHousePlayerProps {
   src: string
   details?: VideoDetails
   onReady?: () => void
+  onPlay?: () => void
   poster?: string
 }
 
@@ -44,6 +45,7 @@ const LearnHousePlayer: React.FC<LearnHousePlayerProps> = ({
   src,
   details,
   onReady,
+  onPlay,
   poster,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -52,6 +54,14 @@ const LearnHousePlayer: React.FC<LearnHousePlayerProps> = ({
 
   const [isReady, setIsReady] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
+  // Avisa una sola vez cuando el alumno le da play (para el bloqueo por interacción).
+  const playFiredRef = useRef(false)
+  useEffect(() => {
+    if (isPlaying && !playFiredRef.current) {
+      playFiredRef.current = true
+      onPlay?.()
+    }
+  }, [isPlaying, onPlay])
   const [isMuted, setIsMuted] = useState(details?.muted ?? false)
   const [volume, setVolume] = useState(0.8)
   const [currentTime, setCurrentTime] = useState(0)

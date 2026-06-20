@@ -356,23 +356,47 @@ function ActivityClient(props: ActivityClientProps) {
   const nativeCompleteFired = useRef(false);
   useEffect(() => { nativeCompleteFired.current = false }, [activityid]);
 
-  // Bloqueo secuencial — el contenido (vídeo / resumen / texto) se marca como
-  // completado al abrirlo, así desbloquea la siguiente actividad sin tener que
-  // hacer ejercicios. Los ejercicios se completan al terminarlos (handleNativeComplete).
+  // ── Bloqueo por interacción (no "goteo"): el botón "Siguiente" solo avanza si
+  // el alumno interactuó con la actividad. El módulo "Introducción" queda libre.
+  const currentChapterForLock = (course?.chapters ?? []).find((c: any) =>
+    (c.activities ?? []).some((a: any) => a.id === activity?.id)
+  );
+  const isIntroChapter = /introduc/i.test(currentChapterForLock?.name || '');
+
+  const markCurrentComplete = useCallback(async () => {
+    if (!access_token || !activity?.activity_uuid || !course?.course_uuid) return;
+    try {
+      await markActivityAsComplete(orgslug, course.course_uuid, activity.activity_uuid, access_token);
+      queryClient.invalidateQueries({ queryKey: queryKeys.trail.org(org?.id) });
+    } catch { /* best-effort */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [access_token, activity?.activity_uuid, course?.course_uuid, orgslug, org?.id, queryClient]);
+
+  // Contenido que NO requiere interacción (resumen, texto, documento) y TODA la
+  // Introducción → se marcan completados al abrir, para que "Siguiente" funcione.
+  // El vídeo (fuera de Introducción) se marca al darle PLAY; los ejercicios al terminarlos.
   useEffect(() => {
     if (!access_token || !activity?.activity_uuid || !course?.course_uuid) return;
-    if (isExerciseActivity(activity)) return;
     const run = trailData?.runs?.find((r: any) => r.course_uuid === course.course_uuid);
     const already = !!run?.steps?.find((s: any) => s.activity_id === activity.id && s.complete === true);
     if (already) return;
-    (async () => {
-      try {
-        await markActivityAsComplete(orgslug, course.course_uuid, activity.activity_uuid, access_token);
-        queryClient.invalidateQueries({ queryKey: queryKeys.trail.org(org?.id) });
-      } catch { /* best-effort, no bloquea la navegación */ }
-    })();
+    const isVideo = activity.activity_type === 'TYPE_VIDEO';
+    const requiresInteraction = !isIntroChapter && (isVideo || isExerciseActivity(activity));
+    if (requiresInteraction) return;
+    markCurrentComplete();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activity?.activity_uuid, trailData]);
+  }, [activity?.activity_uuid, trailData, isIntroChapter]);
+
+  // Vídeo (fuera de Introducción): se desbloquea al darle PLAY (onPlay). Como red
+  // de seguridad por si el reproductor no emite el evento (p. ej. iframes), se
+  // desbloquea también tras 25s en la página, para que nadie se quede atascado.
+  useEffect(() => {
+    if (isIntroChapter) return;
+    if (activity?.activity_type !== 'TYPE_VIDEO') return;
+    const t = setTimeout(() => { markCurrentComplete(); }, 25000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activity?.activity_uuid, isIntroChapter]);
   const handleNativeComplete = useCallback(async () => {
     if (nativeCompleteFired.current) return;
     if (!activity?.activity_uuid || !course?.course_uuid || !access_token) return;
@@ -452,7 +476,7 @@ function ActivityClient(props: ActivityClientProps) {
       case 'TYPE_VIDEO':
         return (
           <Suspense fallback={<LoadingFallback />}>
-            <VideoActivity course={course} activity={activity} />
+            <VideoActivity course={course} activity={activity} onPlay={markCurrentComplete} />
           </Suspense>
         );
       case 'TYPE_DOCUMENT':
@@ -1288,13 +1312,27 @@ function NextActivityButton({ course, currentActivityId, orgslug }: { course: an
   const currentAct = (course.chapters ?? [])
     .flatMap((c: any) => c.activities ?? [])
     .find((a: any) => a.id === currentActivityId);
+  const currentChapter = (course.chapters ?? []).find((c: any) =>
+    (c.activities ?? []).some((a: any) => a.id === currentActivityId)
+  );
+  const isIntro = /introduc/i.test(currentChapter?.name || '');
   const run = trailData?.runs?.find((r: any) => r.course_uuid === course.course_uuid);
   const currentComplete = !!run?.steps?.find((s: any) => s.activity_id === currentActivityId && s.complete === true);
-  const isContent = !isExerciseActivity(currentAct);
-  const canAdvance = !!isAdmin || currentComplete || isContent;
+  const isVideo = currentAct?.activity_type === 'TYPE_VIDEO';
+  // Se avanza si: eres admin, es la Introducción, o ya interactuaste con la actividad
+  // (vídeo reproducido / ejercicios hechos → marca completada). Si no, aviso amable.
+  const canAdvance = !!isAdmin || isIntro || currentComplete;
 
-  const navigateToActivity = () => {
-    if (!canAdvance) return;
+  const handleClick = () => {
+    if (!canAdvance) {
+      toast(
+        isVideo
+          ? 'Debes ver la lección antes de continuar.'
+          : 'Debes hacer los ejercicios antes de continuar.',
+        { icon: '🔒', id: 'lock-advance' }
+      );
+      return;
+    }
     const cleanCourseUuid = course.course_uuid?.replace('course_', '');
     router.push(
       getUriWithOrg(orgslug, '') +
@@ -1302,25 +1340,12 @@ function NextActivityButton({ course, currentActivityId, orgslug }: { course: an
     );
   };
 
-  if (!canAdvance) {
-    return (
-      <div
-        title="Completa esta actividad para continuar"
-        className="w-full sm:w-[230px] rounded-lg px-3 sm:px-4 flex flex-col p-2 sm:p-2.5 bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
-      >
-        <span className="text-[10px] font-bold text-gray-400 mb-1 uppercase">{t('common.next')}</span>
-        <div className="flex items-center space-x-1 min-w-0">
-          <Lock size={14} className="shrink-0" />
-          <span className="text-xs sm:text-sm font-semibold truncate min-w-0">Completa esta actividad</span>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div
-      onClick={navigateToActivity}
-      className="w-full sm:w-[230px] bg-[#4da3ff] rounded-lg px-3 sm:px-4 nice-shadow flex flex-col p-2 sm:p-2.5 text-[#1D0084] hover:cursor-pointer hover:bg-[#6cb5ff] transition-colors"
+      onClick={handleClick}
+      className={`w-full sm:w-[230px] rounded-lg px-3 sm:px-4 nice-shadow flex flex-col p-2 sm:p-2.5 text-[#1D0084] hover:cursor-pointer transition-colors ${
+        canAdvance ? 'bg-[#4da3ff] hover:bg-[#6cb5ff]' : 'bg-[#4da3ff]/45'
+      }`}
     >
       <span className="text-[10px] font-bold text-[#1D0084]/60 mb-1 uppercase">
         {isLast ? 'Finalizar' : t('common.next')}
