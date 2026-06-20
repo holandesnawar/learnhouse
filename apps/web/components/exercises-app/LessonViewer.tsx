@@ -2609,10 +2609,11 @@ function ResumenSection({ block, vocabItems = [], inCourse, onComplete }: { bloc
       {block.sections.map((sec, i) => (
         <div key={i} className="rounded-2xl border border-[#DDE6F5] bg-white p-5 space-y-3">
           <h3
-            className="text-[17px] font-bold text-gray-900 leading-tight"
+            className="flex items-center gap-2 text-[17px] font-bold text-gray-900 leading-tight"
             style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
           >
-            {sec.heading}
+            <span aria-hidden className="shrink-0">{sec.heading.split(' ')[0]}</span>
+            <span>{sec.heading.split(' ').slice(1).join(' ')}</span>
           </h3>
           {sec.body && (
             <p className="text-[14px] text-[#5A6480] leading-relaxed">
@@ -2672,8 +2673,8 @@ function ResumenSection({ block, vocabItems = [], inCourse, onComplete }: { bloc
 
       {/* Tip final — se ajusta al contenido (no ocupa todo el ancho) */}
       {block.tip && (
-        <div className="w-fit max-w-full rounded-2xl border border-[#FCD34D]/50 bg-[#FEF3C7] p-5 flex items-start gap-3">
-          <span className="text-[20px] shrink-0">💡</span>
+        <div className="w-fit max-w-full rounded-2xl border border-[#FCD34D]/50 bg-[#FEF3C7] px-4 py-3 flex items-center gap-2.5">
+          <span className="text-[18px] shrink-0 leading-none">💡</span>
           <p className="text-[14px] text-[#92400E] leading-relaxed">
             {renderInlineBold(block.tip)}
           </p>
@@ -3684,9 +3685,11 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
               <span className="truncate">{lesson.title}</span>
             </button>
           )}
-          {/* Solo admin: saltar esta sección (marcarla como vista) sin completar
-              los ejercicios. Los alumnos NO ven este botón. */}
-          {activeSection !== null && isAdmin && (
+          {/* Solo admin: saltar la sección de EJERCICIOS (Oefeningen, Lezen,
+              Luisteren) sin completarlos. No aparece en Resumen ni Flashcards.
+              Los alumnos NO ven este botón. */}
+          {activeSection !== null && isAdmin &&
+            (activeSection === 'vocabulary' || activeSection === 'lezen' || activeSection === 'luisteren') && (
             <button
               onClick={() => completeSection(activeSection)}
               title="Solo admin: marca esta sección como vista y vuelve, sin completar los ejercicios"
