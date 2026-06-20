@@ -39,7 +39,7 @@ export default async function ModulePage({
         <div className="flex items-center gap-2 min-w-min">
           <Link
             href={getUriWithOrg(orgslug, '/ejercicios')}
-            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#DDE6F5] text-[12px] font-semibold text-[#5A6480] hover:text-[#1D0084] hover:border-[#1D0084]/30 transition-colors"
+            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#DDE6F5] text-[12px] font-semibold text-[#5A6480] hover:text-[#025dc7] hover:border-[#025dc7]/30 transition-colors"
           >
             <Dumbbell size={13} />
             <span>Todos</span>
@@ -52,8 +52,8 @@ export default async function ModulePage({
                 href={getUriWithOrg(orgslug, `/ejercicios/modulo/${m.id}`)}
                 className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors border ${
                   isCurrent
-                    ? 'bg-[#1D0084] text-white border-[#1D0084]'
-                    : 'bg-white border-[#DDE6F5] text-[#5A6480] hover:text-[#1D0084] hover:border-[#1D0084]/30'
+                    ? 'bg-[#025dc7] text-white border-[#025dc7]'
+                    : 'bg-white border-[#DDE6F5] text-[#5A6480] hover:text-[#025dc7] hover:border-[#025dc7]/30'
                 }`}
               >
                 <span aria-hidden>{m.emoji}</span>

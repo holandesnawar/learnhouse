@@ -80,8 +80,8 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
                 </div>
 
                 <div className="p-5 flex flex-col gap-2.5">
-                  <span className="text-[12px] text-[#9CA3AF] font-medium">
-                    {total} lección{total !== 1 ? 'es' : ''}
+                  <span className="text-[11px] font-bold text-[#025dc7] uppercase tracking-wider">
+                    Módulo {m.order} · {total} lección{total !== 1 ? 'es' : ''}
                   </span>
                   <div>
                     <h2
