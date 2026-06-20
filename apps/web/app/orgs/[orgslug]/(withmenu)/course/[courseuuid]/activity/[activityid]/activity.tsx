@@ -393,9 +393,10 @@ function ActivityClient(props: ActivityClientProps) {
   // progreso real, abajo); se mantiene por si algún reproductor solo emite "play".
   const handleVideoPlay = useCallback(() => {}, []);
 
-  // Progreso real del vídeo (0..1). Al ver ~90% se da por visto: desbloquea
-  // "Siguiente" al instante y guarda el progreso en el servidor (una sola vez).
-  const VIDEO_UNLOCK_FRACTION = 0.9;
+  // Progreso real del vídeo (0..1). Al llegar la POSICIÓN al ~85-90% (verlo o
+  // saltar ahí) se da por visto: desbloquea "Siguiente" al instante y guarda el
+  // progreso en el servidor (una sola vez). No exige ver el vídeo entero.
+  const VIDEO_UNLOCK_FRACTION = 0.85;
   const handleVideoProgress = useCallback((fraction: number) => {
     if (!isFinite(fraction) || fraction <= 0) return;
     setVideoPct((p) => (fraction > p ? fraction : p));

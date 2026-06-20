@@ -40,8 +40,10 @@ function VideoActivity({ activity, course, orgUuid, onPlay, onProgress }: VideoA
   const bunnyIframeRef = React.useRef<HTMLIFrameElement>(null)
 
   // Bunny Stream (iframe): no podemos leer el <video> directamente, pero su
-  // reproductor emite eventos por postMessage. Intentamos sacar el progreso real
-  // (segundos / duración); si no, al menos detectamos el PLAY.
+  // reproductor emite eventos por postMessage. Sacamos la posición real
+  // (segundos / duración): así, saltar al ~90% también desbloquea. Guardamos la
+  // última duración conocida por si algún evento no la trae.
+  const lastDurRef = React.useRef(0)
   React.useEffect(() => {
     if (!onPlay && !onProgress) return
     function handler(e: MessageEvent) {
@@ -49,16 +51,20 @@ function VideoActivity({ activity, course, orgUuid, onPlay, onProgress }: VideoA
         const d: any = e.data
         let parsed: any = d
         if (typeof d === 'string') { try { parsed = JSON.parse(d) } catch { parsed = d } }
-        // Player.js (Bunny) manda { event:'timeupdate', value:{ seconds, duration } }
-        // o variantes con seconds/duration/currentTime en la raíz.
         const v = parsed?.value ?? parsed
-        const seconds = Number(v?.seconds ?? v?.currentTime ?? v?.time)
-        const dur = Number(v?.duration ?? v?.totalTime)
-        if (isFinite(seconds) && isFinite(dur) && dur > 0) {
+        const event = parsed?.event || parsed?.type || ''
+        // "ended" = visto entero, aunque no llegue posición.
+        if (/ended|finish|complete/i.test(event)) { onProgress?.(1); return }
+        const seconds = Number(v?.seconds ?? v?.currentTime ?? v?.time ?? v?.position)
+        const durRaw = Number(v?.duration ?? v?.totalTime)
+        if (isFinite(durRaw) && durRaw > 0) lastDurRef.current = durRaw
+        const dur = isFinite(durRaw) && durRaw > 0 ? durRaw : lastDurRef.current
+        if (isFinite(seconds) && dur > 0) {
+          // timeupdate (al reproducir) Y seeked (al arrastrar la barra, aun en pausa).
           onProgress?.(seconds / dur)
         }
         const s = typeof d === 'string' ? d : (() => { try { return JSON.stringify(d) } catch { return '' } })()
-        if (/play|timeupdate|playing/i.test(s)) onPlay?.()
+        if (/play|timeupdate|playing|seek/i.test(s)) onPlay?.()
       }
     }
     window.addEventListener('message', handler)
@@ -101,6 +107,7 @@ function VideoActivity({ activity, course, orgUuid, onPlay, onProgress }: VideoA
     const subscribe = () => {
       send('addEventListener', 'timeupdate')
       send('addEventListener', 'play')
+      send('addEventListener', 'seeked') // arrastrar la barra (aunque quede en pausa)
       send('addEventListener', 'ended')
     }
     const onReady = (e: MessageEvent) => {
