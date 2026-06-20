@@ -4,11 +4,16 @@ from collections import Counter
 from datetime import date, datetime, timedelta
 from typing import List, Optional
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
+from sqlalchemy import delete
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.exercise_attempts import ExerciseAttempt
+from src.db.organizations import Organization
+from src.db.trails import Trail
+from src.db.trail_runs import TrailRun
+from src.db.trail_steps import TrailStep
 from src.db.student_progress import (
     LessonCompletion,
     LessonCompletionCreate,
@@ -231,3 +236,65 @@ async def get_weak_words(
                 counter[label.strip()] += 1
     most_common = counter.most_common(max(1, int(limit)))
     return [WeakWord(label=k, fails=v) for k, v in most_common]
+
+
+async def reset_user_progress(
+    request: Request,
+    db_session: AsyncSession,
+    current_user,
+    target_user_id: int,
+    org_id: int,
+) -> dict:
+    """Zona de peligro (solo admin): borra TODO el progreso de un usuario en esta
+    organización — recorrido del curso (trail), racha/posición, lecciones
+    completadas e intentos de ejercicios. NO toca sus notas/resaltados.
+
+    Pensado para reiniciar cuentas de prueba. Verifica que quien lo ejecuta es
+    admin (o superadmin) de la organización indicada.
+    """
+    # Import local para evitar ciclos de importación.
+    from src.security.rbac.rbac import authorization_verify_based_on_org_admin_status
+
+    org = (
+        await db_session.execute(select(Organization).where(Organization.id == org_id))
+    ).scalars().first()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organización no encontrada")
+
+    allowed = await authorization_verify_based_on_org_admin_status(
+        request, current_user.id, "delete", org.org_uuid, db_session
+    )
+    if not allowed:
+        raise HTTPException(
+            status_code=403,
+            detail="Solo un administrador puede reiniciar el progreso de un usuario",
+        )
+
+    # Recorrido del curso (orden hijo→padre por las claves foráneas).
+    await db_session.execute(
+        delete(TrailStep).where(
+            TrailStep.user_id == target_user_id, TrailStep.org_id == org_id
+        )
+    )
+    await db_session.execute(
+        delete(TrailRun).where(
+            TrailRun.user_id == target_user_id, TrailRun.org_id == org_id
+        )
+    )
+    await db_session.execute(
+        delete(Trail).where(
+            Trail.user_id == target_user_id, Trail.org_id == org_id
+        )
+    )
+    # Tablas Nawar (una org → indexadas por usuario).
+    await db_session.execute(
+        delete(StudentProgress).where(StudentProgress.user_id == target_user_id)
+    )
+    await db_session.execute(
+        delete(LessonCompletion).where(LessonCompletion.user_id == target_user_id)
+    )
+    await db_session.execute(
+        delete(ExerciseAttempt).where(ExerciseAttempt.user_id == target_user_id)
+    )
+    await db_session.commit()
+    return {"detail": "Progreso reiniciado correctamente"}

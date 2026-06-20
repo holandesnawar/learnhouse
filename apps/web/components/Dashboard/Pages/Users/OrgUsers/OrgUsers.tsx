@@ -9,7 +9,7 @@ import { getAPIUrl } from '@services/config/config'
 import { getUserAvatarMediaDirectory } from '@services/media/media'
 import { removeUserFromOrg, removeUsersFromOrg, updateUserRole } from '@services/organizations/orgs'
 import { apiFetch } from '@services/utils/ts/requests'
-import { LogOut, Search, ChevronLeft, ChevronRight, Shield, User, Crown, Users, CheckCircle2, XCircle, Mail, Globe, ArrowUp, ArrowDown, X, Filter, Download } from 'lucide-react'
+import { LogOut, Search, ChevronLeft, ChevronRight, Shield, User, Crown, Users, CheckCircle2, XCircle, Mail, Globe, ArrowUp, ArrowDown, X, Filter, Download, RotateCcw } from 'lucide-react'
 import React, { useState, useCallback, useMemo } from 'react'
 import toast from 'react-hot-toast'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -163,6 +163,26 @@ function OrgUsers() {
       toast.success(t('dashboard.users.active_users.actions.remove_success'), {id:toastId});
     } else {
       toast.error(t('dashboard.users.active_users.actions.remove_error'), {id:toastId});
+    }
+  }
+
+  // Zona de peligro: reinicia TODO el progreso del usuario (recorrido del curso,
+  // racha, lecciones completadas, intentos). Útil para reiniciar cuentas de prueba.
+  const handleResetProgress = async (user_id: number) => {
+    const toastId = toast.loading('Reiniciando progreso…')
+    try {
+      const res = await fetch(`${getAPIUrl()}student/admin/reset/${user_id}?org_id=${org.id}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${access_token}` },
+      })
+      if (res.ok) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.org.users(org.id) })
+        toast.success('Progreso reiniciado', { id: toastId })
+      } else {
+        toast.error('No se pudo reiniciar el progreso', { id: toastId })
+      }
+    } catch {
+      toast.error('No se pudo reiniciar el progreso', { id: toastId })
     }
   }
 
@@ -637,6 +657,25 @@ function OrgUsers() {
 
                         {/* Actions */}
                         <td className="px-6 py-4 text-right">
+                          <div className="inline-flex items-center gap-2">
+                          <ConfirmationModal
+                            confirmationButtonText="Sí, reiniciar progreso"
+                            confirmationMessage={`Esto borrará TODO el progreso de @${user.user.username} (recorrido del curso, racha, lecciones completadas e intentos de ejercicios). Sus notas/resaltados se conservan. Esta acción no se puede deshacer.`}
+                            dialogTitle={`Reiniciar progreso de @${user.user.username}`}
+                            dialogTrigger={
+                              <button
+                                className="inline-flex items-center gap-1.5 h-8 px-3 bg-white text-rose-600 border border-rose-200 hover:bg-rose-50 rounded-md text-xs font-medium nice-shadow transition-all"
+                                title="Zona de peligro: reiniciar el progreso de este usuario"
+                              >
+                                <RotateCcw className="w-3.5 h-3.5" />
+                                <span>Reiniciar progreso</span>
+                              </button>
+                            }
+                            functionToExecute={() => {
+                              handleResetProgress(user.user.id)
+                            }}
+                            status="warning"
+                          />
                           <ConfirmationModal
                             confirmationButtonText={t('dashboard.users.active_users.modals.remove_user.button')}
                             confirmationMessage={t('dashboard.users.active_users.modals.remove_user.message')}
@@ -655,6 +694,7 @@ function OrgUsers() {
                             }}
                             status="warning"
                           />
+                          </div>
                         </td>
                       </tr>
                     ))}

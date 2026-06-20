@@ -35,10 +35,27 @@ from src.services.student_progress.student_progress import (
     mark_lesson_completed,
     patch_progress,
     register_visit,
+    reset_user_progress,
 )
 
 
 router = APIRouter()
+
+
+# ── admin: zona de peligro ───────────────────────────────────────────────────
+
+@router.post(
+    "/admin/reset/{user_id}",
+    summary="(Admin) Reiniciar todo el progreso de un usuario en la organización.",
+)
+async def api_admin_reset_progress(
+    user_id: int,
+    org_id: int,
+    request: Request,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    return await reset_user_progress(request, db_session, current_user, user_id, org_id)
 
 
 # ── progress ────────────────────────────────────────────────────────────────
