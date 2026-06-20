@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { Check, FileText, Video, StickyNote, Backpack, ChevronDown, X, Search, ChevronLeft, PanelLeftClose, PanelLeftOpen, Lock, Layers, BookOpen, Headphones, NotebookText, Languages, MessagesSquare, ListChecks } from 'lucide-react'
 import { getUriWithOrg } from '@services/config/config'
+import { computeGating } from '@/lib/course/gating'
 
 // Format an ISO unlock date for the "Se desbloquea el ..." note (Spanish).
 function formatUnlockDate(iso?: string | null): string {
@@ -49,40 +50,17 @@ export function getLessonIcon(name: string, activityType?: string, colorClass = 
   }
 }
 
-function isStepComplete(run: any, a: any) {
-  return !!run?.steps?.find((s: any) => s.activity_id === a.id && s.complete === true)
-}
-
-// Desbloqueo secuencial: una lección se abre solo cuando la ANTERIOR está
-// completada. La "Introducción" va siempre abierta y no bloquea lo que sigue.
-// Los módulos con goteo (is_locked) cierran el paso a todo lo posterior.
-// Una vez completada una lección, queda abierta para siempre (se navega libre
-// hacia atrás). Devuelve el conjunto de IDs de actividad accesibles.
-function buildUnlockedSet(course: any, run: any): Set<number> {
-  const set = new Set<number>()
-  let gateOpen = true // la primera lección siempre está abierta
-  for (const ch of course?.chapters ?? []) {
-    const intro = /introduc/i.test(ch?.name || '')
-    const chLocked = !!ch?.is_locked
-    for (const a of ch?.activities ?? []) {
-      if (chLocked) { gateOpen = false; continue } // goteo: ni esta ni las siguientes
-      if (intro) { set.add(a.id); continue }       // intro: abierta, no toca el paso
-      if (gateOpen || isStepComplete(run, a)) set.add(a.id)
-      if (!isStepComplete(run, a)) gateOpen = false // la 1ª incompleta cierra el resto
-    }
-  }
-  return set
-}
-
 // Una fila de lección. Si está desbloqueada (o es la actual) navega; si no,
-// al pulsarla muestra un aviso y NO navega (sin candado por lección, solo
-// atenuada — los candados se reservan para el goteo de módulos).
+// al pulsarla muestra un aviso claro de QUÉ falta + un enlace para ir ahí
+// (sin candado por lección, solo atenuada — los candados se reservan al goteo).
 function LessonItem({
-  activity, href, isCurrent, isComplete, unlocked, hintShown, onLockedClick, onNavigate, activeRef,
+  activity, href, isCurrent, isComplete, unlocked, hintShown, onLockedClick,
+  onNavigate, activeRef, hintText, resumeHref,
 }: {
   activity: any; href: string; isCurrent: boolean; isComplete: boolean; unlocked: boolean
   hintShown: boolean; onLockedClick: () => void; onNavigate?: () => void
   activeRef?: React.RefObject<HTMLDivElement | null>
+  hintText: string; resumeHref: string | null
 }) {
   const accessible = unlocked || isCurrent
   const inner = (
@@ -115,9 +93,21 @@ function LessonItem({
         <button type="button" onClick={onLockedClick} className="w-full text-left">{inner}</button>
       )}
       {hintShown && !accessible && (
-        <div className="px-4 pb-2 -mt-0.5 flex items-center gap-1.5 text-[11px] text-[#4da3ff]">
-          <Lock size={12} className="shrink-0" />
-          <span>Debes completar la lección actual antes de continuar.</span>
+        <div className="px-4 pb-2.5 -mt-0.5 flex flex-col gap-1.5 text-[11.5px] text-white/75">
+          <div className="flex items-start gap-1.5">
+            <Lock size={12} className="shrink-0 mt-0.5 text-[#4da3ff]" />
+            <span>{hintText}</span>
+          </div>
+          {resumeHref && (
+            <Link
+              href={resumeHref}
+              prefetch={false}
+              onClick={onNavigate}
+              className="ml-[18px] inline-flex w-fit items-center gap-1 text-[11.5px] font-semibold text-[#4da3ff] hover:text-[#6cb5ff]"
+            >
+              Continuar donde lo dejaste →
+            </Link>
+          )}
         </div>
       )}
     </div>
@@ -154,11 +144,17 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
   const chapters = course?.chapters ?? []
   const [search, setSearch] = useState('')
   const [collapsed, setCollapsed] = useState(false)
-  const unlockedSet = useMemo(() => buildUnlockedSet(course, run), [course, run])
+  const gating = useMemo(() => computeGating(course, run), [course, run])
+  const hintText = gating.pendingGates.length
+    ? `Para continuar, termina: ${gating.pendingGates.map((g) => g.name).join(' · ')}`
+    : 'Completa la lección pendiente para continuar.'
+  const resumeHref = gating.resumeUuid
+    ? getUriWithOrg(orgslug, '') + `/course/${cleanCourseUuid}/activity/${gating.resumeUuid}`
+    : null
   const [lockedHintId, setLockedHintId] = useState<number | null>(null)
   const flashLockedHint = (id: number) => {
     setLockedHintId(id)
-    setTimeout(() => setLockedHintId((c) => (c === id ? null : c)), 4000)
+    setTimeout(() => setLockedHintId((c) => (c === id ? null : c)), 5000)
   }
 
   const currentChapterIdx = useMemo(
@@ -379,9 +375,11 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
                       href={getUriWithOrg(orgslug, '') + `/course/${cleanCourseUuid}/activity/${cleanUuid}`}
                       isCurrent={isCurrent}
                       isComplete={isComplete}
-                      unlocked={unlockedSet.has(activity.id)}
+                      unlocked={gating.unlockedIds.has(activity.id)}
                       hintShown={lockedHintId === activity.id}
                       onLockedClick={() => flashLockedHint(activity.id)}
+                      hintText={hintText}
+                      resumeHref={resumeHref}
                       activeRef={activeRef}
                     />
                   )
@@ -406,11 +404,17 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const activeRef = useRef<HTMLDivElement | null>(null)
-  const unlockedSet = useMemo(() => buildUnlockedSet(course, run), [course, run])
+  const gating = useMemo(() => computeGating(course, run), [course, run])
+  const hintText = gating.pendingGates.length
+    ? `Para continuar, termina: ${gating.pendingGates.map((g) => g.name).join(' · ')}`
+    : 'Completa la lección pendiente para continuar.'
+  const resumeHref = gating.resumeUuid
+    ? getUriWithOrg(orgslug, '') + `/course/${cleanCourseUuid}/activity/${gating.resumeUuid}`
+    : null
   const [lockedHintId, setLockedHintId] = useState<number | null>(null)
   const flashLockedHint = (id: number) => {
     setLockedHintId(id)
-    setTimeout(() => setLockedHintId((c) => (c === id ? null : c)), 4000)
+    setTimeout(() => setLockedHintId((c) => (c === id ? null : c)), 5000)
   }
 
   const currentChapterIdx = useMemo(
@@ -587,10 +591,12 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
                       href={getUriWithOrg(orgslug, '') + `/course/${cleanCourseUuid}/activity/${cleanUuid}`}
                       isCurrent={isCurrent}
                       isComplete={isComplete}
-                      unlocked={unlockedSet.has(activity.id)}
+                      unlocked={gating.unlockedIds.has(activity.id)}
                       hintShown={lockedHintId === activity.id}
                       onLockedClick={() => flashLockedHint(activity.id)}
                       onNavigate={() => setOpen(false)}
+                      hintText={hintText}
+                      resumeHref={resumeHref}
                       activeRef={activeRef}
                     />
                   )

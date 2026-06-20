@@ -33,6 +33,7 @@ import CourseLessonsSidebar, { MobileCourseLessons } from '@components/Pages/Act
 import LessonExtras from '@components/Pages/Activity/LessonExtras'
 import ConsultaSearchBar from '@components/Pages/Activity/ConsultaSearchBar'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
+import { computeGating } from '@/lib/course/gating'
 import CourseEndView from '@components/Pages/Activity/CourseEndView'
 import { motion, AnimatePresence } from 'motion/react'
 import MiniInfoTooltip from '@components/Objects/MiniInfoTooltip'
@@ -447,13 +448,44 @@ function ActivityClient(props: ActivityClientProps) {
     const t = setTimeout(() => setShowWatchedFallback(true), 45000);
     return () => clearTimeout(t);
   }, [activity?.activity_uuid, activity?.activity_type, isIntroChapter]);
-  // ¿Se puede avanzar? Contenido/intro libre, o ya interactuó (vídeo visto ~90% /
-  // ejercicios hechos / ya completado antes). El admin NO se salta el bloqueo
-  // automáticamente (para poder verlo al probar), pero tiene "Saltar (admin)".
-  const canAdvanceCurrent = !requiresInteraction || engaged;
-  const lockMessageCurrent = activity?.activity_type === 'TYPE_VIDEO'
+  // ── Gating por FASES (misma lógica que la barra lateral) ───────────────────
+  // Localiza el "run" del curso en el trail (admite ambas formas del objeto).
+  const courseRun = useMemo(() => {
+    const ccu = course?.course_uuid?.replace('course_', '');
+    return trailData?.runs?.find((r: any) => {
+      const a = r.course_uuid?.replace('course_', '');
+      const b = r.course?.course_uuid?.replace('course_', '');
+      return a === ccu || b === ccu;
+    });
+  }, [trailData, course?.course_uuid]);
+  // Completado "optimista": si el alumno acaba de interactuar (vídeo 90% /
+  // ejercicio hecho), damos la actividad por completada al instante para
+  // desbloquear sin esperar al refetch del servidor.
+  const optimisticComplete = useMemo(() => {
+    const s = new Set<number>();
+    if (engaged && activity?.id) s.add(activity.id);
+    return s;
+  }, [engaged, activity?.id]);
+  const gating = useMemo(
+    () => computeGating(course, courseRun, optimisticComplete),
+    [course, courseRun, optimisticComplete]
+  );
+
+  // ¿Se puede avanzar a la SIGUIENTE actividad? Sí si está desbloqueada (misma
+  // fase = siempre; fase siguiente = solo si esta fase está completa). El admin
+  // NO se salta el bloqueo automáticamente, pero tiene "Saltar (admin)".
+  const canAdvanceCurrent =
+    isIntroChapter || !nextActivity || gating.unlockedIds.has(nextActivity.id);
+  // Mensaje claro de QUÉ falta para seguir (puertas pendientes de la fase).
+  const pendingNames = gating.pendingGates.map((g) => g.name);
+  const currentIsPendingVideo =
+    activity?.activity_type === 'TYPE_VIDEO' &&
+    gating.pendingGates.some((g) => g.id === activity?.id);
+  const lockMessageCurrent = currentIsPendingVideo
     ? `Sigue viendo el vídeo para continuar${videoPct > 0 ? ` (${Math.round(videoPct * 100)}%)` : ''}.`
-    : 'Debes hacer los ejercicios antes de continuar.';
+    : pendingNames.length
+      ? `Para continuar, termina: ${pendingNames.join(' · ')}.`
+      : 'Termina esta lección para continuar.';
   // Mostrar el enlace "Ya lo he visto" (solo vídeo, solo tras la espera de 45s).
   const showVideoAck =
     requiresInteraction &&

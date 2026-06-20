@@ -37,6 +37,7 @@ function VideoActivity({ activity, course, orgUuid, onPlay, onProgress }: VideoA
   const resolvedOrgUuid = orgUuid || org?.org_uuid
   const [videoId, setVideoId] = React.useState('')
   const ytPollRef = React.useRef<ReturnType<typeof setInterval> | null>(null)
+  const bunnyIframeRef = React.useRef<HTMLIFrameElement>(null)
 
   // Bunny Stream (iframe): no podemos leer el <video> directamente, pero su
   // reproductor emite eventos por postMessage. Intentamos sacar el progreso real
@@ -80,6 +81,42 @@ function VideoActivity({ activity, course, orgUuid, onPlay, onProgress }: VideoA
     if (ytPollRef.current) { clearInterval(ytPollRef.current); ytPollRef.current = null }
   }
   React.useEffect(() => () => stopYtPoll(), [])
+
+  // Bunny usa el protocolo Player.js: NO emite "timeupdate" hasta que te
+  // suscribes con un handshake. Sin esto el progreso no llega y el 90% nunca
+  // se detecta. Mandamos addEventListener al recibir "ready" y, por si acaso,
+  // unas cuantas veces al cargar.
+  React.useEffect(() => {
+    const uri = activity.content?.uri || ''
+    const bunny = activity.content?.type === 'bunny' || /mediadelivery\.net/.test(uri)
+    if (!bunny) return
+    const send = (method: string, value?: string) => {
+      try {
+        bunnyIframeRef.current?.contentWindow?.postMessage(
+          JSON.stringify({ context: 'player.js', version: '1.0', method, value }),
+          '*'
+        )
+      } catch { /* iframe no listo */ }
+    }
+    const subscribe = () => {
+      send('addEventListener', 'timeupdate')
+      send('addEventListener', 'play')
+      send('addEventListener', 'ended')
+    }
+    const onReady = (e: MessageEvent) => {
+      if (typeof e.origin === 'string' && e.origin.includes('mediadelivery.net')) {
+        let d: any = e.data
+        if (typeof d === 'string') { try { d = JSON.parse(d) } catch { /* texto plano */ } }
+        if (d?.event === 'ready' || d?.context === 'player.js') subscribe()
+      }
+    }
+    window.addEventListener('message', onReady)
+    const timers = [400, 1200, 2500, 5000].map((ms) => setTimeout(subscribe, ms))
+    return () => {
+      window.removeEventListener('message', onReady)
+      timers.forEach(clearTimeout)
+    }
+  }, [activity?.content?.uri, activity?.content?.type])
 
   React.useEffect(() => {
     if (activity?.content?.uri) {
@@ -145,6 +182,7 @@ function VideoActivity({ activity, course, orgUuid, onPlay, onProgress }: VideoA
               <div className="relative w-full aspect-video rounded-lg overflow-hidden">
                 <iframe
                   key={activity.activity_uuid}
+                  ref={bunnyIframeRef}
                   src={getBunnySrc()}
                   loading="lazy"
                   className="absolute inset-0 w-full h-full"
