@@ -67,6 +67,17 @@ function isIntroChapter(chapter: any): boolean {
   return /introduc/i.test(chapter?.name || '')
 }
 
+/**
+ * Número de "lección" dentro de un capítulo, leído del prefijo del nombre:
+ * "1 - Video" → "1", "1.1 Samenvatting" → "1", "2.3 Oefening" → "2".
+ * Un capítulo puede contener varias lecciones (cada una con su vídeo + fases),
+ * por eso NO agrupamos por capítulo sino por este número.
+ */
+function lessonKeyOf(name: string): string | null {
+  const m = /^\s*(\d+)/.exec(name || '')
+  return m ? m[1] : null
+}
+
 type Group = {
   key: string
   intro: boolean
@@ -75,29 +86,30 @@ type Group = {
   gateIds: number[]
 }
 
-/** Agrupa las actividades del curso en fases ordenadas (capítulo → tier). */
+/**
+ * Agrupa las actividades en fases ordenadas (capítulo → lección → tier), en el
+ * orden en que aparecen. Cada lección numerada arranca con su propio vídeo.
+ */
 export function buildGroups(course: any): Group[] {
   const groups: Group[] = []
+  const index = new Map<string, Group>()
   for (const ch of course?.chapters ?? []) {
     const intro = isIntroChapter(ch)
     const locked = !!ch?.is_locked
-    const byTier: Record<number, any[]> = { 0: [], 1: [], 2: [] }
+    let currentLesson = '0'
     for (const a of ch?.activities ?? []) {
+      const ln = lessonKeyOf(a.name) ?? currentLesson
+      currentLesson = ln
       const tier = intro ? 1 : tierOf(a.name, a.activity_type)
-      byTier[tier].push(a)
-    }
-    for (const tier of [0, 1, 2]) {
-      const acts = byTier[tier]
-      if (acts.length === 0) continue
-      groups.push({
-        key: `${ch.id}:${tier}`,
-        intro,
-        locked,
-        activities: acts,
-        gateIds: acts
-          .filter((a: any) => isGate(a.name, a.activity_type))
-          .map((a: any) => a.id),
-      })
+      const key = `${ch.id}:${ln}:${tier}`
+      let g = index.get(key)
+      if (!g) {
+        g = { key, intro, locked, activities: [], gateIds: [] }
+        index.set(key, g)
+        groups.push(g)
+      }
+      g.activities.push(a)
+      if (isGate(a.name, a.activity_type)) g.gateIds.push(a.id)
     }
   }
   return groups
