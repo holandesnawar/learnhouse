@@ -4,8 +4,6 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { Check, FileText, Video, StickyNote, Backpack, ChevronDown, X, Search, ChevronLeft, PanelLeftClose, PanelLeftOpen, Lock, Layers, BookOpen, Headphones, NotebookText, Languages, MessagesSquare, ListChecks } from 'lucide-react'
 import { getUriWithOrg } from '@services/config/config'
-import { computeGating } from '@/lib/course/gating'
-import { useClientComplete } from '@/lib/course/clientProgress'
 
 // Format an ISO unlock date for the "Se desbloquea el ..." note (Spanish).
 function formatUnlockDate(iso?: string | null): string {
@@ -51,67 +49,37 @@ export function getLessonIcon(name: string, activityType?: string, colorClass = 
   }
 }
 
-// Una fila de lección. Si está desbloqueada (o es la actual) navega; si no,
-// al pulsarla muestra un aviso claro de QUÉ falta + un enlace para ir ahí
-// (sin candado por lección, solo atenuada — los candados se reservan al goteo).
+// Una fila de lección. Acceso abierto y guiado: todas navegables; la actual se
+// resalta y las completadas llevan check. Sin candados (el camino se guía por
+// el orden + "Siguiente" + progreso, no bloqueando).
 function LessonItem({
-  activity, href, isCurrent, isComplete, unlocked, hintShown, onLockedClick,
-  onNavigate, activeRef, hintText, resumeHref,
+  activity, href, isCurrent, isComplete, onNavigate, activeRef,
 }: {
-  activity: any; href: string; isCurrent: boolean; isComplete: boolean; unlocked: boolean
-  hintShown: boolean; onLockedClick: () => void; onNavigate?: () => void
+  activity: any; href: string; isCurrent: boolean; isComplete: boolean
+  onNavigate?: () => void
   activeRef?: React.RefObject<HTMLDivElement | null>
-  hintText: string; resumeHref: string | null
 }) {
-  const accessible = unlocked || isCurrent
-  const inner = (
-    <div
-      ref={isCurrent ? (activeRef as any) : undefined}
-      className={`group flex items-center gap-2.5 px-4 py-2.5 transition-colors ${
-        isCurrent
-          ? 'bg-white/10 border-l-2 border-[#4da3ff] pl-[14px]'
-          : accessible
-            ? 'border-l-2 border-transparent hover:bg-white/5'
-            : 'border-l-2 border-transparent cursor-default'
-      }`}
-    >
-      {getLessonIcon(activity.name, activity.activity_type, accessible ? 'text-[#4da3ff]' : 'text-white/25')}
-      <span
-        className={`flex-1 min-w-0 text-[14.5px] leading-snug line-clamp-2 ${
-          isCurrent ? 'text-white' : accessible ? 'text-white/85 group-hover:text-white' : 'text-white/35'
+  return (
+    <Link href={href} prefetch={false} onClick={onNavigate}>
+      <div
+        ref={isCurrent ? (activeRef as any) : undefined}
+        className={`group flex items-center gap-2.5 px-4 py-2.5 transition-colors ${
+          isCurrent
+            ? 'bg-white/10 border-l-2 border-[#4da3ff] pl-[14px]'
+            : 'border-l-2 border-transparent hover:bg-white/5'
         }`}
       >
-        {activity.name}
-      </span>
-      {isComplete && <Check size={16} className="shrink-0 text-emerald-400 stroke-[3]" />}
-    </div>
-  )
-  return (
-    <div>
-      {accessible ? (
-        <Link href={href} prefetch={false} onClick={onNavigate}>{inner}</Link>
-      ) : (
-        <button type="button" onClick={onLockedClick} className="w-full text-left">{inner}</button>
-      )}
-      {hintShown && !accessible && (
-        <div className="px-4 pb-2.5 -mt-0.5 flex flex-col gap-1.5 text-[11.5px] text-white/75">
-          <div className="flex items-start gap-1.5">
-            <Lock size={12} className="shrink-0 mt-0.5 text-[#4da3ff]" />
-            <span>{hintText}</span>
-          </div>
-          {resumeHref && (
-            <Link
-              href={resumeHref}
-              prefetch={false}
-              onClick={onNavigate}
-              className="ml-[18px] inline-flex w-fit items-center gap-1 text-[11.5px] font-semibold text-[#4da3ff] hover:text-[#6cb5ff]"
-            >
-              Continuar donde lo dejaste →
-            </Link>
-          )}
-        </div>
-      )}
-    </div>
+        {getLessonIcon(activity.name, activity.activity_type, 'text-[#4da3ff]')}
+        <span
+          className={`flex-1 min-w-0 text-[14.5px] leading-snug line-clamp-2 ${
+            isCurrent ? 'text-white' : 'text-white/85 group-hover:text-white'
+          }`}
+        >
+          {activity.name}
+        </span>
+        {isComplete && <Check size={16} className="shrink-0 text-emerald-400 stroke-[3]" />}
+      </div>
+    </Link>
   )
 }
 
@@ -145,20 +113,6 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
   const chapters = course?.chapters ?? []
   const [search, setSearch] = useState('')
   const [collapsed, setCollapsed] = useState(false)
-  const clientDone = useClientComplete(course?.course_uuid)
-  const gating = useMemo(() => computeGating(course, run, clientDone), [course, run, clientDone])
-  const hintText = gating.pendingGates.length
-    ? `Para continuar, termina: ${gating.pendingGates.map((g) => g.name).join(' · ')}`
-    : 'Completa la lección pendiente para continuar.'
-  const resumeHref = gating.resumeUuid
-    ? getUriWithOrg(orgslug, '') + `/course/${cleanCourseUuid}/activity/${gating.resumeUuid}`
-    : null
-  const [lockedHintId, setLockedHintId] = useState<number | null>(null)
-  const flashLockedHint = (id: number) => {
-    setLockedHintId(id)
-    setTimeout(() => setLockedHintId((c) => (c === id ? null : c)), 5000)
-  }
-
   const currentChapterIdx = useMemo(
     () =>
       chapters.findIndex((ch: any) =>
@@ -377,11 +331,6 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
                       href={getUriWithOrg(orgslug, '') + `/course/${cleanCourseUuid}/activity/${cleanUuid}`}
                       isCurrent={isCurrent}
                       isComplete={isComplete}
-                      unlocked={gating.unlockedIds.has(activity.id)}
-                      hintShown={lockedHintId === activity.id}
-                      onLockedClick={() => flashLockedHint(activity.id)}
-                      hintText={hintText}
-                      resumeHref={resumeHref}
                       activeRef={activeRef}
                     />
                   )
@@ -406,20 +355,6 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const activeRef = useRef<HTMLDivElement | null>(null)
-  const clientDone = useClientComplete(course?.course_uuid)
-  const gating = useMemo(() => computeGating(course, run, clientDone), [course, run, clientDone])
-  const hintText = gating.pendingGates.length
-    ? `Para continuar, termina: ${gating.pendingGates.map((g) => g.name).join(' · ')}`
-    : 'Completa la lección pendiente para continuar.'
-  const resumeHref = gating.resumeUuid
-    ? getUriWithOrg(orgslug, '') + `/course/${cleanCourseUuid}/activity/${gating.resumeUuid}`
-    : null
-  const [lockedHintId, setLockedHintId] = useState<number | null>(null)
-  const flashLockedHint = (id: number) => {
-    setLockedHintId(id)
-    setTimeout(() => setLockedHintId((c) => (c === id ? null : c)), 5000)
-  }
-
   const currentChapterIdx = useMemo(
     () =>
       chapters.findIndex((ch: any) =>
@@ -594,12 +529,7 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
                       href={getUriWithOrg(orgslug, '') + `/course/${cleanCourseUuid}/activity/${cleanUuid}`}
                       isCurrent={isCurrent}
                       isComplete={isComplete}
-                      unlocked={gating.unlockedIds.has(activity.id)}
-                      hintShown={lockedHintId === activity.id}
-                      onLockedClick={() => flashLockedHint(activity.id)}
                       onNavigate={() => setOpen(false)}
-                      hintText={hintText}
-                      resumeHref={resumeHref}
                       activeRef={activeRef}
                     />
                   )
