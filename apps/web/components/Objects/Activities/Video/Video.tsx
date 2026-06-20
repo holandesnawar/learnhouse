@@ -44,7 +44,7 @@ function VideoActivity({ activity, course, orgUuid, onPlay }: VideoActivityProps
       if (typeof e.origin === 'string' && e.origin.includes('mediadelivery.net')) {
         const d: any = e.data
         const s = typeof d === 'string' ? d : (() => { try { return JSON.stringify(d) } catch { return '' } })()
-        if (/play|timeupdate|playing/i.test(s)) onPlay()
+        if (/play|timeupdate|playing/i.test(s)) onPlay?.()
       }
     }
     window.addEventListener('message', handler)
