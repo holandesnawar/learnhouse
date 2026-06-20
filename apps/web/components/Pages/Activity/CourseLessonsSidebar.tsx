@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Check, FileText, Video, StickyNote, Backpack, ChevronDown, X, Search, ChevronLeft, PanelLeftClose, PanelLeftOpen, Lock, Layers, BookOpen, Headphones, NotebookText, Languages, MessagesSquare, ListChecks } from 'lucide-react'
 import { getUriWithOrg } from '@services/config/config'
 import { computeGating } from '@/lib/course/gating'
+import { useClientComplete } from '@/lib/course/clientProgress'
 
 // Format an ISO unlock date for the "Se desbloquea el ..." note (Spanish).
 function formatUnlockDate(iso?: string | null): string {
@@ -144,7 +145,8 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
   const chapters = course?.chapters ?? []
   const [search, setSearch] = useState('')
   const [collapsed, setCollapsed] = useState(false)
-  const gating = useMemo(() => computeGating(course, run), [course, run])
+  const clientDone = useClientComplete(course?.course_uuid)
+  const gating = useMemo(() => computeGating(course, run, clientDone), [course, run, clientDone])
   const hintText = gating.pendingGates.length
     ? `Para continuar, termina: ${gating.pendingGates.map((g) => g.name).join(' · ')}`
     : 'Completa la lección pendiente para continuar.'
@@ -404,7 +406,8 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const activeRef = useRef<HTMLDivElement | null>(null)
-  const gating = useMemo(() => computeGating(course, run), [course, run])
+  const clientDone = useClientComplete(course?.course_uuid)
+  const gating = useMemo(() => computeGating(course, run, clientDone), [course, run, clientDone])
   const hintText = gating.pendingGates.length
     ? `Para continuar, termina: ${gating.pendingGates.map((g) => g.name).join(' · ')}`
     : 'Completa la lección pendiente para continuar.'

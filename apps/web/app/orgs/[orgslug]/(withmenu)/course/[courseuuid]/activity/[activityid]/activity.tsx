@@ -34,6 +34,7 @@ import LessonExtras from '@components/Pages/Activity/LessonExtras'
 import ConsultaSearchBar from '@components/Pages/Activity/ConsultaSearchBar'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { computeGating } from '@/lib/course/gating'
+import { addClientComplete, useClientComplete } from '@/lib/course/clientProgress'
 import CourseEndView from '@components/Pages/Activity/CourseEndView'
 import { motion, AnimatePresence } from 'motion/react'
 import MiniInfoTooltip from '@components/Objects/MiniInfoTooltip'
@@ -381,13 +382,17 @@ function ActivityClient(props: ActivityClientProps) {
   }, [activityid]);
 
   const markCurrentComplete = useCallback(async () => {
-    if (!access_token || !activity?.activity_uuid || !course?.course_uuid) return;
+    if (!activity?.activity_uuid || !course?.course_uuid) return;
+    // Marca de cliente PRIMERO: abre la fase al instante y aguanta aunque el
+    // backend tarde o falle (no se pierde el desbloqueo).
+    addClientComplete(course.course_uuid, activity.id);
+    if (!access_token) return;
     try {
       await markActivityAsComplete(orgslug, course.course_uuid, activity.activity_uuid, access_token);
       queryClient.invalidateQueries({ queryKey: queryKeys.trail.org(org?.id) });
     } catch { /* best-effort */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [access_token, activity?.activity_uuid, course?.course_uuid, orgslug, org?.id, queryClient]);
+  }, [access_token, activity?.activity_uuid, activity?.id, course?.course_uuid, orgslug, org?.id, queryClient]);
 
   // El alumno le dio PLAY al vídeo. No desbloquea por sí solo (eso se hace por
   // progreso real, abajo); se mantiene por si algún reproductor solo emite "play".
@@ -462,11 +467,12 @@ function ActivityClient(props: ActivityClientProps) {
   // Completado "optimista": si el alumno acaba de interactuar (vídeo 90% /
   // ejercicio hecho), damos la actividad por completada al instante para
   // desbloquear sin esperar al refetch del servidor.
+  const clientDone = useClientComplete(course?.course_uuid);
   const optimisticComplete = useMemo(() => {
-    const s = new Set<number>();
+    const s = new Set<number>(clientDone);
     if (engaged && activity?.id) s.add(activity.id);
     return s;
-  }, [engaged, activity?.id]);
+  }, [clientDone, engaged, activity?.id]);
   const gating = useMemo(
     () => computeGating(course, courseRun, optimisticComplete),
     [course, courseRun, optimisticComplete]
@@ -496,6 +502,7 @@ function ActivityClient(props: ActivityClientProps) {
 
   const handleNativeComplete = useCallback(async () => {
     setEngaged(true); // terminó el ejercicio → desbloquea "Siguiente" al instante
+    addClientComplete(course?.course_uuid, activity?.id); // y abre la fase ya
     if (nativeCompleteFired.current) return;
     if (!activity?.activity_uuid || !course?.course_uuid || !access_token) return;
     nativeCompleteFired.current = true;
