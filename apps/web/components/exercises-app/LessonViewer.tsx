@@ -2643,10 +2643,11 @@ function ResumenSection({ block, vocabItems = [], inCourse, onComplete }: { bloc
       {vocabItems.length > 0 && (
         <div className="rounded-2xl border border-[#DDE6F5] bg-white p-5 space-y-3">
           <h3
-            className="text-[17px] font-bold text-gray-900 leading-tight"
+            className="flex items-center gap-2 text-[17px] font-bold text-gray-900 leading-tight"
             style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
           >
-            📖 Vocabulario
+            <span aria-hidden className="shrink-0">📖</span>
+            <span>Vocabulario</span>
           </h3>
           <p className="text-[13px] text-[#5A6480] leading-relaxed">Toca el altavoz para escuchar la pronunciación.</p>
           <div className="divide-y divide-[#DDE6F5] rounded-lg border border-[#DDE6F5] bg-[#F8FAFF] overflow-hidden">
