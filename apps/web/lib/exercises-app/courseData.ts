@@ -1428,6 +1428,68 @@ const m3_les2: Lesson = {
   isExtra: false,
   blocks: [
     {
+      type: 'summary',
+      title: 'Bestellen — Ik wil… / Mag ik…?',
+      intro: 'En esta lección aprendes a pedir comida y bebida en un café o snackbar de forma natural y educada, usando los verbos willen, nemen y mogen.',
+      objectives: [
+        'Hacer un mini-diálogo en un café o snackbar',
+        'Pedir con "Ik wil (graag)…" y "Ik neem…"',
+        'Preguntar con "Mag ik een koffie / de rekening, alstublieft?"',
+        'Usar los verbos willen, nemen y mogen',
+        'Usar expresiones básicas: alstublieft, dank u wel, nog iets?, nee dat is alles',
+      ],
+      sections: [
+        {
+          heading: '💚 Willen — querer (deseo)',
+          body: 'Expresa un deseo. Para sonar educado y natural añadimos **"graag"** justo después del verbo: **"Ik wil graag koffie"**.',
+          items: [
+            { nl: 'ik wil', es: 'yo quiero' },
+            { nl: 'jij wil', es: 'tú quieres' },
+            { nl: 'hij/zij wil', es: 'él/ella quiere' },
+            { nl: 'wij/jullie/zij willen', es: 'nosotros/vosotros/ellos quieren' },
+          ],
+        },
+        {
+          heading: '🤲 Nemen — tomar (decisión tomada)',
+          body: 'Lo usas cuando ya elegiste qué quieres. Con hij/zij añade **-t** (hij neemt). ¡Ojo! En preguntas con "jij" la **-t desaparece**: **"Neem jij…?"**.',
+          items: [
+            { nl: 'ik neem', es: 'yo tomo' },
+            { nl: 'jij neemt → Neem jij…?', es: 'tú tomas → ¿tomas…?' },
+            { nl: 'hij/zij neemt', es: 'él/ella toma' },
+            { nl: 'wij/jullie/zij nemen', es: 'nosotros/vosotros/ellos toman' },
+          ],
+        },
+        {
+          heading: '✅ Mogen — poder / permiso',
+          body: 'Para pedir permiso. **"Mag ik…?"** suena muy educado y es fundamental en Países Bajos.',
+          items: [
+            { nl: 'Mag ik een koffie?', es: '¿Me pone un café?' },
+            { nl: 'Mag ik de rekening?', es: '¿Me trae la cuenta?' },
+            { nl: 'Mag ik pinnen?', es: '¿Puedo pagar con tarjeta?' },
+          ],
+        },
+        {
+          heading: '🙏 Expresiones básicas',
+          items: [
+            { nl: 'Alstublieft', es: 'por favor / aquí tiene' },
+            { nl: 'Dank u wel', es: 'gracias' },
+            { nl: 'Nog iets?', es: '¿algo más?' },
+            { nl: 'Nee, dat is alles', es: 'no, es todo' },
+          ],
+        },
+        {
+          heading: '⚠️ Errores comunes',
+          body: 'Evita estos fallos típicos:',
+          items: [
+            { nl: 'Wil jij koffie? (no "Jij wil koffie?")', es: 'en preguntas el verbo va primero' },
+            { nl: 'Neem jij soep? (no "Neemt jij…")', es: 'la -t desaparece con "jij"' },
+            { nl: 'Ik wil graag koffie (no "…koffie graag")', es: '"graag" va tras el verbo' },
+          ],
+        },
+      ],
+      tip: 'Para sonar educado: "willen" + "graag", y "Mag ik…?" para pedir. ¡Son tu mejor carta en cualquier café holandés!',
+    },
+    {
       type: 'vocabulary',
       items: [
         // Bebidas
