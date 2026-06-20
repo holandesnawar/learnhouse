@@ -116,8 +116,8 @@ function InviteOnlySignUpComponent(props: InviteOnlySignUpProps) {
     <div className="m-auto w-full max-w-sm px-6 py-8 sm:py-0">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">{t('auth.create_account')}</h1>
-        <p className="text-gray-500 mt-1">{t('auth.fill_in_details')}</p>
+        <h1 className="text-2xl font-bold text-white">{t('auth.create_account')}</h1>
+        <p className="text-white/70 mt-1">{t('auth.fill_in_details')}</p>
       </div>
 
       {/* Error/Success Messages */}
@@ -273,9 +273,9 @@ function InviteOnlySignUpComponent(props: InviteOnlySignUpProps) {
       </div>
 
       {/* Login Link */}
-      <p className="text-center text-gray-600 mt-6">
+      <p className="text-center text-white/60 mt-6">
         {t('auth.already_have_account')}{' '}
-        <Link href="/login" className="font-semibold text-gray-900 hover:underline">
+        <Link href="/login" className="font-semibold text-white/90 hover:underline">
           {t('auth.login')}
         </Link>
       </p>

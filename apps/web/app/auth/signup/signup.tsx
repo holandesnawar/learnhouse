@@ -11,7 +11,7 @@ import { validateInviteCode } from '@services/organizations/invites'
 import { joinOrg } from '@services/organizations/orgs'
 import { getUriWithOrg } from '@services/config/config'
 import { useTranslation } from 'react-i18next'
-import AuthLayout from '@components/Auth/AuthLayout'
+import AuthShell from '@components/Auth/AuthShell'
 import FormLayout, {
   FormField,
   FormLabelAndMessage,
@@ -46,7 +46,7 @@ function SignUpClient(props: SignUpClientProps) {
   }, [props.org, inviteCodeParam])
 
   return (
-    <AuthLayout org={props.org} welcomeText={t('auth.invited_to_join')}>
+    <AuthShell>
       {joinMethod == 'open' &&
         (session.status == 'authenticated' ? (
           <LoggedInJoinScreen inviteCode={inviteCode} org={props.org} />
@@ -67,7 +67,7 @@ function SignUpClient(props: SignUpClientProps) {
         ) : (
           <NoTokenScreen org={props.org} />
         ))}
-    </AuthLayout>
+    </AuthShell>
   )
 }
 
@@ -146,8 +146,8 @@ const LoggedInJoinScreen = ({ inviteCode, org }: JoinScreenProps) => {
         <div className="m-auto w-full max-w-sm px-6 py-8 sm:py-0">
           {/* Header */}
           <div className="mb-8 text-center">
-            <h1 className="text-2xl font-bold text-gray-900">{t('auth.join_organization')}</h1>
-            <p className="text-gray-500 mt-1">{t('auth.join_organization_desc')}</p>
+            <h1 className="text-2xl font-bold text-white">{t('auth.join_organization')}</h1>
+            <p className="text-white/70 mt-1">{t('auth.join_organization_desc')}</p>
           </div>
 
           {/* Join Card */}
@@ -262,8 +262,8 @@ const NoTokenScreen = ({ org }: NoTokenScreenProps) => {
         <div className="m-auto w-full max-w-sm px-6 py-8 sm:py-0">
           {/* Header */}
           <div className="mb-8 text-center">
-            <h1 className="text-2xl font-bold text-gray-900">{t('auth.invite_required')}</h1>
-            <p className="text-gray-500 mt-1">{t('auth.invite_required_desc', { org: activeOrg?.name })}</p>
+            <h1 className="text-2xl font-bold text-white">{t('auth.invite_required')}</h1>
+            <p className="text-white/70 mt-1">{t('auth.invite_required_desc', { org: activeOrg?.name })}</p>
           </div>
 
           {/* Invite Code Card */}

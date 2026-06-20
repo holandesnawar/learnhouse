@@ -1,64 +1,46 @@
 'use client'
 import { useFormik } from 'formik'
-import { useRouter } from 'next/navigation'
-import React, { useEffect } from 'react'
-import FormLayout, {
-  FormField,
-  FormLabelAndMessage,
-  Input,
-  Textarea,
-} from '@components/Objects/StyledElements/Form/Form'
+import React from 'react'
 import * as Form from '@radix-ui/react-form'
-import { AlertTriangle, Mail, User } from 'lucide-react'
+import FormLayout from '@components/Objects/StyledElements/Form/Form'
+import { AlertTriangle, ArrowRight, CheckCircle, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { signup } from '@services/auth/auth'
 import { useOrg } from '@components/Contexts/OrgContext'
-import { signIn } from '@components/Contexts/AuthContext'
-import { getLEARNHOUSE_TOP_DOMAIN_VAL } from '@services/config/config'
 import { useTranslation } from 'react-i18next'
 import { PasswordStrengthIndicator, validatePasswordStrength } from '@components/Auth/PasswordStrengthIndicator'
 
+const inputClass =
+  'w-full px-4 py-3.5 rounded-xl bg-[#F0F5FF] hover:bg-[#E5ECFF] focus:bg-white text-[#1D0084] placeholder:text-[#1D0084]/45 outline-none border border-transparent focus:border-[#4da3ff] focus:ring-[3px] focus:ring-[#4da3ff]/22 text-[15px] transition-colors'
+const labelClass = 'text-[13px] font-semibold text-white/90 tracking-[0.01em]'
+
 const validate = (values: any, t: any) => {
   const errors: any = {}
-
-  if (!values.email) {
-    errors.email = t('validation.required')
-  } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(values.email)) {
-    errors.email = t('validation.invalid_email')
-  }
-
-  if (!values.password) {
-    errors.password = t('validation.required')
-  } else {
-    const passwordValidation = validatePasswordStrength(values.password)
-    if (!passwordValidation.isValid) {
-      errors.password = t('auth.password_requirements_not_met')
-    }
-  }
-
-  if (!values.username) {
-    errors.username = t('validation.required')
-  } else if (values.username.length < 4) {
-    errors.username = t('validation.username_min_length')
-  }
-
-  // Bio is optional - no validation required
-
+  if (!values.email) errors.email = t('validation.required')
+  else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(values.email)) errors.email = t('validation.invalid_email')
+  if (!values.password) errors.password = t('validation.required')
+  else if (!validatePasswordStrength(values.password).isValid) errors.password = t('auth.password_requirements_not_met')
+  if (!values.username) errors.username = t('validation.required')
+  else if (values.username.length < 4) errors.username = t('validation.username_min_length')
   return errors
 }
 
 function OpenSignUpComponent() {
   const { t } = useTranslation()
-  const [isSubmitting, setIsSubmitting] = React.useState(false)
   const org = useOrg() as any
-  const router = useRouter()
+  const searchParams = useSearchParams()
+  const emailParam = searchParams.get('email') || ''
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [error, setError] = React.useState('')
   const [message, setMessage] = React.useState('')
+  const [showPassword, setShowPassword] = React.useState(false)
+
   const formik = useFormik({
     initialValues: {
       org_slug: org?.slug,
       org_id: org?.id,
-      email: '',
+      email: emailParam,
       password: '',
       username: '',
       bio: '',
@@ -71,210 +53,116 @@ function OpenSignUpComponent() {
       setError('')
       setMessage('')
       setIsSubmitting(true)
-      let res = await signup(values)
-      let message = await res.json()
-      if (res.status == 200) {
-        setMessage(t('auth.account_created_success'))
-        setIsSubmitting(false)
-      } else if (
-        res.status == 401 ||
-        res.status == 400 ||
-        res.status == 404 ||
-        res.status == 409
-      ) {
-        setError(message.detail)
-        setIsSubmitting(false)
-      } else {
-        setError(t('common.something_went_wrong'))
+      try {
+        const res = await signup(values)
+        const data = await res.json().catch(() => ({}))
+        if (res.status === 200) {
+          setMessage(t('auth.account_created_success'))
+        } else if ([400, 401, 404, 409].includes(res.status)) {
+          setError(typeof data?.detail === 'string' ? data.detail : t('common.something_went_wrong'))
+        } else {
+          setError(t('common.something_went_wrong'))
+        }
+      } catch {
+        setError('No se pudo conectar. Inténtalo de nuevo.')
+      } finally {
         setIsSubmitting(false)
       }
     },
   })
 
-  useEffect(() => { }, [org])
-
-  const handleGoogleSignIn = () => {
-    // Store org context in cookies before OAuth redirect
-    if (org?.slug) {
-      const topDomain = getLEARNHOUSE_TOP_DOMAIN_VAL();
-      const isSecure = window.location.protocol === 'https:';
-      const secureAttr = isSecure ? '; secure' : '';
-      const baseAttributes = `; path=/; SameSite=Lax${secureAttr}`;
-      const domainAttr = topDomain === 'localhost' ? '' : `; domain=.${topDomain}`;
-      document.cookie = `LH_oauth_orgslug=${org.slug}${baseAttributes}${domainAttr}`;
-      document.cookie = `LH_oauth_org_id=${org.id}${baseAttributes}${domainAttr}`;
-    }
-    // Use absolute URL with current origin for custom domain support
-    signIn('google', { callbackUrl: `${window.location.origin}/redirect_from_auth` });
-  };
-
   return (
-    <div className="m-auto w-full max-w-sm px-6 py-8 sm:py-0">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">{t('auth.create_account')}</h1>
-        <p className="text-gray-500 mt-1">{t('auth.fill_in_details')}</p>
-      </div>
-
-      {/* Error/Success Messages */}
-      {error && (
-        <div className="flex items-center gap-3 bg-red-100 rounded-xl text-red-900 p-4 mb-6 nice-shadow">
-          <AlertTriangle size={18} className="shrink-0" />
-          <div className="font-bold text-sm">{error}</div>
-        </div>
-      )}
-      {message && (
-        <div className="flex flex-col gap-4 bg-green-100 rounded-xl text-green-900 p-4 mb-6 nice-shadow">
-          <div className="flex items-center gap-2">
-            <Mail size={18} />
-            <div className="font-bold text-sm">{t('auth.check_email_for_verification')}</div>
-          </div>
-          <p className="text-xs text-green-800">
-            {t('auth.verification_email_sent_message')}
-          </p>
-          <hr className="border-green-200" />
-          <Link className="flex items-center gap-2 text-sm font-medium hover:underline" href="/login">
-            <User size={14} />
-            <span>{t('auth.login')}</span>
-          </Link>
-        </div>
-      )}
-
-      {/* Signup Form Card */}
-      <div className="bg-white rounded-xl p-6 nice-shadow">
-        <FormLayout onSubmit={formik.handleSubmit}>
-          <FormField name="email">
-            <FormLabelAndMessage
-              label={t('auth.email')}
-              message={formik.touched.email ? formik.errors.email : undefined}
-            />
-            <Form.Control asChild>
-              <Input
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                value={formik.values.email}
-                type="email"
-                required
-              />
-            </Form.Control>
-          </FormField>
-
-          <div className="flex flex-row space-x-2">
-            <FormField name="first_name">
-              <FormLabelAndMessage
-                label={t('user.first_name')}
-                message={formik.touched.first_name ? formik.errors.first_name : undefined}
-              />
-              <Form.Control asChild>
-                <Input
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  value={formik.values.first_name}
-                  type="text"
-                />
-              </Form.Control>
-            </FormField>
-            <FormField name="last_name">
-              <FormLabelAndMessage
-                label={t('user.last_name')}
-                message={formik.touched.last_name ? formik.errors.last_name : undefined}
-              />
-              <Form.Control asChild>
-                <Input
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  value={formik.values.last_name}
-                  type="text"
-                />
-              </Form.Control>
-            </FormField>
-          </div>
-
-          <FormField name="password">
-            <FormLabelAndMessage
-              label={t('auth.password')}
-              message={formik.touched.password ? formik.errors.password : undefined}
-            />
-            <Form.Control asChild>
-              <Input
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                value={formik.values.password}
-                type="password"
-                autoComplete="new-password"
-                required
-              />
-            </Form.Control>
-            <PasswordStrengthIndicator password={formik.values.password} />
-          </FormField>
-
-          <FormField name="username">
-            <FormLabelAndMessage
-              label={t('user.username')}
-              message={formik.touched.username ? formik.errors.username : undefined}
-            />
-            <Form.Control asChild>
-              <Input
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                value={formik.values.username}
-                type="text"
-                required
-              />
-            </Form.Control>
-          </FormField>
-
-          <FormField name="bio">
-            <FormLabelAndMessage
-              label={`${t('user.bio')} (${t('common.optional')})`}
-              message={formik.touched.bio ? formik.errors.bio : undefined}
-            />
-            <Form.Control asChild>
-              <Textarea
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                value={formik.values.bio}
-                placeholder={t('user.bio_placeholder')}
-              />
-            </Form.Control>
-          </FormField>
-
-          <div className="pt-2">
-            <Form.Submit asChild>
-              <button className="w-full bg-black text-white font-semibold text-center py-2.5 rounded-lg hover:bg-gray-800 transition-colors">
-                {isSubmitting ? t('common.loading') : t('auth.create_account')}
-              </button>
-            </Form.Submit>
-          </div>
-        </FormLayout>
-
-        {/* Divider */}
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-3 bg-white text-gray-400">{t('common.or')}</span>
-          </div>
-        </div>
-
-        {/* Google Sign In */}
-        <button
-          onClick={handleGoogleSignIn}
-          className="flex items-center justify-center gap-2 w-full py-2.5 bg-white border border-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+    <div className="relative z-0 w-full max-w-[440px] flex flex-col items-center gap-7">
+      <div className="w-full text-white/95">
+        <h1
+          className="text-center font-bold leading-[1.1]"
+          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif', fontSize: 'clamp(26px, 4vw, 34px)', letterSpacing: '-0.03em' }}
         >
-          <img src="https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg" alt="" className="w-4 h-4" />
-          <span>{t('auth.sign_in_with_google')}</span>
-        </button>
+          <span style={{ background: 'linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.45) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+            Crea tu
+          </span>{' '}
+          <span style={{ color: '#4da3ff' }}>cuenta</span>
+        </h1>
+        <p className="text-center text-[15px] text-white/70 mt-2 mb-6">
+          Completa tus datos para empezar tu formación.
+        </p>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-[13.5px] flex items-center gap-2 mb-4">
+            <AlertTriangle size={16} className="shrink-0" /> {error}
+          </div>
+        )}
+        {message ? (
+          <div className="bg-green-50 border border-green-200 text-green-800 rounded-xl px-4 py-4 text-[14px] flex flex-col gap-3">
+            <div className="flex items-center gap-2 font-semibold">
+              <CheckCircle size={18} /> {t('auth.check_email_for_verification')}
+            </div>
+            <p className="text-[13px] text-green-700">{t('auth.verification_email_sent_message')}</p>
+            <Link href="/login" className="inline-flex items-center gap-2 text-[13px] font-semibold text-green-900 hover:underline">
+              <ArrowRight size={14} /> {t('auth.login')}
+            </Link>
+          </div>
+        ) : (
+          <FormLayout onSubmit={formik.handleSubmit}>
+            <div className="flex flex-col gap-4 text-left">
+              <Form.Field name="email" className="flex flex-col gap-1.5">
+                <Form.Label className={labelClass}>{t('auth.email')}</Form.Label>
+                <Form.Control asChild>
+                  <input type="email" placeholder="tu@email.com" onChange={formik.handleChange} onBlur={formik.handleBlur} value={formik.values.email} autoComplete="email" required className={inputClass} />
+                </Form.Control>
+                {formik.touched.email && formik.errors.email && <p className="text-xs text-rose-300">{formik.errors.email as string}</p>}
+              </Form.Field>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Form.Field name="first_name" className="flex flex-col gap-1.5">
+                  <Form.Label className={labelClass}>{t('user.first_name')}</Form.Label>
+                  <Form.Control asChild>
+                    <input type="text" onChange={formik.handleChange} onBlur={formik.handleBlur} value={formik.values.first_name} className={inputClass} />
+                  </Form.Control>
+                </Form.Field>
+                <Form.Field name="last_name" className="flex flex-col gap-1.5">
+                  <Form.Label className={labelClass}>{t('user.last_name')}</Form.Label>
+                  <Form.Control asChild>
+                    <input type="text" onChange={formik.handleChange} onBlur={formik.handleBlur} value={formik.values.last_name} className={inputClass} />
+                  </Form.Control>
+                </Form.Field>
+              </div>
+
+              <Form.Field name="username" className="flex flex-col gap-1.5">
+                <Form.Label className={labelClass}>{t('user.username')}</Form.Label>
+                <Form.Control asChild>
+                  <input type="text" onChange={formik.handleChange} onBlur={formik.handleBlur} value={formik.values.username} required className={inputClass} />
+                </Form.Control>
+                {formik.touched.username && formik.errors.username && <p className="text-xs text-rose-300">{formik.errors.username as string}</p>}
+              </Form.Field>
+
+              <Form.Field name="password" className="flex flex-col gap-1.5">
+                <Form.Label className={labelClass}>{t('auth.password')}</Form.Label>
+                <div className="relative">
+                  <Form.Control asChild>
+                    <input type={showPassword ? 'text' : 'password'} autoComplete="new-password" placeholder="••••••••" onChange={formik.handleChange} onBlur={formik.handleBlur} value={formik.values.password} required className={`${inputClass} pr-11`} />
+                  </Form.Control>
+                  <button type="button" onClick={() => setShowPassword((v) => !v)} tabIndex={-1} aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'} className="absolute top-1/2 right-3 -translate-y-1/2 text-[#1D0084]/60 hover:text-[#1D0084] transition-colors">
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <PasswordStrengthIndicator password={formik.values.password} />
+                {formik.touched.password && formik.errors.password && <p className="text-xs text-rose-300">{formik.errors.password as string}</p>}
+              </Form.Field>
+
+              <Form.Submit asChild>
+                <button className="mt-2 w-full inline-flex items-center justify-center gap-2.5 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#1D0084] font-bold py-3.5 rounded-xl transition-colors text-[15px]">
+                  {isSubmitting ? t('common.loading') : (<>{t('auth.create_account')} <ArrowRight size={15} strokeWidth={2.5} /></>)}
+                </button>
+              </Form.Submit>
+            </div>
+          </FormLayout>
+        )}
       </div>
 
-      {/* Login Link */}
-      <p className="text-center text-gray-600 mt-6">
-        {t('auth.already_have_account')}{' '}
-        <Link href="/login" className="font-semibold text-gray-900 hover:underline">
-          {t('auth.login')}
-        </Link>
-      </p>
+      <Link href="/login" className="inline-flex items-center gap-2 text-[13px] text-white/55 hover:text-white/90 transition-colors">
+        {t('auth.already_have_account')} <span className="text-white/85 underline underline-offset-2">{t('auth.login')}</span>
+      </Link>
     </div>
   )
 }
