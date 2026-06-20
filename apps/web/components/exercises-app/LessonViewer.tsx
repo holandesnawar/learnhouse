@@ -133,7 +133,7 @@ type SectionId = 'resumen' | 'vocabulary' | 'flashcards' | 'lezen' | 'luisteren'
 
 const SECTION_META: Record<SectionId, { label: string; emoji: string; desc: string }> = {
   resumen:     { label: 'Resumen',     emoji: '📋', desc: 'Los puntos clave de la lección' },
-  vocabulary:  { label: 'Vocabulario', emoji: '📖', desc: 'Palabras, frases y ejercicios de práctica' },
+  vocabulary:  { label: 'Oefeningen', emoji: '✏️', desc: 'Ejercicios de toda la lección' },
   flashcards:  { label: 'Flashcards',  emoji: '🃏', desc: 'Practica con tarjetas' },
   lezen:       { label: 'Lezen',       emoji: '📝', desc: 'Lee un texto y responde preguntas' },
   luisteren:   { label: 'Luisteren',   emoji: '🎧', desc: 'Escucha el diálogo' },
@@ -230,8 +230,8 @@ function buildVPSteps(
 ): VPStep[] {
   const steps: VPStep[] = [];
 
-  if (vocabItems.length > 0)
-    steps.push({ type: 'words' });
+  // El estudio de vocabulario (palabras + sonidos) se muestra ahora en el
+  // "Resumen", para que "Oefeningen" sea solo ejercicios. (antes: paso 'words')
 
   if (phraseItems.length > 0)
     steps.push({ type: 'phrases', items: phraseItems });
@@ -2564,7 +2564,7 @@ function renderInlineBold(text: string): React.ReactNode[] {
   );
 }
 
-function ResumenSection({ block, onComplete }: { block: SummaryBlock; onComplete: () => void }) {
+function ResumenSection({ block, vocabItems = [], onComplete }: { block: SummaryBlock; vocabItems?: VocabularyItem[]; onComplete: () => void }) {
   return (
     <div className="space-y-6">
       {/* Hero con intro */}
@@ -2638,6 +2638,38 @@ function ResumenSection({ block, onComplete }: { block: SummaryBlock; onComplete
         </div>
       ))}
 
+      {/* Vocabulario de la lección (con sonido) — antes vivía en "Oefeningen" */}
+      {vocabItems.length > 0 && (
+        <div className="rounded-2xl border border-[#DDE6F5] bg-white p-5 space-y-3">
+          <h3
+            className="text-[17px] font-bold text-gray-900 leading-tight"
+            style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+          >
+            📖 Vocabulario
+          </h3>
+          <p className="text-[13px] text-[#5A6480] leading-relaxed">Toca el altavoz para escuchar la pronunciación.</p>
+          <div className="divide-y divide-[#DDE6F5] rounded-lg border border-[#DDE6F5] bg-[#F8FAFF] overflow-hidden">
+            {vocabItems.map((v) => (
+              <div key={v.id} className="flex items-center gap-3 px-4 py-2.5">
+                <span className="text-xl shrink-0" aria-hidden>{v.emoji}</span>
+                <span className="text-[14px] font-semibold text-gray-900 flex-1 min-w-0 leading-snug">{v.dutch}</span>
+                <span className="text-[13px] text-[#5A6480] flex-1 min-w-0 leading-snug text-right">{v.spanish}</span>
+                <button
+                  onClick={() => speakDutch(v.dutch)}
+                  title="Escuchar"
+                  aria-label="Escuchar pronunciación"
+                  className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-[#025dc7] hover:bg-[#F0F5FF] transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M19 5a9 9 0 010 14M5 9v6h4l5 4V5L9 9H5z" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Tip final */}
       {block.tip && (
         <div className="rounded-2xl border border-[#FCD34D]/50 bg-[#FEF3C7] p-5 flex items-start gap-3">
@@ -2653,7 +2685,7 @@ function ResumenSection({ block, onComplete }: { block: SummaryBlock; onComplete
         onClick={onComplete}
         className="w-full py-4 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200 flex items-center justify-center gap-2"
       >
-        Empezar con el vocabulario
+        Empezar con los ejercicios
         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>
@@ -3737,6 +3769,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
           {activeSection === 'resumen' && summaryBlock && summaryBlock.type === 'summary' && (
             <ResumenSection
               block={summaryBlock}
+              vocabItems={vocabBlock && vocabBlock.type === 'vocabulary' ? vocabBlock.items : []}
               onComplete={() => completeSection('resumen')}
             />
           )}
