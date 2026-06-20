@@ -56,7 +56,6 @@ export default function ProgressSummary({ orgslug }: { orgslug: string }) {
             >
               Así estás progresando
             </h2>
-            <p className="text-sm text-gray-500 dark:text-white/65">Tu avance en la formación de un vistazo.</p>
           </div>
         </div>
         <Link

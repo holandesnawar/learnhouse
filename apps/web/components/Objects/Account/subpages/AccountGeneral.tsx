@@ -258,7 +258,7 @@ const UserEditForm = ({
   return (
     <Form>
       <div className="flex flex-col gap-0">
-        <div className="flex flex-col bg-gray-50 -space-y-1 px-5 py-3 mx-3 my-3 rounded-md">
+        <div className="flex flex-col -space-y-1 px-5 pt-5 pb-2">
           <h1 className="font-bold text-xl text-gray-800">
             {t('user.settings.general.title')}
           </h1>

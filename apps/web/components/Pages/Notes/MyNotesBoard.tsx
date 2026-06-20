@@ -59,7 +59,7 @@ export default function MyNotesBoard({ orgslug }: { orgslug: string }) {
         <div className="flex justify-center py-16"><Loader2 size={24} className="animate-spin text-gray-400" /></div>
       ) : groups.length === 0 ? (
         <div className="flex flex-col items-center justify-center text-center py-16 px-4 rounded-2xl border border-[#DDE6F5] bg-white">
-          <div className="p-3 bg-[#F0F5FF] rounded-full mb-3"><StickyNote size={26} className="text-[#025dc7]" /></div>
+          <StickyNote size={30} className="text-[#025dc7] mb-3" />
           <p className="text-sm text-gray-500 max-w-sm">
             Aún no has resaltado nada. Dentro de una lección, selecciona un texto y elige un color o añade una nota; aquí aparecerá todo guardado.
           </p>

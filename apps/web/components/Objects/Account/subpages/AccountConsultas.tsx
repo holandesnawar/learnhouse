@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { listMyConsultas, htmlToText, type Consulta, CATEGORY_BY_ID } from '@/lib/consultas/consultas'
-import { HelpCircle, CheckCircle2, Clock, Loader2 } from 'lucide-react'
+import { HelpCircle, CheckCircle2, Clock, Loader2, MessageCircleQuestion } from 'lucide-react'
 
 const MESES_ES = [
   'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
@@ -37,22 +37,20 @@ export default function AccountConsultas() {
   }, [email])
 
   return (
-    <div className="bg-white rounded-xl nice-shadow">
-      <div className="flex flex-col bg-gray-50 -space-y-1 px-5 py-3 mx-3 my-3 rounded-md">
-        <h1 className="font-bold text-xl text-gray-800">Mis consultas</h1>
-        <h2 className="text-gray-500 text-md">Tus preguntas y el estado de cada una.</h2>
+    <div className="space-y-5">
+      <div className="flex items-center gap-2 pt-2">
+        <MessageCircleQuestion size={24} className="text-[#025dc7]" />
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Mis consultas</h1>
       </div>
+      <p className="text-sm text-gray-500 -mt-3 max-w-xl">Tus preguntas y el estado de cada una.</p>
 
-      <div className="mx-5 mb-5 min-h-[200px]">
       {items === null ? (
-        <div className="flex justify-center py-12">
-          <Loader2 size={22} className="animate-spin text-gray-400" />
+        <div className="flex justify-center py-16">
+          <Loader2 size={24} className="animate-spin text-gray-400" />
         </div>
       ) : items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center text-center py-12 px-4 rounded-2xl border border-[#DDE6F5] bg-white">
-          <div className="p-3 bg-[#F0F5FF] rounded-full mb-3">
-            <HelpCircle size={26} className="text-[#025dc7]" />
-          </div>
+        <div className="flex flex-col items-center justify-center text-center py-16 px-4 rounded-2xl border border-[#DDE6F5] bg-white">
+          <HelpCircle size={30} className="text-[#025dc7] mb-3" />
           <p className="text-sm text-gray-500 max-w-xs">
             Aún no has creado ninguna consulta. Cuando tengas una duda, créala desde una lección o desde la sección de Consultas.
           </p>
@@ -116,7 +114,6 @@ export default function AccountConsultas() {
           })}
         </div>
       )}
-      </div>
     </div>
   )
 }

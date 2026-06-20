@@ -31,8 +31,16 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
   const firstName: string =
     session?.data?.user?.first_name || session?.data?.user?.username || ''
 
-  const runs: any[] = Array.isArray(trailData?.runs) ? trailData.runs : []
-  const courseList: any[] = Array.isArray(courses) ? courses : []
+  // La "Clase semanal" (directos) no es un curso de la formación: se ve en su
+  // propia sección del menú, no en "Tus cursos" ni en "Continúa donde lo dejaste".
+  const HIDDEN_COURSE_UUID = 'bfbcb42b-7dc3-4448-9df8-5d7b96135859'
+  const isHidden = (uuid: any) => String(uuid || '').includes(HIDDEN_COURSE_UUID)
+  const runs: any[] = (Array.isArray(trailData?.runs) ? trailData.runs : []).filter(
+    (r: any) => !isHidden(r?.course?.course_uuid)
+  )
+  const courseList: any[] = (Array.isArray(courses) ? courses : []).filter(
+    (c: any) => !isHidden(c?.course_uuid)
+  )
 
   // Register today's visit so the streak counter advances. Idempotent within
   // the same day, fire-and-forget — never blocks the page.
@@ -141,8 +149,8 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
           backgroundRepeat: 'repeat, no-repeat, no-repeat',
         }}
       >
-        <div className="shrink-0 w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
-          <HelpCircle size={24} className="text-white" />
+        <div className="shrink-0 flex items-center justify-center">
+          <HelpCircle size={30} className="text-white" />
         </div>
         <div className="flex-1 min-w-0">
           <h2 className="text-lg font-bold">¿Tienes dudas?</h2>
