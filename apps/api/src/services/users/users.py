@@ -80,11 +80,14 @@ async def create_user(
     user.user_uuid = f"user_{uuid4()}"
     user.password = security_hash_password(user_object.password) if user_object.password else ""
 
-    # OAuth users and OSS mode get auto-verified email
-    if is_oauth or get_deployment_mode() != 'saas':
+    # Email is auto-verified for: OAuth users, invited users (the invitation
+    # itself proves they own the address), and any signup in OSS mode.
+    is_invite = signup_provider == "invite"
+    auto_verified = is_oauth or is_invite or get_deployment_mode() != 'saas'
+    if auto_verified:
         user.email_verified = True
         user.email_verified_at = datetime.now(timezone.utc).isoformat()
-        user.signup_method = signup_provider if is_oauth else "email"
+        user.signup_method = signup_provider if (is_oauth or is_invite) else "email"
     else:
         user.email_verified = False
         user.email_verified_at = None
@@ -174,8 +177,9 @@ async def create_user(
         },
     )
 
-    # Send verification email for non-OAuth users, account creation email for OAuth users
-    if is_oauth:
+    # Already-verified users (OAuth, invited, or OSS mode) get a welcome email;
+    # only unverified SaaS signups receive a "verify your email" message.
+    if auto_verified:
         org_config_stmt = select(OrganizationConfig).where(OrganizationConfig.org_id == org_id)
         org_config = (await db_session.execute(org_config_stmt)).scalars().first()
         send_account_creation_email(
