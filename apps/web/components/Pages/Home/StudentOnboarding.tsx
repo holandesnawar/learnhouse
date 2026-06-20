@@ -228,7 +228,7 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
                   <Rocket size={40} className="text-[#025dc7]" />
                 </div>
                 <h2
-                  className="text-[22px] font-bold text-[#1D0084]"
+                  className="text-[22px] font-bold text-gray-900"
                   style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
                 >
                   ¡Te damos la bienvenida!

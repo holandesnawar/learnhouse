@@ -594,7 +594,7 @@ const CourseClient = (props: any) => {
                                   {locked ? (
                                     <Lock size={16} className="stroke-[2] text-rose-400" />
                                   ) : (
-                                    getLessonIcon(activity.name, activity.activity_type)
+                                    getLessonIcon(activity.name, activity.activity_type, 'text-[#025dc7]')
                                   )}
                                 </div>
                                 <div className="flex-1 min-w-0">

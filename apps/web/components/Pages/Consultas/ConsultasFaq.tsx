@@ -83,8 +83,8 @@ export default function ConsultasFaq() {
     <div className="rounded-2xl border border-[#DDE6F5] bg-white nice-shadow overflow-hidden">
       <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-[#EEF2FB]">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-[#F0F5FF] flex items-center justify-center shrink-0">
-            <HelpCircle size={18} className="text-[#025dc7]" />
+          <div className="flex items-center justify-center shrink-0">
+            <HelpCircle size={26} className="text-[#025dc7]" />
           </div>
           <div>
             <h2 className="text-[15px] font-bold text-gray-900 leading-tight">Consultas frecuentes</h2>
