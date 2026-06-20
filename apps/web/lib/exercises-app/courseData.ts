@@ -1505,6 +1505,12 @@ const m3_les2: Lesson = {
         { id: 'm3l2e-8',  type: 'fill_blank',      prompt: 'Neem ___ soep? → pregunta con jij (nemen)',             correctAnswer: 'jij',      hint: 'La -t desaparece en preguntas con jij' },
         { id: 'm3l2e-9',  type: 'multiple_choice', prompt: '¿Qué significa "Nog iets?"?', options: ['¿Algo más?', '¿Quiere pagar?', '¿Está aquí?', 'Aquí tiene.'], correctAnswer: '¿Algo más?', explanation: '"Nog iets?" = ¿Algo más? Se usa para preguntar si el cliente quiere otra cosa.' },
         { id: 'm3l2e-10', type: 'fill_blank',      prompt: 'Wij ___ graag soep en salade. (willen — wij)',          correctAnswer: 'willen',   hint: '"Willen" → wij willen' },
+        // Encuentra el error (de la presentación, pág. 11/15/16)
+        { id: 'm3l2e-11', type: 'multiple_choice', prompt: 'Encuentra la frase CORRECTA:', options: ['Ik willen graag koffie.', 'Ik wil graag koffie.', 'Ik graag wil koffie.', 'Ik wil koffie graag.'], correctAnswer: 'Ik wil graag koffie.', explanation: 'Con "ik" el verbo es "wil" (no "willen"), y "graag" va justo después del verbo.' },
+        { id: 'm3l2e-12', type: 'multiple_choice', prompt: 'Encuentra la frase CORRECTA:', options: ['Hij neem soep.', 'Hij nemen soep.', 'Hij neemt soep.', 'Hij neemt soept.'], correctAnswer: 'Hij neemt soep.', explanation: 'Con "hij/zij" añadimos -t: "hij neemt".' },
+        { id: 'm3l2e-13', type: 'multiple_choice', prompt: 'Pregunta con "jij". ¿Cuál es CORRECTA?', options: ['Neemt jij soep?', 'Neem jij soep?', 'Jij neemt soep?', 'Neemt jij soept?'], correctAnswer: 'Neem jij soep?', explanation: 'En preguntas con "jij" la -t desaparece: "Neem jij…?".' },
+        { id: 'm3l2e-14', type: 'multiple_choice', prompt: '¿Dónde va "graag"?', options: ['Ik wil koffie graag.', 'Ik graag wil koffie.', 'Ik wil graag koffie.', 'Graag ik wil koffie.'], correctAnswer: 'Ik wil graag koffie.', explanation: '"graag" va justo después del verbo conjugado: "Ik wil graag koffie".' },
+        { id: 'm3l2e-15', type: 'order_sentence',  prompt: 'Ordena: "También tomo un café."', options: ['Ik', 'neem', 'ook', 'een', 'koffie.'], correctAnswer: 'Ik neem ook een koffie.' },
       ],
     },
     { type: 'review' },
