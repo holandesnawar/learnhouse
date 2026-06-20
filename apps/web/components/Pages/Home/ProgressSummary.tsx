@@ -76,7 +76,7 @@ export default function ProgressSummary({ orgslug }: { orgslug: string }) {
             <span className="text-[11px] font-semibold uppercase tracking-wider">Progreso general</span>
           </div>
           <div className="flex items-end gap-1.5">
-            <span className="text-[28px] font-bold text-[#1D0084] dark:text-white leading-none">{generalPct}%</span>
+            <span className="text-[28px] font-bold text-gray-900 dark:text-white leading-none">{generalPct}%</span>
           </div>
           <div className="mt-2 h-1.5 rounded-full bg-white dark:bg-white/10 overflow-hidden">
             <div className="h-full bg-[#4da3ff] rounded-full transition-all duration-500" style={{ width: `${generalPct}%` }} />
@@ -90,7 +90,7 @@ export default function ProgressSummary({ orgslug }: { orgslug: string }) {
             <span className="text-[11px] font-semibold uppercase tracking-wider">Calificación promedio</span>
           </div>
           <div className="flex items-end gap-1.5">
-            <span className="text-[28px] font-bold text-[#1D0084] dark:text-white leading-none">
+            <span className="text-[28px] font-bold text-gray-900 dark:text-white leading-none">
               {gradePct === null ? '—' : `${gradePct}%`}
             </span>
           </div>
@@ -106,7 +106,7 @@ export default function ProgressSummary({ orgslug }: { orgslug: string }) {
             <span className="text-[11px] font-semibold uppercase tracking-wider">Lecciones completadas</span>
           </div>
           <div className="flex items-end gap-1.5">
-            <span className="text-[28px] font-bold text-[#1D0084] dark:text-white leading-none">{done}</span>
+            <span className="text-[28px] font-bold text-gray-900 dark:text-white leading-none">{done}</span>
             <span className="text-[15px] text-gray-400 dark:text-white/50 mb-0.5">/ {total}</span>
           </div>
           <p className="mt-2 text-[12px] text-gray-500 dark:text-white/60">
