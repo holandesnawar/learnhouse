@@ -94,6 +94,25 @@ function parseNativeVideo(embedUrl: string): { situacionId: string } | null {
   return m ? { situacionId: m[1] } : null;
 }
 
+// Secciones de la app de ejercicios que SÍ son "ejercicios" (hay que hacerlos
+// para avanzar). El resumen (samenvatting) es contenido → se completa al abrirlo.
+const NAWAR_EXERCISE_SECTIONS = new Set(['vocabulary', 'flashcards', 'lezen', 'luisteren']);
+
+// ¿Esta actividad es un ejercicio (hay que completarlo) o contenido (basta verlo)?
+// Contenido: vídeo, documento, texto/markdown y el resumen embebido.
+// Ejercicio: Oefeningen/Flashcards/Lezen/Luisteren, situación real (vídeo+ejercicios) y assignments.
+function isExerciseActivity(a: any): boolean {
+  if (!a) return false;
+  if (a.activity_type === 'TYPE_ASSIGNMENT') return true;
+  if (a.activity_sub_type === 'SUBTYPE_DYNAMIC_EMBED') {
+    const ne = parseNativeExercise(a.content?.embed_url || '');
+    if (ne) return NAWAR_EXERCISE_SECTIONS.has(ne.section || '');
+    if (parseNativeVideo(a.content?.embed_url || '')) return true;
+    return false;
+  }
+  return false;
+}
+
 
 function ActivityContentSkeleton({ activityType }: { activityType?: string }) {
   const isVideo = activityType === 'TYPE_VIDEO' || activityType === 'TYPE_SCORM'
@@ -336,6 +355,24 @@ function ActivityClient(props: ActivityClientProps) {
   // an already-complete activity is harmless.
   const nativeCompleteFired = useRef(false);
   useEffect(() => { nativeCompleteFired.current = false }, [activityid]);
+
+  // Bloqueo secuencial — el contenido (vídeo / resumen / texto) se marca como
+  // completado al abrirlo, así desbloquea la siguiente actividad sin tener que
+  // hacer ejercicios. Los ejercicios se completan al terminarlos (handleNativeComplete).
+  useEffect(() => {
+    if (!access_token || !activity?.activity_uuid || !course?.course_uuid) return;
+    if (isExerciseActivity(activity)) return;
+    const run = trailData?.runs?.find((r: any) => r.course_uuid === course.course_uuid);
+    const already = !!run?.steps?.find((s: any) => s.activity_id === activity.id && s.complete === true);
+    if (already) return;
+    (async () => {
+      try {
+        await markActivityAsComplete(orgslug, course.course_uuid, activity.activity_uuid, access_token);
+        queryClient.invalidateQueries({ queryKey: queryKeys.trail.org(org?.id) });
+      } catch { /* best-effort, no bloquea la navegación */ }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activity?.activity_uuid, trailData]);
   const handleNativeComplete = useCallback(async () => {
     if (nativeCompleteFired.current) return;
     if (!activity?.activity_uuid || !course?.course_uuid || !access_token) return;
@@ -1215,6 +1252,8 @@ function NextActivityButton({ course, currentActivityId, orgslug }: { course: an
   const session = useLHSession() as any;
   const org = useOrg() as any;
   const queryClient = useQueryClient();
+  const { isAdmin } = useAdminStatus() as any;
+  const { data: trailData } = useTrail(org?.id);
 
   const findNextActivity = () => {
     let allActivities: any[] = [];
@@ -1244,28 +1283,39 @@ function NextActivityButton({ course, currentActivityId, orgslug }: { course: an
   const nextActivity = findNextActivity();
   const isLast = !nextActivity;
 
-  const navigateToActivity = async () => {
+  // Bloqueo: solo se puede avanzar si la actividad actual está completada, o si
+  // es contenido (vídeo/resumen/texto, se completa al verla), o si eres admin.
+  const currentAct = (course.chapters ?? [])
+    .flatMap((c: any) => c.activities ?? [])
+    .find((a: any) => a.id === currentActivityId);
+  const run = trailData?.runs?.find((r: any) => r.course_uuid === course.course_uuid);
+  const currentComplete = !!run?.steps?.find((s: any) => s.activity_id === currentActivityId && s.complete === true);
+  const isContent = !isExerciseActivity(currentAct);
+  const canAdvance = !!isAdmin || currentComplete || isContent;
+
+  const navigateToActivity = () => {
+    if (!canAdvance) return;
     const cleanCourseUuid = course.course_uuid?.replace('course_', '');
-    // Moving on counts as finishing the current activity: mark it complete so
-    // progress is recorded without an extra click (best-effort, never blocks nav).
-    try {
-      const current = (course.chapters ?? [])
-        .flatMap((c: any) => c.activities ?? [])
-        .find((a: any) => a.id === currentActivityId);
-      const token = session?.data?.tokens?.access_token;
-      if (current?.activity_uuid && token) {
-        await markActivityAsComplete(orgslug, course.course_uuid, current.activity_uuid, token);
-        queryClient.invalidateQueries({ queryKey: queryKeys.trail.org(org?.id) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.courses.meta(cleanCourseUuid) });
-      }
-    } catch {
-      /* non-blocking — navigation continues even if marking fails */
-    }
     router.push(
       getUriWithOrg(orgslug, '') +
         `/course/${cleanCourseUuid}/activity/${isLast ? 'end' : nextActivity.cleanUuid}`
     );
   };
+
+  if (!canAdvance) {
+    return (
+      <div
+        title="Completa esta actividad para continuar"
+        className="w-full sm:w-[230px] rounded-lg px-3 sm:px-4 flex flex-col p-2 sm:p-2.5 bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
+      >
+        <span className="text-[10px] font-bold text-gray-400 mb-1 uppercase">{t('common.next')}</span>
+        <div className="flex items-center space-x-1 min-w-0">
+          <Lock size={14} className="shrink-0" />
+          <span className="text-xs sm:text-sm font-semibold truncate min-w-0">Completa esta actividad</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
