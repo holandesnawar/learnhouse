@@ -111,7 +111,7 @@ function speakDutch(text: string) {
  * lo que provocaba "de de fles". `bareDutch` devuelve la palabra SIN el artículo
  * repetido; `joinDutch` devuelve "artículo + palabra" una sola vez.
  */
-function bareDutch(article?: string, dutch?: string): string {
+function bareDutch(article?: string | null, dutch?: string | null): string {
   const d = (dutch || '').trim();
   const a = (article || '').trim();
   if (!a) return d;
@@ -121,7 +121,7 @@ function bareDutch(article?: string, dutch?: string): string {
   if (dl.startsWith(al + ' ')) return d.slice(a.length + 1).trim();
   return d;
 }
-function joinDutch(article?: string, dutch?: string): string {
+function joinDutch(article?: string | null, dutch?: string | null): string {
   const bare = bareDutch(article, dutch);
   const a = (article || '').trim();
   if (!a) return bare;
