@@ -37,13 +37,14 @@ export function setWordAudioMap(map: Record<string, string>) {
   _wordAudioMap = map;
 }
 
-function _ttsFallback(text: string) {
-  if (typeof window === 'undefined' || !window.speechSynthesis) return;
+function _ttsFallback(text: string, onDone?: () => void, rate?: number) {
+  if (typeof window === 'undefined' || !window.speechSynthesis) { onDone?.(); return; }
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.lang = 'nl-NL';
-  u.rate = 0.78;
+  u.rate = rate ?? 0.85;
   u.pitch = 1;
+  u.onend = () => onDone?.();
   window.speechSynthesis.speak(u);
 }
 
@@ -53,11 +54,19 @@ let _ttsRouteAvailable: boolean | null = null;
 // Cache de audio por palabra (objectURL) para no re-pedir en la misma sesión.
 const _ttsBlobCache = new Map<string, string>();
 
-function _playUrl(url: string, onFail: () => void) {
+// Para CUALQUIER audio en curso (MP3 ElevenLabs/pre-gen o voz del navegador).
+function stopDutch() {
+  if (_currentAudio) { try { _currentAudio.pause(); } catch {} _currentAudio = null; }
+  if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel();
+}
+
+function _playUrl(url: string, onFail: () => void, onDone?: () => void, rate?: number) {
   try {
     const audio = new Audio(url);
+    if (rate && rate > 0) audio.playbackRate = rate; // versión "lenta" sin cambiar la voz
     _currentAudio = audio;
     audio.onerror = onFail;
+    audio.onended = () => onDone?.();
     audio.play().catch(onFail);
   } catch {
     onFail();
@@ -68,11 +77,11 @@ function _playUrl(url: string, onFail: () => void) {
 // por defecto, para que el navegador no sirva el audio viejo en caché.
 const TTS_VOICE_TAG = 'v3';
 
-async function _speakViaElevenLabs(text: string): Promise<boolean> {
+async function _speakViaElevenLabs(text: string, onDone?: () => void, rate?: number): Promise<boolean> {
   if (_ttsRouteAvailable === false) return false;
   const key = `${TTS_VOICE_TAG}:${text.trim().toLowerCase()}`;
   const cached = _ttsBlobCache.get(key);
-  if (cached) { _playUrl(cached, () => _ttsFallback(text)); return true; }
+  if (cached) { _playUrl(cached, () => _ttsFallback(text, onDone, rate), onDone, rate); return true; }
   try {
     const res = await fetch(`/api/tts?text=${encodeURIComponent(text)}&vt=${TTS_VOICE_TAG}`);
     if (!res.ok) {
@@ -83,29 +92,28 @@ async function _speakViaElevenLabs(text: string): Promise<boolean> {
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     _ttsBlobCache.set(key, url);
-    _playUrl(url, () => _ttsFallback(text));
+    _playUrl(url, () => _ttsFallback(text, onDone, rate), onDone, rate);
     return true;
   } catch {
     return false;
   }
 }
 
-function speakDutch(text: string) {
+function speakDutch(text: string, onDone?: () => void, rate?: number) {
   // Para parar cualquier audio previo (TTS o MP3)
-  if (_currentAudio) { try { _currentAudio.pause(); } catch {} _currentAudio = null; }
-  if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel();
+  stopDutch();
 
   const key = text.trim().toLowerCase();
 
   // 1) Voz de ElevenLabs en NEERLANDÉS (la buena, sin acento inglés). Si la
   //    cuenta no está configurada, cae a las siguientes opciones.
-  _speakViaElevenLabs(text).then((ok) => {
+  _speakViaElevenLabs(text, onDone, rate).then((ok) => {
     if (ok) return;
     // 2) MP3 pre-generado si existe.
     const url = _wordAudioMap[key];
-    if (url) { _playUrl(url, () => _ttsFallback(text)); return; }
+    if (url) { _playUrl(url, () => _ttsFallback(text, onDone, rate), onDone, rate); return; }
     // 3) Voz del navegador (último recurso).
-    _ttsFallback(text);
+    _ttsFallback(text, onDone, rate);
   });
 }
 
@@ -536,35 +544,19 @@ function PhrasesStep({ items, onDone, onBack, onSubProgress }: {
     return 0;
   });
   const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const phrase = items[index];
   const isLast = index + 1 >= items.length;
 
   function stopAudio() {
-    audioRef.current?.pause();
-    if (audioRef.current) audioRef.current.currentTime = 0;
-    window.speechSynthesis?.cancel();
+    stopDutch();
     setIsPlaying(false);
   }
 
   function handlePlay() {
     if (isPlaying) { stopAudio(); return; }
     setIsPlaying(true);
-    if (phrase.audio?.url) {
-      const audio = new Audio(phrase.audio.url);
-      audioRef.current = audio;
-      audio.onended = () => setIsPlaying(false);
-      audio.onerror = () => { speakDutch(phrase.dutch); };
-      audio.play().catch(() => { speakDutch(phrase.dutch); setIsPlaying(false); });
-    } else {
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(phrase.dutch);
-        u.lang = 'nl-NL'; u.rate = 0.78; u.pitch = 1;
-        u.onend = () => setIsPlaying(false);
-        window.speechSynthesis.speak(u);
-      }
-    }
+    // Voz por defecto (ElevenLabs nl) → pre-gen → navegador, gestionado en speakDutch.
+    speakDutch(phrase.dutch, () => setIsPlaying(false));
   }
 
   function navigate(newIndex: number) {
@@ -2995,9 +2987,8 @@ function LezenSection({
 ───────────────────────────────────────────────────────────────────────────── */
 
 /**
- * Botón de audio por TTS (text-to-speech del navegador) para diálogos
- * que no tienen un archivo de audio grabado. No hay scrubber ni skip
- * porque TTS no se puede "rebobinar"; hace de fallback honesto.
+ * Botón de audio para diálogos sin archivo grabado. Usa la voz por defecto
+ * (ElevenLabs en neerlandés) con fallback a la voz del navegador.
  */
 function DialogueTTSButton({
   lines,
@@ -3011,20 +3002,11 @@ function DialogueTTSButton({
   const [isPlaying, setIsPlaying] = useState(false);
 
   function toggle() {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-    if (isPlaying) {
-      window.speechSynthesis.cancel();
-      setIsPlaying(false);
-      return;
-    }
-    window.speechSynthesis.cancel();
+    if (isPlaying) { stopDutch(); setIsPlaying(false); return; }
     const fullText = lines.map(l => l.dutch).join('. ');
-    const u = new SpeechSynthesisUtterance(fullText);
-    u.lang = 'nl-NL';
-    u.rate = rate;
-    u.onend = () => setIsPlaying(false);
-    window.speechSynthesis.speak(u);
     setIsPlaying(true);
+    // Voz por defecto (ElevenLabs nl); `rate` reproduce la versión lenta.
+    speakDutch(fullText, () => setIsPlaying(false), rate);
   }
 
   return (
@@ -3047,7 +3029,7 @@ function DialogueTTSButton({
         )}
       </span>
       <span className="text-[12px] text-[#5A6480] font-medium">
-        {isPlaying ? 'Pausar' : 'Escuchar (voz del navegador)'}
+        {isPlaying ? 'Pausar' : 'Escuchar'}
       </span>
     </button>
   );

@@ -30,7 +30,7 @@ const MAX_CACHE = 600
 export async function GET(req: NextRequest) {
   const text = (req.nextUrl.searchParams.get('text') || '').trim()
   if (!text) return new Response('missing text', { status: 400 })
-  if (text.length > 300) return new Response('text too long', { status: 400 })
+  if (text.length > 800) return new Response('text too long', { status: 400 })
   if (!API_KEY || !VOICE_ID) return new Response('tts not configured', { status: 503 })
 
   const cacheKey = `${VOICE_ID}:${MODEL_ID}:${text.toLowerCase()}`
