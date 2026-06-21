@@ -121,6 +121,69 @@ async function _ttsClipUrl(text: string, voice?: string): Promise<string | null>
   }
 }
 
+// AudioContext compartido (solo para decodificar y dibujar la forma de onda).
+let _audioCtx: AudioContext | null = null;
+function _getAudioCtx(): AudioContext | null {
+  if (typeof window === 'undefined') return null;
+  if (!_audioCtx) {
+    const AC = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AC) return null;
+    _audioCtx = new AC();
+  }
+  return _audioCtx;
+}
+
+// Picos de amplitud (máximo absoluto por segmento) de un AudioBuffer.
+function _peaks(buf: AudioBuffer, n: number): number[] {
+  const data = buf.getChannelData(0);
+  const block = Math.max(1, Math.floor(data.length / n));
+  const out: number[] = [];
+  for (let i = 0; i < n; i++) {
+    let max = 0;
+    const start = i * block;
+    for (let j = 0; j < block; j++) {
+      const v = Math.abs(data[start + j] || 0);
+      if (v > max) max = v;
+    }
+    out.push(max);
+  }
+  return out;
+}
+
+// Clip de diálogo: objectURL para reproducir + duración real + picos a ~40/s.
+const _dialogueClipCache = new Map<string, { url: string; dur: number; hiPeaks: number[] }>();
+async function _dialogueClip(text: string, voice?: string): Promise<{ url: string; dur: number; hiPeaks: number[] } | null> {
+  const key = `${TTS_VOICE_TAG}:${voice || 'def'}:${text.trim().toLowerCase()}`;
+  const cached = _dialogueClipCache.get(key);
+  if (cached) return cached;
+  if (_ttsRouteAvailable === false) return null;
+  try {
+    const q = new URLSearchParams({ text, vt: TTS_VOICE_TAG });
+    if (voice) q.set('voice', voice);
+    const res = await fetch(`/api/tts?${q.toString()}`);
+    if (!res.ok) { if (res.status === 503) _ttsRouteAvailable = false; return null; }
+    _ttsRouteAvailable = true;
+    const ab = await res.arrayBuffer();
+    const forDecode = ab.slice(0); // decodeAudioData "consume" el buffer
+    const url = URL.createObjectURL(new Blob([ab], { type: 'audio/mpeg' }));
+    let dur = 1.6;
+    let hiPeaks: number[] = [];
+    try {
+      const ctx = _getAudioCtx();
+      if (ctx) {
+        const audioBuf = await ctx.decodeAudioData(forDecode);
+        dur = audioBuf.duration || 1.6;
+        hiPeaks = _peaks(audioBuf, Math.max(8, Math.round(dur * 40)));
+      }
+    } catch { hiPeaks = []; }
+    const out = { url, dur, hiPeaks };
+    _dialogueClipCache.set(key, out);
+    return out;
+  } catch {
+    return null;
+  }
+}
+
 function speakDutch(text: string, onDone?: () => void, rate?: number) {
   // Para parar cualquier audio previo (TTS o MP3)
   stopDutch();
@@ -3028,25 +3091,28 @@ function fmtTime(s: number) {
 }
 
 /**
- * Reproductor de diálogo estilo "nota de voz": barra de progreso, ±2s, líneas
- * que se van iluminando con el audio, toggle de velocidad y DOS voces (una por
- * interlocutor). Genera un clip por línea con la voz que toque (ElevenLabs nl).
+ * Reproductor de diálogo estilo ElevenLabs: una FORMA DE ONDA (waveform) con los
+ * altibajos del volumen y los silencios, el progreso pasando por encima, tiempo
+ * actual/total, ±2s, play/pausa y velocidad normal/lenta. NO muestra el texto
+ * (es un ejercicio de escucha). Genera un clip por línea con la voz que toque
+ * (dos voces: una por interlocutor) usando ElevenLabs en neerlandés.
  */
 function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: string }) {
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const [playing, setPlaying] = useState(false);
-  const [current, setCurrent] = useState(0);
   const [pos, setPos] = useState(0);
   const [total, setTotal] = useState(0);
   const [slow, setSlow] = useState(false);
+  const [bars, setBars] = useState<number[]>([]);
+  const [waveW, setWaveW] = useState(0);
 
   const clipsRef = useRef<{ audio: HTMLAudioElement; dur: number }[]>([]);
   const startsRef = useRef<number[]>([]);
   const curRef = useRef(0);
   const rafRef = useRef<number | null>(null);
-  const bubbleRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const waveRef = useRef<HTMLDivElement | null>(null);
 
   const speakers = useMemo(() => {
     const seen: string[] = [];
@@ -3057,7 +3123,6 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
     const v = speakers.indexOf(speaker) % 2 === 0 ? DIALOGUE_VOICE_A : DIALOGUE_VOICE_B;
     return v || undefined;
   };
-  const isLeftSpeaker = (speaker: string) => speakers.indexOf(speaker) % 2 === 0;
 
   const rate = slow ? 0.7 : 1;
   useEffect(() => { clipsRef.current.forEach((c) => { c.audio.playbackRate = rate; }); }, [rate]);
@@ -3065,9 +3130,16 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     clipsRef.current.forEach((c) => { try { c.audio.pause(); } catch {} });
   }, []);
+  // Mide el ancho de la onda para alinear la capa de progreso.
   useEffect(() => {
-    bubbleRefs.current[current]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }, [current]);
+    const el = waveRef.current;
+    if (!el) return;
+    const update = () => setWaveW(el.clientWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   function locate(p: number) {
     const starts = startsRef.current;
@@ -3079,7 +3151,7 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
   function pauseAll() { clipsRef.current.forEach((c) => { try { c.audio.pause(); } catch {} }); }
   function finish() {
     stopTick(); pauseAll(); setPlaying(false);
-    curRef.current = 0; setCurrent(0); setPos(0);
+    curRef.current = 0; setPos(0);
   }
   function tick() {
     const i = curRef.current;
@@ -3089,12 +3161,12 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
       if (i + 1 < clipsRef.current.length) { startClip(i + 1, 0, true); return; }
       finish(); return;
     }
-    setPos(startsRef.current[i] + c.audio.currentTime);
+    setPos((startsRef.current[i] ?? 0) + c.audio.currentTime);
     rafRef.current = requestAnimationFrame(tick);
   }
   function startClip(i: number, offset: number, autoplay: boolean) {
     pauseAll();
-    curRef.current = i; setCurrent(i);
+    curRef.current = i;
     const c = clipsRef.current[i];
     if (!c) return;
     try { c.audio.currentTime = offset; } catch {}
@@ -3111,23 +3183,43 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
   async function ensureLoaded(): Promise<boolean> {
     if (ready) return true;
     setLoading(true); setFailed(false);
-    const urls = await Promise.all(lines.map((l) => _ttsClipUrl(l.dutch, voiceFor(l.speaker))));
-    if (urls.some((u) => !u)) { setLoading(false); setFailed(true); return false; }
-    const clips = await Promise.all(
-      urls.map((u) => new Promise<{ audio: HTMLAudioElement; dur: number }>((resolve) => {
-        const audio = new Audio(u as string);
-        audio.preload = 'auto';
-        const done = () => resolve({ audio, dur: isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 1.6 });
-        if (audio.readyState >= 1 && isFinite(audio.duration) && audio.duration > 0) done();
-        else { audio.onloadedmetadata = done; audio.onerror = () => resolve({ audio, dur: 1.6 }); }
-      }))
-    );
+    const data = await Promise.all(lines.map((l) => _dialogueClip(l.dutch, voiceFor(l.speaker))));
+    if (data.some((d) => !d)) { setLoading(false); setFailed(true); return false; }
+    const clips = data.map((d) => {
+      const audio = new Audio(d!.url);
+      audio.preload = 'auto';
+      audio.playbackRate = rate;
+      return { audio, dur: d!.dur };
+    });
     const starts: number[] = [];
     let acc = 0;
     for (const c of clips) { starts.push(acc); acc += c.dur; }
-    clips.forEach((c) => { c.audio.playbackRate = rate; });
-    clipsRef.current = clips; startsRef.current = starts;
-    setTotal(acc); setReady(true); setLoading(false);
+    const totalDur = acc;
+
+    // Forma de onda: junta los picos de todos los clips y los reparte por tiempo.
+    const targetBars = Math.min(140, Math.max(28, Math.round(totalDur * 9)));
+    const binDur = totalDur > 0 ? totalDur / targetBars : 1;
+    const binMax = new Array(targetBars).fill(0);
+    let off = 0;
+    for (const d of data) {
+      const n = d!.hiPeaks.length || 1;
+      const dt = d!.dur / n;
+      for (let j = 0; j < (d!.hiPeaks.length || 0); j++) {
+        const t = off + j * dt + dt / 2;
+        const bin = Math.min(targetBars - 1, Math.floor(t / binDur));
+        if (d!.hiPeaks[j] > binMax[bin]) binMax[bin] = d!.hiPeaks[j];
+      }
+      off += d!.dur;
+    }
+    const mx = Math.max(0.0001, ...binMax);
+    const norm = binMax.map((v) => Math.max(0.08, v / mx)); // mínimo visible en silencios
+
+    clipsRef.current = clips;
+    startsRef.current = starts;
+    setBars(norm);
+    setTotal(totalDur);
+    setReady(true);
+    setLoading(false);
     return true;
   }
 
@@ -3143,7 +3235,7 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
     const np = Math.max(0, Math.min(total - 0.05, pos + delta));
     startClip(locate(np), np - (startsRef.current[locate(np)] ?? 0), playing);
   }
-  function onBarClick(e: React.MouseEvent<HTMLDivElement>) {
+  function onWaveClick(e: React.MouseEvent<HTMLDivElement>) {
     if (!ready || total <= 0) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -3153,41 +3245,46 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
 
   const progressPct = total > 0 ? Math.min(100, (pos / total) * 100) : 0;
   const ICON = 'w-4 h-4';
+  const placeholder = useMemo(
+    () => Array.from({ length: 48 }, (_, i) => 0.22 + 0.28 * Math.abs(Math.sin(i * 0.7))),
+    []
+  );
+  const displayBars = ready && bars.length ? bars : placeholder;
+
+  const Bars = ({ color }: { color: string }) => (
+    <div className="h-full flex items-center gap-[2px]" style={{ width: waveW || '100%' }}>
+      {displayBars.map((h, i) => (
+        <div key={i} className="flex-1 rounded-full" style={{ height: `${Math.round(h * 100)}%`, background: color, minWidth: 1 }} />
+      ))}
+    </div>
+  );
 
   return (
-    <div className="rounded-xl border border-[#DDE6F5] bg-white p-3 space-y-3">
-      {/* Líneas tipo chat */}
-      <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
-        {lines.map((l, i) => {
-          const left = isLeftSpeaker(l.speaker);
-          const active = ready && i === current;
-          return (
-            <div key={l.id} ref={(el) => { bubbleRefs.current[i] = el; }} className={`flex ${left ? 'justify-start' : 'justify-end'}`}>
-              <div
-                className={`max-w-[82%] rounded-2xl px-3 py-2 text-[14px] leading-snug border transition-all duration-200 ${
-                  left ? 'bg-[#F0F5FF] text-gray-900 border-[#DDE6F5] rounded-bl-sm' : 'text-white border-transparent rounded-br-sm'
-                } ${active ? 'scale-[1.01]' : 'opacity-90'}`}
-                style={{
-                  ...(left ? {} : { background: accentColor }),
-                  ...(active ? { boxShadow: `0 0 0 2px ${accentColor}` } : {}),
-                }}
-              >
-                <p className={`text-[10px] font-bold uppercase tracking-wide mb-0.5 ${left ? 'text-[#025dc7]' : 'text-white/85'}`}>{l.speaker}</p>
-                <p>{l.dutch}</p>
-              </div>
-            </div>
-          );
-        })}
+    <div className="rounded-xl border border-[#DDE6F5] bg-white p-3 sm:p-4 space-y-3">
+      {/* Forma de onda con progreso por encima */}
+      <div ref={waveRef} onClick={onWaveClick} className="relative h-14 w-full cursor-pointer select-none">
+        <div className="absolute inset-0">
+          <Bars color="#DDE6F5" />
+        </div>
+        <div className="absolute inset-0 overflow-hidden" style={{ width: `${progressPct}%` }}>
+          <Bars color={accentColor} />
+        </div>
+      </div>
+
+      {/* Tiempo */}
+      <div className="flex justify-between text-[11px] text-[#9CA3AF] tabular-nums -mt-1">
+        <span>{fmtTime(pos)}</span>
+        <span>{ready ? `-${fmtTime(Math.max(0, total - pos))}` : '—:—'}</span>
       </div>
 
       {/* Controles */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-center gap-3">
         <button onClick={() => seek(-2)} disabled={!ready} aria-label="Atrás 2 segundos"
           className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center bg-[#F0F5FF] text-[#025dc7] hover:bg-[#e0eaff] disabled:opacity-40 transition-colors text-[11px] font-bold">
           −2s
         </button>
         <button onClick={togglePlay} aria-label={playing ? 'Pausar' : 'Reproducir'}
-          className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-white shadow-sm hover:opacity-90 transition-opacity"
+          className="shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-white shadow-sm hover:opacity-90 transition-opacity"
           style={{ background: accentColor }}>
           {loading ? (
             <svg className={`${ICON} animate-spin`} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeDasharray="40" opacity="0.85" /></svg>
@@ -3201,19 +3298,8 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
           className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center bg-[#F0F5FF] text-[#025dc7] hover:bg-[#e0eaff] disabled:opacity-40 transition-colors text-[11px] font-bold">
           +2s
         </button>
-
-        <div className="flex-1 min-w-0">
-          <div onClick={onBarClick} className="h-2 w-full rounded-full bg-[#DDE6F5] overflow-hidden cursor-pointer">
-            <div className="h-full rounded-full transition-[width] duration-100" style={{ width: `${progressPct}%`, background: accentColor }} />
-          </div>
-          <div className="flex justify-between text-[10px] text-[#9CA3AF] mt-1 tabular-nums">
-            <span>{fmtTime(pos)}</span>
-            <span>{ready ? fmtTime(total) : '—:—'}</span>
-          </div>
-        </div>
-
         <button onClick={() => setSlow((s) => !s)} aria-label="Velocidad"
-          className={`shrink-0 px-2.5 h-9 rounded-full text-[12px] font-bold transition-colors ${
+          className={`shrink-0 px-3 h-9 rounded-full text-[12px] font-bold transition-colors ${
             slow ? 'bg-[#1D0084] text-white' : 'bg-[#F0F5FF] text-[#025dc7] hover:bg-[#e0eaff]'
           }`}>
           {slow ? '🐢 Lento' : '1×'}
@@ -3221,7 +3307,7 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
       </div>
 
       {failed && (
-        <p className="text-[11px] text-[#9CA3AF]">No se pudo cargar el audio; se usó la voz del navegador.</p>
+        <p className="text-[11px] text-[#9CA3AF] text-center">No se pudo cargar el audio; se usó la voz del navegador.</p>
       )}
     </div>
   );
@@ -3248,6 +3334,9 @@ function LuisterenSection({
   const [exKey, setExKey] = useState(0);
   const [showTranslation, setShowTranslation] = useState(false);
   const [exercisesDone, setExercisesDone] = useState(false);
+  // El texto del diálogo no se puede leer hasta completar los ejercicios (queda
+  // desbloqueado para siempre una vez hechos, aunque se repitan).
+  const [transcriptUnlocked, setTranscriptUnlocked] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<LastAttempt | null>(null);
   const session = useLHSession() as any;
   const accessToken: string | undefined = session?.data?.tokens?.access_token;
@@ -3257,7 +3346,7 @@ function LuisterenSection({
     if (!cacheKey) return;
     let active = true;
     getLastAttempt(cacheKey, accessToken).then((a) => {
-      if (active) setLastAttempt(a);
+      if (active) { setLastAttempt(a); if (a) setTranscriptUnlocked(true); }
     });
     return () => {
       active = false;
@@ -3325,27 +3414,49 @@ function LuisterenSection({
           <DialoguePlayer lines={dialogue.lines} accentColor="#1D0084" />
         </div>
 
-        {/* Dos botones: ver el diálogo / ir a los ejercicios — misma altura */}
+        {/* El texto del diálogo se desbloquea al terminar los ejercicios. */}
         <div className="space-y-2 pt-2">
-          <button
-            onClick={() => setView('dialogue')}
-            className="w-full flex items-center justify-center gap-2 py-4 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-            </svg>
-            Ver el diálogo
-          </button>
-          {hasExercises && (
-            <button
-              onClick={() => setView('exercises')}
-              className="w-full flex items-center justify-center gap-2 py-4 rounded-lg bg-white border border-[#DDE6F5] text-gray-900 text-[15px] font-semibold hover:bg-[#F0F5FF] transition-colors duration-200"
-            >
-              Ir directamente a los ejercicios
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
+          {hasExercises && !transcriptUnlocked ? (
+            <>
+              <button
+                onClick={() => setView('exercises')}
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200"
+              >
+                Hacer los ejercicios
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+              <div className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-[#F0F5FF] border border-[#DDE6F5] text-[#9CA3AF] text-[13px] font-medium">
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 11v4m-6 6h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm9-12V7a4 4 0 10-8 0v2" />
+                </svg>
+                Podrás leer el diálogo al terminar los ejercicios
+              </div>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => setView('dialogue')}
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                </svg>
+                Ver el diálogo
+              </button>
+              {hasExercises && (
+                <button
+                  onClick={() => setView('exercises')}
+                  className="w-full flex items-center justify-center gap-2 py-4 rounded-lg bg-white border border-[#DDE6F5] text-gray-900 text-[15px] font-semibold hover:bg-[#F0F5FF] transition-colors duration-200"
+                >
+                  Repetir los ejercicios
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -3532,6 +3643,7 @@ function LuisterenSection({
                 );
               }
               setExercisesDone(true);
+              setTranscriptUnlocked(true);
             } else {
               setExerciseIndex(i => i + 1);
               setAnswered(false);
