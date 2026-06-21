@@ -64,13 +64,17 @@ function _playUrl(url: string, onFail: () => void) {
   }
 }
 
+// Etiqueta de caché de la voz. SÚBELA (v3, v4...) cada vez que se cambie la voz
+// por defecto, para que el navegador no sirva el audio viejo en caché.
+const TTS_VOICE_TAG = 'v2';
+
 async function _speakViaElevenLabs(text: string): Promise<boolean> {
   if (_ttsRouteAvailable === false) return false;
-  const key = text.trim().toLowerCase();
+  const key = `${TTS_VOICE_TAG}:${text.trim().toLowerCase()}`;
   const cached = _ttsBlobCache.get(key);
   if (cached) { _playUrl(cached, () => _ttsFallback(text)); return true; }
   try {
-    const res = await fetch(`/api/tts?text=${encodeURIComponent(text)}`);
+    const res = await fetch(`/api/tts?text=${encodeURIComponent(text)}&vt=${TTS_VOICE_TAG}`);
     if (!res.ok) {
       if (res.status === 503) _ttsRouteAvailable = false; // no configurado → no reintentar
       return false;
