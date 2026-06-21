@@ -3105,14 +3105,16 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
   const [pos, setPos] = useState(0);
   const [total, setTotal] = useState(0);
   const [slow, setSlow] = useState(false);
-  const [bars, setBars] = useState<number[]>([]);
   const [waveW, setWaveW] = useState(0);
 
   const clipsRef = useRef<{ audio: HTMLAudioElement; dur: number }[]>([]);
   const startsRef = useRef<number[]>([]);
+  const dataRef = useRef<{ dur: number; hiPeaks: number[] }[]>([]);
   const curRef = useRef(0);
   const rafRef = useRef<number | null>(null);
   const waveRef = useRef<HTMLDivElement | null>(null);
+  const draggingRef = useRef(false);
+  const wasPlayingRef = useRef(false);
 
   const speakers = useMemo(() => {
     const seen: string[] = [];
@@ -3189,35 +3191,19 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
       const audio = new Audio(d!.url);
       audio.preload = 'auto';
       audio.playbackRate = rate;
+      // Mantener el tono al ir lento (si no, suena grave/raro).
+      audio.preservesPitch = true;
+      (audio as any).webkitPreservesPitch = true;
       return { audio, dur: d!.dur };
     });
     const starts: number[] = [];
     let acc = 0;
     for (const c of clips) { starts.push(acc); acc += c.dur; }
-    const totalDur = acc;
-
-    // Forma de onda: junta los picos de todos los clips y los reparte por tiempo.
-    const targetBars = Math.min(140, Math.max(28, Math.round(totalDur * 9)));
-    const binDur = totalDur > 0 ? totalDur / targetBars : 1;
-    const binMax = new Array(targetBars).fill(0);
-    let off = 0;
-    for (const d of data) {
-      const n = d!.hiPeaks.length || 1;
-      const dt = d!.dur / n;
-      for (let j = 0; j < (d!.hiPeaks.length || 0); j++) {
-        const t = off + j * dt + dt / 2;
-        const bin = Math.min(targetBars - 1, Math.floor(t / binDur));
-        if (d!.hiPeaks[j] > binMax[bin]) binMax[bin] = d!.hiPeaks[j];
-      }
-      off += d!.dur;
-    }
-    const mx = Math.max(0.0001, ...binMax);
-    const norm = binMax.map((v) => Math.max(0.08, v / mx)); // mínimo visible en silencios
 
     clipsRef.current = clips;
     startsRef.current = starts;
-    setBars(norm);
-    setTotal(totalDur);
+    dataRef.current = data.map((d) => ({ dur: d!.dur, hiPeaks: d!.hiPeaks }));
+    setTotal(acc);
     setReady(true);
     setLoading(false);
     return true;
@@ -3235,36 +3221,85 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
     const np = Math.max(0, Math.min(total - 0.05, pos + delta));
     startClip(locate(np), np - (startsRef.current[locate(np)] ?? 0), playing);
   }
-  function onWaveClick(e: React.MouseEvent<HTMLDivElement>) {
+  // ── Arrastre (scrubbing) con dedo o ratón sobre la onda ──
+  function posFromClientX(clientX: number): number {
+    const el = waveRef.current;
+    if (!el || total <= 0) return 0;
+    const r = el.getBoundingClientRect();
+    const frac = Math.max(0, Math.min(1, (clientX - r.left) / r.width));
+    return frac * total;
+  }
+  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (!ready || total <= 0) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const np = frac * total;
-    startClip(locate(np), np - (startsRef.current[locate(np)] ?? 0), playing);
+    e.preventDefault();
+    try { (e.currentTarget as any).setPointerCapture?.(e.pointerId); } catch {}
+    draggingRef.current = true;
+    wasPlayingRef.current = playing;
+    pauseAll(); stopTick(); setPlaying(false);
+    setPos(posFromClientX(e.clientX));
+  }
+  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!draggingRef.current) return;
+    setPos(posFromClientX(e.clientX));
+  }
+  function onPointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    const np = posFromClientX(e.clientX);
+    startClip(locate(np), np - (startsRef.current[locate(np)] ?? 0), wasPlayingRef.current);
   }
 
   const progressPct = total > 0 ? Math.min(100, (pos / total) * 100) : 0;
   const ICON = 'w-4 h-4';
-  const placeholder = useMemo(
-    () => Array.from({ length: 48 }, (_, i) => 0.22 + 0.28 * Math.abs(Math.sin(i * 0.7))),
-    []
-  );
-  const displayBars = ready && bars.length ? bars : placeholder;
+
+  // Barras de la onda, adaptadas al ancho (para que SIEMPRE quepan) y más
+  // gruesas. Se recalculan al cargar el audio o al cambiar el ancho.
+  const bars = useMemo(() => {
+    const BAR = 4, GAP = 3; // px aprox por barra → nº de barras que caben
+    const n = Math.max(20, Math.min(90, Math.floor((waveW || 280) / (BAR + GAP))));
+    const data = dataRef.current;
+    if (!ready || !data.length || total <= 0) {
+      return Array.from({ length: n }, (_, i) => 0.28 + 0.42 * Math.abs(Math.sin(i * 0.6)));
+    }
+    const binDur = total / n;
+    const binMax = new Array(n).fill(0);
+    let off = 0;
+    for (const d of data) {
+      const m = d.hiPeaks.length || 1;
+      const dt = d.dur / m;
+      for (let j = 0; j < (d.hiPeaks.length || 0); j++) {
+        const t = off + j * dt + dt / 2;
+        const bin = Math.min(n - 1, Math.floor(t / binDur));
+        if (d.hiPeaks[j] > binMax[bin]) binMax[bin] = d.hiPeaks[j];
+      }
+      off += d.dur;
+    }
+    const mx = Math.max(0.0001, ...binMax);
+    return binMax.map((v) => Math.max(0.16, Math.pow(v / mx, 0.8))); // realza y deja mínimo visible
+  }, [ready, waveW, total]);
 
   const Bars = ({ color }: { color: string }) => (
-    <div className="h-full flex items-center gap-[2px]" style={{ width: waveW || '100%' }}>
-      {displayBars.map((h, i) => (
-        <div key={i} className="flex-1 rounded-full" style={{ height: `${Math.round(h * 100)}%`, background: color, minWidth: 1 }} />
+    <div className="h-full flex items-center gap-[3px]" style={{ width: waveW || '100%' }}>
+      {bars.map((h, i) => (
+        <div key={i} className="flex-1 rounded-full" style={{ height: `${Math.round(h * 100)}%`, background: color }} />
       ))}
     </div>
   );
 
   return (
-    <div className="rounded-xl border border-[#DDE6F5] bg-white p-3 sm:p-4 space-y-3">
-      {/* Forma de onda con progreso por encima */}
-      <div ref={waveRef} onClick={onWaveClick} className="relative h-14 w-full cursor-pointer select-none">
+    <div className="rounded-xl border border-[#DDE6F5] bg-white p-3 sm:p-4 space-y-3 overflow-hidden">
+      {/* Forma de onda con progreso por encima (arrastrable) */}
+      <div
+        ref={waveRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        className="relative h-16 w-full cursor-pointer select-none overflow-hidden"
+        style={{ touchAction: 'none' }}
+      >
         <div className="absolute inset-0">
-          <Bars color="#DDE6F5" />
+          <Bars color="#C9D6EF" />
         </div>
         <div className="absolute inset-0 overflow-hidden" style={{ width: `${progressPct}%` }}>
           <Bars color={accentColor} />

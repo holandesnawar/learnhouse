@@ -159,14 +159,7 @@ function TrailCourseCard(props: TrailCourseCardProps) {
               {t('certificate.verify')}
               <ExternalLink className="w-3 h-3" />
             </Link>
-          ) : (
-            <Link
-              href={courseLink}
-              className="text-[10px] font-bold text-gray-400 hover:text-gray-900 transition-colors uppercase tracking-wider"
-            >
-              {t('courses.continue_learning')}
-            </Link>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
