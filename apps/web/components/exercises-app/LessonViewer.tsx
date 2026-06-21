@@ -47,25 +47,62 @@ function _ttsFallback(text: string) {
   window.speechSynthesis.speak(u);
 }
 
+// ¿Está disponible la ruta de ElevenLabs? (se aprende al primer intento; si no
+// hay API key configurada devuelve 503 y dejamos de intentarlo en la sesión).
+let _ttsRouteAvailable: boolean | null = null;
+// Cache de audio por palabra (objectURL) para no re-pedir en la misma sesión.
+const _ttsBlobCache = new Map<string, string>();
+
+function _playUrl(url: string, onFail: () => void) {
+  try {
+    const audio = new Audio(url);
+    _currentAudio = audio;
+    audio.onerror = onFail;
+    audio.play().catch(onFail);
+  } catch {
+    onFail();
+  }
+}
+
+async function _speakViaElevenLabs(text: string): Promise<boolean> {
+  if (_ttsRouteAvailable === false) return false;
+  const key = text.trim().toLowerCase();
+  const cached = _ttsBlobCache.get(key);
+  if (cached) { _playUrl(cached, () => _ttsFallback(text)); return true; }
+  try {
+    const res = await fetch(`/api/tts?text=${encodeURIComponent(text)}`);
+    if (!res.ok) {
+      if (res.status === 503) _ttsRouteAvailable = false; // no configurado → no reintentar
+      return false;
+    }
+    _ttsRouteAvailable = true;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    _ttsBlobCache.set(key, url);
+    _playUrl(url, () => _ttsFallback(text));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function speakDutch(text: string) {
   // Para parar cualquier audio previo (TTS o MP3)
   if (_currentAudio) { try { _currentAudio.pause(); } catch {} _currentAudio = null; }
   if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel();
 
   const key = text.trim().toLowerCase();
-  const url = _wordAudioMap[key];
-  if (url) {
-    try {
-      const audio = new Audio(url);
-      _currentAudio = audio;
-      audio.onerror = () => _ttsFallback(text);
-      audio.play().catch(() => _ttsFallback(text));
-      return;
-    } catch {
-      // fallthrough to TTS
-    }
-  }
-  _ttsFallback(text);
+
+  // 1) Voz de ElevenLabs en NEERLANDÉS (la buena, sin acento inglés). Si la
+  //    cuenta no está configurada, cae a las siguientes opciones.
+  _speakViaElevenLabs(text).then((ok) => {
+    if (ok) return;
+    // 2) MP3 pre-generado si existe.
+    const url = _wordAudioMap[key];
+    if (url) { _playUrl(url, () => _ttsFallback(text)); return; }
+    // 3) Voz del navegador (último recurso).
+    _ttsFallback(text);
+  });
 }
 
 /**
