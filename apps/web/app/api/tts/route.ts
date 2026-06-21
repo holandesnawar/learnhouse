@@ -31,15 +31,19 @@ export async function GET(req: NextRequest) {
   const text = (req.nextUrl.searchParams.get('text') || '').trim()
   if (!text) return new Response('missing text', { status: 400 })
   if (text.length > 800) return new Response('text too long', { status: 400 })
-  if (!API_KEY || !VOICE_ID) return new Response('tts not configured', { status: 503 })
+  if (!API_KEY) return new Response('tts not configured', { status: 503 })
 
-  const cacheKey = `${VOICE_ID}:${MODEL_ID}:${text.toLowerCase()}`
+  // Voz por petición (para diálogos con 2 voces); si no, la voz por defecto.
+  const voice = (req.nextUrl.searchParams.get('voice') || '').trim() || VOICE_ID
+  if (!voice) return new Response('tts not configured', { status: 503 })
+
+  const cacheKey = `${voice}:${MODEL_ID}:${text.toLowerCase()}`
   let buf = cache.get(cacheKey)
 
   if (!buf) {
     try {
       const r = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}?output_format=mp3_44100_128`,
+        `https://api.elevenlabs.io/v1/text-to-speech/${voice}?output_format=mp3_44100_128`,
         {
           method: 'POST',
           headers: { 'xi-api-key': API_KEY, 'Content-Type': 'application/json' },

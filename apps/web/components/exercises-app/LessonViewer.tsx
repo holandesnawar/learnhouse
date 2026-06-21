@@ -99,6 +99,28 @@ async function _speakViaElevenLabs(text: string, onDone?: () => void, rate?: num
   }
 }
 
+// Obtiene la URL (objectURL) de un clip de audio para una frase + voz concreta.
+// Reutiliza la caché por voz+texto. Devuelve null si la ruta no está disponible.
+async function _ttsClipUrl(text: string, voice?: string): Promise<string | null> {
+  const key = `${TTS_VOICE_TAG}:${voice || 'def'}:${text.trim().toLowerCase()}`;
+  const cached = _ttsBlobCache.get(key);
+  if (cached) return cached;
+  if (_ttsRouteAvailable === false) return null;
+  try {
+    const q = new URLSearchParams({ text, vt: TTS_VOICE_TAG });
+    if (voice) q.set('voice', voice);
+    const res = await fetch(`/api/tts?${q.toString()}`);
+    if (!res.ok) { if (res.status === 503) _ttsRouteAvailable = false; return null; }
+    _ttsRouteAvailable = true;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    _ttsBlobCache.set(key, url);
+    return url;
+  } catch {
+    return null;
+  }
+}
+
 function speakDutch(text: string, onDone?: () => void, rate?: number) {
   // Para parar cualquier audio previo (TTS o MP3)
   stopDutch();
@@ -2990,48 +3012,218 @@ function LezenSection({
  * Botón de audio para diálogos sin archivo grabado. Usa la voz por defecto
  * (ElevenLabs en neerlandés) con fallback a la voz del navegador.
  */
-function DialogueTTSButton({
-  lines,
-  rate,
-  accentColor,
-}: {
-  lines: { dutch: string }[];
-  rate: number;
-  accentColor: string;
-}) {
-  const [isPlaying, setIsPlaying] = useState(false);
+/* ── Voces del diálogo: A = voz por defecto del servidor; B = segunda voz ──
+   '' = usa la voz por defecto. Pon aquí el Voice ID de la 2ª voz (NL) cuando lo
+   tengas para diferenciar a los dos interlocutores. */
+const DIALOGUE_VOICE_A = '';
+const DIALOGUE_VOICE_B = '';
 
-  function toggle() {
-    if (isPlaying) { stopDutch(); setIsPlaying(false); return; }
-    const fullText = lines.map(l => l.dutch).join('. ');
-    setIsPlaying(true);
-    // Voz por defecto (ElevenLabs nl); `rate` reproduce la versión lenta.
-    speakDutch(fullText, () => setIsPlaying(false), rate);
+type DLine = { id: string; speaker: string; dutch: string; spanish?: string };
+
+function fmtTime(s: number) {
+  if (!isFinite(s) || s < 0) s = 0;
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Reproductor de diálogo estilo "nota de voz": barra de progreso, ±2s, líneas
+ * que se van iluminando con el audio, toggle de velocidad y DOS voces (una por
+ * interlocutor). Genera un clip por línea con la voz que toque (ElevenLabs nl).
+ */
+function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: string }) {
+  const [ready, setReady] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [current, setCurrent] = useState(0);
+  const [pos, setPos] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [slow, setSlow] = useState(false);
+
+  const clipsRef = useRef<{ audio: HTMLAudioElement; dur: number }[]>([]);
+  const startsRef = useRef<number[]>([]);
+  const curRef = useRef(0);
+  const rafRef = useRef<number | null>(null);
+  const bubbleRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  const speakers = useMemo(() => {
+    const seen: string[] = [];
+    for (const l of lines) if (!seen.includes(l.speaker)) seen.push(l.speaker);
+    return seen;
+  }, [lines]);
+  const voiceFor = (speaker: string) => {
+    const v = speakers.indexOf(speaker) % 2 === 0 ? DIALOGUE_VOICE_A : DIALOGUE_VOICE_B;
+    return v || undefined;
+  };
+  const isLeftSpeaker = (speaker: string) => speakers.indexOf(speaker) % 2 === 0;
+
+  const rate = slow ? 0.7 : 1;
+  useEffect(() => { clipsRef.current.forEach((c) => { c.audio.playbackRate = rate; }); }, [rate]);
+  useEffect(() => () => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    clipsRef.current.forEach((c) => { try { c.audio.pause(); } catch {} });
+  }, []);
+  useEffect(() => {
+    bubbleRefs.current[current]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [current]);
+
+  function locate(p: number) {
+    const starts = startsRef.current;
+    let i = 0;
+    for (let k = 0; k < starts.length; k++) { if (p >= starts[k]) i = k; else break; }
+    return i;
+  }
+  function stopTick() { if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; } }
+  function pauseAll() { clipsRef.current.forEach((c) => { try { c.audio.pause(); } catch {} }); }
+  function finish() {
+    stopTick(); pauseAll(); setPlaying(false);
+    curRef.current = 0; setCurrent(0); setPos(0);
+  }
+  function tick() {
+    const i = curRef.current;
+    const c = clipsRef.current[i];
+    if (!c) { stopTick(); return; }
+    if (c.audio.ended || c.audio.currentTime >= c.dur - 0.03) {
+      if (i + 1 < clipsRef.current.length) { startClip(i + 1, 0, true); return; }
+      finish(); return;
+    }
+    setPos(startsRef.current[i] + c.audio.currentTime);
+    rafRef.current = requestAnimationFrame(tick);
+  }
+  function startClip(i: number, offset: number, autoplay: boolean) {
+    pauseAll();
+    curRef.current = i; setCurrent(i);
+    const c = clipsRef.current[i];
+    if (!c) return;
+    try { c.audio.currentTime = offset; } catch {}
+    setPos((startsRef.current[i] ?? 0) + offset);
+    if (autoplay) {
+      c.audio.playbackRate = rate;
+      c.audio.play().catch(() => {});
+      setPlaying(true);
+      stopTick();
+      rafRef.current = requestAnimationFrame(tick);
+    }
   }
 
+  async function ensureLoaded(): Promise<boolean> {
+    if (ready) return true;
+    setLoading(true); setFailed(false);
+    const urls = await Promise.all(lines.map((l) => _ttsClipUrl(l.dutch, voiceFor(l.speaker))));
+    if (urls.some((u) => !u)) { setLoading(false); setFailed(true); return false; }
+    const clips = await Promise.all(
+      urls.map((u) => new Promise<{ audio: HTMLAudioElement; dur: number }>((resolve) => {
+        const audio = new Audio(u as string);
+        audio.preload = 'auto';
+        const done = () => resolve({ audio, dur: isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 1.6 });
+        if (audio.readyState >= 1 && isFinite(audio.duration) && audio.duration > 0) done();
+        else { audio.onloadedmetadata = done; audio.onerror = () => resolve({ audio, dur: 1.6 }); }
+      }))
+    );
+    const starts: number[] = [];
+    let acc = 0;
+    for (const c of clips) { starts.push(acc); acc += c.dur; }
+    clips.forEach((c) => { c.audio.playbackRate = rate; });
+    clipsRef.current = clips; startsRef.current = starts;
+    setTotal(acc); setReady(true); setLoading(false);
+    return true;
+  }
+
+  async function togglePlay() {
+    if (playing) { pauseAll(); setPlaying(false); stopTick(); return; }
+    const ok = await ensureLoaded();
+    if (!ok) { speakDutch(lines.map((l) => l.dutch).join('. '), undefined, rate); return; }
+    const offset = pos - (startsRef.current[curRef.current] ?? 0);
+    startClip(curRef.current, Math.max(0, offset), true);
+  }
+  function seek(delta: number) {
+    if (!ready) return;
+    const np = Math.max(0, Math.min(total - 0.05, pos + delta));
+    startClip(locate(np), np - (startsRef.current[locate(np)] ?? 0), playing);
+  }
+  function onBarClick(e: React.MouseEvent<HTMLDivElement>) {
+    if (!ready || total <= 0) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const np = frac * total;
+    startClip(locate(np), np - (startsRef.current[locate(np)] ?? 0), playing);
+  }
+
+  const progressPct = total > 0 ? Math.min(100, (pos / total) * 100) : 0;
+  const ICON = 'w-4 h-4';
+
   return (
-    <button
-      onClick={toggle}
-      className="w-full flex items-center gap-3 rounded-lg bg-[#F0F5FF] border border-[#DDE6F5] px-3 py-2 text-left hover:bg-[#e0eaff] transition-colors"
-    >
-      <span
-        className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm"
-        style={{ background: accentColor }}
-      >
-        {isPlaying ? (
-          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-          </svg>
-        ) : (
-          <svg className="w-3 h-3 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M8 5v14l11-7z" />
-          </svg>
-        )}
-      </span>
-      <span className="text-[12px] text-[#5A6480] font-medium">
-        {isPlaying ? 'Pausar' : 'Escuchar'}
-      </span>
-    </button>
+    <div className="rounded-xl border border-[#DDE6F5] bg-white p-3 space-y-3">
+      {/* Líneas tipo chat */}
+      <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+        {lines.map((l, i) => {
+          const left = isLeftSpeaker(l.speaker);
+          const active = ready && i === current;
+          return (
+            <div key={l.id} ref={(el) => { bubbleRefs.current[i] = el; }} className={`flex ${left ? 'justify-start' : 'justify-end'}`}>
+              <div
+                className={`max-w-[82%] rounded-2xl px-3 py-2 text-[14px] leading-snug border transition-all duration-200 ${
+                  left ? 'bg-[#F0F5FF] text-gray-900 border-[#DDE6F5] rounded-bl-sm' : 'text-white border-transparent rounded-br-sm'
+                } ${active ? 'scale-[1.01]' : 'opacity-90'}`}
+                style={{
+                  ...(left ? {} : { background: accentColor }),
+                  ...(active ? { boxShadow: `0 0 0 2px ${accentColor}` } : {}),
+                }}
+              >
+                <p className={`text-[10px] font-bold uppercase tracking-wide mb-0.5 ${left ? 'text-[#025dc7]' : 'text-white/85'}`}>{l.speaker}</p>
+                <p>{l.dutch}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Controles */}
+      <div className="flex items-center gap-2">
+        <button onClick={() => seek(-2)} disabled={!ready} aria-label="Atrás 2 segundos"
+          className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center bg-[#F0F5FF] text-[#025dc7] hover:bg-[#e0eaff] disabled:opacity-40 transition-colors text-[11px] font-bold">
+          −2s
+        </button>
+        <button onClick={togglePlay} aria-label={playing ? 'Pausar' : 'Reproducir'}
+          className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-white shadow-sm hover:opacity-90 transition-opacity"
+          style={{ background: accentColor }}>
+          {loading ? (
+            <svg className={`${ICON} animate-spin`} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeDasharray="40" opacity="0.85" /></svg>
+          ) : playing ? (
+            <svg className={ICON} fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg>
+          ) : (
+            <svg className={`${ICON} ml-0.5`} fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+          )}
+        </button>
+        <button onClick={() => seek(2)} disabled={!ready} aria-label="Adelante 2 segundos"
+          className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center bg-[#F0F5FF] text-[#025dc7] hover:bg-[#e0eaff] disabled:opacity-40 transition-colors text-[11px] font-bold">
+          +2s
+        </button>
+
+        <div className="flex-1 min-w-0">
+          <div onClick={onBarClick} className="h-2 w-full rounded-full bg-[#DDE6F5] overflow-hidden cursor-pointer">
+            <div className="h-full rounded-full transition-[width] duration-100" style={{ width: `${progressPct}%`, background: accentColor }} />
+          </div>
+          <div className="flex justify-between text-[10px] text-[#9CA3AF] mt-1 tabular-nums">
+            <span>{fmtTime(pos)}</span>
+            <span>{ready ? fmtTime(total) : '—:—'}</span>
+          </div>
+        </div>
+
+        <button onClick={() => setSlow((s) => !s)} aria-label="Velocidad"
+          className={`shrink-0 px-2.5 h-9 rounded-full text-[12px] font-bold transition-colors ${
+            slow ? 'bg-[#1D0084] text-white' : 'bg-[#F0F5FF] text-[#025dc7] hover:bg-[#e0eaff]'
+          }`}>
+          {slow ? '🐢 Lento' : '1×'}
+        </button>
+      </div>
+
+      {failed && (
+        <p className="text-[11px] text-[#9CA3AF]">No se pudo cargar el audio; se usó la voz del navegador.</p>
+      )}
+    </div>
   );
 }
 
@@ -3120,36 +3312,17 @@ function LuisterenSection({
           </div>
         )}
 
-        {/* Dos audios: normal y lento */}
-        <div className="space-y-5">
-          <div>
-            <div className="flex items-center gap-2.5 mb-2.5">
-              <span className="text-2xl leading-none">⚡</span>
-              <div>
-                <p className="text-[15px] font-bold text-gray-900 leading-tight">Velocidad normal</p>
-                <p className="text-[12px] text-[#9CA3AF] leading-tight">Ritmo natural</p>
-              </div>
+        {/* Reproductor del diálogo: barra de progreso, ±2s, líneas que se
+            iluminan, velocidad normal/lenta y dos voces (una por interlocutor). */}
+        <div>
+          <div className="flex items-center gap-2.5 mb-2.5">
+            <span className="text-2xl leading-none">🎧</span>
+            <div>
+              <p className="text-[15px] font-bold text-gray-900 leading-tight">Escucha el diálogo</p>
+              <p className="text-[12px] text-[#9CA3AF] leading-tight">Sigue las líneas mientras suena · ajusta la velocidad</p>
             </div>
-            {dialogue.audio?.url ? (
-              <AudioPlayer src={dialogue.audio.url} />
-            ) : (
-              <DialogueTTSButton lines={dialogue.lines} rate={0.95} accentColor="#1D0084" />
-            )}
           </div>
-          <div>
-            <div className="flex items-center gap-2.5 mb-2.5">
-              <span className="text-2xl leading-none">🐢</span>
-              <div>
-                <p className="text-[15px] font-bold text-gray-900 leading-tight">Versión lenta</p>
-                <p className="text-[12px] text-[#9CA3AF] leading-tight">Para entender cada palabra</p>
-              </div>
-            </div>
-            {dialogue.slowAudio?.url ? (
-              <AudioPlayer src={dialogue.slowAudio.url} />
-            ) : (
-              <DialogueTTSButton lines={dialogue.lines} rate={0.6} accentColor="#025dc7" />
-            )}
-          </div>
+          <DialoguePlayer lines={dialogue.lines} accentColor="#1D0084" />
         </div>
 
         {/* Dos botones: ver el diálogo / ir a los ejercicios — misma altura */}
