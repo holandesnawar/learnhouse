@@ -68,6 +68,29 @@ function speakDutch(text: string) {
   _ttsFallback(text);
 }
 
+/**
+ * Artículo (de/het) sin duplicar. Algunos registros tienen el artículo metido
+ * dentro del campo `dutch` ("de fles") Y también en el campo `article` ("de"),
+ * lo que provocaba "de de fles". `bareDutch` devuelve la palabra SIN el artículo
+ * repetido; `joinDutch` devuelve "artículo + palabra" una sola vez.
+ */
+function bareDutch(article?: string, dutch?: string): string {
+  const d = (dutch || '').trim();
+  const a = (article || '').trim();
+  if (!a) return d;
+  const dl = d.toLowerCase();
+  const al = a.toLowerCase();
+  if (dl === al) return '';
+  if (dl.startsWith(al + ' ')) return d.slice(a.length + 1).trim();
+  return d;
+}
+function joinDutch(article?: string, dutch?: string): string {
+  const bare = bareDutch(article, dutch);
+  const a = (article || '').trim();
+  if (!a) return bare;
+  return bare ? `${a} ${bare}` : a;
+}
+
 
 /* ── Feedback banner (correct / incorrect) ── */
 
@@ -336,7 +359,7 @@ function WordCard({ word }: { word: VocabularyItem }) {
     }
     // Texto con artículo → speakDutch enruta automáticamente al MP3 -art.mp3
     // si está en el mapa global, o cae a TTS.
-    const text = (word.article ? `${word.article} ` : '') + word.dutch;
+    const text = joinDutch(word.article, word.dutch);
     setIsPlaying(true);
     speakDutch(text);
     // Resetear estado tras una pausa razonable (no tenemos onended del helper)
@@ -354,7 +377,7 @@ function WordCard({ word }: { word: VocabularyItem }) {
             </span>
           )}
           <span className="text-[14px] font-bold text-gray-900 leading-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
-            {word.dutch}
+            {bareDutch(word.article, word.dutch)}
           </span>
         </div>
         <p className="text-[12px] text-[#5A6480] font-medium leading-snug">{word.spanish}</p>
@@ -1081,9 +1104,9 @@ function FlashcardSection({
 
   const card = queue[index];
   const front = mode === 'nl-es'
-    ? (card?.article ? `${card.article} ${card.dutch}` : card?.dutch) ?? ''
+    ? joinDutch(card?.article, card?.dutch)
     : card?.spanish ?? '';
-  const back = mode === 'nl-es' ? card?.spanish ?? '' : (card?.article ? `${card.article} ${card.dutch}` : card?.dutch) ?? '';
+  const back = mode === 'nl-es' ? card?.spanish ?? '' : joinDutch(card?.article, card?.dutch);
 
   function handleKnown() {
     setKnownCount(k => k + 1);
@@ -3520,7 +3543,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
           // el patrón de la audio_url existente (extraemos {lessonId}-{slug}).
           if (v.article && supabaseUrl && v.audio?.url) {
             const articleUrl = v.audio.url.replace(/\.mp3$/, '-art.mp3');
-            map[`${v.article} ${v.dutch}`.trim().toLowerCase()] = articleUrl;
+            map[joinDutch(v.article, v.dutch).toLowerCase()] = articleUrl;
           }
         }
       }
