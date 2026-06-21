@@ -21,7 +21,7 @@ import { NextRequest } from 'next/server'
 const API_KEY = process.env.ELEVENLABS_API_KEY || process.env.LEARNHOUSE_ELEVENLABS_API_KEY || ''
 // Voz por defecto = la voz de la cuenta del usuario (Holandés Nawar). Se puede
 // sobreescribir con la env var ELEVENLABS_VOICE_ID.
-const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || process.env.LEARNHOUSE_ELEVENLABS_VOICE_ID || 'LP0ZBLgGaLqbDU1l9PDX'
+const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || process.env.LEARNHOUSE_ELEVENLABS_VOICE_ID || '6mAi1CJ7479mdT2HGuMI'
 const MODEL_ID = process.env.ELEVENLABS_MODEL_ID || process.env.LEARNHOUSE_ELEVENLABS_MODEL_ID || 'eleven_flash_v2_5'
 
 const cache = new Map<string, ArrayBuffer>()
