@@ -3127,7 +3127,15 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
   };
 
   const rate = slow ? 0.7 : 1;
-  useEffect(() => { clipsRef.current.forEach((c) => { c.audio.playbackRate = rate; }); }, [rate]);
+  // La velocidad se lee SIEMPRE de un ref para que el bucle de reproducción (que
+  // va saltando de línea en línea) aplique la velocidad actual a cada clip, no
+  // la que había cuando arrancó (el closure quedaba obsoleto → unas líneas
+  // salían lentas y otras normales).
+  const rateRef = useRef(1);
+  useEffect(() => {
+    rateRef.current = rate;
+    clipsRef.current.forEach((c) => { c.audio.playbackRate = rate; });
+  }, [rate]);
   useEffect(() => () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     clipsRef.current.forEach((c) => { try { c.audio.pause(); } catch {} });
@@ -3174,7 +3182,7 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
     try { c.audio.currentTime = offset; } catch {}
     setPos((startsRef.current[i] ?? 0) + offset);
     if (autoplay) {
-      c.audio.playbackRate = rate;
+      c.audio.playbackRate = rateRef.current;
       c.audio.play().catch(() => {});
       setPlaying(true);
       stopTick();
@@ -3190,7 +3198,7 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
     const clips = data.map((d) => {
       const audio = new Audio(d!.url);
       audio.preload = 'auto';
-      audio.playbackRate = rate;
+      audio.playbackRate = rateRef.current;
       // Mantener el tono al ir lento (si no, suena grave/raro).
       audio.preservesPitch = true;
       (audio as any).webkitPreservesPitch = true;
