@@ -1445,6 +1445,40 @@ const m3_les1: Lesson = {
       ],
     },
     {
+      type: 'lezen',
+      textNl: `Eten en drinken in Nederland
+
+Nederlanders houden van eenvoudig en gezond eten. Het ontbijt en de lunch zijn vaak koud: brood met kaas, en een glas melk of een kopje koffie. Koffie is heel populair: een Nederlander drinkt meer dan drie kopjes per dag!
+
+Het avondeten is meestal warm. Een klassiek bord heeft drie delen: aardappelen, vlees of vis, en groente. Veel mensen eten ook graag soep.
+
+Kaas is heel belangrijk. Per jaar eet één persoon ongeveer veertien kilo kaas. In de supermarkt vind je veel soorten kaas: jonge kaas, oude kaas en de bekende Goudse kaas.
+
+Fruit en water horen er ook bij. Een appel is een gezonde en lekkere snack. En het is goed om elke dag genoeg water te drinken.
+
+En jij? Wat eet jij het liefst? Eet je graag warm of koud?`,
+      textEs: `Comida y bebida en los Países Bajos
+
+A los neerlandeses les gusta la comida sencilla y sana. El desayuno y el almuerzo suelen ser fríos: pan con queso, y un vaso de leche o una taza de café. El café es muy popular: ¡un neerlandés bebe más de tres tazas al día!
+
+La cena suele ser caliente. Un plato clásico tiene tres partes: patatas, carne o pescado, y verdura. A mucha gente también le gusta la sopa.
+
+El queso es muy importante. Al año, una persona come unos catorce kilos de queso. En el supermercado encuentras muchos tipos de queso: queso joven, queso viejo y el conocido queso de Gouda.
+
+La fruta y el agua también forman parte. Una manzana es un snack sano y rico. Y conviene beber suficiente agua cada día.
+
+¿Y tú? ¿Qué es lo que más te gusta comer? ¿Te gusta comer caliente o frío?`,
+      exercises: [
+        { id: 'm3lz-1', type: 'multiple_choice', prompt: '¿Cómo suele ser el ontbijt (desayuno) en los Países Bajos?', options: ['Caliente', 'Frío', 'Un plato de carne', 'Solo fruta'], correctAnswer: 'Frío', explanation: '"Het ontbijt en de lunch zijn vaak koud": el desayuno y el almuerzo suelen ser fríos.' },
+        { id: 'm3lz-2', type: 'multiple_choice', prompt: '¿Cuántas tazas de café bebe al día un neerlandés de media?', options: ['Menos de una', 'Más de tres', 'Exactamente dos', 'Ninguna'], correctAnswer: 'Más de tres', explanation: '"Een Nederlander drinkt meer dan drie kopjes per dag".' },
+        { id: 'm3lz-3', type: 'multiple_choice', prompt: '¿Qué tres partes tiene un plato clásico de la cena?', options: ['Pan, queso y leche', 'Patatas, carne o pescado y verdura', 'Sopa, fruta y agua', 'Arroz, té y pan'], correctAnswer: 'Patatas, carne o pescado y verdura', explanation: '"Aardappelen, vlees of vis, en groente".' },
+        { id: 'm3lz-4', type: 'true_false', prompt: 'Una persona come unos 14 kilos de queso al año.', correctAnswer: 'verdadero', explanation: '"Per jaar eet één persoon ongeveer veertien kilo kaas".' },
+        { id: 'm3lz-5', type: 'fill_blank', prompt: 'Het is goed om elke dag genoeg ___ te drinken. (agua)', correctAnswer: 'water', hint: 'agua = water', explanation: 'Conviene beber suficiente water (agua) cada día.' },
+        { id: 'm3lz-6', type: 'multiple_choice', prompt: '¿Qué fruta se menciona como snack sano?', options: ['Een appel (una manzana)', 'Een banaan (un plátano)', 'Een sinaasappel (una naranja)', 'Een peer (una pera)'], correctAnswer: 'Een appel (una manzana)', explanation: '"Een appel is een gezonde en lekkere snack".' },
+        { id: 'm3lz-7', type: 'order_sentence', prompt: 'Ordena la pregunta del texto: «¿Qué es lo que más te gusta comer?»', options: ['Wat', 'eet', 'jij', 'het', 'liefst?'], correctAnswer: 'Wat eet jij het liefst?' },
+      ],
+    },
+    {
       type: 'dialogue',
       dialogue: {
         id: 'm3d1',
