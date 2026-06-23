@@ -521,7 +521,7 @@ function WordCard({ word }: { word: VocabularyItem }) {
           onClick={handlePlay}
           className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 border ${
             isPlaying
-              ? 'bg-[#1D0084] border-[#1D0084] text-white'
+              ? 'bg-[#4da3ff] border-[#4da3ff] text-[#1D0084]'
               : 'bg-[#F0F5FF] border-[#DDE6F5] text-[#025dc7] hover:bg-[#e0eaff]'
           }`}
         >
@@ -676,7 +676,7 @@ function PhrasesStep({ items, onDone, onBack, onSubProgress }: {
             onClick={handlePlay}
             className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 shrink-0 border ${
               isPlaying
-                ? 'bg-[#1D0084] border-[#1D0084] text-white'
+                ? 'bg-[#4da3ff] border-[#4da3ff] text-[#1D0084]'
                 : 'bg-[#F0F5FF] border-[#DDE6F5] text-[#025dc7] hover:bg-[#e0eaff]'
             }`}
           >

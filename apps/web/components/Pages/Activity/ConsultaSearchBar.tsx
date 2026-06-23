@@ -80,7 +80,7 @@ export default function ConsultaSearchBar({ initialQuery = '' }: ConsultaSearchB
           ¿Tienes una duda sobre esta lección?
         </p>
       </div>
-      <p className="text-[13px] text-gray-500 -mt-1 leading-relaxed">
+      <p className="text-[14.5px] text-gray-500 -mt-1 leading-relaxed">
         Escribe las palabras clave de tu duda. Por ejemplo, si no entiendes el verbo
         «nemen», busca <strong>nemen</strong> (mejor que escribir «¿Cómo se usa el verbo nemen?»).
         Si no aparece nada, puedes crear una consulta nueva.
@@ -109,7 +109,7 @@ export default function ConsultaSearchBar({ initialQuery = '' }: ConsultaSearchB
               if (e.target.value) ensureLoaded()
             }}
             placeholder={'p. ej. "zijn", "trabajar", "saludos"…'}
-            className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-[#F0F5FF] hover:bg-[#E5ECFF] focus:bg-white text-[#1D0084] placeholder:text-[#1D0084]/45 outline-none border border-transparent focus:border-[#4da3ff] focus:ring-[3px] focus:ring-[#4da3ff]/22 text-[13px] placeholder:text-[13px] transition-colors"
+            className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-[#F0F5FF] hover:bg-[#E5ECFF] focus:bg-white text-[#1D0084] placeholder:text-[#1D0084]/45 outline-none border border-transparent focus:border-[#4da3ff] focus:ring-[3px] focus:ring-[#4da3ff]/22 text-[14.5px] placeholder:text-[14px] transition-colors"
           />
         </div>
         <button
