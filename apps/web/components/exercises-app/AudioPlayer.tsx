@@ -105,7 +105,7 @@ export default function AudioPlayer({ src, title, compact = false }: AudioPlayer
             {/* Play / Pause */}
             <button
               onClick={handlePlayPause}
-              className="w-8 h-8 rounded-full bg-[#1D0084] flex items-center justify-center text-white hover:bg-[#025dc7] transition-colors shrink-0 shadow-sm"
+              className="w-8 h-8 rounded-full bg-[#4da3ff] flex items-center justify-center text-[#1D0084] hover:bg-[#6cb5ff] transition-colors shrink-0 shadow-sm"
               aria-label={isPlaying ? 'Pausar' : 'Reproducir'}
             >
               {isPlaying ? (
