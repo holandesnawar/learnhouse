@@ -55,6 +55,27 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
   const [presented, setPresented] = useState(false)
   const [showWelcome, setShowWelcome] = useState(false)
 
+  // Oculta el widget flotante cuando hay otro popup a pantalla completa abierto
+  // (p. ej. el modal "Abre una nueva consulta"), para que no tape sus botones.
+  // Detecta overlays Tailwind `fixed inset-0` que NO sean del propio onboarding.
+  const [overlayOpen, setOverlayOpen] = useState(false)
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const check = () => {
+      const els = document.querySelectorAll('[class~="fixed"][class~="inset-0"]:not([data-onboarding])')
+      let open = false
+      els.forEach((el) => {
+        const s = window.getComputedStyle(el as Element)
+        if (s.display !== 'none' && s.visibility !== 'hidden' && Number(s.opacity) !== 0) open = true
+      })
+      setOverlayOpen(open)
+    }
+    check()
+    const mo = new MutationObserver(check)
+    mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] })
+    return () => mo.disconnect()
+  }, [])
+
   // Detecta si el alumno YA ha publicado en el canal de presentaciones (de verdad,
   // no solo al hacer clic). Marca el paso "Preséntate en Comunidad".
   useEffect(() => {
@@ -148,8 +169,13 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
   const pct = Math.round((done / total) * 100)
 
   // No mostrar: sin cargar, todo hecho, sin sesión, o dentro de una lección (modo enfoque).
-  const isLessonPage = pathname.includes('/course/') && pathname.includes('/activity/')
-  if (!loaded || allDone || !accessToken || isLessonPage) return null
+  // Páginas "de enfoque" donde el widget estorba: dentro de una lección, en la
+  // configuración de la cuenta/perfil y en consultas (su barra/modal inferior).
+  const isFocusPage =
+    (pathname.includes('/course/') && pathname.includes('/activity/')) ||
+    pathname.includes('/account') ||
+    pathname.includes('consulta')
+  if (!loaded || allDone || !accessToken || isFocusPage) return null
 
   function setCollapsedPersisted(v: boolean) {
     setCollapsed(v)
@@ -216,6 +242,7 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
     showWelcome && typeof document !== 'undefined'
       ? createPortal(
           <div
+            data-onboarding
             className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 p-4"
             onClick={dismissWelcome}
           >
@@ -258,6 +285,7 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
     return (
       <>
         {welcomeModal}
+        {!overlayOpen && (
         <button
           onClick={() => setCollapsedPersisted(false)}
           className="fixed bottom-4 right-4 z-40 flex items-center gap-3 bg-white rounded-2xl nice-shadow border border-[#DDE6F5] pl-3 pr-3.5 py-2.5 hover:shadow-lg transition-shadow"
@@ -275,6 +303,7 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
           </div>
           <ChevronUp size={16} className="text-gray-400 shrink-0 ml-1" />
         </button>
+        )}
       </>
     )
   }
@@ -283,6 +312,7 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
   return (
     <>
       {welcomeModal}
+      {!overlayOpen && (
       <div className="fixed bottom-4 right-4 z-40 w-[340px] max-w-[calc(100vw-2rem)] bg-white rounded-2xl nice-shadow border border-[#DDE6F5] overflow-hidden">
         {/* Cabecera */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#DDE6F5]">
@@ -306,6 +336,7 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
         {/* Pasos */}
         {stepsList}
       </div>
+      )}
     </>
   )
 }
