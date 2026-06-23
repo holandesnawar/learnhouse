@@ -3327,7 +3327,7 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
           −2s
         </button>
         <button onClick={togglePlay} aria-label={playing ? 'Pausar' : 'Reproducir'}
-          className="shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-white shadow-sm hover:opacity-90 transition-opacity"
+          className="shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-[#1D0084] shadow-sm hover:opacity-90 transition-opacity"
           style={{ background: accentColor }}>
           {loading ? (
             <svg className={`${ICON} animate-spin`} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeDasharray="40" opacity="0.85" /></svg>
@@ -3343,7 +3343,7 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
         </button>
         <button onClick={() => setSlow((s) => !s)} aria-label="Velocidad"
           className={`shrink-0 px-3 h-9 rounded-full text-[12px] font-bold transition-colors ${
-            slow ? 'bg-[#1D0084] text-white' : 'bg-[#F0F5FF] text-[#025dc7] hover:bg-[#e0eaff]'
+            slow ? 'bg-[#4da3ff] text-[#1D0084]' : 'bg-[#F0F5FF] text-[#025dc7] hover:bg-[#e0eaff]'
           }`}>
           {slow ? '🐢 Lento' : '1×'}
         </button>
@@ -3454,7 +3454,7 @@ function LuisterenSection({
               <p className="text-[12px] text-[#9CA3AF] leading-tight">Sigue las líneas mientras suena · ajusta la velocidad</p>
             </div>
           </div>
-          <DialoguePlayer lines={dialogue.lines} accentColor="#1D0084" />
+          <DialoguePlayer lines={dialogue.lines} accentColor="#4da3ff" />
         </div>
 
         {/* El texto del diálogo se desbloquea al terminar los ejercicios. */}
