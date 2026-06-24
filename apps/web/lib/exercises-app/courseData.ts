@@ -1660,6 +1660,36 @@ const m3_les2: Lesson = {
       ],
     },
     {
+      type: 'lezen',
+      textNl: `Betalen in Nederland
+
+In Nederland betalen veel mensen met de pinpas. In een café of snackbar vraag je: «Mag ik pinnen?» De ober zegt dan «Ja, natuurlijk» en je houdt je kaart bij de machine.
+
+Contant geld gebruiken mensen weinig. Sommige kleine cafés nemen zelfs geen briefjes of munten aan. Op de deur staat dan: «Alleen pinnen».
+
+Een fooi geven is niet verplicht. Veel mensen ronden af of laten een klein bedrag achter als het lekker was. «Laat maar zitten» betekent: hou het wisselgeld.
+
+En aan het einde vraag je gewoon: «Mag ik de rekening, alstublieft?» Makkelijk, toch?`,
+      textEs: `Pagar en los Países Bajos
+
+En los Países Bajos mucha gente paga con la tarjeta (pinpas). En un café o snackbar preguntas: «Mag ik pinnen?» (¿Puedo pagar con tarjeta?). El camarero dice «Sí, claro» y acercas la tarjeta a la máquina.
+
+El efectivo se usa poco. Algunos cafés pequeños ni siquiera aceptan billetes o monedas. En la puerta pone entonces: «Alleen pinnen» (solo tarjeta).
+
+Dejar propina no es obligatorio. Mucha gente redondea o deja una pequeña cantidad si estuvo rico. «Laat maar zitten» significa: quédate el cambio.
+
+Y al final solo preguntas: «Mag ik de rekening, alstublieft?» Fácil, ¿no?`,
+      exercises: [
+        { id: 'm3l2lz-1', type: 'multiple_choice', prompt: '¿Con qué pagan mucho los neerlandeses?', options: ['Con tarjeta (pinpas)', 'Solo con efectivo', 'Con cheque', 'Con oro'], correctAnswer: 'Con tarjeta (pinpas)', explanation: '"In Nederland betalen veel mensen met de pinpas".' },
+        { id: 'm3l2lz-2', type: 'multiple_choice', prompt: '¿Qué preguntas para pagar con tarjeta?', options: ['Mag ik pinnen?', 'Mag ik zitten?', 'Wat wil je drinken?', 'Nog iets?'], correctAnswer: 'Mag ik pinnen?', explanation: '"Mag ik pinnen?" = ¿Puedo pagar con tarjeta?' },
+        { id: 'm3l2lz-3', type: 'true_false', prompt: 'Dejar propina es obligatorio en los Países Bajos.', correctAnswer: 'falso', explanation: '"Een fooi geven is niet verplicht": la propina no es obligatoria.' },
+        { id: 'm3l2lz-4', type: 'multiple_choice', prompt: '¿Qué significa «Alleen pinnen»?', options: ['Solo se paga con tarjeta', 'Solo efectivo', 'Cerrado', 'Café gratis'], correctAnswer: 'Solo se paga con tarjeta', explanation: 'Algunos cafés no aceptan efectivo: «Alleen pinnen».' },
+        { id: 'm3l2lz-5', type: 'fill_blank', prompt: 'Mag ik de ___, alstublieft? (la cuenta)', correctAnswer: 'rekening', hint: 'la cuenta = de rekening', explanation: '"Mag ik de rekening, alstublieft?"' },
+        { id: 'm3l2lz-6', type: 'multiple_choice', prompt: '¿Qué significa «Laat maar zitten»?', options: ['Quédate el cambio', 'Siéntate aquí', 'Vuelve mañana', 'No hay sitio'], correctAnswer: 'Quédate el cambio', explanation: '«Laat maar zitten» = quédate el cambio (wisselgeld).' },
+        { id: 'm3l2lz-7', type: 'true_false', prompt: 'Algunos cafés pequeños no aceptan efectivo.', correctAnswer: 'verdadero', explanation: '"Sommige kleine cafés nemen zelfs geen briefjes of munten aan".' },
+      ],
+    },
+    {
       type: 'dialogue',
       dialogue: {
         id: 'm3d2',
@@ -1715,6 +1745,45 @@ const m3_les2: Lesson = {
         { id: 'm3l2e-22', type: 'word_scramble', prompt: '¿Cómo se dice "por favor" (formal)?', correctAnswer: 'alstublieft', hint: 'por favor / aquí tiene' },
         { id: 'm3l2e-23', type: 'letter_dash', prompt: 'Completa: "la cuenta"', correctAnswer: 'rekening', hint: 'de ___' },
         { id: 'm3l2e-24', type: 'multiple_choice', prompt: '¿Cómo pides un café de forma educada?', options: ['Koffie!', 'Ik wil koffie.', 'Ik wil graag een koffie.', 'Geef koffie.'], correctAnswer: 'Ik wil graag een koffie.', explanation: '"graag" hace la frase educada y natural.' },
+        // ── Más emparejar (match_pairs) ──
+        { id: 'm3l2e-25', type: 'match_pairs', prompt: 'Une cada expresión con su significado', correctAnswer: '', pairs: [
+          { left: 'Alstublieft', right: 'por favor / aquí tiene' },
+          { left: 'Dank u wel', right: 'gracias' },
+          { left: 'Nog iets?', right: '¿algo más?' },
+          { left: 'Mag ik pinnen?', right: '¿puedo pagar con tarjeta?' },
+        ] },
+        { id: 'm3l2e-26', type: 'match_pairs', prompt: 'Une cada bebida/comida con su traducción', correctAnswer: '', pairs: [
+          { left: 'de koffie', right: 'el café' },
+          { left: 'het broodje kaas', right: 'el bocadillo de queso' },
+          { left: 'de friet', right: 'las patatas fritas' },
+          { left: 'de rekening', right: 'la cuenta' },
+        ] },
+        // ── Más Verdadero/Falso ──
+        { id: 'm3l2e-27', type: 'true_false', prompt: 'Con "ik" se dice "ik willen".', correctAnswer: 'falso', explanation: 'Con "ik" es "ik wil" (no "willen").' },
+        { id: 'm3l2e-28', type: 'true_false', prompt: 'En "Neem jij soep?" la -t desaparece.', correctAnswer: 'verdadero', explanation: 'En preguntas con "jij" la -t desaparece: "Neem jij…?".' },
+        { id: 'm3l2e-29', type: 'true_false', prompt: '"Ik neem een cola" expresa una decisión ya tomada.', correctAnswer: 'verdadero', explanation: '"nemen" = ya elegiste; "willen" = deseo.' },
+        // ── Más word_scramble ──
+        { id: 'm3l2e-30', type: 'word_scramble', prompt: '¿Cómo se dice "pagar con tarjeta"?', correctAnswer: 'pinnen', hint: 'pagar con tarjeta' },
+        { id: 'm3l2e-31', type: 'word_scramble', prompt: '¿Cómo se dice "el camarero"?', correctAnswer: 'ober', hint: 'de ___' },
+        // ── Más letter_dash ──
+        { id: 'm3l2e-32', type: 'letter_dash', prompt: 'Completa: "tomar / pedir"', correctAnswer: 'nemen', hint: 'verbo: tomar' },
+        { id: 'm3l2e-33', type: 'letter_dash', prompt: 'Completa: "pagar"', correctAnswer: 'betalen', hint: 'verbo: pagar' },
+        // ── Odd one out (nuevo) ──
+        { id: 'm3l2e-34', type: 'odd_one_out', prompt: '¿Cuál NO es una bebida?', options: ['koffie', 'thee', 'cola', 'broodje'], correctAnswer: 'broodje', explanation: '"broodje" (bocadillo) es comida; las demás son bebidas.' },
+        { id: 'm3l2e-35', type: 'odd_one_out', prompt: '¿Cuál NO es un verbo de esta lección?', options: ['willen', 'nemen', 'mogen', 'rekening'], correctAnswer: 'rekening', explanation: '"rekening" (cuenta) es un sustantivo, no un verbo.' },
+        // ── Emoji choice (nuevo) ──
+        { id: 'm3l2e-36', type: 'emoji_choice', prompt: '¿Cuál es "de koffie"?', options: ['☕', '🍵', '🥤', '🍟'], correctAnswer: '☕', explanation: '"de koffie" = el café ☕.' },
+        { id: 'm3l2e-37', type: 'emoji_choice', prompt: '¿Cuál es "de friet"?', options: ['🍟', '🥗', '🥖', '🍲'], correctAnswer: '🍟', explanation: '"de friet" = las patatas fritas 🍟.' },
+        // ── Escucha y elige (nuevo, TTS) ──
+        { id: 'm3l2e-38', type: 'listen_and_choose', prompt: 'Escucha y elige la traducción: "Ik wil graag koffie."', options: ['Quiero un café', 'Tomo un té', '¿Me trae la cuenta?', '¿Algo más?'], correctAnswer: 'Quiero un café', explanation: '"Ik wil graag koffie" = quiero un café.' },
+        { id: 'm3l2e-39', type: 'listen_and_choose', prompt: 'Escucha y elige la traducción: "Mag ik de rekening, alstublieft?"', options: ['¿Me trae la cuenta, por favor?', 'Quiero un bocadillo', '¿Puedo sentarme?', 'No, es todo'], correctAnswer: '¿Me trae la cuenta, por favor?', explanation: '"Mag ik de rekening?" = ¿me trae la cuenta?' },
+        // ── Memory NL↔ES (nuevo) ──
+        { id: 'm3l2e-40', type: 'pair_memory', prompt: 'Empareja neerlandés y español', correctAnswer: '', pairs: [
+          { left: 'willen', right: 'querer' },
+          { left: 'nemen', right: 'tomar' },
+          { left: 'mogen', right: 'poder' },
+          { left: 'betalen', right: 'pagar' },
+        ] },
       ],
     },
     { type: 'review' },
