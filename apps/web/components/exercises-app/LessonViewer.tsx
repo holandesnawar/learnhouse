@@ -152,16 +152,40 @@ function _peaks(buf: AudioBuffer, n: number): number[] {
 
 // Clip de diálogo: objectURL para reproducir + duración real + picos a ~40/s.
 const _dialogueClipCache = new Map<string, { url: string; dur: number; hiPeaks: number[] }>();
-async function _dialogueClip(text: string, voice?: string): Promise<{ url: string; dur: number; hiPeaks: number[] } | null> {
+
+// Ejecuta `fn` sobre los items con concurrencia limitada (ElevenLabs limita las
+// peticiones simultáneas; pedir 10 a la vez hacía fallar varias).
+async function _mapLimit<T, R>(items: T[], limit: number, fn: (item: T, i: number) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let idx = 0;
+  async function worker() {
+    while (idx < items.length) {
+      const i = idx++;
+      out[i] = await fn(items[i], i);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, () => worker()));
+  return out;
+}
+
+async function _dialogueClip(text: string, voice?: string, attempt = 0): Promise<{ url: string; dur: number; hiPeaks: number[] } | null> {
   const key = `${TTS_VOICE_TAG}:${voice || 'def'}:${text.trim().toLowerCase()}`;
   const cached = _dialogueClipCache.get(key);
   if (cached) return cached;
   if (_ttsRouteAvailable === false) return null;
+  const retry = async () => {
+    if (attempt >= 2) return null;
+    await new Promise((r) => setTimeout(r, 350 * (attempt + 1)));
+    return _dialogueClip(text, voice, attempt + 1);
+  };
   try {
     const q = new URLSearchParams({ text, vt: TTS_VOICE_TAG });
     if (voice) q.set('voice', voice);
     const res = await fetch(`/api/tts?${q.toString()}`);
-    if (!res.ok) { if (res.status === 503) _ttsRouteAvailable = false; return null; }
+    if (!res.ok) {
+      if (res.status === 503) { _ttsRouteAvailable = false; return null; } // no configurado
+      return retry(); // 429/502… transitorio → reintenta
+    }
     _ttsRouteAvailable = true;
     const ab = await res.arrayBuffer();
     const forDecode = ab.slice(0); // decodeAudioData "consume" el buffer
@@ -180,7 +204,7 @@ async function _dialogueClip(text: string, voice?: string): Promise<{ url: strin
     _dialogueClipCache.set(key, out);
     return out;
   } catch {
-    return null;
+    return retry();
   }
 }
 
@@ -3225,7 +3249,8 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
   async function ensureLoaded(): Promise<boolean> {
     if (ready) return true;
     setLoading(true); setFailed(false);
-    const data = await Promise.all(lines.map((l) => _dialogueClip(l.dutch, voiceFor(l.speaker))));
+    // Concurrencia limitada (3) para no saturar el límite de ElevenLabs.
+    const data = await _mapLimit(lines, 3, (l) => _dialogueClip(l.dutch, voiceFor(l.speaker)));
     if (data.some((d) => !d)) { setLoading(false); setFailed(true); return false; }
     const clips = data.map((d) => {
       const audio = new Audio(d!.url);
@@ -3249,10 +3274,22 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
     return true;
   }
 
+  function playFallback() {
+    // Voz del navegador como último recurso. stopDutch() antes evita que se
+    // solapen dos audios al re-pulsar (el bug de "se duplica / se cuelga").
+    stopDutch();
+    setPlaying(true);
+    speakDutch(lines.map((l) => l.dutch).join('. '), () => setPlaying(false), rateRef.current);
+  }
+
   async function togglePlay() {
-    if (playing) { pauseAll(); setPlaying(false); stopTick(); return; }
+    if (playing) {
+      pauseAll(); stopTick(); stopDutch(); setPlaying(false);
+      return;
+    }
+    if (failed) { playFallback(); return; } // ya sabemos que ElevenLabs no carga: no reintentar ni duplicar
     const ok = await ensureLoaded();
-    if (!ok) { speakDutch(lines.map((l) => l.dutch).join('. '), undefined, rate); return; }
+    if (!ok) { playFallback(); return; }
     const offset = pos - (startsRef.current[curRef.current] ?? 0);
     startClip(curRef.current, Math.max(0, offset), true);
   }
