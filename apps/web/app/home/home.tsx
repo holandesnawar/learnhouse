@@ -72,11 +72,9 @@ function HomeClient() {
             <div className="flex flex-col items-center mb-10">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/lrn.svg"
-                alt="LearnHouse"
-                width={44}
-                height={44}
-                className="opacity-90"
+                src="https://d1yei2z3i6k35z.cloudfront.net/9533860/671a9c9265e23_Logo_Nawar_2.png"
+                alt="Holandés Nawar"
+                className="h-11 w-auto"
               />
               <h1 className="mt-6 font-black tracking-tight text-2xl text-gray-900 text-center">
                 {t('common.your_organizations')}
@@ -232,15 +230,7 @@ function HomeClient() {
             </div>
 
             {/* Footer */}
-            <a
-              href="https://learnhouse.app"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-10 flex items-center gap-1.5 text-[11px] text-black/30 hover:text-black/60 transition-colors"
-            >
-              <span>{t('common.powered_by', { defaultValue: 'Powered by' })}</span>
-              <span className="font-semibold tracking-tight text-black/50 group-hover:text-black/70">LearnHouse</span>
-            </a>
+            <p className="mt-10 text-[11px] text-black/30">Holandés Nawar · academia</p>
           </div>
         </div>
       </div>

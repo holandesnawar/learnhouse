@@ -1,19 +1,11 @@
-import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { ArrowRight, HelpCircle } from 'lucide-react'
 
-// Server component — reads the active org slug from the cookie set by middleware
-// so the "Abrir consulta" link lands in the academy's Consultas page when the
-// visitor is already inside an org. Falls back to /consultas at root.
-export default async function NotFound() {
-  let consultasHref = '/consultas'
-  try {
-    const cookieStore = await cookies()
-    const slug = cookieStore.get('LH_org')?.value
-    if (slug) consultasHref = `/orgs/${slug}/consultas`
-  } catch {
-    /* not in a request context — keep the fallback */
-  }
+// En single-tenancy el middleware reescribe las rutas raíz a la org, así que
+// `/consultas` (raíz) es la URL que funciona — la misma que ve el alumno.
+// La variante /orgs/{slug}/consultas a veces 404aba (el botón "no hacía nada").
+export default function NotFound() {
+  const consultasHref = '/consultas'
 
   return (
     <div

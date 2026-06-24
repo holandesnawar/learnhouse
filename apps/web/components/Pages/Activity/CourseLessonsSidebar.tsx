@@ -198,11 +198,12 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
         // Mismo fondo exacto que la barra lateral de la plataforma (OrgSidebar).
         backgroundColor: '#0b2da0',
         backgroundImage:
+          'radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px), ' +
           'linear-gradient(rgba(9,30,150,0.45), rgba(9,30,150,0.45)), ' +
           "url('/fondo-barra.png')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
+        backgroundSize: '22px 22px, cover, cover',
+        backgroundPosition: '0 0, center, center',
+        backgroundRepeat: 'repeat, no-repeat, no-repeat',
       }}
     >
       {/* Volver + botón modo enfoque (a la derecha, misma fila) */}
@@ -402,11 +403,12 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
         // Mismo fondo exacto que el sidebar de escritorio.
         backgroundColor: '#0b2da0',
         backgroundImage:
+          'radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px), ' +
           'linear-gradient(rgba(9,30,150,0.45), rgba(9,30,150,0.45)), ' +
           "url('/fondo-barra.png')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
+        backgroundSize: '22px 22px, cover, cover',
+        backgroundPosition: '0 0, center, center',
+        backgroundRepeat: 'repeat, no-repeat, no-repeat',
       }}
     >
       {/* Volver al curso + cerrar */}

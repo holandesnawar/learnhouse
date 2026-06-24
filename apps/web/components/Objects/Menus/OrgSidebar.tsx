@@ -72,11 +72,12 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     // se veía lavado). La opacidad de la capa = cuánto "azul rico" tiene.
     backgroundColor: '#0b2da0',
     backgroundImage:
+      'radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px), ' + // puntitos suaves
       'linear-gradient(rgba(9,30,150,0.45), rgba(9,30,150,0.45)), ' +
       "url('/fondo-barra.png')",
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    backgroundRepeat: 'no-repeat',
+    backgroundSize: '22px 22px, cover, cover',
+    backgroundPosition: '0 0, center, center',
+    backgroundRepeat: 'repeat, no-repeat, no-repeat',
   }
 
   const rf = config?.resolved_features
