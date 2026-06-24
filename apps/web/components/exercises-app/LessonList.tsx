@@ -138,7 +138,7 @@ export default function LessonList({ lessons, moduleId, orgslug }: { lessons: Le
                                 status === 'completed'
                                     ? 'bg-green-100 text-green-700'
                                     : isNext
-                                        ? 'bg-[#1D0084] text-white'
+                                    ? 'bg-[#4da3ff] text-[#1D0084]'
                                         : 'bg-[#F8F9FA] text-[#9CA3AF]'
                             }`}
                         >

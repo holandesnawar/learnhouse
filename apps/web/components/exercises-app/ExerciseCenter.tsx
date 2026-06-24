@@ -71,10 +71,10 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
             const done = unlocked && total > 0 && completed === total
             const inner = (
               <div className="p-5 flex flex-col gap-3 h-full">
-                {/* Cabecera limpia: chip con emoji + estado (minimalista, sin fondo grande) */}
+                {/* Cabecera limpia: emoji sin fondo + estado (minimalista) */}
                 <div className="flex items-center justify-between">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-[24px] shrink-0 border ${unlocked ? 'bg-[#F0F5FF] border-[#DDE6F5]' : 'bg-[#F3F4F6] border-[#E5E7EB]'}`}>
-                    {unlocked ? <span className="select-none leading-none">{m.emoji}</span> : <Lock size={20} className="text-[#9CA3AF]" />}
+                  <div className="flex items-center justify-center h-12 text-[40px] leading-none shrink-0">
+                    {unlocked ? <span className="select-none">{m.emoji}</span> : <Lock size={26} className="text-[#9CA3AF]" />}
                   </div>
                   {done && (
                     <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
