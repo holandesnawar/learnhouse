@@ -67,10 +67,13 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const config = org?.config?.config
 
   const surfaceStyle: React.CSSProperties = {
-    // Fondo = LA imagen real de marca (la portada del vídeo, servida desde el
-    // CDN del usuario). `cover` muestra el azul vivo del centro como en el vídeo.
-    backgroundColor: SIDE_BASE,
-    backgroundImage: "url('/fondo-barra.png')",
+    // Fondo = imagen de marca + una capa de azul profundo encima que la unifica
+    // hacia el azul vivo del vídeo (el `cover` recortaba solo el centro claro y
+    // se veía lavado). La opacidad de la capa = cuánto "azul rico" tiene.
+    backgroundColor: '#0b2da0',
+    backgroundImage:
+      'linear-gradient(rgba(9,30,150,0.45), rgba(9,30,150,0.45)), ' +
+      "url('/fondo-barra.png')",
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',

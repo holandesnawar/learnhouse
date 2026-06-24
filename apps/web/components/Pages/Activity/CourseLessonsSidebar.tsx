@@ -196,8 +196,10 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
       className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-[340px] text-white z-30"
       style={{
         // Mismo fondo exacto que la barra lateral de la plataforma (OrgSidebar).
-        backgroundColor: '#120081',
-        backgroundImage: "url('/fondo-barra.png')",
+        backgroundColor: '#0b2da0',
+        backgroundImage:
+          'linear-gradient(rgba(9,30,150,0.45), rgba(9,30,150,0.45)), ' +
+          "url('/fondo-barra.png')",
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
@@ -398,8 +400,10 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
       className="fixed inset-0 z-[9999] text-white flex flex-col"
       style={{
         // Mismo fondo exacto que el sidebar de escritorio.
-        backgroundColor: '#120081',
-        backgroundImage: "url('/fondo-barra.png')",
+        backgroundColor: '#0b2da0',
+        backgroundImage:
+          'linear-gradient(rgba(9,30,150,0.45), rgba(9,30,150,0.45)), ' +
+          "url('/fondo-barra.png')",
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
