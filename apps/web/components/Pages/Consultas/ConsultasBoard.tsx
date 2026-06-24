@@ -245,13 +245,13 @@ export default function ConsultasBoard({
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[#F0F5FF] border border-[#DDE6F5]">
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-white border border-[#DDE6F5] shadow-sm">
           {STATUS_PILLS.map((p) => (
             <button
               key={p.id}
               onClick={() => setStatus(p.id)}
               className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
-                status === p.id ? 'bg-white text-[#1D0084] nice-shadow' : 'text-[#5A6480] hover:text-[#1D0084]'
+                status === p.id ? 'bg-[#4da3ff] text-[#1D0084]' : 'text-[#5A6480] hover:text-[#025dc7]'
               }`}
             >
               {p.label}
@@ -347,7 +347,7 @@ export default function ConsultasBoard({
                     {cat?.name || c.category || 'General'}
                   </span>
                   {c.resolved ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#1D0084]/5 text-[#1D0084]">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#4da3ff]/12 text-[#025dc7]">
                       <CheckCircle2 size={12} /> Respondida
                     </span>
                   ) : (
@@ -518,7 +518,7 @@ function DetailView({
             {cat?.name || consulta.category || 'General'}
           </span>
           {consulta.resolved ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#1D0084]/5 text-[#1D0084]">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#4da3ff]/12 text-[#025dc7]">
               <CheckCircle2 size={13} /> Respondida
             </span>
           ) : (
