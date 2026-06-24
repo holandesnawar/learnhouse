@@ -181,7 +181,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   }
 
   const itemClass = (active: boolean) =>
-    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold tracking-[0.01em] transition-colors ${
+    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-medium transition-colors ${
       active ? 'text-white' : 'text-white/85 hover:text-white hover:bg-white/[0.06]'
     }`
   const itemStyle = (active: boolean) => (active ? { backgroundColor: ACTIVE_BG } : undefined)
