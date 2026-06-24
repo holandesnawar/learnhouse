@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Loader2, Lock, Dumbbell, Info, Check } from 'lucide-react'
+import { Loader2, Lock, Dumbbell, Info, Check, TrendingUp } from 'lucide-react'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import { getModules, getLessonsForModule } from '@/lib/exercises-app/courseService'
 import { getModuleStats } from '@/lib/exercises-app/progress'
@@ -32,9 +32,17 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
   return (
     <GeneralWrapperStyled>
       {/* Standard section title (consistent with the rest of the app) */}
-      <div className="flex items-center gap-2 pt-2">
-        <Dumbbell size={24} className="text-[#025dc7]" />
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Centro de ejercicios</h1>
+      <div className="flex items-center justify-between gap-3 pt-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Dumbbell size={24} className="text-[#025dc7]" />
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Centro de ejercicios</h1>
+        </div>
+        <Link
+          href={getUriWithOrg(orgslug, '/ejercicios/progreso')}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#F0F5FF] border border-[#DDE6F5] text-[#025dc7] text-sm font-bold hover:bg-[#e0eaff] transition-colors"
+        >
+          <TrendingUp size={16} /> Mi progreso
+        </Link>
       </div>
       <p className="text-sm text-gray-500 mt-1 mb-4 max-w-lg">
         Aquí repasas lo que ya has aprendido, en el orden que prefieras.
