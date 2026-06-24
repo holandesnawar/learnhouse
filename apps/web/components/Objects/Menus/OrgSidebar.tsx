@@ -67,13 +67,14 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const config = org?.config?.config
 
   const surfaceStyle: React.CSSProperties = {
-    // "Azul Nawar con fade": base sólida #1D0084 + 2 glows #0b6df0 en esquinas
-    // + patrón de puntos blancos al 6%.
+    // Fondo de marca como el de los vídeos/diapositivas: base azul Nawar +
+    // un glow azul BRILLANTE y CENTRADO (no en esquinas) → lee más azul y vivo,
+    // no violeta-oscuro. + patrón de puntos blancos al 6%.
     backgroundColor: SIDE_BASE,
     backgroundImage:
       'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
-      'radial-gradient(circle 700px at 100% 0%, rgba(11,109,240,0.40) 0%, transparent 65%), ' +
-      'radial-gradient(circle 600px at 0% 100%, rgba(11,109,240,0.18) 0%, transparent 65%)',
+      'radial-gradient(circle 640px at 50% 38%, rgba(33,121,232,0.55) 0%, transparent 72%), ' +
+      'radial-gradient(circle 520px at 50% 102%, rgba(11,109,240,0.22) 0%, transparent 62%)',
     backgroundSize: '28px 28px, auto, auto',
     backgroundRepeat: 'repeat, no-repeat, no-repeat',
   }
