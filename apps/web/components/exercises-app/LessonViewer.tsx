@@ -3075,11 +3075,11 @@ function LezenSection({
  * Botón de audio para diálogos sin archivo grabado. Usa la voz por defecto
  * (ElevenLabs en neerlandés) con fallback a la voz del navegador.
  */
-/* ── Voces del diálogo: A = voz por defecto del servidor; B = segunda voz ──
-   '' = usa la voz por defecto. Pon aquí el Voice ID de la 2ª voz (NL) cuando lo
-   tengas para diferenciar a los dos interlocutores. */
-const DIALOGUE_VOICE_A = '';
-const DIALOGUE_VOICE_B = '';
+/* ── Voces del diálogo: se alternan por interlocutor (orden de aparición) ──
+   A = primer interlocutor, B = segundo. En "In het café" el primero es el
+   camarero (Ober, voz de chico) y la segunda María (voz de chica). */
+const DIALOGUE_VOICE_A = '5zhopMftSdRGaPYVcwKK'   // chico (ElevenLabs)
+const DIALOGUE_VOICE_B = 'yO6w2xlECAQRFP6pX7Hw'   // chica (ElevenLabs, voz por defecto)
 
 type DLine = { id: string; speaker: string; dutch: string; spanish?: string };
 

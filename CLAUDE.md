@@ -215,6 +215,18 @@ La formación 497 se vende por **email a la lista filtrada** con checkout normal
 - **Referidos:** orgánico (pedirlo a alumnos felices en el pico de su victoria) desde ya; **incentivado en enero** (trae a un amigo → crédito siguiente nivel / sesión extra / cash) con **cupones manuales** (sin plataforma de afiliados aún); afiliación formal con comisiones más adelante (promotores/influencers).
 - **B2B:** gran potencial (empresas con extranjeros, inburgering/gemeente con presupuesto público, expats), pero es **otro deporte** (ciclo largo, facturas, contratos). **Aparcar hasta tener prueba B2C**; coger leads calientes de forma oportunista.
 
+## ⚠️ Contenido del curso de holandés = `courseData.ts` (NO Supabase)
+
+**IMPORTANTE (no volver a equivocarse):** todo el contenido de las lecciones de holandés (módulos, lecciones, **vocabulario, frases, diálogos/Luisteren, Lezen, ejercicios**) vive en **CÓDIGO**, en el archivo:
+`apps/web/lib/exercises-app/courseData.ts`.
+
+- Existe una capa opcional de **Supabase** (`apps/web/lib/exercises-app/supabase.ts`) como "migración progresiva", PERO **NO está configurada en producción** (sin `NEXT_PUBLIC_SUPABASE_URL`/`ANON_KEY`). Cuando faltan esas env vars, `supabase` es `null` y la app **cae automáticamente a `courseData.ts`**. → En la práctica **producción usa `courseData.ts`**, no Supabase.
+- Para **añadir/editar contenido** (un texto de Lezen, vocabulario, un diálogo, ejercicios): se edita `courseData.ts` y se hace `git push`. Railway despliega. **Sin keys, sin Supabase, sin SQL.** Así se metió todo el contenido existente.
+- NO decirle al usuario que hace falta Supabase/SQL para añadir contenido. Es código de este repo y lo edito directamente.
+- Estructura por lección: `blocks: [{type:'summary'}, {type:'vocabulary'}, {type:'phrases'}, {type:'lezen'}, {type:'dialogue'}, {type:'practice'}, {type:'review'}]`. El mapeo a secciones de la academia: summary→Samenvatting, vocabulary→Flashcards, practice→Oefening, **lezen→1.4 Lezen**, dialogue→1.5 Luisteren, situación→1.6.
+- Tipos de ejercicio (`ExerciseType` en `types.ts`): multiple_choice, fill_blank, true_false (`correctAnswer: 'verdadero'|'falso'`), order_sentence, match_pairs, odd_one_out, letter_dash, word_scramble, emoji_choice, listen_and_choose, listen_translate, pair_memory.
+- **TTS de los diálogos (Luisteren):** voz por defecto ElevenLabs en la ruta `apps/web/app/api/tts/route.ts` (`language_code: 'nl'` para evitar acento inglés). Los diálogos alternan **dos voces** por interlocutor: `DIALOGUE_VOICE_A`/`DIALOGUE_VOICE_B` en `LessonViewer.tsx` (A=chico `5zhopMftSdRGaPYVcwKK`, B=chica `yO6w2xlECAQRFP6pX7Hw`). La API key va en env `ELEVENLABS_API_KEY` (Railway).
+
 ## Notas de flujo de trabajo
 - Desarrollar en `claude/adoring-dijkstra-rI3FL`.
 - `git push` está bloqueado en el contenedor → usar MCP GitHub (`mcp__github__push_files`) o, en este entorno, el sandbox permite `git push` directo via http://127.0.0.1.
