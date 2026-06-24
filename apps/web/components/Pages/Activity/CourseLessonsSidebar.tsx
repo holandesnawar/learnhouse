@@ -197,8 +197,9 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
       style={{
         // Mismo fondo exacto que la barra lateral de la plataforma (OrgSidebar).
         backgroundColor: '#120081',
-        backgroundImage: "url('/nawar-sidebar-bg.png')",
-        backgroundSize: '100% 100%',
+        backgroundImage: "url('https://docs.holandesnawar.com/img/Portada%20FInal%20169.png')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
       }}
     >
@@ -398,8 +399,9 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
       style={{
         // Mismo fondo exacto que el sidebar de escritorio.
         backgroundColor: '#120081',
-        backgroundImage: "url('/nawar-sidebar-bg.png')",
-        backgroundSize: '100% 100%',
+        backgroundImage: "url('https://docs.holandesnawar.com/img/Portada%20FInal%20169.png')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
       }}
     >

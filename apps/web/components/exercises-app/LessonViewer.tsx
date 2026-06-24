@@ -2863,6 +2863,7 @@ function LezenSection({
   const [score, setScore] = useState(0);
   const [wrongIndices, setWrongIndices] = useState<Set<number>>(new Set());
   const [answered, setAnswered] = useState(false);
+  const [answeredSet, setAnsweredSet] = useState<Set<number>>(new Set());
   const [exKey, setExKey] = useState(0);
   const [lastAttempt, setLastAttempt] = useState<LastAttempt | null>(null);
   const session = useLHSession() as any;
@@ -2885,6 +2886,8 @@ function LezenSection({
 
   function handleAnswer(correct: boolean) {
     setAnswered(true);
+    if (answeredSet.has(exerciseIndex)) return; // ya contado: no duplicar al volver
+    setAnsweredSet((s) => new Set(s).add(exerciseIndex));
     if (correct) {
       setScore((s) => s + 1);
     } else {
@@ -2896,11 +2899,20 @@ function LezenSection({
     }
   }
 
+  function handlePrev() {
+    if (exerciseIndex === 0) return;
+    const ni = exerciseIndex - 1;
+    setExerciseIndex(ni);
+    setAnswered(answeredSet.has(ni));
+    setExKey((k) => k + 1);
+  }
+
   function resetExercises() {
     setExerciseIndex(0);
     setScore(0);
     setWrongIndices(new Set());
     setAnswered(false);
+    setAnsweredSet(new Set());
     setExKey((k) => k + 1);
   }
 
@@ -2999,17 +3011,37 @@ function LezenSection({
             {score}
           </div>
         </div>
-        <div key={exKey}>
-          <ExerciseStep exercise={exercise} onAnswer={handleAnswer} />
-        </div>
-        {answered && (
-          <button onClick={handleNext} className="w-full flex items-center justify-center gap-2 py-4 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200">
-            {exerciseIndex + 1 < exercises.length ? 'Siguiente ejercicio' : 'Ver traducción del texto'}
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
+        {/* Flechas laterales (desktop) — avanzar/retroceder sin hacer scroll */}
+        <div className="relative md:px-[84px]">
+          <button
+            onClick={exerciseIndex > 0 ? handlePrev : undefined}
+            aria-label="Anterior"
+            className={`hidden md:flex absolute left-0 top-5 w-11 h-11 items-center justify-center rounded-2xl transition-all duration-200 ${
+              exerciseIndex > 0 ? 'text-[#9CA3AF] hover:bg-[#F0F5FF] hover:text-[#025dc7] cursor-pointer' : 'text-[#E8ECF4] pointer-events-none'
+            }`}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
           </button>
-        )}
+          <div key={exKey}>
+            <ExerciseStep exercise={exercise} onAnswer={handleAnswer} />
+          </div>
+          <button
+            onClick={handleNext}
+            aria-label="Siguiente"
+            className={`hidden md:flex absolute right-0 top-5 w-11 h-11 items-center justify-center rounded-2xl transition-all duration-300 ${
+              answered ? 'bg-[#4da3ff] text-[#1D0084] cursor-pointer hover:bg-[#6cb5ff]' : 'bg-[#F0F5FF] text-gray-900 cursor-pointer hover:bg-[#e0eaff] border border-[#DDE6F5]'
+            }`}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+          </button>
+        </div>
+        {/* Móvil: botón abajo */}
+        <button onClick={handleNext} className="md:hidden w-full flex items-center justify-center gap-2 py-4 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200">
+          {answered ? (exerciseIndex + 1 < exercises.length ? 'Siguiente ejercicio' : 'Ver traducción del texto') : 'Saltar'}
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
       </div>
     );
   }
@@ -3374,6 +3406,7 @@ function LuisterenSection({
   const [score, setScore] = useState(0);
   const [wrongIndices, setWrongIndices] = useState<Set<number>>(new Set());
   const [answered, setAnswered] = useState(false);
+  const [answeredSet, setAnsweredSet] = useState<Set<number>>(new Set());
   const [exKey, setExKey] = useState(0);
   const [showTranslation, setShowTranslation] = useState(false);
   const [exercisesDone, setExercisesDone] = useState(false);
@@ -3401,8 +3434,41 @@ function LuisterenSection({
     setScore(0);
     setWrongIndices(new Set());
     setAnswered(false);
+    setAnsweredSet(new Set());
     setExKey((k) => k + 1);
     setExercisesDone(false);
+  }
+
+  function onAnswerEx(correct: boolean) {
+    setAnswered(true);
+    if (answeredSet.has(exerciseIndex)) return; // ya contado: no duplicar al volver
+    setAnsweredSet((s) => new Set(s).add(exerciseIndex));
+    if (correct) setScore((s) => s + 1);
+    else setWrongIndices((w) => { const next = new Set(w); next.add(exerciseIndex); return next; });
+  }
+
+  function goNextEx() {
+    if (exerciseIndex + 1 >= practiceExercises.length) {
+      if (cacheKey) {
+        const failed = Array.from(wrongIndices).sort((a, b) => a - b)
+          .map((i) => practiceExercises[i]?.prompt).filter((p): p is string => !!p);
+        saveLastAttempt(cacheKey, { score, total: practiceExercises.length, failedLabels: failed }, accessToken);
+      }
+      setExercisesDone(true);
+      setTranscriptUnlocked(true);
+    } else {
+      setExerciseIndex((i) => i + 1);
+      setAnswered(false);
+      setExKey((k) => k + 1);
+    }
+  }
+
+  function goPrevEx() {
+    if (exerciseIndex === 0) return;
+    const ni = exerciseIndex - 1;
+    setExerciseIndex(ni);
+    setAnswered(answeredSet.has(ni));
+    setExKey((k) => k + 1);
   }
 
   const exercise = practiceExercises[exerciseIndex];
@@ -3647,59 +3713,37 @@ function LuisterenSection({
         </div>
       </div>
       {exercise && (
-        <div key={exKey}>
-          <ExerciseStep
-            exercise={exercise}
-            onAnswer={(correct) => {
-              setAnswered(true);
-              if (correct) {
-                setScore((s) => s + 1);
-              } else {
-                setWrongIndices((w) => {
-                  const next = new Set(w);
-                  next.add(exerciseIndex);
-                  return next;
-                });
-              }
-            }}
-          />
-        </div>
-      )}
-      {answered && (
-        <button
-          onClick={() => {
-            if (exerciseIndex + 1 >= practiceExercises.length) {
-              // Snapshot the attempt so the student sees "last time…" next visit.
-              if (cacheKey) {
-                const failed = Array.from(wrongIndices)
-                  .sort((a, b) => a - b)
-                  .map((i) => practiceExercises[i]?.prompt)
-                  .filter((p): p is string => !!p);
-                saveLastAttempt(
-                  cacheKey,
-                  {
-                    score,
-                    total: practiceExercises.length,
-                    failedLabels: failed,
-                  },
-                  accessToken,
-                );
-              }
-              setExercisesDone(true);
-              setTranscriptUnlocked(true);
-            } else {
-              setExerciseIndex(i => i + 1);
-              setAnswered(false);
-              setExKey(k => k + 1);
-            }
-          }}
-          className="w-full flex items-center justify-center gap-2 py-4 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200"
-        >
-          {exerciseIndex + 1 < practiceExercises.length ? 'Siguiente ejercicio' : 'Ver resultado'}
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
+        <>
+          {/* Flechas laterales (desktop) — avanzar/retroceder sin scroll */}
+          <div className="relative md:px-[84px]">
+            <button
+              onClick={exerciseIndex > 0 ? goPrevEx : undefined}
+              aria-label="Anterior"
+              className={`hidden md:flex absolute left-0 top-5 w-11 h-11 items-center justify-center rounded-2xl transition-all duration-200 ${
+                exerciseIndex > 0 ? 'text-[#9CA3AF] hover:bg-[#F0F5FF] hover:text-[#025dc7] cursor-pointer' : 'text-[#E8ECF4] pointer-events-none'
+              }`}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+            </button>
+            <div key={exKey}>
+              <ExerciseStep exercise={exercise} onAnswer={onAnswerEx} />
+            </div>
+            <button
+              onClick={goNextEx}
+              aria-label="Siguiente"
+              className={`hidden md:flex absolute right-0 top-5 w-11 h-11 items-center justify-center rounded-2xl transition-all duration-300 ${
+                answered ? 'bg-[#4da3ff] text-[#1D0084] cursor-pointer hover:bg-[#6cb5ff]' : 'bg-[#F0F5FF] text-gray-900 cursor-pointer hover:bg-[#e0eaff] border border-[#DDE6F5]'
+              }`}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+            </button>
+          </div>
+          {/* Móvil: botón abajo */}
+          <button onClick={goNextEx} className="md:hidden w-full flex items-center justify-center gap-2 py-4 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200">
+            {answered ? (exerciseIndex + 1 < practiceExercises.length ? 'Siguiente ejercicio' : 'Ver resultado') : 'Saltar'}
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+          </button>
+        </>
       )}
     </div>
   );

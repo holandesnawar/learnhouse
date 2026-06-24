@@ -67,12 +67,12 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const config = org?.config?.config
 
   const surfaceStyle: React.CSSProperties = {
-    // Fondo = imagen real del degradado de marca (la misma de Canva: radial
-    // #025dc7 centro → #120081 bordes). Estirada para enmarcar el degradado
-    // completo en la barra (centro brillante, bordes oscuros). 100% exacto.
+    // Fondo = LA imagen real de marca (la portada del vídeo, servida desde el
+    // CDN del usuario). `cover` muestra el azul vivo del centro como en el vídeo.
     backgroundColor: SIDE_BASE,
-    backgroundImage: "url('/nawar-sidebar-bg.png')",
-    backgroundSize: '100% 100%',
+    backgroundImage: "url('https://docs.holandesnawar.com/img/Portada%20FInal%20169.png')",
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',
   }
 
