@@ -67,15 +67,13 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const config = org?.config?.config
 
   const surfaceStyle: React.CSSProperties = {
-    // Fondo de marca EXACTO (como en Canva): degradado radial circular centrado
-    // en 50% 50%, de #025dc7 (centro brillante) a #120081 (bordes). + puntos
-    // blancos sutiles encima para la textura de marca.
+    // Fondo = imagen real del degradado de marca (la misma de Canva: radial
+    // #025dc7 centro → #120081 bordes). Estirada para enmarcar el degradado
+    // completo en la barra (centro brillante, bordes oscuros). 100% exacto.
     backgroundColor: SIDE_BASE,
-    backgroundImage:
-      'radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px), ' +
-      'radial-gradient(circle at 50% 50%, #025dc7 0%, #120081 100%)',
-    backgroundSize: '28px 28px, auto',
-    backgroundRepeat: 'repeat, no-repeat',
+    backgroundImage: "url('/nawar-sidebar-bg.png')",
+    backgroundSize: '100% 100%',
+    backgroundRepeat: 'no-repeat',
   }
 
   const rf = config?.resolved_features

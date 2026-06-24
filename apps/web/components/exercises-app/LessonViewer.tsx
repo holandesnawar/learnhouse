@@ -1645,7 +1645,7 @@ function FillBlankExercise({
       if (!chipSubmitted) {
         // Mientras no se ha enviado: chip seleccionado destaca, playing anima
         if (opt === chipSelected) {
-          return base + 'bg-[#1D0084] border-[#1D0084] text-white';
+          return base + 'bg-[#4da3ff] border-[#4da3ff] text-[#1D0084]';
         }
         if (opt === playingChip) {
           return base + 'bg-[#1D0084]/10 border-[#1D0084]/40 text-gray-900 scale-[0.97]';
@@ -2018,7 +2018,7 @@ function WordScrambleExercise({ exercise, onAnswer }: { exercise: ExerciseItem; 
             onClick={() => unpick(key)}
             disabled={submitted}
             className={`w-9 h-9 rounded-lg text-[16px] font-bold border transition-all duration-200 uppercase ${
-              submitted ? (isCorrect ? 'bg-green-500 border-green-500 text-white' : 'bg-red-400 border-red-400 text-white') : 'bg-[#1D0084] border-[#1D0084] text-white hover:bg-[#025dc7]'
+              submitted ? (isCorrect ? 'bg-green-500 border-green-500 text-white' : 'bg-red-400 border-red-400 text-white') : 'bg-[#4da3ff] border-[#4da3ff] text-[#1D0084] hover:bg-[#6cb5ff]'
             }`}
           >
             {key.split('__')[0]}
@@ -2098,7 +2098,7 @@ function MatchPairsExercise({ exercise, onAnswer }: { exercise: ExerciseItem; on
     const isWrong = wrongPair?.[0] === left;
     if (isMatched) return 'bg-green-50 border-green-400 text-green-800 cursor-default';
     if (isWrong) return 'bg-red-50 border-red-300 text-red-600 animate-pulse';
-    if (isSelected) return 'bg-[#1D0084] border-[#1D0084] text-white';
+    if (isSelected) return 'bg-[#4da3ff] border-[#4da3ff] text-[#1D0084]';
     return 'bg-white border-[#DDE6F5] text-gray-900 hover:border-[#025dc7] hover:bg-[#F8FAFF]';
   }
   function rightStyle(right: string) {
