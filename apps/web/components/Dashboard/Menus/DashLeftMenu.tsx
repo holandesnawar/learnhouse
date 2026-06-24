@@ -65,7 +65,6 @@ import {
   HoverMenuLabel,
   HoverMenuSeparator,
 } from "@components/ui/hover-menu"
-import { FeedbackModal } from '@components/Objects/Modals/FeedbackModal'
 import { AVAILABLE_LANGUAGES } from '@/lib/languages'
 import { getOrgLogoMediaDirectory } from '@services/media/media'
 import { cn } from '@/lib/utils'
@@ -91,7 +90,6 @@ function DashLeftMenu() {
     return pathname === path || pathname.startsWith(path + '/')
   }
   const [recentAssignments, setRecentAssignments] = useState<any[]>([])
-  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false)
   const access_token = session?.data?.tokens?.access_token
 
   // Fetch recent courses
@@ -885,14 +883,6 @@ function DashLeftMenu() {
                     <span>{t('common.help_menu.discord')}</span>
                   </a>
                 </HoverMenuItem>
-                <HoverMenuSeparator />
-                <HoverMenuItem
-                  onClick={() => setFeedbackModalOpen(true)}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/[0.08] cursor-pointer transition-colors"
-                >
-                  <ChatCircleDots size={16} weight="fill" />
-                  <span>{t('common.help_menu.report_feedback')}</span>
-                </HoverMenuItem>
               </HoverMenuContent>
             }
           >
@@ -956,15 +946,6 @@ function DashLeftMenu() {
         </div>
       </div>
     </nav>
-
-      {/* Feedback Modal */}
-      <FeedbackModal
-        open={feedbackModalOpen}
-        onOpenChange={setFeedbackModalOpen}
-        theme="dark"
-        userName={session?.data?.user?.username}
-        userEmail={session?.data?.user?.email}
-      />
     </TooltipProvider>
   )
 }
