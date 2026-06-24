@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Loader2, Lock, Dumbbell } from 'lucide-react'
+import { Loader2, Lock, Dumbbell, Info, Check } from 'lucide-react'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import { getModules, getLessonsForModule } from '@/lib/exercises-app/courseService'
 import { getModuleStats } from '@/lib/exercises-app/progress'
@@ -36,9 +36,15 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
         <Dumbbell size={24} className="text-[#025dc7]" />
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Centro de ejercicios</h1>
       </div>
-      <p className="text-sm text-gray-500 mt-1 mb-6 max-w-lg">
-        Repasa cualquier módulo o lección cuando quieras, en el orden que prefieras.
+      <p className="text-sm text-gray-500 mt-1 mb-4 max-w-lg">
+        Aquí repasas lo que ya has aprendido, en el orden que prefieras.
       </p>
+      <div className="flex items-start gap-2.5 rounded-xl bg-[#F0F5FF] border border-[#DDE6F5] px-4 py-3 mb-6 max-w-2xl">
+        <Info size={18} className="text-[#4da3ff] shrink-0 mt-0.5" />
+        <p className="text-[13px] text-[#0a1656] leading-relaxed">
+          Recuerda: primero completa el módulo en <strong>Formación</strong>. Una vez lo termines, podrás repasarlo aquí cuando quieras.
+        </p>
+      </div>
 
       <div>
       {!mounted ? (
@@ -54,52 +60,40 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
             const completed = st?.completed ?? 0
             const pct = total === 0 ? 0 : Math.round((completed / total) * 100)
 
+            const done = unlocked && total > 0 && completed === total
             const inner = (
-              <>
-                <div
-                  className="relative flex items-center justify-center py-8 text-5xl overflow-hidden"
-                  style={{
-                    backgroundColor: '#1D0084',
-                    backgroundImage:
-                      'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
-                      'radial-gradient(circle 280px at 100% 0%, rgba(11,109,240,0.40) 0%, transparent 70%)',
-                    backgroundSize: '24px 24px, auto',
-                    backgroundRepeat: 'repeat, no-repeat',
-                  }}
-                >
-                  <div aria-hidden className="absolute inset-0 dots-dark pointer-events-none" />
-                  {unlocked ? (
-                    <span className="relative select-none" style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.25))' }}>
-                      {m.emoji}
-                    </span>
-                  ) : (
-                    <span className="relative w-12 h-12 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center">
-                      <Lock size={22} className="text-white" />
+              <div className="p-5 flex flex-col gap-3 h-full">
+                {/* Cabecera limpia: chip con emoji + estado (minimalista, sin fondo grande) */}
+                <div className="flex items-center justify-between">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-[24px] shrink-0 border ${unlocked ? 'bg-[#F0F5FF] border-[#DDE6F5]' : 'bg-[#F3F4F6] border-[#E5E7EB]'}`}>
+                    {unlocked ? <span className="select-none leading-none">{m.emoji}</span> : <Lock size={20} className="text-[#9CA3AF]" />}
+                  </div>
+                  {done && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                      <Check size={12} className="stroke-[3]" /> Completado
                     </span>
                   )}
                 </div>
 
-                <div className="p-5 flex flex-col gap-2.5">
-                  <span className="text-[11px] font-bold text-[#025dc7] uppercase tracking-wider">
-                    Módulo {m.order} · {total} lección{total !== 1 ? 'es' : ''}
-                  </span>
-                  <div>
-                    <h2
-                      className="text-[18px] font-bold text-gray-900 leading-tight"
-                      style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
-                    >
-                      {m.title}
-                    </h2>
-                    {m.subtitle && <p className="text-[12px] font-semibold text-[#025dc7] mt-0.5">{m.subtitle}</p>}
-                    {m.description && <p className="text-[13px] text-[#9CA3AF] mt-1 leading-snug line-clamp-2">{m.description}</p>}
-                  </div>
+                <div>
+                  <span className="text-[11px] font-bold text-[#025dc7] uppercase tracking-wider">Módulo {m.order}</span>
+                  <h2
+                    className="text-[18px] font-bold text-gray-900 leading-tight mt-0.5"
+                    style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+                  >
+                    {m.title}
+                  </h2>
+                  {m.subtitle && <p className="text-[12px] font-semibold text-[#025dc7] mt-0.5">{m.subtitle}</p>}
+                  {m.description && <p className="text-[13px] text-[#9CA3AF] mt-1 leading-snug line-clamp-2">{m.description}</p>}
+                </div>
 
+                <div className="mt-auto pt-1">
                   {unlocked ? (
                     <>
                       {completed > 0 && (
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 mb-2">
                           <div className="flex items-center justify-between text-[11px] font-medium text-[#9CA3AF]">
-                            <span>{completed}/{total} lecciones</span>
+                            <span>{completed}/{total}</span>
                             <span>{pct}%</span>
                           </div>
                           <div className="h-1.5 w-full rounded-full bg-[#DDE6F5] overflow-hidden">
@@ -107,21 +101,21 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
                           </div>
                         </div>
                       )}
-                      <div className="flex items-center gap-2 text-[13px] font-semibold text-[#025dc7] pt-1">
-                        {completed === total && total > 0 ? 'Repasar' : completed > 0 ? 'Continuar' : 'Practicar'}
+                      <div className="flex items-center gap-2 text-[13px] font-semibold text-[#025dc7]">
+                        {done ? 'Repasar' : completed > 0 ? 'Continuar' : 'Practicar'}
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                         </svg>
                       </div>
                     </>
                   ) : (
-                    <div className="flex items-center gap-1.5 text-[12px] font-medium text-[#9CA3AF] pt-1">
+                    <div className="flex items-center gap-1.5 text-[12px] font-medium text-[#9CA3AF]">
                       <Lock size={13} />
                       Termina el módulo anterior para desbloquearlo
                     </div>
                   )}
                 </div>
-              </>
+              </div>
             )
 
             const cardClass =

@@ -239,7 +239,7 @@ export default function ConsultasBoard({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Buscar en consultas…"
-          className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-[#F0F5FF] hover:bg-[#E5ECFF] focus:bg-white text-[#1D0084] placeholder:text-[#1D0084]/45 outline-none border border-transparent focus:border-[#4da3ff] focus:ring-[3px] focus:ring-[#4da3ff]/22 text-[14px] transition-colors"
+          className="w-full pl-10 pr-3 py-3 rounded-xl bg-white text-[#1D0084] placeholder:text-[#5A6480] outline-none border border-[#cdddf5] shadow-sm hover:border-[#4da3ff]/60 focus:border-[#4da3ff] focus:ring-[3px] focus:ring-[#4da3ff]/22 text-[15px] transition-colors"
         />
       </div>
 
@@ -271,7 +271,7 @@ export default function ConsultasBoard({
         <button
           onClick={() => setCategory('')}
           className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-            !category ? 'bg-[#1D0084] text-white border-[#1D0084]' : 'bg-white text-[#5A6480] border-[#DDE6F5] hover:border-[#4da3ff]'
+            !category ? 'bg-[#4da3ff] text-[#1D0084] border-[#4da3ff]' : 'bg-white text-[#5A6480] border-[#DDE6F5] hover:border-[#4da3ff]'
           }`}
         >
           Todas
