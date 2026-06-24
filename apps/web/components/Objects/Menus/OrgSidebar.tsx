@@ -70,7 +70,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     // Fondo = LA imagen real de marca (la portada del vídeo, servida desde el
     // CDN del usuario). `cover` muestra el azul vivo del centro como en el vídeo.
     backgroundColor: SIDE_BASE,
-    backgroundImage: "url('https://docs.holandesnawar.com/img/Portada%20FInal%20169.png')",
+    backgroundImage: "url('/fondo-barra.png')",
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',
