@@ -40,8 +40,8 @@ import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 // El #1D0084 de marca tira a violeta en plano; aquí usamos un azul más
 // limpio + glow azul (#0b6df0) como las secciones oscuras de holandesnawar.com.
 // Si hay que afinar el tono, se cambian estos valores.
-const SIDE_BASE = '#1D0084' // azul Nawar — base sólida (SIEMPRE este)
-const SIDE_SOLID = '#1D0084' // superficies finas (botón flotante)
+const SIDE_BASE = '#120081' // azul Nawar — base/bordes del degradado (igual que Canva)
+const SIDE_SOLID = '#120081' // superficies finas (botón flotante)
 const ACTIVE_BG = 'rgba(77,163,255,0.20)' // #4da3ff (ítem activo)
 const THEME_DARK = SIDE_BASE // color oscuro para subcomponentes (texto blanco)
 
@@ -67,16 +67,15 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const config = org?.config?.config
 
   const surfaceStyle: React.CSSProperties = {
-    // Fondo de marca como el de los vídeos/diapositivas: base azul Nawar +
-    // un glow azul BRILLANTE y CENTRADO (no en esquinas) → lee más azul y vivo,
-    // no violeta-oscuro. + patrón de puntos blancos al 6%.
+    // Fondo de marca EXACTO (como en Canva): degradado radial circular centrado
+    // en 50% 50%, de #025dc7 (centro brillante) a #120081 (bordes). + puntos
+    // blancos sutiles encima para la textura de marca.
     backgroundColor: SIDE_BASE,
     backgroundImage:
-      'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
-      'radial-gradient(circle 640px at 50% 38%, rgba(33,121,232,0.55) 0%, transparent 72%), ' +
-      'radial-gradient(circle 520px at 50% 102%, rgba(11,109,240,0.22) 0%, transparent 62%)',
-    backgroundSize: '28px 28px, auto, auto',
-    backgroundRepeat: 'repeat, no-repeat, no-repeat',
+      'radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px), ' +
+      'radial-gradient(circle at 50% 50%, #025dc7 0%, #120081 100%)',
+    backgroundSize: '28px 28px, auto',
+    backgroundRepeat: 'repeat, no-repeat',
   }
 
   const rf = config?.resolved_features

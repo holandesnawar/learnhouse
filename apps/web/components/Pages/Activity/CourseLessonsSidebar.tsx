@@ -196,13 +196,12 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
       className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-[340px] text-white z-30"
       style={{
         // Mismo fondo exacto que la barra lateral de la plataforma (OrgSidebar).
-        backgroundColor: '#1D0084',
+        backgroundColor: '#120081',
         backgroundImage:
-          'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
-          'radial-gradient(circle 640px at 50% 38%, rgba(33,121,232,0.55) 0%, transparent 72%), ' +
-          'radial-gradient(circle 520px at 50% 102%, rgba(11,109,240,0.22) 0%, transparent 62%)',
-        backgroundSize: '28px 28px, auto, auto',
-        backgroundRepeat: 'repeat, no-repeat, no-repeat',
+          'radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px), ' +
+          'radial-gradient(circle at 50% 50%, #025dc7 0%, #120081 100%)',
+        backgroundSize: '28px 28px, auto',
+        backgroundRepeat: 'repeat, no-repeat',
       }}
     >
       {/* Volver + botón modo enfoque (a la derecha, misma fila) */}
@@ -400,13 +399,12 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
       className="fixed inset-0 z-[9999] text-white flex flex-col"
       style={{
         // Mismo fondo exacto que el sidebar de escritorio.
-        backgroundColor: '#1D0084',
+        backgroundColor: '#120081',
         backgroundImage:
-          'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
-          'radial-gradient(circle 640px at 50% 38%, rgba(33,121,232,0.55) 0%, transparent 72%), ' +
-          'radial-gradient(circle 520px at 50% 102%, rgba(11,109,240,0.22) 0%, transparent 62%)',
-        backgroundSize: '28px 28px, auto, auto',
-        backgroundRepeat: 'repeat, no-repeat, no-repeat',
+          'radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px), ' +
+          'radial-gradient(circle at 50% 50%, #025dc7 0%, #120081 100%)',
+        backgroundSize: '28px 28px, auto',
+        backgroundRepeat: 'repeat, no-repeat',
       }}
     >
       {/* Volver al curso + cerrar */}
