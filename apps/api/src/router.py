@@ -7,7 +7,7 @@ from src.routers import health
 from src.routers import instance
 from src.routers import plans
 from src.routers import usergroups
-from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments
+from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, dashboard
 from src.routers import stream
 from src.routers import api_tokens
 from src.routers import webhooks
@@ -335,6 +335,15 @@ v1_router.include_router(
     payments.router,
     prefix="/payments",
     tags=["payments"],
+)
+
+# Read-only aggregate KPIs for the private admin dashboard (Nextcloud/Vercel).
+# No session auth — guarded by the X-Dashboard-Key shared secret inside the
+# router itself (LEARNHOUSE_DASHBOARD_API_KEY).
+v1_router.include_router(
+    dashboard.router,
+    prefix="/dashboard",
+    tags=["dashboard"],
 )
 
 v1_router.include_router(
