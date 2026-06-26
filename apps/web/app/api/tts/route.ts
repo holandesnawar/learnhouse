@@ -22,7 +22,7 @@ const API_KEY = process.env.ELEVENLABS_API_KEY || process.env.LEARNHOUSE_ELEVENL
 // Voz por defecto = la voz de la cuenta del usuario (Holandés Nawar). Se puede
 // sobreescribir con la env var ELEVENLABS_VOICE_ID.
 const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || process.env.LEARNHOUSE_ELEVENLABS_VOICE_ID || 'yO6w2xlECAQRFP6pX7Hw'
-const MODEL_ID = process.env.ELEVENLABS_MODEL_ID || process.env.LEARNHOUSE_ELEVENLABS_MODEL_ID || 'eleven_flash_v2_5'
+const MODEL_ID = process.env.ELEVENLABS_MODEL_ID || process.env.LEARNHOUSE_ELEVENLABS_MODEL_ID || 'eleven_turbo_v2_5'
 
 const cache = new Map<string, ArrayBuffer>()
 const MAX_CACHE = 600
@@ -52,8 +52,8 @@ export async function GET(req: NextRequest) {
             model_id: MODEL_ID,
             language_code: 'nl', // FUERZA neerlandés (arregla los cognados)
             voice_settings: {
-              stability: 0.5,
-              similarity_boost: 0.85,
+              stability: 0.65,
+              similarity_boost: 0.8,
               style: 0,
               use_speaker_boost: true,
             },

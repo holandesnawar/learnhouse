@@ -1448,34 +1448,45 @@ const m3_les1: Lesson = {
       type: 'lezen',
       textNl: `Eten en drinken in Nederland
 
-Nederlanders houden van eenvoudig en gezond eten. Het ontbijt en de lunch zijn vaak koud: brood met kaas, en een glas melk of een kopje koffie. Koffie is heel populair: een Nederlander drinkt meer dan drie kopjes per dag!
+In Nederland eten mensen meestal drie keer per dag: het ontbijt in de ochtend, de lunch rond het middaguur en het avondeten 's avonds.
 
-Het avondeten is meestal warm. Een klassiek bord heeft drie delen: aardappelen, vlees of vis, en groente. Veel mensen eten ook graag soep.
+Het ontbijt en de lunch zijn vaak koud en simpel: een paar boterhammen met kaas, ham of hagelslag. Hagelslag is brood met chocolade — kinderen vinden dit heerlijk! Daarbij drinken veel mensen een glas melk, thee of koffie.
 
-Kaas is heel belangrijk. Per jaar eet één persoon ongeveer veertien kilo kaas. In de supermarkt vind je veel soorten kaas: jonge kaas, oude kaas en de bekende Goudse kaas.
+Koffie hoort echt bij Nederland. Een Nederlander drinkt gemiddeld meer dan drie kopjes per dag. Vaak krijg je er een klein koekje bij.
 
-Fruit en water horen er ook bij. Een appel is een gezonde en lekkere snack. En het is goed om elke dag genoeg water te drinken.
+Het avondeten is meestal warm. Een klassiek bord heeft drie delen: aardappelen, groente en vlees of vis. Veel gezinnen eten rond zes uur samen aan tafel. Soep of een frisse salade is ook populair.
+
+Kaas is heel belangrijk. Per jaar eet één persoon ongeveer veertien kilo kaas! In de supermarkt vind je veel soorten: jonge kaas, oude kaas en de bekende Goudse kaas. In sommige steden, zoals Alkmaar, is er zelfs een echte kaasmarkt.
+
+Fruit en water horen er natuurlijk ook bij. Een appel of een banaan is een gezonde snack. Het kraanwater in Nederland is schoon, dus je kunt het gewoon drinken.
 
 En jij? Wat eet jij het liefst? Eet je graag warm of koud?`,
       textEs: `Comida y bebida en los Países Bajos
 
-A los neerlandeses les gusta la comida sencilla y sana. El desayuno y el almuerzo suelen ser fríos: pan con queso, y un vaso de leche o una taza de café. El café es muy popular: ¡un neerlandés bebe más de tres tazas al día!
+En los Países Bajos la gente come normalmente tres veces al día: el desayuno por la mañana, el almuerzo a mediodía y la cena por la noche.
 
-La cena suele ser caliente. Un plato clásico tiene tres partes: patatas, carne o pescado, y verdura. A mucha gente también le gusta la sopa.
+El desayuno y el almuerzo suelen ser fríos y sencillos: unas rebanadas de pan con queso, jamón o "hagelslag". El hagelslag es pan con chocolate — ¡a los niños les encanta! Con ello, mucha gente bebe un vaso de leche, té o café.
 
-El queso es muy importante. Al año, una persona come unos catorce kilos de queso. En el supermercado encuentras muchos tipos de queso: queso joven, queso viejo y el conocido queso de Gouda.
+El café va muy unido a los Países Bajos. Un neerlandés bebe de media más de tres tazas al día. A menudo te ponen una galletita al lado.
 
-La fruta y el agua también forman parte. Una manzana es un snack sano y rico. Y conviene beber suficiente agua cada día.
+La cena suele ser caliente. Un plato clásico tiene tres partes: patatas, verdura y carne o pescado. Muchas familias cenan juntas a la mesa sobre las seis. La sopa o una ensalada fresca también son populares.
+
+El queso es muy importante. ¡Al año una persona come unos catorce kilos de queso! En el supermercado encuentras muchos tipos: queso joven, queso viejo y el conocido queso de Gouda. En algunas ciudades, como Alkmaar, hay incluso un mercado de quesos de verdad.
+
+La fruta y el agua también forman parte, claro. Una manzana o un plátano son un snack sano. El agua del grifo en los Países Bajos es limpia, así que puedes beberla sin problema.
 
 ¿Y tú? ¿Qué es lo que más te gusta comer? ¿Te gusta comer caliente o frío?`,
       exercises: [
-        { id: 'm3lz-1', type: 'multiple_choice', prompt: '¿Cómo suele ser el ontbijt (desayuno) en los Países Bajos?', options: ['Caliente', 'Frío', 'Un plato de carne', 'Solo fruta'], correctAnswer: 'Frío', explanation: '"Het ontbijt en de lunch zijn vaak koud": el desayuno y el almuerzo suelen ser fríos.' },
-        { id: 'm3lz-2', type: 'multiple_choice', prompt: '¿Cuántas tazas de café bebe al día un neerlandés de media?', options: ['Menos de una', 'Más de tres', 'Exactamente dos', 'Ninguna'], correctAnswer: 'Más de tres', explanation: '"Een Nederlander drinkt meer dan drie kopjes per dag".' },
-        { id: 'm3lz-3', type: 'multiple_choice', prompt: '¿Qué tres partes tiene un plato clásico de la cena?', options: ['Pan, queso y leche', 'Patatas, carne o pescado y verdura', 'Sopa, fruta y agua', 'Arroz, té y pan'], correctAnswer: 'Patatas, carne o pescado y verdura', explanation: '"Aardappelen, vlees of vis, en groente".' },
-        { id: 'm3lz-4', type: 'true_false', prompt: 'Una persona come unos 14 kilos de queso al año.', correctAnswer: 'verdadero', explanation: '"Per jaar eet één persoon ongeveer veertien kilo kaas".' },
-        { id: 'm3lz-5', type: 'fill_blank', prompt: 'Het is goed om elke dag genoeg ___ te drinken. (agua)', correctAnswer: 'water', hint: 'agua = water', explanation: 'Conviene beber suficiente water (agua) cada día.' },
-        { id: 'm3lz-6', type: 'multiple_choice', prompt: '¿Qué fruta se menciona como snack sano?', options: ['Een appel (una manzana)', 'Een banaan (un plátano)', 'Een sinaasappel (una naranja)', 'Een peer (una pera)'], correctAnswer: 'Een appel (una manzana)', explanation: '"Een appel is een gezonde en lekkere snack".' },
-        { id: 'm3lz-7', type: 'order_sentence', prompt: 'Ordena la pregunta del texto: «¿Qué es lo que más te gusta comer?»', options: ['Wat', 'eet', 'jij', 'het', 'liefst?'], correctAnswer: 'Wat eet jij het liefst?' },
+        { id: 'm3lz-1', type: 'multiple_choice', prompt: '¿Cuántas veces al día come normalmente la gente en los Países Bajos?', options: ['Una', 'Dos', 'Tres', 'Cinco'], correctAnswer: 'Tres', explanation: '"Mensen eten meestal drie keer per dag": desayuno, almuerzo y cena.' },
+        { id: 'm3lz-2', type: 'multiple_choice', prompt: '¿Qué es la "hagelslag"?', options: ['Pan con chocolate', 'Una sopa caliente', 'Un tipo de queso', 'Una fruta'], correctAnswer: 'Pan con chocolate', explanation: '"Hagelslag is brood met chocolade" — pan con fideos de chocolate.' },
+        { id: 'm3lz-3', type: 'multiple_choice', prompt: '¿Cómo suelen ser el desayuno y el almuerzo?', options: ['Calientes y grandes', 'Fríos y sencillos', 'Siempre sopa', 'Solo fruta'], correctAnswer: 'Fríos y sencillos', explanation: '"Het ontbijt en de lunch zijn vaak koud en simpel".' },
+        { id: 'm3lz-4', type: 'multiple_choice', prompt: '¿Cuántas tazas de café bebe al día un neerlandés de media?', options: ['Menos de una', 'Más de tres', 'Exactamente dos', 'Ninguna'], correctAnswer: 'Más de tres', explanation: '"Een Nederlander drinkt gemiddeld meer dan drie kopjes per dag".' },
+        { id: 'm3lz-5', type: 'multiple_choice', prompt: '¿Qué tres partes tiene un plato clásico de la cena?', options: ['Pan, queso y leche', 'Patatas, verdura y carne o pescado', 'Sopa, fruta y agua', 'Arroz, té y pan'], correctAnswer: 'Patatas, verdura y carne o pescado', explanation: '"Aardappelen, groente en vlees of vis".' },
+        { id: 'm3lz-6', type: 'multiple_choice', prompt: '¿Sobre qué hora cenan muchas familias juntas?', options: ['A las seis', 'A medianoche', 'A las diez de la mañana', 'No cenan juntas'], correctAnswer: 'A las seis', explanation: '"Veel gezinnen eten rond zes uur samen aan tafel".' },
+        { id: 'm3lz-7', type: 'true_false', prompt: 'Una persona come unos 14 kilos de queso al año.', correctAnswer: 'verdadero', explanation: '"Per jaar eet één persoon ongeveer veertien kilo kaas".' },
+        { id: 'm3lz-8', type: 'true_false', prompt: 'En los Países Bajos puedes beber el agua del grifo.', correctAnswer: 'verdadero', explanation: '"Het kraanwater in Nederland is schoon": el agua del grifo es limpia.' },
+        { id: 'm3lz-9', type: 'fill_blank', prompt: 'Het is goed om elke dag genoeg ___ te drinken. (agua)', correctAnswer: 'water', hint: 'agua = water', explanation: 'Conviene beber suficiente water (agua) cada día.' },
+        { id: 'm3lz-10', type: 'order_sentence', prompt: 'Ordena la pregunta del texto: «¿Qué es lo que más te gusta comer?»', options: ['Wat', 'eet', 'jij', 'het', 'liefst?'], correctAnswer: 'Wat eet jij het liefst?' },
       ],
     },
     {
@@ -1698,9 +1709,9 @@ Y al final solo preguntas: «Mag ik de rekening, alstublieft?» Fácil, ¿no?`,
         lines: [
           { id: 'm3d2-1',  speaker: 'Tom',  dutch: 'Dat was echt lekker! Zullen we afrekenen?',            spanish: '¡Estaba muy rico! ¿Pagamos?' },
           { id: 'm3d2-2',  speaker: 'Sara', dutch: 'Ja, goed. Wat is mijn deel?',                          spanish: 'Sí, vale. ¿Cuánto es lo mío?' },
-          { id: 'm3d2-3',  speaker: 'Tom',  dutch: 'Jij had de soep en ik het broodje. Samen €15.',        spanish: 'Tú tomaste la sopa y yo el bocadillo. En total 15 €.' },
+          { id: 'm3d2-3',  speaker: 'Tom',  dutch: 'Jij had de soep en ik het broodje. Samen vijftien euro.', spanish: 'Tú tomaste la sopa y yo el bocadillo. En total 15 €.' },
           { id: 'm3d2-4',  speaker: 'Sara', dutch: 'Zullen we gewoon delen? Ieder de helft.',              spanish: '¿Lo dividimos sin más? Cada uno la mitad.' },
-          { id: 'm3d2-5',  speaker: 'Tom',  dutch: 'Goed idee. Dat is €7,50 per persoon.',                 spanish: 'Buena idea. Son 7,50 € por persona.' },
+          { id: 'm3d2-5',  speaker: 'Tom',  dutch: 'Goed idee. Dat is zeven euro vijftig per persoon.',    spanish: 'Buena idea. Son 7,50 € por persona.' },
           { id: 'm3d2-6',  speaker: 'Sara', dutch: 'Ik heb geen cash bij me. Mag ik je een tikkie sturen?', spanish: 'No llevo efectivo. ¿Te puedo mandar un tikkie?' },
           { id: 'm3d2-7',  speaker: 'Tom',  dutch: 'Natuurlijk! Ik betaal nu met pinnen.',                 spanish: '¡Claro! Yo pago ahora con tarjeta.' },
           { id: 'm3d2-8',  speaker: 'Sara', dutch: 'Top. Ik stuur de tikkie naar je nummer.',             spanish: 'Genial. Te mando el tikkie a tu número.' },
