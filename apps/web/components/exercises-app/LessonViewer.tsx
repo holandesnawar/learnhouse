@@ -2994,8 +2994,8 @@ function LezenSection({
           </div>
         )}
         {exercises.length > 0 && (
-          <div className="flex items-start gap-3 rounded-lg bg-[#FEF3C7] border border-[#FCD34D] px-4 py-3">
-            <span className="text-[20px] shrink-0">💡</span>
+          <div className="flex items-center gap-2.5 rounded-lg bg-[#FEF3C7] border border-[#FCD34D] px-4 py-2.5">
+            <span className="text-[18px] shrink-0 leading-none">💡</span>
             <p className="text-[13px] text-[#92400E] leading-snug">
               <strong>Primero intenta entenderlo en neerlandés.</strong> Cuando completes los ejercicios, podrás ver la traducción al español.
             </p>
