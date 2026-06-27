@@ -2440,6 +2440,74 @@ const m3_les6: Lesson = {
       ],
     },
     {
+      type: 'phrases',
+      items: [
+        { id: 'm3l6p-1', dutch: 'Wij doen boodschappen.',                 spanish: 'Hacemos la compra.',                context: 'Boodschappen' },
+        { id: 'm3l6p-2', dutch: 'Ik kook met boter.',                     spanish: 'Cocino con mantequilla.',           context: 'Koken (OO)' },
+        { id: 'm3l6p-3', dutch: 'Een kom soep, alstublieft.',             spanish: 'Un bol de sopa, por favor.',        context: 'OE-klank' },
+        { id: 'm3l6p-4', dutch: 'Brood en boter, graag.',                 spanish: 'Pan y mantequilla, por favor.',     context: 'OO-klank' },
+        { id: 'm3l6p-5', dutch: 'De winkel is open.',                     spanish: 'La tienda está abierta.',           context: 'Supermarkt' },
+        { id: 'm3l6p-6', dutch: 'Mag ik pinnen?',                         spanish: '¿Puedo pagar con tarjeta?',         context: 'Betalen (repaso)' },
+      ],
+    },
+    {
+      type: 'lezen',
+      textNl: `Boodschappen doen in Nederland
+
+In Nederland doen mensen meestal één of twee keer per week boodschappen. Ze maken eerst een lijstje: brood, boter, melk, soep en groente.
+
+Veel mensen gaan naar de supermarkt, want daar vind je bijna alles. Maar voor verse groente, fruit of bloemen gaan ze graag naar de markt.
+
+Let op de uitspraak! Woorden met «oo» klinken lang en open: brood, koken, boter. Woorden met «oe» klinken rond, een beetje als de Spaanse u: soep, koek, bloemen.
+
+Bij de kassa betaal je bijna altijd met de pinpas. «Mag ik pinnen?» — «Ja, natuurlijk.»
+
+En jij? Doe jij graag boodschappen? Wat staat er op jouw lijstje?`,
+      textEs: `Hacer la compra en los Países Bajos
+
+En los Países Bajos la gente hace la compra normalmente una o dos veces por semana. Primero hacen una lista: pan, mantequilla, leche, sopa y verdura.
+
+Mucha gente va al supermercado, porque allí encuentras casi todo. Pero para verdura fresca, fruta o flores van con gusto al mercado.
+
+¡Atención a la pronunciación! Las palabras con «oo» suenan largas y abiertas: brood, koken, boter. Las palabras con «oe» suenan redondas, un poco como la u española: soep, koek, bloemen.
+
+En la caja pagas casi siempre con la tarjeta. «Mag ik pinnen?» (¿Puedo pagar con tarjeta?) — «Ja, natuurlijk» (Sí, claro).
+
+¿Y tú? ¿Te gusta hacer la compra? ¿Qué hay en tu lista?`,
+      exercises: [
+        { id: 'm3l6lz-1', type: 'multiple_choice', prompt: '¿Cada cuánto hace la compra la gente normalmente?', options: ['Una o dos veces por semana', 'Cada hora', 'Una vez al año', 'Nunca'], correctAnswer: 'Una o dos veces por semana', explanation: '"meestal één of twee keer per week".' },
+        { id: 'm3l6lz-2', type: 'multiple_choice', prompt: '¿Adónde van para verdura fresca, fruta o flores?', options: ['Al mercado', 'A la farmacia', 'Al banco', 'Al café'], correctAnswer: 'Al mercado', explanation: '"voor verse groente, fruit of bloemen gaan ze graag naar de markt".' },
+        { id: 'm3l6lz-3', type: 'multiple_choice', prompt: '¿Cuál de estas palabras tiene el sonido OE (como la "u")?', options: ['soep', 'brood', 'koken', 'boter'], correctAnswer: 'soep', explanation: '"soep" tiene «oe»; brood/koken/boter tienen «oo».' },
+        { id: 'm3l6lz-4', type: 'multiple_choice', prompt: '¿Cuál tiene el sonido OO (largo y abierto)?', options: ['brood', 'soep', 'koek', 'bloemen'], correctAnswer: 'brood', explanation: '"brood" tiene «oo»; las demás «oe».' },
+        { id: 'm3l6lz-5', type: 'fill_blank', prompt: 'Eerst maak je een ___ : brood, boter, melk… (lista)', correctAnswer: 'lijstje', hint: 'lista = lijstje', explanation: '"Ze maken eerst een lijstje".' },
+        { id: 'm3l6lz-6', type: 'true_false', prompt: 'En la caja casi siempre se paga con tarjeta.', correctAnswer: 'verdadero', explanation: '"Bij de kassa betaal je bijna altijd met de pinpas".' },
+        { id: 'm3l6lz-7', type: 'multiple_choice', prompt: '¿Por qué va mucha gente al supermercado?', options: ['Porque allí encuentras casi todo', 'Porque es gratis', 'Porque está lejos', 'Porque no hay mercado'], correctAnswer: 'Porque allí encuentras casi todo', explanation: '"want daar vind je bijna alles".' },
+        { id: 'm3l6lz-8', type: 'order_sentence', prompt: 'Ordena: «Hacemos la compra.»', options: ['Wij', 'doen', 'boodschappen.'], correctAnswer: 'Wij doen boodschappen.' },
+      ],
+    },
+    {
+      type: 'dialogue',
+      dialogue: {
+        id: 'm3d6',
+        title: 'Dialoog – Het boodschappenlijstje',
+        context: 'Tom en Sara maken samen een boodschappenlijstje. Ze herhalen alles uit het hele module.',
+        lines: [
+          { id: 'm3d6-1',  speaker: 'Tom',  dutch: 'Sara, we hebben bijna niks meer. Zullen we boodschappen doen?', spanish: 'Sara, ya casi no tenemos nada. ¿Hacemos la compra?' },
+          { id: 'm3d6-2',  speaker: 'Sara', dutch: 'Ja! Wat hebben we nodig?',                       spanish: '¡Sí! ¿Qué necesitamos?' },
+          { id: 'm3d6-3',  speaker: 'Tom',  dutch: 'Brood en boter, want het ontbijt is op. En melk.', spanish: 'Pan y mantequilla, porque se acabó el desayuno. Y leche.' },
+          { id: 'm3d6-4',  speaker: 'Sara', dutch: 'Oké. Wil je soep of maak je liever pasta?',       spanish: 'Vale. ¿Quieres sopa o prefieres hacer pasta?' },
+          { id: 'm3d6-5',  speaker: 'Tom',  dutch: 'Pasta! Dan kopen we tomaten en een beetje kaas.', spanish: '¡Pasta! Entonces compramos tomates y un poco de queso.' },
+          { id: 'm3d6-6',  speaker: 'Sara', dutch: 'Hou jij van groente? Dan neem ik ook spinazie.',  spanish: '¿Te gusta la verdura? Entonces cojo también espinacas.' },
+          { id: 'm3d6-7',  speaker: 'Tom',  dutch: 'Lekker. Hoeveel brood kopen we?',                 spanish: 'Rico. ¿Cuánto pan compramos?' },
+          { id: 'm3d6-8',  speaker: 'Sara', dutch: 'Twee broden, want we eten veel boterhammen.',     spanish: 'Dos panes, porque comemos muchas rebanadas.' },
+          { id: 'm3d6-9',  speaker: 'Tom',  dutch: 'Goed. Gaan we naar de supermarkt of naar de markt?', spanish: 'Bien. ¿Vamos al supermercado o al mercado?' },
+          { id: 'm3d6-10', speaker: 'Sara', dutch: 'Naar de markt voor het fruit, en daarna de supermarkt.', spanish: 'Al mercado por la fruta, y después al supermercado.' },
+          { id: 'm3d6-11', speaker: 'Tom',  dutch: 'Top. Betalen we met pin?',                        spanish: 'Genial. ¿Pagamos con tarjeta?' },
+          { id: 'm3d6-12', speaker: 'Sara', dutch: 'Ja, met pin. Kom, we gaan!',                      spanish: 'Sí, con tarjeta. ¡Venga, vamos!' },
+        ],
+      },
+    },
+    {
       type: 'practice',
       exercises: [
         // OO / OE pronunciación
@@ -2473,6 +2541,14 @@ const m3_les6: Lesson = {
         { id: 'm3l6e-18', type: 'fill_blank', prompt: 'Repaso: Hoeveel koffie ___ je? (querer — jij)', correctAnswer: 'wil', hint: 'willen → jij wil' },
         { id: 'm3l6e-19', type: 'true_false', prompt: 'Repaso: "boodschappen doen" significa "cocinar".', correctAnswer: 'falso', explanation: '"boodschappen doen" = hacer la compra. "koken" = cocinar.' },
         { id: 'm3l6e-20', type: 'order_sentence', prompt: 'Repaso: "Hacemos la compra en el supermercado."', options: ['Wij', 'doen', 'boodschappen', 'in', 'de', 'supermarkt.'], correctAnswer: 'Wij doen boodschappen in de supermarkt.' },
+        { id: 'm3l6e-21', type: 'listen_and_choose', prompt: 'Escucha y elige la palabra con sonido OE: ', options: ['soep', 'brood', 'koken', 'boter'], correctAnswer: 'soep', explanation: '"soep" suena OE (como la u española).' },
+        { id: 'm3l6e-22', type: 'listen_and_choose', prompt: 'Escucha y elige la traducción: "Wij doen boodschappen."', options: ['Hacemos la compra', 'Cocinamos sopa', 'Pago con tarjeta', 'Quiero pan'], correctAnswer: 'Hacemos la compra', explanation: '"boodschappen doen" = hacer la compra.' },
+        { id: 'm3l6e-23', type: 'pair_memory', prompt: 'Empareja la palabra con su sonido (OO / OE)', correctAnswer: '', pairs: [
+          { left: 'brood', right: 'OO' },
+          { left: 'soep', right: 'OE' },
+          { left: 'koken', right: 'OO' },
+          { left: 'koek', right: 'OE' },
+        ] },
       ],
     },
     { type: 'review' },
