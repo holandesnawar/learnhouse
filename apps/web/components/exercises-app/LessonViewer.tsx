@@ -75,7 +75,7 @@ function _playUrl(url: string, onFail: () => void, onDone?: () => void, rate?: n
 
 // Etiqueta de caché de la voz. SÚBELA (v3, v4...) cada vez que se cambie la voz
 // por defecto, para que el navegador no sirva el audio viejo en caché.
-const TTS_VOICE_TAG = 'v4';
+const TTS_VOICE_TAG = 'v5';
 
 async function _speakViaElevenLabs(text: string, onDone?: () => void, rate?: number): Promise<boolean> {
   if (_ttsRouteAvailable === false) return false;
@@ -1361,7 +1361,7 @@ function FlashcardSection({
           </svg>
           Barajar
         </button>
-        <span className="text-[12px] font-semibold text-white bg-[#1D0084] px-2.5 py-1 rounded-full">{knownCount} ✓</span>
+        <span className="text-[12px] font-semibold text-[#1D0084] bg-[#4da3ff] px-2.5 py-1 rounded-full">{knownCount} ✓</span>
       </div>
 
       {/* Card */}
@@ -3190,6 +3190,10 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
     return seen;
   }, [lines]);
   const voiceFor = (speaker: string) => {
+    // Un solo interlocutor (p. ej. una presentadora de radio) → voz femenina por
+    // defecto. Con el % de antes, el único hablante (índice 0) caía en la voz
+    // masculina A, que no es lo que queremos para una presentadora.
+    if (speakers.length === 1) return DIALOGUE_VOICE_B || undefined;
     const v = speakers.indexOf(speaker) % 2 === 0 ? DIALOGUE_VOICE_A : DIALOGUE_VOICE_B;
     return v || undefined;
   };
