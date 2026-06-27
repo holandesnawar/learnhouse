@@ -2262,6 +2262,76 @@ const m3_les5: Lesson = {
       ],
     },
     {
+      type: 'phrases',
+      items: [
+        { id: 'm3l5p-1',  dutch: 'Ik wil graag twee koffie.',            spanish: 'Quiero dos cafés, por favor.',     context: 'Aantallen' },
+        { id: 'm3l5p-2',  dutch: 'Nog een broodje, alstublieft.',        spanish: 'Otro bocadillo, por favor.',       context: 'Nog een' },
+        { id: 'm3l5p-3',  dutch: 'Ik wil graag een kilo appels.',        spanish: 'Quiero un kilo de manzanas.',      context: 'Kilo/gram' },
+        { id: 'm3l5p-4',  dutch: 'Vijfhonderd gram druiven, graag.',     spanish: 'Quinientos gramos de uvas, por favor.', context: 'Kilo/gram' },
+        { id: 'm3l5p-5',  dutch: 'Een beetje melk, alstublieft.',        spanish: 'Un poco de leche, por favor.',     context: 'Veel / een beetje' },
+        { id: 'm3l5p-6',  dutch: 'Hoeveel suiker wil je?',               spanish: '¿Cuánto azúcar quieres?',          context: 'Hoeveel' },
+        { id: 'm3l5p-7',  dutch: 'Ik hou van friet.',                    spanish: 'Me gusta la patata frita.',        context: 'Houden van' },
+        { id: 'm3l5p-8',  dutch: 'Wat is jouw lievelingseten?',          spanish: '¿Cuál es tu comida favorita?',     context: 'Houden van' },
+      ],
+    },
+    {
+      type: 'lezen',
+      textNl: `Wat eten Nederlanders graag?
+
+Nederlanders houden van lekker en simpel eten. Veel mensen houden van friet met mayonaise, een broodje haring of een warme stroopwafel.
+
+Op de markt kopen mensen graag verse groente en fruit. Je zegt bijvoorbeeld: «Ik wil graag een kilo appels» of «Twee kilo aardappels, alstublieft». Voor kleine dingen gebruik je gram: «vijfhonderd gram druiven».
+
+Niet alles tel je. Water, melk en suiker zijn niet telbaar. Daarom zeg je «veel water» of «een beetje suiker», en niet «twee water».
+
+Wil je iets extra? Vraag dan om «nog een»: «Nog een koffie, alstublieft.» En met het woord «graag» klink je altijd beleefd.
+
+En jij? Wat is jouw lievelingseten? Hou je van zoet of van hartig?`,
+      textEs: `¿Qué les gusta comer a los neerlandeses?
+
+A los neerlandeses les gusta la comida rica y sencilla. A mucha gente le gustan las patatas fritas con mayonesa, un bocadillo de arenque o un "stroopwafel" calentito.
+
+En el mercado la gente compra con gusto verdura y fruta fresca. Dices por ejemplo: «Ik wil graag een kilo appels» (quiero un kilo de manzanas) o «Twee kilo aardappels, alstublieft» (dos kilos de patatas, por favor). Para cosas pequeñas usas gramos: «vijfhonderd gram druiven» (500 gramos de uvas).
+
+No todo se cuenta. El agua, la leche y el azúcar no son contables. Por eso dices «veel water» (mucha agua) o «een beetje suiker» (un poco de azúcar), y no «twee water».
+
+¿Quieres algo extra? Pide entonces «nog een»: «Nog een koffie, alstublieft» (otro café, por favor). Y con la palabra «graag» siempre suenas educado.
+
+¿Y tú? ¿Cuál es tu comida favorita? ¿Te gusta lo dulce o lo salado?`,
+      exercises: [
+        { id: 'm3l5lz-1', type: 'multiple_choice', prompt: '¿Qué les gusta a muchos neerlandeses según el texto?', options: ['Patatas fritas con mayonesa', 'Sushi', 'Paella', 'Tacos'], correctAnswer: 'Patatas fritas con mayonesa', explanation: '"Veel mensen houden van friet met mayonaise".' },
+        { id: 'm3l5lz-2', type: 'multiple_choice', prompt: '¿Dónde compra la gente verdura y fruta fresca?', options: ['En el mercado', 'En la farmacia', 'En el banco', 'En el café'], correctAnswer: 'En el mercado', explanation: '"Op de markt kopen mensen graag verse groente en fruit".' },
+        { id: 'm3l5lz-3', type: 'multiple_choice', prompt: '¿Qué tres cosas NO son contables según el texto?', options: ['Agua, leche y azúcar', 'Manzanas, patatas y uvas', 'Café, té y pan', 'Pollo, pescado y carne'], correctAnswer: 'Agua, leche y azúcar', explanation: '"Water, melk en suiker zijn niet telbaar".' },
+        { id: 'm3l5lz-4', type: 'fill_blank', prompt: 'Ik wil graag een ___ appels. (kilo)', correctAnswer: 'kilo', hint: 'kilo', explanation: '"Ik wil graag een kilo appels".' },
+        { id: 'm3l5lz-5', type: 'fill_blank', prompt: 'Met agua (no contable): «___ water». (mucho)', correctAnswer: 'veel', hint: 'mucho = veel', explanation: 'Con lo no contable: "veel water", no "twee water".' },
+        { id: 'm3l5lz-6', type: 'true_false', prompt: '"twee water" es correcto.', correctAnswer: 'falso', explanation: 'El agua no es contable: se dice "veel water" o "een beetje water".' },
+        { id: 'm3l5lz-7', type: 'multiple_choice', prompt: '¿Para qué sirve la palabra «graag»?', options: ['Para sonar educado', 'Para negar', 'Para contar', 'Para pagar'], correctAnswer: 'Para sonar educado', explanation: '"Met het woord graag klink je altijd beleefd".' },
+        { id: 'm3l5lz-8', type: 'order_sentence', prompt: 'Ordena: «Quiero un kilo de manzanas.» (educado)', options: ['Ik', 'wil', 'graag', 'een', 'kilo', 'appels.'], correctAnswer: 'Ik wil graag een kilo appels.' },
+      ],
+    },
+    {
+      type: 'dialogue',
+      dialogue: {
+        id: 'm3d5',
+        title: 'Dialoog – Op de markt',
+        context: 'Sara koopt groente en fruit op de markt. Ze gebruikt aantallen, kilo/gram, veel/een beetje en graag.',
+        lines: [
+          { id: 'm3d5-1',  speaker: 'Verkoper', dutch: 'Goedemorgen! Wat mag het zijn?',                 spanish: '¡Buenos días! ¿Qué va a ser?' },
+          { id: 'm3d5-2',  speaker: 'Sara',     dutch: 'Goedemorgen. Ik wil graag een kilo appels.',     spanish: 'Buenos días. Quiero un kilo de manzanas.' },
+          { id: 'm3d5-3',  speaker: 'Verkoper', dutch: 'Alstublieft. Wilt u nog iets?',                  spanish: 'Aquí tiene. ¿Quiere algo más?' },
+          { id: 'm3d5-4',  speaker: 'Sara',     dutch: 'Ja, twee kilo aardappels, alstublieft.',         spanish: 'Sí, dos kilos de patatas, por favor.' },
+          { id: 'm3d5-5',  speaker: 'Verkoper', dutch: 'Prima. Houdt u van druiven? Ze zijn vandaag heel zoet.', spanish: 'Perfecto. ¿Le gustan las uvas? Hoy están muy dulces.' },
+          { id: 'm3d5-6',  speaker: 'Sara',     dutch: 'Lekker! Doe maar vijfhonderd gram.',             spanish: '¡Qué ricas! Ponme quinientos gramos.' },
+          { id: 'm3d5-7',  speaker: 'Verkoper', dutch: 'En verder nog iets?',                            spanish: '¿Y algo más?' },
+          { id: 'm3d5-8',  speaker: 'Sara',     dutch: 'Een beetje spinazie, niet te veel. Ik kook voor twee personen.', spanish: 'Un poco de espinacas, no demasiado. Cocino para dos personas.' },
+          { id: 'm3d5-9',  speaker: 'Verkoper', dutch: 'Geen probleem. Wilt u ook tomaten?',             spanish: 'Sin problema. ¿Quiere también tomates?' },
+          { id: 'm3d5-10', speaker: 'Sara',     dutch: 'Nee, dank u. Maar nog een bos wortels, graag.',  spanish: 'No, gracias. Pero otro manojo de zanahorias, por favor.' },
+          { id: 'm3d5-11', speaker: 'Verkoper', dutch: 'Top. Is dat alles?',                             spanish: 'Genial. ¿Es todo?' },
+          { id: 'm3d5-12', speaker: 'Sara',     dutch: 'Ja, dat is alles. Dank u wel!',                  spanish: 'Sí, eso es todo. ¡Muchas gracias!' },
+        ],
+      },
+    },
+    {
       type: 'practice',
       exercises: [
         { id: 'm3l5e-1',  type: 'multiple_choice', prompt: 'Con algo NO contable usamos…', options: ['twee water', 'veel water', 'water twee', 'een water'], correctAnswer: 'veel water', explanation: '"water" no es contable → veel water (no "twee water").' },
@@ -2295,6 +2365,14 @@ const m3_les5: Lesson = {
           { left: 'de druiven', right: 'las uvas' },
         ] },
         { id: 'm3l5e-21', type: 'word_scramble', prompt: '¿Cómo se dice "mucho"?', correctAnswer: 'veel', hint: 'mucho' },
+        { id: 'm3l5e-22', type: 'listen_and_choose', prompt: 'Escucha y elige la traducción: "Ik wil graag een kilo appels."', options: ['Quiero un kilo de manzanas', 'Quiero dos cafés', 'Me gusta la patata frita', 'Otro bocadillo'], correctAnswer: 'Quiero un kilo de manzanas', explanation: '"kilo appels" = kilo de manzanas; "graag" = por favor.' },
+        { id: 'm3l5e-23', type: 'listen_and_choose', prompt: 'Escucha y elige la traducción: "Hoeveel suiker wil je?"', options: ['¿Cuánto azúcar quieres?', '¿Quieres otro café?', '¿Te gusta el pescado?', '¿Cuántas manzanas?'], correctAnswer: '¿Cuánto azúcar quieres?', explanation: '"hoeveel" = cuánto.' },
+        { id: 'm3l5e-24', type: 'pair_memory', prompt: 'Empareja la palabra de cantidad con su significado', correctAnswer: '', pairs: [
+          { left: 'veel', right: 'mucho' },
+          { left: 'weinig', right: 'poco' },
+          { left: 'een beetje', right: 'un poco' },
+          { left: 'nog een', right: 'otro más' },
+        ] },
       ],
     },
     { type: 'review' },
