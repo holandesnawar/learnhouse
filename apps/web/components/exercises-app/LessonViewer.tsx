@@ -860,11 +860,17 @@ export function ExerciseRunner({ exercises, onDone, onBack, hasBackStep, onSubPr
       return;
     }
     if (target === index) return;
+    // No saltar hacia DELANTE sin responder: solo se puede ir a ejercicios ya
+    // respondidos o al siguiente pendiente (no "volar" hasta el final).
+    const firstUnanswered = exercises.findIndex((_, i) => !(i in answers));
+    const maxForward = firstUnanswered === -1 ? exercises.length - 1 : firstUnanswered;
+    if (target > index && target > maxForward) return;
     setIndex(target);
     setExKey(k => k + 1);
   }
 
-  function handleNext() { go(index + 1); }
+  // La flecha "siguiente" solo avanza si el ejercicio actual está respondido.
+  function handleNext() { if (!(index in answers)) return; go(index + 1); }
   function handlePrev() { go(index - 1); }
 
   const currentAnswered = index in answers;
@@ -934,12 +940,13 @@ export function ExerciseRunner({ exercises, onDone, onBack, hasBackStep, onSubPr
         </div>
 
         <button
-          onClick={handleNext}
+          onClick={currentAnswered ? handleNext : undefined}
           aria-label={isLast ? 'Siguiente paso' : 'Siguiente ejercicio'}
+          title={currentAnswered ? '' : 'Responde primero'}
           className={`hidden md:flex absolute right-0 top-5 w-11 h-11 items-center justify-center rounded-2xl transition-all duration-300 ${
             currentAnswered
               ? 'bg-[#4da3ff] text-[#1D0084] cursor-pointer hover:bg-[#6cb5ff]'
-              : 'bg-[#F0F5FF] text-gray-900 cursor-pointer hover:bg-[#e0eaff] border border-[#DDE6F5]'
+              : 'bg-[#F0F5FF] text-[#C7D2E8] border border-[#DDE6F5] cursor-not-allowed'
           }`}
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -960,14 +967,15 @@ export function ExerciseRunner({ exercises, onDone, onBack, hasBackStep, onSubPr
           </svg>
         </button>
         <button
-          onClick={handleNext}
+          onClick={currentAnswered ? handleNext : undefined}
+          disabled={!currentAnswered}
           className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-[15px] font-semibold transition-colors duration-200 ${
             currentAnswered
               ? 'bg-[#4da3ff] text-[#1D0084] hover:bg-[#6cb5ff]'
-              : 'bg-[#F0F5FF] text-gray-900 border border-[#DDE6F5] hover:bg-[#e0eaff]'
+              : 'bg-[#F0F5FF] text-[#9CA3AF] border border-[#DDE6F5] cursor-not-allowed'
           }`}
         >
-          {currentAnswered ? (isLast ? 'Siguiente paso' : 'Siguiente') : (isLast ? 'Saltar al siguiente paso' : 'Saltar')}
+          {currentAnswered ? (isLast ? 'Siguiente paso' : 'Siguiente') : 'Responde primero'}
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
@@ -1903,7 +1911,10 @@ function OrderSentenceExercise({
   );
   const [sentence, setSentence] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
-  const isCorrect = sentence.join(' ') === exercise.correctAnswer;
+  // Comparación tolerante: ignora MAYÚSCULAS y espacios extra. (Las fichas
+  // pueden incluir "Ik" y "ik"; con orden correcto fallaba por la mayúscula.)
+  const norm = (s: string) => (s ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const isCorrect = norm(sentence.join(' ')) === norm(exercise.correctAnswer);
 
   function addWord(word: string, idx: number) {
     if (submitted) return;
@@ -3050,18 +3061,19 @@ function LezenSection({
             <ExerciseStep exercise={exercise} onAnswer={handleAnswer} />
           </div>
           <button
-            onClick={handleNext}
+            onClick={answered ? handleNext : undefined}
             aria-label="Siguiente"
+            title={answered ? '' : 'Responde primero'}
             className={`hidden md:flex absolute right-0 top-5 w-11 h-11 items-center justify-center rounded-2xl transition-all duration-300 ${
-              answered ? 'bg-[#4da3ff] text-[#1D0084] cursor-pointer hover:bg-[#6cb5ff]' : 'bg-[#F0F5FF] text-gray-900 cursor-pointer hover:bg-[#e0eaff] border border-[#DDE6F5]'
+              answered ? 'bg-[#4da3ff] text-[#1D0084] cursor-pointer hover:bg-[#6cb5ff]' : 'bg-[#F0F5FF] text-[#C7D2E8] border border-[#DDE6F5] cursor-not-allowed'
             }`}
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
           </button>
         </div>
         {/* Móvil: botón abajo */}
-        <button onClick={handleNext} className="md:hidden w-full flex items-center justify-center gap-2 py-4 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200">
-          {answered ? (exerciseIndex + 1 < exercises.length ? 'Siguiente ejercicio' : 'Ver traducción del texto') : 'Saltar'}
+        <button onClick={answered ? handleNext : undefined} disabled={!answered} className={`md:hidden w-full flex items-center justify-center gap-2 py-4 rounded-lg text-[15px] font-semibold transition-colors duration-200 ${answered ? 'bg-[#4da3ff] text-[#1D0084] hover:bg-[#6cb5ff]' : 'bg-[#F0F5FF] text-[#9CA3AF] border border-[#DDE6F5] cursor-not-allowed'}`}>
+          {answered ? (exerciseIndex + 1 < exercises.length ? 'Siguiente ejercicio' : 'Ver traducción del texto') : 'Responde primero'}
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
@@ -3182,7 +3194,7 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
     return v || undefined;
   };
 
-  const rate = slow ? 0.7 : 1;
+  const rate = slow ? 0.8 : 1; // 0.7 alentaba demasiado y perdía calidad de voz
   // La velocidad se lee SIEMPRE de un ref para que el bucle de reproducción (que
   // va saltando de línea en línea) aplique la velocidad actual a cada clip, no
   // la que había cuando arrancó (el closure quedaba obsoleto → unas líneas
@@ -3766,18 +3778,19 @@ function LuisterenSection({
               <ExerciseStep exercise={exercise} onAnswer={onAnswerEx} />
             </div>
             <button
-              onClick={goNextEx}
+              onClick={answered ? goNextEx : undefined}
               aria-label="Siguiente"
+              title={answered ? '' : 'Responde primero'}
               className={`hidden md:flex absolute right-0 top-5 w-11 h-11 items-center justify-center rounded-2xl transition-all duration-300 ${
-                answered ? 'bg-[#4da3ff] text-[#1D0084] cursor-pointer hover:bg-[#6cb5ff]' : 'bg-[#F0F5FF] text-gray-900 cursor-pointer hover:bg-[#e0eaff] border border-[#DDE6F5]'
+                answered ? 'bg-[#4da3ff] text-[#1D0084] cursor-pointer hover:bg-[#6cb5ff]' : 'bg-[#F0F5FF] text-[#C7D2E8] border border-[#DDE6F5] cursor-not-allowed'
               }`}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
             </button>
           </div>
           {/* Móvil: botón abajo */}
-          <button onClick={goNextEx} className="md:hidden w-full flex items-center justify-center gap-2 py-4 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200">
-            {answered ? (exerciseIndex + 1 < practiceExercises.length ? 'Siguiente ejercicio' : 'Ver resultado') : 'Saltar'}
+          <button onClick={answered ? goNextEx : undefined} disabled={!answered} className={`md:hidden w-full flex items-center justify-center gap-2 py-4 rounded-lg text-[15px] font-semibold transition-colors duration-200 ${answered ? 'bg-[#4da3ff] text-[#1D0084] hover:bg-[#6cb5ff]' : 'bg-[#F0F5FF] text-[#9CA3AF] border border-[#DDE6F5] cursor-not-allowed'}`}>
+            {answered ? (exerciseIndex + 1 < practiceExercises.length ? 'Siguiente ejercicio' : 'Ver resultado') : 'Responde primero'}
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
           </button>
         </>
