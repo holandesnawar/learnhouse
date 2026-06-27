@@ -1899,24 +1899,64 @@ const m3_les3: Lesson = {
       ],
     },
     {
+      type: 'lezen',
+      textNl: `Vragen stellen in Nederland
+
+Nederlanders stellen graag directe vragen. Dat is heel normaal en niet onbeleefd. In een café vraagt de ober bijvoorbeeld: «Wat wilt u drinken?» of «Wilt u nog iets?»
+
+Met vrienden hoor je vaak korte vragen: «Heb je honger?», «Wat eten we?», «Wie kookt vandaag?». Zo plannen mensen samen een maaltijd.
+
+Een ja/nee-vraag begint met het werkwoord: «Drink je koffie?», «Eet jij vlees?». Aan het einde gaat je stem omhoog.
+
+Met een W-woord vraag je naar informatie: wat, waar, wanneer, wie en hoeveel. Bijvoorbeeld: «Hoeveel suiker wil je?» of «Waar is de supermarkt?»
+
+Wil je iets weigeren? Gebruik «geen»: «Nee, ik drink geen koffie.» Kort en duidelijk.
+
+Tip: in Nederland mag je gewoon vragen. Vraag je niets, dan krijg je ook niets!`,
+      textEs: `Hacer preguntas en los Países Bajos
+
+A los neerlandeses les gusta hacer preguntas directas. Es muy normal y no es de mala educación. En un café, el camarero pregunta por ejemplo: «Wat wilt u drinken?» (¿Qué quiere beber?) o «Wilt u nog iets?» (¿Algo más?).
+
+Con los amigos oyes muchas preguntas cortas: «Heb je honger?» (¿Tienes hambre?), «Wat eten we?» (¿Qué comemos?), «Wie kookt vandaag?» (¿Quién cocina hoy?). Así planean juntos una comida.
+
+Una pregunta de sí/no empieza por el verbo: «Drink je koffie?», «Eet jij vlees?». Al final la voz sube.
+
+Con una palabra en W preguntas por información: wat, waar, wanneer, wie y hoeveel. Por ejemplo: «Hoeveel suiker wil je?» (¿Cuánta azúcar quieres?) o «Waar is de supermarkt?» (¿Dónde está el supermercado?).
+
+¿Quieres rechazar algo? Usa «geen»: «Nee, ik drink geen koffie» (No, no bebo café). Corto y claro.
+
+Consejo: en los Países Bajos puedes preguntar sin más. ¡Si no preguntas nada, tampoco recibes nada!`,
+      exercises: [
+        { id: 'm3l3lz-1', type: 'multiple_choice', prompt: '¿Cómo son las preguntas de los neerlandeses según el texto?', options: ['Directas y normales', 'De mala educación', 'Muy largas', 'Prohibidas'], correctAnswer: 'Directas y normales', explanation: '"Nederlanders stellen graag directe vragen. Dat is heel normaal en niet onbeleefd."' },
+        { id: 'm3l3lz-2', type: 'multiple_choice', prompt: '¿Con qué empieza una pregunta de sí/no?', options: ['Con el verbo', 'Con el sujeto', 'Con "geen"', 'Con una coma'], correctAnswer: 'Con el verbo', explanation: '"Een ja/nee-vraag begint met het werkwoord".' },
+        { id: 'm3l3lz-3', type: 'multiple_choice', prompt: '¿Qué hace la voz al final de una pregunta de sí/no?', options: ['Sube', 'Baja', 'No cambia', 'Se calla'], correctAnswer: 'Sube', explanation: '"Aan het einde gaat je stem omhoog".' },
+        { id: 'm3l3lz-4', type: 'multiple_choice', prompt: '¿Para qué sirven las palabras en W (wat, waar…)?', options: ['Para pedir información', 'Para negar', 'Para saludar', 'Para pagar'], correctAnswer: 'Para pedir información', explanation: '"Met een W-woord vraag je naar informatie".' },
+        { id: 'm3l3lz-5', type: 'fill_blank', prompt: 'Nee, ik drink ___ koffie. (negación)', correctAnswer: 'geen', hint: 'negar un sustantivo', explanation: '"geen" niega un sustantivo: no bebo café.' },
+        { id: 'm3l3lz-6', type: 'true_false', prompt: 'En los Países Bajos hacer preguntas directas es de mala educación.', correctAnswer: 'falso', explanation: '"Dat is heel normaal en niet onbeleefd": es normal y no es maleducado.' },
+        { id: 'm3l3lz-7', type: 'multiple_choice', prompt: '¿Qué pregunta usas para saber CUÁNTA azúcar?', options: ['Hoeveel suiker wil je?', 'Waar is de suiker?', 'Wie wil suiker?', 'Wanneer suiker?'], correctAnswer: 'Hoeveel suiker wil je?', explanation: '"hoeveel" = cuánto/cuánta.' },
+        { id: 'm3l3lz-8', type: 'order_sentence', prompt: 'Ordena la pregunta: «¿Qué comemos?»', options: ['Wat', 'eten', 'we?'], correctAnswer: 'Wat eten we?' },
+      ],
+    },
+    {
       type: 'dialogue',
       dialogue: {
         id: 'm3d3',
-        title: 'Dialoog – In een café',
-        context: 'Een klant bestelt in een café en gebruikt vragende woorden.',
+        title: 'Dialoog – Wat eten we vanavond?',
+        context: 'Tom en Sara plannen samen het avondeten thuis. Ze stellen elkaar veel vragen.',
         lines: [
-          { id: 'm3d3-1',  speaker: 'Ober',  dutch: 'Goedemiddag! Wat wilt u drinken?',             spanish: 'Buenas tardes. ¿Qué quiere beber?' },
-          { id: 'm3d3-2',  speaker: 'Klant', dutch: 'Ik wil graag een koffie.',                      spanish: 'Quiero un café.' },
-          { id: 'm3d3-3',  speaker: 'Ober',  dutch: 'Hoeveel suiker wilt u?',                        spanish: '¿Cuánta azúcar quiere?' },
-          { id: 'm3d3-4',  speaker: 'Klant', dutch: 'Twee suiker, alstublieft.',                     spanish: 'Dos azúcares, por favor.' },
-          { id: 'm3d3-5',  speaker: 'Ober',  dutch: 'Wilt u ook iets eten?',                         spanish: '¿Quiere también algo de comer?' },
-          { id: 'm3d3-6',  speaker: 'Klant', dutch: 'Ja. Wat heeft u?',                              spanish: 'Sí. ¿Qué tienen?' },
-          { id: 'm3d3-7',  speaker: 'Ober',  dutch: 'Wij hebben broodjes, soep en salade.',          spanish: 'Tenemos bocadillos, sopa y ensalada.' },
-          { id: 'm3d3-8',  speaker: 'Klant', dutch: 'Ik neem een broodje kaas.',                     spanish: 'Tomo un bocadillo de queso.' },
-          { id: 'm3d3-9',  speaker: 'Ober',  dutch: 'Prima. Wilt u nog iets?',                       spanish: 'Perfecto. ¿Quiere algo más?' },
-          { id: 'm3d3-10', speaker: 'Klant', dutch: 'Nee, dat is alles. Mag ik pinnen?',             spanish: 'No, eso es todo. ¿Puedo pagar con tarjeta?' },
-          { id: 'm3d3-11', speaker: 'Ober',  dutch: 'Ja, natuurlijk. Dat is €7,50.',                 spanish: 'Sí, claro. Son 7,50 €.' },
-          { id: 'm3d3-12', speaker: 'Klant', dutch: 'Dank u wel.',                                   spanish: 'Gracias.' },
+          { id: 'm3d3-1',  speaker: 'Tom',  dutch: 'Hé Sara, heb jij honger?',                       spanish: 'Oye Sara, ¿tienes hambre?' },
+          { id: 'm3d3-2',  speaker: 'Sara', dutch: 'Ja, een beetje. Wat eten we vanavond?',          spanish: 'Sí, un poco. ¿Qué comemos esta noche?' },
+          { id: 'm3d3-3',  speaker: 'Tom',  dutch: 'Goede vraag. Wie kookt vandaag?',                spanish: 'Buena pregunta. ¿Quién cocina hoy?' },
+          { id: 'm3d3-4',  speaker: 'Sara', dutch: 'Jij kookt! Ik kook morgen. Wat kun je maken?',   spanish: '¡Cocinas tú! Yo cocino mañana. ¿Qué sabes hacer?' },
+          { id: 'm3d3-5',  speaker: 'Tom',  dutch: 'Ik kan soep of pasta maken. Wat wil jij?',       spanish: 'Puedo hacer sopa o pasta. ¿Qué quieres tú?' },
+          { id: 'm3d3-6',  speaker: 'Sara', dutch: 'Pasta klinkt lekker. Eet jij ook groente?',      spanish: 'La pasta suena rica. ¿Tú también comes verdura?' },
+          { id: 'm3d3-7',  speaker: 'Tom',  dutch: 'Ja, natuurlijk. Hoeveel mensen komen er?',       spanish: 'Sí, claro. ¿Cuánta gente viene?' },
+          { id: 'm3d3-8',  speaker: 'Sara', dutch: 'Alleen wij twee. Misschien komt Lisa ook.',      spanish: 'Solo nosotros dos. Quizá venga Lisa también.' },
+          { id: 'm3d3-9',  speaker: 'Tom',  dutch: 'Oké. Waar is de supermarkt? Ik heb geen pasta meer.', spanish: 'Vale. ¿Dónde está el supermercado? Ya no tengo pasta.' },
+          { id: 'm3d3-10', speaker: 'Sara', dutch: 'Om de hoek. Wanneer gaan we?',                   spanish: 'A la vuelta de la esquina. ¿Cuándo vamos?' },
+          { id: 'm3d3-11', speaker: 'Tom',  dutch: 'Nu! Kom, we gaan samen.',                        spanish: '¡Ahora! Venga, vamos juntos.' },
+          { id: 'm3d3-12', speaker: 'Sara', dutch: 'Leuk! Ik heb geen geld bij me. Mag ik later betalen?', spanish: '¡Genial! No llevo dinero. ¿Puedo pagar luego?' },
+          { id: 'm3d3-13', speaker: 'Tom',  dutch: 'Geen probleem!',                                 spanish: '¡Sin problema!' },
         ],
       },
     },
@@ -1949,6 +1989,19 @@ const m3_les3: Lesson = {
         { id: 'm3l3e-19', type: 'word_scramble', prompt: '¿Cómo se dice "cuándo"?', correctAnswer: 'wanneer', hint: 'cuándo' },
         { id: 'm3l3e-20', type: 'letter_dash', prompt: 'Completa: "cuánto / cuántos"', correctAnswer: 'hoeveel', hint: 'palabra interrogativa' },
         { id: 'm3l3e-21', type: 'order_sentence', prompt: 'Responde negando: "No, no como pescado."', options: ['Nee,', 'ik', 'eet', 'geen', 'vis.'], correctAnswer: 'Nee, ik eet geen vis.' },
+        // Emoji
+        { id: 'm3l3e-22', type: 'emoji_choice', prompt: '¿Cuál es "het water"?', options: ['💧', '☕', '🍵', '🥩'], correctAnswer: '💧', explanation: '"het water" = el agua 💧.' },
+        { id: 'm3l3e-23', type: 'emoji_choice', prompt: '¿Cuál es "de vis"?', options: ['🐟', '🥩', '🥖', '🍬'], correctAnswer: '🐟', explanation: '"de vis" = el pescado 🐟.' },
+        // Escucha y elige (TTS)
+        { id: 'm3l3e-24', type: 'listen_and_choose', prompt: 'Escucha y elige la traducción: "Wie kookt vandaag?"', options: ['¿Quién cocina hoy?', '¿Qué comemos?', '¿Dónde comes?', '¿Cuándo comemos?'], correctAnswer: '¿Quién cocina hoy?', explanation: '"wie" = quién.' },
+        { id: 'm3l3e-25', type: 'listen_and_choose', prompt: 'Escucha y elige la traducción: "Heb jij honger?"', options: ['¿Tienes hambre?', '¿Bebes café?', '¿Quieres té?', '¿Vienes hoy?'], correctAnswer: '¿Tienes hambre?', explanation: '"honger" = hambre.' },
+        // Memory NL↔ES de palabras interrogativas
+        { id: 'm3l3e-26', type: 'pair_memory', prompt: 'Empareja la palabra interrogativa con su significado', correctAnswer: '', pairs: [
+          { left: 'wat', right: 'qué' },
+          { left: 'waar', right: 'dónde' },
+          { left: 'wanneer', right: 'cuándo' },
+          { left: 'hoeveel', right: 'cuánto' },
+        ] },
       ],
     },
     { type: 'review' },
