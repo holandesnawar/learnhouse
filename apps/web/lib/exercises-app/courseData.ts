@@ -2085,6 +2085,62 @@ const m3_les4: Lesson = {
       ],
     },
     {
+      type: 'lezen',
+      textNl: `Eten met smaak
+
+Veel Nederlanders houden van eenvoudig eten, maar gezelligheid vinden ze heel belangrijk. 's Ochtends eten ze brood met kaas of hagelslag, en ze drinken koffie of thee.
+
+'s Middags is de lunch vaak koud. Mensen nemen een broodje of een salade, want ze hebben weinig tijd. Sommigen eten op het werk, maar anderen gaan naar huis.
+
+'s Avonds eten Nederlanders warm. Ze koken aardappelen, groente en vlees of vis. Houd je niet van vlees? Dan eet je gewoon groente en pasta, want er is altijd een optie.
+
+Drinken is ook belangrijk. Veel mensen drinken water of thee, maar koffie blijft favoriet. En op een feestje drinken ze vaak bier of wijn.
+
+Eten in Nederland is dus simpel, maar gezellig. En jij? Eet je liever zoet of hartig?`,
+      textEs: `Comer con gusto
+
+A muchos neerlandeses les gusta la comida sencilla, pero la "gezelligheid" (el buen ambiente) les parece muy importante. Por la mañana comen pan con queso o "hagelslag", y beben café o té.
+
+A mediodía el almuerzo suele ser frío. La gente toma un bocadillo o una ensalada, porque tienen poco tiempo. Algunos comen en el trabajo, pero otros van a casa.
+
+Por la noche los neerlandeses comen caliente. Cocinan patatas, verdura y carne o pescado. ¿No te gusta la carne? Pues comes simplemente verdura y pasta, porque siempre hay una opción.
+
+Beber también es importante. Mucha gente bebe agua o té, pero el café sigue siendo el favorito. Y en una fiesta beben a menudo cerveza o vino.
+
+Comer en los Países Bajos es, pues, sencillo pero agradable. ¿Y tú? ¿Prefieres dulce o salado?`,
+      exercises: [
+        { id: 'm3l4lz-1', type: 'multiple_choice', prompt: '¿Qué les parece muy importante a los neerlandeses al comer?', options: ['La gezelligheid (el buen ambiente)', 'Comer muy rápido', 'Comer caro', 'Comer solos'], correctAnswer: 'La gezelligheid (el buen ambiente)', explanation: '"Gezelligheid vinden ze heel belangrijk".' },
+        { id: 'm3l4lz-2', type: 'multiple_choice', prompt: '¿Por qué el almuerzo suele ser un bocadillo o ensalada?', options: ['Porque tienen poco tiempo', 'Porque es caro', 'Porque no hay comida caliente', 'Porque están cansados'], correctAnswer: 'Porque tienen poco tiempo', explanation: '"…want ze hebben weinig tijd".' },
+        { id: 'm3l4lz-3', type: 'multiple_choice', prompt: '¿Qué conjunción usa el texto para dar una razón (porque)?', options: ['want', 'maar', 'of', 'en'], correctAnswer: 'want', explanation: '"want" = porque (da una razón).' },
+        { id: 'm3l4lz-4', type: 'fill_blank', prompt: 'Veel mensen drinken water ___ thee. (elección: o)', correctAnswer: 'of', hint: 'o = of', explanation: '"of" da a elegir entre dos opciones.' },
+        { id: 'm3l4lz-5', type: 'fill_blank', prompt: 'Eten in Nederland is simpel, ___ gezellig. (contraste: pero)', correctAnswer: 'maar', hint: 'pero = maar', explanation: '"maar" marca un contraste.' },
+        { id: 'm3l4lz-6', type: 'true_false', prompt: 'Si no te gusta la carne, no puedes cenar nada caliente.', correctAnswer: 'falso', explanation: '"Dan eet je gewoon groente en pasta, want er is altijd een optie": siempre hay una opción.' },
+        { id: 'm3l4lz-7', type: 'multiple_choice', prompt: '¿Qué se bebe a menudo en una fiesta, según el texto?', options: ['Cerveza o vino', 'Solo agua', 'Café con leche', 'Zumo'], correctAnswer: 'Cerveza o vino', explanation: '"Op een feestje drinken ze vaak bier of wijn".' },
+        { id: 'm3l4lz-8', type: 'order_sentence', prompt: 'Ordena: «Bebo café y como una galleta.»', options: ['Ik', 'drink', 'koffie', 'en', 'ik', 'eet', 'een', 'koekje.'], correctAnswer: 'Ik drink koffie en ik eet een koekje.' },
+      ],
+    },
+    {
+      type: 'dialogue',
+      dialogue: {
+        id: 'm3d4',
+        title: 'Dialoog – Koken of bestellen?',
+        context: 'Tom en Sara beslissen wat ze gaan eten. Ze gebruiken en, maar, of en want.',
+        lines: [
+          { id: 'm3d4-1',  speaker: 'Tom',  dutch: 'Heb je honger? Ik wil eten, want het is al laat.',  spanish: '¿Tienes hambre? Quiero comer, porque ya es tarde.' },
+          { id: 'm3d4-2',  speaker: 'Sara', dutch: 'Ja! Maar wat eten we? Koken we of bestellen we?',    spanish: '¡Sí! Pero ¿qué comemos? ¿Cocinamos o pedimos?' },
+          { id: 'm3d4-3',  speaker: 'Tom',  dutch: 'Ik wil koken, maar ik heb geen groente meer.',       spanish: 'Quiero cocinar, pero ya no tengo verdura.' },
+          { id: 'm3d4-4',  speaker: 'Sara', dutch: 'Dan gaan we naar de supermarkt. Hij is dichtbij en nog open.', spanish: 'Entonces vamos al supermercado. Está cerca y todavía abierto.' },
+          { id: 'm3d4-5',  speaker: 'Tom',  dutch: 'Goed idee. Wil je pasta of rijst?',                  spanish: 'Buena idea. ¿Quieres pasta o arroz?' },
+          { id: 'm3d4-6',  speaker: 'Sara', dutch: 'Pasta! En we kopen ook salade, want dat is gezond.', spanish: '¡Pasta! Y compramos también ensalada, porque es sana.' },
+          { id: 'm3d4-7',  speaker: 'Tom',  dutch: 'Oké. Ik hou van kaas, maar jij niet, toch?',         spanish: 'Vale. A mí me gusta el queso, pero a ti no, ¿verdad?' },
+          { id: 'm3d4-8',  speaker: 'Sara', dutch: 'Klopt. Ik neem geen kaas, maar wel tomaten.',        spanish: 'Exacto. No cojo queso, pero sí tomates.' },
+          { id: 'm3d4-9',  speaker: 'Tom',  dutch: 'Prima. Drinken we water of wijn?',                   spanish: 'Perfecto. ¿Bebemos agua o vino?' },
+          { id: 'm3d4-10', speaker: 'Sara', dutch: 'Vanavond water, want morgen werk ik vroeg.',         spanish: 'Esta noche agua, porque mañana trabajo temprano.' },
+          { id: 'm3d4-11', speaker: 'Tom',  dutch: 'Verstandig! Kom, we gaan.',                          spanish: '¡Sensato! Venga, vamos.' },
+        ],
+      },
+    },
+    {
       type: 'practice',
       exercises: [
         { id: 'm3l4e-1',  type: 'multiple_choice', prompt: 'Wil je thee ___ koffie?', options: ['en', 'maar', 'of', 'want'], correctAnswer: 'of', explanation: '"of" = elección entre dos opciones.' },
@@ -2113,6 +2169,18 @@ const m3_les4: Lesson = {
         { id: 'm3l4e-19', type: 'word_scramble', prompt: '¿Cómo se dice "porque"?', correctAnswer: 'want', hint: 'porque (dar una razón)' },
         { id: 'm3l4e-20', type: 'letter_dash', prompt: 'Completa: "tengo hambre" → Ik heb ___', correctAnswer: 'honger', hint: 'hambre' },
         { id: 'm3l4e-21', type: 'order_sentence', prompt: 'Ordena: "Como en casa porque el restaurante está cerrado."', options: ['Ik', 'eet', 'thuis,', 'want', 'het', 'restaurant', 'is', 'dicht.'], correctAnswer: 'Ik eet thuis, want het restaurant is dicht.' },
+        // Emoji
+        { id: 'm3l4e-22', type: 'emoji_choice', prompt: '¿Cuál es "het koekje"?', options: ['🍪', '🍞', '🧀', '🥤'], correctAnswer: '🍪', explanation: '"het koekje" = la galleta 🍪.' },
+        // Escucha y elige (TTS)
+        { id: 'm3l4e-23', type: 'listen_and_choose', prompt: 'Escucha y elige la traducción: "Ik drink water, want ik heb dorst."', options: ['Bebo agua porque tengo sed', 'Quiero té o café', 'Como pan y queso', 'No bebo café'], correctAnswer: 'Bebo agua porque tengo sed', explanation: '"want" = porque; "dorst" = sed.' },
+        { id: 'm3l4e-24', type: 'listen_and_choose', prompt: 'Escucha y elige la traducción: "Wil je thee of koffie?"', options: ['¿Quieres té o café?', '¿Bebes café y té?', '¿Tienes hambre?', '¿Comes pan?'], correctAnswer: '¿Quieres té o café?', explanation: '"of" = o (elección).' },
+        // Memory NL↔ES de conjunciones
+        { id: 'm3l4e-25', type: 'pair_memory', prompt: 'Empareja la conjunción con su significado', correctAnswer: '', pairs: [
+          { left: 'en', right: 'y' },
+          { left: 'maar', right: 'pero' },
+          { left: 'of', right: 'o' },
+          { left: 'want', right: 'porque' },
+        ] },
       ],
     },
     { type: 'review' },
