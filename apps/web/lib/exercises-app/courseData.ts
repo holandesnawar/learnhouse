@@ -2416,6 +2416,13 @@ No todo se cuenta. El agua, la leche y el azúcar no son contables. Por eso dice
         { id: 'm3l5e-r5', type: 'odd_one_out', prompt: '¿Cuál NO es una palabra de cantidad?', options: ['kilo', 'gram', 'weinig', 'vis'], correctAnswer: 'vis', explanation: '"vis" (pescado) no es cantidad.' },
         { id: 'm3l5e-r6', type: 'letter_dash', prompt: 'Completa: "el pollo"', correctAnswer: 'kip', hint: 'de ___' },
         { id: 'm3l5e-r7', type: 'letter_dash', prompt: 'Completa: "la manzana"', correctAnswer: 'appel', hint: 'de ___' },
+        // Comprensión del diálogo del mercado (Op de markt) — preguntas fáciles (nivel 0)
+        { id: 'm3l5e-c1', type: 'multiple_choice', prompt: 'En el mercado, ¿qué compra Sara primero?', options: ['Un kilo de manzanas', 'Dos kilos de tomates', 'Un poco de pescado', 'Pan y queso'], correctAnswer: 'Un kilo de manzanas', explanation: '"Ik wil graag een kilo appels" = un kilo de manzanas.' },
+        { id: 'm3l5e-c2', type: 'multiple_choice', prompt: '¿Cuántos kilos de patatas pide Sara?', options: ['Dos kilos', 'Un kilo', 'Medio kilo', 'Tres kilos'], correctAnswer: 'Dos kilos', explanation: '"twee kilo aardappels" = dos kilos de patatas.' },
+        { id: 'm3l5e-c3', type: 'multiple_choice', prompt: '¿Para cuántas personas cocina Sara?', options: ['Dos personas', 'Una persona', 'Tres personas', 'Cuatro personas'], correctAnswer: 'Dos personas', explanation: '"Ik kook voor twee personen" = cocino para dos personas.' },
+        { id: 'm3l5e-c4', type: 'multiple_choice', prompt: 'Según el vendedor, ¿cómo están hoy las uvas?', options: ['Muy dulces', 'Muy caras', 'Muy verdes', 'Muy pequeñas'], correctAnswer: 'Muy dulces', explanation: '"Ze zijn vandaag heel zoet" = hoy están muy dulces.' },
+        { id: 'm3l5e-c5', type: 'true_false', prompt: 'Sara compra tomates.', correctAnswer: 'falso', explanation: 'Sara dice "Nee, dank u" (no, gracias) a los tomates.' },
+        { id: 'm3l5e-c6', type: 'true_false', prompt: 'Sara pide quinientos gramos de uvas.', correctAnswer: 'verdadero', explanation: '"Doe maar vijfhonderd gram" = ponme quinientos gramos.' },
       ],
     },
     { type: 'review' },
