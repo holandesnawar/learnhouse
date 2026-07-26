@@ -115,7 +115,7 @@ function LayoutContent({ children, orgslug }: { children: React.ReactNode; orgsl
       className="min-h-screen"
       style={{
         backgroundColor: primaryColor ? hexToRgba(primaryColor, 0.05) : 'transparent',
-        ...(customFont ? { fontFamily: `'${customFont}', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif` } : {}),
+        ...(customFont ? { fontFamily: `'${customFont}', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")` } : {}),
       }}
     >
       <PageViewTracker />
