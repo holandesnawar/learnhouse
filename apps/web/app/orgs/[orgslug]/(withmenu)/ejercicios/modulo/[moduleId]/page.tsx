@@ -1,10 +1,14 @@
+'use client'
+// Página 100% cliente (mismo motivo que la de lección): el temario ya está en
+// el bundle → navegar entre módulos es instantáneo, sin viaje al servidor.
+
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, useParams } from 'next/navigation'
 import {
-  getModuleAsync,
-  getLessonsForModuleAsync,
-  getExtrasForModuleAsync,
-  getModulesAsync,
+  getModule,
+  getLessonsForModule,
+  getExtrasForModule,
+  getModules,
 } from '@/lib/exercises-app/courseService'
 import LessonList from '@components/exercises-app/LessonList'
 import SituacionCard from '@components/exercises-app/SituacionCard'
@@ -13,22 +17,14 @@ import { getUriWithOrg } from '@services/config/config'
 import { getSituacionesForModule } from '@/lib/exercises-app/situaciones'
 import { Clapperboard, Dumbbell } from 'lucide-react'
 
-export const dynamic = 'force-dynamic'
-
-export default async function ModulePage({
-  params,
-}: {
-  params: Promise<{ orgslug: string; moduleId: string }>
-}) {
-  const { orgslug, moduleId } = await params
-  const module = await getModuleAsync(moduleId)
+export default function ModulePage() {
+  const { orgslug, moduleId } = useParams() as { orgslug: string; moduleId: string }
+  const module = getModule(moduleId)
   if (!module) notFound()
 
-  const [lessons, extras, allModules] = await Promise.all([
-    getLessonsForModuleAsync(module.id),
-    getExtrasForModuleAsync(module.id),
-    getModulesAsync(),
-  ])
+  const lessons = getLessonsForModule(module.id)
+  const extras = getExtrasForModule(module.id)
+  const allModules = getModules()
   // Echt Nederlands videos attached to this module (rendered as extra lessons).
   const situaciones = getSituacionesForModule(module.id)
 

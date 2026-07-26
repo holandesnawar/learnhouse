@@ -1,30 +1,25 @@
-import { notFound } from 'next/navigation'
+'use client'
+// Página 100% cliente: el contenido del curso vive en courseData.ts y ya viaja
+// en el bundle del navegador. Antes era `force-dynamic` en el servidor — cada
+// clic desde "Mi progreso" o la lista de lecciones costaba un viaje completo a
+// Railway + serializar la lección entera. Ahora la navegación es instantánea.
+
+import { notFound, useParams } from 'next/navigation'
 import {
   getPreviousLesson,
   getNextLesson,
-  getModuleAsync,
-  getLessonAsync,
+  getModule,
+  getLesson,
 } from '@/lib/exercises-app/courseService'
 import LessonViewer from '@components/exercises-app/LessonViewer'
 
-// On-demand rendering: content comes from Supabase at runtime (with a local
-// fallback baked in courseData.ts). No build-time prerender of Supabase data —
-// supabase is null during the build so the local fallback is used.
-export const dynamic = 'force-dynamic'
+export default function LessonPage() {
+  const params = useParams() as { orgslug: string; moduleId: string; lessonId: string }
+  const { orgslug, moduleId, lessonId } = params
 
-export default async function LessonPage({
-  params,
-}: {
-  params: Promise<{ orgslug: string; moduleId: string; lessonId: string }>
-}) {
-  const { orgslug, moduleId, lessonId } = await params
-
-  const [module, lesson] = await Promise.all([
-    getModuleAsync(moduleId),
-    getLessonAsync(moduleId, lessonId),
-  ])
-  if (!module) notFound()
-  if (!lesson) notFound()
+  const module = getModule(moduleId)
+  const lesson = getLesson(moduleId, lessonId)
+  if (!module || !lesson) notFound()
 
   const prevLesson = getPreviousLesson(moduleId, lessonId)
   const nextLesson = getNextLesson(moduleId, lessonId)
