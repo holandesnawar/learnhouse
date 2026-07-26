@@ -2882,17 +2882,19 @@ function ResumenSection({ block, vocabItems = [], inCourse, onComplete }: { bloc
 function LezenSection({
   textNl,
   textEs,
-  exercises,
+  exercises: allExercises,
   onComplete: _onComplete,
   cacheKey,
+  reviewOnly,
 }: {
   textNl: string;
   textEs: string;
   exercises: ExerciseItem[];
   onComplete: () => void;
   cacheKey?: string;
+  /** Modo repaso: solo se ejecutan los ejercicios fallados en el último intento. */
+  reviewOnly?: boolean;
 }) {
-  const totalSteps = exercises.length > 0 ? 3 : 2; // text, [exercises,] translation
   const [step, setStep] = useState<'text' | 'exercises' | 'translation'>('text');
   const [exerciseIndex, setExerciseIndex] = useState(0);
   const [score, setScore] = useState(0);
@@ -2913,6 +2915,16 @@ function LezenSection({
     });
     return () => { active = false; };
   }, [cacheKey, accessToken]);
+
+  // Modo repaso: si hay intento previo con fallos, se ejecutan SOLO esos
+  // ejercicios (mapeados por su prompt). Sin fallos registrados → todos.
+  const exercises = useMemo(() => {
+    if (!reviewOnly || !lastAttempt?.failedLabels?.length) return allExercises;
+    const failedSet = new Set(lastAttempt.failedLabels);
+    const filtered = allExercises.filter((e) => failedSet.has(e.prompt));
+    return filtered.length > 0 ? filtered : allExercises;
+  }, [allExercises, reviewOnly, lastAttempt]);
+  const totalSteps = exercises.length > 0 ? 3 : 2; // text, [exercises,] translation
 
   const exercise = exercises[exerciseIndex];
 
@@ -2959,11 +2971,30 @@ function LezenSection({
           .sort((a, b) => a - b)
           .map((i) => exercises[i]?.prompt)
           .filter((p): p is string => !!p);
-        saveLastAttempt(
-          cacheKey,
-          { score, total: exercises.length, failedLabels: failed },
-          accessToken,
-        );
+        if (reviewOnly && lastAttempt) {
+          // Repaso: los fallos ahora acertados salen de la lista y suman a la
+          // nota original; los que no entraron en este repaso se conservan.
+          const wrongNow = new Set(failed);
+          const stillFailed = lastAttempt.failedLabels.filter((l) =>
+            exercises.some((e) => e.prompt === l) ? wrongNow.has(l) : true
+          );
+          const resolved = lastAttempt.failedLabels.length - stillFailed.length;
+          saveLastAttempt(
+            cacheKey,
+            {
+              score: Math.min(lastAttempt.total, lastAttempt.score + resolved),
+              total: lastAttempt.total,
+              failedLabels: stillFailed,
+            },
+            accessToken,
+          );
+        } else {
+          saveLastAttempt(
+            cacheKey,
+            { score, total: exercises.length, failedLabels: failed },
+            accessToken,
+          );
+        }
       }
       setStep('translation');
     } else {
@@ -3443,16 +3474,18 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
 
 function LuisterenSection({
   dialogue,
-  practiceExercises,
+  practiceExercises: allExercises,
   onComplete: _onComplete,
   cacheKey,
+  reviewOnly,
 }: {
   dialogue: Dialogue;
   practiceExercises: ExerciseItem[];
   onComplete: () => void;
   cacheKey?: string;
+  /** Modo repaso: solo se ejecutan los ejercicios fallados en el último intento. */
+  reviewOnly?: boolean;
 }) {
-  const hasExercises = practiceExercises.length > 0;
   // Tres vistas: landing (solo audios + CTAs) → dialogue (transcript) → exercises
   const [view, setView] = useState<'landing' | 'dialogue' | 'exercises'>('landing');
   const [exerciseIndex, setExerciseIndex] = useState(0);
@@ -3482,6 +3515,15 @@ function LuisterenSection({
     };
   }, [cacheKey, accessToken]);
 
+  // Modo repaso: solo los ejercicios fallados la última vez (por prompt).
+  const practiceExercises = useMemo(() => {
+    if (!reviewOnly || !lastAttempt?.failedLabels?.length) return allExercises;
+    const failedSet = new Set(lastAttempt.failedLabels);
+    const filtered = allExercises.filter((e) => failedSet.has(e.prompt));
+    return filtered.length > 0 ? filtered : allExercises;
+  }, [allExercises, reviewOnly, lastAttempt]);
+  const hasExercises = practiceExercises.length > 0;
+
   function resetAttempt() {
     setExerciseIndex(0);
     setScore(0);
@@ -3505,7 +3547,22 @@ function LuisterenSection({
       if (cacheKey) {
         const failed = Array.from(wrongIndices).sort((a, b) => a - b)
           .map((i) => practiceExercises[i]?.prompt).filter((p): p is string => !!p);
-        saveLastAttempt(cacheKey, { score, total: practiceExercises.length, failedLabels: failed }, accessToken);
+        if (reviewOnly && lastAttempt) {
+          // Repaso: los ahora acertados salen de la lista y suman a la nota
+          // original; los que no entraron en este repaso se conservan.
+          const wrongNow = new Set(failed);
+          const stillFailed = lastAttempt.failedLabels.filter((l) =>
+            practiceExercises.some((e) => e.prompt === l) ? wrongNow.has(l) : true
+          );
+          const resolved = lastAttempt.failedLabels.length - stillFailed.length;
+          saveLastAttempt(cacheKey, {
+            score: Math.min(lastAttempt.total, lastAttempt.score + resolved),
+            total: lastAttempt.total,
+            failedLabels: stillFailed,
+          }, accessToken);
+        } else {
+          saveLastAttempt(cacheKey, { score, total: practiceExercises.length, failedLabels: failed }, accessToken);
+        }
       }
       setExercisesDone(true);
       setTranscriptUnlocked(true);
@@ -3925,6 +3982,8 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
   const [activeSection, setActiveSection] = useState<SectionId | null>(null);
   const [completedSections, setCompletedSections] = useState<Set<SectionId>>(new Set());
   const [forcedDone, setForcedDone] = useState(false);
+  // Modo repaso (desde "Mi progreso"): ?repaso=1 ejecuta solo los fallos.
+  const [reviewMode, setReviewMode] = useState(false);
 
   // ── Tiempo invertido en la lección ─────────────────────────────────────
   // Acumula segundos SOLO mientras la pestaña está visible. Se vuelca al
@@ -4096,6 +4155,19 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
     }
     return result;
   })();
+
+  // Deep-link desde "Mi progreso": ?seccion=lezen abre esa sección directa y
+  // ?repaso=1 activa el modo repaso (solo los ejercicios fallados la última vez).
+  useEffect(() => {
+    if (typeof window === 'undefined' || forcedSection) return;
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.get('repaso') === '1') setReviewMode(true);
+    const sec = sp.get('seccion');
+    if (sec && availableSections.includes(sec as SectionId)) {
+      setActiveSection(sec as SectionId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // A forced section (e.g. 'vocabulary' / 'lezen') is shown on its own, only if
   // the lesson actually has it.
@@ -4353,6 +4425,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
               exercises={lezenBlock.exercises}
               onComplete={() => completeSection('lezen')}
               cacheKey={`${lesson.id}-lezen`}
+              reviewOnly={reviewMode}
             />
           )}
 
@@ -4363,6 +4436,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
               practiceExercises={practiceItems}
               onComplete={() => completeSection('luisteren')}
               cacheKey={`${lesson.id}-luisteren`}
+              reviewOnly={reviewMode}
             />
           )}
 

@@ -275,7 +275,40 @@ export function WeekCard({ insights }: { insights: StudentInsights }) {
   )
 }
 
-/* ── RepasoCard — the words you keep failing ──────────────────────────── */
+/* ── RepasoCard — tus fallos pendientes, a un toque del repaso ────────── */
+
+/** Secciones con ejercicios fallados guardados, ordenadas de peor a mejor. */
+function failingSections(insights: StudentInsights) {
+  const out: Array<{
+    moduleId: string
+    lessonId: string
+    title: string
+    secId: string
+    secLabel: string
+    fails: number
+    pct: number
+  }> = []
+  for (const m of getModules()) {
+    for (const l of getLessonsForModule(m.id)) {
+      for (const secId of trackedSections(m.id, l.id)) {
+        const a = insights.attempts[`${l.id}-${secId}`]
+        if (!a || a.total <= 0 || !a.failedLabels?.length) continue
+        const pct = Math.round((a.score / a.total) * 100)
+        if (pct >= 85) continue
+        out.push({
+          moduleId: m.id,
+          lessonId: l.id,
+          title: l.title,
+          secId,
+          secLabel: SECTION_LABEL[secId] || secId,
+          fails: a.failedLabels.length,
+          pct,
+        })
+      }
+    }
+  }
+  return out.sort((x, y) => x.pct - y.pct)
+}
 
 export function RepasoCard({
   orgslug,
@@ -284,7 +317,9 @@ export function RepasoCard({
   orgslug: string
   insights: StudentInsights
 }) {
-  const words = insights.weakWords.slice(0, 6)
+  const pending = failingSections(insights)
+  const shortTitle = (t: string) =>
+    t.replace(/^Les\s*\d+\s*[—-]\s*/i, '').replace(/\s*\|.*$/, '').trim() || t
 
   return (
     <div className="rounded-2xl bg-white dark:bg-white/5 border border-[#DDE6F5] dark:border-white/10 nice-shadow p-5">
@@ -293,32 +328,43 @@ export function RepasoCard({
         <h2 className="text-[15px] font-bold text-gray-900 dark:text-white">Tu repaso de hoy</h2>
       </div>
 
-      {words.length === 0 ? (
+      {pending.length === 0 ? (
         <p className="text-[13px] text-gray-500 dark:text-white/60 leading-relaxed">
           <Sparkles size={13} className="inline mr-1 text-[#4da3ff]" />
-          Sin palabras pendientes de repaso. Cuando falles alguna en los ejercicios, aparecerá aquí.
+          Nada pendiente de repaso. Cuando falles ejercicios, aparecerán aquí para repetirlos.
         </p>
       ) : (
         <>
           <p className="text-[12px] text-gray-500 dark:text-white/60 mb-2.5">
-            Las palabras que más se te resisten:
+            Toca y repites solo lo que fallaste:
           </p>
-          <div className="flex flex-wrap gap-1.5">
-            {words.map((w) => (
-              <span
-                key={w.label}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-[12px] font-semibold text-amber-800 dark:text-amber-300"
+          <div className="space-y-2">
+            {pending.slice(0, 3).map((f) => (
+              <Link
+                key={`${f.lessonId}-${f.secId}`}
+                href={getUriWithOrg(
+                  orgslug,
+                  `/ejercicios/modulo/${f.moduleId}/leccion/${f.lessonId}?seccion=${f.secId}&repaso=1`
+                )}
+                className="flex items-center justify-between gap-2 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 px-3 py-2 hover:border-amber-300 transition-colors group"
               >
-                {w.label}
-                <span className="text-[10px] text-amber-500">×{w.fails}</span>
-              </span>
+                <div className="min-w-0">
+                  <p className="text-[13px] font-semibold text-gray-900 dark:text-white truncate">
+                    {shortTitle(f.title)} · <span className="text-[#025dc7]">{f.secLabel}</span>
+                  </p>
+                  <p className="text-[11px] text-amber-700 dark:text-amber-300">
+                    {f.fails} {f.fails === 1 ? 'fallo' : 'fallos'} por repasar
+                  </p>
+                </div>
+                <ArrowRight size={14} className="shrink-0 text-[#025dc7] group-hover:translate-x-0.5 transition-transform" />
+              </Link>
             ))}
           </div>
           <Link
             href={getUriWithOrg(orgslug, '/ejercicios/progreso')}
             className="mt-3.5 inline-flex items-center gap-1.5 text-[13px] font-bold text-[#025dc7] hover:text-[#1D0084] transition-colors"
           >
-            <RotateCcw size={14} /> Ver qué lecciones repasar <ArrowRight size={14} />
+            <RotateCcw size={14} /> Ver todo mi progreso <ArrowRight size={14} />
           </Link>
         </>
       )}

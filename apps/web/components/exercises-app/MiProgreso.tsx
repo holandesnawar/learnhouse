@@ -12,7 +12,6 @@ import {
   Flame,
   Clock3,
   BookOpenCheck,
-  Target,
   CheckCircle2,
   Cloud,
 } from 'lucide-react'
@@ -41,6 +40,8 @@ type SectionState = {
   pct: number | null
   score: number
   total: number
+  /** Ejercicios fallados guardados del último intento. */
+  fails: number
 }
 
 type LessonRow = {
@@ -93,6 +94,7 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
             pct: scored ? Math.round((a!.score / a!.total) * 100) : null,
             score: a?.score ?? 0,
             total: a?.total ?? 0,
+            fails: a?.failedLabels?.length ?? 0,
           }
         })
         const scored = sections.filter((s) => s.pct !== null)
@@ -117,11 +119,18 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
 
   const stats = useMemo(() => {
     const scored = rows.filter((r) => r.pct !== null)
-    const review = scored.filter((r) => (r.pct as number) < REVIEW).sort((a, b) => (a.pct as number) - (b.pct as number))
     const mastered = scored.filter((r) => (r.pct as number) >= MASTER).sort((a, b) => (b.pct as number) - (a.pct as number))
+    // Secciones concretas con fallos guardados → cada una enlaza a SU repaso.
+    const reviewSections = rows
+      .flatMap((r) =>
+        r.sections
+          .filter((sec) => sec.fails > 0 && sec.pct !== null && sec.pct < MASTER)
+          .map((sec) => ({ row: r, sec }))
+      )
+      .sort((a, b) => (a.sec.pct as number) - (b.sec.pct as number))
     let totalLessons = 0
     for (const m of getModules()) totalLessons += getLessonsForModule(m.id).length
-    return { review, mastered, totalLessons }
+    return { reviewSections, mastered, totalLessons }
   }, [rows])
 
   const mods = useMemo(() => {
@@ -151,7 +160,6 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
     getUriWithOrg(orgslug, `/ejercicios/modulo/${r.moduleId}/leccion/${r.lessonId}`)
 
   const completedCount = insights?.completions.length ?? 0
-  const weakWords = insights?.weakWords ?? []
 
   return (
     <GeneralWrapperStyled>
@@ -205,46 +213,40 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
             </div>
           </div>
 
-          {/* Te conviene repasar */}
-          {(stats.review.length > 0 || weakWords.length > 0) && (
+          {/* Te conviene repasar — cada fila lleva DIRECTO al repaso de sus fallos */}
+          {stats.reviewSections.length > 0 && (
             <div className="rounded-2xl border border-amber-200 bg-amber-50/40 p-5">
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-1">
                 <AlertTriangle size={18} className="text-amber-600" />
                 <p className="text-[14px] font-bold text-gray-900">Te conviene repasar</p>
               </div>
-
-              {weakWords.length > 0 && (
-                <div className="mb-3">
-                  <p className="text-[12px] text-gray-500 mb-1.5 flex items-center gap-1"><Target size={12} /> Las palabras que más fallas:</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {weakWords.slice(0, 10).map((w) => (
-                      <span key={w.label} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border border-amber-200 text-[12px] font-semibold text-amber-800">
-                        {w.label} <span className="text-[10px] text-amber-500">×{w.fails}</span>
+              <p className="text-[12px] text-gray-500 mb-3">
+                Toca una fila y repites SOLO los ejercicios que fallaste. Si los aciertas, salen de esta lista y tu nota sube.
+              </p>
+              <div className="space-y-2">
+                {stats.reviewSections.slice(0, 8).map(({ row, sec }) => (
+                  <Link
+                    key={`${row.lessonId}-${sec.id}`}
+                    href={`${lessonHref(row)}?seccion=${sec.id}&repaso=1`}
+                    className="flex items-center justify-between gap-3 rounded-xl bg-white border border-[#DDE6F5] px-4 py-2.5 hover:border-amber-300 transition-colors group"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[14px] font-semibold text-gray-900 truncate">
+                        {shortTitle(row.title)} · <span className="text-[#025dc7]">{sec.label}</span>
+                      </p>
+                      <p className="text-[11px] text-[#9CA3AF]">
+                        Módulo {row.moduleOrder} · {sec.fails} {sec.fails === 1 ? 'ejercicio fallado' : 'ejercicios fallados'} · nota {sec.score}/{sec.total}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[12px] font-bold text-amber-600 tabular-nums">{sec.pct}%</span>
+                      <span className="inline-flex items-center gap-1 text-[12px] font-bold text-[#025dc7] group-hover:gap-1.5 transition-all">
+                        Repasar fallos <ArrowRight size={14} />
                       </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {stats.review.length > 0 && (
-                <div className="space-y-2">
-                  {stats.review.slice(0, 6).map((r) => (
-                    <Link key={r.lessonId} href={lessonHref(r)} className="flex items-center justify-between gap-3 rounded-xl bg-white border border-[#DDE6F5] px-4 py-2.5 hover:border-amber-300 transition-colors group">
-                      <div className="min-w-0">
-                        <p className="text-[14px] font-semibold text-gray-900 truncate">{shortTitle(r.title)}</p>
-                        <p className="text-[11px] text-[#9CA3AF]">
-                          Módulo {r.moduleOrder}
-                          {r.sections.filter((s) => s.pct !== null && s.pct < REVIEW).map((s) => ` · ${s.label} ${s.score}/${s.total}`).join('')}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-[12px] font-bold text-amber-600 tabular-nums">{r.pct}%</span>
-                        <span className="inline-flex items-center gap-1 text-[12px] font-bold text-[#025dc7] group-hover:gap-1.5 transition-all">Repasar <ArrowRight size={14} /></span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
             </div>
           )}
 
