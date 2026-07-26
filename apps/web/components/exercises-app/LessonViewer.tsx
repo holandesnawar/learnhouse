@@ -1081,10 +1081,12 @@ function ClassifyStep({ groups, items, onDone, onBack }: { groups: ClassifyGroup
 function VocabPracticeSection({
   vocabItems,
   phraseItems,
-  practiceExercises,
+  practiceExercises: allExercises,
   onComplete,
   onItemResult,
   inCourse,
+  cacheKey,
+  reviewOnly,
 }: {
   vocabItems: VocabularyItem[];
   phraseItems: PhraseItem[];
@@ -1092,10 +1094,41 @@ function VocabPracticeSection({
   onComplete: () => void;
   onItemResult?: (itemId: string, correct: boolean) => void;
   inCourse?: boolean;
+  /** Clave `${lessonId}-vocabulary` para guardar la nota real de la sección. */
+  cacheKey?: string;
+  /** Modo repaso: solo se ejecutan los ejercicios fallados en el último intento. */
+  reviewOnly?: boolean;
 }) {
+  const session = useLHSession() as any;
+  const accessToken: string | undefined = session?.data?.tokens?.access_token;
+  const [lastAttempt, setLastAttempt] = useState<LastAttempt | null>(null);
+  useEffect(() => {
+    if (!cacheKey) return;
+    let active = true;
+    getLastAttempt(cacheKey, accessToken).then((a) => { if (active) setLastAttempt(a); });
+    return () => { active = false; };
+  }, [cacheKey, accessToken]);
+
+  // Modo repaso efectivo: hay fallos guardados que repetir.
+  const inReview = Boolean(reviewOnly && lastAttempt?.failedLabels?.length);
+  const practiceExercises = useMemo(() => {
+    if (!inReview) return allExercises;
+    const failedSet = new Set(lastAttempt!.failedLabels);
+    const filtered = allExercises.filter((e) => failedSet.has(e.prompt));
+    return filtered.length > 0 ? filtered : allExercises;
+  }, [allExercises, inReview, lastAttempt]);
+
+  // Resultado (primer intento de esta visita) por ejercicio → nota + fallos.
+  const resultsRef = useRef<Map<string, boolean>>(new Map());
+  function handleItemResultLocal(itemId: string, correct: boolean) {
+    if (!resultsRef.current.has(itemId)) resultsRef.current.set(itemId, correct);
+    onItemResult?.(itemId, correct);
+  }
+
   const steps = useMemo(
-    () => buildVPSteps(vocabItems, phraseItems, practiceExercises),
-    [vocabItems, phraseItems, practiceExercises]
+    // En repaso saltamos las tarjetas de contenido (palabras/frases): directo a los fallos.
+    () => buildVPSteps(inReview ? [] : vocabItems, inReview ? [] : phraseItems, practiceExercises),
+    [vocabItems, phraseItems, practiceExercises, inReview]
   );
   const stepCacheKey = typeof window !== 'undefined' ? `vp-step-${window.location.pathname}` : null;
   const [stepIndex, setStepIndex] = useState(() => {
@@ -1122,6 +1155,39 @@ function VocabPracticeSection({
   function handleStepDone() {
     if (stepIndex + 1 >= steps.length) {
       if (stepCacheKey) try { sessionStorage.removeItem(stepCacheKey); } catch {}
+      // Nota REAL de la sección: aciertos/total + prompts fallados → el
+      // progreso puede decir qué parte repasar y con qué porcentaje.
+      if (cacheKey) {
+        const answered = practiceExercises.filter((e) => resultsRef.current.has(e.id));
+        if (answered.length > 0) {
+          const failed = answered
+            .filter((e) => resultsRef.current.get(e.id) === false)
+            .map((e) => e.prompt);
+          if (inReview && lastAttempt) {
+            // Repaso: los ahora acertados salen de la lista y suman a la nota
+            // original; los no repasados se conservan.
+            const wrongNow = new Set(failed);
+            const stillFailed = lastAttempt.failedLabels.filter((l) =>
+              practiceExercises.some((e) => e.prompt === l) ? wrongNow.has(l) : true
+            );
+            const resolved = lastAttempt.failedLabels.length - stillFailed.length;
+            saveLastAttempt(cacheKey, {
+              score: Math.min(lastAttempt.total, lastAttempt.score + resolved),
+              total: lastAttempt.total,
+              failedLabels: stillFailed,
+            }, accessToken);
+          } else {
+            saveLastAttempt(cacheKey, {
+              score: answered.length - failed.length,
+              total: answered.length,
+              failedLabels: failed,
+            }, accessToken);
+          }
+        } else {
+          // Lección sin ejercicios de práctica: marcador simple de "hecha".
+          saveLastAttempt(cacheKey, { score: 0, total: 0, failedLabels: [] }, accessToken);
+        }
+      }
       setAllDone(true);
     } else {
       const next = stepIndex + 1;
@@ -1214,7 +1280,7 @@ function VocabPracticeSection({
           hasBackStep={stepIndex > 0}
           onSubProgress={(done, total) => setSubProgress({ done, total })}
           cacheKey={step.type}
-          onItemResult={onItemResult}
+          onItemResult={handleItemResultLocal}
         />
       )}
       {step.type === 'classify' && (
@@ -4208,7 +4274,9 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
     // Persist "section done" on the backend so the lesson cards can show the
     // per-section progress without forcing the student to re-open every lesson.
     // Lezen and Luisteren already write their own (richer) attempt records.
-    if (id !== 'lezen' && id !== 'luisteren' && id !== 'resumen') {
+    // Vocabulary guarda su propia nota rica (score/total/fallos) al terminar
+    // sus pasos — el marcador 0/0 la machacaría.
+    if (id !== 'lezen' && id !== 'luisteren' && id !== 'resumen' && id !== 'vocabulary') {
       saveLastAttempt(
         `${lesson.id}-${id}`,
         { score: 0, total: 0, failedLabels: [] },
@@ -4406,6 +4474,8 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
               onComplete={() => completeSection('vocabulary')}
               onItemResult={handleItemResult}
               inCourse={inCourse}
+              cacheKey={`${lesson.id}-vocabulary`}
+              reviewOnly={reviewMode}
             />
           )}
 
