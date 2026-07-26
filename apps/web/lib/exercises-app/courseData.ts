@@ -177,26 +177,31 @@ const m1_les1: Lesson = {
     },
     {
       type: 'lezen',
-      textNl: `Hallo! Ik heet David. Ik ben Argentijns en ik heb ook een Italiaans paspoort. Ik woon nu in Amsterdam.
+      title: 'Een dag in Amsterdam',
+      textNl: `Het is ochtend in Amsterdam. David loopt naar de bakker. ‘Goedemorgen!’ zegt de bakker. ‘Goedemorgen! Ik heet David. Ik ben nieuw hier,’ zegt David. ‘Welkom! Ik ben Kees. Waar kom je vandaan?’ ‘Ik kom uit Argentinië. En ik woon nu hier, in Amsterdam.’ ‘Wat leuk! Tot ziens, David!’ ‘Dag Kees! Fijne dag!’
 
-Vandaag drink ik koffie met Anna. Anna is mijn taalbuddy. Zij woont in Haarlem. Wij spreken Nederlands. Het is gezellig!
+Het is middag. David ontmoet zijn taalbuddy Anna in een café. ‘Goedemiddag, Anna!’ ‘Hoi David! Hoe is het met je?’ ‘Goed, dank je!’ Zij drinken koffie en praten. Het is gezellig.
 
-Na een uur zegt Anna: ‘Ik moet gaan. Tot volgende week!’
-David zegt: ‘Doei! Fijne dag!’`,
-      textEs: `¡Hola! Me llamo David. Soy argentino y también tengo pasaporte italiano. Ahora vivo en Ámsterdam.
+Het is avond. David gaat naar huis. Bij de deur staat een vrouw. ‘Goedenavond!’ zegt de vrouw. ‘Goedenavond, mevrouw! Ik ben David. Ik woon hier nu.’ ‘Aha, welkom! Ik heet Els. Prettig kennis te maken!’ ‘Prettig kennis te maken, mevrouw!’
 
-Hoy tomo café con Anna. Anna es mi compañera de idiomas (taalbuddy). Ella vive en Haarlem. Hablamos neerlandés. ¡Es muy agradable!
+Het is nacht. David is moe, maar blij. Zijn eerste dag! De bakker, Anna, mevrouw Els… Hij zegt zacht: ‘Goedenacht, Amsterdam. Tot morgen!’`,
+      textEs: `Es de mañana en Ámsterdam. David camina hacia la panadería. «¡Buenos días!», dice el panadero. «¡Buenos días! Me llamo David. Soy nuevo aquí», dice David. «¡Bienvenido! Yo soy Kees. ¿De dónde vienes?» «Vengo de Argentina. Y ahora vivo aquí, en Ámsterdam.» «¡Qué bien! ¡Hasta la vista, David!» «¡Adiós, Kees! ¡Que tengas un buen día!»
 
-Después de una hora, Anna dice: «Me tengo que ir. ¡Hasta la semana que viene!»
-David dice: «¡Adiós! ¡Que tengas un buen día!»`,
+Es mediodía. David se encuentra con su compañera de idiomas Anna en un café. «¡Buenas tardes, Anna!» «¡Hola David! ¿Cómo estás?» «¡Bien, gracias!» Toman café y charlan. El ambiente es muy agradable (gezellig).
+
+Es de noche. David va a casa. En la puerta hay una mujer. «¡Buenas noches!», dice la mujer. «¡Buenas noches, señora! Soy David. Ahora vivo aquí.» «¡Ah, bienvenido! Me llamo Els. ¡Encantada de conocerte!» «¡Encantado de conocerla, señora!»
+
+Es de noche cerrada. David está cansado, pero contento. ¡Su primer día! El panadero, Anna, la señora Els… Dice bajito: «Buenas noches, Ámsterdam. ¡Hasta mañana!»`,
       exercises: [
-        { id: 'm1l1lz-1', type: 'multiple_choice', prompt: '¿Cómo se llama el chico del texto?', options: ['David', 'Marco', 'Tom', 'Daan'], correctAnswer: 'David', explanation: 'El texto empieza: "Hallo! Ik heet David."' },
-        { id: 'm1l1lz-2', type: 'multiple_choice', prompt: '¿Con quién toma café David?', options: ['Con Anna', 'Con Marco', 'Con su hermana', 'Con su madre'], correctAnswer: 'Con Anna', explanation: '"Vandaag drink ik koffie met Anna."' },
-        { id: 'm1l1lz-3', type: 'multiple_choice', prompt: '¿Qué es Anna para David?', options: ['Su compañera de idiomas (taalbuddy)', 'Su profesora', 'Su hermana', 'Su jefa'], correctAnswer: 'Su compañera de idiomas (taalbuddy)', explanation: '"Anna is mijn taalbuddy."' },
-        { id: 'm1l1lz-4', type: 'fill_blank', prompt: 'Ik ___ nu in Amsterdam. (vivir)', correctAnswer: 'woon', hint: 'wonen → ik woon', explanation: 'El verbo "wonen" (vivir) con "ik" es "woon".' },
-        { id: 'm1l1lz-5', type: 'multiple_choice', prompt: '¿Qué idioma hablan David y Anna?', options: ['Neerlandés', 'Español', 'Italiano', 'Inglés'], correctAnswer: 'Neerlandés', explanation: '"Wij spreken Nederlands."' },
-        { id: 'm1l1lz-6', type: 'fill_blank', prompt: 'Anna zegt: ‘Tot volgende ___!’', correctAnswer: 'week', hint: 'semana', explanation: '"Tot volgende week" = hasta la semana que viene.' },
-        { id: 'm1l1lz-7', type: 'multiple_choice', prompt: '¿Qué dice David al despedirse?', options: ['Doei! Fijne dag!', 'Goedemorgen!', 'Prettig kennis te maken.', 'Hoe heet jij?'], correctAnswer: 'Doei! Fijne dag!', explanation: 'David se despide de manera informal: "Doei! Fijne dag!"' },
+        { id: 'm1l1lz-1', type: 'multiple_choice', prompt: '¿Quién es Kees?', options: ['El panadero', 'El vecino', 'El profesor', 'El camarero'], correctAnswer: 'El panadero', explanation: 'David loopt naar de bakker (la panadería) y allí conoce a Kees.' },
+        { id: 'm1l1lz-2', type: 'multiple_choice', prompt: '¿Qué saludo usa David por la mañana?', options: ['Goedemorgen', 'Goedenavond', 'Goedenacht', 'Tot straks'], correctAnswer: 'Goedemorgen', explanation: 'Por la mañana (hasta las 12:00) se dice "goedemorgen".' },
+        { id: 'm1l1lz-3', type: 'multiple_choice', prompt: '¿Con quién toma café David al mediodía?', options: ['Con Anna', 'Con Kees', 'Con Els', 'Con nadie'], correctAnswer: 'Con Anna', explanation: '"David ontmoet zijn taalbuddy Anna in een café."' },
+        { id: 'm1l1lz-4', type: 'fill_blank', prompt: 'Ik ___ nu hier, in Amsterdam. (vivir)', correctAnswer: 'woon', hint: 'wonen → ik woon', explanation: 'El verbo "wonen" (vivir) con "ik" es "woon".' },
+        { id: 'm1l1lz-5', type: 'multiple_choice', prompt: '¿Cómo se llama la señora de la puerta?', options: ['Els', 'Anna', 'Maria', 'Sofia'], correctAnswer: 'Els', explanation: '"Ik heet Els" — la vecina de David.' },
+        { id: 'm1l1lz-6', type: 'multiple_choice', prompt: '¿Qué le dice David a la señora Els?', options: ['Prettig kennis te maken', 'Tot volgende week', 'Doei!', 'Hoe oud ben je?'], correctAnswer: 'Prettig kennis te maken', explanation: '"Encantado de conocerla" — la fórmula de cortesía al conocer a alguien.' },
+        { id: 'm1l1lz-7', type: 'fill_blank', prompt: '‘Dag Kees! ___ dag!’', correctAnswer: 'Fijne', hint: '¡Que tengas un buen día!', explanation: '"Fijne dag!" = ¡que tengas un buen día!' },
+        { id: 'm1l1lz-8', type: 'multiple_choice', prompt: '¿De dónde viene David?', options: ['De Argentina', 'De Italia', 'De Chile', 'De Países Bajos'], correctAnswer: 'De Argentina', explanation: '"Ik kom uit Argentinië."' },
+        { id: 'm1l1lz-9', type: 'fill_blank', prompt: 'David zegt zacht: ‘___, Amsterdam. Tot morgen!’', correctAnswer: 'Goedenacht', hint: 'La despedida al final del día', explanation: 'Al final del día, para dormir: "goedenacht".' },
       ],
     },
     {
@@ -387,23 +392,35 @@ const m1_les2: Lesson = {
     },
     {
       type: 'lezen',
-      textNl: `Dit is Sofia. Zij komt uit Chili en ze leert Nederlands. Pablo is de man van Sofia. Hij werkt thuis. Sofia en Pablo wonen in Rotterdam. Zij hebben een kat.
+      title: 'Sofia, Pablo en de kat Luna',
+      textNl: `Dit is Sofia. Zij komt uit Chili en ze leert Nederlands. Pablo is de man van Sofia. Hij werkt thuis. Sofia en Pablo wonen in Rotterdam. Zij hebben een kat. De kat heet Luna.
 
-Sofia zegt: ‘Wij leren samen Nederlands. Ik leer snel, maar Pablo leert langzaam. Hij drinkt veel koffie!’
+’s Ochtends zegt Sofia: ‘Ben je klaar, Pablo? We gaan!’ Maar Pablo drinkt koffie. Hij zegt: ‘Momentje! Eerst mijn koffie.’ Sofia lacht: ‘Jij en je koffie!’
 
-En jij? Leer jij ook Nederlands? Dan leren jullie samen: jij, Sofia en Pablo!`,
-      textEs: `Esta es Sofía. Ella es de Chile y está aprendiendo neerlandés. Pablo es el marido de Sofía. Él trabaja en casa. Sofía y Pablo viven en Róterdam. Tienen un gato.
+Jan en Els wonen ook in de straat. Zij zijn schilders. Ze werken vandaag niet. Het regent, dus zij zijn thuis. Luna, de kat, zit bij het raam. Zij kijkt naar de regen.
 
-Sofía dice: «Nosotros aprendemos neerlandés juntos. Yo aprendo rápido, pero Pablo aprende despacio. ¡Él bebe mucho café!»
+’s Avonds leren Sofia en Pablo samen Nederlands. Sofia leert snel, Pablo leert langzaam. Hij zegt: ‘Nederlands is moeilijk!’ Sofia zegt: ‘Nee hoor! Wij leren samen. En jij leert goed!’ Pablo lacht: ‘Jij bent lief. Maar eerst… koffie!’
 
-¿Y tú? ¿Tú también estás aprendiendo neerlandés? ¡Entonces aprendéis juntos: tú, Sofía y Pablo!`,
+En jullie? Leren jullie ook Nederlands? Dan zijn jullie net als Sofia en Pablo!`,
+      textEs: `Esta es Sofía. Ella es de Chile y está aprendiendo neerlandés. Pablo es el marido de Sofía. Él trabaja en casa. Sofía y Pablo viven en Róterdam. Tienen un gato. La gata se llama Luna.
+
+Por la mañana, Sofía dice: «¿Estás listo, Pablo? ¡Nos vamos!» Pero Pablo está tomando café. Él dice: «¡Un momento! Primero mi café.» Sofía se ríe: «¡Tú y tu café!»
+
+Jan y Els también viven en la calle. Ellos son pintores. Hoy no trabajan. Llueve, así que están en casa. Luna, la gata, está sentada junto a la ventana. Ella mira la lluvia.
+
+Por la noche, Sofía y Pablo aprenden neerlandés juntos. Sofía aprende rápido, Pablo aprende despacio. Él dice: «¡El neerlandés es difícil!» Sofía dice: «¡Que no! Nosotros aprendemos juntos. ¡Y tú aprendes bien!» Pablo se ríe: «Eres un encanto. Pero primero… ¡café!»
+
+¿Y vosotros? ¿También estáis aprendiendo neerlandés? ¡Entonces sois como Sofía y Pablo!`,
       exercises: [
         { id: 'm1l2lz-1', type: 'multiple_choice', prompt: '¿De dónde es Sofía?', options: ['De Chile', 'De Colombia', 'De España', 'De Argentina'], correctAnswer: 'De Chile', explanation: '"Zij komt uit Chili."' },
-        { id: 'm1l2lz-2', type: 'multiple_choice', prompt: '¿Quién trabaja en casa?', options: ['Pablo', 'Sofía', 'Los dos', 'Nadie'], correctAnswer: 'Pablo', explanation: '"Hij werkt thuis" — hij = él = Pablo.' },
-        { id: 'm1l2lz-3', type: 'multiple_choice', prompt: '"Zij hebben een kat." — ¿quiénes son "zij"?', options: ['Sofía y Pablo', 'Solo Sofía', 'Solo Pablo', 'El gato'], correctAnswer: 'Sofía y Pablo', explanation: 'Con verbo en plural (hebben), "zij" = ellos.' },
+        { id: 'm1l2lz-2', type: 'multiple_choice', prompt: '¿Quién trabaja en casa?', options: ['Pablo', 'Sofía', 'Jan', 'Els'], correctAnswer: 'Pablo', explanation: '"Hij werkt thuis" — hij = él = Pablo.' },
+        { id: 'm1l2lz-3', type: 'multiple_choice', prompt: '¿Cómo se llama la gata?', options: ['Luna', 'Els', 'Minoes', 'Sofia'], correctAnswer: 'Luna', explanation: '"De kat heet Luna."' },
         { id: 'm1l2lz-4', type: 'fill_blank', prompt: 'Sofia en Pablo ___ in Rotterdam. (vivir, ellos)', correctAnswer: 'wonen', hint: 'Con "zij" (ellos) se usa el infinitivo', explanation: 'Plural → infinitivo: zij wonen.' },
-        { id: 'm1l2lz-5', type: 'multiple_choice', prompt: '¿Quién aprende rápido?', options: ['Sofía', 'Pablo', 'El gato', 'Ninguno'], correctAnswer: 'Sofía', explanation: '"Ik leer snel" — lo dice Sofía de sí misma.' },
-        { id: 'm1l2lz-6', type: 'fill_blank', prompt: 'Hij ___ veel koffie. (beber)', correctAnswer: 'drinkt', hint: 'drinken → hij drink+t', explanation: 'Con "hij" el verbo lleva -t: drinkt.' },
+        { id: 'm1l2lz-5', type: 'multiple_choice', prompt: '¿Qué hacen Jan y Els?', options: ['Son pintores', 'Son médicos', 'Son panaderos', 'Son profesores'], correctAnswer: 'Son pintores', explanation: '"Zij zijn schilders."' },
+        { id: 'm1l2lz-6', type: 'multiple_choice', prompt: '¿Por qué están Jan y Els en casa?', options: ['Porque llueve', 'Porque es de noche', 'Porque están enfermos', 'Porque es fiesta'], correctAnswer: 'Porque llueve', explanation: '"Het regent, dus zij zijn thuis" — llueve, así que están en casa.' },
+        { id: 'm1l2lz-7', type: 'fill_blank', prompt: '___ regent, dus zij zijn thuis. (impersonal)', correctAnswer: 'Het', hint: 'El pronombre del clima', explanation: '"Het regent" = llueve. Het es el sujeto impersonal.' },
+        { id: 'm1l2lz-8', type: 'multiple_choice', prompt: '¿Quién aprende rápido?', options: ['Sofía', 'Pablo', 'Luna', 'Jan'], correctAnswer: 'Sofía', explanation: '"Sofia leert snel, Pablo leert langzaam."' },
+        { id: 'm1l2lz-9', type: 'fill_blank', prompt: 'Pablo ___ koffie. (beber)', correctAnswer: 'drinkt', hint: 'drinken → hij drink+t', explanation: 'Con "hij" el verbo lleva -t: drinkt.' },
       ],
     },
     {
@@ -591,23 +608,31 @@ const m1_les3: Lesson = {
     },
     {
       type: 'lezen',
-      textNl: `Anna werkt op een school in Haarlem. Zij helpt de kinderen. De kinderen leren snel.
+      title: 'Een dag vol werkwoorden',
+      textNl: `Anna werkt op een school in Haarlem. Zij helpt de kinderen. De kinderen leren snel. Een kind vraagt: ‘Juf Anna, help je mij?’ ‘Natuurlijk!’ zegt Anna. Ze denkt: ‘Ik heb het mooiste werk van Nederland.’
 
-Na het werk wacht Anna op de bus. Thuis kookt zij pasta. De zus van Anna helpt.
+Na het werk wacht Anna op de bus. Maar de bus komt niet. Anna denkt: ‘Waar is de bus?’ Ze wacht en wacht. Dan belt ze haar zus: ‘Hoi! Ik wacht al heel lang op de bus!’ Haar zus lacht: ‘Kom, ik ben in de stad. We gaan samen naar huis.’
 
-David werkt thuis. Hij leert Nederlands en denkt: ‘Nederlands is niet moeilijk!’ Later belt hij met Anna. Zij spreken samen Nederlands.`,
-      textEs: `Anna trabaja en una escuela en Haarlem. Ella ayuda a los niños. Los niños aprenden rápido.
+Thuis koken Anna en haar zus pasta. Anna kookt, haar zus helpt. Zij maken samen het eten. Het is gezellig in de keuken.
 
-Después del trabajo, Anna espera el autobús. En casa cocina pasta. La hermana de Anna ayuda.
+David werkt vandaag thuis. Hij leert Nederlands en denkt de hele dag aan de nieuwe woorden. ’s Avonds belt hij met Anna. Hij vraagt: ‘Wat doe je?’ Anna zegt: ‘Ik eet pasta!’ Zij spreken samen Nederlands en lachen veel. David denkt: ‘Werken, wachten, koken, bellen… ik leer alle werkwoorden!’`,
+      textEs: `Anna trabaja en una escuela en Haarlem. Ella ayuda a los niños. Los niños aprenden rápido. Un niño pregunta: «Señorita Anna, ¿me ayudas?» «¡Claro!», dice Anna. Ella piensa: «Tengo el trabajo más bonito de Países Bajos.»
 
-David trabaja en casa. Él aprende neerlandés y piensa: «¡El neerlandés no es difícil!» Más tarde llama a Anna. Hablan neerlandés juntos.`,
+Después del trabajo, Anna espera el autobús. Pero el autobús no viene. Anna piensa: «¿Dónde está el autobús?» Espera y espera. Entonces llama a su hermana: «¡Hola! ¡Llevo esperando el autobús muchísimo tiempo!» Su hermana se ríe: «Ven, estoy en la ciudad. Nos vamos a casa juntas.»
+
+En casa, Anna y su hermana cocinan pasta. Anna cocina, su hermana ayuda. Preparan la comida juntas. Hay muy buen ambiente en la cocina.
+
+David hoy trabaja en casa. Aprende neerlandés y piensa todo el día en las palabras nuevas. Por la noche llama a Anna. Él pregunta: «¿Qué haces?» Anna dice: «¡Estoy comiendo pasta!» Hablan neerlandés juntos y se ríen mucho. David piensa: «Trabajar, esperar, cocinar, llamar… ¡estoy aprendiendo todos los verbos!»`,
       exercises: [
         { id: 'm1l3lz-1', type: 'multiple_choice', prompt: '¿Dónde trabaja Anna?', options: ['En una escuela', 'En una oficina', 'En casa', 'En un café'], correctAnswer: 'En una escuela', explanation: '"Anna werkt op een school in Haarlem."' },
         { id: 'm1l3lz-2', type: 'multiple_choice', prompt: '¿A quién ayuda Anna?', options: ['A los niños', 'A David', 'A su hermana', 'A los médicos'], correctAnswer: 'A los niños', explanation: '"Zij helpt de kinderen."' },
-        { id: 'm1l3lz-3', type: 'multiple_choice', prompt: '¿Qué espera Anna después del trabajo?', options: ['El autobús', 'El tren', 'A David', 'A su hermana'], correctAnswer: 'El autobús', explanation: '"Anna wacht op de bus."' },
-        { id: 'm1l3lz-4', type: 'fill_blank', prompt: 'Thuis ___ zij pasta. (cocinar)', correctAnswer: 'kookt', hint: 'koken → raíz kook + t', explanation: 'Con "zij" (ella): raíz + t → kookt. ¡Y la vocal se dobla: koken → kook!' },
-        { id: 'm1l3lz-5', type: 'fill_blank', prompt: 'Hij ___ Nederlands. (aprender)', correctAnswer: 'leert', hint: 'leren → raíz leer + t' },
-        { id: 'm1l3lz-6', type: 'multiple_choice', prompt: '¿Quién llama a quién?', options: ['David llama a Anna', 'Anna llama a David', 'La hermana llama a Anna', 'Nadie llama'], correctAnswer: 'David llama a Anna', explanation: '"Later belt hij met Anna" — hij = David.' },
+        { id: 'm1l3lz-3', type: 'multiple_choice', prompt: '¿Qué pasa con el autobús?', options: ['No viene', 'Llega pronto', 'Está lleno', 'Es gratis'], correctAnswer: 'No viene', explanation: '"Maar de bus komt niet" — por eso Anna espera y espera.' },
+        { id: 'm1l3lz-4', type: 'multiple_choice', prompt: '¿A quién llama Anna?', options: ['A su hermana', 'A David', 'A la escuela', 'A un taxi'], correctAnswer: 'A su hermana', explanation: '"Dan belt ze haar zus" — belt = llama (bellen).' },
+        { id: 'm1l3lz-5', type: 'fill_blank', prompt: 'Thuis ___ zij pasta. (cocinar, ella)', correctAnswer: 'kookt', hint: 'koken → raíz kook + t', explanation: 'Con "zij" (ella): raíz + t → kookt. ¡La vocal se dobla: koken → kook!' },
+        { id: 'm1l3lz-6', type: 'fill_blank', prompt: 'Hij ___ Nederlands. (aprender)', correctAnswer: 'leert', hint: 'leren → raíz leer + t' },
+        { id: 'm1l3lz-7', type: 'multiple_choice', prompt: '¿Quién llama a quién por la noche?', options: ['David llama a Anna', 'Anna llama a David', 'La hermana llama a Anna', 'Nadie llama'], correctAnswer: 'David llama a Anna', explanation: '"’s Avonds belt hij met Anna" — hij = David.' },
+        { id: 'm1l3lz-8', type: 'multiple_choice', prompt: '¿Qué está comiendo Anna cuando llama David?', options: ['Pasta', 'Pan con queso', 'Sopa', 'Una pera'], correctAnswer: 'Pasta', explanation: '"Ik eet pasta!"' },
+        { id: 'm1l3lz-9', type: 'fill_blank', prompt: 'Het kind vraagt: ‘Juf Anna, help ___ mij?’', correctAnswer: 'je', hint: 'En preguntas: verbo + je (¡sin -t!)', explanation: 'En preguntas con "je", el verbo va primero y pierde la -t: "help je mij?"' },
       ],
     },
     {
@@ -807,25 +832,31 @@ const m1_les4: Lesson = {
     },
     {
       type: 'lezen',
-      textNl: `David woont op nummer acht in Amsterdam. Anna woont op nummer vijftien in Haarlem.
+      title: 'Een dag vol nummers',
+      textNl: `Vandaag gaan David en Anna naar de stad. Eerst drinken ze koffie. Eén koffie kost vier euro. Twee koffie is acht euro. David heeft tien euro: acht euro voor de koffie, dus hij heeft nog twee euro.
 
-Vandaag drinken ze koffie in de stad. Eén koffie kost vier euro. Twee koffie is acht euro.
+Dan lopen ze door de stad. Anna ziet een boek. ‘Hoeveel kost het?’ vraagt ze. ‘Het kost twaalf euro,’ zegt de man. ‘Twaalf euro? Dat is veel!’ zegt Anna. Ze koopt het boek niet.
 
-Anna vraagt: ‘Hoeveel is vier plus acht?’ David denkt en zegt: ‘Twaalf!’
-‘Heel goed’, zegt Anna. ‘En honderd min één?’ David lacht: ‘Negenennegentig!’`,
-      textEs: `David vive en el número ocho en Ámsterdam. Anna vive en el número quince en Haarlem.
+Later spelen ze een spelletje met nummers. David vraagt: ‘Hoeveel is negen plus negen?’ ‘Achttien!’ zegt Anna. ‘En vier keer vijf?’ ‘Twintig! Makkelijk!’ ‘Oké, een moeilijke: honderd min één?’ Anna lacht: ‘Negenennegentig!’
 
-Hoy toman café en la ciudad. Un café cuesta cuatro euros. Dos cafés son ocho euros.
+’s Avonds gaat David met de bus naar huis. Het is bus nummer vijfentwintig. Hij woont op nummer acht. Thuis denkt hij: ‘Eén dag in de stad… en ik ken alle nummers van Nederland!’`,
+      textEs: `Hoy David y Anna van a la ciudad. Primero toman café. Un café cuesta cuatro euros. Dos cafés son ocho euros. David tiene diez euros: ocho para el café, así que le quedan dos euros.
 
-Anna pregunta: «¿Cuánto es cuatro más ocho?» David piensa y dice: «¡Doce!»
-«Muy bien», dice Anna. «¿Y cien menos uno?» David se ríe: «¡Noventa y nueve!»`,
+Después pasean por la ciudad. Anna ve un libro. «¿Cuánto cuesta?», pregunta. «Cuesta doce euros», dice el hombre. «¿Doce euros? ¡Eso es mucho!», dice Anna. No compra el libro.
+
+Más tarde juegan a un juego con números. David pregunta: «¿Cuánto es nueve más nueve?» «¡Dieciocho!», dice Anna. «¿Y cuatro por cinco?» «¡Veinte! ¡Fácil!» «Vale, una difícil: ¿cien menos uno?» Anna se ríe: «¡Noventa y nueve!»
+
+Por la noche, David va a casa en autobús. Es el autobús número veinticinco. Él vive en el número ocho. En casa piensa: «Un día en la ciudad… ¡y ya me sé todos los números de Países Bajos!»`,
       exercises: [
-        { id: 'm1l4lz-1', type: 'multiple_choice', prompt: '¿En qué número vive David?', options: ['En el ocho', 'En el quince', 'En el doce', 'En el cuatro'], correctAnswer: 'En el ocho', explanation: '"David woont op nummer acht."' },
-        { id: 'm1l4lz-2', type: 'multiple_choice', prompt: '¿Cuánto cuesta UN café?', options: ['Cuatro euros', 'Ocho euros', 'Dos euros', 'Doce euros'], correctAnswer: 'Cuatro euros', explanation: '"Eén koffie kost vier euro."' },
+        { id: 'm1l4lz-1', type: 'multiple_choice', prompt: '¿Cuánto cuesta UN café?', options: ['Cuatro euros', 'Ocho euros', 'Dos euros', 'Doce euros'], correctAnswer: 'Cuatro euros', explanation: '"Eén koffie kost vier euro."' },
+        { id: 'm1l4lz-2', type: 'multiple_choice', prompt: '¿Cuántos euros tiene David al empezar?', options: ['Diez', 'Ocho', 'Dos', 'Veinte'], correctAnswer: 'Diez', explanation: '"David heeft tien euro" — tien = 10.' },
         { id: 'm1l4lz-3', type: 'fill_blank', prompt: 'Twee koffie is ___ euro. (en letras)', correctAnswer: 'acht', hint: '4 + 4 = …', explanation: 'Dos cafés a cuatro euros: acht (ocho) euros.' },
-        { id: 'm1l4lz-4', type: 'multiple_choice', prompt: '¿Cuánto es "vier plus acht"?', options: ['twaalf', 'tien', 'veertien', 'elf'], correctAnswer: 'twaalf', explanation: '4 + 8 = 12 = twaalf.' },
-        { id: 'm1l4lz-5', type: 'fill_blank', prompt: 'Honderd min één is ___ en negentig. (en letras, la unidad)', correctAnswer: 'negen', hint: '99 = "nueve y noventa"', explanation: '99 = negenennegentig: primero la unidad (negen), luego la decena (negentig).' },
-        { id: 'm1l4lz-6', type: 'multiple_choice', prompt: '¿En qué número vive Anna?', options: ['En el quince', 'En el ocho', 'En el cincuenta', 'En el cinco'], correctAnswer: 'En el quince', explanation: '"Anna woont op nummer vijftien" — vijftien = 15.' },
+        { id: 'm1l4lz-4', type: 'multiple_choice', prompt: '¿Cuánto cuesta el libro que ve Anna?', options: ['Doce euros', 'Diez euros', 'Ocho euros', 'Veinte euros'], correctAnswer: 'Doce euros', explanation: '"Het kost twaalf euro" — twaalf = 12. Y a Anna le parece caro.' },
+        { id: 'm1l4lz-5', type: 'multiple_choice', prompt: '"Dat is veel!" significa…', options: ['¡Eso es mucho!', '¡Qué barato!', '¡Me lo llevo!', '¡Es bonito!'], correctAnswer: '¡Eso es mucho!', explanation: 'veel = mucho. Por eso Anna no compra el libro.' },
+        { id: 'm1l4lz-6', type: 'fill_blank', prompt: 'Negen plus negen is ___. (en letras)', correctAnswer: 'achttien', hint: '9 + 9 = 18 (¡con dos t!)', explanation: 'Achttien (18) se escribe con dos t: acht + tien.' },
+        { id: 'm1l4lz-7', type: 'fill_blank', prompt: 'Honderd min één is ___en negentig. (la unidad)', correctAnswer: 'negen', hint: '99 = "nueve y noventa"', explanation: '99 = negenennegentig: primero la unidad (negen), luego la decena.' },
+        { id: 'm1l4lz-8', type: 'multiple_choice', prompt: '¿Qué número tiene el autobús de David?', options: ['El veinticinco', 'El ocho', 'El doce', 'El dieciocho'], correctAnswer: 'El veinticinco', explanation: '"Bus nummer vijfentwintig" = vijf-en-twintig = 25.' },
+        { id: 'm1l4lz-9', type: 'multiple_choice', prompt: '¿En qué número vive David?', options: ['En el ocho', 'En el quince', 'En el veinticinco', 'En el cuatro'], correctAnswer: 'En el ocho', explanation: '"Hij woont op nummer acht."' },
       ],
     },
     {
@@ -1004,29 +1035,35 @@ const m1_les5: Lesson = {
     },
     {
       type: 'lezen',
-      textNl: `David gaat naar een taalschool. De school heet ‘De Windmolen’.
+      title: 'David gaat naar de taalschool',
+      textNl: `David gaat naar een taalschool. De school heet ‘De Windmolen’. Hij is een beetje nerveus. Zijn eerste echte les!
 
-Een vrouw vraagt: ‘Wat is je naam?’
-David zegt: ‘David Moreno. Mijn achternaam spel je M-O-R-E-N-O.’
-De vrouw vraagt: ‘En je e-mailadres?’
-David spelt: ‘d-a-v-i-d, punt, m-o-r-e-n-o, apenstaartje, mail, punt, nl.’
-De vrouw zegt: ‘Dank je wel! Tot ziens!’
-David zegt: ‘Tot ziens!’`,
-      textEs: `David va a una escuela de idiomas. La escuela se llama «De Windmolen» (El Molino).
+Een vrouw zegt: ‘Goedemorgen! Welkom. Wat is je naam?’ ‘David Moreno.’ ‘Moreno… hoe spel je dat?’ ‘M-O-R-E-N-O.’ ‘Dank je. En je voornaam?’ ‘David. D-A-V-I-D.’
 
-Una mujer pregunta: «¿Cuál es tu nombre?»
-David dice: «David Moreno. Mi apellido se deletrea M-O-R-E-N-O.»
-La mujer pregunta: «¿Y tu dirección de correo?»
-David deletrea: «d-a-v-i-d, punto, m-o-r-e-n-o, arroba, mail, punto, nl.»
-La mujer dice: «¡Muchas gracias! ¡Hasta la vista!»
-David dice: «¡Hasta la vista!»`,
+De vrouw vraagt: ‘Wat is je e-mailadres?’ David spelt: ‘d-a-v-i-d, punt, m-o-r-e-n-o, apenstaartje, mail, punt, nl.’ De vrouw lacht: ‘Perfect gespeld!’
+
+Dan vraagt ze: ‘En je straatnaam?’ ‘De Willemstraat.’ ‘Met een V of met een W?’ ‘Met een W! W-I-L-L-E-M.’ ‘Heel goed! De W en de V zijn moeilijk voor veel mensen.’
+
+‘Sorry, kun je dat herhalen?’ vraagt David. ‘Wanneer begint de les?’ ‘Je les begint volgende week!’ zegt de vrouw. ‘Dank u wel! Tot ziens!’ ‘Tot ziens, David!’`,
+      textEs: `David va a una escuela de idiomas. La escuela se llama «De Windmolen» (El Molino). Está un poco nervioso. ¡Su primera clase de verdad!
+
+Una mujer dice: «¡Buenos días! Bienvenido. ¿Cuál es tu nombre?» «David Moreno.» «Moreno… ¿cómo se deletrea?» «M-O-R-E-N-O.» «Gracias. ¿Y tu nombre de pila?» «David. D-A-V-I-D.»
+
+La mujer pregunta: «¿Cuál es tu dirección de correo?» David deletrea: «d-a-v-i-d, punto, m-o-r-e-n-o, arroba, mail, punto, nl.» La mujer se ríe: «¡Deletreado perfecto!»
+
+Luego pregunta: «¿Y el nombre de tu calle?» «La Willemstraat.» «¿Con V o con W?» «¡Con W! W-I-L-L-E-M.» «¡Muy bien! La W y la V son difíciles para mucha gente.»
+
+«Perdona, ¿puedes repetirlo?», pregunta David. «¿Cuándo empieza la clase?» «¡Tu clase empieza la semana que viene!», dice la mujer. «¡Muchas gracias! ¡Hasta la vista!» «¡Hasta la vista, David!»`,
       exercises: [
         { id: 'm1l5lz-1', type: 'multiple_choice', prompt: '¿Cómo se llama la escuela?', options: ['De Windmolen', 'De Taalschool', 'De Letter', 'Het Alfabet'], correctAnswer: 'De Windmolen', explanation: '"De school heet De Windmolen" — el molino de viento.' },
         { id: 'm1l5lz-2', type: 'multiple_choice', prompt: '¿Cuál es el apellido de David?', options: ['Moreno', 'Molina', 'Romero', 'Montero'], correctAnswer: 'Moreno', explanation: 'Lo deletrea: M-O-R-E-N-O.' },
         { id: 'm1l5lz-3', type: 'multiple_choice', prompt: '¿Qué significa "apenstaartje" en el email?', options: ['La arroba (@)', 'El punto (.)', 'El guion (-)', 'La eñe (ñ)'], correctAnswer: 'La arroba (@)', explanation: 'Literalmente "colita de mono" = @.' },
         { id: 'm1l5lz-4', type: 'fill_blank', prompt: 'David ___ zijn e-mailadres. (deletrear)', correctAnswer: 'spelt', hint: 'spellen → hij spel+t' },
         { id: 'm1l5lz-5', type: 'multiple_choice', prompt: '¿Con qué letra empieza el apellido de David?', options: ['Con la M', 'Con la D', 'Con la W', 'Con la N'], correctAnswer: 'Con la M', explanation: 'Moreno empieza con M.' },
-        { id: 'm1l5lz-6', type: 'fill_blank', prompt: 'De vrouw zegt: ‘Dank je wel! Tot ___!’', correctAnswer: 'ziens', hint: 'La despedida formal: hasta la vista' },
+        { id: 'm1l5lz-6', type: 'multiple_choice', prompt: '¿Cómo se llama la calle de David?', options: ['Willemstraat', 'Victorstraat', 'Molenstraat', 'Davidstraat'], correctAnswer: 'Willemstraat', explanation: '"De Willemstraat" — ¡con W, no con V!' },
+        { id: 'm1l5lz-7', type: 'multiple_choice', prompt: 'Willemstraat, ¿con V o con W?', options: ['Con W', 'Con V', 'Con las dos', 'Con B'], correctAnswer: 'Con W', explanation: 'El clásico contraste V-W: Willem va con W (wee).' },
+        { id: 'm1l5lz-8', type: 'fill_blank', prompt: '‘Sorry, kun je dat ___?’ (repetir)', correctAnswer: 'herhalen', hint: 'La frase para pedir que lo repitan' },
+        { id: 'm1l5lz-9', type: 'multiple_choice', prompt: '¿Cuándo empieza la clase de David?', options: ['La semana que viene', 'Mañana', 'Hoy', 'El mes que viene'], correctAnswer: 'La semana que viene', explanation: '"Je les begint volgende week!"' },
       ],
     },
     {
@@ -1208,23 +1245,31 @@ const m1_les6: Lesson = {
     },
     {
       type: 'lezen',
-      textNl: `De zon schijnt. David zit in het park onder een boom. Hij eet brood met kaas en leest de krant.
+      title: 'De man, de maan en het park',
+      textNl: `De zon schijnt. David zit in het park onder een boom. Hij eet brood met kaas en leest de krant. In de krant staat: ‘Mooi weer vandaag!’
 
-Een bus stopt. Zijn buur stapt uit de bus. ‘Dag David!’ zegt de buur.
+Een man loopt met een hond. De man zegt: ‘Dag!’ ‘Dag meneer!’ zegt David. De hond kijkt naar het brood van David. ‘Nee nee,’ lacht David, ‘dit brood is voor mij!’
 
-’s Avonds kijkt David naar de maan. De maan is groot en geel. David denkt: ‘Nederland is mooi. De taal is niet makkelijk, maar ik leer elke dag.’`,
-      textEs: `El sol brilla. David está sentado en el parque bajo un árbol. Come pan con queso y lee el periódico.
+Dan komt de bus. Zijn buur Els stapt uit de bus. ‘Hallo David! Wat doe je?’ ‘Ik lees de krant. Kom je zitten?’ Ze praten over de taal. Els vraagt: ‘Ken je het verschil tussen man en maan?’ ‘Ja!’ zegt David. ‘De man loopt in het park, en de maan staat in de lucht!’ ‘Heel goed! En tussen bus en buur?’ ‘Makkelijk: jij bent mijn buur, en de bus is… weg!’ Ze lachen samen.
 
-Un autobús se detiene. Su vecino se baja del autobús. «¡Buenas, David!», dice el vecino.
+’s Avonds is David thuis. Hij kijkt uit het raam. De maan is groot en geel. De stad is stil. David denkt: ‘Nederland is mooi. De taal is niet makkelijk, maar ik leer elke dag. En morgen… eet ik weer brood met kaas in het park!’`,
+      textEs: `El sol brilla. David está sentado en el parque bajo un árbol. Come pan con queso y lee el periódico. En el periódico pone: «¡Buen tiempo hoy!»
 
-Por la noche, David mira la luna. La luna es grande y amarilla. David piensa: «Países Bajos es bonito. El idioma no es fácil, pero aprendo cada día.»`,
+Un hombre pasea con un perro. El hombre dice: «¡Buenas!» «¡Buenas, señor!», dice David. El perro mira el pan de David. «No, no», se ríe David, «¡este pan es para mí!»
+
+Entonces llega el autobús. Su vecina Els se baja del autobús. «¡Hola David! ¿Qué haces?» «Leo el periódico. ¿Te sientas?» Charlan sobre el idioma. Els pregunta: «¿Sabes la diferencia entre "man" y "maan"?» «¡Sí!», dice David. «¡El hombre camina por el parque, y la luna está en el cielo!» «¡Muy bien! ¿Y entre "bus" y "buur"?» «Fácil: tú eres mi vecina, y el autobús… ¡ya se ha ido!» Se ríen juntos.
+
+Por la noche, David está en casa. Mira por la ventana. La luna es grande y amarilla. La ciudad está en silencio. David piensa: «Países Bajos es bonito. El idioma no es fácil, pero aprendo cada día. Y mañana… ¡otra vez pan con queso en el parque!»`,
       exercises: [
         { id: 'm1l6lz-1', type: 'multiple_choice', prompt: '¿Dónde está sentado David?', options: ['Bajo un árbol', 'En el autobús', 'En casa', 'En la playa'], correctAnswer: 'Bajo un árbol', explanation: '"David zit in het park onder een boom."' },
         { id: 'm1l6lz-2', type: 'multiple_choice', prompt: '¿Qué come David?', options: ['Pan con queso', 'Una pera', 'Pasta', 'Sopa'], correctAnswer: 'Pan con queso', explanation: '"Hij eet brood met kaas."' },
-        { id: 'm1l6lz-3', type: 'multiple_choice', prompt: '¿Quién se baja del autobús?', options: ['Su vecino', 'Anna', 'Su hermana', 'Un médico'], correctAnswer: 'Su vecino', explanation: '"Zijn buur stapt uit de bus" — de buur = el vecino.' },
-        { id: 'm1l6lz-4', type: 'fill_blank', prompt: 'De maan is groot en ___. (amarilla)', correctAnswer: 'geel', hint: 'Vocal larga: ee', explanation: '"Geel" (amarillo) lleva vocal larga; "geld" (dinero) corta.' },
-        { id: 'm1l6lz-5', type: 'multiple_choice', prompt: '¿Qué mira David por la noche?', options: ['La luna', 'El sol', 'El mar', 'La televisión'], correctAnswer: 'La luna', explanation: '"’s Avonds kijkt David naar de maan."' },
-        { id: 'm1l6lz-6', type: 'fill_blank', prompt: 'Hij leest de ___. (el periódico)', correctAnswer: 'krant', hint: 'de …', explanation: '"De krant" = el periódico.' },
+        { id: 'm1l6lz-3', type: 'multiple_choice', prompt: '¿Qué pone en el periódico?', options: ['Buen tiempo hoy', 'Llueve mañana', 'La luna es amarilla', 'El parque cierra'], correctAnswer: 'Buen tiempo hoy', explanation: '"In de krant staat: Mooi weer vandaag!"' },
+        { id: 'm1l6lz-4', type: 'multiple_choice', prompt: '¿Qué mira el perro?', options: ['El pan de David', 'La luna', 'El periódico', 'El autobús'], correctAnswer: 'El pan de David', explanation: '"De hond kijkt naar het brood van David" — ¡y David le dice que no!' },
+        { id: 'm1l6lz-5', type: 'multiple_choice', prompt: '¿Quién se baja del autobús?', options: ['Su vecina Els', 'Anna', 'Su hermana', 'Un médico'], correctAnswer: 'Su vecina Els', explanation: '"Zijn buur Els stapt uit de bus" — de buur = el vecino/la vecina.' },
+        { id: 'm1l6lz-6', type: 'fill_blank', prompt: 'De maan is groot en ___. (amarilla)', correctAnswer: 'geel', hint: 'Vocal larga: ee', explanation: '"Geel" (amarillo) lleva vocal larga; "geld" (dinero) corta.' },
+        { id: 'm1l6lz-7', type: 'multiple_choice', prompt: 'Según David, ¿cuál es la diferencia entre "man" y "maan"?', options: ['El hombre camina por el parque y la luna está en el cielo', 'Son la misma palabra', 'Man es luna y maan es hombre', 'Ninguna'], correctAnswer: 'El hombre camina por el parque y la luna está en el cielo', explanation: 'man (a corta) = hombre · maan (aa larga) = luna.' },
+        { id: 'm1l6lz-8', type: 'fill_blank', prompt: 'Hij leest de ___. (el periódico)', correctAnswer: 'krant', hint: 'de …', explanation: '"De krant" = el periódico.' },
+        { id: 'm1l6lz-9', type: 'multiple_choice', prompt: '¿Qué va a hacer David mañana?', options: ['Comer pan con queso en el parque otra vez', 'Ir a Argentina', 'Comprar un perro', 'Tomar el autobús 25'], correctAnswer: 'Comer pan con queso en el parque otra vez', explanation: '"En morgen… eet ik weer brood met kaas in het park!"' },
       ],
     },
     {

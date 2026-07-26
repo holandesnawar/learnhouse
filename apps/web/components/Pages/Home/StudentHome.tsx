@@ -9,14 +9,19 @@ import { useTrail } from '@/hooks/queries/useTrail'
 import { useCourses } from '@/hooks/queries/useCourses'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import RoadmapSection from '@components/Pages/Home/RoadmapSection'
-import ExerciseProgressCard from '@components/Pages/Home/ExerciseProgressCard'
 import UpcomingEvents from '@components/Pages/Home/UpcomingEvents'
 import { getUriWithOrg } from '@services/config/config'
 import CommunityChannelsCards from '@components/Objects/Communities/CommunityChannelsCards'
 import StreakBadge from '@components/Pages/Home/StreakBadge'
-import ContinueWhereLeftOff from '@components/Pages/Home/ContinueWhereLeftOff'
-import ProgressSummary from '@components/Pages/Home/ProgressSummary'
+import {
+  WeekStrip,
+  ContinueCard,
+  WeekCard,
+  RepasoCard,
+  FormacionCard,
+} from '@components/Pages/Home/StudentPulse'
 import { registerVisit, type StudentVisit } from '@services/student/progress'
+import { getStudentInsights, type StudentInsights } from '@services/student/insights'
 import Link from 'next/link'
 import { BookOpen, HelpCircle, ArrowRight } from 'lucide-react'
 
@@ -54,6 +59,18 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
     return () => { active = false }
   }, [accessToken])
 
+  // One fetch with the real progress signals (completions, attempts, weak
+  // words, streak) — feeds every progress-aware card below.
+  const [insights, setInsights] = useState<StudentInsights | null>(null)
+  useEffect(() => {
+    if (!accessToken) return
+    let active = true
+    getStudentInsights(accessToken).then((d) => {
+      if (active) setInsights(d)
+    })
+    return () => { active = false }
+  }, [accessToken])
+
   return (
     <GeneralWrapperStyled>
       {/* Welcome */}
@@ -64,26 +81,35 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
           </h1>
           <p className="text-gray-500 dark:text-white/70 mt-1">Continúa tu aprendizaje donde lo dejaste.</p>
         </div>
-        {visit && (
-          <div className="pt-1 shrink-0">
+        <div className="pt-1 shrink-0 flex flex-col items-end gap-2">
+          {visit && (
             <StreakBadge current={visit.current_streak} longest={visit.longest_streak} />
-          </div>
-        )}
+          )}
+          {insights && <WeekStrip activeDays={insights.week.activeDays} />}
+        </div>
       </div>
-
-      {/* Bloque de progreso "Así estás progresando" */}
-      <ProgressSummary orgslug={orgslug} />
 
       {/* Onboarding del alumno → ahora es un widget flotante "Primeros pasos"
           (StudentOnboarding), montado en el layout. Ya no ocupa el Inicio. */}
 
-      {/* "Sigue donde lo dejaste" — only shows when there's a saved position */}
-      <ContinueWhereLeftOff orgslug={orgslug} />
+      {/* "Sigue donde lo dejaste" — big primary card with section progress */}
+      {insights && <ContinueCard orgslug={orgslug} insights={insights} />}
 
-      {/* Continue / in-progress */}
+      {/* Esta semana + Tu repaso de hoy */}
+      {insights && (
+        <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <WeekCard insights={insights} />
+          <RepasoCard orgslug={orgslug} insights={insights} />
+        </div>
+      )}
+
+      {/* Así estás progresando — real, server-side numbers */}
+      {insights && <FormacionCard orgslug={orgslug} insights={insights} />}
+
+      {/* Courses in progress */}
       {runs.length > 0 && (
         <div className="mb-10">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Continúa donde lo dejaste</h2>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Tus cursos</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {runs.map((run: any) => (
               <TrailCourseCard
@@ -132,9 +158,6 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
 
       {/* Weekly roadmap */}
       <RoadmapSection canEdit={!!isAdmin} />
-
-      {/* Weekly exercise progress */}
-      <ExerciseProgressCard orgslug={orgslug} />
 
       {/* Consultas — moved to the bottom (a quiet helper, not the headline) */}
       <div

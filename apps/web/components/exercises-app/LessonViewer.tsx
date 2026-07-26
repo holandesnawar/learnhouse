@@ -17,7 +17,7 @@ import { useLHSession } from '@components/Contexts/LHSessionContext';
 import useAdminStatus from '@components/Hooks/useAdminStatus';
 import { saveItemResult } from '@/lib/exercises/exercises';
 import { saveLastAttempt, getLastAttempt, type LastAttempt } from '@/lib/exercises-app/lastAttempts';
-import { markLessonCompletedRemote, patchStudentProgress } from '@services/student/progress';
+import { markLessonCompletedRemote, patchStudentProgress, listLessonCompletions } from '@services/student/progress';
 
 /* ─────────────────────────────────────────────────────────────────────────────
    HELPERS
@@ -3926,6 +3926,56 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
   const [completedSections, setCompletedSections] = useState<Set<SectionId>>(new Set());
   const [forcedDone, setForcedDone] = useState(false);
 
+  // ── Tiempo invertido en la lección ─────────────────────────────────────
+  // Acumula segundos SOLO mientras la pestaña está visible. Se vuelca al
+  // backend (lesson_completion.time_seconds, que suma incrementos) al terminar
+  // la lección y, en revisitas de lecciones ya completadas, al salir.
+  const timeRef = useRef(0);
+  const lessonDoneRef = useRef(false);
+
+  // En revisitas de una lección ya completada, el tiempo también cuenta:
+  // marcamos el flag desde el servidor para que el flush de salida lo vuelque.
+  useEffect(() => {
+    if (!accessToken || !lesson?.id) return;
+    let active = true;
+    listLessonCompletions(accessToken).then((rows) => {
+      if (active && rows.some((r) => r.lesson_id === lesson.id)) {
+        lessonDoneRef.current = true;
+      }
+    });
+    return () => { active = false; };
+  }, [accessToken, lesson?.id]);
+
+  useEffect(() => {
+    const tick = setInterval(() => {
+      if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+        timeRef.current += 1;
+      }
+    }, 1000);
+    return () => clearInterval(tick);
+  }, []);
+
+  // Flush pendiente al desmontar / cerrar pestaña — solo si la lección ya
+  // está completada (así una simple ojeada nunca crea una compleción falsa).
+  useEffect(() => {
+    const flush = () => {
+      const secs = Math.round(timeRef.current);
+      if (!lessonDoneRef.current || secs < 5 || !accessToken) return;
+      timeRef.current = 0;
+      markLessonCompletedRemote(
+        lesson.id,
+        { module_id: lesson.moduleId, time_seconds: Math.min(secs, 3600) },
+        accessToken,
+      );
+    };
+    window.addEventListener('pagehide', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      flush();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessToken, lesson?.id]);
+
   // Track the student's last position so the home can show "Continúa donde lo
   // dejaste" with the exact lesson + section. Standalone ejercicios only —
   // inside a course the trail system already covers it. Fire-and-forget.
@@ -4095,11 +4145,15 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
     }
 
     // When every section of the lesson is done, register the lesson completion
-    // server-side so /progreso and "continúa donde lo dejaste" can read it.
+    // server-side so /progreso and "continúa donde lo dejaste" can read it —
+    // including the seconds spent on the lesson this visit (the API accumulates).
     if (allDone) {
+      lessonDoneRef.current = true;
+      const secs = Math.min(Math.round(timeRef.current), 3600);
+      timeRef.current = 0;
       markLessonCompletedRemote(
         lesson.id,
-        { module_id: lesson.moduleId },
+        { module_id: lesson.moduleId, time_seconds: secs >= 5 ? secs : 0 },
         token,
       );
     }
