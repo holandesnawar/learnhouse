@@ -12,7 +12,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { getUriWithOrg } from '@services/config/config'
-import { type StudentInsights, formatTime, startOfWeek } from '@services/student/insights'
+import { type StudentInsights, startOfWeek } from '@services/student/insights'
 import {
   getLesson,
   getNextLesson,
@@ -20,12 +20,13 @@ import {
   getModules,
   getLessonsForModule,
 } from '@/lib/exercises-app/courseService'
+import { masteredSectionsCount, totalLessonsInCourse } from '@/lib/exercises-app/progressMap'
 import {
   ArrowRight,
   BookOpen,
+  Check,
   BookOpenCheck,
   CalendarCheck2,
-  Clock3,
   Dumbbell,
   Flame,
   GraduationCap,
@@ -34,6 +35,7 @@ import {
   Sparkles,
   Target,
   TrendingUp,
+  Trophy,
 } from 'lucide-react'
 
 /* ── helpers ──────────────────────────────────────────────────────────── */
@@ -59,11 +61,7 @@ function trackedSections(moduleId: string, lessonId: string): string[] {
   return out
 }
 
-function totalCourseLessons(): number {
-  let n = 0
-  for (const m of getModules()) n += getLessonsForModule(m.id).length
-  return n
-}
+
 
 /* ── WeekStrip — the 7 day dots in the hero ───────────────────────────── */
 
@@ -86,12 +84,14 @@ export function WeekStrip({ activeDays }: { activeDays: string[] }) {
             <span className="text-[9px] font-bold text-gray-400 dark:text-white/40">{label}</span>
             <div
               className={[
-                'w-4 h-4 rounded-full transition-colors',
+                'w-4 h-4 rounded-full transition-colors flex items-center justify-center',
                 active ? 'bg-[#4da3ff]' : 'bg-[#DDE6F5] dark:bg-white/15',
                 isToday ? 'ring-2 ring-[#4da3ff]/40' : '',
               ].join(' ')}
-              title={iso}
-            />
+              title={active ? `${iso} · ¡día cumplido!` : iso}
+            >
+              {active && <Check size={11} strokeWidth={4} className="text-white" />}
+            </div>
           </div>
         )
       })}
@@ -258,12 +258,6 @@ export function WeekCard({ insights }: { insights: StudentInsights }) {
               </p>
             </div>
           </div>
-          {w.timeSeconds > 0 && (
-            <p className="mt-3 text-[12px] text-gray-500 dark:text-white/60 flex items-center gap-1.5">
-              <Clock3 size={13} className="text-[#025dc7]" />
-              {formatTime(w.timeSeconds)} de neerlandés esta semana
-            </p>
-          )}
           {deltaMsg && (
             <p className="mt-2 text-[12px] font-semibold text-emerald-600 flex items-center gap-1.5">
               <TrendingUp size={13} /> {deltaMsg}
@@ -381,7 +375,7 @@ export function FormacionCard({
   orgslug: string
   insights: StudentInsights
 }) {
-  const total = totalCourseLessons()
+  const total = totalLessonsInCourse()
   const done = insights.completions.length
   const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0
   const streak = insights.progress?.current_streak ?? 0
@@ -446,13 +440,13 @@ export function FormacionCard({
 
         <div className="rounded-xl bg-[#F0F5FF] dark:bg-white/5 p-4">
           <div className="flex items-center gap-1.5 text-[#025dc7] mb-2">
-            <Clock3 size={14} />
-            <span className="text-[10px] font-semibold uppercase tracking-wider">Tiempo total</span>
+            <Trophy size={14} />
+            <span className="text-[10px] font-semibold uppercase tracking-wider">Dominadas</span>
           </div>
-          <p className="text-[24px] font-bold text-gray-900 dark:text-white leading-none">
-            {formatTime(insights.timeSecondsTotal)}
+          <p className="text-[24px] font-bold text-emerald-600 leading-none">
+            {masteredSectionsCount(insights.attempts)}
           </p>
-          <p className="mt-1.5 text-[11px] text-gray-500 dark:text-white/60">de estudio registrado</p>
+          <p className="mt-1.5 text-[11px] text-gray-500 dark:text-white/60">secciones al 85% o más</p>
         </div>
       </div>
 

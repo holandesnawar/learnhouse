@@ -4102,10 +4102,11 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
   }, [accessToken, lesson?.id]);
 
   // Track the student's last position so the home can show "Continúa donde lo
-  // dejaste" with the exact lesson + section. Standalone ejercicios only —
-  // inside a course the trail system already covers it. Fire-and-forget.
+  // dejaste" with the exact lesson + section. Se guarda SIEMPRE al entrar en
+  // una lección — también dentro del curso — para que la tarjeta del Inicio
+  // apunte siempre a la ÚLTIMA lección que abriste. Fire-and-forget.
   useEffect(() => {
-    if (inCourse || !accessToken || !lesson?.id) return;
+    if (!accessToken || !lesson?.id) return;
     patchStudentProgress(
       {
         current_position: {
@@ -4113,13 +4114,13 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
           module_id: lesson.moduleId,
           lesson_id: lesson.id,
           lesson_title: lesson.title,
-          section_id: activeSection,
+          section_id: activeSection ?? forcedSection ?? null,
           updated_at: new Date().toISOString(),
         },
       },
       accessToken,
     );
-  }, [accessToken, inCourse, lesson?.id, lesson?.moduleId, lesson?.title, activeSection]);
+  }, [accessToken, inCourse, lesson?.id, lesson?.moduleId, lesson?.title, activeSection, forcedSection]);
 
   // Persist each graded answer to the per-student progress table (Supabase) so
   // the academy remembers what each student got right/wrong. Fire-and-forget;

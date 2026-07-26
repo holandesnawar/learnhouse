@@ -8,7 +8,7 @@ import {
   ArrowRight,
   Sparkles,
   Flame,
-  Clock3,
+  Trophy,
   BookOpenCheck,
   CheckCircle2,
   Cloud,
@@ -17,11 +17,11 @@ import {
 } from 'lucide-react'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import { getUriWithOrg } from '@services/config/config'
-import { formatTime } from '@services/student/insights'
 import { useStudentInsights } from '@/hooks/queries/useStudentInsights'
 import {
   buildProgressMap,
   totalLessonsInCourse,
+  masteredSectionsCount,
   type LessonProgressRow,
 } from '@/lib/exercises-app/progressMap'
 
@@ -103,9 +103,10 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
               </p>
             </div>
             <div className="rounded-2xl border border-[#DDE6F5] bg-white p-4">
-              <p className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider flex items-center gap-1"><Clock3 size={12} /> Tiempo</p>
-              <p className="text-[26px] font-bold text-gray-900 leading-tight mt-0.5">
-                {formatTime(insights.timeSecondsTotal)}
+              <p className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider flex items-center gap-1"><Trophy size={12} /> Dominadas</p>
+              <p className="text-[26px] font-bold text-emerald-600 leading-tight mt-0.5 tabular-nums">
+                {masteredSectionsCount(insights.attempts)}
+                <span className="text-[13px] text-[#9CA3AF] font-semibold"> secciones</span>
               </p>
             </div>
           </div>
@@ -151,6 +152,9 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
                           }`}
                         >
                           {shortTitle(r.title)}
+                          {r.isExtra && (
+                            <span className="ml-1.5 align-middle text-[9px] font-bold uppercase tracking-wider text-[#9CA3AF] bg-[#F0F5FF] rounded px-1 py-0.5">extra</span>
+                          )}
                         </Link>
                         {/* Dots por sección */}
                         <div className="hidden sm:flex items-center gap-1 shrink-0">

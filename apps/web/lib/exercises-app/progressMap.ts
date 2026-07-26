@@ -4,7 +4,7 @@
  * por lección: estado de cada sección, nota, dónde te quedaste y qué repasar.
  */
 
-import { getModules, getLessonsForModule } from './courseService'
+import { getModules, getLessonsForModule, getExtrasForModule } from './courseService'
 import type { Lesson } from './types'
 import type { LastAttempt } from './lastAttempts'
 import type { LessonCompletion } from '@services/student/progress'
@@ -33,6 +33,7 @@ export interface LessonProgressRow {
   moduleId: string
   moduleOrder: number
   title: string
+  isExtra: boolean
   completed: boolean
   started: boolean
   sections: SectionProgress[]
@@ -73,7 +74,8 @@ export function buildLessonRow(
   moduleId: string,
   moduleOrder: number,
   attempts: Record<string, LastAttempt>,
-  completedSet: Set<string>
+  completedSet: Set<string>,
+  isExtra = false
 ): LessonProgressRow {
   const sections: SectionProgress[] = trackedSectionIds(lesson).map((sid) => {
     const a = attempts[`${lesson.id}-${sid}`]
@@ -99,6 +101,7 @@ export function buildLessonRow(
     moduleId,
     moduleOrder,
     title: lesson.title,
+    isExtra,
     completed: completedSet.has(lesson.id),
     started: sections.some((s) => s.done) || completedSet.has(lesson.id),
     sections,
@@ -119,9 +122,14 @@ export function buildProgressMap(
 ): ModuleProgress[] {
   const completedSet = new Set(completions.map((c) => c.lesson_id))
   return getModules().map((m) => {
-    const rows = getLessonsForModule(m.id).map((l) =>
-      buildLessonRow(l, m.id, m.order, attempts, completedSet)
-    )
+    const rows = [
+      ...getLessonsForModule(m.id).map((l) =>
+        buildLessonRow(l, m.id, m.order, attempts, completedSet)
+      ),
+      ...getExtrasForModule(m.id).map((l) =>
+        buildLessonRow(l, m.id, m.order, attempts, completedSet, true)
+      ),
+    ]
     const scored = rows.filter((r) => r.pct !== null)
     return {
       id: m.id,
@@ -138,8 +146,21 @@ export function buildProgressMap(
   })
 }
 
+/** Todas las lecciones del camino: principales + extras. */
 export function totalLessonsInCourse(): number {
   let n = 0
-  for (const m of getModules()) n += getLessonsForModule(m.id).length
+  for (const m of getModules()) {
+    n += getLessonsForModule(m.id).length + getExtrasForModule(m.id).length
+  }
+  return n
+}
+
+/** Secciones dominadas (nota ≥ 85%) en todo el curso. */
+export function masteredSectionsCount(attempts: Record<string, LastAttempt>): number {
+  let n = 0
+  for (const key of Object.keys(attempts)) {
+    const a = attempts[key]
+    if (a.total > 0 && Math.round((a.score / a.total) * 100) >= 85) n++
+  }
   return n
 }

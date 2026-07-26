@@ -142,12 +142,7 @@ function TrailCourseCard(props: TrailCourseCardProps) {
                 <span className="text-[10px] font-bold uppercase tracking-wider">{t('common.completed')}</span>
               </div>
             )
-          ) : (
-            <div className="flex items-center gap-1.5 text-gray-500">
-              <BookOpen size={12} />
-              <span className="text-[10px] font-bold uppercase tracking-wider">{t('courses.course_progress')}</span>
-            </div>
-          )}
+          ) : null}
 
           {course_progress === 100 && courseCertificate ? (
             <Link

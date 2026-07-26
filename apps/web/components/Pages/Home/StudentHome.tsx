@@ -14,6 +14,7 @@ import { getUriWithOrg } from '@services/config/config'
 import CommunityChannelsCards from '@components/Objects/Communities/CommunityChannelsCards'
 import StreakBadge from '@components/Pages/Home/StreakBadge'
 import dynamic from 'next/dynamic'
+import { useQueryClient } from '@tanstack/react-query'
 import { registerVisit, type StudentVisit } from '@services/student/progress'
 import { useStudentInsights } from '@/hooks/queries/useStudentInsights'
 
@@ -52,14 +53,19 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
   // Register today's visit so the streak counter advances. Idempotent within
   // the same day, fire-and-forget — never blocks the page.
   const [visit, setVisit] = useState<StudentVisit | null>(null)
+  const queryClient = useQueryClient()
   useEffect(() => {
     if (!accessToken) return
     let active = true
     registerVisit(accessToken).then((v) => {
-      if (active) setVisit(v)
+      if (!active) return
+      setVisit(v)
+      // La visita de hoy acaba de subir la racha → refresca los insights para
+      // que la tira semanal marque HOY con su check al instante.
+      queryClient.invalidateQueries({ queryKey: ['student', 'insights'] })
     })
     return () => { active = false }
-  }, [accessToken])
+  }, [accessToken, queryClient])
 
   // One cached fetch with the real progress signals (completions, attempts,
   // weak words, streak) — feeds every progress-aware card below. Cached via
