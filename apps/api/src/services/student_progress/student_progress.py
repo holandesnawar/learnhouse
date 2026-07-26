@@ -15,10 +15,12 @@ from src.db.trails import Trail
 from src.db.trail_runs import TrailRun
 from src.db.trail_steps import TrailStep
 from src.db.student_progress import (
+    AttemptWithKey,
     LessonCompletion,
     LessonCompletionCreate,
     LessonCompletionRead,
     StudentProgress,
+    StudentInsightsRead,
     StudentProgressPatch,
     StudentProgressRead,
     StudentVisitResponse,
@@ -212,6 +214,56 @@ async def list_lesson_completions(
         )
         for r in rows
     ]
+
+
+# ── insights (todo en un viaje) ───────────────────────────────────────────
+
+async def get_student_insights(
+    current_user,
+    db_session: AsyncSession,
+    weak_limit: int = 12,
+) -> StudentInsightsRead:
+    """Progress + completions + attempts + weak words in ONE response.
+
+    The Home used to make four authenticated round trips for this; the
+    attempts rows are also reused to aggregate the weak words, so the
+    whole payload costs three small indexed queries server-side.
+    """
+    user_id = _user_id_or_401(current_user)
+
+    progress = await get_progress(current_user, db_session)
+    completions = await list_lesson_completions(current_user, db_session)
+
+    statement = select(ExerciseAttempt).where(ExerciseAttempt.user_id == user_id)
+    rows = (await db_session.execute(statement)).scalars().all()
+
+    attempts = [
+        AttemptWithKey(
+            section_key=r.section_key,
+            score=r.score or 0,
+            total=r.total or 0,
+            failed_labels=[l for l in (r.failed_labels or []) if isinstance(l, str)],
+            date=r.date or "",
+        )
+        for r in rows
+    ]
+
+    counter: Counter = Counter()
+    for r in rows:
+        for label in r.failed_labels or []:
+            if isinstance(label, str) and label.strip():
+                counter[label.strip()] += 1
+    weak_words = [
+        WeakWord(label=k, fails=v)
+        for k, v in counter.most_common(max(1, int(weak_limit)))
+    ]
+
+    return StudentInsightsRead(
+        progress=progress,
+        completions=completions,
+        attempts=attempts,
+        weak_words=weak_words,
+    )
 
 
 # ── weak words ──────────────────────────────────────────────────────────────

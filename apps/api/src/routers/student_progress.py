@@ -9,6 +9,7 @@ from src.core.events.database import get_db_session
 from src.db.student_progress import (
     LessonCompletionCreate,
     LessonCompletionRead,
+    StudentInsightsRead,
     StudentProgressPatch,
     StudentProgressRead,
     StudentVisitResponse,
@@ -30,6 +31,7 @@ from src.services.lesson_highlights.lesson_highlights import (
 )
 from src.services.student_progress.student_progress import (
     get_progress,
+    get_student_insights,
     get_weak_words,
     list_lesson_completions,
     mark_lesson_completed,
@@ -85,6 +87,19 @@ async def api_patch_progress(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     return await patch_progress(data, current_user, db_session)
+
+
+@router.get(
+    "/insights",
+    response_model=StudentInsightsRead,
+    summary="Progress + completions + attempts + weak words in one round trip.",
+)
+async def api_get_insights(
+    request: Request,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    return await get_student_insights(current_user, db_session)
 
 
 # ── visit / streak ──────────────────────────────────────────────────────────

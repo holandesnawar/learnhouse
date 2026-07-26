@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import Link from 'next/link'
 import {
   Loader2,
@@ -17,10 +17,10 @@ import {
   Cloud,
 } from 'lucide-react'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
-import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { getModules, getLessonsForModule } from '@/lib/exercises-app/courseService'
 import { getUriWithOrg } from '@services/config/config'
-import { getStudentInsights, formatTime, type StudentInsights } from '@services/student/insights'
+import { formatTime } from '@services/student/insights'
+import { useStudentInsights } from '@/hooks/queries/useStudentInsights'
 
 /* Umbrales: ≥85% dominado · <60% a repasar · resto en progreso. */
 const MASTER = 85
@@ -71,21 +71,10 @@ function lessonSections(blocks: any[]): string[] {
 }
 
 export default function MiProgreso({ orgslug }: { orgslug: string }) {
-  const session = useLHSession() as any
-  const accessToken: string | undefined = session?.data?.tokens?.access_token
-  const [insights, setInsights] = useState<StudentInsights | null>(null)
-  const [loaded, setLoaded] = useState(false)
-
-  useEffect(() => {
-    if (!accessToken) return
-    let active = true
-    getStudentInsights(accessToken).then((d) => {
-      if (!active) return
-      setInsights(d)
-      setLoaded(true)
-    })
-    return () => { active = false }
-  }, [accessToken])
+  // Con caché: al volver a esta página los datos aparecen al instante y se
+  // refrescan en segundo plano (react-query).
+  const { data: insights, isFetched } = useStudentInsights()
+  const loaded = isFetched && Boolean(insights)
 
   const rows: LessonRow[] = useMemo(() => {
     if (!insights) return []

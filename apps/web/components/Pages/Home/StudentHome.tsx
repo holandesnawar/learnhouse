@@ -13,15 +13,17 @@ import UpcomingEvents from '@components/Pages/Home/UpcomingEvents'
 import { getUriWithOrg } from '@services/config/config'
 import CommunityChannelsCards from '@components/Objects/Communities/CommunityChannelsCards'
 import StreakBadge from '@components/Pages/Home/StreakBadge'
-import {
-  WeekStrip,
-  ContinueCard,
-  WeekCard,
-  RepasoCard,
-  FormacionCard,
-} from '@components/Pages/Home/StudentPulse'
+import dynamic from 'next/dynamic'
 import { registerVisit, type StudentVisit } from '@services/student/progress'
-import { getStudentInsights, type StudentInsights } from '@services/student/insights'
+import { useStudentInsights } from '@/hooks/queries/useStudentInsights'
+
+// Las tarjetas que dependen del temario (courseData, ~350KB de fuente) se
+// cargan en un chunk aparte: el Inicio pinta antes y el temario llega detrás.
+const WeekStrip = dynamic(() => import('@components/Pages/Home/StudentPulse').then((m) => m.WeekStrip), { ssr: false })
+const ContinueCard = dynamic(() => import('@components/Pages/Home/StudentPulse').then((m) => m.ContinueCard), { ssr: false })
+const WeekCard = dynamic(() => import('@components/Pages/Home/StudentPulse').then((m) => m.WeekCard), { ssr: false })
+const RepasoCard = dynamic(() => import('@components/Pages/Home/StudentPulse').then((m) => m.RepasoCard), { ssr: false })
+const FormacionCard = dynamic(() => import('@components/Pages/Home/StudentPulse').then((m) => m.FormacionCard), { ssr: false })
 import Link from 'next/link'
 import { BookOpen, HelpCircle, ArrowRight } from 'lucide-react'
 
@@ -59,17 +61,10 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
     return () => { active = false }
   }, [accessToken])
 
-  // One fetch with the real progress signals (completions, attempts, weak
-  // words, streak) — feeds every progress-aware card below.
-  const [insights, setInsights] = useState<StudentInsights | null>(null)
-  useEffect(() => {
-    if (!accessToken) return
-    let active = true
-    getStudentInsights(accessToken).then((d) => {
-      if (active) setInsights(d)
-    })
-    return () => { active = false }
-  }, [accessToken])
+  // One cached fetch with the real progress signals (completions, attempts,
+  // weak words, streak) — feeds every progress-aware card below. Cached via
+  // react-query: al volver al Inicio los datos aparecen al instante.
+  const { data: insights } = useStudentInsights()
 
   return (
     <GeneralWrapperStyled>

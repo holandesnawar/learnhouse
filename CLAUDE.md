@@ -139,7 +139,7 @@ Fichero canónico: `apps/web/app/auth/matricula-formacion-nawar-a0-a1/checkout.t
   - Tabla `student_progress` (streak, posición, onboarding state, theme, time total).
   - Tabla `lesson_completion` (lecciones terminadas + tiempo).
   - Tabla `enrollment` (matrículas: pending/paid/abandoned).
-  - Endpoints `/api/v1/student/{me,visit,lesson-completions,weak-words}` (auth).
+  - Endpoints `/api/v1/student/{me,visit,lesson-completions,weak-words,insights}` (auth). **`/student/insights`** devuelve progress+completions+attempts+weak_words en UN viaje; el front (`useStudentInsights`, react-query, staleTime 60s) lo cachea → Inicio/Progreso pintan al instante al navegar. El front cae a las 4 llamadas clásicas si el endpoint no responde (skew de deploy).
   - Endpoints `/api/v1/exercise-attempts/{section_key,/all}` (auth).
   - Endpoints `/api/v1/payments/{checkout/formacion,enroll,webhook}` (públicos).
   - Endpoint `/api/v1/superadmin/email-test/all?to=X&name=Y` para mandar los 4 emails de prueba.

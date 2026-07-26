@@ -7,7 +7,7 @@ the time spent on it — that powers the "real" /progreso page and the
 "continue where you left off" experience.
 """
 
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel
 from sqlalchemy import Column, ForeignKey, Index, Integer, JSON, String
@@ -102,3 +102,20 @@ class StudentVisitResponse(BaseModel):
     last_visit_date: str
     current_streak: int
     longest_streak: int
+
+
+class AttemptWithKey(BaseModel):
+    section_key: str
+    score: int
+    total: int
+    failed_labels: List[str]
+    date: str
+
+
+class StudentInsightsRead(BaseModel):
+    """Everything the Home / Progreso pages need, in one round trip."""
+
+    progress: StudentProgressRead
+    completions: List[LessonCompletionRead]
+    attempts: List[AttemptWithKey]
+    weak_words: List[WeakWord]

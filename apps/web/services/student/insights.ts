@@ -60,15 +60,64 @@ function parseDate(s: string | undefined | null): Date | null {
   return isNaN(d.getTime()) ? null : d
 }
 
+/** Raw payload of GET /student/insights (todo en un viaje). */
+interface ApiInsights {
+  progress: StudentProgress
+  completions: LessonCompletion[]
+  attempts: Array<{
+    section_key: string
+    score: number
+    total: number
+    failed_labels: string[]
+    date: string
+  }>
+  weak_words: WeakWord[]
+}
+
+/** Fetch everything from the combined endpoint; null → caller falls back. */
+async function fetchCombined(
+  accessToken: string
+): Promise<[StudentProgress | null, LessonCompletion[], Record<string, LastAttempt>, WeakWord[]] | null> {
+  try {
+    const { getAPIUrl } = await import('@services/config/config')
+    const { RequestBodyWithAuthHeader } = await import('@services/utils/ts/requests')
+    const r = await fetch(
+      `${getAPIUrl()}student/insights`,
+      RequestBodyWithAuthHeader('GET', null, null, accessToken)
+    )
+    if (!r.ok) return null
+    const data = (await r.json()) as ApiInsights
+    if (!data || !data.progress) return null
+    const attempts: Record<string, LastAttempt> = {}
+    for (const a of data.attempts || []) {
+      if (!a?.section_key) continue
+      attempts[a.section_key] = {
+        score: a.score ?? 0,
+        total: a.total ?? 0,
+        failedLabels: Array.isArray(a.failed_labels) ? a.failed_labels : [],
+        date: a.date || '',
+      }
+    }
+    return [data.progress, data.completions || [], attempts, data.weak_words || []]
+  } catch {
+    return null
+  }
+}
+
 export async function getStudentInsights(
   accessToken: string | undefined
 ): Promise<StudentInsights> {
-  const [progress, completions, attempts, weakWords] = await Promise.all([
-    getStudentProgress(accessToken),
-    listLessonCompletions(accessToken),
-    getAllAttempts(accessToken),
-    getWeakWords(accessToken, 12),
-  ])
+  // Un solo viaje al servidor; si el endpoint combinado aún no está desplegado
+  // (deploy en curso), caemos a las cuatro llamadas clásicas en paralelo.
+  const combined = accessToken ? await fetchCombined(accessToken) : null
+  const [progress, completions, attempts, weakWords] =
+    combined ??
+    (await Promise.all([
+      getStudentProgress(accessToken),
+      listLessonCompletions(accessToken),
+      getAllAttempts(accessToken),
+      getWeakWords(accessToken, 12),
+    ]))
 
   const now = new Date()
   const monday = startOfWeek(now)

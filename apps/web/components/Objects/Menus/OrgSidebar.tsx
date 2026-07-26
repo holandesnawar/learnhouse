@@ -182,7 +182,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
 
   const itemClass = (active: boolean) =>
     `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-medium transition-colors ${
-      active ? 'text-white' : 'text-white/85 hover:text-white hover:bg-white/[0.06]'
+      active ? 'text-white' : 'text-white/95 hover:text-white hover:bg-white/[0.06]'
     }`
   const itemStyle = (active: boolean) => (active ? { backgroundColor: ACTIVE_BG } : undefined)
 
@@ -236,7 +236,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         {personalItems.some((i) => i.show) && (
           <>
             <div className="my-2 border-t border-white/10" />
-            <p className="px-3 pt-1 pb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/55">
+            <p className="px-3 pt-1 pb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/75">
               Tu espacio
             </p>
             {personalItems.filter((i) => i.show).map((i) => (
@@ -251,7 +251,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         {isAdmin && dashItems.length > 0 && (
           <>
             <div className="my-2 border-t border-white/10" />
-            <p className="px-3 pt-1 pb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/55">
+            <p className="px-3 pt-1 pb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/75">
               {t('common.dashboard')}
             </p>
             {dashItems.map((item) => {
