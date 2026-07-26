@@ -45,7 +45,7 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
   const hasAvatar = !!user?.avatar_image
   const hasBio = !!(user?.bio && String(user.bio).trim())
 
-  const { data: trailData } = useTrail(org?.id)
+  const { data: trailData, isFetched: trailFetched, refetch: refetchTrail } = useTrail(org?.id)
   const hasStartedCourse = (trailData?.runs?.length || 0) > 0
   const currentUserId = user?.id
 
@@ -53,6 +53,8 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
   const [visited, setVisited] = useState<Set<string>>(new Set())
   const [collapsed, setCollapsed] = useState(false)
   const [presented, setPresented] = useState(false)
+  const [communityChecked, setCommunityChecked] = useState(false)
+  const [forceReady, setForceReady] = useState(false)
   const [showWelcome, setShowWelcome] = useState(false)
 
   // Oculta el widget flotante cuando hay otro popup a pantalla completa abierto
@@ -77,9 +79,14 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
   }, [])
 
   // Detecta si el alumno YA ha publicado en el canal de presentaciones (de verdad,
-  // no solo al hacer clic). Marca el paso "Preséntate en Comunidad".
+  // no solo al hacer clic). Marca el paso "Preséntate en Comunidad". Se re-comprueba
+  // al navegar (pathname) para que el check aparezca al volver de publicar.
   useEffect(() => {
     if (!accessToken || !org?.id || !currentUserId) return
+    if (presented) {
+      setCommunityChecked(true)
+      return
+    }
     let active = true
     ;(async () => {
       try {
@@ -91,12 +98,28 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
         setPresented(Array.isArray(discussions) && discussions.some((d) => d?.author?.id === currentUserId))
       } catch {
         /* ignore */
+      } finally {
+        if (active) setCommunityChecked(true)
       }
     })()
     return () => {
       active = false
     }
-  }, [accessToken, org?.id, currentUserId])
+  }, [accessToken, org?.id, currentUserId, presented, pathname])
+
+  // El check "primera lección" también se refresca al navegar (el trail se
+  // cachea; sin esto no se marcaba hasta recargar la página entera).
+  useEffect(() => {
+    if (trailFetched && !hasStartedCourse) refetchTrail()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
+
+  // Red de seguridad: si alguna señal tarda demasiado (API lenta), mostramos
+  // el widget igualmente pasados unos segundos con lo que haya.
+  useEffect(() => {
+    const t = setTimeout(() => setForceReady(true), 6000)
+    return () => clearTimeout(t)
+  }, [])
 
   useEffect(() => {
     try {
@@ -175,7 +198,13 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
     (pathname.includes('/course/') && pathname.includes('/activity/')) ||
     pathname.includes('/account') ||
     pathname.includes('consulta')
-  if (!loaded || allDone || !accessToken || isFocusPage) return null
+
+  // CLAVE anti-parpadeo: no pintamos NADA hasta que todas las señales de los
+  // pasos (progreso, trail, comunidad) estén resueltas. Antes, el popup de
+  // bienvenida salía al instante y desaparecía ~1s después cuando llegaban los
+  // datos y resultaba que ya estaba todo hecho — en cada carga de página.
+  const signalsReady = loaded && (forceReady || (trailFetched && communityChecked))
+  if (!signalsReady || allDone || !accessToken || isFocusPage) return null
 
   function setCollapsedPersisted(v: boolean) {
     setCollapsed(v)
