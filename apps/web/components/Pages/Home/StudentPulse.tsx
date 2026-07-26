@@ -22,6 +22,7 @@ import {
 } from '@/lib/exercises-app/courseService'
 import {
   ArrowRight,
+  BookOpen,
   BookOpenCheck,
   CalendarCheck2,
   Clock3,
@@ -185,9 +186,10 @@ export function ContinueCard({
           </div>
         )}
 
-        <div className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#4da3ff] group-hover:bg-[#6cb5ff] text-[#0a1656] text-sm font-bold transition-colors">
-          {allDone && next ? 'Empezar la siguiente lección' : 'Seguir con la lección'}
-          <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
+        {/* Mismo botón de marca que "Continuar donde lo dejaste" en Formación */}
+        <div className="mt-4 w-full py-3 px-3 rounded-lg nice-shadow font-semibold text-sm leading-tight text-center transition-colors flex items-center justify-center gap-2 bg-[#4da3ff] text-[#1D0084] group-hover:bg-[#6cb5ff]">
+          <BookOpen className="w-4 h-4 shrink-0" />
+          <span>{allDone && next ? 'Empezar la siguiente lección' : 'Seguir con la lección'}</span>
         </div>
       </div>
     </Link>
