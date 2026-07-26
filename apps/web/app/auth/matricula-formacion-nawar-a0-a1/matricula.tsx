@@ -107,7 +107,7 @@ export default function MatriculaClient() {
         <div className="text-center">
           <h1
             className="text-3xl sm:text-4xl font-bold text-white leading-tight"
-            style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+            style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
           >
             Formulario de matrícula
           </h1>

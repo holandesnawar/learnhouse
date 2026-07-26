@@ -76,7 +76,7 @@ function OpenSignUpComponent() {
       <div className="w-full text-white/95">
         <h1
           className="text-center font-bold leading-[1.1]"
-          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif', fontSize: 'clamp(26px, 4vw, 34px)', letterSpacing: '-0.03em' }}
+          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")', fontSize: 'clamp(26px, 4vw, 34px)', letterSpacing: '-0.03em' }}
         >
           <span style={{ background: 'linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.45) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
             Crea tu

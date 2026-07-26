@@ -256,7 +256,7 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
                 </div>
                 <h2
                   className="text-[22px] font-bold text-gray-900"
-                  style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+                  style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
                 >
                   ¡Te damos la bienvenida!
                 </h2>

@@ -72,7 +72,7 @@ export default function CommunityInfoPanel({ org_id }: Props) {
             <Sparkles size={16} className="text-[#025dc7]" />
             <h3
               className="text-sm font-bold"
-              style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+              style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
             >
               Sobre la comunidad
             </h3>

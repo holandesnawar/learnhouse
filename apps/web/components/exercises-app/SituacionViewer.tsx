@@ -85,7 +85,7 @@ export default function SituacionViewer({
         </div>
         <h1
           className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight"
-          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
         >
           {title}
         </h1>
@@ -120,7 +120,7 @@ export default function SituacionViewer({
             <div className="w-14 h-14 rounded-2xl bg-[#EEF4FF] flex items-center justify-center">
               <Dumbbell size={26} className="text-[#025dc7]" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+            <h2 className="text-xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
               ¿List@ para practicar?
             </h2>
             <p className="text-[14px] text-gray-500 max-w-sm leading-relaxed">

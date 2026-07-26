@@ -150,7 +150,7 @@ export default function LessonList({ lessons, moduleId, orgslug }: { lessons: Le
                             <div className="flex items-start justify-between gap-2 mb-1.5">
                                 <h3
                                     className="text-[15px] font-bold leading-snug text-gray-900 group-hover:text-[#025dc7] transition-colors duration-200"
-                                    style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+                                    style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
                                 >
                                     {lesson.title}
                                 </h3>

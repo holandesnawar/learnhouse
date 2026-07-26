@@ -16,6 +16,14 @@ module.exports = {
       },
     },
     extend: {
+      // Emojis consistentes: Apple nativos donde existan; en Windows/Linux el
+      // webfont (--font-emoji, Noto Color Emoji) sustituye a los del sistema.
+      fontFamily: {
+        sans: [
+          'ui-sans-serif', 'system-ui', 'sans-serif',
+          '"Apple Color Emoji"', 'var(--font-emoji, "Segoe UI Emoji")',
+        ],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

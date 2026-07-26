@@ -3,7 +3,7 @@ import { getLEARNHOUSE_TOP_DOMAIN_VAL, getLEARNHOUSE_TELEMETRY_DISABLED_VAL } fr
 import type { Metadata } from 'next'
 import Script from 'next/script'
 import Providers from '@components/Providers'
-import { Wix_Madefor_Text, Poppins, Inter } from 'next/font/google'
+import { Wix_Madefor_Text, Poppins, Inter, Noto_Color_Emoji } from 'next/font/google'
 
 const isDevEnv = getLEARNHOUSE_TOP_DOMAIN_VAL() === 'localhost'
 const isTelemetryDisabled = getLEARNHOUSE_TELEMETRY_DISABLED_VAL() === 'true'
@@ -42,13 +42,24 @@ const inter = Inter({
   variable: '--font-inter',
 })
 
+// Emoji consistentes en todos los dispositivos: en Apple se usan los nativos
+// (van antes en el stack), y en Windows/Linux/Android este webfont sustituye
+// a los emojis del sistema (los de Segoe en Windows son feos). Solo se
+// descarga cuando el sistema no tiene Apple Color Emoji.
+const notoEmoji = Noto_Color_Emoji({
+  subsets: ['emoji'],
+  weight: '400',
+  display: 'swap',
+  variable: '--font-emoji',
+})
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
-    <html className={`${wixMadeforText.variable} ${poppins.variable} ${inter.variable}`} lang="en" suppressHydrationWarning>
+    <html className={`${wixMadeforText.variable} ${poppins.variable} ${inter.variable} ${notoEmoji.variable}`} lang="en" suppressHydrationWarning>
       <head>
         {/* Synchronous script — blocks parsing to guarantee window.__RUNTIME_CONFIG__ exists before any JS runs.
             Next.js <Script strategy="beforeInteractive"> is not truly blocking in all browsers (Safari). */}

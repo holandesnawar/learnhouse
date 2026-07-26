@@ -215,7 +215,7 @@
     padding: 0;
     margin: 0;
     scrollbar-gutter: stable;
-    font-family: var(--font-default, 'Wix Madefor Text'), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    font-family: var(--font-default, 'Wix Madefor Text'), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif, 'Apple Color Emoji', var(--font-emoji, 'Segoe UI Emoji');
     letter-spacing: -0.02em;
   }
 
@@ -241,7 +241,7 @@
 
   /* Basic editor styles */
   .ProseMirror {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif, 'Apple Color Emoji', var(--font-emoji, 'Segoe UI Emoji');
   }
   .ProseMirror > * + * {
     margin-top: 0.75em;
@@ -394,7 +394,7 @@
   html,
   body {
     @apply bg-background text-foreground;
-    font-family: var(--font-default, 'Wix Madefor Text'), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    font-family: var(--font-default, 'Wix Madefor Text'), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif, 'Apple Color Emoji', var(--font-emoji, 'Segoe UI Emoji');
     letter-spacing: -0.02em;
   }
 }
@@ -832,7 +832,7 @@
   overflow-y: auto;
   width: 280px;
   padding: 6px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif, 'Apple Color Emoji', var(--font-emoji, 'Segoe UI Emoji');
 }
 
 .slash-commands-menu::-webkit-scrollbar {
@@ -2309,7 +2309,7 @@ a.bg-black:hover {
 }
 
 .eyebrow {
-  font-family: var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-inter), system-ui, sans-serif, 'Apple Color Emoji', var(--font-emoji, 'Segoe UI Emoji');
   font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.12em;

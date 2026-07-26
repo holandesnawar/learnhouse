@@ -525,7 +525,7 @@ const CourseClient = (props: any) => {
             })()}
 
             <div id="sesiones-grabadas" className="w-full mt-10 mb-12 scroll-mt-24">
-              <h2 className="pb-5 text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2.5" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+              <h2 className="pb-5 text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2.5" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
                 {COURSES_AS_SESSIONS.has(course.course_uuid) ? (
                   <>
                     <Video size={22} className="text-[#025dc7]" />
@@ -562,7 +562,7 @@ const CourseClient = (props: any) => {
                         {/* Title and badge column */}
                         <div className="flex flex-col items-start w-full">
                           <div className="flex items-center flex-wrap mb-1 w-full min-w-0">
-                            <h3 className="text-lg font-bold leading-tight truncate min-w-0 sm:text-base md:text-lg text-gray-900" style={{lineHeight: '1.2', fontFamily: 'var(--font-poppins), system-ui, sans-serif'}}>{chapter.name}</h3>
+                            <h3 className="text-lg font-bold leading-tight truncate min-w-0 sm:text-base md:text-lg text-gray-900" style={{lineHeight: '1.2', fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")'}}>{chapter.name}</h3>
                             {chapter.is_locked && (
                               (chapter as any).unlock_date ? (
                                 <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#F0F5FF] border border-[#DDE6F5] text-[#1D0084] text-[10px] font-semibold">

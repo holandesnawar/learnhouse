@@ -30,7 +30,7 @@ export default function BienvenidoPage() {
           <h1
             className="text-center font-bold leading-[1.1]"
             style={{
-              fontFamily: 'var(--font-poppins), system-ui, sans-serif',
+              fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")',
               fontSize: 'clamp(32px, 5vw, 44px)',
               letterSpacing: '-0.03em',
             }}

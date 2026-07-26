@@ -104,7 +104,7 @@ export default function CourseFAQ({ courseUuid, compact = false }: CourseFAQProp
       <div>
         <div className="flex items-center gap-2.5 mb-3 px-1">
           <HelpCircle size={22} className="text-[#025dc7] shrink-0" />
-          <h2 className="text-xl md:text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
             Preguntas frecuentes
           </h2>
         </div>
@@ -139,7 +139,7 @@ export default function CourseFAQ({ courseUuid, compact = false }: CourseFAQProp
       <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2.5">
           <HelpCircle size={22} className="text-[#025dc7]" />
-          <h2 className="text-xl md:text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
             Preguntas frecuentes
           </h2>
         </div>

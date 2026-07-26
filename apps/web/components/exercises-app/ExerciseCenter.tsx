@@ -87,7 +87,7 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
                   <span className="text-[11px] font-bold text-[#025dc7] uppercase tracking-wider">Módulo {m.order}</span>
                   <h2
                     className="text-[18px] font-bold text-gray-900 leading-tight mt-0.5"
-                    style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+                    style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
                   >
                     {m.title}
                   </h2>

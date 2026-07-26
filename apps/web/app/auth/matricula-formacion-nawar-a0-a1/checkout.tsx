@@ -103,7 +103,7 @@ function MissingParams() {
       <AlertTriangle size={36} className="mx-auto text-amber-500 mb-3" />
       <h1
         className="text-2xl font-bold text-[#1D0084]"
-        style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+        style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
       >
         Falta información para abrir el pago
       </h1>
@@ -171,7 +171,7 @@ function CheckoutInner({
         </div>
         <h1
           className="text-[24px] sm:text-[30px] font-bold text-[#1D0084] leading-tight mt-1"
-          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
         >
           Pago seguro
         </h1>
@@ -270,7 +270,7 @@ function CourseSummary({ amountCents, currency }: { amountCents: number; currenc
 
       <h2
         className="text-[20px] font-bold text-[#1D0084] leading-tight"
-        style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+        style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
       >
         {COURSE_TITLE}
       </h2>

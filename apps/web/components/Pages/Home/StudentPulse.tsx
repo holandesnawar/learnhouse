@@ -151,7 +151,7 @@ export function ContinueCard({
 
         <p
           className="mt-1.5 text-[18px] sm:text-[20px] font-bold text-gray-900 dark:text-white leading-tight"
-          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
         >
           {allDone && next ? next.title : lessonTitle}
         </p>
@@ -343,7 +343,7 @@ export function FormacionCard({
         <TrendingUp size={22} className="text-[#025dc7]" />
         <h2
           className="text-lg font-bold text-gray-900 dark:text-white leading-tight"
-          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
         >
           Así estás progresando
         </h2>

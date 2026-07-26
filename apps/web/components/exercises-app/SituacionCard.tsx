@@ -52,7 +52,7 @@ export default function SituacionCard({ situacion: s, orgslug }: { situacion: Si
         </div>
         <h2
           className="text-[17px] font-bold text-gray-900 leading-tight"
-          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
         >
           {s.title}
         </h2>

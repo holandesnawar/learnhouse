@@ -124,7 +124,7 @@ export default function WeeklyClassBanner() {
     )
     return (
       <div className="w-full rounded-2xl bg-white nice-shadow border border-[#DDE6F5] p-4 sm:p-5 space-y-3">
-        <h3 className="text-sm font-bold text-[#1D0084]" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+        <h3 className="text-sm font-bold text-[#1D0084]" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
           Editar banner de clases semanales
         </h3>
         {field('title', 'Título')}
@@ -174,7 +174,7 @@ export default function WeeklyClassBanner() {
         <div className="flex-1 min-w-0 flex flex-col justify-center">
           <h2
             className="text-[24px] sm:text-[30px] font-bold leading-tight"
-            style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+            style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
           >
             {v.title}
           </h2>

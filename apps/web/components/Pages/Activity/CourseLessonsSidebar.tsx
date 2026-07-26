@@ -232,7 +232,7 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
       <div className="px-4 py-3 border-b border-white/10 shrink-0">
         <h2
           className="text-[14px] font-bold leading-tight line-clamp-2 text-white/90"
-          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
         >
           {course.name}
         </h2>
@@ -434,7 +434,7 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
       <div className="px-4 py-3 border-b border-white/10 shrink-0">
         <h2
           className="text-[14px] font-bold leading-tight line-clamp-2 text-white/90"
-          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
         >
           {course.name}
         </h2>

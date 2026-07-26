@@ -237,7 +237,7 @@ export default function HighlightLayer({ editor, activity }: Props) {
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/30 p-4" onClick={() => setComposer((c) => ({ ...c, open: false }))}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-[#1D0084]" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>Añadir nota</h3>
+              <h3 className="font-bold text-[#1D0084]" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>Añadir nota</h3>
               <button onClick={() => setComposer((c) => ({ ...c, open: false }))} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
             </div>
             <p className="text-[13px] text-gray-500 mb-1">Texto seleccionado</p>

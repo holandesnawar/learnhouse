@@ -491,7 +491,7 @@ function StepBar({ steps, current }: {
 
   return (
     <div className="flex-1 flex items-center gap-3 min-w-0">
-      <p className="text-[20px] font-bold text-gray-900 leading-tight truncate" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+      <p className="text-[20px] font-bold text-gray-900 leading-tight truncate" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
         {meta.emoji} {meta.label}
       </p>
       {!isContentStep && (
@@ -534,7 +534,7 @@ function WordCard({ word }: { word: VocabularyItem }) {
               {word.article}
             </span>
           )}
-          <span className="text-[14px] font-bold text-gray-900 leading-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+          <span className="text-[14px] font-bold text-gray-900 leading-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
             {bareDutch(word.article, word.dutch)}
           </span>
         </div>
@@ -693,7 +693,7 @@ function PhrasesStep({ items, onDone, onBack, onSubProgress }: {
 
       <div className="bg-white rounded-2xl border border-[#DDE6F5] p-6 space-y-4">
         <div className="flex items-start justify-between gap-3">
-          <h2 className="text-[22px] font-bold text-gray-900 leading-tight flex-1" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+          <h2 className="text-[22px] font-bold text-gray-900 leading-tight flex-1" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
             {phrase.dutch}
           </h2>
           <button
@@ -1030,7 +1030,7 @@ function ClassifyStep({ groups, items, onDone, onBack }: { groups: ClassifyGroup
 
       <div className="flex flex-col items-center justify-center rounded-2xl border border-[#DDE6F5] bg-white py-10 px-6 gap-3 text-center">
         <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest">¿A qué grupo pertenece? · {index + 1}/{queue.length}</p>
-        <p className="text-[30px] font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+        <p className="text-[30px] font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
           {current.dutch}
         </p>
         <button onClick={() => speakDutch(current.dutch)} className="flex items-center gap-1.5 text-[12px] font-medium text-[#025dc7] hover:text-[#025dc7] transition-colors duration-200">
@@ -1153,7 +1153,7 @@ function VocabPracticeSection({
       <div className="space-y-4">
         <div className="flex flex-col items-center text-center rounded-2xl py-12 px-6 gap-3" style={{ background: 'linear-gradient(135deg, #1D0084 0%, #025dc7 100%)' }}>
           <span className="text-5xl">⭐</span>
-          <p className="text-white font-bold text-[22px]" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>¡Práctica completada!</p>
+          <p className="text-white font-bold text-[22px]" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>¡Práctica completada!</p>
           <p className="text-white/60 text-[14px]">Has repasado todo el vocabulario</p>
         </div>
         <button
@@ -1316,7 +1316,7 @@ function FlashcardSection({
       <div className="space-y-6">
         <div className="flex flex-col items-center justify-center rounded-2xl bg-[#1D0084] py-10 px-6 text-center space-y-3">
           <span className="text-5xl">🎉</span>
-          <p className="text-white font-bold text-[20px]" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+          <p className="text-white font-bold text-[20px]" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
             ¡Ronda completada!
           </p>
           <p className="text-white/60 text-[14px]">{knownCount} de {items.length} palabras dominadas</p>
@@ -1389,7 +1389,7 @@ function FlashcardSection({
             </p>
             <p
               className="text-[22px] font-bold text-gray-900 text-center leading-tight"
-              style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+              style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
             >
               {front}
             </p>
@@ -1417,7 +1417,7 @@ function FlashcardSection({
             </p>
             <p
               className="text-[22px] font-bold text-gray-900 text-center leading-tight"
-              style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+              style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
             >
               {back}
             </p>
@@ -2416,7 +2416,7 @@ function LetterDashExercise({
         <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest">Letras que faltan</p>
         <p className="text-[15px] text-gray-900 font-medium leading-snug">{exercise.prompt}</p>
         <div className="text-center py-3">
-          <p className="text-[34px] font-bold text-gray-900 tracking-[0.4em] tabular-nums" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+          <p className="text-[34px] font-bold text-gray-900 tracking-[0.4em] tabular-nums" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
             {masked}
           </p>
         </div>
@@ -2626,7 +2626,7 @@ function ListenTranslateExercise({ exercise, onAnswer }: { exercise: ExerciseIte
       {/* Frase NL + audio */}
       <div className="rounded-2xl p-5 border border-[#DDE6F5] bg-white space-y-3">
         <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest">{visibleHint}</p>
-        <p className="text-[20px] font-bold text-gray-900 leading-snug text-center" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+        <p className="text-[20px] font-bold text-gray-900 leading-snug text-center" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
           {dutchPhrase}
         </p>
         <div className="flex justify-center">
@@ -2749,7 +2749,7 @@ function ResumenSection({ block, vocabItems = [], inCourse, onComplete }: { bloc
           {block.title && (
             <h2
               className="text-[22px] font-bold text-gray-900 leading-tight mb-2"
-              style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+              style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
             >
               {block.title}
             </h2>
@@ -2786,7 +2786,7 @@ function ResumenSection({ block, vocabItems = [], inCourse, onComplete }: { bloc
         <div key={i} className="rounded-2xl border border-[#DDE6F5] bg-white p-5 space-y-3">
           <h3
             className="flex items-center gap-2 text-[17px] font-bold text-gray-900 leading-tight"
-            style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+            style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
           >
             <span aria-hidden className="shrink-0">{sec.heading.split(' ')[0]}</span>
             <span>{sec.heading.split(' ').slice(1).join(' ')}</span>
@@ -2820,7 +2820,7 @@ function ResumenSection({ block, vocabItems = [], inCourse, onComplete }: { bloc
         <div className="rounded-2xl border border-[#DDE6F5] bg-white p-5 space-y-3">
           <h3
             className="flex items-center gap-2 text-[17px] font-bold text-gray-900 leading-tight"
-            style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+            style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
           >
             <span aria-hidden className="shrink-0">📖</span>
             <span>Vocabulario</span>
@@ -3533,7 +3533,7 @@ function LuisterenSection({
     return (
       <div className="space-y-5">
         <div className="text-center space-y-1">
-          <h3 className="text-[22px] font-bold text-gray-900 leading-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+          <h3 className="text-[22px] font-bold text-gray-900 leading-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
             {dialogue.title}
           </h3>
           <p className="text-[13px] text-[#5A6480]">Escucha primero el audio antes de leer el texto.</p>
@@ -3657,7 +3657,7 @@ function LuisterenSection({
 
         {/* Título arriba */}
         <div className="border-b border-[#DDE6F5] pb-3">
-          <h3 className="text-[18px] font-bold text-gray-900 leading-snug" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+          <h3 className="text-[18px] font-bold text-gray-900 leading-snug" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
             {dialogue.title}
           </h3>
         </div>
@@ -3859,7 +3859,7 @@ function SectionLanding({
             <div className="flex-1 min-w-0">
               <p
                 className="text-[16px] font-bold text-gray-900 leading-tight"
-                style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+                style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
               >
                 {meta.label}
               </p>
@@ -3884,7 +3884,7 @@ function SectionLanding({
         <Link
           href={getUriWithOrg(orgslug, `/ejercicios/modulo/${moduleId}/leccion/${nextLesson.id}`)}
           className="w-full flex items-center justify-center gap-3 px-5 py-4 rounded-2xl text-white text-[16px] font-bold transition-all duration-150 mt-2 brand-accent-line hover:brightness-110"
-          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
         >
           Siguiente lección
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -4232,15 +4232,32 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
               <div>
                 <h1
                   className="text-[24px] font-bold text-gray-900 leading-tight"
-                  style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+                  style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
                 >
                   {activeSection ? activeMeta!.label : lesson.title}
                 </h1>
                 <p className="text-[13px] font-semibold text-[#025dc7] mt-0.5">
                   {activeSection ? activeMeta!.desc : `${lesson.subtitle} · ${lesson.estimatedMinutes} min`}
                 </p>
+                {activeSection && (
+                  <p className="text-[12px] text-[#8A93AB] mt-0.5 truncate">
+                    {module.emoji} {lesson.title}
+                  </p>
+                )}
               </div>
             </div>
+          )}
+
+          {/* Dentro de un curso, la actividad ya se titula "2.2 Flashcards" —
+              esta línea discreta recuerda de QUÉ lección viene la práctica. */}
+          {inCourse && (
+            <p className="text-[12.5px] font-semibold text-[#8A93AB] mb-2 flex items-center gap-1.5 min-w-0">
+              <span className="shrink-0">{module.emoji}</span>
+              <span className="truncate">{lesson.title}</span>
+              {lesson.subtitle && (
+                <span className="hidden sm:inline text-[#B5BDD0] font-normal truncate">· {lesson.subtitle}</span>
+              )}
+            </p>
           )}
         </div>
       </div>
@@ -4262,7 +4279,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
           {forcedDone && (
             <div className="flex flex-col items-center text-center rounded-2xl py-12 px-6 gap-3" style={{ background: 'linear-gradient(135deg, #1D0084 0%, #025dc7 100%)' }}>
               <span className="text-5xl">⭐</span>
-              <p className="text-white font-bold text-[22px]" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>¡Parte completada!</p>
+              <p className="text-white font-bold text-[22px]" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>¡Parte completada!</p>
               <p className="text-white/70 text-[14px]">Pulsa «Siguiente» abajo para continuar.</p>
             </div>
           )}
