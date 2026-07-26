@@ -30,7 +30,11 @@ const MASTER = 85
 const REVIEW = 60
 
 function shortTitle(t: string): string {
-  return t.replace(/^Les\s*\d+\s*[—-]\s*/i, '').replace(/\s*\|.*$/, '').trim() || t
+  // "Extra | Kleuren" → "Kleuren" · "Les 3 — Woordenschat | Kalender" →
+  // "Kalender" · "Les 1 — Jezelf voorstellen" → "Jezelf voorstellen".
+  const afterPipe = t.includes('|') ? (t.split('|').pop() as string).trim() : t
+  const cleaned = afterPipe.replace(/^Les\s*\d+\s*[—-]\s*/i, '').trim()
+  return cleaned || t
 }
 
 function pctColor(pct: number): string {

@@ -312,8 +312,10 @@ export function RepasoCard({
   insights: StudentInsights
 }) {
   const pending = failingSections(insights)
-  const shortTitle = (t: string) =>
-    t.replace(/^Les\s*\d+\s*[—-]\s*/i, '').replace(/\s*\|.*$/, '').trim() || t
+  const shortTitle = (t: string) => {
+    const afterPipe = t.includes('|') ? (t.split('|').pop() as string).trim() : t
+    return afterPipe.replace(/^Les\s*\d+\s*[—-]\s*/i, '').trim() || t
+  }
 
   return (
     <div className="rounded-2xl bg-white dark:bg-white/5 border border-[#DDE6F5] dark:border-white/10 nice-shadow p-5">
