@@ -303,365 +303,1020 @@ const m1_les2: Lesson = {
   title: 'Les 2 — Grammatica | Persoonlijke voornaamwoorden',
   subtitle: 'Pronombres personales',
   order: 2,
-  learningObjective: 'Usar correctamente los pronombres personales en neerlandés',
-  estimatedMinutes: 15,
+  learningObjective: 'Usar ik, jij, u, hij, zij, het, wij, jullie y zij, y distinguir las formas fuertes y débiles',
+  estimatedMinutes: 30,
   blocks: [
+    {
+      type: 'summary',
+      title: 'Persoonlijke voornaamwoorden',
+      intro: 'En neerlandés los pronombres se usan mucho más que en español: mientras en español basta con la forma del verbo (hablo, comes, vivimos), en neerlandés casi siempre se dice el sujeto. Hoy los aprendes todos.',
+      objectives: [
+        'Usar ik, jij, u, hij, zij, het, wij, jullie y zij',
+        'Distinguir las formas fuertes y débiles (jij/je, wij/we, zij/ze)',
+        'Entender los casos especiales: u, het y el doble "zij"',
+      ],
+      sections: [
+        {
+          heading: '👤 Los pronombres',
+          body: 'En neerlandés casi siempre se expresa el sujeto, igual que en inglés: **Ik ben docent** (soy profesor), **Wij wonen in Utrecht** (vivimos en Utrecht).',
+          items: [
+            { nl: 'ik', es: 'yo' },
+            { nl: 'jij / je', es: 'tú' },
+            { nl: 'u', es: 'usted (y también "ustedes")' },
+            { nl: 'hij', es: 'él' },
+            { nl: 'zij / ze', es: 'ella' },
+            { nl: 'het', es: '"ello" (impersonal)' },
+            { nl: 'wij / we', es: 'nosotros/as' },
+            { nl: 'jullie', es: 'vosotros/as' },
+            { nl: 'zij / ze', es: 'ellos / ellas' },
+          ],
+        },
+        {
+          heading: '💪 Formas fuertes y débiles',
+          body: 'Algo muy característico del neerlandés: algunos pronombres tienen dos formas. La **débil** (je, we, ze) es la normal en la conversación de cada día; la **fuerte** (jij, wij, zij) se usa para dar énfasis o hacer contraste. **Je bent welkom** (eres bienvenido, neutro) vs. **Jij bent welkom** (TÚ eres bienvenido, énfasis).',
+          items: [
+            { nl: 'jij → je', es: 'tú' },
+            { nl: 'wij → we', es: 'nosotros/as' },
+            { nl: 'zij → ze', es: 'ella · ellos/ellas' },
+          ],
+        },
+        {
+          heading: '⚠️ Los tres casos especiales',
+          body: '**1) "Zij" es doble**: significa "ella" Y "ellos/ellas" — el verbo te dice cuál es: *Zij is ingenieur* (ella es) / *Zij zijn broer en zus* (ellos son). **2) No existe "ustedes"**: para dirigirte a varias personas de forma formal usas **u**. **3) "Het" impersonal**: en neerlandés la frase casi siempre necesita sujeto; cuando en español no hay, aparece *het*: **Het regent** (llueve), **Het is laat** (es tarde).',
+        },
+      ],
+      tip: 'En español dices "hablo" y ya está; en neerlandés casi SIEMPRE necesitas el pronombre: **Ik spreek**. Y si dudas entre jij/je, wij/we o zij/ze: la forma corta (débil) es la normal; la larga es para dar énfasis.',
+    },
     {
       type: 'vocabulary',
       items: [
-        { id: 'ik', dutch: 'ik', spanish: 'yo', article: null, emoji: '🙋', color: '#1D0084', exampleNl: 'Ik ben student.', exampleEs: 'Yo soy estudiante.', category: 'voornaamwoorden', difficulty: 'A0' },
-        { id: 'jij', dutch: 'jij / je', spanish: 'tú (informal)', article: null, emoji: '👉', color: '#025dc7', exampleNl: 'Jij spreekt goed Nederlands.', exampleEs: 'Tú hablas bien neerlandés.', category: 'voornaamwoorden', difficulty: 'A0' },
-        { id: 'u', dutch: 'u', spanish: 'usted (formal)', article: null, emoji: '🤝', color: '#0b4db5', exampleNl: 'U spreekt heel goed, meneer.', exampleEs: 'Usted habla muy bien, señor.', category: 'voornaamwoorden', difficulty: 'A0' },
-        { id: 'hij', dutch: 'hij', spanish: 'él', article: null, emoji: '👦', color: '#0a3d9e', exampleNl: 'Hij woont in Utrecht.', exampleEs: 'Él vive en Utrecht.', category: 'voornaamwoorden', difficulty: 'A0' },
-        { id: 'zij-ze', dutch: 'zij / ze', spanish: 'ella / ellas', article: null, emoji: '👩', color: '#1440a0', exampleNl: 'Zij werkt bij een bank.', exampleEs: 'Ella trabaja en un banco.', category: 'voornaamwoorden', difficulty: 'A0' },
-        { id: 'het', dutch: 'het', spanish: 'ello / esto (neutro)', article: null, emoji: '📦', color: '#0d5bbf', exampleNl: 'Het is een mooie dag.', exampleEs: 'Es un día bonito.', category: 'voornaamwoorden', difficulty: 'A0' },
-        { id: 'wij-we', dutch: 'wij / we', spanish: 'nosotros/as', article: null, emoji: '👫', color: '#1D0084', exampleNl: 'Wij leren samen Nederlands.', exampleEs: 'Nosotros aprendemos neerlandés juntos.', category: 'voornaamwoorden', difficulty: 'A0' },
-        { id: 'jullie', dutch: 'jullie', spanish: 'vosotros/as', article: null, emoji: '👥', color: '#025dc7', exampleNl: 'Jullie spreken goed!', exampleEs: 'Vosotros habláis bien.', category: 'voornaamwoorden', difficulty: 'A0' },
-        { id: 'zij-pl', dutch: 'zij / ze (meervoud)', spanish: 'ellos/ellas', article: null, emoji: '👨‍👩‍👧‍👦', color: '#0b4db5', exampleNl: 'Zij zijn studenten.', exampleEs: 'Ellos son estudiantes.', category: 'voornaamwoorden', difficulty: 'A0' },
-        { id: 'men', dutch: 'men', spanish: 'se / uno (impersonal)', article: null, emoji: '🌐', color: '#0a3d9e', exampleNl: 'Men zegt dat het moeilijk is.', exampleEs: 'Se dice que es difícil.', category: 'voornaamwoorden', difficulty: 'A1' },
+        { id: 'm1l2v-ik',      dutch: 'ik',       spanish: 'yo',                                article: null, emoji: '🙋', color: '#1D0084', exampleNl: 'Ik ben docent.',            exampleEs: 'Yo soy profesor/a.',            category: 'voornaamwoorden', difficulty: 'A0' },
+        { id: 'm1l2v-jij',     dutch: 'jij',      spanish: 'tú (forma fuerte)',                 article: null, emoji: '👉', color: '#025dc7', exampleNl: 'Jij bent musicus.',         exampleEs: 'Tú eres músico.',               category: 'voornaamwoorden', difficulty: 'A0' },
+        { id: 'm1l2v-je',      dutch: 'je',       spanish: 'tú (forma débil, la normal)',       article: null, emoji: '👈', color: '#0b4db5', exampleNl: 'Je bent welkom.',           exampleEs: 'Eres bienvenido/a.',            category: 'voornaamwoorden', difficulty: 'A0' },
+        { id: 'm1l2v-u',       dutch: 'u',        spanish: 'usted / ustedes (formal)',          article: null, emoji: '🎩', color: '#0a3d9e', exampleNl: 'Hoe heet u?',               exampleEs: '¿Cómo se llama usted?',         category: 'voornaamwoorden', difficulty: 'A0' },
+        { id: 'm1l2v-hij',     dutch: 'hij',      spanish: 'él',                                article: null, emoji: '👨', color: '#1440a0', exampleNl: 'Hij is arts.',              exampleEs: 'Él es médico.',                 category: 'voornaamwoorden', difficulty: 'A0' },
+        { id: 'm1l2v-zij',     dutch: 'zij',      spanish: 'ella · ellos/ellas (según el verbo)', article: null, emoji: '👩', color: '#0d5bbf', exampleNl: 'Zij is ingenieur. / Zij zijn broer en zus.', exampleEs: 'Ella es ingeniera. / Ellos son hermanos.', category: 'voornaamwoorden', difficulty: 'A0' },
+        { id: 'm1l2v-ze',      dutch: 'ze',       spanish: 'ella / ellos (forma débil)',        article: null, emoji: '💬', color: '#1D0084', exampleNl: 'Ze werkt vandaag.',         exampleEs: 'Ella trabaja hoy.',             category: 'voornaamwoorden', difficulty: 'A0' },
+        { id: 'm1l2v-het',     dutch: 'het',      spanish: '"ello" (impersonal)',               article: null, emoji: '🌧️', color: '#025dc7', exampleNl: 'Het regent.',               exampleEs: 'Llueve.',                       category: 'voornaamwoorden', difficulty: 'A0' },
+        { id: 'm1l2v-wij',     dutch: 'wij',      spanish: 'nosotros/as (forma fuerte)',        article: null, emoji: '👥', color: '#0b4db5', exampleNl: 'Wij wonen in Utrecht.',     exampleEs: 'Nosotros vivimos en Utrecht.',  category: 'voornaamwoorden', difficulty: 'A0' },
+        { id: 'm1l2v-we',      dutch: 'we',       spanish: 'nosotros/as (forma débil)',         article: null, emoji: '🤝', color: '#0a3d9e', exampleNl: 'We gaan naar huis.',        exampleEs: 'Vamos a casa.',                 category: 'voornaamwoorden', difficulty: 'A0' },
+        { id: 'm1l2v-jullie',  dutch: 'jullie',   spanish: 'vosotros/as',                       article: null, emoji: '👋', color: '#1440a0', exampleNl: 'Jullie zijn hier.',         exampleEs: 'Vosotros estáis aquí.',         category: 'voornaamwoorden', difficulty: 'A0' },
+        { id: 'm1l2v-arts',    dutch: 'de arts',  spanish: 'el médico / la médica',             article: 'de', emoji: '🩺', color: '#0d5bbf', exampleNl: 'Zij is arts.',              exampleEs: 'Ella es médica.',               category: 'beroepen', difficulty: 'A0' },
+        { id: 'm1l2v-schilder', dutch: 'de schilder', spanish: 'el pintor / la pintora',        article: 'de', emoji: '🎨', color: '#1D0084', exampleNl: 'Zij zijn schilders.',       exampleEs: 'Ellos son pintores.',           category: 'beroepen', difficulty: 'A0' },
+        { id: 'm1l2v-thuis',   dutch: 'thuis',    spanish: 'en casa',                           article: null, emoji: '🏠', color: '#025dc7', exampleNl: 'Ben je thuis?',             exampleEs: '¿Estás en casa?',               category: 'algemeen', difficulty: 'A0' },
+        { id: 'm1l2v-vandaag', dutch: 'vandaag',  spanish: 'hoy',                               article: null, emoji: '📆', color: '#0b4db5', exampleNl: 'Ze werkt vandaag.',         exampleEs: 'Ella trabaja hoy.',             category: 'algemeen', difficulty: 'A0' },
+        { id: 'm1l2v-griep',   dutch: 'de griep', spanish: 'la gripe',                          article: 'de', emoji: '🤒', color: '#0a3d9e', exampleNl: 'Heeft hij griep?',          exampleEs: '¿Tiene él gripe?',              category: 'algemeen', difficulty: 'A0' },
       ],
     },
     {
       type: 'phrases',
       items: [
-        { id: 'p2-1', dutch: 'Ik ben leraar.', spanish: 'Soy profesor/a.', context: 'Profesión' },
-        { id: 'p2-2', dutch: 'Jij bent mijn vriend.', spanish: 'Tú eres mi amigo.', context: 'Relación' },
-        { id: 'p2-3', dutch: 'Hij werkt in Amsterdam.', spanish: 'Él trabaja en Ámsterdam.', context: 'Trabajo' },
-        { id: 'p2-4', dutch: 'Zij woont in Brussel.', spanish: 'Ella vive en Bruselas.', context: 'Domicilio' },
-        { id: 'p2-5', dutch: 'Wij leren Nederlands.', spanish: 'Nosotros aprendemos neerlandés.', context: 'Estudios' },
-        { id: 'p2-6', dutch: 'Jullie spreken heel goed!', spanish: '¡Vosotros habláis muy bien!', context: 'Elogio' },
-        { id: 'p2-7', dutch: 'Zij zijn goede studenten.', spanish: 'Ellos son buenos estudiantes.', context: 'Descripción' },
-        { id: 'p2-8', dutch: 'U spreekt heel goed Nederlands.', spanish: 'Usted habla muy bien el neerlandés.', context: 'Formal' },
+        { id: 'm1l2p-1',  dutch: 'Zijn jullie klaar?',      spanish: '¿Estáis listos/as?',            context: 'Preguntar' },
+        { id: 'm1l2p-2',  dutch: 'Zij is arts.',            spanish: 'Ella es médica.',               context: 'Sobre otros' },
+        { id: 'm1l2p-3',  dutch: 'Zij zijn schilders.',     spanish: 'Ellos son pintores.',           context: 'Sobre otros' },
+        { id: 'm1l2p-4',  dutch: 'Ben je thuis?',           spanish: '¿Estás en casa?',               context: 'Preguntar' },
+        { id: 'm1l2p-5',  dutch: 'Jij spreekt Nederlands.', spanish: 'Tú hablas neerlandés.',         context: 'Sobre ti' },
+        { id: 'm1l2p-6',  dutch: 'Ik leer Nederlands.',     spanish: 'Estoy aprendiendo neerlandés.', context: 'Sobre ti' },
+        { id: 'm1l2p-7',  dutch: 'Heeft hij griep?',        spanish: '¿Tiene (él) gripe?',            context: 'Preguntar' },
+        { id: 'm1l2p-8',  dutch: 'Ze werkt vandaag.',       spanish: 'Ella trabaja hoy.',             context: 'Sobre otros' },
+        { id: 'm1l2p-9',  dutch: 'Ik heb een kat.',         spanish: 'Tengo un gato.',                context: 'Sobre ti' },
+        { id: 'm1l2p-10', dutch: 'We gaan naar huis.',      spanish: 'Vamos a casa.',                 context: 'Cotidiano' },
+        { id: 'm1l2p-11', dutch: 'Drinken jullie koffie?',  spanish: '¿Tomáis café?',                 context: 'Preguntar' },
+        { id: 'm1l2p-12', dutch: 'Wij gaan naar Antwerpen.', spanish: 'Nosotras vamos a Amberes.',    context: 'Cotidiano' },
       ],
     },
     {
-      type: 'practice',
+      type: 'lezen',
+      textNl: `Dit is Sofia. Zij komt uit Chili en ze leert Nederlands. Pablo is de man van Sofia. Hij werkt thuis. Sofia en Pablo wonen in Rotterdam. Zij hebben een kat.
+
+Sofia zegt: ‘Wij leren samen Nederlands. Ik leer snel, maar Pablo leert langzaam. Hij drinkt veel koffie!’
+
+En jij? Leer jij ook Nederlands? Dan leren jullie samen: jij, Sofia en Pablo!`,
+      textEs: `Esta es Sofía. Ella es de Chile y está aprendiendo neerlandés. Pablo es el marido de Sofía. Él trabaja en casa. Sofía y Pablo viven en Róterdam. Tienen un gato.
+
+Sofía dice: «Nosotros aprendemos neerlandés juntos. Yo aprendo rápido, pero Pablo aprende despacio. ¡Él bebe mucho café!»
+
+¿Y tú? ¿Tú también estás aprendiendo neerlandés? ¡Entonces aprendéis juntos: tú, Sofía y Pablo!`,
       exercises: [
-        { id: 'e2-1', type: 'multiple_choice', prompt: '¿Cuál es el pronombre formal de "tú" en neerlandés?', options: ['jij', 'u', 'hij', 'jullie'], correctAnswer: 'u', explanation: '"U" es el pronombre formal, equivalente a "usted".' },
-        { id: 'e2-2', type: 'fill_blank', prompt: '___ is mijn vriendin. Zij heet Sofia. (ella)', correctAnswer: 'Zij', hint: 'Pronombre femenino singular' },
-        { id: 'e2-3', type: 'multiple_choice', prompt: '"Vosotros habláis neerlandés." ¿Cuál es el pronombre correcto?', options: ['Wij', 'Zij', 'Jullie', 'Jij'], correctAnswer: 'Jullie', explanation: '"Jullie" es el equivalente a "vosotros".' },
-        { id: 'e2-4', type: 'fill_blank', prompt: '___ wonen in Nederland. (nosotros)', correctAnswer: 'Wij', hint: 'Forma tónica de "we"' },
-        { id: 'e2-5', type: 'order_sentence', prompt: 'Ordena: "Él trabaja en un hospital."', options: ['Hij', 'werkt', 'in', 'een', 'ziekenhuis'], correctAnswer: 'Hij werkt in een ziekenhuis' },
-        { id: 'e2-6', type: 'multiple_choice', prompt: '¿Qué significa "Het is koud vandaag"?', options: ['Él tiene frío hoy', 'Hace frío hoy', 'Ello es frío', 'Está frío hoy'], correctAnswer: 'Hace frío hoy', explanation: '"Het" se usa en expresiones meteorológicas e impersonales.' },
-        { id: 'e2-7', type: 'fill_blank', prompt: '___ zijn goede vrienden. (ellos)', correctAnswer: 'Zij', hint: 'Pronombre plural' },
-        { id: 'e2-8', type: 'multiple_choice', prompt: '¿Cuál es la diferencia entre "jij" y "je"?', options: ['Son palabras completamente distintas', '"Jij" es tónico, "je" es átono', '"Je" es formal', 'No hay diferencia'], correctAnswer: '"Jij" es tónico, "je" es átono', explanation: '"Jij" se usa con énfasis, "je" es la forma no enfatizada.' },
+        { id: 'm1l2lz-1', type: 'multiple_choice', prompt: '¿De dónde es Sofía?', options: ['De Chile', 'De Colombia', 'De España', 'De Argentina'], correctAnswer: 'De Chile', explanation: '"Zij komt uit Chili."' },
+        { id: 'm1l2lz-2', type: 'multiple_choice', prompt: '¿Quién trabaja en casa?', options: ['Pablo', 'Sofía', 'Los dos', 'Nadie'], correctAnswer: 'Pablo', explanation: '"Hij werkt thuis" — hij = él = Pablo.' },
+        { id: 'm1l2lz-3', type: 'multiple_choice', prompt: '"Zij hebben een kat." — ¿quiénes son "zij"?', options: ['Sofía y Pablo', 'Solo Sofía', 'Solo Pablo', 'El gato'], correctAnswer: 'Sofía y Pablo', explanation: 'Con verbo en plural (hebben), "zij" = ellos.' },
+        { id: 'm1l2lz-4', type: 'fill_blank', prompt: 'Sofia en Pablo ___ in Rotterdam. (vivir, ellos)', correctAnswer: 'wonen', hint: 'Con "zij" (ellos) se usa el infinitivo', explanation: 'Plural → infinitivo: zij wonen.' },
+        { id: 'm1l2lz-5', type: 'multiple_choice', prompt: '¿Quién aprende rápido?', options: ['Sofía', 'Pablo', 'El gato', 'Ninguno'], correctAnswer: 'Sofía', explanation: '"Ik leer snel" — lo dice Sofía de sí misma.' },
+        { id: 'm1l2lz-6', type: 'fill_blank', prompt: 'Hij ___ veel koffie. (beber)', correctAnswer: 'drinkt', hint: 'drinken → hij drink+t', explanation: 'Con "hij" el verbo lleva -t: drinkt.' },
       ],
     },
     {
       type: 'dialogue',
       dialogue: {
-        id: 'd2',
-        title: 'Bij de leraar',
-        context: 'Sofía spreekt met haar leraar Nederlands voor de les.',
+        id: 'm1d2',
+        title: 'De tweede ontmoeting',
+        context: 'David en Anna ontmoeten elkaar voor de tweede keer. Vandaag oefenen ze de voornaamwoorden.',
         lines: [
-          { id: 'd2-1', speaker: 'Sofía', dutch: 'Goedemorgen, meneer De Vries. Hoe gaat het met u?', spanish: 'Buenos días, señor De Vries. ¿Cómo está usted?' },
-          { id: 'd2-2', speaker: 'De Vries', dutch: 'Goed, dank je. En met jou?', spanish: 'Bien, gracias. ¿Y contigo?' },
-          { id: 'd2-3', speaker: 'Sofía', dutch: 'Prima! Meneer, mag ik een vraag stellen?', spanish: '¡Bien! Señor, ¿puedo hacer una pregunta?' },
-          { id: 'd2-4', speaker: 'De Vries', dutch: 'Natuurlijk. Wat wil jij weten?', spanish: 'Por supuesto. ¿Qué quieres saber?' },
-          { id: 'd2-5', speaker: 'Sofía', dutch: 'Wanneer gebruik ik "jij" en wanneer "u"?', spanish: '¿Cuándo uso "jij" y cuándo "u"?' },
-          { id: 'd2-6', speaker: 'De Vries', dutch: '"U" gebruik je met mensen die je niet goed kent of met ouderen.', spanish: '"U" lo usas con personas que no conoces bien o con personas mayores.' },
-          { id: 'd2-7', speaker: 'Sofía', dutch: 'Dus met jou mag ik "jij" zeggen?', spanish: 'Entonces, ¿contigo puedo decir "jij"?' },
-          { id: 'd2-8', speaker: 'De Vries', dutch: 'Ja, in de les zeg ik altijd "jij". Dat is vriendelijker!', spanish: 'Sí, en clase siempre digo "jij". ¡Es más cercano!' },
+          { id: 'm1d2-1',  speaker: 'David', dutch: 'Hoi Anna! Fijn je weer te zien.',                              spanish: '¡Hola Anna! Qué bien verte otra vez.' },
+          { id: 'm1d2-2',  speaker: 'Anna',  dutch: 'Hallo David! Kom, we zitten binnen. Het regent!',              spanish: '¡Hola David! Ven, nos sentamos dentro. ¡Llueve!' },
+          { id: 'm1d2-3',  speaker: 'David', dutch: 'Ja, het is echt Nederlands weer.',                             spanish: 'Sí, es tiempo típico neerlandés.' },
+          { id: 'm1d2-4',  speaker: 'Anna',  dutch: 'Haha! Vandaag oefenen we: ik, jij, hij, zij…',                 spanish: '¡Jaja! Hoy practicamos: yo, tú, él, ella…' },
+          { id: 'm1d2-5',  speaker: 'David', dutch: 'Oké. Ik ben David, jij bent Anna.',                            spanish: 'Vale. Yo soy David, tú eres Anna.' },
+          { id: 'm1d2-6',  speaker: 'Anna',  dutch: 'Heel goed! Kijk, die man daar: hij is arts.',                  spanish: '¡Muy bien! Mira, ese hombre de ahí: él es médico.' },
+          { id: 'm1d2-7',  speaker: 'David', dutch: 'En die vrouw? Wie is zij?',                                    spanish: '¿Y esa mujer? ¿Quién es ella?' },
+          { id: 'm1d2-8',  speaker: 'Anna',  dutch: 'Zij is schilder. Ze werkt vandaag niet.',                      spanish: 'Ella es pintora. Hoy no trabaja.' },
+          { id: 'm1d2-9',  speaker: 'David', dutch: 'En wij? Wij leren samen Nederlands!',                          spanish: '¿Y nosotros? ¡Nosotros aprendemos neerlandés juntos!' },
+          { id: 'm1d2-10', speaker: 'Anna',  dutch: 'Precies! Zeg, drinken jullie in Argentinië veel koffie?',      spanish: '¡Exacto! Oye, ¿en Argentina tomáis mucho café?' },
+          { id: 'm1d2-11', speaker: 'David', dutch: 'Ja! Wij drinken veel koffie, en ook mate.',                    spanish: '¡Sí! Tomamos mucho café, y también mate.' },
+          { id: 'm1d2-12', speaker: 'Anna',  dutch: 'Leuk! Nog een vraag: zeg je ‘u’ of ‘jij’ tegen mij?',          spanish: '¡Qué bien! Otra pregunta: ¿me dices "u" (usted) o "jij" (tú)?' },
+          { id: 'm1d2-13', speaker: 'David', dutch: '‘Jij’! ‘U’ is formeel, toch?',                                 spanish: '¡"Jij"! "U" es formal, ¿no?' },
+          { id: 'm1d2-14', speaker: 'Anna',  dutch: 'Klopt! Tegen vrienden zeg je ‘jij’ of ‘je’.',                  spanish: '¡Correcto! A los amigos les dices "jij" o "je".' },
+          { id: 'm1d2-15', speaker: 'David', dutch: 'Mooi. We gaan naar huis?',                                     spanish: 'Genial. ¿Nos vamos a casa?' },
+          { id: 'm1d2-16', speaker: 'Anna',  dutch: 'Ja! Tot volgende week. Doei!',                                 spanish: '¡Sí! Hasta la semana que viene. ¡Adiós!' },
         ],
       },
+    },
+    {
+      type: 'practice',
+      exercises: [
+        // ── Opción múltiple ──
+        { id: 'm1l2e-1',  type: 'multiple_choice', prompt: '¿Qué pronombre usas para "usted"?', options: ['u', 'jij', 'je', 'jullie'], correctAnswer: 'u', explanation: '"U" es el tratamiento formal, en singular y en plural.' },
+        { id: 'm1l2e-2',  type: 'multiple_choice', prompt: '"Zij zijn broer en zus." — ¿quiénes son "zij"?', options: ['Ellos', 'Ella', 'Nosotros', 'Vosotros'], correctAnswer: 'Ellos', explanation: 'El verbo en plural (zijn) te dice que "zij" = ellos, no ella.' },
+        { id: 'm1l2e-3',  type: 'multiple_choice', prompt: '¿Cuál es la forma DÉBIL de "wij"?', options: ['we', 'wij', 'ze', 'je'], correctAnswer: 'we', explanation: 'wij → we. La débil es la normal en conversación.' },
+        { id: 'm1l2e-4',  type: 'multiple_choice', prompt: '¿Cómo te diriges a VARIAS personas de manera formal?', options: ['u', 'jullie', 'zij', 'wij'], correctAnswer: 'u', explanation: 'No existe un "ustedes": se usa "u" también en plural.' },
+        // ── Verdadero / Falso ──
+        { id: 'm1l2e-5',  type: 'true_false', prompt: 'En neerlandés casi siempre hay que decir el pronombre (el sujeto).', correctAnswer: 'verdadero', explanation: 'A diferencia del español, el sujeto casi nunca se omite: Ik ben docent.' },
+        { id: 'm1l2e-6',  type: 'true_false', prompt: '"Het regent" significa "él llueve".', correctAnswer: 'falso', explanation: '"Het" es impersonal: Het regent = llueve. La frase neerlandesa necesita un sujeto.' },
+        { id: 'm1l2e-7',  type: 'true_false', prompt: 'La forma débil (je, we, ze) es la más frecuente al hablar.', correctAnswer: 'verdadero', explanation: 'La fuerte (jij, wij, zij) se reserva para énfasis o contraste.' },
+        // ── Completar ──
+        { id: 'm1l2e-8',  type: 'fill_blank', prompt: '___ bent musicus. (tú, con énfasis)', correctAnswer: 'Jij', hint: 'Forma fuerte de "tú"' },
+        { id: 'm1l2e-9',  type: 'fill_blank', prompt: '___ regent vandaag. (impersonal)', correctAnswer: 'Het', hint: 'El pronombre del clima' },
+        { id: 'm1l2e-10', type: 'fill_blank', prompt: 'Kijk! ___ zijn schilders. (ellos)', correctAnswer: 'zij', hint: 'El mismo pronombre que "ella", pero con verbo en plural' },
+        { id: 'm1l2e-11', type: 'fill_blank', prompt: 'Drinken ___ koffie? (vosotros)', correctAnswer: 'jullie', hint: 'Segunda persona del plural' },
+        // ── Ordenar frases ──
+        { id: 'm1l2e-12', type: 'order_sentence', prompt: 'Ordena: "Ella es médica."', options: ['Zij', 'is', 'arts'], correctAnswer: 'Zij is arts' },
+        { id: 'm1l2e-13', type: 'order_sentence', prompt: 'Ordena: "¿Estáis listos?"', options: ['Zijn', 'jullie', 'klaar?'], correctAnswer: 'Zijn jullie klaar?' },
+        { id: 'm1l2e-14', type: 'order_sentence', prompt: 'Ordena: "Nosotras vamos a Amberes."', options: ['Wij', 'gaan', 'naar', 'Antwerpen'], correctAnswer: 'Wij gaan naar Antwerpen' },
+        // ── Sopa de letras ──
+        { id: 'm1l2e-15', type: 'word_scramble', prompt: '¿Cómo se dice "vosotros"?', correctAnswer: 'jullie', hint: 'vosotros / vosotras' },
+        // ── Letras que faltan ──
+        { id: 'm1l2e-16', type: 'letter_dash', prompt: 'Completa: "en casa"', correctAnswer: 'thuis', hint: 'Ben je …?' },
+        { id: 'm1l2e-17', type: 'letter_dash', prompt: 'Completa: "hoy"', correctAnswer: 'vandaag', hint: 'Ze werkt … (hoy)' },
+        // ── Unir parejas ──
+        { id: 'm1l2e-18', type: 'match_pairs', prompt: 'Une cada pronombre con su traducción', correctAnswer: '', pairs: [
+          { left: 'ik', right: 'yo' },
+          { left: 'jij', right: 'tú' },
+          { left: 'u', right: 'usted' },
+          { left: 'hij', right: 'él' },
+          { left: 'wij', right: 'nosotros' },
+          { left: 'jullie', right: 'vosotros' },
+        ] },
+        { id: 'm1l2e-19', type: 'match_pairs', prompt: 'Une cada frase con su traducción', correctAnswer: '', pairs: [
+          { left: 'Ben je thuis?', right: '¿Estás en casa?' },
+          { left: 'Ik heb een kat', right: 'Tengo un gato' },
+          { left: 'We gaan naar huis', right: 'Vamos a casa' },
+          { left: 'Ze werkt vandaag', right: 'Ella trabaja hoy' },
+          { left: 'Heeft hij griep?', right: '¿Tiene él gripe?' },
+        ] },
+        // ── Emoji ──
+        { id: 'm1l2e-20', type: 'emoji_choice', prompt: '¿Qué emoji representa "thuis"?', options: ['🏠', '🚗', '🏖️', '🏢'], correctAnswer: '🏠', explanation: '"Thuis" = en casa.' },
+        { id: 'm1l2e-21', type: 'emoji_choice', prompt: '¿Qué emoji representa "de griep"?', options: ['🤒', '😀', '🎉', '🍎'], correctAnswer: '🤒', explanation: '"De griep" = la gripe.' },
+        // ── El intruso ──
+        { id: 'm1l2e-22', type: 'odd_one_out', prompt: '¿Cuál NO es un pronombre?', options: ['ik', 'jij', 'hij', 'arts'], correctAnswer: 'arts', explanation: '"De arts" (el médico) es una profesión, no un pronombre.' },
+        { id: 'm1l2e-23', type: 'odd_one_out', prompt: '¿Cuál es la forma FUERTE (las otras son débiles)?', options: ['je', 'we', 'ze', 'wij'], correctAnswer: 'wij', explanation: '"Wij" es la forma fuerte; je, we y ze son débiles.' },
+        // ── Escribir ──
+        { id: 'm1l2e-24', type: 'write_answer', prompt: 'Escribe la forma débil de "jij"', correctAnswer: 'je', hint: 'Dos letras' },
+        { id: 'm1l2e-25', type: 'write_answer', prompt: 'Escribe en neerlandés: "Ella es médica" (forma fuerte)', correctAnswer: 'Zij is arts', hint: 'Empieza con la forma fuerte · sin punto final' },
+        // ── Escuchar ──
+        { id: 'm1l2e-26', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "Zij is ingenieur"', options: ['Zij is ingenieur', 'Zij zijn ingenieurs', 'Hij is ingenieur', 'Wij zijn ingenieurs'], correctAnswer: 'Zij is ingenieur' },
+        { id: 'm1l2e-27', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "Ben je thuis?"', options: ['Ben je thuis?', 'Ben jij thuis?', 'Is ze thuis?', 'Zijn ze thuis?'], correctAnswer: 'Ben je thuis?' },
+        { id: 'm1l2e-28', type: 'listen_translate', prompt: 'Escucha y traduce: "Wij gaan naar Antwerpen"', options: ['Nosotras', 'vamos', 'a', 'Amberes', 'casa', 'Ellos'], correctAnswer: 'Nosotras vamos a Amberes' },
+        { id: 'm1l2e-29', type: 'listen_translate', prompt: 'Escucha y traduce: "Ik heb een kat"', options: ['Tengo', 'un', 'gato', 'perro', 'Ella', 'tiene'], correctAnswer: 'Tengo un gato' },
+        // ── Comprensión del diálogo (De tweede ontmoeting) ──
+        { id: 'm1l2e-30', type: 'multiple_choice', prompt: 'En el diálogo, ¿qué tiempo hace?', options: ['Llueve', 'Hace sol', 'Nieva', 'Hace calor'], correctAnswer: 'Llueve', explanation: '"Het regent!" — por eso se sientan dentro.' },
+        { id: 'm1l2e-31', type: 'true_false', prompt: 'La mujer que ven en el café es médica.', correctAnswer: 'falso', explanation: 'Ella es pintora ("Zij is schilder"); el hombre es el médico.' },
+        { id: 'm1l2e-32', type: 'multiple_choice', prompt: '¿Qué le dice David a Anna: "u" o "jij"?', options: ['"Jij", porque son amigos', '"U", porque es formal', 'Ninguno de los dos', 'Los dos a la vez'], correctAnswer: '"Jij", porque son amigos', explanation: 'Entre amigos se usa jij/je; "u" es para el trato formal.' },
+      ],
     },
     { type: 'review' },
   ],
 };
 
+/* ─────────────────────────────────────────────────────────────────────────── */
+
 const m1_les3: Lesson = {
   id: 'les-3-werkwoorden',
   moduleId: 'over-jou',
-  title: 'Les 3 — Grammatica | Werkwoorden',
-  subtitle: 'Verbos regulares e irregulares',
+  title: 'Les 3 — Grammatica | De werkwoorden',
+  subtitle: 'Los verbos regulares en presente',
   order: 3,
-  learningObjective: 'Conjugar verbos regulares e irregulares en presente',
-  estimatedMinutes: 20,
+  learningObjective: 'Conjugar verbos regulares en presente: encontrar la raíz y aplicar raíz / raíz+t / infinitivo',
+  estimatedMinutes: 30,
   blocks: [
+    {
+      type: 'summary',
+      title: 'De werkwoorden',
+      intro: 'En español los verbos tienen muchas formas (hablo, hablas, habla, hablamos…). En neerlandés es mucho más fácil: hoy aprendes UN patrón que sirve para casi todos los verbos regulares.',
+      objectives: [
+        'Encontrar la raíz de un verbo (infinitivo − "-en")',
+        'Conjugar en presente: raíz / raíz + t / infinitivo',
+        'Aplicar la regla de doblar la vocal (wonen → woon)',
+      ],
+      sections: [
+        {
+          heading: '🔍 Paso 1: la raíz',
+          body: 'El infinitivo (la forma del diccionario) casi siempre termina en **-en**: *werken* (trabajar), *wonen* (vivir), *leren* (aprender). Para conjugar, primero quitamos ese **-en** y nos queda la raíz. La fórmula: **infinitivo − en = raíz**.',
+          items: [
+            { nl: 'werken → werk', es: 'trabajar' },
+            { nl: 'denken → denk', es: 'pensar' },
+            { nl: 'helpen → help', es: 'ayudar' },
+          ],
+        },
+        {
+          heading: '📐 Paso 2: solo tres formas',
+          body: 'En presente solo existen TRES formas:',
+          items: [
+            { nl: 'ik werk', es: 'raíz (yo)' },
+            { nl: 'jij / hij / zij werkt', es: 'raíz + t (tú, él, ella)' },
+            { nl: 'wij / jullie / zij werken', es: 'infinitivo (todo el plural)' },
+          ],
+        },
+        {
+          heading: '✍️ La regla ortográfica: doblar la vocal',
+          body: 'Con algunos verbos, la vocal de la raíz se escribe doble para mantener la misma pronunciación:',
+          items: [
+            { nl: 'wonen → ik woon', es: 'vivir' },
+            { nl: 'leren → ik leer', es: 'aprender' },
+            { nl: 'koken → ik kook', es: 'cocinar' },
+            { nl: 'maken → ik maak', es: 'hacer' },
+            { nl: 'vragen → ik vraag', es: 'preguntar' },
+          ],
+        },
+        {
+          heading: '❓ En preguntas: la -t desaparece con je/jij',
+          body: 'Cuando el verbo va DELANTE de je/jij (en preguntas), pierde la -t: *Jij belt mij* pero **Bel je mij?** (¿me llamas?).',
+        },
+      ],
+      tip: 'La fórmula mágica: **infinitivo − en = raíz**. Luego: ik = raíz · jij/hij/zij = raíz + t · plural = infinitivo. Y en preguntas con "je/jij" la -t desaparece: **Bel je mij?**',
+    },
     {
       type: 'vocabulary',
       items: [
-        { id: 'zijn', dutch: 'zijn', spanish: 'ser / estar', article: null, emoji: '🌟', color: '#1D0084', exampleNl: 'Ik ben moe vandaag.', exampleEs: 'Estoy cansado/a hoy.', category: 'werkwoorden', difficulty: 'A0' },
-        { id: 'hebben', dutch: 'hebben', spanish: 'tener', article: null, emoji: '✊', color: '#025dc7', exampleNl: 'Ik heb een hond.', exampleEs: 'Tengo un perro.', category: 'werkwoorden', difficulty: 'A0' },
-        { id: 'w-werken', dutch: 'werken', spanish: 'trabajar', article: null, emoji: '💼', color: '#0b4db5', exampleNl: 'Hij werkt elke dag hard.', exampleEs: 'Él trabaja duro cada día.', category: 'werkwoorden', difficulty: 'A0' },
-        { id: 'w-wonen', dutch: 'wonen', spanish: 'vivir / residir', article: null, emoji: '🏠', color: '#0a3d9e', exampleNl: 'Wij wonen in een appartement.', exampleEs: 'Vivimos en un apartamento.', category: 'werkwoorden', difficulty: 'A0' },
-        { id: 'w-heten', dutch: 'heten', spanish: 'llamarse', article: null, emoji: '🏷️', color: '#1440a0', exampleNl: 'Hoe heet jouw zusje?', exampleEs: '¿Cómo se llama tu hermana?', category: 'werkwoorden', difficulty: 'A0' },
-        { id: 'w-spreken', dutch: 'spreken', spanish: 'hablar', article: null, emoji: '🗣️', color: '#0d5bbf', exampleNl: 'Spreek jij Frans ook?', exampleEs: '¿Hablas francés también?', category: 'werkwoorden', difficulty: 'A0' },
-        { id: 'w-leren', dutch: 'leren', spanish: 'aprender / enseñar', article: null, emoji: '📖', color: '#1D0084', exampleNl: 'Ik leer elke dag nieuwe woorden.', exampleEs: 'Aprendo palabras nuevas cada día.', category: 'werkwoorden', difficulty: 'A0' },
-        { id: 'w-lezen', dutch: 'lezen', spanish: 'leer', article: null, emoji: '📰', color: '#025dc7', exampleNl: 'Zij leest elke ochtend de krant.', exampleEs: 'Ella lee el periódico cada mañana.', category: 'werkwoorden', difficulty: 'A0' },
-        { id: 'w-gaan', dutch: 'gaan', spanish: 'ir', article: null, emoji: '🚶', color: '#0b4db5', exampleNl: 'Wij gaan naar de les.', exampleEs: 'Vamos a clase.', category: 'werkwoorden', difficulty: 'A0' },
-        { id: 'w-komen', dutch: 'komen', spanish: 'venir / llegar', article: null, emoji: '🚪', color: '#0a3d9e', exampleNl: 'Kom je vanavond?', exampleEs: '¿Vienes esta noche?', category: 'werkwoorden', difficulty: 'A0' },
-        { id: 'w-doen', dutch: 'doen', spanish: 'hacer', article: null, emoji: '🔨', color: '#1440a0', exampleNl: 'Wat doe jij in het weekend?', exampleEs: '¿Qué haces el fin de semana?', category: 'werkwoorden', difficulty: 'A0' },
-        { id: 'w-willen', dutch: 'willen', spanish: 'querer', article: null, emoji: '💫', color: '#0d5bbf', exampleNl: 'Wil jij koffie of thee?', exampleEs: '¿Quieres café o té?', category: 'werkwoorden', difficulty: 'A0' },
-        { id: 'w-zien', dutch: 'zien', spanish: 'ver', article: null, emoji: '👁️', color: '#1D0084', exampleNl: 'Ik zie je morgen!', exampleEs: '¡Te veo mañana!', category: 'werkwoorden', difficulty: 'A0' },
-        { id: 'w-schrijven', dutch: 'schrijven', spanish: 'escribir', article: null, emoji: '✍️', color: '#025dc7', exampleNl: 'Schrijf jij een brief?', exampleEs: '¿Escribes una carta?', category: 'werkwoorden', difficulty: 'A0' },
+        { id: 'm1l3v-werken',   dutch: 'werken',   spanish: 'trabajar',            article: null, emoji: '💼', color: '#1D0084', exampleNl: 'Hij werkt veel.',            exampleEs: 'Él trabaja mucho.',              category: 'werkwoorden', difficulty: 'A0' },
+        { id: 'm1l3v-leren',    dutch: 'leren',    spanish: 'aprender',            article: null, emoji: '📖', color: '#025dc7', exampleNl: 'Jij leert snel!',            exampleEs: '¡Tú aprendes rápido!',           category: 'werkwoorden', difficulty: 'A0' },
+        { id: 'm1l3v-spreken',  dutch: 'spreken',  spanish: 'hablar',              article: null, emoji: '🗣️', color: '#0b4db5', exampleNl: 'Ik spreek een beetje Nederlands.', exampleEs: 'Hablo un poco de neerlandés.', category: 'werkwoorden', difficulty: 'A0' },
+        { id: 'm1l3v-studeren', dutch: 'studeren', spanish: 'estudiar',            article: null, emoji: '🎓', color: '#0a3d9e', exampleNl: 'Zij studeert in Leiden.',    exampleEs: 'Ella estudia en Leiden.',        category: 'werkwoorden', difficulty: 'A0' },
+        { id: 'm1l3v-denken',   dutch: 'denken',   spanish: 'pensar',              article: null, emoji: '💭', color: '#1440a0', exampleNl: 'Ik denk aan mijn familie.',  exampleEs: 'Pienso en mi familia.',          category: 'werkwoorden', difficulty: 'A0' },
+        { id: 'm1l3v-helpen',   dutch: 'helpen',   spanish: 'ayudar',              article: null, emoji: '🤲', color: '#0d5bbf', exampleNl: 'Je helpt een vriend.',       exampleEs: 'Ayudas a un amigo.',             category: 'werkwoorden', difficulty: 'A0' },
+        { id: 'm1l3v-wachten',  dutch: 'wachten',  spanish: 'esperar',             article: null, emoji: '⏳', color: '#1D0084', exampleNl: 'Ik wacht op de bus.',        exampleEs: 'Estoy esperando el autobús.',    category: 'werkwoorden', difficulty: 'A0' },
+        { id: 'm1l3v-bellen',   dutch: 'bellen',   spanish: 'llamar (por teléfono)', article: null, emoji: '📞', color: '#025dc7', exampleNl: 'Ze bellen morgen.',        exampleEs: 'Llaman mañana.',                 category: 'werkwoorden', difficulty: 'A0' },
+        { id: 'm1l3v-maken',    dutch: 'maken',    spanish: 'hacer',               article: null, emoji: '🛠️', color: '#0b4db5', exampleNl: 'Ik maak een foto.',          exampleEs: 'Hago una foto.',                 category: 'werkwoorden', difficulty: 'A0' },
+        { id: 'm1l3v-vragen',   dutch: 'vragen',   spanish: 'preguntar',           article: null, emoji: '❓', color: '#0a3d9e', exampleNl: 'Ik vraag het aan Anna.',     exampleEs: 'Se lo pregunto a Anna.',         category: 'werkwoorden', difficulty: 'A0' },
       ],
     },
     {
       type: 'phrases',
       items: [
-        { id: 'p3-1', dutch: 'Ik ben Nederlands aan het leren.', spanish: 'Estoy aprendiendo neerlandés.', context: 'Acción en curso' },
-        { id: 'p3-2', dutch: 'Zij werkt bij een ziekenhuis.', spanish: 'Ella trabaja en un hospital.', context: 'Trabajo' },
-        { id: 'p3-3', dutch: 'Wij gaan naar de supermarkt.', spanish: 'Vamos al supermercado.', context: 'Destino' },
-        { id: 'p3-4', dutch: 'Hij heeft twee zussen.', spanish: 'Él tiene dos hermanas.', context: 'Familia' },
-        { id: 'p3-5', dutch: 'Wil jij koffie of thee?', spanish: '¿Quieres café o té?', context: 'Ofrecer algo' },
-        { id: 'p3-6', dutch: 'Ik doe mijn best.', spanish: 'Hago mi mejor esfuerzo.', context: 'Expresión común' },
-        { id: 'p3-7', dutch: 'Zij lezen samen een boek.', spanish: 'Ellos leen un libro juntos.', context: 'Actividad' },
-        { id: 'p3-8', dutch: 'Kom je morgen ook naar de les?', spanish: '¿Vienes mañana también a clase?', context: 'Invitación' },
+        { id: 'm1l3p-1',  dutch: 'Je werkt morgen.',         spanish: 'Trabajas mañana.',               context: 'Trabajo' },
+        { id: 'm1l3p-2',  dutch: 'Hij werkt veel.',          spanish: 'Él trabaja mucho.',              context: 'Trabajo' },
+        { id: 'm1l3p-3',  dutch: 'We werken samen.',         spanish: 'Trabajamos juntos.',             context: 'Trabajo' },
+        { id: 'm1l3p-4',  dutch: 'Ze werkt in een kantoor.', spanish: 'Ella trabaja en una oficina.',   context: 'Trabajo' },
+        { id: 'm1l3p-5',  dutch: 'Jij leert snel!',          spanish: '¡Tú aprendes rápido!',           context: 'Aprender' },
+        { id: 'm1l3p-6',  dutch: 'Hij leert thuis.',         spanish: 'Él aprende en casa.',            context: 'Aprender' },
+        { id: 'm1l3p-7',  dutch: 'Jullie leren samen.',      spanish: 'Vosotros aprendéis juntos.',     context: 'Aprender' },
+        { id: 'm1l3p-8',  dutch: 'Je helpt een vriend.',     spanish: 'Ayudas a un amigo.',             context: 'Ayudar' },
+        { id: 'm1l3p-9',  dutch: 'Hij helpt op school.',     spanish: 'Él ayuda en la escuela.',        context: 'Ayudar' },
+        { id: 'm1l3p-10', dutch: 'We helpen samen.',         spanish: 'Ayudamos juntos.',               context: 'Ayudar' },
+        { id: 'm1l3p-11', dutch: 'Ik wacht op de bus.',      spanish: 'Estoy esperando el autobús.',    context: 'Cotidiano' },
+        { id: 'm1l3p-12', dutch: 'We wachten buiten.',       spanish: 'Esperamos fuera.',               context: 'Cotidiano' },
+        { id: 'm1l3p-13', dutch: 'Ze bellen morgen.',        spanish: 'Llaman mañana.',                 context: 'Teléfono' },
+        { id: 'm1l3p-14', dutch: 'Bel je mij?',              spanish: '¿Me llamas?',                    context: 'Teléfono' },
       ],
     },
     {
-      type: 'practice',
+      type: 'lezen',
+      textNl: `Anna werkt op een school in Haarlem. Zij helpt de kinderen. De kinderen leren snel.
+
+Na het werk wacht Anna op de bus. Thuis kookt zij pasta. De zus van Anna helpt.
+
+David werkt thuis. Hij leert Nederlands en denkt: ‘Nederlands is niet moeilijk!’ Later belt hij met Anna. Zij spreken samen Nederlands.`,
+      textEs: `Anna trabaja en una escuela en Haarlem. Ella ayuda a los niños. Los niños aprenden rápido.
+
+Después del trabajo, Anna espera el autobús. En casa cocina pasta. La hermana de Anna ayuda.
+
+David trabaja en casa. Él aprende neerlandés y piensa: «¡El neerlandés no es difícil!» Más tarde llama a Anna. Hablan neerlandés juntos.`,
       exercises: [
-        { id: 'e3-1', type: 'fill_blank', prompt: 'Ik ___ student. (ser)', correctAnswer: 'ben', hint: 'zijn' },
-        { id: 'e3-2', type: 'fill_blank', prompt: 'Zij ___ elke dag naar haar werk. (ir)', correctAnswer: 'gaat', hint: 'gaan' },
-        { id: 'e3-3', type: 'multiple_choice', prompt: '¿Cuál es la conjugación correcta de "hebben" para "wij"?', options: ['hebben', 'heb', 'heeft', 'hebt'], correctAnswer: 'hebben', explanation: 'Para wij/ze/zij el verbo vuelve al infinitivo: "wij hebben".' },
-        { id: 'e3-4', type: 'order_sentence', prompt: 'Ordena: "¿Qué haces el fin de semana?"', options: ['Wat', 'doe', 'jij', 'in', 'het', 'weekend'], correctAnswer: 'Wat doe jij in het weekend' },
-        { id: 'e3-5', type: 'fill_blank', prompt: 'Hij ___ bij een groot bedrijf. (trabajar)', correctAnswer: 'werkt', hint: 'werken' },
-        { id: 'e3-6', type: 'multiple_choice', prompt: '"Willen" conjugado para "jij" es:', options: ['wil', 'wilt', 'willen', 'wilt/wil'], correctAnswer: 'wilt/wil', explanation: '"Jij wilt" normalmente, pero "Wil jij?" en pregunta (inversión).' },
-        { id: 'e3-7', type: 'fill_blank', prompt: 'Wij ___ samen naar de markt. (ir)', correctAnswer: 'gaan', hint: 'gaan' },
-        { id: 'e3-8', type: 'order_sentence', prompt: 'Ordena: "Ella lee el periódico cada mañana."', options: ['Zij', 'leest', 'elke', 'ochtend', 'de', 'krant'], correctAnswer: 'Zij leest elke ochtend de krant' },
+        { id: 'm1l3lz-1', type: 'multiple_choice', prompt: '¿Dónde trabaja Anna?', options: ['En una escuela', 'En una oficina', 'En casa', 'En un café'], correctAnswer: 'En una escuela', explanation: '"Anna werkt op een school in Haarlem."' },
+        { id: 'm1l3lz-2', type: 'multiple_choice', prompt: '¿A quién ayuda Anna?', options: ['A los niños', 'A David', 'A su hermana', 'A los médicos'], correctAnswer: 'A los niños', explanation: '"Zij helpt de kinderen."' },
+        { id: 'm1l3lz-3', type: 'multiple_choice', prompt: '¿Qué espera Anna después del trabajo?', options: ['El autobús', 'El tren', 'A David', 'A su hermana'], correctAnswer: 'El autobús', explanation: '"Anna wacht op de bus."' },
+        { id: 'm1l3lz-4', type: 'fill_blank', prompt: 'Thuis ___ zij pasta. (cocinar)', correctAnswer: 'kookt', hint: 'koken → raíz kook + t', explanation: 'Con "zij" (ella): raíz + t → kookt. ¡Y la vocal se dobla: koken → kook!' },
+        { id: 'm1l3lz-5', type: 'fill_blank', prompt: 'Hij ___ Nederlands. (aprender)', correctAnswer: 'leert', hint: 'leren → raíz leer + t' },
+        { id: 'm1l3lz-6', type: 'multiple_choice', prompt: '¿Quién llama a quién?', options: ['David llama a Anna', 'Anna llama a David', 'La hermana llama a Anna', 'Nadie llama'], correctAnswer: 'David llama a Anna', explanation: '"Later belt hij met Anna" — hij = David.' },
       ],
     },
     {
       type: 'dialogue',
       dialogue: {
-        id: 'd3',
-        title: 'Op het werk',
-        context: 'Lena en Pieter praten tijdens de lunchpauze op het werk.',
+        id: 'm1d3',
+        title: 'De derde ontmoeting',
+        context: 'David en Anna praten over hun dag. Vandaag oefenen ze de werkwoorden.',
         lines: [
-          { id: 'd3-1', speaker: 'Lena', dutch: 'Hoi Pieter! Wat doe jij vanavond?', spanish: '¡Hola Pieter! ¿Qué haces esta noche?' },
-          { id: 'd3-2', speaker: 'Pieter', dutch: 'Ik ga naar een concert. Wil jij ook mee?', spanish: 'Voy a un concierto. ¿Quieres venir también?' },
-          { id: 'd3-3', speaker: 'Lena', dutch: 'Leuk! Maar ik moet nog werken tot zes uur.', spanish: '¡Qué bien! Pero tengo que trabajar hasta las seis.' },
-          { id: 'd3-4', speaker: 'Pieter', dutch: 'Het concert begint pas om acht uur. Dat lukt!', spanish: 'El concierto no empieza hasta las ocho. ¡Da tiempo!' },
-          { id: 'd3-5', speaker: 'Lena', dutch: 'Oké, ik kom! Waar is het?', spanish: '¡Vale, voy! ¿Dónde es?' },
-          { id: 'd3-6', speaker: 'Pieter', dutch: 'In Paradiso, in het centrum van Amsterdam.', spanish: 'En el Paradiso, en el centro de Ámsterdam.' },
-          { id: 'd3-7', speaker: 'Lena', dutch: 'Goed! Ik zie je om zeven uur bij de ingang.', spanish: '¡Bien! Te veo a las siete en la entrada.' },
-          { id: 'd3-8', speaker: 'Pieter', dutch: 'Top! Tot vanavond, Lena.', spanish: '¡Genial! Hasta esta noche, Lena.' },
+          { id: 'm1d3-1',  speaker: 'David', dutch: 'Hoi Anna! Sorry, wacht je al lang?',                       spanish: '¡Hola Anna! Perdona, ¿llevas mucho esperando?' },
+          { id: 'm1d3-2',  speaker: 'Anna',  dutch: 'Hallo David! Nee hoor, ik wacht vijf minuten.',            spanish: '¡Hola David! Qué va, llevo esperando cinco minutos.' },
+          { id: 'm1d3-3',  speaker: 'David', dutch: 'Wat doe je op een dag, Anna? Werk je veel?',               spanish: '¿Qué haces en un día, Anna? ¿Trabajas mucho?' },
+          { id: 'm1d3-4',  speaker: 'Anna',  dutch: 'Ja, ik werk op een school. Ik help de kinderen.',          spanish: 'Sí, trabajo en una escuela. Ayudo a los niños.' },
+          { id: 'm1d3-5',  speaker: 'David', dutch: 'Wat leuk! Ik werk thuis. Ik denk de hele dag aan Nederlands!', spanish: '¡Qué bonito! Yo trabajo en casa. ¡Pienso en neerlandés todo el día!' },
+          { id: 'm1d3-6',  speaker: 'Anna',  dutch: 'Haha! En je leert snel, David.',                           spanish: '¡Jaja! Y aprendes rápido, David.' },
+          { id: 'm1d3-7',  speaker: 'David', dutch: 'Dank je. Kook jij vanavond?',                              spanish: 'Gracias. ¿Cocinas tú esta noche?' },
+          { id: 'm1d3-8',  speaker: 'Anna',  dutch: 'Ja, ik kook pasta. Mijn zus helpt.',                       spanish: 'Sí, cocino pasta. Mi hermana ayuda.' },
+          { id: 'm1d3-9',  speaker: 'David', dutch: 'Wij eten vanavond bij vrienden. Zij koken heel lekker.',   spanish: 'Nosotros cenamos esta noche en casa de unos amigos. Ellos cocinan riquísimo.' },
+          { id: 'm1d3-10', speaker: 'Anna',  dutch: 'Gezellig! Zeg, ik ga naar huis.',                          spanish: '¡Qué bien! Oye, me voy a casa.' },
+          { id: 'm1d3-11', speaker: 'David', dutch: 'Oké! Ik bel je morgen.',                                   spanish: '¡Vale! Te llamo mañana.' },
+          { id: 'm1d3-12', speaker: 'Anna',  dutch: 'Prima! Bel je in de ochtend?',                             spanish: '¡Perfecto! ¿Me llamas por la mañana?' },
+          { id: 'm1d3-13', speaker: 'David', dutch: 'Ja! Tot morgen, Anna.',                                    spanish: '¡Sí! Hasta mañana, Anna.' },
+          { id: 'm1d3-14', speaker: 'Anna',  dutch: 'Doei!',                                                    spanish: '¡Adiós!' },
         ],
       },
+    },
+    {
+      type: 'practice',
+      exercises: [
+        // ── Opción múltiple ──
+        { id: 'm1l3e-1',  type: 'multiple_choice', prompt: '¿Cuál es la raíz de "werken"?', options: ['werk', 'werken', 'werkt', 'wer'], correctAnswer: 'werk', explanation: 'Infinitivo − en = raíz: werken − en = werk.' },
+        { id: 'm1l3e-2',  type: 'multiple_choice', prompt: '¿Cuál es la forma correcta con "hij"?', options: ['hij werkt', 'hij werk', 'hij werken', 'hij werkent'], correctAnswer: 'hij werkt', explanation: 'jij/hij/zij = raíz + t → werkt.' },
+        { id: 'm1l3e-3',  type: 'multiple_choice', prompt: '¿Cuál es la forma correcta con "jullie"?', options: ['jullie werken', 'jullie werkt', 'jullie werk', 'jullie werkens'], correctAnswer: 'jullie werken', explanation: 'Todo el plural usa el infinitivo: werken.' },
+        { id: 'm1l3e-4',  type: 'multiple_choice', prompt: '¿Cuál es la pregunta correcta?', options: ['Bel je mij?', 'Belt je mij?', 'Bellen je mij?', 'Belt jij mij?'], correctAnswer: 'Bel je mij?', explanation: 'Cuando el verbo va delante de je/jij, pierde la -t.' },
+        // ── Verdadero / Falso ──
+        { id: 'm1l3e-5',  type: 'true_false', prompt: 'Con "wij" se usa el infinitivo del verbo.', correctAnswer: 'verdadero', explanation: 'Wij/jullie/zij (plural) → infinitivo: wij werken.' },
+        { id: 'm1l3e-6',  type: 'true_false', prompt: '"Ik werkt" es correcto.', correctAnswer: 'falso', explanation: 'Con "ik" va la raíz sin -t: ik werk.' },
+        { id: 'm1l3e-7',  type: 'true_false', prompt: 'La raíz de "wonen" es "won".', correctAnswer: 'falso', explanation: 'La vocal se dobla para mantener la pronunciación: wonen → woon.' },
+        // ── Completar ──
+        { id: 'm1l3e-8',  type: 'fill_blank', prompt: 'Hij ___ veel. (trabajar)', correctAnswer: 'werkt', hint: 'raíz + t' },
+        { id: 'm1l3e-9',  type: 'fill_blank', prompt: 'Jullie ___ samen. (aprender)', correctAnswer: 'leren', hint: 'Plural → infinitivo' },
+        { id: 'm1l3e-10', type: 'fill_blank', prompt: 'Ik ___ op de bus. (esperar)', correctAnswer: 'wacht', hint: 'wachten → raíz' },
+        { id: 'm1l3e-11', type: 'fill_blank', prompt: 'Ze ___ morgen. (llamar, ellos)', correctAnswer: 'bellen', hint: 'Plural → infinitivo' },
+        { id: 'm1l3e-12', type: 'fill_blank', prompt: 'Zij ___ in een kantoor. (trabajar, ella)', correctAnswer: 'werkt', hint: 'raíz + t' },
+        // ── Ordenar frases ──
+        { id: 'm1l3e-13', type: 'order_sentence', prompt: 'Ordena: "Trabajamos juntos."', options: ['We', 'werken', 'samen'], correctAnswer: 'We werken samen' },
+        { id: 'm1l3e-14', type: 'order_sentence', prompt: 'Ordena: "Él ayuda en la escuela."', options: ['Hij', 'helpt', 'op', 'school'], correctAnswer: 'Hij helpt op school' },
+        // ── Sopa de letras ──
+        { id: 'm1l3e-15', type: 'word_scramble', prompt: '¿Cómo se dice "pensar"?', correctAnswer: 'denken', hint: 'pensar' },
+        { id: 'm1l3e-16', type: 'word_scramble', prompt: '¿Cómo se dice "esperar"?', correctAnswer: 'wachten', hint: 'esperar' },
+        // ── Letras que faltan ──
+        { id: 'm1l3e-17', type: 'letter_dash', prompt: 'Completa: "ayudar"', correctAnswer: 'helpen', hint: 'Je … een vriend' },
+        { id: 'm1l3e-18', type: 'letter_dash', prompt: 'Completa: "preguntar"', correctAnswer: 'vragen', hint: 'raíz: vraag' },
+        // ── Unir parejas ──
+        { id: 'm1l3e-19', type: 'match_pairs', prompt: 'Une cada verbo con su traducción', correctAnswer: '', pairs: [
+          { left: 'denken', right: 'pensar' },
+          { left: 'helpen', right: 'ayudar' },
+          { left: 'wachten', right: 'esperar' },
+          { left: 'bellen', right: 'llamar' },
+          { left: 'maken', right: 'hacer' },
+          { left: 'vragen', right: 'preguntar' },
+        ] },
+        { id: 'm1l3e-20', type: 'match_pairs', prompt: 'Une cada persona con su forma del verbo', correctAnswer: '', pairs: [
+          { left: 'ik', right: 'help' },
+          { left: 'jij', right: 'denkt' },
+          { left: 'hij', right: 'kookt' },
+          { left: 'wij', right: 'wachten' },
+          { left: 'jullie', right: 'bellen' },
+          { left: 'zij (ellos)', right: 'vragen' },
+        ] },
+        // ── Emoji ──
+        { id: 'm1l3e-21', type: 'emoji_choice', prompt: '¿Qué emoji representa "bellen"?', options: ['📞', '🍳', '📖', '⏳'], correctAnswer: '📞', explanation: '"Bellen" = llamar por teléfono.' },
+        { id: 'm1l3e-22', type: 'emoji_choice', prompt: '¿Qué emoji representa "denken"?', options: ['💭', '💼', '🤲', '❓'], correctAnswer: '💭', explanation: '"Denken" = pensar.' },
+        // ── El intruso ──
+        { id: 'm1l3e-23', type: 'odd_one_out', prompt: '¿Cuál es un INFINITIVO (las otras son raíces)?', options: ['werk', 'woon', 'leer', 'werken'], correctAnswer: 'werken', explanation: '"Werken" termina en -en: es el infinitivo. Las otras son raíces.' },
+        { id: 'm1l3e-24', type: 'odd_one_out', prompt: '¿Cuál NO es un verbo?', options: ['denken', 'helpen', 'morgen', 'wachten'], correctAnswer: 'morgen', explanation: '"Morgen" significa mañana: no es un verbo aunque termine en -en.' },
+        // ── Escribir ──
+        { id: 'm1l3e-25', type: 'write_answer', prompt: 'Escribe la raíz de "vragen"', correctAnswer: 'vraag', hint: 'Recuerda doblar la vocal' },
+        { id: 'm1l3e-26', type: 'write_answer', prompt: 'Escribe en neerlandés: "Él aprende en casa"', correctAnswer: 'Hij leert thuis', hint: 'raíz + t · sin punto final' },
+        // ── Escuchar ──
+        { id: 'm1l3e-27', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "Jij leert snel"', options: ['Jij leert snel', 'Jij leert veel', 'Wij leren snel', 'Hij leert snel'], correctAnswer: 'Jij leert snel' },
+        { id: 'm1l3e-28', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "We wachten buiten"', options: ['We wachten buiten', 'We werken buiten', 'Ze wachten buiten', 'We wachten binnen'], correctAnswer: 'We wachten buiten' },
+        { id: 'm1l3e-29', type: 'listen_translate', prompt: 'Escucha y traduce: "Hij werkt veel"', options: ['Él', 'trabaja', 'mucho', 'poco', 'Ella', 'ayuda'], correctAnswer: 'Él trabaja mucho' },
+        { id: 'm1l3e-30', type: 'listen_translate', prompt: 'Escucha y traduce: "Je helpt een vriend"', options: ['Ayudas', 'a', 'un', 'amigo', 'Llamas', 'niño'], correctAnswer: 'Ayudas a un amigo' },
+        // ── Comprensión del diálogo (De derde ontmoeting) ──
+        { id: 'm1l3e-31', type: 'multiple_choice', prompt: 'En el diálogo, ¿dónde trabaja Anna?', options: ['En una escuela', 'En una oficina', 'En casa', 'En un restaurante'], correctAnswer: 'En una escuela', explanation: '"Ik werk op een school. Ik help de kinderen."' },
+        { id: 'm1l3e-32', type: 'true_false', prompt: 'Anna cocina pasta esta noche.', correctAnswer: 'verdadero', explanation: '"Ja, ik kook pasta. Mijn zus helpt."' },
+        { id: 'm1l3e-33', type: 'true_false', prompt: 'David llama a Anna esta noche.', correctAnswer: 'falso', explanation: 'La llama mañana por la mañana: "Ik bel je morgen… in de ochtend".' },
+      ],
     },
     { type: 'review' },
   ],
 };
+
+/* ─────────────────────────────────────────────────────────────────────────── */
 
 const m1_les4: Lesson = {
   id: 'les-4-nummers',
   moduleId: 'over-jou',
   title: 'Les 4 — Grammatica | De nummers',
-  subtitle: 'Los números',
+  subtitle: 'Los números del 0 al 100',
   order: 4,
-  learningObjective: 'Usar números en contextos cotidianos: edad, teléfono, precios',
-  estimatedMinutes: 15,
+  learningObjective: 'Contar del 0 al 100, usar los números en la vida diaria y hacer cálculos sencillos',
+  estimatedMinutes: 30,
   blocks: [
+    {
+      type: 'summary',
+      title: 'De nummers',
+      intro: 'Los números están en todas partes: tu edad, tu número de casa, tu teléfono, los precios. Hoy aprendes a contar del 0 al 100 — y el truco más importante: en neerlandés se piensa "al revés".',
+      objectives: [
+        'Contar del 0 al 100',
+        'Formar números compuestos: unidades ANTES de decenas (vierentwintig)',
+        'Hacer cálculos sencillos con plus, min, keer e is',
+      ],
+      sections: [
+        {
+          heading: '🔢 Del 0 al 10',
+          items: [
+            { nl: 'nul, één, twee, drie, vier', es: '0, 1, 2, 3, 4' },
+            { nl: 'vijf, zes, zeven, acht, negen, tien', es: '5, 6, 7, 8, 9, 10' },
+          ],
+        },
+        {
+          heading: '1️⃣1️⃣ Del 11 al 20',
+          body: 'Del 13 al 19 se forman con **-tien** (como "trece = tres-diez"). Ojo con los irregulares **elf** (11), **twaalf** (12), **veertien** (14, no "viertien") y **achttien** (con dos t).',
+          items: [
+            { nl: 'elf, twaalf, dertien, veertien, vijftien', es: '11, 12, 13, 14, 15' },
+            { nl: 'zestien, zeventien, achttien, negentien, twintig', es: '16, 17, 18, 19, 20' },
+          ],
+        },
+        {
+          heading: '🔟 Las decenas',
+          items: [
+            { nl: 'twintig, dertig, veertig, vijftig', es: '20, 30, 40, 50' },
+            { nl: 'zestig, zeventig, tachtig, negentig, honderd', es: '60, 70, 80, 90, 100' },
+          ],
+        },
+        {
+          heading: '🔄 La regla: al revés que en español',
+          body: 'Para decir 24, primero la unidad, luego **en** (y), luego la decena: **vier + en + twintig = vierentwintig** ("cuatro y veinte"). Para RECONOCER un número, escucha cómo TERMINA la palabra: ahí está la decena. *Zevenenzestig* termina en -zestig → es sesenta y algo (67).',
+        },
+        {
+          heading: '➕ Calcular — Rekenen',
+          body: 'Con cuatro palabras ya puedes hacer cuentas: **Twee plus drie is vijf** (2+3=5), **Negen min vier is vijf** (9−4=5), **Twee keer drie is zes** (2×3=6).',
+          items: [
+            { nl: 'plus', es: 'más' },
+            { nl: 'min', es: 'menos' },
+            { nl: 'keer', es: 'por / veces' },
+            { nl: 'is', es: 'es → aquí: "son"' },
+          ],
+        },
+      ],
+      tip: 'Piensa "al revés": 24 = **vier**en**twintig** (cuatro y veinte). Y para reconocer un número que escuchas, fíjate en el FINAL de la palabra: ahí está la decena.',
+    },
     {
       type: 'vocabulary',
       items: [
-        { id: 'nul', dutch: 'nul', spanish: 'cero', article: null, emoji: '0️⃣', color: '#1D0084', exampleNl: 'Mijn score is nul.', exampleEs: 'Mi puntuación es cero.', category: 'nummers', difficulty: 'A0' },
-        { id: 'een', dutch: 'één', spanish: 'uno', article: null, emoji: '1️⃣', color: '#025dc7', exampleNl: 'Ik heb één broer.', exampleEs: 'Tengo un hermano.', category: 'nummers', difficulty: 'A0' },
-        { id: 'twee', dutch: 'twee', spanish: 'dos', article: null, emoji: '2️⃣', color: '#0b4db5', exampleNl: 'Ik heb twee katten.', exampleEs: 'Tengo dos gatos.', category: 'nummers', difficulty: 'A0' },
-        { id: 'drie', dutch: 'drie', spanish: 'tres', article: null, emoji: '3️⃣', color: '#0a3d9e', exampleNl: 'Er zijn drie lessen per week.', exampleEs: 'Hay tres clases por semana.', category: 'nummers', difficulty: 'A0' },
-        { id: 'vier', dutch: 'vier', spanish: 'cuatro', article: null, emoji: '4️⃣', color: '#1440a0', exampleNl: 'Ik slaap vier uur.', exampleEs: 'Duermo cuatro horas.', category: 'nummers', difficulty: 'A0' },
-        { id: 'vijf', dutch: 'vijf', spanish: 'cinco', article: null, emoji: '5️⃣', color: '#0d5bbf', exampleNl: 'Het kost vijf euro.', exampleEs: 'Cuesta cinco euros.', category: 'nummers', difficulty: 'A0' },
-        { id: 'zes', dutch: 'zes', spanish: 'seis', article: null, emoji: '6️⃣', color: '#1D0084', exampleNl: 'Er zijn zes lessen in dit module.', exampleEs: 'Hay seis lecciones en este módulo.', category: 'nummers', difficulty: 'A0' },
-        { id: 'zeven', dutch: 'zeven', spanish: 'siete', article: null, emoji: '7️⃣', color: '#025dc7', exampleNl: 'De week heeft zeven dagen.', exampleEs: 'La semana tiene siete días.', category: 'nummers', difficulty: 'A0' },
-        { id: 'acht', dutch: 'acht', spanish: 'ocho', article: null, emoji: '8️⃣', color: '#0b4db5', exampleNl: 'De les begint om acht uur.', exampleEs: 'La clase empieza a las ocho.', category: 'nummers', difficulty: 'A0' },
-        { id: 'negen', dutch: 'negen', spanish: 'nueve', article: null, emoji: '9️⃣', color: '#0a3d9e', exampleNl: 'Er zijn negen mensen in de klas.', exampleEs: 'Hay nueve personas en la clase.', category: 'nummers', difficulty: 'A0' },
-        { id: 'tien', dutch: 'tien', spanish: 'diez', article: null, emoji: '🔟', color: '#1440a0', exampleNl: 'Ik leer tien woorden per dag.', exampleEs: 'Aprendo diez palabras al día.', category: 'nummers', difficulty: 'A0' },
-        { id: 'twintig', dutch: 'twintig', spanish: 'veinte', article: null, emoji: '💯', color: '#0d5bbf', exampleNl: 'Er zijn twintig studenten in de klas.', exampleEs: 'Hay veinte estudiantes en la clase.', category: 'nummers', difficulty: 'A0' },
-        { id: 'dertig', dutch: 'dertig', spanish: 'treinta', article: null, emoji: '🔢', color: '#1D0084', exampleNl: 'Ik ben dertig jaar oud.', exampleEs: 'Tengo treinta años.', category: 'nummers', difficulty: 'A0' },
-        { id: 'honderd', dutch: 'honderd', spanish: 'cien / ciento', article: null, emoji: '💯', color: '#025dc7', exampleNl: 'Dit boek kost honderd euro.', exampleEs: 'Este libro cuesta cien euros.', category: 'nummers', difficulty: 'A0' },
-        { id: 'duizend', dutch: 'duizend', spanish: 'mil', article: null, emoji: '🔝', color: '#0b4db5', exampleNl: 'Er zijn duizend woorden in het boek.', exampleEs: 'Hay mil palabras en el libro.', category: 'nummers', difficulty: 'A0' },
+        { id: 'm1l4v-nul',      dutch: 'nul',      spanish: 'cero (0)',            article: null, emoji: '0️⃣', color: '#1D0084', exampleNl: 'Nul zes is het begin van mijn nummer.', exampleEs: 'Cero seis es el principio de mi número.', category: 'nummers', difficulty: 'A0' },
+        { id: 'm1l4v-een',      dutch: 'één',      spanish: 'uno (1)',             article: null, emoji: '1️⃣', color: '#025dc7', exampleNl: 'Ik heb één kat.',            exampleEs: 'Tengo un gato.',                 category: 'nummers', difficulty: 'A0' },
+        { id: 'm1l4v-twee',     dutch: 'twee',     spanish: 'dos (2)',             article: null, emoji: '2️⃣', color: '#0b4db5', exampleNl: 'Twee koffie, alstublieft.',  exampleEs: 'Dos cafés, por favor.',          category: 'nummers', difficulty: 'A0' },
+        { id: 'm1l4v-drie',     dutch: 'drie',     spanish: 'tres (3)',            article: null, emoji: '3️⃣', color: '#0a3d9e', exampleNl: 'Drie keer drie is negen.',   exampleEs: 'Tres por tres son nueve.',       category: 'nummers', difficulty: 'A0' },
+        { id: 'm1l4v-vier',     dutch: 'vier',     spanish: 'cuatro (4)',          article: null, emoji: '4️⃣', color: '#1440a0', exampleNl: 'Vier plus vijf is negen.',   exampleEs: 'Cuatro más cinco son nueve.',    category: 'nummers', difficulty: 'A0' },
+        { id: 'm1l4v-vijf',     dutch: 'vijf',     spanish: 'cinco (5)',           article: null, emoji: '5️⃣', color: '#0d5bbf', exampleNl: 'Ik wacht vijf minuten.',     exampleEs: 'Espero cinco minutos.',          category: 'nummers', difficulty: 'A0' },
+        { id: 'm1l4v-zes',      dutch: 'zes',      spanish: 'seis (6)',            article: null, emoji: '6️⃣', color: '#1D0084', exampleNl: 'Twee keer drie is zes.',     exampleEs: 'Dos por tres son seis.',         category: 'nummers', difficulty: 'A0' },
+        { id: 'm1l4v-zeven',    dutch: 'zeven',    spanish: 'siete (7)',           article: null, emoji: '7️⃣', color: '#025dc7', exampleNl: 'De week heeft zeven dagen.', exampleEs: 'La semana tiene siete días.',    category: 'nummers', difficulty: 'A0' },
+        { id: 'm1l4v-acht',     dutch: 'acht',     spanish: 'ocho (8)',            article: null, emoji: '8️⃣', color: '#0b4db5', exampleNl: 'David woont op nummer acht.', exampleEs: 'David vive en el número ocho.', category: 'nummers', difficulty: 'A0' },
+        { id: 'm1l4v-negen',    dutch: 'negen',    spanish: 'nueve (9)',           article: null, emoji: '9️⃣', color: '#0a3d9e', exampleNl: 'Het kost negen euro.',       exampleEs: 'Cuesta nueve euros.',            category: 'nummers', difficulty: 'A0' },
+        { id: 'm1l4v-tien',     dutch: 'tien',     spanish: 'diez (10)',           article: null, emoji: '🔟', color: '#1440a0', exampleNl: 'Twintig min tien is tien.',  exampleEs: 'Veinte menos diez son diez.',    category: 'nummers', difficulty: 'A0' },
+        { id: 'm1l4v-elf',      dutch: 'elf',      spanish: 'once (11)',           article: null, emoji: '⏰', color: '#0d5bbf', exampleNl: 'Elf min zes is vijf.',       exampleEs: 'Once menos seis son cinco.',     category: 'nummers', difficulty: 'A0' },
+        { id: 'm1l4v-twaalf',   dutch: 'twaalf',   spanish: 'doce (12)',           article: null, emoji: '🕛', color: '#1D0084', exampleNl: 'Ik woon op nummer twaalf.',  exampleEs: 'Vivo en el número doce.',        category: 'nummers', difficulty: 'A0' },
+        { id: 'm1l4v-twintig',  dutch: 'twintig',  spanish: 'veinte (20)',         article: null, emoji: '2️⃣0️⃣', color: '#025dc7', exampleNl: 'Vier keer vijf is twintig.', exampleEs: 'Cuatro por cinco son veinte.', category: 'nummers', difficulty: 'A0' },
+        { id: 'm1l4v-dertig',   dutch: 'dertig',   spanish: 'treinta (30)',        article: null, emoji: '🎯', color: '#0b4db5', exampleNl: 'Mijn broer is dertig jaar.', exampleEs: 'Mi hermano tiene treinta años.', category: 'nummers', difficulty: 'A0' },
+        { id: 'm1l4v-honderd',  dutch: 'honderd',  spanish: 'cien (100)',          article: null, emoji: '💯', color: '#0a3d9e', exampleNl: 'Honderd min één is negenennegentig.', exampleEs: 'Cien menos uno son noventa y nueve.', category: 'nummers', difficulty: 'A0' },
+        { id: 'm1l4v-hoeveel',  dutch: 'hoeveel',  spanish: '¿cuánto/s?',          article: null, emoji: '🤔', color: '#1440a0', exampleNl: 'Hoeveel kost het?',          exampleEs: '¿Cuánto cuesta?',                category: 'nummers', difficulty: 'A0' },
+        { id: 'm1l4v-kosten',   dutch: 'kosten',   spanish: 'costar',              article: null, emoji: '💰', color: '#0d5bbf', exampleNl: 'Het kost negen euro.',       exampleEs: 'Cuesta nueve euros.',            category: 'nummers', difficulty: 'A0' },
+        { id: 'm1l4v-euro',     dutch: 'de euro',  spanish: 'el euro',             article: 'de', emoji: '💶', color: '#1D0084', exampleNl: 'Het kost twee euro.',        exampleEs: 'Cuesta dos euros.',              category: 'nummers', difficulty: 'A0' },
       ],
     },
     {
       type: 'phrases',
       items: [
-        { id: 'p4-1', dutch: 'Ik ben 28 jaar oud.', spanish: 'Tengo 28 años.', context: 'Edad' },
-        { id: 'p4-2', dutch: 'Hoe oud ben jij?', spanish: '¿Cuántos años tienes?', context: 'Preguntar edad' },
-        { id: 'p4-3', dutch: 'Het kost vijf euro vijftig.', spanish: 'Cuesta cinco euros cincuenta.', context: 'Precio' },
-        { id: 'p4-4', dutch: 'Mijn telefoonnummer is 06-12345678.', spanish: 'Mi número de teléfono es 06-12345678.', context: 'Teléfono' },
-        { id: 'p4-5', dutch: 'Wij hebben twee kinderen.', spanish: 'Tenemos dos hijos.', context: 'Familia' },
-        { id: 'p4-6', dutch: 'De les begint om negen uur.', spanish: 'La clase empieza a las nueve.', context: 'Hora' },
-        { id: 'p4-7', dutch: 'Er zijn twintig studenten in mijn klas.', spanish: 'Hay veinte estudiantes en mi clase.', context: 'Cantidad' },
-        { id: 'p4-8', dutch: 'Ik woon op nummer zeven.', spanish: 'Vivo en el número siete.', context: 'Dirección' },
+        { id: 'm1l4p-1',  dutch: 'Hoe oud ben je?',                spanish: '¿Cuántos años tienes?',            context: 'Edad' },
+        { id: 'm1l4p-2',  dutch: 'Ik ben vijfentwintig jaar.',     spanish: 'Tengo veinticinco años.',          context: 'Edad' },
+        { id: 'm1l4p-3',  dutch: 'Hij is achtenveertig jaar.',     spanish: 'Él tiene cuarenta y ocho años.',   context: 'Edad' },
+        { id: 'm1l4p-4',  dutch: 'Op welk nummer woon je?',        spanish: '¿En qué número vives?',            context: 'Dirección' },
+        { id: 'm1l4p-5',  dutch: 'Ik woon op nummer twaalf.',      spanish: 'Vivo en el número doce.',          context: 'Dirección' },
+        { id: 'm1l4p-6',  dutch: 'Hoeveel kost het?',              spanish: '¿Cuánto cuesta?',                  context: 'Precios' },
+        { id: 'm1l4p-7',  dutch: 'Het kost negen euro.',           spanish: 'Cuesta nueve euros.',              context: 'Precios' },
+        { id: 'm1l4p-8',  dutch: 'Wat is je telefoonnummer?',      spanish: '¿Cuál es tu número de teléfono?',  context: 'Teléfono' },
+        { id: 'm1l4p-9',  dutch: 'Mijn nummer is 06-87654321.',    spanish: 'Mi número es 06-87654321.',        context: 'Teléfono' },
+        { id: 'm1l4p-10', dutch: 'Hoeveel is vijf keer vijf?',     spanish: '¿Cuánto es cinco por cinco?',      context: 'Calcular' },
+        { id: 'm1l4p-11', dutch: 'Zeven keer twee is veertien.',   spanish: 'Siete por dos son catorce.',       context: 'Calcular' },
+        { id: 'm1l4p-12', dutch: 'Elf min zes is vijf.',           spanish: 'Once menos seis son cinco.',       context: 'Calcular' },
+        { id: 'm1l4p-13', dutch: 'Welk nummer heeft u?',           spanish: '¿Qué número tiene usted?',         context: 'Formal' },
+        { id: 'm1l4p-14', dutch: 'Ik heb nummer drieëndertig.',    spanish: 'Tengo el número treinta y tres.',  context: 'Formal' },
       ],
     },
     {
-      type: 'practice',
+      type: 'lezen',
+      textNl: `David woont op nummer acht in Amsterdam. Anna woont op nummer vijftien in Haarlem.
+
+Vandaag drinken ze koffie in de stad. Eén koffie kost vier euro. Twee koffie is acht euro.
+
+Anna vraagt: ‘Hoeveel is vier plus acht?’ David denkt en zegt: ‘Twaalf!’
+‘Heel goed’, zegt Anna. ‘En honderd min één?’ David lacht: ‘Negenennegentig!’`,
+      textEs: `David vive en el número ocho en Ámsterdam. Anna vive en el número quince en Haarlem.
+
+Hoy toman café en la ciudad. Un café cuesta cuatro euros. Dos cafés son ocho euros.
+
+Anna pregunta: «¿Cuánto es cuatro más ocho?» David piensa y dice: «¡Doce!»
+«Muy bien», dice Anna. «¿Y cien menos uno?» David se ríe: «¡Noventa y nueve!»`,
       exercises: [
-        { id: 'e4-1', type: 'multiple_choice', prompt: '¿Cómo se dice "cinco" en neerlandés?', options: ['vier', 'vijf', 'zes', 'zeven'], correctAnswer: 'vijf' },
-        { id: 'e4-2', type: 'fill_blank', prompt: 'Ik ben ___ jaar oud. (veintiocho → schrijf het getal uit)', correctAnswer: 'achtentwintig', hint: 'En neerlandés: eenentwintig, tweeëntwintig... achtentwintig' },
-        { id: 'e4-3', type: 'multiple_choice', prompt: '¿Cuánto es "twintig + tien"?', options: ['veertig', 'dertig', 'vijftig', 'zestig'], correctAnswer: 'dertig' },
-        { id: 'e4-4', type: 'fill_blank', prompt: 'Er zijn ___ dagen in een week. (siete)', correctAnswer: 'zeven' },
-        { id: 'e4-5', type: 'order_sentence', prompt: 'Ordena: "La clase empieza a las nueve."', options: ['De', 'les', 'begint', 'om', 'negen', 'uur'], correctAnswer: 'De les begint om negen uur' },
-        { id: 'e4-6', type: 'multiple_choice', prompt: '¿Cómo se dice "veinte" en neerlandés?', options: ['twaalf', 'twintig', 'tien', 'dertig'], correctAnswer: 'twintig' },
-        { id: 'e4-7', type: 'fill_blank', prompt: 'Het kost ___ euro. (diez)', correctAnswer: 'tien' },
-        { id: 'e4-8', type: 'multiple_choice', prompt: '"Hoe oud ben jij?" significa:', options: ['¿Cómo estás?', '¿Cuántos años tienes?', '¿Dónde vives?', '¿Cuánto cuesta?'], correctAnswer: '¿Cuántos años tienes?' },
+        { id: 'm1l4lz-1', type: 'multiple_choice', prompt: '¿En qué número vive David?', options: ['En el ocho', 'En el quince', 'En el doce', 'En el cuatro'], correctAnswer: 'En el ocho', explanation: '"David woont op nummer acht."' },
+        { id: 'm1l4lz-2', type: 'multiple_choice', prompt: '¿Cuánto cuesta UN café?', options: ['Cuatro euros', 'Ocho euros', 'Dos euros', 'Doce euros'], correctAnswer: 'Cuatro euros', explanation: '"Eén koffie kost vier euro."' },
+        { id: 'm1l4lz-3', type: 'fill_blank', prompt: 'Twee koffie is ___ euro. (en letras)', correctAnswer: 'acht', hint: '4 + 4 = …', explanation: 'Dos cafés a cuatro euros: acht (ocho) euros.' },
+        { id: 'm1l4lz-4', type: 'multiple_choice', prompt: '¿Cuánto es "vier plus acht"?', options: ['twaalf', 'tien', 'veertien', 'elf'], correctAnswer: 'twaalf', explanation: '4 + 8 = 12 = twaalf.' },
+        { id: 'm1l4lz-5', type: 'fill_blank', prompt: 'Honderd min één is ___ en negentig. (en letras, la unidad)', correctAnswer: 'negen', hint: '99 = "nueve y noventa"', explanation: '99 = negenennegentig: primero la unidad (negen), luego la decena (negentig).' },
+        { id: 'm1l4lz-6', type: 'multiple_choice', prompt: '¿En qué número vive Anna?', options: ['En el quince', 'En el ocho', 'En el cincuenta', 'En el cinco'], correctAnswer: 'En el quince', explanation: '"Anna woont op nummer vijftien" — vijftien = 15.' },
       ],
     },
     {
       type: 'dialogue',
       dialogue: {
-        id: 'd4',
-        title: 'In de winkel',
-        context: 'Maria koopt groenten op de markt in Amsterdam.',
+        id: 'm1d4',
+        title: 'De vierde ontmoeting',
+        context: 'David en Anna wisselen nummers uit en spelen een rekenspelletje.',
         lines: [
-          { id: 'd4-1', speaker: 'Verkoper', dutch: 'Goedemiddag! Wat mag het zijn?', spanish: '¡Buenas tardes! ¿Qué le pongo?' },
-          { id: 'd4-2', speaker: 'Maria', dutch: 'Hoeveel kosten deze appels?', spanish: '¿Cuánto cuestan estas manzanas?' },
-          { id: 'd4-3', speaker: 'Verkoper', dutch: 'Twee euro vijftig per kilo.', spanish: 'Dos euros cincuenta el kilo.' },
-          { id: 'd4-4', speaker: 'Maria', dutch: 'Dan neem ik twee kilo, alstublieft.', spanish: 'Entonces me llevo dos kilos, por favor.' },
-          { id: 'd4-5', speaker: 'Verkoper', dutch: 'En verder? Wilt u nog iets?', spanish: '¿Y algo más? ¿Quiere algo más?' },
-          { id: 'd4-6', speaker: 'Maria', dutch: 'Ja, drie bananen en een bosje radijsjes.', spanish: 'Sí, tres plátanos y un manojo de rábanos.' },
-          { id: 'd4-7', speaker: 'Verkoper', dutch: 'Dat is samen zes euro twintig.', spanish: 'En total son seis euros veinte.' },
-          { id: 'd4-8', speaker: 'Maria', dutch: 'Hier heeft u tien euro.', spanish: 'Aquí tiene diez euros.' },
-          { id: 'd4-9', speaker: 'Verkoper', dutch: 'En drie euro tachtig terug. Dank u wel!', spanish: 'Y tres euros ochenta de vuelta. ¡Muchas gracias!' },
+          { id: 'm1d4-1',  speaker: 'David', dutch: 'Hoi Anna! Vandaag leren we nummers, toch?',                                     spanish: '¡Hola Anna! Hoy aprendemos los números, ¿verdad?' },
+          { id: 'm1d4-2',  speaker: 'Anna',  dutch: 'Ja! Eerst een vraag: hoe oud ben je, David?',                                   spanish: '¡Sí! Primero una pregunta: ¿cuántos años tienes, David?' },
+          { id: 'm1d4-3',  speaker: 'David', dutch: 'Ik ben tweeëndertig jaar. En jij?',                                             spanish: 'Tengo treinta y dos años. ¿Y tú?' },
+          { id: 'm1d4-4',  speaker: 'Anna',  dutch: 'Ik ben negenentwintig.',                                                       spanish: 'Tengo veintinueve.' },
+          { id: 'm1d4-5',  speaker: 'David', dutch: 'Op welk nummer woon je in Haarlem?',                                            spanish: '¿En qué número vives en Haarlem?' },
+          { id: 'm1d4-6',  speaker: 'Anna',  dutch: 'Ik woon op nummer vijftien. En jij?',                                           spanish: 'Vivo en el número quince. ¿Y tú?' },
+          { id: 'm1d4-7',  speaker: 'David', dutch: 'Nummer acht, in Amsterdam.',                                                    spanish: 'En el número ocho, en Ámsterdam.' },
+          { id: 'm1d4-8',  speaker: 'Anna',  dutch: 'Wat is je telefoonnummer?',                                                     spanish: '¿Cuál es tu número de teléfono?' },
+          { id: 'm1d4-9',  speaker: 'David', dutch: 'Mijn nummer is nul zes, één twee, drie vier, vijf zes, zeven acht.',            spanish: 'Mi número es cero seis, uno dos, tres cuatro, cinco seis, siete ocho.' },
+          { id: 'm1d4-10', speaker: 'Anna',  dutch: 'Dank je! Nu een spelletje: hoeveel is drie keer drie?',                         spanish: '¡Gracias! Ahora un juego: ¿cuánto es tres por tres?' },
+          { id: 'm1d4-11', speaker: 'David', dutch: 'Makkelijk! Drie keer drie is negen.',                                           spanish: '¡Fácil! Tres por tres son nueve.' },
+          { id: 'm1d4-12', speaker: 'Anna',  dutch: 'En twintig min elf?',                                                          spanish: '¿Y veinte menos once?' },
+          { id: 'm1d4-13', speaker: 'David', dutch: 'Eh… twintig min elf is negen!',                                                 spanish: 'Eh… ¡veinte menos once son nueve!' },
+          { id: 'm1d4-14', speaker: 'Anna',  dutch: 'Heel goed! Twee keer negen voor David!',                                        spanish: '¡Muy bien! ¡Dos veces nueve para David!' },
+          { id: 'm1d4-15', speaker: 'David', dutch: 'Haha! Tot volgende week, Anna!',                                                spanish: '¡Jaja! ¡Hasta la semana que viene, Anna!' },
+          { id: 'm1d4-16', speaker: 'Anna',  dutch: 'Doei!',                                                                         spanish: '¡Adiós!' },
         ],
       },
+    },
+    {
+      type: 'practice',
+      exercises: [
+        // ── Opción múltiple ──
+        { id: 'm1l4e-1',  type: 'multiple_choice', prompt: '¿Cómo se dice 24?', options: ['vierentwintig', 'twintigvier', 'twee-vier', 'viertwintig'], correctAnswer: 'vierentwintig', explanation: 'Primero la unidad (vier), luego "en", luego la decena (twintig): "cuatro y veinte".' },
+        { id: 'm1l4e-2',  type: 'multiple_choice', prompt: '¿Qué número es "achtentachtig"?', options: ['88', '80', '18', '8'], correctAnswer: '88', explanation: 'acht (8) + en + tachtig (80) = 88.' },
+        { id: 'm1l4e-3',  type: 'multiple_choice', prompt: '¿Qué significa "Hoeveel kost het?"', options: ['¿Cuánto cuesta?', '¿Cuántos años tienes?', '¿Qué número tienes?', '¿Dónde vives?'], correctAnswer: '¿Cuánto cuesta?', explanation: 'Hoeveel = cuánto, kosten = costar.' },
+        { id: 'm1l4e-4',  type: 'multiple_choice', prompt: '¿Qué palabra usas para multiplicar (por/veces)?', options: ['keer', 'plus', 'min', 'is'], correctAnswer: 'keer', explanation: 'Twee keer drie is zes = dos por tres son seis.' },
+        // ── Verdadero / Falso ──
+        { id: 'm1l4e-5',  type: 'true_false', prompt: '"Vijftien" es el número 15.', correctAnswer: 'verdadero', explanation: 'vijf (5) + tien (10) = vijftien (15).' },
+        { id: 'm1l4e-6',  type: 'true_false', prompt: '"Tachtig" es el número 18.', correctAnswer: 'falso', explanation: 'Tachtig = 80. El 18 es "achttien".' },
+        { id: 'm1l4e-7',  type: 'true_false', prompt: 'En neerlandés se dice primero la decena y luego la unidad.', correctAnswer: 'falso', explanation: 'Es al revés que en español: primero la unidad → vierentwintig ("cuatro y veinte").' },
+        // ── Completar ──
+        { id: 'm1l4e-8',  type: 'fill_blank', prompt: 'Twee plus drie is ___. (en letras)', correctAnswer: 'vijf', hint: '2 + 3' },
+        { id: 'm1l4e-9',  type: 'fill_blank', prompt: 'Twintig min tien is ___. (en letras)', correctAnswer: 'tien', hint: '20 − 10' },
+        { id: 'm1l4e-10', type: 'fill_blank', prompt: 'Vier keer vijf is ___. (en letras)', correctAnswer: 'twintig', hint: '4 × 5' },
+        { id: 'm1l4e-11', type: 'fill_blank', prompt: '25 = vijfen___. (la decena)', correctAnswer: 'twintig', hint: '"cinco y veinte"' },
+        // ── Ordenar frases ──
+        { id: 'm1l4e-12', type: 'order_sentence', prompt: 'Ordena: "¿Cuántos años tienes?"', options: ['Hoe', 'oud', 'ben', 'je?'], correctAnswer: 'Hoe oud ben je?' },
+        { id: 'm1l4e-13', type: 'order_sentence', prompt: 'Ordena: "Cuesta nueve euros."', options: ['Het', 'kost', 'negen', 'euro'], correctAnswer: 'Het kost negen euro' },
+        // ── Sopa de letras ──
+        { id: 'm1l4e-14', type: 'word_scramble', prompt: '¿Cómo se dice "doce"?', correctAnswer: 'twaalf', hint: '12' },
+        { id: 'm1l4e-15', type: 'word_scramble', prompt: '¿Cómo se dice "nueve"?', correctAnswer: 'negen', hint: '9' },
+        // ── Letras que faltan ──
+        { id: 'm1l4e-16', type: 'letter_dash', prompt: 'Completa el número 14', correctAnswer: 'veertien', hint: 'Irregular: no es "viertien"' },
+        { id: 'm1l4e-17', type: 'letter_dash', prompt: 'Completa el número 100', correctAnswer: 'honderd', hint: 'cien' },
+        // ── Unir parejas ──
+        { id: 'm1l4e-18', type: 'match_pairs', prompt: 'Une cada número con su cifra', correctAnswer: '', pairs: [
+          { left: 'elf', right: '11' },
+          { left: 'twaalf', right: '12' },
+          { left: 'dertien', right: '13' },
+          { left: 'veertien', right: '14' },
+          { left: 'twintig', right: '20' },
+          { left: 'dertig', right: '30' },
+        ] },
+        { id: 'm1l4e-19', type: 'match_pairs', prompt: 'Une cada palabra de calcular con su significado', correctAnswer: '', pairs: [
+          { left: 'plus', right: 'más' },
+          { left: 'min', right: 'menos' },
+          { left: 'keer', right: 'por / veces' },
+          { left: 'hoeveel', right: 'cuánto' },
+          { left: 'de euro', right: 'el euro' },
+        ] },
+        // ── Emoji ──
+        { id: 'm1l4e-20', type: 'emoji_choice', prompt: '¿Qué emoji representa "de euro"?', options: ['💶', '🎂', '📞', '🕛'], correctAnswer: '💶', explanation: '"De euro" = el euro, el dinero.' },
+        // ── El intruso ──
+        { id: 'm1l4e-21', type: 'odd_one_out', prompt: '¿Cuál es IMPAR? (las otras son pares)', options: ['twee', 'vier', 'zes', 'zeven'], correctAnswer: 'zeven', explanation: 'Twee (2), vier (4) y zes (6) son pares; zeven (7) es impar.' },
+        { id: 'm1l4e-22', type: 'odd_one_out', prompt: '¿Cuál NO es una decena?', options: ['tien', 'twintig', 'dertig', 'twaalf'], correctAnswer: 'twaalf', explanation: 'Twaalf (12) no es una decena; tien (10), twintig (20) y dertig (30) sí.' },
+        // ── Escribir ──
+        { id: 'm1l4e-23', type: 'write_answer', prompt: 'Escribe en letras el número 44', correctAnswer: 'vierenveertig', hint: '"cuatro y cuarenta", todo junto' },
+        { id: 'm1l4e-24', type: 'write_answer', prompt: 'Drie keer drie is … — escribe el resultado en letras', correctAnswer: 'negen', hint: '3 × 3' },
+        // ── Escuchar ──
+        { id: 'm1l4e-25', type: 'listen_and_choose', prompt: 'Escucha y elige el número que oyes: "zeventien"', options: ['zeventien', 'zeventig', 'zeven', 'zevenentwintig'], correctAnswer: 'zeventien', explanation: '-tien = 17; -tig sería 70.' },
+        { id: 'm1l4e-26', type: 'listen_and_choose', prompt: 'Escucha y elige el número que oyes: "vijfenveertig"', options: ['vijfenveertig', 'vierenvijftig', 'vijftien', 'veertig'], correctAnswer: 'vijfenveertig', explanation: 'vijf-en-veertig = 45 ("cinco y cuarenta"); vierenvijftig sería 54.' },
+        { id: 'm1l4e-27', type: 'listen_and_choose', prompt: 'Escucha y elige el número que oyes: "tachtig"', options: ['tachtig', 'achttien', 'acht', 'achtentachtig'], correctAnswer: 'tachtig' },
+        { id: 'm1l4e-28', type: 'listen_translate', prompt: 'Escucha y traduce: "Het kost negen euro"', options: ['Cuesta', 'nueve', 'euros', 'diez', 'Vale', 'céntimos'], correctAnswer: 'Cuesta nueve euros' },
+        { id: 'm1l4e-29', type: 'listen_translate', prompt: 'Escucha y traduce: "Ik woon op nummer twaalf"', options: ['Vivo', 'en', 'el', 'número', 'doce', 'trece'], correctAnswer: 'Vivo en el número doce' },
+        // ── Comprensión del diálogo (De vierde ontmoeting) ──
+        { id: 'm1l4e-30', type: 'multiple_choice', prompt: 'En el diálogo, ¿cuántos años tiene David?', options: ['32', '23', '29', '38'], correctAnswer: '32', explanation: '"Ik ben tweeëndertig jaar" = dos y treinta = 32.' },
+        { id: 'm1l4e-31', type: 'true_false', prompt: 'Anna vive en el número quince.', correctAnswer: 'verdadero', explanation: '"Ik woon op nummer vijftien."' },
+        { id: 'm1l4e-32', type: 'true_false', prompt: 'David falla la cuenta "twintig min elf".', correctAnswer: 'falso', explanation: 'La acierta: twintig min elf is negen (20 − 11 = 9).' },
+      ],
     },
     { type: 'review' },
   ],
 };
+
+/* ─────────────────────────────────────────────────────────────────────────── */
 
 const m1_les5: Lesson = {
   id: 'les-5-alfabet',
   moduleId: 'over-jou',
   title: 'Les 5 — Woordenschat | Het alfabet',
-  subtitle: 'El alfabeto neerlandés',
+  subtitle: 'El alfabeto y deletrear',
   order: 5,
-  learningObjective: 'Conocer el alfabeto y saber deletrear palabras en neerlandés',
-  estimatedMinutes: 15,
+  learningObjective: 'Conocer el alfabeto neerlandés, pronunciar las letras y deletrear nombres y palabras',
+  estimatedMinutes: 30,
   blocks: [
+    {
+      type: 'summary',
+      title: 'Het alfabet',
+      intro: 'En la vida diaria en Países Bajos tendrás que deletrear muchas veces: tu nombre, tu apellido, tu email, tu calle. La pregunta clave: **Hoe schrijf je je naam?** (¿cómo se escribe tu nombre?).',
+      objectives: [
+        'Conocer el alfabeto neerlandés y el nombre de cada letra',
+        'Pronunciar las letras que suenan diferente al español',
+        'Deletrear tu nombre, apellido y email',
+      ],
+      sections: [
+        {
+          heading: '✅ Las letras "fáciles"',
+          body: 'Muchas letras suenan casi igual que en español: **B D F K L M N P R S T**.',
+        },
+        {
+          heading: '⚠️ Las letras que suenan diferente',
+          items: [
+            { nl: 'C', es: 'como "k" ante a/o/u; como "s" ante e/i' },
+            { nl: 'G', es: 'sale desde la garganta (goed, graag, groen)' },
+            { nl: 'H', es: 'aspirada y sonora, como la h inglesa (happy)' },
+            { nl: 'J', es: 'NO es la jota: suena como en "ya" (ja, juli)' },
+            { nl: 'W', es: 'entre la "b" y la "u" (water, werken, wit)' },
+            { nl: 'V', es: 'no es la b: se sopla suavemente (vier, vader)' },
+            { nl: 'Z', es: 'una "s" vibrante, como el zumbido de una abeja (zes, zon)' },
+            { nl: 'Y', es: 'se usa poco, sobre todo en nombres (Yvonne)' },
+          ],
+        },
+        {
+          heading: '🗣️ El NOMBRE de la letra ≠ su SONIDO',
+          body: 'Para los hispanohablantes lo confuso son los NOMBRES de las letras: la J no se llama "jota" sino **jee**; la W no es "doble uve" sino **wee**; la Y se llama **griekse ij** (ij griega); la G se llama **gee**. La letra se LLAMA "jee", pero en una palabra SUENA como la "y" de "ya".',
+        },
+        {
+          heading: '👀 Dos contrastes típicos',
+          body: 'Dos parejas que cuestan mucho a los hispanohablantes: **V – W** (vee vs. wee): *Victor* empieza con V, *Willem* con W. Y **I – IJ** (ie vs. ij): *Iris* empieza con I, *IJmuiden* con IJ.',
+        },
+      ],
+      tip: 'La V neerlandesa NO es como la b española: se sopla suavemente. Y cuando alguien te deletree, ojo con **vee (V)** y **wee (W)** — el error clásico. Bonus: la @ se llama **apenstaartje** ("colita de mono"). 🐒',
+    },
     {
       type: 'vocabulary',
       items: [
-        { id: 'letter-a', dutch: 'A — a', spanish: 'Suena como "aa" en "bad"', article: null, emoji: '🔤', color: '#1D0084', exampleNl: 'A van Amsterdam', exampleEs: 'A de Ámsterdam', category: 'alfabet', difficulty: 'A0' },
-        { id: 'letter-g', dutch: 'G — ge', spanish: '"G" gutural, como "j" española fuerte', article: null, emoji: '🔊', color: '#025dc7', exampleNl: 'G van goed', exampleEs: 'G de goed (bueno)', category: 'alfabet', difficulty: 'A0' },
-        { id: 'letter-ij', dutch: 'IJ — ij', spanish: 'Diptongo, suena como "ei"', article: null, emoji: '🇧🇪', color: '#0b4db5', exampleNl: 'IJ van ijsje', exampleEs: 'IJ de ijsje (helado)', category: 'alfabet', difficulty: 'A1' },
-        { id: 'letter-ui', dutch: 'UI — ui', spanish: 'Diptongo único, entre "ou" y "oe"', article: null, emoji: '🌀', color: '#0a3d9e', exampleNl: 'UI van uit', exampleEs: 'UI de uit (fuera)', category: 'alfabet', difficulty: 'A1' },
-        { id: 'letter-w', dutch: 'W — wee', spanish: 'Suena como "v" suave / "w" inglesa', article: null, emoji: '💨', color: '#1440a0', exampleNl: 'W van wonen', exampleEs: 'W de wonen (vivir)', category: 'alfabet', difficulty: 'A0' },
-        { id: 'letter-v', dutch: 'V — vee', spanish: 'Suena entre "f" y "v"', article: null, emoji: '🔈', color: '#0d5bbf', exampleNl: 'V van vader', exampleEs: 'V de vader (padre)', category: 'alfabet', difficulty: 'A0' },
-        { id: 'letter-sch', dutch: 'SCH — sch', spanish: 'Se pronuncia "sx" al inicio de palabra', article: null, emoji: '🎵', color: '#1D0084', exampleNl: 'SCH van school', exampleEs: 'SCH de school (escuela)', category: 'alfabet', difficulty: 'A1' },
-        { id: 'letter-ng', dutch: 'NG — ng', spanish: 'Como "ng" en "ring", nunca "ng" separados', article: null, emoji: '🔔', color: '#025dc7', exampleNl: 'NG van zingen', exampleEs: 'NG de zingen (cantar)', category: 'alfabet', difficulty: 'A1' },
-        { id: 'letter-ch', dutch: 'CH — ch', spanish: 'Suena como la "g" gutural holandesa', article: null, emoji: '🌬️', color: '#0b4db5', exampleNl: 'CH van lachen', exampleEs: 'CH de lachen (reír)', category: 'alfabet', difficulty: 'A1' },
-        { id: 'letter-oe', dutch: 'OE — oe', spanish: 'Como "u" española larga', article: null, emoji: '👄', color: '#0a3d9e', exampleNl: 'OE van moeder', exampleEs: 'OE de moeder (madre)', category: 'alfabet', difficulty: 'A0' },
+        { id: 'm1l5v-achternaam',  dutch: 'de achternaam',    spanish: 'el apellido',                    article: 'de',  emoji: '📇', color: '#1D0084', exampleNl: 'Wat is je achternaam?',           exampleEs: '¿Cuál es tu apellido?',              category: 'alfabet', difficulty: 'A0' },
+        { id: 'm1l5v-voornaam',    dutch: 'de voornaam',      spanish: 'el nombre (de pila)',            article: 'de',  emoji: '🏷️', color: '#025dc7', exampleNl: 'Mijn voornaam is Carlos.',        exampleEs: 'Mi nombre de pila es Carlos.',       category: 'alfabet', difficulty: 'A0' },
+        { id: 'm1l5v-spellen',     dutch: 'spellen',          spanish: 'deletrear',                      article: null,  emoji: '🔤', color: '#0b4db5', exampleNl: 'Kun je dat spellen?',             exampleEs: '¿Puedes deletrear eso?',             category: 'alfabet', difficulty: 'A0' },
+        { id: 'm1l5v-letter',      dutch: 'de letter',        spanish: 'la letra',                       article: 'de',  emoji: '🅰️', color: '#0a3d9e', exampleNl: 'Welke letter is dat?',            exampleEs: '¿Qué letra es esa?',                 category: 'alfabet', difficulty: 'A0' },
+        { id: 'm1l5v-herhalen',    dutch: 'herhalen',         spanish: 'repetir',                        article: null,  emoji: '🔁', color: '#1440a0', exampleNl: 'Sorry, kun je dat herhalen?',     exampleEs: 'Perdona, ¿puedes repetirlo?',        category: 'alfabet', difficulty: 'A0' },
+        { id: 'm1l5v-emailadres',  dutch: 'het e-mailadres',  spanish: 'la dirección de correo',         article: 'het', emoji: '📧', color: '#0d5bbf', exampleNl: 'Kun je je e-mailadres spellen?',  exampleEs: '¿Puedes deletrear tu email?',        category: 'alfabet', difficulty: 'A0' },
+        { id: 'm1l5v-straat',      dutch: 'de straat',        spanish: 'la calle',                       article: 'de',  emoji: '🛣️', color: '#1D0084', exampleNl: 'Wat is je straatnaam?',           exampleEs: '¿Cuál es el nombre de tu calle?',    category: 'alfabet', difficulty: 'A0' },
+        { id: 'm1l5v-beginnen',    dutch: 'beginnen',         spanish: 'empezar',                        article: null,  emoji: '▶️', color: '#025dc7', exampleNl: 'Mijn achternaam begint met een Z.', exampleEs: 'Mi apellido empieza con Z.',       category: 'alfabet', difficulty: 'A0' },
+        { id: 'm1l5v-eindigen',    dutch: 'eindigen',         spanish: 'terminar',                       article: null,  emoji: '⏹️', color: '#0b4db5', exampleNl: 'Mijn achternaam eindigt op een G.', exampleEs: 'Mi apellido termina con G.',       category: 'alfabet', difficulty: 'A0' },
+        { id: 'm1l5v-apenstaartje', dutch: 'het apenstaartje', spanish: 'la arroba @ ("colita de mono")', article: 'het', emoji: '🐒', color: '#0a3d9e', exampleNl: 'David, apenstaartje, mail, punt, nl.', exampleEs: 'David, arroba, mail, punto, nl.', category: 'alfabet', difficulty: 'A0' },
       ],
     },
     {
       type: 'phrases',
       items: [
-        { id: 'p5-1', dutch: 'Hoe spel je dat?', spanish: '¿Cómo se escribe eso?', context: 'Deletrear' },
-        { id: 'p5-2', dutch: 'Kun jij dat voor mij spellen?', spanish: '¿Puedes deletrearlo para mí?', context: 'Petición' },
-        { id: 'p5-3', dutch: 'Mijn naam is K-a-r-e-n.', spanish: 'Mi nombre es K-a-r-e-n.', context: 'Deletrear el nombre' },
-        { id: 'p5-4', dutch: 'Hoe schrijf je jouw naam?', spanish: '¿Cómo se escribe tu nombre?', context: 'Escritura' },
-        { id: 'p5-5', dutch: 'Kunt u dat herhalen, alstublieft?', spanish: '¿Puede repetirlo, por favor?', context: 'Formal' },
-        { id: 'p5-6', dutch: 'Dat schrijf je met een dubbel-e.', spanish: 'Eso se escribe con doble e.', context: 'Aclaración' },
+        { id: 'm1l5p-1',  dutch: 'Hoe spel je je naam?',                spanish: '¿Cómo se deletrea tu nombre?',        context: 'Deletrear' },
+        { id: 'm1l5p-2',  dutch: 'Mijn naam is C-A-R-L-O-S.',           spanish: 'Mi nombre es C-A-R-L-O-S.',           context: 'Deletrear' },
+        { id: 'm1l5p-3',  dutch: 'Wat is je achternaam?',               spanish: '¿Cuál es tu apellido?',               context: 'Preguntar' },
+        { id: 'm1l5p-4',  dutch: 'Hoe spel je je achternaam?',          spanish: '¿Cómo se deletrea tu apellido?',      context: 'Deletrear' },
+        { id: 'm1l5p-5',  dutch: 'Mijn achternaam begint met een Z.',   spanish: 'Mi apellido empieza con Z.',          context: 'Deletrear' },
+        { id: 'm1l5p-6',  dutch: 'Mijn achternaam eindigt op een G.',   spanish: 'Mi apellido termina con G.',          context: 'Deletrear' },
+        { id: 'm1l5p-7',  dutch: 'Kun je dat spellen?',                 spanish: '¿Puedes deletrear eso?',              context: 'Pedir' },
+        { id: 'm1l5p-8',  dutch: 'Amsterdam spel je met een A.',        spanish: 'Ámsterdam se deletrea con A.',        context: 'Deletrear' },
+        { id: 'm1l5p-9',  dutch: 'Nederland schrijf je met een N.',     spanish: 'Nederland se escribe con N.',         context: 'Deletrear' },
+        { id: 'm1l5p-10', dutch: 'Kun je je e-mailadres spellen?',      spanish: '¿Puedes deletrear tu email?',         context: 'Pedir' },
+        { id: 'm1l5p-11', dutch: 'Wat is je straatnaam?',               spanish: '¿Cuál es el nombre de tu calle?',     context: 'Preguntar' },
+        { id: 'm1l5p-12', dutch: 'Sorry, kun je dat herhalen?',         spanish: 'Perdona, ¿puedes repetirlo?',         context: 'Pedir' },
+        { id: 'm1l5p-13', dutch: 'Welke letter is dat?',                spanish: '¿Qué letra es esa?',                  context: 'Preguntar' },
       ],
     },
     {
-      type: 'practice',
+      type: 'lezen',
+      textNl: `David gaat naar een taalschool. De school heet ‘De Windmolen’.
+
+Een vrouw vraagt: ‘Wat is je naam?’
+David zegt: ‘David Moreno. Mijn achternaam spel je M-O-R-E-N-O.’
+De vrouw vraagt: ‘En je e-mailadres?’
+David spelt: ‘d-a-v-i-d, punt, m-o-r-e-n-o, apenstaartje, mail, punt, nl.’
+De vrouw zegt: ‘Dank je wel! Tot ziens!’
+David zegt: ‘Tot ziens!’`,
+      textEs: `David va a una escuela de idiomas. La escuela se llama «De Windmolen» (El Molino).
+
+Una mujer pregunta: «¿Cuál es tu nombre?»
+David dice: «David Moreno. Mi apellido se deletrea M-O-R-E-N-O.»
+La mujer pregunta: «¿Y tu dirección de correo?»
+David deletrea: «d-a-v-i-d, punto, m-o-r-e-n-o, arroba, mail, punto, nl.»
+La mujer dice: «¡Muchas gracias! ¡Hasta la vista!»
+David dice: «¡Hasta la vista!»`,
       exercises: [
-        { id: 'e5-1', type: 'multiple_choice', prompt: '¿Cómo suena la "G" en neerlandés?', options: ['Como "g" española', 'Gutural, como "j" española fuerte', 'Como "k"', 'Muda'], correctAnswer: 'Gutural, como "j" española fuerte' },
-        { id: 'e5-2', type: 'fill_blank', prompt: '"School" empieza con las letras ___', correctAnswer: 'SCH', hint: 'Combinación consonántica de tres letras' },
-        { id: 'e5-3', type: 'multiple_choice', prompt: '¿Qué diptongo tiene "ijsje" (helado)?', options: ['oe', 'ui', 'ij', 'au'], correctAnswer: 'ij' },
-        { id: 'e5-4', type: 'fill_blank', prompt: '"Hoe ___ je dat?" (¿Cómo se escribe eso?)', correctAnswer: 'spel', hint: 'spellen' },
-        { id: 'e5-5', type: 'multiple_choice', prompt: '"OE" en neerlandés suena como:', options: ['"o" corta', '"u" española', '"oe" inglés', '"eu" francés'], correctAnswer: '"u" española' },
-        { id: 'e5-6', type: 'multiple_choice', prompt: '¿Cómo se deletrea la pregunta "Hoe spel je dat?"', options: ['How spell you that', '¿Cómo se escribe eso?', '¿Puedes repetirlo?', '¿Cómo te llamas?'], correctAnswer: '¿Cómo se escribe eso?' },
+        { id: 'm1l5lz-1', type: 'multiple_choice', prompt: '¿Cómo se llama la escuela?', options: ['De Windmolen', 'De Taalschool', 'De Letter', 'Het Alfabet'], correctAnswer: 'De Windmolen', explanation: '"De school heet De Windmolen" — el molino de viento.' },
+        { id: 'm1l5lz-2', type: 'multiple_choice', prompt: '¿Cuál es el apellido de David?', options: ['Moreno', 'Molina', 'Romero', 'Montero'], correctAnswer: 'Moreno', explanation: 'Lo deletrea: M-O-R-E-N-O.' },
+        { id: 'm1l5lz-3', type: 'multiple_choice', prompt: '¿Qué significa "apenstaartje" en el email?', options: ['La arroba (@)', 'El punto (.)', 'El guion (-)', 'La eñe (ñ)'], correctAnswer: 'La arroba (@)', explanation: 'Literalmente "colita de mono" = @.' },
+        { id: 'm1l5lz-4', type: 'fill_blank', prompt: 'David ___ zijn e-mailadres. (deletrear)', correctAnswer: 'spelt', hint: 'spellen → hij spel+t' },
+        { id: 'm1l5lz-5', type: 'multiple_choice', prompt: '¿Con qué letra empieza el apellido de David?', options: ['Con la M', 'Con la D', 'Con la W', 'Con la N'], correctAnswer: 'Con la M', explanation: 'Moreno empieza con M.' },
+        { id: 'm1l5lz-6', type: 'fill_blank', prompt: 'De vrouw zegt: ‘Dank je wel! Tot ___!’', correctAnswer: 'ziens', hint: 'La despedida formal: hasta la vista' },
       ],
     },
     {
       type: 'dialogue',
       dialogue: {
-        id: 'd5',
-        title: 'Aan de telefoon',
-        context: 'Jan belt een bedrijf om een afspraak te maken en spelt zijn naam.',
+        id: 'm1d5',
+        title: 'De vijfde ontmoeting',
+        context: 'David oefent het alfabet en leert zijn naam en e-mailadres te spellen.',
         lines: [
-          { id: 'd5-1', speaker: 'Receptioniste', dutch: 'Goedemiddag, bedrijf Van der Berg, waarmee kan ik u helpen?', spanish: 'Buenas tardes, empresa Van der Berg, ¿en qué puedo ayudarle?' },
-          { id: 'd5-2', speaker: 'Jan', dutch: 'Goedemiddag, mijn naam is Jan Smeets. Ik wil graag een afspraak maken.', spanish: 'Buenas tardes, me llamo Jan Smeets. Me gustaría hacer una cita.' },
-          { id: 'd5-3', speaker: 'Receptioniste', dutch: 'Kunt u uw naam spellen, alstublieft?', spanish: '¿Puede deletrear su nombre, por favor?' },
-          { id: 'd5-4', speaker: 'Jan', dutch: 'Ja hoor. J-a-n, Jan. S-m-e-e-t-s, Smeets.', spanish: 'Por supuesto. J-a-n, Jan. S-m-e-e-t-s, Smeets.' },
-          { id: 'd5-5', speaker: 'Receptioniste', dutch: 'Dank u. En uw telefoonnummer?', spanish: 'Gracias. ¿Y su número de teléfono?' },
-          { id: 'd5-6', speaker: 'Jan', dutch: 'Dat is 06-45-67-89-12.', spanish: 'Es el 06-45-67-89-12.' },
-          { id: 'd5-7', speaker: 'Receptioniste', dutch: 'Perfect. Wanneer wilt u langskomen?', spanish: 'Perfecto. ¿Cuándo quiere venir?' },
-          { id: 'd5-8', speaker: 'Jan', dutch: 'Donderdag om tien uur, als dat mogelijk is.', spanish: 'El jueves a las diez, si es posible.' },
+          { id: 'm1d5-1',  speaker: 'David', dutch: 'Hoi Anna! Vandaag leer ik het alfabet.',                        spanish: '¡Hola Anna! Hoy aprendo el alfabeto.' },
+          { id: 'm1d5-2',  speaker: 'Anna',  dutch: 'Perfect! Hoe spel je je naam?',                                  spanish: '¡Perfecto! ¿Cómo se deletrea tu nombre?' },
+          { id: 'm1d5-3',  speaker: 'David', dutch: 'D-A-V-I-D. Makkelijk!',                                          spanish: 'D-A-V-I-D. ¡Fácil!' },
+          { id: 'm1d5-4',  speaker: 'Anna',  dutch: 'En wat is je achternaam?',                                       spanish: '¿Y cuál es tu apellido?' },
+          { id: 'm1d5-5',  speaker: 'David', dutch: 'Moreno. M-O-R-E-N-O.',                                           spanish: 'Moreno. M-O-R-E-N-O.' },
+          { id: 'm1d5-6',  speaker: 'Anna',  dutch: 'Goed zo! Nu een moeilijke: spel ‘Willem’.',                      spanish: '¡Muy bien! Ahora una difícil: deletrea "Willem".' },
+          { id: 'm1d5-7',  speaker: 'David', dutch: 'V… nee, W! W-I-L-L-E-M.',                                        spanish: 'V… ¡no, W! W-I-L-L-E-M.' },
+          { id: 'm1d5-8',  speaker: 'Anna',  dutch: 'Ja! De W en de V zijn lastig, hè?',                              spanish: '¡Sí! La W y la V son complicadas, ¿eh?' },
+          { id: 'm1d5-9',  speaker: 'David', dutch: 'Ja! En de G… ‘gee’. Die klinkt uit de keel!',                    spanish: '¡Sí! Y la G… "gee". ¡Esa suena desde la garganta!' },
+          { id: 'm1d5-10', speaker: 'Anna',  dutch: 'Haha, heel goed! Kun je je e-mailadres spellen?',                spanish: '¡Jaja, muy bien! ¿Puedes deletrear tu email?' },
+          { id: 'm1d5-11', speaker: 'David', dutch: 'Ja: david, punt, moreno, apenstaartje, mail, punt, nl.',         spanish: 'Sí: david, punto, moreno, arroba, mail, punto, nl.' },
+          { id: 'm1d5-12', speaker: 'Anna',  dutch: '‘Apenstaartje’! Mooi woord, toch?',                              spanish: '¡"Apenstaartje" (colita de mono)! Bonita palabra, ¿verdad?' },
+          { id: 'm1d5-13', speaker: 'David', dutch: 'Ja! Het Nederlands is gezellig.',                                spanish: '¡Sí! El neerlandés es "gezellig".' },
+          { id: 'm1d5-14', speaker: 'Anna',  dutch: 'Haha! Tot volgende week, David.',                                spanish: '¡Jaja! Hasta la semana que viene, David.' },
+          { id: 'm1d5-15', speaker: 'David', dutch: 'Doei!',                                                          spanish: '¡Adiós!' },
         ],
       },
+    },
+    {
+      type: 'practice',
+      exercises: [
+        // ── Opción múltiple ──
+        { id: 'm1l5e-1',  type: 'multiple_choice', prompt: '¿Cómo se llama la letra J en neerlandés?', options: ['jee', 'jota', 'ye', 'ji'], correctAnswer: 'jee', explanation: 'La J se llama "jee" (y en las palabras suena como la "y" de "ya").' },
+        { id: 'm1l5e-2',  type: 'multiple_choice', prompt: '¿Cómo se llama la letra Y?', options: ['griekse ij', 'ypsilon', 'doble i', 'wee'], correctAnswer: 'griekse ij', explanation: 'La Y se llama "griekse ij" (ij griega).' },
+        { id: 'm1l5e-3',  type: 'multiple_choice', prompt: '"Victor" y "Willem": ¿con qué letra empieza cada uno?', options: ['Victor con V, Willem con W', 'Los dos con V', 'Los dos con W', 'Victor con W, Willem con V'], correctAnswer: 'Victor con V, Willem con W', explanation: 'El contraste V–W (vee vs. wee) es el clásico para hispanohablantes.' },
+        { id: 'm1l5e-4',  type: 'multiple_choice', prompt: '¿Cómo suena la C antes de "e" o "i"?', options: ['Como "s"', 'Como "k"', 'Como "z" española', 'Como "ch"'], correctAnswer: 'Como "s"', explanation: 'C + e/i = sonido "s"; C + a/o/u = sonido "k".' },
+        // ── Verdadero / Falso ──
+        { id: 'm1l5e-5',  type: 'true_false', prompt: 'La G neerlandesa sale desde la garganta.', correctAnswer: 'verdadero', explanation: 'Como en "goed", "graag", "groen" — salvo en el sur del país.' },
+        { id: 'm1l5e-6',  type: 'true_false', prompt: 'La W se llama "doble uve" en neerlandés.', correctAnswer: 'falso', explanation: 'Se llama "wee".' },
+        { id: 'm1l5e-7',  type: 'true_false', prompt: 'El nombre de una letra y su sonido son siempre iguales.', correctAnswer: 'falso', explanation: 'La letra se LLAMA "jee" pero SUENA como la "y" de "ya". Son cosas distintas.' },
+        // ── Completar ──
+        { id: 'm1l5e-8',  type: 'fill_blank', prompt: 'Mijn achternaam begint ___ een Z.', correctAnswer: 'met', hint: 'beginnen met = empezar con' },
+        { id: 'm1l5e-9',  type: 'fill_blank', prompt: 'Mijn achternaam eindigt ___ een G.', correctAnswer: 'op', hint: 'eindigen op = terminar con' },
+        { id: 'm1l5e-10', type: 'fill_blank', prompt: 'Hoe ___ je je naam?', correctAnswer: 'spel', hint: 'deletrear (¡en pregunta con je, sin -t!)' },
+        // ── Ordenar frases ──
+        { id: 'm1l5e-11', type: 'order_sentence', prompt: 'Ordena: "Perdona, ¿puedes repetirlo?"', options: ['Sorry,', 'kun', 'je', 'dat', 'herhalen?'], correctAnswer: 'Sorry, kun je dat herhalen?' },
+        { id: 'm1l5e-12', type: 'order_sentence', prompt: 'Ordena: "¿Cómo se deletrea tu apellido?"', options: ['Hoe', 'spel', 'je', 'je', 'achternaam?'], correctAnswer: 'Hoe spel je je achternaam?' },
+        // ── Sopa de letras ──
+        { id: 'm1l5e-13', type: 'word_scramble', prompt: '¿Cómo se dice "deletrear"?', correctAnswer: 'spellen', hint: 'deletrear' },
+        { id: 'm1l5e-14', type: 'word_scramble', prompt: '¿Cómo se dice "la letra"?', correctAnswer: 'letter', hint: 'de …' },
+        // ── Letras que faltan ──
+        { id: 'm1l5e-15', type: 'letter_dash', prompt: 'Completa: "el apellido"', correctAnswer: 'achternaam', hint: 'de …' },
+        { id: 'm1l5e-16', type: 'letter_dash', prompt: 'Completa: "repetir"', correctAnswer: 'herhalen', hint: 'Sorry, kun je dat …?' },
+        // ── Unir parejas ──
+        { id: 'm1l5e-17', type: 'match_pairs', prompt: 'Une cada letra con su nombre neerlandés', correctAnswer: '', pairs: [
+          { left: 'J', right: 'jee' },
+          { left: 'W', right: 'wee' },
+          { left: 'Y', right: 'griekse ij' },
+          { left: 'G', right: 'gee' },
+          { left: 'V', right: 'vee' },
+        ] },
+        { id: 'm1l5e-18', type: 'match_pairs', prompt: 'Une cada palabra con su traducción', correctAnswer: '', pairs: [
+          { left: 'de achternaam', right: 'el apellido' },
+          { left: 'de voornaam', right: 'el nombre de pila' },
+          { left: 'de straat', right: 'la calle' },
+          { left: 'herhalen', right: 'repetir' },
+          { left: 'spellen', right: 'deletrear' },
+          { left: 'het apenstaartje', right: 'la arroba (@)' },
+        ] },
+        // ── Emoji ──
+        { id: 'm1l5e-19', type: 'emoji_choice', prompt: '¿Qué emoji representa "het e-mailadres"?', options: ['📧', '🛣️', '📇', '🔁'], correctAnswer: '📧', explanation: '"Het e-mailadres" = la dirección de correo electrónico.' },
+        { id: 'm1l5e-20', type: 'emoji_choice', prompt: '¿Qué emoji representa "het apenstaartje"?', options: ['🐒', '🐱', '🐦', '🐟'], correctAnswer: '🐒', explanation: 'La @ se llama "colita de mono" — ¡por eso el mono!' },
+        // ── El intruso ──
+        { id: 'm1l5e-21', type: 'odd_one_out', prompt: '¿Cuál NO es el nombre de una letra?', options: ['jee', 'wee', 'gee', 'ja'], correctAnswer: 'ja', explanation: '"Ja" significa "sí"; jee (J), wee (W) y gee (G) son nombres de letras.' },
+        { id: 'm1l5e-22', type: 'odd_one_out', prompt: '¿Qué nombre NO empieza con W?', options: ['Willem', 'Wouter', 'Victor', 'Wim'], correctAnswer: 'Victor', explanation: 'Victor empieza con V (vee); los otros con W (wee).' },
+        // ── Escribir ──
+        { id: 'm1l5e-23', type: 'write_answer', prompt: '¿Qué palabra es? H-U-I-S', correctAnswer: 'huis', hint: 'Une las letras: significa "casa"' },
+        { id: 'm1l5e-24', type: 'write_answer', prompt: '¿Qué nombre es? A-N-N-A', correctAnswer: 'Anna', hint: 'La taalbuddy de David' },
+        // ── Escuchar ──
+        { id: 'm1l5e-25', type: 'listen_and_choose', prompt: 'Escucha el nombre de la letra: "vee"', options: ['V', 'W', 'B', 'F'], correctAnswer: 'V', explanation: '"Vee" es el nombre de la V; "wee" sería la W.' },
+        { id: 'm1l5e-26', type: 'listen_and_choose', prompt: 'Escucha el nombre de la letra: "wee"', options: ['W', 'V', 'U', 'M'], correctAnswer: 'W' },
+        { id: 'm1l5e-27', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "Willem"', options: ['Willem', 'Villem', 'Wilem', 'Willen'], correctAnswer: 'Willem' },
+        { id: 'm1l5e-28', type: 'listen_translate', prompt: 'Escucha y traduce: "Kun je dat herhalen?"', options: ['¿Puedes', 'repetir', 'eso?', 'deletrear', '¿Quieres', 'ahora?'], correctAnswer: '¿Puedes repetir eso?' },
+        // ── Comprensión del diálogo (De vijfde ontmoeting) ──
+        { id: 'm1l5e-29', type: 'multiple_choice', prompt: 'En el diálogo, ¿qué palabra le cuesta deletrear a David?', options: ['Willem', 'Anna', 'Moreno', 'David'], correctAnswer: 'Willem', explanation: 'Empieza a decir V… y se corrige: ¡W! El clásico lío V–W.' },
+        { id: 'm1l5e-30', type: 'true_false', prompt: 'El apellido de David es Moreno.', correctAnswer: 'verdadero', explanation: 'Lo deletrea: M-O-R-E-N-O.' },
+        { id: 'm1l5e-31', type: 'true_false', prompt: 'La "@" del email se llama "apenstaartje" (colita de mono).', correctAnswer: 'verdadero', explanation: 'Así deletrea David su email: "david, punt, moreno, apenstaartje, mail, punt, nl".' },
+      ],
     },
     { type: 'review' },
   ],
 };
+
+/* ─────────────────────────────────────────────────────────────────────────── */
 
 const m1_les6: Lesson = {
   id: 'les-6-uitspraak-klinkers',
   moduleId: 'over-jou',
   title: 'Les 6 — Uitspraak | a/aa – e/ee – o/oo',
-  subtitle: 'Pronunciación: vocales cortas y largas',
+  subtitle: 'Vocales cortas y largas',
   order: 6,
-  learningObjective: 'Distinguir y pronunciar correctamente vocales cortas y largas en neerlandés',
-  estimatedMinutes: 15,
+  learningObjective: 'Distinguir vocales cortas y largas, y entender la regla de las sílabas abiertas y cerradas',
+  estimatedMinutes: 30,
   blocks: [
+    {
+      type: 'summary',
+      title: 'Korte en lange klinkers',
+      intro: 'En neerlandés la duración de la vocal puede cambiar el SIGNIFICADO de una palabra: *man* (hombre) no es lo mismo que *maan* (luna). Hoy aprendes a oír la diferencia y la regla de ortografía que hay detrás.',
+      objectives: [
+        'Reconocer y pronunciar vocales cortas y largas',
+        'Entender las sílabas abiertas y cerradas',
+        'Aplicar la regla: maan → manen, boom → bomen',
+      ],
+      sections: [
+        {
+          heading: '👂 Corta vs. larga: cambia el significado',
+          body: 'Una vocal escrita DOS veces se pronuncia larga:',
+          items: [
+            { nl: 'kam → kaas', es: 'peine (corta) → queso (larga)' },
+            { nl: 'pet → peer', es: 'gorra (corta) → pera (larga)' },
+            { nl: 'bol → boom', es: 'bola (corta) → árbol (larga)' },
+            { nl: 'bus → buur', es: 'autobús (corta) → vecino (larga)' },
+            { nl: 'man → maan', es: 'hombre (corta) → luna (larga)' },
+            { nl: 'geld → geel', es: 'dinero (corta) → amarillo (larga)' },
+          ],
+        },
+        {
+          heading: '🧱 Sílabas cerradas y abiertas',
+          body: '**Sílaba cerrada** = termina en consonante (*man, kat, bos, bus*): una sola vocal se pronuncia CORTA. **Sílaba abierta** = termina en vocal (*ma-, ka-, bo-*): una sola vocal se pronuncia LARGA.',
+        },
+        {
+          heading: '✍️ La regla de ortografía',
+          body: 'En *maan, boom, been, muur* la vocal es larga y la sílaba cerrada → se escriben DOS vocales. Al añadir otra sílaba, la primera queda abierta: **ma-nen, bo-men, be-nen, mu-ren** — y como la sílaba abierta ya suena larga, basta UNA vocal. Por eso: **maan → manen, boom → bomen, been → benen, muur → muren**. ¡La pronunciación NO cambia, solo la escritura! "Maan" y la primera sílaba de "manen" suenan exactamente igual.',
+        },
+      ],
+      tip: 'Regla de oro: sílaba cerrada + vocal larga → escribe DOS vocales (maan, boom). Al añadir una sílaba, se abre y basta UNA (manen, bomen). La pronunciación no cambia — solo la escritura.',
+    },
     {
       type: 'vocabulary',
       items: [
-        { id: 'man', dutch: 'man', spanish: 'hombre (a corta)', article: 'de', emoji: '👨', color: '#1D0084', exampleNl: 'De man werkt hard.', exampleEs: 'El hombre trabaja duro.', category: 'uitspraak', difficulty: 'A0' },
-        { id: 'maan', dutch: 'maan', spanish: 'luna (aa larga)', article: 'de', emoji: '🌙', color: '#025dc7', exampleNl: 'De maan schijnt vanavond.', exampleEs: 'La luna brilla esta noche.', category: 'uitspraak', difficulty: 'A0' },
-        { id: 'bed', dutch: 'bed', spanish: 'cama (e corta)', article: 'het', emoji: '🛏️', color: '#0b4db5', exampleNl: 'Ik ga naar bed.', exampleEs: 'Me voy a la cama.', category: 'uitspraak', difficulty: 'A0' },
-        { id: 'been', dutch: 'been', spanish: 'pierna (ee larga)', article: 'het', emoji: '🦵', color: '#0a3d9e', exampleNl: 'Mijn been doet pijn.', exampleEs: 'Me duele la pierna.', category: 'uitspraak', difficulty: 'A0' },
-        { id: 'bot', dutch: 'bot', spanish: 'hueso (o corta)', article: 'het', emoji: '🦴', color: '#1440a0', exampleNl: 'De hond eet een bot.', exampleEs: 'El perro come un hueso.', category: 'uitspraak', difficulty: 'A0' },
-        { id: 'boot', dutch: 'boot', spanish: 'barco (oo larga)', article: 'de', emoji: '⛵', color: '#0d5bbf', exampleNl: 'De boot vaart op het meer.', exampleEs: 'El barco navega por el lago.', category: 'uitspraak', difficulty: 'A0' },
-        { id: 'kat', dutch: 'kat', spanish: 'gato (a corta)', article: 'de', emoji: '🐱', color: '#1D0084', exampleNl: 'De kat slaapt op de bank.', exampleEs: 'El gato duerme en el sofá.', category: 'uitspraak', difficulty: 'A0' },
-        { id: 'kaas', dutch: 'kaas', spanish: 'queso (aa larga)', article: 'de', emoji: '🧀', color: '#025dc7', exampleNl: 'Ik eet graag kaas.', exampleEs: 'Me gusta el queso.', category: 'uitspraak', difficulty: 'A0' },
-        { id: 'mes', dutch: 'mes', spanish: 'cuchillo (e corta)', article: 'het', emoji: '🔪', color: '#0b4db5', exampleNl: 'Het mes ligt op tafel.', exampleEs: 'El cuchillo está en la mesa.', category: 'uitspraak', difficulty: 'A0' },
-        { id: 'meer', dutch: 'meer', spanish: 'lago / más (ee larga)', article: 'het', emoji: '🏞️', color: '#0a3d9e', exampleNl: 'Het meer is erg mooi.', exampleEs: 'El lago es muy bonito.', category: 'uitspraak', difficulty: 'A0' },
-        { id: 'pot', dutch: 'pot', spanish: 'tarro / olla (o corta)', article: 'de', emoji: '🫙', color: '#1440a0', exampleNl: 'Er zit jam in de pot.', exampleEs: 'Hay mermelada en el tarro.', category: 'uitspraak', difficulty: 'A0' },
-        { id: 'poot', dutch: 'poot', spanish: 'pata de animal (oo larga)', article: 'de', emoji: '🐾', color: '#0d5bbf', exampleNl: 'De hond heeft een poot gebroken.', exampleEs: 'El perro se ha roto una pata.', category: 'uitspraak', difficulty: 'A0' },
+        { id: 'm1l6v-man',   dutch: 'de man',   spanish: 'el hombre',        article: 'de',  emoji: '👨', color: '#1D0084', exampleNl: 'De man kijkt naar de maan.',  exampleEs: 'El hombre mira la luna.',      category: 'kort', difficulty: 'A0' },
+        { id: 'm1l6v-maan',  dutch: 'de maan',  spanish: 'la luna',          article: 'de',  emoji: '🌙', color: '#025dc7', exampleNl: 'De maan is groot en geel.',   exampleEs: 'La luna es grande y amarilla.', category: 'lang', difficulty: 'A0' },
+        { id: 'm1l6v-kam',   dutch: 'de kam',   spanish: 'el peine',         article: 'de',  emoji: '💇', color: '#0b4db5', exampleNl: 'De kam is voor je haar.',     exampleEs: 'El peine es para tu pelo.',    category: 'kort', difficulty: 'A0' },
+        { id: 'm1l6v-pet',   dutch: 'de pet',   spanish: 'la gorra',         article: 'de',  emoji: '🧢', color: '#0a3d9e', exampleNl: 'Ik heb een blauwe pet.',      exampleEs: 'Tengo una gorra azul.',        category: 'kort', difficulty: 'A0' },
+        { id: 'm1l6v-peer',  dutch: 'de peer',  spanish: 'la pera',          article: 'de',  emoji: '🍐', color: '#1440a0', exampleNl: 'Ik eet een peer.',            exampleEs: 'Como una pera.',               category: 'lang', difficulty: 'A0' },
+        { id: 'm1l6v-bol',   dutch: 'de bol',   spanish: 'la bola',          article: 'de',  emoji: '⚽', color: '#0d5bbf', exampleNl: 'De bol is rond.',             exampleEs: 'La bola es redonda.',          category: 'kort', difficulty: 'A0' },
+        { id: 'm1l6v-boom',  dutch: 'de boom',  spanish: 'el árbol',         article: 'de',  emoji: '🌳', color: '#1D0084', exampleNl: 'De boom is groot.',           exampleEs: 'El árbol es grande.',          category: 'lang', difficulty: 'A0' },
+        { id: 'm1l6v-bus',   dutch: 'de bus',   spanish: 'el autobús',       article: 'de',  emoji: '🚌', color: '#025dc7', exampleNl: 'De bus komt.',                exampleEs: 'El autobús viene.',            category: 'kort', difficulty: 'A0' },
+        { id: 'm1l6v-buur',  dutch: 'de buur',  spanish: 'el vecino / la vecina', article: 'de', emoji: '🏘️', color: '#0b4db5', exampleNl: 'Mijn buur drinkt koffie.', exampleEs: 'Mi vecino toma café.',        category: 'lang', difficulty: 'A0' },
+        { id: 'm1l6v-muur',  dutch: 'de muur',  spanish: 'la pared',         article: 'de',  emoji: '🧱', color: '#0a3d9e', exampleNl: 'De muur is wit.',             exampleEs: 'La pared es blanca.',          category: 'lang', difficulty: 'A0' },
+        { id: 'm1l6v-geld',  dutch: 'het geld', spanish: 'el dinero',        article: 'het', emoji: '💰', color: '#1440a0', exampleNl: 'Ik heb geld voor de bus.',    exampleEs: 'Tengo dinero para el autobús.', category: 'kort', difficulty: 'A0' },
+        { id: 'm1l6v-wiel',  dutch: 'het wiel', spanish: 'la rueda',         article: 'het', emoji: '🛞', color: '#0d5bbf', exampleNl: 'Het wiel van de fiets.',      exampleEs: 'La rueda de la bicicleta.',    category: 'lang', difficulty: 'A0' },
+        { id: 'm1l6v-boot',  dutch: 'de boot',  spanish: 'el barco',         article: 'de',  emoji: '⛵', color: '#1D0084', exampleNl: 'De boot vaart op de zee.',    exampleEs: 'El barco navega por el mar.',  category: 'lang', difficulty: 'A0' },
+        { id: 'm1l6v-kat',   dutch: 'de kat',   spanish: 'el gato',          article: 'de',  emoji: '🐱', color: '#025dc7', exampleNl: 'De kat slaapt.',              exampleEs: 'El gato duerme.',              category: 'kort', difficulty: 'A0' },
+        { id: 'm1l6v-zon',   dutch: 'de zon',   spanish: 'el sol',           article: 'de',  emoji: '☀️', color: '#0b4db5', exampleNl: 'De zon schijnt.',             exampleEs: 'El sol brilla.',               category: 'kort', difficulty: 'A0' },
+        { id: 'm1l6v-bos',   dutch: 'het bos',  spanish: 'el bosque',        article: 'het', emoji: '🌲', color: '#0a3d9e', exampleNl: 'Het bos is mooi.',            exampleEs: 'El bosque es hermoso.',        category: 'kort', difficulty: 'A0' },
+        { id: 'm1l6v-zee',   dutch: 'de zee',   spanish: 'el mar',           article: 'de',  emoji: '🌊', color: '#1440a0', exampleNl: 'De zee is mooi.',             exampleEs: 'El mar es hermoso.',           category: 'lang', difficulty: 'A0' },
+        { id: 'm1l6v-krant', dutch: 'de krant', spanish: 'el periódico',     article: 'de',  emoji: '📰', color: '#0d5bbf', exampleNl: 'Ik lees een krant.',          exampleEs: 'Leo un periódico.',            category: 'kort', difficulty: 'A0' },
       ],
     },
     {
       type: 'phrases',
       items: [
-        { id: 'p6-1', dutch: 'De man heeft een maan op zijn shirt.', spanish: 'El hombre tiene una luna en su camiseta.', context: 'a/aa' },
-        { id: 'p6-2', dutch: 'De kat eet kaas.', spanish: 'El gato come queso.', context: 'a/aa' },
-        { id: 'p6-3', dutch: 'Mijn been doet meer pijn dan gisteren.', spanish: 'Mi pierna me duele más que ayer.', context: 'e/ee' },
-        { id: 'p6-4', dutch: 'Het bed staat bij het raam.', spanish: 'La cama está junto a la ventana.', context: 'e/ee' },
-        { id: 'p6-5', dutch: 'De boot vaart over het meer.', spanish: 'El barco navega por el lago.', context: 'o/oo' },
-        { id: 'p6-6', dutch: 'De pot staat op de kookplaat.', spanish: 'La olla está en el fuego.', context: 'o/oo' },
+        { id: 'm1l6p-1',  dutch: 'De kat slaapt.',      spanish: 'El gato duerme.',          context: 'Vocal corta' },
+        { id: 'm1l6p-2',  dutch: 'Ik pak de tas.',      spanish: 'Cojo el bolso.',           context: 'Vocal corta' },
+        { id: 'm1l6p-3',  dutch: 'Ik heb een pen.',     spanish: 'Tengo un bolígrafo.',      context: 'Vocal corta' },
+        { id: 'm1l6p-4',  dutch: 'De vis zwemt.',       spanish: 'El pez nada.',             context: 'Vocal corta' },
+        { id: 'm1l6p-5',  dutch: 'De zon schijnt.',     spanish: 'El sol brilla.',           context: 'Vocal corta' },
+        { id: 'm1l6p-6',  dutch: 'Het bos is mooi.',    spanish: 'El bosque es hermoso.',    context: 'Vocal corta' },
+        { id: 'm1l6p-7',  dutch: 'De klok klinkt.',     spanish: 'El reloj suena.',          context: 'Vocal corta' },
+        { id: 'm1l6p-8',  dutch: 'De bus komt.',        spanish: 'El autobús viene.',        context: 'Vocal corta' },
+        { id: 'm1l6p-9',  dutch: 'Ik eet kaas.',        spanish: 'Como queso.',              context: 'Vocal larga' },
+        { id: 'm1l6p-10', dutch: 'Ik lees een krant.',  spanish: 'Leo un periódico.',        context: 'Vocal larga' },
+        { id: 'm1l6p-11', dutch: 'De boom is groot.',   spanish: 'El árbol es grande.',      context: 'Vocal larga' },
+        { id: 'm1l6p-12', dutch: 'Ik koop brood.',      spanish: 'Compro pan.',              context: 'Vocal larga' },
+        { id: 'm1l6p-13', dutch: 'Ik woon hier.',       spanish: 'Vivo aquí.',               context: 'Vocal larga' },
+        { id: 'm1l6p-14', dutch: 'De zee is mooi.',     spanish: 'El mar es hermoso.',       context: 'Vocal larga' },
+        { id: 'm1l6p-15', dutch: 'Het vuur is hoog.',   spanish: 'El fuego es alto.',        context: 'Vocal larga' },
       ],
     },
     {
-      type: 'practice',
+      type: 'lezen',
+      textNl: `De zon schijnt. David zit in het park onder een boom. Hij eet brood met kaas en leest de krant.
+
+Een bus stopt. Zijn buur stapt uit de bus. ‘Dag David!’ zegt de buur.
+
+’s Avonds kijkt David naar de maan. De maan is groot en geel. David denkt: ‘Nederland is mooi. De taal is niet makkelijk, maar ik leer elke dag.’`,
+      textEs: `El sol brilla. David está sentado en el parque bajo un árbol. Come pan con queso y lee el periódico.
+
+Un autobús se detiene. Su vecino se baja del autobús. «¡Buenas, David!», dice el vecino.
+
+Por la noche, David mira la luna. La luna es grande y amarilla. David piensa: «Países Bajos es bonito. El idioma no es fácil, pero aprendo cada día.»`,
       exercises: [
-        { id: 'e6-1', type: 'multiple_choice', prompt: '"Maan" (luna) tiene una vocal:', options: ['corta', 'larga', 'muda', 'mixta'], correctAnswer: 'larga', explanation: 'La doble "aa" siempre indica vocal larga.' },
-        { id: 'e6-2', type: 'multiple_choice', prompt: '¿Cuál de estas palabras tiene vocal CORTA?', options: ['maan', 'been', 'bot', 'boot'], correctAnswer: 'bot', explanation: '"Bot" tiene una sola "o" → vocal corta.' },
-        { id: 'e6-3', type: 'multiple_choice', prompt: '¿Cómo se pronuncia "ee" en "been"?', options: ['Como "e" corta', 'Como "e" larga y cerrada', 'Como "ei"', 'Como "ie"'], correctAnswer: 'Como "e" larga y cerrada' },
-        { id: 'e6-4', type: 'fill_blank', prompt: 'La palabra "___" significa "luna" y tiene vocal larga. (luna en neerlandés)', correctAnswer: 'maan', hint: 'man → maan' },
-        { id: 'e6-5', type: 'multiple_choice', prompt: '"Boot" significa:', options: ['bota', 'barco', 'hueso', 'pata'], correctAnswer: 'barco' },
-        { id: 'e6-6', type: 'multiple_choice', prompt: '¿Cuál de estas tiene vocal larga?', options: ['kat', 'man', 'mes', 'kaas'], correctAnswer: 'kaas', explanation: 'La doble "aa" indica vocal larga.' },
+        { id: 'm1l6lz-1', type: 'multiple_choice', prompt: '¿Dónde está sentado David?', options: ['Bajo un árbol', 'En el autobús', 'En casa', 'En la playa'], correctAnswer: 'Bajo un árbol', explanation: '"David zit in het park onder een boom."' },
+        { id: 'm1l6lz-2', type: 'multiple_choice', prompt: '¿Qué come David?', options: ['Pan con queso', 'Una pera', 'Pasta', 'Sopa'], correctAnswer: 'Pan con queso', explanation: '"Hij eet brood met kaas."' },
+        { id: 'm1l6lz-3', type: 'multiple_choice', prompt: '¿Quién se baja del autobús?', options: ['Su vecino', 'Anna', 'Su hermana', 'Un médico'], correctAnswer: 'Su vecino', explanation: '"Zijn buur stapt uit de bus" — de buur = el vecino.' },
+        { id: 'm1l6lz-4', type: 'fill_blank', prompt: 'De maan is groot en ___. (amarilla)', correctAnswer: 'geel', hint: 'Vocal larga: ee', explanation: '"Geel" (amarillo) lleva vocal larga; "geld" (dinero) corta.' },
+        { id: 'm1l6lz-5', type: 'multiple_choice', prompt: '¿Qué mira David por la noche?', options: ['La luna', 'El sol', 'El mar', 'La televisión'], correctAnswer: 'La luna', explanation: '"’s Avonds kijkt David naar de maan."' },
+        { id: 'm1l6lz-6', type: 'fill_blank', prompt: 'Hij leest de ___. (el periódico)', correctAnswer: 'krant', hint: 'de …', explanation: '"De krant" = el periódico.' },
       ],
     },
     {
       type: 'dialogue',
       dialogue: {
-        id: 'd6',
-        title: 'Over het weer',
-        context: 'Twee buren praten over het weer op straat.',
+        id: 'm1d6',
+        title: 'De zesde ontmoeting',
+        context: 'David en Anna oefenen de korte en lange klinkers met woordparen.',
         lines: [
-          { id: 'd6-1', speaker: 'Buurvrouw', dutch: 'Goedemorgen! Wat een mooie dag, hè?', spanish: '¡Buenos días! ¡Qué día tan bonito, verdad?' },
-          { id: 'd6-2', speaker: 'Buurman', dutch: 'Ja, maar morgen regent het weer, zeggen ze.', spanish: 'Sí, pero dicen que mañana llueve otra vez.' },
-          { id: 'd6-3', speaker: 'Buurvrouw', dutch: 'Ach, dat is normaal in Nederland!', spanish: '¡Ay, eso es normal en los Países Bajos!' },
-          { id: 'd6-4', speaker: 'Buurman', dutch: 'Ja, maar vandaag is het gelukkig droog en warm.', spanish: 'Sí, pero hoy afortunadamente está seco y cálido.' },
-          { id: 'd6-5', speaker: 'Buurvrouw', dutch: 'Ik ga straks met de boot over het meer varen.', spanish: 'Luego voy a navegar en barco por el lago.' },
-          { id: 'd6-6', speaker: 'Buurman', dutch: 'Wat leuk! Neem je de kat ook mee?', spanish: '¡Qué bien! ¿Llevas también al gato?' },
-          { id: 'd6-7', speaker: 'Buurvrouw', dutch: 'Haha, nee! Katten houden niet van water.', spanish: '¡Jaja, no! A los gatos no les gusta el agua.' },
-          { id: 'd6-8', speaker: 'Buurman', dutch: 'Dat is zeker waar. Veel plezier!', spanish: 'Eso es verdad. ¡Que lo disfrutes!' },
+          { id: 'm1d6-1',  speaker: 'David', dutch: 'Hoi Anna! Ik heb een vraag. Wat is het verschil tussen ‘man’ en ‘maan’?',  spanish: '¡Hola Anna! Tengo una pregunta. ¿Cuál es la diferencia entre "man" y "maan"?' },
+          { id: 'm1d6-2',  speaker: 'Anna',  dutch: 'Goede vraag! De ‘a’ in ‘man’ is kort. De ‘aa’ in ‘maan’ is lang.',         spanish: '¡Buena pregunta! La "a" de "man" es corta. La "aa" de "maan" es larga.' },
+          { id: 'm1d6-3',  speaker: 'David', dutch: 'Dus ik zeg: de man kijkt naar de maan?',                                    spanish: 'Entonces digo: ¿el hombre mira la luna?' },
+          { id: 'm1d6-4',  speaker: 'Anna',  dutch: 'Precies! En ken je ‘bol’ en ‘boom’?',                                       spanish: '¡Exacto! ¿Y conoces "bol" y "boom"?' },
+          { id: 'm1d6-5',  speaker: 'David', dutch: 'Ja! De bol is rond, en de boom is groot.',                                  spanish: '¡Sí! La bola es redonda y el árbol es grande.' },
+          { id: 'm1d6-6',  speaker: 'Anna',  dutch: 'Heel goed! Nu een lastige: ‘bus’ en ‘buur’.',                               spanish: '¡Muy bien! Ahora una difícil: "bus" y "buur".' },
+          { id: 'm1d6-7',  speaker: 'David', dutch: 'De bus komt, en mijn buur… drinkt koffie?',                                 spanish: 'El autobús viene, y mi vecino… ¿toma café?' },
+          { id: 'm1d6-8',  speaker: 'Anna',  dutch: 'Haha, perfect! Nog één: ik eet kaas met een kam.',                          spanish: '¡Jaja, perfecto! Una más: yo como queso con un peine.' },
+          { id: 'm1d6-9',  speaker: 'David', dutch: 'Nee! Je eet kaas, niet met een kam! Een kam is voor je haar!',              spanish: '¡No! ¡Comes queso, no con un peine! ¡El peine es para el pelo!' },
+          { id: 'm1d6-10', speaker: 'Anna',  dutch: 'Heel goed, David! Je hoort het verschil al.',                               spanish: '¡Muy bien, David! Ya oyes la diferencia.' },
+          { id: 'm1d6-11', speaker: 'David', dutch: 'Ja! Vandaag eet ik brood met kaas, en vanavond kijk ik naar de maan.',      spanish: '¡Sí! Hoy como pan con queso, y esta noche miro la luna.' },
+          { id: 'm1d6-12', speaker: 'Anna',  dutch: 'Wat gezellig! Tot volgende week!',                                          spanish: '¡Qué bien! ¡Hasta la semana que viene!' },
+          { id: 'm1d6-13', speaker: 'David', dutch: 'Doei Anna!',                                                                spanish: '¡Adiós, Anna!' },
         ],
       },
+    },
+    {
+      type: 'practice',
+      exercises: [
+        // ── Opción múltiple ──
+        { id: 'm1l6e-1',  type: 'multiple_choice', prompt: '¿Qué significa "de maan"?', options: ['La luna', 'El hombre', 'La pared', 'El mar'], correctAnswer: 'La luna', explanation: '"De maan" (aa larga) = luna; "de man" (a corta) = hombre.' },
+        { id: 'm1l6e-2',  type: 'multiple_choice', prompt: '¿Cuál es el plural de "boom"?', options: ['bomen', 'boomen', 'booms', 'bomes'], correctAnswer: 'bomen', explanation: 'La sílaba se abre (bo-men) y basta una vocal: boom → bomen.' },
+        { id: 'm1l6e-3',  type: 'multiple_choice', prompt: '¿Cuál de estas palabras tiene vocal LARGA?', options: ['kaas', 'kam', 'kat', 'bus'], correctAnswer: 'kaas', explanation: 'La doble "aa" de kaas se pronuncia larga; kam, kat y bus llevan vocal corta.' },
+        { id: 'm1l6e-4',  type: 'multiple_choice', prompt: 'Una sílaba CERRADA termina en…', options: ['consonante', 'vocal', 'dos vocales', 'la letra n'], correctAnswer: 'consonante', explanation: 'Cerrada = termina en consonante (man, kat); abierta = termina en vocal (ma-, ka-).' },
+        // ── Verdadero / Falso ──
+        { id: 'm1l6e-5',  type: 'true_false', prompt: '"Kam" y "kaas" se pronuncian con la misma "a".', correctAnswer: 'falso', explanation: 'La "a" de kam es corta; la "aa" de kaas es larga. ¡Y cambia el significado!' },
+        { id: 'm1l6e-6',  type: 'true_false', prompt: '"Maan" y la primera sílaba de "manen" suenan exactamente igual.', correctAnswer: 'verdadero', explanation: 'Solo cambia la ortografía, no la pronunciación.' },
+        { id: 'm1l6e-7',  type: 'true_false', prompt: '"Geel" significa dinero.', correctAnswer: 'falso', explanation: '"Geel" (ee larga) = amarillo; "geld" (e corta) = dinero.' },
+        // ── Completar ──
+        { id: 'm1l6e-8',  type: 'fill_blank', prompt: 'De ___ schijnt. (el sol)', correctAnswer: 'zon', hint: 'Vocal corta' },
+        { id: 'm1l6e-9',  type: 'fill_blank', prompt: 'Plural: één boom, twee ___', correctAnswer: 'bomen', hint: 'La sílaba se abre: una sola o' },
+        { id: 'm1l6e-10', type: 'fill_blank', prompt: 'Plural: één muur, twee ___', correctAnswer: 'muren', hint: 'muur → mu-ren' },
+        { id: 'm1l6e-11', type: 'fill_blank', prompt: 'Ik eet brood met ___. (queso)', correctAnswer: 'kaas', hint: 'Vocal larga: aa' },
+        // ── Ordenar frases ──
+        { id: 'm1l6e-12', type: 'order_sentence', prompt: 'Ordena: "El árbol es grande."', options: ['De', 'boom', 'is', 'groot'], correctAnswer: 'De boom is groot' },
+        { id: 'm1l6e-13', type: 'order_sentence', prompt: 'Ordena: "Leo un periódico."', options: ['Ik', 'lees', 'een', 'krant'], correctAnswer: 'Ik lees een krant' },
+        // ── Sopa de letras ──
+        { id: 'm1l6e-14', type: 'word_scramble', prompt: '¿Cómo se dice "el periódico"?', correctAnswer: 'krant', hint: 'de …' },
+        { id: 'm1l6e-15', type: 'word_scramble', prompt: '¿Cómo se dice "el vecino"?', correctAnswer: 'buur', hint: 'Vocal larga: uu' },
+        // ── Letras que faltan ──
+        { id: 'm1l6e-16', type: 'letter_dash', prompt: 'Completa: "el pan"', correctAnswer: 'brood', hint: 'Ik koop … (vocal larga oo)' },
+        { id: 'm1l6e-17', type: 'letter_dash', prompt: 'Completa: "la pared"', correctAnswer: 'muur', hint: 'Vocal larga uu' },
+        // ── Unir parejas ──
+        { id: 'm1l6e-18', type: 'match_pairs', prompt: 'Une cada palabra con su traducción (¡ojo con las parejas mínimas!)', correctAnswer: '', pairs: [
+          { left: 'de man', right: 'el hombre' },
+          { left: 'de maan', right: 'la luna' },
+          { left: 'het geld', right: 'el dinero' },
+          { left: 'geel', right: 'amarillo' },
+          { left: 'de bus', right: 'el autobús' },
+          { left: 'de buur', right: 'el vecino' },
+        ] },
+        { id: 'm1l6e-19', type: 'match_pairs', prompt: 'Une cada palabra con su traducción', correctAnswer: '', pairs: [
+          { left: 'de kam', right: 'el peine' },
+          { left: 'de kaas', right: 'el queso' },
+          { left: 'de pet', right: 'la gorra' },
+          { left: 'de peer', right: 'la pera' },
+          { left: 'de bol', right: 'la bola' },
+          { left: 'de boom', right: 'el árbol' },
+        ] },
+        // ── Emoji ──
+        { id: 'm1l6e-20', type: 'emoji_choice', prompt: '¿Qué emoji representa "de boom"?', options: ['🌳', '🌙', '🧀', '🚌'], correctAnswer: '🌳', explanation: '"De boom" = el árbol (oo larga).' },
+        { id: 'm1l6e-21', type: 'emoji_choice', prompt: '¿Qué emoji representa "de kaas"?', options: ['🧀', '🧢', '🍐', '📰'], correctAnswer: '🧀', explanation: '"De kaas" = el queso (aa larga).' },
+        // ── El intruso ──
+        { id: 'm1l6e-22', type: 'odd_one_out', prompt: '¿Cuál tiene vocal CORTA? (las otras son largas)', options: ['kaas', 'peer', 'boom', 'pet'], correctAnswer: 'pet', explanation: 'Pet (gorra) lleva "e" corta; kaas, peer y boom llevan vocal larga.' },
+        { id: 'm1l6e-23', type: 'odd_one_out', prompt: '¿Cuál tiene vocal LARGA? (las otras son cortas)', options: ['man', 'kat', 'bus', 'maan'], correctAnswer: 'maan', explanation: 'Maan (luna) lleva "aa" larga; man, kat y bus son cortas.' },
+        // ── Escribir ──
+        { id: 'm1l6e-24', type: 'write_answer', prompt: 'Escribe el plural de "muur"', correctAnswer: 'muren', hint: 'La sílaba se abre: una sola u' },
+        { id: 'm1l6e-25', type: 'write_answer', prompt: 'Escribe en neerlandés: "El sol brilla"', correctAnswer: 'De zon schijnt', hint: 'Sin punto final' },
+        // ── Escuchar ──
+        { id: 'm1l6e-26', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "maan"', options: ['maan', 'man', 'manen', 'mannen'], correctAnswer: 'maan', explanation: 'La "aa" larga te dice que es maan (luna), no man (hombre).' },
+        { id: 'm1l6e-27', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "buur"', options: ['buur', 'bus', 'boer', 'bar'], correctAnswer: 'buur' },
+        { id: 'm1l6e-28', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "peer"', options: ['peer', 'pet', 'per', 'peren'], correctAnswer: 'peer' },
+        { id: 'm1l6e-29', type: 'listen_translate', prompt: 'Escucha y traduce: "De kat slaapt"', options: ['El', 'gato', 'duerme', 'come', 'perro', 'La'], correctAnswer: 'El gato duerme' },
+        { id: 'm1l6e-30', type: 'listen_translate', prompt: 'Escucha y traduce: "Het bos is mooi"', options: ['El', 'bosque', 'es', 'hermoso', 'mar', 'grande'], correctAnswer: 'El bosque es hermoso' },
+        // ── Comprensión del diálogo (De zesde ontmoeting) ──
+        { id: 'm1l6e-31', type: 'multiple_choice', prompt: 'En el diálogo, Anna dice de broma que come queso con…', options: ['Un peine (kam)', 'Una gorra (pet)', 'Una bola (bol)', 'Un periódico (krant)'], correctAnswer: 'Un peine (kam)', explanation: '"Ik eet kaas met een kam" — y David la corrige: ¡el peine es para el pelo!' },
+        { id: 'm1l6e-32', type: 'true_false', prompt: 'La "a" de "man" es larga.', correctAnswer: 'falso', explanation: 'Es corta; la larga es la "aa" de "maan".' },
+        { id: 'm1l6e-33', type: 'true_false', prompt: 'Esta noche David va a mirar la luna.', correctAnswer: 'verdadero', explanation: '"Vanavond kijk ik naar de maan."' },
+      ],
     },
     { type: 'review' },
   ],
 };
-
-/* ── MODULE 1 EXTRAS ─────────────────────────────────────────────────────── */
 
 const m1_extra1: Lesson = {
   id: 'extra-kleuren',
