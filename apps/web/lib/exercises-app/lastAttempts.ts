@@ -85,6 +85,20 @@ export async function getAllAttempts(
   }
 }
 
+/** Listeners que quieren enterarse de cada guardado (p. ej. invalidar la
+ *  caché de insights para que "Mi progreso" muestre siempre la última nota). */
+type AttemptSavedListener = () => void
+const attemptListeners = new Set<AttemptSavedListener>()
+export function onAttemptSaved(fn: AttemptSavedListener): () => void {
+  attemptListeners.add(fn)
+  return () => attemptListeners.delete(fn)
+}
+function notifyAttemptSaved() {
+  attemptListeners.forEach((fn) => {
+    try { fn() } catch { /* listener errors never break saving */ }
+  })
+}
+
 export async function saveLastAttempt(
   sectionKey: string,
   attempt: Omit<LastAttempt, 'date'>,
@@ -105,6 +119,7 @@ export async function saveLastAttempt(
         accessToken
       )
     )
+    notifyAttemptSaved()
   } catch {
     /* swallow network errors — the UI is best-effort here */
   }

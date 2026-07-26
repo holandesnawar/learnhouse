@@ -104,22 +104,17 @@ async function fetchCombined(
   }
 }
 
-export async function getStudentInsights(
-  accessToken: string | undefined
-): Promise<StudentInsights> {
-  // Un solo viaje al servidor; si el endpoint combinado aún no está desplegado
-  // (deploy en curso), caemos a las cuatro llamadas clásicas en paralelo.
-  const combined = accessToken ? await fetchCombined(accessToken) : null
-  const [progress, completions, attempts, weakWords] =
-    combined ??
-    (await Promise.all([
-      getStudentProgress(accessToken),
-      listLessonCompletions(accessToken),
-      getAllAttempts(accessToken),
-      getWeakWords(accessToken, 12),
-    ]))
-
-  const now = new Date()
+/**
+ * Cálculo puro de los insights (testeable sin red): recibe los datos crudos
+ * del servidor y deriva la semana actual, la media global y el tiempo total.
+ */
+export function computeInsights(
+  progress: StudentProgress | null,
+  completions: LessonCompletion[],
+  attempts: Record<string, LastAttempt>,
+  weakWords: WeakWord[],
+  now: Date = new Date()
+): StudentInsights {
   const monday = startOfWeek(now)
   const prevMonday = new Date(monday)
   prevMonday.setDate(monday.getDate() - 7)
@@ -164,6 +159,20 @@ export async function getStudentInsights(
     }
   }
 
+  // Los días de la RACHA también son días activos: si la racha es de N días y
+  // la última visita fue el día X, los días [X-N+1 .. X] el alumno entró a la
+  // app — aunque ese día no completara nada. Así la tira semanal refleja de
+  // verdad "los días que entraste".
+  const lastVisit = parseDate(progress?.last_visit_date)
+  const streak = progress?.current_streak ?? 0
+  if (lastVisit && streak > 0) {
+    for (let i = 0; i < streak; i++) {
+      const d = new Date(lastVisit)
+      d.setDate(lastVisit.getDate() - i)
+      if (d >= monday) activeDays.add(isoDay(d))
+    }
+  }
+
   return {
     progress,
     completions,
@@ -180,6 +189,23 @@ export async function getStudentInsights(
     avgPct: allTotal > 0 ? Math.round((allScore / allTotal) * 100) : null,
     timeSecondsTotal,
   }
+}
+
+export async function getStudentInsights(
+  accessToken: string | undefined
+): Promise<StudentInsights> {
+  // Un solo viaje al servidor; si el endpoint combinado aún no está desplegado
+  // (deploy en curso), caemos a las cuatro llamadas clásicas en paralelo.
+  const combined = accessToken ? await fetchCombined(accessToken) : null
+  const [progress, completions, attempts, weakWords] =
+    combined ??
+    (await Promise.all([
+      getStudentProgress(accessToken),
+      listLessonCompletions(accessToken),
+      getAllAttempts(accessToken),
+      getWeakWords(accessToken, 12),
+    ]))
+  return computeInsights(progress, completions, attempts, weakWords)
 }
 
 /** "1 h 20 min" / "35 min" / "—" */
