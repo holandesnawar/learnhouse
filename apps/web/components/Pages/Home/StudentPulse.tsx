@@ -186,8 +186,9 @@ export function ContinueCard({
           </div>
         )}
 
-        {/* Mismo botón de marca que "Continuar donde lo dejaste" en Formación */}
-        <div className="mt-4 w-full py-3 px-3 rounded-lg nice-shadow font-semibold text-sm leading-tight text-center transition-colors flex items-center justify-center gap-2 bg-[#4da3ff] text-[#1D0084] group-hover:bg-[#6cb5ff]">
+        {/* Mismo diseño de botón de marca que "Continuar donde lo dejaste" en
+            Formación (colores, sombra, icono) — pero compacto, no a todo el ancho */}
+        <div className="mt-4 inline-flex items-center justify-center gap-2 py-3 px-5 rounded-lg nice-shadow font-semibold text-sm leading-tight transition-colors bg-[#4da3ff] text-[#1D0084] group-hover:bg-[#6cb5ff]">
           <BookOpen className="w-4 h-4 shrink-0" />
           <span>{allDone && next ? 'Empezar la siguiente lección' : 'Seguir con la lección'}</span>
         </div>
