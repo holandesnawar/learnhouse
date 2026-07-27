@@ -550,6 +550,7 @@ def send_announcement_email(
     name: str = "alumno/a",
     title: str = "Nueva quedada online el jueves",
     excerpt: str = "El jueves a las 19h tenemos sesión de conversación en grupo. Plazas limitadas.",
+    url: str = "",
 ):
     """Anuncio nuevo publicado en la academia."""
     safe_name = html.escape(name)
@@ -570,7 +571,7 @@ def send_announcement_email(
                 {safe_excerpt}
             </p>
         </div>
-        <a href="{ACADEMY_URL}" class="brand-btn" style="{STYLES['button']}">
+        <a href="{url or ACADEMY_URL}" class="brand-btn" style="{STYLES['button']}">
             Ver en la academia
         </a>
     """
@@ -671,5 +672,51 @@ def send_certificate_ready_email(
             title=heading,
             body_content=body_content,
             footer_note="Enhorabuena de parte de todo el equipo de Holandés Nawar.",
+        ),
+    )
+
+
+def send_class_scheduled_email(
+    email: EmailStr,
+    name: str = "alumno/a",
+    title: str = "Clase en vivo",
+    when_text: str = "jueves 30 de julio · 19:00",
+    join_url: str = "",
+):
+    """Horario de la clase semanal confirmado: cuándo es y por dónde se entra."""
+    safe_name = html.escape(name)
+    safe_title = html.escape(title)
+    safe_when = html.escape(when_text)
+    heading = "Ya tienes fecha para la próxima clase"
+
+    body_content = f"""
+        <h1 style="{STYLES['h1']}">{heading}</h1>
+        <p style="{STYLES['p']}">
+            Hola {safe_name}, ya está confirmada la próxima clase en vivo:
+        </p>
+        <div style="border-left: 3px solid #4da3ff; padding: 4px 0 4px 14px; margin: 0 0 22px 0;">
+            <p style="margin: 0 0 6px 0; font-size: 15px; font-weight: 800; color: #1D0084; line-height: 1.4;">
+                {safe_title}
+            </p>
+            <p style="margin: 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.6;">
+                {safe_when}
+            </p>
+        </div>
+        <a href="{join_url or ACADEMY_URL}" class="brand-btn" style="{STYLES['button']}">
+            {"Entrar a la clase" if join_url else "Ver en la academia"}
+        </a>
+        <p style="{STYLES['p']}">
+            Apúntatelo en el calendario. Si no puedes venir, la grabación queda
+            en la academia.
+        </p>
+    """
+
+    return send_email(
+        to=email,
+        subject=f"{title} — {when_text}",
+        body=_email_layout(
+            title=heading,
+            body_content=body_content,
+            footer_note="Te avisamos cada vez que se confirma una clase en vivo.",
         ),
     )

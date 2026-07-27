@@ -7,7 +7,7 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 import utc from 'dayjs/plugin/utc'
 import 'dayjs/locale/es'
 import { PaperPlaneRight } from '@phosphor-icons/react'
-import { Loader2, MessageCircle, Pin, PinOff, SmilePlus, Reply, X, Pencil, Trash2 } from 'lucide-react'
+import { Loader2, Mail, MessageCircle, Pin, PinOff, SmilePlus, Reply, X, Pencil, Trash2 } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useDiscussions, useMutateDiscussions } from '@components/Hooks/useDiscussions'
 import {
@@ -29,6 +29,8 @@ import { getUserAvatarMediaDirectory } from '@services/media/media'
 import UserAvatar from '@components/Objects/UserAvatar'
 import AuthenticatedClientElement from '@components/Security/AuthenticatedClientElement'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
+import { broadcastNotification } from '@services/notifications/broadcast'
+import { useOrg } from '@components/Contexts/OrgContext'
 
 dayjs.extend(relativeTime)
 dayjs.extend(utc)
@@ -133,6 +135,11 @@ export function ChannelChat({
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
   const { isAdmin } = useAdminStatus() as any
+  const org = useOrg() as any
+  // Solo para el equipo: publicar un mensaje Y avisar por email. Es para las
+  // novedades que de verdad importan (un cambio de horario, el arranque de un
+  // módulo), no para el día a día del chat.
+  const [alsoEmail, setAlsoEmail] = useState(false)
   const mutateDiscussions = useMutateDiscussions()
   const [pinningUuid, setPinningUuid] = useState<string | null>(null)
   const [pickerUuid, setPickerUuid] = useState<string | null>(null)
@@ -276,6 +283,22 @@ export function ChannelChat({
       setText('')
       setReplyingTo(null)
       mutateDiscussions(communityUuid)
+
+      if (alsoEmail && isAdmin && org?.id) {
+        const res = await broadcastNotification(
+          {
+            org_id: org.id,
+            kind: 'announcement',
+            title: `${channelName}: ${title || msg.slice(0, 80)}`,
+            body: msg,
+            url: typeof window !== 'undefined' ? window.location.href : '',
+          },
+          accessToken
+        )
+        setAlsoEmail(false)
+        if (res) toast.success(`Publicado y avisado por email a ${res.queued} alumnos.`)
+        else toast.error('Publicado, pero no se pudo enviar el aviso por email.')
+      }
     } catch (e: any) {
       toast.error(
         (e?.detail && typeof e.detail === 'object' && e.detail.message) ||
@@ -604,6 +627,20 @@ export function ChannelChat({
               {sending ? <Loader2 size={16} className="animate-spin" /> : <PaperPlaneRight size={16} weight="fill" />}
             </button>
           </div>
+          {isAdmin && (
+            <label className="mt-2 flex items-center gap-2 text-[12.5px] text-gray-500 select-none cursor-pointer">
+              <input
+                type="checkbox"
+                checked={alsoEmail}
+                onChange={(e) => setAlsoEmail(e.target.checked)}
+                className="w-3.5 h-3.5 rounded border-gray-300 text-[#025dc7] focus:ring-[#025dc7]/30 cursor-pointer"
+              />
+              <Mail size={13} className={alsoEmail ? 'text-[#025dc7]' : 'text-gray-400'} />
+              <span className={alsoEmail ? 'text-[#025dc7] font-semibold' : ''}>
+                Avisar por email a todos los alumnos
+              </span>
+            </label>
+          )}
         </div>
       </AuthenticatedClientElement>
     </div>

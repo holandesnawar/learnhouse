@@ -7,7 +7,7 @@ from src.routers import health
 from src.routers import instance
 from src.routers import plans
 from src.routers import usergroups
-from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments
+from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications
 from src.routers import notifications as notifications_router_module
 from src.routers import stream
 from src.routers import api_tokens
@@ -327,6 +327,12 @@ v1_router.include_router(
     student_progress.router,
     prefix="/student",
     tags=["student"],
+    dependencies=[Depends(get_non_api_token_user)],
+)
+v1_router.include_router(
+    notifications.router,
+    prefix="/notifications",
+    tags=["notifications"],
     dependencies=[Depends(get_non_api_token_user)],
 )
 

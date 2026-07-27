@@ -6,6 +6,7 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { updateOrgEvents } from '@services/organizations/orgs'
+import { broadcastNotification } from '@services/notifications/broadcast'
 import {
   ChevronLeft,
   ChevronRight,
@@ -18,6 +19,7 @@ import {
   Clock,
   ExternalLink,
   CalendarDays,
+  Mail,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -56,6 +58,28 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
   const accessToken = session?.data?.tokens?.access_token
   const { isAdmin } = useAdminStatus() as any
   const canEdit = !!isAdmin
+  const [notifying, setNotifying] = useState<string | null>(null)
+
+  // Avisar por email de una clase ya confirmada. Va a todos los alumnos de la
+  // academia y se manda en segundo plano, así que la respuesta es inmediata.
+  const notifyEvent = async (ev: LhEvent) => {
+    if (!org?.id || notifying) return
+    const whenText = [
+      `${WEEKDAYS_FULL[(dayjs(ev.date).day() + 6) % 7]} ${dayjs(ev.date).date()} de ${MONTHS[dayjs(ev.date).month()]}`,
+      ev.time ? `· ${ev.time}` : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+    if (!window.confirm(`Se enviará un email a TODOS los alumnos con:\n\n${ev.title}\n${whenText}\n\n¿Enviar?`)) return
+    setNotifying(ev.id)
+    const res = await broadcastNotification(
+      { org_id: org.id, kind: 'class', title: ev.title, when_text: whenText, url: ev.link || '' },
+      accessToken
+    )
+    setNotifying(null)
+    if (res) toast.success(`Aviso enviado a ${res.queued} alumnos.`)
+    else toast.error('No se pudo enviar el aviso.')
+  }
 
   const [events, setEvents] = useState<LhEvent[]>(() => readEvents(org))
   const [cursor, setCursor] = useState(() => dayjs().startOf('month'))
@@ -265,9 +289,23 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
                   )}
                 </div>
                 {canEdit && (
-                  <button onClick={() => setEditing(ev)} className="shrink-0 p-2 text-gray-400 hover:text-gray-700" aria-label="Editar evento">
-                    <Pencil size={15} />
-                  </button>
+                  <div className="shrink-0 flex items-center gap-1">
+                    <button
+                      onClick={() => notifyEvent(ev)}
+                      disabled={notifying === ev.id}
+                      className={`px-2.5 py-1.5 rounded-lg text-[12px] font-semibold inline-flex items-center gap-1.5 transition-colors ${
+                        notifying === ev.id
+                          ? 'text-gray-400 cursor-not-allowed'
+                          : 'text-[#025dc7] hover:bg-[#F0F5FF]'
+                      }`}
+                      title="Avisar a los alumnos por email"
+                    >
+                      <Mail size={14} /> {notifying === ev.id ? 'Enviando…' : 'Avisar'}
+                    </button>
+                    <button onClick={() => setEditing(ev)} className="p-2 text-gray-400 hover:text-gray-700" aria-label="Editar evento">
+                      <Pencil size={15} />
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
