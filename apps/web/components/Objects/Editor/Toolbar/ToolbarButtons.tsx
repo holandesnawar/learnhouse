@@ -45,6 +45,17 @@ import lrnaiIcon from 'public/lrnai_icon.png'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useTranslation } from 'react-i18next'
 
+/** Grosores del texto. La tipografía de la plataforma (Wix Madefor Text) llega
+ *  hasta 800; por encima el navegador clava el mismo trazo, así que no se
+ *  ofrecen pesos que no se notarían. `weight: null` = negrita normal (700). */
+const WEIGHT_OPTIONS: { label: string; weight: string | null }[] = [
+  { label: 'Fina', weight: '400' },
+  { label: 'Media', weight: '500' },
+  { label: 'Seminegrita', weight: '600' },
+  { label: 'Negrita', weight: null },
+  { label: 'Gruesa', weight: '800' },
+]
+
 export const ToolbarButtons = React.memo(({ editor, props }: any) => {
   const { t } = useTranslation()
   const [showTableMenu, setShowTableMenu] = React.useState(false)
@@ -180,18 +191,15 @@ export const ToolbarButtons = React.memo(({ editor, props }: any) => {
         <div
           onClick={() => setShowBoldMenu(!showBoldMenu)}
           className={`editor-tool-btn ${showBoldMenu ? 'is-active' : ''}`}
-          aria-label="Grosor de la negrita"
+          aria-label="Grosor del texto"
+          title="Grosor del texto"
         >
           <TextB size={15} weight="bold" />
           <CaretDown size={10} />
         </div>
         {showBoldMenu && (
-          <div className="editor-menu-dropdown">
-            {[
-              { label: 'Seminegrita', weight: '600' as string | null, css: 600 },
-              { label: 'Negrita (normal)', weight: null as string | null, css: 700 },
-              { label: 'Gruesa', weight: '800' as string | null, css: 800 },
-            ].map(({ label, weight, css }) => (
+          <div className="editor-menu-dropdown" style={{ minWidth: 170 }}>
+            {WEIGHT_OPTIONS.map(({ label, weight }) => (
               <div
                 key={label}
                 onClick={() => {
@@ -200,10 +208,23 @@ export const ToolbarButtons = React.memo(({ editor, props }: any) => {
                 }}
                 className={`editor-menu-item ${editor.isActive('bold', { weight }) ? 'is-active' : ''}`}
               >
-                <span className="icon"><TextB size={15} /></span>
-                <span className="label" style={{ fontWeight: css }}>{label}</span>
+                <span className="label" style={{ fontWeight: Number(weight ?? 700) }}>
+                  {label}
+                </span>
               </div>
             ))}
+            <div
+              onClick={() => {
+                editor.chain().focus().unsetMark('bold').run()
+                setShowBoldMenu(false)
+              }}
+              className="editor-menu-item"
+              style={{ borderTop: '1px solid #eef2fb' }}
+            >
+              <span className="label" style={{ fontWeight: 400, color: '#6b7280' }}>
+                Quitar negrita
+              </span>
+            </div>
           </div>
         )}
       </div>
@@ -609,6 +630,7 @@ export const ToolbarButtons = React.memo(({ editor, props }: any) => {
           onClick={() =>
             editor.chain().focus().insertContent({
               type: 'accordion',
+              attrs: { uid: `acc-${Math.random().toString(36).slice(2, 10)}` },
               content: [
                 {
                   type: 'accordionSummary',

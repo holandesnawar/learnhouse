@@ -2414,3 +2414,15 @@ a.bg-black:hover {
 .lh-acc-closed .lh-acc-content {
   display: none;
 }
+
+/* ── Negrita con grosor absoluto ──────────────────────────────────────────
+   El estilo por defecto del navegador es `strong { font-weight: bolder }`,
+   que es RELATIVO al peso heredado: dentro de un título (600) o de la
+   pregunta de un desplegable (600), `bolder` sube a 900 y la negrita salía
+   siempre "muy gruesa" e inmodificable. Fijándola a 700 la negrita pesa lo
+   mismo en todas partes, y el selector de grosor del editor (que pinta
+   font-weight inline) manda por encima. */
+.ProseMirror strong,
+.ProseMirror b {
+  font-weight: 700;
+}

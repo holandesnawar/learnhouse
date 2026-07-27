@@ -76,6 +76,18 @@ const Accordion = Node.create({
   draggable: true,
   defining: true,
 
+  addAttributes() {
+    return {
+      // Identificador estable del bloque: permite recordar si el alumno lo
+      // dejó abierto aunque ProseMirror recree la vista del nodo.
+      uid: {
+        default: null,
+        parseHTML: (el) => el.getAttribute('data-uid'),
+        renderHTML: (attrs) => (attrs.uid ? { 'data-uid': attrs.uid } : {}),
+      },
+    }
+  },
+
   parseHTML() {
     return [{ tag: 'div[data-type="accordion"]' }, { tag: 'details' }]
   },
