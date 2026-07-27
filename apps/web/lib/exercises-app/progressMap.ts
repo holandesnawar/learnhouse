@@ -79,15 +79,18 @@ export function buildLessonRow(
 ): LessonProgressRow {
   const sections: SectionProgress[] = trackedSectionIds(lesson).map((sid) => {
     const a = attempts[`${lesson.id}-${sid}`]
-    const scored = Boolean(a && a.total > 0)
+    // Un intento a medias significa "la empezó", no "la hizo": ni cuenta como
+    // sección hecha ni lleva nota (si no, 'te quedaste en...' se la saltaría).
+    const partial = Boolean(a?.partial)
+    const scored = Boolean(a && a.total > 0 && !partial)
     return {
       id: sid,
       label: SECTION_LABEL[sid] || sid,
-      done: Boolean(a),
+      done: Boolean(a) && !partial,
       pct: scored ? Math.round((a!.score / a!.total) * 100) : null,
-      score: a?.score ?? 0,
-      total: a?.total ?? 0,
-      fails: a?.failedLabels?.length ?? 0,
+      score: scored ? a!.score : 0,
+      total: scored ? a!.total : 0,
+      fails: partial ? 0 : a?.failedLabels?.length ?? 0,
     }
   })
 
@@ -174,7 +177,10 @@ export function overallCourseProgress(
       }
       const ids = trackedSectionIds(l)
       if (!ids.length) continue
-      const done = ids.filter((sid) => attempts[`${l.id}-${sid}`]).length
+      const done = ids.filter((sid) => {
+        const a = attempts[`${l.id}-${sid}`]
+        return a && !a.partial
+      }).length
       sum += done / ids.length
     }
   }
@@ -186,6 +192,7 @@ export function masteredSectionsCount(attempts: Record<string, LastAttempt>): nu
   let n = 0
   for (const key of Object.keys(attempts)) {
     const a = attempts[key]
+    if (a.partial) continue
     if (a.total > 0 && Math.round((a.score / a.total) * 100) >= 85) n++
   }
   return n

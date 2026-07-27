@@ -14,7 +14,7 @@ import {
   type LessonCompletion,
   type WeakWord,
 } from './progress'
-import { getAllAttempts, type LastAttempt } from '@/lib/exercises-app/lastAttempts'
+import { getAllAttempts, PARTIAL_FLAG, type LastAttempt } from '@/lib/exercises-app/lastAttempts'
 
 export interface WeekStats {
   /** ISO dates (YYYY-MM-DD) with at least one practice or completion, current week. */
@@ -91,11 +91,13 @@ async function fetchCombined(
     const attempts: Record<string, LastAttempt> = {}
     for (const a of data.attempts || []) {
       if (!a?.section_key) continue
+      const labels = Array.isArray(a.failed_labels) ? a.failed_labels : []
       attempts[a.section_key] = {
         score: a.score ?? 0,
         total: a.total ?? 0,
-        failedLabels: Array.isArray(a.failed_labels) ? a.failed_labels : [],
+        failedLabels: labels.filter((l) => l !== PARTIAL_FLAG),
         date: a.date || '',
+        partial: labels.includes(PARTIAL_FLAG),
       }
     }
     return [data.progress, data.completions || [], attempts, data.weak_words || []]
@@ -145,7 +147,11 @@ export function computeInsights(
   let allTotal = 0
   for (const key of Object.keys(attempts)) {
     const a = attempts[key]
-    if (a.total > 0) {
+    // Una sección a medias cuenta como práctica del día (el alumno estuvo
+    // trabajando), pero su marcador NO entra en las notas: sería una nota
+    // sobre ejercicios que todavía no ha hecho.
+    const scored = a.total > 0 && !a.partial
+    if (scored) {
       allScore += a.score
       allTotal += a.total
     }
@@ -153,7 +159,7 @@ export function computeInsights(
     if (!d || d < monday) continue
     practices++
     activeDays.add(isoDay(d))
-    if (a.total > 0) {
+    if (scored) {
       weekScore += a.score
       weekTotal += a.total
     }

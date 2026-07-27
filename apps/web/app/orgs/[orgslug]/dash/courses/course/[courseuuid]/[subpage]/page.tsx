@@ -3,7 +3,7 @@ import React, { use, useEffect } from 'react';
 import { CourseProvider } from '../../../../../../../../components/Contexts/CourseContext'
 import { CourseOverviewTop } from '@components/Dashboard/Misc/CourseOverviewTop'
 import { motion } from 'motion/react'
-import { GalleryVerticalEnd, Globe, Info, UserPen, Award, Lock, Search } from 'lucide-react'
+import { GalleryVerticalEnd, Globe, Info, UserPen, Award, Lock, Search, CalendarClock } from 'lucide-react'
 import { ChartBar } from '@phosphor-icons/react'
 import EditCourseStructure from '@components/Dashboard/Pages/Course/EditCourseStructure/EditCourseStructure'
 import EditCourseGeneral from '@components/Dashboard/Pages/Course/EditCourseGeneral/EditCourseGeneral'
@@ -11,6 +11,7 @@ import EditCourseAccess from '@components/Dashboard/Pages/Course/EditCourseAcces
 import EditCourseContributors from '@components/Dashboard/Pages/Course/EditCourseContributors/EditCourseContributors'
 import EditCourseCertification from '@components/Dashboard/Pages/Course/EditCourseCertification/EditCourseCertification'
 import EditCourseSEO from '@components/Dashboard/Pages/Course/EditCourseSEO/EditCourseSEO'
+import EditCourseDrip from '@components/Dashboard/Pages/Course/EditCourseDrip/EditCourseDrip'
 import { useCourseRights } from '@hooks/useCourseRights'
 import { useRouter } from 'next/navigation'
 import { getUriWithOrg } from '@services/config/config';
@@ -54,6 +55,13 @@ function CourseOverviewPage(props: { params: Promise<CourseOverviewParams> }) {
       icon: GalleryVerticalEnd,
       href: `/dash/courses/course/${params.courseuuid}/content`,
       requiredPermission: 'update_content' as const
+    },
+    {
+      key: 'drip',
+      label: 'Goteo',
+      icon: CalendarClock,
+      href: `/dash/courses/course/${params.courseuuid}/drip`,
+      requiredPermission: 'update' as const
     },
     {
       key: 'access',
@@ -174,6 +182,9 @@ function CourseOverviewPage(props: { params: Promise<CourseOverviewParams> }) {
             ) : null}
             {!rightsLoading && params.subpage == 'general' && hasPermission('update') ? (
               <EditCourseGeneral orgslug={params.orgslug} />
+            ) : null}
+            {!rightsLoading && params.subpage == 'drip' && hasPermission('update') ? (
+              <EditCourseDrip />
             ) : null}
             {!rightsLoading && params.subpage == 'access' && hasPermission('manage_access') ? (
               <EditCourseAccess orgslug={params.orgslug} />

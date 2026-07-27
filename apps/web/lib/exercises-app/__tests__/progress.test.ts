@@ -63,6 +63,45 @@ describe('computeInsights', () => {
   })
 })
 
+describe('secciones a medias (práctica sin terminar)', () => {
+  const M1L1 = 'les-1-voorstellen'
+
+  test('cuenta como práctica de la semana pero no como sección hecha ni nota', () => {
+    const attempts = {
+      [`${M1L1}-vocabulary`]: { ...att(3, 12, ['a'], '2026-07-28T10:00:00'), partial: true },
+    }
+    const ins = computeInsights(null, [], attempts, [], NOW)
+
+    // el alumno practicó → la semana ya NO está vacía
+    expect(ins.week.practices).toBe(1)
+    expect(ins.week.activeDays).toContain('2026-07-28')
+    // ...pero no se le pone un 25% por ejercicios que aún no ha hecho
+    expect(ins.week.correctPct).toBe(null)
+    expect(ins.avgPct).toBe(null)
+
+    const row = buildLessonRow(getLesson('over-jou', M1L1), 'over-jou', 1, attempts, new Set())
+    const vocab = row.sections.find((s) => s.id === 'vocabulary')
+    expect(vocab.done).toBe(false)
+    expect(vocab.pct).toBe(null)
+    // 'te quedaste en' sigue apuntando a la sección a medias, no a la siguiente
+    expect(row.nextSection.id).toBe('vocabulary')
+    expect(row.totalFails).toBe(0)
+  })
+
+  test('al terminarla de verdad, ya cuenta y puntúa', () => {
+    const attempts = { [`${M1L1}-vocabulary`]: att(10, 12, ['a', 'b'], '2026-07-28T10:00:00') }
+    const ins = computeInsights(null, [], attempts, [], NOW)
+    expect(ins.week.practices).toBe(1)
+    expect(ins.avgPct).toBe(83)
+
+    const row = buildLessonRow(getLesson('over-jou', M1L1), 'over-jou', 1, attempts, new Set())
+    const vocab = row.sections.find((s) => s.id === 'vocabulary')
+    expect(vocab.done).toBe(true)
+    expect(vocab.pct).toBe(83)
+    expect(row.nextSection.id).toBe('flashcards')
+  })
+})
+
 describe('buildProgressMap / buildLessonRow', () => {
   const M1L1 = 'les-1-voorstellen'
 

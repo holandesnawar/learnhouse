@@ -1190,6 +1190,27 @@ function VocabPracticeSection({
       }
       setAllDone(true);
     } else {
+      // Avance a medias: se deja constancia de que HOY practicó esta sección
+      // (si no, quien no llega al final no aparece en "Esta semana"). Marcado
+      // como parcial: ni cuenta como sección hecha ni pone nota.
+      if (cacheKey && !inReview) {
+        const answered = practiceExercises.filter((e) => resultsRef.current.has(e.id));
+        const failed = answered
+          .filter((e) => resultsRef.current.get(e.id) === false)
+          .map((e) => e.prompt);
+        saveLastAttempt(
+          cacheKey,
+          answered.length > 0
+            ? {
+                score: answered.length - failed.length,
+                total: practiceExercises.length,
+                failedLabels: failed,
+                partial: true,
+              }
+            : { score: 0, total: 0, failedLabels: [], partial: true },
+          accessToken,
+        );
+      }
       const next = stepIndex + 1;
       setStepIndex(next);
       if (stepCacheKey) try { sessionStorage.setItem(stepCacheKey, String(next)); } catch {}
@@ -3001,14 +3022,33 @@ function LezenSection({
     setAnswered(true);
     if (answeredSet.has(exerciseIndex)) return; // ya contado: no duplicar al volver
     setAnsweredSet((s) => new Set(s).add(exerciseIndex));
+    const nextScore = correct ? score + 1 : score;
+    const nextWrong = new Set(wrongIndices);
     if (correct) {
-      setScore((s) => s + 1);
+      setScore(nextScore);
     } else {
-      setWrongIndices((w) => {
-        const next = new Set(w);
-        next.add(exerciseIndex);
-        return next;
-      });
+      nextWrong.add(exerciseIndex);
+      setWrongIndices(nextWrong);
+    }
+    // Deja constancia del avance en cuanto responde: antes solo se guardaba al
+    // llegar al ÚLTIMO ejercicio, así que quien practicaba un rato y salía no
+    // dejaba rastro ninguno y "Esta semana" se quedaba en blanco. Se marca como
+    // parcial para que no cuente como sección hecha ni como nota.
+    const answeredCount = answeredSet.size + 1;
+    if (cacheKey && !reviewOnly && answeredCount < exercises.length) {
+      saveLastAttempt(
+        cacheKey,
+        {
+          score: nextScore,
+          total: exercises.length,
+          failedLabels: Array.from(nextWrong)
+            .sort((a, b) => a - b)
+            .map((i) => exercises[i]?.prompt)
+            .filter((p): p is string => !!p),
+          partial: true,
+        },
+        accessToken,
+      );
     }
   }
 

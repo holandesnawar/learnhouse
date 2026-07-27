@@ -10,7 +10,7 @@ import toast from 'react-hot-toast'
 // Admin-only panel (shown on the course overview) to configure "drip content":
 // how many days after each student's enrollment a module/chapter unlocks.
 // Saved to org config (config.drip_content) via PUT /orgs/{id}/config/drip_content.
-export default function DripContentSettings({ course }: { course: any }) {
+export default function DripContentSettings({ course, defaultOpen = false }: { course: any; defaultOpen?: boolean }) {
   const { isAdmin } = useAdminStatus() as any
   const org = useOrg() as any
   const session = useLHSession() as any
@@ -18,7 +18,7 @@ export default function DripContentSettings({ course }: { course: any }) {
   const stored = org?.config?.config?.drip_content || {}
   const chapters: any[] = course?.chapters || []
 
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(defaultOpen)
   const [enabled, setEnabled] = useState<boolean>(!!stored.enabled)
   const [offsets, setOffsets] = useState<{ [k: string]: number }>(() => {
     const init: { [k: string]: number } = {}

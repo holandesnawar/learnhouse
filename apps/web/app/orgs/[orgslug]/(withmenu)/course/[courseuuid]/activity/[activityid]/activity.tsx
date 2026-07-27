@@ -1271,16 +1271,7 @@ export function MarkStatus(props: {
           {isLoading ? spinnerIcon : checkIcon}
           <span className="text-sm font-semibold whitespace-nowrap">{t('common.completed', 'Completada')}</span>
         </button>
-      ) : (
-        // Sin completar → CTA verde "Marcar como completada".
-        <div
-          className={`${isLoading ? 'opacity-90 cursor-not-allowed' : 'hover:bg-emerald-700'} bg-emerald-600 rounded-lg px-3 sm:px-4 py-2.5 nice-shadow flex items-center gap-2 text-white hover:cursor-pointer transition-colors`}
-          onClick={!isLoading ? markActivityAsCompleteFront : undefined}
-        >
-          {isLoading ? spinnerIcon : checkIcon}
-          <span className="text-sm font-semibold whitespace-nowrap">{isLoading ? t('activities.marking') : t('activities.mark_as_complete')}</span>
-        </div>
-      )}
+      ) : null}
     </>
   )
 }
@@ -1288,6 +1279,10 @@ export function MarkStatus(props: {
 function NextActivityButton({ course, currentActivityId, orgslug, canAdvance = true, lockMessage, isAdmin = false, showWatchedAck = false, onWatchedAck }: { course: any, currentActivityId: string, orgslug: string, canAdvance?: boolean, lockMessage?: string, isAdmin?: boolean, showWatchedAck?: boolean, onWatchedAck?: () => void }) {
   const { t } = useTranslation();
   const router = useRouter();
+  const session = useLHSession() as any;
+  const access_token = session?.data?.tokens?.access_token;
+  const org = useOrg() as any;
+  const queryClient = useQueryClient();
   const [showHint, setShowHint] = useState(false);
 
   const findNextActivity = () => {
@@ -1323,12 +1318,34 @@ function NextActivityButton({ course, currentActivityId, orgslug, canAdvance = t
     );
   };
 
+  // "Siguiente" da la lección por vista: es el gesto natural de terminarla.
+  // Antes había que acordarse de pulsar un botón verde aparte, así que el
+  // progreso dependía de que el alumno lo recordara. Si falla la llamada no se
+  // bloquea la navegación: el progreso es best-effort, avanzar no.
+  const markCurrentDone = async () => {
+    if (!access_token || !course?.course_uuid) return;
+    const current = (course.chapters ?? [])
+      .flatMap((c: any) => c.activities ?? [])
+      .find((a: any) => a.id === currentActivityId);
+    if (!current?.activity_uuid) return;
+    try {
+      await markActivityAsComplete(orgslug, course.course_uuid, current.activity_uuid, access_token);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.trail.org(org?.id) });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.courses.meta(course.course_uuid.replace('course_', '')),
+      });
+    } catch {
+      /* el progreso no puede impedir avanzar */
+    }
+  };
+
   const handleClick = () => {
     if (!canAdvance) {
       setShowHint(true);
       setTimeout(() => setShowHint(false), 4000);
       return;
     }
+    markCurrentDone();
     goNext();
   };
 

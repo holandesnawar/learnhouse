@@ -12,6 +12,8 @@ export interface LastAttempt {
   total: number
   failedLabels: string[]
   date: string
+  /** true = la sección se practicó pero no se terminó. */
+  partial?: boolean
 }
 
 interface ApiAttempt {
@@ -21,15 +23,26 @@ interface ApiAttempt {
   date: string
 }
 
+/**
+ * Marca de "sección a medias". Viaja DENTRO de failed_labels para no tener que
+ * añadir una columna a la base de datos (no hay migración automática en
+ * producción). Nunca sale de este módulo: `toLocal` la quita y la convierte en
+ * el booleano `partial`.
+ */
+export const PARTIAL_FLAG = '__parcial__'
+
 function toLocal(a: ApiAttempt | null | undefined): LastAttempt | null {
   if (!a || typeof a.score !== 'number' || typeof a.total !== 'number') {
     return null
   }
+  const labels = Array.isArray(a.failed_labels) ? a.failed_labels : []
+  const partial = labels.includes(PARTIAL_FLAG)
   return {
     score: a.score,
     total: a.total,
-    failedLabels: Array.isArray(a.failed_labels) ? a.failed_labels : [],
+    failedLabels: labels.filter((l) => l !== PARTIAL_FLAG),
     date: a.date || '',
+    partial,
   }
 }
 
@@ -113,7 +126,9 @@ export async function saveLastAttempt(
         {
           score: attempt.score,
           total: attempt.total,
-          failed_labels: attempt.failedLabels,
+          failed_labels: attempt.partial
+            ? [...attempt.failedLabels, PARTIAL_FLAG]
+            : attempt.failedLabels,
         },
         null,
         accessToken

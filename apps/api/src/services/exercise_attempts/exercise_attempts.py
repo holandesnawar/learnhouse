@@ -1,6 +1,6 @@
 """Get / upsert the student's most recent attempt at an exercise practice."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import HTTPException
@@ -69,7 +69,7 @@ async def save_attempt(
         ExerciseAttempt.section_key == section_key,
     )
     attempt = (await db_session.execute(statement)).scalars().first()
-    now = datetime.now().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
 
     if attempt:
         attempt.score = data.score
