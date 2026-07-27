@@ -155,6 +155,32 @@ export function totalLessonsInCourse(): number {
   return n
 }
 
+/** % general del curso: media del avance de TODAS las lecciones (principales
+ *  + extras). Una lección completada cuenta 100%; si no, cuenta la fracción de
+ *  sus secciones seguibles ya hechas — así el avance parcial también suma. */
+export function overallCourseProgress(
+  attempts: Record<string, LastAttempt>,
+  completions: LessonCompletion[]
+): number {
+  const completedSet = new Set(completions.map((c) => c.lesson_id))
+  let sum = 0
+  let count = 0
+  for (const m of getModules()) {
+    for (const l of [...getLessonsForModule(m.id), ...getExtrasForModule(m.id)]) {
+      count++
+      if (completedSet.has(l.id)) {
+        sum += 1
+        continue
+      }
+      const ids = trackedSectionIds(l)
+      if (!ids.length) continue
+      const done = ids.filter((sid) => attempts[`${l.id}-${sid}`]).length
+      sum += done / ids.length
+    }
+  }
+  return count ? Math.round((sum / count) * 100) : 0
+}
+
 /** Secciones dominadas (nota ≥ 85%) en todo el curso. */
 export function masteredSectionsCount(attempts: Record<string, LastAttempt>): number {
   let n = 0

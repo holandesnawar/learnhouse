@@ -20,7 +20,7 @@ import {
   getModules,
   getLessonsForModule,
 } from '@/lib/exercises-app/courseService'
-import { masteredSectionsCount, totalLessonsInCourse } from '@/lib/exercises-app/progressMap'
+import { masteredSectionsCount, overallCourseProgress, totalLessonsInCourse } from '@/lib/exercises-app/progressMap'
 import {
   ArrowRight,
   BookOpen,
@@ -379,7 +379,7 @@ export function FormacionCard({
 }) {
   const total = totalLessonsInCourse()
   const done = insights.completions.length
-  const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0
+  const pct = overallCourseProgress(insights.attempts, insights.completions)
   const streak = insights.progress?.current_streak ?? 0
 
   return (
@@ -398,7 +398,7 @@ export function FormacionCard({
         <div className="rounded-xl bg-[#F0F5FF] dark:bg-white/5 p-4">
           <div className="flex items-center gap-1.5 text-[#025dc7] mb-2">
             <BookOpenCheck size={14} />
-            <span className="text-[10px] font-semibold uppercase tracking-wider">Formación</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider">Progreso del curso</span>
           </div>
           <p className="text-[24px] font-bold text-gray-900 dark:text-white leading-none">
             {pct}%
@@ -410,7 +410,7 @@ export function FormacionCard({
             />
           </div>
           <p className="mt-1.5 text-[11px] text-gray-500 dark:text-white/60">
-            {done} de {total} lecciones
+            de todo el curso · {done}/{total} lecciones
           </p>
         </div>
 

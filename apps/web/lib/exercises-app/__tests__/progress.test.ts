@@ -8,7 +8,7 @@
  */
 import { describe, expect, test } from 'bun:test'
 import { computeInsights } from '@services/student/insights'
-import { buildProgressMap, buildLessonRow, trackedSectionIds } from '../progressMap'
+import { buildProgressMap, buildLessonRow, trackedSectionIds, overallCourseProgress, totalLessonsInCourse } from '../progressMap'
 import { getLesson } from '../courseService'
 
 // Miércoles 2026-07-29 12:00 local — la semana va de lunes 27 a domingo 2.
@@ -121,6 +121,27 @@ describe('buildProgressMap / buildLessonRow', () => {
     expect(row.pct).toBe(null)
     expect(row.nextSection.id).toBe('vocabulary')
     expect(row.totalFails).toBe(0)
+  })
+
+  test('% general del curso: cuenta el avance parcial de cada lección', () => {
+    const N = totalLessonsInCourse()
+
+    // Sin nada hecho → 0%.
+    expect(overallCourseProgress({}, [])).toBe(0)
+
+    // Una lección completada = 1 lección entera sobre N.
+    const oneDone = [{ lesson_id: M1L1, module_id: 'over-jou', completed_at: '2026-07-29', time_seconds: 0 }]
+    expect(overallCourseProgress({}, oneDone)).toBe(Math.round((1 / N) * 100))
+
+    // Media lección (2 de 4 secciones) suma medio punto — el parcial cuenta.
+    const half = {
+      [`${M1L1}-vocabulary`]: att(20, 25, [], '2026-07-28'),
+      [`${M1L1}-flashcards`]: att(0, 0, [], '2026-07-28'),
+    }
+    expect(overallCourseProgress(half, [])).toBe(Math.round((0.5 / N) * 100))
+
+    // Completada manda sobre las secciones: no cuenta doble ni menos de 1.
+    expect(overallCourseProgress(half, oneDone)).toBe(Math.round((1 / N) * 100))
   })
 
   test('la fórmula del repaso: fallos resueltos suman a la nota original', () => {

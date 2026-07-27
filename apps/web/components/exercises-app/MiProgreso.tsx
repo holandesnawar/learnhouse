@@ -22,6 +22,7 @@ import {
   buildProgressMap,
   totalLessonsInCourse,
   masteredSectionsCount,
+  overallCourseProgress,
   type LessonProgressRow,
 } from '@/lib/exercises-app/progressMap'
 
@@ -55,6 +56,10 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
   const started = modules.some((m) => m.lessons.some((r) => r.started))
   const completedCount = insights?.completions.length ?? 0
   const totalLessons = useMemo(() => totalLessonsInCourse(), [])
+  const coursePct = useMemo(
+    () => (insights ? overallCourseProgress(insights.attempts, insights.completions) : 0),
+    [insights]
+  )
 
   const lessonHref = (r: LessonProgressRow, section?: string, repaso?: boolean) => {
     const base = getUriWithOrg(orgslug, `/ejercicios/modulo/${r.moduleId}/leccion/${r.lessonId}`)
@@ -88,10 +93,14 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
           {/* Resumen — datos reales del servidor */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="rounded-2xl border border-[#DDE6F5] bg-white p-4">
-              <p className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider flex items-center gap-1"><BookOpenCheck size={12} /> Lecciones</p>
+              <p className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider flex items-center gap-1"><BookOpenCheck size={12} /> Curso</p>
               <p className="text-[26px] font-bold text-[#025dc7] leading-tight mt-0.5 tabular-nums">
-                {completedCount}<span className="text-[15px] text-[#9CA3AF] font-semibold"> / {totalLessons}</span>
+                {coursePct}<span className="text-[15px] text-[#9CA3AF] font-semibold">%</span>
               </p>
+              <div className="mt-1.5 h-1.5 rounded-full bg-[#F0F5FF] overflow-hidden">
+                <div className="h-full bg-[#4da3ff] rounded-full transition-all duration-500" style={{ width: `${coursePct}%` }} />
+              </div>
+              <p className="mt-1 text-[11px] text-[#9CA3AF] font-semibold tabular-nums">{completedCount}/{totalLessons} lecciones</p>
             </div>
             <div className="rounded-2xl border border-[#DDE6F5] bg-white p-4">
               <p className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider">Nota media</p>
