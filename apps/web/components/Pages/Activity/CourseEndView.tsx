@@ -247,7 +247,7 @@ const CourseEndView: React.FC<CourseEndViewProps> = ({
                     certificatePattern={userCertificate.certification.config.certificate_pattern}
                     certificateInstructor={userCertificate.certification.config.certificate_instructor}
                     certificateId={userCertificate.certificate_user.user_certification_uuid}
-                    awardedDate={new Date(userCertificate.certificate_user.created_at).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'en-US', {
+                    awardedDate={new Date(userCertificate.certificate_user.created_at).toLocaleDateString('nl-NL', {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric'

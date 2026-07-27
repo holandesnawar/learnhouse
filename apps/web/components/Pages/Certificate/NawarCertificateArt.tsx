@@ -2,26 +2,33 @@
 import React, { useEffect, useRef, useState } from 'react'
 
 /**
- * Certificado Holandés Nawar — diseño único de la academia.
+ * Certificado Holandés Nawar — recreación del diseño oficial de la academia
+ * (olas azules arriba y abajo, logo centrado, marca de agua y el nombre del
+ * alumno en cian), con los añadidos que le faltaban al original: la fecha
+ * (el modelo terminaba en "afgerond op" sin nada detrás), etiquetas bajo las
+ * firmas, número de certificado y QR de verificación.
  *
- * Se dibuja SIEMPRE en un lienzo fijo de 1000×707 px (proporción A4 apaisado)
- * y se escala con transform para caber en su contenedor. Así lo que se ve en
- * pantalla y lo que sale en el PDF son exactamente lo mismo: el descargador
+ * Se dibuja SIEMPRE en un lienzo fijo con proporción A4 apaisado y se escala
+ * con transform para caber en su contenedor: lo que se ve en pantalla y lo que
+ * sale en el PDF son exactamente lo mismo, porque el descargador
  * (`downloadCertificatePdf`) clona este mismo nodo.
  *
  * Estilos en línea a propósito: el PDF se genera con html2canvas y no debe
  * depender de las hojas de estilo de la app ni de Tailwind.
  */
 
-export const CERT_W = 1000
-export const CERT_H = 707
+// A4 apaisado a 96 ppp — el modelo original era 16:9, pero en A4 el PDF se
+// imprime a página completa sin franjas en blanco.
+export const CERT_W = 1123
+export const CERT_H = 794
 
-const NAVY = '#1D0084'
-const ACCENT = '#4da3ff'
-const INK = '#0a1656'
+/** Colores tomados del certificado oficial. */
+const NAVY = '#0E1A95'
+const NAVY_DEEP = '#0A1478'
+const CYAN = '#0AB8EE'
+const CYAN_SOFT = '#8FDCF7'
 
 export interface NawarCertificateArtProps {
-  /** Nombre del alumno. Sin él se muestra una línea de cortesía. */
   studentName?: string
   /** Nombre de la formación (config.certification_name). */
   certificationName: string
@@ -33,10 +40,6 @@ export interface NawarCertificateArtProps {
   logoUrl?: string
   /** Ref al lienzo fijo — es lo que captura el PDF. */
   innerRef?: React.RefObject<HTMLDivElement | null>
-}
-
-function Corner({ style }: { style: React.CSSProperties }) {
-  return <span style={{ position: 'absolute', width: 26, height: 26, ...style }} />
 }
 
 const NawarCertificateArt: React.FC<NawarCertificateArtProps> = ({
@@ -84,9 +87,7 @@ const NawarCertificateArt: React.FC<NawarCertificateArtProps> = ({
     }
   }, [qrCodeLink])
 
-  const verifyLabel = qrCodeLink
-    ? qrCodeLink.replace(/^https?:\/\//, '')
-    : ''
+  const poppins = "var(--font-poppins), 'Poppins', system-ui, sans-serif"
 
   return (
     <div ref={wrapRef} style={{ width: '100%', height: CERT_H * scale, overflow: 'hidden' }}>
@@ -99,264 +100,243 @@ const NawarCertificateArt: React.FC<NawarCertificateArtProps> = ({
           transformOrigin: 'top left',
           background: '#ffffff',
           position: 'relative',
-          fontFamily: "var(--font-inter), system-ui, -apple-system, sans-serif",
-          color: INK,
-          boxSizing: 'border-box',
           overflow: 'hidden',
+          boxSizing: 'border-box',
+          fontFamily: poppins,
         }}
       >
-        {/* Marco doble */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 14,
-            border: `2px solid ${NAVY}`,
-            borderRadius: 10,
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            inset: 22,
-            border: `1px solid rgba(29,0,132,0.25)`,
-            borderRadius: 6,
-          }}
-        />
-        {/* Esquinas */}
-        <Corner style={{ top: 30, left: 30, borderTop: `3px solid ${ACCENT}`, borderLeft: `3px solid ${ACCENT}` }} />
-        <Corner style={{ top: 30, right: 30, borderTop: `3px solid ${ACCENT}`, borderRight: `3px solid ${ACCENT}` }} />
-        <Corner style={{ bottom: 30, left: 30, borderBottom: `3px solid ${ACCENT}`, borderLeft: `3px solid ${ACCENT}` }} />
-        <Corner style={{ bottom: 30, right: 30, borderBottom: `3px solid ${ACCENT}`, borderRight: `3px solid ${ACCENT}` }} />
-
-        {/* Banda superior de marca */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 22,
-            left: 22,
-            right: 22,
-            height: 96,
-            background: NAVY,
-            backgroundImage:
-              'radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px), radial-gradient(circle 420px at 100% 0%, rgba(11,109,240,0.45) 0%, transparent 65%)',
-            backgroundSize: '22px 22px, auto',
-            borderRadius: '5px 5px 0 0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 34px',
-            boxSizing: 'border-box',
-          }}
+        {/* ── Olas superiores ─────────────────────────────────────────── */}
+        <svg
+          width={CERT_W}
+          height={170}
+          viewBox={`0 0 ${CERT_W} 170`}
+          style={{ position: 'absolute', top: 0, left: 0 }}
+          aria-hidden="true"
         >
-          {logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={logoUrl} alt="Holandés Nawar" style={{ height: 42, objectFit: 'contain' }} crossOrigin="anonymous" />
-          ) : (
-            <span style={{ color: '#fff', fontSize: 20, fontWeight: 700, letterSpacing: '0.02em' }}>
-              Holandés Nawar
-            </span>
-          )}
-          <span
-            style={{
-              color: ACCENT,
-              fontSize: 12,
-              fontWeight: 700,
-              letterSpacing: '0.34em',
-              textTransform: 'uppercase',
-            }}
-          >
-            Certificado
-          </span>
-        </div>
+          <path
+            d={`M0,0 H${CERT_W} V58 C 960,120 806,44 596,86 C 386,128 200,74 0,116 Z`}
+            fill={CYAN_SOFT}
+            opacity="0.6"
+          />
+          <path
+            d={`M0,0 H${CERT_W} V40 C 946,104 790,26 580,68 C 370,110 186,58 0,96 Z`}
+            fill={NAVY}
+          />
+        </svg>
 
-        {/* Cuerpo */}
+        {/* ── Olas inferiores ─────────────────────────────────────────── */}
+        <svg
+          width={CERT_W}
+          height={215}
+          viewBox={`0 0 ${CERT_W} 215`}
+          style={{ position: 'absolute', bottom: 0, left: 0 }}
+          aria-hidden="true"
+        >
+          <path
+            d={`M${CERT_W},215 V38 C 950,20 806,72 596,100 C 400,126 200,112 0,146 V215 Z`}
+            fill={CYAN_SOFT}
+          />
+          <path
+            d={`M0,215 V96 C 220,58 452,120 668,152 C 820,175 986,168 ${CERT_W},142 V215 Z`}
+            fill={NAVY}
+          />
+          <path
+            d={`M0,215 V158 C 250,132 486,178 716,192 C 856,200 1008,196 ${CERT_W},186 V215 Z`}
+            fill={NAVY_DEEP}
+          />
+        </svg>
+
+        {/* ── Marca de agua ───────────────────────────────────────────── */}
+        {logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={logoUrl}
+            alt=""
+            aria-hidden="true"
+            crossOrigin="anonymous"
+            style={{
+              position: 'absolute',
+              top: '47%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '78%',
+              opacity: 0.06,
+              pointerEvents: 'none',
+            }}
+          />
+        ) : null}
+
+        {/* ── Contenido ───────────────────────────────────────────────── */}
         <div
           style={{
             position: 'absolute',
-            top: 118,
-            left: 22,
-            right: 22,
-            bottom: 22,
-            padding: '30px 60px 0',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            padding: '112px 90px 0',
             boxSizing: 'border-box',
             textAlign: 'center',
           }}
         >
-          <p
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logoUrl}
+              alt="Holandés Nawar"
+              crossOrigin="anonymous"
+              style={{ height: 80, objectFit: 'contain', marginBottom: 26 }}
+            />
+          ) : (
+            <p style={{ margin: '0 0 30px', fontSize: 34, fontWeight: 800, color: NAVY }}>
+              Holandés Nawar
+            </p>
+          )}
+
+          <h1
             style={{
               margin: 0,
-              fontSize: 11.5,
-              fontWeight: 700,
-              letterSpacing: '0.30em',
-              color: '#025dc7',
-              textTransform: 'uppercase',
+              fontSize: 42,
+              fontWeight: 800,
+              letterSpacing: '0.045em',
+              color: NAVY,
+              lineHeight: 1.15,
             }}
           >
-            Certificado de finalización
-          </p>
+            CERTIFICAAT VAN AFRONDING
+          </h1>
 
-          <p style={{ margin: '26px 0 0', fontSize: 13, color: '#6b7280', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            Se otorga a
+          <p style={{ margin: '24px 0 0', fontSize: 20, color: NAVY, letterSpacing: '0.01em' }}>
+            Dit is om te bevestigen dat
           </p>
 
           <p
             style={{
-              margin: '10px 0 0',
-              fontFamily: "Georgia, 'Times New Roman', serif",
-              fontStyle: 'italic',
-              fontSize: 46,
+              margin: '18px 0 0',
+              fontSize: 45,
+              fontWeight: 800,
+              color: CYAN,
               lineHeight: 1.1,
-              color: NAVY,
+              textTransform: 'uppercase',
+              letterSpacing: '0.01em',
+              maxWidth: 900,
             }}
           >
             {studentName || '—'}
           </p>
-          <div
-            style={{
-              width: 420,
-              height: 1,
-              background: 'rgba(29,0,132,0.28)',
-              margin: '12px auto 0',
-            }}
-          />
 
-          <p style={{ margin: '22px 0 0', fontSize: 14.5, color: '#4b5563', lineHeight: 1.6 }}>
-            por haber completado con éxito
+          <p style={{ margin: '22px 0 0', fontSize: 20, color: NAVY, lineHeight: 1.55, maxWidth: 820 }}>
+            de cursus <strong style={{ fontWeight: 700 }}>{certificationName}</strong>
           </p>
-
-          <p
-            style={{
-              margin: '8px 0 0',
-              fontFamily: "var(--font-poppins), system-ui, sans-serif",
-              fontSize: 27,
-              fontWeight: 700,
-              color: NAVY,
-              lineHeight: 1.25,
-            }}
-          >
-            {certificationName}
+          <p style={{ margin: '2px 0 0', fontSize: 20, color: NAVY, lineHeight: 1.55 }}>
+            succesvol heeft afgerond{awardedDate ? ' op' : ''}
+            {awardedDate ? (
+              <strong style={{ fontWeight: 700 }}> {awardedDate}</strong>
+            ) : null}
           </p>
 
           {certificationDescription ? (
             <p
               style={{
-                margin: '12px auto 0',
-                maxWidth: 640,
-                fontSize: 13,
-                color: '#6b7280',
-                lineHeight: 1.6,
+                margin: '16px auto 0',
+                maxWidth: 700,
+                fontSize: 13.5,
+                color: 'rgba(14,26,149,0.62)',
+                lineHeight: 1.55,
               }}
             >
               {certificationDescription}
             </p>
           ) : null}
+        </div>
 
-          {/* Pie: firma · sello · verificación */}
-          <div
-            style={{
-              position: 'absolute',
-              left: 60,
-              right: 60,
-              bottom: 34,
-              display: 'flex',
-              alignItems: 'flex-end',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div style={{ textAlign: 'left', width: 210 }}>
-              <div style={{ height: 1, background: 'rgba(10,22,86,0.35)', marginBottom: 7 }} />
-              <p style={{ margin: 0, fontSize: 12.5, fontWeight: 600, color: INK }}>
-                {certificateInstructor || 'Holandés Nawar'}
-              </p>
-              <p style={{ margin: '2px 0 0', fontSize: 10.5, color: '#9ca3af' }}>Dirección académica</p>
-            </div>
-
-            {/* Sello */}
-            <div style={{ position: 'relative', width: 96, height: 96, flexShrink: 0 }}>
-              <span
-                style={{
-                  position: 'absolute',
-                  inset: -6,
-                  border: `1px dashed ${ACCENT}`,
-                  borderRadius: '50%',
-                }}
-              />
-              <div
-                style={{
-                  width: 96,
-                  height: 96,
-                  borderRadius: '50%',
-                  background: `linear-gradient(135deg, ${ACCENT}, #0b6df0)`,
-                  color: '#fff',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  lineHeight: 1.15,
-                }}
-              >
-                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.16em' }}>NIVEL</span>
-                <span
-                  style={{
-                    fontFamily: "var(--font-poppins), system-ui, sans-serif",
-                    fontSize: 24,
-                    fontWeight: 700,
-                  }}
-                >
-                  A1
-                </span>
-                <span style={{ fontSize: 8.5, opacity: 0.85, letterSpacing: '0.08em' }}>NEERLANDÉS</span>
-              </div>
-            </div>
-
-            <div style={{ textAlign: 'right', width: 230, display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-              <div style={{ textAlign: 'right' }}>
-                {awardedDate ? (
-                  <>
-                    <p style={{ margin: 0, fontSize: 10, color: '#9ca3af', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                      Fecha
-                    </p>
-                    <p style={{ margin: '2px 0 8px', fontSize: 12.5, fontWeight: 600, color: INK }}>{awardedDate}</p>
-                  </>
-                ) : null}
-                {certificateId ? (
-                  <>
-                    <p style={{ margin: 0, fontSize: 10, color: '#9ca3af', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                      Nº de certificado
-                    </p>
-                    <p style={{ margin: '2px 0 0', fontSize: 9.5, color: '#6b7280', wordBreak: 'break-all', maxWidth: 150 }}>
-                      {certificateId}
-                    </p>
-                  </>
-                ) : null}
-              </div>
-              {qr ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={qr}
-                  alt="Código de verificación"
-                  style={{ width: 68, height: 68, border: `1px solid ${'#DDE6F5'}`, borderRadius: 8, padding: 3, background: '#fff' }}
-                />
-              ) : null}
-            </div>
+        {/* ── Firmas · verificación ───────────────────────────────────── */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 104,
+            right: 104,
+            bottom: 222,
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'space-between',
+            gap: 24,
+          }}
+        >
+          <div style={{ width: 236, textAlign: 'center' }}>
+            <div style={{ height: 2, background: NAVY, marginBottom: 9 }} />
+            <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700, color: NAVY }}>
+              {certificateInstructor || 'Holandés Nawar'}
+            </p>
+            <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(14,26,149,0.60)' }}>
+              Academisch directeur
+            </p>
           </div>
 
-          {verifyLabel ? (
-            <p
-              style={{
-                position: 'absolute',
-                left: 0,
-                right: 0,
-                bottom: 12,
-                margin: 0,
-                fontSize: 9.5,
-                color: '#9ca3af',
-              }}
-            >
-              Verifica la autenticidad de este certificado en {verifyLabel}
+          {/* Verificación: número + QR (el modelo original no lo llevaba) */}
+          <div style={{ textAlign: 'center', paddingBottom: 2 }}>
+            {qr ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={qr}
+                alt="Verificatiecode"
+                style={{
+                  width: 66,
+                  height: 66,
+                  display: 'block',
+                  margin: '0 auto 6px',
+                  border: '1px solid rgba(14,26,149,0.18)',
+                  borderRadius: 8,
+                  padding: 4,
+                  background: '#fff',
+                }}
+              />
+            ) : null}
+            {certificateId ? (
+              <>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 8.5,
+                    letterSpacing: '0.14em',
+                    textTransform: 'uppercase',
+                    color: 'rgba(14,26,149,0.50)',
+                  }}
+                >
+                  Certificaatnummer
+                </p>
+                <p style={{ margin: '1px 0 0', fontSize: 9.5, color: 'rgba(14,26,149,0.72)' }}>
+                  {certificateId}
+                </p>
+              </>
+            ) : null}
+          </div>
+
+          <div style={{ width: 236, textAlign: 'center' }}>
+            <div style={{ height: 2, background: NAVY, marginBottom: 9 }} />
+            <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700, color: NAVY }}>Holandés Nawar</p>
+            <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(14,26,149,0.60)' }}>
+              Namens de academie
             </p>
-          ) : null}
+          </div>
         </div>
+
+        {qrCodeLink ? (
+          <p
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 198,
+              margin: 0,
+              fontSize: 9,
+              color: 'rgba(14,26,149,0.42)',
+              textAlign: 'center',
+            }}
+          >
+            Verifieer dit certificaat op {qrCodeLink.replace(/^https?:\/\//, '')}
+          </p>
+        ) : null}
       </div>
     </div>
   )

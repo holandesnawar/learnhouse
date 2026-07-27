@@ -196,7 +196,7 @@ const CertificateVerificationPage: React.FC<CertificateVerificationPageProps> = 
                     .filter(Boolean)
                     .join(' ')
                     .trim() || certificateData.user?.username || ''}
-                  awardedDate={new Date(certificateData.certificate_user.created_at).toLocaleDateString('es-ES', {
+                  awardedDate={new Date(certificateData.certificate_user.created_at).toLocaleDateString('nl-NL', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric'
