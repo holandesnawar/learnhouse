@@ -30,6 +30,8 @@ import Scenarios from './Extensions/Scenarios/Scenarios'
 import CodePlayground from './Extensions/CodePlayground/CodePlayground'
 import UserBlock from './Extensions/Users/UserBlock'
 import MagicBlock from './Extensions/MagicBlocks/MagicBlock'
+import Accordion, { AccordionSummary, AccordionContent } from './Extensions/Accordion/Accordion'
+import CustomBold from './Extensions/BoldWeight/CustomBold'
 
 // Lowlight — slim grammar set; see editorLowlight.ts
 import { lowlight } from './editorLowlight'
@@ -49,6 +51,7 @@ function EditorPreview({ content, activity }: EditorPreviewProps) {
       StarterKit.configure({
         codeBlock: false,
         link: false,
+        bold: false,
         bulletList: {
           HTMLAttributes: {
             class: 'bullet-list',
@@ -60,6 +63,10 @@ function EditorPreview({ content, activity }: EditorPreviewProps) {
           },
         },
       }),
+      CustomBold,
+      Accordion,
+      AccordionSummary,
+      AccordionContent,
       InfoCallout.configure({
         editable: false,
       }),

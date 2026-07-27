@@ -2391,3 +2391,26 @@ a.bg-black:hover {
   .audio-player-glass .player-play-btn:hover { filter: brightness(1.1); }
 }
 
+
+/* ── Acordeón / FAQ desplegable (Extensions/Accordion) ─────────────────────
+   El wrapper y el chevron los pinta el NodeView (AccordionComponent); la
+   pregunta y la respuesta son hijos ProseMirror con estas clases. La clase
+   .lh-acc-closed del wrapper oculta la respuesta. */
+.lh-acc-summary {
+  font-weight: 600;
+  color: #1d0084;
+  padding: 12px 48px 12px 16px;
+  font-size: 15.5px;
+  line-height: 1.45;
+}
+.lh-acc-content {
+  padding: 2px 16px 14px;
+  border-top: 1px solid #eef2fb;
+  color: #374151;
+}
+.lh-acc-content > p:first-child {
+  margin-top: 8px;
+}
+.lh-acc-closed .lh-acc-content {
+  display: none;
+}

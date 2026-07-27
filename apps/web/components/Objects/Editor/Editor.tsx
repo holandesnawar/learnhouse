@@ -66,6 +66,8 @@ import DragHandle from './Extensions/DragHandle/DragHandle'
 import { SlashCommands } from './Extensions/SlashCommands'
 import PasteFileHandler from './Extensions/PasteFileHandler/PasteFileHandler'
 import MagicBlock from './Extensions/MagicBlocks/MagicBlock'
+import Accordion, { AccordionSummary, AccordionContent } from './Extensions/Accordion/Accordion'
+import CustomBold from './Extensions/BoldWeight/CustomBold'
 import PlanBadge from '@components/Dashboard/Shared/PlanRestricted/PlanBadge'
 import { PlanLevel } from '@services/plans/plans'
 import { useOrg } from '@components/Contexts/OrgContext'
@@ -151,9 +153,14 @@ function Editor(props: Editor) {
       StarterKit.configure({
         codeBlock: false,
         link: false,
+        bold: false,
         bulletList: { HTMLAttributes: { class: 'bullet-list' } },
         orderedList: { HTMLAttributes: { class: 'ordered-list' } },
       }),
+      CustomBold,
+      Accordion,
+      AccordionSummary,
+      AccordionContent,
       Callout,
       InfoCallout.configure({ editable: true }),
       WarningCallout.configure({ editable: true }),

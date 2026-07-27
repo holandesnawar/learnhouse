@@ -4,6 +4,7 @@ import {
   ArrowClockwise,
   ArrowsClockwise,
   BracketsCurly,
+  CaretCircleDown,
   CaretDown,
   CheckCircle,
   Code,
@@ -48,6 +49,7 @@ export const ToolbarButtons = React.memo(({ editor, props }: any) => {
   const { t } = useTranslation()
   const [showTableMenu, setShowTableMenu] = React.useState(false)
   const [showListMenu, setShowListMenu] = React.useState(false)
+  const [showBoldMenu, setShowBoldMenu] = React.useState(false)
   const [showCodeMenu, setShowCodeMenu] = React.useState(false)
   const [showCalloutMenu, setShowCalloutMenu] = React.useState(false)
   const [showLinkInput, setShowLinkInput] = React.useState(false)
@@ -173,6 +175,37 @@ export const ToolbarButtons = React.memo(({ editor, props }: any) => {
         aria-label="Toggle bold formatting"
       >
         <TextB size={15} />
+      </div>
+      <div className="relative inline-block shrink-0">
+        <div
+          onClick={() => setShowBoldMenu(!showBoldMenu)}
+          className={`editor-tool-btn ${showBoldMenu ? 'is-active' : ''}`}
+          aria-label="Grosor de la negrita"
+        >
+          <TextB size={15} weight="bold" />
+          <CaretDown size={10} />
+        </div>
+        {showBoldMenu && (
+          <div className="editor-menu-dropdown">
+            {[
+              { label: 'Seminegrita', weight: '600' as string | null, css: 600 },
+              { label: 'Negrita (normal)', weight: null as string | null, css: 700 },
+              { label: 'Gruesa', weight: '800' as string | null, css: 800 },
+            ].map(({ label, weight, css }) => (
+              <div
+                key={label}
+                onClick={() => {
+                  editor.chain().focus().setMark('bold', { weight }).run()
+                  setShowBoldMenu(false)
+                }}
+                className={`editor-menu-item ${editor.isActive('bold', { weight }) ? 'is-active' : ''}`}
+              >
+                <span className="icon"><TextB size={15} /></span>
+                <span className="label" style={{ fontWeight: css }}>{label}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       <div
         onClick={() => editor.chain().focus().toggleItalic().run()}
@@ -568,6 +601,34 @@ export const ToolbarButtons = React.memo(({ editor, props }: any) => {
           aria-label={t('editor.blocks.flipcard')}
         >
           <ArrowsClockwise size={15} weight="fill" />
+        </div>
+      </ToolTip>
+      <ToolTip content="Desplegable (pregunta → respuesta)">
+        <div
+          className="editor-tool-btn editor-tool-btn-interactive"
+          onClick={() =>
+            editor.chain().focus().insertContent({
+              type: 'accordion',
+              content: [
+                {
+                  type: 'accordionSummary',
+                  content: [{ type: 'text', text: 'Escribe aquí la pregunta' }],
+                },
+                {
+                  type: 'accordionContent',
+                  content: [
+                    {
+                      type: 'paragraph',
+                      content: [{ type: 'text', text: 'Y aquí la respuesta que se despliega.' }],
+                    },
+                  ],
+                },
+              ],
+            }).run()
+          }
+          aria-label="Desplegable (pregunta → respuesta)"
+        >
+          <CaretCircleDown size={15} weight="fill" />
         </div>
       </ToolTip>
       <ToolTip content={t('editor.blocks.scenario')}>

@@ -58,6 +58,8 @@ import { CustomHeading } from './CustomHeadingExtenstion'
 import WebPreview from '@components/Objects/Editor/Extensions/WebPreview/WebPreview'
 import LessonHighlightExtension from './Highlights/LessonHighlightExtension'
 import HighlightLayer from './Highlights/HighlightLayer'
+import Accordion, { AccordionSummary, AccordionContent } from '@components/Objects/Editor/Extensions/Accordion/Accordion'
+import CustomBold from '@components/Objects/Editor/Extensions/BoldWeight/CustomBold'
 
 interface Editor {
   content: string
@@ -98,6 +100,8 @@ function Canva(props: Editor) {
         codeBlock: false,
         // Disable link since we use custom getLinkExtension() instead
         link: false,
+        // Disabled in favor of CustomBold (misma marca `bold` + grosor opcional)
+        bold: false,
         bulletList: {
           HTMLAttributes: {
             class: 'bullet-list',
@@ -112,6 +116,10 @@ function Canva(props: Editor) {
       CustomHeading,
       NoTextInput,
       // Custom Extensions
+      CustomBold,
+      Accordion,
+      AccordionSummary,
+      AccordionContent,
       Callout,
       // Legacy nodes — backward compat with existing calloutInfo/calloutWarning content
       InfoCallout.configure({ editable: isEditable }),
