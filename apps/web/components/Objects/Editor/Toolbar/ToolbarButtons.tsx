@@ -44,6 +44,7 @@ import LinkInputTooltip from './LinkInputTooltip'
 import lrnaiIcon from 'public/lrnai_icon.png'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useTranslation } from 'react-i18next'
+import { newAccordionNode } from '../Extensions/Accordion/Accordion'
 
 /** Grosores del texto. La tipografía de la plataforma (Wix Madefor Text) llega
  *  hasta 800; por encima el navegador clava el mismo trazo, así que no se
@@ -628,25 +629,7 @@ export const ToolbarButtons = React.memo(({ editor, props }: any) => {
         <div
           className="editor-tool-btn editor-tool-btn-interactive"
           onClick={() =>
-            editor.chain().focus().insertContent({
-              type: 'accordion',
-              attrs: { uid: `acc-${Math.random().toString(36).slice(2, 10)}` },
-              content: [
-                {
-                  type: 'accordionSummary',
-                  content: [{ type: 'text', text: 'Escribe aquí la pregunta' }],
-                },
-                {
-                  type: 'accordionContent',
-                  content: [
-                    {
-                      type: 'paragraph',
-                      content: [{ type: 'text', text: 'Y aquí la respuesta que se despliega.' }],
-                    },
-                  ],
-                },
-              ],
-            }).run()
+            editor.chain().focus().insertContent(newAccordionNode()).run()
           }
           aria-label="Desplegable (pregunta → respuesta)"
         >

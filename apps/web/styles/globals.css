@@ -2393,15 +2393,20 @@ a.bg-black:hover {
 
 
 /* ── Acordeón / FAQ desplegable (Extensions/Accordion) ─────────────────────
-   El wrapper y el chevron los pinta el NodeView (AccordionComponent); la
-   pregunta y la respuesta son hijos ProseMirror con estas clases. La clase
-   .lh-acc-closed del wrapper oculta la respuesta. */
+   Abierto/cerrado se pinta con clases, no con estado de React: el plugin del
+   nodo añade `lh-acc-open` / `lh-acc-shut` a la tarjeta cuando el usuario
+   elige, y `lh-acc-default-open` la marca abierta mientras se redacta.
+   El orden de estas reglas importa: la elección explícita va al final para
+   ganar al valor por defecto (misma especificidad). */
 .lh-acc-summary {
   font-weight: 600;
   color: #1d0084;
   padding: 12px 48px 12px 16px;
   font-size: 15.5px;
   line-height: 1.45;
+}
+.lh-acc-edit .lh-acc-summary {
+  padding-right: 124px;
 }
 .lh-acc-content {
   padding: 2px 16px 14px;
@@ -2411,9 +2416,20 @@ a.bg-black:hover {
 .lh-acc-content > p:first-child {
   margin-top: 8px;
 }
-.lh-acc-closed .lh-acc-content {
-  display: none;
+.lh-acc-chevron {
+  transition: transform 0.2s ease;
 }
+
+/* Alumno: cerrado de partida. */
+.lh-acc-content { display: none; }
+/* Redactando: abierto, para poder escribir la respuesta. */
+.lh-acc-default-open .lh-acc-content { display: block; }
+.lh-acc-default-open .lh-acc-chevron { transform: rotate(180deg); }
+/* Elección explícita del usuario (decoración del plugin). */
+.lh-acc-open .lh-acc-content { display: block; }
+.lh-acc-open .lh-acc-chevron { transform: rotate(180deg); }
+.lh-acc-shut .lh-acc-content { display: none; }
+.lh-acc-shut .lh-acc-chevron { transform: rotate(0deg); }
 
 /* ── Negrita con grosor absoluto ──────────────────────────────────────────
    El estilo por defecto del navegador es `strong { font-weight: bolder }`,

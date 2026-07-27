@@ -144,22 +144,32 @@ function createDragHandlePlugin() {
       const node = view.state.doc.nodeAt(nodePos)
       if (!node) return
 
-      if (action === 'delete') {
-        const tr = view.state.tr.delete(nodePos, nodePos + node.nodeSize)
-        view.dispatch(tr)
-      } else if (action === 'duplicate') {
-        const slice = new Slice(Fragment.from(node), 0, 0)
-        const tr = view.state.tr.insert(nodePos + node.nodeSize, slice.content)
-        view.dispatch(tr)
-      } else if (action === 'clear') {
-        // Create an empty version of the same node type
-        const emptyNode = view.state.schema.nodes[node.type.name].create(
-          node.attrs,
-          null,
-          node.marks
-        )
-        const tr = view.state.tr.replaceWith(nodePos, nodePos + node.nodeSize, emptyNode)
-        view.dispatch(tr)
+      try {
+        if (action === 'delete') {
+          const tr = view.state.tr.delete(nodePos, nodePos + node.nodeSize)
+          view.dispatch(tr)
+        } else if (action === 'duplicate') {
+          // Nodes carrying a `uid` (accordion…) must not share it with the copy.
+          const attrs = 'uid' in node.attrs && node.attrs.uid
+            ? { ...node.attrs, uid: `${node.type.name}-${Math.random().toString(36).slice(2, 10)}` }
+            : node.attrs
+          const copy = node.type.create(attrs, node.content, node.marks)
+          const slice = new Slice(Fragment.from(copy), 0, 0)
+          const tr = view.state.tr.insert(nodePos + node.nodeSize, slice.content)
+          view.dispatch(tr)
+        } else if (action === 'clear') {
+          // createAndFill fills any required inner structure. Plain create()
+          // built invalid nodes for blocks with required content (accordion,
+          // table…) and the whole action silently threw.
+          const type = view.state.schema.nodes[node.type.name]
+          const emptyNode = type.createAndFill(node.attrs, null, node.marks)
+          if (emptyNode) {
+            const tr = view.state.tr.replaceWith(nodePos, nodePos + node.nodeSize, emptyNode)
+            view.dispatch(tr)
+          }
+        }
+      } catch (e) {
+        console.error(`Drag handle "${action}" failed:`, e)
       }
 
       hideHandle()
