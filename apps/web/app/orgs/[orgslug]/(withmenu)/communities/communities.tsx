@@ -80,9 +80,9 @@ const CommunitiesClient = ({ communities, orgslug, org_id }: CommunitiesClientPr
                 href={getUriWithOrg(orgslug, `/community/${channelId(community.community_uuid)}`)}
                 className="group flex items-center gap-4 px-4 py-3.5 rounded-2xl bg-white nice-shadow border border-transparent hover:border-[#4da3ff]/40 transition-all"
               >
-                <div className="w-11 h-11 rounded-xl bg-[#F0F5FF] flex items-center justify-center shrink-0">
+                <div className="w-11 h-11 flex items-center justify-center shrink-0">
                   {emoji ? (
-                    <span className="text-xl leading-none" aria-hidden>{emoji}</span>
+                    <span className="text-2xl leading-none" aria-hidden>{emoji}</span>
                   ) : (
                     <Hash size={20} className="text-[#025dc7]" />
                   )}

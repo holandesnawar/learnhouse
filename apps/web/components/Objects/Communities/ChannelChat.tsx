@@ -223,8 +223,16 @@ export function ChannelChat({
     limit: 50,
   })
 
-  // API returns newest first; show oldest at top, newest at the bottom.
-  const messages = useMemo(() => [...discussions].reverse(), [discussions])
+  // Un chat es cronológico y punto. La API devuelve PRIMERO los mensajes
+  // fijados y luego el resto por fecha, así que al invertir la lista un mensaje
+  // recién fijado saltaba al final del chat, fuera de su sitio: parecía que se
+  // borraba de la conversación. Se ordena por fecha aquí y los fijados se
+  // quedan donde se escribieron (resaltados, y además listados en el panel
+  // "Fijados" de al lado).
+  const messages = useMemo(
+    () => [...discussions].sort((a, b) => msOf(a.creation_date) - msOf(b.creation_date)),
+    [discussions]
+  )
 
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
