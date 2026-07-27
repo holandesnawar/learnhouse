@@ -192,7 +192,11 @@ const CertificateVerificationPage: React.FC<CertificateVerificationPageProps> = 
                   certificatePattern={certificateData.certification.config.certificate_pattern}
                   certificateInstructor={certificateData.certification.config.certificate_instructor}
                   certificateId={certificateData.certificate_user.user_certification_uuid}
-                  awardedDate={new Date(certificateData.certificate_user.created_at).toLocaleDateString('en-US', {
+                  studentName={[certificateData.user?.first_name, certificateData.user?.last_name]
+                    .filter(Boolean)
+                    .join(' ')
+                    .trim() || certificateData.user?.username || ''}
+                  awardedDate={new Date(certificateData.certificate_user.created_at).toLocaleDateString('es-ES', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric'

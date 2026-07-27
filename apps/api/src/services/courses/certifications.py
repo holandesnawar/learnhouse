@@ -17,7 +17,7 @@ from src.db.courses.certifications import (
 from src.db.courses.courses import Course
 from src.db.courses.chapter_activities import ChapterActivity
 from src.db.trail_steps import TrailStep
-from src.db.users import PublicUser, AnonymousUser
+from src.db.users import PublicUser, AnonymousUser, User
 from src.security.rbac import check_resource_access, AccessAction
 from src.services.analytics.analytics import track
 from src.services.analytics import events as analytics_events
@@ -347,6 +347,31 @@ async def create_certificate_user(
     except Exception as e:
         logger.warning("Certificate tracking failed (non-critical): %s", e)
 
+    # Aviso por email: el alumno acaba de ganarse el certificado. Aparte del
+    # bloque anterior y con su propio try — que falle un correo nunca puede
+    # tumbar la entrega del certificado.
+    try:
+        from src.services.users.emails import (
+            ACADEMY_URL,
+            send_certificate_ready_email,
+        )
+
+        cert_name = (certification.config or {}).get(
+            "certification_name", "tu formación"
+        )
+        display_name = user.first_name or user.username or "alumno/a"
+        send_certificate_ready_email(
+            email=user.email,
+            name=display_name,
+            certification_name=cert_name,
+            certificate_url=(
+                f"{ACADEMY_URL}/certificates/"
+                f"{certificate_user.user_certification_uuid}/verify"
+            ),
+        )
+    except Exception as e:
+        logger.warning("Certificate email failed (non-critical): %s", e)
+
     return CertificateUserRead(**certificate_user.model_dump())
 
 
@@ -536,9 +561,21 @@ async def get_certificate_by_user_certification_uuid(
 
     # No RBAC check - allow anyone to access certificates by UUID
 
+    # Holder identity: a verification page that cannot say *who* the
+    # certificate belongs to verifies nothing. Only the display name is
+    # exposed here — never the email.
+    holder = (await db_session.execute(
+        select(User).where(User.id == certificate_user.user_id)
+    )).scalars().first()
+
     return {
         "certificate_user": CertificateUserRead(**certificate_user.model_dump()),
         "certification": CertificationRead(**certification.model_dump()),
+        "user": {
+            "first_name": holder.first_name if holder else None,
+            "last_name": holder.last_name if holder else None,
+            "username": holder.username if holder else None,
+        },
         "course": {
             "id": course.id,
             "course_uuid": course.course_uuid,

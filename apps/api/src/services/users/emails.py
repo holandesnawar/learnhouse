@@ -632,3 +632,44 @@ def send_consulta_answered_email(
             footer_note="Recibes esto cuando contestamos a una consulta que abriste.",
         ),
     )
+
+
+def send_certificate_ready_email(
+    email: EmailStr,
+    name: str = "alumno/a",
+    certification_name: str = "Formación Neerlandés A0 → A1",
+    certificate_url: str = f"{ACADEMY_URL}/trail",
+):
+    """El alumno ha terminado la formación: su certificado ya está disponible."""
+    safe_name = html.escape(name)
+    safe_cert = html.escape(certification_name)
+    heading = "¡Enhorabuena! Tu certificado ya está listo"
+
+    body_content = f"""
+        <h1 style="{STYLES['h1']}">{heading}</h1>
+        <p style="{STYLES['p']}">
+            {safe_name}, has completado <strong>{safe_cert}</strong>. No es poca cosa:
+            has recorrido el camino entero, lección a lección.
+        </p>
+        <p style="{STYLES['p']}">
+            Tu <strong>certificado Holandés Nawar</strong> ya te espera en la academia.
+            Puedes verlo, descargarlo en PDF y compartirlo con quien quieras.
+        </p>
+        <a href="{certificate_url}" class="brand-btn" style="{STYLES['button']}">
+            Ver mi certificado
+        </a>
+        <p style="{STYLES['p']}">
+            Lleva un código de verificación propio, así que cualquiera puede comprobar
+            que es auténtico.
+        </p>
+    """
+
+    return send_email(
+        to=email,
+        subject=f"Tu certificado de {certification_name} ya está listo",
+        body=_email_layout(
+            title=heading,
+            body_content=body_content,
+            footer_note="Enhorabuena de parte de todo el equipo de Holandés Nawar.",
+        ),
+    )
