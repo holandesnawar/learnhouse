@@ -28,12 +28,21 @@ const FormacionCard = dynamic(() => import('@components/Pages/Home/StudentPulse'
 import Link from 'next/link'
 import { BookOpen, HelpCircle, ArrowRight } from 'lucide-react'
 
+/** Hueco gris del tamaño final de una tarjeta: evita que la página salte. */
+function HomeSkeleton({ className = '' }: { className?: string }) {
+  return (
+    <div
+      className={`rounded-2xl border border-[#DDE6F5] dark:border-white/10 bg-white/60 dark:bg-white/5 animate-pulse ${className}`}
+    />
+  )
+}
+
 export default function StudentHome({ orgslug }: { orgslug: string }) {
   const org = useOrg() as any
   const session = useLHSession() as any
   const accessToken: string | undefined = session?.data?.tokens?.access_token
   const { data: courses } = useCourses(orgslug)
-  const { data: trailData } = useTrail(org?.id)
+  const { data: trailData, isLoading: trailLoading } = useTrail(org?.id)
   const { isAdmin } = useAdminStatus() as any
 
   const firstName: string =
@@ -70,7 +79,7 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
   // One cached fetch with the real progress signals (completions, attempts,
   // weak words, streak) — feeds every progress-aware card below. Cached via
   // react-query: al volver al Inicio los datos aparecen al instante.
-  const { data: insights } = useStudentInsights()
+  const { data: insights, isLoading: insightsLoading } = useStudentInsights()
 
   return (
     <GeneralWrapperStyled>
@@ -93,22 +102,52 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
       {/* Onboarding del alumno → ahora es un widget flotante "Primeros pasos"
           (StudentOnboarding), montado en el layout. Ya no ocupa el Inicio. */}
 
-      {/* "Sigue donde lo dejaste" — big primary card with section progress */}
-      {insights && <ContinueCard orgslug={orgslug} insights={insights} />}
+      {/* "Sigue donde lo dejaste" — big primary card with section progress.
+          Mientras llegan los datos se reserva el hueco con un esqueleto: si no,
+          el Inicio se pintaba entero, luego aparecían las tarjetas y todo
+          saltaba hacia abajo, con pinta de estar cargando dos veces. */}
+      {insights ? (
+        <ContinueCard orgslug={orgslug} insights={insights} />
+      ) : insightsLoading ? (
+        <HomeSkeleton className="mb-8 h-[188px]" />
+      ) : null}
 
       {/* Esta semana + Tu repaso de hoy */}
-      {insights && (
+      {insights ? (
         <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <WeekCard insights={insights} />
           <RepasoCard orgslug={orgslug} insights={insights} />
         </div>
-      )}
+      ) : insightsLoading ? (
+        <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <HomeSkeleton className="h-[164px]" />
+          <HomeSkeleton className="h-[164px]" />
+        </div>
+      ) : null}
 
       {/* Así estás progresando — real, server-side numbers */}
-      {insights && <FormacionCard orgslug={orgslug} insights={insights} />}
+      {insights ? (
+        <FormacionCard orgslug={orgslug} insights={insights} />
+      ) : insightsLoading ? (
+        <HomeSkeleton className="mb-8 h-[168px]" />
+      ) : null}
+
+      {/* Tus cursos. Ojo: `runs` llega vacío mientras el camino del alumno
+          está cargando, y sin esta guarda se pintaba PRIMERO la rejilla de
+          "cursos por empezar" (la vista antigua, con la foto del curso) y un
+          instante después se cambiaba por la tarjeta con tu progreso. Eso era
+          lo que parecía que el Inicio cargaba dos veces. */}
+      {trailLoading && (
+        <div className="mb-10">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Tus cursos</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <HomeSkeleton className="h-[232px]" />
+          </div>
+        </div>
+      )}
 
       {/* Courses in progress */}
-      {runs.length > 0 && (
+      {!trailLoading && runs.length > 0 && (
         <div className="mb-10">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Tus cursos</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -127,7 +166,7 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
       {/* Courses — only shown to learners who haven't started yet, so they
           can begin. Once a course is in progress, "Continúa donde lo dejaste"
           covers it and we don't repeat the (currently single) course list. */}
-      {runs.length === 0 && (
+      {!trailLoading && runs.length === 0 && (
         <div className="mb-6">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Tus cursos</h2>
           {courseList.length === 0 ? (

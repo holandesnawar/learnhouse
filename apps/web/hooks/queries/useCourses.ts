@@ -12,7 +12,10 @@ export function useCourses(orgSlug: string) {
   return useQuery({
     queryKey: queryKeys.courses.list(orgSlug),
     queryFn: () => getOrgCourses(orgSlug, {}, accessToken),
-    enabled: !!orgSlug,
+    // Esperar a que la sesión esté resuelta: si no, la primera petición sale
+    // SIN token, se cachea la respuesta anónima bajo la misma clave y ya no se
+    // vuelve a pedir con el usuario ya identificado.
+    enabled: !!orgSlug && session.status !== 'loading',
     staleTime: 60_000,
   })
 }

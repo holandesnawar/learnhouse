@@ -1,8 +1,6 @@
 'use client'
 import React from 'react'
 import { useOrg } from '@components/Contexts/OrgContext'
-import { useCourses } from '@/hooks/queries/useCourses'
-import { useCollections } from '@/hooks/queries/useCollections'
 import LandingCustom from '@components/Landings/LandingCustom'
 import StudentHome from '@components/Pages/Home/StudentHome'
 import { JsonLd } from '@components/SEO/JsonLd'
@@ -12,9 +10,6 @@ import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/Ge
 
 export default function HomeClient({ orgslug }: { orgslug: string }) {
   const org = useOrg() as any
-  const orgId = org?.id as number | undefined
-  const { data: courses, isLoading: coursesLoading } = useCourses(orgslug)
-  const { data: collections, isLoading: collectionsLoading } = useCollections(orgId)
 
   const landingConfig = org?.config?.config?.customization?.landing || org?.config?.config?.landing
   const hasCustomLanding = landingConfig?.enabled
@@ -32,22 +27,27 @@ export default function HomeClient({ orgslug }: { orgslug: string }) {
       }
     : null
 
-  if (!org || (!hasCustomLanding && (coursesLoading || collectionsLoading))) {
+  // Antes esta pantalla esperaba a que llegaran cursos y colecciones y
+  // mientras tanto pintaba una rejilla de tarjetas de curso: la forma del
+  // Inicio ANTIGUO. Al llegar los datos se sustituía de golpe por el Inicio
+  // actual, y se veía como si la página cargara dos veces. Ahora solo se
+  // espera a la organización (hace falta para saber qué portada toca) y el
+  // hueco reservado tiene ya la forma del Inicio de verdad; cada sección
+  // resuelve su propia carga por dentro.
+  if (!org) {
     return (
       <GeneralWrapperStyled>
-        <div className="animate-pulse space-y-6 pt-6">
-          <div className="h-6 bg-gray-200 rounded w-40" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100">
-                <div className="h-[131px] bg-gray-200" />
-                <div className="p-3 space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-3/4" />
-                  <div className="h-3 bg-gray-200 rounded w-1/2" />
-                </div>
-              </div>
-            ))}
+        <div className="animate-pulse pt-2">
+          <div className="pb-6 space-y-2">
+            <div className="h-8 bg-gray-200 rounded-lg w-56" />
+            <div className="h-4 bg-gray-200 rounded w-72" />
           </div>
+          <div className="h-[188px] bg-gray-200 rounded-2xl mb-8" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+            <div className="h-[164px] bg-gray-200 rounded-2xl" />
+            <div className="h-[164px] bg-gray-200 rounded-2xl" />
+          </div>
+          <div className="h-[168px] bg-gray-200 rounded-2xl" />
         </div>
       </GeneralWrapperStyled>
     )
