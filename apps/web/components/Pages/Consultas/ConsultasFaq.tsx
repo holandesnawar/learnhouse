@@ -26,9 +26,23 @@ export function readFaqRoot(org: any): any {
   return org?.config?.config?.customization?.faq || org?.config?.config?.faq || {}
 }
 
+/**
+ * TODOS los sitios donde ha podido quedar guardado el FAQ. El backend escribe
+ * en `customization.faq` cuando la configuración es v2 y en `faq` a secas
+ * cuando no, así que una lista antigua puede haber quedado en el otro hueco y
+ * no verse. Al rescatar se miran los dos.
+ */
+export function readFaqRoots(org: any): any[] {
+  const cfg = org?.config?.config
+  return [cfg?.customization?.faq, cfg?.faq].filter(Boolean)
+}
+
 /** Solo las consultas frecuentes; las del curso se quedan en su sitio. */
 function readFaq(org: any): FaqItem[] {
-  const raw = readFaqRoot(org)?.items
+  const roots = readFaqRoots(org)
+  const raw =
+    roots.map((r) => r?.items).find((it) => Array.isArray(it) && it.some((x: any) => x?.question)) ||
+    readFaqRoot(org)?.items
   if (!Array.isArray(raw)) return []
   return raw
     .filter((it: any) => it && (typeof it.question === 'string' || typeof it.answer === 'string'))

@@ -8,7 +8,7 @@ import { updateOrgFaq } from '@services/organizations/orgs'
 import toast from 'react-hot-toast'
 import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/lib/query/keys'
-import { readFaqRoot } from '@components/Pages/Consultas/ConsultasFaq'
+import { readFaqRoot, readFaqRoots } from '@components/Pages/Consultas/ConsultasFaq'
 
 interface FAQ {
   q: string
@@ -78,15 +78,24 @@ export default function CourseFAQ({ courseUuid, compact = false }: CourseFAQProp
   editingRef.current = editing
 
   const savedItems = useMemo(() => {
-    const own = faqRoot?.courses?.[key]?.items
-    if (Array.isArray(own) && own.length) return own as FAQ[]
-    // Rescate: lo que se guardó cuando ambas secciones compartían `items`
-    // (se reconoce porque usa q/a) sigue ahí y se recupera tal cual.
-    const legacy = Array.isArray(faqRoot?.items)
-      ? (faqRoot.items as any[]).filter((i) => i && typeof i.q === 'string')
-      : []
-    return legacy as FAQ[]
-  }, [faqRoot, key])
+    const roots = readFaqRoots(org)
+    // 1) Su hueco propio (lo normal a partir de ahora).
+    for (const root of roots) {
+      const own = root?.courses?.[key]?.items
+      if (Array.isArray(own) && own.length) return own as FAQ[]
+    }
+    // 2) RESCATE: lo que se guardó cuando esta sección y las consultas
+    //    frecuentes compartían `items`. Se reconoce porque usa q/a, y puede
+    //    haber quedado en cualquiera de los dos huecos de configuración.
+    for (const root of roots) {
+      const legacy = Array.isArray(root?.items)
+        ? (root.items as any[]).filter((i) => i && typeof i.q === 'string' && i.q.trim())
+        : []
+      if (legacy.length) return legacy as FAQ[]
+    }
+    return [] as FAQ[]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(readFaqRoots(org)), key])
 
   const [items, setItems] = useState<FAQ[]>(savedItems.length ? savedItems : hardcoded?.items ?? [])
 
