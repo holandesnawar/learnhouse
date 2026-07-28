@@ -143,6 +143,10 @@ export function ChannelChat({
   const mutateDiscussions = useMutateDiscussions()
   const [pinningUuid, setPinningUuid] = useState<string | null>(null)
   const [pickerUuid, setPickerUuid] = useState<string | null>(null)
+  // En el móvil no existe el "pasar el ratón": sin esto, responder, reaccionar,
+  // editar y borrar eran invisibles e inalcanzables desde el teléfono. Al tocar
+  // un mensaje se marca como activo y aparecen sus acciones.
+  const [activeUuid, setActiveUuid] = useState<string | null>(null)
   const [replyingTo, setReplyingTo] = useState<{ author: string; text: string } | null>(null)
   const [editingUuid, setEditingUuid] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
@@ -371,8 +375,8 @@ export function ChannelChat({
                   <div
                     className={`group/msg relative flex gap-2.5 px-4 ${grouped ? 'mt-0.5' : 'mt-2'} ${isOwn ? 'flex-row-reverse' : ''}`}
                   >
-                    {/* Avatar — solo para mensajes de otros (los tuyos van a la derecha sin avatar) */}
-                    {!isOwn && (
+                    {/* Avatar a los dos lados: el propio también, para que el chat
+                        no parezca vacío de fotos cuando solo escribes tú. */}
                     <div className="w-9 shrink-0 flex justify-center items-start">
                       {!grouped ? (
                         <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 flex items-center justify-center bg-gray-100 [&_img]:w-full [&_img]:h-full [&_img]:object-cover">
@@ -391,11 +395,12 @@ export function ChannelChat({
                         </span>
                       )}
                     </div>
-                    )}
                     <div className={`min-w-0 flex-1 flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
                       {!grouped && (
                         <div className={`flex items-baseline gap-2 mb-0.5 ${isOwn ? 'flex-row-reverse' : ''}`}>
-                          {!isOwn && <span className="text-sm font-semibold text-gray-900">{authorName(m.author)}</span>}
+                          <span className="text-sm font-semibold text-gray-900">
+                            {isOwn ? 'Tú' : authorName(m.author)}
+                          </span>
                           <span className="text-[11px] text-gray-400 tabular-nums">{clockTime(m.creation_date)}</span>
                           {m.is_pinned && (
                             <span className="inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wider text-[#025dc7]">
@@ -454,7 +459,12 @@ export function ChannelChat({
                               </div>
                             ) : null
                           })()}
-                          <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
+                          <p
+                            className="text-sm whitespace-pre-wrap break-words leading-relaxed cursor-pointer"
+                            onClick={() =>
+                              setActiveUuid((cur) => (cur === m.discussion_uuid ? null : m.discussion_uuid))
+                            }
+                          >
                             {messageText(m)}
                             {m.edit_count > 0 && (
                               <span className="text-[10px] opacity-60 ml-1.5">· editado</span>
@@ -471,7 +481,9 @@ export function ChannelChat({
                             title="Reaccionar"
                             aria-label="Reaccionar"
                             className={`shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-[#025dc7] hover:bg-[#025dc7]/10 transition-all ${
-                              pickerUuid === m.discussion_uuid ? 'opacity-100' : 'opacity-0 group-hover/msg:opacity-100'
+                              pickerUuid === m.discussion_uuid || activeUuid === m.discussion_uuid
+                                ? 'opacity-100'
+                                : 'opacity-0 group-hover/msg:opacity-100'
                             }`}
                           >
                             <SmilePlus size={16} />
@@ -489,7 +501,9 @@ export function ChannelChat({
                             }
                             title="Responder"
                             aria-label="Responder"
-                            className="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-[#025dc7] hover:bg-[#025dc7]/10 transition-all opacity-0 group-hover/msg:opacity-100"
+                            className={`shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-[#025dc7] hover:bg-[#025dc7]/10 transition-all ${
+                              activeUuid === m.discussion_uuid ? 'opacity-100' : 'opacity-0 group-hover/msg:opacity-100'
+                            }`}
                           >
                             <Reply size={15} />
                           </button>
@@ -501,7 +515,9 @@ export function ChannelChat({
                             onClick={() => startEdit(m)}
                             title="Editar"
                             aria-label="Editar"
-                            className="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-[#025dc7] hover:bg-[#025dc7]/10 transition-all opacity-0 group-hover/msg:opacity-100"
+                            className={`shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-[#025dc7] hover:bg-[#025dc7]/10 transition-all ${
+                              activeUuid === m.discussion_uuid ? 'opacity-100' : 'opacity-0 group-hover/msg:opacity-100'
+                            }`}
                           >
                             <Pencil size={14} />
                           </button>
@@ -513,7 +529,9 @@ export function ChannelChat({
                             onClick={() => removeMessage(m.discussion_uuid)}
                             title="Eliminar"
                             aria-label="Eliminar"
-                            className="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-rose-500 hover:bg-rose-50 transition-all opacity-0 group-hover/msg:opacity-100"
+                            className={`shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-rose-500 hover:bg-rose-50 transition-all ${
+                              activeUuid === m.discussion_uuid ? 'opacity-100' : 'opacity-0 group-hover/msg:opacity-100'
+                            }`}
                           >
                             <Trash2 size={14} />
                           </button>
@@ -569,7 +587,9 @@ export function ChannelChat({
                         className={`absolute top-1 right-3 inline-flex items-center justify-center w-7 h-7 rounded-md transition-all ${
                           m.is_pinned
                             ? 'text-[#025dc7] hover:bg-[#025dc7]/10'
-                            : 'text-gray-400 hover:text-[#025dc7] hover:bg-[#025dc7]/10 opacity-0 group-hover/msg:opacity-100'
+                            : `text-gray-400 hover:text-[#025dc7] hover:bg-[#025dc7]/10 ${
+                                activeUuid === m.discussion_uuid ? 'opacity-100' : 'opacity-0 group-hover/msg:opacity-100'
+                              }`
                         } ${pinningUuid === m.discussion_uuid ? 'opacity-60 pointer-events-none' : ''}`}
                       >
                         {pinningUuid === m.discussion_uuid ? (

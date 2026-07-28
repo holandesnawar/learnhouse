@@ -71,6 +71,11 @@ export default function ConsultasFaq() {
   const queryClient = useQueryClient()
   const [items, setItems] = useState<FaqItem[]>(() => readFaq(org))
   const [open, setOpen] = useState<string | null>(null)
+  // En el móvil este bloque va ARRIBA del listado de consultas, así que con 8
+  // preguntas había que pasar media pantalla antes de llegar al contenido.
+  // Se muestran 2 y el resto se despliega a petición (en escritorio, todas).
+  const [showAll, setShowAll] = useState(false)
+  const MOBILE_PREVIEW = 2
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState<FaqItem | null>(null)
 
@@ -159,10 +164,11 @@ export default function ConsultasFaq() {
         </div>
       ) : (
         <div className="divide-y divide-[#EEF2FB]">
-          {items.map((item) => {
+          {items.map((item, idx) => {
+            const hiddenOnMobile = !showAll && idx >= MOBILE_PREVIEW
             const isOpen = open === item.id
             return (
-              <div key={item.id}>
+              <div key={item.id} className={hiddenOnMobile ? 'hidden lg:block' : ''}>
                 <div className="flex items-center">
                   <button
                     onClick={() => setOpen(isOpen ? null : item.id)}
@@ -192,6 +198,24 @@ export default function ConsultasFaq() {
               </div>
             )
           })}
+
+          {/* Solo en móvil: el resto de preguntas se despliega a petición. */}
+          {items.length > MOBILE_PREVIEW && (
+            <button
+              type="button"
+              onClick={() => setShowAll((v) => !v)}
+              className="lg:hidden w-full px-5 py-3 text-[13.5px] font-semibold text-[#025dc7] hover:bg-[#F8FAFF] transition-colors flex items-center justify-center gap-1.5"
+            >
+              {showAll ? (
+                <>Ver menos <ChevronDown size={16} className="rotate-180" /></>
+              ) : (
+                <>
+                  Ver las {items.length - MOBILE_PREVIEW} preguntas restantes
+                  <ChevronDown size={16} />
+                </>
+              )}
+            </button>
+          )}
         </div>
       )}
 

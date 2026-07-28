@@ -232,19 +232,6 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
             </div>
           ))}
 
-          {/* Módulos aún sin empezar, plegados en una línea */}
-          {modules.filter((m) => !m.lessons.some((r) => r.started)).length > 0 && (
-            <div className="rounded-2xl border border-dashed border-[#DDE6F5] bg-white/60 p-4">
-              <p className="text-[12px] text-[#9CA3AF]">
-                Próximos módulos:{' '}
-                {modules
-                  .filter((m) => !m.lessons.some((r) => r.started))
-                  .map((m) => `${m.emoji} ${m.title}`)
-                  .join(' · ')}
-              </p>
-            </div>
-          )}
-
           <p className="text-[11px] text-[#9CA3AF] flex items-center gap-1.5">
             <Cloud size={12} /> Tu progreso se guarda en tu cuenta y se actualiza al momento cuando repasas.
           </p>
