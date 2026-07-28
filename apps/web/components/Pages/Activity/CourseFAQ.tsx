@@ -1,11 +1,14 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { ChevronDown, HelpCircle, Pencil, Plus, Trash2, X, Check, Loader2 } from 'lucide-react'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { updateOrgFaq } from '@services/organizations/orgs'
 import toast from 'react-hot-toast'
+import { useQueryClient } from '@tanstack/react-query'
+import { queryKeys } from '@/lib/query/keys'
+import { readFaqRoot } from '@components/Pages/Consultas/ConsultasFaq'
 
 interface FAQ {
   q: string
@@ -65,13 +68,37 @@ export default function CourseFAQ({ courseUuid, compact = false }: CourseFAQProp
   const key = (courseUuid || '').replace(/^course_/, '')
   const hardcoded = COURSE_FAQS[key]
 
-  // Admin-edited FAQ lives in the org config; fall back to the hardcoded default.
-  const orgFaq = org?.config?.config?.customization?.faq || org?.config?.config?.faq
-  const orgItems = Array.isArray(orgFaq?.items) ? (orgFaq.items as FAQ[]) : null
-
-  const [items, setItems] = useState<FAQ[]>(orgItems && orgItems.length ? orgItems : hardcoded?.items ?? [])
-  const [openIdx, setOpenIdx] = useState<number | null>(0)
+  // Las preguntas de cada curso viven en su propio hueco dentro del objeto faq
+  // de la organización. Antes compartían `items` con las consultas frecuentes,
+  // así que cada sección borraba la lista de la otra.
+  const queryClient = useQueryClient()
+  const faqRoot = readFaqRoot(org)
   const [editing, setEditing] = useState(false)
+  const editingRef = React.useRef(false)
+  editingRef.current = editing
+
+  const savedItems = useMemo(() => {
+    const own = faqRoot?.courses?.[key]?.items
+    if (Array.isArray(own) && own.length) return own as FAQ[]
+    // Rescate: lo que se guardó cuando ambas secciones compartían `items`
+    // (se reconoce porque usa q/a) sigue ahí y se recupera tal cual.
+    const legacy = Array.isArray(faqRoot?.items)
+      ? (faqRoot.items as any[]).filter((i) => i && typeof i.q === 'string')
+      : []
+    return legacy as FAQ[]
+  }, [faqRoot, key])
+
+  const [items, setItems] = useState<FAQ[]>(savedItems.length ? savedItems : hardcoded?.items ?? [])
+
+  // La organización llega después del primer render: sin esto la lista se
+  // quedaba con lo que hubiera al arrancar (normalmente nada).
+  const savedSignature = useMemo(() => JSON.stringify(savedItems), [savedItems])
+  useEffect(() => {
+    if (editingRef.current) return
+    if (savedItems.length) setItems(savedItems)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedSignature])
+  const [openIdx, setOpenIdx] = useState<number | null>(0)
   const [saving, setSaving] = useState(false)
   const [draft, setDraft] = useState<FAQ[]>([])
 
@@ -87,9 +114,18 @@ export default function CourseFAQ({ courseUuid, compact = false }: CourseFAQProp
     setSaving(true)
     try {
       const cleaned = draft.map((f) => ({ q: f.q.trim(), a: f.a.trim() })).filter((f) => f.q || f.a)
-      await updateOrgFaq(org.id, { items: cleaned }, accessToken)
+      // Se escribe SOLO en el hueco de este curso; el resto del objeto (las
+      // consultas frecuentes y los demás cursos) se conserva.
+      await updateOrgFaq(
+        org.id,
+        { ...faqRoot, courses: { ...(faqRoot?.courses || {}), [key]: { items: cleaned } } },
+        accessToken
+      )
       setItems(cleaned)
       setEditing(false)
+      if (org?.slug) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.org.detail(org.slug) })
+      }
       toast.success('Preguntas frecuentes guardadas')
     } catch {
       toast.error('No se pudieron guardar las preguntas')

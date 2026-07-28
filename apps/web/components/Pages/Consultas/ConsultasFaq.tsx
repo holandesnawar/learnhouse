@@ -1,11 +1,13 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { updateOrgFaq } from '@services/organizations/orgs'
 import { ChevronDown, Plus, Pencil, Trash2, X, Check, Loader2, HelpCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useQueryClient } from '@tanstack/react-query'
+import { queryKeys } from '@/lib/query/keys'
 
 interface FaqItem {
   id: string
@@ -13,9 +15,28 @@ interface FaqItem {
   answer: string
 }
 
+/**
+ * El objeto `faq` de la organización lo comparten DOS secciones distintas:
+ * estas consultas frecuentes (`items`) y las preguntas de cada curso
+ * (`courses[uuid].items`, ver CourseFAQ). Hasta ahora las dos escribían en
+ * `items`, así que cada una borraba la lista de la otra y las preguntas del
+ * curso se veían aquí en blanco (usan `q`/`a` en vez de `question`/`answer`).
+ */
+export function readFaqRoot(org: any): any {
+  return org?.config?.config?.customization?.faq || org?.config?.config?.faq || {}
+}
+
+/** Solo las consultas frecuentes; las del curso se quedan en su sitio. */
 function readFaq(org: any): FaqItem[] {
-  const f = org?.config?.config?.customization?.faq || org?.config?.config?.faq
-  return Array.isArray(f?.items) ? f.items : []
+  const raw = readFaqRoot(org)?.items
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((it: any) => it && (typeof it.question === 'string' || typeof it.answer === 'string'))
+    .map((it: any, i: number) => ({
+      id: it.id || `faq-${i}`,
+      question: it.question || '',
+      answer: it.answer || '',
+    }))
 }
 
 function newId() {
@@ -33,10 +54,22 @@ export default function ConsultasFaq() {
   const { isAdmin } = useAdminStatus() as any
   const canEdit = !!isAdmin
 
+  const queryClient = useQueryClient()
   const [items, setItems] = useState<FaqItem[]>(() => readFaq(org))
   const [open, setOpen] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState<FaqItem | null>(null)
+
+  // La organización llega del servidor DESPUÉS del primer render. Sin esto el
+  // estado se quedaba con la lista vacía del arranque: la página parecía no
+  // tener preguntas y, al añadir una, se guardaba esa sola encima de todas las
+  // que ya había. Así es como desaparecieron.
+  const orgItemsSignature = useMemo(() => JSON.stringify(readFaqRoot(org)?.items ?? null), [org])
+  useEffect(() => {
+    if (editing) return // no pisar lo que se está escribiendo
+    setItems(readFaq(org))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgItemsSignature])
 
   // Hide the whole block for students when there's nothing to show.
   if (items.length === 0 && !canEdit) return null
@@ -44,8 +77,13 @@ export default function ConsultasFaq() {
   const persist = async (next: FaqItem[]) => {
     setSaving(true)
     try {
-      await updateOrgFaq(org.id, { items: next }, accessToken)
+      // Conservar el resto del objeto (las preguntas de los cursos).
+      const root = readFaqRoot(org)
+      await updateOrgFaq(org.id, { ...root, items: next }, accessToken)
       setItems(next)
+      if (org?.slug) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.org.detail(org.slug) })
+      }
     } catch {
       toast.error('No se pudieron guardar las preguntas')
       throw new Error('save failed')

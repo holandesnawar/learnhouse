@@ -22,7 +22,6 @@ import { getActivityWithAuthHeader } from '@services/courses/activities'
 import { useTranslation } from 'react-i18next'
 import CommunityChannelsCards from '@components/Objects/Communities/CommunityChannelsCards'
 import CourseFAQ from '@components/Pages/Activity/CourseFAQ'
-import DripContentSettings from '@components/Pages/Courses/DripContentSettings'
 import WeeklyClassBanner from '@components/Pages/Courses/WeeklyClassBanner'
 import { getLessonIcon } from '@components/Pages/Activity/CourseLessonsSidebar'
 import { useAnalytics } from '@/hooks/useAnalytics'
@@ -535,7 +534,6 @@ const CourseClient = (props: any) => {
                   t('courses.course_lessons')
                 )}
               </h2>
-              <DripContentSettings course={course} />
               <div className="bg-white nice-shadow rounded-2xl overflow-hidden border border-[#DDE6F5] divide-y divide-[#DDE6F5]">
                 {(course.chapters ?? []).map((chapter: any, idx: number) => {
                   const isExpanded = expandedChapters[chapter.chapter_uuid] ?? (idx === 0); // Default to expanded for first chapter

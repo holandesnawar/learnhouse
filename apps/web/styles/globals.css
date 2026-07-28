@@ -2442,3 +2442,9 @@ a.bg-black:hover {
 .ProseMirror b {
   font-weight: 700;
 }
+
+/* Barra de scroll fina para paneles laterales (columna de Consultas). */
+.lh-thin-scroll { scrollbar-width: thin; scrollbar-color: #DDE6F5 transparent; }
+.lh-thin-scroll::-webkit-scrollbar { width: 6px; }
+.lh-thin-scroll::-webkit-scrollbar-thumb { background: #DDE6F5; border-radius: 999px; }
+.lh-thin-scroll::-webkit-scrollbar-track { background: transparent; }

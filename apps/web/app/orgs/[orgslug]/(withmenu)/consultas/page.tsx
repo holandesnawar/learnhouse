@@ -43,7 +43,7 @@ export default async function ConsultasPage({
           col-start so the FAQ ends up in the right column despite being
           first in source. */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
-        <aside className="lg:col-start-2 lg:row-start-1 lg:sticky lg:top-6 self-start">
+        <aside className="lg:col-start-2 lg:row-start-1 lg:sticky lg:top-6 self-start lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lh-thin-scroll">
           <ConsultasFaq />
         </aside>
         <div className="min-w-0 lg:col-start-1 lg:row-start-1">
