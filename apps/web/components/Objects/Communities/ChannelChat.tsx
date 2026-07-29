@@ -7,7 +7,7 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 import utc from 'dayjs/plugin/utc'
 import 'dayjs/locale/es'
 import { PaperPlaneRight } from '@phosphor-icons/react'
-import { Loader2, Mail, MessageCircle, Pin, PinOff, SmilePlus, Reply, X, Pencil, Trash2 } from 'lucide-react'
+import { AtSign, BarChart3, Loader2, Mail, MessageCircle, Pin, PinOff, SmilePlus, Reply, X, Pencil, Trash2 } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useDiscussions, useMutateDiscussions } from '@components/Hooks/useDiscussions'
 import {
@@ -29,7 +29,16 @@ import { getUserAvatarMediaDirectory } from '@services/media/media'
 import UserAvatar from '@components/Objects/UserAvatar'
 import AuthenticatedClientElement from '@components/Security/AuthenticatedClientElement'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
+import { useQueryClient } from '@tanstack/react-query'
 import { broadcastNotification } from '@services/notifications/broadcast'
+import {
+  getPollResults,
+  getReadStates,
+  markChannelRead,
+  readPoll,
+  votePoll,
+  type PollResults,
+} from '@services/communities/engagement'
 import { useOrg } from '@components/Contexts/OrgContext'
 
 dayjs.extend(relativeTime)
@@ -146,7 +155,15 @@ export function ChannelChat({
   // En el móvil no existe el "pasar el ratón": sin esto, responder, reaccionar,
   // editar y borrar eran invisibles e inalcanzables desde el teléfono. Al tocar
   // un mensaje se marca como activo y aparecen sus acciones.
+  const queryClient = useQueryClient()
   const [activeUuid, setActiveUuid] = useState<string | null>(null)
+  // Hasta dónde había leído el alumno cuando abrió el canal: sirve para pintar
+  // la línea "mensajes nuevos" SIN que se mueva al llegar mensajes nuevos.
+  const [lastReadAt, setLastReadAt] = useState<string | null>(null)
+  // Menciones: sugerencias al escribir @ y encuestas.
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null)
+  const [polls, setPolls] = useState<Record<string, PollResults>>({})
+  const [pollDraft, setPollDraft] = useState<{ question: string; options: string[] } | null>(null)
   const [replyingTo, setReplyingTo] = useState<{ author: string; text: string } | null>(null)
   const [editingUuid, setEditingUuid] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
@@ -255,15 +272,94 @@ export function ChannelChat({
     return () => clearInterval(id)
   }, [communityUuid, mutateDiscussions])
 
+  // Al entrar: se guarda la marca de lectura ANTERIOR (para la línea de nuevos)
+  // y se marca el canal como leído. Al salir se vuelve a marcar, por si han
+  // llegado mensajes mientras estaba abierto.
+  useEffect(() => {
+    if (!accessToken) return
+    let alive = true
+    getReadStates(accessToken).then((states) => {
+      if (!alive) return
+      setLastReadAt(states?.[communityUuid] || null)
+      markChannelRead(communityUuid, accessToken).then(() => {
+        queryClient.invalidateQueries({ queryKey: ['community', 'unread'] })
+      })
+    })
+    return () => {
+      alive = false
+      markChannelRead(communityUuid, accessToken).then(() => {
+        queryClient.invalidateQueries({ queryKey: ['community', 'unread'] })
+      })
+    }
+  }, [communityUuid, accessToken, queryClient])
+
+  // Resultados de las encuestas visibles.
+  useEffect(() => {
+    if (!accessToken) return
+    const pollMessages = messages.filter((m) => readPoll(m.content))
+    let alive = true
+    Promise.all(
+      pollMessages.map((m) =>
+        getPollResults(m.discussion_uuid, accessToken).then((r) => [m.discussion_uuid, r] as const)
+      )
+    ).then((pairs) => {
+      if (!alive) return
+      const next: Record<string, PollResults> = {}
+      for (const [uuid, res] of pairs) if (res) next[uuid] = res
+      setPolls(next)
+    })
+    return () => {
+      alive = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.map((m) => m.discussion_uuid).join(','), accessToken])
+
   // Keep the view pinned to the latest message.
   useEffect(() => {
     const el = scrollRef.current
     if (el) el.scrollTop = el.scrollHeight
   }, [messages.length])
 
+  // Candidatos a mención: quienes ya han escrito en el canal (así no hace falta
+  // un endpoint de miembros que los alumnos no tienen permiso para leer) + all.
+  const mentionCandidates = useMemo(() => {
+    if (mentionQuery === null) return []
+    const q = mentionQuery.toLowerCase()
+    const names = new Set<string>()
+    for (const m of messages) {
+      const n = authorName(m.author)
+      if (n) names.add(n.split(' ')[0])
+    }
+    const list = ['all', ...Array.from(names)]
+    return list.filter((n) => n.toLowerCase().startsWith(q)).slice(0, 6)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mentionQuery, messages])
+
+  const onComposerChange = (value: string) => {
+    setText(value)
+    // ¿Está escribiendo una mención justo ahora? (@ al final de la palabra)
+    const match = /(?:^|\s)@([\wáéíóúüñ.\-]*)$/.exec(value)
+    setMentionQuery(match ? match[1] : null)
+  }
+
+  const applyMention = (name: string) => {
+    setText((cur) => cur.replace(/(?:^|\s)@([\wáéíóúüñ.\-]*)$/, (m0) => `${m0.startsWith(' ') ? ' ' : ''}@${name} `))
+    setMentionQuery(null)
+  }
+
   const send = async () => {
     const msg = text.trim()
-    if (!msg || sending) return
+    const poll =
+      pollDraft && pollDraft.question.trim() && pollDraft.options.filter((o) => o.trim()).length >= 2
+        ? {
+            question: pollDraft.question.trim(),
+            options: pollDraft.options.map((o) => o.trim()).filter(Boolean),
+          }
+        : null
+    if (poll && !msg) {
+      // Una encuesta sin texto es válida: el título es la pregunta.
+    } else if (!msg || sending) return
+    if (sending) return
     setSending(true)
     try {
       const firstLine = msg.split('\n')[0].trim()
@@ -273,6 +369,7 @@ export function ChannelChat({
         content: line.trim() ? [{ type: 'text', text: line }] : [],
       }))
       const doc: any = { type: 'doc', content: docContent }
+      if (poll) doc.poll = poll
       if (replyingTo) {
         doc.replyToAuthor = replyingTo.author
         doc.replyToText = replyingTo.text
@@ -281,11 +378,18 @@ export function ChannelChat({
 
       await createDiscussion(
         communityUuid,
-        { title: title || msg.slice(0, 100), content, label: 'general', emoji: null },
+        {
+          title: (poll ? poll.question : title) || msg.slice(0, 100) || 'Encuesta',
+          content,
+          label: 'general',
+          emoji: null,
+        },
         accessToken
       )
       setText('')
       setReplyingTo(null)
+      setPollDraft(null)
+      setMentionQuery(null)
       mutateDiscussions(communityUuid)
 
       if (alsoEmail && isAdmin && org?.id) {
@@ -356,6 +460,12 @@ export function ChannelChat({
                 !prev.is_pinned
               // Mensajes propios → a la derecha (estilo WhatsApp).
               const isOwn = !!currentUserId && m.author?.id === currentUserId
+              // Primer mensaje que el alumno no había leído al entrar.
+              const isFirstUnread =
+                !!lastReadAt &&
+                !isOwn &&
+                msOf(m.creation_date) > msOf(lastReadAt) &&
+                (!prev || msOf(prev.creation_date) <= msOf(lastReadAt))
               const bubbleBg = m.is_pinned
                 ? 'bg-white ring-1 ring-[#025dc7]/30 text-gray-800'
                 : isOwn
@@ -363,6 +473,15 @@ export function ChannelChat({
                 : 'bg-[#F0F5FF] text-gray-800'
               return (
                 <React.Fragment key={m.discussion_uuid}>
+                  {isFirstUnread && (
+                    <div className="flex items-center gap-3 px-4 py-2">
+                      <div className="h-px flex-1 bg-rose-300" />
+                      <span className="text-[11px] font-bold text-rose-500 uppercase tracking-wider">
+                        Mensajes nuevos
+                      </span>
+                      <div className="h-px flex-1 bg-rose-300" />
+                    </div>
+                  )}
                   {newDay && (
                     <div className="flex items-center gap-3 px-4 py-3">
                       <div className="h-px flex-1 bg-gray-100" />
@@ -459,13 +578,75 @@ export function ChannelChat({
                               </div>
                             ) : null
                           })()}
+                          {(() => {
+                            const poll = readPoll(m.content)
+                            if (!poll) return null
+                            const res = polls[m.discussion_uuid]
+                            const total = res?.total ?? 0
+                            return (
+                              <div className="mb-1.5">
+                                <p className="text-sm font-bold mb-2">📊 {poll.question}</p>
+                                <div className="space-y-1.5">
+                                  {poll.options.map((opt, oi) => {
+                                    const count = res?.counts?.[oi] ?? 0
+                                    const pct = total > 0 ? Math.round((count / total) * 100) : 0
+                                    const mine = res?.my_vote === oi
+                                    return (
+                                      <button
+                                        key={oi}
+                                        type="button"
+                                        onClick={async () => {
+                                          const next = await votePoll(m.discussion_uuid, oi, accessToken)
+                                          if (next) setPolls((p) => ({ ...p, [m.discussion_uuid]: next }))
+                                        }}
+                                        className={`relative w-full text-left rounded-lg px-3 py-2 text-[13px] overflow-hidden border transition-colors ${
+                                          mine
+                                            ? 'border-[#025dc7] bg-white/70'
+                                            : 'border-black/10 bg-white/50 hover:border-[#025dc7]/50'
+                                        }`}
+                                      >
+                                        <span
+                                          className="absolute inset-y-0 left-0 bg-[#4da3ff]/30"
+                                          style={{ width: `${pct}%` }}
+                                        />
+                                        <span className="relative flex items-center justify-between gap-2">
+                                          <span className="font-semibold">
+                                            {mine ? '● ' : ''}{opt}
+                                          </span>
+                                          <span className="tabular-nums opacity-70">{pct}%</span>
+                                        </span>
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                                <p className="mt-1.5 text-[11px] opacity-60">
+                                  {total === 0 ? 'Sé el primero en votar' : `${total} voto${total === 1 ? '' : 's'}`}
+                                </p>
+                              </div>
+                            )
+                          })()}
                           <p
                             className="text-sm whitespace-pre-wrap break-words leading-relaxed cursor-pointer"
                             onClick={() =>
                               setActiveUuid((cur) => (cur === m.discussion_uuid ? null : m.discussion_uuid))
                             }
                           >
-                            {messageText(m)}
+                            {messageText(m)
+                              .split(/(@[\wáéíóúüñ.\-]{2,40})/g)
+                              .map((part, pi) =>
+                                part.startsWith('@') ? (
+                                  <span
+                                    key={pi}
+                                    className={`font-bold ${
+                                      isOwn ? 'text-white underline' : 'text-[#025dc7]'
+                                    }`}
+                                  >
+                                    {part}
+                                  </span>
+                                ) : (
+                                  <React.Fragment key={pi}>{part}</React.Fragment>
+                                )
+                              )}
                             {m.edit_count > 0 && (
                               <span className="text-[10px] opacity-60 ml-1.5">· editado</span>
                             )}
@@ -629,10 +810,91 @@ export function ChannelChat({
               </button>
             </div>
           )}
+          {/* Encuesta en preparación */}
+          {pollDraft && (
+            <div className="mb-2 rounded-xl border border-[#DDE6F5] bg-[#F8FAFF] p-3">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <p className="text-[12px] font-bold text-[#025dc7] flex items-center gap-1.5">
+                  <BarChart3 size={14} /> Encuesta
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setPollDraft(null)}
+                  className="text-gray-400 hover:text-gray-700"
+                  aria-label="Quitar encuesta"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              <input
+                value={pollDraft.question}
+                onChange={(e) => setPollDraft({ ...pollDraft, question: e.target.value })}
+                placeholder="La pregunta — p. ej. ¿de of het huis?"
+                className="w-full mb-2 bg-white rounded-lg px-3 py-2 text-sm border border-[#DDE6F5] outline-none focus:border-[#4da3ff]"
+              />
+              {pollDraft.options.map((opt, oi) => (
+                <input
+                  key={oi}
+                  value={opt}
+                  onChange={(e) => {
+                    const next = [...pollDraft.options]
+                    next[oi] = e.target.value
+                    setPollDraft({ ...pollDraft, options: next })
+                  }}
+                  placeholder={`Opción ${oi + 1}`}
+                  className="w-full mb-1.5 bg-white rounded-lg px-3 py-2 text-sm border border-[#DDE6F5] outline-none focus:border-[#4da3ff]"
+                />
+              ))}
+              {pollDraft.options.length < 5 && (
+                <button
+                  type="button"
+                  onClick={() => setPollDraft({ ...pollDraft, options: [...pollDraft.options, ''] })}
+                  className="text-[12px] font-semibold text-[#025dc7] hover:underline"
+                >
+                  + Añadir opción
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Sugerencias al escribir @ */}
+          {mentionQuery !== null && mentionCandidates.length > 0 && (
+            <div className="mb-2 rounded-xl border border-[#DDE6F5] bg-white nice-shadow overflow-hidden max-h-44 overflow-y-auto">
+              {mentionCandidates.map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => applyMention(name)}
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-[#F0F5FF] flex items-center gap-2"
+                >
+                  <AtSign size={13} className="text-[#025dc7] shrink-0" />
+                  <span className={name === 'all' ? 'font-bold text-[#025dc7]' : ''}>
+                    {name === 'all' ? 'all — avisar a todo el canal' : name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="flex items-end gap-2 bg-gray-50 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:ring-[#025dc7]/20">
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() =>
+                  setPollDraft((cur) => (cur ? null : { question: '', options: ['', ''] }))
+                }
+                title="Crear encuesta"
+                aria-label="Crear encuesta"
+                className={`shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${
+                  pollDraft ? 'bg-[#025dc7]/10 text-[#025dc7]' : 'text-gray-400 hover:text-[#025dc7] hover:bg-white'
+                }`}
+              >
+                <BarChart3 size={17} />
+              </button>
+            )}
             <textarea
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={(e) => onComposerChange(e.target.value)}
               onKeyDown={onKeyDown}
               rows={1}
               placeholder={`${t('communities.discussion')} en ${channelName}…`}

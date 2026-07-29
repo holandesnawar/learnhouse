@@ -1,3 +1,4 @@
+import logging
 from typing import List, Union, Optional
 from uuid import uuid4
 from datetime import datetime, timezone
@@ -136,6 +137,48 @@ async def create_discussion(
     db_session.add(discussion)
     await db_session.commit()
     await db_session.refresh(discussion)
+
+    # Avisar por email a quien se haya mencionado con @nombre. Solo menciones
+    # concretas: @all NO manda correo (serían 40 emails por mensaje y acabaría
+    # en spam) — para eso el equipo tiene la casilla "avisar por email".
+    try:
+        from src.services.communities.engagement import mentions_in, message_text
+        from src.db.user_organizations import UserOrganization
+        from src.services.users.emails import ACADEMY_URL, send_announcement_email
+
+        _, names = mentions_in(message_text(content))
+        if names:
+            members = (
+                await db_session.execute(
+                    select(User)
+                    .join(UserOrganization, UserOrganization.user_id == User.id)
+                    .where(UserOrganization.org_id == community.org_id)
+                )
+            ).scalars().all()
+            author_label = getattr(current_user, "first_name", None) or getattr(
+                current_user, "username", "alguien"
+            )
+            wanted = set(names)
+            notified = 0
+            for member in members:
+                if member.id == current_user.id or notified >= 5:
+                    continue
+                labels = {
+                    (member.username or "").lower(),
+                    (member.first_name or "").lower(),
+                }
+                labels.discard("")
+                if labels & wanted:
+                    send_announcement_email(
+                        email=member.email,
+                        name=member.first_name or member.username or "alumno/a",
+                        title=f"{author_label} te ha mencionado en la comunidad",
+                        excerpt=message_text(content)[:280],
+                        url=f"{ACADEMY_URL}/community/{community_uuid.replace('community_', '')}",
+                    )
+                    notified += 1
+    except Exception as e:  # noqa: BLE001
+        logging.warning("Mention email failed (non-critical): %s", e)
 
     # Track discussion posted event
     await track(

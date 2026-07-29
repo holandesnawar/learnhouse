@@ -13,6 +13,7 @@ import { Community } from '@services/communities/communities'
 import FeatureGate from '@components/Dashboard/Shared/FeatureGate/FeatureGate'
 import { splitChannelEmoji } from '@/lib/communities/channelEmoji'
 import CommunityInfoPanel from '@components/Objects/Communities/CommunityInfoPanel'
+import { useUnreadCommunity } from '@/hooks/queries/useUnreadCommunity'
 
 interface CommunitiesClientProps {
   communities: Community[]
@@ -25,6 +26,10 @@ const channelId = (uuid: string) => uuid.replace('community_', '')
 const CommunitiesClient = ({ communities, orgslug, org_id }: CommunitiesClientProps) => {
   const { t } = useTranslation()
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  // Sin leer por canal: el alumno ve de un vistazo dónde hay conversación nueva.
+  const { data: unreadRows } = useUnreadCommunity()
+  const unreadOf = (uuid: string) =>
+    (unreadRows || []).find((r) => r.community_uuid === uuid)
 
   return (
     <FeatureGate feature="communities" orgslug={orgslug} context="public">
@@ -88,8 +93,22 @@ const CommunitiesClient = ({ communities, orgslug, org_id }: CommunitiesClientPr
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[15px] font-bold text-gray-900 leading-tight truncate">
+                  <p className="text-[15px] font-bold text-gray-900 leading-tight truncate flex items-center gap-2">
                     {text}
+                    {(() => {
+                      const u = unreadOf(community.community_uuid)
+                      if (!u || u.unread === 0) return null
+                      return (
+                        <span
+                          className={`shrink-0 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold flex items-center justify-center ${
+                            u.mentions > 0 ? 'bg-rose-500 text-white' : 'bg-[#4da3ff] text-[#0a1656]'
+                          }`}
+                          title={u.mentions > 0 ? `${u.mentions} te mencionan` : `${u.unread} sin leer`}
+                        >
+                          {u.unread > 99 ? '99+' : u.unread}
+                        </span>
+                      )
+                    })()}
                   </p>
                   {community.description && (
                     <p className="text-[13px] text-gray-500 leading-snug line-clamp-1">
