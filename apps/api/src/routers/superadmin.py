@@ -7,6 +7,9 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 
 from src.db.users import PublicUser
+from sqlmodel.ext.asyncio.session import AsyncSession
+
+from src.core.events.database import get_db_session
 from src.security.auth import get_authenticated_user
 
 logger = logging.getLogger(__name__)
@@ -70,3 +73,23 @@ async def email_test_all(
         "templates": sent,
         **({"failures": failures} if failures else {}),
     }
+
+
+@router.get(
+    "/demo-student",
+    summary="Crear o reiniciar la cuenta de demostración.",
+    description=(
+        "Deja lista una cuenta de alumno de ejemplo (con racha, lecciones "
+        "terminadas y notas) para enseñar la academia sin dar acceso real. "
+        "Se puede llamar las veces que haga falta: reinicia esa cuenta y no "
+        "toca a ningún alumno de verdad. Solo superadmin."
+    ),
+)
+async def demo_student(
+    current_user: PublicUser = Depends(get_authenticated_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    _require_superadmin(current_user)
+    from src.services.demo.demo_student import seed_demo_student
+
+    return await seed_demo_student(db_session)
