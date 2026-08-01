@@ -60,11 +60,13 @@ export async function markChannelRead(
 }
 
 export interface NotificationItem {
-  discussion_uuid: string
-  community_uuid: string
-  community_name: string
-  author_name: string
+  id: string
+  /** mention | pinned | announcement | module */
+  kind: string
+  title: string
   excerpt: string
+  /** Ruta dentro de la academia, o dirección completa. */
+  url: string
   date: string
   is_new: boolean
 }
@@ -74,7 +76,7 @@ export interface NotificationFeed {
   unseen: number
 }
 
-/** Menciones del alumno en la comunidad (lo que enciende la campana). */
+/** Lo que enciende la campana: menciones, fijados, avisos y módulos nuevos. */
 export async function getNotifications(
   accessToken: string | undefined
 ): Promise<NotificationFeed> {

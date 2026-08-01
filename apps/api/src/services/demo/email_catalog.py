@@ -78,7 +78,10 @@ _CATALOG: Dict[str, Dict] = {
         "name": "Certificado listo",
         "when": "Cuando el alumno completa la formación entera.",
         "build": lambda to, name: E.send_certificate_ready_email(
-            email=to, name=name, preview=True
+            email=to,
+            name=name,
+            certificate_url=f"{E.ACADEMY_URL}/certificates/ejemplo-1234",
+            preview=True,
         ),
     },
     "announcement": {

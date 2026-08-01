@@ -10,7 +10,10 @@ tarda, y quien pulsa el botón no tiene por qué esperar. Cada correo se manda e
 su propio try: si falla el de un alumno, los demás salen igual.
 """
 
+import html as html_module
 import logging
+import re
+from datetime import datetime, timezone
 from typing import List, Tuple
 
 from fastapi import HTTPException, Request
@@ -127,5 +130,50 @@ async def broadcast(
         own_name = getattr(current_user, "first_name", None) or "prueba"
         return {"recipients": [(own_email, own_name)], "count": 1, "test": True}
 
+    # El aviso también se queda en la campana de la plataforma: el correo se
+    # pierde en la bandeja, la campana sigue ahí cuando el alumno entra.
+    try:
+        await _record_org_notification(org_id, kind, payload, db_session)
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Aviso no guardado en la campana: %s", e)
+
     recipients = await list_org_recipients(org_id, db_session)
     return {"recipients": recipients, "count": len(recipients)}
+
+
+def _plain_text(html_text: str) -> str:
+    """Quita las etiquetas para dejar el resumen que se ve en la campana."""
+    text = re.sub(r"<[^>]+>", " ", html_text or "")
+    text = html_module.unescape(text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+async def _record_org_notification(
+    org_id: int, kind: str, payload: dict, db_session: AsyncSession
+) -> None:
+    from src.db.community_engagement import OrgNotification
+
+    body = payload.get("body") or ""
+    if kind == "news":
+        body = _plain_text(payload.get("body_html") or "")
+    elif kind == "class":
+        body = payload.get("when_text") or body
+
+    url = (
+        payload.get("cta_url")
+        or payload.get("event_url")
+        or payload.get("url")
+        or "/"
+    )
+
+    db_session.add(
+        OrgNotification(
+            org_id=org_id,
+            kind=kind,
+            title=(payload.get("title") or "Aviso de la academia")[:300],
+            body=body[:600],
+            url=url,
+            created_at=datetime.now(timezone.utc).isoformat(),
+        )
+    )
+    await db_session.commit()

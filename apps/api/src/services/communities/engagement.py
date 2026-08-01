@@ -23,6 +23,7 @@ from src.db.community_engagement import (
     NotificationFeed,
     NotificationItem,
     NotificationSeen,
+    OrgNotification,
     PollVote,
     PollResults,
     UnreadCount,
@@ -230,16 +231,193 @@ async def _user_org_ids(user_id: int, db_session: AsyncSession) -> List[int]:
     )
 
 
+def _short(text: str, size: int = 160) -> str:
+    text = (text or "").strip()
+    return text if len(text) <= size else text[: size - 3].rstrip() + "…"
+
+
+async def _mention_items(
+    user: User, org_ids: List[int], db_session: AsyncSession
+) -> List[dict]:
+    """Mensajes de la comunidad que nombran al alumno (@nombre o @all)."""
+    rows = (
+        await db_session.execute(
+            select(Discussion, Community, User)
+            .join(Community, Community.id == Discussion.community_id)  # type: ignore
+            .join(User, User.id == Discussion.author_id)  # type: ignore
+            .where(
+                Community.org_id.in_(org_ids),  # type: ignore
+                Discussion.author_id != user.id,
+            )
+            .order_by(Discussion.creation_date.desc())  # type: ignore
+            .limit(300)
+        )
+    ).all()
+
+    out: List[dict] = []
+    for discussion, community, author in rows:
+        text = message_text(discussion.content)
+        if not mentions_user(text, user):
+            continue
+        who = author.first_name or author.username or "Alguien"
+        out.append(
+            {
+                "id": f"mention:{discussion.discussion_uuid}",
+                "kind": "mention",
+                "title": f"{who} te ha mencionado en {community.name or 'la comunidad'}",
+                "excerpt": _short(text),
+                "url": f"/community/{community.community_uuid}",
+                "date": discussion.creation_date or "",
+            }
+        )
+    return out
+
+
+async def _pinned_items(org_ids: List[int], db_session: AsyncSession) -> List[dict]:
+    """Mensajes que el equipo ha fijado como importantes en un canal."""
+    rows = (
+        await db_session.execute(
+            select(Discussion, Community)
+            .join(Community, Community.id == Discussion.community_id)  # type: ignore
+            .where(
+                Community.org_id.in_(org_ids),  # type: ignore
+                Discussion.is_pinned == True,  # noqa: E712
+            )
+            .order_by(Discussion.update_date.desc())  # type: ignore
+            .limit(10)
+        )
+    ).all()
+
+    return [
+        {
+            "id": f"pinned:{discussion.discussion_uuid}",
+            "kind": "pinned",
+            "title": f"Mensaje importante en {community.name or 'la comunidad'}",
+            "excerpt": _short(message_text(discussion.content) or discussion.title or ""),
+            "url": f"/community/{community.community_uuid}",
+            "date": discussion.update_date or discussion.creation_date or "",
+        }
+        for discussion, community in rows
+    ]
+
+
+async def _announcement_items(org_ids: List[int], db_session: AsyncSession) -> List[dict]:
+    """Avisos que ha mandado la academia (los mismos de la pantalla de Avisos)."""
+    rows = (
+        await db_session.execute(
+            select(OrgNotification)
+            .where(OrgNotification.org_id.in_(org_ids))  # type: ignore
+            .order_by(OrgNotification.created_at.desc())  # type: ignore
+            .limit(15)
+        )
+    ).scalars().all()
+
+    labels = {
+        "class": "Clase confirmada",
+        "news": "Novedades de la academia",
+        "announcement": "Nuevo anuncio",
+    }
+    return [
+        {
+            "id": f"org:{row.id}",
+            "kind": "announcement",
+            "title": row.title or labels.get(row.kind, "Nuevo aviso"),
+            "excerpt": _short(row.body or labels.get(row.kind, "")),
+            "url": row.url or "/",
+            "date": row.created_at or "",
+        }
+        for row in rows
+    ]
+
+
+async def _module_items(
+    user_id: int, org_ids: List[int], db_session: AsyncSession
+) -> List[dict]:
+    """
+    Módulos que se le han abierto al alumno hace poco (goteo de contenido).
+
+    No hace falta guardar nada: la fecha de apertura es su fecha de alta más los
+    días configurados, así que se calcula. Se muestran los de las últimas 3
+    semanas — más atrás ya no es novedad.
+    """
+    from datetime import timedelta
+
+    from src.db.courses.chapters import Chapter
+    from src.db.courses.courses import Course
+    from src.services.courses.locks import get_drip_settings
+
+    out: List[dict] = []
+    now = datetime.now()
+
+    for org_id in org_ids:
+        settings = await get_drip_settings(org_id, db_session)
+        offsets = (settings or {}).get("chapters") or {}
+        if not isinstance(offsets, dict) or not offsets:
+            continue
+
+        uo = (
+            await db_session.execute(
+                select(UserOrganization).where(
+                    UserOrganization.user_id == user_id,
+                    UserOrganization.org_id == org_id,
+                )
+            )
+        ).scalars().first()
+        if not uo or not uo.creation_date:
+            continue
+        try:
+            enrolled_at = datetime.fromisoformat(uo.creation_date)
+        except (ValueError, TypeError):
+            continue
+
+        opened: dict[str, datetime] = {}
+        for chapter_uuid, offset in offsets.items():
+            try:
+                days = int(offset or 0)
+            except (ValueError, TypeError):
+                continue
+            if days <= 0:
+                continue
+            unlock_at = enrolled_at + timedelta(days=days)
+            if unlock_at <= now and (now - unlock_at) <= timedelta(days=21):
+                opened[chapter_uuid] = unlock_at
+        if not opened:
+            continue
+
+        rows = (
+            await db_session.execute(
+                select(Chapter, Course)
+                .join(Course, Course.id == Chapter.course_id)  # type: ignore
+                .where(Chapter.chapter_uuid.in_(list(opened.keys())))  # type: ignore
+            )
+        ).all()
+
+        for chapter, course in rows:
+            course_ref = (course.course_uuid or "").replace("course_", "")
+            out.append(
+                {
+                    "id": f"module:{chapter.chapter_uuid}",
+                    "kind": "module",
+                    "title": f"Has desbloqueado {chapter.name}",
+                    "excerpt": "Ya puedes entrar. Te toca seguir por aquí.",
+                    "url": f"/course/{course_ref}" if course_ref else "/courses",
+                    "date": opened[chapter.chapter_uuid].isoformat(),
+                }
+            )
+    return out
+
+
 async def list_notifications(
     current_user: PublicUser | AnonymousUser,
     db_session: AsyncSession,
     limit: int = 20,
 ) -> NotificationFeed:
     """
-    Las menciones del alumno en la comunidad, de la más reciente a la más vieja.
+    Todo lo que el alumno se puede perder, en una lista: menciones, mensajes
+    fijados, avisos de la academia y módulos que se le acaban de abrir.
 
-    Se miran solo los mensajes recientes (los últimos que hay en sus canales),
-    no el historial entero: la campana es para enterarse de lo de ahora.
+    Nada de esto manda correo: la campana es justo para lo que no merece un
+    email pero sí que se entere al entrar.
     """
     user_id = _user_id_or_401(current_user)
 
@@ -258,41 +436,34 @@ async def list_notifications(
     ).scalars().first()
     last_seen = seen_row.last_seen_at if seen_row else ""
 
-    rows = (
-        await db_session.execute(
-            select(Discussion, Community, User)
-            .join(Community, Community.id == Discussion.community_id)  # type: ignore
-            .join(User, User.id == Discussion.author_id)  # type: ignore
-            .where(
-                Community.org_id.in_(org_ids),  # type: ignore
-                Discussion.author_id != user_id,
-            )
-            .order_by(Discussion.creation_date.desc())  # type: ignore
-            .limit(300)
-        )
-    ).all()
+    raw: List[dict] = []
+    # Cada fuente por separado: si una falla (config rara, tabla nueva sin
+    # estrenar), la campana sigue enseñando el resto.
+    for source in (
+        _mention_items(user, org_ids, db_session),
+        _pinned_items(org_ids, db_session),
+        _announcement_items(org_ids, db_session),
+        _module_items(user_id, org_ids, db_session),
+    ):
+        try:
+            raw.extend(await source)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Fuente de notificaciones no disponible: %s", e)
 
-    items: List[NotificationItem] = []
-    for discussion, community, author in rows:
-        text = message_text(discussion.content)
-        if not mentions_user(text, user):
-            continue
-        excerpt = text.strip()
-        if len(excerpt) > 160:
-            excerpt = excerpt[:157].rstrip() + "…"
-        items.append(
-            NotificationItem(
-                discussion_uuid=discussion.discussion_uuid,
-                community_uuid=community.community_uuid,
-                community_name=community.name or "Comunidad",
-                author_name=(author.first_name or author.username or "Alguien"),
-                excerpt=excerpt,
-                date=discussion.creation_date or "",
-                is_new=bool(discussion.creation_date and discussion.creation_date > last_seen),
-            )
+    raw.sort(key=lambda r: r.get("date") or "", reverse=True)
+
+    items = [
+        NotificationItem(
+            id=r["id"],
+            kind=r["kind"],
+            title=r["title"],
+            excerpt=r["excerpt"],
+            url=r["url"],
+            date=r["date"],
+            is_new=bool(r["date"] and r["date"] > last_seen),
         )
-        if len(items) >= limit:
-            break
+        for r in raw[:limit]
+    ]
 
     return NotificationFeed(items=items, unseen=sum(1 for i in items if i.is_new))
 

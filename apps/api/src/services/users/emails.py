@@ -444,12 +444,12 @@ def send_payment_welcome_email(
     safe_code_param = quote(reset_code, safe='')
     reset_url = f"{base_url}/crear-cuenta?email={safe_email}&amp;resetCode={safe_code_param}"
 
-    heading = f"¡Bienvenido a Holandés Nawar, {safe_name}!"
+    heading = "¡Bienvenido a Holandés Nawar!"
     body_content = f"""
         <h1 style="{STYLES['h1']}">{heading}</h1>
         <p style="{STYLES['p']}">
-            Tu compra está confirmada. Tienes acceso completo a la formación A0-A1
-            y a toda la academia.
+            <strong>Welkom {safe_name}</strong>, tu compra está confirmada. Tienes
+            acceso completo a la formación A0-A1 y a toda la academia.
         </p>
         <p style="{STYLES['p']}">
             Para entrar la primera vez, crea tu contraseña pulsando el botón.
@@ -679,14 +679,18 @@ def send_certificate_ready_email(
         </p>
         <p style="{STYLES['p']}">
             Tu <strong>certificado Holandés Nawar</strong> ya te espera en la academia.
-            Puedes verlo, descargarlo en PDF y compartirlo con quien quieras.
+            Pulsa el botón y podrás verlo y descargarlo en PDF.
         </p>
-        <a href="{certificate_url}" class="brand-btn" style="{STYLES['button']}">
-            Ver mi certificado
-        </a>
-        <p style="{STYLES['p']}">
-            Lleva un código de verificación propio, así que cualquiera puede comprobar
-            que es auténtico.
+        <div style="margin: 6px 0 30px 0;">
+            <a href="{certificate_url}" class="brand-btn" style="{STYLES['button']}">
+                Ver y descargar mi certificado
+            </a>
+        </div>
+        <p style="margin: 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.7;">
+            Lleva un <strong>código de verificación</strong> único. Sirve para que una
+            empresa o una escuela compruebe que es auténtico: al escanear el QR del
+            certificado se abre una página con tu nombre y la fecha. Nadie puede
+            fabricarse uno por su cuenta.
         </p>
     """
 

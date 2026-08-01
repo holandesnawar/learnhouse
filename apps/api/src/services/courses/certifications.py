@@ -364,9 +364,11 @@ async def create_certificate_user(
             email=user.email,
             name=display_name,
             certification_name=cert_name,
+            # Su certificado, con el botón de descargar en PDF (no la página
+            # pública de verificación, que es para quien lo comprueba).
             certificate_url=(
                 f"{ACADEMY_URL}/certificates/"
-                f"{certificate_user.user_certification_uuid}/verify"
+                f"{certificate_user.user_certification_uuid}"
             ),
         )
     except Exception as e:

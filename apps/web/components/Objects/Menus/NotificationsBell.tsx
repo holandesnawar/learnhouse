@@ -9,15 +9,30 @@ import {
   markNotificationsSeen,
   type NotificationFeed,
 } from '@services/communities/engagement'
-import { Bell, AtSign } from 'lucide-react'
+import { Bell, AtSign, Pin, Megaphone, Unlock } from 'lucide-react'
 
 /**
- * Campana del alumno: cuando alguien le menciona en la comunidad (@su-nombre
- * o @all), aquí lo ve aunque no entre al canal.
+ * Campana del alumno. Recoge lo que se puede perder si no entra ese día:
+ * menciones en la comunidad, mensajes fijados como importantes, avisos de la
+ * academia y módulos que se le acaban de abrir.
  *
- * Abrir la campana apaga el punto rojo, pero NO marca los canales como leídos:
- * el mensaje sigue contando como sin leer hasta que entre de verdad.
+ * Nada de esto manda correo. Abrir la campana apaga el punto rojo, pero NO
+ * marca los canales como leídos: el mensaje sigue sin leer hasta que entre.
  */
+
+const KIND_STYLE: Record<string, { icon: any; color: string }> = {
+  mention: { icon: AtSign, color: 'text-[#025dc7]' },
+  pinned: { icon: Pin, color: 'text-amber-500' },
+  announcement: { icon: Megaphone, color: 'text-[#4da3ff]' },
+  module: { icon: Unlock, color: 'text-emerald-500' },
+}
+
+/** El aviso puede traer una ruta de la academia o una dirección completa. */
+function buildHref(orgslug: string, url: string): string {
+  if (!url) return getUriWithOrg(orgslug, '/')
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  return getUriWithOrg(orgslug, url.startsWith('/') ? url : `/${url}`)
+}
 export default function NotificationsBell(props: { orgslug: string }) {
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token as string | undefined
@@ -81,42 +96,52 @@ export default function NotificationsBell(props: { orgslug: string }) {
         >
           <div className="px-4 py-3 border-b border-[#EEF2FB]">
             <p className="text-[14px] font-bold text-[#0a1656]">Notificaciones</p>
-            <p className="text-[12px] text-gray-500">Cuando te mencionan en la comunidad</p>
+            <p className="text-[12px] text-gray-500">Lo que ha pasado en la academia</p>
           </div>
 
           {items.length === 0 ? (
             <div className="px-4 py-8 text-center">
-              <AtSign size={22} className="mx-auto text-[#4da3ff] mb-2" />
+              <Bell size={22} className="mx-auto text-[#4da3ff] mb-2" />
               <p className="text-[13px] text-gray-500 leading-relaxed">
-                Aún no te ha mencionado nadie. Cuando alguien escriba tu nombre
-                con @ en un canal, te aparecerá aquí.
+                Todavía no hay nada. Aquí te avisamos cuando te mencionen en un
+                canal, se fije un mensaje importante, la academia mande un aviso
+                o se te abra un módulo nuevo.
               </p>
             </div>
           ) : (
             <ul>
-              {items.map((n) => (
-                <li key={n.discussion_uuid} className="border-b border-[#F3F6FC] last:border-0">
-                  <Link
-                    href={getUriWithOrg(props.orgslug, `/community/${n.community_uuid}`)}
-                    onClick={() => setOpen(false)}
-                    className={`block px-4 py-3 hover:bg-[#F7FAFF] transition-colors ${
-                      n.is_new ? 'bg-[#F0F5FF]' : ''
-                    }`}
-                  >
-                    <span className="flex items-center gap-1.5 text-[12.5px] font-bold text-[#025dc7]">
-                      <AtSign size={13} />
-                      {n.author_name}
-                      <span className="font-normal text-gray-400">· {n.community_name}</span>
-                    </span>
-                    <span className="block mt-1 text-[13px] text-gray-700 leading-snug line-clamp-3">
-                      {n.excerpt || 'Te ha mencionado'}
-                    </span>
-                    <span className="block mt-1 text-[11.5px] text-gray-400">
-                      {formatWhen(n.date)}
-                    </span>
-                  </Link>
-                </li>
-              ))}
+              {items.map((n) => {
+                const style = KIND_STYLE[n.kind] || KIND_STYLE.mention
+                const Icon = style.icon
+                return (
+                  <li key={n.id} className="border-b border-[#F3F6FC] last:border-0">
+                    <Link
+                      href={buildHref(props.orgslug, n.url)}
+                      onClick={() => setOpen(false)}
+                      className={`flex gap-3 px-4 py-3 hover:bg-[#F7FAFF] transition-colors ${
+                        n.is_new ? 'bg-[#F0F5FF]' : ''
+                      }`}
+                    >
+                      <span className={`mt-0.5 shrink-0 ${style.color}`}>
+                        <Icon size={16} />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-[12.5px] font-bold text-[#0a1656] leading-snug">
+                          {n.title}
+                        </span>
+                        {n.excerpt && (
+                          <span className="block mt-0.5 text-[13px] text-gray-600 leading-snug line-clamp-2">
+                            {n.excerpt}
+                          </span>
+                        )}
+                        <span className="block mt-1 text-[11.5px] text-gray-400">
+                          {formatWhen(n.date)}
+                        </span>
+                      </span>
+                    </Link>
+                  </li>
+                )
+              })}
             </ul>
           )}
         </div>

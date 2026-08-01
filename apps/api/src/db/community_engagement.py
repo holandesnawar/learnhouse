@@ -64,14 +64,40 @@ class NotificationSeen(SQLModel, table=True):
     last_seen_at: str = ""
 
 
-class NotificationItem(BaseModel):
-    """Una mención en la comunidad, lista para pintar en la campana."""
+class OrgNotification(SQLModel, table=True):
+    """
+    Aviso de la academia para todos: un anuncio, una clase confirmada…
 
-    discussion_uuid: str
-    community_uuid: str
-    community_name: str
-    author_name: str
+    Se guarda una sola fila (no una por alumno): lo que cambia por persona es
+    si ya lo ha visto, y eso ya lo dice notification_seen.
+    """
+
+    __tablename__ = "org_notification"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    org_id: int = Field(
+        sa_column=Column(Integer, ForeignKey("organization.id", ondelete="CASCADE"), nullable=False, index=True)
+    )
+    # announcement | class | news
+    kind: str = Field(sa_column=Column(String(40), nullable=False))
+    title: str = Field(sa_column=Column(String(300), nullable=False))
+    body: str = ""
+    # Ruta dentro de la academia a la que lleva el aviso.
+    url: str = ""
+    created_at: str = ""
+
+
+class NotificationItem(BaseModel):
+    """Una línea de la campana, venga de donde venga."""
+
+    # Clave única para el front (no es un id de base de datos).
+    id: str
+    # mention | pinned | announcement | module
+    kind: str
+    title: str
     excerpt: str
+    # Ruta dentro de la academia ("/community/xxx", "/course/xxx"…).
+    url: str
     date: str
     # True si llegó después de la última vez que abrió la campana.
     is_new: bool
