@@ -18,6 +18,8 @@ export interface DirectMessage {
   created_at: string
   author_id: number | null
   author_name: string
+  /** Foto de quien escribe (o el logo de la academia). Ruta relativa. */
+  author_avatar: string
   from_staff: boolean
 }
 
@@ -31,6 +33,8 @@ export interface DirectThread {
   unread: number
   /** Con quién es la conversación, visto desde quien mira. */
   title: string
+  /** Foto de esa persona (o el logo de la academia). */
+  title_avatar: string
   /** Vacío = conversación con todo el equipo. */
   staff_id: number | null
   staff_name: string
@@ -53,13 +57,19 @@ export interface DirectThreadDetail {
 
 const base = () => `${getAPIUrl()}messages`
 
-/** El audio viaja como ruta relativa; aquí se convierte en dirección completa. */
-export function audioSrc(url: string): string {
+/**
+ * Las rutas (audio, fotos) vienen relativas al backend; aquí se completan.
+ * Sirve igual para las notas de voz y para los avatares.
+ */
+export function mediaSrc(url: string): string {
   if (!url) return ''
   if (url.startsWith('http')) return url
   // getBackendUrl() ya termina en "/" (así lo exige la configuración).
   return `${getBackendUrl()}${url.replace(/^\//, '')}`
 }
+
+/** Nombre antiguo, para no tocar quien ya lo usaba. */
+export const audioSrc = mediaSrc
 
 export async function getThreads(accessToken: string | undefined): Promise<DirectThread[]> {
   if (!accessToken) return []

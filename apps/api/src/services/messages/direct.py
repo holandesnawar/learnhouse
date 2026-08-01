@@ -127,6 +127,21 @@ async def _user(user_id: Optional[int], db_session: AsyncSession) -> Optional[Us
     ).scalars().first()
 
 
+def _avatar_path(user: Optional[User]) -> str:
+    """Ruta de la foto del usuario, o vacío si no tiene."""
+    if not user or not user.avatar_image or not user.user_uuid:
+        return ""
+    return f"/content/users/{user.user_uuid}/avatars/{user.avatar_image}"
+
+
+async def _org_logo(org_id: int, db_session: AsyncSession) -> str:
+    """El logo de la academia: es la cara de los mensajes automáticos."""
+    org = await _org(org_id, db_session)
+    if not org.logo_image:
+        return ""
+    return f"/content/orgs/{org.org_uuid}/logos/{org.logo_image}"
+
+
 def _display_name(user: Optional[User]) -> str:
     if not user:
         return "Equipo Nawar"
@@ -237,12 +252,16 @@ async def _thread_row(
     # alumno ve "Equipo Nawar" o el nombre del moderador que eligió.
     staff_name = _display_name(staff) if staff else "Equipo Nawar"
     title = _display_name(student) if for_staff else staff_name
+    if for_staff:
+        title_avatar = _avatar_path(student)
+    else:
+        title_avatar = _avatar_path(staff) if staff else await _org_logo(thread.org_id, db_session)
 
     return DirectThreadRead(
         id=thread.id or 0,
         student_id=thread.student_id,
         student_name=_display_name(student),
-        student_avatar=(student.avatar_image or "") if student else "",
+        student_avatar=_avatar_path(student),
         last_message_at=thread.last_message_at or "",
         last_message_preview=preview,
         unread=(
@@ -251,6 +270,7 @@ async def _thread_row(
             else await _unread_for_student(thread, db_session)
         ),
         title=title,
+        title_avatar=title_avatar,
         staff_id=thread.staff_id,
         staff_name=staff_name,
     )
@@ -352,6 +372,9 @@ async def get_thread(
         )
     ).scalars().all()
 
+    # El logo se pide una vez, no una por mensaje automático.
+    org_logo = await _org_logo(org_id, db_session)
+
     messages: List[DirectMessageRead] = []
     for m in rows:
         author = await _user(m.author_id, db_session)
@@ -368,6 +391,7 @@ async def get_thread(
                 created_at=m.created_at or "",
                 author_id=m.author_id,
                 author_name=_display_name(author) if author else "Equipo Nawar",
+                author_avatar=_avatar_path(author) or (org_logo if from_staff else ""),
                 from_staff=from_staff,
             )
         )
@@ -444,6 +468,7 @@ async def post_message(
         created_at=message.created_at,
         author_id=user_id,
         author_name=_display_name(author),
+        author_avatar=_avatar_path(author),
         from_staff=staff,
     )
 
@@ -599,7 +624,7 @@ async def directory(
                 # El correo solo lo ve el equipo: un alumno no tiene por qué ver
                 # el de nadie.
                 email=(user.email or "") if staff else "",
-                avatar=user.avatar_image or "",
+                avatar=_avatar_path(user),
                 role=("Equipo" if is_team else "Alumno/a"),
                 thread_id=thread.id if thread else None,
             )

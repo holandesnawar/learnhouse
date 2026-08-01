@@ -77,6 +77,9 @@ class DirectMessageRead(BaseModel):
     created_at: str
     author_id: Optional[int] = None
     author_name: str
+    # Foto de quien escribe (la del moderador, o el logo de la academia en los
+    # mensajes automáticos). Ruta relativa; el front la completa.
+    author_avatar: str = ""
     # True si lo manda el equipo (para pintarlo del lado que toca).
     from_staff: bool
 
@@ -91,6 +94,8 @@ class DirectThreadRead(BaseModel):
     unread: int = 0
     # Con quién es la conversación desde el punto de vista de quien pregunta.
     title: str = ""
+    # Foto de esa persona (o el logo de la academia).
+    title_avatar: str = ""
     # Vacío = con el equipo entero.
     staff_id: Optional[int] = None
     staff_name: str = ""

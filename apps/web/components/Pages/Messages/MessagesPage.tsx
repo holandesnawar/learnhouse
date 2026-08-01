@@ -8,11 +8,11 @@ import {
   DirectThread,
   DirectThreadDetail,
   DirectoryEntry,
-  audioSrc,
   getDirectory,
   getMyThread,
   getThread,
   getThreads,
+  mediaSrc,
   openThreadWith,
   sendDirectMessage,
   updateDirectWelcome,
@@ -53,6 +53,7 @@ export default function MessagesPage() {
   const [threads, setThreads] = useState<DirectThread[]>([])
   const [activeId, setActiveId] = useState<number | null>(null)
   const [activeTitle, setActiveTitle] = useState('')
+  const [activeAvatar, setActiveAvatar] = useState('')
   const [messages, setMessages] = useState<DirectMessage[]>([])
   const [loading, setLoading] = useState(true)
   const [text, setText] = useState('')
@@ -92,10 +93,12 @@ export default function MessagesPage() {
       if (!staff && detail?.thread?.id) {
         setActiveId(detail.thread.id)
         setActiveTitle(detail.thread.title || 'Equipo Nawar')
+        setActiveAvatar(detail.thread.title_avatar || '')
         setMessages(detail.messages)
       } else if (!staff && list.length) {
         setActiveId(list[0].id)
         setActiveTitle(list[0].title)
+        setActiveAvatar(list[0].title_avatar || '')
       }
       setLoading(false)
       refreshBadge()
@@ -105,9 +108,10 @@ export default function MessagesPage() {
     }
   }, [accessToken, loadThreads, refreshBadge])
 
-  const openThread = async (id: number, title: string) => {
+  const openThread = async (id: number, title: string, avatar = '') => {
     setActiveId(id)
     setActiveTitle(title)
+    setActiveAvatar(avatar)
     setMessages([])
     setMobileView('chat')
     const detail = await getThread(id, accessToken)
@@ -159,6 +163,7 @@ export default function MessagesPage() {
     await loadThreads()
     setActiveId(detail.thread.id)
     setActiveTitle(detail.thread.title || person.name)
+    setActiveAvatar(detail.thread.title_avatar || person.avatar || '')
     setMessages(detail.messages)
     setMobileView('chat')
   }
@@ -226,14 +231,15 @@ export default function MessagesPage() {
           threads.map((t) => (
             <button
               key={t.id}
-              onClick={() => openThread(t.id, t.title)}
+              onClick={() => openThread(t.id, t.title, t.title_avatar)}
               className={`w-full text-left rounded-xl border px-3 py-2.5 transition-colors ${
                 activeId === t.id
                   ? 'bg-white border-[#4da3ff] ring-[3px] ring-[#4da3ff]/20'
                   : 'bg-white border-[#DDE6F5] hover:border-[#4da3ff]/60'
               }`}
             >
-              <span className="flex items-center gap-2">
+              <span className="flex items-center gap-2.5">
+                <Avatar src={t.title_avatar} name={t.title || t.student_name} size={34} />
                 <span className="text-[13.5px] font-bold text-[#0a1656] truncate flex-1">
                   {t.title || t.student_name}
                 </span>
@@ -244,7 +250,7 @@ export default function MessagesPage() {
                 )}
               </span>
               {t.last_message_preview && (
-                <span className="block mt-0.5 text-[12.5px] text-gray-500 truncate">
+                <span className="block mt-1 ml-[44px] text-[12.5px] text-gray-500 truncate">
                   {t.last_message_preview}
                 </span>
               )}
@@ -266,6 +272,7 @@ export default function MessagesPage() {
         >
           <ArrowLeft size={17} />
         </button>
+        <Avatar src={activeAvatar} name={activeTitle || 'Conversación'} size={30} />
         <span className="text-[14px] font-bold text-[#0a1656] truncate">
           {activeTitle || 'Conversación'}
         </span>
@@ -437,12 +444,17 @@ function PeoplePicker({
                 <li key={p.user_id} className="border-b border-[#F3F6FC] last:border-0">
                   <button
                     onClick={() => onPick(p)}
-                    className="w-full text-left px-4 py-3 hover:bg-[#F7FAFF] transition-colors"
+                    className="w-full text-left px-4 py-3 hover:bg-[#F7FAFF] transition-colors flex items-center gap-3"
                   >
-                    <span className="block text-[13.5px] font-bold text-[#0a1656]">{p.name}</span>
-                    <span className="block text-[12px] text-gray-500">
-                      {p.email || p.role}
-                      {p.thread_id ? ' · ya tenéis conversación' : ''}
+                    <Avatar src={p.avatar} name={p.name} size={34} />
+                    <span className="min-w-0">
+                      <span className="block text-[13.5px] font-bold text-[#0a1656] truncate">
+                        {p.name}
+                      </span>
+                      <span className="block text-[12px] text-gray-500 truncate">
+                        {p.email || p.role}
+                        {p.thread_id ? ' · ya tenéis conversación' : ''}
+                      </span>
                     </span>
                   </button>
                 </li>
@@ -452,6 +464,24 @@ function PeoplePicker({
         </div>
       </div>
     </div>
+  )
+}
+
+/** Foto redonda con la inicial de respaldo cuando no hay imagen. */
+function Avatar({ src, name, size = 32 }: { src?: string; name: string; size?: number }) {
+  const initial = (name || '?').trim().charAt(0).toUpperCase()
+  return (
+    <span
+      className="shrink-0 inline-flex items-center justify-center rounded-full overflow-hidden bg-[#DDE6F5] text-[#025dc7] font-bold"
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.42) }}
+    >
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={mediaSrc(src)} alt={name} className="w-full h-full object-cover" />
+      ) : (
+        initial
+      )}
+    </span>
   )
 }
 
@@ -467,7 +497,9 @@ function Bubble({ m, mine }: { m: DirectMessage; mine: boolean }) {
         })
       : ''
   return (
-    <div className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex gap-2 ${mine ? 'justify-end' : 'justify-start'}`}>
+      {/* La foto solo en los mensajes del otro: los tuyos ya sabes quién eres */}
+      {!mine && <Avatar src={m.author_avatar} name={m.author_name} />}
       <div className="max-w-[85%] sm:max-w-[70%]">
         <div
           className={`rounded-2xl px-3.5 py-2.5 ${
@@ -482,7 +514,7 @@ function Bubble({ m, mine }: { m: DirectMessage; mine: boolean }) {
           )}
           {m.audio_url && (
             <audio
-              src={audioSrc(m.audio_url)}
+              src={mediaSrc(m.audio_url)}
               controls
               className="mt-1.5 h-9 w-[240px] max-w-full"
             />

@@ -169,7 +169,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   // "Tu espacio" — zona personal del alumno (separada de las páginas generales).
   const personalItems: NavItem[] = [
     { key: 'mi-progreso', href: '/ejercicios/progreso', label: 'Mi progreso', icon: <ChartLineUp size={20} weight="fill" />, show: isAuthenticated },
-    { key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={20} weight="fill" />, show: isAuthenticated },
+    { key: 'mensajes', href: '/mensajes', label: 'Mis mensajes', icon: <Envelope size={20} weight="fill" />, show: isAuthenticated },
     { key: 'mis-consultas', href: '/mis-consultas', label: 'Mis consultas', icon: <ChatCircleDots size={20} weight="fill" />, show: isAuthenticated },
     { key: 'mis-notas', href: '/mis-notas', label: 'Mis notas', icon: <NotePencil size={20} weight="fill" />, show: isAuthenticated },
   ]
