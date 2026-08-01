@@ -65,7 +65,13 @@ class WeeklyClassBannerConfig(BaseModel):
     title: str = ""
     subtitle: str = ""
     live_url: str = ""
+    # Texto libre de siempre (respaldo si no hay día ni fecha).
     next_day: str = ""
+    # Día de la semana fijo ('0' domingo … '6' sábado): el banner calcula solo
+    # la fecha de la próxima clase.
+    next_weekday: str = ""
+    # Fecha concreta AAAA-MM-DD; manda por encima del día de la semana.
+    next_date: str = ""
     schedule: str = ""
     teacher: str = ""
     duration: str = ""

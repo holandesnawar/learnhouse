@@ -39,6 +39,12 @@ export default function NotificationsBell(props: { orgslug: string }) {
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const boxRef = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  // El panel se coloca a mano (position: fixed) en vez de colgar del botón:
+  // la campana vive dentro de la barra lateral (256 px), así que un panel de
+  // 340 px anclado a la derecha se salía de la pantalla por la izquierda.
+  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null)
 
   const { data } = useQuery<NotificationFeed>({
     queryKey: ['community', 'notifications'],
@@ -52,18 +58,43 @@ export default function NotificationsBell(props: { orgslug: string }) {
   const items = data?.items || []
   const unseen = data?.unseen || 0
 
+  /** Debajo de la campana, pegado a su derecha y siempre dentro de la pantalla. */
+  const place = React.useCallback(() => {
+    const btn = btnRef.current
+    if (!btn) return
+    const r = btn.getBoundingClientRect()
+    const margin = 12
+    const width = Math.min(360, window.innerWidth - margin * 2)
+    const left = Math.min(
+      Math.max(margin, r.right - width),
+      window.innerWidth - width - margin
+    )
+    setPos({ top: r.bottom + 8, left, width })
+  }, [])
+
   // Cerrar al pulsar fuera — en móvil el panel tapa media pantalla.
   useEffect(() => {
     if (!open) return
     const onDown = (e: MouseEvent) => {
-      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false)
+      const target = e.target as Node
+      if (boxRef.current?.contains(target)) return
+      if (panelRef.current?.contains(target)) return
+      setOpen(false)
     }
+    const onMove = () => place()
     document.addEventListener('mousedown', onDown)
-    return () => document.removeEventListener('mousedown', onDown)
-  }, [open])
+    window.addEventListener('resize', onMove)
+    window.addEventListener('scroll', onMove, true)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      window.removeEventListener('resize', onMove)
+      window.removeEventListener('scroll', onMove, true)
+    }
+  }, [open, place])
 
   const toggle = async () => {
     const next = !open
+    if (next) place()
     setOpen(next)
     if (next && unseen > 0) {
       await markNotificationsSeen(accessToken)
@@ -76,6 +107,7 @@ export default function NotificationsBell(props: { orgslug: string }) {
   return (
     <div className="relative" ref={boxRef}>
       <button
+        ref={btnRef}
         onClick={toggle}
         aria-label="Notificaciones"
         title="Notificaciones"
@@ -89,10 +121,17 @@ export default function NotificationsBell(props: { orgslug: string }) {
         )}
       </button>
 
-      {open && (
+      {open && pos && (
         <div
-          className="absolute right-0 mt-2 w-[300px] sm:w-[340px] max-h-[70vh] overflow-y-auto bg-white rounded-xl shadow-2xl border border-[#DDE6F5]"
-          style={{ zIndex: 'var(--z-modal, 60)' }}
+          ref={panelRef}
+          className="lh-thin-scroll fixed overflow-y-auto bg-white rounded-xl shadow-2xl border border-[#DDE6F5]"
+          style={{
+            top: pos.top,
+            left: pos.left,
+            width: pos.width,
+            maxHeight: `calc(100vh - ${pos.top + 16}px)`,
+            zIndex: 'var(--z-modal, 60)',
+          }}
         >
           <div className="px-4 py-3 border-b border-[#EEF2FB]">
             <p className="text-[14px] font-bold text-[#0a1656]">Notificaciones</p>

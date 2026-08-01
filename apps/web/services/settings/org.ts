@@ -123,7 +123,12 @@ export interface WeeklyClassBanner {
   title: string
   subtitle: string
   live_url: string
+  /** Texto libre de siempre (respaldo si no hay día ni fecha). */
   next_day: string
+  /** Día de la semana fijo ('0' domingo … '6' sábado). */
+  next_weekday?: string
+  /** Fecha concreta AAAA-MM-DD; manda sobre el día de la semana. */
+  next_date?: string
   schedule: string
   teacher: string
   duration: string

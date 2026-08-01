@@ -1116,6 +1116,8 @@ async def update_org_weekly_class_banner_config(
         "subtitle": banner.get("subtitle", ""),
         "live_url": banner.get("live_url", ""),
         "next_day": banner.get("next_day", ""),
+        "next_weekday": banner.get("next_weekday", ""),
+        "next_date": banner.get("next_date", ""),
         "schedule": banner.get("schedule", ""),
         "teacher": banner.get("teacher", ""),
         "duration": banner.get("duration", ""),

@@ -7,6 +7,7 @@ import AuthenticatedClientElement from '@components/Security/AuthenticatedClient
 import { updateOrgWeeklyClassBannerConfig } from '@services/settings/org'
 import { CalendarDays, Clock, User, Timer, Radio, ListVideo, Pencil, Check, X } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { WEEKDAYS, nextBroadcastLabel } from '@/lib/course/weeklyClass'
 
 const DEFAULTS = {
   title: 'Clases semanales',
@@ -19,14 +20,17 @@ const DEFAULTS = {
   duration: 'Por confirmar',
 }
 
-// Same Nawar brand background used across the platform (dark blue + glow + dots).
+// EXACTAMENTE el mismo fondo que la barra lateral (OrgSidebar): misma imagen de
+// marca, misma capa azul y los mismos puntitos. Antes era un azul plano más
+// oscuro y, al lado de la barra, cantaba que no eran la misma marca.
 const NAWAR_BG: React.CSSProperties = {
-  backgroundColor: '#1D0084',
+  backgroundColor: '#0b2da0',
   backgroundImage:
-    'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
-    'radial-gradient(circle 700px at 100% 0%, rgba(11,109,240,0.40) 0%, transparent 65%), ' +
-    'radial-gradient(circle 600px at 0% 100%, rgba(11,109,240,0.18) 0%, transparent 65%)',
-  backgroundSize: '28px 28px, auto, auto',
+    'radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px), ' +
+    'linear-gradient(rgba(9,30,150,0.45), rgba(9,30,150,0.45)), ' +
+    "url('/fondo-barra.png')",
+  backgroundSize: '22px 22px, cover, cover',
+  backgroundPosition: '0 0, center, center',
   backgroundRepeat: 'repeat, no-repeat, no-repeat',
 }
 
@@ -53,6 +57,11 @@ export default function WeeklyClassBanner() {
     subtitle: stored.subtitle ?? '',
     live_url: stored.live_url ?? '',
     next_day: stored.next_day ?? '',
+    // Día de la semana ('4' = jueves): con esto el banner calcula solo la fecha
+    // de la próxima clase, sin tener que cambiarla cada semana.
+    next_weekday: stored.next_weekday ?? '',
+    // Fecha concreta (AAAA-MM-DD) para una clase suelta o un cambio puntual.
+    next_date: stored.next_date ?? '',
     schedule: stored.schedule ?? '',
     teacher: stored.teacher ?? '',
     duration: stored.duration ?? '',
@@ -65,7 +74,11 @@ export default function WeeklyClassBanner() {
     title: data.title.trim() || DEFAULTS.title,
     subtitle: data.subtitle.trim() || DEFAULTS.subtitle,
     live_url: data.live_url.trim(),
-    next_day: data.next_day.trim() || DEFAULTS.next_day,
+    next_day: nextBroadcastLabel(
+      data.next_weekday,
+      data.next_date,
+      data.next_day.trim() || DEFAULTS.next_day
+    ),
     schedule: data.schedule.trim() || DEFAULTS.schedule,
     teacher: data.teacher.trim() || DEFAULTS.teacher,
     duration: data.duration.trim() || DEFAULTS.duration,
@@ -130,11 +143,49 @@ export default function WeeklyClassBanner() {
         {field('title', 'Título')}
         {field('subtitle', 'Subtítulo', { textarea: true })}
         {field('live_url', 'Enlace del directo (Ir al directo)', { placeholder: 'https://… (Zoom, Meet, YouTube en directo)' })}
+
         <div className="grid grid-cols-2 gap-3">
-          {field('next_day', 'Próxima emisión', { placeholder: 'Jueves 19 de junio' })}
+          <div>
+            <label className="block text-[11px] font-bold text-[#5A6480] uppercase tracking-wide mb-1">
+              Día de la semana
+            </label>
+            <select
+              value={draft.next_weekday}
+              onChange={(e) => setDraft({ ...draft, next_weekday: e.target.value })}
+              className="w-full text-[13px] rounded-lg border border-[#DDE6F5] px-3 py-2 text-gray-800 focus:outline-none focus:border-[#025dc7] bg-white"
+            >
+              <option value="">Sin día fijo</option>
+              {WEEKDAYS.map((d) => (
+                <option key={d.value} value={d.value}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-[#5A6480] uppercase tracking-wide mb-1">
+              Fecha concreta (opcional)
+            </label>
+            <input
+              type="date"
+              value={draft.next_date}
+              onChange={(e) => setDraft({ ...draft, next_date: e.target.value })}
+              className="w-full text-[13px] rounded-lg border border-[#DDE6F5] px-3 py-2 text-gray-800 focus:outline-none focus:border-[#025dc7]"
+            />
+          </div>
+        </div>
+        <p className="text-[12px] text-[#5A6480] leading-relaxed">
+          Con el día de la semana basta: el banner enseña solo la fecha de la
+          próxima ({nextBroadcastLabel(draft.next_weekday, draft.next_date, '—')})
+          y se actualiza cada semana. La fecha concreta manda por encima — úsala
+          para una clase suelta o si un día cambia.
+        </p>
+
+        <div className="grid grid-cols-2 gap-3">
           {field('schedule', 'Horario', { placeholder: '19:00 (CET)' })}
           {field('teacher', 'Profe(s)', { placeholder: 'Paul' })}
           {field('duration', 'Duración', { placeholder: '60 min' })}
+          {field('next_day', 'Texto libre (si no usas fecha)', { placeholder: 'Por confirmar' })}
         </div>
         <div className="flex items-center gap-2 pt-1">
           <button

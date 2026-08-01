@@ -259,7 +259,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         </button>
         </div>
       </div>
-      <nav className="flex-1 overflow-y-auto px-3 space-y-1 pb-3 pt-1">
+      <nav className="lh-scroll-light flex-1 overflow-y-auto px-3 space-y-1 pb-3 pt-1">
         {navItems.filter((i) => i.show).map((i) => (
           <NavLink key={i.key} item={i} />
         ))}
