@@ -12,15 +12,21 @@ NO añade columnas a las que ya existen. Así esto entra sin migración manual.
 from typing import List, Optional
 
 from pydantic import BaseModel
-from sqlalchemy import Column, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Column, ForeignKey, Integer, String, Text
 from sqlmodel import Field, SQLModel
 
 
 class DirectThread(SQLModel, table=True):
-    """La conversación de un alumno con el equipo."""
+    """
+    Una conversación.
+
+    - ``staff_id`` vacío  → el alumno habla "con el equipo": la ve cualquier
+      moderador. Es la de por defecto.
+    - ``staff_id`` puesto → conversación con esa persona en concreto (la elige
+      el alumno en el buscador). La ven esa persona y los administradores.
+    """
 
     __tablename__ = "direct_thread"
-    __table_args__ = (UniqueConstraint("org_id", "student_id", name="uq_thread_org_student"),)
 
     id: Optional[int] = Field(default=None, primary_key=True)
     org_id: int = Field(
@@ -28,6 +34,10 @@ class DirectThread(SQLModel, table=True):
     )
     student_id: int = Field(
         sa_column=Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True)
+    )
+    staff_id: Optional[int] = Field(
+        default=None,
+        sa_column=Column(Integer, ForeignKey("user.id", ondelete="SET NULL"), nullable=True, index=True),
     )
     created_at: str = ""
     last_message_at: str = ""
@@ -79,6 +89,23 @@ class DirectThreadRead(BaseModel):
     last_message_at: str = ""
     last_message_preview: str = ""
     unread: int = 0
+    # Con quién es la conversación desde el punto de vista de quien pregunta.
+    title: str = ""
+    # Vacío = con el equipo entero.
+    staff_id: Optional[int] = None
+    staff_name: str = ""
+
+
+class DirectoryEntry(BaseModel):
+    """Alguien a quien se le puede escribir (moderador o alumno)."""
+
+    user_id: int
+    name: str
+    email: str = ""
+    avatar: str = ""
+    role: str = ""
+    # Hilo ya existente con esa persona, si lo hay.
+    thread_id: Optional[int] = None
 
 
 class DirectThreadDetail(BaseModel):

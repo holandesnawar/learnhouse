@@ -339,6 +339,29 @@ if not is_testing:
         logging.warning("Failed to register cache invalidation hooks", exc_info=True)
 
 
+# Columnas añadidas DESPUÉS de que una tabla nuestra ya estuviera en producción.
+# `create_all` crea tablas que faltan, pero nunca añade columnas a las que ya
+# existen: sin esto, un despliegue con una columna nueva reventaría con "column
+# does not exist". Todo lo de aquí es idempotente (IF EXISTS / IF NOT EXISTS),
+# así que da igual ejecutarlo mil veces o que la tabla acabe de nacer con la
+# forma nueva.
+_ADDED_COLUMNS = [
+    # Conversaciones con una persona concreta (antes solo existía "el equipo").
+    'ALTER TABLE IF EXISTS direct_thread ADD COLUMN IF NOT EXISTS staff_id INTEGER',
+    'ALTER TABLE IF EXISTS direct_thread DROP CONSTRAINT IF EXISTS uq_thread_org_student',
+]
+
+
+async def _ensure_added_columns(conn):
+    from sqlalchemy import text
+
+    for statement in _ADDED_COLUMNS:
+        try:
+            await conn.execute(text(statement))
+        except Exception as e:  # noqa: BLE001
+            logging.warning("No se pudo aplicar '%s': %s", statement, e)
+
+
 async def connect_to_db(app: FastAPI):
     async with engine.begin() as conn:
         # Enable pgvector extension for vector similarity search (optional — RAG feature)
@@ -354,6 +377,7 @@ async def connect_to_db(app: FastAPI):
         # Create all tables
         if not is_testing:
             await conn.run_sync(SQLModel.metadata.create_all)
+            await _ensure_added_columns(conn)
     app.db_engine = engine  # type: ignore
     logging.info("LearnHouse database has been started.")
 

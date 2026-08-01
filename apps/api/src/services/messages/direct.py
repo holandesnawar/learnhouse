@@ -2,9 +2,12 @@
 Mensajes directos alumno ↔ equipo.
 
 Reglas del sitio:
-- Cada alumno tiene UN hilo. Escribe ahí y lo lee cualquier moderador; no elige
-  destinatario, que es justo lo que no queremos que tenga que pensar.
-- El equipo ve la bandeja entera (un hilo por alumno) y contesta donde toque.
+- Por defecto el alumno escribe "al equipo": ese hilo lo ve cualquier moderador.
+  Es lo que sale sin tener que elegir nada.
+- Si quiere, puede buscar a un moderador concreto y abrir una conversación con
+  él. Esa la ven esa persona y los administradores (que mandan en la academia).
+- El equipo ve su bandeja y puede buscar a cualquier alumno para escribirle
+  primero.
 - Al crear el hilo se mete solo el mensaje de bienvenida de la academia, así el
   alumno nunca se encuentra una pantalla vacía el primer día.
 - Se puede mandar una nota de voz: en una academia de idiomas es LA función
@@ -25,12 +28,13 @@ from src.db.direct_messages import (
     DirectThread,
     DirectThreadDetail,
     DirectThreadRead,
+    DirectoryEntry,
 )
 from src.db.organization_config import OrganizationConfig
 from src.db.organizations import Organization
 from src.db.user_organizations import UserOrganization
 from src.db.users import AnonymousUser, PublicUser, User
-from src.security.rbac.constants import ADMIN_OR_MAINTAINER_ROLE_IDS
+from src.security.rbac.constants import ADMIN_ROLE_ID, ADMIN_OR_MAINTAINER_ROLE_IDS
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +93,19 @@ async def is_staff(user_id: int, org_id: int, db_session: AsyncSession) -> bool:
     return bool(uo and uo.role_id in ADMIN_OR_MAINTAINER_ROLE_IDS)
 
 
+async def is_admin_user(user_id: int, org_id: int, db_session: AsyncSession) -> bool:
+    """Los administradores ven todas las conversaciones; los moderadores, las suyas."""
+    uo = (
+        await db_session.execute(
+            select(UserOrganization).where(
+                UserOrganization.user_id == user_id,
+                UserOrganization.org_id == org_id,
+            )
+        )
+    ).scalars().first()
+    return bool(uo and uo.role_id == ADMIN_ROLE_ID)
+
+
 async def welcome_text(org_id: int, db_session: AsyncSession) -> str:
     row = (
         await db_session.execute(
@@ -118,37 +135,49 @@ def _display_name(user: Optional[User]) -> str:
 
 
 async def get_or_create_thread(
-    org_id: int, student_id: int, db_session: AsyncSession
+    org_id: int,
+    student_id: int,
+    db_session: AsyncSession,
+    staff_id: Optional[int] = None,
 ) -> DirectThread:
-    thread = (
-        await db_session.execute(
-            select(DirectThread).where(
-                DirectThread.org_id == org_id,
-                DirectThread.student_id == student_id,
-            )
-        )
-    ).scalars().first()
+    """El hilo del alumno con el equipo (staff_id vacío) o con una persona."""
+    statement = select(DirectThread).where(
+        DirectThread.org_id == org_id,
+        DirectThread.student_id == student_id,
+    )
+    statement = (
+        statement.where(DirectThread.staff_id == staff_id)
+        if staff_id
+        else statement.where(DirectThread.staff_id.is_(None))  # type: ignore
+    )
+    thread = (await db_session.execute(statement)).scalars().first()
     if thread:
         return thread
 
     now = _now()
     thread = DirectThread(
-        org_id=org_id, student_id=student_id, created_at=now, last_message_at=now
+        org_id=org_id,
+        student_id=student_id,
+        staff_id=staff_id,
+        created_at=now,
+        last_message_at=now,
     )
     db_session.add(thread)
     await db_session.commit()
     await db_session.refresh(thread)
 
-    # Bienvenida automática: la manda la academia, sin autor concreto.
-    db_session.add(
-        DirectMessage(
-            thread_id=thread.id or 0,
-            author_id=None,
-            body=await welcome_text(org_id, db_session),
-            created_at=now,
+    # La bienvenida automática es cosa del hilo "con el equipo": en una
+    # conversación con una persona concreta pintaría raro.
+    if staff_id is None:
+        db_session.add(
+            DirectMessage(
+                thread_id=thread.id or 0,
+                author_id=None,
+                body=await welcome_text(org_id, db_session),
+                created_at=now,
+            )
         )
-    )
-    await db_session.commit()
+        await db_session.commit()
     return thread
 
 
@@ -158,7 +187,11 @@ async def _unread_for_student(thread: DirectThread, db_session: AsyncSession) ->
         await db_session.execute(
             select(DirectMessage).where(
                 DirectMessage.thread_id == thread.id,
-                DirectMessage.author_id != thread.student_id,
+                # OJO: en SQL `author_id != X` deja fuera las filas con
+                # author_id NULL, y la bienvenida automática no tiene autor.
+                # Sin este OR, el mensaje de bienvenida no encendía el sobre.
+                (DirectMessage.author_id.is_(None))  # type: ignore
+                | (DirectMessage.author_id != thread.student_id),
             )
         )
     ).scalars().all()
@@ -184,6 +217,7 @@ async def _thread_row(
     thread: DirectThread, for_staff: bool, db_session: AsyncSession
 ) -> DirectThreadRead:
     student = await _user(thread.student_id, db_session)
+    staff = await _user(thread.staff_id, db_session) if thread.staff_id else None
     last = (
         await db_session.execute(
             select(DirectMessage)
@@ -199,6 +233,11 @@ async def _thread_row(
         if len(preview) > 90:
             preview = preview[:87].rstrip() + "…"
 
+    # El título es "con quién hablo yo": el equipo ve el nombre del alumno; el
+    # alumno ve "Equipo Nawar" o el nombre del moderador que eligió.
+    staff_name = _display_name(staff) if staff else "Equipo Nawar"
+    title = _display_name(student) if for_staff else staff_name
+
     return DirectThreadRead(
         id=thread.id or 0,
         student_id=thread.student_id,
@@ -211,6 +250,9 @@ async def _thread_row(
             if for_staff
             else await _unread_for_student(thread, db_session)
         ),
+        title=title,
+        staff_id=thread.staff_id,
+        staff_name=staff_name,
     )
 
 
@@ -222,14 +264,32 @@ async def list_threads(
     staff = await is_staff(user_id, org_id, db_session)
 
     if not staff:
-        thread = await get_or_create_thread(org_id, user_id, db_session)
-        return [await _thread_row(thread, False, db_session)]
+        # El de "con el equipo" siempre existe; detrás van los que haya abierto
+        # con moderadores concretos.
+        await get_or_create_thread(org_id, user_id, db_session)
+        mine = (
+            await db_session.execute(
+                select(DirectThread)
+                .where(
+                    DirectThread.org_id == org_id,
+                    DirectThread.student_id == user_id,
+                )
+                .order_by(DirectThread.last_message_at.desc())  # type: ignore
+            )
+        ).scalars().all()
+        return [await _thread_row(t, False, db_session) for t in mine]
 
+    admin = await is_admin_user(user_id, org_id, db_session)
+    statement = select(DirectThread).where(DirectThread.org_id == org_id)
+    if not admin:
+        # Un moderador ve lo del equipo y lo suyo, no las conversaciones
+        # privadas de otro moderador.
+        statement = statement.where(
+            (DirectThread.staff_id.is_(None)) | (DirectThread.staff_id == user_id)  # type: ignore
+        )
     threads = (
         await db_session.execute(
-            select(DirectThread)
-            .where(DirectThread.org_id == org_id)
-            .order_by(DirectThread.last_message_at.desc())  # type: ignore
+            statement.order_by(DirectThread.last_message_at.desc())  # type: ignore
         )
     ).scalars().all()
     return [await _thread_row(t, True, db_session) for t in threads]
@@ -247,8 +307,17 @@ async def _thread_for_user(
     ).scalars().first()
     if not thread or thread.org_id != org_id:
         raise HTTPException(status_code=404, detail="Thread not found")
-    if not staff and thread.student_id != user_id:
-        raise HTTPException(status_code=403, detail="Not your conversation")
+
+    if not staff:
+        if thread.student_id != user_id:
+            raise HTTPException(status_code=403, detail="Not your conversation")
+        return thread
+
+    # Del equipo: los hilos con el equipo son de todos; los privados, de su
+    # dueño (y de los administradores).
+    if thread.staff_id and thread.staff_id != user_id:
+        if not await is_admin_user(user_id, org_id, db_session):
+            raise HTTPException(status_code=403, detail="Not your conversation")
     return thread
 
 
@@ -448,3 +517,132 @@ async def unread_total(
     for t in threads:
         total += await _unread_for_staff(t, db_session)
     return {"unread": total, "threads": len(threads)}
+
+
+####################################################
+# Buscador de personas y apertura de conversaciones
+####################################################
+
+
+async def directory(
+    q: str,
+    current_user: PublicUser | AnonymousUser,
+    db_session: AsyncSession,
+    limit: int = 30,
+) -> List[DirectoryEntry]:
+    """
+    A quién le puedo escribir.
+
+    - Alumno → los moderadores y administradores de la academia.
+    - Equipo → los alumnos.
+
+    El texto de búsqueda casa con el nombre, el usuario o el correo.
+    """
+    user_id = _uid(current_user)
+    org_id = await _default_org_id(user_id, db_session)
+    staff = await is_staff(user_id, org_id, db_session)
+
+    rows = (
+        await db_session.execute(
+            select(User, UserOrganization.role_id)
+            .join(UserOrganization, UserOrganization.user_id == User.id)  # type: ignore
+            .where(UserOrganization.org_id == org_id)
+        )
+    ).all()
+
+    needle = (q or "").strip().lower()
+    out: List[DirectoryEntry] = []
+
+    for user, role_id in rows:
+        if user.id == user_id:
+            continue
+        is_team = role_id in ADMIN_OR_MAINTAINER_ROLE_IDS
+        # El alumno busca equipo; el equipo busca alumnos.
+        if staff and is_team:
+            continue
+        if not staff and not is_team:
+            continue
+
+        name = _display_name(user)
+        haystack = " ".join(
+            [name, user.username or "", user.email or ""]
+        ).lower()
+        if needle and needle not in haystack:
+            continue
+
+        # ¿Ya hay conversación abierta con esta persona?
+        if staff:
+            thread = (
+                await db_session.execute(
+                    select(DirectThread).where(
+                        DirectThread.org_id == org_id,
+                        DirectThread.student_id == user.id,
+                        DirectThread.staff_id.is_(None),  # type: ignore
+                    )
+                )
+            ).scalars().first()
+        else:
+            thread = (
+                await db_session.execute(
+                    select(DirectThread).where(
+                        DirectThread.org_id == org_id,
+                        DirectThread.student_id == user_id,
+                        DirectThread.staff_id == user.id,
+                    )
+                )
+            ).scalars().first()
+
+        out.append(
+            DirectoryEntry(
+                user_id=user.id or 0,
+                name=name,
+                # El correo solo lo ve el equipo: un alumno no tiene por qué ver
+                # el de nadie.
+                email=(user.email or "") if staff else "",
+                avatar=user.avatar_image or "",
+                role=("Equipo" if is_team else "Alumno/a"),
+                thread_id=thread.id if thread else None,
+            )
+        )
+
+    out.sort(key=lambda e: e.name.lower())
+    return out[:limit]
+
+
+async def open_thread_with(
+    peer_id: int, current_user: PublicUser | AnonymousUser, db_session: AsyncSession
+) -> DirectThreadDetail:
+    """Abre (o recupera) la conversación con esa persona y la devuelve entera."""
+    user_id = _uid(current_user)
+    org_id = await _default_org_id(user_id, db_session)
+    staff = await is_staff(user_id, org_id, db_session)
+
+    peer_role = (
+        await db_session.execute(
+            select(UserOrganization.role_id).where(
+                UserOrganization.user_id == peer_id,
+                UserOrganization.org_id == org_id,
+            )
+        )
+    ).scalars().first()
+    if peer_role is None:
+        raise HTTPException(status_code=404, detail="Esa persona no está en la academia")
+
+    peer_is_team = peer_role in ADMIN_OR_MAINTAINER_ROLE_IDS
+
+    if staff:
+        if peer_is_team:
+            raise HTTPException(
+                status_code=400, detail="Los mensajes directos son con alumnos"
+            )
+        # El equipo escribe al alumno por su hilo de siempre, el compartido: así
+        # el alumno no acumula conversaciones sueltas por cada moderador.
+        thread = await get_or_create_thread(org_id, peer_id, db_session)
+    else:
+        if not peer_is_team:
+            raise HTTPException(
+                status_code=400, detail="Solo puedes escribir al equipo de la academia"
+            )
+        thread = await get_or_create_thread(org_id, user_id, db_session, staff_id=peer_id)
+
+    return await get_thread(thread.id, current_user, db_session)

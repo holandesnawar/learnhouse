@@ -3,28 +3,45 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
-import UserAvatar from '@components/Objects/UserAvatar'
-import { getUserAvatarMediaDirectory } from '@services/media/media'
 import {
   DirectMessage,
   DirectThread,
+  DirectThreadDetail,
+  DirectoryEntry,
   audioSrc,
+  getDirectory,
   getMyThread,
   getThread,
   getThreads,
+  openThreadWith,
   sendDirectMessage,
   updateDirectWelcome,
 } from '@services/messages/direct'
 import VoiceRecorder from './VoiceRecorder'
 import toast from 'react-hot-toast'
-import { Loader2, Send, MessageSquare, Sparkles, Check, X, Pencil } from 'lucide-react'
+import {
+  ArrowLeft,
+  Check,
+  Loader2,
+  MessageSquare,
+  Pencil,
+  PenSquare,
+  Search,
+  Send,
+  Sparkles,
+  Users,
+  X,
+} from 'lucide-react'
 
 /**
  * Mensajes directos.
  *
- * - Alumno: una sola conversación con el equipo. Nada que elegir.
- * - Equipo: la bandeja entera, un hilo por alumno, y arriba el texto de
- *   bienvenida que recibe cada alumno nuevo automáticamente.
+ * - Alumno: su conversación con el equipo + las que abra con un moderador
+ *   concreto desde el buscador.
+ * - Equipo: la bandeja de alumnos, y el buscador para escribir el primero.
+ *
+ * En móvil es una sola columna: lista → conversación, con flecha para volver.
+ * Antes la conversación y la lista competían por la pantalla y no se usaba.
  */
 export default function MessagesPage() {
   const session = useLHSession() as any
@@ -35,46 +52,64 @@ export default function MessagesPage() {
   const [isStaff, setIsStaff] = useState(false)
   const [threads, setThreads] = useState<DirectThread[]>([])
   const [activeId, setActiveId] = useState<number | null>(null)
+  const [activeTitle, setActiveTitle] = useState('')
   const [messages, setMessages] = useState<DirectMessage[]>([])
   const [loading, setLoading] = useState(true)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
+  // Móvil: qué se ve ahora mismo.
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
+  // Buscador de personas.
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [people, setPeople] = useState<DirectoryEntry[]>([])
+  const [searching, setSearching] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const refreshBadge = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['messages', 'unread'] })
   }, [queryClient])
 
-  // Carga inicial: el alumno abre su hilo; el equipo, la lista.
+  const loadThreads = useCallback(async () => {
+    const list = await getThreads(accessToken)
+    setThreads(list)
+    return list
+  }, [accessToken])
+
+  // Carga inicial: quién soy y mis conversaciones.
   useEffect(() => {
     if (!accessToken) return
     let alive = true
     ;(async () => {
       const detail = await getMyThread(accessToken)
       if (!alive) return
-      if (detail?.is_staff) {
-        setIsStaff(true)
-        const list = await getThreads(accessToken)
-        if (!alive) return
-        setThreads(list)
-        setLoading(false)
-      } else if (detail) {
-        setMessages(detail.messages)
+      const staff = !!detail?.is_staff
+      setIsStaff(staff)
+      const list = await loadThreads()
+      if (!alive) return
+      // El alumno entra directo a su conversación con el equipo; en escritorio
+      // el equipo ve la bandeja y elige.
+      if (!staff && detail?.thread?.id) {
         setActiveId(detail.thread.id)
-        setLoading(false)
-      } else {
-        setLoading(false)
+        setActiveTitle(detail.thread.title || 'Equipo Nawar')
+        setMessages(detail.messages)
+      } else if (!staff && list.length) {
+        setActiveId(list[0].id)
+        setActiveTitle(list[0].title)
       }
+      setLoading(false)
       refreshBadge()
     })()
     return () => {
       alive = false
     }
-  }, [accessToken, refreshBadge])
+  }, [accessToken, loadThreads, refreshBadge])
 
-  const openThread = async (id: number) => {
+  const openThread = async (id: number, title: string) => {
     setActiveId(id)
+    setActiveTitle(title)
     setMessages([])
+    setMobileView('chat')
     const detail = await getThread(id, accessToken)
     if (detail) setMessages(detail.messages)
     setThreads((cur) => cur.map((t) => (t.id === id ? { ...t, unread: 0 } : t)))
@@ -96,17 +131,50 @@ export default function MessagesPage() {
     if (el) el.scrollTop = el.scrollHeight
   }, [messages.length])
 
+  // Buscador de personas (se consulta al abrirlo y al escribir).
+  useEffect(() => {
+    if (!pickerOpen || !accessToken) return
+    let alive = true
+    setSearching(true)
+    const t = setTimeout(async () => {
+      const list = await getDirectory(query, accessToken)
+      if (!alive) return
+      setPeople(list)
+      setSearching(false)
+    }, 200)
+    return () => {
+      alive = false
+      clearTimeout(t)
+    }
+  }, [pickerOpen, query, accessToken])
+
+  const startWith = async (person: DirectoryEntry) => {
+    const detail: DirectThreadDetail | null = await openThreadWith(person.user_id, accessToken)
+    if (!detail) {
+      toast.error('No se pudo abrir la conversación')
+      return
+    }
+    setPickerOpen(false)
+    setQuery('')
+    await loadThreads()
+    setActiveId(detail.thread.id)
+    setActiveTitle(detail.thread.title || person.name)
+    setMessages(detail.messages)
+    setMobileView('chat')
+  }
+
   const push = (m: DirectMessage | null) => {
     if (!m) {
       toast.error('No se pudo enviar. Inténtalo otra vez.')
       return
     }
     setMessages((cur) => [...cur, m])
+    loadThreads()
   }
 
   const sendText = async () => {
     const body = text.trim()
-    if (!body || sending) return
+    if (!body || sending || !activeId) return
     setSending(true)
     const m = await sendDirectMessage({ threadId: activeId, body }, accessToken)
     setSending(false)
@@ -115,6 +183,7 @@ export default function MessagesPage() {
   }
 
   const sendVoice = async (audio: Blob, seconds: number) => {
+    if (!activeId) return
     setSending(true)
     const m = await sendDirectMessage(
       { threadId: activeId, audio, audioSeconds: seconds },
@@ -136,15 +205,81 @@ export default function MessagesPage() {
     )
   }
 
+  const threadList = (
+    <div className="flex flex-col gap-2">
+      <button
+        onClick={() => setPickerOpen(true)}
+        className="inline-flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] font-bold text-[14px] transition-colors"
+      >
+        <PenSquare size={15} />
+        {isStaff ? 'Escribir a un alumno' : 'Escribir a un moderador'}
+      </button>
+
+      <div className="space-y-1.5 lg:max-h-[62vh] lg:overflow-y-auto lh-thin-scroll">
+        {threads.length === 0 ? (
+          <p className="text-sm text-gray-500 px-1 py-3">
+            {isStaff
+              ? 'Todavía no hay conversaciones. Usa el botón de arriba para escribir a un alumno.'
+              : 'Todavía no tienes conversaciones.'}
+          </p>
+        ) : (
+          threads.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => openThread(t.id, t.title)}
+              className={`w-full text-left rounded-xl border px-3 py-2.5 transition-colors ${
+                activeId === t.id
+                  ? 'bg-white border-[#4da3ff] ring-[3px] ring-[#4da3ff]/20'
+                  : 'bg-white border-[#DDE6F5] hover:border-[#4da3ff]/60'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <span className="text-[13.5px] font-bold text-[#0a1656] truncate flex-1">
+                  {t.title || t.student_name}
+                </span>
+                {t.unread > 0 && (
+                  <span className="shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
+                    {t.unread}
+                  </span>
+                )}
+              </span>
+              {t.last_message_preview && (
+                <span className="block mt-0.5 text-[12.5px] text-gray-500 truncate">
+                  {t.last_message_preview}
+                </span>
+              )}
+            </button>
+          ))
+        )}
+      </div>
+    </div>
+  )
+
   const conversation = (
-    <div className="flex flex-col h-[70vh] min-h-[440px] bg-white border border-[#DDE6F5] rounded-2xl overflow-hidden">
+    <div className="flex flex-col h-[70vh] min-h-[420px] bg-white border border-[#DDE6F5] rounded-2xl overflow-hidden">
+      {/* Cabecera: en móvil lleva la flecha para volver a la lista */}
+      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-[#EEF2FB]">
+        <button
+          onClick={() => setMobileView('list')}
+          aria-label="Volver"
+          className="lg:hidden shrink-0 w-8 h-8 inline-flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100"
+        >
+          <ArrowLeft size={17} />
+        </button>
+        <span className="text-[14px] font-bold text-[#0a1656] truncate">
+          {activeTitle || 'Conversación'}
+        </span>
+      </div>
+
       <div ref={scrollRef} className="flex-1 overflow-y-auto lh-thin-scroll p-4 space-y-3">
         {messages.length === 0 ? (
           <p className="text-center text-sm text-gray-400 py-10">
             Aquí no hay nada todavía. Escribe lo que necesites.
           </p>
         ) : (
-          messages.map((m) => <Bubble key={m.id} m={m} mine={isStaff ? m.from_staff : !m.from_staff} />)
+          messages.map((m) => (
+            <Bubble key={m.id} m={m} mine={isStaff ? m.from_staff : !m.from_staff} />
+          ))
         )}
       </div>
 
@@ -175,81 +310,144 @@ export default function MessagesPage() {
     </div>
   )
 
-  if (!isStaff) {
-    return (
-      <div className="px-4 sm:px-8 py-8 max-w-3xl mx-auto">
-        <h1 className="text-[24px] sm:text-[30px] font-bold text-[#1D0084] leading-tight">
-          Mensajes
-        </h1>
-        <p className="text-[14px] text-gray-600 mt-1 mb-5">
-          Tu canal directo con el equipo de Holandés Nawar. Puedes escribir o
-          mandar una nota de voz — para pronunciación va de lujo.
-        </p>
-        {conversation}
-      </div>
-    )
-  }
+  const emptyPane = (
+    <div className="h-[70vh] min-h-[420px] flex flex-col items-center justify-center text-center bg-white border border-[#DDE6F5] rounded-2xl px-6">
+      <MessageSquare size={26} className="text-gray-300 mb-2" />
+      <p className="text-sm text-gray-500 max-w-xs">
+        Elige una conversación de la izquierda, o escribe a alguien nuevo.
+      </p>
+    </div>
+  )
 
   return (
     <div className="px-4 sm:px-8 py-8 max-w-6xl mx-auto">
-      <h1 className="text-[24px] sm:text-[30px] font-bold text-[#1D0084] leading-tight">
-        Mensajes
-      </h1>
+      <h1 className="text-[24px] sm:text-[30px] font-bold text-[#1D0084] leading-tight">Mensajes</h1>
       <p className="text-[14px] text-gray-600 mt-1 mb-5">
-        Las conversaciones privadas con tus alumnos. Contesta con texto o con
-        una nota de voz.
+        {isStaff
+          ? 'Conversaciones privadas con tus alumnos. Puedes contestar con texto o con una nota de voz.'
+          : 'Tu canal directo con el equipo de Holandés Nawar. Escribe o manda una nota de voz — para pronunciación va de lujo.'}
       </p>
 
-      <WelcomeEditor orgId={org?.id} accessToken={accessToken} stored={org?.config?.config?.direct_welcome?.message} />
+      {isStaff && (
+        <WelcomeEditor
+          orgId={org?.id}
+          accessToken={accessToken}
+          stored={org?.config?.config?.direct_welcome?.message}
+        />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)] gap-5 mt-5">
-        <div className="space-y-1.5 max-h-[70vh] overflow-y-auto lh-thin-scroll">
-          {threads.length === 0 ? (
-            <p className="text-sm text-gray-500 px-1">
-              Todavía no hay conversaciones. Se crean solas en cuanto un alumno
-              entra por primera vez.
-            </p>
-          ) : (
-            threads.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => openThread(t.id)}
-                className={`w-full text-left rounded-xl border px-3 py-2.5 transition-colors ${
-                  activeId === t.id
-                    ? 'bg-white border-[#4da3ff] ring-[3px] ring-[#4da3ff]/20'
-                    : 'bg-white border-[#DDE6F5] hover:border-[#4da3ff]/60'
-                }`}
-              >
-                <span className="flex items-center gap-2">
-                  <span className="text-[13.5px] font-bold text-[#0a1656] truncate flex-1">
-                    {t.student_name}
-                  </span>
-                  {t.unread > 0 && (
-                    <span className="shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
-                      {t.unread}
-                    </span>
-                  )}
-                </span>
-                {t.last_message_preview && (
-                  <span className="block mt-0.5 text-[12.5px] text-gray-500 truncate">
-                    {t.last_message_preview}
-                  </span>
-                )}
-              </button>
-            ))
-          )}
+        {/* Lista: siempre en escritorio, en móvil solo cuando toca */}
+        <div className={mobileView === 'chat' ? 'hidden lg:block' : ''}>{threadList}</div>
+
+        <div className={`min-w-0 ${mobileView === 'list' ? 'hidden lg:block' : ''}`}>
+          {activeId ? conversation : emptyPane}
+        </div>
+      </div>
+
+      {pickerOpen && (
+        <PeoplePicker
+          isStaff={isStaff}
+          query={query}
+          setQuery={setQuery}
+          people={people}
+          searching={searching}
+          onPick={startWith}
+          onClose={() => {
+            setPickerOpen(false)
+            setQuery('')
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+/** Buscador de personas a pantalla completa (va bien en móvil y en ordenador). */
+function PeoplePicker({
+  isStaff,
+  query,
+  setQuery,
+  people,
+  searching,
+  onPick,
+  onClose,
+}: {
+  isStaff: boolean
+  query: string
+  setQuery: (v: string) => void
+  people: DirectoryEntry[]
+  searching: boolean
+  onPick: (p: DirectoryEntry) => void
+  onClose: () => void
+}) {
+  return (
+    <div
+      className="fixed inset-0 bg-black/40 flex items-start sm:items-center justify-center p-3 sm:p-6"
+      style={{ zIndex: 'var(--z-modal-content, 220)' }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden mt-10 sm:mt-0"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-[#EEF2FB]">
+          <Users size={17} className="text-[#025dc7] shrink-0" />
+          <span className="text-[14px] font-bold text-[#0a1656] flex-1">
+            {isStaff ? 'Escribir a un alumno' : 'Escribir a un moderador'}
+          </span>
+          <button
+            onClick={onClose}
+            aria-label="Cerrar"
+            className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100"
+          >
+            <X size={16} />
+          </button>
         </div>
 
-        <div className="min-w-0">
-          {activeId ? (
-            conversation
+        <div className="p-3 border-b border-[#EEF2FB]">
+          <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
+            <Search size={15} className="text-gray-400 shrink-0" />
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={isStaff ? 'Buscar por nombre o correo…' : 'Buscar por nombre…'}
+              className="flex-1 min-w-0 bg-transparent text-[15px] sm:text-sm outline-none"
+            />
+          </div>
+        </div>
+
+        <div className="max-h-[55vh] overflow-y-auto lh-thin-scroll">
+          {searching ? (
+            <p className="flex items-center justify-center gap-2 text-sm text-gray-400 py-8">
+              <Loader2 size={15} className="animate-spin" /> Buscando…
+            </p>
+          ) : people.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-8 px-6">
+              {query.trim()
+                ? `Nadie con «${query.trim()}».`
+                : isStaff
+                ? 'Todavía no hay alumnos en la academia.'
+                : 'Todavía no hay moderadores disponibles.'}
+            </p>
           ) : (
-            <div className="h-[70vh] min-h-[440px] flex flex-col items-center justify-center text-center bg-white border border-[#DDE6F5] rounded-2xl px-6">
-              <MessageSquare size={26} className="text-gray-300 mb-2" />
-              <p className="text-sm text-gray-500 max-w-xs">
-                Elige un alumno de la izquierda para ver vuestra conversación.
-              </p>
-            </div>
+            <ul>
+              {people.map((p) => (
+                <li key={p.user_id} className="border-b border-[#F3F6FC] last:border-0">
+                  <button
+                    onClick={() => onPick(p)}
+                    className="w-full text-left px-4 py-3 hover:bg-[#F7FAFF] transition-colors"
+                  >
+                    <span className="block text-[13.5px] font-bold text-[#0a1656]">{p.name}</span>
+                    <span className="block text-[12px] text-gray-500">
+                      {p.email || p.role}
+                      {p.thread_id ? ' · ya tenéis conversación' : ''}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </div>
@@ -259,26 +457,34 @@ export default function MessagesPage() {
 
 function Bubble({ m, mine }: { m: DirectMessage; mine: boolean }) {
   const when = m.created_at ? new Date(m.created_at) : null
-  const time = when && !Number.isNaN(when.getTime())
-    ? when.toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-    : ''
+  const time =
+    when && !Number.isNaN(when.getTime())
+      ? when.toLocaleString('es-ES', {
+          day: 'numeric',
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : ''
   return (
     <div className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
       <div className="max-w-[85%] sm:max-w-[70%]">
         <div
           className={`rounded-2xl px-3.5 py-2.5 ${
-            mine ? 'bg-[#025dc7] text-white rounded-tr-sm' : 'bg-[#F0F5FF] text-gray-800 rounded-tl-sm'
+            mine
+              ? 'bg-[#025dc7] text-white rounded-tr-sm'
+              : 'bg-[#F0F5FF] text-gray-800 rounded-tl-sm'
           }`}
         >
-          {!mine && (
-            <p className="text-[11.5px] font-bold mb-0.5 text-[#025dc7]">{m.author_name}</p>
+          {!mine && <p className="text-[11.5px] font-bold mb-0.5 text-[#025dc7]">{m.author_name}</p>}
+          {m.body && (
+            <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{m.body}</p>
           )}
-          {m.body && <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{m.body}</p>}
           {m.audio_url && (
             <audio
               src={audioSrc(m.audio_url)}
               controls
-              className={`mt-1.5 h-9 w-[240px] max-w-full ${mine ? 'invert-[.05]' : ''}`}
+              className="mt-1.5 h-9 w-[240px] max-w-full"
             />
           )}
         </div>
@@ -320,12 +526,9 @@ function WelcomeEditor({
       <div className="flex items-start gap-2">
         <Sparkles size={16} className="text-[#4da3ff] mt-0.5 shrink-0" />
         <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-bold text-[#0a1656]">
-            Bienvenida automática
-          </p>
+          <p className="text-[13px] font-bold text-[#0a1656]">Bienvenida automática</p>
           <p className="text-[12.5px] text-[#0a1656]/75 leading-relaxed">
-            Es el primer mensaje que le llega a cada alumno nuevo, sin que tengas
-            que hacer nada.
+            Es el primer mensaje que le llega a cada alumno nuevo, sin que tengas que hacer nada.
           </p>
           {editing ? (
             <>

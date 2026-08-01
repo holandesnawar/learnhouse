@@ -29,6 +29,20 @@ export interface DirectThread {
   last_message_at: string
   last_message_preview: string
   unread: number
+  /** Con quién es la conversación, visto desde quien mira. */
+  title: string
+  /** Vacío = conversación con todo el equipo. */
+  staff_id: number | null
+  staff_name: string
+}
+
+export interface DirectoryEntry {
+  user_id: number
+  name: string
+  email: string
+  avatar: string
+  role: string
+  thread_id: number | null
 }
 
 export interface DirectThreadDetail {
@@ -161,5 +175,42 @@ export async function updateDirectWelcome(
     return r.ok
   } catch {
     return false
+  }
+}
+
+/** A quién puedo escribir: el alumno ve al equipo; el equipo ve a los alumnos. */
+export async function getDirectory(
+  q: string,
+  accessToken: string | undefined
+): Promise<DirectoryEntry[]> {
+  if (!accessToken) return []
+  try {
+    const r = await fetch(
+      `${base()}/directory?q=${encodeURIComponent(q)}`,
+      RequestBodyWithAuthHeader('GET', null, null, accessToken)
+    )
+    if (!r.ok) return []
+    const data = await r.json()
+    return Array.isArray(data) ? data : []
+  } catch {
+    return []
+  }
+}
+
+/** Abre (o recupera) la conversación con esa persona. */
+export async function openThreadWith(
+  peerId: number,
+  accessToken: string | undefined
+): Promise<DirectThreadDetail | null> {
+  if (!accessToken) return null
+  try {
+    const r = await fetch(
+      `${base()}/open/${peerId}`,
+      RequestBodyWithAuthHeader('POST', {}, null, accessToken)
+    )
+    if (!r.ok) return null
+    return await r.json()
+  } catch {
+    return null
   }
 }

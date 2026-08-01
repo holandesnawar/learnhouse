@@ -10,13 +10,16 @@ from src.db.direct_messages import (
     DirectMessageRead,
     DirectThreadDetail,
     DirectThreadRead,
+    DirectoryEntry,
 )
 from src.db.users import PublicUser
 from src.security.auth import get_current_user
 from src.services.messages.direct import (
+    directory,
     get_thread,
     list_threads,
     mark_read,
+    open_thread_with,
     post_message,
     unread_total,
 )
@@ -85,3 +88,24 @@ async def api_send(
     return await post_message(
         thread_id, body, audio, audio_seconds, current_user, db_session
     )
+
+
+@router.get(
+    "/directory",
+    summary="A quién puedo escribir (el alumno ve al equipo; el equipo, a los alumnos).",
+)
+async def api_directory(
+    q: str = "",
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+) -> List[DirectoryEntry]:
+    return await directory(q, current_user, db_session)
+
+
+@router.post("/open/{peer_id}", summary="Abrir la conversación con esa persona.")
+async def api_open(
+    peer_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+) -> DirectThreadDetail:
+    return await open_thread_with(peer_id, current_user, db_session)
