@@ -58,11 +58,19 @@ export default function RoadmapSection({ canEdit }: { canEdit: boolean }) {
     }
   }
 
-  const currentWeek = roadmap.weeks[roadmap.current]
+  // Si el índice de "semana actual" se queda fuera de rango (por ejemplo tras
+  // borrar semanas), se cae a la primera en vez de dejar el bloque en blanco.
+  const currentWeek = roadmap.weeks[roadmap.current] || roadmap.weeks[0]
   const hasRoadmap = roadmap.weeks.length > 0
+  const showFullList = roadmap.weeks.length > 1
+  const showEmptyCta = !hasRoadmap && canEdit
 
   // Nothing to show and can't edit → render nothing.
   if (!hasRoadmap && !canEdit) return null
+
+  // Sin nada que pintar, no se deja el contenedor vacío ocupando sitio: eso
+  // dejaba un bloque en blanco al final del Inicio.
+  if (!currentWeek && !showFullList && !showEmptyCta) return null
 
   if (editing) {
     return (
@@ -155,7 +163,7 @@ export default function RoadmapSection({ canEdit }: { canEdit: boolean }) {
       )}
 
       {/* Hoja de ruta completa */}
-      {roadmap.weeks.length > 1 && (
+      {showFullList && (
         <div>
           <h2 className="text-lg font-bold text-gray-900 mb-3">Hoja de ruta</h2>
           <div className="space-y-3">
@@ -189,7 +197,7 @@ export default function RoadmapSection({ canEdit }: { canEdit: boolean }) {
       )}
 
       {/* Empty state for admins */}
-      {!hasRoadmap && canEdit && (
+      {showEmptyCta && (
         <button
           onClick={startEdit}
           className="w-full flex items-center justify-center gap-2 py-4 rounded-xl border-2 border-dashed border-gray-200 text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700"
