@@ -309,7 +309,12 @@ export default function MessagesPage() {
           </p>
         ) : (
           messages.map((m) => (
-            <Bubble key={m.id} m={m} mine={isStaff ? m.from_staff : !m.from_staff} />
+            <Bubble
+              key={m.id}
+              m={m}
+              mine={isStaff ? m.from_staff : !m.from_staff}
+              peerName={activeTitle}
+            />
           ))
         )}
       </div>
@@ -545,7 +550,19 @@ function Avatar({ src, name, size = 32 }: { src?: string; name: string; size?: n
   )
 }
 
-function Bubble({ m, mine }: { m: DirectMessage; mine: boolean }) {
+function Bubble({
+  m,
+  mine,
+  peerName,
+}: {
+  m: DirectMessage
+  mine: boolean
+  peerName: string
+}) {
+  // El nombre solo si NO es el de la cabecera: repetir "Team Nawar" en cada
+  // burbuja de una conversación con Team Nawar es ruido. Si contesta otra
+  // persona del equipo, entonces sí se enseña.
+  const showName = !mine && !!m.author_name && m.author_name !== peerName
   const when = m.created_at ? new Date(m.created_at) : null
   const time =
     when && !Number.isNaN(when.getTime())
@@ -568,7 +585,7 @@ function Bubble({ m, mine }: { m: DirectMessage; mine: boolean }) {
               : 'bg-[#F0F5FF] text-gray-800 rounded-tl-sm'
           }`}
         >
-          {!mine && (
+          {showName && (
             <p className="text-[11.5px] font-bold mb-0.5 text-[#025dc7]">
               {m.author_name}
               {m.author_title && (
