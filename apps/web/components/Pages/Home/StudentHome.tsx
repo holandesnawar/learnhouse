@@ -127,7 +127,7 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
 
       {/* Así estás progresando — real, server-side numbers */}
       {insights ? (
-        <FormacionCard orgslug={orgslug} insights={insights} />
+        <FormacionCard orgslug={orgslug} insights={insights} runs={runs} />
       ) : insightsLoading ? (
         <HomeSkeleton className="mb-8 h-[168px]" />
       ) : null}

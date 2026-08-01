@@ -20,7 +20,7 @@ import {
   getModules,
   getLessonsForModule,
 } from '@/lib/exercises-app/courseService'
-import { masteredSectionsCount, overallCourseProgress, totalLessonsInCourse } from '@/lib/exercises-app/progressMap'
+import { masteredSectionsCount } from '@/lib/exercises-app/progressMap'
 import {
   ArrowRight,
   BookOpen,
@@ -373,13 +373,26 @@ export function RepasoCard({
 export function FormacionCard({
   orgslug,
   insights,
+  runs = [],
 }: {
   orgslug: string
   insights: StudentInsights
+  /** Los cursos que el alumno lleva en marcha (el "trail" de la plataforma). */
+  runs?: any[]
 }) {
-  const total = totalLessonsInCourse()
-  const done = insights.completions.length
-  const pct = overallCourseProgress(insights.attempts, insights.completions)
+  // El total de lecciones y las hechas salen del CURSO REAL de la plataforma,
+  // no de una cuenta fija: `course_total_steps` es el número de lecciones que
+  // tiene el curso ahora mismo, así que al añadir una lección desde el panel
+  // el total sube solo, y `steps` son las que el alumno ha completado de
+  // verdad. Antes el total venía del temario de los ejercicios (un número
+  // escrito en el código) y las completadas de otra tabla distinta: por eso se
+  // veía "9% · 0/25", dos cuentas que no hablaban entre ellas.
+  const total = runs.reduce((n, r) => n + (Number(r?.course_total_steps) || 0), 0)
+  const done = runs.reduce(
+    (n, r) => n + (Array.isArray(r?.steps) ? r.steps.length : 0),
+    0
+  )
+  const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0
   const streak = insights.progress?.current_streak ?? 0
 
   return (
@@ -410,7 +423,9 @@ export function FormacionCard({
             />
           </div>
           <p className="mt-1.5 text-[11px] text-gray-500 dark:text-white/60">
-            de todo el curso · {done}/{total} lecciones
+            {total > 0
+              ? `de la formación · ${done}/${total} ${total === 1 ? 'lección' : 'lecciones'}`
+              : 'Empieza tu primera lección'}
           </p>
         </div>
 
