@@ -73,6 +73,9 @@ def _send_many(kind: str, recipients: List[Tuple[str, str]], payload: dict) -> N
                     title=payload.get("title") or "Clase en vivo",
                     when_text=payload.get("when_text") or "",
                     join_url=payload.get("url") or "",
+                    # Sin enlace de reunión, el botón lleva al evento concreto
+                    # del calendario, no a la portada.
+                    event_url=payload.get("event_url") or "",
                 )
             else:
                 send_announcement_email(

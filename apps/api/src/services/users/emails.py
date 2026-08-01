@@ -571,9 +571,11 @@ def send_announcement_email(
                 {safe_excerpt}
             </p>
         </div>
-        <a href="{url or ACADEMY_URL}" class="brand-btn" style="{STYLES['button']}">
-            Ver en la academia
-        </a>
+        <div style="margin: 6px 0 30px 0;">
+            <a href="{url or ACADEMY_URL}" class="brand-btn" style="{STYLES['button']}">
+                Ver el mensaje
+            </a>
+        </div>
     """
 
     return send_email(
@@ -682,6 +684,7 @@ def send_class_scheduled_email(
     title: str = "Clase en vivo",
     when_text: str = "jueves 30 de julio · 19:00",
     join_url: str = "",
+    event_url: str = "",
 ):
     """Horario de la clase semanal confirmado: cuándo es y por dónde se entra."""
     safe_name = html.escape(name)
@@ -702,12 +705,14 @@ def send_class_scheduled_email(
                 {safe_when}
             </p>
         </div>
-        <a href="{join_url or ACADEMY_URL}" class="brand-btn" style="{STYLES['button']}">
-            {"Entrar a la clase" if join_url else "Ver en la academia"}
-        </a>
+        <div style="margin: 6px 0 30px 0;">
+            <a href="{join_url or event_url or ACADEMY_URL}" class="brand-btn" style="{STYLES['button']}">
+                {"Entrar a la clase" if join_url else "Ver los detalles"}
+            </a>
+        </div>
         <p style="{STYLES['p']}">
             Apúntatelo en el calendario. Si no puedes venir, la grabación queda
-            en la academia.
+            publicada y la ves cuando quieras.
         </p>
     """
 

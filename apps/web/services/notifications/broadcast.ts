@@ -14,6 +14,8 @@ export async function broadcastNotification(
     body?: string
     when_text?: string
     url?: string
+    /** Enlace al evento en la plataforma (respaldo del botón del email). */
+    event_url?: string
   },
   accessToken: string | undefined
 ): Promise<{ queued: number } | null> {

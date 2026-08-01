@@ -1,5 +1,5 @@
 'use client'
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import dayjs from 'dayjs'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import { useOrg } from '@components/Contexts/OrgContext'
@@ -59,6 +59,19 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
   const { isAdmin } = useAdminStatus() as any
   const canEdit = !!isAdmin
   const [notifying, setNotifying] = useState<string | null>(null)
+  // Al llegar desde el email (?evento=…) se resalta ese evento y se lleva la
+  // vista hasta él.
+  const [focusedEvent, setFocusedEvent] = useState<string | null>(null)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const id = new URLSearchParams(window.location.search).get('evento')
+    if (!id) return
+    setFocusedEvent(id)
+    const timer = setTimeout(() => {
+      document.getElementById(`evento-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 350)
+    return () => clearTimeout(timer)
+  }, [])
 
   // Avisar por email de una clase ya confirmada. Va a todos los alumnos de la
   // academia y se manda en segundo plano, así que la respuesta es inmediata.
@@ -72,8 +85,21 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
       .join(' ')
     if (!window.confirm(`Se enviará un email a TODOS los alumnos con:\n\n${ev.title}\n${whenText}\n\n¿Enviar?`)) return
     setNotifying(ev.id)
+    // Con enlace de reunión el botón entra directo a la clase; sin él, lleva
+    // al evento concreto del calendario (antes caía en la portada).
+    const eventUrl =
+      typeof window !== 'undefined'
+        ? `${window.location.origin}${window.location.pathname}?evento=${encodeURIComponent(ev.id)}`
+        : ''
     const res = await broadcastNotification(
-      { org_id: org.id, kind: 'class', title: ev.title, when_text: whenText, url: ev.link || '' },
+      {
+        org_id: org.id,
+        kind: 'class',
+        title: ev.title,
+        when_text: whenText,
+        url: ev.link || '',
+        event_url: eventUrl,
+      },
       accessToken
     )
     setNotifying(null)
@@ -259,7 +285,13 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
         ) : (
           <div className="space-y-2">
             {upcoming.map((ev) => (
-              <div key={ev.id} className="bg-white nice-shadow rounded-lg p-4 flex items-start gap-4">
+              <div
+                key={ev.id}
+                id={`evento-${ev.id}`}
+                className={`bg-white nice-shadow rounded-lg p-4 flex items-start gap-4 transition-shadow ${
+                  focusedEvent === ev.id ? 'ring-2 ring-[#4da3ff]' : ''
+                }`}
+              >
                 <div className="shrink-0 w-12 text-center">
                   <div className="text-[11px] font-semibold text-[#025dc7] uppercase">{MONTHS[dayjs(ev.date).month()].slice(0, 3)}</div>
                   <div className="text-xl font-bold text-gray-900 leading-none">{dayjs(ev.date).date()}</div>

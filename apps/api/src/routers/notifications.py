@@ -20,6 +20,8 @@ class BroadcastPayload(BaseModel):
     body: str = ""
     when_text: str = ""
     url: str = ""
+    # Enlace al evento dentro de la plataforma (respaldo del botón).
+    event_url: str = ""
 
 
 @router.post(
