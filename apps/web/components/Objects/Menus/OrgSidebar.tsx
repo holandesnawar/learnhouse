@@ -12,6 +12,7 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { HeaderProfileBox } from '@components/Security/HeaderProfileBox'
 import NotificationsBell from '@components/Objects/Menus/NotificationsBell'
+import MessagesBell from '@components/Objects/Menus/MessagesBell'
 import { DASHBOARD_MENU_ITEMS, DashboardMenuItem } from '@/lib/dashboard-menu-items'
 import { isFeatureAvailable } from '@services/plans/plans'
 import {
@@ -32,6 +33,7 @@ import {
   NotePencil,
   ChartLineUp,
   ChatCircleDots,
+  Envelope,
   List,
   X,
 } from '@phosphor-icons/react'
@@ -167,6 +169,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   // "Tu espacio" — zona personal del alumno (separada de las páginas generales).
   const personalItems: NavItem[] = [
     { key: 'mi-progreso', href: '/ejercicios/progreso', label: 'Mi progreso', icon: <ChartLineUp size={20} weight="fill" />, show: isAuthenticated },
+    { key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={20} weight="fill" />, show: isAuthenticated },
     { key: 'mis-consultas', href: '/mis-consultas', label: 'Mis consultas', icon: <ChatCircleDots size={20} weight="fill" />, show: isAuthenticated },
     { key: 'mis-notas', href: '/mis-notas', label: 'Mis notas', icon: <NotePencil size={20} weight="fill" />, show: isAuthenticated },
   ]
@@ -248,6 +251,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
       <div className="flex items-center justify-between px-4 pt-5 pb-3">
         <Logo height={34} />
         <div className="flex items-center gap-0.5">
+        <MessagesBell orgslug={orgslug} />
         <NotificationsBell orgslug={orgslug} />
         <button
           onClick={toggleCollapsed}
@@ -336,6 +340,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
       >
         <Logo height={32} />
         <div className="flex items-center gap-1">
+          <MessagesBell orgslug={orgslug} />
           <NotificationsBell orgslug={orgslug} />
           <button
             onClick={() => setIsOpen(true)}

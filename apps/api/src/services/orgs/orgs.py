@@ -1088,6 +1088,41 @@ async def update_org_community_panel_config(
     return {"detail": "Community panel configuration updated"}
 
 
+async def update_org_direct_welcome_config(
+    request: Request,
+    payload: dict,
+    org_id: int,
+    current_user: PublicUser | AnonymousUser,
+    db_session: AsyncSession,
+):
+    """Texto de bienvenida que recibe el alumno por mensaje directo."""
+    statement = select(Organization).where(Organization.id == org_id)
+    org = (await db_session.execute(statement)).scalars().first()
+
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    await rbac_check(request, org.org_uuid, current_user, "update", db_session)
+
+    statement = select(OrganizationConfig).where(OrganizationConfig.org_id == org.id)
+    org_config = (await db_session.execute(statement)).scalars().first()
+
+    if org_config is None:
+        raise HTTPException(status_code=404, detail="Organization config not found")
+
+    updated_config = _deep_copy_config(org_config)
+    updated_config["direct_welcome"] = {"message": payload.get("message", "")}
+
+    org_config.config = updated_config
+    org_config.update_date = str(datetime.now())
+
+    db_session.add(org_config)
+    await db_session.commit()
+    await db_session.refresh(org_config)
+
+    return {"detail": "Direct welcome message updated"}
+
+
 async def update_org_weekly_class_banner_config(
     request: Request,
     banner: dict,

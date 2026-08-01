@@ -25,8 +25,12 @@ interface StepItem {
 // Pasos que se marcan al hacer clic (visitar). El de comunidad NO está aquí:
 // se marca solo cuando el alumno publica de verdad en el canal de presentaciones.
 const VISITABLE: string[] = ['welcome_video', 'profile']
+// Plegado/desplegado es una preferencia de este ordenador: puede vivir en el
+// navegador. Lo demás (bienvenida vista, panel descartado) va al SERVIDOR: si
+// no, el alumno que entra desde el móvil vuelve a ver el popup de bienvenida y
+// el que borra cookies lo ve otra vez. Era parte del "sale a veces sí y a veces
+// no".
 const COLLAPSE_KEY = 'nawar_student_onboarding_collapsed'
-const WELCOME_SEEN_KEY = 'nawar_student_onboarding_welcome_seen'
 
 // Ruta del vídeo de bienvenida. Cuando exista, cambia esto por la ruta de la
 // lección/actividad del vídeo (p. ej. `/course/<uuid>/activity/<uuid>`). El paso
@@ -51,32 +55,21 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
 
   const [loaded, setLoaded] = useState(false)
   const [visited, setVisited] = useState<Set<string>>(new Set())
+  // Copia del estado guardado en el servidor: al escribir hay que mandarlo
+  // entero (el backend reemplaza el objeto, no lo mezcla).
+  const [serverState, setServerState] = useState<Record<string, any>>({})
+  const [dismissed, setDismissed] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
   const [presented, setPresented] = useState(false)
   const [communityChecked, setCommunityChecked] = useState(false)
   const [forceReady, setForceReady] = useState(false)
   const [showWelcome, setShowWelcome] = useState(false)
 
-  // Oculta el widget flotante cuando hay otro popup a pantalla completa abierto
-  // (p. ej. el modal "Abre una nueva consulta"), para que no tape sus botones.
-  // Detecta overlays Tailwind `fixed inset-0` que NO sean del propio onboarding.
-  const [overlayOpen, setOverlayOpen] = useState(false)
-  useEffect(() => {
-    if (typeof document === 'undefined') return
-    const check = () => {
-      const els = document.querySelectorAll('[class~="fixed"][class~="inset-0"]:not([data-onboarding])')
-      let open = false
-      els.forEach((el) => {
-        const s = window.getComputedStyle(el as Element)
-        if (s.display !== 'none' && s.visibility !== 'hidden' && Number(s.opacity) !== 0) open = true
-      })
-      setOverlayOpen(open)
-    }
-    check()
-    const mo = new MutationObserver(check)
-    mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] })
-    return () => mo.disconnect()
-  }, [])
+  // Antes había aquí un detector de "popups abiertos" que escondía el widget en
+  // cuanto encontraba CUALQUIER elemento a pantalla completa en la página. Como
+  // eso lo cumplen muchas cosas (cajones, fondos decorativos), el panel salía
+  // unas veces sí y otras no, sin patrón. Fuera: los modales de verdad se
+  // pintan muy por encima (z-index de modal) y ya tapan el widget solos.
 
   // Detecta si el alumno YA ha publicado en el canal de presentaciones (de verdad,
   // no solo al hacer clic). Marca el paso "Preséntate en Comunidad". Se re-comprueba
@@ -125,8 +118,6 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
     try {
       // Primera vez → desplegado; luego respetamos la elección del alumno.
       setCollapsed(localStorage.getItem(COLLAPSE_KEY) === '1')
-      // Primera vez de todas → mostramos el popup de bienvenida (una sola vez).
-      setShowWelcome(localStorage.getItem(WELCOME_SEEN_KEY) !== '1')
     } catch {
       /* ignore */
     }
@@ -142,7 +133,11 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
       .then((p) => {
         if (!active) return
         const state = (p?.onboarding_state ?? {}) as Record<string, any>
+        setServerState(state)
         setVisited(new Set(Array.isArray(state.visited) ? state.visited : []))
+        setDismissed(state.dismissed === true)
+        // La bienvenida se enseña UNA vez por alumno, no una vez por navegador.
+        setShowWelcome(state.welcomed !== true)
         setLoaded(true)
       })
       .catch(() => active && setLoaded(true))
@@ -204,7 +199,7 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
   // bienvenida salía al instante y desaparecía ~1s después cuando llegaban los
   // datos y resultaba que ya estaba todo hecho — en cada carga de página.
   const signalsReady = loaded && (forceReady || (trailFetched && communityChecked))
-  if (!signalsReady || allDone || !accessToken || isFocusPage) return null
+  if (!signalsReady || allDone || dismissed || !accessToken || isFocusPage) return null
 
   function setCollapsedPersisted(v: boolean) {
     setCollapsed(v)
@@ -215,12 +210,20 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
     }
   }
 
+  /** El backend REEMPLAZA onboarding_state, así que se manda entero. */
+  function saveState(patch: Record<string, any>) {
+    if (!accessToken) return
+    const next = { ...serverState, visited: Array.from(visited), ...patch }
+    setServerState(next)
+    patchStudentProgress({ onboarding_state: next }, accessToken)
+  }
+
   function markVisited(id: string) {
     if (!VISITABLE.includes(id) || !accessToken) return
     const next = new Set(visited)
     next.add(id)
     setVisited(next)
-    patchStudentProgress({ onboarding_state: { visited: Array.from(next) } }, accessToken)
+    saveState({ visited: Array.from(next) })
   }
 
   // Lista de pasos (reutilizada en el panel y en el popup de bienvenida).
@@ -259,11 +262,13 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
 
   function dismissWelcome() {
     setShowWelcome(false)
-    try {
-      localStorage.setItem(WELCOME_SEEN_KEY, '1')
-    } catch {
-      /* ignore */
-    }
+    saveState({ welcomed: true })
+  }
+
+  /** "No volver a mostrar": decisión del alumno, guardada en su cuenta. */
+  function dismissForGood() {
+    setDismissed(true)
+    saveState({ welcomed: true, dismissed: true })
   }
 
   // Popup de bienvenida — solo la primera vez (tamaño grande, centrado).
@@ -314,7 +319,6 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
     return (
       <>
         {welcomeModal}
-        {!overlayOpen && (
         <button
           onClick={() => setCollapsedPersisted(false)}
           className="fixed bottom-4 right-4 z-40 flex items-center gap-3 bg-white rounded-2xl nice-shadow border border-[#DDE6F5] pl-3 pr-3.5 py-2.5 hover:shadow-lg transition-shadow"
@@ -332,7 +336,6 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
           </div>
           <ChevronUp size={16} className="text-gray-400 shrink-0 ml-1" />
         </button>
-        )}
       </>
     )
   }
@@ -341,7 +344,6 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
   return (
     <>
       {welcomeModal}
-      {!overlayOpen && (
       <div className="fixed bottom-4 right-4 z-40 w-[340px] max-w-[calc(100vw-2rem)] bg-white rounded-2xl nice-shadow border border-[#DDE6F5] overflow-hidden">
         {/* Cabecera */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#DDE6F5]">
@@ -350,13 +352,22 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
             <span className="text-[14px] font-bold text-gray-900">Primeros pasos</span>
             <span className="text-[12px] text-gray-400 tabular-nums shrink-0">{done}/{total}</span>
           </div>
-          <button
-            onClick={() => setCollapsedPersisted(true)}
-            className="shrink-0 w-7 h-7 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-            aria-label="Minimizar"
-          >
-            <ChevronDown size={18} />
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={dismissForGood}
+              className="text-[11.5px] text-gray-400 hover:text-gray-700 px-1.5 py-1 rounded-md hover:bg-gray-100 transition-colors"
+              title="No volver a mostrar estos pasos"
+            >
+              No mostrar más
+            </button>
+            <button
+              onClick={() => setCollapsedPersisted(true)}
+              className="w-7 h-7 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              aria-label="Minimizar"
+            >
+              <ChevronDown size={18} />
+            </button>
+          </div>
         </div>
         {/* Barra de progreso */}
         <div className="h-1.5 bg-gray-100">
@@ -365,7 +376,6 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
         {/* Pasos */}
         {stepsList}
       </div>
-      )}
     </>
   )
 }

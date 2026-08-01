@@ -60,6 +60,11 @@ class CommunityPanelConfig(BaseModel):
     tips: str = ""
 
 
+class DirectWelcomeConfig(BaseModel):
+    # Mensaje automático que recibe el alumno en su conversación con el equipo.
+    message: str = ""
+
+
 class WeeklyClassBannerConfig(BaseModel):
     # Editable HTML-style banner for the "Clase semanal" course page.
     title: str = ""
