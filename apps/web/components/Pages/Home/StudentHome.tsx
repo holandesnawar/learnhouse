@@ -212,7 +212,7 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
           backgroundRepeat: 'repeat, no-repeat, no-repeat',
         }}
       >
-        <div className="shrink-0 flex items-center justify-center">
+        <div className="shrink-0 flex items-center justify-start">
           <HelpCircle size={30} className="text-white" />
         </div>
         <div className="flex-1 min-w-0">

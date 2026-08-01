@@ -30,7 +30,7 @@ export default function UpcomingEvents({ orgslug }: { orgslug: string }) {
     return readEvents(org)
       .filter((e) => e?.date && e.date >= todayStr)
       .sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')))
-      .slice(0, 3)
+      .slice(0, 2) // solo los dos siguientes: el Inicio no es el calendario
   }, [org, todayStr])
 
   return (
