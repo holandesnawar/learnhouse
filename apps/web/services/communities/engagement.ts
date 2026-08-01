@@ -59,6 +59,52 @@ export async function markChannelRead(
   }
 }
 
+export interface NotificationItem {
+  discussion_uuid: string
+  community_uuid: string
+  community_name: string
+  author_name: string
+  excerpt: string
+  date: string
+  is_new: boolean
+}
+
+export interface NotificationFeed {
+  items: NotificationItem[]
+  unseen: number
+}
+
+/** Menciones del alumno en la comunidad (lo que enciende la campana). */
+export async function getNotifications(
+  accessToken: string | undefined
+): Promise<NotificationFeed> {
+  if (!accessToken) return { items: [], unseen: 0 }
+  try {
+    const r = await fetch(
+      `${base()}/notifications`,
+      RequestBodyWithAuthHeader('GET', null, null, accessToken)
+    )
+    if (!r.ok) return { items: [], unseen: 0 }
+    const data = await r.json()
+    return { items: Array.isArray(data?.items) ? data.items : [], unseen: data?.unseen || 0 }
+  } catch {
+    return { items: [], unseen: 0 }
+  }
+}
+
+/** Apaga el punto rojo. No marca los canales como leídos. */
+export async function markNotificationsSeen(accessToken: string | undefined): Promise<void> {
+  if (!accessToken) return
+  try {
+    await fetch(
+      `${base()}/notifications/seen`,
+      RequestBodyWithAuthHeader('PUT', null, null, accessToken)
+    )
+  } catch {
+    /* best-effort */
+  }
+}
+
 export async function votePoll(
   discussionUuid: string,
   optionIndex: number,

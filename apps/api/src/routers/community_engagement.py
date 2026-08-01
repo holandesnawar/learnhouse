@@ -7,13 +7,15 @@ from pydantic import BaseModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.core.events.database import get_db_session
-from src.db.community_engagement import PollResults, UnreadCount
+from src.db.community_engagement import NotificationFeed, PollResults, UnreadCount
 from src.db.users import PublicUser
 from src.security.auth import get_current_user
 from src.services.communities.engagement import (
     get_read_states,
     get_unread,
+    list_notifications,
     mark_channel_read,
+    mark_notifications_seen,
     poll_results,
     vote_poll,
 )
@@ -45,6 +47,22 @@ async def api_mark_read(
     db_session: AsyncSession = Depends(get_db_session),
 ) -> dict:
     return await mark_channel_read(community_uuid, current_user, db_session)
+
+
+@router.get("/notifications", summary="Menciones del alumno en la comunidad.")
+async def api_notifications(
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+) -> NotificationFeed:
+    return await list_notifications(current_user, db_session)
+
+
+@router.put("/notifications/seen", summary="Marcar las notificaciones como vistas.")
+async def api_notifications_seen(
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+) -> dict:
+    return await mark_notifications_seen(current_user, db_session)
 
 
 class VotePayload(BaseModel):

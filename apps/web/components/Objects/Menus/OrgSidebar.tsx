@@ -11,6 +11,7 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { HeaderProfileBox } from '@components/Security/HeaderProfileBox'
+import NotificationsBell from '@components/Objects/Menus/NotificationsBell'
 import { DASHBOARD_MENU_ITEMS, DashboardMenuItem } from '@/lib/dashboard-menu-items'
 import { isFeatureAvailable } from '@services/plans/plans'
 import {
@@ -239,10 +240,15 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     </Link>
   )
 
+  // Se llama como función, no como etiqueta JSX: así React no lo trata como un
+  // componente nuevo en cada render y lo de dentro (la campana abierta, por
+  // ejemplo) no se reinicia solo.
   const SidebarInner = () => (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-4 pt-5 pb-3">
         <Logo height={34} />
+        <div className="flex items-center gap-0.5">
+        <NotificationsBell orgslug={orgslug} />
         <button
           onClick={toggleCollapsed}
           className="hidden md:flex p-1.5 rounded-lg text-white/55 hover:text-white hover:bg-white/[0.06] transition-colors"
@@ -251,6 +257,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         >
           <PanelLeftClose size={18} />
         </button>
+        </div>
       </div>
       <nav className="flex-1 overflow-y-auto px-3 space-y-1 pb-3 pt-1">
         {navItems.filter((i) => i.show).map((i) => (
@@ -305,7 +312,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         className={`${collapsed ? 'hidden' : 'hidden md:flex'} flex-col w-64 shrink-0 sticky top-0 h-screen border-r border-white/10`}
         style={surfaceStyle}
       >
-        <SidebarInner />
+        {SidebarInner()}
       </aside>
 
       {/* Desktop "show sidebar" button (visible when collapsed) — same look and
@@ -328,13 +335,16 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         style={{ ...surfaceStyle, zIndex: 'var(--z-nav)' }}
       >
         <Logo height={32} />
-        <button
-          onClick={() => setIsOpen(true)}
-          aria-label="Menu"
-          className="p-2 rounded-lg text-white/80 hover:bg-white/[0.06]"
-        >
-          <List size={24} weight="bold" />
-        </button>
+        <div className="flex items-center gap-1">
+          <NotificationsBell orgslug={orgslug} />
+          <button
+            onClick={() => setIsOpen(true)}
+            aria-label="Menu"
+            className="p-2 rounded-lg text-white/80 hover:bg-white/[0.06]"
+          >
+            <List size={24} weight="bold" />
+          </button>
+        </div>
       </header>
 
       {/* Mobile drawer */}
@@ -355,7 +365,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto">
-              <SidebarInner />
+              {SidebarInner()}
             </div>
           </aside>
         </div>

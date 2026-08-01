@@ -18,7 +18,15 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.communities.communities import Community
 from src.db.communities.discussions import Discussion
-from src.db.community_engagement import ChannelReadState, PollVote, PollResults, UnreadCount
+from src.db.community_engagement import (
+    ChannelReadState,
+    NotificationFeed,
+    NotificationItem,
+    NotificationSeen,
+    PollVote,
+    PollResults,
+    UnreadCount,
+)
 from src.db.user_organizations import UserOrganization
 from src.db.users import AnonymousUser, PublicUser, User
 
@@ -205,6 +213,109 @@ async def get_unread(
             )
         )
     return out
+
+
+####################################################
+# Campana de notificaciones
+####################################################
+
+
+async def _user_org_ids(user_id: int, db_session: AsyncSession) -> List[int]:
+    return list(
+        (
+            await db_session.execute(
+                select(UserOrganization.org_id).where(UserOrganization.user_id == user_id)
+            )
+        ).scalars().all()
+    )
+
+
+async def list_notifications(
+    current_user: PublicUser | AnonymousUser,
+    db_session: AsyncSession,
+    limit: int = 20,
+) -> NotificationFeed:
+    """
+    Las menciones del alumno en la comunidad, de la más reciente a la más vieja.
+
+    Se miran solo los mensajes recientes (los últimos que hay en sus canales),
+    no el historial entero: la campana es para enterarse de lo de ahora.
+    """
+    user_id = _user_id_or_401(current_user)
+
+    user = (await db_session.execute(select(User).where(User.id == user_id))).scalars().first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    org_ids = await _user_org_ids(user_id, db_session)
+    if not org_ids:
+        return NotificationFeed(items=[], unseen=0)
+
+    seen_row = (
+        await db_session.execute(
+            select(NotificationSeen).where(NotificationSeen.user_id == user_id)
+        )
+    ).scalars().first()
+    last_seen = seen_row.last_seen_at if seen_row else ""
+
+    rows = (
+        await db_session.execute(
+            select(Discussion, Community, User)
+            .join(Community, Community.id == Discussion.community_id)  # type: ignore
+            .join(User, User.id == Discussion.author_id)  # type: ignore
+            .where(
+                Community.org_id.in_(org_ids),  # type: ignore
+                Discussion.author_id != user_id,
+            )
+            .order_by(Discussion.creation_date.desc())  # type: ignore
+            .limit(300)
+        )
+    ).all()
+
+    items: List[NotificationItem] = []
+    for discussion, community, author in rows:
+        text = message_text(discussion.content)
+        if not mentions_user(text, user):
+            continue
+        excerpt = text.strip()
+        if len(excerpt) > 160:
+            excerpt = excerpt[:157].rstrip() + "…"
+        items.append(
+            NotificationItem(
+                discussion_uuid=discussion.discussion_uuid,
+                community_uuid=community.community_uuid,
+                community_name=community.name or "Comunidad",
+                author_name=(author.first_name or author.username or "Alguien"),
+                excerpt=excerpt,
+                date=discussion.creation_date or "",
+                is_new=bool(discussion.creation_date and discussion.creation_date > last_seen),
+            )
+        )
+        if len(items) >= limit:
+            break
+
+    return NotificationFeed(items=items, unseen=sum(1 for i in items if i.is_new))
+
+
+async def mark_notifications_seen(
+    current_user: PublicUser | AnonymousUser, db_session: AsyncSession
+) -> dict:
+    """Apaga el punto rojo de la campana. No marca los canales como leídos."""
+    user_id = _user_id_or_401(current_user)
+    row = (
+        await db_session.execute(
+            select(NotificationSeen).where(NotificationSeen.user_id == user_id)
+        )
+    ).scalars().first()
+
+    now = _now()
+    if row:
+        row.last_seen_at = now
+    else:
+        row = NotificationSeen(user_id=user_id, last_seen_at=now)
+    db_session.add(row)
+    await db_session.commit()
+    return {"last_seen_at": now}
 
 
 ####################################################

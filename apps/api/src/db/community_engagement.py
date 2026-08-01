@@ -46,6 +46,42 @@ class PollVote(SQLModel, table=True):
     created_at: str = ""
 
 
+class NotificationSeen(SQLModel, table=True):
+    """
+    Hasta cuándo ha mirado el alumno su campana de notificaciones.
+
+    Es distinto de haber leído el canal: puede ver "te han mencionado" y entrar
+    al canal más tarde. Por eso lleva su propia fecha.
+    """
+
+    __tablename__ = "notification_seen"
+    __table_args__ = (UniqueConstraint("user_id", name="uq_notification_seen_user"),)
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(
+        sa_column=Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True)
+    )
+    last_seen_at: str = ""
+
+
+class NotificationItem(BaseModel):
+    """Una mención en la comunidad, lista para pintar en la campana."""
+
+    discussion_uuid: str
+    community_uuid: str
+    community_name: str
+    author_name: str
+    excerpt: str
+    date: str
+    # True si llegó después de la última vez que abrió la campana.
+    is_new: bool
+
+
+class NotificationFeed(BaseModel):
+    items: List[NotificationItem]
+    unseen: int
+
+
 class UnreadCount(BaseModel):
     community_uuid: str
     unread: int
