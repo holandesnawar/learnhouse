@@ -181,8 +181,16 @@ def get_base_url_from_request(request: Request) -> str:
     return f"{request.url.scheme}://{request.url.netloc}"
 
 
-def send_email(to: EmailStr, subject: str, body: str):
+def send_email(to: EmailStr, subject: str, body: str, dry_run: bool = False):
+    """Con dry_run=True no envía nada: devuelve el HTML ya montado.
+
+    Es lo que permite previsualizar en el panel cualquier correo automático
+    exactamente como le llega al alumno, sin mandárselo a nadie.
+    """
     from fastapi import HTTPException
+
+    if dry_run:
+        return {"subject": subject, "html": body}
 
     lh_config = get_learnhouse_config()
     mailing = lh_config.mailing_config

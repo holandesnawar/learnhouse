@@ -93,3 +93,55 @@ async def demo_student(
     from src.services.demo.demo_student import seed_demo_student
 
     return await seed_demo_student(db_session)
+
+
+@router.get(
+    "/email-templates",
+    summary="Lista de correos automáticos de la academia.",
+)
+async def email_templates(
+    current_user: PublicUser = Depends(get_authenticated_user),
+):
+    _require_superadmin(current_user)
+    from src.services.demo.email_catalog import list_templates
+
+    return list_templates()
+
+
+@router.get(
+    "/email-templates/{template_id}/preview",
+    summary="Ver un correo automático con datos de ejemplo (no lo envía).",
+)
+async def email_template_preview(
+    template_id: str,
+    name: str = "María",
+    current_user: PublicUser = Depends(get_authenticated_user),
+):
+    _require_superadmin(current_user)
+    from src.services.demo.email_catalog import render_template
+
+    try:
+        return render_template(template_id, name)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+
+@router.post(
+    "/email-templates/{template_id}/send-test",
+    summary="Enviarse a uno mismo un correo automático para verlo en la bandeja.",
+)
+async def email_template_send_test(
+    template_id: str,
+    current_user: PublicUser = Depends(get_authenticated_user),
+):
+    _require_superadmin(current_user)
+    from src.services.demo.email_catalog import send_template_test
+
+    to = getattr(current_user, "email", None)
+    if not to:
+        raise HTTPException(status_code=400, detail="No email on the current user")
+    try:
+        send_template_test(template_id, to, getattr(current_user, "first_name", None) or "María")
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Template not found")
+    return {"sent_to": to}

@@ -142,6 +142,7 @@ def send_account_creation_email(
     user: UserRead,
     email: EmailStr,
     lang: str = "en",
+    preview: bool = False,
 ):
     safe_username = html.escape(user.username)
 
@@ -165,6 +166,7 @@ def send_account_creation_email(
     """
 
     return send_email(
+        dry_run=preview,
         to=email,
         subject=t(lang, "account_creation.subject", username=safe_username),
         body=_email_layout(
@@ -182,6 +184,7 @@ def send_password_reset_email(
     email: EmailStr,
     base_url: str,
     lang: str = "en",
+    preview: bool = False,
 ):
     safe_username = html.escape(user.username)
     safe_code = html.escape(generated_reset_code)
@@ -207,6 +210,7 @@ def send_password_reset_email(
     """
 
     return send_email(
+        dry_run=preview,
         to=email,
         subject=t(lang, "password_reset.subject"),
         body=_email_layout(
@@ -223,6 +227,7 @@ def send_password_reset_email_platform(
     email: EmailStr,
     base_url: str,
     lang: str = "en",
+    preview: bool = False,
 ):
     safe_username = html.escape(user.username)
     safe_code = html.escape(generated_reset_code)
@@ -248,6 +253,7 @@ def send_password_reset_email_platform(
     """
 
     return send_email(
+        dry_run=preview,
         to=email,
         subject=t(lang, "password_reset.subject"),
         body=_email_layout(
@@ -265,6 +271,7 @@ def send_invitation_email(
     signup_url: str,
     invite_code: Optional[str] = None,
     lang: str = "en",
+    preview: bool = False,
 ):
     safe_org_name = html.escape(org_name)
     safe_inviter = html.escape(inviter_username)
@@ -302,6 +309,7 @@ def send_invitation_email(
     """
 
     return send_email(
+        dry_run=preview,
         to=email,
         subject=t(lang, "invitation.subject", org_name=safe_org_name),
         body=_email_layout(
@@ -318,6 +326,7 @@ def send_role_changed_email(
     org_name: str,
     new_role_name: str,
     lang: str = "en",
+    preview: bool = False,
 ):
     """
     Send an email notifying a user that their role has changed in an organization.
@@ -344,6 +353,7 @@ def send_role_changed_email(
     """
 
     return send_email(
+        dry_run=preview,
         to=email,
         subject=t(lang, "role_changed.subject", org_name=safe_org_name),
         body=_email_layout(
@@ -361,6 +371,7 @@ def send_email_verification_email(
     email: EmailStr,
     base_url: str,
     lang: str = "en",
+    preview: bool = False,
 ):
     """
     Send email verification email with verification link.
@@ -402,6 +413,7 @@ def send_email_verification_email(
     """
 
     return send_email(
+        dry_run=preview,
         to=email,
         subject=t(lang, "email_verification.subject"),
         body=_email_layout(
@@ -423,6 +435,7 @@ def send_payment_welcome_email(
     name: str,
     reset_code: str,
     base_url: str,
+    preview: bool = False,
 ):
     """Trigger after Stripe confirms the payment: welcome + "set your password"
     in a single email so the student lands in the academy with one click."""
@@ -453,6 +466,7 @@ def send_payment_welcome_email(
     """
 
     return send_email(
+        dry_run=preview,
         to=email,
         subject="¡Bienvenido a Holandés Nawar! Crea tu contraseña",
         body=_email_layout(
@@ -470,6 +484,7 @@ def send_weekly_digest_email(
     lessons_done: int = 3,
     progress_pct: int = 45,
     next_lesson: str = "1.4 Lezen — Anna & Marco",
+    preview: bool = False,
 ):
     """Lunes por la mañana: resumen de la semana del alumno."""
     safe_name = html.escape(name)
@@ -499,6 +514,7 @@ def send_weekly_digest_email(
     """
 
     return send_email(
+        dry_run=preview,
         to=email,
         subject="Tu semana en Holandés Nawar",
         body=_email_layout(
@@ -514,6 +530,7 @@ def send_module_unlocked_email(
     name: str = "alumno/a",
     module_name: str = "Module 2 — Familie & vrienden",
     lesson_count: int = 11,
+    preview: bool = False,
 ):
     """Notificación: el alumno acaba de desbloquear un nuevo módulo."""
     safe_name = html.escape(name)
@@ -535,6 +552,7 @@ def send_module_unlocked_email(
     """
 
     return send_email(
+        dry_run=preview,
         to=email,
         subject=f"Has desbloqueado {module_name}",
         body=_email_layout(
@@ -551,6 +569,7 @@ def send_announcement_email(
     title: str = "Nueva quedada online el jueves",
     excerpt: str = "El jueves a las 19h tenemos sesión de conversación en grupo. Plazas limitadas.",
     url: str = "",
+    preview: bool = False,
 ):
     """Anuncio nuevo publicado en la academia."""
     safe_name = html.escape(name)
@@ -579,6 +598,7 @@ def send_announcement_email(
     """
 
     return send_email(
+        dry_run=preview,
         to=email,
         subject=f"Anuncio: {title}",
         body=_email_layout(
@@ -594,6 +614,7 @@ def send_consulta_answered_email(
     name: str = "alumno/a",
     question_excerpt: str = "¿Cuándo uso 'de' y cuándo 'het' en holandés?",
     link: str | None = None,
+    preview: bool = False,
 ):
     """Notificación: el equipo respondió una consulta del alumno.
 
@@ -627,6 +648,7 @@ def send_consulta_answered_email(
     """
 
     return send_email(
+        dry_run=preview,
         to=email,
         subject="Consulta respondida",
         body=_email_layout(
@@ -642,6 +664,7 @@ def send_certificate_ready_email(
     name: str = "alumno/a",
     certification_name: str = "Formación Neerlandés A0 → A1",
     certificate_url: str = f"{ACADEMY_URL}/trail",
+    preview: bool = False,
 ):
     """El alumno ha terminado la formación: su certificado ya está disponible."""
     safe_name = html.escape(name)
@@ -668,6 +691,7 @@ def send_certificate_ready_email(
     """
 
     return send_email(
+        dry_run=preview,
         to=email,
         subject=f"Tu certificado de {certification_name} ya está listo",
         body=_email_layout(
@@ -685,6 +709,7 @@ def send_class_scheduled_email(
     when_text: str = "jueves 30 de julio · 19:00",
     join_url: str = "",
     event_url: str = "",
+    preview: bool = False,
 ):
     """Horario de la clase semanal confirmado: cuándo es y por dónde se entra."""
     safe_name = html.escape(name)
@@ -717,6 +742,7 @@ def send_class_scheduled_email(
     """
 
     return send_email(
+        dry_run=preview,
         to=email,
         subject=f"{title} — {when_text}",
         body=_email_layout(
@@ -828,6 +854,7 @@ def send_news_email(
     body_html: str = "",
     cta_label: str = "",
     cta_url: str = "",
+    preview: bool = False,
 ):
     """Aviso redactado desde el panel: título, cuerpo con formato y botón."""
     safe_name = html.escape(name)
@@ -852,6 +879,7 @@ def send_news_email(
     """
 
     return send_email(
+        dry_run=preview,
         to=email,
         subject=title,
         body=_email_layout(

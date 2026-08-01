@@ -22,7 +22,6 @@ import {
   Quote,
   Send,
   Loader2,
-  Mail,
   Eye,
 } from 'lucide-react'
 
@@ -151,12 +150,8 @@ export default function AvisosComposer() {
   }
 
   return (
-    <div className="h-full w-full bg-[#f8f8f8] px-4 sm:px-9 py-9">
+    <div className="w-full">
       <div className="max-w-3xl">
-        <div className="flex items-center gap-2.5 mb-1.5">
-          <Mail size={20} className="text-[#025dc7]" />
-          <h1 className="text-xl font-bold text-gray-900">Avisos</h1>
-        </div>
         <p className="text-sm text-gray-500 mb-6 leading-relaxed">
           Escribe un correo de novedades y mándalo a todos los alumnos. Empieza
           siempre con el envío de prueba: te llega solo a ti y ves cómo queda de
