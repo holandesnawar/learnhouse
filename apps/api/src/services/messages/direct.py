@@ -128,10 +128,42 @@ async def _user(user_id: Optional[int], db_session: AsyncSession) -> Optional[Us
 
 
 def _avatar_path(user: Optional[User]) -> str:
-    """Ruta de la foto del usuario, o vacío si no tiene."""
-    if not user or not user.avatar_image or not user.user_uuid:
+    """
+    La foto que el usuario tenga puesta en su cuenta de la plataforma.
+
+    Puede ser un fichero subido (vive en content/users/…) o una dirección
+    completa si entró con Google y compañía: en ese caso se devuelve tal cual.
+    """
+    if not user or not user.avatar_image:
         return ""
-    return f"/content/users/{user.user_uuid}/avatars/{user.avatar_image}"
+    avatar = user.avatar_image
+    if avatar.startswith("http://") or avatar.startswith("https://"):
+        return avatar
+    if not user.user_uuid:
+        return ""
+    return f"/content/users/{user.user_uuid}/avatars/{avatar}"
+
+
+async def _org_admin(org_id: int, db_session: AsyncSession) -> Optional[User]:
+    """
+    La cuenta administradora de la academia (la de "Nawar").
+
+    Es quien figura como autor de los mensajes automáticos: así el nombre y la
+    foto salen de una cuenta de verdad de la plataforma, y cambian solos cuando
+    se cambia el perfil, en vez de estar escritos a mano en el código.
+    """
+    return (
+        await db_session.execute(
+            select(User)
+            .join(UserOrganization, UserOrganization.user_id == User.id)  # type: ignore
+            .where(
+                UserOrganization.org_id == org_id,
+                UserOrganization.role_id == ADMIN_ROLE_ID,
+            )
+            .order_by(User.id.asc())  # type: ignore
+            .limit(1)
+        )
+    ).scalars().first()
 
 
 async def _org_logo(org_id: int, db_session: AsyncSession) -> str:
@@ -184,10 +216,13 @@ async def get_or_create_thread(
     # La bienvenida automática es cosa del hilo "con el equipo": en una
     # conversación con una persona concreta pintaría raro.
     if staff_id is None:
+        admin = await _org_admin(org_id, db_session)
         db_session.add(
             DirectMessage(
                 thread_id=thread.id or 0,
-                author_id=None,
+                # Firmado por la cuenta admin de la academia: el alumno ve su
+                # nombre y su foto, no un remitente fantasma.
+                author_id=admin.id if admin else None,
                 body=await welcome_text(org_id, db_session),
                 created_at=now,
             )
@@ -250,12 +285,17 @@ async def _thread_row(
 
     # El título es "con quién hablo yo": el equipo ve el nombre del alumno; el
     # alumno ve "Equipo Nawar" o el nombre del moderador que eligió.
-    staff_name = _display_name(staff) if staff else "Equipo Nawar"
+    # Con quién habla el alumno cuando el hilo es "con el equipo": la cuenta
+    # admin de la academia, con su nombre y su foto de la plataforma.
+    team = None if staff else await _org_admin(thread.org_id, db_session)
+    staff_name = _display_name(staff) if staff else (_display_name(team) if team else "Equipo Nawar")
     title = _display_name(student) if for_staff else staff_name
     if for_staff:
         title_avatar = _avatar_path(student)
+    elif staff:
+        title_avatar = _avatar_path(staff)
     else:
-        title_avatar = _avatar_path(staff) if staff else await _org_logo(thread.org_id, db_session)
+        title_avatar = _avatar_path(team) or await _org_logo(thread.org_id, db_session)
 
     return DirectThreadRead(
         id=thread.id or 0,
@@ -372,8 +412,11 @@ async def get_thread(
         )
     ).scalars().all()
 
-    # El logo se pide una vez, no una por mensaje automático.
-    org_logo = await _org_logo(org_id, db_session)
+    # Identidad de respaldo para los mensajes automáticos antiguos (los que se
+    # guardaron sin autor): la cuenta admin de la academia. Se pide una sola vez.
+    fallback = await _org_admin(org_id, db_session)
+    fallback_name = _display_name(fallback) if fallback else "Equipo Nawar"
+    fallback_avatar = _avatar_path(fallback) or await _org_logo(org_id, db_session)
 
     messages: List[DirectMessageRead] = []
     for m in rows:
@@ -390,8 +433,12 @@ async def get_thread(
                 audio_seconds=m.audio_seconds or 0,
                 created_at=m.created_at or "",
                 author_id=m.author_id,
-                author_name=_display_name(author) if author else "Equipo Nawar",
-                author_avatar=_avatar_path(author) or (org_logo if from_staff else ""),
+                author_name=_display_name(author) if author else fallback_name,
+                author_avatar=(
+                    _avatar_path(author)
+                    if author
+                    else (fallback_avatar if from_staff else "")
+                ),
                 from_staff=from_staff,
             )
         )
