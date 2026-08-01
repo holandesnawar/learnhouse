@@ -573,7 +573,7 @@ def send_announcement_email(
         </div>
         <div style="margin: 6px 0 30px 0;">
             <a href="{url or ACADEMY_URL}" class="brand-btn" style="{STYLES['button']}">
-                Ver el mensaje
+                Ver los detalles
             </a>
         </div>
     """

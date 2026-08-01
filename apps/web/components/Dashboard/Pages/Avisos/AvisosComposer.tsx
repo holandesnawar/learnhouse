@@ -68,7 +68,7 @@ export default function AvisosComposer() {
   const accessToken = session?.data?.tokens?.access_token
 
   const [subject, setSubject] = useState('Novedades de esta semana')
-  const [ctaLabel, setCtaLabel] = useState('Entrar a la formación')
+  const [ctaLabel, setCtaLabel] = useState('Ver los detalles')
   const [ctaUrl, setCtaUrl] = useState('https://academia.holandesnawar.nl')
   const [testOnly, setTestOnly] = useState(true)
   const [sending, setSending] = useState(false)
