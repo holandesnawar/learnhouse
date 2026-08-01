@@ -103,7 +103,7 @@ export default function EmailCatalog() {
               onClick={() => setSelected(t.id)}
               className={`w-full text-left rounded-xl border px-4 py-3 transition-colors ${
                 active
-                  ? 'bg-white border-[#4da3ff] ring-[3px] ring-[#4da3ff]/20'
+                  ? 'bg-white border-[#4da3ff]'
                   : 'bg-white border-[#DDE6F5] hover:border-[#4da3ff]/60'
               }`}
             >

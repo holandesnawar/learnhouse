@@ -192,3 +192,37 @@ export function htmlToText(html: string | null | undefined): string {
     .replace(/\n{3,}/g, '\n\n')
     .trim()
 }
+
+
+/**
+ * Piezas de presentación compartidas por las dos pantallas de consultas
+ * (el tablón público y "Mis consultas"), para que se vean iguales.
+ */
+
+/** Foto de Team Nawar en las respuestas. */
+export const TEAM_LOGO = 'https://docs.holandesnawar.com/img/Nawar.favicon.png'
+
+/** Colores de la etiqueta de categoría. */
+export function catClasses(color?: string): string {
+  switch (color) {
+    case 'blue':   return 'bg-[#F0F5FF] text-[#025dc7] border-[#DDE6F5]'
+    case 'green':  return 'bg-emerald-50 text-emerald-700 border-emerald-100'
+    case 'purple': return 'bg-purple-50 text-purple-700 border-purple-100'
+    case 'yellow': return 'bg-amber-50 text-amber-700 border-amber-100'
+    case 'red':    return 'bg-red-50 text-red-700 border-red-100'
+    case 'orange': return 'bg-orange-50 text-orange-700 border-orange-100'
+    default:       return 'bg-gray-50 text-gray-600 border-gray-100'
+  }
+}
+
+const MESES_ES = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+]
+
+/** "5 de agosto de 2026" */
+export function formatConsultaDate(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return `${d.getDate()} de ${MESES_ES[d.getMonth()]} de ${d.getFullYear()}`
+}

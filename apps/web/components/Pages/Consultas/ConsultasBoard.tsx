@@ -10,20 +10,9 @@ import { getOrgLogoMediaDirectory } from '@services/media/media'
 import {
   CONSULTA_CATEGORIES, CATEGORY_BY_ID, listConsultas, getConsulta, createConsulta,
   updateMyConsulta, deleteMyConsulta, isMyConsulta, htmlToText,
+  catClasses, TEAM_LOGO,
   type Consulta, type StatusFilter,
 } from '@/lib/consultas/consultas'
-
-function catClasses(color?: string): string {
-  switch (color) {
-    case 'blue':   return 'bg-[#F0F5FF] text-[#025dc7] border-[#DDE6F5]'
-    case 'green':  return 'bg-emerald-50 text-emerald-700 border-emerald-100'
-    case 'purple': return 'bg-purple-50 text-purple-700 border-purple-100'
-    case 'yellow': return 'bg-amber-50 text-amber-700 border-amber-100'
-    case 'red':    return 'bg-red-50 text-red-700 border-red-100'
-    case 'orange': return 'bg-orange-50 text-orange-700 border-orange-100'
-    default:       return 'bg-gray-50 text-gray-600 border-gray-100'
-  }
-}
 
 function formatDate(iso: string): string {
   try {
@@ -82,7 +71,7 @@ export default function ConsultasBoard({
   const org = useOrg() as any
   // Hardcoded Nawar avatar for the team reply, so the answer always carries
   // the brand mark regardless of whatever org logo is currently uploaded.
-  const teamLogo = 'https://docs.holandesnawar.com/img/Nawar.favicon.png'
+  const teamLogo = TEAM_LOGO
   const sessionName = useMemo(
     () => [user?.first_name, user?.last_name].filter(Boolean).join(' ').trim() || user?.username || '',
     [user?.first_name, user?.last_name, user?.username]

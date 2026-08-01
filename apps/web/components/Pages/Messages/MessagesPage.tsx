@@ -244,7 +244,7 @@ export default function MessagesPage() {
               onClick={() => openThread(t.id, t.title, t.title_avatar, t.title_role)}
               className={`w-full text-left rounded-xl border px-3 py-2.5 transition-colors ${
                 activeId === t.id
-                  ? 'bg-white border-[#4da3ff] ring-[3px] ring-[#4da3ff]/20'
+                  ? 'bg-white border-[#4da3ff]'
                   : 'bg-white border-[#DDE6F5] hover:border-[#4da3ff]/60'
               }`}
             >
@@ -315,7 +315,7 @@ export default function MessagesPage() {
       </div>
 
       {emojiOpen && (
-        <div className="mx-3 mb-1 grid grid-cols-8 gap-1 rounded-xl border border-[#DDE6F5] bg-white p-2 nice-shadow">
+        <div className="mx-3 mb-1 grid grid-cols-8 gap-1 rounded-xl border border-[#DDE6F5] bg-white p-2">
           {COMPOSER_EMOJIS.map((e) => (
             <button
               key={e}

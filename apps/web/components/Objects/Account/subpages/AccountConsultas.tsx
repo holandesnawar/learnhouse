@@ -2,20 +2,32 @@
 
 import React, { useEffect, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
-import { listMyConsultas, htmlToText, type Consulta, CATEGORY_BY_ID } from '@/lib/consultas/consultas'
-import { HelpCircle, CheckCircle2, Clock, Loader2, MessageCircleQuestion } from 'lucide-react'
+import {
+  listMyConsultas,
+  htmlToText,
+  catClasses,
+  formatConsultaDate,
+  CATEGORY_BY_ID,
+  TEAM_LOGO,
+  type Consulta,
+} from '@/lib/consultas/consultas'
+import {
+  HelpCircle,
+  CheckCircle2,
+  Clock,
+  Loader2,
+  MessageCircleQuestion,
+  ChevronDown,
+} from 'lucide-react'
 
-const MESES_ES = [
-  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
-]
-
-function formatDate(iso: string): string {
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return ''
-  return `${d.getDate()} de ${MESES_ES[d.getMonth()]}, ${d.getFullYear()}`
-}
-
+/**
+ * "Mis consultas" — las preguntas del alumno y su estado.
+ *
+ * Usa la misma piel que el tablón de Consultas (tarjetas blancas con sombra,
+ * etiquetas de categoría, respuesta firmada por Team Nawar con su foto) para
+ * que no parezcan dos aplicaciones distintas. Lo que cambia es el formato:
+ * aquí la consulta se despliega en su sitio, sin abrir una ventana encima.
+ */
 export default function AccountConsultas() {
   const session = useLHSession() as any
   const email: string | undefined = session?.data?.user?.email
@@ -42,17 +54,20 @@ export default function AccountConsultas() {
         <MessageCircleQuestion size={24} className="text-[#025dc7]" />
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Mis consultas</h1>
       </div>
-      <p className="text-sm text-gray-500 -mt-3 max-w-xl">Tus preguntas y el estado de cada una.</p>
+      <p className="text-sm text-gray-500 -mt-3 max-w-xl">
+        Tus preguntas y el estado de cada una. Pulsa una para ver la respuesta.
+      </p>
 
       {items === null ? (
         <div className="flex justify-center py-16">
           <Loader2 size={24} className="animate-spin text-gray-400" />
         </div>
       ) : items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center text-center py-16 px-4 rounded-2xl border border-[#DDE6F5] bg-white">
+        <div className="flex flex-col items-center justify-center text-center py-16 px-4 rounded-2xl bg-white nice-shadow">
           <HelpCircle size={30} className="text-[#025dc7] mb-3" />
           <p className="text-sm text-gray-500 max-w-xs">
-            Aún no has creado ninguna consulta. Cuando tengas una duda, créala desde una lección o desde la sección de Consultas.
+            Aún no has creado ninguna consulta. Cuando tengas una duda, créala
+            desde una lección o desde la sección de Consultas.
           </p>
         </div>
       ) : (
@@ -62,50 +77,84 @@ export default function AccountConsultas() {
             const answer = c.respuesta_nawar ? htmlToText(c.respuesta_nawar) : ''
             const isOpen = openId === c.id
             return (
-              <div key={c.id} className="rounded-2xl border border-[#DDE6F5] bg-white overflow-hidden">
+              <div
+                key={c.id}
+                className={`rounded-2xl bg-white nice-shadow border transition-all ${
+                  isOpen ? 'border-[#4da3ff]/40' : 'border-transparent hover:border-[#4da3ff]/40'
+                }`}
+              >
                 <button
                   onClick={() => setOpenId(isOpen ? null : c.id)}
-                  className="w-full text-left p-4 sm:p-5 hover:bg-[#F0F5FF]/40 transition-colors"
+                  className="w-full text-left p-4 sm:p-5"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        {cat && (
-                          <span className="text-[10px] text-[#025dc7] font-semibold uppercase tracking-wider">{cat.short}</span>
-                        )}
-                        <span className="text-[11px] text-gray-400">{formatDate(c.created_at)}</span>
-                      </div>
-                      <p className="text-[15px] font-semibold text-gray-900 leading-snug">{c.title}</p>
-                    </div>
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${catClasses(cat?.color)}`}
+                    >
+                      {cat?.name || c.category || 'General'}
+                    </span>
                     {c.resolved ? (
-                      <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-bold uppercase tracking-wider">
-                        <CheckCircle2 size={13} /> Respondida
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#4da3ff]/12 text-[#025dc7]">
+                        <CheckCircle2 size={12} /> Respondida
                       </span>
                     ) : (
-                      <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-[11px] font-bold uppercase tracking-wider">
-                        <Clock size={13} /> Pendiente
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700">
+                        <Clock size={12} /> Pendiente
                       </span>
                     )}
+                    <ChevronDown
+                      size={16}
+                      className={`ml-auto shrink-0 text-gray-400 transition-transform ${
+                        isOpen ? 'rotate-180' : ''
+                      }`}
+                    />
                   </div>
+
+                  <p className="text-[15px] font-bold text-gray-900 leading-snug">{c.title}</p>
+                  {!isOpen && (
+                    <p className="text-[13px] text-gray-500 leading-snug mt-1 line-clamp-2">
+                      {htmlToText(c.content)}
+                    </p>
+                  )}
+                  <p className="text-[12px] text-gray-400 mt-2">
+                    {formatConsultaDate(c.created_at)}
+                  </p>
                 </button>
 
                 {isOpen && (
-                  <div className="px-4 sm:px-5 pb-4 sm:pb-5 -mt-1 space-y-3">
-                    {/* Tu pregunta */}
-                    <div>
-                      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Tu pregunta</p>
-                      <p className="text-[14px] text-gray-700 leading-relaxed whitespace-pre-line">
-                        {htmlToText(c.content)}
-                      </p>
-                    </div>
-                    {/* Respuesta */}
+                  <div className="px-4 sm:px-5 pb-5 -mt-1">
+                    <p className="text-[15px] text-gray-700 leading-relaxed whitespace-pre-wrap">
+                      {htmlToText(c.content)}
+                    </p>
+
                     {c.resolved && answer ? (
-                      <div className="rounded-xl bg-[#F0F5FF] border-l-2 border-[#4da3ff] px-3.5 py-3">
-                        <p className="text-[11px] font-bold text-[#025dc7] uppercase tracking-wider mb-1">Respuesta de Team Nawar</p>
-                        <p className="text-[14px] text-gray-800 leading-relaxed whitespace-pre-line">{answer}</p>
+                      <div className="mt-6 flex gap-3 items-start">
+                        <div className="w-11 h-11 rounded-full overflow-hidden shrink-0 bg-[#1D0084] flex items-center justify-center ring-2 ring-[#F0F5FF]">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={TEAM_LOGO}
+                            alt="Team Nawar"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <span className="font-bold text-gray-900 text-[15px]">Team Nawar</span>
+                            <CheckCircle2 size={15} className="text-[#025dc7]" />
+                          </div>
+                          <div className="p-4 rounded-2xl rounded-tl-md bg-[#F0F5FF] border border-[#DDE6F5]">
+                            <p className="text-[15px] text-gray-800 leading-relaxed whitespace-pre-wrap">
+                              {answer}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     ) : (
-                      <p className="text-[13px] text-gray-400 italic">Aún no la hemos respondido. Te avisaremos por email cuando lo hagamos.</p>
+                      <div className="mt-5 flex items-center gap-2 text-[13px] text-gray-500 bg-[#F7F9FD] rounded-xl px-3.5 py-3">
+                        <Clock size={15} className="text-amber-500 shrink-0" />
+                        Todavía no la hemos respondido. Te avisamos por email en
+                        cuanto lo hagamos.
+                      </div>
                     )}
                   </div>
                 )}
