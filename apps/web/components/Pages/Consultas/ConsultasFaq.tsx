@@ -71,11 +71,11 @@ export default function ConsultasFaq() {
   const queryClient = useQueryClient()
   const [items, setItems] = useState<FaqItem[]>(() => readFaq(org))
   const [open, setOpen] = useState<string | null>(null)
-  // En el móvil este bloque va ARRIBA del listado de consultas, así que con 8
-  // preguntas había que pasar media pantalla antes de llegar al contenido.
-  // Se muestran 2 y el resto se despliega a petición (en escritorio, todas).
-  const [showAll, setShowAll] = useState(false)
-  const MOBILE_PREVIEW = 2
+  // El bloque entero va PLEGADO al entrar. Estaba encima del listado de
+  // consultas y en el móvil se comía la primera pantalla: había que pasar de
+  // largo antes de llegar a lo que el alumno viene a hacer. Ahora es una
+  // pestaña: sigue arriba, a mano, pero sin ocupar sitio hasta que se pulsa.
+  const [panelOpen, setPanelOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState<FaqItem | null>(null)
 
@@ -136,39 +136,53 @@ export default function ConsultasFaq() {
     }
   }
 
-  return (
-    <div className="rounded-2xl border border-[#DDE6F5] bg-white nice-shadow overflow-hidden">
-      <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-[#EEF2FB]">
-        <div className="flex items-center gap-2.5">
-          <div className="flex items-center justify-center shrink-0">
-            <HelpCircle size={26} className="text-[#025dc7]" />
-          </div>
-          <div>
-            <h2 className="text-[15px] font-bold text-gray-900 leading-tight">Consultas frecuentes</h2>
-            <p className="text-[12px] text-gray-500">Dudas habituales, ya resueltas.</p>
-          </div>
-        </div>
-        {canEdit && (
-          <button
-            onClick={() => setEditing({ id: newId(), question: '', answer: '' })}
-            className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#4da3ff] text-[#1D0084] text-sm font-semibold hover:bg-[#6cb5ff] transition-colors"
-          >
-            <Plus size={15} /> Añadir
-          </button>
-        )}
-      </div>
+  // Sin preguntas y sin poder crearlas (un alumno), la pestaña no pinta nada.
+  if (items.length === 0 && !canEdit) return null
 
-      {items.length === 0 ? (
-        <div className="px-5 py-8 text-center text-sm text-gray-400">
-          Aún no hay preguntas. Pulsa «Añadir» para crear la primera.
+  return (
+    <div className="rounded-2xl border border-[#DDE6F5] bg-white overflow-hidden">
+      {/* La pestaña: pulsar abre las preguntas */}
+      <button
+        onClick={() => setPanelOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 text-left hover:bg-[#F8FAFF] transition-colors"
+      >
+        <span className="flex items-center gap-2.5 min-w-0">
+          <HelpCircle size={22} className="text-[#025dc7] shrink-0" />
+          <span className="min-w-0">
+            <span className="block text-[14.5px] font-bold text-gray-900 leading-tight">
+              Consultas frecuentes
+            </span>
+            <span className="block text-[12px] text-gray-500 truncate">
+              {items.length > 0
+                ? `${items.length} ${items.length === 1 ? 'duda habitual' : 'dudas habituales'}, ya resueltas`
+                : 'Dudas habituales, ya resueltas.'}
+            </span>
+          </span>
+        </span>
+        <ChevronDown
+          size={20}
+          className={`text-[#025dc7] shrink-0 transition-transform ${panelOpen ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {!panelOpen ? null : items.length === 0 ? (
+        <div className="border-t border-[#EEF2FB] px-5 py-6 text-center">
+          <p className="text-sm text-gray-400 mb-3">Aún no hay preguntas.</p>
+          {canEdit && (
+            <button
+              onClick={() => setEditing({ id: newId(), question: '', answer: '' })}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#4da3ff] text-[#1D0084] text-sm font-semibold hover:bg-[#6cb5ff] transition-colors"
+            >
+              <Plus size={15} /> Añadir la primera
+            </button>
+          )}
         </div>
       ) : (
-        <div className="divide-y divide-[#EEF2FB]">
-          {items.map((item, idx) => {
-            const hiddenOnMobile = !showAll && idx >= MOBILE_PREVIEW
+        <div className="border-t border-[#EEF2FB] divide-y divide-[#EEF2FB]">
+          {items.map((item) => {
             const isOpen = open === item.id
             return (
-              <div key={item.id} className={hiddenOnMobile ? 'hidden lg:block' : ''}>
+              <div key={item.id}>
                 <div className="flex items-center">
                   <button
                     onClick={() => setOpen(isOpen ? null : item.id)}
@@ -199,21 +213,13 @@ export default function ConsultasFaq() {
             )
           })}
 
-          {/* Solo en móvil: el resto de preguntas se despliega a petición. */}
-          {items.length > MOBILE_PREVIEW && (
+          {canEdit && (
             <button
               type="button"
-              onClick={() => setShowAll((v) => !v)}
-              className="lg:hidden w-full px-5 py-3 text-[13.5px] font-semibold text-[#025dc7] hover:bg-[#F8FAFF] transition-colors flex items-center justify-center gap-1.5"
+              onClick={() => setEditing({ id: newId(), question: '', answer: '' })}
+              className="w-full px-5 py-3 text-[13.5px] font-semibold text-[#025dc7] hover:bg-[#F8FAFF] transition-colors flex items-center justify-center gap-1.5"
             >
-              {showAll ? (
-                <>Ver menos <ChevronDown size={16} className="rotate-180" /></>
-              ) : (
-                <>
-                  Ver las {items.length - MOBILE_PREVIEW} preguntas restantes
-                  <ChevronDown size={16} />
-                </>
-              )}
+              <Plus size={15} /> Añadir una pregunta
             </button>
           )}
         </div>

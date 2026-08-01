@@ -33,27 +33,20 @@ export default async function ConsultasPage({
         te avisaremos por email cuando la respondamos.
       </p>
 
-      {/* Two-column on desktop, stacked on mobile. The board is the main
-          content; "Consultas frecuentes" sits on the right rail as a quick
-          reference (admin-editable from the same component).
-
-          DOM order intentionally puts the FAQ first so on mobile (the grid
-          collapses to one column) it appears BEFORE the long feed instead
-          of buried at the bottom. On desktop we re-route them with
-          col-start so the FAQ ends up in the right column despite being
-          first in source. */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
-        <aside className="lg:col-start-2 lg:row-start-1 lg:sticky lg:top-6 self-start lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lh-thin-scroll">
-          <ConsultasFaq />
-        </aside>
-        <div className="min-w-0 lg:col-start-1 lg:row-start-1">
-          <ConsultasBoard
-            initialQuery={initialQuery}
-            initialOpenId={initialOpenId}
-            startNew={startNew}
-          />
-        </div>
+      {/* Las consultas frecuentes van justo debajo de la descripción, pero
+          PLEGADAS: siguen a mano y no se comen la primera pantalla del móvil,
+          que es lo que pasaba cuando ocupaban toda la columna. Al estar
+          plegadas ya no necesitan una columna propia: el listado se queda con
+          todo el ancho. */}
+      <div className="mb-6">
+        <ConsultasFaq />
       </div>
+
+      <ConsultasBoard
+        initialQuery={initialQuery}
+        initialOpenId={initialOpenId}
+        startNew={startNew}
+      />
     </GeneralWrapperStyled>
   )
 }
