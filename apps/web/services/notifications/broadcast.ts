@@ -9,16 +9,22 @@ import { RequestBodyWithAuthHeader } from '@services/utils/ts/requests'
 export async function broadcastNotification(
   payload: {
     org_id: number
-    kind: 'announcement' | 'class'
+    kind: 'announcement' | 'class' | 'news'
     title: string
     body?: string
     when_text?: string
     url?: string
     /** Enlace al evento en la plataforma (respaldo del botón del email). */
     event_url?: string
+    /** Cuerpo con formato para los avisos redactados en el panel. */
+    body_html?: string
+    cta_label?: string
+    cta_url?: string
+    /** true = enviar solo a quien lo escribe, para probar. */
+    test_only?: boolean
   },
   accessToken: string | undefined
-): Promise<{ queued: number } | null> {
+): Promise<{ queued: number; test?: boolean } | null> {
   if (!accessToken) return null
   try {
     const r = await fetch(

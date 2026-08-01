@@ -14,7 +14,8 @@ router = APIRouter()
 
 class BroadcastPayload(BaseModel):
     org_id: int
-    # "announcement" = novedad importante · "class" = clase confirmada
+    # "announcement" = novedad rápida · "class" = clase confirmada
+    # "news" = aviso redactado en el panel, con formato
     kind: str = "announcement"
     title: str
     body: str = ""
@@ -22,6 +23,12 @@ class BroadcastPayload(BaseModel):
     url: str = ""
     # Enlace al evento dentro de la plataforma (respaldo del botón).
     event_url: str = ""
+    # Cuerpo con formato (HTML del editor) para los avisos "news".
+    body_html: str = ""
+    cta_label: str = ""
+    cta_url: str = ""
+    # true = enviar solo a quien lo escribe, para probar.
+    test_only: bool = False
 
 
 @router.post(
@@ -43,4 +50,4 @@ async def api_broadcast(
     background_tasks.add_task(
         _send_many, payload.kind, prepared["recipients"], data
     )
-    return {"queued": prepared["count"]}
+    return {"queued": prepared["count"], "test": bool(prepared.get("test"))}

@@ -61,12 +61,22 @@ def _send_many(kind: str, recipients: List[Tuple[str, str]], payload: dict) -> N
     from src.services.users.emails import (
         send_announcement_email,
         send_class_scheduled_email,
+        send_news_email,
     )
 
     sent = 0
     for email, name in recipients:
         try:
-            if kind == "class":
+            if kind == "news":
+                send_news_email(
+                    email=email,
+                    name=name,
+                    title=payload.get("title") or "Novedades",
+                    body_html=payload.get("body_html") or "",
+                    cta_label=payload.get("cta_label") or "",
+                    cta_url=payload.get("cta_url") or "",
+                )
+            elif kind == "class":
                 send_class_scheduled_email(
                     email=email,
                     name=name,
@@ -103,10 +113,19 @@ async def broadcast(
     org = await _org_or_404(org_id, db_session)
     await rbac_check(request, org.org_uuid, current_user, "update", db_session)
 
-    if kind not in ("announcement", "class"):
+    if kind not in ("announcement", "class", "news"):
         raise HTTPException(status_code=400, detail="Unknown notification kind")
     if not (payload.get("title") or "").strip():
         raise HTTPException(status_code=400, detail="A title is required")
+
+    # Modo prueba: el aviso sale solo para quien lo escribe. Sirve para ver
+    # cómo queda en una bandeja de verdad antes de mandarlo a los alumnos.
+    if payload.get("test_only"):
+        own_email = getattr(current_user, "email", None)
+        if not own_email:
+            raise HTTPException(status_code=400, detail="No email on the current user")
+        own_name = getattr(current_user, "first_name", None) or "prueba"
+        return {"recipients": [(own_email, own_name)], "count": 1, "test": True}
 
     recipients = await list_org_recipients(org_id, db_session)
     return {"recipients": recipients, "count": len(recipients)}

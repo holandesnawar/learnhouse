@@ -1,7 +1,7 @@
 import html
 import logging
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from urllib.parse import quote
 
 from pydantic import EmailStr
@@ -723,5 +723,137 @@ def send_class_scheduled_email(
             title=heading,
             body_content=body_content,
             footer_note="Te avisamos cada vez que se confirma una clase en vivo.",
+        ),
+    )
+
+
+# ── Novedades (avisos redactados desde el panel) ─────────────────────────────
+
+# Etiquetas permitidas en el cuerpo del aviso y su estilo en línea. Los
+# clientes de correo ignoran las hojas de estilo, así que cada etiqueta lleva
+# el suyo pegado. Todo lo que no esté aquí se descarta.
+_NEWS_TAG_STYLES = {
+    "h2": "margin: 26px 0 10px 0; font-size: 17px; font-weight: 800; color: #1D0084; line-height: 1.35;",
+    "h3": "margin: 22px 0 8px 0; font-size: 15px; font-weight: 700; color: #1D0084; line-height: 1.4;",
+    "p": "margin: 0 0 16px 0; font-size: 14px; color: rgba(0,0,0,0.78); font-weight: 500; line-height: 1.7;",
+    "ul": "margin: 0 0 16px 0; padding-left: 20px;",
+    "ol": "margin: 0 0 16px 0; padding-left: 20px;",
+    "li": "margin: 0 0 7px 0; font-size: 14px; color: rgba(0,0,0,0.78); font-weight: 500; line-height: 1.7;",
+    "strong": "font-weight: 800; color: #0a1656;",
+    "b": "font-weight: 800; color: #0a1656;",
+    "em": "font-style: italic;",
+    "i": "font-style: italic;",
+    "u": "text-decoration: underline;",
+    "a": "color: #025dc7; text-decoration: underline; font-weight: 700;",
+    "img": "display: block; max-width: 100%; height: auto; border-radius: 12px; margin: 6px 0 20px 0;",
+    "hr": "margin: 26px 0; border: none; border-top: 1px solid #f0f0f0;",
+    "blockquote": (
+        "margin: 0 0 18px 0; padding: 2px 0 2px 14px; border-left: 3px solid #4da3ff; "
+        "font-size: 14px; color: rgba(0,0,0,0.70); line-height: 1.7;"
+    ),
+    "br": "",
+}
+
+
+def sanitize_news_html(raw: str) -> str:
+    """
+    Deja pasar solo las etiquetas de la lista y les mete el estilo en línea.
+
+    Sirve para dos cosas: que el correo se vea igual en Gmail y en Outlook, y
+    que nada raro del editor (scripts, estilos ajenos, iframes) acabe dentro de
+    un email que mandamos a nuestros alumnos.
+    """
+    import re as _re
+    from html.parser import HTMLParser
+
+    class _Cleaner(HTMLParser):
+        # Etiquetas cuyo CONTENIDO tampoco debe salir (si no, el texto de un
+        # <script> pegado acabaría impreso en el correo).
+        _SKIP_CONTENT = {"script", "style", "head", "title"}
+
+        def __init__(self):
+            super().__init__(convert_charrefs=True)
+            self.out: List[str] = []
+            self.skip = 0
+
+        def handle_starttag(self, tag, attrs):
+            if tag in self._SKIP_CONTENT:
+                self.skip += 1
+                return
+            if tag not in _NEWS_TAG_STYLES:
+                return
+            style = _NEWS_TAG_STYLES[tag]
+            attr_html = f' style="{style}"' if style else ""
+            if tag == "a":
+                href = dict(attrs).get("href", "")
+                if not href.startswith(("http://", "https://", "mailto:")):
+                    href = ACADEMY_URL
+                attr_html += f' href="{html.escape(href, quote=True)}" target="_blank" rel="noopener noreferrer"'
+            if tag == "img":
+                src = dict(attrs).get("src", "")
+                if not src.startswith(("http://", "https://")):
+                    return  # nada de data: ni rutas relativas: no cargarían
+                alt = dict(attrs).get("alt", "")
+                attr_html += f' src="{html.escape(src, quote=True)}" alt="{html.escape(alt, quote=True)}"'
+            self.out.append(f"<{tag}{attr_html}>")
+
+        def handle_endtag(self, tag):
+            if tag in self._SKIP_CONTENT:
+                self.skip = max(0, self.skip - 1)
+                return
+            if tag in _NEWS_TAG_STYLES and tag not in ("img", "br", "hr"):
+                self.out.append(f"</{tag}>")
+
+        def handle_data(self, data):
+            if self.skip:
+                return
+            self.out.append(html.escape(data))
+
+    cleaner = _Cleaner()
+    cleaner.feed(raw or "")
+    cleaned = "".join(cleaner.out).strip()
+    # Un texto pelado sin etiquetas sigue siendo válido: se envuelve en párrafo.
+    if cleaned and not _re.match(r"^\s*<(h2|h3|p|ul|ol|blockquote|img|hr)", cleaned):
+        cleaned = f'<p style="{_NEWS_TAG_STYLES["p"]}">{cleaned}</p>'
+    return cleaned
+
+
+def send_news_email(
+    email: EmailStr,
+    name: str = "alumno/a",
+    title: str = "Novedades de esta semana",
+    body_html: str = "",
+    cta_label: str = "",
+    cta_url: str = "",
+):
+    """Aviso redactado desde el panel: título, cuerpo con formato y botón."""
+    safe_name = html.escape(name)
+    safe_title = html.escape(title)
+    body = sanitize_news_html(body_html)
+
+    cta = ""
+    if cta_label.strip() and cta_url.strip():
+        cta = f"""
+        <div style="margin: 8px 0 30px 0;">
+            <a href="{html.escape(cta_url, quote=True)}" class="brand-btn" style="{STYLES['button']}">
+                {html.escape(cta_label)}
+            </a>
+        </div>
+        """
+
+    body_content = f"""
+        <h1 style="{STYLES['h1']}">{safe_title}</h1>
+        <p style="{STYLES['p']}">Hola {safe_name},</p>
+        {body}
+        {cta}
+    """
+
+    return send_email(
+        to=email,
+        subject=title,
+        body=_email_layout(
+            title=title,
+            body_content=body_content,
+            footer_note="Recibes este aviso porque estás matriculado en la formación.",
         ),
     )

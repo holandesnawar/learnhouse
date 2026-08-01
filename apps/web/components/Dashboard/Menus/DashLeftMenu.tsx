@@ -18,6 +18,7 @@ import {
   CaretDown,
   PencilSimple,
   ChatsCircle,
+  EnvelopeSimple,
   Book,
   ChatCircleDots,
   Headphones,
@@ -395,6 +396,13 @@ function DashLeftMenu() {
               })()}
             </HoverMenu>
             </div>
+            <MenuLink
+              href="/dash/avisos"
+              icon={<EnvelopeSimple size={20} weight="fill" />}
+              label="Avisos"
+              isCollapsed={isCollapsed}
+              active={isActivePath('/dash/avisos')}
+            />
             {showCommunities && (
               <MenuLink
                 href="/dash/communities"
