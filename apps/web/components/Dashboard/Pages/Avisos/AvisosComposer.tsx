@@ -11,6 +11,7 @@ import toast from 'react-hot-toast'
 import {
   Bold,
   Italic,
+  Heading1,
   Heading2,
   Heading3,
   List,
@@ -53,7 +54,7 @@ const ImagenCorreo = Node.create({
   },
 })
 
-const PLANTILLA = `<h2>Novedades de esta semana</h2>
+const PLANTILLA = `<h1>Novedades de esta semana</h1>
 <p>Esto es lo que ha cambiado en la formación:</p>
 <ul>
 <li><strong>Nuevo módulo disponible</strong> — ya puedes entrar a Módulo 3.</li>
@@ -178,6 +179,10 @@ export default function AvisosComposer() {
         </label>
         <div className="bg-white border border-[#DDE6F5] rounded-xl overflow-hidden mb-5">
           <div className="flex flex-wrap items-center gap-1 px-3 py-2 border-b border-[#EEF2FB] bg-[#FBFCFF]">
+            <button type="button" onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}
+              className={btn(!!editor?.isActive('heading', { level: 1 }))} title="Título grande">
+              <Heading1 size={17} />
+            </button>
             <button type="button" onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
               className={btn(!!editor?.isActive('heading', { level: 2 }))} title="Título">
               <Heading2 size={17} />
@@ -310,6 +315,8 @@ export default function AvisosComposer() {
       </div>
 
       <style jsx global>{`
+        .avisos-body h1 { font-size: 20px; font-weight: 900; color: #1D0084; margin: 24px 0 10px; letter-spacing: -.01em; }
+        .avisos-body h1:first-child { margin-top: 0; }
         .avisos-body h2 { font-size: 17px; font-weight: 800; color: #1D0084; margin: 22px 0 8px; }
         .avisos-body h3 { font-size: 15px; font-weight: 700; color: #1D0084; margin: 18px 0 6px; }
         .avisos-body p { font-size: 14px; color: rgba(0,0,0,.78); line-height: 1.7; margin: 0 0 14px; }

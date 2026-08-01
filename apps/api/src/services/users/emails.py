@@ -733,6 +733,9 @@ def send_class_scheduled_email(
 # clientes de correo ignoran las hojas de estilo, así que cada etiqueta lleva
 # el suyo pegado. Todo lo que no esté aquí se descarta.
 _NEWS_TAG_STYLES = {
+    # Un peldaño por debajo del asunto del correo, para que la jerarquía se
+    # lea: asunto > título de sección > subtítulo.
+    "h1": "margin: 28px 0 12px 0; font-size: 20px; font-weight: 900; color: #1D0084; line-height: 1.3; letter-spacing: -0.01em;",
     "h2": "margin: 26px 0 10px 0; font-size: 17px; font-weight: 800; color: #1D0084; line-height: 1.35;",
     "h3": "margin: 22px 0 8px 0; font-size: 15px; font-weight: 700; color: #1D0084; line-height: 1.4;",
     "p": "margin: 0 0 16px 0; font-size: 14px; color: rgba(0,0,0,0.78); font-weight: 500; line-height: 1.7;",
@@ -813,7 +816,7 @@ def sanitize_news_html(raw: str) -> str:
     cleaner.feed(raw or "")
     cleaned = "".join(cleaner.out).strip()
     # Un texto pelado sin etiquetas sigue siendo válido: se envuelve en párrafo.
-    if cleaned and not _re.match(r"^\s*<(h2|h3|p|ul|ol|blockquote|img|hr)", cleaned):
+    if cleaned and not _re.match(r"^\s*<(h1|h2|h3|p|ul|ol|blockquote|img|hr)", cleaned):
         cleaned = f'<p style="{_NEWS_TAG_STYLES["p"]}">{cleaned}</p>'
     return cleaned
 
