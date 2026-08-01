@@ -20,6 +20,7 @@ from src.db.communities.communities import Community
 from src.db.communities.discussions import Discussion
 from src.db.community_engagement import (
     ChannelReadState,
+    NotificationDismissed,
     NotificationFeed,
     NotificationItem,
     NotificationSeen,
@@ -450,6 +451,19 @@ async def list_notifications(
         except Exception as e:  # noqa: BLE001
             logger.warning("Fuente de notificaciones no disponible: %s", e)
 
+    # Las que el alumno ha quitado a mano no vuelven.
+    dismissed = set(
+        (
+            await db_session.execute(
+                select(NotificationDismissed.item_id).where(
+                    NotificationDismissed.user_id == user_id
+                )
+            )
+        ).scalars().all()
+    )
+    if dismissed:
+        raw = [r for r in raw if r["id"] not in dismissed]
+
     raw.sort(key=lambda r: r.get("date") or "", reverse=True)
 
     items = [
@@ -466,6 +480,31 @@ async def list_notifications(
     ]
 
     return NotificationFeed(items=items, unseen=sum(1 for i in items if i.is_new))
+
+
+async def dismiss_notification(
+    item_id: str, current_user: PublicUser | AnonymousUser, db_session: AsyncSession
+) -> dict:
+    """Quitar una notificación de la campana (la papelera de cada línea)."""
+    user_id = _user_id_or_401(current_user)
+    key = (item_id or "").strip()[:200]
+    if not key:
+        raise HTTPException(status_code=400, detail="Missing notification id")
+
+    exists = (
+        await db_session.execute(
+            select(NotificationDismissed).where(
+                NotificationDismissed.user_id == user_id,
+                NotificationDismissed.item_id == key,
+            )
+        )
+    ).scalars().first()
+    if not exists:
+        db_session.add(
+            NotificationDismissed(user_id=user_id, item_id=key, created_at=_now())
+        )
+        await db_session.commit()
+    return {"dismissed": key}
 
 
 async def mark_notifications_seen(

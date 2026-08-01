@@ -6,11 +6,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { getUriWithOrg } from '@services/config/config'
 import {
+  dismissNotification,
   getNotifications,
   markNotificationsSeen,
   type NotificationFeed,
 } from '@services/communities/engagement'
-import { Bell, AtSign, Pin, Megaphone, Unlock } from 'lucide-react'
+import { Bell, AtSign, Pin, Megaphone, Unlock, Trash2 } from 'lucide-react'
 
 /**
  * Campana del alumno. Recoge lo que se puede perder si no entra ese día:
@@ -39,6 +40,8 @@ export default function NotificationsBell(props: { orgslug: string }) {
   const accessToken = session?.data?.tokens?.access_token as string | undefined
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
+  // Quitadas en esta pantalla: se ocultan sin esperar al servidor.
+  const [hidden, setHidden] = useState<string[]>([])
   const boxRef = useRef<HTMLDivElement>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -56,7 +59,7 @@ export default function NotificationsBell(props: { orgslug: string }) {
     refetchOnWindowFocus: true,
   })
 
-  const items = data?.items || []
+  const items = (data?.items || []).filter((n) => !hidden.includes(n.id))
   const unseen = data?.unseen || 0
 
   /** Debajo de la campana, pegado a su derecha y siempre dentro de la pantalla. */
@@ -92,6 +95,15 @@ export default function NotificationsBell(props: { orgslug: string }) {
       window.removeEventListener('scroll', onMove, true)
     }
   }, [open, place])
+
+  /** Quitar una: desaparece al instante y se guarda para que no vuelva. */
+  const dismiss = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setHidden((cur) => [...cur, id])
+    await dismissNotification(id, accessToken)
+    queryClient.invalidateQueries({ queryKey: ['community', 'notifications'] })
+  }
 
   const toggle = async () => {
     const next = !open
@@ -157,11 +169,21 @@ export default function NotificationsBell(props: { orgslug: string }) {
                 const style = KIND_STYLE[n.kind] || KIND_STYLE.mention
                 const Icon = style.icon
                 return (
-                  <li key={n.id} className="border-b border-[#F3F6FC] last:border-0">
+                  <li key={n.id} className="group/notif relative border-b border-[#F3F6FC] last:border-0">
+                    {/* Papelera: quitar esta novedad de la lista */}
+                    <button
+                      type="button"
+                      onClick={(e) => dismiss(e, n.id)}
+                      title="Quitar de las notificaciones"
+                      aria-label="Quitar de las notificaciones"
+                      className="absolute top-2 right-2 z-10 w-7 h-7 inline-flex items-center justify-center rounded-lg text-gray-300 hover:text-rose-500 hover:bg-rose-50 transition-colors opacity-100 sm:opacity-0 sm:group-hover/notif:opacity-100"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                     <Link
                       href={buildHref(props.orgslug, n.url)}
                       onClick={() => setOpen(false)}
-                      className={`flex gap-3 px-4 py-3 hover:bg-[#F7FAFF] transition-colors ${
+                      className={`flex gap-3 pl-4 pr-10 py-3 hover:bg-[#F7FAFF] transition-colors ${
                         n.is_new ? 'bg-[#F0F5FF]' : ''
                       }`}
                     >

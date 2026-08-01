@@ -94,6 +94,23 @@ export async function getNotifications(
   }
 }
 
+/** Quita una notificación de la campana (la papelera de cada línea). */
+export async function dismissNotification(
+  id: string,
+  accessToken: string | undefined
+): Promise<boolean> {
+  if (!accessToken) return false
+  try {
+    const r = await fetch(
+      `${base()}/notifications/dismiss`,
+      RequestBodyWithAuthHeader('POST', { id }, null, accessToken)
+    )
+    return r.ok
+  } catch {
+    return false
+  }
+}
+
 /** Apaga el punto rojo. No marca los canales como leídos. */
 export async function markNotificationsSeen(accessToken: string | undefined): Promise<void> {
   if (!accessToken) return

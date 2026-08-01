@@ -11,6 +11,7 @@ from src.db.community_engagement import NotificationFeed, PollResults, UnreadCou
 from src.db.users import PublicUser
 from src.security.auth import get_current_user
 from src.services.communities.engagement import (
+    dismiss_notification,
     get_read_states,
     get_unread,
     list_notifications,
@@ -55,6 +56,20 @@ async def api_notifications(
     db_session: AsyncSession = Depends(get_db_session),
 ) -> NotificationFeed:
     return await list_notifications(current_user, db_session)
+
+
+class DismissPayload(BaseModel):
+    # Clave de la notificación tal cual la devuelve el listado.
+    id: str
+
+
+@router.post("/notifications/dismiss", summary="Quitar una notificación de la campana.")
+async def api_dismiss_notification(
+    payload: DismissPayload,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+) -> dict:
+    return await dismiss_notification(payload.id, current_user, db_session)
 
 
 @router.put("/notifications/seen", summary="Marcar las notificaciones como vistas.")

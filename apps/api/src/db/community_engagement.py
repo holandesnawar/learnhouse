@@ -64,6 +64,26 @@ class NotificationSeen(SQLModel, table=True):
     last_seen_at: str = ""
 
 
+class NotificationDismissed(SQLModel, table=True):
+    """
+    Notificaciones que el alumno ha quitado de su campana a mano.
+
+    Las notificaciones no son filas de una tabla (se calculan a partir de los
+    mensajes, los avisos y el goteo), así que lo que se guarda es su clave —
+    la misma que devuelve el listado, por ejemplo "mention:discussion_abc".
+    """
+
+    __tablename__ = "notification_dismissed"
+    __table_args__ = (UniqueConstraint("user_id", "item_id", name="uq_dismissed_user_item"),)
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(
+        sa_column=Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True)
+    )
+    item_id: str = Field(sa_column=Column(String(200), nullable=False, index=True))
+    created_at: str = ""
+
+
 class OrgNotification(SQLModel, table=True):
     """
     Aviso de la academia para todos: un anuncio, una clase confirmada…
