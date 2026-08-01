@@ -1,5 +1,6 @@
 'use client'
 import React, { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
@@ -121,7 +122,10 @@ export default function NotificationsBell(props: { orgslug: string }) {
         )}
       </button>
 
-      {open && pos && (
+      {/* El panel se cuelga del <body>: dentro de la barra lateral (que es
+          sticky, y por tanto su propio contexto de apilado) quedaba POR DETRÁS
+          de las tarjetas del Inicio por mucho z-index que le pusiéramos. */}
+      {open && pos && typeof document !== 'undefined' && createPortal(
         <div
           ref={panelRef}
           className="lh-thin-scroll fixed overflow-y-auto bg-white rounded-xl shadow-2xl border border-[#DDE6F5]"
@@ -130,7 +134,7 @@ export default function NotificationsBell(props: { orgslug: string }) {
             left: pos.left,
             width: pos.width,
             maxHeight: `calc(100vh - ${pos.top + 16}px)`,
-            zIndex: 'var(--z-modal, 60)',
+            zIndex: 'var(--z-modal-content, 220)',
           }}
         >
           <div className="px-4 py-3 border-b border-[#EEF2FB]">
@@ -183,7 +187,8 @@ export default function NotificationsBell(props: { orgslug: string }) {
               })}
             </ul>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
