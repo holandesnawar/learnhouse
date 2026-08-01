@@ -7,7 +7,7 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 import utc from 'dayjs/plugin/utc'
 import 'dayjs/locale/es'
 import { PaperPlaneRight } from '@phosphor-icons/react'
-import { AtSign, BarChart3, Loader2, Mail, MessageCircle, Pin, PinOff, SmilePlus, Reply, X, Pencil, Trash2 } from 'lucide-react'
+import { AtSign, ArrowDown, BarChart3, Loader2, Mail, MessageCircle, Pin, PinOff, Search, SmilePlus, Reply, X, Pencil, Trash2 } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useDiscussions, useMutateDiscussions } from '@components/Hooks/useDiscussions'
 import {
@@ -23,8 +23,25 @@ import {
 // Ventana en la que el autor puede editar/eliminar su propio mensaje (12 h).
 const EDIT_WINDOW_MS = 12 * 60 * 60 * 1000
 
-// Quick emoji set for the chat reaction picker.
+// Los que salen al reaccionar a un mensaje (una fila, sin abrumar).
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '🔥', '🎉', '🙌', '👏', '🤔']
+
+// Rejilla del botón de emoji del composer. No es un teclado completo a
+// propósito: 32 que se usan de verdad se eligen más rápido que 2.000.
+const COMPOSER_EMOJIS = [
+  '😀', '😅', '😂', '🥰', '😍', '😉', '🤔', '😴',
+  '😭', '😱', '🤯', '🥳', '👍', '👎', '👏', '🙌',
+  '🙏', '💪', '🔥', '⭐', '❤️', '💙', '🎉', '✅',
+  '❓', '❗', '💡', '📚', '📝', '🇳🇱', '🇪🇸', '☕',
+]
+
+// Para arrancar la conversación cuando el canal está vacío: un chat en blanco
+// intimida, y en una comunidad pequeña el primer mensaje es el más caro.
+const ICEBREAKERS = [
+  '¡Hola! Me presento: ',
+  '¿Alguien me echa una mano con esto? ',
+  'Hoy he aprendido una palabra nueva: ',
+]
 import { getUserAvatarMediaDirectory } from '@services/media/media'
 import UserAvatar from '@components/Objects/UserAvatar'
 import AuthenticatedClientElement from '@components/Security/AuthenticatedClientElement'
@@ -120,17 +137,59 @@ function messageText(d: DiscussionWithAuthor): string {
 
 // Reply reference is stored inside the message's own content JSON (replyToAuthor
 // / replyToText), so quoting works with zero DB schema changes.
-function replyMeta(d: DiscussionWithAuthor): { author: string; text: string } | null {
+function replyMeta(
+  d: DiscussionWithAuthor
+): { author: string; text: string; uuid: string | null } | null {
   if (!d.content) return null
   try {
     const doc = JSON.parse(d.content)
     if (doc?.replyToAuthor || doc?.replyToText) {
-      return { author: doc.replyToAuthor || '', text: doc.replyToText || '' }
+      return {
+        author: doc.replyToAuthor || '',
+        text: doc.replyToText || '',
+        // Los mensajes viejos no lo llevan: entonces la cita no salta.
+        uuid: doc.replyToUuid || null,
+      }
     }
   } catch {
     /* ignore */
   }
   return null
+}
+
+/**
+ * Texto del mensaje con las direcciones web pinchables y las menciones
+ * resaltadas. Antes un enlace pegado en el chat era texto muerto: había que
+ * copiarlo a mano.
+ */
+function renderMessageBody(text: string, isOwn: boolean): React.ReactNode[] {
+  const TOKEN = /(https?:\/\/[^\s]+|www\.[^\s]+|@[\wáéíóúüñ.\-]{2,40})/g
+  return text.split(TOKEN).map((part, i) => {
+    if (!part) return <React.Fragment key={i} />
+    if (part.startsWith('@')) {
+      return (
+        <span key={i} className={`font-bold ${isOwn ? 'text-white underline' : 'text-[#025dc7]'}`}>
+          {part}
+        </span>
+      )
+    }
+    if (/^(https?:\/\/|www\.)/.test(part)) {
+      const href = part.startsWith('http') ? part : `https://${part}`
+      return (
+        <a
+          key={i}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className={`underline break-all ${isOwn ? 'text-white' : 'text-[#025dc7]'} font-semibold`}
+        >
+          {part}
+        </a>
+      )
+    }
+    return <React.Fragment key={i}>{part}</React.Fragment>
+  })
 }
 
 export function ChannelChat({
@@ -164,7 +223,16 @@ export function ChannelChat({
   const [mentionQuery, setMentionQuery] = useState<string | null>(null)
   const [polls, setPolls] = useState<Record<string, PollResults>>({})
   const [pollDraft, setPollDraft] = useState<{ question: string; options: string[] } | null>(null)
-  const [replyingTo, setReplyingTo] = useState<{ author: string; text: string } | null>(null)
+  const [replyingTo, setReplyingTo] = useState<
+    { author: string; text: string; uuid: string } | null
+  >(null)
+  // Buscador dentro del canal y estado del scroll (ver más abajo).
+  const [query, setQuery] = useState('')
+  const [searching, setSearching] = useState(false)
+  const [atBottom, setAtBottom] = useState(true)
+  const [unseenBelow, setUnseenBelow] = useState(0)
+  const [flashUuid, setFlashUuid] = useState<string | null>(null)
+  const [emojiOpen, setEmojiOpen] = useState(false)
   const [editingUuid, setEditingUuid] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
   const currentUserId = session?.data?.user?.id
@@ -314,11 +382,63 @@ export function ChannelChat({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages.map((m) => m.discussion_uuid).join(','), accessToken])
 
-  // Keep the view pinned to the latest message.
+  // El scroll solo baja solo si YA estabas abajo. Si estás leyendo hacia
+  // arriba, un mensaje nuevo ya no te arranca de donde estabas: aparece el
+  // botón "mensajes nuevos" y bajas tú cuando quieras.
+  const lastCountRef = useRef(0)
   useEffect(() => {
     const el = scrollRef.current
-    if (el) el.scrollTop = el.scrollHeight
+    if (!el) return
+    const grew = messages.length - lastCountRef.current
+    lastCountRef.current = messages.length
+    if (grew <= 0) return
+    if (atBottom) {
+      el.scrollTop = el.scrollHeight
+    } else {
+      setUnseenBelow((n) => n + grew)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages.length])
+
+  // ¿Está el usuario pegado al final? (con margen: los navegadores redondean)
+  const onScroll = () => {
+    const el = scrollRef.current
+    if (!el) return
+    const bottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60
+    setAtBottom(bottom)
+    if (bottom) setUnseenBelow(0)
+  }
+
+  const scrollToBottom = () => {
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
+    setUnseenBelow(0)
+  }
+
+  /** Llevar al mensaje citado y darle un destello para localizarlo. */
+  const jumpTo = (uuid: string) => {
+    const el = scrollRef.current?.querySelector(`[data-msg="${uuid}"]`)
+    if (!el) {
+      toast('Ese mensaje ya no está en la parte cargada del chat.')
+      return
+    }
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setFlashUuid(uuid)
+    setTimeout(() => setFlashUuid((cur) => (cur === uuid ? null : cur)), 1600)
+  }
+
+  // Buscar dentro del canal: filtra lo que ya está cargado (los últimos 50),
+  // que es donde la gente busca de verdad ("¿qué dijo el profe del examen?").
+  const visibleMessages = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return messages
+    return messages.filter(
+      (m) =>
+        messageText(m).toLowerCase().includes(q) ||
+        authorName(m.author).toLowerCase().includes(q)
+    )
+  }, [messages, query])
 
   // Candidatos a mención: quienes ya han escrito en el canal (así no hace falta
   // un endpoint de miembros que los alumnos no tienen permiso para leer) + all.
@@ -373,6 +493,7 @@ export function ChannelChat({
       if (replyingTo) {
         doc.replyToAuthor = replyingTo.author
         doc.replyToText = replyingTo.text
+        doc.replyToUuid = replyingTo.uuid
       }
       const content = JSON.stringify(doc)
 
@@ -427,26 +548,82 @@ export function ChannelChat({
   }
 
   return (
-    <div className="flex flex-col h-[68vh] min-h-[420px]">
+    <div className="relative flex flex-col h-[68vh] min-h-[420px]">
+      {/* Barra de búsqueda del canal */}
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100">
+        <button
+          type="button"
+          onClick={() => {
+            setSearching((v) => !v)
+            if (searching) setQuery('')
+          }}
+          title="Buscar en el canal"
+          aria-label="Buscar en el canal"
+          className={`shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
+            searching ? 'bg-[#025dc7]/10 text-[#025dc7]' : 'text-gray-400 hover:text-[#025dc7] hover:bg-gray-50'
+          }`}
+        >
+          <Search size={16} />
+        </button>
+        {searching ? (
+          <>
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar palabra o persona…"
+              className="flex-1 min-w-0 bg-gray-50 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-[#025dc7]/20"
+            />
+            <span className="shrink-0 text-[12px] text-gray-400 tabular-nums">
+              {query.trim() ? `${visibleMessages.length} resultado${visibleMessages.length === 1 ? '' : 's'}` : ''}
+            </span>
+          </>
+        ) : (
+          <span className="text-[12.5px] text-gray-400 truncate">
+            Buscar en {channelName}
+          </span>
+        )}
+      </div>
+
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto py-3">
+      <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto py-3">
         {isLoading && messages.length === 0 ? (
           <div className="flex justify-center py-8">
             <Loader2 size={22} className="animate-spin text-gray-400" />
           </div>
-        ) : messages.length === 0 ? (
+        ) : visibleMessages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-6">
             <div className="p-4 bg-gray-50 rounded-full mb-3">
               <MessageCircle size={26} className="text-gray-300" />
             </div>
-            <p className="text-sm text-gray-400 max-w-xs">
-              {t('communities.discussion_list.no_discussions_description')}
-            </p>
+            {query.trim() ? (
+              <p className="text-sm text-gray-400 max-w-xs">
+                Nada con «{query.trim()}» por aquí.
+              </p>
+            ) : (
+              <>
+                <p className="text-sm text-gray-500 max-w-xs mb-3">
+                  Aquí no ha escrito nadie todavía. Empieza tú — con una frase basta.
+                </p>
+                <div className="flex flex-wrap justify-center gap-1.5">
+                  {ICEBREAKERS.map((phrase) => (
+                    <button
+                      key={phrase}
+                      type="button"
+                      onClick={() => setText(phrase)}
+                      className="px-3 py-1.5 rounded-full border border-[#DDE6F5] text-[12.5px] text-[#025dc7] hover:bg-[#F0F5FF] transition-colors"
+                    >
+                      {phrase.trim()}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         ) : (
           <div className="space-y-0.5">
-            {messages.map((m, i) => {
-              const prev = messages[i - 1]
+            {visibleMessages.map((m, i) => {
+              const prev = visibleMessages[i - 1]
               const newDay = !prev || dayKey(prev.creation_date) !== dayKey(m.creation_date)
               // Group with the previous bubble only if it's the same author, within
               // 5 minutes, the same day, and neither message is pinned. Otherwise we
@@ -492,7 +669,10 @@ export function ChannelChat({
                     </div>
                   )}
                   <div
-                    className={`group/msg relative flex gap-2.5 px-4 ${grouped ? 'mt-0.5' : 'mt-2'} ${isOwn ? 'flex-row-reverse' : ''}`}
+                    data-msg={m.discussion_uuid}
+                    className={`group/msg relative flex gap-2.5 px-4 ${grouped ? 'mt-0.5' : 'mt-2'} ${isOwn ? 'flex-row-reverse' : ''} ${
+                      flashUuid === m.discussion_uuid ? 'bg-[#4da3ff]/15 rounded-xl transition-colors' : ''
+                    }`}
                   >
                     {/* Avatar a los dos lados: el propio también, para que el chat
                         no parezca vacío de fotos cuando solo escribes tú. */}
@@ -568,7 +748,17 @@ export function ChannelChat({
                           {(() => {
                             const rm = replyMeta(m)
                             return rm ? (
-                              <div className={`mb-1 border-l-2 pl-2 py-0.5 ${isOwn ? 'border-white/50' : 'border-[#4da3ff]'}`}>
+                              <div
+                                onClick={(e) => {
+                                  if (!rm.uuid) return
+                                  e.stopPropagation()
+                                  jumpTo(rm.uuid)
+                                }}
+                                title={rm.uuid ? 'Ir al mensaje original' : undefined}
+                                className={`mb-1 border-l-2 pl-2 py-0.5 ${isOwn ? 'border-white/50' : 'border-[#4da3ff]'} ${
+                                  rm.uuid ? 'cursor-pointer hover:opacity-80' : ''
+                                }`}
+                              >
                                 <span className={`block text-[11px] font-semibold leading-tight ${isOwn ? 'text-white' : 'text-[#025dc7]'}`}>
                                   {rm.author}
                                 </span>
@@ -631,22 +821,7 @@ export function ChannelChat({
                               setActiveUuid((cur) => (cur === m.discussion_uuid ? null : m.discussion_uuid))
                             }
                           >
-                            {messageText(m)
-                              .split(/(@[\wáéíóúüñ.\-]{2,40})/g)
-                              .map((part, pi) =>
-                                part.startsWith('@') ? (
-                                  <span
-                                    key={pi}
-                                    className={`font-bold ${
-                                      isOwn ? 'text-white underline' : 'text-[#025dc7]'
-                                    }`}
-                                  >
-                                    {part}
-                                  </span>
-                                ) : (
-                                  <React.Fragment key={pi}>{part}</React.Fragment>
-                                )
-                              )}
+                            {renderMessageBody(messageText(m), isOwn)}
                             {m.edit_count > 0 && (
                               <span className="text-[10px] opacity-60 ml-1.5">· editado</span>
                             )}
@@ -678,6 +853,7 @@ export function ChannelChat({
                               setReplyingTo({
                                 author: authorName(m.author),
                                 text: messageText(m).slice(0, 140),
+                                uuid: m.discussion_uuid,
                               })
                             }
                             title="Responder"
@@ -790,6 +966,20 @@ export function ChannelChat({
         )}
       </div>
 
+      {/* Volver abajo (con cuántos te has perdido mientras leías arriba) */}
+      {!atBottom && (
+        <button
+          type="button"
+          onClick={scrollToBottom}
+          className="absolute bottom-24 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#025dc7] text-white text-[12.5px] font-semibold shadow-lg hover:bg-[#0b6df0] transition-colors"
+        >
+          <ArrowDown size={14} />
+          {unseenBelow > 0
+            ? `${unseenBelow} mensaje${unseenBelow === 1 ? '' : 's'} nuevo${unseenBelow === 1 ? '' : 's'}`
+            : 'Ir al final'}
+        </button>
+      )}
+
       {/* Composer */}
       <AuthenticatedClientElement checkMethod="authentication">
         <div className="border-t border-gray-100 p-3">
@@ -876,7 +1066,36 @@ export function ChannelChat({
             </div>
           )}
 
+          {emojiOpen && (
+            <div className="mb-2 grid grid-cols-8 gap-1 rounded-xl border border-[#DDE6F5] bg-white p-2 nice-shadow">
+              {COMPOSER_EMOJIS.map((e) => (
+                <button
+                  key={e}
+                  type="button"
+                  onClick={() => {
+                    setText((cur) => cur + e)
+                    setEmojiOpen(false)
+                  }}
+                  className="text-lg leading-none p-1 rounded-lg hover:bg-[#F0F5FF] hover:scale-110 transition-transform"
+                >
+                  {e}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="flex items-end gap-2 bg-gray-50 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:ring-[#025dc7]/20">
+            <button
+              type="button"
+              onClick={() => setEmojiOpen((v) => !v)}
+              title="Emojis"
+              aria-label="Emojis"
+              className={`shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${
+                emojiOpen ? 'bg-[#025dc7]/10 text-[#025dc7]' : 'text-gray-400 hover:text-[#025dc7] hover:bg-white'
+              }`}
+            >
+              <SmilePlus size={17} />
+            </button>
             {isAdmin && (
               <button
                 type="button"
@@ -897,7 +1116,7 @@ export function ChannelChat({
               onChange={(e) => onComposerChange(e.target.value)}
               onKeyDown={onKeyDown}
               rows={1}
-              placeholder={`${t('communities.discussion')} en ${channelName}…`}
+              placeholder={`Escribe en ${channelName}…  (@ para avisar a alguien)`}
               className="flex-1 resize-none bg-transparent text-base sm:text-sm text-gray-900 placeholder:text-gray-400 outline-none max-h-32 py-1.5"
             />
             <button
@@ -909,6 +1128,9 @@ export function ChannelChat({
               {sending ? <Loader2 size={16} className="animate-spin" /> : <PaperPlaneRight size={16} weight="fill" />}
             </button>
           </div>
+          <p className="mt-1.5 text-[11.5px] text-gray-400 hidden sm:block">
+            Enter envía · Shift + Enter salta de línea · @ para avisar a alguien
+          </p>
           {isAdmin && (
             <label className="mt-2 flex items-center gap-2 text-[12.5px] text-gray-500 select-none cursor-pointer">
               <input
