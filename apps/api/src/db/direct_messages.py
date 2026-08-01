@@ -80,6 +80,8 @@ class DirectMessageRead(BaseModel):
     # Foto de quien escribe (la del moderador, o el logo de la academia en los
     # mensajes automáticos). Ruta relativa; el front la completa.
     author_avatar: str = ""
+    # Cargo ("Director Académico"): para que el alumno sepa quién le escribe.
+    author_title: str = ""
     # True si lo manda el equipo (para pintarlo del lado que toca).
     from_staff: bool
 
@@ -96,6 +98,8 @@ class DirectThreadRead(BaseModel):
     title: str = ""
     # Foto de esa persona (o el logo de la academia).
     title_avatar: str = ""
+    # Cargo de esa persona, si lo tiene puesto.
+    title_role: str = ""
     # Vacío = con el equipo entero.
     staff_id: Optional[int] = None
     staff_name: str = ""
@@ -108,6 +112,7 @@ class DirectoryEntry(BaseModel):
     name: str
     email: str = ""
     avatar: str = ""
+    # Cargo si lo tiene puesto; si no, "Equipo" / "Alumno/a".
     role: str = ""
     # Hilo ya existente con esa persona, si lo hay.
     thread_id: Optional[int] = None

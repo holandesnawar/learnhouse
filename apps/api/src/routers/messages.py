@@ -96,10 +96,11 @@ async def api_send(
 )
 async def api_directory(
     q: str = "",
+    scope: str = "auto",
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ) -> List[DirectoryEntry]:
-    return await directory(q, current_user, db_session)
+    return await directory(q, current_user, db_session, scope=scope)
 
 
 @router.post("/open/{peer_id}", summary="Abrir la conversación con esa persona.")

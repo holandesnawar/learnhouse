@@ -20,6 +20,8 @@ export interface DirectMessage {
   author_name: string
   /** Foto de quien escribe (o el logo de la academia). Ruta relativa. */
   author_avatar: string
+  /** Cargo del equipo ("Director Académico"), si lo tiene puesto. */
+  author_title: string
   from_staff: boolean
 }
 
@@ -35,6 +37,8 @@ export interface DirectThread {
   title: string
   /** Foto de esa persona (o el logo de la academia). */
   title_avatar: string
+  /** Cargo de esa persona ("Director Académico"). */
+  title_role: string
   /** Vacío = conversación con todo el equipo. */
   staff_id: number | null
   staff_name: string
@@ -191,12 +195,13 @@ export async function updateDirectWelcome(
 /** A quién puedo escribir: el alumno ve al equipo; el equipo ve a los alumnos. */
 export async function getDirectory(
   q: string,
-  accessToken: string | undefined
+  accessToken: string | undefined,
+  scope: 'auto' | 'team' = 'auto'
 ): Promise<DirectoryEntry[]> {
   if (!accessToken) return []
   try {
     const r = await fetch(
-      `${base()}/directory?q=${encodeURIComponent(q)}`,
+      `${base()}/directory?q=${encodeURIComponent(q)}&scope=${scope}`,
       RequestBodyWithAuthHeader('GET', null, null, accessToken)
     )
     if (!r.ok) return []
@@ -222,5 +227,23 @@ export async function openThreadWith(
     return await r.json()
   } catch {
     return null
+  }
+}
+
+/** Cargos del equipo: { "12": "Director Académico" }. Solo administradores. */
+export async function updateStaffTitles(
+  orgId: number,
+  titles: Record<string, string>,
+  accessToken: string | undefined
+): Promise<boolean> {
+  if (!accessToken) return false
+  try {
+    const r = await fetch(
+      `${getAPIUrl()}orgs/${orgId}/config/staff_titles`,
+      RequestBodyWithAuthHeader('PUT', { titles }, null, accessToken)
+    )
+    return r.ok
+  } catch {
+    return false
   }
 }

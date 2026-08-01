@@ -53,6 +53,7 @@ from src.services.orgs.orgs import (
     update_org_footer_text_config,
     update_org_community_panel_config,
     update_org_direct_welcome_config,
+    update_org_staff_titles_config,
     update_org_weekly_class_banner_config,
     update_org_drip_config,
     update_org_default_language_config,
@@ -69,7 +70,7 @@ from src.services.orgs.orgs import (
     upload_org_og_image_service,
     update_org_favicon,
 )
-from src.db.organization_config import AuthBrandingConfig, SeoOrgConfig, CommunityPanelConfig, DirectWelcomeConfig, WeeklyClassBannerConfig, DripContentConfig
+from src.db.organization_config import AuthBrandingConfig, SeoOrgConfig, CommunityPanelConfig, DirectWelcomeConfig, StaffTitlesConfig, WeeklyClassBannerConfig, DripContentConfig
 
 
 router = APIRouter()
@@ -674,6 +675,29 @@ async def api_update_org_community_panel_config(
     """
     return await update_org_community_panel_config(
         request, panel.model_dump(), org_id, current_user, db_session
+    )
+
+
+@router.put(
+    "/{org_id}/config/staff_titles",
+    summary="Update the team member titles",
+    description="Job titles shown next to each team member's name. Admin only.",
+    responses={
+        200: {"description": "Staff titles updated."},
+        401: {"description": "Not authenticated"},
+        403: {"description": "Caller is not an organization administrator"},
+        404: {"description": "Organization not found"},
+    },
+)
+async def api_update_org_staff_titles_config(
+    request: Request,
+    org_id: int,
+    payload: StaffTitlesConfig,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    return await update_org_staff_titles_config(
+        request, payload.model_dump(), org_id, current_user, db_session
     )
 
 

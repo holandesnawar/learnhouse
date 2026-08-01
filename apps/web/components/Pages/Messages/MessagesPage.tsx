@@ -16,11 +16,14 @@ import {
   openThreadWith,
   sendDirectMessage,
   updateDirectWelcome,
+  updateStaffTitles,
 } from '@services/messages/direct'
 import VoiceRecorder from './VoiceRecorder'
+import { COMPOSER_EMOJIS } from '@/lib/chat/emojis'
 import toast from 'react-hot-toast'
 import {
   ArrowLeft,
+  BadgeCheck,
   Check,
   Loader2,
   MessageSquare,
@@ -28,6 +31,7 @@ import {
   PenSquare,
   Search,
   Send,
+  Smile,
   Sparkles,
   Users,
   X,
@@ -54,6 +58,8 @@ export default function MessagesPage() {
   const [activeId, setActiveId] = useState<number | null>(null)
   const [activeTitle, setActiveTitle] = useState('')
   const [activeAvatar, setActiveAvatar] = useState('')
+  const [activeRole, setActiveRole] = useState('')
+  const [emojiOpen, setEmojiOpen] = useState(false)
   const [messages, setMessages] = useState<DirectMessage[]>([])
   const [loading, setLoading] = useState(true)
   const [text, setText] = useState('')
@@ -94,11 +100,13 @@ export default function MessagesPage() {
         setActiveId(detail.thread.id)
         setActiveTitle(detail.thread.title || 'Equipo Nawar')
         setActiveAvatar(detail.thread.title_avatar || '')
+        setActiveRole(detail.thread.title_role || '')
         setMessages(detail.messages)
       } else if (!staff && list.length) {
         setActiveId(list[0].id)
         setActiveTitle(list[0].title)
         setActiveAvatar(list[0].title_avatar || '')
+        setActiveRole(list[0].title_role || '')
       }
       setLoading(false)
       refreshBadge()
@@ -108,10 +116,11 @@ export default function MessagesPage() {
     }
   }, [accessToken, loadThreads, refreshBadge])
 
-  const openThread = async (id: number, title: string, avatar = '') => {
+  const openThread = async (id: number, title: string, avatar = '', role = '') => {
     setActiveId(id)
     setActiveTitle(title)
     setActiveAvatar(avatar)
+    setActiveRole(role)
     setMessages([])
     setMobileView('chat')
     const detail = await getThread(id, accessToken)
@@ -164,6 +173,7 @@ export default function MessagesPage() {
     setActiveId(detail.thread.id)
     setActiveTitle(detail.thread.title || person.name)
     setActiveAvatar(detail.thread.title_avatar || person.avatar || '')
+    setActiveRole(detail.thread.title_role || '')
     setMessages(detail.messages)
     setMobileView('chat')
   }
@@ -231,7 +241,7 @@ export default function MessagesPage() {
           threads.map((t) => (
             <button
               key={t.id}
-              onClick={() => openThread(t.id, t.title, t.title_avatar)}
+              onClick={() => openThread(t.id, t.title, t.title_avatar, t.title_role)}
               className={`w-full text-left rounded-xl border px-3 py-2.5 transition-colors ${
                 activeId === t.id
                   ? 'bg-white border-[#4da3ff] ring-[3px] ring-[#4da3ff]/20'
@@ -240,8 +250,15 @@ export default function MessagesPage() {
             >
               <span className="flex items-center gap-2.5">
                 <Avatar src={t.title_avatar} name={t.title || t.student_name} size={34} />
-                <span className="text-[13.5px] font-bold text-[#0a1656] truncate flex-1">
-                  {t.title || t.student_name}
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[13.5px] font-bold text-[#0a1656] truncate leading-tight">
+                    {t.title || t.student_name}
+                  </span>
+                  {t.title_role && (
+                    <span className="block text-[11.5px] text-[#025dc7] font-semibold truncate leading-tight">
+                      {t.title_role}
+                    </span>
+                  )}
                 </span>
                 {t.unread > 0 && (
                   <span className="shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
@@ -272,9 +289,16 @@ export default function MessagesPage() {
         >
           <ArrowLeft size={17} />
         </button>
-        <Avatar src={activeAvatar} name={activeTitle || 'Conversación'} size={30} />
-        <span className="text-[14px] font-bold text-[#0a1656] truncate">
-          {activeTitle || 'Conversación'}
+        <Avatar src={activeAvatar} name={activeTitle || 'Conversación'} size={34} />
+        <span className="min-w-0">
+          <span className="block text-[14px] font-bold text-[#0a1656] truncate leading-tight">
+            {activeTitle || 'Conversación'}
+          </span>
+          {activeRole && (
+            <span className="flex items-center gap-1 text-[11.5px] text-[#025dc7] font-semibold leading-tight">
+              <BadgeCheck size={12} /> {activeRole}
+            </span>
+          )}
         </span>
       </div>
 
@@ -290,8 +314,37 @@ export default function MessagesPage() {
         )}
       </div>
 
+      {emojiOpen && (
+        <div className="mx-3 mb-1 grid grid-cols-8 gap-1 rounded-xl border border-[#DDE6F5] bg-white p-2 nice-shadow">
+          {COMPOSER_EMOJIS.map((e) => (
+            <button
+              key={e}
+              type="button"
+              onClick={() => {
+                setText((cur) => cur + e)
+                setEmojiOpen(false)
+              }}
+              className="text-lg leading-none p-1 rounded-lg hover:bg-[#F0F5FF] hover:scale-110 transition-transform"
+            >
+              {e}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="border-t border-[#EEF2FB] p-3 flex items-end gap-2">
         <VoiceRecorder onSend={sendVoice} sending={sending} />
+        <button
+          type="button"
+          onClick={() => setEmojiOpen((v) => !v)}
+          title="Emojis"
+          aria-label="Emojis"
+          className={`shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg transition-colors ${
+            emojiOpen ? 'bg-[#025dc7]/10 text-[#025dc7]' : 'text-gray-400 hover:text-[#025dc7] hover:bg-[#F0F5FF]'
+          }`}
+        >
+          <Smile size={18} />
+        </button>
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -336,11 +389,18 @@ export default function MessagesPage() {
       </p>
 
       {isStaff && (
-        <WelcomeEditor
-          orgId={org?.id}
-          accessToken={accessToken}
-          stored={org?.config?.config?.direct_welcome?.message}
-        />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <WelcomeEditor
+            orgId={org?.id}
+            accessToken={accessToken}
+            stored={org?.config?.config?.direct_welcome?.message}
+          />
+          <StaffTitlesEditor
+            orgId={org?.id}
+            accessToken={accessToken}
+            stored={org?.config?.config?.staff_titles?.titles || {}}
+          />
+        </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)] gap-5 mt-5">
@@ -508,7 +568,14 @@ function Bubble({ m, mine }: { m: DirectMessage; mine: boolean }) {
               : 'bg-[#F0F5FF] text-gray-800 rounded-tl-sm'
           }`}
         >
-          {!mine && <p className="text-[11.5px] font-bold mb-0.5 text-[#025dc7]">{m.author_name}</p>}
+          {!mine && (
+            <p className="text-[11.5px] font-bold mb-0.5 text-[#025dc7]">
+              {m.author_name}
+              {m.author_title && (
+                <span className="ml-1.5 font-semibold text-[#0a1656]/55">· {m.author_title}</span>
+              )}
+            </p>
+          )}
           {m.body && (
             <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{m.body}</p>
           )}
@@ -596,6 +663,130 @@ function WelcomeEditor({
               className="mt-1.5 inline-flex items-center gap-1.5 text-[12.5px] font-bold text-[#025dc7] hover:underline"
             >
               <Pencil size={12} /> {stored ? 'Cambiar el texto' : 'Escribir el mío'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
+/**
+ * Cargos del equipo.
+ *
+ * Sin esto el alumno recibe un mensaje de "Paul" y no sabe quién es ni por qué
+ * le escribe. Con el cargo puesto, "Paul · Director Académico" se explica solo.
+ */
+function StaffTitlesEditor({
+  orgId,
+  accessToken,
+  stored,
+}: {
+  orgId?: number
+  accessToken?: string
+  stored: Record<string, string>
+}) {
+  const [open, setOpen] = useState(false)
+  const [team, setTeam] = useState<DirectoryEntry[]>([])
+  const [titles, setTitles] = useState<Record<string, string>>(stored || {})
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!open || !accessToken) return
+    let alive = true
+    setLoading(true)
+    getDirectory('', accessToken, 'team').then((list) => {
+      if (!alive) return
+      setTeam(list)
+      setLoading(false)
+    })
+    return () => {
+      alive = false
+    }
+  }, [open, accessToken])
+
+  const save = async () => {
+    if (!orgId) return
+    setSaving(true)
+    const ok = await updateStaffTitles(orgId, titles, accessToken)
+    setSaving(false)
+    if (ok) {
+      setOpen(false)
+      toast.success('Cargos guardados')
+    } else {
+      toast.error('No se pudieron guardar')
+    }
+  }
+
+  return (
+    <div className="bg-[#F0F5FF] rounded-xl px-4 py-3.5">
+      <div className="flex items-start gap-2">
+        <BadgeCheck size={16} className="text-[#4da3ff] mt-0.5 shrink-0" />
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] font-bold text-[#0a1656]">Cargos del equipo</p>
+          <p className="text-[12.5px] text-[#0a1656]/75 leading-relaxed">
+            Sale junto al nombre en los mensajes y en la comunidad: así el alumno
+            sabe quién le escribe.
+          </p>
+
+          {open ? (
+            <>
+              {loading ? (
+                <p className="flex items-center gap-2 text-[12.5px] text-gray-500 mt-2">
+                  <Loader2 size={14} className="animate-spin" /> Cargando el equipo…
+                </p>
+              ) : team.length === 0 ? (
+                <p className="text-[12.5px] text-gray-500 mt-2">
+                  No hay más personas con permisos de equipo todavía.
+                </p>
+              ) : (
+                <div className="mt-2 space-y-2">
+                  {team.map((p) => (
+                    <div key={p.user_id} className="flex items-center gap-2">
+                      <Avatar src={p.avatar} name={p.name} size={28} />
+                      <span className="text-[12.5px] text-[#0a1656] w-24 shrink-0 truncate">
+                        {p.name}
+                      </span>
+                      <input
+                        value={titles[String(p.user_id)] ?? ''}
+                        onChange={(e) =>
+                          setTitles({ ...titles, [String(p.user_id)]: e.target.value })
+                        }
+                        placeholder="Director Académico"
+                        className="flex-1 min-w-0 rounded-lg border border-[#DDE6F5] bg-white px-2.5 py-1.5 text-[12.5px] text-gray-800 outline-none focus:border-[#025dc7]"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex items-center gap-2 mt-2">
+                <button
+                  onClick={save}
+                  disabled={saving || loading}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[13px] font-bold hover:bg-[#6cb5ff] disabled:opacity-50"
+                >
+                  <Check size={14} /> {saving ? 'Guardando…' : 'Guardar'}
+                </button>
+                <button
+                  onClick={() => {
+                    setOpen(false)
+                    setTitles(stored || {})
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-[#5A6480] hover:text-[#1D0084]"
+                >
+                  <X size={14} /> Cancelar
+                </button>
+              </div>
+            </>
+          ) : (
+            <button
+              onClick={() => setOpen(true)}
+              className="mt-1.5 inline-flex items-center gap-1.5 text-[12.5px] font-bold text-[#025dc7] hover:underline"
+            >
+              <Pencil size={12} />
+              {Object.keys(stored || {}).length ? 'Cambiar los cargos' : 'Poner los cargos'}
             </button>
           )}
         </div>

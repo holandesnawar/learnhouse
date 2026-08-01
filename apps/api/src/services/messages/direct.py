@@ -144,6 +144,26 @@ def _avatar_path(user: Optional[User]) -> str:
     return f"/content/users/{user.user_uuid}/avatars/{avatar}"
 
 
+async def staff_titles(org_id: int, db_session: AsyncSession) -> dict:
+    """{id_de_usuario_en_texto: "Director Académico"} — lo pone el admin."""
+    row = (
+        await db_session.execute(
+            select(OrganizationConfig).where(OrganizationConfig.org_id == org_id)
+        )
+    ).scalars().first()
+    if row and isinstance(row.config, dict):
+        titles = (row.config.get("staff_titles") or {}).get("titles")
+        if isinstance(titles, dict):
+            return titles
+    return {}
+
+
+def _title_of(user: Optional[User], titles: dict) -> str:
+    if not user or not user.id:
+        return ""
+    return str(titles.get(str(user.id), "")).strip()
+
+
 async def _org_admin(org_id: int, db_session: AsyncSession) -> Optional[User]:
     """
     La cuenta administradora de la academia (la de "Nawar").
@@ -266,6 +286,7 @@ async def _unread_for_staff(thread: DirectThread, db_session: AsyncSession) -> i
 async def _thread_row(
     thread: DirectThread, for_staff: bool, db_session: AsyncSession
 ) -> DirectThreadRead:
+    titles = await staff_titles(thread.org_id, db_session)
     student = await _user(thread.student_id, db_session)
     staff = await _user(thread.staff_id, db_session) if thread.staff_id else None
     last = (
@@ -297,6 +318,10 @@ async def _thread_row(
     else:
         title_avatar = _avatar_path(team) or await _org_logo(thread.org_id, db_session)
 
+    # El alumno ve el cargo de quien le atiende; el equipo no necesita cargo del
+    # alumno.
+    title_role = "" if for_staff else _title_of(staff or team, titles)
+
     return DirectThreadRead(
         id=thread.id or 0,
         student_id=thread.student_id,
@@ -311,6 +336,7 @@ async def _thread_row(
         ),
         title=title,
         title_avatar=title_avatar,
+        title_role=title_role,
         staff_id=thread.staff_id,
         staff_name=staff_name,
     )
@@ -417,6 +443,8 @@ async def get_thread(
     fallback = await _org_admin(org_id, db_session)
     fallback_name = _display_name(fallback) if fallback else "Equipo Nawar"
     fallback_avatar = _avatar_path(fallback) or await _org_logo(org_id, db_session)
+    titles = await staff_titles(org_id, db_session)
+    fallback_title = _title_of(fallback, titles)
 
     messages: List[DirectMessageRead] = []
     for m in rows:
@@ -439,6 +467,12 @@ async def get_thread(
                     if author
                     else (fallback_avatar if from_staff else "")
                 ),
+                # El cargo solo tiene sentido en quien atiende, no en el alumno.
+                author_title=(
+                    _title_of(author, titles) if author else (fallback_title if from_staff else "")
+                )
+                if from_staff
+                else "",
                 from_staff=from_staff,
             )
         )
@@ -516,6 +550,9 @@ async def post_message(
         author_id=user_id,
         author_name=_display_name(author),
         author_avatar=_avatar_path(author),
+        author_title=(
+            _title_of(author, await staff_titles(org_id, db_session)) if staff else ""
+        ),
         from_staff=staff,
     )
 
@@ -601,6 +638,7 @@ async def directory(
     current_user: PublicUser | AnonymousUser,
     db_session: AsyncSession,
     limit: int = 30,
+    scope: str = "auto",
 ) -> List[DirectoryEntry]:
     """
     A quién le puedo escribir.
@@ -608,11 +646,17 @@ async def directory(
     - Alumno → los moderadores y administradores de la academia.
     - Equipo → los alumnos.
 
+    Con ``scope="team"`` se pide el equipo explícitamente: lo usa el admin para
+    repartir los cargos ("Director Académico") desde su pantalla de mensajes.
+
     El texto de búsqueda casa con el nombre, el usuario o el correo.
     """
     user_id = _uid(current_user)
     org_id = await _default_org_id(user_id, db_session)
     staff = await is_staff(user_id, org_id, db_session)
+    titles = await staff_titles(org_id, db_session)
+    # Quiero ver al equipo (en vez de "lo contrario a lo que soy").
+    want_team = scope == "team" or not staff
 
     rows = (
         await db_session.execute(
@@ -629,10 +673,7 @@ async def directory(
         if user.id == user_id:
             continue
         is_team = role_id in ADMIN_OR_MAINTAINER_ROLE_IDS
-        # El alumno busca equipo; el equipo busca alumnos.
-        if staff and is_team:
-            continue
-        if not staff and not is_team:
+        if want_team != is_team:
             continue
 
         name = _display_name(user)
@@ -643,7 +684,12 @@ async def directory(
             continue
 
         # ¿Ya hay conversación abierta con esta persona?
-        if staff:
+        thread = None
+        if staff and want_team:
+            # El equipo mirando al equipo (repartir cargos): aquí no hay
+            # conversación que buscar.
+            pass
+        elif staff:
             thread = (
                 await db_session.execute(
                     select(DirectThread).where(
@@ -672,7 +718,7 @@ async def directory(
                 # el de nadie.
                 email=(user.email or "") if staff else "",
                 avatar=_avatar_path(user),
-                role=("Equipo" if is_team else "Alumno/a"),
+                role=_title_of(user, titles) or ("Equipo" if is_team else "Alumno/a"),
                 thread_id=thread.id if thread else None,
             )
         )

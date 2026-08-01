@@ -60,6 +60,18 @@ class CommunityPanelConfig(BaseModel):
     tips: str = ""
 
 
+class StaffTitlesConfig(BaseModel):
+    """
+    Cargo de cada persona del equipo: {"12": "Director Académico"}.
+
+    La clave es el id del usuario en texto (el JSON de la config no admite
+    claves numéricas). Sale junto a su nombre en los mensajes para que el
+    alumno sepa quién le escribe y por qué.
+    """
+
+    titles: dict[str, str] = {}
+
+
 class DirectWelcomeConfig(BaseModel):
     # Mensaje automático que recibe el alumno en su conversación con el equipo.
     message: str = ""

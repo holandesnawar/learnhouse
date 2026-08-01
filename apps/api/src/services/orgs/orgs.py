@@ -1088,6 +1088,48 @@ async def update_org_community_panel_config(
     return {"detail": "Community panel configuration updated"}
 
 
+async def update_org_staff_titles_config(
+    request: Request,
+    payload: dict,
+    org_id: int,
+    current_user: PublicUser | AnonymousUser,
+    db_session: AsyncSession,
+):
+    """Cargos del equipo ("Director Académico", "Profe de conversación"…)."""
+    statement = select(Organization).where(Organization.id == org_id)
+    org = (await db_session.execute(statement)).scalars().first()
+
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    await rbac_check(request, org.org_uuid, current_user, "update", db_session)
+
+    statement = select(OrganizationConfig).where(OrganizationConfig.org_id == org.id)
+    org_config = (await db_session.execute(statement)).scalars().first()
+
+    if org_config is None:
+        raise HTTPException(status_code=404, detail="Organization config not found")
+
+    titles = payload.get("titles") or {}
+    clean = {
+        str(k): str(v).strip()[:60]
+        for k, v in titles.items()
+        if str(v).strip()
+    }
+
+    updated_config = _deep_copy_config(org_config)
+    updated_config["staff_titles"] = {"titles": clean}
+
+    org_config.config = updated_config
+    org_config.update_date = str(datetime.now())
+
+    db_session.add(org_config)
+    await db_session.commit()
+    await db_session.refresh(org_config)
+
+    return {"detail": "Staff titles updated"}
+
+
 async def update_org_direct_welcome_config(
     request: Request,
     payload: dict,

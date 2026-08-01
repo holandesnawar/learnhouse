@@ -8,6 +8,7 @@ import utc from 'dayjs/plugin/utc'
 import 'dayjs/locale/es'
 import { PaperPlaneRight } from '@phosphor-icons/react'
 import { AtSign, ArrowDown, BarChart3, Loader2, Mail, MessageCircle, Pin, PinOff, Search, SmilePlus, Reply, X, Pencil, Trash2 } from 'lucide-react'
+import { COMPOSER_EMOJIS, QUICK_EMOJIS } from '@/lib/chat/emojis'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useDiscussions, useMutateDiscussions } from '@components/Hooks/useDiscussions'
 import {
@@ -22,18 +23,6 @@ import {
 
 // Ventana en la que el autor puede editar/eliminar su propio mensaje (12 h).
 const EDIT_WINDOW_MS = 12 * 60 * 60 * 1000
-
-// Los que salen al reaccionar a un mensaje (una fila, sin abrumar).
-const QUICK_EMOJIS = ['👍', '❤️', '😂', '🔥', '🎉', '🙌', '👏', '🤔']
-
-// Rejilla del botón de emoji del composer. No es un teclado completo a
-// propósito: 32 que se usan de verdad se eligen más rápido que 2.000.
-const COMPOSER_EMOJIS = [
-  '😀', '😅', '😂', '🥰', '😍', '😉', '🤔', '😴',
-  '😭', '😱', '🤯', '🥳', '👍', '👎', '👏', '🙌',
-  '🙏', '💪', '🔥', '⭐', '❤️', '💙', '🎉', '✅',
-  '❓', '❗', '💡', '📚', '📝', '🇳🇱', '🇪🇸', '☕',
-]
 
 // Para arrancar la conversación cuando el canal está vacío: un chat en blanco
 // intimida, y en una comunidad pequeña el primer mensaje es el más caro.
