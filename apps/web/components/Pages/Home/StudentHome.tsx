@@ -42,7 +42,14 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
   const session = useLHSession() as any
   const accessToken: string | undefined = session?.data?.tokens?.access_token
   const { data: courses } = useCourses(orgslug)
-  const { data: trailData, isLoading: trailLoading } = useTrail(org?.id)
+  const { data: trailData } = useTrail(org?.id)
+  // OJO con `isLoading` de react-query: es falso mientras la consulta está
+  // deshabilitada y también en el primer render (la petición arranca en un
+  // efecto, después de pintar). Por eso, aunque ya lo guardábamos, seguía
+  // colándose un fotograma con la vista ANTIGUA de cursos al recargar.
+  // La regla buena es más simple: mientras no haya datos, esqueleto.
+  const trailReady = trailData !== undefined
+  const coursesReady = courses !== undefined
   const { isAdmin } = useAdminStatus() as any
 
   const firstName: string =
@@ -79,7 +86,7 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
   // One cached fetch with the real progress signals (completions, attempts,
   // weak words, streak) — feeds every progress-aware card below. Cached via
   // react-query: al volver al Inicio los datos aparecen al instante.
-  const { data: insights, isLoading: insightsLoading } = useStudentInsights()
+  const { data: insights } = useStudentInsights()
 
   return (
     <GeneralWrapperStyled>
@@ -108,9 +115,9 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
           saltaba hacia abajo, con pinta de estar cargando dos veces. */}
       {insights ? (
         <ContinueCard orgslug={orgslug} insights={insights} />
-      ) : insightsLoading ? (
+      ) : (
         <HomeSkeleton className="mb-8 h-[188px]" />
-      ) : null}
+      )}
 
       {/* Esta semana + Tu repaso de hoy */}
       {insights ? (
@@ -118,26 +125,26 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
           <WeekCard insights={insights} />
           <RepasoCard orgslug={orgslug} insights={insights} />
         </div>
-      ) : insightsLoading ? (
+      ) : (
         <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <HomeSkeleton className="h-[164px]" />
           <HomeSkeleton className="h-[164px]" />
         </div>
-      ) : null}
+      )}
 
       {/* Así estás progresando — real, server-side numbers */}
       {insights ? (
         <FormacionCard orgslug={orgslug} insights={insights} runs={runs} />
-      ) : insightsLoading ? (
+      ) : (
         <HomeSkeleton className="mb-8 h-[168px]" />
-      ) : null}
+      )}
 
       {/* Tus cursos. Ojo: `runs` llega vacío mientras el camino del alumno
           está cargando, y sin esta guarda se pintaba PRIMERO la rejilla de
           "cursos por empezar" (la vista antigua, con la foto del curso) y un
           instante después se cambiaba por la tarjeta con tu progreso. Eso era
           lo que parecía que el Inicio cargaba dos veces. */}
-      {trailLoading && (
+      {!trailReady && (
         <div className="mb-10">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Tus cursos</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -147,7 +154,7 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
       )}
 
       {/* Courses in progress */}
-      {!trailLoading && runs.length > 0 && (
+      {trailReady && runs.length > 0 && (
         <div className="mb-10">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Tus cursos</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -166,7 +173,16 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
       {/* Courses — only shown to learners who haven't started yet, so they
           can begin. Once a course is in progress, "Continúa donde lo dejaste"
           covers it and we don't repeat the (currently single) course list. */}
-      {!trailLoading && runs.length === 0 && (
+      {trailReady && runs.length === 0 && !coursesReady && (
+        <div className="mb-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Tus cursos</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <HomeSkeleton className="h-[232px]" />
+          </div>
+        </div>
+      )}
+
+      {trailReady && runs.length === 0 && coursesReady && (
         <div className="mb-6">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Tus cursos</h2>
           {courseList.length === 0 ? (
