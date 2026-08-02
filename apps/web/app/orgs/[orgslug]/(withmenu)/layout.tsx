@@ -1,5 +1,5 @@
 'use client';
-import { use, useEffect } from "react";
+import { use, useEffect, useLayoutEffect } from "react";
 import '@styles/globals.css'
 import Watermark from '@components/Objects/Watermark'
 import { SessionGate } from '@components/Contexts/LHSessionContext'
@@ -16,6 +16,9 @@ import { PageViewTracker } from '@components/Analytics/PageViewTracker'
 import { usePathname } from 'next/navigation'
 import { usePlan } from '@components/Hooks/usePlan'
 import { getGoogleFontUrl, DEFAULT_FONT } from '@/lib/fonts'
+
+/** useLayoutEffect en el navegador; en el servidor no existe y avisaría. */
+const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
 
 // Helper to convert hex to rgba
 const hexToRgba = (hex: string, alpha: number): string => {
@@ -108,6 +111,28 @@ function LayoutContent({ children, orgslug }: { children: React.ReactNode; orgsl
   // normal chrome.
   const isLessonPage =
     pathParts.includes('course') && pathParts.includes('activity')
+
+  // El ancho reservado para la barra del curso se fija AQUÍ, en cuanto se sabe
+  // que estamos en una lección, sin esperar a que cargue la lección y monte su
+  // barra. Si no, el hueco empezaba en 340 px y se animaba hasta 0 al llegar
+  // la barra ya plegada: ese era el tirón al pasar a la lección siguiente.
+  useIsoLayoutEffect(() => {
+    if (typeof window === 'undefined') return
+    const root = document.documentElement
+    if (!isLessonPage) {
+      root.style.removeProperty('--course-sidebar-w')
+      root.style.removeProperty('--course-focus-pad')
+      return
+    }
+    let focus = false
+    try {
+      focus = localStorage.getItem('nawar_course_sidebar_collapsed') === '1'
+    } catch {
+      /* localStorage no disponible */
+    }
+    root.style.setProperty('--course-sidebar-w', focus ? '0px' : '340px')
+    root.style.setProperty('--course-focus-pad', focus ? '38px' : '0px')
+  }, [isLessonPage])
 
   return (
     <div

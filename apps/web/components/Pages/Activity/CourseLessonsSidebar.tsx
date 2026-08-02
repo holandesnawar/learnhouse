@@ -1,5 +1,11 @@
 'use client'
-import React, { useState, useMemo, useEffect, useRef } from 'react'
+import React, { useState, useMemo, useEffect, useLayoutEffect, useRef } from 'react'
+
+/** Dónde se recuerda el modo enfoque del alumno. */
+const FOCUS_KEY = 'nawar_course_sidebar_collapsed'
+
+/** useLayoutEffect en el navegador; en el servidor no existe y avisaría. */
+const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { Check, FileText, Video, StickyNote, Backpack, ChevronDown, X, Search, ChevronLeft, PanelLeftClose, PanelLeftOpen, Lock, Layers, BookOpen, Headphones, NotebookText, Languages, MessagesSquare, ListChecks } from 'lucide-react'
@@ -112,7 +118,18 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
   const cleanCurrent = currentActivityId?.replace('activity_', '')
   const chapters = course?.chapters ?? []
   const [search, setSearch] = useState('')
-  const [collapsed, setCollapsed] = useState(false)
+  // El modo enfoque se lee ANTES del primer pintado. Antes empezaba en
+  // "desplegado" y se plegaba en un efecto (que corre después de pintar): al
+  // pasar a la lección siguiente el componente se vuelve a montar, así que la
+  // barra aparecía y se cerraba de golpe. Ese era el tirón.
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    try {
+      return localStorage.getItem(FOCUS_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
   const currentChapterIdx = useMemo(
     () =>
       chapters.findIndex((ch: any) =>
@@ -136,31 +153,24 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
     activeRef.current?.scrollIntoView({ block: 'nearest' })
   }, [cleanCurrent])
 
-  // Focus mode: collapsing hides the sidebar and makes the lesson full-width
-  // through the --course-sidebar-w CSS var the layout reads. Remembered across
-  // lessons so the student's choice sticks.
-  useEffect(() => {
-    try {
-      if (localStorage.getItem('nawar_course_sidebar_collapsed') === '1') setCollapsed(true)
-    } catch {
-      /* localStorage unavailable */
-    }
-  }, [])
-  useEffect(() => {
+  // El ancho reservado para la barra va en una variable CSS que lee el layout
+  // de la lección. Se escribe con useLayoutEffect (ANTES de pintar): con el
+  // efecto normal se colaba un fotograma con el ancho antiguo y el contenido
+  // daba un salto al cambiar de lección.
+  useIsoLayoutEffect(() => {
     const root = document.documentElement
     root.style.setProperty('--course-sidebar-w', collapsed ? '0px' : '340px')
     // Hueco que la barra superior de la lección reserva a su izquierda para no
     // quedar tapada por el icono flotante de "salir de modo enfoque".
     root.style.setProperty('--course-focus-pad', collapsed ? '38px' : '0px')
     try {
-      localStorage.setItem('nawar_course_sidebar_collapsed', collapsed ? '1' : '0')
+      localStorage.setItem(FOCUS_KEY, collapsed ? '1' : '0')
     } catch {
       /* ignore */
     }
-    return () => {
-      root.style.removeProperty('--course-sidebar-w')
-      root.style.removeProperty('--course-focus-pad')
-    }
+    // A propósito NO se limpia al desmontar: entre lección y lección el
+    // componente se desmonta y se vuelve a montar, y borrar la variable dejaba
+    // un parpadeo con el ancho por defecto en medio.
   }, [collapsed])
 
   if (!course?.chapters) return null
