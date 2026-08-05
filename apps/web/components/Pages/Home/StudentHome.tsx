@@ -114,7 +114,7 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
           el Inicio se pintaba entero, luego aparecían las tarjetas y todo
           saltaba hacia abajo, con pinta de estar cargando dos veces. */}
       {insights ? (
-        <ContinueCard orgslug={orgslug} insights={insights} />
+        <ContinueCard orgslug={orgslug} insights={insights} runs={runs} />
       ) : (
         <HomeSkeleton className="mb-8 h-[188px]" />
       )}

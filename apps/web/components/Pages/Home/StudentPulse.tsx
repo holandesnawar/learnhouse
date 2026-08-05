@@ -104,9 +104,12 @@ export function WeekStrip({ activeDays }: { activeDays: string[] }) {
 export function ContinueCard({
   orgslug,
   insights,
+  runs = [],
 }: {
   orgslug: string
   insights: StudentInsights
+  /** Cursos en marcha del alumno; sirven de respaldo para volver a la formación. */
+  runs?: any[]
 }) {
   const pos = (insights.progress?.current_position ?? null) as Record<string, any> | null
   const moduleId: string | undefined = pos?.module_id
@@ -126,9 +129,36 @@ export function ContinueCard({
   const next = allDone ? getNextLesson(moduleId, lessonId) : undefined
   const target = next ?? lesson
   const targetModule = next ? next.moduleId : moduleId
-  const href = target
-    ? getUriWithOrg(orgslug, `/ejercicios/modulo/${targetModule}/leccion/${target.id}`)
-    : getUriWithOrg(orgslug, '/ejercicios')
+
+  // A dónde vuelve el alumno. La formación es el camino; los ejercicios son
+  // para repasar. Así que si sabemos en qué clase del curso estaba (se guarda
+  // al abrirla), se vuelve AHÍ — a la sección exacta, porque cada sección
+  // (Luisteren, Lezen…) es su propia clase del curso.
+  const courseUuid: string | undefined = pos?.course_uuid || undefined
+  const activityUuid: string | undefined = pos?.activity_uuid || undefined
+  // Respaldo: la portada del curso que lleva en marcha.
+  const runCourseUuid: string | undefined = String(
+    runs[0]?.course?.course_uuid || ''
+  ).replace('course_', '') || undefined
+
+  // ¿Volvemos a la formación o a la app de ejercicios? El texto del botón lo
+  // dice, para que no se confundan las dos cosas.
+  const goesToCourse = Boolean(
+    (!allDone && courseUuid && activityUuid) || (allDone && (courseUuid || runCourseUuid))
+  )
+
+  let href: string
+  if (!allDone && courseUuid && activityUuid) {
+    href = getUriWithOrg(orgslug, `/course/${courseUuid}/activity/${activityUuid}`)
+  } else if (courseUuid || runCourseUuid) {
+    // Terminó esa clase (o no sabemos cuál era): a la formación, que ella
+    // misma señala la siguiente.
+    href = getUriWithOrg(orgslug, `/course/${courseUuid || runCourseUuid}`)
+  } else if (target) {
+    href = getUriWithOrg(orgslug, `/ejercicios/modulo/${targetModule}/leccion/${target.id}`)
+  } else {
+    href = getUriWithOrg(orgslug, '/ejercicios')
+  }
 
   const pct = sections.length > 0 ? Math.round((doneSections.length / sections.length) * 100) : 0
 
@@ -190,7 +220,15 @@ export function ContinueCard({
             Formación (colores, sombra, icono) — pero compacto, no a todo el ancho */}
         <div className="mt-4 inline-flex items-center justify-center gap-2 py-3 px-5 rounded-lg nice-shadow font-semibold text-sm leading-tight transition-colors bg-[#4da3ff] text-[#1D0084] group-hover:bg-[#6cb5ff]">
           <BookOpen className="w-4 h-4 shrink-0" />
-          <span>{allDone && next ? 'Empezar la siguiente lección' : 'Seguir con la lección'}</span>
+          <span>
+            {allDone
+              ? goesToCourse
+                ? 'Ir a la formación'
+                : 'Empezar la siguiente lección'
+              : goesToCourse
+                ? 'Seguir con la lección'
+                : 'Seguir practicando'}
+          </span>
         </div>
       </div>
     </Link>

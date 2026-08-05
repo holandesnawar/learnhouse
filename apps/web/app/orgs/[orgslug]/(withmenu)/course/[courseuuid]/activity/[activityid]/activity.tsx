@@ -454,6 +454,10 @@ function ActivityClient(props: ActivityClientProps) {
                   section={native.section}
                   orgslug={orgslug}
                   onComplete={handleNativeComplete}
+                  courseLocation={{
+                    courseUuid: String(course?.course_uuid || '').replace('course_', ''),
+                    activityUuid: String(activityid || '').replace('activity_', ''),
+                  }}
                 />
               </Suspense>
             );

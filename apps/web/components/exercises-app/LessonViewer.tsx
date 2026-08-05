@@ -4078,9 +4078,13 @@ interface LessonViewerProps {
   /** Fired when the lesson (or the forced part) is finished — lets a course
    *  activity auto-mark itself complete so progress saves without a manual click. */
   onComplete?: () => void;
+  /** Dónde vive esta lección DENTRO de la formación (curso + clase). Se guarda
+   *  con la posición del alumno para que "Continúa donde lo dejaste" le
+   *  devuelva a la formación, no a la app de ejercicios. */
+  courseLocation?: { courseUuid: string; activityUuid: string };
 }
 
-export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLesson, orgslug, inCourse, forcedSection, onComplete }: LessonViewerProps) {
+export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLesson, orgslug, inCourse, forcedSection, onComplete, courseLocation }: LessonViewerProps) {
   const session = useLHSession() as any;
   const { isAdmin } = useAdminStatus() as any;
   const accessToken: string | undefined = session?.data?.tokens?.access_token;
@@ -4150,17 +4154,32 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
     patchStudentProgress(
       {
         current_position: {
-          area: 'ejercicios',
+          // 'formacion' cuando la lección se está viendo dentro del curso:
+          // así el Inicio sabe devolver al alumno a la formación y no a la
+          // app de ejercicios (que es solo para repasar).
+          area: courseLocation ? 'formacion' : 'ejercicios',
           module_id: lesson.moduleId,
           lesson_id: lesson.id,
           lesson_title: lesson.title,
           section_id: activeSection ?? forcedSection ?? null,
+          course_uuid: courseLocation?.courseUuid ?? null,
+          activity_uuid: courseLocation?.activityUuid ?? null,
           updated_at: new Date().toISOString(),
         },
       },
       accessToken,
     );
-  }, [accessToken, inCourse, lesson?.id, lesson?.moduleId, lesson?.title, activeSection, forcedSection]);
+  }, [
+    accessToken,
+    inCourse,
+    lesson?.id,
+    lesson?.moduleId,
+    lesson?.title,
+    activeSection,
+    forcedSection,
+    courseLocation?.courseUuid,
+    courseLocation?.activityUuid,
+  ]);
 
   // Persist each graded answer to the per-student progress table (Supabase) so
   // the academy remembers what each student got right/wrong. Fire-and-forget;
