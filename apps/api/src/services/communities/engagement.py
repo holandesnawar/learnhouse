@@ -303,7 +303,7 @@ async def _pinned_items(org_ids: List[int], db_session: AsyncSession) -> List[di
 
 
 async def _announcement_items(org_ids: List[int], db_session: AsyncSession) -> List[dict]:
-    """Avisos que ha mandado la academia (los mismos de la pantalla de Avisos)."""
+    """Avisos que ha mandado la escuela (los mismos de la pantalla de Avisos)."""
     rows = (
         await db_session.execute(
             select(OrgNotification)
@@ -315,7 +315,7 @@ async def _announcement_items(org_ids: List[int], db_session: AsyncSession) -> L
 
     labels = {
         "class": "Clase confirmada",
-        "news": "Novedades de la academia",
+        "news": "Novedades de la escuela",
         "announcement": "Nuevo anuncio",
     }
     return [
@@ -415,7 +415,7 @@ async def list_notifications(
 ) -> NotificationFeed:
     """
     Todo lo que el alumno se puede perder, en una lista: menciones, mensajes
-    fijados, avisos de la academia y módulos que se le acaban de abrir.
+    fijados, avisos de la escuela y módulos que se le acaban de abrir.
 
     Nada de esto manda correo: la campana es justo para lo que no merece un
     email pero sí que se entere al entrar.

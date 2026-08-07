@@ -5,12 +5,12 @@ Reglas del sitio:
 - Por defecto el alumno escribe "al equipo": ese hilo lo ve cualquier moderador.
   Es lo que sale sin tener que elegir nada.
 - Si quiere, puede buscar a un moderador concreto y abrir una conversación con
-  él. Esa la ven esa persona y los administradores (que mandan en la academia).
+  él. Esa la ven esa persona y los administradores (que mandan en la escuela).
 - El equipo ve su bandeja y puede buscar a cualquier alumno para escribirle
   primero.
-- Al crear el hilo se mete solo el mensaje de bienvenida de la academia, así el
+- Al crear el hilo se mete solo el mensaje de bienvenida de la escuela, así el
   alumno nunca se encuentra una pantalla vacía el primer día.
-- Se puede mandar una nota de voz: en una academia de idiomas es LA función
+- Se puede mandar una nota de voz: en una escuela de idiomas es LA función
   (pronunciar, corregir), no un adorno.
 """
 
@@ -70,7 +70,7 @@ async def _org(org_id: int, db_session: AsyncSession) -> Organization:
 
 
 async def _default_org_id(user_id: int, db_session: AsyncSession) -> int:
-    """La academia del usuario. En single-tenancy solo hay una."""
+    """La escuela del usuario. En single-tenancy solo hay una."""
     org_id = (
         await db_session.execute(
             select(UserOrganization.org_id).where(UserOrganization.user_id == user_id)
@@ -166,7 +166,7 @@ def _title_of(user: Optional[User], titles: dict) -> str:
 
 async def _org_admin(org_id: int, db_session: AsyncSession) -> Optional[User]:
     """
-    La cuenta administradora de la academia (la de "Nawar").
+    La cuenta administradora de la escuela (la de "Nawar").
 
     Es quien figura como autor de los mensajes automáticos: así el nombre y la
     foto salen de una cuenta de verdad de la plataforma, y cambian solos cuando
@@ -187,7 +187,7 @@ async def _org_admin(org_id: int, db_session: AsyncSession) -> Optional[User]:
 
 
 async def _org_logo(org_id: int, db_session: AsyncSession) -> str:
-    """El logo de la academia: es la cara de los mensajes automáticos."""
+    """El logo de la escuela: es la cara de los mensajes automáticos."""
     org = await _org(org_id, db_session)
     if not org.logo_image:
         return ""
@@ -240,7 +240,7 @@ async def get_or_create_thread(
         db_session.add(
             DirectMessage(
                 thread_id=thread.id or 0,
-                # Firmado por la cuenta admin de la academia: el alumno ve su
+                # Firmado por la cuenta admin de la escuela: el alumno ve su
                 # nombre y su foto, no un remitente fantasma.
                 author_id=admin.id if admin else None,
                 body=await welcome_text(org_id, db_session),
@@ -307,7 +307,7 @@ async def _thread_row(
     # El título es "con quién hablo yo": el equipo ve el nombre del alumno; el
     # alumno ve "Equipo Nawar" o el nombre del moderador que eligió.
     # Con quién habla el alumno cuando el hilo es "con el equipo": la cuenta
-    # admin de la academia, con su nombre y su foto de la plataforma.
+    # admin de la escuela, con su nombre y su foto de la plataforma.
     team = None if staff else await _org_admin(thread.org_id, db_session)
     staff_name = _display_name(staff) if staff else (_display_name(team) if team else "Equipo Nawar")
     title = _display_name(student) if for_staff else staff_name
@@ -439,7 +439,7 @@ async def get_thread(
     ).scalars().all()
 
     # Identidad de respaldo para los mensajes automáticos antiguos (los que se
-    # guardaron sin autor): la cuenta admin de la academia. Se pide una sola vez.
+    # guardaron sin autor): la cuenta admin de la escuela. Se pide una sola vez.
     fallback = await _org_admin(org_id, db_session)
     fallback_name = _display_name(fallback) if fallback else "Equipo Nawar"
     fallback_avatar = _avatar_path(fallback) or await _org_logo(org_id, db_session)
@@ -643,7 +643,7 @@ async def directory(
     """
     A quién le puedo escribir.
 
-    - Alumno → los moderadores y administradores de la academia.
+    - Alumno → los moderadores y administradores de la escuela.
     - Equipo → los alumnos.
 
     Con ``scope="team"`` se pide el equipo explícitamente: lo usa el admin para
@@ -744,7 +744,7 @@ async def open_thread_with(
         )
     ).scalars().first()
     if peer_role is None:
-        raise HTTPException(status_code=404, detail="Esa persona no está en la academia")
+        raise HTTPException(status_code=404, detail="Esa persona no está en la escuela")
 
     peer_is_team = peer_role in ADMIN_OR_MAINTAINER_ROLE_IDS
 
@@ -759,7 +759,7 @@ async def open_thread_with(
     else:
         if not peer_is_team:
             raise HTTPException(
-                status_code=400, detail="Solo puedes escribir al equipo de la academia"
+                status_code=400, detail="Solo puedes escribir al equipo de la escuela"
             )
         thread = await get_or_create_thread(org_id, user_id, db_session, staff_id=peer_id)
 

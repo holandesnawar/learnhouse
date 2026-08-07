@@ -1,5 +1,5 @@
 """
-Mensajes directos entre el alumno y el equipo de la academia.
+Mensajes directos entre el alumno y el equipo de la escuela.
 
 Un hilo por alumno: el alumno habla con "el equipo" (lo ven todos los
 administradores/moderadores) y no con una persona concreta. Es lo que hace
@@ -55,7 +55,7 @@ class DirectMessage(SQLModel, table=True):
     thread_id: int = Field(
         sa_column=Column(Integer, ForeignKey("direct_thread.id", ondelete="CASCADE"), nullable=False, index=True)
     )
-    # Nulo = lo escribió la academia sin una persona concreta detrás
+    # Nulo = lo escribió la escuela sin una persona concreta detrás
     # (por ejemplo el mensaje de bienvenida automático).
     author_id: Optional[int] = Field(
         default=None,
@@ -77,7 +77,7 @@ class DirectMessageRead(BaseModel):
     created_at: str
     author_id: Optional[int] = None
     author_name: str
-    # Foto de quien escribe (la del moderador, o el logo de la academia en los
+    # Foto de quien escribe (la del moderador, o el logo de la escuela en los
     # mensajes automáticos). Ruta relativa; el front la completa.
     author_avatar: str = ""
     # Cargo ("Director Académico"): para que el alumno sepa quién le escribe.
@@ -96,7 +96,7 @@ class DirectThreadRead(BaseModel):
     unread: int = 0
     # Con quién es la conversación desde el punto de vista de quien pregunta.
     title: str = ""
-    # Foto de esa persona (o el logo de la academia).
+    # Foto de esa persona (o el logo de la escuela).
     title_avatar: str = ""
     # Cargo de esa persona, si lo tiene puesto.
     title_role: str = ""

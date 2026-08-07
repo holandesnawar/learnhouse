@@ -74,7 +74,7 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
   }, [])
 
   // Avisar por email de una clase ya confirmada. Va a todos los alumnos de la
-  // academia y se manda en segundo plano, así que la respuesta es inmediata.
+  // escuela y se manda en segundo plano, así que la respuesta es inmediata.
   const notifyEvent = async (ev: LhEvent) => {
     if (!org?.id || notifying) return
     const whenText = [

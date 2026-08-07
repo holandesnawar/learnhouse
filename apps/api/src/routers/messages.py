@@ -1,4 +1,4 @@
-"""Mensajes directos entre el alumno y el equipo de la academia."""
+"""Mensajes directos entre el alumno y el equipo de la escuela."""
 
 from typing import List, Optional
 

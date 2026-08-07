@@ -11,7 +11,7 @@ import toast from 'react-hot-toast'
 import { Loader2, Mail, Send, Clock } from 'lucide-react'
 
 /**
- * Los correos que la academia manda sola.
+ * Los correos que la escuela manda sola.
  *
  * Aquí no se dispara nada: cada uno sigue saliendo cuando toca (al pagar, al
  * pedir contraseña, al responder una consulta…). Esta pantalla es la ventana

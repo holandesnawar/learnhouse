@@ -1,5 +1,5 @@
 """
-Cuenta de demostración para enseñar la academia sin dar acceso real.
+Cuenta de demostración para enseñar la escuela sin dar acceso real.
 
 Crea (o reinicia) un alumno "demo" con progreso de ejemplo: racha, lecciones
 terminadas, notas de ejercicios y algún fallo pendiente — para que el Inicio y
@@ -85,7 +85,7 @@ async def seed_demo_student(db_session: AsyncSession) -> dict:
         db_session.add(user)
         await db_session.commit()
 
-    # Alumno de la academia (rol 4), nunca administrador.
+    # Alumno de la escuela (rol 4), nunca administrador.
     link = (
         await db_session.execute(
             select(UserOrganization).where(

@@ -81,7 +81,7 @@ function CrearCuentaClient({ org }: CrearCuentaClientProps) {
         values.reset_code
       )
       if (res.status == 200) {
-        setMessage('Cuenta creada. Ya puedes entrar a la academia.')
+        setMessage('Cuenta creada. Ya puedes entrar a la escuela.')
         setShowMessage(true)
         setIsSubmitting(false)
       } else {
@@ -153,7 +153,7 @@ function CrearCuentaClient({ org }: CrearCuentaClientProps) {
             <span style={{ color: '#4da3ff' }}>cuenta</span>
           </h1>
           <p className="text-center text-[15px] text-white/70 mt-2 mb-7">
-            Pon una contraseña para entrar a la academia.
+            Pon una contraseña para entrar a la escuela.
           </p>
 
           <FormLayout onSubmit={formik.handleSubmit}>

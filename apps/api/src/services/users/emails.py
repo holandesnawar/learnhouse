@@ -449,7 +449,7 @@ def send_payment_welcome_email(
         <h1 style="{STYLES['h1']}">{heading}</h1>
         <p style="{STYLES['p']}">
             <strong>Welkom {safe_name}</strong>, tu compra está confirmada. Tienes
-            acceso completo a la formación A0-A1 y a toda la academia.
+            acceso completo a la formación A0-A1 y a toda la escuela.
         </p>
         <p style="{STYLES['p']}">
             Para entrar la primera vez, crea tu contraseña pulsando el botón.
@@ -494,7 +494,7 @@ def send_weekly_digest_email(
     body_content = f"""
         <h1 style="{STYLES['h1']}">{heading}</h1>
         <p style="{STYLES['p']}">
-            Hola {safe_name}, esto es lo que ha pasado esta semana en la academia:
+            Hola {safe_name}, esto es lo que ha pasado esta semana en la escuela:
         </p>
         <ul style="padding: 0; margin: 0 0 24px 0; list-style: none; text-align: left;">
             <li style="margin: 0 0 8px 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.6;">
@@ -571,11 +571,11 @@ def send_announcement_email(
     url: str = "",
     preview: bool = False,
 ):
-    """Anuncio nuevo publicado en la academia."""
+    """Anuncio nuevo publicado en la escuela."""
     safe_name = html.escape(name)
     safe_title = html.escape(title)
     safe_excerpt = html.escape(excerpt)
-    heading = "Nuevo anuncio en la academia"
+    heading = "Nuevo anuncio en la escuela"
 
     body_content = f"""
         <h1 style="{STYLES['h1']}">{heading}</h1>
@@ -678,7 +678,7 @@ def send_certificate_ready_email(
             has recorrido el camino entero, lección a lección.
         </p>
         <p style="{STYLES['p']}">
-            Tu <strong>certificado Holandés Nawar</strong> ya te espera en la academia.
+            Tu <strong>certificado Holandés Nawar</strong> ya te espera en la escuela.
             Pulsa el botón y podrás verlo y descargarlo en PDF.
         </p>
         <div style="margin: 6px 0 30px 0;">
@@ -688,7 +688,7 @@ def send_certificate_ready_email(
         </div>
         <p style="margin: 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.7;">
             Lleva un <strong>código de verificación</strong> único. Sirve para que una
-            empresa o una escuela compruebe que es auténtico: al escanear el QR del
+            empresa o un centro de estudios compruebe que es auténtico: al escanear el QR del
             certificado se abre una página con tu nombre y la fecha. Nadie puede
             fabricarse uno por su cuenta.
         </p>

@@ -3,7 +3,7 @@ import { getAPIUrl } from '@services/config/config'
 import { RequestBodyWithAuthHeader } from '@services/utils/ts/requests'
 
 /**
- * Catálogo de los correos automáticos de la academia.
+ * Catálogo de los correos automáticos de la escuela.
  *
  * Sirve para verlos desde el panel: cuáles existen, cuándo salen y qué aspecto
  * tienen exactamente. Ver o enviarse uno a uno mismo no afecta a los alumnos:

@@ -1,5 +1,5 @@
 """
-Avisos por email a los alumnos de la academia.
+Avisos por email a los alumnos de la escuela.
 
 Un aviso es algo que el equipo decide mandar: el horario de la clase semanal ya
 confirmado, o una novedad importante publicada en la comunidad. NO son
@@ -94,7 +94,7 @@ def _send_many(kind: str, recipients: List[Tuple[str, str]], payload: dict) -> N
                 send_announcement_email(
                     email=email,
                     name=name,
-                    title=payload.get("title") or "Novedad en la academia",
+                    title=payload.get("title") or "Novedad en la escuela",
                     excerpt=payload.get("body") or "",
                     url=payload.get("url") or "",
                 )
@@ -170,7 +170,7 @@ async def _record_org_notification(
         OrgNotification(
             org_id=org_id,
             kind=kind,
-            title=(payload.get("title") or "Aviso de la academia")[:300],
+            title=(payload.get("title") or "Aviso de la escuela")[:300],
             body=body[:600],
             url=url,
             created_at=datetime.now(timezone.utc).isoformat(),

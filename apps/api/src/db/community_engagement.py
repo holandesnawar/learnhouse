@@ -86,7 +86,7 @@ class NotificationDismissed(SQLModel, table=True):
 
 class OrgNotification(SQLModel, table=True):
     """
-    Aviso de la academia para todos: un anuncio, una clase confirmada…
+    Aviso de la escuela para todos: un anuncio, una clase confirmada…
 
     Se guarda una sola fila (no una por alumno): lo que cambia por persona es
     si ya lo ha visto, y eso ya lo dice notification_seen.
@@ -102,7 +102,7 @@ class OrgNotification(SQLModel, table=True):
     kind: str = Field(sa_column=Column(String(40), nullable=False))
     title: str = Field(sa_column=Column(String(300), nullable=False))
     body: str = ""
-    # Ruta dentro de la academia a la que lleva el aviso.
+    # Ruta dentro de la escuela a la que lleva el aviso.
     url: str = ""
     created_at: str = ""
 
@@ -116,7 +116,7 @@ class NotificationItem(BaseModel):
     kind: str
     title: str
     excerpt: str
-    # Ruta dentro de la academia ("/community/xxx", "/course/xxx"…).
+    # Ruta dentro de la escuela ("/community/xxx", "/course/xxx"…).
     url: str
     date: str
     # True si llegó después de la última vez que abrió la campana.

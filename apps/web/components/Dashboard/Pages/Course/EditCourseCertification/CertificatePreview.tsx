@@ -11,7 +11,7 @@ import NawarCertificateArt from '@components/Pages/Certificate/NawarCertificateA
  * capture exactamente lo mismo.
  *
  * Se conservan las props del componente original (los patrones de color y el
- * tipo de certificación de LearnHouse ya no pintan nada: la academia tiene una
+ * tipo de certificación de LearnHouse ya no pintan nada: la escuela tiene una
  * sola identidad) para no tocar las cuatro pantallas que lo llaman.
  */
 interface CertificatePreviewProps {

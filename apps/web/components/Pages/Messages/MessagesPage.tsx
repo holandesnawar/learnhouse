@@ -500,7 +500,7 @@ function PeoplePicker({
               {query.trim()
                 ? `Nadie con «${query.trim()}».`
                 : isStaff
-                ? 'Todavía no hay alumnos en la academia.'
+                ? 'Todavía no hay alumnos en la escuela.'
                 : 'Todavía no hay moderadores disponibles.'}
             </p>
           ) : (

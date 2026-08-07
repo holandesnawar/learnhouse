@@ -3,7 +3,7 @@ import { getAPIUrl, getBackendUrl } from '@services/config/config'
 import { RequestBodyWithAuthHeader } from '@services/utils/ts/requests'
 
 /**
- * Mensajes directos entre el alumno y el equipo de la academia.
+ * Mensajes directos entre el alumno y el equipo de la escuela.
  *
  * El alumno tiene una sola conversación (no elige destinatario); el equipo ve
  * la bandeja entera, un hilo por alumno.
@@ -18,7 +18,7 @@ export interface DirectMessage {
   created_at: string
   author_id: number | null
   author_name: string
-  /** Foto de quien escribe (o el logo de la academia). Ruta relativa. */
+  /** Foto de quien escribe (o el logo de la escuela). Ruta relativa. */
   author_avatar: string
   /** Cargo del equipo ("Director Académico"), si lo tiene puesto. */
   author_title: string
@@ -35,7 +35,7 @@ export interface DirectThread {
   unread: number
   /** Con quién es la conversación, visto desde quien mira. */
   title: string
-  /** Foto de esa persona (o el logo de la academia). */
+  /** Foto de esa persona (o el logo de la escuela). */
   title_avatar: string
   /** Cargo de esa persona ("Director Académico"). */
   title_role: string

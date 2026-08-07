@@ -7,7 +7,7 @@ import { Mail, PenLine, Inbox } from 'lucide-react'
 /**
  * La pantalla de Avisos tiene dos caras:
  *  - Escribir un aviso: el correo que redacta el equipo y sale cuando se pulsa.
- *  - Correos automáticos: los que la academia manda sola, para verlos por dentro.
+ *  - Correos automáticos: los que la escuela manda sola, para verlos por dentro.
  */
 export default function AvisosTabs() {
   const [tab, setTab] = useState<'escribir' | 'automaticos'>('escribir')
@@ -26,7 +26,7 @@ export default function AvisosTabs() {
         <h1 className="text-xl font-bold text-gray-900">Avisos</h1>
       </div>
       <p className="text-sm text-gray-500 mb-5 leading-relaxed max-w-3xl">
-        Todo lo que la academia le manda por correo a los alumnos, en un sitio.
+        Todo lo que la escuela le manda por correo a los alumnos, en un sitio.
       </p>
 
       <div className="inline-flex items-center gap-1 bg-[#EFF1F6] rounded-xl p-1 mb-7">

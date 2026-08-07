@@ -230,7 +230,7 @@ function HomeClient() {
             </div>
 
             {/* Footer */}
-            <p className="mt-10 text-[11px] text-black/30">Holandés Nawar · academia</p>
+            <p className="mt-10 text-[11px] text-black/30">Holandés Nawar · escuela</p>
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 
 /**
- * Certificado Holandés Nawar — recreación del diseño oficial de la academia
+ * Certificado Holandés Nawar — recreación del diseño oficial de la escuela
  * (olas azules arriba y abajo, logo centrado, marca de agua y el nombre del
  * alumno en cian), con los añadidos que le faltaban al original: la fecha
  * (el modelo terminaba en "afgerond op" sin nada detrás), etiquetas bajo las

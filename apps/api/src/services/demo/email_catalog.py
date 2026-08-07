@@ -1,5 +1,5 @@
 """
-Catálogo de los correos automáticos de la academia.
+Catálogo de los correos automáticos de la escuela.
 
 Sirve para verlos desde el panel: qué correos existen, cuándo se envían y qué
 aspecto tienen exactamente, sin mandárselos a ningún alumno. Cada entrada sabe
@@ -106,7 +106,7 @@ _CATALOG: Dict[str, Dict] = {
         ),
     },
     "invitation": {
-        "name": "Invitación a la academia",
+        "name": "Invitación a la escuela",
         "when": "Cuando invitas a alguien con un código de invitación.",
         "build": lambda to, name: E.send_invitation_email(
             email=to,

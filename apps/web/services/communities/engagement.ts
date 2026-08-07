@@ -65,7 +65,7 @@ export interface NotificationItem {
   kind: string
   title: string
   excerpt: string
-  /** Ruta dentro de la academia, o dirección completa. */
+  /** Ruta dentro de la escuela, o dirección completa. */
   url: string
   date: string
   is_new: boolean

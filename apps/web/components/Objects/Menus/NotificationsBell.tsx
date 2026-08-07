@@ -16,7 +16,7 @@ import { Bell, AtSign, Pin, Megaphone, Unlock, Trash2 } from 'lucide-react'
 /**
  * Campana del alumno. Recoge lo que se puede perder si no entra ese día:
  * menciones en la comunidad, mensajes fijados como importantes, avisos de la
- * academia y módulos que se le acaban de abrir.
+ * escuela y módulos que se le acaban de abrir.
  *
  * Nada de esto manda correo. Abrir la campana apaga el punto rojo, pero NO
  * marca los canales como leídos: el mensaje sigue sin leer hasta que entre.
@@ -29,7 +29,7 @@ const KIND_STYLE: Record<string, { icon: any; color: string }> = {
   module: { icon: Unlock, color: 'text-emerald-500' },
 }
 
-/** El aviso puede traer una ruta de la academia o una dirección completa. */
+/** El aviso puede traer una ruta de la escuela o una dirección completa. */
 function buildHref(orgslug: string, url: string): string {
   if (!url) return getUriWithOrg(orgslug, '/')
   if (url.startsWith('http://') || url.startsWith('https://')) return url
@@ -151,7 +151,7 @@ export default function NotificationsBell(props: { orgslug: string }) {
         >
           <div className="px-4 py-3 border-b border-[#EEF2FB]">
             <p className="text-[14px] font-bold text-[#0a1656]">Notificaciones</p>
-            <p className="text-[12px] text-gray-500">Lo que ha pasado en la academia</p>
+            <p className="text-[12px] text-gray-500">Lo que ha pasado en la escuela</p>
           </div>
 
           {items.length === 0 ? (
@@ -159,7 +159,7 @@ export default function NotificationsBell(props: { orgslug: string }) {
               <Bell size={22} className="mx-auto text-[#4da3ff] mb-2" />
               <p className="text-[13px] text-gray-500 leading-relaxed">
                 Todavía no hay nada. Aquí te avisamos cuando te mencionen en un
-                canal, se fije un mensaje importante, la academia mande un aviso
+                canal, se fije un mensaje importante, la escuela mande un aviso
                 o se te abra un módulo nuevo.
               </p>
             </div>

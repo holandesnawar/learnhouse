@@ -8,7 +8,7 @@ import toast from 'react-hot-toast'
  *
  * Se graba, se escucha antes de mandar y se puede tirar. Sin previsualización
  * la gente no se atreve a mandar audios, y sin audios esto no sirve de nada en
- * una academia de idiomas.
+ * una escuela de idiomas.
  *
  * El permiso del micrófono se pide al pulsar grabar, no al abrir la página.
  */

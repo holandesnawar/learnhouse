@@ -80,7 +80,7 @@ async def email_test_all(
     summary="Crear o reiniciar la cuenta de demostración.",
     description=(
         "Deja lista una cuenta de alumno de ejemplo (con racha, lecciones "
-        "terminadas y notas) para enseñar la academia sin dar acceso real. "
+        "terminadas y notas) para enseñar la escuela sin dar acceso real. "
         "Se puede llamar las veces que haga falta: reinicia esa cuenta y no "
         "toca a ningún alumno de verdad. Solo superadmin."
     ),
@@ -97,7 +97,7 @@ async def demo_student(
 
 @router.get(
     "/email-templates",
-    summary="Lista de correos automáticos de la academia.",
+    summary="Lista de correos automáticos de la escuela.",
 )
 async def email_templates(
     current_user: PublicUser = Depends(get_authenticated_user),

@@ -3,7 +3,7 @@ import { getAPIUrl } from '@services/config/config'
 import { RequestBodyWithAuthHeader } from '@services/utils/ts/requests'
 
 /**
- * Aviso por email a todos los alumnos de la academia. Solo administradores.
+ * Aviso por email a todos los alumnos de la escuela. Solo administradores.
  * El servidor encola el envío y responde al instante con a cuántos va.
  */
 export async function broadcastNotification(

@@ -48,6 +48,10 @@ Zona `holandesnawar.com` (la web principal) la gestiona el usuario aparte.
 ## Cuenta admin
 Usuario `admin`, email **holandesnawar@gmail.com** (superadmin). Creado vía cli.py. Contraseña actual la conoce el usuario.
 
+## Vocabulario del producto
+- **La palabra es "la escuela"**, NO "academia" (decisión del usuario, ago 2026: no le gusta "academia"). Vale para pantallas, correos y avisos: "Entrar a la escuela", "Novedades de la escuela". El **dominio sigue siendo `academia.holandesnawar.nl`** y la constante `ACADEMY_URL` no se toca.
+- Alumno / profe / clase semanal / formación: el resto del vocabulario se mantiene.
+
 ## Marca — Sistema de diseño Holandés Nawar
 - Azul oscuro marca: **#1D0084** (fondos dark, texto sobre blanco).
 - Acentos: **#025dc7** (sobre blanco), **#4da3ff** (CTAs, sobre dark).
