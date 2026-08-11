@@ -129,15 +129,14 @@ export default function AccountConsultas() {
 
                     {c.resolved && answer ? (
                       <div className="mt-6 flex gap-3 items-start">
-                        <div className="relative w-11 h-11 rounded-full overflow-hidden shrink-0 bg-[#1D0084] ring-2 ring-[#F0F5FF]">
-                          {/* El logo es un cuadrado redondeado: dentro del
-                              círculo asomaban las esquinas del fondo. Un zoom
-                              leve lo hace llenarlo sin recortar la marca. */}
+                        <div className="relative w-11 h-11 rounded-full overflow-hidden shrink-0 bg-[#1D0084]">
+                          {/* Sin borde alrededor: el logo ya trae su propia
+                              forma y el anillo claro lo descolocaba. */}
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={TEAM_LOGO}
                             alt="Team Nawar"
-                            className="absolute inset-0 w-full h-full object-cover object-center scale-[1.22]"
+                            className="absolute inset-0 w-full h-full object-cover object-center"
                           />
                         </div>
                         <div className="flex-1 min-w-0">

@@ -532,17 +532,15 @@ function DetailView({
 
         {answer && (
           <div className="mt-7 flex gap-3 items-start">
-            <div className="relative w-11 h-11 rounded-full overflow-hidden shrink-0 bg-[#1D0084] ring-2 ring-[#F0F5FF]">
+            <div className="relative w-11 h-11 rounded-full overflow-hidden shrink-0 bg-[#1D0084]">
               {teamLogo ? (
-                // El logo es un cuadrado redondeado, así que dentro de un
-                // círculo asomaban las esquinas del fondo. Un zoom leve lo hace
-                // llenar el círculo sin recortar la marca (comprobado midiendo
-                // en el navegador).
+                // Sin borde alrededor: el logo ya trae su propia forma y el
+                // anillo claro lo hacía parecer descolocado dentro del círculo.
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={teamLogo}
                   alt="Team Nawar"
-                  className="absolute inset-0 w-full h-full object-cover object-center scale-[1.22]"
+                  className="absolute inset-0 w-full h-full object-cover object-center"
                 />
               ) : (
                 <span className="absolute inset-0 flex items-center justify-center text-white font-bold">
