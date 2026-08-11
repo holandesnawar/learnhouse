@@ -537,12 +537,16 @@ function Avatar({ src, name, size = 32 }: { src?: string; name: string; size?: n
   const initial = (name || '?').trim().charAt(0).toUpperCase()
   return (
     <span
-      className="shrink-0 inline-flex items-center justify-center rounded-full overflow-hidden bg-[#DDE6F5] text-[#025dc7] font-bold"
+      className="relative shrink-0 inline-flex items-center justify-center rounded-full overflow-hidden bg-[#DDE6F5] text-[#025dc7] font-bold"
       style={{ width: size, height: size, fontSize: Math.round(size * 0.42) }}
     >
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={mediaSrc(src)} alt={name} className="w-full h-full object-cover" />
+        <img
+          src={mediaSrc(src)}
+          alt={name}
+          className="absolute inset-0 w-full h-full object-cover object-center"
+        />
       ) : (
         initial
       )}
