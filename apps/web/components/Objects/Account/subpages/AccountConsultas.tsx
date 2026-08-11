@@ -110,7 +110,7 @@ export default function AccountConsultas() {
                     />
                   </div>
 
-                  <p className="text-[15px] font-bold text-gray-900 leading-snug">{c.title}</p>
+                  <p className="text-[15px] font-semibold text-gray-800 leading-snug">{c.title}</p>
                   {!isOpen && (
                     <p className="text-[13px] text-gray-500 leading-snug mt-1 line-clamp-2">
                       {htmlToText(c.content)}
