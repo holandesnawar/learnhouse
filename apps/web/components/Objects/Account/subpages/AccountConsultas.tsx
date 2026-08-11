@@ -129,9 +129,10 @@ export default function AccountConsultas() {
 
                     {c.resolved && answer ? (
                       <div className="mt-6 flex gap-3 items-start">
-                        <div className="relative w-11 h-11 rounded-full overflow-hidden shrink-0 bg-[#1D0084]">
-                          {/* Sin borde alrededor: el logo ya trae su propia
-                              forma y el anillo claro lo descolocaba. */}
+                        <div className="relative w-11 h-11 rounded-full overflow-hidden shrink-0">
+                          {/* Sin fondo detrás: el logo ya trae su círculo con
+                              margen transparente, y el color de detrás asomaba
+                              como un aro oscuro. */}
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={TEAM_LOGO}

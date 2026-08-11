@@ -532,10 +532,15 @@ function DetailView({
 
         {answer && (
           <div className="mt-7 flex gap-3 items-start">
-            <div className="relative w-11 h-11 rounded-full overflow-hidden shrink-0 bg-[#1D0084]">
+            <div
+              className={`relative w-11 h-11 rounded-full overflow-hidden shrink-0 ${
+                teamLogo ? '' : 'bg-[#1D0084]'
+              }`}
+            >
               {teamLogo ? (
-                // Sin borde alrededor: el logo ya trae su propia forma y el
-                // anillo claro lo hacía parecer descolocado dentro del círculo.
+                // Sin fondo detrás del logo: el archivo ya trae su propio
+                // círculo con un margen transparente, y cualquier color detrás
+                // se veía como un aro oscuro alrededor.
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={teamLogo}
