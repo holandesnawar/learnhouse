@@ -23,7 +23,7 @@ from uuid import uuid4
 
 import stripe
 from fastapi import HTTPException, Request
-from sqlmodel import select
+from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from config.config import get_learnhouse_config
@@ -78,6 +78,76 @@ def _stripe_publishable() -> str:
     if not key:
         raise HTTPException(status_code=500, detail="Stripe publishable key not configured")
     return key
+
+
+# ── puertas: plazas de la convocatoria ─────────────────────────────────────
+#
+# Cerrar puertas tiene que valer para TODO el tráfico, no solo para el botón
+# de la landing: el enlace de la matrícula viaja en correos ya enviados y por
+# WhatsApp, así que la puerta de verdad está aquí, en el servidor.
+#
+#   LEARNHOUSE_FORMACION_PLAZAS   nº de plazas de la convocatoria (0 = sin tope)
+#   LEARNHOUSE_MATRICULA_ABIERTA  "no" cierra a mano, aunque queden plazas
+
+def _plazas_totales() -> int:
+    raw = (os.environ.get("LEARNHOUSE_FORMACION_PLAZAS") or "").strip()
+    if raw.isdigit():
+        return int(raw)
+    if raw:
+        # "40 plazas" en vez de "40" dejaría la convocatoria sin tope y sin que
+        # nadie se entere hasta contar los cobros. Que al menos quede dicho.
+        logger.error(
+            "LEARNHOUSE_FORMACION_PLAZAS=%r no es un número: la matrícula queda SIN tope de plazas",
+            raw,
+        )
+    return 0
+
+
+def _cerrada_a_mano() -> bool:
+    raw = (os.environ.get("LEARNHOUSE_MATRICULA_ABIERTA") or "si").strip().lower()
+    return raw in {"no", "false", "0", "cerrada", "off"}
+
+
+async def get_seat_status(db_session: AsyncSession) -> dict:
+    """Plazas vendidas y si la matrícula sigue abierta.
+
+    Cuenta matrículas `paid`, que es lo único que significa "plaza ocupada":
+    las `pending` son gente que rellenó el formulario y no llegó a pagar, y
+    contarlas cerraría la convocatoria antes de tiempo.
+    """
+    from src.db.enrollment import Enrollment
+
+    total = _plazas_totales()
+    ocupadas = 0
+    try:
+        statement = select(func.count()).select_from(Enrollment).where(Enrollment.status == "paid")
+        ocupadas = int((await db_session.execute(statement)).scalar() or 0)
+    except Exception:
+        # Si la cuenta falla no cerramos la tienda por nuestra cuenta: se
+        # informa de 0 ocupadas y manda el interruptor manual.
+        logger.exception("No se pudieron contar las plazas ocupadas")
+
+    abierta = not _cerrada_a_mano() and (total == 0 or ocupadas < total)
+    return {
+        "abierta": abierta,
+        "plazas_totales": total,
+        "ocupadas": ocupadas,
+        # null cuando no hay tope configurado.
+        "quedan": max(0, total - ocupadas) if total else None,
+    }
+
+
+async def ensure_matricula_abierta(db_session: AsyncSession) -> None:
+    """403 con un mensaje que la web puede enseñar tal cual."""
+    status = await get_seat_status(db_session)
+    if not status["abierta"]:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Las plazas de esta convocatoria están completas. "
+                "Apúntate a la lista de espera y te avisamos de la próxima."
+            ),
+        )
 
 
 def _academy_url() -> str:
@@ -141,6 +211,8 @@ async def enroll_and_checkout(
     """Save the prospect, create a Stripe Customer with their data, open a
     Checkout Session pre-filled with all of it, and return the URL."""
     from src.db.enrollment import Enrollment, EnrollmentCreate  # noqa: F401
+
+    await ensure_matricula_abierta(db_session)
 
     stripe.api_key = _stripe_secret()
     academy = _academy_url()
@@ -242,6 +314,8 @@ async def enroll_and_payment_intent(data, db_session: AsyncSession) -> dict:
     everything else enabled in Dashboard via `automatic_payment_methods`.
     """
     from src.db.enrollment import Enrollment
+
+    await ensure_matricula_abierta(db_session)
 
     stripe.api_key = _stripe_secret()
     academy = _academy_url()

@@ -12,6 +12,8 @@ from src.services.payments.payments import (
     create_formacion_checkout_session,
     enroll_and_checkout,
     enroll_and_payment_intent,
+    ensure_matricula_abierta,
+    get_seat_status,
     process_webhook_event,
 )
 from src.services.security.rate_limiting import check_enroll_rate_limit
@@ -81,10 +83,28 @@ async def api_enroll_intent(
         "to this URL — we create the session server-side and 302 to Stripe."
     ),
 )
-async def api_checkout_formacion(request: Request):
+async def api_checkout_formacion(
+    request: Request,
+    db_session: AsyncSession = Depends(get_db_session),
+):
     _enforce_enroll_rate_limit(request)
+    await ensure_matricula_abierta(db_session)
     url = await create_formacion_checkout_session()
     return RedirectResponse(url=url, status_code=303)
+
+
+@router.get(
+    "/plazas",
+    summary="Plazas de la convocatoria y si la matrícula sigue abierta.",
+    description=(
+        "Público y sin autenticación: lo consulta la web (holandesnawar.com) para "
+        "decidir a dónde mandan los botones y para enseñar 'quedan X plazas'. "
+        "Devuelve {abierta, plazas_totales, ocupadas, quedan}; `quedan` es null "
+        "cuando no hay tope configurado."
+    ),
+)
+async def api_plazas(db_session: AsyncSession = Depends(get_db_session)):
+    return await get_seat_status(db_session)
 
 
 @router.post(
