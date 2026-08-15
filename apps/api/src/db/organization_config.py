@@ -77,6 +77,23 @@ class DirectWelcomeConfig(BaseModel):
     message: str = ""
 
 
+class UtmLink(BaseModel):
+    """Un enlace con sus UTM, guardado para copiarlo cuando toque."""
+
+    name: str = ""
+    url: str = ""
+    source: str = ""
+    medium: str = ""
+    campaign: str = ""
+    content: str = ""
+
+
+class UtmLinksConfig(BaseModel):
+    # Bloc de notas de campañas: la escuela NO lee los UTM de nadie, solo
+    # guarda los enlaces montados para tenerlos a mano.
+    links: list[UtmLink] = []
+
+
 class WeeklyClassBannerConfig(BaseModel):
     # Editable HTML-style banner for the "Clase semanal" course page.
     title: str = ""

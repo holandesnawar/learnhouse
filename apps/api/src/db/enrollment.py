@@ -27,6 +27,14 @@ class Enrollment(SQLModel, table=True):
     stripe_session_id: str = Field(default="", index=True)
     created_at: str = ""
     updated_at: str = ""
+    # Qué se compró y por cuánto. Se rellena al confirmar el cobro para que la
+    # tabla de ventas salga de nuestra base de datos (exacta, y sin depender de
+    # que Stripe conteste). `product` deja la puerta abierta al siguiente curso:
+    # el día que se venda A1-A2 basta con etiquetarlo distinto.
+    product: str = Field(default="formacion-a0-a1", index=True)
+    amount_cents: int = 0
+    currency: str = "eur"
+    paid_at: str = Field(default="", index=True)
 
 
 class EnrollmentCreate(BaseModel):

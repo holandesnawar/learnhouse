@@ -53,6 +53,7 @@ from src.services.orgs.orgs import (
     update_org_footer_text_config,
     update_org_community_panel_config,
     update_org_direct_welcome_config,
+    update_org_utm_links_config,
     update_org_staff_titles_config,
     update_org_weekly_class_banner_config,
     update_org_drip_config,
@@ -70,7 +71,7 @@ from src.services.orgs.orgs import (
     upload_org_og_image_service,
     update_org_favicon,
 )
-from src.db.organization_config import AuthBrandingConfig, SeoOrgConfig, CommunityPanelConfig, DirectWelcomeConfig, StaffTitlesConfig, WeeklyClassBannerConfig, DripContentConfig
+from src.db.organization_config import AuthBrandingConfig, SeoOrgConfig, CommunityPanelConfig, DirectWelcomeConfig, StaffTitlesConfig, WeeklyClassBannerConfig, DripContentConfig, UtmLinksConfig
 
 
 router = APIRouter()
@@ -697,6 +698,29 @@ async def api_update_org_staff_titles_config(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     return await update_org_staff_titles_config(
+        request, payload.model_dump(), org_id, current_user, db_session
+    )
+
+
+@router.put(
+    "/{org_id}/config/utm_links",
+    summary="Update the saved UTM links",
+    description="Campaign links kept for copy-pasting. Admin only.",
+    responses={
+        200: {"description": "UTM links updated."},
+        401: {"description": "Not authenticated"},
+        403: {"description": "Caller is not an organization administrator"},
+        404: {"description": "Organization not found"},
+    },
+)
+async def api_update_org_utm_links_config(
+    request: Request,
+    org_id: int,
+    payload: UtmLinksConfig,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    return await update_org_utm_links_config(
         request, payload.model_dump(), org_id, current_user, db_session
     )
 

@@ -210,7 +210,11 @@ class TestGetCourseMeta:
         assert call.args[:5] == (mock_request, course.id, db, admin_user, False)
         assert call.kwargs["slim"] is True
         assert call.kwargs["course"].id == course.id
-        mock_set_cache.assert_called_once_with("course_test", True, result.model_dump())
+        # La entrada de caché va por usuario: el payload lleva los candados del
+        # goteo, que dependen de la fecha de alta de cada alumno.
+        mock_set_cache.assert_called_once_with(
+            "course_test", True, result.model_dump(), admin_user.id
+        )
 
     @pytest.mark.asyncio
     async def test_get_course_meta_skips_chapters_when_course_id_missing(

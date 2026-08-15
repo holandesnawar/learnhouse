@@ -403,6 +403,13 @@ function DashLeftMenu() {
               isCollapsed={isCollapsed}
               active={isActivePath('/dash/avisos')}
             />
+            <MenuLink
+              href="/dash/estadisticas"
+              icon={<ChartBar size={20} weight="fill" />}
+              label="Estadísticas"
+              isCollapsed={isCollapsed}
+              active={isActivePath('/dash/estadisticas')}
+            />
             {showCommunities && (
               <MenuLink
                 href="/dash/communities"

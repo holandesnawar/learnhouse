@@ -219,6 +219,7 @@ function DashMobileMenu() {
                 <PanelItem href="/dash/assignments" icon={<Files size={15} weight="fill" />} label={t('common.assignments')} active={isActive('/dash/assignments')} onClick={close} />
                 <PanelItem href="/dash/users/settings/users" icon={<Users size={15} weight="fill" />} label={t('common.users')} active={isActive('/dash/users')} onClick={close} />
                 <PanelItem href="/dash/avisos" icon={<EnvelopeSimple size={15} weight="fill" />} label="Avisos" active={isActive('/dash/avisos')} onClick={close} />
+                <PanelItem href="/dash/estadisticas" icon={<ChartBar size={15} weight="fill" />} label="Estadísticas" active={isActive('/dash/estadisticas')} onClick={close} />
                 {isEnabled('communities') && <PanelItem href="/dash/communities" icon={<ChatsCircle size={15} weight="fill" />} label={t('communities.title')} active={isActive('/dash/communities')} onClick={close} />}
                 {isEnabled('podcasts') && <PanelItem href="/dash/podcasts" icon={<Headphones size={15} weight="fill" />} label={t('podcasts.podcasts')} active={isActive('/dash/podcasts')} onClick={close} />}
                 {isEnabled('boards') && <PanelItem href="/dash/boards" icon={<ChalkboardSimple size={15} weight="fill" />} label="Boards" active={isActive('/dash/boards')} onClick={close} />}

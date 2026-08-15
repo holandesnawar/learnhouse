@@ -287,7 +287,9 @@ async def enroll_and_checkout(
     return url
 
 
-async def _mark_enrollment_paid(session_id: str, db_session: AsyncSession) -> None:
+async def _mark_enrollment_paid(
+    session_id: str, db_session: AsyncSession, amount_cents: int = 0, currency: str = "eur"
+) -> None:
     """Best-effort update of the matching enrollment row when payment succeeds."""
     try:
         from src.db.enrollment import Enrollment
@@ -297,6 +299,11 @@ async def _mark_enrollment_paid(session_id: str, db_session: AsyncSession) -> No
             return
         row.status = "paid"
         row.updated_at = datetime.now().isoformat()
+        if not row.paid_at:
+            row.paid_at = datetime.now(timezone.utc).isoformat()
+        if amount_cents > 0:
+            row.amount_cents = amount_cents
+            row.currency = currency
         db_session.add(row)
         await db_session.commit()
     except Exception:
@@ -706,7 +713,12 @@ async def _handle_checkout_session(obj: dict, db_session: AsyncSession) -> dict:
 
     session_id = obj.get("id") or ""
     if session_id:
-        await _mark_enrollment_paid(session_id, db_session)
+        await _mark_enrollment_paid(
+            session_id,
+            db_session,
+            int(obj.get("amount_total") or 0),
+            (obj.get("currency") or "eur").lower(),
+        )
 
     email = (
         (obj.get("customer_details") or {}).get("email")
@@ -740,6 +752,11 @@ async def _handle_payment_intent(obj: dict, db_session: AsyncSession) -> dict:
     if enrollment.status != "paid":
         enrollment.status = "paid"
         enrollment.updated_at = datetime.now().isoformat()
+        # Importe y fecha del cobro: con esto la tabla de ventas de
+        # Estadísticas sale de nuestra base de datos, sin llamar a Stripe.
+        enrollment.amount_cents = int(obj.get("amount_received") or obj.get("amount") or 0)
+        enrollment.currency = (obj.get("currency") or "eur").lower()
+        enrollment.paid_at = datetime.now(timezone.utc).isoformat()
         db_session.add(enrollment)
         await db_session.commit()
 

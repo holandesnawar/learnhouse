@@ -1130,6 +1130,60 @@ async def update_org_staff_titles_config(
     return {"detail": "Staff titles updated"}
 
 
+async def update_org_utm_links_config(
+    request: Request,
+    payload: dict,
+    org_id: int,
+    current_user: PublicUser | AnonymousUser,
+    db_session: AsyncSession,
+):
+    """Bloc de notas de enlaces con UTM (solo para copiar y pegar)."""
+    statement = select(Organization).where(Organization.id == org_id)
+    org = (await db_session.execute(statement)).scalars().first()
+
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    await rbac_check(request, org.org_uuid, current_user, "update", db_session)
+
+    statement = select(OrganizationConfig).where(OrganizationConfig.org_id == org.id)
+    org_config = (await db_session.execute(statement)).scalars().first()
+
+    if org_config is None:
+        raise HTTPException(status_code=404, detail="Organization config not found")
+
+    raw = payload.get("links") or []
+    clean = []
+    for item in raw[:100]:
+        if not isinstance(item, dict):
+            continue
+        url = str(item.get("url") or "").strip()[:600]
+        if not url:
+            continue
+        clean.append(
+            {
+                "name": str(item.get("name") or "").strip()[:80],
+                "url": url,
+                "source": str(item.get("source") or "").strip()[:60],
+                "medium": str(item.get("medium") or "").strip()[:60],
+                "campaign": str(item.get("campaign") or "").strip()[:80],
+                "content": str(item.get("content") or "").strip()[:80],
+            }
+        )
+
+    updated_config = _deep_copy_config(org_config)
+    updated_config["utm_links"] = {"links": clean}
+
+    org_config.config = updated_config
+    org_config.update_date = str(datetime.now())
+
+    db_session.add(org_config)
+    await db_session.commit()
+    await db_session.refresh(org_config)
+
+    return {"detail": "UTM links updated", "count": len(clean)}
+
+
 async def update_org_direct_welcome_config(
     request: Request,
     payload: dict,

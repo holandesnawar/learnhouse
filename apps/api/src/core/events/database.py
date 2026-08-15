@@ -349,6 +349,11 @@ _ADDED_COLUMNS = [
     # Conversaciones con una persona concreta (antes solo existía "el equipo").
     'ALTER TABLE IF EXISTS direct_thread ADD COLUMN IF NOT EXISTS staff_id INTEGER',
     'ALTER TABLE IF EXISTS direct_thread DROP CONSTRAINT IF EXISTS uq_thread_org_student',
+    # Qué se vendió y por cuánto, para la tabla de ventas de Estadísticas.
+    "ALTER TABLE IF EXISTS enrollment ADD COLUMN IF NOT EXISTS product VARCHAR DEFAULT 'formacion-a0-a1'",
+    'ALTER TABLE IF EXISTS enrollment ADD COLUMN IF NOT EXISTS amount_cents INTEGER DEFAULT 0',
+    "ALTER TABLE IF EXISTS enrollment ADD COLUMN IF NOT EXISTS currency VARCHAR DEFAULT 'eur'",
+    "ALTER TABLE IF EXISTS enrollment ADD COLUMN IF NOT EXISTS paid_at VARCHAR DEFAULT ''",
 ]
 
 
