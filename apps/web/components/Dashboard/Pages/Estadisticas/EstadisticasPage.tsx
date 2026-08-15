@@ -583,7 +583,60 @@ function Cohorte({ stats }: { stats: SchoolStats }) {
             Cada fila es la gente que se dio de alta ese mes. Las semanas cuentan desde SU alta, no
             del calendario, así que se pueden comparar entre sí.
           </p>
-          <div className="overflow-x-auto">
+
+          {/* Sin historial no se sabe si volvieron: mejor decirlo que pintar
+              una rejilla de ceros que parece que nadie ha vuelto nunca. */}
+          {retention.weeks.every((w) => w === null) ? (
+            <div className="rounded-xl bg-[#F0F5FF] px-3.5 py-3">
+              <p className="text-[12.5px] text-[#0a1656] leading-relaxed">
+                Todavía no hay historial de visitas, así que aún no se puede saber quién repite.
+                Empieza a contar desde hoy: dentro de una semana verás la primera columna, y el
+                cuadro se irá llenando solo.
+              </p>
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                {retention.cohorts.map((c) => (
+                  <span
+                    key={c.key}
+                    className="text-[12px] font-semibold bg-white border border-[#DDE6F5] rounded-full px-2.5 py-1 capitalize"
+                  >
+                    {c.label}: {c.size} {c.size === 1 ? 'alta' : 'altas'}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : (
+          <>
+          {/* Móvil: una tarjeta por cohorte, con el mes y cuánta gente
+              delante. En tabla, esa columna se quedaba fuera de la pantalla. */}
+          <div className="sm:hidden space-y-2">
+            {retention.cohorts.map((c) => (
+              <div key={c.key} className="rounded-xl border border-[#E7EEF9] px-3.5 py-3">
+                <p className="text-[13.5px] font-bold text-gray-900 capitalize">
+                  {c.label}{' '}
+                  <span className="text-[12px] font-semibold text-[#9CA3AF]">
+                    · {c.size} {c.size === 1 ? 'alta' : 'altas'}
+                  </span>
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {c.weeks.map((w, i) => (
+                    <span
+                      key={i}
+                      className="text-[11.5px] font-semibold rounded-md px-2 py-1 tabular-nums"
+                      style={{
+                        backgroundColor:
+                          w === null ? '#F5F7FB' : `rgba(77,163,255,${Math.max(0.08, w / 100) * 0.35})`,
+                        color: w === null ? '#C6D2E6' : w >= 50 ? '#025dc7' : '#8a6a2a',
+                      }}
+                    >
+                      S{i + 1} {w === null ? '—' : `${w}%`}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-[13px] min-w-[420px]">
               <thead>
                 <tr className="text-left text-[#9CA3AF]">
@@ -624,7 +677,9 @@ function Cohorte({ stats }: { stats: SchoolStats }) {
               </tbody>
             </table>
           </div>
-          {retention.tracking_since && (
+          </>
+          )}
+          {retention.tracking_since && !retention.weeks.every((w) => w === null) && (
             <p className="mt-3 text-[11.5px] text-[#9CA3AF]">
               Con datos desde el {retention.tracking_since}: antes de esa fecha no se guardaban las
               visitas, así que las semanas anteriores salen vacías.

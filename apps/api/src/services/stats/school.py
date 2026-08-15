@@ -410,8 +410,19 @@ def _retention(
 
     Se cuenta desde el alta de cada alumno, no por calendario: así se comparan
     entre sí cohortes que empezaron en meses distintos.
+
+    `tracking_since` es el primer día del que hay historial de visitas. Las
+    semanas anteriores NO se pueden saber, y decir 0% de esas semanas sería
+    mentir: se devuelven vacías.
     """
     from datetime import date as _date, timedelta
+
+    since = None
+    if tracking_since:
+        try:
+            since = _date.fromisoformat(tracking_since[:10])
+        except ValueError:
+            since = None
 
     cohorts: dict[str, dict] = {}
     weeks_total = [0] * RETENTION_WEEKS
@@ -440,6 +451,10 @@ def _retention(
             # Una semana solo cuenta si ya ha terminado o si el alumno ya
             # estuvo activo en ella: si no, un alumno de ayer hundiría la media.
             if window_start > today:
+                continue
+            # Semanas de antes de que hubiera historial: no se sabe. Sin este
+            # corte, todo lo anterior al despliegue salía como 0%.
+            if since is None or window_start < since:
                 continue
             active = any(window_start.isoformat() <= d <= window_end.isoformat() for d in days)
             if not active and window_end > today:

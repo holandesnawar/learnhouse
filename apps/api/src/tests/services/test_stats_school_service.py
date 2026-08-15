@@ -26,18 +26,18 @@ class TestRetention:
         # Alta hoy: su semana 0 sigue en curso, así que no puede contar como
         # "no volvió" ni hundir el porcentaje.
         today = date(2026, 9, 3)
-        out = _retention({1: "2026-09-03"}, {1: set()}, today, None)
+        out = _retention({1: "2026-09-03"}, {1: set()}, today, "2026-09-01")
         assert out["weeks"][0] is None
         assert out["cohorts"][0]["size"] == 1
 
     def test_an_unfinished_week_does_count_when_the_student_was_active(self):
         today = date(2026, 9, 3)
-        out = _retention({1: "2026-09-03"}, {1: {"2026-09-03"}}, today, None)
+        out = _retention({1: "2026-09-03"}, {1: {"2026-09-03"}}, today, "2026-09-01")
         assert out["weeks"][0] == 100.0
 
     def test_weeks_in_the_future_are_left_empty(self):
         today = date(2026, 9, 3)
-        out = _retention({1: "2026-09-01"}, {1: {"2026-09-01"}}, today, None)
+        out = _retention({1: "2026-09-01"}, {1: {"2026-09-01"}}, today, "2026-09-01")
         assert out["weeks"][2] is None
         assert out["weeks"][5] is None
 
@@ -52,8 +52,31 @@ class TestRetention:
 
     def test_survives_students_without_a_usable_signup_date(self):
         today = date(2026, 10, 1)
-        out = _retention({1: "", 2: "no es una fecha"}, {}, today, None)
+        out = _retention({1: "", 2: "no es una fecha"}, {}, today, "2026-09-01")
         assert out["cohorts"] == []
+        assert out["weeks"] == [None] * 6
+
+    def test_without_history_nothing_is_zero_percent(self):
+        """El caso real: la tabla de visitas se acaba de crear y los alumnos
+        son de hace meses. Sin historial NO se sabe si volvieron, y decir 0%
+        sería mentir: todas las semanas salen vacías."""
+        today = date(2026, 10, 1)
+        out = _retention({1: "2026-06-01", 2: "2026-07-01"}, {}, today, None)
+        assert out["weeks"] == [None] * 6
+        for cohort in out["cohorts"]:
+            assert cohort["weeks"] == [None] * 6
+        # Pero las cohortes siguen ahí, con su mes y cuánta gente entró.
+        assert sorted(c["key"] for c in out["cohorts"]) == ["2026-06", "2026-07"]
+        assert all(c["size"] == 1 for c in out["cohorts"])
+
+    def test_weeks_before_the_history_started_are_unknown(self):
+        """Alumno de junio, historial desde septiembre: sus primeras semanas
+        no se saben, pero las que caen dentro del historial sí."""
+        today = date(2026, 10, 15)
+        joined = {1: "2026-06-01"}
+        visits = {1: {"2026-09-08"}}
+        out = _retention(joined, visits, today, "2026-09-01")
+        # Semanas 0-5 del alumno son de junio y julio: fuera del historial.
         assert out["weeks"] == [None] * 6
 
     def test_reports_since_when_there_is_history(self):
