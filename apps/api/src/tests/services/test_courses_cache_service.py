@@ -118,9 +118,31 @@ class TestCourseMetaCache:
             set_cached_course_meta("course-1", slim=False, data={"id": 2})
 
         assert redis_client.setex.call_count == 2
-        assert redis_client.setex.call_args_list[0].args[0] == "courses_cache:meta:course-1:slim"
+        assert redis_client.setex.call_args_list[0].args[0] == "courses_cache:meta:course-1:slim:uanon"
         assert redis_client.setex.call_args_list[0].args[1] == CACHE_TTL_COURSE_META
         mock_debug.assert_called_once()
+
+    def test_course_meta_cache_is_per_user(self):
+        """Los candados del goteo van dentro del payload: dos alumnos NO pueden
+        compartir entrada, o el que llega primero decide lo que ve el otro."""
+        redis_client = Mock()
+
+        with patch(
+            "src.services.courses.cache.get_redis_client",
+            return_value=redis_client,
+        ):
+            set_cached_course_meta("course-1", slim=False, data={"id": 1}, user_id=7)
+            set_cached_course_meta("course-1", slim=False, data={"id": 1}, user_id=9)
+
+            redis_client.get.return_value = None
+            get_cached_course_meta("course-1", slim=False, user_id=7)
+
+        key_user_7 = redis_client.setex.call_args_list[0].args[0]
+        key_user_9 = redis_client.setex.call_args_list[1].args[0]
+        assert key_user_7 != key_user_9
+        assert key_user_7 == "courses_cache:meta:course-1:full:u7"
+        # Y la lectura del alumno 7 va a su propia entrada, no a la del 9.
+        assert redis_client.get.call_args.args[0] == key_user_7
 
     def test_set_cached_course_meta_returns_quickly_when_redis_is_unavailable(self):
         with patch("src.services.courses.cache.get_redis_client", return_value=None):
@@ -128,6 +150,11 @@ class TestCourseMetaCache:
 
     def test_invalidate_course_meta_cache_covers_delete_and_failure(self):
         redis_client = Mock()
+        # Una entrada por usuario: se buscan por patrón y se borran todas.
+        redis_client.keys.return_value = [
+            "courses_cache:meta:course-1:full:u7",
+            "courses_cache:meta:course-1:slim:u9",
+        ]
 
         with patch(
             "src.services.courses.cache.get_redis_client",
@@ -138,10 +165,11 @@ class TestCourseMetaCache:
             redis_client.delete.side_effect = RuntimeError("boom")
             invalidate_course_meta_cache("course-1")
 
+        assert redis_client.keys.call_args.args[0] == "courses_cache:meta:course-1:*"
         assert redis_client.delete.call_count == 2
         assert redis_client.delete.call_args_list[0].args == (
-            "courses_cache:meta:course-1:slim",
-            "courses_cache:meta:course-1:full",
+            "courses_cache:meta:course-1:full:u7",
+            "courses_cache:meta:course-1:slim:u9",
         )
         mock_debug.assert_called_once()
 

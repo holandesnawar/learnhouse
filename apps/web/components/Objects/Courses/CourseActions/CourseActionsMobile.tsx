@@ -200,9 +200,18 @@ const CourseActionsMobile = ({ courseuuid, orgslug, course, trailData }: CourseA
     }
   }
 
+  // Nada que ofrecer: el alumno ya empezó el curso y no hay oferta que
+  // enseñarle. Antes se pintaba igual el contenedor blanco y quedaba un
+  // bloque vacío al final de la página en móvil.
+  const nothingToShow = !isLoading && linkedOffers.length === 0 && !!isStarted
+
   if (isLoading) {
+    // Ni siquiera el esqueleto si lo más probable es que no haya nada: al
+    // alumno ya matriculado le aparecía una barra gris y se iba sola.
+    if (isStarted) return null
     return <div className="animate-pulse h-16 bg-gray-100 rounded-lg mt-4 mb-8" />
   }
+
 
   // Show join organization prompt for authenticated users who are not part of the org
   if (session.data?.user && !isUserPartOfTheOrg) {
@@ -229,6 +238,8 @@ const CourseActionsMobile = ({ courseuuid, orgslug, course, trailData }: CourseA
       </div>
     )
   }
+
+  if (nothingToShow) return null
 
   // Filter active authors and sort by role priority
   const sortedAuthors = [...course.authors]

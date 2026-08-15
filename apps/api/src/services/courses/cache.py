@@ -62,18 +62,32 @@ def invalidate_courses_cache(org_slug: str) -> None:
         logger.debug("Courses cache invalidate failed for %s", org_slug, exc_info=True)
 
 
-# ── Course meta cache (per-course, shared across users) ──
+# ── Course meta cache (per course AND per user) ──
+#
+# The payload carries per-user state: `is_locked` and `unlock_date` on every
+# chapter and activity depend on the drip (enrolment date + configured offset)
+# and on user groups. Caching it under a key without the user meant whoever
+# warmed the cache decided what everybody else saw for the next minute — an
+# admin (nothing locked) or a student who signed up earlier. Hence the user in
+# the key.
 
 CACHE_TTL_COURSE_META = 60  # 1 min
 
-def get_cached_course_meta(course_uuid: str, slim: bool) -> Optional[dict]:
-    """Return cached course meta, or None."""
+
+def _meta_key(course_uuid: str, slim: bool, user_id: int | str | None) -> str:
+    suffix = ":slim" if slim else ":full"
+    return f"{_KEY_PREFIX}:meta:{course_uuid}{suffix}:u{user_id if user_id is not None else 'anon'}"
+
+
+def get_cached_course_meta(
+    course_uuid: str, slim: bool, user_id: int | str | None = None
+) -> Optional[dict]:
+    """Return cached course meta for this user, or None."""
     r = get_redis_client()
     if r is None:
         return None
     try:
-        suffix = ":slim" if slim else ":full"
-        raw = r.get(f"{_KEY_PREFIX}:meta:{course_uuid}{suffix}")
+        raw = r.get(_meta_key(course_uuid, slim, user_id))
         if raw:
             return json.loads(raw)
     except Exception:
@@ -81,15 +95,16 @@ def get_cached_course_meta(course_uuid: str, slim: bool) -> Optional[dict]:
     return None
 
 
-def set_cached_course_meta(course_uuid: str, slim: bool, data: dict) -> None:
-    """Cache course meta (shared across all users who have access)."""
+def set_cached_course_meta(
+    course_uuid: str, slim: bool, data: dict, user_id: int | str | None = None
+) -> None:
+    """Cache course meta for this user."""
     r = get_redis_client()
     if r is None:
         return
     try:
-        suffix = ":slim" if slim else ":full"
         r.setex(
-            f"{_KEY_PREFIX}:meta:{course_uuid}{suffix}",
+            _meta_key(course_uuid, slim, user_id),
             CACHE_TTL_COURSE_META,
             json.dumps(data, default=str),
         )
@@ -103,9 +118,11 @@ def invalidate_course_meta_cache(course_uuid: str) -> None:
     if r is None:
         return
     try:
-        r.delete(
-            f"{_KEY_PREFIX}:meta:{course_uuid}:slim",
-            f"{_KEY_PREFIX}:meta:{course_uuid}:full",
-        )
+        # Una entrada por usuario: hay que borrarlas todas, no solo dos claves
+        # fijas, o el curso editado seguiría saliendo viejo para quien ya lo
+        # tuviera cacheado.
+        keys = r.keys(f"{_KEY_PREFIX}:meta:{course_uuid}:*")
+        if keys:
+            r.delete(*keys)
     except Exception:
         logger.debug("Course meta cache invalidate failed for %s", course_uuid, exc_info=True)

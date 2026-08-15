@@ -500,7 +500,10 @@ function DetailView({
   const own = isMyConsulta(consulta.id)
   const answer = htmlToText(consulta.respuesta_nawar)
   return (
-    <div className="w-full max-w-2xl bg-white rounded-t-2xl sm:rounded-2xl nice-shadow max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto">
+    // En móvil el panel sube: con una respuesta corta se quedaba pegado abajo
+    // y había que buscar el texto con la mirada en el último tercio de la
+    // pantalla. Alto mínimo => el título arranca arriba. Mismo diseño.
+    <div className="w-full max-w-2xl bg-white rounded-t-2xl sm:rounded-2xl nice-shadow min-h-[78dvh] sm:min-h-0 max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto">
       <div className="flex items-start justify-between px-6 py-4 border-b border-[#DDE6F5] sticky top-0 bg-white rounded-t-2xl z-10">
         <div className="flex flex-wrap items-center gap-2">
           <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${catClasses(cat?.color)}`}>

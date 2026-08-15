@@ -429,7 +429,7 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
           className="flex items-center gap-1.5 text-sm font-semibold text-white/90 hover:text-white transition-colors"
         >
           <ChevronLeft size={18} className="shrink-0" />
-          Volver al curso
+          Volver
         </Link>
         <button
           onClick={() => setOpen(false)}

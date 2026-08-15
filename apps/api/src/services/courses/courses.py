@@ -189,11 +189,13 @@ async def get_course_meta(
         context=AccessContext.DASHBOARD,
     )
 
-    # Permission check passed — try Redis cache for the heavy data
-    # (shared across all authorized users for this course)
+    # Permission check passed — try Redis cache for the heavy data.
+    # Per user: el payload lleva los candados del goteo (is_locked /
+    # unlock_date), que dependen de la fecha de alta de cada alumno.
+    cache_user_id = getattr(current_user, "id", None)
     if course.published and not with_unpublished_activities:
         from src.services.courses.cache import get_cached_course_meta
-        cached = get_cached_course_meta(course_uuid, slim)
+        cached = get_cached_course_meta(course_uuid, slim, cache_user_id)
         if cached is not None:
             return FullCourseRead.model_validate(cached)
 
@@ -231,10 +233,10 @@ async def get_course_meta(
         chapters=chapters
     )
 
-    # Cache for published courses (safe to share across users)
+    # Cache for published courses (una entrada por usuario, ver arriba)
     if course.published and not with_unpublished_activities:
         from src.services.courses.cache import set_cached_course_meta
-        set_cached_course_meta(course_uuid, slim, course_read.model_dump())
+        set_cached_course_meta(course_uuid, slim, course_read.model_dump(), cache_user_id)
 
     return course_read
 

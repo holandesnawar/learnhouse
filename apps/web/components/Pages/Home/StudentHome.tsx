@@ -17,6 +17,7 @@ import dynamic from 'next/dynamic'
 import { useQueryClient } from '@tanstack/react-query'
 import { registerVisit, type StudentVisit } from '@services/student/progress'
 import { useStudentInsights } from '@/hooks/queries/useStudentInsights'
+import { isWeeklyClassCourse } from '@/lib/course/formacionProgress'
 
 // Las tarjetas que dependen del temario (courseData, ~350KB de fuente) se
 // cargan en un chunk aparte: el Inicio pinta antes y el temario llega detrás.
@@ -57,8 +58,7 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
 
   // La "Clase semanal" (directos) no es un curso de la formación: se ve en su
   // propia sección del menú, no en "Tus cursos" ni en "Continúa donde lo dejaste".
-  const HIDDEN_COURSE_UUID = 'bfbcb42b-7dc3-4448-9df8-5d7b96135859'
-  const isHidden = (uuid: any) => String(uuid || '').includes(HIDDEN_COURSE_UUID)
+  const isHidden = isWeeklyClassCourse
   const runs: any[] = (Array.isArray(trailData?.runs) ? trailData.runs : []).filter(
     (r: any) => !isHidden(r?.course?.course_uuid)
   )
