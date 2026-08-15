@@ -38,6 +38,27 @@ class StudentProgress(SQLModel, table=True):
     update_date: str = ""
 
 
+class StudentVisitDay(SQLModel, table=True):
+    """Un día en que el alumno entró. Una fila por alumno y día.
+
+    `student_progress` solo guarda la ÚLTIMA visita, y con un único valor no
+    se puede dibujar la retención por cohortes (qué % de los que entraron en
+    septiembre seguía entrando en su semana 3). Esto es el historial mínimo
+    para poder responder a eso: dos columnas y nada más.
+    """
+
+    __tablename__ = "student_visit_day"
+    __table_args__ = (
+        Index("ix_student_visit_day_user_day", "user_id", "day", unique=True),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(
+        sa_column=Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), index=True)
+    )
+    day: str = Field(sa_column=Column(String(10), index=True))  # YYYY-MM-DD
+
+
 class LessonCompletion(SQLModel, table=True):
     __tablename__ = "lesson_completion"
     __table_args__ = (

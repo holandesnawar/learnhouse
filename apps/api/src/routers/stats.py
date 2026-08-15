@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-VALID_KINDS = {"cost", "attendance"}
+VALID_KINDS = {"cost", "delivery", "attendance"}
 
 
 async def _admin_org(

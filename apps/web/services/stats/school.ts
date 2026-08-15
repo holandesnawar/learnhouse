@@ -66,12 +66,75 @@ export interface AttendanceRow {
   note: string
 }
 
+export interface DeliveryRow {
+  id: number
+  period: string
+  label: string
+  cost_cents: number
+  note: string
+}
+
+export interface MarginRow {
+  key: string
+  label: string
+  revenue_cents: number
+  marketing_cents: number
+  delivery_cents: number
+  margin_cents: number
+  sales: number
+  margin_per_student_cents: number | null
+  breakeven_sales: number | null
+}
+
+export interface AtRiskRow {
+  user_id: number
+  name: string
+  email: string
+  days_since_join: number | null
+  days_inactive: number | null
+  activities_done: number
+  reason: string
+}
+
+export interface Activation {
+  window_days: number
+  eligible: number
+  activated: number
+  pct: number
+}
+
+export interface Retention {
+  weeks: (number | null)[]
+  cohorts: { key: string; label: string; size: number; weeks: (number | null)[] }[]
+  tracking_since: string | null
+}
+
+export interface Support {
+  answered: number
+  pending: number
+  median_hours: number | null
+  under_24h_pct: number
+}
+
+export interface Refunds {
+  available: boolean
+  refunds: number
+  refunded_cents: number
+  disputes: number
+}
+
 export interface SchoolStats {
   generated_at: string
   sales: SalesBlock | null
   students: StudentsBlock | null
   courses: CourseBlock[] | null
-  manual: { costs: CostRow[]; attendance: AttendanceRow[] } | null
+  manual: { costs: CostRow[]; delivery: DeliveryRow[]; attendance: AttendanceRow[] } | null
+  margin: MarginRow[] | null
+  at_risk: AtRiskRow[] | null
+  activation: Activation | null
+  retention: Retention | null
+  support: Support | null
+  refunds: Refunds | null
 }
 
 const base = () => `${getAPIUrl()}stats`
@@ -95,7 +158,7 @@ export async function getSchoolStats(
 
 export async function saveManualEntry(
   orgId: number,
-  entry: { kind: 'cost' | 'attendance'; period: string; value: number; label?: string; note?: string },
+  entry: { kind: 'cost' | 'delivery' | 'attendance'; period: string; value: number; label?: string; note?: string },
   accessToken: string | undefined
 ): Promise<boolean> {
   if (!orgId || !accessToken) return false

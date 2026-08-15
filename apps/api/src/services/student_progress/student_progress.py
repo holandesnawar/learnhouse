@@ -1,5 +1,6 @@
 """Per-student progress, streak, lesson completions and weak-words logic."""
 
+import logging
 from collections import Counter
 from datetime import date, datetime, timedelta
 from typing import List, Optional
@@ -151,6 +152,18 @@ async def register_visit(current_user, db_session: AsyncSession) -> StudentVisit
     db_session.add(row)
     await db_session.commit()
     await db_session.refresh(row)
+
+    # Historial de días para la retención por cohortes. Best-effort: si esto
+    # falla, la visita y la racha ya están guardadas y no se pierde nada
+    # importante. Solo se llega aquí una vez al día por alumno.
+    try:
+        from src.db.student_progress import StudentVisitDay
+
+        db_session.add(StudentVisitDay(user_id=user_id, day=today_str))
+        await db_session.commit()
+    except Exception:
+        await db_session.rollback()
+        logging.debug("No se pudo guardar el día de visita de %s", user_id, exc_info=True)
 
     return StudentVisitResponse(
         last_visit_date=row.last_visit_date,

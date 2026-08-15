@@ -16,11 +16,13 @@ import {
   type UtmLink,
 } from '@services/stats/school'
 import {
+  AlertTriangle,
   BarChart3,
   Check,
   Copy,
   Link2,
   Loader2,
+  Mail,
   Plus,
   RefreshCw,
   Trash2,
@@ -216,6 +218,9 @@ export default function EstadisticasPage() {
         </div>
       ) : (
         <div className="space-y-8">
+          {/* ── Quién necesita un empujón ────────────────────────── */}
+          <AtRisk rows={stats.at_risk} />
+
           {/* ── Dinero ───────────────────────────────────────────── */}
           <section className="space-y-3">
             <h2 className="text-[15px] font-bold text-gray-900">Dinero</h2>
@@ -458,11 +463,176 @@ export default function EstadisticasPage() {
             </p>
           </section>
 
+          {/* ── Cómo va la cohorte ───────────────────────────────── */}
+          <Cohorte stats={stats} />
+
           {/* ── Datos que escribes tú ────────────────────────────── */}
           <ManualBlocks stats={stats} onSaved={load} />
         </div>
       )}
     </div>
+  )
+}
+
+/* ── Alumnos que necesitan un empujón ────────────────────────────── */
+
+function AtRisk({ rows }: { rows: SchoolStats['at_risk'] }) {
+  if (!rows) return null
+  return (
+    <section className="space-y-3">
+      <h2 className="text-[15px] font-bold text-gray-900 flex items-center gap-2">
+        <AlertTriangle size={16} className="text-amber-500" /> A quién escribir
+      </h2>
+      <div className={CARD}>
+        {rows.length === 0 ? (
+          <div className="flex items-center gap-2.5 py-2">
+            <Check size={18} className="text-emerald-500 shrink-0" />
+            <p className="text-[13.5px] text-gray-700">
+              Nadie descolgado ahora mismo. Todos han entrado esta semana.
+            </p>
+          </div>
+        ) : (
+          <>
+            <p className="text-[12.5px] text-[#9CA3AF] mb-3">
+              {rows.length} {rows.length === 1 ? 'alumno' : 'alumnos'} sin señales de vida. Los que
+              no han empezado van primero: son los que se piden el reembolso.
+            </p>
+            <div className="space-y-1.5">
+              {rows.map((r) => (
+                <div
+                  key={r.user_id}
+                  className="rounded-xl border border-[#E7EEF9] px-3.5 py-2.5 flex items-center gap-3"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13.5px] font-semibold text-gray-900 truncate">{r.name}</p>
+                    <p className="text-[12px] text-gray-500 truncate">
+                      <span
+                        className={
+                          r.activities_done === 0 ? 'text-amber-700 font-semibold' : ''
+                        }
+                      >
+                        {r.reason}
+                      </span>
+                      {r.days_since_join !== null && (
+                        <span className="text-[#9CA3AF]"> · alumno desde hace {r.days_since_join} días</span>
+                      )}
+                    </p>
+                  </div>
+                  <a
+                    href={`mailto:${r.email}`}
+                    className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7] text-[12px] font-bold transition-colors"
+                  >
+                    <Mail size={13} /> Escribir
+                  </a>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </section>
+  )
+}
+
+/* ── Activación, retención, soporte y devoluciones ───────────────── */
+
+function Cohorte({ stats }: { stats: SchoolStats }) {
+  const { activation, retention, support, refunds } = stats
+  return (
+    <section className="space-y-3">
+      <h2 className="text-[15px] font-bold text-gray-900">Cómo va la cohorte</h2>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className={CARD}>
+          <p className={LABEL}>Arrancan en {activation?.window_days ?? 7} días</p>
+          <p className={BIG}>{activation ? `${activation.pct}%` : '—'}</p>
+          <p className="text-[11.5px] text-[#9CA3AF] mt-1">
+            {activation
+              ? `${activation.activated} de ${activation.eligible} hicieron algo su primera semana`
+              : 'Sin datos'}
+          </p>
+        </div>
+
+        <div className={CARD}>
+          <p className={LABEL}>Respuesta a mensajes</p>
+          <p className={BIG}>
+            {support?.median_hours === null || !support ? '—' : `${support.median_hours} h`}
+          </p>
+          <p className="text-[11.5px] text-[#9CA3AF] mt-1">
+            {support
+              ? `${support.under_24h_pct}% en menos de 24 h · ${support.pending} sin contestar`
+              : 'Sin datos'}
+          </p>
+        </div>
+
+        <div className={CARD}>
+          <p className={LABEL}>Devoluciones</p>
+          <p className={BIG}>{refunds?.available ? refunds.refunds : '—'}</p>
+          <p className="text-[11.5px] text-[#9CA3AF] mt-1">
+            {refunds?.available
+              ? `${euros(refunds.refunded_cents)} devueltos · ${refunds.disputes} disputas`
+              : 'Stripe no ha contestado'}
+          </p>
+        </div>
+      </div>
+
+      {retention && retention.cohorts.length > 0 && (
+        <div className={CARD}>
+          <h3 className="text-[14px] font-bold text-gray-900">Quién sigue entrando</h3>
+          <p className="text-[12.5px] text-[#9CA3AF] mt-0.5 mb-3">
+            Cada fila es la gente que se dio de alta ese mes. Las semanas cuentan desde SU alta, no
+            del calendario, así que se pueden comparar entre sí.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-[13px] min-w-[420px]">
+              <thead>
+                <tr className="text-left text-[#9CA3AF]">
+                  <th className="font-semibold py-2 pr-3">Alta</th>
+                  {retention.weeks.map((_, i) => (
+                    <th key={i} className="font-semibold py-2 px-1.5 text-center">
+                      S{i + 1}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#EEF3FB]">
+                {retention.cohorts.map((c) => (
+                  <tr key={c.key}>
+                    <td className="py-2 pr-3 font-semibold text-gray-900 capitalize whitespace-nowrap">
+                      {c.label}{' '}
+                      <span className="text-[11px] text-[#9CA3AF] font-normal">({c.size})</span>
+                    </td>
+                    {c.weeks.map((w, i) => (
+                      <td key={i} className="py-2 px-1.5 text-center">
+                        {w === null ? (
+                          <span className="text-[#DDE6F5]">·</span>
+                        ) : (
+                          <span
+                            className="inline-block min-w-[38px] rounded-md py-0.5 text-[12px] font-bold tabular-nums"
+                            style={{
+                              backgroundColor: `rgba(77,163,255,${Math.max(0.08, w / 100) * 0.35})`,
+                              color: w >= 50 ? '#025dc7' : '#8a6a2a',
+                            }}
+                          >
+                            {w}%
+                          </span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {retention.tracking_since && (
+            <p className="mt-3 text-[11.5px] text-[#9CA3AF]">
+              Con datos desde el {retention.tracking_since}: antes de esa fecha no se guardaban las
+              visitas, así que las semanas anteriores salen vacías.
+            </p>
+          )}
+        </div>
+      )}
+    </section>
   )
 }
 
@@ -482,10 +652,13 @@ function ManualBlocks({ stats, onSaved }: { stats: SchoolStats; onSaved: () => v
   const [attDate, setAttDate] = useState(today)
   const [attValue, setAttValue] = useState('')
   const [attNote, setAttNote] = useState('')
+  const [delPeriod, setDelPeriod] = useState(thisMonth)
+  const [delValue, setDelValue] = useState('')
+  const [delNote, setDelNote] = useState('')
   const [saving, setSaving] = useState(false)
 
   const save = async (
-    kind: 'cost' | 'attendance',
+    kind: 'cost' | 'delivery' | 'attendance',
     period: string,
     value: string,
     note: string,
@@ -504,6 +677,9 @@ function ManualBlocks({ stats, onSaved }: { stats: SchoolStats; onSaved: () => v
       if (kind === 'cost') {
         setCostValue('')
         setCostNote('')
+      } else if (kind === 'delivery') {
+        setDelValue('')
+        setDelNote('')
       } else {
         setAttValue('')
         setAttNote('')
@@ -525,6 +701,7 @@ function ManualBlocks({ stats, onSaved }: { stats: SchoolStats; onSaved: () => v
   }
 
   const costs = stats.manual?.costs ?? []
+  const delivery = stats.manual?.delivery ?? []
   const attendance = stats.manual?.attendance ?? []
 
   return (
@@ -625,6 +802,140 @@ function ManualBlocks({ stats, onSaved }: { stats: SchoolStats; onSaved: () => v
             </table>
           </div>
           </>
+        )}
+      </div>
+
+      <div className={CARD}>
+        <h3 className="text-[14px] font-bold text-gray-900">Coste de entregar el curso</h3>
+        <p className="text-[12.5px] text-[#9CA3AF] mt-0.5 mb-3">
+          Lo que cuesta dar las clases ese mes: profes, correcciones, sesiones en vivo. No es coste
+          de captar — va aparte porque crece con los alumnos, no con los leads.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-[150px_130px_1fr_auto] gap-2 items-start">
+          <input type="month" value={delPeriod} onChange={(e) => setDelPeriod(e.target.value)} className={INPUT} />
+          <input
+            value={delValue}
+            onChange={(e) => setDelValue(e.target.value)}
+            placeholder="Euros"
+            inputMode="decimal"
+            className={INPUT}
+          />
+          <input
+            value={delNote}
+            onChange={(e) => setDelNote(e.target.value)}
+            placeholder="Quién / qué (opcional)"
+            className={INPUT}
+          />
+          <button
+            onClick={() => save('delivery', delPeriod, delValue, delNote)}
+            disabled={saving}
+            className={BTN}
+          >
+            <Plus size={15} /> Guardar
+          </button>
+        </div>
+
+        {delivery.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {delivery.map((d) => (
+              <span
+                key={d.id}
+                className="inline-flex items-center gap-1.5 text-[12px] font-semibold bg-[#F0F5FF] text-[#0a1656] rounded-full pl-2.5 pr-1.5 py-1"
+              >
+                <span className="capitalize">{d.label}</span>
+                <span className="tabular-nums">{euros(d.cost_cents)}</span>
+                <button
+                  onClick={() => remove(d.id)}
+                  className="text-[#9CA3AF] hover:text-rose-500 transition-colors"
+                  aria-label="Borrar"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {(stats.margin?.length ?? 0) > 0 && (
+          <div className="mt-4">
+            <p className="text-[13px] font-bold text-gray-900 mb-2">Margen por mes</p>
+
+            {/* Móvil: una tarjeta por mes. */}
+            <div className="sm:hidden space-y-2">
+              {stats.margin!.map((m) => (
+                <div key={m.key} className="rounded-xl border border-[#E7EEF9] px-3.5 py-3">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-[13.5px] font-bold text-gray-900 capitalize">{m.label}</span>
+                    <span
+                      className={`text-[15px] font-bold tabular-nums ${
+                        m.margin_cents >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                      }`}
+                    >
+                      {euros(m.margin_cents)}
+                    </span>
+                  </div>
+                  <p className="text-[12px] text-[#9CA3AF] tabular-nums mt-0.5">
+                    {euros(m.revenue_cents)} − {euros(m.marketing_cents + m.delivery_cents)} de gasto
+                  </p>
+                  <p className="text-[12px] text-[#9CA3AF] tabular-nums">
+                    {m.margin_per_student_cents !== null
+                      ? `${euros(m.margin_per_student_cents)} por alumno`
+                      : 'Sin ventas'}
+                    {m.breakeven_sales !== null && ` · cubres el gasto con ${m.breakeven_sales}`}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-[13.5px] min-w-[620px]">
+                <thead>
+                  <tr className="text-left text-[#9CA3AF]">
+                    <th className="font-semibold py-2 pr-3">Mes</th>
+                    <th className="font-semibold py-2 pr-3 text-right">Ingresos</th>
+                    <th className="font-semibold py-2 pr-3 text-right">Captar</th>
+                    <th className="font-semibold py-2 pr-3 text-right">Entregar</th>
+                    <th className="font-semibold py-2 pr-3 text-right">Margen</th>
+                    <th className="font-semibold py-2 pr-3 text-right">Por alumno</th>
+                    <th className="font-semibold py-2 text-right">Equilibrio</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#EEF3FB]">
+                  {stats.margin!.map((m) => (
+                    <tr key={m.key}>
+                      <td className="py-2.5 pr-3 font-semibold text-gray-900 capitalize">{m.label}</td>
+                      <td className="py-2.5 pr-3 text-right tabular-nums">{euros(m.revenue_cents)}</td>
+                      <td className="py-2.5 pr-3 text-right tabular-nums text-gray-500">
+                        {euros(m.marketing_cents)}
+                      </td>
+                      <td className="py-2.5 pr-3 text-right tabular-nums text-gray-500">
+                        {euros(m.delivery_cents)}
+                      </td>
+                      <td
+                        className={`py-2.5 pr-3 text-right tabular-nums font-bold ${
+                          m.margin_cents >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                        }`}
+                      >
+                        {euros(m.margin_cents)}
+                      </td>
+                      <td className="py-2.5 pr-3 text-right tabular-nums font-bold text-[#025dc7]">
+                        {m.margin_per_student_cents === null
+                          ? '—'
+                          : euros(m.margin_per_student_cents)}
+                      </td>
+                      <td className="py-2.5 text-right tabular-nums text-gray-500">
+                        {m.breakeven_sales === null ? '—' : `${m.breakeven_sales} ventas`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-2 text-[11.5px] text-[#9CA3AF]">
+              El coste de los profes es casi el mismo con 20 alumnos que con 40, así que cada plaza
+              que llenas es casi todo margen. Por eso interesa llenar la cohorte, no solo vender.
+            </p>
+          </div>
         )}
       </div>
 
