@@ -29,9 +29,12 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-const CARD = 'rounded-2xl border border-[#DDE6F5] bg-white p-4 sm:p-5'
-const LABEL = 'text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider'
-const BIG = 'text-[26px] sm:text-[30px] font-bold text-[#1D0084] leading-tight mt-0.5 tabular-nums'
+const CARD = 'rounded-2xl border border-[#DDE6F5] bg-white p-3.5 sm:p-5'
+// En móvil las etiquetas son de dos palabras ("ACTIVOS 30 DÍAS") y en tres
+// columnas se cortaban: letra más pequeña y sin `tracking` para que quepan.
+const LABEL =
+  'text-[10px] sm:text-[11px] font-bold text-[#9CA3AF] uppercase tracking-normal sm:tracking-wider leading-tight'
+const BIG = 'text-[22px] sm:text-[30px] font-bold text-[#1D0084] leading-tight mt-1 tabular-nums'
 const INPUT =
   'bg-[#F0F5FF] rounded-xl px-3 py-2 text-[14px] text-[#1D0084] placeholder:text-[#1D0084]/45 border border-transparent outline-none focus:bg-white focus:border-[#4da3ff] focus:ring-[3px] focus:ring-[#4da3ff]/22 transition-colors w-full'
 const BTN =
@@ -54,7 +57,38 @@ function Empty({ children }: { children: React.ReactNode }) {
 function SalesTable({ rows }: { rows: SalesRow[] }) {
   if (!rows.length) return <Empty>Todavía no hay ventas en este periodo.</Empty>
   return (
-    <div className="overflow-x-auto">
+    <>
+      {/* Móvil: una tarjeta por periodo. La tabla obligaba a arrastrar de
+          lado para ver los ingresos, que es justo la columna que importa. */}
+      <div className="sm:hidden space-y-2">
+        {rows.map((r) => (
+          <div key={r.key} className="rounded-xl border border-[#E7EEF9] px-3.5 py-3">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-[13.5px] font-bold text-gray-900 capitalize">{r.label}</span>
+              <span className="text-[15px] font-bold text-[#025dc7] tabular-nums">
+                {euros(r.revenue_cents)}
+              </span>
+            </div>
+            <p className="text-[12px] text-[#9CA3AF] tabular-nums mt-0.5">
+              {r.sales} {r.sales === 1 ? 'venta' : 'ventas'} · ticket {euros(r.avg_ticket_cents)}
+            </p>
+            {Object.keys(r.by_product).length > 1 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {Object.entries(r.by_product).map(([id, p]) => (
+                  <span
+                    key={id}
+                    className="text-[11px] font-semibold bg-[#F0F5FF] text-[#025dc7] rounded-full px-2 py-0.5"
+                  >
+                    {productName(id)} · {p.sales}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden sm:block overflow-x-auto">
       <table className="w-full text-[13.5px] min-w-[520px]">
         <thead>
           <tr className="text-left text-[#9CA3AF]">
@@ -92,7 +126,8 @@ function SalesTable({ rows }: { rows: SalesRow[] }) {
           ))}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   )
 }
 
@@ -128,17 +163,22 @@ export default function EstadisticasPage() {
   const salesRows = period === 'month' ? sales?.by_month ?? [] : sales?.by_quarter ?? []
 
   return (
-    <div className="space-y-6 pb-16">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <BarChart3 size={24} className="text-[#025dc7]" />
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Estadísticas</h1>
+    // Mismo marco que el resto del panel (Avisos, Cursos): sin esto el
+    // contenido se pegaba a los bordes de la pantalla en el móvil. El hueco
+    // de abajo para la barra del navegador ya lo pone el layout del panel.
+    <div className="h-full w-full bg-[#f8f8f8] px-4 sm:px-9 py-6 sm:py-9 pb-10 space-y-5 sm:space-y-6">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <BarChart3 size={22} className="text-[#025dc7] shrink-0" />
+          <h1 className="text-xl sm:text-3xl font-bold text-gray-900 truncate">Estadísticas</h1>
         </div>
         <button
           onClick={refresh}
-          className="inline-flex items-center gap-2 text-[13px] font-semibold text-[#025dc7] hover:underline"
+          aria-label="Actualizar"
+          className="shrink-0 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-[13px] font-semibold text-[#025dc7] hover:bg-[#EAF3FF] transition-colors"
         >
-          <RefreshCw size={14} className={reloading ? 'animate-spin' : ''} /> Actualizar
+          <RefreshCw size={15} className={reloading ? 'animate-spin' : ''} />
+          <span className="hidden sm:inline">Actualizar</span>
         </button>
       </div>
 
@@ -261,22 +301,22 @@ export default function EstadisticasPage() {
                 {/* Embudo del checkout */}
                 <div className={CARD}>
                   <h3 className="text-[14px] font-bold text-gray-900 mb-3">Checkout</h3>
-                  <div className="grid grid-cols-3 gap-3 text-center">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
                     <div>
                       <p className={LABEL}>Empezaron</p>
-                      <p className="text-[22px] font-bold text-gray-900 tabular-nums">
+                      <p className="text-[20px] sm:text-[22px] font-bold text-gray-900 tabular-nums mt-0.5">
                         {sales.funnel.started}
                       </p>
                     </div>
                     <div>
                       <p className={LABEL}>Pagaron</p>
-                      <p className="text-[22px] font-bold text-emerald-600 tabular-nums">
+                      <p className="text-[20px] sm:text-[22px] font-bold text-emerald-600 tabular-nums mt-0.5">
                         {sales.funnel.paid}
                       </p>
                     </div>
                     <div>
                       <p className={LABEL}>Conversión</p>
-                      <p className="text-[22px] font-bold text-[#025dc7] tabular-nums">
+                      <p className="text-[20px] sm:text-[22px] font-bold text-[#025dc7] tabular-nums mt-0.5">
                         {sales.funnel.conversion_pct}%
                       </p>
                     </div>
@@ -308,26 +348,26 @@ export default function EstadisticasPage() {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-3">
                 <div className={CARD}>
-                  <div className="grid grid-cols-3 gap-3 text-center">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
                     <div>
                       <p className={LABEL}>Total</p>
-                      <p className="text-[22px] font-bold text-gray-900 tabular-nums">
+                      <p className="text-[20px] sm:text-[22px] font-bold text-gray-900 tabular-nums mt-0.5">
                         {stats.students.total}
                       </p>
                     </div>
                     <div>
                       <p className={LABEL}>Activos 7 días</p>
-                      <p className="text-[22px] font-bold text-[#025dc7] tabular-nums">
+                      <p className="text-[20px] sm:text-[22px] font-bold text-[#025dc7] tabular-nums mt-0.5">
                         {stats.students.active_7d}
                       </p>
                     </div>
                     <div>
                       <p className={LABEL}>Activos 30 días</p>
-                      <p className="text-[22px] font-bold text-[#025dc7] tabular-nums">
+                      <p className="text-[20px] sm:text-[22px] font-bold text-[#025dc7] tabular-nums mt-0.5">
                         {stats.students.active_30d}
-                        <span className="text-[12px] text-[#9CA3AF] font-semibold">
-                          {' '}
-                          ({stats.students.active_30d_pct}%)
+                        {/* El % en su propia línea: pegado al número no cabía. */}
+                        <span className="block text-[11px] text-[#9CA3AF] font-semibold">
+                          {stats.students.active_30d_pct}% del total
                         </span>
                       </p>
                     </div>
@@ -522,7 +562,35 @@ function ManualBlocks({ stats, onSaved }: { stats: SchoolStats; onSaved: () => v
         </div>
 
         {costs.length > 0 && (
-          <div className="mt-4 overflow-x-auto">
+          <>
+          {/* Móvil: lista, no tabla (mismo motivo que en las ventas). */}
+          <div className="mt-4 sm:hidden space-y-2">
+            {costs.map((c) => (
+              <div key={c.id} className="rounded-xl border border-[#E7EEF9] px-3.5 py-3">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-[13.5px] font-bold text-gray-900 capitalize">{c.label}</span>
+                  <span className="flex items-center gap-2">
+                    <span className="text-[14px] font-bold text-[#025dc7] tabular-nums">
+                      {c.cost_per_lead_cents === null ? '—' : `${euros(c.cost_per_lead_cents)} / lead`}
+                    </span>
+                    <button
+                      onClick={() => remove(c.id)}
+                      className="text-gray-300 hover:text-rose-500 transition-colors"
+                      aria-label="Borrar"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </span>
+                </div>
+                <p className="text-[12px] text-[#9CA3AF] tabular-nums mt-0.5">
+                  {euros(c.cost_cents)} · {c.leads} {c.leads === 1 ? 'matrícula' : 'matrículas'}
+                  {c.note && <span> · {c.note}</span>}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 hidden sm:block overflow-x-auto">
             <table className="w-full text-[13.5px] min-w-[460px]">
               <thead>
                 <tr className="text-left text-[#9CA3AF]">
@@ -556,6 +624,7 @@ function ManualBlocks({ stats, onSaved }: { stats: SchoolStats; onSaved: () => v
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 
