@@ -203,7 +203,8 @@
     "choose_an_organization_to_continue": "계속하려면 조직을 선택하세요",
     "for": "대상",
     "powered_by": "제공",
-    "results": "결과"
+    "results": "결과",
+    "statistics": "통계"
   },
   "banner": {
     "viewing_as_guest": "{{name}}을(를) 게스트로 보고 있습니다.",

@@ -203,7 +203,8 @@
     "choose_an_organization_to_continue": "Chọn một tổ chức để tiếp tục",
     "for": "cho",
     "powered_by": "Cung cấp bởi",
-    "results": "kết quả"
+    "results": "kết quả",
+    "statistics": "Thống kê"
   },
   "banner": {
     "viewing_as_guest": "Bạn đang xem {{name}} với tư cách khách.",

@@ -203,7 +203,8 @@
     "choose_an_organization_to_continue": "Выберите организацию, чтобы продолжить",
     "for": "для",
     "powered_by": "Работает на",
-    "results": "результат"
+    "results": "результат",
+    "statistics": "Статистика"
   },
   "banner": {
     "viewing_as_guest": "Вы просматриваете {{name}} как гость.",

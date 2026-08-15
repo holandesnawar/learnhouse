@@ -203,7 +203,8 @@
     "choose_an_organization_to_continue": "続行するには組織を選択してください",
     "for": "対象",
     "powered_by": "Powered by",
-    "results": "件"
+    "results": "件",
+    "statistics": "統計"
   },
   "banner": {
     "viewing_as_guest": "{{name}}をゲストとして閲覧しています。",

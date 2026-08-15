@@ -203,7 +203,8 @@
     "choose_an_organization_to_continue": "เลือกองค์กรเพื่อดำเนินการต่อ",
     "for": "สำหรับ",
     "powered_by": "ขับเคลื่อนโดย",
-    "results": "ผลลัพธ์"
+    "results": "ผลลัพธ์",
+    "statistics": "สถิติ"
   },
   "banner": {
     "viewing_as_guest": "คุณกำลังดู {{name}} ในฐานะแขก",

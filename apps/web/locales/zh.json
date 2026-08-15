@@ -203,7 +203,8 @@
     "choose_an_organization_to_continue": "选择一个组织以继续",
     "for": "用于",
     "powered_by": "技术支持",
-    "results": "结果"
+    "results": "结果",
+    "statistics": "统计"
   },
   "banner": {
     "viewing_as_guest": "您正在以访客身份浏览 {{name}}。",

@@ -203,7 +203,8 @@
     "choose_an_organization_to_continue": "চালিয়ে যেতে একটি সংস্থা নির্বাচন করুন",
     "for": "জন্য",
     "powered_by": "দ্বারা চালিত",
-    "results": "ফলাফল"
+    "results": "ফলাফল",
+    "statistics": "পরিসংখ্যান"
   },
   "banner": {
     "viewing_as_guest": "আপনি {{name}} অতিথি হিসেবে দেখছেন।",

@@ -203,7 +203,8 @@
     "choose_an_organization_to_continue": "Choisissez une organisation pour continuer",
     "for": "pour",
     "powered_by": "Propulsé par",
-    "results": "résultat"
+    "results": "résultat",
+    "statistics": "Statistiques"
   },
   "banner": {
     "viewing_as_guest": "Vous consultez {{name}} en tant qu'invité.",

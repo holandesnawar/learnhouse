@@ -203,7 +203,8 @@
     "choose_an_organization_to_continue": "जारी रखने के लिए एक संगठन चुनें",
     "for": "के लिए",
     "powered_by": "द्वारा संचालित",
-    "results": "परिणाम"
+    "results": "परिणाम",
+    "statistics": "आंकड़े"
   },
   "banner": {
     "viewing_as_guest": "आप {{name}} को अतिथि के रूप में देख रहे हैं।",

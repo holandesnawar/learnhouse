@@ -203,7 +203,8 @@
     "choose_an_organization_to_continue": "Devam etmek için bir organizasyon seçin",
     "for": "için",
     "powered_by": "Destekleyen",
-    "results": "sonuç"
+    "results": "sonuç",
+    "statistics": "İstatistikler"
   },
   "banner": {
     "viewing_as_guest": "{{name}} sitesini misafir olarak görüntülüyorsunuz.",

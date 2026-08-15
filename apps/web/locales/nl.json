@@ -203,7 +203,8 @@
     "choose_an_organization_to_continue": "Kies een organisatie om door te gaan",
     "for": "voor",
     "powered_by": "Mogelijk gemaakt door",
-    "results": "resultaat"
+    "results": "resultaat",
+    "statistics": "Statistieken"
   },
   "banner": {
     "viewing_as_guest": "Je bekijkt {{name}} als gast.",

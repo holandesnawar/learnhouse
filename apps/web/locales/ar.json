@@ -203,7 +203,8 @@
     "choose_an_organization_to_continue": "اختر منظمة للمتابعة",
     "for": "لـ",
     "powered_by": "مدعوم بواسطة",
-    "results": "نتيجة"
+    "results": "نتيجة",
+    "statistics": "الإحصائيات"
   },
   "banner": {
     "viewing_as_guest": "أنت تتصفح {{name}} كضيف.",

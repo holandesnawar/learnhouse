@@ -1,6 +1,7 @@
 import {
   House,
   BookOpen,
+  ChartBar,
   Files,
   Users,
   CurrencyCircleDollar,
@@ -62,6 +63,12 @@ export const DASHBOARD_MENU_ITEMS: DashboardMenuItem[] = [
     labelKey: 'common.playgrounds',
     featureKey: 'playgrounds',
     defaultDisabled: true,
+  },
+  {
+    id: 'estadisticas',
+    href: '/dash/estadisticas',
+    icon: ChartBar,
+    labelKey: 'common.statistics',
   },
   {
     id: 'users',
