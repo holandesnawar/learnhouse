@@ -74,6 +74,16 @@ _CATALOG: Dict[str, Dict] = {
             email=to, name=name, preview=True
         ),
     },
+    "new_direct_message": {
+        "name": "Tienes un mensaje",
+        "when": (
+            "Cuando alguien del equipo escribe a un alumno y marca el mensaje "
+            "como importante. No cuenta lo que dice: solo avisa."
+        ),
+        "build": lambda to, name: E.send_new_direct_message_email(
+            email=to, name=name, preview=True
+        ),
+    },
     "certificate_ready": {
         "name": "Certificado listo",
         "when": "Cuando el alumno completa la formación entera.",

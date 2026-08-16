@@ -135,7 +135,14 @@ export async function getUnreadMessages(accessToken: string | undefined): Promis
  * separador que toca.
  */
 export async function sendDirectMessage(
-  params: { threadId?: number | null; body?: string; audio?: Blob | null; audioSeconds?: number },
+  params: {
+    threadId?: number | null
+    body?: string
+    audio?: Blob | null
+    audioSeconds?: number
+    /** Manda además un correo al alumno avisando (sin contar el mensaje). */
+    notify?: boolean
+  },
   accessToken: string | undefined
 ): Promise<DirectMessage | null> {
   if (!accessToken) return null
@@ -143,6 +150,7 @@ export async function sendDirectMessage(
   if (params.threadId) form.append('thread_id', String(params.threadId))
   form.append('body', params.body || '')
   form.append('audio_seconds', String(Math.round(params.audioSeconds || 0)))
+  if (params.notify) form.append('notify', 'true')
   if (params.audio) form.append('audio', params.audio, 'nota.webm')
 
   try {

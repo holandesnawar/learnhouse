@@ -24,6 +24,7 @@ import toast from 'react-hot-toast'
 import {
   ArrowLeft,
   BadgeCheck,
+  BellRing,
   Check,
   Loader2,
   MessageSquare,
@@ -60,6 +61,9 @@ export default function MessagesPage() {
   const [activeAvatar, setActiveAvatar] = useState('')
   const [activeRole, setActiveRole] = useState('')
   const [emojiOpen, setEmojiOpen] = useState(false)
+  // Avisar al alumno por correo con ESTE mensaje. Apagado por defecto: el
+  // sobre y la campana ya avisan dentro, el correo es para lo importante.
+  const [notify, setNotify] = useState(false)
   const [messages, setMessages] = useState<DirectMessage[]>([])
   const [loading, setLoading] = useState(true)
   const [text, setText] = useState('')
@@ -191,9 +195,16 @@ export default function MessagesPage() {
     const body = text.trim()
     if (!body || sending || !activeId) return
     setSending(true)
-    const m = await sendDirectMessage({ threadId: activeId, body }, accessToken)
+    const m = await sendDirectMessage({ threadId: activeId, body, notify }, accessToken)
     setSending(false)
     if (m) setText('')
+    // El aviso se apaga después de cada envío: así escribir tres mensajes
+    // seguidos no manda tres correos sin querer. Se vuelve a encender a mano
+    // cuando de verdad haga falta.
+    if (m && notify) {
+      setNotify(false)
+      toast.success('Mensaje enviado y aviso por correo')
+    }
     push(m)
   }
 
@@ -201,10 +212,14 @@ export default function MessagesPage() {
     if (!activeId) return
     setSending(true)
     const m = await sendDirectMessage(
-      { threadId: activeId, audio, audioSeconds: seconds },
+      { threadId: activeId, audio, audioSeconds: seconds, notify },
       accessToken
     )
     setSending(false)
+    if (m && notify) {
+      setNotify(false)
+      toast.success('Nota de voz enviada y aviso por correo')
+    }
     push(m)
   }
 
@@ -337,8 +352,34 @@ export default function MessagesPage() {
         </div>
       )}
 
+      {isStaff && notify && (
+        <div className="mx-3 mb-1 flex items-center gap-2 rounded-xl bg-[#F0F5FF] px-3 py-2">
+          <BellRing size={14} className="text-[#025dc7] shrink-0" />
+          <p className="text-[12px] text-[#0a1656] leading-snug">
+            Al enviar, el alumno recibirá un correo avisándole. No se le cuenta lo que dice el
+            mensaje, solo que lo tiene.
+          </p>
+        </div>
+      )}
+
       <div className="border-t border-[#EEF2FB] p-3 flex items-end gap-2">
         <VoiceRecorder onSend={sendVoice} sending={sending} />
+        {isStaff && (
+          <button
+            type="button"
+            onClick={() => setNotify((v) => !v)}
+            title={notify ? 'Se avisará por correo' : 'Avisar por correo al enviar'}
+            aria-label="Avisar por correo"
+            aria-pressed={notify}
+            className={`shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg transition-colors ${
+              notify
+                ? 'bg-[#025dc7]/10 text-[#025dc7]'
+                : 'text-gray-400 hover:text-[#025dc7] hover:bg-[#F0F5FF]'
+            }`}
+          >
+            <BellRing size={18} />
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setEmojiOpen((v) => !v)}

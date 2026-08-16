@@ -492,6 +492,23 @@ async def get_thread(
     )
 
 
+async def _notify_student_by_email(thread: DirectThread, db_session: AsyncSession) -> None:
+    """Avisa al alumno de que tiene un mensaje. Best-effort: si el correo
+    falla, el mensaje ya está guardado y no se pierde nada."""
+    try:
+        from src.services.users.emails import send_new_direct_message_email
+
+        student = await _user(thread.student_id, db_session)
+        if not student or not student.email:
+            logger.warning("Aviso no enviado: el alumno %s no tiene correo", thread.student_id)
+            return
+        name = (student.first_name or student.username or "").strip() or "alumno/a"
+        send_new_direct_message_email(email=student.email, name=name)
+        logger.info("Aviso de mensaje enviado a %s", student.email)
+    except Exception:
+        logger.exception("No se pudo avisar por correo del mensaje directo")
+
+
 async def post_message(
     thread_id: Optional[int],
     body: str,
@@ -499,6 +516,7 @@ async def post_message(
     audio_seconds: int,
     current_user: PublicUser | AnonymousUser,
     db_session: AsyncSession,
+    notify: bool = False,
 ) -> DirectMessageRead:
     user_id = _uid(current_user)
     org_id = await _default_org_id(user_id, db_session)
@@ -534,6 +552,12 @@ async def post_message(
     db_session.add(thread)
     await db_session.commit()
     await db_session.refresh(message)
+
+    # Aviso por correo, solo si quien escribe lo pide expresamente. Nunca
+    # automático: la campana y el sobre ya avisan dentro de la escuela, y un
+    # correo por cada mensaje sería spam. Solo del equipo hacia el alumno.
+    if notify and staff:
+        await _notify_student_by_email(thread, db_session)
 
     org = await _org(org_id, db_session)
     author = await _user(user_id, db_session)

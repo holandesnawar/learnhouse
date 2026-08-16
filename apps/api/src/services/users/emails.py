@@ -659,6 +659,43 @@ def send_consulta_answered_email(
     )
 
 
+def send_new_direct_message_email(
+    email: EmailStr,
+    name: str = "alumno/a",
+    preview: bool = False,
+):
+    """Aviso de que el equipo le ha escrito por mensaje directo.
+
+    A propósito NO cuenta lo que dice el mensaje: el correo solo avisa y el
+    contenido se lee dentro de la escuela. Así ni se filtra una conversación
+    privada por el correo ni se le quita la razón de entrar.
+    """
+    safe_name = html.escape(name)
+    heading = "Tienes un mensaje en la escuela"
+
+    body_content = f"""
+        <h1 style="{STYLES['h1']}">{heading}</h1>
+        <p style="{STYLES['p']}">
+            Hola {safe_name}, te hemos escrito un mensaje. Entra en la escuela para leerlo
+            y contestarnos.
+        </p>
+        <a href="{ACADEMY_URL}/mensajes" class="brand-btn" style="{STYLES['button']}">
+            Leer el mensaje
+        </a>
+    """
+
+    return send_email(
+        dry_run=preview,
+        to=email,
+        subject="Tienes un mensaje en la escuela",
+        body=_email_layout(
+            title=heading,
+            body_content=body_content,
+            footer_note="Recibes esto cuando alguien del equipo te escribe y marca el mensaje como importante.",
+        ),
+    )
+
+
 def send_certificate_ready_email(
     email: EmailStr,
     name: str = "alumno/a",

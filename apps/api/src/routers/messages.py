@@ -82,11 +82,14 @@ async def api_send(
     body: str = Form(""),
     audio_seconds: int = Form(0),
     audio: Optional[UploadFile] = File(None),
+    # Solo lo usa el equipo: manda además un correo avisando al alumno (sin
+    # contar lo que dice el mensaje).
+    notify: bool = Form(False),
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ) -> DirectMessageRead:
     return await post_message(
-        thread_id, body, audio, audio_seconds, current_user, db_session
+        thread_id, body, audio, audio_seconds, current_user, db_session, notify
     )
 
 
