@@ -62,6 +62,12 @@ export interface ExerciseItem {
   id: string;
   type: ExerciseType;
   prompt: string;
+  /**
+   * La misma consigna en neerlandés, para poder escucharla además de leerla.
+   * En Spreken, cuando está, el enunciado también se practica de oído (módulos
+   * avanzados); si falta, la situación se lee en español y ya.
+   */
+  promptNl?: string;
   options?: string[];
   correctAnswer: string;
   audio?: AudioTrack;

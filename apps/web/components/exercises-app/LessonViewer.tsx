@@ -2006,12 +2006,12 @@ function SprekenChooseExercise({
   onAnswer: (correct: boolean, answer: string) => void;
   initialAnswer?: string;
 }) {
+  // Se elige primero y se comprueba después, como en una prueba de verdad:
+  // así se puede cambiar de idea y volver a escuchar antes de decidir.
   const [selected, setSelected] = useState<string | null>(initialAnswer ?? null);
+  const [checked, setChecked] = useState(Boolean(initialAnswer));
   const [playing, setPlaying] = useState<string | null>(null);
-  const [heard, setHeard] = useState<Set<string>>(new Set());
-  const isAnswered = selected !== null;
 
-  // Se barajan una vez por ejercicio, como en el resto.
   const shuffledOptions = useMemo(() => {
     if (!exercise.options?.length) return exercise.options ?? [];
     const arr = [...exercise.options];
@@ -2022,115 +2022,140 @@ function SprekenChooseExercise({
     return arr;
   }, [exercise.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  function hear(opt: string) {
-    setPlaying(opt);
-    setHeard((s) => new Set(s).add(opt));
-    speakDutch(opt, () => setPlaying(null));
+  function hear(text: string, key: string) {
+    setPlaying(key);
+    speakDutch(text, () => setPlaying(null));
   }
 
-  function handleSelect(opt: string) {
-    if (isAnswered) return;
+  function check() {
+    if (!selected || checked) return;
     stopDutch();
     setPlaying(null);
-    setSelected(opt);
-    onAnswer(opt === exercise.correctAnswer, opt);
+    setChecked(true);
+    onAnswer(selected === exercise.correctAnswer, selected);
   }
 
   const letters = ['A', 'B', 'C', 'D', 'E'];
 
   function rowStyle(opt: string): string {
-    const base = 'w-full rounded-lg border transition-all duration-200 ';
-    if (!isAnswered) return base + 'bg-[#F0F5FF] border-[#DDE6F5] hover:border-[#025dc7]/40';
+    const base = 'w-full rounded-xl border-2 transition-all duration-200 ';
+    if (!checked) {
+      return base + (selected === opt
+        ? 'bg-[#EAF3FF] border-[#4da3ff]'
+        : 'bg-white border-[#DDE6F5] hover:border-[#4da3ff]/60');
+    }
     if (opt === exercise.correctAnswer) return base + 'bg-green-50 border-green-400';
     if (opt === selected) return base + 'bg-red-50 border-red-400';
-    return base + 'bg-[#F8F9FA] border-[#DDE6F5]';
+    return base + 'bg-[#F8F9FA] border-[#E5E7EB] opacity-60';
   }
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl p-5 border border-[#DDE6F5] bg-white space-y-3">
-        <p className="text-[17px] font-semibold text-gray-900 leading-snug">{exercise.prompt}</p>
-        <p className="text-[13px] text-[#5A6480] leading-snug">
-          Escucha las tres respuestas y elige la correcta. No verás el texto hasta que contestes.
-        </p>
+      {/* La situación. Con `promptNl` se puede escuchar además de leer: en los
+          módulos avanzados el enunciado también se entrena de oído. */}
+      <div className="rounded-2xl p-5 border border-[#DDE6F5] bg-white">
+        <div className="flex items-start gap-3">
+          <p className="flex-1 text-[17px] font-semibold text-gray-900 leading-snug">
+            {exercise.promptNl || exercise.prompt}
+          </p>
+          {exercise.promptNl && (
+            <button
+              onClick={() => hear(exercise.promptNl!, '__prompt')}
+              aria-label="Escuchar la situación"
+              className={`shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-full transition-colors ${
+                playing === '__prompt'
+                  ? 'bg-[#025dc7] text-white'
+                  : 'bg-[#F0F5FF] text-[#025dc7] hover:bg-[#e3edff]'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M19 5a9 9 0 010 14M5 9v6h4l5 4V5L9 9H5z" />
+              </svg>
+            </button>
+          )}
+        </div>
+        {exercise.promptNl && (
+          <p className="text-[13px] text-[#5A6480] leading-snug mt-2">{exercise.prompt}</p>
+        )}
+        {!checked && (
+          <p className="text-[13px] text-[#9CA3AF] leading-snug mt-2">
+            Escucha las respuestas y elige la tuya. El texto aparece al comprobar.
+          </p>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 gap-2">
-        {shuffledOptions.map((opt, idx) => (
-          <div key={opt} className={rowStyle(opt)}>
-            <div className="flex items-center gap-2 px-3 py-2.5">
-              <span
-                className={`w-7 h-7 rounded-lg flex items-center justify-center text-[12px] font-bold shrink-0 transition-all duration-200 ${
-                  !isAnswered
-                    ? 'bg-white/70 text-gray-900'
-                    : opt === exercise.correctAnswer
-                    ? 'bg-green-500 text-white'
-                    : opt === selected
-                    ? 'bg-red-400 text-white'
-                    : 'bg-[#E5E7EB] text-[#9CA3AF]'
-                }`}
-              >
-                {letters[idx] ?? idx + 1}
-              </span>
-
-              <button
-                onClick={() => hear(opt)}
-                aria-label={`Escuchar respuesta ${letters[idx] ?? idx + 1}`}
-                className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-semibold transition-colors ${
-                  playing === opt
-                    ? 'bg-[#025dc7] text-white'
-                    : 'bg-white border border-[#DDE6F5] text-[#025dc7] hover:bg-[#F0F5FF]'
-                }`}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M19 5a9 9 0 010 14M5 9v6h4l5 4V5L9 9H5z" />
-                </svg>
-                {playing === opt ? 'Sonando…' : heard.has(opt) ? 'Repetir' : 'Escuchar'}
-              </button>
-
-              {/* El texto solo aparece al contestar. Antes, el hueco. */}
-              <span className="flex-1 min-w-0 text-[14.5px] leading-snug">
-                {isAnswered ? (
-                  <span
-                    className={
-                      opt === exercise.correctAnswer
-                        ? 'text-green-800 font-semibold'
-                        : opt === selected
-                        ? 'text-red-700'
-                        : 'text-[#9CA3AF]'
-                    }
-                  >
-                    {opt}
-                  </span>
-                ) : (
-                  <span className="text-[#9CA3AF]">·····</span>
-                )}
-              </span>
-
-              {!isAnswered && (
+      <div className="grid grid-cols-1 gap-2.5">
+        {shuffledOptions.map((opt, idx) => {
+          const isSel = selected === opt;
+          return (
+            <div key={opt} className={rowStyle(opt)}>
+              <div className="flex items-center gap-3 px-3.5 py-3">
+                {/* Seleccionar: toda la fila, no un botón aparte. */}
                 <button
-                  onClick={() => handleSelect(opt)}
-                  className="shrink-0 px-3 py-1.5 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[12.5px] font-bold hover:bg-[#6cb5ff] transition-colors"
+                  onClick={() => !checked && setSelected(opt)}
+                  disabled={checked}
+                  className="flex items-center gap-3 flex-1 min-w-0 text-left disabled:cursor-default"
                 >
-                  Elegir
+                  <span
+                    className={`w-6 h-6 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${
+                      !checked
+                        ? isSel ? 'border-[#025dc7] bg-[#025dc7]' : 'border-[#C6D2E6]'
+                        : opt === exercise.correctAnswer ? 'border-green-500 bg-green-500'
+                        : isSel ? 'border-red-400 bg-red-400' : 'border-[#DDE6F5]'
+                    }`}
+                  >
+                    {(isSel || (checked && opt === exercise.correctAnswer)) && (
+                      <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </span>
+                  <span className="text-[14.5px] leading-snug min-w-0">
+                    {checked ? (
+                      <span className={
+                        opt === exercise.correctAnswer ? 'text-green-800 font-semibold'
+                        : isSel ? 'text-red-700' : 'text-[#9CA3AF]'
+                      }>
+                        {opt}
+                      </span>
+                    ) : (
+                      <span className="text-gray-700">
+                        <span className="font-bold text-[#9CA3AF] mr-1.5">{letters[idx] ?? idx + 1}</span>
+                        Escucha la respuesta
+                      </span>
+                    )}
+                  </span>
                 </button>
-              )}
-              {isAnswered && opt === exercise.correctAnswer && (
-                <svg className="w-4 h-4 text-green-600 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              )}
-              {isAnswered && opt === selected && opt !== exercise.correctAnswer && (
-                <svg className="w-4 h-4 text-red-500 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              )}
+
+                <span className="shrink-0 text-[#C6D2E6]" aria-hidden>→</span>
+                <button
+                  onClick={() => hear(opt, opt)}
+                  aria-label={`Escuchar la respuesta ${letters[idx] ?? idx + 1}`}
+                  className={`shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-full transition-colors ${
+                    playing === opt
+                      ? 'bg-[#025dc7] text-white'
+                      : 'bg-[#F0F5FF] text-[#025dc7] hover:bg-[#e3edff]'
+                  }`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M19 5a9 9 0 010 14M5 9v6h4l5 4V5L9 9H5z" />
+                  </svg>
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {isAnswered && (
+      {!checked ? (
+        <button
+          onClick={check}
+          disabled={!selected}
+          className="w-full py-3.5 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Comprobar
+        </button>
+      ) : (
         <FeedbackBanner
           correct={selected === exercise.correctAnswer}
           correctAnswer={exercise.correctAnswer}
