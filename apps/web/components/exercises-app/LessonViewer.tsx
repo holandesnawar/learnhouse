@@ -3594,6 +3594,9 @@ function LuisterenSection({
 }) {
   // Tres vistas: landing (solo audios + CTAs) → dialogue (transcript) → exercises
   const [view, setView] = useState<'landing' | 'dialogue' | 'exercises'>('landing');
+  // Reproductor desplegado mientras se hacen los ejercicios. Abierto por
+  // defecto: escuchar durante la prueba es parte del ejercicio.
+  const [playerOpen, setPlayerOpen] = useState(true);
   const [exerciseIndex, setExerciseIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [wrongIndices, setWrongIndices] = useState<Set<number>>(new Set());
@@ -3695,11 +3698,12 @@ function LuisterenSection({
   if (view === 'landing') {
     return (
       <div className="space-y-5">
-        <div className="text-center space-y-1">
-          <h3 className="text-[22px] font-bold text-gray-900 leading-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
+        {/* Solo el título en neerlandés, con aire por arriba. La frase de
+            debajo repetía lo que ya dice el reproductor y apelmazaba. */}
+        <div className="text-center pt-4 sm:pt-6 pb-1">
+          <h3 className="text-[23px] sm:text-[27px] font-bold text-gray-900 leading-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
             {dialogue.title}
           </h3>
-          <p className="text-[13px] text-[#5A6480]">Escucha primero el audio antes de leer el texto.</p>
         </div>
 
         {/* Last-attempt banner — only when we have one and there are exercises. */}
@@ -3911,6 +3915,32 @@ function LuisterenSection({
   return (
     <div className="space-y-5">
       <GradientBar pct={pct} />
+
+      {/* El mismo reproductor, aquí arriba: hay que poder volver a escuchar
+          mientras se responde, que es justo lo que se hace en un examen de
+          comprensión oral. Los audios ya están en memoria de la pantalla
+          anterior, así que no se vuelven a generar. */}
+      <div className="rounded-xl border border-[#DDE6F5] bg-[#FBFDFF] p-3">
+        <button
+          onClick={() => setPlayerOpen((v) => !v)}
+          className="w-full flex items-center gap-2 text-left"
+        >
+          <span className="text-[17px] leading-none">🎧</span>
+          <span className="flex-1 text-[13px] font-bold text-gray-900">Escuchar el diálogo</span>
+          <svg
+            className={`w-4 h-4 text-[#9CA3AF] transition-transform ${playerOpen ? 'rotate-180' : ''}`}
+            fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {playerOpen && (
+          <div className="mt-3">
+            <DialoguePlayer lines={dialogue.lines} accentColor="#4da3ff" />
+          </div>
+        )}
+      </div>
+
       <div className="flex items-center justify-between">
         <button
           onClick={() => { resetAttempt(); setView('landing'); }}

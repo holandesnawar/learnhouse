@@ -199,7 +199,7 @@ export function buildFormacionProgress(
         groups.set(groupKey, {
           key: `${ci}-${groupKey}`,
           number,
-          title: number ? `Clase ${number}` : label,
+          title: number ? `Lección ${number}` : label,
           sections: [section],
           done: 0,
           total: 0,
