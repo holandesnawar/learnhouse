@@ -3395,7 +3395,10 @@ function LezenSection({
             </svg>
           </button>
           {textOpen && (
-            <div className="px-3.5 pb-3.5 max-h-64 overflow-y-auto lh-scroll-light">
+            /* El texto entero, sin scroll propio: dos barras de scroll una
+               dentro de otra son un incordio en el móvil. Se despliega, se
+               lee bajando la página normal, y se vuelve a plegar. */
+            <div className="px-3.5 pb-3.5">
               <p className="text-[14.5px] text-gray-800 leading-relaxed whitespace-pre-line">
                 {textNl}
               </p>
