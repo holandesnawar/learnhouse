@@ -137,7 +137,10 @@ export type LessonBlock =
   | { type: 'vocabulary'; title?: string; items: VocabularyItem[] }
   | { type: 'phrases';    title?: string; items: PhraseItem[] }
   | { type: 'practice';   title?: string; exercises: ExerciseItem[] }
-  | { type: 'dialogue';   title?: string; dialogue: Dialogue }
+  // `exercises`: preguntas SOBRE lo que se dice en el diálogo. Sin ellas, la
+  // sección cae en los ejercicios generales de la lección, que son de
+  // gramática y no tienen nada que ver con lo que se acaba de escuchar.
+  | { type: 'dialogue';   title?: string; dialogue: Dialogue; exercises?: ExerciseItem[] }
   | LezenBlock
   | SprekenBlock
   | { type: 'review' };

@@ -5036,7 +5036,9 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
           {activeSection === 'luisteren' && dialogueBlock && dialogueBlock.type === 'dialogue' && (
             <LuisterenSection
               dialogue={dialogueBlock.dialogue}
-              practiceExercises={practiceItems}
+              practiceExercises={
+                dialogueBlock.exercises?.length ? dialogueBlock.exercises : practiceItems
+              }
               onComplete={() => completeSection('luisteren')}
               cacheKey={`${lesson.id}-luisteren`}
               reviewOnly={reviewMode}
