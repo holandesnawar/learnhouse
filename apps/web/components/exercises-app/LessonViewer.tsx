@@ -411,11 +411,10 @@ function buildVPSteps(
 ): VPStep[] {
   const steps: VPStep[] = [];
 
-  // El estudio de vocabulario (palabras + sonidos) se muestra ahora en el
-  // "Resumen", para que "Oefeningen" sea solo ejercicios. (antes: paso 'words')
-
-  if (phraseItems.length > 0)
-    steps.push({ type: 'phrases', items: phraseItems });
+  // El estudio de vocabulario Y las frases se muestran ahora en el "Resumen",
+  // para que "Oefeningen" sea solo ejercicios. (antes: pasos 'words' y
+  // 'phrases'). El parámetro se mantiene para no cambiar la firma a todos los
+  // que llaman, pero ya no genera ningún paso.
 
   const listenEx = exercises.filter(e => e.type === 'listen_and_choose');
   if (listenEx.length > 0)
@@ -2827,7 +2826,7 @@ function renderInlineBold(text: string): React.ReactNode[] {
   );
 }
 
-function ResumenSection({ block, vocabItems = [], inCourse, onComplete }: { block: SummaryBlock; vocabItems?: VocabularyItem[]; inCourse?: boolean; onComplete: () => void }) {
+function ResumenSection({ block, vocabItems = [], phraseItems = [], inCourse, onComplete }: { block: SummaryBlock; vocabItems?: VocabularyItem[]; phraseItems?: PhraseItem[]; inCourse?: boolean; onComplete: () => void }) {
   return (
     <div className="space-y-6">
       {/* Hero con intro */}
@@ -2935,6 +2934,42 @@ function ResumenSection({ block, vocabItems = [], inCourse, onComplete }: { bloc
         </div>
       )}
 
+      {/* Frases — antes eran el primer paso de "Oefeningen", pero repasar no
+          es un ejercicio: se estudian aquí, junto al vocabulario, y así la
+          sección de ejercicios queda solo con ejercicios. */}
+      {phraseItems.length > 0 && (
+        <div className="rounded-2xl border border-[#DDE6F5] bg-white p-5 space-y-3">
+          <h3
+            className="flex items-center gap-2 text-[17px] font-bold text-gray-900 leading-tight"
+            style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
+          >
+            <span aria-hidden className="shrink-0">💬</span>
+            <span>Frases</span>
+          </h3>
+          <p className="text-[13px] text-[#5A6480] leading-relaxed">Toca el altavoz para escuchar la frase entera.</p>
+          <div className="divide-y divide-[#DDE6F5] rounded-lg border border-[#DDE6F5] bg-[#F8FAFF] overflow-hidden">
+            {phraseItems.map((p, i) => (
+              <div key={p.id ?? i} className="flex items-start gap-3 px-4 py-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-semibold text-gray-900 leading-snug">{p.dutch}</p>
+                  <p className="text-[13px] text-[#5A6480] leading-snug mt-0.5">{p.spanish}</p>
+                </div>
+                <button
+                  onClick={() => speakDutch(p.dutch)}
+                  aria-label={`Escuchar ${p.dutch}`}
+                  className="shrink-0 inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[12px] font-semibold text-[#025dc7] hover:bg-[#F0F5FF] transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M19 5a9 9 0 010 14M5 9v6h4l5 4V5L9 9H5z" />
+                  </svg>
+                  <span className="hidden sm:inline">Escuchar</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Tip final — se ajusta al contenido (no ocupa todo el ancho) */}
       {block.tip && (
         <div className="w-fit max-w-full rounded-2xl border border-[#FCD34D]/50 bg-[#FEF3C7] px-4 py-3 flex items-center gap-2.5">
@@ -2983,6 +3018,19 @@ function LezenSection({
   reviewOnly?: boolean;
 }) {
   const [step, setStep] = useState<'text' | 'exercises' | 'translation'>('text');
+  // El texto sigue disponible durante las preguntas, plegado o desplegado.
+  const [textOpen, setTextOpen] = useState(false);
+  const exercisesRef = useRef<HTMLDivElement | null>(null);
+  // Al empezar los ejercicios se baja hasta ellos con un scroll suave, en vez
+  // de saltar de pantalla: así se ve que el texto sigue justo arriba.
+  useEffect(() => {
+    if (step !== 'exercises') return;
+    const id = window.setTimeout(
+      () => exercisesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+      60,
+    );
+    return () => window.clearTimeout(id);
+  }, [step]);
   const [exerciseIndex, setExerciseIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [wrongIndices, setWrongIndices] = useState<Set<number>>(new Set());
@@ -3169,7 +3217,35 @@ function LezenSection({
     return (
       <div className="space-y-5">
         {progressBar}
-        <div className="flex items-center justify-between gap-4">
+
+        {/* El texto se queda AQUÍ, encima de las preguntas, en vez de estar en
+            otra pantalla: en una prueba de comprensión lectora hay que poder
+            releer sin perder de vista lo que te preguntan. Plegable, y con
+            altura máxima para que no empuje el ejercicio fuera de la pantalla. */}
+        <div className="rounded-xl border border-[#DDE6F5] bg-[#FBFDFF]">
+          <button
+            onClick={() => setTextOpen((v) => !v)}
+            className="w-full flex items-center gap-2 px-3.5 py-2.5 text-left"
+          >
+            <span className="text-[16px] leading-none">📄</span>
+            <span className="flex-1 text-[13px] font-bold text-gray-900">Volver a leer el texto</span>
+            <svg
+              className={`w-4 h-4 text-[#9CA3AF] transition-transform ${textOpen ? 'rotate-180' : ''}`}
+              fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {textOpen && (
+            <div className="px-3.5 pb-3.5 max-h-64 overflow-y-auto lh-scroll-light">
+              <p className="text-[14.5px] text-gray-800 leading-relaxed whitespace-pre-line">
+                {textNl}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div ref={exercisesRef} className="flex items-center justify-between gap-4 scroll-mt-4">
           <button onClick={() => setStep('text')} className="flex items-center gap-1.5 text-[13px] font-semibold text-[#9CA3AF] hover:text-[#025dc7] transition-colors duration-200">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -3597,6 +3673,7 @@ function LuisterenSection({
   // Reproductor desplegado mientras se hacen los ejercicios. Abierto por
   // defecto: escuchar durante la prueba es parte del ejercicio.
   const [playerOpen, setPlayerOpen] = useState(true);
+  const exercisesRef = useRef<HTMLDivElement | null>(null);
   const [exerciseIndex, setExerciseIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [wrongIndices, setWrongIndices] = useState<Set<number>>(new Set());
@@ -3681,6 +3758,16 @@ function LuisterenSection({
       setExKey((k) => k + 1);
     }
   }
+
+  // Bajar hasta las preguntas al empezar, dejando el audio a la vista arriba.
+  useEffect(() => {
+    if (view !== 'exercises') return;
+    const id = window.setTimeout(
+      () => exercisesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+      60,
+    );
+    return () => window.clearTimeout(id);
+  }, [view]);
 
   function goPrevEx() {
     if (exerciseIndex === 0) return;
@@ -3941,7 +4028,7 @@ function LuisterenSection({
         )}
       </div>
 
-      <div className="flex items-center justify-between">
+      <div ref={exercisesRef} className="flex items-center justify-between scroll-mt-4">
         <button
           onClick={() => { resetAttempt(); setView('landing'); }}
           className="flex items-center gap-1.5 text-[13px] font-semibold text-[#9CA3AF] hover:text-[#025dc7] transition-colors duration-200"
@@ -4550,6 +4637,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
             <ResumenSection
               block={summaryBlock}
               vocabItems={vocabBlock && vocabBlock.type === 'vocabulary' ? vocabBlock.items : []}
+              phraseItems={phraseBlock && phraseBlock.type === 'phrases' ? phraseBlock.items : []}
               inCourse={inCourse}
               onComplete={() => completeSection('resumen')}
             />
