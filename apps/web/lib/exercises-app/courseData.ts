@@ -461,6 +461,29 @@ Por la noche, Sofía y Pablo aprenden neerlandés juntos. Sofía aprende rápido
       },
     },
     {
+      // Spreken de la leccion 2: elegir el pronombre correcto de OIDO. Todas
+      // las situaciones son del tema del modulo (over jou): quien eres, de
+      // donde vienes, tu familia y a quien presentas.
+      type: 'spreken',
+      title: 'Wie zeg je wat?',
+      intro: 'El pronombre correcto no se elige pensando, se elige hablando. Escucha las tres respuestas y elige la que dirías tú en esa situación. El texto no aparece hasta que contestas.',
+      exercises: [
+        { id: 'm1l2sp-1',  type: 'spreken_choose', prompt: 'Presentas a tu amiga Sofía a un compañero. Ella es de España.', options: ['Dit is Sofía. Zij komt uit Spanje.', 'Dit is Sofía. Hij komt uit Spanje.', 'Dit is Sofía. Wij komen uit Spanje.'], correctAnswer: 'Dit is Sofía. Zij komt uit Spanje.', explanation: 'Sofía es una mujer: "zij". "Hij" es él y "wij" somos nosotros.' },
+        { id: 'm1l2sp-2',  type: 'spreken_choose', prompt: 'Os presentáis tu pareja y tú. Los dos sois de Colombia.', options: ['Wij komen uit Colombia.', 'Ik kom uit Colombia.', 'Zij komen uit Colombia.'], correctAnswer: 'Wij komen uit Colombia.', explanation: 'Habláis los dos: "wij" (nosotros) y el verbo en plural, "komen".' },
+        { id: 'm1l2sp-3',  type: 'spreken_choose', prompt: 'Un compañero te pregunta dónde vive tu hermana.', options: ['Zij woont in Utrecht.', 'Hij woont in Utrecht.', 'Ik woon in Utrecht.'], correctAnswer: 'Zij woont in Utrecht.', explanation: 'Tu hermana es ella: "zij woont".' },
+        { id: 'm1l2sp-4',  type: 'spreken_choose', prompt: 'Te preguntan la edad de tu hijo. Tiene ocho años.', options: ['Hij is acht jaar.', 'Hij heeft acht jaar.', 'Zij is acht jaar.'], correctAnswer: 'Hij is acht jaar.', explanation: 'Ojo: en neerlandés la edad se ES, no se tiene. "Hij heeft acht jaar" es la traducción literal del español y suena mal.' },
+        { id: 'm1l2sp-5',  type: 'spreken_choose', prompt: 'Te presentas en un grupo nuevo y dices tu nombre.', options: ['Ik heet Rida.', 'Jij heet Rida.', 'Hij heet Rida.'], correctAnswer: 'Ik heet Rida.', explanation: 'Hablas de ti: "ik". "Jij" es tú y "hij" es él.' },
+        { id: 'm1l2sp-6',  type: 'spreken_choose', prompt: 'Tu vecina mayor, a la que tratas de usted, te pregunta cómo estás. Le devuelves la pregunta.', options: ['Goed, dank u. En met u?', 'Goed, dank u. En met jou?', 'Goed, dank u. En met haar?'], correctAnswer: 'Goed, dank u. En met u?', explanation: 'Si la tratas de usted, mantienes "u" también al devolver la pregunta.' },
+        { id: 'm1l2sp-7',  type: 'spreken_choose', prompt: 'Un compañero de clase de tu edad te pregunta de dónde eres. Le devuelves la pregunta.', options: ['En jij?', 'En u?', 'En hij?'], correctAnswer: 'En jij?', explanation: 'Entre iguales se tutea: "jij". "U" aquí suena distante.' },
+        { id: 'm1l2sp-8',  type: 'spreken_choose', prompt: 'Os preguntan a tu pareja y a ti dónde vivís.', options: ['Wij wonen in Rotterdam.', 'Ik woon in Rotterdam.', 'Jullie wonen in Rotterdam.'], correctAnswer: 'Wij wonen in Rotterdam.', explanation: 'Contestas por los dos: "wij". "Jullie" sois vosotros, no nosotros.' },
+        { id: 'm1l2sp-9',  type: 'spreken_choose', prompt: 'Hablas de tus padres: viven en España.', options: ['Zij wonen in Spanje.', 'Zij woont in Spanje.', 'Hij woont in Spanje.'], correctAnswer: 'Zij wonen in Spanje.', explanation: 'Son dos personas: "zij" en plural pide "wonen", no "woont". Escucha bien el final del verbo.' },
+        { id: 'm1l2sp-10', type: 'spreken_choose', prompt: 'Te preguntan a qué se dedica tu hermano. Es profesor.', options: ['Hij is leraar.', 'Zij is leraar.', 'Ik ben leraar.'], correctAnswer: 'Hij is leraar.', explanation: 'Tu hermano es él: "hij is". Fíjate en que la profesión va sin artículo.' },
+        { id: 'm1l2sp-11', type: 'spreken_choose', prompt: 'Te preguntan cuántos hijos tienes. Tienes dos.', options: ['Ik heb twee kinderen.', 'Ik ben twee kinderen.', 'Wij heb twee kinderen.'], correctAnswer: 'Ik heb twee kinderen.', explanation: 'Los hijos SÍ se tienen ("hebben"); la edad, en cambio, se es ("zijn"). Y con "wij" el verbo sería "hebben".' },
+        { id: 'm1l2sp-12', type: 'spreken_choose', prompt: 'Tu amigo David no ha venido hoy. Alguien pregunta por él.', options: ['Hij is ziek.', 'Zij is ziek.', 'Jij bent ziek.'], correctAnswer: 'Hij is ziek.', explanation: 'David es él: "hij is". "Jij bent" se lo dirías a él en la cara.' },
+        { id: 'm1l2sp-13', type: 'spreken_choose', prompt: 'Le preguntas su nombre a un niño pequeño.', options: ['Hoe heet jij?', 'Hoe heet u?', 'Hoe heten jullie?'], correctAnswer: 'Hoe heet jij?', explanation: 'A un niño nunca se le trata de "u". Y "jullie" es a varios a la vez.' },
+      ],
+    },
+    {
       type: 'practice',
       exercises: [
         // ── Opción múltiple ──
