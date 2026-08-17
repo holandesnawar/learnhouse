@@ -15,6 +15,7 @@ export const SECTION_LABEL: Record<string, string> = {
   flashcards: 'Flashcards',
   lezen: 'Lezen',
   luisteren: 'Luisteren',
+  spreken: 'Spreken',
 }
 
 export interface SectionProgress {
@@ -65,6 +66,7 @@ export function trackedSectionIds(lesson: Lesson): string[] {
     if (b.type === 'vocabulary') out.push('vocabulary', 'flashcards')
     else if (b.type === 'lezen') out.push('lezen')
     else if (b.type === 'dialogue') out.push('luisteren')
+    else if (b.type === 'spreken') out.push('spreken')
   }
   return out
 }

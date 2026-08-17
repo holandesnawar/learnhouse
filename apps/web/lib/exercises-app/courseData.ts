@@ -232,6 +232,21 @@ Una cosa más: los neerlandeses dicen mucho gezellig — una palabra sin traducc
       },
     },
     {
+      // Spreken: situaciones reales. Las tres respuestas SOLO suenan; el texto
+      // aparece al contestar. Todas las frases salen del material de esta
+      // misma lección, para que sea un repaso de oído y no contenido nuevo.
+      type: 'spreken',
+      title: 'Wat zeg je?',
+      intro: 'Situaciones normales del día a día. Escucha las tres respuestas y elige la que dirías tú. El texto no aparece hasta que contestas.',
+      exercises: [
+        { id: 'm1l1sp-1', type: 'spreken_choose', prompt: 'Son las 9 de la mañana y entras en la panadería. ¿Qué dices?', options: ['Goedemorgen!', 'Goedenavond!', 'Tot morgen!'], correctAnswer: 'Goedemorgen!', explanation: '"Goedemorgen" hasta las 12:00. Ojo: "tot morgen" es "hasta mañana", no un saludo.' },
+        { id: 'm1l1sp-2', type: 'spreken_choose', prompt: 'Alguien te pregunta: "Hoe heet je?". ¿Qué contestas?', options: ['Ik heet David.', 'Ik ben 35 jaar.', 'Ik woon in Utrecht.'], correctAnswer: 'Ik heet David.', explanation: '"Hoe heet je?" pregunta el nombre. La edad y el lugar contestan a otras preguntas.' },
+        { id: 'm1l1sp-3', type: 'spreken_choose', prompt: 'Te despides de un amigo y os veis mañana. ¿Qué dices?', options: ['Tot morgen!', 'Tot straks!', 'Goedemiddag!'], correctAnswer: 'Tot morgen!', explanation: '"Tot straks" es el mismo día; "tot morgen", mañana. "Goedemiddag" es un saludo, no una despedida.' },
+        { id: 'm1l1sp-4', type: 'spreken_choose', prompt: 'Te preguntan "Hoe is het met je?". ¿Qué contestas?', options: ['Goed, dank je!', 'Ik kom uit Spanje.', 'Alsjeblieft.'], correctAnswer: 'Goed, dank je!', explanation: 'Cuidado con la pareja "alsjeblieft" (por favor / aquí tienes) y "dank je" (gracias).' },
+        { id: 'm1l1sp-5', type: 'spreken_choose', prompt: 'Quieres preguntarle el nombre a una señora mayor, de forma formal.', options: ['Hoe heet u?', 'Hoe heet jij?', 'Wie ben jij?'], correctAnswer: 'Hoe heet u?', explanation: 'Con "u" tratas de usted. "Jij" es tú, e "wie ben jij?" suena brusco.' },
+      ],
+    },
+    {
       type: 'practice',
       exercises: [
         // ── Opción múltiple ──

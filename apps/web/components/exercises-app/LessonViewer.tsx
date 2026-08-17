@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
-import type { Lesson, CourseModule, VocabularyItem, PhraseItem, ExerciseItem, Dialogue, SummaryBlock } from '@/lib/exercises-app/types';
+import type { Lesson, CourseModule, VocabularyItem, PhraseItem, ExerciseItem, Dialogue, SummaryBlock, SprekenBlock } from '@/lib/exercises-app/types';
 import {
   getLessonProgress,
   markLessonStarted,
@@ -310,7 +310,7 @@ function GradientBar({ pct, label, subLabel }: { pct: number; label?: string; su
    SECTION TYPE
 ───────────────────────────────────────────────────────────────────────────── */
 
-type SectionId = 'resumen' | 'vocabulary' | 'flashcards' | 'lezen' | 'luisteren';
+type SectionId = 'resumen' | 'vocabulary' | 'flashcards' | 'lezen' | 'luisteren' | 'spreken';
 
 const SECTION_META: Record<SectionId, { label: string; emoji: string; desc: string }> = {
   resumen:     { label: 'Resumen',     emoji: '📋', desc: 'Los puntos clave de la lección' },
@@ -318,6 +318,7 @@ const SECTION_META: Record<SectionId, { label: string; emoji: string; desc: stri
   flashcards:  { label: 'Flashcards',  emoji: '🃏', desc: 'Practica con tarjetas' },
   lezen:       { label: 'Lezen',       emoji: '📝', desc: 'Lee un texto y responde preguntas' },
   luisteren:   { label: 'Luisteren',   emoji: '🎧', desc: 'Escucha el diálogo' },
+  spreken:     { label: 'Spreken',     emoji: '🗣️', desc: '¿Qué dices en esta situación?' },
 };
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -1985,6 +1986,162 @@ function ListenAndChooseExercise({
   );
 }
 
+/**
+ * Spreken — "¿qué dices en esta situación?".
+ *
+ * Las tres respuestas SOLO suenan: no se enseña el texto hasta contestar. Es
+ * la diferencia con `listen_and_choose`, donde se escucha la pregunta y se
+ * eligen respuestas escritas. Aquí se entrena reconocer la frase de oído, que
+ * es lo que pasa cuando alguien te habla en la calle.
+ *
+ * Al fallar sí se destapa el texto: en A0-A1 el objetivo es entender, no
+ * sufrir, y sin ver la frase no se aprende de la equivocación.
+ */
+function SprekenChooseExercise({
+  exercise,
+  onAnswer,
+  initialAnswer,
+}: {
+  exercise: ExerciseItem;
+  onAnswer: (correct: boolean, answer: string) => void;
+  initialAnswer?: string;
+}) {
+  const [selected, setSelected] = useState<string | null>(initialAnswer ?? null);
+  const [playing, setPlaying] = useState<string | null>(null);
+  const [heard, setHeard] = useState<Set<string>>(new Set());
+  const isAnswered = selected !== null;
+
+  // Se barajan una vez por ejercicio, como en el resto.
+  const shuffledOptions = useMemo(() => {
+    if (!exercise.options?.length) return exercise.options ?? [];
+    const arr = [...exercise.options];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }, [exercise.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function hear(opt: string) {
+    setPlaying(opt);
+    setHeard((s) => new Set(s).add(opt));
+    speakDutch(opt, () => setPlaying(null));
+  }
+
+  function handleSelect(opt: string) {
+    if (isAnswered) return;
+    stopDutch();
+    setPlaying(null);
+    setSelected(opt);
+    onAnswer(opt === exercise.correctAnswer, opt);
+  }
+
+  const letters = ['A', 'B', 'C', 'D', 'E'];
+
+  function rowStyle(opt: string): string {
+    const base = 'w-full rounded-lg border transition-all duration-200 ';
+    if (!isAnswered) return base + 'bg-[#F0F5FF] border-[#DDE6F5] hover:border-[#025dc7]/40';
+    if (opt === exercise.correctAnswer) return base + 'bg-green-50 border-green-400';
+    if (opt === selected) return base + 'bg-red-50 border-red-400';
+    return base + 'bg-[#F8F9FA] border-[#DDE6F5]';
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl p-5 border border-[#DDE6F5] bg-white space-y-3">
+        <p className="text-[17px] font-semibold text-gray-900 leading-snug">{exercise.prompt}</p>
+        <p className="text-[13px] text-[#5A6480] leading-snug">
+          Escucha las tres respuestas y elige la correcta. No verás el texto hasta que contestes.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-2">
+        {shuffledOptions.map((opt, idx) => (
+          <div key={opt} className={rowStyle(opt)}>
+            <div className="flex items-center gap-2 px-3 py-2.5">
+              <span
+                className={`w-7 h-7 rounded-lg flex items-center justify-center text-[12px] font-bold shrink-0 transition-all duration-200 ${
+                  !isAnswered
+                    ? 'bg-white/70 text-gray-900'
+                    : opt === exercise.correctAnswer
+                    ? 'bg-green-500 text-white'
+                    : opt === selected
+                    ? 'bg-red-400 text-white'
+                    : 'bg-[#E5E7EB] text-[#9CA3AF]'
+                }`}
+              >
+                {letters[idx] ?? idx + 1}
+              </span>
+
+              <button
+                onClick={() => hear(opt)}
+                aria-label={`Escuchar respuesta ${letters[idx] ?? idx + 1}`}
+                className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-semibold transition-colors ${
+                  playing === opt
+                    ? 'bg-[#025dc7] text-white'
+                    : 'bg-white border border-[#DDE6F5] text-[#025dc7] hover:bg-[#F0F5FF]'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M19 5a9 9 0 010 14M5 9v6h4l5 4V5L9 9H5z" />
+                </svg>
+                {playing === opt ? 'Sonando…' : heard.has(opt) ? 'Repetir' : 'Escuchar'}
+              </button>
+
+              {/* El texto solo aparece al contestar. Antes, el hueco. */}
+              <span className="flex-1 min-w-0 text-[14.5px] leading-snug">
+                {isAnswered ? (
+                  <span
+                    className={
+                      opt === exercise.correctAnswer
+                        ? 'text-green-800 font-semibold'
+                        : opt === selected
+                        ? 'text-red-700'
+                        : 'text-[#9CA3AF]'
+                    }
+                  >
+                    {opt}
+                  </span>
+                ) : (
+                  <span className="text-[#9CA3AF]">·····</span>
+                )}
+              </span>
+
+              {!isAnswered && (
+                <button
+                  onClick={() => handleSelect(opt)}
+                  className="shrink-0 px-3 py-1.5 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[12.5px] font-bold hover:bg-[#6cb5ff] transition-colors"
+                >
+                  Elegir
+                </button>
+              )}
+              {isAnswered && opt === exercise.correctAnswer && (
+                <svg className="w-4 h-4 text-green-600 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+              {isAnswered && opt === selected && opt !== exercise.correctAnswer && (
+                <svg className="w-4 h-4 text-red-500 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {isAnswered && (
+        <FeedbackBanner
+          correct={selected === exercise.correctAnswer}
+          correctAnswer={exercise.correctAnswer}
+          explanation={exercise.explanation}
+          onHear={() => speakDutch(exercise.correctAnswer)}
+        />
+      )}
+    </div>
+  );
+}
+
 function OrderSentenceExercise({
   exercise,
   onAnswer,
@@ -2799,6 +2956,7 @@ function ExerciseStep({
   if (exercise.type === 'multiple_choice') return <MultipleChoiceExercise exercise={exercise} onAnswer={onAnswer} initialAnswer={initialAnswer} />;
   if (exercise.type === 'write_answer') return <WriteAnswerExercise exercise={exercise} onAnswer={onAnswer} initialAnswer={initialAnswer} />;
   if (exercise.type === 'listen_and_choose') return <ListenAndChooseExercise exercise={exercise} onAnswer={onAnswer} initialAnswer={initialAnswer} />;
+  if (exercise.type === 'spreken_choose') return <SprekenChooseExercise exercise={exercise} onAnswer={onAnswer} initialAnswer={initialAnswer} />;
   if (exercise.type === 'listen_translate') return <ListenTranslateExercise exercise={exercise} onAnswer={onAnswer} />;
   if (exercise.type === 'fill_blank') return <FillBlankExercise exercise={exercise} onAnswer={onAnswer} initialAnswer={initialAnswer} />;
   if (exercise.type === 'order_sentence') return <OrderSentenceExercise exercise={exercise} onAnswer={onAnswer} />;
@@ -3654,6 +3812,187 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
   );
 }
 
+/**
+ * Sección Spreken: situaciones reales, una detrás de otra.
+ *
+ * No tiene "material" que estudiar antes (a diferencia de Lezen o Luisteren):
+ * se entra y se practica, así que es una sola pantalla con su progreso, su
+ * nota y su intento guardado, como el resto.
+ */
+function SprekenSection({
+  block,
+  onComplete,
+  cacheKey,
+  reviewOnly,
+}: {
+  block: SprekenBlock;
+  onComplete: () => void;
+  cacheKey?: string;
+  reviewOnly?: boolean;
+}) {
+  const session = useLHSession() as any;
+  const accessToken: string | undefined = session?.data?.tokens?.access_token;
+
+  const [lastAttempt, setLastAttempt] = useState<LastAttempt | null>(null);
+  const [started, setStarted] = useState(false);
+  const [index, setIndex] = useState(0);
+  const [score, setScore] = useState(0);
+  const [wrong, setWrong] = useState<Set<number>>(new Set());
+  const [answered, setAnswered] = useState(false);
+  const [answeredSet, setAnsweredSet] = useState<Set<number>>(new Set());
+  const [exKey, setExKey] = useState(0);
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    if (!cacheKey) return;
+    let active = true;
+    getLastAttempt(cacheKey, accessToken).then((a: LastAttempt | null) => { if (active) setLastAttempt(a); });
+    return () => { active = false; };
+  }, [cacheKey, accessToken]);
+
+  // En modo repaso solo se rehacen las que se fallaron la última vez.
+  const exercises = useMemo(() => {
+    const all = block.exercises ?? [];
+    if (!reviewOnly || !lastAttempt?.failedLabels?.length) return all;
+    const failed = new Set(lastAttempt.failedLabels);
+    const only = all.filter((e: ExerciseItem) => failed.has(e.prompt));
+    return only.length ? only : all;
+  }, [block.exercises, reviewOnly, lastAttempt]);
+
+  function reset() {
+    setIndex(0); setScore(0); setWrong(new Set());
+    setAnswered(false); setAnsweredSet(new Set()); setDone(false); setExKey((k) => k + 1);
+  }
+
+  function handleAnswer(correct: boolean) {
+    setAnswered(true);
+    if (answeredSet.has(index)) return;
+    setAnsweredSet((s) => new Set(s).add(index));
+    if (correct) setScore((v) => v + 1);
+    else setWrong((s) => new Set(s).add(index));
+  }
+
+  function next() {
+    if (index + 1 >= exercises.length) {
+      if (cacheKey) {
+        const failed = Array.from(wrong).sort((a, b) => a - b)
+          .map((i) => exercises[i]?.prompt).filter((p): p is string => !!p);
+        saveLastAttempt(cacheKey, { score, total: exercises.length, failedLabels: failed }, accessToken);
+      }
+      setDone(true);
+      return;
+    }
+    setIndex((i) => i + 1);
+    setAnswered(false);
+    setExKey((k) => k + 1);
+  }
+
+  if (!exercises.length) {
+    return <p className="text-[14px] text-[#5A6480]">Esta lección todavía no tiene situaciones de Spreken.</p>;
+  }
+
+  if (done) {
+    return (
+      <div className="space-y-4">
+        <GradientBar pct={100} />
+        <div className="flex items-center gap-3 rounded-2xl px-5 py-4" style={{ background: 'linear-gradient(135deg, #1D0084 0%, #025dc7 100%)' }}>
+          <span className="text-2xl">{score >= exercises.length * 0.8 ? '🎉' : '📝'}</span>
+          <div>
+            <p className="text-white font-bold text-[15px]">{score} / {exercises.length} correctas</p>
+            <p className="text-white/60 text-[13px]">
+              {score === exercises.length ? '¡Perfecto!' : score >= exercises.length * 0.8 ? '¡Muy bien!' : 'Sigue practicando'}
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <button onClick={reset} className="w-full py-3.5 rounded-lg bg-[#F0F5FF] text-gray-900 text-[15px] font-semibold border border-[#DDE6F5] hover:bg-[#e0eaff] transition-colors">
+            🔄 Repetir
+          </button>
+          <button onClick={onComplete} className="w-full py-3.5 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors">
+            Terminar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!started) {
+    return (
+      <div className="space-y-5">
+        <div className="text-center pt-4 sm:pt-6 pb-1">
+          <h3 className="text-[23px] sm:text-[27px] font-bold text-gray-900 leading-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
+            {block.title || 'Wat zeg je?'}
+          </h3>
+        </div>
+
+        <div className="rounded-2xl border border-[#DDE6F5] bg-[#F0F5FF] p-5">
+          <p className="text-[15px] text-[#0a1656] leading-relaxed">
+            {block.intro || 'Te vas a encontrar en situaciones normales del día a día. Escucha las tres respuestas y elige la que dirías tú. El texto no aparece hasta que contestas.'}
+          </p>
+        </div>
+
+        {lastAttempt && (
+          <div className="rounded-lg border border-[#DDE6F5] bg-white px-4 py-3">
+            <p className="text-[13px] font-bold text-gray-900">
+              Última vez: {lastAttempt.score} / {lastAttempt.total} correctas
+            </p>
+            {lastAttempt.failedLabels.length > 0 && (
+              <p className="text-[12px] text-[#5A6480] leading-snug mt-1">
+                <span className="font-semibold text-gray-900">Fallaste en:</span>{' '}
+                {lastAttempt.failedLabels.slice(0, 3).join(' · ')}
+                {lastAttempt.failedLabels.length > 3 && ` · +${lastAttempt.failedLabels.length - 3}`}
+              </p>
+            )}
+          </div>
+        )}
+
+        <button
+          onClick={() => setStarted(true)}
+          className="w-full flex items-center justify-center gap-2 py-4 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors"
+        >
+          Empezar
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+    );
+  }
+
+  const pct = Math.round(((index + (answered ? 1 : 0)) / exercises.length) * 100);
+
+  return (
+    <div className="space-y-5">
+      <GradientBar pct={pct} />
+      <div className="flex items-center justify-between">
+        <span className="text-[13px] font-semibold text-[#9CA3AF]">
+          {index + 1} de {exercises.length}
+        </span>
+        <div className="flex items-center gap-1.5 text-[13px] font-bold text-[#16a34a] bg-green-50 border border-green-200 px-3 py-1 rounded-full">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          {score}
+        </div>
+      </div>
+
+      <ExerciseStep key={exKey} exercise={exercises[index]} onAnswer={handleAnswer} />
+
+      {answered && (
+        <button
+          onClick={next}
+          className="w-full py-4 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors flex items-center justify-center gap-2"
+        >
+          {index + 1 >= exercises.length ? 'Ver resultado' : 'Siguiente'}
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+}
+
 function LuisterenSection({
   dialogue,
   practiceExercises: allExercises,
@@ -4394,6 +4733,8 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
         result.push('lezen');
       } else if (block.type === 'dialogue') {
         result.push('luisteren');
+      } else if (block.type === 'spreken') {
+        result.push('spreken');
       }
     }
     return result;
@@ -4493,6 +4834,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
   const practiceBlock = lesson.blocks.find(b => b.type === 'practice');
   const lezenBlock    = lesson.blocks.find(b => b.type === 'lezen');
   const dialogueBlock = lesson.blocks.find(b => b.type === 'dialogue');
+  const sprekenBlock  = lesson.blocks.find(b => b.type === 'spreken');
 
   const phraseItems    = phraseBlock   && phraseBlock.type   === 'phrases'  ? phraseBlock.items        : [];
   const practiceItems  = practiceBlock && practiceBlock.type === 'practice' ? practiceBlock.exercises  : [];
@@ -4673,6 +5015,16 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
               exercises={lezenBlock.exercises}
               onComplete={() => completeSection('lezen')}
               cacheKey={`${lesson.id}-lezen`}
+              reviewOnly={reviewMode}
+            />
+          )}
+
+          {/* SPREKEN */}
+          {activeSection === 'spreken' && sprekenBlock && sprekenBlock.type === 'spreken' && (
+            <SprekenSection
+              block={sprekenBlock}
+              onComplete={() => completeSection('spreken')}
+              cacheKey={`${lesson.id}-spreken`}
               reviewOnly={reviewMode}
             />
           )}

@@ -96,7 +96,7 @@ function parseNativeVideo(embedUrl: string): { situacionId: string } | null {
 
 // Secciones de la app de ejercicios que SÍ son "ejercicios" (hay que hacerlos
 // para avanzar). El resumen (samenvatting) es contenido → se completa al abrirlo.
-const NAWAR_EXERCISE_SECTIONS = new Set(['vocabulary', 'flashcards', 'lezen', 'luisteren']);
+const NAWAR_EXERCISE_SECTIONS = new Set(['vocabulary', 'flashcards', 'lezen', 'luisteren', 'spreken']);
 
 // ¿Esta actividad es un ejercicio (hay que completarlo) o contenido (basta verlo)?
 // Contenido: vídeo, documento, texto/markdown y el resumen embebido.
