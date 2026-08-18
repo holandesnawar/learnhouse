@@ -5002,6 +5002,170 @@ const m4_les5: Lesson = {
   ],
 };
 
+const m4_les6: Lesson = {
+  id: 'm4-les-6-g-en-ch',
+  moduleId: 'het-werk',
+  title: 'Les 6 — De -g en de -ch',
+  subtitle: 'Pronunciación y escritura del sonido más neerlandés',
+  order: 6,
+  learningObjective: 'Distinguir -g, -ch, -gt, -cht y sch-, y pronunciarlas',
+  estimatedMinutes: 35,
+  blocks: [
+    {
+      type: 'summary',
+      title: 'Uitspraak: -g & -ch',
+      intro: 'El sonido raspado es la marca de la casa del neerlandés. Lo difícil no es hacerlo, es saber **cuándo se escribe -g y cuándo -ch**, porque suenan igual. Esta lección te da las reglas cortas para no dudar.',
+      objectives: [
+        'Conocer la zachte g y la harde g',
+        'Saber cuándo una palabra lleva -g y cuándo -ch',
+        'Distinguir -gt (verbo) de -cht (sustantivo)',
+        'Reconocer los sonidos /sj/ de las palabras venidas del francés',
+      ],
+      sections: [
+        {
+          heading: '🔊 Zachte g y harde g',
+          body: 'Hoy casi todo el mundo pronuncia igual una **-g** y una **-ch**. Lo que cambia es la zona: la **zachte g** (suave) es del sur de los Países Bajos y de Flandes; la **harde g** (raspada) es del resto y es la más extendida. Las dos son correctas: elige una y sé constante.',
+          items: [
+            { nl: 'de sigaar', es: 'el cigarro' },
+            { nl: 'de kachel', es: 'la estufa' },
+            { nl: 'gek', es: 'loco, raro' },
+            { nl: 'het uitzicht', es: 'la vista' },
+          ],
+        },
+        {
+          heading: '🅰️ Al principio: casi siempre -g',
+          body: 'Si una palabra **empieza** con ese sonido, se escribe con **-g**. Las poquitas con **ch-** vienen del latín o del griego: *chroom* (cromo), *chemisch* (químico), *chaos* (caos).',
+          items: [
+            { nl: 'goed · graag · groot · groente', es: 'bien · con gusto · grande · verdura' },
+            { nl: 'geld · gezellig · geven · gaan', es: 'dinero · agradable · dar · ir' },
+            { nl: 'Ik wil graag een kopje koffie.', es: 'Quisiera un café.' },
+          ],
+        },
+        {
+          heading: '🅱️ Al final: solo seis palabras con -ch',
+          body: 'Aprende esta lista y ya está: **zich · pech · lach · toch · ach · och**. Todas las demás terminan en **-g**.',
+          items: [
+            { nl: 'Hij gaat zich douchen.', es: 'Se va a duchar.' },
+            { nl: 'Soms heb je geluk, soms heb je pech.', es: 'A veces tienes suerte, a veces mala suerte.' },
+            { nl: 'Jij houdt van muziek, toch?', es: 'Te gusta la música, ¿verdad?' },
+            { nl: 'dag · vraag · vlag · brug · rug · zorg · oog', es: 'las demás van con -g' },
+          ],
+        },
+        {
+          heading: '⚖️ -gt o -cht: ¿verbo o sustantivo?',
+          body: 'Esta es la regla que más se cae en los dictados. **Sustantivo → -cht. Verbo (hij/zij/jij) → -gt.**',
+          items: [
+            { nl: 'licht · vlucht · lucht · gezicht · acht · tocht', es: 'sustantivos → -cht' },
+            { nl: 'hij liegt · hij zaagt · zij zegt', es: 'verbos → -gt' },
+            { nl: 'Doe het licht uit.', es: 'Apaga la luz.' },
+            { nl: 'De vlucht vertrekt om een uur.', es: 'El vuelo sale a la una.' },
+          ],
+        },
+        {
+          heading: '🇫🇷 El sonido /sj/: las francesas',
+          body: 'Un montón de palabras vienen del francés y **no** llevan el sonido raspado: suenan como la "sh" inglesa (o la Y/LL argentina). Unas se escriben con **ch-** y otras con **g**, pero suenan igual.',
+          items: [
+            { nl: 'chips · chef · chocola · chirurg · machine · douche', es: 'con ch-' },
+            { nl: 'champagne · chauffeur · chique · chagrijnig', es: 'con ch-' },
+            { nl: 'giraf · courgette · garage · etage · horloge · bagage', es: 'con g, pero suenan /sj/' },
+            { nl: 'energie · passagier · massage · percentage · aubergine', es: 'con g, pero suenan /sj/' },
+          ],
+        },
+        {
+          heading: '🏫 sch- al principio: nunca sg-',
+          body: 'En neerlandés **no existe sg-** al principio de palabra: siempre **sch-**.',
+          items: [
+            { nl: 'school · schoen · schaap', es: 'escuela · zapato · oveja' },
+            { nl: 'schrijven · schaatsen · schrikken', es: 'escribir · patinar · asustarse' },
+            { nl: 'schoonmaken · schandaal', es: 'limpiar · escándalo' },
+          ],
+        },
+      ],
+      tip: 'Regla de bolsillo: **empieza → -g**, **acaba → -g** (salvo zich, pech, lach, toch, ach, och), **sustantivo → -cht**, **verbo → -gt**. Con eso aciertas el 95% de las veces.',
+    },
+    {
+      type: 'vocabulary',
+      items: [
+        { id: 'm4l6v-uitspraak', dutch: 'de uitspraak', spanish: 'la pronunciación', article: 'de', emoji: '🗣️', color: '#1D0084', exampleNl: 'De uitspraak van de g is moeilijk.', exampleEs: 'La pronunciación de la g es difícil.', category: 'taal', difficulty: 'A1' },
+        { id: 'm4l6v-kachel', dutch: 'de kachel', spanish: 'la estufa', article: 'de', emoji: '🔥', color: '#025dc7', exampleNl: 'Zal ik de kachel aandoen?', exampleEs: '¿Enciendo la estufa?', category: 'huis', difficulty: 'A1' },
+        { id: 'm4l6v-gek', dutch: 'gek', spanish: 'loco, raro', article: null, emoji: '🤪', color: '#4da3ff', exampleNl: 'Dat is een gek verhaal.', exampleEs: 'Es una historia rara.', category: 'adjectief', difficulty: 'A1' },
+        { id: 'm4l6v-uitzicht', dutch: 'het uitzicht', spanish: 'la vista (el panorama)', article: 'het', emoji: '🏞️', color: '#1D0084', exampleNl: 'Wij hebben een mooi uitzicht.', exampleEs: 'Tenemos unas vistas bonitas.', category: 'huis', difficulty: 'A1' },
+        { id: 'm4l6v-lachen', dutch: 'lachen', spanish: 'reír', article: null, emoji: '😄', color: '#025dc7', exampleNl: 'Ik moet altijd met jou lachen.', exampleEs: 'Contigo siempre me río.', category: 'gevoel', difficulty: 'A1' },
+        { id: 'm4l6v-glimlach', dutch: 'de glimlach', spanish: 'la sonrisa', article: 'de', emoji: '😊', color: '#4da3ff', exampleNl: 'Ze heeft een mooie glimlach.', exampleEs: 'Tiene una sonrisa bonita.', category: 'gevoel', difficulty: 'A1' },
+        { id: 'm4l6v-gezellig', dutch: 'gezellig', spanish: 'agradable, acogedor', article: null, emoji: '🥰', color: '#1D0084', exampleNl: 'Het was gezellig op het feest.', exampleEs: 'La fiesta fue agradable.', category: 'adjectief', difficulty: 'A1' },
+        { id: 'm4l6v-graag', dutch: 'graag', spanish: 'con gusto', article: null, emoji: '🙏', color: '#025dc7', exampleNl: 'Ik wil graag een kopje koffie.', exampleEs: 'Quisiera un café.', category: 'dagelijks', difficulty: 'A1' },
+        { id: 'm4l6v-groente', dutch: 'de groente', spanish: 'la verdura', article: 'de', emoji: '🥦', color: '#4da3ff', exampleNl: 'Ik eet veel groente.', exampleEs: 'Como mucha verdura.', category: 'eten', difficulty: 'A1' },
+        { id: 'm4l6v-geluk', dutch: 'het geluk', spanish: 'la suerte, la felicidad', article: 'het', emoji: '🍀', color: '#1D0084', exampleNl: 'Soms heb je geluk.', exampleEs: 'A veces tienes suerte.', category: 'gevoel', difficulty: 'A1' },
+        { id: 'm4l6v-pech', dutch: 'de pech', spanish: 'la mala suerte, la avería', article: 'de', emoji: '🚨', color: '#025dc7', exampleNl: 'Soms heb je pech.', exampleEs: 'A veces tienes mala suerte.', category: 'gevoel', difficulty: 'A1' },
+        { id: 'm4l6v-toch', dutch: 'toch', spanish: '¿verdad?, aun así', article: null, emoji: '❔', color: '#4da3ff', exampleNl: 'Jij houdt van muziek, toch?', exampleEs: 'Te gusta la música, ¿verdad?', category: 'taal', difficulty: 'A1' },
+        { id: 'm4l6v-douchen', dutch: 'zich douchen', spanish: 'ducharse', article: null, emoji: '🚿', color: '#1D0084', exampleNl: 'Hij gaat zich douchen.', exampleEs: 'Se va a duchar.', category: 'dagelijks', difficulty: 'A1' },
+        { id: 'm4l6v-licht', dutch: 'het licht', spanish: 'la luz', article: 'het', emoji: '💡', color: '#025dc7', exampleNl: 'Doe het licht uit.', exampleEs: 'Apaga la luz.', category: 'huis', difficulty: 'A1' },
+        { id: 'm4l6v-vlucht', dutch: 'de vlucht', spanish: 'el vuelo', article: 'de', emoji: '✈️', color: '#4da3ff', exampleNl: 'Om acht uur is mijn vlucht.', exampleEs: 'Mi vuelo es a las ocho.', category: 'reizen', difficulty: 'A1' },
+        { id: 'm4l6v-lucht', dutch: 'de lucht', spanish: 'el cielo, el aire', article: 'de', emoji: '☁️', color: '#1D0084', exampleNl: 'De lucht is blauw.', exampleEs: 'El cielo es azul.', category: 'natuur', difficulty: 'A1' },
+        { id: 'm4l6v-gezicht', dutch: 'het gezicht', spanish: 'la cara', article: 'het', emoji: '😐', color: '#025dc7', exampleNl: 'Was je gezicht.', exampleEs: 'Lávate la cara.', category: 'lichaam', difficulty: 'A1' },
+        { id: 'm4l6v-liegen', dutch: 'liegen', spanish: 'mentir', article: null, emoji: '🤥', color: '#4da3ff', exampleNl: 'Hij liegt nooit.', exampleEs: 'Él nunca miente.', category: 'werkwoord', difficulty: 'A1' },
+        { id: 'm4l6v-zagen', dutch: 'zagen', spanish: 'serrar', article: null, emoji: '🪚', color: '#1D0084', exampleNl: 'Hij zaagt het hout.', exampleEs: 'Sierra la madera.', category: 'werkwoord', difficulty: 'A1' },
+        { id: 'm4l6v-brug', dutch: 'de brug', spanish: 'el puente', article: 'de', emoji: '🌉', color: '#025dc7', exampleNl: 'We lopen over de brug.', exampleEs: 'Cruzamos el puente andando.', category: 'stad', difficulty: 'A1' },
+        { id: 'm4l6v-chirurg', dutch: 'de chirurg', spanish: 'el cirujano', article: 'de', emoji: '🩺', color: '#4da3ff', exampleNl: 'De chirurg werkt in het ziekenhuis.', exampleEs: 'El cirujano trabaja en el hospital.', category: 'beroep', difficulty: 'A1' },
+        { id: 'm4l6v-horloge', dutch: 'het horloge', spanish: 'el reloj (de pulsera)', article: 'het', emoji: '⌚', color: '#1D0084', exampleNl: 'Mijn horloge loopt achter.', exampleEs: 'Mi reloj va atrasado.', category: 'dagelijks', difficulty: 'A1' },
+        { id: 'm4l6v-courgette', dutch: 'de courgette', spanish: 'el calabacín', article: 'de', emoji: '🥒', color: '#025dc7', exampleNl: 'Ik koop een courgette.', exampleEs: 'Compro un calabacín.', category: 'eten', difficulty: 'A1' },
+        { id: 'm4l6v-schrikken', dutch: 'schrikken', spanish: 'asustarse', article: null, emoji: '😱', color: '#4da3ff', exampleNl: 'Ik schrik van het geluid.', exampleEs: 'Me asusto con el ruido.', category: 'werkwoord', difficulty: 'A1' },
+        { id: 'm4l6v-schoonmaken', dutch: 'schoonmaken', spanish: 'limpiar', article: null, emoji: '🧽', color: '#1D0084', exampleNl: 'Ik moet het huis schoonmaken.', exampleEs: 'Tengo que limpiar la casa.', category: 'huis', difficulty: 'A1' },
+      ],
+    },
+    {
+      type: 'phrases',
+      items: [
+        { id: 'm4l6f-1',  dutch: 'Zal ik de kachel aandoen?', spanish: '¿Enciendo la estufa?' },
+        { id: 'm4l6f-2',  dutch: 'Dat is goed, maar het kost veel geld.', spanish: 'Está bien, pero cuesta mucho dinero.' },
+        { id: 'm4l6f-3',  dutch: 'Ik moet altijd met jou lachen.', spanish: 'Contigo siempre me río.' },
+        { id: 'm4l6f-4',  dutch: 'Ja, lachen is gratis!', spanish: '¡Sí, reírse es gratis!' },
+        { id: 'm4l6f-5',  dutch: 'Ik wil graag een kopje koffie.', spanish: 'Quisiera un café.' },
+        { id: 'm4l6f-6',  dutch: 'Het was gezellig op het feest.', spanish: 'La fiesta fue agradable.' },
+        { id: 'm4l6f-7',  dutch: 'Hij gaat zich douchen.', spanish: 'Se va a duchar.' },
+        { id: 'm4l6f-8',  dutch: 'Soms heb je geluk, soms heb je pech.', spanish: 'A veces tienes suerte, a veces mala suerte.' },
+        { id: 'm4l6f-9',  dutch: 'Ze heeft een mooie glimlach.', spanish: 'Tiene una sonrisa bonita.' },
+        { id: 'm4l6f-10', dutch: 'Jij houdt van muziek, toch?', spanish: 'Te gusta la música, ¿verdad?' },
+        { id: 'm4l6f-11', dutch: 'Och, het is niet zo erg.', spanish: 'Bah, no es para tanto.' },
+        { id: 'm4l6f-12', dutch: 'Ach, wat een lief kindje!', spanish: '¡Ay, qué niño más majo!' },
+        { id: 'm4l6f-13', dutch: 'Doe het licht uit.', spanish: 'Apaga la luz.' },
+        { id: 'm4l6f-14', dutch: 'Om acht uur is mijn vlucht.', spanish: 'Mi vuelo es a las ocho.' },
+        { id: 'm4l6f-15', dutch: 'Dan is het al licht en de lucht is blauw.', spanish: 'Entonces ya es de día y el cielo está azul.' },
+      ],
+    },
+    {
+      type: 'practice',
+      exercises: [
+        { id: 'm4l6e-1',  type: 'listen_and_choose', prompt: 'Escucha y elige qué significa: "de kachel"', options: ['la estufa', 'el cirujano', 'la sonrisa', 'el puente'], correctAnswer: 'la estufa', explanation: 'Kachel lleva el sonido raspado de la -ch.' },
+        { id: 'm4l6e-2',  type: 'listen_and_choose', prompt: 'Escucha y elige qué significa: "het uitzicht"', options: ['la vista', 'la luz', 'el vuelo', 'la cara'], correctAnswer: 'la vista' },
+        { id: 'm4l6e-3',  type: 'listen_and_choose', prompt: 'Escucha y elige qué significa: "de chirurg"', options: ['el cirujano', 'el conductor', 'el jefe', 'el pasajero'], correctAnswer: 'el cirujano', explanation: 'Viene del francés: la ch suena /sj/, no raspada.' },
+        { id: 'm4l6e-4',  type: 'listen_and_choose', prompt: 'Escucha y elige qué significa: "de courgette"', options: ['el calabacín', 'la berenjena', 'el espárrago', 'la verdura'], correctAnswer: 'el calabacín', explanation: 'Se escribe con g pero suena /sj/, como en francés.' },
+        { id: 'm4l6e-5',  type: 'listen_and_choose', prompt: 'Escucha y elige qué significa: "de vlucht"', options: ['el vuelo', 'el cielo', 'la corriente de aire', 'la luz'], correctAnswer: 'el vuelo' },
+        { id: 'm4l6e-6',  type: 'listen_and_choose', prompt: 'Escucha y elige qué significa: "de pech"', options: ['la mala suerte', 'la suerte', 'la sonrisa', 'la pregunta'], correctAnswer: 'la mala suerte' },
+        { id: 'm4l6e-7',  type: 'listen_and_choose', prompt: 'Escucha y elige qué significa: "schrikken"', options: ['asustarse', 'escribir', 'patinar', 'limpiar'], correctAnswer: 'asustarse' },
+        { id: 'm4l6e-8',  type: 'listen_and_choose', prompt: 'Escucha y elige qué significa: "het horloge"', options: ['el reloj de pulsera', 'el escaparate', 'el equipaje', 'la planta del edificio'], correctAnswer: 'el reloj de pulsera' },
+        { id: 'm4l6e-9',  type: 'multiple_choice', prompt: '¿Cuál es la diferencia entre la zachte g y la harde g?', options: ['Es la zona: sur y Flandes (suave) frente al resto (raspada)', 'La zachte g solo se usa por escrito', 'La harde g es incorrecta', 'Son dos letras distintas'], correctAnswer: 'Es la zona: sur y Flandes (suave) frente al resto (raspada)', explanation: 'Las dos son correctas. Elige una y sé constante.' },
+        { id: 'm4l6e-10', type: 'true_false', prompt: 'Casi todas las palabras que EMPIEZAN con ese sonido se escriben con -g.', correctAnswer: 'verdadero', explanation: 'Las excepciones con ch- vienen del latín o del griego: chroom, chemisch, chaos.' },
+        { id: 'm4l6e-11', type: 'multiple_choice', prompt: '¿Cuál de estas palabras termina en -ch?', options: ['pech', 'brug', 'vraag', 'zorg'], correctAnswer: 'pech', explanation: 'Solo zich, pech, lach, toch, ach y och. Las demás con -g.' },
+        { id: 'm4l6e-12', type: 'odd_one_out', prompt: '¿Cuál NO termina en -ch?', options: ['zich', 'toch', 'lach', 'dag'], correctAnswer: 'dag', explanation: 'Dag va con -g, como vraag, vlag, brug o oog.' },
+        { id: 'm4l6e-13', type: 'multiple_choice', prompt: 'Un SUSTANTIVO con ese sonido al final termina en…', options: ['-cht', '-gt', '-ch', '-g'], correctAnswer: '-cht', explanation: 'licht, vlucht, lucht, gezicht, acht, tocht.' },
+        { id: 'm4l6e-14', type: 'multiple_choice', prompt: 'Y un VERBO (hij/zij/jij) termina en…', options: ['-gt', '-cht', '-ch', '-sch'], correctAnswer: '-gt', explanation: 'hij liegt, hij zaagt, zij zegt.' },
+        { id: 'm4l6e-15', type: 'fill_blank', prompt: 'Doe het ___ uit. (la luz)', correctAnswer: 'licht', hint: 'sustantivo → -cht' },
+        { id: 'm4l6e-16', type: 'fill_blank', prompt: 'Hij ___ nooit tegen mij. (liegen, hij-vorm)', correctAnswer: 'liegt', hint: 'verbo → -gt' },
+        { id: 'm4l6e-17', type: 'fill_blank', prompt: 'Zij ___ dat het waar is. (zeggen, zij-vorm)', correctAnswer: 'zegt', hint: 'verbo → -gt' },
+        { id: 'm4l6e-18', type: 'fill_blank', prompt: 'De ___ vertrekt om een uur. (el vuelo)', correctAnswer: 'vlucht', hint: 'sustantivo → -cht' },
+        { id: 'm4l6e-19', type: 'multiple_choice', prompt: 'Al principio de palabra, ¿qué NO existe en neerlandés?', options: ['sg-', 'sch-', 'gr-', 'ch-'], correctAnswer: 'sg-', explanation: 'Siempre sch-: school, schoen, schaap, schrijven.' },
+        { id: 'm4l6e-20', type: 'multiple_choice', prompt: '¿Cuál de estas suena /sj/ (como la "sh") y NO raspada?', options: ['garage', 'gek', 'goed', 'graag'], correctAnswer: 'garage', explanation: 'Viene del francés. Igual que etage, bagage, energie o massage.' },
+        { id: 'm4l6e-21', type: 'true_false', prompt: 'Palabras como "giraf", "horloge" o "passagier" se escriben con g pero suenan /sj/.', correctAnswer: 'verdadero', explanation: 'Son préstamos del francés y conservan su sonido suave.' },
+        { id: 'm4l6e-22', type: 'order_sentence', prompt: 'Ordena: "A veces tienes suerte, a veces mala suerte."', options: ['Soms', 'heb', 'je', 'geluk,', 'soms', 'heb', 'je', 'pech'], correctAnswer: 'Soms heb je geluk, soms heb je pech' },
+        { id: 'm4l6e-23', type: 'order_sentence', prompt: 'Ordena: "Quisiera un café."', options: ['Ik', 'wil', 'graag', 'een', 'kopje', 'koffie'], correctAnswer: 'Ik wil graag een kopje koffie' },
+        { id: 'm4l6e-24', type: 'word_scramble', prompt: '¿Cómo se dice "agradable, acogedor"?', correctAnswer: 'gezellig', hint: 'la palabra más neerlandesa que existe' },
+      ],
+    },
+    { type: 'review' },
+  ],
+};
+
 /* ─────────────────────────────────────────────────────────────────────────────
    EXPORT
 ───────────────────────────────────────────────────────────────────────────── */
@@ -5016,5 +5180,5 @@ export const LESSONS: Lesson[] = [
   // Module 3
   m3_les1, m3_les2, m3_les3, m3_les4, m3_les5, m3_les6,
   // Module 4
-  m4_les1, m4_les2, m4_les3, m4_les4, m4_les5,
+  m4_les1, m4_les2, m4_les3, m4_les4, m4_les5, m4_les6,
 ];
