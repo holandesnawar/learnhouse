@@ -367,22 +367,67 @@ async def _ensure_added_columns(conn):
             logging.warning("No se pudo aplicar '%s': %s", statement, e)
 
 
+# Al arrancar, Postgres puede tardar más que la aplicación (en Railway el
+# contenedor de la base se levanta en paralelo). Sin reintentos, el arranque
+# falla, el proceso muere y la escuela se queda sin API. Con reintentos, la
+# aplicación simplemente espera a que la base esté lista.
+_DB_STARTUP_ATTEMPTS = 12
+_DB_STARTUP_DELAY_SECONDS = 5
+
+
+async def _prepare_schema(conn):
+    """Crea lo que falte. Cada paso va aparte: que falle uno no puede impedir
+    que la aplicación arranque, porque en producción las tablas ya existen."""
+    from sqlalchemy import text
+
+    # pgvector: opcional (solo el chatbot del curso lo usa).
+    try:
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+    except Exception as e:
+        logging.warning(
+            "pgvector extension not available — RAG features will be disabled. "
+            "Install pgvector on your PostgreSQL server to enable course chatbot. "
+            "Error: %s", e
+        )
+
+    if is_testing:
+        return
+
+    try:
+        await conn.run_sync(SQLModel.metadata.create_all)
+    except Exception:
+        # Si esto falla con las tablas ya creadas (un índice a medias, un
+        # permiso), la aplicación sigue sirviendo: lo que hay en la base ya
+        # basta. Se registra para poder mirarlo con calma.
+        logging.exception("No se pudo completar create_all — se continúa con el esquema existente")
+
+    await _ensure_added_columns(conn)
+
+
 async def connect_to_db(app: FastAPI):
-    async with engine.begin() as conn:
-        # Enable pgvector extension for vector similarity search (optional — RAG feature)
+    import asyncio
+
+    last_error: Exception | None = None
+    for attempt in range(1, _DB_STARTUP_ATTEMPTS + 1):
         try:
-            from sqlalchemy import text
-            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-        except Exception as e:
+            async with engine.begin() as conn:
+                await _prepare_schema(conn)
+            last_error = None
+            break
+        except Exception as e:  # noqa: BLE001 — cualquier fallo de conexión
+            last_error = e
             logging.warning(
-                "pgvector extension not available — RAG features will be disabled. "
-                "Install pgvector on your PostgreSQL server to enable course chatbot. "
-                "Error: %s", e
+                "La base de datos aún no responde (intento %s/%s): %s",
+                attempt, _DB_STARTUP_ATTEMPTS, e,
             )
-        # Create all tables
-        if not is_testing:
-            await conn.run_sync(SQLModel.metadata.create_all)
-            await _ensure_added_columns(conn)
+            if attempt < _DB_STARTUP_ATTEMPTS:
+                await asyncio.sleep(_DB_STARTUP_DELAY_SECONDS)
+
+    if last_error is not None:
+        # Ya no es un arranque lento: es que la base no está. Que el proceso
+        # muera es lo correcto — pm2 lo reintenta y el fallo se ve en los logs.
+        raise last_error
+
     app.db_engine = engine  # type: ignore
     logging.info("LearnHouse database has been started.")
 

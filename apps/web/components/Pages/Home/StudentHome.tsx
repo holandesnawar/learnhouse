@@ -18,6 +18,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { registerVisit, type StudentVisit } from '@services/student/progress'
 import { useStudentInsights } from '@/hooks/queries/useStudentInsights'
 import { isWeeklyClassCourse } from '@/lib/course/formacionProgress'
+import SafeArea from '@components/Objects/StyledElements/Error/SafeArea'
 
 // Las tarjetas que dependen del temario (courseData, ~350KB de fuente) se
 // cargan en un chunk aparte: el Inicio pinta antes y el temario llega detrás.
@@ -102,7 +103,11 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
           {visit && (
             <StreakBadge current={visit.current_streak} longest={visit.longest_streak} />
           )}
-          {insights && <WeekStrip activeDays={insights.week.activeDays} />}
+          {insights && (
+            <SafeArea nombre="Tu semana" fallback={null}>
+              <WeekStrip activeDays={insights.week.activeDays} />
+            </SafeArea>
+          )}
         </div>
       </div>
 
@@ -114,7 +119,9 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
           el Inicio se pintaba entero, luego aparecían las tarjetas y todo
           saltaba hacia abajo, con pinta de estar cargando dos veces. */}
       {insights ? (
-        <ContinueCard orgslug={orgslug} insights={insights} runs={runs} />
+        <SafeArea nombre="Continúa donde lo dejaste">
+          <ContinueCard orgslug={orgslug} insights={insights} runs={runs} />
+        </SafeArea>
       ) : (
         <HomeSkeleton className="mb-8 h-[188px]" />
       )}
@@ -122,8 +129,12 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
       {/* Esta semana + Tu repaso de hoy */}
       {insights ? (
         <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <WeekCard insights={insights} />
-          <RepasoCard orgslug={orgslug} insights={insights} />
+          <SafeArea nombre="Esta semana">
+            <WeekCard insights={insights} />
+          </SafeArea>
+          <SafeArea nombre="Tu repaso de hoy">
+            <RepasoCard orgslug={orgslug} insights={insights} />
+          </SafeArea>
         </div>
       ) : (
         <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -134,7 +145,9 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
 
       {/* Así estás progresando — real, server-side numbers */}
       {insights ? (
-        <FormacionCard orgslug={orgslug} insights={insights} runs={runs} />
+        <SafeArea nombre="Así estás progresando">
+          <FormacionCard orgslug={orgslug} insights={insights} runs={runs} />
+        </SafeArea>
       ) : (
         <HomeSkeleton className="mb-8 h-[168px]" />
       )}
@@ -207,13 +220,19 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
       )}
 
       {/* Community channels — quick access to the chats */}
-      <CommunityChannelsCards orgslug={orgslug} />
+      <SafeArea nombre="Comunidad" fallback={null}>
+        <CommunityChannelsCards orgslug={orgslug} />
+      </SafeArea>
 
       {/* Upcoming events */}
-      <UpcomingEvents orgslug={orgslug} />
+      <SafeArea nombre="Próximos eventos" fallback={null}>
+        <UpcomingEvents orgslug={orgslug} />
+      </SafeArea>
 
       {/* Weekly roadmap */}
-      <RoadmapSection canEdit={!!isAdmin} />
+      <SafeArea nombre="Plan de la semana" fallback={null}>
+        <RoadmapSection canEdit={!!isAdmin} />
+      </SafeArea>
 
       {/* Consultas — moved to the bottom (a quiet helper, not the headline) */}
       <div

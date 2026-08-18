@@ -111,6 +111,8 @@ RUN bun install --production
 # Copy configs and scripts
 WORKDIR /app
 COPY ./docker/nginx.conf /etc/nginx/conf.d/default.conf
+# Página que nginx sirve él mismo mientras la aplicación reinicia.
+COPY ./docker/offline.html /usr/share/nginx/html/__offline.html
 COPY ./apps/api/docker-entrypoint.sh /app/api/docker-entrypoint.sh
 COPY ./docker/start.sh /app/start.sh
 RUN chmod +x /app/api/docker-entrypoint.sh /app/start.sh
