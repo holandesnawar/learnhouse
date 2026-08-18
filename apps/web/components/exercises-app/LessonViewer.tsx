@@ -2092,7 +2092,13 @@ function SprekenChooseExercise({
               <div className="flex items-center gap-3 px-3.5 py-3">
                 {/* Seleccionar: toda la fila, no un botón aparte. */}
                 <button
-                  onClick={() => !checked && setSelected(opt)}
+                  onClick={() => {
+                    if (checked) return;
+                    setSelected(opt);
+                    // Al elegir suena: es lo natural cuando aún no ves el
+                    // texto — seleccionas la que quieres volver a oír.
+                    hear(opt, opt);
+                  }}
                   disabled={checked}
                   className="flex items-center gap-3 flex-1 min-w-0 text-left disabled:cursor-default"
                 >
