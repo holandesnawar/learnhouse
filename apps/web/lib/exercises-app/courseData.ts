@@ -4681,6 +4681,155 @@ const m4_les3: Lesson = {
   ],
 };
 
+const m4_les4: Lesson = {
+  id: 'm4-les-4-hoe-laat',
+  moduleId: 'het-werk',
+  title: 'Les 4 — Hoe laat is het?',
+  subtitle: 'La hora y los horarios',
+  order: 4,
+  learningObjective: 'Leer el reloj y hablar de tus horarios en el trabajo',
+  estimatedMinutes: 30,
+  blocks: [
+    {
+      type: 'summary',
+      title: 'Hoe laat is het?',
+      intro: 'La hora en neerlandés tiene una trampa que hace tropezar a todos los hispanohablantes. Si entiendes solo una cosa de esta lección, que sea la del "half".',
+      objectives: [
+        'Repasar los números y decir qué hora es',
+        'Decir a qué hora pasa algo y en qué parte del día',
+        'Hablar de tu horario: de cuándo a cuándo trabajas',
+      ],
+      sections: [
+        {
+          heading: '⚠️ La trampa del "half"',
+          body: '**"Half twee" NO es las dos y media: es la UNA y media.** El neerlandés cuenta hacia la hora siguiente, o sea "media hora PARA las dos". Si piensas en español te equivocas una hora entera, y llegas tarde a la reunión.',
+          items: [
+            { nl: 'half twee', es: 'la 1:30 — media para las dos' },
+            { nl: 'half negen', es: 'las 8:30 — media para las nueve' },
+          ],
+        },
+        {
+          heading: '🕐 Las cuatro piezas del reloj',
+          items: [
+            { nl: 'over', es: 'y (pasada la hora): tien over zeven = 7:10' },
+            { nl: 'voor', es: 'menos (antes de la hora): vijf voor acht = 7:55' },
+            { nl: 'kwart', es: 'cuarto: kwart voor negen = 8:45' },
+            { nl: 'half', es: 'media, hacia la hora siguiente' },
+          ],
+        },
+        {
+          heading: '🗣️ Siempre "Het is…"',
+          body: 'Se empieza siempre igual, y **siempre en singular**, aunque en español digas "son las".',
+          items: [
+            { nl: 'Het is drie uur', es: 'Son las tres' },
+            { nl: 'Het is elf uur', es: 'Son las once' },
+            { nl: 'Het is vijf voor half twee', es: 'Es la 1:25' },
+            { nl: 'Het is tien over half negen', es: 'Son las 8:40' },
+          ],
+        },
+        {
+          heading: '📅 A qué hora, y de cuándo a cuándo',
+          items: [
+            { nl: 'Om drie uur', es: 'A las tres — para la hora concreta se usa "om"' },
+            { nl: 'Ik werk van negen tot vijf', es: 'Trabajo de nueve a cinco' },
+            { nl: 'We spreken rond vier uur af', es: 'Quedamos sobre las cuatro' },
+            { nl: 'Ik werk acht uur ongeveer', es: 'Trabajo unas ocho horas' },
+          ],
+        },
+        {
+          heading: '🌅 Las partes del día',
+          body: 'Se escriben con ese apóstrofo delante, que despista pero es lo normal.',
+          items: [
+            { nl: "'s morgens", es: 'por la mañana' },
+            { nl: "'s middags", es: 'por la tarde (mediodía)' },
+            { nl: "'s avonds", es: 'por la noche' },
+          ],
+        },
+      ],
+      tip: 'Truco para el "half": cuando oigas **half X**, resta una hora y pon 30 minutos. Half twee → una y media. Half negen → ocho y media. Con diez veces que lo hagas, te sale solo.',
+    },
+    {
+      type: 'vocabulary',
+      items: [
+        { id: 'm4l4v-uur', dutch: 'het uur', spanish: 'la hora', article: 'het', emoji: '🕐', color: '#1D0084', exampleNl: 'Het is drie uur.', exampleEs: 'Son las tres.', category: 'klok', difficulty: 'A1' },
+        { id: 'm4l4v-half', dutch: 'half', spanish: 'y media (¡pero hacia la hora siguiente!)', article: null, emoji: '🕜', color: '#025dc7', exampleNl: 'Het is half twee.', exampleEs: 'Es la una y media.', category: 'klok', difficulty: 'A1' },
+        { id: 'm4l4v-kwart', dutch: 'het kwart', spanish: 'el cuarto', article: 'het', emoji: '🕘', color: '#4da3ff', exampleNl: 'Het is kwart voor negen.', exampleEs: 'Son las nueve menos cuarto.', category: 'klok', difficulty: 'A1' },
+        { id: 'm4l4v-over', dutch: 'over', spanish: 'pasadas, y (después de la hora)', article: null, emoji: '➕', color: '#1D0084', exampleNl: 'Het is tien over zeven.', exampleEs: 'Son las siete y diez.', category: 'klok', difficulty: 'A1' },
+        { id: 'm4l4v-voor', dutch: 'voor', spanish: 'menos (antes de la hora)', article: null, emoji: '➖', color: '#025dc7', exampleNl: 'Het is vijf voor acht.', exampleEs: 'Son las ocho menos cinco.', category: 'klok', difficulty: 'A1' },
+        { id: 'm4l4v-vergadering', dutch: 'de vergadering', spanish: 'la reunión', article: 'de', emoji: '📋', color: '#4da3ff', exampleNl: 'De vergadering is om tien uur.', exampleEs: 'La reunión es a las diez.', category: 'werk', difficulty: 'A1' },
+        { id: 'm4l4v-afspreken4', dutch: 'afspreken', spanish: 'quedar', article: null, emoji: '🤝', color: '#1D0084', exampleNl: 'Hoe laat spreken we af?', exampleEs: '¿A qué hora quedamos?', category: 'werk', difficulty: 'A1' },
+        { id: 'm4l4v-bijna', dutch: 'bijna', spanish: 'casi', article: null, emoji: '⏳', color: '#025dc7', exampleNl: 'Het is bijna twaalf uur.', exampleEs: 'Son casi las doce.', category: 'klok', difficulty: 'A1' },
+        { id: 'm4l4v-rond', dutch: 'rond', spanish: 'alrededor de', article: null, emoji: '🔄', color: '#4da3ff', exampleNl: 'We spreken rond vier uur af.', exampleEs: 'Quedamos sobre las cuatro.', category: 'klok', difficulty: 'A1' },
+        { id: 'm4l4v-ongeveer', dutch: 'ongeveer', spanish: 'aproximadamente', article: null, emoji: '≈', color: '#1D0084', exampleNl: 'Ik werk acht uur ongeveer.', exampleEs: 'Trabajo unas ocho horas.', category: 'klok', difficulty: 'A1' },
+        { id: 'm4l4v-morgens', dutch: "'s morgens", spanish: 'por la mañana', article: null, emoji: '🌅', color: '#025dc7', exampleNl: "Ik sport 's morgens.", exampleEs: 'Hago deporte por la mañana.', category: 'dagdeel', difficulty: 'A1' },
+        { id: 'm4l4v-middags', dutch: "'s middags", spanish: 'por la tarde (mediodía)', article: null, emoji: '🌤️', color: '#4da3ff', exampleNl: "Ik doe 's middags de boodschappen.", exampleEs: 'Hago la compra por la tarde.', category: 'dagdeel', difficulty: 'A1' },
+        { id: 'm4l4v-avonds', dutch: "'s avonds", spanish: 'por la noche', article: null, emoji: '🌙', color: '#1D0084', exampleNl: "We gaan om acht uur 's avonds naar huis.", exampleEs: 'Nos vamos a casa a las ocho de la noche.', category: 'dagdeel', difficulty: 'A1' },
+        { id: 'm4l4v-duren', dutch: 'duren', spanish: 'durar', article: null, emoji: '⏱️', color: '#025dc7', exampleNl: 'De film duurt anderhalf uur.', exampleEs: 'La película dura hora y media.', category: 'klok', difficulty: 'A1' },
+        { id: 'm4l4v-sporten', dutch: 'sporten', spanish: 'hacer deporte', article: null, emoji: '🏃', color: '#4da3ff', exampleNl: 'Wanneer ga je sporten?', exampleEs: '¿Cuándo haces deporte?', category: 'vrije tijd', difficulty: 'A1' },
+        { id: 'm4l4v-boodschappen', dutch: 'de boodschappen', spanish: 'la compra', article: 'de', emoji: '🛒', color: '#1D0084', exampleNl: 'Ik doe de boodschappen.', exampleEs: 'Hago la compra.', category: 'dagelijks', difficulty: 'A1' },
+      ],
+    },
+    {
+      type: 'phrases',
+      items: [
+        { id: 'm4l4f-1', dutch: 'Hoe laat is het?', spanish: '¿Qué hora es?' },
+        { id: 'm4l4f-2', dutch: 'Het is drie uur.', spanish: 'Son las tres.' },
+        { id: 'm4l4f-3', dutch: 'Het is half twee.', spanish: 'Es la una y media.' },
+        { id: 'm4l4f-4', dutch: 'Het is kwart voor negen.', spanish: 'Son las nueve menos cuarto.' },
+        { id: 'm4l4f-5', dutch: 'Het is tien over zeven.', spanish: 'Son las siete y diez.' },
+        { id: 'm4l4f-6', dutch: 'Het is bijna twaalf uur.', spanish: 'Son casi las doce.' },
+        { id: 'm4l4f-7', dutch: 'Hoe laat is de vergadering?', spanish: '¿A qué hora es la reunión?' },
+        { id: 'm4l4f-8', dutch: 'Om drie uur.', spanish: 'A las tres.' },
+        { id: 'm4l4f-9', dutch: 'Hoe laat spreken we af?', spanish: '¿A qué hora quedamos?' },
+        { id: 'm4l4f-10', dutch: 'We spreken rond vier uur af.', spanish: 'Quedamos sobre las cuatro.' },
+        { id: 'm4l4f-11', dutch: 'Van hoe laat tot hoe laat werk je?', spanish: '¿De qué hora a qué hora trabajas?' },
+        { id: 'm4l4f-12', dutch: 'Ik werk van negen tot vijf.', spanish: 'Trabajo de nueve a cinco.' },
+        { id: 'm4l4f-13', dutch: 'Hoe lang werk je?', spanish: '¿Cuánto tiempo trabajas?' },
+        { id: 'm4l4f-14', dutch: "Ik sport 's morgens.", spanish: 'Hago deporte por la mañana.' },
+        { id: 'm4l4f-15', dutch: 'Ik ben rond zes uur thuis.', spanish: 'Estoy en casa sobre las seis.' },
+      ],
+    },
+    {
+      // Spreken: decir la hora es de las cosas que más se dicen en voz alta,
+      // así que aquí la consigna va también en neerlandés y con audio.
+      type: 'spreken',
+      title: 'Hoe laat?',
+      intro: 'Escucha la pregunta y elige lo que dirías tú. Ojo con el "half": es la trampa de esta lección.',
+      exercises: [
+        { id: 'm4l4sp-1', type: 'spreken_choose', promptNl: 'Hoe laat is het?', prompt: 'Te preguntan la hora y son las 13:30.', options: ['Het is half twee.', 'Het is half een.', 'Het is twee uur.'], correctAnswer: 'Het is half twee.', explanation: 'Las 13:30 son media hora PARA las dos: half twee. "Half een" serían las 12:30.' },
+        { id: 'm4l4sp-2', type: 'spreken_choose', promptNl: 'Hoe laat is het?', prompt: 'Son las 19:55.', options: ['Het is vijf voor acht.', 'Het is vijf over acht.', 'Het is vijf voor half acht.'], correctAnswer: 'Het is vijf voor acht.', explanation: 'Faltan cinco para las ocho: vijf voor acht. "Over" sería después.' },
+        { id: 'm4l4sp-3', type: 'spreken_choose', promptNl: 'Hoe laat is de vergadering?', prompt: 'La reunión es a las tres.', options: ['Om drie uur.', 'Op drie uur.', 'In drie uur.'], correctAnswer: 'Om drie uur.', explanation: 'Para la hora concreta siempre "om".' },
+        { id: 'm4l4sp-4', type: 'spreken_choose', promptNl: 'Van hoe laat tot hoe laat werk je?', prompt: 'Trabajas de nueve a cinco.', options: ['Ik werk van negen tot vijf.', 'Ik werk om negen tot vijf.', 'Ik werk van negen naar vijf.'], correctAnswer: 'Ik werk van negen tot vijf.', explanation: 'El par es van … tot …, como "de … a …".' },
+        { id: 'm4l4sp-5', type: 'spreken_choose', promptNl: 'Wanneer doe je de boodschappen?', prompt: 'Haces la compra por la tarde.', options: ["Ik doe 's middags de boodschappen.", "Ik doe 's morgens de boodschappen.", "Ik doe 's avonds de boodschappen."], correctAnswer: "Ik doe 's middags de boodschappen.", explanation: "'s middags = por la tarde (mediodía). 's morgens = mañana, 's avonds = noche." },
+      ],
+    },
+    {
+      type: 'practice',
+      exercises: [
+        { id: 'm4l4e-1',  type: 'multiple_choice', prompt: '"Half twee" son las…', options: ['1:30', '2:30', '2:00', '1:00'], correctAnswer: '1:30', explanation: 'El neerlandés cuenta hacia la hora siguiente: media PARA las dos.' },
+        { id: 'm4l4e-2',  type: 'multiple_choice', prompt: 'Entonces, ¿cómo se dicen las 8:30?', options: ['half negen', 'half acht', 'acht en half', 'half over acht'], correctAnswer: 'half negen', explanation: 'Media para las nueve. Suma una a la hora española.' },
+        { id: 'm4l4e-3',  type: 'multiple_choice', prompt: '¿Cómo se dicen las 7:10?', options: ['tien over zeven', 'tien voor zeven', 'tien over half zeven', 'zeven over tien'], correctAnswer: 'tien over zeven', explanation: 'Over = pasada la hora.' },
+        { id: 'm4l4e-4',  type: 'multiple_choice', prompt: '¿Y las 8:45?', options: ['kwart voor negen', 'kwart over acht', 'kwart voor acht', 'half negen'], correctAnswer: 'kwart voor negen', explanation: 'Un cuarto para las nueve.' },
+        { id: 'm4l4e-5',  type: 'multiple_choice', prompt: '¿Cómo se dicen las 13:25?', options: ['vijf voor half twee', 'vijf over half twee', 'vijfentwintig over een', 'half twee over vijf'], correctAnswer: 'vijf voor half twee', explanation: 'Cinco antes de la media: vijf voor half twee.' },
+        { id: 'm4l4e-6',  type: 'multiple_choice', prompt: '¿Y las 20:40?', options: ['tien over half negen', 'tien voor negen', 'twintig voor negen', 'half negen over tien'], correctAnswer: 'tien over half negen', explanation: 'Diez pasada la media: tien over half negen.' },
+        { id: 'm4l4e-7',  type: 'true_false', prompt: 'Para decir la hora se empieza con "Het is…", siempre en singular.', correctAnswer: 'verdadero', explanation: 'Aunque en español digas "son las tres", en neerlandés es "Het is drie uur".' },
+        { id: 'm4l4e-8',  type: 'fill_blank', prompt: 'De vergadering is ___ tien uur. (a las diez)', correctAnswer: 'om', hint: 'la preposición de la hora concreta' },
+        { id: 'm4l4e-9',  type: 'fill_blank', prompt: 'Ik werk ___ negen tot vijf.', correctAnswer: 'van', hint: 'van … tot …' },
+        { id: 'm4l4e-10', type: 'multiple_choice', prompt: '"We spreken rond vier uur af" significa…', options: ['Quedamos sobre las cuatro', 'Quedamos a las cuatro en punto', 'Quedamos antes de las cuatro', 'Quedamos durante cuatro horas'], correctAnswer: 'Quedamos sobre las cuatro', explanation: 'Rond = alrededor de, aproximadamente.' },
+        { id: 'm4l4e-11', type: 'multiple_choice', prompt: '¿Qué significa "De film duurt anderhalf uur"?', options: ['Dura hora y media', 'Empieza a la una y media', 'Dura una hora', 'Termina a las dos'], correctAnswer: 'Dura hora y media', explanation: 'Duren = durar. Anderhalf = uno y medio.' },
+        { id: 'm4l4e-12', type: 'multiple_choice', prompt: '"Het is bijna twaalf uur" quiere decir…', options: ['Son casi las doce', 'Son las doce en punto', 'Son las doce y pico', 'Faltan doce minutos'], correctAnswer: 'Son casi las doce', explanation: 'Bijna = casi.' },
+        { id: 'm4l4e-13', type: 'multiple_choice', prompt: '¿Cuál es "por la noche"?', options: ["'s avonds", "'s morgens", "'s middags", "'s nachts uur"], correctAnswer: "'s avonds", explanation: "'s morgens (mañana) · 's middags (tarde) · 's avonds (noche)." },
+        { id: 'm4l4e-14', type: 'multiple_choice', prompt: '¿Cómo se dice 25?', options: ['vijfentwintig', 'twintigenvijf', 'vijftwintig', 'twintigvijf'], correctAnswer: 'vijfentwintig', explanation: 'Primero la unidad: vijf-en-twintig. Al revés que en español.' },
+        { id: 'm4l4e-15', type: 'multiple_choice', prompt: '¿Y 42?', options: ['tweeënveertig', 'veertigtwee', 'vierentwintig', 'tweeveertig'], correctAnswer: 'tweeënveertig', explanation: 'twee-en-veertig, con diéresis en la e.' },
+        { id: 'm4l4e-16', type: 'order_sentence', prompt: 'Ordena: "¿A qué hora quedamos?"', options: ['Hoe', 'laat', 'spreken', 'we', 'af?'], correctAnswer: 'Hoe laat spreken we af?' },
+        { id: 'm4l4e-17', type: 'order_sentence', prompt: 'Ordena: "Estoy en casa sobre las seis."', options: ['Ik', 'ben', 'rond', 'zes', 'uur', 'thuis'], correctAnswer: 'Ik ben rond zes uur thuis' },
+        { id: 'm4l4e-18', type: 'word_scramble', prompt: '¿Cómo se dice "la reunión"?', correctAnswer: 'vergadering', hint: 'lo que tienes en el trabajo a las diez' },
+      ],
+    },
+    { type: 'review' },
+  ],
+};
+
 /* ─────────────────────────────────────────────────────────────────────────────
    EXPORT
 ───────────────────────────────────────────────────────────────────────────── */
@@ -4695,5 +4844,5 @@ export const LESSONS: Lesson[] = [
   // Module 3
   m3_les1, m3_les2, m3_les3, m3_les4, m3_les5, m3_les6,
   // Module 4
-  m4_les1, m4_les2, m4_les3,
+  m4_les1, m4_les2, m4_les3, m4_les4,
 ];
