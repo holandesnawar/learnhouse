@@ -18,6 +18,7 @@ import {
   updateDirectWelcome,
   updateStaffTitles,
 } from '@services/messages/direct'
+import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import VoiceRecorder from './VoiceRecorder'
 import { COMPOSER_EMOJIS } from '@/lib/chat/emojis'
 import toast from 'react-hot-toast'
@@ -426,9 +427,16 @@ export default function MessagesPage() {
   )
 
   return (
-    <div className="px-4 sm:px-8 py-8 max-w-6xl mx-auto">
-      <h1 className="text-[24px] sm:text-[30px] font-bold text-[#1D0084] leading-tight">Mensajes</h1>
-      <p className="text-[14px] text-gray-600 mt-1 mb-5">
+    // Mismo marco que Mi progreso, Mis notas o Eventos: el ancho y los
+    // márgenes salen del wrapper común, y la cabecera es icono + título en
+    // negro. Antes esta pantalla tenía su propio ancho y su propio título en
+    // azul, y al cambiar de sección se notaba el salto.
+    <GeneralWrapperStyled>
+      <div className="flex items-center gap-2 pt-2">
+        <MessageSquare size={24} className="text-[#025dc7]" />
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Mis mensajes</h1>
+      </div>
+      <p className="text-sm text-gray-500 mt-1 mb-6 max-w-lg">
         {isStaff
           ? 'Conversaciones privadas con tus alumnos. Puedes contestar con texto o con una nota de voz.'
           : 'Tu canal directo con el equipo de Holandés Nawar. Escribe o manda una nota de voz — para pronunciación va de lujo.'}
@@ -449,7 +457,7 @@ export default function MessagesPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)] gap-5 mt-5">
+      <div className="grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)] gap-5 mt-5">
         {/* Lista: siempre en escritorio, en móvil solo cuando toca */}
         <div className={mobileView === 'chat' ? 'hidden lg:block' : ''}>{threadList}</div>
 
@@ -472,7 +480,7 @@ export default function MessagesPage() {
           }}
         />
       )}
-    </div>
+    </GeneralWrapperStyled>
   )
 }
 

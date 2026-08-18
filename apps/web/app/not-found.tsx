@@ -23,7 +23,7 @@ export default function NotFound() {
       <div className="relative z-0 w-full max-w-xl text-center">
         <p
           aria-hidden
-          className="font-extrabold leading-none text-white/10 select-none"
+          className="font-bold leading-none text-white/10 select-none"
           style={{
             fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")',
             fontSize: 'clamp(120px, 22vw, 220px)',
@@ -33,7 +33,7 @@ export default function NotFound() {
         </p>
 
         <h1
-          className="-mt-4 sm:-mt-8 text-3xl sm:text-4xl font-extrabold leading-tight"
+          className="-mt-4 sm:-mt-8 text-3xl sm:text-4xl font-bold leading-tight"
           style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
         >
           Esta página <span className="text-[#4da3ff]">no existe.</span>

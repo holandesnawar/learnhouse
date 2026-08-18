@@ -169,7 +169,7 @@ const UserCertificates: React.FC<UserCertificatesProps> = ({ orgslug }) => {
                 <div className="pt-1.5 flex items-center justify-between border-t border-gray-100">
                   <div className="flex items-center gap-1.5 text-gray-500">
                     <Calendar size={12} />
-                    <span className="text-[10px] font-bold uppercase tracking-wider">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider">
                       {awardedDate}
                     </span>
                   </div>
@@ -178,7 +178,7 @@ const UserCertificates: React.FC<UserCertificatesProps> = ({ orgslug }) => {
                     href={verificationLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 uppercase tracking-wider"
+                    className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 hover:text-blue-700 uppercase tracking-wider"
                   >
                     {t('certificate.verify')}
                     <ExternalLink className="w-3 h-3" />

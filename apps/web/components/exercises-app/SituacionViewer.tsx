@@ -170,7 +170,7 @@ export default function SituacionViewer({
           </div>
         ) : situacion.exercises.length > 0 ? (
           <>
-            <p className="text-[12px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-4">
+            <p className="text-[12px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-4">
               Ejercicios — comprueba lo que has entendido
             </p>
             <ExerciseRunner
@@ -206,13 +206,13 @@ export default function SituacionViewer({
               <div className="px-4 pb-4 pt-1 grid gap-4 sm:grid-cols-2">
                 {situacion.transcriptNl && (
                   <div>
-                    <p className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-1.5">Holandés</p>
+                    <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-1.5">Holandés</p>
                     <p className="text-[14px] text-gray-800 leading-relaxed whitespace-pre-line">{situacion.transcriptNl}</p>
                   </div>
                 )}
                 {situacion.transcriptEs && (
                   <div>
-                    <p className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-1.5">Español</p>
+                    <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-1.5">Español</p>
                     <p className="text-[14px] text-gray-600 leading-relaxed whitespace-pre-line">{situacion.transcriptEs}</p>
                   </div>
                 )}

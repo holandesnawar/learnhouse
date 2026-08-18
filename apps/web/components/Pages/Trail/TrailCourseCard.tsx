@@ -129,17 +129,17 @@ function TrailCourseCard(props: TrailCourseCardProps) {
             isLoadingCertificate ? (
               <div className="flex items-center gap-1.5 text-gray-400">
                 <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-yellow-500"></div>
-                <span className="text-[10px] font-bold uppercase tracking-wider">{t('common.loading')}</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider">{t('common.loading')}</span>
               </div>
             ) : courseCertificate ? (
               <div className="flex items-center gap-1.5 text-yellow-600">
                 <Award size={12} />
-                <span className="text-[10px] font-bold uppercase tracking-wider">{t('certificate.certificate')}</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider">{t('certificate.certificate')}</span>
               </div>
             ) : (
               <div className="flex items-center gap-1.5 text-green-600">
                 <Award size={12} />
-                <span className="text-[10px] font-bold uppercase tracking-wider">{t('common.completed')}</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider">{t('common.completed')}</span>
               </div>
             )
           ) : null}
@@ -149,7 +149,7 @@ function TrailCourseCard(props: TrailCourseCardProps) {
               href={getUriWithOrg(props.orgslug, `/certificates/${courseCertificate.certificate_user.user_certification_uuid}/verify`)}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-[10px] font-bold text-[#025dc7] hover:text-[#1D0084] uppercase tracking-wider"
+              className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#025dc7] hover:text-[#1D0084] uppercase tracking-wider"
             >
               {t('certificate.verify')}
               <ExternalLink className="w-3 h-3" />

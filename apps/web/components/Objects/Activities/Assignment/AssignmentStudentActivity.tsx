@@ -180,7 +180,7 @@ function AssignmentStudentActivity() {
                       </div>
                     </div>
                     <div className='flex items-baseline gap-1 px-3 py-1.5 rounded-lg bg-white nice-shadow'>
-                      <span className='text-xl font-black text-slate-900 leading-none tabular-nums'>{taskGrade}</span>
+                      <span className='text-xl font-bold text-slate-900 leading-none tabular-nums'>{taskGrade}</span>
                       <span className='text-xs font-semibold text-slate-400 leading-none'>/ {taskMax}</span>
                     </div>
                   </div>

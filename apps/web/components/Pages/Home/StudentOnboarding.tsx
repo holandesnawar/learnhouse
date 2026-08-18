@@ -249,7 +249,7 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
             <Link
               href={s.href}
               onClick={() => markVisited(s.id)}
-              className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-white font-semibold text-[12px] transition-colors"
+              className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] font-semibold text-[12px] transition-colors"
             >
               {s.cta}
               <ArrowRight size={13} />

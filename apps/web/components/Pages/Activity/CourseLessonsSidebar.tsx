@@ -305,7 +305,7 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
                   />
                 )}
                 <span className="flex-1 min-w-0">
-                  <span className={`block text-[15px] font-bold uppercase tracking-wide truncate ${locked ? 'text-white/55' : 'text-white'}`}>
+                  <span className={`block text-[15px] font-semibold uppercase tracking-[0.06em] truncate ${locked ? 'text-white/55' : 'text-white'}`}>
                     {chapter.name}
                   </span>
                   {locked && chapter.unlock_date && (
@@ -504,7 +504,7 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
                   />
                 )}
                 <span className="flex-1 min-w-0">
-                  <span className={`block text-[15px] font-bold uppercase tracking-wide truncate ${locked ? 'text-white/55' : 'text-white'}`}>
+                  <span className={`block text-[15px] font-semibold uppercase tracking-[0.06em] truncate ${locked ? 'text-white/55' : 'text-white'}`}>
                     {chapter.name}
                   </span>
                   {locked && chapter.unlock_date && (

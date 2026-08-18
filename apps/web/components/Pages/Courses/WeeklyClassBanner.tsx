@@ -116,7 +116,7 @@ export default function WeeklyClassBanner() {
       opts: { textarea?: boolean; placeholder?: string } = {}
     ) => (
       <div>
-        <label className="block text-[11px] font-bold text-[#5A6480] uppercase tracking-wide mb-1">{label}</label>
+        <label className="block text-[11px] font-semibold text-[#5A6480] uppercase tracking-wide mb-1">{label}</label>
         {opts.textarea ? (
           <textarea
             value={draft[key]}
@@ -146,7 +146,7 @@ export default function WeeklyClassBanner() {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-[11px] font-bold text-[#5A6480] uppercase tracking-wide mb-1">
+            <label className="block text-[11px] font-semibold text-[#5A6480] uppercase tracking-wide mb-1">
               Día de la semana
             </label>
             <select
@@ -163,7 +163,7 @@ export default function WeeklyClassBanner() {
             </select>
           </div>
           <div>
-            <label className="block text-[11px] font-bold text-[#5A6480] uppercase tracking-wide mb-1">
+            <label className="block text-[11px] font-semibold text-[#5A6480] uppercase tracking-wide mb-1">
               Fecha concreta (opcional)
             </label>
             <input
@@ -236,14 +236,14 @@ export default function WeeklyClassBanner() {
                 href={v.live_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-[#4da3ff] hover:bg-[#5eb4ff] text-white font-bold py-2.5 px-4 rounded-lg text-[14px] transition-colors"
+                className="inline-flex items-center gap-2 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold py-2.5 px-4 rounded-lg text-[14px] transition-colors"
               >
                 <Radio size={16} strokeWidth={2.5} /> Ir al directo
               </a>
             ) : (
               <button
                 onClick={() => toast('El enlace del directo aún no está configurado.')}
-                className="inline-flex items-center gap-2 bg-[#4da3ff] hover:bg-[#5eb4ff] text-white font-bold py-2.5 px-4 rounded-lg text-[14px] transition-colors"
+                className="inline-flex items-center gap-2 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold py-2.5 px-4 rounded-lg text-[14px] transition-colors"
               >
                 <Radio size={16} strokeWidth={2.5} /> Ir al directo
               </button>

@@ -30,7 +30,7 @@ function StatTile({ label, value, hint, icon, accent }: StatTileProps) {
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wide">{label}</p>
+        <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide">{label}</p>
         <p className="text-[20px] font-bold text-gray-900 leading-tight tabular-nums">{value}</p>
         {hint && <p className="text-[11px] text-[#9CA3AF] mt-0.5">{hint}</p>}
       </div>

@@ -2451,7 +2451,7 @@ function MatchPairsExercise({ exercise, onAnswer }: { exercise: ExerciseItem; on
         </div>
       </div>
       {done && (
-        <div className={`rounded-lg px-4 py-3 text-[14px] font-medium ${errors === 0 ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-[#FFF7ED] text-orange-700 border border-orange-200'}`}>
+        <div className={`rounded-lg px-4 py-3 text-[14px] font-medium ${errors === 0 ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-[#FFFBF2] text-[#8A6A2A] border border-[#EFE3C9]'}`}>
           {errors === 0 ? '✓ ¡Perfecto, sin errores!' : `✓ Completado con ${errors} error${errors > 1 ? 'es' : ''}`}
         </div>
       )}
@@ -2839,10 +2839,10 @@ function PairMemoryExercise({ exercise, onAnswer }: { exercise: ExerciseItem; on
         <div className={`rounded-lg px-4 py-3 text-[14px] font-medium ${
           attempts === pairs.length
             ? 'bg-green-50 text-green-800 border border-green-200'
-            : 'bg-[#FFF7ED] text-orange-700 border border-orange-200'
+            : 'bg-[#FFFBF2] text-[#8A6A2A] border border-[#EFE3C9]'
         }`}>
           {attempts === pairs.length
-            ? `🎉 ¡Perfecto, sin errores! (${attempts} intentos)`
+            ? `✓ ¡Perfecto, sin errores! (${attempts} intentos)`
             : `✓ Completado con ${attempts} intentos (mínimo: ${pairs.length})`}
         </div>
       )}
@@ -3038,7 +3038,7 @@ function ResumenSection({ block, vocabItems = [], phraseItems = [], inCourse, on
       {/* Objetivos — lista con checks */}
       {block.objectives && block.objectives.length > 0 && (
         <div className="rounded-2xl border border-[#DDE6F5] bg-white p-5">
-          <p className="text-[12px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-3">
+          <p className="text-[12px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-3">
             Objetivos de la lección
           </p>
           <ul className="space-y-2">
@@ -3507,7 +3507,7 @@ function LezenSection({
       {/* Failed-items list — apuntar las palabras que falles, justo aquí. */}
       {failedLabels.length > 0 && (
         <div className="rounded-lg border border-[#DDE6F5] bg-white p-4">
-          <p className="text-[12px] font-bold text-gray-900 uppercase tracking-wide mb-2">
+          <p className="text-[12px] font-semibold text-gray-900 uppercase tracking-wide mb-2">
             Fallaste en {failedLabels.length}
           </p>
           <ul className="space-y-1.5">
@@ -4293,7 +4293,7 @@ function LuisterenSection({
         <div className="space-y-4">
           {dialogue.lines.map(line => (
             <div key={line.id} className="space-y-1">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-[#9CA3AF]">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-[#9CA3AF]">
                 {line.speaker}
               </p>
               <p className="text-[16px] text-gray-900 leading-relaxed font-medium">
@@ -4348,7 +4348,7 @@ function LuisterenSection({
         {/* Failed-items list — apuntar las palabras que falles, justo aquí. */}
         {failedLabels.length > 0 && (
           <div className="rounded-lg border border-[#DDE6F5] bg-white p-4">
-            <p className="text-[12px] font-bold text-gray-900 uppercase tracking-wide mb-2">
+            <p className="text-[12px] font-semibold text-gray-900 uppercase tracking-wide mb-2">
               Fallaste en {failedLabels.length}
             </p>
             <ul className="space-y-1.5">

@@ -132,7 +132,7 @@ export default function ConsultaSearchBar({ initialQuery = '' }: ConsultaSearchB
           )}
           {!loading && matches.length > 0 && (
             <>
-              <p className="text-[11px] font-bold text-[#025dc7] uppercase tracking-wider px-1">
+              <p className="text-[11px] font-semibold text-[#025dc7] uppercase tracking-wider px-1">
                 {matches.length} {matches.length === 1 ? 'resultado' : 'resultados'}
               </p>
               <ul className="space-y-1.5">
@@ -152,7 +152,7 @@ export default function ConsultaSearchBar({ initialQuery = '' }: ConsultaSearchB
                               {c.title}
                             </p>
                             {c.resolved && (
-                              <span className="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-green-50 text-green-700 text-[10px] font-bold uppercase tracking-wider">
+                              <span className="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-green-50 text-green-700 text-[10px] font-semibold uppercase tracking-wider">
                                 Respondida
                               </span>
                             )}

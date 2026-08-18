@@ -299,7 +299,7 @@ function CourseSummary({ amountCents, currency }: { amountCents: number; currenc
           Total
         </span>
         <div className="text-right">
-          <div className="text-[24px] font-extrabold text-[#1D0084] leading-none">
+          <div className="text-[24px] font-bold text-[#1D0084] leading-none">
             {totalLabel}
           </div>
           <div className="text-[12px] text-gray-500 mt-1">Pago único · IVA incl.</div>

@@ -177,7 +177,7 @@ export default function RoadmapSection({ canEdit }: { canEdit: boolean }) {
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-semibold text-gray-900">{week.title || `Semana ${wi + 1}`}</h3>
                   {wi === roadmap.current && (
-                    <span className="text-[10px] font-bold uppercase tracking-wide text-white bg-[#025dc7] rounded-full px-2 py-0.5">Esta semana</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-white bg-[#025dc7] rounded-full px-2 py-0.5">Esta semana</span>
                   )}
                 </div>
                 {week.tasks.length > 0 && (

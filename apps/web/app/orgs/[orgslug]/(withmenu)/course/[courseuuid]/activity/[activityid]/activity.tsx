@@ -1721,7 +1721,7 @@ function AssignmentTools(props: {
                         ? t('dashboard.assignments.submissions.preview.passing')
                         : t('dashboard.assignments.submissions.preview.not_passing')}
                     </p>
-                    <h2 className="text-5xl font-black text-gray-900 tracking-tight leading-none">
+                    <h2 className="text-5xl font-bold text-gray-900 tracking-tight leading-none">
                       {displayGrade}
                     </h2>
                     {(pointsSummary || percentageDisplay) && (
