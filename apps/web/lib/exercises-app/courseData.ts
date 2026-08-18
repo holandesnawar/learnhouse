@@ -4556,6 +4556,131 @@ const m4_les2: Lesson = {
   ],
 };
 
+const m4_les3: Lesson = {
+  id: 'm4-les-3-om-te',
+  moduleId: 'het-werk',
+  title: 'Les 3 — Grammatica | Om…te',
+  subtitle: 'Decir para qué haces las cosas',
+  order: 3,
+  learningObjective: 'Expresar el objetivo de una acción con om…te + infinitivo',
+  estimatedMinutes: 25,
+  blocks: [
+    {
+      type: 'summary',
+      title: 'Om…te',
+      intro: 'Con "om…te" dices PARA QUÉ haces algo. Es la respuesta a "Waarvoor doe je dat?", y una vez que la tienes, tus frases dejan de ser sueltas y empiezan a explicar tus motivos.',
+      objectives: [
+        'Formar frases con om + te + infinitivo',
+        'Colocar el complemento entre "om" y "te"',
+        'Contestar a "¿para qué?" en el día a día',
+      ],
+      sections: [
+        {
+          heading: '🔧 La estructura',
+          body: 'La regla que no falla: **el verbo va SIEMPRE al final**, con "te" justo delante.',
+          items: [
+            { nl: 'Ik werk om te leven', es: 'Trabajo para vivir — sin complemento: om + te + infinitivo' },
+            { nl: 'Ik werk om geld te sparen', es: 'Trabajo para ahorrar dinero — con complemento: om + complemento + te + infinitivo' },
+          ],
+        },
+        {
+          heading: '🎯 Para qué trabajas',
+          items: [
+            { nl: 'Ik werk om de huur te betalen', es: 'Trabajo para pagar el alquiler' },
+            { nl: 'Ik werk om een huis te kopen', es: 'Trabajo para comprar una casa' },
+            { nl: 'Ik studeer Nederlands om de taal te leren', es: 'Estudio neerlandés para aprender el idioma' },
+          ],
+        },
+        {
+          heading: '🧰 Para qué sirve cada cosa',
+          body: 'La pregunta es **"Waarvoor gebruik je…?"** y se contesta con om … te …',
+          items: [
+            { nl: 'Een computer? Om te werken', es: '¿Un ordenador? Para trabajar' },
+            { nl: 'Een pen? Om notities te maken', es: '¿Un bolígrafo? Para tomar notas' },
+            { nl: 'Een telefoon? Om mijn moeder te bellen', es: '¿Un teléfono? Para llamar a mi madre' },
+            { nl: 'Een koelkast? Om het eten te bewaren', es: '¿Una nevera? Para conservar la comida' },
+          ],
+        },
+        {
+          heading: '⚠️ Los verbos separables',
+          body: 'Si el verbo es separable, **"te" se mete en medio**: afspreken → om met hem **af te spreken**.',
+          items: [
+            { nl: 'Ik bel Kees om met hem af te spreken', es: 'Llamo a Kees para quedar con él' },
+            { nl: 'Wij fietsen naar de stad om te gaan winkelen', es: 'Vamos en bici al centro para ir de compras' },
+          ],
+        },
+      ],
+      tip: 'En español el verbo va justo detrás de "para" (*para pagar el alquiler*). En neerlandés se va al final: **om de huur te betalen**. Piensa la frase entera antes de empezar a hablar y no te quedarás colgado a mitad.',
+    },
+    {
+      type: 'vocabulary',
+      items: [
+        { id: 'm4l3v-sparen', dutch: 'sparen', spanish: 'ahorrar', article: null, emoji: '💶', color: '#1D0084', exampleNl: 'Ik werk om geld te sparen.', exampleEs: 'Trabajo para ahorrar dinero.', category: 'werkwoorden', difficulty: 'A1' },
+        { id: 'm4l3v-betalen', dutch: 'betalen', spanish: 'pagar', article: null, emoji: '🧾', color: '#025dc7', exampleNl: 'Ik werk om de huur te betalen.', exampleEs: 'Trabajo para pagar el alquiler.', category: 'werkwoorden', difficulty: 'A1' },
+        { id: 'm4l3v-huur', dutch: 'de huur', spanish: 'el alquiler', article: 'de', emoji: '🏠', color: '#4da3ff', exampleNl: 'De huur is hoog in Amsterdam.', exampleEs: 'El alquiler es alto en Ámsterdam.', category: 'wonen', difficulty: 'A1' },
+        { id: 'm4l3v-kopen', dutch: 'kopen', spanish: 'comprar', article: null, emoji: '🛒', color: '#1D0084', exampleNl: 'Ik werk om een huis te kopen.', exampleEs: 'Trabajo para comprar una casa.', category: 'werkwoorden', difficulty: 'A1' },
+        { id: 'm4l3v-huren', dutch: 'huren', spanish: 'alquilar', article: null, emoji: '🔑', color: '#025dc7', exampleNl: 'Wij zoeken een appartement om te huren.', exampleEs: 'Buscamos un piso para alquilar.', category: 'wonen', difficulty: 'A1' },
+        { id: 'm4l3v-boterham', dutch: 'de boterham', spanish: 'el sándwich', article: 'de', emoji: '🥪', color: '#4da3ff', exampleNl: 'Ik koop brood om een boterham te maken.', exampleEs: 'Compro pan para hacer un sándwich.', category: 'eten', difficulty: 'A1' },
+        { id: 'm4l3v-afspreken', dutch: 'afspreken', spanish: 'quedar (con alguien)', article: null, emoji: '📞', color: '#1D0084', exampleNl: 'Ik bel Kees om met hem af te spreken.', exampleEs: 'Llamo a Kees para quedar con él.', category: 'werkwoorden', difficulty: 'A1' },
+        { id: 'm4l3v-verlaten', dutch: 'verlaten', spanish: 'salir de, abandonar', article: null, emoji: '🚪', color: '#025dc7', exampleNl: 'Ik verlaat mijn huis om te gaan werken.', exampleEs: 'Salgo de casa para ir a trabajar.', category: 'werkwoorden', difficulty: 'A1' },
+        { id: 'm4l3v-notities', dutch: 'notities maken', spanish: 'tomar notas', article: null, emoji: '🖊️', color: '#4da3ff', exampleNl: 'Ik gebruik een pen om notities te maken.', exampleEs: 'Uso un bolígrafo para tomar notas.', category: 'studie', difficulty: 'A1' },
+        { id: 'm4l3v-bewaren', dutch: 'bewaren', spanish: 'conservar, guardar', article: null, emoji: '🧊', color: '#1D0084', exampleNl: 'Een koelkast is om het eten te bewaren.', exampleEs: 'Una nevera es para conservar la comida.', category: 'huis', difficulty: 'A1' },
+        { id: 'm4l3v-koelkast', dutch: 'de koelkast', spanish: 'la nevera', article: 'de', emoji: '🧊', color: '#025dc7', exampleNl: 'De koelkast is leeg.', exampleEs: 'La nevera está vacía.', category: 'huis', difficulty: 'A1' },
+        { id: 'm4l3v-mes', dutch: 'het mes', spanish: 'el cuchillo', article: 'het', emoji: '🔪', color: '#4da3ff', exampleNl: 'Ik gebruik een mes om brood te snijden.', exampleEs: 'Uso un cuchillo para cortar pan.', category: 'huis', difficulty: 'A1' },
+        { id: 'm4l3v-bezoeken', dutch: 'bezoeken', spanish: 'visitar', article: null, emoji: '✈️', color: '#1D0084', exampleNl: 'Ik ga naar Spanje om mijn familie te bezoeken.', exampleEs: 'Voy a España para visitar a mi familia.', category: 'werkwoorden', difficulty: 'A1' },
+        { id: 'm4l3v-winkelen', dutch: 'winkelen', spanish: 'ir de compras', article: null, emoji: '🛍️', color: '#025dc7', exampleNl: 'Wij fietsen naar de stad om te gaan winkelen.', exampleEs: 'Vamos en bici al centro para ir de compras.', category: 'vrije tijd', difficulty: 'A1' },
+        { id: 'm4l3v-halen', dutch: 'halen', spanish: 'sacar, conseguir', article: null, emoji: '🎓', color: '#4da3ff', exampleNl: 'Zij gaat naar school om haar diploma te halen.', exampleEs: 'Va a la escuela para sacarse el título.', category: 'studie', difficulty: 'A1' },
+        { id: 'm4l3v-diploma', dutch: 'het diploma', spanish: 'el título, el diploma', article: 'het', emoji: '📜', color: '#1D0084', exampleNl: 'Ik wil mijn diploma halen.', exampleEs: 'Quiero sacarme el título.', category: 'studie', difficulty: 'A1' },
+        { id: 'm4l3v-oefenen', dutch: 'oefenen', spanish: 'practicar', article: null, emoji: '💪', color: '#025dc7', exampleNl: 'Oefenen is belangrijk om de taal te leren.', exampleEs: 'Practicar es importante para aprender el idioma.', category: 'studie', difficulty: 'A1' },
+        { id: 'm4l3v-belangrijk', dutch: 'belangrijk', spanish: 'importante', article: null, emoji: '⭐', color: '#4da3ff', exampleNl: 'Dat is heel belangrijk.', exampleEs: 'Eso es muy importante.', category: 'algemeen', difficulty: 'A1' },
+      ],
+    },
+    {
+      type: 'phrases',
+      items: [
+        { id: 'm4l3f-1', dutch: 'Waarvoor doe je dat?', spanish: '¿Para qué haces eso?' },
+        { id: 'm4l3f-2', dutch: 'Ik werk om te leven.', spanish: 'Trabajo para vivir.' },
+        { id: 'm4l3f-3', dutch: 'Ik werk om geld te sparen.', spanish: 'Trabajo para ahorrar dinero.' },
+        { id: 'm4l3f-4', dutch: 'Ik werk om de huur te betalen.', spanish: 'Trabajo para pagar el alquiler.' },
+        { id: 'm4l3f-5', dutch: 'Ik werk om een huis te kopen.', spanish: 'Trabajo para comprar una casa.' },
+        { id: 'm4l3f-6', dutch: 'Ik studeer Nederlands om de taal te leren.', spanish: 'Estudio neerlandés para aprender el idioma.' },
+        { id: 'm4l3f-7', dutch: 'Ik koop brood om een boterham te maken.', spanish: 'Compro pan para hacer un sándwich.' },
+        { id: 'm4l3f-8', dutch: 'Ik verlaat mijn huis om te gaan werken.', spanish: 'Salgo de casa para ir a trabajar.' },
+        { id: 'm4l3f-9', dutch: 'Ik bel Kees om met hem af te spreken.', spanish: 'Llamo a Kees para quedar con él.' },
+        { id: 'm4l3f-10', dutch: 'Waarvoor gebruik je een computer?', spanish: '¿Para qué usas un ordenador?' },
+        { id: 'm4l3f-11', dutch: 'Om te werken.', spanish: 'Para trabajar.' },
+        { id: 'm4l3f-12', dutch: 'Om notities te maken.', spanish: 'Para tomar notas.' },
+        { id: 'm4l3f-13', dutch: 'Om het eten te bewaren.', spanish: 'Para conservar la comida.' },
+        { id: 'm4l3f-14', dutch: 'Om mijn moeder te bellen.', spanish: 'Para llamar a mi madre.' },
+      ],
+    },
+    {
+      type: 'practice',
+      exercises: [
+        { id: 'm4l3e-1',  type: 'multiple_choice', prompt: '¿Dónde va el verbo en una frase con om…te?', options: ['Al final', 'Justo detrás de "om"', 'Delante del sujeto', 'Da igual'], correctAnswer: 'Al final', explanation: 'om + (complemento) + te + infinitivo, y el infinitivo cierra la frase.' },
+        { id: 'm4l3e-2',  type: 'multiple_choice', prompt: '¿Cuál es correcta?', options: ['Ik werk om geld te sparen', 'Ik werk om te sparen geld', 'Ik werk om sparen te geld', 'Ik werk te om geld sparen'], correctAnswer: 'Ik werk om geld te sparen', explanation: 'El complemento (geld) va entre "om" y "te".' },
+        { id: 'm4l3e-3',  type: 'multiple_choice', prompt: '"Trabajo para vivir" es…', options: ['Ik werk om te leven', 'Ik werk om leven te', 'Ik werk te leven om', 'Ik werk voor leven'], correctAnswer: 'Ik werk om te leven', explanation: 'Sin complemento se quedan juntos: om te + infinitivo.' },
+        { id: 'm4l3e-4',  type: 'fill_blank', prompt: 'Ik studeer Nederlands ___ de taal te leren.', correctAnswer: 'om', hint: 'la palabra que abre el objetivo' },
+        { id: 'm4l3e-5',  type: 'fill_blank', prompt: 'Ik koop brood om een boterham ___ maken.', correctAnswer: 'te', hint: 'va justo delante del infinitivo' },
+        { id: 'm4l3e-6',  type: 'multiple_choice', prompt: 'Con un verbo separable como "afspreken", ¿dónde va el "te"?', options: ['En medio: af te spreken', 'Delante: te afspreken', 'Detrás: afspreken te', 'No se pone te'], correctAnswer: 'En medio: af te spreken', explanation: 'El prefijo se separa y el "te" se cuela dentro: om met hem af te spreken.' },
+        { id: 'm4l3e-7',  type: 'multiple_choice', prompt: '¿Para qué usas una nevera?', options: ['Om het eten te bewaren', 'Om te eten bewaren', 'Om bewaren het eten te', 'Voor het eten bewaren'], correctAnswer: 'Om het eten te bewaren', explanation: 'Bewaren = conservar, guardar.' },
+        { id: 'm4l3e-8',  type: 'multiple_choice', prompt: '¿Qué pregunta usas para saber el objetivo?', options: ['Waarvoor doe je dat?', 'Waar doe je dat?', 'Wanneer doe je dat?', 'Hoe doe je dat?'], correctAnswer: 'Waarvoor doe je dat?', explanation: 'Waarvoor = para qué. Waar = dónde.' },
+        { id: 'm4l3e-9',  type: 'multiple_choice', prompt: '"Wij zoeken een appartement…" ¿cómo sigue?', options: ['om te huren of te kopen', 'om huren of kopen te', 'om te huren of kopen te', 'te huren om kopen'], correctAnswer: 'om te huren of te kopen', explanation: 'Con dos infinitivos, cada uno lleva su "te".' },
+        { id: 'm4l3e-10', type: 'multiple_choice', prompt: '"Zij gaat naar school…" ¿para qué?', options: ['om haar diploma te halen', 'om te halen haar diploma', 'om haar diploma halen te', 'voor haar diploma halen'], correctAnswer: 'om haar diploma te halen', explanation: 'Een diploma halen = sacarse el título.' },
+        { id: 'm4l3e-11', type: 'true_false', prompt: 'En "om ... te ...", el complemento va detrás del infinitivo.', correctAnswer: 'falso', explanation: 'Va DELANTE: om + complemento + te + infinitivo.' },
+        { id: 'm4l3e-12', type: 'order_sentence', prompt: 'Ordena: "Trabajo para pagar el alquiler."', options: ['Ik', 'werk', 'om', 'de', 'huur', 'te', 'betalen'], correctAnswer: 'Ik werk om de huur te betalen' },
+        { id: 'm4l3e-13', type: 'order_sentence', prompt: 'Ordena: "Salgo de casa para ir a trabajar."', options: ['Ik', 'verlaat', 'mijn', 'huis', 'om', 'te', 'gaan', 'werken'], correctAnswer: 'Ik verlaat mijn huis om te gaan werken' },
+        { id: 'm4l3e-14', type: 'order_sentence', prompt: 'Ordena: "Voy a España para visitar a mi familia."', options: ['Ik', 'ga', 'naar', 'Spanje', 'om', 'mijn', 'familie', 'te', 'bezoeken'], correctAnswer: 'Ik ga naar Spanje om mijn familie te bezoeken' },
+        { id: 'm4l3e-15', type: 'word_scramble', prompt: '¿Cómo se dice "ahorrar"?', correctAnswer: 'sparen', hint: 'geld ___' },
+        { id: 'm4l3e-16', type: 'word_scramble', prompt: '¿Cómo se dice "el alquiler"?', correctAnswer: 'huur', hint: 'lo que pagas cada mes por tu casa' },
+        { id: 'm4l3e-17', type: 'multiple_choice', prompt: '¿Qué significa "oefenen"?', options: ['Practicar', 'Trabajar', 'Descansar', 'Enseñar'], correctAnswer: 'Practicar', explanation: 'Oefenen is belangrijk om de taal te leren.' },
+        { id: 'm4l3e-18', type: 'multiple_choice', prompt: '¿Qué significa "bezoeken"?', options: ['Visitar', 'Buscar', 'Llamar', 'Recoger'], correctAnswer: 'Visitar', explanation: 'Mijn familie bezoeken = visitar a mi familia.' },
+      ],
+    },
+    { type: 'review' },
+  ],
+};
+
 /* ─────────────────────────────────────────────────────────────────────────────
    EXPORT
 ───────────────────────────────────────────────────────────────────────────── */
@@ -4570,5 +4695,5 @@ export const LESSONS: Lesson[] = [
   // Module 3
   m3_les1, m3_les2, m3_les3, m3_les4, m3_les5, m3_les6,
   // Module 4
-  m4_les1, m4_les2,
+  m4_les1, m4_les2, m4_les3,
 ];
