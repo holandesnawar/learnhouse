@@ -5166,6 +5166,361 @@ const m4_les6: Lesson = {
   ],
 };
 
+/**
+ * Extra del módulo 2 — abreviaturas.
+ *
+ * Va en Familie & vrienden porque es donde se aprende a escribirse con gente,
+ * pero cubre las dos caras: las del chat (que ves en un WhatsApp del cole) y
+ * las oficiales (que te llegan en una carta de la gemeente o del seguro).
+ */
+const m2_extra4: Lesson = {
+  id: 'm2-extra-afkortingen',
+  moduleId: 'familie-vrienden',
+  title: 'Extra | Afkortingen',
+  subtitle: 'Las abreviaturas: del chat a la carta oficial',
+  order: 4,
+  isExtra: true,
+  learningObjective: 'Entender las abreviaturas del día a día, en el móvil y en el papeleo',
+  estimatedMinutes: 20,
+  blocks: [
+    {
+      type: 'summary',
+      title: 'Afkortingen',
+      intro: 'Los neerlandeses abrevian TODO. En el chat porque van rápido, y en las cartas oficiales porque siempre se ha hecho así. El problema es que una carta de la gemeente con cinco abreviaturas se vuelve ilegible aunque sepas las palabras. Aquí están las que de verdad se repiten.',
+      objectives: [
+        'Entender las abreviaturas del chat sin sentirte fuera',
+        'Leer una carta oficial o un formulario sin perderte',
+        'Reconocer las de los anuncios de segunda mano',
+      ],
+      sections: [
+        {
+          heading: '💬 En el chat (informal)',
+          body: 'Estas no se escriben nunca en un correo de trabajo, pero las vas a leer todos los días en el grupo del cole o de los vecinos.',
+          items: [
+            { nl: 'idd', es: 'inderdaad — efectivamente, sí' },
+            { nl: 'ff', es: 'even — un momentito ("bel me ff" = llámame un momento)' },
+            { nl: 'mss', es: 'misschien — quizá' },
+            { nl: 'iig', es: 'in ieder geval — en cualquier caso' },
+            { nl: 'grtjs', es: 'groetjes — saludos, un abrazo' },
+            { nl: 'wrs', es: 'waarschijnlijk — probablemente' },
+          ],
+        },
+        {
+          heading: '📄 En cartas y correos (formal)',
+          items: [
+            { nl: 'a.u.b.', es: 'alstublieft — por favor' },
+            { nl: 'z.s.m.', es: 'zo spoedig mogelijk — lo antes posible' },
+            { nl: 'i.v.m.', es: 'in verband met — debido a, por motivo de' },
+            { nl: 'd.w.z.', es: 'dat wil zeggen — es decir' },
+            { nl: 'm.v.g.', es: 'met vriendelijke groet — saludos cordiales (para firmar)' },
+            { nl: 't.a.v.', es: 'ter attentie van — a la atención de' },
+          ],
+        },
+        {
+          heading: '📝 En formularios',
+          body: 'Las tres que más confunden. **t/m incluye el último día**: "1 t/m 5" son cinco días, no cuatro.',
+          items: [
+            { nl: 't/m', es: 'tot en met — hasta … incluido' },
+            { nl: 'n.v.t.', es: 'niet van toepassing — no aplica (déjalo en blanco)' },
+            { nl: 'm.i.v.', es: 'met ingang van — a partir de (una fecha)' },
+            { nl: 'incl. / excl.', es: 'inclusief / exclusief — con / sin (p. ej. el IVA)' },
+            { nl: 'BSN', es: 'burgerservicenummer — tu número de ciudadano, te lo piden en todas partes' },
+          ],
+        },
+        {
+          heading: '🛒 En Marktplaats (segunda mano)',
+          body: 'Si compras de segunda mano —y en Países Bajos se compra muchísimo—, estas dos aparecen en casi todos los anuncios.',
+          items: [
+            { nl: 'z.g.a.n.', es: 'zo goed als nieuw — casi nuevo' },
+            { nl: 'n.o.t.k.', es: 'nader overeen te komen — precio a convenir' },
+            { nl: 'i.g.st.', es: 'in goede staat — en buen estado' },
+          ],
+        },
+        {
+          heading: '🗣️ ¿Cómo se leen en voz alta?',
+          body: 'Las de puntos se leen **letra por letra** (a-u-b, t-a-v). Las siglas de organismos también (B-S-N, O-V). Pero *bijv.* y *enz.* se leen enteras: **bijvoorbeeld**, **enzovoort**. Y *t/m* se dice **tot en met**.',
+        },
+      ],
+      tip: 'Si te llega una carta oficial y no entiendes una abreviatura, búscala tal cual con los puntos. Casi todas son solo dos o tres palabras normales pegadas.',
+    },
+    {
+      type: 'vocabulary',
+      items: [
+        { id: 'm2x4v-aub',   dutch: 'a.u.b.',    spanish: 'por favor (alstublieft)',                 article: null, emoji: '🙏', color: '#1D0084', exampleNl: 'Wilt u hier tekenen, a.u.b.?', exampleEs: '¿Puede firmar aquí, por favor?', category: 'formeel', difficulty: 'A1' },
+        { id: 'm2x4v-zsm',   dutch: 'z.s.m.',    spanish: 'lo antes posible (zo spoedig mogelijk)',  article: null, emoji: '⚡', color: '#025dc7', exampleNl: 'Graag z.s.m. reageren.', exampleEs: 'Responda lo antes posible, por favor.', category: 'formeel', difficulty: 'A1' },
+        { id: 'm2x4v-ivm',   dutch: 'i.v.m.',    spanish: 'debido a (in verband met)',               article: null, emoji: '🔗', color: '#4da3ff', exampleNl: 'Gesloten i.v.m. vakantie.', exampleEs: 'Cerrado por vacaciones.', category: 'formeel', difficulty: 'A1' },
+        { id: 'm2x4v-dwz',   dutch: 'd.w.z.',    spanish: 'es decir (dat wil zeggen)',               article: null, emoji: '➡️', color: '#1D0084', exampleNl: 'Morgen, d.w.z. dinsdag.', exampleEs: 'Mañana, es decir, el martes.', category: 'formeel', difficulty: 'A1' },
+        { id: 'm2x4v-bijv',  dutch: 'bijv.',     spanish: 'por ejemplo (bijvoorbeeld)',              article: null, emoji: '💡', color: '#025dc7', exampleNl: 'Neem iets mee, bijv. fruit.', exampleEs: 'Trae algo, por ejemplo fruta.', category: 'formeel', difficulty: 'A1' },
+        { id: 'm2x4v-enz',   dutch: 'enz.',      spanish: 'etcétera (enzovoort)',                    article: null, emoji: '➕', color: '#4da3ff', exampleNl: 'Brood, kaas, melk enz.', exampleEs: 'Pan, queso, leche, etcétera.', category: 'formeel', difficulty: 'A1' },
+        { id: 'm2x4v-oa',    dutch: 'o.a.',      spanish: 'entre otros (onder andere)',              article: null, emoji: '📚', color: '#1D0084', exampleNl: 'Wij verkopen o.a. fietsen.', exampleEs: 'Vendemos, entre otras cosas, bicis.', category: 'formeel', difficulty: 'A1' },
+        { id: 'm2x4v-tm',    dutch: 't/m',       spanish: 'hasta … incluido (tot en met)',           article: null, emoji: '📅', color: '#025dc7', exampleNl: 'Open maandag t/m vrijdag.', exampleEs: 'Abierto de lunes a viernes (viernes incluido).', category: 'formulier', difficulty: 'A1' },
+        { id: 'm2x4v-nvt',   dutch: 'n.v.t.',    spanish: 'no aplica (niet van toepassing)',         article: null, emoji: '🚫', color: '#4da3ff', exampleNl: 'Partner: n.v.t.', exampleEs: 'Pareja: no aplica.', category: 'formulier', difficulty: 'A1' },
+        { id: 'm2x4v-tav',   dutch: 't.a.v.',    spanish: 'a la atención de (ter attentie van)',     article: null, emoji: '✉️', color: '#1D0084', exampleNl: 'T.a.v. de heer Jansen.', exampleEs: 'A la atención del Sr. Jansen.', category: 'formeel', difficulty: 'A1' },
+        { id: 'm2x4v-ipv',   dutch: 'i.p.v.',    spanish: 'en lugar de (in plaats van)',             article: null, emoji: '🔄', color: '#025dc7', exampleNl: 'Dinsdag i.p.v. maandag.', exampleEs: 'El martes en lugar del lunes.', category: 'formeel', difficulty: 'A1' },
+        { id: 'm2x4v-miv',   dutch: 'm.i.v.',    spanish: 'a partir de (met ingang van)',            article: null, emoji: '🗓️', color: '#4da3ff', exampleNl: 'M.i.v. 1 januari.', exampleEs: 'A partir del 1 de enero.', category: 'formulier', difficulty: 'A1' },
+        { id: 'm2x4v-ca',    dutch: 'ca.',       spanish: 'aproximadamente (circa)',                 article: null, emoji: '≈', color: '#1D0084', exampleNl: 'Het duurt ca. twee uur.', exampleEs: 'Dura unas dos horas.', category: 'formeel', difficulty: 'A1' },
+        { id: 'm2x4v-incl',  dutch: 'incl.',     spanish: 'incluido (inclusief)',                    article: null, emoji: '✅', color: '#025dc7', exampleNl: '€ 100 incl. btw.', exampleEs: '100 € con IVA incluido.', category: 'formulier', difficulty: 'A1' },
+        { id: 'm2x4v-excl',  dutch: 'excl.',     spanish: 'sin incluir (exclusief)',                 article: null, emoji: '➖', color: '#4da3ff', exampleNl: '€ 100 excl. btw.', exampleEs: '100 € sin IVA.', category: 'formulier', difficulty: 'A1' },
+        { id: 'm2x4v-btw',   dutch: 'btw',       spanish: 'el IVA (belasting toegevoegde waarde)',   article: null, emoji: '🧾', color: '#1D0084', exampleNl: 'De prijs is incl. btw.', exampleEs: 'El precio es con IVA.', category: 'formulier', difficulty: 'A1' },
+        { id: 'm2x4v-bsn',   dutch: 'BSN',       spanish: 'tu número de ciudadano (burgerservicenummer)', article: null, emoji: '🪪', color: '#025dc7', exampleNl: 'Wat is uw BSN?', exampleEs: '¿Cuál es su número BSN?', category: 'formulier', difficulty: 'A1' },
+        { id: 'm2x4v-ov',    dutch: 'OV',        spanish: 'el transporte público (openbaar vervoer)', article: null, emoji: '🚈', color: '#4da3ff', exampleNl: 'Ik reis met het OV.', exampleEs: 'Viajo en transporte público.', category: 'formulier', difficulty: 'A1' },
+        { id: 'm2x4v-mvg',   dutch: 'm.v.g.',    spanish: 'saludos cordiales (met vriendelijke groet)', article: null, emoji: '🖊️', color: '#1D0084', exampleNl: 'M.v.g., Anna.', exampleEs: 'Saludos cordiales, Anna.', category: 'formeel', difficulty: 'A1' },
+        { id: 'm2x4v-idd',   dutch: 'idd',       spanish: 'efectivamente, sí (inderdaad)',           article: null, emoji: '👍', color: '#025dc7', exampleNl: 'Idd, dat klopt!', exampleEs: 'Efectivamente, es correcto.', category: 'chat', difficulty: 'A1' },
+        { id: 'm2x4v-ff',    dutch: 'ff',        spanish: 'un momentito (even)',                     article: null, emoji: '⏱️', color: '#4da3ff', exampleNl: 'Bel me ff.', exampleEs: 'Llámame un momento.', category: 'chat', difficulty: 'A1' },
+        { id: 'm2x4v-mss',   dutch: 'mss',       spanish: 'quizá (misschien)',                       article: null, emoji: '🤔', color: '#1D0084', exampleNl: 'Mss kom ik later.', exampleEs: 'Quizá llegue más tarde.', category: 'chat', difficulty: 'A1' },
+        { id: 'm2x4v-iig',   dutch: 'iig',       spanish: 'en cualquier caso (in ieder geval)',      article: null, emoji: '🙂', color: '#025dc7', exampleNl: 'Iig bedankt!', exampleEs: '¡En cualquier caso, gracias!', category: 'chat', difficulty: 'A1' },
+        { id: 'm2x4v-grtjs', dutch: 'grtjs',     spanish: 'saludos (groetjes)',                      article: null, emoji: '👋', color: '#4da3ff', exampleNl: 'Tot morgen, grtjs!', exampleEs: 'Hasta mañana, ¡un saludo!', category: 'chat', difficulty: 'A1' },
+        { id: 'm2x4v-zgan',  dutch: 'z.g.a.n.',  spanish: 'casi nuevo (zo goed als nieuw)',          article: null, emoji: '✨', color: '#1D0084', exampleNl: 'Fiets z.g.a.n. te koop.', exampleEs: 'Se vende bici casi nueva.', category: 'advertentie', difficulty: 'A1' },
+        { id: 'm2x4v-notk',  dutch: 'n.o.t.k.',  spanish: 'precio a convenir (nader overeen te komen)', article: null, emoji: '💶', color: '#025dc7', exampleNl: 'Prijs n.o.t.k.', exampleEs: 'Precio a convenir.', category: 'advertentie', difficulty: 'A1' },
+      ],
+    },
+    {
+      type: 'phrases',
+      items: [
+        { id: 'm2x4f-1',  dutch: 'Gesloten i.v.m. vakantie.', spanish: 'Cerrado por vacaciones.' },
+        { id: 'm2x4f-2',  dutch: 'Wij zijn open van maandag t/m vrijdag.', spanish: 'Abrimos de lunes a viernes, viernes incluido.' },
+        { id: 'm2x4f-3',  dutch: 'Graag z.s.m. een reactie.', spanish: 'Se ruega respuesta lo antes posible.' },
+        { id: 'm2x4f-4',  dutch: 'Wilt u het formulier invullen, a.u.b.?', spanish: '¿Puede rellenar el formulario, por favor?' },
+        { id: 'm2x4f-5',  dutch: 'De huur is € 900 incl. gas, water en licht.', spanish: 'El alquiler son 900 € con gas, agua y luz incluidos.' },
+        { id: 'm2x4f-6',  dutch: 'De prijs is excl. btw.', spanish: 'El precio es sin IVA.' },
+        { id: 'm2x4f-7',  dutch: 'Heeft u uw BSN bij de hand?', spanish: '¿Tiene su número BSN a mano?' },
+        { id: 'm2x4f-8',  dutch: 'M.i.v. 1 maart werk ik hier.', spanish: 'A partir del 1 de marzo trabajo aquí.' },
+        { id: 'm2x4f-9',  dutch: 'Ik kom dinsdag i.p.v. maandag.', spanish: 'Voy el martes en lugar del lunes.' },
+        { id: 'm2x4f-10', dutch: 'Met vriendelijke groet, Anna.', spanish: 'Saludos cordiales, Anna.' },
+        { id: 'm2x4f-11', dutch: 'Kun je me ff bellen?', spanish: '¿Me puedes llamar un momento?' },
+        { id: 'm2x4f-12', dutch: 'Idd, dat klopt!', spanish: 'Efectivamente, ¡es correcto!' },
+        { id: 'm2x4f-13', dutch: 'Mss kom ik wat later, iig tot straks!', spanish: 'Quizá llegue algo más tarde, ¡en todo caso hasta luego!' },
+        { id: 'm2x4f-14', dutch: 'Bank z.g.a.n., prijs n.o.t.k.', spanish: 'Sofá casi nuevo, precio a convenir.' },
+        { id: 'm2x4f-15', dutch: 'Ik reis elke dag met het OV.', spanish: 'Viajo todos los días en transporte público.' },
+      ],
+    },
+    {
+      type: 'practice',
+      exercises: [
+        { id: 'm2x4e-1',  type: 'match_pairs', prompt: 'Une cada abreviatura formal con lo que significa', correctAnswer: 'ok', pairs: [
+          { left: 'a.u.b.', right: 'por favor' },
+          { left: 'z.s.m.', right: 'lo antes posible' },
+          { left: 'i.v.m.', right: 'debido a' },
+          { left: 'd.w.z.', right: 'es decir' },
+        ] },
+        { id: 'm2x4e-2',  type: 'match_pairs', prompt: 'Ahora las del chat', correctAnswer: 'ok', pairs: [
+          { left: 'idd', right: 'efectivamente' },
+          { left: 'ff', right: 'un momentito' },
+          { left: 'mss', right: 'quizá' },
+          { left: 'grtjs', right: 'saludos' },
+        ] },
+        { id: 'm2x4e-3',  type: 'multiple_choice', prompt: '"Open maandag t/m vrijdag". ¿Abren el viernes?', options: ['Sí, t/m incluye el último día', 'No, cierran el viernes', 'Solo por la mañana', 'Solo si es festivo'], correctAnswer: 'Sí, t/m incluye el último día', explanation: 'tot en met = hasta … incluido. Es la abreviatura que más malentendidos causa.' },
+        { id: 'm2x4e-4',  type: 'multiple_choice', prompt: 'En un formulario pone "Partner: n.v.t.". ¿Qué significa?', options: ['No aplica en su caso', 'Debe rellenarlo obligatoriamente', 'Está pendiente', 'No lo sabemos'], correctAnswer: 'No aplica en su caso', explanation: 'niet van toepassing.' },
+        { id: 'm2x4e-5',  type: 'multiple_choice', prompt: 'La casa cuesta "€ 900 incl.". ¿Qué quiere decir?', options: ['Con gastos incluidos', 'Sin gastos', 'Solo el primer mes', 'Con fianza aparte'], correctAnswer: 'Con gastos incluidos', explanation: 'inclusief. Lo contrario es excl. (exclusief).' },
+        { id: 'm2x4e-6',  type: 'multiple_choice', prompt: '¿Qué es el BSN?', options: ['Tu número de ciudadano', 'Tu número de cuenta', 'El número del seguro del coche', 'El código postal'], correctAnswer: 'Tu número de ciudadano', explanation: 'Burgerservicenummer. Te lo piden en el médico, en el trabajo y en el ayuntamiento.' },
+        { id: 'm2x4e-7',  type: 'multiple_choice', prompt: 'Un anuncio dice "bank z.g.a.n.". El sofá está…', options: ['casi nuevo', 'roto', 'usado y barato', 'reservado'], correctAnswer: 'casi nuevo', explanation: 'zo goed als nieuw.' },
+        { id: 'm2x4e-8',  type: 'multiple_choice', prompt: 'Y si pone "prijs n.o.t.k."…', options: ['el precio se negocia', 'el precio es fijo', 'es gratis', 'incluye envío'], correctAnswer: 'el precio se negocia', explanation: 'nader overeen te komen = a convenir.' },
+        { id: 'm2x4e-9',  type: 'fill_blank', prompt: 'Abreviatura de "met vriendelijke groet" (para firmar un correo): ___', correctAnswer: 'm.v.g.', hint: 'tres letras con puntos' },
+        { id: 'm2x4e-10', type: 'fill_blank', prompt: 'Abreviatura de "bijvoorbeeld": ___', correctAnswer: 'bijv.', hint: 'no es b.v.b.' },
+        { id: 'm2x4e-11', type: 'multiple_choice', prompt: '"Gesloten i.v.m. verbouwing" significa…', options: ['Cerrado por obras', 'Abierto durante las obras', 'Cerrado hasta nuevo aviso', 'Cerrado los domingos'], correctAnswer: 'Cerrado por obras', explanation: 'i.v.m. = in verband met, "por motivo de".' },
+        { id: 'm2x4e-12', type: 'multiple_choice', prompt: '"M.i.v. 1 maart" quiere decir…', options: ['a partir del 1 de marzo', 'hasta el 1 de marzo', 'el 1 de marzo solamente', 'antes del 1 de marzo'], correctAnswer: 'a partir del 1 de marzo', explanation: 'met ingang van.' },
+        { id: 'm2x4e-13', type: 'true_false', prompt: 'Las abreviaturas del chat (ff, mss, idd) también se usan en un correo de trabajo.', correctAnswer: 'falso', explanation: 'En el trabajo se escriben las palabras enteras. Las del chat quedan mal.' },
+        { id: 'm2x4e-14', type: 'true_false', prompt: '"bijv." y "enz." se leen en voz alta como palabras completas: bijvoorbeeld y enzovoort.', correctAnswer: 'verdadero', explanation: 'Las de puntos sueltos (a-u-b, t-a-v) sí se deletrean.' },
+        { id: 'm2x4e-15', type: 'odd_one_out', prompt: '¿Cuál NO es una abreviatura de chat?', options: ['ff', 'mss', 'idd', 't.a.v.'], correctAnswer: 't.a.v.', explanation: 't.a.v. (ter attentie van) es de cartas formales.' },
+        { id: 'm2x4e-16', type: 'multiple_choice', prompt: 'Escribes a una empresa y no sabes el nombre de la persona. Empiezas con…', options: ['Geachte heer/mevrouw', 'Hoi!', 'Beste vriend', 'Lieve mevrouw'], correctAnswer: 'Geachte heer/mevrouw', explanation: 'Es la fórmula neutra cuando no tienes el nombre.' },
+        { id: 'm2x4e-17', type: 'fill_blank', prompt: 'Wij zijn open van maandag ___ vrijdag. (hasta el viernes incluido)', correctAnswer: 't/m', hint: 'tot en met' },
+        { id: 'm2x4e-18', type: 'multiple_choice', prompt: '"De prijs is € 100 excl. btw." Pagas…', options: ['más de 100 €', 'exactamente 100 €', 'menos de 100 €', 'nada hasta la entrega'], correctAnswer: 'más de 100 €', explanation: 'exclusief btw = el IVA se suma aparte.' },
+      ],
+    },
+    { type: 'review' },
+  ],
+};
+
+/**
+ * Extra del módulo 4 — escribir un correo.
+ *
+ * Está en Het werk porque los correos que de verdad cuestan son los del
+ * trabajo y los del papeleo: avisar de que estás enfermo, pedir un día libre,
+ * contestar a la gemeente.
+ */
+const m4_extra1: Lesson = {
+  id: 'm4-extra-mail-schrijven',
+  moduleId: 'het-werk',
+  title: 'Extra | Een mail schrijven',
+  subtitle: 'Correo formal e informal',
+  order: 1,
+  isExtra: true,
+  learningObjective: 'Escribir un correo en neerlandés y elegir el tono correcto',
+  estimatedMinutes: 25,
+  blocks: [
+    {
+      type: 'summary',
+      title: 'Een mail schrijven',
+      intro: 'Un correo en neerlandés tiene siempre las mismas cuatro piezas. Si te aprendes las fórmulas de entrada y de salida, el resto es escribir frases normales de las que ya sabes.',
+      objectives: [
+        'Conocer la estructura: saludo, motivo, petición, despedida',
+        'Elegir entre u (formal) y je (informal) sin dudar',
+        'Tener listas las frases de un correo de trabajo',
+      ],
+      sections: [
+        {
+          heading: '🧱 Las cuatro piezas',
+          items: [
+            { nl: 'de aanhef', es: 'el saludo — Geachte… / Beste… / Hoi…' },
+            { nl: 'de aanleiding', es: 'el motivo — por qué escribes' },
+            { nl: 'de vraag', es: 'la petición — qué quieres que hagan' },
+            { nl: 'de afsluiting', es: 'la despedida + tu nombre' },
+          ],
+        },
+        {
+          heading: '👔 Formal: cuando no hay confianza',
+          body: 'Empresa, gemeente, médico, casero, alguien a quien no conoces. Se trata de **u** todo el rato.',
+          items: [
+            { nl: 'Geachte heer/mevrouw,', es: 'cuando NO sabes el nombre' },
+            { nl: 'Geachte mevrouw De Vries,', es: 'cuando sí lo sabes' },
+            { nl: 'Ik schrijf u naar aanleiding van…', es: 'Le escribo con motivo de…' },
+            { nl: 'Zou u mij kunnen laten weten…?', es: '¿Podría indicarme…?' },
+            { nl: 'Alvast bedankt voor uw reactie.', es: 'Gracias de antemano por su respuesta.' },
+            { nl: 'Met vriendelijke groet,', es: 'Saludos cordiales, — la despedida estándar' },
+          ],
+        },
+        {
+          heading: '🙂 Informal: compañeros, amigos, el grupo del cole',
+          body: 'Aquí se tutea (**je / jij**) y se escribe corto.',
+          items: [
+            { nl: 'Hoi Anna, / Hallo Tom,', es: 'Hola Anna, / Hola Tom,' },
+            { nl: 'Hoe is het?', es: '¿Qué tal?' },
+            { nl: 'Laat maar weten!', es: '¡Ya me dices!' },
+            { nl: 'Groetjes, / Groet,', es: 'Un saludo, / Saludos,' },
+            { nl: 'Tot snel!', es: '¡Hasta pronto!' },
+          ],
+        },
+        {
+          heading: '⚠️ Los tres errores típicos',
+          body: '**1.** Escribir *Lieve* (querido/a) a tu jefe: eso es para la familia y la pareja. **2.** Mezclar *u* y *je* en el mismo correo: elige uno. **3.** Firmar solo con "Groetjes" un correo a la gemeente: ahí va **Met vriendelijke groet**.',
+        },
+        {
+          heading: '🧰 Frases que sirven siempre',
+          items: [
+            { nl: 'In de bijlage vindt u…', es: 'Adjunto encontrará… (en el anexo)' },
+            { nl: 'Ik hoor graag van u.', es: 'Quedo a la espera de su respuesta.' },
+            { nl: 'Ik ben helaas ziek en kom vandaag niet werken.', es: 'Estoy enfermo y hoy no voy a trabajar.' },
+            { nl: 'Ik zou graag een vrije dag opnemen op 12 mei.', es: 'Me gustaría coger un día libre el 12 de mayo.' },
+            { nl: 'Excuses voor het late antwoord.', es: 'Disculpe la respuesta tardía.' },
+          ],
+        },
+      ],
+      tip: 'Truco: **Geachte + Met vriendelijke groet** van juntos, y **Hoi + Groetjes** también. Si mezclas las parejas, se nota.',
+    },
+    {
+      type: 'vocabulary',
+      items: [
+        { id: 'm4x1v-mail',      dutch: 'de mail',          spanish: 'el correo electrónico',  article: 'de',  emoji: '📧', color: '#1D0084', exampleNl: 'Ik stuur je een mail.', exampleEs: 'Te mando un correo.', category: 'mail', difficulty: 'A1' },
+        { id: 'm4x1v-sturen',    dutch: 'sturen',           spanish: 'enviar',                 article: null,  emoji: '📤', color: '#025dc7', exampleNl: 'Ik stuur het vandaag.', exampleEs: 'Lo envío hoy.', category: 'mail', difficulty: 'A1' },
+        { id: 'm4x1v-aanhef',    dutch: 'de aanhef',        spanish: 'el saludo (de una carta)', article: 'de', emoji: '👋', color: '#4da3ff', exampleNl: 'De aanhef is: Geachte mevrouw.', exampleEs: 'El saludo es: Estimada señora.', category: 'mail', difficulty: 'A1' },
+        { id: 'm4x1v-geachte',   dutch: 'Geachte heer/mevrouw', spanish: 'Estimado señor / señora', article: null, emoji: '👔', color: '#1D0084', exampleNl: 'Geachte heer/mevrouw, ik schrijf u…', exampleEs: 'Estimado señor/señora, le escribo…', category: 'formeel', difficulty: 'A1' },
+        { id: 'm4x1v-beste',     dutch: 'Beste',            spanish: 'Estimado/a (neutro)',    article: null,  emoji: '🙂', color: '#025dc7', exampleNl: 'Beste Anna,', exampleEs: 'Estimada Anna,', category: 'mail', difficulty: 'A1' },
+        { id: 'm4x1v-mvg',       dutch: 'Met vriendelijke groet', spanish: 'Saludos cordiales', article: null, emoji: '🖊️', color: '#4da3ff', exampleNl: 'Met vriendelijke groet, Anna.', exampleEs: 'Saludos cordiales, Anna.', category: 'formeel', difficulty: 'A1' },
+        { id: 'm4x1v-groetjes',  dutch: 'Groetjes',         spanish: 'Un saludo (informal)',   article: null,  emoji: '👋', color: '#1D0084', exampleNl: 'Groetjes, Tom!', exampleEs: '¡Un saludo, Tom!', category: 'informeel', difficulty: 'A1' },
+        { id: 'm4x1v-bijlage',   dutch: 'de bijlage',       spanish: 'el archivo adjunto',     article: 'de',  emoji: '📎', color: '#025dc7', exampleNl: 'In de bijlage vindt u de factuur.', exampleEs: 'Adjunto encontrará la factura.', category: 'mail', difficulty: 'A1' },
+        { id: 'm4x1v-antwoord',  dutch: 'het antwoord',     spanish: 'la respuesta',           article: 'het', emoji: '💬', color: '#4da3ff', exampleNl: 'Bedankt voor uw antwoord.', exampleEs: 'Gracias por su respuesta.', category: 'mail', difficulty: 'A1' },
+        { id: 'm4x1v-reageren',  dutch: 'reageren',         spanish: 'responder, contestar',   article: null,  emoji: '↩️', color: '#1D0084', exampleNl: 'Kunt u snel reageren?', exampleEs: '¿Puede contestar pronto?', category: 'mail', difficulty: 'A1' },
+        { id: 'm4x1v-vragen',    dutch: 'een vraag stellen', spanish: 'hacer una pregunta',    article: null,  emoji: '❓', color: '#025dc7', exampleNl: 'Ik wil een vraag stellen.', exampleEs: 'Quiero hacer una pregunta.', category: 'mail', difficulty: 'A1' },
+        { id: 'm4x1v-afspraak',  dutch: 'de afspraak',      spanish: 'la cita',                article: 'de',  emoji: '📅', color: '#4da3ff', exampleNl: 'Ik wil een afspraak maken.', exampleEs: 'Quiero pedir cita.', category: 'werk', difficulty: 'A1' },
+        { id: 'm4x1v-verzetten', dutch: 'verzetten',        spanish: 'cambiar de fecha',       article: null,  emoji: '🔄', color: '#1D0084', exampleNl: 'Kunnen we de afspraak verzetten?', exampleEs: '¿Podemos cambiar la cita de día?', category: 'werk', difficulty: 'A1' },
+        { id: 'm4x1v-ziek',      dutch: 'ziek',             spanish: 'enfermo',                article: null,  emoji: '🤒', color: '#025dc7', exampleNl: 'Ik ben ziek.', exampleEs: 'Estoy enfermo.', category: 'werk', difficulty: 'A1' },
+        { id: 'm4x1v-ziekmelden', dutch: 'zich ziekmelden', spanish: 'avisar de que estás enfermo', article: null, emoji: '📞', color: '#4da3ff', exampleNl: 'Ik moet me ziekmelden.', exampleEs: 'Tengo que avisar de que estoy enfermo.', category: 'werk', difficulty: 'A1' },
+        { id: 'm4x1v-vrijedag',  dutch: 'een vrije dag',    spanish: 'un día libre',           article: null,  emoji: '🏖️', color: '#1D0084', exampleNl: 'Ik neem een vrije dag op.', exampleEs: 'Cojo un día libre.', category: 'werk', difficulty: 'A1' },
+        { id: 'm4x1v-verlof',    dutch: 'het verlof',       spanish: 'el permiso, las vacaciones', article: 'het', emoji: '🌴', color: '#025dc7', exampleNl: 'Ik vraag verlof aan.', exampleEs: 'Solicito vacaciones.', category: 'werk', difficulty: 'A1' },
+        { id: 'm4x1v-excuses',   dutch: 'excuses',          spanish: 'disculpas',              article: null,  emoji: '🙏', color: '#4da3ff', exampleNl: 'Excuses voor het late antwoord.', exampleEs: 'Disculpas por la respuesta tardía.', category: 'mail', difficulty: 'A1' },
+        { id: 'm4x1v-alvast',    dutch: 'alvast bedankt',   spanish: 'gracias de antemano',    article: null,  emoji: '🙌', color: '#1D0084', exampleNl: 'Alvast bedankt voor uw hulp.', exampleEs: 'Gracias de antemano por su ayuda.', category: 'formeel', difficulty: 'A1' },
+        { id: 'm4x1v-doorgeven', dutch: 'doorgeven',        spanish: 'comunicar, hacer llegar', article: null, emoji: '📨', color: '#025dc7', exampleNl: 'Kunt u dit doorgeven aan uw collega?', exampleEs: '¿Puede comunicárselo a su compañero?', category: 'werk', difficulty: 'A1' },
+      ],
+    },
+    {
+      type: 'phrases',
+      items: [
+        { id: 'm4x1f-1',  dutch: 'Geachte heer/mevrouw,', spanish: 'Estimado señor / estimada señora,' },
+        { id: 'm4x1f-2',  dutch: 'Ik schrijf u naar aanleiding van uw brief.', spanish: 'Le escribo con motivo de su carta.' },
+        { id: 'm4x1f-3',  dutch: 'Zou u mij kunnen laten weten wanneer het kan?', spanish: '¿Podría indicarme cuándo es posible?' },
+        { id: 'm4x1f-4',  dutch: 'In de bijlage vindt u het formulier.', spanish: 'Adjunto encontrará el formulario.' },
+        { id: 'm4x1f-5',  dutch: 'Alvast bedankt voor uw reactie.', spanish: 'Gracias de antemano por su respuesta.' },
+        { id: 'm4x1f-6',  dutch: 'Ik hoor graag van u.', spanish: 'Quedo a la espera de su respuesta.' },
+        { id: 'm4x1f-7',  dutch: 'Met vriendelijke groet,', spanish: 'Saludos cordiales,' },
+        { id: 'm4x1f-8',  dutch: 'Ik ben helaas ziek en kom vandaag niet werken.', spanish: 'Estoy enfermo y hoy no voy a trabajar.' },
+        { id: 'm4x1f-9',  dutch: 'Ik zou graag een vrije dag opnemen op 12 mei.', spanish: 'Me gustaría coger un día libre el 12 de mayo.' },
+        { id: 'm4x1f-10', dutch: 'Kunnen we de afspraak verzetten naar volgende week?', spanish: '¿Podemos pasar la cita a la semana que viene?' },
+        { id: 'm4x1f-11', dutch: 'Excuses voor het late antwoord.', spanish: 'Disculpe la respuesta tardía.' },
+        { id: 'm4x1f-12', dutch: 'Hoi Anna, hoe is het?', spanish: 'Hola Anna, ¿qué tal?' },
+        { id: 'm4x1f-13', dutch: 'Laat maar weten wat je ervan vindt.', spanish: 'Ya me dices qué te parece.' },
+        { id: 'm4x1f-14', dutch: 'Groetjes, Tom', spanish: 'Un saludo, Tom' },
+        { id: 'm4x1f-15', dutch: 'Tot snel!', spanish: '¡Hasta pronto!' },
+      ],
+    },
+    {
+      type: 'lezen',
+      title: 'Een mail aan de gemeente',
+      textNl: `Geachte heer/mevrouw,
+
+Ik schrijf u naar aanleiding van uw brief van 3 maart over mijn inschrijving. In de brief staat dat er nog documenten ontbreken.
+
+In de bijlage vindt u een kopie van mijn paspoort en mijn huurcontract. Mijn BSN staat ook op het formulier.
+
+Zou u mij kunnen laten weten of dit voldoende is? Ik hoor graag van u, het liefst z.s.m., want ik moet mij m.i.v. 1 april inschrijven op mijn nieuwe adres.
+
+Alvast bedankt voor uw reactie.
+
+Met vriendelijke groet,
+Carmen Ruiz`,
+      textEs: `Estimado señor / estimada señora:
+
+Le escribo con motivo de su carta del 3 de marzo sobre mi empadronamiento. En la carta pone que todavía faltan documentos.
+
+Adjunto encontrará una copia de mi pasaporte y mi contrato de alquiler. Mi número BSN también está en el formulario.
+
+¿Podría indicarme si esto es suficiente? Quedo a la espera de su respuesta, preferiblemente lo antes posible, porque tengo que empadronarme en mi nueva dirección a partir del 1 de abril.
+
+Gracias de antemano por su respuesta.
+
+Saludos cordiales,
+Carmen Ruiz`,
+      exercises: [
+        { id: 'm4x1l-1', type: 'multiple_choice', prompt: '¿A quién escribe Carmen?', options: ['A la gemeente (el ayuntamiento)', 'A una amiga', 'A su jefe', 'A su casero'], correctAnswer: 'A la gemeente (el ayuntamiento)', explanation: 'Responde a una carta sobre su inschrijving (empadronamiento).' },
+        { id: 'm4x1l-2', type: 'multiple_choice', prompt: '¿Por qué escribe?', options: ['Porque faltan documentos', 'Porque quiere una cita médica', 'Porque se muda de país', 'Porque quiere un día libre'], correctAnswer: 'Porque faltan documentos', explanation: '"…dat er nog documenten ontbreken".' },
+        { id: 'm4x1l-3', type: 'multiple_choice', prompt: '¿Qué manda adjunto?', options: ['El pasaporte y el contrato de alquiler', 'Solo el pasaporte', 'Una factura', 'Un certificado médico'], correctAnswer: 'El pasaporte y el contrato de alquiler', explanation: '"In de bijlage vindt u een kopie van mijn paspoort en mijn huurcontract".' },
+        { id: 'm4x1l-4', type: 'multiple_choice', prompt: '¿Desde cuándo tiene que estar empadronada en la nueva dirección?', options: ['Desde el 1 de abril', 'Desde el 3 de marzo', 'Desde el 1 de marzo', 'Desde el 12 de mayo'], correctAnswer: 'Desde el 1 de abril', explanation: 'm.i.v. 1 april = met ingang van, a partir del 1 de abril.' },
+        { id: 'm4x1l-5', type: 'multiple_choice', prompt: '"z.s.m." en el correo significa…', options: ['lo antes posible', 'si es posible el sábado', 'sin coste', 'según acuerdo'], correctAnswer: 'lo antes posible', explanation: 'zo spoedig mogelijk.' },
+        { id: 'm4x1l-6', type: 'true_false', prompt: 'Carmen trata de "u" a la persona que lee el correo.', correctAnswer: 'verdadero', explanation: 'Es un correo formal: "Zou u mij kunnen laten weten…".' },
+        { id: 'm4x1l-7', type: 'multiple_choice', prompt: '¿Cómo se despide?', options: ['Met vriendelijke groet', 'Groetjes', 'Tot snel', 'Lieve groet'], correctAnswer: 'Met vriendelijke groet', explanation: 'La despedida que va con "Geachte".' },
+      ],
+    },
+    {
+      type: 'practice',
+      exercises: [
+        { id: 'm4x1e-1',  type: 'multiple_choice', prompt: 'Escribes a una empresa y no sabes el nombre de la persona. Empiezas con…', options: ['Geachte heer/mevrouw,', 'Hoi!', 'Lieve mevrouw,', 'Beste vriend,'], correctAnswer: 'Geachte heer/mevrouw,', explanation: 'Es la fórmula neutra cuando no tienes el nombre.' },
+        { id: 'm4x1e-2',  type: 'multiple_choice', prompt: 'Y si sabes que se llama mevrouw De Vries…', options: ['Geachte mevrouw De Vries,', 'Geachte mevrouw Anna,', 'Hoi mevrouw,', 'Lieve De Vries,'], correctAnswer: 'Geachte mevrouw De Vries,', explanation: 'Geachte + tratamiento + apellido.' },
+        { id: 'm4x1e-3',  type: 'multiple_choice', prompt: '¿Cuál es la despedida estándar de un correo formal?', options: ['Met vriendelijke groet', 'Groetjes', 'Tot snel', 'Doei'], correctAnswer: 'Met vriendelijke groet', explanation: 'Se abrevia m.v.g. entre compañeros, pero mejor entera.' },
+        { id: 'm4x1e-4',  type: 'multiple_choice', prompt: 'Le escribes a un compañero con el que te tuteas. ¿Cómo empiezas?', options: ['Hoi Tom,', 'Geachte heer Tom,', 'Geachte heer/mevrouw,', 'Hooggeachte Tom,'], correctAnswer: 'Hoi Tom,', explanation: 'Informal: Hoi/Hallo + nombre.' },
+        { id: 'm4x1e-5',  type: 'true_false', prompt: 'En un mismo correo puedes mezclar "u" y "je" sin problema.', correctAnswer: 'falso', explanation: 'Elige un tono y mantenlo hasta el final.' },
+        { id: 'm4x1e-6',  type: 'true_false', prompt: '"Lieve" (querido/a) sirve para escribir a tu jefe.', correctAnswer: 'falso', explanation: 'Lieve es para la familia, la pareja y los amigos muy cercanos.' },
+        { id: 'm4x1e-7',  type: 'multiple_choice', prompt: '¿Qué significa "In de bijlage vindt u het formulier"?', options: ['Adjunto encontrará el formulario', 'Rellene el formulario en la oficina', 'El formulario está en la web', 'Le enviaremos el formulario por correo postal'], correctAnswer: 'Adjunto encontrará el formulario', explanation: 'De bijlage = el archivo adjunto.' },
+        { id: 'm4x1e-8',  type: 'multiple_choice', prompt: 'Estás enfermo y avisas al trabajo. Escribes…', options: ['Ik ben helaas ziek en kom vandaag niet werken.', 'Ik wil een vrije dag opnemen.', 'Ik hoor graag van u.', 'Kunnen we de afspraak verzetten?'], correctAnswer: 'Ik ben helaas ziek en kom vandaag niet werken.', explanation: 'Eso es zich ziekmelden.' },
+        { id: 'm4x1e-9',  type: 'multiple_choice', prompt: 'Quieres pedir un día libre el 12 de mayo. Escribes…', options: ['Ik zou graag een vrije dag opnemen op 12 mei.', 'Ik ben ziek op 12 mei.', 'Ik kom op 12 mei werken.', 'Ik verzet de afspraak naar 12 mei.'], correctAnswer: 'Ik zou graag een vrije dag opnemen op 12 mei.', explanation: '"Ik zou graag…" es la forma educada de pedir algo.' },
+        { id: 'm4x1e-10', type: 'fill_blank', prompt: 'Alvast ___ voor uw reactie. (gracias)', correctAnswer: 'bedankt', hint: 'alvast bedankt = gracias de antemano' },
+        { id: 'm4x1e-11', type: 'fill_blank', prompt: 'Ik ___ graag van u. (Quedo a la espera de su respuesta)', correctAnswer: 'hoor', hint: 'del verbo horen' },
+        { id: 'm4x1e-12', type: 'fill_blank', prompt: 'Kunnen we de afspraak ___ naar volgende week? (cambiar de fecha)', correctAnswer: 'verzetten', hint: 'ver- + zetten' },
+        { id: 'm4x1e-13', type: 'match_pairs', prompt: 'Une cada fórmula con su tono', correctAnswer: 'ok', pairs: [
+          { left: 'Geachte heer/mevrouw', right: 'formal' },
+          { left: 'Met vriendelijke groet', right: 'formal' },
+          { left: 'Hoi Anna', right: 'informal' },
+          { left: 'Groetjes', right: 'informal' },
+        ] },
+        { id: 'm4x1e-14', type: 'order_sentence', prompt: 'Ordena: "¿Podría indicarme cuándo es posible?"', options: ['Zou', 'u', 'mij', 'kunnen', 'laten', 'weten', 'wanneer', 'het', 'kan?'], correctAnswer: 'Zou u mij kunnen laten weten wanneer het kan?' },
+        { id: 'm4x1e-15', type: 'order_sentence', prompt: 'Ordena: "Le escribo con motivo de su carta."', options: ['Ik', 'schrijf', 'u', 'naar', 'aanleiding', 'van', 'uw', 'brief'], correctAnswer: 'Ik schrijf u naar aanleiding van uw brief' },
+        { id: 'm4x1e-16', type: 'odd_one_out', prompt: '¿Cuál NO pega en un correo formal?', options: ['Groetjes', 'Met vriendelijke groet', 'Alvast bedankt', 'Geachte mevrouw'], correctAnswer: 'Groetjes', explanation: 'Groetjes es para compañeros y amigos.' },
+        { id: 'm4x1e-17', type: 'word_scramble', prompt: '¿Cómo se dice "el archivo adjunto"?', correctAnswer: 'bijlage', hint: 'lo que va enganchado al correo' },
+        { id: 'm4x1e-18', type: 'multiple_choice', prompt: '¿Cuál es el orden correcto de un correo?', options: ['Saludo · motivo · petición · despedida', 'Petición · saludo · despedida · motivo', 'Motivo · despedida · saludo · petición', 'Despedida · saludo · motivo · petición'], correctAnswer: 'Saludo · motivo · petición · despedida', explanation: 'Aanhef, aanleiding, vraag, afsluiting.' },
+      ],
+    },
+    { type: 'review' },
+  ],
+};
+
 /* ─────────────────────────────────────────────────────────────────────────────
    EXPORT
 ───────────────────────────────────────────────────────────────────────────── */
@@ -5176,9 +5531,10 @@ export const LESSONS: Lesson[] = [
   m1_extra1, m1_extra2, m1_extra3,
   // Module 2
   m2_les1, m2_les2, m2_les3, m2_les4, m2_les5, m2_les6,
-  m2_extra1, m2_extra2, m2_extra3,
+  m2_extra1, m2_extra2, m2_extra3, m2_extra4,
   // Module 3
   m3_les1, m3_les2, m3_les3, m3_les4, m3_les5, m3_les6,
   // Module 4
   m4_les1, m4_les2, m4_les3, m4_les4, m4_les5, m4_les6,
+  m4_extra1,
 ];
