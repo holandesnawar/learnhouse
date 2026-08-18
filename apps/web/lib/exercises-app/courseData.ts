@@ -4830,6 +4830,178 @@ const m4_les4: Lesson = {
   ],
 };
 
+const m4_les5: Lesson = {
+  id: 'm4-les-5-modale-werkwoorden',
+  moduleId: 'het-werk',
+  title: 'Les 5 — Modale werkwoorden',
+  subtitle: 'Los verbos modales: poder, querer, tener que',
+  order: 5,
+  learningObjective: 'Usar zullen, willen, kunnen, mogen y moeten para hablar del día a día',
+  estimatedMinutes: 35,
+  blocks: [
+    {
+      type: 'summary',
+      title: 'Modale werkwoorden',
+      intro: 'Cinco verbos que cambian el sentido de todo lo que dices: si algo lo puedes, lo quieres, lo tienes que hacer o te dejan hacerlo. Son los que más se usan en una conversación normal.',
+      objectives: [
+        'Conocer los cinco verbos modales y conjugarlos',
+        'Colocar bien el segundo verbo (al final, en infinitivo)',
+        'Elegir el modal según tu intención: permiso, deseo, obligación, futuro',
+      ],
+      sections: [
+        {
+          heading: '🔑 Qué son y cómo se colocan',
+          body: 'Un verbo modal es un **verbo auxiliar**: acompaña a otro verbo y le cambia el matiz (habilidad, permiso, obligación, futuro, sugerencia). El modal se conjuga y **el otro verbo se va al FINAL de la frase, en infinitivo**.',
+          items: [
+            { nl: 'Ik moet vandaag werken.', es: 'Hoy tengo que trabajar. (moet conjugado · werken al final)' },
+            { nl: 'Wij kunnen in de tuin werken.', es: 'Podemos trabajar en el jardín.' },
+            { nl: 'Mag ik iets vragen?', es: '¿Puedo preguntar algo?' },
+          ],
+        },
+        {
+          heading: '📋 La conjugación (la regla corta)',
+          body: '**Singular (ik, je, hij/zij) → forma corta. Plural (wij, jullie, ze) → el infinitivo tal cual.** Con eso ya tienes casi todo.',
+          items: [
+            { nl: 'zullen', es: 'ik zal · je zal/zult · hij zal · wij/jullie/ze zullen' },
+            { nl: 'willen', es: 'ik wil · je wil/wilt · hij wil · wij/jullie/ze willen' },
+            { nl: 'kunnen', es: 'ik kan · je kan/kunt · hij kan · wij/jullie/ze kunnen' },
+            { nl: 'mogen', es: 'ik mag · je mag · hij mag · wij/jullie/ze mogen' },
+            { nl: 'moeten', es: 'ik moet · je moet · hij moet · wij/jullie/ze moeten' },
+          ],
+        },
+        {
+          heading: '🔮 Zullen — futuro, propuesta, promesa',
+          body: 'Es el que suena raro al principio porque en español lo dirías de tres maneras distintas.',
+          items: [
+            { nl: 'Zal ik de boodschappen doen vandaag?', es: '¿Quieres que haga yo la compra hoy? (propuesta)' },
+            { nl: 'Zullen we wat gaan drinken?', es: '¿Vamos a tomar algo? (invitación)' },
+            { nl: 'Zij zal het raam repareren.', es: 'Ella reparará la ventana. (futuro)' },
+          ],
+        },
+        {
+          heading: '💪 Kunnen vs mogen — dos "poder" distintos',
+          body: '**Kunnen** = ser capaz, saber hacer algo, ser posible. **Mogen** = tener permiso. En español los dos son "poder", y por eso se confunden.',
+          items: [
+            { nl: 'Kan jij autorijden?', es: '¿Sabes conducir? (capacidad → kunnen)' },
+            { nl: 'Ik kan de lamp ophangen.', es: 'Puedo colgar la lámpara.' },
+            { nl: 'Mag ik iets vragen?', es: '¿Puedo preguntar algo? (permiso → mogen)' },
+            { nl: 'Je mag niet roken in de tram.', es: 'No se puede fumar en el tranvía. (prohibido)' },
+          ],
+        },
+        {
+          heading: '🎯 Willen vs moeten — deseo u obligación',
+          items: [
+            { nl: 'Ik wil morgen naar de kapper gaan.', es: 'Mañana quiero ir al peluquero.' },
+            { nl: 'Wil jij een elektrische auto kopen?', es: '¿Quieres comprar un coche eléctrico?' },
+            { nl: 'Wij moeten vandaag werken.', es: 'Tenemos que trabajar hoy.' },
+            { nl: 'Hij moet de vuilnis buitenzetten.', es: 'Tiene que sacar la basura.' },
+          ],
+        },
+        {
+          heading: '🔁 La misma frase, cinco sentidos',
+          body: 'Cambias solo el modal y cambia todo. Fíjate en que el resto de la frase no se mueve.',
+          items: [
+            { nl: 'Ik zal naar de sportschool gaan.', es: 'Iré al gimnasio. (futuro)' },
+            { nl: 'Ik kan vandaag naar de sportschool gaan.', es: 'Hoy puedo ir al gimnasio. (me es posible)' },
+            { nl: 'Mag ik naar de sportschool gaan?', es: '¿Puedo ir al gimnasio? (permiso)' },
+            { nl: 'Ik wil naar de sportschool gaan.', es: 'Quiero ir al gimnasio. (deseo)' },
+            { nl: 'Ik moet vandaag naar de sportschool gaan.', es: 'Hoy tengo que ir al gimnasio. (obligación)' },
+          ],
+        },
+      ],
+      tip: 'Si dudas entre **kunnen** y **mogen**, pregúntate: ¿es que soy capaz, o es que me dejan? Capaz → kunnen. Me dejan → mogen.',
+    },
+    {
+      type: 'vocabulary',
+      items: [
+        { id: 'm4l5v-zullen', dutch: 'zullen', spanish: 'ir a (futuro), ¿te parece si…?', article: null, emoji: '🔮', color: '#1D0084', exampleNl: 'Zullen we wat gaan drinken?', exampleEs: '¿Vamos a tomar algo?', category: 'modaal', difficulty: 'A1' },
+        { id: 'm4l5v-willen', dutch: 'willen', spanish: 'querer', article: null, emoji: '🎯', color: '#025dc7', exampleNl: 'Ik wil morgen naar de kapper gaan.', exampleEs: 'Mañana quiero ir al peluquero.', category: 'modaal', difficulty: 'A1' },
+        { id: 'm4l5v-kunnen', dutch: 'kunnen', spanish: 'poder, saber hacer algo', article: null, emoji: '💪', color: '#4da3ff', exampleNl: 'Wij kunnen goed fietsen.', exampleEs: 'Sabemos montar bien en bici.', category: 'modaal', difficulty: 'A1' },
+        { id: 'm4l5v-mogen', dutch: 'mogen', spanish: 'poder (tener permiso)', article: null, emoji: '🙋', color: '#1D0084', exampleNl: 'Mogen wij binnenkomen?', exampleEs: '¿Podemos entrar?', category: 'modaal', difficulty: 'A1' },
+        { id: 'm4l5v-moeten', dutch: 'moeten', spanish: 'tener que, deber', article: null, emoji: '❗', color: '#025dc7', exampleNl: 'Wij moeten vandaag werken.', exampleEs: 'Tenemos que trabajar hoy.', category: 'modaal', difficulty: 'A1' },
+        { id: 'm4l5v-pauze', dutch: 'pauze nemen', spanish: 'tomar la pausa', article: null, emoji: '☕', color: '#4da3ff', exampleNl: 'Wij mogen iedere dag pauze nemen.', exampleEs: 'Podemos tomar la pausa todos los días.', category: 'werk', difficulty: 'A1' },
+        { id: 'm4l5v-lenen', dutch: 'lenen', spanish: 'pedir prestado, prestar', article: null, emoji: '🤲', color: '#1D0084', exampleNl: 'Waarvoor wil jij mijn auto lenen?', exampleEs: '¿Para qué quieres mi coche?', category: 'dagelijks', difficulty: 'A1' },
+        { id: 'm4l5v-rekenen', dutch: 'rekenen', spanish: 'calcular', article: null, emoji: '🧮', color: '#025dc7', exampleNl: 'Jij kunt goed rekenen.', exampleEs: 'Se te da bien calcular.', category: 'werk', difficulty: 'A1' },
+        { id: 'm4l5v-afwas', dutch: 'de afwas doen', spanish: 'fregar los platos', article: 'de', emoji: '🍽️', color: '#4da3ff', exampleNl: 'Ik zal vandaag de afwas doen.', exampleEs: 'Hoy fregaré los platos.', category: 'huis', difficulty: 'A1' },
+        { id: 'm4l5v-bezoek', dutch: 'op bezoek komen', spanish: 'venir de visita', article: null, emoji: '🚪', color: '#1D0084', exampleNl: 'Mijn broer en zus zullen op bezoek komen.', exampleEs: 'Mi hermano y mi hermana vendrán de visita.', category: 'familie', difficulty: 'A1' },
+        { id: 'm4l5v-opruimen', dutch: 'opruimen', spanish: 'ordenar, recoger', article: null, emoji: '🧹', color: '#025dc7', exampleNl: 'Jullie moeten je kamer opruimen.', exampleEs: 'Tenéis que ordenar vuestra habitación.', category: 'huis', difficulty: 'A1' },
+        { id: 'm4l5v-roken', dutch: 'roken', spanish: 'fumar', article: null, emoji: '🚭', color: '#4da3ff', exampleNl: 'Je mag niet roken in de tram.', exampleEs: 'No se puede fumar en el tranvía.', category: 'dagelijks', difficulty: 'A1' },
+        { id: 'm4l5v-tram', dutch: 'de tram', spanish: 'el tranvía', article: 'de', emoji: '🚋', color: '#1D0084', exampleNl: 'Ik ga met de tram naar mijn werk.', exampleEs: 'Voy al trabajo en tranvía.', category: 'vervoer', difficulty: 'A1' },
+        { id: 'm4l5v-tuin', dutch: 'de tuin', spanish: 'el jardín', article: 'de', emoji: '🌷', color: '#025dc7', exampleNl: 'Wij kunnen in de tuin werken.', exampleEs: 'Podemos trabajar en el jardín.', category: 'huis', difficulty: 'A1' },
+        { id: 'm4l5v-repareren', dutch: 'repareren', spanish: 'reparar, arreglar', article: null, emoji: '🔧', color: '#4da3ff', exampleNl: 'Ik kan veel dingen repareren.', exampleEs: 'Puedo reparar muchas cosas.', category: 'werk', difficulty: 'A1' },
+        { id: 'm4l5v-raam', dutch: 'het raam', spanish: 'la ventana', article: 'het', emoji: '🪟', color: '#1D0084', exampleNl: 'Zij zal het raam repareren.', exampleEs: 'Ella reparará la ventana.', category: 'huis', difficulty: 'A1' },
+        { id: 'm4l5v-sportschool', dutch: 'de sportschool', spanish: 'el gimnasio', article: 'de', emoji: '🏋️', color: '#025dc7', exampleNl: 'Wij willen naar de sportschool gaan.', exampleEs: 'Queremos ir al gimnasio.', category: 'vrije tijd', difficulty: 'A1' },
+        { id: 'm4l5v-kapper', dutch: 'de kapper', spanish: 'el peluquero', article: 'de', emoji: '💇', color: '#4da3ff', exampleNl: 'Ik wil morgen naar de kapper gaan.', exampleEs: 'Mañana quiero ir al peluquero.', category: 'dagelijks', difficulty: 'A1' },
+        { id: 'm4l5v-vuilnis', dutch: 'de vuilnis', spanish: 'la basura', article: 'de', emoji: '🗑️', color: '#1D0084', exampleNl: 'Hij moet de vuilnis buitenzetten.', exampleEs: 'Tiene que sacar la basura.', category: 'huis', difficulty: 'A1' },
+        { id: 'm4l5v-binnenkomen', dutch: 'binnenkomen', spanish: 'entrar, pasar', article: null, emoji: '🚶', color: '#025dc7', exampleNl: 'Mogen wij binnenkomen?', exampleEs: '¿Podemos entrar?', category: 'dagelijks', difficulty: 'A1' },
+        { id: 'm4l5v-afspreken5', dutch: 'met elkaar afspreken', spanish: 'quedar (entre nosotros)', article: null, emoji: '📅', color: '#4da3ff', exampleNl: 'Wij zullen met elkaar afspreken.', exampleEs: 'Vamos a quedar.', category: 'vrije tijd', difficulty: 'A1' },
+        { id: 'm4l5v-autorijden', dutch: 'autorijden', spanish: 'conducir', article: null, emoji: '🚗', color: '#1D0084', exampleNl: 'Kan jij autorijden?', exampleEs: '¿Sabes conducir?', category: 'vervoer', difficulty: 'A1' },
+      ],
+    },
+    {
+      type: 'phrases',
+      items: [
+        { id: 'm4l5f-1',  dutch: 'Ik kan veel dingen repareren.', spanish: 'Puedo reparar muchas cosas.' },
+        { id: 'm4l5f-2',  dutch: 'Wij kunnen goed fietsen.', spanish: 'Sabemos montar bien en bicicleta.' },
+        { id: 'm4l5f-3',  dutch: 'Ik zal de boodschappen doen.', spanish: 'Haré la compra.' },
+        { id: 'm4l5f-4',  dutch: 'Wij zullen met elkaar afspreken.', spanish: 'Vamos a quedar.' },
+        { id: 'm4l5f-5',  dutch: 'Je mag niet roken in de tram.', spanish: 'No puedes fumar en el tranvía.' },
+        { id: 'm4l5f-6',  dutch: 'Mogen wij binnenkomen?', spanish: '¿Podemos entrar?' },
+        { id: 'm4l5f-7',  dutch: 'Wil jij wat drinken?', spanish: '¿Quieres tomar algo?' },
+        { id: 'm4l5f-8',  dutch: 'Wij willen naar de sportschool gaan.', spanish: 'Queremos ir al gimnasio.' },
+        { id: 'm4l5f-9',  dutch: 'Moet jij vandaag niet werken?', spanish: '¿No tienes que trabajar hoy?' },
+        { id: 'm4l5f-10', dutch: 'Jullie moeten om twaalf uur thuis zijn.', spanish: 'Debéis estar en casa a las doce.' },
+        { id: 'm4l5f-11', dutch: 'Zal ik de boodschappen doen vandaag?', spanish: '¿Quieres que haga yo la compra hoy?' },
+        { id: 'm4l5f-12', dutch: 'Zullen we wat gaan drinken?', spanish: '¿Vamos a tomar algo?' },
+        { id: 'm4l5f-13', dutch: 'Mag ik iets vragen?', spanish: '¿Puedo preguntar algo?' },
+        { id: 'm4l5f-14', dutch: 'Kan jij autorijden?', spanish: '¿Sabes conducir?' },
+        { id: 'm4l5f-15', dutch: 'Zullen we weer gaan werken?', spanish: '¿Volvemos a trabajar?' },
+      ],
+    },
+    {
+      // Spreken: los modales son justo lo que se dice en voz alta para pedir
+      // permiso, ofrecerse o excusarse. Consigna también en neerlandés.
+      type: 'spreken',
+      title: 'Welk modaal werkwoord?',
+      intro: 'Escucha la situación y elige lo que dirías. Piensa primero en la intención: permiso, deseo, obligación o propuesta.',
+      exercises: [
+        { id: 'm4l5sp-1', type: 'spreken_choose', promptNl: 'Je wilt iets vragen aan je baas.', prompt: 'Quieres pedirle permiso a tu jefe para preguntarle algo.', options: ['Mag ik iets vragen?', 'Kan ik iets vragen?', 'Moet ik iets vragen?'], correctAnswer: 'Mag ik iets vragen?', explanation: 'Pides permiso → mogen. "Kan ik" preguntaría si eres capaz.' },
+        { id: 'm4l5sp-2', type: 'spreken_choose', promptNl: 'Je collega vraagt of je kunt autorijden.', prompt: 'Sabes conducir y quieres decirlo.', options: ['Ja, ik kan autorijden.', 'Ja, ik mag autorijden.', 'Ja, ik moet autorijden.'], correctAnswer: 'Ja, ik kan autorijden.', explanation: 'Es una capacidad, algo que sabes hacer → kunnen.' },
+        { id: 'm4l5sp-3', type: 'spreken_choose', promptNl: 'Je wilt je collega uitnodigen om iets te drinken.', prompt: 'Quieres proponerle a tu compañero ir a tomar algo.', options: ['Zullen we wat gaan drinken?', 'Moeten we wat gaan drinken?', 'Mogen we wat gaan drinken?'], correctAnswer: 'Zullen we wat gaan drinken?', explanation: 'Para proponer un plan se usa zullen: "Zullen we…?".' },
+        { id: 'm4l5sp-4', type: 'spreken_choose', promptNl: 'Je hebt vandaag veel werk.', prompt: 'Explicas que hoy tienes que trabajar.', options: ['Ik moet vandaag werken.', 'Ik mag vandaag werken.', 'Ik wil vandaag werken.'], correctAnswer: 'Ik moet vandaag werken.', explanation: 'Obligación → moeten.' },
+        { id: 'm4l5sp-5', type: 'spreken_choose', promptNl: 'Je staat voor de deur bij een afspraak.', prompt: 'Estás en la puerta y pides pasar.', options: ['Mogen wij binnenkomen?', 'Kunnen wij binnenkomen?', 'Willen wij binnenkomen?'], correctAnswer: 'Mogen wij binnenkomen?', explanation: 'Pedir permiso para entrar → mogen.' },
+        { id: 'm4l5sp-6', type: 'spreken_choose', promptNl: 'Morgen wil je naar de kapper.', prompt: 'Cuentas que mañana quieres ir al peluquero.', options: ['Ik wil morgen naar de kapper gaan.', 'Ik mag morgen naar de kapper gaan.', 'Ik zal morgen naar de kapper moeten.'], correctAnswer: 'Ik wil morgen naar de kapper gaan.', explanation: 'Es un deseo → willen, y el segundo verbo (gaan) al final.' },
+      ],
+    },
+    {
+      type: 'practice',
+      exercises: [
+        { id: 'm4l5e-1',  type: 'multiple_choice', prompt: '¿Cuál NO es un verbo modal?', options: ['werken', 'kunnen', 'mogen', 'moeten'], correctAnswer: 'werken', explanation: 'Los cinco modales son zullen, willen, kunnen, mogen y moeten.' },
+        { id: 'm4l5e-2',  type: 'true_false', prompt: 'Con un verbo modal, el segundo verbo va al final de la frase y en infinitivo.', correctAnswer: 'verdadero', explanation: 'Ik moet vandaag werken. El modal se conjuga, el otro verbo se va al final.' },
+        { id: 'm4l5e-3',  type: 'multiple_choice', prompt: '¿Cuál es la diferencia entre "kunnen" y "mogen"?', options: ['kunnen = ser capaz · mogen = tener permiso', 'kunnen = permiso · mogen = capacidad', 'Son exactamente lo mismo', 'kunnen = futuro · mogen = obligación'], correctAnswer: 'kunnen = ser capaz · mogen = tener permiso', explanation: 'En español los dos son "poder", por eso hay que fijarse en la intención.' },
+        { id: 'm4l5e-4',  type: 'fill_blank', prompt: 'Je ___ in de tram niet roken. (mogen)', correctAnswer: 'mag', hint: 'je + mogen', explanation: 'Singular → forma corta: mag.' },
+        { id: 'm4l5e-5',  type: 'fill_blank', prompt: 'Wij ___ iedere dag pauze nemen om twaalf uur. (mogen)', correctAnswer: 'mogen', hint: 'plural → el infinitivo tal cual' },
+        { id: 'm4l5e-6',  type: 'fill_blank', prompt: 'Waarvoor ___ jij mijn auto lenen? (willen)', correctAnswer: 'wil', hint: 'jij + willen' },
+        { id: 'm4l5e-7',  type: 'fill_blank', prompt: 'Zij ___ nooit samen tv-kijken. (willen)', correctAnswer: 'willen', hint: 'aquí "zij" es ellos, plural' },
+        { id: 'm4l5e-8',  type: 'fill_blank', prompt: 'Jij ___ goed rekenen. (kunnen)', correctAnswer: 'kunt', hint: 'jij + kunnen → forma con -t', explanation: 'Con jij vale "kunt" (también se oye "kan je" cuando el verbo va delante).' },
+        { id: 'm4l5e-9',  type: 'fill_blank', prompt: 'Wij ___ in de tuin werken. Het is mooi weer. (kunnen)', correctAnswer: 'kunnen', hint: 'plural' },
+        { id: 'm4l5e-10', type: 'fill_blank', prompt: 'Ik ___ vandaag de afwas doen. (zullen)', correctAnswer: 'zal', hint: 'ik + zullen' },
+        { id: 'm4l5e-11', type: 'fill_blank', prompt: 'Mijn broer en zus ___ op bezoek komen. (zullen)', correctAnswer: 'zullen', hint: 'dos personas → plural' },
+        { id: 'm4l5e-12', type: 'fill_blank', prompt: '___ jij niet gaan werken? (moeten)', correctAnswer: 'Moet', hint: 'jij + moeten' },
+        { id: 'm4l5e-13', type: 'fill_blank', prompt: 'Jullie ___ je kamer opruimen. (moeten)', correctAnswer: 'moeten', hint: 'jullie → plural' },
+        { id: 'm4l5e-14', type: 'multiple_choice', prompt: '"Zullen we wat gaan drinken?" es…', options: ['una propuesta', 'una obligación', 'un permiso', 'una prohibición'], correctAnswer: 'una propuesta', explanation: 'Zullen we…? = ¿te parece si…?, ¿vamos a…?' },
+        { id: 'm4l5e-15', type: 'multiple_choice', prompt: '¿Cómo dices "Tengo que sacar la basura"?', options: ['Ik moet de vuilnis buitenzetten.', 'Ik mag de vuilnis buitenzetten.', 'Ik kan de vuilnis buitenzetten.', 'Ik zal de vuilnis buitenzetten moeten.'], correctAnswer: 'Ik moet de vuilnis buitenzetten.', explanation: 'Obligación → moeten, y buitenzetten al final.' },
+        { id: 'm4l5e-16', type: 'multiple_choice', prompt: '"Wij kunnen goed fietsen" significa…', options: ['Sabemos montar bien en bici', 'Nos dejan ir en bici', 'Tenemos que ir en bici', 'Iremos en bici'], correctAnswer: 'Sabemos montar bien en bici', explanation: 'Kunnen + goed = se nos da bien.' },
+        { id: 'm4l5e-17', type: 'odd_one_out', prompt: '¿Cuál no es un verbo modal?', options: ['zullen', 'willen', 'wonen', 'moeten'], correctAnswer: 'wonen', explanation: 'Wonen = vivir (residir). No es modal.' },
+        { id: 'm4l5e-18', type: 'order_sentence', prompt: 'Ordena: "Ella reparará la ventana."', options: ['Zij', 'zal', 'het', 'raam', 'repareren'], correctAnswer: 'Zij zal het raam repareren' },
+        { id: 'm4l5e-19', type: 'order_sentence', prompt: 'Ordena: "Debéis estar en casa a las doce."', options: ['Jullie', 'moeten', 'om', 'twaalf', 'uur', 'thuis', 'zijn'], correctAnswer: 'Jullie moeten om twaalf uur thuis zijn' },
+        { id: 'm4l5e-20', type: 'word_scramble', prompt: '¿Cómo se dice "ordenar, recoger"?', correctAnswer: 'opruimen', hint: 'lo que hay que hacer con la habitación' },
+      ],
+    },
+    { type: 'review' },
+  ],
+};
+
 /* ─────────────────────────────────────────────────────────────────────────────
    EXPORT
 ───────────────────────────────────────────────────────────────────────────── */
@@ -4844,5 +5016,5 @@ export const LESSONS: Lesson[] = [
   // Module 3
   m3_les1, m3_les2, m3_les3, m3_les4, m3_les5, m3_les6,
   // Module 4
-  m4_les1, m4_les2, m4_les3, m4_les4,
+  m4_les1, m4_les2, m4_les3, m4_les4, m4_les5,
 ];
