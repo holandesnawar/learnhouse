@@ -6,10 +6,11 @@ import {
 } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
+import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { getOrgLogoMediaDirectory } from '@services/media/media'
 import {
   CONSULTA_CATEGORIES, CATEGORY_BY_ID, listConsultas, getConsulta, createConsulta,
-  updateMyConsulta, deleteMyConsulta, isMyConsulta, htmlToText,
+  updateMyConsulta, deleteMyConsulta, deleteConsultaAsAdmin, isMyConsulta, htmlToText,
   catClasses, TEAM_LOGO,
   type Consulta, type StatusFilter,
 } from '@/lib/consultas/consultas'
@@ -69,6 +70,10 @@ export default function ConsultasBoard({
   const session = useLHSession() as any
   const user = session?.data?.user
   const org = useOrg() as any
+  const accessToken = session?.data?.tokens?.access_token
+  // Solo el equipo puede borrar consultas ajenas.
+  const { isAdmin } = useAdminStatus()
+  const canModerate = isAdmin === true
   // Hardcoded Nawar avatar for the team reply, so the answer always carries
   // the brand mark regardless of whatever org logo is currently uploaded.
   const teamLogo = TEAM_LOGO
@@ -203,9 +208,16 @@ export default function ConsultasBoard({
   }
 
   async function handleDelete(c: Consulta) {
-    if (!confirm('¿Borrar tu consulta? Esta acción no se puede deshacer.')) return
+    const propia = isMyConsulta(c.id)
+    const aviso = propia
+      ? '¿Borrar tu consulta? Esta acción no se puede deshacer.'
+      : `¿Borrar la consulta de ${c.author_name || 'este alumno'}? No se puede deshacer.`
+    if (!confirm(aviso)) return
     try {
-      await deleteMyConsulta(c.id)
+      // Si es tuya se borra con tu permiso local; si no, hace falta ser del
+      // equipo y va por el servidor.
+      if (propia) await deleteMyConsulta(c.id)
+      else await deleteConsultaAsAdmin(org?.id, c.id, accessToken)
       setSelected(null)
       await loadFeed()
     } catch (e: any) {
@@ -362,6 +374,7 @@ export default function ConsultasBoard({
           <DetailView
             consulta={selected}
             teamLogo={teamLogo}
+            canModerate={canModerate}
             onEdit={() => openEdit(selected)}
             onDelete={() => handleDelete(selected)}
             onClose={() => setSelected(null)}
@@ -488,11 +501,12 @@ function Overlay({ children, onClose }: { children: React.ReactNode; onClose: ()
 }
 
 function DetailView({
-  consulta, teamLogo, onEdit, onDelete, onClose,
+  consulta, teamLogo, canModerate, onEdit, onDelete, onClose,
 }: {
   consulta: Consulta
   teamLogo: string
   onEdit: () => void
+  canModerate: boolean
   onDelete: () => void
   onClose: () => void
 }) {
@@ -568,20 +582,27 @@ function DetailView({
           </div>
         )}
 
-        {own && !consulta.resolved && (
+        {(own || canModerate) && (
           <div className="flex gap-2 mt-6">
+            {own && !consulta.resolved && (
             <button
               onClick={onEdit}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-[#025dc7] hover:bg-[#F0F5FF]"
             >
               <Pencil size={15} /> Editar
             </button>
+            )}
             <button
               onClick={onDelete}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-50"
             >
               <Trash2 size={15} /> Borrar
             </button>
+            {!own && canModerate && (
+              <span className="self-center text-[12px] text-[#9CA3AF]">
+                Borras como administrador
+              </span>
+            )}
           </div>
         )}
       </div>
