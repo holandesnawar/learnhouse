@@ -5,6 +5,8 @@ import SignUpClient from './signup'
 import { Suspense } from 'react'
 import PageLoading from '@components/Objects/Loaders/PageLoading'
 import OrgNotFound from '@components/Objects/StyledElements/Error/OrgNotFound'
+import OrgUnavailable from '@components/Objects/StyledElements/Error/OrgUnavailable'
+import { getOrgWithRetry } from '@services/organizations/orgFetch'
 
 export async function generateMetadata(): Promise<Metadata> {
   const orgslug = await getOrgSlug()
@@ -33,15 +35,12 @@ const SignUp = async () => {
     return <OrgNotFound />
   }
 
-  let org: any = null
-  try {
-    org = await getOrganizationContextInfo(orgslug, null)
-  } catch {
-    return <OrgNotFound />
-  }
+  // Con reintentos: la primera llamada tras un reinicio puede llegar antes
+  // de que la API esté lista, y sin esto se enseñaba la pantalla equivocada.
+  const org = await getOrgWithRetry(orgslug, null)
 
   if (!org) {
-    return <OrgNotFound />
+    return <OrgUnavailable />
   }
 
   return (

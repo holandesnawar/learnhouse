@@ -1,8 +1,7 @@
 'use client'
 import React from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
-import learnhouseIcon from 'public/learnhouse_bigicon_1.png'
+import { BRAND_LOGO_URL, BRAND_NAME } from '@/lib/brand'
 import { getOrgLogoMediaDirectory, getOrgAuthBackgroundMediaDirectory } from '@services/media/media'
 import { getUriWithOrg } from '@services/config/config'
 import { cn } from '@/lib/utils'
@@ -83,28 +82,23 @@ export default function AuthBrandingPanel({ org, welcomeText }: AuthBrandingPane
             {/* Organization logo */}
             <Link prefetch href={getUriWithOrg(org?.slug, '/')}>
               <div className="w-24 h-24 rounded-2xl ring-1 ring-inset ring-white/10 bg-white flex items-center justify-center overflow-hidden">
-                {org?.logo_image ? (
-                  <img
-                    src={getOrgLogoMediaDirectory(org.org_uuid, org.logo_image)}
-                    alt={org.name}
-                    className="w-full h-full object-contain p-3"
-                  />
-                ) : (
-                  <Image
-                    quality={100}
-                    width={96}
-                    height={96}
-                    src={learnhouseIcon}
-                    alt="LearnHouse"
-                    className="object-contain"
-                  />
-                )}
+                {/* Si los datos de la organización aún no han llegado, va
+                    nuestro logo, no el de LearnHouse. */}
+                <img
+                  src={
+                    org?.logo_image
+                      ? getOrgLogoMediaDirectory(org.org_uuid, org.logo_image)
+                      : BRAND_LOGO_URL
+                  }
+                  alt={org?.name || BRAND_NAME}
+                  className="w-full h-full object-contain p-3"
+                />
               </div>
             </Link>
 
             {/* Text content */}
             <div className="space-y-1">
-              <h1 className="font-bold text-3xl tracking-tight">{org?.name}</h1>
+              <h1 className="font-bold text-3xl tracking-tight">{org?.name || BRAND_NAME}</h1>
               {displayMessage && (
                 <p className={cn(
                   "text-lg max-w-sm leading-relaxed",
