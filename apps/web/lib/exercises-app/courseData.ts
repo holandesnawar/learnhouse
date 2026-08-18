@@ -4407,6 +4407,155 @@ const m4_les1: Lesson = {
   ],
 };
 
+const m4_les2: Lesson = {
+  id: 'm4-les-2-hebben-zijn',
+  moduleId: 'het-werk',
+  title: 'Les 2 — Grammatica | Hebben & Zijn',
+  subtitle: 'Tener y ser/estar en el trabajo',
+  order: 2,
+  learningObjective: 'Usar hebben y zijn para decir dónde estás, cómo estás, si estás listo y qué tienes',
+  estimatedMinutes: 25,
+  blocks: [
+    {
+      type: 'summary',
+      title: 'Hebben & Zijn',
+      intro: 'Los dos verbos que más vas a usar. Con ellos dices dónde estás, cómo estás, si has terminado y qué tienes — todo lo que hace falta en un día de trabajo.',
+      objectives: [
+        'Conjugar hebben (tener) y zijn (ser / estar)',
+        'Decir dónde estás y cómo estás, y por qué',
+        'Decir si estás listo y qué tienes ahora',
+      ],
+      sections: [
+        {
+          heading: '📗 Hebben — tener',
+          body: 'La **h** se pronuncia siempre, con aspiración. Fíjate en que solo cambian las tres formas del singular.',
+          items: [
+            { nl: 'ik heb', es: 'yo tengo' },
+            { nl: 'jij hebt', es: 'tú tienes' },
+            { nl: 'hij / zij heeft', es: 'él / ella tiene' },
+            { nl: 'wij · jullie · zij hebben', es: 'nosotros · vosotros · ellos tenemos/tenéis/tienen' },
+          ],
+        },
+        {
+          heading: '📘 Zijn — ser / estar',
+          body: 'Se pronuncia como «záin». En plural es **siempre zijn**, sin excepciones.',
+          items: [
+            { nl: 'ik ben', es: 'yo soy / estoy' },
+            { nl: 'jij bent', es: 'tú eres / estás' },
+            { nl: 'hij / zij is', es: 'él / ella es / está' },
+            { nl: 'wij · jullie · zij zijn', es: 'nosotros · vosotros · ellos somos/sois/son' },
+          ],
+        },
+        {
+          heading: '📍 Dónde estás',
+          body: 'La preposición depende del sitio. Y **thuis va sin preposición**.',
+          items: [
+            { nl: 'Ik ben thuis', es: 'Estoy en casa' },
+            { nl: 'Ik ben op het werk', es: 'Estoy en el trabajo' },
+            { nl: 'Ik ben in de trein', es: 'Estoy en el tren' },
+            { nl: 'Ik ben op het station', es: 'Estoy en la estación' },
+          ],
+        },
+        {
+          heading: '💬 Cómo estás, y por qué',
+          body: 'Combina una respuesta de **cómo** con un motivo. "Hoe gaat het?" y "Hoe is het?" son lo mismo.',
+          items: [
+            { nl: 'Het gaat goed / prima', es: 'Va bien / genial' },
+            { nl: 'Niet zo goed / min of meer / redelijk', es: 'No muy bien / más o menos / regular' },
+            { nl: 'Ik ben moe · ik heb het druk', es: 'Estoy cansado · estoy muy liado' },
+            { nl: 'Ik heb hard gewerkt', es: 'He trabajado duro' },
+            { nl: 'Ik ben vrij vandaag', es: 'Hoy tengo el día libre' },
+          ],
+        },
+        {
+          heading: '✅ ¿Estás listo? ¿Qué tienes?',
+          items: [
+            { nl: 'Ben je klaar? — Ja, ik ben klaar', es: '¿Estás listo? — Sí, estoy listo' },
+            { nl: 'Nee, ik ben nog niet klaar', es: 'No, todavía no' },
+            { nl: 'Ik heb nu pauze / Nederlandse les', es: 'Ahora tengo pausa / clase de neerlandés' },
+            { nl: 'Wij hebben avonddienst / een afspraak', es: 'Tenemos turno de tarde / una cita' },
+          ],
+        },
+      ],
+      tip: 'Los dos errores típicos: decir **"ik ben honger"** (es *ik heb honger*, el hambre se tiene) y meter preposición en **thuis**. Si dominas eso, ya hablas mejor que muchos.',
+    },
+    {
+      type: 'vocabulary',
+      items: [
+        { id: 'm4l2v-thuis', dutch: 'thuis', spanish: 'en casa', article: null, emoji: '🏠', color: '#1D0084', exampleNl: 'Ik ben thuis.', exampleEs: 'Estoy en casa.', category: 'plaats', difficulty: 'A1' },
+        { id: 'm4l2v-werk', dutch: 'het werk', spanish: 'el trabajo', article: 'het', emoji: '🏢', color: '#025dc7', exampleNl: 'Ik ben op het werk.', exampleEs: 'Estoy en el trabajo.', category: 'plaats', difficulty: 'A1' },
+        { id: 'm4l2v-trein', dutch: 'de trein', spanish: 'el tren', article: 'de', emoji: '🚆', color: '#4da3ff', exampleNl: 'Ik ben in de trein.', exampleEs: 'Estoy en el tren.', category: 'plaats', difficulty: 'A1' },
+        { id: 'm4l2v-station', dutch: 'het station', spanish: 'la estación', article: 'het', emoji: '🚉', color: '#1D0084', exampleNl: 'Ik ben op het station.', exampleEs: 'Estoy en la estación.', category: 'plaats', difficulty: 'A1' },
+        { id: 'm4l2v-kantoor', dutch: 'het kantoor', spanish: 'la oficina', article: 'het', emoji: '🏙️', color: '#025dc7', exampleNl: 'Wij zijn op kantoor.', exampleEs: 'Estamos en la oficina.', category: 'plaats', difficulty: 'A1' },
+        { id: 'm4l2v-kantine', dutch: 'de kantine', spanish: 'la cantina', article: 'de', emoji: '🍽️', color: '#4da3ff', exampleNl: 'Wij zijn in de kantine.', exampleEs: 'Estamos en la cantina.', category: 'plaats', difficulty: 'A1' },
+        { id: 'm4l2v-moe', dutch: 'moe', spanish: 'cansado', article: null, emoji: '😴', color: '#1D0084', exampleNl: 'Ik ben moe.', exampleEs: 'Estoy cansado.', category: 'gevoel', difficulty: 'A1' },
+        { id: 'm4l2v-blij', dutch: 'blij', spanish: 'contento', article: null, emoji: '😄', color: '#025dc7', exampleNl: 'Ik ben blij.', exampleEs: 'Estoy contento.', category: 'gevoel', difficulty: 'A1' },
+        { id: 'm4l2v-boos', dutch: 'boos', spanish: 'enfadado', article: null, emoji: '😠', color: '#4da3ff', exampleNl: 'Ik ben boos.', exampleEs: 'Estoy enfadado.', category: 'gevoel', difficulty: 'A1' },
+        { id: 'm4l2v-verdrietig', dutch: 'verdrietig', spanish: 'triste', article: null, emoji: '😢', color: '#1D0084', exampleNl: 'Ik ben verdrietig.', exampleEs: 'Estoy triste.', category: 'gevoel', difficulty: 'A1' },
+        { id: 'm4l2v-ziek', dutch: 'ziek', spanish: 'enfermo', article: null, emoji: '🤒', color: '#025dc7', exampleNl: 'Ik ben ziek.', exampleEs: 'Estoy enfermo.', category: 'gevoel', difficulty: 'A1' },
+        { id: 'm4l2v-druk', dutch: 'het druk hebben', spanish: 'estar muy liado', article: null, emoji: '😰', color: '#4da3ff', exampleNl: 'Ik heb het druk.', exampleEs: 'Estoy muy liado.', category: 'gevoel', difficulty: 'A1' },
+        { id: 'm4l2v-vrij', dutch: 'vrij zijn', spanish: 'estar libre, tener el día libre', article: null, emoji: '🎉', color: '#1D0084', exampleNl: 'Ik ben vrij vandaag.', exampleEs: 'Hoy tengo el día libre.', category: 'werk', difficulty: 'A1' },
+        { id: 'm4l2v-klaar', dutch: 'klaar', spanish: 'listo, terminado', article: null, emoji: '✅', color: '#025dc7', exampleNl: 'Ik ben klaar.', exampleEs: 'Estoy listo.', category: 'werk', difficulty: 'A1' },
+        { id: 'm4l2v-nognietklaar', dutch: 'nog niet', spanish: 'todavía no', article: null, emoji: '⏳', color: '#4da3ff', exampleNl: 'Ik ben nog niet klaar.', exampleEs: 'Todavía no he terminado.', category: 'werk', difficulty: 'A1' },
+        { id: 'm4l2v-pauze', dutch: 'de pauze', spanish: 'la pausa, el descanso', article: 'de', emoji: '☕', color: '#1D0084', exampleNl: 'Ik heb nu pauze.', exampleEs: 'Ahora tengo pausa.', category: 'werk', difficulty: 'A1' },
+        { id: 'm4l2v-dienst', dutch: 'de dienst', spanish: 'el turno', article: 'de', emoji: '🕐', color: '#025dc7', exampleNl: 'Wij hebben avonddienst.', exampleEs: 'Tenemos turno de tarde.', category: 'werk', difficulty: 'A1' },
+        { id: 'm4l2v-afspraak', dutch: 'de afspraak', spanish: 'la cita, el compromiso', article: 'de', emoji: '📅', color: '#4da3ff', exampleNl: 'Wij hebben een afspraak.', exampleEs: 'Tenemos una cita.', category: 'werk', difficulty: 'A1' },
+        { id: 'm4l2v-les', dutch: 'de les', spanish: 'la clase', article: 'de', emoji: '📚', color: '#1D0084', exampleNl: 'Ik heb nu Nederlandse les.', exampleEs: 'Ahora tengo clase de neerlandés.', category: 'werk', difficulty: 'A1' },
+        { id: 'm4l2v-zoon', dutch: 'de zoon', spanish: 'el hijo', article: 'de', emoji: '👦', color: '#025dc7', exampleNl: 'Ik heb een zoon.', exampleEs: 'Tengo un hijo.', category: 'familie', difficulty: 'A1' },
+        { id: 'm4l2v-dochter', dutch: 'de dochter', spanish: 'la hija', article: 'de', emoji: '👧', color: '#4da3ff', exampleNl: 'Ik heb een dochter.', exampleEs: 'Tengo una hija.', category: 'familie', difficulty: 'A1' },
+        { id: 'm4l2v-honger', dutch: 'honger hebben', spanish: 'tener hambre', article: null, emoji: '🍔', color: '#1D0084', exampleNl: 'Wij hebben honger.', exampleEs: 'Tenemos hambre.', category: 'gevoel', difficulty: 'A1' },
+      ],
+    },
+    {
+      type: 'phrases',
+      items: [
+        { id: 'm4l2f-1', dutch: 'Waar ben je?', spanish: '¿Dónde estás?' },
+        { id: 'm4l2f-2', dutch: 'Ik ben op het werk.', spanish: 'Estoy en el trabajo.' },
+        { id: 'm4l2f-3', dutch: 'Ik ben in de trein.', spanish: 'Estoy en el tren.' },
+        { id: 'm4l2f-4', dutch: 'Waar zijn jullie?', spanish: '¿Dónde estáis?' },
+        { id: 'm4l2f-5', dutch: 'Wij zijn op kantoor.', spanish: 'Estamos en la oficina.' },
+        { id: 'm4l2f-6', dutch: 'Hoe gaat het met je?', spanish: '¿Cómo te va?' },
+        { id: 'm4l2f-7', dutch: 'Het gaat goed!', spanish: '¡Va bien!' },
+        { id: 'm4l2f-8', dutch: 'Het gaat niet goed.', spanish: 'No va bien.' },
+        { id: 'm4l2f-9', dutch: 'Ik ben moe, ik heb het druk.', spanish: 'Estoy cansado, estoy muy liado.' },
+        { id: 'm4l2f-10', dutch: 'Ben je klaar?', spanish: '¿Estás listo?' },
+        { id: 'm4l2f-11', dutch: 'Nee, ik ben nog niet klaar.', spanish: 'No, todavía no he terminado.' },
+        { id: 'm4l2f-12', dutch: 'Wat heb je nu?', spanish: '¿Qué tienes ahora?' },
+        { id: 'm4l2f-13', dutch: 'Ik heb nu pauze.', spanish: 'Ahora tengo pausa.' },
+        { id: 'm4l2f-14', dutch: 'Wij hebben avonddienst.', spanish: 'Tenemos turno de tarde.' },
+        { id: 'm4l2f-15', dutch: 'Heb jij kinderen?', spanish: '¿Tienes hijos?' },
+        { id: 'm4l2f-16', dutch: 'Nee, ik heb geen kinderen.', spanish: 'No, no tengo hijos.' },
+      ],
+    },
+    {
+      type: 'practice',
+      exercises: [
+        { id: 'm4l2e-1',  type: 'multiple_choice', prompt: '¿Cuál es la forma correcta con "jij" del verbo hebben?', options: ['jij hebt', 'jij heb', 'jij heeft', 'jij hebben'], correctAnswer: 'jij hebt', explanation: 'ik heb · jij hebt · hij/zij heeft.' },
+        { id: 'm4l2e-2',  type: 'multiple_choice', prompt: '¿Y con "hij"?', options: ['hij heeft', 'hij hebt', 'hij heb', 'hij hebben'], correctAnswer: 'hij heeft', explanation: 'La tercera persona del singular es "heeft", con doble e.' },
+        { id: 'm4l2e-3',  type: 'multiple_choice', prompt: '¿Cuál es la forma correcta con "jij" del verbo zijn?', options: ['jij bent', 'jij ben', 'jij is', 'jij zijn'], correctAnswer: 'jij bent', explanation: 'ik ben · jij bent · hij/zij is.' },
+        { id: 'm4l2e-4',  type: 'multiple_choice', prompt: 'En plural, el verbo zijn es…', options: ['siempre zijn', 'siempre bent', 'siempre is', 'depende del pronombre'], correctAnswer: 'siempre zijn', explanation: 'wij zijn · jullie zijn · zij zijn. En plural no cambia nunca.' },
+        { id: 'm4l2e-5',  type: 'fill_blank', prompt: 'Ik ___ Carlos en ik ___ leraar. (ser)', correctAnswer: 'ben', hint: 'la misma forma las dos veces', explanation: 'Ik ben Carlos en ik ben leraar.' },
+        { id: 'm4l2e-6',  type: 'fill_blank', prompt: 'Zij ___ een auto. (tener)', correctAnswer: 'heeft', hint: 'tercera persona del singular' },
+        { id: 'm4l2e-7',  type: 'fill_blank', prompt: 'Wij ___ honger. (tener)', correctAnswer: 'hebben', hint: 'plural' },
+        { id: 'm4l2e-8',  type: 'true_false', prompt: 'Para decir "tengo hambre" se dice "ik ben honger".', correctAnswer: 'falso', explanation: 'El hambre se TIENE: "ik heb honger". Es el calco del español que más se oye.' },
+        { id: 'm4l2e-9',  type: 'multiple_choice', prompt: '¿Cómo dices "Estoy en casa"?', options: ['Ik ben thuis', 'Ik ben in thuis', 'Ik ben op thuis', 'Ik ben in het thuis'], correctAnswer: 'Ik ben thuis', explanation: 'Thuis no lleva preposición nunca.' },
+        { id: 'm4l2e-10', type: 'fill_blank', prompt: 'Ik ben ___ het werk. (en el trabajo)', correctAnswer: 'op', hint: 'no es "in"' },
+        { id: 'm4l2e-11', type: 'fill_blank', prompt: 'Ik ben ___ de trein. (en el tren)', correctAnswer: 'in', hint: 'dentro del vagón' },
+        { id: 'm4l2e-12', type: 'fill_blank', prompt: 'Ik ben ___ het station. (en la estación)', correctAnswer: 'op', hint: 'la misma que con "het werk"' },
+        { id: 'm4l2e-13', type: 'multiple_choice', prompt: 'Te preguntan "Ben je klaar?" y todavía no has terminado. ¿Qué contestas?', options: ['Nee, ik ben nog niet klaar', 'Nee, ik ben niet klaar nog', 'Nee, ik heb nog niet klaar', 'Nee, ik ben klaar niet'], correctAnswer: 'Nee, ik ben nog niet klaar', explanation: '"Nog niet" = todavía no, y va junto delante de klaar.' },
+        { id: 'm4l2e-14', type: 'multiple_choice', prompt: '"Wij hebben avonddienst" significa…', options: ['Tenemos turno de tarde', 'Tenemos una cita por la tarde', 'Estamos cansados', 'Salimos por la tarde'], correctAnswer: 'Tenemos turno de tarde', explanation: 'De dienst = el turno. Avond = tarde/noche.' },
+        { id: 'm4l2e-15', type: 'multiple_choice', prompt: '¿Qué contestas a "Heb jij kinderen?" si no tienes?', options: ['Nee, ik heb geen kinderen', 'Nee, ik heb niet kinderen', 'Nee, ik ben geen kinderen', 'Nee, ik heb kinderen niet'], correctAnswer: 'Nee, ik heb geen kinderen', explanation: 'Para negar un sustantivo se usa "geen", no "niet".' },
+        { id: 'm4l2e-16', type: 'multiple_choice', prompt: '"Hoe is het?" es lo mismo que…', options: ['Hoe gaat het?', 'Wat heb je?', 'Waar ben je?', 'Ben je klaar?'], correctAnswer: 'Hoe gaat het?', explanation: 'Son sinónimos: las dos preguntan cómo estás.' },
+        { id: 'm4l2e-17', type: 'order_sentence', prompt: 'Ordena: "Estamos un poco cansados."', options: ['Wij', 'zijn', 'een', 'beetje', 'moe'], correctAnswer: 'Wij zijn een beetje moe' },
+        { id: 'm4l2e-18', type: 'order_sentence', prompt: 'Ordena: "Tenemos mucho trabajo hoy."', options: ['Wij', 'hebben', 'veel', 'werk', 'vandaag'], correctAnswer: 'Wij hebben veel werk vandaag' },
+        { id: 'm4l2e-19', type: 'word_scramble', prompt: '¿Cómo se dice "listo, terminado"?', correctAnswer: 'klaar', hint: 'Ben je ___?' },
+        { id: 'm4l2e-20', type: 'word_scramble', prompt: '¿Cómo se dice "la pausa"?', correctAnswer: 'pauze', hint: 'Ik heb nu ___.' },
+      ],
+    },
+    { type: 'review' },
+  ],
+};
+
 /* ─────────────────────────────────────────────────────────────────────────────
    EXPORT
 ───────────────────────────────────────────────────────────────────────────── */
@@ -4421,5 +4570,5 @@ export const LESSONS: Lesson[] = [
   // Module 3
   m3_les1, m3_les2, m3_les3, m3_les4, m3_les5, m3_les6,
   // Module 4
-  m4_les1,
+  m4_les1, m4_les2,
 ];
