@@ -63,6 +63,24 @@ Usuario `admin`, email **holandesnawar@gmail.com** (superadmin). Creado vía cli
 - Patrón: glow radial azul + puntos blancos sutiles `rgba(255,255,255,0.06)`.
 - **Regla:** secciones dark (#1D0084) o light (blanco/#F0F5FF), nunca mezclar. Contenido principal SIEMPRE blanco.
 
+### Reglas de aplicación de la marca (repaso ago 2026)
+Decidido tras ver que la plataforma "parecía Temu": el problema no era una pantalla, era el sistema.
+- **Nada de naranja/ámbar saturado en la interfaz del alumno.** Racha, fallos, notas y avisos van en azul de marca. El ámbar solo como señal apagada (`#8A6A2A` sobre `#FFFBF2`, o un punto `#E4B252`), y el verde solo para "hecho/dominado". El `#F58220` es **solo** estrellas/valoraciones.
+- **Peso tipográfico:** cifras grandes en `font-semibold` (no bold ni extrabold), etiquetas pequeñas en mayúsculas en `font-semibold` + `tracking-[0.08em]`. El `font-extrabold` no se usa en pantallas de alumno.
+- **Texto sobre `#4da3ff` siempre `#0a1656`**, nunca blanco (se leía mal).
+- **Cabecera de página estándar** (Mi progreso, Mis notas, Mis mensajes, Eventos, Ejercicios): `GeneralWrapperStyled` + `<Icono size={24} className="text-[#025dc7]" />` + `<h1 className="text-2xl sm:text-3xl font-bold text-gray-900">`. Ninguna pantalla se inventa su propio ancho ni su propio color de título.
+- Verde/rojo en los ejercicios (acierto/fallo) **sí** se quedan: son la señal que el alumno necesita.
+
+## Estabilidad — qué evita que la escuela se caiga
+- **Todo bajo pm2, nginx incluido** (`docker/start.sh`). Antes, si nginx moría, el contenedor seguía "vivo" sin servir nada. Además `--restart-delay 3000 --max-restarts 10000`. Tras arrancar nginx se comprueba el puerto 80 de verdad y, si no responde, se arranca a mano.
+- **Página `docker/offline.html`** servida por el propio nginx (`error_page 502 503 504`): mientras la app reinicia, el alumno ve "Volvemos en un momento" (recarga sola cada 8s) en vez del 502 blanco. Las rutas `/api/v1` devuelven **JSON** 503, no HTML, para que el front lo trate como fallo de red.
+- **`railway.json`**: `healthcheckPath: /api/v1/health`. Railway no cambia a la versión nueva hasta que responde → los despliegues dejan de tener ventana de 502.
+- **Arranque de la API tolerante** (`core/events/database.py`): 12 intentos × 5s esperando a Postgres, y `create_all` en su propio try (un fallo de DDL no puede impedir el arranque con las tablas ya creadas).
+- **`SafeArea`** (`components/Objects/StyledElements/Error/SafeArea.tsx`): cortafuegos por trozo de pantalla. Envuelve las tarjetas del Inicio y el visor de lecciones; si una se rompe, se sustituye por un aviso pequeño y el resto sigue.
+- **react-query**: 3 reintentos con espera creciente, pero **nunca** en 4xx.
+- Redis ya falla en abierto en todas partes (rate-limit, cachés): si Redis cae, se sigue pudiendo entrar y navegar.
+- **Pendiente del usuario (no es código):** activar copias de seguridad del Postgres en Railway. Es el único riesgo que el código no puede cubrir.
+
 ## Stripe — flujo de pagos (estado actual)
 
 ### Configuración en Stripe Dashboard

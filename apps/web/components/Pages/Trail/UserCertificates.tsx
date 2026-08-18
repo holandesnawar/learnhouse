@@ -130,7 +130,7 @@ const UserCertificates: React.FC<UserCertificatesProps> = ({ orgslug }) => {
                 href={verificationLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block relative aspect-video overflow-hidden bg-gradient-to-br from-yellow-50 to-amber-100"
+                className="block relative aspect-video overflow-hidden bg-gradient-to-br from-[#F0F5FF] to-[#DDE6F5]"
               >
                 {certificate.course?.thumbnail_image && org?.org_uuid ? (
                   <img
@@ -145,7 +145,7 @@ const UserCertificates: React.FC<UserCertificatesProps> = ({ orgslug }) => {
                 ) : null}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="p-3 bg-white/90 backdrop-blur-sm rounded-full shadow-lg">
-                    <Award className="w-8 h-8 text-yellow-500" />
+                    <Award className="w-8 h-8 text-[#025dc7]" />
                   </div>
                 </div>
               </Link>

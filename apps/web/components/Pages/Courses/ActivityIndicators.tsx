@@ -37,11 +37,11 @@ function getActivityTypeBadgeColor(activityType: string): string {
     case 'TYPE_VIDEO':
       return 'bg-[#F0F5FF] text-[#025dc7]'
     case 'TYPE_DOCUMENT':
-      return 'bg-purple-100 text-purple-700'
+      return 'bg-[#EEF2F9] text-[#5A6480]'
     case 'TYPE_DYNAMIC':
-      return 'bg-green-100 text-green-700'
+      return 'bg-[#F0F5FF] text-[#1D0084]'
     case 'TYPE_ASSIGNMENT':
-      return 'bg-orange-100 text-orange-700'
+      return 'bg-[#EEF2F9] text-[#1D0084]'
     default:
       return 'bg-gray-100 text-gray-700'
   }
