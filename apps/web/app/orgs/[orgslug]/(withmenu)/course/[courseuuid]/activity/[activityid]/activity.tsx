@@ -57,6 +57,7 @@ const MarkdownActivity = lazy(() => import('@components/Objects/Activities/Markd
 const EmbedActivity = lazy(() => import('@components/Objects/Activities/Embed/EmbedActivity'))
 const NativeExerciseActivity = lazy(() => import('@components/exercises-app/NativeExerciseActivity'))
 const SituacionViewer = lazy(() => import('@components/exercises-app/SituacionViewer'))
+const SchoolGuide = lazy(() => import('@components/Pages/Guides/SchoolGuide'))
 import { getSituacion } from '@/lib/exercises-app/situaciones'
 
 // Loading fallback component
@@ -92,6 +93,14 @@ function parseNativeVideo(embedUrl: string): { situacionId: string } | null {
   if (!embedUrl) return null;
   const m = embedUrl.match(/^nawar-video:(.+)$/);
   return m ? { situacionId: m[1] } : null;
+}
+
+// Una guía de la escuela (las del módulo 0), escrita en código:
+//   embed_url = "nawar-guia:<uso|estudio>"
+function parseNativeGuide(embedUrl: string): { guideId: string } | null {
+  if (!embedUrl) return null;
+  const m = embedUrl.match(/^nawar-guia:(.+)$/);
+  return m ? { guideId: m[1] } : null;
 }
 
 // Secciones de la app de ejercicios que SÍ son "ejercicios" (hay que hacerlos
@@ -480,6 +489,15 @@ function ActivityClient(props: ActivityClientProps) {
                 </Suspense>
               );
             }
+          }
+          // Guía de la escuela → se lee dentro de la clase, con la marca.
+          const guide = parseNativeGuide(activity.content?.embed_url || '');
+          if (guide) {
+            return (
+              <Suspense fallback={<LoadingFallback />}>
+                <SchoolGuide guideId={guide.guideId} onComplete={handleNativeComplete} />
+              </Suspense>
+            );
           }
           return (
             <Suspense fallback={<LoadingFallback />}>
