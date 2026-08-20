@@ -2046,7 +2046,7 @@
             "dynamic_page": "Texto",
             "scorm": "Scorm",
             "markdown": "Markdown",
-            "embed": "Embed"
+            "embed": "Insertar contenido"
           },
           "toasts": {
             "deleting": "Eliminando actividad...",
