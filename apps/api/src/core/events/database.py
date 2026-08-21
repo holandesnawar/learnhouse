@@ -356,6 +356,8 @@ _ADDED_COLUMNS = [
     "ALTER TABLE IF EXISTS enrollment ADD COLUMN IF NOT EXISTS paid_at VARCHAR DEFAULT ''",
     # Canal de chat o tablón de posts (la tabla ya existía en producción).
     "ALTER TABLE IF EXISTS community ADD COLUMN IF NOT EXISTS kind VARCHAR(16) DEFAULT 'chat'",
+    # Fotos y archivos en los mensajes directos (JSON en texto).
+    "ALTER TABLE IF EXISTS direct_message ADD COLUMN IF NOT EXISTS attachments TEXT DEFAULT ''",
 ]
 
 

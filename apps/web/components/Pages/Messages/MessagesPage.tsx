@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import {
+  DirectAttachment,
   DirectMessage,
   DirectThread,
   DirectThreadDetail,
@@ -17,6 +18,7 @@ import {
   sendDirectMessage,
   updateDirectWelcome,
   updateStaffTitles,
+  uploadMessageAttachment,
 } from '@services/messages/direct'
 import VoiceRecorder from './VoiceRecorder'
 import ComposerButton from '@components/Objects/Communities/ComposerButton'
@@ -27,8 +29,11 @@ import {
   BadgeCheck,
   BellRing,
   Check,
+  FileText,
+  ImageIcon,
   Loader2,
   MessageSquare,
+  Paperclip,
   Pencil,
   PenSquare,
   Mic,
@@ -40,6 +45,14 @@ import {
   Users,
   X,
 } from 'lucide-react'
+
+/** "1,4 MB" — para que un archivo diga lo que pesa antes de abrirlo. */
+function prettySize(bytes: number): string {
+  if (!bytes) return ''
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1).replace('.', ',')} MB`
+}
 
 /**
  * Mensajes directos.
@@ -92,7 +105,12 @@ export default function MessagesPage() {
   const [searching, setSearching] = useState(false)
   // Ajustes del equipo (fuera de la conversación).
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // Fotos y archivos ya subidos, esperando a salir con el mensaje.
+  const [pending, setPending] = useState<DirectAttachment[]>([])
+  const [uploading, setUploading] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
 
   const refreshBadge = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['messages', 'unread'] })
@@ -143,6 +161,8 @@ export default function MessagesPage() {
     setActiveAvatar(avatar)
     setActiveRole(role)
     setMessages([])
+    // Lo que estuviera preparado era para la otra conversación.
+    setPending([])
     setMobileView('chat')
     const detail = await getThread(id, accessToken)
     if (detail) setMessages(detail.messages)
@@ -196,7 +216,26 @@ export default function MessagesPage() {
     setActiveAvatar(detail.thread.title_avatar || person.avatar || '')
     setActiveRole(detail.thread.title_role || '')
     setMessages(detail.messages)
+    setPending([])
     setMobileView('chat')
+  }
+
+  /** Sube lo que se acaba de elegir y lo deja listo para enviar. */
+  const attach = async (files: FileList | null) => {
+    if (!files?.length || !accessToken) return
+    setUploading(true)
+    try {
+      for (const file of Array.from(files).slice(0, 4)) {
+        const uploaded = await uploadMessageAttachment(file, accessToken)
+        setPending((cur) => [...cur, uploaded])
+      }
+    } catch (e: any) {
+      toast.error(e?.message || 'No se pudo subir el archivo')
+    } finally {
+      setUploading(false)
+      if (imageInputRef.current) imageInputRef.current.value = ''
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
   }
 
   const push = (m: DirectMessage | null) => {
@@ -210,11 +249,18 @@ export default function MessagesPage() {
 
   const sendText = async () => {
     const body = text.trim()
-    if (!body || sending || !activeId) return
+    // Una foto o un archivo se mandan solos, sin escribir nada.
+    if ((!body && !pending.length) || sending || !activeId) return
     setSending(true)
-    const m = await sendDirectMessage({ threadId: activeId, body, notify }, accessToken)
+    const m = await sendDirectMessage(
+      { threadId: activeId, body, notify, attachments: pending },
+      accessToken
+    )
     setSending(false)
-    if (m) setText('')
+    if (m) {
+      setText('')
+      setPending([])
+    }
     // El aviso se apaga después de cada envío: así escribir tres mensajes
     // seguidos no manda tres correos sin querer. Se vuelve a encender a mano
     // cuando de verdad haga falta.
@@ -428,6 +474,46 @@ export default function MessagesPage() {
           </div>
         )}
 
+        {/* Lo que va a salir con el mensaje */}
+        {(pending.length > 0 || uploading) && (
+          <div className="mb-2 flex flex-wrap gap-2">
+            {pending.map((f, i) => (
+              <div
+                key={i}
+                className="relative group/att rounded-lg border border-[#DDE6F5] bg-white overflow-hidden"
+              >
+                {f.kind === 'image' ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={mediaSrc(f.url)} alt={f.name} className="h-16 w-16 object-cover" />
+                ) : (
+                  <div className="h-16 px-3 flex items-center gap-2 text-[12px] text-[#5A6480] max-w-[200px]">
+                    {f.kind === 'audio' ? (
+                      <Mic size={14} className="text-[#025dc7] shrink-0" />
+                    ) : (
+                      <FileText size={14} className="text-[#025dc7] shrink-0" />
+                    )}
+                    <span className="truncate">{f.name}</span>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setPending((cur) => cur.filter((_, j) => j !== i))}
+                  title="Quitar"
+                  aria-label="Quitar adjunto"
+                  className="absolute top-0.5 right-0.5 inline-flex items-center justify-center w-5 h-5 rounded-full bg-black/55 text-white opacity-0 group-hover/att:opacity-100 transition-opacity"
+                >
+                  <X size={11} />
+                </button>
+              </div>
+            ))}
+            {uploading && (
+              <div className="h-16 w-16 rounded-lg border border-dashed border-[#DDE6F5] flex items-center justify-center">
+                <Loader2 size={16} className="animate-spin text-[#025dc7]" />
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="rounded-xl border border-[#E3E8EF] bg-white transition-colors focus-within:border-[#4da3ff] focus-within:ring-[3px] focus-within:ring-[#4da3ff]/15">
           <textarea
             value={text}
@@ -444,6 +530,33 @@ export default function MessagesPage() {
           />
 
           <div className="flex items-center gap-0.5 px-2 pb-2">
+            {/* Archivo */}
+            <input ref={fileInputRef} type="file" hidden onChange={(e) => attach(e.target.files)} />
+            <ComposerButton
+              label="Adjuntar un archivo"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+            >
+              <Paperclip size={17} />
+            </ComposerButton>
+
+            {/* Foto */}
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              hidden
+              onChange={(e) => attach(e.target.files)}
+            />
+            <ComposerButton
+              label="Enviar una foto"
+              onClick={() => imageInputRef.current?.click()}
+              disabled={uploading}
+            >
+              <ImageIcon size={17} />
+            </ComposerButton>
+
             <ComposerButton
               label="Grabar una nota de voz"
               onClick={() => {
@@ -478,7 +591,7 @@ export default function MessagesPage() {
 
             <button
               onClick={sendText}
-              disabled={!text.trim() || sending}
+              disabled={(!text.trim() && !pending.length) || sending || uploading}
               aria-label="Enviar"
               title="Enviar"
               className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors bg-[#025dc7] text-white hover:bg-[#0b6df0] disabled:bg-[#EFF1F6] disabled:text-[#B6BECC] disabled:cursor-not-allowed"
@@ -757,6 +870,61 @@ function Bubble({
                 <span className="ml-1.5 font-semibold text-[#0a1656]/55">· {m.author_title}</span>
               )}
             </p>
+          )}
+          {!!m.attachments?.length && (
+            <div className="space-y-1.5 mb-1.5">
+              {m.attachments.map((f, i) => {
+                if (f.kind === 'image') {
+                  return (
+                    <a
+                      key={i}
+                      href={mediaSrc(f.url)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={mediaSrc(f.url)}
+                        alt={f.name}
+                        loading="lazy"
+                        className="rounded-lg max-h-72 w-auto max-w-full object-cover"
+                      />
+                    </a>
+                  )
+                }
+                if (f.kind === 'audio') {
+                  return (
+                    <audio
+                      key={i}
+                      src={mediaSrc(f.url)}
+                      controls
+                      preload="none"
+                      className="w-full max-w-[280px] h-9"
+                    />
+                  )
+                }
+                return (
+                  <a
+                    key={i}
+                    href={mediaSrc(f.url)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`inline-flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12.5px] transition-colors ${
+                      mine
+                        ? 'bg-white/15 hover:bg-white/25 text-white'
+                        : 'bg-white hover:bg-[#e3edff] text-[#025dc7]'
+                    }`}
+                  >
+                    <FileText size={14} className="shrink-0" />
+                    <span className="truncate max-w-[180px]">{f.name}</span>
+                    {!!f.size && (
+                      <span className="opacity-70 tabular-nums">{prettySize(f.size)}</span>
+                    )}
+                  </a>
+                )
+              })}
+            </div>
           )}
           {m.body && (
             <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{m.body}</p>

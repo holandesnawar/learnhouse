@@ -9,12 +9,23 @@ import { RequestBodyWithAuthHeader } from '@services/utils/ts/requests'
  * la bandeja entera, un hilo por alumno.
  */
 
+/** Una foto, un audio o un archivo colgado de un mensaje. */
+export interface DirectAttachment {
+  url: string
+  name: string
+  /** `image`, `audio` o `file` — decide con qué se pinta. */
+  kind: 'image' | 'audio' | 'file'
+  size: number
+}
+
 export interface DirectMessage {
   id: number
   body: string
   /** Ruta de la nota de voz servida por el backend, o cadena vacía. */
   audio_url: string
   audio_seconds: number
+  /** Fotos y archivos que van con el mensaje. */
+  attachments?: DirectAttachment[]
   created_at: string
   author_id: number | null
   author_name: string
@@ -130,9 +141,42 @@ export async function getUnreadMessages(accessToken: string | undefined): Promis
 }
 
 /**
- * Manda texto y/o una nota de voz. Va como multipart (por el audio), así que
- * NO se pone Content-Type a mano: el navegador tiene que poner el suyo con el
- * separador que toca.
+ * Sube una foto o un archivo para mandarlo en un mensaje.
+ *
+ * El servidor decide dónde guardarlo (Cloudflare R2 si está configurado, si no
+ * el volumen de siempre) y devuelve la dirección lista para pintar. Es el
+ * mismo almacén que el chat de la comunidad.
+ */
+export async function uploadMessageAttachment(
+  file: File,
+  accessToken: string | undefined
+): Promise<DirectAttachment> {
+  if (!accessToken) throw new Error('Entra a tu cuenta para adjuntar archivos')
+  const body = new FormData()
+  body.append('file', file)
+  const r = await fetch(`${base()}/attachments`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    credentials: 'include',
+    body,
+  })
+  if (!r.ok) {
+    let detail = 'No se pudo subir el archivo'
+    try {
+      const data = await r.json()
+      if (data?.detail) detail = String(data.detail)
+    } catch {
+      /* la respuesta no era JSON: nos quedamos con el mensaje genérico */
+    }
+    throw new Error(detail)
+  }
+  return r.json()
+}
+
+/**
+ * Manda texto, fotos/archivos y/o una nota de voz. Va como multipart (por el
+ * audio), así que NO se pone Content-Type a mano: el navegador tiene que poner
+ * el suyo con el separador que toca.
  */
 export async function sendDirectMessage(
   params: {
@@ -140,6 +184,8 @@ export async function sendDirectMessage(
     body?: string
     audio?: Blob | null
     audioSeconds?: number
+    /** Fotos y archivos ya subidos con `uploadMessageAttachment`. */
+    attachments?: DirectAttachment[]
     /** Manda además un correo al alumno avisando (sin contar el mensaje). */
     notify?: boolean
   },
@@ -150,6 +196,9 @@ export async function sendDirectMessage(
   if (params.threadId) form.append('thread_id', String(params.threadId))
   form.append('body', params.body || '')
   form.append('audio_seconds', String(Math.round(params.audioSeconds || 0)))
+  if (params.attachments?.length) {
+    form.append('attachments', JSON.stringify(params.attachments))
+  }
   if (params.notify) form.append('notify', 'true')
   if (params.audio) form.append('audio', params.audio, 'nota.webm')
 

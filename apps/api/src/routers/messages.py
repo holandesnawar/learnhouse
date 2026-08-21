@@ -22,6 +22,7 @@ from src.services.messages.direct import (
     open_thread_with,
     post_message,
     unread_total,
+    upload_message_attachment,
 )
 
 router = APIRouter()
@@ -82,6 +83,9 @@ async def api_send(
     body: str = Form(""),
     audio_seconds: int = Form(0),
     audio: Optional[UploadFile] = File(None),
+    # Fotos y archivos ya subidos por /messages/attachments, como JSON:
+    # [{"url": …, "name": …, "kind": "image", "size": 1234}].
+    attachments: str = Form(""),
     # Solo lo usa el equipo: manda además un correo avisando al alumno (sin
     # contar lo que dice el mensaje).
     notify: bool = Form(False),
@@ -89,8 +93,32 @@ async def api_send(
     db_session: AsyncSession = Depends(get_db_session),
 ) -> DirectMessageRead:
     return await post_message(
-        thread_id, body, audio, audio_seconds, current_user, db_session, notify
+        thread_id,
+        body,
+        audio,
+        audio_seconds,
+        current_user,
+        db_session,
+        notify,
+        attachments=attachments,
     )
+
+
+@router.post(
+    "/attachments",
+    summary="Sube una foto o un archivo para un mensaje directo.",
+    description=(
+        "Guarda el archivo (en Cloudflare R2 si está configurado, si no en el "
+        "volumen) y devuelve {url, name, kind, size} para mandarlo con el "
+        "mensaje. Es el mismo almacén que usa el chat de la comunidad."
+    ),
+)
+async def api_upload_attachment(
+    file: UploadFile,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+) -> dict:
+    return await upload_message_attachment(file, current_user, db_session)
 
 
 @router.get(
