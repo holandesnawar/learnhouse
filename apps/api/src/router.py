@@ -359,10 +359,11 @@ v1_router.include_router(
 )
 
 # Automatizaciones: lo que la escuela hace sola y lo que añade el admin.
-router.include_router(
+v1_router.include_router(
     automations.router,
     prefix="/automations",
     tags=["automations"],
+    dependencies=[Depends(require_authenticated_user)],
 )
 
 # Borrado de consultas desde el panel. Solo administradores.
