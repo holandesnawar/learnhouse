@@ -386,6 +386,7 @@
     "ready_to_begin": "Готовы начать?",
     "start_learning_journey": "Начните свое обучение с {{count}} захватывающими занятиями",
     "course_progress": "Прогресс курса",
+    "activities_completed": "{{completed}} of {{total}} activities completed",
     "progress": "Прогресс",
     "completed_of": "Завершено {{completed}} из {{total}}",
     "quit_all_courses": "Выйти из всех курсов",

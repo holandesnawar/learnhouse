@@ -373,6 +373,7 @@
     "ready_to_begin": "准备好开始了吗？",
     "start_learning_journey": "通过 {{count}} 个精彩活动开始您的学习之旅",
     "course_progress": "课程进度",
+    "activities_completed": "{{completed}} of {{total}} activities completed",
     "progress": "进度",
     "completed_of": "已完成 {{completed}} / {{total}}",
     "quit_all_courses": "退出所有课程",

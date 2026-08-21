@@ -386,6 +386,7 @@
     "ready_to_begin": "Siap untuk memulai?",
     "start_learning_journey": "Mulai perjalanan belajar Anda dengan {{count}} aktivitas menarik",
     "course_progress": "Kemajuan Kursus",
+    "activities_completed": "{{completed}} of {{total}} activities completed",
     "progress": "Kemajuan",
     "completed_of": "{{completed}} dari {{total}} selesai",
     "quit_all_courses": "Tinggalkan Semua Kursus",

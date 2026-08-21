@@ -363,6 +363,7 @@
     "ready_to_begin": "Bereit zum Start?",
     "start_learning_journey": "Starten Sie Ihre Lernreise mit {{count}} spannenden Aktivitäten",
     "course_progress": "Kursfortschritt",
+    "activities_completed": "{{completed}} von {{total}} Aktivitäten abgeschlossen",
     "progress": "Fortschritt",
     "completed_of": "{{completed}} von {{total}} abgeschlossen",
     "quit_all_courses": "Alle Kurse beenden",

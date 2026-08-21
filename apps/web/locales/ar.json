@@ -373,6 +373,7 @@
     "ready_to_begin": "مستعد للبدء؟",
     "start_learning_journey": "ابدأ رحلة تعلمك مع {{count}} أنشطة مثيرة",
     "course_progress": "تقدم الدورة",
+    "activities_completed": "{{completed}} of {{total}} activities completed",
     "progress": "التقدم",
     "completed_of": "اكتمل {{completed}} من {{total}}",
     "quit_all_courses": "الخروج من كل الدورات",

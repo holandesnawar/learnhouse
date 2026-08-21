@@ -386,6 +386,7 @@
     "ready_to_begin": "Sẵn sàng bắt đầu?",
     "start_learning_journey": "Bắt đầu hành trình học tập của bạn với {{count}} hoạt động thú vị",
     "course_progress": "Tiến trình khóa học",
+    "activities_completed": "{{completed}} of {{total}} activities completed",
     "progress": "Tiến độ",
     "completed_of": "Đã hoàn thành {{completed}} trên {{total}}",
     "quit_all_courses": "Rời tất cả khóa học",

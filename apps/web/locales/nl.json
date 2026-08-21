@@ -363,6 +363,7 @@
     "ready_to_begin": "Klaar om te beginnen?",
     "start_learning_journey": "Begin je leerreis met {{count}} boeiende activiteiten",
     "course_progress": "Cursusvoortgang",
+    "activities_completed": "{{completed}} van {{total}} activiteiten afgerond",
     "progress": "Voortgang",
     "completed_of": "{{completed}} van {{total}} voltooid",
     "quit_all_courses": "Alle cursussen verlaten",

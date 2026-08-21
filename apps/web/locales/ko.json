@@ -373,6 +373,7 @@
     "ready_to_begin": "시작할 준비가 되셨나요?",
     "start_learning_journey": "{{count}}개의 흥미로운 활동으로 학습을 시작해 보세요",
     "course_progress": "학습 진도",
+    "activities_completed": "{{completed}} of {{total}} activities completed",
     "progress": "진척도",
     "completed_of": "{{total}} 중 {{completed}} 완료",
     "quit_all_courses": "모든 코스 나가기",

@@ -386,6 +386,7 @@
     "ready_to_begin": "พร้อมที่จะเริ่มหรือยัง?",
     "start_learning_journey": "เริ่มการเดินทางแห่งการเรียนรู้ของคุณด้วยกิจกรรมที่น่าตื่นเต้น {{count}} กิจกรรม",
     "course_progress": "ความคืบหน้าของคอร์ส",
+    "activities_completed": "{{completed}} of {{total}} activities completed",
     "progress": "ความคืบหน้า",
     "completed_of": "เสร็จสมบูรณ์ {{completed}} จาก {{total}}",
     "quit_all_courses": "ออกจากคอร์สเรียนทั้งหมด",

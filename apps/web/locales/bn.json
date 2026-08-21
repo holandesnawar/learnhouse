@@ -386,6 +386,7 @@
     "ready_to_begin": "শুরু করতে প্রস্তুত?",
     "start_learning_journey": "{{count}}টি উত্তেজনাপূর্ণ ক্রিয়াকলাপের সাথে আপনার শেখার যাত্রা শুরু করুন।",
     "course_progress": "কোর্সের অগ্রগতি",
+    "activities_completed": "{{completed}} of {{total}} activities completed",
     "progress": "অগ্রগতি",
     "completed_of": "{{total}}টির মধ্যে {{completed}}টি সম্পন্ন হয়েছে",
     "quit_all_courses": "সব কোর্স ছেড়ে দিন",

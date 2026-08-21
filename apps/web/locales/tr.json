@@ -386,6 +386,7 @@
     "ready_to_begin": "Başlamaya hazır mısınız?",
     "start_learning_journey": "{{count}} heyecan verici aktivite ile öğrenme yolculuğunuza başlayın",
     "course_progress": "Kurs İlerlemesi",
+    "activities_completed": "{{completed}} of {{total}} activities completed",
     "progress": "İlerleme",
     "completed_of": "{{total}} üzerinden {{completed}} tamamlandı",
     "quit_all_courses": "Tüm Kurslardan Ayrıl",
