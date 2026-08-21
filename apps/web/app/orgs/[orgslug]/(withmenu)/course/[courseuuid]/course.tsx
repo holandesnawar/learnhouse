@@ -10,7 +10,7 @@ import {
   getCourseBannerMediaDirectory,
   getCourseThumbnailMediaDirectory,
 } from '@services/media/media'
-import { ArrowRight, Backpack, Check, File, StickyNote, Video, Square, Image as ImageIcon, Layers, Lock } from 'lucide-react'
+import { ArrowRight, Backpack, BookOpen as Books, Check, File, StickyNote, Video, Square, Image as ImageIcon, Layers, Lock } from 'lucide-react'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useMediaQuery } from 'usehooks-ts'
 import CoursesActions from '@components/Objects/Courses/CourseActions/CoursesActions'
@@ -330,8 +330,16 @@ const CourseClient = (props: any) => {
       {!course || !org ? null : (
         <>
           <GeneralWrapperStyled>
-            <div className="pb-2 pt-2">
-              <h1 className="text-3xl md:text-3xl font-bold">{course.name}</h1>
+            {/* Cabecera estándar de la escuela: icono azul + título en negro,
+                igual que Mi progreso, Mis notas o Eventos. Antes el título del
+                curso iba suelto y era la única pantalla sin icono. */}
+            <div className="flex items-center gap-2 pb-2 pt-2">
+              {COURSES_AS_SESSIONS.has(course.course_uuid) ? (
+                <Video size={24} className="text-[#025dc7] shrink-0" />
+              ) : (
+                <Books size={24} className="text-[#025dc7] shrink-0" />
+              )}
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{course.name}</h1>
             </div>
 
             <div className="flex flex-col md:flex-row md:items-start gap-8 pt-2">
