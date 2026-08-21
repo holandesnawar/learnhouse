@@ -18,7 +18,6 @@ import {
   updateDirectWelcome,
   updateStaffTitles,
 } from '@services/messages/direct'
-import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import VoiceRecorder from './VoiceRecorder'
 import ComposerButton from '@components/Objects/Communities/ComposerButton'
 import { COMPOSER_EMOJIS } from '@/lib/chat/emojis'
@@ -35,6 +34,7 @@ import {
   Mic,
   Search,
   Send,
+  Settings,
   Smile,
   Sparkles,
   Users,
@@ -48,8 +48,18 @@ import {
  *   concreto desde el buscador.
  * - Equipo: la bandeja de alumnos, y el buscador para escribir el primero.
  *
- * En móvil es una sola columna: lista → conversación, con flecha para volver.
- * Antes la conversación y la lista competían por la pantalla y no se usaba.
+ * **La página ES el chat**, igual que un canal de la comunidad: ocupa la
+ * pantalla entera, no se desplaza (solo la lista de mensajes) y el compositor
+ * vive pegado abajo. Antes era una tarjeta con bordes redondeados flotando en
+ * medio de una página que se desplazaba, con las tarjetas de administración
+ * empujándola hacia abajo: en móvil la conversación quedaba en un recuadro
+ * pequeño con medio hueco en blanco.
+ *
+ * Los ajustes del equipo (bienvenida automática y cargos) ya no van en el
+ * camino de la conversación: viven detrás de la rueda dentada de la bandeja.
+ *
+ * En móvil es una sola columna: bandeja → conversación a pantalla completa,
+ * con flecha para volver.
  */
 export default function MessagesPage() {
   const session = useLHSession() as any
@@ -80,6 +90,8 @@ export default function MessagesPage() {
   const [query, setQuery] = useState('')
   const [people, setPeople] = useState<DirectoryEntry[]>([])
   const [searching, setSearching] = useState(false)
+  // Ajustes del equipo (fuera de la conversación).
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const refreshBadge = useCallback(() => {
@@ -228,29 +240,53 @@ export default function MessagesPage() {
     push(m)
   }
 
+  // Alto de la pantalla menos la barra superior del móvil, igual que un canal.
+  const pageHeight = 'h-[calc(100dvh-3.5rem)] md:h-[100dvh]'
+
   if (!accessToken) {
     return <p className="p-8 text-sm text-gray-500">Entra a tu cuenta para ver tus mensajes.</p>
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20 text-gray-500 gap-2">
+      <div className={`${pageHeight} flex items-center justify-center text-gray-500 gap-2`}>
         <Loader2 size={18} className="animate-spin" /> Cargando tus mensajes…
       </div>
     )
   }
 
-  const threadList = (
-    <div className="flex flex-col gap-2">
-      <button
-        onClick={() => setPickerOpen(true)}
-        className="inline-flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] font-bold text-[14px] transition-colors"
-      >
-        <PenSquare size={15} />
-        {isStaff ? 'Escribir a un alumno' : 'Escribir a un moderador'}
-      </button>
+  /* ── Bandeja (columna izquierda en escritorio, pantalla entera en móvil) ── */
+  const inbox = (
+    <div className="h-full min-h-0 flex flex-col">
+      <div className="shrink-0 px-4 sm:px-5 pt-4 pb-3 border-b border-[#EEF3FB]">
+        <div className="flex items-center gap-2">
+          <MessageSquare size={20} className="text-[#025dc7] shrink-0" />
+          <h1 className="text-[19px] font-bold text-gray-900 flex-1 min-w-0 truncate">
+            Mis mensajes
+          </h1>
+          {isStaff && (
+            <button
+              type="button"
+              onClick={() => setSettingsOpen(true)}
+              aria-label="Ajustes de los mensajes"
+              title="Ajustes de los mensajes"
+              className="shrink-0 inline-flex items-center justify-center w-9 h-9 text-[#4B5563] hover:text-[#025dc7] transition-colors"
+            >
+              <Settings size={18} />
+            </button>
+          )}
+        </div>
 
-      <div className="space-y-1.5 lg:max-h-[62vh] lg:overflow-y-auto lh-thin-scroll">
+        <button
+          onClick={() => setPickerOpen(true)}
+          className="mt-3 inline-flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] font-bold text-[14px] transition-colors"
+        >
+          <PenSquare size={15} />
+          {isStaff ? 'Escribir a un alumno' : 'Escribir a un moderador'}
+        </button>
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto lh-thin-scroll px-3 py-3 space-y-1.5">
         {threads.length === 0 ? (
           <p className="text-sm text-gray-500 px-1 py-3">
             {isStaff
@@ -264,7 +300,7 @@ export default function MessagesPage() {
               onClick={() => openThread(t.id, t.title, t.title_avatar, t.title_role)}
               className={`w-full text-left rounded-xl border px-3 py-2.5 transition-colors ${
                 activeId === t.id
-                  ? 'bg-white border-[#4da3ff]'
+                  ? 'bg-[#F7FAFF] border-[#4da3ff]'
                   : 'bg-white border-[#DDE6F5] hover:border-[#4da3ff]/60'
               }`}
             >
@@ -298,20 +334,21 @@ export default function MessagesPage() {
     </div>
   )
 
+  /* ── Conversación: cabecera, mensajes y compositor pegado abajo ── */
   const conversation = (
-    <div className="flex flex-col h-[calc(100dvh-320px)] min-h-[460px] bg-white border border-[#E3E8EF] rounded-2xl overflow-hidden">
-      {/* Cabecera: en móvil lleva la flecha para volver a la lista */}
-      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-[#EEF2FB]">
+    <div className="h-full min-h-0 flex flex-col bg-white">
+      {/* Cabecera: en móvil lleva la flecha para volver a la bandeja */}
+      <div className="shrink-0 flex items-center gap-2 px-3 sm:px-4 py-2.5 border-b border-[#EEF3FB]">
         <button
           onClick={() => setMobileView('list')}
-          aria-label="Volver"
-          className="lg:hidden shrink-0 w-8 h-8 inline-flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100"
+          aria-label="Volver a mis mensajes"
+          className="lg:hidden shrink-0 w-8 h-8 inline-flex items-center justify-center text-[#4B5563] hover:text-[#025dc7] transition-colors"
         >
-          <ArrowLeft size={17} />
+          <ArrowLeft size={18} />
         </button>
         <Avatar src={activeAvatar} name={activeTitle || 'Conversación'} size={34} />
         <span className="min-w-0">
-          <span className="block text-[14px] font-bold text-[#0a1656] truncate leading-tight">
+          <span className="block text-[14.5px] font-bold text-[#0a1656] truncate leading-tight">
             {activeTitle || 'Conversación'}
           </span>
           {activeRole && (
@@ -322,7 +359,10 @@ export default function MessagesPage() {
         </span>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto lh-thin-scroll p-4 space-y-3">
+      <div
+        ref={scrollRef}
+        className="flex-1 min-h-0 overflow-y-auto lh-thin-scroll px-3 sm:px-4 py-4 space-y-3"
+      >
         {messages.length === 0 ? (
           <p className="text-center text-sm text-gray-400 py-10">
             Aquí no hay nada todavía. Escribe lo que necesites.
@@ -340,7 +380,7 @@ export default function MessagesPage() {
       </div>
 
       {emojiOpen && (
-        <div className="mx-3 mb-1 grid grid-cols-8 gap-1 rounded-xl border border-[#DDE6F5] bg-white p-2">
+        <div className="shrink-0 mx-3 mb-1 grid grid-cols-8 gap-1 rounded-xl border border-[#DDE6F5] bg-white p-2">
           {COMPOSER_EMOJIS.map((e) => (
             <button
               key={e}
@@ -358,7 +398,7 @@ export default function MessagesPage() {
       )}
 
       {isStaff && notify && (
-        <div className="mx-3 mb-1 flex items-center gap-2 rounded-xl bg-[#F0F5FF] px-3 py-2">
+        <div className="shrink-0 mx-3 mb-1 flex items-center gap-2 rounded-xl bg-[#F0F5FF] px-3 py-2">
           <BellRing size={14} className="text-[#025dc7] shrink-0" />
           <p className="text-[12px] text-[#0a1656] leading-snug">
             Al enviar, el alumno recibirá un correo avisándole. No se le cuenta lo que dice el
@@ -370,7 +410,7 @@ export default function MessagesPage() {
       {/* El mismo compositor que la comunidad: el texto arriba, los iconos
           debajo y sin bolitas grises. Que Mis mensajes y la comunidad se
           escriban igual es lo que hace que la escuela parezca una sola cosa. */}
-      <div className="border-t border-[#EEF2FB] px-3 py-3">
+      <div className="shrink-0 border-t border-[#EEF3FB] px-3 py-3">
         {recording && (
           <div className="mb-2 rounded-xl bg-white border border-[#E3E8EF] px-3 py-2.5">
             <div className="flex items-center justify-between mb-1.5">
@@ -455,7 +495,7 @@ export default function MessagesPage() {
   )
 
   const emptyPane = (
-    <div className="h-[calc(100dvh-320px)] min-h-[460px] flex flex-col items-center justify-center text-center bg-white border border-[#E3E8EF] rounded-2xl px-6">
+    <div className="h-full flex flex-col items-center justify-center text-center px-6">
       <MessageSquare size={26} className="text-gray-300 mb-2" />
       <p className="text-sm text-gray-500 max-w-xs">
         Elige una conversación de la izquierda, o escribe a alguien nuevo.
@@ -464,43 +504,21 @@ export default function MessagesPage() {
   )
 
   return (
-    // Mismo marco que Mi progreso, Mis notas o Eventos: el ancho y los
-    // márgenes salen del wrapper común, y la cabecera es icono + título en
-    // negro. Antes esta pantalla tenía su propio ancho y su propio título en
-    // azul, y al cambiar de sección se notaba el salto.
-    <GeneralWrapperStyled>
-      <div className="flex items-center gap-2 pt-2">
-        <MessageSquare size={24} className="text-[#025dc7]" />
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Mis mensajes</h1>
+    <div className={`${pageHeight} flex overflow-hidden bg-white`}>
+      {/* Bandeja: columna fija en escritorio, pantalla entera en móvil */}
+      <div
+        className={`w-full lg:w-[320px] lg:shrink-0 lg:border-r lg:border-[#EEF3FB] ${
+          mobileView === 'chat' ? 'hidden lg:block' : ''
+        }`}
+      >
+        {inbox}
       </div>
-      <p className="text-sm text-gray-500 mt-1 mb-6 max-w-lg">
-        {isStaff
-          ? 'Conversaciones privadas con tus alumnos. Puedes contestar con texto o con una nota de voz.'
-          : 'Tu canal directo con el equipo de Holandés Nawar. Escribe o manda una nota de voz — para pronunciación va de lujo.'}
-      </p>
 
-      {isStaff && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <WelcomeEditor
-            orgId={org?.id}
-            accessToken={accessToken}
-            stored={org?.config?.config?.direct_welcome?.message}
-          />
-          <StaffTitlesEditor
-            orgId={org?.id}
-            accessToken={accessToken}
-            stored={org?.config?.config?.staff_titles?.titles || {}}
-          />
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)] gap-5 mt-5">
-        {/* Lista: siempre en escritorio, en móvil solo cuando toca */}
-        <div className={mobileView === 'chat' ? 'hidden lg:block' : ''}>{threadList}</div>
-
-        <div className={`min-w-0 ${mobileView === 'list' ? 'hidden lg:block' : ''}`}>
-          {activeId ? conversation : emptyPane}
-        </div>
+      {/* Conversación */}
+      <div
+        className={`flex-1 min-w-0 ${mobileView === 'list' ? 'hidden lg:block' : ''}`}
+      >
+        {activeId ? conversation : emptyPane}
       </div>
 
       {pickerOpen && (
@@ -517,7 +535,64 @@ export default function MessagesPage() {
           }}
         />
       )}
-    </GeneralWrapperStyled>
+
+      {settingsOpen && (
+        <SettingsPanel onClose={() => setSettingsOpen(false)}>
+          <WelcomeEditor
+            orgId={org?.id}
+            accessToken={accessToken}
+            stored={org?.config?.config?.direct_welcome?.message}
+          />
+          <StaffTitlesEditor
+            orgId={org?.id}
+            accessToken={accessToken}
+            stored={org?.config?.config?.staff_titles?.titles || {}}
+          />
+        </SettingsPanel>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Los ajustes del equipo, en un panel aparte.
+ *
+ * Antes vivían encima de la conversación y la empujaban media pantalla hacia
+ * abajo — y son cosas que se tocan una vez, no cada día.
+ */
+function SettingsPanel({
+  onClose,
+  children,
+}: {
+  onClose: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <div
+      className="fixed inset-0 bg-black/40 flex items-start sm:items-center justify-center p-0 sm:p-6"
+      style={{ zIndex: 'var(--z-modal-content, 220)' }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white w-full h-full sm:h-auto sm:max-h-[85vh] sm:rounded-2xl sm:shadow-xl sm:max-w-lg flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-[#EEF2FB]">
+          <Settings size={17} className="text-[#025dc7] shrink-0" />
+          <span className="text-[14px] font-bold text-[#0a1656] flex-1">
+            Ajustes de los mensajes
+          </span>
+          <button
+            onClick={onClose}
+            aria-label="Cerrar"
+            className="w-8 h-8 inline-flex items-center justify-center text-gray-400 hover:text-[#025dc7] transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        <div className="flex-1 min-h-0 overflow-y-auto lh-thin-scroll p-4 space-y-4">{children}</div>
+      </div>
+    </div>
   )
 }
 
