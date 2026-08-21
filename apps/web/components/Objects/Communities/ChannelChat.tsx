@@ -353,8 +353,9 @@ export function ChannelChat({
     try {
       await deleteDiscussion(uuid, accessToken)
       mutateDiscussions(communityUuid)
-    } catch {
-      toast.error('No se pudo eliminar el mensaje.')
+    } catch (e: any) {
+      // El motivo de verdad: "no se pudo eliminar" a secas no deja arreglar nada.
+      toast.error(e?.message || 'No se pudo eliminar el mensaje.', { duration: 10000 })
     }
   }
 

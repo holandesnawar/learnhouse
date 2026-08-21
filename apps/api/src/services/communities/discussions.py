@@ -621,6 +621,43 @@ async def lock_discussion(
         has_voted=vote is not None,
     )
 
+async def _delete_discussion_children(discussion_id: int, db_session: AsyncSession) -> None:
+    """Comentarios (con sus votos), votos y reacciones de un mensaje."""
+    from sqlalchemy import delete as sql_delete
+
+    from src.db.communities.discussion_comment_votes import DiscussionCommentVote
+    from src.db.communities.discussion_comments import DiscussionComment
+    from src.db.communities.discussion_reactions import DiscussionReaction
+    from src.db.communities.discussion_votes import DiscussionVote
+
+    comment_ids = (
+        await db_session.execute(
+            select(DiscussionComment.id).where(
+                DiscussionComment.discussion_id == discussion_id
+            )
+        )
+    ).scalars().all()
+    if comment_ids:
+        await db_session.execute(
+            sql_delete(DiscussionCommentVote).where(
+                DiscussionCommentVote.comment_id.in_(comment_ids)  # type: ignore[attr-defined]
+            )
+        )
+    await db_session.execute(
+        sql_delete(DiscussionComment).where(
+            DiscussionComment.discussion_id == discussion_id
+        )
+    )
+    await db_session.execute(
+        sql_delete(DiscussionVote).where(DiscussionVote.discussion_id == discussion_id)
+    )
+    await db_session.execute(
+        sql_delete(DiscussionReaction).where(
+            DiscussionReaction.discussion_id == discussion_id
+        )
+    )
+
+
 async def delete_discussion(
     request: Request,
     discussion_uuid: str,
@@ -659,6 +696,17 @@ async def delete_discussion(
 
     if not is_author and not is_admin:
         raise HTTPException(status_code=403, detail="You don't have permission to delete this discussion")
+
+    # Primero lo que cuelga del mensaje, y luego el mensaje.
+    #
+    # Los modelos declaran ON DELETE CASCADE, pero eso solo vale si la
+    # restricción se creó así en la base de datos de verdad: en tablas que ya
+    # existían antes de que se añadiera el CASCADE, `create_all` NO cambia la
+    # restricción. Cuando eso pasa, borrar un mensaje que tiene una reacción o
+    # un comentario falla con un error de integridad — un 500 que en pantalla
+    # se lee como "no se pudo eliminar", sin más pistas. Borrando a mano lo de
+    # abajo, el borrado funciona en los dos casos.
+    await _delete_discussion_children(discussion.id or 0, db_session)
 
     await db_session.delete(discussion)
     await db_session.commit()

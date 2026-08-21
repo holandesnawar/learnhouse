@@ -151,8 +151,8 @@ export default function ChannelPosts({
     try {
       await deleteDiscussion(uuid, accessToken)
       mutateDiscussions(communityUuid)
-    } catch {
-      toast.error('No se pudo eliminar')
+    } catch (e: any) {
+      toast.error(e?.message || 'No se pudo eliminar el post.', { duration: 10000 })
     }
   }
 
