@@ -71,14 +71,28 @@ export default function SeedCommunity() {
         { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` } }
       )
       if (!res.ok) {
-        const detail = await res.text()
+        // El motivo de verdad, no un "algo ha fallado": sin él no hay forma de
+        // saber qué arreglar.
+        let detail = `El servidor respondió ${res.status}`
+        try {
+          const data = await res.json()
+          if (data?.detail) detail = String(data.detail)
+        } catch {
+          const text = await res.text().catch(() => '')
+          if (text) detail = text.slice(0, 300)
+        }
         throw new Error(detail)
       }
       const data = await res.json()
       setDone(data)
-      toast.success('Comunidad sembrada')
+      // Puede haber ido bien a medias: cuatro personas sí y una no.
+      if (Array.isArray(data?.errores) && data.errores.length > 0) {
+        toast.error(`No se pudo con: ${data.errores.join(' · ')}`, { duration: 12000 })
+      } else {
+        toast.success('Comunidad sembrada')
+      }
     } catch (e: any) {
-      toast.error('No se pudo sembrar. Mira los detalles y vuelve a intentarlo.')
+      toast.error(e?.message || 'No se pudo sembrar', { duration: 12000 })
       console.error(e)
     } finally {
       setRunning(false)

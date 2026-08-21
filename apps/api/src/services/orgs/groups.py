@@ -144,6 +144,18 @@ async def add_user_to_students(user_id: int, org_id: int, db_session: AsyncSessi
     if not is_new:
         return
 
+    # Su conversación con el equipo, con la bienvenida dentro, se crea AHORA —
+    # al nacer la cuenta. Antes nacía la primera vez que el alumno miraba sus
+    # mensajes, y eso tenía dos pegas: el sobre no se encendía hasta entonces
+    # (así que la bienvenida no se veía), y desde el panel no aparecía en la
+    # bandeja hasta que el alumno entrase por su cuenta.
+    try:
+        from src.services.messages.direct import get_or_create_thread
+
+        await get_or_create_thread(org_id, user_id, db_session)
+    except Exception:  # noqa: BLE001
+        logger.exception("No se pudo crear la conversación de bienvenida de %s", user_id)
+
     # Y lo que el admin haya montado para este momento. Fuera del try de
     # arriba: un correo mal puesto no puede tumbar un alta ni un cobro (dentro
     # ya se traga sus propios errores).

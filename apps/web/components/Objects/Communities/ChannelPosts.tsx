@@ -206,9 +206,14 @@ export default function ChannelPosts({
             const cover = files.find((f) => f.kind === 'image')
             const body = bodyOf(d)
             const mine = (d.author as any)?.id === currentUserId
+            // La página del post vuelve a añadir los prefijos `community_` y
+            // `discussion_`, así que aquí van SIN ellos. Con el identificador
+            // entero buscaba `discussion_discussion_…`, no encontraba nada y
+            // enseñaba "no tienes acceso" — que además no era verdad.
             const href = getUriWithOrg(
               orgslug,
-              `/community/${communityUuid}/discussion/${d.discussion_uuid}`
+              `/community/${communityUuid.replace('community_', '')}` +
+                `/discussion/${d.discussion_uuid.replace('discussion_', '')}`
             )
             return (
               <article

@@ -262,33 +262,49 @@ async def seed_community(
     created_posts = 0
     skipped_posts = 0
     seed_ids: List[int] = []
+    errores: List[str] = []
 
+    # Cada persona va en su propio try. Antes, un fallo en la quinta tiraba la
+    # llamada entera y el panel decía "no se pudo sembrar" sin más: se perdía
+    # la señal de qué había fallado y parecía que no había funcionado nada,
+    # cuando en realidad las cuatro anteriores estaban hechas.
     for persona in PERSONAS:
-        user, is_new = await _get_or_create_user(persona, org_id, db_session)
-        seed_ids.append(int(user.id or 0))
-        if is_new:
-            created_users.append(f"{persona.first_name} {persona.last_name}")
+        nombre = f"{persona.first_name} {persona.last_name}"
+        try:
+            user, is_new = await _get_or_create_user(persona, org_id, db_session)
+            seed_ids.append(int(user.id or 0))
+            if is_new:
+                created_users.append(nombre)
 
-        if await _post(
-            f"Me presento: {persona.first_name}",
-            persona.presentation,
-            user,
-            community,
-            org_id,
-            db_session,
-        ):
-            created_posts += 1
-        else:
-            skipped_posts += 1
+            if await _post(
+                f"Me presento: {persona.first_name}",
+                persona.presentation,
+                user,
+                community,
+                org_id,
+                db_session,
+            ):
+                created_posts += 1
+            else:
+                skipped_posts += 1
 
-        if include_extras:
-            for extra in persona.extras:
-                # El título de un mensaje suelto es su primera línea recortada.
-                title = extra.split("\n")[0][:70].rstrip(" .,") or "Mensaje"
-                if await _post(title, extra, user, community, org_id, db_session):
-                    created_posts += 1
-                else:
-                    skipped_posts += 1
+            if include_extras:
+                for extra in persona.extras:
+                    # El título de un mensaje suelto es su primera línea recortada.
+                    title = extra.split("\n")[0][:70].rstrip(" .,") or "Mensaje"
+                    if await _post(title, extra, user, community, org_id, db_session):
+                        created_posts += 1
+                    else:
+                        skipped_posts += 1
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("No se pudo sembrar a %s", nombre)
+            errores.append(f"{nombre}: {exc}"[:300])
+            # La sesión se queda inservible tras un fallo de base de datos:
+            # sin esto, las personas siguientes fallarían también en cadena.
+            try:
+                await db_session.rollback()
+            except Exception:  # noqa: BLE001
+                logger.exception("Tampoco se pudo deshacer la operación")
 
     await _remember_seed_users(org_id, seed_ids, db_session)
 
@@ -298,6 +314,8 @@ async def seed_community(
         "cuentas_totales": len(PERSONAS),
         "mensajes_publicados": created_posts,
         "mensajes_ya_estaban": skipped_posts,
+        # Vacío = ha ido todo bien. Si no, aquí está el porqué, en cristiano.
+        "errores": errores,
     }
 
 

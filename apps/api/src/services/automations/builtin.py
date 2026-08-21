@@ -59,6 +59,10 @@ BUILTIN_FLOWS: list[dict] = [
                 "where": "services/orgs/groups.py · add_user_to_students",
             },
             {
+                "text": "Se le abre su conversación con el equipo, con la bienvenida ya dentro.",
+                "where": "services/messages/direct.py · get_or_create_thread",
+            },
+            {
                 "text": "Se ejecutan tus automatizaciones de «Cuando alguien entra en la escuela».",
                 "where": "services/automations/engine.py",
             },
@@ -66,16 +70,20 @@ BUILTIN_FLOWS: list[dict] = [
     },
     {
         "id": "first_messages",
-        "title": "La primera vez que mira sus mensajes",
-        "summary": "Para que nadie se encuentre una pantalla vacía el primer día.",
+        "title": "La bienvenida en Mis mensajes",
+        "summary": "Le está esperando desde el momento en que se crea la cuenta.",
         "steps": [
             {
-                "text": "Se le crea su conversación con el equipo.",
-                "where": "services/messages/direct.py · get_or_create_thread",
+                "text": "Nada más crearse la cuenta se le abre su conversación con el equipo.",
+                "where": "services/orgs/groups.py · add_user_to_students",
             },
             {
                 "text": "Nace con el mensaje de bienvenida dentro (el que tú escribes en Ajustes de los mensajes).",
                 "where": "services/messages/direct.py · welcome_text",
+            },
+            {
+                "text": "El sobre del menú se le enciende sin tener que entrar a mirar, y a ti te aparece ya en la bandeja.",
+                "where": "services/messages/direct.py · unread_total",
             },
         ],
     },
