@@ -5,6 +5,7 @@ import { BookOpen, HelpCircle, Lightbulb } from 'lucide-react'
 import { GUIDES, type Guide, type GuideBlock } from './guidesContent'
 import { FORMACION_FAQ, FORMACION_FAQ_INTRO } from './faqContent'
 import CourseIndex from './CourseIndex'
+import Collapsible from './Collapsible'
 import type { ChapterLike } from '@/lib/course/formacionProgress'
 
 /** Convierte **negritas** en <strong> y *cursivas* en <em>. Nada más. */
@@ -166,6 +167,8 @@ export default function SchoolGuide({
   const guide: Guide | undefined = GUIDES[guideId]
   const isFaq = guideId === 'faq'
   const isIndex = guideId === 'indice'
+  // Una pregunta abierta cada vez: abrir la siguiente cierra la anterior.
+  const [openFaq, setOpenFaq] = React.useState<number | null>(null)
 
   // Se marca como vista al abrirla (es lectura, no hay nada que aprobar).
   useEffect(() => {
@@ -197,25 +200,22 @@ export default function SchoolGuide({
           {FORMACION_FAQ_INTRO}
         </p>
 
-        <div className="mt-6 space-y-3">
+        <div className="mt-6 space-y-2.5">
           {FORMACION_FAQ.map((faq, i) => (
-            <div
+            <Collapsible
               key={i}
-              className="rounded-xl border border-[#DDE6F5] bg-white px-4 sm:px-5 py-4"
+              open={openFaq === i}
+              onToggle={() => setOpenFaq((cur) => (cur === i ? null : i))}
+              header={
+                <span className="text-[15px] font-semibold text-[#1D0084] leading-snug">
+                  {faq.q}
+                </span>
+              }
             >
-              <p
-                className="text-[15px] font-semibold text-[#1D0084] leading-snug"
-                style={{
-                  fontFamily:
-                    'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")',
-                }}
-              >
-                {faq.q}
-              </p>
-              <p className="text-[14.5px] text-[#3F4A61] leading-relaxed mt-1.5">
+              <p className="px-4 sm:px-5 py-4 text-[14.5px] text-[#3F4A61] leading-relaxed">
                 {rich(faq.a)}
               </p>
-            </div>
+            </Collapsible>
           ))}
         </div>
 
