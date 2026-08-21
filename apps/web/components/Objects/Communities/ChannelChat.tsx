@@ -736,7 +736,7 @@ export function ChannelChat({
 
       {/* Messages */}
       <div className="relative flex-1 min-h-0 flex flex-col">
-      <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto py-3">
+      <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto overflow-x-hidden py-3">
         {isLoading && messages.length === 0 ? (
           <div className="flex justify-center py-8">
             <Loader2 size={22} className="animate-spin text-gray-400" />
@@ -1012,15 +1012,19 @@ export function ChannelChat({
                                         href={f.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className={`inline-flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12.5px] transition-colors ${
+                                        // `max-w-full` + `min-w-0`: un nombre de
+                                        // archivo largo se corta con puntos
+                                        // suspensivos en vez de estirar el globo
+                                        // y sacar el texto fuera de la pantalla.
+                                        className={`inline-flex max-w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12.5px] transition-colors ${
                                           isOwn
                                             ? 'bg-white/15 hover:bg-white/25 text-white'
                                             : 'bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7]'
                                         }`}
                                       >
                                         <FileText size={14} className="shrink-0" />
-                                        <span className="truncate max-w-[180px]">{f.name}</span>
-                                        <span className="opacity-70 tabular-nums">
+                                        <span className="truncate min-w-0">{f.name}</span>
+                                        <span className="shrink-0 opacity-70 tabular-nums">
                                           {prettySize(f.size)}
                                         </span>
                                       </a>
@@ -1041,8 +1045,12 @@ export function ChannelChat({
                             empujaban el globo y se veían siempre a medias. */}
                         {accessToken && (
                           <div
+                            // La barra se ancla al MISMO lado en el que está el
+                            // globo y crece hacia dentro. Al revés (que es como
+                            // estaba) un mensaje corto la lanzaba fuera del
+                            // chat y la página se podía arrastrar a los lados.
                             className={`absolute -top-3.5 z-10 flex items-center gap-0.5 rounded-lg border border-[#E3E8EF] bg-white px-0.5 py-0.5 shadow-sm transition-opacity ${
-                              isOwn ? 'left-0' : 'right-0'
+                              isOwn ? 'right-0' : 'left-0'
                             } ${
                               pickerUuid === m.discussion_uuid || activeUuid === m.discussion_uuid
                                 ? 'opacity-100'
@@ -1051,6 +1059,7 @@ export function ChannelChat({
                           >
                             <MessageAction
                               label="Reaccionar"
+                              align={isOwn ? 'right' : 'left'}
                               onClick={() =>
                                 setPickerUuid((cur) =>
                                   cur === m.discussion_uuid ? null : m.discussion_uuid
@@ -1061,12 +1070,14 @@ export function ChannelChat({
                             </MessageAction>
                             <MessageAction
                               label="Responder en un hilo"
+                              align={isOwn ? 'right' : 'left'}
                               onClick={() => onOpenThread?.(m.discussion_uuid)}
                             >
                               <MessageSquare size={15} />
                             </MessageAction>
                             <MessageAction
                               label="Citar en el canal"
+                              align={isOwn ? 'right' : 'left'}
                               onClick={() =>
                                 setReplyingTo({
                                   author: authorName(m.author),
@@ -1078,7 +1089,11 @@ export function ChannelChat({
                               <Reply size={15} />
                             </MessageAction>
                             {canEdit(m) && (
-                              <MessageAction label="Editar" onClick={() => startEdit(m)}>
+                              <MessageAction
+                                label="Editar"
+                                align={isOwn ? 'right' : 'left'}
+                                onClick={() => startEdit(m)}
+                              >
                                 <Pencil size={14} />
                               </MessageAction>
                             )}
@@ -1086,6 +1101,7 @@ export function ChannelChat({
                               <MessageAction
                                 label="Eliminar"
                                 danger
+                                align={isOwn ? 'right' : 'left'}
                                 onClick={() => removeMessage(m.discussion_uuid)}
                               >
                                 <Trash2 size={14} />

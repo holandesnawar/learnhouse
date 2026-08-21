@@ -68,8 +68,22 @@ export default function VoiceRecorder({
           return s + 1
         })
       }, 1000)
-    } catch {
-      toast.error('No hemos podido usar el micrófono. Revisa los permisos del navegador.')
+    } catch (e: any) {
+      // Distinguir el "me has dicho que no" del "ni siquiera te lo he
+      // preguntado" importa: con el mensaje genérico el usuario buscaba un
+      // permiso que el navegador nunca le había pedido.
+      const name = e?.name || ''
+      if (name === 'NotAllowedError' || name === 'SecurityError') {
+        toast.error(
+          'El navegador no nos deja usar el micrófono. Ábrelo desde el candado de la barra de direcciones y permite el micrófono para esta página.'
+        )
+      } else if (name === 'NotFoundError' || name === 'OverconstrainedError') {
+        toast.error('No hemos encontrado ningún micrófono conectado.')
+      } else if (name === 'NotReadableError') {
+        toast.error('El micrófono lo está usando otro programa. Ciérralo y vuelve a intentarlo.')
+      } else {
+        toast.error('No hemos podido usar el micrófono. Inténtalo otra vez.')
+      }
     }
   }
 

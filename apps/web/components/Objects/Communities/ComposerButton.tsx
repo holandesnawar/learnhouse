@@ -29,6 +29,9 @@ export default function ComposerButton({
   children: React.ReactNode
 }) {
   return (
+    // La etiqueta crece hacia la DERECHA desde el borde del botón, no centrada.
+    // Centrada, la del primer icono ("Adjuntar un archivo") se salía por la
+    // izquierda de la pantalla, encima del menú.
     <div className="relative group/tip shrink-0">
       <button
         type="button"
@@ -43,7 +46,7 @@ export default function ComposerButton({
       </button>
       <span
         role="tooltip"
-        className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 whitespace-nowrap rounded-md bg-[#025dc7] px-2 py-1 text-[11px] font-medium text-white opacity-0 group-hover/tip:opacity-100 transition-opacity duration-150 hidden sm:block"
+        className="pointer-events-none absolute bottom-full left-0 mb-1.5 whitespace-nowrap rounded-md bg-[#025dc7] px-2 py-1 text-[11px] font-medium text-white opacity-0 group-hover/tip:opacity-100 transition-opacity duration-150 hidden sm:block"
       >
         {label}
       </span>

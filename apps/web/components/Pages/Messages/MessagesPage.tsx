@@ -332,7 +332,7 @@ export default function MessagesPage() {
         </button>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto lh-thin-scroll px-3 py-3 space-y-1.5">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden lh-thin-scroll px-3 py-3 space-y-1.5">
         {threads.length === 0 ? (
           <p className="text-sm text-gray-500 px-1 py-3">
             {isStaff
@@ -407,7 +407,7 @@ export default function MessagesPage() {
 
       <div
         ref={scrollRef}
-        className="flex-1 min-h-0 overflow-y-auto lh-thin-scroll px-3 sm:px-4 py-4 space-y-3"
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden lh-thin-scroll px-3 sm:px-4 py-4 space-y-3"
       >
         {messages.length === 0 ? (
           <p className="text-center text-sm text-gray-400 py-10">
@@ -910,16 +910,18 @@ function Bubble({
                     href={mediaSrc(f.url)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`inline-flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12.5px] transition-colors ${
+                    // `max-w-full` + `min-w-0`: un nombre largo se corta con
+                    // puntos suspensivos en vez de sacar el texto de la pantalla.
+                    className={`inline-flex max-w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12.5px] transition-colors ${
                       mine
                         ? 'bg-white/15 hover:bg-white/25 text-white'
                         : 'bg-white hover:bg-[#e3edff] text-[#025dc7]'
                     }`}
                   >
                     <FileText size={14} className="shrink-0" />
-                    <span className="truncate max-w-[180px]">{f.name}</span>
+                    <span className="truncate min-w-0">{f.name}</span>
                     {!!f.size && (
-                      <span className="opacity-70 tabular-nums">{prettySize(f.size)}</span>
+                      <span className="shrink-0 opacity-70 tabular-nums">{prettySize(f.size)}</span>
                     )}
                   </a>
                 )

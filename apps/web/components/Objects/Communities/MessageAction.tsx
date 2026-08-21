@@ -12,12 +12,19 @@ export default function MessageAction({
   label,
   onClick,
   danger = false,
+  align = 'left',
   children,
 }: {
   label: string
   onClick: () => void
   /** Para eliminar: en rojo al pasar por encima. */
   danger?: boolean
+  /**
+   * Hacia dónde crece la etiqueta. En los mensajes propios la barra vive
+   * pegada al borde derecho, así que la etiqueta tiene que crecer hacia la
+   * izquierda: centrada se salía de la pantalla y sacaba barra de desplazamiento.
+   */
+  align?: 'left' | 'right'
   children: React.ReactNode
 }) {
   return (
@@ -34,7 +41,9 @@ export default function MessageAction({
       </button>
       <span
         role="tooltip"
-        className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 whitespace-nowrap rounded-md bg-[#025dc7] px-2 py-1 text-[11px] font-medium text-white opacity-0 group-hover/act:opacity-100 transition-opacity duration-150 hidden sm:block"
+        className={`pointer-events-none absolute bottom-full mb-1.5 whitespace-nowrap rounded-md bg-[#025dc7] px-2 py-1 text-[11px] font-medium text-white opacity-0 group-hover/act:opacity-100 transition-opacity duration-150 hidden sm:block ${
+          align === 'right' ? 'right-0' : 'left-0'
+        }`}
       >
         {label}
       </span>
