@@ -87,7 +87,7 @@ function dayKey(date: string): string {
   return localDay(date).format('YYYY-MM-DD')
 }
 
-function getAvatarUrl(author: DiscussionAuthor | null): string | null {
+export function getAvatarUrl(author: DiscussionAuthor | null): string | null {
   if (!author?.avatar_image) return null
   if (author.avatar_image.startsWith('http://') || author.avatar_image.startsWith('https://')) {
     return author.avatar_image
@@ -233,9 +233,14 @@ export function ChannelChat({
   channelName,
   threadUuid = null,
   onOpenThread,
+  searching = false,
+  onSearchingChange,
 }: {
   communityUuid: string
   channelName: string
+  /** La lupa vive en la cabecera de la página. */
+  searching?: boolean
+  onSearchingChange?: (open: boolean) => void
   /** El hilo abierto ahora (lo gobierna la página: cambia la columna derecha). */
   threadUuid?: string | null
   onOpenThread?: (uuid: string | null) => void
@@ -276,7 +281,6 @@ export function ChannelChat({
   >(null)
   // Buscador dentro del canal y estado del scroll (ver más abajo).
   const [query, setQuery] = useState('')
-  const [searching, setSearching] = useState(false)
   const [atBottom, setAtBottom] = useState(true)
   const [unseenBelow, setUnseenBelow] = useState(0)
   const [flashUuid, setFlashUuid] = useState<string | null>(null)
@@ -530,6 +534,21 @@ export function ChannelChat({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mentionQuery, messages])
 
+  /**
+   * Solo una herramienta abierta a la vez (grabadora, emojis, encuesta).
+   * Abrir una cierra la anterior: si no, se apilan tres cajas encima del
+   * compositor y ninguna dice cómo cerrarse.
+   */
+  const openTool = (tool: 'voz' | 'emoji' | 'encuesta' | null) => {
+    setRecording(tool === 'voz')
+    setEmojiOpen(tool === 'emoji')
+    if (tool === 'encuesta') {
+      setPollDraft((cur) => cur ?? { question: '', options: ['', ''] })
+    } else {
+      setPollDraft(null)
+    }
+  }
+
   const onComposerChange = (value: string) => {
     setText(value)
     // ¿Está escribiendo una mención justo ahora? (@ al final de la palabra)
@@ -681,45 +700,39 @@ export function ChannelChat({
   }
 
   return (
-    // Se estira a lo que le dé el contenedor: la página le da todo el alto que
-    // queda de pantalla, así el compositor acaba pegado abajo del todo. Antes
-    // llevaba un alto fijo y quedaba flotando a media página.
-    <div className="relative flex flex-col h-full min-h-[420px]">
-      {/* Barra de búsqueda del canal */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100">
-        <button
-          type="button"
-          onClick={() => {
-            setSearching((v) => !v)
-            if (searching) setQuery('')
-          }}
-          title="Buscar en el canal"
-          aria-label="Buscar en el canal"
-          className={`shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
-            searching ? 'bg-[#025dc7]/10 text-[#025dc7]' : 'text-gray-400 hover:text-[#025dc7] hover:bg-gray-50'
-          }`}
-        >
-          <Search size={16} />
-        </button>
-        {searching ? (
-          <>
-            <input
-              autoFocus
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar palabra o persona…"
-              className="flex-1 min-w-0 bg-gray-50 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-[#025dc7]/20"
-            />
-            <span className="shrink-0 text-[12px] text-gray-400 tabular-nums">
-              {query.trim() ? `${visibleMessages.length} resultado${visibleMessages.length === 1 ? '' : 's'}` : ''}
-            </span>
-          </>
-        ) : (
-          <span className="text-[12.5px] text-gray-400 truncate">
-            Buscar en {channelName}
+    // Se estira a lo que le dé la página, que es quien manda: aquí no hay
+    // alto fijo ni marco propio. La página ES el chat.
+    <div className="relative flex flex-col h-full min-h-0">
+      {/* Cinta de búsqueda: solo cuando la página la pide. La lupa vive en la
+          cabecera del canal, no dentro del chat. */}
+      {searching && (
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-[#EEF3FB] bg-[#FCFDFF]">
+          <Search size={15} className="shrink-0 text-[#8A96AB]" />
+          <input
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={`Buscar en ${channelName}…`}
+            className="flex-1 min-w-0 bg-transparent text-[13.5px] outline-none placeholder:text-[#9CA3AF]"
+          />
+          <span className="shrink-0 text-[12px] text-[#8A96AB] tabular-nums">
+            {query.trim()
+              ? `${visibleMessages.length} resultado${visibleMessages.length === 1 ? '' : 's'}`
+              : ''}
           </span>
-        )}
-      </div>
+          <button
+            type="button"
+            onClick={() => {
+              setQuery('')
+              onSearchingChange?.(false)
+            }}
+            aria-label="Cerrar la búsqueda"
+            className="shrink-0 text-[#9CA3AF] hover:text-[#025dc7] transition-colors"
+          >
+            <X size={15} />
+          </button>
+        </div>
+      )}
 
       {/* Messages */}
       <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto py-3">
@@ -1190,7 +1203,7 @@ export function ChannelChat({
 
       {/* Composer */}
       <AuthenticatedClientElement checkMethod="authentication">
-        <div className="border-t border-gray-100 p-3">
+        <div className="shrink-0 border-t border-[#EEF3FB] px-4 sm:px-6 py-3">
           {replyingTo && (
             <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-[#F0F5FF] rounded-lg border-l-2 border-[#4da3ff]">
               <Reply size={14} className="shrink-0 text-[#025dc7]" />
@@ -1211,7 +1224,18 @@ export function ChannelChat({
           {/* Encuesta en preparación */}
           {/* Grabadora de voz, abierta desde el micrófono */}
           {recording && (
-            <div className="mb-2 rounded-xl bg-white border border-[#DDE6F5] px-3 py-2.5">
+            <div className="mb-2 rounded-xl bg-white border border-[#E3E8EF] px-3 py-2.5">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[12px] font-semibold text-[#5A6480]">Nota de voz</span>
+                <button
+                  type="button"
+                  onClick={() => openTool(null)}
+                  aria-label="Cerrar la grabadora"
+                  className="text-[#9CA3AF] hover:text-[#025dc7] transition-colors"
+                >
+                  <X size={15} />
+                </button>
+              </div>
               <VoiceRecorder onSend={attachVoice} sending={uploading} />
             </div>
           )}
@@ -1381,7 +1405,7 @@ export function ChannelChat({
               {/* Nota de voz — en una escuela de idiomas es la estrella */}
               <ComposerButton
                 label="Grabar una nota de voz"
-                onClick={() => setRecording((v) => !v)}
+                onClick={() => openTool(recording ? null : 'voz')}
                 active={recording}
               >
                 <Mic size={17} />
@@ -1390,7 +1414,7 @@ export function ChannelChat({
               {/* Emojis */}
               <ComposerButton
                 label="Emojis"
-                onClick={() => setEmojiOpen((v) => !v)}
+                onClick={() => openTool(emojiOpen ? null : 'emoji')}
                 active={emojiOpen}
               >
                 <SmilePlus size={17} />
@@ -1404,9 +1428,7 @@ export function ChannelChat({
               {isAdmin && (
                 <ComposerButton
                   label="Crear una encuesta"
-                  onClick={() =>
-                    setPollDraft((cur) => (cur ? null : { question: '', options: ['', ''] }))
-                  }
+                  onClick={() => openTool(pollDraft ? null : 'encuesta')}
                   active={!!pollDraft}
                 >
                   <BarChart3 size={17} />

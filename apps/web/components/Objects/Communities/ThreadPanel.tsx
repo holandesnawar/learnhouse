@@ -16,10 +16,10 @@ import {
   type ChatAttachment,
   type DiscussionWithAuthor,
 } from '@services/communities/discussions'
-import { getUserAvatarMediaDirectory } from '@services/media/media'
 import UserAvatar from '@components/Objects/UserAvatar'
 import VoiceRecorder from '@components/Pages/Messages/VoiceRecorder'
 import ComposerButton from './ComposerButton'
+import { getAvatarUrl } from './ChannelChat'
 
 dayjs.extend(relativeTime)
 dayjs.extend(utc)
@@ -92,18 +92,11 @@ function Message({ m }: { m: DiscussionWithAuthor }) {
   return (
     <div className="flex gap-2.5">
       <UserAvatar
-        width={28}
-        avatar_url={
-          (m.author as any)?.avatar_image
-            ? getUserAvatarMediaDirectory(
-                (m.author as any).user_uuid,
-                (m.author as any).avatar_image
-              )
-            : undefined
-        }
-        predefined_avatar={(m.author as any)?.avatar_image ? undefined : 'empty'}
-        userId={String((m.author as any)?.id ?? '')}
+        width={30}
         rounded="rounded-full"
+        avatar_url={getAvatarUrl(m.author) || undefined}
+        predefined_avatar={m.author?.avatar_image ? undefined : 'empty'}
+        userId={m.author?.id?.toString()}
       />
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
@@ -251,8 +244,10 @@ export default function ThreadPanel({
   }
 
   return (
-    <div className="flex flex-col h-full bg-white nice-shadow rounded-2xl overflow-hidden">
-      <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-[#EEF3FB]">
+    // Sin tarjeta ni sombra: el hilo es una parte de la pantalla del canal,
+    // no una cajita flotando dentro de ella.
+    <div className="flex flex-col h-full min-h-0 bg-white">
+      <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-b border-[#EEF3FB]">
         <div className="flex items-center gap-2 min-w-0">
           <MessageSquare size={16} className="text-[#025dc7] shrink-0" />
           <h2 className="text-[14px] font-bold text-gray-900">Hilo</h2>
@@ -267,7 +262,7 @@ export default function ThreadPanel({
         </button>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-3">
+      <div className="min-h-0 overflow-y-auto px-4 py-3 space-y-3">
         {parent ? (
           <>
             <Message m={parent} />
@@ -291,7 +286,7 @@ export default function ThreadPanel({
       </div>
 
       {accessToken && parent && (
-        <div className="px-3 pb-3">
+        <div className="px-3 pb-3 pt-1">
           {recording && (
             <div className="mb-2 rounded-xl bg-white border border-[#E3E8EF] px-3 py-2.5">
               <VoiceRecorder onSend={attachVoice} sending={uploading} />

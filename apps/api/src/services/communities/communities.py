@@ -65,6 +65,9 @@ async def create_community(
         name=community_object.name,
         description=community_object.description,
         public=community_object.public,
+        # Chat o tablón. Se construye campo a campo, así que un campo nuevo hay
+        # que traerlo a mano: sin esta línea el canal nacía siempre como chat.
+        kind=community_object.kind if community_object.kind in ("chat", "posts") else "chat",
         org_id=org_id,
         course_id=community_object.course_id,
         community_uuid=f"community_{uuid4()}",

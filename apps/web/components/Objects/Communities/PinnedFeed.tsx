@@ -65,7 +65,14 @@ function plainText(d: DiscussionWithAuthor): string {
  * Side-feed of pinned messages for the current channel. Same react-query cache
  * as ChannelChat, so no extra network call.
  */
-export default function PinnedFeed({ communityUuid }: { communityUuid: string }) {
+export default function PinnedFeed({
+  communityUuid,
+  hideHeader = false,
+}: {
+  communityUuid: string
+  /** La pantalla del canal pone su propia cabecera y su propio marco. */
+  hideHeader?: boolean
+}) {
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
   const { isAdmin } = useAdminStatus() as any
@@ -98,13 +105,17 @@ export default function PinnedFeed({ communityUuid }: { communityUuid: string })
   }
 
   return (
-    <aside className="bg-white nice-shadow rounded-2xl overflow-y-auto max-h-full">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
-        <Pin size={16} className="text-[#025dc7]" />
-        <h3 className="text-sm font-bold text-gray-900">Fijados</h3>
-      </div>
+    // `hideHeader`: dentro de la pantalla del canal, la cabecera y el marco los
+    // pone la página (los fijados son una parte de ella, no una tarjeta suelta).
+    <aside className={hideHeader ? '' : 'bg-white nice-shadow rounded-2xl overflow-hidden'}>
+      {!hideHeader && (
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+          <Pin size={16} className="text-[#025dc7]" />
+          <h3 className="text-sm font-bold text-gray-900">Fijados</h3>
+        </div>
+      )}
 
-      <div className="max-h-[68vh] overflow-y-auto">
+      <div className={hideHeader ? '' : 'max-h-[68vh] overflow-y-auto'}>
         {pinned.length === 0 ? (
           <div className="px-4 py-8 text-center">
             <p className="text-xs text-gray-400 leading-relaxed">

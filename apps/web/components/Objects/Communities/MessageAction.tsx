@@ -26,10 +26,8 @@ export default function MessageAction({
         type="button"
         onClick={onClick}
         aria-label={label}
-        className={`inline-flex items-center justify-center w-7 h-7 rounded-md transition-colors ${
-          danger
-            ? 'text-[#6B7280] hover:text-rose-600 hover:bg-rose-50'
-            : 'text-[#4B5563] hover:text-[#025dc7] hover:bg-[#F0F5FF]'
+        className={`inline-flex items-center justify-center w-7 h-7 transition-colors ${
+          danger ? 'text-[#6B7280] hover:text-rose-600' : 'text-[#4B5563] hover:text-[#025dc7]'
         }`}
       >
         {children}
