@@ -735,6 +735,7 @@ export function ChannelChat({
       )}
 
       {/* Messages */}
+      <div className="relative flex-1 min-h-0 flex flex-col">
       <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto py-3">
         {isLoading && messages.length === 0 ? (
           <div className="flex justify-center py-8">
@@ -1187,12 +1188,14 @@ export function ChannelChat({
         )}
       </div>
 
-      {/* Volver abajo (con cuántos te has perdido mientras leías arriba) */}
+      {/* Volver abajo (con cuántos te has perdido mientras leías arriba).
+          Va dentro de la zona de mensajes y pegado a su borde inferior: así
+          queda justo encima del compositor, mida este lo que mida. */}
       {!atBottom && (
         <button
           type="button"
           onClick={scrollToBottom}
-          className="absolute bottom-24 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#025dc7] text-white text-[12.5px] font-semibold shadow-lg hover:bg-[#0b6df0] transition-colors"
+          className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-[#DDE6F5] text-[#025dc7] text-[12px] font-semibold shadow-md hover:border-[#4da3ff] transition-colors"
         >
           <ArrowDown size={14} />
           {unseenBelow > 0
@@ -1200,6 +1203,8 @@ export function ChannelChat({
             : 'Ir al final'}
         </button>
       )}
+
+      </div>
 
       {/* Composer */}
       <AuthenticatedClientElement checkMethod="authentication">

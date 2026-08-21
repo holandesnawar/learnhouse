@@ -20,6 +20,7 @@ import {
 } from '@services/messages/direct'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import VoiceRecorder from './VoiceRecorder'
+import ComposerButton from '@components/Objects/Communities/ComposerButton'
 import { COMPOSER_EMOJIS } from '@/lib/chat/emojis'
 import toast from 'react-hot-toast'
 import {
@@ -31,6 +32,7 @@ import {
   MessageSquare,
   Pencil,
   PenSquare,
+  Mic,
   Search,
   Send,
   Smile,
@@ -62,6 +64,8 @@ export default function MessagesPage() {
   const [activeAvatar, setActiveAvatar] = useState('')
   const [activeRole, setActiveRole] = useState('')
   const [emojiOpen, setEmojiOpen] = useState(false)
+  // La grabadora se abre desde su icono, como en la comunidad.
+  const [recording, setRecording] = useState(false)
   // Avisar al alumno por correo con ESTE mensaje. Apagado por defecto: el
   // sobre y la campana ya avisan dentro, el correo es para lo importante.
   const [notify, setNotify] = useState(false)
@@ -295,7 +299,7 @@ export default function MessagesPage() {
   )
 
   const conversation = (
-    <div className="flex flex-col h-[70vh] min-h-[420px] bg-white border border-[#DDE6F5] rounded-2xl overflow-hidden">
+    <div className="flex flex-col h-[calc(100dvh-320px)] min-h-[460px] bg-white border border-[#E3E8EF] rounded-2xl overflow-hidden">
       {/* Cabecera: en móvil lleva la flecha para volver a la lista */}
       <div className="flex items-center gap-2 px-3 py-2.5 border-b border-[#EEF2FB]">
         <button
@@ -363,62 +367,95 @@ export default function MessagesPage() {
         </div>
       )}
 
-      <div className="border-t border-[#EEF2FB] p-3 flex items-end gap-2">
-        <VoiceRecorder onSend={sendVoice} sending={sending} />
-        {isStaff && (
-          <button
-            type="button"
-            onClick={() => setNotify((v) => !v)}
-            title={notify ? 'Se avisará por correo' : 'Avisar por correo al enviar'}
-            aria-label="Avisar por correo"
-            aria-pressed={notify}
-            className={`shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg transition-colors ${
-              notify
-                ? 'bg-[#025dc7]/10 text-[#025dc7]'
-                : 'text-gray-400 hover:text-[#025dc7] hover:bg-[#F0F5FF]'
-            }`}
-          >
-            <BellRing size={18} />
-          </button>
+      {/* El mismo compositor que la comunidad: el texto arriba, los iconos
+          debajo y sin bolitas grises. Que Mis mensajes y la comunidad se
+          escriban igual es lo que hace que la escuela parezca una sola cosa. */}
+      <div className="border-t border-[#EEF2FB] px-3 py-3">
+        {recording && (
+          <div className="mb-2 rounded-xl bg-white border border-[#E3E8EF] px-3 py-2.5">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[12px] font-semibold text-[#5A6480]">Nota de voz</span>
+              <button
+                type="button"
+                onClick={() => setRecording(false)}
+                aria-label="Cerrar la grabadora"
+                className="text-[#9CA3AF] hover:text-[#025dc7] transition-colors"
+              >
+                <X size={15} />
+              </button>
+            </div>
+            <VoiceRecorder onSend={sendVoice} sending={sending} />
+          </div>
         )}
-        <button
-          type="button"
-          onClick={() => setEmojiOpen((v) => !v)}
-          title="Emojis"
-          aria-label="Emojis"
-          className={`shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg transition-colors ${
-            emojiOpen ? 'bg-[#025dc7]/10 text-[#025dc7]' : 'text-gray-400 hover:text-[#025dc7] hover:bg-[#F0F5FF]'
-          }`}
-        >
-          <Smile size={18} />
-        </button>
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault()
-              sendText()
-            }
-          }}
-          rows={1}
-          placeholder="Escribe tu mensaje…"
-          className="flex-1 resize-none bg-gray-50 rounded-xl px-3 py-2.5 text-[15px] sm:text-sm text-gray-900 placeholder:text-gray-400 outline-none max-h-32 focus:ring-2 focus:ring-[#025dc7]/20"
-        />
-        <button
-          onClick={sendText}
-          disabled={!text.trim() || sending}
-          aria-label="Enviar"
-          className="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg text-white bg-[#025dc7] hover:bg-[#0b6df0] transition-colors disabled:opacity-40"
-        >
-          {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-        </button>
+
+        <div className="rounded-xl border border-[#E3E8EF] bg-white transition-colors focus-within:border-[#4da3ff] focus-within:ring-[3px] focus-within:ring-[#4da3ff]/15">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                sendText()
+              }
+            }}
+            rows={1}
+            placeholder="Escribe tu mensaje…"
+            className="w-full resize-none bg-transparent text-base sm:text-[14.5px] text-gray-900 placeholder:text-[#9CA3AF] outline-none max-h-40 px-3.5 pt-3 pb-1.5"
+          />
+
+          <div className="flex items-center gap-0.5 px-2 pb-2">
+            <ComposerButton
+              label="Grabar una nota de voz"
+              onClick={() => {
+                setRecording((v) => !v)
+                setEmojiOpen(false)
+              }}
+              active={recording}
+            >
+              <Mic size={17} />
+            </ComposerButton>
+            <ComposerButton
+              label="Emojis"
+              onClick={() => {
+                setEmojiOpen((v) => !v)
+                setRecording(false)
+              }}
+              active={emojiOpen}
+            >
+              <Smile size={17} />
+            </ComposerButton>
+            {isStaff && (
+              <ComposerButton
+                label={notify ? 'Se avisará por correo' : 'Avisar por correo al enviar'}
+                onClick={() => setNotify((v) => !v)}
+                active={notify}
+              >
+                <BellRing size={17} />
+              </ComposerButton>
+            )}
+
+            <div className="flex-1" />
+
+            <button
+              onClick={sendText}
+              disabled={!text.trim() || sending}
+              aria-label="Enviar"
+              title="Enviar"
+              className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors bg-[#025dc7] text-white hover:bg-[#0b6df0] disabled:bg-[#EFF1F6] disabled:text-[#B6BECC] disabled:cursor-not-allowed"
+            >
+              {sending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+            </button>
+          </div>
+        </div>
+        <p className="mt-1.5 text-[11px] text-[#9CA3AF] hidden sm:block">
+          Enter envía · Shift + Enter salta de línea
+        </p>
       </div>
     </div>
   )
 
   const emptyPane = (
-    <div className="h-[70vh] min-h-[420px] flex flex-col items-center justify-center text-center bg-white border border-[#DDE6F5] rounded-2xl px-6">
+    <div className="h-[calc(100dvh-320px)] min-h-[460px] flex flex-col items-center justify-center text-center bg-white border border-[#E3E8EF] rounded-2xl px-6">
       <MessageSquare size={26} className="text-gray-300 mb-2" />
       <p className="text-sm text-gray-500 max-w-xs">
         Elige una conversación de la izquierda, o escribe a alguien nuevo.
