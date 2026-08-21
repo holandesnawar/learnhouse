@@ -370,8 +370,16 @@ export const GUIDES: Record<string, Guide> = {
   estudio: GUIA_ESTUDIO,
 }
 
-/** Para el desplegable del panel, sin cargar el contenido entero. */
+/**
+ * Para el desplegable del panel, sin cargar el contenido entero.
+ *
+ * `faq` e `indice` no tienen texto aquí: la primera lo saca de las preguntas
+ * frecuentes (que se comparten con la portada del curso) y el segundo se
+ * construye solo leyendo el curso.
+ */
 export const GUIDE_OPTIONS = [
   { id: 'uso', label: 'Guía de uso — Cómo funciona tu escuela' },
   { id: 'estudio', label: 'Guía de estudio — Cómo aprender holandés de verdad' },
+  { id: 'faq', label: 'Preguntas frecuentes' },
+  { id: 'indice', label: 'Índice de contenido (se genera solo)' },
 ]

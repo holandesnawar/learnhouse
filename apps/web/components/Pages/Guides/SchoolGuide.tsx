@@ -1,8 +1,11 @@
 'use client'
 
 import React, { useEffect } from 'react'
-import { BookOpen, Lightbulb } from 'lucide-react'
+import { BookOpen, HelpCircle, Lightbulb } from 'lucide-react'
 import { GUIDES, type Guide, type GuideBlock } from './guidesContent'
+import { FORMACION_FAQ, FORMACION_FAQ_INTRO } from './faqContent'
+import CourseIndex from './CourseIndex'
+import type { ChapterLike } from '@/lib/course/formacionProgress'
 
 /** Convierte **negritas** en <strong> y *cursivas* en <em>. Nada más. */
 function rich(text: string): React.ReactNode {
@@ -152,18 +155,81 @@ function Block({ block }: { block: GuideBlock }) {
  */
 export default function SchoolGuide({
   guideId,
+  chapters,
   onComplete,
 }: {
   guideId: string
+  /** Solo para el índice: los capítulos del curso donde está la actividad. */
+  chapters?: ChapterLike[]
   onComplete?: () => void
 }) {
   const guide: Guide | undefined = GUIDES[guideId]
+  const isFaq = guideId === 'faq'
+  const isIndex = guideId === 'indice'
 
   // Se marca como vista al abrirla (es lectura, no hay nada que aprobar).
   useEffect(() => {
-    if (guide) onComplete?.()
+    if (guide || isFaq || isIndex) onComplete?.()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [guideId])
+
+  if (isIndex) return <CourseIndex chapters={chapters ?? []} />
+
+  if (isFaq) {
+    return (
+      <article className="max-w-3xl">
+        <div className="flex items-center gap-2 mb-1">
+          <HelpCircle size={15} className="text-[#025dc7]" />
+          <span className="text-[11px] font-semibold text-[#025dc7] uppercase tracking-[0.08em]">
+            Antes de empezar
+          </span>
+        </div>
+        <h1
+          className="text-[24px] sm:text-[30px] font-bold text-gray-900 leading-tight"
+          style={{
+            fontFamily:
+              'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")',
+          }}
+        >
+          Preguntas frecuentes
+        </h1>
+        <p className="text-[15px] text-[#5A6480] leading-relaxed mt-2">
+          {FORMACION_FAQ_INTRO}
+        </p>
+
+        <div className="mt-6 space-y-3">
+          {FORMACION_FAQ.map((faq, i) => (
+            <div
+              key={i}
+              className="rounded-xl border border-[#DDE6F5] bg-white px-4 sm:px-5 py-4"
+            >
+              <p
+                className="text-[15px] font-semibold text-[#1D0084] leading-snug"
+                style={{
+                  fontFamily:
+                    'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")',
+                }}
+              >
+                {faq.q}
+              </p>
+              <p className="text-[14.5px] text-[#3F4A61] leading-relaxed mt-1.5">
+                {rich(faq.a)}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-6 flex gap-3 rounded-xl bg-[#F0F5FF] px-4 py-3.5">
+          <Lightbulb size={17} className="text-[#025dc7] shrink-0 mt-0.5" />
+          <p className="text-[14px] text-[#0a1656] leading-relaxed min-w-0">
+            ¿Tu duda no está aquí? Abre una consulta desde cualquier lección o
+            escríbenos por <strong className="font-semibold">Mis mensajes</strong>.
+            Contestamos siempre.
+          </p>
+        </div>
+      </article>
+    )
+  }
 
   if (!guide) {
     return (

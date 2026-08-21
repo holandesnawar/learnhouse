@@ -495,7 +495,11 @@ function ActivityClient(props: ActivityClientProps) {
           if (guide) {
             return (
               <Suspense fallback={<LoadingFallback />}>
-                <SchoolGuide guideId={guide.guideId} onComplete={handleNativeComplete} />
+                <SchoolGuide
+                  guideId={guide.guideId}
+                  chapters={course?.chapters}
+                  onComplete={handleNativeComplete}
+                />
               </Suspense>
             );
           }
