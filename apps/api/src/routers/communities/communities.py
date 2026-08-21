@@ -32,6 +32,8 @@ class CommunityCreateRequest(BaseModel):
     description: str | None = None
     public: bool = True
     course_id: int | None = None
+    # "chat" (por defecto) o "posts" para que el canal sea un tablón.
+    kind: str = "chat"
 
 
 @router.post(
@@ -64,6 +66,7 @@ async def api_create_community(
         name=community_data.name,
         description=community_data.description,
         public=community_data.public,
+        kind=community_data.kind if community_data.kind in ("chat", "posts") else "chat",
         org_id=org_id,
         course_id=community_data.course_id,
     )

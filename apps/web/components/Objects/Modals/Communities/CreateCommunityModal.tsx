@@ -56,6 +56,7 @@ export function CreateCommunityModal({
           name: joinChannelEmoji(values.emoji, values.name),
           description: values.description || null,
           public: values.public,
+          kind: values.kind,
         },
         accessToken
       )
@@ -92,6 +93,7 @@ export function CreateCommunityModal({
             description: '',
             public: true,
             emoji: '' as string | null,
+            kind: 'chat' as 'chat' | 'posts',
           }}
           validationSchema={validationSchema}
           onSubmit={handleSubmit}
@@ -152,6 +154,45 @@ export function CreateCommunityModal({
                   component="p"
                   className="mt-1 text-sm text-red-500"
                 />
+              </div>
+
+              {/* Cómo se habla en el canal: elegirlo aquí evita tener que
+                  rehacerlo después, cuando ya haya mensajes dentro. */}
+              <div>
+                <span className="block text-sm font-medium text-gray-700 mb-1.5">
+                  ¿Cómo funciona este canal?
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    {
+                      value: 'chat',
+                      title: 'Chat',
+                      hint: 'Conversación seguida, mensajes cortos.',
+                    },
+                    {
+                      value: 'posts',
+                      title: 'Tablón',
+                      hint: 'Publicaciones con título y comentarios.',
+                    },
+                  ].map((opt) => (
+                    <label
+                      key={opt.value}
+                      className={`cursor-pointer rounded-xl border p-3 transition-colors ${
+                        values.kind === opt.value
+                          ? 'border-[#4da3ff] bg-[#F0F5FF]'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <Field type="radio" name="kind" value={opt.value} className="sr-only" />
+                      <span className="block text-[13.5px] font-semibold text-gray-900">
+                        {opt.title}
+                      </span>
+                      <span className="block text-[12px] text-gray-500 mt-0.5 leading-snug">
+                        {opt.hint}
+                      </span>
+                    </label>
+                  ))}
+                </div>
               </div>
 
               {/* Public Toggle */}

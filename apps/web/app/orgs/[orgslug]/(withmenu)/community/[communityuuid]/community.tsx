@@ -3,6 +3,7 @@
 import React from 'react'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import { ChannelChat } from '@components/Objects/Communities/ChannelChat'
+import ChannelPosts from '@components/Objects/Communities/ChannelPosts'
 import PinnedFeed from '@components/Objects/Communities/PinnedFeed'
 import { getUriWithOrg } from '@services/config/config'
 import { ArrowLeft, Hash } from 'lucide-react'
@@ -18,8 +19,11 @@ interface CommunityClientProps {
   org_id: number
 }
 
-// A community = a chat channel. Entering it drops you straight into the chat;
-// the list of channels lives at /communities.
+// Un canal puede ser de dos formas, y se elige al crearlo:
+//   chat  → conversación seguida (lo de siempre)
+//   posts → tablón: título, cuerpo, fotos y comentarios. Para las victorias o
+//           las presentaciones, que en un chat se pierden a los dos días.
+// La lista de canales vive en /communities.
 const CommunityClient = ({ community, orgslug }: CommunityClientProps) => {
   const { emoji, text } = splitChannelEmoji(community.name)
   return (
@@ -48,15 +52,24 @@ const CommunityClient = ({ community, orgslug }: CommunityClientProps) => {
         </div>
       </div>
 
-      {/* Chat + pinned feed */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 bg-white nice-shadow rounded-2xl overflow-hidden">
-          <ChannelChat communityUuid={community.community_uuid} channelName={text} />
+      {community.kind === 'posts' ? (
+        /* Tablón: a todo el ancho, que las tarjetas se lean bien */
+        <ChannelPosts
+          communityUuid={community.community_uuid}
+          channelName={text}
+          orgslug={orgslug}
+        />
+      ) : (
+        /* Chat + mensajes fijados al lado */
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2 bg-white nice-shadow rounded-2xl overflow-hidden">
+            <ChannelChat communityUuid={community.community_uuid} channelName={text} />
+          </div>
+          <div className="lg:col-span-1">
+            <PinnedFeed communityUuid={community.community_uuid} />
+          </div>
         </div>
-        <div className="lg:col-span-1">
-          <PinnedFeed communityUuid={community.community_uuid} />
-        </div>
-      </div>
+      )}
     </GeneralWrapperStyled>
   )
 }

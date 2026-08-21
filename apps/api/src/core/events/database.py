@@ -354,6 +354,8 @@ _ADDED_COLUMNS = [
     'ALTER TABLE IF EXISTS enrollment ADD COLUMN IF NOT EXISTS amount_cents INTEGER DEFAULT 0',
     "ALTER TABLE IF EXISTS enrollment ADD COLUMN IF NOT EXISTS currency VARCHAR DEFAULT 'eur'",
     "ALTER TABLE IF EXISTS enrollment ADD COLUMN IF NOT EXISTS paid_at VARCHAR DEFAULT ''",
+    # Canal de chat o tablón de posts (la tabla ya existía en producción).
+    "ALTER TABLE IF EXISTS community ADD COLUMN IF NOT EXISTS kind VARCHAR(16) DEFAULT 'chat'",
 ]
 
 

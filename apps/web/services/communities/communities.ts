@@ -25,6 +25,8 @@ export interface Community {
   course_id: number | null
   community_uuid: string
   name: string
+  /** `chat` = conversación seguida · `posts` = tablón con título y comentarios. */
+  kind?: 'chat' | 'posts'
   description: string | null
   public: boolean
   moderation_words: string[]
@@ -39,9 +41,12 @@ export interface CommunityCreate {
   description?: string | null
   public?: boolean
   course_id?: number | null
+  /** `chat` (por defecto) o `posts` para que el canal sea un tablón. */
+  kind?: 'chat' | 'posts'
 }
 
 export interface CommunityUpdate {
+  kind?: 'chat' | 'posts'
   name?: string
   description?: string | null
   public?: boolean
