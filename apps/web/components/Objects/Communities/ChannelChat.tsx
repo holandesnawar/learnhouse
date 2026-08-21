@@ -7,7 +7,7 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 import utc from 'dayjs/plugin/utc'
 import 'dayjs/locale/es'
 import { PaperPlaneRight } from '@phosphor-icons/react'
-import { AtSign, ArrowDown, BarChart3, Loader2, Mail, MessageCircle, Pin, PinOff, Search, SmilePlus, Reply, X, Pencil, Trash2 } from 'lucide-react'
+import { AtSign, ArrowDown, BarChart3, FileText, ImageIcon, Loader2, Mail, MessageCircle, Mic, Paperclip, Pin, PinOff, Search, SmilePlus, Reply, X, Pencil, Trash2 } from 'lucide-react'
 import { COMPOSER_EMOJIS, QUICK_EMOJIS } from '@/lib/chat/emojis'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useDiscussions, useMutateDiscussions } from '@components/Hooks/useDiscussions'
@@ -17,9 +17,12 @@ import {
   toggleReaction,
   updateDiscussion,
   deleteDiscussion,
+  uploadChatAttachment,
   DiscussionWithAuthor,
   DiscussionAuthor,
+  type ChatAttachment,
 } from '@services/communities/discussions'
+import VoiceRecorder from '@components/Pages/Messages/VoiceRecorder'
 
 // Ventana en la que el autor puede editar/eliminar su propio mensaje (12 h).
 const EDIT_WINDOW_MS = 12 * 60 * 60 * 1000
@@ -124,6 +127,29 @@ function messageText(d: DiscussionWithAuthor): string {
   return d.title
 }
 
+/**
+ * Los adjuntos viajan dentro del propio mensaje (`doc.attachments`), igual que
+ * la encuesta o la cita. Así no hace falta ninguna tabla nueva y los mensajes
+ * antiguos siguen leyéndose igual.
+ */
+function attachmentsOf(d: DiscussionWithAuthor): ChatAttachment[] {
+  if (!d.content) return []
+  try {
+    const doc = JSON.parse(d.content)
+    return Array.isArray(doc?.attachments) ? (doc.attachments as ChatAttachment[]) : []
+  } catch {
+    return []
+  }
+}
+
+/** Un tamaño legible: «2,4 MB». */
+function prettySize(bytes: number): string {
+  if (!bytes || bytes < 1024) return `${bytes || 0} B`
+  const kb = bytes / 1024
+  if (kb < 1024) return `${Math.round(kb)} KB`
+  return `${(kb / 1024).toFixed(1).replace('.', ',')} MB`
+}
+
 // Reply reference is stored inside the message's own content JSON (replyToAuthor
 // / replyToText), so quoting works with zero DB schema changes.
 function replyMeta(
@@ -197,6 +223,12 @@ export function ChannelChat({
   // novedades que de verdad importan (un cambio de horario, el arranque de un
   // módulo), no para el día a día del chat.
   const [alsoEmail, setAlsoEmail] = useState(false)
+  // Adjuntos ya subidos que saldrán con el próximo mensaje.
+  const [pending, setPending] = useState<ChatAttachment[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [recording, setRecording] = useState(false)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const mutateDiscussions = useMutateDiscussions()
   const [pinningUuid, setPinningUuid] = useState<string | null>(null)
   const [pickerUuid, setPickerUuid] = useState<string | null>(null)
@@ -463,6 +495,42 @@ export function ChannelChat({
     setMentionQuery(null)
   }
 
+  /** Sube lo que el alumno acaba de elegir y lo deja listo para enviar. */
+  const attach = async (files: FileList | null) => {
+    if (!files?.length || !accessToken) return
+    setUploading(true)
+    try {
+      for (const file of Array.from(files).slice(0, 4)) {
+        const uploaded = await uploadChatAttachment(communityUuid, file, accessToken)
+        setPending((cur) => [...cur, uploaded])
+      }
+    } catch (e: any) {
+      toast.error(e?.message || 'No se pudo subir el archivo')
+    } finally {
+      setUploading(false)
+      if (imageInputRef.current) imageInputRef.current.value = ''
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  /** La nota de voz grabada en el propio chat. */
+  const attachVoice = async (audio: Blob, seconds: number) => {
+    if (!accessToken) return
+    setUploading(true)
+    try {
+      const file = new File([audio], `nota-de-voz-${seconds}s.webm`, {
+        type: audio.type || 'audio/webm',
+      })
+      const uploaded = await uploadChatAttachment(communityUuid, file, accessToken)
+      setPending((cur) => [...cur, uploaded])
+      setRecording(false)
+    } catch (e: any) {
+      toast.error(e?.message || 'No se pudo subir la nota de voz')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const send = async () => {
     const msg = text.trim()
     const poll =
@@ -474,6 +542,8 @@ export function ChannelChat({
         : null
     if (poll && !msg) {
       // Una encuesta sin texto es válida: el título es la pregunta.
+    } else if (pending.length && !msg) {
+      // Una foto o un audio tampoco necesitan texto.
     } else if (!msg || sending) return
     if (sending) return
     setSending(true)
@@ -486,6 +556,7 @@ export function ChannelChat({
       }))
       const doc: any = { type: 'doc', content: docContent }
       if (poll) doc.poll = poll
+      if (pending.length) doc.attachments = pending
       if (replyingTo) {
         doc.replyToAuthor = replyingTo.author
         doc.replyToText = replyingTo.text
@@ -496,7 +567,11 @@ export function ChannelChat({
       await createDiscussion(
         communityUuid,
         {
-          title: (poll ? poll.question : title) || msg.slice(0, 100) || 'Encuesta',
+          title:
+            (poll ? poll.question : title) ||
+            msg.slice(0, 100) ||
+            (pending.length ? pending[0].name : '') ||
+            'Encuesta',
           content,
           label: 'general',
           emoji: null,
@@ -504,6 +579,7 @@ export function ChannelChat({
         accessToken
       )
       setText('')
+      setPending([])
       setReplyingTo(null)
       setPollDraft(null)
       setMentionQuery(null)
@@ -817,6 +893,64 @@ export function ChannelChat({
                               setActiveUuid((cur) => (cur === m.discussion_uuid ? null : m.discussion_uuid))
                             }
                           >
+                            {(() => {
+                              const files = attachmentsOf(m)
+                              if (!files.length) return null
+                              return (
+                                <span className="block mb-1.5 space-y-1.5">
+                                  {files.map((f, fi) => {
+                                    if (f.kind === 'image') {
+                                      return (
+                                        <a
+                                          key={fi}
+                                          href={f.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="block"
+                                        >
+                                          <img
+                                            src={f.url}
+                                            alt={f.name}
+                                            loading="lazy"
+                                            className="rounded-lg max-h-72 w-auto max-w-full object-cover"
+                                          />
+                                        </a>
+                                      )
+                                    }
+                                    if (f.kind === 'audio') {
+                                      return (
+                                        <audio
+                                          key={fi}
+                                          src={f.url}
+                                          controls
+                                          preload="none"
+                                          className="w-full max-w-[280px] h-9"
+                                        />
+                                      )
+                                    }
+                                    return (
+                                      <a
+                                        key={fi}
+                                        href={f.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={`inline-flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12.5px] transition-colors ${
+                                          isOwn
+                                            ? 'bg-white/15 hover:bg-white/25 text-white'
+                                            : 'bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7]'
+                                        }`}
+                                      >
+                                        <FileText size={14} className="shrink-0" />
+                                        <span className="truncate max-w-[180px]">{f.name}</span>
+                                        <span className="opacity-70 tabular-nums">
+                                          {prettySize(f.size)}
+                                        </span>
+                                      </a>
+                                    )
+                                  })}
+                                </span>
+                              )
+                            })()}
                             {renderMessageBody(messageText(m), isOwn)}
                             {m.edit_count > 0 && (
                               <span className="text-[10px] opacity-60 ml-1.5">· editado</span>
@@ -997,6 +1131,52 @@ export function ChannelChat({
             </div>
           )}
           {/* Encuesta en preparación */}
+          {/* Grabadora de voz, abierta desde el micrófono */}
+          {recording && (
+            <div className="mb-2 rounded-xl bg-white border border-[#DDE6F5] px-3 py-2.5">
+              <VoiceRecorder onSend={attachVoice} sending={uploading} />
+            </div>
+          )}
+
+          {/* Lo que va a salir con el mensaje */}
+          {(pending.length > 0 || uploading) && (
+            <div className="mb-2 flex flex-wrap gap-2">
+              {pending.map((f, i) => (
+                <div
+                  key={i}
+                  className="relative group/att rounded-lg border border-[#DDE6F5] bg-white overflow-hidden"
+                >
+                  {f.kind === 'image' ? (
+                    <img src={f.url} alt={f.name} className="h-16 w-16 object-cover" />
+                  ) : (
+                    <div className="h-16 px-3 flex items-center gap-2 text-[12px] text-[#5A6480] max-w-[200px]">
+                      {f.kind === 'audio' ? (
+                        <Mic size={14} className="text-[#025dc7] shrink-0" />
+                      ) : (
+                        <FileText size={14} className="text-[#025dc7] shrink-0" />
+                      )}
+                      <span className="truncate">{f.name}</span>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setPending((cur) => cur.filter((_, j) => j !== i))}
+                    title="Quitar"
+                    aria-label="Quitar adjunto"
+                    className="absolute top-0.5 right-0.5 inline-flex items-center justify-center w-5 h-5 rounded-full bg-black/55 text-white opacity-0 group-hover/att:opacity-100 transition-opacity"
+                  >
+                    <X size={11} />
+                  </button>
+                </div>
+              ))}
+              {uploading && (
+                <div className="h-16 w-16 rounded-lg border border-dashed border-[#DDE6F5] flex items-center justify-center">
+                  <Loader2 size={16} className="animate-spin text-[#025dc7]" />
+                </div>
+              )}
+            </div>
+          )}
+
           {pollDraft && (
             <div className="mb-2 rounded-xl border border-[#DDE6F5] bg-[#F8FAFF] p-3">
               <div className="flex items-center justify-between gap-2 mb-2">
@@ -1092,6 +1272,54 @@ export function ChannelChat({
             >
               <SmilePlus size={17} />
             </button>
+            {/* Foto */}
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              hidden
+              onChange={(e) => attach(e.target.files)}
+            />
+            <button
+              type="button"
+              onClick={() => imageInputRef.current?.click()}
+              disabled={uploading}
+              title="Enviar una foto"
+              aria-label="Enviar una foto"
+              className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-[#025dc7] hover:bg-white transition-colors disabled:opacity-40"
+            >
+              <ImageIcon size={17} />
+            </button>
+            {/* Archivo */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              hidden
+              onChange={(e) => attach(e.target.files)}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              title="Adjuntar un archivo"
+              aria-label="Adjuntar un archivo"
+              className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-[#025dc7] hover:bg-white transition-colors disabled:opacity-40"
+            >
+              <Paperclip size={17} />
+            </button>
+            {/* Nota de voz — en una escuela de idiomas es la estrella */}
+            <button
+              type="button"
+              onClick={() => setRecording((v) => !v)}
+              title="Grabar una nota de voz"
+              aria-label="Grabar una nota de voz"
+              className={`shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${
+                recording ? 'bg-[#025dc7]/10 text-[#025dc7]' : 'text-gray-400 hover:text-[#025dc7] hover:bg-white'
+              }`}
+            >
+              <Mic size={17} />
+            </button>
             {isAdmin && (
               <button
                 type="button"
@@ -1117,7 +1345,7 @@ export function ChannelChat({
             />
             <button
               onClick={send}
-              disabled={!text.trim() || sending}
+              disabled={(!text.trim() && pending.length === 0 && !pollDraft) || sending}
               className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg text-white bg-[#025dc7] hover:bg-[#0b6df0] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label={t('communities.create_discussion.submit')}
             >
