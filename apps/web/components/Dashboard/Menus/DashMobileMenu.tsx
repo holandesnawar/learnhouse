@@ -54,6 +54,10 @@ function DashMobileMenu() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [langExpanded, setLangExpanded] = useState(false)
   const [mounted, setMounted] = useState(false)
+  // Arriba del todo con los demas hooks, y NUNCA despues del `return null` de
+  // abajo: un hook que a veces se llama y a veces no hace que React tire la
+  // pantalla entera ("Rendered more hooks than during the previous render").
+  const { isProfe } = useAdminStatus()
 
   React.useEffect(() => { setMounted(true) }, [])
 
@@ -66,8 +70,6 @@ function DashMobileMenu() {
     plan
 
   const rf = org?.config?.config?.resolved_features
-  // El profe solo ve lo suyo en el panel.
-  const { isProfe } = useAdminStatus()
   const forProfe = !isProfe
   const isEnabled = (f: string) => rf?.[f]?.enabled === true
 

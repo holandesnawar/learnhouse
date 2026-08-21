@@ -88,7 +88,16 @@ export default function WorkflowsPage() {
     )
   }
 
-  if (!catalog) {
+  // No basta con que llegue algo: tiene que llegar con la forma que esperamos.
+  // Si el servidor devolviera otra cosa, `catalog.builtin.map(...)` reventaría
+  // la pantalla entera; así se ve un aviso y el panel sigue usable.
+  const catalogOk =
+    !!catalog &&
+    Array.isArray(catalog.builtin) &&
+    Array.isArray(catalog.triggers) &&
+    Array.isArray(catalog.actions)
+
+  if (!catalogOk) {
     return (
       <div className="max-w-2xl mx-auto py-16 px-6 text-center">
         <AlertTriangle size={22} className="text-[#025dc7] mx-auto mb-2" />
