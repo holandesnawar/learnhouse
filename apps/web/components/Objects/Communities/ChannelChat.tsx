@@ -7,7 +7,7 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 import utc from 'dayjs/plugin/utc'
 import 'dayjs/locale/es'
 import { PaperPlaneRight } from '@phosphor-icons/react'
-import { AtSign, ArrowDown, BarChart3, FileText, ImageIcon, Loader2, Mail, MessageCircle, Mic, Paperclip, Pin, PinOff, Search, SmilePlus, Reply, X, Pencil, Trash2 } from 'lucide-react'
+import { AtSign, ArrowDown, BarChart3, FileText, ImageIcon, Loader2, Mail, MessageCircle, MessageSquare, Mic, Paperclip, Pin, PinOff, Search, SmilePlus, Reply, X, Pencil, Trash2 } from 'lucide-react'
 import { COMPOSER_EMOJIS, QUICK_EMOJIS } from '@/lib/chat/emojis'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useDiscussions, useMutateDiscussions } from '@components/Hooks/useDiscussions'
@@ -24,6 +24,7 @@ import {
 } from '@services/communities/discussions'
 import VoiceRecorder from '@components/Pages/Messages/VoiceRecorder'
 import ComposerButton from './ComposerButton'
+import MessageAction from './MessageAction'
 
 // Ventana en la que el autor puede editar/eliminar su propio mensaje (12 h).
 const EDIT_WINDOW_MS = 12 * 60 * 60 * 1000
@@ -143,6 +144,25 @@ function attachmentsOf(d: DiscussionWithAuthor): ChatAttachment[] {
   }
 }
 
+/**
+ * ¿Este mensaje es la respuesta de un hilo? Devuelve el mensaje del que
+ * cuelga.
+ *
+ * Igual que los adjuntos o las encuestas, el hilo va dentro del propio
+ * mensaje (`doc.threadParent`). Sin tablas nuevas: una respuesta de hilo es
+ * un mensaje normal que sabe de quién cuelga, y el canal simplemente no la
+ * enseña suelta.
+ */
+function threadParentOf(d: DiscussionWithAuthor): string | null {
+  if (!d.content) return null
+  try {
+    const doc = JSON.parse(d.content)
+    return typeof doc?.threadParent === 'string' ? doc.threadParent : null
+  } catch {
+    return null
+  }
+}
+
 /** Un tamaño legible: «2,4 MB». */
 function prettySize(bytes: number): string {
   if (!bytes || bytes < 1024) return `${bytes || 0} B`
@@ -211,9 +231,14 @@ function renderMessageBody(text: string, isOwn: boolean): React.ReactNode[] {
 export function ChannelChat({
   communityUuid,
   channelName,
+  threadUuid = null,
+  onOpenThread,
 }: {
   communityUuid: string
   channelName: string
+  /** El hilo abierto ahora (lo gobierna la página: cambia la columna derecha). */
+  threadUuid?: string | null
+  onOpenThread?: (uuid: string | null) => void
 }) {
   const { t } = useTranslation()
   const session = useLHSession() as any
@@ -228,6 +253,7 @@ export function ChannelChat({
   const [pending, setPending] = useState<ChatAttachment[]>([])
   const [uploading, setUploading] = useState(false)
   const [recording, setRecording] = useState(false)
+
   const imageInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const mutateDiscussions = useMutateDiscussions()
@@ -459,15 +485,35 @@ export function ChannelChat({
 
   // Buscar dentro del canal: filtra lo que ya está cargado (los últimos 50),
   // que es donde la gente busca de verdad ("¿qué dijo el profe del examen?").
+  // Las respuestas de un hilo NO salen sueltas en el canal: viven dentro de su
+  // hilo. Es justo la gracia de los hilos — sacar una conversación larga de en
+  // medio sin perderla.
+  const threadReplies = useMemo(() => {
+    const byParent = new Map<string, DiscussionWithAuthor[]>()
+    for (const m of messages) {
+      const parent = threadParentOf(m)
+      if (!parent) continue
+      const list = byParent.get(parent) ?? []
+      list.push(m)
+      byParent.set(parent, list)
+    }
+    return byParent
+  }, [messages])
+
+  const channelMessages = useMemo(
+    () => messages.filter((m) => !threadParentOf(m)),
+    [messages]
+  )
+
   const visibleMessages = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return messages
-    return messages.filter(
+    if (!q) return channelMessages
+    return channelMessages.filter(
       (m) =>
         messageText(m).toLowerCase().includes(q) ||
         authorName(m.author).toLowerCase().includes(q)
     )
-  }, [messages, query])
+  }, [channelMessages, query])
 
   // Candidatos a mención: quienes ya han escrito en el canal (así no hace falta
   // un endpoint de miembros que los alumnos no tienen permiso para leer) + all.
@@ -545,7 +591,7 @@ export function ChannelChat({
     }
   }
 
-  const send = async () => {
+  const send = async (threadTarget?: string) => {
     const msg = text.trim()
     const poll =
       pollDraft && pollDraft.question.trim() && pollDraft.options.filter((o) => o.trim()).length >= 2
@@ -571,6 +617,7 @@ export function ChannelChat({
       const doc: any = { type: 'doc', content: docContent }
       if (poll) doc.poll = poll
       if (pending.length) doc.attachments = pending
+      if (threadTarget) doc.threadParent = threadTarget
       if (replyingTo) {
         doc.replyToAuthor = replyingTo.author
         doc.replyToText = replyingTo.text
@@ -634,11 +681,10 @@ export function ChannelChat({
   }
 
   return (
-    // Alto: lo que queda de pantalla por debajo de la cabecera. Así el
-    // compositor queda abajo del todo, como en cualquier chat, en vez de
-    // flotando a media página. `dvh` en vez de `vh` porque en el móvil la
-    // barra del navegador se recoge y con `vh` el compositor se salía.
-    <div className="relative flex flex-col h-[calc(100dvh-250px)] min-h-[440px]">
+    // Se estira a lo que le dé el contenedor: la página le da todo el alto que
+    // queda de pantalla, así el compositor acaba pegado abajo del todo. Antes
+    // llevaba un alto fijo y quedaba flotando a media página.
+    <div className="relative flex flex-col h-full min-h-[420px]">
       {/* Barra de búsqueda del canal */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100">
         <button
@@ -827,7 +873,7 @@ export function ChannelChat({
                           </div>
                         </div>
                       ) : (
-                      <div className={`flex items-center gap-1.5 ${isOwn ? 'flex-row-reverse' : ''}`}>
+                      <div className={`relative flex items-center gap-1.5 ${isOwn ? 'flex-row-reverse' : ''}`}>
                         <div
                           className={`inline-block max-w-full rounded-2xl px-3 py-2 ${bubbleBg} ${
                             isOwn
@@ -975,74 +1021,88 @@ export function ChannelChat({
                             )}
                           </p>
                         </div>
-                        {/* Añadir reacción (aparece al pasar el ratón) */}
+                        {/* Barra de acciones: una pastilla que aparece encima del
+                            mensaje al pasar el ratón, como en cualquier chat
+                            moderno. Antes eran iconos sueltos al lado, que
+                            empujaban el globo y se veían siempre a medias. */}
                         {accessToken && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setPickerUuid((cur) => (cur === m.discussion_uuid ? null : m.discussion_uuid))
-                            }
-                            title="Reaccionar"
-                            aria-label="Reaccionar"
-                            className={`shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-[#025dc7] hover:bg-[#025dc7]/10 transition-all ${
+                          <div
+                            className={`absolute -top-3.5 z-10 flex items-center gap-0.5 rounded-lg border border-[#E3E8EF] bg-white px-0.5 py-0.5 shadow-sm transition-opacity ${
+                              isOwn ? 'left-0' : 'right-0'
+                            } ${
                               pickerUuid === m.discussion_uuid || activeUuid === m.discussion_uuid
                                 ? 'opacity-100'
-                                : 'opacity-0 group-hover/msg:opacity-100'
+                                : 'opacity-0 group-hover/msg:opacity-100 focus-within:opacity-100'
                             }`}
                           >
-                            <SmilePlus size={16} />
-                          </button>
-                        )}
-                        {/* Responder (aparece al pasar el ratón) */}
-                        {accessToken && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setReplyingTo({
-                                author: authorName(m.author),
-                                text: messageText(m).slice(0, 140),
-                                uuid: m.discussion_uuid,
-                              })
-                            }
-                            title="Responder"
-                            aria-label="Responder"
-                            className={`shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-[#025dc7] hover:bg-[#025dc7]/10 transition-all ${
-                              activeUuid === m.discussion_uuid ? 'opacity-100' : 'opacity-0 group-hover/msg:opacity-100'
-                            }`}
-                          >
-                            <Reply size={15} />
-                          </button>
-                        )}
-                        {/* Editar (solo el autor, primeras 12 h) */}
-                        {canEdit(m) && (
-                          <button
-                            type="button"
-                            onClick={() => startEdit(m)}
-                            title="Editar"
-                            aria-label="Editar"
-                            className={`shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-[#025dc7] hover:bg-[#025dc7]/10 transition-all ${
-                              activeUuid === m.discussion_uuid ? 'opacity-100' : 'opacity-0 group-hover/msg:opacity-100'
-                            }`}
-                          >
-                            <Pencil size={14} />
-                          </button>
-                        )}
-                        {/* Eliminar: el autor dentro de 12 h, o el equipo siempre */}
-                        {canDelete(m) && (
-                          <button
-                            type="button"
-                            onClick={() => removeMessage(m.discussion_uuid)}
-                            title="Eliminar"
-                            aria-label="Eliminar"
-                            className={`shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-rose-500 hover:bg-rose-50 transition-all ${
-                              activeUuid === m.discussion_uuid ? 'opacity-100' : 'opacity-0 group-hover/msg:opacity-100'
-                            }`}
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                            <MessageAction
+                              label="Reaccionar"
+                              onClick={() =>
+                                setPickerUuid((cur) =>
+                                  cur === m.discussion_uuid ? null : m.discussion_uuid
+                                )
+                              }
+                            >
+                              <SmilePlus size={15} />
+                            </MessageAction>
+                            <MessageAction
+                              label="Responder en un hilo"
+                              onClick={() => onOpenThread?.(m.discussion_uuid)}
+                            >
+                              <MessageSquare size={15} />
+                            </MessageAction>
+                            <MessageAction
+                              label="Citar en el canal"
+                              onClick={() =>
+                                setReplyingTo({
+                                  author: authorName(m.author),
+                                  text: messageText(m).slice(0, 140),
+                                  uuid: m.discussion_uuid,
+                                })
+                              }
+                            >
+                              <Reply size={15} />
+                            </MessageAction>
+                            {canEdit(m) && (
+                              <MessageAction label="Editar" onClick={() => startEdit(m)}>
+                                <Pencil size={14} />
+                              </MessageAction>
+                            )}
+                            {canDelete(m) && (
+                              <MessageAction
+                                label="Eliminar"
+                                danger
+                                onClick={() => removeMessage(m.discussion_uuid)}
+                              >
+                                <Trash2 size={14} />
+                              </MessageAction>
+                            )}
+                          </div>
                         )}
                       </div>
                       )}
+
+                      {/* Si el mensaje tiene hilo, se dice y se entra desde aquí */}
+                      {(() => {
+                        const replies = threadReplies.get(m.discussion_uuid)
+                        if (!replies?.length) return null
+                        const open = threadUuid === m.discussion_uuid
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => onOpenThread?.(open ? null : m.discussion_uuid)}
+                            className={`mt-1 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[12px] font-semibold transition-colors ${
+                              open
+                                ? 'bg-[#025dc7]/10 text-[#025dc7]'
+                                : 'text-[#025dc7] hover:bg-[#F0F5FF]'
+                            }`}
+                          >
+                            <MessageSquare size={13} />
+                            {replies.length}{' '}
+                            {replies.length === 1 ? 'respuesta' : 'respuestas'}
+                          </button>
+                        )
+                      })()}
 
                       {/* Selector rápido de emojis */}
                       {pickerUuid === m.discussion_uuid && (
@@ -1356,11 +1416,11 @@ export function ChannelChat({
               <div className="flex-1" />
 
               <button
-                onClick={send}
+                onClick={() => send()}
                 disabled={(!text.trim() && pending.length === 0 && !pollDraft) || sending}
                 title="Enviar"
                 aria-label={t('communities.create_discussion.submit')}
-                className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors bg-[#1D0084] text-white hover:bg-[#2a12a8] disabled:bg-[#EFF1F6] disabled:text-[#B6BECC] disabled:cursor-not-allowed"
+                className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors bg-[#025dc7] text-white hover:bg-[#0b6df0] disabled:bg-[#EFF1F6] disabled:text-[#B6BECC] disabled:cursor-not-allowed"
               >
                 {sending ? (
                   <Loader2 size={15} className="animate-spin" />

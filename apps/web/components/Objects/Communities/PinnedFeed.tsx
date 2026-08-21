@@ -98,7 +98,7 @@ export default function PinnedFeed({ communityUuid }: { communityUuid: string })
   }
 
   return (
-    <aside className="bg-white nice-shadow rounded-2xl overflow-hidden">
+    <aside className="bg-white nice-shadow rounded-2xl overflow-y-auto max-h-full">
       <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
         <Pin size={16} className="text-[#025dc7]" />
         <h3 className="text-sm font-bold text-gray-900">Fijados</h3>
