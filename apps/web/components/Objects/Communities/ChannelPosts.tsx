@@ -177,7 +177,9 @@ export default function ChannelPosts({
         {accessToken && (
           <button
             onClick={() => setComposing(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#1D0084] hover:bg-[#2a12a8] text-white text-sm font-semibold transition-colors"
+            // CTA de marca: #4da3ff con letra #0a1656. El #1D0084 que había es
+            // color de FONDO oscuro, no de botón sobre blanco.
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] text-sm font-bold transition-colors"
           >
             <Plus size={16} /> Publicar
           </button>
@@ -554,7 +556,7 @@ function PostComposer({
           <button
             onClick={publish}
             disabled={!title.trim() || saving}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1D0084] hover:bg-[#2a12a8] text-white text-sm font-semibold transition-colors disabled:bg-[#EFF1F6] disabled:text-[#B6BECC]"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] text-sm font-bold transition-colors disabled:bg-[#EFF1F6] disabled:text-[#B6BECC]"
           >
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Pencil size={15} />}
             Publicar
