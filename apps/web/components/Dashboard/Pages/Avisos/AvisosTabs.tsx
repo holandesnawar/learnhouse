@@ -2,15 +2,17 @@
 import React, { useState } from 'react'
 import AvisosComposer from './AvisosComposer'
 import EmailCatalog from './EmailCatalog'
-import { Mail, PenLine, Inbox } from 'lucide-react'
+import SeedCommunity from './SeedCommunity'
+import { Mail, PenLine, Inbox, Sparkles } from 'lucide-react'
 
 /**
- * La pantalla de Avisos tiene dos caras:
+ * La pantalla de Avisos tiene tres caras:
  *  - Escribir un aviso: el correo que redacta el equipo y sale cuando se pulsa.
  *  - Correos automáticos: los que la escuela manda sola, para verlos por dentro.
+ *  - Arranque: sembrar la comunidad antes de que entren los primeros alumnos.
  */
 export default function AvisosTabs() {
-  const [tab, setTab] = useState<'escribir' | 'automaticos'>('escribir')
+  const [tab, setTab] = useState<'escribir' | 'automaticos' | 'arranque'>('escribir')
 
   const tabClass = (active: boolean) =>
     `inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-[14px] font-semibold transition-colors ${
@@ -38,9 +40,19 @@ export default function AvisosTabs() {
           <Inbox size={16} />
           Correos automáticos
         </button>
+        <button className={tabClass(tab === 'arranque')} onClick={() => setTab('arranque')}>
+          <Sparkles size={16} />
+          Arranque
+        </button>
       </div>
 
-      {tab === 'escribir' ? <AvisosComposer /> : <EmailCatalog />}
+      {tab === 'escribir' ? (
+        <AvisosComposer />
+      ) : tab === 'automaticos' ? (
+        <EmailCatalog />
+      ) : (
+        <SeedCommunity />
+      )}
     </div>
   )
 }

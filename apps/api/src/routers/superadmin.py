@@ -145,3 +145,44 @@ async def email_template_send_test(
     except KeyError:
         raise HTTPException(status_code=404, detail="Template not found")
     return {"sent_to": to}
+
+
+@router.get(
+    "/seed/community/{org_id}",
+    summary="¿Qué cuentas de arranque existen ya?",
+)
+async def api_seed_status(
+    org_id: int,
+    current_user: PublicUser = Depends(get_authenticated_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    _require_superadmin(current_user)
+    from src.services.demo.seed_community import seed_status
+
+    return await seed_status(org_id, db_session)
+
+
+@router.post(
+    "/seed/community/{org_id}/{community_id}",
+    summary="Crea las cuentas de arranque y publica sus presentaciones en un canal.",
+    description=(
+        "Para que los primeros alumnos no entren en una comunidad vacía. Se "
+        "puede repetir: lo que ya existe no se duplica. No manda correos ni "
+        "permite entrar con esas cuentas."
+    ),
+)
+async def api_seed_community(
+    org_id: int,
+    community_id: int,
+    extras: bool = True,
+    current_user: PublicUser = Depends(get_authenticated_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    _require_superadmin(current_user)
+    from src.services.demo.seed_community import seed_community
+
+    try:
+        return await seed_community(org_id, community_id, db_session, include_extras=extras)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
