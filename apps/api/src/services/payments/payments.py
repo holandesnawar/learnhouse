@@ -671,6 +671,18 @@ async def _provision_after_payment(
 
     user, created = await _create_paid_user(email, name, db_session)
 
+    # Quién es y en qué escuela: lo necesitan las automatizaciones de
+    # "cuando alguien paga", que se lanzan desde quien nos llama.
+    who = {"user_id": user.id, "org_id": None}
+    try:
+        who["org_id"] = (
+            await db_session.execute(
+                select(UserOrganization.org_id).where(UserOrganization.user_id == user.id)
+            )
+        ).scalars().first()
+    except Exception:
+        logger.exception("No se pudo averiguar la escuela de %s", email)
+
     if not created:
         # Stripe retried the webhook (or it was delivered twice): the account
         # was already provisioned. Re-assert the CRM tag (idempotent) but do
@@ -682,12 +694,12 @@ async def _provision_after_payment(
         except Exception:
             logger.exception("Systeme tag update failed for %s", email)
         logger.info("Account for %s already provisioned — skipping welcome email", email)
-        return {"detail": "already provisioned", "created": False}
+        return {"detail": "already provisioned", "created": False, **who}
 
     code = _store_reset_code(user)
     if not code:
         logger.error("Could not generate reset code for %s; user exists, email not sent", email)
-        return {"detail": "user created but reset email could not be sent", "created": True}
+        return {"detail": "user created but reset email could not be sent", "created": True, **who}
 
     user_read = UserRead.model_validate(user)
     try:
@@ -706,7 +718,7 @@ async def _provision_after_payment(
     except Exception:
         logger.exception("Systeme tag update failed for %s", email)
 
-    return {"detail": "ok", "created": True}
+    return {"detail": "ok", "created": True, **who}
 
 
 async def _handle_checkout_session(obj: dict, db_session: AsyncSession) -> dict:
@@ -781,6 +793,21 @@ async def _handle_payment_intent(obj: dict, db_session: AsyncSession) -> dict:
             amount=amount,
             currency=currency,
             description="Formación Nawar A0-A1",
+        )
+
+    # Y lo que el admin haya montado para "cuando alguien paga". Se traga sus
+    # propios errores: el cobro ya está hecho y la cuenta creada.
+    user_id = result.get("user_id")
+    org_id = result.get("org_id")
+    if user_id and org_id:
+        from src.services.automations.engine import run_trigger
+
+        await run_trigger(
+            "payment_completed",
+            int(org_id),
+            int(user_id),
+            db_session,
+            extra={"importe": f"{amount / 100:.2f} {currency.upper()}"},
         )
 
     return result

@@ -204,7 +204,8 @@
     "for": "用于",
     "powered_by": "技术支持",
     "results": "结果",
-    "statistics": "统计"
+    "statistics": "统计",
+    "automations": "Automations"
   },
   "banner": {
     "viewing_as_guest": "您正在以访客身份浏览 {{name}}。",

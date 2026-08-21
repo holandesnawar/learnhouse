@@ -1,5 +1,6 @@
 import {
   House,
+  Lightning,
   BookOpen,
   ChartBar,
   Files,
@@ -76,6 +77,12 @@ export const DASHBOARD_MENU_ITEMS: DashboardMenuItem[] = [
     href: '/dash/estadisticas',
     icon: ChartBar,
     labelKey: 'common.statistics',
+  },
+  {
+    id: 'workflows',
+    href: '/dash/workflows',
+    icon: Lightning,
+    labelKey: 'common.automations',
   },
   {
     id: 'users',

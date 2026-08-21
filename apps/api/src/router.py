@@ -7,7 +7,7 @@ from src.routers import health
 from src.routers import instance
 from src.routers import plans
 from src.routers import usergroups
-from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas
+from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations
 from src.routers import notifications as notifications_router_module
 from src.routers import stream
 from src.routers import api_tokens
@@ -356,6 +356,13 @@ v1_router.include_router(
     prefix="/stats",
     tags=["stats"],
     dependencies=[Depends(get_non_api_token_user)],
+)
+
+# Automatizaciones: lo que la escuela hace sola y lo que añade el admin.
+router.include_router(
+    automations.router,
+    prefix="/automations",
+    tags=["automations"],
 )
 
 # Borrado de consultas desde el panel. Solo administradores.

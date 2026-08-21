@@ -204,7 +204,8 @@
     "for": "para",
     "powered_by": "Desarrollado con",
     "results": "resultado",
-    "statistics": "Estadísticas"
+    "statistics": "Estadísticas",
+    "automations": "Automatizaciones"
   },
   "banner": {
     "viewing_as_guest": "Estás viendo {{name}} como invitado.",

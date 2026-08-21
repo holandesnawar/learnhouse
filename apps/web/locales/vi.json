@@ -204,7 +204,8 @@
     "for": "cho",
     "powered_by": "Cung cấp bởi",
     "results": "kết quả",
-    "statistics": "Thống kê"
+    "statistics": "Thống kê",
+    "automations": "Automations"
   },
   "banner": {
     "viewing_as_guest": "Bạn đang xem {{name}} với tư cách khách.",

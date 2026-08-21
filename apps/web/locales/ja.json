@@ -204,7 +204,8 @@
     "for": "対象",
     "powered_by": "Powered by",
     "results": "件",
-    "statistics": "統計"
+    "statistics": "統計",
+    "automations": "Automations"
   },
   "banner": {
     "viewing_as_guest": "{{name}}をゲストとして閲覧しています。",

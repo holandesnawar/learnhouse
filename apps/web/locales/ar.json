@@ -204,7 +204,8 @@
     "for": "لـ",
     "powered_by": "مدعوم بواسطة",
     "results": "نتيجة",
-    "statistics": "الإحصائيات"
+    "statistics": "الإحصائيات",
+    "automations": "Automations"
   },
   "banner": {
     "viewing_as_guest": "أنت تتصفح {{name}} كضيف.",

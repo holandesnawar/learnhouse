@@ -204,7 +204,8 @@
     "for": "для",
     "powered_by": "Работает на",
     "results": "результат",
-    "statistics": "Статистика"
+    "statistics": "Статистика",
+    "automations": "Automations"
   },
   "banner": {
     "viewing_as_guest": "Вы просматриваете {{name}} как гость.",

@@ -204,7 +204,8 @@
     "for": "untuk",
     "powered_by": "Didukung oleh",
     "results": "hasil",
-    "statistics": "Statistik"
+    "statistics": "Statistik",
+    "automations": "Automations"
   },
   "banner": {
     "viewing_as_guest": "Anda melihat {{name}} sebagai tamu.",

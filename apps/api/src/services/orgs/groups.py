@@ -107,30 +107,49 @@ async def _link_exists(usergroup_id: int, user_id: int, db_session: AsyncSession
 
 async def add_user_to_students(user_id: int, org_id: int, db_session: AsyncSession) -> None:
     """
-    Mete al alumno recién dado de alta en el grupo "Alumnos".
+    Mete al alumno recién dado de alta en el grupo "Alumnos" y dispara las
+    automatizaciones de "cuando alguien entra en la escuela".
 
-    Best-effort a propósito: esto se llama desde el alta y desde el cobro, y
-    ninguna de las dos cosas puede fallar porque un grupo dé problemas.
+    Las dos cosas juntas y en un solo sitio a propósito: hay cinco puertas de
+    entrada (alta normal, invitación, enlace abierto, pago con cuenta nueva y
+    pago con cuenta que ya existía) y separarlas sería garantizar que un día se
+    olvida una.
+
+    Best-effort de arriba abajo: ni el alta ni el cobro pueden fallar porque un
+    grupo o un correo den problemas.
     """
+    # ¿Es nuevo de verdad, o ya estaba? De esto depende que se le dé otra vez
+    # la bienvenida: quien ya está en el grupo no vuelve a "entrar".
+    is_new = False
     try:
         groups = await ensure_default_groups(org_id, db_session)
         students = groups["students"]
-        if students.id is None or await _link_exists(students.id, user_id, db_session):
-            return
-        now = str(datetime.now())
-        db_session.add(
-            UserGroupUser(
-                usergroup_id=students.id,
-                user_id=user_id,
-                org_id=org_id,
-                creation_date=now,
-                update_date=now,
+        if students.id is not None and not await _link_exists(students.id, user_id, db_session):
+            now = str(datetime.now())
+            db_session.add(
+                UserGroupUser(
+                    usergroup_id=students.id,
+                    user_id=user_id,
+                    org_id=org_id,
+                    creation_date=now,
+                    update_date=now,
+                )
             )
-        )
-        await db_session.commit()
-        logger.info("Alumno %s añadido al grupo Alumnos", user_id)
+            await db_session.commit()
+            is_new = True
+            logger.info("Alumno %s añadido al grupo Alumnos", user_id)
     except Exception:  # noqa: BLE001
         logger.exception("No se pudo meter al usuario %s en el grupo Alumnos", user_id)
+
+    if not is_new:
+        return
+
+    # Y lo que el admin haya montado para este momento. Fuera del try de
+    # arriba: un correo mal puesto no puede tumbar un alta ni un cobro (dentro
+    # ya se traga sus propios errores).
+    from src.services.automations.engine import run_trigger
+
+    await run_trigger("student_joined", org_id, user_id, db_session)
 
 
 async def _set_role(user_id: int, org_id: int, role_id: int, db_session: AsyncSession) -> bool:

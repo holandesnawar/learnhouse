@@ -204,7 +204,8 @@
     "for": "জন্য",
     "powered_by": "দ্বারা চালিত",
     "results": "ফলাফল",
-    "statistics": "পরিসংখ্যান"
+    "statistics": "পরিসংখ্যান",
+    "automations": "Automations"
   },
   "banner": {
     "viewing_as_guest": "আপনি {{name}} অতিথি হিসেবে দেখছেন।",

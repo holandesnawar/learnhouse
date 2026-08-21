@@ -204,7 +204,8 @@
     "for": "için",
     "powered_by": "Destekleyen",
     "results": "sonuç",
-    "statistics": "İstatistikler"
+    "statistics": "İstatistikler",
+    "automations": "Automations"
   },
   "banner": {
     "viewing_as_guest": "{{name}} sitesini misafir olarak görüntülüyorsunuz.",

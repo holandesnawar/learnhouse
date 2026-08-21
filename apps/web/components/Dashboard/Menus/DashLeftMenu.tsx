@@ -23,6 +23,7 @@ import {
   ChatCircleDots,
   Headphones,
   ChartBar,
+  Lightning,
   DotsThree,
   UsersThree,
   Shield,
@@ -420,6 +421,13 @@ function DashLeftMenu() {
               label="Estadísticas"
               isCollapsed={isCollapsed}
               active={isActivePath('/dash/estadisticas')}
+            />
+            <MenuLink
+              href="/dash/workflows"
+              icon={<Lightning size={20} weight="fill" />}
+              label="Automatizaciones"
+              isCollapsed={isCollapsed}
+              active={isActivePath('/dash/workflows')}
             />
             </>
             )}

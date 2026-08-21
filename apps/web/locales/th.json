@@ -204,7 +204,8 @@
     "for": "สำหรับ",
     "powered_by": "ขับเคลื่อนโดย",
     "results": "ผลลัพธ์",
-    "statistics": "สถิติ"
+    "statistics": "สถิติ",
+    "automations": "Automations"
   },
   "banner": {
     "viewing_as_guest": "คุณกำลังดู {{name}} ในฐานะแขก",

@@ -16,6 +16,7 @@ import {
   EnvelopeSimple,
   Headphones,
   ChartBar,
+  Lightning,
   ChalkboardSimple,
   Cube,
   List,
@@ -224,6 +225,7 @@ function DashMobileMenu() {
                 <PanelItem href="/dash/users/settings/users" icon={<Users size={15} weight="fill" />} label={t('common.users')} active={isActive('/dash/users')} onClick={close} />
                 {forProfe && <PanelItem href="/dash/avisos" icon={<EnvelopeSimple size={15} weight="fill" />} label="Avisos" active={isActive('/dash/avisos')} onClick={close} />}
                 {forProfe && <PanelItem href="/dash/estadisticas" icon={<ChartBar size={15} weight="fill" />} label="Estadísticas" active={isActive('/dash/estadisticas')} onClick={close} />}
+                {forProfe && <PanelItem href="/dash/workflows" icon={<Lightning size={15} weight="fill" />} label="Automatizaciones" active={isActive('/dash/workflows')} onClick={close} />}
                 {isEnabled('communities') && <PanelItem href="/dash/communities" icon={<ChatsCircle size={15} weight="fill" />} label={t('communities.title')} active={isActive('/dash/communities')} onClick={close} />}
                 {forProfe && isEnabled('podcasts') && <PanelItem href="/dash/podcasts" icon={<Headphones size={15} weight="fill" />} label={t('podcasts.podcasts')} active={isActive('/dash/podcasts')} onClick={close} />}
                 {forProfe && isEnabled('boards') && <PanelItem href="/dash/boards" icon={<ChalkboardSimple size={15} weight="fill" />} label="Boards" active={isActive('/dash/boards')} onClick={close} />}

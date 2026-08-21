@@ -204,7 +204,8 @@
     "for": "대상",
     "powered_by": "제공",
     "results": "결과",
-    "statistics": "통계"
+    "statistics": "통계",
+    "automations": "Automations"
   },
   "banner": {
     "viewing_as_guest": "{{name}}을(를) 게스트로 보고 있습니다.",
