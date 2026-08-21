@@ -268,6 +268,19 @@ La formación 497 se vende por **email a la lista filtrada** con checkout normal
 - Preview: cambiar la rama Source en Railway; `dev` = fallback seguro. Railway solo publica builds que compilan.
 - **Verificar tipos antes de subir**: `cd apps/web && bunx tsc --noEmit`.
 - **Verificar Python**: `cd apps/api && python -m py_compile <archivos>`.
+- ⚠️ **`py_compile` NO BASTA. Antes de subir CUALQUIER cosa del backend, importar la aplicación:**
+  `cd apps/api && python -m pytest src/tests/test_app_imports.py -q`
+  **Por qué (apagón del 21/08/2026):** en `src/router.py` se escribió
+  `router.include_router(...)` en vez de `v1_router.include_router(...)`. Eso es un
+  **NameError de nivel de módulo**: `py_compile` solo mira la SINTAXIS y pasó limpia,
+  pero al importar, la API murió en el arranque. nginx y la web seguían perfectos —
+  por eso el síntoma fue **502 solo en `/api/v1`** y la escuela inservible.
+  El test `src/tests/test_app_imports.py` importa el router y comprueba que siguen
+  registradas las rutas de las que vive la escuela (health, users, orgs, messages,
+  student, payments). Está verificado que falla si se reintroduce ese bug.
+  **Diagnóstico rápido de un apagón:** `curl -o /dev/null -w "%{http_code}" .../api/v1/health`
+  → 502 con `/login` a 200 significa **API caída, nginx y web bien** (mira los logs de
+  la API, no toques nginx). Si TODO da 502, entonces sí es nginx o el contenedor.
 - **El bug de routing de Next.js root-level**: NO crear páginas en `app/<x>/page.tsx`. Siempre dentro de subcarpetas existentes (`app/auth/<x>/`, etc.) hasta que se entienda la causa.
 
 ## MCP GitHub
