@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Loader2, Sparkles, Users, Check, AlertTriangle } from 'lucide-react'
+import { Loader2, Sparkles, Check, AlertTriangle, Plus, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
@@ -11,20 +11,23 @@ import { getAPIUrl } from '@services/config/config'
 /**
  * Sembrar la comunidad antes de abrir las puertas.
  *
- * El primero que entra no debería encontrarse una casa vacía: aquí se crean
- * cinco cuentas de arranque con sus presentaciones, para que la conversación
- * ya esté empezada.
+ * **De una en una, no las cinco de golpe.** Cinco presentaciones apareciendo el
+ * mismo minuto no engañan a nadie: se lee a bulto. Una hoy, otra en dos días y
+ * otra la semana que viene se lee como una comunidad que arranca.
  *
- * Se puede pulsar dos veces sin miedo: lo que ya existe no se duplica.
+ * Por eso cada persona tiene su propio botón de añadir y de retirar. Retirar
+ * borra sus mensajes y su cuenta, así que probar no es una decisión sin
+ * marcha atrás.
  */
 
-const PERSONAS = [
-  { name: 'Marta', detail: 'Rotterdam · pareja neerlandesa' },
-  { name: 'Cristian', detail: 'Ámsterdam · hostelería' },
-  { name: 'Lucía', detail: 'Utrecht · hijos en el colegio' },
-  { name: 'Diego', detail: 'Eindhoven · quiere el inburgering' },
-  { name: 'Yasmina', detail: 'La Haya · empieza de cero' },
-]
+interface Persona {
+  key: string
+  nombre: string
+  ciudad: string
+  bio: string
+  dentro: boolean
+  mensajes: number
+}
 
 export default function SeedCommunity() {
   const org = useOrg() as any
@@ -33,9 +36,10 @@ export default function SeedCommunity() {
   const { data: communities } = useCommunities(org?.id)
 
   const [channelId, setChannelId] = useState<string>('')
-  const [running, setRunning] = useState(false)
   const [done, setDone] = useState<any>(null)
-  const [existing, setExisting] = useState<string[] | null>(null)
+  const [personas, setPersonas] = useState<Persona[] | null>(null)
+  // Qué fila está trabajando ahora mismo (para su spinner).
+  const [busy, setBusy] = useState<string | null>(null)
 
   const channels: any[] = Array.isArray(communities) ? communities : []
 
@@ -52,7 +56,7 @@ export default function SeedCommunity() {
     })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (alive && d) setExisting(d.existentes || [])
+        if (alive && d) setPersonas(d.personas || [])
       })
       .catch(() => {
         /* si falla, simplemente no enseñamos el estado */
@@ -62,44 +66,69 @@ export default function SeedCommunity() {
     }
   }, [org?.id, accessToken, done])
 
-  const run = async () => {
+  const reload = async () => {
+    if (!org?.id || !accessToken) return
+    const r = await fetch(`${getAPIUrl()}superadmin/seed/community/${org.id}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+    if (r.ok) setPersonas((await r.json()).personas || [])
+  }
+
+  /** El motivo de verdad, no un "algo ha fallado". */
+  const detalle = async (res: Response) => {
+    try {
+      const d = await res.json()
+      if (d?.detail) return String(d.detail)
+    } catch {
+      /* no era JSON */
+    }
+    return `El servidor respondió ${res.status}`
+  }
+
+  const anadir = async (p: Persona) => {
     if (!org?.id || !channelId) return
-    setRunning(true)
+    setBusy(p.key)
     try {
       const res = await fetch(
-        `${getAPIUrl()}superadmin/seed/community/${org.id}/${channelId}`,
+        `${getAPIUrl()}superadmin/seed/community/${org.id}/${channelId}?keys=${p.key}`,
         { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` } }
       )
-      if (!res.ok) {
-        // El motivo de verdad, no un "algo ha fallado": sin él no hay forma de
-        // saber qué arreglar.
-        let detail = `El servidor respondió ${res.status}`
-        try {
-          const data = await res.json()
-          if (data?.detail) detail = String(data.detail)
-        } catch {
-          const text = await res.text().catch(() => '')
-          if (text) detail = text.slice(0, 300)
-        }
-        throw new Error(detail)
-      }
+      if (!res.ok) throw new Error(await detalle(res))
       const data = await res.json()
-      setDone(data)
-      // Puede haber ido bien a medias: cuatro personas sí y una no.
-      if (Array.isArray(data?.errores) && data.errores.length > 0) {
-        toast.error(`No se pudo con: ${data.errores.join(' · ')}`, { duration: 12000 })
+      if (Array.isArray(data?.errores) && data.errores.length) {
+        toast.error(data.errores.join(' · '), { duration: 12000 })
       } else {
-        toast.success('Comunidad sembrada')
+        toast.success(`${p.nombre.split(' ')[0]} se ha presentado en ${data.canal}`)
       }
+      await reload()
     } catch (e: any) {
-      toast.error(e?.message || 'No se pudo sembrar', { duration: 12000 })
-      console.error(e)
+      toast.error(e?.message || 'No se pudo añadir', { duration: 12000 })
     } finally {
-      setRunning(false)
+      setBusy(null)
     }
   }
 
-  const yaSembrado = (existing?.length ?? 0) >= PERSONAS.length
+  const retirar = async (p: Persona) => {
+    if (!org?.id) return
+    if (!window.confirm(
+      `¿Retirar a ${p.nombre}? Se borran sus ${p.mensajes} mensaje(s) y su cuenta.`
+    )) return
+    setBusy(p.key)
+    try {
+      const res = await fetch(
+        `${getAPIUrl()}superadmin/seed/community/${org.id}/persona/${p.key}`,
+        { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } }
+      )
+      if (!res.ok) throw new Error(await detalle(res))
+      toast.success(`${p.nombre.split(' ')[0]} retirada`)
+      await reload()
+    } catch (e: any) {
+      toast.error(e?.message || 'No se pudo retirar', { duration: 12000 })
+    } finally {
+      setBusy(null)
+    }
+  }
+
 
   return (
     <div className="max-w-3xl space-y-5">
@@ -109,35 +138,11 @@ export default function SeedCommunity() {
           <h2 className="text-[17px] font-bold text-gray-900">Sembrar la comunidad</h2>
         </div>
         <p className="text-[14px] text-[#5A6480] leading-relaxed">
-          Crea cinco cuentas de arranque y publica sus presentaciones en el canal
-          que elijas, para que los primeros alumnos no entren en una comunidad
-          vacía. Puedes pulsarlo dos veces: lo que ya existe no se duplica.
+          Para que los primeros alumnos no entren en una comunidad vacía. Cada
+          persona se añade <strong>cuando tú quieras</strong> y se retira igual
+          de fácil: al añadirla publica su presentación en el canal elegido; al
+          retirarla se borran sus mensajes y su cuenta.
         </p>
-
-        <div className="mt-4 rounded-xl bg-[#F8FAFF] border border-[#E7EEF9] p-4">
-          <p className="text-[11px] font-semibold text-[#8A96AB] uppercase tracking-[0.08em] mb-2.5">
-            Quiénes son
-          </p>
-          <ul className="space-y-1.5">
-            {PERSONAS.map((p) => {
-              const created = existing?.includes(
-                // El backend devuelve nombre y apellido; basta con el nombre.
-                existing.find((e) => e.startsWith(p.name)) || ''
-              )
-              return (
-                <li key={p.name} className="flex items-center gap-2 text-[13.5px]">
-                  {created ? (
-                    <Check size={14} className="text-emerald-600 shrink-0" />
-                  ) : (
-                    <Users size={13} className="text-[#8A96AB] shrink-0" />
-                  )}
-                  <span className="font-semibold text-[#1D0084]">{p.name}</span>
-                  <span className="text-[#5A6480]">· {p.detail}</span>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
 
         <div className="mt-4 space-y-1.5">
           <label className="text-[13px] font-semibold text-[#0a1656]">
@@ -157,27 +162,60 @@ export default function SeedCommunity() {
           </select>
         </div>
 
-        <button
-          onClick={run}
-          disabled={running || !channelId}
-          className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] text-sm font-bold transition-colors disabled:opacity-50"
-        >
-          {running ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
-          {yaSembrado ? 'Volver a publicar lo que falte' : 'Sembrar la comunidad'}
-        </button>
+        <div className="mt-4 space-y-2">
+          {(personas ?? []).map((p) => (
+            <div
+              key={p.key}
+              className={`flex items-center gap-3 rounded-xl border px-3.5 py-3 transition-colors ${
+                p.dentro ? 'bg-[#F7FAFF] border-[#CFE0F8]' : 'bg-white border-[#E7EEF9]'
+              }`}
+            >
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-2">
+                  <span className="text-[14px] font-bold text-[#1D0084]">{p.nombre}</span>
+                  {p.dentro && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-1.5 py-0.5">
+                      <Check size={11} /> dentro
+                      {p.mensajes > 0 && ` · ${p.mensajes}`}
+                    </span>
+                  )}
+                </span>
+                <span className="block text-[12.5px] text-[#5A6480] truncate">{p.bio}</span>
+              </span>
 
-        {done && (
-          <div className="mt-4 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3">
-            <p className="text-[13.5px] text-emerald-800 leading-relaxed">
-              Listo en <strong>{done.canal}</strong>: {done.mensajes_publicados}{' '}
-              {done.mensajes_publicados === 1 ? 'mensaje publicado' : 'mensajes publicados'}
-              {done.mensajes_ya_estaban > 0 && ` · ${done.mensajes_ya_estaban} ya estaban`}
-              {done.cuentas_creadas?.length > 0 &&
-                ` · cuentas nuevas: ${done.cuentas_creadas.join(', ')}`}
-              .
+              {p.dentro ? (
+                <button
+                  onClick={() => retirar(p)}
+                  disabled={busy === p.key}
+                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[13px] font-semibold text-[#5A6480] hover:text-rose-600 hover:bg-rose-50 transition-colors disabled:opacity-50"
+                >
+                  {busy === p.key ? <Loader2 size={13} className="animate-spin" /> : <X size={13} />}
+                  Retirar
+                </button>
+              ) : (
+                <button
+                  onClick={() => anadir(p)}
+                  disabled={busy === p.key || !channelId}
+                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] text-[13px] font-bold transition-colors disabled:opacity-50"
+                >
+                  {busy === p.key ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+                  Añadir
+                </button>
+              )}
+            </div>
+          ))}
+          {personas === null && (
+            <p className="flex items-center gap-2 text-[13px] text-[#8A96AB] py-2">
+              <Loader2 size={13} className="animate-spin" /> Cargando…
             </p>
-          </div>
-        )}
+          )}
+        </div>
+
+        <p className="mt-4 text-[12.5px] text-[#8A96AB] leading-relaxed">
+          Añade a una, y a la siguiente dentro de unos días. Todas a la vez el
+          mismo minuto se nota, y entonces la comunidad parece menos de verdad,
+          no más.
+        </p>
       </div>
 
       <div className="rounded-2xl border border-[#EFE3C9] bg-[#FFFBF2] p-5">

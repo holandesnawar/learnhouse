@@ -175,14 +175,38 @@ async def api_seed_community(
     org_id: int,
     community_id: int,
     extras: bool = True,
+    keys: str = "",
     current_user: PublicUser = Depends(get_authenticated_user),
     db_session: AsyncSession = Depends(get_db_session),
 ):
     _require_superadmin(current_user)
     from src.services.demo.seed_community import seed_community
 
+    # `keys=marta,diego` publica solo a esas. Vacío = todas.
+    chosen = [k.strip() for k in keys.split(",") if k.strip()] or None
     try:
-        return await seed_community(org_id, community_id, db_session, include_extras=extras)
+        return await seed_community(
+            org_id, community_id, db_session, include_extras=extras, keys=chosen
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@router.delete(
+    "/seed/community/{org_id}/persona/{key}",
+    summary="Retira a una persona de arranque: sus mensajes y su cuenta.",
+)
+async def api_remove_seed_persona(
+    org_id: int,
+    key: str,
+    current_user: PublicUser = Depends(get_authenticated_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    _require_superadmin(current_user)
+    from src.services.demo.seed_community import remove_seed_persona
+
+    try:
+        return await remove_seed_persona(org_id, key, db_session)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
 

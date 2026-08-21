@@ -71,6 +71,47 @@ Decidido tras ver que la plataforma "parecía Temu": el problema no era una pant
 - **Cabecera de página estándar** (Mi progreso, Mis notas, Mis mensajes, Eventos, Ejercicios): `GeneralWrapperStyled` + `<Icono size={24} className="text-[#025dc7]" />` + `<h1 className="text-2xl sm:text-3xl font-bold text-gray-900">`. Ninguna pantalla se inventa su propio ancho ni su propio color de título.
 - Verde/rojo en los ejercicios (acierto/fallo) **sí** se quedan: son la señal que el alumno necesita.
 
+### Portadas y piezas gráficas — cómo se hacen (decidido ago 2026)
+
+**Al usuario le gusta este lenguaje visual. Es el que hay que repetir.** Se
+llegó a él descartando: primero una foto de banco de imágenes (sonrisas,
+birrete, bandera) que "restaba credibilidad a 397 €", luego una versión
+demasiado plana, luego un bloque azul oscuro que competía con la barra lateral.
+
+**Reglas de la portada:**
+- **Fondo claro siempre.** Blanco → `#F0F5FF`, nunca azul oscuro: la barra
+  lateral ya es azul y dos azules grandes juntos oscurecen media pantalla.
+- **Fondo por capas**, no un degradado liso (que se lee "plantilla"): mancha
+  `#4da3ff` difusa arriba-derecha, otra `#1D0084` abajo-izquierda, arco de luz,
+  malla fina de 78 px con máscara radial y la trama de puntos de la marca.
+- **Titular en `#1D0084`** con **marca de rotulador `#4da3ff`** bajo la palabra
+  clave — es el mismo gesto de resaltar que el alumno usa en las lecciones.
+  Ojo: el `.mark` debe envolver algo que NO parta de línea, o la marca se
+  estira al ancho del bloque.
+- **Logo Nawar arriba** con un filete y el rótulo al lado.
+- **La portada NO repite el nombre del curso**: la página ya lo escribe encima.
+- **Mockups con los ejercicios REALES**: estilos copiados de
+  `components/exercises-app/LessonViewer.tsx` y contenido de `courseData.ts`.
+  Nada inventado — quien conoce la escuela reconoce la pantalla.
+- Cero naranja fuera del logo, cero fotos de stock.
+
+**Cómo se generan** (`/tmp/.../scratchpad/portada/`, recrear si se perdió):
+HTML+CSS renderizado con Playwright + Chromium
+(`/opt/pw-browsers/chromium-1194/chrome-linux/chrome`) a `device_scale_factor=2`.
+Fuentes Poppins/Inter incrustadas en base64 desde Google Fonts. **Iterar
+mirando el PNG con la herramienta Read** — diseñar a ciegas no funciona.
+
+**Formatos que pide el usuario:** `1600×560` (el contenedor real del curso,
+2,86:1), `1680×720` (21:9), `1600×900` (16:9) y `1400×2100` (2:3, mockup de
+libro). No es la misma imagen recortada: cada proporción recoloca las piezas.
+**Zona segura del banner:** los 1160 px centrales — en móvil el `cover` se come
+los laterales; en escritorio, arriba y abajo.
+
+**Logo:** el bueno, con transparencia, está en la propia escuela:
+`content/orgs/org_d790ce63-.../logos/3e936ab0-..._logo.png` (el slug de la org
+es `holandesrida`). `docs.holandesnawar.com` y CloudFront están **bloqueados**
+por el proxy del entorno con 403 de política — no insistir.
+
 ## Estabilidad — qué evita que la escuela se caiga
 - **Todo bajo pm2, nginx incluido** (`docker/start.sh`). Antes, si nginx moría, el contenedor seguía "vivo" sin servir nada. Además `--restart-delay 3000 --max-restarts 10000`. Tras arrancar nginx se comprueba el puerto 80 de verdad y, si no responde, se arranca a mano.
 - **Página `docker/offline.html`** servida por el propio nginx (`error_page 502 503 504`): mientras la app reinicia, el alumno ve "Volvemos en un momento" (recarga sola cada 8s) en vez del 502 blanco. Las rutas `/api/v1` devuelven **JSON** 503, no HTML, para que el front lo trate como fallo de red.

@@ -275,9 +275,14 @@ async def seed_community(
     community_id: int,
     db_session: AsyncSession,
     include_extras: bool = True,
+    keys: Optional[List[str]] = None,
 ) -> dict:
     """
-    Crea las cuentas de arranque y publica sus presentaciones en un canal.
+    Publica la presentación de una o varias personas de arranque.
+
+    `keys` dice a quién: sin ella entran todas. **Lo normal es de una en una.**
+    Cinco presentaciones apareciendo el mismo minuto no engañan a nadie; una
+    hoy, otra en dos días y otra la semana que viene, sí.
 
     Se puede llamar dos veces: lo que ya existe no se duplica.
     """
@@ -301,7 +306,11 @@ async def seed_community(
     # llamada entera y el panel decía "no se pudo sembrar" sin más: se perdía
     # la señal de qué había fallado y parecía que no había funcionado nada,
     # cuando en realidad las cuatro anteriores estaban hechas.
-    for persona in PERSONAS:
+    elegidas = [p for p in PERSONAS if not keys or p.key in keys]
+    if not elegidas:
+        raise ValueError("No has elegido a nadie")
+
+    for persona in elegidas:
         nombre = f"{persona.first_name} {persona.last_name}"
         try:
             user, is_new = await _get_or_create_user(persona, org_id, db_session)
@@ -344,7 +353,7 @@ async def seed_community(
     return {
         "canal": community.name,
         "cuentas_creadas": created_users,
-        "cuentas_totales": len(PERSONAS),
+        "cuentas_totales": len(elegidas),
         "mensajes_publicados": created_posts,
         "mensajes_ya_estaban": skipped_posts,
         # Vacío = ha ido todo bien. Si no, aquí está el porqué, en cristiano.
@@ -353,12 +362,90 @@ async def seed_community(
 
 
 async def seed_status(org_id: int, db_session: AsyncSession) -> dict:
-    """Qué cuentas de arranque existen ya, para enseñarlo en el panel."""
+    """
+    Ficha de cada persona de arranque, para el panel: quién es, si ya está
+    dentro y cuántos mensajes suyos hay publicados.
+    """
     emails = [f"{p.key}@{SEED_EMAIL_DOMAIN}" for p in PERSONAS]
     rows = (
         await db_session.execute(select(User).where(User.email.in_(emails)))  # type: ignore[attr-defined]
     ).scalars().all()
+    by_email = {u.email: u for u in rows}
+
+    personas = []
+    for p in PERSONAS:
+        user = by_email.get(f"{p.key}@{SEED_EMAIL_DOMAIN}")
+        mensajes = 0
+        if user:
+            mensajes = len(
+                (
+                    await db_session.execute(
+                        select(Discussion).where(Discussion.author_id == user.id)
+                    )
+                ).scalars().all()
+            )
+        personas.append(
+            {
+                "key": p.key,
+                "nombre": f"{p.first_name} {p.last_name}",
+                "ciudad": p.city,
+                "bio": p.bio,
+                "dentro": user is not None,
+                "mensajes": mensajes,
+            }
+        )
+
     return {
+        "personas": personas,
+        # Se mantiene por compatibilidad con lo que ya lee el panel.
         "existentes": [f"{u.first_name} {u.last_name}" for u in rows],
         "total": len(PERSONAS),
     }
+
+
+async def remove_seed_persona(org_id: int, key: str, db_session: AsyncSession) -> dict:
+    """
+    Retira a una persona de arranque: sus mensajes y su cuenta.
+
+    Es la vuelta atrás de "añadir". Sin esto, probar el arranque sería una
+    decisión sin marcha atrás, y entonces no se prueba.
+    """
+    persona = next((p for p in PERSONAS if p.key == key), None)
+    if not persona:
+        raise ValueError("Esa persona no existe")
+
+    email = f"{persona.key}@{SEED_EMAIL_DOMAIN}"
+    user = (
+        await db_session.execute(select(User).where(User.email == email))
+    ).scalars().first()
+    if not user:
+        return {"retirada": persona.first_name, "mensajes_borrados": 0, "ya_no_estaba": True}
+
+    from sqlalchemy import delete as sql_delete
+
+    from src.db.communities.discussion_reactions import DiscussionReaction
+    from src.db.communities.discussion_votes import DiscussionVote
+
+    mensajes = (
+        await db_session.execute(select(Discussion).where(Discussion.author_id == user.id))
+    ).scalars().all()
+
+    # Primero lo que cuelga de cada mensaje: si la restricción de la base de
+    # datos no se creó con CASCADE, borrar el mensaje a secas falla.
+    for m in mensajes:
+        await db_session.execute(
+            sql_delete(DiscussionReaction).where(DiscussionReaction.discussion_id == m.id)
+        )
+        await db_session.execute(
+            sql_delete(DiscussionVote).where(DiscussionVote.discussion_id == m.id)
+        )
+        await db_session.delete(m)
+
+    await db_session.execute(
+        sql_delete(UserOrganization).where(UserOrganization.user_id == user.id)
+    )
+    await db_session.delete(user)
+    await db_session.commit()
+
+    logger.info("Persona de arranque %s retirada (%s mensajes)", key, len(mensajes))
+    return {"retirada": persona.first_name, "mensajes_borrados": len(mensajes)}
