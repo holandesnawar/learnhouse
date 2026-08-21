@@ -56,6 +56,12 @@ class Persona:
     city: str
     """Su presentación en el canal."""
     presentation: str
+    """Cómo aparece su @ en la comunidad. Sin apellidos de marca: `diego_nawar`
+    delataba que la cuenta la había creado la escuela."""
+    username: str
+    """Lo que se lee bajo su nombre en el perfil. Escrito como lo escribiría
+    esa persona, no como una etiqueta del sistema."""
+    bio: str
     """Mensajes sueltos, para que el canal no sea solo una fila de presentaciones."""
     extras: List[str] = field(default_factory=list)
 
@@ -66,12 +72,18 @@ PERSONAS: List[Persona] = [
         first_name="Marta",
         last_name="Ferrer",
         city="Rotterdam",
+        username="martaferrer",
+        bio="De Valencia, en Rotterdam desde 2024.",
         presentation=(
-            "Me llamo Marta y vivo en Rotterdam, ya van dos años.\n\n"
-            "Aprendo holandés porque mi pareja es de aquí y su familia entera lo "
-            "habla en las comidas. Yo asiento y me río cuando se ríen 😅\n\n"
-            "Lo que más me cuesta ahora mismo es entender. Leerlo me defiendo, "
-            "pero en cuanto hablan a velocidad normal me pierdo."
+            "Ik ben Marta.\n"
+            "Ik kom uit Spanje.\n"
+            "Ik woon in Rotterdam.\n"
+            "Ik ben 34 jaar.\n\n"
+            "(Y hasta ahí llego 😅) Llevo dos años aquí. Aprendo holandés porque "
+            "mi pareja es de aquí y su familia entera lo habla en las comidas: yo "
+            "asiento y me río cuando se ríen.\n\n"
+            "Lo que más me cuesta es entender. Leerlo me defiendo, pero en cuanto "
+            "hablan a velocidad normal me pierdo."
         ),
         extras=[
             "Ayer entendí una frase entera de la radio en el coche. Una. Pero entera 🎉",
@@ -82,10 +94,16 @@ PERSONAS: List[Persona] = [
         first_name="Cristian",
         last_name="Ocampo",
         city="Ámsterdam",
+        username="cristian.ocampo",
+        bio="Colombiano en Ámsterdam. Trabajo en hostelería.",
         presentation=(
-            "Me llamo Cristian, soy colombiano y vivo en Ámsterdam.\n\n"
-            "Aprendo holandés porque trabajo en un restaurante y lo escucho ocho "
-            "horas al día sin enterarme de casi nada. Ya me da rabia.\n\n"
+            "Ik ben Cristian.\n"
+            "Ik kom uit Colombia.\n"
+            "Ik woon in Amsterdam.\n"
+            "Ik ben 29 jaar.\n"
+            "Ik werk in een restaurant.\n\n"
+            "Aprendo holandés porque lo escucho ocho horas al día en el trabajo y "
+            "no me entero de casi nada. Ya me da rabia.\n\n"
             "Lo que más me cuesta son los números: me dicen un precio y me quedo "
             "en blanco."
         ),
@@ -99,10 +117,16 @@ PERSONAS: List[Persona] = [
         first_name="Lucía",
         last_name="Bermejo",
         city="Utrecht",
+        username="luciabermejo",
+        bio="Madre de dos, cerca de Utrecht. Estudio en los ratos que puedo.",
         presentation=(
-            "Me llamo Lucía y vivo en un pueblo al lado de Utrecht.\n\n"
-            "Aprendo holandés por mis hijos: van al colegio de aquí y quiero "
-            "enterarme de lo que dicen las profes y de las cartas que llegan a casa.\n\n"
+            "Ik ben Lucía.\n"
+            "Ik kom uit Spanje.\n"
+            "Ik woon in Utrecht.\n"
+            "Ik ben 41 jaar.\n"
+            "Ik heb twee kinderen.\n\n"
+            "Aprendo holandés por ellos: van al colegio de aquí y quiero enterarme "
+            "de lo que dicen las profes y de las cartas que llegan a casa.\n\n"
             "Lo que más me cuesta es sentarme. Encontrar el rato, más que el idioma."
         ),
     ),
@@ -111,11 +135,15 @@ PERSONAS: List[Persona] = [
         first_name="Diego",
         last_name="Sarmiento",
         city="Eindhoven",
+        username="diegosarmiento",
+        bio="Argentino en Eindhoven. Voy a por el inburgering.",
         presentation=(
-            "Me llamo Diego, argentino, en Eindhoven.\n\n"
-            "Aprendo holandés porque en el trabajo todo es en inglés y llevo tres "
-            "años aquí sin pasar de «dank je wel». Y a medio plazo quiero el "
-            "inburgering.\n\n"
+            "Ik ben Diego.\n"
+            "Ik kom uit Argentinië.\n"
+            "Ik woon in Eindhoven.\n"
+            "Ik ben 36 jaar.\n\n"
+            "En el trabajo todo es en inglés y llevo tres años aquí sin pasar de "
+            "«dank je wel». A medio plazo quiero el inburgering.\n\n"
             "Lo que más me cuesta es la pronunciación: la g me sale a carraspera."
         ),
     ),
@@ -124,10 +152,15 @@ PERSONAS: List[Persona] = [
         first_name="Yasmina",
         last_name="El Amrani",
         city="La Haya",
+        username="yasmina.elamrani",
+        bio="Recién llegada a Den Haag. Empiezo de cero.",
         presentation=(
-            "Me llamo Yasmina y acabo de llegar a Den Haag.\n\n"
-            "Aprendo holandés porque quiero empezar bien desde el principio, no "
-            "como en otros sitios donde me quedé a medias.\n\n"
+            "Ik ben Yasmina.\n"
+            "Ik kom uit Marokko.\n"
+            "Ik woon in Den Haag.\n"
+            "Ik ben 26 jaar.\n\n"
+            "Acabo de llegar. Aprendo holandés porque quiero empezar bien desde el "
+            "principio, no como en otros sitios donde me quedé a medias.\n\n"
             "Lo que más me cuesta: todo todavía 😄 Empiezo de cero de verdad."
         ),
     ),
@@ -151,11 +184,11 @@ async def _get_or_create_user(persona: Persona, org_id: int, db_session: AsyncSe
         return existing, False
 
     user = User(
-        username=f"{persona.key}_nawar",
+        username=persona.username,
         first_name=persona.first_name,
         last_name=persona.last_name,
         email=email,
-        bio=f"Alumno/a de la cohorte fundadora · {persona.city}",
+        bio=persona.bio,
         # Aleatoria y no guardada: estas cuentas no se usan para entrar.
         password=security_hash_password(secrets.token_urlsafe(32)),
         user_uuid=f"user_{uuid4()}",

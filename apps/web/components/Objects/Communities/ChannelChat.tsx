@@ -25,6 +25,7 @@ import {
 import VoiceRecorder from '@components/Pages/Messages/VoiceRecorder'
 import ComposerButton from './ComposerButton'
 import MessageAction from './MessageAction'
+import ConfirmDialog from './ConfirmDialog'
 
 // Ventana en la que el autor puede editar/eliminar su propio mensaje (12 h).
 const EDIT_WINDOW_MS = 12 * 60 * 60 * 1000
@@ -256,6 +257,9 @@ export function ChannelChat({
   const [alsoEmail, setAlsoEmail] = useState(false)
   // Adjuntos ya subidos que saldrán con el próximo mensaje.
   const [pending, setPending] = useState<ChatAttachment[]>([])
+  // Qué mensaje está esperando confirmación para borrarse.
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [recording, setRecording] = useState(false)
 
@@ -347,15 +351,23 @@ export function ChannelChat({
     }
   }
 
-  const removeMessage = async (uuid: string) => {
-    if (!accessToken) return
-    if (!window.confirm('¿Eliminar este mensaje? No se puede deshacer.')) return
+  const confirmRemove = async () => {
+    const uuid = pendingDelete
+    if (!uuid || !accessToken) return
+    setDeleting(true)
     try {
       await deleteDiscussion(uuid, accessToken)
+      // Fuera de la lista al momento, sin esperar a que se recargue: si el
+      // servidor dice que sí y la pantalla no cambia, parece que no ha pasado
+      // nada.
+      mutate((cur) => (cur || []).filter((d) => d.discussion_uuid !== uuid))
       mutateDiscussions(communityUuid)
+      setPendingDelete(null)
     } catch (e: any) {
       // El motivo de verdad: "no se pudo eliminar" a secas no deja arreglar nada.
       toast.error(e?.message || 'No se pudo eliminar el mensaje.', { duration: 10000 })
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -372,7 +384,7 @@ export function ChannelChat({
     }
   }
 
-  const { discussions, isLoading } = useDiscussions({
+  const { discussions, isLoading, mutate } = useDiscussions({
     communityUuid,
     sortBy: 'recent',
     page: 1,
@@ -1103,7 +1115,7 @@ export function ChannelChat({
                                 label="Eliminar"
                                 danger
                                 align={isOwn ? 'right' : 'left'}
-                                onClick={() => removeMessage(m.discussion_uuid)}
+                                onClick={() => setPendingDelete(m.discussion_uuid)}
                               >
                                 <Trash2 size={14} />
                               </MessageAction>
@@ -1493,6 +1505,15 @@ export function ChannelChat({
           )}
         </div>
       </AuthenticatedClientElement>
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        busy={deleting}
+        title="¿Eliminar este mensaje?"
+        description="Desaparece para todos y no se puede deshacer."
+        onConfirm={confirmRemove}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   )
 }

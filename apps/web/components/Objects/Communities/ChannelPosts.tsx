@@ -36,6 +36,7 @@ import { getUserAvatarMediaDirectory } from '@services/media/media'
 import UserAvatar from '@components/Objects/UserAvatar'
 import VoiceRecorder from '@components/Pages/Messages/VoiceRecorder'
 import ComposerButton from './ComposerButton'
+import ConfirmDialog from './ConfirmDialog'
 import { QUICK_EMOJIS } from '@/lib/chat/emojis'
 
 dayjs.extend(relativeTime)
@@ -112,6 +113,9 @@ export default function ChannelPosts({
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
   const { isAdmin } = (useAdminStatus() as any) || {}
+  // Qué post espera confirmación para borrarse.
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const currentUserId = session?.data?.user?.id
   const mutateDiscussions = useMutateDiscussions()
 
@@ -146,13 +150,18 @@ export default function ChannelPosts({
     }
   }, [discussions, accessToken])
 
-  const remove = async (uuid: string) => {
-    if (!window.confirm('¿Eliminar este post? No se puede deshacer.')) return
+  const confirmRemove = async () => {
+    const uuid = pendingDelete
+    if (!uuid) return
+    setDeleting(true)
     try {
       await deleteDiscussion(uuid, accessToken)
       mutateDiscussions(communityUuid)
+      setPendingDelete(null)
     } catch (e: any) {
       toast.error(e?.message || 'No se pudo eliminar el post.', { duration: 10000 })
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -248,7 +257,7 @@ export default function ChannelPosts({
                     </div>
                     {(mine || isAdmin) && (
                       <button
-                        onClick={() => remove(d.discussion_uuid)}
+                        onClick={() => setPendingDelete(d.discussion_uuid)}
                         title="Eliminar"
                         aria-label="Eliminar publicación"
                         className="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-lg text-gray-300 hover:text-rose-500 hover:bg-rose-50 transition-colors opacity-0 group-hover:opacity-100"
@@ -348,6 +357,15 @@ export default function ChannelPosts({
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        busy={deleting}
+        title="¿Eliminar este post?"
+        description="Desaparece para todos, con sus comentarios, y no se puede deshacer."
+        onConfirm={confirmRemove}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   )
 }
