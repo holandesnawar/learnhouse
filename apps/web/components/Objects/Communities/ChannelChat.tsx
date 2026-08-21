@@ -227,10 +227,17 @@ export function ChannelChat({
   const currentUserId = session?.data?.user?.id
 
   // El autor puede editar/eliminar su propio mensaje durante las primeras 12 h.
-  const canModify = (m: DiscussionWithAuthor) =>
+  /** Editar: solo tu propio mensaje y dentro de las primeras 12 h. Un
+   *  administrador NO edita mensajes ajenos: eso sería escribir por otro. */
+  const canEdit = (m: DiscussionWithAuthor) =>
     !!currentUserId &&
     m.author?.id === currentUserId &&
     Date.now() - msOf(m.creation_date) < EDIT_WINDOW_MS
+
+  /** Borrar: tu mensaje reciente, o cualquiera si eres administrador — sin
+   *  límite de tiempo. Moderar una comunidad es justo eso, y el servidor ya
+   *  lo permitía: era la pantalla la que escondía el botón. */
+  const canDelete = (m: DiscussionWithAuthor) => isAdmin || canEdit(m)
 
   // Toggle an emoji reaction on a message and refresh the list.
   const react = async (uuid: string, emoji: string) => {
@@ -855,7 +862,7 @@ export function ChannelChat({
                           </button>
                         )}
                         {/* Editar (solo el autor, primeras 12 h) */}
-                        {canModify(m) && (
+                        {canEdit(m) && (
                           <button
                             type="button"
                             onClick={() => startEdit(m)}
@@ -868,8 +875,8 @@ export function ChannelChat({
                             <Pencil size={14} />
                           </button>
                         )}
-                        {/* Eliminar (solo el autor, primeras 12 h) */}
-                        {canModify(m) && (
+                        {/* Eliminar: el autor dentro de 12 h, o el equipo siempre */}
+                        {canDelete(m) && (
                           <button
                             type="button"
                             onClick={() => removeMessage(m.discussion_uuid)}
