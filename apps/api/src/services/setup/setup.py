@@ -457,8 +457,138 @@ async def install_default_elements(db_session: AsyncSession):
         update_date=str(datetime.now()),
     )
 
+    # ── Profe (Holandés Nawar) ───────────────────────────────────────────
+    # El profesor de la escuela. NO es un administrador: no toca el contenido
+    # del curso, ni la organización, ni los cobros, ni los roles. Lo que sí
+    # hace es lo que un profe necesita para dar clase:
+    #   · ver la lista de alumnos y sus fichas,
+    #   · atender los mensajes directos (la bandeja del equipo),
+    #   · moderar la comunidad (incluido borrar un mensaje fuera de tono),
+    #   · entrar al panel, que enseña solo lo suyo.
+    # Se asigna metiendo a la persona en el grupo "Profes"; al sacarla vuelve
+    # a ser alumna.
+    role_global_profe = Role(
+        name="Profe",
+        description="Atiende alumnos: mensajes, comunidad y fichas. Sin tocar contenido ni ajustes.",
+        role_type=RoleTypeEnum.TYPE_GLOBAL,
+        role_uuid="role_global_profe",
+        id=5,
+        rights=Rights(
+            courses=PermissionsWithOwn(
+                action_create=False,
+                action_read=True,
+                action_read_own=True,
+                action_update=False,
+                action_update_own=False,
+                action_delete=False,
+                action_delete_own=False,
+            ),
+            # Ver a los alumnos sí; crearlos, cambiarlos o borrarlos no.
+            users=Permission(
+                action_create=False,
+                action_read=True,
+                action_update=False,
+                action_delete=False,
+            ),
+            usergroups=Permission(
+                action_create=False,
+                action_read=True,
+                action_update=False,
+                action_delete=False,
+            ),
+            collections=Permission(
+                action_create=False,
+                action_read=True,
+                action_update=False,
+                action_delete=False,
+            ),
+            organizations=Permission(
+                action_create=False,
+                action_read=False,
+                action_update=False,
+                action_delete=False,
+            ),
+            coursechapters=Permission(
+                action_create=False,
+                action_read=True,
+                action_update=False,
+                action_delete=False,
+            ),
+            activities=Permission(
+                action_create=False,
+                action_read=True,
+                action_update=False,
+                action_delete=False,
+            ),
+            roles=Permission(
+                action_create=False,
+                action_read=False,
+                action_update=False,
+                action_delete=False,
+            ),
+            # Entra al panel, pero el menú le enseña solo lo suyo.
+            dashboard=DashboardPermission(
+                action_access=True,
+            ),
+            # Moderar: puede fijar y ordenar los canales, no crearlos ni
+            # borrarlos.
+            communities=Permission(
+                action_create=False,
+                action_read=True,
+                action_update=True,
+                action_delete=False,
+            ),
+            # Aquí sí manda: un profe tiene que poder borrar un mensaje
+            # inapropiado de cualquiera, no solo el suyo.
+            discussions=PermissionsWithOwn(
+                action_create=True,
+                action_read=True,
+                action_read_own=True,
+                action_update=False,
+                action_update_own=True,
+                action_delete=True,
+                action_delete_own=True,
+            ),
+            podcasts=PermissionsWithOwn(
+                action_create=False,
+                action_read=True,
+                action_read_own=True,
+                action_update=False,
+                action_update_own=False,
+                action_delete=False,
+                action_delete_own=False,
+            ),
+            boards=PermissionsWithOwn(
+                action_create=False,
+                action_read=True,
+                action_read_own=True,
+                action_update=False,
+                action_update_own=False,
+                action_delete=False,
+                action_delete_own=False,
+            ),
+            playgrounds=PermissionsWithOwn(
+                action_create=False,
+                action_read=True,
+                action_read_own=True,
+                action_update=False,
+                action_update_own=False,
+                action_delete=False,
+                action_delete_own=False,
+            ),
+        ),
+        creation_date=str(datetime.now()),
+        update_date=str(datetime.now()),
+    )
+
     # Serialize rights to JSON
-    desired_roles = [role_global_admin, role_global_maintainer, role_global_instructor, role_global_user]
+    desired_roles = [
+        role_global_admin,
+        role_global_maintainer,
+        role_global_instructor,
+        role_global_user,
+        role_global_profe,
+    ]
     for role in desired_roles:
         role.rights = role.rights.model_dump()  # type: ignore
 

@@ -36,7 +36,7 @@ from src.db.organization_config import OrganizationConfig
 from src.db.organizations import Organization
 from src.db.user_organizations import UserOrganization
 from src.db.users import AnonymousUser, PublicUser, User
-from src.security.rbac.constants import ADMIN_ROLE_ID, ADMIN_OR_MAINTAINER_ROLE_IDS
+from src.security.rbac.constants import ADMIN_ROLE_ID, STAFF_ROLE_IDS
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +139,7 @@ async def is_staff(user_id: int, org_id: int, db_session: AsyncSession) -> bool:
             )
         )
     ).scalars().first()
-    return bool(uo and uo.role_id in ADMIN_OR_MAINTAINER_ROLE_IDS)
+    return bool(uo and uo.role_id in STAFF_ROLE_IDS)
 
 
 async def is_admin_user(user_id: int, org_id: int, db_session: AsyncSession) -> bool:
@@ -788,7 +788,7 @@ async def directory(
     for user, role_id in rows:
         if user.id == user_id:
             continue
-        is_team = role_id in ADMIN_OR_MAINTAINER_ROLE_IDS
+        is_team = role_id in STAFF_ROLE_IDS
         if want_team != is_team:
             continue
 
@@ -862,7 +862,7 @@ async def open_thread_with(
     if peer_role is None:
         raise HTTPException(status_code=404, detail="Esa persona no está en la escuela")
 
-    peer_is_team = peer_role in ADMIN_OR_MAINTAINER_ROLE_IDS
+    peer_is_team = peer_role in STAFF_ROLE_IDS
 
     if staff:
         if peer_is_team:

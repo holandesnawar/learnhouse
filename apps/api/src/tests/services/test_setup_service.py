@@ -35,11 +35,24 @@ async def test_install_default_elements_creates_and_updates_roles(db):
 
     roles = (await db.execute(select(Role).order_by(Role.id))).scalars().all()
 
-    assert [role.id for role in roles] == [1, 2, 3, 4]
+    assert [role.id for role in roles] == [1, 2, 3, 4, 5]
     assert roles[0].name == "Admin"
     assert roles[0].role_uuid == "role_global_admin"
     assert roles[0].rights["dashboard"]["action_access"] is True
     assert roles[3].name == "User"
+
+    # El profe entra al panel y ve a los alumnos, pero no toca la escuela.
+    profe = roles[4]
+    assert profe.name == "Profe"
+    assert profe.role_uuid == "role_global_profe"
+    assert profe.rights["dashboard"]["action_access"] is True
+    assert profe.rights["users"]["action_read"] is True
+    assert profe.rights["users"]["action_update"] is False
+    assert profe.rights["organizations"]["action_update"] is False
+    assert profe.rights["courses"]["action_update"] is False
+    assert profe.rights["roles"]["action_read"] is False
+    # Sí puede borrar un mensaje de cualquiera: es moderación.
+    assert profe.rights["discussions"]["action_delete"] is True
 
 
 @pytest.mark.asyncio

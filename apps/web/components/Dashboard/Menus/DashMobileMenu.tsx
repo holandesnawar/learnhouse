@@ -41,6 +41,7 @@ import { getOrgLogoMediaDirectory } from '@services/media/media'
 import { cn } from '@/lib/utils'
 import { usePlan } from '@components/Hooks/usePlan'
 import { useCommandPalette } from '@components/Dashboard/CommandPalette/CommandPaletteContext'
+import useAdminStatus from '@components/Hooks/useAdminStatus'
 
 function DashMobileMenu() {
   const org = useOrg() as any
@@ -64,6 +65,9 @@ function DashMobileMenu() {
     plan
 
   const rf = org?.config?.config?.resolved_features
+  // El profe solo ve lo suyo en el panel.
+  const { isProfe } = useAdminStatus()
+  const forProfe = !isProfe
   const isEnabled = (f: string) => rf?.[f]?.enabled === true
 
   const isActive = (path: string) => {
@@ -103,25 +107,25 @@ function DashMobileMenu() {
             />
           </Link>
           {/* Progressive reveal — more icons as viewport widens */}
-          <PillLink href="/dash/courses" icon={<BookOpen size={18} weight="fill" />} active={isActive('/dash/courses')} className="hidden min-[340px]:flex" />
-          <PillLink href="/dash/assignments" icon={<Files size={18} weight="fill" />} active={isActive('/dash/assignments')} className="hidden min-[390px]:flex" />
+          {forProfe && <PillLink href="/dash/courses" icon={<BookOpen size={18} weight="fill" />} active={isActive('/dash/courses')} className="hidden min-[340px]:flex" />}
+          {forProfe && <PillLink href="/dash/assignments" icon={<Files size={18} weight="fill" />} active={isActive('/dash/assignments')} className="hidden min-[390px]:flex" />}
           <PillLink href="/dash/users/settings/users" icon={<Users size={18} weight="fill" />} active={isActive('/dash/users')} className="hidden min-[430px]:flex" />
-          <PillLink href="/dash/avisos" icon={<EnvelopeSimple size={18} weight="fill" />} active={isActive('/dash/avisos')} className="hidden min-[470px]:flex" />
+          {forProfe && <PillLink href="/dash/avisos" icon={<EnvelopeSimple size={18} weight="fill" />} active={isActive('/dash/avisos')} className="hidden min-[470px]:flex" />}
           {isEnabled('communities') && (
             <PillLink href="/dash/communities" icon={<ChatsCircle size={18} weight="fill" />} active={isActive('/dash/communities')} className="hidden min-[510px]:flex" />
           )}
-          {isEnabled('podcasts') && (
+          {forProfe && isEnabled('podcasts') && (
             <PillLink href="/dash/podcasts" icon={<Headphones size={18} weight="fill" />} active={isActive('/dash/podcasts')} className="hidden min-[510px]:flex" />
           )}
-          {isEnabled('boards') && (
+          {forProfe && isEnabled('boards') && (
             <PillLink href="/dash/boards" icon={<ChalkboardSimple size={18} weight="fill" />} active={isActive('/dash/boards')} className="hidden min-[550px]:flex" />
           )}
-          {isEnabled('playgrounds') && (
+          {forProfe && isEnabled('playgrounds') && (
             <PillLink href="/dash/playgrounds" icon={<Cube size={18} weight="fill" />} active={isActive('/dash/playgrounds')} className="hidden min-[590px]:flex" />
           )}
-          <PillLink href="/dash/analytics" icon={<ChartBar size={18} weight="fill" />} active={isActive('/dash/analytics')} className="hidden min-[630px]:flex" />
-          <PillLink href="/dash/org/settings/general" icon={<Buildings size={18} weight="fill" />} active={isActive('/dash/org')} className="hidden min-[670px]:flex" />
-          {isEnabled('payments') && (
+          {forProfe && <PillLink href="/dash/analytics" icon={<ChartBar size={18} weight="fill" />} active={isActive('/dash/analytics')} className="hidden min-[630px]:flex" />}
+          {forProfe && <PillLink href="/dash/org/settings/general" icon={<Buildings size={18} weight="fill" />} active={isActive('/dash/org')} className="hidden min-[670px]:flex" />}
+          {forProfe && isEnabled('payments') && (
             <PillLink href="/dash/payments/overview" icon={<CurrencyCircleDollar size={18} weight="fill" />} active={isActive('/dash/payments')} className="hidden min-[710px]:flex" />
           )}
 
@@ -215,18 +219,18 @@ function DashMobileMenu() {
               {/* Nav items */}
               <div className="py-2 px-2 max-h-[52vh] overflow-y-auto overscroll-contain space-y-px">
                 <PanelItem href="/dash" icon={<House size={15} weight="fill" />} label={t('common.home')} active={isActive('/dash')} onClick={close} />
-                <PanelItem href="/dash/courses" icon={<BookOpen size={15} weight="fill" />} label={t('courses.courses')} active={isActive('/dash/courses')} onClick={close} />
-                <PanelItem href="/dash/assignments" icon={<Files size={15} weight="fill" />} label={t('common.assignments')} active={isActive('/dash/assignments')} onClick={close} />
+                {forProfe && <PanelItem href="/dash/courses" icon={<BookOpen size={15} weight="fill" />} label={t('courses.courses')} active={isActive('/dash/courses')} onClick={close} />}
+                {forProfe && <PanelItem href="/dash/assignments" icon={<Files size={15} weight="fill" />} label={t('common.assignments')} active={isActive('/dash/assignments')} onClick={close} />}
                 <PanelItem href="/dash/users/settings/users" icon={<Users size={15} weight="fill" />} label={t('common.users')} active={isActive('/dash/users')} onClick={close} />
-                <PanelItem href="/dash/avisos" icon={<EnvelopeSimple size={15} weight="fill" />} label="Avisos" active={isActive('/dash/avisos')} onClick={close} />
-                <PanelItem href="/dash/estadisticas" icon={<ChartBar size={15} weight="fill" />} label="Estadísticas" active={isActive('/dash/estadisticas')} onClick={close} />
+                {forProfe && <PanelItem href="/dash/avisos" icon={<EnvelopeSimple size={15} weight="fill" />} label="Avisos" active={isActive('/dash/avisos')} onClick={close} />}
+                {forProfe && <PanelItem href="/dash/estadisticas" icon={<ChartBar size={15} weight="fill" />} label="Estadísticas" active={isActive('/dash/estadisticas')} onClick={close} />}
                 {isEnabled('communities') && <PanelItem href="/dash/communities" icon={<ChatsCircle size={15} weight="fill" />} label={t('communities.title')} active={isActive('/dash/communities')} onClick={close} />}
-                {isEnabled('podcasts') && <PanelItem href="/dash/podcasts" icon={<Headphones size={15} weight="fill" />} label={t('podcasts.podcasts')} active={isActive('/dash/podcasts')} onClick={close} />}
-                {isEnabled('boards') && <PanelItem href="/dash/boards" icon={<ChalkboardSimple size={15} weight="fill" />} label="Boards" active={isActive('/dash/boards')} onClick={close} />}
-                {isEnabled('playgrounds') && <PanelItem href="/dash/playgrounds" icon={<Cube size={15} weight="fill" />} label="Playgrounds" active={isActive('/dash/playgrounds')} onClick={close} />}
-                {isEnabled('payments') && <PanelItem href="/dash/payments/overview" icon={<CurrencyCircleDollar size={15} weight="fill" />} label={t('common.payments')} active={isActive('/dash/payments')} onClick={close} />}
-                <PanelItem href="/dash/analytics" icon={<ChartBar size={15} weight="fill" />} label="Analytics" active={isActive('/dash/analytics')} onClick={close} />
-                <PanelItem href="/dash/org/settings/general" icon={<Buildings size={15} weight="fill" />} label={t('common.organization')} active={isActive('/dash/org')} onClick={close} />
+                {forProfe && isEnabled('podcasts') && <PanelItem href="/dash/podcasts" icon={<Headphones size={15} weight="fill" />} label={t('podcasts.podcasts')} active={isActive('/dash/podcasts')} onClick={close} />}
+                {forProfe && isEnabled('boards') && <PanelItem href="/dash/boards" icon={<ChalkboardSimple size={15} weight="fill" />} label="Boards" active={isActive('/dash/boards')} onClick={close} />}
+                {forProfe && isEnabled('playgrounds') && <PanelItem href="/dash/playgrounds" icon={<Cube size={15} weight="fill" />} label="Playgrounds" active={isActive('/dash/playgrounds')} onClick={close} />}
+                {forProfe && isEnabled('payments') && <PanelItem href="/dash/payments/overview" icon={<CurrencyCircleDollar size={15} weight="fill" />} label={t('common.payments')} active={isActive('/dash/payments')} onClick={close} />}
+                {forProfe && <PanelItem href="/dash/analytics" icon={<ChartBar size={15} weight="fill" />} label="Analytics" active={isActive('/dash/analytics')} onClick={close} />}
+                {forProfe && <PanelItem href="/dash/org/settings/general" icon={<Buildings size={15} weight="fill" />} label={t('common.organization')} active={isActive('/dash/org')} onClick={close} />}
 
                 <div className="h-px bg-white/[0.05] mx-2 my-1.5" />
 

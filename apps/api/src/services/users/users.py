@@ -46,6 +46,7 @@ from src.services.security.password_validation import validate_password_complexi
 from src.services.analytics.analytics import track
 from src.services.analytics import events as analytics_events
 from src.services.webhooks.dispatch import dispatch_webhooks
+from src.services.orgs.groups import add_user_to_students
 
 
 async def create_user(
@@ -150,6 +151,10 @@ async def create_user(
     db_session.add(user_organization)
     await db_session.commit()
     await db_session.refresh(user_organization)
+
+    # Todo el que se da de alta entra en el grupo "Alumnos" sin que nadie
+    # tenga que acordarse. No puede fallar el alta por esto.
+    await add_user_to_students(user.id or 0, org_id, db_session)
 
     user_read = UserRead.model_validate(user)
 

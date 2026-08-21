@@ -77,6 +77,16 @@ interface UseAdminStatusReturn {
     loading: boolean;
     userRoles: Role[];
     rights: Rights | null;
+    /**
+     * El rol de esta persona en la escuela (1 admin · 2 moderador ·
+     * 3 instructor · 4 alumno · 5 profe). Null si aún no se sabe.
+     */
+    roleId: number | null;
+    /**
+     * Profe de Holandés Nawar: entra al panel, pero solo a lo suyo (alumnos,
+     * comunidad y consultas). Ni contenido, ni cobros, ni ajustes.
+     */
+    isProfe: boolean;
 }
 
 function extractRightsFromRoles(userRoles: Role[], orgId: number): Rights | null {
@@ -159,6 +169,9 @@ function extractRightsFromRoles(userRoles: Role[], orgId: number): Rights | null
     return mergedRights;
 }
 
+/** El rol "Profe" de la escuela (ver `src/security/rbac/constants.py`). */
+export const PROFE_ROLE_ID = 5;
+
 // Full-access rights object for superadmins
 const SUPERADMIN_RIGHTS: Rights = {
     courses: { action_create: true, action_read: true, action_read_own: true, action_update: true, action_update_own: true, action_delete: true, action_delete_own: true },
@@ -197,9 +210,21 @@ function useAdminStatus(): UseAdminStatusReturn {
         [isAuthenticated, orgId, isSuperadmin, rights]
     );
 
+    const roleId = useMemo(() => {
+        if (!isAuthenticated || !orgId) return null;
+        const mine = userRoles.find((role: Role) => role.org.id === orgId);
+        return mine?.role?.id ?? null;
+    }, [isAuthenticated, orgId, userRoles]);
+
+    // Un superadministrador nunca es profe, aunque le metan en el grupo.
+    const isProfe = useMemo(
+        () => !isSuperadmin && roleId === PROFE_ROLE_ID,
+        [isSuperadmin, roleId]
+    );
+
     const loading = !isAuthenticated && session.status !== 'unauthenticated';
 
-    return { isAdmin, loading, userRoles, rights };
+    return { isAdmin, loading, userRoles, rights, roleId, isProfe };
 }
 
 export default useAdminStatus;

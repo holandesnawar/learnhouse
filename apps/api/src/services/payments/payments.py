@@ -33,6 +33,7 @@ from src.db.users import User, UserRead
 from src.security.security import security_hash_password
 from src.services.users.emails import send_payment_welcome_email
 from src.services.users.password_reset import generate_secure_reset_code
+from src.services.orgs.groups import add_user_to_students
 
 logger = logging.getLogger(__name__)
 
@@ -545,6 +546,7 @@ async def _create_paid_user(
             )
             db_session.add(link)
             await db_session.commit()
+        await add_user_to_students(existing.id or 0, org.id or 0, db_session)
         return existing, False
 
     first_name, _, last_name = (full_name or "").strip().partition(" ")
@@ -575,6 +577,7 @@ async def _create_paid_user(
     )
     db_session.add(link)
     await db_session.commit()
+    await add_user_to_students(user.id or 0, org.id or 0, db_session)
     return user, True
 
 
