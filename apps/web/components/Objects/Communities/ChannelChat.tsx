@@ -23,6 +23,7 @@ import {
   type ChatAttachment,
 } from '@services/communities/discussions'
 import VoiceRecorder from '@components/Pages/Messages/VoiceRecorder'
+import ComposerButton from './ComposerButton'
 
 // Ventana en la que el autor puede editar/eliminar su propio mensaje (12 h).
 const EDIT_WINDOW_MS = 12 * 60 * 60 * 1000
@@ -495,6 +496,19 @@ export function ChannelChat({
     setMentionQuery(null)
   }
 
+  /**
+   * El botón de la arroba: escribe una @ al final y abre las sugerencias, que
+   * es lo que pasaría si la escribiera a mano. Así el botón no hace nada
+   * distinto de lo que ya sabe hacer el teclado.
+   */
+  const mentionSomeone = () => {
+    setText((cur) => {
+      const next = cur.length === 0 || cur.endsWith(' ') ? `${cur}@` : `${cur} @`
+      return next
+    })
+    setMentionQuery('')
+  }
+
   /** Sube lo que el alumno acaba de elegir y lo deja listo para enviar. */
   const attach = async (files: FileList | null) => {
     if (!files?.length || !accessToken) return
@@ -620,7 +634,11 @@ export function ChannelChat({
   }
 
   return (
-    <div className="relative flex flex-col h-[68vh] min-h-[420px]">
+    // Alto: lo que queda de pantalla por debajo de la cabecera. Así el
+    // compositor queda abajo del todo, como en cualquier chat, en vez de
+    // flotando a media página. `dvh` en vez de `vh` porque en el móvil la
+    // barra del navegador se recoge y con `vh` el compositor se salía.
+    <div className="relative flex flex-col h-[calc(100dvh-250px)] min-h-[440px]">
       {/* Barra de búsqueda del canal */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100">
         <button
@@ -1260,100 +1278,100 @@ export function ChannelChat({
             </div>
           )}
 
-          <div className="flex items-end gap-2 bg-gray-50 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:ring-[#025dc7]/20">
-            <button
-              type="button"
-              onClick={() => setEmojiOpen((v) => !v)}
-              title="Emojis"
-              aria-label="Emojis"
-              className={`shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${
-                emojiOpen ? 'bg-[#025dc7]/10 text-[#025dc7]' : 'text-gray-400 hover:text-[#025dc7] hover:bg-white'
-              }`}
-            >
-              <SmilePlus size={17} />
-            </button>
-            {/* Foto */}
-            <input
-              ref={imageInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              hidden
-              onChange={(e) => attach(e.target.files)}
-            />
-            <button
-              type="button"
-              onClick={() => imageInputRef.current?.click()}
-              disabled={uploading}
-              title="Enviar una foto"
-              aria-label="Enviar una foto"
-              className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-[#025dc7] hover:bg-white transition-colors disabled:opacity-40"
-            >
-              <ImageIcon size={17} />
-            </button>
-            {/* Archivo */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              hidden
-              onChange={(e) => attach(e.target.files)}
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              title="Adjuntar un archivo"
-              aria-label="Adjuntar un archivo"
-              className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-[#025dc7] hover:bg-white transition-colors disabled:opacity-40"
-            >
-              <Paperclip size={17} />
-            </button>
-            {/* Nota de voz — en una escuela de idiomas es la estrella */}
-            <button
-              type="button"
-              onClick={() => setRecording((v) => !v)}
-              title="Grabar una nota de voz"
-              aria-label="Grabar una nota de voz"
-              className={`shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${
-                recording ? 'bg-[#025dc7]/10 text-[#025dc7]' : 'text-gray-400 hover:text-[#025dc7] hover:bg-white'
-              }`}
-            >
-              <Mic size={17} />
-            </button>
-            {isAdmin && (
-              <button
-                type="button"
-                onClick={() =>
-                  setPollDraft((cur) => (cur ? null : { question: '', options: ['', ''] }))
-                }
-                title="Crear encuesta"
-                aria-label="Crear encuesta"
-                className={`shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${
-                  pollDraft ? 'bg-[#025dc7]/10 text-[#025dc7]' : 'text-gray-400 hover:text-[#025dc7] hover:bg-white'
-                }`}
-              >
-                <BarChart3 size={17} />
-              </button>
-            )}
+          {/* La caja: el texto arriba, los iconos debajo — como en Circle.
+              Borde suave que no compite con el contenido y foco en azul. */}
+          <div className="rounded-xl border border-[#E3E8EF] bg-white transition-colors focus-within:border-[#4da3ff] focus-within:ring-[3px] focus-within:ring-[#4da3ff]/15">
             <textarea
               value={text}
               onChange={(e) => onComposerChange(e.target.value)}
               onKeyDown={onKeyDown}
               rows={1}
-              placeholder={`Escribe en ${channelName}…  (@ para avisar a alguien)`}
-              className="flex-1 resize-none bg-transparent text-base sm:text-sm text-gray-900 placeholder:text-gray-400 outline-none max-h-32 py-1.5"
+              placeholder={`Escribe en ${channelName}…`}
+              className="w-full resize-none bg-transparent text-base sm:text-[14.5px] text-gray-900 placeholder:text-[#9CA3AF] outline-none max-h-40 px-3.5 pt-3 pb-1.5"
             />
-            <button
-              onClick={send}
-              disabled={(!text.trim() && pending.length === 0 && !pollDraft) || sending}
-              className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg text-white bg-[#025dc7] hover:bg-[#0b6df0] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              aria-label={t('communities.create_discussion.submit')}
-            >
-              {sending ? <Loader2 size={16} className="animate-spin" /> : <PaperPlaneRight size={16} weight="fill" />}
-            </button>
+
+            <div className="flex items-center gap-0.5 px-2 pb-2">
+              {/* Archivo */}
+              <input ref={fileInputRef} type="file" hidden onChange={(e) => attach(e.target.files)} />
+              <ComposerButton
+                label="Adjuntar un archivo"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                <Paperclip size={17} />
+              </ComposerButton>
+
+              {/* Foto */}
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                onChange={(e) => attach(e.target.files)}
+              />
+              <ComposerButton
+                label="Enviar una foto"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={uploading}
+              >
+                <ImageIcon size={17} />
+              </ComposerButton>
+
+              {/* Nota de voz — en una escuela de idiomas es la estrella */}
+              <ComposerButton
+                label="Grabar una nota de voz"
+                onClick={() => setRecording((v) => !v)}
+                active={recording}
+              >
+                <Mic size={17} />
+              </ComposerButton>
+
+              {/* Emojis */}
+              <ComposerButton
+                label="Emojis"
+                onClick={() => setEmojiOpen((v) => !v)}
+                active={emojiOpen}
+              >
+                <SmilePlus size={17} />
+              </ComposerButton>
+
+              {/* Mencionar: escribe la arroba y abre las sugerencias */}
+              <ComposerButton label="Mencionar a alguien" onClick={mentionSomeone}>
+                <AtSign size={17} />
+              </ComposerButton>
+
+              {isAdmin && (
+                <ComposerButton
+                  label="Crear una encuesta"
+                  onClick={() =>
+                    setPollDraft((cur) => (cur ? null : { question: '', options: ['', ''] }))
+                  }
+                  active={!!pollDraft}
+                >
+                  <BarChart3 size={17} />
+                </ComposerButton>
+              )}
+
+              <div className="flex-1" />
+
+              <button
+                onClick={send}
+                disabled={(!text.trim() && pending.length === 0 && !pollDraft) || sending}
+                title="Enviar"
+                aria-label={t('communities.create_discussion.submit')}
+                className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors bg-[#1D0084] text-white hover:bg-[#2a12a8] disabled:bg-[#EFF1F6] disabled:text-[#B6BECC] disabled:cursor-not-allowed"
+              >
+                {sending ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <PaperPlaneRight size={15} weight="fill" />
+                )}
+              </button>
+            </div>
           </div>
-          <p className="mt-1.5 text-[11.5px] text-gray-400 hidden sm:block">
-            Enter envía · Shift + Enter salta de línea · @ para avisar a alguien
+          <p className="mt-1.5 text-[11px] text-[#9CA3AF] hidden sm:block">
+            Enter envía · Shift + Enter salta de línea
           </p>
           {isAdmin && (
             <label className="mt-2 flex items-center gap-2 text-[12.5px] text-gray-500 select-none cursor-pointer">
