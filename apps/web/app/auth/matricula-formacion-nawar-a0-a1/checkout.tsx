@@ -19,7 +19,7 @@ import { getSchoolUrl } from '@services/config/config'
 const LOGO_URL = 'https://d1yei2z3i6k35z.cloudfront.net/9533860/671a9c9265e23_Logo_Nawar_2.png'
 
 // What lands on the right rail. Tweak the copy here without touching layout.
-const COURSE_IMAGE = 'https://docs.holandesnawar.com/img/Portada%20Nawar%20169.png'
+const COURSE_IMAGE = 'https://docs.holandesnawar.com/img/Portada%2016x9.png'
 const COURSE_TITLE = 'Formación Nawar A0-A1'
 const COURSE_SUBTITLE = 'De cero a A1 en neerlandés'
 const COURSE_FEATURES = [
@@ -301,7 +301,7 @@ function CourseSummary({ amountCents, currency }: { amountCents: number; currenc
           Total
         </span>
         <div className="text-right">
-          <div className="text-[24px] font-bold text-[#1D0084] leading-none">
+          <div className="text-[24px] font-extrabold text-[#1D0084] leading-none">
             {totalLabel}
           </div>
           <div className="text-[12px] text-gray-500 mt-1">Pago único · IVA incl.</div>
