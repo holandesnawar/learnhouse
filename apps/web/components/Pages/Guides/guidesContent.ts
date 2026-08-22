@@ -45,7 +45,8 @@ const GUIA_USO: Guide = {
     { t: 'h2', text: 'Cómo entras' },
     {
       t: 'p',
-      text: 'Tu escuela está en **academia.holandesnawar.nl**. Entras con tu correo y la contraseña que creaste al matricularte.',
+      // {escuela} lo rellena SchoolGuide con el dominio de la configuración.
+      text: 'Tu escuela está en **{escuela}**. Entras con tu correo y la contraseña que creaste al matricularte.',
     },
     {
       t: 'p',

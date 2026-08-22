@@ -168,7 +168,17 @@ PERSONAS: List[Persona] = [
 
 # El correo no se usa nunca (no se manda nada ni se entra con ellas), pero
 # tiene que ser único y reconocible de un vistazo en la lista de usuarios.
-SEED_EMAIL_DOMAIN = "arranque.holandesnawar.nl"
+SEED_EMAIL_DOMAIN = "arranque.holandesnawar.com"
+# El dominio de antes del cambio: las cuentas ya creadas lo llevan, y hay que
+# seguir reconociéndolas o aparecerían como "no está dentro" y se duplicarían.
+LEGACY_SEED_EMAIL_DOMAINS = ("arranque.holandesnawar.nl",)
+
+
+def _seed_emails(key: str) -> list[str]:
+    """Todas las direcciones posibles de esa persona, nueva y antiguas."""
+    return [f"{key}@{SEED_EMAIL_DOMAIN}"] + [
+        f"{key}@{d}" for d in LEGACY_SEED_EMAIL_DOMAINS
+    ]
 
 
 def _now() -> str:
@@ -178,7 +188,9 @@ def _now() -> str:
 async def _get_or_create_user(persona: Persona, org_id: int, db_session: AsyncSession) -> tuple[User, bool]:
     email = f"{persona.key}@{SEED_EMAIL_DOMAIN}"
     existing = (
-        await db_session.execute(select(User).where(User.email == email))
+        await db_session.execute(
+            select(User).where(User.email.in_(_seed_emails(persona.key)))  # type: ignore[attr-defined]
+        )
     ).scalars().first()
     if existing:
         return existing, False
@@ -366,7 +378,7 @@ async def seed_status(org_id: int, db_session: AsyncSession) -> dict:
     Ficha de cada persona de arranque, para el panel: quién es, si ya está
     dentro y cuántos mensajes suyos hay publicados.
     """
-    emails = [f"{p.key}@{SEED_EMAIL_DOMAIN}" for p in PERSONAS]
+    emails = [e for p in PERSONAS for e in _seed_emails(p.key)]
     rows = (
         await db_session.execute(select(User).where(User.email.in_(emails)))  # type: ignore[attr-defined]
     ).scalars().all()
@@ -374,7 +386,7 @@ async def seed_status(org_id: int, db_session: AsyncSession) -> dict:
 
     personas = []
     for p in PERSONAS:
-        user = by_email.get(f"{p.key}@{SEED_EMAIL_DOMAIN}")
+        user = next((by_email[e] for e in _seed_emails(p.key) if e in by_email), None)
         mensajes = 0
         if user:
             mensajes = len(
@@ -414,9 +426,10 @@ async def remove_seed_persona(org_id: int, key: str, db_session: AsyncSession) -
     if not persona:
         raise ValueError("Esa persona no existe")
 
-    email = f"{persona.key}@{SEED_EMAIL_DOMAIN}"
     user = (
-        await db_session.execute(select(User).where(User.email == email))
+        await db_session.execute(
+            select(User).where(User.email.in_(_seed_emails(persona.key)))  # type: ignore[attr-defined]
+        )
     ).scalars().first()
     if not user:
         return {"retirada": persona.first_name, "mensajes_borrados": 0, "ya_no_estaba": True}

@@ -7,9 +7,21 @@ import { FORMACION_FAQ, FORMACION_FAQ_INTRO } from './faqContent'
 import CourseIndex from './CourseIndex'
 import Collapsible from './Collapsible'
 import type { ChapterLike } from '@/lib/course/formacionProgress'
+import { getSchoolUrl } from '@services/config/config'
 
 /** Convierte **negritas** en <strong> y *cursivas* en <em>. Nada más. */
-function rich(text: string): React.ReactNode {
+/**
+ * `{escuela}` → el dominio de la escuela, sacado de la configuración.
+ *
+ * Así el texto de las guías no lleva el dominio escrito a mano: el día que se
+ * cambia, se cambia una variable de Railway y la guía se actualiza sola.
+ */
+function conDominio(text: string): string {
+  return text.replace(/\{escuela\}/g, getSchoolUrl().replace(/^https?:\/\//, ''))
+}
+
+function rich(raw: string): React.ReactNode {
+  const text = conDominio(raw)
   const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g)
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {

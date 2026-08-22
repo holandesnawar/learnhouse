@@ -26,7 +26,7 @@ from src.security.security import security_hash_password
 
 logger = logging.getLogger(__name__)
 
-DEMO_EMAIL = "demo@holandesnawar.nl"
+DEMO_EMAIL = "demo@holandesnawar.com"
 DEMO_USERNAME = "demo"
 DEMO_PASSWORD = "DemoNawar2026"
 

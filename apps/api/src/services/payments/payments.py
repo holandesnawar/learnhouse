@@ -152,11 +152,10 @@ async def ensure_matricula_abierta(db_session: AsyncSession) -> None:
 
 
 def _academy_url() -> str:
-    cfg = get_learnhouse_config()
-    domain = getattr(cfg.hosting_config, "domain", None)
-    if domain:
-        return f"https://{domain}".rstrip("/")
-    return "https://academia.holandesnawar.nl"
+    """La dirección de la escuela. Una sola definición, en `emails.py`."""
+    from src.services.users.emails import _school_url
+
+    return _school_url()
 
 
 # ── checkout ───────────────────────────────────────────────────────────────

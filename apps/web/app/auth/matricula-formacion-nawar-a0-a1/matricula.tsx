@@ -44,7 +44,7 @@ export default function MatriculaClient() {
     try {
       // enroll-intent returns the URL of our embedded Nawar-branded
       // checkout (Stripe Elements under the hood). The buyer never leaves
-      // the academia.holandesnawar.nl domain — better conversion + a
+      // the school domain (app.holandesnawar.com) — better conversion + a
       // consistent brand experience all the way through payment.
       const r = await fetch(`${getAPIUrl()}payments/enroll-intent`, {
         method: 'POST',

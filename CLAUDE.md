@@ -5,7 +5,7 @@
 
 ## Resumen
 Academia de cursos sobre **LearnHouse**, auto-alojada en Railway.
-- URL pública (academia/plataforma): **https://academia.holandesnawar.nl**
+- URL pública (academia/plataforma): **https://app.holandesnawar.com**
 - Web principal / landing / matrícula (otro repo): **https://www.holandesnawar.com** — repo público `holandesnawar/nawar-web`.
 - Edición: **OSS** · modo **single-org / single-tenancy** · `mode: oss`.
 - Idioma del usuario: **español**, no técnico — explicar claro, paso a paso, móvil.
@@ -17,6 +17,25 @@ Proyecto `cooperative-tenderness`, 3 servicios: **learnhouse** (la app, Dockerfi
 - **Rama Railway por defecto: `dev`** (auto-deploy al hacer push).
 - **Desarrollo activo en rama `claude/adoring-dijkstra-rI3FL`.** Para previsualizar: Railway → learnhouse → Settings → Source → cambiar a esa rama; para volver atrás, poner `dev` (red de seguridad).
 - Volumen persistente en **`/app/api/content`** (logos/imágenes/uploads).
+
+### Dominio (cambiado ago 2026: `.nl` → `.com`)
+La escuela vive en **https://app.holandesnawar.com** (antes
+`academia.holandesnawar.nl`). Subdominio del MISMO dominio que la web, a
+propósito: los correos salen de `mail.holandesnawar.com`, así que los enlaces
+coinciden con el remitente (mejor para el spam), y la matrícula deja de ser
+cross-site.
+- Cloudflare zona `.com`: registro `app` en **"Solo DNS" (gris)**. En naranja
+  da **Error 1000**, igual que pasó en la zona `.nl`.
+- **El dominio sale de UN solo sitio en cada lado**: en el backend de
+  `emails.py::_school_url()` (lee `LEARNHOUSE_DOMAIN`), y en el front de
+  `services/config/config.ts::getSchoolUrl()` (lee
+  `NEXT_PUBLIC_LEARNHOUSE_DOMAIN` + `..._HTTPS`). En `nawar-web`,
+  `PUBLIC_ESCUELA_URL`. **No volver a escribirlo a mano en ningún sitio.**
+- **NO apagar el `.nl`**: los correos ya enviados llevan enlaces a él. Debe
+  quedarse redirigiendo.
+- Al cambiar de host **todo el mundo se desloguea**: en single-tenancy la
+  cookie es host-only (`auth.py::get_cookie_domain_for_request` → `None`).
+  No se pierde nada, pero hay que avisar.
 
 ### Lecciones de puertos/URLs (NO romper)
 - nginx escucha en **80**; web Next.js en **8000**; api en **9000**; collab en **4000**.
@@ -36,20 +55,21 @@ Páginas creadas en `apps/web/app/<nombre>/page.tsx` (root level, fuera de subca
 **Fix (commit `6d52a62`):** se añadió step 4b en `proxy.ts` que pasa por defecto cualquier `/auth/*` directamente a su ruta resolviendo tenant para cookies (sin reescribir a `/orgs/...`). Cualquier `/auth/<x>/page.tsx` nuevo a partir de ahora funcionará sin tocar el middleware.
 
 ### Variables clave (nombres, NO valores)
-**Backend:** `LEARNHOUSE_TENANCY=single`, `LEARNHOUSE_DOMAIN`, `LEARNHOUSE_FRONTEND_DOMAIN` (academia.holandesnawar.nl), `LEARNHOUSE_SSL=true`, `LEARNHOUSE_AUTH_JWT_SECRET_KEY` (≥32 chars), `LEARNHOUSE_SQL_CONNECTION_STRING`, `LEARNHOUSE_REDIS_CONNECTION_STRING`.
+**Backend:** `LEARNHOUSE_TENANCY=single`, `LEARNHOUSE_DOMAIN`, `LEARNHOUSE_FRONTEND_DOMAIN` (app.holandesnawar.com), `LEARNHOUSE_SSL=true`, `LEARNHOUSE_AUTH_JWT_SECRET_KEY` (≥32 chars), `LEARNHOUSE_SQL_CONNECTION_STRING`, `LEARNHOUSE_REDIS_CONNECTION_STRING`.
 **Frontend:** `NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL` (con `/`), `NEXT_PUBLIC_LEARNHOUSE_DOMAIN`, `NEXT_PUBLIC_LEARNHOUSE_HTTPS=true`, `PORT=8000`.
 **Email (Resend):** `LEARNHOUSE_EMAIL_PROVIDER=resend`, `LEARNHOUSE_RESEND_API_KEY`, `LEARNHOUSE_SYSTEM_EMAIL_ADDRESS=noreply@mail.holandesnawar.com` (subdominio `mail.holandesnawar.com` verificado en Resend).
 **Stripe (test ahora):** `LEARNHOUSE_STRIPE_SECRET_KEY=sk_test_...`, `LEARNHOUSE_STRIPE_PUBLISHABLE_KEY=pk_test_...` (necesaria para el embedded checkout Elements), `LEARNHOUSE_STRIPE_WEBHOOK_STANDARD_SECRET=whsec_test_...`, `LEARNHOUSE_STRIPE_FORMACION_PRICE_ID=price_...` (el del producto "Formación Nawar A0-A1" en modo test). Para Live: misma config con `sk_live_` / `pk_live_` / `whsec_` de Live.
 
 ## Cloudflare (DNS)
-Zona `holandesnawar.nl`. Registros `academia` y `*.academia` → CNAME a los targets de Railway, en **"Solo DNS" (gris, NO proxied)**. Proxied (naranja) causó **Error 1000**. SSL lo gestiona Railway.
+Zona **`holandesnawar.com`** (la de la escuela desde ago 2026): registro `app` → CNAME al target de Railway, en **"Solo DNS" (gris, NO proxied)**. Proxied (naranja) causa **Error 1000** — pasó en la zona `.nl` y volvió a pasar al montar `app` la primera vez. SSL lo gestiona Railway.
+Zona `holandesnawar.nl` (la vieja): `academia` y `*.academia` siguen apuntando a Railway **a propósito**, redirigiendo al `.com`, porque los correos ya enviados llevan enlaces a ella.
 Zona `holandesnawar.com` (la web principal) la gestiona el usuario aparte.
 
 ## Cuenta admin
 Usuario `admin`, email **holandesnawar@gmail.com** (superadmin). Creado vía cli.py. Contraseña actual la conoce el usuario.
 
 ## Vocabulario del producto
-- **La palabra es "la escuela"**, NO "academia" (decisión del usuario, ago 2026: no le gusta "academia"). Vale para pantallas, correos y avisos: "Entrar a la escuela", "Novedades de la escuela". El **dominio sigue siendo `academia.holandesnawar.nl`** y la constante `ACADEMY_URL` no se toca.
+- **La palabra es "la escuela"**, NO "academia" (decisión del usuario, ago 2026: no le gusta "academia"). Vale para pantallas, correos y avisos: "Entrar a la escuela", "Novedades de la escuela". El **dominio sigue siendo `app.holandesnawar.com`** y la constante `ACADEMY_URL` no se toca.
 - Alumno / profe / clase semanal / formación: el resto del vocabulario se mantiene.
 
 ## Marca — Sistema de diseño Holandés Nawar
@@ -131,21 +151,21 @@ por el proxy del entorno con 403 de política — no insistir.
 - **Statement descriptor**: `HOLANDES NAWAR` (lo que ve el alumno en el extracto bancario).
 - **Customer emails** (Settings → Customer emails): activar "Successful payments" + "Email customers for finalized invoices" — **¡por separado para Test y Live!** Test mode no manda emails por defecto.
 - **Invoice number prefix**: `NAWAR` → facturas salen `NAWAR-0001`, `NAWAR-0002`...
-- **Webhook** en Test mode: endpoint `https://academia.holandesnawar.nl/api/v1/payments/webhook`, eventos **`checkout.session.completed` + `payment_intent.succeeded`** (los dos), signing secret va en `LEARNHOUSE_STRIPE_WEBHOOK_STANDARD_SECRET`. Live tendrá el suyo aparte.
+- **Webhook** en Test mode: endpoint `https://app.holandesnawar.com/api/v1/payments/webhook`, eventos **`checkout.session.completed` + `payment_intent.succeeded`** (los dos), signing secret va en `LEARNHOUSE_STRIPE_WEBHOOK_STANDARD_SECRET`. Live tendrá el suyo aparte.
 - **Métodos de pago activos**: tarjeta + iDEAL + Klarna + Bancontact (Apple Pay / Google Pay van solos como overlay sobre `card`). **Stripe Link y SEPA Direct Debit están desactivados a nivel de código** (`payment_method_types` explícito en `enroll_and_payment_intent`) — no depende del Dashboard.
 
 ### Flujo end-to-end actual — Embedded Checkout (Stripe Elements, sin Stripe-hosted)
 1. Botón en landing de holandesnawar.com → `/matricula-formacion-nawar-a0-a1` (Astro en `nawar-web`).
-2. Form Nawar (nombre, apellidos, email, teléfono, país, ciudad) → POST a `/api/enroll` (proxy Astro) → `https://academia.holandesnawar.nl/api/v1/payments/enroll-intent`.
+2. Form Nawar (nombre, apellidos, email, teléfono, país, ciudad) → POST a `/api/enroll` (proxy Astro) → `https://app.holandesnawar.com/api/v1/payments/enroll-intent`.
 3. Backend (`apps/api/src/services/payments/payments.py::enroll_and_payment_intent`) crea: row en tabla `enrollment` (status=pending), Stripe Customer con datos pre-rellenos, **`PaymentIntent`** con `payment_method_types=["card","ideal","klarna","bancontact"]`, devuelve `{enrollment_id, client_secret, publishable_key, payment_url}`.
-4. El `payment_url` apunta a `https://academia.holandesnawar.nl/auth/matricula-formacion-nawar-a0-a1?ei=…&cs=…&pk=…&amt=…&cur=…&em=…&nm=…&ph=…`. Toda la data del paso 1 viaja en URL params para que el paso 2 la muestre ("Pagando como X · email") y pre-rellene los campos de Stripe.
+4. El `payment_url` apunta a `https://app.holandesnawar.com/auth/matricula-formacion-nawar-a0-a1?ei=…&cs=…&pk=…&amt=…&cur=…&em=…&nm=…&ph=…`. Toda la data del paso 1 viaja en URL params para que el paso 2 la muestre ("Pagando como X · email") y pre-rellene los campos de Stripe.
 5. La página `apps/web/app/auth/matricula-formacion-nawar-a0-a1/page.tsx` dispatchea: sin `cs/pk` → renderiza form de matricula (fallback). Con `cs/pk` → renderiza `checkout.tsx` (Stripe Elements). Por qué el dispatch en la misma ruta y no `/auth/pago-…`: cualquier subruta nueva 404aba por el bug del middleware antes de descubrir el fix; el embedded sigue viviendo aquí hasta que migremos.
-6. `confirmPayment` → 3DS si toca → `return_url = https://academia.holandesnawar.nl/auth/bienvenido`.
+6. `confirmPayment` → 3DS si toca → `return_url = https://app.holandesnawar.com/auth/bienvenido`.
 7. Webhook `payment_intent.succeeded` (`process_webhook_event` → `_handle_payment_intent`):
    - Busca enrollment por `metadata.enrollment_id`, lo marca `paid`.
    - Crea cuenta en LearnHouse (`_create_paid_user`) con email_verified=true, linkeada a la org como rol 4 (alumno).
    - Genera reset_code en Redis.
-   - Manda email "¡Bienvenido a Holandés Nawar! Crea tu contraseña" (Resend) con enlace a `https://academia.holandesnawar.nl/auth/crear-cuenta?email=…&resetCode=…`.
+   - Manda email "¡Bienvenido a Holandés Nawar! Crea tu contraseña" (Resend) con enlace a `https://app.holandesnawar.com/auth/crear-cuenta?email=…&resetCode=…`.
    - Genera **factura post-hoc** (`_create_post_hoc_invoice`): InvoiceItem + Invoice + finalize + pay_out_of_band → así sigues teniendo el PDF con numeración `NAWAR-XXXX` que daba el Checkout Session.
    - Tagging Systeme.io (`mark_as_alumno`).
 8. Alumno hace click en email → crea contraseña → entra a academia con onboarding "Empieza aquí".
@@ -182,7 +202,7 @@ Fichero canónico: `apps/web/app/auth/matricula-formacion-nawar-a0-a1/checkout.t
 - Modo Test envía emails solo si el toggle "Send successful payment emails" está ON **estando en modo Test** (toggles independientes por modo).
 - Mínimo de cobro Stripe = **0,50 €** en EUR. Cupones del 100% (gratis) sí valen para tests en Live sin gastar.
 
-## Estado actual de la plataforma (academia.holandesnawar.nl)
+## Estado actual de la plataforma (app.holandesnawar.com)
 
 ### Hecho (rama `claude/adoring-dijkstra-rI3FL`)
 - **Barra lateral** (`OrgSidebar.tsx`): azul Nawar + glow + puntos, colapsable, móvil. Reemplaza OrgMenu.
@@ -212,7 +232,7 @@ Fichero canónico: `apps/web/app/auth/matricula-formacion-nawar-a0-a1/checkout.t
   - Endpoints `/api/v1/exercise-attempts/{section_key,/all}` (auth).
   - Endpoints `/api/v1/payments/{checkout/formacion,enroll,webhook}` (públicos).
   - Endpoint `/api/v1/superadmin/email-test/all?to=X&name=Y` para mandar los 4 emails de prueba.
-- **CORS**: ya abierto a cualquier origen http(s) en single-tenancy (`src/core/middleware/cors.py`). holandesnawar.com → academia.holandesnawar.nl funciona sin tocar nada.
+- **CORS**: ya abierto a cualquier origen http(s) en single-tenancy (`src/core/middleware/cors.py`). holandesnawar.com → app.holandesnawar.com funciona sin tocar nada.
 - **Boards, Copilot, Playgrounds** ocultos del sidebar (no aportan para academia).
 - **Volumen** para uploads (logos persisten).
 - **Embedded checkout Nawar** (`checkout.tsx`): el alumno NO sale del dominio. Logo arriba-izquierda, card blanca con resumen del curso a la derecha (imagen 16:9, features con checks `#4da3ff`, total dinámico tirando del Stripe Price vía URL params), tabs de pago Tarjeta/iDEAL/Klarna/Bancontact con Appearance API Nawar (`#F0F5FF` inputs, `#4da3ff` focus, texto pinned a `#1D0084` en cualquier estado del tab para no quedarse en blanco-sobre-blanco), banner "Pagando como X · email" con botón Cambiar que vuelve al form, mobile-friendly (`overflow-x-hidden`, `min-w-0`, paddings reducidos en sm).
@@ -235,7 +255,7 @@ Fichero canónico: `apps/web/app/auth/matricula-formacion-nawar-a0-a1/checkout.t
    - Plan: webhook desde nuestro `enroll_and_checkout` → push a Brevo (o el CRM elegido) con tags `matriculado-sin-pagar` para que el usuario lance campañas de recuperación.
    - Listar candidatos manualmente: query `SELECT * FROM enrollment WHERE status='pending' AND created_at < now() - interval '1 hour'`.
 3. **Otros automation emails intern**: weekly_digest, module_unlocked, new_announcement, event_upcoming, consulta_answered. Templates ya listos en `emails.py` (probados vía `/superadmin/email-test/all`); falta cablear los disparadores reales (cron lunes para digest, hook al desbloquear módulo, etc.).
-4. **Embeber Consultas** (https://consultas-tau.vercel.app): bloqueado por CSP en su lado. Pendiente que el usuario active `frame-ancestors https://academia.holandesnawar.nl`.
+4. **Embeber Consultas** (https://consultas-tau.vercel.app): bloqueado por CSP en su lado. Pendiente que el usuario active `frame-ancestors https://app.holandesnawar.com`.
 5. **Modo nocturno** plataforma (ThemeProvider + variantes `dark:` clave + persistir en `student_progress.theme`).
 6. **Certificado PDF** al terminar formación (motivación).
 

@@ -11,6 +11,7 @@ import {
   useStripe,
 } from '@stripe/react-stripe-js'
 import { AlertTriangle, CheckCircle, CreditCard, Info, Mail, ShieldCheck } from 'lucide-react'
+import { getSchoolUrl } from '@services/config/config'
 
 // Minimal chrome on the checkout: just the Nawar logo top-left linking back
 // to the landing. Full navbar + footer kill the focus the buyer needs on a
@@ -144,7 +145,8 @@ function CheckoutInner({
     const { error: stripeError } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: 'https://academia.holandesnawar.nl/auth/bienvenido',
+        // Sale de la configuración: al cambiar de dominio no hay que tocar esto.
+        return_url: getSchoolUrl('/auth/bienvenido'),
       },
     })
     if (stripeError) {

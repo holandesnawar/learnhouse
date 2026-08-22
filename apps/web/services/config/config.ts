@@ -168,6 +168,20 @@ export const getServerAPIUrl = () => {
 export const getBackendUrl = () => getLEARNHOUSE_BACKEND_URL()
 
 /**
+ * La dirección de la escuela, sin barra final: `https://app.holandesnawar.com`.
+ *
+ * **Es el único sitio del que debe salir.** Antes estaba escrita a mano en
+ * cuatro pantallas, y el día que se cambió de dominio hubo que ir a cazarlas
+ * una a una. Sale de `NEXT_PUBLIC_LEARNHOUSE_DOMAIN` + `..._HTTPS`, así que
+ * cambiar de dominio es cambiar una variable de Railway y nada más.
+ */
+export const getSchoolUrl = (path: string = ''): string => {
+  const base = `${getLEARNHOUSE_HTTP_PROTOCOL()}${getLEARNHOUSE_DOMAIN()}`.replace(/\/+$/, '')
+  if (!path) return base
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`
+}
+
+/**
  * Get the upgrade/plan URL for a given org.
  * Uses LEARNHOUSE_PLATFORM_URL (the main platform, e.g. learnhouse.app).
  * Returns null in OSS/self-hosted mode or when platform URL is not configured.
