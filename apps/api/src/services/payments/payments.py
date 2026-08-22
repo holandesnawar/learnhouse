@@ -16,7 +16,7 @@ import json
 import logging
 import os
 import secrets
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional, TYPE_CHECKING
 from urllib.parse import quote
 from uuid import uuid4
@@ -312,6 +312,68 @@ async def _mark_enrollment_paid(
 
 # ── embedded checkout (Stripe Elements) ────────────────────────────────────
 
+#: Cuánto tiempo se considera que una matrícula sin pagar sigue siendo "el
+#: mismo intento". Cubre de sobra el caso real (darle a "Cambiar" y rellenar
+#: otra vez), sin llegar a fundir el intento de hoy con el de la semana pasada,
+#: que sí es una vuelta nueva al embudo y debe contarse aparte.
+_VENTANA_MISMO_INTENTO = timedelta(hours=24)
+
+
+async def _matricula_sin_pagar_reciente(email: str, db_session: AsyncSession):
+    """La matrícula sin pagar que este email dejó abierta hace poco, si la hay.
+
+    Existe para que una sola persona indecisa no cuente como varias. El botón
+    "Cambiar" del checkout devuelve al formulario, y cada vuelta creaba otra
+    fila `pending`: en las estadísticas eso se lee como gente distinta que se
+    matriculó y no pagó, e infla el abandono del embudo.
+
+    Reutilizar la fila también es más seguro que crear otra. El webhook busca
+    por `metadata.enrollment_id`, así que si alguien acaba pagando el intento
+    viejo desde otra pestaña, sigue cayendo en la misma matrícula.
+    """
+    from src.db.enrollment import Enrollment
+
+    stmt = (
+        select(Enrollment)
+        .where(Enrollment.email == email)
+        .where(Enrollment.status == "pending")
+        .order_by(Enrollment.id.desc())  # type: ignore[union-attr]
+        .limit(1)
+    )
+    row = (await db_session.exec(stmt)).first()
+    if row is None:
+        return None
+
+    try:
+        creada = datetime.fromisoformat(str(row.created_at))
+    except (TypeError, ValueError):
+        # Fila antigua con la fecha en otro formato: mejor no tocarla.
+        return None
+
+    if datetime.now() - creada > _VENTANA_MISMO_INTENTO:
+        return None
+    return row
+
+
+def _cancelar_intento_anterior(payment_intent_id: str) -> None:
+    """Cierra el PaymentIntent que queda huérfano al rehacer la matrícula.
+
+    Sin esto, alguien con dos pestañas abiertas podría pagar las dos y acabar
+    cobrado dos veces. Solo se cancelan los que aún no han empezado a cobrarse:
+    tocar uno que esté en mitad del 3DS rompería un pago en curso.
+    """
+    if not payment_intent_id.startswith("pi_"):
+        return
+    try:
+        anterior = stripe.PaymentIntent.retrieve(payment_intent_id)
+        estado = anterior.get("status") if hasattr(anterior, "get") else getattr(anterior, "status", "")
+        if estado in ("requires_payment_method", "requires_confirmation"):
+            stripe.PaymentIntent.cancel(payment_intent_id)
+    except Exception:  # noqa: BLE001
+        # Nunca puede impedir que se abra el pago nuevo.
+        logger.warning("No se pudo cancelar el PaymentIntent %s", payment_intent_id, exc_info=True)
+
+
 async def enroll_and_payment_intent(data, db_session: AsyncSession) -> dict:
     """Save the prospect + create a PaymentIntent for our embedded Elements
     checkout (the page at /auth/matricula-formacion-nawar-a0-a1/pago).
@@ -361,19 +423,34 @@ async def enroll_and_payment_intent(data, db_session: AsyncSession) -> dict:
 
     # Persist the enrollment row first so we have its id for the PI metadata.
     now = datetime.now().isoformat()
-    row = Enrollment(
-        email=email,
-        first_name=data.first_name,
-        last_name=data.last_name,
-        phone=data.phone or "",
-        country=data.country or "",
-        city=data.city or "",
-        status="pending",
-        stripe_customer_id=customer.id,
-        stripe_session_id="",
-        created_at=now,
-        updated_at=now,
-    )
+    # Si esta persona ya dejó una matrícula sin pagar hace un rato, se reaprovecha
+    # su fila en vez de crear otra: es el mismo intento, no una persona nueva.
+    row = await _matricula_sin_pagar_reciente(email, db_session)
+    if row is not None:
+        intento_huerfano = row.stripe_session_id
+        row.first_name = data.first_name
+        row.last_name = data.last_name
+        row.phone = data.phone or ""
+        row.country = data.country or ""
+        row.city = data.city or ""
+        row.stripe_customer_id = customer.id
+        row.updated_at = now
+        if intento_huerfano:
+            _cancelar_intento_anterior(intento_huerfano)
+    else:
+        row = Enrollment(
+            email=email,
+            first_name=data.first_name,
+            last_name=data.last_name,
+            phone=data.phone or "",
+            country=data.country or "",
+            city=data.city or "",
+            status="pending",
+            stripe_customer_id=customer.id,
+            stripe_session_id="",
+            created_at=now,
+            updated_at=now,
+        )
     db_session.add(row)
     await db_session.commit()
     await db_session.refresh(row)
