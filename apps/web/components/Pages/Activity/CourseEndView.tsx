@@ -94,6 +94,31 @@ const CourseEndView: React.FC<CourseEndViewProps> = ({
 
   const isCourseCompleted = cursoTerminadoDeVerdad || previsualizandoFin;
 
+  // En previsualización se inventa un certificado de muestra: sin él la
+  // pantalla enseñaba "Sin certificado" y no se podía revisar justo lo que
+  // más importa de ese momento. Solo ocurre para el equipo y nunca se guarda
+  // en ninguna parte: es un objeto en memoria que muere al recargar.
+  const certificadoDeMuestra = useMemo(
+    () => ({
+      certificate_user: {
+        user_certification_uuid: 'certificado-de-muestra',
+        created_at: new Date().toISOString(),
+      },
+      certification: {
+        config: {
+          certification_name: courseName,
+          certification_description: '',
+          certification_type: 'completion',
+          certificate_pattern: '',
+          certificate_instructor: '',
+        },
+      },
+    }),
+    [courseName]
+  );
+  const certificadoAEnsenar =
+    userCertificate ?? (previsualizandoFin ? certificadoDeMuestra : null);
+
   // Fetch user certificate when course is completed
   useEffect(() => {
     const fetchUserCertificate = async () => {
@@ -143,7 +168,7 @@ const CourseEndView: React.FC<CourseEndViewProps> = ({
     try {
       await downloadCertificatePdf(
         certificateRef.current,
-        certificateFileName(userCertificate.certification?.config?.certification_name)
+        certificateFileName(certificadoAEnsenar?.certification?.config?.certification_name)
       );
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -247,19 +272,19 @@ const CourseEndView: React.FC<CourseEndViewProps> = ({
                 {certificateError}
               </p>
             </div>
-          ) : userCertificate ? (
+          ) : certificadoAEnsenar ? (
             <div className="space-y-4">
               <h2 className="text-2xl font-semibold text-gray-900">{t('certificate.your_certificate')}</h2>
               <div className="max-w-2xl mx-auto" id="certificate-preview">
                 <div id="certificate-content">
                   <CertificatePreview
-                    certificationName={userCertificate.certification.config.certification_name}
-                    certificationDescription={userCertificate.certification.config.certification_description}
-                    certificationType={userCertificate.certification.config.certification_type}
-                    certificatePattern={userCertificate.certification.config.certificate_pattern}
-                    certificateInstructor={userCertificate.certification.config.certificate_instructor}
-                    certificateId={userCertificate.certificate_user.user_certification_uuid}
-                    awardedDate={new Date(userCertificate.certificate_user.created_at).toLocaleDateString('nl-NL', {
+                    certificationName={certificadoAEnsenar.certification.config.certification_name}
+                    certificationDescription={certificadoAEnsenar.certification.config.certification_description}
+                    certificationType={certificadoAEnsenar.certification.config.certification_type}
+                    certificatePattern={certificadoAEnsenar.certification.config.certificate_pattern}
+                    certificateInstructor={certificadoAEnsenar.certification.config.certificate_instructor}
+                    certificateId={certificadoAEnsenar.certificate_user.user_certification_uuid}
+                    awardedDate={new Date(certificadoAEnsenar.certificate_user.created_at).toLocaleDateString('nl-NL', {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric'
@@ -279,7 +304,7 @@ const CourseEndView: React.FC<CourseEndViewProps> = ({
                   <span>{t('certificate.download_certificate')}</span>
                 </button>
                 <Link
-                  href={getUriWithOrg(orgslug, `/certificates/${userCertificate.certificate_user.user_certification_uuid}/verify`)}
+                  href={getUriWithOrg(orgslug, `/certificates/${certificadoAEnsenar.certificate_user.user_certification_uuid}/verify`)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center space-x-2 bg-[#4da3ff] text-[#1D0084] px-6 py-3 rounded-full hover:bg-[#5eb4ff] transition duration-200"
