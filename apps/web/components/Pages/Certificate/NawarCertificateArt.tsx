@@ -33,11 +33,20 @@ const TINTA_BORDE = '#025dc7'
 //   línea divisoria con destellos               de y=687 a y=734
 //   párrafo "De cursus…"                        de y=800 a y=892
 //   firmas                                      a partir de y=958
-const NOMBRE_TAM = 105          // Poppins bold
+const NOMBRE_TAM = 118          // Poppins bold
 const NOMBRE_BASE_Y = 638       // dónde apoya el nombre, justo encima de la línea
 const NOMBRE_ANCHO_MAX = 1500   // más allá se encoge, para que nunca toque los bordes
-const FECHA_TAM = 28            // Inter bold
-const FECHA_TOP_Y = 902         // debajo de "heeft afgerond op"
+
+// La fecha CONTINÚA la frase del fondo; no va debajo.
+//
+// El diseño lo tiene previsto, y se ve midiendo el PNG: el subtítulo y la
+// primera línea del párrafo están centrados en el papel (x≈2008 de 4000), pero
+// la segunda —la que acaba en "op"— está desplazada 215 px a la IZQUIERDA. Ese
+// hueco de 429 px que queda a su derecha es el sitio de la fecha: puesta ahí,
+// la frase entera queda centrada.
+const FECHA_TAM = 41            // el mismo cuerpo que el párrafo del fondo
+const FECHA_X = 1239            // "op" acaba en 1227; +12 px de espacio
+const FECHA_BASE_Y = 883        // la misma línea de base que el párrafo
 
 export interface NawarCertificateArtProps {
   studentName?: string
@@ -197,14 +206,14 @@ const NawarCertificateArt: React.FC<NawarCertificateArtProps> = ({
           <div
             style={{
               position: 'absolute',
-              left: 0,
-              right: 0,
-              top: `${FECHA_TOP_Y}px`,
-              textAlign: 'center',
-              fontFamily: 'var(--font-inter), Inter, sans-serif',
+              left: `${FECHA_X}px`,
+              top: `${FECHA_BASE_Y - FECHA_TAM}px`,
+              lineHeight: `${FECHA_TAM}px`,
+              fontFamily: 'var(--font-poppins), Poppins, sans-serif',
               fontWeight: 700,
               fontSize: `${FECHA_TAM}px`,
               color: '#111111',
+              whiteSpace: 'nowrap',
             }}
           >
             {awardedDate}
