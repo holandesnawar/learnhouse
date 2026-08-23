@@ -157,7 +157,42 @@ por el proxy del entorno con 403 de política — no insistir.
 - **`SafeArea`** (`components/Objects/StyledElements/Error/SafeArea.tsx`): cortafuegos por trozo de pantalla. Envuelve las tarjetas del Inicio y el visor de lecciones; si una se rompe, se sustituye por un aviso pequeño y el resto sigue.
 - **react-query**: 3 reintentos con espera creciente, pero **nunca** en 4xx.
 - Redis ya falla en abierto en todas partes (rate-limit, cachés): si Redis cae, se sigue pudiendo entrar y navegar.
-- **Pendiente del usuario (no es código):** activar copias de seguridad del Postgres en Railway. Es el único riesgo que el código no puede cubrir.
+### Copias de seguridad — SÍ las hay, y NO son de Railway
+**Esta línea decía durante meses "pendiente: activar copias en Railway" y era
+falsa.** Costó una conversación entera y una recomendación equivocada de pagar
+el plan Pro. Lo que hay de verdad:
+
+**`.github/workflows/db-backup.yaml` — "DB Backup → Cloudflare R2".** Un
+workflow de GitHub Actions, activo, que cada **domingo a las 04:00 UTC** hace
+`pg_dump` del Postgres de Railway, lo comprime y lo sube a un bucket de
+**Cloudflare R2**. Guarda las **12 últimas** (≈3 meses) y borra el resto.
+Verificado el 23/08/2026: lleva **18 ejecuciones** y la última terminó en verde.
+
+- Se puede lanzar a mano desde la pestaña **Actions → Run workflow**.
+- Vive en la rama por defecto (`dev`), que es **imprescindible**: GitHub solo
+  dispara los `schedule` desde la rama por defecto.
+- Necesita 5 secretos del repo: `RAILWAY_DATABASE_URL`, `R2_ACCESS_KEY_ID`,
+  `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_ENDPOINT`.
+- Detalle que costó arreglar: Railway corre **Postgres 18** y `pg_dump` se niega
+  a volcar un servidor más nuevo que él. El runner de Ubuntu trae la 16, así que
+  el workflow añade el repositorio PGDG y **llama al binario de la 18 por su ruta
+  completa** para saltarse el wrapper que elegiría la 16.
+
+**Por qué esto es mejor que las copias de Railway:** están **fuera** de Railway.
+Si la cuenta se bloquea o Railway cae, la copia sigue accesible.
+
+**Lo que Railway SÍ enseña** en su pestaña Backups es solo lo suyo: en el plan
+Hobby no hay copias programables (te lo dice él mismo: son de plan Pro), y algún
+"Pre-Security-Patch Backup" suelto que hace él antes de parchear el motor. Eso
+no es tu sistema de copias. **No hace falta pagar Pro por esto.**
+
+**Lo que sigue SIN cubrir (esto sí es pendiente de verdad):**
+- **El volumen `/app/api/content`**: logos, imágenes y **notas de voz** de los
+  mensajes. No está en la base de datos, así que ningún `pg_dump` lo salva.
+- **La restauración nunca se ha probado.** Una copia que nadie ha restaurado no
+  es una copia. Merece la pena levantar un Postgres de prueba y restaurar una.
+- Es **semanal**: en el peor caso se pierden 7 días. Con la cohorte dentro,
+  plantearse pasarlo a diario (es cambiar el `cron` a `0 4 * * *`).
 
 ## Stripe — flujo de pagos (estado actual)
 
@@ -400,8 +435,9 @@ systeme.io con la etiqueta de lista de espera y guarda de dónde vino.
   - **Bug arreglado de paso**: `get_cached_course_meta` cacheaba la ficha del curso en Redis con una clave SIN usuario, pero el payload lleva `is_locked`/`unlock_date` del goteo, que dependen de la fecha de alta de cada alumno → quien calentaba la caché decidía los candados que veían los demás durante un minuto. Ahora la clave lleva el usuario y la invalidación borra por patrón.
 
 ### Hoja de ruta inmediata (sigue aquí)
-0. **PENDIENTE DEL USUARIO, no es código:** activar las **copias de seguridad
-   del Postgres** en Railway. Es el único riesgo que el código no puede cubrir.
+0. **Copias de seguridad: probar una restauración** y decidir qué hacer con el
+   volumen `/app/api/content` (ver la sección de copias más arriba). Las copias
+   semanales a R2 ya funcionan; lo que falta es comprobar que sirven.
    (`LEARNHOUSE_FORMACION_PLAZAS=40` ya está puesta — comprobado en vivo:
    `/payments/plazas` devuelve `plazas_totales: 40, quedan: 40`.)
 1. **Rebrandear `/matricula-formacion-nawar-a0-a1` en `nawar-web`** para que case con el embedded checkout (mismo logo arriba, misma card blanca sobre fondo Nawar, mismos inputs `#F0F5FF`, mismo botón `#4da3ff` con texto `#0a1656`). Pásale los tokens de la sección "Design tokens del checkout" más arriba. Campos del form: `first_name`, `last_name`, `email`, `phone` + honeypot `website` (país y ciudad ya no están, ver arriba), y el POST a `/api/enroll`.
