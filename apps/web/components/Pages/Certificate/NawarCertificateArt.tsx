@@ -24,16 +24,25 @@ export const CERT_H = 1414
 
 const FONDO_URL = '/Certificado-fondo.png'
 
-/** Colores del degradado del nombre. */
-const TINTA_CENTRO = '#120081'
-const TINTA_BORDE = '#025dc7'
+/** El color del nombre.
+ *
+ * En negro y no en el degradado azul: es el mismo tono con el que están
+ * escritos el título y el párrafo del fondo, así que el nombre deja de parecer
+ * un añadido y pasa a formar parte del documento. Gana en seriedad, que es
+ * justo lo que se le pide a un certificado.
+ *
+ * Si algún día se quiere recuperar el degradado, basta con devolverle dos
+ * colores distintos: el dibujado ya lo contempla.
+ */
+const TINTA_CENTRO = '#111111'
+const TINTA_BORDE = '#111111'
 
 // Coordenadas medidas sobre el propio PNG, no a ojo:
 //   subtítulo "Dit certificaat verklaart dat:"  acaba en y=410
 //   línea divisoria con destellos               de y=687 a y=734
 //   párrafo "De cursus…"                        de y=800 a y=892
 //   firmas                                      a partir de y=958
-const NOMBRE_TAM = 118          // Poppins bold
+const NOMBRE_TAM = 140          // Poppins bold; hay sitio de sobra sobre la línea
 const NOMBRE_BASE_Y = 638       // dónde apoya el nombre, justo encima de la línea
 const NOMBRE_ANCHO_MAX = 1500   // más allá se encoge, para que nunca toque los bordes
 
