@@ -130,8 +130,8 @@ EMAIL_TRANSLATIONS: dict[str, dict[str, str]] = {
         "account_creation.heading": "¡Bienvenido, {username}!",
         "account_creation.body": "Tu cuenta en Holandés Nawar ya está lista. Entra y empieza con tu formación.",
         "account_creation.cta": "Entrar a la escuela",
-        "account_creation.footer": "¿Necesitas ayuda? Visita {academy_link} y te echamos una mano.",
-        "academy_link_text": "Escuela Holandés Nawar",
+        "account_creation.footer": "¿Alguna duda? {academy_link} y te echamos una mano.",
+        "academy_link_text": "Crea una consulta en la escuela",
 
         "password_reset.subject": "Restablece tu contraseña",
         "password_reset.heading": "Restablece tu contraseña",
