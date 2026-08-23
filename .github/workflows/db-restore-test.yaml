@@ -25,10 +25,11 @@ jobs:
 
     services:
       postgres:
-        # La misma major que Railway. Restaurar en una versión distinta puede
-        # tragarse el volcado y dejar diferencias sutiles, que es justo lo que
-        # esta prueba tendría que detectar y no crear.
-        image: postgres:18
+        # La misma major que Railway (18) y CON pgvector. El volcado empieza con
+        # `CREATE EXTENSION IF NOT EXISTS vector` — la usa la tabla
+        # course_embedding — y la imagen pelada de postgres no la trae, así que
+        # la restauración moría en la primera línea.
+        image: pgvector/pgvector:pg18
         env:
           POSTGRES_USER: prueba
           POSTGRES_PASSWORD: prueba
@@ -36,7 +37,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U prueba"
+          --health-cmd "pg_isready -U prueba -d restaurada"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 20
@@ -89,6 +90,7 @@ jobs:
             --only-show-errors
           ls -lh copia.sql.gz
           echo "COPIA=$ultima" >> "$GITHUB_ENV"
+          echo "TAMANO=$(du -h copia.sql.gz | cut -f1)" >> "$GITHUB_ENV"
 
       - name: Restaurar en un Postgres limpio
         run: |
@@ -134,7 +136,7 @@ jobs:
         run: |
           echo "### Prueba de restauración" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Copia probada: \`${COPIA:-ninguna}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Copia probada: \`${COPIA:-ninguna}\` (${TAMANO:-?} comprimida)" >> "$GITHUB_STEP_SUMMARY"
           if [ "${{ job.status }}" = "success" ]; then
             echo "✅ La copia se restaura y trae los datos." >> "$GITHUB_STEP_SUMMARY"
           else
