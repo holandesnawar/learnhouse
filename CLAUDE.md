@@ -201,10 +201,16 @@ la pantalla que sí funciona, *Organización → Acceso API*, crea tokens de
 **organización** (`lh_`) — esos los rechaza `require_superadmin` a propósito, por
 muy "Full Access" que se marque. Marcar Full Access ahí no sirve para esto.
 
-Por eso el endpoint tiene **dos puertas**: la cabecera `LEARNHOUSE_BACKUP_TOKEN`
-con un secreto compartido (la del workflow, comparada en tiempo constante) o una
-sesión de superadmin (para bajárselo a mano desde el navegador). Mismo patrón que
-el webhook de Inrō. Se revoca cambiando la variable en Railway.
+Por eso el endpoint tiene **dos puertas**: la cabecera `X-Backup-Token` con un
+secreto compartido (la del workflow, comparada en tiempo constante) o una sesión
+de superadmin (para bajárselo a mano desde el navegador). Mismo patrón que el
+webhook de Inrō. Se revoca cambiando `LEARNHOUSE_BACKUP_TOKEN` en Railway.
+
+**⚠️ La cabecera va con GUIONES, no con guiones bajos.** nginx descarta por
+defecto cualquier cabecera con `_` (`underscores_in_headers off`), y nginx es la
+puerta del contenedor: una cabecera `LEARNHOUSE_BACKUP_TOKEN` **no llega nunca**
+a la API, la petición cae a la puerta de sesión y la escuela contesta un 401 que
+parece un secreto mal puesto. Costó una ejecución en rojo averiguarlo.
 
 Vive en su propio router `/backup` porque `/superadmin` se monta con
 `get_non_api_token_user` y rechaza todo lo que no sea una sesión. El razonamiento

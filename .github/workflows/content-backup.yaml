@@ -41,14 +41,28 @@ jobs:
           set -euo pipefail
           out="content-${{ steps.ts.outputs.stamp }}.tar.gz"
 
-          # --fail-with-body para que un 401 o un 500 sea un fallo del paso y no
-          # un archivo con una página de error dentro.
-          codigo=$(curl --silent --show-error --fail-with-body \
+          # Sin --fail: se mira el código a mano. Con --fail curl sale con
+          # error antes de que se pueda enseñar CUÁL fue, y entonces el log no
+          # dice nada justo cuando más falta hace.
+          #
+          # ⚠️ La cabecera va con GUIONES. nginx descarta por defecto las que
+          # llevan guion bajo, así que un `LEARNHOUSE_BACKUP_TOKEN` no llega
+          # nunca a la API y la escuela contesta un 401 desconcertante.
+          codigo=$(curl --silent --show-error \
             --max-time 900 --retry 2 --retry-delay 10 \
-            -H "LEARNHOUSE_BACKUP_TOKEN: ${TOKEN}" \
+            -H "X-Backup-Token: ${TOKEN}" \
             -o "$out" -w '%{http_code}' \
-            "${SCHOOL_URL%/}/api/v1/backup/content-archive")
+            "${SCHOOL_URL%/}/api/v1/backup/content-archive" || echo "000")
           echo "HTTP $codigo"
+
+          if [ "$codigo" != "200" ]; then
+            echo "La escuela no dio el paquete. Esto contestó:"
+            head -c 400 "$out" 2>/dev/null || true
+            echo
+            echo "401 = el secreto de Railway y el de GitHub no coinciden."
+            echo "404 = la escuela aun no tiene desplegado el endpoint."
+            exit 1
+          fi
 
           # Que exista y pese algo. Un tar.gz vacío que se sube tan campante es
           # peor que un fallo: la copia parece existir hasta el día que hace falta.
