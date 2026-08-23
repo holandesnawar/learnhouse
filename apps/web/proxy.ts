@@ -295,7 +295,16 @@ export default async function proxy(req: NextRequest) {
   // -------------------------------------------------------------------------
   // 2. Standard out-of-org paths
   // -------------------------------------------------------------------------
+  //
+  // `/home` es el selector de organizaciones que LearnHouse trae de serie, para
+  // cuando una misma cuenta pertenece a varias escuelas. En single-tenancy hay
+  // una sola escuela, así que es una pantalla que solo puede confundir: nada
+  // enlaza a ella y el paso 10 de más abajo tampoco la usa (es solo para multi).
+  // Quien llegue escribiéndola a mano entra directo a la escuela.
   if (pathname === '/home') {
+    if (instance.tenancy === 'single') {
+      return NextResponse.redirect(new URL(`/${search}`, req.url))
+    }
     return NextResponse.rewrite(new URL(`${pathname}${search}`, req.url))
   }
 
