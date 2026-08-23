@@ -1,0 +1,97 @@
+name: Content Backup → Cloudflare R2
+
+# Copia del volumen de archivos: los logos de la escuela, las imágenes subidas y
+# las NOTAS DE VOZ de los mensajes.
+#
+# Nada de esto está en la base de datos, así que ningún `pg_dump` lo salva. Y en
+# Railway el volumen solo se puede leer desde dentro del contenedor, de ahí que
+# haya que pedírselo a la propia escuela por su API.
+#
+# Cada día a las 04:30 UTC, media hora después de la copia del Postgres, para no
+# pedirle las dos cosas a la vez al contenedor. También a mano desde Actions.
+#
+# Secretos que necesita:
+#   SCHOOL_URL              https://app.holandesnawar.com  (sin barra final)
+#   SCHOOL_SUPERADMIN_TOKEN un token lh_sa_… creado en la escuela
+#   R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / R2_BUCKET / R2_ENDPOINT
+#                           los mismos que ya usa db-backup.yaml
+
+on:
+  schedule:
+    - cron: '30 4 * * *'
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Calcular la marca de tiempo
+        id: ts
+        # YYYYMMDD-HHMMSS ordena igual por texto que por fecha, así que el
+        # borrado de viejas puede quedarse "las 30 más nuevas" con un sort.
+        run: echo "stamp=$(date -u +%Y%m%d-%H%M%S)" >> "$GITHUB_OUTPUT"
+
+      - name: Pedirle el volumen a la escuela
+        env:
+          SCHOOL_URL: ${{ secrets.SCHOOL_URL }}
+          TOKEN: ${{ secrets.SCHOOL_SUPERADMIN_TOKEN }}
+        run: |
+          set -euo pipefail
+          out="content-${{ steps.ts.outputs.stamp }}.tar.gz"
+
+          # --fail-with-body para que un 401 o un 500 sea un fallo del paso y no
+          # un archivo con una página de error dentro.
+          codigo=$(curl --silent --show-error --fail-with-body \
+            --max-time 900 --retry 2 --retry-delay 10 \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -o "$out" -w '%{http_code}' \
+            "${SCHOOL_URL%/}/api/v1/backup/content-archive")
+          echo "HTTP $codigo"
+
+          # Que exista y pese algo. Un tar.gz vacío que se sube tan campante es
+          # peor que un fallo: la copia parece existir hasta el día que hace falta.
+          test -s "$out"
+          # Y que sea un gzip de verdad, no un JSON de error con nombre bonito.
+          gzip -t "$out"
+          echo "Contenido del paquete (primeras líneas):"
+          tar -tzf "$out" | head -5
+          ls -lh "$out"
+
+      - name: Subir a R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          set -euo pipefail
+          out="content-${{ steps.ts.outputs.stamp }}.tar.gz"
+          aws s3 cp "$out" \
+            "s3://${{ secrets.R2_BUCKET }}/$out" \
+            --endpoint-url "${{ secrets.R2_ENDPOINT }}" \
+            --only-show-errors
+          echo "Subido $out"
+
+      - name: Borrar las viejas (se quedan las 30 más nuevas)
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          set -euo pipefail
+          # Solo toca los content-*: los volcados del Postgres se llaman
+          # nawar-* y los borra su propio workflow.
+          aws s3 ls "s3://${{ secrets.R2_BUCKET }}/" \
+            --endpoint-url "${{ secrets.R2_ENDPOINT }}" \
+            | awk '{print $4}' \
+            | grep '^content-.*\.tar\.gz$' \
+            | sort -r \
+            | tail -n +31 \
+            | while read -r f; do
+                echo "Borrando copia vieja: $f"
+                aws s3 rm "s3://${{ secrets.R2_BUCKET }}/$f" \
+                  --endpoint-url "${{ secrets.R2_ENDPOINT }}" \
+                  --only-show-errors
+              done
+          echo "Hecho."

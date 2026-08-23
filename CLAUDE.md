@@ -186,13 +186,45 @@ Hobby no hay copias programables (te lo dice él mismo: son de plan Pro), y alg�
 "Pre-Security-Patch Backup" suelto que hace él antes de parchear el motor. Eso
 no es tu sistema de copias. **No hace falta pagar Pro por esto.**
 
-**Lo que sigue SIN cubrir (esto sí es pendiente de verdad):**
-- **El volumen `/app/api/content`**: logos, imágenes y **notas de voz** de los
-  mensajes. No está en la base de datos, así que ningún `pg_dump` lo salva.
-- **La restauración nunca se ha probado.** Una copia que nadie ha restaurado no
-  es una copia. Merece la pena levantar un Postgres de prueba y restaurar una.
-- Es **semanal**: en el peor caso se pierden 7 días. Con la cohorte dentro,
-  plantearse pasarlo a diario (es cambiar el `cron` a `0 4 * * *`).
+### El volumen de archivos también se copia (`content-backup.yaml`)
+Los logos, las imágenes y las **notas de voz** viven en el volumen `content/`,
+no en la base de datos. Cada día a las **04:30 UTC** (media hora después del
+Postgres, para no pedirle las dos cosas a la vez al contenedor) un workflow le
+pide a la escuela `GET /api/v1/backup/content-archive`, comprueba que lo que
+llega es un gzip de verdad y no un JSON de error, y lo sube a R2. Se quedan las
+30 más nuevas.
+
+**⚠️ Ese endpoint es la única ruta de superadmin que acepta tokens de API.** El
+router `/superadmin` los rechaza a propósito (`get_non_api_token_user`), pero un
+workflow no tiene sesión: solo puede identificarse con un token. Por eso vive en
+su propio router `/backup`, montado sin esa dependencia, con `require_superadmin`
+puesto dentro del endpoint. El razonamiento largo está escrito en
+`src/routers/backup.py` — leerlo antes de tocar nada de esto.
+
+Lo que abre, dicho claro: quien tenga el token de superadmin puede bajarse los
+archivos de los alumnos, notas de voz incluidas. **El token debe llevar
+caducidad y revocarse en cuanto deje de hacer falta** (se revoca desde la propia
+escuela). Secretos que usa: `SCHOOL_URL` y `SCHOOL_SUPERADMIN_TOKEN`, más los
+`R2_*` que ya existían.
+
+### La prueba de restauración (`db-restore-test.yaml`)
+Cada lunes a las 05:00 UTC coge la copia más reciente, la restaura en un Postgres
+limpio del runner y cuenta filas. No toca producción.
+
+- **Necesita `pgvector/pgvector:pg18`**, no `postgres:18`: el volcado empieza con
+  `CREATE EXTENSION IF NOT EXISTS vector` (la usa `course_embedding`) y sin la
+  extensión la restauración muere en la primera línea. Esto se descubrió a la
+  primera ejecución y **es un aviso para el día real**: restaurar en un Postgres
+  cualquiera se topa con lo mismo.
+- Restaura con `ON_ERROR_STOP=1`: sin eso `psql` se traga los errores y termina
+  en verde con media base de datos puesta.
+- Primer resultado en verde (23/08/2026): 64 tablas, 10 usuarios, 2 cursos,
+  171 clases, 37 matrículas.
+
+**Por qué el volcado ocupa 44 KB y Railway dice 124 MB:** no miden lo mismo.
+Railway enseña el tamaño físico del clúster (páginas, índices, catálogo, espacio
+reservado); el volcado es el contenido lógico comprimido. No falta nada — el
+contenido de las lecciones vive en `courseData.ts`, o sea en el código.
 
 ## Stripe — flujo de pagos (estado actual)
 

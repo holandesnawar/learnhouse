@@ -7,7 +7,7 @@ from src.routers import health
 from src.routers import instance
 from src.routers import plans
 from src.routers import usergroups
-from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations
+from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup
 from src.routers import notifications as notifications_router_module
 from src.routers import stream
 from src.routers import api_tokens
@@ -311,6 +311,19 @@ v1_router.include_router(
     prefix="/superadmin",
     tags=["superadmin"],
     dependencies=[Depends(get_non_api_token_user)],
+)
+
+# Copia del volumen de archivos (logos, imágenes, notas de voz).
+#
+# ⚠️ A propósito SIN `get_non_api_token_user`: lo llama un workflow de GitHub,
+# que no tiene sesión y solo puede identificarse con un token. La puerta la pone
+# `require_superadmin` dentro del endpoint, que acepta tokens `lh_sa_` pero
+# rechaza anónimos y tokens de organización, y vuelve a comprobar que quien creó
+# el token sigue siendo superadmin. El porqué largo está en el propio router.
+v1_router.include_router(
+    backup.router,
+    prefix="/backup",
+    tags=["backup"],
 )
 
 # Per-user memory of the last attempt at an exercise practice (Luisteren, etc.).
