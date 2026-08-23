@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { getUriWithOrg } from '@services/config/config';
 import { getCourseThumbnailMediaDirectory } from '@services/media/media';
 import { useWindowSize } from 'usehooks-ts';
+import { useSearchParams } from 'next/navigation';
 import { useOrg } from '@components/Contexts/OrgContext';
 import { useLHSession } from '@components/Contexts/LHSessionContext';
 import { getUserCertificates } from '@services/courses/certifications';
@@ -47,8 +48,17 @@ const CourseEndView: React.FC<CourseEndViewProps> = ({
 
 
 
+  // Previsualización para el equipo: `?preview=fin` en la dirección de la
+  // pantalla de fin enseña la versión de "curso terminado" sin haberlo
+  // terminado, para poder revisar el texto y el diseño sin completar 149
+  // actividades. Solo la ven los superadmins; a un alumno el parámetro no le
+  // hace nada.
+  const searchParams = useSearchParams();
+  const esEquipo = Boolean(session?.data?.user?.is_superadmin);
+  const previsualizandoFin = esEquipo && searchParams?.get('preview') === 'fin';
+
   // Check if course is actually completed
-  const isCourseCompleted = useMemo(() => {
+  const cursoTerminadoDeVerdad = useMemo(() => {
     if (!trailData || !course) return false;
     
     // Flatten all activities
@@ -81,6 +91,8 @@ const CourseEndView: React.FC<CourseEndViewProps> = ({
     const completedActivities = allActivities.filter((activity: any) => isActivityDone(activity)).length;
     return totalActivities > 0 && completedActivities === totalActivities;
   }, [trailData, course]);
+
+  const isCourseCompleted = cursoTerminadoDeVerdad || previsualizandoFin;
 
   // Fetch user certificate when course is completed
   useEffect(() => {
