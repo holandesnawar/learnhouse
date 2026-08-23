@@ -32,7 +32,12 @@ const COURSE_FEATURES = [
 // La garantía sale de la lista de checks y se va a su propio bloque, pegada al
 // precio: es el mayor quitamiedos que hay y ahí abajo es donde el comprador
 // duda. Como check número cinco pesaba lo mismo que "Certificado al terminar".
-const GUARANTEE_DAYS = 14
+// Son 15, no 14: las condiciones de contratación publicadas distinguen a
+// propósito el desistimiento legal de 14 días naturales (derecho europeo) de
+// una garantía comercial de 15, "más amplia que el desistimiento legal", y la
+// landing dice 15 en nueve sitios. Prometer 14 aquí sería ofrecer menos de lo
+// que ya está publicado, que es la dirección mala del error.
+const GUARANTEE_DAYS = 15
 
 // El precio de después del lanzamiento. Sirve de ancla: un 397 € a secas es
 // solo un número; al lado del 497 € es una decisión. Si algún día el total ya
