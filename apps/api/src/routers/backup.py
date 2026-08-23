@@ -36,21 +36,72 @@ como secreto en GitHub. Por eso el token con el que se usa debería llevar
 caducidad y revocarse en cuanto deje de hacer falta.
 """
 
+import hashlib
+import hmac
 import logging
+import os
 import tarfile
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
+from sqlmodel.ext.asyncio.session import AsyncSession
 from starlette.background import BackgroundTask
 
+from src.core.events.database import get_db_session
 from src.security.superadmin import require_superadmin
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+#: Cabecera y variable de entorno del secreto con el que se identifica el
+#: workflow. Mismo nombre las dos, a propósito: un solo nombre que recordar.
+#:
+#: Existe porque **en esta edición no se pueden crear tokens de superadmin**: la
+#: pantalla del panel llama a `ee/superadmin/tokens/`, que es una ruta de la
+#: edición Enterprise y aquí no existe (da 404). La pantalla de "Acceso API" que
+#: sí funciona crea tokens de ORGANIZACIÓN (`lh_`), y esos los rechaza
+#: `require_superadmin` a propósito.
+#:
+#: Es el mismo patrón que ya usa el webhook de Inrō en la web. Se revoca
+#: cambiando la variable en Railway, que además es más fácil de explicar que una
+#: pantalla de tokens.
+CABECERA_SECRETO = "LEARNHOUSE_BACKUP_TOKEN"
+
+
+def _mismo_secreto(a: str, b: str) -> bool:
+    """Compara sin filtrar por dónde dejan de parecerse.
+
+    Se comparan los hashes y no los textos: así los dos búferes miden siempre
+    lo mismo y la longitud del secreto tampoco se filtra.
+    """
+    ha = hashlib.sha256(a.encode("utf-8")).digest()
+    hb = hashlib.sha256(b.encode("utf-8")).digest()
+    return hmac.compare_digest(ha, hb)
+
+
+async def _autorizar(request: Request, db_session: AsyncSession) -> str:
+    """Deja pasar al workflow de copias o a un superadmin. Devuelve quién entró.
+
+    Se prueba primero el secreto porque es el camino del robot, que es el que
+    se recorre todas las noches. Si no hay secreto configurado, esa puerta
+    simplemente no existe y solo entra un superadmin.
+    """
+    esperado = (os.environ.get(CABECERA_SECRETO) or "").strip()
+    recibido = (request.headers.get(CABECERA_SECRETO) or "").strip()
+    if esperado and recibido and _mismo_secreto(recibido, esperado):
+        return "workflow-de-copias"
+
+    # Sin secreto válido, la puerta normal: una sesión de superadmin. Sirve para
+    # bajarse el paquete a mano desde el navegador.
+    from src.security.auth import get_current_user
+
+    current_user = await get_current_user(request, db_session)
+    await require_superadmin(current_user=current_user, db_session=db_session)
+    return f"user_id={getattr(current_user, 'id', '?')}"
 
 # Misma ruta que usa `local_content.py` para servir los archivos: relativa al
 # directorio de trabajo de la API, que en el contenedor es /app/api.
@@ -64,8 +115,9 @@ CONTENT_DIR = Path("content")
         "Empaqueta el directorio `content/` y lo devuelve como un tar.gz. Lo "
         "llama el workflow `content-backup.yaml`, que lo sube a Cloudflare R2 "
         "junto a las copias del Postgres.\n\n"
-        "Solo superadmin. Sirve tanto una sesión iniciada como un token "
-        "`lh_sa_`. Cada descarga queda en el log con quién y cuánto."
+        "Dos formas de entrar: la cabecera `LEARNHOUSE_BACKUP_TOKEN` con el "
+        "secreto (es la que usa el workflow) o una sesión de superadmin (para "
+        "bajárselo a mano). Cada descarga queda en el log con quién y cuánto."
     ),
     responses={
         401: {"description": "Sin autenticar."},
@@ -74,7 +126,12 @@ CONTENT_DIR = Path("content")
         500: {"description": "El paquete no se pudo crear o salió vacío."},
     },
 )
-async def api_content_archive(current_user=Depends(require_superadmin)):
+async def api_content_archive(
+    request: Request,
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    quien = await _autorizar(request, db_session)
+
     if not CONTENT_DIR.is_dir():
         raise HTTPException(status_code=404, detail="No hay directorio content/ que empaquetar")
 
@@ -105,10 +162,10 @@ async def api_content_archive(current_user=Depends(require_superadmin)):
         raise HTTPException(status_code=500, detail="El paquete salió vacío")
 
     logger.info(
-        "Descarga del volumen de contenido: %s (%.2f MB) por user_id=%s",
+        "Descarga del volumen de contenido: %s (%.2f MB) por %s",
         nombre,
         tamano / 1_048_576,
-        getattr(current_user, "id", "?"),
+        quien,
     )
 
     return FileResponse(
