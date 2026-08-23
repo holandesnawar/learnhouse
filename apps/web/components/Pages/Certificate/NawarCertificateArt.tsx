@@ -2,31 +2,42 @@
 import React, { useEffect, useRef, useState } from 'react'
 
 /**
- * Certificado Holandés Nawar — recreación del diseño oficial de la escuela
- * (olas azules arriba y abajo, logo centrado, marca de agua y el nombre del
- * alumno en cian), con los añadidos que le faltaban al original: la fecha
- * (el modelo terminaba en "afgerond op" sin nada detrás), etiquetas bajo las
- * firmas, número de certificado y QR de verificación.
+ * Certificado Holandés Nawar.
  *
- * Se dibuja SIEMPRE en un lienzo fijo con proporción A4 apaisado y se escala
- * con transform para caber en su contenedor: lo que se ve en pantalla y lo que
- * sale en el PDF son exactamente lo mismo, porque el descargador
- * (`downloadCertificatePdf`) clona este mismo nodo.
+ * El diseño (olas azules, logo, marca de agua, firmas y todo el texto en
+ * neerlandés) vive en una imagen de fondo — `public/Certificado-fondo.png`, un
+ * PNG de 4000×2828 hecho en Canva. Aquí encima solo se ponen las dos cosas que
+ * cambian en cada alumno: **su nombre** y **la fecha** en que terminó.
  *
- * Estilos en línea a propósito: el PDF se genera con html2canvas y no debe
- * depender de las hojas de estilo de la app ni de Tailwind.
+ * Por qué la imagen está en `public/` de la propia web y no en el CDN: el PDF
+ * se genera en el navegador del alumno capturando este nodo, y el navegador se
+ * niega a incluir imágenes de otro dominio en esa captura. Servida desde el
+ * mismo sitio que la escuela, no hay nada que negociar. Además queda versionada
+ * en git y entra en las copias de seguridad.
  */
 
-// A4 apaisado a 96 ppp — el modelo original era 16:9, pero en A4 el PDF se
-// imprime a página completa sin franjas en blanco.
-export const CERT_W = 1123
-export const CERT_H = 794
+// Proporción exacta del PNG (4000×2828 = A4 apaisado). El lienzo se declara a
+// la mitad para que las medidas del encargo —nombre 105px, fecha 28px— sean
+// literales, y el PDF se captura al doble, que devuelve los 4000px originales.
+export const CERT_W = 2000
+export const CERT_H = 1414
 
-/** Colores tomados del certificado oficial. */
-const NAVY = '#0E1A95'
-const NAVY_DEEP = '#0A1478'
-const CYAN = '#0AB8EE'
-const CYAN_SOFT = '#8FDCF7'
+const FONDO_URL = '/Certificado-fondo.png'
+
+/** Colores del degradado del nombre. */
+const TINTA_CENTRO = '#120081'
+const TINTA_BORDE = '#025dc7'
+
+// Coordenadas medidas sobre el propio PNG, no a ojo:
+//   subtítulo "Dit certificaat verklaart dat:"  acaba en y=410
+//   línea divisoria con destellos               de y=687 a y=734
+//   párrafo "De cursus…"                        de y=800 a y=892
+//   firmas                                      a partir de y=958
+const NOMBRE_TAM = 105          // Poppins bold
+const NOMBRE_BASE_Y = 638       // dónde apoya el nombre, justo encima de la línea
+const NOMBRE_ANCHO_MAX = 1500   // más allá se encoge, para que nunca toque los bordes
+const FECHA_TAM = 28            // Inter bold
+const FECHA_TOP_Y = 902         // debajo de "heeft afgerond op"
 
 export interface NawarCertificateArtProps {
   studentName?: string
@@ -42,300 +53,183 @@ export interface NawarCertificateArtProps {
   innerRef?: React.RefObject<HTMLDivElement | null>
 }
 
-const NawarCertificateArt: React.FC<NawarCertificateArtProps> = ({
-  studentName,
-  certificationName,
-  certificationDescription,
-  certificateInstructor,
-  certificateId,
-  awardedDate,
-  qrCodeLink,
-  logoUrl,
-  innerRef,
-}) => {
-  const [qr, setQr] = useState<string>('')
-  const wrapRef = useRef<HTMLDivElement>(null)
-  const [scale, setScale] = useState(1)
-
-  // El lienzo es fijo; se escala al ancho disponible.
+/**
+ * Pinta el nombre en un `<canvas>`.
+ *
+ * Podría ser un `<div>` con `background-clip:text`, que es como se hace
+ * normalmente un texto con degradado — pero html2canvas, que es quien genera
+ * el PDF, no sabe recortar un fondo contra las letras: saldría un rectángulo
+ * de color macizo tapando el nombre. Y en SVG el problema es otro: al
+ * serializarlo se pierde la tipografía de la página y el nombre saldría en una
+ * letra cualquiera.
+ *
+ * Un canvas no tiene ninguno de los dos problemas: html2canvas copia su mapa
+ * de bits tal cual, así que lo que se ve en pantalla es exactamente lo que
+ * acaba en el PDF, degradado incluido.
+ */
+function NombreEnCanvas({ nombre }: { nombre: string }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const [listo, setListo] = useState(false)
+  // Se vuelve a dibujar cuando las tipografías terminan de cargar: el primer
+  // pintado puede caer en la letra de reserva y se quedaría así para siempre.
+  const [fuentesListas, setFuentesListas] = useState(false)
   useEffect(() => {
-    const el = wrapRef.current
-    if (!el) return
-    const update = () => setScale(Math.min(1, el.clientWidth / CERT_W))
-    update()
-    const ro = new ResizeObserver(update)
-    ro.observe(el)
-    return () => ro.disconnect()
+    let vivo = true
+    document.fonts?.ready.then(() => vivo && setFuentesListas(true))
+    return () => {
+      vivo = false
+    }
   }, [])
 
   useEffect(() => {
-    if (!qrCodeLink) return
-    let alive = true
-    import('qrcode')
-      .then(({ default: QRCode }) =>
-        QRCode.toDataURL(qrCodeLink, {
-          width: 220,
-          margin: 0,
-          color: { dark: NAVY, light: '#FFFFFF' },
-          errorCorrectionLevel: 'M',
-        })
-      )
-      .then((url) => alive && setQr(url))
-      .catch(() => {})
-    return () => {
-      alive = false
-    }
-  }, [qrCodeLink])
+    const canvas = canvasRef.current
+    if (!canvas || !nombre) return
 
-  const poppins = "var(--font-poppins), 'Poppins', system-ui, sans-serif"
+    const alto = Math.round(NOMBRE_TAM * 1.6)
+    // Se dibuja al doble de resolución para que no se vea pixelado al ampliar
+    // ni al imprimir; el tamaño en pantalla lo fija el CSS.
+    const escala = 2
+    canvas.width = CERT_W * escala
+    canvas.height = alto * escala
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.scale(escala, escala)
+
+    // La familia real la pone next/font con un nombre generado, así que se lee
+    // de la variable CSS en vez de escribir "Poppins" a pelo.
+    const familia =
+      getComputedStyle(document.documentElement)
+        .getPropertyValue('--font-poppins')
+        .trim() || 'Poppins'
+
+    let tam = NOMBRE_TAM
+    ctx.font = `700 ${tam}px ${familia}, sans-serif`
+    const ancho = ctx.measureText(nombre).width
+    if (ancho > NOMBRE_ANCHO_MAX) {
+      // Nombres muy largos: se encogen en vez de salirse del papel.
+      tam = Math.floor(tam * (NOMBRE_ANCHO_MAX / ancho))
+      ctx.font = `700 ${tam}px ${familia}, sans-serif`
+    }
+
+    const cx = CERT_W / 2
+    const cy = alto * 0.62
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, CERT_W * 0.34)
+    grad.addColorStop(0, TINTA_CENTRO)
+    grad.addColorStop(0.5, TINTA_CENTRO)
+    grad.addColorStop(1, TINTA_BORDE)
+
+    ctx.clearRect(0, 0, CERT_W, alto)
+    ctx.fillStyle = grad
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'alphabetic'
+    ctx.fillText(nombre, cx, cy)
+    setListo(true)
+  }, [nombre, fuentesListas])
 
   return (
-    <div ref={wrapRef} style={{ width: '100%', height: CERT_H * scale, overflow: 'hidden' }}>
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: 'absolute',
+        left: 0,
+        top: `${NOMBRE_BASE_Y - NOMBRE_TAM}px`,
+        width: `${CERT_W}px`,
+        height: `${Math.round(NOMBRE_TAM * 1.6)}px`,
+        opacity: listo ? 1 : 0,
+        transition: 'opacity .15s',
+      }}
+    />
+  )
+}
+
+const NawarCertificateArt: React.FC<NawarCertificateArtProps> = ({
+  studentName,
+  awardedDate,
+  certificateId,
+  innerRef,
+}) => {
+  const contenedorRef = useRef<HTMLDivElement | null>(null)
+  const [escala, setEscala] = useState(1)
+
+  // El lienzo es fijo (2000×1414) y se encoge con transform para caber en su
+  // hueco. Así lo que se ve y lo que se captura son el mismo nodo, y no hay
+  // dos diseños que mantener.
+  useEffect(() => {
+    const medir = () => {
+      const ancho = contenedorRef.current?.clientWidth ?? CERT_W
+      setEscala(Math.min(1, ancho / CERT_W))
+    }
+    medir()
+    window.addEventListener('resize', medir)
+    return () => window.removeEventListener('resize', medir)
+  }, [])
+
+  return (
+    <div ref={contenedorRef} style={{ width: '100%', height: CERT_H * escala }}>
       <div
         ref={innerRef}
         style={{
-          width: CERT_W,
-          height: CERT_H,
-          transform: `scale(${scale})`,
+          position: 'relative',
+          width: `${CERT_W}px`,
+          height: `${CERT_H}px`,
+          transform: `scale(${escala})`,
           transformOrigin: 'top left',
           background: '#ffffff',
-          position: 'relative',
           overflow: 'hidden',
-          boxSizing: 'border-box',
-          fontFamily: poppins,
         }}
       >
-        {/* ── Olas superiores ─────────────────────────────────────────── */}
-        <svg
-          width={CERT_W}
-          height={170}
-          viewBox={`0 0 ${CERT_W} 170`}
-          style={{ position: 'absolute', top: 0, left: 0 }}
-          aria-hidden="true"
-        >
-          <path
-            d={`M0,0 H${CERT_W} V58 C 960,120 806,44 596,86 C 386,128 200,74 0,116 Z`}
-            fill={CYAN_SOFT}
-            opacity="0.6"
-          />
-          <path
-            d={`M0,0 H${CERT_W} V40 C 946,104 790,26 580,68 C 370,110 186,58 0,96 Z`}
-            fill={NAVY}
-          />
-        </svg>
-
-        {/* ── Olas inferiores ─────────────────────────────────────────── */}
-        <svg
-          width={CERT_W}
-          height={215}
-          viewBox={`0 0 ${CERT_W} 215`}
-          style={{ position: 'absolute', bottom: 0, left: 0 }}
-          aria-hidden="true"
-        >
-          <path
-            d={`M${CERT_W},215 V38 C 950,20 806,72 596,100 C 400,126 200,112 0,146 V215 Z`}
-            fill={CYAN_SOFT}
-          />
-          <path
-            d={`M0,215 V96 C 220,58 452,120 668,152 C 820,175 986,168 ${CERT_W},142 V215 Z`}
-            fill={NAVY}
-          />
-          <path
-            d={`M0,215 V158 C 250,132 486,178 716,192 C 856,200 1008,196 ${CERT_W},186 V215 Z`}
-            fill={NAVY_DEEP}
-          />
-        </svg>
-
-        {/* ── Marca de agua ───────────────────────────────────────────── */}
-        {logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={logoUrl}
-            alt=""
-            aria-hidden="true"
-            crossOrigin="anonymous"
-            style={{
-              position: 'absolute',
-              top: '47%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: '78%',
-              opacity: 0.06,
-              pointerEvents: 'none',
-            }}
-          />
-        ) : null}
-
-        {/* ── Contenido ───────────────────────────────────────────────── */}
-        <div
+        <img
+          src={FONDO_URL}
+          alt=""
           style={{
             position: 'absolute',
             inset: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '112px 90px 0',
-            boxSizing: 'border-box',
-            textAlign: 'center',
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
           }}
-        >
-          {logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={logoUrl}
-              alt="Holandés Nawar"
-              crossOrigin="anonymous"
-              style={{ height: 80, objectFit: 'contain', marginBottom: 26 }}
-            />
-          ) : (
-            <p style={{ margin: '0 0 30px', fontSize: 34, fontWeight: 800, color: NAVY }}>
-              Holandés Nawar
-            </p>
-          )}
+        />
 
-          <h1
-            style={{
-              margin: 0,
-              fontSize: 42,
-              fontWeight: 800,
-              letterSpacing: '0.045em',
-              color: NAVY,
-              lineHeight: 1.15,
-            }}
-          >
-            CERTIFICAAT VAN AFRONDING
-          </h1>
+        {studentName ? <NombreEnCanvas nombre={studentName} /> : null}
 
-          <p style={{ margin: '24px 0 0', fontSize: 20, color: NAVY, letterSpacing: '0.01em' }}>
-            Dit is om te bevestigen dat
-          </p>
-
-          <p
-            style={{
-              margin: '18px 0 0',
-              fontSize: 45,
-              fontWeight: 800,
-              color: CYAN,
-              lineHeight: 1.1,
-              textTransform: 'uppercase',
-              letterSpacing: '0.01em',
-              maxWidth: 900,
-            }}
-          >
-            {studentName || '—'}
-          </p>
-
-          <p style={{ margin: '22px 0 0', fontSize: 20, color: NAVY, lineHeight: 1.55, maxWidth: 820 }}>
-            de cursus <strong style={{ fontWeight: 700 }}>{certificationName}</strong>
-          </p>
-          <p style={{ margin: '2px 0 0', fontSize: 20, color: NAVY, lineHeight: 1.55 }}>
-            succesvol heeft afgerond{awardedDate ? ' op' : ''}
-            {awardedDate ? (
-              <strong style={{ fontWeight: 700 }}> {awardedDate}</strong>
-            ) : null}
-          </p>
-
-          {certificationDescription ? (
-            <p
-              style={{
-                margin: '16px auto 0',
-                maxWidth: 700,
-                fontSize: 13.5,
-                color: 'rgba(14,26,149,0.62)',
-                lineHeight: 1.55,
-              }}
-            >
-              {certificationDescription}
-            </p>
-          ) : null}
-        </div>
-
-        {/* ── Firmas · verificación ───────────────────────────────────── */}
-        <div
-          style={{
-            position: 'absolute',
-            left: 104,
-            right: 104,
-            bottom: 222,
-            display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'space-between',
-            gap: 24,
-          }}
-        >
-          <div style={{ width: 236, textAlign: 'center' }}>
-            <div style={{ height: 2, background: NAVY, marginBottom: 9 }} />
-            <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700, color: NAVY }}>
-              {certificateInstructor || 'Holandés Nawar'}
-            </p>
-            <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(14,26,149,0.60)' }}>
-              Academisch directeur
-            </p>
-          </div>
-
-          {/* Verificación: número + QR (el modelo original no lo llevaba) */}
-          <div style={{ textAlign: 'center', paddingBottom: 2 }}>
-            {qr ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={qr}
-                alt="Verificatiecode"
-                style={{
-                  width: 66,
-                  height: 66,
-                  display: 'block',
-                  margin: '0 auto 6px',
-                  border: '1px solid rgba(14,26,149,0.18)',
-                  borderRadius: 8,
-                  padding: 4,
-                  background: '#fff',
-                }}
-              />
-            ) : null}
-            {certificateId ? (
-              <>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: 8.5,
-                    letterSpacing: '0.14em',
-                    textTransform: 'uppercase',
-                    color: 'rgba(14,26,149,0.50)',
-                  }}
-                >
-                  Certificaatnummer
-                </p>
-                <p style={{ margin: '1px 0 0', fontSize: 9.5, color: 'rgba(14,26,149,0.72)' }}>
-                  {certificateId}
-                </p>
-              </>
-            ) : null}
-          </div>
-
-          <div style={{ width: 236, textAlign: 'center' }}>
-            <div style={{ height: 2, background: NAVY, marginBottom: 9 }} />
-            <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700, color: NAVY }}>Holandés Nawar</p>
-            <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(14,26,149,0.60)' }}>
-              Namens de academie
-            </p>
-          </div>
-        </div>
-
-        {qrCodeLink ? (
-          <p
+        {awardedDate ? (
+          <div
             style={{
               position: 'absolute',
               left: 0,
               right: 0,
-              bottom: 198,
-              margin: 0,
-              fontSize: 9,
-              color: 'rgba(14,26,149,0.42)',
+              top: `${FECHA_TOP_Y}px`,
               textAlign: 'center',
+              fontFamily: 'var(--font-inter), Inter, sans-serif',
+              fontWeight: 700,
+              fontSize: `${FECHA_TAM}px`,
+              color: '#111111',
             }}
           >
-            Verifieer dit certificaat op {qrCodeLink.replace(/^https?:\/\//, '')}
-          </p>
+            {awardedDate}
+          </div>
+        ) : null}
+
+        {/* El código de verificación, discreto y abajo: es lo que permite a un
+            tercero comprobar que el certificado es auténtico, y el correo que
+            avisa al alumno lo menciona. */}
+        {certificateId ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: '96px',
+              textAlign: 'center',
+              fontFamily: 'var(--font-inter), Inter, sans-serif',
+              fontSize: '15px',
+              letterSpacing: '0.04em',
+              color: 'rgba(17,17,17,0.42)',
+            }}
+          >
+            {certificateId}
+          </div>
         ) : null}
       </div>
     </div>

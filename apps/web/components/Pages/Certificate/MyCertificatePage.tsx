@@ -110,7 +110,9 @@ export default function MyCertificatePage(props: { orgslug: string; uuid: string
           studentName={studentName}
           awardedDate={
             data.certificate_user?.created_at
-              ? new Date(data.certificate_user.created_at).toLocaleDateString('es-ES', {
+              // En neerlandés: la frase del certificado acaba en "heeft
+              // afgerond op", así que "12 juni 2026" y no "12 de junio de 2026".
+              ? new Date(data.certificate_user.created_at).toLocaleDateString('nl-NL', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric',
