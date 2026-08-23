@@ -44,9 +44,17 @@ const NOMBRE_ANCHO_MAX = 1500   // más allá se encoge, para que nunca toque lo
 // la segunda —la que acaba en "op"— está desplazada 215 px a la IZQUIERDA. Ese
 // hueco de 429 px que queda a su derecha es el sitio de la fecha: puesta ahí,
 // la frase entera queda centrada.
-const FECHA_TAM = 41            // el mismo cuerpo que el párrafo del fondo
-const FECHA_X = 1239            // "op" acaba en 1227; +12 px de espacio
-const FECHA_BASE_Y = 883        // la misma línea de base que el párrafo
+// El cuerpo sale de medir el propio párrafo: sus ascendentes miden 58 px en el
+// PNG de 4000, o sea 29 en el lienzo de 2000, que en Poppins corresponde a un
+// cuerpo de ~39 px. Con 41 se notaba más grande que la frase.
+const FECHA_TAM = 39
+const FECHA_X = 1253            // "op" acaba en 1240,5; +12,5 px de espacio
+const FECHA_BASE_Y = 883.5      // la línea de base del párrafo, medida en el PNG
+// De la línea de base a la esquina superior de la caja de texto. El 0,85 es la
+// métrica de Poppins con `line-height` igual al cuerpo, y el +1,5 es la
+// corrección que hizo falta al medir el resultado ya renderizado: con la cuenta
+// teórica a secas la fecha quedaba un pelo por encima de la frase.
+const FECHA_TOP_Y = FECHA_BASE_Y - FECHA_TAM * 0.85 + 1.5
 
 export interface NawarCertificateArtProps {
   studentName?: string
@@ -207,7 +215,7 @@ const NawarCertificateArt: React.FC<NawarCertificateArtProps> = ({
             style={{
               position: 'absolute',
               left: `${FECHA_X}px`,
-              top: `${FECHA_BASE_Y - FECHA_TAM}px`,
+              top: `${FECHA_TOP_Y}px`,
               lineHeight: `${FECHA_TAM}px`,
               fontFamily: 'var(--font-poppins), Poppins, sans-serif',
               fontWeight: 700,
