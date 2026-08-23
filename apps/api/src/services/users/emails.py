@@ -170,7 +170,7 @@ def send_account_creation_email(
     body_text = t(lang, "account_creation.body")
     cta = t(lang, "account_creation.cta")
     academy_link = (
-        f'<a href="{ACADEMY_URL}" '
+        f'<a href="{ACADEMY_URL}/consultas" '
         'style="color: rgba(0,0,0,0.35); text-decoration: underline;">'
         f'{t(lang, "academy_link_text")}</a>'
     )
@@ -546,7 +546,7 @@ def send_weekly_digest_email(
         body=_email_layout(
             title=heading,
             body_content=body_content,
-            footer_note="Recibes este resumen cada lunes. Si prefieres no recibirlo, contéstanos a este correo.",
+            footer_note="Recibes este resumen cada lunes para no perderte nada de tu formación.",
         ),
     )
 
@@ -593,7 +593,7 @@ def send_announcement_email(
     email: EmailStr,
     name: str = "alumno/a",
     title: str = "Nueva quedada online el jueves",
-    excerpt: str = "El jueves a las 19h tenemos sesión de conversación en grupo. Plazas limitadas.",
+    excerpt: str = "El jueves a las 19h tenemos sesión de conversación en grupo. Te esperamos.",
     url: str = "",
     preview: bool = False,
 ):
@@ -666,7 +666,7 @@ def send_consulta_answered_email(
             </p>
         </div>
         <p style="{STYLES['p']}">
-            Entra en la plataforma para leer la respuesta completa.
+            Entra en la escuela para leer la respuesta completa.
         </p>
         <a href="{target_link}" class="brand-btn" style="{STYLES['button']}">
             Ver respuesta
