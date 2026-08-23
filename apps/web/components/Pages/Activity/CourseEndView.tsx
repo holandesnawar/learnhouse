@@ -122,7 +122,11 @@ const CourseEndView: React.FC<CourseEndViewProps> = ({
   // Fetch user certificate when course is completed
   useEffect(() => {
     const fetchUserCertificate = async () => {
-      if (!isCourseCompleted) return;
+      // Se busca el certificado solo si el curso está terminado DE VERDAD. En
+      // previsualización no hay ninguno que buscar, y si se buscara la pantalla
+      // acabaría enseñando el aviso de "Sin certificado" — que además se pinta
+      // antes que el certificado, así que tapaba justo lo que se quería revisar.
+      if (!cursoTerminadoDeVerdad) return;
 
       if (!session?.data?.tokens?.access_token) {
         setCertificateError(t('auth.authenticate_to_contribute')); // Reusing an auth error key
@@ -157,7 +161,7 @@ const CourseEndView: React.FC<CourseEndViewProps> = ({
     };
 
     fetchUserCertificate();
-  }, [isCourseCompleted, courseUuid, session?.data?.tokens?.access_token, org?.id]);
+  }, [cursoTerminadoDeVerdad, courseUuid, session?.data?.tokens?.access_token, org?.id]);
 
   // El PDF captura el MISMO certificado que se ve en pantalla (antes esta
   // pantalla reconstruía el diseño en HTML por su cuenta).
