@@ -545,6 +545,24 @@ async def complete_activity(
             extra={"curso": course.name},
         )
 
+        # La etiqueta: el alumno entra en el grupo "Ha terminado <curso>", que
+        # se ve de un vistazo en Usuarios. Sirve para escribirle EN CALIENTE
+        # —que es cuando se consigue un testimonio— sin depender de que a
+        # alguien le llegue un correo entre otros cien.
+        #
+        # En su propio try: que falle una etiqueta nunca puede impedir que se
+        # entregue el certificado.
+        try:
+            from src.services.orgs.groups import marcar_como_terminado
+
+            await marcar_como_terminado(
+                user_id, course.org_id, course.name, db_session
+            )
+        except Exception:  # noqa: BLE001
+            logger.warning(
+                "No se pudo etiquetar al alumno %s como terminado", user_id, exc_info=True
+            )
+
     return {
         "activity_uuid": activity_uuid,
         "user_id": user_id,

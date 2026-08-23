@@ -326,6 +326,33 @@ const CourseEndView: React.FC<CourseEndViewProps> = ({
             </div>
           )}
 
+          {/* Contarlo en la comunidad.
+              Se pide algo concreto y no un "he terminado": si los 40 alumnos
+              acaban la misma semana, cuarenta mensajes idénticos son ruido,
+              mientras que cuarenta respuestas a esta pregunta son cuarenta
+              historias distintas — y el material con el que se vende la
+              siguiente convocatoria, escrito por ellos y el día que están más
+              orgullosos. */}
+          <div className="pt-8 max-w-xl mx-auto">
+            <div className="bg-[#F0F5FF] rounded-2xl px-5 py-6">
+              <p className="text-[15px] text-[#0a1656] leading-relaxed">
+                ¿Qué eres capaz de hacer hoy en neerlandés que no podías
+                al empezar?
+              </p>
+              <p className="text-[13.5px] text-[#0a1656]/70 mt-2 leading-relaxed">
+                Cuéntaselo a tus compañeros: a quien viene detrás le vas a dar
+                justo el empujón que tú necesitabas.
+              </p>
+              <Link
+                href={getUriWithOrg(orgslug, '/communities')}
+                className="mt-4 inline-flex items-center gap-2 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold px-5 py-3 rounded-xl transition-colors text-[14.5px]"
+              >
+                <Trophy className="w-4 h-4" />
+                <span>Compartir mi victoria</span>
+              </Link>
+            </div>
+          </div>
+
           <div className="pt-6">
             <Link
               href={getUriWithOrg(orgslug, `/course/${courseUuid.replace('course_', '')}`)}
