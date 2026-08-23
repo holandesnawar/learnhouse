@@ -18,22 +18,14 @@ propósito cualquier acceso con token de API. Es un buen valor por defecto para
 las herramientas que viven ahí (sembrar la comunidad, mandar correos de prueba):
 cosas que hace una persona sentada delante, no un robot.
 
-Pero un workflow de GitHub no tiene sesión: solo puede identificarse con un
-token. Así que esta ruta se monta en su propio router **sin** esa dependencia, y
-la puerta la pone `require_superadmin`, que:
+Pero un workflow de GitHub no tiene sesión. Así que esta ruta se monta en su
+propio router **sin** esa dependencia y tiene dos puertas propias (ver
+`_autorizar`): el secreto compartido de la cabecera, que es por donde entra el
+workflow, o una sesión de superadmin, para bajarse el paquete a mano.
 
-  * rechaza a los anónimos (401);
-  * rechaza los tokens de organización (403) — nunca son superadmin;
-  * acepta los tokens de superadmin (`lh_sa_`), que están hasheados, se pueden
-    revocar y pueden caducar;
-  * y **vuelve a comprobar que quien creó el token sigue siendo superadmin**, de
-    forma que degradar a esa persona invalida todos sus tokens de golpe.
-
-Lo que esto abre, dicho claro: quien tenga un token de superadmin puede
-descargarse los archivos de los alumnos, notas de voz incluidas. Un superadmin
-con sesión ya podía hacerlo; la diferencia es que ahora esa llave también existe
-como secreto en GitHub. Por eso el token con el que se usa debería llevar
-caducidad y revocarse en cuanto deje de hacer falta.
+Lo que esto abre, dicho claro: quien tenga ese secreto puede descargarse los
+archivos de los alumnos, notas de voz incluidas. Se revoca cambiando
+`LEARNHOUSE_BACKUP_TOKEN` en Railway.
 """
 
 import hashlib
@@ -69,7 +61,16 @@ router = APIRouter()
 #: Es el mismo patrón que ya usa el webhook de Inrō en la web. Se revoca
 #: cambiando la variable en Railway, que además es más fácil de explicar que una
 #: pantalla de tokens.
-CABECERA_SECRETO = "LEARNHOUSE_BACKUP_TOKEN"
+#:
+#: ⚠️ CON GUIONES, NO CON GUIONES BAJOS. nginx descarta por defecto cualquier
+#: cabecera que lleve `_` (`underscores_in_headers off`), y como nginx es la
+#: puerta de entrada del contenedor, una cabecera `LEARNHOUSE_BACKUP_TOKEN`
+#: nunca llegaba hasta aquí: la petición caía a la puerta de sesión y devolvía
+#: un 401 desconcertante. Pasó de verdad la primera vez que se probó.
+CABECERA_SECRETO = "X-Backup-Token"
+
+#: El nombre viejo, por si alguna vez se llama a la API sin pasar por nginx.
+CABECERA_SECRETO_ALT = "LEARNHOUSE_BACKUP_TOKEN"
 
 
 def _mismo_secreto(a: str, b: str) -> bool:
@@ -90,8 +91,12 @@ async def _autorizar(request: Request, db_session: AsyncSession) -> str:
     se recorre todas las noches. Si no hay secreto configurado, esa puerta
     simplemente no existe y solo entra un superadmin.
     """
-    esperado = (os.environ.get(CABECERA_SECRETO) or "").strip()
-    recibido = (request.headers.get(CABECERA_SECRETO) or "").strip()
+    esperado = (os.environ.get(CABECERA_SECRETO_ALT) or "").strip()
+    recibido = (
+        request.headers.get(CABECERA_SECRETO)
+        or request.headers.get(CABECERA_SECRETO_ALT)
+        or ""
+    ).strip()
     if esperado and recibido and _mismo_secreto(recibido, esperado):
         return "workflow-de-copias"
 
@@ -115,8 +120,8 @@ CONTENT_DIR = Path("content")
         "Empaqueta el directorio `content/` y lo devuelve como un tar.gz. Lo "
         "llama el workflow `content-backup.yaml`, que lo sube a Cloudflare R2 "
         "junto a las copias del Postgres.\n\n"
-        "Dos formas de entrar: la cabecera `LEARNHOUSE_BACKUP_TOKEN` con el "
-        "secreto (es la que usa el workflow) o una sesión de superadmin (para "
+        "Dos formas de entrar: la cabecera `X-Backup-Token` con el secreto "
+        "(es la que usa el workflow) o una sesión de superadmin (para "
         "bajárselo a mano). Cada descarga queda en el log con quién y cuánto."
     ),
     responses={
