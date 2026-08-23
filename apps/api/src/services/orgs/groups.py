@@ -219,3 +219,39 @@ async def sync_roles_for_group(
                 )
     except Exception:  # noqa: BLE001
         logger.exception("No se pudieron ajustar los roles del grupo %s", usergroup_id)
+
+
+async def marcar_como_terminado(
+    user_id: int, org_id: int, course_name: str, db_session: AsyncSession
+) -> None:
+    """Mete al alumno en el grupo de los que han terminado ese curso.
+
+    Es la "etiqueta" que pedía el equipo: en vez de un correo que se pierde
+    entre otros cien, la persona queda agrupada en Usuarios y se puede ver de
+    un vistazo quién ha llegado al final — y escribirles en caliente, que es
+    cuando un testimonio se consigue.
+
+    El grupo lleva el nombre del curso dentro (`Ha terminado <curso>`) para que
+    el día que exista A1-A2 no se mezclen las dos promociones en el mismo saco.
+    Se crea solo la primera vez que alguien termina.
+    """
+    nombre = f"Ha terminado {course_name}".strip()
+    grupo = await _get_or_create_group(org_id, nombre, db_session)
+    if grupo.id is None:
+        return
+    if await _link_exists(grupo.id, user_id, db_session):
+        return
+
+    from src.db.usergroup_user import UserGroupUser
+
+    ahora = datetime.now().isoformat()
+    db_session.add(
+        UserGroupUser(
+            usergroup_id=grupo.id,
+            user_id=user_id,
+            creation_date=ahora,
+            update_date=ahora,
+        )
+    )
+    await db_session.commit()
+    logger.info("Alumno %s marcado como terminado en '%s'", user_id, nombre)
