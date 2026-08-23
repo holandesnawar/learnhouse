@@ -70,7 +70,10 @@ jobs:
           # Y que sea un gzip de verdad, no un JSON de error con nombre bonito.
           gzip -t "$out"
           echo "Contenido del paquete (primeras líneas):"
-          tar -tzf "$out" | head -5
+          # `|| true` a propósito: head cierra la tubería al llegar a las 5
+          # líneas, tar muere de SIGPIPE, y con `pipefail` eso tumbaba el paso
+          # DESPUÉS de que la copia ya se hubiera descargado entera y bien.
+          tar -tzf "$out" | head -5 || true
           ls -lh "$out"
 
       - name: Subir a R2
