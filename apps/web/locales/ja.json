@@ -204,7 +204,8 @@
     "for": "対象",
     "powered_by": "Powered by",
     "results": "件",
-    "statistics": "統計"
+    "statistics": "統計",
+    "automations": "Automations"
   },
   "banner": {
     "viewing_as_guest": "{{name}}をゲストとして閲覧しています。",
@@ -372,6 +373,7 @@
     "ready_to_begin": "準備はいいですか？",
     "start_learning_journey": "{{count}} 個の魅力的なアクティビティで学習を開始しましょう",
     "course_progress": "学習の進捗",
+    "activities_completed": "{{completed}} of {{total}} activities completed",
     "progress": "進捗状況",
     "completed_of": "{{total}} 中 {{completed}} 完了",
     "quit_all_courses": "すべてのコースを退会",

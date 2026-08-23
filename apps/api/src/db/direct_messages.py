@@ -47,7 +47,12 @@ class DirectThread(SQLModel, table=True):
 
 
 class DirectMessage(SQLModel, table=True):
-    """Un mensaje del hilo. Puede ser texto, una nota de voz, o las dos cosas."""
+    """
+    Un mensaje del hilo.
+
+    Puede llevar texto, una nota de voz grabada aquí mismo, y/o fotos y
+    archivos adjuntos — igual que el chat de la comunidad.
+    """
 
     __tablename__ = "direct_message"
 
@@ -65,7 +70,21 @@ class DirectMessage(SQLModel, table=True):
     # Nombre del fichero de audio dentro de content/users/<uuid>/voice/.
     audio_file: str = Field(default="", sa_column=Column(String(300)))
     audio_seconds: int = 0
+    # Fotos y archivos, como una lista JSON de {url, name, kind, size}. Texto
+    # plano a propósito: la columna se añade a una tabla que ya existe en
+    # producción (ver `_ADDED_COLUMNS`) y TEXT entra en cualquier motor.
+    attachments: str = Field(default="", sa_column=Column(Text))
     created_at: str = ""
+
+
+class DirectAttachment(BaseModel):
+    """Una foto, un audio o un archivo colgado de un mensaje."""
+
+    url: str
+    name: str = ""
+    # image · audio · file. Decide con qué se pinta.
+    kind: str = "file"
+    size: int = 0
 
 
 class DirectMessageRead(BaseModel):
@@ -74,6 +93,8 @@ class DirectMessageRead(BaseModel):
     # Dirección completa de la nota de voz, o cadena vacía.
     audio_url: str = ""
     audio_seconds: int = 0
+    # Fotos y archivos del mensaje, ya listos para pintar.
+    attachments: List[DirectAttachment] = []
     created_at: str
     author_id: Optional[int] = None
     author_name: str

@@ -306,6 +306,19 @@ async def delete_comment(
                 detail="You can only delete your own comments"
             )
 
+    # Los votos del comentario primero: si la restricción de la base de datos no
+    # se creó con CASCADE (pasa en tablas anteriores al cambio), borrar el
+    # comentario a secas falla con un error de integridad.
+    from sqlalchemy import delete as sql_delete
+
+    from src.db.communities.discussion_comment_votes import DiscussionCommentVote
+
+    await db_session.execute(
+        sql_delete(DiscussionCommentVote).where(
+            DiscussionCommentVote.comment_id == comment.id
+        )
+    )
+
     await db_session.delete(comment)
     await db_session.commit()
 

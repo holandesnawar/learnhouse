@@ -84,7 +84,7 @@ describe('buildFormacionProgress', () => {
 
     expect(mods).toHaveLength(1) // el módulo 2 está bloqueado por el goteo
     expect(mods[0].title).toBe('MODULE 1 - OVER JOU')
-    expect(mods[0].classes.map((c) => c.title)).toEqual(['Clase 1', 'Clase 2'])
+    expect(mods[0].classes.map((c) => c.title)).toEqual(['Lección 1', 'Lección 2'])
     expect(mods[0].classes[0].sections.map((s) => s.code)).toEqual(['1.1', '1.3', '1.4'])
   })
 

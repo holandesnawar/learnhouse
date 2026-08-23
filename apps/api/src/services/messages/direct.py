@@ -14,6 +14,7 @@ Reglas del sitio:
   (pronunciar, corregir), no un adorno.
 """
 
+import json
 import logging
 from datetime import datetime, timezone
 from typing import List, Optional
@@ -23,6 +24,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.direct_messages import (
+    DirectAttachment,
     DirectMessage,
     DirectMessageRead,
     DirectThread,
@@ -34,7 +36,7 @@ from src.db.organization_config import OrganizationConfig
 from src.db.organizations import Organization
 from src.db.user_organizations import UserOrganization
 from src.db.users import AnonymousUser, PublicUser, User
-from src.security.rbac.constants import ADMIN_ROLE_ID, ADMIN_OR_MAINTAINER_ROLE_IDS
+from src.security.rbac.constants import ADMIN_ROLE_ID, STAFF_ROLE_IDS
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +51,55 @@ DEFAULT_WELCOME = (
 )
 
 
+# Cuántas fotos/archivos caben en un mensaje. Suficiente para "mira estas tres
+# frases" y poco para que nadie use el chat de almacén.
+MAX_ATTACHMENTS = 4
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _parse_attachments(raw: str) -> List[DirectAttachment]:
+    """
+    Los adjuntos que manda el navegador, ya subidos y validados por
+    `/messages/attachments`.
+
+    Aquí solo se comprueba la forma: lo que no la tenga se tira en silencio, y
+    un JSON roto no puede tumbar el envío de un mensaje.
+    """
+    if not raw or not raw.strip():
+        return []
+    try:
+        data = json.loads(raw)
+    except Exception:  # noqa: BLE001
+        logger.warning("Adjuntos con JSON inválido: se ignoran")
+        return []
+    if not isinstance(data, list):
+        return []
+
+    out: List[DirectAttachment] = []
+    for item in data[:MAX_ATTACHMENTS]:
+        if not isinstance(item, dict):
+            continue
+        url = str(item.get("url") or "").strip()
+        if not url:
+            continue
+        kind = str(item.get("kind") or "file").strip()
+        out.append(
+            DirectAttachment(
+                url=url,
+                name=str(item.get("name") or "")[:120],
+                kind=kind if kind in ("image", "audio", "file") else "file",
+                size=int(item.get("size") or 0),
+            )
+        )
+    return out
+
+
+def _attachments_of(message: DirectMessage) -> List[DirectAttachment]:
+    """Lo guardado en la columna, listo para devolver."""
+    return _parse_attachments(getattr(message, "attachments", "") or "")
 
 
 def _uid(current_user) -> int:
@@ -90,7 +139,7 @@ async def is_staff(user_id: int, org_id: int, db_session: AsyncSession) -> bool:
             )
         )
     ).scalars().first()
-    return bool(uo and uo.role_id in ADMIN_OR_MAINTAINER_ROLE_IDS)
+    return bool(uo and uo.role_id in STAFF_ROLE_IDS)
 
 
 async def is_admin_user(user_id: int, org_id: int, db_session: AsyncSession) -> bool:
@@ -300,7 +349,21 @@ async def _thread_row(
 
     preview = ""
     if last:
-        preview = last.body.strip() or ("🎤 Nota de voz" if last.audio_file else "")
+        preview = last.body.strip()
+        if not preview and last.audio_file:
+            preview = "🎤 Nota de voz"
+        if not preview:
+            # Una foto sin texto tiene que decir algo en la bandeja; si no, la
+            # conversación parece vacía desde fuera.
+            files = _attachments_of(last)
+            if files:
+                kinds = {f.kind for f in files}
+                if kinds == {"image"}:
+                    preview = "📷 Foto" if len(files) == 1 else f"📷 {len(files)} fotos"
+                elif kinds == {"audio"}:
+                    preview = "🎤 Nota de voz"
+                else:
+                    preview = "📎 Archivo" if len(files) == 1 else f"📎 {len(files)} archivos"
         if len(preview) > 90:
             preview = preview[:87].rstrip() + "…"
 
@@ -459,6 +522,7 @@ async def get_thread(
                 body=m.body or "",
                 audio_url=audio_url,
                 audio_seconds=m.audio_seconds or 0,
+                attachments=_attachments_of(m),
                 created_at=m.created_at or "",
                 author_id=m.author_id,
                 author_name=_display_name(author) if author else fallback_name,
@@ -517,6 +581,7 @@ async def post_message(
     current_user: PublicUser | AnonymousUser,
     db_session: AsyncSession,
     notify: bool = False,
+    attachments: str = "",
 ) -> DirectMessageRead:
     user_id = _uid(current_user)
     org_id = await _default_org_id(user_id, db_session)
@@ -525,11 +590,14 @@ async def post_message(
 
     text = (body or "").strip()
     audio_file = ""
+    files = _parse_attachments(attachments)
 
     if audio is not None:
         audio_file = await _save_audio(audio, org_id, db_session)
 
-    if not text and not audio_file:
+    # Una foto o un archivo se pueden mandar sin escribir nada, igual que una
+    # nota de voz.
+    if not text and not audio_file and not files:
         raise HTTPException(status_code=400, detail="Empty message")
 
     now = _now()
@@ -539,6 +607,7 @@ async def post_message(
         body=text,
         audio_file=audio_file,
         audio_seconds=max(0, min(int(audio_seconds or 0), 60 * 10)),
+        attachments=json.dumps([f.model_dump() for f in files]) if files else "",
         created_at=now,
     )
     db_session.add(message)
@@ -570,6 +639,7 @@ async def post_message(
             else ""
         ),
         audio_seconds=message.audio_seconds,
+        attachments=files,
         created_at=message.created_at,
         author_id=user_id,
         author_name=_display_name(author),
@@ -608,6 +678,28 @@ async def _save_audio(audio: UploadFile, org_id: int, db_session: AsyncSession) 
         allowed_formats=list(AUDIO_FORMATS),
     )
     return filename
+
+
+async def upload_message_attachment(
+    file: UploadFile,
+    current_user: PublicUser | AnonymousUser,
+    db_session: AsyncSession,
+) -> dict:
+    """
+    Guarda una foto o un archivo para un mensaje directo.
+
+    Reutiliza el almacén del chat de la comunidad (Cloudflare R2 si está
+    configurado, si no el volumen): un solo sitio para los adjuntos de la
+    escuela, y las mismas comprobaciones de formato y tamaño. Basta con estar
+    dentro de la escuela — quien puede escribirse con el equipo puede mandarle
+    una foto.
+    """
+    from src.services.communities.attachments import upload_attachment
+
+    user_id = _uid(current_user)
+    org_id = await _default_org_id(user_id, db_session)
+    org = await _org(org_id, db_session)
+    return await upload_attachment(file, org.org_uuid)
 
 
 async def mark_read(
@@ -696,7 +788,7 @@ async def directory(
     for user, role_id in rows:
         if user.id == user_id:
             continue
-        is_team = role_id in ADMIN_OR_MAINTAINER_ROLE_IDS
+        is_team = role_id in STAFF_ROLE_IDS
         if want_team != is_team:
             continue
 
@@ -770,7 +862,7 @@ async def open_thread_with(
     if peer_role is None:
         raise HTTPException(status_code=404, detail="Esa persona no está en la escuela")
 
-    peer_is_team = peer_role in ADMIN_OR_MAINTAINER_ROLE_IDS
+    peer_is_team = peer_role in STAFF_ROLE_IDS
 
     if staff:
         if peer_is_team:

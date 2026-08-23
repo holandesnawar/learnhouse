@@ -1,6 +1,6 @@
 'use client'
 import React, { useState } from 'react'
-import { Pencil, Plus, X, Check, Loader2 } from 'lucide-react'
+import { Pencil, Plus, X, Check, Loader2, FileText } from 'lucide-react'
 import { updateActivity } from '@services/courses/activities'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useQueryClient } from '@tanstack/react-query'
@@ -24,20 +24,34 @@ export default function LessonExtras({ activity, activityid, orgslug, canEdit }:
 
   const initialDescription: string = activity?.content?.description ?? ''
   const initialTasks: string[] = Array.isArray(activity?.content?.tasks) ? activity.content.tasks : []
+  const initialPdf: string = activity?.content?.pdf_url ?? ''
 
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [description, setDescription] = useState(initialDescription)
   const [tasks, setTasks] = useState<string[]>(initialTasks)
+  const [pdfUrl, setPdfUrl] = useState(initialPdf)
 
-  const hasContent = initialDescription.trim().length > 0 || initialTasks.length > 0
+  // Solo enlaces https reales: así un pegado raro (o un javascript:) no acaba
+  // convertido en un enlace que se pueda pulsar.
+  const safePdf = /^https:\/\//i.test(initialPdf.trim()) ? initialPdf.trim() : ''
+
+  const hasContent =
+    initialDescription.trim().length > 0 || initialTasks.length > 0 || safePdf.length > 0
 
   const save = async () => {
     setSaving(true)
     try {
       const cleanTasks = tasks.map((t) => t.trim()).filter(Boolean)
       await updateActivity(
-        { content: { ...activity.content, description: description.trim(), tasks: cleanTasks } },
+        {
+          content: {
+            ...activity.content,
+            description: description.trim(),
+            tasks: cleanTasks,
+            pdf_url: pdfUrl.trim(),
+          },
+        },
         activity.activity_uuid,
         accessToken
       )
@@ -95,6 +109,22 @@ export default function LessonExtras({ activity, activityid, orgslug, canEdit }:
               </button>
             </div>
           </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+              Presentación en PDF <span className="font-normal text-gray-400">(opcional)</span>
+            </label>
+            <input
+              value={pdfUrl}
+              onChange={(e) => setPdfUrl(e.target.value)}
+              placeholder="https://…/presentacion.pdf"
+              inputMode="url"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#025dc7]/30"
+            />
+            <p className="mt-1 text-xs text-gray-400">
+              Pega el enlace del PDF (Cloudflare, Drive…). Debe empezar por https. Al alumno le
+              saldrá un botón para abrirlo.
+            </p>
+          </div>
           <div className="flex items-center gap-2">
             <button
               onClick={save}
@@ -108,6 +138,7 @@ export default function LessonExtras({ activity, activityid, orgslug, canEdit }:
                 setEditing(false)
                 setDescription(initialDescription)
                 setTasks(initialTasks)
+                setPdfUrl(initialPdf)
               }}
               className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100"
             >
@@ -121,6 +152,17 @@ export default function LessonExtras({ activity, activityid, orgslug, canEdit }:
             <div className="min-w-0 flex-1 space-y-3">
               {initialDescription.trim() && (
                 <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{initialDescription}</p>
+              )}
+              {safePdf && (
+                <a
+                  href={safePdf}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#F0F5FF] border border-[#DDE6F5] text-[#025dc7] text-sm font-semibold hover:bg-[#e3edff] transition-colors"
+                >
+                  <FileText size={16} className="shrink-0" />
+                  Ver la presentación (PDF)
+                </a>
               )}
               {initialTasks.length > 0 && (
                 <div>

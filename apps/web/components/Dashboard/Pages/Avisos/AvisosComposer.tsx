@@ -8,6 +8,7 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { broadcastNotification } from '@services/notifications/broadcast'
 import toast from 'react-hot-toast'
+import { getSchoolUrl } from '@services/config/config'
 import {
   Bold,
   Italic,
@@ -69,7 +70,7 @@ export default function AvisosComposer() {
 
   const [subject, setSubject] = useState('Novedades de esta semana')
   const [ctaLabel, setCtaLabel] = useState('Ver los detalles')
-  const [ctaUrl, setCtaUrl] = useState('https://academia.holandesnawar.nl')
+  const [ctaUrl, setCtaUrl] = useState(getSchoolUrl())
   const [testOnly, setTestOnly] = useState(true)
   const [sending, setSending] = useState(false)
   const [preview, setPreview] = useState(false)

@@ -81,7 +81,7 @@ export function WeekStrip({ activeDays }: { activeDays: string[] }) {
         const isToday = iso === todayIso
         return (
           <div key={label} className="flex flex-col items-center gap-1">
-            <span className="text-[9px] font-bold text-gray-400 dark:text-white/40">{label}</span>
+            <span className="text-[9px] font-semibold text-gray-400 dark:text-white/40">{label}</span>
             <div
               className={[
                 'w-4 h-4 rounded-full transition-colors flex items-center justify-center',
@@ -169,7 +169,7 @@ export function ContinueCard({
     >
       <div className="p-5 sm:p-6">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-[11px] font-bold text-[#025dc7] uppercase tracking-wider flex items-center gap-1.5">
+          <p className="text-[11px] font-semibold text-[#025dc7] uppercase tracking-[0.08em] flex items-center gap-1.5">
             <Play size={12} strokeWidth={3} />
             {allDone && next ? 'Tu siguiente paso' : 'Continúa donde lo dejaste'}
           </p>
@@ -201,7 +201,7 @@ export function ContinueCard({
         {/* Section progress of the current lesson */}
         {!allDone && sections.length > 0 && (
           <div className="mt-3.5">
-            <div className="flex items-center justify-between text-[11px] font-semibold text-gray-400 dark:text-white/50 mb-1">
+            <div className="flex items-center justify-between text-[11px] text-gray-400 dark:text-white/50 mb-1">
               <span>
                 {doneSections.length} de {sections.length} secciones hechas
               </span>
@@ -248,7 +248,7 @@ export function WeekCard({ insights }: { insights: StudentInsights }) {
       : delta > 0
         ? `¡${delta} ${delta === 1 ? 'lección' : 'lecciones'} más que la semana pasada!`
         : delta === 0
-          ? 'Mismo ritmo que la semana pasada. 👌'
+          ? 'Mismo ritmo que la semana pasada.'
           : null // nunca regañamos
 
   return (
@@ -260,13 +260,13 @@ export function WeekCard({ insights }: { insights: StudentInsights }) {
 
       {!hasActivity ? (
         <p className="text-[13px] text-gray-500 dark:text-white/60 leading-relaxed">
-          Todavía no has practicado esta semana. Un ratito hoy y tu racha sigue viva. 🔥
+          Todavía no has practicado esta semana. Un ratito hoy y tu racha sigue viva.
         </p>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-2.5">
             <div className="rounded-xl bg-[#F0F5FF] dark:bg-white/5 px-3 py-2.5">
-              <p className="text-[20px] font-bold text-gray-900 dark:text-white leading-none tabular-nums">
+              <p className="text-[20px] font-semibold text-gray-900 dark:text-white leading-none tabular-nums">
                 {w.lessonsCompleted}
               </p>
               <p className="text-[11px] text-gray-500 dark:text-white/60 mt-1">
@@ -274,7 +274,7 @@ export function WeekCard({ insights }: { insights: StudentInsights }) {
               </p>
             </div>
             <div className="rounded-xl bg-[#F0F5FF] dark:bg-white/5 px-3 py-2.5">
-              <p className="text-[20px] font-bold text-gray-900 dark:text-white leading-none tabular-nums">
+              <p className="text-[20px] font-semibold text-gray-900 dark:text-white leading-none tabular-nums">
                 {w.practices}
               </p>
               <p className="text-[11px] text-gray-500 dark:text-white/60 mt-1">
@@ -282,13 +282,13 @@ export function WeekCard({ insights }: { insights: StudentInsights }) {
               </p>
             </div>
             <div className="rounded-xl bg-[#F0F5FF] dark:bg-white/5 px-3 py-2.5">
-              <p className="text-[20px] font-bold text-emerald-600 leading-none tabular-nums">
+              <p className="text-[20px] font-semibold text-emerald-600 leading-none tabular-nums">
                 {w.correctPct === null ? '—' : `${w.correctPct}%`}
               </p>
               <p className="text-[11px] text-gray-500 dark:text-white/60 mt-1">de aciertos</p>
             </div>
             <div className="rounded-xl bg-[#F0F5FF] dark:bg-white/5 px-3 py-2.5">
-              <p className="text-[20px] font-bold text-gray-900 dark:text-white leading-none tabular-nums">
+              <p className="text-[20px] font-semibold text-gray-900 dark:text-white leading-none tabular-nums">
                 {w.activeDays.length}
               </p>
               <p className="text-[11px] text-gray-500 dark:text-white/60 mt-1">
@@ -380,13 +380,14 @@ export function RepasoCard({
                   orgslug,
                   `/ejercicios/modulo/${f.moduleId}/leccion/${f.lessonId}?seccion=${f.secId}&repaso=1`
                 )}
-                className="flex items-center justify-between gap-2 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 px-3 py-2 hover:border-amber-300 transition-colors group"
+                className="flex items-center justify-between gap-2 rounded-xl bg-[#F8FAFF] dark:bg-white/5 border border-[#DDE6F5] dark:border-white/10 px-3 py-2 hover:border-[#4da3ff] transition-colors group"
               >
                 <div className="min-w-0">
                   <p className="text-[13px] font-semibold text-gray-900 dark:text-white truncate">
-                    {shortTitle(f.title)} · <span className="text-[#025dc7]">{f.secLabel}</span>
+                    {shortTitle(f.title)} · <span className="text-[#025dc7] dark:text-[#4da3ff]">{f.secLabel}</span>
                   </p>
-                  <p className="text-[11px] text-amber-700 dark:text-amber-300">
+                  <p className="text-[11px] text-[#5A6480] dark:text-white/60 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#E4B252]" />
                     {f.fails} {f.fails === 1 ? 'fallo' : 'fallos'} por repasar
                   </p>
                 </div>
@@ -396,7 +397,7 @@ export function RepasoCard({
           </div>
           <Link
             href={getUriWithOrg(orgslug, '/ejercicios/progreso')}
-            className="mt-3.5 inline-flex items-center gap-1.5 text-[13px] font-bold text-[#025dc7] hover:text-[#1D0084] transition-colors"
+            className="mt-3.5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#025dc7] hover:text-[#1D0084] transition-colors"
           >
             <RotateCcw size={14} /> Ver todo mi progreso <ArrowRight size={14} />
           </Link>
@@ -449,9 +450,9 @@ export function FormacionCard({
         <div className="rounded-xl bg-[#F0F5FF] dark:bg-white/5 p-4">
           <div className="flex items-center gap-1.5 text-[#025dc7] mb-2">
             <BookOpenCheck size={14} />
-            <span className="text-[10px] font-semibold uppercase tracking-wider">Progreso del curso</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.08em]">Progreso del curso</span>
           </div>
-          <p className="text-[24px] font-bold text-gray-900 dark:text-white leading-none">
+          <p className="text-[24px] font-semibold text-gray-900 dark:text-white leading-none">
             {pct}%
           </p>
           <div className="mt-2 h-1.5 rounded-full bg-white dark:bg-white/10 overflow-hidden">
@@ -470,9 +471,9 @@ export function FormacionCard({
         <div className="rounded-xl bg-[#F0F5FF] dark:bg-white/5 p-4">
           <div className="flex items-center gap-1.5 text-[#025dc7] mb-2">
             <GraduationCap size={14} />
-            <span className="text-[10px] font-semibold uppercase tracking-wider">Nota media</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.08em]">Nota media</span>
           </div>
-          <p className="text-[24px] font-bold text-gray-900 dark:text-white leading-none">
+          <p className="text-[24px] font-semibold text-gray-900 dark:text-white leading-none">
             {insights.avgPct === null ? '—' : `${insights.avgPct}%`}
           </p>
           <p className="mt-1.5 text-[11px] text-gray-500 dark:text-white/60">
@@ -483,9 +484,9 @@ export function FormacionCard({
         <div className="rounded-xl bg-[#F0F5FF] dark:bg-white/5 p-4">
           <div className="flex items-center gap-1.5 text-[#025dc7] mb-2">
             <Flame size={14} />
-            <span className="text-[10px] font-semibold uppercase tracking-wider">Racha</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.08em]">Racha</span>
           </div>
-          <p className="text-[24px] font-bold text-gray-900 dark:text-white leading-none">
+          <p className="text-[24px] font-semibold text-gray-900 dark:text-white leading-none">
             {streak}
           </p>
           <p className="mt-1.5 text-[11px] text-gray-500 dark:text-white/60">
@@ -496,9 +497,9 @@ export function FormacionCard({
         <div className="rounded-xl bg-[#F0F5FF] dark:bg-white/5 p-4">
           <div className="flex items-center gap-1.5 text-[#025dc7] mb-2">
             <Trophy size={14} />
-            <span className="text-[10px] font-semibold uppercase tracking-wider">Dominadas</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.08em]">Dominadas</span>
           </div>
-          <p className="text-[24px] font-bold text-emerald-600 leading-none">
+          <p className="text-[24px] font-semibold text-emerald-600 leading-none">
             {masteredSectionsCount(insights.attempts)}
           </p>
           <p className="mt-1.5 text-[11px] text-gray-500 dark:text-white/60">secciones al 85% o más</p>

@@ -204,7 +204,8 @@
     "for": "dla",
     "powered_by": "Obsługiwane przez",
     "results": "wynik",
-    "statistics": "Statystyki"
+    "statistics": "Statystyki",
+    "automations": "Automations"
   },
   "banner": {
     "viewing_as_guest": "Przeglądasz {{name}} jako gość.",
@@ -385,6 +386,7 @@
     "ready_to_begin": "Gotowy do startu?",
     "start_learning_journey": "Rozpocznij swoją przygodę z nauką dzięki {{count}} pasjonującym aktywnościom",
     "course_progress": "Postęp kursu",
+    "activities_completed": "{{completed}} of {{total}} activities completed",
     "progress": "Postęp",
     "completed_of": "Ukończono {{completed}} z {{total}}",
     "quit_all_courses": "Opuść wszystkie kursy",

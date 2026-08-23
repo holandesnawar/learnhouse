@@ -22,6 +22,7 @@ from src.db.organizations import Organization
 from src.db.usergroups import UserGroup, UserGroupCreate, UserGroupRead, UserGroupUpdate
 from src.db.users import AnonymousUser, APITokenUser, InternalUser, PublicUser, User, UserRead
 from src.services.webhooks.dispatch import dispatch_webhooks
+from src.services.orgs.groups import ensure_default_groups, sync_roles_for_group
 
 
 async def _validate_resource_exists_and_belongs_to_org(
@@ -235,9 +236,6 @@ async def read_usergroups_by_org_id(
     org_id: int,
 ) -> list[UserGroupRead]:
 
-    statement = select(UserGroup).where(UserGroup.org_id == org_id).order_by(UserGroup.creation_date.desc())
-    usergroups = (await db_session.execute(statement)).scalars().all()
-
     # RBAC check
     await rbac_check(
         request,
@@ -246,6 +244,17 @@ async def read_usergroups_by_org_id(
         action="read",
         db_session=db_session,
     )
+
+    # "Alumnos" y "Profes" son parte de cómo funciona la escuela, así que
+    # existen siempre. Se crean aquí, al abrir la pantalla de grupos, y no en
+    # una migración: es idempotente y no hay nada que ejecutar a mano.
+    try:
+        await ensure_default_groups(org_id, db_session)
+    except Exception:  # noqa: BLE001
+        logging.exception("No se pudieron preparar los grupos por defecto")
+
+    statement = select(UserGroup).where(UserGroup.org_id == org_id).order_by(UserGroup.creation_date.desc())
+    usergroups = (await db_session.execute(statement)).scalars().all()
 
     usergroups = [UserGroupRead.model_validate(usergroup) for usergroup in usergroups]
 
@@ -469,6 +478,10 @@ async def add_users_to_usergroup(
 
     await db_session.commit()
 
+    # El grupo "Profes" no es una etiqueta: da permisos. Al entrar en él la
+    # persona pasa a rol Profe (los administradores no se tocan).
+    await sync_roles_for_group(usergroup_id, user_ids_array, db_session, joining=True)
+
     await dispatch_webhooks(
         event_name="usergroup_users_added",
         org_id=usergroup.org_id,
@@ -523,6 +536,9 @@ async def remove_users_from_usergroup(
             logging.error(f"User with id {user_id} not found in UserGroup")
 
     await db_session.commit()
+
+    # Al salir de "Profes" se vuelve a alumno.
+    await sync_roles_for_group(usergroup_id, user_ids_array, db_session, joining=False)
 
     return "Users removed from UserGroup successfully"
 

@@ -23,6 +23,7 @@ import {
   ChatCircleDots,
   Headphones,
   ChartBar,
+  Lightning,
   DotsThree,
   UsersThree,
   Shield,
@@ -76,6 +77,7 @@ import { getAssignmentsFromACourse } from '@services/courses/assignments'
 import { getDeploymentMode } from '@services/config/config'
 import PlanBadge from '@components/Dashboard/Shared/PlanRestricted/PlanBadge'
 import { usePlan } from '@components/Hooks/usePlan'
+import useAdminStatus from '@components/Hooks/useAdminStatus'
 
 function DashLeftMenu() {
   const org = useOrg() as any
@@ -156,6 +158,7 @@ function DashLeftMenu() {
 
   const plan = usePlan()
   const mode = getDeploymentMode()
+  const { isProfe } = useAdminStatus()
 
   if (!org || !session) return null
   const planLabel =
@@ -167,11 +170,15 @@ function DashLeftMenu() {
   const rf = org?.config?.config?.resolved_features
   const isEnabled = (feature: string) => rf?.[feature]?.enabled === true
 
+  // El profe entra al panel, pero solo a lo suyo: alumnos, comunidad y
+  // consultas. Ni contenido del curso, ni cobros, ni ajustes de la escuela.
+  const forProfe = !isProfe
+
   const showCommunities = isEnabled('communities')
-  const showPodcasts = isEnabled('podcasts')
-  const showBoards = isEnabled('boards')
-  const showPlaygrounds = isEnabled('playgrounds')
-  const showPayments = isEnabled('payments')
+  const showPodcasts = isEnabled('podcasts') && forProfe
+  const showBoards = isEnabled('boards') && forProfe
+  const showPlaygrounds = isEnabled('playgrounds') && forProfe
+  const showPayments = isEnabled('payments') && forProfe
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -252,6 +259,9 @@ function DashLeftMenu() {
               active={isActivePath('/dash')}
             />
 
+            {/* Cursos y Deberes: contenido, o sea cosa de administradores */}
+            {forProfe && (
+            <>
             {/* Courses with hover menu */}
             <HoverMenu
               content={
@@ -396,6 +406,8 @@ function DashLeftMenu() {
               })()}
             </HoverMenu>
             </div>
+            {/* Avisos (manda correos) y Estadísticas (números del negocio):
+                solo administradores. */}
             <MenuLink
               href="/dash/avisos"
               icon={<EnvelopeSimple size={20} weight="fill" />}
@@ -410,6 +422,15 @@ function DashLeftMenu() {
               isCollapsed={isCollapsed}
               active={isActivePath('/dash/estadisticas')}
             />
+            <MenuLink
+              href="/dash/workflows"
+              icon={<Lightning size={20} weight="fill" />}
+              label="Automatizaciones"
+              isCollapsed={isCollapsed}
+              active={isActivePath('/dash/workflows')}
+            />
+            </>
+            )}
             {showCommunities && (
               <MenuLink
                 href="/dash/communities"
@@ -533,6 +554,9 @@ function DashLeftMenu() {
               />
             )}
 
+            {/* Ajustes de la escuela: solo administradores */}
+            {forProfe && (
+            <>
             {/* Organization with hover menu */}
             <HoverMenu
               content={
@@ -705,7 +729,10 @@ function DashLeftMenu() {
               })()}
             </HoverMenu>
 
-            {/* Consultas (external admin panel embedded) */}
+            </>
+            )}
+
+            {/* Consultas: el profe sí las atiende */}
             <MenuLink
               href="/dash/consultas"
               icon={<ChatCircleDots size={20} weight="fill" />}

@@ -102,7 +102,9 @@ function LayoutContent({ children, orgslug }: { children: React.ReactNode; orgsl
   const pathParts = pathname?.split('/').filter(Boolean) || []
 
   // Pages that use a full-bleed layout (no footer/watermark)
-  const noFooterPaths = ['copilot']
+  // 'mensajes' va aquí porque la página ES el chat: ocupa la pantalla entera
+  // y no se desplaza. Un pie de página debajo la haría scrollear entera.
+  const noFooterPaths = ['copilot', 'community', 'mensajes']
   const isFullBleedPage = noFooterPaths.some((p) => pathParts.includes(p))
 
   // Inside a lesson (course player) → focus mode: hide the platform sidebar,

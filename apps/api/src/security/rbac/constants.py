@@ -13,10 +13,19 @@ Role Hierarchy:
 # Core role IDs - these match the database seed data
 ADMIN_ROLE_ID = 1
 MAINTAINER_ROLE_ID = 2
+INSTRUCTOR_ROLE_ID = 3
+STUDENT_ROLE_ID = 4
+# Holandés Nawar: el profe. Atiende alumnos (mensajes, comunidad, fichas) sin
+# ser administrador. Se pone y se quita metiendo a la persona en el grupo
+# "Profes" — ver `src/services/orgs/groups.py`.
+PROFE_ROLE_ID = 5
 
 # Role ID sets for common checks
 ADMIN_ROLE_IDS = frozenset([ADMIN_ROLE_ID])
 ADMIN_OR_MAINTAINER_ROLE_IDS = frozenset([ADMIN_ROLE_ID, MAINTAINER_ROLE_ID])
+# Quién atiende a los alumnos: administradores, moderadores y profes. Es lo que
+# decide quién ve la bandeja de mensajes del equipo y el directorio de alumnos.
+STAFF_ROLE_IDS = frozenset([ADMIN_ROLE_ID, MAINTAINER_ROLE_ID, PROFE_ROLE_ID])
 
 
 def is_admin(role_id: int) -> bool:

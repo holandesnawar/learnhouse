@@ -446,3 +446,47 @@ export async function toggleReaction(
   const res = await errorHandling(result)
   return res
 }
+
+/** Un adjunto del chat, tal y como lo guarda la escuela. */
+export interface ChatAttachment {
+  url: string
+  name: string
+  /** `image`, `audio` o `file` — decide con qué se pinta. */
+  kind: 'image' | 'audio' | 'file'
+  size: number
+}
+
+/**
+ * Sube una foto, un audio o un archivo al chat de un canal.
+ *
+ * El servidor decide dónde guardarlo (Cloudflare R2 si está configurado, si no
+ * el volumen de siempre) y devuelve la dirección ya lista para pintar.
+ */
+export async function uploadChatAttachment(
+  community_uuid: string,
+  file: File,
+  access_token: string
+): Promise<ChatAttachment> {
+  const body = new FormData()
+  body.append('file', file)
+  const res = await fetch(
+    `${getAPIUrl()}communities/${community_uuid}/attachments`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${access_token}` },
+      body,
+    }
+  )
+  if (!res.ok) {
+    let detail = 'No se pudo subir el archivo'
+    try {
+      const data = await res.json()
+      if (data?.detail) detail = String(data.detail)
+    } catch {
+      /* la respuesta no era JSON: nos quedamos con el mensaje genérico */
+    }
+    throw new Error(detail)
+  }
+  return res.json()
+}
+

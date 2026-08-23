@@ -165,13 +165,13 @@ export default function CommunityInfoPanel({ org_id }: Props) {
 
             <div>
               <div className="flex items-center gap-1.5 mb-1.5">
-                <Lightbulb size={14} className="text-[#F58220]" />
+                <Lightbulb size={14} className="text-[#025dc7]" />
                 <h4 className="text-[12px] font-bold text-[#1D0084] uppercase tracking-wide">Consejos</h4>
               </div>
               <ul className="space-y-1">
                 {tipLines.map((line, i) => (
                   <li key={i} className="flex gap-2 text-[13px] text-gray-700 leading-snug">
-                    <span className="text-[#F58220] mt-px shrink-0">•</span>
+                    <span className="text-[#025dc7] mt-px shrink-0">•</span>
                     <span>{line}</span>
                   </li>
                 ))}

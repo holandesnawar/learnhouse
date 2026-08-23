@@ -4,6 +4,8 @@ import { getOrgLogoMediaDirectory, getOrgFaviconMediaDirectory } from '@services
 import ForgotPasswordClient from './forgot'
 import { Metadata } from 'next'
 import OrgNotFound from '@components/Objects/StyledElements/Error/OrgNotFound'
+import OrgUnavailable from '@components/Objects/StyledElements/Error/OrgUnavailable'
+import { getOrgWithRetry } from '@services/organizations/orgFetch'
 
 export async function generateMetadata(): Promise<Metadata> {
   const orgslug = await getOrgSlug()
@@ -46,18 +48,15 @@ const ForgotPasswordPage = async () => {
     return <OrgNotFound />
   }
 
-  let org: any = null
-  try {
-    org = await getOrganizationContextInfo(orgslug, {
+  // Con reintentos: la primera llamada tras un reinicio puede llegar antes
+  // de que la API esté lista, y sin esto se enseñaba la pantalla equivocada.
+  const org = await getOrgWithRetry(orgslug, {
       revalidate: 60,
       tags: ['organizations'],
     })
-  } catch {
-    return <OrgNotFound />
-  }
 
   if (!org) {
-    return <OrgNotFound />
+    return <OrgUnavailable />
   }
 
   return <ForgotPasswordClient org={org} />

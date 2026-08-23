@@ -14,6 +14,7 @@ from src.security.features_utils.usage import (
 from src.services.orgs.invites import get_invite_code
 from src.services.orgs.orgs import get_org_join_mechanism
 from src.services.users.usergroups import add_users_to_usergroup
+from src.services.orgs.groups import add_user_to_students
 
 
 class JoinOrg(BaseModel):
@@ -111,6 +112,8 @@ async def join_org(
             from src.routers.users import _invalidate_session_cache
             _invalidate_session_cache(user.id)
 
+            await add_user_to_students(user.id, org.id, db_session)
+
             # Add user to UserGroup if invite code is linked to one
             if inviteCode.get("usergroup_id"):
                 await add_users_to_usergroup(
@@ -147,6 +150,8 @@ async def join_org(
 
             from src.routers.users import _invalidate_session_cache
             _invalidate_session_cache(user.id)
+
+            await add_user_to_students(user.id, org.id, db_session)
 
             await increase_feature_usage("members", org.id, db_session)
 

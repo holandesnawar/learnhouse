@@ -204,7 +204,8 @@
     "results": "result",
     "powered_by": "Powered by",
     "choose_an_organization_to_continue": "Choose an organization to continue",
-    "statistics": "Statistics"
+    "statistics": "Statistics",
+    "automations": "Automations"
   },
   "banner": {
     "viewing_as_guest": "You're viewing {{name}} as a guest.",
@@ -363,6 +364,7 @@
     "ready_to_begin": "Ready to Begin?",
     "start_learning_journey": "Start your learning journey with {{count}} exciting activities",
     "course_progress": "Course Progress",
+    "activities_completed": "{{completed}} of {{total}} activities completed",
     "progress": "Progress",
     "completed_of": "{{completed}} of {{total}} completed",
     "quit_all_courses": "Quit All Courses",

@@ -55,12 +55,19 @@ export type ExerciseType =
   | 'odd_one_out'  // 4 palabras, una no pertenece
   | 'letter_dash'    // palabra con letras faltantes (k_ff_e → koffie)
   | 'pair_memory'    // memory cards: emparejar NL↔ES girando cartas
-  | 'listen_translate'; // escucha frase NL, compone traducción ES con chips
+  | 'listen_translate' // escucha frase NL, compone traducción ES con chips
+  | 'spreken_choose';  // situación + 3 respuestas que SOLO suenan (sin texto)
 
 export interface ExerciseItem {
   id: string;
   type: ExerciseType;
   prompt: string;
+  /**
+   * La misma consigna en neerlandés, para poder escucharla además de leerla.
+   * En Spreken, cuando está, el enunciado también se practica de oído (módulos
+   * avanzados); si falta, la situación se lee en español y ya.
+   */
+  promptNl?: string;
   options?: string[];
   correctAnswer: string;
   audio?: AudioTrack;
@@ -117,13 +124,31 @@ export interface SummaryBlock {
   tip?: string;
 }
 
+/**
+ * Spreken — "¿qué dices en esta situación?".
+ *
+ * Se lee (o se escucha) la situación y se eligen entre respuestas que SOLO
+ * suenan: no hay texto hasta que se contesta. Así se practica reconocer la
+ * frase de oído, que es lo que pasa en la calle, en vez de leerla.
+ */
+export interface SprekenBlock {
+  type: 'spreken';
+  title?: string;
+  intro?: string;
+  exercises: ExerciseItem[];
+}
+
 export type LessonBlock =
   | SummaryBlock
   | { type: 'vocabulary'; title?: string; items: VocabularyItem[] }
   | { type: 'phrases';    title?: string; items: PhraseItem[] }
   | { type: 'practice';   title?: string; exercises: ExerciseItem[] }
-  | { type: 'dialogue';   title?: string; dialogue: Dialogue }
+  // `exercises`: preguntas SOBRE lo que se dice en el diálogo. Sin ellas, la
+  // sección cae en los ejercicios generales de la lección, que son de
+  // gramática y no tienen nada que ver con lo que se acaba de escuchar.
+  | { type: 'dialogue';   title?: string; dialogue: Dialogue; exercises?: ExerciseItem[] }
   | LezenBlock
+  | SprekenBlock
   | { type: 'review' };
 
 /* ─────────────────────────────────────────────────────────────────────────────

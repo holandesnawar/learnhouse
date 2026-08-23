@@ -534,6 +534,16 @@ async def complete_activity(
             user_id=user_id,
             properties={"course_uuid": course.course_uuid},
         )
+        # Y lo que el admin haya montado para "cuando alguien termina un curso".
+        from src.services.automations.engine import run_trigger
+
+        await run_trigger(
+            "course_completed",
+            course.org_id,
+            user_id,
+            db_session,
+            extra={"curso": course.name},
+        )
 
     return {
         "activity_uuid": activity_uuid,
@@ -691,6 +701,16 @@ async def complete_course(
             org_id=course.org_id,
             user_id=user_id,
             properties={"course_uuid": course.course_uuid},
+        )
+        # Y lo que el admin haya montado para "cuando alguien termina un curso".
+        from src.services.automations.engine import run_trigger
+
+        await run_trigger(
+            "course_completed",
+            course.org_id,
+            user_id,
+            db_session,
+            extra={"curso": course.name},
         )
 
     return {

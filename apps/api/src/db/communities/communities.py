@@ -1,5 +1,5 @@
 from typing import Optional, List, Dict, Any
-from sqlalchemy import Column, ForeignKey, Index, Integer, Text, JSON
+from sqlalchemy import Column, ForeignKey, Index, Integer, String, Text, JSON
 from sqlmodel import Field, SQLModel
 
 
@@ -22,6 +22,12 @@ class CommunityBase(SQLModel):
     description: Optional[str] = Field(default=None, sa_column=Column(Text))
     public: bool = True
     thumbnail_image: Optional[str] = Field(default="")
+    # Cómo se habla en este canal:
+    #   "chat"  → conversación seguida, mensajes cortos (lo de siempre).
+    #   "posts" → tablón: cada aportación lleva título, cuerpo y comentarios.
+    # Las victorias, las presentaciones o los retos funcionan mucho mejor como
+    # tablón: en un chat se pierden en dos días.
+    kind: str = Field(default="chat", sa_column=Column(String(16), default="chat"))
 
 
 class Community(CommunityBase, table=True):
@@ -52,6 +58,7 @@ class CommunityCreate(CommunityBase):
 
 
 class CommunityUpdate(SQLModel):
+    kind: Optional[str] = None
     name: Optional[str] = None
     description: Optional[str] = None
     public: Optional[bool] = None

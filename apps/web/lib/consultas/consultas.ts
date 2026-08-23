@@ -1,4 +1,6 @@
 import { consultasClient } from './supabase'
+import { getAPIUrl } from '@services/config/config'
+import { RequestBodyWithAuthHeader } from '@services/utils/ts/requests'
 
 export interface ConsultaCategory {
   id: string
@@ -140,6 +142,37 @@ export async function deleteMyConsulta(id: string): Promise<void> {
     consulta_token: token,
   })
   if (error) throw error
+  removeMyToken(id)
+}
+
+
+/**
+ * Borrado desde el panel: sirve para CUALQUIER consulta, no solo las tuyas.
+ *
+ * No va directo a Supabase porque eso exigiría la clave maestra en el
+ * navegador. Pasa por la escuela, que comprueba que quien lo pide es
+ * administrador y guarda la clave en el servidor.
+ */
+export async function deleteConsultaAsAdmin(
+  orgId: number,
+  id: string,
+  accessToken: string | undefined
+): Promise<void> {
+  if (!accessToken) throw new Error('Necesitas iniciar sesión.')
+  const r = await fetch(
+    `${getAPIUrl()}consultas/org/${orgId}/${encodeURIComponent(id)}`,
+    RequestBodyWithAuthHeader('DELETE', null, null, accessToken)
+  )
+  if (!r.ok) {
+    let detalle = 'No se pudo borrar la consulta.'
+    try {
+      const data = await r.json()
+      if (data?.detail) detalle = data.detail
+    } catch {
+      /* respuesta sin JSON: nos quedamos con el mensaje genérico */
+    }
+    throw new Error(detalle)
+  }
   removeMyToken(id)
 }
 

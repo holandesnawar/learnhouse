@@ -6,7 +6,9 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import NativeExercisePicker from '@components/exercises-app/NativeExercisePicker'
 import SituacionPicker from '@components/exercises-app/SituacionPicker'
 import { getSituacion } from '@/lib/exercises-app/situaciones'
-import { Clapperboard } from 'lucide-react'
+import { BookOpen, Clapperboard } from 'lucide-react'
+import { GUIDE_OPTIONS } from '@components/Pages/Guides/guidesContent'
+import SchoolGuide from '@components/Pages/Guides/SchoolGuide'
 import toast from 'react-hot-toast'
 
 // "nawar:<moduleId>/<lessonId>[/<section>]" marks a native Nawar exercise.
@@ -19,6 +21,12 @@ function parseNawar(url: string): { moduleId: string; lessonId: string; section:
 function parseNawarVideo(url: string): { situacionId: string } | null {
   const m = url.match(/^nawar-video:(.+)$/)
   return m ? { situacionId: m[1] } : null
+}
+
+// "nawar-guia:<uso|estudio>" marca una guía de la escuela (las del módulo 0).
+function parseNawarGuide(url: string): { guideId: string } | null {
+  const m = url.match(/^nawar-guia:(.+)$/)
+  return m ? { guideId: m[1] } : null
 }
 
 function toEmbedUrl(url: string): string {
@@ -81,8 +89,9 @@ function EmbedActivity({ activity, editable = false, style }: EmbedActivityProps
   // Native Nawar exercise support
   const nawarInit = parseNawar(embedUrl)
   const videoInit = parseNawarVideo(embedUrl)
-  const [mode, setMode] = useState<'web' | 'nawar' | 'video'>(
-    videoInit ? 'video' : nawarInit ? 'nawar' : 'web'
+  const guideInit = parseNawarGuide(embedUrl)
+  const [mode, setMode] = useState<'web' | 'nawar' | 'video' | 'guia'>(
+    guideInit ? 'guia' : videoInit ? 'video' : nawarInit ? 'nawar' : 'web'
   )
   const [exModuleId, setExModuleId] = useState(nawarInit?.moduleId ?? '')
   const [exLessonId, setExLessonId] = useState(nawarInit?.lessonId ?? '')
@@ -125,6 +134,26 @@ function EmbedActivity({ activity, editable = false, style }: EmbedActivityProps
       setError(false)
     } catch {
       toast.error('No se pudo guardar la situación')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const [guideId, setGuideId] = useState(guideInit?.guideId ?? '')
+
+  const handleSaveGuide = async () => {
+    if (!guideId) return
+    setSaving(true)
+    try {
+      await updateActivity(
+        { content: { embed_url: `nawar-guia:${guideId}` } },
+        activity.activity_uuid,
+        access_token
+      )
+      toast.success('Guía guardada')
+      setError(false)
+    } catch {
+      toast.error('No se pudo guardar la guía')
     } finally {
       setSaving(false)
     }
@@ -243,6 +272,13 @@ function EmbedActivity({ activity, editable = false, style }: EmbedActivityProps
             >
               <Clapperboard size={16} /> Echt Nederlands
             </button>
+            <button
+              type="button"
+              onClick={() => setMode('guia')}
+              className={`inline-flex items-center gap-1.5 h-8 px-3 text-sm font-medium rounded-md transition-colors ${mode === 'guia' ? 'bg-white text-gray-900 nice-shadow' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              <BookOpen size={16} /> Guía de la escuela
+            </button>
           </div>
 
           {mode === 'web' ? (
@@ -284,6 +320,40 @@ function EmbedActivity({ activity, editable = false, style }: EmbedActivityProps
                 >
                   {saving ? <SpinnerGap size={16} className="animate-spin" /> : <FloppyDisk size={16} />}
                   Guardar ejercicio
+                </button>
+              </div>
+            </div>
+          ) : mode === 'guia' ? (
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-gray-600">
+                  ¿Cuál de las guías?
+                </label>
+                <select
+                  value={guideId}
+                  onChange={(e) => setGuideId(e.target.value)}
+                  className="w-full h-9 px-3 text-sm rounded-lg bg-gray-50 border border-gray-200 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-200 transition-colors"
+                >
+                  <option value="">Elige una guía…</option>
+                  {GUIDE_OPTIONS.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500">
+                  El texto va escrito en la plataforma: se ve igual en móvil y en
+                  ordenador, y se actualiza solo cuando lo mejoramos.
+                </p>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  onClick={handleSaveGuide}
+                  disabled={saving || !guideId || `nawar-guia:${guideId}` === embedUrl}
+                  className="inline-flex items-center gap-2 h-9 px-4 text-sm font-medium text-white bg-black rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
+                >
+                  {saving ? <SpinnerGap size={16} className="animate-spin" /> : <FloppyDisk size={16} />}
+                  Guardar guía
                 </button>
               </div>
             </div>
@@ -347,6 +417,18 @@ function EmbedActivity({ activity, editable = false, style }: EmbedActivityProps
               : 'Elige una situación (vídeo + ejercicios) para esta lección auditiva.'}
           </p>
         </div>
+      ) : editable && mode === 'guia' ? (
+        <div className="flex flex-col items-center justify-center py-16 gap-3 rounded-xl border-2 border-dashed border-[#DDE6F5] bg-[#F0F5FF]">
+          <BookOpen size={30} className="text-[#025dc7]" />
+          <p className="text-sm text-gray-500 text-center max-w-sm">
+            {guideId
+              ? 'Guía seleccionada. El alumno la verá aquí dentro, con el diseño de la escuela.'
+              : 'Elige cuál de las dos guías va en esta clase.'}
+          </p>
+        </div>
+      ) : parseNawarGuide(displayUrl || '') ? (
+        // Fuera del curso (o sin permisos de edición): se enseña la guía tal cual.
+        <SchoolGuide guideId={parseNawarGuide(displayUrl || '')!.guideId} />
       ) : displayUrl ? (
         <div
           className="w-full rounded-xl overflow-hidden"

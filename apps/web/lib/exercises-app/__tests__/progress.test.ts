@@ -107,7 +107,9 @@ describe('buildProgressMap / buildLessonRow', () => {
 
   test('las secciones seguibles de la lección 1 son las esperadas', () => {
     const lesson = getLesson('over-jou', M1L1)
-    expect(trackedSectionIds(lesson)).toEqual(['vocabulary', 'flashcards', 'lezen', 'luisteren'])
+    // Spreken se añadió después: la lección 1 la tiene, y cuenta como
+    // sección con nota igual que las demás.
+    expect(trackedSectionIds(lesson)).toEqual(['vocabulary', 'flashcards', 'lezen', 'luisteren', 'spreken'])
   })
 
   test('lección con fallos: nota, peor sección y fallos totales', () => {
@@ -136,6 +138,7 @@ describe('buildProgressMap / buildLessonRow', () => {
       [`${M1L1}-flashcards`]: att(0, 0, [], '2026-07-28'),
       [`${M1L1}-lezen`]: att(9, 9, [], '2026-07-29'),
       [`${M1L1}-luisteren`]: att(36, 36, [], '2026-07-29'),
+      [`${M1L1}-spreken`]: att(5, 5, [], '2026-07-29'),
     }
     const completions = [{ lesson_id: M1L1, module_id: 'over-jou', completed_at: '2026-07-29', time_seconds: 0 }]
     const row = buildLessonRow(getLesson('over-jou', M1L1), 'over-jou', 1, attempts, new Set([M1L1]))
@@ -172,12 +175,15 @@ describe('buildProgressMap / buildLessonRow', () => {
     const oneDone = [{ lesson_id: M1L1, module_id: 'over-jou', completed_at: '2026-07-29', time_seconds: 0 }]
     expect(overallCourseProgress({}, oneDone)).toBe(Math.round((1 / N) * 100))
 
-    // Media lección (2 de 4 secciones) suma medio punto — el parcial cuenta.
+    // Lección a medias: el parcial cuenta en proporción a SUS secciones. La
+    // lección 1 tiene cinco desde que se le añadió Spreken, así que dos
+    // hechas son 2/5, no medio punto.
     const half = {
       [`${M1L1}-vocabulary`]: att(20, 25, [], '2026-07-28'),
       [`${M1L1}-flashcards`]: att(0, 0, [], '2026-07-28'),
     }
-    expect(overallCourseProgress(half, [])).toBe(Math.round((0.5 / N) * 100))
+    const seccionesL1 = trackedSectionIds(getLesson('over-jou', M1L1)).length
+    expect(overallCourseProgress(half, [])).toBe(Math.round((2 / seccionesL1 / N) * 100))
 
     // Completada manda sobre las secciones: no cuenta doble ni menos de 1.
     expect(overallCourseProgress(half, oneDone)).toBe(Math.round((1 / N) * 100))

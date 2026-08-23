@@ -204,7 +204,8 @@
     "for": "per",
     "powered_by": "Powered by",
     "results": "risultato",
-    "statistics": "Statistiche"
+    "statistics": "Statistiche",
+    "automations": "Automazioni"
   },
   "banner": {
     "viewing_as_guest": "Stai visualizzando {{name}} come ospite.",
@@ -362,6 +363,7 @@
     "ready_to_begin": "Pronto per iniziare?",
     "start_learning_journey": "Inizia il tuo percorso di apprendimento con {{count}} attività entusiasmanti",
     "course_progress": "Avanzamento corso",
+    "activities_completed": "{{completed}} di {{total}} attività completate",
     "progress": "Avanzamento",
     "completed_of": "{{completed}} di {{total}} completati",
     "quit_all_courses": "Abbandona tutti i corsi",

@@ -204,7 +204,8 @@
     "for": "के लिए",
     "powered_by": "द्वारा संचालित",
     "results": "परिणाम",
-    "statistics": "आंकड़े"
+    "statistics": "आंकड़े",
+    "automations": "Automations"
   },
   "banner": {
     "viewing_as_guest": "आप {{name}} को अतिथि के रूप में देख रहे हैं।",
@@ -385,6 +386,7 @@
     "ready_to_begin": "शुरू करने के लिए तैयार हैं?",
     "start_learning_journey": "{{count}} रोमांचक गतिविधियों के साथ अपनी सीखने की यात्रा शुरू करें",
     "course_progress": "कोर्स की प्रगति",
+    "activities_completed": "{{completed}} of {{total}} activities completed",
     "progress": "प्रगति",
     "completed_of": "{{completed}} / {{total}} पूरा हुआ",
     "quit_all_courses": "सभी कोर्स छोड़ें",

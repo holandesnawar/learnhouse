@@ -11,6 +11,7 @@ import {
   useStripe,
 } from '@stripe/react-stripe-js'
 import { AlertTriangle, CheckCircle, CreditCard, Info, Mail, ShieldCheck } from 'lucide-react'
+import { getSchoolUrl } from '@services/config/config'
 
 // Minimal chrome on the checkout: just the Nawar logo top-left linking back
 // to the landing. Full navbar + footer kill the focus the buyer needs on a
@@ -18,7 +19,7 @@ import { AlertTriangle, CheckCircle, CreditCard, Info, Mail, ShieldCheck } from 
 const LOGO_URL = 'https://d1yei2z3i6k35z.cloudfront.net/9533860/671a9c9265e23_Logo_Nawar_2.png'
 
 // What lands on the right rail. Tweak the copy here without touching layout.
-const COURSE_IMAGE = 'https://docs.holandesnawar.com/img/Portada%20Nawar%20169.png'
+const COURSE_IMAGE = 'https://docs.holandesnawar.com/img/Portada%2016x9.png'
 const COURSE_TITLE = 'Formación Nawar A0-A1'
 const COURSE_SUBTITLE = 'De cero a A1 en neerlandés'
 const COURSE_FEATURES = [
@@ -26,8 +27,17 @@ const COURSE_FEATURES = [
   'Vídeos + ejercicios paso a paso',
   'Comunidad privada de alumnos',
   'Certificado al terminar',
-  'Garantía de devolución 30 días',
 ]
+
+// La garantía sale de la lista de checks y se va a su propio bloque, pegada al
+// precio: es el mayor quitamiedos que hay y ahí abajo es donde el comprador
+// duda. Como check número cinco pesaba lo mismo que "Certificado al terminar".
+const GUARANTEE_DAYS = 14
+
+// El precio de después del lanzamiento. Sirve de ancla: un 397 € a secas es
+// solo un número; al lado del 497 € es una decisión. Si algún día el total ya
+// vale esto o más, el ancla se esconde sola (ver `showAnchor` más abajo).
+const REGULAR_PRICE_CENTS = 49700
 
 // Stripe Appearance API — palette + spacing matches the rest of /auth/* and
 // nawar-web inputs. Card iframe colours are passed via `variables` (Stripe
@@ -144,7 +154,8 @@ function CheckoutInner({
     const { error: stripeError } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: 'https://academia.holandesnawar.nl/auth/bienvenido',
+        // Sale de la configuración: al cambiar de dominio no hay que tocar esto.
+        return_url: getSchoolUrl('/auth/bienvenido'),
       },
     })
     if (stripeError) {
@@ -240,7 +251,7 @@ function CheckoutInner({
 
       <div className="flex items-center justify-center gap-1.5 text-[12px] text-gray-500">
         <ShieldCheck size={13} />
-        Pago seguro procesado por Stripe · Cifrado de extremo a extremo
+        Pago seguro · Cifrado de extremo a extremo
       </div>
     </form>
   )
@@ -251,21 +262,35 @@ function CourseSummary({ amountCents, currency }: { amountCents: number; currenc
   // displayed total tracks whatever you set in Dashboard without a redeploy.
   // Fallback to 297 EUR if the params are missing for any reason.
   const totalValue = amountCents > 0 ? amountCents / 100 : 297
-  const totalLabel = new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: (currency || 'eur').toUpperCase(),
-    minimumFractionDigits: totalValue % 1 === 0 ? 0 : 2,
-    maximumFractionDigits: 2,
-  }).format(totalValue)
+  const money = (value: number) =>
+    new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: (currency || 'eur').toUpperCase(),
+      minimumFractionDigits: value % 1 === 0 ? 0 : 2,
+      maximumFractionDigits: 2,
+    }).format(value)
+  const totalLabel = money(totalValue)
+  // El ancla solo tiene sentido mientras el precio de lanzamiento sea menor.
+  // El día que la formación valga 497, enseñar "después 497" sería ridículo.
+  const showAnchor = amountCents > 0 && amountCents < REGULAR_PRICE_CENTS
+  const anchorLabel = money(REGULAR_PRICE_CENTS / 100)
+
+  // Si el CDN falla o alguien renombra la portada, la imagen se esconde y
+  // queda el bloque azul limpio. Antes salía el icono de imagen rota con el
+  // texto alternativo suelto, justo al lado del botón de pagar.
+  const [imageOk, setImageOk] = React.useState(true)
 
   return (
     <aside className="min-w-0 bg-white rounded-2xl p-4 sm:p-7 shadow-xl order-1 lg:order-2 lg:sticky lg:top-8 lg:self-start">
       <div className="rounded-xl overflow-hidden aspect-[16/9] mb-5 bg-[#F0F5FF]">
-        <img
-          src={COURSE_IMAGE}
-          alt={COURSE_TITLE}
-          className="w-full h-full object-cover"
-        />
+        {imageOk && (
+          <img
+            src={COURSE_IMAGE}
+            alt={COURSE_TITLE}
+            onError={() => setImageOk(false)}
+            className="w-full h-full object-cover"
+          />
+        )}
       </div>
 
       <h2
@@ -294,16 +319,34 @@ function CourseSummary({ amountCents, currency }: { amountCents: number; currenc
         ))}
       </ul>
 
-      <div className="border-t border-gray-200 mt-6 pt-4 flex items-baseline justify-between">
+      <div className="border-t border-gray-200 mt-6 pt-4 flex items-baseline justify-between gap-3">
         <span className="text-[13px] text-gray-500 font-semibold uppercase tracking-wider">
           Total
         </span>
-        <div className="text-right">
-          <div className="text-[24px] font-extrabold text-[#1D0084] leading-none">
-            {totalLabel}
+        <div className="text-right min-w-0">
+          <div className="flex items-baseline justify-end gap-2">
+            {showAnchor && (
+              <span className="text-[15px] text-gray-400 line-through">{anchorLabel}</span>
+            )}
+            <span className="text-[24px] font-extrabold text-[#1D0084] leading-none">
+              {totalLabel}
+            </span>
           </div>
+          {showAnchor && (
+            <div className="text-[12px] font-semibold text-[#4da3ff] mt-1">
+              Precio fundador · después {anchorLabel}
+            </div>
+          )}
           <div className="text-[12px] text-gray-500 mt-1">Pago único · IVA incl.</div>
         </div>
+      </div>
+
+      <div className="mt-4 flex items-start gap-2.5 bg-[#F0F5FF] rounded-xl px-3 py-3">
+        <ShieldCheck size={16} className="shrink-0 mt-0.5 text-[#4da3ff]" strokeWidth={2.5} />
+        <p className="text-[12.5px] text-[#0a1656] leading-relaxed">
+          <strong className="text-[#1D0084]">{GUARANTEE_DAYS} días de garantía.</strong>{' '}
+          Si no es para ti, escribes a info@holandesnawar.com y te devolvemos el 100 %.
+        </p>
       </div>
     </aside>
   )

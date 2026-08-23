@@ -35,8 +35,14 @@ import {
 const MASTER = 85
 const REVIEW = 60
 
+/**
+ * Color de una nota. Solo dos señales de color —verde para "dominado" y un
+ * ámbar apagado para "flojo"—; el resto va en azul de marca. El ámbar
+ * saturado de antes, junto al azul, hacía que la pantalla pareciera un
+ * cupón de descuento.
+ */
 function pctColor(pct: number): string {
-  return pct >= MASTER ? 'text-emerald-600' : pct < REVIEW ? 'text-amber-600' : 'text-[#025dc7]'
+  return pct >= MASTER ? 'text-emerald-600' : pct < REVIEW ? 'text-[#9A6B1F]' : 'text-[#025dc7]'
 }
 
 function Bar({ done, total }: { done: number; total: number }) {
@@ -132,7 +138,7 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
       ) : modules.length === 0 ? (
         <div className="rounded-2xl border border-[#DDE6F5] bg-white p-10 text-center">
           <Sparkles size={28} className="text-[#4da3ff] mx-auto mb-3" />
-          <p className="text-[16px] font-bold text-gray-900">Todavía no hay nada que enseñarte</p>
+          <p className="text-[16px] font-semibold text-gray-900">Todavía no hay nada que enseñarte</p>
           <p className="text-[13px] text-[#9CA3AF] mt-1 max-w-sm mx-auto">
             Cuando se abra tu primer módulo, aquí verás tu camino completo, clase a clase.
           </p>
@@ -148,48 +154,53 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
           {/* Resumen */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="rounded-2xl border border-[#DDE6F5] bg-white p-4">
-              <p className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider">Formación</p>
-              <p className="text-[26px] font-bold text-[#025dc7] leading-tight mt-0.5 tabular-nums">
+              <p className="text-[11px] font-semibold text-[#8A96AB] uppercase tracking-[0.08em]">Formación</p>
+              <p className="text-[26px] font-semibold text-[#1D0084] leading-tight mt-0.5 tabular-nums">
                 {totals.pct}
-                <span className="text-[15px] text-[#9CA3AF] font-semibold">%</span>
+                <span className="text-[15px] text-[#8A96AB] font-medium">%</span>
               </p>
               <div className="mt-1.5">
                 <Bar done={totals.done} total={totals.total} />
               </div>
-              <p className="mt-1 text-[11px] text-[#9CA3AF] font-semibold tabular-nums">
+              <p className="mt-1 text-[11px] text-[#8A96AB] tabular-nums">
                 {totals.done}/{totals.total} clases
               </p>
             </div>
             <div className="rounded-2xl border border-[#DDE6F5] bg-white p-4">
-              <p className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider">Nota media</p>
-              <p className="text-[26px] font-bold text-[#025dc7] leading-tight mt-0.5 tabular-nums">
+              <p className="text-[11px] font-semibold text-[#8A96AB] uppercase tracking-[0.08em]">Nota media</p>
+              <p className="text-[26px] font-semibold text-[#1D0084] leading-tight mt-0.5 tabular-nums">
                 {totals.avgPct === null ? '—' : `${totals.avgPct}%`}
               </p>
             </div>
             <div className="rounded-2xl border border-[#DDE6F5] bg-white p-4">
-              <p className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider flex items-center gap-1">
-                <Flame size={12} /> Racha
+              <p className="text-[11px] font-semibold text-[#8A96AB] uppercase tracking-[0.08em] flex items-center gap-1.5">
+                <Flame size={12} className="text-[#025dc7]" /> Racha
               </p>
-              <p className="text-[26px] font-bold text-orange-500 leading-tight mt-0.5 tabular-nums">
+              <p className="text-[26px] font-semibold text-[#1D0084] leading-tight mt-0.5 tabular-nums">
                 {insights?.progress?.current_streak ?? 0}
-                <span className="text-[13px] text-[#9CA3AF] font-semibold">
+                <span className="text-[13px] text-[#8A96AB] font-medium">
                   {' '}
                   {insights?.progress?.current_streak === 1 ? 'día' : 'días'}
                 </span>
               </p>
             </div>
             <div className="rounded-2xl border border-[#DDE6F5] bg-white p-4">
-              <p className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider flex items-center gap-1">
-                <Trophy size={12} /> Por repasar
+              <p className="text-[11px] font-semibold text-[#8A96AB] uppercase tracking-[0.08em] flex items-center gap-1.5">
+                <Trophy size={12} className="text-[#025dc7]" /> Por repasar
               </p>
-              <p
-                className={`text-[26px] font-bold leading-tight mt-0.5 tabular-nums ${
-                  totals.fails > 0 ? 'text-amber-600' : 'text-emerald-600'
-                }`}
-              >
-                {totals.fails}
-                <span className="text-[13px] text-[#9CA3AF] font-semibold"> fallos</span>
-              </p>
+              {totals.fails > 0 ? (
+                <p className="text-[26px] font-semibold text-[#1D0084] leading-tight mt-0.5 tabular-nums">
+                  {totals.fails}
+                  <span className="text-[13px] text-[#8A96AB] font-medium">
+                    {' '}
+                    {totals.fails === 1 ? 'fallo' : 'fallos'}
+                  </span>
+                </p>
+              ) : (
+                <p className="text-[15px] font-semibold text-emerald-600 leading-tight mt-2">
+                  Nada pendiente
+                </p>
+              )}
             </div>
           </div>
 
@@ -207,7 +218,7 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
                     className={`shrink-0 text-[#9CA3AF] transition-transform ${open ? 'rotate-90' : ''}`}
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[14px] sm:text-[15px] font-bold text-gray-900 truncate">{m.title}</p>
+                    <p className="text-[14px] sm:text-[15px] font-semibold text-gray-900 truncate">{m.title}</p>
                     <div className="mt-1.5 max-w-xs">
                       <Bar done={m.done} total={m.total} />
                     </div>
@@ -217,7 +228,7 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
                       {m.done}/{m.total}
                     </p>
                     {m.pct !== null && (
-                      <p className={`text-[13px] font-bold tabular-nums ${pctColor(m.pct)}`}>{m.pct}%</p>
+                      <p className={`text-[13px] font-semibold tabular-nums ${pctColor(m.pct)}`}>{m.pct}%</p>
                     )}
                   </div>
                 </button>
@@ -249,11 +260,12 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
                               {c.title}
                             </span>
                             {c.fails > 0 && (
-                              <span className="shrink-0 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                              <span className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-medium text-[#8A6A2A]">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#E4B252]" />
                                 {c.fails} {c.fails === 1 ? 'fallo' : 'fallos'}
                               </span>
                             )}
-                            <span className="shrink-0 text-[12px] font-semibold text-[#9CA3AF] tabular-nums">
+                            <span className="shrink-0 text-[12px] font-medium text-[#8A96AB] tabular-nums">
                               {c.done}/{c.total}
                             </span>
                             <ChevronRight
@@ -280,7 +292,7 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
                                       className="flex-1 min-w-0 text-[13px] font-semibold text-gray-800 hover:text-[#025dc7] truncate"
                                     >
                                       {s.code && (
-                                        <span className="text-[#9CA3AF] font-bold mr-1.5 tabular-nums">
+                                        <span className="text-[#8A96AB] font-medium mr-1.5 tabular-nums">
                                           {s.code}
                                         </span>
                                       )}
@@ -288,7 +300,7 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
                                     </Link>
                                     {s.pct !== null && (
                                       <span
-                                        className={`shrink-0 text-[12.5px] font-bold tabular-nums ${pctColor(s.pct)}`}
+                                        className={`shrink-0 text-[12.5px] font-semibold tabular-nums ${pctColor(s.pct)}`}
                                       >
                                         {s.score}/{s.total}
                                       </span>
@@ -297,10 +309,10 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
 
                                   {s.fails > 0 && (
                                     <div className="mt-2 ml-[25px] flex flex-wrap items-center justify-between gap-2">
-                                      <p className="text-[12px] text-amber-700 min-w-0">
+                                      <p className="text-[12px] text-[#5A6480] min-w-0">
                                         Fallaste {s.fails}
                                         {s.failedLabels.length > 0 && (
-                                          <span className="text-[#8a6a2a]">
+                                          <span className="text-[#8A6A2A]">
                                             : {s.failedLabels.slice(0, 4).join(', ')}
                                             {s.failedLabels.length > 4 && '…'}
                                           </span>
@@ -308,7 +320,7 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
                                       </p>
                                       <Link
                                         href={activityHref(s)}
-                                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 border border-amber-200 text-amber-800 text-[12px] font-bold transition-colors"
+                                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#DDE6F5] hover:border-[#4da3ff] text-[#025dc7] text-[12px] font-semibold transition-colors"
                                       >
                                         <RotateCcw size={13} /> Repetir práctica
                                       </Link>

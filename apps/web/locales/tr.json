@@ -204,7 +204,8 @@
     "for": "için",
     "powered_by": "Destekleyen",
     "results": "sonuç",
-    "statistics": "İstatistikler"
+    "statistics": "İstatistikler",
+    "automations": "Automations"
   },
   "banner": {
     "viewing_as_guest": "{{name}} sitesini misafir olarak görüntülüyorsunuz.",
@@ -385,6 +386,7 @@
     "ready_to_begin": "Başlamaya hazır mısınız?",
     "start_learning_journey": "{{count}} heyecan verici aktivite ile öğrenme yolculuğunuza başlayın",
     "course_progress": "Kurs İlerlemesi",
+    "activities_completed": "{{completed}} of {{total}} activities completed",
     "progress": "İlerleme",
     "completed_of": "{{total}} üzerinden {{completed}} tamamlandı",
     "quit_all_courses": "Tüm Kurslardan Ayrıl",

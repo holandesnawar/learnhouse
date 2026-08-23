@@ -5,6 +5,7 @@ import { queryKeys } from '@/lib/query/keys'
 import { getOrganizationContextInfo } from '@services/organizations/orgs'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import ErrorUI from '@components/Objects/StyledElements/Error/Error'
+import OrgUnavailable from '@components/Objects/StyledElements/Error/OrgUnavailable'
 
 interface OrgContextValue {
   org: any
@@ -33,8 +34,13 @@ export function OrgProvider({
     queryFn: () => getOrganizationContextInfo(orgslug, {}, accessToken),
     staleTime: 5 * 60_000,
     enabled: !!orgslug && session.status !== 'loading',
-    retry: 2,
-    retryDelay: 1500,
+    // Paciencia con la API dormida. Un contenedor que acaba de reiniciar
+    // puede tardar 15-20 segundos en contestar la primera vez; con 2
+    // reintentos de 1,5s nos rendíamos a los 3 segundos y el alumno veía la
+    // pantalla de error aunque la escuela estuviera a punto de responder.
+    // 5 intentos con espera creciente cubren ~25 segundos sin enseñar nada.
+    retry: 5,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8_000),
   })
 
   const isOrgActive = useMemo(() => (org?.config?.config?.active ?? org?.config?.config?.general?.enabled) !== false, [org])
@@ -67,7 +73,10 @@ export function OrgProvider({
   // and the new queryKey is fetching), don't blink the error UI — wait for
   // the refetch to settle.
   if (orgError && !isFetching && session.status !== 'loading') {
-    return <ErrorUI message='Hubo un problema cargando la página' />
+    // Aviso tranquilo y en nuestra marca: si la escuela no contesta casi
+    // siempre es que está arrancando, no que algo se haya roto. Se recarga
+    // sola (con tope, para no entrar en bucle).
+    return <OrgUnavailable />
   }
   if (!isLoading && org && !isOrgActive) return <ErrorUI message='This organization is no longer active' />
 

@@ -8,6 +8,7 @@ import {
 } from '@/lib/exercises-app/courseService'
 import type { Lesson, CourseModule } from '@/lib/exercises-app/types'
 import LessonViewer from './LessonViewer'
+import SafeArea from '@components/Objects/StyledElements/Error/SafeArea'
 
 // Renders a native Nawar exercise (LessonViewer) inside a LearnHouse course
 // activity. The activity stores its target as embed_url:
@@ -73,16 +74,21 @@ export default function NativeExerciseActivity({
     )
   }
 
+  // Cortafuegos: si una lección trae contenido con una forma que el visor no
+  // espera, se avisa en ese hueco en vez de tumbar la clase entera (y con
+  // ella el menú y el botón de "Siguiente").
   return (
-    <LessonViewer
-      lesson={lesson}
-      module={module}
-      nextLesson={nextLesson}
-      orgslug={orgslug}
-      inCourse
-      forcedSection={section}
-      courseLocation={courseLocation}
-      onComplete={onComplete}
-    />
+    <SafeArea nombre="esta sección de la lección">
+      <LessonViewer
+        lesson={lesson}
+        module={module}
+        nextLesson={nextLesson}
+        orgslug={orgslug}
+        inCourse
+        forcedSection={section}
+        courseLocation={courseLocation}
+        onComplete={onComplete}
+      />
+    </SafeArea>
   )
 }

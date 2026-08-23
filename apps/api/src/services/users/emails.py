@@ -26,12 +26,32 @@ BANNER_HTML = (
     f'<img src="{BANNER_URL}" alt="Holandés Nawar" width="600" '
     f'style="display: block; width: 100%; max-width: 600px; height: auto; border: 0;" />'
 )
-ACADEMY_URL = "https://academia.holandesnawar.nl"
+def _school_url() -> str:
+    """
+    La dirección de la escuela, de la configuración.
+
+    **Es el único sitio del que sale en el backend.** Antes estaba escrita a
+    mano aquí y en `payments.py`, y el día del cambio de dominio hubo que ir a
+    buscarlas. Sale de `LEARNHOUSE_DOMAIN`; el valor de abajo es solo la red de
+    seguridad por si la variable no estuviera puesta.
+    """
+    try:
+        from config.config import get_learnhouse_config
+
+        domain = getattr(get_learnhouse_config().hosting_config, "domain", None)
+        if domain:
+            return f"https://{domain}".rstrip("/")
+    except Exception:  # noqa: BLE001
+        pass
+    return "https://app.holandesnawar.com"
+
+
+ACADEMY_URL = _school_url()
 SUPPORT_EMAIL = "info@holandesnawar.com"
 TERMS_URL = "https://www.holandesnawar.com/terminos-y-condiciones"
 PRIVACY_URL = "https://www.holandesnawar.com/politica-de-privacidad"
 # Org logo (the square/compact mark) used at the bottom of every email.
-LOGO_URL = "https://academia.holandesnawar.nl/content/orgs/org_d790ce63-390e-4c87-85c9-e773f5d6ac6a/logos/3e936ab0-c03f-4bcb-b27f-48181fcb510a_logo.png"
+LOGO_URL = f"{ACADEMY_URL}/content/orgs/org_d790ce63-390e-4c87-85c9-e773f5d6ac6a/logos/3e936ab0-c03f-4bcb-b27f-48181fcb510a_logo.png"
 FOOTER_LOGO_HTML = (
     f'<img src="{LOGO_URL}" alt="Holandés Nawar" width="120" '
     f'style="display: block; width: 120px; height: auto; border: 0;" />'
@@ -150,7 +170,7 @@ def send_account_creation_email(
     body_text = t(lang, "account_creation.body")
     cta = t(lang, "account_creation.cta")
     academy_link = (
-        '<a href="https://academia.holandesnawar.nl" '
+        f'<a href="{ACADEMY_URL}" '
         'style="color: rgba(0,0,0,0.35); text-decoration: underline;">'
         f'{t(lang, "academy_link_text")}</a>'
     )
@@ -160,7 +180,7 @@ def send_account_creation_email(
         <p style="{STYLES['p']}">
             {body_text}
         </p>
-        <a href="https://academia.holandesnawar.nl" class="brand-btn" style="{STYLES['button']}">
+        <a href="{ACADEMY_URL}" class="brand-btn" style="{STYLES['button']}">
             {cta}
         </a>
     """
@@ -190,7 +210,7 @@ def send_password_reset_email(
     safe_code = html.escape(generated_reset_code)
     safe_email = quote(str(email), safe='')
     safe_code_param = quote(generated_reset_code, safe='')
-    reset_url = f"{base_url}/reset?email={safe_email}&amp;resetCode={safe_code_param}"
+    reset_url = f"{base_url}/auth/reset?email={safe_email}&amp;resetCode={safe_code_param}"
 
     heading = t(lang, "password_reset.heading")
     body_text = t(lang, "password_reset.body", username=safe_username)
@@ -233,7 +253,9 @@ def send_password_reset_email_platform(
     safe_code = html.escape(generated_reset_code)
     safe_email = quote(str(email), safe='')
     safe_code_param = quote(generated_reset_code, safe='')
-    reset_url = f"{base_url}/reset-password?email={safe_email}&amp;resetCode={safe_code_param}"
+    # Misma pega que el de bienvenida: `/reset-password` cae en un redirect a
+    # /login. La ruta que existe es `/auth/reset`.
+    reset_url = f"{base_url}/auth/reset?email={safe_email}&amp;resetCode={safe_code_param}"
 
     heading = t(lang, "password_reset.heading")
     body_text = t(lang, "password_reset.body", username=safe_username)
@@ -442,7 +464,11 @@ def send_payment_welcome_email(
     safe_name = html.escape(name or "alumno/a")
     safe_email = quote(str(email), safe='')
     safe_code_param = quote(reset_code, safe='')
-    reset_url = f"{base_url}/crear-cuenta?email={safe_email}&amp;resetCode={safe_code_param}"
+    # OJO: la ruta es `/auth/crear-cuenta`. Sin el `/auth/`, el enlace cae en un
+    # redirect a /login que se come el código, y el alumno que ACABA DE PAGAR no
+    # puede crear su contraseña. Comprobado en producción: `/crear-cuenta`
+    # devuelve 307 → /login.
+    reset_url = f"{base_url}/auth/crear-cuenta?email={safe_email}&amp;resetCode={safe_code_param}"
 
     heading = "¡Bienvenido a Holandés Nawar!"
     body_content = f"""

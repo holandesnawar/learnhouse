@@ -1,11 +1,11 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-05-30.
+> Última actualización: 2026-08-23.
 
 ## Resumen
 Academia de cursos sobre **LearnHouse**, auto-alojada en Railway.
-- URL pública (academia/plataforma): **https://academia.holandesnawar.nl**
+- URL pública (academia/plataforma): **https://app.holandesnawar.com**
 - Web principal / landing / matrícula (otro repo): **https://www.holandesnawar.com** — repo público `holandesnawar/nawar-web`.
 - Edición: **OSS** · modo **single-org / single-tenancy** · `mode: oss`.
 - Idioma del usuario: **español**, no técnico — explicar claro, paso a paso, móvil.
@@ -17,6 +17,25 @@ Proyecto `cooperative-tenderness`, 3 servicios: **learnhouse** (la app, Dockerfi
 - **Rama Railway por defecto: `dev`** (auto-deploy al hacer push).
 - **Desarrollo activo en rama `claude/adoring-dijkstra-rI3FL`.** Para previsualizar: Railway → learnhouse → Settings → Source → cambiar a esa rama; para volver atrás, poner `dev` (red de seguridad).
 - Volumen persistente en **`/app/api/content`** (logos/imágenes/uploads).
+
+### Dominio (cambiado ago 2026: `.nl` → `.com`)
+La escuela vive en **https://app.holandesnawar.com** (antes
+`academia.holandesnawar.nl`). Subdominio del MISMO dominio que la web, a
+propósito: los correos salen de `mail.holandesnawar.com`, así que los enlaces
+coinciden con el remitente (mejor para el spam), y la matrícula deja de ser
+cross-site.
+- Cloudflare zona `.com`: registro `app` en **"Solo DNS" (gris)**. En naranja
+  da **Error 1000**, igual que pasó en la zona `.nl`.
+- **El dominio sale de UN solo sitio en cada lado**: en el backend de
+  `emails.py::_school_url()` (lee `LEARNHOUSE_DOMAIN`), y en el front de
+  `services/config/config.ts::getSchoolUrl()` (lee
+  `NEXT_PUBLIC_LEARNHOUSE_DOMAIN` + `..._HTTPS`). En `nawar-web`,
+  `PUBLIC_ESCUELA_URL`. **No volver a escribirlo a mano en ningún sitio.**
+- **NO apagar el `.nl`**: los correos ya enviados llevan enlaces a él. Debe
+  quedarse redirigiendo.
+- Al cambiar de host **todo el mundo se desloguea**: en single-tenancy la
+  cookie es host-only (`auth.py::get_cookie_domain_for_request` → `None`).
+  No se pierde nada, pero hay que avisar.
 
 ### Lecciones de puertos/URLs (NO romper)
 - nginx escucha en **80**; web Next.js en **8000**; api en **9000**; collab en **4000**.
@@ -36,20 +55,21 @@ Páginas creadas en `apps/web/app/<nombre>/page.tsx` (root level, fuera de subca
 **Fix (commit `6d52a62`):** se añadió step 4b en `proxy.ts` que pasa por defecto cualquier `/auth/*` directamente a su ruta resolviendo tenant para cookies (sin reescribir a `/orgs/...`). Cualquier `/auth/<x>/page.tsx` nuevo a partir de ahora funcionará sin tocar el middleware.
 
 ### Variables clave (nombres, NO valores)
-**Backend:** `LEARNHOUSE_TENANCY=single`, `LEARNHOUSE_DOMAIN`, `LEARNHOUSE_FRONTEND_DOMAIN` (academia.holandesnawar.nl), `LEARNHOUSE_SSL=true`, `LEARNHOUSE_AUTH_JWT_SECRET_KEY` (≥32 chars), `LEARNHOUSE_SQL_CONNECTION_STRING`, `LEARNHOUSE_REDIS_CONNECTION_STRING`.
+**Backend:** `LEARNHOUSE_TENANCY=single`, `LEARNHOUSE_DOMAIN`, `LEARNHOUSE_FRONTEND_DOMAIN` (app.holandesnawar.com), `LEARNHOUSE_SSL=true`, `LEARNHOUSE_AUTH_JWT_SECRET_KEY` (≥32 chars), `LEARNHOUSE_SQL_CONNECTION_STRING`, `LEARNHOUSE_REDIS_CONNECTION_STRING`.
 **Frontend:** `NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL` (con `/`), `NEXT_PUBLIC_LEARNHOUSE_DOMAIN`, `NEXT_PUBLIC_LEARNHOUSE_HTTPS=true`, `PORT=8000`.
 **Email (Resend):** `LEARNHOUSE_EMAIL_PROVIDER=resend`, `LEARNHOUSE_RESEND_API_KEY`, `LEARNHOUSE_SYSTEM_EMAIL_ADDRESS=noreply@mail.holandesnawar.com` (subdominio `mail.holandesnawar.com` verificado en Resend).
 **Stripe (test ahora):** `LEARNHOUSE_STRIPE_SECRET_KEY=sk_test_...`, `LEARNHOUSE_STRIPE_PUBLISHABLE_KEY=pk_test_...` (necesaria para el embedded checkout Elements), `LEARNHOUSE_STRIPE_WEBHOOK_STANDARD_SECRET=whsec_test_...`, `LEARNHOUSE_STRIPE_FORMACION_PRICE_ID=price_...` (el del producto "Formación Nawar A0-A1" en modo test). Para Live: misma config con `sk_live_` / `pk_live_` / `whsec_` de Live.
 
 ## Cloudflare (DNS)
-Zona `holandesnawar.nl`. Registros `academia` y `*.academia` → CNAME a los targets de Railway, en **"Solo DNS" (gris, NO proxied)**. Proxied (naranja) causó **Error 1000**. SSL lo gestiona Railway.
+Zona **`holandesnawar.com`** (la de la escuela desde ago 2026): registro `app` → CNAME al target de Railway, en **"Solo DNS" (gris, NO proxied)**. Proxied (naranja) causa **Error 1000** — pasó en la zona `.nl` y volvió a pasar al montar `app` la primera vez. SSL lo gestiona Railway.
+Zona `holandesnawar.nl` (la vieja): `academia` y `*.academia` siguen apuntando a Railway **a propósito**, redirigiendo al `.com`, porque los correos ya enviados llevan enlaces a ella.
 Zona `holandesnawar.com` (la web principal) la gestiona el usuario aparte.
 
 ## Cuenta admin
 Usuario `admin`, email **holandesnawar@gmail.com** (superadmin). Creado vía cli.py. Contraseña actual la conoce el usuario.
 
 ## Vocabulario del producto
-- **La palabra es "la escuela"**, NO "academia" (decisión del usuario, ago 2026: no le gusta "academia"). Vale para pantallas, correos y avisos: "Entrar a la escuela", "Novedades de la escuela". El **dominio sigue siendo `academia.holandesnawar.nl`** y la constante `ACADEMY_URL` no se toca.
+- **La palabra es "la escuela"**, NO "academia" (decisión del usuario, ago 2026: no le gusta "academia"). Vale para pantallas, correos y avisos: "Entrar a la escuela", "Novedades de la escuela". El **dominio sigue siendo `app.holandesnawar.com`** y la constante `ACADEMY_URL` no se toca.
 - Alumno / profe / clase semanal / formación: el resto del vocabulario se mantiene.
 
 ## Marca — Sistema de diseño Holandés Nawar
@@ -63,6 +83,82 @@ Usuario `admin`, email **holandesnawar@gmail.com** (superadmin). Creado vía cli
 - Patrón: glow radial azul + puntos blancos sutiles `rgba(255,255,255,0.06)`.
 - **Regla:** secciones dark (#1D0084) o light (blanco/#F0F5FF), nunca mezclar. Contenido principal SIEMPRE blanco.
 
+### Reglas de aplicación de la marca (repaso ago 2026)
+Decidido tras ver que la plataforma "parecía Temu": el problema no era una pantalla, era el sistema.
+- **Nada de naranja/ámbar saturado en la interfaz del alumno.** Racha, fallos, notas y avisos van en azul de marca. El ámbar solo como señal apagada (`#8A6A2A` sobre `#FFFBF2`, o un punto `#E4B252`), y el verde solo para "hecho/dominado". El `#F58220` es **solo** estrellas/valoraciones.
+- **Peso tipográfico:** cifras grandes en `font-semibold` (no bold ni extrabold), etiquetas pequeñas en mayúsculas en `font-semibold` + `tracking-[0.08em]`. El `font-extrabold` no se usa en pantallas de alumno.
+- **Texto sobre `#4da3ff` siempre `#0a1656`**, nunca blanco (se leía mal).
+- **Cabecera de página estándar** (Mi progreso, Mis notas, Mis mensajes, Eventos, Ejercicios): `GeneralWrapperStyled` + `<Icono size={24} className="text-[#025dc7]" />` + `<h1 className="text-2xl sm:text-3xl font-bold text-gray-900">`. Ninguna pantalla se inventa su propio ancho ni su propio color de título.
+- Verde/rojo en los ejercicios (acierto/fallo) **sí** se quedan: son la señal que el alumno necesita.
+
+### Portadas y piezas gráficas — cómo se hacen (decidido ago 2026)
+
+**Al usuario le gusta este lenguaje visual. Es el que hay que repetir.** Se
+llegó a él descartando: primero una foto de banco de imágenes (sonrisas,
+birrete, bandera) que "restaba credibilidad a 397 €", luego una versión
+demasiado plana, luego un bloque azul oscuro que competía con la barra lateral.
+
+**Reglas de la portada:**
+- **Fondo claro siempre.** Blanco → `#F0F5FF`, nunca azul oscuro: la barra
+  lateral ya es azul y dos azules grandes juntos oscurecen media pantalla.
+- **Fondo por capas**, no un degradado liso (que se lee "plantilla"): mancha
+  `#4da3ff` difusa arriba-derecha, otra `#1D0084` abajo-izquierda, arco de luz,
+  malla fina de 78 px con máscara radial y la trama de puntos de la marca.
+- **Titular en `#1D0084`** con **marca de rotulador `#4da3ff`** bajo la palabra
+  clave — es el mismo gesto de resaltar que el alumno usa en las lecciones.
+  Ojo: el `.mark` debe envolver algo que NO parta de línea, o la marca se
+  estira al ancho del bloque.
+- **Logo Nawar arriba** con un filete y el rótulo al lado.
+- **La portada NO repite el nombre del curso**: la página ya lo escribe encima.
+- **Mockups con los ejercicios REALES**: estilos copiados de
+  `components/exercises-app/LessonViewer.tsx` y contenido de `courseData.ts`.
+  Nada inventado — quien conoce la escuela reconoce la pantalla.
+- Cero naranja fuera del logo, cero fotos de stock.
+
+**Cómo se generan** (`/tmp/.../scratchpad/portada/`, recrear si se perdió):
+HTML+CSS renderizado con Playwright + Chromium
+(`/opt/pw-browsers/chromium-1194/chrome-linux/chrome`) a `device_scale_factor=2`.
+Fuentes Poppins/Inter incrustadas en base64 desde Google Fonts. **Iterar
+mirando el PNG con la herramienta Read** — diseñar a ciegas no funciona.
+
+**Formatos que pide el usuario:** `1600×560` (el contenedor real del curso,
+2,86:1), `1680×720` (21:9), `1600×900` (16:9) y `1400×2100` (2:3, mockup de
+libro). No es la misma imagen recortada: cada proporción recoloca las piezas.
+**Zona segura del banner:** los 1160 px centrales — en móvil el `cover` se come
+los laterales; en escritorio, arriba y abajo.
+
+**⚠️ Las cuatro proporciones llevan la MISMA composición de dos columnas**
+(texto a la izquierda, tarjetas a la derecha). Se probó un 16:9 "apilado" —todo
+centrado, titular arriba y tarjetas debajo— con el razonamiento de que un lienzo
+casi cuadrado con dos columnas deja los laterales llenos y el centro vacío. **Al
+usuario no le valió**: dijo que no había ningún 16:9, porque no reconoció el
+diseño. La disposición ES parte de lo que le gusta. Si hace falta otra
+proporción, se recoloca la de dos columnas, no se inventa otra.
+En 16:9 (layout `wide169` en `covers4.py`) el ajuste que funcionó: titular a
+51 px, y las tarjetas desplegadas en vertical (el ejercicio baja, la flashcard
+arriba del todo, el audio abajo) para llenar el alto con contenido y no con aire.
+
+**La portada del checkout vive en `docs.holandesnawar.com/img/` (Cloudflare) y
+el nombre del archivo importa**: al subir `Portada 16x9.png` sin cambiar la
+constante `COURSE_IMAGE` (que apuntaba a `Portada Nawar 169.png`) el resumen del
+curso enseñó el icono de imagen rota durante días. Ahora hay `onError`, pero el
+nombre hay que cambiarlo igual.
+
+**Logo:** el bueno, con transparencia, está en la propia escuela:
+`content/orgs/org_d790ce63-.../logos/3e936ab0-..._logo.png` (el slug de la org
+es `holandesrida`). `docs.holandesnawar.com` y CloudFront están **bloqueados**
+por el proxy del entorno con 403 de política — no insistir.
+
+## Estabilidad — qué evita que la escuela se caiga
+- **Todo bajo pm2, nginx incluido** (`docker/start.sh`). Antes, si nginx moría, el contenedor seguía "vivo" sin servir nada. Además `--restart-delay 3000 --max-restarts 10000`. Tras arrancar nginx se comprueba el puerto 80 de verdad y, si no responde, se arranca a mano.
+- **Página `docker/offline.html`** servida por el propio nginx (`error_page 502 503 504`): mientras la app reinicia, el alumno ve "Volvemos en un momento" (recarga sola cada 8s) en vez del 502 blanco. Las rutas `/api/v1` devuelven **JSON** 503, no HTML, para que el front lo trate como fallo de red.
+- **`railway.json`**: `healthcheckPath: /api/v1/health`. Railway no cambia a la versión nueva hasta que responde → los despliegues dejan de tener ventana de 502.
+- **Arranque de la API tolerante** (`core/events/database.py`): 12 intentos × 5s esperando a Postgres, y `create_all` en su propio try (un fallo de DDL no puede impedir el arranque con las tablas ya creadas).
+- **`SafeArea`** (`components/Objects/StyledElements/Error/SafeArea.tsx`): cortafuegos por trozo de pantalla. Envuelve las tarjetas del Inicio y el visor de lecciones; si una se rompe, se sustituye por un aviso pequeño y el resto sigue.
+- **react-query**: 3 reintentos con espera creciente, pero **nunca** en 4xx.
+- Redis ya falla en abierto en todas partes (rate-limit, cachés): si Redis cae, se sigue pudiendo entrar y navegar.
+- **Pendiente del usuario (no es código):** activar copias de seguridad del Postgres en Railway. Es el único riesgo que el código no puede cubrir.
+
 ## Stripe — flujo de pagos (estado actual)
 
 ### Configuración en Stripe Dashboard
@@ -72,21 +168,21 @@ Usuario `admin`, email **holandesnawar@gmail.com** (superadmin). Creado vía cli
 - **Statement descriptor**: `HOLANDES NAWAR` (lo que ve el alumno en el extracto bancario).
 - **Customer emails** (Settings → Customer emails): activar "Successful payments" + "Email customers for finalized invoices" — **¡por separado para Test y Live!** Test mode no manda emails por defecto.
 - **Invoice number prefix**: `NAWAR` → facturas salen `NAWAR-0001`, `NAWAR-0002`...
-- **Webhook** en Test mode: endpoint `https://academia.holandesnawar.nl/api/v1/payments/webhook`, eventos **`checkout.session.completed` + `payment_intent.succeeded`** (los dos), signing secret va en `LEARNHOUSE_STRIPE_WEBHOOK_STANDARD_SECRET`. Live tendrá el suyo aparte.
+- **Webhook** en Test mode: endpoint `https://app.holandesnawar.com/api/v1/payments/webhook`, eventos **`checkout.session.completed` + `payment_intent.succeeded`** (los dos), signing secret va en `LEARNHOUSE_STRIPE_WEBHOOK_STANDARD_SECRET`. Live tendrá el suyo aparte.
 - **Métodos de pago activos**: tarjeta + iDEAL + Klarna + Bancontact (Apple Pay / Google Pay van solos como overlay sobre `card`). **Stripe Link y SEPA Direct Debit están desactivados a nivel de código** (`payment_method_types` explícito en `enroll_and_payment_intent`) — no depende del Dashboard.
 
 ### Flujo end-to-end actual — Embedded Checkout (Stripe Elements, sin Stripe-hosted)
 1. Botón en landing de holandesnawar.com → `/matricula-formacion-nawar-a0-a1` (Astro en `nawar-web`).
-2. Form Nawar (nombre, apellidos, email, teléfono, país, ciudad) → POST a `/api/enroll` (proxy Astro) → `https://academia.holandesnawar.nl/api/v1/payments/enroll-intent`.
+2. Form Nawar (nombre, apellidos, email, teléfono, país, ciudad) → POST a `/api/enroll` (proxy Astro) → `https://app.holandesnawar.com/api/v1/payments/enroll-intent`.
 3. Backend (`apps/api/src/services/payments/payments.py::enroll_and_payment_intent`) crea: row en tabla `enrollment` (status=pending), Stripe Customer con datos pre-rellenos, **`PaymentIntent`** con `payment_method_types=["card","ideal","klarna","bancontact"]`, devuelve `{enrollment_id, client_secret, publishable_key, payment_url}`.
-4. El `payment_url` apunta a `https://academia.holandesnawar.nl/auth/matricula-formacion-nawar-a0-a1?ei=…&cs=…&pk=…&amt=…&cur=…&em=…&nm=…&ph=…`. Toda la data del paso 1 viaja en URL params para que el paso 2 la muestre ("Pagando como X · email") y pre-rellene los campos de Stripe.
+4. El `payment_url` apunta a `https://app.holandesnawar.com/auth/matricula-formacion-nawar-a0-a1?ei=…&cs=…&pk=…&amt=…&cur=…&em=…&nm=…&ph=…`. Toda la data del paso 1 viaja en URL params para que el paso 2 la muestre ("Pagando como X · email") y pre-rellene los campos de Stripe.
 5. La página `apps/web/app/auth/matricula-formacion-nawar-a0-a1/page.tsx` dispatchea: sin `cs/pk` → renderiza form de matricula (fallback). Con `cs/pk` → renderiza `checkout.tsx` (Stripe Elements). Por qué el dispatch en la misma ruta y no `/auth/pago-…`: cualquier subruta nueva 404aba por el bug del middleware antes de descubrir el fix; el embedded sigue viviendo aquí hasta que migremos.
-6. `confirmPayment` → 3DS si toca → `return_url = https://academia.holandesnawar.nl/auth/bienvenido`.
+6. `confirmPayment` → 3DS si toca → `return_url = https://app.holandesnawar.com/auth/bienvenido`.
 7. Webhook `payment_intent.succeeded` (`process_webhook_event` → `_handle_payment_intent`):
    - Busca enrollment por `metadata.enrollment_id`, lo marca `paid`.
    - Crea cuenta en LearnHouse (`_create_paid_user`) con email_verified=true, linkeada a la org como rol 4 (alumno).
    - Genera reset_code en Redis.
-   - Manda email "¡Bienvenido a Holandés Nawar! Crea tu contraseña" (Resend) con enlace a `https://academia.holandesnawar.nl/auth/crear-cuenta?email=…&resetCode=…`.
+   - Manda email "¡Bienvenido a Holandés Nawar! Crea tu contraseña" (Resend) con enlace a `https://app.holandesnawar.com/auth/crear-cuenta?email=…&resetCode=…`.
    - Genera **factura post-hoc** (`_create_post_hoc_invoice`): InvoiceItem + Invoice + finalize + pay_out_of_band → así sigues teniendo el PDF con numeración `NAWAR-XXXX` que daba el Checkout Session.
    - Tagging Systeme.io (`mark_as_alumno`).
 8. Alumno hace click en email → crea contraseña → entra a academia con onboarding "Empieza aquí".
@@ -117,13 +213,148 @@ Fichero canónico: `apps/web/app/auth/matricula-formacion-nawar-a0-a1/checkout.t
 - **Errores**: `bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-[13.5px]` con `AlertTriangle size={16}`.
 - **Mobile**: `overflow-x-hidden` en root, `px-3 sm:px-6` en main, `min-w-0` en grid children, `p-4 sm:p-7` en cards.
 
+### El checkout como pieza de venta (repaso ago 2026)
+Se comparó el checkout propio con uno ajeno bien hecho (ExecutiveLab) y el
+nuestro gana en casi todo. Lo que hace que gane, para no desmontarlo por error:
+
+- **La garantía va pegada al precio, en su propio bloque con escudo**, no como un
+  check más de la lista. Enterrada entre "Certificado al terminar" pesaba lo
+  mismo que cualquier otra cosa; ahí abajo es donde el comprador duda.
+- **Ancla de precio**: el total enseña el `497 €` tachado al lado del `397 €` y
+  "Precio fundador · después 497 €". Un 397 a secas es solo un número. La
+  constante es `REGULAR_PRICE_CENTS` y **el ancla se esconde sola** si algún día
+  el precio ya vale eso o más.
+- **iDEAL como pestaña visible es CRÍTICO** para este público: los alumnos viven
+  en Países Bajos y ahí iDEAL no es "otro método", es EL método. Esconderlo
+  detrás de un desplegable con "Tarjeta" preseleccionada mata ventas.
+- **Nada de campo de cupón vacío.** Una caja que pone "Código de cupón" avisa de
+  que existe un descuento que tú no tienes: la gente se va a buscarlo y parte no
+  vuelve. Los cupones, en el enlace y aplicados solos.
+- **Stripe Link sigue desactivado** a propósito: mete una decisión y una
+  invitación a crear cuenta en mitad del pago.
+- **La portada del resumen tiene `onError`**: si el CDN falla o se renombra el
+  archivo, la imagen se esconde y queda el bloque `#F0F5FF` limpio. Sin esto
+  salía el icono de imagen rota con el texto alternativo suelto **al lado del
+  botón de pagar** (pasó de verdad al renombrar la portada).
+- El pie dice **"Pago seguro · Cifrado de extremo a extremo"**, sin nombrar a
+  Stripe (decisión del usuario, ago 2026).
+
+**No medir esto con tests A/B.** Con una cohorte de 30-40 plazas la diferencia
+entre 12 y 15 ventas es ruido, no señal. A este volumen se quita fricción
+evidente y se sigue.
+
+### ⚠️ Días de garantía: 14 vs 15 — SIN RESOLVER
+Hay tres cifras vivas y no coinciden:
+- **Condiciones de contratación** (`nawar-web/src/pages/condiciones-de-contratacion.astro`):
+  distingue a propósito el **desistimiento legal de 14 días naturales** (derecho
+  europeo) de una **garantía comercial de 15 días naturales**, y dice explícitamente
+  que la de 15 "es más amplia que el desistimiento legal". No es una errata.
+- **La landing**: dice **15 días** en nueve sitios.
+- **El checkout**: el usuario pidió **14** (constante `GUARANTEE_DAYS`).
+
+Así el checkout promete **menos** que las condiciones publicadas, que es la
+dirección mala del error. **Recomendación: ponerlo en 15** y alinear los tres.
+Pendiente de que el usuario decida.
+
+### Matrícula: una persona = una fila (ago 2026)
+El botón "Cambiar" del checkout devuelve al formulario, y cada vuelta creaba otra
+fila `enrollment` en `pending`: en las estadísticas eso se leía como gente
+distinta que se matriculó y no pagó, e **inflaba el abandono del embudo**.
+`enroll_and_payment_intent` ahora reaprovecha la fila si ese email dejó una
+matrícula sin pagar en las **últimas 24 h** (`_VENTANA_MISMO_INTENTO`). La
+ventana existe para no fundir el intento de hoy con el de la semana pasada, que
+sí es una vuelta nueva al embudo.
+De paso **cancela el PaymentIntent huérfano** (solo si está en
+`requires_payment_method` / `requires_confirmation`; tocar uno en mitad del 3DS
+rompería un pago en curso), para que dos pestañas abiertas no acaben en dos cobros.
+
+### El formulario de matrícula: cuatro campos
+`first_name`, `last_name`, `email`, `phone` (+ honeypot `website`). **País y
+ciudad se quitaron** (ago 2026): en la escuela no los leía nadie y en la landing
+solo viajaban a systeme.io como campos de contacto. Además el desplegable venía
+con "Países Bajos" preseleccionado, así que recogía sobre todo el valor por
+defecto — dato con poco valor a cambio de dos campos de fricción. El país fiable
+es el que pide Stripe en el paso 2, porque ahí lo obliga la tarjeta.
+`/api/enroll` sigue aceptándolos por si vuelven.
+
 ### Notas / gotchas Stripe
 - `stripe.Webhook.construct_event` devuelve un `StripeObject` que NO soporta `.get()` en Python 3.14 — siempre parsear el payload con `json.loads(payload)` después de verificar firma. Aprendido a las malas.
 - Si el recibo muestra un nombre incorrecto ("Holandesna test ebook" etc.), es porque el `price_id` apunta a un Producto distinto del esperado en Stripe. Ese campo se hereda del Product, no del Price.
 - Modo Test envía emails solo si el toggle "Send successful payment emails" está ON **estando en modo Test** (toggles independientes por modo).
 - Mínimo de cobro Stripe = **0,50 €** en EUR. Cupones del 100% (gratis) sí valen para tests en Live sin gastar.
 
-## Estado actual de la plataforma (academia.holandesnawar.nl)
+## systeme.io — la forma real de su API (ago 2026)
+
+**La documentación oficial NO se puede leer desde este entorno** (`developer.systeme.io`
+y `api.systeme.io` bloqueados). Lo de abajo no está adivinado: sale de
+`nawar-web/src/pages/api/waitlist.ts`, que lleva meses dando de alta gente de
+verdad en la cuenta. Base `https://api.systeme.io/api`, auth con header `X-API-Key`.
+
+| Para qué | Llamada |
+|---|---|
+| Crear contacto | `POST /contacts` `{email, firstName, surname, phone, fields:[{slug,value}]}` → `{id}` |
+| Ya existe | el POST devuelve **4xx** → se recupera con la búsqueda |
+| Buscar por email | `GET /contacts?email=…` → `{items:[{id,…}]}` |
+| Escribir campos | `PATCH /contacts/{id}` `{fields:[{slug,value}]}` |
+| Listar etiquetas | `GET /tags?itemsPerPage=100&page=N` → `{items:[{id,name}]}` |
+| Crear etiqueta | `POST /tags` `{name}` (no verificado contra producción) |
+| Poner etiqueta | `POST /contacts/{id}/tags` `{tagId}` — **409 = ya la tenía = éxito** |
+
+- **Es API Platform** (el estándar de Symfony): se nota en `items` +
+  `itemsPerPage`. Por eso el `PATCH` quiere `application/merge-patch+json` y con
+  `application/json` contesta 415. El cliente prueba merge-patch → json → PUT.
+- **Los campos personalizados se escriben por SLUG, no por nombre**, y el slug lo
+  genera systeme.io **quitando los caracteres no ingleses** en vez de
+  transliterarlos: `Cómo conociste Nawar` → `cmo_conociste_nawar`,
+  `Nivel de neerlandés` → `nivel_de_neerlands`. **Regla: crear los campos con
+  nombres en ASCII** y el slug sale previsible.
+- Campos que existen en la cuenta: `cmo_conociste_nawar`, `nivel_de_neerlands`,
+  `instagram_username`, `origen`, `utm_source`, `utm_medium`, `utm_campaign`.
+- **Escribir el contacto y escribir sus campos van por separado.** Si un slug
+  estuviera mal, un alta con todo junto fallaría entera y se perdería el lead.
+
+## Inrō → systeme.io: las altas por DM de Instagram
+
+Inrō (automatización de DM de Instagram, `app.inro.social`) captura el email
+dentro del DM y dispara un `http_request` contra
+**`POST https://www.holandesnawar.com/api/hooks/inro-systeme`**
+(en `nawar-web`, no en la escuela). Ese endpoint da de alta a la persona en
+systeme.io con la etiqueta de lista de espera y guarda de dónde vino.
+
+- Cabecera de autenticación: **`NAWAR_WEBHOOK_SECRET`** (mismo nombre que la
+  variable de entorno, a propósito: un solo nombre que recordar). Se compara en
+  tiempo constante hasheando ambos lados con sha256 antes del `timingSafeEqual`
+  — así los búferes miden igual y no se filtra la longitud.
+- **Salvo el secreto y el email, siempre contesta 200.** Si systeme.io falla,
+  Inrō no debe reintentar en bucle: el escenario se atasca y el usuario se queda
+  sin respuesta en el DM. El fallo va al log estructurado (email hasheado), no al
+  código de estado.
+- **Presupuesto de 8,5 s** por debajo del `maxDuration` de Vercel (10 s por
+  defecto): con 8 s de timeout y 2 reintentos el peor caso serían ~25 s y Vercel
+  mataría la función a mitad.
+- **Las etiquetas se comparan normalizadas** (sin mayúsculas, sin acentos,
+  guiones = espacios) para que el `lista-de-espera` que manda Inrō caiga en la
+  `Lista de espera` que ya existe, en vez de crear una duplicada.
+- **Las variables `{{ ... }}` que lleguen sin sustituir se tiran.** Si un token
+  de Inrō está mal escrito llega la plantilla en crudo, y guardarla dejaría
+  contactos con `{{ contact.username }}` de nombre de usuario sin que nadie se
+  entere.
+
+### Cosas de Inrō que hay que saber
+- El escenario del embudo es **"Embudo Post Pronunciación" (id 31768)**. Se
+  dispara con el comentario `quiero` en el siguiente post.
+- La acción `http_request` guarda el cuerpo en la opción **`http_body_json`**
+  (con `http_body_mode: "json"`), no en un campo `body` cualquiera.
+- El `http_request` **tiene ramas** `option_success` / fallo, y el mensaje
+  "¡Hecho! ✅ Estás en la lista" cuelga de la de éxito. Si el endpoint falla, el
+  alumno **no recibe confirmación**. Los emails no se pierden (Inrō los guarda
+  como propiedad del contacto), pero la experiencia es mala: si el webhook no
+  está listo, **pausar el escenario**.
+- **La API de Inrō reemplaza la lista COMPLETA de acciones al actualizar** un
+  escenario. Con un escenario en vivo, un error al reconstruirla lo tumba entero.
+  Salvo necesidad clara, decirle al usuario qué tocar en el panel.
+
+## Estado actual de la plataforma (app.holandesnawar.com)
 
 ### Hecho (rama `claude/adoring-dijkstra-rI3FL`)
 - **Barra lateral** (`OrgSidebar.tsx`): azul Nawar + glow + puntos, colapsable, móvil. Reemplaza OrgMenu.
@@ -143,6 +374,7 @@ Fichero canónico: `apps/web/app/auth/matricula-formacion-nawar-a0-a1/checkout.t
 - **Mensajes directos alumno ↔ equipo** (`/mensajes`, `MessagesPage.tsx`): tablas nuevas `direct_thread` + `direct_message`. Hilo **con el equipo** (`staff_id` NULL, lo ve cualquier moderador) o **con una persona** (`staff_id` puesto: lo ven esa persona y los administradores). El alumno tiene siempre el del equipo y puede buscar a un moderador en el directorio; el equipo busca alumnos y escribe primero (`GET /messages/directory?q=`, `POST /messages/open/{peer_id}`). En móvil es una columna: lista → conversación con flecha de volver. **`direct_thread.staff_id` se añadió después**: como la tabla podía existir ya en producción, `src/core/events/database.py` ejecuta al arrancar una lista `_ADDED_COLUMNS` de `ALTER TABLE ... IF NOT EXISTS` (idempotente) — ahí van las columnas nuevas de tablas ya desplegadas, que `create_all` NO añade. **Notas de voz** grabadas con `MediaRecorder` (`VoiceRecorder.tsx`), se escuchan antes de mandarlas y se guardan en `content/orgs/<org_uuid>/voice/` (volumen). Endpoints `/api/v1/messages/{threads,unread,thread,thread/{id},thread/{id}/read,send}` (send va en multipart). **Bienvenida automática**: el hilo se crea solo la primera vez que el alumno consulta sus no leídos, y nace con el mensaje de bienvenida dentro (texto en org_config `direct_welcome`, editable desde la propia pantalla). Sobre en la cabecera del sidebar + entrada "Mis mensajes" en Tu espacio. Cada mensaje del otro lado lleva **foto**: la del moderador, y el **logo de la academia** en los automáticos o si el moderador no tiene avatar (`_avatar_path` / `_org_logo` devuelven rutas relativas que el front completa con `mediaSrc`).
 - **Onboarding (`StudentOnboarding.tsx`) — por qué salía "a veces sí y a veces no"**: tenía un `MutationObserver` que escondía el widget si detectaba CUALQUIER elemento `fixed inset-0` visible (cajones, fondos decorativos…). Eliminado. Además `welcomed` y `dismissed` se guardan ahora en `student_progress.onboarding_state` (servidor) y no en localStorage — ojo: el backend **reemplaza** ese objeto, hay que mandarlo entero (`saveState`).
 - **Certificado del alumno**: página `/certificates/{user_certification_uuid}` (`MyCertificatePage.tsx`) — el certificado en español, botón **Descargar en PDF** y explicación del código de verificación. Es a donde lleva el correo "tu certificado ya está listo" (antes iba a `/verify`, que es la página pública para quien lo comprueba).
+- **⚠️ Dos enlaces rotos en los correos, arreglados al cambiar de dominio (ago 2026).** No tenían nada que ver con el dominio, llevaban tiempo mal: el correo de bienvenida tras pagar apuntaba a `/crear-cuenta` y el de reset a `/reset-password`, y **las dos rutas hacen un 307 a `/login` que se come el `resetCode`** — o sea que **el alumno que acababa de pagar no podía ponerse contraseña**. Las rutas buenas son `/auth/crear-cuenta` y `/auth/reset`. Moraleja: cuando se toquen los enlaces de `emails.py`, comprobar la ruta REAL, no la que parece.
 - **Email rebrand**: todos los emails (welcome, reset, invite, role-changed, verify, payment-welcome) usan layout Nawar (banner cloudfront + logo footer + ¿Dudas? info@holandesnawar.com + Términos/Privacidad apuntando a holandesnawar.com). Color del botón `#4da3ff` + texto `#0a1656`, no se invierte en dark mode. Constante `BANNER_URL` + `LOGO_URL` + `TERMS_URL`/`PRIVACY_URL` en `apps/api/src/services/users/emails.py`.
 - **Backend nuevo**:
   - Tabla `exercise_attempt` (último intento por sección + falladas).
@@ -153,7 +385,7 @@ Fichero canónico: `apps/web/app/auth/matricula-formacion-nawar-a0-a1/checkout.t
   - Endpoints `/api/v1/exercise-attempts/{section_key,/all}` (auth).
   - Endpoints `/api/v1/payments/{checkout/formacion,enroll,webhook}` (públicos).
   - Endpoint `/api/v1/superadmin/email-test/all?to=X&name=Y` para mandar los 4 emails de prueba.
-- **CORS**: ya abierto a cualquier origen http(s) en single-tenancy (`src/core/middleware/cors.py`). holandesnawar.com → academia.holandesnawar.nl funciona sin tocar nada.
+- **CORS**: ya abierto a cualquier origen http(s) en single-tenancy (`src/core/middleware/cors.py`). holandesnawar.com → app.holandesnawar.com funciona sin tocar nada.
 - **Boards, Copilot, Playgrounds** ocultos del sidebar (no aportan para academia).
 - **Volumen** para uploads (logos persisten).
 - **Embedded checkout Nawar** (`checkout.tsx`): el alumno NO sale del dominio. Logo arriba-izquierda, card blanca con resumen del curso a la derecha (imagen 16:9, features con checks `#4da3ff`, total dinámico tirando del Stripe Price vía URL params), tabs de pago Tarjeta/iDEAL/Klarna/Bancontact con Appearance API Nawar (`#F0F5FF` inputs, `#4da3ff` focus, texto pinned a `#1D0084` en cualquier estado del tab para no quedarse en blanco-sobre-blanco), banner "Pagando como X · email" con botón Cambiar que vuelve al form, mobile-friendly (`overflow-x-hidden`, `min-w-0`, paddings reducidos en sm).
@@ -167,7 +399,14 @@ Fichero canónico: `apps/web/app/auth/matricula-formacion-nawar-a0-a1/checkout.t
   - **Bug arreglado de paso**: `get_cached_course_meta` cacheaba la ficha del curso en Redis con una clave SIN usuario, pero el payload lleva `is_locked`/`unlock_date` del goteo, que dependen de la fecha de alta de cada alumno → quien calentaba la caché decidía los candados que veían los demás durante un minuto. Ahora la clave lleva el usuario y la invalidación borra por patrón.
 
 ### Hoja de ruta inmediata (sigue aquí)
-1. **Rebrandear `/matricula-formacion-nawar-a0-a1` en `nawar-web`** para que case con el embedded checkout (mismo logo arriba, misma card blanca sobre fondo Nawar, mismos inputs `#F0F5FF`, mismo botón `#4da3ff` con texto `#0a1656`). Otra sesión Claude del repo `nawar-web` — pásale los tokens de la sección "Design tokens del checkout" más arriba. Mantener todos los campos del form (`first_name`, `last_name`, `email`, `phone`, `country`, `city`, honeypot `website`) y el POST a `/api/enroll`.
+0. **PENDIENTE DEL USUARIO, no es código** (bloquea cosas que ya están hechas):
+   - `LEARNHOUSE_FORMACION_PLAZAS=40` en Railway. Sin ella,
+     `/api/v1/payments/plazas` devuelve `plazas_totales: 0` → **no hay tope, la
+     matrícula no se cierra sola al llenarse y no hay número que enseñar** en el
+     "quedan X plazas". Comprobado en vivo, sigue sin estar.
+   - Decidir si la garantía son 14 o 15 días (ver la sección de arriba).
+   - Copias de seguridad del Postgres en Railway.
+1. **Rebrandear `/matricula-formacion-nawar-a0-a1` en `nawar-web`** para que case con el embedded checkout (mismo logo arriba, misma card blanca sobre fondo Nawar, mismos inputs `#F0F5FF`, mismo botón `#4da3ff` con texto `#0a1656`). Pásale los tokens de la sección "Design tokens del checkout" más arriba. Campos del form: `first_name`, `last_name`, `email`, `phone` + honeypot `website` (país y ciudad ya no están, ver arriba), y el POST a `/api/enroll`.
 2. **Migrar landing + bienvenido a `holandesnawar.com`** (repo `nawar-web`, otra sesión Claude):
    - Página `bienvenido` lista como HTML standalone en `/tmp/nawar-web-files/bienvenido.html` (ya entregada al usuario por SendUserFile).
    - Cuando esté desplegada en holandesnawar.com, **cambiar `return_url` en `checkout.tsx`** + `success_url` (flujo viejo) en `payments.py` para apuntar ahí.
@@ -176,7 +415,7 @@ Fichero canónico: `apps/web/app/auth/matricula-formacion-nawar-a0-a1/checkout.t
    - Plan: webhook desde nuestro `enroll_and_checkout` → push a Brevo (o el CRM elegido) con tags `matriculado-sin-pagar` para que el usuario lance campañas de recuperación.
    - Listar candidatos manualmente: query `SELECT * FROM enrollment WHERE status='pending' AND created_at < now() - interval '1 hour'`.
 3. **Otros automation emails intern**: weekly_digest, module_unlocked, new_announcement, event_upcoming, consulta_answered. Templates ya listos en `emails.py` (probados vía `/superadmin/email-test/all`); falta cablear los disparadores reales (cron lunes para digest, hook al desbloquear módulo, etc.).
-4. **Embeber Consultas** (https://consultas-tau.vercel.app): bloqueado por CSP en su lado. Pendiente que el usuario active `frame-ancestors https://academia.holandesnawar.nl`.
+4. **Embeber Consultas** (https://consultas-tau.vercel.app): bloqueado por CSP en su lado. Pendiente que el usuario active `frame-ancestors https://app.holandesnawar.com`.
 5. **Modo nocturno** plataforma (ThemeProvider + variantes `dark:` clave + persistir en `student_progress.theme`).
 6. **Certificado PDF** al terminar formación (motivación).
 
@@ -245,12 +484,81 @@ La formación 497 se vende por **email a la lista filtrada** con checkout normal
 - **TTS de los diálogos (Luisteren):** voz por defecto ElevenLabs en la ruta `apps/web/app/api/tts/route.ts` (`language_code: 'nl'` para evitar acento inglés). Los diálogos alternan **dos voces** por interlocutor: `DIALOGUE_VOICE_A`/`DIALOGUE_VOICE_B` en `LessonViewer.tsx` (A=chico `5zhopMftSdRGaPYVcwKK`, B=chica `yO6w2xlECAQRFP6pX7Hw`). La API key va en env `ELEVENLABS_API_KEY` (Railway).
 
 ## Notas de flujo de trabajo
-- Desarrollar en `claude/adoring-dijkstra-rI3FL`.
+- **La rama de desarrollo cambia por sesión.** Comprobar con
+  `git branch --show-current` antes de dar por buena ninguna que ponga aquí. Han
+  sido `claude/adoring-dijkstra-rI3FL` y `claude/luisteren-y-progreso` (ago 2026,
+  PR #6 contra `dev`).
+- **Probar las rutas de la landing en local, de verdad.** `astro dev` en un
+  puerto suelto + `curl` a `127.0.0.1` (localhost no pasa por el proxy) prueba el
+  circuito completo: 401 sin secreto, 400 con email inválido, 405 en GET y el
+  camino de fallo blando cuando systeme.io no responde. Se pilla más así que
+  leyendo el código.
+- **Cuidado con el directorio de trabajo de la shell**: se resetea a `/home/user`
+  entre llamadas. Un `astro build` lanzado desde ahí falla con
+  `Cannot resolve entry module astro/entrypoints/prerender` — no es un error del
+  código, es que no estás en el repo. Usar rutas absolutas o `cd` en la misma
+  orden.
 - `git push` está bloqueado en el contenedor → usar MCP GitHub (`mcp__github__push_files`) o, en este entorno, el sandbox permite `git push` directo via http://127.0.0.1.
 - Preview: cambiar la rama Source en Railway; `dev` = fallback seguro. Railway solo publica builds que compilan.
 - **Verificar tipos antes de subir**: `cd apps/web && bunx tsc --noEmit`.
 - **Verificar Python**: `cd apps/api && python -m py_compile <archivos>`.
+- ⚠️ **`py_compile` NO BASTA. Antes de subir CUALQUIER cosa del backend, importar la aplicación:**
+  `cd apps/api && python -m pytest src/tests/test_app_imports.py -q`
+  **Por qué (apagón del 21/08/2026):** en `src/router.py` se escribió
+  `router.include_router(...)` en vez de `v1_router.include_router(...)`. Eso es un
+  **NameError de nivel de módulo**: `py_compile` solo mira la SINTAXIS y pasó limpia,
+  pero al importar, la API murió en el arranque. nginx y la web seguían perfectos —
+  por eso el síntoma fue **502 solo en `/api/v1`** y la escuela inservible.
+  El test `src/tests/test_app_imports.py` importa el router y comprueba que siguen
+  registradas las rutas de las que vive la escuela (health, users, orgs, messages,
+  student, payments). Está verificado que falla si se reintroduce ese bug.
+  **Diagnóstico rápido de un apagón:** `curl -o /dev/null -w "%{http_code}" .../api/v1/health`
+  → 502 con `/login` a 200 significa **API caída, nginx y web bien** (mira los logs de
+  la API, no toques nginx). Si TODO da 502, entonces sí es nginx o el contenedor.
 - **El bug de routing de Next.js root-level**: NO crear páginas en `app/<x>/page.tsx`. Siempre dentro de subcarpetas existentes (`app/auth/<x>/`, etc.) hasta que se entienda la causa.
 
-## MCP GitHub
-Esta sesión solo tiene acceso al repo `holandesnawar/learnhouse`. Para tocar `nawar-web` hay que **abrir otra sesión** de Claude Code conectada a ese repo, pasarle el contexto desde aquí (este CLAUDE.md) y trabajar en paralelo. Los archivos HTML que esa sesión necesita están en `/tmp/nawar-web-files/`.
+## MCP GitHub y los dos repos (actualizado ago 2026)
+
+**Ya no hace falta una sesión por repo.** Desde agosto de 2026 la sesión puede
+tener los DOS repos a la vez (`holandesnawar/learnhouse` y
+`holandesnawar/nawar-web`), clonados en `/home/user/learnhouse` y
+`/home/user/nawar-web`. Comprueba el alcance real antes de decirle a nadie que
+hay que abrir otra sesión.
+
+### Ojo con las ramas de `nawar-web`
+La landing se ha trabajado desde varias sesiones a la vez y **`main` corre más
+que las ramas viejas**. Pasó de verdad: una rama con el rework de la landing se
+quedó **36 commits por detrás** de `main`, y un barrido de "cambia el dominio en
+todos lados" hecho sobre ella **no vio archivos que solo existían en `main`**
+(`src/lib/plazas.ts`, `src/pages/api/plazas.ts`).
+
+**Regla:** antes de buscar o cambiar algo en `nawar-web`, comprobar la
+divergencia (`git rev-list --left-right --count origin/main...HEAD`) y, si la
+hay, **buscar sobre `origin/main`** (`git grep <lo-que-sea> origin/main`), no
+sobre el checkout local. Para trabajo aislado (un endpoint nuevo, un retoque),
+rama nueva desde `origin/main` y PR pequeño: llega a producción hoy, sin
+arrastrar lo que haya pendiente en otra rama.
+
+### Páginas de `nawar-web`: cuidado con las copias sueltas
+En la raíz del repo hay copias muertas (`bienvenido.astro`,
+`matricula-formacion-nawar-a0-a1.astro`) que **no se sirven**. Las de verdad
+están en `src/pages/`. Si editas una y no cambia nada en producción, es que has
+editado la copia.
+
+## Lo que el proxy de este entorno BLOQUEA (403 de política)
+Perder media hora peleándose con esto ya ha pasado dos veces. Lista comprobada:
+
+- `docs.holandesnawar.com` y `d1yei2z3i6k35z.cloudfront.net` (los CDNs de las
+  imágenes).
+- `app.holandesnawar.com` y `www.holandesnawar.com` — **la escuela y la web
+  propias no se pueden abrir desde aquí**.
+- `*.vercel.app` (las previews de la landing).
+- `api.systeme.io`, `developer.systeme.io`, `rollout.com`.
+
+**Lo que SÍ se alcanza: `academia.holandesnawar.nl`**, que sigue apuntando al
+mismo contenedor. Sirve para comprobar la API en producción de verdad:
+`curl https://academia.holandesnawar.nl/api/v1/health`. La API no mira el host
+para decidir qué rutas sirve, así que lo que responde ahí responde en el `.com`.
+
+Cuando no se pueda comprobar algo por esto, **decirlo** en vez de dar por hecho
+que funciona.

@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import {
+  DirectAttachment,
   DirectMessage,
   DirectThread,
   DirectThreadDetail,
@@ -17,8 +18,10 @@ import {
   sendDirectMessage,
   updateDirectWelcome,
   updateStaffTitles,
+  uploadMessageAttachment,
 } from '@services/messages/direct'
 import VoiceRecorder from './VoiceRecorder'
+import ComposerButton from '@components/Objects/Communities/ComposerButton'
 import { COMPOSER_EMOJIS } from '@/lib/chat/emojis'
 import toast from 'react-hot-toast'
 import {
@@ -26,17 +29,30 @@ import {
   BadgeCheck,
   BellRing,
   Check,
+  FileText,
+  ImageIcon,
   Loader2,
   MessageSquare,
+  Paperclip,
   Pencil,
   PenSquare,
+  Mic,
   Search,
   Send,
+  Settings,
   Smile,
   Sparkles,
   Users,
   X,
 } from 'lucide-react'
+
+/** "1,4 MB" — para que un archivo diga lo que pesa antes de abrirlo. */
+function prettySize(bytes: number): string {
+  if (!bytes) return ''
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1).replace('.', ',')} MB`
+}
 
 /**
  * Mensajes directos.
@@ -45,8 +61,18 @@ import {
  *   concreto desde el buscador.
  * - Equipo: la bandeja de alumnos, y el buscador para escribir el primero.
  *
- * En móvil es una sola columna: lista → conversación, con flecha para volver.
- * Antes la conversación y la lista competían por la pantalla y no se usaba.
+ * **La página ES el chat**, igual que un canal de la comunidad: ocupa la
+ * pantalla entera, no se desplaza (solo la lista de mensajes) y el compositor
+ * vive pegado abajo. Antes era una tarjeta con bordes redondeados flotando en
+ * medio de una página que se desplazaba, con las tarjetas de administración
+ * empujándola hacia abajo: en móvil la conversación quedaba en un recuadro
+ * pequeño con medio hueco en blanco.
+ *
+ * Los ajustes del equipo (bienvenida automática y cargos) ya no van en el
+ * camino de la conversación: viven detrás de la rueda dentada de la bandeja.
+ *
+ * En móvil es una sola columna: bandeja → conversación a pantalla completa,
+ * con flecha para volver.
  */
 export default function MessagesPage() {
   const session = useLHSession() as any
@@ -61,6 +87,8 @@ export default function MessagesPage() {
   const [activeAvatar, setActiveAvatar] = useState('')
   const [activeRole, setActiveRole] = useState('')
   const [emojiOpen, setEmojiOpen] = useState(false)
+  // La grabadora se abre desde su icono, como en la comunidad.
+  const [recording, setRecording] = useState(false)
   // Avisar al alumno por correo con ESTE mensaje. Apagado por defecto: el
   // sobre y la campana ya avisan dentro, el correo es para lo importante.
   const [notify, setNotify] = useState(false)
@@ -75,7 +103,14 @@ export default function MessagesPage() {
   const [query, setQuery] = useState('')
   const [people, setPeople] = useState<DirectoryEntry[]>([])
   const [searching, setSearching] = useState(false)
+  // Ajustes del equipo (fuera de la conversación).
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  // Fotos y archivos ya subidos, esperando a salir con el mensaje.
+  const [pending, setPending] = useState<DirectAttachment[]>([])
+  const [uploading, setUploading] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
 
   const refreshBadge = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['messages', 'unread'] })
@@ -126,6 +161,8 @@ export default function MessagesPage() {
     setActiveAvatar(avatar)
     setActiveRole(role)
     setMessages([])
+    // Lo que estuviera preparado era para la otra conversación.
+    setPending([])
     setMobileView('chat')
     const detail = await getThread(id, accessToken)
     if (detail) setMessages(detail.messages)
@@ -179,7 +216,26 @@ export default function MessagesPage() {
     setActiveAvatar(detail.thread.title_avatar || person.avatar || '')
     setActiveRole(detail.thread.title_role || '')
     setMessages(detail.messages)
+    setPending([])
     setMobileView('chat')
+  }
+
+  /** Sube lo que se acaba de elegir y lo deja listo para enviar. */
+  const attach = async (files: FileList | null) => {
+    if (!files?.length || !accessToken) return
+    setUploading(true)
+    try {
+      for (const file of Array.from(files).slice(0, 4)) {
+        const uploaded = await uploadMessageAttachment(file, accessToken)
+        setPending((cur) => [...cur, uploaded])
+      }
+    } catch (e: any) {
+      toast.error(e?.message || 'No se pudo subir el archivo')
+    } finally {
+      setUploading(false)
+      if (imageInputRef.current) imageInputRef.current.value = ''
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
   }
 
   const push = (m: DirectMessage | null) => {
@@ -193,11 +249,18 @@ export default function MessagesPage() {
 
   const sendText = async () => {
     const body = text.trim()
-    if (!body || sending || !activeId) return
+    // Una foto o un archivo se mandan solos, sin escribir nada.
+    if ((!body && !pending.length) || sending || !activeId) return
     setSending(true)
-    const m = await sendDirectMessage({ threadId: activeId, body, notify }, accessToken)
+    const m = await sendDirectMessage(
+      { threadId: activeId, body, notify, attachments: pending },
+      accessToken
+    )
     setSending(false)
-    if (m) setText('')
+    if (m) {
+      setText('')
+      setPending([])
+    }
     // El aviso se apaga después de cada envío: así escribir tres mensajes
     // seguidos no manda tres correos sin querer. Se vuelve a encender a mano
     // cuando de verdad haga falta.
@@ -223,29 +286,53 @@ export default function MessagesPage() {
     push(m)
   }
 
+  // Alto de la pantalla menos la barra superior del móvil, igual que un canal.
+  const pageHeight = 'h-[calc(100dvh-3.5rem)] md:h-[100dvh]'
+
   if (!accessToken) {
     return <p className="p-8 text-sm text-gray-500">Entra a tu cuenta para ver tus mensajes.</p>
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20 text-gray-500 gap-2">
+      <div className={`${pageHeight} flex items-center justify-center text-gray-500 gap-2`}>
         <Loader2 size={18} className="animate-spin" /> Cargando tus mensajes…
       </div>
     )
   }
 
-  const threadList = (
-    <div className="flex flex-col gap-2">
-      <button
-        onClick={() => setPickerOpen(true)}
-        className="inline-flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] font-bold text-[14px] transition-colors"
-      >
-        <PenSquare size={15} />
-        {isStaff ? 'Escribir a un alumno' : 'Escribir a un moderador'}
-      </button>
+  /* ── Bandeja (columna izquierda en escritorio, pantalla entera en móvil) ── */
+  const inbox = (
+    <div className="h-full min-h-0 flex flex-col">
+      <div className="shrink-0 px-4 sm:px-5 pt-4 pb-3 border-b border-[#EEF3FB]">
+        <div className="flex items-center gap-2">
+          <MessageSquare size={20} className="text-[#025dc7] shrink-0" />
+          <h1 className="text-[19px] font-bold text-gray-900 flex-1 min-w-0 truncate">
+            Mis mensajes
+          </h1>
+          {isStaff && (
+            <button
+              type="button"
+              onClick={() => setSettingsOpen(true)}
+              aria-label="Ajustes de los mensajes"
+              title="Ajustes de los mensajes"
+              className="shrink-0 inline-flex items-center justify-center w-9 h-9 text-[#4B5563] hover:text-[#025dc7] transition-colors"
+            >
+              <Settings size={18} />
+            </button>
+          )}
+        </div>
 
-      <div className="space-y-1.5 lg:max-h-[62vh] lg:overflow-y-auto lh-thin-scroll">
+        <button
+          onClick={() => setPickerOpen(true)}
+          className="mt-3 inline-flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] font-bold text-[14px] transition-colors"
+        >
+          <PenSquare size={15} />
+          {isStaff ? 'Escribir a un alumno' : 'Escribir a un moderador'}
+        </button>
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden lh-thin-scroll px-3 py-3 space-y-1.5">
         {threads.length === 0 ? (
           <p className="text-sm text-gray-500 px-1 py-3">
             {isStaff
@@ -259,7 +346,7 @@ export default function MessagesPage() {
               onClick={() => openThread(t.id, t.title, t.title_avatar, t.title_role)}
               className={`w-full text-left rounded-xl border px-3 py-2.5 transition-colors ${
                 activeId === t.id
-                  ? 'bg-white border-[#4da3ff]'
+                  ? 'bg-[#F7FAFF] border-[#4da3ff]'
                   : 'bg-white border-[#DDE6F5] hover:border-[#4da3ff]/60'
               }`}
             >
@@ -293,20 +380,21 @@ export default function MessagesPage() {
     </div>
   )
 
+  /* ── Conversación: cabecera, mensajes y compositor pegado abajo ── */
   const conversation = (
-    <div className="flex flex-col h-[70vh] min-h-[420px] bg-white border border-[#DDE6F5] rounded-2xl overflow-hidden">
-      {/* Cabecera: en móvil lleva la flecha para volver a la lista */}
-      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-[#EEF2FB]">
+    <div className="h-full min-h-0 flex flex-col bg-white">
+      {/* Cabecera: en móvil lleva la flecha para volver a la bandeja */}
+      <div className="shrink-0 flex items-center gap-2 px-3 sm:px-4 py-2.5 border-b border-[#EEF3FB]">
         <button
           onClick={() => setMobileView('list')}
-          aria-label="Volver"
-          className="lg:hidden shrink-0 w-8 h-8 inline-flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100"
+          aria-label="Volver a mis mensajes"
+          className="lg:hidden shrink-0 w-8 h-8 inline-flex items-center justify-center text-[#4B5563] hover:text-[#025dc7] transition-colors"
         >
-          <ArrowLeft size={17} />
+          <ArrowLeft size={18} />
         </button>
         <Avatar src={activeAvatar} name={activeTitle || 'Conversación'} size={34} />
         <span className="min-w-0">
-          <span className="block text-[14px] font-bold text-[#0a1656] truncate leading-tight">
+          <span className="block text-[14.5px] font-bold text-[#0a1656] truncate leading-tight">
             {activeTitle || 'Conversación'}
           </span>
           {activeRole && (
@@ -317,7 +405,10 @@ export default function MessagesPage() {
         </span>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto lh-thin-scroll p-4 space-y-3">
+      <div
+        ref={scrollRef}
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden lh-thin-scroll px-3 sm:px-4 py-4 space-y-3"
+      >
         {messages.length === 0 ? (
           <p className="text-center text-sm text-gray-400 py-10">
             Aquí no hay nada todavía. Escribe lo que necesites.
@@ -335,7 +426,7 @@ export default function MessagesPage() {
       </div>
 
       {emojiOpen && (
-        <div className="mx-3 mb-1 grid grid-cols-8 gap-1 rounded-xl border border-[#DDE6F5] bg-white p-2">
+        <div className="shrink-0 mx-3 mb-1 grid grid-cols-8 gap-1 rounded-xl border border-[#DDE6F5] bg-white p-2">
           {COMPOSER_EMOJIS.map((e) => (
             <button
               key={e}
@@ -353,7 +444,7 @@ export default function MessagesPage() {
       )}
 
       {isStaff && notify && (
-        <div className="mx-3 mb-1 flex items-center gap-2 rounded-xl bg-[#F0F5FF] px-3 py-2">
+        <div className="shrink-0 mx-3 mb-1 flex items-center gap-2 rounded-xl bg-[#F0F5FF] px-3 py-2">
           <BellRing size={14} className="text-[#025dc7] shrink-0" />
           <p className="text-[12px] text-[#0a1656] leading-snug">
             Al enviar, el alumno recibirá un correo avisándole. No se le cuenta lo que dice el
@@ -362,62 +453,162 @@ export default function MessagesPage() {
         </div>
       )}
 
-      <div className="border-t border-[#EEF2FB] p-3 flex items-end gap-2">
-        <VoiceRecorder onSend={sendVoice} sending={sending} />
-        {isStaff && (
-          <button
-            type="button"
-            onClick={() => setNotify((v) => !v)}
-            title={notify ? 'Se avisará por correo' : 'Avisar por correo al enviar'}
-            aria-label="Avisar por correo"
-            aria-pressed={notify}
-            className={`shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg transition-colors ${
-              notify
-                ? 'bg-[#025dc7]/10 text-[#025dc7]'
-                : 'text-gray-400 hover:text-[#025dc7] hover:bg-[#F0F5FF]'
-            }`}
-          >
-            <BellRing size={18} />
-          </button>
+      {/* El mismo compositor que la comunidad: el texto arriba, los iconos
+          debajo y sin bolitas grises. Que Mis mensajes y la comunidad se
+          escriban igual es lo que hace que la escuela parezca una sola cosa. */}
+      <div className="shrink-0 border-t border-[#EEF3FB] px-3 py-3">
+        {recording && (
+          <div className="mb-2 rounded-xl bg-white border border-[#E3E8EF] px-3 py-2.5">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[12px] font-semibold text-[#5A6480]">Nota de voz</span>
+              <button
+                type="button"
+                onClick={() => setRecording(false)}
+                aria-label="Cerrar la grabadora"
+                className="text-[#9CA3AF] hover:text-[#025dc7] transition-colors"
+              >
+                <X size={15} />
+              </button>
+            </div>
+            <VoiceRecorder onSend={sendVoice} sending={sending} />
+          </div>
         )}
-        <button
-          type="button"
-          onClick={() => setEmojiOpen((v) => !v)}
-          title="Emojis"
-          aria-label="Emojis"
-          className={`shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg transition-colors ${
-            emojiOpen ? 'bg-[#025dc7]/10 text-[#025dc7]' : 'text-gray-400 hover:text-[#025dc7] hover:bg-[#F0F5FF]'
-          }`}
-        >
-          <Smile size={18} />
-        </button>
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault()
-              sendText()
-            }
-          }}
-          rows={1}
-          placeholder="Escribe tu mensaje…"
-          className="flex-1 resize-none bg-gray-50 rounded-xl px-3 py-2.5 text-[15px] sm:text-sm text-gray-900 placeholder:text-gray-400 outline-none max-h-32 focus:ring-2 focus:ring-[#025dc7]/20"
-        />
-        <button
-          onClick={sendText}
-          disabled={!text.trim() || sending}
-          aria-label="Enviar"
-          className="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg text-white bg-[#025dc7] hover:bg-[#0b6df0] transition-colors disabled:opacity-40"
-        >
-          {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-        </button>
+
+        {/* Lo que va a salir con el mensaje */}
+        {(pending.length > 0 || uploading) && (
+          <div className="mb-2 flex flex-wrap gap-2">
+            {pending.map((f, i) => (
+              <div
+                key={i}
+                className="relative group/att rounded-lg border border-[#DDE6F5] bg-white overflow-hidden"
+              >
+                {f.kind === 'image' ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={mediaSrc(f.url)} alt={f.name} className="h-16 w-16 object-cover" />
+                ) : (
+                  <div className="h-16 px-3 flex items-center gap-2 text-[12px] text-[#5A6480] max-w-[200px]">
+                    {f.kind === 'audio' ? (
+                      <Mic size={14} className="text-[#025dc7] shrink-0" />
+                    ) : (
+                      <FileText size={14} className="text-[#025dc7] shrink-0" />
+                    )}
+                    <span className="truncate">{f.name}</span>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setPending((cur) => cur.filter((_, j) => j !== i))}
+                  title="Quitar"
+                  aria-label="Quitar adjunto"
+                  className="absolute top-0.5 right-0.5 inline-flex items-center justify-center w-5 h-5 rounded-full bg-black/55 text-white opacity-0 group-hover/att:opacity-100 transition-opacity"
+                >
+                  <X size={11} />
+                </button>
+              </div>
+            ))}
+            {uploading && (
+              <div className="h-16 w-16 rounded-lg border border-dashed border-[#DDE6F5] flex items-center justify-center">
+                <Loader2 size={16} className="animate-spin text-[#025dc7]" />
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="rounded-xl border border-[#E3E8EF] bg-white transition-colors focus-within:border-[#4da3ff] focus-within:ring-[3px] focus-within:ring-[#4da3ff]/15">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                sendText()
+              }
+            }}
+            rows={1}
+            placeholder="Escribe tu mensaje…"
+            className="w-full resize-none bg-transparent text-base sm:text-[14.5px] text-gray-900 placeholder:text-[#9CA3AF] outline-none max-h-40 px-3.5 pt-3 pb-1.5"
+          />
+
+          <div className="flex items-center gap-0.5 px-2 pb-2">
+            {/* Archivo */}
+            <input ref={fileInputRef} type="file" hidden onChange={(e) => attach(e.target.files)} />
+            <ComposerButton
+              label="Adjuntar un archivo"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+            >
+              <Paperclip size={17} />
+            </ComposerButton>
+
+            {/* Foto */}
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              hidden
+              onChange={(e) => attach(e.target.files)}
+            />
+            <ComposerButton
+              label="Enviar una foto"
+              onClick={() => imageInputRef.current?.click()}
+              disabled={uploading}
+            >
+              <ImageIcon size={17} />
+            </ComposerButton>
+
+            <ComposerButton
+              label="Grabar una nota de voz"
+              onClick={() => {
+                setRecording((v) => !v)
+                setEmojiOpen(false)
+              }}
+              active={recording}
+            >
+              <Mic size={17} />
+            </ComposerButton>
+            <ComposerButton
+              label="Emojis"
+              onClick={() => {
+                setEmojiOpen((v) => !v)
+                setRecording(false)
+              }}
+              active={emojiOpen}
+            >
+              <Smile size={17} />
+            </ComposerButton>
+            {isStaff && (
+              <ComposerButton
+                label={notify ? 'Se avisará por correo' : 'Avisar por correo al enviar'}
+                onClick={() => setNotify((v) => !v)}
+                active={notify}
+              >
+                <BellRing size={17} />
+              </ComposerButton>
+            )}
+
+            <div className="flex-1" />
+
+            <button
+              onClick={sendText}
+              disabled={(!text.trim() && !pending.length) || sending || uploading}
+              aria-label="Enviar"
+              title="Enviar"
+              className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors bg-[#025dc7] text-white hover:bg-[#0b6df0] disabled:bg-[#EFF1F6] disabled:text-[#B6BECC] disabled:cursor-not-allowed"
+            >
+              {sending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+            </button>
+          </div>
+        </div>
+        <p className="mt-1.5 text-[11px] text-[#9CA3AF] hidden sm:block">
+          Enter envía · Shift + Enter salta de línea
+        </p>
       </div>
     </div>
   )
 
   const emptyPane = (
-    <div className="h-[70vh] min-h-[420px] flex flex-col items-center justify-center text-center bg-white border border-[#DDE6F5] rounded-2xl px-6">
+    <div className="h-full flex flex-col items-center justify-center text-center px-6">
       <MessageSquare size={26} className="text-gray-300 mb-2" />
       <p className="text-sm text-gray-500 max-w-xs">
         Elige una conversación de la izquierda, o escribe a alguien nuevo.
@@ -426,36 +617,21 @@ export default function MessagesPage() {
   )
 
   return (
-    <div className="px-4 sm:px-8 py-8 max-w-6xl mx-auto">
-      <h1 className="text-[24px] sm:text-[30px] font-bold text-[#1D0084] leading-tight">Mensajes</h1>
-      <p className="text-[14px] text-gray-600 mt-1 mb-5">
-        {isStaff
-          ? 'Conversaciones privadas con tus alumnos. Puedes contestar con texto o con una nota de voz.'
-          : 'Tu canal directo con el equipo de Holandés Nawar. Escribe o manda una nota de voz — para pronunciación va de lujo.'}
-      </p>
+    <div className={`${pageHeight} flex overflow-hidden bg-white`}>
+      {/* Bandeja: columna fija en escritorio, pantalla entera en móvil */}
+      <div
+        className={`w-full lg:w-[320px] lg:shrink-0 lg:border-r lg:border-[#EEF3FB] ${
+          mobileView === 'chat' ? 'hidden lg:block' : ''
+        }`}
+      >
+        {inbox}
+      </div>
 
-      {isStaff && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <WelcomeEditor
-            orgId={org?.id}
-            accessToken={accessToken}
-            stored={org?.config?.config?.direct_welcome?.message}
-          />
-          <StaffTitlesEditor
-            orgId={org?.id}
-            accessToken={accessToken}
-            stored={org?.config?.config?.staff_titles?.titles || {}}
-          />
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)] gap-5 mt-5">
-        {/* Lista: siempre en escritorio, en móvil solo cuando toca */}
-        <div className={mobileView === 'chat' ? 'hidden lg:block' : ''}>{threadList}</div>
-
-        <div className={`min-w-0 ${mobileView === 'list' ? 'hidden lg:block' : ''}`}>
-          {activeId ? conversation : emptyPane}
-        </div>
+      {/* Conversación */}
+      <div
+        className={`flex-1 min-w-0 ${mobileView === 'list' ? 'hidden lg:block' : ''}`}
+      >
+        {activeId ? conversation : emptyPane}
       </div>
 
       {pickerOpen && (
@@ -472,6 +648,63 @@ export default function MessagesPage() {
           }}
         />
       )}
+
+      {settingsOpen && (
+        <SettingsPanel onClose={() => setSettingsOpen(false)}>
+          <WelcomeEditor
+            orgId={org?.id}
+            accessToken={accessToken}
+            stored={org?.config?.config?.direct_welcome?.message}
+          />
+          <StaffTitlesEditor
+            orgId={org?.id}
+            accessToken={accessToken}
+            stored={org?.config?.config?.staff_titles?.titles || {}}
+          />
+        </SettingsPanel>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Los ajustes del equipo, en un panel aparte.
+ *
+ * Antes vivían encima de la conversación y la empujaban media pantalla hacia
+ * abajo — y son cosas que se tocan una vez, no cada día.
+ */
+function SettingsPanel({
+  onClose,
+  children,
+}: {
+  onClose: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <div
+      className="fixed inset-0 bg-black/40 flex items-start sm:items-center justify-center p-0 sm:p-6"
+      style={{ zIndex: 'var(--z-modal-content, 220)' }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white w-full h-full sm:h-auto sm:max-h-[85vh] sm:rounded-2xl sm:shadow-xl sm:max-w-lg flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-[#EEF2FB]">
+          <Settings size={17} className="text-[#025dc7] shrink-0" />
+          <span className="text-[14px] font-bold text-[#0a1656] flex-1">
+            Ajustes de los mensajes
+          </span>
+          <button
+            onClick={onClose}
+            aria-label="Cerrar"
+            className="w-8 h-8 inline-flex items-center justify-center text-gray-400 hover:text-[#025dc7] transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        <div className="flex-1 min-h-0 overflow-y-auto lh-thin-scroll p-4 space-y-4">{children}</div>
+      </div>
     </div>
   )
 }
@@ -637,6 +870,63 @@ function Bubble({
                 <span className="ml-1.5 font-semibold text-[#0a1656]/55">· {m.author_title}</span>
               )}
             </p>
+          )}
+          {!!m.attachments?.length && (
+            <div className="space-y-1.5 mb-1.5">
+              {m.attachments.map((f, i) => {
+                if (f.kind === 'image') {
+                  return (
+                    <a
+                      key={i}
+                      href={mediaSrc(f.url)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={mediaSrc(f.url)}
+                        alt={f.name}
+                        loading="lazy"
+                        className="rounded-lg max-h-72 w-auto max-w-full object-cover"
+                      />
+                    </a>
+                  )
+                }
+                if (f.kind === 'audio') {
+                  return (
+                    <audio
+                      key={i}
+                      src={mediaSrc(f.url)}
+                      controls
+                      preload="none"
+                      className="w-full max-w-[280px] h-9"
+                    />
+                  )
+                }
+                return (
+                  <a
+                    key={i}
+                    href={mediaSrc(f.url)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    // `max-w-full` + `min-w-0`: un nombre largo se corta con
+                    // puntos suspensivos en vez de sacar el texto de la pantalla.
+                    className={`inline-flex max-w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12.5px] transition-colors ${
+                      mine
+                        ? 'bg-white/15 hover:bg-white/25 text-white'
+                        : 'bg-white hover:bg-[#e3edff] text-[#025dc7]'
+                    }`}
+                  >
+                    <FileText size={14} className="shrink-0" />
+                    <span className="truncate min-w-0">{f.name}</span>
+                    {!!f.size && (
+                      <span className="shrink-0 opacity-70 tabular-nums">{prettySize(f.size)}</span>
+                    )}
+                  </a>
+                )
+              })}
+            </div>
           )}
           {m.body && (
             <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{m.body}</p>

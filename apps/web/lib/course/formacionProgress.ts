@@ -80,7 +80,7 @@ export interface ModuleRow {
 }
 
 /** Secciones de la app de ejercicios que guardan nota. */
-const PRACTICE_SECTIONS = new Set(['vocabulary', 'flashcards', 'lezen', 'luisteren'])
+const PRACTICE_SECTIONS = new Set(['vocabulary', 'flashcards', 'lezen', 'luisteren', 'spreken'])
 
 /**
  * La "Clase semanal" (los directos) es un curso aparte, no la formación: no
@@ -199,7 +199,7 @@ export function buildFormacionProgress(
         groups.set(groupKey, {
           key: `${ci}-${groupKey}`,
           number,
-          title: number ? `Clase ${number}` : label,
+          title: number ? `Lección ${number}` : label,
           sections: [section],
           done: 0,
           total: 0,

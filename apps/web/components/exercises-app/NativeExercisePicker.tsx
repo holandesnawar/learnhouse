@@ -7,6 +7,7 @@ export const EXERCISE_SECTIONS: { id: string; label: string }[] = [
   { id: 'vocabulary', label: 'Vocabulario (woordenschat)' },
   { id: 'lezen', label: 'Lezen (lectura)' },
   { id: 'luisteren', label: 'Luisteren (escucha)' },
+  { id: 'spreken', label: 'Spreken (qué dices)' },
   { id: 'flashcards', label: 'Flashcards' },
   { id: 'resumen', label: 'Resumen' },
 ]

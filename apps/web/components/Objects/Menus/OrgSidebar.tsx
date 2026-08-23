@@ -69,7 +69,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const { data: unreadRows } = useUnreadCommunity()
   const unreadTotal = (unreadRows || []).reduce((acc, r) => acc + (r.unread || 0), 0)
   const mentionTotal = (unreadRows || []).reduce((acc, r) => acc + (r.mentions || 0), 0)
-  const { rights } = useAdminStatus()
+  const { rights, isProfe } = useAdminStatus()
   const [isOpen, setIsOpen] = useState(false) // mobile drawer
   const [collapsed, setCollapsed] = useState(false) // desktop collapse
   const [isFocusMode, setIsFocusMode] = useState(false)
@@ -182,6 +182,8 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   ]
 
   const dashItems = DASHBOARD_MENU_ITEMS.filter((item: DashboardMenuItem) => {
+    // El profe entra al panel, pero solo a lo suyo.
+    if (isProfe && !item.forProfe) return false
     if (!item.featureKey) return true
     if (rf?.[item.featureKey]) return rf[item.featureKey].enabled
     return isFeatureAvailable(item.featureKey)
@@ -270,7 +272,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         {personalItems.some((i) => i.show) && (
           <>
             <div className="my-2 border-t border-white/10" />
-            <p className="px-3 pt-1 pb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/75">
+            <p className="px-3 pt-1 pb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/75">
               Tu espacio
             </p>
             {personalItems.filter((i) => i.show).map((i) => (
@@ -285,7 +287,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         {isAdmin && dashItems.length > 0 && (
           <>
             <div className="my-2 border-t border-white/10" />
-            <p className="px-3 pt-1 pb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/75">
+            <p className="px-3 pt-1 pb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/75">
               {t('common.dashboard')}
             </p>
             {dashItems.map((item) => {

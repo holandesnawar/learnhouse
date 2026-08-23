@@ -16,7 +16,7 @@ import json
 import logging
 import os
 import secrets
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional, TYPE_CHECKING
 from urllib.parse import quote
 from uuid import uuid4
@@ -33,6 +33,7 @@ from src.db.users import User, UserRead
 from src.security.security import security_hash_password
 from src.services.users.emails import send_payment_welcome_email
 from src.services.users.password_reset import generate_secure_reset_code
+from src.services.orgs.groups import add_user_to_students
 
 logger = logging.getLogger(__name__)
 
@@ -151,11 +152,10 @@ async def ensure_matricula_abierta(db_session: AsyncSession) -> None:
 
 
 def _academy_url() -> str:
-    cfg = get_learnhouse_config()
-    domain = getattr(cfg.hosting_config, "domain", None)
-    if domain:
-        return f"https://{domain}".rstrip("/")
-    return "https://academia.holandesnawar.nl"
+    """La dirección de la escuela. Una sola definición, en `emails.py`."""
+    from src.services.users.emails import _school_url
+
+    return _school_url()
 
 
 # ── checkout ───────────────────────────────────────────────────────────────
@@ -312,6 +312,68 @@ async def _mark_enrollment_paid(
 
 # ── embedded checkout (Stripe Elements) ────────────────────────────────────
 
+#: Cuánto tiempo se considera que una matrícula sin pagar sigue siendo "el
+#: mismo intento". Cubre de sobra el caso real (darle a "Cambiar" y rellenar
+#: otra vez), sin llegar a fundir el intento de hoy con el de la semana pasada,
+#: que sí es una vuelta nueva al embudo y debe contarse aparte.
+_VENTANA_MISMO_INTENTO = timedelta(hours=24)
+
+
+async def _matricula_sin_pagar_reciente(email: str, db_session: AsyncSession):
+    """La matrícula sin pagar que este email dejó abierta hace poco, si la hay.
+
+    Existe para que una sola persona indecisa no cuente como varias. El botón
+    "Cambiar" del checkout devuelve al formulario, y cada vuelta creaba otra
+    fila `pending`: en las estadísticas eso se lee como gente distinta que se
+    matriculó y no pagó, e infla el abandono del embudo.
+
+    Reutilizar la fila también es más seguro que crear otra. El webhook busca
+    por `metadata.enrollment_id`, así que si alguien acaba pagando el intento
+    viejo desde otra pestaña, sigue cayendo en la misma matrícula.
+    """
+    from src.db.enrollment import Enrollment
+
+    stmt = (
+        select(Enrollment)
+        .where(Enrollment.email == email)
+        .where(Enrollment.status == "pending")
+        .order_by(Enrollment.id.desc())  # type: ignore[union-attr]
+        .limit(1)
+    )
+    row = (await db_session.exec(stmt)).first()
+    if row is None:
+        return None
+
+    try:
+        creada = datetime.fromisoformat(str(row.created_at))
+    except (TypeError, ValueError):
+        # Fila antigua con la fecha en otro formato: mejor no tocarla.
+        return None
+
+    if datetime.now() - creada > _VENTANA_MISMO_INTENTO:
+        return None
+    return row
+
+
+def _cancelar_intento_anterior(payment_intent_id: str) -> None:
+    """Cierra el PaymentIntent que queda huérfano al rehacer la matrícula.
+
+    Sin esto, alguien con dos pestañas abiertas podría pagar las dos y acabar
+    cobrado dos veces. Solo se cancelan los que aún no han empezado a cobrarse:
+    tocar uno que esté en mitad del 3DS rompería un pago en curso.
+    """
+    if not payment_intent_id.startswith("pi_"):
+        return
+    try:
+        anterior = stripe.PaymentIntent.retrieve(payment_intent_id)
+        estado = anterior.get("status") if hasattr(anterior, "get") else getattr(anterior, "status", "")
+        if estado in ("requires_payment_method", "requires_confirmation"):
+            stripe.PaymentIntent.cancel(payment_intent_id)
+    except Exception:  # noqa: BLE001
+        # Nunca puede impedir que se abra el pago nuevo.
+        logger.warning("No se pudo cancelar el PaymentIntent %s", payment_intent_id, exc_info=True)
+
+
 async def enroll_and_payment_intent(data, db_session: AsyncSession) -> dict:
     """Save the prospect + create a PaymentIntent for our embedded Elements
     checkout (the page at /auth/matricula-formacion-nawar-a0-a1/pago).
@@ -361,19 +423,34 @@ async def enroll_and_payment_intent(data, db_session: AsyncSession) -> dict:
 
     # Persist the enrollment row first so we have its id for the PI metadata.
     now = datetime.now().isoformat()
-    row = Enrollment(
-        email=email,
-        first_name=data.first_name,
-        last_name=data.last_name,
-        phone=data.phone or "",
-        country=data.country or "",
-        city=data.city or "",
-        status="pending",
-        stripe_customer_id=customer.id,
-        stripe_session_id="",
-        created_at=now,
-        updated_at=now,
-    )
+    # Si esta persona ya dejó una matrícula sin pagar hace un rato, se reaprovecha
+    # su fila en vez de crear otra: es el mismo intento, no una persona nueva.
+    row = await _matricula_sin_pagar_reciente(email, db_session)
+    if row is not None:
+        intento_huerfano = row.stripe_session_id
+        row.first_name = data.first_name
+        row.last_name = data.last_name
+        row.phone = data.phone or ""
+        row.country = data.country or ""
+        row.city = data.city or ""
+        row.stripe_customer_id = customer.id
+        row.updated_at = now
+        if intento_huerfano:
+            _cancelar_intento_anterior(intento_huerfano)
+    else:
+        row = Enrollment(
+            email=email,
+            first_name=data.first_name,
+            last_name=data.last_name,
+            phone=data.phone or "",
+            country=data.country or "",
+            city=data.city or "",
+            status="pending",
+            stripe_customer_id=customer.id,
+            stripe_session_id="",
+            created_at=now,
+            updated_at=now,
+        )
     db_session.add(row)
     await db_session.commit()
     await db_session.refresh(row)
@@ -545,6 +622,7 @@ async def _create_paid_user(
             )
             db_session.add(link)
             await db_session.commit()
+        await add_user_to_students(existing.id or 0, org.id or 0, db_session)
         return existing, False
 
     first_name, _, last_name = (full_name or "").strip().partition(" ")
@@ -575,6 +653,7 @@ async def _create_paid_user(
     )
     db_session.add(link)
     await db_session.commit()
+    await add_user_to_students(user.id or 0, org.id or 0, db_session)
     return user, True
 
 
@@ -668,6 +747,18 @@ async def _provision_after_payment(
 
     user, created = await _create_paid_user(email, name, db_session)
 
+    # Quién es y en qué escuela: lo necesitan las automatizaciones de
+    # "cuando alguien paga", que se lanzan desde quien nos llama.
+    who = {"user_id": user.id, "org_id": None}
+    try:
+        who["org_id"] = (
+            await db_session.execute(
+                select(UserOrganization.org_id).where(UserOrganization.user_id == user.id)
+            )
+        ).scalars().first()
+    except Exception:
+        logger.exception("No se pudo averiguar la escuela de %s", email)
+
     if not created:
         # Stripe retried the webhook (or it was delivered twice): the account
         # was already provisioned. Re-assert the CRM tag (idempotent) but do
@@ -679,12 +770,12 @@ async def _provision_after_payment(
         except Exception:
             logger.exception("Systeme tag update failed for %s", email)
         logger.info("Account for %s already provisioned — skipping welcome email", email)
-        return {"detail": "already provisioned", "created": False}
+        return {"detail": "already provisioned", "created": False, **who}
 
     code = _store_reset_code(user)
     if not code:
         logger.error("Could not generate reset code for %s; user exists, email not sent", email)
-        return {"detail": "user created but reset email could not be sent", "created": True}
+        return {"detail": "user created but reset email could not be sent", "created": True, **who}
 
     user_read = UserRead.model_validate(user)
     try:
@@ -703,7 +794,7 @@ async def _provision_after_payment(
     except Exception:
         logger.exception("Systeme tag update failed for %s", email)
 
-    return {"detail": "ok", "created": True}
+    return {"detail": "ok", "created": True, **who}
 
 
 async def _handle_checkout_session(obj: dict, db_session: AsyncSession) -> dict:
@@ -778,6 +869,21 @@ async def _handle_payment_intent(obj: dict, db_session: AsyncSession) -> dict:
             amount=amount,
             currency=currency,
             description="Formación Nawar A0-A1",
+        )
+
+    # Y lo que el admin haya montado para "cuando alguien paga". Se traga sus
+    # propios errores: el cobro ya está hecho y la cuenta creada.
+    user_id = result.get("user_id")
+    org_id = result.get("org_id")
+    if user_id and org_id:
+        from src.services.automations.engine import run_trigger
+
+        await run_trigger(
+            "payment_completed",
+            int(org_id),
+            int(user_id),
+            db_session,
+            extra={"importe": f"{amount / 100:.2f} {currency.upper()}"},
         )
 
     return result

@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import * as Form from '@radix-ui/react-form'
 import BarLoader from 'react-spinners/BarLoader'
-import { Globe, PuzzlePiece, FilmSlate } from '@phosphor-icons/react'
+import { Globe, PuzzlePiece, FilmSlate, BookOpen } from '@phosphor-icons/react'
+import { GUIDE_OPTIONS } from '@components/Pages/Guides/guidesContent'
 import NativeExercisePicker from '@components/exercises-app/NativeExercisePicker'
 import SituacionPicker from '@components/exercises-app/SituacionPicker'
 import { getSituacion } from '@/lib/exercises-app/situaciones'
@@ -13,7 +14,8 @@ function EmbedActivityModal({ submitActivity, chapterId, course }: any) {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Mode: web embed (URL) vs native Nawar exercise vs Nawar video situación
-  const [mode, setMode] = useState<'web' | 'nawar' | 'video'>('web')
+  const [mode, setMode] = useState<'web' | 'nawar' | 'video' | 'guia'>('web')
+  const [guideId, setGuideId] = useState('')
   const [exModuleId, setExModuleId] = useState('')
   const [exLessonId, setExLessonId] = useState('')
   const [exSection, setExSection] = useState('vocabulary')
@@ -37,9 +39,12 @@ function EmbedActivityModal({ submitActivity, chapterId, course }: any) {
         ? { embed_url: `nawar:${exModuleId}/${exLessonId}/${exSection}` }
         : mode === 'video'
         ? { embed_url: `nawar-video:${situacionId}`, video_title: videoTitle.trim(), video_desc: videoDesc.trim() }
+        : mode === 'guia'
+        ? { embed_url: `nawar-guia:${guideId}` }
         : { embed_url: embedUrl }
     if (mode === 'nawar' && (!exModuleId || !exLessonId)) return
     if (mode === 'video' && !situacionId) return
+    if (mode === 'guia' && !guideId) return
     setIsSubmitting(true)
     await submitActivity({
       name: activityName,
@@ -112,6 +117,13 @@ function EmbedActivityModal({ submitActivity, chapterId, course }: any) {
           >
             <FilmSlate size={16} weight="duotone" /> Echt Nederlands
           </button>
+          <button
+            type="button"
+            onClick={() => setMode('guia')}
+            className={`inline-flex items-center gap-1.5 h-8 px-3 text-sm font-medium rounded-md transition-colors ${mode === 'guia' ? 'bg-white text-gray-900 nice-shadow' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            <BookOpen size={16} weight="duotone" /> Guía de la escuela
+          </button>
         </div>
 
         {mode === 'web' ? (
@@ -148,6 +160,26 @@ function EmbedActivityModal({ submitActivity, chapterId, course }: any) {
                 setExSection(s)
               }}
             />
+          </div>
+        ) : mode === 'guia' ? (
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-gray-700">¿Cuál de las guías?</label>
+            <select
+              value={guideId}
+              onChange={(e) => setGuideId(e.target.value)}
+              className="w-full h-9 px-3 text-sm rounded-lg bg-gray-50 border border-gray-200 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-200 transition-colors"
+            >
+              <option value="">Elige una guía…</option>
+              {GUIDE_OPTIONS.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500">
+              El texto ya está escrito en la plataforma: se ve igual en móvil y en
+              ordenador.
+            </p>
           </div>
         ) : (
           <div className="space-y-3">

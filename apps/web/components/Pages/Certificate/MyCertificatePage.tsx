@@ -88,7 +88,7 @@ export default function MyCertificatePage(props: { orgslug: string; uuid: string
 
   return (
     <div className="px-4 sm:px-8 py-8 max-w-4xl mx-auto">
-      <p className="text-[12px] font-bold text-[#4da3ff] tracking-wider uppercase">
+      <p className="text-[12px] font-semibold text-[#4da3ff] tracking-wider uppercase">
         Holandés Nawar
       </p>
       <h1 className="text-[24px] sm:text-[30px] font-bold text-[#1D0084] leading-tight mt-1 mb-1">

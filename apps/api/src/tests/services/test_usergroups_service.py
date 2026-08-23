@@ -255,7 +255,9 @@ class TestUsergroupsService:
 
         assert created.name == "UG"
         assert fetched.usergroup_uuid == created.usergroup_uuid
-        assert len(listed) == 1
+        # Al listar aparecen también los dos grupos de la escuela, que se crean
+        # solos: "Alumnos" y "Profes".
+        assert {g.name for g in listed} == {"UG", "Alumnos", "Profes"}
         assert updated.name == "Updated"
         assert updated_description.description == "Updated Desc"
         assert deleted == "UserGroup deleted successfully"

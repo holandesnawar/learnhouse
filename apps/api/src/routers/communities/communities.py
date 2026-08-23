@@ -32,6 +32,8 @@ class CommunityCreateRequest(BaseModel):
     description: str | None = None
     public: bool = True
     course_id: int | None = None
+    # "chat" (por defecto) o "posts" para que el canal sea un tablón.
+    kind: str = "chat"
 
 
 @router.post(
@@ -64,6 +66,7 @@ async def api_create_community(
         name=community_data.name,
         description=community_data.description,
         public=community_data.public,
+        kind=community_data.kind if community_data.kind in ("chat", "posts") else "chat",
         org_id=org_id,
         course_id=community_data.course_id,
     )
@@ -342,3 +345,48 @@ async def api_update_community_thumbnail(
     await db_session.refresh(community)
 
     return CommunityRead.model_validate(community.model_dump())
+
+
+@router.post(
+    "/{community_uuid}/attachments",
+    summary="Sube una foto, un audio o un archivo para el chat de la comunidad.",
+    description=(
+        "Guarda el archivo (en Cloudflare R2 si está configurado, si no en el "
+        "volumen) y devuelve con qué pintarlo: {url, name, kind, size}. Hay que "
+        "ser miembro de la comunidad."
+    ),
+)
+async def api_upload_attachment(
+    request: Request,
+    community_uuid: str,
+    file: UploadFile,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from fastapi import HTTPException
+
+    from src.services.communities.attachments import upload_attachment
+
+    community = (
+        await db_session.execute(
+            select(Community).where(Community.community_uuid == community_uuid)
+        )
+    ).scalars().first()
+    if not community:
+        raise HTTPException(status_code=404, detail="Community not found")
+
+    # Mismo permiso que escribir en el canal: si puedes leerlo, puedes adjuntar.
+    await check_resource_access(
+        request, db_session, current_user, community_uuid, AccessAction.READ
+    )
+
+    org = (
+        await db_session.execute(
+            select(Organization).where(Organization.id == community.org_id)
+        )
+    ).scalars().first()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    return await upload_attachment(file, org.org_uuid)
+

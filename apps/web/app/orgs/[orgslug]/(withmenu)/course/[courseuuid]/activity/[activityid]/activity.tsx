@@ -57,6 +57,7 @@ const MarkdownActivity = lazy(() => import('@components/Objects/Activities/Markd
 const EmbedActivity = lazy(() => import('@components/Objects/Activities/Embed/EmbedActivity'))
 const NativeExerciseActivity = lazy(() => import('@components/exercises-app/NativeExerciseActivity'))
 const SituacionViewer = lazy(() => import('@components/exercises-app/SituacionViewer'))
+const SchoolGuide = lazy(() => import('@components/Pages/Guides/SchoolGuide'))
 import { getSituacion } from '@/lib/exercises-app/situaciones'
 
 // Loading fallback component
@@ -94,9 +95,17 @@ function parseNativeVideo(embedUrl: string): { situacionId: string } | null {
   return m ? { situacionId: m[1] } : null;
 }
 
+// Una guía de la escuela (las del módulo 0), escrita en código:
+//   embed_url = "nawar-guia:<uso|estudio>"
+function parseNativeGuide(embedUrl: string): { guideId: string } | null {
+  if (!embedUrl) return null;
+  const m = embedUrl.match(/^nawar-guia:(.+)$/);
+  return m ? { guideId: m[1] } : null;
+}
+
 // Secciones de la app de ejercicios que SÍ son "ejercicios" (hay que hacerlos
 // para avanzar). El resumen (samenvatting) es contenido → se completa al abrirlo.
-const NAWAR_EXERCISE_SECTIONS = new Set(['vocabulary', 'flashcards', 'lezen', 'luisteren']);
+const NAWAR_EXERCISE_SECTIONS = new Set(['vocabulary', 'flashcards', 'lezen', 'luisteren', 'spreken']);
 
 // ¿Esta actividad es un ejercicio (hay que completarlo) o contenido (basta verlo)?
 // Contenido: vídeo, documento, texto/markdown y el resumen embebido.
@@ -480,6 +489,19 @@ function ActivityClient(props: ActivityClientProps) {
                 </Suspense>
               );
             }
+          }
+          // Guía de la escuela → se lee dentro de la clase, con la marca.
+          const guide = parseNativeGuide(activity.content?.embed_url || '');
+          if (guide) {
+            return (
+              <Suspense fallback={<LoadingFallback />}>
+                <SchoolGuide
+                  guideId={guide.guideId}
+                  chapters={course?.chapters}
+                  onComplete={handleNativeComplete}
+                />
+              </Suspense>
+            );
           }
           return (
             <Suspense fallback={<LoadingFallback />}>
@@ -1721,7 +1743,7 @@ function AssignmentTools(props: {
                         ? t('dashboard.assignments.submissions.preview.passing')
                         : t('dashboard.assignments.submissions.preview.not_passing')}
                     </p>
-                    <h2 className="text-5xl font-black text-gray-900 tracking-tight leading-none">
+                    <h2 className="text-5xl font-bold text-gray-900 tracking-tight leading-none">
                       {displayGrade}
                     </h2>
                     {(pointsSummary || percentageDisplay) && (

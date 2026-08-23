@@ -1,5 +1,6 @@
 import {
   House,
+  Lightning,
   BookOpen,
   ChartBar,
   Files,
@@ -20,11 +21,17 @@ export interface DashboardMenuItem {
   featureKey?: string
   /** If true, the feature defaults to disabled (must be explicitly enabled). */
   defaultDisabled?: boolean
+  /**
+   * ¿Lo ve también un profe? Por defecto NO: el panel es de administradores y
+   * el profe solo entra a lo suyo (alumnos y comunidad).
+   */
+  forProfe?: boolean
 }
 
 export const DASHBOARD_MENU_ITEMS: DashboardMenuItem[] = [
   {
     id: 'home',
+    forProfe: true,
     href: '/dash',
     icon: House,
     labelKey: 'common.home',
@@ -43,6 +50,7 @@ export const DASHBOARD_MENU_ITEMS: DashboardMenuItem[] = [
   },
   {
     id: 'communities',
+    forProfe: true,
     href: '/dash/communities',
     icon: ChatsCircle,
     labelKey: 'communities.title',
@@ -71,7 +79,14 @@ export const DASHBOARD_MENU_ITEMS: DashboardMenuItem[] = [
     labelKey: 'common.statistics',
   },
   {
+    id: 'workflows',
+    href: '/dash/workflows',
+    icon: Lightning,
+    labelKey: 'common.automations',
+  },
+  {
     id: 'users',
+    forProfe: true,
     href: '/dash/users/settings/users',
     icon: Users,
     labelKey: 'common.users',

@@ -7,7 +7,7 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 import utc from 'dayjs/plugin/utc'
 import 'dayjs/locale/es'
 import { PaperPlaneRight } from '@phosphor-icons/react'
-import { AtSign, ArrowDown, BarChart3, Loader2, Mail, MessageCircle, Pin, PinOff, Search, SmilePlus, Reply, X, Pencil, Trash2 } from 'lucide-react'
+import { AtSign, ArrowDown, BarChart3, FileText, ImageIcon, Loader2, Mail, MessageCircle, MessageSquare, Mic, Paperclip, Pin, PinOff, Search, SmilePlus, Reply, X, Pencil, Trash2 } from 'lucide-react'
 import { COMPOSER_EMOJIS, QUICK_EMOJIS } from '@/lib/chat/emojis'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useDiscussions, useMutateDiscussions } from '@components/Hooks/useDiscussions'
@@ -17,9 +17,15 @@ import {
   toggleReaction,
   updateDiscussion,
   deleteDiscussion,
+  uploadChatAttachment,
   DiscussionWithAuthor,
   DiscussionAuthor,
+  type ChatAttachment,
 } from '@services/communities/discussions'
+import VoiceRecorder from '@components/Pages/Messages/VoiceRecorder'
+import ComposerButton from './ComposerButton'
+import MessageAction from './MessageAction'
+import ConfirmDialog from './ConfirmDialog'
 
 // Ventana en la que el autor puede editar/eliminar su propio mensaje (12 h).
 const EDIT_WINDOW_MS = 12 * 60 * 60 * 1000
@@ -82,7 +88,7 @@ function dayKey(date: string): string {
   return localDay(date).format('YYYY-MM-DD')
 }
 
-function getAvatarUrl(author: DiscussionAuthor | null): string | null {
+export function getAvatarUrl(author: DiscussionAuthor | null): string | null {
   if (!author?.avatar_image) return null
   if (author.avatar_image.startsWith('http://') || author.avatar_image.startsWith('https://')) {
     return author.avatar_image
@@ -122,6 +128,48 @@ function messageText(d: DiscussionWithAuthor): string {
     }
   }
   return d.title
+}
+
+/**
+ * Los adjuntos viajan dentro del propio mensaje (`doc.attachments`), igual que
+ * la encuesta o la cita. Así no hace falta ninguna tabla nueva y los mensajes
+ * antiguos siguen leyéndose igual.
+ */
+function attachmentsOf(d: DiscussionWithAuthor): ChatAttachment[] {
+  if (!d.content) return []
+  try {
+    const doc = JSON.parse(d.content)
+    return Array.isArray(doc?.attachments) ? (doc.attachments as ChatAttachment[]) : []
+  } catch {
+    return []
+  }
+}
+
+/**
+ * ¿Este mensaje es la respuesta de un hilo? Devuelve el mensaje del que
+ * cuelga.
+ *
+ * Igual que los adjuntos o las encuestas, el hilo va dentro del propio
+ * mensaje (`doc.threadParent`). Sin tablas nuevas: una respuesta de hilo es
+ * un mensaje normal que sabe de quién cuelga, y el canal simplemente no la
+ * enseña suelta.
+ */
+function threadParentOf(d: DiscussionWithAuthor): string | null {
+  if (!d.content) return null
+  try {
+    const doc = JSON.parse(d.content)
+    return typeof doc?.threadParent === 'string' ? doc.threadParent : null
+  } catch {
+    return null
+  }
+}
+
+/** Un tamaño legible: «2,4 MB». */
+function prettySize(bytes: number): string {
+  if (!bytes || bytes < 1024) return `${bytes || 0} B`
+  const kb = bytes / 1024
+  if (kb < 1024) return `${Math.round(kb)} KB`
+  return `${(kb / 1024).toFixed(1).replace('.', ',')} MB`
 }
 
 // Reply reference is stored inside the message's own content JSON (replyToAuthor
@@ -184,9 +232,19 @@ function renderMessageBody(text: string, isOwn: boolean): React.ReactNode[] {
 export function ChannelChat({
   communityUuid,
   channelName,
+  threadUuid = null,
+  onOpenThread,
+  searching = false,
+  onSearchingChange,
 }: {
   communityUuid: string
   channelName: string
+  /** La lupa vive en la cabecera de la página. */
+  searching?: boolean
+  onSearchingChange?: (open: boolean) => void
+  /** El hilo abierto ahora (lo gobierna la página: cambia la columna derecha). */
+  threadUuid?: string | null
+  onOpenThread?: (uuid: string | null) => void
 }) {
   const { t } = useTranslation()
   const session = useLHSession() as any
@@ -197,6 +255,16 @@ export function ChannelChat({
   // novedades que de verdad importan (un cambio de horario, el arranque de un
   // módulo), no para el día a día del chat.
   const [alsoEmail, setAlsoEmail] = useState(false)
+  // Adjuntos ya subidos que saldrán con el próximo mensaje.
+  const [pending, setPending] = useState<ChatAttachment[]>([])
+  // Qué mensaje está esperando confirmación para borrarse.
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [recording, setRecording] = useState(false)
+
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const mutateDiscussions = useMutateDiscussions()
   const [pinningUuid, setPinningUuid] = useState<string | null>(null)
   const [pickerUuid, setPickerUuid] = useState<string | null>(null)
@@ -217,7 +285,6 @@ export function ChannelChat({
   >(null)
   // Buscador dentro del canal y estado del scroll (ver más abajo).
   const [query, setQuery] = useState('')
-  const [searching, setSearching] = useState(false)
   const [atBottom, setAtBottom] = useState(true)
   const [unseenBelow, setUnseenBelow] = useState(0)
   const [flashUuid, setFlashUuid] = useState<string | null>(null)
@@ -227,10 +294,17 @@ export function ChannelChat({
   const currentUserId = session?.data?.user?.id
 
   // El autor puede editar/eliminar su propio mensaje durante las primeras 12 h.
-  const canModify = (m: DiscussionWithAuthor) =>
+  /** Editar: solo tu propio mensaje y dentro de las primeras 12 h. Un
+   *  administrador NO edita mensajes ajenos: eso sería escribir por otro. */
+  const canEdit = (m: DiscussionWithAuthor) =>
     !!currentUserId &&
     m.author?.id === currentUserId &&
     Date.now() - msOf(m.creation_date) < EDIT_WINDOW_MS
+
+  /** Borrar: tu mensaje reciente, o cualquiera si eres administrador — sin
+   *  límite de tiempo. Moderar una comunidad es justo eso, y el servidor ya
+   *  lo permitía: era la pantalla la que escondía el botón. */
+  const canDelete = (m: DiscussionWithAuthor) => isAdmin || canEdit(m)
 
   // Toggle an emoji reaction on a message and refresh the list.
   const react = async (uuid: string, emoji: string) => {
@@ -277,14 +351,23 @@ export function ChannelChat({
     }
   }
 
-  const removeMessage = async (uuid: string) => {
-    if (!accessToken) return
-    if (!window.confirm('¿Eliminar este mensaje? No se puede deshacer.')) return
+  const confirmRemove = async () => {
+    const uuid = pendingDelete
+    if (!uuid || !accessToken) return
+    setDeleting(true)
     try {
       await deleteDiscussion(uuid, accessToken)
+      // Fuera de la lista al momento, sin esperar a que se recargue: si el
+      // servidor dice que sí y la pantalla no cambia, parece que no ha pasado
+      // nada.
+      mutate((cur) => (cur || []).filter((d) => d.discussion_uuid !== uuid))
       mutateDiscussions(communityUuid)
-    } catch {
-      toast.error('No se pudo eliminar el mensaje.')
+      setPendingDelete(null)
+    } catch (e: any) {
+      // El motivo de verdad: "no se pudo eliminar" a secas no deja arreglar nada.
+      toast.error(e?.message || 'No se pudo eliminar el mensaje.', { duration: 10000 })
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -301,7 +384,7 @@ export function ChannelChat({
     }
   }
 
-  const { discussions, isLoading } = useDiscussions({
+  const { discussions, isLoading, mutate } = useDiscussions({
     communityUuid,
     sortBy: 'recent',
     page: 1,
@@ -419,15 +502,35 @@ export function ChannelChat({
 
   // Buscar dentro del canal: filtra lo que ya está cargado (los últimos 50),
   // que es donde la gente busca de verdad ("¿qué dijo el profe del examen?").
+  // Las respuestas de un hilo NO salen sueltas en el canal: viven dentro de su
+  // hilo. Es justo la gracia de los hilos — sacar una conversación larga de en
+  // medio sin perderla.
+  const threadReplies = useMemo(() => {
+    const byParent = new Map<string, DiscussionWithAuthor[]>()
+    for (const m of messages) {
+      const parent = threadParentOf(m)
+      if (!parent) continue
+      const list = byParent.get(parent) ?? []
+      list.push(m)
+      byParent.set(parent, list)
+    }
+    return byParent
+  }, [messages])
+
+  const channelMessages = useMemo(
+    () => messages.filter((m) => !threadParentOf(m)),
+    [messages]
+  )
+
   const visibleMessages = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return messages
-    return messages.filter(
+    if (!q) return channelMessages
+    return channelMessages.filter(
       (m) =>
         messageText(m).toLowerCase().includes(q) ||
         authorName(m.author).toLowerCase().includes(q)
     )
-  }, [messages, query])
+  }, [channelMessages, query])
 
   // Candidatos a mención: quienes ya han escrito en el canal (así no hace falta
   // un endpoint de miembros que los alumnos no tienen permiso para leer) + all.
@@ -444,6 +547,21 @@ export function ChannelChat({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mentionQuery, messages])
 
+  /**
+   * Solo una herramienta abierta a la vez (grabadora, emojis, encuesta).
+   * Abrir una cierra la anterior: si no, se apilan tres cajas encima del
+   * compositor y ninguna dice cómo cerrarse.
+   */
+  const openTool = (tool: 'voz' | 'emoji' | 'encuesta' | null) => {
+    setRecording(tool === 'voz')
+    setEmojiOpen(tool === 'emoji')
+    if (tool === 'encuesta') {
+      setPollDraft((cur) => cur ?? { question: '', options: ['', ''] })
+    } else {
+      setPollDraft(null)
+    }
+  }
+
   const onComposerChange = (value: string) => {
     setText(value)
     // ¿Está escribiendo una mención justo ahora? (@ al final de la palabra)
@@ -456,7 +574,56 @@ export function ChannelChat({
     setMentionQuery(null)
   }
 
-  const send = async () => {
+  /**
+   * El botón de la arroba: escribe una @ al final y abre las sugerencias, que
+   * es lo que pasaría si la escribiera a mano. Así el botón no hace nada
+   * distinto de lo que ya sabe hacer el teclado.
+   */
+  const mentionSomeone = () => {
+    setText((cur) => {
+      const next = cur.length === 0 || cur.endsWith(' ') ? `${cur}@` : `${cur} @`
+      return next
+    })
+    setMentionQuery('')
+  }
+
+  /** Sube lo que el alumno acaba de elegir y lo deja listo para enviar. */
+  const attach = async (files: FileList | null) => {
+    if (!files?.length || !accessToken) return
+    setUploading(true)
+    try {
+      for (const file of Array.from(files).slice(0, 4)) {
+        const uploaded = await uploadChatAttachment(communityUuid, file, accessToken)
+        setPending((cur) => [...cur, uploaded])
+      }
+    } catch (e: any) {
+      toast.error(e?.message || 'No se pudo subir el archivo')
+    } finally {
+      setUploading(false)
+      if (imageInputRef.current) imageInputRef.current.value = ''
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  /** La nota de voz grabada en el propio chat. */
+  const attachVoice = async (audio: Blob, seconds: number) => {
+    if (!accessToken) return
+    setUploading(true)
+    try {
+      const file = new File([audio], `nota-de-voz-${seconds}s.webm`, {
+        type: audio.type || 'audio/webm',
+      })
+      const uploaded = await uploadChatAttachment(communityUuid, file, accessToken)
+      setPending((cur) => [...cur, uploaded])
+      setRecording(false)
+    } catch (e: any) {
+      toast.error(e?.message || 'No se pudo subir la nota de voz')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const send = async (threadTarget?: string) => {
     const msg = text.trim()
     const poll =
       pollDraft && pollDraft.question.trim() && pollDraft.options.filter((o) => o.trim()).length >= 2
@@ -467,6 +634,8 @@ export function ChannelChat({
         : null
     if (poll && !msg) {
       // Una encuesta sin texto es válida: el título es la pregunta.
+    } else if (pending.length && !msg) {
+      // Una foto o un audio tampoco necesitan texto.
     } else if (!msg || sending) return
     if (sending) return
     setSending(true)
@@ -479,6 +648,8 @@ export function ChannelChat({
       }))
       const doc: any = { type: 'doc', content: docContent }
       if (poll) doc.poll = poll
+      if (pending.length) doc.attachments = pending
+      if (threadTarget) doc.threadParent = threadTarget
       if (replyingTo) {
         doc.replyToAuthor = replyingTo.author
         doc.replyToText = replyingTo.text
@@ -489,7 +660,11 @@ export function ChannelChat({
       await createDiscussion(
         communityUuid,
         {
-          title: (poll ? poll.question : title) || msg.slice(0, 100) || 'Encuesta',
+          title:
+            (poll ? poll.question : title) ||
+            msg.slice(0, 100) ||
+            (pending.length ? pending[0].name : '') ||
+            'Encuesta',
           content,
           label: 'general',
           emoji: null,
@@ -497,6 +672,7 @@ export function ChannelChat({
         accessToken
       )
       setText('')
+      setPending([])
       setReplyingTo(null)
       setPollDraft(null)
       setMentionQuery(null)
@@ -537,45 +713,43 @@ export function ChannelChat({
   }
 
   return (
-    <div className="relative flex flex-col h-[68vh] min-h-[420px]">
-      {/* Barra de búsqueda del canal */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100">
-        <button
-          type="button"
-          onClick={() => {
-            setSearching((v) => !v)
-            if (searching) setQuery('')
-          }}
-          title="Buscar en el canal"
-          aria-label="Buscar en el canal"
-          className={`shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
-            searching ? 'bg-[#025dc7]/10 text-[#025dc7]' : 'text-gray-400 hover:text-[#025dc7] hover:bg-gray-50'
-          }`}
-        >
-          <Search size={16} />
-        </button>
-        {searching ? (
-          <>
-            <input
-              autoFocus
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar palabra o persona…"
-              className="flex-1 min-w-0 bg-gray-50 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-[#025dc7]/20"
-            />
-            <span className="shrink-0 text-[12px] text-gray-400 tabular-nums">
-              {query.trim() ? `${visibleMessages.length} resultado${visibleMessages.length === 1 ? '' : 's'}` : ''}
-            </span>
-          </>
-        ) : (
-          <span className="text-[12.5px] text-gray-400 truncate">
-            Buscar en {channelName}
+    // Se estira a lo que le dé la página, que es quien manda: aquí no hay
+    // alto fijo ni marco propio. La página ES el chat.
+    <div className="relative flex flex-col h-full min-h-0">
+      {/* Cinta de búsqueda: solo cuando la página la pide. La lupa vive en la
+          cabecera del canal, no dentro del chat. */}
+      {searching && (
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-[#EEF3FB] bg-[#FCFDFF]">
+          <Search size={15} className="shrink-0 text-[#8A96AB]" />
+          <input
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={`Buscar en ${channelName}…`}
+            className="flex-1 min-w-0 bg-transparent text-[13.5px] outline-none placeholder:text-[#9CA3AF]"
+          />
+          <span className="shrink-0 text-[12px] text-[#8A96AB] tabular-nums">
+            {query.trim()
+              ? `${visibleMessages.length} resultado${visibleMessages.length === 1 ? '' : 's'}`
+              : ''}
           </span>
-        )}
-      </div>
+          <button
+            type="button"
+            onClick={() => {
+              setQuery('')
+              onSearchingChange?.(false)
+            }}
+            aria-label="Cerrar la búsqueda"
+            className="shrink-0 text-[#9CA3AF] hover:text-[#025dc7] transition-colors"
+          >
+            <X size={15} />
+          </button>
+        </div>
+      )}
 
       {/* Messages */}
-      <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto py-3">
+      <div className="relative flex-1 min-h-0 flex flex-col">
+      <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto overflow-x-hidden py-3">
         {isLoading && messages.length === 0 ? (
           <div className="flex justify-center py-8">
             <Loader2 size={22} className="animate-spin text-gray-400" />
@@ -726,7 +900,7 @@ export function ChannelChat({
                           </div>
                         </div>
                       ) : (
-                      <div className={`flex items-center gap-1.5 ${isOwn ? 'flex-row-reverse' : ''}`}>
+                      <div className={`relative flex items-center gap-1.5 ${isOwn ? 'flex-row-reverse' : ''}`}>
                         <div
                           className={`inline-block max-w-full rounded-2xl px-3 py-2 ${bubbleBg} ${
                             isOwn
@@ -810,80 +984,168 @@ export function ChannelChat({
                               setActiveUuid((cur) => (cur === m.discussion_uuid ? null : m.discussion_uuid))
                             }
                           >
+                            {(() => {
+                              const files = attachmentsOf(m)
+                              if (!files.length) return null
+                              return (
+                                <span className="block mb-1.5 space-y-1.5">
+                                  {files.map((f, fi) => {
+                                    if (f.kind === 'image') {
+                                      return (
+                                        <a
+                                          key={fi}
+                                          href={f.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="block"
+                                        >
+                                          <img
+                                            src={f.url}
+                                            alt={f.name}
+                                            loading="lazy"
+                                            className="rounded-lg max-h-72 w-auto max-w-full object-cover"
+                                          />
+                                        </a>
+                                      )
+                                    }
+                                    if (f.kind === 'audio') {
+                                      return (
+                                        <audio
+                                          key={fi}
+                                          src={f.url}
+                                          controls
+                                          preload="none"
+                                          className="w-full max-w-[280px] h-9"
+                                        />
+                                      )
+                                    }
+                                    return (
+                                      <a
+                                        key={fi}
+                                        href={f.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        // `max-w-full` + `min-w-0`: un nombre de
+                                        // archivo largo se corta con puntos
+                                        // suspensivos en vez de estirar el globo
+                                        // y sacar el texto fuera de la pantalla.
+                                        className={`inline-flex max-w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12.5px] transition-colors ${
+                                          isOwn
+                                            ? 'bg-white/15 hover:bg-white/25 text-white'
+                                            : 'bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7]'
+                                        }`}
+                                      >
+                                        <FileText size={14} className="shrink-0" />
+                                        <span className="truncate min-w-0">{f.name}</span>
+                                        <span className="shrink-0 opacity-70 tabular-nums">
+                                          {prettySize(f.size)}
+                                        </span>
+                                      </a>
+                                    )
+                                  })}
+                                </span>
+                              )
+                            })()}
                             {renderMessageBody(messageText(m), isOwn)}
                             {m.edit_count > 0 && (
                               <span className="text-[10px] opacity-60 ml-1.5">· editado</span>
                             )}
                           </p>
                         </div>
-                        {/* Añadir reacción (aparece al pasar el ratón) */}
+                        {/* Barra de acciones: una pastilla que aparece encima del
+                            mensaje al pasar el ratón, como en cualquier chat
+                            moderno. Antes eran iconos sueltos al lado, que
+                            empujaban el globo y se veían siempre a medias. */}
                         {accessToken && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setPickerUuid((cur) => (cur === m.discussion_uuid ? null : m.discussion_uuid))
-                            }
-                            title="Reaccionar"
-                            aria-label="Reaccionar"
-                            className={`shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-[#025dc7] hover:bg-[#025dc7]/10 transition-all ${
+                          <div
+                            // La barra se ancla al MISMO lado en el que está el
+                            // globo y crece hacia dentro. Al revés (que es como
+                            // estaba) un mensaje corto la lanzaba fuera del
+                            // chat y la página se podía arrastrar a los lados.
+                            className={`absolute -top-3.5 z-10 flex items-center gap-0.5 rounded-lg border border-[#E3E8EF] bg-white px-0.5 py-0.5 shadow-sm transition-opacity ${
+                              isOwn ? 'right-0' : 'left-0'
+                            } ${
                               pickerUuid === m.discussion_uuid || activeUuid === m.discussion_uuid
                                 ? 'opacity-100'
-                                : 'opacity-0 group-hover/msg:opacity-100'
+                                : 'opacity-0 group-hover/msg:opacity-100 focus-within:opacity-100'
                             }`}
                           >
-                            <SmilePlus size={16} />
-                          </button>
-                        )}
-                        {/* Responder (aparece al pasar el ratón) */}
-                        {accessToken && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setReplyingTo({
-                                author: authorName(m.author),
-                                text: messageText(m).slice(0, 140),
-                                uuid: m.discussion_uuid,
-                              })
-                            }
-                            title="Responder"
-                            aria-label="Responder"
-                            className={`shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-[#025dc7] hover:bg-[#025dc7]/10 transition-all ${
-                              activeUuid === m.discussion_uuid ? 'opacity-100' : 'opacity-0 group-hover/msg:opacity-100'
-                            }`}
-                          >
-                            <Reply size={15} />
-                          </button>
-                        )}
-                        {/* Editar (solo el autor, primeras 12 h) */}
-                        {canModify(m) && (
-                          <button
-                            type="button"
-                            onClick={() => startEdit(m)}
-                            title="Editar"
-                            aria-label="Editar"
-                            className={`shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-[#025dc7] hover:bg-[#025dc7]/10 transition-all ${
-                              activeUuid === m.discussion_uuid ? 'opacity-100' : 'opacity-0 group-hover/msg:opacity-100'
-                            }`}
-                          >
-                            <Pencil size={14} />
-                          </button>
-                        )}
-                        {/* Eliminar (solo el autor, primeras 12 h) */}
-                        {canModify(m) && (
-                          <button
-                            type="button"
-                            onClick={() => removeMessage(m.discussion_uuid)}
-                            title="Eliminar"
-                            aria-label="Eliminar"
-                            className={`shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-rose-500 hover:bg-rose-50 transition-all ${
-                              activeUuid === m.discussion_uuid ? 'opacity-100' : 'opacity-0 group-hover/msg:opacity-100'
-                            }`}
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                            <MessageAction
+                              label="Reaccionar"
+                              align={isOwn ? 'right' : 'left'}
+                              onClick={() =>
+                                setPickerUuid((cur) =>
+                                  cur === m.discussion_uuid ? null : m.discussion_uuid
+                                )
+                              }
+                            >
+                              <SmilePlus size={15} />
+                            </MessageAction>
+                            <MessageAction
+                              label="Responder en un hilo"
+                              align={isOwn ? 'right' : 'left'}
+                              onClick={() => onOpenThread?.(m.discussion_uuid)}
+                            >
+                              <MessageSquare size={15} />
+                            </MessageAction>
+                            <MessageAction
+                              label="Citar en el canal"
+                              align={isOwn ? 'right' : 'left'}
+                              onClick={() =>
+                                setReplyingTo({
+                                  author: authorName(m.author),
+                                  text: messageText(m).slice(0, 140),
+                                  uuid: m.discussion_uuid,
+                                })
+                              }
+                            >
+                              <Reply size={15} />
+                            </MessageAction>
+                            {canEdit(m) && (
+                              <MessageAction
+                                label="Editar"
+                                align={isOwn ? 'right' : 'left'}
+                                onClick={() => startEdit(m)}
+                              >
+                                <Pencil size={14} />
+                              </MessageAction>
+                            )}
+                            {canDelete(m) && (
+                              <MessageAction
+                                label="Eliminar"
+                                danger
+                                align={isOwn ? 'right' : 'left'}
+                                onClick={() => setPendingDelete(m.discussion_uuid)}
+                              >
+                                <Trash2 size={14} />
+                              </MessageAction>
+                            )}
+                          </div>
                         )}
                       </div>
                       )}
+
+                      {/* Si el mensaje tiene hilo, se dice y se entra desde aquí */}
+                      {(() => {
+                        const replies = threadReplies.get(m.discussion_uuid)
+                        if (!replies?.length) return null
+                        const open = threadUuid === m.discussion_uuid
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => onOpenThread?.(open ? null : m.discussion_uuid)}
+                            className={`mt-1 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[12px] font-semibold transition-colors ${
+                              open
+                                ? 'bg-[#025dc7]/10 text-[#025dc7]'
+                                : 'text-[#025dc7] hover:bg-[#F0F5FF]'
+                            }`}
+                          >
+                            <MessageSquare size={13} />
+                            {replies.length}{' '}
+                            {replies.length === 1 ? 'respuesta' : 'respuestas'}
+                          </button>
+                        )
+                      })()}
 
                       {/* Selector rápido de emojis */}
                       {pickerUuid === m.discussion_uuid && (
@@ -955,12 +1217,14 @@ export function ChannelChat({
         )}
       </div>
 
-      {/* Volver abajo (con cuántos te has perdido mientras leías arriba) */}
+      {/* Volver abajo (con cuántos te has perdido mientras leías arriba).
+          Va dentro de la zona de mensajes y pegado a su borde inferior: así
+          queda justo encima del compositor, mida este lo que mida. */}
       {!atBottom && (
         <button
           type="button"
           onClick={scrollToBottom}
-          className="absolute bottom-24 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#025dc7] text-white text-[12.5px] font-semibold shadow-lg hover:bg-[#0b6df0] transition-colors"
+          className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-[#DDE6F5] text-[#025dc7] text-[12px] font-semibold shadow-md hover:border-[#4da3ff] transition-colors"
         >
           <ArrowDown size={14} />
           {unseenBelow > 0
@@ -969,9 +1233,11 @@ export function ChannelChat({
         </button>
       )}
 
+      </div>
+
       {/* Composer */}
       <AuthenticatedClientElement checkMethod="authentication">
-        <div className="border-t border-gray-100 p-3">
+        <div className="shrink-0 border-t border-[#EEF3FB] px-4 sm:px-6 py-3">
           {replyingTo && (
             <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-[#F0F5FF] rounded-lg border-l-2 border-[#4da3ff]">
               <Reply size={14} className="shrink-0 text-[#025dc7]" />
@@ -990,6 +1256,63 @@ export function ChannelChat({
             </div>
           )}
           {/* Encuesta en preparación */}
+          {/* Grabadora de voz, abierta desde el micrófono */}
+          {recording && (
+            <div className="mb-2 rounded-xl bg-white border border-[#E3E8EF] px-3 py-2.5">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[12px] font-semibold text-[#5A6480]">Nota de voz</span>
+                <button
+                  type="button"
+                  onClick={() => openTool(null)}
+                  aria-label="Cerrar la grabadora"
+                  className="text-[#9CA3AF] hover:text-[#025dc7] transition-colors"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+              <VoiceRecorder onSend={attachVoice} sending={uploading} />
+            </div>
+          )}
+
+          {/* Lo que va a salir con el mensaje */}
+          {(pending.length > 0 || uploading) && (
+            <div className="mb-2 flex flex-wrap gap-2">
+              {pending.map((f, i) => (
+                <div
+                  key={i}
+                  className="relative group/att rounded-lg border border-[#DDE6F5] bg-white overflow-hidden"
+                >
+                  {f.kind === 'image' ? (
+                    <img src={f.url} alt={f.name} className="h-16 w-16 object-cover" />
+                  ) : (
+                    <div className="h-16 px-3 flex items-center gap-2 text-[12px] text-[#5A6480] max-w-[200px]">
+                      {f.kind === 'audio' ? (
+                        <Mic size={14} className="text-[#025dc7] shrink-0" />
+                      ) : (
+                        <FileText size={14} className="text-[#025dc7] shrink-0" />
+                      )}
+                      <span className="truncate">{f.name}</span>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setPending((cur) => cur.filter((_, j) => j !== i))}
+                    title="Quitar"
+                    aria-label="Quitar adjunto"
+                    className="absolute top-0.5 right-0.5 inline-flex items-center justify-center w-5 h-5 rounded-full bg-black/55 text-white opacity-0 group-hover/att:opacity-100 transition-opacity"
+                  >
+                    <X size={11} />
+                  </button>
+                </div>
+              ))}
+              {uploading && (
+                <div className="h-16 w-16 rounded-lg border border-dashed border-[#DDE6F5] flex items-center justify-center">
+                  <Loader2 size={16} className="animate-spin text-[#025dc7]" />
+                </div>
+              )}
+            </div>
+          )}
+
           {pollDraft && (
             <div className="mb-2 rounded-xl border border-[#DDE6F5] bg-[#F8FAFF] p-3">
               <div className="flex items-center justify-between gap-2 mb-2">
@@ -1073,52 +1396,98 @@ export function ChannelChat({
             </div>
           )}
 
-          <div className="flex items-end gap-2 bg-gray-50 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:ring-[#025dc7]/20">
-            <button
-              type="button"
-              onClick={() => setEmojiOpen((v) => !v)}
-              title="Emojis"
-              aria-label="Emojis"
-              className={`shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${
-                emojiOpen ? 'bg-[#025dc7]/10 text-[#025dc7]' : 'text-gray-400 hover:text-[#025dc7] hover:bg-white'
-              }`}
-            >
-              <SmilePlus size={17} />
-            </button>
-            {isAdmin && (
-              <button
-                type="button"
-                onClick={() =>
-                  setPollDraft((cur) => (cur ? null : { question: '', options: ['', ''] }))
-                }
-                title="Crear encuesta"
-                aria-label="Crear encuesta"
-                className={`shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${
-                  pollDraft ? 'bg-[#025dc7]/10 text-[#025dc7]' : 'text-gray-400 hover:text-[#025dc7] hover:bg-white'
-                }`}
-              >
-                <BarChart3 size={17} />
-              </button>
-            )}
+          {/* La caja: el texto arriba, los iconos debajo — como en Circle.
+              Borde suave que no compite con el contenido y foco en azul. */}
+          <div className="rounded-xl border border-[#E3E8EF] bg-white transition-colors focus-within:border-[#4da3ff] focus-within:ring-[3px] focus-within:ring-[#4da3ff]/15">
             <textarea
               value={text}
               onChange={(e) => onComposerChange(e.target.value)}
               onKeyDown={onKeyDown}
               rows={1}
-              placeholder={`Escribe en ${channelName}…  (@ para avisar a alguien)`}
-              className="flex-1 resize-none bg-transparent text-base sm:text-sm text-gray-900 placeholder:text-gray-400 outline-none max-h-32 py-1.5"
+              placeholder={`Escribe en ${channelName}…`}
+              className="w-full resize-none bg-transparent text-base sm:text-[14.5px] text-gray-900 placeholder:text-[#9CA3AF] outline-none max-h-40 px-3.5 pt-3 pb-1.5"
             />
-            <button
-              onClick={send}
-              disabled={!text.trim() || sending}
-              className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg text-white bg-[#025dc7] hover:bg-[#0b6df0] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              aria-label={t('communities.create_discussion.submit')}
-            >
-              {sending ? <Loader2 size={16} className="animate-spin" /> : <PaperPlaneRight size={16} weight="fill" />}
-            </button>
+
+            <div className="flex items-center gap-0.5 px-2 pb-2">
+              {/* Archivo */}
+              <input ref={fileInputRef} type="file" hidden onChange={(e) => attach(e.target.files)} />
+              <ComposerButton
+                label="Adjuntar un archivo"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                <Paperclip size={17} />
+              </ComposerButton>
+
+              {/* Foto */}
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                onChange={(e) => attach(e.target.files)}
+              />
+              <ComposerButton
+                label="Enviar una foto"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={uploading}
+              >
+                <ImageIcon size={17} />
+              </ComposerButton>
+
+              {/* Nota de voz — en una escuela de idiomas es la estrella */}
+              <ComposerButton
+                label="Grabar una nota de voz"
+                onClick={() => openTool(recording ? null : 'voz')}
+                active={recording}
+              >
+                <Mic size={17} />
+              </ComposerButton>
+
+              {/* Emojis */}
+              <ComposerButton
+                label="Emojis"
+                onClick={() => openTool(emojiOpen ? null : 'emoji')}
+                active={emojiOpen}
+              >
+                <SmilePlus size={17} />
+              </ComposerButton>
+
+              {/* Mencionar: escribe la arroba y abre las sugerencias */}
+              <ComposerButton label="Mencionar a alguien" onClick={mentionSomeone}>
+                <AtSign size={17} />
+              </ComposerButton>
+
+              {isAdmin && (
+                <ComposerButton
+                  label="Crear una encuesta"
+                  onClick={() => openTool(pollDraft ? null : 'encuesta')}
+                  active={!!pollDraft}
+                >
+                  <BarChart3 size={17} />
+                </ComposerButton>
+              )}
+
+              <div className="flex-1" />
+
+              <button
+                onClick={() => send()}
+                disabled={(!text.trim() && pending.length === 0 && !pollDraft) || sending}
+                title="Enviar"
+                aria-label={t('communities.create_discussion.submit')}
+                className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors bg-[#025dc7] text-white hover:bg-[#0b6df0] disabled:bg-[#EFF1F6] disabled:text-[#B6BECC] disabled:cursor-not-allowed"
+              >
+                {sending ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <PaperPlaneRight size={15} weight="fill" />
+                )}
+              </button>
+            </div>
           </div>
-          <p className="mt-1.5 text-[11.5px] text-gray-400 hidden sm:block">
-            Enter envía · Shift + Enter salta de línea · @ para avisar a alguien
+          <p className="mt-1.5 text-[11px] text-[#9CA3AF] hidden sm:block">
+            Enter envía · Shift + Enter salta de línea
           </p>
           {isAdmin && (
             <label className="mt-2 flex items-center gap-2 text-[12.5px] text-gray-500 select-none cursor-pointer">
@@ -1136,6 +1505,15 @@ export function ChannelChat({
           )}
         </div>
       </AuthenticatedClientElement>
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        busy={deleting}
+        title="¿Eliminar este mensaje?"
+        description="Desaparece para todos y no se puede deshacer."
+        onConfirm={confirmRemove}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   )
 }

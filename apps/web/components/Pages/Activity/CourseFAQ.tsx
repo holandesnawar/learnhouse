@@ -9,6 +9,7 @@ import toast from 'react-hot-toast'
 import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/lib/query/keys'
 import { readFaqRoot, readFaqRoots } from '@components/Pages/Consultas/ConsultasFaq'
+import { FORMACION_FAQ, FORMACION_FAQ_INTRO } from '@components/Pages/Guides/faqContent'
 
 interface FAQ {
   q: string
@@ -51,6 +52,19 @@ const COURSE_FAQS: Record<string, { intro?: string; items: FAQ[] }> = {
   },
 }
 
+/**
+ * Las preguntas de la formación (el texto vive en `Guides/faqContent`, que
+ * comparten esta pantalla y la sección del módulo 0).
+ *
+ * Van como respaldo para cualquier curso que no tenga las suyas propias, así
+ * no hay que tocar código cada vez que se crea un curso. El equipo puede
+ * reescribirlas desde la propia pantalla y lo que guarde manda sobre esto.
+ */
+const DEFAULT_COURSE_FAQ: { intro?: string; items: FAQ[] } = {
+  intro: FORMACION_FAQ_INTRO,
+  items: FORMACION_FAQ,
+}
+
 interface CourseFAQProps {
   courseUuid: string
   /** Compact = sidebar variant: smaller header, tighter paddings. */
@@ -66,7 +80,9 @@ export default function CourseFAQ({ courseUuid, compact = false }: CourseFAQProp
   // course.course_uuid comes as "course_<uuid>" from the API while the URL form
   // is the bare uuid. Normalise so callers don't have to.
   const key = (courseUuid || '').replace(/^course_/, '')
-  const hardcoded = COURSE_FAQS[key]
+  // Cada curso puede tener las suyas; si no las tiene, van las de la
+  // formación. Antes, un curso sin entrada propia no enseñaba el bloque.
+  const hardcoded = key ? (COURSE_FAQS[key] ?? DEFAULT_COURSE_FAQ) : undefined
 
   // Las preguntas de cada curso viven en su propio hueco dentro del objeto faq
   // de la organización. Antes compartían `items` con las consultas frecuentes,

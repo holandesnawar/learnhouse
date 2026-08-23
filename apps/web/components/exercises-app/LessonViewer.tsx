@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
-import type { Lesson, CourseModule, VocabularyItem, PhraseItem, ExerciseItem, Dialogue, SummaryBlock } from '@/lib/exercises-app/types';
+import type { Lesson, CourseModule, VocabularyItem, PhraseItem, ExerciseItem, Dialogue, SummaryBlock, SprekenBlock } from '@/lib/exercises-app/types';
 import {
   getLessonProgress,
   markLessonStarted,
@@ -310,7 +310,7 @@ function GradientBar({ pct, label, subLabel }: { pct: number; label?: string; su
    SECTION TYPE
 ───────────────────────────────────────────────────────────────────────────── */
 
-type SectionId = 'resumen' | 'vocabulary' | 'flashcards' | 'lezen' | 'luisteren';
+type SectionId = 'resumen' | 'vocabulary' | 'flashcards' | 'lezen' | 'luisteren' | 'spreken';
 
 const SECTION_META: Record<SectionId, { label: string; emoji: string; desc: string }> = {
   resumen:     { label: 'Resumen',     emoji: '📋', desc: 'Los puntos clave de la lección' },
@@ -318,6 +318,7 @@ const SECTION_META: Record<SectionId, { label: string; emoji: string; desc: stri
   flashcards:  { label: 'Flashcards',  emoji: '🃏', desc: 'Practica con tarjetas' },
   lezen:       { label: 'Lezen',       emoji: '📝', desc: 'Lee un texto y responde preguntas' },
   luisteren:   { label: 'Luisteren',   emoji: '🎧', desc: 'Escucha el diálogo' },
+  spreken:     { label: 'Spreken',     emoji: '🗣️', desc: '¿Qué dices en esta situación?' },
 };
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -411,11 +412,10 @@ function buildVPSteps(
 ): VPStep[] {
   const steps: VPStep[] = [];
 
-  // El estudio de vocabulario (palabras + sonidos) se muestra ahora en el
-  // "Resumen", para que "Oefeningen" sea solo ejercicios. (antes: paso 'words')
-
-  if (phraseItems.length > 0)
-    steps.push({ type: 'phrases', items: phraseItems });
+  // El estudio de vocabulario Y las frases se muestran ahora en el "Resumen",
+  // para que "Oefeningen" sea solo ejercicios. (antes: pasos 'words' y
+  // 'phrases'). El parámetro se mantiene para no cambiar la firma a todos los
+  // que llaman, pero ya no genera ningún paso.
 
   const listenEx = exercises.filter(e => e.type === 'listen_and_choose');
   if (listenEx.length > 0)
@@ -1986,6 +1986,193 @@ function ListenAndChooseExercise({
   );
 }
 
+/**
+ * Spreken — "¿qué dices en esta situación?".
+ *
+ * Las tres respuestas SOLO suenan: no se enseña el texto hasta contestar. Es
+ * la diferencia con `listen_and_choose`, donde se escucha la pregunta y se
+ * eligen respuestas escritas. Aquí se entrena reconocer la frase de oído, que
+ * es lo que pasa cuando alguien te habla en la calle.
+ *
+ * Al fallar sí se destapa el texto: en A0-A1 el objetivo es entender, no
+ * sufrir, y sin ver la frase no se aprende de la equivocación.
+ */
+function SprekenChooseExercise({
+  exercise,
+  onAnswer,
+  initialAnswer,
+}: {
+  exercise: ExerciseItem;
+  onAnswer: (correct: boolean, answer: string) => void;
+  initialAnswer?: string;
+}) {
+  // Se elige primero y se comprueba después, como en una prueba de verdad:
+  // así se puede cambiar de idea y volver a escuchar antes de decidir.
+  const [selected, setSelected] = useState<string | null>(initialAnswer ?? null);
+  const [checked, setChecked] = useState(Boolean(initialAnswer));
+  const [playing, setPlaying] = useState<string | null>(null);
+
+  const shuffledOptions = useMemo(() => {
+    if (!exercise.options?.length) return exercise.options ?? [];
+    const arr = [...exercise.options];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }, [exercise.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function hear(text: string, key: string) {
+    setPlaying(key);
+    speakDutch(text, () => setPlaying(null));
+  }
+
+  function check() {
+    if (!selected || checked) return;
+    stopDutch();
+    setPlaying(null);
+    setChecked(true);
+    onAnswer(selected === exercise.correctAnswer, selected);
+  }
+
+  const letters = ['A', 'B', 'C', 'D', 'E'];
+
+  function rowStyle(opt: string): string {
+    const base = 'w-full rounded-xl border-2 transition-all duration-200 ';
+    if (!checked) {
+      return base + (selected === opt
+        ? 'bg-[#EAF3FF] border-[#4da3ff]'
+        : 'bg-white border-[#DDE6F5] hover:border-[#4da3ff]/60');
+    }
+    if (opt === exercise.correctAnswer) return base + 'bg-green-50 border-green-400';
+    if (opt === selected) return base + 'bg-red-50 border-red-400';
+    return base + 'bg-[#F8F9FA] border-[#E5E7EB] opacity-60';
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* La situación. Con `promptNl` se puede escuchar además de leer: en los
+          módulos avanzados el enunciado también se entrena de oído. */}
+      <div className="rounded-2xl p-5 border border-[#DDE6F5] bg-white">
+        <div className="flex items-start gap-3">
+          <p className="flex-1 text-[17px] font-semibold text-gray-900 leading-snug">
+            {exercise.promptNl || exercise.prompt}
+          </p>
+          {exercise.promptNl && (
+            <button
+              onClick={() => hear(exercise.promptNl!, '__prompt')}
+              aria-label="Escuchar la situación"
+              className={`shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-full transition-colors ${
+                playing === '__prompt'
+                  ? 'bg-[#025dc7] text-white'
+                  : 'bg-[#F0F5FF] text-[#025dc7] hover:bg-[#e3edff]'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M19 5a9 9 0 010 14M5 9v6h4l5 4V5L9 9H5z" />
+              </svg>
+            </button>
+          )}
+        </div>
+        {exercise.promptNl && (
+          <p className="text-[13px] text-[#5A6480] leading-snug mt-2">{exercise.prompt}</p>
+        )}
+        {!checked && (
+          <p className="text-[13px] text-[#9CA3AF] leading-snug mt-2">
+            Escucha las respuestas y elige la tuya. El texto aparece al comprobar.
+          </p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 gap-2.5">
+        {shuffledOptions.map((opt, idx) => {
+          const isSel = selected === opt;
+          return (
+            <div key={opt} className={rowStyle(opt)}>
+              <div className="flex items-center gap-3 px-3.5 py-3">
+                {/* Seleccionar: toda la fila, no un botón aparte. */}
+                <button
+                  onClick={() => {
+                    if (checked) return;
+                    setSelected(opt);
+                    // Al elegir suena: es lo natural cuando aún no ves el
+                    // texto — seleccionas la que quieres volver a oír.
+                    hear(opt, opt);
+                  }}
+                  disabled={checked}
+                  className="flex items-center gap-3 flex-1 min-w-0 text-left disabled:cursor-default"
+                >
+                  <span
+                    className={`w-6 h-6 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${
+                      !checked
+                        ? isSel ? 'border-[#025dc7] bg-[#025dc7]' : 'border-[#C6D2E6]'
+                        : opt === exercise.correctAnswer ? 'border-green-500 bg-green-500'
+                        : isSel ? 'border-red-400 bg-red-400' : 'border-[#DDE6F5]'
+                    }`}
+                  >
+                    {(isSel || (checked && opt === exercise.correctAnswer)) && (
+                      <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </span>
+                  <span className="text-[14.5px] leading-snug min-w-0">
+                    {checked ? (
+                      <span className={
+                        opt === exercise.correctAnswer ? 'text-green-800 font-semibold'
+                        : isSel ? 'text-red-700' : 'text-[#9CA3AF]'
+                      }>
+                        {opt}
+                      </span>
+                    ) : (
+                      <span className="text-gray-700">
+                        <span className="font-bold text-[#9CA3AF] mr-1.5">{letters[idx] ?? idx + 1}</span>
+                        Escucha la respuesta
+                      </span>
+                    )}
+                  </span>
+                </button>
+
+                <span className="shrink-0 text-[#C6D2E6]" aria-hidden>→</span>
+                <button
+                  onClick={() => hear(opt, opt)}
+                  aria-label={`Escuchar la respuesta ${letters[idx] ?? idx + 1}`}
+                  className={`shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-full transition-colors ${
+                    playing === opt
+                      ? 'bg-[#025dc7] text-white'
+                      : 'bg-[#F0F5FF] text-[#025dc7] hover:bg-[#e3edff]'
+                  }`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M19 5a9 9 0 010 14M5 9v6h4l5 4V5L9 9H5z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {!checked ? (
+        <button
+          onClick={check}
+          disabled={!selected}
+          className="w-full py-3.5 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Comprobar
+        </button>
+      ) : (
+        <FeedbackBanner
+          correct={selected === exercise.correctAnswer}
+          correctAnswer={exercise.correctAnswer}
+          explanation={exercise.explanation}
+          onHear={() => speakDutch(exercise.correctAnswer)}
+        />
+      )}
+    </div>
+  );
+}
+
 function OrderSentenceExercise({
   exercise,
   onAnswer,
@@ -2264,7 +2451,7 @@ function MatchPairsExercise({ exercise, onAnswer }: { exercise: ExerciseItem; on
         </div>
       </div>
       {done && (
-        <div className={`rounded-lg px-4 py-3 text-[14px] font-medium ${errors === 0 ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-[#FFF7ED] text-orange-700 border border-orange-200'}`}>
+        <div className={`rounded-lg px-4 py-3 text-[14px] font-medium ${errors === 0 ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-[#FFFBF2] text-[#8A6A2A] border border-[#EFE3C9]'}`}>
           {errors === 0 ? '✓ ¡Perfecto, sin errores!' : `✓ Completado con ${errors} error${errors > 1 ? 'es' : ''}`}
         </div>
       )}
@@ -2652,10 +2839,10 @@ function PairMemoryExercise({ exercise, onAnswer }: { exercise: ExerciseItem; on
         <div className={`rounded-lg px-4 py-3 text-[14px] font-medium ${
           attempts === pairs.length
             ? 'bg-green-50 text-green-800 border border-green-200'
-            : 'bg-[#FFF7ED] text-orange-700 border border-orange-200'
+            : 'bg-[#FFFBF2] text-[#8A6A2A] border border-[#EFE3C9]'
         }`}>
           {attempts === pairs.length
-            ? `🎉 ¡Perfecto, sin errores! (${attempts} intentos)`
+            ? `✓ ¡Perfecto, sin errores! (${attempts} intentos)`
             : `✓ Completado con ${attempts} intentos (mínimo: ${pairs.length})`}
         </div>
       )}
@@ -2800,6 +2987,7 @@ function ExerciseStep({
   if (exercise.type === 'multiple_choice') return <MultipleChoiceExercise exercise={exercise} onAnswer={onAnswer} initialAnswer={initialAnswer} />;
   if (exercise.type === 'write_answer') return <WriteAnswerExercise exercise={exercise} onAnswer={onAnswer} initialAnswer={initialAnswer} />;
   if (exercise.type === 'listen_and_choose') return <ListenAndChooseExercise exercise={exercise} onAnswer={onAnswer} initialAnswer={initialAnswer} />;
+  if (exercise.type === 'spreken_choose') return <SprekenChooseExercise exercise={exercise} onAnswer={onAnswer} initialAnswer={initialAnswer} />;
   if (exercise.type === 'listen_translate') return <ListenTranslateExercise exercise={exercise} onAnswer={onAnswer} />;
   if (exercise.type === 'fill_blank') return <FillBlankExercise exercise={exercise} onAnswer={onAnswer} initialAnswer={initialAnswer} />;
   if (exercise.type === 'order_sentence') return <OrderSentenceExercise exercise={exercise} onAnswer={onAnswer} />;
@@ -2827,7 +3015,7 @@ function renderInlineBold(text: string): React.ReactNode[] {
   );
 }
 
-function ResumenSection({ block, vocabItems = [], inCourse, onComplete }: { block: SummaryBlock; vocabItems?: VocabularyItem[]; inCourse?: boolean; onComplete: () => void }) {
+function ResumenSection({ block, vocabItems = [], phraseItems = [], inCourse, onComplete }: { block: SummaryBlock; vocabItems?: VocabularyItem[]; phraseItems?: PhraseItem[]; inCourse?: boolean; onComplete: () => void }) {
   return (
     <div className="space-y-6">
       {/* Hero con intro */}
@@ -2850,7 +3038,7 @@ function ResumenSection({ block, vocabItems = [], inCourse, onComplete }: { bloc
       {/* Objetivos — lista con checks */}
       {block.objectives && block.objectives.length > 0 && (
         <div className="rounded-2xl border border-[#DDE6F5] bg-white p-5">
-          <p className="text-[12px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-3">
+          <p className="text-[12px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-3">
             Objetivos de la lección
           </p>
           <ul className="space-y-2">
@@ -2935,6 +3123,42 @@ function ResumenSection({ block, vocabItems = [], inCourse, onComplete }: { bloc
         </div>
       )}
 
+      {/* Frases — antes eran el primer paso de "Oefeningen", pero repasar no
+          es un ejercicio: se estudian aquí, junto al vocabulario, y así la
+          sección de ejercicios queda solo con ejercicios. */}
+      {phraseItems.length > 0 && (
+        <div className="rounded-2xl border border-[#DDE6F5] bg-white p-5 space-y-3">
+          <h3
+            className="flex items-center gap-2 text-[17px] font-bold text-gray-900 leading-tight"
+            style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
+          >
+            <span aria-hidden className="shrink-0">💬</span>
+            <span>Frases</span>
+          </h3>
+          <p className="text-[13px] text-[#5A6480] leading-relaxed">Toca el altavoz para escuchar la frase entera.</p>
+          <div className="divide-y divide-[#DDE6F5] rounded-lg border border-[#DDE6F5] bg-[#F8FAFF] overflow-hidden">
+            {phraseItems.map((p, i) => (
+              <div key={p.id ?? i} className="flex items-start gap-3 px-4 py-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-semibold text-gray-900 leading-snug">{p.dutch}</p>
+                  <p className="text-[13px] text-[#5A6480] leading-snug mt-0.5">{p.spanish}</p>
+                </div>
+                <button
+                  onClick={() => speakDutch(p.dutch)}
+                  aria-label={`Escuchar ${p.dutch}`}
+                  className="shrink-0 inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[12px] font-semibold text-[#025dc7] hover:bg-[#F0F5FF] transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M19 5a9 9 0 010 14M5 9v6h4l5 4V5L9 9H5z" />
+                  </svg>
+                  <span className="hidden sm:inline">Escuchar</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Tip final — se ajusta al contenido (no ocupa todo el ancho) */}
       {block.tip && (
         <div className="w-fit max-w-full rounded-2xl border border-[#FCD34D]/50 bg-[#FEF3C7] px-4 py-3 flex items-center gap-2.5">
@@ -2983,6 +3207,19 @@ function LezenSection({
   reviewOnly?: boolean;
 }) {
   const [step, setStep] = useState<'text' | 'exercises' | 'translation'>('text');
+  // El texto sigue disponible durante las preguntas, plegado o desplegado.
+  const [textOpen, setTextOpen] = useState(false);
+  const exercisesRef = useRef<HTMLDivElement | null>(null);
+  // Al empezar los ejercicios se baja hasta ellos con un scroll suave, en vez
+  // de saltar de pantalla: así se ve que el texto sigue justo arriba.
+  useEffect(() => {
+    if (step !== 'exercises') return;
+    const id = window.setTimeout(
+      () => exercisesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+      60,
+    );
+    return () => window.clearTimeout(id);
+  }, [step]);
   const [exerciseIndex, setExerciseIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [wrongIndices, setWrongIndices] = useState<Set<number>>(new Set());
@@ -3169,7 +3406,38 @@ function LezenSection({
     return (
       <div className="space-y-5">
         {progressBar}
-        <div className="flex items-center justify-between gap-4">
+
+        {/* El texto se queda AQUÍ, encima de las preguntas, en vez de estar en
+            otra pantalla: en una prueba de comprensión lectora hay que poder
+            releer sin perder de vista lo que te preguntan. Plegable, y con
+            altura máxima para que no empuje el ejercicio fuera de la pantalla. */}
+        <div className="rounded-xl border border-[#DDE6F5] bg-[#FBFDFF]">
+          <button
+            onClick={() => setTextOpen((v) => !v)}
+            className="w-full flex items-center gap-2 px-3.5 py-2.5 text-left"
+          >
+            <span className="text-[16px] leading-none">📄</span>
+            <span className="flex-1 text-[13px] font-bold text-gray-900">Volver a leer el texto</span>
+            <svg
+              className={`w-4 h-4 text-[#9CA3AF] transition-transform ${textOpen ? 'rotate-180' : ''}`}
+              fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {textOpen && (
+            /* El texto entero, sin scroll propio: dos barras de scroll una
+               dentro de otra son un incordio en el móvil. Se despliega, se
+               lee bajando la página normal, y se vuelve a plegar. */
+            <div className="px-3.5 pb-3.5">
+              <p className="text-[14.5px] text-gray-800 leading-relaxed whitespace-pre-line">
+                {textNl}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div ref={exercisesRef} className="flex items-center justify-between gap-4 scroll-mt-4">
           <button onClick={() => setStep('text')} className="flex items-center gap-1.5 text-[13px] font-semibold text-[#9CA3AF] hover:text-[#025dc7] transition-colors duration-200">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -3239,7 +3507,7 @@ function LezenSection({
       {/* Failed-items list — apuntar las palabras que falles, justo aquí. */}
       {failedLabels.length > 0 && (
         <div className="rounded-lg border border-[#DDE6F5] bg-white p-4">
-          <p className="text-[12px] font-bold text-gray-900 uppercase tracking-wide mb-2">
+          <p className="text-[12px] font-semibold text-gray-900 uppercase tracking-wide mb-2">
             Fallaste en {failedLabels.length}
           </p>
           <ul className="space-y-1.5">
@@ -3578,6 +3846,187 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
   );
 }
 
+/**
+ * Sección Spreken: situaciones reales, una detrás de otra.
+ *
+ * No tiene "material" que estudiar antes (a diferencia de Lezen o Luisteren):
+ * se entra y se practica, así que es una sola pantalla con su progreso, su
+ * nota y su intento guardado, como el resto.
+ */
+function SprekenSection({
+  block,
+  onComplete,
+  cacheKey,
+  reviewOnly,
+}: {
+  block: SprekenBlock;
+  onComplete: () => void;
+  cacheKey?: string;
+  reviewOnly?: boolean;
+}) {
+  const session = useLHSession() as any;
+  const accessToken: string | undefined = session?.data?.tokens?.access_token;
+
+  const [lastAttempt, setLastAttempt] = useState<LastAttempt | null>(null);
+  const [started, setStarted] = useState(false);
+  const [index, setIndex] = useState(0);
+  const [score, setScore] = useState(0);
+  const [wrong, setWrong] = useState<Set<number>>(new Set());
+  const [answered, setAnswered] = useState(false);
+  const [answeredSet, setAnsweredSet] = useState<Set<number>>(new Set());
+  const [exKey, setExKey] = useState(0);
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    if (!cacheKey) return;
+    let active = true;
+    getLastAttempt(cacheKey, accessToken).then((a: LastAttempt | null) => { if (active) setLastAttempt(a); });
+    return () => { active = false; };
+  }, [cacheKey, accessToken]);
+
+  // En modo repaso solo se rehacen las que se fallaron la última vez.
+  const exercises = useMemo(() => {
+    const all = block.exercises ?? [];
+    if (!reviewOnly || !lastAttempt?.failedLabels?.length) return all;
+    const failed = new Set(lastAttempt.failedLabels);
+    const only = all.filter((e: ExerciseItem) => failed.has(e.prompt));
+    return only.length ? only : all;
+  }, [block.exercises, reviewOnly, lastAttempt]);
+
+  function reset() {
+    setIndex(0); setScore(0); setWrong(new Set());
+    setAnswered(false); setAnsweredSet(new Set()); setDone(false); setExKey((k) => k + 1);
+  }
+
+  function handleAnswer(correct: boolean) {
+    setAnswered(true);
+    if (answeredSet.has(index)) return;
+    setAnsweredSet((s) => new Set(s).add(index));
+    if (correct) setScore((v) => v + 1);
+    else setWrong((s) => new Set(s).add(index));
+  }
+
+  function next() {
+    if (index + 1 >= exercises.length) {
+      if (cacheKey) {
+        const failed = Array.from(wrong).sort((a, b) => a - b)
+          .map((i) => exercises[i]?.prompt).filter((p): p is string => !!p);
+        saveLastAttempt(cacheKey, { score, total: exercises.length, failedLabels: failed }, accessToken);
+      }
+      setDone(true);
+      return;
+    }
+    setIndex((i) => i + 1);
+    setAnswered(false);
+    setExKey((k) => k + 1);
+  }
+
+  if (!exercises.length) {
+    return <p className="text-[14px] text-[#5A6480]">Esta lección todavía no tiene situaciones de Spreken.</p>;
+  }
+
+  if (done) {
+    return (
+      <div className="space-y-4">
+        <GradientBar pct={100} />
+        <div className="flex items-center gap-3 rounded-2xl px-5 py-4" style={{ background: 'linear-gradient(135deg, #1D0084 0%, #025dc7 100%)' }}>
+          <span className="text-2xl">{score >= exercises.length * 0.8 ? '🎉' : '📝'}</span>
+          <div>
+            <p className="text-white font-bold text-[15px]">{score} / {exercises.length} correctas</p>
+            <p className="text-white/60 text-[13px]">
+              {score === exercises.length ? '¡Perfecto!' : score >= exercises.length * 0.8 ? '¡Muy bien!' : 'Sigue practicando'}
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <button onClick={reset} className="w-full py-3.5 rounded-lg bg-[#F0F5FF] text-gray-900 text-[15px] font-semibold border border-[#DDE6F5] hover:bg-[#e0eaff] transition-colors">
+            🔄 Repetir
+          </button>
+          <button onClick={onComplete} className="w-full py-3.5 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors">
+            Terminar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!started) {
+    return (
+      <div className="space-y-5">
+        <div className="text-center pt-4 sm:pt-6 pb-1">
+          <h3 className="text-[23px] sm:text-[27px] font-bold text-gray-900 leading-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
+            {block.title || 'Wat zeg je?'}
+          </h3>
+        </div>
+
+        <div className="rounded-2xl border border-[#DDE6F5] bg-[#F0F5FF] p-5">
+          <p className="text-[15px] text-[#0a1656] leading-relaxed">
+            {block.intro || 'Te vas a encontrar en situaciones normales del día a día. Escucha las tres respuestas y elige la que dirías tú. El texto no aparece hasta que contestas.'}
+          </p>
+        </div>
+
+        {lastAttempt && (
+          <div className="rounded-lg border border-[#DDE6F5] bg-white px-4 py-3">
+            <p className="text-[13px] font-bold text-gray-900">
+              Última vez: {lastAttempt.score} / {lastAttempt.total} correctas
+            </p>
+            {lastAttempt.failedLabels.length > 0 && (
+              <p className="text-[12px] text-[#5A6480] leading-snug mt-1">
+                <span className="font-semibold text-gray-900">Fallaste en:</span>{' '}
+                {lastAttempt.failedLabels.slice(0, 3).join(' · ')}
+                {lastAttempt.failedLabels.length > 3 && ` · +${lastAttempt.failedLabels.length - 3}`}
+              </p>
+            )}
+          </div>
+        )}
+
+        <button
+          onClick={() => setStarted(true)}
+          className="w-full flex items-center justify-center gap-2 py-4 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors"
+        >
+          Empezar
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+    );
+  }
+
+  const pct = Math.round(((index + (answered ? 1 : 0)) / exercises.length) * 100);
+
+  return (
+    <div className="space-y-5">
+      <GradientBar pct={pct} />
+      <div className="flex items-center justify-between">
+        <span className="text-[13px] font-semibold text-[#9CA3AF]">
+          {index + 1} de {exercises.length}
+        </span>
+        <div className="flex items-center gap-1.5 text-[13px] font-bold text-[#16a34a] bg-green-50 border border-green-200 px-3 py-1 rounded-full">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          {score}
+        </div>
+      </div>
+
+      <ExerciseStep key={exKey} exercise={exercises[index]} onAnswer={handleAnswer} />
+
+      {answered && (
+        <button
+          onClick={next}
+          className="w-full py-4 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors flex items-center justify-center gap-2"
+        >
+          {index + 1 >= exercises.length ? 'Ver resultado' : 'Siguiente'}
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+}
+
 function LuisterenSection({
   dialogue,
   practiceExercises: allExercises,
@@ -3594,6 +4043,10 @@ function LuisterenSection({
 }) {
   // Tres vistas: landing (solo audios + CTAs) → dialogue (transcript) → exercises
   const [view, setView] = useState<'landing' | 'dialogue' | 'exercises'>('landing');
+  // Reproductor desplegado mientras se hacen los ejercicios. Abierto por
+  // defecto: escuchar durante la prueba es parte del ejercicio.
+  const [playerOpen, setPlayerOpen] = useState(true);
+  const exercisesRef = useRef<HTMLDivElement | null>(null);
   const [exerciseIndex, setExerciseIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [wrongIndices, setWrongIndices] = useState<Set<number>>(new Set());
@@ -3679,6 +4132,16 @@ function LuisterenSection({
     }
   }
 
+  // Bajar hasta las preguntas al empezar, dejando el audio a la vista arriba.
+  useEffect(() => {
+    if (view !== 'exercises') return;
+    const id = window.setTimeout(
+      () => exercisesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+      60,
+    );
+    return () => window.clearTimeout(id);
+  }, [view]);
+
   function goPrevEx() {
     if (exerciseIndex === 0) return;
     const ni = exerciseIndex - 1;
@@ -3695,11 +4158,12 @@ function LuisterenSection({
   if (view === 'landing') {
     return (
       <div className="space-y-5">
-        <div className="text-center space-y-1">
-          <h3 className="text-[22px] font-bold text-gray-900 leading-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
+        {/* Solo el título en neerlandés, con aire por arriba. La frase de
+            debajo repetía lo que ya dice el reproductor y apelmazaba. */}
+        <div className="text-center pt-4 sm:pt-6 pb-1">
+          <h3 className="text-[23px] sm:text-[27px] font-bold text-gray-900 leading-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
             {dialogue.title}
           </h3>
-          <p className="text-[13px] text-[#5A6480]">Escucha primero el audio antes de leer el texto.</p>
         </div>
 
         {/* Last-attempt banner — only when we have one and there are exercises. */}
@@ -3829,7 +4293,7 @@ function LuisterenSection({
         <div className="space-y-4">
           {dialogue.lines.map(line => (
             <div key={line.id} className="space-y-1">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-[#9CA3AF]">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-[#9CA3AF]">
                 {line.speaker}
               </p>
               <p className="text-[16px] text-gray-900 leading-relaxed font-medium">
@@ -3884,7 +4348,7 @@ function LuisterenSection({
         {/* Failed-items list — apuntar las palabras que falles, justo aquí. */}
         {failedLabels.length > 0 && (
           <div className="rounded-lg border border-[#DDE6F5] bg-white p-4">
-            <p className="text-[12px] font-bold text-gray-900 uppercase tracking-wide mb-2">
+            <p className="text-[12px] font-semibold text-gray-900 uppercase tracking-wide mb-2">
               Fallaste en {failedLabels.length}
             </p>
             <ul className="space-y-1.5">
@@ -3911,7 +4375,33 @@ function LuisterenSection({
   return (
     <div className="space-y-5">
       <GradientBar pct={pct} />
-      <div className="flex items-center justify-between">
+
+      {/* El mismo reproductor, aquí arriba: hay que poder volver a escuchar
+          mientras se responde, que es justo lo que se hace en un examen de
+          comprensión oral. Los audios ya están en memoria de la pantalla
+          anterior, así que no se vuelven a generar. */}
+      <div className="rounded-xl border border-[#DDE6F5] bg-[#FBFDFF] p-3">
+        <button
+          onClick={() => setPlayerOpen((v) => !v)}
+          className="w-full flex items-center gap-2 text-left"
+        >
+          <span className="text-[17px] leading-none">🎧</span>
+          <span className="flex-1 text-[13px] font-bold text-gray-900">Escuchar el diálogo</span>
+          <svg
+            className={`w-4 h-4 text-[#9CA3AF] transition-transform ${playerOpen ? 'rotate-180' : ''}`}
+            fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {playerOpen && (
+          <div className="mt-3">
+            <DialoguePlayer lines={dialogue.lines} accentColor="#4da3ff" />
+          </div>
+        )}
+      </div>
+
+      <div ref={exercisesRef} className="flex items-center justify-between scroll-mt-4">
         <button
           onClick={() => { resetAttempt(); setView('landing'); }}
           className="flex items-center gap-1.5 text-[13px] font-semibold text-[#9CA3AF] hover:text-[#025dc7] transition-colors duration-200"
@@ -4277,6 +4767,8 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
         result.push('lezen');
       } else if (block.type === 'dialogue') {
         result.push('luisteren');
+      } else if (block.type === 'spreken') {
+        result.push('spreken');
       }
     }
     return result;
@@ -4376,6 +4868,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
   const practiceBlock = lesson.blocks.find(b => b.type === 'practice');
   const lezenBlock    = lesson.blocks.find(b => b.type === 'lezen');
   const dialogueBlock = lesson.blocks.find(b => b.type === 'dialogue');
+  const sprekenBlock  = lesson.blocks.find(b => b.type === 'spreken');
 
   const phraseItems    = phraseBlock   && phraseBlock.type   === 'phrases'  ? phraseBlock.items        : [];
   const practiceItems  = practiceBlock && practiceBlock.type === 'practice' ? practiceBlock.exercises  : [];
@@ -4520,6 +5013,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
             <ResumenSection
               block={summaryBlock}
               vocabItems={vocabBlock && vocabBlock.type === 'vocabulary' ? vocabBlock.items : []}
+              phraseItems={phraseBlock && phraseBlock.type === 'phrases' ? phraseBlock.items : []}
               inCourse={inCourse}
               onComplete={() => completeSection('resumen')}
             />
@@ -4559,11 +5053,23 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
             />
           )}
 
+          {/* SPREKEN */}
+          {activeSection === 'spreken' && sprekenBlock && sprekenBlock.type === 'spreken' && (
+            <SprekenSection
+              block={sprekenBlock}
+              onComplete={() => completeSection('spreken')}
+              cacheKey={`${lesson.id}-spreken`}
+              reviewOnly={reviewMode}
+            />
+          )}
+
           {/* LUISTEREN */}
           {activeSection === 'luisteren' && dialogueBlock && dialogueBlock.type === 'dialogue' && (
             <LuisterenSection
               dialogue={dialogueBlock.dialogue}
-              practiceExercises={practiceItems}
+              practiceExercises={
+                dialogueBlock.exercises?.length ? dialogueBlock.exercises : practiceItems
+              }
               onComplete={() => completeSection('luisteren')}
               cacheKey={`${lesson.id}-luisteren`}
               reviewOnly={reviewMode}
