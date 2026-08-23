@@ -243,18 +243,19 @@ nuestro gana en casi todo. Lo que hace que gane, para no desmontarlo por error:
 entre 12 y 15 ventas es ruido, no señal. A este volumen se quita fricción
 evidente y se sigue.
 
-### ⚠️ Días de garantía: 14 vs 15 — SIN RESOLVER
-Hay tres cifras vivas y no coinciden:
-- **Condiciones de contratación** (`nawar-web/src/pages/condiciones-de-contratacion.astro`):
-  distingue a propósito el **desistimiento legal de 14 días naturales** (derecho
-  europeo) de una **garantía comercial de 15 días naturales**, y dice explícitamente
-  que la de 15 "es más amplia que el desistimiento legal". No es una errata.
-- **La landing**: dice **15 días** en nueve sitios.
-- **El checkout**: el usuario pidió **14** (constante `GUARANTEE_DAYS`).
+### Días de garantía: son 15 (resuelto ago 2026)
+**La garantía comercial son 15 días naturales**, en los tres sitios: condiciones
+de contratación, landing y checkout (`GUARANTEE_DAYS` en `checkout.tsx`).
 
-Así el checkout promete **menos** que las condiciones publicadas, que es la
-dirección mala del error. **Recomendación: ponerlo en 15** y alinear los tres.
-Pendiente de que el usuario decida.
+Ojo con la tentación de "corregirlo" a 14: son **dos cosas distintas a
+propósito**. Los 14 días son el **desistimiento legal** (derecho europeo), y las
+condiciones publicadas ofrecen encima una **garantía comercial de 15**, "más
+amplia que el desistimiento legal". Se puso 14 un rato y se volvió a 15: poner
+menos de lo publicado es la dirección mala del error, porque el comprador puede
+señalar tus propias condiciones.
+
+Si algún día se cambia la cifra, hay que cambiarla en **los tres sitios a la
+vez** — la landing la repite en nueve lugares.
 
 ### Matrícula: una persona = una fila (ago 2026)
 El botón "Cambiar" del checkout devuelve al formulario, y cada vuelta creaba otra
@@ -399,13 +400,10 @@ systeme.io con la etiqueta de lista de espera y guarda de dónde vino.
   - **Bug arreglado de paso**: `get_cached_course_meta` cacheaba la ficha del curso en Redis con una clave SIN usuario, pero el payload lleva `is_locked`/`unlock_date` del goteo, que dependen de la fecha de alta de cada alumno → quien calentaba la caché decidía los candados que veían los demás durante un minuto. Ahora la clave lleva el usuario y la invalidación borra por patrón.
 
 ### Hoja de ruta inmediata (sigue aquí)
-0. **PENDIENTE DEL USUARIO, no es código** (bloquea cosas que ya están hechas):
-   - `LEARNHOUSE_FORMACION_PLAZAS=40` en Railway. Sin ella,
-     `/api/v1/payments/plazas` devuelve `plazas_totales: 0` → **no hay tope, la
-     matrícula no se cierra sola al llenarse y no hay número que enseñar** en el
-     "quedan X plazas". Comprobado en vivo, sigue sin estar.
-   - Decidir si la garantía son 14 o 15 días (ver la sección de arriba).
-   - Copias de seguridad del Postgres en Railway.
+0. **PENDIENTE DEL USUARIO, no es código:** activar las **copias de seguridad
+   del Postgres** en Railway. Es el único riesgo que el código no puede cubrir.
+   (`LEARNHOUSE_FORMACION_PLAZAS=40` ya está puesta — comprobado en vivo:
+   `/payments/plazas` devuelve `plazas_totales: 40, quedan: 40`.)
 1. **Rebrandear `/matricula-formacion-nawar-a0-a1` en `nawar-web`** para que case con el embedded checkout (mismo logo arriba, misma card blanca sobre fondo Nawar, mismos inputs `#F0F5FF`, mismo botón `#4da3ff` con texto `#0a1656`). Pásale los tokens de la sección "Design tokens del checkout" más arriba. Campos del form: `first_name`, `last_name`, `email`, `phone` + honeypot `website` (país y ciudad ya no están, ver arriba), y el POST a `/api/enroll`.
 2. **Migrar landing + bienvenido a `holandesnawar.com`** (repo `nawar-web`, otra sesión Claude):
    - Página `bienvenido` lista como HTML standalone en `/tmp/nawar-web-files/bienvenido.html` (ya entregada al usuario por SendUserFile).
