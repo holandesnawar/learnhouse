@@ -12,7 +12,7 @@ name: Content Backup → Cloudflare R2
 #
 # Secretos que necesita:
 #   SCHOOL_URL              https://app.holandesnawar.com  (sin barra final)
-#   SCHOOL_SUPERADMIN_TOKEN un token lh_sa_… creado en la escuela
+#   SCHOOL_BACKUP_TOKEN     el mismo valor que LEARNHOUSE_BACKUP_TOKEN en Railway
 #   R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / R2_BUCKET / R2_ENDPOINT
 #                           los mismos que ya usa db-backup.yaml
 
@@ -36,7 +36,7 @@ jobs:
       - name: Pedirle el volumen a la escuela
         env:
           SCHOOL_URL: ${{ secrets.SCHOOL_URL }}
-          TOKEN: ${{ secrets.SCHOOL_SUPERADMIN_TOKEN }}
+          TOKEN: ${{ secrets.SCHOOL_BACKUP_TOKEN }}
         run: |
           set -euo pipefail
           out="content-${{ steps.ts.outputs.stamp }}.tar.gz"
@@ -45,7 +45,7 @@ jobs:
           # un archivo con una página de error dentro.
           codigo=$(curl --silent --show-error --fail-with-body \
             --max-time 900 --retry 2 --retry-delay 10 \
-            -H "Authorization: Bearer ${TOKEN}" \
+            -H "LEARNHOUSE_BACKUP_TOKEN: ${TOKEN}" \
             -o "$out" -w '%{http_code}' \
             "${SCHOOL_URL%/}/api/v1/backup/content-archive")
           echo "HTTP $codigo"

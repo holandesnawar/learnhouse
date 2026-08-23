@@ -194,17 +194,25 @@ pide a la escuela `GET /api/v1/backup/content-archive`, comprueba que lo que
 llega es un gzip de verdad y no un JSON de error, y lo sube a R2. Se quedan las
 30 más nuevas.
 
-**⚠️ Ese endpoint es la única ruta de superadmin que acepta tokens de API.** El
-router `/superadmin` los rechaza a propósito (`get_non_api_token_user`), pero un
-workflow no tiene sesión: solo puede identificarse con un token. Por eso vive en
-su propio router `/backup`, montado sin esa dependencia, con `require_superadmin`
-puesto dentro del endpoint. El razonamiento largo está escrito en
-`src/routers/backup.py` — leerlo antes de tocar nada de esto.
+**⚠️ En esta edición NO se pueden crear tokens de superadmin.** La pantalla del
+panel (`components/Admin/SuperadminAPITokens/`) llama a `ee/superadmin/tokens/`,
+que es una ruta de la edición **Enterprise** y en este OSS no existe: da 404. Y
+la pantalla que sí funciona, *Organización → Acceso API*, crea tokens de
+**organización** (`lh_`) — esos los rechaza `require_superadmin` a propósito, por
+muy "Full Access" que se marque. Marcar Full Access ahí no sirve para esto.
 
-Lo que abre, dicho claro: quien tenga el token de superadmin puede bajarse los
-archivos de los alumnos, notas de voz incluidas. **El token debe llevar
-caducidad y revocarse en cuanto deje de hacer falta** (se revoca desde la propia
-escuela). Secretos que usa: `SCHOOL_URL` y `SCHOOL_SUPERADMIN_TOKEN`, más los
+Por eso el endpoint tiene **dos puertas**: la cabecera `LEARNHOUSE_BACKUP_TOKEN`
+con un secreto compartido (la del workflow, comparada en tiempo constante) o una
+sesión de superadmin (para bajárselo a mano desde el navegador). Mismo patrón que
+el webhook de Inrō. Se revoca cambiando la variable en Railway.
+
+Vive en su propio router `/backup` porque `/superadmin` se monta con
+`get_non_api_token_user` y rechaza todo lo que no sea una sesión. El razonamiento
+largo está en `src/routers/backup.py` — leerlo antes de tocar nada de esto.
+
+Lo que abre, dicho claro: quien tenga ese secreto puede bajarse los archivos de
+los alumnos, notas de voz incluidas. Variables: `LEARNHOUSE_BACKUP_TOKEN` en
+Railway, y en GitHub `SCHOOL_URL` + `SCHOOL_BACKUP_TOKEN` (mismo valor), más los
 `R2_*` que ya existían.
 
 ### La prueba de restauración (`db-restore-test.yaml`)
