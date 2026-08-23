@@ -4,12 +4,15 @@ name: DB Backup → Cloudflare R2
 # Hobby plan on Railway has no native snapshots, so this is what keeps
 # the data safe if Railway goes down or the account is locked.
 #
-# Schedule: every Sunday at 04:00 UTC (06:00 Madrid in winter / 05:00 in summer).
+# Schedule: every day at 04:00 UTC (06:00 Madrid in winter / 05:00 in summer).
+# Daily, not weekly: with a cohort inside, a week of lost work is a week of
+# lessons, notes and messages that nobody can get back. A dump of this database
+# is a handful of MB, so the cost of doing it every night is noise.
 # Also runnable on demand from the Actions tab → "Run workflow".
 
 on:
   schedule:
-    - cron: '0 4 * * 0'
+    - cron: '0 4 * * *'
   workflow_dispatch:
 
 jobs:
@@ -77,21 +80,22 @@ jobs:
             --only-show-errors
           echo "Uploaded $out"
 
-      - name: Prune (keep newest 12)
+      - name: Prune (keep newest 30)
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
         run: |
           set -euo pipefail
-          # List → keep only the nawar-* dumps → newest first → skip first 12 →
-          # delete the rest. 12 weekly backups ≈ 3 months of retention.
+          # List → keep only the nawar-* dumps → newest first → skip first 30 →
+          # delete the rest. 30 copias diarias = un mes de historia, que es lo
+          # que hace falta para darse cuenta de un borrado que pasó inadvertido.
           aws s3 ls "s3://${{ secrets.R2_BUCKET }}/" \
             --endpoint-url "${{ secrets.R2_ENDPOINT }}" \
             | awk '{print $4}' \
             | grep '^nawar-.*\.sql\.gz$' \
             | sort -r \
-            | tail -n +13 \
+            | tail -n +31 \
             | while read -r f; do
                 echo "Pruning old backup: $f"
                 aws s3 rm "s3://${{ secrets.R2_BUCKET }}/$f" \

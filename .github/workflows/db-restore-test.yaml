@@ -1,0 +1,142 @@
+name: Restore Test → ¿la copia sirve?
+
+# Una copia que nadie ha restaurado nunca no es una copia, es un archivo.
+#
+# Esto coge la copia MÁS RECIENTE de R2, la restaura en un Postgres limpio y
+# comprueba que dentro está lo que tiene que estar: alumnos, cursos, progreso,
+# mensajes y matrículas. Si el volcado llega corrupto, vacío o a medias, este
+# workflow se pone rojo y te enteras el mismo día — no el día que lo necesites.
+#
+# No toca producción en ningún momento: el Postgres vive y muere dentro del
+# runner de GitHub.
+#
+# Cada lunes a las 05:00 UTC, una hora después de la copia diaria, y a mano
+# desde Actions → "Run workflow".
+
+on:
+  schedule:
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+
+jobs:
+  restore-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        # La misma major que Railway. Restaurar en una versión distinta puede
+        # tragarse el volcado y dejar diferencias sutiles, que es justo lo que
+        # esta prueba tendría que detectar y no crear.
+        image: postgres:18
+        env:
+          POSTGRES_USER: prueba
+          POSTGRES_PASSWORD: prueba
+          POSTGRES_DB: restaurada
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U prueba"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: prueba
+      PGPASSWORD: prueba
+      PGDATABASE: restaurada
+
+    steps:
+      - name: Instalar cliente de Postgres 18
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends curl ca-certificates lsb-release gnupg
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] \
+            https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends postgresql-client-18
+          # El runner ya trae la 16 y su wrapper la elegiría antes que la 18.
+          # Se llama al binario por su ruta completa, igual que en db-backup.
+          echo "PSQL=/usr/lib/postgresql/18/bin/psql" >> "$GITHUB_ENV"
+          /usr/lib/postgresql/18/bin/psql --version
+
+      - name: Bajar la copia más reciente de R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          set -euo pipefail
+          # Los nombres son nawar-YYYYMMDD-HHMMSS.sql.gz, así que ordenar por
+          # texto al revés y coger el primero da la más nueva.
+          ultima=$(aws s3 ls "s3://${{ secrets.R2_BUCKET }}/" \
+            --endpoint-url "${{ secrets.R2_ENDPOINT }}" \
+            | awk '{print $4}' \
+            | grep '^nawar-.*\.sql\.gz$' \
+            | sort -r \
+            | head -1)
+          test -n "$ultima"  # sin copias no hay nada que probar: fallo claro
+          echo "Copia elegida: $ultima"
+          aws s3 cp "s3://${{ secrets.R2_BUCKET }}/$ultima" copia.sql.gz \
+            --endpoint-url "${{ secrets.R2_ENDPOINT }}" \
+            --only-show-errors
+          ls -lh copia.sql.gz
+          echo "COPIA=$ultima" >> "$GITHUB_ENV"
+
+      - name: Restaurar en un Postgres limpio
+        run: |
+          set -euo pipefail
+          # ON_ERROR_STOP: sin esto psql se traga los errores y termina en verde
+          # con media base de datos puesta, que es el peor resultado posible.
+          gunzip -c copia.sql.gz | "$PSQL" --quiet -v ON_ERROR_STOP=1
+          echo "Restaurada sin errores."
+
+      - name: Comprobar que dentro hay algo
+        run: |
+          set -euo pipefail
+
+          fila() { "$PSQL" -At -c "$1"; }
+
+          tablas=$(fila "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'")
+          echo "Tablas restauradas: $tablas"
+          # Un volcado sano de esta escuela pasa de las 40 tablas. Menos de 20 es
+          # señal de que algo se cortó por el camino.
+          test "$tablas" -ge 20
+
+          # Las tablas de las que vive la escuela. Se piden por separado para que
+          # el log diga CUÁL falló, no solo que falló algo.
+          for t in "user" organization course activity; do
+            n=$(fila "SELECT count(*) FROM \"$t\"")
+            echo "  $t: $n"
+            test "$n" -ge 1
+          done
+
+          # Estas pueden estar vacías legítimamente (una escuela recién puesta en
+          # marcha), así que se enseñan pero no se exige que tengan filas.
+          for t in student_progress lesson_completion exercise_attempt enrollment direct_message lesson_highlight; do
+            if [ "$(fila "SELECT to_regclass('public.$t') IS NOT NULL")" = "t" ]; then
+              echo "  $t: $(fila "SELECT count(*) FROM $t")"
+            else
+              echo "  $t: NO EXISTE"
+              exit 1
+            fi
+          done
+
+      - name: Resumen
+        if: always()
+        run: |
+          echo "### Prueba de restauración" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Copia probada: \`${COPIA:-ninguna}\`" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ La copia se restaura y trae los datos." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "❌ La copia NO sirve. Míralo hoy." >> "$GITHUB_STEP_SUMMARY"
+          fi
