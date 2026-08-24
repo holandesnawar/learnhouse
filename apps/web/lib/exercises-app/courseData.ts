@@ -177,31 +177,45 @@ const m1_les1: Lesson = {
     },
     {
       type: 'lezen',
-      title: 'Groeten in Nederland',
-      textNl: `In Nederland is groeten heel belangrijk. De dag heeft vier momenten: ’s ochtends zeg je goedemorgen, ’s middags goedemiddag, ’s avonds goedenavond en heel laat goedenacht. Het woord hallo kan altijd — en hoi is informeel, voor vrienden.
+      // Texto de lectura al estilo del examen: una situación concreta con datos
+      // concretos (día, sitio, hora, precio, personas), no una explicación de
+      // las reglas del saludo. Las reglas ya están en el resumen y en las
+      // flashcards; aquí el alumno lo que entrena es LEER y localizar datos,
+      // que es exactamente lo que le van a pedir en el inburgeringsexamen.
+      // Los saludos aparecen porque la situación los pide, no al revés.
+      title: 'Het taalcafé in de bibliotheek',
+      textNl: `Elke woensdag is er een taalcafé in de bibliotheek van Utrecht. Het is voor mensen die Nederlands leren en het is gratis.
 
-Afscheid nemen kan ook op veel manieren. Tot ziens is formeel en beleefd. Doei is informeel. Met tot straks, tot morgen en tot volgende week zeg je wanneer je elkaar weer ziet. En fijne dag is een vriendelijke wens voor iedereen.
+David gaat er vandaag voor het eerst heen. Om twee uur komt hij binnen en hij zegt ‘goedemiddag’. Sara staat bij de deur. Ze is vrijwilliger. Ze geeft David een hand en vraagt hoe hij heet. Sara werkt ’s ochtends ook in de bibliotheek. Dan zegt ze ‘goedemorgen’ tegen iedereen die binnenkomt.
 
-David is nieuw in Amsterdam. Hij komt uit Argentinië en woont nu in Nederland. Elke dag groet hij veel mensen: de bakker, zijn taalbuddy Anna en zijn buurvrouw Els. De mensen in Nederland zijn direct, maar vriendelijk.
+David zit aan een tafel met vier andere mensen. Iedereen vertelt hoe hij heet en waar hij vandaan komt. Niemand lacht als je een fout maakt. Ze praten over het weer, over de stad en over werk.
 
-Nog één ding: Nederlanders zeggen vaak gezellig — een woord zonder vertaling. Een middag met koffie en een goed gesprek? Dat is gezellig!`,
-      textEs: `En Países Bajos saludar es muy importante. El día tiene cuatro momentos: por la mañana dices goedemorgen, al mediodía goedemiddag, por la tarde-noche goedenavond y muy tarde goedenacht. La palabra hallo vale siempre — y hoi es informal, para amigos.
+Om vier uur is het afgelopen. De mensen aan zijn tafel zeggen ‘tot volgende week’. Sara wenst iedereen een fijne dag.
 
-Despedirse también tiene muchas formas. Tot ziens es formal y educado. Doei es informal. Con tot straks, tot morgen y tot volgende week dices cuándo os volvéis a ver. Y fijne dag es un deseo amable para cualquiera.
+’s Avonds eet David bij zijn buurvrouw Els. Hij belt aan en zegt ‘goedenavond’. Els vraagt hoe het was. David zegt dat het gezellig was.`,
+      textEs: `Todos los miércoles hay un taalcafé en la biblioteca de Utrecht. Es para gente que está aprendiendo neerlandés y es gratis.
 
-David es nuevo en Ámsterdam. Viene de Argentina y ahora vive en Países Bajos. Cada día saluda a mucha gente: al panadero, a su compañera de idiomas Anna y a su vecina Els. La gente en Países Bajos es directa, pero amable.
+David va hoy por primera vez. A las dos entra y dice «goedemiddag». Sara está en la puerta. Es voluntaria. Le da la mano a David y le pregunta cómo se llama. Sara trabaja también por las mañanas en la biblioteca. Entonces dice «goedemorgen» a todo el que entra.
 
-Una cosa más: los neerlandeses dicen mucho gezellig — una palabra sin traducción. ¿Una tarde con café y buena conversación? ¡Eso es gezellig!`,
+David se sienta en una mesa con otras cuatro personas. Cada uno cuenta cómo se llama y de dónde viene. Nadie se ríe si cometes un error. Hablan del tiempo, de la ciudad y del trabajo.
+
+A las cuatro se acaba. La gente de su mesa dice «tot volgende week». Sara les desea a todos un buen día.
+
+Por la noche David cena en casa de su vecina Els. Llama al timbre y dice «goedenavond». Els le pregunta qué tal fue. David dice que estuvo muy a gusto.`,
       exercises: [
-        { id: 'm1l1lz-1', type: 'multiple_choice', prompt: 'Según el texto, ¿cuántos "momentos" de saludo tiene el día?', options: ['Cuatro', 'Dos', 'Tres', 'Cinco'], correctAnswer: 'Cuatro', explanation: 'Goedemorgen, goedemiddag, goedenavond y goedenacht.' },
-        { id: 'm1l1lz-2', type: 'multiple_choice', prompt: '¿Qué saludo vale SIEMPRE, a cualquier hora?', options: ['Hallo', 'Goedenacht', 'Tot ziens', 'Doei'], correctAnswer: 'Hallo', explanation: '"Het woord hallo kan altijd."' },
-        { id: 'm1l1lz-3', type: 'multiple_choice', prompt: '¿Cuál es la despedida FORMAL?', options: ['Tot ziens', 'Doei', 'Hoi', 'Hallo'], correctAnswer: 'Tot ziens', explanation: '"Tot ziens is formeel en beleefd"; doei es la informal.' },
-        { id: 'm1l1lz-4', type: 'fill_blank', prompt: '’s Ochtends zeg je ___.', correctAnswer: 'goedemorgen', hint: 'El saludo de antes de las 12:00', explanation: 'Por la mañana: goedemorgen.' },
-        { id: 'm1l1lz-5', type: 'multiple_choice', prompt: '¿De dónde viene David?', options: ['De Argentina', 'De Italia', 'De Chile', 'De Países Bajos'], correctAnswer: 'De Argentina', explanation: '"Hij komt uit Argentinië."' },
-        { id: 'm1l1lz-6', type: 'multiple_choice', prompt: '¿A quién saluda David cada día?', options: ['Al panadero, a Anna y a su vecina Els', 'Solo a Anna', 'A nadie', 'A su familia en Argentina'], correctAnswer: 'Al panadero, a Anna y a su vecina Els', explanation: '"De bakker, zijn taalbuddy Anna en zijn buurvrouw Els."' },
-        { id: 'm1l1lz-7', type: 'fill_blank', prompt: 'Met tot ___, tot morgen en tot volgende week zeg je wanneer je elkaar weer ziet.', correctAnswer: 'straks', hint: 'La despedida de "hasta luego, hoy mismo"', explanation: '"Tot straks" = hasta luego (el mismo día).' },
-        { id: 'm1l1lz-8', type: 'multiple_choice', prompt: 'Según el texto, ¿cómo es la gente en Países Bajos?', options: ['Directa, pero amable', 'Tímida', 'Muy formal siempre', 'Poco habladora'], correctAnswer: 'Directa, pero amable', explanation: '"De mensen in Nederland zijn direct, maar vriendelijk."' },
-        { id: 'm1l1lz-9', type: 'fill_blank', prompt: 'Een middag met koffie en een goed gesprek? Dat is ___!', correctAnswer: 'gezellig', hint: 'La palabra neerlandesa sin traducción', explanation: 'Ese ambiente agradable y acogedor es… gezellig.' },
+        { id: 'm1l1lz-1', type: 'multiple_choice', prompt: '¿Qué día de la semana es el taalcafé?', options: ['Los miércoles', 'Los lunes', 'Los viernes', 'Los sábados'], correctAnswer: 'Los miércoles', explanation: '"Elke woensdag" = todos los miércoles.' },
+        { id: 'm1l1lz-2', type: 'multiple_choice', prompt: '¿Dónde es el taalcafé?', options: ['En la biblioteca de Utrecht', 'En una cafetería de Ámsterdam', 'En la escuela', 'En casa de Sara'], correctAnswer: 'En la biblioteca de Utrecht', explanation: '"In de bibliotheek van Utrecht."' },
+        { id: 'm1l1lz-3', type: 'multiple_choice', prompt: '¿Cuánto cuesta ir?', options: ['Nada, es gratis', 'Dos euros', 'Cinco euros', 'No lo dice'], correctAnswer: 'Nada, es gratis', explanation: '"Het is gratis." Ojo con esta pregunta: en el examen siempre hay una sobre el precio.' },
+        { id: 'm1l1lz-4', type: 'multiple_choice', prompt: '¿A qué hora llega David?', options: ['A las dos', 'A las cuatro', 'A las ocho', 'A las doce'], correctAnswer: 'A las dos', explanation: '"Om twee uur komt hij binnen." Y termina "om vier uur".' },
+        { id: 'm1l1lz-5', type: 'fill_blank', prompt: 'Om twee uur komt David binnen en hij zegt ___.', correctAnswer: 'goedemiddag', hint: 'Son las dos de la tarde', explanation: 'Después de las 12:00 y hasta las 18:00: goedemiddag.' },
+        { id: 'm1l1lz-6', type: 'multiple_choice', prompt: '¿Quién es Sara?', options: ['Una voluntaria del taalcafé', 'La profesora de David', 'La vecina de David', 'Una alumna de la mesa'], correctAnswer: 'Una voluntaria del taalcafé', explanation: '"Ze is vrijwilliger" — está en la puerta y recibe a la gente.' },
+        { id: 'm1l1lz-7', type: 'fill_blank', prompt: 'Sara werkt ’s ochtends ook in de bibliotheek. Dan zegt ze ___.', correctAnswer: 'goedemorgen', hint: 'Antes de las 12:00', explanation: 'Misma persona, otra hora, otro saludo. Eso es lo único que cambia.' },
+        { id: 'm1l1lz-8', type: 'multiple_choice', prompt: '¿Con cuántas personas se sienta David en la mesa?', options: ['Con cuatro', 'Con dos', 'Con seis', 'Con ninguna, se sienta solo'], correctAnswer: 'Con cuatro', explanation: '"Aan een tafel met vier andere mensen" — otras cuatro, o sea cinco en total.' },
+        { id: 'm1l1lz-9', type: 'true_false', prompt: 'En el taalcafé se ríen de ti si cometes un error.', correctAnswer: 'falso', explanation: 'Dice justo lo contrario: "Niemand lacht als je een fout maakt."' },
+        { id: 'm1l1lz-10', type: 'multiple_choice', prompt: '¿De qué hablan en la mesa?', options: ['Del tiempo, de la ciudad y del trabajo', 'De política', 'De sus familias', 'De gramática neerlandesa'], correctAnswer: 'Del tiempo, de la ciudad y del trabajo', explanation: '"Over het weer, over de stad en over werk."' },
+        { id: 'm1l1lz-11', type: 'fill_blank', prompt: 'Om vier uur zeggen de mensen tot ___ week.', correctAnswer: 'volgende', hint: 'Se ven otra vez el miércoles siguiente', explanation: '"Tot volgende week" = hasta la semana que viene.' },
+        { id: 'm1l1lz-12', type: 'multiple_choice', prompt: 'Por la noche David llama al timbre en casa de Els. ¿Qué dice?', options: ['Goedenavond', 'Goedemorgen', 'Goedemiddag', 'Tot ziens'], correctAnswer: 'Goedenavond', explanation: 'Después de las 18:00, goedenavond. "Goedenacht" solo muy tarde, al irse a dormir.' },
+        { id: 'm1l1lz-13', type: 'fill_blank', prompt: 'David zegt dat het ___ was.', correctAnswer: 'gezellig', hint: 'La palabra neerlandesa sin traducción', explanation: 'Ese ambiente agradable y a gusto es… gezellig.' },
       ],
     },
     {
