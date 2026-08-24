@@ -1508,6 +1508,35 @@ const m1_extra1: Lesson = {
       ],
     },
     {
+      // Spreken de los colores.
+      //
+      // La lección donde el formato se ve más claro que en ninguna: un color
+      // ES un dibujo, así que no hay ni un gramo de traducción por el medio.
+      //
+      // Los nueve primeros van con cuadrados, que existen para casi todos los
+      // colores. Los tres últimos —roze, grijs y lichtblauw— no tienen
+      // cuadrado, así que esa tanda va con corazones, TODOS corazones, para
+      // que dentro de la misma pantalla no se mezclen dos formas y el alumno
+      // acabe eligiendo por la forma en vez de por el color.
+      type: 'spreken',
+      title: 'Welke kleur hoor je?',
+      intro: 'Suena un color en neerlandés y tú tocas el que es. Sin texto y sin traducir: del sonido al color, directo.',
+      exercises: [
+        { id: 'eksp-1', type: 'listen_choose_image', prompt: 'rood (rojo)', promptNl: 'rood', options: ['rood', 'oranje', 'bruin', 'paars'], optionImages: ['🟥', '🟧', '🟫', '🟪'], correctAnswer: 'rood' },
+        { id: 'eksp-2', type: 'listen_choose_image', prompt: 'blauw (azul)', promptNl: 'blauw', options: ['blauw', 'groen', 'paars', 'zwart'], optionImages: ['🟦', '🟩', '🟪', '⬛'], correctAnswer: 'blauw' },
+        { id: 'eksp-3', type: 'listen_choose_image', prompt: 'groen (verde)', promptNl: 'groen', options: ['groen', 'blauw', 'geel', 'bruin'], optionImages: ['🟩', '🟦', '🟨', '🟫'], correctAnswer: 'groen', explanation: 'Groen y grijs empiezan igual. Fíjate en la vocal: groen es larga y cerrada.' },
+        { id: 'eksp-4', type: 'listen_choose_image', prompt: 'geel (amarillo)', promptNl: 'geel', options: ['geel', 'oranje', 'groen', 'wit'], optionImages: ['🟨', '🟧', '🟩', '⬜'], correctAnswer: 'geel' },
+        { id: 'eksp-5', type: 'listen_choose_image', prompt: 'oranje (naranja)', promptNl: 'oranje', options: ['oranje', 'geel', 'rood', 'bruin'], optionImages: ['🟧', '🟨', '🟥', '🟫'], correctAnswer: 'oranje', explanation: 'El color de la selección y del Koningsdag. Se dice "oranje", con la j suave, no como en español.' },
+        { id: 'eksp-6', type: 'listen_choose_image', prompt: 'wit (blanco)', promptNl: 'wit', options: ['wit', 'zwart', 'geel', 'blauw'], optionImages: ['⬜', '⬛', '🟨', '🟦'], correctAnswer: 'wit' },
+        { id: 'eksp-7', type: 'listen_choose_image', prompt: 'zwart (negro)', promptNl: 'zwart', options: ['zwart', 'wit', 'bruin', 'paars'], optionImages: ['⬛', '⬜', '🟫', '🟪'], correctAnswer: 'zwart' },
+        { id: 'eksp-8', type: 'listen_choose_image', prompt: 'bruin (marrón)', promptNl: 'bruin', options: ['bruin', 'rood', 'oranje', 'zwart'], optionImages: ['🟫', '🟥', '🟧', '⬛'], correctAnswer: 'bruin' },
+        { id: 'eksp-9', type: 'listen_choose_image', prompt: 'paars (morado)', promptNl: 'paars', options: ['paars', 'blauw', 'rood', 'bruin'], optionImages: ['🟪', '🟦', '🟥', '🟫'], correctAnswer: 'paars' },
+        { id: 'eksp-10', type: 'listen_choose_image', prompt: 'roze (rosa)', promptNl: 'roze', options: ['roze', 'rood', 'grijs', 'lichtblauw'], optionImages: ['🩷', '❤️', '🩶', '🩵'], correctAnswer: 'roze', explanation: 'Roze se dice "róze", en dos sílabas. No se parece al "rosa" español.' },
+        { id: 'eksp-11', type: 'listen_choose_image', prompt: 'grijs (gris)', promptNl: 'grijs', options: ['grijs', 'wit', 'zwart', 'lichtblauw'], optionImages: ['🩶', '🤍', '🖤', '🩵'], correctAnswer: 'grijs', explanation: 'La ij de grijs suena como "ei". Y es la palabra del cielo de aquí, así que la vas a usar mucho.' },
+        { id: 'eksp-12', type: 'listen_choose_image', prompt: 'lichtblauw (azul claro)', promptNl: 'lichtblauw', options: ['lichtblauw', 'blauw', 'grijs', 'wit'], optionImages: ['🩵', '💙', '🩶', '🤍'], correctAnswer: 'lichtblauw', explanation: 'Licht- delante de un color significa "claro", y donker- significa "oscuro": donkerblauw, lichtgroen.' },
+      ],
+    },
+    {
       type: 'practice',
       exercises: [
         { id: 'ek1-1', type: 'multiple_choice', prompt: '¿Cómo se dice "verde" en neerlandés?', options: ['blauw', 'geel', 'groen', 'grijs'], correctAnswer: 'groen' },
@@ -1608,6 +1637,35 @@ const m1_extra3: Lesson = {
         { id: 'plt-4', dutch: 'In Nederland spreken ze Nederlands.', spanish: 'En los Países Bajos hablan neerlandés.', context: 'Países y lenguas' },
         { id: 'plt-5', dutch: 'Mijn moedertaal is Spaans.', spanish: 'Mi lengua materna es el español.', context: 'Lengua materna' },
         { id: 'plt-6', dutch: 'In België spreken ze ook Nederlands, Frans en Duits.', spanish: 'En Bélgica también hablan neerlandés, francés y alemán.', context: 'Bélgica' },
+      ],
+    },
+    {
+      // Spreken de países e idiomas.
+      //
+      // Con banderas, y con una regla que NO se puede saltar: dentro de una
+      // misma pantalla, o todo son países o todo son idiomas. Duitsland y
+      // Duits comparten bandera, igual que Frankrijk y Frans, así que
+      // mezclarlos dejaría dos respuestas correctas.
+      //
+      // Justo esa confusión —el país y el idioma— es la que se pregunta al
+      // final, y ahí no con banderas sino con frases enteras que solo suenan,
+      // que es como se equivoca la gente de verdad al presentarse.
+      type: 'spreken',
+      title: 'Welk land hoor je?',
+      intro: 'Suena un país o un idioma y tú tocas la bandera. Al final, dos situaciones para no confundir el país con la lengua.',
+      exercises: [
+        { id: 'eltsp-1', type: 'listen_choose_image', prompt: 'Nederland (Países Bajos)', promptNl: 'Nederland', options: ['Nederland', 'België', 'Duitsland', 'Frankrijk'], optionImages: ['🇳🇱', '🇧🇪', '🇩🇪', '🇫🇷'], correctAnswer: 'Nederland' },
+        { id: 'eltsp-2', type: 'listen_choose_image', prompt: 'België (Bélgica)', promptNl: 'België', options: ['België', 'Nederland', 'Duitsland', 'Italië'], optionImages: ['🇧🇪', '🇳🇱', '🇩🇪', '🇮🇹'], correctAnswer: 'België', explanation: 'En Bélgica también se habla neerlandés, así que lo que aprendes aquí te vale allí.' },
+        { id: 'eltsp-3', type: 'listen_choose_image', prompt: 'Spanje (España)', promptNl: 'Spanje', options: ['Spanje', 'Italië', 'Frankrijk', 'België'], optionImages: ['🇪🇸', '🇮🇹', '🇫🇷', '🇧🇪'], correctAnswer: 'Spanje' },
+        { id: 'eltsp-4', type: 'listen_choose_image', prompt: 'Duitsland (Alemania)', promptNl: 'Duitsland', options: ['Duitsland', 'België', 'Nederland', 'Italië'], optionImages: ['🇩🇪', '🇧🇪', '🇳🇱', '🇮🇹'], correctAnswer: 'Duitsland' },
+        { id: 'eltsp-5', type: 'listen_choose_image', prompt: 'Italië (Italia)', promptNl: 'Italië', options: ['Italië', 'Spanje', 'Frankrijk', 'Duitsland'], optionImages: ['🇮🇹', '🇪🇸', '🇫🇷', '🇩🇪'], correctAnswer: 'Italië' },
+        { id: 'eltsp-6', type: 'listen_choose_image', prompt: 'Spaans (español, el idioma)', promptNl: 'Spaans', options: ['Spaans', 'Engels', 'Duits', 'Frans'], optionImages: ['🇪🇸', '🇬🇧', '🇩🇪', '🇫🇷'], correctAnswer: 'Spaans', explanation: 'Los idiomas van en mayúscula en neerlandés: Spaans, Engels, Nederlands.' },
+        { id: 'eltsp-7', type: 'listen_choose_image', prompt: 'Engels (inglés)', promptNl: 'Engels', options: ['Engels', 'Nederlands', 'Duits', 'Turks'], optionImages: ['🇬🇧', '🇳🇱', '🇩🇪', '🇹🇷'], correctAnswer: 'Engels' },
+        { id: 'eltsp-8', type: 'listen_choose_image', prompt: 'Duits (alemán)', promptNl: 'Duits', options: ['Duits', 'Nederlands', 'Frans', 'Engels'], optionImages: ['🇩🇪', '🇳🇱', '🇫🇷', '🇬🇧'], correctAnswer: 'Duits', explanation: 'Duits es el idioma y Duitsland el país. Una sílaba de diferencia.' },
+        { id: 'eltsp-9', type: 'listen_choose_image', prompt: 'Marokkaans (árabe marroquí)', promptNl: 'Marokkaans', options: ['Marokkaans', 'Turks', 'Spaans', 'Engels'], optionImages: ['🇲🇦', '🇹🇷', '🇪🇸', '🇬🇧'], correctAnswer: 'Marokkaans' },
+        { id: 'eltsp-10', type: 'listen_choose_image', prompt: 'Turks (turco)', promptNl: 'Turks', options: ['Turks', 'Marokkaans', 'Duits', 'Nederlands'], optionImages: ['🇹🇷', '🇲🇦', '🇩🇪', '🇳🇱'], correctAnswer: 'Turks' },
+        { id: 'eltsp-11', type: 'spreken_choose', prompt: 'Quieres decir que hablas alemán.', options: ['Ik spreek Duits.', 'Ik kom uit Duitsland.', 'Ik woon in Duitsland.'], correctAnswer: 'Ik spreek Duits.', explanation: 'Spreken + el idioma. Komen uit + el país. Es el fallo más común al presentarse.' },
+        { id: 'eltsp-12', type: 'spreken_choose', prompt: 'Quieres decir que vienes de Francia.', options: ['Ik kom uit Frankrijk.', 'Ik spreek Frans.', 'Ik ga naar Frankrijk.'], correctAnswer: 'Ik kom uit Frankrijk.', explanation: 'Uit es "de, desde dentro". Naar es "hacia", o sea que todavía no has ido.' },
       ],
     },
     {
@@ -4471,7 +4529,7 @@ const m4_les1: Lesson = {
         { id: 'm4l1v-postbode', dutch: 'de postbode', spanish: 'cartero', article: 'de', emoji: '📮', color: '#025dc7', exampleNl: 'De postbode komt elke ochtend.', exampleEs: 'El cartero viene cada mañana.', category: 'beroepen', difficulty: 'A1' },
         { id: 'm4l1v-metselaar', dutch: 'de metselaar', spanish: 'albañil', article: 'de', emoji: '🧱', color: '#4da3ff', exampleNl: 'De metselaar bouwt een muur.', exampleEs: 'El albañil construye una pared.', category: 'beroepen', difficulty: 'A1' },
         { id: 'm4l1v-automonteur', dutch: 'de automonteur', spanish: 'mecánico de coches', article: 'de', emoji: '🔧', color: '#1D0084', exampleNl: 'De automonteur repareert mijn auto.', exampleEs: 'El mecánico repara mi coche.', category: 'beroepen', difficulty: 'A1' },
-        { id: 'm4l1v-electricien', dutch: 'de electricien', spanish: 'electricista', article: 'de', emoji: '💡', color: '#025dc7', exampleNl: 'De electricien komt morgen.', exampleEs: 'El electricista viene mañana.', category: 'beroepen', difficulty: 'A1' },
+        { id: 'm4l1v-electricien', dutch: 'de elektricien', spanish: 'electricista', article: 'de', emoji: '💡', color: '#025dc7', exampleNl: 'De elektricien komt morgen.', exampleEs: 'El electricista viene mañana.', category: 'beroepen', difficulty: 'A1' },
         { id: 'm4l1v-loodgieter', dutch: 'de loodgieter', spanish: 'fontanero', article: 'de', emoji: '🚰', color: '#4da3ff', exampleNl: 'De loodgieter maakt de kraan.', exampleEs: 'El fontanero arregla el grifo.', category: 'beroepen', difficulty: 'A1' },
         { id: 'm4l1v-bakker', dutch: 'de bakker', spanish: 'panadero', article: 'de', emoji: '🥖', color: '#1D0084', exampleNl: 'De bakker begint heel vroeg.', exampleEs: 'El panadero empieza muy temprano.', category: 'beroepen', difficulty: 'A1' },
         { id: 'm4l1v-winkelier', dutch: 'de winkelier', spanish: 'comerciante, tendero', article: 'de', emoji: '🏪', color: '#025dc7', exampleNl: 'De winkelier opent om negen uur.', exampleEs: 'El tendero abre a las nueve.', category: 'beroepen', difficulty: 'A1' },
@@ -4498,6 +4556,37 @@ const m4_les1: Lesson = {
         { id: 'm4l1f-12', dutch: "Ik werk met mijn collega's.", spanish: 'Trabajo con mis compañeros.' },
         { id: 'm4l1f-13', dutch: 'Voor wie werk jij?', spanish: '¿Para quién trabajas?' },
         { id: 'm4l1f-14', dutch: 'Ik werk voor mezelf.', spanish: 'Trabajo por mi cuenta.' },
+      ],
+    },
+    {
+      // Spreken de la lección de profesiones.
+      //
+      // Nueve rondas de dibujo y tres situaciones. El corte es el mismo que en
+      // la lección de familia: el dibujo enseña bien el OFICIO, pero no puede
+      // enseñar el GÉNERO, y el género es justo lo que esta lección enseña
+      // (kapper/kapster, leraar/lerares, ober/serveerster). Así que las
+      // parejas masculino/femenino van como situación con respuestas que solo
+      // suenan.
+      //
+      // Dentro de cada ronda no se junta nunca a dos que compartan dibujo:
+      // advocaat y rechter son los dos la balanza, y arts, huisarts,
+      // verpleger y verpleegkundige son los cuatro el hospital.
+      type: 'spreken',
+      title: 'Welk beroep hoor je?',
+      intro: 'Suena una profesión en neerlandés y tú tocas el dibujo. No aparece texto hasta que contestas. En las tres últimas elige de oído la respuesta correcta.',
+      exercises: [
+        { id: 'm4l1sp-1', type: 'listen_choose_image', prompt: 'de bakker (el panadero)', promptNl: 'de bakker', options: ['de bakker', 'de boer', 'de winkelier', 'de chauffeur'], optionImages: ['🥖', '🚜', '🏪', '🚌'], correctAnswer: 'de bakker' },
+        { id: 'm4l1sp-2', type: 'listen_choose_image', prompt: 'de politieagent (el policía)', promptNl: 'de politieagent', options: ['de politieagent', 'de rechter', 'de receptionist', 'de postbode'], optionImages: ['👮', '👨‍⚖️', '🛎️', '📮'], correctAnswer: 'de politieagent' },
+        { id: 'm4l1sp-3', type: 'listen_choose_image', prompt: 'de postbode (el cartero)', promptNl: 'de postbode', options: ['de postbode', 'de bakker', 'de chauffeur', 'de winkelier'], optionImages: ['📮', '🥖', '🚌', '🏪'], correctAnswer: 'de postbode', explanation: 'Postbode vale para hombre y para mujer, no tiene forma femenina aparte.' },
+        { id: 'm4l1sp-4', type: 'listen_choose_image', prompt: 'de chauffeur (el conductor)', promptNl: 'de chauffeur', options: ['de chauffeur', 'de boer', 'de politieagent', 'de automonteur'], optionImages: ['🚌', '🚜', '👮', '🔧'], correctAnswer: 'de chauffeur', explanation: 'Chauffeur viene del francés y se pronuncia casi igual: "sjoféur".' },
+        { id: 'm4l1sp-5', type: 'listen_choose_image', prompt: 'de boer (el granjero)', promptNl: 'de boer', options: ['de boer', 'de chauffeur', 'de metselaar', 'de bakker'], optionImages: ['🚜', '🚌', '🧱', '🥖'], correctAnswer: 'de boer' },
+        { id: 'm4l1sp-6', type: 'listen_choose_image', prompt: 'de metselaar (el albañil)', promptNl: 'de metselaar', options: ['de metselaar', 'de automonteur', 'de elektricien', 'de loodgieter'], optionImages: ['🧱', '🔧', '💡', '🚰'], correctAnswer: 'de metselaar', explanation: 'Estos cuatro son los oficios que más se buscan por aquí, así que conviene reconocerlos de oído en un anuncio de trabajo.' },
+        { id: 'm4l1sp-7', type: 'listen_choose_image', prompt: 'de loodgieter (el fontanero)', promptNl: 'de loodgieter', options: ['de loodgieter', 'de elektricien', 'de automonteur', 'de metselaar'], optionImages: ['🚰', '💡', '🔧', '🧱'], correctAnswer: 'de loodgieter' },
+        { id: 'm4l1sp-8', type: 'listen_choose_image', prompt: 'de huisarts (el médico de cabecera)', promptNl: 'de huisarts', options: ['de huisarts', 'de politieagent', 'de rechter', 'de kapper'], optionImages: ['👨‍⚕️', '👮', '👨‍⚖️', '💇'], correctAnswer: 'de huisarts', explanation: 'El huisarts es el médico al que vas primero para todo. Sin su papel no llegas al especialista.' },
+        { id: 'm4l1sp-9', type: 'listen_choose_image', prompt: 'de kassamedewerker (el cajero)', promptNl: 'de kassamedewerker', options: ['de kassamedewerker', 'de verkoopmedewerker', 'de receptionist', 'de kapper'], optionImages: ['🧾', '🛍️', '🛎️', '💇'], correctAnswer: 'de kassamedewerker' },
+        { id: 'm4l1sp-10', type: 'spreken_choose', prompt: 'Hablas de una mujer que corta el pelo.', options: ['de kapster', 'de kapper', 'de serveerster'], correctAnswer: 'de kapster', explanation: 'Kapper es él, kapster es ella. La terminación -ster es la femenina más común en los oficios.' },
+        { id: 'm4l1sp-11', type: 'spreken_choose', prompt: 'Hablas de una mujer que da clase en una escuela.', options: ['de lerares', 'de leraar', 'de verpleegster'], correctAnswer: 'de lerares', explanation: 'Leraar es él, lerares es ella. Aquí la terminación es -es, no -ster.' },
+        { id: 'm4l1sp-12', type: 'spreken_choose', prompt: 'Hablas de una mujer que sirve las mesas en un restaurante.', options: ['de serveerster', 'de ober', 'de kapster'], correctAnswer: 'de serveerster', explanation: 'Aquí ni siquiera es la misma palabra: él es ober y ella serveerster.' },
       ],
     },
     {
