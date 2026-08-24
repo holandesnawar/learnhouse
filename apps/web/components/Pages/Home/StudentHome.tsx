@@ -67,6 +67,19 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
     (c: any) => !isHidden(c?.course_uuid)
   )
 
+  // Cuál de los cursos es LA formación, para poder llevar al alumno nuevo
+  // directo a ella en vez de ponerle a elegir.
+  //
+  // Normalmente `courseList` ya trae solo la formación, porque las clases
+  // semanales se filtran por su identificador. Pero ese identificador está
+  // escrito a mano, así que si algún día no cuadra se cuela un curso de más;
+  // por eso hay un segundo filtro por el nombre y, si aun así queda ambiguo,
+  // se vuelve a la rejilla de siempre en vez de adivinar.
+  const formacion: any =
+    courseList.length === 1
+      ? courseList[0]
+      : courseList.find((c: any) => !/(clase|grabaci|directo|sesi[óo]n)/i.test(String(c?.name || ''))) ?? null
+
   // Register today's visit so the streak counter advances. Idempotent within
   // the same day, fire-and-forget — never blocks the page.
   const [visit, setVisit] = useState<StudentVisit | null>(null)
@@ -195,26 +208,44 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
         </div>
       )}
 
+      {/* ── El alumno que entra por primera vez ──
+          Aquí NO se le enseña una rejilla con los cursos para que elija.
+          Acaba de pagar la formación: ponerle al lado las grabaciones de las
+          clases semanales convierte en una decisión algo que no lo es, y la
+          primera pantalla de un curso de pago no puede empezar con una duda.
+
+          Se le enseña la formación, grande y con un solo botón. Las
+          grabaciones siguen a un clic en «Cursos», pero como material, no
+          como alternativa. */}
       {trailReady && runs.length === 0 && coursesReady && (
         <div className="mb-6">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Tus cursos</h2>
-          {courseList.length === 0 ? (
-            <div className="flex flex-col justify-center items-center py-12 px-4 border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/30">
-              <div className="p-4 bg-white rounded-full nice-shadow mb-4">
-                <BookOpen className="w-8 h-8 text-gray-300" strokeWidth={1.5} />
-              </div>
-              <p className="text-md text-gray-400 text-center max-w-xs">
-                Aún no hay cursos disponibles.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {courseList.map((course: any) => (
-                <div key={course.course_uuid} className="flex flex-col">
-                  <CourseThumbnail course={course} orgslug={orgslug} hideMeta />
+          {formacion ? (
+            <ArranqueFormacion course={formacion} orgslug={orgslug} hayGrabaciones={courseList.length > 1} />
+          ) : courseList.length === 0 ? (
+            <>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Tus cursos</h2>
+              <div className="flex flex-col justify-center items-center py-12 px-4 border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/30">
+                <div className="p-4 bg-white rounded-full nice-shadow mb-4">
+                  <BookOpen className="w-8 h-8 text-gray-300" strokeWidth={1.5} />
                 </div>
-              ))}
-            </div>
+                <p className="text-md text-gray-400 text-center max-w-xs">
+                  Aún no hay cursos disponibles.
+                </p>
+              </div>
+            </>
+          ) : (
+            // Red de seguridad: si no se reconoce cuál es la formación, se
+            // vuelve a la rejilla de siempre en vez de dejar el hueco vacío.
+            <>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Tus cursos</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {courseList.map((course: any) => (
+                  <div key={course.course_uuid} className="flex flex-col">
+                    <CourseThumbnail course={course} orgslug={orgslug} hideMeta />
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       )}
@@ -262,5 +293,62 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
         </Link>
       </div>
     </GeneralWrapperStyled>
+  )
+}
+
+/**
+ * Lo primero que ve el alumno el día que entra.
+ *
+ * Ocupa el sitio donde luego irá «Continúa donde lo dejaste», y hace lo mismo
+ * que hará esa tarjeta cuando haya progreso: enseñar UNA cosa y un botón. La
+ * rejilla de cursos que había antes convertía la primera pantalla en una
+ * elección entre la formación y las grabaciones de las clases, y para alguien
+ * que acaba de pagar la formación eso no es una elección: es una duda.
+ *
+ * Las grabaciones no desaparecen. Se mencionan debajo, en pequeño y como
+ * material de repaso, que es lo que son.
+ */
+function ArranqueFormacion({
+  course,
+  orgslug,
+  hayGrabaciones,
+}: {
+  course: any
+  orgslug: string
+  hayGrabaciones: boolean
+}) {
+  const uuid = String(course?.course_uuid || '').replace('course_', '')
+  return (
+    <div className="rounded-2xl border border-[#DDE6F5] bg-white p-5 sm:p-7 nice-shadow">
+      <p className="text-[11px] font-semibold text-[#025dc7] uppercase tracking-[0.08em]">
+        Empieza por aquí
+      </p>
+      <h2
+        className="mt-1.5 text-[22px] sm:text-[26px] font-bold text-gray-900 leading-tight"
+        style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+      >
+        {course?.name || 'Tu formación'}
+      </h2>
+      <p className="mt-2 text-[14.5px] text-[#5A6480] leading-relaxed max-w-xl">
+        Este es tu camino de principio a fin. Ve en orden, sin prisa: cada lección
+        se apoya en la anterior y la escuela te va guardando por dónde vas.
+      </p>
+      <Link
+        href={getUriWithOrg(orgslug, `/course/${uuid}`)}
+        className="mt-5 inline-flex items-center gap-2.5 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold px-6 py-3.5 rounded-xl transition-colors text-[15px]"
+      >
+        Empezar la formación
+        <ArrowRight size={16} strokeWidth={2.5} />
+      </Link>
+      {hayGrabaciones && (
+        <p className="mt-4 text-[13px] text-[#9CA3AF] leading-relaxed">
+          Las grabaciones de las clases semanales están en{' '}
+          <Link href={getUriWithOrg(orgslug, '/courses')} className="text-[#025dc7] hover:underline font-medium">
+            Cursos
+          </Link>
+          , para repasar cuando te venga bien.
+        </p>
+      )}
+    </div>
   )
 }
