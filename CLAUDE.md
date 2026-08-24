@@ -613,8 +613,13 @@ Una actividad de Spreken colgada de una lección **sin bloque `spreken`** enseñ
 está roto. **Si no hay contenido, la actividad no debe existir en el curso.**
 
 Lecciones CON Spreken: `les-1-voorstellen`, `m2-les-1-familie`,
-`m2-les-3-kalender`, `m3-les-1-eten-en-drinken`, `m4-les-4-hoe-laat`,
+`m2-les-3-kalender`, `m3-les-1-eten-en-drinken`, `extra-kleuren`,
+`extra-landen-talen`, `m4-les-1-werk-beroep`, `m4-les-4-hoe-laat`,
 `m4-les-5-modale-werkwoorden`.
+
+⚠️ **Que el bloque exista no basta: hay que añadir la clase al curso** desde el
+panel (una clase más en el capítulo, eligiendo la parte "Spreken (qué dices)").
+Si no, el contenido está escrito pero el alumno no lo ve por ningún sitio.
 
 Decisión de fondo sobre el Spreken de situaciones (`spreken_choose`, elegir de
 oído qué dirías): **no vale en módulo 1**. Con cuarenta palabras, las dos
@@ -634,6 +639,19 @@ por el español, que es lo que hace falta en la caja del supermercado.
   navegador bloquea el autoplay, el ejercicio se tiene que poder hacer igual.
 - **Las opciones falsas nunca al azar**: la palabra con la que se confunde de
   verdad (thee/koffie, vlees/vis, fles/blik, opa/oma).
+- **Dentro de una ronda, jamás dos que compartan dibujo.** Si no, hay dos
+  respuestas correctas y el alumno falla teniendo razón. Casos reales:
+  `advocaat` y `rechter` son los dos la balanza; `arts`, `huisarts`,
+  `verpleger` y `verpleegkundige` son los cuatro el hospital; y **`Duitsland` y
+  `Duits` comparten bandera**, así que en países e idiomas la regla es que una
+  pantalla o es toda de países o es toda de idiomas.
+- **Una sola forma por ronda.** En colores, los que no tienen cuadrado (`roze`,
+  `grijs`, `lichtblauw`) van con corazones — pero entonces las cuatro opciones
+  son corazones. Mezclar un cuadrado con tres corazones hace que se elija por
+  la forma en vez de por el color.
+- **El género no se dibuja.** `kapper`/`kapster`, `leraar`/`lerares`,
+  `ober`/`serveerster`, `broer`/`zus`: esas parejas van como `spreken_choose`.
+  Y suelen ser justo lo que la lección enseña, así que no es una pérdida.
 
 **Dónde funciona y dónde no** — esto es lo que hay que pensar antes de escribir
 uno:
