@@ -32,15 +32,36 @@ def _school_url() -> str:
 
     **Es el único sitio del que sale en el backend.** Antes estaba escrita a
     mano aquí y en `payments.py`, y el día del cambio de dominio hubo que ir a
-    buscarlas. Sale de `LEARNHOUSE_DOMAIN`; el valor de abajo es solo la red de
-    seguridad por si la variable no estuviera puesta.
+    buscarlas.
+
+    ⚠️ Manda `LEARNHOUSE_FRONTEND_DOMAIN`, no `LEARNHOUSE_DOMAIN`. Todo lo que
+    se construye con esto son enlaces a páginas que sirve la WEB
+    (`/auth/crear-cuenta`, `/login`, el logo del pie), no a la API. Son dos
+    variables distintas y aquí valen cosas distintas: el `.nl` viejo sigue
+    apuntando a propósito al mismo contenedor, así que si `LEARNHOUSE_DOMAIN`
+    se quedó con él, los correos mandaban al alumno al dominio antiguo. Pasó de
+    verdad: alguien que acababa de pagar recibía el enlace para crear su
+    contraseña apuntando a `academia.holandesnawar.nl`.
+
+    El valor del final es solo la red de seguridad por si no hubiera ninguna
+    de las dos.
     """
     try:
         from config.config import get_learnhouse_config
 
-        domain = getattr(get_learnhouse_config().hosting_config, "domain", None)
-        if domain:
-            return f"https://{domain}".rstrip("/")
+        hosting = get_learnhouse_config().hosting_config
+        frontend = (getattr(hosting, "frontend_domain", "") or "").strip()
+        api = (getattr(hosting, "domain", "") or "").strip()
+
+        # `frontend_domain` trae "localhost:3000" por defecto cuando no se
+        # configura, así que ese valor no puede ganarle a un dominio de verdad.
+        elegido = frontend
+        if (not elegido or elegido.lower().startswith("localhost")) and api:
+            elegido = api
+
+        if elegido:
+            esquema = "http" if elegido.lower().startswith("localhost") else "https"
+            return f"{esquema}://{elegido}".rstrip("/")
     except Exception:  # noqa: BLE001
         pass
     return "https://app.holandesnawar.com"
@@ -461,7 +482,6 @@ def send_payment_welcome_email(
 ):
     """Trigger after Stripe confirms the payment: welcome + "set your password"
     in a single email so the student lands in the academy with one click."""
-    safe_name = html.escape(name or "alumno/a")
     safe_email = quote(str(email), safe='')
     safe_code_param = quote(reset_code, safe='')
     # OJO: la ruta es `/auth/crear-cuenta`. Sin el `/auth/`, el enlace cae en un
@@ -470,12 +490,16 @@ def send_payment_welcome_email(
     # devuelve 307 → /login.
     reset_url = f"{base_url}/auth/crear-cuenta?email={safe_email}&amp;resetCode={safe_code_param}"
 
-    heading = "¡Bienvenido a Holandés Nawar!"
+    # "Welkom" en vez de "Bienvenido": en español habría que elegir género y la
+    # mitad de los alumnos son alumnas. Es además la primera palabra de
+    # neerlandés que se llevan, y la dice la escuela, no un formulario.
+    nombre_saludo = (name or "").strip()
+    heading = f"Welkom, {html.escape(nombre_saludo)}" if nombre_saludo else "Welkom a Holandés Nawar"
     body_content = f"""
         <h1 style="{STYLES['h1']}">{heading}</h1>
         <p style="{STYLES['p']}">
-            <strong>Welkom {safe_name}</strong>, tu compra está confirmada. Tienes
-            acceso completo a la formación A0-A1 y a toda la escuela.
+            Tu compra está confirmada. Ya tienes acceso a la formación A0-A1
+            y a toda la escuela.
         </p>
         <p style="{STYLES['p']}">
             Para entrar la primera vez, crea tu contraseña pulsando el botón.
@@ -486,15 +510,16 @@ def send_payment_welcome_email(
         </a>
         <div style="height: 32px; line-height: 32px;">&nbsp;</div>
         <p style="margin: 0; font-size: 14px; color: rgba(0,0,0,0.78); font-weight: 500; line-height: 1.7;">
-            Te recomendamos arrancar por el bloque <strong>«Empieza aquí»</strong>
-            del Inicio: vídeo de bienvenida, completar perfil y tu primera lección.
+            Nada más entrar verás <strong>«Primeros pasos»</strong>, con las tres
+            cosas que conviene hacer el primer día. No lleva ni diez minutos.
         </p>
     """
 
     return send_email(
         dry_run=preview,
         to=email,
-        subject="¡Bienvenido a Holandés Nawar! Crea tu contraseña",
+        subject=(f"Welkom, {nombre_saludo} · crea tu contraseña"
+                 if nombre_saludo else "Welkom a Holandés Nawar · crea tu contraseña"),
         body=_email_layout(
             title=heading,
             body_content=body_content,

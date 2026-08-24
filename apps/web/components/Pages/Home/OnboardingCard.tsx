@@ -6,7 +6,7 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { getUriWithOrg } from '@services/config/config'
 import {
   Check,
-  Video,
+  CalendarDays,
   User,
   MessagesSquare,
   BookOpen,
@@ -57,13 +57,13 @@ export default function OnboardingCard({ orgslug, hasStartedCourse }: Props) {
 
   const steps: StepItem[] = [
     {
-      id: 'welcome_video',
-      title: 'Mira el vídeo de bienvenida',
-      description: 'Te explico cómo aprovechar al máximo la plataforma.',
-      cta: 'Ver vídeo',
-      href: getUriWithOrg(orgslug, '/courses'),
-      icon: <Video size={16} />,
-      isDone: visited.has('welcome_video'),
+      id: 'clase_en_vivo',
+      title: 'Mira cuándo es tu clase en vivo',
+      description: 'Cada semana hay una clase online con un profe. Mira la próxima.',
+      cta: 'Ver el calendario',
+      href: getUriWithOrg(orgslug, '/calendario'),
+      icon: <CalendarDays size={16} />,
+      isDone: visited.has('clase_en_vivo'),
     },
     {
       id: 'profile',

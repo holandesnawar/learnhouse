@@ -8,7 +8,7 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useTrail } from '@/hooks/queries/useTrail'
 import { getUriWithOrg } from '@services/config/config'
-import { Check, Video, User, MessagesSquare, BookOpen, ArrowRight, Rocket, ChevronUp, ChevronDown } from 'lucide-react'
+import { Check, CalendarDays, User, MessagesSquare, BookOpen, ArrowRight, Rocket, ChevronUp, ChevronDown } from 'lucide-react'
 import { getStudentProgress, patchStudentProgress } from '@services/student/progress'
 import { getCommunities } from '@services/communities/communities'
 import { getDiscussions } from '@services/communities/discussions'
@@ -32,10 +32,11 @@ const VISITABLE: string[] = ['welcome_video', 'profile']
 // no".
 const COLLAPSE_KEY = 'nawar_student_onboarding_collapsed'
 
-// Ruta del vídeo de bienvenida. Cuando exista, cambia esto por la ruta de la
-// lección/actividad del vídeo (p. ej. `/course/<uuid>/activity/<uuid>`). El paso
-// se marca cuando el alumno hace clic en "Ver".
-const WELCOME_VIDEO_PATH = '/courses'
+// El primer paso llevaba a un "vídeo de bienvenida" que NO EXISTE: prometía
+// algo que el alumno iba a buscar y no iba a encontrar, justo el primer día.
+// Se cambia por la clase en vivo, que sí existe, es semanal y es lo que de
+// verdad diferencia a esta escuela de un curso grabado.
+const CLASE_EN_VIVO_PATH = '/calendario'
 
 // Widget flotante "Primeros pasos" para el alumno (abajo-derecha, plegable).
 // Sustituye a la tarjeta grande del Inicio: aparece al entrar, se puede minimizar
@@ -148,12 +149,12 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
 
   const steps: StepItem[] = [
     {
-      id: 'welcome_video',
-      title: 'Mira el vídeo de bienvenida',
+      id: 'clase_en_vivo',
+      title: 'Mira cuándo es tu clase en vivo',
       cta: 'Ver',
-      href: getUriWithOrg(orgslug, WELCOME_VIDEO_PATH),
-      icon: <Video size={19} />,
-      isDone: visited.has('welcome_video'),
+      href: getUriWithOrg(orgslug, CLASE_EN_VIVO_PATH),
+      icon: <CalendarDays size={19} />,
+      isDone: visited.has('clase_en_vivo'),
     },
     {
       id: 'profile',
