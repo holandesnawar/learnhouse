@@ -247,7 +247,7 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
           {course.name}
         </h2>
         <div className="mt-2.5 flex items-baseline gap-1.5">
-          <span className="text-[22px] font-bold text-white leading-none">{pct}%</span>
+          <span className="text-[22px] font-extrabold text-white leading-none">{pct}%</span>
           <span className="text-[11px] text-white/55">completado</span>
         </div>
         <div className="mt-2 h-1.5 bg-white/15 rounded-full overflow-hidden">
@@ -449,7 +449,7 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
           {course.name}
         </h2>
         <div className="mt-2.5 flex items-baseline gap-1.5">
-          <span className="text-[22px] font-bold text-white leading-none">{pct}%</span>
+          <span className="text-[22px] font-extrabold text-white leading-none">{pct}%</span>
           <span className="text-[11px] text-white/55">completado</span>
         </div>
         <div className="mt-2 h-1.5 bg-white/15 rounded-full overflow-hidden">
@@ -504,7 +504,7 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
                   />
                 )}
                 <span className="flex-1 min-w-0">
-                  <span className={`block text-[15px] font-semibold uppercase tracking-[0.06em] truncate ${locked ? 'text-white/55' : 'text-white'}`}>
+                  <span className={`block text-[15px] font-semibold uppercase tracking-[0.02em] truncate ${locked ? 'text-white/55' : 'text-white'}`}>
                     {chapter.name}
                   </span>
                   {locked && chapter.unlock_date && (
