@@ -1635,6 +1635,72 @@ const m1_extra2: Lesson = {
   estimatedMinutes: 10,
   blocks: [
     {
+      // Resumen de la extra de preguntas básicas.
+      //
+      // Lo importante de esta lección no es la lista de palabras (esa se cae
+      // sola en dos días) sino el ORDEN de la frase: en neerlandés el verbo va
+      // pegado a la palabra de pregunta y el sujeto detrás, y no se puede
+      // quitar nunca. Un hispanohablante dice *waar jij woont* toda la vida si
+      // nadie se lo señala.
+      type: 'summary',
+      title: 'Basisvragen',
+      intro: 'Con ocho palabras haces casi cualquier pregunta del día a día. Lo que hay que aprender aquí no son las ocho, que se pegan solas, sino cómo se coloca el resto de la frase detrás.',
+      objectives: [
+        'Reconocer las ocho palabras de pregunta al oírlas',
+        'Colocar el verbo y el sujeto donde van',
+        'Distinguir welk de welke',
+      ],
+      sections: [
+        {
+          heading: '❓ Las ocho, y casi todas con W',
+          body: 'Seis empiezan por **w** y dos por **h**. Si te acuerdas de eso, ya tienes media lista.',
+          items: [
+            { nl: 'wie · wat · waar', es: 'quién · qué · dónde' },
+            { nl: 'wanneer · waarom · welk(e)', es: 'cuándo · por qué · cuál' },
+            { nl: 'hoe · hoeveel', es: 'cómo · cuánto' },
+          ],
+        },
+        {
+          heading: '🚂 El orden: pregunta, verbo, sujeto',
+          body: 'Esta es la lección de verdad. Detrás de la palabra de pregunta va **el verbo**, y detrás el sujeto. Y el sujeto **no se quita nunca**, aunque en español no lo digas: *¿dónde vives?* es *waar woon **je**?*, con je.',
+          items: [
+            { nl: 'Waar woon je?', es: '¿Dónde vives? (nunca "waar je woont")' },
+            { nl: 'Wanneer heb je les?', es: '¿Cuándo tienes clase?' },
+            { nl: 'Hoeveel talen spreek jij?', es: '¿Cuántos idiomas hablas?' },
+            { nl: 'Waar kom jij vandaan?', es: '¿De dónde eres? (vandaan se va al final)' },
+          ],
+        },
+        {
+          heading: '🙋 La excepción: cuando la pregunta ES el sujeto',
+          body: 'Con **wie** y con **wat** pasa algo distinto: muchas veces esa palabra ya es el sujeto de la frase, así que detrás del verbo no va nadie más. No es otra regla, es que el sujeto ya está dicho.',
+          items: [
+            { nl: 'Wie is jouw leraar?', es: '¿Quién es tu profesor? (wie es el sujeto)' },
+            { nl: 'Wat is jouw favoriete eten?', es: '¿Cuál es tu comida favorita?' },
+            { nl: 'Wie komt er vanavond?', es: '¿Quién viene esta noche?' },
+          ],
+        },
+        {
+          heading: '✅ Preguntas de sí o no: el verbo primero',
+          body: 'Si no hay palabra de pregunta, el verbo se pone el primero de todo. Es la misma frase que la afirmación, pero dándole la vuelta a las dos primeras piezas.',
+          items: [
+            { nl: 'Je woont in Utrecht.', es: 'Vives en Utrecht.' },
+            { nl: 'Woon je in Utrecht?', es: '¿Vives en Utrecht?' },
+            { nl: 'Spreek jij Nederlands?', es: '¿Hablas neerlandés?' },
+          ],
+        },
+        {
+          heading: '✍️ Welk o welke',
+          body: '**Welk** delante de palabra de *het*. **Welke** delante de palabra de *de* y delante de cualquier plural. Es la misma regla del artículo, otra vez.',
+          items: [
+            { nl: 'Welk boek lees je?', es: '¿Qué libro lees? (het boek)' },
+            { nl: 'Welke film kijk je?', es: '¿Qué película ves? (de film)' },
+            { nl: 'Welke talen spreek je?', es: '¿Qué idiomas hablas? (plural)' },
+          ],
+        },
+      ],
+      tip: 'Si te trabas, empieza por la palabra de pregunta y suelta el verbo justo después sin pensar. El sujeto sale solo detrás. Waar… woon… je. Wanneer… begint… de les.',
+    },
+    {
       type: 'vocabulary',
       items: [
         { id: 'wie', dutch: 'wie', spanish: 'quién', article: null, emoji: '🙋', color: '#1D0084', exampleNl: 'Wie is dat?', exampleEs: '¿Quién es ese?', category: 'vragen', difficulty: 'A0' },
@@ -3097,6 +3163,54 @@ const m2_extra1: Lesson = {
   estimatedMinutes: 10,
   blocks: [
     {
+      // Resumen de la extra de los meses.
+      //
+      // Los meses se parecen tanto al español que el alumno los da por sabidos
+      // y luego falla en las dos cosas que no se parecen: que van en
+      // minúscula y que juni y juli suenan casi igual. El resumen va a eso.
+      type: 'summary',
+      title: 'Maanden van het jaar',
+      intro: 'Los doce meses se parecen mucho al español, así que esta lección se aprende rápido. Lo que cuesta son dos detalles pequeños que fallan justo cuando das una fecha por teléfono.',
+      objectives: [
+        'Decir en qué mes pasa algo',
+        'Escribirlos como se escriben aquí',
+        'No confundir juni con juli',
+      ],
+      sections: [
+        {
+          heading: '📅 Con IN, siempre',
+          body: 'Para el mes se usa **in**, y no cambia nunca: *in maart*, *in september*. Para el día es *op* y para la hora es *om*, pero eso ya es otra lección.',
+          items: [
+            { nl: 'Mijn verjaardag is in maart.', es: 'Mi cumpleaños es en marzo.' },
+            { nl: 'Ik ga in augustus op vakantie.', es: 'Me voy de vacaciones en agosto.' },
+            { nl: 'In welke maand ben jij geboren?', es: '¿En qué mes naciste?' },
+          ],
+        },
+        {
+          heading: '✍️ Todos en minúscula',
+          body: 'En neerlandés los meses **se escriben con minúscula**: *januari*, *maart*, *december*. Ojo si sabes inglés, porque ahí van con mayúscula y la mano se va sola. Lo mismo pasa con los días de la semana.',
+        },
+        {
+          heading: '⚠️ Juni y juli',
+          body: 'Suenan casi igual, y aquí eso no es una curiosidad: es una cita perdida. Por teléfono hay quien los separa a propósito diciendo *juno* y *julei*, para que no haya duda. Si te dan una fecha y no lo tienes claro, pregunta.',
+          items: [
+            { nl: 'juni', es: 'junio' },
+            { nl: 'juli', es: 'julio' },
+          ],
+        },
+        {
+          heading: '🌞 Las estaciones, de propina',
+          items: [
+            { nl: 'de lente', es: 'la primavera' },
+            { nl: 'de zomer', es: 'el verano (juni, juli, augustus)' },
+            { nl: 'de herfst', es: 'el otoño' },
+            { nl: 'de winter', es: 'el invierno' },
+          ],
+        },
+      ],
+      tip: 'El año escolar de aquí va **van september tot juni**, y casi todo el país coge vacaciones en julio o agosto. Si te sitúas en ese calendario, los meses dejan de ser una lista y pasan a ser fechas que significan algo.',
+    },
+    {
       type: 'vocabulary',
       items: [
         { id: 'januari', dutch: 'januari', spanish: 'enero', article: null, emoji: '❄️', color: '#1D0084', exampleNl: 'In januari is het erg koud.', exampleEs: 'En enero hace mucho frío.', category: 'maanden', difficulty: 'A0' },
@@ -3148,6 +3262,56 @@ const m2_extra2: Lesson = {
   estimatedMinutes: 10,
   blocks: [
     {
+      // Resumen de la extra de los días.
+      //
+      // Dos cosas que no se ven en la lista: que "op maandag" es todos los
+      // lunes y "maandag" a secas es el lunes que viene, y que los días que se
+      // confunden se confunden POR EL SONIDO, no por el significado. Lo demás
+      // son siete palabras acabadas en -dag.
+      type: 'summary',
+      title: 'Dagen van de week',
+      intro: 'Los siete acaban en -dag, así que la lista es fácil. Lo que hay que saber es cuándo lleva op delante y cuándo no, porque eso cambia lo que estás diciendo.',
+      objectives: [
+        'Decir qué día es y qué día haces algo',
+        'Distinguir de oído los que suenan parecido',
+        'Saber cuándo va op y cuándo no',
+      ],
+      sections: [
+        {
+          heading: '📆 Los siete, y la semana',
+          items: [
+            { nl: 'maandag · dinsdag · woensdag', es: 'lunes · martes · miércoles' },
+            { nl: 'donderdag · vrijdag', es: 'jueves · viernes' },
+            { nl: 'zaterdag · zondag', es: 'sábado · domingo' },
+            { nl: 'het weekend · de werkweek', es: 'el fin de semana · la semana laboral' },
+          ],
+        },
+        {
+          heading: '🔑 Op maandag no es lo mismo que maandag',
+          body: 'Con **op** delante se suele entender como lo que haces **todos los lunes**, tu costumbre. Sin **op**, se entiende **el lunes que viene**, un día concreto. No es una ley de hierro —el contexto manda— pero es lo que va a entender quien te escuche.',
+          items: [
+            { nl: 'Op maandag werk ik thuis.', es: 'Los lunes trabajo en casa. (siempre)' },
+            { nl: 'Maandag werk ik thuis.', es: 'El lunes trabajo en casa. (este lunes)' },
+            { nl: 'Welke dag is het vandaag?', es: '¿Qué día es hoy?' },
+          ],
+        },
+        {
+          heading: '👂 Los que se confunden',
+          body: 'No se confunden por el significado, se confunden porque **suenan parecido**. Estos son los tres pares que hay que oír con cuidado. Y ojo con **maart** (marzo), que empieza igual que maandag y es un mes.',
+          items: [
+            { nl: 'dinsdag / donderdag', es: 'martes / jueves — donderdag tiene una sílaba más' },
+            { nl: 'zaterdag / zondag', es: 'sábado / domingo — zaterdag es el largo' },
+            { nl: 'woensdag', es: 'miércoles — se dice más corto de lo que se escribe' },
+          ],
+        },
+        {
+          heading: '🇳🇱 Dos días con nombre propio',
+          body: 'La **woensdagmiddag** es media tarde libre para muchos niños en el colegio, así que los miércoles por la tarde la ciudad está llena de críos. Y el **vrijmibo** (de *vrijdagmiddagborrel*) es la caña del viernes por la tarde con los compañeros de trabajo: si te invitan, es que ya eres del equipo.',
+        },
+      ],
+      tip: 'Los días van en minúscula, igual que los meses: *op maandag*, nunca *op Maandag*.',
+    },
+    {
       type: 'vocabulary',
       items: [
         { id: 'maandag', dutch: 'maandag', spanish: 'lunes', article: null, emoji: '😐', color: '#1D0084', exampleNl: 'Op maandag begin ik de werkweek.', exampleEs: 'El lunes empiezo la semana laboral.', category: 'dagen', difficulty: 'A0' },
@@ -3195,6 +3359,65 @@ const m2_extra3: Lesson = {
   learningObjective: 'Describir las actividades de tu día a día en neerlandés',
   estimatedMinutes: 10,
   blocks: [
+    {
+      // Resumen de la extra de rutinas.
+      //
+      // Es la primera vez que el alumno se topa de frente con los verbos
+      // separables, porque medio vocabulario de esta lección lo es: opstaan,
+      // thuiskomen, uitslapen. Si no se le avisa, escribe "ik opsta" y nadie
+      // le entiende. Eso es lo que explica el resumen; la lista de actividades
+      // se aprende sola.
+      type: 'summary',
+      title: 'Dagelijkse routines',
+      intro: 'Contar tu día es de lo primero que te van a pedir, en clase y fuera. Y es la lección donde aparecen los verbos que se parten en dos, que es lo que hay que entender antes de empezar.',
+      objectives: [
+        'Contar tu día de principio a fin',
+        'Partir bien los verbos separables',
+        'Decir a qué hora haces cada cosa',
+      ],
+      sections: [
+        {
+          heading: '✂️ Los verbos que se parten',
+          body: 'Varios verbos de esta lección llevan una piececita delante: **op**staan, **thuis**komen, **uit**slapen. Al usarlos en una frase, esa pieza **se va al final**. No es un capricho: es como funciona medio neerlandés.',
+          items: [
+            { nl: 'opstaan → Ik sta om zes uur op.', es: 'levantarse → Me levanto a las seis.' },
+            { nl: 'thuiskomen → Ik kom om zes uur thuis.', es: 'llegar a casa → Llego a casa a las seis.' },
+            { nl: 'uitslapen → In het weekend slaap ik uit.', es: 'dormir hasta tarde → El finde duermo hasta tarde.' },
+            { nl: 'Hoe laat sta jij op?', es: '¿A qué hora te levantas? (op, al final)' },
+          ],
+        },
+        {
+          heading: '🔁 Y los que no se parten',
+          body: 'La mayoría son normales y no tienen truco. Estos se usan tal cual.',
+          items: [
+            { nl: 'douchen · ontbijten · lunchen', es: 'ducharse · desayunar · comer' },
+            { nl: 'koken · lezen · sporten · slapen', es: 'cocinar · leer · hacer deporte · dormir' },
+            { nl: 'televisie kijken → Ik kijk televisie.', es: 'ver la tele → Veo la tele. (nunca "ik televisie kijk")' },
+          ],
+        },
+        {
+          heading: '🚂 Si empiezas por la hora, el verbo no se mueve',
+          body: 'El verbo se queda **en segundo lugar** pase lo que pase, así que si pones el tiempo delante, el sujeto salta detrás del verbo. Es la frase-tren de siempre.',
+          items: [
+            { nl: 'Ik sport na het werk.', es: 'Hago deporte después del trabajo.' },
+            { nl: 'Na het werk sport ik.', es: 'Después del trabajo hago deporte. (sport ik, no ik sport)' },
+            { nl: "'s Ochtends douche ik.", es: 'Por la mañana me ducho.' },
+          ],
+        },
+        {
+          heading: '🗣️ Tu día en cinco frases',
+          body: 'Con esto ya puedes contarlo entero. Cambia las horas y ya es tuyo.',
+          items: [
+            { nl: 'Ik sta om zeven uur op.', es: 'Me levanto a las siete.' },
+            { nl: 'Ik ontbijt en dan ga ik naar het werk.', es: 'Desayuno y luego voy al trabajo.' },
+            { nl: "Ik lunch om twaalf uur.", es: 'Como a las doce.' },
+            { nl: 'Na het werk kook ik.', es: 'Después del trabajo cocino.' },
+            { nl: 'Ik ga om elf uur naar bed.', es: 'Me voy a la cama a las once.' },
+          ],
+        },
+      ],
+      tip: 'Prueba a contar tu día de ayer en voz alta, entero, aunque te salga lento. Es el ejercicio que más rinde de toda la formación, porque es exactamente lo que te van a preguntar.',
+    },
     {
       type: 'vocabulary',
       items: [
