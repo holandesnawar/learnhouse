@@ -432,31 +432,52 @@ const m1_les2: Lesson = {
     },
     {
       type: 'lezen',
-      title: 'Sofia, Pablo en de kat Luna',
-      textNl: `Dit is Sofia. Zij komt uit Chili en ze leert Nederlands. Pablo is de man van Sofia. Hij werkt thuis. Sofia en Pablo wonen in Rotterdam. Zij hebben een kat. De kat heet Luna.
+      // Una nota en el tablón del portal: género real y, sobre todo, un sitio
+      // donde los pronombres salen solos.
+      //
+      // El texto anterior era una tabla de conjugación disfrazada de cuento
+      // ("Zij zijn schilders. Hij werkt thuis. Zij kijkt naar de regen"), y
+      // encima hablaba al lector, que es el registro que ya tiene el Luisteren
+      // de esta misma lección. Aquí wij / ik / hij / zij / u / ons / haar
+      // aparecen porque un cartel de vecinos se escribe así.
+      title: 'Een briefje op het prikbord',
+      textNl: `Hallo buren,
 
-’s Ochtends is Sofia altijd klaar, maar Pablo niet: hij drinkt eerst koffie. Veel koffie! Sofia lacht dan. Jullie kennen dat wel — in veel huizen gaat het zo.
+Wij zijn Sofia en Pablo. Wij wonen sinds januari in de Kerkstraat op nummer 12. Ik kom uit Chili en Pablo komt uit Spanje.
 
-Jan en Els wonen ook in de straat. Zij zijn schilders. Vandaag werken ze niet, want het regent. Zij zijn thuis. Luna, de kat, zit bij het raam. Zij kijkt naar de regen.
+Wij hebben een kat. Zij heet Luna en zij is helemaal zwart. Luna loopt graag buiten en zij komt vaak in andere tuinen. Ziet u haar? Belt u dan even aan.
 
-’s Avonds leren Sofia en Pablo samen Nederlands. Sofia leert snel, Pablo leert langzaam. Hij vindt Nederlands moeilijk, maar zij leren samen — en samen is het gezellig. En jullie? Leren jullie ook Nederlands? Dan zijn jullie net als Sofia en Pablo!`,
-      textEs: `Esta es Sofía. Ella es de Chile y está aprendiendo neerlandés. Pablo es el marido de Sofía. Él trabaja en casa. Sofía y Pablo viven en Róterdam. Tienen un gato. La gata se llama Luna.
+Pablo werkt thuis. Hij is overdag altijd binnen, dus u kunt pakketjes altijd bij ons afgeven.
 
-Por la mañana Sofía siempre está lista, pero Pablo no: él primero toma café. ¡Mucho café! Sofía entonces se ríe. Ya lo conocéis — en muchas casas pasa igual.
+Wij leren Nederlands. Praat u langzaam met ons? Dan begrijpen wij u beter.
 
-Jan y Els también viven en la calle. Ellos son pintores. Hoy no trabajan, porque llueve. Están en casa. Luna, la gata, está sentada junto a la ventana. Ella mira la lluvia.
+Groeten,
+Sofia en Pablo`,
+      textEs: `Hola, vecinos:
 
-Por la noche, Sofía y Pablo aprenden neerlandés juntos. Sofía aprende rápido, Pablo aprende despacio. A él el neerlandés le parece difícil, pero aprenden juntos — y juntos hay buen ambiente. ¿Y vosotros? ¿También estáis aprendiendo neerlandés? ¡Entonces sois como Sofía y Pablo!`,
+Somos Sofía y Pablo. Vivimos desde enero en la Kerkstraat, en el número 12. Yo soy de Chile y Pablo es de España.
+
+Tenemos una gata. Se llama Luna y es toda negra. A Luna le gusta salir y se mete a menudo en otros jardines. ¿La ve usted? Llame al timbre.
+
+Pablo trabaja en casa. Está siempre dentro durante el día, así que puede dejarnos los paquetes a nosotros.
+
+Estamos aprendiendo neerlandés. ¿Nos habla despacio? Así le entendemos mejor.
+
+Un saludo,
+Sofía y Pablo`,
       exercises: [
-        { id: 'm1l2lz-1', type: 'multiple_choice', prompt: '¿De dónde es Sofía?', options: ['De Chile', 'De Colombia', 'De España', 'De Argentina'], correctAnswer: 'De Chile', explanation: '"Zij komt uit Chili."' },
-        { id: 'm1l2lz-2', type: 'multiple_choice', prompt: '¿Quién trabaja en casa?', options: ['Pablo', 'Sofía', 'Jan', 'Els'], correctAnswer: 'Pablo', explanation: '"Hij werkt thuis" — hij = él = Pablo.' },
-        { id: 'm1l2lz-3', type: 'multiple_choice', prompt: '¿Cómo se llama la gata?', options: ['Luna', 'Els', 'Minoes', 'Sofia'], correctAnswer: 'Luna', explanation: '"De kat heet Luna."' },
-        { id: 'm1l2lz-4', type: 'fill_blank', prompt: 'Sofia en Pablo ___ in Rotterdam. (vivir, ellos)', correctAnswer: 'wonen', hint: 'Con "zij" (ellos) se usa el infinitivo', explanation: 'Plural → infinitivo: zij wonen.' },
-        { id: 'm1l2lz-5', type: 'multiple_choice', prompt: '¿Qué hacen Jan y Els?', options: ['Son pintores', 'Son médicos', 'Son panaderos', 'Son profesores'], correctAnswer: 'Son pintores', explanation: '"Zij zijn schilders."' },
-        { id: 'm1l2lz-6', type: 'multiple_choice', prompt: '¿Por qué están Jan y Els en casa?', options: ['Porque llueve', 'Porque es de noche', 'Porque están enfermos', 'Porque es fiesta'], correctAnswer: 'Porque llueve', explanation: '"Vandaag werken ze niet, want het regent."' },
-        { id: 'm1l2lz-7', type: 'fill_blank', prompt: '___ regent, dus zij zijn thuis. (impersonal)', correctAnswer: 'Het', hint: 'El pronombre del clima', explanation: '"Het regent" = llueve. Het es el sujeto impersonal.' },
-        { id: 'm1l2lz-8', type: 'multiple_choice', prompt: '¿Quién aprende rápido?', options: ['Sofía', 'Pablo', 'Luna', 'Jan'], correctAnswer: 'Sofía', explanation: '"Sofia leert snel, Pablo leert langzaam."' },
-        { id: 'm1l2lz-9', type: 'fill_blank', prompt: 'Pablo ___ eerst koffie. (beber)', correctAnswer: 'drinkt', hint: 'drinken → con hij, raíz + t', explanation: 'Con "hij" el verbo lleva -t.' },
+        { id: 'm1l2lz-1', type: 'multiple_choice', prompt: '¿Qué es este texto?', options: ['Una nota en el tablón para los vecinos', 'Una carta del ayuntamiento', 'Un anuncio de una tienda', 'Un mensaje de la escuela'], correctAnswer: 'Una nota en el tablón para los vecinos', explanation: 'Empieza con "Hallo buren" (hola, vecinos) y acaba firmada.' },
+        { id: 'm1l2lz-2', type: 'multiple_choice', prompt: '¿Desde cuándo viven Sofía y Pablo en la calle?', options: ['Desde enero', 'Desde el verano', 'Desde hace cinco años', 'No lo dice'], correctAnswer: 'Desde enero', explanation: '"Wij wonen sinds januari…"' },
+        { id: 'm1l2lz-3', type: 'multiple_choice', prompt: '¿En qué número viven?', options: ['En el 12', 'En el 2', 'En el 20', 'En el 21'], correctAnswer: 'En el 12', explanation: '"Op nummer 12." Los números sueltos caen siempre en el examen.' },
+        { id: 'm1l2lz-4', type: 'multiple_choice', prompt: '¿De dónde es Sofía?', options: ['De Chile', 'De España', 'De Colombia', 'De Argentina'], correctAnswer: 'De Chile', explanation: '"Ik kom uit Chili" — quien escribe esa frase es Sofía. Pablo es el español.' },
+        { id: 'm1l2lz-5', type: 'multiple_choice', prompt: '¿Cómo es Luna?', options: ['Una gata toda negra', 'Un perro negro', 'Una gata blanca', 'Un gato con manchas'], correctAnswer: 'Una gata toda negra', explanation: '"Wij hebben een kat. Zij heet Luna en zij is helemaal zwart."' },
+        { id: 'm1l2lz-6', type: 'fill_blank', prompt: 'Luna loopt graag buiten. Ziet u ___?', correctAnswer: 'haar', hint: 'A ella', explanation: 'Zij (ella) se convierte en haar cuando es el complemento: la ve a ELLA.' },
+        { id: 'm1l2lz-7', type: 'multiple_choice', prompt: '¿Qué hay que hacer si ves a Luna en tu jardín?', options: ['Llamar al timbre', 'Llamar por teléfono', 'Darle de comer', 'Dejarla ahí'], correctAnswer: 'Llamar al timbre', explanation: '"Belt u dan even aan." Aanbellen = llamar al timbre.' },
+        { id: 'm1l2lz-8', type: 'multiple_choice', prompt: '¿Por qué se les pueden dejar los paquetes?', options: ['Porque Pablo está en casa todo el día', 'Porque tienen un buzón grande', 'Porque Sofía no trabaja', 'Porque el cartero los conoce'], correctAnswer: 'Porque Pablo está en casa todo el día', explanation: '"Pablo werkt thuis. Hij is overdag altijd binnen."' },
+        { id: 'm1l2lz-9', type: 'fill_blank', prompt: '___ leren Nederlands. (nosotros)', correctAnswer: 'Wij', hint: 'El pronombre de "nosotros"', explanation: 'Wij (o "we" en el día a día) = nosotros.' },
+        { id: 'm1l2lz-10', type: 'multiple_choice', prompt: '¿Qué les piden a los vecinos al final?', options: ['Que les hablen despacio', 'Que no hagan ruido', 'Que les enseñen neerlandés', 'Que cuiden a la gata'], correctAnswer: 'Que les hablen despacio', explanation: '"Praat u langzaam met ons? Dan begrijpen wij u beter."' },
+        { id: 'm1l2lz-11', type: 'true_false', prompt: 'Sofía y Pablo ya hablan bien neerlandés.', correctAnswer: 'falso', explanation: 'Dicen "wij leren Nederlands" y piden que les hablen despacio.' },
+        { id: 'm1l2lz-12', type: 'fill_blank', prompt: 'Pablo ___ thuis. (trabajar, él)', correctAnswer: 'werkt', hint: 'werken → con hij, raíz + t', explanation: 'Con hij / zij / het el verbo lleva -t.' },
       ],
     },
     {
@@ -1755,6 +1776,36 @@ Y ojo con la palabra "vriend": mijn vriend es el novio, pero een vriend es un am
       },
     },
     {
+      // Spreken de la lección de familia.
+      //
+      // Mezcla dos formatos a propósito. Los parentescos que un dibujo enseña
+      // sin ambigüedad (abuelo, abuela, padre, madre, hijo, hija, la familia
+      // con la que vives) van con dibujo: se oye la palabra y se toca la
+      // imagen, sin pasar por el español. Los que un dibujo NO puede
+      // distinguir —hermano y hermana son el mismo monigote que hijo e hija, y
+      // gezin, familie y ouders no se dibujan— van como situación con tres
+      // respuestas que solo suenan. Justo esos tres son la dificultad de la
+      // lección, así que ahí es donde interesa preguntar.
+      type: 'spreken',
+      title: 'Wie is het?',
+      intro: 'Aquí no se lee nada: se escucha. Toca el dibujo de lo que oyes, y en las últimas cuatro elige de oído la respuesta que darías tú. Puedes repetir el audio las veces que quieras.',
+      exercises: [
+        { id: 'm2l1sp-1', type: 'listen_choose_image', prompt: 'de opa (el abuelo)', promptNl: 'de opa', options: ['de opa', 'de oma', 'de vader', 'de zoon'], optionImages: ['👴', '👵', '👨', '👦'], correctAnswer: 'de opa' },
+        { id: 'm2l1sp-2', type: 'listen_choose_image', prompt: 'de oma (la abuela)', promptNl: 'de oma', options: ['de oma', 'de opa', 'de moeder', 'de dochter'], optionImages: ['👵', '👴', '👩', '👧'], correctAnswer: 'de oma', explanation: 'Opa y oma solo se diferencian en una vocal. Si dudas, repite el audio antes de tocar.' },
+        { id: 'm2l1sp-3', type: 'listen_choose_image', prompt: 'de vader (el padre)', promptNl: 'de vader', options: ['de vader', 'de moeder', 'de opa', 'de zoon'], optionImages: ['👨', '👩', '👴', '👦'], correctAnswer: 'de vader' },
+        { id: 'm2l1sp-4', type: 'listen_choose_image', prompt: 'de moeder (la madre)', promptNl: 'de moeder', options: ['de moeder', 'de vader', 'de oma', 'de dochter'], optionImages: ['👩', '👨', '👵', '👧'], correctAnswer: 'de moeder' },
+        { id: 'm2l1sp-5', type: 'listen_choose_image', prompt: 'de zoon (el hijo)', promptNl: 'de zoon', options: ['de zoon', 'de dochter', 'de opa', 'de oma'], optionImages: ['👦', '👧', '👴', '👵'], correctAnswer: 'de zoon' },
+        { id: 'm2l1sp-6', type: 'listen_choose_image', prompt: 'de dochter (la hija)', promptNl: 'de dochter', options: ['de dochter', 'de zoon', 'de moeder', 'de oma'], optionImages: ['👧', '👦', '👩', '👵'], correctAnswer: 'de dochter' },
+        { id: 'm2l1sp-7', type: 'listen_choose_image', prompt: 'het kind (el niño)', promptNl: 'het kind', options: ['het kind', 'de opa', 'de moeder', 'de vader'], optionImages: ['🧒', '👴', '👩', '👨'], correctAnswer: 'het kind', explanation: 'Kind es de las pocas palabras de la familia que lleva HET, no DE.' },
+        { id: 'm2l1sp-8', type: 'listen_choose_image', prompt: 'het gezin (la familia con la que vives)', promptNl: 'het gezin', options: ['het gezin', 'de opa', 'de dochter', 'de moeder'], optionImages: ['👨‍👩‍👧‍👦', '👴', '👧', '👩'], correctAnswer: 'het gezin' },
+        { id: 'm2l1sp-9', type: 'spreken_choose', prompt: 'Hablas de la hija de tus padres, que no eres tú.', options: ['mijn zus', 'mijn broer', 'mijn dochter'], correctAnswer: 'mijn zus', explanation: 'Zus es hermana. Dochter es hija: la que tienes tú, no la que tienen tus padres.' },
+        { id: 'm2l1sp-10', type: 'spreken_choose', prompt: 'Hablas del hijo de tus padres, que no eres tú.', options: ['mijn broer', 'mijn zoon', 'mijn vader'], correctAnswer: 'mijn broer', explanation: 'Broer es hermano. Zoon es hijo.' },
+        { id: 'm2l1sp-11', type: 'spreken_choose', prompt: 'Hablas de tu padre y de tu madre, los dos juntos.', options: ['mijn ouders', 'mijn familie', 'mijn gezin'], correctAnswer: 'mijn ouders', explanation: 'Ouders son los padres. Familie es toda la parentela y gezin es la gente con la que vives.' },
+        { id: 'm2l1sp-12', type: 'spreken_choose', prompt: 'Hablas de la gente con la que vives en casa: tú, tu pareja y vuestros hijos.', options: ['mijn gezin', 'mijn familie', 'mijn ouders'], correctAnswer: 'mijn gezin', explanation: 'Esta es la que más se falla. Gezin = la casa. Familie = todos, primos y tíos incluidos.' },
+        { id: 'm2l1sp-13', type: 'spreken_choose', prompt: 'Presentas a la persona con la que compartes tu vida, sin decir si es hombre o mujer.', options: ['mijn partner', 'mijn vriend', 'mijn vriendin'], correctAnswer: 'mijn partner', explanation: 'Partner vale para cualquiera y es lo que oirás en el trabajo y en el médico.' },
+      ],
+    },
+    {
       type: 'practice',
       exercises: [
         // ── Opción múltiple ──
@@ -2157,6 +2208,33 @@ Así que, un consejo: cómprate una agenda. Visito a mi abuela mañana. Veo a mi
           { id: 'm2d3-15', speaker: 'David', dutch: 'Tot woensdag! Het staat in mijn agenda.',                               spanish: '¡Hasta el miércoles! Está en mi agenda.' },
         ],
       },
+    },
+    {
+      // Spreken de la lección del calendario.
+      //
+      // Aquí el dibujo NO sirve: donderdag y dinsdag son el mismo dibujo, y
+      // los meses no se dibujan. Y da igual, porque la dificultad de esta
+      // lección no es el significado, es que los días y los meses SUENAN
+      // parecido. Así que se entrena eso: se oye uno y hay que distinguirlo de
+      // los tres que más se le parecen. Las dos últimas sí llevan dibujo,
+      // porque cumpleaños y vacaciones sí se dibujan.
+      type: 'spreken',
+      title: 'Welke dag hoor je?',
+      intro: 'Los días y los meses en neerlandés se parecen mucho entre ellos. Escucha y elige el que oyes. Repite el audio todas las veces que necesites.',
+      exercises: [
+        { id: 'm2l3sp-1', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "dinsdag"', options: ['dinsdag', 'donderdag', 'woensdag', 'maandag'], correctAnswer: 'dinsdag', explanation: 'Dinsdag (martes) y donderdag (jueves) empiezan parecido. El truco: dinsdag es corto, donderdag tiene una sílaba más.' },
+        { id: 'm2l3sp-2', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "donderdag"', options: ['donderdag', 'dinsdag', 'woensdag', 'vrijdag'], correctAnswer: 'donderdag', explanation: 'Donder es "trueno": el jueves es el día del trueno, como Thursday.' },
+        { id: 'm2l3sp-3', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "woensdag"', options: ['woensdag', 'dinsdag', 'donderdag', 'vrijdag'], correctAnswer: 'woensdag', explanation: 'Se pronuncia más corto de lo que se escribe: suena casi "wunsdach".' },
+        { id: 'm2l3sp-4', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "zaterdag"', options: ['zaterdag', 'zondag', 'vrijdag', 'maandag'], correctAnswer: 'zaterdag', explanation: 'Zaterdag (sábado) y zondag (domingo) empiezan igual. Zaterdag es el largo.' },
+        { id: 'm2l3sp-5', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "zondag"', options: ['zondag', 'zaterdag', 'maandag', 'woensdag'], correctAnswer: 'zondag', explanation: 'Zon es "sol": el domingo es el día del sol, como Sunday.' },
+        { id: 'm2l3sp-6', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "juni"', options: ['juni', 'juli', 'januari', 'mei'], correctAnswer: 'juni', explanation: 'Junio y julio son la pareja que más se confunde, en neerlandés también. Por eso al teléfono los neerlandeses dicen "juni" y "juli" muy despacio.' },
+        { id: 'm2l3sp-7', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "juli"', options: ['juli', 'juni', 'januari', 'april'], correctAnswer: 'juli' },
+        { id: 'm2l3sp-8', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "januari"', options: ['januari', 'februari', 'juni', 'juli'], correctAnswer: 'januari', explanation: 'Januari y februari acaban igual. Lo que cambia está al principio.' },
+        { id: 'm2l3sp-9', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "maart"', options: ['maart', 'mei', 'maandag', 'april'], correctAnswer: 'maart', explanation: 'Ojo con maart (marzo) y maandag (lunes): empiezan igual y son cosas distintas.' },
+        { id: 'm2l3sp-10', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "augustus"', options: ['augustus', 'april', 'oktober', 'februari'], correctAnswer: 'augustus' },
+        { id: 'm2l3sp-11', type: 'listen_choose_image', prompt: 'jarig zijn (cumplir años)', promptNl: 'jarig zijn', options: ['jarig zijn', 'de vakantie', 'de kalender', 'de afspraak'], optionImages: ['🎂', '🏖️', '📅', '🤝'], correctAnswer: 'jarig zijn', explanation: 'En neerlandés no se "tiene" cumpleaños: se ES jarig. Ik ben jarig in mei.' },
+        { id: 'm2l3sp-12', type: 'listen_choose_image', prompt: 'de vakantie (las vacaciones)', promptNl: 'de vakantie', options: ['de vakantie', 'jarig zijn', 'de kalender', 'de afspraak'], optionImages: ['🏖️', '🎂', '📅', '🤝'], correctAnswer: 'de vakantie' },
+      ],
     },
     {
       type: 'practice',
@@ -3157,6 +3235,36 @@ La fruta y el agua también forman parte, claro. Una manzana o un plátano son u
           { id: 'm3d1-10', speaker: 'María', dutch: 'Dank u wel!',                                           spanish: '¡Muchas gracias!' },
         ],
       },
+    },
+    {
+      // Spreken de la lección de comida y bebida.
+      //
+      // Esta es la lección donde el formato de dibujos funciona al cien por
+      // cien: todo lo que se aprende aquí se puede dibujar sin que quede
+      // ninguna duda de qué es. El alumno oye la palabra y toca la imagen, sin
+      // texto por ninguna parte hasta que contesta: va del sonido al
+      // significado directamente, que es lo que necesita en la caja del
+      // supermercado.
+      //
+      // Las opciones falsas nunca son al azar: son la palabra con la que de
+      // verdad se confunde (thee con koffie, vlees con vis, fles con blik).
+      type: 'spreken',
+      title: 'Wat hoor je?',
+      intro: 'Suena una palabra en neerlandés y tú tocas el dibujo. No hay texto hasta que contestas, así que hay que fiarse del oído. Puedes repetir el audio las veces que quieras.',
+      exercises: [
+        { id: 'm3l1sp-1', type: 'listen_choose_image', prompt: 'het brood (el pan)', promptNl: 'het brood', options: ['het brood', 'de kaas', 'de melk', 'het fruit'], optionImages: ['🍞', '🧀', '🥛', '🍎'], correctAnswer: 'het brood' },
+        { id: 'm3l1sp-2', type: 'listen_choose_image', prompt: 'de melk (la leche)', promptNl: 'de melk', options: ['de melk', 'het water', 'de koffie', 'de wijn'], optionImages: ['🥛', '💧', '☕', '🍷'], correctAnswer: 'de melk' },
+        { id: 'm3l1sp-3', type: 'listen_choose_image', prompt: 'de koffie (el café)', promptNl: 'de koffie', options: ['de koffie', 'de thee', 'het bier', 'de melk'], optionImages: ['☕', '🍵', '🍺', '🥛'], correctAnswer: 'de koffie' },
+        { id: 'm3l1sp-4', type: 'listen_choose_image', prompt: 'de thee (el té)', promptNl: 'de thee', options: ['de thee', 'de koffie', 'de soep', 'het water'], optionImages: ['🍵', '☕', '🍲', '💧'], correctAnswer: 'de thee', explanation: 'Thee se pronuncia con una e larga, "tee". Nada de "zi" como en inglés.' },
+        { id: 'm3l1sp-5', type: 'listen_choose_image', prompt: 'het bier (la cerveza)', promptNl: 'het bier', options: ['het bier', 'de wijn', 'het water', 'de melk'], optionImages: ['🍺', '🍷', '💧', '🥛'], correctAnswer: 'het bier' },
+        { id: 'm3l1sp-6', type: 'listen_choose_image', prompt: 'de kaas (el queso)', promptNl: 'de kaas', options: ['de kaas', 'het brood', 'het vlees', 'de vis'], optionImages: ['🧀', '🍞', '🍖', '🐟'], correctAnswer: 'de kaas' },
+        { id: 'm3l1sp-7', type: 'listen_choose_image', prompt: 'het vlees (la carne)', promptNl: 'het vlees', options: ['het vlees', 'de vis', 'de kaas', 'de groente'], optionImages: ['🍖', '🐟', '🧀', '🥦'], correctAnswer: 'het vlees', explanation: 'Vlees y vis empiezan igual y en la carnicería importa mucho no confundirlas.' },
+        { id: 'm3l1sp-8', type: 'listen_choose_image', prompt: 'de vis (el pescado)', promptNl: 'de vis', options: ['de vis', 'het vlees', 'de groente', 'het fruit'], optionImages: ['🐟', '🍖', '🥦', '🍎'], correctAnswer: 'de vis' },
+        { id: 'm3l1sp-9', type: 'listen_choose_image', prompt: 'de groente (la verdura)', promptNl: 'de groente', options: ['de groente', 'het fruit', 'de soep', 'de kaas'], optionImages: ['🥦', '🍎', '🍲', '🧀'], correctAnswer: 'de groente', explanation: 'Groente va en singular aunque en español digas "verduras".' },
+        { id: 'm3l1sp-10', type: 'listen_choose_image', prompt: 'de soep (la sopa)', promptNl: 'de soep', options: ['de soep', 'het brood', 'de melk', 'de groente'], optionImages: ['🍲', '🍞', '🥛', '🥦'], correctAnswer: 'de soep' },
+        { id: 'm3l1sp-11', type: 'listen_choose_image', prompt: 'de fles (la botella)', promptNl: 'de fles', options: ['de fles', 'het blik', 'het pak', 'de zak'], optionImages: ['🍾', '🥫', '🧃', '🛍️'], correctAnswer: 'de fles', explanation: 'Estas cuatro son las que necesitas para pedir en el supermercado: een fles water, een blik soep, een pak melk, een zak brood.' },
+        { id: 'm3l1sp-12', type: 'listen_choose_image', prompt: 'het blik (la lata)', promptNl: 'het blik', options: ['het blik', 'de fles', 'het pak', 'de zak'], optionImages: ['🥫', '🍾', '🧃', '🛍️'], correctAnswer: 'het blik' },
+      ],
     },
     {
       type: 'practice',
