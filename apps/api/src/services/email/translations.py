@@ -126,9 +126,12 @@ EMAIL_TRANSLATIONS: dict[str, dict[str, str]] = {
         "email_verification.footer": "Dieser Link läuft in 1 Stunde ab. Falls du kein LearnHouse-Konto erstellt hast, kannst du diese E-Mail ignorieren.",
     },
     "es": {
-        "account_creation.subject": "¡Bienvenido a Holandés Nawar, {username}!",
-        "account_creation.heading": "¡Bienvenido, {username}!",
-        "account_creation.body": "Tu cuenta en Holandés Nawar ya está lista. Entra y empieza con tu formación.",
+        # "Welkom" y no "Bienvenido": en español hay que elegir género y la
+        # mitad de los alumnos son alumnas. En neerlandés no hay que elegir, y
+        # además es la primera palabra que aprenden.
+        "account_creation.subject": "Welkom, {username}",
+        "account_creation.heading": "Welkom, {username}",
+        "account_creation.body": "Ya está todo listo. Entra cuando quieras y empieza por la formación.",
         "account_creation.cta": "Entrar a la escuela",
         "account_creation.footer": "¿Alguna duda? {academy_link} y te echamos una mano.",
         "academy_link_text": "Crea una consulta en la escuela",
