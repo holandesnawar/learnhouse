@@ -1481,6 +1481,80 @@ const m1_extra1: Lesson = {
   estimatedMinutes: 10,
   blocks: [
     {
+      // Resumen de la extra de colores.
+      //
+      // Se añade para que la lección no empiece directamente por los
+      // ejercicios: el alumno abre primero la Samenvatting, ve de qué va y qué
+      // se le va a pedir, y entra al Spreken sabiendo lo que escucha.
+      //
+      // Lo que se cuenta aquí NO es la lista de colores —para eso están las
+      // flashcards— sino lo que hace falta para USARLOS: la -e del adjetivo,
+      // licht/donker y las dos preguntas con las que sale el tema.
+      type: 'summary',
+      title: 'Kleuren',
+      intro: 'Los colores se aprenden en una tarde, pero se usan mal durante meses: en neerlandés el color cambia de forma según la palabra que acompaña. Aquí tienes lo justo para decirlos bien, y luego los practicas de oído.',
+      objectives: [
+        'Reconocer los doce colores al oírlos, sin traducir',
+        'Ponerle la -e al color cuando toca',
+        'Preguntar y decir de qué color es algo',
+      ],
+      sections: [
+        {
+          heading: '🎨 Los doce que vas a ver',
+          body: 'No hace falta que te los aprendas aquí. Los tienes uno a uno en las **flashcards**, y en el **Spreken** los reconoces de oído tocando el color, sin leer nada.',
+          items: [
+            { nl: 'rood · blauw · groen · geel', es: 'rojo · azul · verde · amarillo' },
+            { nl: 'oranje · wit · zwart · grijs', es: 'naranja · blanco · negro · gris' },
+            { nl: 'bruin · roze · paars · lichtblauw', es: 'marrón · rosa · morado · azul claro' },
+          ],
+        },
+        {
+          heading: '✍️ La -e del color',
+          body: 'Esto es lo único de gramática que tiene la lección, y es lo que más se falla. Cuando el color va **delante** de la cosa, casi siempre lleva **-e**: *de rode auto*, *het rode huis*, *zwarte kleren*. La excepción que más aparece: palabra de **het** con **een** delante, y ahí va sin -e: *een rood huis*. Cuando el color va **detrás del verbo**, nunca lleva -e: *de auto is rood*.',
+          items: [
+            { nl: 'de rode auto', es: 'el coche rojo' },
+            { nl: 'een rode auto', es: 'un coche rojo' },
+            { nl: 'het rode huis', es: 'la casa roja' },
+            { nl: 'een rood huis', es: 'una casa roja (het + een, sin -e)' },
+            { nl: 'De auto is rood.', es: 'El coche es rojo. (detrás del verbo, sin -e)' },
+          ],
+        },
+        {
+          heading: '⚠️ Dos avisos sobre esa -e',
+          body: '**Oranje y roze no cambian nunca.** Ya acaban en -e, así que no se les añade otra: *de oranje jas*, *een roze jurk*. Y al resto, al ponerles la -e, **les cambia la ortografía** — no es que estén mal escritos, es la regla de las vocales del neerlandés.',
+          items: [
+            { nl: 'rood → de rode jas', es: 'pierde una o' },
+            { nl: 'geel → de gele jas', es: 'pierde una e' },
+            { nl: 'wit → de witte jas', es: 'dobla la t' },
+            { nl: 'grijs → de grijze jas', es: 'la s se vuelve z' },
+            { nl: 'oranje → de oranje jas', es: 'no cambia' },
+          ],
+        },
+        {
+          heading: '💡 Claro y oscuro',
+          body: 'Delante del color, **licht-** es claro y **donker-** es oscuro, y se escriben pegados. Con eso pasas de doce colores a treinta y seis sin aprender ni una palabra más.',
+          items: [
+            { nl: 'lichtblauw / donkerblauw', es: 'azul claro / azul oscuro' },
+            { nl: 'lichtgroen / donkergroen', es: 'verde claro / verde oscuro' },
+          ],
+        },
+        {
+          heading: '🗣️ Cómo sale el tema',
+          items: [
+            { nl: 'Wat is jouw lievelingskleur?', es: '¿Cuál es tu color favorito?' },
+            { nl: 'Mijn lievelingskleur is blauw.', es: 'Mi color favorito es el azul.' },
+            { nl: 'Welke kleur heeft die auto?', es: '¿De qué color es ese coche?' },
+            { nl: 'Ik draag graag zwarte kleren.', es: 'Me gusta llevar ropa negra.' },
+          ],
+        },
+        {
+          heading: '🇳🇱 Por qué aquí todo es naranja',
+          body: 'La bandera es **rood, wit en blauw**, pero el país se viste de **oranje** en el Koningsdag y cuando juega la selección. Es el color de la familia real, los Oranje. La frase que vas a oír esos días es *heel Nederland kleurt oranje*, y no habla de pintura.',
+        },
+      ],
+      tip: 'La -e no la vas a colocar bien pensándola. Repite en voz alta *de rode auto* y *een rood huis* hasta que una de las dos te suene rara sin saber por qué. Ese es el momento en que ya la tienes.',
+    },
+    {
       type: 'vocabulary',
       items: [
         { id: 'rood', dutch: 'rood', spanish: 'rojo', article: null, emoji: '🔴', color: '#1D0084', exampleNl: 'De auto is rood.', exampleEs: 'El coche es rojo.', category: 'kleuren', difficulty: 'A0' },
@@ -1611,6 +1685,58 @@ const m1_extra3: Lesson = {
   learningObjective: 'Hablar sobre países, nacionalidades e idiomas',
   estimatedMinutes: 10,
   blocks: [
+    {
+      // Resumen de la extra de países e idiomas.
+      //
+      // El grueso de la lección es una confusión concreta: el país y el idioma
+      // no son la misma palabra, y en neerlandés se parecen lo bastante como
+      // para colarse justo al presentarse, que es cuando más caro sale. Por eso
+      // el resumen entra directo a las parejas y a las tres frases que
+      // resuelven el 90 % de las conversaciones.
+      type: 'summary',
+      title: 'Landen en talen',
+      intro: 'Presentarte es lo primero que vas a hacer en neerlandés y lo que más veces vas a repetir. Aquí está lo que hace falta para no equivocarte en la parte que todo el mundo se equivoca: decir de dónde vienes y qué idiomas hablas.',
+      objectives: [
+        'Reconocer los países y los idiomas al oírlos',
+        'No confundir el país con el idioma',
+        'Decir de dónde vienes, dónde vives y qué hablas',
+      ],
+      sections: [
+        {
+          heading: '🌍 El país y el idioma NO son la misma palabra',
+          body: 'Se parecen, y ahí está la trampa. El idioma suele ser el país recortado. Fíjate en el par **Duitsland / Duits**: una sílaba de diferencia y son dos cosas distintas.',
+          items: [
+            { nl: 'Nederland → Nederlands', es: 'Países Bajos → neerlandés' },
+            { nl: 'Duitsland → Duits', es: 'Alemania → alemán' },
+            { nl: 'Frankrijk → Frans', es: 'Francia → francés' },
+            { nl: 'Spanje → Spaans', es: 'España → español' },
+            { nl: 'Italië → Italiaans', es: 'Italia → italiano' },
+            { nl: 'Turkije → Turks', es: 'Turquía → turco' },
+            { nl: 'Marokko → Marokkaans', es: 'Marruecos → árabe marroquí' },
+          ],
+        },
+        {
+          heading: '🗣️ Las tres frases que lo resuelven todo',
+          body: 'Cada una lleva su preposición y no se pueden cambiar entre ellas. **Uit** para el origen, **in** para donde vives, y **spreken** sin preposición ninguna para el idioma.',
+          items: [
+            { nl: 'Ik kom uit Spanje.', es: 'Vengo de España. (origen)' },
+            { nl: 'Ik woon in Nederland.', es: 'Vivo en los Países Bajos. (residencia)' },
+            { nl: 'Ik spreek Spaans en een beetje Nederlands.', es: 'Hablo español y un poco de neerlandés.' },
+            { nl: 'Mijn moedertaal is Spaans.', es: 'Mi lengua materna es el español.' },
+            { nl: 'Welke talen spreek jij?', es: '¿Qué idiomas hablas?' },
+          ],
+        },
+        {
+          heading: '✍️ Todo con mayúscula',
+          body: 'En neerlandés los países **y los idiomas** se escriben con mayúscula, siempre, vayan donde vayan en la frase: *ik spreek **S**paans*, *ik leer **N**ederlands*. En español el idioma va en minúscula, así que es de esas cosas que se te olvidan justo al escribir un correo.',
+        },
+        {
+          heading: '🇧🇪 Lo que aprendes aquí también vale en Bélgica',
+          body: 'En **België** se hablan tres idiomas: neerlandés en el norte (Flandes), francés en el sur y alemán en una zona pequeña del este. O sea que el neerlandés que estás aprendiendo te sirve a una hora de Ámsterdam en coche. Allí lo llaman **Vlaams** de forma coloquial, pero escrito es el mismo idioma.',
+        },
+      ],
+      tip: 'Si dudas entre el país y el idioma, tira de la frase entera y no de la palabra suelta: *ik kom uit…* pide país y *ik spreek…* pide idioma. La preposición te ordena la cabeza mejor que la lista.',
+    },
     {
       type: 'vocabulary',
       items: [
