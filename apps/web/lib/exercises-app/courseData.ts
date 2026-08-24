@@ -2304,7 +2304,7 @@ const m2_les3: Lesson = {
           body: '**Jarig zijn** = cumplir años (¡muy neerlandés!): *Mijn moeder is jarig in juni* = mi madre cumple años en junio.',
         },
       ],
-      tip: 'OP para el día, IN para el mes — y el tiempo al final de la frase. "Ik bezoek mijn oma OP zaterdag" · "Ik ben jarig IN januari". (La hora llega en la lección 5.)',
+      tip: 'OP para el día, IN para el mes — y el tiempo al final de la frase. "Ik bezoek mijn oma OP zaterdag" · "Ik ben jarig IN januari". (La hora la ves entera en el módulo 4, en "Hoe laat is het?".)',
     },
     {
       type: 'vocabulary',
@@ -5131,8 +5131,31 @@ const m4_les4: Lesson = {
       // así que aquí la consigna va también en neerlandés y con audio.
       type: 'spreken',
       title: 'Hoe laat?',
-      intro: 'Escucha la pregunta y elige lo que dirías tú. Ojo con el "half": es la trampa de esta lección.',
+      intro: 'Primero escuchas una hora y tocas el reloj que la marca. Después, situaciones para decirla tú. Ojo con el "half": es la trampa de esta lección, y en los relojes se ve de golpe.',
       exercises: [
+        // ── Escuchar y tocar el reloj ──
+        //
+        // El emoji de reloj solo existe en punto y en media, y resulta que eso
+        // es EXACTAMENTE lo que esta lección necesita: la trampa del "half".
+        // Quien piensa en español oye "half twee" y toca las 2:30; al ver que
+        // la respuesta buena era la 1:30 entiende la regla de una vez, y sin
+        // que nadie se la explique otra vez.
+        //
+        // Por eso en las rondas del "half" las opciones falsas SIEMPRE incluyen
+        // la hora siguiente en media: es el error que se quiere provocar.
+        //
+        // No se usa la 1:00 en ninguna ronda a propósito: escrita suelta,
+        // "een uur" se lee igual que "una hora", y aquí se está preguntando la
+        // hora, no cuánto dura algo.
+        { id: 'm4l4sp-r1', type: 'listen_choose_image', prompt: 'half twee (la 1:30)', promptNl: 'half twee', options: ['half twee', 'half drie', 'twee uur', 'drie uur'], optionImages: ['🕜', '🕝', '🕑', '🕒'], correctAnswer: 'half twee', explanation: 'Si has tocado las 2:30, acabas de cometer el error de esta lección. "Half twee" es media hora PARA las dos, o sea la 1:30.' },
+        { id: 'm4l4sp-r2', type: 'listen_choose_image', prompt: 'half negen (las 8:30)', promptNl: 'half negen', options: ['half negen', 'half tien', 'acht uur', 'negen uur'], optionImages: ['🕣', '🕤', '🕗', '🕘'], correctAnswer: 'half negen', explanation: 'Half negen = las 8:30. La hora que dices es siempre la que viene DESPUÉS.' },
+        { id: 'm4l4sp-r3', type: 'listen_choose_image', prompt: 'drie uur (las 3:00)', promptNl: 'drie uur', options: ['drie uur', 'half vier', 'vier uur', 'twee uur'], optionImages: ['🕒', '🕞', '🕓', '🕑'], correctAnswer: 'drie uur' },
+        { id: 'm4l4sp-r4', type: 'listen_choose_image', prompt: 'half zes (las 5:30)', promptNl: 'half zes', options: ['half zes', 'half zeven', 'vijf uur', 'zes uur'], optionImages: ['🕠', '🕡', '🕔', '🕕'], correctAnswer: 'half zes' },
+        { id: 'm4l4sp-r5', type: 'listen_choose_image', prompt: 'zeven uur (las 7:00)', promptNl: 'zeven uur', options: ['zeven uur', 'half acht', 'acht uur', 'zes uur'], optionImages: ['🕖', '🕢', '🕗', '🕕'], correctAnswer: 'zeven uur' },
+        { id: 'm4l4sp-r6', type: 'listen_choose_image', prompt: 'half elf (las 10:30)', promptNl: 'half elf', options: ['half elf', 'half twaalf', 'tien uur', 'elf uur'], optionImages: ['🕥', '🕦', '🕙', '🕚'], correctAnswer: 'half elf' },
+        { id: 'm4l4sp-r7', type: 'listen_choose_image', prompt: 'half vier (las 3:30)', promptNl: 'half vier', options: ['half vier', 'half vijf', 'drie uur', 'vier uur'], optionImages: ['🕞', '🕟', '🕒', '🕓'], correctAnswer: 'half vier' },
+        { id: 'm4l4sp-r8', type: 'listen_choose_image', prompt: 'half een (las 12:30)', promptNl: 'half een', options: ['half een', 'half twee', 'twaalf uur', 'elf uur'], optionImages: ['🕧', '🕜', '🕛', '🕚'], correctAnswer: 'half een', explanation: 'La más rara de todas: "half een" son las 12:30, media hora para la una. Es la hora de comer aquí, así que la vas a oír mucho.' },
+        // ── Y ahora, decirla tú ──
         { id: 'm4l4sp-1', type: 'spreken_choose', promptNl: 'Hoe laat is het?', prompt: 'Te preguntan la hora y son las 13:30.', options: ['Het is half twee.', 'Het is half een.', 'Het is twee uur.'], correctAnswer: 'Het is half twee.', explanation: 'Las 13:30 son media hora PARA las dos: half twee. "Half een" serían las 12:30.' },
         { id: 'm4l4sp-2', type: 'spreken_choose', promptNl: 'Hoe laat is het?', prompt: 'Son las 19:55.', options: ['Het is vijf voor acht.', 'Het is vijf over acht.', 'Het is vijf voor half acht.'], correctAnswer: 'Het is vijf voor acht.', explanation: 'Faltan cinco para las ocho: vijf voor acht. "Over" sería después.' },
         { id: 'm4l4sp-3', type: 'spreken_choose', promptNl: 'Hoe laat is de vergadering?', prompt: 'La reunión es a las tres.', options: ['Om drie uur.', 'Op drie uur.', 'In drie uur.'], correctAnswer: 'Om drie uur.', explanation: 'Para la hora concreta siempre "om".' },
