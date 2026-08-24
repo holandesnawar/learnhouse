@@ -95,7 +95,7 @@ function EmbedActivity({ activity, editable = false, style }: EmbedActivityProps
   )
   const [exModuleId, setExModuleId] = useState(nawarInit?.moduleId ?? '')
   const [exLessonId, setExLessonId] = useState(nawarInit?.lessonId ?? '')
-  const [exSection, setExSection] = useState(nawarInit?.section ?? 'vocabulary')
+  const [exSection, setExSection] = useState(nawarInit?.section ?? '')
   const nativeToken = `nawar:${exModuleId}/${exLessonId}/${exSection}`
 
   const [situacionId, setSituacionId] = useState(videoInit?.situacionId ?? '')
@@ -315,7 +315,7 @@ function EmbedActivity({ activity, editable = false, style }: EmbedActivityProps
               <div className="flex justify-end">
                 <button
                   onClick={handleSaveNative}
-                  disabled={saving || !exModuleId || !exLessonId || nativeToken === embedUrl}
+                  disabled={saving || !exModuleId || !exLessonId || !exSection || nativeToken === embedUrl}
                   className="inline-flex items-center gap-2 h-9 px-4 text-sm font-medium text-white bg-black rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
                 >
                   {saving ? <SpinnerGap size={16} className="animate-spin" /> : <FloppyDisk size={16} />}

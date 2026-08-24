@@ -27,6 +27,44 @@ export function getLesson(moduleId: string, lessonId: string): Lesson | undefine
   return LESSONS.find(l => l.moduleId === moduleId && l.id === lessonId);
 }
 
+/**
+ * Todas las lecciones de un módulo, extras incluidas y en el orden en que se
+ * ven en la escuela.
+ *
+ * Existe porque `getLessonsForModule` se deja fuera las extras a propósito
+ * (para el camino del alumno, donde las extras no bloquean nada), y eso hacía
+ * que en el panel **no se pudieran elegir**: Kleuren y Landen en talen tienen
+ * su contenido escrito y no había forma de colgarlas de un capítulo.
+ */
+export function getAllLessonsForModule(moduleId: string): Lesson[] {
+  return [...getLessonsForModule(moduleId), ...getExtrasForModule(moduleId)];
+}
+
+/**
+ * Las partes que esta lección tiene DE VERDAD.
+ *
+ * El panel ofrecía siempre las seis, así que se podía colgar de un capítulo un
+ * Spreken de una lección que no lo tiene, y el alumno se encontraba con "esta
+ * lección no tiene esa parte todavía". Pasó de verdad con varias clases.
+ *
+ * El mapeo es el mismo que usa el visor de lecciones: un bloque de vocabulario
+ * da DOS partes (los ejercicios y las flashcards), y el resumen, el texto, el
+ * diálogo y el Spreken dan una cada uno.
+ */
+export function getLessonSections(moduleId: string, lessonId: string): string[] {
+  const lesson = LESSONS.find(l => l.moduleId === moduleId && l.id === lessonId);
+  if (!lesson) return [];
+  const out: string[] = [];
+  for (const block of lesson.blocks) {
+    if (block.type === 'summary') out.push('resumen');
+    else if (block.type === 'vocabulary') out.push('vocabulary', 'flashcards');
+    else if (block.type === 'lezen') out.push('lezen');
+    else if (block.type === 'dialogue') out.push('luisteren');
+    else if (block.type === 'spreken') out.push('spreken');
+  }
+  return out;
+}
+
 export function getPreviousLesson(moduleId: string, lessonId: string): Lesson | undefined {
   const lessons = getLessonsForModule(moduleId);
   const idx = lessons.findIndex(l => l.id === lessonId);
