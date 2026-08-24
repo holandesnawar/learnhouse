@@ -607,17 +607,77 @@ Reglas, salidas del repaso de la 1.4:
   la 1.4 sacó cinco cosas que no eran nativas (`gaat voor het eerst` sin
   destino, `is het klaar` para un evento que termina, `zegt zijn naam`).
 
-### Spreken: solo de módulo 4 en adelante (decidido ago 2026)
-La sección existe y funciona, pero **solo tiene contenido en tres lecciones**
-(`les-1-voorstellen`, `m4-les-4-hoe-laat`, `m4-les-5-modale-werkwoorden`). Una
-actividad de Spreken colgada de cualquier otra lección enseña "Esta lección no
-tiene esa parte todavía" — que por fuera parece que Spreken está roto. **Si no
-hay contenido, la actividad no debe existir en el curso.**
+### Spreken: dónde hay y de qué tipo (ago 2026)
+Una actividad de Spreken colgada de una lección **sin bloque `spreken`** enseña
+"Esta lección no tiene esa parte todavía" — que por fuera parece que Spreken
+está roto. **Si no hay contenido, la actividad no debe existir en el curso.**
 
-Decisión de fondo: Spreken (elegir de oído qué dirías) **no vale en módulo 1**.
-Con cuarenta palabras, las dos opciones falsas son absurdas y el alumno acierta
-sin escuchar. Necesita vocabulario suficiente para que las tres suenen posibles,
-o sea módulo 4 en adelante.
+Lecciones CON Spreken: `les-1-voorstellen`, `m2-les-1-familie`,
+`m2-les-3-kalender`, `m3-les-1-eten-en-drinken`, `m4-les-4-hoe-laat`,
+`m4-les-5-modale-werkwoorden`.
+
+Decisión de fondo sobre el Spreken de situaciones (`spreken_choose`, elegir de
+oído qué dirías): **no vale en módulo 1**. Con cuarenta palabras, las dos
+opciones falsas son absurdas y el alumno acierta sin escuchar. Necesita
+vocabulario suficiente para que las tres suenen posibles, o sea módulo 4 en
+adelante. El de dibujos (abajo) sí vale desde el principio.
+
+### `listen_choose_image` — escuchar y tocar el dibujo
+Formato pedido por el usuario y el que más rinde: suena la palabra, se toca la
+imagen, **cero texto hasta contestar**. Va del sonido al significado sin pasar
+por el español, que es lo que hace falta en la caja del supermercado.
+
+- El dibujo va en **`optionImages`**, no en `options`. `options` sigue siendo la
+  palabra neerlandesa porque es lo que se guarda como respuesta y lo que sale en
+  "fallaste en…"; con el emoji como opción, el intento diría "fallaste en 🧀".
+- **Suena solo al entrar** (250 ms) y el botón "Repetir" está siempre: si el
+  navegador bloquea el autoplay, el ejercicio se tiene que poder hacer igual.
+- **Las opciones falsas nunca al azar**: la palabra con la que se confunde de
+  verdad (thee/koffie, vlees/vis, fles/blik, opa/oma).
+
+**Dónde funciona y dónde no** — esto es lo que hay que pensar antes de escribir
+uno:
+- **Comida y bebida: al 100 %.** Todo se dibuja sin ninguna duda.
+- **Familia: a medias.** Opa, oma, vader, moeder, zoon, dochter, kind y gezin
+  sí. Broer y zus son el mismo monigote que zoon y dochter; `gezin`, `familie` y
+  `ouders` no se dibujan. Esos van como `spreken_choose` — y son justo la
+  dificultad de la lección.
+- **Calendario: no sirve.** Donderdag y dinsdag son el mismo dibujo. Y da igual,
+  porque ahí lo difícil no es el significado sino que **suenan parecido**: el
+  ejercicio bueno es `listen_and_choose` distinguiendo los que se confunden
+  (dinsdag/donderdag, zaterdag/zondag, juni/juli, januari/februari,
+  **maart/maandag**).
+
+### El auto-avance: solo al acertar
+En Spreken la pantalla pasa sola a los **1,4 s al acertar**; al fallar espera al
+clic. Al fallar hay algo que leer (la frase que hasta ese momento solo se había
+oído, y por qué la otra no era) y llevárselo antes de tiempo es perder justo el
+instante en el que se aprende. Al acertar no hay nada que leer.
+Detalle de implementación: el temporizador va en un `useEffect`, **no dentro del
+manejador de la respuesta** — `next()` lee `score` y `wrong` para guardar el
+intento y desde el manejador esos valores serían todavía los de antes de
+contestar. De momento solo está en Spreken; si gusta, se extiende.
+
+### ⚠️ Bunny: el `responsive=true` que nos comíamos (ago 2026)
+Síntoma: el vídeo se ve **encogido y centrado** dentro del rectángulo negro los
+primeros segundos, y luego se coloca.
+
+Causa: `BunnyBlockComponent.tsx` reconstruye la dirección del embed desde cero
+(`iframe.mediadelivery.net/embed/{lib}/{guid}`) y en el camino **tiraba los
+parámetros del código de inserción oficial de Bunny**, `responsive=true` entre
+ellos. Sin él, el reproductor se dibuja al tamaño que calculó al arrancar y no
+vuelve a ajustarse al marco.
+
+Se añaden ahora `responsive=true&preload=true`, y **también al pintar**
+(`conParametros`), no solo al insertar: así valen los vídeos que ya estaban
+puestos sin volver a pegarlos uno a uno.
+
+**Ojo con el otro fallo de Bunny, que es distinto:** si TODOS los vídeos dan
+**403**, no es esto — es la lista de dominios permitidos (*Allowed Referrers*)
+de la biblioteca de Bunny Stream, que se quedó con el `academia.holandesnawar.nl`
+viejo al mudarnos a `app.holandesnawar.com`. nginx manda
+`Referrer-Policy: strict-origin-when-cross-origin`, así que Bunny sí ve de dónde
+viene la petición.
 
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
