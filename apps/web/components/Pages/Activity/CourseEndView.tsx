@@ -15,6 +15,15 @@ import CertificatePreview from '@components/Dashboard/Pages/Course/EditCourseCer
 import { downloadCertificatePdf, certificateFileName } from '@components/Pages/Certificate/downloadCertificatePdf';
 import { useTranslation } from 'react-i18next';
 
+/** El canal «Victorias» de la comunidad.
+ *
+ * Va escrito aquí y no en la configuración de la organización porque es un
+ * único canal en una única escuela, y una pantalla de ajustes para esto sería
+ * más trabajo que el propio botón. Si algún día se borra ese canal, el botón
+ * llevará a una página que no existe: cambiar el identificador de abajo por el
+ * del canal nuevo (sale de la barra del navegador al abrirlo). */
+const CANAL_VICTORIAS = 'bbe57cb8-5197-4195-bc1f-6615aed4dcab';
+
 interface CourseEndViewProps {
   courseName: string;
   orgslug: string;
@@ -344,7 +353,7 @@ const CourseEndView: React.FC<CourseEndViewProps> = ({
                 justo el empujón que tú necesitabas.
               </p>
               <Link
-                href={getUriWithOrg(orgslug, '/communities')}
+                href={getUriWithOrg(orgslug, `/community/${CANAL_VICTORIAS}`)}
                 className="mt-4 inline-flex items-center gap-2 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold px-5 py-3 rounded-xl transition-colors text-[14.5px]"
               >
                 <Trophy className="w-4 h-4" />
