@@ -154,17 +154,21 @@ function OrgUserGroups() {
                             </div>
                         ) : (
                             filteredUsergroups.map((usergroup: any) => (
+                                // En el móvil la fila se parte en dos: los tres botones de acción
+                                // no caben al lado del nombre y se le montaban encima, así que el
+                                // nombre del grupo no se leía. Con el nombre arriba y los botones
+                                // debajo cabe todo sin apretar nada.
                                 <div
                                     key={usergroup.id}
-                                    className="group flex items-center justify-between p-4 hover:bg-gray-50 rounded-lg transition-all duration-200"
+                                    className="group flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between p-4 hover:bg-gray-50 rounded-lg transition-all duration-200"
                                 >
                                     {/* Group Info */}
                                     <div className="flex items-center gap-4 flex-1 min-w-0">
-                                        <div className="bg-indigo-50 p-2.5 rounded-lg">
+                                        <div className="bg-indigo-50 p-2.5 rounded-lg shrink-0">
                                             <SquareUserRound className="w-5 h-5 text-indigo-600" />
                                         </div>
                                         <div className="flex flex-col min-w-0 flex-1">
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2 min-w-0">
                                                 <span className="font-semibold text-gray-800 text-sm truncate">
                                                     {usergroup.name}
                                                 </span>
@@ -193,7 +197,7 @@ function OrgUserGroups() {
                                     </div>
 
                                     {/* Actions */}
-                                    <div className="flex items-center gap-2 ml-4">
+                                    <div className="flex flex-wrap items-center gap-2 shrink-0 ml-0 sm:ml-4">
                                         <Modal
                                             isDialogOpen={
                                                 userGroupManagementModal &&
