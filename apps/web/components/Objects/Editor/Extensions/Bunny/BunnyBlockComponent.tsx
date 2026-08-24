@@ -8,15 +8,36 @@ import { AlertTriangle, Clapperboard, RefreshCcw } from 'lucide-react'
 // iframe.mediadelivery.net URL, or the whole <iframe> code — and pulls out the
 // library id + video id to build the canonical embed src. Returns null if it
 // can't find a Bunny embed in the pasted text.
+// Parámetros del reproductor de Bunny.
+//
+// `responsive=true` es el que importa y viene en el código de inserción que da
+// el propio Bunny. Sin él, el reproductor se dibuja al tamaño que calculó al
+// arrancar y no vuelve a ajustarse al marco: se ve **encogido y centrado**
+// dentro del rectángulo negro durante los primeros segundos, hasta que algo lo
+// obliga a recalcular. Como nosotros reconstruimos la dirección desde cero,
+// estábamos tirando ese parámetro aunque se pegara el embed oficial entero.
+//
+// `preload=true` deja lista la primera parte del vídeo antes de darle al play.
+const BUNNY_PARAMS = 'responsive=true&preload=true'
+
 function parseBunnySrc(input: string): string | null {
   if (!input) return null
   const s = input.trim()
   // .../embed/{libraryId}/{videoGuid}  (player. or iframe. host, with/without query)
   const m = s.match(/mediadelivery\.net\/embed\/(\d+)\/([0-9a-fA-F-]{8,})/)
   if (m) {
-    return `https://iframe.mediadelivery.net/embed/${m[1]}/${m[2]}`
+    return `https://iframe.mediadelivery.net/embed/${m[1]}/${m[2]}?${BUNNY_PARAMS}`
   }
   return null
+}
+
+// Los vídeos que ya están puestos se guardaron sin parámetros, y volver a
+// pegarlos uno a uno no es plan. Así que la dirección se completa también al
+// pintar: lo guardado en la lección no se toca y aun así todos se ven bien.
+function conParametros(src: string): string {
+  if (!src) return src
+  if (/[?&]responsive=/.test(src)) return src
+  return src + (src.includes('?') ? '&' : '?') + BUNNY_PARAMS
 }
 
 export default function BunnyBlockComponent(props: any) {
@@ -47,7 +68,7 @@ export default function BunnyBlockComponent(props: any) {
           className="rounded-xl overflow-hidden bg-black"
         >
           <iframe
-            src={src}
+            src={conParametros(src)}
             loading="lazy"
             style={{
               border: 0,

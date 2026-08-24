@@ -1987,6 +1987,136 @@ function ListenAndChooseExercise({
 }
 
 /**
+ * Escuchar y tocar el dibujo.
+ *
+ * Suena una palabra en neerlandés y el alumno toca la imagen. **No hay texto
+ * en ningún sitio hasta que contesta**: ni la palabra neerlandesa ni la
+ * traducción. Esa es toda la gracia — obliga a ir del sonido al significado
+ * directamente, sin pasar por el español, que es lo que hace falta para
+ * entender a alguien en una tienda.
+ *
+ * Suena solo al entrar y hay un botón grande para repetirlo. Lo de sonar solo
+ * puede bloquearlo el navegador si no ha habido ningún clic todavía, y por eso
+ * el botón de repetir está siempre visible: si el autoplay no sale, el
+ * ejercicio se sigue pudiendo hacer.
+ */
+function ListenChooseImageExercise({
+  exercise,
+  onAnswer,
+  initialAnswer,
+}: {
+  exercise: ExerciseItem;
+  onAnswer: (correct: boolean, answer: string) => void;
+  initialAnswer?: string;
+}) {
+  const [selected, setSelected] = useState<string | null>(initialAnswer ?? null);
+  const [sonando, setSonando] = useState(false);
+  const isAnswered = selected !== null;
+
+  // La palabra que suena. `promptNl` es el sitio canónico; si falta, se cae al
+  // enunciado, que en el peor caso hace que suene algo en vez de nada.
+  const palabra = exercise.promptNl || exercise.correctAnswer || exercise.prompt;
+
+  const opciones = exercise.options ?? [];
+  const dibujos = exercise.optionImages ?? [];
+
+  // Se barajan una vez por ejercicio, arrastrando el dibujo con su palabra.
+  const barajadas = useMemo(() => {
+    const arr = opciones.map((opt, i) => ({ opt, img: dibujos[i] ?? '❓' }));
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }, [exercise.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function oir() {
+    setSonando(true);
+    speakDutch(palabra, () => setSonando(false));
+  }
+
+  // Suena solo al aparecer. Si ya estaba contestado (se vuelve a él desde el
+  // repaso) no suena: sería ruido.
+  useEffect(() => {
+    if (initialAnswer) return;
+    const t = setTimeout(oir, 250);
+    return () => { clearTimeout(t); stopDutch(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exercise.id]);
+
+  function elegir(opt: string) {
+    if (isAnswered) return;
+    stopDutch();
+    setSonando(false);
+    setSelected(opt);
+    onAnswer(opt === exercise.correctAnswer, opt);
+  }
+
+  function estilo(opt: string): string {
+    const base = 'aspect-square rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all duration-200';
+    if (!isAnswered) return `${base} bg-[#F0F5FF] border-[#DDE6F5] hover:border-[#025dc7]/50 hover:bg-[#e8f0ff] active:scale-[0.95]`;
+    if (opt === exercise.correctAnswer) return `${base} bg-green-50 border-green-400`;
+    if (opt === selected) return `${base} bg-red-50 border-red-400`;
+    return `${base} bg-gray-50 border-gray-200 opacity-50`;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl p-5 border border-[#DDE6F5] bg-white text-center">
+        <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-[0.08em] mb-3">
+          Escucha y toca el dibujo
+        </p>
+        <button
+          onClick={oir}
+          className={`inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl text-[15px] font-bold transition-colors ${
+            sonando
+              ? 'bg-[#025dc7] text-white'
+              : 'bg-[#4da3ff] text-[#0a1656] hover:bg-[#6cb5ff]'
+          }`}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M19 5a9 9 0 010 14M5 9v6h4l5 4V5L9 9H5z" />
+          </svg>
+          {sonando ? 'Sonando…' : 'Repetir'}
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {barajadas.map(({ opt, img }) => (
+          <button
+            key={opt}
+            onClick={() => elegir(opt)}
+            disabled={isAnswered}
+            className={estilo(opt)}
+            aria-label={isAnswered ? opt : 'Opción'}
+          >
+            <span
+              className="text-6xl leading-none"
+              style={{ fontFamily: '"Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji"), "Noto Color Emoji", sans-serif' }}
+            >
+              {img}
+            </span>
+            {/* La palabra aparece SOLO al contestar. Antes destriparía el
+                ejercicio: bastaría con leerla en vez de escucharla. */}
+            {isAnswered && (
+              <span className="text-[13px] font-semibold text-gray-900 px-2 text-center leading-tight">{opt}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {isAnswered && (
+        <FeedbackBanner
+          correct={selected === exercise.correctAnswer}
+          correctAnswer={exercise.correctAnswer}
+          explanation={exercise.explanation}
+        />
+      )}
+    </div>
+  );
+}
+
+/**
  * Spreken — "¿qué dices en esta situación?".
  *
  * Las tres respuestas SOLO suenan: no se enseña el texto hasta contestar. Es
@@ -2988,6 +3118,7 @@ function ExerciseStep({
   if (exercise.type === 'write_answer') return <WriteAnswerExercise exercise={exercise} onAnswer={onAnswer} initialAnswer={initialAnswer} />;
   if (exercise.type === 'listen_and_choose') return <ListenAndChooseExercise exercise={exercise} onAnswer={onAnswer} initialAnswer={initialAnswer} />;
   if (exercise.type === 'spreken_choose') return <SprekenChooseExercise exercise={exercise} onAnswer={onAnswer} initialAnswer={initialAnswer} />;
+  if (exercise.type === 'listen_choose_image') return <ListenChooseImageExercise exercise={exercise} onAnswer={onAnswer} initialAnswer={initialAnswer} />;
   if (exercise.type === 'listen_translate') return <ListenTranslateExercise exercise={exercise} onAnswer={onAnswer} />;
   if (exercise.type === 'fill_blank') return <FillBlankExercise exercise={exercise} onAnswer={onAnswer} initialAnswer={initialAnswer} />;
   if (exercise.type === 'order_sentence') return <OrderSentenceExercise exercise={exercise} onAnswer={onAnswer} />;
@@ -3876,6 +4007,8 @@ function SprekenSection({
   const [answeredSet, setAnsweredSet] = useState<Set<number>>(new Set());
   const [exKey, setExKey] = useState(0);
   const [done, setDone] = useState(false);
+  /** Si la última respuesta fue buena. `null` mientras no ha contestado. */
+  const [acerto, setAcerto] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!cacheKey) return;
@@ -3896,15 +4029,35 @@ function SprekenSection({
   function reset() {
     setIndex(0); setScore(0); setWrong(new Set());
     setAnswered(false); setAnsweredSet(new Set()); setDone(false); setExKey((k) => k + 1);
+    setAcerto(null);
   }
 
   function handleAnswer(correct: boolean) {
     setAnswered(true);
+    setAcerto(correct);
     if (answeredSet.has(index)) return;
     setAnsweredSet((s) => new Set(s).add(index));
     if (correct) setScore((v) => v + 1);
     else setWrong((s) => new Set(s).add(index));
   }
+
+  // Al ACERTAR la pantalla pasa sola; al fallar, no.
+  //
+  // No es una asimetría caprichosa: al fallar hay algo que leer —la frase que
+  // hasta ese momento solo se había oído, y por qué la que eligió no era— y
+  // llevárselo antes de tiempo es perder justo el instante en el que se
+  // aprende. Al acertar no hay nada que leer, así que el clic solo estorba.
+  //
+  // El temporizador se monta en un efecto y no dentro de `handleAnswer` a
+  // propósito: `next()` lee `score` y `wrong` para guardar el intento, y desde
+  // dentro del manejador esos valores serían todavía los de antes de contestar.
+  const AUTO_AVANCE_MS = 1400;
+  useEffect(() => {
+    if (!answered || acerto !== true) return;
+    const t = setTimeout(() => next(), AUTO_AVANCE_MS);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answered, acerto, index]);
 
   function next() {
     if (index + 1 >= exercises.length) {
@@ -3918,6 +4071,7 @@ function SprekenSection({
     }
     setIndex((i) => i + 1);
     setAnswered(false);
+    setAcerto(null);
     setExKey((k) => k + 1);
   }
 

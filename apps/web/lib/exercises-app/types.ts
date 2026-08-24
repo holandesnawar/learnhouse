@@ -56,7 +56,8 @@ export type ExerciseType =
   | 'letter_dash'    // palabra con letras faltantes (k_ff_e → koffie)
   | 'pair_memory'    // memory cards: emparejar NL↔ES girando cartas
   | 'listen_translate' // escucha frase NL, compone traducción ES con chips
-  | 'spreken_choose';  // situación + 3 respuestas que SOLO suenan (sin texto)
+  | 'spreken_choose'   // situación + 3 respuestas que SOLO suenan (sin texto)
+  | 'listen_choose_image'; // suena una palabra NL → se toca el dibujo (sin texto)
 
 export interface ExerciseItem {
   id: string;
@@ -74,6 +75,16 @@ export interface ExerciseItem {
   hint?: string;
   explanation?: string;
   pairs?: { left: string; right: string }[];  // for match_pairs
+  /**
+   * Los dibujos de `listen_choose_image`, en el mismo orden que `options`.
+   *
+   * Van aparte de `options` a propósito: `options` sigue siendo la palabra
+   * neerlandesa, que es lo que se guarda como respuesta, lo que aparece al
+   * contestar y lo que se apunta en "fallaste en…". Si el dibujo fuera la
+   * opción, el intento guardado diría que el alumno falló en «🧀» y no habría
+   * forma de saber qué palabra le costó.
+   */
+  optionImages?: string[];
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
