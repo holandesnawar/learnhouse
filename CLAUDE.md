@@ -563,6 +563,62 @@ La formación 497 se vende por **email a la lista filtrada** con checkout normal
 - Tipos de ejercicio (`ExerciseType` en `types.ts`): multiple_choice, fill_blank, true_false (`correctAnswer: 'verdadero'|'falso'`), order_sentence, match_pairs, odd_one_out, letter_dash, word_scramble, emoji_choice, listen_and_choose, listen_translate, pair_memory.
 - **TTS de los diálogos (Luisteren):** voz por defecto ElevenLabs en la ruta `apps/web/app/api/tts/route.ts` (`language_code: 'nl'` para evitar acento inglés). Los diálogos alternan **dos voces** por interlocutor: `DIALOGUE_VOICE_A`/`DIALOGUE_VOICE_B` en `LessonViewer.tsx` (A=chico `5zhopMftSdRGaPYVcwKK`, B=chica `yO6w2xlECAQRFP6pX7Hw`). La API key va en env `ELEVENLABS_API_KEY` (Railway).
 
+### ⚠️ El audio NO son archivos: se genera al vuelo (ago 2026)
+Pregunta del usuario que conviene no volver a contestar mal: *"¿tengo que revisar
+todos los audios uno a uno? ¿si quiero regenerar uno te aviso?"*.
+
+**No hay ningún audio guardado que revisar ni que regenerar.** Cada vez que suena
+una palabra, `speakDutch` llama a `/api/tts`, que le pide el mp3 a ElevenLabs en
+ese momento. Lo único que se guarda son cachés: un `Map` en memoria del proceso
+(600 entradas, se pierde en cada despliegue) y la caché del navegador
+(`max-age` de un año). Existe además un `_wordAudioMap` de mp3 pre-generados en
+Supabase, pero **Supabase no está configurado en producción**, así que ese camino
+no se usa nunca.
+
+Consecuencia práctica: pedir "regenera este audio" no tiene sentido —volvería a
+salir igual, misma voz y mismo modelo. Lo que sí cambia el resultado:
+1. **Cambiar la voz** (`ELEVENLABS_VOICE_ID`, o las dos de diálogo).
+2. **Cambiar el texto** que se le manda. Una palabra que suena rara casi siempre
+   es un cognado o un nombre propio; escribirla distinta para el TTS lo arregla.
+3. Grabar un mp3 humano de verdad y servirlo.
+La 2 es la que escala: si aparecen varias, montar un diccionario
+`escrito → lo que se le manda al TTS` en vez de tocar el contenido.
+
+### Cómo se escriben los textos de Lezen (decidido ago 2026)
+Los primeros textos eran la explicación de la lección puesta en prosa ("el día
+tiene cuatro momentos: por la mañana dices goedemorgen…"). El usuario los llamó
+**"secos y poco naturales"**, y tenía razón: eso ya está en el resumen y en las
+flashcards, así que leerlo es repetir, no leer.
+
+Reglas, salidas del repaso de la 1.4:
+- **Una situación concreta con datos concretos** (día, sitio, hora, precio,
+  cuánta gente), no una exposición de reglas. Lo que el examen pide es
+  **localizar información**, y para eso el texto tiene que tener información que
+  localizar.
+- **La gramática de la lección aparece porque la situación la pide**, nunca al
+  revés. Un texto escrito para meter pronombres se nota.
+- **Que no parezca un diálogo**: para eso ya está el Luisteren de esa misma
+  lección. Si el Lezen también es conversación, la lección repite registro.
+- **Nada de rayas (—), nada de dos puntos encadenados, nada de `één` con
+  tildes.** Se ve feo y no es como se escribe un texto de verdad.
+- Las preguntas, del tipo del examen: día, sitio, hora, precio, cuántos,
+  verdadero/falso sobre algo que el texto niega.
+- **Pasar el texto por la skill `dutch-content-checker` antes de escribirlo.** En
+  la 1.4 sacó cinco cosas que no eran nativas (`gaat voor het eerst` sin
+  destino, `is het klaar` para un evento que termina, `zegt zijn naam`).
+
+### Spreken: solo de módulo 4 en adelante (decidido ago 2026)
+La sección existe y funciona, pero **solo tiene contenido en tres lecciones**
+(`les-1-voorstellen`, `m4-les-4-hoe-laat`, `m4-les-5-modale-werkwoorden`). Una
+actividad de Spreken colgada de cualquier otra lección enseña "Esta lección no
+tiene esa parte todavía" — que por fuera parece que Spreken está roto. **Si no
+hay contenido, la actividad no debe existir en el curso.**
+
+Decisión de fondo: Spreken (elegir de oído qué dirías) **no vale en módulo 1**.
+Con cuarenta palabras, las dos opciones falsas son absurdas y el alumno acierta
+sin escuchar. Necesita vocabulario suficiente para que las tres suenen posibles,
+o sea módulo 4 en adelante.
+
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
   `git branch --show-current` antes de dar por buena ninguna que ponga aquí. Han
