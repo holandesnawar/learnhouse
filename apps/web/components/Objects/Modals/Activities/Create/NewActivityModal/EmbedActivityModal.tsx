@@ -18,7 +18,7 @@ function EmbedActivityModal({ submitActivity, chapterId, course }: any) {
   const [guideId, setGuideId] = useState('')
   const [exModuleId, setExModuleId] = useState('')
   const [exLessonId, setExLessonId] = useState('')
-  const [exSection, setExSection] = useState('vocabulary')
+  const [exSection, setExSection] = useState('')
   const [situacionId, setSituacionId] = useState('')
   const [videoTitle, setVideoTitle] = useState('')
   const [videoDesc, setVideoDesc] = useState('')
@@ -42,7 +42,9 @@ function EmbedActivityModal({ submitActivity, chapterId, course }: any) {
         : mode === 'guia'
         ? { embed_url: `nawar-guia:${guideId}` }
         : { embed_url: embedUrl }
-    if (mode === 'nawar' && (!exModuleId || !exLessonId)) return
+    // La parte tambien es obligatoria: sin ella el token queda a medias y la
+    // actividad no resuelve a ninguna leccion.
+    if (mode === 'nawar' && (!exModuleId || !exLessonId || !exSection)) return
     if (mode === 'video' && !situacionId) return
     if (mode === 'guia' && !guideId) return
     setIsSubmitting(true)
