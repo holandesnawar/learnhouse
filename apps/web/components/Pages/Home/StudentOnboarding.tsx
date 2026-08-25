@@ -8,7 +8,7 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useTrail } from '@/hooks/queries/useTrail'
 import { getUriWithOrg } from '@services/config/config'
-import { Check, CalendarDays, User, MessagesSquare, BookOpen, ArrowRight, Rocket, ChevronUp, ChevronDown } from 'lucide-react'
+import { Check, CalendarDays, User, MessagesSquare, BookOpen, ArrowRight, Rocket } from 'lucide-react'
 import { getStudentProgress, patchStudentProgress } from '@services/student/progress'
 import { getCommunities } from '@services/communities/communities'
 import { getDiscussions } from '@services/communities/discussions'
@@ -24,13 +24,11 @@ interface StepItem {
 
 // Pasos que se marcan al hacer clic (visitar). El de comunidad NO está aquí:
 // se marca solo cuando el alumno publica de verdad en el canal de presentaciones.
-const VISITABLE: string[] = ['welcome_video', 'profile']
+const VISITABLE: string[] = ['clase_en_vivo', 'profile']
 // Plegado/desplegado es una preferencia de este ordenador: puede vivir en el
 // navegador. Lo demás (bienvenida vista, panel descartado) va al SERVIDOR: si
 // no, el alumno que entra desde el móvil vuelve a ver el popup de bienvenida y
 // el que borra cookies lo ve otra vez. Era parte del "sale a veces sí y a veces
-// no".
-const COLLAPSE_KEY = 'nawar_student_onboarding_collapsed'
 
 // El primer paso llevaba a un "vídeo de bienvenida" que NO EXISTE: prometía
 // algo que el alumno iba a buscar y no iba a encontrar, justo el primer día.
@@ -41,7 +39,28 @@ const CLASE_EN_VIVO_PATH = '/calendario'
 // Widget flotante "Primeros pasos" para el alumno (abajo-derecha, plegable).
 // Sustituye a la tarjeta grande del Inicio: aparece al entrar, se puede minimizar
 // a una pastilla y desaparece solo cuando se completan todos los pasos.
-export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
+/**
+ * Dos formas de enseñar lo mismo, con una sola lógica detrás.
+ *
+ * `panel` es la lista fija del Inicio: vive en el flujo de la página, no tapa
+ * nada y se va tachando sola. Es donde el alumno lee los pasos.
+ *
+ * `aviso` es la pastilla pequeña que sale en el resto de páginas y solo sirve
+ * para recordar que la lista existe y llevar hasta ella. No repite los pasos:
+ * si los repitiera habría dos sitios diciendo lo mismo y uno de los dos se
+ * quedaría desactualizado.
+ *
+ * Antes esto era un panel flotante con los pasos dentro, y en el móvil tapaba
+ * el final de la página justo al alumno que acaba de entrar, que es el que más
+ * necesita verla entera.
+ */
+export default function StudentOnboarding({
+  orgslug,
+  modo = 'aviso',
+}: {
+  orgslug: string
+  modo?: 'panel' | 'aviso'
+}) {
   const session = useLHSession() as any
   const org = useOrg() as any
   const pathname = usePathname() || ''
@@ -60,7 +79,6 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
   // entero (el backend reemplaza el objeto, no lo mezcla).
   const [serverState, setServerState] = useState<Record<string, any>>({})
   const [dismissed, setDismissed] = useState(false)
-  const [collapsed, setCollapsed] = useState(false)
   const [presented, setPresented] = useState(false)
   const [communityChecked, setCommunityChecked] = useState(false)
   const [forceReady, setForceReady] = useState(false)
@@ -113,15 +131,6 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
   useEffect(() => {
     const t = setTimeout(() => setForceReady(true), 6000)
     return () => clearTimeout(t)
-  }, [])
-
-  useEffect(() => {
-    try {
-      // Primera vez → desplegado; luego respetamos la elección del alumno.
-      setCollapsed(localStorage.getItem(COLLAPSE_KEY) === '1')
-    } catch {
-      /* ignore */
-    }
   }, [])
 
   useEffect(() => {
@@ -200,16 +209,10 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
   // bienvenida salía al instante y desaparecía ~1s después cuando llegaban los
   // datos y resultaba que ya estaba todo hecho — en cada carga de página.
   const signalsReady = loaded && (forceReady || (trailFetched && communityChecked))
-  if (!signalsReady || allDone || dismissed || !accessToken || isFocusPage) return null
-
-  function setCollapsedPersisted(v: boolean) {
-    setCollapsed(v)
-    try {
-      localStorage.setItem(COLLAPSE_KEY, v ? '1' : '0')
-    } catch {
-      /* ignore */
-    }
-  }
+  if (!signalsReady || allDone || dismissed || !accessToken) return null
+  // El aviso flotante sí se calla en las páginas de enfoque; el panel no,
+  // porque solo se monta en el Inicio.
+  if (modo === 'aviso' && isFocusPage) return null
 
   /** El backend REEMPLAZA onboarding_state, así que se manda entero. */
   function saveState(patch: Record<string, any>) {
@@ -315,68 +318,70 @@ export default function StudentOnboarding({ orgslug }: { orgslug: string }) {
         )
       : null
 
-  // Pastilla minimizada
-  if (collapsed) {
+  // ── El panel del Inicio ──
+  if (modo === 'panel') {
     return (
-      <>
-        {welcomeModal}
-        <button
-          onClick={() => setCollapsedPersisted(false)}
-          className="fixed bottom-4 right-4 z-40 flex items-center gap-3 bg-white rounded-2xl nice-shadow border border-[#DDE6F5] pl-3 pr-3.5 py-2.5 hover:shadow-lg transition-shadow"
-          aria-label="Abrir Primeros pasos"
+      <div id="empieza-aqui" className="mb-8 bg-white rounded-2xl border border-[#DDE6F5] nice-shadow overflow-hidden scroll-mt-24">
+        <div
+          className="px-5 py-5 text-white relative"
+          style={{
+            backgroundColor: '#1D0084',
+            backgroundImage:
+              'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
+              'radial-gradient(circle 400px at 100% 0%, rgba(11,109,240,0.4) 0%, transparent 65%)',
+            backgroundSize: '28px 28px, auto',
+            backgroundRepeat: 'repeat, no-repeat',
+          }}
         >
-          <Rocket size={20} className="text-[#025dc7] shrink-0" />
-          <div className="flex flex-col gap-1 min-w-0">
-            <span className="text-[13px] font-bold text-gray-900 leading-none text-left">Primeros pasos</span>
-            <div className="flex items-center gap-2">
-              <span className="w-24 h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                <span className="block h-full bg-[#4da3ff] rounded-full transition-all" style={{ width: `${pct}%` }} />
-              </span>
-              <span className="text-[12px] text-gray-400 tabular-nums">{done}/{total}</span>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h2
+                className="text-lg font-bold leading-tight"
+                style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+              >
+                Empieza aquí
+              </h2>
+              <p className="text-sm text-white/70 mt-0.5">
+                {done} de {total} hechos
+              </p>
             </div>
+            <button
+              onClick={dismissForGood}
+              className="shrink-0 text-[11.5px] text-white/50 hover:text-white/90 px-2 py-1 rounded-md hover:bg-white/10 transition-colors"
+              title="No volver a mostrar estos pasos"
+            >
+              Ocultar
+            </button>
           </div>
-          <ChevronUp size={16} className="text-gray-400 shrink-0 ml-1" />
-        </button>
-      </>
+          <div className="mt-3 h-2 rounded-full bg-white/10 overflow-hidden">
+            <div className="h-full bg-[#4da3ff] transition-all duration-500" style={{ width: `${pct}%` }} />
+          </div>
+        </div>
+        {stepsList}
+      </div>
     )
   }
 
-  // Panel desplegado
+  // ── El aviso: solo señala que la lista existe ──
+  //
+  // En el Inicio no sale: ahí está el panel, y dos cosas diciendo lo mismo en
+  // la misma pantalla sobran.
+  const esInicio = pathname === '/' || /\/orgs\/[^/]+\/?$/.test(pathname)
+  if (esInicio) return <>{welcomeModal}</>
+
   return (
     <>
       {welcomeModal}
-      <div className="fixed bottom-4 right-4 z-40 w-[340px] max-w-[calc(100vw-2rem)] bg-white rounded-2xl nice-shadow border border-[#DDE6F5] overflow-hidden">
-        {/* Cabecera */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#DDE6F5]">
-          <div className="flex items-center gap-2 min-w-0">
-            <Rocket size={18} className="text-[#025dc7] shrink-0" />
-            <span className="text-[14px] font-bold text-gray-900">Primeros pasos</span>
-            <span className="text-[12px] text-gray-400 tabular-nums shrink-0">{done}/{total}</span>
-          </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={dismissForGood}
-              className="text-[11.5px] text-gray-400 hover:text-gray-700 px-1.5 py-1 rounded-md hover:bg-gray-100 transition-colors"
-              title="No volver a mostrar estos pasos"
-            >
-              No mostrar más
-            </button>
-            <button
-              onClick={() => setCollapsedPersisted(true)}
-              className="w-7 h-7 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-              aria-label="Minimizar"
-            >
-              <ChevronDown size={18} />
-            </button>
-          </div>
-        </div>
-        {/* Barra de progreso */}
-        <div className="h-1.5 bg-gray-100">
-          <div className="h-full bg-[#4da3ff] transition-all duration-500" style={{ width: `${pct}%` }} />
-        </div>
-        {/* Pasos */}
-        {stepsList}
-      </div>
+      <Link
+        href={getUriWithOrg(orgslug, '/#empieza-aqui')}
+        className="fixed bottom-4 right-4 z-40 flex items-center gap-2.5 bg-white rounded-2xl nice-shadow border border-[#DDE6F5] pl-3 pr-3.5 py-2.5 hover:shadow-lg transition-shadow"
+      >
+        <Rocket size={18} className="text-[#025dc7] shrink-0" />
+        <span className="text-[13px] font-bold text-gray-900 leading-none">
+          Te faltan {total - done} {total - done === 1 ? 'paso' : 'pasos'}
+        </span>
+        <ArrowRight size={15} className="text-[#025dc7] shrink-0" />
+      </Link>
     </>
   )
 }

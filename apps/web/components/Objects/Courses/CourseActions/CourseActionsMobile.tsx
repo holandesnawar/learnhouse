@@ -151,7 +151,13 @@ const CourseActionsMobile = ({ courseuuid, orgslug, course, trailData }: CourseA
     enabled: !!org && !!resourceUuid,
     staleTime: 60_000,
   });
-  const linkedOffers: any[] = offersResult?.data ?? [];
+  // ⚠️ `offersResult.data` no siempre es un array. Si llega envuelto de otra
+  // forma, `linkedOffers.length` vale `undefined`, y entonces NI `> 0` NI
+  // `=== 0` se cumplen: el componente se colaba entre las dos ramas, la
+  // guarda de "no hay nada que enseñar" no saltaba y quedaba pintado el
+  // contenedor blanco vacío al final de la página en móvil. Normalizar aquí
+  // cierra ese hueco de raíz.
+  const linkedOffers: any[] = Array.isArray(offersResult?.data) ? offersResult.data : [];
 
   const handleCourseAction = async () => {
     if (!session.data?.user) {
@@ -203,7 +209,8 @@ const CourseActionsMobile = ({ courseuuid, orgslug, course, trailData }: CourseA
   // Nada que ofrecer: el alumno ya empezó el curso y no hay oferta que
   // enseñarle. Antes se pintaba igual el contenedor blanco y quedaba un
   // bloque vacío al final de la página en móvil.
-  const nothingToShow = !isLoading && linkedOffers.length === 0 && !!isStarted
+  const hayOferta = linkedOffers.length > 0
+  const nothingToShow = !isLoading && !hayOferta && !!isStarted
 
   if (isLoading) {
     // Ni siquiera el esqueleto si lo más probable es que no haya nada: al
@@ -257,7 +264,7 @@ const CourseActionsMobile = ({ courseuuid, orgslug, course, trailData }: CourseA
   return (
     <div className="bg-white/90 backdrop-blur-sm shadow-md shadow-gray-300/25 outline outline-1 outline-neutral-200/40 rounded-lg overflow-hidden p-4 my-6 mx-2">
       <div className="flex flex-col space-y-4">
-        {linkedOffers.length > 0 ? (() => {
+        {hayOferta ? (() => {
           const offer = linkedOffers[0];
           const formattedPrice = offer?.amount != null
             ? new Intl.NumberFormat('en-US', { style: 'currency', currency: offer.currency ?? 'USD' }).format(offer.amount)
