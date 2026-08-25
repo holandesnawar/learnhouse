@@ -19,6 +19,7 @@ import { registerVisit, type StudentVisit } from '@services/student/progress'
 import { useStudentInsights } from '@/hooks/queries/useStudentInsights'
 import { isWeeklyClassCourse } from '@/lib/course/formacionProgress'
 import SafeArea from '@components/Objects/StyledElements/Error/SafeArea'
+import StudentOnboarding from '@components/Pages/Home/StudentOnboarding'
 
 // Las tarjetas que dependen del temario (courseData, ~350KB de fuente) se
 // cargan en un chunk aparte: el Inicio pinta antes y el temario llega detrás.
@@ -124,8 +125,13 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
         </div>
       </div>
 
-      {/* Onboarding del alumno → ahora es un widget flotante "Primeros pasos"
-          (StudentOnboarding), montado en el layout. Ya no ocupa el Inicio. */}
+      {/* Primeros pasos, fijos en el Inicio.
+          Vuelven a la página en vez de flotar encima de ella: en el móvil el
+          panel flotante tapaba el final del Inicio justo al alumno que acaba
+          de entrar. Se tacha solo y desaparece entero al completarlo. */}
+      <SafeArea nombre="Empieza aquí" fallback={null}>
+        <StudentOnboarding orgslug={orgslug} modo="panel" />
+      </SafeArea>
 
       {/* "Sigue donde lo dejaste" — big primary card with section progress.
           Mientras llegan los datos se reserva el hueco con un esqueleto: si no,

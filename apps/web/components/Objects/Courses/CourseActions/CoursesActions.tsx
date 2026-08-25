@@ -93,7 +93,13 @@ function CoursesActions({ courseuuid, orgslug, course, trailData }: CourseAction
     enabled: !!org && !!resourceUuid,
     staleTime: 60_000,
   });
-  const linkedOffers: any[] = offersResult?.data ?? [];
+  // ⚠️ `offersResult.data` no siempre es un array. Si llega envuelto de otra
+  // forma, `linkedOffers.length` vale `undefined`, y entonces NI `> 0` NI
+  // `=== 0` se cumplen: el componente se colaba entre las dos ramas, la
+  // guarda de "no hay nada que enseñar" no saltaba y quedaba pintado el
+  // contenedor blanco vacío al final de la página en móvil. Normalizar aquí
+  // cierra ese hueco de raíz.
+  const linkedOffers: any[] = Array.isArray(offersResult?.data) ? offersResult.data : [];
 
   const handleCourseAction = async () => {
     if (!session.data?.user) {
