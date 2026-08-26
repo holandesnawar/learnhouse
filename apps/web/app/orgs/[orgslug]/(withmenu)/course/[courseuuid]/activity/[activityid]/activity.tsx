@@ -953,7 +953,7 @@ function ActivityClient(props: ActivityClientProps) {
                     trailData={trailData}
                   />
                 ) : (
-                  <div className="space-y-3 pt-0 relative">
+                  <div className="space-y-2 pt-0 relative">
                     {/* Barra superior fija (estilo Thinkific): a la izquierda el título de la
                         lección, a la derecha el botón de marcar/desmarcar como completada.
                         Sustituye al antiguo encabezado que repetía el nombre del curso (ese ya
@@ -1011,7 +1011,7 @@ function ActivityClient(props: ActivityClientProps) {
                                 <div className={`${
                                   activity.activity_type === 'TYPE_SCORM' || activity.activity_type === 'TYPE_VIDEO'
                                     ? 'rounded-2xl overflow-hidden border border-[#DDE6F5]'
-                                    : 'p-3 sm:p-7 rounded-2xl border border-[#DDE6F5] bg-white'
+                                    : 'px-3 pt-3 pb-3 sm:px-7 sm:pt-5 sm:pb-7 rounded-2xl border border-[#DDE6F5] bg-white'
                                 } relative isolate`} style={{ zIndex: 'var(--z-base)' }}>
                                   {activityContent}
                                 </div>
