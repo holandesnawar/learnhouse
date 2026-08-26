@@ -103,6 +103,13 @@ class DirectMessageRead(BaseModel):
     author_avatar: str = ""
     # Cargo ("Director Académico"): para que el alumno sepa quién le escribe.
     author_title: str = ""
+    # Quién escribió el mensaje DE VERDAD, cuando lo que se enseña es la voz
+    # del equipo. Solo se rellena para el equipo; al alumno le llega vacío.
+    #
+    # Existe porque en el hilo "con el equipo" todos los mensajes se muestran
+    # firmados igual, para que el alumno vea una sola voz. Sin esto, el día que
+    # haya dos personas atendiendo no habría forma de saber quién contestó qué.
+    real_author_name: str = ""
     # True si lo manda el equipo (para pintarlo del lado que toca).
     from_staff: bool
 
