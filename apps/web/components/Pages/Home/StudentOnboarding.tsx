@@ -36,6 +36,15 @@ const VISITABLE: string[] = ['clase_en_vivo', 'profile']
 // verdad diferencia a esta escuela de un curso grabado.
 const CLASE_EN_VIVO_PATH = '/calendario'
 
+// El canal «Presentaciones» de la comunidad.
+//
+// Va directo al canal y no al listado: mandar al listado obliga al alumno a
+// buscarlo, y este paso se hace UNA vez en la vida — cada clic de más se paga
+// en gente que no llega. Mismo criterio que el botón de Victorias.
+// Si algún día se borra ese canal, aquí va el identificador del nuevo (sale de
+// la barra del navegador al abrirlo).
+const CANAL_PRESENTACIONES = 'dfb8999d-42a9-4b36-92b4-ff924b1a0f91'
+
 // Widget flotante "Primeros pasos" para el alumno (abajo-derecha, plegable).
 // Sustituye a la tarjeta grande del Inicio: aparece al entrar, se puede minimizar
 // a una pastilla y desaparece solo cuando se completan todos los pasos.
@@ -177,7 +186,7 @@ export default function StudentOnboarding({
       id: 'community',
       title: 'Preséntate en Comunidad',
       cta: 'Entrar',
-      href: getUriWithOrg(orgslug, '/communities'),
+      href: getUriWithOrg(orgslug, `/community/${CANAL_PRESENTACIONES}`),
       icon: <MessagesSquare size={19} />,
       isDone: presented,
     },
