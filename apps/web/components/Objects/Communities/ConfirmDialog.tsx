@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { createPortal } from 'react-dom'
 import { AlertTriangle, Loader2 } from 'lucide-react'
 
 /**
@@ -42,8 +43,12 @@ export default function ConfirmDialog({
   }, [open, onCancel])
 
   if (!open) return null
+  if (typeof document === 'undefined') return null
 
-  return (
+  // Por la raíz del documento, igual que el de publicar: pintado dentro de la
+  // página quedaba atrapado en el contexto de apilado de su trozo y la barra
+  // superior del móvil se le ponía encima.
+  return createPortal(
     <div
       className="fixed inset-0 bg-black/40 flex items-center justify-center p-4"
       style={{ zIndex: 'var(--z-modal-content, 220)' }}
@@ -88,6 +93,7 @@ export default function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
