@@ -246,7 +246,7 @@ export default function StudentOnboarding({
         <li key={s.id} className="px-3.5 py-2.5 flex items-center gap-3">
           <div
             className={`w-8 h-8 flex items-center justify-center shrink-0 ${
-              s.isDone ? 'text-emerald-500' : 'text-[#025dc7]'
+              s.isDone ? 'text-[#4da3ff]' : 'text-[#025dc7]'
             }`}
           >
             {s.isDone ? <Check size={20} strokeWidth={3} /> : s.icon}

@@ -193,7 +193,7 @@ export function ContinueCard({
           </p>
         )}
         {allDone && next && (
-          <p className="text-[13px] text-emerald-600 font-semibold mt-0.5">
+          <p className="text-[13px] text-[#025dc7] font-semibold mt-0.5">
             ¡Terminaste “{lessonTitle.replace(/^Les\s*\d+\s*[—-]\s*/i, '')}”! Esta es la siguiente.
           </p>
         )}
@@ -266,7 +266,7 @@ export function WeekCard({ insights }: { insights: StudentInsights }) {
         <>
           <div className="grid grid-cols-2 gap-2.5">
             <div className="rounded-xl bg-[#F0F5FF] dark:bg-white/5 px-3 py-2.5">
-              <p className="text-[20px] font-semibold text-gray-900 dark:text-white leading-none tabular-nums">
+              <p className="text-[22px] font-bold text-gray-900 dark:text-white leading-none tabular-nums">
                 {w.lessonsCompleted}
               </p>
               <p className="text-[11px] text-gray-500 dark:text-white/60 mt-1">
@@ -274,7 +274,7 @@ export function WeekCard({ insights }: { insights: StudentInsights }) {
               </p>
             </div>
             <div className="rounded-xl bg-[#F0F5FF] dark:bg-white/5 px-3 py-2.5">
-              <p className="text-[20px] font-semibold text-gray-900 dark:text-white leading-none tabular-nums">
+              <p className="text-[22px] font-bold text-gray-900 dark:text-white leading-none tabular-nums">
                 {w.practices}
               </p>
               <p className="text-[11px] text-gray-500 dark:text-white/60 mt-1">
@@ -282,13 +282,13 @@ export function WeekCard({ insights }: { insights: StudentInsights }) {
               </p>
             </div>
             <div className="rounded-xl bg-[#F0F5FF] dark:bg-white/5 px-3 py-2.5">
-              <p className="text-[20px] font-semibold text-emerald-600 leading-none tabular-nums">
+              <p className="text-[22px] font-bold text-gray-900 dark:text-white leading-none tabular-nums">
                 {w.correctPct === null ? '—' : `${w.correctPct}%`}
               </p>
               <p className="text-[11px] text-gray-500 dark:text-white/60 mt-1">de aciertos</p>
             </div>
             <div className="rounded-xl bg-[#F0F5FF] dark:bg-white/5 px-3 py-2.5">
-              <p className="text-[20px] font-semibold text-gray-900 dark:text-white leading-none tabular-nums">
+              <p className="text-[22px] font-bold text-gray-900 dark:text-white leading-none tabular-nums">
                 {w.activeDays.length}
               </p>
               <p className="text-[11px] text-gray-500 dark:text-white/60 mt-1">
@@ -297,7 +297,7 @@ export function WeekCard({ insights }: { insights: StudentInsights }) {
             </div>
           </div>
           {deltaMsg && (
-            <p className="mt-2 text-[12px] font-semibold text-emerald-600 flex items-center gap-1.5">
+            <p className="mt-2 text-[12px] font-semibold text-[#025dc7] flex items-center gap-1.5">
               <TrendingUp size={13} /> {deltaMsg}
             </p>
           )}
@@ -452,7 +452,7 @@ export function FormacionCard({
             <BookOpenCheck size={14} />
             <span className="text-[10px] font-semibold uppercase tracking-[0.08em]">Progreso del curso</span>
           </div>
-          <p className="text-[24px] font-semibold text-gray-900 dark:text-white leading-none">
+          <p className="text-[28px] font-bold text-gray-900 dark:text-white leading-none tabular-nums">
             {pct}%
           </p>
           <div className="mt-2 h-1.5 rounded-full bg-white dark:bg-white/10 overflow-hidden">
@@ -473,7 +473,7 @@ export function FormacionCard({
             <GraduationCap size={14} />
             <span className="text-[10px] font-semibold uppercase tracking-[0.08em]">Nota media</span>
           </div>
-          <p className="text-[24px] font-semibold text-gray-900 dark:text-white leading-none">
+          <p className="text-[28px] font-bold text-gray-900 dark:text-white leading-none tabular-nums">
             {insights.avgPct === null ? '—' : `${insights.avgPct}%`}
           </p>
           <p className="mt-1.5 text-[11px] text-gray-500 dark:text-white/60">
@@ -486,7 +486,7 @@ export function FormacionCard({
             <Flame size={14} />
             <span className="text-[10px] font-semibold uppercase tracking-[0.08em]">Racha</span>
           </div>
-          <p className="text-[24px] font-semibold text-gray-900 dark:text-white leading-none">
+          <p className="text-[28px] font-bold text-gray-900 dark:text-white leading-none tabular-nums">
             {streak}
           </p>
           <p className="mt-1.5 text-[11px] text-gray-500 dark:text-white/60">
@@ -499,7 +499,7 @@ export function FormacionCard({
             <Trophy size={14} />
             <span className="text-[10px] font-semibold uppercase tracking-[0.08em]">Dominadas</span>
           </div>
-          <p className="text-[24px] font-semibold text-emerald-600 leading-none">
+          <p className="text-[28px] font-bold text-gray-900 dark:text-white leading-none tabular-nums">
             {masteredSectionsCount(insights.attempts)}
           </p>
           <p className="mt-1.5 text-[11px] text-gray-500 dark:text-white/60">secciones al 85% o más</p>
