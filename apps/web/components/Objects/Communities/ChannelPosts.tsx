@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import dayjs from 'dayjs'
@@ -453,17 +454,27 @@ function PostComposer({
     }
   }
 
-  return (
+  // ⚠️ Va por un portal a la raíz del documento.
+  //
+  // Pintado donde estaba, el modal quedaba ATRAPADO en el contexto de apilado
+  // de la página: por muy alto que fuera su z-index, solo contaba dentro de su
+  // trozo, y la barra superior del móvil se le ponía encima y le cortaba la
+  // cabecera. Sacándolo a la raíz, su z-index vuelve a valer contra todo lo
+  // demás.
+  const modal = (
     <div
-      className="fixed inset-0 bg-black/40 flex items-start sm:items-center justify-center p-3 sm:p-6 overflow-y-auto"
+      className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center sm:p-6"
       style={{ zIndex: 'var(--z-modal-content, 220)' }}
       onClick={onClose}
     >
+      {/* En el móvil sube desde abajo y ocupa lo que necesita, con el cuerpo
+          desplazándose por dentro; antes crecía hacia arriba hasta meterse
+          debajo de la barra. En escritorio se queda centrado como estaba. */}
       <div
-        className="w-full max-w-2xl bg-white rounded-2xl shadow-xl my-6"
+        className="w-full sm:max-w-2xl bg-white rounded-t-2xl sm:rounded-2xl shadow-xl flex flex-col max-h-[92vh] sm:max-h-[85vh]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#EEF3FB]">
+        <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-[#EEF3FB]">
           <h2 className="text-[16px] font-bold text-gray-900">Publicar en {channelName}</h2>
           <button
             onClick={onClose}
@@ -474,7 +485,7 @@ function PostComposer({
           </button>
         </div>
 
-        <div className="px-5 py-4">
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4">
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -537,7 +548,7 @@ function PostComposer({
           )}
         </div>
 
-        <div className="flex items-center gap-0.5 px-4 py-3 border-t border-[#EEF3FB]">
+        <div className="shrink-0 flex items-center gap-0.5 px-4 py-3 border-t border-[#EEF3FB]">
           <input ref={fileInputRef} type="file" hidden onChange={(e) => attach(e.target.files)} />
           <ComposerButton
             label="Adjuntar un archivo"
@@ -583,4 +594,7 @@ function PostComposer({
       </div>
     </div>
   )
+
+  if (typeof document === 'undefined') return null
+  return createPortal(modal, document.body)
 }
