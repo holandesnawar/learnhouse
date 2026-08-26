@@ -509,6 +509,21 @@ async def get_thread(
     titles = await staff_titles(org_id, db_session)
     fallback_title = _title_of(fallback, titles)
 
+    # En el hilo "con el equipo" el alumno ve UNA sola voz.
+    #
+    # Da igual quién conteste: la bienvenida automática, tú o un asistente, todo
+    # sale firmado igual, con el nombre y la foto de la escuela. Si cada persona
+    # firmara con su nombre, una misma conversación tendría tres remitentes
+    # distintos y el alumno no sabría con quién está hablando.
+    #
+    # Por debajo NO se pierde nada: cada mensaje sigue guardando su autor real,
+    # y al equipo se le manda en `real_author_name`. Así se sabe siempre quién
+    # respondió qué sin que el alumno vea el cambio de cara.
+    #
+    # En un hilo con UNA persona concreta (staff_id puesto) no aplica: ahí el
+    # alumno eligió hablar con alguien en particular y tiene que verlo.
+    voz_de_equipo = thread.staff_id is None
+
     messages: List[DirectMessageRead] = []
     for m in rows:
         author = await _user(m.author_id, db_session)
@@ -516,6 +531,19 @@ async def get_thread(
         audio_url = ""
         if m.audio_file:
             audio_url = f"/content/orgs/{org.org_uuid}/voice/{m.audio_file}"
+
+        if from_staff and voz_de_equipo:
+            nombre = fallback_name
+            foto = fallback_avatar
+            cargo = fallback_title
+            # Solo el equipo ve quién hay detrás.
+            autor_real = _display_name(author) if (staff and author) else ""
+        else:
+            nombre = _display_name(author) if author else fallback_name
+            foto = _avatar_path(author) if author else (fallback_avatar if from_staff else "")
+            cargo = (_title_of(author, titles) if author else fallback_title) if from_staff else ""
+            autor_real = ""
+
         messages.append(
             DirectMessageRead(
                 id=m.id or 0,
@@ -525,18 +553,11 @@ async def get_thread(
                 attachments=_attachments_of(m),
                 created_at=m.created_at or "",
                 author_id=m.author_id,
-                author_name=_display_name(author) if author else fallback_name,
-                author_avatar=(
-                    _avatar_path(author)
-                    if author
-                    else (fallback_avatar if from_staff else "")
-                ),
+                author_name=nombre,
+                author_avatar=foto,
                 # El cargo solo tiene sentido en quien atiende, no en el alumno.
-                author_title=(
-                    _title_of(author, titles) if author else (fallback_title if from_staff else "")
-                )
-                if from_staff
-                else "",
+                author_title=cargo,
+                real_author_name=autor_real,
                 from_staff=from_staff,
             )
         )
