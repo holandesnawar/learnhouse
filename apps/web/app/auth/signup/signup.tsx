@@ -30,9 +30,6 @@ function SignUpClient(props: SignUpClientProps) {
   const [inviteCode, setInviteCode] = React.useState('')
   const searchParams = useSearchParams()
   const inviteCodeParam = searchParams.get('inviteCode')
-  // Reenviar el correo de verificación, y saber si ya se pidió.
-  const [enviandoVerificacion, setEnviandoVerificacion] = React.useState(false)
-  const [verificacionEnviada, setVerificacionEnviada] = React.useState(false)
 
   useEffect(() => {
     if (props.org.config) {
@@ -88,6 +85,9 @@ const LoggedInJoinScreen = ({ inviteCode, org }: JoinScreenProps) => {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [showMessage, setShowMessage] = useState(false)
+  // Reenviar el correo de verificación, y saber si ya se pidió.
+  const [enviandoVerificacion, setEnviandoVerificacion] = useState(false)
+  const [verificacionEnviada, setVerificacionEnviada] = useState(false)
   const router = useRouter()
 
   /**
