@@ -195,6 +195,36 @@ async def email_template_send_test(
 
 
 @router.get(
+    "/payments/diagnostico",
+    summary="Qué ha pasado con las últimas matrículas pagadas y sus facturas. No toca nada.",
+)
+async def payments_diagnostico(
+    limite: int = 5,
+    current_user: PublicUser = Depends(get_authenticated_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    _require_superadmin(current_user)
+    from src.services.payments.payments import diagnostico_facturas
+
+    return await diagnostico_facturas(limite, db_session)
+
+
+@router.post(
+    "/payments/factura/{enrollment_id}",
+    summary="Reintenta la factura de una matrícula y DEVUELVE el motivo si falla.",
+)
+async def payments_reintentar_factura(
+    enrollment_id: int,
+    current_user: PublicUser = Depends(get_authenticated_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    _require_superadmin(current_user)
+    from src.services.payments.payments import reintentar_factura
+
+    return await reintentar_factura(enrollment_id, db_session)
+
+
+@router.get(
     "/seed/community/{org_id}",
     summary="¿Qué cuentas de arranque existen ya?",
 )
