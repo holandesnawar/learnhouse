@@ -48,6 +48,30 @@ def _stripe_secret() -> str:
     return key
 
 
+def _usar_stripe() -> None:
+    """
+    Deja la clave puesta antes de hablar con Stripe. **Llamar SIEMPRE.**
+
+    Por qué existe, que es el fallo más caro de todo el circuito de cobro:
+
+    `stripe.api_key` es una variable global del módulo, y solo se ponía en las
+    tres funciones que CREAN cosas (la sesión de pago y el PaymentIntent). El
+    webhook no la ponía nunca — y no saltaba ningún error, porque comprobar la
+    firma (`stripe.Webhook.construct_event`) es una cuenta local que no llama a
+    Stripe y por tanto no necesita clave.
+
+    Resultado: el webhook verificaba bien, marcaba la matrícula como pagada, y
+    en cuanto intentaba emitir la factura Stripe contestaba "No API key
+    provided". Ese error caía en el `except` de la factura, que se lo traga a
+    propósito para no dejar al alumno sin cuenta. Así que el cobro parecía
+    perfecto y la factura no salía nunca, sin una sola señal en ninguna parte.
+
+    Llevaba roto desde que se cambió el Checkout de Stripe por el nuestro, que
+    es justo cuando se dejó de recibir la factura buena.
+    """
+    stripe.api_key = _stripe_secret()
+
+
 def _webhook_secret() -> str:
     cfg = get_learnhouse_config()
     key = getattr(
@@ -165,7 +189,7 @@ async def create_formacion_checkout_session() -> str:
 
     The URL is unique per click — the caller (HTTP handler) should 302 to it.
     """
-    stripe.api_key = _stripe_secret()
+    _usar_stripe()
     academy = _academy_url()
     try:
         session = stripe.checkout.Session.create(
@@ -214,7 +238,7 @@ async def enroll_and_checkout(
 
     await ensure_matricula_abierta(db_session)
 
-    stripe.api_key = _stripe_secret()
+    _usar_stripe()
     academy = _academy_url()
 
     email = str(data.email).strip().lower()
@@ -386,7 +410,7 @@ async def enroll_and_payment_intent(data, db_session: AsyncSession) -> dict:
 
     await ensure_matricula_abierta(db_session)
 
-    stripe.api_key = _stripe_secret()
+    _usar_stripe()
     academy = _academy_url()
 
     email = str(data.email).strip().lower()
@@ -561,6 +585,8 @@ async def diagnostico_facturas(limite: int, db_session: AsyncSession) -> dict:
     ).strip()
     modo = "live" if clave.startswith("sk_live_") else ("test" if clave.startswith("sk_test_") else "sin clave")
 
+    _usar_stripe()
+
     salida = []
     for e in filas:
         ficha = {
@@ -638,6 +664,9 @@ def _create_post_hoc_invoice(
     here must never block account provisioning."""
     paso = "inicio"
     try:
+        # Que no dependa de quién llame: esta función se invoca desde el webhook
+        # y desde el reintento del panel, y en el webhook la clave NO estaba.
+        _usar_stripe()
         paso = "InvoiceItem.create"
         stripe.InvoiceItem.create(
             customer=customer_id,
@@ -819,6 +848,14 @@ async def process_webhook_event(
     signature: str,
     db_session: AsyncSession,
 ) -> dict:
+    # La clave, antes de nada.
+    #
+    # Comprobar la firma NO la necesita (es una cuenta local), así que faltando
+    # aquí el webhook seguía verificando y marcando la matrícula como pagada.
+    # Lo que se caía era todo lo que viene después y sí habla con Stripe: la
+    # factura. Sin ruido, sin error visible, durante semanas.
+    _usar_stripe()
+
     secret = _webhook_secret()
     try:
         # Verify the signature only — we don't need the StripeObject Stripe
