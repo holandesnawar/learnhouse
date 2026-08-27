@@ -533,37 +533,135 @@ async def enroll_and_payment_intent(data, db_session: AsyncSession) -> dict:
     }
 
 
+async def diagnostico_facturas(limite: int, db_session: AsyncSession) -> dict:
+    """
+    Qué ha pasado de verdad con las últimas matrículas pagadas.
+
+    Existe porque el camino del cobro se traga sus propios errores a propósito
+    —un fallo de Stripe no puede impedir que el alumno tenga su cuenta— y eso
+    deja al administrador sin forma de ver por qué no llega una factura. Aquí se
+    le pregunta a Stripe directamente y se enseña lo que conteste.
+
+    No cobra, no crea nada y no manda nada. Solo mira.
+    """
+    from src.db.enrollment import Enrollment
+
+    filas = (
+        await db_session.execute(
+            select(Enrollment)
+            .where(Enrollment.status == "paid")
+            .order_by(Enrollment.id.desc())  # type: ignore[attr-defined]
+            .limit(max(1, min(limite, 20)))
+        )
+    ).scalars().all()
+
+    cfg = get_learnhouse_config()
+    clave = (
+        getattr(getattr(cfg.payments_config, "stripe", None), "stripe_secret_key", "") or ""
+    ).strip()
+    modo = "live" if clave.startswith("sk_live_") else ("test" if clave.startswith("sk_test_") else "sin clave")
+
+    salida = []
+    for e in filas:
+        ficha = {
+            "matricula": e.id,
+            "email": e.email,
+            "pagada": e.paid_at or "",
+            "importe": f"{(e.amount_cents or 0) / 100:.2f} {(e.currency or 'eur').upper()}",
+            "atendida": bool((getattr(e, "provisioned_at", "") or "").strip()),
+            "cliente_stripe": e.stripe_customer_id or "",
+            "facturas": [],
+            "error": "",
+        }
+        if e.stripe_customer_id:
+            try:
+                lista = stripe.Invoice.list(customer=e.stripe_customer_id, limit=5)
+                ficha["facturas"] = [
+                    {
+                        "numero": getattr(f, "number", "") or "",
+                        "estado": getattr(f, "status", "") or "",
+                        # Si Stripe la ha mandado, esto trae la fecha.
+                        "enviada": bool(getattr(f, "status_transitions", None)
+                                        and getattr(f.status_transitions, "finalized_at", None)),
+                        "pdf": getattr(f, "invoice_pdf", "") or "",
+                    }
+                    for f in lista.data
+                ]
+            except Exception as exc:  # noqa: BLE001
+                ficha["error"] = str(exc)
+        salida.append(ficha)
+
+    return {"modo_stripe": modo, "matriculas": salida}
+
+
+async def reintentar_factura(enrollment_id: int, db_session: AsyncSession) -> dict:
+    """
+    Vuelve a intentar la factura de una matrícula y **devuelve el motivo** si
+    falla. Es la pieza que faltaba para dejar de adivinar.
+    """
+    from src.db.enrollment import Enrollment
+
+    e = (
+        await db_session.execute(select(Enrollment).where(Enrollment.id == enrollment_id))
+    ).scalars().first()
+    if not e:
+        raise HTTPException(status_code=404, detail="Esa matrícula no existe")
+    if e.status != "paid":
+        raise HTTPException(status_code=400, detail="Esa matrícula no está pagada")
+    if not e.stripe_customer_id:
+        raise HTTPException(status_code=400, detail="Esa matrícula no tiene cliente de Stripe")
+
+    return _create_post_hoc_invoice(
+        customer_id=e.stripe_customer_id,
+        amount=int(e.amount_cents or 0),
+        currency=(e.currency or "eur").lower(),
+        description="Formación Nawar A0-A1",
+    )
+
+
 def _create_post_hoc_invoice(
     customer_id: str,
     amount: int,
     currency: str,
     description: str,
-) -> None:
+) -> dict:
+    """Devuelve qué ha pasado, para poder verlo desde el panel.
+
+    Antes esto no devolvía nada y cualquier fallo de Stripe se quedaba en un
+    log que el administrador no puede leer. Resultado: la factura no llegaba y
+    desde fuera no había forma de saber por qué — solo probar y volver a probar.
+    Ahora el motivo sale por la puerta, y el diagnóstico del panel lo enseña.
+    """
     """Generate a finalized 'paid out of band' Invoice for a PaymentIntent
     that already settled, so the buyer still gets the same NAWAR-XXXX PDF
     Stripe Checkout produced automatically. Best-effort: a Stripe hiccup
     here must never block account provisioning."""
+    paso = "inicio"
     try:
+        paso = "InvoiceItem.create"
         stripe.InvoiceItem.create(
             customer=customer_id,
             amount=amount,
             currency=currency,
             description=description,
         )
+        paso = "Invoice.create"
         invoice = stripe.Invoice.create(
             customer=customer_id,
             collection_method="send_invoice",
             days_until_due=0,
             auto_advance=False,
         )
-        stripe.Invoice.finalize_invoice(invoice.id)
+        paso = "finalize_invoice"
+        invoice = stripe.Invoice.finalize_invoice(invoice.id)
         # Marcarla pagada ANTES de mandarla, y no al revés: una factura enviada
         # sin pagar le llega al alumno con un botón de "Pagar esta factura", y
         # acabas cobrando dos veces a alguien que ya había pagado.
-        stripe.Invoice.pay(invoice.id, paid_out_of_band=True)
-    except Exception:
-        logger.exception("Post-hoc invoice creation failed for customer %s", customer_id)
-        return
+        paso = "pay(out_of_band)"
+        invoice = stripe.Invoice.pay(invoice.id, paid_out_of_band=True)
+    except Exception as e:  # noqa: BLE001
+        logger.exception("Factura post-hoc fallida en %s para %s", paso, customer_id)
+        return {"ok": False, "paso": paso, "error": str(e)}
 
     # Y mandarla, que es lo que faltaba.
     #
@@ -574,10 +672,20 @@ def _create_post_hoc_invoice(
     #
     # Va en su propio try: si el envío falla, la factura ya está emitida y
     # numerada, que es lo que no se puede perder.
+    numero = getattr(invoice, "number", None) or ""
     try:
         stripe.Invoice.send_invoice(invoice.id)
-    except Exception:
+    except Exception as e:  # noqa: BLE001
         logger.exception("La factura %s se emitió pero no se pudo enviar", invoice.id)
+        return {
+            "ok": False,
+            "paso": "send_invoice",
+            "error": str(e),
+            "invoice_id": invoice.id,
+            "numero": numero,
+        }
+
+    return {"ok": True, "invoice_id": invoice.id, "numero": numero}
 
 
 # ── user provisioning (internal — no RBAC, trusted webhook) ────────────────
