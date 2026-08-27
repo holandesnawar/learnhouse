@@ -841,6 +841,16 @@ function Bubble({
   // burbuja de una conversación con Team Nawar es ruido. Si contesta otra
   // persona del equipo, entonces sí se enseña.
   const showName = !mine && !!m.author_name && m.author_name !== peerName
+  // Quién lo escribió de verdad.
+  //
+  // En el hilo "con el equipo" TODAS las respuestas salen firmadas igual, para
+  // que el alumno vea una sola voz. El efecto secundario es que, mirándolo desde
+  // el equipo, todas las burbujas azules son iguales y no hay forma de saber si
+  // contestó Paul o contestaste tú. El backend ya manda el autor real (solo al
+  // equipo, nunca al alumno); esto es pintarlo.
+  //
+  // Va vacío en los mensajes automáticos, que no tienen a nadie detrás.
+  const realAuthor = m.real_author_name || ''
   const when = m.created_at ? new Date(m.created_at) : null
   const time =
     when && !Number.isNaN(when.getTime())
@@ -870,6 +880,9 @@ function Bubble({
                 <span className="ml-1.5 font-semibold text-[#0a1656]/55">· {m.author_title}</span>
               )}
             </p>
+          )}
+          {mine && !!realAuthor && (
+            <p className="text-[11px] font-semibold mb-0.5 text-white/70">{realAuthor}</p>
           )}
           {!!m.attachments?.length && (
             <div className="space-y-1.5 mb-1.5">
