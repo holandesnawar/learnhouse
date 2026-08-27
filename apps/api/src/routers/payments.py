@@ -11,6 +11,7 @@ from src.db.enrollment import EnrollmentCreate, EnrollmentIntentResponse, Enroll
 from src.services.payments.payments import (
     create_formacion_checkout_session,
     enroll_and_checkout,
+    enroll_and_checkout_session,
     enroll_and_payment_intent,
     ensure_matricula_abierta,
     get_seat_status,
@@ -56,13 +57,14 @@ async def api_enroll(
 @router.post(
     "/enroll-intent",
     response_model=EnrollmentIntentResponse,
-    summary="Save the enrollment intent + create a PaymentIntent for our embedded checkout.",
+    summary="Guarda la matrícula y abre la sesión de pago embebida de Stripe.",
     description=(
-        "Use when the buyer should stay on the Nawar-branded payment page "
-        "(/auth/matricula-formacion-nawar-a0-a1/pago) instead of being "
-        "redirected to Stripe-hosted Checkout. Returns a client_secret the "
-        "front-end mounts against Stripe Elements + a publishable_key + a "
-        "payment_url to redirect to."
+        "El comprador se queda en la página de pago de la escuela; la caja de "
+        "pago la pinta Stripe dentro de ella. Devuelve el `client_secret` de la "
+        "sesión, la clave pública y la `payment_url` a la que redirigir.\n\n"
+        "El nombre de la ruta se mantiene a propósito: la landing solo lee "
+        "`payment_url`, así que el cambio de PaymentIntent a sesión de pago no "
+        "la afecta."
     ),
 )
 async def api_enroll_intent(
@@ -70,8 +72,20 @@ async def api_enroll_intent(
     request: Request,
     db_session: AsyncSession = Depends(get_db_session),
 ):
+    """
+    Sesión de pago, no PaymentIntent.
+
+    Con PaymentIntent, Stripe manda un recibo escueto y no emite factura: había
+    que fabricarla a mano después del cobro, y esa pieza falló de tres formas
+    distintas y todas invisibles. Con la sesión, `invoice_creation` hace que
+    Stripe emita la factura numerada y la mande él. Menos código nuestro en el
+    camino del dinero es menos sitios donde se rompa en silencio.
+
+    `enroll_and_payment_intent` se queda en el código como vuelta atrás: si
+    hubiera que volver, es cambiar esta línea.
+    """
     _enforce_enroll_rate_limit(request)
-    result = await enroll_and_payment_intent(data, db_session)
+    result = await enroll_and_checkout_session(data, db_session)
     return EnrollmentIntentResponse(**result)
 
 

@@ -270,6 +270,60 @@ contenido de las lecciones vive en `courseData.ts`, o sea en el código.
 
 > El handler viejo `checkout.session.completed` (`_handle_checkout_session`) sigue activo en el webhook por si quedan matrículas colgadas del flujo Stripe-hosted, pero todos los pagos nuevos vienen por PaymentIntent.
 
+### ⚠️ El cobro va por SESIÓN DE PAGO, no por PaymentIntent (ago 2026)
+
+**No volver a PaymentIntent.** Se hizo la mudanza al revés en agosto —de la
+sesión de pago de Stripe a Elements/PaymentIntent, por control del diseño— y
+costó una noche entera de fallos encadenados, todos invisibles.
+
+Lo que pasa con PaymentIntent: Stripe manda un recibo escueto y **no emite
+factura**. Hay que fabricarla a mano después del cobro, y esa pieza falló de
+tres maneras seguidas, cada una tapando a la siguiente:
+
+1. **`stripe.api_key` no se ponía en el webhook.** Es una global del módulo y
+   solo se asignaba en las funciones que CREAN cosas. Comprobar la firma
+   (`construct_event`) es una cuenta local que no necesita clave, así que el
+   webhook verificaba, marcaba la matrícula pagada, y moría al primer intento de
+   hablar con Stripe. El error caía en el `except` de la factura, que se lo
+   tragaba a propósito. Cobro perfecto, factura inexistente, cero señales.
+2. **La marca de "ya atendido" estaba en el usuario y no en la matrícula**, así
+   que quien compraba teniendo ya cuenta —media lista de espera— se quedaba sin
+   correo de bienvenida y sin factura.
+3. **Nadie llamaba a `send_invoice`**, y con `auto_advance=False` Stripe no la
+   cursa solo: quedaba emitida y numerada, esperando, sin salir.
+
+Con la sesión de pago, `invoice_creation` hace que **Stripe emita la factura
+numerada y la mande él**, con su recibo de siempre. Cero código nuestro en ese
+camino, y por tanto cero fallos nuestros.
+
+**Y sigue siendo embebida** (`ui_mode="embedded"`): la caja la pinta Stripe
+dentro de nuestra página, así que el alumno no sale de la escuela. No hay que
+elegir entre la factura buena y quedarse en el dominio — eso fue un falso dilema
+que se creyó durante meses.
+
+Detalles que importan:
+
+- **`_stripe_secret()` NO pone la clave.** Para eso está `_usar_stripe()`, que
+  hay que llamar en cualquier función que hable con Stripe. Es el fallo nº 1.
+- **`payment_intent_data.metadata.factura_stripe = "1"`**: la lee el webhook del
+  PaymentIntent para NO emitir otra factura por su cuenta. Sin eso salen dos
+  facturas con dos números para un solo cobro.
+- **La marca de atendida va en `enrollment.provisioned_at`**, nunca en el
+  usuario. Un reintento de Stripe no repite el correo; una compra de alguien con
+  cuenta sí lo recibe.
+- **`allow_promotion_codes=False`** a propósito: una caja vacía de cupón avisa de
+  un descuento que el comprador no tiene, y parte se va a buscarlo y no vuelve.
+- `enroll_and_payment_intent` se queda en el código como vuelta atrás. La página
+  de pago distingue por el prefijo del secreto: `cs_` sesión, `pi_` el viejo.
+- **Panel → Estadísticas → Facturas**: los últimos pagos con su factura, PDF, y
+  botones de reenviar y emitir. Cuando algo falla enseña el motivo de Stripe TAL
+  CUAL. Es lo que resolvió esta noche: en cuanto se pudo leer el error, la causa
+  apareció a la primera.
+
+**La lección, que vale más que el arreglo:** cuando algo falla dentro de un
+`except` que se traga el motivo, lo primero es sacar el motivo. No la tercera
+cosa. Se perdieron horas dando explicaciones plausibles sin haber medido.
+
 ### Design tokens del checkout (para clavar el look en otras páginas — ej. matricula en `nawar-web`)
 Fichero canónico: `apps/web/app/auth/matricula-formacion-nawar-a0-a1/checkout.tsx`. Copiar de ahí para mantener consistencia.
 
