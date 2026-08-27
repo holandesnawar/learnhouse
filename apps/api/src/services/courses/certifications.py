@@ -351,26 +351,32 @@ async def create_certificate_user(
     # bloque anterior y con su propio try — que falle un correo nunca puede
     # tumbar la entrega del certificado.
     try:
+        from src.services.email.textos import usar_textos
+        from src.services.orgs.orgs import get_org_email_texts
         from src.services.users.emails import (
             ACADEMY_URL,
             send_certificate_ready_email,
         )
 
+        textos_correo = await get_org_email_texts(course.org_id, db_session)
+
         cert_name = (certification.config or {}).get(
             "certification_name", "tu formación"
         )
         display_name = user.first_name or user.username or "alumno/a"
-        send_certificate_ready_email(
-            email=user.email,
-            name=display_name,
-            certification_name=cert_name,
-            # Su certificado, con el botón de descargar en PDF (no la página
-            # pública de verificación, que es para quien lo comprueba).
-            certificate_url=(
-                f"{ACADEMY_URL}/certificates/"
-                f"{certificate_user.user_certification_uuid}"
-            ),
-        )
+        with usar_textos(textos_correo):
+            send_certificate_ready_email(
+                email=user.email,
+                name=display_name,
+                certification_name=cert_name,
+                # Su certificado, con el botón de descargar en PDF (no la
+                # página pública de verificación, que es para quien lo
+                # comprueba).
+                certificate_url=(
+                    f"{ACADEMY_URL}/certificates/"
+                    f"{certificate_user.user_certification_uuid}"
+                ),
+            )
     except Exception as e:
         logger.warning("Certificate email failed (non-critical): %s", e)
 

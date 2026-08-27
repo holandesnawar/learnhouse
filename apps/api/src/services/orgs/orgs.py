@@ -1219,6 +1219,64 @@ async def update_org_direct_welcome_config(
     return {"detail": "Direct welcome message updated"}
 
 
+async def get_org_email_texts(org_id: int, db_session: AsyncSession) -> dict:
+    """Los textos de los correos que esta escuela tiene cambiados. Nunca lanza."""
+    from src.services.email.textos import limpiar
+
+    org_config = (
+        await db_session.execute(
+            select(OrganizationConfig).where(OrganizationConfig.org_id == org_id)
+        )
+    ).scalars().first()
+    if org_config is None or not isinstance(org_config.config, dict):
+        return {}
+    return limpiar(org_config.config.get("email_texts") or {})
+
+
+async def update_org_email_texts(
+    request: Request,
+    payload: dict,
+    org_id: int,
+    current_user: PublicUser | AnonymousUser,
+    db_session: AsyncSession,
+):
+    """
+    Guarda los textos cambiados de los correos automáticos.
+
+    `limpiar` tira todo lo que no esté declarado como editable, así que por aquí
+    NO se puede tocar el correo del pago ni el de la contraseña por mucho que se
+    manden esas claves en el cuerpo de la petición. La puerta está en el
+    servidor, no en la pantalla.
+    """
+    from src.services.email.textos import limpiar
+
+    statement = select(Organization).where(Organization.id == org_id)
+    org = (await db_session.execute(statement)).scalars().first()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    await rbac_check(request, org.org_uuid, current_user, "update", db_session)
+
+    org_config = (
+        await db_session.execute(
+            select(OrganizationConfig).where(OrganizationConfig.org_id == org.id)
+        )
+    ).scalars().first()
+    if org_config is None:
+        raise HTTPException(status_code=404, detail="Organization config not found")
+
+    updated_config = _deep_copy_config(org_config)
+    updated_config["email_texts"] = limpiar(payload.get("textos") or {})
+
+    org_config.config = updated_config
+    org_config.update_date = str(datetime.now())
+    db_session.add(org_config)
+    await db_session.commit()
+    await db_session.refresh(org_config)
+
+    return {"detail": "Email texts updated", "textos": updated_config["email_texts"]}
+
+
 async def update_org_weekly_class_banner_config(
     request: Request,
     banner: dict,

@@ -4,7 +4,7 @@ to platform superadmins. Mounted without the development-mode guard.
 """
 
 import logging
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from src.db.users import PublicUser
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -115,15 +115,56 @@ async def email_templates(
 async def email_template_preview(
     template_id: str,
     name: str = "María",
+    org_id: int = 1,
     current_user: PublicUser = Depends(get_authenticated_user),
+    db_session: AsyncSession = Depends(get_db_session),
 ):
     _require_superadmin(current_user)
     from src.services.demo.email_catalog import render_template
+    from src.services.email.textos import usar_textos
+    from src.services.orgs.orgs import get_org_email_texts
 
+    # Con los textos de la escuela puestos: la vista previa tiene que enseñar
+    # exactamente lo que va a recibir el alumno, no el texto de fábrica.
+    textos = await get_org_email_texts(org_id, db_session)
     try:
-        return render_template(template_id, name)
+        with usar_textos(textos):
+            return render_template(template_id, name)
     except KeyError:
         raise HTTPException(status_code=404, detail="Template not found")
+
+
+@router.get(
+    "/email-texts",
+    summary="Qué textos de los correos automáticos se pueden cambiar, y cuáles están cambiados.",
+)
+async def email_texts(
+    org_id: int = 1,
+    current_user: PublicUser = Depends(get_authenticated_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    _require_superadmin(current_user)
+    from src.services.email.textos import catalogo
+    from src.services.orgs.orgs import get_org_email_texts
+
+    return {"catalogo": catalogo(), "textos": await get_org_email_texts(org_id, db_session)}
+
+
+@router.put(
+    "/email-texts",
+    summary="Guarda los textos cambiados. Los correos del pago y de la contraseña NO se pueden tocar.",
+)
+async def save_email_texts(
+    request: Request,
+    payload: dict,
+    org_id: int = 1,
+    current_user: PublicUser = Depends(get_authenticated_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    _require_superadmin(current_user)
+    from src.services.orgs.orgs import update_org_email_texts
+
+    return await update_org_email_texts(request, payload, org_id, current_user, db_session)
 
 
 @router.post(
@@ -132,16 +173,22 @@ async def email_template_preview(
 )
 async def email_template_send_test(
     template_id: str,
+    org_id: int = 1,
     current_user: PublicUser = Depends(get_authenticated_user),
+    db_session: AsyncSession = Depends(get_db_session),
 ):
     _require_superadmin(current_user)
     from src.services.demo.email_catalog import send_template_test
+    from src.services.email.textos import usar_textos
+    from src.services.orgs.orgs import get_org_email_texts
 
     to = getattr(current_user, "email", None)
     if not to:
         raise HTTPException(status_code=400, detail="No email on the current user")
+    textos = await get_org_email_texts(org_id, db_session)
     try:
-        send_template_test(template_id, to, getattr(current_user, "first_name", None) or "María")
+        with usar_textos(textos):
+            send_template_test(template_id, to, getattr(current_user, "first_name", None) or "María")
     except KeyError:
         raise HTTPException(status_code=404, detail="Template not found")
     return {"sent_to": to}

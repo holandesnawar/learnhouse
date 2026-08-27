@@ -7,6 +7,7 @@ from urllib.parse import quote
 from pydantic import EmailStr
 from src.db.organizations import OrganizationRead
 from src.db.users import UserRead
+from src.services.email.textos import parrafos, texto as txt
 from src.services.email.translations import t
 from src.services.email.utils import send_email
 
@@ -552,13 +553,11 @@ def send_weekly_digest_email(
     """Lunes por la mañana: resumen de la semana del alumno."""
     safe_name = html.escape(name)
     safe_next = html.escape(next_lesson)
-    heading = "Tu semana en Holandés Nawar"
+    heading = html.escape(txt("weekly_digest", "titulo", nombre=safe_name))
 
     body_content = f"""
         <h1 style="{STYLES['h1']}">{heading}</h1>
-        <p style="{STYLES['p']}">
-            Hola {safe_name}, esto es lo que ha pasado esta semana en la escuela:
-        </p>
+        {parrafos(txt("weekly_digest", "cuerpo", nombre=safe_name), STYLES['p'])}
         <ul style="padding: 0; margin: 0 0 24px 0; list-style: none; text-align: left;">
             <li style="margin: 0 0 8px 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.6;">
                 ✅ <strong>{lessons_done} lecciones</strong> completadas
@@ -570,16 +569,16 @@ def send_weekly_digest_email(
                 📌 Te toca <strong>{safe_next}</strong>
             </li>
         </ul>
-        <p style="{STYLES['p']}">Vamos a por la siguiente.</p>
+        {parrafos(txt("weekly_digest", "cierre", nombre=safe_name), STYLES['p'])}
         <a href="{ACADEMY_URL}/courses" class="brand-btn" style="{STYLES['button']}">
-            Continuar mi formación
+            {html.escape(txt("weekly_digest", "boton"))}
         </a>
     """
 
     return send_email(
         dry_run=preview,
         to=email,
-        subject="Tu semana en Holandés Nawar",
+        subject=txt("weekly_digest", "asunto", nombre=name),
         body=_email_layout(
             title=heading,
             body_content=body_content,
@@ -598,30 +597,25 @@ def send_module_unlocked_email(
     """Notificación: el alumno acaba de desbloquear un nuevo módulo."""
     safe_name = html.escape(name)
     safe_module = html.escape(module_name)
-    heading = f"Has desbloqueado {safe_module}"
+    vars_ = {"nombre": safe_name, "modulo": safe_module, "lecciones": lesson_count}
+    heading = html.escape(txt("module_unlocked", "titulo", **vars_))
 
     body_content = f"""
         <h1 style="{STYLES['h1']}">{heading}</h1>
-        <p style="{STYLES['p']}">
-            ¡Buen trabajo, {safe_name}! Acabas de terminar el módulo anterior.
-        </p>
-        <p style="{STYLES['p']}">
-            Tienes vía libre en <strong>{safe_module}</strong>, te tocan
-            <strong>{lesson_count} lecciones nuevas</strong>.
-        </p>
+        {parrafos(txt("module_unlocked", "cuerpo", **vars_), STYLES['p'])}
         <a href="{ACADEMY_URL}/courses" class="brand-btn" style="{STYLES['button']}">
-            Empezar el módulo
+            {html.escape(txt("module_unlocked", "boton"))}
         </a>
     """
 
     return send_email(
         dry_run=preview,
         to=email,
-        subject=f"Has desbloqueado {module_name}",
+        subject=txt("module_unlocked", "asunto", nombre=name, modulo=module_name, lecciones=lesson_count),
         body=_email_layout(
             title=heading,
             body_content=body_content,
-            footer_note="Te avisamos cada vez que abres un módulo nuevo.",
+            footer_note=txt("module_unlocked", "pie"),
         ),
     )
 
@@ -689,31 +683,27 @@ def send_consulta_answered_email(
     """
     safe_name = html.escape(name)
     safe_question = html.escape(question_excerpt)
-    heading = "Te respondimos tu consulta"
+    heading = html.escape(txt("consulta_answered", "titulo", nombre=safe_name))
     target_link = link if link else f"{ACADEMY_URL}/consultas"
 
     body_content = f"""
         <h1 style="{STYLES['h1']}">{heading}</h1>
-        <p style="{STYLES['p']}">
-            Hola {safe_name}, ya tienes respuesta a tu consulta:
-        </p>
+        {parrafos(txt("consulta_answered", "cuerpo", nombre=safe_name), STYLES['p'])}
         <div style="border-left: 3px solid #DDE6F5; padding: 4px 0 4px 14px; margin: 0 0 22px 0;">
             <p style="margin: 0; font-size: 14px; color: rgba(0,0,0,0.65); line-height: 1.6; font-style: italic;">
                 "{safe_question}"
             </p>
         </div>
-        <p style="{STYLES['p']}">
-            Entra en la escuela para leer la respuesta completa.
-        </p>
+        {parrafos(txt("consulta_answered", "cierre"), STYLES['p'])}
         <a href="{target_link}" class="brand-btn" style="{STYLES['button']}">
-            Ver respuesta
+            {html.escape(txt("consulta_answered", "boton"))}
         </a>
     """
 
     return send_email(
         dry_run=preview,
         to=email,
-        subject="Consulta respondida",
+        subject=txt("consulta_answered", "asunto", nombre=name),
         body=_email_layout(
             title=heading,
             body_content=body_content,
@@ -734,27 +724,24 @@ def send_new_direct_message_email(
     privada por el correo ni se le quita la razón de entrar.
     """
     safe_name = html.escape(name)
-    heading = "Tienes un mensaje en la escuela"
+    heading = html.escape(txt("new_direct_message", "titulo", nombre=safe_name))
 
     body_content = f"""
         <h1 style="{STYLES['h1']}">{heading}</h1>
-        <p style="{STYLES['p']}">
-            Hola {safe_name}, te hemos escrito un mensaje. Entra en la escuela para leerlo
-            y contestarnos.
-        </p>
+        {parrafos(txt("new_direct_message", "cuerpo", nombre=safe_name), STYLES['p'])}
         <a href="{ACADEMY_URL}/mensajes" class="brand-btn" style="{STYLES['button']}">
-            Leer el mensaje
+            {html.escape(txt("new_direct_message", "boton"))}
         </a>
     """
 
     return send_email(
         dry_run=preview,
         to=email,
-        subject="Tienes un mensaje en la escuela",
+        subject=txt("new_direct_message", "asunto", nombre=name),
         body=_email_layout(
             title=heading,
             body_content=body_content,
-            footer_note="Recibes esto cuando alguien del equipo te escribe y marca el mensaje como importante.",
+            footer_note=txt("new_direct_message", "pie"),
         ),
     )
 
@@ -769,21 +756,14 @@ def send_certificate_ready_email(
     """El alumno ha terminado la formación: su certificado ya está disponible."""
     safe_name = html.escape(name)
     safe_cert = html.escape(certification_name)
-    heading = "¡Enhorabuena! Tu certificado ya está listo"
+    heading = html.escape(txt("certificate_ready", "titulo", nombre=safe_name, certificado=safe_cert))
 
     body_content = f"""
         <h1 style="{STYLES['h1']}">{heading}</h1>
-        <p style="{STYLES['p']}">
-            {safe_name}, has completado <strong>{safe_cert}</strong>. No es poca cosa:
-            has recorrido el camino entero, lección a lección.
-        </p>
-        <p style="{STYLES['p']}">
-            Tu <strong>certificado Holandés Nawar</strong> ya te espera en la escuela.
-            Pulsa el botón y podrás verlo y descargarlo en PDF.
-        </p>
+        {parrafos(txt("certificate_ready", "cuerpo", nombre=safe_name, certificado=safe_cert), STYLES['p'])}
         <div style="margin: 6px 0 30px 0;">
             <a href="{certificate_url}" class="brand-btn" style="{STYLES['button']}">
-                Ver y descargar mi certificado
+                {html.escape(txt("certificate_ready", "boton"))}
             </a>
         </div>
         <p style="margin: 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.7;">
@@ -797,11 +777,11 @@ def send_certificate_ready_email(
     return send_email(
         dry_run=preview,
         to=email,
-        subject=f"Tu certificado de {certification_name} ya está listo",
+        subject=txt("certificate_ready", "asunto", nombre=name, certificado=certification_name),
         body=_email_layout(
             title=heading,
             body_content=body_content,
-            footer_note="Enhorabuena de parte de todo el equipo de Holandés Nawar.",
+            footer_note=txt("certificate_ready", "pie"),
         ),
     )
 
@@ -819,13 +799,11 @@ def send_class_scheduled_email(
     safe_name = html.escape(name)
     safe_title = html.escape(title)
     safe_when = html.escape(when_text)
-    heading = "Ya tienes fecha para la próxima clase"
+    heading = html.escape(txt("class_scheduled", "titulo", titulo=safe_title, cuando=safe_when))
 
     body_content = f"""
         <h1 style="{STYLES['h1']}">{heading}</h1>
-        <p style="{STYLES['p']}">
-            Hola {safe_name}, ya está confirmada la próxima clase en vivo:
-        </p>
+        {parrafos(txt("class_scheduled", "cuerpo", nombre=safe_name), STYLES['p'])}
         <div style="border-left: 3px solid #4da3ff; padding: 4px 0 4px 14px; margin: 0 0 22px 0;">
             <p style="margin: 0 0 6px 0; font-size: 15px; font-weight: 800; color: #1D0084; line-height: 1.4;">
                 {safe_title}
@@ -839,16 +817,13 @@ def send_class_scheduled_email(
                 {"Entrar a la clase" if join_url else "Ver los detalles"}
             </a>
         </div>
-        <p style="{STYLES['p']}">
-            Apúntatelo en el calendario. Si no puedes venir, la grabación queda
-            publicada y la ves cuando quieras.
-        </p>
+        {parrafos(txt("class_scheduled", "cierre"), STYLES['p'])}
     """
 
     return send_email(
         dry_run=preview,
         to=email,
-        subject=f"{title} — {when_text}",
+        subject=txt("class_scheduled", "asunto", titulo=title, cuando=when_text, nombre=name),
         body=_email_layout(
             title=heading,
             body_content=body_content,

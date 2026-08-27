@@ -581,6 +581,8 @@ async def _notify_student_by_email(thread: DirectThread, db_session: AsyncSessio
     """Avisa al alumno de que tiene un mensaje. Best-effort: si el correo
     falla, el mensaje ya está guardado y no se pierde nada."""
     try:
+        from src.services.email.textos import usar_textos
+        from src.services.orgs.orgs import get_org_email_texts
         from src.services.users.emails import send_new_direct_message_email
 
         student = await _user(thread.student_id, db_session)
@@ -588,7 +590,9 @@ async def _notify_student_by_email(thread: DirectThread, db_session: AsyncSessio
             logger.warning("Aviso no enviado: el alumno %s no tiene correo", thread.student_id)
             return
         name = (student.first_name or student.username or "").strip() or "alumno/a"
-        send_new_direct_message_email(email=student.email, name=name)
+        textos = await get_org_email_texts(thread.org_id, db_session)
+        with usar_textos(textos):
+            send_new_direct_message_email(email=student.email, name=name)
         logger.info("Aviso de mensaje enviado a %s", student.email)
     except Exception:
         logger.exception("No se pudo avisar por correo del mensaje directo")
