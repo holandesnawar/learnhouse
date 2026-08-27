@@ -358,6 +358,8 @@ _ADDED_COLUMNS = [
     "ALTER TABLE IF EXISTS community ADD COLUMN IF NOT EXISTS kind VARCHAR(16) DEFAULT 'chat'",
     # Fotos y archivos en los mensajes directos (JSON en texto).
     "ALTER TABLE IF EXISTS direct_message ADD COLUMN IF NOT EXISTS attachments TEXT DEFAULT ''",
+    # Qué texto de la lección resalta cada subrayado (resumen, lezen_nl…).
+    "ALTER TABLE IF EXISTS lesson_highlight ADD COLUMN IF NOT EXISTS block_key VARCHAR(120) DEFAULT ''",
 ]
 
 

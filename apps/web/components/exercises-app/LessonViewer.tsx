@@ -10,6 +10,7 @@ import {
   markPreviousAsCompleted,
 } from '@/lib/exercises-app/progress';
 import AudioPlayer from './AudioPlayer';
+import TextoResaltable, { ContextoResaltado } from './TextoResaltable';
 import { getConfig, getUriWithOrg } from '@services/config/config';
 import { Breadcrumbs } from '@components/Objects/Breadcrumbs/Breadcrumbs';
 import { Dumbbell } from 'lucide-react';
@@ -3194,7 +3195,11 @@ function ResumenSection({ block, vocabItems = [], phraseItems = [], inCourse, on
             </h2>
           )}
           {block.intro && (
-            <p className="text-[15px] text-[#5A6480] leading-relaxed">{block.intro}</p>
+            <TextoResaltable
+              texto={block.intro}
+              bloque="resumen"
+              className="text-[15px] text-[#5A6480] leading-relaxed"
+            />
           )}
         </div>
       )}
@@ -3552,9 +3557,11 @@ function LezenSection({
         )}
         <div className="rounded-2xl border border-[#DDE6F5] bg-white p-6">
           <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-4">Texto en neerlandés</p>
-          <div className="text-[16px] text-gray-900 leading-relaxed whitespace-pre-line font-medium text-left max-w-prose">
-            {textNl.replace(/^[ \t]+/gm, '').trim()}
-          </div>
+          <TextoResaltable
+            texto={textNl.replace(/^[ \t]+/gm, '').trim()}
+            bloque="lezen_nl"
+            className="text-[16px] text-gray-900 leading-relaxed whitespace-pre-line font-medium text-left max-w-prose"
+          />
         </div>
         <button
           onClick={() => exercises.length > 0 ? setStep('exercises') : setStep('translation')}
@@ -3687,11 +3694,19 @@ function LezenSection({
       <div className="rounded-2xl border border-[#DDE6F5] bg-white p-6 space-y-4">
         <div>
           <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-3">Texto original</p>
-          <p className="text-[14px] text-[#5A6480] leading-relaxed whitespace-pre-line text-left max-w-prose">{textNl.replace(/^[ \t]+/gm, '').trim()}</p>
+          <TextoResaltable
+            texto={textNl.replace(/^[ \t]+/gm, '').trim()}
+            bloque="lezen_nl"
+            className="text-[14px] text-[#5A6480] leading-relaxed whitespace-pre-line text-left max-w-prose"
+          />
         </div>
         <div className="border-t border-[#DDE6F5] pt-4">
           <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-3">Traducción al español</p>
-          <p className="text-[15px] text-gray-900 font-medium leading-relaxed whitespace-pre-line text-left max-w-prose">{textEs.replace(/^[ \t]+/gm, '').trim()}</p>
+          <TextoResaltable
+            texto={textEs.replace(/^[ \t]+/gm, '').trim()}
+            bloque="lezen_es"
+            className="text-[15px] text-gray-900 font-medium leading-relaxed whitespace-pre-line text-left max-w-prose"
+          />
         </div>
       </div>
       <button
@@ -5062,7 +5077,15 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
   const activeMeta = activeSection ? SECTION_META[activeSection] : null;
 
   return (
-    <>
+    // El curso y la clase donde se lee, para que los textos subrayables no
+    // tengan que recibirlo por props a través de media docena de secciones.
+    <ContextoResaltado.Provider
+      value={{
+        courseUuid: courseLocation?.courseUuid,
+        activityUuid: courseLocation?.activityUuid,
+        nombre: lesson?.title || '',
+      }}
+    >
       {/* ── Header ── In a course the activity page already shows the lesson
            name, so we drop the big banner-like title + extra padding and keep
            only the "back to parts" link (whole-lesson mode). ── */}
@@ -5265,6 +5288,6 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
          </div>
         </div>
       </div>
-    </>
+    </ContextoResaltado.Provider>
   );
 }

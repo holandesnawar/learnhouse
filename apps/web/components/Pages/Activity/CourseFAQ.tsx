@@ -22,31 +22,35 @@ interface FAQ {
 const COURSE_FAQS: Record<string, { intro?: string; items: FAQ[] }> = {
   'bfbcb42b-7dc3-4448-9df8-5d7b96135859': {
     intro:
-      'Cada semana nos vemos en directo para repasar la formación, resolver tus dudas y practicar hablando holandés. Si no puedes asistir, la clase queda grabada aquí para siempre.',
+      'Cada semana nos vemos en directo para repasar la formación, resolver tus dudas y practicar hablando holandés. Si no puedes venir, la clase queda grabada aquí.',
     items: [
       {
-        q: '¿Cuándo es la clase en directo?',
-        a: 'La clase es semanal. Te avisamos por email cada lunes con el día y la hora exactos, y también aparece en la sección de Eventos de la plataforma.',
+        q: '¿Cuándo es la clase?',
+        a: 'No es siempre el mismo día, así que te avisamos por correo una semana antes con el día y la hora exactos. Siempre es entre semana, en hora de Países Bajos, y también lo verás en Eventos.',
       },
       {
-        q: '¿Y si no puedo asistir?',
-        a: 'Sin problema. Todas las clases se graban y aparecen aquí abajo. Tendrás acceso a ellas para siempre.',
+        q: '¿Y si no puedo venir?',
+        a: 'No pasa nada. Todas las clases se graban y quedan aquí, así que puedes verlas cuando te venga bien. Cada una dura una hora.',
       },
       {
         q: '¿Dónde se hace?',
-        a: 'En directo por videollamada. El enlace lo recibes por email un par de horas antes y también aparece en el evento de Eventos.',
+        a: 'Por Zoom. El enlace para entrar lo tienes en la escuela, en Eventos: no hace falta que busques el correo cuando llegue la hora.',
       },
       {
-        q: '¿Qué pasa en cada clase?',
-        a: 'Repasamos lecciones de la formación, resolvemos vuestras dudas en directo y practicamos hablando en holandés. Tú decides el ritmo: trae tus preguntas o disfruta del repaso.',
+        q: '¿Tengo que hablar?',
+        a: 'Puedes hablar y te animamos a hacerlo, respetando el turno de palabra. Pero nadie te va a obligar: si un día prefieres solo escuchar, también se aprende.',
       },
       {
-        q: '¿Puedo enviar mi duda antes para que la resolvamos en directo?',
-        a: 'Sí. Abre una consulta desde cualquier lección o desde "Consultas" en el menú. Las preguntas más votadas las cubrimos en la siguiente clase.',
+        q: '¿Siempre da la clase el mismo profe?',
+        a: 'No, y es a propósito. Vas a escuchar a varias personas, con maneras de hablar distintas, que es justo lo que te vas a encontrar fuera. Todas son profes de la escuela.',
       },
       {
-        q: '¿Hay material para descargar?',
-        a: 'Cuando una clase tiene fichas o ejercicios, te los dejamos enlazados desde la actividad del curso. Puedes volver cuando quieras.',
+        q: '¿Cuánta gente hay en clase?',
+        a: 'Esta es la primera convocatoria, así que somos un grupo pequeño: entre 30 y 40 alumnos. Hay sitio de sobra para preguntar.',
+      },
+      {
+        q: '¿Puedo mandar mi duda antes para que la resolvamos en directo?',
+        a: 'Sí. Abre una consulta desde cualquier lección o desde "Consultas" en el menú. Las preguntas que más se repiten las cubrimos en la siguiente clase.',
       },
     ],
   },

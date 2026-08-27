@@ -480,6 +480,36 @@ systeme.io con la etiqueta de lista de espera y guarda de dónde vino.
   - **Enlaces UTM**: bloc de notas en la pestaña "Enlaces UTM", guardado en org_config `utm_links`. **Los UTM NO se capturan** (decisión del usuario): la escuela no sabe de qué campaña viene cada venta. Si algún día se quiere, hay que guardarlos en `enrollment` y que la web los pase.
   - **Bug arreglado de paso**: `get_cached_course_meta` cacheaba la ficha del curso en Redis con una clave SIN usuario, pero el payload lleva `is_locked`/`unlock_date` del goteo, que dependen de la fecha de alta de cada alumno → quien calentaba la caché decidía los candados que veían los demás durante un minuto. Ahora la clave lleva el usuario y la invalidación borra por patrón.
 
+### ⚠️ Subrayar: hay DOS mecanismos y no son intercambiables (ago 2026)
+
+La ficha de arriba decía "resaltar + notas en lecciones" a secas, y era engañosa:
+durante meses **no funcionaba en ninguna lección de holandés**, que son
+justamente todas.
+
+- **`HighlightLayer` + `LessonHighlightExtension`** — las lecciones escritas con
+  el editor del panel (`DynamicCanva`). Se ancla por **posiciones de
+  ProseMirror**.
+- **`TextoResaltable`** (`components/exercises-app/TextoResaltable.tsx`) — las
+  lecciones de holandés, que son cadenas de `courseData.ts` pintadas por
+  `LessonViewer`, donde ProseMirror **no existe**. Se ancla por **número de
+  carácter dentro de la cadena**.
+
+Las dos escriben en la MISMA tabla `lesson_highlight`, así que "Mis notas" las
+recoge juntas sin saber de dónde vienen. Columna nueva **`block_key`** (en
+`_ADDED_COLUMNS`): distingue los varios textos de una misma clase — `resumen`,
+`lezen_nl`, `lezen_es` —, que si no el subrayado del neerlandés se repintaría
+encima de la traducción.
+
+- El curso y la clase llegan por **`ContextoResaltado`**, un contexto puesto una
+  vez en `LessonViewer`. Sin `activityUuid` (la app de ejercicios suelta) el
+  texto se pinta normal y no se puede subrayar: no hay clase a la que colgarlo.
+- **Al pintar se comprueba que la cita siga en esa posición.** Si se edita el
+  texto de la lección y los números bailan, el resaltado no se pinta — mejor eso
+  que pintarlo en el sitio equivocado.
+- Sitios conectados: la intro del Samenvatting y los tres textos de Lezen. **El
+  vocabulario, las flashcards y los ejercicios NO**, y es a propósito: ahí no hay
+  prosa que subrayar.
+
 ### ⚠️ Roles: "atiende alumnos" ≠ "dirige la escuela" (ago 2026)
 
 Durante meses `isAdmin` significó las dos cosas y de ahí salieron varios fallos
