@@ -379,7 +379,9 @@ v1_router.include_router(
     dependencies=[Depends(require_authenticated_user)],
 )
 
-# Borrado de consultas desde el panel. Solo administradores.
+# El tablón de consultas desde el panel: leer y responder lo hace el equipo
+# (incluidos los profes); borrar, solo los administradores. El detalle, en
+# `src/routers/consultas.py`.
 v1_router.include_router(
     consultas.router,
     prefix="/consultas",

@@ -147,6 +147,73 @@ export async function deleteMyConsulta(id: string): Promise<void> {
 
 
 /**
+ * El tablón visto desde el panel de la escuela.
+ *
+ * Antes esto era una pantalla aparte, fuera de la escuela, con su propia
+ * contraseña: para responder a una alumna había que volver a identificarse.
+ * Ahora lo sirve la escuela con la sesión que ya tienes, y por eso trae también
+ * el email de quien pregunta, que el tablón del alumno no enseña.
+ */
+export interface ConsultaAdmin extends Consulta {
+  author_email: string | null
+  resolved_at: string | null
+  resolved_by: string | null
+}
+
+const adminBase = (orgId: number) => `${getAPIUrl()}consultas/org/${orgId}`
+
+/** Mensaje de error del backend, o uno genérico si no vino ninguno. */
+async function detalle(r: Response, porDefecto: string): Promise<string> {
+  try {
+    const data = await r.json()
+    if (data?.detail) return String(data.detail)
+  } catch {
+    /* respuesta sin JSON: nos quedamos con el mensaje genérico */
+  }
+  return porDefecto
+}
+
+/**
+ * Se trae el tablón entero y el panel filtra en el navegador: así los
+ * contadores de las pestañas (pendientes / resueltas) son de verdad y cambiar
+ * de pestaña no cuesta otro viaje. El endpoint acepta además `?status=`, por si
+ * algún día hay tantas consultas que compense pedirlas por partes.
+ */
+export async function listConsultasAsStaff(
+  orgId: number,
+  accessToken: string | undefined
+): Promise<ConsultaAdmin[]> {
+  if (!accessToken) throw new Error('Necesitas iniciar sesión.')
+  const r = await fetch(
+    adminBase(orgId),
+    RequestBodyWithAuthHeader('GET', null, null, accessToken)
+  )
+  if (!r.ok) throw new Error(await detalle(r, 'No se pudieron cargar las consultas.'))
+  return (await r.json()) as ConsultaAdmin[]
+}
+
+/**
+ * Publica la respuesta y da la consulta por resuelta.
+ *
+ * Va en texto plano a propósito: las pantallas del alumno lo pintan con los
+ * saltos de línea respetados y sin interpretar ni una etiqueta.
+ */
+export async function answerConsulta(
+  orgId: number,
+  id: string,
+  respuesta: string,
+  accessToken: string | undefined
+): Promise<ConsultaAdmin> {
+  if (!accessToken) throw new Error('Necesitas iniciar sesión.')
+  const r = await fetch(
+    `${adminBase(orgId)}/${encodeURIComponent(id)}/respuesta`,
+    RequestBodyWithAuthHeader('PUT', { respuesta }, null, accessToken)
+  )
+  if (!r.ok) throw new Error(await detalle(r, 'No se pudo guardar la respuesta.'))
+  return (await r.json()) as ConsultaAdmin
+}
+
+/**
  * Borrado desde el panel: sirve para CUALQUIER consulta, no solo las tuyas.
  *
  * No va directo a Supabase porque eso exigiría la clave maestra en el

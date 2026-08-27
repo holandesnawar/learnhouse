@@ -71,13 +71,14 @@ export default function ConsultasBoard({
   const user = session?.data?.user
   const org = useOrg() as any
   const accessToken = session?.data?.tokens?.access_token
-  // Solo el equipo puede borrar consultas ajenas.
+  // Solo el equipo puede borrar consultas ajenas — y de ese equipo, no el
+  // profe: borrar lo que ha escrito otra persona es moderación, y su rol deja
+  // fuera a propósito los permisos sobre la escuela.
   //
-  // Se mira el MISMO permiso que exige el backend (`rbac_check … "update"` sobre
-  // la organización), no el de "entra al panel". No son lo mismo: un profe y un
-  // moderador entran al panel pero NO tienen ese permiso, así que veían el botón
-  // de borrar y les saltaba un 403 al pulsarlo. Ahora, o lo pueden hacer o no lo
-  // ven.
+  // Se pregunta por el MISMO permiso que exige el backend (`rbac_check …
+  // "update"` sobre la organización) y no por "entra al panel". No son lo
+  // mismo: ni el profe (5) ni el moderador (2) lo tienen, así que preguntando
+  // por el panel el moderador seguiría viendo un botón que da 403.
   const { rights } = useAdminStatus()
   const canModerate = rights?.organizations?.action_update === true
   // Hardcoded Nawar avatar for the team reply, so the answer always carries

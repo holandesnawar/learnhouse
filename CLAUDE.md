@@ -473,6 +473,39 @@ systeme.io con la etiqueta de lista de espera y guarda de dónde vino.
 - **Embedded checkout Nawar** (`checkout.tsx`): el alumno NO sale del dominio. Logo arriba-izquierda, card blanca con resumen del curso a la derecha (imagen 16:9, features con checks `#4da3ff`, total dinámico tirando del Stripe Price vía URL params), tabs de pago Tarjeta/iDEAL/Klarna/Bancontact con Appearance API Nawar (`#F0F5FF` inputs, `#4da3ff` focus, texto pinned a `#1D0084` en cualquier estado del tab para no quedarse en blanco-sobre-blanco), banner "Pagando como X · email" con botón Cambiar que vuelve al form, mobile-friendly (`overflow-x-hidden`, `min-w-0`, paddings reducidos en sm).
 - **Middleware proxy.ts arreglado**: ya pasa cualquier `/auth/<x>` directamente a su ruta (antes 404aba todas las nuevas).
 
+- **Consultas: el panel vive dentro de la escuela (ago 2026)**. `/dash/consultas`
+  era un `<iframe>` a `consultas-tau.vercel.app/admin.html`, que pedía OTRA
+  contraseña (Supabase Auth + RPC `is_admin`). O sea: un profe que ya había
+  entrado en la escuela se encontraba una pantalla de acceso y **no podía
+  contestar a nadie**. Ahora la pantalla es nuestra
+  (`components/Dashboard/Pages/Consultas/ConsultasAdminPage.tsx`) y responde con
+  la sesión que ya tienes.
+  - **Quién puede qué**: leer el tablón y responder, el equipo entero —
+    administradores, moderadores y **profes** (`STAFF_ROLE_IDS`, el mismo grupo
+    que decide quién ve la bandeja de mensajes). Borrar una consulta ajena sigue
+    siendo de administradores (`rbac_check ... "update"`), porque el rol de profe
+    deja fuera a propósito los permisos sobre la escuela.
+  - ⚠️ **`rbac_check ... "update"` NO deja pasar al profe** (solo mira roles 1 y
+    2). Cualquier pantalla nueva del panel que el profe deba usar necesita la
+    puerta de `STAFF_ROLE_IDS`, no esa. De paso se arregló el tablón del alumno:
+    enseñaba el botón de borrar a los profes (`isAdmin` es `true` para ellos,
+    porque significa "entra al panel") y siempre daba 403.
+  - **La clave maestra de ese Supabase no baja al navegador**: todo pasa por
+    `/api/v1/consultas/org/{org_id}` (GET lista, PUT `.../{id}/respuesta`, DELETE),
+    y la clave vive solo en `CONSULTAS_SUPABASE_SERVICE_KEY` (Railway). El alumno
+    sigue editando y borrando LO SUYO por su cuenta con el `edit_token` que le
+    guarda el navegador — eso no pasa por la escuela.
+  - **El correo a la alumna lo sigue mandando Supabase**, no nosotros: escribir
+    `respuesta_nawar` dispara el trigger `trg_consulta_respondida` → la Edge
+    Function `notify-consulta-respondida`. Da igual desde dónde se escriba.
+  - **La respuesta se guarda en TEXTO PLANO**, no en HTML como hacía la pantalla
+    vieja (que usaba un `contenteditable` + DOMPurify). Las dos pantallas del
+    alumno pasan el contenido por `htmlToText` y lo pintan con
+    `whitespace-pre-wrap`: el texto plano sale igual de bien y no hay etiqueta
+    que sanear.
+  - `admin.html` **sigue vivo en el repo `consultas`** como puerta de repuesto.
+    No se ha tocado a propósito; si se quiere cerrar, es un cambio aparte.
+
 - **Estadísticas (panel admin, `/dash/estadisticas`)**: los números del negocio, calculados de NUESTRA base de datos (sin Tinybird — la pantalla `Analytics` original de LearnHouse depende de ese servicio externo y de un plan de pago, así que está muerta). Backend: `services/stats/periods.py` (agrupar por mes/trimestre, lógica pura con 12 tests) + `services/stats/school.py` (ventas, embudo del checkout, alumnos, avance por módulo, datos manuales) + router `/api/v1/stats/org/{org_id}` (GET) y `/manual` (PUT/DELETE), todo con `rbac_check ... "update"` (solo administradores). Front: `components/Dashboard/Pages/Estadisticas/EstadisticasPage.tsx` + `services/stats/school.ts`.
   - **Columnas nuevas en `enrollment`**: `product` (default `formacion-a0-a1`, deja sitio al siguiente curso), `amount_cents`, `currency`, `paid_at`. Se rellenan en el webhook al confirmar el cobro → la tabla de ventas sale de Postgres, sin llamar a Stripe. Van en `_ADDED_COLUMNS` (la tabla ya existía en producción).
   - **Tabla nueva `school_manual_entry`** (`kind` + `period`): lo que no se puede deducir solo. `cost` = gasto del mes (para el coste por lead, dividido entre las matrículas empezadas ese mes) y `attendance` = asistentes a cada clase en vivo. **Decisión del usuario (ago 2026): la asistencia se apunta A MANO**, no se rastrea; y **NO se consulta Systeme.io** desde la escuela, así que "lista → venta" NO está y el embudo empieza en la matrícula.
@@ -563,7 +596,7 @@ tendría ningún efecto sobre la escuela en marcha.
    - Plan: webhook desde nuestro `enroll_and_checkout` → push a Brevo (o el CRM elegido) con tags `matriculado-sin-pagar` para que el usuario lance campañas de recuperación.
    - Listar candidatos manualmente: query `SELECT * FROM enrollment WHERE status='pending' AND created_at < now() - interval '1 hour'`.
 3. **Otros automation emails intern**: weekly_digest, module_unlocked, new_announcement, event_upcoming, consulta_answered. Templates ya listos en `emails.py` (probados vía `/superadmin/email-test/all`); falta cablear los disparadores reales (cron lunes para digest, hook al desbloquear módulo, etc.).
-4. **Embeber Consultas** (https://consultas-tau.vercel.app): bloqueado por CSP en su lado. Pendiente que el usuario active `frame-ancestors https://app.holandesnawar.com`.
+4. ~~Embeber Consultas~~ **HECHO** (ago 2026): ya no se embebe nada, el panel es nativo. Ver "Consultas: el panel vive dentro de la escuela" más arriba.
 5. **Modo nocturno** plataforma (ThemeProvider + variantes `dark:` clave + persistir en `student_progress.theme`).
 6. **Certificado PDF** al terminar formación (motivación).
 
