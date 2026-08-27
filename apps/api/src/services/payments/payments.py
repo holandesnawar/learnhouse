@@ -737,6 +737,7 @@ async def _provision_after_payment(
     email: str,
     name: str,
     db_session: AsyncSession,
+    ya_atendida: bool = False,
 ) -> dict:
     """Shared post-payment work: create the user, store a reset code, send
     the welcome email, tag in the CRM. Used by both webhook flows so behaviour
@@ -759,23 +760,32 @@ async def _provision_after_payment(
     except Exception:
         logger.exception("No se pudo averiguar la escuela de %s", email)
 
-    if not created:
-        # Stripe retried the webhook (or it was delivered twice): the account
-        # was already provisioned. Re-assert the CRM tag (idempotent) but do
-        # NOT re-send the welcome email — otherwise the student gets a fresh
-        # "create your password" mail on every duplicate delivery.
+    if ya_atendida:
+        # Stripe ha reintentado el webhook (o lo ha entregado dos veces) y a
+        # ESTA matrícula ya se le mandó lo suyo. Se reafirma la etiqueta del CRM
+        # (que es idempotente) y nada más: repetir el correo le mandaría al
+        # alumno un "crea tu contraseña" nuevo en cada entrega duplicada.
+        #
+        # Ojo con lo que NO se mira aquí: si la cuenta existía de antes. Eso era
+        # lo que se miraba y estaba mal — quien compraba teniendo ya cuenta se
+        # quedaba sin correo de bienvenida y sin factura.
         try:
             from src.services.crm.systeme import mark_as_alumno
             await mark_as_alumno(email)
         except Exception:
             logger.exception("Systeme tag update failed for %s", email)
-        logger.info("Account for %s already provisioned — skipping welcome email", email)
-        return {"detail": "already provisioned", "created": False, **who}
+        logger.info("Matrícula de %s ya atendida — no se repite el correo", email)
+        return {"detail": "already provisioned", "created": False, "atendida_ahora": False, **who}
 
     code = _store_reset_code(user)
     if not code:
-        logger.error("Could not generate reset code for %s; user exists, email not sent", email)
-        return {"detail": "user created but reset email could not be sent", "created": True, **who}
+        logger.error("No se pudo generar el código para %s; la cuenta existe, el correo no sale", email)
+        return {
+            "detail": "user created but reset email could not be sent",
+            "created": created,
+            "atendida_ahora": False,
+            **who,
+        }
 
     user_read = UserRead.model_validate(user)
     try:
@@ -794,7 +804,7 @@ async def _provision_after_payment(
     except Exception:
         logger.exception("Systeme tag update failed for %s", email)
 
-    return {"detail": "ok", "created": True, **who}
+    return {"detail": "ok", "created": created, "atendida_ahora": True, **who}
 
 
 async def _handle_checkout_session(obj: dict, db_session: AsyncSession) -> dict:
@@ -817,6 +827,10 @@ async def _handle_checkout_session(obj: dict, db_session: AsyncSession) -> dict:
         or ""
     ).strip().lower()
     name = ((obj.get("customer_details") or {}).get("name") or "").strip()
+    # El flujo viejo (Checkout de Stripe) ya no se usa para pagos nuevos, pero
+    # sigue vivo por si queda alguna matrícula colgada. Aquí no hay marca por
+    # matrícula que consultar, así que se atiende siempre: es lo que hacía antes
+    # y para lo que queda no cambia nada.
     return await _provision_after_payment(email, name, db_session)
 
 
@@ -854,16 +868,29 @@ async def _handle_payment_intent(obj: dict, db_session: AsyncSession) -> dict:
     email = (enrollment.email or "").strip().lower()
     name = f"{enrollment.first_name} {enrollment.last_name}".strip()
 
-    result = await _provision_after_payment(email, name, db_session)
+    ya_atendida = bool((getattr(enrollment, "provisioned_at", "") or "").strip())
+    result = await _provision_after_payment(email, name, db_session, ya_atendida=ya_atendida)
 
-    # Post-hoc invoice so the buyer still gets the same NAWAR-XXXX PDF Checkout
-    # would have generated automatically. Best-effort — never block on it.
-    # Only on first provisioning: on a Stripe retry the account already existed
-    # (created=False) and we must NOT cut a second invoice for the same payment.
+    # Se marca ANTES de la factura: si la factura falla, el correo ya ha salido
+    # y no queremos que un reintento de Stripe lo mande otra vez.
+    if result.get("atendida_ahora"):
+        try:
+            enrollment.provisioned_at = datetime.now(timezone.utc).isoformat()
+            db_session.add(enrollment)
+            await db_session.commit()
+        except Exception:
+            logger.exception("No se pudo marcar la matrícula %s como atendida", enrollment.id)
+
+    # La factura NAWAR-XXXX que el Checkout de Stripe generaba solo. Best-effort:
+    # nunca bloquea.
+    #
+    # Va atada al PAGO, no a si la cuenta era nueva. Antes miraba `created`, y
+    # por eso quien compraba teniendo ya cuenta se quedaba sin factura y solo
+    # con el recibo pelado de Stripe.
     amount = int(obj.get("amount_received") or obj.get("amount") or 0)
     currency = (obj.get("currency") or "eur").lower()
     customer_id = obj.get("customer") or enrollment.stripe_customer_id or ""
-    if result.get("created") and customer_id and amount > 0:
+    if result.get("atendida_ahora") and customer_id and amount > 0:
         _create_post_hoc_invoice(
             customer_id=customer_id,
             amount=amount,

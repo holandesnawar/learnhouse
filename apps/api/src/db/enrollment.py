@@ -35,6 +35,16 @@ class Enrollment(SQLModel, table=True):
     amount_cents: int = 0
     currency: str = "eur"
     paid_at: str = Field(default="", index=True)
+    # Cuándo se le dio la bienvenida a ESTA matrícula: correo de crear la
+    # contraseña y factura NAWAR-XXXX.
+    #
+    # Va aquí y no en el usuario a propósito. Antes, lo que decidía si se
+    # mandaba el correo era si la CUENTA acababa de crearse, y eso confunde dos
+    # cosas distintas: que Stripe reintente el webhook (no hay que repetir
+    # nada) y que compre alguien que YA tenía cuenta —de la lista de espera, de
+    # una guía gratis— que sí necesita su correo y su factura. Con la marca en
+    # la matrícula, cada pago se atiende una vez y solo una.
+    provisioned_at: str = Field(default="", index=True)
 
 
 class EnrollmentCreate(BaseModel):
