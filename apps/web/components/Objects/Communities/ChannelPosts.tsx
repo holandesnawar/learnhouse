@@ -463,7 +463,7 @@ function PostComposer({
   // demás.
   const modal = (
     <div
-      className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center sm:p-6"
+      className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 sm:p-6"
       style={{ zIndex: 'var(--z-modal-content, 220)' }}
       onClick={onClose}
     >
@@ -471,7 +471,7 @@ function PostComposer({
           desplazándose por dentro; antes crecía hacia arriba hasta meterse
           debajo de la barra. En escritorio se queda centrado como estaba. */}
       <div
-        className="w-full sm:max-w-2xl bg-white rounded-t-2xl sm:rounded-2xl shadow-xl flex flex-col max-h-[92vh] sm:max-h-[85vh]"
+        className="w-full sm:max-w-2xl bg-white rounded-2xl shadow-xl flex flex-col min-h-[58dvh] sm:min-h-0 max-h-[85dvh] sm:max-h-[85vh]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-[#EEF3FB]">

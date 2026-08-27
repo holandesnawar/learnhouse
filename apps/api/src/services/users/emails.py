@@ -71,8 +71,20 @@ ACADEMY_URL = _school_url()
 SUPPORT_EMAIL = "info@holandesnawar.com"
 TERMS_URL = "https://www.holandesnawar.com/terminos-y-condiciones"
 PRIVACY_URL = "https://www.holandesnawar.com/politica-de-privacidad"
-# Org logo (the square/compact mark) used at the bottom of every email.
-LOGO_URL = f"{ACADEMY_URL}/content/orgs/org_d790ce63-390e-4c87-85c9-e773f5d6ac6a/logos/3e936ab0-c03f-4bcb-b27f-48181fcb510a_logo.png"
+# El logo del pie de todos los correos.
+#
+# Sale del MISMO sitio que el banner de la cabecera, y no de la escuela, aunque
+# el fichero de la escuela exista y se sirva bien (comprobado: 200 image/png).
+# Dos razones:
+#
+#   1. Un correo no puede depender de que la escuela esté levantada. Mientras el
+#      contenedor reinicia o se despliega, ese logo es un cuadro roto — y los
+#      correos ya enviados lo siguen pidiendo meses después.
+#   2. El banner, que viene de aquí, se ve siempre; el del pie era el único que
+#      fallaba. Mismo remitente, mismo origen, un problema menos.
+#
+# Es el mismo fichero que usa el checkout, así que ya está probado en producción.
+LOGO_URL = "https://d1yei2z3i6k35z.cloudfront.net/9533860/671a9c9265e23_Logo_Nawar_2.png"
 FOOTER_LOGO_HTML = (
     f'<img src="{LOGO_URL}" alt="Holandés Nawar" width="120" '
     f'style="display: block; width: 120px; height: auto; border: 0;" />'

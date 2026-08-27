@@ -216,7 +216,11 @@ export default function StudentOnboarding({
   const isFocusPage =
     (pathname.includes('/course/') && pathname.includes('/activity/')) ||
     pathname.includes('/account') ||
-    pathname.includes('consulta')
+    pathname.includes('consulta') ||
+    // Mensajes y comunidad: la pastilla se planta encima del cuadro de
+    // escribir, justo cuando el alumno va a escribir. Ahí estorba de verdad.
+    pathname.includes('/mensajes') ||
+    pathname.includes('/community')
 
   // CLAVE anti-parpadeo: no pintamos NADA hasta que todas las señales de los
   // pasos (progreso, trail, comunidad) estén resueltas. Antes, el popup de
