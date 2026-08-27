@@ -71,9 +71,12 @@ export default function ConsultasBoard({
   const user = session?.data?.user
   const org = useOrg() as any
   const accessToken = session?.data?.tokens?.access_token
-  // Solo el equipo puede borrar consultas ajenas.
-  const { isAdmin } = useAdminStatus()
-  const canModerate = isAdmin === true
+  // Solo el equipo puede borrar consultas ajenas — y de ese equipo, no el
+  // profe: borrar lo que ha escrito otra persona es moderación, y su rol deja
+  // fuera a propósito los permisos sobre la escuela, así que el backend le
+  // contestaría que no. Sin esto veía un botón que siempre fallaba.
+  const { isAdmin, isProfe } = useAdminStatus()
+  const canModerate = isAdmin === true && !isProfe
   // Hardcoded Nawar avatar for the team reply, so the answer always carries
   // the brand mark regardless of whatever org logo is currently uploaded.
   const teamLogo = TEAM_LOGO
