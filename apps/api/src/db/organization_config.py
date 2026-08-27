@@ -112,10 +112,19 @@ class WeeklyClassBannerConfig(BaseModel):
 
 
 class DripContentConfig(BaseModel):
-    # Time-based chapter unlocking. ``chapters`` maps chapter_uuid -> day offset
-    # from each student's enrollment date (0 = open from day 1).
+    # Apertura por tiempo de los capítulos. Dos formas, y la de fecha manda:
+    #
+    # - ``chapters``: chapter_uuid -> días desde el ALTA DE CADA ALUMNO
+    #   (0 = abierto desde el primer día). Es el comportamiento por defecto y el
+    #   que sirve cuando la gente entra en cualquier momento.
+    # - ``fechas``: chapter_uuid -> fecha fija ``"2026-09-15"``, igual para
+    #   todos. Es lo que hace falta en una convocatoria que empieza junta: con
+    #   el desfase por alta, quien pagó el martes y quien pagó el viernes abren
+    #   el módulo en días distintos y la clase en vivo del jueves va sobre algo
+    #   que la mitad no puede ver todavía.
     enabled: bool = False
     chapters: dict[str, int] = {}
+    fechas: dict[str, str] = {}
 
 
 class CollectionsOrgConfig(BaseModel):

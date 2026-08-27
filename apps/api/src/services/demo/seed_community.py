@@ -402,6 +402,12 @@ async def seed_status(org_id: int, db_session: AsyncSession) -> dict:
                 "nombre": f"{p.first_name} {p.last_name}",
                 "ciudad": p.city,
                 "bio": p.bio,
+                # Lo que va a publicar, para poder LEERLO antes de pulsar. Sin
+                # esto el panel pedía sembrar a ciegas: se veía el nombre y una
+                # línea de perfil, pero no el mensaje que iba a aparecer en la
+                # comunidad delante de los alumnos.
+                "presentacion": p.presentation,
+                "extras": list(p.extras),
                 "dentro": user is not None,
                 "mensajes": mensajes,
             }
