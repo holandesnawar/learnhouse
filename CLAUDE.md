@@ -499,6 +499,48 @@ systeme.io con la etiqueta de lista de espera y guarda de dónde vino.
 5. **Modo nocturno** plataforma (ThemeProvider + variantes `dark:` clave + persistir en `student_progress.theme`).
 6. **Certificado PDF** al terminar formación (motivación).
 
+### Después del lanzamiento (octubre 2026) — decidido 27/08/2026
+
+**1. Pestaña "Gastos" en `/dash/estadisticas`.** Cuadro de mando, NO contabilidad.
+El usuario vio el `admin.udia.es` de la competencia (panel con estadísticas y
+gastos, foto del ticket → gasto) y quiere lo suyo. Lo que se acordó:
+- Gasto del mes **por categoría** (publicidad, profes, herramientas), tecleado a
+  mano. La tabla `school_manual_entry` (`kind='cost'`) ya existe y ya alimenta el
+  coste por lead: esto es darle categorías y una pantalla.
+- Al lado, los ingresos reales, que ya salen de `enrollment` (`amount_cents`,
+  `paid_at`).
+- Las tres cifras que deciden algo: **coste por matrícula**, **margen de la
+  cohorte**, **coste por alumno al mes**.
+- **NO montar el escáner de tickets.** Los gastos tienen que acabar igualmente en
+  la herramienta del gestor (Moneybird / e-Boekhouden en NL, Holded en ES), que
+  ya escanea tickets y se conecta al banco. Montarlo aquí significa meter cada
+  gasto dos veces, siempre. Con 40 alumnos son cuatro números al mes.
+- **Los libros fuera, el cuadro de mando dentro.** Lo que la contabilidad no dará
+  nunca es cruzar el gasto con la cohorte, y eso es lo único que aporta esta
+  pantalla.
+
+**2. Migrar de systeme.io a ActiveCampaign.** Decidido tras ver que UDIA lo usa y
+tras pelearse una tarde entera con las campañas de systeme.io.
+- **Por qué:** los *Objetivos* (goals) de AC sacan a alguien de TODAS las
+  secuencias en cuanto compra. Todo el apaño de etiquetas temporales y
+  exclusiones cruzadas que hubo que diseñar para systeme.io es en AC una casilla.
+  Además AC recibe **eventos por API**: la escuela puede avisar de "terminó el
+  módulo 3" o "lleva 5 días sin entrar" y el correo reacciona a eso. Es el 80 %
+  del CRM propio sin construir el CRM.
+- **AC no es todo-en-uno**: no tiene checkout, ni cursos, ni facturas, y sus
+  páginas son flojas. Encaja precisamente porque esas piezas ya las tenemos.
+- **NO migrar antes del lanzamiento.** Hay **tres** integraciones de código
+  apuntando a systeme.io: `nawar-web/src/pages/api/enroll.ts`,
+  `apps/api/src/services/crm/systeme.py` (va pegada al cobro) y el webhook
+  `/api/hooks/inro-systeme`. Reescribir la del cobro a días de empezar a cobrar
+  es como se pierden ventas en silencio.
+- Mientras tanto: **el copy de los 10 correos se escribe en un documento aparte**,
+  no solo dentro de systeme.io. El texto se muda gratis; los flujos no.
+
+**3. NO construir facturación a los alumnos.** Eso es Stripe (`NAWAR-XXXX`) y el
+gestor. IVA, OSS europeo y numeración legal en software casero = riesgo a cambio
+de nada.
+
 ## Estrategia de negocio y lanzamiento (plan 2026)
 
 > Decidido con el usuario en sesiones de junio 2026. Filosofía base (Hormozi): no competir en el medio indiferenciado; el negocio es de **entrega limitada**, así que el polo es **premium**, no barato. Subir precios con prueba es lo normal y sano (NO bajar). High-ticket = **acceso + personalización + velocidad + accountability + garantía**, NUNCA "más contenido".
