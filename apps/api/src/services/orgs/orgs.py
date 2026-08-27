@@ -13,7 +13,7 @@ from src.security.rbac.rbac import (
     authorization_verify_based_on_org_admin_status,
     authorization_verify_if_user_is_anon,
 )
-from src.security.rbac.constants import ADMIN_ROLE_ID
+from src.security.rbac.constants import ADMIN_ROLE_ID, STAFF_ROLE_IDS
 from src.db.users import AnonymousUser, APITokenUser, InternalUser, PublicUser
 from src.db.user_organizations import UserOrganization
 from src.db.organizations import (
@@ -1679,6 +1679,34 @@ async def update_org_roadmap(
 
     return {"detail": "Roadmap object updated"}
 
+async def _es_del_equipo(
+    current_user: PublicUser | AnonymousUser,
+    org_id: int,
+    db_session: AsyncSession,
+) -> bool:
+    """
+    ¿Esta persona atiende alumnos? Administrador, moderador o profe.
+
+    Es un permiso MÁS AMPLIO que `rbac_check … "update"`, que solo deja pasar a
+    los administradores. Se usa donde la tarea es dar clase y no dirigir la
+    escuela. Espejo de `isStaff` en `components/Hooks/useAdminStatus.tsx`.
+    """
+    if getattr(current_user, "is_superadmin", False):
+        return True
+    user_id = getattr(current_user, "id", None)
+    if not user_id:
+        return False
+    user_org = (
+        await db_session.execute(
+            select(UserOrganization).where(
+                UserOrganization.user_id == user_id,
+                UserOrganization.org_id == org_id,
+            )
+        )
+    ).scalars().first()
+    return bool(user_org and user_org.role_id in STAFF_ROLE_IDS)
+
+
 async def update_org_events(
     request: Request,
     events_object: dict,
@@ -1695,8 +1723,11 @@ async def update_org_events(
             detail="Organization not found",
         )
 
-    # RBAC check
-    await rbac_check(request, org.org_uuid, current_user, "update", db_session)
+    # El calendario lo lleva quien DA CLASE, no solo quien dirige la escuela:
+    # el profe tiene que poder poner la clase semanal. Es la excepción; todo lo
+    # demás de la organización sigue pidiendo permiso de administrador.
+    if not await _es_del_equipo(current_user, org.id, db_session):
+        await rbac_check(request, org.org_uuid, current_user, "update", db_session)
 
     # Get org config
     statement = select(OrganizationConfig).where(OrganizationConfig.org_id == org.id)

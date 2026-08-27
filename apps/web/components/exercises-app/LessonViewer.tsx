@@ -749,6 +749,9 @@ function PhrasesStep({ items, onDone, onBack, onSubProgress }: {
    pasa al step siguiente.
 ───────────────────────────────────────────────────────────────────────────── */
 
+/** Lo que se espera antes de pasar sola a la siguiente al acertar. */
+const AUTO_AVANCE_MS = 1400;
+
 export function ExerciseRunner({ exercises, onDone, onBack, hasBackStep, onSubProgress, cacheKey, onItemResult }: {
   exercises: ExerciseItem[];
   onDone: () => void;
@@ -784,6 +787,10 @@ export function ExerciseRunner({ exercises, onDone, onBack, hasBackStep, onSubPr
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [answers, setAnswers] = useState<Record<number, string>>(initialAnswers);
+  // Desde qué pregunta hay que pasar sola. Se pone SOLO al contestar bien en
+  // ese momento; volviendo atrás a una que ya estaba acertada no se dispara,
+  // que si no sería imposible repasar nada.
+  const [avanzarDesde, setAvanzarDesde] = useState<number | null>(null);
   const [index, setIndex] = useState(() => {
     if (typeof window === 'undefined') return 0;
     // Si hay un index guardado de una sesión en curso, úsalo
@@ -843,7 +850,31 @@ export function ExerciseRunner({ exercises, onDone, onBack, hasBackStep, onSubPr
       if (answersKey) try { sessionStorage.setItem(answersKey, JSON.stringify(next)); } catch {}
       return next;
     });
+    if (correct) setAvanzarDesde(index);
   }
+
+  /**
+   * Pasar sola de pregunta al acertar.
+   *
+   * Al fallar NO: ahí hay algo que leer —cuál era la buena y por qué la tuya no—
+   * y llevárselo antes de tiempo es perder justo el instante en el que se
+   * aprende. Al acertar no hay nada que leer.
+   *
+   * En la última no se avanza: ahí toca ver el resultado del bloque.
+   *
+   * El temporizador vive en un efecto y no dentro de `handleAnswer` a propósito:
+   * desde el manejador, `index` y `answers` serían todavía los de antes de
+   * contestar y se guardaría el intento con la cuenta mal.
+   */
+  useEffect(() => {
+    if (avanzarDesde === null || avanzarDesde !== index || isLast) return;
+    const t = setTimeout(() => {
+      setAvanzarDesde(null);
+      go(index + 1);
+    }, AUTO_AVANCE_MS);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [avanzarDesde, index, isLast]);
 
   function go(target: number) {
     // Atrás: siempre permitido (incluyendo a paso anterior)
@@ -2053,7 +2084,7 @@ function ListenChooseImageExercise({
   }
 
   function estilo(opt: string): string {
-    const base = 'aspect-square rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all duration-200';
+    const base = 'h-[132px] sm:h-[150px] rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all duration-200';
     if (!isAnswered) return `${base} bg-[#F0F5FF] border-[#DDE6F5] hover:border-[#025dc7]/50 hover:bg-[#e8f0ff] active:scale-[0.95]`;
     if (opt === exercise.correctAnswer) return `${base} bg-green-50 border-green-400`;
     if (opt === selected) return `${base} bg-red-50 border-red-400`;
@@ -2068,7 +2099,7 @@ function ListenChooseImageExercise({
         </p>
         <button
           onClick={oir}
-          className={`inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl text-[15px] font-bold transition-colors ${
+          className={`inline-flex items-center gap-2.5 px-6 py-3 rounded-xl text-[15px] font-semibold transition-colors ${
             sonando
               ? 'bg-[#025dc7] text-white'
               : 'bg-[#4da3ff] text-[#0a1656] hover:bg-[#6cb5ff]'
@@ -2081,7 +2112,9 @@ function ListenChooseImageExercise({
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      {/* Ancho tope: sin él, dos columnas en un escritorio ancho dan cajas
+          enormes con un emoji diminuto perdido en el centro. */}
+      <div className="grid grid-cols-2 gap-3 max-w-2xl mx-auto">
         {barajadas.map(({ opt, img }) => (
           <button
             key={opt}
@@ -4051,7 +4084,6 @@ function SprekenSection({
   // El temporizador se monta en un efecto y no dentro de `handleAnswer` a
   // propósito: `next()` lee `score` y `wrong` para guardar el intento, y desde
   // dentro del manejador esos valores serían todavía los de antes de contestar.
-  const AUTO_AVANCE_MS = 1400;
   useEffect(() => {
     if (!answered || acerto !== true) return;
     const t = setTimeout(() => next(), AUTO_AVANCE_MS);

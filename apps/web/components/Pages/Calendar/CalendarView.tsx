@@ -56,8 +56,12 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
   const org = useOrg() as any
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
-  const { isAdmin } = useAdminStatus() as any
-  const canEdit = !!isAdmin
+  // El calendario lo lleva quien da clase, no solo quien dirige la escuela: el
+  // profe tiene que poder poner la clase semanal. El backend lo permite igual
+  // (`_es_del_equipo` en `services/orgs/orgs.py`), así que el botón y el
+  // permiso dicen lo mismo.
+  const { isStaff } = useAdminStatus() as any
+  const canEdit = !!isStaff
   const [notifying, setNotifying] = useState<string | null>(null)
   // Al llegar desde el email (?evento=…) se resalta ese evento y se lleva la
   // vista hasta él.
