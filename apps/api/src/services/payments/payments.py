@@ -557,9 +557,27 @@ def _create_post_hoc_invoice(
             auto_advance=False,
         )
         stripe.Invoice.finalize_invoice(invoice.id)
+        # Marcarla pagada ANTES de mandarla, y no al revés: una factura enviada
+        # sin pagar le llega al alumno con un botón de "Pagar esta factura", y
+        # acabas cobrando dos veces a alguien que ya había pagado.
         stripe.Invoice.pay(invoice.id, paid_out_of_band=True)
     except Exception:
         logger.exception("Post-hoc invoice creation failed for customer %s", customer_id)
+        return
+
+    # Y mandarla, que es lo que faltaba.
+    #
+    # Con `auto_advance=False` Stripe NO la envía por su cuenta: la deja creada
+    # y numerada, esperando. O sea que la factura NAWAR-XXXX existía en Stripe y
+    # no la recibía nadie — el comprador se quedaba solo con el recibo escueto
+    # del cobro, que es otro documento distinto.
+    #
+    # Va en su propio try: si el envío falla, la factura ya está emitida y
+    # numerada, que es lo que no se puede perder.
+    try:
+        stripe.Invoice.send_invoice(invoice.id)
+    except Exception:
+        logger.exception("La factura %s se emitió pero no se pudo enviar", invoice.id)
 
 
 # ── user provisioning (internal — no RBAC, trusted webhook) ────────────────
