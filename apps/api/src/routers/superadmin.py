@@ -224,6 +224,20 @@ async def payments_reintentar_factura(
     return await reintentar_factura(enrollment_id, db_session)
 
 
+@router.post(
+    "/payments/reenviar-factura/{invoice_id}",
+    summary="Reenvía una factura que ya existe y devuelve lo que conteste Stripe. No crea otra.",
+)
+async def payments_reenviar_factura(
+    invoice_id: str,
+    current_user: PublicUser = Depends(get_authenticated_user),
+):
+    _require_superadmin(current_user)
+    from src.services.payments.payments import reenviar_factura
+
+    return reenviar_factura(invoice_id)
+
+
 @router.get(
     "/seed/community/{org_id}",
     summary="¿Qué cuentas de arranque existen ya?",

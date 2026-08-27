@@ -606,9 +606,14 @@ async def diagnostico_facturas(limite: int, db_session: AsyncSession) -> dict:
                     {
                         "numero": getattr(f, "number", "") or "",
                         "estado": getattr(f, "status", "") or "",
-                        # Si Stripe la ha mandado, esto trae la fecha.
-                        "enviada": bool(getattr(f, "status_transitions", None)
-                                        and getattr(f.status_transitions, "finalized_at", None)),
+                        # OJO: esto es que se FINALIZÓ, no que Stripe la haya
+                        # mandado por correo. Stripe no expone "enviada" como
+                        # tal, así que para saberlo hay que reenviarla y ver qué
+                        # contesta (`reenviar_factura`).
+                        "finalizada": bool(getattr(f, "status_transitions", None)
+                                           and getattr(f.status_transitions, "finalized_at", None)),
+                        "id": getattr(f, "id", "") or "",
+                        "correo_cliente": getattr(f, "customer_email", "") or "",
                         "pdf": getattr(f, "invoice_pdf", "") or "",
                     }
                     for f in lista.data
@@ -643,6 +648,29 @@ async def reintentar_factura(enrollment_id: int, db_session: AsyncSession) -> di
         currency=(e.currency or "eur").lower(),
         description="Formación Nawar A0-A1",
     )
+
+
+def reenviar_factura(invoice_id: str) -> dict:
+    """
+    Manda otra vez una factura que YA existe, y dice qué contesta Stripe.
+
+    No crea nada: es para averiguar si el envío funciona sin emitir una segunda
+    factura con otro número. Lo que devuelve es la respuesta de Stripe tal cual,
+    que es justo lo que faltaba para dejar de suponer.
+    """
+    _usar_stripe()
+    try:
+        factura = stripe.Invoice.send_invoice(invoice_id)
+    except Exception as e:  # noqa: BLE001
+        logger.exception("No se pudo reenviar la factura %s", invoice_id)
+        return {"ok": False, "error": str(e)}
+
+    return {
+        "ok": True,
+        "numero": getattr(factura, "number", "") or "",
+        "estado": getattr(factura, "status", "") or "",
+        "correo_cliente": getattr(factura, "customer_email", "") or "",
+    }
 
 
 def _create_post_hoc_invoice(
