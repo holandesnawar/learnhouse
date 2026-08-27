@@ -13,7 +13,7 @@ from src.security.rbac.rbac import (
     authorization_verify_based_on_org_admin_status,
     authorization_verify_if_user_is_anon,
 )
-from src.security.rbac.constants import ADMIN_ROLE_ID
+from src.security.rbac.constants import ADMIN_ROLE_ID, STAFF_ROLE_IDS
 from src.db.users import AnonymousUser, APITokenUser, InternalUser, PublicUser
 from src.db.user_organizations import UserOrganization
 from src.db.organizations import (
@@ -1219,6 +1219,64 @@ async def update_org_direct_welcome_config(
     return {"detail": "Direct welcome message updated"}
 
 
+async def get_org_email_texts(org_id: int, db_session: AsyncSession) -> dict:
+    """Los textos de los correos que esta escuela tiene cambiados. Nunca lanza."""
+    from src.services.email.textos import limpiar
+
+    org_config = (
+        await db_session.execute(
+            select(OrganizationConfig).where(OrganizationConfig.org_id == org_id)
+        )
+    ).scalars().first()
+    if org_config is None or not isinstance(org_config.config, dict):
+        return {}
+    return limpiar(org_config.config.get("email_texts") or {})
+
+
+async def update_org_email_texts(
+    request: Request,
+    payload: dict,
+    org_id: int,
+    current_user: PublicUser | AnonymousUser,
+    db_session: AsyncSession,
+):
+    """
+    Guarda los textos cambiados de los correos automáticos.
+
+    `limpiar` tira todo lo que no esté declarado como editable, así que por aquí
+    NO se puede tocar el correo del pago ni el de la contraseña por mucho que se
+    manden esas claves en el cuerpo de la petición. La puerta está en el
+    servidor, no en la pantalla.
+    """
+    from src.services.email.textos import limpiar
+
+    statement = select(Organization).where(Organization.id == org_id)
+    org = (await db_session.execute(statement)).scalars().first()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    await rbac_check(request, org.org_uuid, current_user, "update", db_session)
+
+    org_config = (
+        await db_session.execute(
+            select(OrganizationConfig).where(OrganizationConfig.org_id == org.id)
+        )
+    ).scalars().first()
+    if org_config is None:
+        raise HTTPException(status_code=404, detail="Organization config not found")
+
+    updated_config = _deep_copy_config(org_config)
+    updated_config["email_texts"] = limpiar(payload.get("textos") or {})
+
+    org_config.config = updated_config
+    org_config.update_date = str(datetime.now())
+    db_session.add(org_config)
+    await db_session.commit()
+    await db_session.refresh(org_config)
+
+    return {"detail": "Email texts updated", "textos": updated_config["email_texts"]}
+
+
 async def update_org_weekly_class_banner_config(
     request: Request,
     banner: dict,
@@ -1679,6 +1737,34 @@ async def update_org_roadmap(
 
     return {"detail": "Roadmap object updated"}
 
+async def _es_del_equipo(
+    current_user: PublicUser | AnonymousUser,
+    org_id: int,
+    db_session: AsyncSession,
+) -> bool:
+    """
+    ¿Esta persona atiende alumnos? Administrador, moderador o profe.
+
+    Es un permiso MÁS AMPLIO que `rbac_check … "update"`, que solo deja pasar a
+    los administradores. Se usa donde la tarea es dar clase y no dirigir la
+    escuela. Espejo de `isStaff` en `components/Hooks/useAdminStatus.tsx`.
+    """
+    if getattr(current_user, "is_superadmin", False):
+        return True
+    user_id = getattr(current_user, "id", None)
+    if not user_id:
+        return False
+    user_org = (
+        await db_session.execute(
+            select(UserOrganization).where(
+                UserOrganization.user_id == user_id,
+                UserOrganization.org_id == org_id,
+            )
+        )
+    ).scalars().first()
+    return bool(user_org and user_org.role_id in STAFF_ROLE_IDS)
+
+
 async def update_org_events(
     request: Request,
     events_object: dict,
@@ -1695,8 +1781,11 @@ async def update_org_events(
             detail="Organization not found",
         )
 
-    # RBAC check
-    await rbac_check(request, org.org_uuid, current_user, "update", db_session)
+    # El calendario lo lleva quien DA CLASE, no solo quien dirige la escuela:
+    # el profe tiene que poder poner la clase semanal. Es la excepción; todo lo
+    # demás de la organización sigue pidiendo permiso de administrador.
+    if not await _es_del_equipo(current_user, org.id, db_session):
+        await rbac_check(request, org.org_uuid, current_user, "update", db_session)
 
     # Get org config
     statement = select(OrganizationConfig).where(OrganizationConfig.org_id == org.id)

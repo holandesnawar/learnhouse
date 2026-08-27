@@ -83,10 +83,20 @@ interface UseAdminStatusReturn {
      */
     roleId: number | null;
     /**
-     * Profe de Holandés Nawar: entra al panel, pero solo a lo suyo (alumnos,
-     * comunidad y consultas). Ni contenido, ni cobros, ni ajustes.
+     * Profe de Holandés Nawar. NO entra al panel de administración: trabaja
+     * desde la plataforma normal, como un alumno más con permisos de moderar.
      */
     isProfe: boolean;
+    /**
+     * Quién atiende a los alumnos: administradores, moderadores y profes.
+     *
+     * Es distinto de `isAdmin`, y confundirlos es de donde salían los fallos:
+     * `isAdmin` decide quién DIRIGE la escuela (panel, estadísticas, avisos,
+     * usuarios, ajustes) y `isStaff` decide quién ATIENDE (moderar la
+     * comunidad, la bandeja del equipo). Un profe es lo segundo y no lo
+     * primero. Espejo de `STAFF_ROLE_IDS` en `src/security/rbac/constants.py`.
+     */
+    isStaff: boolean;
 }
 
 function extractRightsFromRoles(userRoles: Role[], orgId: number): Rights | null {
@@ -171,6 +181,8 @@ function extractRightsFromRoles(userRoles: Role[], orgId: number): Rights | null
 
 /** El rol "Profe" de la escuela (ver `src/security/rbac/constants.py`). */
 export const PROFE_ROLE_ID = 5;
+/** Administrador (1) · Moderador (2) · Profe (5): los que atienden alumnos. */
+const STAFF_ROLE_IDS = [1, 2, PROFE_ROLE_ID];
 
 // Full-access rights object for superadmins
 const SUPERADMIN_RIGHTS: Rights = {
@@ -205,11 +217,6 @@ function useAdminStatus(): UseAdminStatusReturn {
         [isAuthenticated, userRoles, orgId, isSuperadmin]
     );
 
-    const isAdmin = useMemo(
-        () => (isAuthenticated && orgId ? isSuperadmin || rights?.dashboard?.action_access === true : false),
-        [isAuthenticated, orgId, isSuperadmin, rights]
-    );
-
     const roleId = useMemo(() => {
         if (!isAuthenticated || !orgId) return null;
         const mine = userRoles.find((role: Role) => role.org.id === orgId);
@@ -222,9 +229,31 @@ function useAdminStatus(): UseAdminStatusReturn {
         [isSuperadmin, roleId]
     );
 
+    const isStaff = useMemo(
+        () => isAuthenticated && !!orgId && (isSuperadmin || (roleId !== null && STAFF_ROLE_IDS.includes(roleId))),
+        [isAuthenticated, orgId, isSuperadmin, roleId]
+    );
+
+    // El profe NO entra al panel.
+    //
+    // El rol se creó con `dashboard.action_access: true` pensando en "que entre
+    // pero solo vea lo suyo", y eso no se sostuvo: cada sección nueva del panel
+    // nacía visible para él salvo que alguien se acordara de esconderla, así que
+    // acabó viendo estadísticas, avisos, automatizaciones y la lista de usuarios
+    // con los roles dentro. Un profe no dirige la escuela: trabaja desde la
+    // plataforma normal, donde tiene todo lo que necesita.
+    //
+    // Se corta aquí y no en el rol porque el rol ya existe creado en producción
+    // y `setup.py` solo siembra los que faltan: cambiarlo allí no habría tenido
+    // ningún efecto sobre la escuela que ya está en marcha.
+    const isAdmin = useMemo(
+        () => (isAuthenticated && orgId ? isSuperadmin || (rights?.dashboard?.action_access === true && !isProfe) : false),
+        [isAuthenticated, orgId, isSuperadmin, rights, isProfe]
+    );
+
     const loading = !isAuthenticated && session.status !== 'unauthenticated';
 
-    return { isAdmin, loading, userRoles, rights, roleId, isProfe };
+    return { isAdmin, loading, userRoles, rights, roleId, isProfe, isStaff };
 }
 
 export default useAdminStatus;

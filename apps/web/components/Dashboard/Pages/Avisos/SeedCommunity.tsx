@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Loader2, Sparkles, Check, AlertTriangle, Plus, X } from 'lucide-react'
+import { Loader2, Sparkles, Check, AlertTriangle, Plus, X, ChevronDown, ChevronUp } from 'lucide-react'
+import ConfirmDialog from '@components/Objects/Communities/ConfirmDialog'
 import toast from 'react-hot-toast'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
@@ -27,6 +28,9 @@ interface Persona {
   bio: string
   dentro: boolean
   mensajes: number
+  /** El mensaje que va a publicar. Para poder leerlo ANTES de pulsar. */
+  presentacion?: string
+  extras?: string[]
 }
 
 export default function SeedCommunity() {
@@ -40,6 +44,12 @@ export default function SeedCommunity() {
   const [personas, setPersonas] = useState<Persona[] | null>(null)
   // Qué fila está trabajando ahora mismo (para su spinner).
   const [busy, setBusy] = useState<string | null>(null)
+  // A quién se va a añadir en esta tanda.
+  const [elegidas, setElegidas] = useState<Set<string>>(new Set())
+  // Qué presentación está desplegada, para leerla antes de publicarla.
+  const [abierta, setAbierta] = useState<string | null>(null)
+  // A quién se está a punto de retirar (el "¿seguro?" de la escuela).
+  const [porRetirar, setPorRetirar] = useState<Persona | null>(null)
 
   const channels: any[] = Array.isArray(communities) ? communities : []
 
@@ -85,12 +95,20 @@ export default function SeedCommunity() {
     return `El servidor respondió ${res.status}`
   }
 
-  const anadir = async (p: Persona) => {
-    if (!org?.id || !channelId) return
-    setBusy(p.key)
+  /**
+   * Publica la tanda elegida de una sola vez.
+   *
+   * El endpoint ya aceptaba varias claves separadas por comas; lo que faltaba
+   * era poder elegirlas. Antes cada fila tenía su propio botón y sembrar cuatro
+   * eran cuatro pulsaciones y cuatro avisos.
+   */
+  const anadirTanda = async () => {
+    const claves = Array.from(elegidas)
+    if (!org?.id || !channelId || claves.length === 0) return
+    setBusy('__tanda__')
     try {
       const res = await fetch(
-        `${getAPIUrl()}superadmin/seed/community/${org.id}/${channelId}?keys=${p.key}`,
+        `${getAPIUrl()}superadmin/seed/community/${org.id}/${channelId}?keys=${claves.join(',')}`,
         { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` } }
       )
       if (!res.ok) throw new Error(await detalle(res))
@@ -98,8 +116,13 @@ export default function SeedCommunity() {
       if (Array.isArray(data?.errores) && data.errores.length) {
         toast.error(data.errores.join(' · '), { duration: 12000 })
       } else {
-        toast.success(`${p.nombre.split(' ')[0]} se ha presentado en ${data.canal}`)
+        toast.success(
+          claves.length === 1
+            ? `Se ha presentado en ${data.canal}`
+            : `${claves.length} presentaciones publicadas en ${data.canal}`
+        )
       }
+      setElegidas(new Set())
       await reload()
     } catch (e: any) {
       toast.error(e?.message || 'No se pudo añadir', { duration: 12000 })
@@ -108,11 +131,27 @@ export default function SeedCommunity() {
     }
   }
 
+  const alternar = (key: string) => {
+    setElegidas((prev) => {
+      const next = new Set(prev)
+      next.has(key) ? next.delete(key) : next.add(key)
+      return next
+    })
+  }
+
+  /**
+   * Retirar de verdad.
+   *
+   * Antes esto preguntaba con `window.confirm`, y ese diálogo el navegador
+   * puede decidir **no enseñarlo** —pasa si alguna vez se marcó "impedir que
+   * esta página muestre más diálogos"— y entonces devuelve «no» sin avisar.
+   * Desde fuera se ve exactamente como que pulsas Retirar y no ocurre nada: ni
+   * retira, ni da error. Es el mismo bicho que ya nos comimos en la comunidad,
+   * y por eso existe `ConfirmDialog`.
+   */
   const retirar = async (p: Persona) => {
     if (!org?.id) return
-    if (!window.confirm(
-      `¿Retirar a ${p.nombre}? Se borran sus ${p.mensajes} mensaje(s) y su cuenta.`
-    )) return
+    setPorRetirar(null)
     setBusy(p.key)
     try {
       const res = await fetch(
@@ -166,10 +205,20 @@ export default function SeedCommunity() {
           {(personas ?? []).map((p) => (
             <div
               key={p.key}
-              className={`flex items-center gap-3 rounded-xl border px-3.5 py-3 transition-colors ${
+              className={`rounded-xl border px-3.5 py-3 transition-colors ${
                 p.dentro ? 'bg-[#F7FAFF] border-[#CFE0F8]' : 'bg-white border-[#E7EEF9]'
               }`}
             >
+              <div className="flex items-center gap-3">
+              {!p.dentro && (
+                <input
+                  type="checkbox"
+                  checked={elegidas.has(p.key)}
+                  onChange={() => alternar(p.key)}
+                  aria-label={`Añadir a ${p.nombre} en esta tanda`}
+                  className="shrink-0 w-4 h-4 accent-[#025dc7] cursor-pointer"
+                />
+              )}
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-2">
                   <span className="text-[14px] font-bold text-[#1D0084]">{p.nombre}</span>
@@ -185,7 +234,7 @@ export default function SeedCommunity() {
 
               {p.dentro ? (
                 <button
-                  onClick={() => retirar(p)}
+                  onClick={() => setPorRetirar(p)}
                   disabled={busy === p.key}
                   className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[13px] font-semibold text-[#5A6480] hover:text-rose-600 hover:bg-rose-50 transition-colors disabled:opacity-50"
                 >
@@ -194,13 +243,33 @@ export default function SeedCommunity() {
                 </button>
               ) : (
                 <button
-                  onClick={() => anadir(p)}
-                  disabled={busy === p.key || !channelId}
-                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] text-[13px] font-bold transition-colors disabled:opacity-50"
+                  type="button"
+                  onClick={() => setAbierta(abierta === p.key ? null : p.key)}
+                  className="shrink-0 inline-flex items-center gap-1 px-2.5 py-2 rounded-lg text-[12.5px] font-semibold text-[#025dc7] hover:bg-[#F0F5FF] transition-colors"
                 >
-                  {busy === p.key ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
-                  Añadir
+                  {abierta === p.key ? 'Ocultar' : 'Ver mensaje'}
+                  {abierta === p.key ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                 </button>
+              )}
+              </div>
+
+              {/* Lo que se va a publicar, tal cual. Sembrar a ciegas era pedir
+                  que confiaras en un texto que vive en el código. */}
+              {abierta === p.key && !p.dentro && (
+                <div className="mt-2 rounded-lg bg-[#F7FAFF] border border-[#E7EEF9] px-3 py-2.5">
+                  <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-[0.08em] mb-1">
+                    Se publicará
+                  </p>
+                  <p className="text-[13px] text-[#1D0084] leading-relaxed whitespace-pre-line">
+                    {p.presentacion || '(sin texto)'}
+                  </p>
+                  {!!p.extras?.length && (
+                    <p className="mt-2 text-[12px] text-[#5A6480] leading-relaxed">
+                      Y {p.extras.length} mensaje(s) suelto(s) más, para que el canal no sea
+                      solo una fila de presentaciones.
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           ))}
@@ -210,6 +279,22 @@ export default function SeedCommunity() {
             </p>
           )}
         </div>
+
+        {/* Un solo botón para toda la tanda. Antes cada fila tenía el suyo:
+            sembrar cuatro eran cuatro pulsaciones y cuatro avisos seguidos. */}
+        <button
+          type="button"
+          onClick={anadirTanda}
+          disabled={elegidas.size === 0 || !channelId || busy === '__tanda__'}
+          className="mt-4 w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold text-[15px] transition-colors disabled:opacity-45 disabled:cursor-not-allowed"
+        >
+          {busy === '__tanda__' ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} strokeWidth={2.5} />}
+          {elegidas.size === 0
+            ? 'Elige a quién añadir'
+            : elegidas.size === 1
+              ? 'Añadir a 1 persona'
+              : `Añadir a ${elegidas.size} personas`}
+        </button>
 
         <p className="mt-4 text-[12.5px] text-[#8A96AB] leading-relaxed">
           Añade a una, y a la siguiente dentro de unos días. Todas a la vez el
@@ -244,6 +329,20 @@ export default function SeedCommunity() {
           </li>
         </ul>
       </div>
+
+      <ConfirmDialog
+        open={!!porRetirar}
+        title={porRetirar ? `¿Retirar a ${porRetirar.nombre}?` : ''}
+        description={
+          porRetirar
+            ? `Se borran sus ${porRetirar.mensajes} mensaje(s) y su cuenta. No se puede deshacer, pero se la puede volver a añadir.`
+            : ''
+        }
+        confirmLabel="Retirar"
+        busy={!!porRetirar && busy === porRetirar.key}
+        onConfirm={() => porRetirar && retirar(porRetirar)}
+        onCancel={() => setPorRetirar(null)}
+      />
     </div>
   )
 }

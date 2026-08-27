@@ -22,6 +22,11 @@
         "name": "next"
       }
     ],
+    // Sin esto, `tsc` ABORTA con TS5101 por `baseUrl` y no comprueba
+    // ni un solo fichero: sale con código 2 habiendo escrito solo ese
+    // aviso. Un `tsc --noEmit | grep -v TS5101` parecía limpio y en
+    // realidad no había comprobado nada — así se coló un build roto.
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@components/*": [

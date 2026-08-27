@@ -3,12 +3,15 @@ import React, { useEffect, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import {
   EmailTemplate,
+  PlantillaEditable,
+  getEmailTexts,
   listEmailTemplates,
   previewEmailTemplate,
+  saveEmailTexts,
   sendEmailTemplateTest,
 } from '@services/notifications/emailCatalog'
 import toast from 'react-hot-toast'
-import { Loader2, Mail, Send, Clock } from 'lucide-react'
+import { Loader2, Mail, Send, Clock, Pencil, Check, RotateCcw, Lock } from 'lucide-react'
 
 /**
  * Los correos que la escuela manda sola.
@@ -31,6 +34,11 @@ export default function EmailCatalog() {
   const [rendered, setRendered] = useState<{ subject: string; html: string } | null>(null)
   const [rendering, setRendering] = useState(false)
   const [sendingId, setSendingId] = useState<string | null>(null)
+  // Qué se puede reescribir y qué está reescrito.
+  const [editables, setEditables] = useState<PlantillaEditable[]>([])
+  const [textos, setTextos] = useState<Record<string, string>>({})
+  const [editando, setEditando] = useState(false)
+  const [guardando, setGuardando] = useState(false)
 
   useEffect(() => {
     if (!accessToken) return
@@ -40,6 +48,19 @@ export default function EmailCatalog() {
       setTemplates(list)
       setLoading(false)
       if (list.length) setSelected(list[0].id)
+    })
+    return () => {
+      alive = false
+    }
+  }, [accessToken])
+
+  useEffect(() => {
+    if (!accessToken) return
+    let alive = true
+    getEmailTexts(accessToken).then((res) => {
+      if (!alive || !res) return
+      setEditables(res.catalogo || [])
+      setTextos(res.textos || {})
     })
     return () => {
       alive = false
@@ -72,6 +93,35 @@ export default function EmailCatalog() {
   }
 
   const current = templates.find((t) => t.id === selected)
+  const editable = editables.find((e) => e.plantilla === selected)
+
+  const guardar = async () => {
+    setGuardando(true)
+    const ok = await saveEmailTexts(textos, accessToken)
+    setGuardando(false)
+    if (!ok) {
+      toast.error('No se pudo guardar')
+      return
+    }
+    toast.success('Guardado. La vista previa ya lo enseña.')
+    setEditando(false)
+    // Se vuelve a pedir la vista previa para verlo con el texto nuevo.
+    if (selected) {
+      setRendering(true)
+      const res = await previewEmailTemplate(selected, accessToken)
+      setRendered(res)
+      setRendering(false)
+    }
+  }
+
+  /** Devuelve un campo a como estaba escrito en el código. */
+  const restaurar = (clave: string) => {
+    setTextos((prev) => {
+      const next = { ...prev }
+      delete next[clave]
+      return next
+    })
+  }
 
   if (loading) {
     return (
@@ -145,7 +195,102 @@ export default function EmailCatalog() {
               )}
               Enviármelo
             </button>
+            {editable && (
+              <button
+                onClick={() => setEditando((v) => !v)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-[14px] text-[#025dc7] border border-[#DDE6F5] hover:bg-[#F0F5FF] transition-colors"
+              >
+                <Pencil size={15} />
+                {editando ? 'Cerrar' : 'Editar el texto'}
+              </button>
+            )}
           </div>
+
+          {/* Los correos del pago y de la contraseña NO salen aquí. No es que
+              se escondan: el servidor no los da como editables, y aunque se
+              mandaran sus claves las tiraría. Son la puerta de entrada de quien
+              acaba de pagar y un texto mal guardado ahí no se ve en pruebas. */}
+          {!editable && (
+            <p className="flex items-start gap-2 px-4 py-3 text-[13px] text-[#5A6480] leading-relaxed bg-[#FBFCFF] border-b border-[#EEF2FB]">
+              <Lock size={14} className="mt-0.5 shrink-0 text-[#8A96AB]" />
+              Este correo no se puede reescribir desde aquí. Es de los que
+              recibe alguien que acaba de pagar o que ha perdido su contraseña,
+              y su texto vive en el código a propósito.
+            </p>
+          )}
+
+          {editando && editable && (
+            <div className="px-4 py-4 border-b border-[#EEF2FB] bg-[#FBFCFF] space-y-4">
+              {editable.campos.map((c) => {
+                const clave = `${editable.plantilla}.${c.campo}`
+                const valor = textos[clave] ?? c.por_defecto
+                const cambiado = textos[clave] !== undefined
+                return (
+                  <div key={clave}>
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                      <label className="text-[13px] font-semibold text-[#0a1656]">
+                        {c.etiqueta}
+                      </label>
+                      {cambiado && (
+                        <button
+                          onClick={() => restaurar(clave)}
+                          className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#5A6480] hover:text-[#025dc7] transition-colors"
+                        >
+                          <RotateCcw size={12} />
+                          Volver al original
+                        </button>
+                      )}
+                    </div>
+                    {c.largo ? (
+                      <textarea
+                        value={valor}
+                        rows={3}
+                        onChange={(e) =>
+                          setTextos((prev) => ({ ...prev, [clave]: e.target.value }))
+                        }
+                        className="w-full bg-white rounded-lg px-3 py-2 text-[13.5px] text-[#1D0084] border border-[#DDE6F5] outline-none focus:border-[#4da3ff] focus:ring-[3px] focus:ring-[#4da3ff]/20 transition-colors resize-y"
+                      />
+                    ) : (
+                      <input
+                        value={valor}
+                        onChange={(e) =>
+                          setTextos((prev) => ({ ...prev, [clave]: e.target.value }))
+                        }
+                        className="w-full bg-white rounded-lg px-3 py-2 text-[13.5px] text-[#1D0084] border border-[#DDE6F5] outline-none focus:border-[#4da3ff] focus:ring-[3px] focus:ring-[#4da3ff]/20 transition-colors"
+                      />
+                    )}
+                    {c.variables.length > 0 && (
+                      <p className="mt-1 text-[12px] text-[#8A96AB] leading-relaxed">
+                        Puedes usar:{' '}
+                        {c.variables.map((v, i) => (
+                          <span key={v}>
+                            {i > 0 && ' · '}
+                            <code className="bg-[#F0F5FF] text-[#025dc7] rounded px-1 py-0.5">
+                              {'{' + v + '}'}
+                            </code>
+                          </span>
+                        ))}
+                      </p>
+                    )}
+                  </div>
+                )
+              })}
+
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <button
+                  onClick={guardar}
+                  disabled={guardando}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold text-[14px] transition-colors disabled:opacity-60"
+                >
+                  {guardando ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} strokeWidth={2.5} />}
+                  Guardar
+                </button>
+                <p className="text-[12.5px] text-[#8A96AB] leading-relaxed">
+                  Una línea en blanco separa párrafos y <code className="bg-[#F0F5FF] text-[#025dc7] rounded px-1">*así*</code> pone en negrita.
+                </p>
+              </div>
+            </div>
+          )}
 
           {rendering ? (
             <div className="flex items-center gap-2 text-gray-500 text-sm px-4 py-16 justify-center">

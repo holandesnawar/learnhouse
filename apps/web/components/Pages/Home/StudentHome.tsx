@@ -133,6 +133,48 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
         <StudentOnboarding orgslug={orgslug} modo="panel" />
       </SafeArea>
 
+      {/* ── El alumno que entra por primera vez ──
+          Aquí NO se le enseña una rejilla con los cursos para que elija.
+          Acaba de pagar la formación: ponerle al lado las grabaciones de las
+          clases semanales convierte en una decisión algo que no lo es, y la
+          primera pantalla de un curso de pago no puede empezar con una duda.
+
+          Se le enseña la formación, grande y con un solo botón. Las
+          grabaciones siguen a un clic en «Cursos», pero como material, no
+          como alternativa. */}
+      {trailReady && runs.length === 0 && coursesReady && (
+        <div className="mb-6">
+          {formacion ? (
+            <ArranqueFormacion course={formacion} orgslug={orgslug} hayGrabaciones={courseList.length > 1} />
+          ) : courseList.length === 0 ? (
+            <>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Tus cursos</h2>
+              <div className="flex flex-col justify-center items-center py-12 px-4 border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/30">
+                <div className="p-4 bg-white rounded-full nice-shadow mb-4">
+                  <BookOpen className="w-8 h-8 text-gray-300" strokeWidth={1.5} />
+                </div>
+                <p className="text-md text-gray-400 text-center max-w-xs">
+                  Aún no hay cursos disponibles.
+                </p>
+              </div>
+            </>
+          ) : (
+            // Red de seguridad: si no se reconoce cuál es la formación, se
+            // vuelve a la rejilla de siempre en vez de dejar el hueco vacío.
+            <>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Tus cursos</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {courseList.map((course: any) => (
+                  <div key={course.course_uuid} className="flex flex-col">
+                    <CourseThumbnail course={course} orgslug={orgslug} hideMeta />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {/* "Sigue donde lo dejaste" — big primary card with section progress.
           Mientras llegan los datos se reserva el hueco con un esqueleto: si no,
           el Inicio se pintaba entero, luego aparecían las tarjetas y todo
@@ -214,48 +256,6 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
         </div>
       )}
 
-      {/* ── El alumno que entra por primera vez ──
-          Aquí NO se le enseña una rejilla con los cursos para que elija.
-          Acaba de pagar la formación: ponerle al lado las grabaciones de las
-          clases semanales convierte en una decisión algo que no lo es, y la
-          primera pantalla de un curso de pago no puede empezar con una duda.
-
-          Se le enseña la formación, grande y con un solo botón. Las
-          grabaciones siguen a un clic en «Cursos», pero como material, no
-          como alternativa. */}
-      {trailReady && runs.length === 0 && coursesReady && (
-        <div className="mb-6">
-          {formacion ? (
-            <ArranqueFormacion course={formacion} orgslug={orgslug} hayGrabaciones={courseList.length > 1} />
-          ) : courseList.length === 0 ? (
-            <>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Tus cursos</h2>
-              <div className="flex flex-col justify-center items-center py-12 px-4 border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/30">
-                <div className="p-4 bg-white rounded-full nice-shadow mb-4">
-                  <BookOpen className="w-8 h-8 text-gray-300" strokeWidth={1.5} />
-                </div>
-                <p className="text-md text-gray-400 text-center max-w-xs">
-                  Aún no hay cursos disponibles.
-                </p>
-              </div>
-            </>
-          ) : (
-            // Red de seguridad: si no se reconoce cuál es la formación, se
-            // vuelve a la rejilla de siempre en vez de dejar el hueco vacío.
-            <>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Tus cursos</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {courseList.map((course: any) => (
-                  <div key={course.course_uuid} className="flex flex-col">
-                    <CourseThumbnail course={course} orgslug={orgslug} hideMeta />
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
       {/* Community channels — quick access to the chats */}
       <SafeArea nombre="Comunidad" fallback={null}>
         <CommunityChannelsCards orgslug={orgslug} />
@@ -325,29 +325,36 @@ function ArranqueFormacion({
 }) {
   const uuid = String(course?.course_uuid || '').replace('course_', '')
   return (
-    <div className="rounded-2xl border border-[#DDE6F5] bg-white p-5 sm:p-7 nice-shadow">
-      <p className="text-[11px] font-semibold text-[#025dc7] uppercase tracking-[0.08em]">
-        Empieza por aquí
-      </p>
-      <h2
-        className="mt-1.5 text-[22px] sm:text-[26px] font-bold text-gray-900 leading-tight"
-        style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
-      >
-        {course?.name || 'Tu formación'}
-      </h2>
-      <p className="mt-2 text-[14.5px] text-[#5A6480] leading-relaxed max-w-xl">
-        Este es tu camino de principio a fin. Ve en orden, sin prisa: cada lección
-        se apoya en la anterior y la escuela te va guardando por dónde vas.
-      </p>
-      <Link
-        href={getUriWithOrg(orgslug, `/course/${uuid}`)}
-        className="mt-5 inline-flex items-center gap-2.5 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold px-6 py-3.5 rounded-xl transition-colors text-[15px]"
-      >
-        Empezar la formación
-        <ArrowRight size={16} strokeWidth={2.5} />
-      </Link>
+    // Sin el rótulo "Empieza por aquí": eso ya lo dice el bloque de primeros
+    // pasos que tiene justo encima, y dos "empieza aquí" seguidos en la misma
+    // pantalla se anulan el uno al otro. Aquí el título es el nombre del curso.
+    //
+    // Y en horizontal, no apilado: era una tarjeta de media pantalla de alto en
+    // el móvil para decir una sola cosa. El texto a un lado, el botón al otro.
+    <div className="rounded-2xl border border-[#DDE6F5] bg-white p-4 sm:p-5 nice-shadow">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="min-w-0 flex-1">
+          <h2
+            className="text-[19px] sm:text-[22px] font-bold text-gray-900 leading-tight"
+            style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+          >
+            {course?.name || 'Tu formación'}
+          </h2>
+          <p className="mt-1 text-[13.5px] text-[#5A6480] leading-relaxed">
+            Tu camino de principio a fin. Ve en orden y sin prisa: la escuela te
+            guarda por dónde vas.
+          </p>
+        </div>
+        <Link
+          href={getUriWithOrg(orgslug, `/course/${uuid}`)}
+          className="shrink-0 inline-flex items-center justify-center gap-2.5 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold px-5 py-3 rounded-xl transition-colors text-[15px]"
+        >
+          Empezar
+          <ArrowRight size={16} strokeWidth={2.5} />
+        </Link>
+      </div>
       {hayGrabaciones && (
-        <p className="mt-4 text-[13px] text-[#9CA3AF] leading-relaxed">
+        <p className="mt-3 text-[12.5px] text-[#9CA3AF] leading-relaxed">
           Las grabaciones de las clases semanales están en{' '}
           <Link href={getUriWithOrg(orgslug, '/courses')} className="text-[#025dc7] hover:underline font-medium">
             Cursos

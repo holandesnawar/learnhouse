@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useLHSession } from '@components/Contexts/LHSessionContext';
 import useAdminStatus from '@components/Hooks/useAdminStatus';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import PageLoading from '@components/Objects/Loaders/PageLoading';
 import { getUriWithOrg } from '@services/config/config';
 import { useOrg } from '@components/Contexts/OrgContext';
@@ -12,41 +12,26 @@ type AuthorizationProps = {
   authorizationMode: 'component' | 'page';
 };
 
-const ADMIN_PATHS = [
-  '/dash/org/*',
-  '/dash/org',
-  '/dash/users/*',
-  '/dash/users',
-  '/dash/courses/*',
-  '/dash/courses',
-  '/dash/org/settings/general',
-];
+/**
+ * El panel se protege ENTERO, no por lista de rutas.
+ *
+ * Antes había aquí una lista (`/dash/org`, `/dash/users`, `/dash/courses`) y
+ * todo lo que no estuviera en ella entraba con solo estar identificado. O sea
+ * que escribiendo `/dash/estadisticas` o `/dash/avisos` en la barra del
+ * navegador se llegaba igual: esconder el enlace del menú no cierra la puerta.
+ *
+ * Ahora al panel entra quien puede entrar al panel y punto. Las secciones
+ * nuevas nacen protegidas sin que nadie tenga que acordarse de apuntarlas.
+ */
 
 const AdminAuthorization: React.FC<AuthorizationProps> = ({ children, authorizationMode }) => {
   const session = useLHSession() as any;
   const org = useOrg() as any;
-  const pathname = usePathname();
   const router = useRouter();
   const { isAdmin, loading } = useAdminStatus() as any
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   const isUserAuthenticated = useMemo(() => session.status === 'authenticated', [session.status]);
-
-  const checkPathname = useCallback((pattern: string, pathname: string) => {
-    // Ensure the inputs are strings
-    if (typeof pattern !== 'string' || typeof pathname !== 'string') {
-      return false;
-    }
-
-    // Convert pattern to a regex pattern
-    const regexPattern = new RegExp(`^${pattern.replace(/[\/.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '.*')}$`);
-
-    // Test the pathname against the regex pattern
-    return regexPattern.test(pathname);
-  }, []);
-
-
-  const isAdminPath = useMemo(() => ADMIN_PATHS.some(path => checkPathname(path, pathname)), [pathname, checkPathname]);
 
   const authorizeUser = useCallback(() => {
     if (loading) {
@@ -59,20 +44,18 @@ const AdminAuthorization: React.FC<AuthorizationProps> = ({ children, authorizat
     }
 
     if (authorizationMode === 'page') {
-      if (isAdminPath) {
-        if (isAdmin) {
-          setIsAuthorized(true);
-        } else {
-          setIsAuthorized(false);
-          router.push('/dash');
-        }
-      } else {
+      if (isAdmin) {
         setIsAuthorized(true);
+      } else {
+        // A la escuela, no a /dash: quien no puede entrar al panel tampoco
+        // puede entrar a su portada, y mandarle ahí sería un bucle.
+        setIsAuthorized(false);
+        router.push(getUriWithOrg(org?.slug, '/'));
       }
     } else if (authorizationMode === 'component') {
       setIsAuthorized(isAdmin);
     }
-  }, [loading, isUserAuthenticated, isAdmin, isAdminPath, authorizationMode, router]);
+  }, [loading, isUserAuthenticated, isAdmin, authorizationMode, router, org?.slug]);
 
   useEffect(() => {
     authorizeUser();

@@ -34,6 +34,14 @@ class LessonHighlight(SQLModel, table=True):
     # Human title of the lesson, denormalised so "Mis notas" can list without joins.
     activity_name: str = Field(default="", sa_column=Column(String(500)))
     course_uuid: str = Field(default="", sa_column=Column(String(255)))
+    # Qué trozo de texto de la lección es.
+    #
+    # Una lección de la formación tiene varios textos sueltos (el resumen, el
+    # texto de Lezen en neerlandés y su traducción), y las posiciones son
+    # números de carácter DENTRO de cada uno. Sin esto, un resaltado del
+    # neerlandés se repintaría encima de la traducción. Vacío = las lecciones
+    # del editor, que van por posiciones de ProseMirror y no lo necesitan.
+    block_key: str = Field(default="", sa_column=Column(String(120)))
     # Pastel colour key: yellow | pink | blue | green.
     color: str = Field(default="yellow", sa_column=Column(String(20)))
     quote: str = Field(default="", sa_column=Column(Text))
@@ -48,6 +56,7 @@ class LessonHighlightCreate(BaseModel):
     activity_uuid: str
     activity_name: Optional[str] = ""
     course_uuid: Optional[str] = ""
+    block_key: Optional[str] = ""
     color: str = "yellow"
     quote: str = ""
     note: Optional[str] = ""
@@ -65,6 +74,7 @@ class LessonHighlightRead(BaseModel):
     activity_uuid: str
     activity_name: str
     course_uuid: str
+    block_key: str = ""
     color: str
     quote: str
     note: str

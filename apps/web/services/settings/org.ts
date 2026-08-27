@@ -149,7 +149,12 @@ export async function updateOrgWeeklyClassBannerConfig(
 
 export async function updateOrgDripConfig(
   org_id: string,
-  drip: { enabled: boolean; chapters: { [chapterUuid: string]: number } },
+  drip: {
+    enabled: boolean
+    chapters: { [chapterUuid: string]: number }
+    /** Fecha fija de apertura por capítulo (`"2026-09-15"`). Manda sobre los días. */
+    fechas?: { [chapterUuid: string]: string }
+  },
   access_token: string
 ) {
   const result: any = await fetch(

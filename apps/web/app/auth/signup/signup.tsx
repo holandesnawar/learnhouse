@@ -9,7 +9,7 @@ import InviteOnlySignUpComponent from './InviteOnlySignUp'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { validateInviteCode } from '@services/organizations/invites'
 import { joinOrg } from '@services/organizations/orgs'
-import { getUriWithOrg } from '@services/config/config'
+import { getAPIUrl, getUriWithOrg } from '@services/config/config'
 import { useTranslation } from 'react-i18next'
 import AuthShell from '@components/Auth/AuthShell'
 import FormLayout, {
@@ -85,7 +85,34 @@ const LoggedInJoinScreen = ({ inviteCode, org }: JoinScreenProps) => {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [showMessage, setShowMessage] = useState(false)
+  // Reenviar el correo de verificación, y saber si ya se pidió.
+  const [enviandoVerificacion, setEnviandoVerificacion] = useState(false)
+  const [verificacionEnviada, setVerificacionEnviada] = useState(false)
   const router = useRouter()
+
+  /**
+   * Pedir de verdad el correo de verificación.
+   *
+   * El endpoint contesta lo mismo exista o no la cuenta (y tiene su propio
+   * límite de intentos), así que aquí no hay nada que distinguir: se avisa de
+   * que se ha mandado y punto.
+   */
+  const reenviarVerificacion = async () => {
+    const email = session?.data?.user?.email
+    if (!email || enviandoVerificacion) return
+    setEnviandoVerificacion(true)
+    try {
+      await fetch(`${getAPIUrl()}auth/resend-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, org_id: activeOrg?.id }),
+      })
+    } catch {
+      /* Da igual el motivo: el mensaje que se enseña es el mismo. */
+    }
+    setVerificacionEnviada(true)
+    setEnviandoVerificacion(false)
+  }
 
   const join = async () => {
     setIsSubmitting(true)
@@ -170,10 +197,32 @@ const LoggedInJoinScreen = ({ inviteCode, org }: JoinScreenProps) => {
 
               {/* Join Button or Verification Warning */}
               {session.data?.user?.email_verified === false ? (
+                /* Antes esto era solo un aviso ámbar diciendo "revisa tu bandeja
+                   de entrada", y ese correo NO lo mandaba nadie: se quedaba
+                   esperando algo que no iba a llegar. Ahora hay un botón que lo
+                   pide de verdad. Y se dice con qué cuenta estás, porque el caso
+                   típico es tener la sesión abierta con otra en otra pestaña. */
                 <div className="w-full bg-amber-50 border border-amber-200 rounded-lg p-4 text-center">
                   <Mail size={24} className="mx-auto mb-2 text-amber-600" />
-                  <p className="font-semibold text-amber-800 mb-1">{t('auth.email_verification_required')}</p>
-                  <p className="text-sm text-amber-700">{t('auth.email_verification_required_join')}</p>
+                  <p className="font-semibold text-amber-800 mb-1">Verifica tu correo</p>
+                  <p className="text-sm text-amber-700">
+                    Estás entrando como <strong>{session.data?.user?.email}</strong>. Para
+                    unirte hay que verificar ese correo.
+                  </p>
+                  {verificacionEnviada ? (
+                    <p className="mt-3 text-sm font-semibold text-amber-900">
+                      Correo enviado. Revisa tu bandeja de entrada y la carpeta de spam.
+                    </p>
+                  ) : (
+                    <button
+                      onClick={reenviarVerificacion}
+                      disabled={enviandoVerificacion}
+                      className="mt-3 w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold transition-colors disabled:opacity-60"
+                    >
+                      {enviandoVerificacion && <Loader2 size={15} className="animate-spin" />}
+                      Enviarme el correo de verificación
+                    </button>
+                  )}
                 </div>
               ) : (
                 <button

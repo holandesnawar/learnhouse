@@ -8,7 +8,7 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useTrail } from '@/hooks/queries/useTrail'
 import { getUriWithOrg } from '@services/config/config'
-import { Check, CalendarDays, User, MessagesSquare, BookOpen, ArrowRight, Rocket } from 'lucide-react'
+import { Check, CalendarDays, User, MessagesSquare, BookOpen, ArrowRight, Rocket, ChevronDown, ChevronUp } from 'lucide-react'
 import { getStudentProgress, patchStudentProgress } from '@services/student/progress'
 import { getCommunities } from '@services/communities/communities'
 import { getDiscussions } from '@services/communities/discussions'
@@ -87,7 +87,8 @@ export default function StudentOnboarding({
   // Copia del estado guardado en el servidor: al escribir hay que mandarlo
   // entero (el backend reemplaza el objeto, no lo mezcla).
   const [serverState, setServerState] = useState<Record<string, any>>({})
-  const [dismissed, setDismissed] = useState(false)
+  // Plegado, NO escondido. Ver `togglePlegado` más abajo.
+  const [collapsed, setCollapsed] = useState(false)
   const [presented, setPresented] = useState(false)
   const [communityChecked, setCommunityChecked] = useState(false)
   const [forceReady, setForceReady] = useState(false)
@@ -154,7 +155,11 @@ export default function StudentOnboarding({
         const state = (p?.onboarding_state ?? {}) as Record<string, any>
         setServerState(state)
         setVisited(new Set(Array.isArray(state.visited) ? state.visited : []))
-        setDismissed(state.dismissed === true)
+        // `dismissed` es el nombre viejo, de cuando "Ocultar" escondía la lista
+        // para siempre. Se lee como "plegado" para que a quien le pasó eso le
+        // vuelva a aparecer la cabecera con su botón de Mostrar, en vez de
+        // quedarse sin los pasos y sin forma de recuperarlos.
+        setCollapsed(state.collapsed === true || state.dismissed === true)
         // La bienvenida se enseña UNA vez por alumno, no una vez por navegador.
         setShowWelcome(state.welcomed !== true)
         setLoaded(true)
@@ -211,14 +216,20 @@ export default function StudentOnboarding({
   const isFocusPage =
     (pathname.includes('/course/') && pathname.includes('/activity/')) ||
     pathname.includes('/account') ||
-    pathname.includes('consulta')
+    pathname.includes('consulta') ||
+    // Mensajes y comunidad: la pastilla se planta encima del cuadro de
+    // escribir, justo cuando el alumno va a escribir. Ahí estorba de verdad.
+    pathname.includes('/mensajes') ||
+    pathname.includes('/community')
 
   // CLAVE anti-parpadeo: no pintamos NADA hasta que todas las señales de los
   // pasos (progreso, trail, comunidad) estén resueltas. Antes, el popup de
   // bienvenida salía al instante y desaparecía ~1s después cuando llegaban los
   // datos y resultaba que ya estaba todo hecho — en cada carga de página.
   const signalsReady = loaded && (forceReady || (trailFetched && communityChecked))
-  if (!signalsReady || allDone || dismissed || !accessToken) return null
+  // Plegado NO es motivo para no pintar nada: la cabecera se queda para poder
+  // volver. Lo único que hace desaparecer la lista de verdad es completarla.
+  if (!signalsReady || allDone || !accessToken) return null
   // El aviso flotante sí se calla en las páginas de enfoque; el panel no,
   // porque solo se monta en el Inicio.
   if (modo === 'aviso' && isFocusPage) return null
@@ -278,10 +289,22 @@ export default function StudentOnboarding({
     saveState({ welcomed: true })
   }
 
-  /** "No volver a mostrar": decisión del alumno, guardada en su cuenta. */
-  function dismissForGood() {
-    setDismissed(true)
-    saveState({ welcomed: true, dismissed: true })
+  /**
+   * Plegar y desplegar la lista, guardado en la cuenta del alumno.
+   *
+   * Antes esto era "no volver a mostrar" y era un callejón sin salida: el botón
+   * escondía el bloque ENTERO y no quedaba ningún sitio donde volver a sacarlo.
+   * Quien lo pulsaba por quitarlo de en medio un rato perdía los cuatro pasos
+   * para siempre.
+   *
+   * Ahora la cabecera se queda siempre —título, cuántos llevas y la barra— y lo
+   * que se pliega es la lista. La lista desaparece sola, y solo, cuando están
+   * los cuatro pasos hechos. `dismissed: false` limpia de paso la marca vieja.
+   */
+  function togglePlegado() {
+    const next = !collapsed
+    setCollapsed(next)
+    saveState({ welcomed: true, collapsed: next, dismissed: false })
   }
 
   // Popup de bienvenida — solo la primera vez (tamaño grande, centrado).
@@ -355,18 +378,20 @@ export default function StudentOnboarding({
               </p>
             </div>
             <button
-              onClick={dismissForGood}
-              className="shrink-0 text-[11.5px] text-white/50 hover:text-white/90 px-2 py-1 rounded-md hover:bg-white/10 transition-colors"
-              title="No volver a mostrar estos pasos"
+              onClick={togglePlegado}
+              aria-expanded={!collapsed}
+              className="shrink-0 inline-flex items-center gap-1 text-[11.5px] text-white/60 hover:text-white px-2 py-1 rounded-md hover:bg-white/10 transition-colors"
+              title={collapsed ? 'Ver los pasos' : 'Plegar los pasos'}
             >
-              Ocultar
+              {collapsed ? 'Mostrar' : 'Ocultar'}
+              {collapsed ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
             </button>
           </div>
           <div className="mt-3 h-2 rounded-full bg-white/10 overflow-hidden">
             <div className="h-full bg-[#4da3ff] transition-all duration-500" style={{ width: `${pct}%` }} />
           </div>
         </div>
-        {stepsList}
+        {!collapsed && stepsList}
       </div>
     )
   }
@@ -377,6 +402,11 @@ export default function StudentOnboarding({
   // la misma pantalla sobran.
   const esInicio = pathname === '/' || /\/orgs\/[^/]+\/?$/.test(pathname)
   if (esInicio) return <>{welcomeModal}</>
+  // Si el alumno ha plegado la lista en el Inicio, la pastilla flotante también
+  // se calla: plegarla es decir "ahora no", y seguir persiguiéndole por el resto
+  // de la escuela sería justo lo que quería evitar. La lista sigue ahí, en el
+  // Inicio, con su botón de Mostrar.
+  if (collapsed) return <>{welcomeModal}</>
 
   return (
     <>

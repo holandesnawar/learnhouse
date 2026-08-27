@@ -126,12 +126,48 @@ async def drip_locked_chapters(
     if not settings:
         return {}
     offsets = settings.get("chapters") or {}
-    if not isinstance(offsets, dict) or not offsets:
+    # Fecha fija: `{chapter_uuid: "2026-09-15"}`.
+    #
+    # Existe porque una cohorte que empieza junta no se gobierna bien con "a los
+    # X días de tu alta": el que pagó el martes y el que pagó el viernes abren el
+    # módulo 2 en días distintos, y entonces la clase en vivo del jueves va sobre
+    # algo que la mitad todavía no puede ver. Con fecha fija, el módulo abre para
+    # todos a la vez y la clase semanal cuadra con el contenido.
+    #
+    # Manda sobre los días: poner una fecha es una decisión explícita para esta
+    # convocatoria; el desfase por alta es el comportamiento por defecto.
+    fechas = settings.get("fechas") or {}
+    if not isinstance(offsets, dict):
+        offsets = {}
+    if not isinstance(fechas, dict):
+        fechas = {}
+    if not offsets and not fechas:
         return {}
 
-    # Enrollment date = when the user joined this org.
     if isinstance(current_user, AnonymousUser):
         return {}
+
+    now = datetime.now()
+    locked: dict[str, str] = {}
+
+    # Las fechas fijas se resuelven ANTES de mirar el alta, porque no la
+    # necesitan: si el alta no se puede leer, el desfase por días falla abierto
+    # pero la fecha de la cohorte sigue siendo válida.
+    pendientes: list[str] = []
+    for cu in chapter_uuids:
+        if not cu:
+            continue
+        fecha = _parse_dt(str(fechas.get(cu) or "")) if fechas.get(cu) else None
+        if fecha is not None:
+            if now < fecha:
+                locked[cu] = fecha.isoformat()
+            continue
+        pendientes.append(cu)
+
+    if not pendientes or not offsets:
+        return locked
+
+    # Enrollment date = when the user joined this org.
     acting_user_id = resolve_acting_user_id(current_user)
     uo = (await db_session.execute(
         select(UserOrganization).where(
@@ -141,13 +177,9 @@ async def drip_locked_chapters(
     )).scalars().first()
     enrolled_at = _parse_dt(uo.creation_date) if uo else None
     if enrolled_at is None:
-        return {}  # fail open
+        return locked  # fail open para el desfase; las fechas fijas se quedan
 
-    now = datetime.now()
-    locked: dict[str, str] = {}
-    for cu in chapter_uuids:
-        if not cu:
-            continue
+    for cu in pendientes:
         try:
             offset = int(offsets.get(cu, 0) or 0)
         except (ValueError, TypeError):

@@ -33,6 +33,13 @@ export interface DirectMessage {
   author_avatar: string
   /** Cargo del equipo ("Director Académico"), si lo tiene puesto. */
   author_title: string
+  /**
+   * Quién escribió el mensaje DE VERDAD. Solo llega al equipo y solo en el hilo
+   * "con el equipo", donde al alumno se le enseña todo firmado igual. Al alumno
+   * le llega siempre vacío. Vacío también en los mensajes automáticos, que no
+   * tienen una persona detrás.
+   */
+  real_author_name?: string
   from_staff: boolean
 }
 

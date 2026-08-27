@@ -10,6 +10,7 @@ import {
   markPreviousAsCompleted,
 } from '@/lib/exercises-app/progress';
 import AudioPlayer from './AudioPlayer';
+import TextoResaltable, { ContextoResaltado } from './TextoResaltable';
 import { getConfig, getUriWithOrg } from '@services/config/config';
 import { Breadcrumbs } from '@components/Objects/Breadcrumbs/Breadcrumbs';
 import { Dumbbell } from 'lucide-react';
@@ -749,6 +750,9 @@ function PhrasesStep({ items, onDone, onBack, onSubProgress }: {
    pasa al step siguiente.
 ───────────────────────────────────────────────────────────────────────────── */
 
+/** Lo que se espera antes de pasar sola a la siguiente al acertar. */
+const AUTO_AVANCE_MS = 1400;
+
 export function ExerciseRunner({ exercises, onDone, onBack, hasBackStep, onSubProgress, cacheKey, onItemResult }: {
   exercises: ExerciseItem[];
   onDone: () => void;
@@ -784,6 +788,10 @@ export function ExerciseRunner({ exercises, onDone, onBack, hasBackStep, onSubPr
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [answers, setAnswers] = useState<Record<number, string>>(initialAnswers);
+  // Desde qué pregunta hay que pasar sola. Se pone SOLO al contestar bien en
+  // ese momento; volviendo atrás a una que ya estaba acertada no se dispara,
+  // que si no sería imposible repasar nada.
+  const [avanzarDesde, setAvanzarDesde] = useState<number | null>(null);
   const [index, setIndex] = useState(() => {
     if (typeof window === 'undefined') return 0;
     // Si hay un index guardado de una sesión en curso, úsalo
@@ -843,7 +851,31 @@ export function ExerciseRunner({ exercises, onDone, onBack, hasBackStep, onSubPr
       if (answersKey) try { sessionStorage.setItem(answersKey, JSON.stringify(next)); } catch {}
       return next;
     });
+    if (correct) setAvanzarDesde(index);
   }
+
+  /**
+   * Pasar sola de pregunta al acertar.
+   *
+   * Al fallar NO: ahí hay algo que leer —cuál era la buena y por qué la tuya no—
+   * y llevárselo antes de tiempo es perder justo el instante en el que se
+   * aprende. Al acertar no hay nada que leer.
+   *
+   * En la última no se avanza: ahí toca ver el resultado del bloque.
+   *
+   * El temporizador vive en un efecto y no dentro de `handleAnswer` a propósito:
+   * desde el manejador, `index` y `answers` serían todavía los de antes de
+   * contestar y se guardaría el intento con la cuenta mal.
+   */
+  useEffect(() => {
+    if (avanzarDesde === null || avanzarDesde !== index || isLast) return;
+    const t = setTimeout(() => {
+      setAvanzarDesde(null);
+      go(index + 1);
+    }, AUTO_AVANCE_MS);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [avanzarDesde, index, isLast]);
 
   function go(target: number) {
     // Atrás: siempre permitido (incluyendo a paso anterior)
@@ -2053,7 +2085,7 @@ function ListenChooseImageExercise({
   }
 
   function estilo(opt: string): string {
-    const base = 'aspect-square rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all duration-200';
+    const base = 'h-[132px] sm:h-[150px] rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all duration-200';
     if (!isAnswered) return `${base} bg-[#F0F5FF] border-[#DDE6F5] hover:border-[#025dc7]/50 hover:bg-[#e8f0ff] active:scale-[0.95]`;
     if (opt === exercise.correctAnswer) return `${base} bg-green-50 border-green-400`;
     if (opt === selected) return `${base} bg-red-50 border-red-400`;
@@ -2068,7 +2100,7 @@ function ListenChooseImageExercise({
         </p>
         <button
           onClick={oir}
-          className={`inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl text-[15px] font-bold transition-colors ${
+          className={`inline-flex items-center gap-2.5 px-6 py-3 rounded-xl text-[15px] font-semibold transition-colors ${
             sonando
               ? 'bg-[#025dc7] text-white'
               : 'bg-[#4da3ff] text-[#0a1656] hover:bg-[#6cb5ff]'
@@ -2081,7 +2113,9 @@ function ListenChooseImageExercise({
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      {/* Ancho tope: sin él, dos columnas en un escritorio ancho dan cajas
+          enormes con un emoji diminuto perdido en el centro. */}
+      <div className="grid grid-cols-2 gap-3 max-w-2xl mx-auto">
         {barajadas.map(({ opt, img }) => (
           <button
             key={opt}
@@ -3161,7 +3195,11 @@ function ResumenSection({ block, vocabItems = [], phraseItems = [], inCourse, on
             </h2>
           )}
           {block.intro && (
-            <p className="text-[15px] text-[#5A6480] leading-relaxed">{block.intro}</p>
+            <TextoResaltable
+              texto={block.intro}
+              bloque="resumen"
+              className="text-[15px] text-[#5A6480] leading-relaxed"
+            />
           )}
         </div>
       )}
@@ -3519,9 +3557,11 @@ function LezenSection({
         )}
         <div className="rounded-2xl border border-[#DDE6F5] bg-white p-6">
           <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-4">Texto en neerlandés</p>
-          <div className="text-[16px] text-gray-900 leading-relaxed whitespace-pre-line font-medium text-left max-w-prose">
-            {textNl.replace(/^[ \t]+/gm, '').trim()}
-          </div>
+          <TextoResaltable
+            texto={textNl.replace(/^[ \t]+/gm, '').trim()}
+            bloque="lezen_nl"
+            className="text-[16px] text-gray-900 leading-relaxed whitespace-pre-line font-medium text-left max-w-prose"
+          />
         </div>
         <button
           onClick={() => exercises.length > 0 ? setStep('exercises') : setStep('translation')}
@@ -3654,11 +3694,19 @@ function LezenSection({
       <div className="rounded-2xl border border-[#DDE6F5] bg-white p-6 space-y-4">
         <div>
           <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-3">Texto original</p>
-          <p className="text-[14px] text-[#5A6480] leading-relaxed whitespace-pre-line text-left max-w-prose">{textNl.replace(/^[ \t]+/gm, '').trim()}</p>
+          <TextoResaltable
+            texto={textNl.replace(/^[ \t]+/gm, '').trim()}
+            bloque="lezen_nl"
+            className="text-[14px] text-[#5A6480] leading-relaxed whitespace-pre-line text-left max-w-prose"
+          />
         </div>
         <div className="border-t border-[#DDE6F5] pt-4">
           <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-3">Traducción al español</p>
-          <p className="text-[15px] text-gray-900 font-medium leading-relaxed whitespace-pre-line text-left max-w-prose">{textEs.replace(/^[ \t]+/gm, '').trim()}</p>
+          <TextoResaltable
+            texto={textEs.replace(/^[ \t]+/gm, '').trim()}
+            bloque="lezen_es"
+            className="text-[15px] text-gray-900 font-medium leading-relaxed whitespace-pre-line text-left max-w-prose"
+          />
         </div>
       </div>
       <button
@@ -4051,7 +4099,6 @@ function SprekenSection({
   // El temporizador se monta en un efecto y no dentro de `handleAnswer` a
   // propósito: `next()` lee `score` y `wrong` para guardar el intento, y desde
   // dentro del manejador esos valores serían todavía los de antes de contestar.
-  const AUTO_AVANCE_MS = 1400;
   useEffect(() => {
     if (!answered || acerto !== true) return;
     const t = setTimeout(() => next(), AUTO_AVANCE_MS);
@@ -5030,7 +5077,15 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
   const activeMeta = activeSection ? SECTION_META[activeSection] : null;
 
   return (
-    <>
+    // El curso y la clase donde se lee, para que los textos subrayables no
+    // tengan que recibirlo por props a través de media docena de secciones.
+    <ContextoResaltado.Provider
+      value={{
+        courseUuid: courseLocation?.courseUuid,
+        activityUuid: courseLocation?.activityUuid,
+        nombre: lesson?.title || '',
+      }}
+    >
       {/* ── Header ── In a course the activity page already shows the lesson
            name, so we drop the big banner-like title + extra padding and keep
            only the "back to parts" link (whole-lesson mode). ── */}
@@ -5233,6 +5288,6 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
          </div>
         </div>
       </div>
-    </>
+    </ContextoResaltado.Provider>
   );
 }

@@ -13,6 +13,8 @@ export interface LessonHighlight {
   activity_uuid: string
   activity_name: string
   course_uuid: string
+  /** Qué texto de la clase es (resumen, lezen_nl…). Vacío en las del editor. */
+  block_key?: string
   color: HighlightColor
   quote: string
   note: string
@@ -26,6 +28,7 @@ export interface CreateHighlightInput {
   activity_uuid: string
   activity_name?: string
   course_uuid?: string
+  block_key?: string
   color: HighlightColor
   quote: string
   note?: string

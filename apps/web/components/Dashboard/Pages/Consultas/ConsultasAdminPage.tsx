@@ -61,8 +61,11 @@ export default function ConsultasAdminPage() {
   // Borrar lo que ha escrito otra persona es moderación, y el rol de profe deja
   // fuera a propósito los permisos sobre la escuela: el backend le diría que no.
   // Mejor no enseñar un botón que va a fallar.
-  const { isProfe } = useAdminStatus()
-  const puedeBorrar = !isProfe
+  // Mismo permiso que exige el backend (`rbac_check … "update"` sobre la
+  // organización), no "no es profe": el moderador (2) tampoco lo tiene, así que
+  // preguntando solo por el profe seguía viendo un botón que da 403.
+  const { rights } = useAdminStatus()
+  const puedeBorrar = rights?.organizations?.action_update === true
 
   const [tab, setTab] = useState<StatusFilter>('pending')
   const [query, setQuery] = useState('')

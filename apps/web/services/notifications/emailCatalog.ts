@@ -65,3 +65,55 @@ export async function sendEmailTemplateTest(
     return null
   }
 }
+
+/** Un trozo editable de un correo. */
+export interface CampoTexto {
+  campo: string
+  etiqueta: string
+  por_defecto: string
+  variables: string[]
+  largo: boolean
+}
+
+export interface PlantillaEditable {
+  plantilla: string
+  campos: CampoTexto[]
+}
+
+/**
+ * Qué se puede cambiar y qué está cambiado.
+ *
+ * El servidor solo devuelve las plantillas que se pueden tocar: la bienvenida
+ * tras el pago y la de la contraseña no salen aquí a propósito.
+ */
+export async function getEmailTexts(
+  accessToken: string | undefined
+): Promise<{ catalogo: PlantillaEditable[]; textos: Record<string, string> } | null> {
+  if (!accessToken) return null
+  try {
+    const r = await fetch(
+      `${getAPIUrl()}superadmin/email-texts`,
+      RequestBodyWithAuthHeader('GET', null, null, accessToken)
+    )
+    if (!r.ok) return null
+    return await r.json()
+  } catch {
+    return null
+  }
+}
+
+export async function saveEmailTexts(
+  textos: Record<string, string>,
+  accessToken: string | undefined
+): Promise<boolean> {
+  if (!accessToken) return false
+  try {
+    const r = await fetch(
+      `${getAPIUrl()}superadmin/email-texts`,
+      RequestBodyWithAuthHeader('PUT', { textos }, null, accessToken)
+    )
+    return r.ok
+  } catch {
+    return false
+  }
+}

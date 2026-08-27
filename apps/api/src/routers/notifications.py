@@ -46,8 +46,13 @@ async def api_broadcast(
     prepared = await broadcast(
         request, payload.org_id, payload.kind, data, current_user, db_session
     )
+    # Los textos cambiados desde el panel se leen AQUÍ, con la sesión todavía
+    # abierta: el envío corre en segundo plano y allí ya no hay base de datos.
+    from src.services.orgs.orgs import get_org_email_texts
+
+    textos_correo = await get_org_email_texts(payload.org_id, db_session)
     # El envío no bloquea la respuesta: quien pulsa el botón no espera 40 correos.
     background_tasks.add_task(
-        _send_many, payload.kind, prepared["recipients"], data
+        _send_many, payload.kind, prepared["recipients"], data, textos_correo
     )
     return {"queued": prepared["count"], "test": bool(prepared.get("test"))}

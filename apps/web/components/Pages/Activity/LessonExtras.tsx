@@ -65,6 +65,17 @@ export default function LessonExtras({ activity, activityid, orgslug, canEdit }:
     }
   }
 
+  // Al alumno no se le pinta una tarjeta vacía.
+  //
+  // Esta caja solo existe para enseñar descripción, tareas o PDF. Si la lección
+  // no tiene ninguna de las tres, antes se dibujaba igual: un rectángulo blanco
+  // con borde y aire dentro, sin nada. Desde fuera parece que algo no ha
+  // cargado. El administrador SÍ la sigue viendo aunque esté vacía, porque es
+  // por donde entra a rellenarla.
+  if (!hasContent && !canEdit && !editing) {
+    return <ConsultaSearchBar />
+  }
+
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-2xl border border-[#DDE6F5] p-4 sm:p-6 space-y-4">

@@ -249,7 +249,7 @@ export function ChannelChat({
   const { t } = useTranslation()
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
-  const { isAdmin } = useAdminStatus() as any
+  const { isAdmin, isStaff } = useAdminStatus() as any
   const org = useOrg() as any
   // Solo para el equipo: publicar un mensaje Y avisar por email. Es para las
   // novedades que de verdad importan (un cambio de horario, el arranque de un
@@ -301,10 +301,14 @@ export function ChannelChat({
     m.author?.id === currentUserId &&
     Date.now() - msOf(m.creation_date) < EDIT_WINDOW_MS
 
-  /** Borrar: tu mensaje reciente, o cualquiera si eres administrador — sin
+  /** Borrar: tu mensaje reciente, o cualquiera si atiendes alumnos — sin
    *  límite de tiempo. Moderar una comunidad es justo eso, y el servidor ya
-   *  lo permitía: era la pantalla la que escondía el botón. */
-  const canDelete = (m: DiscussionWithAuthor) => isAdmin || canEdit(m)
+   *  lo permitía: era la pantalla la que escondía el botón.
+   *
+   *  `isStaff` y no `isAdmin`: un profe modera la comunidad aunque no entre al
+   *  panel de administración. Mandar el aviso por correo a toda la escuela sí
+   *  sigue siendo cosa de administradores, y por eso aquello no se tocó. */
+  const canDelete = (m: DiscussionWithAuthor) => isStaff || canEdit(m)
 
   // Toggle an emoji reaction on a message and refresh the list.
   const react = async (uuid: string, emoji: string) => {
@@ -1185,7 +1189,7 @@ export function ChannelChat({
                         </div>
                       )}
                     </div>
-                    {isAdmin && (
+                    {isStaff && (
                       <button
                         type="button"
                         onClick={() => togglePin(m.discussion_uuid, !m.is_pinned)}
@@ -1459,7 +1463,7 @@ export function ChannelChat({
                 <AtSign size={17} />
               </ComposerButton>
 
-              {isAdmin && (
+              {isStaff && (
                 <ComposerButton
                   label="Crear una encuesta"
                   onClick={() => openTool(pollDraft ? null : 'encuesta')}

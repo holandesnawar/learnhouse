@@ -59,14 +59,38 @@ async def list_org_recipients(
     return recipients
 
 
-def _send_many(kind: str, recipients: List[Tuple[str, str]], payload: dict) -> None:
-    """Se ejecuta en segundo plano. Nunca lanza: un fallo no puede tumbar nada."""
+def _send_many(
+    kind: str,
+    recipients: List[Tuple[str, str]],
+    payload: dict,
+    textos: dict | None = None,
+) -> None:
+    """
+    Se ejecuta en segundo plano. Nunca lanza: un fallo no puede tumbar nada.
+
+    `textos` son los textos que la escuela haya cambiado desde el panel. Vienen
+    como parámetro y no se leen aquí porque esto corre fuera de la petición: en
+    segundo plano ya no hay sesión de base de datos que consultar.
+    """
+    from src.services.email.textos import usar_textos
     from src.services.users.emails import (
         send_announcement_email,
         send_class_scheduled_email,
         send_news_email,
     )
 
+    with usar_textos(textos):
+        _send_many_inner(kind, recipients, payload, send_announcement_email, send_class_scheduled_email, send_news_email)
+
+
+def _send_many_inner(
+    kind: str,
+    recipients: List[Tuple[str, str]],
+    payload: dict,
+    send_announcement_email,
+    send_class_scheduled_email,
+    send_news_email,
+) -> None:
     sent = 0
     for email, name in recipients:
         try:
