@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
+import FacturasPanel from './FacturasPanel'
 import { useOrg } from '@components/Contexts/OrgContext'
 import {
   buildUtmUrl,
@@ -138,7 +139,7 @@ export default function EstadisticasPage() {
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
 
-  const [tab, setTab] = useState<'numeros' | 'utm'>('numeros')
+  const [tab, setTab] = useState<'numeros' | 'facturas' | 'utm'>('numeros')
   const [period, setPeriod] = useState<'month' | 'quarter'>('month')
   const [stats, setStats] = useState<SchoolStats | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -187,6 +188,7 @@ export default function EstadisticasPage() {
       <div className="flex gap-1 border-b border-[#DDE6F5]">
         {[
           { id: 'numeros' as const, label: 'Números' },
+          { id: 'facturas' as const, label: 'Facturas' },
           { id: 'utm' as const, label: 'Enlaces UTM' },
         ].map((t) => (
           <button
@@ -205,6 +207,8 @@ export default function EstadisticasPage() {
 
       {tab === 'utm' ? (
         <UtmNotepad />
+      ) : tab === 'facturas' ? (
+        <FacturasPanel />
       ) : !loaded ? (
         <div className="flex justify-center py-20">
           <Loader2 className="animate-spin text-gray-400" size={28} />
