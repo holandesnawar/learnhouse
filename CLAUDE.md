@@ -480,6 +480,44 @@ systeme.io con la etiqueta de lista de espera y guarda de dónde vino.
   - **Enlaces UTM**: bloc de notas en la pestaña "Enlaces UTM", guardado en org_config `utm_links`. **Los UTM NO se capturan** (decisión del usuario): la escuela no sabe de qué campaña viene cada venta. Si algún día se quiere, hay que guardarlos en `enrollment` y que la web los pase.
   - **Bug arreglado de paso**: `get_cached_course_meta` cacheaba la ficha del curso en Redis con una clave SIN usuario, pero el payload lleva `is_locked`/`unlock_date` del goteo, que dependen de la fecha de alta de cada alumno → quien calentaba la caché decidía los candados que veían los demás durante un minuto. Ahora la clave lleva el usuario y la invalidación borra por patrón.
 
+### ⚠️ Roles: "atiende alumnos" ≠ "dirige la escuela" (ago 2026)
+
+Durante meses `isAdmin` significó las dos cosas y de ahí salieron varios fallos
+seguidos. Están separados en `components/Hooks/useAdminStatus.tsx`:
+
+- **`isAdmin`** — dirige: panel, estadísticas, avisos, automatizaciones,
+  usuarios, ajustes. Administrador (1) y superadmin. **El profe (5) NO.**
+- **`isStaff`** — atiende: moderar la comunidad (borrar, fijar, encuestas) y la
+  bandeja del equipo. Administrador (1), moderador (2) y profe (5). Espejo de
+  `STAFF_ROLE_IDS` en `src/security/rbac/constants.py`.
+
+**El profe trabaja desde la plataforma normal, sin panel.** Tiene la misma barra
+que el alumno más *Responder consultas* (`/responder-consultas`, solo para el
+equipo, que embebe la app externa donde se redacta la respuesta — el tablón
+`/consultas` solo la enseña). Mensajes, comunidad y perfil los hace desde la
+plataforma como todo el mundo.
+
+Se decidió así porque el rol Profe nació con `dashboard.action_access: true` y la
+idea de "que entre pero solo vea lo suyo" **no se sostiene**: cada sección nueva
+del panel nace visible para él salvo que alguien se acuerde de esconderla.
+
+Tres trampas que ya picaron y conviene no repetir:
+
+1. **Enseñar un botón mirando un permiso distinto del que exige el backend.**
+   Pasó dos veces el mismo día: el botón de borrar consultas y el de moderar la
+   comunidad. Si el backend pide `rbac_check … "update"` sobre la organización,
+   la pantalla tiene que preguntar por eso, no por "entra al panel".
+2. **`AdminAuthorization` protegía una LISTA de rutas**, no el panel entero:
+   `/dash/estadisticas` y `/dash/avisos` se abrían escribiéndolas en la barra
+   del navegador. Ahora se protege todo `/dash`, así que las secciones nuevas
+   nacen cerradas.
+3. **`OrgSidebar` calculaba su propio `isAdmin`** a partir del permiso en crudo y
+   se saltaba lo decidido en el hook. Preguntar siempre al hook.
+
+El corte va en el hook y **no** en el rol de `setup.py`: ese rol ya existe creado
+en producción y `setup.py` solo siembra los que faltan, así que tocarlo allí no
+tendría ningún efecto sobre la escuela en marcha.
+
 ### Hoja de ruta inmediata (sigue aquí)
 0. **Copias de seguridad: probar una restauración** y decidir qué hacer con el
    volumen `/app/api/content` (ver la sección de copias más arriba). Las copias
