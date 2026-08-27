@@ -113,7 +113,7 @@ export default function ChannelPosts({
 }) {
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
-  const { isAdmin } = (useAdminStatus() as any) || {}
+  const { isStaff } = (useAdminStatus() as any) || {}
   // Qué post espera confirmación para borrarse.
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -256,7 +256,7 @@ export default function ChannelPosts({
                         {localDay(d.creation_date).locale('es').fromNow()}
                       </p>
                     </div>
-                    {(mine || isAdmin) && (
+                    {(mine || isStaff) && (
                       <button
                         onClick={() => setPendingDelete(d.discussion_uuid)}
                         title="Eliminar"

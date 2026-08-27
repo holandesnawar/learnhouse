@@ -75,7 +75,7 @@ export default function PinnedFeed({
 }) {
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
-  const { isAdmin } = useAdminStatus() as any
+  const { isStaff } = useAdminStatus() as any
   const mutateDiscussions = useMutateDiscussions()
   const [unpinningUuid, setUnpinningUuid] = useState<string | null>(null)
 
@@ -143,7 +143,7 @@ export default function PinnedFeed({
                 <p className="text-[13px] text-gray-700 leading-relaxed whitespace-pre-wrap break-words line-clamp-6">
                   {plainText(m)}
                 </p>
-                {isAdmin && (
+                {isStaff && (
                   <button
                     type="button"
                     onClick={() => unpin(m.discussion_uuid)}

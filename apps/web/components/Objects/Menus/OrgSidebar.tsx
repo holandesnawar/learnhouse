@@ -69,7 +69,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const { data: unreadRows } = useUnreadCommunity()
   const unreadTotal = (unreadRows || []).reduce((acc, r) => acc + (r.unread || 0), 0)
   const mentionTotal = (unreadRows || []).reduce((acc, r) => acc + (r.mentions || 0), 0)
-  const { rights, isProfe } = useAdminStatus()
+  const { isProfe, isAdmin: puedeEntrarAlPanel, isStaff } = useAdminStatus()
   const [isOpen, setIsOpen] = useState(false) // mobile drawer
   const [collapsed, setCollapsed] = useState(false) // desktop collapse
   const [isFocusMode, setIsFocusMode] = useState(false)
@@ -93,7 +93,10 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const rf = config?.resolved_features
   const isEnabled = (f: string) => rf?.[f]?.enabled === true
   const isAuthenticated = session?.status === 'authenticated'
-  const isAdmin = isAuthenticated && rights?.dashboard?.action_access
+  // Se pregunta al hook en vez de mirar el permiso a pelo: el hook es donde se
+  // decide que un profe NO entra al panel, y calcularlo otra vez aquí por su
+  // cuenta era justo lo que hacía que la sección "Panel" le siguiera saliendo.
+  const isAdmin = isAuthenticated && puedeEntrarAlPanel
 
   // Load the collapse preference (desktop only)
   useEffect(() => {
@@ -164,6 +167,9 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     { key: 'playgrounds', href: '/playgrounds', label: 'Playgrounds', icon: <Cube size={20} weight="fill" />, show: false },
     { key: 'store', href: '/store', label: 'Store', icon: <ShoppingBag size={20} weight="fill" />, show: isEnabled('payments') },
     { key: 'consultas', href: '/consultas', label: 'Consultas', icon: <Question size={20} weight="fill" />, show: true },
+    // Para el equipo: redactar la respuesta, que el tablón de arriba solo la
+    // enseña. Vive fuera del panel a propósito, porque el profe no entra ahí.
+    { key: 'responder-consultas', href: '/responder-consultas', label: 'Responder consultas', icon: <Question size={20} weight="bold" />, show: isStaff },
   ]
 
   // "Tu espacio" — zona personal del alumno (separada de las páginas generales).
