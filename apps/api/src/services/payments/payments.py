@@ -528,7 +528,11 @@ async def enroll_and_checkout_session(data, db_session: AsyncSession) -> dict:
 
     try:
         session = stripe.checkout.Session.create(
-            ui_mode="embedded",
+            # `embedded_page`, no `embedded`: Stripe renombró el valor y el
+            # viejo ya no lo acepta ("The ui_mode value `embedded` is no longer
+            # supported"). Es el mismo modo — la caja pintada dentro de nuestra
+            # página — solo que ahora se llama así.
+            ui_mode="embedded_page",
             mode="payment",
             line_items=[{"price": _formacion_price_id(), "quantity": 1}],
             customer=customer.id,
