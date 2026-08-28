@@ -1,8 +1,8 @@
 import { getOrganizationContextInfo } from '@services/organizations/orgs'
 import { getOrgSlug } from '@services/org/orgResolution'
+import { getOrgLogoMediaDirectory, getOrgFaviconMediaDirectory } from '@services/media/media'
 import CrearCuentaClient from './crear-cuenta'
 import { Metadata } from 'next'
-import { BRAND_ICONS } from '@/lib/brand'
 import OrgNotFound from '@components/Objects/StyledElements/Error/OrgNotFound'
 import OrgUnavailable from '@components/Objects/StyledElements/Error/OrgUnavailable'
 import { getOrgWithRetry } from '@services/organizations/orgFetch'
@@ -26,9 +26,18 @@ export async function generateMetadata(): Promise<Metadata> {
     // Stale cookie or unknown org — fall back to generic title
   }
 
+  const faviconImage =
+    org?.config?.config?.customization?.general?.favicon_image ||
+    org?.config?.config?.general?.favicon_image
+  const favicon = faviconImage
+    ? getOrgFaviconMediaDirectory(org.org_uuid, faviconImage)
+    : org?.logo_image
+    ? getOrgLogoMediaDirectory(org.org_uuid, org.logo_image)
+    : undefined
+
   return {
     title: 'Crear cuenta' + ` — ${org?.name || 'Nawar'}`,
-    icons: BRAND_ICONS,
+    ...(favicon && { icons: { icon: favicon } }),
     robots: { index: false, follow: false },
   }
 }

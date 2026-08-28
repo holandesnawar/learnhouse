@@ -3,14 +3,26 @@ import { getLEARNHOUSE_TOP_DOMAIN_VAL, getLEARNHOUSE_TELEMETRY_DISABLED_VAL } fr
 import type { Metadata } from 'next'
 import Script from 'next/script'
 import Providers from '@components/Providers'
-import { BRAND_ICONS } from '@/lib/brand'
 import { Wix_Madefor_Text, Poppins, Inter, Noto_Color_Emoji } from 'next/font/google'
 
 const isDevEnv = getLEARNHOUSE_TOP_DOMAIN_VAL() === 'localhost'
 const isTelemetryDisabled = getLEARNHOUSE_TELEMETRY_DISABLED_VAL() === 'true'
 
+// El icono de la pestaña por defecto: **el mismo archivo que la web**
+// (`nawar-web/public/favicon.png`, copiado aquí byte a byte). Antes apuntaba a
+// `docs.holandesnawar.com/img/Nawar.favicon.png`, que es un icono viejo y
+// distinto del de la web, y encima colgaba de un dominio de fuera.
+//
+// Esto es solo el valor por defecto: las páginas de la organización y las de
+// `/auth` siguen usando el favicon subido desde el panel, que manda.
+const NAWAR_FAVICON = '/nawar-favicon.png'
+
 export const metadata: Metadata = {
-  icons: BRAND_ICONS,
+  icons: {
+    icon: NAWAR_FAVICON,
+    shortcut: NAWAR_FAVICON,
+    apple: NAWAR_FAVICON,
+  },
 }
 
 const wixMadeforText = Wix_Madefor_Text({

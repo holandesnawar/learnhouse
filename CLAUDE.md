@@ -83,25 +83,19 @@ Usuario `admin`, email **holandesnawar@gmail.com** (superadmin). Creado vía cli
 - Patrón: glow radial azul + puntos blancos sutiles `rgba(255,255,255,0.06)`.
 - **Regla:** secciones dark (#1D0084) o light (blanco/#F0F5FF), nunca mezclar. Contenido principal SIEMPRE blanco.
 
-### El icono de la pestaña sale del repo (ago 2026)
-`BRAND_ICONS` en `apps/web/lib/brand.ts` → `apps/web/public/nawar-icon{,-32,-180}.png`.
-Lo usan el layout raíz, el de `/orgs/[orgslug]` y las cuatro páginas de `/auth`.
+### El icono de la pestaña (ago 2026)
+**Manda el favicon subido en el panel** (Organización → personalización); si no
+hay, el logo de la organización. Lo leen el layout de `/orgs/[orgslug]` y las
+cuatro páginas de `/auth`, así que cambiarlo desde el panel funciona.
 
-Antes había **tres** fuentes peleándose: un enlace fijo a
-`docs.holandesnawar.com` en el layout raíz, el favicon subido en el panel y,
-de reserva, el logo de la organización. Y el subido tenía el logo en poco más
-de la mitad del cuadrado, con mucho margen muerto: a 16-32 px no se leía
-"Nawar", se veía un borrón azul. **La regla de un icono: el logo llena el
-cuadrado.** Un logo apaisado dentro de un cuadro con aire alrededor no
-sobrevive al tamaño real de una pestaña.
+Lo único fijo es el valor por defecto del layout raíz:
+`apps/web/public/nawar-favicon.png`, **copia exacta de
+`nawar-web/public/favicon.png`** — el mismo icono que la web. Si se cambia el de
+la web, se copia otra vez.
 
-⚠️ **El campo "favicon" del panel ya no cambia la pestaña.** Para cambiar el
-icono se reemplazan esos PNG. Se generan desde el logo con transparencia
-(`content/orgs/org_d790ce63-…/logos/…_logo.png`) sobre el degradado azul de
-siempre, con Pillow.
-
-El favicon de `nawar-web` (`public/favicon.png`) **tiene el mismo problema** y
-sigue sin tocar: es el mismo dibujo con el mismo margen muerto.
+⚠️ Antes ese defecto era un enlace a `docs.holandesnawar.com/img/Nawar.favicon.png`:
+un icono **viejo y distinto** del de la web (una "n" azul), colgando además de un
+dominio de fuera. Ese es el que salía en `/auth/bienvenido` y compañía.
 
 ### Reglas de aplicación de la marca (repaso ago 2026)
 Decidido tras ver que la plataforma "parecía Temu": el problema no era una pantalla, era el sistema.
