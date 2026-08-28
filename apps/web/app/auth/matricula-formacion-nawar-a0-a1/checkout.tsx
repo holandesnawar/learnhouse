@@ -242,16 +242,24 @@ function CajaDeStripe({
       <CabeceraPago />
       <PagandoComo email={email} fullName={fullName} />
       <AvisoKlarna />
-      {/* El recuadro de Stripe viene con las esquinas de abajo rectas y las de
-          arriba redondeadas, así que dentro de nuestra tarjeta se veía cortado
-          por abajo. `overflow-hidden` recorta el marco a la forma que le
-          decimos, y el borde lo cose con el resto de bloques de la página. */}
-      <div className="rounded-xl overflow-hidden border border-[#DDE6F5]">
+      <PieSeguro />
+      {/* La caja de pago se sale del relleno de la tarjeta y llega de borde a
+          borde, pegada abajo.
+
+          Metida dentro del relleno quedaba estrecha, con marco propio y con la
+          lista de métodos de pago comprimida: se leía como un recuadro ajeno
+          pegado en medio de la página. Ocupando el ancho entero se lee como lo
+          que es — la parte de pagar de esta pantalla.
+
+          Los márgenes negativos cancelan exactamente el `p-4 sm:p-7` de la
+          tarjeta que la envuelve; si algún día cambia ese relleno, hay que
+          cambiarlos aquí también. `overflow-hidden` recorta las esquinas de
+          abajo, que Stripe deja rectas. */}
+      <div className="-mx-4 sm:-mx-7 -mb-4 sm:-mb-7 overflow-hidden rounded-b-2xl">
         <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
           <EmbeddedCheckout className="min-h-[420px]" />
         </EmbeddedCheckoutProvider>
       </div>
-      <PieSeguro />
     </div>
   )
 }
