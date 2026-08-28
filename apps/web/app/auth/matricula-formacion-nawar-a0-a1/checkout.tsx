@@ -242,9 +242,15 @@ function CajaDeStripe({
       <CabeceraPago />
       <PagandoComo email={email} fullName={fullName} />
       <AvisoKlarna />
-      <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
-        <EmbeddedCheckout className="min-h-[420px]" />
-      </EmbeddedCheckoutProvider>
+      {/* El recuadro de Stripe viene con las esquinas de abajo rectas y las de
+          arriba redondeadas, así que dentro de nuestra tarjeta se veía cortado
+          por abajo. `overflow-hidden` recorta el marco a la forma que le
+          decimos, y el borde lo cose con el resto de bloques de la página. */}
+      <div className="rounded-xl overflow-hidden border border-[#DDE6F5]">
+        <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
+          <EmbeddedCheckout className="min-h-[420px]" />
+        </EmbeddedCheckoutProvider>
+      </div>
       <PieSeguro />
     </div>
   )
