@@ -5,6 +5,7 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import FacturasPanel from './FacturasPanel'
 import { useOrg } from '@components/Contexts/OrgContext'
 import {
+  baseSinUtm,
   buildUtmUrl,
   deleteManualEntry,
   euros,
@@ -24,6 +25,7 @@ import {
   Link2,
   Loader2,
   Mail,
+  Pencil,
   Plus,
   RefreshCw,
   Trash2,
@@ -1077,6 +1079,7 @@ function UtmNotepad() {
 
   const [links, setLinks] = useState<UtmLink[]>(() => readUtmLinks(org))
   const [draft, setDraft] = useState<UtmLink>(EMPTY_LINK)
+  const [editando, setEditando] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [copied, setCopied] = useState<number | null>(null)
 
@@ -1089,18 +1092,47 @@ function UtmNotepad() {
     if (ok) {
       setLinks(next)
       toast.success('Guardado')
-    } else {
-      toast.error('No se pudo guardar')
+      return true
     }
+    toast.error('No se pudo guardar')
+    return false
   }
 
-  const add = () => {
+  /**
+   * Guardar es lo mismo para uno nuevo y para uno que se está editando: la
+   * única diferencia es si se añade al final o se reemplaza en su sitio. Se
+   * hace así, y no borrando y volviendo a añadir, para que editar NUNCA pueda
+   * perder un enlace si el guardado falla a mitad: la lista se manda entera y
+   * solo se cambia en pantalla cuando el servidor dice que sí.
+   */
+  const guardar = async () => {
     if (!draft.url.trim()) {
       toast.error('Falta el enlace')
       return
     }
-    persist([...links, { ...draft, url: buildUtmUrl(draft) }])
+    const montado = { ...draft, url: buildUtmUrl(draft) }
+    const next =
+      editando === null
+        ? [...links, montado]
+        : links.map((l, i) => (i === editando ? montado : l))
+    if (await persist(next)) {
+      setDraft(EMPTY_LINK)
+      setEditando(null)
+    }
+  }
+
+  /** Lleva el enlace al formulario. La dirección vuelve limpia de utm_ para
+   *  que al reconstruirla no se peguen dos tandas de parámetros. */
+  const editar = (i: number) => {
+    const l = links[i]
+    setDraft({ ...l, url: baseSinUtm(l.url) })
+    setEditando(i)
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const cancelar = () => {
     setDraft(EMPTY_LINK)
+    setEditando(null)
   }
 
   const copy = async (url: string, index: number) => {
@@ -1126,11 +1158,13 @@ function UtmNotepad() {
     <div className="space-y-4">
       <div className={CARD}>
         <h3 className="text-[14px] font-bold text-gray-900 flex items-center gap-2">
-          <Link2 size={16} className="text-[#025dc7]" /> Montar un enlace
+          <Link2 size={16} className="text-[#025dc7]" />
+          {editando === null ? 'Montar un enlace' : 'Editar el enlace'}
         </h3>
         <p className="text-[12.5px] text-[#9CA3AF] mt-0.5 mb-3">
-          Esto es un bloc de notas: guarda los enlaces montados para copiarlos cuando toque. La
-          escuela no lee los UTM de nadie, así que no aparecerán en los números.
+          {editando === null
+            ? 'Esto es un bloc de notas: guarda los enlaces montados para copiarlos cuando toque. La escuela no lee los UTM de nadie, así que no aparecerán en los números.'
+            : 'Cambia lo que necesites y guarda. Se sustituye solo este enlace; el resto se queda como está.'}
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {field('name', 'Nombre para acordarte (ej. Correo 1 lanzamiento)')}
@@ -1150,9 +1184,21 @@ function UtmNotepad() {
           </div>
         )}
 
-        <button onClick={add} disabled={saving} className={`${BTN} mt-3`}>
-          <Plus size={15} /> Guardar enlace
-        </button>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button onClick={guardar} disabled={saving} className={BTN}>
+            {editando === null ? <Plus size={15} /> : <Check size={15} />}
+            {editando === null ? 'Guardar enlace' : 'Guardar cambios'}
+          </button>
+          {editando !== null && (
+            <button
+              onClick={cancelar}
+              disabled={saving}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[13px] font-semibold text-[#5A6480] hover:bg-[#F0F5FF] transition-colors"
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
       </div>
 
       <div className={CARD}>
@@ -1164,7 +1210,9 @@ function UtmNotepad() {
             {links.map((l, i) => (
               <div
                 key={`${l.url}-${i}`}
-                className="rounded-xl border border-[#E7EEF9] px-3.5 py-3 flex items-start gap-3"
+                className={`rounded-xl border px-3.5 py-3 flex items-start gap-3 ${
+                  editando === i ? 'border-[#4da3ff] bg-[#F0F5FF]' : 'border-[#E7EEF9]'
+                }`}
               >
                 <div className="flex-1 min-w-0">
                   <p className="text-[13.5px] font-semibold text-gray-900">
@@ -1180,7 +1228,22 @@ function UtmNotepad() {
                   {copied === i ? 'Copiado' : 'Copiar'}
                 </button>
                 <button
-                  onClick={() => persist(links.filter((_, j) => j !== i))}
+                  onClick={() => editar(i)}
+                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7] text-[12px] font-bold transition-colors"
+                >
+                  <Pencil size={13} /> Editar
+                </button>
+                <button
+                  onClick={async () => {
+                    if (await persist(links.filter((_, j) => j !== i))) {
+                      // Los índices bailan al quitar una fila: si el que se
+                      // estaba editando era ese, se sale; si estaba más abajo,
+                      // se recoloca. Si no, "Guardar cambios" escribiría encima
+                      // del enlace equivocado.
+                      if (editando === i) cancelar()
+                      else if (editando !== null && editando > i) setEditando(editando - 1)
+                    }
+                  }}
                   className="shrink-0 text-gray-300 hover:text-rose-500 transition-colors mt-1.5"
                   aria-label="Borrar"
                 >
