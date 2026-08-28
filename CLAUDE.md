@@ -83,6 +83,26 @@ Usuario `admin`, email **holandesnawar@gmail.com** (superadmin). Creado vía cli
 - Patrón: glow radial azul + puntos blancos sutiles `rgba(255,255,255,0.06)`.
 - **Regla:** secciones dark (#1D0084) o light (blanco/#F0F5FF), nunca mezclar. Contenido principal SIEMPRE blanco.
 
+### El icono de la pestaña sale del repo (ago 2026)
+`BRAND_ICONS` en `apps/web/lib/brand.ts` → `apps/web/public/nawar-icon{,-32,-180}.png`.
+Lo usan el layout raíz, el de `/orgs/[orgslug]` y las cuatro páginas de `/auth`.
+
+Antes había **tres** fuentes peleándose: un enlace fijo a
+`docs.holandesnawar.com` en el layout raíz, el favicon subido en el panel y,
+de reserva, el logo de la organización. Y el subido tenía el logo en poco más
+de la mitad del cuadrado, con mucho margen muerto: a 16-32 px no se leía
+"Nawar", se veía un borrón azul. **La regla de un icono: el logo llena el
+cuadrado.** Un logo apaisado dentro de un cuadro con aire alrededor no
+sobrevive al tamaño real de una pestaña.
+
+⚠️ **El campo "favicon" del panel ya no cambia la pestaña.** Para cambiar el
+icono se reemplazan esos PNG. Se generan desde el logo con transparencia
+(`content/orgs/org_d790ce63-…/logos/…_logo.png`) sobre el degradado azul de
+siempre, con Pillow.
+
+El favicon de `nawar-web` (`public/favicon.png`) **tiene el mismo problema** y
+sigue sin tocar: es el mismo dibujo con el mismo margen muerto.
+
 ### Reglas de aplicación de la marca (repaso ago 2026)
 Decidido tras ver que la plataforma "parecía Temu": el problema no era una pantalla, era el sistema.
 - **Nada de naranja/ámbar saturado en la interfaz del alumno.** Racha, fallos, notas y avisos van en azul de marca. El ámbar solo como señal apagada (`#8A6A2A` sobre `#FFFBF2`, o un punto `#E4B252`), y el verde solo para "hecho/dominado". El `#F58220` es **solo** estrellas/valoraciones.
