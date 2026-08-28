@@ -45,8 +45,13 @@ const COURSE_FAQS: Record<string, { intro?: string; items: FAQ[] }> = {
         a: 'No, y es a propósito. Vas a escuchar a varias personas, con maneras de hablar distintas, que es justo lo que te vas a encontrar fuera. Todas son profes de la escuela.',
       },
       {
+        // ⚠️ Aquí NO se dice cuántos alumnos hay. 40 es el TOPE de la
+        // convocatoria, no la cifra de gente que hay dentro: prometer un
+        // número obliga a llenarlo, y el día que en la clase se vean quince
+        // el que leyó "somos 40" se pregunta qué ha pasado. Un tope se cumple
+        // solo, con quince y con cuarenta.
         q: '¿Cuánta gente hay en clase?',
-        a: 'Esta es la primera convocatoria, así que somos un grupo pequeño: entre 30 y 40 alumnos. Hay sitio de sobra para preguntar.',
+        a: 'Es un grupo pequeño a propósito: la convocatoria tiene un tope de 40 plazas y no entra nadie más. Siempre hay tiempo para preguntar, y si un día prefieres solo escuchar, la clase se graba.',
       },
       {
         q: '¿Puedo mandar mi duda antes para que la resolvamos en directo?',

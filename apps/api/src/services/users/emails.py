@@ -507,7 +507,9 @@ def send_payment_welcome_email(
     # mitad de los alumnos son alumnas. Es además la primera palabra de
     # neerlandés que se llevan, y la dice la escuela, no un formulario.
     nombre_saludo = (name or "").strip()
-    heading = f"Welkom, {html.escape(nombre_saludo)}" if nombre_saludo else "Welkom a Holandés Nawar"
+    # Sin coma: "Welkom Rida" es un saludo, "Welkom, Rida" es una frase que
+    # empieza. El asunto de abajo lleva exactamente lo mismo.
+    heading = f"Welkom {html.escape(nombre_saludo)}" if nombre_saludo else "Welkom a Holandés Nawar"
     body_content = f"""
         <h1 style="{STYLES['h1']}">{heading}</h1>
         <p style="{STYLES['p']}">
@@ -535,7 +537,7 @@ def send_payment_welcome_email(
         # asunto: es lo que hay que hacer dentro, no de lo que va el correo, y
         # alargarlo hace que en el móvil se corte justo por el nombre — que es
         # lo único que consigue que lo abran.
-        subject=(f"Welkom, {nombre_saludo}" if nombre_saludo else "Welkom a Holandés Nawar"),
+        subject=(f"Welkom {nombre_saludo}" if nombre_saludo else "Welkom a Holandés Nawar"),
         body=_email_layout(
             title=heading,
             body_content=body_content,
