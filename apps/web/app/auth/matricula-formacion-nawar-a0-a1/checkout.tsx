@@ -251,11 +251,12 @@ function CajaDeStripe({
           pegado en medio de la página. Ocupando el ancho entero se lee como lo
           que es — la parte de pagar de esta pantalla.
 
-          Los márgenes negativos cancelan exactamente el `p-4 sm:p-7` de la
-          tarjeta que la envuelve; si algún día cambia ese relleno, hay que
-          cambiarlos aquí también. `overflow-hidden` recorta las esquinas de
-          abajo, que Stripe deja rectas. */}
-      <div className="-mx-4 sm:-mx-7 -mb-4 sm:-mb-7 overflow-hidden rounded-b-2xl">
+          Los márgenes negativos LATERALES cancelan el `p-4 sm:p-7` de la
+          tarjeta; si algún día cambia ese relleno, hay que cambiarlos aquí
+          también. Abajo NO se cancela a propósito: el relleno de la tarjeta es
+          lo que le da aire y evita que la lista de métodos de pago quede
+          cortada contra el borde. */}
+      <div className="-mx-4 sm:-mx-7 border-t border-[#EEF2FB] overflow-hidden">
         <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
           <EmbeddedCheckout className="min-h-[420px]" />
         </EmbeddedCheckoutProvider>
