@@ -258,6 +258,9 @@ function CajaDeStripe({
           <EmbeddedCheckout className="min-h-[420px]" />
         </EmbeddedCheckoutProvider>
       </div>
+      {/* Debajo de la caja, no encima: encima se quedaba flotando en mitad de
+          la tarjeta sin nada a lo que pertenecer. Aquí cierra la pantalla. */}
+      <PieSeguro />
     </div>
   )
 }
