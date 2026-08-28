@@ -164,10 +164,8 @@ function CabeceraPago() {
 function PagandoComo({ email, fullName }: { email: string; fullName: string }) {
   if (!email) return null
   return (
-    <div className="flex items-center gap-2.5 sm:gap-3 bg-[#F0F5FF] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3">
-      <div className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white flex items-center justify-center">
-        <Mail size={15} className="text-[#4da3ff]" strokeWidth={2.5} />
-      </div>
+    <div className="flex items-start gap-2.5 sm:gap-3 bg-[#F0F5FF] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3">
+      <Mail size={16} className="shrink-0 mt-0.5 text-[#4da3ff]" strokeWidth={2.5} />
       <div className="flex-1 min-w-0">
         <div className="text-[11px] uppercase tracking-wider font-semibold text-gray-500">
           Pagando como
@@ -179,7 +177,7 @@ function PagandoComo({ email, fullName }: { email: string; fullName: string }) {
       </div>
       <a
         href="https://www.holandesnawar.com/matricula-formacion-nawar-a0-a1"
-        className="shrink-0 text-[12px] font-semibold text-[#4da3ff] hover:underline"
+        className="shrink-0 self-center text-[12px] font-semibold text-[#4da3ff] hover:underline"
       >
         Cambiar
       </a>
@@ -242,7 +240,6 @@ function CajaDeStripe({
       <CabeceraPago />
       <PagandoComo email={email} fullName={fullName} />
       <AvisoKlarna />
-      <PieSeguro />
       {/* La caja de pago se sale del relleno de la tarjeta y llega de borde a
           borde, pegada abajo.
 
