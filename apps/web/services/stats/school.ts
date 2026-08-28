@@ -222,9 +222,33 @@ export function readUtmLinks(org: any): UtmLink[] {
   return Array.isArray(raw) ? raw : []
 }
 
+const CLAVES_UTM = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content']
+
+/**
+ * La dirección sin los utm_ que ya llevara pegados.
+ *
+ * Hace falta porque el enlace guardado se guarda YA montado, con sus
+ * parámetros dentro de `url`. Al editarlo hay que volver al punto de partida,
+ * que si no cada retoque añadiría otra tanda de `utm_source=…` a la anterior.
+ * Sirve igual cuando se pega una dirección que ya traía los suyos.
+ */
+export function baseSinUtm(url: string): string {
+  const bruto = (url || '').trim()
+  if (!bruto) return ''
+  const [conParams, hash] = bruto.split('#')
+  const corte = conParams.indexOf('?')
+  if (corte === -1) return bruto
+  const camino = conParams.slice(0, corte)
+  const resto = conParams
+    .slice(corte + 1)
+    .split('&')
+    .filter((p) => p && !CLAVES_UTM.includes(p.split('=')[0]))
+  return `${camino}${resto.length ? `?${resto.join('&')}` : ''}${hash ? `#${hash}` : ''}`
+}
+
 /** Monta el enlace con sus parámetros, sin duplicar los que ya lleve. */
 export function buildUtmUrl(link: Omit<UtmLink, 'name'>): string {
-  const base = (link.url || '').trim()
+  const base = baseSinUtm(link.url || '')
   if (!base) return ''
   const params: [string, string][] = [
     ['utm_source', link.source],
