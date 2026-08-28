@@ -3,22 +3,14 @@ import { getLEARNHOUSE_TOP_DOMAIN_VAL, getLEARNHOUSE_TELEMETRY_DISABLED_VAL } fr
 import type { Metadata } from 'next'
 import Script from 'next/script'
 import Providers from '@components/Providers'
+import { BRAND_ICONS } from '@/lib/brand'
 import { Wix_Madefor_Text, Poppins, Inter, Noto_Color_Emoji } from 'next/font/google'
 
 const isDevEnv = getLEARNHOUSE_TOP_DOMAIN_VAL() === 'localhost'
 const isTelemetryDisabled = getLEARNHOUSE_TELEMETRY_DISABLED_VAL() === 'true'
 
-// Favicon / tab + mobile home-screen icon. Same Nawar mark used as the
-// Team Nawar avatar on consultas, hosted on the brand docs domain so it
-// stays in sync with the landing site.
-const NAWAR_FAVICON = 'https://docs.holandesnawar.com/img/Nawar.favicon.png'
-
 export const metadata: Metadata = {
-  icons: {
-    icon: NAWAR_FAVICON,
-    shortcut: NAWAR_FAVICON,
-    apple: NAWAR_FAVICON,
-  },
+  icons: BRAND_ICONS,
 }
 
 const wixMadeforText = Wix_Madefor_Text({

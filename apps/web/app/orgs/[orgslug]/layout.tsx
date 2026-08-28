@@ -5,34 +5,11 @@ import NextTopLoader from 'nextjs-toploader'
 import Toast from '@components/Objects/StyledElements/Toast/Toast'
 import '@styles/globals.css'
 import Footer from '@components/Footer/Footer'
-import { getOrganizationContextInfo } from '@services/organizations/orgs'
-import { getOrgFaviconMediaDirectory, getOrgLogoMediaDirectory } from '@services/media/media'
+import { BRAND_ICONS } from '@/lib/brand'
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ orgslug: string }>
-}): Promise<Metadata> {
-  const { orgslug } = await params
-  try {
-    const org = await getOrganizationContextInfo(orgslug, {
-      revalidate: 86400,
-      tags: ['organizations'],
-    })
-    const faviconImage = org?.config?.config?.customization?.general?.favicon_image || org?.config?.config?.general?.favicon_image
-    if (faviconImage) {
-      return {
-        icons: { icon: getOrgFaviconMediaDirectory(org.org_uuid, faviconImage) },
-      }
-    }
-    // Fall back to the org logo so there's always a branded favicon.
-    if (org?.logo_image) {
-      return {
-        icons: { icon: getOrgLogoMediaDirectory(org.org_uuid, org.logo_image) },
-      }
-    }
-  } catch {}
-  return {}
+export async function generateMetadata(): Promise<Metadata> {
+  // El icono es el mismo en toda la escuela y sale del repo (ver lib/brand.ts).
+  return { icons: BRAND_ICONS }
 }
 
 export default async function RootLayout(props: {
