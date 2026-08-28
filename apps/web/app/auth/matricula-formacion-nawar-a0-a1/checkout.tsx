@@ -6,6 +6,8 @@ import { useSearchParams } from 'next/navigation'
 import { loadStripe, type Stripe as StripeJS } from '@stripe/stripe-js'
 import {
   Elements,
+  EmbeddedCheckout,
+  EmbeddedCheckoutProvider,
   PaymentElement,
   useElements,
   useStripe,
@@ -135,6 +137,134 @@ function MissingParams() {
   )
 }
 
+/** El "Paso 2 de 2 · Pago seguro" de siempre. */
+function CabeceraPago() {
+  return (
+    <div>
+      <div className="text-[12px] font-bold text-[#4da3ff] tracking-wider uppercase">
+        Paso 2 de 2
+      </div>
+      <h1
+        className="text-[24px] sm:text-[30px] font-bold text-[#1D0084] leading-tight mt-1"
+        style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
+      >
+        Pago seguro
+      </h1>
+    </div>
+  )
+}
+
+/**
+ * "Pagando como X · email", con su botón de Cambiar.
+ *
+ * Se queda aunque la caja de pago la pinte Stripe: le confirma al comprador
+ * que sus datos han viajado bien desde el formulario, y el "Cambiar" le deja
+ * corregir una errata sin tener que rehacer el pago.
+ */
+function PagandoComo({ email, fullName }: { email: string; fullName: string }) {
+  if (!email) return null
+  return (
+    <div className="flex items-start gap-2.5 sm:gap-3 bg-[#F0F5FF] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3">
+      <Mail size={16} className="shrink-0 mt-0.5 text-[#4da3ff]" strokeWidth={2.5} />
+      <div className="flex-1 min-w-0">
+        <div className="text-[11px] uppercase tracking-wider font-semibold text-gray-500">
+          Pagando como
+        </div>
+        <div className="text-[13.5px] sm:text-[14px] font-semibold text-[#1D0084] truncate">
+          {fullName ? `${fullName} · ` : ''}
+          <span className="font-normal text-[#0a1656]">{email}</span>
+        </div>
+      </div>
+      <a
+        href="https://www.holandesnawar.com/matricula-formacion-nawar-a0-a1"
+        className="shrink-0 self-center text-[12px] font-semibold text-[#4da3ff] hover:underline"
+      >
+        Cambiar
+      </a>
+    </div>
+  )
+}
+
+/** El aviso de Klarna, que es de los que más pesan en la decisión. */
+function AvisoKlarna() {
+  return (
+    <div className="flex items-start gap-2.5 bg-[#F0F5FF] rounded-xl px-3 sm:px-4 py-3 text-[13px] text-[#0a1656] leading-relaxed">
+      <Info size={16} className="shrink-0 mt-0.5 text-[#4da3ff]" />
+      <div>
+        <strong className="text-[#1D0084]">¿Quieres pagar a plazos?</strong>{' '}
+        Selecciona <strong className="text-[#1D0084]">Klarna</strong> y elige entre{' '}
+        <strong className="text-[#1D0084]">30 días sin comisiones</strong> o{' '}
+        <strong className="text-[#1D0084]">3 plazos sin intereses</strong>.
+      </div>
+    </div>
+  )
+}
+
+/** El pie de "pago seguro", sin nombrar a Stripe (decisión del usuario). */
+function PieSeguro() {
+  return (
+    <div className="flex items-center justify-center gap-1.5 text-[12px] text-gray-500">
+      <ShieldCheck size={13} />
+      Pago seguro · Cifrado de extremo a extremo
+    </div>
+  )
+}
+
+/**
+ * La caja de pago de Stripe, dentro de nuestra página.
+ *
+ * Es la sesión de pago de Stripe (`ui_mode: "embedded"`), la misma que usa todo
+ * el mundo, pero pintada aquí: el alumno no sale de la escuela. A cambio de
+ * ceder ese recuadro, Stripe **emite la factura numerada y la manda él**, junto
+ * con su recibo de siempre. Fabricarla por nuestra cuenta —que es lo que había
+ * antes— falló de tres maneras distintas y todas silenciosas.
+ *
+ * Alrededor se queda todo lo nuestro: la cabecera, el "pagando como", el aviso
+ * de Klarna, el resumen del curso con el precio de después tachado y el bloque
+ * de la garantía. Lo único que desaparece es nuestro botón de pagar, porque el
+ * suyo va dentro del recuadro.
+ */
+function CajaDeStripe({
+  clientSecret,
+  stripePromise,
+  email,
+  fullName,
+}: {
+  clientSecret: string
+  stripePromise: Promise<StripeJS | null>
+  email: string
+  fullName: string
+}) {
+  return (
+    <div className="space-y-5">
+      <CabeceraPago />
+      <PagandoComo email={email} fullName={fullName} />
+      <AvisoKlarna />
+      {/* La caja de pago se sale del relleno de la tarjeta y llega de borde a
+          borde, pegada abajo.
+
+          Metida dentro del relleno quedaba estrecha, con marco propio y con la
+          lista de métodos de pago comprimida: se leía como un recuadro ajeno
+          pegado en medio de la página. Ocupando el ancho entero se lee como lo
+          que es — la parte de pagar de esta pantalla.
+
+          Los márgenes negativos LATERALES cancelan el `p-4 sm:p-7` de la
+          tarjeta; si algún día cambia ese relleno, hay que cambiarlos aquí
+          también. Abajo NO se cancela a propósito: el relleno de la tarjeta es
+          lo que le da aire y evita que la lista de métodos de pago quede
+          cortada contra el borde. */}
+      <div className="-mx-4 sm:-mx-7 border-t border-[#EEF2FB] overflow-hidden">
+        <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
+          <EmbeddedCheckout className="min-h-[420px]" />
+        </EmbeddedCheckoutProvider>
+      </div>
+      {/* Debajo de la caja, no encima: encima se quedaba flotando en mitad de
+          la tarjeta sin nada a lo que pertenecer. Aquí cierra la pantalla. */}
+      <PieSeguro />
+    </div>
+  )
+}
+
 function CheckoutInner({
   email,
   fullName,
@@ -181,43 +311,8 @@ function CheckoutInner({
         </div>
       )}
 
-      <div>
-        <div className="text-[12px] font-bold text-[#4da3ff] tracking-wider uppercase">
-          Paso 2 de 2
-        </div>
-        <h1
-          className="text-[24px] sm:text-[30px] font-bold text-[#1D0084] leading-tight mt-1"
-          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
-        >
-          Pago seguro
-        </h1>
-      </div>
-
-      {/* Echo back the data from the matricula form so the buyer can see they
-          got carried through correctly. "Cambiar" lets them fix a typo
-          without having to re-do the payment intent. */}
-      {email && (
-        <div className="flex items-center gap-2.5 sm:gap-3 bg-[#F0F5FF] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3">
-          <div className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white flex items-center justify-center">
-            <Mail size={15} className="text-[#4da3ff]" strokeWidth={2.5} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[11px] uppercase tracking-wider font-semibold text-gray-500">
-              Pagando como
-            </div>
-            <div className="text-[13.5px] sm:text-[14px] font-semibold text-[#1D0084] truncate">
-              {fullName ? `${fullName} · ` : ''}
-              <span className="font-normal text-[#0a1656]">{email}</span>
-            </div>
-          </div>
-          <a
-            href="https://www.holandesnawar.com/matricula-formacion-nawar-a0-a1"
-            className="shrink-0 text-[12px] font-semibold text-[#4da3ff] hover:underline"
-          >
-            Cambiar
-          </a>
-        </div>
-      )}
+      <CabeceraPago />
+      <PagandoComo email={email} fullName={fullName} />
 
       <PaymentElement
         options={{
@@ -235,15 +330,7 @@ function CheckoutInner({
         }}
       />
 
-      <div className="flex items-start gap-2.5 bg-[#F0F5FF] rounded-xl px-3 sm:px-4 py-3 text-[13px] text-[#0a1656] leading-relaxed">
-        <Info size={16} className="shrink-0 mt-0.5 text-[#4da3ff]" />
-        <div>
-          <strong className="text-[#1D0084]">¿Quieres pagar a plazos?</strong>{' '}
-          Selecciona <strong className="text-[#1D0084]">Klarna</strong> y elige entre{' '}
-          <strong className="text-[#1D0084]">30 días sin comisiones</strong> o{' '}
-          <strong className="text-[#1D0084]">3 plazos sin intereses</strong>.
-        </div>
-      </div>
+      <AvisoKlarna />
 
       <button
         type="submit"
@@ -254,10 +341,7 @@ function CheckoutInner({
         {submitting ? 'Procesando…' : 'Pagar y entrar'}
       </button>
 
-      <div className="flex items-center justify-center gap-1.5 text-[12px] text-gray-500">
-        <ShieldCheck size={13} />
-        Pago seguro · Cifrado de extremo a extremo
-      </div>
+      <PieSeguro />
     </form>
   )
 }
@@ -376,6 +460,8 @@ function CheckoutPageBody() {
     return <MissingParams />
   }
 
+  const esSesionDePago = clientSecret.startsWith('cs_')
+
   return (
     <div className="w-full max-w-5xl mx-auto min-w-0">
       <Link
@@ -387,12 +473,26 @@ function CheckoutPageBody() {
       </Link>
       <div className="grid lg:grid-cols-[minmax(0,1fr)_360px] gap-5 sm:gap-6 lg:gap-8 items-start">
         <div className="min-w-0 bg-white rounded-2xl p-4 sm:p-7 shadow-xl order-2 lg:order-1">
-          <Elements
-            stripe={stripePromise}
-            options={{ clientSecret, appearance: NAWAR_APPEARANCE, locale: 'es' }}
-          >
-            <CheckoutInner email={email} fullName={fullName} phone={phone} />
-          </Elements>
+          {/* Cuál de los dos, por el prefijo del secreto.
+              `cs_…` es una sesión de pago de Stripe (lo normal desde ahora, y
+              lo que hace que la factura salga sola). `pi_…` es el PaymentIntent
+              del camino anterior, que se queda funcionando por si hubiera algún
+              enlace de pago a medias dando vueltas. */}
+          {esSesionDePago ? (
+            <CajaDeStripe
+              clientSecret={clientSecret}
+              stripePromise={stripePromise}
+              email={email}
+              fullName={fullName}
+            />
+          ) : (
+            <Elements
+              stripe={stripePromise}
+              options={{ clientSecret, appearance: NAWAR_APPEARANCE, locale: 'es' }}
+            >
+              <CheckoutInner email={email} fullName={fullName} phone={phone} />
+            </Elements>
+          )}
         </div>
         <CourseSummary amountCents={amountCents} currency={currency} />
       </div>

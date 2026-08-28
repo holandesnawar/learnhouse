@@ -49,12 +49,12 @@ export default function BienvenidoPage() {
             <span style={{ color: '#4da3ff' }}>Holandés Nawar!</span>
           </h1>
 
-          <p className="text-[15px] text-white/70 mt-4 leading-relaxed">
+          <p className="text-[15px] text-white mt-4 leading-relaxed">
             Tu compra está confirmada. Te acabamos de mandar un email con un
             enlace para crear tu contraseña.
           </p>
-          <p className="text-[13px] text-white/55 mt-3 leading-relaxed">
-            ¿No lo ves? Mira la carpeta de Spam o Promociones — suele tardar un minuto.
+          <p className="text-[13px] text-white/85 mt-3 leading-relaxed">
+            ¿No lo ves? Mira la carpeta de Spam o Promociones. Suele tardar un minuto.
           </p>
 
           <Link
@@ -64,7 +64,7 @@ export default function BienvenidoPage() {
             Ya creé mi contraseña — Entrar
             <ArrowRight size={15} strokeWidth={2.5} />
           </Link>
-          <p className="text-[12px] text-white/55 mt-3 leading-relaxed">
+          <p className="text-[12px] text-white/85 mt-3 leading-relaxed">
             Si ya pulsaste el enlace del email y pusiste tu contraseña, entra desde aquí.
           </p>
         </div>

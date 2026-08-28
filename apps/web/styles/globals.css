@@ -2496,3 +2496,14 @@ a.bg-black:hover {
     background-color: rgba(255, 255, 255, 0.45);
   }
 }
+
+/* Las pantallas de acceso (login, crear cuenta, bienvenido, pago) se pintan
+   sobre un `fixed inset-0` azul. En el móvil, al abrir el teclado cambia el
+   alto de la ventana y por debajo de ese `fixed` asomaba el blanco del
+   documento: media pantalla en blanco justo al escribir la contraseña.
+
+   Tiñendo el cuerpo del mismo azul, lo que asome es del mismo color y no se
+   nota. Solo mientras esa pantalla esté montada, gracias a `:has()`. */
+body:has(.nawar-auth-shell) {
+  background-color: #1D0084;
+}

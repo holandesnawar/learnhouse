@@ -15,8 +15,13 @@ const LOGO_URL = 'https://d1yei2z3i6k35z.cloudfront.net/9533860/671a9c9265e23_Lo
 
 export default function AuthShell({ children }: { children: React.ReactNode }) {
   return (
+    // `nawar-auth-shell` no pinta nada por sí sola: la usa `globals.css` para
+    // teñir el CUERPO de la página del mismo azul. En el móvil, al abrir el
+    // teclado cambia el alto de la ventana y por debajo de este `fixed` asomaba
+    // el fondo blanco del documento: media pantalla en blanco justo al escribir
+    // la contraseña.
     <div
-      className="fixed inset-0 overflow-y-auto overscroll-none text-white"
+      className="nawar-auth-shell fixed inset-0 overflow-y-auto overscroll-none text-white"
       style={{
         backgroundColor: '#1D0084',
         backgroundImage:

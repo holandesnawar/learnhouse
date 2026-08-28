@@ -531,8 +531,11 @@ def send_payment_welcome_email(
     return send_email(
         dry_run=preview,
         to=email,
-        subject=(f"Welkom, {nombre_saludo} · crea tu contraseña"
-                 if nombre_saludo else "Welkom a Holandés Nawar · crea tu contraseña"),
+        # Solo "Welkom" y el nombre. El "crea tu contraseña" sobra en el
+        # asunto: es lo que hay que hacer dentro, no de lo que va el correo, y
+        # alargarlo hace que en el móvil se corte justo por el nombre — que es
+        # lo único que consigue que lo abran.
+        subject=(f"Welkom, {nombre_saludo}" if nombre_saludo else "Welkom a Holandés Nawar"),
         body=_email_layout(
             title=heading,
             body_content=body_content,

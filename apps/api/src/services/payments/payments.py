@@ -379,6 +379,22 @@ async def _matricula_sin_pagar_reciente(email: str, db_session: AsyncSession):
     return row
 
 
+def _cerrar_sesion_anterior(session_id: str) -> None:
+    """
+    Caduca la sesión de pago que queda huérfana al rehacer la matrícula.
+
+    Mismo motivo que con los PaymentIntent: dos pestañas abiertas no pueden
+    acabar en dos cobros. Stripe rechaza caducar una sesión ya pagada o ya
+    caducada, y eso está bien — significa que no había nada que cerrar.
+    """
+    if not session_id.startswith("cs_"):
+        return
+    try:
+        stripe.checkout.Session.expire(session_id)
+    except Exception:  # noqa: BLE001
+        logger.warning("No se pudo caducar la sesión %s", session_id, exc_info=True)
+
+
 def _cancelar_intento_anterior(payment_intent_id: str) -> None:
     """Cierra el PaymentIntent que queda huérfano al rehacer la matrícula.
 
@@ -396,6 +412,191 @@ def _cancelar_intento_anterior(payment_intent_id: str) -> None:
     except Exception:  # noqa: BLE001
         # Nunca puede impedir que se abra el pago nuevo.
         logger.warning("No se pudo cancelar el PaymentIntent %s", payment_intent_id, exc_info=True)
+
+
+async def enroll_and_checkout_session(data, db_session: AsyncSession) -> dict:
+    """
+    Guarda la matrícula y abre una **sesión de pago de Stripe, embebida**.
+
+    Por qué esta y no un PaymentIntent
+    ----------------------------------
+    Con PaymentIntent, Stripe manda un recibo escueto y **no emite factura**:
+    hay que fabricarla a mano después del cobro. Eso costó una noche entera de
+    fallos encadenados —la clave de Stripe que faltaba en el webhook, la marca
+    de "ya atendida" en el usuario en vez de en la matrícula, el envío que
+    nadie llamaba— y cada uno de ellos era invisible: el cobro entraba y la
+    factura no salía, sin un solo error a la vista.
+
+    La sesión de pago trae `invoice_creation`, y con eso **Stripe emite la
+    factura numerada y la manda él**, con su recibo de siempre. Cero código
+    nuestro en ese camino, y por tanto cero fallos nuestros.
+
+    Y sigue siendo embebida (`ui_mode="embedded"`): se pinta dentro de nuestra
+    propia página, así que el alumno no sale de la escuela. No hay que elegir
+    entre la factura buena y quedarse en el dominio.
+
+    Devuelve lo mismo que la versión de PaymentIntent —`client_secret`,
+    `publishable_key`, `payment_url`— para que la landing no se entere del
+    cambio. El secreto de una sesión empieza por `cs_`, y por ahí la página de
+    pago sabe cuál de los dos tiene delante.
+    """
+    from src.db.enrollment import Enrollment
+
+    await ensure_matricula_abierta(db_session)
+
+    _usar_stripe()
+    academy = _academy_url()
+
+    email = str(data.email).strip().lower()
+    full_name = f"{data.first_name} {data.last_name}".strip() or data.first_name or "Alumno"
+
+    # El importe sale del Price, para que cambiarlo en Stripe no pida despliegue.
+    try:
+        price = stripe.Price.retrieve(_formacion_price_id())
+        unit_amount = price.get("unit_amount") if hasattr(price, "get") else getattr(price, "unit_amount", None)
+        currency_raw = price.get("currency") if hasattr(price, "get") else getattr(price, "currency", "eur")
+    except Exception as exc:
+        logger.exception("No se pudo leer el precio de Stripe: %s", exc)
+        raise HTTPException(status_code=502, detail=f"Could not load price: {exc}")
+    amount = int(unit_amount or 0)
+    currency = (currency_raw or "eur").lower()
+    if amount <= 0:
+        raise HTTPException(status_code=500, detail="Configured price has empty unit_amount")
+
+    # Cliente primero: la factura y el recibo necesitan a quién ir dirigidos.
+    try:
+        customer = stripe.Customer.create(
+            email=email,
+            name=full_name,
+            phone=data.phone or None,
+            metadata={
+                "country": data.country or "",
+                "city": data.city or "",
+                "source": "matricula-form-checkout",
+            },
+        )
+    except Exception as exc:
+        logger.exception("No se pudo crear el cliente en Stripe: %s", exc)
+        raise HTTPException(status_code=502, detail=f"Could not create Stripe customer: {exc}")
+
+    now = datetime.now().isoformat()
+    # Una persona = una fila: si dejó una matrícula sin pagar hace un rato, es
+    # el mismo intento y se reaprovecha en vez de inflar el abandono del embudo.
+    row = await _matricula_sin_pagar_reciente(email, db_session)
+    if row is not None:
+        anterior = row.stripe_session_id
+        row.first_name = data.first_name
+        row.last_name = data.last_name
+        row.phone = data.phone or ""
+        row.country = data.country or ""
+        row.city = data.city or ""
+        row.stripe_customer_id = customer.id
+        row.updated_at = now
+        if anterior:
+            _cerrar_sesion_anterior(anterior)
+            _cancelar_intento_anterior(anterior)
+    else:
+        row = Enrollment(
+            email=email,
+            first_name=data.first_name,
+            last_name=data.last_name,
+            phone=data.phone or "",
+            country=data.country or "",
+            city=data.city or "",
+            status="pending",
+            stripe_customer_id=customer.id,
+            stripe_session_id="",
+            created_at=now,
+            updated_at=now,
+        )
+    db_session.add(row)
+    await db_session.commit()
+    await db_session.refresh(row)
+
+    metadatos = {
+        "product": "formacion-a0-a1",
+        "source": "matricula-form-checkout",
+        "enrollment_id": str(row.id or ""),
+        "phone": data.phone or "",
+        "first_name": data.first_name,
+        "last_name": data.last_name,
+        # La factura la emite Stripe. Esta marca la lee el webhook del
+        # PaymentIntent para NO emitir otra por su cuenta: sin ella saldrían
+        # dos facturas con dos números para un solo cobro.
+        "factura_stripe": "1",
+    }
+
+    try:
+        session = stripe.checkout.Session.create(
+            # `embedded_page`, no `embedded`: Stripe renombró el valor y el
+            # viejo ya no lo acepta ("The ui_mode value `embedded` is no longer
+            # supported"). Es el mismo modo — la caja pintada dentro de nuestra
+            # página — solo que ahora se llama así.
+            ui_mode="embedded_page",
+            mode="payment",
+            line_items=[{"price": _formacion_price_id(), "quantity": 1}],
+            customer=customer.id,
+            # Al volver, la página de bienvenida de siempre.
+            return_url=f"{academy}/auth/bienvenido?session_id={{CHECKOUT_SESSION_ID}}",
+            # Esto es lo que arregla la factura: Stripe la crea, la numera con
+            # el prefijo NAWAR y la manda con el recibo. Nada por nuestra parte.
+            invoice_creation={
+                "enabled": True,
+                "invoice_data": {
+                    "description": "Formación Nawar A0-A1",
+                    "footer": "Gracias por unirte a Holandés Nawar.",
+                    "metadata": {"product": "formacion-a0-a1"},
+                },
+            },
+            # Sin campo de cupón, a propósito: una caja vacía que pone "código
+            # de descuento" avisa de que existe un descuento que tú no tienes,
+            # y parte de la gente se va a buscarlo y no vuelve. Los cupones van
+            # en el enlace y aplicados solos.
+            allow_promotion_codes=False,
+            # Lista explícita en vez de automática, para decidir nosotros qué
+            # sale: sin `link` (mete una cuenta en mitad del pago) y sin
+            # `sepa_debit` (lento y raro aquí). La tarjeta ya arrastra Apple Pay
+            # y Google Pay sola en los dispositivos que los tienen.
+            payment_method_types=["card", "ideal", "klarna", "bancontact"],
+            metadata=metadatos,
+            payment_intent_data={"metadata": metadatos},
+        )
+    except Exception as exc:
+        logger.exception("No se pudo crear la sesión de pago: %s", exc)
+        raise HTTPException(status_code=502, detail=f"Could not create checkout session: {exc}")
+
+    # Mismo campo que usaba el PaymentIntent: un solo identificador para el
+    # webhook y para las consultas del panel, venga del flujo que venga.
+    row.stripe_session_id = session.id
+    row.updated_at = datetime.now().isoformat()
+    db_session.add(row)
+    await db_session.commit()
+
+    client_secret = (
+        session.client_secret
+        if hasattr(session, "client_secret")
+        else (session.get("client_secret") if hasattr(session, "get") else None)
+    )
+    if not client_secret:
+        raise HTTPException(status_code=502, detail="Stripe did not return a client secret")
+
+    em = quote(email, safe="")
+    nm = quote(full_name, safe="")
+    ph = quote(data.phone or "", safe="")
+
+    return {
+        "enrollment_id": row.id or 0,
+        "client_secret": client_secret,
+        "publishable_key": _stripe_publishable(),
+        "amount": amount,
+        "currency": currency,
+        "payment_url": (
+            f"{academy}/auth/matricula-formacion-nawar-a0-a1"
+            f"?ei={row.id or 0}&cs={quote(client_secret, safe='')}"
+            f"&pk={quote(_stripe_publishable(), safe='')}"
+            f"&amt={amount}&cur={currency}&em={em}&nm={nm}&ph={ph}"
+        ),
+    }
 
 
 async def enroll_and_payment_intent(data, db_session: AsyncSession) -> dict:
@@ -999,30 +1200,91 @@ async def _provision_after_payment(
 
 
 async def _handle_checkout_session(obj: dict, db_session: AsyncSession) -> dict:
-    """Legacy flow: Stripe-hosted Checkout Session has completed."""
+    """
+    Sesión de pago completada. Es el camino de los pagos nuevos.
+
+    La factura NO se emite aquí: la crea y la manda Stripe por su cuenta,
+    porque la sesión se abre con `invoice_creation`. Lo único que hace falta de
+    nuestra parte es dar de alta al alumno.
+    """
     if obj.get("payment_status") != "paid":
         return {"detail": "session not paid"}
 
     session_id = obj.get("id") or ""
-    if session_id:
-        await _mark_enrollment_paid(
-            session_id,
+    metadatos = obj.get("metadata") or {}
+    importe = int(obj.get("amount_total") or 0)
+    moneda = (obj.get("currency") or "eur").lower()
+
+    # Por id de matrícula si viene en los metadatos (los pagos nuevos), y si no
+    # por el id de la sesión, que es como se hacía antes. Así siguen entrando
+    # las matrículas viejas que quedaran colgadas.
+    enrollment = None
+    id_matricula = str(metadatos.get("enrollment_id") or "").strip()
+    if id_matricula:
+        try:
+            from src.db.enrollment import Enrollment
+
+            enrollment = (
+                await db_session.execute(
+                    select(Enrollment).where(Enrollment.id == int(id_matricula))
+                )
+            ).scalars().first()
+        except Exception:
+            logger.exception("No se pudo buscar la matrícula %s", id_matricula)
+
+    if enrollment is not None:
+        if enrollment.status != "paid":
+            enrollment.status = "paid"
+            enrollment.updated_at = datetime.now().isoformat()
+            enrollment.amount_cents = importe
+            enrollment.currency = moneda
+            enrollment.paid_at = datetime.now(timezone.utc).isoformat()
+            db_session.add(enrollment)
+            await db_session.commit()
+        email = (enrollment.email or "").strip().lower()
+        name = f"{enrollment.first_name} {enrollment.last_name}".strip()
+    else:
+        if session_id:
+            await _mark_enrollment_paid(session_id, db_session, importe, moneda)
+        email = (
+            (obj.get("customer_details") or {}).get("email")
+            or obj.get("customer_email")
+            or ""
+        ).strip().lower()
+        name = ((obj.get("customer_details") or {}).get("name") or "").strip()
+
+    # La marca de "ya atendida" va en la matrícula, no en la cuenta: quien
+    # compra teniendo ya cuenta también necesita su correo de bienvenida, y un
+    # reintento de Stripe no debe mandarlo dos veces.
+    ya_atendida = bool(
+        enrollment is not None and (getattr(enrollment, "provisioned_at", "") or "").strip()
+    )
+    resultado = await _provision_after_payment(email, name, db_session, ya_atendida=ya_atendida)
+
+    if enrollment is not None and resultado.get("atendida_ahora"):
+        try:
+            enrollment.provisioned_at = datetime.now(timezone.utc).isoformat()
+            db_session.add(enrollment)
+            await db_session.commit()
+        except Exception:
+            logger.exception("No se pudo marcar la matrícula %s como atendida", enrollment.id)
+
+    # Y las automatizaciones de "cuando alguien paga", igual que en el otro
+    # camino. Se tragan sus errores: el cobro ya está hecho.
+    user_id = resultado.get("user_id")
+    org_id = resultado.get("org_id")
+    if user_id and org_id:
+        from src.services.automations.engine import run_trigger
+
+        await run_trigger(
+            "payment_completed",
+            int(org_id),
+            int(user_id),
             db_session,
-            int(obj.get("amount_total") or 0),
-            (obj.get("currency") or "eur").lower(),
+            extra={"importe": f"{importe / 100:.2f} {moneda.upper()}"},
         )
 
-    email = (
-        (obj.get("customer_details") or {}).get("email")
-        or obj.get("customer_email")
-        or ""
-    ).strip().lower()
-    name = ((obj.get("customer_details") or {}).get("name") or "").strip()
-    # El flujo viejo (Checkout de Stripe) ya no se usa para pagos nuevos, pero
-    # sigue vivo por si queda alguna matrícula colgada. Aquí no hay marca por
-    # matrícula que consultar, así que se atiende siempre: es lo que hacía antes
-    # y para lo que queda no cambia nada.
-    return await _provision_after_payment(email, name, db_session)
+    return resultado
 
 
 async def _handle_payment_intent(obj: dict, db_session: AsyncSession) -> dict:
@@ -1081,7 +1343,13 @@ async def _handle_payment_intent(obj: dict, db_session: AsyncSession) -> dict:
     amount = int(obj.get("amount_received") or obj.get("amount") or 0)
     currency = (obj.get("currency") or "eur").lower()
     customer_id = obj.get("customer") or enrollment.stripe_customer_id or ""
-    if result.get("atendida_ahora") and customer_id and amount > 0:
+    #
+    # Y NO si la factura la emite Stripe. Con la sesión de pago
+    # (`invoice_creation`) la factura la crea y la manda él; emitir otra aquí
+    # daría dos facturas con dos números para un solo cobro, que en contabilidad
+    # es peor que no tener ninguna.
+    factura_de_stripe = str((obj.get("metadata") or {}).get("factura_stripe") or "") == "1"
+    if result.get("atendida_ahora") and customer_id and amount > 0 and not factura_de_stripe:
         _create_post_hoc_invoice(
             customer_id=customer_id,
             amount=amount,

@@ -63,14 +63,20 @@ class EnrollmentResponse(BaseModel):
 class EnrollmentIntentResponse(BaseModel):
     """Returned by /payments/enroll-intent.
 
-    Used by the embedded Stripe Elements checkout we host ourselves at
-    /auth/matricula-formacion-nawar-a0-a1/pago. The matricula form
-    redirects to `payment_url`; the page then mounts the PaymentElement
-    against `client_secret` using `publishable_key`.
+    La página de pago que servimos nosotros monta con esto la caja de Stripe.
+    El formulario de matrícula redirige a `payment_url`.
+
+    `client_secret` puede ser de una sesión de pago (`cs_…`, lo normal) o de un
+    PaymentIntent (`pi_…`, el camino viejo). La página distingue por el prefijo,
+    así que los dos siguen funcionando.
     """
 
     enrollment_id: int
     client_secret: str
     publishable_key: str
     payment_url: str
+    # El importe y la moneda salen del Price de Stripe. Opcionales porque no
+    # todos los caminos los devuelven, y la landing solo lee `payment_url`.
+    amount: int = 0
+    currency: str = "eur"
 
