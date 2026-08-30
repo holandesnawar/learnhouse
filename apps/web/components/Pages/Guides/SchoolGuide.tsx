@@ -192,7 +192,7 @@ export default function SchoolGuide({
 
   if (isFaq) {
     return (
-      <article className="max-w-3xl">
+      <article className="max-w-3xl mx-auto pt-1 sm:pt-2">
         <div className="flex items-center gap-2 mb-1">
           <HelpCircle size={15} className="text-[#025dc7]" />
           <span className="text-[11px] font-semibold text-[#025dc7] uppercase tracking-[0.08em]">
@@ -254,7 +254,7 @@ export default function SchoolGuide({
   }
 
   return (
-    <article className="max-w-3xl">
+    <article className="max-w-3xl mx-auto pt-1 sm:pt-2">
       <div className="flex items-center gap-2 mb-1">
         <BookOpen size={15} className="text-[#025dc7]" />
         <span className="text-[11px] font-semibold text-[#025dc7] uppercase tracking-[0.08em]">

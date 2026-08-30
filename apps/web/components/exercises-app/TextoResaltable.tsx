@@ -48,6 +48,32 @@ type Contexto = { courseUuid?: string; activityUuid?: string; nombre?: string }
  */
 export const ContextoResaltado = React.createContext<Contexto | null>(null)
 
+/**
+ * Separa el `**negrita**` del texto y devuelve el texto limpio con sus tramos.
+ *
+ * Esto es lo que faltaba para poder subrayar el cuerpo de las secciones del
+ * Samenvatting: 94 de los 112 textos llevan negritas, así que sin esto había
+ * que elegir entre pintar la negrita o poder subrayar. Los asteriscos NO
+ * llegan al DOM, así que las posiciones se cuentan sobre el texto limpio y
+ * `posicionEnTexto` sigue cuadrando sin tocar nada.
+ */
+function partirNegritas(bruto: string): { plano: string; negritas: [number, number][] } {
+  const negritas: [number, number][] = []
+  let plano = ''
+  let ultimo = 0
+  const re = /\*\*([^*]+)\*\*/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(bruto))) {
+    plano += bruto.slice(ultimo, m.index)
+    const desde = plano.length
+    plano += m[1]
+    negritas.push([desde, plano.length])
+    ultimo = m.index + m[0].length
+  }
+  plano += bruto.slice(ultimo)
+  return { plano, negritas }
+}
+
 /** En qué carácter del contenedor cae este punto del DOM. */
 function posicionEnTexto(contenedor: HTMLElement, nodo: Node, offset: number): number | null {
   let total = 0
@@ -102,25 +128,52 @@ export default function TextoResaltable({
     }
   }, [activo, activityUuid, accessToken, bloque])
 
+  const { plano, negritas } = useMemo(() => partirNegritas(texto), [texto])
+
   /** El texto partido en trozos: los subrayados y lo que hay entre ellos. */
   const trozos = useMemo(() => {
     const orden = [...resaltados].sort((a, b) => a.pm_from - b.pm_from)
-    const salida: { texto: string; hl?: LessonHighlight }[] = []
+    const salida: { desde: number; texto: string; hl?: LessonHighlight }[] = []
     let cursor = 0
     for (const h of orden) {
-      const desde = Math.max(0, Math.min(h.pm_from, texto.length))
-      const hasta = Math.max(desde, Math.min(h.pm_to, texto.length))
+      const desde = Math.max(0, Math.min(h.pm_from, plano.length))
+      const hasta = Math.max(desde, Math.min(h.pm_to, plano.length))
       // Se solapa con el anterior, o el texto de la lección ya no es el que se
       // subrayó. En los dos casos, mejor no pintar que pintar donde no es.
       if (desde < cursor || hasta <= desde) continue
-      if (texto.slice(desde, hasta) !== h.quote) continue
-      if (desde > cursor) salida.push({ texto: texto.slice(cursor, desde) })
-      salida.push({ texto: texto.slice(desde, hasta), hl: h })
+      if (plano.slice(desde, hasta) !== h.quote) continue
+      if (desde > cursor) salida.push({ desde: cursor, texto: plano.slice(cursor, desde) })
+      salida.push({ desde, texto: plano.slice(desde, hasta), hl: h })
       cursor = hasta
     }
-    if (cursor < texto.length) salida.push({ texto: texto.slice(cursor) })
+    if (cursor < plano.length) salida.push({ desde: cursor, texto: plano.slice(cursor) })
     return salida
-  }, [texto, resaltados])
+  }, [plano, resaltados])
+
+  /** Pinta un trozo respetando las negritas que le caen dentro. */
+  const conNegritas = useCallback(
+    (trozo: string, inicio: number): React.ReactNode => {
+      const fin = inicio + trozo.length
+      const dentro = negritas.filter(([a, b]) => b > inicio && a < fin)
+      if (!dentro.length) return trozo
+      const salida: React.ReactNode[] = []
+      let cursor = inicio
+      dentro.forEach(([a, b], i) => {
+        const ini = Math.max(a, inicio)
+        const f = Math.min(b, fin)
+        if (ini > cursor) salida.push(<React.Fragment key={`t${i}`}>{plano.slice(cursor, ini)}</React.Fragment>)
+        salida.push(
+          <strong key={`b${i}`} className="font-bold text-gray-900">
+            {plano.slice(ini, f)}
+          </strong>
+        )
+        cursor = f
+      })
+      if (cursor < fin) salida.push(<React.Fragment key="fin">{plano.slice(cursor, fin)}</React.Fragment>)
+      return salida
+    },
+    [plano, negritas]
+  )
 
   const alSoltar = useCallback(() => {
     if (!activo) return
@@ -145,9 +198,9 @@ export default function TextoResaltable({
       left: caja.left + caja.width / 2,
       desde,
       hasta,
-      cita: texto.slice(desde, hasta),
+      cita: plano.slice(desde, hasta),
     })
-  }, [activo, texto])
+  }, [activo, plano])
 
   // Al tocar en otro sitio se cierra el menú, como cualquier menú flotante.
   useEffect(() => {
@@ -336,11 +389,11 @@ export default function TextoResaltable({
               className="rounded-[3px] cursor-pointer"
               style={{ backgroundColor: HIGHLIGHT_COLORS[t.hl.color]?.bg || '#FEF3C7', color: 'inherit' }}
             >
-              {t.texto}
+              {conNegritas(t.texto, t.desde)}
               {!!t.hl.note && <StickyNote size={12} className="inline-block ml-0.5 -mt-0.5 text-[#025dc7]" />}
             </mark>
           ) : (
-            <React.Fragment key={i}>{t.texto}</React.Fragment>
+            <React.Fragment key={i}>{conNegritas(t.texto, t.desde)}</React.Fragment>
           )
         )}
       </p>

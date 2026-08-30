@@ -3171,15 +3171,6 @@ function ExerciseStep({
 ───────────────────────────────────────────────────────────────────────────── */
 
 /** Renderiza markdown ligero: solo **negritas** → <strong> */
-function renderInlineBold(text: string): React.ReactNode[] {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((p, i) =>
-    /^\*\*[^*]+\*\*$/.test(p)
-      ? <strong key={i} className="font-bold text-gray-900">{p.slice(2, -2)}</strong>
-      : <span key={i}>{p}</span>
-  );
-}
-
 function ResumenSection({ block, vocabItems = [], phraseItems = [], inCourse, onComplete }: { block: SummaryBlock; vocabItems?: VocabularyItem[]; phraseItems?: PhraseItem[]; inCourse?: boolean; onComplete: () => void }) {
   return (
     <div className="space-y-6">
@@ -3218,7 +3209,11 @@ function ResumenSection({ block, vocabItems = [], phraseItems = [], inCourse, on
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 </span>
-                <span className="text-[14px] text-gray-900 leading-snug">{obj}</span>
+                <TextoResaltable
+                  texto={obj}
+                  bloque={`resumen_obj${i}`}
+                  className="text-[14px] text-gray-900 leading-snug min-w-0"
+                />
               </li>
             ))}
           </ul>
@@ -3236,9 +3231,11 @@ function ResumenSection({ block, vocabItems = [], phraseItems = [], inCourse, on
             <span>{sec.heading.split(' ').slice(1).join(' ')}</span>
           </h3>
           {sec.body && (
-            <p className="text-[14px] text-[#5A6480] leading-relaxed">
-              {renderInlineBold(sec.body)}
-            </p>
+            <TextoResaltable
+              texto={sec.body}
+              bloque={`resumen_s${i}`}
+              className="text-[14px] text-[#5A6480] leading-relaxed"
+            />
           )}
           {sec.items && sec.items.length > 0 && (
             <div className="divide-y divide-[#DDE6F5] rounded-lg border border-[#DDE6F5] bg-[#F8FAFF] overflow-hidden">
@@ -3332,9 +3329,11 @@ function ResumenSection({ block, vocabItems = [], phraseItems = [], inCourse, on
       {block.tip && (
         <div className="w-fit max-w-full rounded-2xl border border-[#FCD34D]/50 bg-[#FEF3C7] px-4 py-3 flex items-center gap-2.5">
           <span className="text-[18px] shrink-0 leading-none">💡</span>
-          <p className="text-[14px] text-[#92400E] leading-relaxed">
-            {renderInlineBold(block.tip)}
-          </p>
+          <TextoResaltable
+            texto={block.tip}
+            bloque="resumen_tip"
+            className="text-[14px] text-[#92400E] leading-relaxed"
+          />
         </div>
       )}
 
