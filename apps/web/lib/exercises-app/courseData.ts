@@ -4908,6 +4908,73 @@ const m4_les1: Lesson = {
       ],
     },
     {
+      type: 'lezen',
+      title: 'Een baan bij het uitzendbureau',
+      textNl: `Werken via een uitzendbureau
+
+Marta komt uit Sevilla en woont sinds januari in Haarlem. Ze zoekt werk. Op dinsdagochtend gaat ze naar het uitzendbureau in de Grote Houtstraat. Het bureau is open van negen uur tot half zes.
+
+Marta heeft werkervaring in de horeca en in de zorg. Ze neemt haar cv mee. De HR-medewerker bekijkt haar cv en zegt: er is nu geen werk in de zorg, maar wel in de horeca.
+
+Er is een vacature voor receptioniste in een restaurant in het centrum. Het is een baan van vier dagen per week, van woensdag tot zaterdag. Het uurloon is veertien euro.
+
+Marta spreekt Spaans en een beetje Engels. Voor deze baan is dat genoeg. Morgen om elf uur heeft ze een sollicitatiegesprek met de manager van het restaurant.`,
+      textEs: `Trabajar a través de una empresa de trabajo temporal
+
+Marta es de Sevilla y vive en Haarlem desde enero. Está buscando trabajo. El martes por la mañana va a la empresa de trabajo temporal de la calle Grote Houtstraat. La oficina abre de nueve a cinco y media.
+
+Marta tiene experiencia en hostelería y en el sector de los cuidados. Lleva su currículum. La persona de recursos humanos mira el currículum y dice: ahora no hay trabajo en cuidados, pero sí en hostelería.
+
+Hay una vacante de recepcionista en un restaurante del centro. Es un trabajo de cuatro días por semana, de miércoles a sábado. El sueldo es de catorce euros la hora.
+
+Marta habla español y un poco de inglés. Para este puesto es suficiente. Mañana a las once tiene una entrevista de trabajo con el encargado del restaurante.`,
+      exercises: [
+        { id: 'm4l1lz-1', type: 'multiple_choice', prompt: '¿Qué día va Marta al uitzendbureau?', options: ['El martes', 'El lunes', 'El jueves', 'El sábado'], correctAnswer: 'El martes', explanation: '"Op dinsdagochtend gaat ze naar het uitzendbureau". Dinsdag = martes.' },
+        { id: 'm4l1lz-2', type: 'multiple_choice', prompt: '¿En qué dos sectores tiene experiencia Marta?', options: ['Horeca y zorg', 'Onderwijs y ICT', 'Landbouw y retail', 'Schoonmaak y bouw'], correctAnswer: 'Horeca y zorg', explanation: '"Marta heeft werkervaring in de horeca en in de zorg".' },
+        { id: 'm4l1lz-3', type: 'multiple_choice', prompt: '¿Cuánto se paga por hora en ese trabajo?', options: ['14 euros', '11 euros', '18 euros', '9 euros'], correctAnswer: '14 euros', explanation: '"Het uurloon is veertien euro".' },
+        { id: 'm4l1lz-4', type: 'multiple_choice', prompt: '¿Cuántos días por semana es el trabajo?', options: ['Cuatro', 'Tres', 'Cinco', 'Seis'], correctAnswer: 'Cuatro', explanation: '"werk voor vier dagen per week, van woensdag tot zaterdag".' },
+        { id: 'm4l1lz-5', type: 'true_false', prompt: 'Hay trabajo disponible en el sector de los cuidados.', correctAnswer: 'falso', explanation: '"er is nu geen werk in de zorg, maar wel in de horeca".' },
+        { id: 'm4l1lz-6', type: 'multiple_choice', prompt: '¿A qué hora es la entrevista de trabajo?', options: ['A las once', 'A las nueve', 'A la una', 'A las cinco y media'], correctAnswer: 'A las once', explanation: '"Morgen om elf uur heeft ze een sollicitatiegesprek".' },
+        { id: 'm4l1lz-7', type: 'fill_blank', prompt: 'Marta neemt haar ___ mee naar het uitzendbureau. (currículum)', correctAnswer: 'cv', hint: 'dos letras, el papel con tu experiencia', explanation: 'Het cv = el currículum.' },
+        { id: 'm4l1lz-8', type: 'multiple_choice', prompt: '¿Qué significa "een vacature"?', options: ['Una vacante', 'Unas vacaciones', 'Un contrato', 'Una nómina'], correctAnswer: 'Una vacante', explanation: 'Ojo con el falso amigo: "vacature" es vacante, no vacaciones (vakantie).' },
+      ],
+    },
+    {
+      type: 'dialogue',
+      dialogue: {
+        id: 'm4d1',
+        title: 'Gesprek bij het uitzendbureau',
+        context: 'Marta zoekt werk. Ze gaat naar het uitzendbureau en praat met een HR-medewerker over haar werkervaring.',
+        lines: [
+          { id: 'm4d1-1',  speaker: 'HR-medewerker', dutch: 'Hallo, hoe kan ik u helpen?', spanish: 'Hola, ¿cómo puedo ayudarle?' },
+          { id: 'm4d1-2',  speaker: 'Marta', dutch: 'Hallo, ik ben op zoek naar een baan.', spanish: 'Hola, estoy buscando trabajo.' },
+          { id: 'm4d1-3',  speaker: 'HR-medewerker', dutch: 'Daar kan ik u mee helpen. In welke sector heeft u werkervaring?', spanish: 'Puedo ayudarle con eso. ¿En qué sector tiene experiencia?' },
+          { id: 'm4d1-4',  speaker: 'Marta', dutch: 'Ik heb in de horeca en in de zorg gewerkt.', spanish: 'He trabajado en hostelería y en el sector de los cuidados.' },
+          { id: 'm4d1-5',  speaker: 'HR-medewerker', dutch: 'Heeft u uw cv meegebracht?', spanish: '¿Ha traído su currículum?' },
+          { id: 'm4d1-6',  speaker: 'Marta', dutch: 'Ja zeker, alstublieft.', spanish: 'Sí, claro, aquí lo tiene.' },
+          { id: 'm4d1-7',  speaker: 'HR-medewerker', dutch: 'Op dit moment is er geen werk in de zorg, maar wel in de horeca.', spanish: 'En este momento no hay trabajo en cuidados, pero sí en hostelería.' },
+          { id: 'm4d1-8',  speaker: 'HR-medewerker', dutch: 'Ik heb hier een vacature voor receptioniste in een restaurant. Hebt u interesse?', spanish: 'Tengo aquí una vacante de recepcionista en un restaurante. ¿Le interesa?' },
+          { id: 'm4d1-9',  speaker: 'Marta', dutch: 'Ja! Ik ben geïnteresseerd.', spanish: '¡Sí! Estoy interesada.' },
+          { id: 'm4d1-10', speaker: 'HR-medewerker', dutch: 'Spreekt u Engels?', spanish: '¿Habla inglés?' },
+          { id: 'm4d1-11', speaker: 'Marta', dutch: 'Een beetje, en ik spreek ook goed Spaans. Ik kom uit Spanje.', spanish: 'Un poco, y también hablo bien español. Soy de España.' },
+          { id: 'm4d1-12', speaker: 'HR-medewerker', dutch: 'Dat is prima. Ik neem contact op met het restaurant.', spanish: 'Eso está muy bien. Voy a contactar con el restaurante.' },
+          { id: 'm4d1-13', speaker: 'HR-medewerker', dutch: 'Morgen mag u op gesprek komen.', spanish: 'Mañana puede venir a la entrevista de trabajo.' },
+          { id: 'm4d1-14', speaker: 'Marta', dutch: 'Heel fijn, bedankt.', spanish: 'Qué bien, gracias.' },
+          { id: 'm4d1-15', speaker: 'HR-medewerker', dutch: 'Veel succes!', spanish: '¡Mucha suerte!' },
+          { id: 'm4d1-16', speaker: 'Marta', dutch: 'Bedankt en tot ziens!', spanish: '¡Gracias y hasta luego!' },
+        ],
+      },
+      exercises: [
+        { id: 'm4d1q-1', type: 'multiple_choice', prompt: '¿Qué busca Marta?', options: ['Una vacante de trabajo', 'Un piso', 'Un curso de neerlandés', 'Un médico'], correctAnswer: 'Una vacante de trabajo', explanation: '"Ik ben op zoek naar een baan" = estoy buscando trabajo.' },
+        { id: 'm4d1q-2', type: 'multiple_choice', prompt: '¿Qué documento lleva Marta?', options: ['Su cv', 'Su pasaporte', 'Su contrato', 'Su diploma'], correctAnswer: 'Su cv', explanation: '"Heeft u uw cv meegebracht?" — "Ja zeker, alstublieft".' },
+        { id: 'm4d1q-3', type: 'multiple_choice', prompt: '¿Para qué puesto es la vacante?', options: ['Recepcionista en un restaurante', 'Enfermera en un hospital', 'Limpiadora en una oficina', 'Profesora en una escuela'], correctAnswer: 'Recepcionista en un restaurante', explanation: '"een vacature voor receptioniste in een restaurant".' },
+        { id: 'm4d1q-4', type: 'true_false', prompt: 'Marta habla inglés perfectamente.', correctAnswer: 'falso', explanation: 'Dice "een beetje" (un poco). El español sí lo habla bien.' },
+        { id: 'm4d1q-5', type: 'multiple_choice', prompt: '¿Cuándo es la entrevista?', options: ['Mañana', 'Hoy mismo', 'La semana que viene', 'El mes que viene'], correctAnswer: 'Mañana', explanation: '"Morgen mag u op sollicitatiegesprek komen".' },
+        { id: 'm4d1q-6', type: 'multiple_choice', prompt: '¿Qué significa "Veel succes!"?', options: ['¡Mucha suerte!', '¡Muchas gracias!', '¡Hasta pronto!', '¡Bienvenida!'], correctAnswer: '¡Mucha suerte!', explanation: 'Se dice antes de un examen, una entrevista o algo difícil.' },
+        { id: 'm4d1q-7', type: 'fill_blank', prompt: 'Ik ben op zoek naar een ___. (un empleo)', correctAnswer: 'baan', hint: 'de baan = el empleo', explanation: '"Een baan zoeken" = buscar trabajo.' },
+      ],
+    },
+    {
       // Spreken de la lección de profesiones.
       //
       // Nueve rondas de dibujo y tres situaciones. El corte es el mismo que en
@@ -5088,6 +5155,76 @@ const m4_les2: Lesson = {
       ],
     },
     {
+      type: 'lezen',
+      title: 'De eerste dag in de winkel',
+      textNl: `Marta is nieuw
+
+Marta is sinds maandag de nieuwe collega in de winkel. Ze is vierentwintig jaar en ze komt uit Spanje. Ze heeft twee collega's in de winkel: Tom en Sanne. Ze zijn allebei aardig.
+
+De winkel is open van tien uur tot zes uur. Op zaterdag is het altijd druk. Marta heeft dan veel werk en aan het eind van de dag is ze moe.
+
+Marta heeft elke dag pauze om half een. De pauze duurt een half uur. Ze heeft meestal een broodje en een appel bij zich. Tom heeft altijd koffie, want zonder koffie wordt hij niet wakker.
+
+Vandaag is het dinsdag en het is rustig in de winkel. Marta is blij: ze heeft tijd om alles te leren.`,
+      textEs: `Marta es nueva
+
+Marta es desde el lunes la compañera nueva de la tienda. Tiene veinticuatro años y es de España. Tiene dos compañeros en la tienda: Tom y Sanne. Los dos son majos.
+
+La tienda abre de diez a seis. Los sábados siempre hay mucho movimiento. Marta tiene entonces mucho trabajo y al final del día está cansada.
+
+Marta tiene pausa todos los días a las doce y media. La pausa es de media hora. Suele llevar un bocadillo y una manzana. Tom siempre tiene café, porque sin café no se despierta.
+
+Hoy es martes y la tienda está tranquila. Marta está contenta: tiene tiempo para aprenderlo todo.`,
+      exercises: [
+        { id: 'm4l2lz-1', type: 'multiple_choice', prompt: '¿Desde qué día trabaja Marta en la tienda?', options: ['Desde el lunes', 'Desde el martes', 'Desde el sábado', 'Desde el domingo'], correctAnswer: 'Desde el lunes', explanation: '"Marta is sinds maandag de nieuwe collega".' },
+        { id: 'm4l2lz-2', type: 'multiple_choice', prompt: '¿Cuántos compañeros tiene?', options: ['Dos', 'Uno', 'Tres', 'Cinco'], correctAnswer: 'Dos', explanation: '"Ze heeft twee collega\'s in de winkel: Tom en Sanne".' },
+        { id: 'm4l2lz-3', type: 'multiple_choice', prompt: '¿A qué hora es la pausa?', options: ['A las doce y media', 'A la una', 'A las doce', 'A las dos'], correctAnswer: 'A las doce y media', explanation: '"pauze om half een" = a las doce y media. Ojo: half een NO es la una y media.' },
+        { id: 'm4l2lz-4', type: 'multiple_choice', prompt: '¿Qué día está siempre lleno?', options: ['El sábado', 'El martes', 'El lunes', 'El jueves'], correctAnswer: 'El sábado', explanation: '"Op zaterdag is het altijd druk".' },
+        { id: 'm4l2lz-5', type: 'true_false', prompt: 'Hoy la tienda está muy llena.', correctAnswer: 'falso', explanation: '"Vandaag is het dinsdag en het is rustig in de winkel".' },
+        { id: 'm4l2lz-6', type: 'fill_blank', prompt: 'Marta ___ vierentwintig jaar. (tiene)', correctAnswer: 'is', hint: 'la edad en neerlandés va con zijn, no con hebben', explanation: 'Se dice "ik ben 24 jaar", no "ik heb 24 jaar". Es de los errores más típicos del hispanohablante.' },
+        { id: 'm4l2lz-7', type: 'fill_blank', prompt: 'Marta ___ veel werk op zaterdag. (tiene)', correctAnswer: 'heeft', hint: 'aquí sí es hebben', explanation: '"Werk hebben" = tener trabajo.' },
+        { id: 'm4l2lz-8', type: 'multiple_choice', prompt: '¿Cuánto dura la pausa?', options: ['Media hora', 'Una hora', 'Quince minutos', 'Dos horas'], correctAnswer: 'Media hora', explanation: '"De pauze is een half uur".' },
+      ],
+    },
+    {
+      type: 'dialogue',
+      dialogue: {
+        id: 'm4d2',
+        title: 'Gesprek – De nieuwe collega',
+        context: 'Tom ziet Marta voor het eerst op het werk. Let op de werkwoorden hebben en zijn: bijna elke zin heeft er een.',
+        lines: [
+          { id: 'm4d2-1',  speaker: 'Tom', dutch: 'Hallo, ben jij nieuw?', spanish: 'Hola, ¿eres nueva?' },
+          { id: 'm4d2-2',  speaker: 'Marta', dutch: 'Ja, ik ben nieuw. Ik ben Marta.', spanish: 'Sí, soy nueva. Soy Marta.' },
+          { id: 'm4d2-3',  speaker: 'Tom', dutch: 'Aangenaam, Marta. Ik ben Tom. Hoe gaat het?', spanish: 'Encantado, Marta. Soy Tom. ¿Cómo estás?' },
+          { id: 'm4d2-4',  speaker: 'Marta', dutch: 'Het gaat goed, maar ik ben een beetje moe vandaag.', spanish: 'Estoy bien, pero hoy estoy un poco cansada.' },
+          { id: 'm4d2-5',  speaker: 'Tom', dutch: 'Heb je veel werk?', spanish: '¿Tienes mucho trabajo?' },
+          { id: 'm4d2-6',  speaker: 'Marta', dutch: 'Ja, ik heb veel werk.', spanish: 'Sí, tengo mucho trabajo.' },
+          { id: 'm4d2-7',  speaker: 'Tom', dutch: 'Waar ben je vandaag?', spanish: '¿Dónde estás hoy?' },
+          { id: 'm4d2-8',  speaker: 'Marta', dutch: 'Ik ben in de winkel.', spanish: 'Estoy en la tienda.' },
+          { id: 'm4d2-9',  speaker: 'Tom', dutch: 'Heb je collega\'s daar?', spanish: '¿Tienes compañeros allí?' },
+          { id: 'm4d2-10', speaker: 'Marta', dutch: 'Ja, ik heb twee collega\'s. Ze zijn aardig.', spanish: 'Sí, tengo dos compañeros. Son majos.' },
+          { id: 'm4d2-11', speaker: 'Tom', dutch: 'Heb je nu pauze?', spanish: '¿Tienes pausa ahora?' },
+          { id: 'm4d2-12', speaker: 'Marta', dutch: 'Ja, ik heb nu pauze.', spanish: 'Sí, ahora tengo pausa.' },
+          { id: 'm4d2-13', speaker: 'Tom', dutch: 'Heb je eten bij je?', spanish: '¿Llevas algo de comer?' },
+          { id: 'm4d2-14', speaker: 'Marta', dutch: 'Ja, ik heb een broodje en een appel.', spanish: 'Sí, tengo un bocadillo y una manzana.' },
+          { id: 'm4d2-15', speaker: 'Tom', dutch: 'Is het druk in de winkel?', spanish: '¿Hay mucha gente en la tienda?' },
+          { id: 'm4d2-16', speaker: 'Marta', dutch: 'Ja, het is druk.', spanish: 'Sí, está llena.' },
+          { id: 'm4d2-17', speaker: 'Tom', dutch: 'Oké, succes!', spanish: 'Vale, ¡suerte!' },
+          { id: 'm4d2-18', speaker: 'Marta', dutch: 'Dank je!', spanish: '¡Gracias!' },
+        ],
+      },
+      exercises: [
+        { id: 'm4d2q-1', type: 'multiple_choice', prompt: '¿Cómo se siente Marta hoy?', options: ['Un poco cansada', 'Enferma', 'Enfadada', 'Muy descansada'], correctAnswer: 'Un poco cansada', explanation: '"ik ben een beetje moe vandaag".' },
+        { id: 'm4d2q-2', type: 'multiple_choice', prompt: '¿Dónde está Marta hoy?', options: ['En la tienda', 'En casa', 'En la oficina', 'En el hospital'], correctAnswer: 'En la tienda', explanation: '"Ik ben in de winkel".' },
+        { id: 'm4d2q-3', type: 'multiple_choice', prompt: '¿Qué lleva Marta para comer?', options: ['Un bocadillo y una manzana', 'Solo café', 'Una ensalada', 'Nada'], correctAnswer: 'Un bocadillo y una manzana', explanation: '"ik heb een broodje en een appel".' },
+        { id: 'm4d2q-4', type: 'true_false', prompt: 'Los compañeros de Marta son antipáticos.', correctAnswer: 'falso', explanation: '"Ze zijn aardig" = son majos.' },
+        { id: 'm4d2q-5', type: 'fill_blank', prompt: 'Ik ___ nu pauze. (tengo)', correctAnswer: 'heb', hint: 'hebben en primera persona', explanation: 'Pauze hebben = tener pausa.' },
+        { id: 'm4d2q-6', type: 'fill_blank', prompt: 'Ik ___ in de winkel. (estoy)', correctAnswer: 'ben', hint: 'zijn en primera persona', explanation: 'Estar en un sitio va con zijn.' },
+        { id: 'm4d2q-7', type: 'multiple_choice', prompt: '¿Cuál es la diferencia entre "Heb je veel werk?" y "Ben je moe?"', options: ['Hebben es tener, zijn es ser o estar', 'Son lo mismo', 'Hebben es para preguntas y zijn para respuestas', 'Zijn solo se usa en pasado'], correctAnswer: 'Hebben es tener, zijn es ser o estar', explanation: 'Es la regla de toda esta lección: hebben = tener, zijn = ser/estar.' },
+        { id: 'm4d2q-8', type: 'multiple_choice', prompt: '¿Qué significa "Is het druk?"', options: ['¿Hay mucha gente?', '¿Está cerrado?', '¿Está lejos?', '¿Es caro?'], correctAnswer: '¿Hay mucha gente?', explanation: 'Druk = concurrido, con mucho movimiento. Lo vas a oír todos los días.' },
+      ],
+    },
+    {
       type: 'practice',
       exercises: [
         { id: 'm4l2e-1',  type: 'multiple_choice', prompt: '¿Cuál es la forma correcta con "jij" del verbo hebben?', options: ['jij hebt', 'jij heb', 'jij heeft', 'jij hebben'], correctAnswer: 'jij hebt', explanation: 'ik heb · jij hebt · hij/zij heeft.' },
@@ -5212,6 +5349,69 @@ const m4_les3: Lesson = {
         { id: 'm4l3f-12', dutch: 'Om notities te maken.', spanish: 'Para tomar notas.' },
         { id: 'm4l3f-13', dutch: 'Om het eten te bewaren.', spanish: 'Para conservar la comida.' },
         { id: 'm4l3f-14', dutch: 'Om mijn moeder te bellen.', spanish: 'Para llamar a mi madre.' },
+      ],
+    },
+    {
+      type: 'lezen',
+      title: 'Waarvoor werkt Kees?',
+      textNl: `Iedereen heeft een reden
+
+Kees werkt vier dagen per week bij een garage in Utrecht. Hij werkt om zijn hypotheek te betalen, maar ook om geld te sparen. Volgend jaar wil hij naar Canada. Hij spaart nu al twee jaar.
+
+Zijn collega Fatima heeft een andere reden. Zij volgt op maandagavond een cursus Nederlands om beter met de klanten te spreken. De cursus is van zeven tot negen uur en kost honderd euro per maand.
+
+De baas van de garage, meneer De Vries, komt elke ochtend om half acht om de agenda van de dag te bekijken. Hij zegt altijd hetzelfde: wij zijn hier niet om snel te werken, maar om goed te werken.
+
+Op vrijdag is de garage dicht. Kees gebruikt die dag om boodschappen te doen en om zijn moeder te bezoeken.`,
+      textEs: `Cada uno tiene su motivo
+
+Kees trabaja cuatro días por semana en un taller de Utrecht. Trabaja para pagar su hipoteca, pero también para ahorrar dinero. El año que viene quiere ir a Canadá. Lleva ya dos años ahorrando.
+
+Su compañera Fatima tiene otro motivo. Ella hace los lunes por la tarde un curso de neerlandés para hablar mejor con los clientes. El curso es de siete a nueve y cuesta cien euros al mes.
+
+El jefe del taller, el señor De Vries, llega cada mañana a las siete y media para revisar la agenda del día. Siempre dice lo mismo: no estamos aquí para trabajar rápido, sino para trabajar bien.
+
+Los viernes el taller está cerrado. Kees aprovecha ese día para hacer la compra y para visitar a su madre.`,
+      exercises: [
+        { id: 'm4l3lz-1', type: 'multiple_choice', prompt: '¿Para qué trabaja Kees?', options: ['Para pagar su hipoteca y ahorrar', 'Para comprar un coche', 'Para aprender neerlandés', 'Para ayudar a su madre'], correctAnswer: 'Para pagar su hipoteca y ahorrar', explanation: '"om zijn hypotheek te betalen, maar ook om geld te sparen".' },
+        { id: 'm4l3lz-2', type: 'multiple_choice', prompt: '¿Para qué hace Fatima el curso?', options: ['Para hablar mejor con los clientes', 'Para cambiar de trabajo', 'Para ir a Canadá', 'Para ayudar a Kees'], correctAnswer: 'Para hablar mejor con los clientes', explanation: '"om beter met de klanten te spreken".' },
+        { id: 'm4l3lz-3', type: 'multiple_choice', prompt: '¿Qué día por la tarde es el curso?', options: ['El lunes', 'El martes', 'El jueves', 'El viernes'], correctAnswer: 'El lunes', explanation: '"op maandagavond een cursus Nederlands".' },
+        { id: 'm4l3lz-4', type: 'multiple_choice', prompt: '¿Cuánto cuesta el curso al mes?', options: ['100 euros', '150 euros', '70 euros', '200 euros'], correctAnswer: '100 euros', explanation: '"kost honderd euro per maand".' },
+        { id: 'm4l3lz-5', type: 'multiple_choice', prompt: '¿A qué hora llega el jefe?', options: ['A las siete y media', 'A las ocho y media', 'A las siete', 'A las nueve'], correctAnswer: 'A las siete y media', explanation: '"om half acht" = a las siete y media.' },
+        { id: 'm4l3lz-6', type: 'true_false', prompt: 'El taller abre los viernes.', correctAnswer: 'falso', explanation: '"Op vrijdag is de garage dicht".' },
+        { id: 'm4l3lz-7', type: 'fill_blank', prompt: 'Ik werk ___ geld ___ sparen. (para ahorrar dinero)', correctAnswer: 'om te', hint: 'la estructura de esta lección, dos palabras separadas por un espacio', explanation: 'Om + complemento + te + infinitivo: "om geld te sparen".' },
+        { id: 'm4l3lz-8', type: 'multiple_choice', prompt: '¿Dónde va el "te" en la frase "Ik ga naar het centrum om boodschappen ___ doen"?', options: ['Justo antes del infinitivo', 'Al principio de la frase', 'Detrás del infinitivo', 'No se pone'], correctAnswer: 'Justo antes del infinitivo', explanation: 'El "te" va siempre pegado delante del infinitivo, al final: "om boodschappen te doen".' },
+      ],
+    },
+    {
+      type: 'dialogue',
+      dialogue: {
+        id: 'm4d3',
+        title: 'Gesprek – Waarvoor doe je dat?',
+        context: 'Kees en Fatima praten in de pauze over hun plannen. Luister naar de zinnen met om ... te.',
+        lines: [
+          { id: 'm4d3-1',  speaker: 'Fatima', dutch: 'Kees, waarom werk jij zo veel?', spanish: 'Kees, ¿por qué trabajas tanto?' },
+          { id: 'm4d3-2',  speaker: 'Kees', dutch: 'Ik werk om geld te sparen. Volgend jaar ga ik naar Canada.', spanish: 'Trabajo para ahorrar dinero. El año que viene me voy a Canadá.' },
+          { id: 'm4d3-3',  speaker: 'Fatima', dutch: 'Wat leuk! En hoe lang spaar je al?', spanish: '¡Qué bien! ¿Y cuánto llevas ahorrando?' },
+          { id: 'm4d3-4',  speaker: 'Kees', dutch: 'Twee jaar. En jij? Waarvoor volg jij die cursus?', spanish: 'Dos años. ¿Y tú? ¿Para qué haces ese curso?' },
+          { id: 'm4d3-5',  speaker: 'Fatima', dutch: 'Om beter met de klanten Nederlands te spreken.', spanish: 'Para hablar mejor neerlandés con los clientes.' },
+          { id: 'm4d3-6',  speaker: 'Kees', dutch: 'Slim. Wanneer is de cursus?', spanish: 'Qué lista. ¿Cuándo es el curso?' },
+          { id: 'm4d3-7',  speaker: 'Fatima', dutch: 'Op maandagavond, van zeven tot negen uur.', spanish: 'Los lunes por la tarde, de siete a nueve.' },
+          { id: 'm4d3-8',  speaker: 'Kees', dutch: 'En daarna? Ga je dan een nieuwe baan zoeken?', spanish: '¿Y después? ¿Vas a buscar un trabajo nuevo?' },
+          { id: 'm4d3-9',  speaker: 'Fatima', dutch: 'Misschien. Ik leer nu vooral om zelfverzekerder te worden.', spanish: 'Quizá. Ahora estudio sobre todo para tener más confianza.' },
+          { id: 'm4d3-10', speaker: 'Kees', dutch: 'Dat begrijp ik. Ik gebruik mijn vrije dag om boodschappen te doen.', spanish: 'Lo entiendo. Yo uso mi día libre para hacer la compra.' },
+          { id: 'm4d3-11', speaker: 'Fatima', dutch: 'En om je moeder te bezoeken, toch?', spanish: 'Y para visitar a tu madre, ¿no?' },
+          { id: 'm4d3-12', speaker: 'Kees', dutch: 'Precies. Zij belt mij elke week om te vragen hoe het gaat.', spanish: 'Exacto. Ella me llama cada semana para preguntar qué tal estoy.' },
+        ],
+      },
+      exercises: [
+        { id: 'm4d3q-1', type: 'multiple_choice', prompt: '¿Para qué trabaja tanto Kees?', options: ['Para ahorrar dinero', 'Para comprar una casa', 'Para pagar un curso', 'Para ayudar a Fatima'], correctAnswer: 'Para ahorrar dinero', explanation: '"Ik werk om geld te sparen".' },
+        { id: 'm4d3q-2', type: 'multiple_choice', prompt: '¿Adónde quiere ir el año que viene?', options: ['A Canadá', 'A España', 'A Bélgica', 'A Alemania'], correctAnswer: 'A Canadá', explanation: '"Volgend jaar ga ik naar Canada".' },
+        { id: 'm4d3q-3', type: 'multiple_choice', prompt: '¿Para qué hace Fatima el curso?', options: ['Para hablar mejor con los clientes', 'Para viajar', 'Para ganar más', 'Para ayudar a su hijo'], correctAnswer: 'Para hablar mejor con los clientes', explanation: '"Om beter Nederlands te spreken met de klanten".' },
+        { id: 'm4d3q-4', type: 'multiple_choice', prompt: '¿De qué hora a qué hora es el curso?', options: ['De siete a nueve', 'De seis a ocho', 'De ocho a diez', 'De cinco a siete'], correctAnswer: 'De siete a nueve', explanation: '"van zeven tot negen uur".' },
+        { id: 'm4d3q-5', type: 'true_false', prompt: 'La madre de Kees le llama todas las semanas.', correctAnswer: 'verdadero', explanation: '"Zij belt mij elke week om te vragen hoe het gaat".' },
+        { id: 'm4d3q-6', type: 'fill_blank', prompt: 'Ik gebruik mijn vrije dag ___ boodschappen ___ doen.', correctAnswer: 'om te', hint: 'las dos palabras de la estructura, separadas por un espacio', explanation: 'Om ... te + infinitivo, con el complemento en medio.' },
+        { id: 'm4d3q-7', type: 'multiple_choice', prompt: 'Cuando el verbo es separable, ¿dónde va el "te"?', options: ['En medio del verbo: op te nemen', 'Delante del verbo entero', 'Detrás del verbo', 'Se quita el te'], correctAnswer: 'En medio del verbo: op te nemen', explanation: 'Con verbos separables el te se mete dentro: "om contact op te nemen", "om af te spreken".' },
       ],
     },
     {
@@ -5347,6 +5547,72 @@ const m4_les4: Lesson = {
         { id: 'm4l4f-13', dutch: 'Hoe lang werk je?', spanish: '¿Cuánto tiempo trabajas?' },
         { id: 'm4l4f-14', dutch: "Ik sport 's morgens.", spanish: 'Hago deporte por la mañana.' },
         { id: 'm4l4f-15', dutch: 'Ik ben rond zes uur thuis.', spanish: 'Estoy en casa sobre las seis.' },
+      ],
+    },
+    {
+      type: 'lezen',
+      title: 'De werkdag van Ahmed',
+      textNl: `Van half zeven tot kwart over vier
+
+Ahmed werkt in een magazijn in Tilburg. Hij begint elke ochtend om half zeven. Hij staat om vijf uur op, want zijn bus vertrekt om tien over zes.
+
+'s Morgens laadt hij de vrachtwagens. Om twaalf uur is er pauze. De pauze duurt drie kwartier, van twaalf tot kwart voor een.
+
+'s Middags werkt hij op kantoor. Op woensdag is er een vergadering van twee tot drie uur. De vergadering duurt dus precies een uur.
+
+Ahmed werkt van maandag tot vrijdag, acht uur per dag. Om kwart over vier is hij klaar en om vijf uur is hij thuis.
+
+Op vrijdagavond spreekt hij af met zijn collega's. Ze eten rond zeven uur samen in de stad.`,
+      textEs: `De seis y media a cuatro y cuarto
+
+Ahmed trabaja en un almacén de Tilburg. Empieza cada mañana a las seis y media. Se levanta a las cinco, porque su autobús sale a las seis y diez.
+
+Por la mañana carga los camiones. A las doce hay pausa. La pausa dura tres cuartos de hora, de doce a menos cuarto.
+
+Por la tarde trabaja en la oficina. Los miércoles hay una reunión de dos a tres. La reunión dura entonces exactamente una hora.
+
+Ahmed trabaja de lunes a viernes, ocho horas al día. A las cuatro y cuarto termina y a las cinco está en casa.
+
+Los viernes por la tarde queda con sus compañeros. Cenan sobre las siete juntos en el centro.`,
+      exercises: [
+        { id: 'm4l4lz-1', type: 'multiple_choice', prompt: '¿A qué hora empieza a trabajar Ahmed?', options: ['A las 6:30', 'A las 7:30', 'A las 6:00', 'A las 5:00'], correctAnswer: 'A las 6:30', explanation: '"om half zeven" = a las seis y media. Half zeven NO son las siete y media: en neerlandés half apunta a la hora que viene.' },
+        { id: 'm4l4lz-2', type: 'multiple_choice', prompt: '¿A qué hora sale su autobús?', options: ['A las 6:10', 'A las 6:50', 'A las 5:10', 'A las 7:10'], correctAnswer: 'A las 6:10', explanation: '"om tien over zes" = diez pasadas las seis.' },
+        { id: 'm4l4lz-3', type: 'multiple_choice', prompt: '¿Cuánto dura la pausa?', options: ['45 minutos', '30 minutos', '15 minutos', '1 hora'], correctAnswer: '45 minutos', explanation: '"drie kwartier" = tres cuartos de hora, de twaalf tot kwart voor een.' },
+        { id: 'm4l4lz-4', type: 'multiple_choice', prompt: '¿Qué día hay reunión?', options: ['El miércoles', 'El lunes', 'El viernes', 'El martes'], correctAnswer: 'El miércoles', explanation: '"Op woensdag is er een vergadering".' },
+        { id: 'm4l4lz-5', type: 'multiple_choice', prompt: '¿A qué hora termina de trabajar?', options: ['A las 16:15', 'A las 15:45', 'A las 17:00', 'A las 16:45'], correctAnswer: 'A las 16:15', explanation: '"Om kwart over vier is hij klaar" = a las cuatro y cuarto.' },
+        { id: 'm4l4lz-6', type: 'true_false', prompt: 'Ahmed trabaja también los sábados.', correctAnswer: 'falso', explanation: '"Ahmed werkt van maandag tot vrijdag".' },
+        { id: 'm4l4lz-7', type: 'fill_blank', prompt: 'De vergadering is ___ twee ___ drie uur. (de dos a tres)', correctAnswer: 'van tot', hint: 'dos palabras separadas por un espacio', explanation: 'Van ... tot ... = de ... a ...' },
+        { id: 'm4l4lz-8', type: 'multiple_choice', prompt: '¿Qué significa "kwart voor een"?', options: ['Las 12:45', 'Las 13:15', 'Las 12:15', 'Las 11:45'], correctAnswer: 'Las 12:45', explanation: 'Kwart voor een = un cuarto antes de la una.' },
+      ],
+    },
+    {
+      type: 'dialogue',
+      dialogue: {
+        id: 'm4d4',
+        title: 'Gesprek – Hoe laat spreken we af?',
+        context: 'Sanne en Ahmed willen na het werk samen eten. Let goed op alle tijden die ze noemen.',
+        lines: [
+          { id: 'm4d4-1',  speaker: 'Sanne', dutch: 'Hoi Ahmed, hoe laat ben jij vandaag klaar?', spanish: 'Hola Ahmed, ¿a qué hora terminas hoy?' },
+          { id: 'm4d4-2',  speaker: 'Ahmed', dutch: 'Om kwart over vier. En jij?', spanish: 'A las cuatro y cuarto. ¿Y tú?' },
+          { id: 'm4d4-3',  speaker: 'Sanne', dutch: 'Ik werk tot vijf uur. Zullen we daarna samen eten?', spanish: 'Yo trabajo hasta las cinco. ¿Cenamos juntos después?' },
+          { id: 'm4d4-4',  speaker: 'Ahmed', dutch: 'Leuk! Hoe laat spreken we af?', spanish: '¡Genial! ¿A qué hora quedamos?' },
+          { id: 'm4d4-5',  speaker: 'Sanne', dutch: 'Rond half zeven? Dan ben ik eerst nog even thuis.', spanish: '¿Sobre las seis y media? Así paso primero un momento por casa.' },
+          { id: 'm4d4-6',  speaker: 'Ahmed', dutch: 'Half zeven is prima. Waar spreken we af?', spanish: 'Las seis y media me va bien. ¿Dónde quedamos?' },
+          { id: 'm4d4-7',  speaker: 'Sanne', dutch: 'In het restaurant bij de brug.', spanish: 'En el restaurante que hay al lado del puente.' },
+          { id: 'm4d4-8',  speaker: 'Ahmed', dutch: 'Hoe lang doe jij erover met de fiets?', spanish: '¿Cuánto tardas en bici?' },
+          { id: 'm4d4-9',  speaker: 'Sanne', dutch: 'Ongeveer twintig minuten.', spanish: 'Unos veinte minutos.' },
+          { id: 'm4d4-10', speaker: 'Ahmed', dutch: 'Oké. Dan zie ik je om half zeven.', spanish: 'Vale. Entonces nos vemos a las seis y media.' },
+          { id: 'm4d4-11', speaker: 'Sanne', dutch: 'Tot straks!', spanish: '¡Hasta luego!' },
+        ],
+      },
+      exercises: [
+        { id: 'm4d4q-1', type: 'multiple_choice', prompt: '¿A qué hora termina Ahmed?', options: ['A las 16:15', 'A las 17:00', 'A las 16:45', 'A las 18:30'], correctAnswer: 'A las 16:15', explanation: '"Om kwart over vier".' },
+        { id: 'm4d4q-2', type: 'multiple_choice', prompt: '¿Hasta qué hora trabaja Sanne?', options: ['Hasta las 17:00', 'Hasta las 16:15', 'Hasta las 18:00', 'Hasta las 15:30'], correctAnswer: 'Hasta las 17:00', explanation: '"Ik werk tot vijf uur".' },
+        { id: 'm4d4q-3', type: 'multiple_choice', prompt: '¿A qué hora quedan?', options: ['A las 18:30', 'A las 19:30', 'A las 17:30', 'A las 18:00'], correctAnswer: 'A las 18:30', explanation: '"Rond half zeven" = sobre las seis y media, o sea 18:30.' },
+        { id: 'm4d4q-4', type: 'multiple_choice', prompt: '¿Dónde quedan?', options: ['En el restaurante junto al puente', 'En casa de Sanne', 'En la oficina', 'En la estación'], correctAnswer: 'En el restaurante junto al puente', explanation: '"In het restaurant bij de brug".' },
+        { id: 'm4d4q-5', type: 'multiple_choice', prompt: '¿Cuánto tarda Sanne en bici?', options: ['Unos 20 minutos', 'Una hora', 'Unos 5 minutos', 'Unos 45 minutos'], correctAnswer: 'Unos 20 minutos', explanation: '"Ongeveer twintig minuten".' },
+        { id: 'm4d4q-6', type: 'fill_blank', prompt: 'Hoe ___ spreken we af? (a qué hora)', correctAnswer: 'laat', hint: 'hoe laat = a qué hora', explanation: 'Literalmente "qué tan tarde". Es LA pregunta para la hora.' },
+        { id: 'm4d4q-7', type: 'multiple_choice', prompt: '¿Qué significa "afspreken"?', options: ['Quedar con alguien', 'Despedirse', 'Hablar mal de alguien', 'Llegar tarde'], correctAnswer: 'Quedar con alguien', explanation: 'Es separable: "ik spreek met hem af". Lo vas a usar cada semana.' },
       ],
     },
     {
@@ -5542,6 +5808,72 @@ const m4_les5: Lesson = {
       ],
     },
     {
+      type: 'lezen',
+      title: 'Wat mag wel en wat moet?',
+      textNl: `De regels van het bedrijf
+
+Bij een schoonmaakbedrijf in Breda krijgen nieuwe werknemers op de eerste dag een blad met de regels. Het blad heeft maar één kant, want de regels zijn kort.
+
+Je moet om acht uur beginnen. Ben je ziek? Dan moet je voor half acht bellen. Zonder je pasje mag je niet naar binnen.
+
+Je mag twee keer per dag pauze nemen: een kwartier om tien uur en een half uur om half een. In de kantine mag je eten, in de bus niet.
+
+Kun je niet autorijden? Dan werk je in de stad. Wil je in een dorp werken? Dan heb je een rijbewijs nodig.
+
+Op vrijdag vraagt de baas altijd hetzelfde: zullen we volgende week weer zo doorgaan? Meestal zegt iedereen ja.`,
+      textEs: `Las normas de la empresa
+
+En una empresa de limpieza de Breda, a los empleados nuevos les dan el primer día una hoja con las normas. La hoja tiene solo una cara, porque las normas son cortas.
+
+Tienes que empezar a las ocho. ¿Estás enfermo? Entonces tienes que llamar antes de las siete y media. Sin tu tarjeta no puedes entrar.
+
+Puedes hacer dos pausas al día: un cuarto de hora a las diez y media hora a las doce y media. En el comedor puedes comer; en la furgoneta, no.
+
+¿No sabes conducir? Entonces trabajas en la ciudad. ¿Quieres trabajar en un pueblo? Entonces necesitas carné.
+
+Los viernes el jefe pregunta siempre lo mismo: ¿seguimos así la semana que viene? Casi todo el mundo dice que sí.`,
+      exercises: [
+        { id: 'm4l5lz-1', type: 'multiple_choice', prompt: '¿A qué hora hay que empezar?', options: ['A las ocho', 'A las siete y media', 'A las nueve', 'A las diez'], correctAnswer: 'A las ocho', explanation: '"Je moet om acht uur beginnen".' },
+        { id: 'm4l5lz-2', type: 'multiple_choice', prompt: 'Si estás enfermo, ¿antes de qué hora hay que llamar?', options: ['Antes de las 7:30', 'Antes de las 8:30', 'Antes de las 8:00', 'Antes de las 9:00'], correctAnswer: 'Antes de las 7:30', explanation: '"moet je voor half acht bellen" = antes de las siete y media.' },
+        { id: 'm4l5lz-3', type: 'multiple_choice', prompt: '¿Cuántas pausas hay al día?', options: ['Dos', 'Una', 'Tres', 'Ninguna'], correctAnswer: 'Dos', explanation: '"twee keer per dag pauze nemen": un kwartier y un half uur.' },
+        { id: 'm4l5lz-4', type: 'true_false', prompt: 'Se puede comer dentro de la furgoneta.', correctAnswer: 'falso', explanation: '"In de kantine mag je eten, in de bus niet".' },
+        { id: 'm4l5lz-5', type: 'multiple_choice', prompt: '¿Qué necesitas para trabajar en un pueblo?', options: ['Carné de conducir', 'Un pasaporte', 'Dos años de experiencia', 'Hablar inglés'], correctAnswer: 'Carné de conducir', explanation: '"Dan heb je een rijbewijs nodig".' },
+        { id: 'm4l5lz-6', type: 'fill_blank', prompt: 'Zonder je pasje ___ je niet naar binnen. (permiso)', correctAnswer: 'mag', hint: 'el modal del permiso', explanation: 'Mogen = tener permiso. "Mag niet" = no está permitido.' },
+        { id: 'm4l5lz-7', type: 'fill_blank', prompt: 'Ik ___ om acht uur beginnen. (obligación)', correctAnswer: 'moet', hint: 'el modal de la obligación', explanation: 'Moeten = tener que.' },
+        { id: 'm4l5lz-8', type: 'multiple_choice', prompt: '¿Cuál es la diferencia entre "kunnen" y "mogen"?', options: ['Kunnen es ser capaz, mogen es tener permiso', 'Son sinónimos', 'Kunnen es para el futuro', 'Mogen solo se usa en preguntas'], correctAnswer: 'Kunnen es ser capaz, mogen es tener permiso', explanation: '"Ik kan autorijden" = sé conducir. "Ik mag autorijden" = tengo permiso para conducir.' },
+      ],
+    },
+    {
+      type: 'dialogue',
+      dialogue: {
+        id: 'm4d5',
+        title: 'Gesprek – Mag ik iets vragen?',
+        context: 'Sanne vraagt haar chef of ze eerder weg mag. Let op de modale werkwoorden: mogen, moeten, kunnen, willen en zullen.',
+        lines: [
+          { id: 'm4d5-1',  speaker: 'Sanne', dutch: 'Mag ik iets vragen?', spanish: '¿Puedo preguntarte una cosa?' },
+          { id: 'm4d5-2',  speaker: 'Chef', dutch: 'Natuurlijk, zeg het maar.', spanish: 'Claro, dime.' },
+          { id: 'm4d5-3',  speaker: 'Sanne', dutch: 'Mag ik vandaag eerder naar huis? Ik moet naar de tandarts.', spanish: '¿Puedo irme hoy antes a casa? Tengo que ir al dentista.' },
+          { id: 'm4d5-4',  speaker: 'Chef', dutch: 'Hoe laat is je afspraak?', spanish: '¿A qué hora es tu cita?' },
+          { id: 'm4d5-5',  speaker: 'Sanne', dutch: 'Om vier uur.', spanish: 'A las cuatro.' },
+          { id: 'm4d5-6',  speaker: 'Chef', dutch: 'Dan kun je om half vier weg. Kun je morgen een uur langer blijven?', spanish: 'Entonces puedes irte a las tres y media. ¿Puedes quedarte mañana una hora más?' },
+          { id: 'm4d5-7',  speaker: 'Sanne', dutch: 'Ja, dat kan.', spanish: 'Sí, puedo.' },
+          { id: 'm4d5-8',  speaker: 'Chef', dutch: 'Prima. Wil je de sleutels meenemen?', spanish: 'Perfecto. ¿Quieres llevarte las llaves?' },
+          { id: 'm4d5-9',  speaker: 'Sanne', dutch: 'Nee, dat hoeft niet. Zal ik het aan Ahmed vragen?', spanish: 'No, no hace falta. ¿Se lo pregunto a Ahmed?' },
+          { id: 'm4d5-10', speaker: 'Chef', dutch: 'Goed idee. Hij moet morgen toch al vroeg beginnen.', spanish: 'Buena idea. De todas formas mañana él tiene que empezar pronto.' },
+          { id: 'm4d5-11', speaker: 'Sanne', dutch: 'Dank je wel!', spanish: '¡Muchas gracias!' },
+        ],
+      },
+      exercises: [
+        { id: 'm4d5q-1', type: 'multiple_choice', prompt: '¿Por qué quiere irse antes Sanne?', options: ['Tiene cita en el dentista', 'Está enferma', 'Llega su familia', 'Tiene otro trabajo'], correctAnswer: 'Tiene cita en el dentista', explanation: '"Ik moet naar de tandarts".' },
+        { id: 'm4d5q-2', type: 'multiple_choice', prompt: '¿A qué hora puede irse?', options: ['A las 15:30', 'A las 16:00', 'A las 14:30', 'A las 17:00'], correctAnswer: 'A las 15:30', explanation: '"Dan kun je om half vier weg" = a las tres y media.' },
+        { id: 'm4d5q-3', type: 'multiple_choice', prompt: '¿Qué le pide el jefe a cambio?', options: ['Quedarse una hora más mañana', 'Trabajar el sábado', 'Llamar al cliente', 'Cerrar la oficina'], correctAnswer: 'Quedarse una hora más mañana', explanation: '"Kun je morgen een uur langer blijven?"' },
+        { id: 'm4d5q-4', type: 'true_false', prompt: 'Sanne se lleva las llaves.', correctAnswer: 'falso', explanation: '"Nee, dat hoeft niet" = no hace falta.' },
+        { id: 'm4d5q-5', type: 'fill_blank', prompt: '___ ik iets vragen? (pedir permiso)', correctAnswer: 'Mag', hint: 'el modal del permiso, al principio de la pregunta', explanation: '"Mag ik...?" es la forma educada de pedir permiso. Se usa a diario.' },
+        { id: 'm4d5q-6', type: 'multiple_choice', prompt: '¿Qué significa "Zal ik het aan Ahmed vragen?"', options: ['¿Se lo pregunto a Ahmed?', 'Ahmed me lo preguntó', 'Ahmed no lo sabe', 'Le preguntaré mañana'], correctAnswer: '¿Se lo pregunto a Ahmed?', explanation: 'Zullen en primera persona sirve para ofrecerse: "¿lo hago yo?".' },
+        { id: 'm4d5q-7', type: 'multiple_choice', prompt: '¿Dónde va el segundo verbo en "Mag ik vandaag eerder naar huis gaan"?', options: ['Al final de la frase', 'Justo detrás del modal', 'Al principio', 'No se pone'], correctAnswer: 'Al final de la frase', explanation: 'Con un verbo modal, el infinitivo se va al final. Es la regla que más cuesta al principio.' },
+      ],
+    },
+    {
       // Spreken: los modales son justo lo que se dice en voz alta para pedir
       // permiso, ofrecerse o excusarse. Consigna también en neerlandés.
       type: 'spreken',
@@ -5714,6 +6046,73 @@ const m4_les6: Lesson = {
         { id: 'm4l6f-13', dutch: 'Doe het licht uit.', spanish: 'Apaga la luz.' },
         { id: 'm4l6f-14', dutch: 'Om acht uur is mijn vlucht.', spanish: 'Mi vuelo es a las ocho.' },
         { id: 'm4l6f-15', dutch: 'Dan is het al licht en de lucht is blauw.', spanish: 'Entonces ya es de día y el cielo está azul.' },
+      ],
+    },
+    {
+      type: 'lezen',
+      title: 'Een dag met pech',
+      textNl: `Pech op maandagochtend
+
+Op maandagochtend gaat Gerard naar zijn werk. Het is acht uur en het licht in de gang doet het niet. Hij zegt niets en loopt naar buiten.
+
+Bij de brug staat zijn fiets, maar hij heeft pech: de band is leeg. Gerard loopt daarom naar de garage in de Schoolstraat. De garage is open van acht tot zes.
+
+De monteur lacht. Geen zorgen, zegt hij, dit is zo klaar. Het kost acht euro. Gerard geeft hem het geld en vraagt of hij ook naar zijn horloge kan kijken.
+
+Dat kan niet, zegt de monteur. Daarvoor moet u naar de winkel op de gracht.
+
+Om negen uur is de fiets klaar. De lucht is blauw en Gerard gaat graag weer op weg.`,
+      textEs: `Mala suerte un lunes por la mañana
+
+El lunes por la mañana Gerard va a su trabajo. Son las ocho y la luz del pasillo no funciona. No dice nada y sale a la calle.
+
+Junto al puente está su bici, pero tiene mala suerte: la rueda está pinchada. Gerard va entonces andando al taller de la calle Schoolstraat. El taller abre de ocho a seis.
+
+El mecánico se ríe. Sin problema, dice, esto está hecho en un momento. Cuesta ocho euros. Gerard le da el dinero y pregunta si puede mirarle también el reloj.
+
+Eso no puede ser, dice el mecánico. Para eso tiene que ir a la tienda del canal.
+
+A las nueve la bici está lista. El cielo está azul y Gerard se pone en camino tan contento.`,
+      exercises: [
+        { id: 'm4l6lz-1', type: 'multiple_choice', prompt: '¿Qué le pasa a la bici de Gerard?', options: ['Tiene la rueda pinchada', 'Se la han robado', 'No tiene luz', 'Se ha roto la cadena'], correctAnswer: 'Tiene la rueda pinchada', explanation: '"de band is leeg" = la rueda está sin aire.' },
+        { id: 'm4l6lz-2', type: 'multiple_choice', prompt: '¿En qué calle está el taller?', options: ['En la Schoolstraat', 'En la Grachtstraat', 'En la Houtstraat', 'Junto al puente'], correctAnswer: 'En la Schoolstraat', explanation: '"de garage in de Schoolstraat".' },
+        { id: 'm4l6lz-3', type: 'multiple_choice', prompt: '¿Cuánto cuesta el arreglo?', options: ['8 euros', '9 euros', '18 euros', '6 euros'], correctAnswer: '8 euros', explanation: '"Het kost acht euro".' },
+        { id: 'm4l6lz-4', type: 'multiple_choice', prompt: '¿A qué hora está lista la bici?', options: ['A las nueve', 'A las ocho', 'A las seis', 'A las diez'], correctAnswer: 'A las nueve', explanation: '"Om negen uur is de fiets klaar".' },
+        { id: 'm4l6lz-5', type: 'true_false', prompt: 'El mecánico también arregla relojes.', correctAnswer: 'falso', explanation: '"Dat kan niet, zegt de monteur. Daarvoor moet u naar de winkel op de gracht".' },
+        { id: 'm4l6lz-6', type: 'multiple_choice', prompt: '¿Cuál de estas palabras se escribe con -cht y no con -gt?', options: ['licht', 'zegt', 'vraagt', 'liegt'], correctAnswer: 'licht', explanation: 'Los sustantivos acaban en -cht (licht, lucht, vlucht); los verbos en -gt (hij zegt, hij vraagt).' },
+        { id: 'm4l6lz-7', type: 'fill_blank', prompt: 'Hij heeft ___. (mala suerte)', correctAnswer: 'pech', hint: 'acaba en -ch, como lach o toch', explanation: 'Pech = mala suerte. Es una de las pocas palabras que terminan en -ch.' },
+        { id: 'm4l6lz-8', type: 'multiple_choice', prompt: '¿Por qué "garage" y "horloge" no llevan el sonido fuerte de "goed"?', options: ['Vienen del francés y suenan como la Y argentina', 'Son excepciones sin motivo', 'Se pronuncian igual que goed', 'Llevan una ch escondida'], correctAnswer: 'Vienen del francés y suenan como la Y argentina', explanation: 'Garage, horloge, etage, bagage: la -g suena suave, como la Y o LL argentina.' },
+      ],
+    },
+    {
+      type: 'dialogue',
+      dialogue: {
+        id: 'm4d6',
+        title: 'Gesprek – Bij de garage',
+        context: 'Gerard heeft pech met zijn fiets. Luister goed naar alle woorden met een g of een ch: goedemorgen, pech, garage, lachen, licht, gracht.',
+        lines: [
+          { id: 'm4d6-1',  speaker: 'Gerard', dutch: 'Goedemorgen! Ik heb pech met mijn fiets.', spanish: '¡Buenos días! Tengo un problema con la bici.' },
+          { id: 'm4d6-2',  speaker: 'Monteur', dutch: 'Goedemorgen. Wat is er aan de hand?', spanish: 'Buenos días. ¿Qué le pasa?' },
+          { id: 'm4d6-3',  speaker: 'Gerard', dutch: 'De band is leeg. Kunt u ernaar kijken?', spanish: 'La rueda está pinchada. ¿Puede mirarla?' },
+          { id: 'm4d6-4',  speaker: 'Monteur', dutch: 'Natuurlijk. Zet hem maar bij de deur van de garage.', spanish: 'Claro. Déjela junto a la puerta del taller.' },
+          { id: 'm4d6-5',  speaker: 'Gerard', dutch: 'Hoeveel kost het ongeveer?', spanish: '¿Cuánto cuesta más o menos?' },
+          { id: 'm4d6-6',  speaker: 'Monteur', dutch: 'Acht euro. Het is zo klaar, hoor.', spanish: 'Ocho euros. Está listo en nada, tranquilo.' },
+          { id: 'm4d6-7',  speaker: 'Gerard', dutch: 'Fijn, want ik moet om negen uur op mijn werk zijn.', spanish: 'Qué bien, porque a las nueve tengo que estar en el trabajo.' },
+          { id: 'm4d6-8',  speaker: 'Monteur', dutch: 'Dat lukt. Wilt u ook nieuw licht op uw fiets?', spanish: 'Llega de sobra. ¿Quiere también luz nueva en la bici?' },
+          { id: 'm4d6-9',  speaker: 'Gerard', dutch: 'Graag. En kunt u ook naar mijn horloge kijken?', spanish: 'Sí, gracias. ¿Y puede mirarme también el reloj?' },
+          { id: 'm4d6-10', speaker: 'Monteur', dutch: 'Nee, dat doe ik niet. Daarvoor moet u naar de winkel op de gracht.', spanish: 'No, eso no lo hago. Para eso tiene que ir a la tienda del canal.' },
+          { id: 'm4d6-11', speaker: 'Gerard', dutch: 'Oké, dank u wel. Tot ziens!', spanish: 'Vale, muchas gracias. ¡Hasta luego!' },
+          { id: 'm4d6-12', speaker: 'Monteur', dutch: 'Veel succes vandaag!', spanish: '¡Que vaya bien el día!' },
+        ],
+      },
+      exercises: [
+        { id: 'm4d6q-1', type: 'multiple_choice', prompt: '¿Qué le pasa a la bici?', options: ['La rueda está pinchada', 'No tiene frenos', 'La han robado', 'Está sucia'], correctAnswer: 'La rueda está pinchada', explanation: '"De band is leeg".' },
+        { id: 'm4d6q-2', type: 'multiple_choice', prompt: '¿Cuánto cuesta?', options: ['8 euros', '9 euros', '5 euros', '12 euros'], correctAnswer: '8 euros', explanation: '"Acht euro".' },
+        { id: 'm4d6q-3', type: 'multiple_choice', prompt: '¿A qué hora tiene que estar en el trabajo?', options: ['A las nueve', 'A las ocho', 'A las diez', 'A las siete'], correctAnswer: 'A las nueve', explanation: '"ik moet om negen uur op mijn werk zijn".' },
+        { id: 'm4d6q-4', type: 'true_false', prompt: 'El mecánico le arregla también el reloj.', correctAnswer: 'falso', explanation: '"Nee, dat doe ik niet". Le manda a la tienda del canal.' },
+        { id: 'm4d6q-5', type: 'multiple_choice', prompt: '¿Qué significa "Wat is er aan de hand?"', options: ['¿Qué pasa?', '¿Qué lleva en la mano?', '¿Cuánto cuesta?', '¿Dónde vive?'], correctAnswer: '¿Qué pasa?', explanation: 'Expresión de todos los días para preguntar qué ocurre.' },
+        { id: 'm4d6q-6', type: 'fill_blank', prompt: 'Het is zo ___, hoor. (listo, terminado)', correctAnswer: 'klaar', hint: 'klaar zijn = estar listo', explanation: '"Zo klaar" = listo enseguida. Y "hoor" al final suaviza la frase; no se traduce.' },
+        { id: 'm4d6q-7', type: 'multiple_choice', prompt: 'De estas palabras del diálogo, ¿cuál lleva la -g suave del francés?', options: ['garage', 'goedemorgen', 'graag', 'gracht'], correctAnswer: 'garage', explanation: 'Garage suena como la Y argentina. Goedemorgen, graag y gracht llevan la -g fuerte neerlandesa.' },
       ],
     },
     {
