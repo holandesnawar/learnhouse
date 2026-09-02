@@ -236,7 +236,6 @@ export default function SchoolGuide({
           <p className="text-[14px] text-[#0a1656] leading-relaxed min-w-0">
             ¿Tu duda no está aquí? Abre una consulta desde cualquier lección o
             escríbenos por <strong className="font-semibold">Mis mensajes</strong>.
-            Contestamos siempre.
           </p>
         </div>
       </article>

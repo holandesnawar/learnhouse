@@ -82,13 +82,13 @@ const GUIA_USO: Guide = {
     {
       t: 'ol',
       items: [
-        '**El vídeo** — La explicación. Míralo entero antes de tocar nada más.',
-        '**Resumen (Samenvatting)** — Lo que acabas de ver, por escrito, con las frases clave al final.',
-        '**Flashcards** — El vocabulario de la lección, carta a carta.',
-        '**Oefening** — Los ejercicios. Aquí se comprueba si de verdad lo entendiste.',
-        '**Lezen** — Un texto para leer, con preguntas.',
-        '**Luisteren** — Un diálogo para escuchar, con preguntas sobre lo que se dice.',
-        '**Spreken** — Escuchas una situación y eliges qué dirías tú. Sin texto: como en la calle.',
+        '**El vídeo.** La explicación. Míralo entero antes de tocar nada más.',
+        '**Resumen (Samenvatting).** Lo que acabas de ver, por escrito, con las frases clave al final.',
+        '**Flashcards.** El vocabulario de la lección, carta a carta.',
+        '**Oefening.** Los ejercicios. Aquí se comprueba si de verdad lo entendiste.',
+        '**Lezen.** Un texto para leer, con preguntas.',
+        '**Luisteren.** Un diálogo para escuchar, con preguntas sobre lo que se dice.',
+        '**Spreken.** Escuchas una situación y eliges qué dirías tú. Sin texto: como en la calle.',
       ],
     },
     {
@@ -100,10 +100,10 @@ const GUIA_USO: Guide = {
     {
       t: 'ul',
       items: [
-        '**Los checks** — Cada parte terminada se marca sola. No tienes que apuntar nada.',
-        '**El porcentaje** — Cuánto llevas de la formación.',
-        '**Tu nota** — En cada práctica se guarda cuántas acertaste y **cuáles fallaste**.',
-        '**La racha** — Los días seguidos que entras. Está para animarte, no para castigarte.',
+        '**Los checks.** Cada parte terminada se marca sola. No tienes que apuntar nada.',
+        '**El porcentaje.** Cuánto llevas de la formación.',
+        '**Tu nota.** En cada práctica se guarda cuántas acertaste y **cuáles fallaste**.',
+        '**La racha.** Los días seguidos que entras. Está para animarte, no para castigarte.',
       ],
     },
     {
@@ -154,7 +154,7 @@ const GUIA_USO: Guide = {
     { t: 'h2', text: 'Por qué no ves todos los módulos' },
     {
       t: 'p',
-      text: 'Los módulos se abren **poco a poco** desde el día que entras. No es para hacerte esperar: tragarse la formación entera en tres días tiene un nombre, y no es «aprender» — a las dos semanas no queda nada. En el módulo cerrado verás la fecha en la que se abre.',
+      text: 'Los módulos se abren **poco a poco** desde el día que entras. No es para hacerte esperar: tragarse la formación entera en tres días tiene un nombre, y no es «aprender». A las dos semanas no queda nada. En el módulo cerrado verás la fecha en la que se abre.',
     },
 
     { t: 'h2', text: 'En el móvil' },
@@ -170,7 +170,7 @@ const GUIA_USO: Guide = {
         '**No se oye el audio** → Sube el volumen y comprueba que el móvil no está en silencio. Recargar la página arregla el 90% de los casos.',
         '**Una pantalla se queda cargando** → Recarga. Si sigue, cierra y vuelve a entrar.',
         '**No consigo entrar** → Recupera la contraseña desde la pantalla de entrada.',
-        '**Nada de lo anterior funciona** → Escríbenos a **info@holandesnawar.com** o por Mis mensajes. Contestamos siempre.',
+        '**Nada de lo anterior funciona** → Escríbenos a **soporte@holandesnawar.com** o por Mis mensajes.',
       ],
     },
   ],
@@ -230,7 +230,7 @@ const GUIA_ESTUDIO: Guide = {
         ['Martes', 'Flashcards + Oefening', '20 min'],
         ['Miércoles', 'Lezen + Luisteren', '25 min'],
         ['Jueves', 'Spreken + repasar tus fallos', '20 min'],
-        ['Viernes', 'Clase en directo (o la grabación)', '—'],
+        ['Viernes', 'Clase en directo (o la grabación)', '1 h'],
         ['Fin de semana', 'Un ratito de flashcards, sin presión', '10 min'],
       ],
     },
@@ -307,37 +307,6 @@ const GUIA_ESTUDIO: Guide = {
       text: 'Diez minutos repasando lo que fallaste valen más que una hora de lección nueva: estás trabajando justo donde tu cabeza tiene el hueco. Una sección por debajo del 60% no es un suspenso, es una señal de dónde volver.',
     },
 
-    { t: 'h2', text: 'Las cinco trampas del español al holandés' },
-    {
-      t: 'p',
-      text: 'Las que hacen tropezar a todos los hispanohablantes. Si las tienes fichadas desde el principio, te ahorras meses:',
-    },
-    {
-      t: 'item',
-      title: '1. «Half twee» NO es las dos y media: es la UNA y media',
-      text: 'El holandés cuenta hacia la hora siguiente. *Half negen* = las 8:30. Cuando oigas *half*, resta una hora y pon 30 minutos.',
-    },
-    {
-      t: 'item',
-      title: '2. De o het',
-      text: 'No hay lógica que valga. Aprende cada palabra **con su artículo desde el primer día**: no *huis*, sino *het huis*. Aprenderla suelta y añadir el artículo después cuesta el triple.',
-    },
-    {
-      t: 'item',
-      title: '3. El verbo va en segunda posición, y el segundo al final',
-      text: '*Morgen ga ik naar Amsterdam* — no *Morgen ik ga*. Y con los verbos modales, el otro verbo se va al final: *Ik moet vandaag werken*.',
-    },
-    {
-      t: 'item',
-      title: '4. La -g y la -ch',
-      text: 'El sonido raspado. Empieza casi siempre con **-g**; al final también, salvo seis palabras (*zich, pech, lach, toch, ach, och*). Y si es un sustantivo acaba en **-cht**; si es un verbo, en **-gt**.',
-    },
-    {
-      t: 'item',
-      title: '5. Los números van al revés',
-      text: '*Vijfentwintig* = cinco-y-veinte = 25. Primero la unidad. Practícalo con tu número de teléfono y con los precios hasta que salga sin pensar.',
-    },
-
     { t: 'h2', text: 'Qué NO hacer' },
     {
       t: 'ul',
@@ -379,8 +348,8 @@ export const GUIDES: Record<string, Guide> = {
  * construye solo leyendo el curso.
  */
 export const GUIDE_OPTIONS = [
-  { id: 'uso', label: 'Guía de uso — Cómo funciona tu escuela' },
-  { id: 'estudio', label: 'Guía de estudio — Cómo aprender holandés de verdad' },
+  { id: 'uso', label: 'Guía de uso · Cómo funciona tu escuela' },
+  { id: 'estudio', label: 'Guía de estudio · Cómo aprender holandés de verdad' },
   { id: 'faq', label: 'Preguntas frecuentes' },
   { id: 'indice', label: 'Índice de contenido (se genera solo)' },
 ]

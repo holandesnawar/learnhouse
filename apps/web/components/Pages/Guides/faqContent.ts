@@ -61,6 +61,6 @@ export const FORMACION_FAQ: FaqItem[] = [
     },
     {
       q: 'No consigo entrar / he olvidado mi contraseña',
-      a: 'En la pantalla de entrada tienes «¿Olvidaste tu contraseña?»: te llega un correo para poner una nueva (mira también en la carpeta de spam). Si aun así no entras, escríbenos a info@holandesnawar.com y lo resolvemos.',
+      a: 'En la pantalla de entrada tienes «¿Olvidaste tu contraseña?»: te llega un correo para poner una nueva (mira también en la carpeta de spam). Si aun así no entras, escríbenos a soporte@holandesnawar.com y lo resolvemos.',
     },
   ]
