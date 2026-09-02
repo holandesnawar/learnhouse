@@ -416,8 +416,10 @@ export default function StudentOnboarding({
         className="fixed bottom-4 right-4 z-40 flex items-center gap-2.5 bg-white rounded-2xl nice-shadow border border-[#DDE6F5] pl-3 pr-3.5 py-2.5 hover:shadow-lg transition-shadow"
       >
         <Rocket size={18} className="text-[#025dc7] shrink-0" />
+        {/* El verbo también concuerda: con uno es "Te falta 1 paso".
+            Solo se adaptaba el sustantivo. */}
         <span className="text-[13px] font-bold text-gray-900 leading-none">
-          Te faltan {total - done} {total - done === 1 ? 'paso' : 'pasos'}
+          {total - done === 1 ? 'Te falta 1 paso' : `Te faltan ${total - done} pasos`}
         </span>
         <ArrowRight size={15} className="text-[#025dc7] shrink-0" />
       </Link>
