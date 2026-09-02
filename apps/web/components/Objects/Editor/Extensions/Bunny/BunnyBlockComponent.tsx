@@ -21,20 +21,14 @@ import { AlertTriangle, Clapperboard, RefreshCcw } from 'lucide-react'
 const BUNNY_PARAMS = 'responsive=true&preload=true'
 
 /**
- * El alto de la caja del vídeo, en % del ancho.
+ * El alto de la caja del vídeo, en % del ancho: 16:9 exactos.
  *
- * 16:9 exactos serían 56,25. Pero los vídeos de la formación **no son 16:9**:
- * son un pelín más anchos, así que el reproductor se ajustaba a su proporción
- * real y abajo quedaba una franja negra de unos 20 px —el fondo de la caja
- * asomando— en todos los vídeos.
- *
- * 54% ≈ 1,85:1, que es lo que miden. Si algún día se sube un vídeo con otra
- * proporción y vuelve a aparecer la franja, este es el número que hay que
- * tocar: **bajarlo la quita, subirlo la agranda**. Ojo con pasarse: si la caja
- * queda más baja que el vídeo, el reproductor deja de encajar por el ancho y
- * salen barras a los lados, que es peor.
+ * Estuvo un rato en 54 intentando tapar la franja negra de abajo, con el
+ * diagnóstico equivocado. La franja no la causaba la caja: la causaba que a
+ * la dirección del embed le faltaba `responsive=true`. Recortar la caja solo
+ * habría recortado el vídeo.
  */
-const ALTO_CAJA = 54
+const ALTO_CAJA = 56.25
 
 function parseBunnySrc(input: string): string | null {
   if (!input) return null

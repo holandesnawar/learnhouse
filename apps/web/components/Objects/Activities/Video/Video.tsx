@@ -156,10 +156,21 @@ function VideoActivity({ activity, course, orgUuid, onPlay, onProgress }: VideoA
       ? `https://iframe.mediadelivery.net/embed/${m[1]}/${m[2]}`
       : uri
     const params = new URLSearchParams()
+    // `responsive=true` viene en el código de inserción que da Bunny, y aquí
+    // se perdía: la dirección se reconstruye desde cero con la biblioteca y el
+    // id, así que todo lo demás se tiraba. Sin él el reproductor se dibuja al
+    // tamaño que calculó al arrancar y no vuelve a ajustarse al marco: sale
+    // **encogido y centrado** dentro del rectángulo negro los primeros
+    // segundos, y deja una franja negra abajo aunque la caja sea 16:9.
+    //
+    // El mismo fallo estaba apuntado para el bloque de vídeo del editor, pero
+    // este componente —que es el que pinta los vídeos de las clases— se quedó
+    // sin arreglar. `preload=true` deja lista la primera parte antes del play.
+    params.set('responsive', 'true')
+    params.set('preload', 'true')
     if (activity.details?.autoplay) params.set('autoplay', 'true')
     if (activity.details?.muted) params.set('muted', 'true')
-    const q = params.toString()
-    return q ? `${base}?${q}` : base
+    return `${base}?${params.toString()}`
   }
 
   return (
