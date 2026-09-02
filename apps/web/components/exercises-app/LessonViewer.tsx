@@ -10,7 +10,7 @@ import {
   markPreviousAsCompleted,
 } from '@/lib/exercises-app/progress';
 import AudioPlayer from './AudioPlayer';
-import TextoResaltable, { ContextoResaltado } from './TextoResaltable';
+import TextoResaltable, { ProveedorResaltado } from './TextoResaltable';
 import { getConfig, getUriWithOrg } from '@services/config/config';
 import { Breadcrumbs } from '@components/Objects/Breadcrumbs/Breadcrumbs';
 import { Dumbbell } from 'lucide-react';
@@ -3189,7 +3189,7 @@ function ResumenSection({ block, vocabItems = [], phraseItems = [], inCourse, on
             <TextoResaltable
               texto={block.intro}
               bloque="resumen"
-              className="text-[15px] text-[#5A6480] leading-relaxed"
+              className="text-[15px] text-[#3F4A61] leading-relaxed"
             />
           )}
         </div>
@@ -3234,7 +3234,7 @@ function ResumenSection({ block, vocabItems = [], phraseItems = [], inCourse, on
             <TextoResaltable
               texto={sec.body}
               bloque={`resumen_s${i}`}
-              className="text-[14px] text-[#5A6480] leading-relaxed"
+              className="text-[14px] text-[#3F4A61] leading-relaxed"
             />
           )}
           {sec.items && sec.items.length > 0 && (
@@ -3242,13 +3242,17 @@ function ResumenSection({ block, vocabItems = [], phraseItems = [], inCourse, on
               {sec.items.map((item, j) => (
                 <div key={j} className="flex items-start gap-3 px-4 py-2.5">
                   {item.nl && (
-                    <span className="text-[14px] font-semibold text-gray-900 flex-1 min-w-0 leading-snug">
-                      {item.nl}
-                    </span>
+                    <TextoResaltable
+                      texto={item.nl}
+                      bloque={`resumen_s${i}_nl${j}`}
+                      className="text-[14px] font-semibold text-gray-900 flex-1 min-w-0 leading-snug"
+                    />
                   )}
-                  <span className="text-[13px] text-[#5A6480] flex-1 min-w-0 leading-snug text-right">
-                    {item.es}
-                  </span>
+                  <TextoResaltable
+                    texto={item.es}
+                    bloque={`resumen_s${i}_es${j}`}
+                    className="text-[13px] text-[#3F4A61] flex-1 min-w-0 leading-snug text-right"
+                  />
                 </div>
               ))}
             </div>
@@ -3272,7 +3276,7 @@ function ResumenSection({ block, vocabItems = [], phraseItems = [], inCourse, on
               <div key={v.id} className="flex items-center gap-3 px-4 py-2.5">
                 <span className="text-xl shrink-0" aria-hidden>{v.emoji}</span>
                 <span className="text-[14px] font-semibold text-gray-900 flex-1 min-w-0 leading-snug">{v.dutch}</span>
-                <span className="text-[13px] text-[#5A6480] flex-1 min-w-0 leading-snug text-right">{v.spanish}</span>
+                <span className="text-[13px] text-[#3F4A61] flex-1 min-w-0 leading-snug text-right">{v.spanish}</span>
                 <button
                   onClick={() => speakDutch(v.dutch)}
                   aria-label={`Escuchar ${v.dutch}`}
@@ -3307,7 +3311,7 @@ function ResumenSection({ block, vocabItems = [], phraseItems = [], inCourse, on
               <div key={p.id ?? i} className="flex items-start gap-3 px-4 py-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-[14px] font-semibold text-gray-900 leading-snug">{p.dutch}</p>
-                  <p className="text-[13px] text-[#5A6480] leading-snug mt-0.5">{p.spanish}</p>
+                  <p className="text-[13px] text-[#3F4A61] leading-snug mt-0.5">{p.spanish}</p>
                 </div>
                 <button
                   onClick={() => speakDutch(p.dutch)}
@@ -3696,7 +3700,7 @@ function LezenSection({
           <TextoResaltable
             texto={textNl.replace(/^[ \t]+/gm, '').trim()}
             bloque="lezen_nl"
-            className="text-[14px] text-[#5A6480] leading-relaxed whitespace-pre-line text-left max-w-prose"
+            className="text-[14px] text-[#3F4A61] leading-relaxed whitespace-pre-line text-left max-w-prose"
           />
         </div>
         <div className="border-t border-[#DDE6F5] pt-4">
@@ -5078,12 +5082,10 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
   return (
     // El curso y la clase donde se lee, para que los textos subrayables no
     // tengan que recibirlo por props a través de media docena de secciones.
-    <ContextoResaltado.Provider
-      value={{
-        courseUuid: courseLocation?.courseUuid,
-        activityUuid: courseLocation?.activityUuid,
-        nombre: lesson?.title || '',
-      }}
+    <ProveedorResaltado
+      courseUuid={courseLocation?.courseUuid}
+      activityUuid={courseLocation?.activityUuid}
+      nombre={lesson?.title || ''}
     >
       {/* ── Header ── In a course the activity page already shows the lesson
            name, so we drop the big banner-like title + extra padding and keep
@@ -5287,6 +5289,6 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
          </div>
         </div>
       </div>
-    </ContextoResaltado.Provider>
+    </ProveedorResaltado>
   );
 }
