@@ -1498,16 +1498,24 @@ function FlashcardSection({
       </div>
 
       {/* Card */}
+      {/* El giro va en SU PROPIA capa de dibujo.
+          Sin esto, la animación 3D obliga al navegador a repintar la capa
+          entera donde vive la tarjeta, y al repintarla cambia el suavizado
+          del texto: las líneas del párrafo de abajo "bailan" un poco aunque
+          no se mueva ni un píxel de la maquetación.
+          `isolation` corta la capa aquí y `willChange` le dice al navegador
+          que promocione el elemento que gira antes de empezar, no a mitad. */}
       <div
         onClick={() => setFlipped(f => !f)}
         className="w-full max-w-sm mx-auto h-[180px] cursor-pointer"
-        style={{ perspective: '1000px' }}
+        style={{ perspective: '1000px', isolation: 'isolate' }}
       >
         <div
           style={{
             transition: 'transform 0.45s cubic-bezier(0.4,0.2,0.2,1)',
             transformStyle: 'preserve-3d',
             transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+            willChange: 'transform',
             position: 'relative',
             height: '180px',
           }}
