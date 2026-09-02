@@ -1570,9 +1570,13 @@ function FlashcardSection({
         </div>
       </div>
 
-      {/* Actions */}
+      {/* Actions
+          El hueco se reserva SIEMPRE (min-h): antes esta zona pasaba de una
+          línea de texto a dos botones al voltear la tarjeta, y todo lo de
+          abajo —incluidos Anterior y Siguiente— daba un salto. */}
+      <div className="min-h-[52px] flex items-center">
       {flipped && !isAdvancing ? (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 w-full">
           <button
             onClick={handleRepeat}
             disabled={isAdvancing}
@@ -1589,10 +1593,11 @@ function FlashcardSection({
           </button>
         </div>
       ) : !isAdvancing ? (
-        <p className="text-center text-[13px] text-[#9CA3AF]">
+        <p className="w-full text-center text-[13px] text-[#9CA3AF]">
           Primero mira la tarjeta, luego decide
         </p>
       ) : null}
+      </div>
 
     </div>
   );
@@ -3203,7 +3208,7 @@ function ResumenSection({ block, vocabItems = [], phraseItems = [], inCourse, on
             <TextoResaltable
               texto={block.intro}
               bloque="resumen"
-              className="text-[15px] text-[#3F4A61] leading-relaxed"
+              className="text-[15px] text-[#2E3A59] leading-relaxed"
             />
           )}
         </div>
@@ -3248,7 +3253,7 @@ function ResumenSection({ block, vocabItems = [], phraseItems = [], inCourse, on
             <TextoResaltable
               texto={sec.body}
               bloque={`resumen_s${i}`}
-              className="text-[14px] text-[#3F4A61] leading-relaxed"
+              className="text-[14px] text-[#2E3A59] leading-relaxed"
             />
           )}
           {sec.items && sec.items.length > 0 && (
@@ -3265,7 +3270,7 @@ function ResumenSection({ block, vocabItems = [], phraseItems = [], inCourse, on
                   <TextoResaltable
                     texto={item.es}
                     bloque={`resumen_s${i}_es${j}`}
-                    className="text-[13px] text-[#3F4A61] flex-1 min-w-0 leading-snug text-right"
+                    className="text-[14px] text-[#2E3A59] flex-1 min-w-0 leading-snug text-right"
                   />
                 </div>
               ))}
@@ -3284,13 +3289,13 @@ function ResumenSection({ block, vocabItems = [], phraseItems = [], inCourse, on
             <span aria-hidden className="shrink-0">📖</span>
             <span>Vocabulario</span>
           </h3>
-          <p className="text-[13px] text-[#5A6480] leading-relaxed">Toca el altavoz para escuchar la pronunciación.</p>
+          <p className="text-[14px] text-[#2E3A59] leading-relaxed">Toca el altavoz para escuchar la pronunciación.</p>
           <div className="divide-y divide-[#DDE6F5] rounded-lg border border-[#DDE6F5] bg-[#F8FAFF] overflow-hidden">
             {vocabItems.map((v) => (
               <div key={v.id} className="flex items-center gap-3 px-4 py-2.5">
                 <span className="text-xl shrink-0" aria-hidden>{v.emoji}</span>
                 <span className="text-[14px] font-semibold text-gray-900 flex-1 min-w-0 leading-snug">{v.dutch}</span>
-                <span className="text-[13px] text-[#3F4A61] flex-1 min-w-0 leading-snug text-right">{v.spanish}</span>
+                <span className="text-[14px] text-[#2E3A59] flex-1 min-w-0 leading-snug text-right">{v.spanish}</span>
                 <button
                   onClick={() => speakDutch(v.dutch)}
                   aria-label={`Escuchar ${v.dutch}`}
@@ -3319,13 +3324,13 @@ function ResumenSection({ block, vocabItems = [], phraseItems = [], inCourse, on
             <span aria-hidden className="shrink-0">💬</span>
             <span>Frases</span>
           </h3>
-          <p className="text-[13px] text-[#5A6480] leading-relaxed">Toca el altavoz para escuchar la frase entera.</p>
+          <p className="text-[14px] text-[#2E3A59] leading-relaxed">Toca el altavoz para escuchar la frase entera.</p>
           <div className="divide-y divide-[#DDE6F5] rounded-lg border border-[#DDE6F5] bg-[#F8FAFF] overflow-hidden">
             {phraseItems.map((p, i) => (
               <div key={p.id ?? i} className="flex items-start gap-3 px-4 py-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-[14px] font-semibold text-gray-900 leading-snug">{p.dutch}</p>
-                  <p className="text-[13px] text-[#3F4A61] leading-snug mt-0.5">{p.spanish}</p>
+                  <p className="text-[14px] text-[#2E3A59] leading-snug mt-0.5">{p.spanish}</p>
                 </div>
                 <button
                   onClick={() => speakDutch(p.dutch)}
@@ -3714,7 +3719,7 @@ function LezenSection({
           <TextoResaltable
             texto={textNl.replace(/^[ \t]+/gm, '').trim()}
             bloque="lezen_nl"
-            className="text-[14px] text-[#3F4A61] leading-relaxed whitespace-pre-line text-left max-w-prose"
+            className="text-[14px] text-[#2E3A59] leading-relaxed whitespace-pre-line text-left max-w-prose"
           />
         </div>
         <div className="border-t border-[#DDE6F5] pt-4">
@@ -4584,7 +4589,7 @@ function LuisterenSection({
           onClick={() => { resetAttempt(); setView('landing'); }}
           className="w-full py-3.5 rounded-lg bg-[#F0F5FF] text-gray-900 text-[15px] font-semibold border border-[#DDE6F5] hover:bg-[#e0eaff] transition-colors duration-200"
         >
-          🔄 Volver al diálogo
+          🔄 Repetir los ejercicios
         </button>
       </div>
     );
@@ -4619,16 +4624,10 @@ function LuisterenSection({
         )}
       </div>
 
-      <div ref={exercisesRef} className="flex items-center justify-between scroll-mt-4">
-        <button
-          onClick={() => { resetAttempt(); setView('landing'); }}
-          className="flex items-center gap-1.5 text-[13px] font-semibold text-[#9CA3AF] hover:text-[#025dc7] transition-colors duration-200"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          Volver al diálogo
-        </button>
+      {/* Sin "Volver al diálogo": el reproductor está fijado justo arriba,
+          así que volver no lleva a ningún sitio nuevo y el botón solo servía
+          para perder las respuestas empezadas. */}
+      <div ref={exercisesRef} className="flex items-center justify-end scroll-mt-4">
         <div className="flex items-center gap-1.5 text-[13px] font-bold text-[#16a34a] bg-green-50 border border-green-200 px-3 py-1 rounded-full">
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
