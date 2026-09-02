@@ -156,11 +156,15 @@ export default function ActivityNavigation(props: ActivityNavigationProps): Reac
                 title={prevActivity ? `${t('common.previous')}: ${prevActivity.name}` : t('activities.no_previous_activity')}
               >
                 <ChevronLeft size={16} className="shrink-0" />
-                <div className="flex flex-col items-start">
-                  <span className="text-xs text-gray-500">{t('common.previous')}</span>
-                  <span className="hidden sm:block text-sm capitalize font-semibold text-left">
+                {/* Invertido a propósito: lo que el botón HACE va en grande.
+                    El nombre de la sección es el dato de apoyo, no la acción:
+                    con "3.2 Flashcards" en grande y "Anterior" en pequeño no
+                    se entendía hacia dónde llevaba cada botón. */}
+                <div className="flex flex-col items-start min-w-0">
+                  <span className="hidden sm:block text-[11px] text-gray-500 capitalize truncate max-w-[180px] text-left">
                     {prevActivity ? prevActivity.name : t('activities.no_previous_activity')}
                   </span>
+                  <span className="text-sm font-semibold text-left">{t('common.previous')}</span>
                 </div>
               </button>
             </div>
@@ -180,11 +184,11 @@ export default function ActivityNavigation(props: ActivityNavigationProps): Reac
                 disabled={!nextActivity}
                 title={nextActivity ? `${t('common.next')}: ${nextActivity.name}` : t('activities.no_next_activity')}
               >
-                <div className="flex flex-col items-end">
-                  <span className={`text-xs ${nextActivity ? 'text-[#0a1656]/75 sm:text-gray-500' : 'text-gray-400'}`}>{t('common.next')}</span>
-                  <span className="hidden sm:block text-sm capitalize font-semibold text-right">
+                <div className="flex flex-col items-end min-w-0">
+                  <span className={`hidden sm:block text-[11px] capitalize truncate max-w-[180px] text-right ${nextActivity ? 'text-[#0a1656]/75 sm:text-gray-500' : 'text-gray-400'}`}>
                     {nextActivity ? nextActivity.name : t('activities.no_next_activity')}
                   </span>
+                  <span className="text-sm font-semibold text-right">{t('common.next')}</span>
                 </div>
                 <ChevronRight size={16} className="shrink-0" />
               </button>
