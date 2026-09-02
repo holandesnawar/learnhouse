@@ -292,17 +292,31 @@ function GradientBar({ pct, label, subLabel }: { pct: number; label?: string; su
           <span className="text-[12px] font-bold text-[#025dc7] bg-[#EEF4FF] px-2 py-0.5 rounded-full shrink-0">{pct}%</span>
         </div>
       )}
-      {!label && !subLabel && (
-        <div className="flex justify-end">
-          <span className="text-[12px] font-bold text-[#025dc7] bg-[#EEF4FF] px-2 py-0.5 rounded-full">{pct}%</span>
+      {/* Sin etiqueta, el porcentaje va EN LA MISMA LÍNEA que la barra.
+          Antes ocupaba una fila para él solo, pegado a la derecha: treinta
+          píxeles de blanco entre el título de la clase y la barra, que en el
+          Lezen —donde debajo no hay nada que llene el ancho— se veían como un
+          hueco raro. */}
+      {!label && !subLabel ? (
+        <div className="flex items-center gap-3">
+          <div className="h-2 flex-1 rounded-full bg-[#DDE6F5] overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-500 progress-fill"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <span className="shrink-0 text-[12px] font-bold text-[#025dc7] bg-[#EEF4FF] px-2 py-0.5 rounded-full">
+            {pct}%
+          </span>
+        </div>
+      ) : (
+        <div className="h-2 w-full rounded-full bg-[#DDE6F5] overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-500 progress-fill"
+            style={{ width: `${pct}%` }}
+          />
         </div>
       )}
-      <div className="h-2 w-full rounded-full bg-[#DDE6F5] overflow-hidden">
-        <div
-          className="h-full rounded-full transition-all duration-500 progress-fill"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
     </div>
   );
 }
