@@ -1389,12 +1389,15 @@ function NextActivityButton({ course, currentActivityId, orgslug, canAdvance = t
           canAdvance ? 'bg-[#4da3ff] hover:bg-[#6cb5ff]' : 'bg-[#4da3ff]/45'
         }`}
       >
-        <span className="text-[10px] font-bold text-[#1D0084]/60 mb-1 uppercase">
-          {isLast ? 'Finalizar' : t('common.next')}
+        {/* Invertido a propósito: lo que el botón HACE va en grande y el
+            nombre de la sección en pequeño. Con "3.2 Flashcards" en grande y
+            "SIGUIENTE" en letra chica no se entendía hacia dónde llevaba. */}
+        <span className="text-[10px] font-semibold text-[#1D0084]/60 mb-0.5 truncate min-w-0">
+          {isLast ? 'Completar curso' : nextActivity.name}
         </span>
         <div className="flex items-center space-x-1 min-w-0">
-          <span className="text-xs sm:text-sm font-semibold truncate min-w-0">
-            {isLast ? 'Completar curso' : nextActivity.name}
+          <span className="text-sm font-bold truncate min-w-0">
+            {isLast ? 'Finalizar' : t('common.next')}
           </span>
           {isLast ? <Trophy size={16} className="shrink-0" /> : <ChevronRight size={17} className="shrink-0" />}
         </div>
@@ -1466,10 +1469,12 @@ function PreviousActivityButton({ course, currentActivityId, orgslug }: { course
       onClick={navigateToActivity}
       className="w-full sm:w-[230px] bg-transparent rounded-lg px-3 sm:px-4 flex flex-col p-2 sm:p-2.5 text-gray-900 hover:cursor-pointer hover:bg-gray-50 transition-colors border border-gray-300"
     >
-      <span className="text-[10px] font-bold text-gray-500 mb-1 uppercase">{t('common.previous')}</span>
+      <span className="text-[10px] font-semibold text-gray-500 mb-0.5 truncate min-w-0">
+        {previousActivity.name}
+      </span>
       <div className="flex items-center space-x-1 min-w-0">
         <ChevronLeft size={17} className="shrink-0" />
-        <span className="text-xs sm:text-sm font-semibold truncate min-w-0">{previousActivity.name}</span>
+        <span className="text-sm font-bold truncate min-w-0">{t('common.previous')}</span>
       </div>
     </div>
   );
