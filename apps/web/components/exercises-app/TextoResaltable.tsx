@@ -37,7 +37,15 @@ const ORDEN_COLORES: HighlightColor[] = ['yellow', 'pink', 'blue', 'green']
 /** Menos de esto no es subrayar, es un clic que arrastró un poco. */
 const MINIMO_CARACTERES = 2
 
-type Contexto = { courseUuid?: string; activityUuid?: string; nombre?: string }
+type Contexto = {
+  courseUuid?: string
+  activityUuid?: string
+  nombre?: string
+  /** La lista de la clase entera, cargada UNA vez arriba. */
+  lista?: LessonHighlight[]
+  anadir?: (h: LessonHighlight) => void
+  quitar?: (id: number) => void
+}
 
 /**
  * Curso y clase donde se está leyendo, puesto una vez arriba.
@@ -47,6 +55,59 @@ type Contexto = { courseUuid?: string; activityUuid?: string; nombre?: string }
  * que atravesar tres componentes con un dato que ninguno usa.
  */
 export const ContextoResaltado = React.createContext<Contexto | null>(null)
+
+/**
+ * Carga los resaltados de la clase UNA sola vez y los reparte.
+ *
+ * Antes cada `TextoResaltable` pedía la lista por su cuenta. Con la intro, los
+ * objetivos, el cuerpo de cada sección, el consejo y ahora las filas de las
+ * tablas, una lección puede tener treinta trozos subrayables: eran treinta
+ * peticiones idénticas al abrir la clase. Ahora se pide una y cada trozo se
+ * queda con lo suyo filtrando por `block_key`.
+ */
+export function ProveedorResaltado({
+  courseUuid,
+  activityUuid,
+  nombre,
+  children,
+}: {
+  courseUuid?: string
+  activityUuid?: string
+  nombre?: string
+  children: React.ReactNode
+}) {
+  const session = useLHSession() as any
+  const accessToken: string | undefined = session?.data?.tokens?.access_token
+  const [lista, setLista] = useState<LessonHighlight[]>([])
+
+  useEffect(() => {
+    if (!accessToken || !activityUuid) {
+      setLista([])
+      return
+    }
+    let vivo = true
+    listHighlightsForActivity(activityUuid, accessToken).then((l) => {
+      if (vivo) setLista(l)
+    })
+    return () => {
+      vivo = false
+    }
+  }, [activityUuid, accessToken])
+
+  const valor = useMemo<Contexto>(
+    () => ({
+      courseUuid,
+      activityUuid,
+      nombre,
+      lista,
+      anadir: (h) => setLista((prev) => [...prev, h]),
+      quitar: (id) => setLista((prev) => prev.filter((x) => x.id !== id)),
+    }),
+    [courseUuid, activityUuid, nombre, lista]
+  )
+
+  return <ContextoResaltado.Provider value={valor}>{children}</ContextoResaltado.Provider>
+}
 
 /**
  * Separa el `**negrita**` del texto y devuelve el texto limpio con sus tramos.
@@ -107,7 +168,8 @@ export default function TextoResaltable({
   const activityUuid = contexto?.activityUuid || ''
   const contenedorRef = useRef<HTMLParagraphElement | null>(null)
 
-  const [resaltados, setResaltados] = useState<LessonHighlight[]>([])
+  const compartida = contexto?.lista
+  const [propios, setPropios] = useState<LessonHighlight[]>([])
   const [menu, setMenu] = useState<{ top: number; left: number; desde: number; hasta: number; cita: string } | null>(null)
   const [redactando, setRedactando] = useState<{ desde: number; hasta: number; cita: string; color: HighlightColor; nota: string } | null>(null)
   const [abierto, setAbierto] = useState<{ top: number; left: number; hl: LessonHighlight } | null>(null)
@@ -116,17 +178,23 @@ export default function TextoResaltable({
   // el resaltado, así que el texto se pinta y ya.
   const activo = !!accessToken && !!activityUuid
 
+  // Sin proveedor arriba (otro sitio que use el componente suelto) se sigue
+  // pidiendo por cuenta propia: así nunca deja de funcionar.
   useEffect(() => {
-    if (!activo) return
+    if (!activo || compartida) return
     let vivo = true
     listHighlightsForActivity(activityUuid, accessToken).then((lista) => {
-      if (!vivo) return
-      setResaltados(lista.filter((h) => (h.block_key || '') === bloque))
+      if (vivo) setPropios(lista)
     })
     return () => {
       vivo = false
     }
-  }, [activo, activityUuid, accessToken, bloque])
+  }, [activo, compartida, activityUuid, accessToken])
+
+  const resaltados = useMemo(
+    () => (compartida ?? propios).filter((h) => (h.block_key || '') === bloque),
+    [compartida, propios, bloque]
+  )
 
   const { plano, negritas } = useMemo(() => partirNegritas(texto), [texto])
 
@@ -236,12 +304,15 @@ export default function TextoResaltable({
       },
       accessToken
     )
-    if (creado) setResaltados((prev) => [...prev, creado])
+    if (!creado) return
+    if (contexto?.anadir) contexto.anadir(creado)
+    else setPropios((prev) => [...prev, creado])
   }
 
   async function borrar(id: number) {
     setAbierto(null)
-    setResaltados((prev) => prev.filter((h) => h.id !== id))
+    if (contexto?.quitar) contexto.quitar(id)
+    else setPropios((prev) => prev.filter((h) => h.id !== id))
     await deleteHighlight(id, accessToken)
   }
 
