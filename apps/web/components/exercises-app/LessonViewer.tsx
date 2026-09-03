@@ -4407,10 +4407,12 @@ function LuisterenSection({
   if (view === 'landing') {
     return (
       <div className="space-y-5">
-        {/* Solo el título en neerlandés, con aire por arriba. La frase de
-            debajo repetía lo que ya dice el reproductor y apelmazaba. */}
-        <div className="text-center pt-4 sm:pt-6 pb-1">
-          <h3 className="text-[23px] sm:text-[27px] font-bold text-gray-900 leading-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
+        {/* Solo el título en neerlandés. Va alineado a la izquierda, como el
+            resto de la lección: centrado y con mucho aire arriba dejaba un
+            hueco raro debajo del nombre de la clase, y en móvil el título
+            largo partido y centrado se leía peor. */}
+        <div className="pb-0.5">
+          <h3 className="text-[22px] sm:text-[26px] font-bold text-gray-900 leading-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
             {dialogue.title}
           </h3>
         </div>
