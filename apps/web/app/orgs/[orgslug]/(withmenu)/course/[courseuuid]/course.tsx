@@ -554,39 +554,34 @@ const CourseClient = (props: any) => {
                           [chapter.chapter_uuid]: !isExpanded
                         }))}
                       >
-                        {/* Chevron on the far left, vertically centered with the title */}
+                        {/* Cerrado: un candado en lugar de la flecha. No hay
+                            nada que desplegar, así que la flecha mentía. */}
                         <div className="flex flex-col justify-center mr-3 pt-1 text-[#025dc7]">
-                          <svg
-                            className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
+                          {chapter.is_locked ? (
+                            <Lock size={18} className="text-gray-400" />
+                          ) : (
+                            <svg
+                              className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          )}
                         </div>
                         {/* Title and badge column */}
                         <div className="flex flex-col items-start w-full">
                           <div className="flex items-center flex-wrap mb-1 w-full min-w-0">
-                            <h3 className="text-lg font-bold leading-tight truncate min-w-0 sm:text-base md:text-lg text-gray-900" style={{lineHeight: '1.2', fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")'}}>{chapter.name}</h3>
-                            {chapter.is_locked && (
-                              (chapter as any).unlock_date ? (
-                                <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#F0F5FF] border border-[#DDE6F5] text-[#1D0084] text-[10px] font-semibold">
-                                  <Lock size={10} />
-                                  {`Se desbloquea el ${new Date((chapter as any).unlock_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}`}
-                                </span>
-                              ) : (
-                                <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-600 text-[10px] font-semibold">
-                                  <Lock size={10} />
-                                  {t('course.locked', 'Locked')}
-                                </span>
-                              )
-                            )}
+                            <h3 className={`text-lg font-bold leading-tight truncate min-w-0 sm:text-base md:text-lg ${chapter.is_locked ? 'text-gray-400' : 'text-gray-900'}`} style={{lineHeight: '1.2', fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")'}}>{chapter.name}</h3>
+
                           </div>
-                          <div className="flex items-center space-x-1 text-sm text-neutral-400 font-normal">
-                            <Layers size={16} className="mr-1" />
-                            <span>{chapter.activities.length} {t('activities.activities')}</span>
-                          </div>
+                          {!chapter.is_locked && (
+                            <div className="flex items-center space-x-1 text-sm text-neutral-400 font-normal">
+                              <Layers size={16} className="mr-1" />
+                              <span>{chapter.activities.length} {t('activities.activities')}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className={`transition-all duration-200 ${isExpanded ? 'block' : 'hidden'}`}>
