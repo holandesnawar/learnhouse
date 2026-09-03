@@ -12,13 +12,6 @@ import { Check, FileText, Video, StickyNote, Backpack, ChevronDown, X, Search, C
 import { getUriWithOrg } from '@services/config/config'
 
 // Format an ISO unlock date for the "Se desbloquea el ..." note (Spanish).
-function formatUnlockDate(iso?: string | null): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return ''
-  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
-}
-
 interface CourseLessonsProps {
   course: any
   currentActivityId: string
@@ -308,11 +301,6 @@ export default function CourseLessonsSidebar(props: CourseLessonsProps) {
                   <span className={`block text-[15px] font-semibold uppercase tracking-[0.03em] truncate ${locked ? 'text-white/55' : 'text-white'}`}>
                     {chapter.name}
                   </span>
-                  {locked && chapter.unlock_date && (
-                    <span className="block normal-case font-normal tracking-normal text-[11px] text-[#4da3ff] mt-0.5">
-                      Se desbloquea el {formatUnlockDate(chapter.unlock_date)}
-                    </span>
-                  )}
                 </span>
                 {!locked && (
                   <>
@@ -507,11 +495,6 @@ export function MobileCourseLessons(props: CourseLessonsProps) {
                   <span className={`block text-[15px] font-semibold uppercase tracking-[0.01em] truncate ${locked ? 'text-white/55' : 'text-white'}`}>
                     {chapter.name}
                   </span>
-                  {locked && chapter.unlock_date && (
-                    <span className="block normal-case font-normal tracking-normal text-[11px] text-[#4da3ff] mt-0.5">
-                      Se desbloquea el {formatUnlockDate(chapter.unlock_date)}
-                    </span>
-                  )}
                 </span>
                 {!locked && (
                   <>
