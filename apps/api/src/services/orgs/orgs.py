@@ -1332,7 +1332,12 @@ async def update_org_drip_config(
     """Save drip-content settings (time-based chapter unlocking) to org config.
 
     Shape stored at top-level ``config["drip_content"]``:
-        {"enabled": bool, "chapters": {"<chapter_uuid>": <day_offset:int>}}
+        {"enabled": bool,
+         "chapters": {"<chapter_uuid>": <day_offset:int>},
+         "fechas":   {"<chapter_uuid>": "2026-09-21"}}
+
+    La fecha manda sobre los días: ver `DripContentConfig` y
+    `services/courses/locks.py::drip_locked_chapters`.
     """
     statement = select(Organization).where(Organization.id == org_id)
     org = (await db_session.execute(statement)).scalars().first()
@@ -1359,7 +1364,28 @@ async def update_org_drip_config(
                 continue
             chapters[str(key)] = max(0, days)
 
-    drip_content = {"enabled": bool(drip.get("enabled")), "chapters": chapters}
+    # ⚠️ Las fechas fijas también se guardan. Se quedaron fuera al añadirlas:
+    # el esquema las aceptaba y el lector las usaba, pero AQUÍ se construía el
+    # objeto solo con `enabled` y `chapters`, así que se tiraban en silencio.
+    # Síntoma: pones las fechas, guardas, sales y vuelves, y no hay ninguna.
+    raw_fechas = drip.get("fechas") or {}
+    fechas: dict[str, str] = {}
+    if isinstance(raw_fechas, dict):
+        for key, value in raw_fechas.items():
+            texto = str(value or "").strip()
+            if not texto:
+                continue
+            try:
+                datetime.fromisoformat(texto)
+            except (ValueError, TypeError):
+                continue  # nada de basura: una fecha ilegible no abre ni cierra
+            fechas[str(key)] = texto
+
+    drip_content = {
+        "enabled": bool(drip.get("enabled")),
+        "chapters": chapters,
+        "fechas": fechas,
+    }
 
     updated_config = _deep_copy_config(org_config)
     # Top-level key so it round-trips for both v1 and v2 configs.
