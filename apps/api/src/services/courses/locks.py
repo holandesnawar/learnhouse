@@ -23,7 +23,7 @@ from src.db.usergroup_resources import UserGroupResource
 from src.db.usergroup_user import UserGroupUser
 from src.db.users import AnonymousUser, APITokenUser, PublicUser
 from src.security.auth import resolve_acting_user_id
-from src.security.rbac.constants import ADMIN_OR_MAINTAINER_ROLE_IDS
+from src.security.rbac.constants import ADMIN_OR_MAINTAINER_ROLE_IDS, STAFF_ROLE_IDS
 
 
 async def is_org_admin(user_id: int, org_id: int, db_session: AsyncSession) -> bool:
@@ -35,6 +35,27 @@ async def is_org_admin(user_id: int, org_id: int, db_session: AsyncSession) -> b
         )
     )).scalars().first()
     return bool(uo and uo.role_id in ADMIN_OR_MAINTAINER_ROLE_IDS)
+
+
+async def is_org_staff(user_id: int, org_id: int, db_session: AsyncSession) -> bool:
+    """True si atiende alumnos en esta escuela: administrador, moderador o profe.
+
+    Es el mismo grupo que decide quién ve la bandeja del equipo y quién puede
+    responder consultas (`STAFF_ROLE_IDS`). Aquí sirve para una cosa concreta:
+    **el goteo no se le aplica**. Un profe tiene que poder abrir el módulo 7 en
+    octubre para preparar su clase, y con el candado puesto vería lo mismo que
+    un alumno, que es justo lo contrario de lo que necesita.
+
+    Ojo: esto NO le abre los candados por grupo de usuarios, que significan
+    otra cosa (contenido de pago, VIP…). Solo el goteo.
+    """
+    uo = (await db_session.execute(
+        select(UserOrganization).where(
+            UserOrganization.user_id == user_id,
+            UserOrganization.org_id == org_id,
+        )
+    )).scalars().first()
+    return bool(uo and uo.role_id in STAFF_ROLE_IDS)
 
 
 async def batch_accessible_restricted_uuids(

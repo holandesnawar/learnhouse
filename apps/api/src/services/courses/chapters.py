@@ -23,6 +23,7 @@ from src.services.courses.locks import (
     batch_accessible_restricted_uuids,
     drip_locked_chapters,
     is_locked_for_user,
+    is_org_staff,
     is_org_admin,
 )
 
@@ -412,12 +413,18 @@ async def _apply_locks_to_chapters(
 
     # Drip content: chapters that haven't unlocked yet for this user (time-based,
     # independent of the usergroup lock_type axis above).
+    # El goteo NO se le aplica al equipo. Un profe tiene que poder abrir el
+    # módulo que le toca dar semanas antes para prepararlo; con el candado
+    # puesto vería lo mismo que un alumno. Los administradores ya salen antes
+    # por la puerta de arriba, así que esto es en la práctica para el profe.
+    equipo = False if is_anon else await is_org_staff(acting_user_id, course.org_id, db_session)
+
     drip_locked = await drip_locked_chapters(
         [c.chapter_uuid for c in chapters],
         course.org_id,
         current_user,
         db_session,
-        is_admin=admin,
+        is_admin=admin or equipo,
     )
 
     for chapter in chapters:
