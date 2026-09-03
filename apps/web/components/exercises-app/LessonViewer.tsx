@@ -76,7 +76,11 @@ function _playUrl(url: string, onFail: () => void, onDone?: () => void, rate?: n
 
 // Etiqueta de caché de la voz. SÚBELA (v3, v4...) cada vez que se cambie la voz
 // por defecto, para que el navegador no sirva el audio viejo en caché.
-const TTS_VOICE_TAG = 'v5';
+// v5 → v6: se metió un segundo modelo de ElevenLabs (más natural) para las
+// frases de los diálogos; sin subir esto, cada navegador que ya había oído un
+// diálogo seguía sirviendo el mp3 viejo desde su caché de un año, ignorando
+// el cambio en el servidor por completo.
+const TTS_VOICE_TAG = 'v6';
 
 async function _speakViaElevenLabs(text: string, onDone?: () => void, rate?: number): Promise<boolean> {
   if (_ttsRouteAvailable === false) return false;
