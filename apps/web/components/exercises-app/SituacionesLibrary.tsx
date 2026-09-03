@@ -18,7 +18,7 @@ export default function SituacionesLibrary({ orgslug }: { orgslug: string }) {
         className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#025dc7] hover:text-[#1D0084] transition-colors"
       >
         <ArrowLeft size={15} strokeWidth={2.5} />
-        Centro de ejercicios
+        Repasar
       </Link>
 
       <div className="flex items-center gap-2 pt-3">

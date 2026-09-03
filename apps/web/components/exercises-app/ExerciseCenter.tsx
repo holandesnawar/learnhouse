@@ -5,7 +5,9 @@ import { Loader2, Lock, Dumbbell, Info, Check, TrendingUp } from 'lucide-react'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import { getModules, getLessonsForModule } from '@/lib/exercises-app/courseService'
 import { getModuleStats } from '@/lib/exercises-app/progress'
-import { getUriWithOrg } from '@services/config/config'
+import { getAPIUrl, getUriWithOrg } from '@services/config/config'
+import { useOrg } from '@components/Contexts/OrgContext'
+import { useLHSession } from '@components/Contexts/LHSessionContext'
 
 type ModState = { unlocked: boolean; completed: number; total: number }
 
@@ -14,20 +16,51 @@ type ModState = { unlocked: boolean; completed: number; total: number }
 // localStorage, same as the rest of the exercises app).
 export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
   const modules = getModules()
+  const org = useOrg() as any
+  const session = useLHSession() as any
+  const accessToken = session?.data?.tokens?.access_token
   const [mounted, setMounted] = useState(false)
   const [state, setState] = useState<Record<string, ModState>>({})
+  // Los módulos que el goteo todavía no ha abierto, por NÚMERO. Repasar vive
+  // en `courseData.ts` y no sabe nada del curso, así que sin esto enseñaba
+  // abierto lo que en la formación está cerrado: se podía hacer en septiembre
+  // el contenido de octubre entrando por aquí.
+  const [cerrados, setCerrados] = useState<number[] | null>(null)
 
   useEffect(() => {
+    if (!org?.id || !accessToken) {
+      setCerrados([])
+      return
+    }
+    let vivo = true
+    fetch(`${getAPIUrl()}student/module-locks?org_id=${org.id}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+      .then((r) => (r.ok ? r.json() : { bloqueados: [] }))
+      .then((d) => vivo && setCerrados(Array.isArray(d?.bloqueados) ? d.bloqueados : []))
+      // Si falla, se abre: un fallo de red no puede dejar al alumno sin repasar.
+      .catch(() => vivo && setCerrados([]))
+    return () => {
+      vivo = false
+    }
+  }, [org?.id, accessToken])
+
+  useEffect(() => {
+    if (cerrados === null) return
     const s: Record<string, ModState> = {}
-    for (const m of modules) {
+    modules.forEach((m, i) => {
       const lessonIds = getLessonsForModule(m.id).map((l) => l.id)
       const stats = getModuleStats(m.id, lessonIds)
-      s[m.id] = { unlocked: true, completed: stats.completed, total: stats.total }
-    }
+      s[m.id] = {
+        unlocked: !cerrados.includes(i + 1),
+        completed: stats.completed,
+        total: stats.total,
+      }
+    })
     setState(s)
     setMounted(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [cerrados])
 
   return (
     <GeneralWrapperStyled>
@@ -35,7 +68,7 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
       <div className="flex items-center justify-between gap-3 pt-2 flex-wrap">
         <div className="flex items-center gap-2">
           <Dumbbell size={24} className="text-[#025dc7]" />
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Centro de ejercicios</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Repasar</h1>
         </div>
         <Link
           href={getUriWithOrg(orgslug, '/ejercicios/progreso')}
@@ -45,12 +78,12 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
         </Link>
       </div>
       <p className="text-sm text-gray-500 mt-1 mb-4 max-w-lg">
-        Aquí repasas lo que ya has aprendido, en el orden que prefieras.
+        Vuelve sobre lo que ya has hecho, en el orden que quieras y las veces que quieras.
       </p>
       <div className="flex items-start gap-2.5 rounded-xl bg-[#F0F5FF] border border-[#DDE6F5] px-4 py-3 mb-6 max-w-2xl">
         <Info size={18} className="text-[#4da3ff] shrink-0 mt-0.5" />
         <p className="text-[13px] text-[#0a1656] leading-relaxed">
-          Recuerda: primero completa el módulo en <strong>Formación</strong>. Una vez lo termines, podrás repasarlo aquí cuando quieras.
+          El camino va en <strong>Formación</strong>: ahí avanzas. Esto es para <strong>volver</strong> sobre lo que ya viste, sin perder el sitio.
         </p>
       </div>
 
@@ -119,7 +152,7 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
                   ) : (
                     <div className="flex items-center gap-1.5 text-[12px] font-medium text-[#9CA3AF]">
                       <Lock size={13} />
-                      Termina el módulo anterior para desbloquearlo
+                      Se abre más adelante
                     </div>
                   )}
                 </div>

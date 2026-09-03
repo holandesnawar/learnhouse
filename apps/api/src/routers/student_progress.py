@@ -30,6 +30,7 @@ from src.services.lesson_highlights.lesson_highlights import (
     patch_highlight,
 )
 from src.services.student_progress.student_progress import (
+    modulos_bloqueados,
     get_progress,
     get_student_insights,
     get_weak_words,
@@ -232,3 +233,18 @@ async def api_delete_highlight(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     return await delete_highlight(highlight_id, current_user, db_session)
+
+
+@router.get(
+    "/module-locks",
+    summary="Números de módulo que el goteo todavía no ha abierto para este alumno.",
+)
+async def api_module_locks(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    """Lo usa la pantalla de Repasar para no enseñar abierto lo que en la
+    formación está cerrado."""
+    return {"bloqueados": await modulos_bloqueados(org_id, current_user, db_session)}
