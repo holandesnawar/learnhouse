@@ -523,8 +523,8 @@ Sofía y Pablo`,
           // el reproductor leía con la voz de David (solo hay dos voces, A y
           // B). El "u" formal, que era lo que el camarero venía a enseñar, se
           // queda: ahora lo pregunta David y lo explica Anna.
-          { id: 'm1d2-13', speaker: 'David', dutch: 'Ik ga iets bestellen. Zeg ik "jij" of "u" tegen de ober?', spanish: 'Voy a pedir algo. ¿Al camarero le digo "jij" o "u"?' },
-          { id: 'm1d2-14', speaker: 'Anna', dutch: 'Tegen de ober zeg je "u". Dat is beleefd.', spanish: 'Al camarero le dices "u". Es lo educado.' },
+          { id: 'm1d2-13', speaker: 'David', dutch: 'De ober komt eraan. Wat neem jij?', spanish: 'Ya viene el camarero. ¿Tú qué tomas?' },
+          { id: 'm1d2-14', speaker: 'Anna', dutch: 'Vraag jij het maar. Jij oefent, ik luister.', spanish: 'Pregunta tú. Tú practicas, yo escucho.' },
           { id: 'm1d2-15', speaker: 'David', dutch: 'Oké. Voor mij een koffie. En voor jou?', spanish: 'Vale. Para mí un café. ¿Y para ti?' },
           { id: 'm1d2-16', speaker: 'Anna', dutch: 'Voor mij een thee, graag.', spanish: 'Para mí un té, por favor.' },
           { id: 'm1d2-17', speaker: 'David', dutch: 'Wij drinken hier elke week koffie en thee.', spanish: 'Nosotros tomamos aquí café y té todas las semanas.' },
@@ -538,8 +538,8 @@ Sofía y Pablo`,
         { id: 'm1d2q-4', type: 'multiple_choice', prompt: '¿A qué se dedica la hermana de Anna?', options: ['Es profesora', 'Es médica', 'Es pintora', 'No trabaja'], correctAnswer: 'Es profesora', explanation: '"zij is lerares".' },
         { id: 'm1d2q-5', type: 'multiple_choice', prompt: '¿Por qué está en casa la hermana?', options: ['Tiene gripe', 'Está de vacaciones', 'No tiene trabajo', 'Espera a alguien'], correctAnswer: 'Tiene gripe', explanation: '"Ze heeft griep".' },
         { id: 'm1d2q-6', type: 'true_false', prompt: 'Anna trabaja hoy.', correctAnswer: 'falso', explanation: '"Nee, vandaag niet".' },
-        { id: 'm1d2q-7', type: 'fill_blank', prompt: 'Tegen de ober zeg je ___. (la forma formal)', correctAnswer: 'u', hint: 'Una sola letra', explanation: 'Al camarero se le trata de usted: "Tegen de ober zeg je u".' },
-        { id: 'm1d2q-8', type: 'multiple_choice', prompt: '¿Cuál es la diferencia entre "jij" y "u"?', options: ['u es la forma formal', 'Son lo mismo', 'u es plural', 'jij solo se usa por escrito'], correctAnswer: 'u es la forma formal', explanation: 'Con el camarero se dice "u"; entre amigos, "jij" o "je".' },
+        { id: 'm1d2q-7', type: 'multiple_choice', prompt: '¿Quién va a pedir?', options: ['David', 'Anna', 'Los dos a la vez', 'Nadie, ya han pedido'], correctAnswer: 'David', explanation: '"Vraag jij het maar. Jij oefent, ik luister."' },
+        { id: 'm1d2q-8', type: 'multiple_choice', prompt: '¿Cuál es la diferencia entre "jij" y "u"?', options: ['u es la forma formal', 'Son lo mismo', 'u es plural', 'jij solo se usa por escrito'], correctAnswer: 'u es la forma formal', explanation: '"U" es el trato formal, con quien no conoces; entre amigos, "jij" o "je".' },
       ],
     },
     {
@@ -1028,14 +1028,14 @@ Una habitación en Ámsterdam cuesta setecientos euros al mes. En Groninga una h
           { id: 'm1d4-7', speaker: 'Anna', dutch: 'Ik denk… vijfentwintig.', spanish: 'Creo que… veinticinco.' },
           { id: 'm1d4-8', speaker: 'David', dutch: 'Nee, een beetje meer.', spanish: 'No, un poco más.' },
           { id: 'm1d4-9', speaker: 'Anna', dutch: 'Oké, dertig dan?', spanish: 'Vale, ¿treinta entonces?' },
-          { id: 'm1d4-10', speaker: 'David', dutch: 'Iets minder.', spanish: 'Un poco menos.' },
+          { id: 'm1d4-10', speaker: 'David', dutch: 'Iets minder, hoor.', spanish: 'Un poco menos, eh.' },
           { id: 'm1d4-11', speaker: 'Anna', dutch: 'Achtentwintig misschien?', spanish: '¿Veintiocho, quizá?' },
           { id: 'm1d4-12', speaker: 'David', dutch: 'Dat klopt! Twee keer veertien. En jij? Drie keer tien, toch?', spanish: '¡Exacto! Dos por catorce. ¿Y tú? Tres por diez, ¿no?' },
-          { id: 'm1d4-13', speaker: 'Anna', dutch: 'Bijna!', spanish: '¡Casi!' },
+          { id: 'm1d4-13', speaker: 'Anna', dutch: 'Bijna, maar niet helemaal.', spanish: 'Casi, pero no del todo.' },
           { id: 'm1d4-14', speaker: 'David', dutch: 'Dertig min één, dus negenentwintig?', spanish: 'Treinta menos uno, ¿o sea veintinueve?' },
-          { id: 'm1d4-15', speaker: 'Anna', dutch: 'Klopt!', spanish: '¡Correcto!' },
+          { id: 'm1d4-15', speaker: 'Anna', dutch: 'Ja, dat klopt precies.', spanish: 'Sí, eso es exactamente.' },
           { id: 'm1d4-16', speaker: 'David', dutch: 'Dan zijn we allebei twintigers. Proost, op de twintigers!', spanish: 'Entonces los dos somos veinteañeros. ¡Salud, por los veinteañeros!' },
-          { id: 'm1d4-17', speaker: 'Anna', dutch: 'Proost! Op iedereen tussen de twintig en de dertig!', spanish: '¡Salud! ¡Por todos los que están entre los veinte y los treinta!' },
+          { id: 'm1d4-17', speaker: 'Anna', dutch: 'Proost, David!', spanish: '¡Salud, David!' },
         ],
       },
       exercises: [
@@ -1265,7 +1265,7 @@ En una dirección de correo está el signo @. En neerlandés ese signo se llama 
           { id: 'm1d5-10', speaker: 'David', dutch: 'Eindigt het op een t? Niet op een d?', spanish: '¿Termina en t? ¿No en d?' },
           { id: 'm1d5-11', speaker: 'Anna', dutch: 'Nee, op een t. Veel mensen schrijven een d.', spanish: 'No, en t. Mucha gente escribe una d.' },
           { id: 'm1d5-12', speaker: 'David', dutch: 'En wat is je e-mailadres?', spanish: '¿Y cuál es tu correo electrónico?' },
-          { id: 'm1d5-13', speaker: 'Anna', dutch: 'anna, apenstaartje, nawar, punt nl.', spanish: 'anna, arroba, nawar, punto nl.' },
+          { id: 'm1d5-13', speaker: 'Anna', dutch: 'anna, apenstaartje, gmail, punt com.', spanish: 'anna, arroba, gmail, punto com.' },
           { id: 'm1d5-14', speaker: 'David', dutch: 'Apenstaartje! Wat een leuk woord.', spanish: '¡«Apenstaartje»! Qué palabra tan bonita.' },
           { id: 'm1d5-15', speaker: 'Anna', dutch: 'Ja, hè? Kun je jouw voornaam nog een keer spellen?', spanish: 'Sí, ¿verdad? ¿Puedes deletrear tu nombre otra vez?' },
           { id: 'm1d5-16', speaker: 'David', dutch: 'D, A, V, I, D. Makkelijk!', spanish: 'D, A, V, I, D. ¡Fácil!' },
@@ -1279,7 +1279,7 @@ En una dirección de correo está el signo @. En neerlandés ese signo se llama 
         { id: 'm1d5q-5', type: 'multiple_choice', prompt: '¿Qué es el "apenstaartje"?', options: ['La arroba @', 'El punto', 'El guion', 'La barra'], correctAnswer: 'La arroba @', explanation: 'Literalmente "colita de mono". Lo vas a necesitar para dar tu correo por teléfono.' },
         { id: 'm1d5q-6', type: 'true_false', prompt: 'El nombre de David es difícil de deletrear.', correctAnswer: 'falso', explanation: '"D, A, V, I, D. Makkelijk!"' },
         { id: 'm1d5q-7', type: 'fill_blank', prompt: 'Hoe ___ je dat? (¿cómo se deletrea?)', correctAnswer: 'spel', hint: 'del verbo spellen', explanation: '"Hoe spel je dat?" se pide todos los días en una ventanilla.' },
-        { id: 'm1d5q-8', type: 'multiple_choice', prompt: '¿Cuál es el correo de Anna?', options: ['anna@nawar.nl', 'anna@nawar.com', 'ana@nawar.nl', 'anna@haarlem.nl'], correctAnswer: 'anna@nawar.nl', explanation: '"anna, apenstaartje, nawar, punt nl".' },
+        { id: 'm1d5q-8', type: 'multiple_choice', prompt: '¿Cuál es el correo de Anna?', options: ['anna@gmail.com', 'ana@gmail.com', 'anna@gmail.nl', 'anna@haarlem.nl'], correctAnswer: 'anna@gmail.com', explanation: '"anna, apenstaartje, gmail, punt com".' },
       ],
     },
     {
@@ -1340,7 +1340,7 @@ En una dirección de correo está el signo @. En neerlandés ese signo se llama 
         // ── Comprensión del diálogo (De vijfde ontmoeting) ──
         { id: 'm1l5e-29', type: 'multiple_choice', prompt: 'En el diálogo, ¿qué apellido es el difícil de deletrear?', options: ['Van Oldenbarnevelt', 'Martínez', 'Nawar', 'David'], correctAnswer: 'Van Oldenbarnevelt', explanation: '"Poeh! Hoe spel je dat?" Y encima acaba en t, no en d.' },
         { id: 'm1l5e-30', type: 'true_false', prompt: 'El apellido de David es Martínez.', correctAnswer: 'verdadero', explanation: 'Lo deletrea: M-A-R-T-I-N-E-Z, "met een z aan het eind".' },
-        { id: 'm1l5e-31', type: 'true_false', prompt: 'La "@" del email se llama "apenstaartje" (colita de mono).', correctAnswer: 'verdadero', explanation: 'Así deletrea Anna su email: "anna, apenstaartje, nawar, punt nl".' },
+        { id: 'm1l5e-31', type: 'true_false', prompt: 'La "@" del email se llama "apenstaartje" (colita de mono).', correctAnswer: 'verdadero', explanation: 'Así deletrea Anna su email: "anna, apenstaartje, gmail, punt com".' },
         { id: 'm1l5e-32', type: 'listen_translate', prompt: 'Escucha y traduce: "Hoe spel je je naam?"', options: ['¿Cómo', 'se', 'deletrea', 'tu', 'nombre?', 'apellido?', 'escribe', '¿Cuál'], correctAnswer: '¿Cómo se deletrea tu nombre?' },
         { id: 'm1l5e-33', type: 'listen_translate', prompt: 'Escucha y traduce: "Mijn achternaam begint met een Z"', options: ['Mi', 'apellido', 'empieza', 'con', 'Z', 'termina', 'nombre', 'una'], correctAnswer: 'Mi apellido empieza con Z' },
         { id: 'm1l5e-34', type: 'listen_translate', prompt: 'Escucha y traduce: "Wat is je achternaam?"', options: ['¿Cuál', 'es', 'tu', 'apellido?', 'nombre?', 'calle?', '¿Cómo'], correctAnswer: '¿Cuál es tu apellido?' },
@@ -2095,32 +2095,43 @@ const m2_les1: Lesson = {
       ],
     },
     {
+      // Texto informativo con datos reales sobre el hogar neerlandés. El
+      // anterior empezaba bien pero acababa explicando la diferencia entre
+      // "mijn vriend" y "een vriend" al lector, y tenía palabras en español
+      // dentro del neerlandés (familia, novio, amigo), que el TTS lee fatal.
       type: 'lezen',
       title: 'Het gezin en de familie',
-      textNl: `In het Nederlands zijn er twee woorden voor familia. Het gezin is klein: de ouders en de kinderen, de mensen in één huis. De familie is groot: ook de opa, de oma en de rest.
+      textNl: `Het gezin en de familie zijn niet hetzelfde. Het gezin is klein: de ouders en de kinderen in hetzelfde huis. De familie is groot: ook de opa, de oma, de ooms en de tantes.
 
-Een Nederlands gezin is vaak klein: twee ouders en één of twee kinderen. De familie woont niet altijd dichtbij. De opa en oma wonen soms in een andere stad.
+Hoe groot is een Nederlands gezin?
+Een gezin met kinderen heeft meestal één of twee kinderen. Een gezin met vijf of zes kinderen is bijzonder.
 
-David denkt vaak aan zijn familie. Zijn ouders en zijn zus wonen in Argentinië, heel ver weg. Maar zijn gezin hier in Nederland? Dat zijn zijn vrienden: Anna, de bakker Kees en buurvrouw Els. Vrienden zijn ook een beetje familie.
+Alleen wonen
+In Nederland wonen veel mensen alleen. Bijna drie miljoen mensen hebben een huis voor zichzelf. In Amsterdam is dat nog meer: daar woont bijna de helft van de mensen alleen.
 
-En let op het woord vriend: mijn vriend is de novio, maar een vriend is een amigo. Eén klein woord, een groot verschil.`,
-      textEs: `En neerlandés hay dos palabras para "familia". Het gezin es pequeña: los padres y los hijos, la gente de una misma casa. De familie es grande: también el abuelo, la abuela y el resto.
+Ver weg of dichtbij?
+De opa en de oma wonen niet altijd in dezelfde stad. Veel mensen bezoeken hun ouders elke week. Andere mensen zien hun familie alleen met de feestdagen.`,
+      textEs: `El gezin y la familie no son lo mismo. El gezin es pequeño: los padres y los hijos en la misma casa. La familie es grande: también el abuelo, la abuela, los tíos y las tías.
 
-Una familia (gezin) neerlandesa suele ser pequeña: dos padres y uno o dos hijos. La familia no siempre vive cerca. Los abuelos a veces viven en otra ciudad.
+¿Cómo de grande es un gezin neerlandés?
+Un gezin con hijos suele tener uno o dos hijos. Un gezin con cinco o seis hijos es algo poco común.
 
-David piensa mucho en su familia. Sus padres y su hermana viven en Argentina, muy lejos. ¿Pero su "gezin" aquí en Países Bajos? Son sus amigos: Anna, el panadero Kees y la vecina Els. Los amigos también son un poco familia.
+Vivir solo
+En Países Bajos vive mucha gente sola. Casi tres millones de personas tienen una casa para ellas solas. En Ámsterdam es todavía más: allí vive sola casi la mitad de la gente.
 
-Y ojo con la palabra "vriend": mijn vriend es el novio, pero een vriend es un amigo. Una palabrita, una gran diferencia.`,
+¿Lejos o cerca?
+El abuelo y la abuela no siempre viven en la misma ciudad. Mucha gente visita a sus padres cada semana. Otros ven a su familia solo en las fiestas.`,
       exercises: [
-        { id: 'm2l1lz-1', type: 'multiple_choice', prompt: '¿Qué es "het gezin"?', options: ['La familia de casa (padres e hijos)', 'Toda la familia', 'Los amigos', 'Los vecinos'], correctAnswer: 'La familia de casa (padres e hijos)', explanation: '"Het gezin is klein: de ouders en de kinderen."' },
-        { id: 'm2l1lz-2', type: 'multiple_choice', prompt: '¿Quiénes entran en "de familie"?', options: ['También los abuelos y el resto', 'Solo los padres', 'Solo los hijos', 'Solo la pareja'], correctAnswer: 'También los abuelos y el resto', explanation: '"De familie is groot: ook de opa, de oma en de rest."' },
-        { id: 'm2l1lz-3', type: 'multiple_choice', prompt: '¿Cómo suele ser un "gezin" neerlandés?', options: ['Pequeño: dos padres y uno o dos hijos', 'Muy grande', 'Sin hijos', 'De diez personas'], correctAnswer: 'Pequeño: dos padres y uno o dos hijos', explanation: '"Een Nederlands gezin is vaak klein."' },
-        { id: 'm2l1lz-4', type: 'multiple_choice', prompt: '¿Dónde viven los padres y la hermana de David?', options: ['En Argentina', 'En Ámsterdam', 'En España', 'En Haarlem'], correctAnswer: 'En Argentina', explanation: '"Zijn ouders en zijn zus wonen in Argentinië."' },
-        { id: 'm2l1lz-5', type: 'fill_blank', prompt: 'Zijn ouders wonen heel ver ___.', correctAnswer: 'weg', hint: '"muy lejos" = heel ver …', explanation: '"Ver weg" = lejos.' },
-        { id: 'm2l1lz-6', type: 'multiple_choice', prompt: '¿Quiénes son el "gezin" de David en Países Bajos?', options: ['Sus amigos: Anna, Kees y Els', 'Sus abuelos', 'Sus compañeros de trabajo', 'Nadie'], correctAnswer: 'Sus amigos: Anna, Kees y Els', explanation: '"Dat zijn zijn vrienden": los amigos también son un poco familia.' },
-        { id: 'm2l1lz-7', type: 'multiple_choice', prompt: '"Mijn vriend" vs "een vriend": ¿cuál es el novio?', options: ['Mijn vriend', 'Een vriend', 'Los dos', 'Ninguno'], correctAnswer: 'Mijn vriend', explanation: 'mijn vriend = mi novio · een vriend = un amigo.' },
-        { id: 'm2l1lz-8', type: 'fill_blank', prompt: 'Het ___ is klein: de ouders en de kinderen.', correctAnswer: 'gezin', hint: 'La familia de casa', explanation: 'La familia con la que vives = het gezin.' },
-        { id: 'm2l1lz-9', type: 'fill_blank', prompt: 'De opa en oma wonen soms in een andere ___.', correctAnswer: 'stad', hint: 'ciudad', explanation: '"In een andere stad" = en otra ciudad.' },
+        { id: 'm2l1lz-1', type: 'multiple_choice', prompt: '¿Qué es el "gezin"?', options: ['Los padres y los hijos de la misma casa', 'Toda la familia, tíos incluidos', 'Solo los abuelos', 'Los amigos'], correctAnswer: 'Los padres y los hijos de la misma casa', explanation: '"Het gezin is klein: de ouders en de kinderen in hetzelfde huis."' },
+        { id: 'm2l1lz-2', type: 'multiple_choice', prompt: '¿Y quién entra en la "familie"?', options: ['También los abuelos, tíos y tías', 'Solo los padres', 'Solo los hijos', 'Solo los que viven juntos'], correctAnswer: 'También los abuelos, tíos y tías', explanation: '"ook de opa, de oma, de ooms en de tantes".' },
+        { id: 'm2l1lz-3', type: 'multiple_choice', prompt: '¿Cuántos hijos suele tener un gezin con hijos?', options: ['Uno o dos', 'Cinco o seis', 'Tres o cuatro', 'No lo dice'], correctAnswer: 'Uno o dos', explanation: '"meestal één of twee kinderen".' },
+        { id: 'm2l1lz-4', type: 'multiple_choice', prompt: '¿Cuánta gente vive sola en Países Bajos?', options: ['Casi tres millones', 'Casi la mitad del país', 'Trescientas mil', 'No lo dice'], correctAnswer: 'Casi tres millones', explanation: '"Bijna drie miljoen mensen hebben een huis voor zichzelf."' },
+        { id: 'm2l1lz-5', type: 'multiple_choice', prompt: '¿En qué ciudad vive sola casi la mitad de la gente?', options: ['En Ámsterdam', 'En Groninga', 'En Utrecht', 'En Haarlem'], correctAnswer: 'En Ámsterdam', explanation: '"In Amsterdam… daar woont bijna de helft van de mensen alleen."' },
+        { id: 'm2l1lz-6', type: 'true_false', prompt: 'Un gezin con seis hijos es lo normal en Países Bajos.', correctAnswer: 'falso', explanation: '"Een gezin met vijf of zes kinderen is bijzonder": es poco común.' },
+        { id: 'm2l1lz-7', type: 'true_false', prompt: 'Los abuelos viven siempre en la misma ciudad que sus hijos.', correctAnswer: 'falso', explanation: '"De opa en de oma wonen niet altijd in dezelfde stad."' },
+        { id: 'm2l1lz-8', type: 'multiple_choice', prompt: '¿Cada cuánto visita mucha gente a sus padres?', options: ['Cada semana', 'Cada día', 'Una vez al año', 'Solo en las fiestas'], correctAnswer: 'Cada semana', explanation: '"Veel mensen bezoeken hun ouders elke week." Otros solo en las fiestas.' },
+        { id: 'm2l1lz-9', type: 'fill_blank', prompt: 'Het ___ is klein: de ouders en de kinderen. (palabra de "het")', correctAnswer: 'gezin', hint: 'la familia con la que vives' },
+        { id: 'm2l1lz-10', type: 'fill_blank', prompt: 'De ___ is groot: ook de opa en de oma. (palabra de "de")', correctAnswer: 'familie', hint: 'la familia entera' },
       ],
     },
     {
@@ -2141,8 +2152,8 @@ Y ojo con la palabra "vriend": mijn vriend es el novio, pero een vriend es un am
           { id: 'm2d1-9',  speaker: 'David', dutch: 'Nee, één zus. Zij heet Lucía. En haar dochter is mijn nichtje!',  spanish: 'No, una hermana. Se llama Lucía. ¡Y su hija es mi sobrinita!' },
           { id: 'm2d1-10', speaker: 'Anna',  dutch: 'Aah! En… heb je een vriendin, David?',                            spanish: '¡Aah! Y… ¿tienes novia, David?' },
           { id: 'm2d1-11', speaker: 'David', dutch: 'Een vriendin? Nee… maar ik heb veel vriendinnen. Dat is anders, toch?', spanish: '¿Novia? No… pero tengo muchas amigas. Eso es distinto, ¿no?' },
-          { id: 'm2d1-12', speaker: 'Anna',  dutch: 'Haha, precies! "Mijn vriendin" of "een vriendin": dat kleine woordje maakt het verschil.', spanish: '¡Jaja, exacto! "Mijn vriendin" (mi novia) o "een vriendin" (una amiga): esa palabrita marca la diferencia.' },
-          { id: 'm2d1-13', speaker: 'David', dutch: 'Nederlands is gevaarlijk! Dit is mijn les voor vandaag.',         spanish: '¡El neerlandés es peligroso! Esta es mi lección de hoy.' },
+          { id: 'm2d1-12', speaker: 'Anna',  dutch: 'Haha! Zeg dat maar niet tegen je moeder, dan belt ze meteen.', spanish: '¡Jaja! No se lo digas así a tu madre, que te llama enseguida.' },
+          { id: 'm2d1-13', speaker: 'David', dutch: 'O nee. Ik schrijf het op: mijn vriendin, een vriendin.',         spanish: 'Ay, no. Me lo apunto: mijn vriendin, een vriendin.' },
           { id: 'm2d1-14', speaker: 'Anna',  dutch: 'Haha! Tot volgende week, David.',                                 spanish: '¡Jaja! Hasta la semana que viene, David.' },
           { id: 'm2d1-15', speaker: 'David', dutch: 'Doei! Groetjes aan je familie!',                                  spanish: '¡Adiós! ¡Saludos a tu familia!' },
         ],
@@ -2357,32 +2368,48 @@ const m2_les2: Lesson = {
       ],
     },
     {
+      // Antes esto era el resumen de la lección puesto en prosa: la metáfora
+      // del tren, el verbo en "plek twee" en mayúsculas y una comparación con
+      // el español dirigida al lector. Eso ya está dos pantallas antes.
+      // Ahora es un texto de verdad sobre dónde vive la gente, y las frases
+      // enteras (sujeto, verbo segundo, resto) son el texto, no el tema.
       type: 'lezen',
-      title: 'Een Nederlandse zin is een trein',
-      textNl: `Een Nederlandse zin is net een trein. Vooraan staat de conducteur: het onderwerp. Wie doet iets? Dan komt de motor: het werkwoord. Wat gebeurt er? En daarna komen de wagons: de rest. Waar, wanneer, wat.
+      title: 'Waar wonen de Nederlanders?',
+      textNl: `Nederland is een klein land met veel mensen.
 
-Kijk maar: Mijn broer (conducteur) woont (motor) in Utrecht (wagon). De motor staat ALTIJD op plek twee. Dat is de belangrijkste regel van het Nederlands.
+In Nederland wonen ongeveer achttien miljoen mensen. Het land is klein, dus de steden liggen dicht bij elkaar.
 
-In het Spaans rijdt de trein soms zonder conducteur: "Vive en Utrecht". In het Nederlands kan dat niet. Een trein zonder conducteur rijdt niet, en een zin zonder onderwerp werkt niet. Dus: Hij woont in Utrecht.
+De grote steden
+Amsterdam is de grootste stad. Daar wonen bijna een miljoen mensen. Rotterdam is nummer twee. Daarna komen Den Haag en Utrecht.
 
-Nog één ding over de motor: die moet passen bij de conducteur. Ik droom, mijn zus droomt, wij dromen. Kleine motor, grote motor, maar altijd op plek twee.`,
-      textEs: `Una frase neerlandesa es como un tren. Delante va el conductor: el sujeto. ¿Quién hace algo? Luego viene el motor: el verbo. ¿Qué pasa? Y detrás vienen los vagones: el resto. Dónde, cuándo, qué.
+Wonen en werken
+Veel mensen wonen niet in de stad waar ze werken. Ze wonen in een dorp en ze reizen elke dag naar de stad. De trein van Utrecht naar Amsterdam duurt een half uur.
 
-Míralo: Mijn broer (conductor) woont (motor) in Utrecht (vagón). El motor va SIEMPRE en el segundo lugar. Esa es la regla más importante del neerlandés.
+De fiets
+Bijna iedereen heeft een fiets. In Nederland staan meer fietsen dan er mensen wonen: ongeveer drieëntwintig miljoen.`,
+      textEs: `Países Bajos es un país pequeño con mucha gente.
 
-En español el tren a veces circula sin conductor: "Vive en Utrecht". En neerlandés eso no puede ser. Un tren sin conductor no anda, y una frase sin sujeto no funciona. Así que: Hij woont in Utrecht.
+En Países Bajos viven unos dieciocho millones de personas. El país es pequeño, así que las ciudades están cerca unas de otras.
 
-Una cosa más sobre el motor: tiene que encajar con el conductor. Ik droom, mijn zus droomt, wij dromen. Motor pequeño, motor grande, pero siempre en el segundo lugar.`,
+Las ciudades grandes
+Ámsterdam es la ciudad más grande. Allí viven casi un millón de personas. Róterdam es la número dos. Después vienen La Haya y Utrecht.
+
+Vivir y trabajar
+Mucha gente no vive en la ciudad donde trabaja. Viven en un pueblo y viajan cada día a la ciudad. El tren de Utrecht a Ámsterdam tarda media hora.
+
+La bici
+Casi todo el mundo tiene una bici. En Países Bajos hay más bicis que personas: unos veintitrés millones.`,
       exercises: [
-        { id: 'm2l2lz-1', type: 'multiple_choice', prompt: 'En la metáfora del tren, ¿qué es el sujeto?', options: ['El conductor', 'El motor', 'El vagón', 'La vía'], correctAnswer: 'El conductor', explanation: 'El sujeto es quien "conduce" la frase: quién hace algo.' },
-        { id: 'm2l2lz-2', type: 'multiple_choice', prompt: '¿Y el verbo?', options: ['El motor', 'El conductor', 'El vagón', 'La estación'], correctAnswer: 'El motor', explanation: 'El verbo es el motor: qué pasa. Y va SIEMPRE en el 2º lugar.' },
-        { id: 'm2l2lz-3', type: 'multiple_choice', prompt: '¿Cuál es la regla más importante del neerlandés según el texto?', options: ['El verbo siempre en el segundo lugar', 'El sujeto al final', 'Las frases cortas', 'No usar verbos'], correctAnswer: 'El verbo siempre en el segundo lugar', explanation: '"De motor staat ALTIJD op plek twee."' },
-        { id: 'm2l2lz-4', type: 'multiple_choice', prompt: '"Vive en Utrecht" (sin sujeto): ¿vale en neerlandés?', options: ['No: hace falta el sujeto → Hij woont in Utrecht', 'Sí, igual que en español', 'Solo por escrito', 'Solo hablando'], correctAnswer: 'No: hace falta el sujeto → Hij woont in Utrecht', explanation: 'Un tren sin conductor no anda: el sujeto es obligatorio.' },
-        { id: 'm2l2lz-5', type: 'fill_blank', prompt: 'Mijn broer ___ in Utrecht. (vivir)', correctAnswer: 'woont', hint: 'wonen → hij: raíz + t (alarga la vocal)', explanation: 'wonen → woon → woont.' },
-        { id: 'm2l2lz-6', type: 'fill_blank', prompt: 'Ik ___, mijn zus droomt, wij dromen. (soñar, yo)', correctAnswer: 'droom', hint: 'dromen → con ik va la raíz (alarga la vocal)', explanation: 'dromen → droom: la raíz alarga la vocal.' },
-        { id: 'm2l2lz-7', type: 'multiple_choice', prompt: '¿Qué responde "el resto" (los vagones)?', options: ['Dónde, cuándo, qué', 'Solo quién', 'Solo el verbo', 'Nada'], correctAnswer: 'Dónde, cuándo, qué', explanation: '"De rest: waar, wanneer, wat."' },
-        { id: 'm2l2lz-8', type: 'fill_blank', prompt: 'Een zin zonder onderwerp ___ niet.', correctAnswer: 'werkt', hint: 'werken → raíz + t', explanation: 'Una frase sin sujeto "no funciona" (werkt niet).' },
-        { id: 'm2l2lz-9', type: 'multiple_choice', prompt: '¿Qué significa que el motor "encaje con el conductor"?', options: ['El verbo se conjuga según el sujeto', 'El verbo va al final', 'El sujeto se omite', 'Los dos van juntos al final'], correctAnswer: 'El verbo se conjuga según el sujeto', explanation: 'Ik droom · mijn zus droomt · wij dromen.' },
+        { id: 'm2l2lz-1', type: 'multiple_choice', prompt: '¿Cuánta gente vive en Países Bajos?', options: ['Unos dieciocho millones', 'Unos ocho millones', 'Casi un millón', 'Veintitrés millones'], correctAnswer: 'Unos dieciocho millones', explanation: '"ongeveer achttien miljoen mensen".' },
+        { id: 'm2l2lz-2', type: 'multiple_choice', prompt: '¿Cuál es la ciudad más grande?', options: ['Ámsterdam', 'Róterdam', 'La Haya', 'Utrecht'], correctAnswer: 'Ámsterdam', explanation: '"Amsterdam is de grootste stad."' },
+        { id: 'm2l2lz-3', type: 'multiple_choice', prompt: '¿Cuánta gente vive en Ámsterdam?', options: ['Casi un millón', 'Dieciocho millones', 'Medio millón', 'No lo dice'], correctAnswer: 'Casi un millón', explanation: '"Daar wonen bijna een miljoen mensen."' },
+        { id: 'm2l2lz-4', type: 'multiple_choice', prompt: '¿Qué ciudad es la número dos?', options: ['Róterdam', 'Utrecht', 'La Haya', 'Groninga'], correctAnswer: 'Róterdam', explanation: '"Rotterdam is nummer twee."' },
+        { id: 'm2l2lz-5', type: 'multiple_choice', prompt: '¿Cuánto tarda el tren de Utrecht a Ámsterdam?', options: ['Media hora', 'Una hora', 'Dos horas', 'Quince minutos'], correctAnswer: 'Media hora', explanation: '"duurt een half uur".' },
+        { id: 'm2l2lz-6', type: 'true_false', prompt: 'Toda la gente vive en la ciudad donde trabaja.', correctAnswer: 'falso', explanation: '"Veel mensen wonen niet in de stad waar ze werken."' },
+        { id: 'm2l2lz-7', type: 'multiple_choice', prompt: '¿Cuántas bicis hay en Países Bajos?', options: ['Unos veintitrés millones', 'Unos dieciocho millones', 'Un millón', 'No lo dice'], correctAnswer: 'Unos veintitrés millones', explanation: '"meer fietsen dan er mensen wonen: ongeveer drieëntwintig miljoen".' },
+        { id: 'm2l2lz-8', type: 'true_false', prompt: 'En Países Bajos hay más bicis que personas.', correctAnswer: 'verdadero', explanation: 'Veintitrés millones de bicis frente a dieciocho millones de personas.' },
+        { id: 'm2l2lz-9', type: 'order_sentence', prompt: 'Ordena la frase del texto: "Mucha gente vive en un pueblo"', options: ['Veel mensen', 'wonen', 'in een dorp'], correctAnswer: 'Veel mensen wonen in een dorp' },
+        { id: 'm2l2lz-10', type: 'fill_blank', prompt: 'Ze ___ elke dag naar de stad. (viajar)', correctAnswer: 'reizen', hint: 'plural: el verbo va entero' },
       ],
     },
     {
@@ -2598,32 +2625,49 @@ const m2_les3: Lesson = {
       ],
     },
     {
+      // Se queda el mejor dato del texto anterior (el calendario de cumpleaños
+      // en el baño, que es verdad y encanta) pero sin el final que le hablaba
+      // al alumno: "Dus, een tip voor jou: koop een agenda… Zo klinkt een
+      // echte Nederlander!" Los días y los momentos salen del tema.
       type: 'lezen',
       title: 'De Nederlandse agenda',
-      textNl: `Nederlanders leven met een agenda. Werk, sport, familie. Alles staat in de kalender. Wil je een vriend zien? Dan maak je een afspraak. Spontaan op bezoek gaan? Dat is in Nederland niet normaal!
+      textNl: `In Nederland staat bijna alles in de agenda: het werk, de sport, de familie en de vakantie.
 
-Ook familie-momenten staan in de agenda. Veel mensen bezoeken hun ouders op zondag. Op zaterdag zien ze vrienden. En de vakantie? Die plannen Nederlanders al in januari!
+Een afspraak maken
+Spontaan bij iemand langsgaan is niet gewoon. Mensen bellen of appen eerst. Ook voor een kopje koffie maken ze een afspraak.
 
-Eén dag is heel belangrijk: de verjaardag. Als je jarig bent, komt de hele familie. Veel Nederlanders hebben zelfs een verjaardagskalender, een kalender met alle verjaardagen van de familie. En die hangt… op het toilet! Echt waar.
+De week
+Van maandag tot vrijdag werken de meeste mensen. Op zaterdag doen ze boodschappen en sporten ze. Op zondag zien veel mensen hun familie.
 
-Dus, een tip voor jou: koop een agenda. Ik bezoek mijn oma morgen. Ik zie mijn vrienden dit weekend. Wij eten samen volgende week. Zo klinkt een echte Nederlander!`,
-      textEs: `Los neerlandeses viven con agenda. Trabajo, deporte, familia. Todo está en el calendario. ¿Quieres ver a un amigo? Pues haces una cita. ¿Presentarte de visita sin avisar? ¡En Países Bajos eso no es normal!
+De verjaardagskalender
+Veel Nederlanders hebben een verjaardagskalender. Daarop staan alle verjaardagen van de familie. Die kalender hangt vaak op het toilet. Zo vergeet niemand een verjaardag.
 
-Los momentos en familia también van a la agenda. Mucha gente visita a sus padres el domingo. El sábado ven a los amigos. ¿Y las vacaciones? ¡Los neerlandeses las planifican ya en enero!
+De vakantie
+Nederlanders plannen hun vakantie vroeg. In januari boeken veel mensen al hun zomervakantie.`,
+      textEs: `En Países Bajos casi todo está en la agenda: el trabajo, el deporte, la familia y las vacaciones.
 
-Hay un día muy importante: el cumpleaños. Cuando cumples años, viene toda la familia. Muchos neerlandeses tienen incluso un "verjaardagskalender", un calendario con todos los cumpleaños de la familia. ¿Y dónde lo cuelgan…? ¡En el baño! De verdad.
+Quedar con alguien
+Presentarse en casa de alguien sin avisar no es lo normal. La gente llama o escribe antes. Incluso para un café quedan con antelación.
 
-Así que, un consejo: cómprate una agenda. Visito a mi abuela mañana. Veo a mis amigos este fin de semana. Comemos juntos la semana que viene. ¡Así suena un neerlandés de verdad!`,
+La semana
+De lunes a viernes trabaja la mayoría. El sábado hacen la compra y hacen deporte. El domingo mucha gente ve a su familia.
+
+El calendario de cumpleaños
+Muchos neerlandeses tienen un calendario de cumpleaños. Ahí están todos los cumpleaños de la familia. Ese calendario suele estar colgado en el baño. Así nadie se olvida de un cumpleaños.
+
+Las vacaciones
+Los neerlandeses planifican pronto sus vacaciones. En enero mucha gente ya reserva las vacaciones de verano.`,
       exercises: [
-        { id: 'm2l3lz-1', type: 'multiple_choice', prompt: '¿Con qué viven los neerlandeses según el texto?', options: ['Con una agenda', 'Sin planes', 'Con un mapa', 'Con un reloj de arena'], correctAnswer: 'Con una agenda', explanation: '"Nederlanders leven met een agenda."' },
-        { id: 'm2l3lz-2', type: 'multiple_choice', prompt: '¿Qué haces si quieres ver a un amigo?', options: ['Una cita (afspraak)', 'Ir sin avisar', 'Esperar en su casa', 'Llamar a su madre'], correctAnswer: 'Una cita (afspraak)', explanation: 'Ir de visita sin avisar "is in Nederland niet normaal".' },
-        { id: 'm2l3lz-3', type: 'multiple_choice', prompt: '¿Cuándo visita mucha gente a sus padres?', options: ['El domingo', 'El lunes', 'El miércoles', 'Nunca'], correctAnswer: 'El domingo', explanation: '"Veel mensen bezoeken hun ouders op zondag."' },
-        { id: 'm2l3lz-4', type: 'multiple_choice', prompt: '¿Cuándo planifican los neerlandeses las vacaciones?', options: ['Ya en enero', 'El día antes', 'En agosto', 'No las planifican'], correctAnswer: 'Ya en enero', explanation: '"Die plannen Nederlanders al in januari!"' },
-        { id: 'm2l3lz-5', type: 'multiple_choice', prompt: '¿Qué es un "verjaardagskalender"?', options: ['Un calendario con los cumpleaños de la familia', 'Una tarta', 'Una fiesta', 'Un regalo'], correctAnswer: 'Un calendario con los cumpleaños de la familia', explanation: 'Y se cuelga… ¡en el baño!' },
-        { id: 'm2l3lz-6', type: 'multiple_choice', prompt: '¿Dónde cuelgan muchos neerlandeses ese calendario?', options: ['En el baño', 'En la cocina', 'En el salón', 'En la puerta'], correctAnswer: 'En el baño', explanation: '"En die hangt… op het toilet! Echt waar."' },
-        { id: 'm2l3lz-7', type: 'fill_blank', prompt: 'Ik ___ mijn oma morgen. (visitar)', correctAnswer: 'bezoek', hint: 'bezoeken → con ik va la raíz', explanation: 'bezoeken → bezoek.' },
-        { id: 'm2l3lz-8', type: 'fill_blank', prompt: 'Wil je een vriend zien? Dan maak je een ___.', correctAnswer: 'afspraak', hint: 'La palabra neerlandesa para cita', explanation: 'De afspraak = la cita.' },
-        { id: 'm2l3lz-9', type: 'fill_blank', prompt: 'Ik zie mijn vrienden dit ___.', correctAnswer: 'weekend', hint: 'este fin de semana', explanation: '"Dit weekend" = este fin de semana.' },
+        { id: 'm2l3lz-1', type: 'multiple_choice', prompt: '¿Qué hay que hacer antes de ir a casa de alguien?', options: ['Llamar o escribir antes', 'Nada, se va sin avisar', 'Llevar un regalo', 'Ir un domingo'], correctAnswer: 'Llamar o escribir antes', explanation: '"Mensen bellen of appen eerst."' },
+        { id: 'm2l3lz-2', type: 'multiple_choice', prompt: '¿Qué días trabaja la mayoría?', options: ['De lunes a viernes', 'De lunes a sábado', 'Solo entre semana por la tarde', 'Todos los días'], correctAnswer: 'De lunes a viernes', explanation: '"Van maandag tot vrijdag werken de meeste mensen."' },
+        { id: 'm2l3lz-3', type: 'multiple_choice', prompt: '¿Qué se hace el sábado?', options: ['La compra y deporte', 'Ver a la familia', 'Trabajar', 'Reservar las vacaciones'], correctAnswer: 'La compra y deporte', explanation: '"Op zaterdag doen ze boodschappen en sporten ze."' },
+        { id: 'm2l3lz-4', type: 'multiple_choice', prompt: '¿Y el domingo?', options: ['Ver a la familia', 'La compra', 'Deporte', 'Trabajar'], correctAnswer: 'Ver a la familia', explanation: '"Op zondag zien veel mensen hun familie."' },
+        { id: 'm2l3lz-5', type: 'multiple_choice', prompt: '¿Dónde suele estar colgado el calendario de cumpleaños?', options: ['En el baño', 'En la cocina', 'En el salón', 'En la puerta'], correctAnswer: 'En el baño', explanation: '"Die kalender hangt vaak op het toilet." Es verdad, y sorprende a todo el mundo.' },
+        { id: 'm2l3lz-6', type: 'multiple_choice', prompt: '¿Para qué sirve ese calendario?', options: ['Para no olvidar ningún cumpleaños', 'Para apuntar el trabajo', 'Para las vacaciones', 'Para la compra'], correctAnswer: 'Para no olvidar ningún cumpleaños', explanation: '"Zo vergeet niemand een verjaardag."' },
+        { id: 'm2l3lz-7', type: 'multiple_choice', prompt: '¿En qué mes reserva mucha gente las vacaciones de verano?', options: ['En enero', 'En junio', 'En julio', 'En agosto'], correctAnswer: 'En enero', explanation: '"In januari boeken veel mensen al hun zomervakantie."' },
+        { id: 'm2l3lz-8', type: 'true_false', prompt: 'En Países Bajos es normal presentarse en casa de alguien sin avisar.', correctAnswer: 'falso', explanation: '"Spontaan bij iemand langsgaan is niet gewoon."' },
+        { id: 'm2l3lz-9', type: 'fill_blank', prompt: '___ zaterdag doen mensen boodschappen. (preposición de día)', correctAnswer: 'Op', hint: 'los días van con esta' },
+        { id: 'm2l3lz-10', type: 'fill_blank', prompt: '___ januari boeken veel mensen hun vakantie. (preposición de mes)', correctAnswer: 'In', hint: 'los meses van con esta' },
       ],
     },
     {
@@ -2862,32 +2906,50 @@ const m2_les4: Lesson = {
       ],
     },
     {
+      // El anterior contaba la historia de dos casas y luego se paraba a
+      // explicar por qué es "ons huis" pero "onze kat", y acababa con "Nu ken
+      // jij ze allemaal!". Ahora es un texto sobre cómo se vive en Países
+      // Bajos: las palabras de "de" y de "het" están por todas partes porque
+      // una casa tiene habitaciones, no porque alguien las liste.
       type: 'lezen',
-      title: 'Twee huizen, één straat',
-      textNl: `In de straat van Sofia en Pablo staan twee huizen naast elkaar. Het eerste huis is van Sofia en Pablo. Hun huis is klein, maar hun tuin is groot. Sofia zegt altijd: ons huis is klein, maar onze kat is de baas!
+      title: 'Het Nederlandse huis',
+      textNl: `Bijna elk huis in Nederland heeft grote ramen.
 
-Het tweede huis is van Jan en Els, de schilders. Hun huis is groot en heel kleurrijk. Logisch, met twee schilders. Zijn fiets staat voor de deur, en haar bloemen staan voor het raam. Jan zegt: mijn fiets. Els zegt: mijn bloemen. Samen zeggen ze: onze straat is de mooiste van Rotterdam.
+Het huis
+Een Nederlands huis is vaak smal en hoog. De keuken is beneden en de slaapkamers zijn boven. De trap is smal en steil.
 
-Waarom is het "ons huis" maar "onze kat"? Simpel: huis is een het-woord, dus ons. Kat is een de-woord, dus onze. En bij meer dingen, onze bloemen of onze vrienden, is het altijd onze.
+De gordijnen
+In Nederland zijn de gordijnen vaak open. Mensen op straat zien de woonkamer, de bank en de lamp van de buren. In veel andere landen is dat anders.
 
-Eén straat, twee huizen, veel bezit: mijn, jouw, zijn, haar, ons, onze, hun. Nu ken jij ze allemaal!`,
-      textEs: `En la calle de Sofía y Pablo hay dos casas una junto a la otra. La primera casa es de Sofía y Pablo. Su casa es pequeña, pero su jardín es grande. Sofía siempre dice: nuestra casa (ons huis) es pequeña, ¡pero nuestra gata (onze kat) es la jefa!
+Huren of kopen
+Veel mensen huren hun huis. Andere mensen kopen een huis. Een huis kopen is duur: in Amsterdam kost een huis gemiddeld meer dan vijfhonderdduizend euro.
 
-La segunda casa es de Jan y Els, los pintores. Su casa es grande y muy colorida. Lógico, con dos pintores. Su bici (de él, zijn fiets) está delante de la puerta, y sus flores (de ella, haar bloemen) están delante de la ventana. Jan dice: mijn fiets (mi bici). Els dice: mijn bloemen (mis flores). Y juntos dicen: onze straat (nuestra calle) es la más bonita de Róterdam.
+De tuin
+De tuin is meestal klein, maar hij is belangrijk. Op zaterdag werkt half Nederland in de tuin. Wie geen tuin heeft, zet bloemen op het balkon.`,
+      textEs: `Casi todas las casas de Países Bajos tienen ventanas grandes.
 
-¿Por qué es "ons huis" pero "onze kat"? Simple: huis es palabra de "het", así que ons. Kat es palabra de "de", así que onze. Y con varias cosas, onze bloemen u onze vrienden, siempre es onze.
+La casa
+Una casa neerlandesa suele ser estrecha y alta. La cocina está abajo y los dormitorios arriba. La escalera es estrecha y empinada.
 
-Una calle, dos casas, mucho posesivo: mijn, jouw, zijn, haar, ons, onze, hun. ¡Ya los conoces todos!`,
+Las cortinas
+En Países Bajos las cortinas suelen estar abiertas. La gente de la calle ve el salón, el sofá y la lámpara de los vecinos. En muchos otros países eso es distinto.
+
+Alquilar o comprar
+Mucha gente alquila su casa. Otros compran una casa. Comprar una casa es caro: en Ámsterdam una casa cuesta de media más de quinientos mil euros.
+
+El jardín
+El jardín suele ser pequeño, pero es importante. El sábado media Países Bajos trabaja en el jardín. Quien no tiene jardín, pone flores en el balcón.`,
       exercises: [
-        { id: 'm2l4lz-1', type: 'multiple_choice', prompt: '¿De quién es la primera casa?', options: ['De Sofía y Pablo', 'De Jan y Els', 'De David', 'De la gata'], correctAnswer: 'De Sofía y Pablo', explanation: '"Het eerste huis is van Sofia en Pablo."' },
-        { id: 'm2l4lz-2', type: 'multiple_choice', prompt: '¿Por qué se dice "ONS huis"?', options: ['Porque huis es palabra de "het"', 'Porque la casa es pequeña', 'Porque suena mejor', 'Porque es plural'], correctAnswer: 'Porque huis es palabra de "het"', explanation: 'het huis → ons huis · de kat → onze kat.' },
-        { id: 'm2l4lz-3', type: 'multiple_choice', prompt: '¿Y por qué "ONZE kat"?', options: ['Porque kat es palabra de "de"', 'Porque la gata es la jefa', 'Porque es un animal', 'Porque es femenino'], correctAnswer: 'Porque kat es palabra de "de"', explanation: 'Palabras de "de" → onze.' },
-        { id: 'm2l4lz-4', type: 'multiple_choice', prompt: '¿Cómo es la casa de Jan y Els?', options: ['Grande y muy colorida', 'Pequeña y blanca', 'Vieja y gris', 'Nueva y vacía'], correctAnswer: 'Grande y muy colorida', explanation: '"Hun huis is groot en heel kleurrijk": ¡con dos pintores, lógico!' },
-        { id: 'm2l4lz-5', type: 'multiple_choice', prompt: '"Zijn fiets": ¿de quién es la bici?', options: ['De Jan (de él)', 'De Els (de ella)', 'De los dos', 'De Sofía'], correctAnswer: 'De Jan (de él)', explanation: 'zijn = su (de él) · haar = su (de ella): haar bloemen son de Els.' },
-        { id: 'm2l4lz-6', type: 'fill_blank', prompt: 'Dit is ___ huis. (nuestra, het huis)', correctAnswer: 'ons', hint: '¿huis es de-woord o het-woord?', explanation: 'het huis → ons huis.' },
-        { id: 'm2l4lz-7', type: 'fill_blank', prompt: '___ bloemen staan voor het raam. (de ella)', correctAnswer: 'Haar', hint: 'su, hablando de Els (mujer)', explanation: 'De una mujer → haar.' },
-        { id: 'm2l4lz-8', type: 'fill_blank', prompt: 'Met meer dingen is het altijd ___: onze bloemen, onze vrienden.', correctAnswer: 'onze', hint: 'El plural siempre lleva "de" →', explanation: 'Plural → siempre onze.' },
-        { id: 'm2l4lz-9', type: 'multiple_choice', prompt: 'Según el texto, ¿qué dicen Jan y Els juntos?', options: ['Onze straat es la más bonita de Róterdam', 'Ons straat es fea', 'Su calle es ruidosa', 'Quieren mudarse'], correctAnswer: 'Onze straat es la más bonita de Róterdam', explanation: 'de straat → onze straat.' },
+        { id: 'm2l4lz-1', type: 'multiple_choice', prompt: '¿Cómo es una casa neerlandesa típica?', options: ['Estrecha y alta', 'Ancha y baja', 'Grande y cuadrada', 'Siempre nueva'], correctAnswer: 'Estrecha y alta', explanation: '"Een Nederlands huis is vaak smal en hoog."' },
+        { id: 'm2l4lz-2', type: 'multiple_choice', prompt: '¿Dónde está la cocina?', options: ['Abajo', 'Arriba', 'En el jardín', 'No lo dice'], correctAnswer: 'Abajo', explanation: '"De keuken is beneden en de slaapkamers zijn boven."' },
+        { id: 'm2l4lz-3', type: 'multiple_choice', prompt: '¿Qué se ve desde la calle en muchas casas?', options: ['El salón, el sofá y la lámpara', 'La cocina', 'El jardín', 'Nada, las cortinas están cerradas'], correctAnswer: 'El salón, el sofá y la lámpara', explanation: 'Las cortinas suelen estar abiertas: "de gordijnen zijn vaak open".' },
+        { id: 'm2l4lz-4', type: 'multiple_choice', prompt: '¿Cuánto cuesta de media una casa en Ámsterdam?', options: ['Más de quinientos mil euros', 'Unos cien mil euros', 'Unos cincuenta mil euros', 'No lo dice'], correctAnswer: 'Más de quinientos mil euros', explanation: '"gemiddeld meer dan vijfhonderdduizend euro".' },
+        { id: 'm2l4lz-5', type: 'multiple_choice', prompt: '¿Qué día trabaja media Países Bajos en el jardín?', options: ['El sábado', 'El domingo', 'El viernes', 'Todos los días'], correctAnswer: 'El sábado', explanation: '"Op zaterdag werkt half Nederland in de tuin."' },
+        { id: 'm2l4lz-6', type: 'multiple_choice', prompt: '¿Qué hace quien no tiene jardín?', options: ['Pone flores en el balcón', 'Va al parque', 'Alquila un jardín', 'Nada'], correctAnswer: 'Pone flores en el balcón', explanation: '"Wie geen tuin heeft, zet bloemen op het balkon."' },
+        { id: 'm2l4lz-7', type: 'fill_blank', prompt: '___ keuken is beneden. (de / het)', correctAnswer: 'De', hint: 'de keuken' },
+        { id: 'm2l4lz-8', type: 'fill_blank', prompt: '___ huis is smal en hoog. (de / het)', correctAnswer: 'Het', hint: 'het huis' },
+        { id: 'm2l4lz-9', type: 'fill_blank', prompt: '___ balkon staat vol bloemen. (de / het)', correctAnswer: 'Het', hint: 'het balkon' },
+        { id: 'm2l4lz-10', type: 'true_false', prompt: 'Todo el mundo compra su casa en Países Bajos.', correctAnswer: 'falso', explanation: '"Veel mensen huren hun huis."' },
       ],
     },
     {
@@ -2899,18 +2961,18 @@ Una calle, dos casas, mucho posesivo: mijn, jouw, zijn, haar, ons, onze, hun. ¡
         lines: [
           { id: 'm2d4-1',  speaker: 'David', dutch: 'Wauw, wat een mooi huis!',                                             spanish: '¡Guau, qué casa tan bonita!' },
           { id: 'm2d4-2',  speaker: 'Anna',  dutch: 'Dank je! Dit is ons huis: nou ja, het huis van mijn ouders.',         spanish: '¡Gracias! Esta es nuestra casa: bueno, la casa de mis padres.' },
-          { id: 'm2d4-3',  speaker: 'David', dutch: 'Ons huis… omdat huis een het-woord is, toch?',                          spanish: 'Ons huis… porque huis es palabra de "het", ¿verdad?' },
-          { id: 'm2d4-4',  speaker: 'Anna',  dutch: 'Heel goed! Kom, dit is mijn moeder. Mama, dit is David.',              spanish: '¡Muy bien! Ven, esta es mi madre. Mamá, este es David.' },
+          { id: 'm2d4-3',  speaker: 'David', dutch: 'Wat een licht hier! Zijn die ramen altijd zo groot?',                          spanish: '¡Qué luz hay aquí! ¿Las ventanas son siempre así de grandes?' },
+          { id: 'm2d4-4',  speaker: 'Anna',  dutch: 'In oude huizen wel. Kom, dit is mijn moeder. Mama, dit is David.',              spanish: 'En las casas antiguas sí. Ven, esta es mi madre. Mamá, este es David.' },
           { id: 'm2d4-5',  speaker: 'David', dutch: 'Aangenaam, mevrouw! Uw huis is prachtig.',                              spanish: '¡Encantado, señora! Su casa (de usted) es preciosa.' },
-          { id: 'm2d4-6',  speaker: 'Anna',  dutch: 'Haha, "uw"! Wat beleefd. Mijn moeder vindt het al leuk.',              spanish: '¡Jaja, "uw"! Qué educado. A mi madre ya le caes bien.' },
+          { id: 'm2d4-6',  speaker: 'Anna',  dutch: 'Kijk, mijn moeder lacht al. Je bent binnen.',              spanish: 'Mira, mi madre ya se ríe. Ya estás dentro.' },
           { id: 'm2d4-7',  speaker: 'David', dutch: 'En wie is dat op de foto? Haar vader?',                                 spanish: '¿Y quién es ese de la foto? ¿Su padre (de ella)?' },
           { id: 'm2d4-8',  speaker: 'Anna',  dutch: 'Ja, dat is haar vader: mijn opa dus. En dat is zijn hond, Max.',      spanish: 'Sí, es su padre, o sea, mi abuelo. Y ese es su perro (de él), Max.' },
-          { id: 'm2d4-9',  speaker: 'David', dutch: 'Zijn hond, haar vader, ons huis… bezit is overal!',                     spanish: 'Su perro, su padre, nuestra casa… ¡el posesivo está en todas partes!' },
-          { id: 'm2d4-10', speaker: 'Anna',  dutch: 'Haha! En kijk: dit zijn onze kamers, van mijn broer en mij.',          spanish: '¡Jaja! Y mira: estas son nuestras habitaciones, de mi hermano y mías.' },
-          { id: 'm2d4-11', speaker: 'David', dutch: 'Onze kamers: plural, dus altijd onze!',                                spanish: 'Onze kamers: ¡plural, así que siempre onze!' },
-          { id: 'm2d4-12', speaker: 'Anna',  dutch: 'Je leert snel! Blijf je eten? Mijn ouders koken vanavond.',            spanish: '¡Aprendes rápido! ¿Te quedas a cenar? Mis padres cocinan esta noche.' },
+          { id: 'm2d4-9',  speaker: 'David', dutch: 'Wat een grote hond. Slaapt hij ook binnen?',                     spanish: 'Qué perro tan grande. ¿Duerme también dentro?' },
+          { id: 'm2d4-10', speaker: 'Anna',  dutch: 'Vroeger wel, nu niet meer. Kijk, dit zijn onze kamers, van mijn broer en mij.',          spanish: 'Antes sí, ahora ya no. Mira, estas son nuestras habitaciones, de mi hermano y mías.' },
+          { id: 'm2d4-11', speaker: 'David', dutch: 'Twee kamers naast elkaar. Zingt hij nog steeds in de douche?',                                spanish: 'Dos habitaciones al lado. ¿Sigue cantando en la ducha?' },
+          { id: 'm2d4-12', speaker: 'Anna',  dutch: 'Elke ochtend! Blijf je eten? Mijn ouders koken vanavond.',            spanish: '¡Cada mañana! ¿Te quedas a cenar? Mis padres cocinan esta noche.' },
           { id: 'm2d4-13', speaker: 'David', dutch: 'Heel graag! Hun eten ruikt nu al lekker.',                              spanish: '¡Encantado! Su comida (de ellos) ya huele bien.' },
-          { id: 'm2d4-14', speaker: 'Anna',  dutch: 'Hun eten, heel goed! Kom, we gaan naar de keuken.',                     spanish: '"Hun eten", ¡muy bien! Ven, vamos a la cocina.' },
+          { id: 'm2d4-14', speaker: 'Anna',  dutch: 'Dat is de kip van mijn vader. Kom, we gaan naar de keuken.',                     spanish: 'Es el pollo de mi padre. Ven, vamos a la cocina.' },
         ],
       },
       exercises: [
@@ -3097,32 +3159,49 @@ const m2_les5: Lesson = {
       ],
     },
     {
+      // Este texto ya iba por buen camino: el reloj neerlandés es un tema de
+      // verdad y trae las horas puestas. Lo que sobraba era hablarle al
+      // lector ("Voor veel Spaanstaligen is dat lunchtijd", "Kom je om 8 uur…?").
+      // Ahora son datos, y hay más horas concretas que localizar.
       type: 'lezen',
       title: 'De Nederlandse klok',
-      textNl: `Nederland leeft op de klok. Alles heeft een vaste tijd, en die tijd is heilig.
+      textNl: `Nederland leeft op de klok. Alles heeft een vaste tijd.
 
-De dag begint vroeg. Veel Nederlanders worden wakker om 7 uur. Ze ontbijten om 8 uur: brood met kaas, natuurlijk. Ze werken in de ochtend en in de middag. De lunch? Om 12 uur precies, vaak weer… brood met kaas.
+De ochtend
+Veel Nederlanders staan om 7 uur op. Ze ontbijten om half 8: brood met kaas of met hagelslag. De scholen beginnen om half 9.
 
-En dan het beroemdste moment: het avondeten. Nederlanders eten heel vroeg, om 6 uur in de avond. Voor veel Spaanstaligen is dat lunchtijd. Kom je om 8 uur in de avond? Dan is het eten al lang klaar.
+De lunch
+De lunch is om 12 uur. Op het werk eten mensen dan weer brood. De pauze duurt een half uur.
 
-In het weekend is de klok minder streng. Op zaterdag doen mensen boodschappen en sporten ze. Op zondag zien ze hun familie. En in de zomer? Dan zit heel Nederland buiten, want de zon is hier een feest.`,
-      textEs: `Países Bajos vive con el reloj. Todo tiene su hora fija, y esa hora es sagrada.
+Het avondeten
+Nederlanders eten vroeg. Om 6 uur staat het eten op tafel. Om 8 uur is de keuken al schoon.
 
-El día empieza pronto. Muchos neerlandeses se despiertan a las 7. Desayunan a las 8: pan con queso, claro. Trabajan por la mañana y por la tarde. ¿La comida? A las 12 en punto, muchas veces otra vez… pan con queso.
+Het weekend
+In het weekend is de klok minder streng. Op zaterdag doen mensen boodschappen. Op zondag slapen veel mensen uit.`,
+      textEs: `Países Bajos vive según el reloj. Todo tiene una hora fija.
 
-Y luego el momento más famoso: la cena. Los neerlandeses cenan muy pronto, a las 6 de la tarde. Para muchos hispanohablantes esa es la hora de comer. ¿Llegas a las 8 de la tarde? La cena ya terminó hace rato.
+La mañana
+Muchos neerlandeses se levantan a las 7. Desayunan a las 7 y media: pan con queso o con hagelslag (fideos de chocolate). Los colegios empiezan a las 8 y media.
 
-El fin de semana el reloj es menos estricto. El sábado la gente hace la compra y hace deporte. El domingo ven a su familia. ¿Y en verano? Todo Países Bajos se sienta fuera, porque el sol aquí es una fiesta.`,
+La comida
+La comida es a las 12. En el trabajo la gente come otra vez pan. La pausa dura media hora.
+
+La cena
+Los neerlandeses cenan pronto. A las 6 está la comida en la mesa. A las 8 la cocina ya está recogida.
+
+El fin de semana
+El fin de semana el reloj es menos estricto. El sábado la gente hace la compra. El domingo mucha gente duerme hasta tarde.`,
       exercises: [
-        { id: 'm2l5lz-1', type: 'multiple_choice', prompt: '¿A qué hora se despiertan muchos neerlandeses?', options: ['A las 7', 'A las 10', 'A las 5', 'A las 9'], correctAnswer: 'A las 7', explanation: '"Veel Nederlanders worden wakker om 7 uur."' },
-        { id: 'm2l5lz-2', type: 'multiple_choice', prompt: '¿Qué desayunan (y comen… y a veces cenan)?', options: ['Pan con queso', 'Tortilla', 'Cereales', 'Fruta'], correctAnswer: 'Pan con queso', explanation: 'Brood met kaas, natuurlijk: ¡el clásico de la lección 6 del módulo 1!' },
-        { id: 'm2l5lz-3', type: 'multiple_choice', prompt: '¿A qué hora cenan los neerlandeses?', options: ['A las 6 de la tarde', 'A las 9 de la noche', 'A las 10', 'A medianoche'], correctAnswer: 'A las 6 de la tarde', explanation: '"Om 6 uur in de avond": para muchos hispanohablantes, ¡hora de comer!' },
-        { id: 'm2l5lz-4', type: 'multiple_choice', prompt: '¿Qué pasa si llegas a las 8 de la tarde?', options: ['La cena ya terminó hace rato', 'Es la hora perfecta', 'Aún no han empezado', 'Te esperan'], correctAnswer: 'La cena ya terminó hace rato', explanation: '"Dan is het eten al lang klaar."' },
-        { id: 'm2l5lz-5', type: 'multiple_choice', prompt: '¿Qué hace la gente el domingo?', options: ['Ven a su familia', 'Trabajan', 'Hacen la compra', 'Estudian'], correctAnswer: 'Ven a su familia', explanation: '"Op zondag zien ze hun familie."' },
-        { id: 'm2l5lz-6', type: 'fill_blank', prompt: 'Ze ontbijten ___ 8 uur. (preposición)', correctAnswer: 'om', hint: 'Es una HORA', explanation: 'Hora → om.' },
-        { id: 'm2l5lz-7', type: 'fill_blank', prompt: '___ zaterdag doen mensen boodschappen. (preposición)', correctAnswer: 'Op', hint: 'Es un DÍA', explanation: 'Día → op.' },
-        { id: 'm2l5lz-8', type: 'fill_blank', prompt: 'Ze werken ___ de ochtend. (preposición)', correctAnswer: 'in', hint: 'Es una PARTE DEL DÍA', explanation: 'Parte del día → in.' },
-        { id: 'm2l5lz-9', type: 'multiple_choice', prompt: '¿Qué hace todo el país en verano?', options: ['Sentarse fuera: el sol es una fiesta', 'Quedarse en casa', 'Trabajar más', 'Dormir'], correctAnswer: 'Sentarse fuera: el sol es una fiesta', explanation: '"Dan zit heel Nederland buiten!"' },
+        { id: 'm2l5lz-1', type: 'multiple_choice', prompt: '¿A qué hora se levanta mucha gente?', options: ['A las 7', 'A las 8', 'A las 6', 'A las 9'], correctAnswer: 'A las 7', explanation: '"Veel Nederlanders staan om 7 uur op."' },
+        { id: 'm2l5lz-2', type: 'multiple_choice', prompt: '¿A qué hora se desayuna?', options: ['A las 7 y media', 'A las 8 y media', 'A las 7', 'A las 8'], correctAnswer: 'A las 7 y media', explanation: '"Ze ontbijten om half 8." Ojo: "half 8" es las 7 y media, no las 8 y media.' },
+        { id: 'm2l5lz-3', type: 'multiple_choice', prompt: '¿A qué hora empiezan los colegios?', options: ['A las 8 y media', 'A las 9', 'A las 7 y media', 'A las 9 y media'], correctAnswer: 'A las 8 y media', explanation: '"De scholen beginnen om half 9."' },
+        { id: 'm2l5lz-4', type: 'multiple_choice', prompt: '¿Cuánto dura la pausa de la comida?', options: ['Media hora', 'Una hora', 'Dos horas', 'Quince minutos'], correctAnswer: 'Media hora', explanation: '"De pauze duurt een half uur."' },
+        { id: 'm2l5lz-5', type: 'multiple_choice', prompt: '¿A qué hora se cena?', options: ['A las 6', 'A las 8', 'A las 10', 'A las 7'], correctAnswer: 'A las 6', explanation: '"Om 6 uur staat het eten op tafel." Para un español es la hora de merendar.' },
+        { id: 'm2l5lz-6', type: 'multiple_choice', prompt: '¿Qué pasa a las 8 de la tarde?', options: ['La cocina ya está recogida', 'Se sientan a cenar', 'Empieza la cena', 'Se acuestan'], correctAnswer: 'La cocina ya está recogida', explanation: '"Om 8 uur is de keuken al schoon."' },
+        { id: 'm2l5lz-7', type: 'true_false', prompt: 'El fin de semana el horario es igual de estricto.', correctAnswer: 'falso', explanation: '"In het weekend is de klok minder streng."' },
+        { id: 'm2l5lz-8', type: 'fill_blank', prompt: 'Ze ontbijten ___ half 8. (preposición de hora)', correctAnswer: 'om', hint: 'con horas siempre esta' },
+        { id: 'm2l5lz-9', type: 'fill_blank', prompt: '___ zondag slapen veel mensen uit. (preposición de día)', correctAnswer: 'Op', hint: 'con días' },
+        { id: 'm2l5lz-10', type: 'fill_blank', prompt: '___ het weekend is de klok minder streng. (preposición)', correctAnswer: 'In', hint: 'in het weekend' },
       ],
     },
     {
@@ -3139,13 +3218,13 @@ El fin de semana el reloj es menos estricto. El sábado la gente hace la compra 
           { id: 'm2d5-5',  speaker: 'David', dutch: 'Ik word wakker om 8 uur. Ik ontbijt om half 9.',                        spanish: 'Me despierto a las 8. Desayuno a las 8 y media.' },
           { id: 'm2d5-6',  speaker: 'Anna',  dutch: 'En dan?',                                                               spanish: '¿Y luego?' },
           { id: 'm2d5-7',  speaker: 'David', dutch: 'Ik werk in de ochtend en in de middag. Ik sport in de avond.',          spanish: 'Trabajo por la mañana y por la tarde. Hago deporte por la tarde-noche.' },
-          { id: 'm2d5-8',  speaker: 'Anna',  dutch: 'Heel goed! Om, in… alles klopt. En op zondag?',                         spanish: '¡Muy bien! Om, in… todo correcto. ¿Y el domingo?' },
+          { id: 'm2d5-8',  speaker: 'Anna',  dutch: 'Dat is een vol schema. En op zondag?',                         spanish: 'Vaya agenda. ¿Y el domingo?' },
           { id: 'm2d5-9',  speaker: 'David', dutch: 'Op zondag bel ik mijn familie in Argentinië. Om 3 uur: voor hun ontbijt!', spanish: 'El domingo llamo a mi familia en Argentina. A las 3: ¡para su desayuno!' },
           { id: 'm2d5-10', speaker: 'Anna',  dutch: 'Slim! En wanneer ga je naar bed?',                                      spanish: '¡Listo! ¿Y cuándo te vas a la cama?' },
           { id: 'm2d5-11', speaker: 'David', dutch: 'Om 12 uur in de nacht. Argentijnse routine!',                           spanish: 'A las 12 de la noche. ¡Rutina argentina!' },
-          { id: 'm2d5-12', speaker: 'Anna',  dutch: 'Haha! Oké, één test: ik eet OP 6 uur: goed of fout?',                  spanish: '¡Jaja! Vale, una prueba: "ik eet OP 6 uur": ¿bien o mal?' },
-          { id: 'm2d5-13', speaker: 'David', dutch: 'Fout! Met uren is het OM: ik eet om 6 uur.',                            spanish: '¡Mal! Con horas es OM: ik eet om 6 uur.' },
-          { id: 'm2d5-14', speaker: 'Anna',  dutch: 'Perfect! Dan eten we morgen samen: om 6 uur, Nederlandse tijd!',       spanish: '¡Perfecto! Pues mañana cenamos juntos: ¡a las 6, hora neerlandesa!' },
+          { id: 'm2d5-12', speaker: 'Anna',  dutch: 'Twaalf uur! Dan slaap ik al drie uur.',                  spanish: '¡Las doce! Yo a esa hora llevo tres horas durmiendo.' },
+          { id: 'm2d5-13', speaker: 'David', dutch: 'In Argentinië begint de avond dan pas.',                            spanish: 'En Argentina la noche empieza justo entonces.' },
+          { id: 'm2d5-14', speaker: 'Anna',  dutch: 'Dan eten we morgen samen: om 6 uur, Nederlandse tijd!',       spanish: 'Pues mañana cenamos juntos: ¡a las 6, hora neerlandesa!' },
           { id: 'm2d5-15', speaker: 'David', dutch: 'Deal. Maar ik neem een tweede diner om 10 uur, hoor!',                  spanish: 'Trato hecho. ¡Pero yo me tomo una segunda cena a las 10, eh!' },
         ],
       },
@@ -3318,32 +3397,48 @@ const m2_les6: Lesson = {
       ],
     },
     {
+      // El anterior era el jardín de Els y terminaba diciendo "Luister goed
+      // naar de klanken van dit verhaal", con media frase en español dentro
+      // del neerlandés ("y también", "Twee sonidos"). El TTS leía eso en
+      // neerlandés. Ahora es un texto sobre la bici, que viene cargado de
+      // ij/ei/ui sin que nadie tenga que señalarlos.
       type: 'lezen',
-      title: 'De tuin van Els',
-      textNl: `Achter het huis van buurvrouw Els ligt een kleine tuin. Klein, maar heel bijzonder: er staan tulpen in alle kleuren, er is een bankje, en er woont zelfs een egel!
+      title: 'Iedereen op de fiets',
+      textNl: `In Nederland rijdt bijna iedereen op de fiets.
 
-In Nederland is de tuin belangrijk. Veel mensen drinken hun koffie buiten, ook in de lente als het fris is. Op zaterdag werkt half Nederland in de tuin. En wie geen tuin heeft? Die zet bloemen op het balkon.
+Er zijn in Nederland meer fietsen dan mensen: ongeveer drieëntwintig miljoen. Kinderen rijden naar school, ouders rijden van huis naar hun werk, en oude mensen rijden naar de winkel.
 
-Els is vaak buiten. In de ochtend drinkt zij thee in haar tuin. Haar kleinkinderen, een jongen en een meisje, spelen er in het weekend. Het meisje zoekt de egel, de jongen eet een ijsje. En hun oma? Zij blijft rustig op haar bankje zitten.
+Elke dag op de fiets
+Nederlanders fietsen gemiddeld drie kilometer per dag. Dat is niet ver, maar het is elke dag. Meer dan een kwart van alle reizen in Nederland gaat op de fiets.
 
-Luister goed naar de klanken van dit verhaal: tuin, huis en buiten, y también klein, meisje, blijven en ijsje. Twee sonidos, één mooie Nederlandse tuin.`,
-      textEs: `Detrás de la casa de la vecina Els hay un pequeño jardín. Pequeño, pero muy especial: hay tulipanes de todos los colores, hay un banquito… ¡y hasta vive un erizo!
+Regen is geen probleem
+Het weer is geen reden om binnen te blijven. Bij regen trekken mensen een jas aan en ze rijden gewoon door.
 
-En Países Bajos el jardín es importante. Mucha gente toma su café fuera, incluso en primavera cuando hace fresco. El sábado, medio Países Bajos trabaja en el jardín. ¿Y quien no tiene jardín? Pone flores en el balcón.
+De grootste fietsenstalling
+Bij het station van Utrecht staat de grootste fietsenstalling van de wereld. Daar is plaats voor meer dan twaalfduizend fietsen.`,
+      textEs: `En Países Bajos casi todo el mundo va en bici.
 
-Els está mucho fuera. Por la mañana toma té en su jardín. Sus nietos, un chico y una chica, juegan allí el fin de semana. La chica busca al erizo, el chico come un helado. ¿Y su abuela? Ella se queda tranquila sentada en su banquito.
+Hay más bicis que personas: unos veintitrés millones. Los niños van en bici al colegio, los padres van de casa al trabajo, y los mayores van a la tienda.
 
-Escucha bien los sonidos de esta historia: tuin, huis y buiten, y también klein, meisje, blijven e ijsje. Dos sonidos, un bonito jardín neerlandés.`,
+Cada día en bici
+Los neerlandeses pedalean de media tres kilómetros al día. No es mucho, pero es todos los días. Más de una cuarta parte de todos los desplazamientos del país se hacen en bici.
+
+La lluvia no es problema
+El tiempo no es razón para quedarse dentro. Cuando llueve, la gente se pone un abrigo y sigue pedaleando.
+
+El aparcamiento de bicis más grande
+Junto a la estación de Utrecht está el aparcamiento de bicis más grande del mundo. Ahí caben más de doce mil bicis.`,
       exercises: [
-        { id: 'm2l6lz-1', type: 'multiple_choice', prompt: '¿Qué hay detrás de la casa de Els?', options: ['Un pequeño jardín', 'Un garaje', 'Una tienda', 'Un parque'], correctAnswer: 'Un pequeño jardín', explanation: '"Achter het huis ligt een kleine tuin."' },
-        { id: 'm2l6lz-2', type: 'multiple_choice', prompt: '¿Qué animal vive en el jardín?', options: ['Un erizo', 'Un gato', 'Un perro', 'Un pájaro'], correctAnswer: 'Un erizo', explanation: '"Er woont zelfs een egel!": un erizo.' },
-        { id: 'm2l6lz-3', type: 'multiple_choice', prompt: '¿Qué hace medio Países Bajos el sábado?', options: ['Trabajar en el jardín', 'Dormir', 'Ir al cine', 'Viajar'], correctAnswer: 'Trabajar en el jardín', explanation: '"Op zaterdag werkt half Nederland in de tuin."' },
-        { id: 'm2l6lz-4', type: 'multiple_choice', prompt: '¿Qué hace quien no tiene jardín?', options: ['Pone flores en el balcón', 'Compra uno', 'Va al parque', 'Nada'], correctAnswer: 'Pone flores en el balcón', explanation: '"Die zet bloemen op het balkon."' },
-        { id: 'm2l6lz-5', type: 'multiple_choice', prompt: '¿Quiénes juegan en el jardín el fin de semana?', options: ['Los nietos de Els: un chico y una chica', 'Los vecinos', 'David y Anna', 'Nadie'], correctAnswer: 'Los nietos de Els: un chico y una chica', explanation: '"Haar kleinkinderen: een jongen en een meisje."' },
-        { id: 'm2l6lz-6', type: 'fill_blank', prompt: 'Veel mensen drinken hun koffie ___. (fuera)', correctAnswer: 'buiten', hint: 'Con el sonido ui', explanation: '"Buiten" = fuera.' },
-        { id: 'm2l6lz-7', type: 'fill_blank', prompt: 'De jongen eet een ___. (helado)', correctAnswer: 'ijsje', hint: 'Con el sonido ij (het ijs + -je)', explanation: 'Een ijsje = un heladito.' },
-        { id: 'm2l6lz-8', type: 'fill_blank', prompt: 'En hun oma? Zij ___ rustig op haar bankje zitten.', correctAnswer: 'blijft', hint: 'blijven → raíz + t', explanation: 'Blijven (quedarse) → zij blijft.' },
-        { id: 'm2l6lz-9', type: 'multiple_choice', prompt: '¿Qué palabras del texto llevan el sonido UI?', options: ['tuin, huis, buiten', 'klein, meisje, blijven', 'oma, opa, ouders', 'zon, bos, kat'], correctAnswer: 'tuin, huis, buiten', explanation: 'Las de ei/ij son klein, meisje, blijven, ijsje.' },
+        { id: 'm2l6lz-1', type: 'multiple_choice', prompt: '¿Cuántas bicis hay en Países Bajos?', options: ['Unos veintitrés millones', 'Unos doce mil', 'Unos tres millones', 'No lo dice'], correctAnswer: 'Unos veintitrés millones', explanation: '"ongeveer drieëntwintig miljoen".' },
+        { id: 'm2l6lz-2', type: 'multiple_choice', prompt: '¿Cuántos kilómetros pedalean al día de media?', options: ['Tres', 'Trece', 'Treinta', 'Uno'], correctAnswer: 'Tres', explanation: '"gemiddeld drie kilometer per dag".' },
+        { id: 'm2l6lz-3', type: 'multiple_choice', prompt: '¿Qué parte de los desplazamientos se hace en bici?', options: ['Más de una cuarta parte', 'La mitad', 'Casi todos', 'Muy pocos'], correctAnswer: 'Más de una cuarta parte', explanation: '"Meer dan een kwart van alle reizen".' },
+        { id: 'm2l6lz-4', type: 'multiple_choice', prompt: '¿Qué hace la gente cuando llueve?', options: ['Se pone un abrigo y sigue en bici', 'Coge el coche', 'Se queda en casa', 'Coge el tren'], correctAnswer: 'Se pone un abrigo y sigue en bici', explanation: '"Bij regen trekken mensen een jas aan en ze rijden gewoon door."' },
+        { id: 'm2l6lz-5', type: 'multiple_choice', prompt: '¿Dónde está el aparcamiento de bicis más grande del mundo?', options: ['En la estación de Utrecht', 'En Ámsterdam', 'En Róterdam', 'En La Haya'], correctAnswer: 'En la estación de Utrecht', explanation: '"Bij het station van Utrecht": es de verdad el más grande del mundo.' },
+        { id: 'm2l6lz-6', type: 'multiple_choice', prompt: '¿Para cuántas bicis hay sitio allí?', options: ['Más de doce mil', 'Más de mil', 'Más de cien mil', 'No lo dice'], correctAnswer: 'Más de doce mil', explanation: '"plaats voor meer dan twaalfduizend fietsen".' },
+        { id: 'm2l6lz-7', type: 'true_false', prompt: 'Hay más personas que bicis en Países Bajos.', correctAnswer: 'falso', explanation: 'Al revés: "meer fietsen dan mensen".' },
+        { id: 'm2l6lz-8', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "Ze rijden van huis naar hun werk"', options: ['Ze rijden van huis naar hun werk', 'Ze rijden van huis naar hun school', 'Ze reizen van huis naar hun werk', 'Ze rijden van hier naar hun werk'], correctAnswer: 'Ze rijden van huis naar hun werk' },
+        { id: 'm2l6lz-9', type: 'odd_one_out', prompt: 'De estas palabras del texto, ¿cuál NO lleva el sonido ui?', options: ['rijden', 'huis', 'buiten', 'duizend'], correctAnswer: 'rijden', explanation: 'Rijden lleva ij; huis, buiten y duizend llevan ui.' },
+        { id: 'm2l6lz-10', type: 'odd_one_out', prompt: '¿Cuál NO lleva el sonido ei/ij?', options: ['huis', 'rijden', 'zijn', 'blijven'], correctAnswer: 'huis', explanation: 'Huis lleva ui; los otros tres llevan ij.' },
       ],
     },
     {
@@ -3360,11 +3455,11 @@ Escucha bien los sonidos de esta historia: tuin, huis y buiten, y también klein
           { id: 'm2d6-5',  speaker: 'David', dutch: 'Die zijn makkelijk. Ze klinken bijna Spaans. Mijn kleine huis!',      spanish: 'Esos son fáciles: suenan casi como "peine" en español. ¡Mi pequeña casa!' },
           { id: 'm2d6-6',  speaker: 'Anna',  dutch: 'Perfect! Test: wat eet je bij het ontbijt: een ei of een ui?',         spanish: '¡Perfecto! Prueba: ¿qué comes en el desayuno: un "ei" o un "ui"?' },
           { id: 'm2d6-7',  speaker: 'David', dutch: 'Een ei! Een ui is een cebolla: die eet ik niet als ontbijt!',          spanish: '¡Un huevo (ei)! Un "ui" es una cebolla: ¡esa no me la como de desayuno!' },
-          { id: 'm2d6-8',  speaker: 'Anna',  dutch: 'Haha, heel goed! En nu het grote examen van module 2. Klaar?',          spanish: '¡Jaja, muy bien! Y ahora el gran examen del módulo 2. ¿Listo?' },
+          { id: 'm2d6-8',  speaker: 'Anna',  dutch: 'Haha! Goed zo. Zeg eens iets over Anna, in het Nederlands.',          spanish: '¡Jaja! Muy bien. Dime algo sobre Anna, en neerlandés.' },
           { id: 'm2d6-9',  speaker: 'David', dutch: 'Klaar! Dit is mijn vriendin Anna. Haar familie woont in Groningen.',    spanish: '¡Listo! Esta es mi amiga Anna. Su familia vive en Groninga.' },
           { id: 'm2d6-10', speaker: 'Anna',  dutch: 'Een vriendin, hè? Niet mijn vriendin?',                                 spanish: '"Een vriendin", ¿eh? ¿No "mijn vriendin"?' },
           { id: 'm2d6-11', speaker: 'David', dutch: 'Eh… ik bezoek haar oma op dinsdag, ik eet om 6 uur, en ik blijf in Nederland!', spanish: 'Eh… ¡visito a su abuela el martes, ceno a las 6 y me quedo en Países Bajos!' },
-          { id: 'm2d6-12', speaker: 'Anna',  dutch: 'Haha! Perfecte zinnen, perfecte klanken. Module 2: gehaald!',           spanish: '¡Jaja! Frases perfectas, sonidos perfectos. Módulo 2: ¡aprobado!' },
+          { id: 'm2d6-12', speaker: 'Anna',  dutch: 'Haha! Perfecte zinnen, perfecte klanken. Je bent er bijna.',           spanish: '¡Jaja! Frases perfectas, sonidos perfectos. Ya casi estás.' },
           { id: 'm2d6-13', speaker: 'David', dutch: 'En dat vieren we met een ijsje: buiten, in de tuin!',                  spanish: '¡Y lo celebramos con un helado: fuera, en el jardín!' },
           { id: 'm2d6-14', speaker: 'Anna',  dutch: 'Gezellig! Op naar module 3!',                                           spanish: '¡Qué bien! ¡Vamos a por el módulo 3!' },
         ],
