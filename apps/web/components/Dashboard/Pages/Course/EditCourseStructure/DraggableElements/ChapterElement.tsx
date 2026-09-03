@@ -45,6 +45,9 @@ type ChapterElementProps = {
 interface ModifiedChapterInterface {
   chapterId: string
   chapterName: string
+  /** La descripción del módulo. Solo se podía escribir AL CREAR el capítulo,
+      así que los que ya existían no había forma de rellenarlos desde aquí. */
+  chapterDescription: string
 }
 
 function ChapterElement(props: ChapterElementProps) {
@@ -176,6 +179,7 @@ function ChapterElement(props: ChapterElementProps) {
     if (modifiedChapter?.chapterId === chapterId) {
       let modifiedChapterCopy = {
         name: modifiedChapter.chapterName,
+        description: modifiedChapter.chapterDescription,
       }
       await updateChapter(chapterId, modifiedChapterCopy, access_token)
       await queryClient.invalidateQueries({ queryKey: queryKeys.courses.meta(cleanCourseUuid(props.course_uuid)) })
@@ -244,26 +248,52 @@ function ChapterElement(props: ChapterElementProps) {
               </div>
               <div className="flex items-center space-x-2">
                 {selectedChapter === props.chapter.id ? (
-                  <div className="chapter-modification-zone bg-neutral-100 py-1 px-2 sm:px-4 rounded-lg flex items-center space-x-2">
-                    <input
-                      type="text"
-                      className="bg-transparent outline-hidden text-sm text-neutral-700 w-full max-w-[150px] sm:max-w-none"
-                      placeholder={t('dashboard.courses.structure.chapter_element.chapter_name_placeholder')}
-                      value={
-                        modifiedChapter
-                          ? modifiedChapter?.chapterName
-                          : props.chapter.name
-                      }
-                      onChange={(e) =>
-                        setModifiedChapter({
-                          chapterId: props.chapter.id,
-                          chapterName: e.target.value,
-                        })
-                      }
-                    />
+                  <div className="chapter-modification-zone bg-neutral-100 py-1.5 px-2 sm:px-4 rounded-lg flex items-start space-x-2">
+                    <div className="flex flex-col gap-1 min-w-0 w-full sm:w-[420px]">
+                      <input
+                        type="text"
+                        className="bg-transparent outline-hidden text-sm text-neutral-700 w-full"
+                        placeholder={t('dashboard.courses.structure.chapter_element.chapter_name_placeholder')}
+                        value={
+                          modifiedChapter
+                            ? modifiedChapter?.chapterName
+                            : props.chapter.name
+                        }
+                        onChange={(e) =>
+                          setModifiedChapter({
+                            chapterId: props.chapter.id,
+                            chapterName: e.target.value,
+                            chapterDescription:
+                              modifiedChapter?.chapterDescription ??
+                              (props.chapter.description || ''),
+                          })
+                        }
+                      />
+                      {/* La descripción del módulo. Es la que ve el alumno en
+                          Repasar debajo del nombre. */}
+                      <textarea
+                        rows={2}
+                        className="bg-white/70 rounded-md px-2 py-1 outline-hidden text-[13px] text-neutral-600 w-full resize-y border border-neutral-200"
+                        placeholder="Descripción del módulo (se ve en Repasar)"
+                        value={
+                          modifiedChapter
+                            ? modifiedChapter?.chapterDescription
+                            : props.chapter.description || ''
+                        }
+                        onChange={(e) =>
+                          setModifiedChapter({
+                            chapterId: props.chapter.id,
+                            chapterName:
+                              modifiedChapter?.chapterName ?? props.chapter.name,
+                            chapterDescription: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
                     <button
                       onClick={() => updateChapterName(props.chapter.id)}
-                      className="bg-transparent text-neutral-700 hover:cursor-pointer hover:text-neutral-900"
+                      className="bg-transparent text-neutral-700 hover:cursor-pointer hover:text-neutral-900 mt-1"
+                      title="Guardar"
                     >
                       <Save size={15} />
                     </button>
