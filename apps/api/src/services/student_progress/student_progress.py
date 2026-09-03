@@ -446,21 +446,31 @@ async def modulos_del_curso(
 
     filas = (
         await db_session.execute(
-            select(Chapter.name).where(Chapter.org_id == org_id)
+            select(Chapter.name, Chapter.description).where(Chapter.org_id == org_id)
         )
     ).all()
 
-    modulos: dict[int, str] = {}
-    for (nombre,) in filas:
+    # La descripción viaja aunque el módulo esté cerrado: en Repasar el temario
+    # NO es secreto, y una tarjeta con solo el nombre queda vacía. En la
+    # formación sí se borra (ahí se está construyendo y el contador delataría
+    # el trabajo), y por eso se lee aquí de la base de datos y no del payload
+    # del curso, que ya viene recortado.
+    modulos: dict[int, tuple[str, str]] = {}
+    for nombre, descripcion in filas:
         texto = str(nombre or "")
         m = _NUM_MODULO.match(texto)
         if not m:
             continue  # la Introducción y cualquier capítulo sin número
         numero = int(m.group(1))
         limpio = _LIMPIA_NOMBRE.sub("", texto).strip() or texto.strip()
-        modulos.setdefault(numero, limpio)
+        modulos.setdefault(numero, (limpio, str(descripcion or "").strip()))
 
     return [
-        {"numero": n, "nombre": modulos[n], "bloqueado": n in cerrados}
+        {
+            "numero": n,
+            "nombre": modulos[n][0],
+            "descripcion": modulos[n][1],
+            "bloqueado": n in cerrados,
+        }
         for n in sorted(modulos)
     ]

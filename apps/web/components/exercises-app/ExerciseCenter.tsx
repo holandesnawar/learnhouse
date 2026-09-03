@@ -10,7 +10,7 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 
 type ModState = { unlocked: boolean; completed: number; total: number }
-type ModuloCurso = { numero: number; nombre: string; bloqueado: boolean }
+type ModuloCurso = { numero: number; nombre: string; descripcion?: string; bloqueado: boolean }
 
 // Centre to re-practice the whole curriculum. Modules unlock sequentially: the
 // next one opens when the previous is finished (progress kept per device in
@@ -205,6 +205,9 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
                     Módulo {m.numero}
                   </span>
                   <h3 className="text-[17px] font-bold text-gray-900 leading-snug">{m.nombre}</h3>
+                  {m.descripcion && (
+                    <p className="text-[13px] text-[#5A6480] leading-relaxed mt-1.5">{m.descripcion}</p>
+                  )}
                 </div>
                 <div className="mt-auto flex items-center gap-1.5 text-[12px] font-medium text-[#9CA3AF]">
                   <Lock size={13} />
