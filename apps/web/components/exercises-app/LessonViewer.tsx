@@ -5117,7 +5117,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
           {!inCourse && (
             <div className="mb-4">
               <Breadcrumbs items={[
-                { label: 'Ejercicios', href: getUriWithOrg(orgslug, '/ejercicios'), icon: <Dumbbell size={14} /> },
+                { label: 'Repasar', href: getUriWithOrg(orgslug, '/ejercicios'), icon: <Dumbbell size={14} /> },
                 { label: module.title, href: getUriWithOrg(orgslug, `/ejercicios/modulo/${module.id}`) },
                 { label: lesson.title },
               ]} />

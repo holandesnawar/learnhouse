@@ -158,7 +158,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const navItems: NavItem[] = [
     { key: 'home', href: '/', label: 'Inicio', icon: <House size={20} weight="fill" />, show: true },
     { key: 'courses', href: '/course/8a1d1fab-ffbb-44ef-8f21-04ef63676d6e', label: 'Formación', icon: <Books size={20} weight="fill" />, show: isEnabled('courses') },
-    { key: 'ejercicios', href: '/ejercicios', label: 'Ejercicios', icon: <Barbell size={20} weight="fill" />, show: true },
+    { key: 'ejercicios', href: '/ejercicios', label: 'Repasar', icon: <Barbell size={20} weight="fill" />, show: true },
     { key: 'calendario', href: '/calendario', label: 'Eventos', icon: <CalendarBlank size={20} weight="fill" />, show: true },
     { key: 'clase-semanal', href: '/course/bfbcb42b-7dc3-4448-9df8-5d7b96135859', label: 'Clase semanal', icon: <VideoCamera size={20} weight="fill" />, show: true },
     { key: 'collections', href: '/collections', label: t('collections.collections'), icon: <SquaresFour size={20} weight="fill" />, show: isEnabled('collections') },

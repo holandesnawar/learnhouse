@@ -64,7 +64,7 @@ const GUIA_USO: Guide = {
       rows: [
         ['Inicio', 'Tu punto de partida. Arriba del todo, la tarjeta que te lleva justo a donde lo dejaste. Si no sabes qué hacer hoy, pulsa ahí.'],
         ['Formación', 'El camino completo, módulo a módulo y lección a lección. Es el corazón de todo.'],
-        ['Ejercicios', 'Las mismas prácticas, sueltas, para repasar. No es otro camino: es el gimnasio.'],
+        ['Repasar', 'Las mismas prácticas, sueltas, para volver sobre lo que ya viste. No es otro camino: es el gimnasio.'],
         ['Mi progreso', 'Tu formación de un vistazo: qué hiciste, qué nota sacaste y qué fallaste.'],
         ['Comunidad', 'Los canales donde hablas con tus compañeros de clase.'],
         ['Eventos', 'Las clases en directo y las fechas importantes.'],

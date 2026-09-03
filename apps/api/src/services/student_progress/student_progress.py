@@ -1,6 +1,7 @@
 """Per-student progress, streak, lesson completions and weak-words logic."""
 
 import logging
+import re
 from collections import Counter
 from datetime import date, datetime, timedelta
 from typing import List, Optional
@@ -10,6 +11,7 @@ from sqlalchemy import delete
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from src.db.courses.chapters import Chapter
 from src.db.exercise_attempts import ExerciseAttempt
 from src.db.organizations import Organization
 from src.db.trails import Trail
@@ -27,7 +29,8 @@ from src.db.student_progress import (
     StudentVisitResponse,
     WeakWord,
 )
-from src.db.users import AnonymousUser
+from src.db.users import AnonymousUser, PublicUser
+from src.security.auth import resolve_acting_user_id
 
 
 # ── helpers ─────────────────────────────────────────────────────────────────
@@ -363,3 +366,59 @@ async def reset_user_progress(
     )
     await db_session.commit()
     return {"detail": "Progreso reiniciado correctamente"}
+
+
+# ── Qué módulos están cerrados por el goteo ──────────────────────────────────
+
+_NUM_MODULO = re.compile(r"^\s*(?:m[oó]dulo|module)\s*(\d+)", re.IGNORECASE)
+
+
+async def modulos_bloqueados(
+    org_id: int,
+    current_user: PublicUser | AnonymousUser,
+    db_session: AsyncSession,
+) -> list[int]:
+    """Los NÚMEROS de módulo que este alumno todavía no puede abrir.
+
+    Existe para que la pantalla de Repasar respete el goteo. Repasar vive en
+    `courseData.ts`, no en el curso, así que por su cuenta enseñaba los cuatro
+    módulos abiertos: se podía hacer en septiembre el contenido del módulo 4
+    entrando por ahí, saltándose el calendario.
+
+    El puente entre los dos mundos es el NÚMERO: los capítulos del curso se
+    llaman "MODULE 3 - ETEN EN DRINKEN" y en Repasar ese mismo módulo es el
+    tercero de la lista. Se saca el número del nombre del capítulo, que es lo
+    único que comparten. Un capítulo sin número —la Introducción— se ignora.
+    """
+    from src.services.courses.locks import drip_locked_chapters, is_org_admin, is_org_staff
+
+    if isinstance(current_user, AnonymousUser):
+        return []
+
+    user_id = resolve_acting_user_id(current_user)
+    # El equipo no tiene goteo, ni aquí ni en la formación.
+    if await is_org_admin(user_id, org_id, db_session) or await is_org_staff(
+        user_id, org_id, db_session
+    ):
+        return []
+
+    filas = (
+        await db_session.execute(
+            select(Chapter.chapter_uuid, Chapter.name).where(Chapter.org_id == org_id)
+        )
+    ).all()
+    if not filas:
+        return []
+
+    por_uuid: dict[str, int] = {}
+    for chapter_uuid, nombre in filas:
+        m = _NUM_MODULO.match(str(nombre or ""))
+        if m:
+            por_uuid[chapter_uuid] = int(m.group(1))
+    if not por_uuid:
+        return []
+
+    cerrados = await drip_locked_chapters(
+        list(por_uuid.keys()), org_id, current_user, db_session
+    )
+    return sorted({por_uuid[cu] for cu in cerrados if cu in por_uuid})
