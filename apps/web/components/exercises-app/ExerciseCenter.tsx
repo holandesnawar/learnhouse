@@ -10,6 +10,7 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 
 type ModState = { unlocked: boolean; completed: number; total: number }
+type ModuloCurso = { numero: number; nombre: string; bloqueado: boolean }
 
 // Centre to re-practice the whole curriculum. Modules unlock sequentially: the
 // next one opens when the previous is finished (progress kept per device in
@@ -25,34 +26,39 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
   // en `courseData.ts` y no sabe nada del curso, así que sin esto enseñaba
   // abierto lo que en la formación está cerrado: se podía hacer en septiembre
   // el contenido de octubre entrando por aquí.
-  const [cerrados, setCerrados] = useState<number[] | null>(null)
+  // La LISTA de módulos viene de la formación y el CONTENIDO del código: en el
+  // curso hay diez y con ejercicios escritos hay cuatro. Antes se pintaba la
+  // del código y faltaban seis.
+  const [delCurso, setDelCurso] = useState<ModuloCurso[] | null>(null)
 
   useEffect(() => {
     if (!org?.id || !accessToken) {
-      setCerrados([])
+      setDelCurso([])
       return
     }
     let vivo = true
-    fetch(`${getAPIUrl()}student/module-locks?org_id=${org.id}`, {
+    fetch(`${getAPIUrl()}student/course-modules?org_id=${org.id}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
-      .then((r) => (r.ok ? r.json() : { bloqueados: [] }))
-      .then((d) => vivo && setCerrados(Array.isArray(d?.bloqueados) ? d.bloqueados : []))
-      // Si falla, se abre: un fallo de red no puede dejar al alumno sin repasar.
-      .catch(() => vivo && setCerrados([]))
+      .then((r) => (r.ok ? r.json() : { modulos: [] }))
+      .then((d) => vivo && setDelCurso(Array.isArray(d?.modulos) ? d.modulos : []))
+      // Si falla, se cae a la lista del código: un fallo de red no puede dejar
+      // al alumno sin poder repasar lo que ya tiene.
+      .catch(() => vivo && setDelCurso([]))
     return () => {
       vivo = false
     }
   }, [org?.id, accessToken])
 
   useEffect(() => {
-    if (cerrados === null) return
+    if (delCurso === null) return
     const s: Record<string, ModState> = {}
     modules.forEach((m, i) => {
       const lessonIds = getLessonsForModule(m.id).map((l) => l.id)
       const stats = getModuleStats(m.id, lessonIds)
+      const enCurso = delCurso.find((x) => x.numero === i + 1)
       s[m.id] = {
-        unlocked: !cerrados.includes(i + 1),
+        unlocked: !enCurso?.bloqueado,
         completed: stats.completed,
         total: stats.total,
       }
@@ -60,7 +66,12 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
     setState(s)
     setMounted(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cerrados])
+  }, [delCurso])
+
+  // Los módulos que existen en la formación pero todavía no tienen ejercicios
+  // escritos. Se pintan cerrados: el alumno ve el camino entero y sabe que
+  // sigue, pero no hay nada que abrir.
+  const sinContenido = (delCurso ?? []).filter((x) => x.numero > modules.length)
 
   return (
     <GeneralWrapperStyled>
@@ -111,7 +122,7 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
                   </div>
                   {done && (
                     <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                      <Check size={12} className="stroke-[3]" /> Completado
+                      <Check size={12} className="stroke-[3]" /> Repasado
                     </span>
                   )}
                 </div>
@@ -176,6 +187,32 @@ export default function ExerciseCenter({ orgslug }: { orgslug: string }) {
               </div>
             )
           })}
+
+          {sinContenido.map((m) => (
+            <div
+              key={`curso-${m.numero}`}
+              className="flex flex-col rounded-2xl border border-[#DDE6F5] overflow-hidden bg-white opacity-70 grayscale-[0.4] cursor-not-allowed"
+              aria-disabled
+            >
+              <div className="p-5 flex flex-col gap-3 h-full">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-center h-12 shrink-0">
+                    <Lock size={26} className="text-[#9CA3AF]" />
+                  </div>
+                </div>
+                <div>
+                  <span className="text-[11px] font-semibold text-[#025dc7] uppercase tracking-wider">
+                    Módulo {m.numero}
+                  </span>
+                  <h3 className="text-[17px] font-bold text-gray-900 leading-snug">{m.nombre}</h3>
+                </div>
+                <div className="mt-auto flex items-center gap-1.5 text-[12px] font-medium text-[#9CA3AF]">
+                  <Lock size={13} />
+                  Se abre más adelante
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
       </div>

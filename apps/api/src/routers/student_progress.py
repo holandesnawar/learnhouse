@@ -31,6 +31,7 @@ from src.services.lesson_highlights.lesson_highlights import (
 )
 from src.services.student_progress.student_progress import (
     modulos_bloqueados,
+    modulos_del_curso,
     get_progress,
     get_student_insights,
     get_weak_words,
@@ -248,3 +249,17 @@ async def api_module_locks(
     """Lo usa la pantalla de Repasar para no enseñar abierto lo que en la
     formación está cerrado."""
     return {"bloqueados": await modulos_bloqueados(org_id, current_user, db_session)}
+
+
+@router.get(
+    "/course-modules",
+    summary="Los módulos de la formación, con su candado del goteo.",
+)
+async def api_course_modules(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    """La lista que pinta Repasar: viene del curso, no del contenido escrito."""
+    return {"modulos": await modulos_del_curso(org_id, current_user, db_session)}

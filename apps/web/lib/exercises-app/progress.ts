@@ -3,10 +3,31 @@ import { getLessonsForModule, getPreviousLessonInOrder } from './courseService';
 
 const KEY = 'nawar_course_progress';
 
+/**
+ * El progreso de repaso se guarda EN EL NAVEGADOR, y por eso hay que separarlo
+ * por usuario.
+ *
+ * Con una sola clave, dos cuentas en el mismo navegador comparten progreso: se
+ * entra con una cuenta nueva y las lecciones ya salen repasadas porque las
+ * repasó el dueño del ordenador. Pasó de verdad al probar con una cuenta nueva.
+ *
+ * `setUsuarioRepaso` lo llama una vez el layout de la escuela. Sin usuario se
+ * usa la clave de siempre, que además conserva lo que ya hubiera guardado.
+ */
+let usuarioActual = '';
+
+export function setUsuarioRepaso(id: string | number | null | undefined): void {
+  usuarioActual = id === null || id === undefined ? '' : String(id);
+}
+
+function clave(): string {
+  return usuarioActual ? `${KEY}:${usuarioActual}` : KEY;
+}
+
 export function getProgress(): CourseProgress {
   if (typeof window === 'undefined') return { lessons: {} };
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(clave());
     if (!raw) return { lessons: {} };
     return JSON.parse(raw) as CourseProgress;
   } catch {
@@ -17,7 +38,7 @@ export function getProgress(): CourseProgress {
 function saveProgress(progress: CourseProgress): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(KEY, JSON.stringify(progress));
+    localStorage.setItem(clave(), JSON.stringify(progress));
   } catch {
     // storage quota exceeded or unavailable — silently ignore
   }

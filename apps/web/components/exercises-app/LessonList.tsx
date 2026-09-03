@@ -59,7 +59,7 @@ function StatusBadge({ status }: { status: LessonStatus }) {
                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.59L5.41 12 6.83 10.58 10 13.75l7.17-7.17 1.41 1.42L10 16.59z" />
                 </svg>
-                Completada
+                Repasada
             </span>
         );
     }
@@ -158,7 +158,9 @@ export default function LessonList({ lessons, moduleId, orgslug }: { lessons: Le
                             </div>
                             <p className="text-[13px] text-[#9CA3AF] leading-snug mb-2">{lesson.subtitle}</p>
                             <SectionDots lesson={lesson} attempts={attempts} />
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-3 text-[12px] text-[#5A6480]">
+                            {/* Aire entre los puntos y la línea de abajo: pegadas
+                                se leían como una sola cosa. */}
+                            <div className="mt-2.5 flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-3 text-[12px] text-[#5A6480]">
                                 <span className="flex items-center gap-1 shrink-0">
                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
