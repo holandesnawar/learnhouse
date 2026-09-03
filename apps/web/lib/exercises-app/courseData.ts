@@ -176,46 +176,58 @@ const m1_les1: Lesson = {
       ],
     },
     {
+      // Texto informativo al estilo del examen (modelo: los Leesteksten A1 de
+      // NT2taalmenu). El anterior contaba la anécdota de David yendo al
+      // taalcafé: se leía bien, pero no había casi nada que LOCALIZAR, que es
+      // justo lo único que el examen pide. Ahora es el anuncio del taalcafé,
+      // con día, horas, precio, cuánta gente y dirección. Los saludos de la
+      // lección salen porque un anuncio así los pide, no al revés.
       type: 'lezen',
-      // Texto de lectura al estilo del examen: una situación concreta con datos
-      // concretos (día, sitio, hora, precio, personas), no una explicación de
-      // las reglas del saludo. Las reglas ya están en el resumen y en las
-      // flashcards; aquí el alumno lo que entrena es LEER y localizar datos,
-      // que es exactamente lo que le van a pedir en el inburgeringsexamen.
-      // Los saludos aparecen porque la situación los pide, no al revés.
       title: 'Het taalcafé in de bibliotheek',
-      textNl: `Elke woensdag is er een taalcafé in de bibliotheek van Utrecht. Het is voor mensen die Nederlands leren en het is gratis.
+      textNl: `Elke woensdag is er een taalcafé in de bibliotheek van Utrecht.
 
-David gaat er vandaag voor het eerst heen. Om twee uur komt hij binnen en hij zegt ‘goedemiddag’. Sara staat bij de deur. Ze is vrijwilliger. Ze geeft David een hand en vraagt hoe hij heet. Sara werkt ’s ochtends ook in de bibliotheek. Dan zegt ze ‘goedemorgen’ tegen iedereen die binnenkomt.
+Het taalcafé is voor mensen die Nederlands leren. Het is gratis. Aanmelden is niet nodig.
 
-David zit aan een tafel met vier andere mensen. Iedereen vertelt hoe hij heet en waar hij vandaan komt. Niemand lacht als je een fout maakt. Ze praten over het weer, over de stad en over werk.
+Wie komt er?
+Elke week komen ongeveer twintig mensen. Ze komen uit veel landen: Spanje, Syrië, Polen, Turkije en Argentinië. Aan elke tafel zitten vier of vijf mensen en een Nederlandse vrijwilliger.
 
-Om vier uur is het afgelopen. De mensen aan zijn tafel zeggen ‘tot volgende week’. Sara wenst iedereen een fijne dag.
+Wat doe je daar?
+Je vertelt hoe je heet en waar je vandaan komt. Je praat over de stad, over het weer en over werk. Je maakt fouten, en dat is niet erg.
 
-’s Avonds eet David bij zijn buurvrouw Els. Hij belt aan en zegt ‘goedenavond’. Els vraagt hoe het was. David zegt dat het gezellig was.`,
-      textEs: `Todos los miércoles hay un taalcafé en la biblioteca de Utrecht. Es para gente que está aprendiendo neerlandés y es gratis.
+Praktische informatie
+Waar: bibliotheek Utrecht, Neude 11
+Wanneer: elke woensdag van 14.00 tot 16.00 uur
+Prijs: gratis
+Koffie of thee: 1 euro`,
+      textEs: `Todos los miércoles hay un taalcafé en la biblioteca de Utrecht.
 
-David va hoy por primera vez. A las dos entra y dice «goedemiddag». Sara está en la puerta. Es voluntaria. Le da la mano a David y le pregunta cómo se llama. Sara trabaja también por las mañanas en la biblioteca. Entonces dice «goedemorgen» a todo el que entra.
+El taalcafé es para gente que aprende neerlandés. Es gratis. No hace falta apuntarse.
 
-David se sienta en una mesa con otras cuatro personas. Cada uno cuenta cómo se llama y de dónde viene. Nadie se ríe si cometes un error. Hablan del tiempo, de la ciudad y del trabajo.
+¿Quién va?
+Cada semana vienen unas veinte personas. Vienen de muchos países: España, Siria, Polonia, Turquía y Argentina. En cada mesa se sientan cuatro o cinco personas y un voluntario neerlandés.
 
-A las cuatro se acaba. La gente de su mesa dice «tot volgende week». Sara les desea a todos un buen día.
+¿Qué se hace allí?
+Cuentas cómo te llamas y de dónde eres. Hablas de la ciudad, del tiempo y del trabajo. Cometes errores, y no pasa nada.
 
-Por la noche David cena en casa de su vecina Els. Llama al timbre y dice «goedenavond». Els le pregunta qué tal fue. David dice que estuvo muy a gusto.`,
+Información práctica
+Dónde: biblioteca de Utrecht, Neude 11
+Cuándo: todos los miércoles de 14.00 a 16.00
+Precio: gratis
+Café o té: 1 euro`,
       exercises: [
-        { id: 'm1l1lz-1', type: 'multiple_choice', prompt: '¿Qué día de la semana es el taalcafé?', options: ['Los miércoles', 'Los lunes', 'Los viernes', 'Los sábados'], correctAnswer: 'Los miércoles', explanation: '"Elke woensdag" = todos los miércoles.' },
-        { id: 'm1l1lz-2', type: 'multiple_choice', prompt: '¿Dónde es el taalcafé?', options: ['En la biblioteca de Utrecht', 'En una cafetería de Ámsterdam', 'En la escuela', 'En casa de Sara'], correctAnswer: 'En la biblioteca de Utrecht', explanation: '"In de bibliotheek van Utrecht."' },
-        { id: 'm1l1lz-3', type: 'multiple_choice', prompt: '¿Cuánto cuesta ir?', options: ['Nada, es gratis', 'Dos euros', 'Cinco euros', 'No lo dice'], correctAnswer: 'Nada, es gratis', explanation: '"Het is gratis." Ojo con esta pregunta: en el examen siempre hay una sobre el precio.' },
-        { id: 'm1l1lz-4', type: 'multiple_choice', prompt: '¿A qué hora llega David?', options: ['A las dos', 'A las cuatro', 'A las ocho', 'A las doce'], correctAnswer: 'A las dos', explanation: '"Om twee uur komt hij binnen." Y termina "om vier uur".' },
-        { id: 'm1l1lz-5', type: 'fill_blank', prompt: 'Om twee uur komt David binnen en hij zegt ___.', correctAnswer: 'goedemiddag', hint: 'Son las dos de la tarde', explanation: 'Después de las 12:00 y hasta las 18:00: goedemiddag.' },
-        { id: 'm1l1lz-6', type: 'multiple_choice', prompt: '¿Quién es Sara?', options: ['Una voluntaria del taalcafé', 'La profesora de David', 'La vecina de David', 'Una alumna de la mesa'], correctAnswer: 'Una voluntaria del taalcafé', explanation: '"Ze is vrijwilliger": está en la puerta y recibe a la gente.' },
-        { id: 'm1l1lz-7', type: 'fill_blank', prompt: 'Sara werkt ’s ochtends ook in de bibliotheek. Dan zegt ze ___.', correctAnswer: 'goedemorgen', hint: 'Antes de las 12:00', explanation: 'Misma persona, otra hora, otro saludo. Eso es lo único que cambia.' },
-        { id: 'm1l1lz-8', type: 'multiple_choice', prompt: '¿Con cuántas personas se sienta David en la mesa?', options: ['Con cuatro', 'Con dos', 'Con seis', 'Con ninguna, se sienta solo'], correctAnswer: 'Con cuatro', explanation: '"Aan een tafel met vier andere mensen": otras cuatro, o sea cinco en total.' },
-        { id: 'm1l1lz-9', type: 'true_false', prompt: 'En el taalcafé se ríen de ti si cometes un error.', correctAnswer: 'falso', explanation: 'Dice justo lo contrario: "Niemand lacht als je een fout maakt."' },
-        { id: 'm1l1lz-10', type: 'multiple_choice', prompt: '¿De qué hablan en la mesa?', options: ['Del tiempo, de la ciudad y del trabajo', 'De política', 'De sus familias', 'De gramática neerlandesa'], correctAnswer: 'Del tiempo, de la ciudad y del trabajo', explanation: '"Over het weer, over de stad en over werk."' },
-        { id: 'm1l1lz-11', type: 'fill_blank', prompt: 'Om vier uur zeggen de mensen tot ___ week.', correctAnswer: 'volgende', hint: 'Se ven otra vez el miércoles siguiente', explanation: '"Tot volgende week" = hasta la semana que viene.' },
-        { id: 'm1l1lz-12', type: 'multiple_choice', prompt: 'Por la noche David llama al timbre en casa de Els. ¿Qué dice?', options: ['Goedenavond', 'Goedemorgen', 'Goedemiddag', 'Tot ziens'], correctAnswer: 'Goedenavond', explanation: 'Después de las 18:00, goedenavond. "Goedenacht" solo muy tarde, al irse a dormir.' },
-        { id: 'm1l1lz-13', type: 'fill_blank', prompt: 'David zegt dat het ___ was.', correctAnswer: 'gezellig', hint: 'La palabra neerlandesa sin traducción', explanation: 'Ese ambiente agradable y a gusto es… gezellig.' },
+        { id: 'm1l1lz-1', type: 'multiple_choice', prompt: '¿Qué día es el taalcafé?', options: ['El miércoles', 'El lunes', 'El sábado', 'Todos los días'], correctAnswer: 'El miércoles', explanation: '"Elke woensdag": woensdag = miércoles.' },
+        { id: 'm1l1lz-2', type: 'multiple_choice', prompt: '¿A qué hora empieza?', options: ['A las dos', 'A las cuatro', 'A las once', 'A las nueve'], correctAnswer: 'A las dos', explanation: '"van 14.00 tot 16.00 uur": las 14.00 son las dos de la tarde.' },
+        { id: 'm1l1lz-3', type: 'multiple_choice', prompt: '¿A qué hora termina?', options: ['A las cuatro', 'A las dos', 'A las seis', 'A las cinco'], correctAnswer: 'A las cuatro', explanation: '"tot 16.00 uur".' },
+        { id: 'm1l1lz-4', type: 'multiple_choice', prompt: '¿Cuánto cuesta ir?', options: ['Nada, es gratis', 'Un euro', 'Cinco euros', 'No lo dice'], correctAnswer: 'Nada, es gratis', explanation: '"Het is gratis."' },
+        { id: 'm1l1lz-5', type: 'multiple_choice', prompt: '¿Y cuánto cuesta un café?', options: ['Un euro', 'Es gratis', 'Dos euros', 'Cuatro euros'], correctAnswer: 'Un euro', explanation: '"Koffie of thee: 1 euro." Ojo: la entrada es gratis, el café no.' },
+        { id: 'm1l1lz-6', type: 'multiple_choice', prompt: '¿Cuánta gente viene cada semana?', options: ['Unas veinte personas', 'Cuatro personas', 'Cien personas', 'No lo dice'], correctAnswer: 'Unas veinte personas', explanation: '"ongeveer twintig mensen": ongeveer = aproximadamente.' },
+        { id: 'm1l1lz-7', type: 'true_false', prompt: 'Hay que apuntarse antes de ir.', correctAnswer: 'falso', explanation: '"Aanmelden is niet nodig": no hace falta apuntarse.' },
+        { id: 'm1l1lz-8', type: 'multiple_choice', prompt: '¿Cuánta gente se sienta en cada mesa?', options: ['Cuatro o cinco', 'Veinte', 'Dos', 'Diez'], correctAnswer: 'Cuatro o cinco', explanation: '"Aan elke tafel zitten vier of vijf mensen."' },
+        { id: 'm1l1lz-9', type: 'multiple_choice', prompt: '¿En qué calle está la biblioteca?', options: ['Neude 11', 'Kerkstraat 12', 'Neude 14', 'No lo dice'], correctAnswer: 'Neude 11', explanation: '"bibliotheek Utrecht, Neude 11". La dirección es un dato típico de examen.' },
+        { id: 'm1l1lz-10', type: 'fill_blank', prompt: 'Je vertelt hoe je ___. (te llamas)', correctAnswer: 'heet', hint: 'del verbo heten', explanation: '"Je vertelt hoe je heet en waar je vandaan komt."' },
+        { id: 'm1l1lz-11', type: 'fill_blank', prompt: 'Waar kom je ___? (¿de dónde eres?)', correctAnswer: 'vandaan', hint: 'va al final', explanation: 'La pregunta que te van a hacer mil veces.' },
+        { id: 'm1l1lz-12', type: 'true_false', prompt: 'Todos los que van al taalcafé son neerlandeses.', correctAnswer: 'falso', explanation: 'Vienen de España, Siria, Polonia, Turquía y Argentina; el neerlandés es el voluntario de cada mesa.' },
+        { id: 'm1l1lz-13', type: 'multiple_choice', prompt: 'Según el texto, ¿qué pasa si cometes un error hablando?', options: ['No pasa nada', 'Te corrigen delante de todos', 'Tienes que empezar otra vez', 'No lo dice'], correctAnswer: 'No pasa nada', explanation: '"Je maakt fouten, en dat is niet erg."' },
       ],
     },
     {
@@ -692,32 +704,48 @@ const m1_les3: Lesson = {
       ],
     },
     {
+      // Texto informativo, no la anécdota de antes. El anterior ("Een dag vol
+      // werkwoorden") terminaba diciendo en voz alta "zo oefent David alle
+      // werkwoorden van deze les": el texto se delataba como ejercicio. Aquí
+      // los verbos regulares en tercera persona salen solos, porque un texto
+      // sobre quién trabaja dónde y a qué hora no se puede escribir sin ellos.
       type: 'lezen',
-      title: 'Een dag vol werkwoorden',
-      textNl: `Anna werkt op een school in Haarlem. Zij helpt de kinderen en de kinderen leren snel. Anna vindt haar werk het mooiste werk van Nederland.
+      title: 'Werken in Nederland',
+      textNl: `In Nederland werken meer dan negen miljoen mensen.
 
-Na het werk wacht Anna op de bus. Maar de bus komt niet. Anna wacht en wacht. Dan belt ze haar zus. Haar zus is in de stad en samen gaan ze naar huis.
+De meeste mensen werken van maandag tot vrijdag. Ze beginnen om negen uur en ze stoppen om vijf uur.
 
-Thuis koken Anna en haar zus pasta. Anna kookt, haar zus helpt. Zij maken samen het eten. Het is gezellig in de keuken.
+Maar niet iedereen werkt zo. In een ziekenhuis werken mensen ook 's nachts. In een winkel werken mensen ook op zaterdag. In een restaurant werken mensen 's avonds.
 
-David werkt vandaag thuis. Hij leert Nederlands en denkt de hele dag aan de nieuwe woorden. ’s Avonds belt hij met Anna en zij spreken samen Nederlands. Zo oefent David alle werkwoorden van deze les: werken, wachten, koken, bellen en leren!`,
-      textEs: `Anna trabaja en una escuela en Haarlem. Ella ayuda a los niños y los niños aprenden rápido. Para Anna, su trabajo es el más bonito de Países Bajos.
+Thuis werken
+Steeds meer mensen werken thuis. Ze werken met een computer. Ze reizen niet met de trein of met de auto. Dat kost minder tijd en minder geld.
 
-Después del trabajo, Anna espera el autobús. Pero el autobús no viene. Anna espera y espera. Entonces llama a su hermana. Su hermana está en la ciudad y juntas se van a casa.
+Vier dagen per week
+Veel mensen in Nederland werken niet vijf dagen, maar vier dagen. In andere landen doen weinig mensen dat. Nederland is nummer één in Europa.`,
+      textEs: `En Países Bajos trabajan más de nueve millones de personas.
 
-En casa, Anna y su hermana cocinan pasta. Anna cocina, su hermana ayuda. Preparan la comida juntas. Hay buen ambiente en la cocina.
+La mayoría trabaja de lunes a viernes. Empiezan a las nueve y paran a las cinco.
 
-David hoy trabaja en casa. Aprende neerlandés y piensa todo el día en las palabras nuevas. Por la noche llama a Anna y hablan neerlandés juntos. Así David practica todos los verbos de esta lección: ¡trabajar, esperar, cocinar, llamar y aprender!`,
+Pero no todo el mundo trabaja así. En un hospital la gente trabaja también de noche. En una tienda la gente trabaja también el sábado. En un restaurante la gente trabaja por la noche.
+
+Trabajar en casa
+Cada vez más gente trabaja en casa. Trabajan con un ordenador. No viajan ni en tren ni en coche. Eso cuesta menos tiempo y menos dinero.
+
+Cuatro días por semana
+Mucha gente en Países Bajos no trabaja cinco días, sino cuatro. En otros países eso lo hace poca gente. Países Bajos es el número uno de Europa.`,
       exercises: [
-        { id: 'm1l3lz-1', type: 'multiple_choice', prompt: '¿Dónde trabaja Anna?', options: ['En una escuela', 'En una oficina', 'En casa', 'En un café'], correctAnswer: 'En una escuela', explanation: '"Anna werkt op een school in Haarlem."' },
-        { id: 'm1l3lz-2', type: 'multiple_choice', prompt: '¿A quién ayuda Anna?', options: ['A los niños', 'A David', 'A su hermana', 'A los médicos'], correctAnswer: 'A los niños', explanation: '"Zij helpt de kinderen."' },
-        { id: 'm1l3lz-3', type: 'multiple_choice', prompt: '¿Qué pasa con el autobús?', options: ['No viene', 'Llega pronto', 'Está lleno', 'Es gratis'], correctAnswer: 'No viene', explanation: '"Maar de bus komt niet": por eso Anna espera y espera.' },
-        { id: 'm1l3lz-4', type: 'multiple_choice', prompt: '¿A quién llama Anna?', options: ['A su hermana', 'A David', 'A la escuela', 'A un taxi'], correctAnswer: 'A su hermana', explanation: '"Dan belt ze haar zus": belt = llama (bellen).' },
-        { id: 'm1l3lz-5', type: 'fill_blank', prompt: 'Thuis ___ zij pasta. (cocinar, ella)', correctAnswer: 'kookt', hint: 'koken → raíz + t (¡dobla la vocal!)', explanation: 'Con "zij" (ella): raíz + t.' },
-        { id: 'm1l3lz-6', type: 'fill_blank', prompt: 'Hij ___ Nederlands. (aprender)', correctAnswer: 'leert', hint: 'leren → raíz + t (¡dobla la vocal!)' },
-        { id: 'm1l3lz-7', type: 'multiple_choice', prompt: '¿Quién llama a quién por la noche?', options: ['David llama a Anna', 'Anna llama a David', 'La hermana llama a Anna', 'Nadie llama'], correctAnswer: 'David llama a Anna', explanation: '"’s Avonds belt hij met Anna": hij = David.' },
-        { id: 'm1l3lz-8', type: 'multiple_choice', prompt: 'Según el texto, ¿qué verbos practica David con esta lección?', options: ['Trabajar, esperar, cocinar, llamar y aprender', 'Solo cocinar', 'Comer y dormir', 'Leer y escribir'], correctAnswer: 'Trabajar, esperar, cocinar, llamar y aprender', explanation: '"Werken, wachten, koken, bellen en leren!"' },
-        { id: 'm1l3lz-9', type: 'fill_blank', prompt: 'Anna ___ de kinderen. (ayudar)', correctAnswer: 'helpt', hint: 'helpen → raíz + t', explanation: 'Con "zij" (ella): help + t.' },
+        { id: 'm1l3lz-1', type: 'multiple_choice', prompt: '¿Cuánta gente trabaja en Países Bajos?', options: ['Más de nueve millones', 'Nueve mil', 'Cinco millones', 'No lo dice'], correctAnswer: 'Más de nueve millones', explanation: '"meer dan negen miljoen mensen".' },
+        { id: 'm1l3lz-2', type: 'multiple_choice', prompt: '¿A qué hora empieza a trabajar la mayoría?', options: ['A las nueve', 'A las cinco', 'A las once', 'A las ocho'], correctAnswer: 'A las nueve', explanation: '"Ze beginnen om negen uur."' },
+        { id: 'm1l3lz-3', type: 'multiple_choice', prompt: '¿A qué hora paran?', options: ['A las cinco', 'A las nueve', 'A las seis', 'A las cuatro'], correctAnswer: 'A las cinco', explanation: '"ze stoppen om vijf uur".' },
+        { id: 'm1l3lz-4', type: 'multiple_choice', prompt: '¿Dónde se trabaja también de noche?', options: ['En un hospital', 'En una tienda', 'En una escuela', 'En una oficina'], correctAnswer: 'En un hospital', explanation: '"In een ziekenhuis werken mensen ook \'s nachts."' },
+        { id: 'm1l3lz-5', type: 'multiple_choice', prompt: '¿Dónde se trabaja también el sábado?', options: ['En una tienda', 'En un hospital', 'En un banco', 'En una escuela'], correctAnswer: 'En una tienda', explanation: '"In een winkel werken mensen ook op zaterdag."' },
+        { id: 'm1l3lz-6', type: 'true_false', prompt: 'Quien trabaja en casa viaja en tren todos los días.', correctAnswer: 'falso', explanation: '"Zij reizen niet met de trein of met de auto."' },
+        { id: 'm1l3lz-7', type: 'multiple_choice', prompt: '¿Por qué trabajar en casa cuesta menos?', options: ['Porque no hay que viajar', 'Porque se trabaja menos', 'Porque el ordenador es gratis', 'Porque se empieza más tarde'], correctAnswer: 'Porque no hay que viajar', explanation: 'No usan tren ni coche: "Dat kost minder tijd en minder geld."' },
+        { id: 'm1l3lz-8', type: 'multiple_choice', prompt: '¿Cuántos días por semana trabaja mucha gente en Países Bajos?', options: ['Cuatro', 'Cinco', 'Seis', 'Tres'], correctAnswer: 'Cuatro', explanation: '"niet vijf dagen, maar vier dagen". Es de las cosas más neerlandesas que hay.' },
+        { id: 'm1l3lz-9', type: 'fill_blank', prompt: 'Ze ___ met een computer. (trabajar, ellos)', correctAnswer: 'werken', hint: 'plural: el verbo va entero', explanation: 'Con zij / wij / jullie el verbo va en infinitivo: werken.' },
+        { id: 'm1l3lz-10', type: 'fill_blank', prompt: 'Steeds meer mensen ___ thuis. (trabajar)', correctAnswer: 'werken', hint: '"mensen" es plural' },
+        { id: 'm1l3lz-11', type: 'fill_blank', prompt: 'Ze ___ om negen uur. (empezar)', correctAnswer: 'beginnen', hint: 'plural, verbo entero' },
+        { id: 'm1l3lz-12', type: 'true_false', prompt: 'En otros países también hay mucha gente que trabaja cuatro días.', correctAnswer: 'falso', explanation: '"In andere landen doen weinig mensen dat."' },
       ],
     },
     {
@@ -936,32 +964,49 @@ const m1_les4: Lesson = {
       ],
     },
     {
+      // Texto informativo con precios de verdad. El anterior explicaba la regla
+      // ("eerst de eenheid, dan het tiental") y hablaba al lector: eso ya está
+      // en el resumen. Aquí no se explica ningún número, hay que LEERLOS, que
+      // es lo que pide el examen: precio, cuánto es en total, cuál es más caro.
       type: 'lezen',
-      title: 'Nummers overal',
-      textNl: `Nummers zijn overal in Nederland. Elk huis heeft een nummer: David woont op nummer acht in Amsterdam en Anna woont op nummer vijftien in Haarlem. Elke bus heeft ook een nummer: de bus van David is lijn vijfentwintig.
+      title: 'Wat kost het in Nederland?',
+      textNl: `Alles heeft een prijs. Dit zijn de prijzen van een gewone dag in Nederland.
 
-En dan de prijzen! Een koffie in de stad kost ongeveer vier euro. Twee koffie? Dat is acht euro. Een boek kost al snel twaalf euro. Veel mensen vinden dat veel geld.
+Eten en drinken
+Een koffie in een café kost vier euro. Een broodje kost drie euro vijftig. Een brood in de supermarkt kost twee euro tien. Een liter melk kost een euro vijftien.
 
-Nederlanders rekenen graag. De woorden zijn makkelijk: plus, min en keer. Negen plus negen is achttien. Vier keer vijf is twintig. En honderd min één? Negenennegentig!
+Reizen
+Een kaartje voor de bus kost twee euro. De trein van Utrecht naar Amsterdam kost acht euro veertig. Een nieuwe fiets kost driehonderd euro. Een tweedehands fiets kost tachtig euro.
 
-Nog één ding: in het Nederlands zeg je eerst de eenheid en dan het tiental. Vierentwintig is dus vier-en-twintig. Even wennen voor Spaanstaligen, maar na deze les ken jij alle nummers.`,
-      textEs: `Los números están por todas partes en Países Bajos. Cada casa tiene un número: David vive en el número ocho en Ámsterdam y Anna vive en el número quince en Haarlem. Cada autobús también tiene un número: el autobús de David es la línea veinticinco.
+Wonen
+Een kamer in Amsterdam kost zevenhonderd euro per maand. In Groningen kost een kamer vierhonderd euro. Dat is een verschil van driehonderd euro.
 
-¡Y luego los precios! Un café en la ciudad cuesta unos cuatro euros. ¿Dos cafés? Son ocho euros. Un libro cuesta fácilmente doce euros. A mucha gente eso le parece mucho dinero.
+En water? Water uit de kraan is bijna gratis. Honderd liter kost ongeveer vijftien cent.`,
+      textEs: `Todo tiene un precio. Estos son los precios de un día normal en Países Bajos.
 
-A los neerlandeses les gusta calcular. Las palabras son fáciles: plus, min y keer. Nueve más nueve son dieciocho. Cuatro por cinco son veinte. ¿Y cien menos uno? ¡Noventa y nueve!
+Comida y bebida
+Un café en una cafetería cuesta cuatro euros. Un bocadillo cuesta tres euros cincuenta. Un pan en el supermercado cuesta dos euros diez. Un litro de leche cuesta un euro quince.
 
-Una cosa más: en neerlandés se dice primero la unidad y luego la decena. Veinticuatro es, literalmente, cuatro-y-veinte. Cuesta acostumbrarse siendo hispanohablante, pero después de esta lección te sabrás todos los números.`,
+Viajar
+Un billete de autobús cuesta dos euros. El tren de Utrecht a Ámsterdam cuesta ocho euros cuarenta. Una bici nueva cuesta trescientos euros. Una bici de segunda mano cuesta ochenta euros.
+
+Vivienda
+Una habitación en Ámsterdam cuesta setecientos euros al mes. En Groninga una habitación cuesta cuatrocientos euros. Eso es una diferencia de trescientos euros.
+
+¿Y el agua? El agua del grifo es casi gratis. Cien litros cuestan unos quince céntimos.`,
       exercises: [
-        { id: 'm1l4lz-1', type: 'multiple_choice', prompt: '¿Cuánto cuesta UN café en la ciudad?', options: ['Unos cuatro euros', 'Ocho euros', 'Dos euros', 'Doce euros'], correctAnswer: 'Unos cuatro euros', explanation: '"Een koffie kost ongeveer vier euro."' },
-        { id: 'm1l4lz-2', type: 'multiple_choice', prompt: '¿En qué número vive David?', options: ['En el ocho', 'En el quince', 'En el veinticinco', 'En el cuatro'], correctAnswer: 'En el ocho', explanation: '"David woont op nummer acht."' },
-        { id: 'm1l4lz-3', type: 'fill_blank', prompt: 'Twee koffie? Dat is ___ euro. (en letras)', correctAnswer: 'acht', hint: '4 + 4 = …', explanation: 'Dos cafés a cuatro euros: acht (ocho) euros.' },
-        { id: 'm1l4lz-4', type: 'multiple_choice', prompt: '¿Cuánto cuesta un libro según el texto?', options: ['Doce euros', 'Diez euros', 'Ocho euros', 'Veinte euros'], correctAnswer: 'Doce euros', explanation: '"Een boek kost al snel twaalf euro": twaalf = 12.' },
-        { id: 'm1l4lz-5', type: 'multiple_choice', prompt: '¿Qué número tiene el autobús de David?', options: ['La línea veinticinco', 'La línea ocho', 'La línea doce', 'La línea dieciocho'], correctAnswer: 'La línea veinticinco', explanation: '"Lijn vijfentwintig" = vijf-en-twintig = 25.' },
-        { id: 'm1l4lz-6', type: 'fill_blank', prompt: 'Negen plus negen is ___. (en letras)', correctAnswer: 'achttien', hint: '9 + 9 = 18 (¡con dos t!)', explanation: 'Achttien (18) se escribe con dos t: acht + tien.' },
-        { id: 'm1l4lz-7', type: 'fill_blank', prompt: 'Honderd min één is ___ennegentig. (la unidad)', correctAnswer: 'negen', hint: '99 = "nueve y noventa"', explanation: '99 = negenennegentig: primero la unidad, luego la decena.' },
-        { id: 'm1l4lz-8', type: 'multiple_choice', prompt: '¿En qué número vive Anna?', options: ['En el quince', 'En el ocho', 'En el cincuenta', 'En el cinco'], correctAnswer: 'En el quince', explanation: '"Anna woont op nummer vijftien": vijftien = 15.' },
-        { id: 'm1l4lz-9', type: 'multiple_choice', prompt: 'Según el texto, ¿qué se dice PRIMERO en los números neerlandeses?', options: ['La unidad', 'La decena', 'El cero', 'Da igual'], correctAnswer: 'La unidad', explanation: 'Vierentwintig = "cuatro y veinte": primero la unidad, luego la decena.' },
+        { id: 'm1l4lz-1', type: 'multiple_choice', prompt: '¿Cuánto cuesta un café en una cafetería?', options: ['Cuatro euros', 'Dos euros', 'Tres euros cincuenta', 'Un euro quince'], correctAnswer: 'Cuatro euros', explanation: '"Een koffie in een café kost vier euro."' },
+        { id: 'm1l4lz-2', type: 'multiple_choice', prompt: '¿Y un bocadillo?', options: ['Tres euros cincuenta', 'Dos euros diez', 'Cuatro euros', 'Ocho euros cuarenta'], correctAnswer: 'Tres euros cincuenta', explanation: '"Een broodje kost drie euro vijftig."' },
+        { id: 'm1l4lz-3', type: 'multiple_choice', prompt: '¿Cuánto cuesta el tren de Utrecht a Ámsterdam?', options: ['8,40 €', '2 €', '4 €', '80 €'], correctAnswer: '8,40 €', explanation: '"acht euro veertig".' },
+        { id: 'm1l4lz-4', type: 'multiple_choice', prompt: '¿Cuánto cuesta una bici de segunda mano?', options: ['Ochenta euros', 'Trescientos euros', 'Cuarenta euros', 'Cien euros'], correctAnswer: 'Ochenta euros', explanation: '"Een tweedehands fiets kost tachtig euro." Nueva son trescientos.' },
+        { id: 'm1l4lz-5', type: 'multiple_choice', prompt: '¿Dónde es más barata una habitación?', options: ['En Groninga', 'En Ámsterdam', 'Cuestan lo mismo', 'No lo dice'], correctAnswer: 'En Groninga', explanation: 'Groninga 400 €, Ámsterdam 700 €.' },
+        { id: 'm1l4lz-6', type: 'multiple_choice', prompt: '¿De cuánto es la diferencia entre las dos habitaciones?', options: ['Trescientos euros', 'Cien euros', 'Setecientos euros', 'Cuatrocientos euros'], correctAnswer: 'Trescientos euros', explanation: '700 − 400 = 300: "een verschil van driehonderd euro".' },
+        { id: 'm1l4lz-7', type: 'true_false', prompt: 'El agua del grifo es cara en Países Bajos.', correctAnswer: 'falso', explanation: '"Water uit de kraan is bijna gratis": cien litros, unos quince céntimos.' },
+        { id: 'm1l4lz-8', type: 'multiple_choice', prompt: 'Dos cafés, ¿cuánto son?', options: ['Ocho euros', 'Cuatro euros', 'Seis euros', 'Diez euros'], correctAnswer: 'Ocho euros', explanation: 'Vier plus vier is acht.' },
+        { id: 'm1l4lz-9', type: 'fill_blank', prompt: 'Honderd liter water kost ongeveer ___ cent. (en letras)', correctAnswer: 'vijftien', hint: '15' },
+        { id: 'm1l4lz-10', type: 'fill_blank', prompt: 'Een nieuwe fiets kost ___ euro. (en letras)', correctAnswer: 'driehonderd', hint: '300' },
+        { id: 'm1l4lz-11', type: 'multiple_choice', prompt: '¿Qué es más caro: un pan del supermercado o un litro de leche?', options: ['El pan', 'La leche', 'Cuestan lo mismo', 'No lo dice'], correctAnswer: 'El pan', explanation: 'Pan 2,10 €; leche 1,15 €.' },
+        { id: 'm1l4lz-12', type: 'true_false', prompt: 'Un billete de autobús cuesta más que un café.', correctAnswer: 'falso', explanation: 'Autobús 2 €, café 4 €.' },
       ],
     },
     {
@@ -1157,32 +1202,48 @@ const m1_les5: Lesson = {
       ],
     },
     {
+      // Texto informativo sobre los apellidos neerlandeses. El anterior daba
+      // consejos al alumno ("Nog een tip: versta je iets niet?") y llamaba a
+      // David "Moreno", un apellido que ya no es el suyo. Aquí los datos son
+      // reales y el deletreo aparece porque el tema lo pide.
       type: 'lezen',
-      title: 'Spellen in Nederland',
-      textNl: `In Nederland moet je vaak spellen: je naam, je achternaam, je e-mailadres, je straat. Bij de gemeente, aan de telefoon of op een taalschool vragen ze allemaal hetzelfde. Hoe spel je dat?
+      title: 'Namen in Nederland',
+      textNl: `Veel mensen in Nederland hebben dezelfde achternaam.
 
-De letters hebben namen. De J heet jee, de W heet wee en de Y heet griekse ij. Voor Spaanstaligen zijn de V en de W lastig: Victor begint met een V, Willem met een W. Het verschil hoor je in de eerste klank.
+De Jong is nummer één. Meer dan tachtigduizend mensen heten De Jong. Daarna komen Jansen, De Vries, Van den Berg en Van Dijk.
 
-David gaat naar een taalschool. De school heet De Windmolen. Daar spelt hij zijn achternaam: M-O-R-E-N-O. Hij spelt ook zijn e-mailadres. Het teken @ heet in het Nederlands apenstaartje. Dat is een klein woord met een grote glimlach.
+Lange namen
+Nederlanders spellen hun naam vaak: bij de dokter, bij de gemeente en aan de telefoon. Sommige namen zijn lang. Oldenbarnevelt heeft veertien letters.
 
-Nog een tip: versta je iets niet? Vraag dan rustig om herhaling. Iedereen in Nederland helpt je graag met spellen.`,
-      textEs: `En Países Bajos tienes que deletrear muchas veces: tu nombre, tu apellido, tu email, tu calle. En el ayuntamiento, al teléfono o en una escuela de idiomas te preguntan siempre lo mismo. ¿Cómo se deletrea?
+Een d of een t?
+Veel namen eindigen op een d of op een t. Aan de telefoon vragen mensen dus altijd: met een d of met een t? Rembrandt eindigt op een t. Van Dijk eindigt op een k.
 
-Las letras tienen nombres. La J se llama jee, la W se llama wee y la Y se llama griekse ij. Para los hispanohablantes, la V y la W son complicadas: Victor empieza con V, Willem con W. La diferencia se oye en el primer sonido.
+Het apenstaartje
+In een e-mailadres staat het teken @. In het Nederlands heet dat teken apenstaartje.`,
+      textEs: `Mucha gente en Países Bajos tiene el mismo apellido.
 
-David va a una escuela de idiomas. La escuela se llama De Windmolen. Allí deletrea su apellido: M-O-R-E-N-O. También deletrea su email. El símbolo @ se llama en neerlandés apenstaartje, que quiere decir "colita de mono".
+De Jong es el número uno. Más de ochenta mil personas se apellidan De Jong. Después vienen Jansen, De Vries, Van den Berg y Van Dijk.
 
-Un consejo más: ¿no entiendes algo? Pide tranquilamente que lo repitan. En Países Bajos todo el mundo te ayuda encantado a deletrear.`,
+Nombres largos
+Los neerlandeses deletrean su nombre a menudo: en el médico, en el ayuntamiento y por teléfono. Algunos nombres son largos. Oldenbarnevelt tiene catorce letras.
+
+¿Con d o con t?
+Muchos nombres terminan en d o en t. Por teléfono la gente pregunta siempre: ¿con d o con t? Rembrandt termina en t. Van Dijk termina en k.
+
+La arroba
+En una dirección de correo está el signo @. En neerlandés ese signo se llama apenstaartje (rabito de mono).`,
       exercises: [
-        { id: 'm1l5lz-1', type: 'multiple_choice', prompt: 'Según el texto, ¿dónde te piden deletrear?', options: ['En el ayuntamiento, al teléfono y en la escuela', 'Solo en el aeropuerto', 'Solo en internet', 'En ningún sitio'], correctAnswer: 'En el ayuntamiento, al teléfono y en la escuela', explanation: '"Bij de gemeente, aan de telefoon, op een taalschool: overal."' },
-        { id: 'm1l5lz-2', type: 'multiple_choice', prompt: '¿Cómo se llama la escuela de David?', options: ['De Windmolen', 'De Taalschool', 'De Letter', 'Het Alfabet'], correctAnswer: 'De Windmolen', explanation: '"De school heet De Windmolen": el molino de viento.' },
-        { id: 'm1l5lz-3', type: 'multiple_choice', prompt: '¿Cuál es el apellido de David?', options: ['Moreno', 'Molina', 'Romero', 'Montero'], correctAnswer: 'Moreno', explanation: 'Lo deletrea: M-O-R-E-N-O.' },
-        { id: 'm1l5lz-4', type: 'fill_blank', prompt: 'Daar ___ hij zijn achternaam. (deletrear)', correctAnswer: 'spelt', hint: 'spellen → con hij, raíz + t' },
-        { id: 'm1l5lz-5', type: 'multiple_choice', prompt: '¿Qué significa "apenstaartje"?', options: ['La arroba (@)', 'El punto (.)', 'El guion (-)', 'La eñe (ñ)'], correctAnswer: 'La arroba (@)', explanation: 'Literalmente "colita de mono" = @.' },
-        { id: 'm1l5lz-6', type: 'fill_blank', prompt: 'De J heet ___.', correctAnswer: 'jee', hint: 'El NOMBRE de la letra (no "jota")', explanation: 'La J se llama "jee" en neerlandés.' },
-        { id: 'm1l5lz-7', type: 'multiple_choice', prompt: 'Victor y Willem: ¿con qué letra empieza cada uno?', options: ['Victor con V, Willem con W', 'Los dos con V', 'Los dos con W', 'Victor con W, Willem con V'], correctAnswer: 'Victor con V, Willem con W', explanation: 'El contraste V–W: la diferencia se oye en el primer sonido.' },
-        { id: 'm1l5lz-8', type: 'multiple_choice', prompt: 'Según el texto, ¿qué haces si no entiendes algo?', options: ['Pedir tranquilamente que lo repitan', 'Cambiar de tema', 'Colgar el teléfono', 'Adivinar'], correctAnswer: 'Pedir tranquilamente que lo repitan', explanation: '"Vraag dan rustig om herhaling."' },
-        { id: 'm1l5lz-9', type: 'multiple_choice', prompt: '¿Cómo se llama la letra Y en neerlandés?', options: ['Griekse ij', 'Ypsilon', 'Doble i', 'Wee'], correctAnswer: 'Griekse ij', explanation: '"De Y heet griekse ij": la ij griega.' },
+        { id: 'm1l5lz-1', type: 'multiple_choice', prompt: '¿Cuál es el apellido más común de Países Bajos?', options: ['De Jong', 'Jansen', 'Van Dijk', 'De Vries'], correctAnswer: 'De Jong', explanation: '"De Jong is nummer één."' },
+        { id: 'm1l5lz-2', type: 'multiple_choice', prompt: '¿Cuánta gente se apellida así?', options: ['Más de ochenta mil', 'Ochocientas', 'Ocho mil', 'No lo dice'], correctAnswer: 'Más de ochenta mil', explanation: '"Meer dan tachtigduizend mensen."' },
+        { id: 'm1l5lz-3', type: 'multiple_choice', prompt: '¿Cuántas letras tiene Oldenbarnevelt?', options: ['Catorce', 'Doce', 'Dieciocho', 'Veinte'], correctAnswer: 'Catorce', explanation: '"Oldenbarnevelt heeft veertien letters."' },
+        { id: 'm1l5lz-4', type: 'multiple_choice', prompt: 'Según el texto, ¿dónde se deletrea el nombre a menudo?', options: ['En el médico, el ayuntamiento y por teléfono', 'Solo en el colegio', 'Solo por teléfono', 'En el supermercado'], correctAnswer: 'En el médico, el ayuntamiento y por teléfono', explanation: '"bij de dokter, bij de gemeente en aan de telefoon".' },
+        { id: 'm1l5lz-5', type: 'multiple_choice', prompt: '¿En qué letra termina Rembrandt?', options: ['En t', 'En d', 'En k', 'En n'], correctAnswer: 'En t', explanation: '"Rembrandt eindigt op een t." Es la pregunta clásica al teléfono.' },
+        { id: 'm1l5lz-6', type: 'multiple_choice', prompt: '¿Y Van Dijk?', options: ['En k', 'En t', 'En d', 'En j'], correctAnswer: 'En k', explanation: '"Van Dijk eindigt op een k."' },
+        { id: 'm1l5lz-7', type: 'multiple_choice', prompt: '¿Cómo se llama el signo @ en neerlandés?', options: ['Apenstaartje', 'At', 'Krul', 'Slinger'], correctAnswer: 'Apenstaartje', explanation: 'Literalmente, "rabito de mono".' },
+        { id: 'm1l5lz-8', type: 'true_false', prompt: 'Todos los apellidos neerlandeses terminan en d.', correctAnswer: 'falso', explanation: 'Terminan en d o en t, y otros en otra letra: Van Dijk acaba en k.' },
+        { id: 'm1l5lz-9', type: 'multiple_choice', prompt: '¿Cuál de estos NO está entre los cinco primeros?', options: ['De Boer', 'Jansen', 'De Vries', 'Van den Berg'], correctAnswer: 'De Boer', explanation: 'Los cinco del texto son De Jong, Jansen, De Vries, Van den Berg y Van Dijk.' },
+        { id: 'm1l5lz-10', type: 'fill_blank', prompt: 'In het Nederlands heet het teken @ een ___.', correctAnswer: 'apenstaartje', hint: 'rabito de mono' },
+        { id: 'm1l5lz-11', type: 'fill_blank', prompt: 'Hoe ___ je dat? (¿cómo se deletrea?)', correctAnswer: 'spel', hint: 'del verbo spellen, con "je"' },
       ],
     },
     {
@@ -1378,32 +1439,50 @@ const m1_les6: Lesson = {
       ],
     },
     {
+      // Texto informativo sobre el clima. El anterior era David en el parque y
+      // decía en voz alta "David oefent de klanken van deze les": el texto se
+      // delataba como ejercicio. Las vocales cortas y largas de la lección
+      // (zon, maan, boom, zee) salen aquí porque el tema las trae puestas.
       type: 'lezen',
-      title: 'De zon, de maan en het park',
-      textNl: `De zon schijnt. David zit in het park onder een boom. Hij eet brood met kaas en leest de krant. In de krant staat goed nieuws: mooi weer vandaag!
+      title: 'Het weer in Nederland',
+      textNl: `Het weer in Nederland verandert vaak. Soms is er op dezelfde dag zon, regen en wind.
 
-In het park is het druk. Een man loopt met een hond. De hond kijkt naar het brood van David, maar dat brood is voor David. Bij de bushalte stopt de bus. Zijn buurvrouw Els stapt uit en komt even in het park zitten.
+De zon
+De zon schijnt ongeveer zestienhonderd uur per jaar. In Spanje schijnt de zon bijna drieduizend uur per jaar.
 
-David oefent de klanken van deze les. De man loopt in het park, en de maan staat in de lucht. De bus rijdt door de straat, en de buur zit op de bank. Kort en lang: dat is het verschil, en soms verandert één klinker het hele woord.
+De regen
+Het regent in Nederland ongeveer honderddertig dagen per jaar. In oktober regent het veel. In april regent het minder.
 
-’s Avonds is David thuis. Hij kijkt uit het raam. De maan is groot en geel. De stad is stil. Nederland is mooi, denkt David. De taal is niet makkelijk, maar hij leert elke dag. En morgen? Weer brood met kaas in het park!`,
-      textEs: `El sol brilla. David está sentado en el parque bajo un árbol. Come pan con queso y lee el periódico. En el periódico hay buenas noticias: ¡buen tiempo hoy!
+Warm en koud
+In de zomer is het ongeveer tweeëntwintig graden. In de winter is het ongeveer vier graden. Het sneeuwt maar een paar dagen per jaar.
 
-En el parque hay mucha gente. Un hombre pasea con un perro. El perro mira el pan de David, pero ese pan es para David. En la parada se detiene el autobús. Su vecina Els se baja y se sienta un rato en el parque.
+De wind
+Aan de zee waait het bijna elke dag. Daarom staan er in Nederland veel molens.`,
+      textEs: `El tiempo en Países Bajos cambia a menudo. A veces hay sol, lluvia y viento el mismo día.
 
-David practica los sonidos de esta lección. El hombre (man) camina por el parque, y la luna (maan) está en el cielo. El autobús (bus) pasa por la calle, y la vecina (buur) está sentada en el banco. Corta y larga: esa es la diferencia, y a veces una sola vocal cambia toda la palabra.
+El sol
+El sol luce unas mil seiscientas horas al año. En España el sol luce casi tres mil horas al año.
 
-Por la noche, David está en casa. Mira por la ventana. La luna es grande y amarilla. La ciudad está en silencio. Países Bajos es bonito, piensa David. El idioma no es fácil, pero aprende cada día. ¿Y mañana? ¡Otra vez pan con queso en el parque!`,
+La lluvia
+En Países Bajos llueve unos ciento treinta días al año. En octubre llueve mucho. En abril llueve menos.
+
+Calor y frío
+En verano hace unos veintidós grados. En invierno hace unos cuatro grados. Nieva solo unos pocos días al año.
+
+El viento
+Junto al mar sopla el viento casi todos los días. Por eso en Países Bajos hay muchos molinos.`,
       exercises: [
-        { id: 'm1l6lz-1', type: 'multiple_choice', prompt: '¿Dónde está sentado David?', options: ['Bajo un árbol', 'En el autobús', 'En casa', 'En la playa'], correctAnswer: 'Bajo un árbol', explanation: '"David zit in het park onder een boom."' },
-        { id: 'm1l6lz-2', type: 'multiple_choice', prompt: '¿Qué come David?', options: ['Pan con queso', 'Una pera', 'Pasta', 'Sopa'], correctAnswer: 'Pan con queso', explanation: '"Hij eet brood met kaas."' },
-        { id: 'm1l6lz-3', type: 'multiple_choice', prompt: '¿Qué pone el periódico?', options: ['Buen tiempo hoy', 'Llueve mañana', 'La luna es amarilla', 'El parque cierra'], correctAnswer: 'Buen tiempo hoy', explanation: '"In de krant staat goed nieuws: mooi weer vandaag!"' },
-        { id: 'm1l6lz-4', type: 'multiple_choice', prompt: '¿Qué mira el perro?', options: ['El pan de David', 'La luna', 'El periódico', 'El autobús'], correctAnswer: 'El pan de David', explanation: '"De hond kijkt naar het brood van David."' },
-        { id: 'm1l6lz-5', type: 'multiple_choice', prompt: '¿Quién se baja del autobús?', options: ['Su vecina Els', 'Anna', 'Su hermana', 'Un médico'], correctAnswer: 'Su vecina Els', explanation: '"Zijn buurvrouw Els stapt uit": de buur = el vecino/la vecina.' },
-        { id: 'm1l6lz-6', type: 'fill_blank', prompt: 'De maan is groot en ___. (amarilla)', correctAnswer: 'geel', hint: 'Vocal larga: ee', explanation: '"Geel" (amarillo) lleva vocal larga; "geld" (dinero) corta.' },
-        { id: 'm1l6lz-7', type: 'multiple_choice', prompt: 'Según el texto, ¿quién camina por el parque y qué está en el cielo?', options: ['El hombre (man) camina; la luna (maan) está en el cielo', 'La luna camina; el hombre está en el cielo', 'Los dos caminan', 'Ninguno'], correctAnswer: 'El hombre (man) camina; la luna (maan) está en el cielo', explanation: 'man (a corta) = hombre · maan (aa larga) = luna.' },
-        { id: 'm1l6lz-8', type: 'fill_blank', prompt: 'Hij leest de ___. (el periódico)', correctAnswer: 'krant', hint: 'de …', explanation: '"De krant" = el periódico.' },
-        { id: 'm1l6lz-9', type: 'multiple_choice', prompt: '¿Qué va a hacer David mañana?', options: ['Comer pan con queso en el parque otra vez', 'Ir a Argentina', 'Comprar un perro', 'Tomar el autobús 25'], correctAnswer: 'Comer pan con queso en el parque otra vez', explanation: '"En morgen? Weer brood met kaas in het park!"' },
+        { id: 'm1l6lz-1', type: 'multiple_choice', prompt: '¿Cuántas horas de sol al año hay en Países Bajos?', options: ['Unas mil seiscientas', 'Unas tres mil', 'Unas ciento treinta', 'No lo dice'], correctAnswer: 'Unas mil seiscientas', explanation: '"ongeveer zestienhonderd uur per jaar".' },
+        { id: 'm1l6lz-2', type: 'multiple_choice', prompt: '¿Y en España?', options: ['Casi tres mil', 'Mil seiscientas', 'Dos mil', 'No lo dice'], correctAnswer: 'Casi tres mil', explanation: '"bijna drieduizend uur per jaar": casi el doble.' },
+        { id: 'm1l6lz-3', type: 'multiple_choice', prompt: '¿Cuántos días al año llueve?', options: ['Unos ciento treinta', 'Unos treinta', 'Unos trescientos', 'Casi todos'], correctAnswer: 'Unos ciento treinta', explanation: '"ongeveer honderddertig dagen per jaar".' },
+        { id: 'm1l6lz-4', type: 'multiple_choice', prompt: '¿En qué mes llueve mucho?', options: ['En octubre', 'En abril', 'En julio', 'En enero'], correctAnswer: 'En octubre', explanation: '"In oktober regent het veel." En abril, menos.' },
+        { id: 'm1l6lz-5', type: 'multiple_choice', prompt: '¿Cuántos grados hace en verano?', options: ['Unos veintidós', 'Unos cuatro', 'Unos treinta', 'Unos quince'], correctAnswer: 'Unos veintidós', explanation: '"ongeveer tweeëntwintig graden".' },
+        { id: 'm1l6lz-6', type: 'multiple_choice', prompt: '¿Y en invierno?', options: ['Unos cuatro', 'Unos veintidós', 'Bajo cero', 'Unos diez'], correctAnswer: 'Unos cuatro', explanation: '"ongeveer vier graden".' },
+        { id: 'm1l6lz-7', type: 'true_false', prompt: 'En Países Bajos nieva mucho.', correctAnswer: 'falso', explanation: '"Het sneeuwt maar een paar dagen per jaar."' },
+        { id: 'm1l6lz-8', type: 'multiple_choice', prompt: '¿Dónde sopla el viento casi todos los días?', options: ['Junto al mar', 'En el bosque', 'En la ciudad', 'En el sur'], correctAnswer: 'Junto al mar', explanation: '"Aan de zee waait het bijna elke dag."' },
+        { id: 'm1l6lz-9', type: 'multiple_choice', prompt: 'Según el texto, ¿por qué hay tantos molinos?', options: ['Por el viento', 'Por la lluvia', 'Por el sol', 'Por el mar'], correctAnswer: 'Por el viento', explanation: '"Daarom staan er in Nederland veel molens": daarom = por eso.' },
+        { id: 'm1l6lz-10', type: 'fill_blank', prompt: 'In de zomer is het ongeveer ___ graden. (en letras)', correctAnswer: 'tweeëntwintig', hint: '22: primero la unidad, luego la decena' },
+        { id: 'm1l6lz-11', type: 'true_false', prompt: 'En Países Bajos puede haber sol, lluvia y viento el mismo día.', correctAnswer: 'verdadero', explanation: '"Soms is er op dezelfde dag zon, regen en wind."' },
       ],
     },
     {
