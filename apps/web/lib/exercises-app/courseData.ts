@@ -3992,48 +3992,48 @@ const m3_les1: Lesson = {
       ],
     },
     {
+      // Texto informativo con datos que localizar (mismo modelo que los
+      // módulos 1 y 2). El anterior acababa hablándole al alumno: "En jij?
+      // Wat eet jij het liefst?" — los seis del módulo terminaban así.
       type: 'lezen',
-      textNl: `Eten en drinken in Nederland
+      title: 'Wat eten Nederlanders?',
+      textNl: `Nederlanders eten meestal drie keer per dag: het ontbijt, de lunch en het avondeten.
 
-In Nederland eten mensen meestal drie keer per dag: het ontbijt in de ochtend, de lunch rond het middaguur en het avondeten 's avonds.
+Koud en warm
+Het ontbijt en de lunch zijn bijna altijd koud: boterhammen met kaas, ham of hagelslag. Hagelslag is chocolade op brood, en niet alleen voor kinderen. Alleen het avondeten is warm.
 
-Het ontbijt en de lunch zijn vaak koud en simpel: een paar boterhammen met kaas, ham of hagelslag. Hagelslag is brood met chocolade en kinderen vinden dit heerlijk. Daarbij drinken veel mensen een glas melk, thee of koffie.
+De kaas
+Nederland is een kaasland. Eén persoon eet ongeveer veertien kilo kaas per jaar. In de supermarkt staan jonge kaas, oude kaas en Goudse kaas naast elkaar. In Alkmaar is er elke vrijdag in de zomer een kaasmarkt.
 
-Koffie hoort echt bij Nederland. Een Nederlander drinkt gemiddeld meer dan drie kopjes per dag. Vaak krijg je er een klein koekje bij.
+De koffie
+Nederlanders drinken veel koffie: gemiddeld meer dan drie kopjes per dag. Bij de koffie krijg je bijna altijd een klein koekje.
 
-Het avondeten is meestal warm. Een klassiek bord heeft drie delen: aardappelen, groente en vlees of vis. Veel gezinnen eten rond zes uur samen aan tafel. Soep of een frisse salade is ook populair.
+Het bord van 's avonds
+Een klassiek bord heeft drie delen: aardappelen, groente en vlees of vis. Om zes uur zit het gezin aan tafel.`,
+      textEs: `Los neerlandeses comen normalmente tres veces al día: el desayuno, la comida y la cena.
 
-Kaas is heel belangrijk. Per jaar eet één persoon ongeveer veertien kilo kaas! In de supermarkt vind je veel soorten: jonge kaas, oude kaas en de bekende Goudse kaas. In sommige steden, zoals Alkmaar, is er zelfs een echte kaasmarkt.
+Frío y caliente
+El desayuno y la comida son casi siempre fríos: rebanadas de pan con queso, jamón o hagelslag. El hagelslag es chocolate sobre el pan, y no solo para niños. Solo la cena es caliente.
 
-Fruit en water horen er natuurlijk ook bij. Een appel of een banaan is een gezonde snack. Het kraanwater in Nederland is schoon, dus je kunt het gewoon drinken.
+El queso
+Países Bajos es un país de queso. Una persona come unos catorce kilos de queso al año. En el supermercado están el queso joven, el curado y el de Gouda unos al lado de otros. En Alkmaar hay mercado del queso todos los viernes en verano.
 
-En jij? Wat eet jij het liefst? Eet je graag warm of koud?`,
-      textEs: `Comida y bebida en los Países Bajos
+El café
+Los neerlandeses beben mucho café: más de tres tazas al día de media. Con el café casi siempre te dan una galletita.
 
-En los Países Bajos la gente come normalmente tres veces al día: el desayuno por la mañana, el almuerzo a mediodía y la cena por la noche.
-
-El desayuno y el almuerzo suelen ser fríos y sencillos: unas rebanadas de pan con queso, jamón o "hagelslag". El hagelslag es pan con chocolate y a los niños les encanta. Con ello, mucha gente bebe un vaso de leche, té o café.
-
-El café va muy unido a los Países Bajos. Un neerlandés bebe de media más de tres tazas al día. A menudo te ponen una galletita al lado.
-
-La cena suele ser caliente. Un plato clásico tiene tres partes: patatas, verdura y carne o pescado. Muchas familias cenan juntas a la mesa sobre las seis. La sopa o una ensalada fresca también son populares.
-
-El queso es muy importante. ¡Al año una persona come unos catorce kilos de queso! En el supermercado encuentras muchos tipos: queso joven, queso viejo y el conocido queso de Gouda. En algunas ciudades, como Alkmaar, hay incluso un mercado de quesos de verdad.
-
-La fruta y el agua también forman parte, claro. Una manzana o un plátano son un snack sano. El agua del grifo en los Países Bajos es limpia, así que puedes beberla sin problema.
-
-¿Y tú? ¿Qué es lo que más te gusta comer? ¿Te gusta comer caliente o frío?`,
+El plato de la noche
+Un plato clásico tiene tres partes: patatas, verdura y carne o pescado. A las seis la familia está sentada a la mesa.`,
       exercises: [
-        { id: 'm3lz-1', type: 'multiple_choice', prompt: '¿Cuántas veces al día come normalmente la gente en los Países Bajos?', options: ['Una', 'Dos', 'Tres', 'Cinco'], correctAnswer: 'Tres', explanation: '"Mensen eten meestal drie keer per dag": desayuno, almuerzo y cena.' },
-        { id: 'm3lz-2', type: 'multiple_choice', prompt: '¿Qué es la "hagelslag"?', options: ['Pan con chocolate', 'Una sopa caliente', 'Un tipo de queso', 'Una fruta'], correctAnswer: 'Pan con chocolate', explanation: '"Hagelslag is brood met chocolade": pan con fideos de chocolate.' },
-        { id: 'm3lz-3', type: 'multiple_choice', prompt: '¿Cómo suelen ser el desayuno y el almuerzo?', options: ['Calientes y grandes', 'Fríos y sencillos', 'Siempre sopa', 'Solo fruta'], correctAnswer: 'Fríos y sencillos', explanation: '"Het ontbijt en de lunch zijn vaak koud en simpel".' },
-        { id: 'm3lz-4', type: 'multiple_choice', prompt: '¿Cuántas tazas de café bebe al día un neerlandés de media?', options: ['Menos de una', 'Más de tres', 'Exactamente dos', 'Ninguna'], correctAnswer: 'Más de tres', explanation: '"Een Nederlander drinkt gemiddeld meer dan drie kopjes per dag".' },
-        { id: 'm3lz-5', type: 'multiple_choice', prompt: '¿Qué tres partes tiene un plato clásico de la cena?', options: ['Pan, queso y leche', 'Patatas, verdura y carne o pescado', 'Sopa, fruta y agua', 'Arroz, té y pan'], correctAnswer: 'Patatas, verdura y carne o pescado', explanation: '"Aardappelen, groente en vlees of vis".' },
-        { id: 'm3lz-6', type: 'multiple_choice', prompt: '¿Sobre qué hora cenan muchas familias juntas?', options: ['A las seis', 'A medianoche', 'A las diez de la mañana', 'No cenan juntas'], correctAnswer: 'A las seis', explanation: '"Veel gezinnen eten rond zes uur samen aan tafel".' },
-        { id: 'm3lz-7', type: 'true_false', prompt: 'Una persona come unos 14 kilos de queso al año.', correctAnswer: 'verdadero', explanation: '"Per jaar eet één persoon ongeveer veertien kilo kaas".' },
-        { id: 'm3lz-8', type: 'true_false', prompt: 'En los Países Bajos puedes beber el agua del grifo.', correctAnswer: 'verdadero', explanation: '"Het kraanwater in Nederland is schoon": el agua del grifo es limpia.' },
-        { id: 'm3lz-9', type: 'fill_blank', prompt: 'Het is goed om elke dag genoeg ___ te drinken. (agua)', correctAnswer: 'water', hint: 'lo que bebes cuando tienes sed', explanation: 'Conviene beber suficiente water (agua) cada día.' },
-        { id: 'm3lz-10', type: 'order_sentence', prompt: 'Ordena la pregunta del texto: «¿Qué es lo que más te gusta comer?»', options: ['Wat', 'eet', 'jij', 'het', 'liefst?'], correctAnswer: 'Wat eet jij het liefst?' },
+        { id: 'm3lz-1', type: 'multiple_choice', prompt: '¿Cuántas veces al día se come?', options: ['Tres', 'Dos', 'Cuatro', 'Cinco'], correctAnswer: 'Tres', explanation: '"meestal drie keer per dag".' },
+        { id: 'm3lz-2', type: 'multiple_choice', prompt: '¿Qué comida es caliente?', options: ['Solo la cena', 'Solo la comida', 'Las tres', 'Ninguna'], correctAnswer: 'Solo la cena', explanation: '"Alleen het avondeten is warm."' },
+        { id: 'm3lz-3', type: 'multiple_choice', prompt: '¿Cuántos kilos de queso come una persona al año?', options: ['Unos catorce', 'Unos cuatro', 'Unos cuarenta', 'No lo dice'], correctAnswer: 'Unos catorce', explanation: '"ongeveer veertien kilo kaas per jaar".' },
+        { id: 'm3lz-4', type: 'multiple_choice', prompt: '¿Qué día hay mercado del queso en Alkmaar?', options: ['El viernes', 'El sábado', 'El domingo', 'El lunes'], correctAnswer: 'El viernes', explanation: '"elke vrijdag in de zomer".' },
+        { id: 'm3lz-5', type: 'multiple_choice', prompt: '¿Cuántas tazas de café al día de media?', options: ['Más de tres', 'Una', 'Más de diez', 'No lo dice'], correctAnswer: 'Más de tres', explanation: '"gemiddeld meer dan drie kopjes per dag".' },
+        { id: 'm3lz-6', type: 'multiple_choice', prompt: '¿Qué te suelen dar con el café?', options: ['Una galletita', 'Un bocadillo', 'Un vaso de agua', 'Nada'], correctAnswer: 'Una galletita', explanation: '"een klein koekje".' },
+        { id: 'm3lz-7', type: 'multiple_choice', prompt: '¿Qué tres cosas tiene el plato clásico de la cena?', options: ['Patatas, verdura y carne o pescado', 'Pan, queso y jamón', 'Arroz, sopa y fruta', 'Pasta, verdura y queso'], correctAnswer: 'Patatas, verdura y carne o pescado', explanation: '"aardappelen, groente en vlees of vis".' },
+        { id: 'm3lz-8', type: 'true_false', prompt: 'El hagelslag es solo para niños.', correctAnswer: 'falso', explanation: '"niet alleen voor kinderen".' },
+        { id: 'm3lz-9', type: 'multiple_choice', prompt: '¿A qué hora se sienta la familia a la mesa?', options: ['A las seis', 'A las ocho', 'A las cinco', 'A las siete'], correctAnswer: 'A las seis', explanation: '"Om zes uur zit het gezin aan tafel."' },
+        { id: 'm3lz-10', type: 'fill_blank', prompt: 'Het ontbijt en de lunch zijn bijna altijd ___. (frío)', correctAnswer: 'koud', hint: 'lo contrario de warm' },
       ],
     },
     {
@@ -4282,33 +4282,48 @@ const m3_les2: Lesson = {
       ],
     },
     {
+      // Texto informativo con datos que localizar (mismo modelo que los
+      // módulos 1 y 2). El anterior acababa hablándole al alumno: "En jij?
+      // Wat eet jij het liefst?" — los seis del módulo terminaban así.
       type: 'lezen',
-      textNl: `Betalen in Nederland
+      title: 'Betalen in Nederland',
+      textNl: `In Nederland betaalt bijna iedereen met de pinpas.
 
-In Nederland betalen veel mensen met de pinpas. In een café of snackbar vraag je: «Mag ik pinnen?» De ober zegt dan «Ja, natuurlijk» en je houdt je kaart bij de machine.
+Pinnen
+In een café of een winkel vraag je: mag ik pinnen? Contant geld gebruiken mensen weinig. Sommige zaken nemen helemaal geen munten of briefjes meer aan. Op de deur staat dan: alleen pinnen.
 
-Contant geld gebruiken mensen weinig. Sommige kleine cafés nemen zelfs geen briefjes of munten aan. Op de deur staat dan: «Alleen pinnen».
+De tikkie
+Eten drie vrienden samen? Dan betaalt er één, en daarna stuurt hij een tikkie. Een tikkie is een verzoek om geld via de telefoon. Meer dan zeven miljoen Nederlanders gebruiken het.
 
-Een fooi geven is niet verplicht. Veel mensen ronden af of laten een klein bedrag achter als het lekker was. «Laat maar zitten» betekent: hou het wisselgeld.
+De fooi
+Een fooi geven is niet verplicht. Veel mensen ronden het bedrag af. Was het lekker? Dan laat je een euro of twee achter.
 
-En aan het einde vraag je gewoon: «Mag ik de rekening, alstublieft?» Makkelijk, toch?`,
-      textEs: `Pagar en los Países Bajos
+De rekening
+Aan het einde vraag je: mag ik de rekening, alstublieft? De ober brengt hem naar de tafel.`,
+      textEs: `En Países Bajos casi todo el mundo paga con tarjeta de débito.
 
-En los Países Bajos mucha gente paga con la tarjeta (pinpas). En un café o snackbar preguntas: «Mag ik pinnen?» (¿Puedo pagar con tarjeta?). El camarero dice «Sí, claro» y acercas la tarjeta a la máquina.
+Pinnen
+En un café o una tienda preguntas: mag ik pinnen? La gente usa poco el efectivo. Algunos sitios ya no aceptan ni monedas ni billetes. En la puerta pone entonces: alleen pinnen (solo tarjeta).
 
-El efectivo se usa poco. Algunos cafés pequeños ni siquiera aceptan billetes o monedas. En la puerta pone entonces: «Alleen pinnen» (solo tarjeta).
+El tikkie
+¿Comen tres amigos juntos? Entonces paga uno, y después manda un tikkie. Un tikkie es una petición de dinero por el móvil. Más de siete millones de neerlandeses lo usan.
 
-Dejar propina no es obligatorio. Mucha gente redondea o deja una pequeña cantidad si estuvo rico. «Laat maar zitten» significa: quédate el cambio.
+La propina
+Dar propina no es obligatorio. Mucha gente redondea la cuenta. ¿Estaba rico? Entonces dejas uno o dos euros.
 
-Y al final solo preguntas: «Mag ik de rekening, alstublieft?» Fácil, ¿no?`,
+La cuenta
+Al final preguntas: mag ik de rekening, alstublieft? El camarero la trae a la mesa.`,
       exercises: [
-        { id: 'm3l2lz-1', type: 'multiple_choice', prompt: '¿Con qué pagan mucho los neerlandeses?', options: ['Con tarjeta (pinpas)', 'Solo con efectivo', 'Con cheque', 'Con oro'], correctAnswer: 'Con tarjeta (pinpas)', explanation: '"In Nederland betalen veel mensen met de pinpas".' },
-        { id: 'm3l2lz-2', type: 'multiple_choice', prompt: '¿Qué preguntas para pagar con tarjeta?', options: ['Mag ik pinnen?', 'Mag ik zitten?', 'Wat wil je drinken?', 'Nog iets?'], correctAnswer: 'Mag ik pinnen?', explanation: '"Mag ik pinnen?" = ¿Puedo pagar con tarjeta?' },
-        { id: 'm3l2lz-3', type: 'true_false', prompt: 'Dejar propina es obligatorio en los Países Bajos.', correctAnswer: 'falso', explanation: '"Een fooi geven is niet verplicht": la propina no es obligatoria.' },
-        { id: 'm3l2lz-4', type: 'multiple_choice', prompt: '¿Qué significa «Alleen pinnen»?', options: ['Solo se paga con tarjeta', 'Solo efectivo', 'Cerrado', 'Café gratis'], correctAnswer: 'Solo se paga con tarjeta', explanation: 'Algunos cafés no aceptan efectivo: «Alleen pinnen».' },
-        { id: 'm3l2lz-5', type: 'fill_blank', prompt: 'Mag ik de ___, alstublieft? (la cuenta)', correctAnswer: 'rekening', hint: 'se la pides al camarero para pagar', explanation: '"Mag ik de rekening, alstublieft?"' },
-        { id: 'm3l2lz-6', type: 'multiple_choice', prompt: '¿Qué significa «Laat maar zitten»?', options: ['Quédate el cambio', 'Siéntate aquí', 'Vuelve mañana', 'No hay sitio'], correctAnswer: 'Quédate el cambio', explanation: '«Laat maar zitten» = quédate el cambio (wisselgeld).' },
-        { id: 'm3l2lz-7', type: 'true_false', prompt: 'Algunos cafés pequeños no aceptan efectivo.', correctAnswer: 'verdadero', explanation: '"Sommige kleine cafés nemen zelfs geen briefjes of munten aan".' },
+        { id: 'm3l2lz-1', type: 'multiple_choice', prompt: '¿Cómo paga casi todo el mundo?', options: ['Con tarjeta de débito', 'Con efectivo', 'Con cheque', 'Con el móvil'], correctAnswer: 'Con tarjeta de débito', explanation: '"bijna iedereen met de pinpas".' },
+        { id: 'm3l2lz-2', type: 'multiple_choice', prompt: '¿Qué se pregunta para pagar con tarjeta?', options: ['Mag ik pinnen?', 'Mag ik de rekening?', 'Wat kost het?', 'Hoeveel is het?'], correctAnswer: 'Mag ik pinnen?', explanation: 'Es LA frase que vas a usar cada día.' },
+        { id: 'm3l2lz-3', type: 'multiple_choice', prompt: '¿Qué significa el cartel "alleen pinnen"?', options: ['Solo se paga con tarjeta', 'Solo efectivo', 'Cerrado', 'Solo con cita'], correctAnswer: 'Solo se paga con tarjeta', explanation: '"Sommige zaken nemen helemaal geen munten of briefjes meer aan."' },
+        { id: 'm3l2lz-4', type: 'multiple_choice', prompt: '¿Qué es un tikkie?', options: ['Una petición de dinero por el móvil', 'Una propina', 'Un descuento', 'Un tipo de tarjeta'], correctAnswer: 'Una petición de dinero por el móvil', explanation: '"een verzoek om geld via de telefoon".' },
+        { id: 'm3l2lz-5', type: 'multiple_choice', prompt: '¿Cuánta gente usa el tikkie?', options: ['Más de siete millones', 'Unos mil', 'Casi nadie', 'No lo dice'], correctAnswer: 'Más de siete millones', explanation: '"Meer dan zeven miljoen Nederlanders".' },
+        { id: 'm3l2lz-6', type: 'true_false', prompt: 'Dar propina es obligatorio en Países Bajos.', correctAnswer: 'falso', explanation: '"Een fooi geven is niet verplicht."' },
+        { id: 'm3l2lz-7', type: 'multiple_choice', prompt: 'Si estaba rico, ¿cuánto se suele dejar?', options: ['Uno o dos euros', 'Diez euros', 'El veinte por ciento', 'Nada nunca'], correctAnswer: 'Uno o dos euros', explanation: '"Dan laat je een euro of twee achter."' },
+        { id: 'm3l2lz-8', type: 'multiple_choice', prompt: '¿Cómo se pide la cuenta?', options: ['Mag ik de rekening, alstublieft?', 'Mag ik pinnen?', 'Wat wilt u drinken?', 'Alleen pinnen'], correctAnswer: 'Mag ik de rekening, alstublieft?', explanation: 'Y el camarero la lleva a la mesa.' },
+        { id: 'm3l2lz-9', type: 'fill_blank', prompt: '___ ik pinnen? (¿puedo pagar con tarjeta?)', correctAnswer: 'Mag', hint: 'del verbo mogen' },
+        { id: 'm3l2lz-10', type: 'fill_blank', prompt: 'Mag ik de ___, alstublieft? (la cuenta)', correctAnswer: 'rekening', hint: 'de rekening' },
       ],
     },
     {
@@ -4533,42 +4548,48 @@ const m3_les3: Lesson = {
       ],
     },
     {
+      // Texto informativo con datos que localizar (mismo modelo que los
+      // módulos 1 y 2). El anterior acababa hablándole al alumno: "En jij?
+      // Wat eet jij het liefst?" — los seis del módulo terminaban así.
       type: 'lezen',
-      textNl: `Vragen stellen in Nederland
+      title: 'De Nederlandse supermarkt',
+      textNl: `In Nederland zijn er meer dan vierduizend supermarkten.
 
-Nederlanders stellen graag directe vragen. Dat is heel normaal en niet onbeleefd. In een café vraagt de ober bijvoorbeeld: «Wat wilt u drinken?» of «Wilt u nog iets?»
+De grote namen
+Albert Heijn is de grootste. Daarna komen Jumbo, Lidl en Aldi. Albert Heijn heeft meer dan duizend winkels in het land.
 
-Met vrienden hoor je vaak korte vragen: «Heb je honger?», «Wat eten we?», «Wie kookt vandaag?». Zo plannen mensen samen een maaltijd.
+Hoe laat is het open?
+De meeste supermarkten gaan om acht uur open en om tien uur dicht. Ook op zondag zijn ze open, meestal vanaf twaalf uur. In kleine dorpen sluiten de winkels eerder.
 
-Een ja/nee-vraag begint met het werkwoord: «Drink je koffie?», «Eet jij vlees?». Aan het einde gaat je stem omhoog.
+Wat vraag je in de winkel?
+Wie iets niet vindt, vraagt het gewoon: waar is de melk? Of: hebben jullie verse vis? De mensen in de winkel helpen graag.
 
-Met een W-woord vraag je naar informatie: wat, waar, wanneer, wie en hoeveel. Bijvoorbeeld: «Hoeveel suiker wil je?» of «Waar is de supermarkt?»
+De bonuskaart
+Bijna elke supermarkt heeft een kaart met korting. Zonder die kaart betaal je meer. Veel mensen hebben de app op hun telefoon.`,
+      textEs: `En Países Bajos hay más de cuatro mil supermercados.
 
-Wil je iets weigeren? Gebruik «geen»: «Nee, ik drink geen koffie.» Kort en duidelijk.
+Los nombres grandes
+Albert Heijn es el más grande. Después vienen Jumbo, Lidl y Aldi. Albert Heijn tiene más de mil tiendas en el país.
 
-Tip: in Nederland mag je gewoon vragen. Vraag je niets, dan krijg je ook niets!`,
-      textEs: `Hacer preguntas en los Países Bajos
+¿A qué hora abre?
+La mayoría de los supermercados abre a las ocho y cierra a las diez. También abren el domingo, normalmente a partir de las doce. En los pueblos pequeños las tiendas cierran antes.
 
-A los neerlandeses les gusta hacer preguntas directas. Es muy normal y no es de mala educación. En un café, el camarero pregunta por ejemplo: «Wat wilt u drinken?» (¿Qué quiere beber?) o «Wilt u nog iets?» (¿Algo más?).
+¿Qué preguntas en la tienda?
+Quien no encuentra algo, lo pregunta sin más: ¿dónde está la leche? O: ¿tenéis pescado fresco? La gente de la tienda ayuda encantada.
 
-Con los amigos oyes muchas preguntas cortas: «Heb je honger?» (¿Tienes hambre?), «Wat eten we?» (¿Qué comemos?), «Wie kookt vandaag?» (¿Quién cocina hoy?). Así planean juntos una comida.
-
-Una pregunta de sí/no empieza por el verbo: «Drink je koffie?», «Eet jij vlees?». Al final la voz sube.
-
-Con una palabra en W preguntas por información: wat, waar, wanneer, wie y hoeveel. Por ejemplo: «Hoeveel suiker wil je?» (¿Cuánta azúcar quieres?) o «Waar is de supermarkt?» (¿Dónde está el supermercado?).
-
-¿Quieres rechazar algo? Usa «geen»: «Nee, ik drink geen koffie» (No, no bebo café). Corto y claro.
-
-Consejo: en los Países Bajos puedes preguntar sin más. ¡Si no preguntas nada, tampoco recibes nada!`,
+La tarjeta de descuento
+Casi todos los supermercados tienen una tarjeta con descuento. Sin esa tarjeta pagas más. Mucha gente lleva la app en el móvil.`,
       exercises: [
-        { id: 'm3l3lz-1', type: 'multiple_choice', prompt: '¿Cómo son las preguntas de los neerlandeses según el texto?', options: ['Directas y normales', 'De mala educación', 'Muy largas', 'Prohibidas'], correctAnswer: 'Directas y normales', explanation: '"Nederlanders stellen graag directe vragen. Dat is heel normaal en niet onbeleefd."' },
-        { id: 'm3l3lz-2', type: 'multiple_choice', prompt: '¿Con qué empieza una pregunta de sí/no?', options: ['Con el verbo', 'Con el sujeto', 'Con "geen"', 'Con una coma'], correctAnswer: 'Con el verbo', explanation: '"Een ja/nee-vraag begint met het werkwoord".' },
-        { id: 'm3l3lz-3', type: 'multiple_choice', prompt: '¿Qué hace la voz al final de una pregunta de sí/no?', options: ['Sube', 'Baja', 'No cambia', 'Se calla'], correctAnswer: 'Sube', explanation: '"Aan het einde gaat je stem omhoog".' },
-        { id: 'm3l3lz-4', type: 'multiple_choice', prompt: '¿Para qué sirven las palabras en W (wat, waar…)?', options: ['Para pedir información', 'Para negar', 'Para saludar', 'Para pagar'], correctAnswer: 'Para pedir información', explanation: '"Met een W-woord vraag je naar informatie".' },
-        { id: 'm3l3lz-5', type: 'fill_blank', prompt: 'Nee, ik drink ___ koffie. (negación)', correctAnswer: 'geen', hint: 'negar un sustantivo', explanation: '"geen" niega un sustantivo: no bebo café.' },
-        { id: 'm3l3lz-6', type: 'true_false', prompt: 'En los Países Bajos hacer preguntas directas es de mala educación.', correctAnswer: 'falso', explanation: '"Dat is heel normaal en niet onbeleefd": es normal y no es maleducado.' },
-        { id: 'm3l3lz-7', type: 'multiple_choice', prompt: '¿Qué pregunta usas para saber CUÁNTA azúcar?', options: ['Hoeveel suiker wil je?', 'Waar is de suiker?', 'Wie wil suiker?', 'Wanneer suiker?'], correctAnswer: 'Hoeveel suiker wil je?', explanation: '"hoeveel" = cuánto/cuánta.' },
-        { id: 'm3l3lz-8', type: 'order_sentence', prompt: 'Ordena la pregunta: «¿Qué comemos?»', options: ['Wat', 'eten', 'we?'], correctAnswer: 'Wat eten we?' },
+        { id: 'm3l3lz-1', type: 'multiple_choice', prompt: '¿Cuántos supermercados hay?', options: ['Más de cuatro mil', 'Más de mil', 'Unos cien', 'No lo dice'], correctAnswer: 'Más de cuatro mil', explanation: '"meer dan vierduizend supermarkten".' },
+        { id: 'm3l3lz-2', type: 'multiple_choice', prompt: '¿Cuál es el supermercado más grande?', options: ['Albert Heijn', 'Jumbo', 'Lidl', 'Aldi'], correctAnswer: 'Albert Heijn', explanation: '"Albert Heijn is de grootste."' },
+        { id: 'm3l3lz-3', type: 'multiple_choice', prompt: '¿Cuántas tiendas tiene?', options: ['Más de mil', 'Más de cien', 'Más de diez mil', 'No lo dice'], correctAnswer: 'Más de mil', explanation: '"meer dan duizend winkels".' },
+        { id: 'm3l3lz-4', type: 'multiple_choice', prompt: '¿A qué hora abre la mayoría?', options: ['A las ocho', 'A las diez', 'A las doce', 'A las nueve'], correctAnswer: 'A las ocho', explanation: '"gaan om acht uur open".' },
+        { id: 'm3l3lz-5', type: 'multiple_choice', prompt: '¿Y a qué hora cierran?', options: ['A las diez', 'A las ocho', 'A las seis', 'A las doce'], correctAnswer: 'A las diez', explanation: '"om tien uur dicht".' },
+        { id: 'm3l3lz-6', type: 'multiple_choice', prompt: '¿Desde qué hora abren el domingo?', options: ['Desde las doce', 'Desde las ocho', 'No abren', 'Desde las diez'], correctAnswer: 'Desde las doce', explanation: '"op zondag… meestal vanaf twaalf uur".' },
+        { id: 'm3l3lz-7', type: 'true_false', prompt: 'En los pueblos pequeños las tiendas cierran más tarde.', correctAnswer: 'falso', explanation: '"In kleine dorpen sluiten de winkels eerder": cierran antes.' },
+        { id: 'm3l3lz-8', type: 'multiple_choice', prompt: '¿Qué pasa si no llevas la tarjeta de descuento?', options: ['Pagas más', 'No te dejan comprar', 'Pagas igual', 'Te dan un regalo'], correctAnswer: 'Pagas más', explanation: '"Zonder die kaart betaal je meer."' },
+        { id: 'm3l3lz-9', type: 'fill_blank', prompt: '___ is de melk? (¿dónde?)', correctAnswer: 'Waar', hint: 'palabra interrogativa de lugar' },
+        { id: 'm3l3lz-10', type: 'fill_blank', prompt: '___ laat gaat de winkel open? (¿a qué hora?)', correctAnswer: 'Hoe', hint: 'Hoe laat = a qué hora' },
       ],
     },
     {
@@ -4749,38 +4770,48 @@ const m3_les4: Lesson = {
       ],
     },
     {
+      // Texto informativo con datos que localizar (mismo modelo que los
+      // módulos 1 y 2). El anterior acababa hablándole al alumno: "En jij?
+      // Wat eet jij het liefst?" — los seis del módulo terminaban así.
       type: 'lezen',
-      textNl: `Eten met smaak
+      title: 'Buiten de deur eten',
+      textNl: `Nederlanders koken meestal zelf, maar soms eten ze buiten de deur.
 
-Veel Nederlanders houden van eenvoudig eten, maar gezelligheid vinden ze heel belangrijk. 's Ochtends eten ze brood met kaas of hagelslag, en ze drinken koffie of thee.
+De snackbar
+De snackbar is overal. Daar koop je friet met mayonaise, een kroket of een frikandel. Een portie friet kost ongeveer drie euro. Veel mensen halen het eten mee naar huis.
 
-'s Middags is de lunch vaak koud. Mensen nemen een broodje of een salade, want ze hebben weinig tijd. Sommigen eten op het werk, maar anderen gaan naar huis.
+De haring
+Haring is rauwe vis met ui. Je koopt hem bij een kraam op straat en je eet hem meteen op. Een haring kost ongeveer vier euro.
 
-'s Avonds eten Nederlanders warm. Ze koken aardappelen, groente en vlees of vis. Houd je niet van vlees? Dan eet je gewoon groente en pasta, want er is altijd een optie.
+Eten bestellen
+Steeds meer mensen bestellen eten met een app. Bijna vier van de tien Nederlanders doen dat elke week. Pizza staat op nummer één, en daarna komen sushi en friet.
 
-Drinken is ook belangrijk. Veel mensen drinken water of thee, maar koffie blijft favoriet. En op een feestje drinken ze vaak bier of wijn.
+Uit eten
+Een avond in een restaurant is duurder. Een hoofdgerecht kost twintig tot dertig euro. Daarom gaan veel mensen alleen op een verjaardag of met een feest uit eten.`,
+      textEs: `Los neerlandeses suelen cocinar en casa, pero a veces comen fuera.
 
-Eten in Nederland is dus simpel, maar gezellig. En jij? Eet je liever zoet of hartig?`,
-      textEs: `Comer con gusto
+El snackbar
+El snackbar está en todas partes. Ahí compras patatas fritas con mayonesa, una croqueta o un frikandel. Una ración de patatas cuesta unos tres euros. Mucha gente se lo lleva a casa.
 
-A muchos neerlandeses les gusta la comida sencilla, pero la "gezelligheid" (el buen ambiente) les parece muy importante. Por la mañana comen pan con queso o "hagelslag", y beben café o té.
+El arenque
+El arenque es pescado crudo con cebolla. Lo compras en un puesto en la calle y te lo comes ahí mismo. Un arenque cuesta unos cuatro euros.
 
-A mediodía el almuerzo suele ser frío. La gente toma un bocadillo o una ensalada, porque tienen poco tiempo. Algunos comen en el trabajo, pero otros van a casa.
+Pedir comida
+Cada vez más gente pide comida con una app. Casi cuatro de cada diez neerlandeses lo hacen cada semana. La pizza está en el número uno, y después vienen el sushi y las patatas fritas.
 
-Por la noche los neerlandeses comen caliente. Cocinan patatas, verdura y carne o pescado. ¿No te gusta la carne? Pues comes simplemente verdura y pasta, porque siempre hay una opción.
-
-Beber también es importante. Mucha gente bebe agua o té, pero el café sigue siendo el favorito. Y en una fiesta beben a menudo cerveza o vino.
-
-Comer en los Países Bajos es, pues, sencillo pero agradable. ¿Y tú? ¿Prefieres dulce o salado?`,
+Salir a cenar
+Una noche en un restaurante es más cara. Un plato principal cuesta entre veinte y treinta euros. Por eso mucha gente sale a cenar solo en un cumpleaños o en una fiesta.`,
       exercises: [
-        { id: 'm3l4lz-1', type: 'multiple_choice', prompt: '¿Qué les parece muy importante a los neerlandeses al comer?', options: ['La gezelligheid (el buen ambiente)', 'Comer muy rápido', 'Comer caro', 'Comer solos'], correctAnswer: 'La gezelligheid (el buen ambiente)', explanation: '"Gezelligheid vinden ze heel belangrijk".' },
-        { id: 'm3l4lz-2', type: 'multiple_choice', prompt: '¿Por qué el almuerzo suele ser un bocadillo o ensalada?', options: ['Porque tienen poco tiempo', 'Porque es caro', 'Porque no hay comida caliente', 'Porque están cansados'], correctAnswer: 'Porque tienen poco tiempo', explanation: '"…want ze hebben weinig tijd".' },
-        { id: 'm3l4lz-3', type: 'multiple_choice', prompt: '¿Qué conjunción usa el texto para dar una razón (porque)?', options: ['want', 'maar', 'of', 'en'], correctAnswer: 'want', explanation: '"want" = porque (da una razón).' },
-        { id: 'm3l4lz-4', type: 'fill_blank', prompt: 'Veel mensen drinken water ___ thee. (elección: o)', correctAnswer: 'of', hint: 'o = of', explanation: '"of" da a elegir entre dos opciones.' },
-        { id: 'm3l4lz-5', type: 'fill_blank', prompt: 'Eten in Nederland is simpel, ___ gezellig. (contraste: pero)', correctAnswer: 'maar', hint: 'la conjunción de contraste', explanation: '"maar" marca un contraste.' },
-        { id: 'm3l4lz-6', type: 'true_false', prompt: 'Si no te gusta la carne, no puedes cenar nada caliente.', correctAnswer: 'falso', explanation: '"Dan eet je gewoon groente en pasta, want er is altijd een optie": siempre hay una opción.' },
-        { id: 'm3l4lz-7', type: 'multiple_choice', prompt: '¿Qué se bebe a menudo en una fiesta, según el texto?', options: ['Cerveza o vino', 'Solo agua', 'Café con leche', 'Zumo'], correctAnswer: 'Cerveza o vino', explanation: '"Op een feestje drinken ze vaak bier of wijn".' },
-        { id: 'm3l4lz-8', type: 'order_sentence', prompt: 'Ordena: «Bebo café y como una galleta.»', options: ['Ik', 'drink', 'koffie', 'en', 'ik', 'eet', 'een', 'koekje.'], correctAnswer: 'Ik drink koffie en ik eet een koekje.' },
+        { id: 'm3l4lz-1', type: 'multiple_choice', prompt: '¿Cuánto cuesta una ración de patatas fritas?', options: ['Unos tres euros', 'Unos cuatro euros', 'Unos diez euros', 'No lo dice'], correctAnswer: 'Unos tres euros', explanation: '"Een portie friet kost ongeveer drie euro."' },
+        { id: 'm3l4lz-2', type: 'multiple_choice', prompt: '¿Qué lleva el arenque?', options: ['Cebolla', 'Mayonesa', 'Queso', 'Salsa de tomate'], correctAnswer: 'Cebolla', explanation: '"rauwe vis met ui".' },
+        { id: 'm3l4lz-3', type: 'multiple_choice', prompt: '¿Cuánto cuesta un arenque?', options: ['Unos cuatro euros', 'Unos tres euros', 'Unos veinte euros', 'Es gratis'], correctAnswer: 'Unos cuatro euros', explanation: '"ongeveer vier euro".' },
+        { id: 'm3l4lz-4', type: 'multiple_choice', prompt: '¿Cuánta gente pide comida por app cada semana?', options: ['Casi cuatro de cada diez', 'Uno de cada diez', 'Casi todos', 'Muy pocos'], correctAnswer: 'Casi cuatro de cada diez', explanation: '"Bijna vier van de tien Nederlanders".' },
+        { id: 'm3l4lz-5', type: 'multiple_choice', prompt: '¿Qué es lo que más se pide?', options: ['La pizza', 'El sushi', 'Las patatas fritas', 'El arenque'], correctAnswer: 'La pizza', explanation: '"Pizza staat op nummer één."' },
+        { id: 'm3l4lz-6', type: 'multiple_choice', prompt: '¿Cuánto cuesta un plato principal en un restaurante?', options: ['Entre veinte y treinta euros', 'Entre tres y cuatro euros', 'Unos diez euros', 'No lo dice'], correctAnswer: 'Entre veinte y treinta euros', explanation: '"twintig tot dertig euro".' },
+        { id: 'm3l4lz-7', type: 'multiple_choice', prompt: '¿Cuándo sale mucha gente a cenar fuera?', options: ['En un cumpleaños o una fiesta', 'Cada semana', 'Cada día', 'Nunca'], correctAnswer: 'En un cumpleaños o una fiesta', explanation: 'Porque es caro: "Daarom gaan veel mensen alleen op een verjaardag… uit eten."' },
+        { id: 'm3l4lz-8', type: 'true_false', prompt: 'El arenque se come en casa, no en la calle.', correctAnswer: 'falso', explanation: '"je eet hem meteen op", en el puesto de la calle.' },
+        { id: 'm3l4lz-9', type: 'fill_blank', prompt: 'Nederlanders koken meestal zelf, ___ soms eten ze buiten de deur. (pero)', correctAnswer: 'maar', hint: 'conjunción de contraste' },
+        { id: 'm3l4lz-10', type: 'fill_blank', prompt: 'Een avond in een restaurant is duurder. ___ gaan veel mensen alleen op een verjaardag uit eten. (por eso)', correctAnswer: 'Daarom', hint: 'consecuencia' },
       ],
     },
     {
@@ -4977,38 +5008,48 @@ const m3_les5: Lesson = {
       ],
     },
     {
+      // Texto informativo con datos que localizar (mismo modelo que los
+      // módulos 1 y 2). El anterior acababa hablándole al alumno: "En jij?
+      // Wat eet jij het liefst?" — los seis del módulo terminaban así.
       type: 'lezen',
-      textNl: `Wat eten Nederlanders graag?
+      title: 'Op de markt',
+      textNl: `Bijna elke stad in Nederland heeft een markt.
 
-Nederlanders houden van lekker en simpel eten. Veel mensen houden van friet met mayonaise, een broodje haring of een warme stroopwafel.
+Wanneer?
+De markt is één of twee dagen per week, meestal van negen tot vijf uur. In Amsterdam is de Albert Cuypmarkt zes dagen per week open. Dat is de grootste dagmarkt van het land.
 
-Op de markt kopen mensen graag verse groente en fruit. Je zegt bijvoorbeeld: «Ik wil graag een kilo appels» of «Twee kilo aardappels, alstublieft». Voor kleine dingen gebruik je gram: «vijfhonderd gram druiven».
+Wat koop je er?
+Groente, fruit, kaas, vis en bloemen. Op de markt is het vaak goedkoper dan in de supermarkt.
 
-Niet alles tel je. Water, melk en suiker zijn niet telbaar. Daarom zeg je «veel water» of «een beetje suiker», en niet «twee water».
+Hoeveel?
+Je koopt per kilo of per gram. Een kilo appels kost ongeveer twee euro. Vijfhonderd gram druiven kost ongeveer drie euro. Een bos bloemen kost vanaf vijf euro.
 
-Wil je iets extra? Vraag dan om «nog een»: «Nog een koffie, alstublieft.» En met het woord «graag» klink je altijd beleefd.
+Wat zeg je?
+Je zegt wat je wilt en hoeveel: een kilo aardappels, alstublieft. Met het woord graag klinkt het vriendelijk: ik wil graag twee kilo appels.`,
+      textEs: `Casi todas las ciudades de Países Bajos tienen mercado.
 
-En jij? Wat is jouw lievelingseten? Hou je van zoet of van hartig?`,
-      textEs: `¿Qué les gusta comer a los neerlandeses?
+¿Cuándo?
+El mercado es uno o dos días por semana, normalmente de nueve a cinco. En Ámsterdam el Albert Cuypmarkt abre seis días por semana. Es el mercado diario más grande del país.
 
-A los neerlandeses les gusta la comida rica y sencilla. A mucha gente le gustan las patatas fritas con mayonesa, un bocadillo de arenque o un "stroopwafel" calentito.
+¿Qué se compra?
+Verdura, fruta, queso, pescado y flores. En el mercado suele ser más barato que en el supermercado.
 
-En el mercado la gente compra con gusto verdura y fruta fresca. Dices por ejemplo: «Ik wil graag een kilo appels» (quiero un kilo de manzanas) o «Twee kilo aardappels, alstublieft» (dos kilos de patatas, por favor). Para cosas pequeñas usas gramos: «vijfhonderd gram druiven» (500 gramos de uvas).
+¿Cuánto?
+Se compra por kilo o por gramo. Un kilo de manzanas cuesta unos dos euros. Quinientos gramos de uvas cuestan unos tres euros. Un ramo de flores cuesta desde cinco euros.
 
-No todo se cuenta. El agua, la leche y el azúcar no son contables. Por eso dices «veel water» (mucha agua) o «een beetje suiker» (un poco de azúcar), y no «twee water».
-
-¿Quieres algo extra? Pide entonces «nog een»: «Nog een koffie, alstublieft» (otro café, por favor). Y con la palabra «graag» siempre suenas educado.
-
-¿Y tú? ¿Cuál es tu comida favorita? ¿Te gusta lo dulce o lo salado?`,
+¿Qué se dice?
+Dices qué quieres y cuánto: un kilo de patatas, por favor. Con la palabra graag suena amable: quiero dos kilos de manzanas, por favor.`,
       exercises: [
-        { id: 'm3l5lz-1', type: 'multiple_choice', prompt: '¿Qué les gusta a muchos neerlandeses según el texto?', options: ['Patatas fritas con mayonesa', 'Sushi', 'Paella', 'Tacos'], correctAnswer: 'Patatas fritas con mayonesa', explanation: '"Veel mensen houden van friet met mayonaise".' },
-        { id: 'm3l5lz-2', type: 'multiple_choice', prompt: '¿Dónde compra la gente verdura y fruta fresca?', options: ['En el mercado', 'En la farmacia', 'En el banco', 'En el café'], correctAnswer: 'En el mercado', explanation: '"Op de markt kopen mensen graag verse groente en fruit".' },
-        { id: 'm3l5lz-3', type: 'multiple_choice', prompt: '¿Qué tres cosas NO son contables según el texto?', options: ['Agua, leche y azúcar', 'Manzanas, patatas y uvas', 'Café, té y pan', 'Pollo, pescado y carne'], correctAnswer: 'Agua, leche y azúcar', explanation: '"Water, melk en suiker zijn niet telbaar".' },
-        { id: 'm3l5lz-4', type: 'fill_blank', prompt: 'Ik wil graag een ___ appels. (kilo)', correctAnswer: 'kilo', hint: 'la unidad de peso (1000 gramos)', explanation: '"Ik wil graag een kilo appels".' },
-        { id: 'm3l5lz-5', type: 'fill_blank', prompt: 'Met agua (no contable): «___ water». (mucho)', correctAnswer: 'veel', hint: 'lo contrario de weinig (poco)', explanation: 'Con lo no contable: "veel water", no "twee water".' },
-        { id: 'm3l5lz-6', type: 'true_false', prompt: '"twee water" es correcto.', correctAnswer: 'falso', explanation: 'El agua no es contable: se dice "veel water" o "een beetje water".' },
-        { id: 'm3l5lz-7', type: 'multiple_choice', prompt: '¿Para qué sirve la palabra «graag»?', options: ['Para sonar educado', 'Para negar', 'Para contar', 'Para pagar'], correctAnswer: 'Para sonar educado', explanation: '"Met het woord graag klink je altijd beleefd".' },
-        { id: 'm3l5lz-8', type: 'order_sentence', prompt: 'Ordena: «Quiero un kilo de manzanas.» (educado)', options: ['Ik', 'wil', 'graag', 'een', 'kilo', 'appels.'], correctAnswer: 'Ik wil graag een kilo appels.' },
+        { id: 'm3l5lz-1', type: 'multiple_choice', prompt: '¿Cuántos días por semana suele haber mercado?', options: ['Uno o dos', 'Todos', 'Seis', 'Tres'], correctAnswer: 'Uno o dos', explanation: '"één of twee dagen per week".' },
+        { id: 'm3l5lz-2', type: 'multiple_choice', prompt: '¿A qué hora abre y cierra normalmente?', options: ['De nueve a cinco', 'De ocho a diez', 'De doce a seis', 'No lo dice'], correctAnswer: 'De nueve a cinco', explanation: '"van negen tot vijf uur".' },
+        { id: 'm3l5lz-3', type: 'multiple_choice', prompt: '¿Cuál es el mercado diario más grande del país?', options: ['El Albert Cuypmarkt', 'El de Alkmaar', 'El de Utrecht', 'El de Róterdam'], correctAnswer: 'El Albert Cuypmarkt', explanation: 'En Ámsterdam, seis días por semana.' },
+        { id: 'm3l5lz-4', type: 'multiple_choice', prompt: '¿Cuánto cuesta un kilo de manzanas?', options: ['Unos dos euros', 'Unos tres euros', 'Unos cinco euros', 'Un euro'], correctAnswer: 'Unos dos euros', explanation: '"Een kilo appels kost ongeveer twee euro."' },
+        { id: 'm3l5lz-5', type: 'multiple_choice', prompt: '¿Y quinientos gramos de uvas?', options: ['Unos tres euros', 'Unos dos euros', 'Unos cinco euros', 'Diez euros'], correctAnswer: 'Unos tres euros', explanation: '"Vijfhonderd gram druiven kost ongeveer drie euro."' },
+        { id: 'm3l5lz-6', type: 'multiple_choice', prompt: '¿Desde cuánto cuesta un ramo de flores?', options: ['Desde cinco euros', 'Desde dos euros', 'Desde diez euros', 'Es gratis'], correctAnswer: 'Desde cinco euros', explanation: '"vanaf vijf euro".' },
+        { id: 'm3l5lz-7', type: 'true_false', prompt: 'En el mercado suele ser más caro que en el supermercado.', correctAnswer: 'falso', explanation: '"Op de markt is het vaak goedkoper dan in de supermarkt."' },
+        { id: 'm3l5lz-8', type: 'multiple_choice', prompt: '¿Para qué sirve la palabra "graag"?', options: ['Para sonar amable', 'Para pedir más', 'Para pedir la cuenta', 'Para regatear'], correctAnswer: 'Para sonar amable', explanation: '"Met het woord graag klinkt het vriendelijk."' },
+        { id: 'm3l5lz-9', type: 'fill_blank', prompt: 'Ik wil ___ twee kilo appels. (por favor, amable)', correctAnswer: 'graag', hint: 'va justo detrás del verbo' },
+        { id: 'm3l5lz-10', type: 'fill_blank', prompt: 'Vijfhonderd ___ druiven, alstublieft. (gramos)', correctAnswer: 'gram', hint: 'para cantidades pequeñas' },
       ],
     },
     {
@@ -5190,38 +5231,48 @@ const m3_les6: Lesson = {
       ],
     },
     {
+      // Texto informativo con datos que localizar (mismo modelo que los
+      // módulos 1 y 2). El anterior acababa hablándole al alumno: "En jij?
+      // Wat eet jij het liefst?" — los seis del módulo terminaban así.
       type: 'lezen',
-      textNl: `Boodschappen doen in Nederland
+      title: 'Wat kost een week boodschappen?',
+      textNl: `Een Nederlands gezin geeft ongeveer honderd euro per week uit aan boodschappen.
 
-In Nederland doen mensen meestal één of twee keer per week boodschappen. Ze maken eerst een lijstje: brood, boter, melk, soep en groente.
+Het lijstje
+De meeste mensen maken eerst een lijstje: brood, melk, kaas, groente, fruit en koffie. Met een lijstje koop je minder en betaal je minder.
 
-Veel mensen gaan naar de supermarkt, want daar vind je bijna alles. Maar voor verse groente, fruit of bloemen gaan ze graag naar de markt.
+Waar koop je wat?
+Bijna alles komt uit de supermarkt. Voor verse groente, fruit en bloemen gaan mensen naar de markt. Brood kopen sommigen bij de bakker.
 
-Let op de uitspraak! Woorden met «oo» klinken lang en open: brood, koken, boter. Woorden met «oe» klinken rond, een beetje als de Spaanse u: soep, koek, bloemen.
+Eén keer of elke dag?
+De meeste mensen doen één of twee keer per week boodschappen. Ze gaan met de fiets of met de auto, en ze nemen hun eigen tas mee. Een plastic tas kost geld in de winkel.
 
-Bij de kassa betaal je bijna altijd met de pinpas. «Mag ik pinnen?» «Ja, natuurlijk.»
+Bij de kassa
+Bij de kassa betaal je met de pinpas. De kassière vraagt of je een bon wilt. Veel mensen zeggen nee: dat scheelt papier.`,
+      textEs: `Una familia neerlandesa gasta unos cien euros por semana en la compra.
 
-En jij? Doe jij graag boodschappen? Wat staat er op jouw lijstje?`,
-      textEs: `Hacer la compra en los Países Bajos
+La lista
+La mayoría hace primero una lista: pan, leche, queso, verdura, fruta y café. Con una lista compras menos y pagas menos.
 
-En los Países Bajos la gente hace la compra normalmente una o dos veces por semana. Primero hacen una lista: pan, mantequilla, leche, sopa y verdura.
+¿Dónde se compra cada cosa?
+Casi todo sale del supermercado. Para verdura fresca, fruta y flores la gente va al mercado. El pan algunos lo compran en la panadería.
 
-Mucha gente va al supermercado, porque allí encuentras casi todo. Pero para verdura fresca, fruta o flores van con gusto al mercado.
+¿Una vez o cada día?
+La mayoría hace la compra una o dos veces por semana. Van en bici o en coche, y llevan su propia bolsa. Una bolsa de plástico cuesta dinero en la tienda.
 
-¡Atención a la pronunciación! Las palabras con «oo» suenan largas y abiertas: brood, koken, boter. Las palabras con «oe» suenan redondas, un poco como la u española: soep, koek, bloemen.
-
-En la caja pagas casi siempre con la tarjeta. «Mag ik pinnen?» (¿Puedo pagar con tarjeta?) «Ja, natuurlijk» (Sí, claro).
-
-¿Y tú? ¿Te gusta hacer la compra? ¿Qué hay en tu lista?`,
+En la caja
+En la caja se paga con tarjeta. La cajera pregunta si quieres el tique. Mucha gente dice que no: así se ahorra papel.`,
       exercises: [
-        { id: 'm3l6lz-1', type: 'multiple_choice', prompt: '¿Cada cuánto hace la compra la gente normalmente?', options: ['Una o dos veces por semana', 'Cada hora', 'Una vez al año', 'Nunca'], correctAnswer: 'Una o dos veces por semana', explanation: '"meestal één of twee keer per week".' },
-        { id: 'm3l6lz-2', type: 'multiple_choice', prompt: '¿Adónde van para verdura fresca, fruta o flores?', options: ['Al mercado', 'A la farmacia', 'Al banco', 'Al café'], correctAnswer: 'Al mercado', explanation: '"voor verse groente, fruit of bloemen gaan ze graag naar de markt".' },
-        { id: 'm3l6lz-3', type: 'multiple_choice', prompt: '¿Cuál de estas palabras tiene el sonido OE (como la "u")?', options: ['soep', 'brood', 'koken', 'boter'], correctAnswer: 'soep', explanation: '"soep" tiene «oe»; brood/koken/boter tienen «oo».' },
-        { id: 'm3l6lz-4', type: 'multiple_choice', prompt: '¿Cuál tiene el sonido OO (largo y abierto)?', options: ['brood', 'soep', 'koek', 'bloemen'], correctAnswer: 'brood', explanation: '"brood" tiene «oo»; las demás «oe».' },
-        { id: 'm3l6lz-5', type: 'fill_blank', prompt: 'Eerst maak je een ___ : brood, boter, melk… (lista)', correctAnswer: 'lijstje', hint: 'el diminutivo de lijst', explanation: '"Ze maken eerst een lijstje".' },
-        { id: 'm3l6lz-6', type: 'true_false', prompt: 'En la caja casi siempre se paga con tarjeta.', correctAnswer: 'verdadero', explanation: '"Bij de kassa betaal je bijna altijd met de pinpas".' },
-        { id: 'm3l6lz-7', type: 'multiple_choice', prompt: '¿Por qué va mucha gente al supermercado?', options: ['Porque allí encuentras casi todo', 'Porque es gratis', 'Porque está lejos', 'Porque no hay mercado'], correctAnswer: 'Porque allí encuentras casi todo', explanation: '"want daar vind je bijna alles".' },
-        { id: 'm3l6lz-8', type: 'order_sentence', prompt: 'Ordena: «Hacemos la compra.»', options: ['Wij', 'doen', 'boodschappen.'], correctAnswer: 'Wij doen boodschappen.' },
+        { id: 'm3l6lz-1', type: 'multiple_choice', prompt: '¿Cuánto gasta una familia por semana en la compra?', options: ['Unos cien euros', 'Unos cincuenta euros', 'Unos trescientos euros', 'No lo dice'], correctAnswer: 'Unos cien euros', explanation: '"ongeveer honderd euro per week".' },
+        { id: 'm3l6lz-2', type: 'multiple_choice', prompt: '¿Para qué sirve hacer una lista?', options: ['Para comprar menos y pagar menos', 'Para comprar más', 'Para ir más rápido', 'Para no olvidar el pan'], correctAnswer: 'Para comprar menos y pagar menos', explanation: '"Met een lijstje koop je minder en betaal je minder."' },
+        { id: 'm3l6lz-3', type: 'multiple_choice', prompt: '¿Adónde va la gente a por verdura fresca y flores?', options: ['Al mercado', 'Al supermercado', 'A la panadería', 'A la gasolinera'], correctAnswer: 'Al mercado', explanation: '"Voor verse groente, fruit en bloemen gaan mensen naar de markt."' },
+        { id: 'm3l6lz-4', type: 'multiple_choice', prompt: '¿Cuántas veces por semana se hace la compra?', options: ['Una o dos', 'Todos los días', 'Una vez al mes', 'Tres o cuatro'], correctAnswer: 'Una o dos', explanation: '"één of twee keer per week".' },
+        { id: 'm3l6lz-5', type: 'multiple_choice', prompt: '¿Por qué lleva la gente su propia bolsa?', options: ['Porque la de plástico cuesta dinero', 'Porque no hay bolsas', 'Porque es más grande', 'Porque lo pide la tienda'], correctAnswer: 'Porque la de plástico cuesta dinero', explanation: '"Een plastic tas kost geld in de winkel."' },
+        { id: 'm3l6lz-6', type: 'multiple_choice', prompt: '¿Qué pregunta la cajera?', options: ['Si quieres el tique', 'Si quieres una bolsa', 'Si tienes tarjeta', 'Si vas en bici'], correctAnswer: 'Si quieres el tique', explanation: '"De kassière vraagt of je een bon wilt."' },
+        { id: 'm3l6lz-7', type: 'true_false', prompt: 'En la caja se paga casi siempre en efectivo.', correctAnswer: 'falso', explanation: '"Bij de kassa betaal je met de pinpas."' },
+        { id: 'm3l6lz-8', type: 'multiple_choice', prompt: '¿Dónde compran el pan algunas personas?', options: ['En la panadería', 'Solo en el supermercado', 'En el mercado', 'En la caja'], correctAnswer: 'En la panadería', explanation: '"Brood kopen sommigen bij de bakker."' },
+        { id: 'm3l6lz-9', type: 'fill_blank', prompt: 'Wij doen ___ of twee keer per week boodschappen. (una)', correctAnswer: 'één', hint: 'con acentos: la cifra, no el artículo' },
+        { id: 'm3l6lz-10', type: 'fill_blank', prompt: 'Bij de kassa betaal je met de ___. (tarjeta de débito)', correctAnswer: 'pinpas', hint: 'la palabra clave del módulo' },
       ],
     },
     {
