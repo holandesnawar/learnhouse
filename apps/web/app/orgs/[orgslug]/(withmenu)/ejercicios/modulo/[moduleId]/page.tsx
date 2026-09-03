@@ -11,11 +11,9 @@ import {
   getModules,
 } from '@/lib/exercises-app/courseService'
 import LessonList from '@components/exercises-app/LessonList'
-import SituacionCard from '@components/exercises-app/SituacionCard'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import { getUriWithOrg } from '@services/config/config'
-import { getSituacionesForModule } from '@/lib/exercises-app/situaciones'
-import { Clapperboard, Dumbbell } from 'lucide-react'
+import { Dumbbell } from 'lucide-react'
 
 export default function ModulePage() {
   const { orgslug, moduleId } = useParams() as { orgslug: string; moduleId: string }
@@ -26,7 +24,6 @@ export default function ModulePage() {
   const extras = getExtrasForModule(module.id)
   const allModules = getModules()
   // Echt Nederlands videos attached to this module (rendered as extra lessons).
-  const situaciones = getSituacionesForModule(module.id)
 
   return (
     <GeneralWrapperStyled>
@@ -86,20 +83,8 @@ export default function ModulePage() {
           </div>
         )}
 
-        {situaciones.length > 0 && (
-          <div className="mt-10">
-            <div className="flex items-center gap-3 mb-4">
-              <Clapperboard size={16} className="text-[#025dc7] shrink-0" />
-              <span className="text-[13px] font-bold text-[#5A6480] uppercase tracking-widest">Echt Nederlands · lección extra</span>
-              <div className="flex-1 h-px bg-[#DDE6F5]" />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {situaciones.map((s) => (
-                <SituacionCard key={s.id} situacion={s} orgslug={orgslug} />
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Aquí iba el bloque de «Echt Nederlands · lección extra».
+            Fuera por decisión de producto: no entra en la formación. */}
       </div>
     </GeneralWrapperStyled>
   )

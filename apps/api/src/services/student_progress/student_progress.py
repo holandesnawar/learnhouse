@@ -422,3 +422,45 @@ async def modulos_bloqueados(
         list(por_uuid.keys()), org_id, current_user, db_session
     )
     return sorted({por_uuid[cu] for cu in cerrados if cu in por_uuid})
+
+
+_LIMPIA_NOMBRE = re.compile(r"^\s*(?:m[oó]dulo|module)\s*\d+\s*[-–—:.]?\s*", re.IGNORECASE)
+
+
+async def modulos_del_curso(
+    org_id: int,
+    current_user: PublicUser | AnonymousUser,
+    db_session: AsyncSession,
+) -> list[dict]:
+    """La lista de módulos tal y como está en la formación, con su candado.
+
+    Repasar sacaba los módulos de `courseData.ts`, donde solo están los que
+    tienen ejercicios escritos: enseñaba cuatro cuando en la formación hay
+    diez. Ahora la LISTA viene del curso y el CONTENIDO sigue viniendo del
+    código, que es donde vive.
+
+    Del nombre del capítulo se quita el "MODULE 3 - " de delante: en Repasar el
+    número ya va en su sitio y repetirlo se lee mal.
+    """
+    cerrados = set(await modulos_bloqueados(org_id, current_user, db_session))
+
+    filas = (
+        await db_session.execute(
+            select(Chapter.name).where(Chapter.org_id == org_id)
+        )
+    ).all()
+
+    modulos: dict[int, str] = {}
+    for (nombre,) in filas:
+        texto = str(nombre or "")
+        m = _NUM_MODULO.match(texto)
+        if not m:
+            continue  # la Introducción y cualquier capítulo sin número
+        numero = int(m.group(1))
+        limpio = _LIMPIA_NOMBRE.sub("", texto).strip() or texto.strip()
+        modulos.setdefault(numero, limpio)
+
+    return [
+        {"numero": n, "nombre": modulos[n], "bloqueado": n in cerrados}
+        for n in sorted(modulos)
+    ]

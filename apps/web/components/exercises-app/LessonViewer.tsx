@@ -3803,7 +3803,25 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
     for (const l of lines) if (!seen.includes(l.speaker)) seen.push(l.speaker);
     return seen;
   }, [lines]);
+  // Quién es quién. La regla de "el primero que habla lleva la voz de chico"
+  // es un apaño: en cuanto un diálogo empieza con Anna, David suena a mujer.
+  // Pasó justo así al reescribir los Luisteren del módulo 1. Los personajes
+  // que se repiten llevan su voz puesta; el resto sigue con el turno.
+  const VOZ_POR_PERSONAJE: Record<string, string> = {
+    // ellas
+    anna: DIALOGUE_VOICE_B, marta: DIALOGUE_VOICE_B, sara: DIALOGUE_VOICE_B,
+    maría: DIALOGUE_VOICE_B, maria: DIALOGUE_VOICE_B, sanne: DIALOGUE_VOICE_B,
+    fatima: DIALOGUE_VOICE_B, presentatrice: DIALOGUE_VOICE_B, lerares: DIALOGUE_VOICE_B,
+    // ellos
+    david: DIALOGUE_VOICE_A, pablo: DIALOGUE_VOICE_A, tom: DIALOGUE_VOICE_A,
+    kees: DIALOGUE_VOICE_A, ahmed: DIALOGUE_VOICE_A, gerard: DIALOGUE_VOICE_A,
+    ober: DIALOGUE_VOICE_A, monteur: DIALOGUE_VOICE_A, verkoper: DIALOGUE_VOICE_A,
+    chef: DIALOGUE_VOICE_A,
+  }
+
   const voiceFor = (speaker: string) => {
+    const propia = VOZ_POR_PERSONAJE[(speaker || '').trim().toLowerCase()]
+    if (propia) return propia
     // Un solo interlocutor (p. ej. una presentadora de radio) → voz femenina por
     // defecto. Con el % de antes, el único hablante (índice 0) caía en la voz
     // masculina A, que no es lo que queremos para una presentadora.
