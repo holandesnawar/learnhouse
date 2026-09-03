@@ -439,6 +439,16 @@ async def _apply_locks_to_chapters(
             chapter.description = ""
             chapter.thumbnail_image = ""
 
+        # Un módulo que todavía no se abre no enseña NI lo que lleva dentro.
+        # Antes se mandaba la lista de clases con el contenido vaciado, así que
+        # el alumno veía los nombres y el número de actividades: eso delata lo
+        # que se está montando, y además el contador salta de 0 a 12 el día que
+        # se crean las clases. Solo aplica al goteo (fecha o días), no a los
+        # candados por grupo, que tienen otra semántica.
+        if drip_unlock is not None:
+            chapter.activities = []
+            continue
+
         for activity in chapter.activities:
             if chapter_locked:
                 activity_locked = True
