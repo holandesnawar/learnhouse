@@ -3790,7 +3790,10 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
   const [playing, setPlaying] = useState(false);
   const [pos, setPos] = useState(0);
   const [total, setTotal] = useState(0);
-  const [slow, setSlow] = useState(false);
+  // Por defecto va lento (0.8×), no a 1×: un alumno A0-A1 no llega a seguir
+  // un diálogo entero a velocidad nativa la primera vez. Puede subirlo él
+  // mismo con el botón; no al revés.
+  const [slow, setSlow] = useState(true);
   const [waveW, setWaveW] = useState(0);
 
   const clipsRef = useRef<{ audio: HTMLAudioElement; dur: number }[]>([]);
@@ -3798,6 +3801,13 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
   const dataRef = useRef<{ dur: number; hiPeaks: number[] }[]>([]);
   const curRef = useRef(0);
   const rafRef = useRef<number | null>(null);
+  // Silencio entre líneas: más largo al cambiar de interlocutor (hay que
+  // "cambiar de persona" mentalmente) que dentro de la misma voz. Antes las
+  // líneas se pegaban una a otra sin respiro, lo que en un diálogo con dos
+  // voces sonaba a una sola persona hablando sin parar.
+  const gapTimeoutRef = useRef<number | null>(null);
+  const GAP_MISMA_VOZ_MS = 320;
+  const GAP_CAMBIO_VOZ_MS = 700;
   const waveRef = useRef<HTMLDivElement | null>(null);
   const draggingRef = useRef(false);
   const wasPlayingRef = useRef(false);
@@ -3846,6 +3856,7 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
   }, [rate]);
   useEffect(() => () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (gapTimeoutRef.current) clearTimeout(gapTimeoutRef.current);
     clipsRef.current.forEach((c) => { try { c.audio.pause(); } catch {} });
   }, []);
   // Mide el ancho de la onda para alinear la capa de progreso.
@@ -3876,13 +3887,22 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
     const c = clipsRef.current[i];
     if (!c) { stopTick(); return; }
     if (c.audio.ended || c.audio.currentTime >= c.dur - 0.03) {
-      if (i + 1 < clipsRef.current.length) { startClip(i + 1, 0, true); return; }
+      stopTick();
+      if (i + 1 < clipsRef.current.length) {
+        const gap = lines[i].speaker !== lines[i + 1].speaker ? GAP_CAMBIO_VOZ_MS : GAP_MISMA_VOZ_MS;
+        gapTimeoutRef.current = window.setTimeout(() => {
+          gapTimeoutRef.current = null;
+          startClip(i + 1, 0, true);
+        }, gap);
+        return;
+      }
       finish(); return;
     }
     setPos((startsRef.current[i] ?? 0) + c.audio.currentTime);
     rafRef.current = requestAnimationFrame(tick);
   }
   function startClip(i: number, offset: number, autoplay: boolean) {
+    if (gapTimeoutRef.current) { clearTimeout(gapTimeoutRef.current); gapTimeoutRef.current = null; }
     pauseAll();
     curRef.current = i;
     const c = clipsRef.current[i];
@@ -3936,6 +3956,7 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
 
   async function togglePlay() {
     if (playing) {
+      if (gapTimeoutRef.current) { clearTimeout(gapTimeoutRef.current); gapTimeoutRef.current = null; }
       pauseAll(); stopTick(); stopDutch(); setPlaying(false);
       return;
     }
@@ -3964,6 +3985,7 @@ function DialoguePlayer({ lines, accentColor }: { lines: DLine[]; accentColor: s
     try { (e.currentTarget as any).setPointerCapture?.(e.pointerId); } catch {}
     draggingRef.current = true;
     wasPlayingRef.current = playing;
+    if (gapTimeoutRef.current) { clearTimeout(gapTimeoutRef.current); gapTimeoutRef.current = null; }
     pauseAll(); stopTick(); setPlaying(false);
     setPos(posFromClientX(e.clientX));
   }
