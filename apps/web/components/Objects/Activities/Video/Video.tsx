@@ -197,17 +197,17 @@ function VideoActivity({ activity, course, orgUuid, onPlay, onProgress }: VideoA
           )}
           {activity.activity_sub_type === 'SUBTYPE_VIDEO_YOUTUBE' && isBunny && (
             <div className="w-full">
-              {/* ⚠️ Los vídeos de la formación NO son 16:9: miden ~1,85:1, que
-                  es proporción de cine. Con `aspect-video` la caja queda más
-                  alta que el vídeo y el reproductor deja una franja negra
-                  abajo, en todos. Medido sobre las capturas: unos 13 px de
-                  470. Esto es SOLO para Bunny; YouTube sí es 16:9 y los
-                  vídeos subidos a mano pueden ser cualquier cosa.
-                  Si algún día se sube uno con otra proporción y vuelve la
-                  franja, este es el número: subirlo acorta la caja y quita
-                  franja, bajarlo la agranda. Pasarse saca barras a los lados,
-                  que es peor. */}
-              <div className="relative w-full aspect-[1.85/1] rounded-lg overflow-hidden">
+              {/* ⚠️ La caja se queda en 16:9 y NO se toca para tapar la franja
+                  negra de abajo. Se probó a bajarla a 1,85:1 pensando que los
+                  vídeos eran más anchos, y el resultado fue peor: aparecieron
+                  barras a los lados Y la franja siguió ahí.
+                  Lo que eso demuestra es que el reproductor de Bunny impone
+                  16:9 pase lo que pase: al darle una caja más baja se encoge
+                  para caber de alto y deja hueco a los lados. O sea que la
+                  franja se dibuja DENTRO del reproductor y no hay CSS nuestro
+                  que la quite: hay que mirarlo en los ajustes del reproductor
+                  de la biblioteca de Bunny. */}
+              <div className="relative w-full aspect-video rounded-lg overflow-hidden">
                 <iframe
                   key={activity.activity_uuid}
                   ref={bunnyIframeRef}
