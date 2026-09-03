@@ -2307,38 +2307,49 @@ Una cosa más sobre el motor: tiene que encajar con el conductor. Ik droom, mijn
       ],
     },
     {
+      // Reescrito (sept 2026). El anterior, "De zinnenfabriek", era la clase
+      // de gramática puesta en boca de dos personas: Anna corrigiendo frases y
+      // David preguntando si "slaapt" lleva dos aes. Eso no lo dice nadie en un
+      // café, y encima repetía lo que el resumen ya explica.
+      //
+      // Regla, la misma que ya vale para los textos de Lezen: la gramática
+      // aparece porque la situación la pide, nunca al revés. Aquí David cuenta
+      // que viene su hermana, y para contar quién viene, cuándo, cuánto se
+      // queda y dónde duerme cada uno hacen falta justo las frases enteras
+      // (sujeto + verbo + resto) que enseña esta lección. Nadie explica nada.
       type: 'dialogue',
       dialogue: {
         id: 'm2d2',
-        title: 'De zinnenfabriek',
-        context: 'David oefent zinnen maken over zijn familie. Anna helpt. Achtste ontmoeting.',
+        title: 'Nieuws van thuis',
+        context: 'David heeft nieuws uit Argentinië. Achtste ontmoeting.',
         lines: [
-          { id: 'm2d2-1',  speaker: 'David', dutch: 'Hoi Anna! Vandaag maak ik zinnen. Luister: mijn zus… Buenos Aires… wonen!', spanish: '¡Hola Anna! Hoy hago frases. Escucha: mi hermana… Buenos Aires… ¡vivir!' },
-          { id: 'm2d2-2',  speaker: 'Anna',  dutch: 'Haha, dat zijn woorden, geen zin! Maak er een trein van: wie, wat, waar.',  spanish: '¡Jaja, eso son palabras, no una frase! Haz un tren: quién, qué, dónde.' },
-          { id: 'm2d2-3',  speaker: 'David', dutch: 'Oké… Mijn zus woont in Buenos Aires!',                                      spanish: 'Vale… ¡Mi hermana vive en Buenos Aires!' },
-          { id: 'm2d2-4',  speaker: 'Anna',  dutch: 'Perfect! Onderwerp, werkwoord op plek twee, en dan de rest. Nog een?',                 spanish: '¡Perfecto! Sujeto, verbo en el segundo lugar, y luego el resto. ¿Otra?' },
-          { id: 'm2d2-5',  speaker: 'David', dutch: 'Mijn ouders werken in een restaurant.',                                     spanish: 'Mis padres trabajan en un restaurante.' },
-          { id: 'm2d2-6',  speaker: 'Anna',  dutch: 'Heel goed! En nu een moeilijke: slapen, met "het kind".',                   spanish: '¡Muy bien! Y ahora una difícil: dormir, con "el niño".' },
-          { id: 'm2d2-7',  speaker: 'David', dutch: 'Het kind slaapt… met twee a’s? Slaapt?',                                    spanish: 'El niño duerme… ¿con dos aes? ¿Slaapt?' },
-          { id: 'm2d2-8',  speaker: 'Anna',  dutch: 'Ja! De klank blijft lang, dus je schrijft twee a’s: slapen, ik slaap, hij slaapt.',                     spanish: '¡Sí! El sonido sigue siendo largo, por eso escribes dos aes: slapen, ik slaap, hij slaapt.' },
-          { id: 'm2d2-9',  speaker: 'David', dutch: 'En ik? Ik slaap weinig. Ik droom in het Nederlands!',                       spanish: '¿Y yo? Duermo poco. ¡Sueño en neerlandés!' },
-          { id: 'm2d2-10', speaker: 'Anna',  dutch: 'Haha! Dat is een heel goed teken. Laatste test: zingen, in de douche.',      spanish: '¡Jaja! Eso es muy buena señal. Última prueba: cantar, en la ducha.' },
-          { id: 'm2d2-11', speaker: 'David', dutch: 'Eh… wie zingt? Zonder onderwerp kan het niet!',                                spanish: 'Eh… ¿quién canta? ¡Sin sujeto no se puede!' },
-          { id: 'm2d2-12', speaker: 'Anna',  dutch: 'Bravo! Dat is DE regel. Oké: mijn broer zingt in de douche.',               spanish: '¡Bravo! Esa es LA regla. Vale: mi hermano canta en la ducha.' },
-          { id: 'm2d2-13', speaker: 'David', dutch: 'Mijn broer zingt in de douche. Arme familie!',                              spanish: 'Mi hermano canta en la ducha. ¡Pobre familia!' },
-          { id: 'm2d2-14', speaker: 'Anna',  dutch: 'Haha! Tot volgende week, zinnenmaker!',                                     spanish: '¡Jaja! ¡Hasta la semana que viene, fabricante de frases!' },
-          { id: 'm2d2-15', speaker: 'David', dutch: 'Doei Anna!',                                                                spanish: '¡Adiós, Anna!' },
+          { id: 'm2d2-1',  speaker: 'Anna',  dutch: 'Hoi David! Jij bent vrolijk vandaag.', spanish: '¡Hola David! Hoy estás contento.' },
+          { id: 'm2d2-2',  speaker: 'David', dutch: 'Ik heb goed nieuws. Mijn zus Lucía komt naar Nederland!', spanish: 'Tengo buenas noticias. ¡Mi hermana Lucía viene a Países Bajos!' },
+          { id: 'm2d2-3',  speaker: 'Anna',  dutch: 'Wat leuk! Wanneer komt ze?', spanish: '¡Qué bien! ¿Cuándo viene?' },
+          { id: 'm2d2-4',  speaker: 'David', dutch: 'In oktober. Ze blijft twee weken.', spanish: 'En octubre. Se queda dos semanas.' },
+          { id: 'm2d2-5',  speaker: 'Anna',  dutch: 'Komt ze alleen?', spanish: '¿Viene sola?' },
+          { id: 'm2d2-6',  speaker: 'David', dutch: 'Nee, haar dochter komt ook. Ze is zes jaar oud.', spanish: 'No, su hija viene también. Tiene seis años.' },
+          { id: 'm2d2-7',  speaker: 'Anna',  dutch: 'Wat leuk voor jou! En waar slapen ze?', spanish: '¡Qué bien para ti! ¿Y dónde duermen?' },
+          { id: 'm2d2-8',  speaker: 'David', dutch: 'Lucía slaapt in mijn kamer. Ik slaap op de bank.', spanish: 'Lucía duerme en mi habitación. Yo duermo en el sofá.' },
+          { id: 'm2d2-9',  speaker: 'Anna',  dutch: 'Haha, jij bent een goede broer. Wat gaan jullie doen?', spanish: 'Jaja, eres un buen hermano. ¿Qué vais a hacer?' },
+          { id: 'm2d2-10', speaker: 'David', dutch: 'Wij gaan naar Amsterdam. En naar de zee.', spanish: 'Vamos a Ámsterdam. Y al mar.' },
+          { id: 'm2d2-11', speaker: 'Anna',  dutch: 'Kom ook naar Haarlem! Dan eten we samen in een restaurant.', spanish: '¡Venid también a Haarlem! Así comemos juntos en un restaurante.' },
+          { id: 'm2d2-12', speaker: 'David', dutch: 'Heel graag. Lucía neemt mate mee uit Argentinië.', spanish: 'Encantado. Lucía se trae mate de Argentina.' },
+          { id: 'm2d2-13', speaker: 'Anna',  dutch: 'Mate? Wat is dat?', spanish: '¿Mate? ¿Qué es eso?' },
+          { id: 'm2d2-14', speaker: 'David', dutch: 'We drinken dat elke dag in Argentinië. Dan drink jij het ook!', spanish: 'Lo bebemos todos los días en Argentina. ¡Así que tú también lo pruebas!' },
+          { id: 'm2d2-15', speaker: 'Anna',  dutch: 'Afgesproken! Nog even wachten dus.', spanish: '¡Trato hecho! Toca esperar un poco entonces.' },
+          { id: 'm2d2-16', speaker: 'David', dutch: 'Ik droom nu al van oktober.', spanish: 'Ya estoy soñando con octubre.' },
         ],
       },
       exercises: [
-        { id: 'm2d2q-1', type: 'multiple_choice', prompt: '¿Dónde vive la hermana de David?', options: ['En Buenos Aires', 'En Groninga', 'En Ámsterdam', 'En Madrid'], correctAnswer: 'En Buenos Aires', explanation: '"Mijn zus woont in Buenos Aires".' },
-        { id: 'm2d2q-2', type: 'multiple_choice', prompt: '¿Dónde trabajan los padres de David?', options: ['En un restaurante', 'En una tienda', 'En un hospital', 'En una escuela'], correctAnswer: 'En un restaurante', explanation: '"Mijn ouders werken in een restaurant".' },
-        { id: 'm2d2q-3', type: 'multiple_choice', prompt: '¿En qué posición va el verbo en una frase afirmativa?', options: ['En la segunda', 'En la primera', 'Al final', 'Da igual'], correctAnswer: 'En la segunda', explanation: '"verbo op plek twee". Es LA regla del orden neerlandés.' },
-        { id: 'm2d2q-4', type: 'multiple_choice', prompt: '¿Cómo se dice "el niño duerme"?', options: ['Het kind slaapt', 'Het kind slapt', 'Het kind slaapen', 'Het kind slaap'], correctAnswer: 'Het kind slaapt', explanation: 'La raíz alarga la vocal: slapen → slaap → slaapt.' },
-        { id: 'm2d2q-5', type: 'true_false', prompt: 'En neerlandés se puede hacer una frase sin sujeto.', correctAnswer: 'falso', explanation: '"Zonder sujeto kan het niet!": a diferencia del español, el sujeto no se puede callar.' },
-        { id: 'm2d2q-6', type: 'multiple_choice', prompt: '¿Quién canta en la ducha?', options: ['El hermano de Anna', 'David', 'Anna', 'El padre de David'], correctAnswer: 'El hermano de Anna', explanation: '"mijn broer zingt in de douche".' },
-        { id: 'm2d2q-7', type: 'fill_blank', prompt: 'Mijn zus ___ in Buenos Aires. (vive)', correctAnswer: 'woont', hint: 'wonen en tercera persona', explanation: 'Wonen → woont. La -t de la tercera persona.' },
-        { id: 'm2d2q-8', type: 'multiple_choice', prompt: '¿En qué dice David que sueña?', options: ['En neerlandés', 'En español', 'En inglés', 'No lo dice'], correctAnswer: 'En neerlandés', explanation: '"Ik droom in het Nederlands!", y Anna dice que es muy buena señal.' },
+        { id: 'm2d2q-1', type: 'multiple_choice', prompt: '¿Quién viene a Países Bajos?', options: ['La hermana de David', 'La madre de David', 'El hermano de Anna', 'Nadie'], correctAnswer: 'La hermana de David', explanation: '"Mijn zus Lucía komt naar Nederland!"' },
+        { id: 'm2d2q-2', type: 'multiple_choice', prompt: '¿Cuándo viene?', options: ['En octubre', 'En agosto', 'En diciembre', 'La semana que viene'], correctAnswer: 'En octubre', explanation: '"In oktober."' },
+        { id: 'm2d2q-3', type: 'multiple_choice', prompt: '¿Cuánto tiempo se queda?', options: ['Dos semanas', 'Dos meses', 'Un fin de semana', 'Tres días'], correctAnswer: 'Dos semanas', explanation: '"Ze blijft twee weken."' },
+        { id: 'm2d2q-4', type: 'multiple_choice', prompt: '¿Quién viene con ella?', options: ['Su hija', 'Su marido', 'Sus padres', 'Viene sola'], correctAnswer: 'Su hija', explanation: '"Haar dochter komt ook. Zij is zes jaar."' },
+        { id: 'm2d2q-5', type: 'multiple_choice', prompt: '¿Dónde va a dormir David?', options: ['En el sofá', 'En su habitación', 'En un hotel', 'En casa de Anna'], correctAnswer: 'En el sofá', explanation: '"Ik slaap op de bank": le deja su habitación a su hermana.' },
+        { id: 'm2d2q-6', type: 'fill_blank', prompt: 'Lucía ___ in mijn kamer. (slapen)', correctAnswer: 'slaapt', hint: 'tercera persona: raíz + t', explanation: 'Slapen → slaap → slaapt. La raíz alarga la vocal.' },
+        { id: 'm2d2q-7', type: 'multiple_choice', prompt: '¿Cuál de estas frases está bien construida?', options: ['Wij gaan naar Amsterdam', 'Wij naar Amsterdam gaan', 'Gaan wij naar Amsterdam', 'Naar Amsterdam wij gaan'], correctAnswer: 'Wij gaan naar Amsterdam', explanation: 'Sujeto, verbo en el segundo lugar, y el resto detrás.' },
+        { id: 'm2d2q-8', type: 'multiple_choice', prompt: '¿Qué trae Lucía de Argentina?', options: ['Mate', 'Café', 'Vino', 'Nada'], correctAnswer: 'Mate', explanation: '"Lucía neemt mate mee uit Argentinië."' },
       ],
     },
     {
@@ -2400,10 +2411,10 @@ Una cosa más sobre el motor: tiene que encajar con el conductor. Ik droom, mijn
         { id: 'm2l2e-30', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "Mijn ouders werken in Nederland"', options: ['Mijn ouders werken in Nederland', 'Mijn ouders wonen in Nederland', 'Mijn ouders werken in een winkel', 'Mijn vader werkt in Nederland'], correctAnswer: 'Mijn ouders werken in Nederland' },
         { id: 'm2l2e-31', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "Het kind slaapt"', options: ['Het kind slaapt', 'Het kind slaat', 'De kinderen slapen', 'Het kind zingt'], correctAnswer: 'Het kind slaapt' },
         { id: 'm2l2e-32', type: 'listen_translate', prompt: 'Escucha y traduce: "Mijn zus zingt heel mooi"', options: ['Mi', 'hermana', 'canta', 'muy', 'bonito', 'duerme'], correctAnswer: 'Mi hermana canta muy bonito' },
-        // ── Comprensión del diálogo (De zinnenfabriek) ──
-        { id: 'm2l2e-33', type: 'multiple_choice', prompt: 'En el diálogo, ¿dónde vive la hermana de David?', options: ['En Buenos Aires', 'En Utrecht', 'En Madrid', 'En Ámsterdam'], correctAnswer: 'En Buenos Aires', explanation: '"Mijn zus woont in Buenos Aires!": su primera frase-tren perfecta.' },
-        { id: 'm2l2e-34', type: 'true_false', prompt: 'David sueña en neerlandés.', correctAnswer: 'verdadero', explanation: '"Ik droom in het Nederlands!": muy buena señal, dice Anna.' },
-        { id: 'm2l2e-35', type: 'true_false', prompt: '"Canta en la ducha" se puede traducir sin añadir sujeto.', correctAnswer: 'falso', explanation: 'David lo clava: sin sujeto no se puede → Mijn broer zingt in de douche.' },
+        // ── Comprensión del diálogo (Nieuws van thuis) ──
+        { id: 'm2l2e-33', type: 'multiple_choice', prompt: 'En el diálogo, ¿por qué duerme David en el sofá?', options: ['Le deja su habitación a su hermana', 'No tiene cama', 'Le gusta el sofá', 'Su habitación es pequeña'], correctAnswer: 'Le deja su habitación a su hermana', explanation: '"Lucía slaapt in mijn kamer. Ik slaap op de bank."' },
+        { id: 'm2l2e-34', type: 'true_false', prompt: 'Lucía viene sola.', correctAnswer: 'falso', explanation: 'Viene con su hija, de seis años: "haar dochter komt ook".' },
+        { id: 'm2l2e-35', type: 'true_false', prompt: '"Canta en la ducha" se puede traducir sin añadir sujeto.', correctAnswer: 'falso', explanation: 'En neerlandés el sujeto es obligatorio: Mijn broer zingt in de douche.' },
         { id: 'm2l2e-36', type: 'listen_translate', prompt: 'Escucha y traduce: "Mijn broer woont in Utrecht"', options: ['Mi', 'hermano', 'vive', 'en', 'Utrecht', 'trabaja', 'hermana', 'Ámsterdam'], correctAnswer: 'Mi hermano vive en Utrecht' },
         { id: 'm2l2e-37', type: 'listen_translate', prompt: 'Escucha y traduce: "Mijn vader werkt in een winkel"', options: ['Mi', 'padre', 'trabaja', 'en', 'una', 'tienda', 'madre', 'oficina', 'vive'], correctAnswer: 'Mi padre trabaja en una tienda' },
         { id: 'm2l2e-38', type: 'listen_translate', prompt: 'Escucha y traduce: "Ik droom in het Nederlands"', options: ['Sueño', 'en', 'neerlandés', 'Hablo', 'español', 'Canto'], correctAnswer: 'Sueño en neerlandés' },
