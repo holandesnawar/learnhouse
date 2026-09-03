@@ -197,17 +197,24 @@ function VideoActivity({ activity, course, orgUuid, onPlay, onProgress }: VideoA
           )}
           {activity.activity_sub_type === 'SUBTYPE_VIDEO_YOUTUBE' && isBunny && (
             <div className="w-full">
-              {/* ⚠️ La caja se queda en 16:9 y NO se toca para tapar la franja
-                  negra de abajo. Se probó a bajarla a 1,85:1 pensando que los
-                  vídeos eran más anchos, y el resultado fue peor: aparecieron
-                  barras a los lados Y la franja siguió ahí.
-                  Lo que eso demuestra es que el reproductor de Bunny impone
-                  16:9 pase lo que pase: al darle una caja más baja se encoge
-                  para caber de alto y deja hueco a los lados. O sea que la
-                  franja se dibuja DENTRO del reproductor y no hay CSS nuestro
-                  que la quite: hay que mirarlo en los ajustes del reproductor
-                  de la biblioteca de Bunny. */}
-              <div className="relative w-full aspect-video rounded-lg overflow-hidden">
+              {/* ⚠️ Confirmado ago/sept 2026: el vídeo en sí NO tiene franja
+                  (comprobado a pantalla completa dentro del propio panel de
+                  Bunny y en la escuela) — así que la franja no está grabada en
+                  el archivo, y tampoco es "el reproductor de Bunny impone
+                  16:9" a secas: si fuera eso, saldría también a pantalla
+                  completa. Solo aparece en la caja pequeña, sin pantalla
+                  completa.
+                  La caja usaba `aspect-video` (la propiedad CSS moderna
+                  `aspect-ratio`). El script de Bunny que activa
+                  `responsive=true` está pensado para el truco clásico de
+                  "padding-bottom: 56.25%" — que es literalmente lo que trae el
+                  código de inserción oficial de Bunny — y mide el tamaño de la
+                  caja con ese supuesto. Con `aspect-ratio` la altura puede
+                  quedar unos píxeles descuadrada frente a lo que Bunny cree
+                  que mide, y ese hueco se ve negro porque es el fondo del
+                  documento de dentro del iframe. Cambiado al truco del
+                  padding-bottom para que mida exactamente lo que Bunny espera. */}
+              <div className="relative w-full rounded-lg overflow-hidden" style={{ paddingTop: '56.25%' }}>
                 <iframe
                   key={activity.activity_uuid}
                   ref={bunnyIframeRef}
