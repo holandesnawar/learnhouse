@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo } from 'react'
 
 import Link from 'next/link'
-import { Package, Crown, Shield, User, Users, SignOut, CaretDown, Globe, Check, ShoppingBag } from '@phosphor-icons/react'
+import { Package, Crown, Shield, User, Users, SignOut, CaretDown, Globe, Check } from '@phosphor-icons/react'
 import UserAvatar from '@components/Objects/UserAvatar'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
@@ -229,12 +229,6 @@ export const HeaderProfileBox = ({ primaryColor = '' }: { primaryColor?: string 
                   <Link href="/account/general" className="flex items-center space-x-2">
                     <User size={16} weight="fill" />
                     <span>{t('user.user_settings')}</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href={getUriWithOrg(org?.slug, '/account/purchases')} className="flex items-center space-x-2">
-                    <ShoppingBag size={16} weight="fill" />
-                    <span>{t('account.purchases')}</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
