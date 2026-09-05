@@ -158,7 +158,17 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const navItems: NavItem[] = [
     { key: 'home', href: '/', label: 'Inicio', icon: <House size={20} weight="fill" />, show: true },
     { key: 'courses', href: '/course/8a1d1fab-ffbb-44ef-8f21-04ef63676d6e', label: 'Formación', icon: <Books size={20} weight="fill" />, show: isEnabled('courses') },
-    { key: 'ejercicios', href: '/ejercicios', label: 'Repasar', icon: <Barbell size={20} weight="fill" />, show: true },
+    // "Repasar" escondido (sept 2026), NO borrado. Dos motivos: (1) su progreso
+    // se guarda en localStorage (`lib/exercises-app/progress.ts`) y el de la
+    // formación en el servidor (`trail_step`, `lesson_completion`), así que
+    // quien terminaba el módulo 1 entraba aquí y lo veía TODO a cero; (2) desde
+    // que en junio se quitaron los candados, la formación ya deja saltar a
+    // cualquier sección, que era lo único que esta pantalla hacía mejor.
+    // Las rutas siguen vivas: los botones "Repasar fallos" de /ejercicios/progreso
+    // llevan aquí y funcionan. Volver a poner `true` si en enero, con datos de
+    // alumnos reales, se ve que hace falta un modo repaso — y entonces
+    // guardando en el servidor.
+    { key: 'ejercicios', href: '/ejercicios', label: 'Repasar', icon: <Barbell size={20} weight="fill" />, show: false },
     { key: 'calendario', href: '/calendario', label: 'Eventos', icon: <CalendarBlank size={20} weight="fill" />, show: true },
     { key: 'clase-semanal', href: '/course/bfbcb42b-7dc3-4448-9df8-5d7b96135859', label: 'Clase semanal', icon: <VideoCamera size={20} weight="fill" />, show: true },
     { key: 'collections', href: '/collections', label: t('collections.collections'), icon: <SquaresFour size={20} weight="fill" />, show: isEnabled('collections') },
