@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next'
 import { resendVerificationEmail } from '@services/auth/auth'
 import { getOrgLogoMediaDirectory } from '@services/media/media'
 import AuthShell from '@components/Auth/AuthShell'
+import InstallAppPrompt from '@components/PWA/InstallAppPrompt'
 
 interface LoginClientProps {
   org: any
@@ -392,6 +393,16 @@ const LoginClient = (props: LoginClientProps) => {
                   )}
                 </button>
               </Form.Submit>
+
+              {/* Instalar la escuela como app. Va DEBAJO del botón de entrar,
+                  no encima: quien llega aquí viene a entrar, y una oferta por
+                  delante del formulario es una distracción en el peor sitio.
+                  El componente se esconde solo si ya está instalada, si el
+                  alumno la descartó, o en un escritorio que no puede
+                  instalarla. */}
+              <div className="mt-4">
+                <InstallAppPrompt />
+              </div>
 
               <p className="text-center text-[13px] text-white/55 mt-4">
                 ¿Problemas para entrar?{' '}
