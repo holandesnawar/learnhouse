@@ -67,20 +67,22 @@ function esNavegadorDeOtraApp(): boolean {
   )
 }
 
-const CLAVE_DESCARTADO = 'nawar_instalar_app_descartado'
-
 interface PasoProps {
+  numero: number
   icono: React.ReactNode
   children: React.ReactNode
 }
 
-function Paso({ icono, children }: PasoProps) {
+function Paso({ numero, icono, children }: PasoProps) {
   return (
-    <div className="flex items-center gap-3 bg-[#F0F5FF] rounded-xl px-3 py-3">
-      <span className="shrink-0 w-9 h-9 rounded-lg bg-white flex items-center justify-center text-[#025dc7]">
+    <div className="flex items-center gap-3 rounded-xl border border-white/12 bg-white/[0.06] px-3 py-3">
+      <span className="relative shrink-0 w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center text-[#4da3ff]">
         {icono}
+        <span className="absolute -top-1.5 -left-1.5 w-[18px] h-[18px] rounded-full bg-[#4da3ff] text-[#0a1656] text-[11px] font-bold flex items-center justify-center">
+          {numero}
+        </span>
       </span>
-      <p className="text-[13.5px] leading-relaxed text-[#0a1656] min-w-0">{children}</p>
+      <p className="text-[13.5px] leading-relaxed text-white/80 min-w-0">{children}</p>
     </div>
   )
 }
@@ -100,23 +102,16 @@ export default function InstallAppPrompt() {
     setPlataforma(plat)
     setDentroDeOtraApp(incrustado)
 
-    let descartado = false
-    try {
-      descartado = window.localStorage.getItem(CLAVE_DESCARTADO) === '1'
-    } catch {
-      // Navegación privada o cookies bloqueadas: se enseña igual, no pasa nada.
-    }
-
     // En escritorio solo se ofrece si el navegador dice que se puede instalar;
     // no tiene sentido explicarle a nadie cómo instalar algo que su navegador
     // no soporta. En móvil siempre hay un camino que enseñar.
-    if (!descartado && (plat === 'ios' || plat === 'android')) setVisible(true)
+    if (plat === 'ios' || plat === 'android') setVisible(true)
 
     const alPoderInstalar = (e: Event) => {
       // Sin esto Chrome enseña su propia barra; queremos el botón nuestro.
       e.preventDefault()
       setPromptNativo(e as PromptDeInstalacion)
-      if (!descartado) setVisible(true)
+      setVisible(true)
     }
     const alInstalar = () => {
       setVisible(false)
@@ -128,16 +123,6 @@ export default function InstallAppPrompt() {
     return () => {
       window.removeEventListener('beforeinstallprompt', alPoderInstalar)
       window.removeEventListener('appinstalled', alInstalar)
-    }
-  }, [])
-
-  const descartar = useCallback(() => {
-    setAbierto(false)
-    setVisible(false)
-    try {
-      window.localStorage.setItem(CLAVE_DESCARTADO, '1')
-    } catch {
-      /* sin almacenamiento: volverá a aparecer, que no es grave */
     }
   }, [])
 
@@ -195,15 +180,37 @@ export default function InstallAppPrompt() {
           aria-labelledby="titulo-instalar-app"
           onClick={() => setAbierto(false)}
         >
+          {/* Oscuro, con el mismo lenguaje que la web y que esta misma pantalla
+              de entrar: fondo #1D0084, glow azul arriba y la trama de puntos.
+              Una tarjeta blanca aquí encendía media pantalla y parecía de otra
+              casa. Los degradados van en `backgroundImage` y no en clases de
+              Tailwind porque son tres capas apiladas con tamaños distintos. */}
           <div
-            className="w-full max-w-md bg-white rounded-2xl p-5 sm:p-7 shadow-xl max-h-full overflow-y-auto"
+            className="relative w-full max-w-md rounded-2xl border border-white/12 p-5 sm:p-7 shadow-2xl max-h-full overflow-y-auto"
+            style={{
+              backgroundColor: '#1D0084',
+              backgroundImage: [
+                'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)',
+                'radial-gradient(circle 420px at 100% 0%, rgba(11,109,240,0.45) 0%, transparent 65%)',
+                'radial-gradient(circle 360px at 0% 100%, rgba(11,109,240,0.20) 0%, transparent 65%)',
+              ].join(','),
+              backgroundSize: '28px 28px, auto, auto',
+              backgroundRepeat: 'repeat, no-repeat, no-repeat',
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-3 mb-1">
+            <div className="flex items-start justify-between gap-3 mb-1.5">
               <h2
                 id="titulo-instalar-app"
-                className="text-[20px] sm:text-[24px] font-bold text-[#1D0084] leading-tight"
-                style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+                className="text-[20px] sm:text-[24px] font-bold leading-tight"
+                style={{
+                  fontFamily: 'var(--font-poppins), system-ui, sans-serif',
+                  background:
+                    'linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.55) 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }}
               >
                 Instala la escuela en tu móvil
               </h2>
@@ -211,46 +218,46 @@ export default function InstallAppPrompt() {
                 type="button"
                 onClick={() => setAbierto(false)}
                 aria-label="Cerrar"
-                className="shrink-0 -mt-1 -mr-1 p-1.5 rounded-lg text-[#1D0084]/50 hover:text-[#1D0084] hover:bg-[#F0F5FF] transition-colors"
+                className="shrink-0 -mt-1 -mr-1 p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <p className="text-[13.5px] leading-relaxed text-[#0a1656]/75 mb-4">
+            <p className="text-[13.5px] leading-relaxed text-white/65 mb-4">
               Se añade a tu pantalla de inicio como una app: se abre a pantalla
               completa y entras de un toque, sin escribir la dirección.
             </p>
 
             <div className="flex flex-col gap-2.5">
               {dentroDeOtraApp && (
-                <Paso icono={<ExternalLink size={17} strokeWidth={2.2} />}>
-                  Estás dentro de otra app. Toca el menú <strong>···</strong> y
-                  elige <strong>Abrir en el navegador</strong>. Desde ahí sigue
+                <Paso numero={1} icono={<ExternalLink size={17} strokeWidth={2.2} />}>
+                  Estás dentro de otra app. Toca el menú <strong className="text-white">···</strong> y
+                  elige <strong className="text-white">Abrir en el navegador</strong>. Desde ahí sigue
                   los pasos de abajo.
                 </Paso>
               )}
 
               {plataforma === 'ios' ? (
                 <>
-                  <Paso icono={<Share size={17} strokeWidth={2.2} />}>
-                    Toca el botón <strong>Compartir</strong> en la barra de
+                  <Paso numero={dentroDeOtraApp ? 2 : 1} icono={<Share size={17} strokeWidth={2.2} />}>
+                    Toca el botón <strong className="text-white">Compartir</strong> en la barra de
                     abajo de Safari.
                   </Paso>
-                  <Paso icono={<Plus size={17} strokeWidth={2.2} />}>
-                    Elige <strong>Añadir a pantalla de inicio</strong> y
+                  <Paso numero={dentroDeOtraApp ? 3 : 2} icono={<Plus size={17} strokeWidth={2.2} />}>
+                    Elige <strong className="text-white">Añadir a pantalla de inicio</strong> y
                     confirma.
                   </Paso>
                 </>
               ) : (
                 <>
-                  <Paso icono={<MoreVertical size={17} strokeWidth={2.2} />}>
-                    Toca el menú <strong>⋮</strong> arriba a la derecha de
+                  <Paso numero={dentroDeOtraApp ? 2 : 1} icono={<MoreVertical size={17} strokeWidth={2.2} />}>
+                    Toca el menú <strong className="text-white">⋮</strong> arriba a la derecha de
                     Chrome.
                   </Paso>
-                  <Paso icono={<Smartphone size={17} strokeWidth={2.2} />}>
-                    Elige <strong>Instalar aplicación</strong> (o{' '}
-                    <strong>Añadir a pantalla de inicio</strong>) y confirma.
+                  <Paso numero={dentroDeOtraApp ? 3 : 2} icono={<Smartphone size={17} strokeWidth={2.2} />}>
+                    Elige <strong className="text-white">Instalar aplicación</strong> (o{' '}
+                    <strong className="text-white">Añadir a pantalla de inicio</strong>) y confirma.
                   </Paso>
                 </>
               )}
@@ -262,14 +269,6 @@ export default function InstallAppPrompt() {
               className="mt-5 w-full bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold py-3.5 rounded-xl text-[15px] transition-colors"
             >
               Entendido
-            </button>
-
-            <button
-              type="button"
-              onClick={descartar}
-              className="mt-2 w-full text-[12.5px] text-[#0a1656]/50 hover:text-[#0a1656]/80 transition-colors py-1"
-            >
-              No volver a enseñarme esto
             </button>
           </div>
         </div>
