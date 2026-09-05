@@ -166,7 +166,22 @@ por el proxy del entorno con 403 de política — no insistir.
 ## Estabilidad — qué evita que la escuela se caiga
 - **Todo bajo pm2, nginx incluido** (`docker/start.sh`). Antes, si nginx moría, el contenedor seguía "vivo" sin servir nada. Además `--restart-delay 3000 --max-restarts 10000`. Tras arrancar nginx se comprueba el puerto 80 de verdad y, si no responde, se arranca a mano.
 - **Página `docker/offline.html`** servida por el propio nginx (`error_page 502 503 504`): mientras la app reinicia, el alumno ve "Volvemos en un momento" (recarga sola cada 8s) en vez del 502 blanco. Las rutas `/api/v1` devuelven **JSON** 503, no HTML, para que el front lo trate como fallo de red.
-- **`railway.json`**: `healthcheckPath: /api/v1/health`. Railway no cambia a la versión nueva hasta que responde → los despliegues dejan de tener ventana de 502.
+- ⚠️ **NO hay healthcheck, y NO se puede poner tal cual. Esta línea decía que
+  existía un `railway.json` con `healthcheckPath: /api/v1/health` y que gracias
+  a eso un despliegue roto no llegaba a sustituir al bueno. Era falso: ese
+  archivo NO existe ni ha existido nunca en el repo.** Se recomendó ponerlo a
+  mano en el panel el 05/09/2026 y **tumbó la escuela** (000 en todo, unos
+  minutos, a tres días de abrir la matrícula).
+  **Por qué no funciona aquí:** `/api/v1/health` lo sirve **nginx en el puerto
+  80**, pero Railway hace la comprobación contra el puerto de `PORT`, que en
+  este servicio es **8000** (Next.js). Ahí esa ruta no existe → la comprobación
+  falla siempre → Railway da por roto el despliegue y no levanta nada.
+  **Se arregla vaciando el campo** Settings → Deploy → Healthcheck Path.
+  Si algún día se quiere de verdad, hay que exponer una ruta de salud **en el
+  8000** (un `app/api/health/route.ts` en Next.js) y apuntar el healthcheck ahí,
+  no a la de la API. Es trabajo de entre cohortes, no de la semana de lanzar.
+  **Mientras tanto la red de seguridad es el ROLLBACK**: Deployments → el último
+  despliegue en verde → menú ⋮ → Redeploy. Ese sí funciona.
 - **Arranque de la API tolerante** (`core/events/database.py`): 12 intentos × 5s esperando a Postgres, y `create_all` en su propio try (un fallo de DDL no puede impedir el arranque con las tablas ya creadas).
 - **`SafeArea`** (`components/Objects/StyledElements/Error/SafeArea.tsx`): cortafuegos por trozo de pantalla. Envuelve las tarjetas del Inicio y el visor de lecciones; si una se rompe, se sustituye por un aviso pequeño y el resto sigue.
 - **react-query**: 3 reintentos con espera creciente, pero **nunca** en 4xx.
