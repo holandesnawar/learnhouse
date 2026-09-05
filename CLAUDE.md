@@ -556,6 +556,46 @@ systeme.io con la etiqueta de lista de espera y guarda de dónde vino.
 - **Embedded checkout Nawar** (`checkout.tsx`): el alumno NO sale del dominio. Logo arriba-izquierda, card blanca con resumen del curso a la derecha (imagen 16:9, features con checks `#4da3ff`, total dinámico tirando del Stripe Price vía URL params), tabs de pago Tarjeta/iDEAL/Klarna/Bancontact con Appearance API Nawar (`#F0F5FF` inputs, `#4da3ff` focus, texto pinned a `#1D0084` en cualquier estado del tab para no quedarse en blanco-sobre-blanco), banner "Pagando como X · email" con botón Cambiar que vuelve al form, mobile-friendly (`overflow-x-hidden`, `min-w-0`, paddings reducidos en sm).
 - **Middleware proxy.ts arreglado**: ya pasa cualquier `/auth/<x>` directamente a su ruta (antes 404aba todas las nuevas).
 
+- **Instalar la escuela como app (sept 2026)**. No hay app nativa ni la va a
+  haber: la escuela se añade a la pantalla de inicio y se abre a pantalla
+  completa. `public/manifest.webmanifest` + iconos + las etiquetas de
+  `app/layout.tsx`, y el botón en la pantalla de entrar
+  (`components/PWA/InstallAppPrompt.tsx`, montado en `auth/login/login.tsx`
+  **debajo** del botón de entrar: quien llega ahí viene a entrar).
+  - **Tres caminos, porque instalar no se pide igual en todas partes.** Android
+    y Chrome de escritorio avisan con `beforeinstallprompt` → el botón abre el
+    diálogo NATIVO, un solo toque. **En iPhone no existe ese evento y no va a
+    existir**: Safari solo deja Compartir → Añadir a pantalla de inicio, así que
+    lo único que se puede hacer es enseñar los dos pasos.
+  - **El caso que se olvida: el navegador DENTRO de Instagram.** Ahí no se puede
+    instalar de ninguna forma, y es tráfico real aquí (los DM de Inrō). Sin
+    detectarlo, el alumno sigue instrucciones que no puede completar porque su
+    pantalla no tiene esos botones. Por eso el primer paso, en ese caso, es
+    "abre esto en Safari/Chrome".
+  - ⚠️ **Los archivos van SUELTOS en `/public`, con punto en el nombre.** El
+    matcher de `proxy.ts` excluye `[\w-]+\.\w+`, o sea los archivos de la raíz
+    de `/public`. Una carpeta (`/icons/icon-192.png`) **sí** pasaría por el
+    middleware de tenancy. Mismo motivo por el que `runtime-config.js` funciona.
+  - ⚠️ **Los iconos de la pantalla de inicio van SIN transparencia**: iOS no
+    respeta el alfa y las esquinas redondeadas del favicon saldrían negras. Se
+    generan desde `nawar-favicon.png` componiendo sobre el azul del propio
+    azulejo. Si se cambia el favicon, hay que regenerarlos.
+  - ⚠️ **Next ya no escribe `apple-mobile-web-app-capable`**, solo la moderna
+    `mobile-web-app-capable`, y Safari solo entiende esa desde **iOS 16.4**. En
+    un iPhone más viejo, sin la etiqueta con prefijo, el icono instalado abre
+    Safari con su barra en vez de a pantalla completa. Está puesta a mano en el
+    `<head>` del layout raíz.
+  - **NO hay service worker, a propósito.** Es lo que Chrome pedía para el
+    diálogo nativo, pero un service worker cachea y se queda pegado: uno mal
+    hecho sirve HTML viejo a todo el mundo y cuesta quitarlo. A cambio de eso,
+    si en algún Android no sale el diálogo, salen las instrucciones — que
+    funcionan igual. Si se quiere el diálogo garantizado, el service worker
+    va **sin caché ninguna** (solo `fetch` pasa-a-través) y **fuera de la
+    semana de lanzar**.
+  - La escuela **no sabe** quién la tiene instalada. Lo único que hay es
+    `start_url: /?fuente=app`, que deja el rastro en la URL por si algún día se
+    quiere contar.
+
 - **Consultas: el panel vive dentro de la escuela (ago 2026)**. `/dash/consultas`
   era un `<iframe>` a `consultas-tau.vercel.app/admin.html`, que pedía OTRA
   contraseña (Supabase Auth + RPC `is_admin`). O sea: un profe que ya había
