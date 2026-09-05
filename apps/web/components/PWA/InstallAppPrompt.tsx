@@ -90,16 +90,20 @@ function Paso({ numero, icono, children }: PasoProps) {
 export default function InstallAppPrompt() {
   const [visible, setVisible] = useState(false)
   const [abierto, setAbierto] = useState(false)
-  const [plataforma, setPlataforma] = useState<Plataforma>('escritorio')
   const [dentroDeOtraApp, setDentroDeOtraApp] = useState(false)
   const [promptNativo, setPromptNativo] = useState<PromptDeInstalacion | null>(null)
+  // Qué pasos se enseñan. Arranca en el móvil que se detecta, pero el alumno
+  // puede cambiarlo: se detecta bien casi siempre, y cuando falla (un iPad que
+  // se hace pasar por Mac, un navegador raro) sin las pestañas se quedaba
+  // mirando instrucciones de otro teléfono sin manera de llegar a las suyas.
+  const [pestana, setPestana] = useState<'ios' | 'android'>('ios')
 
   useEffect(() => {
     if (yaInstalada()) return
 
     const plat = detectarPlataforma()
     const incrustado = esNavegadorDeOtraApp()
-    setPlataforma(plat)
+    setPestana(plat === 'android' ? 'android' : 'ios')
     setDentroDeOtraApp(incrustado)
 
     // En escritorio solo se ofrece si el navegador dice que se puede instalar;
@@ -199,21 +203,34 @@ export default function InstallAppPrompt() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-3 mb-1.5">
-              <h2
-                id="titulo-instalar-app"
-                className="text-[20px] sm:text-[24px] font-bold leading-tight"
-                style={{
-                  fontFamily: 'var(--font-poppins), system-ui, sans-serif',
-                  background:
-                    'linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.55) 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                }}
+            {/* Selector de móvil ENCIMA del título: sí se puede instalar en los
+                dos, y los pasos no se parecen en nada. Arranca en el que se
+                detecta, pero se puede cambiar — la detección acierta casi
+                siempre y, cuando falla, sin esto el alumno se quedaba mirando
+                las instrucciones de otro teléfono. */}
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div
+                role="tablist"
+                aria-label="Elige tu móvil"
+                className="inline-flex p-1 rounded-xl bg-white/[0.07] border border-white/12"
               >
-                Instala la escuela en tu móvil
-              </h2>
+                {(['ios', 'android'] as const).map((clave) => (
+                  <button
+                    key={clave}
+                    type="button"
+                    role="tab"
+                    aria-selected={pestana === clave}
+                    onClick={() => setPestana(clave)}
+                    className={`px-3.5 py-1.5 rounded-lg text-[13px] font-semibold transition-colors ${
+                      pestana === clave
+                        ? 'bg-[#4da3ff] text-[#0a1656]'
+                        : 'text-white/60 hover:text-white/90'
+                    }`}
+                  >
+                    {clave === 'ios' ? 'iPhone' : 'Android'}
+                  </button>
+                ))}
+              </div>
               <button
                 type="button"
                 onClick={() => setAbierto(false)}
@@ -224,38 +241,64 @@ export default function InstallAppPrompt() {
               </button>
             </div>
 
-            <p className="text-[13.5px] leading-relaxed text-white/65 mb-4">
+            <h2
+              id="titulo-instalar-app"
+              className="text-[20px] sm:text-[24px] font-bold leading-tight"
+              style={{
+                fontFamily: 'var(--font-poppins), system-ui, sans-serif',
+                background:
+                  'linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.55) 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              Instala la escuela en tu {pestana === 'ios' ? 'iPhone' : 'Android'}
+            </h2>
+
+            <p className="text-[13.5px] leading-relaxed text-white/65 mt-1.5 mb-4">
               Se añade a tu pantalla de inicio como una app: se abre a pantalla
               completa y entras de un toque, sin escribir la dirección.
             </p>
 
-            <div className="flex flex-col gap-2.5">
-              {dentroDeOtraApp && (
-                <Paso numero={1} icono={<ExternalLink size={17} strokeWidth={2.2} />}>
-                  Estás dentro de otra app. Toca el menú <strong className="text-white">···</strong> y
-                  elige <strong className="text-white">Abrir en el navegador</strong>. Desde ahí sigue
-                  los pasos de abajo.
-                </Paso>
-              )}
+            {/* El aviso de "estás dentro de otra app" NO va numerado: no es un
+                paso de la instalación, es que ni siquiera puedes empezar. */}
+            {dentroDeOtraApp && (
+              <div className="flex items-start gap-3 rounded-xl border border-[#4da3ff]/35 bg-[#4da3ff]/10 px-3 py-3 mb-2.5">
+                <ExternalLink size={17} strokeWidth={2.2} className="shrink-0 mt-0.5 text-[#4da3ff]" />
+                <p className="text-[13.5px] leading-relaxed text-white/80 min-w-0">
+                  Antes de nada: estás dentro de otra app. Toca el menú{' '}
+                  <strong className="text-white">···</strong> y elige{' '}
+                  <strong className="text-white">Abrir en el navegador</strong>. Desde ahí
+                  sigue los pasos.
+                </p>
+              </div>
+            )}
 
-              {plataforma === 'ios' ? (
+            <div className="flex flex-col gap-2.5">
+              {pestana === 'ios' ? (
                 <>
-                  <Paso numero={dentroDeOtraApp ? 2 : 1} icono={<Share size={17} strokeWidth={2.2} />}>
+                  <Paso numero={1} icono={<Share size={17} strokeWidth={2.2} />}>
                     Toca el botón <strong className="text-white">Compartir</strong> en la barra de
                     abajo de Safari.
                   </Paso>
-                  <Paso numero={dentroDeOtraApp ? 3 : 2} icono={<Plus size={17} strokeWidth={2.2} />}>
-                    Elige <strong className="text-white">Añadir a pantalla de inicio</strong> y
+                  {/* El paso que todo el mundo se salta: en la lista de
+                      Compartir hay que bajar y tocar "Ver más" ANTES de que
+                      aparezca "Añadir a pantalla de inicio". Sin decirlo, el
+                      alumno mira la lista, no lo ve y se rinde. */}
+                  <Paso numero={2} icono={<Plus size={17} strokeWidth={2.2} />}>
+                    Baja y toca <strong className="text-white">Ver más</strong>: ahí aparece{' '}
+                    <strong className="text-white">Añadir a pantalla de inicio</strong>. Tócalo y
                     confirma.
                   </Paso>
                 </>
               ) : (
                 <>
-                  <Paso numero={dentroDeOtraApp ? 2 : 1} icono={<MoreVertical size={17} strokeWidth={2.2} />}>
+                  <Paso numero={1} icono={<MoreVertical size={17} strokeWidth={2.2} />}>
                     Toca el menú <strong className="text-white">⋮</strong> arriba a la derecha de
                     Chrome.
                   </Paso>
-                  <Paso numero={dentroDeOtraApp ? 3 : 2} icono={<Smartphone size={17} strokeWidth={2.2} />}>
+                  <Paso numero={2} icono={<Smartphone size={17} strokeWidth={2.2} />}>
                     Elige <strong className="text-white">Instalar aplicación</strong> (o{' '}
                     <strong className="text-white">Añadir a pantalla de inicio</strong>) y confirma.
                   </Paso>
