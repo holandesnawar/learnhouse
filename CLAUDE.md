@@ -567,6 +567,16 @@ systeme.io con la etiqueta de lista de espera y guarda de dónde vino.
     diálogo NATIVO, un solo toque. **En iPhone no existe ese evento y no va a
     existir**: Safari solo deja Compartir → Añadir a pantalla de inicio, así que
     lo único que se puede hacer es enseñar los dos pasos.
+  - **Pestañas iPhone / Android encima del título**, y el título dice el móvil
+    ("Instala la escuela en tu iPhone"). Arrancan en el que se detecta pero se
+    pueden cambiar: la detección acierta casi siempre y, cuando falla (un iPad
+    que se hace pasar por Mac), sin las pestañas el alumno se quedaba mirando
+    las instrucciones de otro teléfono sin manera de llegar a las suyas.
+  - ⚠️ **En iPhone, el paso que todo el mundo se salta es "Ver más".** En la
+    lista de Compartir, *Añadir a pantalla de inicio* **no se ve** hasta que
+    bajas y tocas **Ver más**. Sin decirlo, el alumno mira la lista, no lo
+    encuentra y se rinde. Va dicho dentro del paso 2, no como paso aparte: son
+    dos toques del mismo gesto.
   - **El caso que se olvida: el navegador DENTRO de Instagram.** Ahí no se puede
     instalar de ninguna forma, y es tráfico real aquí (los DM de Inrō). Sin
     detectarlo, el alumno sigue instrucciones que no puede completar porque su
