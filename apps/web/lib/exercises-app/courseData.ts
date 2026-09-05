@@ -3651,13 +3651,34 @@ const m2_extra1: Lesson = {
       ],
     },
     {
+      // Los ejercicios de antes no medían neerlandés: "¿Cuál es el cuarto mes
+      // del año?" con maart/april/mei/juni se acierta sabiendo contar en
+      // español, "Augustus en español es:" es un cognado del cien por cien, y
+      // "¿en qué mes empiezan las vacaciones de verano?" era una pregunta de
+      // cultura general (y encima mal: aquí empiezan en julio, escalonadas).
+      //
+      // Los meses neerlandeses son transparentes para un español, así que
+      // ELEGIR entre meses nunca prueba nada. Lo que sí cuesta es justo lo que
+      // explica el resumen de esta lección: la preposición (in), la minúscula,
+      // y que juni y juli suenan igual. Los ejercicios van a eso ahora.
       type: 'practice',
       exercises: [
-        { id: 'emnd-1', type: 'multiple_choice', prompt: '¿Cuál es el cuarto mes del año?', options: ['maart', 'april', 'mei', 'juni'], correctAnswer: 'april' },
-        { id: 'emnd-2', type: 'fill_blank', prompt: 'De lente begint in ___. (marzo)', correctAnswer: 'maart' },
-        { id: 'emnd-3', type: 'multiple_choice', prompt: '"Augustus" en español es:', options: ['julio', 'agosto', 'septiembre', 'junio'], correctAnswer: 'agosto' },
-        { id: 'emnd-4', type: 'fill_blank', prompt: 'In ___ vieren we Kerst. (diciembre)', correctAnswer: 'december' },
-        { id: 'emnd-5', type: 'multiple_choice', prompt: '¿En qué mes empiezan las vacaciones de verano en los Países Bajos?', options: ['mei', 'juni', 'juli', 'augustus'], correctAnswer: 'juni' },
+        // ── Lo que de verdad se confunde: de oído ──
+        { id: 'emnd-1', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "juni"', options: ['juni', 'juli', 'januari', 'juno'], correctAnswer: 'juni', explanation: 'Juni y juli suenan casi igual. Por teléfono, si no lo tienes claro, pregunta: es una cita perdida.' },
+        { id: 'emnd-2', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "juli"', options: ['juli', 'juni', 'juillet', 'julei'], correctAnswer: 'juli' },
+        { id: 'emnd-3', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "februari"', options: ['februari', 'januari', 'februaria', 'februar'], correctAnswer: 'februari' },
+        { id: 'emnd-4', type: 'listen_and_choose', prompt: 'Escucha y elige lo que oyes: "maart"', options: ['maart', 'maandag', 'markt', 'mart'], correctAnswer: 'maart', explanation: 'Maart (marzo) y maandag (lunes) empiezan igual. Uno es un mes y el otro un día.' },
+        // ── La preposición, que es lo que enseña el resumen ──
+        { id: 'emnd-5', type: 'fill_blank', prompt: 'Mijn verjaardag is ___ mei. (preposición de mes)', correctAnswer: 'in', hint: 'los meses van todos con la misma', explanation: 'Mes → in. Día → op. Hora → om.' },
+        { id: 'emnd-6', type: 'multiple_choice', prompt: '¿Cuál de estas tres frases está bien?', options: ['Ik ga in augustus op vakantie', 'Ik ga op augustus op vakantie', 'Ik ga om augustus op vakantie', 'Ik ga augustus op vakantie'], correctAnswer: 'Ik ga in augustus op vakantie', explanation: 'Con meses siempre in. "Op" es para los días y "om" para las horas.' },
+        // ── La minúscula ──
+        { id: 'emnd-7', type: 'multiple_choice', prompt: '¿Cómo se escribe bien?', options: ['Ik ben in januari geboren', 'Ik ben in Januari geboren', 'Ik ben in JANUARI geboren', 'Ik ben In januari geboren'], correctAnswer: 'Ik ben in januari geboren', explanation: 'En neerlandés los meses van en minúscula. En inglés no, y de ahí viene el fallo.' },
+        // ── Escribirlos: donde se ve si de verdad los sabes ──
+        { id: 'emnd-8', type: 'letter_dash', prompt: 'Completa el mes: octubre', correctAnswer: 'oktober', hint: 'Ojo: aquí va con k' },
+        { id: 'emnd-9', type: 'letter_dash', prompt: 'Completa el mes: febrero', correctAnswer: 'februari', hint: 'Acaba en -ari, como januari' },
+        { id: 'emnd-10', type: 'fill_blank', prompt: 'De lente begint in ___. (marzo)', correctAnswer: 'maart', hint: 'dos aes' },
+        { id: 'emnd-11', type: 'fill_blank', prompt: 'In ___ vieren we Kerst. (diciembre)', correctAnswer: 'december', hint: 'como en español pero sin la i' },
+        { id: 'emnd-12', type: 'write_answer', prompt: 'Escribe en neerlandés: "Me voy de vacaciones en julio"', correctAnswer: 'Ik ga in juli op vakantie', hint: 'Ik ga in … op vakantie · sin punto final' },
       ],
     },
     { type: 'review' },
