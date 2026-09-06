@@ -23,15 +23,18 @@ interface StepItem {
   isDone: boolean
 }
 
-// Pasos que se marcan al hacer clic (visitar).
+// Pasos que se marcan con VISITAR: basta con llegar a la pantalla.
 //
-// Solo queda "mira cuándo es tu clase en vivo", que es literalmente eso: mirar.
-// **"Completa tu perfil" se quitó de aquí (sept 2026)**: se tachaba con solo
-// pulsar "Ir", sin escribir nada, así que la lista decía "perfil completo" con
-// el perfil vacío. Ahora se tacha cuando hay foto o descripción de verdad, que
-// es lo que hace falta para que el resto de la clase sepa quién eres.
-// El de comunidad tampoco está: se marca cuando el alumno publica de verdad.
-const VISITABLE: string[] = ['clase_en_vivo']
+// "Completa tu perfil" está aquí a propósito (decisión del usuario, sept 2026),
+// aunque se tache sin escribir nada. Se probó exigir foto o descripción de
+// verdad y el problema es que **la lista no se puede terminar nunca** si el
+// alumno no quiere poner foto: los cuatro pasos no se completan, y el widget
+// vive justo de completarse para desaparecer. Entre una lista que se pasa de
+// exigente y una que se pasa de generosa, con una cohorte de 40 personas a las
+// que solo se quiere empujar a mirar dónde está cada cosa, gana la generosa.
+// El de comunidad NO está: ese sí exige publicar de verdad, porque su valor es
+// que los demás te lean, no que tú abras la página.
+const VISITABLE: string[] = ['clase_en_vivo', 'profile']
 // Plegado/desplegado es una preferencia de este ordenador: puede vivir en el
 // navegador. Lo demás (bienvenida vista, panel descartado) va al SERVIDOR: si
 // no, el alumno que entra desde el móvil vuelve a ver el popup de bienvenida y
@@ -192,8 +195,7 @@ export default function StudentOnboarding({
       cta: 'Ir',
       href: getUriWithOrg(orgslug, '/account/general'),
       icon: <User size={19} />,
-      // Foto o descripción de verdad. Antes bastaba con haber pulsado "Ir".
-      isDone: hasAvatar || hasBio,
+      isDone: hasAvatar || hasBio || visited.has('profile'),
     },
     {
       id: 'community',
