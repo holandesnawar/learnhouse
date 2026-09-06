@@ -24,7 +24,6 @@ const LoginClient = (props: LoginClientProps) => {
   const { t } = useTranslation()
   const { signIn } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [rememberMe, setRememberMe] = useState(true)
   const [ssoEnabled, setSsoEnabled] = useState(false)
   const [ssoLoading, setSsoLoading] = useState(false)
   const router = useRouter();
@@ -365,16 +364,15 @@ const LoginClient = (props: LoginClientProps) => {
                 )}
               </Form.Field>
 
-              <div className="flex items-center justify-between pt-1">
-                <label className="flex items-center gap-2 text-[12.5px] text-white/75 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded border-white/30 text-[#4da3ff] cursor-pointer"
-                  />
-                  Recuérdame
-                </label>
+              {/* Aquí había una casilla "Recuérdame" que NO hacía nada: su
+                  valor no se mandaba al entrar ni se guardaba en ningún sitio.
+                  La sesión dura 30 días (`REFRESH_TOKEN_MAX_AGE`) marcaras o no.
+                  Y como venía marcada por defecto, el único al que engañaba era
+                  justo el que se molestaba en desmarcarla —alguien en un
+                  ordenador prestado— que se iba creyendo que no quedaba la
+                  sesión abierta. Una casilla que no hace nada es ruido; una que
+                  promete lo contrario de lo que pasa es peor. */}
+              <div className="flex items-center justify-end pt-1">
                 <Link
                   href="/forgot"
                   className="text-[12.5px] text-white/75 hover:text-white underline underline-offset-2 transition-colors"
