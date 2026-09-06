@@ -7,11 +7,14 @@ import utc from 'dayjs/plugin/utc'
 import 'dayjs/locale/es'
 import toast from 'react-hot-toast'
 import { PaperPlaneRight } from '@phosphor-icons/react'
-import { FileText, ImageIcon, Loader2, MessageSquare, Mic, Paperclip, X } from 'lucide-react'
+import { FileText, ImageIcon, Loader2, MessageSquare, Mic, Paperclip, Pencil, Trash2, X } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
+import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { useDiscussions, useMutateDiscussions } from '@components/Hooks/useDiscussions'
 import {
   createDiscussion,
+  updateDiscussion,
+  deleteDiscussion,
   uploadChatAttachment,
   type ChatAttachment,
   type DiscussionWithAuthor,
@@ -34,6 +37,17 @@ dayjs.extend(utc)
  * Usa el mismo `useDiscussions` que el canal, así que comparte la caché: abrir
  * un hilo no cuesta ni una petición más.
  */
+
+/**
+ * Las mismas 12 h que en el canal (`ChannelChat`).
+ *
+ * Una respuesta de un hilo es un mensaje como cualquier otro: si en el canal se
+ * puede corregir una errata durante las primeras horas, aquí también. Hasta
+ * ahora **no se podía ni editar ni borrar una respuesta de un hilo**, ni
+ * siquiera la tuya, ni siendo del equipo: la pantalla no pintaba los botones.
+ * Quien metía la pata en un hilo se quedaba con la errata para siempre.
+ */
+const VENTANA_EDICION_MS = 12 * 60 * 60 * 1000
 
 function localDay(date: string) {
   const hasTz = /[zZ]|[+-]\d{2}:?\d{2}$/.test(date)
@@ -87,10 +101,48 @@ function nameOf(author: any): string {
   return full || author.username || 'Alguien'
 }
 
-function Message({ m }: { m: DiscussionWithAuthor }) {
+function Message({
+  m,
+  puedeEditar,
+  puedeBorrar,
+  onEditar,
+  onBorrar,
+}: {
+  m: DiscussionWithAuthor
+  puedeEditar: boolean
+  puedeBorrar: boolean
+  onEditar: (m: DiscussionWithAuthor) => void
+  onBorrar: (uuid: string) => void
+}) {
   const files = attachmentsOf(m)
   return (
-    <div className="flex gap-2.5">
+    <div className="group/resp relative flex gap-2.5">
+      {(puedeEditar || puedeBorrar) && (
+        <div className="absolute -top-1 right-0 z-10 hidden group-hover/resp:flex items-center gap-0.5 rounded-lg bg-white border border-[#E3E8EF] shadow-sm px-0.5 py-0.5">
+          {puedeEditar && (
+            <button
+              type="button"
+              onClick={() => onEditar(m)}
+              aria-label="Editar"
+              title="Editar"
+              className="p-1.5 rounded-md text-[#8A96AB] hover:text-[#025dc7] hover:bg-[#F0F5FF] transition-colors"
+            >
+              <Pencil size={14} />
+            </button>
+          )}
+          {puedeBorrar && (
+            <button
+              type="button"
+              onClick={() => onBorrar(m.discussion_uuid)}
+              aria-label="Borrar"
+              title="Borrar"
+              className="p-1.5 rounded-md text-[#8A96AB] hover:text-rose-600 hover:bg-rose-50 transition-colors"
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
+        </div>
+      )}
       <UserAvatar
         width={30}
         rounded="rounded-full"
@@ -152,6 +204,70 @@ export default function ThreadPanel({
     page: 1,
     limit: 50,
   })
+
+  const { isStaff } = useAdminStatus() as any
+  const currentUserId = session?.data?.user?.id
+  const [editandoUuid, setEditandoUuid] = useState<string | null>(null)
+  const [textoEdicion, setTextoEdicion] = useState('')
+  const [borrandoUuid, setBorrandoUuid] = useState<string | null>(null)
+
+  /** Editar: solo lo tuyo y dentro de las primeras 12 h. Un administrador NO
+   *  edita mensajes ajenos — eso sería escribir por otro. Mismo criterio que
+   *  en el canal. */
+  const puedeEditar = (m: DiscussionWithAuthor) =>
+    !!currentUserId &&
+    m.author?.id === currentUserId &&
+    Date.now() - localDay(m.creation_date).valueOf() < VENTANA_EDICION_MS
+
+  /** Borrar: lo tuyo reciente, o cualquier cosa si atiendes alumnos. `isStaff`
+   *  y no `isAdmin` porque el profe modera la comunidad sin entrar al panel. */
+  const puedeBorrar = (m: DiscussionWithAuthor) => !!isStaff || puedeEditar(m)
+
+  const empezarEdicion = (m: DiscussionWithAuthor) => {
+    setEditandoUuid(m.discussion_uuid)
+    setTextoEdicion(textOf(m))
+  }
+
+  const guardarEdicion = async () => {
+    const msg = textoEdicion.trim()
+    if (!msg || !editandoUuid || !accessToken) return
+    try {
+      // Se reconstruye el documento CONSERVANDO `threadParent`: sin eso la
+      // respuesta editada se saldría del hilo y aparecería suelta en el canal.
+      const doc: any = {
+        type: 'doc',
+        content: msg.split('\n').map((line) => ({
+          type: 'paragraph',
+          content: line.trim() ? [{ type: 'text', text: line }] : [],
+        })),
+        threadParent: parentUuid,
+      }
+      const original = replies.find((x) => x.discussion_uuid === editandoUuid)
+      const adjuntos = original ? attachmentsOf(original) : []
+      if (adjuntos.length) doc.attachments = adjuntos
+      await updateDiscussion(
+        editandoUuid,
+        { title: msg.slice(0, 100) || 'Respuesta', content: JSON.stringify(doc) },
+        accessToken
+      )
+      setEditandoUuid(null)
+      setTextoEdicion('')
+      mutateDiscussions(communityUuid)
+    } catch (e: any) {
+      toast.error(e?.message || 'No se pudo editar la respuesta.')
+    }
+  }
+
+  const borrar = async (uuid: string) => {
+    if (!accessToken) return
+    try {
+      await deleteDiscussion(uuid, accessToken)
+      setBorrandoUuid(null)
+      mutateDiscussions(communityUuid)
+    } catch (e: any) {
+      toast.error(e?.message || 'No se pudo borrar la respuesta.', { duration: 8000 })
+    }
+  }
 
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
@@ -265,7 +381,16 @@ export default function ThreadPanel({
       <div className="min-h-0 overflow-y-auto overflow-x-hidden px-4 py-3 space-y-3">
         {parent ? (
           <>
-            <Message m={parent} />
+            {/* El mensaje del que cuelga el hilo se enseña, pero sus botones
+                viven en el canal, que es donde está de verdad. Borrarlo desde
+                aquí dejaría el hilo colgando de nada. */}
+            <Message
+              m={parent}
+              puedeEditar={false}
+              puedeBorrar={false}
+              onEditar={() => {}}
+              onBorrar={() => {}}
+            />
             <div className="flex items-center gap-2 pt-1">
               <span className="text-[11.5px] font-medium text-[#8A96AB] shrink-0">
                 {replies.length === 0
@@ -274,9 +399,78 @@ export default function ThreadPanel({
               </span>
               <span className="flex-1 h-px bg-[#EEF3FB]" />
             </div>
-            {replies.map((r) => (
-              <Message key={r.discussion_uuid} m={r} />
-            ))}
+            {replies.map((r) =>
+              editandoUuid === r.discussion_uuid ? (
+                <div key={r.discussion_uuid} className="pl-[42px]">
+                  <textarea
+                    value={textoEdicion}
+                    onChange={(e) => {
+                      setTextoEdicion(e.target.value)
+                      e.currentTarget.style.height = 'auto'
+                      e.currentTarget.style.height = `${Math.min(e.currentTarget.scrollHeight, 320)}px`
+                    }}
+                    ref={(el) => {
+                      if (!el) return
+                      el.style.height = 'auto'
+                      el.style.height = `${Math.min(el.scrollHeight, 320)}px`
+                    }}
+                    autoFocus
+                    className="w-full resize-y min-h-[72px] rounded-xl bg-white border border-[#4da3ff] px-3 py-2 text-[14px] leading-relaxed text-gray-900 outline-none focus:ring-2 focus:ring-[#4da3ff]/25"
+                  />
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <button
+                      type="button"
+                      onClick={guardarEdicion}
+                      className="inline-flex items-center px-3 py-1.5 rounded-lg bg-[#025dc7] text-white text-xs font-semibold hover:bg-[#0b6df0]"
+                    >
+                      Guardar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setEditandoUuid(null); setTextoEdicion('') }}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : borrandoUuid === r.discussion_uuid ? (
+                /* Confirmación en el sitio, sin abrir otra ventana encima: el
+                   hilo ya vive dentro de un panel y apilar modales en el móvil
+                   deja al alumno sin saber qué está cerrando. */
+                <div
+                  key={r.discussion_uuid}
+                  className="ml-[42px] rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5"
+                >
+                  <p className="text-[13px] text-rose-800">¿Borrar esta respuesta?</p>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <button
+                      type="button"
+                      onClick={() => borrar(r.discussion_uuid)}
+                      className="inline-flex items-center px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700"
+                    >
+                      Borrar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBorrandoUuid(null)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-white"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <Message
+                  key={r.discussion_uuid}
+                  m={r}
+                  puedeEditar={puedeEditar(r)}
+                  puedeBorrar={puedeBorrar(r)}
+                  onEditar={empezarEdicion}
+                  onBorrar={setBorrandoUuid}
+                />
+              )
+            )}
           </>
         ) : (
           <p className="text-[13px] text-[#8A96AB] py-6 text-center">
