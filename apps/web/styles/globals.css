@@ -401,7 +401,12 @@
   html,
   body {
     @apply bg-background text-foreground;
-    font-family: var(--font-default, 'Wix Madefor Text'), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif, 'Apple Color Emoji', var(--font-emoji, 'Segoe UI Emoji');
+    /* La MISMA letra que arriba, y no por gusto: hay DOS reglas `html, body`
+       con `font-family` en este archivo (esta y la de más arriba), en capas
+       distintas de Tailwind. Cuál gana depende del orden de las capas, que es
+       justo la clase de detalle que se cambia solo al actualizar algo. Con las
+       dos diciendo lo mismo, da igual quién gane. */
+    font-family: var(--font-inter), var(--font-default, 'Wix Madefor Text'), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif, 'Apple Color Emoji', var(--font-emoji, 'Segoe UI Emoji');
     letter-spacing: -0.02em;
   }
 }
