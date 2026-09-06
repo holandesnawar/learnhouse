@@ -77,9 +77,15 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
     return () => clearTimeout(timer)
   }, [])
 
-  // Avisar por email de una clase ya confirmada. Va a todos los alumnos de la
-  // escuela y se manda en segundo plano, así que la respuesta es inmediata.
-  const notifyEvent = async (ev: LhEvent) => {
+  // Avisar por email de una clase ya confirmada. Va a los ALUMNOS de la escuela
+  // (no al equipo) y se manda en segundo plano, así que la respuesta es
+  // inmediata.
+  //
+  // `soloAMi` manda el mismo correo, con el mismo texto y las mismas
+  // variables, pero solo a quien pulsa. Es la única forma de ver cómo queda de
+  // verdad en una bandeja antes de mandárselo a cuarenta personas: la vista
+  // previa del panel enseña el diseño, no cómo lo pinta Gmail.
+  const notifyEvent = async (ev: LhEvent, soloAMi = false) => {
     if (!org?.id || notifying) return
     const whenText = [
       `${WEEKDAYS_FULL[(dayjs(ev.date).day() + 6) % 7]} ${dayjs(ev.date).date()} de ${MONTHS[dayjs(ev.date).month()]}`,
@@ -87,7 +93,11 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
     ]
       .filter(Boolean)
       .join(' ')
-    if (!window.confirm(`Se enviará un email a TODOS los alumnos con:\n\n${ev.title}\n${whenText}\n\n¿Enviar?`)) return
+    if (
+      !soloAMi &&
+      !window.confirm(`Se enviará un email a TODOS los alumnos con:\n\n${ev.title}\n${whenText}\n\n¿Enviar?`)
+    )
+      return
     setNotifying(ev.id)
     // Con enlace de reunión el botón entra directo a la clase; sin él, lleva
     // al evento concreto del calendario (antes caía en la portada).
@@ -103,11 +113,17 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
         when_text: whenText,
         url: ev.link || '',
         event_url: eventUrl,
+        test_only: soloAMi,
       },
       accessToken
     )
     setNotifying(null)
-    if (res) toast.success(`Aviso enviado a ${res.queued} alumnos.`)
+    if (res)
+      toast.success(
+        soloAMi
+          ? 'Enviado solo a ti. Míralo en tu bandeja.'
+          : `Aviso enviado a ${res.queued} alumnos.`
+      )
     else toast.error('No se pudo enviar el aviso.')
   }
 
@@ -337,6 +353,14 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
                       title="Avisar a los alumnos por email"
                     >
                       <Mail size={14} /> {notifying === ev.id ? 'Enviando…' : 'Avisar'}
+                    </button>
+                    <button
+                      onClick={() => notifyEvent(ev, true)}
+                      disabled={notifying === ev.id}
+                      className="px-2.5 py-1.5 rounded-lg text-[12px] font-semibold text-gray-500 hover:text-[#025dc7] hover:bg-[#F0F5FF] transition-colors disabled:opacity-50"
+                      title="Enviarme este aviso solo a mí, para verlo antes"
+                    >
+                      Probar
                     </button>
                     <button onClick={() => setEditing(ev)} className="p-2 text-gray-400 hover:text-gray-700" aria-label="Editar evento">
                       <Pencil size={15} />

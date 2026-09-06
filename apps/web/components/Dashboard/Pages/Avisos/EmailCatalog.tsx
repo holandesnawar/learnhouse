@@ -95,7 +95,39 @@ export default function EmailCatalog() {
   const current = templates.find((t) => t.id === selected)
   const editable = editables.find((e) => e.plantilla === selected)
 
+  /**
+   * Avisa de llaves inventadas ANTES de guardar.
+   *
+   * Las variables son `{titulo}`, `{cuando}`, `{nombre}`… y el servidor las
+   * sustituye por su valor. Si escribes `{Clase en vivo}` —poniendo llaves
+   * alrededor de tu propio texto, que es lo natural si nadie te lo explica— el
+   * servidor busca una variable llamada "Clase en vivo", no la encuentra, y
+   * **manda el correo con el texto de fábrica**. Sin decir nada. Así que
+   * guardabas, la vista previa seguía igual, y parecía que el editor estaba
+   * roto cuando lo que estaba mal era una llave.
+   */
+  const llavesInventadas = (): string[] => {
+    const permitidas = new Set((editable?.campos || []).flatMap((c: any) => c.variables || []))
+    const malas = new Set<string>()
+    for (const c of editable?.campos || []) {
+      const valor = textos[`${selected}.${c.campo}`]
+      if (typeof valor !== 'string') continue
+      for (const encontrada of valor.match(/\{[^{}]*\}/g) || []) {
+        if (!permitidas.has(encontrada)) malas.add(encontrada)
+      }
+    }
+    return Array.from(malas)
+  }
+
   const guardar = async () => {
+    const malas = llavesInventadas()
+    if (malas.length > 0) {
+      toast.error(
+        `Esto no es una variable: ${malas.join(', ')}. Las llaves solo valen para las variables que salen debajo de cada casilla. Si es texto tuyo, escríbelo sin llaves.`,
+        { duration: 12000 }
+      )
+      return
+    }
     setGuardando(true)
     const ok = await saveEmailTexts(textos, accessToken)
     setGuardando(false)
