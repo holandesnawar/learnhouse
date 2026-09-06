@@ -49,6 +49,25 @@ const CommunityClient = ({ community, orgslug }: CommunityClientProps) => {
   const [pinnedOpen, setPinnedOpen] = React.useState(true)
   const [searching, setSearching] = React.useState(false)
   const [menuOpen, setMenuOpen] = React.useState(false)
+  // Los fijados en el móvil van en su propio estado, y arrancan CERRADOS.
+  // `pinnedOpen` vale `true` por defecto porque en el escritorio es una columna
+  // al lado del chat, que no molesta; en el móvil sería una hoja tapando el
+  // canal nada más entrar. Son dos cosas distintas aunque se llamen igual.
+  const [fijadosMovil, setFijadosMovil] = React.useState(false)
+
+  // ¿Estamos por debajo del corte `lg` de Tailwind (1024 px)? Hace falta para
+  // que el menú diga "Ver" u "Ocultar" según lo que el alumno tenga DELANTE:
+  // en el móvil la columna de la derecha no existe, así que mirar `pinnedOpen`
+  // daba un "Ocultar los fijados" con los fijados sin aparecer por ningún lado.
+  const [esMovil, setEsMovil] = React.useState(false)
+  React.useEffect(() => {
+    const mq = window.matchMedia?.('(max-width: 1023px)')
+    if (!mq) return
+    const aplicar = () => setEsMovil(mq.matches)
+    aplicar()
+    mq.addEventListener?.('change', aplicar)
+    return () => mq.removeEventListener?.('change', aplicar)
+  }, [])
 
   // La preferencia del panel se recuerda: quien prefiere el chat a pantalla
   // completa no tiene que cerrarlo cada vez que entra.
@@ -168,27 +187,25 @@ const CommunityClient = ({ community, orgslug }: CommunityClientProps) => {
                 onClick={(e) => e.stopPropagation()}
                 className="absolute right-0 top-full mt-1 z-20 w-56 rounded-xl border border-[#E3E8EF] bg-white py-1 shadow-lg"
               >
+                {/* Aquí había también "Buscar en el canal", y la lupa está
+                    justo al lado: dos botones para lo mismo, uno de ellos
+                    escondido bajo un menú. Fuera. El menú queda para lo que NO
+                    tiene botón propio, que es esto. */}
                 <button
                   type="button"
                   onClick={() => {
-                    togglePinned(!pinnedOpen)
+                    if (esMovil) {
+                      setFijadosMovil((v) => !v)
+                    } else {
+                      togglePinned(!pinnedOpen)
+                    }
                     setThreadUuid(null)
                     setMenuOpen(false)
                   }}
                   className="w-full text-left px-3.5 py-2 text-[13.5px] text-[#3F4A61] hover:bg-[#F0F5FF] hover:text-[#025dc7] transition-colors flex items-center gap-2.5"
                 >
                   <Pin size={15} />
-                  {pinnedOpen ? 'Ocultar los fijados' : 'Ver los fijados'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearching(true)
-                    setMenuOpen(false)
-                  }}
-                  className="w-full text-left px-3.5 py-2 text-[13.5px] text-[#3F4A61] hover:bg-[#F0F5FF] hover:text-[#025dc7] transition-colors flex items-center gap-2.5"
-                >
-                  <Search size={15} /> Buscar en el canal
+                  {(esMovil ? fijadosMovil : pinnedOpen) ? 'Ocultar los fijados' : 'Ver los fijados'}
                 </button>
               </div>
             )}
@@ -217,6 +234,35 @@ const CommunityClient = ({ community, orgslug }: CommunityClientProps) => {
               parentUuid={threadUuid}
               onClose={() => setThreadUuid(null)}
             />
+          </div>
+        )}
+
+        {/* Los fijados en el móvil. Hasta ahora NO SE VEÍAN: el panel de la
+            derecha es `hidden lg:flex`, así que por debajo de 1024 px no se
+            pintaba, y los mensajes que el equipo fija —los importantes— no
+            llegaban a quien entra desde el teléfono, que son casi todos.
+            Va como hoja a pantalla completa, igual que los hilos, y solo
+            cuando se pide desde el menú: una barra permanente robaría alto en
+            la pantalla donde menos sobra. */}
+        {fijadosMovil && !threadUuid && (
+          <div className="lg:hidden fixed inset-0 z-30 bg-white flex flex-col">
+            <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-b border-[#EEF3FB]">
+              <div className="flex items-center gap-2">
+                <Pin size={16} className="text-[#025dc7]" />
+                <h2 className="text-[15px] font-bold text-gray-900">Fijados</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFijadosMovil(false)}
+                aria-label="Cerrar los fijados"
+                className="inline-flex items-center justify-center w-9 h-9 -mr-2 text-[#9CA3AF] hover:text-[#025dc7] transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <PinnedFeed communityUuid={community.community_uuid} hideHeader />
+            </div>
           </div>
         )}
 
