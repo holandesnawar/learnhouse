@@ -540,6 +540,30 @@ systeme.io con la etiqueta de lista de espera y guarda de dónde vino.
 - **Onboarding (`StudentOnboarding.tsx`) — por qué salía "a veces sí y a veces no"**: tenía un `MutationObserver` que escondía el widget si detectaba CUALQUIER elemento `fixed inset-0` visible (cajones, fondos decorativos…). Eliminado. Además `welcomed` y `dismissed` se guardan ahora en `student_progress.onboarding_state` (servidor) y no en localStorage — ojo: el backend **reemplaza** ese objeto, hay que mandarlo entero (`saveState`).
 - **Certificado del alumno**: página `/certificates/{user_certification_uuid}` (`MyCertificatePage.tsx`) — el certificado en español, botón **Descargar en PDF** y explicación del código de verificación. Es a donde lleva el correo "tu certificado ya está listo" (antes iba a `/verify`, que es la página pública para quien lo comprueba).
 - **⚠️ Dos enlaces rotos en los correos, arreglados al cambiar de dominio (ago 2026).** No tenían nada que ver con el dominio, llevaban tiempo mal: el correo de bienvenida tras pagar apuntaba a `/crear-cuenta` y el de reset a `/reset-password`, y **las dos rutas hacen un 307 a `/login` que se come el `resetCode`** — o sea que **el alumno que acababa de pagar no podía ponerse contraseña**. Las rutas buenas son `/auth/crear-cuenta` y `/auth/reset`. Moraleja: cuando se toquen los enlaces de `emails.py`, comprobar la ruta REAL, no la que parece.
+- **⚠️ El enlace de "crea tu contraseña" tras pagar NO había funcionado NUNCA
+  (encontrado 06/09/2026, dos días antes de abrir matrícula).** El alumno pagaba,
+  recibía el correo, pulsaba el enlace y le salía en rojo *"El enlace ya no es
+  válido o ha caducado"* **a la primera y por rápido que fuera**.
+  - **Causa: dos claves de Redis distintas para el mismo código.**
+    `payments.py::_store_reset_code` lo guardaba en
+    `pwd_reset:user:<uuid>:platform:code:<code>` y la ruta que usa la pantalla
+    (`users/reset_password/change_password` → `change_password_with_reset_code`)
+    lo busca en `pwd_reset:user:<uuid>:org:<org_uuid>:code:<code>`. La búsqueda
+    devolvía `None` y el mensaje de esa rama **habla de caducidad**, así que
+    parecía un problema de tiempo y no lo era.
+  - **Por qué nadie lo pilló antes:** el "¿olvidaste tu contraseña?" normal usa
+    OTRA función (`send_reset_password_code`), que sí escribe la clave con la
+    escuela. O sea que probar el reset funcionaba siempre; lo único roto era el
+    camino del que acaba de pagar, que es justo el que no se prueba a diario.
+  - **Arreglo:** `_store_reset_code(user, org_uuid)` escribe **las dos claves**
+    (las dos rutas existen) y el TTL pasa de **1 hora a 7 días**
+    (`_TTL_ALTA_TRAS_PAGAR`). Una hora era otro fallo escondido debajo: no es un
+    "he olvidado mi contraseña" que estás esperando, es alguien que paga en el
+    metro y abre el correo por la noche.
+  - **La lección:** un mensaje de error que nombra UNA causa ("ha caducado")
+    cuando el código cubre varias (no existe, no coincide, caducó) manda a
+    investigar la causa equivocada. Si vuelve a pasar algo así, mirar la clave
+    antes que el reloj.
 - **Email rebrand**: todos los emails (welcome, reset, invite, role-changed, verify, payment-welcome) usan layout Nawar (banner cloudfront + logo footer + ¿Dudas? info@holandesnawar.com + Términos/Privacidad apuntando a holandesnawar.com). Color del botón `#4da3ff` + texto `#0a1656`, no se invierte en dark mode. Constante `BANNER_URL` + `LOGO_URL` + `TERMS_URL`/`PRIVACY_URL` en `apps/api/src/services/users/emails.py`.
 - **Backend nuevo**:
   - Tabla `exercise_attempt` (último intento por sección + falladas).
