@@ -306,8 +306,12 @@ const LoginClient = (props: LoginClientProps) => {
               </span>{' '}
               <span style={{ color: '#4da3ff' }}>de vuelta</span>
             </h1>
-            <p className="text-center text-[15px] text-white/70 mt-2 mb-7">
-              Accede a tu plataforma de alumno.
+            {/* "Tu escuela", no "tu plataforma de alumno": la palabra del
+                producto es escuela (y "plataforma de alumno" suena a programa,
+                no a un sitio al que perteneces). `mt-4` en vez de `mt-2`: iba
+                pegada al titular y se leía como parte de él. */}
+            <p className="text-center text-[15px] text-white/70 mt-4 mb-7">
+              Accede a tu escuela.
             </p>
 
           {/* Form — open block (no card), inputs in #F0F5FF with brand-blue text */}
@@ -398,11 +402,14 @@ const LoginClient = (props: LoginClientProps) => {
                   El componente se esconde solo si ya está instalada, si el
                   alumno la descartó, o en un escritorio que no puede
                   instalarla. */}
-              <div className="mt-4">
-                <InstallAppPrompt />
-              </div>
+              <InstallAppPrompt />
 
-              <p className="text-center text-[13px] text-white/55 mt-4">
+              {/* Sin `mt-4`. Ese margen, sumado al hueco que ya pone el `gap-4`
+                  del formulario, dejaba "¿Problemas para entrar?" descolgado al
+                  final. Y el envoltorio del botón de instalar se ha quitado
+                  porque en escritorio ese componente no pinta nada: quedaba un
+                  div vacío ocupando otro hueco entero. */}
+              <p className="text-center text-[13px] text-white/55">
                 ¿Problemas para entrar?{' '}
                 <a
                   href="https://www.holandesnawar.com/contacto"
