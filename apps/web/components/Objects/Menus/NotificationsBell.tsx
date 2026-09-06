@@ -11,20 +11,25 @@ import {
   markNotificationsSeen,
   type NotificationFeed,
 } from '@services/communities/engagement'
-import { Bell, AtSign, Pin, Megaphone, Unlock, Trash2 } from 'lucide-react'
+import { Bell, AtSign, Pin, Megaphone, Unlock, Trash2, MessagesSquare } from 'lucide-react'
 
 /**
  * Campana del alumno. Recoge lo que se puede perder si no entra ese día:
- * menciones en la comunidad, mensajes fijados como importantes, avisos de la
- * escuela y módulos que se le acaban de abrir.
+ * menciones en la comunidad, cuántos mensajes nuevos hay en cada canal, avisos
+ * de la escuela y módulos que se le acaban de abrir.
  *
  * Nada de esto manda correo. Abrir la campana apaga el punto rojo, pero NO
  * marca los canales como leídos: el mensaje sigue sin leer hasta que entre.
  */
 
+// `pinned` ya no lo manda el backend: los "Mensaje importante en …" se
+// cambiaron por el recuento de mensajes nuevos de cada canal. Se deja la
+// entrada por si queda alguno servido por una versión anterior mientras el
+// despliegue termina — un aviso sin icono se vería roto.
 const KIND_STYLE: Record<string, { icon: any; color: string }> = {
   mention: { icon: AtSign, color: 'text-[#025dc7]' },
-  pinned: { icon: Pin, color: 'text-amber-500' },
+  channel: { icon: MessagesSquare, color: 'text-[#025dc7]' },
+  pinned: { icon: Pin, color: 'text-[#025dc7]' },
   announcement: { icon: Megaphone, color: 'text-[#4da3ff]' },
   module: { icon: Unlock, color: 'text-emerald-500' },
 }
@@ -158,9 +163,9 @@ export default function NotificationsBell(props: { orgslug: string }) {
             <div className="px-4 py-8 text-center">
               <Bell size={22} className="mx-auto text-[#4da3ff] mb-2" />
               <p className="text-[13px] text-gray-500 leading-relaxed">
-                Todavía no hay nada. Aquí te avisamos cuando te mencionen en un
-                canal, se fije un mensaje importante, la escuela mande un aviso
-                o se te abra un módulo nuevo.
+                Todavía no hay nada. Aquí te avisamos cuando haya mensajes
+                nuevos en los canales, te mencionen, la escuela mande un aviso o
+                se te abra un módulo nuevo.
               </p>
             </div>
           ) : (

@@ -288,7 +288,11 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         {personalItems.some((i) => i.show) && (
           <>
             <div className="my-2 border-t border-white/10" />
-            <p className="px-3 pt-1 pb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/75">
+            {/* `pt-3` y no `pt-1`: encima del rótulo había 4 px y debajo casi
+                el doble, así que el título parecía pegado a la línea de arriba
+                y suelto del grupo que encabeza. Ahora respira igual por los
+                dos lados. Mismo ajuste en "Panel de control". */}
+            <p className="px-3 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/75">
               Tu espacio
             </p>
             {personalItems.filter((i) => i.show).map((i) => (
@@ -303,7 +307,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         {isAdmin && dashItems.length > 0 && (
           <>
             <div className="my-2 border-t border-white/10" />
-            <p className="px-3 pt-1 pb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/75">
+            <p className="px-3 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/75">
               {t('common.dashboard')}
             </p>
             {dashItems.map((item) => {

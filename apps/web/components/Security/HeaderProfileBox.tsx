@@ -169,11 +169,16 @@ export const HeaderProfileBox = ({ primaryColor = '' }: { primaryColor?: string 
           <div className="flex items-center space-x-3">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className={`cursor-pointer flex items-center space-x-3 rounded-lg p-2 transition-colors ${colors.profileHover}`}>
+                {/* `min-w-0` + `truncate`: sin esto el correo largo se salía de la
+                    barra lateral (280 px) en vez de cortarse. Un hijo de un flex
+                    no se encoge por debajo de su contenido salvo que se le diga,
+                    y `truncate` no puede hacer nada dentro de una caja que no
+                    tiene ancho máximo. Hacen falta los dos. */}
+                <button className={`cursor-pointer flex items-center space-x-3 rounded-lg p-2 transition-colors min-w-0 w-full ${colors.profileHover}`}>
                   <UserAvatar border="border-2" rounded="rounded-lg" width={30} shadow={primaryColor ? '' : undefined} />
-                  <div className="flex flex-col items-start space-y-0">
-                    <div className="flex items-center space-x-2">
-                      <p className={`text-sm font-semibold capitalize ${colors.profileName}`}>{session.data.user.username}</p>
+                  <div className="flex flex-col items-start space-y-0 min-w-0 flex-1">
+                    <div className="flex items-center space-x-2 min-w-0 max-w-full">
+                      <p className={`text-sm font-semibold capitalize truncate ${colors.profileName}`}>{session.data.user.username}</p>
                       {userRoleInfo && userRoleInfo.name !== 'USER' && (
                         <Tooltip 
                           content={userRoleInfo.description}
@@ -201,7 +206,7 @@ export const HeaderProfileBox = ({ primaryColor = '' }: { primaryColor?: string 
                         </Tooltip>
                       ))}
                     </div>
-                    <p className={`text-xs ${colors.profileMuted}`}>{session.data.user.email}</p>
+                    <p className={`text-xs truncate max-w-full ${colors.profileMuted}`}>{session.data.user.email}</p>
                   </div>
                   <CaretDown aria-hidden="true" size={16} weight="fill" className={colors.profileMuted} />
                 </button>

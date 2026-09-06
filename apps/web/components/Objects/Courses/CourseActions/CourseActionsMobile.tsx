@@ -210,7 +210,15 @@ const CourseActionsMobile = ({ courseuuid, orgslug, course, trailData }: CourseA
   // enseñarle. Antes se pintaba igual el contenedor blanco y quedaba un
   // bloque vacío al final de la página en móvil.
   const hayOferta = linkedOffers.length > 0
-  const nothingToShow = !isLoading && !hayOferta && !!isStarted
+  // Sin oferta que enseñar, esta tarjeta solo contenía el botón "Start Course"
+  // —en inglés, además— al final del todo de la página, y la portada del curso
+  // YA tiene su botón arriba. Dos llamadas a la acción para lo mismo, y la
+  // segunda escondida detrás de todo el temario: el alumno que llega ahí abajo
+  // ya ha pasado por la de arriba.
+  // La condición era `&& !!isStarted` (solo se escondía si ya habías empezado);
+  // ahora basta con que no haya oferta. En esta escuela nunca la hay: el cobro
+  // va por fuera, en el checkout.
+  const nothingToShow = !isLoading && !hayOferta
 
   if (isLoading) {
     // Ni siquiera el esqueleto si lo más probable es que no haya nada: al
