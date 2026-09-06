@@ -3235,8 +3235,16 @@ function ResumenSection({ block, vocabItems = [], phraseItems = [], inCourse, on
           <ul className="space-y-2">
             {block.objectives.map((obj, i) => (
               <li key={i} className="flex items-start gap-2.5">
-                <span className="mt-0.5 shrink-0 w-5 h-5 rounded-full bg-green-50 border border-green-200 flex items-center justify-center">
-                  <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                {/* El check de la web (`.footer-perk-check` de nawar-web): más
+                    grande, relleno tenue del color de marca y borde SÓLIDO de
+                    1,5 px. El de antes era un círculo verde de 20 px con un
+                    borde de 1 px en verde claro: se quedaba en un gris
+                    verdoso que ni destacaba ni se leía como una marca.
+                    Y va en azul, no en verde: en esta escuela el verde
+                    significa "hecho / dominado", y estos objetivos son lo que
+                    vas a aprender, no lo que ya llevas. */}
+                <span className="mt-0.5 shrink-0 w-[22px] h-[22px] rounded-full bg-[#025dc7]/[0.08] border-[1.5px] border-[#025dc7] flex items-center justify-center">
+                  <svg className="w-[13px] h-[13px] text-[#025dc7]" fill="none" stroke="currentColor" strokeWidth={3.2} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 </span>
