@@ -1041,11 +1041,41 @@ async def _create_paid_user(
     return user, True
 
 
-def _store_reset_code(user: User) -> Optional[str]:
-    """Generate a reset code and stash it in Redis so /reset works for it."""
+# Cuánto vale el enlace de "crea tu contraseña" que se manda al pagar.
+#
+# Eran 60 * 60: UNA HORA. Esto no es un "he olvidado mi contraseña" —donde una
+# hora está bien porque acabas de pedirlo y lo estás esperando—, es el enlace
+# con el que alguien que ACABA DE PAGAR entra por primera vez. Paga en el metro,
+# abre el correo por la noche, y el enlace ya no vale: su primera experiencia
+# como alumno es un cartel rojo diciéndole que el enlace ha caducado.
+# Una semana cubre el fin de semana, las vacaciones y al que deja el correo
+# para el domingo.
+_TTL_ALTA_TRAS_PAGAR = 7 * 24 * 60 * 60
+
+
+def _store_reset_code(user: User, org_uuid: str = "") -> Optional[str]:
+    """Genera el código de alta y lo guarda en Redis con LAS DOS claves.
+
+    ⚠️ Aquí estaba el fallo que dejaba fuera al alumno que acababa de pagar, y
+    no era un detalle: **el enlace de bienvenida no había funcionado nunca.**
+
+    Esta función guardaba el código bajo
+        pwd_reset:user:<uuid>:platform:code:<code>
+    pero la ruta que usa la pantalla de crear cuenta
+    (`users/reset_password/change_password`) lo busca bajo
+        pwd_reset:user:<uuid>:org:<org_uuid>:code:<code>
+
+    Dos claves distintas para el mismo código: la búsqueda devolvía `None` y el
+    alumno veía "El enlace ya no es válido o ha caducado" **a la primera, y por
+    rápido que fuera**. El mensaje habla de caducidad, así que parecía un
+    problema de tiempo y no lo era.
+
+    Se escriben las dos porque las dos rutas existen (hay pantallas que usan la
+    variante `platform`) y así funciona el enlace se mire por donde se mire.
+    """
     from src.core.redis import get_redis_client  # local import — avoid heavy boot
     code = generate_secure_reset_code(length=8)
-    ttl = 60 * 60  # 1 hour
+    ttl = _TTL_ALTA_TRAS_PAGAR
     obj = {
         "reset_code": code,
         "reset_code_expires": int(datetime.now().timestamp()) + ttl,
@@ -1058,11 +1088,19 @@ def _store_reset_code(user: User) -> Optional[str]:
         if not r:
             logger.error("Redis unavailable while storing reset code for %s", user.user_uuid)
             return None
-        r.set(
-            f"pwd_reset:user:{user.user_uuid}:platform:code:{code}",
-            json.dumps(obj),
-            ex=ttl,
-        )
+        valor = json.dumps(obj)
+        claves = [f"pwd_reset:user:{user.user_uuid}:platform:code:{code}"]
+        if org_uuid:
+            claves.append(f"pwd_reset:user:{user.user_uuid}:org:{org_uuid}:code:{code}")
+        else:
+            # Sin la escuela no se puede escribir la clave que de verdad se lee.
+            # Es un aviso, no un fallo silencioso: sin esto volvemos al bug.
+            logger.error(
+                "Código de alta para %s sin org_uuid: el enlace de bienvenida NO funcionará",
+                user.user_uuid,
+            )
+        for clave in claves:
+            r.set(clave, valor, ex=ttl)
         return code
     except Exception:
         logger.exception("Could not write reset code to Redis")
@@ -1169,7 +1207,14 @@ async def _provision_after_payment(
         logger.info("Matrícula de %s ya atendida — no se repite el correo", email)
         return {"detail": "already provisioned", "created": False, "atendida_ahora": False, **who}
 
-    code = _store_reset_code(user)
+    # La escuela hace falta para la clave que lee la pantalla de crear cuenta.
+    org_uuid = ""
+    try:
+        org_uuid = (await _get_default_org(db_session)).org_uuid or ""
+    except Exception:
+        logger.exception("No se pudo resolver la escuela para el código de alta de %s", email)
+
+    code = _store_reset_code(user, org_uuid)
     if not code:
         logger.error("No se pudo generar el código para %s; la cuenta existe, el correo no sale", email)
         return {
