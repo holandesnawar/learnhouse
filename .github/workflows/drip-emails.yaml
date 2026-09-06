@@ -1,0 +1,35 @@
+# Aviso diario de «se te ha abierto un módulo».
+#
+# El goteo no tiene ningún evento propio: los módulos no se abren en un
+# instante, llega su fecha y el candado desaparece. Así que alguien tiene que
+# preguntar una vez al día qué se ha abierto hoy, y ese alguien es esto.
+#
+# Es idempotente: la escuela apunta a quién ya avisó de cada módulo, así que
+# lanzarlo dos veces el mismo día no le repite el correo a nadie. Por eso se
+# puede relanzar a mano sin miedo si un día falla.
+name: Avisos de módulo abierto
+
+on:
+  schedule:
+    # 07:00 UTC = las 9 de la mañana en Países Bajos en verano, las 8 en
+    # invierno. Temprano, pero después de que la gente encienda el móvil.
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+
+jobs:
+  avisar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pedirle a la escuela que avise
+        run: |
+          set -euo pipefail
+          respuesta=$(curl -sS -w '\n%{http_code}' -X POST \
+            -H "X-Cron-Token: ${{ secrets.SCHOOL_CRON_TOKEN }}" \
+            "${{ secrets.SCHOOL_URL }}/api/v1/notifications/drip-diario")
+          cuerpo=$(echo "$respuesta" | head -n -1)
+          codigo=$(echo "$respuesta" | tail -n 1)
+          echo "$cuerpo"
+          if [ "$codigo" != "200" ]; then
+            echo "La escuela respondió $codigo" >&2
+            exit 1
+          fi

@@ -12,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const orgslug = await getOrgSlug()
 
   if (!orgslug) {
-    return { title: 'Verify Email — LearnHouse' }
+    return { title: 'Verifica tu correo — Holandés Nawar' }
   }
 
   let org: any = null
@@ -26,7 +26,9 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   return {
-    title: 'Verify Email' + ` — ${org?.name || 'LearnHouse'}`,
+    // En español y con el nombre de la escuela: esta pestaña la ve el alumno.
+    // Ponía "Verify Email — LearnHouse", que ni es su idioma ni es su escuela.
+    title: `Verifica tu correo — ${org?.name || 'Holandés Nawar'}`,
     robots: { index: false, follow: false },
   }
 }

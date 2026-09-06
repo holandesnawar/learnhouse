@@ -588,11 +588,10 @@ const EditorLearnHouseLogo = () => {
         transition={animation.transition}
       >
         <Image
-          src="/lrn.svg"
-          alt="LearnHouse"
+          src="/nawar-favicon.png"
+          alt="Holandés Nawar"
           width={14}
           height={14}
-          className="invert"
         />
       </motion.div>
     </div>
