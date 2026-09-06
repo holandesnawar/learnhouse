@@ -155,20 +155,20 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="rounded-2xl border border-[#DDE6F5] bg-white p-4">
               <p className="text-[11px] font-semibold text-[#8A96AB] uppercase tracking-[0.08em]">Formación</p>
-              <p className="text-[26px] font-semibold text-[#1D0084] leading-tight mt-0.5 tabular-nums">
+              <p className="text-[26px] font-bold text-[#1D0084] leading-tight mt-0.5 tabular-nums">
                 {totals.pct}
-                <span className="text-[15px] text-[#8A96AB] font-medium">%</span>
+                <span className="text-[15px] text-[#8A96AB] font-semibold">%</span>
               </p>
               <div className="mt-1.5">
                 <Bar done={totals.done} total={totals.total} />
               </div>
-              <p className="mt-1 text-[11px] text-[#8A96AB] tabular-nums">
+              <p className="mt-1 text-[11px] font-medium text-[#8A96AB] tabular-nums">
                 {totals.done}/{totals.total} clases
               </p>
             </div>
             <div className="rounded-2xl border border-[#DDE6F5] bg-white p-4">
               <p className="text-[11px] font-semibold text-[#8A96AB] uppercase tracking-[0.08em]">Nota media</p>
-              <p className="text-[26px] font-semibold text-[#1D0084] leading-tight mt-0.5 tabular-nums">
+              <p className="text-[26px] font-bold text-[#1D0084] leading-tight mt-0.5 tabular-nums">
                 {totals.avgPct === null ? '—' : `${totals.avgPct}%`}
               </p>
             </div>
@@ -176,9 +176,9 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
               <p className="text-[11px] font-semibold text-[#8A96AB] uppercase tracking-[0.08em] flex items-center gap-1.5">
                 <Flame size={12} className="text-[#025dc7]" /> Racha
               </p>
-              <p className="text-[26px] font-semibold text-[#1D0084] leading-tight mt-0.5 tabular-nums">
+              <p className="text-[26px] font-bold text-[#1D0084] leading-tight mt-0.5 tabular-nums">
                 {insights?.progress?.current_streak ?? 0}
-                <span className="text-[13px] text-[#8A96AB] font-medium">
+                <span className="text-[13px] text-[#8A96AB] font-semibold">
                   {' '}
                   {insights?.progress?.current_streak === 1 ? 'día' : 'días'}
                 </span>
@@ -189,15 +189,15 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
                 <Trophy size={12} className="text-[#025dc7]" /> Por repasar
               </p>
               {totals.fails > 0 ? (
-                <p className="text-[26px] font-semibold text-[#1D0084] leading-tight mt-0.5 tabular-nums">
+                <p className="text-[26px] font-bold text-[#1D0084] leading-tight mt-0.5 tabular-nums">
                   {totals.fails}
-                  <span className="text-[13px] text-[#8A96AB] font-medium">
+                  <span className="text-[13px] text-[#8A96AB] font-semibold">
                     {' '}
                     {totals.fails === 1 ? 'fallo' : 'fallos'}
                   </span>
                 </p>
               ) : (
-                <p className="text-[15px] font-semibold text-emerald-600 leading-tight mt-2">
+                <p className="text-[15px] font-bold text-emerald-600 leading-tight mt-2">
                   Nada pendiente
                 </p>
               )}

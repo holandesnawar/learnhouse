@@ -274,32 +274,76 @@ async def _mention_items(
     return out
 
 
-async def _pinned_items(org_ids: List[int], db_session: AsyncSession) -> List[dict]:
-    """Mensajes que el equipo ha fijado como importantes en un canal."""
-    rows = (
+async def _channel_items(
+    user: User, org_ids: List[int], db_session: AsyncSession
+) -> List[dict]:
+    """Cuántos mensajes nuevos hay en cada canal, uno por canal.
+
+    Sustituye a los "Mensaje importante en …", que salían de `is_pinned`
+    (decisión del usuario, sept 2026). Dos motivos: la palabra *importante* se
+    gasta si se usa para cualquier cosa que el equipo fije —incluida una
+    respuesta a alguien—, y sobre todo el fijado se queda ahí arriba **días**,
+    así que la campana repetía el mismo aviso cada vez que se abría. Un fijado
+    es algo que se consulta, no algo que acaba de pasar; y la campana es para lo
+    que acaba de pasar. Los fijados se leen ahora en su propio sitio, dentro del
+    canal (menú ⋮ → Ver los fijados).
+
+    El identificador lleva la fecha del último mensaje sin leer: así, si el
+    alumno descarta el aviso y luego llega otro mensaje, vuelve a salir. Con un
+    id fijo por canal, descartarlo una vez lo callaría para siempre.
+    """
+    communities = (
         await db_session.execute(
-            select(Discussion, Community)
-            .join(Community, Community.id == Discussion.community_id)  # type: ignore
-            .where(
-                Community.org_id.in_(org_ids),  # type: ignore
-                Discussion.is_pinned == True,  # noqa: E712
+            select(Community).where(Community.org_id.in_(org_ids))  # type: ignore
+        )
+    ).scalars().all()
+    if not communities:
+        return []
+
+    read_rows = (
+        await db_session.execute(
+            select(ChannelReadState.community_id, ChannelReadState.last_read_at).where(
+                ChannelReadState.user_id == user.id
             )
-            .order_by(Discussion.update_date.desc())  # type: ignore
-            .limit(10)
         )
     ).all()
+    read_map = {cid: last for cid, last in read_rows}
 
-    return [
-        {
-            "id": f"pinned:{discussion.discussion_uuid}",
-            "kind": "pinned",
-            "title": f"Mensaje importante en {community.name or 'la comunidad'}",
-            "excerpt": _short(message_text(discussion.content) or discussion.title or ""),
-            "url": f"/community/{community.community_uuid}",
-            "date": discussion.update_date or discussion.creation_date or "",
-        }
-        for discussion, community in rows
-    ]
+    out: List[dict] = []
+    for community in communities:
+        last_read = read_map.get(community.id) or ""
+        statement = select(Discussion).where(
+            Discussion.community_id == community.id,
+            Discussion.author_id != user.id,  # lo tuyo no cuenta como nuevo
+        )
+        if last_read:
+            statement = statement.where(Discussion.creation_date > last_read)  # type: ignore
+        rows = (await db_session.execute(statement)).scalars().all()
+        if not rows:
+            continue
+
+        rows = sorted(rows, key=lambda d: d.creation_date or "", reverse=True)
+        ultimo = rows[0]
+        cuantos = len(rows)
+        nombre = community.name or "la comunidad"
+        titulo = (
+            f"1 mensaje nuevo en {nombre}"
+            if cuantos == 1
+            else f"{cuantos} mensajes nuevos en {nombre}"
+        )
+        fecha = ultimo.creation_date or ""
+
+        out.append(
+            {
+                "id": f"channel:{community.community_uuid}:{fecha}",
+                "kind": "channel",
+                "title": titulo,
+                "excerpt": _short(message_text(ultimo.content) or ultimo.title or ""),
+                "url": f"/community/{community.community_uuid}",
+                "date": fecha,
+            }
+        )
+    return out
 
 
 async def _announcement_items(org_ids: List[int], db_session: AsyncSession) -> List[dict]:
@@ -415,7 +459,7 @@ async def list_notifications(
 ) -> NotificationFeed:
     """
     Todo lo que el alumno se puede perder, en una lista: menciones, mensajes
-    fijados, avisos de la escuela y módulos que se le acaban de abrir.
+    nuevos por canal, avisos de la escuela y módulos que se le acaban de abrir.
 
     Nada de esto manda correo: la campana es justo para lo que no merece un
     email pero sí que se entere al entrar.
@@ -442,7 +486,7 @@ async def list_notifications(
     # estrenar), la campana sigue enseñando el resto.
     for source in (
         _mention_items(user, org_ids, db_session),
-        _pinned_items(org_ids, db_session),
+        _channel_items(user, org_ids, db_session),
         _announcement_items(org_ids, db_session),
         _module_items(user_id, org_ids, db_session),
     ):
