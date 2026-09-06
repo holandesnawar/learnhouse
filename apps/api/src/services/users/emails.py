@@ -788,9 +788,9 @@ def send_certificate_ready_email(
         </div>
         <p style="margin: 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.7;">
             Lleva un <strong>código de verificación</strong> único. Sirve para que una
-            empresa o un centro de estudios compruebe que es auténtico: al escanear el QR del
-            certificado se abre una página con tu nombre y la fecha. Nadie puede
-            fabricarse uno por su cuenta.
+            empresa o un centro de estudios compruebe que es auténtico: con el enlace de
+            verificación que lleva el certificado se abre una página con tu nombre y la
+            fecha. Nadie puede fabricarse uno por su cuenta.
         </p>
     """
 

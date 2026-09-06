@@ -37,15 +37,30 @@ async def _org_or_404(org_id: int, db_session: AsyncSession) -> Organization:
     return org
 
 
+# El rol de alumno. Mismo número que usa `services/stats/school.py`.
+ROL_ALUMNO = 4
+
+
 async def list_org_recipients(
     org_id: int, db_session: AsyncSession
 ) -> List[Tuple[str, str]]:
-    """(email, nombre) de cada miembro de la organización."""
+    """(email, nombre) de cada ALUMNO de la escuela.
+
+    Antes cogía a **todos los miembros de la organización**: alumnos, profes,
+    moderadores y administradores. O sea que un aviso de "esta semana toca la
+    clase del jueves" le llegaba también al equipo, que ya lo sabe porque la
+    da. Peor: cada prueba que hiciera el equipo se mandaba a sí misma, y con el
+    tiempo eso enseña a ignorar los correos de la escuela justo a quien tiene
+    que leerlos.
+    """
     rows = (
         await db_session.execute(
             select(User.email, User.first_name, User.username)
             .join(UserOrganization, UserOrganization.user_id == User.id)  # type: ignore
-            .where(UserOrganization.org_id == org_id)
+            .where(
+                UserOrganization.org_id == org_id,
+                UserOrganization.role_id == ROL_ALUMNO,
+            )
         )
     ).all()
 
