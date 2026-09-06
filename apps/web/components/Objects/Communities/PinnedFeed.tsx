@@ -6,7 +6,7 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 import utc from 'dayjs/plugin/utc'
 import 'dayjs/locale/es'
 import toast from 'react-hot-toast'
-import { Pin, PinOff, Loader2 } from 'lucide-react'
+import { Pin, PinOff, Loader2, X } from 'lucide-react'
 import { useDiscussions, useMutateDiscussions } from '@components/Hooks/useDiscussions'
 import {
   DiscussionWithAuthor,
@@ -78,6 +78,8 @@ export default function PinnedFeed({
   const { isStaff } = useAdminStatus() as any
   const mutateDiscussions = useMutateDiscussions()
   const [unpinningUuid, setUnpinningUuid] = useState<string | null>(null)
+  // El fijado que se está leyendo entero. Ver `abierto` abajo.
+  const [leyendoUuid, setLeyendoUuid] = useState<string | null>(null)
 
   const { discussions } = useDiscussions({
     communityUuid,
@@ -125,7 +127,17 @@ export default function PinnedFeed({
         ) : (
           <ul className="divide-y divide-gray-100">
             {pinned.map((m) => (
-              <li key={m.discussion_uuid} className="group/pin relative px-4 py-3">
+              <li key={m.discussion_uuid} className="group/pin relative">
+                {/* Toda la tarjeta es un botón: el texto se corta a seis
+                    líneas para que la lista siga siendo una lista, y un fijado
+                    largo —las normas del canal, la plantilla de presentarse—
+                    no se podía leer entero por ningún sitio. Ahora se toca y
+                    se abre completo. */}
+                <button
+                  type="button"
+                  onClick={() => setLeyendoUuid(m.discussion_uuid)}
+                  className="w-full text-left px-4 py-3 hover:bg-[#F7FAFF] transition-colors"
+                >
                 <div className="flex items-center gap-2 mb-1.5">
                   <UserAvatar
                     width={22}
@@ -143,6 +155,7 @@ export default function PinnedFeed({
                 <p className="text-[13px] text-gray-700 leading-relaxed whitespace-pre-wrap break-words line-clamp-6">
                   {plainText(m)}
                 </p>
+                </button>
                 {isStaff && (
                   <button
                     type="button"
@@ -150,7 +163,11 @@ export default function PinnedFeed({
                     disabled={unpinningUuid === m.discussion_uuid}
                     title="Desfijar"
                     aria-label="Desfijar mensaje"
-                    className={`absolute top-2 right-2 inline-flex items-center justify-center w-7 h-7 rounded-md text-gray-400 hover:text-[#025dc7] hover:bg-[#025dc7]/10 transition-all opacity-0 group-hover/pin:opacity-100 ${
+                    // `lg:opacity-0` y no `opacity-0` a secas: en el móvil no
+                    // hay ratón, así que un botón que solo aparece al pasar por
+                    // encima **no aparece nunca**. En el teléfono se ve siempre;
+                    // en el escritorio sigue saliendo al acercarse.
+                    className={`absolute top-2 right-2 z-10 inline-flex items-center justify-center w-7 h-7 rounded-md text-gray-400 hover:text-[#025dc7] hover:bg-[#025dc7]/10 transition-all lg:opacity-0 lg:group-hover/pin:opacity-100 ${
                       unpinningUuid === m.discussion_uuid ? 'opacity-60 pointer-events-none' : ''
                     }`}
                   >
@@ -166,6 +183,59 @@ export default function PinnedFeed({
           </ul>
         )}
       </div>
+
+      {/* Leer un fijado entero. Se cierra con la X o tocando fuera, y vuelve a
+          la lista de fijados sin sacarte del canal. */}
+      {(() => {
+        const abierto = pinned.find((m) => m.discussion_uuid === leyendoUuid)
+        if (!abierto) return null
+        return (
+          <div
+            className="fixed inset-0 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-6"
+            style={{ zIndex: 'var(--z-modal-content, 220)' }}
+            role="dialog"
+            aria-modal="true"
+            onClick={() => setLeyendoUuid(null)}
+          >
+            <div
+              className="w-full sm:max-w-lg bg-white rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[85dvh] flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-[#EEF3FB]">
+                <Pin size={15} className="text-[#025dc7] shrink-0" />
+                <span className="text-[14px] font-bold text-gray-900">Mensaje fijado</span>
+                <button
+                  type="button"
+                  onClick={() => setLeyendoUuid(null)}
+                  aria-label="Cerrar"
+                  className="ml-auto -mr-1 inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-[#F0F5FF] transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <UserAvatar
+                    width={26}
+                    rounded="rounded-full"
+                    avatar_url={avatarUrl(abierto.author) || undefined}
+                    predefined_avatar={abierto.author?.avatar_image ? undefined : 'empty'}
+                  />
+                  <span className="text-[13px] font-semibold text-gray-900 truncate">
+                    {authorName(abierto.author)}
+                  </span>
+                  <span className="text-[11px] text-gray-400 ml-auto shrink-0">
+                    {relativeFromNow(abierto.creation_date)}
+                  </span>
+                </div>
+                <p className="text-[14.5px] text-gray-800 leading-relaxed whitespace-pre-wrap break-words">
+                  {plainText(abierto)}
+                </p>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </aside>
   )
 }
