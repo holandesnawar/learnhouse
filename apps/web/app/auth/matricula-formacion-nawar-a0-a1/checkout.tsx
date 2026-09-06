@@ -24,9 +24,16 @@ const LOGO_URL = 'https://d1yei2z3i6k35z.cloudfront.net/9533860/671a9c9265e23_Lo
 const COURSE_IMAGE = 'https://docs.holandesnawar.com/img/Portada%2016x9.png'
 const COURSE_TITLE = 'Formación Nawar A0-A1'
 const COURSE_SUBTITLE = 'De cero a A1 en neerlandés'
+// El orden importa: primero lo que el comprador viene a comprar (aprender), y
+// al final lo que remata. "Acceso de por vida" se quitó (sept 2026): no es un
+// beneficio, es una condición del producto, y ocupaba el primer sitio —el que
+// más se lee— diciendo algo que no ayuda a decidir. Además promete para siempre
+// algo que depende de que la escuela siga en pie.
+// La clase semanal en vivo es lo que de verdad separa esto de un curso grabado,
+// y no estaba.
 const COURSE_FEATURES = [
-  'Acceso de por vida a la formación',
-  'Vídeos + ejercicios paso a paso',
+  'Lecciones + ejercicios paso a paso',
+  'Clase online semanal',
   'Comunidad privada de alumnos',
   'Certificado al terminar',
 ]
@@ -434,7 +441,7 @@ function CourseSummary({ amountCents, currency }: { amountCents: number; currenc
         <ShieldCheck size={16} className="shrink-0 mt-0.5 text-[#4da3ff]" strokeWidth={2.5} />
         <p className="text-[12.5px] text-[#0a1656] leading-relaxed">
           <strong className="text-[#1D0084]">{GUARANTEE_DAYS} días de garantía.</strong>{' '}
-          Si no es para ti, escribes a info@holandesnawar.com y te devolvemos el 100 %.
+          Si no es para ti, escribes a soporte@holandesnawar.com y te devolvemos el 100 %.
         </p>
       </div>
     </aside>
