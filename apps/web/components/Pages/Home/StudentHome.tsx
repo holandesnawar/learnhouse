@@ -18,6 +18,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { registerVisit, type StudentVisit } from '@services/student/progress'
 import { useStudentInsights } from '@/hooks/queries/useStudentInsights'
 import { isWeeklyClassCourse } from '@/lib/course/formacionProgress'
+import { RUTA_CLASE_SEMANAL } from '@/lib/nawar/cursos'
 import SafeArea from '@components/Objects/StyledElements/Error/SafeArea'
 import StudentOnboarding from '@components/Pages/Home/StudentOnboarding'
 
@@ -355,9 +356,13 @@ function ArranqueFormacion({
       </div>
       {hayGrabaciones && (
         <p className="mt-3 text-[12.5px] text-[#9CA3AF] leading-relaxed">
+          {/* Antes esto llevaba a `/courses`, el índice genérico: el alumno
+              buscaba una grabación y aterrizaba en una lista de cursos donde
+              tenía que adivinar cuál. Va directo a Clase semanal, que es donde
+              están las grabaciones. */}
           Las grabaciones de las clases semanales están en{' '}
-          <Link href={getUriWithOrg(orgslug, '/courses')} className="text-[#025dc7] hover:underline font-medium">
-            Cursos
+          <Link href={getUriWithOrg(orgslug, RUTA_CLASE_SEMANAL)} className="text-[#025dc7] hover:underline font-medium">
+            Clase semanal
           </Link>
           , para repasar cuando te venga bien.
         </p>

@@ -8,7 +8,8 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useTrail } from '@/hooks/queries/useTrail'
 import { getUriWithOrg } from '@services/config/config'
-import { Check, CalendarDays, User, MessagesSquare, BookOpen, ArrowRight, Rocket, ChevronDown, ChevronUp } from 'lucide-react'
+import { Check, CalendarDays, User, MessagesSquare, BookOpen, ArrowRight, Rocket, ChevronDown, ChevronUp, X } from 'lucide-react'
+import { RUTA_FORMACION } from '@/lib/nawar/cursos'
 import { getStudentProgress, patchStudentProgress } from '@services/student/progress'
 import { getCommunities } from '@services/communities/communities'
 import { getDiscussions } from '@services/communities/discussions'
@@ -22,9 +23,15 @@ interface StepItem {
   isDone: boolean
 }
 
-// Pasos que se marcan al hacer clic (visitar). El de comunidad NO está aquí:
-// se marca solo cuando el alumno publica de verdad en el canal de presentaciones.
-const VISITABLE: string[] = ['clase_en_vivo', 'profile']
+// Pasos que se marcan al hacer clic (visitar).
+//
+// Solo queda "mira cuándo es tu clase en vivo", que es literalmente eso: mirar.
+// **"Completa tu perfil" se quitó de aquí (sept 2026)**: se tachaba con solo
+// pulsar "Ir", sin escribir nada, así que la lista decía "perfil completo" con
+// el perfil vacío. Ahora se tacha cuando hay foto o descripción de verdad, que
+// es lo que hace falta para que el resto de la clase sepa quién eres.
+// El de comunidad tampoco está: se marca cuando el alumno publica de verdad.
+const VISITABLE: string[] = ['clase_en_vivo']
 // Plegado/desplegado es una preferencia de este ordenador: puede vivir en el
 // navegador. Lo demás (bienvenida vista, panel descartado) va al SERVIDOR: si
 // no, el alumno que entra desde el móvil vuelve a ver el popup de bienvenida y
@@ -185,7 +192,8 @@ export default function StudentOnboarding({
       cta: 'Ir',
       href: getUriWithOrg(orgslug, '/account/general'),
       icon: <User size={19} />,
-      isDone: hasAvatar || hasBio || visited.has('profile'),
+      // Foto o descripción de verdad. Antes bastaba con haber pulsado "Ir".
+      isDone: hasAvatar || hasBio,
     },
     {
       id: 'community',
@@ -199,7 +207,11 @@ export default function StudentOnboarding({
       id: 'first_lesson',
       title: 'Haz tu primera lección',
       cta: 'Empezar',
-      href: getUriWithOrg(orgslug, '/courses'),
+      // A la FORMACIÓN, no al listado `/courses`: ese es el índice genérico de
+      // LearnHouse, enseña "Clases Nawar" y "Formación" juntos y es justo la
+      // pantalla que la escuela esconde. Mandar ahí al alumno en su primer paso
+      // era pedirle que eligiera entre dos cosas cuando solo tiene un camino.
+      href: getUriWithOrg(orgslug, RUTA_FORMACION),
       icon: <BookOpen size={19} />,
       isDone: hasStartedCourse,
     },
@@ -250,8 +262,18 @@ export default function StudentOnboarding({
     saveState({ visited: Array.from(next) })
   }
 
-  // Lista de pasos (reutilizada en el panel y en el popup de bienvenida).
-  const stepsList = (
+  /**
+   * Lista de pasos, la misma en el panel del Inicio y en el popup.
+   *
+   * `alNavegar` existe por un fallo que se veía sobre todo en el móvil: desde
+   * el popup se pulsaba "Ir", la página cambiaba debajo… y **el popup se
+   * quedaba pegado encima**, tapando la pantalla a la que acababas de llegar y
+   * sin más salida que tocar el borde oscuro, que nadie adivina que cierra.
+   * Se quedaba porque este componente vive en el layout: al navegar no se
+   * desmonta y `showWelcome` seguía valiendo `true`.
+   * En el panel del Inicio no se pasa nada: ahí no hay popup que cerrar.
+   */
+  const listaDePasos = (alNavegar?: () => void) => (
     <ol className="divide-y divide-[#F0F5FF]">
       {steps.map((s) => (
         <li key={s.id} className="px-3.5 py-2.5 flex items-center gap-3">
@@ -272,7 +294,10 @@ export default function StudentOnboarding({
           {!s.isDone && (
             <Link
               href={s.href}
-              onClick={() => markVisited(s.id)}
+              onClick={() => {
+                markVisited(s.id)
+                alNavegar?.()
+              }}
               className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] font-semibold text-[12px] transition-colors"
             >
               {s.cta}
@@ -317,9 +342,20 @@ export default function StudentOnboarding({
             onClick={dismissWelcome}
           >
             <div
-              className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+              className="relative bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
+              {/* Una X de verdad. Cerrar tocando el borde oscuro ya funcionaba,
+                  pero eso solo lo sabe quien lo sabe: en el móvil el popup ocupa
+                  casi toda la pantalla y el borde es una franja fina. Sin cruz,
+                  esto se lee como una pantalla sin salida. */}
+              <button
+                onClick={dismissWelcome}
+                aria-label="Cerrar"
+                className="absolute top-3 right-3 z-10 p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-[#F0F5FF] transition-colors"
+              >
+                <X size={20} />
+              </button>
               <div className="px-6 pt-6 pb-4 text-center">
                 <div className="w-14 h-14 mx-auto mb-2 flex items-center justify-center">
                   <Rocket size={40} className="text-[#025dc7]" />
@@ -334,7 +370,7 @@ export default function StudentOnboarding({
                   Completa estos primeros pasos para sacarle el máximo a tu formación.
                 </p>
               </div>
-              <div className="border-t border-[#DDE6F5]">{stepsList}</div>
+              <div className="border-t border-[#DDE6F5]">{listaDePasos(dismissWelcome)}</div>
               <div className="px-6 py-4">
                 <button
                   onClick={dismissWelcome}
@@ -391,7 +427,7 @@ export default function StudentOnboarding({
             <div className="h-full bg-[#4da3ff] transition-all duration-500" style={{ width: `${pct}%` }} />
           </div>
         </div>
-        {!collapsed && stepsList}
+        {!collapsed && listaDePasos()}
       </div>
     )
   }

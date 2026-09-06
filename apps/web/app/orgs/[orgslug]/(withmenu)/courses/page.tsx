@@ -1,6 +1,7 @@
 import React from 'react'
-import Courses from './courses'
+import { redirect } from 'next/navigation'
 import { Metadata } from 'next'
+import { RUTA_FORMACION } from '@/lib/nawar/cursos'
 import { getOrganizationContextInfo } from '@services/organizations/orgs'
 import { getOrgThumbnailMediaDirectory, getOrgOgImageMediaDirectory } from '@services/media/media'
 import { getOrgSeoConfig, buildPageTitle } from '@/lib/seo/utils'
@@ -67,9 +68,24 @@ export async function generateMetadata(props: MetadataProps): Promise<Metadata> 
   }
 }
 
-const CoursesPage = async (params: any) => {
-  const orgslug = (await params.params).orgslug
-  return <Courses orgslug={orgslug} />
+/**
+ * El listado de cursos no se enseña: manda a la Formación.
+ *
+ * `/courses` es el índice genérico de LearnHouse y aquí enseña la Formación
+ * junto a "Clases Nawar", que es material de apoyo, no un curso para elegir.
+ * El alumno tiene UN camino, y ponerle delante un índice con dos fichas le hace
+ * dudar de cuál es el suyo justo el primer día. La barra lateral ya lleva
+ * directa a la Formación; esto cierra la puerta de atrás —el enlace viejo
+ * guardado, la dirección escrita a mano— sin romper ninguna de las dos.
+ *
+ * Si algún día hay de verdad varios cursos que elegir (A1-A2), se quita este
+ * redirect y vuelve el listado.
+ *
+ * El redirect es relativo a propósito: la escuela es single-tenancy y las
+ * direcciones públicas no llevan el prefijo `/orgs/<slug>`.
+ */
+const CoursesPage = async () => {
+  redirect(RUTA_FORMACION)
 }
 
 export default CoursesPage
