@@ -1088,11 +1088,19 @@ export function ChannelChat({
                             empujaban el globo y se veían siempre a medias. */}
                         {accessToken && (
                           <div
-                            // La barra se ancla al MISMO lado en el que está el
-                            // globo y crece hacia dentro. Al revés (que es como
-                            // estaba) un mensaje corto la lanzaba fuera del
-                            // chat y la página se podía arrastrar a los lados.
-                            className={`absolute -top-3.5 z-10 flex items-center gap-0.5 rounded-lg border border-[#E3E8EF] bg-white px-0.5 py-0.5 shadow-sm transition-opacity ${
+                            // Se ancla al MISMO lado en el que está el globo y
+                            // crece hacia dentro. Al revés (que es como estaba)
+                            // un mensaje corto la lanzaba fuera del chat y la
+                            // página se podía arrastrar a los lados.
+                            //
+                            // `bottom-full` y no `-top-3.5`: montada a media
+                            // altura del globo, en un mensaje de una línea
+                            // **tapaba el texto entero**, que es justo lo que
+                            // vas a leer o a editar. Ahora se apoya encima, sin
+                            // pisarlo. Que roce el mensaje de arriba al pasar el
+                            // ratón es mucho menos molesto que tapar el tuyo, y
+                            // es lo que hacen los chats de siempre.
+                            className={`absolute bottom-full mb-1 z-10 flex items-center gap-0.5 rounded-lg border border-[#E3E8EF] bg-white px-0.5 py-0.5 shadow-sm transition-opacity ${
                               isOwn ? 'right-0' : 'left-0'
                             } ${
                               pickerUuid === m.discussion_uuid || activeUuid === m.discussion_uuid
@@ -1148,6 +1156,25 @@ export function ChannelChat({
                                 onClick={() => setPendingDelete(m.discussion_uuid)}
                               >
                                 <Trash2 size={14} />
+                              </MessageAction>
+                            )}
+                            {/* Fijar vivía suelto, flotando sobre la esquina del
+                                mensaje, lejos del resto de acciones. Es una
+                                acción sobre el mensaje como editar o borrar y va
+                                donde están todas. */}
+                            {isStaff && (
+                              <MessageAction
+                                label={m.is_pinned ? 'Desfijar' : 'Fijar en el canal'}
+                                align={isOwn ? 'right' : 'left'}
+                                onClick={() => togglePin(m.discussion_uuid, !m.is_pinned)}
+                              >
+                                {pinningUuid === m.discussion_uuid ? (
+                                  <Loader2 size={14} className="animate-spin" />
+                                ) : m.is_pinned ? (
+                                  <PinOff size={14} />
+                                ) : (
+                                  <Pin size={14} />
+                                )}
                               </MessageAction>
                             )}
                           </div>
@@ -1215,30 +1242,6 @@ export function ChannelChat({
                         </div>
                       )}
                     </div>
-                    {isStaff && (
-                      <button
-                        type="button"
-                        onClick={() => togglePin(m.discussion_uuid, !m.is_pinned)}
-                        disabled={pinningUuid === m.discussion_uuid}
-                        title={m.is_pinned ? 'Desfijar' : 'Fijar mensaje'}
-                        aria-label={m.is_pinned ? 'Desfijar mensaje' : 'Fijar mensaje'}
-                        className={`absolute top-1 right-3 inline-flex items-center justify-center w-7 h-7 rounded-md transition-all ${
-                          m.is_pinned
-                            ? 'text-[#025dc7] hover:bg-[#025dc7]/10'
-                            : `text-gray-400 hover:text-[#025dc7] hover:bg-[#025dc7]/10 ${
-                                activeUuid === m.discussion_uuid ? 'opacity-100' : 'opacity-0 group-hover/msg:opacity-100'
-                              }`
-                        } ${pinningUuid === m.discussion_uuid ? 'opacity-60 pointer-events-none' : ''}`}
-                      >
-                        {pinningUuid === m.discussion_uuid ? (
-                          <Loader2 size={14} className="animate-spin" />
-                        ) : m.is_pinned ? (
-                          <PinOff size={14} />
-                        ) : (
-                          <Pin size={14} />
-                        )}
-                      </button>
-                    )}
                   </div>
                 </React.Fragment>
               )
