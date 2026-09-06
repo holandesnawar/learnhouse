@@ -208,8 +208,46 @@ async def answer_consulta(consulta_id: str, respuesta: str, respondido_por: str)
     if not filas:
         raise HTTPException(status_code=404, detail="Esa consulta ya no existe")
 
+    fila = _recortar(filas[0])
     logger.info("Consulta %s respondida desde el panel por %s", clean_id, respondido_por)
-    return _recortar(filas[0])
+    _avisar_a_la_alumna(fila)
+    return fila
+
+
+def _avisar_a_la_alumna(fila: dict) -> None:
+    """Le manda el correo de «ya tienes respuesta».
+
+    **Lo mandaba Supabase y dejó de llegar.** El disparador
+    `trg_consulta_respondida` sigue vivo y sigue arrancando su Edge Function,
+    pero esa función, antes de mandar nada, llama a un webhook de la escuela
+    que **no existe en esta API**: sus registros lo dicen con todas las letras,
+    `Academy webhook error: 404 {"detail":"Not Found"}`, y ahí se cae con un
+    500 sin llegar a enviar el correo.
+
+    Se podría arreglar creando ese webhook, pero sería sostener una pieza que
+    vive en otro repositorio, que no se puede ver desde aquí y que ya se ha
+    roto una vez sin que nadie se entere. El correo lo tenemos escrito y
+    sabemos a quién va: se manda desde aquí y se acabó la dependencia.
+
+    Nunca lanza: la respuesta ya está guardada y publicada, y un fallo al
+    avisar no puede dejar al profe con un error después de haber contestado
+    bien.
+    """
+    email = (fila.get("author_email") or "").strip()
+    if not email:
+        logger.info("Consulta %s sin email de contacto: no se avisa", fila.get("id"))
+        return
+    try:
+        from src.services.users.emails import send_consulta_answered_email, ACADEMY_URL
+
+        send_consulta_answered_email(
+            email=email,
+            name=(fila.get("author_name") or "alumno/a"),
+            question_excerpt=(fila.get("title") or "")[:160],
+            link=f"{ACADEMY_URL}/mis-consultas",
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("No se pudo avisar por correo de la consulta %s", fila.get("id"))
 
 
 async def delete_consulta(consulta_id: str) -> dict:

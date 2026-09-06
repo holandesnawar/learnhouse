@@ -248,7 +248,13 @@
 
   /* Basic editor styles */
   .ProseMirror {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif, 'Apple Color Emoji', var(--font-emoji, 'Segoe UI Emoji');
+    /* Inter, como el resto de la escuela. Esto no es solo el editor del panel:
+       `.ProseMirror` pinta también **el texto de las lecciones que lee el
+       alumno**, así que con la pila del sistema las clases salían en la letra
+       de Windows o de Mac y no en la de la marca. Era el sitio donde más se
+       notaba y el más fácil de pasar por alto, porque el nombre de la clase
+       suena a cosa de administración. */
+    font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif, 'Apple Color Emoji', var(--font-emoji, 'Segoe UI Emoji');
   }
   .ProseMirror > * + * {
     margin-top: 0.75em;
@@ -844,7 +850,7 @@
   overflow-y: auto;
   width: 280px;
   padding: 6px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif, 'Apple Color Emoji', var(--font-emoji, 'Segoe UI Emoji');
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif, 'Apple Color Emoji', var(--font-emoji, 'Segoe UI Emoji');
 }
 
 .slash-commands-menu::-webkit-scrollbar {

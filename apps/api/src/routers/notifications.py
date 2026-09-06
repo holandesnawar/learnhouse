@@ -1,6 +1,11 @@
 """Avisos por email a los alumnos (solo administradores)."""
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Request
+import hashlib
+import hmac
+import logging
+import os
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -9,7 +14,22 @@ from src.db.users import PublicUser
 from src.security.auth import get_current_user
 from src.services.notifications.broadcast import _send_many, broadcast
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
+
+#: ⚠️ CON GUIONES. nginx tira por defecto las cabeceras con `_`
+#: (`underscores_in_headers off`) y es la puerta del contenedor, así que una
+#: cabecera con guiones bajos no llega hasta aquí. Mismo motivo y misma forma
+#: que el token de las copias de seguridad.
+CABECERA_SECRETO = "X-Cron-Token"
+
+
+def _mismo_secreto(a: str, b: str) -> bool:
+    """Compara sin filtrar por dónde dejan de parecerse ni cuánto miden."""
+    ha = hashlib.sha256(a.encode("utf-8")).digest()
+    hb = hashlib.sha256(b.encode("utf-8")).digest()
+    return hmac.compare_digest(ha, hb)
 
 
 class BroadcastPayload(BaseModel):
@@ -56,3 +76,41 @@ async def api_broadcast(
         _send_many, payload.kind, prepared["recipients"], data, textos_correo
     )
     return {"queued": prepared["count"], "test": bool(prepared.get("test"))}
+
+
+@router.post(
+    "/drip-diario",
+    summary="Avisa por email de los módulos que se abren hoy. La llama una tarea diaria.",
+)
+async def api_drip_diario(
+    request: Request,
+    org_id: int = 1,
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    """El correo de «se te ha abierto un módulo».
+
+    Va sin sesión y con un secreto compartido porque quien la llama es una
+    tarea programada, no una persona: igual que el workflow de las copias.
+    Sin `LEARNHOUSE_CRON_TOKEN` puesto, la ruta queda cerrada — nunca abierta
+    de par en par por olvidar una variable.
+
+    Es idempotente: se puede lanzar dos veces el mismo día sin repetirle el
+    correo a nadie (ver `drip_email_sent`).
+    """
+    esperado = (os.environ.get("LEARNHOUSE_CRON_TOKEN") or "").strip()
+    if not esperado:
+        raise HTTPException(status_code=503, detail="Cron token not configured")
+
+    recibido = (
+        request.headers.get(CABECERA_SECRETO)
+        or request.headers.get("LEARNHOUSE_CRON_TOKEN")
+        or ""
+    ).strip()
+    if not recibido or not _mismo_secreto(recibido, esperado):
+        raise HTTPException(status_code=401, detail="Bad cron token")
+
+    from src.services.notifications.drip import avisar_modulos_abiertos_hoy
+
+    resultado = await avisar_modulos_abiertos_hoy(org_id, db_session)
+    logger.info("Goteo diario: %s", resultado)
+    return resultado
