@@ -229,6 +229,23 @@ function renderMessageBody(text: string, isOwn: boolean): React.ReactNode[] {
   })
 }
 
+/**
+ * El cuadro de editar crece con el texto que tiene dentro.
+ *
+ * Iba con `rows={2}` fijo: al editar un mensaje de veinte líneas te salía una
+ * ventanita de dos y tenías que ir haciendo scroll dentro para ver lo que
+ * estabas cambiando. Editar debería sentirse como escribir encima de lo que ya
+ * hay, no como meterlo por una rendija.
+ *
+ * El tope es el 60 % de la pantalla: sin él, un mensaje muy largo empujaría los
+ * botones de Guardar y Cancelar fuera de la vista.
+ */
+function ajustarAltoEdicion(el: HTMLTextAreaElement) {
+  el.style.height = 'auto'
+  const tope = typeof window !== 'undefined' ? Math.round(window.innerHeight * 0.6) : 400
+  el.style.height = `${Math.min(el.scrollHeight, tope)}px`
+}
+
 export function ChannelChat({
   communityUuid,
   channelName,
@@ -878,13 +895,22 @@ export function ChannelChat({
                       {/* Each message is its own bubble so consecutive ones read as
                           separate messages, not one merged block. */}
                       {editingUuid === m.discussion_uuid ? (
-                        <div className="min-w-0">
+                        /* `w-full`: la columna del mensaje es `items-end`, así que
+                           sin esto el cuadro de editar se encogía al ancho de su
+                           contenido y un mensaje largo se editaba en una cajita
+                           minúscula. Editar tiene que pasar donde estaba el
+                           mensaje, con su mismo sitio. */
+                        <div className="min-w-0 w-full">
                           <textarea
+                            ref={(el) => { if (el) ajustarAltoEdicion(el) }}
                             value={editText}
-                            onChange={(e) => setEditText(e.target.value)}
+                            onChange={(e) => {
+                              setEditText(e.target.value)
+                              ajustarAltoEdicion(e.currentTarget)
+                            }}
                             rows={2}
                             autoFocus
-                            className="w-full resize-none rounded-xl bg-white border border-[#4da3ff] px-3 py-2 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#4da3ff]/25"
+                            className="w-full resize-y min-h-[80px] rounded-xl bg-white border border-[#4da3ff] px-3 py-2 text-sm leading-relaxed text-gray-900 outline-none focus:ring-2 focus:ring-[#4da3ff]/25"
                           />
                           <div className="flex items-center gap-2 mt-1.5">
                             <button
