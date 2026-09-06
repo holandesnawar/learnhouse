@@ -323,13 +323,24 @@ export default function MessagesPage() {
           )}
         </div>
 
-        <button
-          onClick={() => setPickerOpen(true)}
-          className="mt-3 inline-flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] font-bold text-[14px] transition-colors"
-        >
-          <PenSquare size={15} />
-          {isStaff ? 'Escribir a un alumno' : 'Escribir a un moderador'}
-        </button>
+        {/* Escribir primero es cosa del EQUIPO, no del alumno (sept 2026).
+            El alumno tenía un buscador de moderadores y creaba tres problemas:
+            (1) elegía a ciegas —no sabe quién lleva qué—, (2) el hilo con una
+            persona concreta NO le llega a los demás, así que una consulta a un
+            profe de vacaciones se quedaba sin contestar y nadie se enteraba, y
+            (3) buscando "Team Nawar" se podía abrir OTRO hilo con el mismo
+            destinatario, y quedaban dos conversaciones idénticas en la lista.
+            El alumno tiene siempre su hilo con el equipo, que ve todo el
+            equipo; el equipo sí puede abrir uno con quien haga falta. */}
+        {isStaff && (
+          <button
+            onClick={() => setPickerOpen(true)}
+            className="mt-3 inline-flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] font-bold text-[14px] transition-colors"
+          >
+            <PenSquare size={15} />
+            Escribir a un alumno
+          </button>
+        )}
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden lh-thin-scroll px-3 py-3 space-y-1.5">
@@ -337,7 +348,7 @@ export default function MessagesPage() {
           <p className="text-sm text-gray-500 px-1 py-3">
             {isStaff
               ? 'Todavía no hay conversaciones. Usa el botón de arriba para escribir a un alumno.'
-              : 'Todavía no tienes conversaciones.'}
+              : 'Aquí aparecerán tus conversaciones con el equipo. Estamos preparando la tuya, vuelve en un momento.'}
           </p>
         ) : (
           threads.map((t) => (
@@ -611,7 +622,9 @@ export default function MessagesPage() {
     <div className="h-full flex flex-col items-center justify-center text-center px-6">
       <MessageSquare size={26} className="text-gray-300 mb-2" />
       <p className="text-sm text-gray-500 max-w-xs">
-        Elige una conversación de la izquierda, o escribe a alguien nuevo.
+        {isStaff
+          ? 'Elige una conversación de la izquierda, o escribe a alguien nuevo.'
+          : 'Elige una conversación de la izquierda.'}
       </p>
     </div>
   )
@@ -634,7 +647,11 @@ export default function MessagesPage() {
         {activeId ? conversation : emptyPane}
       </div>
 
-      {pickerOpen && (
+      {/* `isStaff` en la condición además del botón: sin esto, un `pickerOpen`
+          puesto por cualquier otro camino volvería a abrirle al alumno el
+          buscador que acabamos de quitar. La puerta se cierra donde se decide,
+          no solo donde se enseña. */}
+      {pickerOpen && isStaff && (
         <PeoplePicker
           isStaff={isStaff}
           query={query}
