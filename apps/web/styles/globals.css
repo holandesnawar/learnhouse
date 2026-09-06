@@ -215,7 +215,14 @@
     padding: 0;
     margin: 0;
     scrollbar-gutter: stable;
-    font-family: var(--font-default, 'Wix Madefor Text'), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif, 'Apple Color Emoji', var(--font-emoji, 'Segoe UI Emoji');
+    /* Inter por delante (sept 2026). La letra de la marca es Inter para el
+       cuerpo y Poppins para los títulos, pero eso solo estaba puesto en las
+       pantallas hechas para Nawar: las que vienen de LearnHouse —el formulario
+       de una consulta, sin ir más lejos— seguían con Wix Madefor Text, la letra
+       que traía la plataforma. Resultado: la escuela usaba DOS letras de cuerpo
+       según la pantalla, y se notaba. Wix Madefor se queda detrás como red por
+       si Inter no carga. */
+    font-family: var(--font-inter), var(--font-default, 'Wix Madefor Text'), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif, 'Apple Color Emoji', var(--font-emoji, 'Segoe UI Emoji');
     letter-spacing: -0.02em;
   }
 

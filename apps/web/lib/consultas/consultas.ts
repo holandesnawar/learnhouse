@@ -118,6 +118,29 @@ export async function createConsulta(input: {
   if (row?.id && row?.edit_token) setMyToken(row.id, row.edit_token)
 }
 
+/**
+ * Traduce el error que devuelve Supabase a algo que se le pueda enseñar a una
+ * alumna.
+ *
+ * Las funciones `update_my_consulta` / `delete_my_consulta` viven en la base de
+ * datos de Consultas, no en este código, y cuando no dejan pasar contestan
+ * *"Token inválido, consulta no encontrada o ya resuelta"*. Eso salía tal cual
+ * en la pantalla. **`Token` es una palabra nuestra**, de cómo está montado por
+ * dentro: la alumna no sabe qué es ni puede hacer nada con esa información, y
+ * un mensaje que suena a avería asusta cuando en realidad no ha pasado nada
+ * malo —simplemente su consulta ya está respondida y por eso no se toca—.
+ *
+ * Se traduce aquí y no allí porque el mensaje de la base de datos lo comparten
+ * las dos operaciones y no se puede cambiar desde este repositorio.
+ */
+function enCastellano(error: { message?: string } | null, accion: 'editar' | 'borrar'): Error {
+  const crudo = (error?.message || '').toLowerCase()
+  if (crudo.includes('token') || crudo.includes('no encontrada') || crudo.includes('resuelta')) {
+    return new Error('Consulta no encontrada o ya respondida.')
+  }
+  return new Error(error?.message || `No se pudo ${accion} la consulta.`)
+}
+
 export async function updateMyConsulta(
   id: string,
   input: { title: string; content: string; category: string }
@@ -131,7 +154,7 @@ export async function updateMyConsulta(
     new_content: input.content,
     new_category: input.category,
   })
-  if (error) throw error
+  if (error) throw enCastellano(error, 'editar')
 }
 
 export async function deleteMyConsulta(id: string): Promise<void> {
@@ -141,7 +164,7 @@ export async function deleteMyConsulta(id: string): Promise<void> {
     consulta_id: id,
     consulta_token: token,
   })
-  if (error) throw error
+  if (error) throw enCastellano(error, 'borrar')
   removeMyToken(id)
 }
 
