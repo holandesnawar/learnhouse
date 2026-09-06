@@ -69,6 +69,15 @@ def _school_url() -> str:
 
 
 ACADEMY_URL = _school_url()
+
+# La FORMACIÓN, no el índice `/courses`.
+#
+# `/courses` es el listado genérico de LearnHouse y la escuela lo esconde: el
+# alumno tiene un solo camino y un índice con dos fichas le hace dudar de cuál
+# es el suyo. Hoy esa dirección redirige aquí igualmente, pero un correo que
+# manda a una redirección es un correo que se rompe el día que la redirección
+# cambie.
+RUTA_FORMACION_URL = f"{ACADEMY_URL}/course/8a1d1fab-ffbb-44ef-8f21-04ef63676d6e"
 SUPPORT_EMAIL = "info@holandesnawar.com"
 TERMS_URL = "https://www.holandesnawar.com/terminos-y-condiciones"
 PRIVACY_URL = "https://www.holandesnawar.com/politica-de-privacidad"
@@ -558,7 +567,7 @@ def send_weekly_digest_email(
     """Lunes por la mañana: resumen de la semana del alumno."""
     safe_name = html.escape(name)
     safe_next = html.escape(next_lesson)
-    heading = html.escape(txt("weekly_digest", "titulo", nombre=safe_name))
+    heading = txt("weekly_digest", "titulo", nombre=safe_name)
 
     body_content = f"""
         <h1 style="{STYLES['h1']}">{heading}</h1>
@@ -575,7 +584,7 @@ def send_weekly_digest_email(
             </li>
         </ul>
         {parrafos(txt("weekly_digest", "cierre", nombre=safe_name), STYLES['p'])}
-        <a href="{ACADEMY_URL}/courses" class="brand-btn" style="{STYLES['button']}">
+        <a href="{RUTA_FORMACION_URL}" class="brand-btn" style="{STYLES['button']}">
             {html.escape(txt("weekly_digest", "boton"))}
         </a>
     """
@@ -592,6 +601,12 @@ def send_weekly_digest_email(
     )
 
 
+# ⚠️ Los títulos (`titulo`) se montan con variables que YA vienen escapadas
+# (`safe_nombre`, `safe_module`…), así que **no se vuelven a escapar**. Hacerlo
+# convertía un módulo llamado "Familie & vrienden" en "Familie &amp; vrienden"
+# a la vista del alumno: el `&` se escapaba dos veces y la segunda se quedaba
+# escrita. Los textos sueltos que NO pasan por una variable —los botones— sí
+# se escapan, porque ahí el texto llega tal cual del panel.
 def send_module_unlocked_email(
     email: EmailStr,
     name: str = "alumno/a",
@@ -603,12 +618,12 @@ def send_module_unlocked_email(
     safe_name = html.escape(name)
     safe_module = html.escape(module_name)
     vars_ = {"nombre": safe_name, "modulo": safe_module, "lecciones": lesson_count}
-    heading = html.escape(txt("module_unlocked", "titulo", **vars_))
+    heading = txt("module_unlocked", "titulo", **vars_)
 
     body_content = f"""
         <h1 style="{STYLES['h1']}">{heading}</h1>
         {parrafos(txt("module_unlocked", "cuerpo", **vars_), STYLES['p'])}
-        <a href="{ACADEMY_URL}/courses" class="brand-btn" style="{STYLES['button']}">
+        <a href="{RUTA_FORMACION_URL}" class="brand-btn" style="{STYLES['button']}">
             {html.escape(txt("module_unlocked", "boton"))}
         </a>
     """
@@ -688,7 +703,7 @@ def send_consulta_answered_email(
     """
     safe_name = html.escape(name)
     safe_question = html.escape(question_excerpt)
-    heading = html.escape(txt("consulta_answered", "titulo", nombre=safe_name))
+    heading = txt("consulta_answered", "titulo", nombre=safe_name)
     target_link = link if link else f"{ACADEMY_URL}/consultas"
 
     body_content = f"""
@@ -729,7 +744,7 @@ def send_new_direct_message_email(
     privada por el correo ni se le quita la razón de entrar.
     """
     safe_name = html.escape(name)
-    heading = html.escape(txt("new_direct_message", "titulo", nombre=safe_name))
+    heading = txt("new_direct_message", "titulo", nombre=safe_name)
 
     body_content = f"""
         <h1 style="{STYLES['h1']}">{heading}</h1>
@@ -761,7 +776,7 @@ def send_certificate_ready_email(
     """El alumno ha terminado la formación: su certificado ya está disponible."""
     safe_name = html.escape(name)
     safe_cert = html.escape(certification_name)
-    heading = html.escape(txt("certificate_ready", "titulo", nombre=safe_name, certificado=safe_cert))
+    heading = txt("certificate_ready", "titulo", nombre=safe_name, certificado=safe_cert)
 
     body_content = f"""
         <h1 style="{STYLES['h1']}">{heading}</h1>
@@ -804,7 +819,7 @@ def send_class_scheduled_email(
     safe_name = html.escape(name)
     safe_title = html.escape(title)
     safe_when = html.escape(when_text)
-    heading = html.escape(txt("class_scheduled", "titulo", titulo=safe_title, cuando=safe_when))
+    heading = txt("class_scheduled", "titulo", titulo=safe_title, cuando=safe_when)
 
     body_content = f"""
         <h1 style="{STYLES['h1']}">{heading}</h1>
