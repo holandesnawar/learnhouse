@@ -228,7 +228,10 @@ const CommunityClient = ({ community, orgslug }: CommunityClientProps) => {
 
         {/* Móvil: el hilo ocupa la pantalla, que no hay sitio para dos columnas */}
         {threadUuid && (
-          <div className="lg:hidden fixed inset-0 z-30 bg-white flex flex-col">
+          <div
+            className="lg:hidden fixed inset-0 bg-white flex flex-col"
+            style={{ zIndex: 'var(--z-modal-content, 220)' }}
+          >
             <ThreadPanel
               communityUuid={community.community_uuid}
               parentUuid={threadUuid}
@@ -245,7 +248,14 @@ const CommunityClient = ({ community, orgslug }: CommunityClientProps) => {
             cuando se pide desde el menú: una barra permanente robaría alto en
             la pantalla donde menos sobra. */}
         {fijadosMovil && !threadUuid && (
-          <div className="lg:hidden fixed inset-0 z-30 bg-white flex flex-col">
+          /* ⚠️ Por encima de la barra superior del móvil, que va en `--z-nav`
+             (50). Con `z-30` la barra se pintaba ENCIMA de la cabecera de esta
+             hoja y se comía el botón de cerrar: quedabas dentro de los fijados
+             sin ninguna forma de salir. Le pasaba lo mismo al hilo. */
+          <div
+            className="lg:hidden fixed inset-0 bg-white flex flex-col"
+            style={{ zIndex: 'var(--z-modal-content, 220)' }}
+          >
             <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-b border-[#EEF3FB]">
               <div className="flex items-center gap-2">
                 <Pin size={16} className="text-[#025dc7]" />
