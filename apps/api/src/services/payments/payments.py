@@ -113,6 +113,8 @@ def _stripe_publishable() -> str:
 #
 #   LEARNHOUSE_FORMACION_PLAZAS   nº de plazas de la convocatoria (0 = sin tope)
 #   LEARNHOUSE_MATRICULA_ABIERTA  "no" cierra a mano, aunque queden plazas
+#   LEARNHOUSE_FORMACION_DESDE    AAAA-MM-DD: solo cuentan los cobros de ese
+#                                 día en adelante (deja fuera las pruebas)
 
 def _plazas_totales() -> int:
     raw = (os.environ.get("LEARNHOUSE_FORMACION_PLAZAS") or "").strip()
@@ -126,6 +128,25 @@ def _plazas_totales() -> int:
             raw,
         )
     return 0
+
+
+def _desde_cuando() -> str:
+    """Desde qué día cuentan las plazas. Vacío = desde siempre.
+
+    Existe para no tener que BORRAR las matrículas de prueba de la base de
+    datos. Antes de abrir se compran unas cuantas para comprobar que el circuito
+    entero funciona —cobro, correo, contraseña, entrada— y esas quedan ahí
+    ocupando plaza. Borrarlas a mano es entrar a la base de datos de producción
+    con un DELETE la víspera de abrir, que es justo el momento en el que un
+    error cuesta más caro.
+
+    Con una fecha de corte no se borra nada: las de prueba siguen guardadas
+    —sirven para revisar qué pasó si algo falla— pero dejan de contar.
+
+    Formato `AAAA-MM-DD`. Se compara como texto contra `paid_at`, que se guarda
+    en ISO y por tanto ordena igual alfabéticamente que cronológicamente.
+    """
+    return (os.environ.get("LEARNHOUSE_FORMACION_DESDE") or "").strip()[:10]
 
 
 def _cerrada_a_mano() -> bool:
@@ -143,9 +164,12 @@ async def get_seat_status(db_session: AsyncSession) -> dict:
     from src.db.enrollment import Enrollment
 
     total = _plazas_totales()
+    desde = _desde_cuando()
     ocupadas = 0
     try:
         statement = select(func.count()).select_from(Enrollment).where(Enrollment.status == "paid")
+        if desde:
+            statement = statement.where(Enrollment.paid_at >= desde)  # type: ignore
         ocupadas = int((await db_session.execute(statement)).scalar() or 0)
     except Exception:
         # Si la cuenta falla no cerramos la tienda por nuestra cuenta: se
