@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-08-23.
+> Última actualización: 2026-09-07 (repaso previo a abrir matrícula el 08/09).
 
 ## Resumen
 Academia de cursos sobre **LearnHouse**, auto-alojada en Railway.
@@ -13,7 +13,7 @@ Academia de cursos sobre **LearnHouse**, auto-alojada en Railway.
 ## Infraestructura (Railway)
 Proyecto `cooperative-tenderness`, 3 servicios: **learnhouse** (la app, Dockerfile multi-stage: nginx + web Next.js + api FastAPI + collab), **Postgres**, **Redis**.
 - Repo de la academia: `holandesnawar/learnhouse`.
-- Repo de la web principal: `holandesnawar/nawar-web` (público, **otra sesión** porque MCP GitHub está scoped solo a learnhouse aquí).
+- Repo de la web principal: `holandesnawar/nawar-web` (público). **Desde ago 2026 la misma sesión puede tener los dos repos** — comprobar el alcance real antes de decir que hace falta otra sesión (ver "MCP GitHub y los dos repos" al final).
 - **Rama Railway por defecto: `dev`** (auto-deploy al hacer push).
 - **Desarrollo activo en rama `claude/adoring-dijkstra-rI3FL`.** Para previsualizar: Railway → learnhouse → Settings → Source → cambiar a esa rama; para volver atrás, poner `dev` (red de seguridad).
 - Volumen persistente en **`/app/api/content`** (logos/imágenes/uploads).
@@ -58,7 +58,9 @@ Páginas creadas en `apps/web/app/<nombre>/page.tsx` (root level, fuera de subca
 **Backend:** `LEARNHOUSE_TENANCY=single`, `LEARNHOUSE_DOMAIN`, `LEARNHOUSE_FRONTEND_DOMAIN` (app.holandesnawar.com), `LEARNHOUSE_SSL=true`, `LEARNHOUSE_AUTH_JWT_SECRET_KEY` (≥32 chars), `LEARNHOUSE_SQL_CONNECTION_STRING`, `LEARNHOUSE_REDIS_CONNECTION_STRING`.
 **Frontend:** `NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL` (con `/`), `NEXT_PUBLIC_LEARNHOUSE_DOMAIN`, `NEXT_PUBLIC_LEARNHOUSE_HTTPS=true`, `PORT=8000`.
 **Email (Resend):** `LEARNHOUSE_EMAIL_PROVIDER=resend`, `LEARNHOUSE_RESEND_API_KEY`, `LEARNHOUSE_SYSTEM_EMAIL_ADDRESS=noreply@mail.holandesnawar.com` (subdominio `mail.holandesnawar.com` verificado en Resend).
-**Stripe (test ahora):** `LEARNHOUSE_STRIPE_SECRET_KEY=sk_test_...`, `LEARNHOUSE_STRIPE_PUBLISHABLE_KEY=pk_test_...` (necesaria para el embedded checkout Elements), `LEARNHOUSE_STRIPE_WEBHOOK_STANDARD_SECRET=whsec_test_...`, `LEARNHOUSE_STRIPE_FORMACION_PRICE_ID=price_...` (el del producto "Formación Nawar A0-A1" en modo test). Para Live: misma config con `sk_live_` / `pk_live_` / `whsec_` de Live.
+**Stripe — ⚠️ está en LIVE desde sept 2026** (no en test; esta línea decía lo contrario y me hizo darle al usuario una respuesta equivocada): `LEARNHOUSE_STRIPE_SECRET_KEY=sk_live_...`, `LEARNHOUSE_STRIPE_PUBLISHABLE_KEY=pk_live_...` (necesaria para el embedded checkout), `LEARNHOUSE_STRIPE_WEBHOOK_STANDARD_SECRET=whsec_...` (el de Live), `LEARNHOUSE_STRIPE_FORMACION_PRICE_ID=price_...`. Lo único que se movió durante las pruebas fue el **precio** (un Price de 1 € en Live para probar el cobro de verdad). Antes de dar por hecho el modo, mirar la variable.
+**Cohorte:** `LEARNHOUSE_FORMACION_PLAZAS=40`, `LEARNHOUSE_FORMACION_MATRICULA_ABIERTA`, `LEARNHOUSE_FORMACION_DESDE` (ver más abajo).
+**Cron:** `LEARNHOUSE_CRON_TOKEN` (lo pone el usuario, cualquier cadena larga; el mismo valor va en el secreto de GitHub `SCHOOL_CRON_TOKEN`).
 
 ## Cloudflare (DNS)
 Zona **`holandesnawar.com`** (la de la escuela desde ago 2026): registro `app` → CNAME al target de Railway, en **"Solo DNS" (gris, NO proxied)**. Proxied (naranja) causa **Error 1000** — pasó en la zona `.nl` y volvió a pasar al montar `app` la primera vez. SSL lo gestiona Railway.
@@ -752,7 +754,7 @@ tendría ningún efecto sobre la escuela en marcha.
    - Datos ya guardados en tabla `enrollment` (status=`pending` = se matriculó pero no pagó).
    - Plan: webhook desde nuestro `enroll_and_checkout` → push a Brevo (o el CRM elegido) con tags `matriculado-sin-pagar` para que el usuario lance campañas de recuperación.
    - Listar candidatos manualmente: query `SELECT * FROM enrollment WHERE status='pending' AND created_at < now() - interval '1 hour'`.
-3. **Otros automation emails intern**: weekly_digest, module_unlocked, new_announcement, event_upcoming, consulta_answered. Templates ya listos en `emails.py` (probados vía `/superadmin/email-test/all`); falta cablear los disparadores reales (cron lunes para digest, hook al desbloquear módulo, etc.).
+3. **Otros automation emails**: `module_unlocked` y `consulta_answered` ya están enchufados (sept 2026, ver el repaso previo al lanzamiento). Faltan `weekly_digest`, "tienes un mensaje" y `event_upcoming` — plantillas listas en `emails.py`, falta el disparador. Aplazados a octubre a propósito.
 4. ~~Embeber Consultas~~ **HECHO** (ago 2026): ya no se embebe nada, el panel es nativo. Ver "Consultas: el panel vive dentro de la escuela" más arriba.
 5. **Modo nocturno** plataforma (ThemeProvider + variantes `dark:` clave + persistir en `student_progress.theme`).
 6. **Certificado PDF** al terminar formación (motivación).
@@ -996,6 +998,113 @@ de la biblioteca de Bunny Stream, que se quedó con el `academia.holandesnawar.n
 viejo al mudarnos a `app.holandesnawar.com`. nginx manda
 `Referrer-Policy: strict-origin-when-cross-origin`, así que Bunny sí ve de dónde
 viene la petición.
+
+## Repaso previo al lanzamiento (sept 2026) — lo que se arregló y por qué
+
+Todo esto salió del barrido de los días 05→07/09, con la matrícula abriendo el
+**martes 8**. Rama `claude/checkout-session-embebido`, mezclada a `dev`.
+
+### `LEARNHOUSE_FORMACION_DESDE` — la fecha de corte de la convocatoria
+El usuario tenía 8 matrículas de prueba y 4 alumnos de test ensuciando las
+estadísticas y el contador de plazas. La idea obvia era borrarlos con SQL, y
+estuvo a punto de salir mal: confundió `role_id` con `user_id` y la consulta
+habría borrado datos de una persona real.
+
+**Idea suya, mejor que la mía: no borrar nada, empezar a contar desde hoy.**
+`LEARNHOUSE_FORMACION_DESDE=AAAA-MM-DD` (Railway) y todo lo que mira ventas
+—`get_seat_status` en `payments.py` y las ventas y el embudo de
+`services/stats/school.py`— filtra por `paid_at >= esa fecha`. Las pruebas siguen
+en la base de datos (se pueden auditar) pero no cuentan.
+
+**Regla que sale de aquí: antes de borrar en producción, mirar si hay una fecha
+de corte que resuelva lo mismo.** Es reversible; un `DELETE` no.
+
+De paso, el avance por módulo de las estadísticas se filtra a `alumnos_ids`
+(rol 4): antes contaba también al admin y a los profes probando.
+
+### Los correos automáticos que no estaban enchufados
+La ficha vieja decía "plantillas listas en `emails.py`" y era verdad — pero
+**nadie las llamaba**. Se enchufaron dos:
+
+- **Consulta respondida.** El usuario dijo "antes funcionaba y parece que se
+  rompió". Efectivamente: los logs de la Edge Function de Supabase
+  (`notify-consulta-respondida`) decían `Academy webhook error: 404` — apuntaba a
+  un webhook de la escuela que ya no existe. Ahora **el correo lo manda la
+  escuela**, desde `services/consultas/admin.py::_avisar_a_la_alumna`, llamado
+  dentro de `answer_consulta`. El trigger de Supabase sigue ahí, fallando en
+  silencio; no molesta.
+- **Módulo desbloqueado.** `services/notifications/drip.py::avisar_modulos_abiertos_hoy`
+  + endpoint `POST /api/v1/notifications/drip-diario` (puerta `X-Cron-Token` vs
+  `LEARNHOUSE_CRON_TOKEN`: 503 si la variable no está, 401 si no coincide) +
+  workflow `.github/workflows/drip-emails.yaml` a las **07:00 UTC** diario
+  (secretos `SCHOOL_URL` + `SCHOOL_CRON_TOKEN`). La marca de "ya avisado" va en
+  la tabla nueva **`drip_email_sent`** (user_id + chapter_uuid), escrita
+  **después** de enviar: si el envío falla, mañana se reintenta.
+
+Siguen SIN enchufar a propósito (octubre): resumen semanal, "tienes un mensaje",
+evento próximo.
+
+### ⚠️ El goteo de esta escuela va por FECHAS FIJAS, no por días desde el alta
+La campana prometía avisar de los módulos que se abren y **era mentira**: el
+usuario preguntó literalmente "¿o es mentira?" y lo era. `_module_items` en
+`services/communities/engagement.py` solo leía los **días de desfase** desde el
+alta del alumno (`chapters`), y esta escuela usa **fechas de convocatoria**
+(`fechas`), que además ganan sobre el desfase cuando están puestas. Resultado:
+cero avisos, siempre.
+
+**Cualquier cosa que hable del goteo tiene que mirar `fechas` primero y el
+desfase después.** Vale para la campana, para `drip.py` y para lo que venga.
+
+### La campana ahora agrupa por canal
+Antes listaba mensaje a mensaje y llamaba "Importante" a los fijados. Ahora
+`_channel_items` da una línea por canal ("15 mensajes nuevos en General") y se
+quitó lo de Importante. Detalle: **el id del item lleva la fecha del último
+mensaje**, para que descartarlo no lo silencie para siempre.
+
+### Mensajes directos: citar, editar, retirar, borrar el hilo
+`direct_message` gana `reply_to_id` y `edited_at` (en `_ADDED_COLUMNS`). Nuevas
+funciones en `services/messages/direct.py`: `edit_message`, `delete_message`,
+`delete_thread` (solo administradores), con `VENTANA_EDICION_SEG = 12 h`. Mismo
+juego que en comunidad. En la pantalla del alumno **se quitó el buscador de
+moderadores**: elegir con quién hablas es decisión que no le toca, y creaba hilos
+"Team Nawar" duplicados.
+
+### Tipografía: había DOS reglas `html, body`
+Se cambió la fuente a Inter, el usuario preguntó "¿hay algún sitio más?" y sí:
+en `apps/web/styles/globals.css` hay **dos** bloques `html, body` (≈línea 225 y
+≈409) y el segundo pisaba al primero. Además **`.ProseMirror` iba aparte**, que
+es justo el texto de las lecciones que lee el alumno — el fallo más gordo de los
+tres. Cambiados los tres, más `.slash-commands-menu`. Si vuelve a aparecer letra
+rara: `grep -n "font-family" apps/web/styles/globals.css` y comprobar en el CSS
+compilado, no en el fuente.
+
+### Otras cosas del repaso
+- **Los avisos del panel van solo a los alumnos** (`ROL_ALUMNO = 4` en
+  `services/notifications/broadcast.py`). Antes le llegaban también al admin y a
+  los profes.
+- **El editor de plantillas "no funcionaba"**: el usuario escribió `{Clase en
+  vivo}` donde iba `{titulo}`, `.format()` lanzaba `KeyError` y el código caía en
+  silencio al texto de fábrica. Ahora se valida antes de guardar y se dice qué
+  hueco está mal.
+- **`&amp;` en los correos**: seis titulares pasaban por `html.escape(txt(...))`
+  dos veces.
+- **`lib/nawar/cursos.ts`**: los UUID de la Formación y de la Clase semanal en un
+  solo sitio. `/courses` redirige a la Formación (había una lista con dos cursos
+  que no aporta nada con dos productos).
+- **El certificado**: el correo hablaba de un "código de verificación" que el
+  alumno no ve por ningún lado; ahora dice "con el enlace de verificación que
+  lleva el certificado", que es lo que hay de verdad.
+
+### Pendiente, ofrecido y NO aprobado
+- **`holandesnawar.com/acceder` es un login de mentira** ("Login solo-diseño"):
+  siempre contesta "Correo o contraseña incorrectos". El de verdad es
+  `https://app.holandesnawar.com/login`. Lo suyo es convertirlo en un redirect.
+  Está sin decidir.
+- **Dirección de facturación en el checkout de Stripe** (una línea): se
+  recomendó, el usuario dijo "lo dejamos así". Si el gestor la pide, es cambiar
+  `billing_address_collection`.
+- Igualar el peso de las cifras del Inicio (`StudentPulse.tsx`) al de Mi
+  progreso.
 
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
