@@ -397,8 +397,32 @@ async def _module_items(
     for org_id in org_ids:
         settings = await get_drip_settings(org_id, db_session)
         offsets = (settings or {}).get("chapters") or {}
-        if not isinstance(offsets, dict) or not offsets:
+        # ⚠️ Las FECHAS FIJAS de la convocatoria, que es como está montado el
+        # goteo de esta escuela (módulo 3 el 21 de septiembre, el 4 el 5 de
+        # octubre…). Esto faltaba: la campana solo miraba `chapters` —los días
+        # desde el alta de cada alumno— así que con fechas fijas **no avisaba
+        # nunca de un módulo abierto**, mientras el texto de la campana vacía
+        # prometía justo eso.
+        fechas = (settings or {}).get("fechas") or {}
+        if not isinstance(offsets, dict):
+            offsets = {}
+        if not isinstance(fechas, dict):
+            fechas = {}
+        if not offsets and not fechas:
             continue
+
+        opened: dict[str, datetime] = {}
+
+        # Fecha fija: igual para todos, no depende del alta. Se resuelve antes
+        # justamente por eso — si el alta no se pudiera leer, el desfase por
+        # días se cae pero la fecha de la convocatoria sigue valiendo.
+        for chapter_uuid, dia in fechas.items():
+            try:
+                abre = datetime.fromisoformat(str(dia)[:10])
+            except (ValueError, TypeError):
+                continue
+            if abre <= now and (now - abre) <= timedelta(days=21):
+                opened[chapter_uuid] = abre
 
         uo = (
             await db_session.execute(
@@ -408,24 +432,30 @@ async def _module_items(
                 )
             )
         ).scalars().first()
-        if not uo or not uo.creation_date:
-            continue
-        try:
-            enrolled_at = datetime.fromisoformat(uo.creation_date)
-        except (ValueError, TypeError):
-            continue
-
-        opened: dict[str, datetime] = {}
-        for chapter_uuid, offset in offsets.items():
+        enrolled_at = None
+        if uo and uo.creation_date:
             try:
-                days = int(offset or 0)
+                enrolled_at = datetime.fromisoformat(uo.creation_date)
             except (ValueError, TypeError):
-                continue
-            if days <= 0:
-                continue
-            unlock_at = enrolled_at + timedelta(days=days)
-            if unlock_at <= now and (now - unlock_at) <= timedelta(days=21):
-                opened[chapter_uuid] = unlock_at
+                enrolled_at = None
+
+        if enrolled_at is not None:
+            for chapter_uuid, offset in offsets.items():
+                # La fecha fija manda: si un módulo tiene las dos cosas, la
+                # decisión explícita de la convocatoria gana al valor por
+                # defecto. Mismo criterio que los candados.
+                if chapter_uuid in opened or chapter_uuid in fechas:
+                    continue
+                try:
+                    days = int(offset or 0)
+                except (ValueError, TypeError):
+                    continue
+                if days <= 0:
+                    continue
+                unlock_at = enrolled_at + timedelta(days=days)
+                if unlock_at <= now and (now - unlock_at) <= timedelta(days=21):
+                    opened[chapter_uuid] = unlock_at
+
         if not opened:
             continue
 
@@ -445,7 +475,13 @@ async def _module_items(
                     "kind": "module",
                     "title": f"Has desbloqueado {chapter.name}",
                     "excerpt": "Ya puedes entrar. Te toca seguir por aquí.",
-                    "url": f"/course/{course_ref}" if course_ref else "/courses",
+                    # A la Formación si el capítulo no trae curso, no al
+                    # índice `/courses`, que la escuela esconde.
+                    "url": (
+                        f"/course/{course_ref}"
+                        if course_ref
+                        else "/course/8a1d1fab-ffbb-44ef-8f21-04ef63676d6e"
+                    ),
                     "date": opened[chapter.chapter_uuid].isoformat(),
                 }
             )
