@@ -41,6 +41,12 @@ export interface DirectMessage {
    */
   real_author_name?: string
   from_staff: boolean
+  /** El mensaje al que contesta, ya resuelto por el servidor. */
+  reply_to_id?: number | null
+  reply_to_author?: string
+  reply_to_text?: string
+  /** Vacío = sin editar. */
+  edited_at?: string
 }
 
 export interface DirectThread {
@@ -195,6 +201,8 @@ export async function sendDirectMessage(
     attachments?: DirectAttachment[]
     /** Manda además un correo al alumno avisando (sin contar el mensaje). */
     notify?: boolean
+    /** A qué mensaje contesta, si contesta a alguno. */
+    replyToId?: number | null
   },
   accessToken: string | undefined
 ): Promise<DirectMessage | null> {
@@ -207,6 +215,7 @@ export async function sendDirectMessage(
     form.append('attachments', JSON.stringify(params.attachments))
   }
   if (params.notify) form.append('notify', 'true')
+  if (params.replyToId) form.append('reply_to_id', String(params.replyToId))
   if (params.audio) form.append('audio', params.audio, 'nota.webm')
 
   try {
@@ -309,5 +318,71 @@ export async function updateStaffTitles(
     return r.ok
   } catch {
     return false
+  }
+}
+
+
+/** Corregir un mensaje propio. Devuelve el motivo si el servidor dice que no. */
+export async function editDirectMessage(
+  messageId: number,
+  body: string,
+  accessToken: string | undefined
+): Promise<{ ok: boolean; error?: string }> {
+  if (!accessToken) return { ok: false }
+  try {
+    const r = await fetch(`${base()}/message/${messageId}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({ body }),
+    })
+    if (r.ok) return { ok: true }
+    const data = await r.json().catch(() => null)
+    return { ok: false, error: data?.detail || 'No se pudo editar el mensaje.' }
+  } catch {
+    return { ok: false, error: 'No se pudo editar el mensaje.' }
+  }
+}
+
+/** Retirar un mensaje. */
+export async function deleteDirectMessage(
+  messageId: number,
+  accessToken: string | undefined
+): Promise<{ ok: boolean; error?: string }> {
+  if (!accessToken) return { ok: false }
+  try {
+    const r = await fetch(`${base()}/message/${messageId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${accessToken}` },
+      credentials: 'include',
+    })
+    if (r.ok) return { ok: true }
+    const data = await r.json().catch(() => null)
+    return { ok: false, error: data?.detail || 'No se pudo borrar el mensaje.' }
+  } catch {
+    return { ok: false, error: 'No se pudo borrar el mensaje.' }
+  }
+}
+
+/** Borrar una conversación entera. Solo administradores. */
+export async function deleteDirectThread(
+  threadId: number,
+  accessToken: string | undefined
+): Promise<{ ok: boolean; error?: string }> {
+  if (!accessToken) return { ok: false }
+  try {
+    const r = await fetch(`${base()}/thread/${threadId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${accessToken}` },
+      credentials: 'include',
+    })
+    if (r.ok) return { ok: true }
+    const data = await r.json().catch(() => null)
+    return { ok: false, error: data?.detail || 'No se pudo borrar la conversación.' }
+  } catch {
+    return { ok: false, error: 'No se pudo borrar la conversación.' }
   }
 }

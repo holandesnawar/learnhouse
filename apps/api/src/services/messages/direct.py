@@ -524,6 +524,13 @@ async def get_thread(
     # alumno eligió hablar con alguien en particular y tiene que verlo.
     voz_de_equipo = thread.staff_id is None
 
+    # Para resolver las citas sin más viajes a la base de datos, y los dos
+    # nombres que puede llevar una cita.
+    por_id = {m.id: m for m in rows if m.id is not None}
+    alumno = await _user(thread.student_id, db_session)
+    nombre_alumno = _display_name(alumno) if alumno else "El alumno"
+    nombre_equipo = fallback_name
+
     messages: List[DirectMessageRead] = []
     for m in rows:
         author = await _user(m.author_id, db_session)
@@ -544,6 +551,20 @@ async def get_thread(
             cargo = (_title_of(author, titles) if author else fallback_title) if from_staff else ""
             autor_real = ""
 
+        # La cita se resuelve aquí, contra los mensajes de este mismo hilo:
+        # así el front no tiene que pedir nada más para pintarla, y un mensaje
+        # citado que ya se borró simplemente no se cita (en vez de dejar un
+        # hueco raro).
+        citado = por_id.get(m.reply_to_id) if m.reply_to_id else None
+        cita_autor = ""
+        cita_texto = ""
+        if citado is not None:
+            cita_de_equipo = citado.author_id != thread.student_id
+            cita_autor = nombre_equipo if cita_de_equipo else nombre_alumno
+            cita_texto = (citado.body or "").strip()[:140]
+            if not cita_texto:
+                cita_texto = "Nota de voz" if citado.audio_file else "Archivo"
+
         messages.append(
             DirectMessageRead(
                 id=m.id or 0,
@@ -559,6 +580,10 @@ async def get_thread(
                 author_title=cargo,
                 real_author_name=autor_real,
                 from_staff=from_staff,
+                reply_to_id=m.reply_to_id,
+                reply_to_author=cita_autor,
+                reply_to_text=cita_texto,
+                edited_at=m.edited_at or "",
             )
         )
 
@@ -607,6 +632,7 @@ async def post_message(
     db_session: AsyncSession,
     notify: bool = False,
     attachments: str = "",
+    reply_to_id: Optional[int] = None,
 ) -> DirectMessageRead:
     user_id = _uid(current_user)
     org_id = await _default_org_id(user_id, db_session)
@@ -634,6 +660,9 @@ async def post_message(
         audio_seconds=max(0, min(int(audio_seconds or 0), 60 * 10)),
         attachments=json.dumps([f.model_dump() for f in files]) if files else "",
         created_at=now,
+        # Solo se cita algo de ESTE hilo. Sin comprobarlo, un identificador
+        # cualquiera dejaría citar un mensaje de otra conversación.
+        reply_to_id=await _cita_valida(reply_to_id, thread.id or 0, db_session),
     )
     db_session.add(message)
 
@@ -905,3 +934,151 @@ async def open_thread_with(
         thread = await get_or_create_thread(org_id, user_id, db_session, staff_id=peer_id)
 
     return await get_thread(thread.id, current_user, db_session)
+
+
+# ── Editar, borrar y cerrar conversaciones ──────────────────────────────────
+#
+# Hasta septiembre de 2026 esto NO existía: ni el alumno podía retirar un
+# mensaje suyo ni el equipo podía limpiar nada. Un mensaje mandado por error se
+# quedaba ahí para siempre, y las conversaciones de prueba solo se podían
+# borrar entrando a la base de datos a mano.
+
+#: Cuánto tiempo se puede corregir lo que escribiste. Las mismas 12 h que en la
+#: comunidad: lo justo para arreglar una errata o un audio mandado sin querer,
+#: no para reescribir una conversación de la semana pasada.
+VENTANA_EDICION_SEG = 12 * 60 * 60
+
+
+async def _cita_valida(
+    reply_to_id: Optional[int], thread_id: int, db_session: AsyncSession
+) -> Optional[int]:
+    """Devuelve el id solo si ese mensaje existe y es de ESTE hilo."""
+    if not reply_to_id:
+        return None
+    citado = (
+        await db_session.execute(
+            select(DirectMessage).where(
+                DirectMessage.id == reply_to_id,
+                DirectMessage.thread_id == thread_id,
+            )
+        )
+    ).scalars().first()
+    return citado.id if citado else None
+
+
+async def _mensaje_y_permisos(
+    message_id: int,
+    current_user: PublicUser | AnonymousUser,
+    db_session: AsyncSession,
+) -> tuple[DirectMessage, DirectThread, bool, bool]:
+    """El mensaje, su hilo, y si quien pide es del equipo y si es suyo."""
+    user_id = _uid(current_user)
+    message = (
+        await db_session.execute(select(DirectMessage).where(DirectMessage.id == message_id))
+    ).scalars().first()
+    if not message:
+        raise HTTPException(status_code=404, detail="Ese mensaje ya no está")
+
+    thread = (
+        await db_session.execute(select(DirectThread).where(DirectThread.id == message.thread_id))
+    ).scalars().first()
+    if not thread:
+        raise HTTPException(status_code=404, detail="Esa conversación ya no está")
+
+    staff = await is_staff(user_id, thread.org_id, db_session)
+    # El alumno solo entra en SU conversación. Sin esto, cualquiera con el
+    # número de un mensaje podría borrar el de otro.
+    if not staff and thread.student_id != user_id:
+        raise HTTPException(status_code=403, detail="No es tu conversación")
+
+    return message, thread, staff, message.author_id == user_id
+
+
+def _dentro_de_plazo(message: DirectMessage) -> bool:
+    from datetime import datetime
+
+    try:
+        creado = datetime.fromisoformat((message.created_at or "").replace("Z", "+00:00"))
+    except ValueError:
+        # Sin fecha legible no se bloquea: es peor dejar a alguien sin poder
+        # corregir por un formato raro que permitir una edición tardía.
+        return True
+    ahora = datetime.now(creado.tzinfo) if creado.tzinfo else datetime.now()
+    return (ahora - creado).total_seconds() < VENTANA_EDICION_SEG
+
+
+async def edit_message(
+    message_id: int,
+    body: str,
+    current_user: PublicUser | AnonymousUser,
+    db_session: AsyncSession,
+) -> dict:
+    """Corregir lo que escribiste, dentro de las primeras 12 h.
+
+    **Solo lo tuyo, y el equipo tampoco edita lo ajeno.** Cambiar las palabras
+    de otra persona en una conversación privada es ponerle en la boca algo que
+    no dijo; para lo que estorba está borrar.
+    """
+    message, thread, _staff, es_mio = await _mensaje_y_permisos(message_id, current_user, db_session)
+    if not es_mio:
+        raise HTTPException(status_code=403, detail="Solo puedes editar tus mensajes")
+    if not _dentro_de_plazo(message):
+        raise HTTPException(status_code=403, detail="Ya no se puede editar este mensaje")
+
+    texto = (body or "").strip()
+    if not texto:
+        raise HTTPException(status_code=400, detail="El mensaje no puede quedar vacío")
+
+    message.body = texto
+    message.edited_at = _now()
+    db_session.add(message)
+    await db_session.commit()
+    return {"detail": "ok", "id": message_id, "edited_at": message.edited_at}
+
+
+async def delete_message(
+    message_id: int,
+    current_user: PublicUser | AnonymousUser,
+    db_session: AsyncSession,
+) -> dict:
+    """Retirar un mensaje: el tuyo reciente, o cualquiera si atiendes alumnos."""
+    message, thread, staff, es_mio = await _mensaje_y_permisos(message_id, current_user, db_session)
+    if not staff and not (es_mio and _dentro_de_plazo(message)):
+        raise HTTPException(status_code=403, detail="Ya no se puede borrar este mensaje")
+
+    # Las citas que apuntaban a él se quedan huérfanas a propósito: el mensaje
+    # citado desaparece y la cita deja de pintarse (ver `get_thread`). Poner
+    # "mensaje eliminado" sería dejar el rastro de lo que se quiso retirar.
+    await db_session.delete(message)
+    await db_session.commit()
+    return {"detail": "ok", "id": message_id}
+
+
+async def delete_thread(
+    thread_id: int,
+    current_user: PublicUser | AnonymousUser,
+    db_session: AsyncSession,
+) -> dict:
+    """Borrar una conversación entera. **Solo administradores.**
+
+    No es moderar, es tirar la conversación de otra persona: por eso aquí no
+    entra el profe ni el moderador, aunque sí puedan borrar un mensaje suelto.
+    """
+    user_id = _uid(current_user)
+    thread = (
+        await db_session.execute(select(DirectThread).where(DirectThread.id == thread_id))
+    ).scalars().first()
+    if not thread:
+        raise HTTPException(status_code=404, detail="Esa conversación ya no está")
+
+    if not await is_admin_user(user_id, thread.org_id, db_session):
+        raise HTTPException(status_code=403, detail="Solo un administrador puede borrar una conversación")
+
+    mensajes = (
+        await db_session.execute(select(DirectMessage).where(DirectMessage.thread_id == thread_id))
+    ).scalars().all()
+    for m in mensajes:
+        await db_session.delete(m)
+    await db_session.delete(thread)
+    await db_session.commit()
+    return {"detail": "ok", "id": thread_id, "mensajes": len(mensajes)}

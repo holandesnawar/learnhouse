@@ -16,12 +16,16 @@ import {
   mediaSrc,
   openThreadWith,
   sendDirectMessage,
+  editDirectMessage,
+  deleteDirectMessage,
+  deleteDirectThread,
   updateDirectWelcome,
   updateStaffTitles,
   uploadMessageAttachment,
 } from '@services/messages/direct'
 import VoiceRecorder from './VoiceRecorder'
 import ComposerButton from '@components/Objects/Communities/ComposerButton'
+import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { COMPOSER_EMOJIS } from '@/lib/chat/emojis'
 import toast from 'react-hot-toast'
 import {
@@ -35,6 +39,8 @@ import {
   MessageSquare,
   Paperclip,
   Pencil,
+  Reply,
+  Trash2,
   PenSquare,
   Mic,
   Search,
@@ -81,6 +87,16 @@ export default function MessagesPage() {
   const queryClient = useQueryClient()
 
   const [isStaff, setIsStaff] = useState(false)
+  const currentUserId = session?.data?.user?.id as number | undefined
+  const { isAdmin } = useAdminStatus() as any
+  // Corregir, citar y retirar. Hasta septiembre de 2026 nada de esto existía:
+  // un mensaje mandado por error se quedaba para siempre, y las conversaciones
+  // de prueba solo se podían quitar entrando a la base de datos a mano.
+  const [editandoId, setEditandoId] = useState<number | null>(null)
+  const [textoEdicion, setTextoEdicion] = useState('')
+  const [citando, setCitando] = useState<DirectMessage | null>(null)
+  const [borrandoMsg, setBorrandoMsg] = useState<number | null>(null)
+  const [borrandoHilo, setBorrandoHilo] = useState<number | null>(null)
   const [threads, setThreads] = useState<DirectThread[]>([])
   const [activeId, setActiveId] = useState<number | null>(null)
   const [activeTitle, setActiveTitle] = useState('')
@@ -154,6 +170,65 @@ export default function MessagesPage() {
       alive = false
     }
   }, [accessToken, loadThreads, refreshBadge])
+
+  /** Las mismas 12 h que en la comunidad. El servidor manda igualmente. */
+  const VENTANA_MS = 12 * 60 * 60 * 1000
+  const esMio = (m: DirectMessage) => !!currentUserId && m.author_id === currentUserId
+  const aTiempo = (m: DirectMessage) => {
+    const t = m.created_at ? new Date(m.created_at).getTime() : 0
+    return !t || Date.now() - t < VENTANA_MS
+  }
+  const puedoEditar = (m: DirectMessage) => esMio(m) && aTiempo(m)
+  // Retirar: lo tuyo reciente, o cualquier cosa si atiendes alumnos.
+  const puedoBorrar = (m: DirectMessage) => isStaff || (esMio(m) && aTiempo(m))
+
+  const recargarConversacion = async () => {
+    if (!activeId) return
+    const detail = await getThread(activeId, accessToken)
+    if (detail) setMessages(detail.messages)
+  }
+
+  const guardarEdicion = async () => {
+    if (!editandoId) return
+    const res = await editDirectMessage(editandoId, textoEdicion, accessToken)
+    if (!res.ok) {
+      toast.error(res.error || 'No se pudo editar el mensaje.')
+      return
+    }
+    setEditandoId(null)
+    setTextoEdicion('')
+    await recargarConversacion()
+  }
+
+  const borrarMensaje = async (id: number) => {
+    const res = await deleteDirectMessage(id, accessToken)
+    setBorrandoMsg(null)
+    if (!res.ok) {
+      toast.error(res.error || 'No se pudo borrar el mensaje.')
+      return
+    }
+    // Fuera de la lista al momento: si el servidor dice que sí y la pantalla no
+    // cambia, parece que no ha pasado nada.
+    setMessages((cur) => cur.filter((m) => m.id !== id))
+    if (citando?.id === id) setCitando(null)
+    await loadThreads()
+  }
+
+  const borrarConversacion = async (id: number) => {
+    const res = await deleteDirectThread(id, accessToken)
+    setBorrandoHilo(null)
+    if (!res.ok) {
+      toast.error(res.error || 'No se pudo borrar la conversación.')
+      return
+    }
+    if (activeId === id) {
+      setActiveId(null)
+      setMessages([])
+      setMobileView('list')
+    }
+    await loadThreads()
+    toast.success('Conversación borrada.')
+  }
 
   const openThread = async (id: number, title: string, avatar = '', role = '') => {
     setActiveId(id)
@@ -253,13 +328,14 @@ export default function MessagesPage() {
     if ((!body && !pending.length) || sending || !activeId) return
     setSending(true)
     const m = await sendDirectMessage(
-      { threadId: activeId, body, notify, attachments: pending },
+      { threadId: activeId, body, notify, attachments: pending, replyToId: citando?.id ?? null },
       accessToken
     )
     setSending(false)
     if (m) {
       setText('')
       setPending([])
+      setCitando(null)
     }
     // El aviso se apaga después de cada envío: así escribir tres mensajes
     // seguidos no manda tres correos sin querer. Se vuelve a encender a mano
@@ -351,9 +427,49 @@ export default function MessagesPage() {
               : 'Aquí aparecerán tus conversaciones con el equipo. Estamos preparando la tuya, vuelve en un momento.'}
           </p>
         ) : (
-          threads.map((t) => (
+          threads.map((t) =>
+            borrandoHilo === t.id ? (
+              <div key={t.id} className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5">
+                <p className="text-[13px] font-semibold text-rose-800">
+                  ¿Borrar la conversación con {t.title || t.student_name}?
+                </p>
+                <p className="text-[12px] text-rose-700/80 mt-0.5">
+                  Se van todos sus mensajes. No se puede deshacer.
+                </p>
+                <div className="flex items-center gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => borrarConversacion(t.id)}
+                    className="px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700"
+                  >
+                    Borrar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBorrandoHilo(null)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-white"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+            <div key={t.id} className="group/hilo relative">
+            {/* Borrar la conversación entera: solo administradores. No es
+                moderar, es tirar la conversación de otra persona — por eso no
+                entra el profe, aunque sí pueda retirar un mensaje suelto. */}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setBorrandoHilo(t.id) }}
+                aria-label="Borrar la conversación"
+                title="Borrar la conversación"
+                className="absolute top-1.5 right-1.5 z-10 p-1.5 rounded-md text-gray-300 hover:text-rose-600 hover:bg-rose-50 transition-colors lg:opacity-0 lg:group-hover/hilo:opacity-100"
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
             <button
-              key={t.id}
               onClick={() => openThread(t.id, t.title, t.title_avatar, t.title_role)}
               className={`w-full text-left rounded-xl border px-3 py-2.5 transition-colors ${
                 activeId === t.id
@@ -385,7 +501,9 @@ export default function MessagesPage() {
                 </span>
               )}
             </button>
-          ))
+            </div>
+            )
+          )
         )}
       </div>
     </div>
@@ -425,14 +543,78 @@ export default function MessagesPage() {
             Aquí no hay nada todavía. Escribe lo que necesites.
           </p>
         ) : (
-          messages.map((m) => (
-            <Bubble
-              key={m.id}
-              m={m}
-              mine={isStaff ? m.from_staff : !m.from_staff}
-              peerName={activeTitle}
-            />
-          ))
+          messages.map((m) =>
+            editandoId === m.id ? (
+              <div key={m.id} className="px-1">
+                <textarea
+                  value={textoEdicion}
+                  onChange={(e) => {
+                    setTextoEdicion(e.target.value)
+                    e.currentTarget.style.height = 'auto'
+                    e.currentTarget.style.height = `${Math.min(e.currentTarget.scrollHeight, 280)}px`
+                  }}
+                  ref={(el) => {
+                    if (!el) return
+                    el.style.height = 'auto'
+                    el.style.height = `${Math.min(el.scrollHeight, 280)}px`
+                  }}
+                  autoFocus
+                  className="w-full resize-y min-h-[72px] rounded-xl bg-white border border-[#4da3ff] px-3 py-2 text-sm leading-relaxed text-gray-900 outline-none focus:ring-2 focus:ring-[#4da3ff]/25"
+                />
+                <div className="flex items-center gap-2 mt-1.5">
+                  <button
+                    type="button"
+                    onClick={guardarEdicion}
+                    className="px-3 py-1.5 rounded-lg bg-[#025dc7] text-white text-xs font-semibold hover:bg-[#0b6df0]"
+                  >
+                    Guardar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setEditandoId(null); setTextoEdicion('') }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : borrandoMsg === m.id ? (
+              <div
+                key={m.id}
+                className="mx-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5"
+              >
+                <p className="text-[13px] text-rose-800">¿Retirar este mensaje?</p>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <button
+                    type="button"
+                    onClick={() => borrarMensaje(m.id)}
+                    className="px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700"
+                  >
+                    Retirar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBorrandoMsg(null)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-white"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <Bubble
+                key={m.id}
+                m={m}
+                mine={isStaff ? m.from_staff : !m.from_staff}
+                peerName={activeTitle}
+                puedeEditar={puedoEditar(m)}
+                puedeBorrar={puedoBorrar(m)}
+                onCitar={() => setCitando(m)}
+                onEditar={() => { setEditandoId(m.id); setTextoEdicion(m.body || '') }}
+                onBorrar={() => setBorrandoMsg(m.id)}
+              />
+            )
+          )
         )}
       </div>
 
@@ -468,6 +650,30 @@ export default function MessagesPage() {
           debajo y sin bolitas grises. Que Mis mensajes y la comunidad se
           escriban igual es lo que hace que la escuela parezca una sola cosa. */}
       <div className="shrink-0 border-t border-[#EEF3FB] px-3 py-3">
+        {/* A quién estás contestando, encima del cuadro de escribir: si la cita
+            no se ve mientras escribes, se manda sin querer una respuesta a un
+            mensaje que ya no recuerdas. */}
+        {citando && (
+          <div className="mb-2 flex items-start gap-2 rounded-xl bg-[#F0F5FF] border border-[#DDE6F5] px-3 py-2">
+            <Reply size={14} className="shrink-0 mt-0.5 text-[#025dc7]" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[11.5px] font-bold text-[#025dc7]">
+                Respondes a {citando.from_staff ? citando.author_name : 'este mensaje'}
+              </p>
+              <p className="text-[12px] text-gray-500 line-clamp-2">
+                {citando.body || (citando.audio_url ? 'Nota de voz' : 'Archivo')}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCitando(null)}
+              aria-label="Quitar la cita"
+              className="shrink-0 p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-white transition-colors"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        )}
         {recording && (
           <div className="mb-2 rounded-xl bg-white border border-[#E3E8EF] px-3 py-2.5">
             <div className="flex items-center justify-between mb-1.5">
@@ -849,10 +1055,20 @@ function Bubble({
   m,
   mine,
   peerName,
+  puedeEditar,
+  puedeBorrar,
+  onCitar,
+  onEditar,
+  onBorrar,
 }: {
   m: DirectMessage
   mine: boolean
   peerName: string
+  puedeEditar: boolean
+  puedeBorrar: boolean
+  onCitar: () => void
+  onEditar: () => void
+  onBorrar: () => void
 }) {
   // El nombre solo si NO es el de la cabecera: repetir "Team Nawar" en cada
   // burbuja de una conversación con Team Nawar es ruido. Si contesta otra
@@ -879,10 +1095,50 @@ function Bubble({
         })
       : ''
   return (
-    <div className={`flex gap-2 ${mine ? 'justify-end' : 'justify-start'}`}>
+    <div className={`group/msg flex gap-2 ${mine ? 'justify-end' : 'justify-start'}`}>
       {/* La foto solo en los mensajes del otro: los tuyos ya sabes quién eres */}
       {!mine && <Avatar src={m.author_avatar} name={m.author_name} />}
-      <div className="max-w-[85%] sm:max-w-[70%]">
+      <div className="relative max-w-[85%] sm:max-w-[70%]">
+        {/* La barra se apoya ENCIMA del globo, no sobre él: en un mensaje de
+            una línea, montada a media altura, taparía justo el texto que vas a
+            leer o a editar. Mismo criterio que en la comunidad. */}
+        <div
+          className={`absolute bottom-full mb-1 z-10 flex items-center gap-0.5 rounded-lg border border-[#E3E8EF] bg-white px-0.5 py-0.5 shadow-sm opacity-0 group-hover/msg:opacity-100 focus-within:opacity-100 transition-opacity ${
+            mine ? 'right-0' : 'left-0'
+          }`}
+        >
+          <button
+            type="button"
+            onClick={onCitar}
+            aria-label="Responder a este mensaje"
+            title="Responder a este mensaje"
+            className="p-1.5 rounded-md text-[#8A96AB] hover:text-[#025dc7] hover:bg-[#F0F5FF] transition-colors"
+          >
+            <Reply size={14} />
+          </button>
+          {puedeEditar && (
+            <button
+              type="button"
+              onClick={onEditar}
+              aria-label="Editar"
+              title="Editar"
+              className="p-1.5 rounded-md text-[#8A96AB] hover:text-[#025dc7] hover:bg-[#F0F5FF] transition-colors"
+            >
+              <Pencil size={14} />
+            </button>
+          )}
+          {puedeBorrar && (
+            <button
+              type="button"
+              onClick={onBorrar}
+              aria-label="Retirar"
+              title="Retirar"
+              className="p-1.5 rounded-md text-[#8A96AB] hover:text-rose-600 hover:bg-rose-50 transition-colors"
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
+        </div>
         <div
           className={`rounded-2xl px-3.5 py-2.5 ${
             mine
@@ -958,8 +1214,29 @@ function Bubble({
               })}
             </div>
           )}
+          {m.reply_to_text && (
+            <div
+              className={`mb-1.5 border-l-2 pl-2 py-0.5 ${
+                mine ? 'border-white/50' : 'border-[#4da3ff]'
+              }`}
+            >
+              <p className={`text-[11px] font-bold ${mine ? 'text-white/80' : 'text-[#025dc7]'}`}>
+                {m.reply_to_author}
+              </p>
+              <p className={`text-[12px] line-clamp-2 ${mine ? 'text-white/70' : 'text-gray-500'}`}>
+                {m.reply_to_text}
+              </p>
+            </div>
+          )}
           {m.body && (
-            <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{m.body}</p>
+            <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
+              {m.body}
+              {m.edited_at && (
+                <span className={`ml-1.5 text-[10px] ${mine ? 'text-white/60' : 'text-gray-400'}`}>
+                  · editado
+                </span>
+              )}
+            </p>
           )}
           {m.audio_url && (
             <audio

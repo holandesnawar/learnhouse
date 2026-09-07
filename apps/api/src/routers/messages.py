@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Body, Depends, File, Form, UploadFile
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.core.events.database import get_db_session
@@ -15,7 +15,10 @@ from src.db.direct_messages import (
 from src.db.users import PublicUser
 from src.security.auth import get_current_user
 from src.services.messages.direct import (
+    delete_message,
+    delete_thread,
     directory,
+    edit_message,
     get_thread,
     list_threads,
     mark_read,
@@ -89,6 +92,8 @@ async def api_send(
     # Solo lo usa el equipo: manda además un correo avisando al alumno (sin
     # contar lo que dice el mensaje).
     notify: bool = Form(False),
+    # A qué mensaje contesta, si contesta a alguno.
+    reply_to_id: Optional[int] = Form(None),
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ) -> DirectMessageRead:
@@ -101,7 +106,45 @@ async def api_send(
         db_session,
         notify,
         attachments=attachments,
+        reply_to_id=reply_to_id,
     )
+
+
+@router.patch(
+    "/message/{message_id}",
+    summary="Corregir un mensaje propio (12 h).",
+)
+async def api_edit_message(
+    message_id: int,
+    body: str = Body(..., embed=True),
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+) -> dict:
+    return await edit_message(message_id, body, current_user, db_session)
+
+
+@router.delete(
+    "/message/{message_id}",
+    summary="Retirar un mensaje (el tuyo reciente, o cualquiera si atiendes alumnos).",
+)
+async def api_delete_message(
+    message_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+) -> dict:
+    return await delete_message(message_id, current_user, db_session)
+
+
+@router.delete(
+    "/thread/{thread_id}",
+    summary="Borrar una conversación entera. Solo administradores.",
+)
+async def api_delete_thread(
+    thread_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+) -> dict:
+    return await delete_thread(thread_id, current_user, db_session)
 
 
 @router.post(

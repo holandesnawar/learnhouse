@@ -75,6 +75,14 @@ class DirectMessage(SQLModel, table=True):
     # producción (ver `_ADDED_COLUMNS`) y TEXT entra en cualquier motor.
     attachments: str = Field(default="", sa_column=Column(Text))
     created_at: str = ""
+    # A qué mensaje contesta, para citarlo encima. Nulo = no cita a nadie.
+    # En un hilo de dos personas la cita no sirve para saber QUIÉN habla, sino a
+    # CUÁL de las tres cosas que preguntaste se está contestando.
+    reply_to_id: Optional[int] = Field(default=None, index=True)
+    # Cuándo se editó por última vez. Vacío = no se ha tocado. Se enseña al
+    # lado del mensaje: un texto que cambia sin avisar es peor que uno con
+    # faltas.
+    edited_at: str = ""
 
 
 class DirectAttachment(BaseModel):
@@ -112,6 +120,12 @@ class DirectMessageRead(BaseModel):
     real_author_name: str = ""
     # True si lo manda el equipo (para pintarlo del lado que toca).
     from_staff: bool
+    # La cita: a quién y qué, ya recortado. Vacío = este mensaje no cita nada.
+    reply_to_id: Optional[int] = None
+    reply_to_author: str = ""
+    reply_to_text: str = ""
+    # Vacío = sin editar.
+    edited_at: str = ""
 
 
 class DirectThreadRead(BaseModel):

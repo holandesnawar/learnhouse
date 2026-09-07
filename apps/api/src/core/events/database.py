@@ -362,6 +362,9 @@ _ADDED_COLUMNS = [
     "ALTER TABLE IF EXISTS lesson_highlight ADD COLUMN IF NOT EXISTS block_key VARCHAR(120) DEFAULT ''",
     # Cuándo se atendió cada matrícula pagada (correo de bienvenida + factura).
     "ALTER TABLE IF EXISTS enrollment ADD COLUMN IF NOT EXISTS provisioned_at VARCHAR DEFAULT ''",
+    # Citar y editar en los mensajes directos.
+    "ALTER TABLE IF EXISTS direct_message ADD COLUMN IF NOT EXISTS reply_to_id INTEGER",
+    "ALTER TABLE IF EXISTS direct_message ADD COLUMN IF NOT EXISTS edited_at VARCHAR DEFAULT ''",
 ]
 
 
