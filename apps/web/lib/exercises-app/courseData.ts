@@ -108,13 +108,13 @@ const m1_les1: Lesson = {
         },
         {
           heading: '💬 Frases modelo',
-          body: 'Con estas cinco frases ya puedes presentarte entero/a:',
+          body: 'Con estas cinco frases ya puedes presentarte por completo:',
           items: [
             { nl: 'Mijn naam is Maria', es: 'Mi nombre es María' },
             { nl: 'Ik ben 35 jaar', es: 'Tengo 35 años' },
             { nl: 'Ik ben Spaans', es: 'Soy español/a' },
             { nl: 'Ik woon in Groningen', es: 'Vivo en Groninga' },
-            { nl: 'Ik kom uit Colombia', es: 'Vengo de Colombia' },
+            { nl: 'Ik kom uit Colombia', es: 'Vengo de Colombia / Soy de Colombia' },
           ],
         },
         {
@@ -221,7 +221,7 @@ Café o té: 1 euro`,
         { id: 'm1l1lz-4', type: 'multiple_choice', prompt: '¿Cuánto cuesta ir?', options: ['Nada, es gratis', 'Un euro', 'Cinco euros', 'No lo dice'], correctAnswer: 'Nada, es gratis', explanation: '"Het is gratis."' },
         { id: 'm1l1lz-5', type: 'multiple_choice', prompt: '¿Y cuánto cuesta un café?', options: ['Un euro', 'Es gratis', 'Dos euros', 'Cuatro euros'], correctAnswer: 'Un euro', explanation: '"Koffie of thee: 1 euro." Ojo: la entrada es gratis, el café no.' },
         { id: 'm1l1lz-6', type: 'multiple_choice', prompt: '¿Cuánta gente viene cada semana?', options: ['Unas veinte personas', 'Cuatro personas', 'Cien personas', 'No lo dice'], correctAnswer: 'Unas veinte personas', explanation: '"ongeveer twintig mensen": ongeveer = aproximadamente.' },
-        { id: 'm1l1lz-7', type: 'true_false', prompt: 'Hay que apuntarse antes de ir.', correctAnswer: 'falso', explanation: '"Aanmelden is niet nodig": no hace falta apuntarse.' },
+        { id: 'm1l1lz-7', type: 'true_false', prompt: 'Hay que apuntarse antes de ir.', correctAnswer: 'falso', explanation: '"Aanmelden is niet nodig": no hace falta apuntarse. Ojo: el verbo entero es "zich aanmelden", con pronombre reflexivo, así que se dice "ik meld me aan" y no "ik meld aan". En los carteles el reflexivo se cae, por eso aquí pone "Aanmelden is niet nodig".' },
         { id: 'm1l1lz-8', type: 'multiple_choice', prompt: '¿Cuánta gente se sienta en cada mesa?', options: ['Cuatro o cinco', 'Veinte', 'Dos', 'Diez'], correctAnswer: 'Cuatro o cinco', explanation: '"Aan elke tafel zitten vier of vijf mensen."' },
         { id: 'm1l1lz-9', type: 'multiple_choice', prompt: '¿En qué calle está la biblioteca?', options: ['Neude 11', 'Kerkstraat 12', 'Neude 14', 'No lo dice'], correctAnswer: 'Neude 11', explanation: '"bibliotheek Utrecht, Neude 11". La dirección es un dato típico de examen.' },
         { id: 'm1l1lz-10', type: 'fill_blank', prompt: 'Je vertelt hoe je ___. (te llamas)', correctAnswer: 'heet', hint: 'del verbo heten', explanation: '"Je vertelt hoe je heet en waar je vandaan komt."' },
@@ -718,7 +718,7 @@ De meeste mensen werken van maandag tot vrijdag. Ze beginnen om negen uur en ze 
 Maar niet iedereen werkt zo. In een ziekenhuis werken mensen ook 's nachts. In een winkel werken mensen ook op zaterdag. In een restaurant werken mensen 's avonds.
 
 Thuis werken
-Steeds meer mensen werken thuis. Ze werken met een computer. Ze reizen niet met de trein of met de auto. Dat kost minder tijd en minder geld.
+Steeds meer mensen werken thuis. Ze werken met een computer. Ze reizen niet met de trein of met de auto. Thuis werken kost minder tijd en minder geld.
 
 Vier dagen per week
 Veel mensen in Nederland werken niet vijf dagen, maar vier dagen. In andere landen doen weinig mensen dat. Nederland is nummer één in Europa.`,
@@ -729,7 +729,7 @@ La mayoría trabaja de lunes a viernes. Empiezan a las nueve y paran a las cinco
 Pero no todo el mundo trabaja así. En un hospital la gente trabaja también de noche. En una tienda la gente trabaja también el sábado. En un restaurante la gente trabaja por la noche.
 
 Trabajar en casa
-Cada vez más gente trabaja en casa. Trabajan con un ordenador. No viajan ni en tren ni en coche. Eso cuesta menos tiempo y menos dinero.
+Cada vez más gente trabaja en casa. Trabajan con un ordenador. No viajan ni en tren ni en coche. Trabajar en casa cuesta menos tiempo y menos dinero.
 
 Cuatro días por semana
 Mucha gente en Países Bajos no trabaja cinco días, sino cuatro. En otros países eso lo hace poca gente. Países Bajos es el número uno de Europa.`,
@@ -739,8 +739,8 @@ Mucha gente en Países Bajos no trabaja cinco días, sino cuatro. En otros país
         { id: 'm1l3lz-3', type: 'multiple_choice', prompt: '¿A qué hora paran?', options: ['A las cinco', 'A las nueve', 'A las seis', 'A las cuatro'], correctAnswer: 'A las cinco', explanation: '"ze stoppen om vijf uur".' },
         { id: 'm1l3lz-4', type: 'multiple_choice', prompt: '¿Dónde se trabaja también de noche?', options: ['En un hospital', 'En una tienda', 'En una escuela', 'En una oficina'], correctAnswer: 'En un hospital', explanation: '"In een ziekenhuis werken mensen ook \'s nachts."' },
         { id: 'm1l3lz-5', type: 'multiple_choice', prompt: '¿Dónde se trabaja también el sábado?', options: ['En una tienda', 'En un hospital', 'En un banco', 'En una escuela'], correctAnswer: 'En una tienda', explanation: '"In een winkel werken mensen ook op zaterdag."' },
-        { id: 'm1l3lz-6', type: 'true_false', prompt: 'Quien trabaja en casa viaja en tren todos los días.', correctAnswer: 'falso', explanation: '"Zij reizen niet met de trein of met de auto."' },
-        { id: 'm1l3lz-7', type: 'multiple_choice', prompt: '¿Por qué trabajar en casa cuesta menos?', options: ['Porque no hay que viajar', 'Porque se trabaja menos', 'Porque el ordenador es gratis', 'Porque se empieza más tarde'], correctAnswer: 'Porque no hay que viajar', explanation: 'No usan tren ni coche: "Dat kost minder tijd en minder geld."' },
+        { id: 'm1l3lz-6', type: 'true_false', prompt: 'Cada vez menos gente trabaja en casa.', correctAnswer: 'falso', explanation: '"Steeds meer mensen werken thuis": steeds meer = cada vez más, no cada vez menos.' },
+        { id: 'm1l3lz-7', type: 'multiple_choice', prompt: '¿Por qué trabajar en casa cuesta menos?', options: ['Porque no hay que viajar', 'Porque se trabaja menos', 'Porque el ordenador es gratis', 'Porque se empieza más tarde'], correctAnswer: 'Porque no hay que viajar', explanation: 'No usan tren ni coche: "Thuis werken kost minder tijd en minder geld."' },
         { id: 'm1l3lz-8', type: 'multiple_choice', prompt: '¿Cuántos días por semana trabaja mucha gente en Países Bajos?', options: ['Cuatro', 'Cinco', 'Seis', 'Tres'], correctAnswer: 'Cuatro', explanation: '"niet vijf dagen, maar vier dagen". Es de las cosas más neerlandesas que hay.' },
         { id: 'm1l3lz-9', type: 'fill_blank', prompt: 'Ze ___ met een computer. (trabajar, ellos)', correctAnswer: 'werken', hint: 'plural: el verbo va entero', explanation: 'Con zij / wij / jullie el verbo va en infinitivo: werken.' },
         { id: 'm1l3lz-10', type: 'fill_blank', prompt: 'Steeds meer mensen ___ thuis. (trabajar)', correctAnswer: 'werken', hint: '"mensen" es plural' },

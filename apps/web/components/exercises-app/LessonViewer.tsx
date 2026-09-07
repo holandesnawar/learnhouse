@@ -18,6 +18,7 @@ import { useLHSession } from '@components/Contexts/LHSessionContext';
 import useAdminStatus from '@components/Hooks/useAdminStatus';
 import { saveItemResult } from '@/lib/exercises/exercises';
 import { saveLastAttempt, getLastAttempt, type LastAttempt } from '@/lib/exercises-app/lastAttempts';
+import { aciertaEnEspanol } from '@/lib/exercises-app/answerCheck';
 import { markLessonCompletedRemote, patchStudentProgress, listLessonCompletions } from '@services/student/progress';
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -3067,7 +3068,9 @@ function ListenTranslateExercise({ exercise, onAnswer }: { exercise: ExerciseIte
   const [sentence, setSentence] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const composed = sentence.join(' ');
-  const isCorrect = composed.trim().toLowerCase() === exercise.correctAnswer.trim().toLowerCase();
+  // El español deja caer el sujeto que el neerlandés obliga a poner, así que
+  // "Vamos a Amberes" vale igual que "Nosotras vamos a Amberes". Ver answerCheck.ts.
+  const isCorrect = aciertaEnEspanol(composed, exercise.correctAnswer);
 
   function addWord(word: string, idx: number) {
     if (submitted) return;
