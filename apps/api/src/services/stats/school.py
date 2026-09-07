@@ -57,7 +57,19 @@ def _sale_date(row: Enrollment) -> str:
 async def _sales_block(org_id: int, db_session: AsyncSession) -> dict:
     rows = (await db_session.execute(select(Enrollment))).scalars().all()
 
-    paid = [r for r in rows if r.status == "paid"]
+    # La misma fecha de corte que las plazas (`LEARNHOUSE_FORMACION_DESDE`): las
+    # matrículas de prueba de antes de abrir siguen guardadas, pero no cuentan
+    # como ventas. Si las estadísticas contaran una cosa y el contador de plazas
+    # otra, cada pantalla diría un número distinto y no habría forma de saber
+    # cuál es el bueno.
+    from src.services.payments.payments import _desde_cuando
+
+    desde = _desde_cuando()
+    paid = [
+        r
+        for r in rows
+        if r.status == "paid" and (not desde or (r.paid_at or "") >= desde)
+    ]
     sales = [
         {
             "date": _sale_date(r),
@@ -77,7 +89,11 @@ async def _sales_block(org_id: int, db_session: AsyncSession) -> dict:
     cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
     recent = [s for s in sales if s["date"] and s["date"] >= cutoff]
 
-    started = len(rows)
+    # El embudo también empieza en la fecha de corte: si no, las pruebas
+    # contarían como "gente que se matriculó y no pagó" e inflarían el abandono.
+    # `created_at` y no `paid_at`, porque una matrícula empezada nunca llega a
+    # tener fecha de pago.
+    started = len([r for r in rows if not desde or (r.created_at or "") >= desde])
     return {
         "total_sales": len(paid),
         "total_revenue_cents": total_revenue,
@@ -150,18 +166,35 @@ async def _course_block(org_id: int, db_session: AsyncSession) -> list[dict]:
         await db_session.execute(select(Course).where(Course.org_id == org_id))
     ).scalars().all()
 
+    # Solo cuentan los ALUMNOS. Antes contaba a cualquiera que hubiera abierto
+    # una lección, así que las cuentas de prueba y las del equipo —que entran a
+    # revisar el contenido— salían en el avance por módulos como si fueran
+    # alumnos estudiando. Cambiarle el rol a una cuenta de prueba ahora la deja
+    # fuera de aquí también, sin borrar nada.
+    alumnos_ids = set(
+        (
+            await db_session.execute(
+                select(UserOrganization.user_id).where(
+                    UserOrganization.org_id == org_id,
+                    UserOrganization.role_id == STUDENT_ROLE_ID,
+                )
+            )
+        ).scalars().all()
+    )
+
     out: list[dict] = []
     for course in courses:
         if course.id is None:
             continue
 
-        started = (
+        iniciados = (
             await db_session.execute(
-                select(func.count(func.distinct(TrailRun.user_id))).where(
+                select(func.distinct(TrailRun.user_id)).where(
                     TrailRun.course_id == course.id
                 )
             )
-        ).scalar() or 0
+        ).scalars().all()
+        started = len([u for u in iniciados if u in alumnos_ids])
 
         # Qué ha completado cada alumno. Se traen los pares (alumno, clase) y
         # se cuenta en memoria: con esto se puede saber quién terminó un módulo
@@ -177,6 +210,9 @@ async def _course_block(org_id: int, db_session: AsyncSession) -> list[dict]:
         ).all()
         done_by_user: dict[int, set[int]] = {}
         for user_id, activity_id in step_rows:
+            # Solo alumnos, por lo mismo que arriba.
+            if int(user_id) not in alumnos_ids:
+                continue
             done_by_user.setdefault(int(user_id), set()).add(int(activity_id))
 
         # Se cuenta desde los conjuntos por alumno: si algún día hubiera dos
