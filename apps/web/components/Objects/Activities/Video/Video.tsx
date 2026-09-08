@@ -4,6 +4,11 @@ import { getActivityVideoStreamUrl } from '@services/media/media'
 import { useOrg } from '@components/Contexts/OrgContext'
 import LearnHousePlayer from './LearnHousePlayer'
 
+// Píxeles del borde de abajo del reproductor de Bunny que se dejan fuera de la
+// caja (ver el comentario largo junto al iframe). Medido en directo: la línea
+// negra son 3-4 px; 6 da margen para pantallas retina sin comerse los mandos.
+const RECORTE_ABAJO_PX = 6
+
 interface VideoDetails {
   startTime?: number
   endTime?: number | null
@@ -214,14 +219,23 @@ function VideoActivity({ activity, course, orgUuid, onPlay, onProgress }: VideoA
                   que mide, y ese hueco se ve negro porque es el fondo del
                   documento de dentro del iframe. Cambiado al truco del
                   padding-bottom para que mida exactamente lo que Bunny espera. */}
-              <div className="relative w-full rounded-lg overflow-hidden" style={{ paddingTop: '56.25%' }}>
+              {/* Y aun con la caja exacta quedaba una línea negra de 3-4 px
+                  abajo (sept 2026, en directo). Tres intentos cambiando la
+                  proporción de la caja no la quitaron: Bunny vuelve a encajar
+                  el reproductor a lo que le des y la franja reaparece.
+                  Así que la caja NO se toca más. Lo que se hace es dejar el
+                  iframe exactamente a 16:9 (Bunny ve el mismo tamaño de
+                  siempre) y hacer la caja `RECORTE_ABAJO_PX` más baja: esos
+                  píxeles de abajo quedan fuera y `overflow-hidden` los tapa.
+                  Es el único número que hay que tocar si vuelve a verse algo. */}
+              <div className="relative w-full rounded-lg overflow-hidden" style={{ paddingTop: `calc(56.25% - ${RECORTE_ABAJO_PX}px)` }}>
                 <iframe
                   key={activity.activity_uuid}
                   ref={bunnyIframeRef}
                   src={getBunnySrc()}
                   loading="lazy"
-                  className="absolute inset-0 w-full h-full"
-                  style={{ border: 0 }}
+                  className="absolute top-0 left-0 w-full"
+                  style={{ border: 0, height: `calc(100% + ${RECORTE_ABAJO_PX}px)` }}
                   allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;fullscreen;"
                   allowFullScreen
                 />
