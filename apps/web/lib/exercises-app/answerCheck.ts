@@ -11,6 +11,9 @@
 // cual y la MISMA respuesta sin SU pronombre inicial. No se aceptan pronombres
 // que el alumno añada por su cuenta, porque las fichas traen distractores y
 // "Ellos vamos a Amberes" no es español.
+//
+// Además, un ejercicio puede traer `alsoAccept` con otras traducciones que
+// también valen ("con una Z" además de "con Z"); reciben el mismo trato.
 
 // Solo pronombres de SUJETO, y con tilde donde la lleva.
 // Ojo con lo que NO está: "el" sin tilde es artículo ("El árbol es grande") y
@@ -37,20 +40,24 @@ function normalizar(texto: string): string {
   return texto.trim().toLowerCase().replace(/\s+/g, ' ')
 }
 
-/** Las formas que damos por buenas para una traducción al español. */
-export function respuestasValidasEs(correcta: string): string[] {
-  const base = normalizar(correcta)
+function variantes(respuesta: string): string[] {
+  const base = normalizar(respuesta)
   if (!base) return []
-
-  const validas = [base]
+  const lista = [base]
   const [primera, ...resto] = base.split(' ')
   if (PRONOMBRES_SUJETO.includes(primera) && resto.length > 0) {
-    validas.push(resto.join(' '))
+    lista.push(resto.join(' '))
   }
-  return validas
+  return lista
+}
+
+/** Las formas que damos por buenas para una traducción al español. */
+export function respuestasValidasEs(correcta: string, otras: string[] = []): string[] {
+  const todas = [correcta, ...otras].flatMap(variantes)
+  return Array.from(new Set(todas))
 }
 
 /** ¿La frase que ha compuesto el alumno vale como traducción? */
-export function aciertaEnEspanol(compuesta: string, correcta: string): boolean {
-  return respuestasValidasEs(correcta).includes(normalizar(compuesta))
+export function aciertaEnEspanol(compuesta: string, correcta: string, otras: string[] = []): boolean {
+  return respuestasValidasEs(correcta, otras).includes(normalizar(compuesta))
 }

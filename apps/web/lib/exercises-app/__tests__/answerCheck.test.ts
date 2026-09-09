@@ -40,4 +40,13 @@ describe('traducción al español sin pronombre', () => {
   test('la frase incorrecta sigue siendo incorrecta', () => {
     expect(aciertaEnEspanol('Vamos a casa', 'Nosotras vamos a Amberes')).toBe(false)
   })
+
+  test('alsoAccept: otras traducciones que también valen, con el mismo trato', () => {
+    const otras = ['Mi apellido empieza con una Z']
+    expect(aciertaEnEspanol('Mi apellido empieza con una Z', 'Mi apellido empieza con Z', otras)).toBe(true)
+    expect(aciertaEnEspanol('Mi apellido empieza con Z', 'Mi apellido empieza con Z', otras)).toBe(true)
+    expect(aciertaEnEspanol('Mi apellido termina con Z', 'Mi apellido empieza con Z', otras)).toBe(false)
+    // Y a las alternativas también se les cae el pronombre.
+    expect(aciertaEnEspanol('Hago deporte por la noche', 'Yo hago deporte por la tarde', ['Yo hago deporte por la noche'])).toBe(true)
+  })
 })

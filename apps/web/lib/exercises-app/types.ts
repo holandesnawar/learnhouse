@@ -71,6 +71,12 @@ export interface ExerciseItem {
   promptNl?: string;
   options?: string[];
   correctAnswer: string;
+  /**
+   * Otras respuestas que también valen, además de `correctAnswer` (p. ej. la
+   * traducción con "una Z" y con "Z" a secas). De momento la mira
+   * "Escucha y traduce" (`answerCheck.ts`).
+   */
+  alsoAccept?: string[];
   audio?: AudioTrack;
   hint?: string;
   explanation?: string;
