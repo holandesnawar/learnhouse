@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { textoParaVoz } from '@/lib/exercises-app/pronunciacion'
 
 /**
  * Text-to-Speech en NEERLANDÉS con ElevenLabs (voz de la cuenta del usuario).
@@ -82,14 +83,17 @@ export async function GET(req: NextRequest) {
   const voice = (req.nextUrl.searchParams.get('voice') || '').trim() || VOICE_ID
   if (!voice) return new Response('tts not configured', { status: 503 })
 
-  const model = pickModel(text)
-  const cacheKey = `${voice}:${model}:${text.toLowerCase()}`
+  // Lo escrito y lo que se dice no siempre coinciden: "i.v.m." se lee "in
+  // verband met" y "C-A-R-L-O-S" se deletrea. Ver pronunciacion.ts.
+  const spoken = textoParaVoz(text)
+  const model = pickModel(spoken)
+  const cacheKey = `${voice}:${model}:${spoken.toLowerCase()}`
   let buf = cache.get(cacheKey)
 
   if (!buf) {
     try {
       const body: Record<string, unknown> = {
-        text,
+        text: spoken,
         model_id: model,
         voice_settings: voiceSettingsFor(model),
       }

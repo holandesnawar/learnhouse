@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, Fragment } from 'react';
 import Link from 'next/link';
 import type { Lesson, CourseModule, VocabularyItem, PhraseItem, ExerciseItem, Dialogue, SummaryBlock, SprekenBlock } from '@/lib/exercises-app/types';
 import {
@@ -793,15 +793,16 @@ export function ExerciseRunner({ exercises, onDone, onBack, hasBackStep, onSubPr
       const raw = sessionStorage.getItem(answersKey);
       if (!raw) return {};
       const parsed = JSON.parse(raw) as Record<string, string>;
+      // Guardado por ID de ejercicio, no por posición: si la lista cambia (se
+      // quita o se añade un ejercicio), cada respuesta sigue en el suyo y no se
+      // cuelga del que ahora ocupa ese hueco. Las claves numéricas del formato
+      // viejo se descartan por lo mismo.
       const cleaned: Record<number, string> = {};
-      for (const [k, v] of Object.entries(parsed)) {
-        const n = Number(k);
-        if (Number.isFinite(n) && n >= 0 && n < exercises.length && typeof v === 'string') {
-          cleaned[n] = v;
-        }
+      for (const [id, v] of Object.entries(parsed)) {
+        if (typeof v !== 'string' || /^\d+$/.test(id)) continue;
+        const n = exercises.findIndex(e => e.id === id);
+        if (n >= 0) cleaned[n] = v;
       }
-      // Re-persist cleaned version to evict stale entries from storage
-      sessionStorage.setItem(answersKey, JSON.stringify(cleaned));
       return cleaned;
     } catch { return {}; }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -867,7 +868,14 @@ export function ExerciseRunner({ exercises, onDone, onBack, hasBackStep, onSubPr
         if (itemId) onItemResult?.(itemId, correct);
       }
       const next = { ...prev, [index]: answer };
-      if (answersKey) try { sessionStorage.setItem(answersKey, JSON.stringify(next)); } catch {}
+      if (answersKey) {
+        const porId: Record<string, string> = {};
+        for (const [k, v] of Object.entries(next)) {
+          const id = exercises[Number(k)]?.id;
+          if (id) porId[id] = v;
+        }
+        try { sessionStorage.setItem(answersKey, JSON.stringify(porId)); } catch {}
+      }
       return next;
     });
     if (correct) setAvanzarDesde(index);
@@ -1351,7 +1359,10 @@ function VocabPracticeSection({
           onBack={handleStepBack}
           hasBackStep={stepIndex > 0}
           onSubProgress={(done, total) => setSubProgress({ done, total })}
-          cacheKey={step.type}
+          // ⚠️ Con `step.type` a secas, la clave era "practice" para TODAS las
+          // lecciones: las respuestas de la 1.3 aparecían ya puestas en la 3.3,
+          // la 4.3, la 6.3… (lo vio la revisora en cinco sitios). Va con la lección.
+          cacheKey={cacheKey ? `${cacheKey}-${step.type}` : step.type}
           onItemResult={handleItemResultLocal}
         />
       )}
@@ -1773,9 +1784,21 @@ function FillBlankExercise({
   const parts = exercise.prompt.split('___');
 
   // ── Text-input mode state ──
-  const [value, setValue] = useState(initialAnswer ?? '');
+  // Una caja por hueco. Antes solo se pintaba el primer `___` y el resto de la
+  // frase desaparecía: "Ik werk ___ maandag ___ 8 uur" salía como "Ik werk ___
+  // maandag" y pedía "op om" en una sola caja, imposible de acertar.
+  const blanks = Math.max(1, parts.length - 1);
+  const [values, setValues] = useState<string[]>(() => {
+    if (blanks === 1) return [initialAnswer ?? ''];
+    const init = (initialAnswer ?? '').split(' ');
+    return Array.from({ length: blanks }, (_, i) => init[i] ?? '');
+  });
+  const value = values.map(v => v.trim()).join(' ').trim();
+  const setValueAt = (i: number, v: string) => setValues(prev => prev.map((p, j) => (j === i ? v : p)));
+  const todosRellenos = values.every(v => v.trim());
   const [submitted, setSubmitted] = useState(initialAnswer !== undefined && initialAnswer !== '');
-  const isCorrect = value.trim().toLowerCase() === exercise.correctAnswer.trim().toLowerCase();
+  const normaliza = (t: string) => t.trim().toLowerCase().replace(/\s+/g, ' ');
+  const isCorrect = normaliza(value) === normaliza(exercise.correctAnswer);
 
   // ── Chip mode state ──
   const [chipSelected, setChipSelected] = useState<string | null>(initialAnswer ?? null);
@@ -1816,9 +1839,9 @@ function FillBlankExercise({
   }
 
   function handleTextSubmit() {
-    if (!value.trim() || submitted) return;
+    if (!todosRellenos || submitted) return;
     setSubmitted(true);
-    onAnswer(isCorrect, value.trim());
+    onAnswer(isCorrect, value);
   }
 
   // ── Chip variant ──
@@ -1903,23 +1926,28 @@ function FillBlankExercise({
     <div className="space-y-4">
       <div className="rounded-2xl p-5 border border-[#DDE6F5] bg-white">
         <p className="text-[16px] font-semibold text-gray-900 leading-snug flex flex-wrap items-center gap-1">
-          {parts[0]}
-          <input
-            type="text"
-            value={value}
-            onChange={e => setValue(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleTextSubmit()}
-            disabled={submitted}
-            placeholder="___"
-            className={`inline-block w-28 px-2 py-0.5 rounded-lg border text-[15px] font-semibold text-center focus:outline-none transition-colors duration-200 disabled:opacity-70 ${
-              submitted
-                ? isCorrect
-                  ? 'bg-green-50 border-green-400 text-green-800'
-                  : 'bg-red-50 border-red-400 text-red-700'
-                : 'bg-white border-[#025dc7] text-gray-900 focus:border-[#1D0084]'
-            }`}
-          />
-          {parts[1] ?? ''}
+          {parts.map((part, i) => (
+            <Fragment key={i}>
+              {part}
+              {i < blanks && (
+                <input
+                  type="text"
+                  value={values[i]}
+                  onChange={e => setValueAt(i, e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleTextSubmit()}
+                  disabled={submitted}
+                  placeholder="___"
+                  className={`inline-block w-28 px-2 py-0.5 rounded-lg border text-[15px] font-semibold text-center focus:outline-none transition-colors duration-200 disabled:opacity-70 ${
+                    submitted
+                      ? isCorrect
+                        ? 'bg-green-50 border-green-400 text-green-800'
+                        : 'bg-red-50 border-red-400 text-red-700'
+                      : 'bg-white border-[#025dc7] text-gray-900 focus:border-[#1D0084]'
+                  }`}
+                />
+              )}
+            </Fragment>
+          ))}
         </p>
         {exercise.hint && (
           <p className="text-[13px] text-[#9CA3AF] mt-2">💡 {exercise.hint}</p>
@@ -1929,7 +1957,7 @@ function FillBlankExercise({
       {!submitted && (
         <button
           onClick={handleTextSubmit}
-          disabled={!value.trim()}
+          disabled={!todosRellenos}
           className="w-full py-3.5 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[15px] font-semibold hover:bg-[#6cb5ff] transition-colors duration-200 disabled:opacity-40 disabled:pointer-events-none"
         >
           Comprobar
@@ -3070,7 +3098,7 @@ function ListenTranslateExercise({ exercise, onAnswer }: { exercise: ExerciseIte
   const composed = sentence.join(' ');
   // El español deja caer el sujeto que el neerlandés obliga a poner, así que
   // "Vamos a Amberes" vale igual que "Nosotras vamos a Amberes". Ver answerCheck.ts.
-  const isCorrect = aciertaEnEspanol(composed, exercise.correctAnswer);
+  const isCorrect = aciertaEnEspanol(composed, exercise.correctAnswer, exercise.alsoAccept);
 
   function addWord(word: string, idx: number) {
     if (submitted) return;
