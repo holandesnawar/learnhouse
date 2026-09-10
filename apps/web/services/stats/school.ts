@@ -28,7 +28,14 @@ export interface SalesBlock {
   by_product: ProductRow[]
   undated: number
   last_30_days: { sales: number; revenue_cents: number }
-  funnel: { started: number; paid: number; conversion_pct: number; abandoned: number }
+  funnel: {
+    started: number
+    paid: number
+    conversion_pct: number
+    abandoned: number
+    /** Quién rellenó el formulario y no pagó, una entrada por persona, la más reciente primero. */
+    pending?: Array<{ name: string; email: string; phone: string; created_at: string }>
+  }
   leads_by_month: Record<string, number>
 }
 

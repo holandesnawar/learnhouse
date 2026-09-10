@@ -340,8 +340,55 @@ export default function EstadisticasPage() {
                   </div>
                   <p className="mt-2 text-[12px] text-[#9CA3AF]">
                     {sales.funnel.abandoned} rellenaron el formulario y no llegaron a pagar. Esa es
-                    tu lista de recuperación.
+                    tu lista de recuperación
+                    {(sales.funnel.pending?.length ?? 0) > 0
+                      ? `: ${sales.funnel.pending!.length} ${sales.funnel.pending!.length === 1 ? 'persona' : 'personas'} (un intento repetido cuenta una vez).`
+                      : '.'}
                   </p>
+                  {(sales.funnel.pending?.length ?? 0) > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {sales.funnel.pending!.map((p) => {
+                        const tel = p.phone.replace(/[^\d+]/g, '')
+                        const wa = tel ? `https://wa.me/${tel.replace(/^\+/, '').replace(/^00/, '')}` : ''
+                        const cuando = p.created_at
+                          ? new Date(p.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+                          : ''
+                        return (
+                          <div
+                            key={p.email}
+                            className="rounded-xl border border-[#E7EEF9] px-3.5 py-2.5 flex items-center gap-3"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[13.5px] font-semibold text-gray-900 truncate">
+                                {p.name || p.email}
+                              </p>
+                              <p className="text-[12px] text-gray-500 truncate">
+                                {p.email}
+                                {p.phone ? ` · ${p.phone}` : ''}
+                                {cuando ? <span className="text-[#9CA3AF]"> · empezó el {cuando}</span> : null}
+                              </p>
+                            </div>
+                            {wa && (
+                              <a
+                                href={wa}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="shrink-0 inline-flex items-center px-3 py-1.5 rounded-lg bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7] text-[12px] font-bold transition-colors"
+                              >
+                                WhatsApp
+                              </a>
+                            )}
+                            <a
+                              href={`mailto:${p.email}`}
+                              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7] text-[12px] font-bold transition-colors"
+                            >
+                              <Mail size={13} /> Escribir
+                            </a>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               </>
             )}
