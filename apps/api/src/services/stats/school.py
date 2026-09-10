@@ -94,6 +94,26 @@ async def _sales_block(org_id: int, db_session: AsyncSession) -> dict:
     # `created_at` y no `paid_at`, porque una matrícula empezada nunca llega a
     # tener fecha de pago.
     started = len([r for r in rows if not desde or (r.created_at or "") >= desde])
+
+    # La lista de recuperación de verdad, con nombre y contacto: la pantalla
+    # decía "esa es tu lista" y no enseñaba a nadie. Una persona = una entrada
+    # aunque haya empezado el formulario dos veces (el botón "Cambiar" del
+    # checkout crea otra fila), y fuera si al final pagó con otro intento.
+    emails_pagados = {(r.email or "").lower() for r in paid}
+    pendientes: dict[str, dict] = {}
+    for r in sorted(rows, key=lambda r: r.created_at or ""):
+        if r.status == "paid" or (desde and (r.created_at or "") < desde):
+            continue
+        clave = (r.email or "").lower()
+        if not clave or clave in emails_pagados:
+            continue
+        pendientes[clave] = {
+            "name": f"{r.first_name or ''} {r.last_name or ''}".strip(),
+            "email": r.email,
+            "phone": r.phone or "",
+            "created_at": r.created_at or "",
+        }
+
     return {
         "total_sales": len(paid),
         "total_revenue_cents": total_revenue,
@@ -112,6 +132,7 @@ async def _sales_block(org_id: int, db_session: AsyncSession) -> dict:
             "paid": len(paid),
             "conversion_pct": pct(len(paid), started),
             "abandoned": started - len(paid),
+            "pending": sorted(pendientes.values(), key=lambda p: p["created_at"], reverse=True),
         },
         # Matrículas iniciadas por mes: es el denominador del coste por lead.
         "leads_by_month": _count_by_month([r.created_at for r in rows]),
