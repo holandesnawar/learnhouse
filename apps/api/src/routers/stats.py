@@ -3,6 +3,7 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -12,6 +13,7 @@ from src.db.school_stats import ManualEntryWrite
 from src.db.users import AnonymousUser, PublicUser
 from src.security.auth import get_current_user
 from src.services.orgs.orgs import rbac_check
+from src.services.payments.solicitudes import marcar_contactada
 from src.services.stats.school import (
     delete_manual_entry,
     save_manual_entry,
@@ -23,6 +25,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 VALID_KINDS = {"cost", "delivery", "attendance"}
+
+
+class SolicitudWrite(BaseModel):
+    """Si ya se ha escrito a esa persona o no."""
+
+    contacted: bool = True
 
 
 async def _admin_org(
@@ -90,6 +98,25 @@ async def api_save_manual(
         "note": entry.note,
         "updated_at": entry.updated_at,
     }
+
+
+@router.put(
+    "/org/{org_id}/solicitudes/{request_id}",
+    summary="Marca una solicitud de plaza como ya contactada (o la devuelve a pendiente).",
+)
+async def api_marcar_solicitud(
+    request: Request,
+    org_id: int,
+    request_id: int,
+    data: SolicitudWrite,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_org(request, org_id, current_user, db_session)
+    resultado = await marcar_contactada(request_id, bool(data.contacted), db_session)
+    if resultado is None:
+        raise HTTPException(status_code=404, detail="No existe esa solicitud")
+    return resultado
 
 
 @router.delete(

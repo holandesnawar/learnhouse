@@ -8,6 +8,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.core.events.database import get_db_session
 from src.db.enrollment import EnrollmentCreate, EnrollmentIntentResponse, EnrollmentResponse
+from src.db.enrollment_request import EnrollmentRequestCreate
+from src.services.payments.solicitudes import crear_solicitud
 from src.services.payments.payments import (
     create_formacion_checkout_session,
     enroll_and_checkout,
@@ -105,6 +107,28 @@ async def api_checkout_formacion(
     await ensure_matricula_abierta(db_session)
     url = await create_formacion_checkout_session()
     return RedirectResponse(url=url, status_code=303)
+
+
+@router.post(
+    "/solicitudes",
+    summary="Guarda una solicitud de plaza (el formulario que NO cobra).",
+    description=(
+        "Público, como el resto del embudo: lo llama holandesnawar.com cuando "
+        "alguien deja sus datos en la matrícula sin pago. No toca Stripe ni crea "
+        "cuenta: solo guarda el contacto para que salga en Panel → Estadísticas. "
+        "El alta en systeme.io la hace la web, que es donde vive la clave del CRM."
+    ),
+)
+async def api_solicitud(
+    data: EnrollmentRequestCreate,
+    request: Request,
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    # El mismo tope que la matrícula de pago (5/hora/IP): es una escritura
+    # pública, y sin esto un script llenaría la lista del panel de basura.
+    _enforce_enroll_rate_limit(request)
+    fila = await crear_solicitud(data, db_session)
+    return {"ok": True, "id": fila.id}
 
 
 @router.get(

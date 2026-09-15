@@ -10,6 +10,7 @@ import {
   deleteManualEntry,
   euros,
   getSchoolStats,
+  marcarSolicitud,
   readUtmLinks,
   saveManualEntry,
   saveUtmLinks,
@@ -30,6 +31,7 @@ import {
   RefreshCw,
   Trash2,
   TrendingDown,
+  UserPlus,
   Users,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -224,6 +226,9 @@ export default function EstadisticasPage() {
         </div>
       ) : (
         <div className="space-y-8">
+          {/* ── A quién llamar hoy ───────────────────────────────── */}
+          <Solicitudes rows={stats.requests} />
+
           {/* ── Quién necesita un empujón ────────────────────────── */}
           <AtRisk rows={stats.at_risk} />
 
@@ -528,6 +533,142 @@ export default function EstadisticasPage() {
 }
 
 /* ── Alumnos que necesitan un empujón ────────────────────────────── */
+
+/**
+ * Matrículas nuevas: quien dejó sus datos en el formulario que NO cobra
+ * (/matricula-a0-a1 y la de anuncios) y espera que le llamemos.
+ *
+ * Va lo primero de la pantalla a propósito: es lo único de aquí que caduca.
+ * Un número de ventas se mira cuando se puede; a alguien que acaba de pedir
+ * plaza hay que escribirle hoy.
+ *
+ * El botón "Hecho" no borra nada, solo la baja al final de la lista: así se ve
+ * de un vistazo qué queda por hacer sin perder el histórico.
+ */
+function Solicitudes({ rows }: { rows: SchoolStats['requests'] }) {
+  const org = useOrg() as any
+  const session = useLHSession() as any
+  const accessToken = session?.data?.tokens?.access_token
+
+  // Copia local para que el botón responda al instante y no haya que esperar
+  // a recargar toda la pantalla.
+  const [hechas, setHechas] = useState<Record<number, boolean>>({})
+  const [guardando, setGuardando] = useState<number | null>(null)
+
+  if (!rows) return null
+
+  const estaHecha = (r: NonNullable<SchoolStats['requests']>[number]) =>
+    hechas[r.id] ?? Boolean(r.contacted_at)
+
+  async function alternar(id: number, ahora: boolean) {
+    setGuardando(id)
+    const ok = await marcarSolicitud(org?.id, id, !ahora, accessToken)
+    setGuardando(null)
+    if (!ok) {
+      toast.error('No se ha podido guardar')
+      return
+    }
+    setHechas((prev) => ({ ...prev, [id]: !ahora }))
+  }
+
+  const pendientes = rows.filter((r) => !estaHecha(r))
+  const ordenadas = [...rows].sort(
+    (a, b) => Number(estaHecha(a)) - Number(estaHecha(b))
+  )
+
+  return (
+    <section className="space-y-3">
+      <h2 className="text-[15px] font-bold text-gray-900 flex items-center gap-2">
+        <UserPlus size={16} className="text-[#025dc7]" /> Matrículas nuevas
+      </h2>
+      <div className={CARD}>
+        {rows.length === 0 ? (
+          <p className="text-[13.5px] text-gray-700 py-2">
+            Todavía no ha pedido plaza nadie por el formulario.
+          </p>
+        ) : (
+          <>
+            <p className="text-[12.5px] text-[#9CA3AF] mb-3">
+              {pendientes.length === 0
+                ? 'Has escrito a todos. Aquí abajo quedan los ya atendidos.'
+                : `${pendientes.length} ${
+                    pendientes.length === 1 ? 'persona espera' : 'personas esperan'
+                  } que les escribas. No han pagado: la venta se cierra hablando.`}
+            </p>
+            <div className="space-y-1.5">
+              {ordenadas.map((r) => {
+                const hecha = estaHecha(r)
+                const tel = (r.phone || '').replace(/[^\d+]/g, '')
+                const wa = tel
+                  ? `https://wa.me/${tel.replace(/^\+/, '').replace(/^00/, '')}`
+                  : ''
+                const cuando = r.created_at
+                  ? new Date(r.created_at).toLocaleDateString('es-ES', {
+                      day: 'numeric',
+                      month: 'short',
+                    })
+                  : ''
+                return (
+                  <div
+                    key={r.id}
+                    className={`rounded-xl border px-3.5 py-2.5 flex items-center gap-3 transition-opacity ${
+                      hecha ? 'border-[#E7EEF9] opacity-55' : 'border-[#DDE6F5] bg-[#F7FAFF]'
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13.5px] font-semibold text-gray-900 truncate">
+                        {r.name || r.email}
+                        {r.source === 'ads' && (
+                          <span className="ml-2 text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-[0.06em]">
+                            anuncio
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-[12px] text-gray-500 truncate">
+                        {r.email}
+                        {r.phone ? ` · ${r.phone}` : ''}
+                        {cuando ? <span className="text-[#9CA3AF]"> · {cuando}</span> : null}
+                      </p>
+                    </div>
+                    {wa && !hecha && (
+                      <a
+                        href={wa}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="shrink-0 inline-flex items-center px-3 py-1.5 rounded-lg bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7] text-[12px] font-bold transition-colors"
+                      >
+                        WhatsApp
+                      </a>
+                    )}
+                    {!hecha && (
+                      <a
+                        href={`mailto:${r.email}`}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7] text-[12px] font-bold transition-colors"
+                      >
+                        <Mail size={13} /> Escribir
+                      </a>
+                    )}
+                    <button
+                      onClick={() => alternar(r.id, hecha)}
+                      disabled={guardando === r.id}
+                      className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold transition-colors disabled:opacity-50 ${
+                        hecha
+                          ? 'text-[#9CA3AF] hover:text-gray-700'
+                          : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
+                      }`}
+                    >
+                      {hecha ? 'Deshacer' : (<><Check size={13} /> Hecho</>)}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </>
+        )}
+      </div>
+    </section>
+  )
+}
 
 function AtRisk({ rows }: { rows: SchoolStats['at_risk'] }) {
   if (!rows) return null
