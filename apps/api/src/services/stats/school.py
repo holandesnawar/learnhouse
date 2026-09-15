@@ -775,6 +775,14 @@ async def school_stats(org_id: int, db_session: AsyncSession) -> dict:
         logger.exception("Estadísticas: fallo leyendo Stripe")
         out["refunds"] = None
 
+    try:
+        from src.services.payments.solicitudes import listar_solicitudes
+
+        out["requests"] = await listar_solicitudes(db_session)
+    except Exception:
+        logger.exception("Estadísticas: fallo leyendo las solicitudes de plaza")
+        out["requests"] = None
+
     return out
 
 

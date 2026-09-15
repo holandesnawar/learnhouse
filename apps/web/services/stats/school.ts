@@ -130,6 +130,19 @@ export interface Refunds {
   disputes: number
 }
 
+/** Alguien que pidió plaza por el formulario que NO cobra. Hay que llamarle. */
+export interface EnrollmentRequestRow {
+  id: number
+  name: string
+  email: string
+  phone: string
+  /** 'web' (enlace normal) o 'ads' (campaña). */
+  source: string
+  created_at: string
+  /** Vacío mientras no se le haya escrito. */
+  contacted_at: string
+}
+
 export interface SchoolStats {
   generated_at: string
   sales: SalesBlock | null
@@ -142,6 +155,7 @@ export interface SchoolStats {
   retention: Retention | null
   support: Support | null
   refunds: Refunds | null
+  requests: EnrollmentRequestRow[] | null
 }
 
 const base = () => `${getAPIUrl()}stats`
@@ -190,6 +204,25 @@ export async function deleteManualEntry(
     const r = await fetch(
       `${base()}/org/${orgId}/manual/${entryId}`,
       RequestBodyWithAuthHeader('DELETE', null, null, accessToken)
+    )
+    return r.ok
+  } catch {
+    return false
+  }
+}
+
+/** Marca (o desmarca) una solicitud de plaza como ya contactada. */
+export async function marcarSolicitud(
+  orgId: number,
+  requestId: number,
+  contacted: boolean,
+  accessToken: string | undefined
+): Promise<boolean> {
+  if (!orgId || !accessToken) return false
+  try {
+    const r = await fetch(
+      `${base()}/org/${orgId}/solicitudes/${requestId}`,
+      RequestBodyWithAuthHeader('PUT', { contacted }, null, accessToken)
     )
     return r.ok
   } catch {
