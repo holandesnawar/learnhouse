@@ -5,6 +5,7 @@ to platform superadmins. Mounted without the development-mode guard.
 
 import logging
 from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel
 
 from src.db.users import PublicUser
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -16,6 +17,14 @@ logger = logging.getLogger(__name__)
 
 
 router = APIRouter()
+
+
+class DarDeAlta(BaseModel):
+    """A quién hay que meter en la escuela a mano. El nombre es opcional: si no
+    viene, la cuenta se crea como "Alumno" y él mismo lo cambia en su perfil."""
+
+    email: str
+    nombre: str = ""
 
 
 def _require_superadmin(current_user: PublicUser):
@@ -222,6 +231,21 @@ async def payments_reintentar_factura(
     from src.services.payments.payments import reintentar_factura
 
     return await reintentar_factura(enrollment_id, db_session)
+
+
+@router.post(
+    "/payments/dar-de-alta",
+    summary="Mete en la escuela a quien ya pagó y no entró (Payment Link, webhook perdido…).",
+)
+async def payments_dar_de_alta(
+    datos: DarDeAlta,
+    current_user: PublicUser = Depends(get_authenticated_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    _require_superadmin(current_user)
+    from src.services.payments.payments import dar_de_alta_a_mano
+
+    return await dar_de_alta_a_mano(datos.email, datos.nombre, db_session)
 
 
 @router.post(

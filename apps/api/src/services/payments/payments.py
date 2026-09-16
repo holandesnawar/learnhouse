@@ -782,6 +782,100 @@ async def enroll_and_payment_intent(data, db_session: AsyncSession) -> dict:
     }
 
 
+async def dar_de_alta_a_mano(email: str, nombre: str, db_session: AsyncSession) -> dict:
+    """
+    Mete en la escuela a alguien que ya ha pagado y no entró solo.
+
+    Para qué existe: hay cobros que no pasan por nuestro checkout —un Payment
+    Link, un pago por transferencia, un webhook que no llegó— y hasta ahora no
+    había NINGUNA forma de arreglarlo desde el panel. Las tres herramientas que
+    había (`diagnostico`, `reintentar-factura`, `reenviar-factura`) son todas de
+    facturas: si lo que falta es la CUENTA, no servían de nada.
+
+    Hace exactamente lo mismo que el webhook, pero a mano: crea la cuenta si no
+    existe, la engancha a la escuela como alumna, guarda el código de alta en
+    Redis (las dos claves, 7 días) y manda el correo de "crea tu contraseña".
+
+    Se puede repetir sin miedo: si la cuenta ya existe se reaprovecha y lo único
+    que hace es mandar otra vez el correo con un código nuevo. Eso es justo lo
+    que se quiere cuando el primero se perdió en spam.
+
+    ⚠️ Y al revés que el webhook, aquí NO se traga ningún error: si el correo no
+    sale, la respuesta dice por qué. Es la lección de la noche de las facturas
+    —lo primero es sacar el motivo— aplicada desde el principio.
+    """
+    _usar_stripe()  # por si el CRM o algo del camino lo necesita
+
+    email = (email or "").strip().lower()
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="Hace falta un email válido")
+
+    ya_existia = bool(
+        (await db_session.execute(select(User).where(User.email == email))).scalars().first()
+    )
+
+    user, _ = await _create_paid_user(email, nombre or "", db_session)
+
+    org_uuid = ""
+    try:
+        org_uuid = (await _get_default_org(db_session)).org_uuid or ""
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"No se pudo resolver la escuela: {type(exc).__name__}: {exc}",
+        )
+
+    code = _store_reset_code(user, org_uuid)
+    if not code:
+        # Casi siempre es Redis. La cuenta ya está creada, así que la salida de
+        # emergencia es que la alumna use "¿olvidaste tu contraseña?".
+        return {
+            "ok": False,
+            "cuenta_creada": not ya_existia,
+            "ya_existia": ya_existia,
+            "email": email,
+            "correo_enviado": False,
+            "motivo": (
+                "La cuenta está creada pero no se pudo guardar el código de alta "
+                "(Redis no responde). Dile que entre en /login y pulse "
+                "'¿olvidaste tu contraseña?'."
+            ),
+        }
+
+    enlace = f"{_academy_url()}/auth/crear-cuenta?email={quote(email)}&resetCode={code}"
+
+    try:
+        send_payment_welcome_email(
+            email=email,
+            name=nombre or user.first_name or "",
+            reset_code=code,
+            base_url=_academy_url(),
+        )
+        enviado, motivo = True, ""
+    except Exception as exc:
+        logger.exception("Alta a mano: el correo de bienvenida no salió para %s", email)
+        enviado, motivo = False, f"{type(exc).__name__}: {exc}"
+
+    try:
+        from src.services.crm.systeme import mark_as_alumno
+
+        await mark_as_alumno(email)
+    except Exception:
+        logger.exception("Systeme tag update failed for %s", email)
+
+    return {
+        "ok": True,
+        "cuenta_creada": not ya_existia,
+        "ya_existia": ya_existia,
+        "email": email,
+        "correo_enviado": enviado,
+        # El enlace se devuelve SIEMPRE, salga o no el correo: así se le puede
+        # pasar por WhatsApp sin depender de que el email llegue.
+        "enlace": enlace,
+        "motivo": motivo,
+    }
+
+
 async def diagnostico_facturas(limite: int, db_session: AsyncSession) -> dict:
     """
     Qué ha pasado de verdad con las últimas matrículas pagadas.
