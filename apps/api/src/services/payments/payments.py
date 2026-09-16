@@ -782,7 +782,110 @@ async def enroll_and_payment_intent(data, db_session: AsyncSession) -> dict:
     }
 
 
-async def dar_de_alta_a_mano(email: str, nombre: str, db_session: AsyncSession) -> dict:
+async def _registrar_venta_a_mano(
+    email: str,
+    nombre: str,
+    importe_cents: int,
+    db_session: AsyncSession,
+) -> dict:
+    """
+    Deja la venta apuntada para que salga en Estadísticas.
+
+    Existe porque dar de alta a alguien creaba la cuenta y **no la venta**: el
+    alumno entraba en la escuela pero el panel seguía diciendo una venta menos
+    de las que había. Las cifras del negocio salen de la tabla `enrollment`, no
+    de Stripe, así que un cobro que no pasa por nuestro checkout no aparece
+    solo en ningún sitio.
+
+    Tres casos, y se distinguen mirando lo que ya hay:
+
+    1. **Ya hay una matrícula pagada de ese correo** → ya contaba. No se toca
+       nada (lo único, si le falta el importe y ahora se da, se rellena). Esto
+       es lo que evita contar dos veces a quien pagó por el checkout y solo
+       viene aquí porque el correo se le perdió.
+    2. **Hay una matrícula a medias** (empezó el checkout y pagó por otro lado)
+       → se marca pagada, que es exactamente lo que pasó.
+    3. **No hay nada** → se crea la fila ya pagada.
+
+    El importe se pide porque estos cobros suelen ser a un precio distinto del
+    de la web (un enlace de pago con precio fundador, por ejemplo). **Sin
+    importe no se apunta nada**: apuntar una venta de 0 € ensucia los ingresos y
+    el precio medio, y es peor que no apuntarla — se vuelve a pulsar el botón
+    con la cifra y ya está.
+
+    El webhook de Stripe nunca CREA matrículas, solo actualiza las que existen
+    buscándolas por su id de sesión. Así que una fila puesta a mano aquí no la
+    puede duplicar un cobro que llegue después.
+    """
+    from src.db.enrollment import Enrollment
+
+    ahora = datetime.now()
+    ahora_utc = datetime.now(timezone.utc).isoformat()
+
+    fila = (
+        await db_session.execute(
+            select(Enrollment)
+            .where(Enrollment.email == email)
+            .order_by(Enrollment.id.desc())  # type: ignore[union-attr]
+        )
+    ).scalars().first()
+
+    if fila is not None and fila.status == "paid":
+        if not fila.amount_cents and importe_cents > 0:
+            fila.amount_cents = importe_cents
+            fila.updated_at = ahora.isoformat()
+            db_session.add(fila)
+            await db_session.commit()
+        return {
+            "contada": True,
+            "matricula": fila.id,
+            "nota": "Ya estaba contada como venta. No se ha duplicado.",
+        }
+
+    if importe_cents <= 0:
+        return {
+            "contada": False,
+            "matricula": fila.id if fila is not None else None,
+            "nota": (
+                "La cuenta está lista, pero la venta NO se ha apuntado porque no "
+                "pusiste el importe. Vuelve a pulsar el botón con lo que pagó y se "
+                "apunta (el alumno no recibe nada nuevo por eso)."
+            ),
+        }
+
+    if fila is None:
+        nombre_pila, _, apellidos = (nombre or "").strip().partition(" ")
+        fila = Enrollment(
+            email=email,
+            first_name=nombre_pila,
+            last_name=apellidos,
+            created_at=ahora.isoformat(),
+        )
+
+    fila.status = "paid"
+    fila.amount_cents = importe_cents
+    fila.currency = "eur"
+    fila.paid_at = fila.paid_at or ahora_utc
+    fila.provisioned_at = ahora_utc  # el correo de bienvenida sale en esta misma llamada
+    fila.updated_at = ahora.isoformat()
+    db_session.add(fila)
+    await db_session.commit()
+    await db_session.refresh(fila)
+
+    return {
+        "contada": True,
+        "matricula": fila.id,
+        "nota": f"Venta apuntada: {importe_cents / 100:.2f} €.",
+    }
+
+
+async def dar_de_alta_a_mano(
+    email: str,
+    nombre: str,
+    db_session: AsyncSession,
+    importe_cents: int = 0,
+    enviar_correo: bool = True,
+) -> dict:
     """
     Mete en la escuela a alguien que ya ha pagado y no entró solo.
 
@@ -799,6 +902,10 @@ async def dar_de_alta_a_mano(email: str, nombre: str, db_session: AsyncSession) 
     Se puede repetir sin miedo: si la cuenta ya existe se reaprovecha y lo único
     que hace es mandar otra vez el correo con un código nuevo. Eso es justo lo
     que se quiere cuando el primero se perdió en spam.
+
+    `enviar_correo=False` para el caso contrario: el alumno YA entró y lo único
+    que falta es apuntar la venta. Sin esto, arreglar la contabilidad de alguien
+    que ya está dentro le manda un "crea tu contraseña" que no viene a cuento.
 
     ⚠️ Y al revés que el webhook, aquí NO se traga ningún error: si el correo no
     sale, la respuesta dice por qué. Es la lección de la noche de las facturas
@@ -825,36 +932,39 @@ async def dar_de_alta_a_mano(email: str, nombre: str, db_session: AsyncSession) 
             detail=f"No se pudo resolver la escuela: {type(exc).__name__}: {exc}",
         )
 
-    code = _store_reset_code(user, org_uuid)
-    if not code:
-        # Casi siempre es Redis. La cuenta ya está creada, así que la salida de
-        # emergencia es que la alumna use "¿olvidaste tu contraseña?".
-        return {
-            "ok": False,
-            "cuenta_creada": not ya_existia,
-            "ya_existia": ya_existia,
-            "email": email,
-            "correo_enviado": False,
-            "motivo": (
-                "La cuenta está creada pero no se pudo guardar el código de alta "
-                "(Redis no responde). Dile que entre en /login y pulse "
-                "'¿olvidaste tu contraseña?'."
-            ),
-        }
+    enlace, enviado, motivo = "", False, ""
 
-    enlace = f"{_academy_url()}/auth/crear-cuenta?email={quote(email)}&resetCode={code}"
+    if enviar_correo:
+        code = _store_reset_code(user, org_uuid)
+        if not code:
+            # Casi siempre es Redis. La cuenta ya está creada, así que la salida
+            # de emergencia es que la alumna use "¿olvidaste tu contraseña?".
+            return {
+                "ok": False,
+                "cuenta_creada": not ya_existia,
+                "ya_existia": ya_existia,
+                "email": email,
+                "correo_enviado": False,
+                "motivo": (
+                    "La cuenta está creada pero no se pudo guardar el código de alta "
+                    "(Redis no responde). Dile que entre en /login y pulse "
+                    "'¿olvidaste tu contraseña?'."
+                ),
+            }
 
-    try:
-        send_payment_welcome_email(
-            email=email,
-            name=nombre or user.first_name or "",
-            reset_code=code,
-            base_url=_academy_url(),
-        )
-        enviado, motivo = True, ""
-    except Exception as exc:
-        logger.exception("Alta a mano: el correo de bienvenida no salió para %s", email)
-        enviado, motivo = False, f"{type(exc).__name__}: {exc}"
+        enlace = f"{_academy_url()}/auth/crear-cuenta?email={quote(email)}&resetCode={code}"
+
+        try:
+            send_payment_welcome_email(
+                email=email,
+                name=nombre or user.first_name or "",
+                reset_code=code,
+                base_url=_academy_url(),
+            )
+            enviado = True
+        except Exception as exc:
+            logger.exception("Alta a mano: el correo de bienvenida no salió para %s", email)
+            motivo = f"{type(exc).__name__}: {exc}"
 
     try:
         from src.services.crm.systeme import mark_as_alumno
@@ -862,6 +972,19 @@ async def dar_de_alta_a_mano(email: str, nombre: str, db_session: AsyncSession) 
         await mark_as_alumno(email)
     except Exception:
         logger.exception("Systeme tag update failed for %s", email)
+
+    # La venta, al final y en su propio try: si algo falla apuntándola, el
+    # alumno ya tiene su cuenta y su correo. Eso no se puede perder por un
+    # problema de contabilidad.
+    try:
+        venta = await _registrar_venta_a_mano(email, nombre, importe_cents, db_session)
+    except Exception as exc:
+        logger.exception("Alta a mano: no se pudo apuntar la venta de %s", email)
+        venta = {
+            "contada": False,
+            "matricula": None,
+            "nota": f"La cuenta está lista pero la venta no se apuntó: {type(exc).__name__}: {exc}",
+        }
 
     return {
         "ok": True,
@@ -873,6 +996,7 @@ async def dar_de_alta_a_mano(email: str, nombre: str, db_session: AsyncSession) 
         # pasar por WhatsApp sin depender de que el email llegue.
         "enlace": enlace,
         "motivo": motivo,
+        "venta": venta,
     }
 
 
