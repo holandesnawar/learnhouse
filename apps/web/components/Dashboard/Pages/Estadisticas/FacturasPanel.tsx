@@ -1,7 +1,16 @@
 'use client'
 
 import React, { useCallback, useEffect, useState } from 'react'
-import { Loader2, RefreshCw, FileText, Send, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import {
+  Loader2,
+  RefreshCw,
+  FileText,
+  Send,
+  AlertTriangle,
+  CheckCircle2,
+  UserPlus,
+  Copy,
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { getAPIUrl } from '@services/config/config'
@@ -46,6 +55,13 @@ export default function FacturasPanel() {
   const [filas, setFilas] = useState<MatriculaPagada[] | null>(null)
   const [trabajando, setTrabajando] = useState<string | null>(null)
   const [recargando, setRecargando] = useState(false)
+
+  // Alta a mano: para quien pagó por fuera del checkout (un Payment Link, una
+  // transferencia) o para quien el correo de bienvenida se le perdió.
+  const [altaEmail, setAltaEmail] = useState('')
+  const [altaNombre, setAltaNombre] = useState('')
+  const [dandoAlta, setDandoAlta] = useState(false)
+  const [altaEnlace, setAltaEnlace] = useState('')
 
   const cargar = useCallback(async () => {
     if (!accessToken) return
@@ -117,6 +133,50 @@ export default function FacturasPanel() {
     }
   }
 
+  const darDeAlta = async () => {
+    const email = altaEmail.trim().toLowerCase()
+    if (!email || !email.includes('@')) {
+      toast.error('Escribe el correo con el que pagó')
+      return
+    }
+    setDandoAlta(true)
+    setAltaEnlace('')
+    try {
+      const r = await fetch(`${getAPIUrl()}superadmin/payments/dar-de-alta`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, nombre: altaNombre.trim() }),
+      })
+      const d = await r.json()
+      if (!r.ok) {
+        toast.error(d?.detail || `El servidor respondió ${r.status}`, { duration: 20000 })
+        return
+      }
+      if (d.enlace) setAltaEnlace(d.enlace)
+      if (d.correo_enviado) {
+        toast.success(
+          `${d.ya_existia ? 'Ya tenía cuenta' : 'Cuenta creada'} · correo enviado a ${email}`,
+          { duration: 10000 }
+        )
+        setAltaEmail('')
+        setAltaNombre('')
+      } else {
+        toast.error(
+          d.motivo || 'La cuenta está lista pero el correo no salió. Pásale el enlace a mano.',
+          { duration: 25000 }
+        )
+      }
+    } catch (e: any) {
+      toast.error(e?.message || 'No se pudo dar de alta', { duration: 15000 })
+    } finally {
+      setDandoAlta(false)
+      await cargar()
+    }
+  }
+
   if (filas === null) {
     return (
       <p className="flex items-center gap-2 text-[13px] text-[#8A96AB] py-6">
@@ -142,6 +202,67 @@ export default function FacturasPanel() {
           <RefreshCw size={15} className={recargando ? 'animate-spin' : ''} />
           Actualizar
         </button>
+      </div>
+
+      {/* Alta a mano. Va ARRIBA, antes de la lista, porque cuando se abre esta
+          pantalla con un alumno esperando es lo que se viene a hacer. */}
+      <div className="rounded-xl border border-[#DDE6F5] bg-[#F7FAFF] px-4 py-3.5">
+        <p className="flex items-center gap-2 text-[14px] font-bold text-[#1D0084]">
+          <UserPlus size={16} className="text-[#025dc7]" />
+          Dar de alta a mano
+        </p>
+        <p className="mt-1 text-[13px] text-[#5A6480] leading-relaxed max-w-2xl">
+          Para quien pagó por fuera del checkout (un enlace de pago, una transferencia) o
+          para quien el correo de bienvenida se perdió. Crea la cuenta si no existe y le
+          manda el correo de &quot;crea tu contraseña&quot;. Se puede repetir sin problema.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <input
+            type="email"
+            value={altaEmail}
+            onChange={(e) => setAltaEmail(e.target.value)}
+            placeholder="correo con el que pagó"
+            className="flex-1 min-w-[220px] bg-white rounded-lg px-3 py-2 text-[13.5px] text-[#1D0084] border border-[#DDE6F5] outline-none focus:border-[#4da3ff] transition-colors"
+          />
+          <input
+            type="text"
+            value={altaNombre}
+            onChange={(e) => setAltaNombre(e.target.value)}
+            placeholder="nombre (opcional)"
+            className="flex-1 min-w-[160px] bg-white rounded-lg px-3 py-2 text-[13.5px] text-[#1D0084] border border-[#DDE6F5] outline-none focus:border-[#4da3ff] transition-colors"
+          />
+          <button
+            onClick={darDeAlta}
+            disabled={dandoAlta}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] text-[13px] font-bold transition-colors disabled:opacity-60"
+          >
+            {dandoAlta ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
+            Darle de alta
+          </button>
+        </div>
+
+        {/* El enlace se enseña SIEMPRE que la operación llega hasta aquí, salga
+            o no el correo: así se le puede pasar por WhatsApp sin esperar a que
+            el email aparezca (o a que salga de spam). */}
+        {altaEnlace && (
+          <div className="mt-3 rounded-lg border border-[#DDE6F5] bg-white px-3 py-2.5">
+            <p className="text-[12.5px] font-semibold text-[#0a1656]">
+              Su enlace para crear la contraseña (vale 7 días):
+            </p>
+            <p className="mt-1 text-[12px] text-[#5A6480] break-all leading-relaxed">
+              {altaEnlace}
+            </p>
+            <button
+              onClick={() => {
+                navigator.clipboard?.writeText(altaEnlace)
+                toast.success('Enlace copiado')
+              }}
+              className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold text-[#025dc7] border border-[#DDE6F5] hover:bg-[#F0F5FF] transition-colors"
+            >
+              <Copy size={13} /> Copiar el enlace
+            </button>
+          </div>
+        )}
       </div>
 
       {filas.length === 0 && (
