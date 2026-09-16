@@ -21,10 +21,18 @@ router = APIRouter()
 
 class DarDeAlta(BaseModel):
     """A quién hay que meter en la escuela a mano. El nombre es opcional: si no
-    viene, la cuenta se crea como "Alumno" y él mismo lo cambia en su perfil."""
+    viene, la cuenta se crea como "Alumno" y él mismo lo cambia en su perfil.
+
+    `importe_cents` es lo que pagó de verdad, en céntimos — estos cobros suelen
+    ir a un precio distinto del de la web. Sin él la cuenta se crea igual pero
+    la venta NO se apunta, para no meter un 0 € en los ingresos."""
 
     email: str
     nombre: str = ""
+    importe_cents: int = 0
+    #: A false cuando el alumno ya entró y lo único que falta es apuntar la
+    #: venta: así no le llega un "crea tu contraseña" que no espera.
+    enviar_correo: bool = True
 
 
 def _require_superadmin(current_user: PublicUser):
@@ -245,7 +253,13 @@ async def payments_dar_de_alta(
     _require_superadmin(current_user)
     from src.services.payments.payments import dar_de_alta_a_mano
 
-    return await dar_de_alta_a_mano(datos.email, datos.nombre, db_session)
+    return await dar_de_alta_a_mano(
+        datos.email,
+        datos.nombre,
+        db_session,
+        importe_cents=datos.importe_cents,
+        enviar_correo=datos.enviar_correo,
+    )
 
 
 @router.post(

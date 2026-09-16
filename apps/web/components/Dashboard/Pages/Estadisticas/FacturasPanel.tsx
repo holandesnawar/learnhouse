@@ -60,6 +60,8 @@ export default function FacturasPanel() {
   // transferencia) o para quien el correo de bienvenida se le perdió.
   const [altaEmail, setAltaEmail] = useState('')
   const [altaNombre, setAltaNombre] = useState('')
+  const [altaImporte, setAltaImporte] = useState('')
+  const [altaSoloVenta, setAltaSoloVenta] = useState(false)
   const [dandoAlta, setDandoAlta] = useState(false)
   const [altaEnlace, setAltaEnlace] = useState('')
 
@@ -139,6 +141,14 @@ export default function FacturasPanel() {
       toast.error('Escribe el correo con el que pagó')
       return
     }
+    // El importe se escribe en euros y viaja en céntimos, que es como lo
+    // guarda la tabla. Se acepta la coma decimal: en España se escribe "197,50".
+    const euros = Number(altaImporte.trim().replace(',', '.'))
+    const importe_cents = Number.isFinite(euros) && euros > 0 ? Math.round(euros * 100) : 0
+    if (altaImporte.trim() && !importe_cents) {
+      toast.error('El importe no se entiende. Escribe solo la cifra, por ejemplo 197')
+      return
+    }
     setDandoAlta(true)
     setAltaEnlace('')
     try {
@@ -148,7 +158,12 @@ export default function FacturasPanel() {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, nombre: altaNombre.trim() }),
+        body: JSON.stringify({
+          email,
+          nombre: altaNombre.trim(),
+          importe_cents,
+          enviar_correo: !altaSoloVenta,
+        }),
       })
       const d = await r.json()
       if (!r.ok) {
@@ -156,18 +171,30 @@ export default function FacturasPanel() {
         return
       }
       if (d.enlace) setAltaEnlace(d.enlace)
-      if (d.correo_enviado) {
+      if (altaSoloVenta) {
+        toast.success(`${email} · sin tocar su cuenta`, { duration: 8000 })
+        setAltaEmail('')
+        setAltaNombre('')
+        setAltaImporte('')
+      } else if (d.correo_enviado) {
         toast.success(
           `${d.ya_existia ? 'Ya tenía cuenta' : 'Cuenta creada'} · correo enviado a ${email}`,
           { duration: 10000 }
         )
         setAltaEmail('')
         setAltaNombre('')
+        setAltaImporte('')
       } else {
         toast.error(
           d.motivo || 'La cuenta está lista pero el correo no salió. Pásale el enlace a mano.',
           { duration: 25000 }
         )
+      }
+      // La venta va en su propio aviso: puede ir bien con el correo fallando, o
+      // al revés, y lo que hay que hacer en cada caso es distinto.
+      if (d.venta?.nota) {
+        if (d.venta.contada) toast.success(d.venta.nota, { duration: 10000 })
+        else toast.error(d.venta.nota, { duration: 25000 })
       }
     } catch (e: any) {
       toast.error(e?.message || 'No se pudo dar de alta', { duration: 15000 })
@@ -213,8 +240,14 @@ export default function FacturasPanel() {
         </p>
         <p className="mt-1 text-[13px] text-[#5A6480] leading-relaxed max-w-2xl">
           Para quien pagó por fuera del checkout (un enlace de pago, una transferencia) o
-          para quien el correo de bienvenida se perdió. Crea la cuenta si no existe y le
-          manda el correo de &quot;crea tu contraseña&quot;. Se puede repetir sin problema.
+          para quien el correo de bienvenida se perdió. Crea la cuenta si no existe, le
+          manda el correo de &quot;crea tu contraseña&quot; y <strong>apunta la venta</strong>{' '}
+          para que cuente en las estadísticas. Se puede repetir sin problema.
+        </p>
+        <p className="mt-1.5 text-[12.5px] text-[#8A6A2A] bg-[#FFFBF2] border border-[#EFE3C9] rounded-lg px-2.5 py-1.5 leading-relaxed max-w-2xl">
+          Pon el importe que pagó de verdad — estos cobros suelen ir a otro precio. Sin
+          importe la cuenta se crea igual, pero la venta no se apunta (para no meter un
+          0 € en los ingresos). Si ya tenía una matrícula pagada, no se duplica.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <input
@@ -231,15 +264,40 @@ export default function FacturasPanel() {
             placeholder="nombre (opcional)"
             className="flex-1 min-w-[160px] bg-white rounded-lg px-3 py-2 text-[13.5px] text-[#1D0084] border border-[#DDE6F5] outline-none focus:border-[#4da3ff] transition-colors"
           />
+          <div className="relative">
+            <input
+              type="text"
+              inputMode="decimal"
+              value={altaImporte}
+              onChange={(e) => setAltaImporte(e.target.value)}
+              placeholder="197"
+              className="w-[120px] bg-white rounded-lg pl-3 pr-7 py-2 text-[13.5px] text-[#1D0084] border border-[#DDE6F5] outline-none focus:border-[#4da3ff] transition-colors"
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[13px] text-[#8A96AB] pointer-events-none">
+              €
+            </span>
+          </div>
           <button
             onClick={darDeAlta}
             disabled={dandoAlta}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] text-[13px] font-bold transition-colors disabled:opacity-60"
           >
             {dandoAlta ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
-            Darle de alta
+            {altaSoloVenta ? 'Apuntar la venta' : 'Darle de alta'}
           </button>
         </div>
+
+        {/* Para arreglar la contabilidad de alguien que YA está dentro sin
+            mandarle un "crea tu contraseña" que no espera. */}
+        <label className="mt-2.5 flex items-center gap-2 text-[13px] text-[#5A6480] cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={altaSoloVenta}
+            onChange={(e) => setAltaSoloVenta(e.target.checked)}
+            className="accent-[#025dc7] w-[15px] h-[15px]"
+          />
+          Ya entró: solo apuntar la venta, sin mandarle ningún correo
+        </label>
 
         {/* El enlace se enseña SIEMPRE que la operación llega hasta aquí, salga
             o no el correo: así se le puede pasar por WhatsApp sin esperar a que
