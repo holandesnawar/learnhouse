@@ -1219,6 +1219,66 @@ async def update_org_direct_welcome_config(
     return {"detail": "Direct welcome message updated"}
 
 
+async def update_org_acceso_profes_config(
+    request: Request,
+    payload: dict,
+    org_id: int,
+    current_user: PublicUser | AnonymousUser,
+    db_session: AsyncSession,
+):
+    """Qué ven los profes de la formación: todo, o lo mismo que un alumno.
+
+    Lo decide el administrador para TODA la escuela. No es una preferencia de
+    cada profe: si cada uno se lo abriera por su cuenta, el administrador no
+    podría saber qué está viendo su equipo en la clase del sábado, que es justo
+    lo que quiere controlar.
+
+    `rbac_check ... "update"` deja fuera al profe a propósito (solo pasan roles
+    1 y 2), que es exactamente lo que hace falta aquí: el profe no puede
+    cambiar lo que él mismo ve.
+    """
+    statement = select(Organization).where(Organization.id == org_id)
+    org = (await db_session.execute(statement)).scalars().first()
+
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    await rbac_check(request, org.org_uuid, current_user, "update", db_session)
+
+    statement = select(OrganizationConfig).where(OrganizationConfig.org_id == org.id)
+    org_config = (await db_session.execute(statement)).scalars().first()
+
+    if org_config is None:
+        raise HTTPException(status_code=404, detail="Organization config not found")
+
+    updated_config = _deep_copy_config(org_config)
+    updated_config["acceso_profes"] = {"ven_todo": bool(payload.get("ven_todo"))}
+
+    org_config.config = updated_config
+    org_config.update_date = str(datetime.now())
+
+    db_session.add(org_config)
+    await db_session.commit()
+    await db_session.refresh(org_config)
+
+    return {"ven_todo": bool(payload.get("ven_todo"))}
+
+
+async def get_org_acceso_profes_config(org_id: int, db_session: AsyncSession) -> dict:
+    """Lo guardado hoy. Nunca lanza: si no se puede leer, "como un alumno"."""
+    try:
+        fila = (
+            await db_session.execute(
+                select(OrganizationConfig).where(OrganizationConfig.org_id == org_id)
+            )
+        ).scalars().first()
+        if not fila or not isinstance(fila.config, dict):
+            return {"ven_todo": False}
+        return {"ven_todo": bool((fila.config.get("acceso_profes") or {}).get("ven_todo"))}
+    except Exception:  # noqa: BLE001
+        return {"ven_todo": False}
+
+
 async def get_org_email_texts(org_id: int, db_session: AsyncSession) -> dict:
     """Los textos de los correos que esta escuela tiene cambiados. Nunca lanza."""
     from src.services.email.textos import limpiar

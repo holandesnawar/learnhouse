@@ -72,6 +72,17 @@ class StaffTitlesConfig(BaseModel):
     titles: dict[str, str] = {}
 
 
+class AccesoProfesConfig(BaseModel):
+    """Qué ven los profes de la formación.
+
+    `False` (el defecto): lo mismo que un alumno, con los candados del goteo.
+    Es lo que hace creíble la clase en vivo, porque el profe comparte pantalla
+    y el alumno ve que a él tampoco se le abre.
+    """
+
+    ven_todo: bool = False
+
+
 class DirectWelcomeConfig(BaseModel):
     # Mensaje automático que recibe el alumno en su conversación con el equipo.
     message: str = ""

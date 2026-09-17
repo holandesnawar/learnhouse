@@ -24,6 +24,8 @@ from src.services.courses.locks import (
     batch_accessible_restricted_uuids,
     drip_locked_chapters,
     is_locked_for_user,
+    is_org_staff,
+    profes_ven_todo,
     is_org_admin,
 )
 
@@ -314,13 +316,21 @@ async def _apply_activity_lock(
             accessible_restricted_uuids=accessible,
             is_admin=admin,
         )
-        # Drip content: parent chapter may not have unlocked yet for this user.
+        # Goteo: el módulo padre puede no haberse abierto todavía.
+        #
+        # ⚠️ Aquí faltaba la excepción del equipo que SÍ tenía la lista de
+        # módulos, y por eso el profe podía abrir la pestaña de una clase
+        # cerrada —la lista se la daba por abierta— y al entrar encontrarse
+        # "contenido no disponible". Dos sitios decidiendo lo mismo con
+        # criterios distintos. Ahora los dos miran el mismo ajuste.
+        equipo = await is_org_staff(acting_user_id, course.org_id, db_session)
+        equipo_ve_todo = equipo and await profes_ven_todo(course.org_id, db_session)
         drip = await drip_locked_chapters(
             [parent_chapter_row.chapter_uuid],
             course.org_id,
             current_user,
             db_session,
-            is_admin=admin,
+            is_admin=admin or equipo_ve_todo,
         )
         drip_unlock = drip.get(parent_chapter_row.chapter_uuid)
 

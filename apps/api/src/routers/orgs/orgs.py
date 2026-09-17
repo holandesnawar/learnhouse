@@ -53,6 +53,8 @@ from src.services.orgs.orgs import (
     update_org_footer_text_config,
     update_org_community_panel_config,
     update_org_direct_welcome_config,
+    update_org_acceso_profes_config,
+    get_org_acceso_profes_config,
     update_org_utm_links_config,
     update_org_staff_titles_config,
     update_org_weekly_class_banner_config,
@@ -71,7 +73,7 @@ from src.services.orgs.orgs import (
     upload_org_og_image_service,
     update_org_favicon,
 )
-from src.db.organization_config import AuthBrandingConfig, SeoOrgConfig, CommunityPanelConfig, DirectWelcomeConfig, StaffTitlesConfig, WeeklyClassBannerConfig, DripContentConfig, UtmLinksConfig
+from src.db.organization_config import AccesoProfesConfig, AuthBrandingConfig, SeoOrgConfig, CommunityPanelConfig, DirectWelcomeConfig, StaffTitlesConfig, WeeklyClassBannerConfig, DripContentConfig, UtmLinksConfig
 
 
 router = APIRouter()
@@ -721,6 +723,44 @@ async def api_update_org_utm_links_config(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     return await update_org_utm_links_config(
+        request, payload.model_dump(), org_id, current_user, db_session
+    )
+
+
+@router.get(
+    "/{org_id}/config/acceso_profes",
+    summary="¿Ven los profes toda la formación o solo lo que ve un alumno?",
+)
+async def api_get_org_acceso_profes_config(
+    org_id: int,
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    return await get_org_acceso_profes_config(org_id, db_session)
+
+
+@router.put(
+    "/{org_id}/config/acceso_profes",
+    summary="Decide qué ven los profes de la formación. Solo administradores.",
+    description=(
+        "Con `ven_todo` en falso, los profes ven los módulos aún cerrados con "
+        "candado y no pueden abrirlos, igual que un alumno. El profe no puede "
+        "cambiar esto: la puerta es la de administrador."
+    ),
+    responses={
+        200: {"description": "Guardado."},
+        401: {"description": "Not authenticated"},
+        403: {"description": "Caller is not an organization administrator"},
+        404: {"description": "Organization not found"},
+    },
+)
+async def api_update_org_acceso_profes_config(
+    request: Request,
+    org_id: int,
+    payload: AccesoProfesConfig,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    return await update_org_acceso_profes_config(
         request, payload.model_dump(), org_id, current_user, db_session
     )
 

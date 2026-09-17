@@ -165,6 +165,22 @@ export async function updateOrgDripConfig(
   return res
 }
 
+/**
+ * Qué ven los profes de la formación. Solo administradores: el backend exige
+ * permiso sobre la escuela y devuelve 403 al profe.
+ */
+export async function updateOrgAccesoProfes(
+  org_id: number,
+  ven_todo: boolean,
+  access_token: string
+) {
+  const result: any = await fetch(
+    `${getAPIUrl()}orgs/${org_id}/config/acceso_profes`,
+    RequestBodyWithAuthHeader('PUT', { ven_todo }, null, access_token)
+  )
+  return await errorHandling(result)
+}
+
 export async function updateOrgFontConfig(
   org_id: string,
   font: string,

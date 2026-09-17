@@ -1,8 +1,10 @@
 'use client'
 import React from 'react'
-import { CalendarClock } from 'lucide-react'
+import { CalendarClock, Users } from 'lucide-react'
 import { useCourse } from '@components/Contexts/CourseContext'
 import DripContentSettings from '@components/Pages/Courses/DripContentSettings'
+import AccesoProfesSettings from '@components/Pages/Courses/AccesoProfesSettings'
+import { useOrg } from '@components/Contexts/OrgContext'
 
 /**
  * Pestaña "Goteo" del panel de admin del curso.
@@ -14,6 +16,7 @@ import DripContentSettings from '@components/Pages/Courses/DripContentSettings'
  */
 export default function EditCourseDrip() {
   const course = useCourse() as any
+  const org = useOrg() as any
   const courseStructure = course?.courseStructure
 
   return (
@@ -35,6 +38,19 @@ export default function EditCourseDrip() {
         ) : (
           <div className="h-32 rounded-2xl bg-white border border-[#DDE6F5] animate-pulse" />
         )}
+
+        {/* Va aquí y no en una pantalla aparte porque es la otra mitad de la
+            misma decisión: el goteo dice CUÁNDO se abre cada módulo, y esto
+            dice a quién se le aplica. Separarlas obliga a acordarse de las dos. */}
+        <div className="flex items-center gap-2.5 mt-10 mb-1.5">
+          <Users size={20} className="text-[#025dc7]" />
+          <h2 className="text-xl font-bold text-gray-900">Qué ven los profes</h2>
+        </div>
+        <p className="text-sm text-gray-500 mb-4 leading-relaxed">
+          El goteo de arriba decide cuándo se abre cada módulo. Esto decide si a los
+          profes se les aplica igual que a los alumnos.
+        </p>
+        <AccesoProfesSettings orgId={org?.id} />
       </div>
     </div>
   )

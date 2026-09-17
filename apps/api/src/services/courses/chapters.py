@@ -24,6 +24,7 @@ from src.services.courses.locks import (
     drip_locked_chapters,
     is_locked_for_user,
     is_org_staff,
+    profes_ven_todo,
     is_org_admin,
 )
 
@@ -411,20 +412,24 @@ async def _apply_locks_to_chapters(
     # Course-level usergroup membership unlocks everything below it.
     course_grants_access = course.course_uuid in accessible
 
-    # Drip content: chapters that haven't unlocked yet for this user (time-based,
-    # independent of the usergroup lock_type axis above).
-    # El goteo NO se le aplica al equipo. Un profe tiene que poder abrir el
-    # módulo que le toca dar semanas antes para prepararlo; con el candado
-    # puesto vería lo mismo que un alumno. Los administradores ya salen antes
-    # por la puerta de arriba, así que esto es en la práctica para el profe.
+    # Goteo: módulos que todavía no se han abierto para esta persona.
+    #
+    # ⚠️ Al profe se le aplica o no según lo que haya decidido el ADMINISTRADOR
+    # en el panel, no según lo que prefiera cada profe. Antes se le quitaba
+    # siempre, y eso rompe la clase en vivo: el profe comparte pantalla, a él se
+    # le abren los módulos de más adelante y el alumno ve que a él sí.
+    #
+    # Los administradores salen antes por la puerta de arriba (`if admin`), así
+    # que esto decide lo que ven profes y moderadores.
     equipo = False if is_anon else await is_org_staff(acting_user_id, course.org_id, db_session)
+    equipo_ve_todo = equipo and await profes_ven_todo(course.org_id, db_session)
 
     drip_locked = await drip_locked_chapters(
         [c.chapter_uuid for c in chapters],
         course.org_id,
         current_user,
         db_session,
-        is_admin=admin or equipo,
+        is_admin=admin or equipo_ve_todo,
     )
 
     for chapter in chapters:
