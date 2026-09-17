@@ -11,6 +11,7 @@ Batch helpers are provided for TOC-style reads where many resources need
 to be checked at once without N+1 queries.
 """
 
+import logging
 from datetime import datetime, timedelta
 from typing import Iterable
 
@@ -24,6 +25,8 @@ from src.db.usergroup_user import UserGroupUser
 from src.db.users import AnonymousUser, APITokenUser, PublicUser
 from src.security.auth import resolve_acting_user_id
 from src.security.rbac.constants import ADMIN_OR_MAINTAINER_ROLE_IDS, STAFF_ROLE_IDS
+
+logger = logging.getLogger(__name__)
 
 
 async def is_org_admin(user_id: int, org_id: int, db_session: AsyncSession) -> bool:
@@ -257,3 +260,33 @@ async def is_locked_for_user(
         acting_user_id, [resource_uuid], db_session
     )
     return resource_uuid not in accessible
+
+
+async def profes_ven_todo(org_id: int, db_session: AsyncSession) -> bool:
+    """¿Ha decidido el administrador que los profes vean todo el curso?
+
+    Lo decide UNA persona para TODA la escuela, desde el panel. No es una
+    preferencia de cada profe: si cada uno se lo abriera por su cuenta, el
+    administrador no podría saber qué está viendo su equipo en la clase del
+    sábado, que es justo lo que quiere controlar.
+
+    Nace en False: el profe ve la formación igual que un alumno, con los
+    candados del goteo. Es lo que hace creíble la clase en vivo, porque el
+    profe comparte pantalla y el alumno ve que a él tampoco se le abre.
+
+    Falla hacia el lado seguro: si no se puede leer el ajuste, devuelve False
+    (con candados), que es lo que no sorprende a nadie en mitad de una clase.
+    """
+    try:
+        fila = (
+            await db_session.execute(
+                select(OrganizationConfig).where(OrganizationConfig.org_id == org_id)
+            )
+        ).scalars().first()
+        if not fila or not isinstance(fila.config, dict):
+            return False
+        bloque = fila.config.get("acceso_profes") or {}
+        return bool(bloque.get("ven_todo"))
+    except Exception:  # noqa: BLE001
+        logger.exception("No se pudo leer el ajuste de acceso de los profes (org %s)", org_id)
+        return False
