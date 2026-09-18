@@ -95,23 +95,32 @@ async def _sales_block(org_id: int, db_session: AsyncSession) -> dict:
     # tener fecha de pago.
     started = len([r for r in rows if not desde or (r.created_at or "") >= desde])
 
-    # La lista de recuperación de verdad, con nombre y contacto: la pantalla
-    # decía "esa es tu lista" y no enseñaba a nadie. Una persona = una entrada
-    # aunque haya empezado el formulario dos veces (el botón "Cambiar" del
-    # checkout crea otra fila), y fuera si al final pagó con otro intento.
+    # La lista de recuperación de verdad, con nombre y contacto. Una persona =
+    # una entrada aunque haya empezado el formulario dos veces (el botón
+    # "Cambiar" del checkout crea otra fila).
+    #
+    # ⚠️ Quien YA COMPRÓ con otro intento no se esconde: se marca. Antes se
+    # hacía `continue` y la fila desaparecía sin dejar rastro, y eso cuesta
+    # tardes enteras — se rellena una matrícula de prueba, no sale en ninguna
+    # parte, y no hay forma de saber si el fallo está en el formulario, en la
+    # escuela o en la pantalla. Una fila apagada que dice "ya es alumno"
+    # responde la pregunta sola.
     emails_pagados = {(r.email or "").lower() for r in paid}
     pendientes: dict[str, dict] = {}
     for r in sorted(rows, key=lambda r: r.created_at or ""):
         if r.status == "paid" or (desde and (r.created_at or "") < desde):
             continue
         clave = (r.email or "").lower()
-        if not clave or clave in emails_pagados:
+        if not clave:
             continue
         pendientes[clave] = {
             "name": f"{r.first_name or ''} {r.last_name or ''}".strip(),
             "email": r.email,
             "phone": r.phone or "",
             "created_at": r.created_at or "",
+            # True = empezó otra matrícula pero ya había comprado. No hay que
+            # escribirle, pero tiene que verse.
+            "ya_alumno": clave in emails_pagados,
         }
 
     return {

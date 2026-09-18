@@ -547,6 +547,8 @@ function Solicitudes({
 
   const solicitudes = rows ?? []
   const conPago = desdeCheckout ?? []
+  const porAtender = conPago.filter((p) => !p.ya_alumno)
+  const yaAlumnos = conPago.filter((p) => p.ya_alumno)
   if (!solicitudes.length && !conPago.length) return null
 
   const estaHecha = (r: NonNullable<SchoolStats['requests']>[number]) =>
@@ -693,12 +695,19 @@ function Solicitudes({
                   Llegaron al pago y no terminaron
                 </p>
                 <p className="text-[12.5px] text-[#9CA3AF] mt-0.5 mb-3">
-                  {conPago.length === 1 ? 'Una persona rellenó' : `${conPago.length} personas rellenaron`}{' '}
+                  {porAtender.length === 1 ? 'Una persona rellenó' : `${porAtender.length} personas rellenaron`}{' '}
                   la matrícula y se quedaron en la caja. Vieron el precio, así que no hace
                   falta contárselo: pregúntales qué les frenó.
+                  {yaAlumnos.length > 0 && (
+                    <>
+                      {' '}Abajo, apagados, {yaAlumnos.length === 1 ? 'uno que ya' : `${yaAlumnos.length} que ya`}{' '}
+                      había comprado: no hay que escribirles, pero se enseñan para que nada
+                      desaparezca sin explicación.
+                    </>
+                  )}
                 </p>
                 <div className="space-y-1.5">
-                  {conPago.map((p) => {
+                  {[...porAtender, ...yaAlumnos].map((p) => {
                     const tel = (p.phone || '').replace(/[^\d+]/g, '')
                     const wa = tel
                       ? `https://wa.me/${tel.replace(/^\+/, '').replace(/^00/, '')}`
@@ -712,7 +721,11 @@ function Solicitudes({
                     return (
                       <div
                         key={p.email}
-                        className="rounded-xl border border-[#DDE6F5] bg-[#F7FAFF] px-3.5 py-2.5 flex items-center gap-3"
+                        className={`rounded-xl border px-3.5 py-2.5 flex items-center gap-3 ${
+                          p.ya_alumno
+                            ? 'border-[#E7EEF9] opacity-55'
+                            : 'border-[#DDE6F5] bg-[#F7FAFF]'
+                        }`}
                       >
                         <div className="flex-1 min-w-0">
                           <p className="text-[13.5px] font-semibold text-gray-900 truncate">
@@ -723,11 +736,17 @@ function Solicitudes({
                             {p.phone ? ` · ${p.phone}` : ''}
                             {cuando ? <span className="text-[#9CA3AF]"> · {cuando}</span> : null}
                           </p>
-                          <p className="text-[12px] mt-0.5 text-emerald-700 font-semibold">
-                            Llegó al pago · vio el precio
-                          </p>
+                          {p.ya_alumno ? (
+                            <p className="text-[12px] mt-0.5 text-[#9CA3AF] font-semibold">
+                              Ya es alumno · compró en otro intento, no hace falta escribirle
+                            </p>
+                          ) : (
+                            <p className="text-[12px] mt-0.5 text-emerald-700 font-semibold">
+                              Llegó al pago · vio el precio
+                            </p>
+                          )}
                         </div>
-                        {wa && (
+                        {wa && !p.ya_alumno && (
                           <a
                             href={wa}
                             target="_blank"
@@ -737,12 +756,14 @@ function Solicitudes({
                             WhatsApp
                           </a>
                         )}
-                        <a
-                          href={`mailto:${p.email}`}
-                          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7] text-[12px] font-bold transition-colors"
-                        >
-                          <Mail size={13} /> Escribir
-                        </a>
+                        {!p.ya_alumno && (
+                          <a
+                            href={`mailto:${p.email}`}
+                            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7] text-[12px] font-bold transition-colors"
+                          >
+                            <Mail size={13} /> Escribir
+                          </a>
+                        )}
                       </div>
                     )
                   })}
