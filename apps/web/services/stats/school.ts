@@ -34,7 +34,14 @@ export interface SalesBlock {
     conversion_pct: number
     abandoned: number
     /** Quién rellenó el formulario y no pagó, una entrada por persona, la más reciente primero. */
-    pending?: Array<{ name: string; email: string; phone: string; created_at: string }>
+    pending?: Array<{
+      name: string
+      email: string
+      phone: string
+      created_at: string
+      /** Empezó otra matrícula pero ya había comprado. No hay que escribirle. */
+      ya_alumno?: boolean
+    }>
   }
   leads_by_month: Record<string, number>
 }
