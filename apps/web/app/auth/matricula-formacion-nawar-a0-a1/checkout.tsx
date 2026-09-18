@@ -46,6 +46,24 @@ const COURSE_FEATURES = [
 // una garantía comercial de 15, "más amplia que el desistimiento legal", y la
 // landing dice 15 en nueve sitios. Prometer 14 aquí sería ofrecer menos de lo
 // que ya está publicado, que es la dirección mala del error.
+/**
+ * A dónde vuelve quien pulsa "Cambiar" para corregir una errata.
+ *
+ * ⚠️ Iba a /matricula-formacion-nawar-a0-a1 (con el A0-A1 al final), y esa URL
+ * tiene una REDIRECCIÓN 302 a la lista de espera en astro.config.mjs de
+ * nawar-web. O sea que alguien a punto de pagar, que solo quería arreglar una
+ * letra de su correo, acababa en la lista de espera. El peor sitio posible
+ * para perder a alguien: ya había decidido comprar.
+ *
+ * La buena es /matricula-formacion-nawar, que además tiene su propia puerta de
+ * plazas: si la convocatoria está cerrada, redirige ella sola a la lista de
+ * espera, que ahí sí es lo correcto.
+ *
+ * Está aquí arriba y no escrita dos veces abajo para que no vuelvan a
+ * separarse: la usan el "Cambiar" y el "Volver a la matrícula" del error.
+ */
+const MATRICULA_URL = 'https://www.holandesnawar.com/matricula-formacion-nawar'
+
 const GUARANTEE_DAYS = 15
 
 // El precio de después del lanzamiento. Sirve de ancla: un 397 € a secas es
@@ -135,7 +153,7 @@ function MissingParams() {
         Volvemos al formulario de matrícula para preparar tu pago de nuevo.
       </p>
       <a
-        href="https://www.holandesnawar.com/matricula-formacion-nawar-a0-a1"
+        href={MATRICULA_URL}
         className="mt-6 inline-flex items-center justify-center gap-2 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold py-3 px-6 rounded-xl transition-colors text-[14.5px]"
       >
         Volver a la matrícula
@@ -183,7 +201,7 @@ function PagandoComo({ email, fullName }: { email: string; fullName: string }) {
         </div>
       </div>
       <a
-        href="https://www.holandesnawar.com/matricula-formacion-nawar-a0-a1"
+        href={MATRICULA_URL}
         className="shrink-0 self-center text-[12px] font-semibold text-[#4da3ff] hover:underline"
       >
         Cambiar
