@@ -227,7 +227,7 @@ export default function EstadisticasPage() {
       ) : (
         <div className="space-y-8">
           {/* ── A quién llamar hoy ───────────────────────────────── */}
-          <Solicitudes rows={stats.requests} />
+          <Solicitudes rows={stats.requests} desdeCheckout={stats.sales?.funnel?.pending ?? []} />
 
           {/* ── Quién necesita un empujón ────────────────────────── */}
           <AtRisk rows={stats.at_risk} />
@@ -350,60 +350,15 @@ export default function EstadisticasPage() {
                       ? `: ${sales.funnel.pending!.length} ${sales.funnel.pending!.length === 1 ? 'persona' : 'personas'} (un intento repetido cuenta una vez).`
                       : '.'}
                   </p>
+                  {/* La lista de estas personas vive ARRIBA, en "Matrículas
+                      nuevas", junto al resto de gente a la que hay que escribir.
+                      Estaba aquí abajo, dentro del embudo, y era el segundo
+                      sitio donde buscar: quien miraba la lista de arriba no los
+                      veía y daba por hecho que no existían. */}
                   {(sales.funnel.pending?.length ?? 0) > 0 && (
-                    <div className="mt-3 space-y-2">
-                      {sales.funnel.pending!.map((p) => {
-                        const tel = p.phone.replace(/[^\d+]/g, '')
-                        const wa = tel ? `https://wa.me/${tel.replace(/^\+/, '').replace(/^00/, '')}` : ''
-                        const cuando = p.created_at
-                          ? new Date(p.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
-                          : ''
-                        return (
-                          <div
-                            key={p.email}
-                            className="rounded-xl border border-[#E7EEF9] px-3.5 py-2.5 flex items-center gap-3"
-                          >
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[13.5px] font-semibold text-gray-900 truncate">
-                                {p.name || p.email}
-                              </p>
-                              <p className="text-[12px] text-gray-500 truncate">
-                                {p.email}
-                                {p.phone ? ` · ${p.phone}` : ''}
-                                {cuando ? <span className="text-[#9CA3AF]"> · empezó el {cuando}</span> : null}
-                              </p>
-                              {/* Aquí NO hace falta rastrear nada. Estar en esta
-                                  lista significa haber rellenado el formulario de
-                                  pago, y ese formulario redirige derecho a la caja,
-                                  donde la cifra es lo primero que se ve.
-                                  Es MÁS fiable que el recorrido del navegador de la
-                                  otra lista: se deduce de un hecho que ya está en la
-                                  base de datos, no de una marca que se pierde al
-                                  cambiar de móvil o al volver otro día. */}
-                              <p className="text-[12px] mt-0.5 text-emerald-700 font-semibold">
-                                Llegó al pago · vio el precio y se echó atrás
-                              </p>
-                            </div>
-                            {wa && (
-                              <a
-                                href={wa}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="shrink-0 inline-flex items-center px-3 py-1.5 rounded-lg bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7] text-[12px] font-bold transition-colors"
-                              >
-                                WhatsApp
-                              </a>
-                            )}
-                            <a
-                              href={`mailto:${p.email}`}
-                              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7] text-[12px] font-bold transition-colors"
-                            >
-                              <Mail size={13} /> Escribir
-                            </a>
-                          </div>
-                        )
-                      })}
-                    </div>
+                    <p className="mt-2 text-[12px] text-[#025dc7] font-semibold">
+                      Los tienes arriba, en Matrículas nuevas.
+                    </p>
                   )}
                 </div>
               </>
@@ -556,7 +511,31 @@ export default function EstadisticasPage() {
  * El botón "Hecho" no borra nada, solo la baja al final de la lista: así se ve
  * de un vistazo qué queda por hacer sin perder el histórico.
  */
-function Solicitudes({ rows }: { rows: SchoolStats['requests'] }) {
+/**
+ * Todo el que ha dejado sus datos y hay que escribirle, en UN solo sitio.
+ *
+ * ⚠️ Antes había dos listas en dos pantallas distintas y eso escondía gente:
+ *
+ *  · Quien rellena el formulario SIN pago (/matricula-a0-a1 y el de anuncios)
+ *    crea una solicitud, y salía aquí.
+ *  · Quien rellena el formulario CON pago (/matricula-formacion-nawar) y no
+ *    termina crea una matrícula pendiente, y salía abajo del todo, dentro de
+ *    la tarjeta del embudo.
+ *
+ * Para quien tiene que escribirles son lo mismo: alguien que dejó su contacto
+ * y no ha comprado. Buscar en dos sitios es cómo se pierde uno.
+ *
+ * Y no valen igual al redactar el mensaje: el segundo LLEGÓ A LA CAJA, así que
+ * vio el precio con seguridad. Eso no hace falta rastrearlo — se deduce de que
+ * la matrícula existe.
+ */
+function Solicitudes({
+  rows,
+  desdeCheckout = [],
+}: {
+  rows: SchoolStats['requests']
+  desdeCheckout?: NonNullable<SchoolStats['sales']>['funnel']['pending']
+}) {
   const org = useOrg() as any
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
@@ -566,7 +545,9 @@ function Solicitudes({ rows }: { rows: SchoolStats['requests'] }) {
   const [hechas, setHechas] = useState<Record<number, boolean>>({})
   const [guardando, setGuardando] = useState<number | null>(null)
 
-  if (!rows) return null
+  const solicitudes = rows ?? []
+  const conPago = desdeCheckout ?? []
+  if (!solicitudes.length && !conPago.length) return null
 
   const estaHecha = (r: NonNullable<SchoolStats['requests']>[number]) =>
     hechas[r.id] ?? Boolean(r.contacted_at)
@@ -582,8 +563,8 @@ function Solicitudes({ rows }: { rows: SchoolStats['requests'] }) {
     setHechas((prev) => ({ ...prev, [id]: !ahora }))
   }
 
-  const pendientes = rows.filter((r) => !estaHecha(r))
-  const ordenadas = [...rows].sort(
+  const pendientes = solicitudes.filter((r) => !estaHecha(r))
+  const ordenadas = [...solicitudes].sort(
     (a, b) => Number(estaHecha(a)) - Number(estaHecha(b))
   )
 
@@ -593,7 +574,7 @@ function Solicitudes({ rows }: { rows: SchoolStats['requests'] }) {
         <UserPlus size={16} className="text-[#025dc7]" /> Matrículas nuevas
       </h2>
       <div className={CARD}>
-        {rows.length === 0 ? (
+        {solicitudes.length === 0 && conPago.length === 0 ? (
           <p className="text-[13.5px] text-gray-700 py-2">
             Todavía no ha pedido plaza nadie por el formulario.
           </p>
@@ -702,6 +683,72 @@ function Solicitudes({ rows }: { rows: SchoolStats['requests'] }) {
                 )
               })}
             </div>
+
+            {/* Los que llegaron a la caja y no terminaron. Van en el MISMO sitio
+                porque para escribirles son lo mismo, pero aparte porque el
+                mensaje cambia: estos ya saben cuánto cuesta. */}
+            {conPago.length > 0 && (
+              <div className="mt-5 pt-4 border-t border-[#E7EEF9]">
+                <p className="text-[13px] font-semibold text-gray-900">
+                  Llegaron al pago y no terminaron
+                </p>
+                <p className="text-[12.5px] text-[#9CA3AF] mt-0.5 mb-3">
+                  {conPago.length === 1 ? 'Una persona rellenó' : `${conPago.length} personas rellenaron`}{' '}
+                  la matrícula y se quedaron en la caja. Vieron el precio, así que no hace
+                  falta contárselo: pregúntales qué les frenó.
+                </p>
+                <div className="space-y-1.5">
+                  {conPago.map((p) => {
+                    const tel = (p.phone || '').replace(/[^\d+]/g, '')
+                    const wa = tel
+                      ? `https://wa.me/${tel.replace(/^\+/, '').replace(/^00/, '')}`
+                      : ''
+                    const cuando = p.created_at
+                      ? new Date(p.created_at).toLocaleDateString('es-ES', {
+                          day: 'numeric',
+                          month: 'short',
+                        })
+                      : ''
+                    return (
+                      <div
+                        key={p.email}
+                        className="rounded-xl border border-[#DDE6F5] bg-[#F7FAFF] px-3.5 py-2.5 flex items-center gap-3"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13.5px] font-semibold text-gray-900 truncate">
+                            {p.name || p.email}
+                          </p>
+                          <p className="text-[12px] text-gray-500 truncate">
+                            {p.email}
+                            {p.phone ? ` · ${p.phone}` : ''}
+                            {cuando ? <span className="text-[#9CA3AF]"> · {cuando}</span> : null}
+                          </p>
+                          <p className="text-[12px] mt-0.5 text-emerald-700 font-semibold">
+                            Llegó al pago · vio el precio
+                          </p>
+                        </div>
+                        {wa && (
+                          <a
+                            href={wa}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="shrink-0 inline-flex items-center px-3 py-1.5 rounded-lg bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7] text-[12px] font-bold transition-colors"
+                          >
+                            WhatsApp
+                          </a>
+                        )}
+                        <a
+                          href={`mailto:${p.email}`}
+                          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7] text-[12px] font-bold transition-colors"
+                        >
+                          <Mail size={13} /> Escribir
+                        </a>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
