@@ -372,6 +372,17 @@ export default function EstadisticasPage() {
                                 {p.phone ? ` · ${p.phone}` : ''}
                                 {cuando ? <span className="text-[#9CA3AF]"> · empezó el {cuando}</span> : null}
                               </p>
+                              {/* Aquí NO hace falta rastrear nada. Estar en esta
+                                  lista significa haber rellenado el formulario de
+                                  pago, y ese formulario redirige derecho a la caja,
+                                  donde la cifra es lo primero que se ve.
+                                  Es MÁS fiable que el recorrido del navegador de la
+                                  otra lista: se deduce de un hecho que ya está en la
+                                  base de datos, no de una marca que se pierde al
+                                  cambiar de móvil o al volver otro día. */}
+                              <p className="text-[12px] mt-0.5 text-emerald-700 font-semibold">
+                                Llegó al pago · vio el precio y se echó atrás
+                              </p>
                             </div>
                             {wa && (
                               <a
@@ -639,10 +650,22 @@ function Solicitudes({ rows }: { rows: SchoolStats['requests'] }) {
                           <span className="text-[#9CA3AF]">Sin rastro de por dónde llegó</span>
                         )}
                         {' · '}
+                        {/* Los dos lados NO valen lo mismo, y el texto lo dice.
+                            "Ya vio el precio" solo se pone si cargó la página que
+                            lo enseña, así que cuando sale es verdad. El otro lado
+                            es la AUSENCIA de rastro, y el rastro se pierde si
+                            cambió de móvil, si volvió otro día o si navega en
+                            privado. Poner "no ha visto el precio" a secas afirmaba
+                            algo que no se sabe. */}
                         {r.vio_precio ? (
                           <span className="text-emerald-700 font-semibold">ya vio el precio</span>
                         ) : (
-                          <span className="text-[#8A6A2A] font-semibold">no ha visto el precio</span>
+                          <span
+                            className="text-[#8A6A2A] font-semibold"
+                            title="El rastro dura una visita: si volvió otro día o cambió de móvil, puede haberlo visto igual."
+                          >
+                            sin rastro de haber visto el precio
+                          </span>
                         )}
                       </p>
                     </div>
