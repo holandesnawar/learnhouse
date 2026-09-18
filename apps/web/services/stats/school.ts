@@ -136,8 +136,14 @@ export interface EnrollmentRequestRow {
   name: string
   email: string
   phone: string
-  /** 'web' (enlace normal) o 'ads' (campaña). */
+  /** Qué FORMULARIO rellenó: 'web' o 'ads'. Ojo, no es de dónde vino. */
   source: string
+  /** La primera página por la que pasó, ya en cristiano. */
+  vino_de: string
+  /** Si pasó por la única página que enseña la cifra. Es EL dato. */
+  vio_precio: boolean
+  /** El camino entero, para mirarlo si hace falta. */
+  camino: string
   created_at: string
   /** Vacío mientras no se le haya escrito. */
   contacted_at: string

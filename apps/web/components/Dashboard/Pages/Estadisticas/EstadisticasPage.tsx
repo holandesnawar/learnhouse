@@ -629,6 +629,22 @@ function Solicitudes({ rows }: { rows: SchoolStats['requests'] }) {
                         {r.phone ? ` · ${r.phone}` : ''}
                         {cuando ? <span className="text-[#9CA3AF]"> · {cuando}</span> : null}
                       </p>
+                      {/* Lo que hay que saber ANTES de escribirle. Si no ha
+                          visto el precio, el mensaje no puede empezar por ahí:
+                          dejó sus datos sin saber cuánto cuesta. */}
+                      <p className="text-[12px] mt-0.5" title={r.camino || undefined}>
+                        {r.vino_de ? (
+                          <span className="text-[#5A6480]">Vino de {r.vino_de}</span>
+                        ) : (
+                          <span className="text-[#9CA3AF]">Sin rastro de por dónde llegó</span>
+                        )}
+                        {' · '}
+                        {r.vio_precio ? (
+                          <span className="text-emerald-700 font-semibold">ya vio el precio</span>
+                        ) : (
+                          <span className="text-[#8A6A2A] font-semibold">no ha visto el precio</span>
+                        )}
+                      </p>
                     </div>
                     {wa && !hecha && (
                       <a

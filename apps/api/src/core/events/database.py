@@ -365,6 +365,9 @@ _ADDED_COLUMNS = [
     # Citar y editar en los mensajes directos.
     "ALTER TABLE IF EXISTS direct_message ADD COLUMN IF NOT EXISTS reply_to_id INTEGER",
     "ALTER TABLE IF EXISTS direct_message ADD COLUMN IF NOT EXISTS edited_at VARCHAR DEFAULT ''",
+    # Qué había visto el lead antes de dejar sus datos.
+    "ALTER TABLE IF EXISTS enrollment_request ADD COLUMN IF NOT EXISTS recorrido VARCHAR DEFAULT ''",
+    "ALTER TABLE IF EXISTS enrollment_request ADD COLUMN IF NOT EXISTS referrer VARCHAR DEFAULT ''",
 ]
 
 

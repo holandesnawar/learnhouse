@@ -29,6 +29,21 @@ class EnrollmentRequest(SQLModel, table=True):
     # De dónde llegó: "web" (enlace normal) o "ads" (campaña). Se guarda para
     # poder mirar luego si las dos fuentes se parecen en calidad.
     source: str = Field(default="web", index=True)
+    # Por dónde pasó ANTES de rellenar, separado por comas y en orden
+    # ("home,landing,landing-precio"). Las marcas las pone la web
+    # (src/lib/recorrido.ts) y son un juego cerrado.
+    #
+    # ⚠️ Esto es lo que `source` no podía decir. `source` dice qué FORMULARIO
+    # rellenó, y a un mismo formulario se llega por tres puertas distintas: el
+    # anuncio, el botón de la página de gracias de una guía, y el enlace que se
+    # manda a mano. Tres personas que saben cosas muy distintas y a las que hay
+    # que escribir cosas muy distintas. Lo que de verdad cambia la conversación
+    # es si ya vio el precio, y eso solo se sabe mirando el recorrido.
+    recorrido: str = Field(default="", max_length=400)
+    # El sitio de FUERA desde el que llegó (instagram.com, un buscador…). Solo
+    # cuando no es nuestro propio dominio: dentro de la web el recorrido ya lo
+    # cuenta mejor.
+    referrer: str = Field(default="", max_length=120)
     product: str = Field(default="formacion-a0-a1", index=True)
     created_at: str = Field(default="", index=True)
     # Cuándo se le escribió. Vacío = pendiente. Es lo que hace que la lista del
@@ -42,3 +57,5 @@ class EnrollmentRequestCreate(BaseModel):
     last_name: str = ""
     phone: str = ""
     source: str = "web"
+    recorrido: list[str] = []
+    referrer: str = ""
