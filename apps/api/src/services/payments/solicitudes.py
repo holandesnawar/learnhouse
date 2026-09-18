@@ -63,11 +63,68 @@ async def crear_solicitud(
     fila.last_name = (data.last_name or "").strip() or fila.last_name
     fila.phone = (data.phone or "").strip() or fila.phone
     fila.source = (data.source or "web").strip() or "web"
+    # El recorrido solo se escribe si viene con algo. Un formulario reenviado
+    # sin contexto no debe borrar lo que ya se sabía de esa persona.
+    recorrido = ",".join(x for x in (data.recorrido or []) if x)[:400]
+    if recorrido:
+        fila.recorrido = recorrido
+    if (data.referrer or "").strip():
+        fila.referrer = data.referrer.strip()[:120]
 
     db_session.add(fila)
     await db_session.commit()
     await db_session.refresh(fila)
     return fila
+
+
+#: Cómo se llama en cristiano cada página por la que pudo pasar.
+_NOMBRES = {
+    "home": "el inicio de la web",
+    "landing": "la página de la formación (sin precio)",
+    "landing-precio": "la página de la formación CON el precio",
+    "guia-bases": "la guía de las bases",
+    "gracias-bases": "la descarga de la guía de las bases",
+    "guia-hebben": "la guía hebben/zijn",
+    "gracias-hebben": "la descarga de la guía hebben/zijn",
+}
+
+#: La única página que enseña la cifra. Si no pasó por aquí, no ha visto nunca
+#: el precio, y ese es el dato que cambia cómo se le escribe.
+_CON_PRECIO = "landing-precio"
+
+
+def resumen_del_lead(recorrido: str, referrer: str, source: str) -> dict:
+    """De la lista de páginas a las dos frases que se leen en el panel.
+
+    Función pura a propósito: es la que decide qué se le dice al usuario y no
+    depende de la base de datos, así que se puede razonar y probar sola.
+
+    `vio_precio` es lo importante. Con él, el mensaje empieza por el precio y
+    la garantía; sin él, hay que contarle antes qué es la formación, porque
+    puede haber dejado sus datos sin saber siquiera cuánto cuesta.
+    """
+    pasos = [p for p in (recorrido or "").split(",") if p]
+    vio_precio = _CON_PRECIO in pasos
+
+    if pasos:
+        entrada = _NOMBRES.get(pasos[0], pasos[0])
+    elif referrer:
+        entrada = referrer
+    elif source == "ads":
+        # Sin recorrido y del formulario de anuncios: lo más probable es que
+        # aterrizara directamente ahí, que es lo que hace el tráfico de pago.
+        entrada = "el anuncio"
+    else:
+        entrada = ""
+
+    camino = " → ".join(_NOMBRES.get(p, p) for p in pasos)
+
+    return {
+        "vino_de": entrada,
+        "vio_precio": vio_precio,
+        "camino": camino,
+        "pasos": pasos,
+    }
 
 
 async def listar_solicitudes(db_session: AsyncSession, limite: int = 100) -> list[dict]:
@@ -88,6 +145,7 @@ async def listar_solicitudes(db_session: AsyncSession, limite: int = 100) -> lis
             "email": f.email,
             "phone": f.phone or "",
             "source": f.source or "web",
+            **resumen_del_lead(f.recorrido or "", f.referrer or "", f.source or "web"),
             "created_at": f.created_at or "",
             "contacted_at": f.contacted_at or "",
         }
