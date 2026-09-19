@@ -3943,7 +3943,7 @@ const m3_les1: Lesson = {
         { id: 'm3v-wijn',      dutch: 'de wijn',      spanish: 'el vino',          article: 'de',  emoji: '🍷', color: '#0d6e33', exampleNl: 'Welke wijn wil je?',         exampleEs: '¿Qué vino quieres?',              category: 'drinken', difficulty: 'A1' },
         { id: 'm3v-kaas',      dutch: 'de kaas',      spanish: 'el queso',         article: 'de',  emoji: '🧀', color: '#2e7d52', exampleNl: 'Gouda is een lekkere kaas.', exampleEs: 'El Gouda es un queso rico.',       category: 'eten', difficulty: 'A1' },
         { id: 'm3v-vlees',     dutch: 'het vlees',    spanish: 'la carne',         article: 'het', emoji: '🥩', color: '#0b7a4d', exampleNl: 'Ik eet niet veel vlees.',    exampleEs: 'No como mucha carne.',            category: 'eten', difficulty: 'A1' },
-        { id: 'm3v-vis',       dutch: 'de vis',       spanish: 'el pescado',       article: 'de',  emoji: '🐟', color: '#1a7a40', exampleNl: 'Haring is een typisch vis.', exampleEs: 'El arenque es un pescado típico.', category: 'eten', difficulty: 'A1' },
+        { id: 'm3v-vis',       dutch: 'de vis',       spanish: 'el pescado',       article: 'de',  emoji: '🐟', color: '#1a7a40', exampleNl: 'Haring is een typische vis.', exampleEs: 'El arenque es un pescado típico.', category: 'eten', difficulty: 'A1' },
         { id: 'm3v-groente',   dutch: 'de groente',   spanish: 'la verdura',       article: 'de',  emoji: '🥦', color: '#0d6e33', exampleNl: 'Ik eet veel groente.',       exampleEs: 'Como muchas verduras.',           category: 'eten', difficulty: 'A1' },
         { id: 'm3v-fruit',     dutch: 'het fruit',    spanish: 'la fruta',         article: 'het', emoji: '🍎', color: '#2e7d52', exampleNl: 'Vers fruit is gezond.',      exampleEs: 'La fruta fresca es sana.',        category: 'eten', difficulty: 'A1' },
         { id: 'm3v-soep',      dutch: 'de soep',      spanish: 'la sopa',          article: 'de',  emoji: '🍲', color: '#0b7a4d', exampleNl: 'De soep is lekker warm.',    exampleEs: 'La sopa está bien caliente.',     category: 'eten', difficulty: 'A1' },
@@ -3993,12 +3993,12 @@ Koud en warm
 Het ontbijt en de lunch zijn bijna altijd koud: boterhammen met kaas, ham of hagelslag. Hagelslag is chocolade op brood, en niet alleen voor kinderen. Alleen het avondeten is warm.
 
 De kaas
-Nederland is een kaasland. Eén persoon eet ongeveer veertien kilo kaas per jaar. In de supermarkt staan jonge kaas, oude kaas en Goudse kaas naast elkaar. In Alkmaar is er elke vrijdag in de zomer een kaasmarkt.
+Nederland is een kaasland. Een Nederlander eet ongeveer veertien kilo kaas per jaar. In de supermarkt staan jonge kaas, oude kaas en Goudse kaas naast elkaar. In Alkmaar is er elke vrijdag in de zomer een kaasmarkt.
 
 De koffie
 Nederlanders drinken veel koffie: gemiddeld meer dan drie kopjes per dag. Bij de koffie krijg je bijna altijd een klein koekje.
 
-Het bord van 's avonds
+Wat staat er op het bord?
 Een klassiek bord heeft drie delen: aardappelen, groente en vlees of vis. Om zes uur zit het gezin aan tafel.`,
       textEs: `Los neerlandeses comen normalmente tres veces al día: el desayuno, la comida y la cena.
 
@@ -4006,12 +4006,12 @@ Frío y caliente
 El desayuno y la comida son casi siempre fríos: rebanadas de pan con queso, jamón o hagelslag. El hagelslag es chocolate sobre el pan, y no solo para niños. Solo la cena es caliente.
 
 El queso
-Países Bajos es un país de queso. Una persona come unos catorce kilos de queso al año. En el supermercado están el queso joven, el curado y el de Gouda unos al lado de otros. En Alkmaar hay mercado del queso todos los viernes en verano.
+Países Bajos es un país de queso. Un neerlandés come unos catorce kilos de queso al año. En el supermercado están el queso joven, el curado y el de Gouda unos al lado de otros. En Alkmaar hay mercado del queso todos los viernes en verano.
 
 El café
 Los neerlandeses beben mucho café: más de tres tazas al día de media. Con el café casi siempre te dan una galletita.
 
-El plato de la noche
+Qué hay en el plato
 Un plato clásico tiene tres partes: patatas, verdura y carne o pescado. A las seis la familia está sentada a la mesa.`,
       exercises: [
         { id: 'm3lz-1', type: 'multiple_choice', prompt: '¿Cuántas veces al día se come?', options: ['Tres', 'Dos', 'Cuatro', 'Cinco'], correctAnswer: 'Tres', explanation: '"meestal drie keer per dag".' },
@@ -4077,13 +4077,13 @@ Un plato clásico tiene tres partes: patatas, verdura y carne o pescado. A las s
         { id: 'm3l1sp-3', type: 'listen_choose_image', prompt: 'de koffie (el café)', promptNl: 'de koffie', options: ['de koffie', 'de thee', 'het bier', 'de melk'], optionImages: ['☕', '🍵', '🍺', '🥛'], correctAnswer: 'de koffie' },
         { id: 'm3l1sp-4', type: 'listen_choose_image', prompt: 'de thee (el té)', promptNl: 'de thee', options: ['de thee', 'de koffie', 'de soep', 'het water'], optionImages: ['🍵', '☕', '🍲', '💧'], correctAnswer: 'de thee', explanation: 'Thee se pronuncia con una e larga, "tee". Nada de "zi" como en inglés.' },
         { id: 'm3l1sp-5', type: 'listen_choose_image', prompt: 'het bier (la cerveza)', promptNl: 'het bier', options: ['het bier', 'de wijn', 'het water', 'de melk'], optionImages: ['🍺', '🍷', '💧', '🥛'], correctAnswer: 'het bier' },
-        { id: 'm3l1sp-6', type: 'listen_choose_image', prompt: 'de kaas (el queso)', promptNl: 'de kaas', options: ['de kaas', 'het brood', 'het vlees', 'de vis'], optionImages: ['🧀', '🍞', '🍖', '🐟'], correctAnswer: 'de kaas' },
-        { id: 'm3l1sp-7', type: 'listen_choose_image', prompt: 'het vlees (la carne)', promptNl: 'het vlees', options: ['het vlees', 'de vis', 'de kaas', 'de groente'], optionImages: ['🍖', '🐟', '🧀', '🥦'], correctAnswer: 'het vlees', explanation: 'Vlees y vis empiezan igual y en la carnicería importa mucho no confundirlas.' },
-        { id: 'm3l1sp-8', type: 'listen_choose_image', prompt: 'de vis (el pescado)', promptNl: 'de vis', options: ['de vis', 'het vlees', 'de groente', 'het fruit'], optionImages: ['🐟', '🍖', '🥦', '🍎'], correctAnswer: 'de vis' },
+        { id: 'm3l1sp-6', type: 'listen_choose_image', prompt: 'de kaas (el queso)', promptNl: 'de kaas', options: ['de kaas', 'het brood', 'het vlees', 'de vis'], optionImages: ['🧀', '🍞', '🥩', '🐟'], correctAnswer: 'de kaas' },
+        { id: 'm3l1sp-7', type: 'listen_choose_image', prompt: 'het vlees (la carne)', promptNl: 'het vlees', options: ['het vlees', 'de vis', 'de kaas', 'de groente'], optionImages: ['🥩', '🐟', '🧀', '🥦'], correctAnswer: 'het vlees', explanation: 'Vlees y vis empiezan igual y en la carnicería importa mucho no confundirlas.' },
+        { id: 'm3l1sp-8', type: 'listen_choose_image', prompt: 'de vis (el pescado)', promptNl: 'de vis', options: ['de vis', 'het vlees', 'de groente', 'het fruit'], optionImages: ['🐟', '🥩', '🥦', '🍎'], correctAnswer: 'de vis' },
         { id: 'm3l1sp-9', type: 'listen_choose_image', prompt: 'de groente (la verdura)', promptNl: 'de groente', options: ['de groente', 'het fruit', 'de soep', 'de kaas'], optionImages: ['🥦', '🍎', '🍲', '🧀'], correctAnswer: 'de groente', explanation: 'Groente va en singular aunque en español digas "verduras".' },
         { id: 'm3l1sp-10', type: 'listen_choose_image', prompt: 'de soep (la sopa)', promptNl: 'de soep', options: ['de soep', 'het brood', 'de melk', 'de groente'], optionImages: ['🍲', '🍞', '🥛', '🥦'], correctAnswer: 'de soep' },
-        { id: 'm3l1sp-11', type: 'listen_choose_image', prompt: 'de fles (la botella)', promptNl: 'de fles', options: ['de fles', 'het blik', 'het pak', 'de zak'], optionImages: ['🍾', '🥫', '🧃', '🛍️'], correctAnswer: 'de fles', explanation: 'Estas cuatro son las que necesitas para pedir en el supermercado: een fles water, een blik soep, een pak melk, een zak brood.' },
-        { id: 'm3l1sp-12', type: 'listen_choose_image', prompt: 'het blik (la lata)', promptNl: 'het blik', options: ['het blik', 'de fles', 'het pak', 'de zak'], optionImages: ['🥫', '🍾', '🧃', '🛍️'], correctAnswer: 'het blik' },
+        { id: 'm3l1sp-11', type: 'listen_choose_image', prompt: 'de fles (la botella)', promptNl: 'de fles', options: ['de fles', 'het blik', 'het pak', 'de zak'], optionImages: ['🍾', '🥫', '📦', '🛍️'], correctAnswer: 'de fles', explanation: 'Estas cuatro son las que necesitas para pedir en el supermercado: een fles water, een blik soep, een pak melk, een zak rijst.' },
+        { id: 'm3l1sp-12', type: 'listen_choose_image', prompt: 'het blik (la lata)', promptNl: 'het blik', options: ['het blik', 'de fles', 'het pak', 'de zak'], optionImages: ['🥫', '🍾', '📦', '🛍️'], correctAnswer: 'het blik' },
       ],
     },
     {
@@ -4127,12 +4127,12 @@ Un plato clásico tiene tres partes: patatas, verdura y carne o pescado. A las s
         { id: 'm3e-r2', type: 'word_scramble', prompt: '¿Cómo se dice "el queso"?', correctAnswer: 'kaas', hint: 'de ___' },
         { id: 'm3e-r3', type: 'word_scramble', prompt: '¿Cómo se dice "el agua"?', correctAnswer: 'water', hint: 'het ___' },
         { id: 'm3e-r4', type: 'emoji_choice', prompt: '¿Cuál es "het brood"?', options: ['🍞', '🧀', '🥛', '🐟'], correctAnswer: '🍞', explanation: '"het brood" = el pan 🍞.' },
-        { id: 'm3e-r5', type: 'odd_one_out', prompt: '¿Cuál NO es una bebida?', options: ['water', 'melk', 'koffie', 'brood'], correctAnswer: 'brood', explanation: '"brood" (pan) es comida; las demás son bebidas.' },
+        { id: 'm3e-r5', type: 'odd_one_out', prompt: '¿Cuál NO es una comida del día?', options: ['het ontbijt', 'de lunch', 'het avondeten', 'de kassa'], correctAnswer: 'de kassa', explanation: '"de kassa" es la caja del supermercado; las otras tres son las comidas del día.' },
         { id: 'm3e-r6', type: 'letter_dash', prompt: 'Completa: "el pescado"', correctAnswer: 'vis', hint: 'de ___' },
         // ── Del pack de ejercicios del profe (Eten en drinken, deel 1 y 2) ──
         { id: 'm3e-25', type: 'multiple_choice', prompt: 'Ik drink ___', options: ['koffie', 'brood', 'rijst', 'vlees'], correctAnswer: 'koffie', explanation: 'Drinken → líquidos.' },
         { id: 'm3e-26', type: 'multiple_choice', prompt: 'Ik eet ___', options: ['rijst', 'melk', 'water', 'thee'], correctAnswer: 'rijst', explanation: 'Eten → sólidos.' },
-        { id: 'm3e-27', type: 'multiple_choice', prompt: 'Ik drink ___', options: ['thee', 'vlees', 'vis', 'kaas'], correctAnswer: 'thee' },
+        { id: 'm3e-27', type: 'multiple_choice', prompt: '¿En qué envase se pide la sopa?', options: ['een blik', 'een fles', 'een zak', 'een pak'], correctAnswer: 'een blik', explanation: 'Een blik soep. La lata es "het blik".' },
         { id: 'm3e-28', type: 'odd_one_out', prompt: '¿Cuál NO se bebe?', options: ['water', 'koffie', 'soep', 'melk'], correctAnswer: 'soep', explanation: 'La sopa se come: "ik eet soep".' },
         { id: 'm3e-29', type: 'odd_one_out', prompt: '¿Cuál NO se come?', options: ['brood', 'vlees', 'fruit', 'thee'], correctAnswer: 'thee', explanation: 'El té se bebe: "ik drink thee".' },
         { id: 'm3e-30', type: 'match_pairs', prompt: 'Une cada palabra con su traducción', correctAnswer: '', pairs: [
@@ -4184,9 +4184,18 @@ const m3_les2: Lesson = {
           body: 'Expresa un deseo. Para sonar educado y natural añadimos **"graag"** justo después del verbo: **"Ik wil graag koffie"**.',
           items: [
             { nl: 'ik wil', es: 'yo quiero' },
-            { nl: 'jij wil', es: 'tú quieres' },
-            { nl: 'hij/zij wil', es: 'él/ella quiere' },
+            { nl: 'jij wilt', es: 'tú quieres' },
+            { nl: 'hij/zij wil ← sin -t', es: 'él/ella quiere' },
             { nl: 'wij/jullie/zij willen', es: 'nosotros/vosotros/ellos quieren' },
+          ],
+        },
+        {
+          heading: '⚠️ Willen: la -t que sí y la que no',
+          body: 'Con **jij** sí lleva -t: **"jij wilt"**. Lo raro de este verbo es **hij/zij wil**, **sin -t**, justo al revés que los demás (hij eet, hij drinkt… pero hij wil). Y en pregunta con jij desaparece, como en todos: **"Wil jij…?"**.',
+          items: [
+            { nl: 'jij wilt koffie', es: 'tú quieres café' },
+            { nl: 'hij wil koffie (no "hij wilt")', es: 'él quiere café' },
+            { nl: 'Wil jij koffie? (en pregunta, sin -t)', es: '¿quieres café?' },
           ],
         },
         {
@@ -4283,7 +4292,7 @@ Pinnen
 In een café of een winkel vraag je: mag ik pinnen? Contant geld gebruiken mensen weinig. Sommige zaken nemen helemaal geen munten of briefjes meer aan. Op de deur staat dan: alleen pinnen.
 
 De tikkie
-Eten drie vrienden samen? Dan betaalt er één, en daarna stuurt hij een tikkie. Een tikkie is een verzoek om geld via de telefoon. Meer dan zeven miljoen Nederlanders gebruiken het.
+Eten drie vrienden samen? Dan betaalt er iemand alles, en daarna stuurt hij een tikkie. Een tikkie is een verzoek om geld via de telefoon. Meer dan zeven miljoen Nederlanders gebruiken het.
 
 De fooi
 Een fooi geven is niet verplicht. Veel mensen ronden het bedrag af. Was het lekker? Dan laat je een euro of twee achter.
@@ -4296,7 +4305,7 @@ Pinnen
 En un café o una tienda preguntas: mag ik pinnen? La gente usa poco el efectivo. Algunos sitios ya no aceptan ni monedas ni billetes. En la puerta pone entonces: alleen pinnen (solo tarjeta).
 
 El tikkie
-¿Comen tres amigos juntos? Entonces paga uno, y después manda un tikkie. Un tikkie es una petición de dinero por el móvil. Más de siete millones de neerlandeses lo usan.
+¿Comen tres amigos juntos? Entonces paga uno todo, y después manda un tikkie. Un tikkie es una petición de dinero por el móvil. Más de siete millones de neerlandeses lo usan.
 
 La propina
 Dar propina no es obligatorio. Mucha gente redondea la cuenta. ¿Estaba rico? Entonces dejas uno o dos euros.
@@ -4330,7 +4339,7 @@ Al final preguntas: mag ik de rekening, alstublieft? El camarero la trae a la me
           { id: 'm3d2-5',  speaker: 'Tom',  dutch: 'Goed idee. Dat is zeven euro vijftig per persoon.',    spanish: 'Buena idea. Son 7,50 € por persona.' },
           { id: 'm3d2-6',  speaker: 'Sara', dutch: 'Ik heb geen cash bij me. Mag ik je een tikkie sturen?', spanish: 'No llevo efectivo. ¿Te puedo mandar un tikkie?' },
           { id: 'm3d2-7',  speaker: 'Tom',  dutch: 'Natuurlijk! Ik betaal nu met pinnen.',                 spanish: '¡Claro! Yo pago ahora con tarjeta.' },
-          { id: 'm3d2-8',  speaker: 'Sara', dutch: 'Top. Ik stuur de tikkie naar je nummer.',             spanish: 'Genial. Te mando el tikkie a tu número.' },
+          { id: 'm3d2-8',  speaker: 'Sara', dutch: 'Top. Ik stuur je zo een tikkie.',             spanish: 'Genial. Ahora te mando un tikkie.' },
           { id: 'm3d2-9',  speaker: 'Tom',  dutch: 'Super, dank je wel.',                                  spanish: 'Súper, gracias.' },
           { id: 'm3d2-10', speaker: 'Sara', dutch: 'Geen dank. De volgende keer trakteer ik!',            spanish: 'De nada. ¡La próxima vez invito yo!' },
         ],
@@ -4343,7 +4352,7 @@ Al final preguntas: mag ik de rekening, alstublieft? El camarero la trae a la me
         { id: 'm3d2q-5', type: 'multiple_choice', prompt: '¿Cómo paga Tom en el restaurante?', options: ['Con tarjeta', 'En efectivo', 'Con tikkie', 'No paga'], correctAnswer: 'Con tarjeta', explanation: '"Ik betaal nu met pinnen".' },
         { id: 'm3d2q-6', type: 'true_false', prompt: 'La próxima vez invita Sara.', correctAnswer: 'verdadero', explanation: '"De volgende keer trakteer ik!"' },
         { id: 'm3d2q-7', type: 'fill_blank', prompt: 'Zullen we ___? (pagar la cuenta)', correctAnswer: 'afrekenen', hint: 'el verbo de pedir y pagar la cuenta', explanation: 'Afrekenen = ajustar cuentas, pagar. Es separable: "ik reken af".' },
-        { id: 'm3d2q-8', type: 'multiple_choice', prompt: '¿Qué es un tikkie?', options: ['Una petición de pago por el móvil', 'Una propina', 'Un descuento', 'Un tipo de tarjeta'], correctAnswer: 'Una petición de pago por el móvil', explanation: 'Se manda un enlace y el otro paga. En los Países Bajos se usa cada día.' },
+        { id: 'm3d2q-8', type: 'multiple_choice', prompt: '¿Qué propone Sara para repartir la cuenta?', options: ['Que cada uno pague la mitad', 'Que pague ella todo', 'Pedir dos cuentas', 'Pagar en efectivo'], correctAnswer: 'Que cada uno pague la mitad', explanation: '"Zullen we gewoon delen? Ieder de helft."' },
       ],
     },
     {
@@ -4360,8 +4369,8 @@ Al final preguntas: mag ik de rekening, alstublieft? El camarero la trae a la me
         { id: 'm3l2e-9',  type: 'multiple_choice', prompt: '¿Qué significa "Nog iets?"?', options: ['¿Algo más?', '¿Quiere pagar?', '¿Está aquí?', 'Aquí tiene.'], correctAnswer: '¿Algo más?', explanation: '"Nog iets?" = ¿Algo más? Se usa para preguntar si el cliente quiere otra cosa.' },
         { id: 'm3l2e-10', type: 'fill_blank',      prompt: 'Wij ___ graag soep en salade. (willen, wij)',          correctAnswer: 'willen',   hint: 'plural → infinitivo' },
         // Encuentra el error (de la presentación, pág. 11/15/16)
-        { id: 'm3l2e-11', type: 'multiple_choice', prompt: 'Encuentra la frase CORRECTA:', options: ['Ik willen graag koffie.', 'Ik wil graag koffie.', 'Ik graag wil koffie.', 'Ik wil koffie graag.'], correctAnswer: 'Ik wil graag koffie.', explanation: 'Con "ik" el verbo es "wil" (no "willen"), y "graag" va justo después del verbo.' },
-        { id: 'm3l2e-12', type: 'multiple_choice', prompt: 'Encuentra la frase CORRECTA:', options: ['Hij neem soep.', 'Hij nemen soep.', 'Hij neemt soep.', 'Hij neemt soept.'], correctAnswer: 'Hij neemt soep.', explanation: 'Con "hij/zij" añadimos -t: "hij neemt".' },
+        { id: 'm3l2e-11', type: 'multiple_choice', prompt: 'Encuentra la frase CORRECTA (willen):', options: ['Ik willen graag koffie.', 'Ik wil graag koffie.', 'Ik graag wil koffie.', 'Ik wil koffie graag.'], correctAnswer: 'Ik wil graag koffie.', explanation: 'Con "ik" el verbo es "wil" (no "willen"), y "graag" va justo después del verbo.' },
+        { id: 'm3l2e-12', type: 'multiple_choice', prompt: 'Encuentra la frase CORRECTA (nemen):', options: ['Hij neem soep.', 'Hij nemen soep.', 'Hij neemt soep.', 'Hij neemt soept.'], correctAnswer: 'Hij neemt soep.', explanation: 'Con "hij/zij" añadimos -t: "hij neemt".' },
         { id: 'm3l2e-13', type: 'multiple_choice', prompt: 'Pregunta con "jij". ¿Cuál es CORRECTA?', options: ['Neemt jij soep?', 'Neem jij soep?', 'Jij neemt soep?', 'Neemt jij soept?'], correctAnswer: 'Neem jij soep?', explanation: 'En preguntas con "jij" la -t desaparece: "Neem jij…?".' },
         { id: 'm3l2e-14', type: 'multiple_choice', prompt: '¿Dónde va "graag"?', options: ['Ik wil koffie graag.', 'Ik graag wil koffie.', 'Ik wil graag koffie.', 'Graag ik wil koffie.'], correctAnswer: 'Ik wil graag koffie.', explanation: '"graag" va justo después del verbo conjugado: "Ik wil graag koffie".' },
         { id: 'm3l2e-15', type: 'order_sentence',  prompt: 'Ordena: "También tomo un café."', options: ['Ik', 'neem', 'ook', 'een', 'koffie.'], correctAnswer: 'Ik neem ook een koffie.' },
@@ -4421,7 +4430,7 @@ Al final preguntas: mag ik de rekening, alstublieft? El camarero la trae a la me
         { id: 'm3l2e-r1', type: 'emoji_choice', prompt: '¿Cuál es "de cola"?', options: ['🥤', '☕', '🍵', '🍟'], correctAnswer: '🥤', explanation: '"de cola" = la cola 🥤.' },
         { id: 'm3l2e-r2', type: 'odd_one_out', prompt: '¿Cuál NO es comida?', options: ['broodje', 'soep', 'friet', 'betalen'], correctAnswer: 'betalen', explanation: '"betalen" (pagar) es un verbo, no comida.' },
         // ── Del pack de ejercicios del profe (deel 3: willen, nemen, mogen) ──
-        { id: 'm3l2e-41', type: 'fill_blank', prompt: 'Jij ___ koffie. (willen)', correctAnswer: 'wil', hint: 'con jij, willen no lleva -t', explanation: 'Willen es irregular: ik wil, jij wil, hij wil.' },
+        { id: 'm3l2e-41', type: 'fill_blank', prompt: 'Hij ___ koffie. (willen)', correctAnswer: 'wil', hint: 'ojo: con hij este verbo NO lleva -t', explanation: 'Lo normal sería "hij wilt", pero willen es la excepción: hij/zij wil. Con jij sí lleva: jij wilt.' },
         { id: 'm3l2e-42', type: 'fill_blank', prompt: 'Zij ___ melk. (willen, ellos)', correctAnswer: 'willen', hint: 'plural' },
         { id: 'm3l2e-43', type: 'fill_blank', prompt: 'Hij ___ thee. (nemen)', correctAnswer: 'neemt', hint: 'raíz neem + t' },
         { id: 'm3l2e-44', type: 'fill_blank', prompt: 'Wij ___ salade. (nemen)', correctAnswer: 'nemen', hint: 'plural → verbo entero' },
@@ -4430,7 +4439,7 @@ Al final preguntas: mag ik de rekening, alstublieft? El camarero la trae a la me
         { id: 'm3l2e-47', type: 'fill_blank', prompt: '___ hij pinnen? (mogen)', correctAnswer: 'Mag', hint: 'con hij', explanation: 'Pinnen = pagar con tarjeta.' },
         { id: 'm3l2e-48', type: 'multiple_choice', prompt: 'Completa: "___ ik de rekening?"', options: ['Mag', 'Wil', 'Neem', 'Mogen'], correctAnswer: 'Mag', explanation: '"Mag ik de rekening?" = ¿me trae la cuenta?' },
         { id: 'm3l2e-49', type: 'multiple_choice', prompt: 'Completa: "Wij ___ soep."', options: ['nemen', 'neemt', 'neem', 'mogen'], correctAnswer: 'nemen', explanation: 'Wij → nemen.' },
-        { id: 'm3l2e-50', type: 'order_sentence', prompt: 'Ordena: "¿Puedo pagar con tarjeta?"', options: ['Mag', 'ik', 'pinnen?'], correctAnswer: 'Mag ik pinnen?' },
+        { id: 'm3l2e-50', type: 'order_sentence', prompt: 'Ordena: "¿Puedo sentarme aquí?"', options: ['Mag', 'ik', 'hier', 'zitten?'], correctAnswer: 'Mag ik hier zitten?' },
       ],
     },
     { type: 'review' },
@@ -4624,7 +4633,7 @@ Casi todos los supermercados tienen una tarjeta con descuento. Sin esa tarjeta p
         { id: 'm3l3e-4', type: 'fill_blank',      prompt: 'Nee, ik drink ______ koffie.',                                 correctAnswer: 'geen',           hint: 'Pista: negación con sustantivos' },
         { id: 'm3l3e-5', type: 'multiple_choice', prompt: '¿Cuál es la pregunta correcta para preguntar "¿qué bebes?"?', options: ['Wat drink jij?', 'Wat jij drinkt?', 'Drink wat jij?'], correctAnswer: 'Wat drink jij?', explanation: 'W-vraag: palabra interrogativa + verbo + sujeto.' },
         { id: 'm3l3e-6', type: 'multiple_choice', prompt: '¿Cuál es la forma correcta de hacer una pregunta sí/no?',     options: ['Jij drinkt koffie?', 'Drink jij koffie?', 'Koffie drink jij?'], correctAnswer: 'Drink jij koffie?', explanation: 'Ja/nee-vraag: verbo + sujeto + complemento.' },
-        { id: 'm3l3e-7', type: 'order_sentence',  prompt: 'Ordena: "¿Cuánta azúcar quieres?" → suiker / hoeveel / wil / je', options: ['suiker', 'hoeveel', 'wil', 'je'], correctAnswer: 'Hoeveel suiker wil je?' },
+        { id: 'm3l3e-7', type: 'order_sentence',  prompt: 'Ordena: "¿Cuánta azúcar quieres?"', options: ['Hoeveel', 'suiker', 'wil', 'je?'], correctAnswer: 'Hoeveel suiker wil je?' },
         { id: 'm3l3e-8', type: 'fill_blank',      prompt: 'Wil je thee? → Nee, ik wil ______ thee.',                     correctAnswer: 'geen',           hint: 'Pista: negación con sustantivos' },
         { id: 'm3l3e-9',  type: 'match_pairs',     prompt: 'Une cada palabra interrogativa con su significado', correctAnswer: '', pairs: [
           { left: 'wat', right: 'qué' },
@@ -4662,7 +4671,7 @@ Casi todos los supermercados tienen una tarjeta con descuento. Sin esa tarjeta p
         { id: 'm3l3e-r3', type: 'word_scramble', prompt: '¿Cómo se dice "dónde"?', correctAnswer: 'waar', hint: 'palabra interrogativa' },
         { id: 'm3l3e-r4', type: 'word_scramble', prompt: '¿Cómo se dice "quién"?', correctAnswer: 'wie', hint: 'palabra interrogativa' },
         { id: 'm3l3e-r5', type: 'emoji_choice', prompt: '¿Cuál es "de koffie"?', options: ['☕', '🍵', '💧', '🥩'], correctAnswer: '☕', explanation: '"de koffie" = el café ☕.' },
-        { id: 'm3l3e-r6', type: 'odd_one_out', prompt: '¿Cuál NO es una palabra interrogativa?', options: ['wie', 'hoeveel', 'drinken', 'wat'], correctAnswer: 'drinken', explanation: '"drinken" (beber) es un verbo.' },
+        { id: 'm3l3e-r6', type: 'multiple_choice', prompt: 'Completa: "___ kookt vandaag?" (quién)', options: ['Wie', 'Wat', 'Waar', 'Wanneer'], correctAnswer: 'Wie', explanation: '"wie" = quién. Va delante del verbo: Wie kookt vandaag?' },
         { id: 'm3l3e-r7', type: 'odd_one_out', prompt: '¿Cuál NO es una bebida?', options: ['koffie', 'thee', 'water', 'vlees'], correctAnswer: 'vlees', explanation: '"vlees" (carne) es comida.' },
         { id: 'm3l3e-r8', type: 'letter_dash', prompt: 'Completa: "qué"', correctAnswer: 'wat', hint: 'palabra interrogativa' },
         { id: 'm3l3e-r9', type: 'letter_dash', prompt: 'Completa: "dónde"', correctAnswer: 'waar', hint: 'palabra interrogativa' },
@@ -4880,12 +4889,12 @@ Una noche en un restaurante es más cara. Un plato principal cuesta entre veinte
           { left: 'want', right: 'porque' },
         ] },
         { id: 'm3l4e-r1', type: 'match_pairs', prompt: 'Une cada palabra con su traducción', correctAnswer: '', pairs: [ { left: 'het koekje', right: 'la galleta' }, { left: 'de honger', right: 'el hambre' }, { left: 'de dorst', right: 'la sed' }, { left: 'moe', right: 'cansado' } ] },
-        { id: 'm3l4e-r2', type: 'match_pairs', prompt: 'Une cada conjunción con su función', correctAnswer: '', pairs: [ { left: 'en', right: 'añadir' }, { left: 'maar', right: 'contraste' }, { left: 'of', right: 'elección' }, { left: 'want', right: 'razón' } ] },
+        { id: 'm3l4e-r2', type: 'match_pairs', prompt: 'Une cada conjunción con la frase que le pega', correctAnswer: '', pairs: [ { left: 'en', right: 'Ik eet brood ___ kaas' }, { left: 'maar', right: 'Het is lekker ___ duur' }, { left: 'want', right: 'Ik eet ___ ik heb honger' }, { left: 'of', right: 'Thee ___ koffie?' } ] },
         { id: 'm3l4e-r3', type: 'word_scramble', prompt: '¿Cómo se dice "pero"?', correctAnswer: 'maar', hint: 'contraste' },
         { id: 'm3l4e-r4', type: 'emoji_choice', prompt: '¿Cuál es "de honger" (hambre)?', options: ['😋', '💦', '😴', '🔒'], correctAnswer: '😋', explanation: '"honger" = hambre 😋.' },
         { id: 'm3l4e-r5', type: 'emoji_choice', prompt: '¿Cuál es "de dorst" (sed)?', options: ['💦', '😋', '🍪', '🧈'], correctAnswer: '💦', explanation: '"dorst" = sed 💦.' },
-        { id: 'm3l4e-r6', type: 'odd_one_out', prompt: '¿Cuál NO es una conjunción?', options: ['want', 'of', 'en', 'dorst'], correctAnswer: 'dorst', explanation: '"dorst" (sed) no es conjunción.' },
-        { id: 'm3l4e-r7', type: 'odd_one_out', prompt: '¿Cuál NO es una conjunción?', options: ['maar', 'en', 'of', 'moe'], correctAnswer: 'moe', explanation: '"moe" (cansado) no es conjunción.' },
+        { id: 'm3l4e-r6', type: 'multiple_choice', prompt: 'Completa: "Ik eet een broodje ___ ik heb honger."', options: ['want', 'maar', 'of', 'en'], correctAnswer: 'want', explanation: '"want" da la razón: como porque tengo hambre.' },
+        { id: 'm3l4e-r7', type: 'multiple_choice', prompt: 'Completa: "Ik wil koffie ___ er is alleen thee."', options: ['maar', 'want', 'en', 'of'], correctAnswer: 'maar', explanation: '"maar" marca el contraste: quiero café pero solo hay té.' },
         { id: 'm3l4e-r8', type: 'letter_dash', prompt: 'Completa: "pero"', correctAnswer: 'maar', hint: 'contraste' },
         { id: 'm3l4e-r9', type: 'letter_dash', prompt: 'Completa: "porque"', correctAnswer: 'want', hint: 'dar una razón' },
         // Comprensión del informativo de Radio Nawar (Luisteren): preguntas sobre lo que entendieron
@@ -5116,11 +5125,11 @@ Dices qué quieres y cuánto: un kilo de patatas, por favor. Con la palabra graa
           { left: 'een beetje', right: 'un poco' },
           { left: 'nog een', right: 'otro más' },
         ] },
-        { id: 'm3l5e-r1', type: 'match_pairs', prompt: 'Une cada alimento con su traducción', correctAnswer: '', pairs: [ { left: 'de kip', right: 'el pollo' }, { left: 'de appel', right: 'la manzana' }, { left: 'de aardappel', right: 'la patata' }, { left: 'de druiven', right: 'las uvas' } ] },
+        { id: 'm3l5e-r1', type: 'match_pairs', prompt: 'Une cada cantidad con lo que se pide así', correctAnswer: '', pairs: [ { left: 'een kilo', right: 'aardappels' }, { left: 'vijfhonderd gram', right: 'druiven' }, { left: 'een bos', right: 'bloemen' }, { left: 'een fles', right: 'water' } ] },
         { id: 'm3l5e-r2', type: 'word_scramble', prompt: '¿Cómo se dice "el kilo"?', correctAnswer: 'kilo', hint: 'cantidad' },
         { id: 'm3l5e-r3', type: 'emoji_choice', prompt: '¿Cuál es "de druiven"?', options: ['🍇', '🍏', '🥔', '🍗'], correctAnswer: '🍇', explanation: '"de druiven" = las uvas 🍇.' },
-        { id: 'm3l5e-r4', type: 'odd_one_out', prompt: '¿Cuál NO es una palabra de cantidad?', options: ['nog een', 'veel', 'een beetje', 'koffie'], correctAnswer: 'koffie', explanation: '"koffie" (café) no es cantidad.' },
-        { id: 'm3l5e-r5', type: 'odd_one_out', prompt: '¿Cuál NO es una palabra de cantidad?', options: ['kilo', 'gram', 'weinig', 'vis'], correctAnswer: 'vis', explanation: '"vis" (pescado) no es cantidad.' },
+        { id: 'm3l5e-r4', type: 'fill_blank', prompt: 'Ik wil graag ___ gram kaas. (500)', correctAnswer: 'vijfhonderd', hint: 'quinientos' },
+        { id: 'm3l5e-r5', type: 'multiple_choice', prompt: 'En la frutería quieres 2 kg de manzanas. ¿Cómo lo pides?', options: ['Twee kilo appels, alstublieft.', 'Twee appels kilo, alstublieft.', 'Kilo twee appels, alstublieft.', 'Appels twee kilo, alstublieft.'], correctAnswer: 'Twee kilo appels, alstublieft.', explanation: 'Primero la cantidad, después el producto: twee kilo appels.' },
         { id: 'm3l5e-r6', type: 'letter_dash', prompt: 'Completa: "el pollo"', correctAnswer: 'kip', hint: 'de ___' },
         { id: 'm3l5e-r7', type: 'letter_dash', prompt: 'Completa: "la manzana"', correctAnswer: 'appel', hint: 'de ___' },
         // ── Del pack de ejercicios del profe (deel 6, 7 y 8: cantidades, houden van, graag) ──
@@ -5133,7 +5142,7 @@ Dices qué quieres y cuánto: un kilo de patatas, por favor. Con la palabra graa
         { id: 'm3l5e-31', type: 'fill_blank', prompt: 'Wij ___ van fruit. (houden van)', correctAnswer: 'houden', hint: 'plural' },
         { id: 'm3l5e-32', type: 'fill_blank', prompt: 'Hij ___ van vis. (houden van)', correctAnswer: 'houdt', hint: 'raíz + t' },
         { id: 'm3l5e-33', type: 'multiple_choice', prompt: '¿Para qué sirve "graag"?', options: ['Para ser más educado', 'Para nada especial', 'Para ser más claro', 'Para hablar más rápido'], correctAnswer: 'Para ser más educado', explanation: '"Ik wil koffie" suena a orden; "Ik wil graag koffie" es una petición.' },
-        { id: 'm3l5e-34', type: 'multiple_choice', prompt: '¿Dónde va "graag"?', options: ['Ik wil graag koffie', 'Graag ik wil koffie', 'Ik graag wil koffie', 'Ik wil koffie graag'], correctAnswer: 'Ik wil graag koffie', explanation: 'Justo detrás del verbo.' },
+        { id: 'm3l5e-34', type: 'order_sentence', prompt: 'Ordena: "Quiero medio kilo de queso, por favor."', options: ['Ik', 'wil', 'graag', 'een', 'halve', 'kilo', 'kaas,', 'alstublieft.'], correctAnswer: 'Ik wil graag een halve kilo kaas, alstublieft.' },
         { id: 'm3l5e-35', type: 'write_answer', prompt: 'Responde en frase entera: "Hoeveel broodjes neem je?" (tres)', correctAnswer: 'Ik neem drie broodjes', hint: 'Ik neem … broodjes · sin punto final' },
         { id: 'm3l5e-36', type: 'write_answer', prompt: 'Escribe: "A mi mejor amigo le gusta la pizza"', correctAnswer: 'Mijn beste vriend houdt van pizza', hint: 'houdt van · sin punto final' },
       ],
