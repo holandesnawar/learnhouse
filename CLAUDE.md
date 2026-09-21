@@ -1,7 +1,8 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-09-07 (repaso previo a abrir matrícula el 08/09).
+> Última actualización: 2026-09-21 (primeras ventas reales, rastro del lead y
+> repaso del módulo 3 — ver "Repaso de septiembre" más abajo).
 
 ## Resumen
 Academia de cursos sobre **LearnHouse**, auto-alojada en Railway.
@@ -15,7 +16,11 @@ Proyecto `cooperative-tenderness`, 3 servicios: **learnhouse** (la app, Dockerfi
 - Repo de la academia: `holandesnawar/learnhouse`.
 - Repo de la web principal: `holandesnawar/nawar-web` (público). **Desde ago 2026 la misma sesión puede tener los dos repos** — comprobar el alcance real antes de decir que hace falta otra sesión (ver "MCP GitHub y los dos repos" al final).
 - **Rama Railway por defecto: `dev`** (auto-deploy al hacer push).
-- **Desarrollo activo en rama `claude/adoring-dijkstra-rI3FL`.** Para previsualizar: Railway → learnhouse → Settings → Source → cambiar a esa rama; para volver atrás, poner `dev` (red de seguridad).
+- ⚠️ **El trabajo NO está entregado hasta que está en `dev`** (escuela) **o en
+  `main`** (web). La rama de desarrollo cambia en cada sesión y no vale ponerla
+  aquí: comprobar con `git branch --show-current`. Para previsualizar sin
+  mezclar: Railway → learnhouse → Settings → Source → cambiar a la rama; para
+  volver atrás, `dev` (red de seguridad). Ver "La regla del push" al final.
 - Volumen persistente en **`/app/api/content`** (logos/imágenes/uploads).
 
 ### Dominio (cambiado ago 2026: `.nl` → `.com`)
@@ -404,6 +409,13 @@ nuestro gana en casi todo. Lo que hace que gane, para no desmontarlo por error:
   botón de pagar** (pasó de verdad al renombrar la portada).
 - El pie dice **"Pago seguro · Cifrado de extremo a extremo"**, sin nombrar a
   Stripe (decisión del usuario, ago 2026).
+- ⚠️ **El botón "Cambiar" mandaba a la lista de espera** (sept 2026): apuntaba a
+  `/matricula-formacion-nawar-a0-a1`, que hace **302 a la lista de espera**. O
+  sea, alguien con la caja de pago delante que quería corregir su correo acababa
+  en "te avisamos cuando abramos". Ahora hay una constante `MATRICULA_URL` en
+  `checkout.tsx` (→ `www.holandesnawar.com/matricula-formacion-nawar`) y los dos
+  enlaces salen de ahí. **Cualquier enlace a la matrícula desde la escuela sale
+  de esa constante**, nunca escrito a mano.
 
 **No medir esto con tests A/B.** Con una cohorte de 30-40 plazas la diferencia
 entre 12 y 15 ventas es ruido, no señal. A este volumen se quita fricción
@@ -523,7 +535,7 @@ systeme.io con la etiqueta de lista de espera y guarda de dónde vino.
 
 ## Estado actual de la plataforma (app.holandesnawar.com)
 
-### Hecho (rama `claude/adoring-dijkstra-rI3FL`)
+### Hecho (todo mezclado en `dev`)
 - **Barra lateral** (`OrgSidebar.tsx`): azul Nawar + glow + puntos, colapsable, móvil. Reemplaza OrgMenu.
 - **Login / forgot / reset / crear-cuenta**: layout dark-gradient Nawar con eye-toggle en contraseñas. Page metadata en español, sin "LearnHouse".
 - **Inicio**: `OnboardingCard` ("Empieza aquí" persistido en backend), `ContinueWhereLeftOff`, `StreakBadge`, `CommunityChannelsCards`, `UpcomingEvents` con icono.
@@ -669,7 +681,7 @@ systeme.io con la etiqueta de lista de espera y guarda de dónde vino.
   - **Columnas nuevas en `enrollment`**: `product` (default `formacion-a0-a1`, deja sitio al siguiente curso), `amount_cents`, `currency`, `paid_at`. Se rellenan en el webhook al confirmar el cobro → la tabla de ventas sale de Postgres, sin llamar a Stripe. Van en `_ADDED_COLUMNS` (la tabla ya existía en producción).
   - **Tabla nueva `school_manual_entry`** (`kind` + `period`): lo que no se puede deducir solo. `cost` = gasto del mes (para el coste por lead, dividido entre las matrículas empezadas ese mes) y `attendance` = asistentes a cada clase en vivo. **Decisión del usuario (ago 2026): la asistencia se apunta A MANO**, no se rastrea; y **NO se consulta Systeme.io** desde la escuela, así que "lista → venta" NO está y el embudo empieza en la matrícula.
   - **"Completó el módulo"** = ese alumno terminó TODAS las clases del capítulo. Se calcula cruzando los pares (alumno, clase) de `trail_step`; agregando por clase se mentía (dos alumnos con media clase cada uno parecían uno completo).
-  - **Enlaces UTM**: bloc de notas en la pestaña "Enlaces UTM", guardado en org_config `utm_links`. **Los UTM NO se capturan** (decisión del usuario): la escuela no sabe de qué campaña viene cada venta. Si algún día se quiere, hay que guardarlos en `enrollment` y que la web los pase.
+  - **Enlaces UTM**: bloc de notas en la pestaña "Enlaces UTM", guardado en org_config `utm_links`. ⚠️ **La ESCUELA sigue sin saber de qué campaña viene cada venta**: `enrollment` no guarda UTM. Lo que sí hay desde sept 2026 es captura **en la web** (`nawar-web/src/lib/utm.ts` → campos `utm_source`/`utm_medium`/`utm_campaign` de systeme.io, solo en las dos páginas de la guía de las bases). O sea: la campaña se ve en el CRM, no en el panel. Para verla aquí habría que añadir las columnas a `enrollment` y que `/api/enroll` las pase. Lo que sí llegó al panel es **por dónde pasó el lead** — ver "El rastro del lead" más abajo, que es otra cosa.
   - **Bug arreglado de paso**: `get_cached_course_meta` cacheaba la ficha del curso en Redis con una clave SIN usuario, pero el payload lleva `is_locked`/`unlock_date` del goteo, que dependen de la fecha de alta de cada alumno → quien calentaba la caché decidía los candados que veían los demás durante un minuto. Ahora la clave lleva el usuario y la invalidación borra por patrón.
 
 ### ⚠️ Subrayar: hay DOS mecanismos y no son intercambiables (ago 2026)
@@ -1106,16 +1118,189 @@ compilado, no en el fuente.
 - Igualar el peso de las cifras del Inicio (`StudentPulse.tsx`) al de Mi
   progreso.
 
+## Repaso de septiembre (15→21/09/2026) — con la matrícula ya abierta
+
+Lo de este bloque salió de las primeras ventas de verdad. Todo mezclado:
+escuela en `dev` (PR #48 a #54), web en `main` (PR #43 a #52).
+
+### Dar de alta a mano a quien pagó por otro sitio
+Un alumno pagó por un **Payment Link** de Stripe (no por el checkout de la
+escuela) y **no le llegó nada**: el Payment Link no dispara nuestro webhook, así
+que nadie le creó la cuenta ni le mandó el correo de "crea tu contraseña".
+
+Arreglo: **Panel → Estadísticas → Facturas → "Dar de alta a mano"**. Pide correo,
+nombre e **importe en euros**, y hace lo mismo que el webhook pero a mano
+(`payments.py::dar_de_alta_a_mano`): crea el usuario si no existe, lo cuelga de
+la escuela como alumno, guarda el código de contraseña (las **dos** claves de
+Redis, 7 días) y manda el correo. **Enseña el enlace siempre, con botón de
+copiar**, para poder mandárselo por WhatsApp si el correo no llega.
+
+- **El importe también apunta la venta** (`_registrar_venta_a_mano`), porque si
+  no, la persona entraba pero las estadísticas seguían diciendo una venta. Casos
+  contemplados, escritos en el docstring: si ya había una fila pagada solo
+  rellena el importe que faltara; **con 0 € no se apunta nada** (un cero ensucia
+  los ingresos y el precio medio); y si no hay fila, la crea.
+- El importe es libre **a propósito**: la primera venta a mano fue de **197 €**,
+  un precio fundador pactado. Forzar los 397 habría mentido en los ingresos.
+- Hay una casilla **"Ya entró: solo apuntar la venta, sin mandarle ningún
+  correo"** para el caso de alguien que ya tiene cuenta y solo falta el número.
+- `dar_de_alta_a_mano` **no se traga los errores**: si algo falla, lo dice. Es
+  la lección de la noche de las facturas, aplicada.
+
+### El rastro del lead: "vino de X" y "vio el precio"
+Problema real del usuario: *"no sé qué ha visto cada lead"*. Llamaba a gente sin
+saber si ya había visto el precio o si venía de la guía.
+
+- **Web** (`nawar-web/src/lib/recorrido.ts`): `registrarPagina()` se llama desde
+  `Layout.astro` y va apuntando por dónde pasa la visita en `sessionStorage`.
+  **Las páginas se agrupan por lo que ENSEÑAN, no por su URL**: `landing-precio`
+  es la única que lleva cifra, `landing` las dos que no, y luego `home`,
+  `guia-bases`, `gracias-bases`, `guia-hebben`, `gracias-hebben`.
+- **Escuela**: `enrollment_request` gana `recorrido` (400 chars) y `referrer`
+  (120). La lectura en cristiano la hace `resumen_del_lead` en
+  `services/payments/solicitudes.py` (función pura, con su tabla `_NOMBRES`):
+  devuelve `vino_de`, `vio_precio`, `camino`.
+- ⚠️ **`source` solo no bastaba.** Decía `web` o `ads`, y al mismo formulario se
+  llega por tres puertas distintas; tres personas que saben cosas muy diferentes.
+- El recorrido **solo se escribe si viene con algo**: un reenvío sin contexto no
+  borra lo que ya se sabía de esa persona.
+- Mismo criterio que las matrículas: **una persona = una línea**, reaprovechando
+  la fila si ese correo escribió en las últimas 24 h (`_VENTANA_MISMO_ENVIO`).
+
+### Matrículas nuevas: una sola lista, y nada se esconde
+Antes había dos sitios (solicitudes por un lado, quien llegó al checkout por
+otro) y el usuario decía con razón *"creo matrícula como si iba a pagar y no
+sale nada en estadísticas"*. Ahora la sección **Matrículas nuevas** junta las dos
+en una lista, separando *por atender* de *ya alumnos*.
+
+⚠️ **El fallo que lo escondía todo era un `continue` mudo**: quien ya había
+comprado con otro intento desaparecía de la lista de recuperación **sin dejar
+rastro**. Y el primer caso fue el propio correo del usuario, que había pagado la
+prueba de 1 €, así que parecía que la pantalla no funcionaba. Ahora esa fila
+**sale marcada** (`ya_alumno`) en vez de evaporarse.
+
+**Regla que vale para cualquier pantalla del panel: si una fila no se enseña,
+que se vea POR QUÉ.** Un filtro silencioso es indistinguible de un bug.
+
+### Las tres rutas de la landing (no unificarlas)
+Son tres URLs a la MISMA página
+(`components/landing-08-08-2026/LandingCaptacion.astro`) con distinto destino de
+botón. El único parámetro que las distingue es `ctaUrl` + `conPrecio`:
+
+| Ruta | Botones | ¿Ve precio? |
+|---|---|---|
+| `/formacion-nawar` | `/matricula-formacion-nawar` → checkout | **sí, 397 € en la página** |
+| `/formacion-nawar-a0-a1` | formulario de contacto | no |
+| `/formacion-a0-a1-sept-ads` | formulario de contacto (anuncios) | no |
+
+- La de **precio** es para quien ya te conoce: pedirle el contacto para llamarle
+  es una vuelta de más. Las otras dos, para tráfico frío, donde un precio a
+  bocajarro se lleva al visitante sin dejar forma de volver a hablarle.
+- Se llegó aquí después de ir cambiando el destino de UNA sola ruta y
+  arrepentirse. **Rutas separadas, no un interruptor.**
+- El precio va pegado al bloque de acceso, con "pago único, IVA incluido" y "o a
+  plazos con Klarna, sin recargo". ⚠️ Esa fila necesita `flex-wrap: wrap` o la
+  línea de Klarna se parte en tres contra el borde.
+- ⚠️ **Contar los botones en el HTML servido, no en el código.** Tras cambiar
+  `CTA_URL`, 2 de 7 seguían yendo al formulario de contacto porque
+  `AccesoIncluye` ataba el destino a `conPrecio` y `PresentacionNawar` a `ads`.
+  Solo apareció contando los `href` de la página real.
+
+**¿Cómo llega alguien a la landing de anuncios si solo se anuncia la guía?**
+Por la **página de gracias de la guía hebben/zijn**:
+`src/pages/guia/hebben-zijn-a/gracias.astro` tiene
+`const LANDING = '/formacion-a0-a1-sept-ads'`. Ahí está el camino.
+⚠️ Yo le dije al usuario que no existía ese camino y **él tenía razón**: había
+mirado solo la guía de las **bases** y di por hecho que la otra hacía lo mismo.
+**Mirar las dos guías, siempre — son dos embudos con dos destinos distintos.**
+
+### Qué ven los profes de la formación
+Ajuste nuevo del administrador, bajo los ajustes de goteo del curso
+(`components/Pages/Courses/AccesoProfesSettings.tsx` → org_config
+`acceso_profes.ven_todo`). Dos opciones: **como un alumno** (defecto, con sus
+candados) o **todo, como tú**.
+
+Existe porque el profe da la clase compartiendo pantalla: si a él se le abren los
+módulos que al alumno no, la convocatoria por fases deja de sostenerse.
+
+De paso se arregló una **incoherencia real**: `chapters.py` se saltaba el goteo
+para el equipo y `activities.py` no, así que un profe podía abrir la pestaña de
+una lección cerrada y encontrarse "contenido no disponible". Ahora los dos sitios
+usan `is_admin=admin or equipo_ve_todo`.
+
+### Etiquetas de systeme.io: `Nuevo Bases` no se ponía
+No se pudo confirmar la causa raíz (systeme.io está bloqueado desde aquí), pero
+se arreglaron dos fragilidades que la explicarían y se hizo visible el motivo:
+
+- **`listarEtiquetas()` paraba a las 2 páginas.** Con la cuenta creciendo, una
+  etiqueta podía quedar fuera del listado y el código creía que no existía.
+  Ahora pagina hasta agotar.
+- **Los nombres se comparan normalizados** (sin mayúsculas, sin acentos, guiones
+  = espacios), igual que ya hacía el webhook de Inrō.
+- `ensureTagId` **reintenta la búsqueda si la creación falla** (carrera de dos
+  altas a la vez creando la misma etiqueta).
+- **`/api/diagnostico-etiquetas`** (nuevo, solo lectura, detrás de secreto
+  comparado en tiempo constante): `?buscar=` lista etiquetas y marca las casi
+  duplicadas, `?email=` enseña un contacto y las suyas.
+
+### Módulo 3 del curso, repasado entero
+Mismo barrido mecánico que los módulos 1 y 2: seis lecciones, 385 ejercicios.
+Lo gordo que salió:
+
+- **`m3l3e-7` era imposible de resolver**: las fichas `['suiker','hoeveel','wil','je']` no podían formar nunca `'Hoeveel suiker wil je?'`.
+- 11 grupos de ejercicios duplicados dentro de la misma lección.
+- Emojis que se contradecían entre lecciones (`het pak` 📦 vs 🧃, `het vlees` 🥩 vs 🍖).
+- ⚠️ **La tabla de `willen` enseñaba una regla FALSA**: "con jij no lleva -t".
+  Sí la lleva (`jij wilt`); el irregular de verdad es `hij/zij wil`.
+- Neerlandés flojo: `een typisch vis` → `typische`; `Ik stuur de tikkie naar je nummer` → `Ik stuur je zo een tikkie`; `Het bord van 's avonds` → `Wat staat er op het bord?`.
+
+⚠️ **Al escribir un ejercicio de reemplazo, comprobar que el id no choca**: el
+`m3l5e-r1` nuevo duplicaba al `m3l5e-3` que ya estaba. Lo pilló el propio
+escáner al volver a pasarlo. **Pasar el escáner otra vez después de arreglar.**
+
+### Módulo 3 y el goteo: se queda ABIERTO (decidido 21/09)
+Pregunta del usuario: si a los que entran esta semana habría que cerrarles el
+módulo 3. **Decisión: dejarlo abierto, sin tocar código.**
+
+Dos motivos: (1) cerrarlo deja a quien entra tarde sin poder abrir el contenido
+de la clase en vivo que acaba de pagar, y (2) pasar el módulo 3 de **fecha fija**
+a **desfase por alumno** podría **volver a cerrar** un módulo que los alumnos
+actuales ya tienen abierto. El agobio de ver tres módulos a la vez es un problema
+de presentación, no de goteo.
+
+### Pendiente de este repaso
+- **Hay una matrícula de prueba en producción** (`prueba@ejemplo.com`, "Prueba
+  Test", 4 filas del 15/09 a las 22:41) creada por mis propias pruebas. No hubo
+  cobro. Se ofreció un botón de **"descartar"** en Matrículas nuevas para
+  quitarla de la lista; **sin aprobar**.
+- Todo lo de "Pendiente, ofrecido y NO aprobado" de septiembre sigue igual.
+
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
-  `git branch --show-current` antes de dar por buena ninguna que ponga aquí. Han
-  sido `claude/adoring-dijkstra-rI3FL` y `claude/luisteren-y-progreso` (ago 2026,
-  PR #6 contra `dev`).
+  `git branch --show-current` antes de dar por buena ninguna que ponga aquí.
+- ⚠️ **La regla del push: abrir el PR no es entregar.** Pasó **tres veces en una
+  sola sesión** (sept 2026) — el usuario decía *"hiciste push? no veo nada"*,
+  *"el puto botón sigue teniendo bordes más redondos"*, *"sigue sin funcionar lo
+  de la etiqueta"*, y las tres veces el arreglo estaba correcto pero **parado en
+  una rama**. Railway despliega desde **`dev`** y Vercel desde **`main`**: hasta
+  que el PR se mezcla, para el usuario no existe. **Mezclar, y comprobar que el
+  commit está en la rama de destino** (`git log --oneline origin/dev -3`), no
+  fiarse de haber abierto el PR.
+- ⚠️ **Ojo con arrancar una rama desde un `dev` local viejo**: pasó, y se perdió
+  trabajo recién mezclado. Siempre
+  `git fetch origin dev && git checkout -B <rama> origin/dev`.
 - **Probar las rutas de la landing en local, de verdad.** `astro dev` en un
   puerto suelto + `curl` a `127.0.0.1` (localhost no pasa por el proxy) prueba el
   circuito completo: 401 sin secreto, 400 con email inválido, 405 en GET y el
   camino de fallo blando cuando systeme.io no responde. Se pilla más así que
   leyendo el código.
+- ⚠️ **Pero `astro dev` en local NO es un entorno de pruebas aislado.**
+  `ESCUELA_URL` (`src/lib/escuela.ts`) apunta a **`https://app.holandesnawar.com`**
+  aunque estés en local, así que un POST de prueba al formulario **crea una fila
+  de verdad en la base de datos del usuario**. Ya pasó: cuatro matrículas
+  `prueba@ejemplo.com` en producción. Si hay que probar el formulario entero,
+  **decirlo antes** y limpiar después — no esperar a que el usuario pregunte
+  *"¿tú creaste una matrícula de prueba?"*.
 - **Cuidado con el directorio de trabajo de la shell**: se resetea a `/home/user`
   entre llamadas. Un `astro build` lanzado desde ahí falla con
   `Cannot resolve entry module astro/entrypoints/prerender` — no es un error del
