@@ -61,7 +61,10 @@ CAMPOS: Dict[str, Dict[str, Campo]] = {
         "titulo": Campo("Título dentro del correo", "Has desbloqueado {modulo}", ["modulo", "nombre"]),
         "cuerpo": Campo(
             "Texto",
-            "¡Buen trabajo, {nombre}! Acabas de terminar el módulo anterior.\n\n"
+            # Antes decía "¡Buen trabajo! Acabas de terminar el módulo anterior",
+            # y no es verdad: el goteo abre los módulos por fecha, no por haber
+            # terminado nada. Un saludo y al grano (pedido 21/09).
+            "Hola, {nombre}.\n\n"
             "Tienes vía libre en *{modulo}*, te tocan *{lecciones} lecciones nuevas*.",
             ["nombre", "modulo", "lecciones"],
             largo=True,

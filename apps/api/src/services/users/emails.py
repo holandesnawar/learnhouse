@@ -571,7 +571,7 @@ def send_weekly_digest_email(
 
     body_content = f"""
         <h1 style="{STYLES['h1']}">{heading}</h1>
-        {parrafos(txt("weekly_digest", "cuerpo", nombre=safe_name), STYLES['p'])}
+        {parrafos(txt("weekly_digest", "cuerpo", nombre=name), STYLES['p'])}
         <ul style="padding: 0; margin: 0 0 24px 0; list-style: none; text-align: left;">
             <li style="margin: 0 0 8px 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.6;">
                 ✅ <strong>{lessons_done} lecciones</strong> completadas
@@ -583,7 +583,7 @@ def send_weekly_digest_email(
                 📌 Te toca <strong>{safe_next}</strong>
             </li>
         </ul>
-        {parrafos(txt("weekly_digest", "cierre", nombre=safe_name), STYLES['p'])}
+        {parrafos(txt("weekly_digest", "cierre", nombre=name), STYLES['p'])}
         <a href="{RUTA_FORMACION_URL}" class="brand-btn" style="{STYLES['button']}">
             {html.escape(txt("weekly_digest", "boton"))}
         </a>
@@ -619,10 +619,15 @@ def send_module_unlocked_email(
     safe_module = html.escape(module_name)
     vars_ = {"nombre": safe_name, "modulo": safe_module, "lecciones": lesson_count}
     heading = txt("module_unlocked", "titulo", **vars_)
+    # ⚠️ Al CUERPO las variables van SIN escapar: parrafos() escapa el texto
+    # entero después de rellenarlo. Pasarle las safe_ era escaparlas dos veces
+    # y "Familie & vrienden" salía como "Familie &amp; vrienden" a la vista del
+    # alumno (se vio en el panel el 21/09). El título sí lleva las safe_,
+    # porque va directo al <h1>. Vale para todos los cuerpos de este archivo.
 
     body_content = f"""
         <h1 style="{STYLES['h1']}">{heading}</h1>
-        {parrafos(txt("module_unlocked", "cuerpo", **vars_), STYLES['p'])}
+        {parrafos(txt("module_unlocked", "cuerpo", nombre=name, modulo=module_name, lecciones=lesson_count), STYLES['p'])}
         <a href="{RUTA_FORMACION_URL}" class="brand-btn" style="{STYLES['button']}">
             {html.escape(txt("module_unlocked", "boton"))}
         </a>
@@ -708,7 +713,7 @@ def send_consulta_answered_email(
 
     body_content = f"""
         <h1 style="{STYLES['h1']}">{heading}</h1>
-        {parrafos(txt("consulta_answered", "cuerpo", nombre=safe_name), STYLES['p'])}
+        {parrafos(txt("consulta_answered", "cuerpo", nombre=name), STYLES['p'])}
         <div style="border-left: 3px solid #DDE6F5; padding: 4px 0 4px 14px; margin: 0 0 22px 0;">
             <p style="margin: 0; font-size: 14px; color: rgba(0,0,0,0.65); line-height: 1.6; font-style: italic;">
                 "{safe_question}"
@@ -748,7 +753,7 @@ def send_new_direct_message_email(
 
     body_content = f"""
         <h1 style="{STYLES['h1']}">{heading}</h1>
-        {parrafos(txt("new_direct_message", "cuerpo", nombre=safe_name), STYLES['p'])}
+        {parrafos(txt("new_direct_message", "cuerpo", nombre=name), STYLES['p'])}
         <a href="{ACADEMY_URL}/mensajes" class="brand-btn" style="{STYLES['button']}">
             {html.escape(txt("new_direct_message", "boton"))}
         </a>
@@ -780,7 +785,7 @@ def send_certificate_ready_email(
 
     body_content = f"""
         <h1 style="{STYLES['h1']}">{heading}</h1>
-        {parrafos(txt("certificate_ready", "cuerpo", nombre=safe_name, certificado=safe_cert), STYLES['p'])}
+        {parrafos(txt("certificate_ready", "cuerpo", nombre=name, certificado=certification_name), STYLES['p'])}
         <div style="margin: 6px 0 30px 0;">
             <a href="{certificate_url}" class="brand-btn" style="{STYLES['button']}">
                 {html.escape(txt("certificate_ready", "boton"))}
@@ -823,7 +828,7 @@ def send_class_scheduled_email(
 
     body_content = f"""
         <h1 style="{STYLES['h1']}">{heading}</h1>
-        {parrafos(txt("class_scheduled", "cuerpo", nombre=safe_name), STYLES['p'])}
+        {parrafos(txt("class_scheduled", "cuerpo", nombre=name), STYLES['p'])}
         <div style="border-left: 3px solid #4da3ff; padding: 4px 0 4px 14px; margin: 0 0 22px 0;">
             <p style="margin: 0 0 6px 0; font-size: 15px; font-weight: 800; color: #1D0084; line-height: 1.4;">
                 {safe_title}
