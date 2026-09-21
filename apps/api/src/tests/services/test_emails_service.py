@@ -73,7 +73,9 @@ class TestEmailsService:
         first_body = send_email.call_args_list[0].kwargs["body"]
         second_body = send_email.call_args_list[1].kwargs["body"]
         assert "reset?email=user%2Btag%40test.com&amp;resetCode=code%20123" in first_body
-        assert "reset-password?email=user%2Btag%40test.com&amp;resetCode=code%20123" in second_body
+        # La ruta de verdad es /auth/reset (la vieja /reset-password redirige a
+        # /login y se come el código). El test seguía esperando la vieja.
+        assert "auth/reset?email=user%2Btag%40test.com&amp;resetCode=code%20123" in second_body
 
     def test_send_invitation_role_change_and_verification_email(self):
         with patch("src.services.users.emails.send_email", return_value=True) as send_email:
@@ -164,3 +166,19 @@ class TestEmailsService:
             )
         body = send_email.call_args.kwargs["body"]
         assert "You've been invited" in body
+
+
+def test_el_nombre_del_modulo_con_ampersand_no_sale_escapado_dos_veces():
+    """El cuerpo pasa por parrafos(), que ya escapa; si además se le pasan
+    las variables escapadas, el alumno ve "&amp;" escrito."""
+    from src.services.users.emails import send_module_unlocked_email
+
+    salida = send_module_unlocked_email(
+        "alumna@example.com", name="María", module_name="Module 2 — Familie & vrienden",
+        lesson_count=11, preview=True,
+    )
+    html = salida["html"] if isinstance(salida, dict) else str(salida)
+    assert "&amp;amp;" not in html
+    assert "Familie &amp; vrienden" in html  # escapado UNA vez, que es lo correcto
+    assert "Hola, María." in html
+    assert "módulo anterior" not in html
