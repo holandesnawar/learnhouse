@@ -7,13 +7,16 @@
  * Los archivos van al mismo almacén que los adjuntos del chat (R2 si está
  * puesto, si no el volumen). Borrar un recurso lo quita de la lista pero NO
  * borra el archivo físico: perder un PDF por un clic no compensa.
+ *
+ * Una carpeta con el candado es SOLO PARA EL EQUIPO: el alumno no la ve (se
+ * filtra en el servidor). Para las facturas del negocio, contratos, etc.
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { FolderSimple } from '@phosphor-icons/react'
-import { ArrowDown, ArrowUp, Link2, Loader2, Pencil, Plus, Trash2, Upload, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Link2, Loader2, Lock, LockOpen, Pencil, Plus, Trash2, Upload, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import {
   abrirUrl,
@@ -96,8 +99,9 @@ export default function RecursosAdmin() {
         <h1 className="text-xl sm:text-3xl font-bold text-gray-900 truncate">Recursos</h1>
       </div>
       <p className="text-[13.5px] text-gray-600 -mt-2">
-        Lo que ves aquí lo ven los alumnos en <strong>Recursos</strong>, en el mismo orden. Carpetas
-        con archivos (hasta 25 MB) o enlaces: un Drive, un vídeo, una web.
+        Lo que ves aquí lo ven los alumnos en <strong>Recursos</strong>, en el mismo orden, salvo
+        las carpetas con candado, que son solo para el equipo (tus facturas, contratos, lo que
+        quieras guardar). Archivos de hasta 25 MB o enlaces: un Drive, un vídeo, una web.
       </p>
 
       <div className={`${CARD} flex flex-col sm:flex-row gap-2`}>
@@ -162,10 +166,23 @@ function CarpetaAdmin({
   const [ocupado, setOcupado] = useState(false)
   const fileRef = useRef<HTMLInputElement | null>(null)
 
+  const alternarPrivada = async () => {
+    setOcupado(true)
+    try {
+      await editarCarpeta(org.id, carpeta.id, carpeta.name, carpeta.description, accessToken, !carpeta.private)
+      await onCambio()
+      toast.success(!carpeta.private ? 'Solo la ve el equipo.' : 'Ya la ven los alumnos.')
+    } catch (e: any) {
+      toast.error(e?.message || 'No se pudo cambiar')
+    } finally {
+      setOcupado(false)
+    }
+  }
+
   const guardarNombre = async () => {
     setOcupado(true)
     try {
-      await editarCarpeta(org.id, carpeta.id, nombre, descripcion, accessToken)
+      await editarCarpeta(org.id, carpeta.id, nombre, descripcion, accessToken, carpeta.private)
       setEditando(false)
       await onCambio()
     } catch (e: any) {
@@ -252,6 +269,11 @@ function CarpetaAdmin({
               <h2 className="text-[16px] font-bold text-[#1D0084] flex items-center gap-2 min-w-0">
                 <FolderSimple size={18} weight="fill" className="text-[#025dc7] shrink-0" />
                 <span className="truncate">{carpeta.name}</span>
+                {carpeta.private ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#F3F4F6] text-[#6B7590] px-2 py-0.5 text-[10.5px] font-semibold">
+                    <Lock size={10} /> solo equipo
+                  </span>
+                ) : null}
               </h2>
               {carpeta.description ? <p className="text-[13px] text-gray-500 mt-0.5">{carpeta.description}</p> : null}
             </>
@@ -260,6 +282,9 @@ function CarpetaAdmin({
         <div className="flex items-center gap-1 shrink-0">
           <button onClick={() => onMover(-1)} disabled={esPrimera} aria-label="Subir" className="p-1.5 rounded-lg text-gray-500 hover:bg-[#F0F5FF] disabled:opacity-30"><ArrowUp size={15} /></button>
           <button onClick={() => onMover(1)} disabled={esUltima} aria-label="Bajar" className="p-1.5 rounded-lg text-gray-500 hover:bg-[#F0F5FF] disabled:opacity-30"><ArrowDown size={15} /></button>
+          <button onClick={alternarPrivada} disabled={ocupado} aria-label={carpeta.private ? 'Hacerla visible a los alumnos' : 'Solo para el equipo'} title={carpeta.private ? 'Solo la ve el equipo. Pulsa para que la vean los alumnos.' : 'La ven los alumnos. Pulsa para dejarla solo para el equipo.'} className="p-1.5 rounded-lg text-gray-500 hover:bg-[#F0F5FF]">
+            {carpeta.private ? <Lock size={15} /> : <LockOpen size={15} />}
+          </button>
           <button onClick={() => setEditando((v) => !v)} aria-label="Renombrar" className="p-1.5 rounded-lg text-gray-500 hover:bg-[#F0F5FF]"><Pencil size={15} /></button>
           <button onClick={borrar} aria-label="Borrar carpeta" className="p-1.5 rounded-lg text-red-500 hover:bg-red-50"><Trash2 size={15} /></button>
         </div>

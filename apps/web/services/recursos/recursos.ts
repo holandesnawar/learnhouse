@@ -22,6 +22,8 @@ export interface Carpeta {
   description: string
   position: number
   created_at: string
+  /** Solo para el equipo: el alumno no la ve. */
+  private: boolean
   items: RecursoItem[]
 }
 
@@ -80,13 +82,13 @@ async function json<T>(r: Response): Promise<T> {
   return d as T
 }
 
-export async function crearCarpeta(orgId: number, name: string, description: string, accessToken: string): Promise<Carpeta> {
-  const r = await fetch(`${base()}/org/${orgId}/carpetas`, RequestBodyWithAuthHeader('POST', { name, description }, null, accessToken))
+export async function crearCarpeta(orgId: number, name: string, description: string, accessToken: string, priv = false): Promise<Carpeta> {
+  const r = await fetch(`${base()}/org/${orgId}/carpetas`, RequestBodyWithAuthHeader('POST', { name, description, private: priv }, null, accessToken))
   return json<Carpeta>(r)
 }
 
-export async function editarCarpeta(orgId: number, id: number, name: string, description: string, accessToken: string): Promise<Carpeta> {
-  const r = await fetch(`${base()}/org/${orgId}/carpetas/${id}`, RequestBodyWithAuthHeader('PUT', { name, description }, null, accessToken))
+export async function editarCarpeta(orgId: number, id: number, name: string, description: string, accessToken: string, priv = false): Promise<Carpeta> {
+  const r = await fetch(`${base()}/org/${orgId}/carpetas/${id}`, RequestBodyWithAuthHeader('PUT', { name, description, private: priv }, null, accessToken))
   return json<Carpeta>(r)
 }
 

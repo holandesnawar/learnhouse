@@ -52,6 +52,7 @@ def _folder_dict(f: ResourceFolder, items: list[ResourceItem]) -> dict:
         "description": f.description,
         "position": f.position,
         "created_at": f.created_at,
+        "private": bool(getattr(f, "private", False)),
         "items": [
             {
                 "id": i.id,
@@ -68,7 +69,9 @@ def _folder_dict(f: ResourceFolder, items: list[ResourceItem]) -> dict:
     }
 
 
-async def listar(org_id: int, db_session: AsyncSession) -> list[dict]:
+async def listar(org_id: int, db_session: AsyncSession, *, con_privadas: bool = False) -> list[dict]:
+    """Las carpetas. Al alumno NO se le mandan las privadas (ni sus items):
+    se filtra aquí, en el servidor, no escondiéndolas en la pantalla."""
     carpetas = (
         await db_session.execute(
             select(ResourceFolder)
@@ -76,6 +79,8 @@ async def listar(org_id: int, db_session: AsyncSession) -> list[dict]:
             .order_by(ResourceFolder.position, ResourceFolder.id)
         )
     ).scalars().all()
+    if not con_privadas:
+        carpetas = [f for f in carpetas if not getattr(f, "private", False)]
     items = (
         await db_session.execute(
             select(ResourceItem)
@@ -115,6 +120,7 @@ async def crear_carpeta(org_id: int, data: FolderWrite, db_session: AsyncSession
         description=(data.description or "").strip()[:400],
         position=int(ultimo or 0) + 1,
         created_at=_ahora(),
+        private=bool(data.private),
     )
     db_session.add(f)
     await db_session.commit()
@@ -129,6 +135,7 @@ async def editar_carpeta(org_id: int, folder_id: int, data: FolderWrite, db_sess
         raise HTTPException(status_code=400, detail="La carpeta necesita un nombre")
     f.name = nombre
     f.description = (data.description or "").strip()[:400]
+    f.private = bool(data.private)
     db_session.add(f)
     await db_session.commit()
     await db_session.refresh(f)

@@ -62,7 +62,7 @@ async def api_listar_admin(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     await _admin(request, org_id, current_user, db_session)
-    return await listar(org_id, db_session)
+    return await listar(org_id, db_session, con_privadas=True)
 
 
 @router.post("/org/{org_id}/carpetas", summary="Crear una carpeta.")
