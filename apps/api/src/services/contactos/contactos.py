@@ -48,6 +48,7 @@ NOMBRES_TIPO = {
     "lista-espera": "Se apuntó a la lista de espera",
     "instagram": "Escribió por Instagram",
     "solicitud": "Pidió plaza por el formulario",
+    "cualificacion": "Pidió una llamada (contestó la cualificación)",
     "matricula": "Empezó la matrícula (llegó al pago)",
     "pago": "Pagó la formación",
     "reunion": "Reservó una reunión",
