@@ -45,6 +45,7 @@ NOMBRES_TIPO = {
     "guia-bases": "Descargó la guía de las bases",
     "guia-hebben": "Descargó la guía hebben/zijn",
     "guia": "Descargó una guía",
+    "lista-espera": "Se apuntó a la lista de espera",
     "instagram": "Escribió por Instagram",
     "solicitud": "Pidió plaza por el formulario",
     "matricula": "Empezó la matrícula (llegó al pago)",

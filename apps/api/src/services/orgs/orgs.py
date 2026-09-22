@@ -1279,6 +1279,58 @@ async def get_org_acceso_profes_config(org_id: int, db_session: AsyncSession) ->
         return {"ven_todo": False}
 
 
+async def update_org_acceso_closer_config(
+    request: Request,
+    payload: dict,
+    org_id: int,
+    current_user: PublicUser | AnonymousUser,
+    db_session: AsyncSession,
+):
+    """Qué ve el closer además de Contactos. Solo administradores: el closer
+    no puede abrirse a sí mismo los números."""
+    statement = select(Organization).where(Organization.id == org_id)
+    org = (await db_session.execute(statement)).scalars().first()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    await rbac_check(request, org.org_uuid, current_user, "update", db_session)
+
+    org_config = (
+        await db_session.execute(
+            select(OrganizationConfig).where(OrganizationConfig.org_id == org_id)
+        )
+    ).scalars().first()
+    if not org_config:
+        raise HTTPException(status_code=404, detail="Organization config not found")
+
+    updated_config = _deep_copy_config(org_config)
+    updated_config["acceso_closer"] = {"numeros": bool(payload.get("numeros"))}
+
+    org_config.config = updated_config
+    org_config.update_date = str(datetime.now())
+
+    db_session.add(org_config)
+    await db_session.commit()
+    await db_session.refresh(org_config)
+
+    return {"numeros": bool(payload.get("numeros"))}
+
+
+async def get_org_acceso_closer_config(org_id: int, db_session: AsyncSession) -> dict:
+    """Lo guardado hoy. Nunca lanza: si no se puede leer, solo Contactos."""
+    try:
+        fila = (
+            await db_session.execute(
+                select(OrganizationConfig).where(OrganizationConfig.org_id == org_id)
+            )
+        ).scalars().first()
+        if not fila or not isinstance(fila.config, dict):
+            return {"numeros": False}
+        return {"numeros": bool((fila.config.get("acceso_closer") or {}).get("numeros"))}
+    except Exception:  # noqa: BLE001
+        return {"numeros": False}
+
+
 async def get_org_email_texts(org_id: int, db_session: AsyncSession) -> dict:
     """Los textos de los correos que esta escuela tiene cambiados. Nunca lanza."""
     from src.services.email.textos import limpiar

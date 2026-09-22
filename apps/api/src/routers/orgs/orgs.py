@@ -55,6 +55,8 @@ from src.services.orgs.orgs import (
     update_org_direct_welcome_config,
     update_org_acceso_profes_config,
     get_org_acceso_profes_config,
+    update_org_acceso_closer_config,
+    get_org_acceso_closer_config,
     update_org_utm_links_config,
     update_org_staff_titles_config,
     update_org_weekly_class_banner_config,
@@ -73,7 +75,7 @@ from src.services.orgs.orgs import (
     upload_org_og_image_service,
     update_org_favicon,
 )
-from src.db.organization_config import AccesoProfesConfig, AuthBrandingConfig, SeoOrgConfig, CommunityPanelConfig, DirectWelcomeConfig, StaffTitlesConfig, WeeklyClassBannerConfig, DripContentConfig, UtmLinksConfig
+from src.db.organization_config import AccesoCloserConfig, AccesoProfesConfig, AuthBrandingConfig, SeoOrgConfig, CommunityPanelConfig, DirectWelcomeConfig, StaffTitlesConfig, WeeklyClassBannerConfig, DripContentConfig, UtmLinksConfig
 
 
 router = APIRouter()
@@ -761,6 +763,33 @@ async def api_update_org_acceso_profes_config(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     return await update_org_acceso_profes_config(
+        request, payload.model_dump(), org_id, current_user, db_session
+    )
+
+
+@router.get(
+    "/{org_id}/config/acceso_closer",
+    summary="¿Qué ve el closer en el panel además de Contactos?",
+)
+async def api_get_org_acceso_closer_config(
+    org_id: int,
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    return await get_org_acceso_closer_config(org_id, db_session)
+
+
+@router.put(
+    "/{org_id}/config/acceso_closer",
+    summary="Decide qué ve el closer en el panel. Solo administradores.",
+)
+async def api_update_org_acceso_closer_config(
+    request: Request,
+    org_id: int,
+    payload: AccesoCloserConfig,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    return await update_org_acceso_closer_config(
         request, payload.model_dump(), org_id, current_user, db_session
     )
 

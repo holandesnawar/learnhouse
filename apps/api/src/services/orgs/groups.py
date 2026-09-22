@@ -40,12 +40,15 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.usergroup_user import UserGroupUser
 from src.db.usergroups import UserGroup
 from src.db.user_organizations import UserOrganization
-from src.security.rbac.constants import PROFE_ROLE_ID, STUDENT_ROLE_ID
+from src.security.rbac.constants import CLOSER_ROLE_ID, PROFE_ROLE_ID, STUDENT_ROLE_ID
 
 logger = logging.getLogger(__name__)
 
 STUDENTS_GROUP_NAME = "Alumnos"
 TEACHERS_GROUP_NAME = "Profes"
+# El que vende: ve Contactos en el panel y nada más. Mismo mecanismo que
+# "Profes": entrar en el grupo da el rol, salir lo quita.
+CLOSERS_GROUP_NAME = "Closers"
 
 _DESCRIPTIONS = {
     STUDENTS_GROUP_NAME: "Todo el que se da de alta en la escuela entra aquí solo.",
@@ -53,7 +56,13 @@ _DESCRIPTIONS = {
         "El equipo docente. Quien está en este grupo atiende mensajes, "
         "modera la comunidad y ve las fichas de los alumnos."
     ),
+    CLOSERS_GROUP_NAME: (
+        "Quien vende. Ve Contactos y las solicitudes de plaza en el panel, "
+        "y nada más: ni alumnos, ni cursos, ni cobros."
+    ),
 }
+# Grupo → rol que da. Todo lo demás son etiquetas sin permisos.
+_ROL_POR_GRUPO = {TEACHERS_GROUP_NAME: PROFE_ROLE_ID, CLOSERS_GROUP_NAME: CLOSER_ROLE_ID}
 
 
 async def _find_group(org_id: int, name: str, db_session: AsyncSession) -> Optional[UserGroup]:
@@ -89,7 +98,8 @@ async def ensure_default_groups(org_id: int, db_session: AsyncSession) -> dict:
     """Deja creados los dos grupos. Se puede llamar tantas veces como se quiera."""
     students = await _get_or_create_group(org_id, STUDENTS_GROUP_NAME, db_session)
     teachers = await _get_or_create_group(org_id, TEACHERS_GROUP_NAME, db_session)
-    return {"students": students, "teachers": teachers}
+    closers = await _get_or_create_group(org_id, CLOSERS_GROUP_NAME, db_session)
+    return {"students": students, "teachers": teachers, "closers": closers}
 
 
 async def _link_exists(usergroup_id: int, user_id: int, db_session: AsyncSession) -> bool:
@@ -185,7 +195,7 @@ async def sync_roles_for_group(
     usergroup_id: int, user_ids: list[int], db_session: AsyncSession, *, joining: bool
 ) -> None:
     """
-    Si el grupo tocado es "Profes", pone o quita el rol de profe.
+    Si el grupo tocado es "Profes" o "Closers", pone o quita su rol.
 
     Los administradores no se tocan nunca: meter a la dueña de la escuela en
     "Profes" para que salga en la lista no puede degradarla a profe, y sacarla
@@ -195,8 +205,9 @@ async def sync_roles_for_group(
         group = (
             await db_session.execute(select(UserGroup).where(UserGroup.id == usergroup_id))
         ).scalars().first()
-        if not group or group.name != TEACHERS_GROUP_NAME:
+        if not group or group.name not in _ROL_POR_GRUPO:
             return
+        rol_del_grupo = _ROL_POR_GRUPO[group.name]
 
         for user_id in user_ids:
             link = (
@@ -212,10 +223,14 @@ async def sync_roles_for_group(
             # Un administrador o un moderador sigue siéndolo.
             if link.role_id in (1, 2):
                 continue
-            target = PROFE_ROLE_ID if joining else STUDENT_ROLE_ID
+            # Al salir del grupo se vuelve a alumno, pero solo si tenía el rol
+            # de ESE grupo: sacar a un closer de "Profes" no le quita lo suyo.
+            if not joining and link.role_id != rol_del_grupo:
+                continue
+            target = rol_del_grupo if joining else STUDENT_ROLE_ID
             if await _set_role(user_id, group.org_id, target, db_session):
                 logger.info(
-                    "Usuario %s pasa a rol %s por el grupo Profes", user_id, target
+                    "Usuario %s pasa a rol %s por el grupo %s", user_id, target, group.name
                 )
     except Exception:  # noqa: BLE001
         logger.exception("No se pudieron ajustar los roles del grupo %s", usergroup_id)

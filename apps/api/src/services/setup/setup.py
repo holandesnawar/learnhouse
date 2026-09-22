@@ -581,6 +581,124 @@ async def install_default_elements(db_session: AsyncSession):
         update_date=str(datetime.now()),
     )
 
+    # ── Closer (Holandés Nawar) ───────────────────────────────────────────
+    # El que vende. Llama a quien pidió plaza o dejó el pago a medias. Ve la
+    # pestaña Contactos del panel (y los Números si el administrador se lo
+    # abre) y NADA más: ni alumnos, ni cursos, ni cobros, ni ajustes. Los
+    # permisos de abajo son todos de "leer" o nada; lo que de verdad le abre
+    # la puerta es CONTACTOS_ROLE_IDS en las rutas de contactos y
+    # estadísticas. Se asigna metiendo a la persona en el grupo "Closers".
+    role_global_closer = Role(
+        name="Closer",
+        description="Vende: ve los contactos y las solicitudes de plaza. Nada más del panel.",
+        role_type=RoleTypeEnum.TYPE_GLOBAL,
+        role_uuid="role_global_closer",
+        id=6,
+        rights=Rights(
+            courses=PermissionsWithOwn(
+                action_create=False,
+                action_read=True,
+                action_read_own=True,
+                action_update=False,
+                action_update_own=False,
+                action_delete=False,
+                action_delete_own=False,
+            ),
+            # La lista de alumnos no: lo suyo es Contactos.
+            users=Permission(
+                action_create=False,
+                action_read=False,
+                action_update=False,
+                action_delete=False,
+            ),
+            usergroups=Permission(
+                action_create=False,
+                action_read=True,
+                action_update=False,
+                action_delete=False,
+            ),
+            collections=Permission(
+                action_create=False,
+                action_read=True,
+                action_update=False,
+                action_delete=False,
+            ),
+            organizations=Permission(
+                action_create=False,
+                action_read=False,
+                action_update=False,
+                action_delete=False,
+            ),
+            coursechapters=Permission(
+                action_create=False,
+                action_read=True,
+                action_update=False,
+                action_delete=False,
+            ),
+            activities=Permission(
+                action_create=False,
+                action_read=True,
+                action_update=False,
+                action_delete=False,
+            ),
+            roles=Permission(
+                action_create=False,
+                action_read=False,
+                action_update=False,
+                action_delete=False,
+            ),
+            # Entra al panel; el panel le enseña solo Estadísticas.
+            dashboard=DashboardPermission(
+                action_access=True,
+            ),
+            # No modera: la comunidad la ve como un alumno más.
+            communities=Permission(
+                action_create=False,
+                action_read=True,
+                action_update=False,
+                action_delete=False,
+            ),
+            discussions=PermissionsWithOwn(
+                action_create=True,
+                action_read=True,
+                action_read_own=True,
+                action_update=False,
+                action_update_own=True,
+                action_delete=False,
+                action_delete_own=True,
+            ),
+            podcasts=PermissionsWithOwn(
+                action_create=False,
+                action_read=True,
+                action_read_own=True,
+                action_update=False,
+                action_update_own=False,
+                action_delete=False,
+                action_delete_own=False,
+            ),
+            boards=PermissionsWithOwn(
+                action_create=False,
+                action_read=True,
+                action_read_own=True,
+                action_update=False,
+                action_update_own=False,
+                action_delete=False,
+                action_delete_own=False,
+            ),
+            playgrounds=PermissionsWithOwn(
+                action_create=False,
+                action_read=True,
+                action_read_own=True,
+                action_update=False,
+                action_update_own=False,
+                action_delete=False,
+                action_delete_own=False,
+            ),
+        ),
+        creation_date=str(datetime.now()),
+        update_date=str(datetime.now()),
+    )
+
     # Serialize rights to JSON
     desired_roles = [
         role_global_admin,
@@ -588,6 +706,7 @@ async def install_default_elements(db_session: AsyncSession):
         role_global_instructor,
         role_global_user,
         role_global_profe,
+        role_global_closer,
     ]
     for role in desired_roles:
         role.rights = role.rights.model_dump()  # type: ignore
