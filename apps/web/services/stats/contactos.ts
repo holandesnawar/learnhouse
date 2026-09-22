@@ -93,3 +93,40 @@ export const ESTADO_TEXTO: Record<EstadoContacto, string> = {
   'matriculado-sin-pagar': 'Matriculado sin pagar',
   alumno: 'Alumno',
 }
+
+/**
+ * Una llamada pedida: quien terminó la cualificación de /agendar. Sale de
+ * `services/contactos/llamadas.py`. `solicitud_id` + `contacted_at` son la
+ * misma marca de "atendida" que usa Matrículas nuevas.
+ */
+export interface Llamada {
+  id: number
+  name: string
+  email: string
+  phone: string
+  created_at: string
+  apto: boolean
+  puntuacion: number
+  respuestas: { pregunta: string; respuesta: string; puntos: number }[]
+  sin_respuestas: boolean
+  vio_precio: boolean
+  vino_de: string
+  camino: string
+  utm_campaign: string
+  solicitud_id: number | null
+  contacted_at: string
+}
+
+export async function getLlamadas(orgId: number, accessToken: string): Promise<Llamada[] | null> {
+  try {
+    const res = await fetch(
+      `${getAPIUrl()}contactos/org/${orgId}/llamadas`,
+      RequestBodyWithAuthHeader('GET', null, null, accessToken)
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    return Array.isArray(data?.llamadas) ? data.llamadas : []
+  } catch {
+    return null
+  }
+}

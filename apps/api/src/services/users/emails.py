@@ -771,6 +771,64 @@ def send_new_direct_message_email(
     )
 
 
+def send_llamada_pedida_email(
+    email: EmailStr,
+    llamada: dict,
+    preview: bool = False,
+):
+    """Aviso AL EQUIPO (no al alumno): alguien ha terminado la cualificación
+    de /agendar. Lleva sus datos y todas sus respuestas, para poder llamarle
+    desde el móvil sin abrir el panel. El botón lleva a Panel → Llamadas.
+
+    No está en el catálogo de correos automáticos del panel a propósito:
+    aquel es la lista de lo que recibe el alumno.
+    """
+    nombre = html.escape(llamada.get("name") or llamada.get("email") or "Alguien")
+    correo = html.escape(llamada.get("email") or "")
+    telefono = html.escape(llamada.get("phone") or "")
+    apto = bool(llamada.get("apto"))
+    puntos = int(llamada.get("puntuacion") or 0)
+    encaja = "Encaja: se le ofrece la llamada" if apto else "No encaja por ahora: se le mandó a la guía"
+    color = "#0E9F6E" if apto else "#8A6A2A"
+
+    filas = "".join(
+        f"""
+        <tr>
+            <td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px; color: rgba(0,0,0,0.55); vertical-align: top; width: 45%;">{html.escape(str(r.get('pregunta', '')))}</td>
+            <td style="padding: 8px 0 8px 12px; border-bottom: 1px solid #f0f0f0; font-size: 13px; color: #000; font-weight: 600; vertical-align: top;">{html.escape(str(r.get('respuesta', '')))}</td>
+        </tr>"""
+        for r in (llamada.get("respuestas") or [])
+    )
+    tel_num = "".join(ch for ch in (llamada.get("phone") or "") if ch.isdigit())
+    wa = f"https://wa.me/{tel_num}" if tel_num else ""
+    vino_de = llamada.get("vino_de") or ""
+    vio_precio = "ya vio el precio" if llamada.get("vio_precio") else "sin rastro de haber visto el precio"
+
+    body_content = f"""
+        <h1 style="{STYLES['h1']}">{nombre} ha pedido una llamada</h1>
+        <p style="margin: 0 0 6px 0; font-size: 14px; font-weight: 700; color: {color};">{encaja} · {puntos} puntos</p>
+        <p style="{STYLES['p']}">
+            {correo}{' · ' + telefono if telefono else ''}<br>
+            <span style="color: rgba(0,0,0,0.55);">{('Vino de ' + html.escape(vino_de) + ' · ') if vino_de else ''}{vio_precio}</span>
+        </p>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%; text-align: left; margin: 0 0 24px 0;">{filas}</table>
+        <a href="{ACADEMY_URL}/dash/estadisticas?tab=llamadas" class="brand-btn" style="{STYLES['button']}">Ver en el panel</a>
+        {f'<p style="margin: 16px 0 0 0; font-size: 13px;"><a href="{wa}" style="color: #025dc7; font-weight: 600;">Escribirle por WhatsApp</a></p>' if wa else ''}
+    """
+
+    return send_email(
+        dry_run=preview,
+        to=email,
+        subject=f"Llamada pedida: {llamada.get('name') or llamada.get('email') or 'alguien'}"
+        + (" · encaja" if apto else " · no encaja"),
+        body=_email_layout(
+            title=f"{nombre} ha pedido una llamada",
+            body_content=body_content,
+            footer_note="Recibes esto porque eres administrador de la escuela y alguien terminó el formulario de agendar llamada.",
+        ),
+    )
+
+
 def send_certificate_ready_email(
     email: EmailStr,
     name: str = "alumno/a",
