@@ -44,6 +44,8 @@ import {
   UserCircle,
   UsersThree,
   AddressBook,
+  Globe,
+  LinkSimple,
 } from '@phosphor-icons/react'
 
 type Item = { href: string; label: string; icon: React.ReactNode; match?: (p: string) => boolean }
@@ -73,6 +75,14 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
       { href: '/dash/courses', label: 'Cursos', icon: <BookOpen size={18} weight="fill" /> },
       { href: '/dash/recursos', label: 'Recursos y documentos', icon: <FolderSimple size={18} weight="fill" /> },
       { href: '/dash/workflows', label: 'Automatizaciones', icon: <Lightning size={18} weight="fill" /> },
+    ],
+  },
+  {
+    titulo: 'Web',
+    items: [
+      { href: '/dash/webs', label: 'Enlaces y redirecciones', icon: <LinkSimple size={18} weight="bold" />, match: (p) => p.includes('/dash/webs') && !p.includes('tab=') },
+      { href: '/dash/webs?tab=paginas', label: 'Páginas', icon: <Globe size={18} weight="fill" /> },
+      { href: '/dash/webs?tab=utm', label: 'Enlaces UTM', icon: <Globe size={18} weight="regular" /> },
     ],
   },
   {

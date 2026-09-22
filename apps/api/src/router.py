@@ -7,7 +7,7 @@ from src.routers import health
 from src.routers import instance
 from src.routers import plans
 from src.routers import usergroups
-from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos
+from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs
 from src.routers import notifications as notifications_router_module
 from src.routers import stream
 from src.routers import api_tokens
@@ -388,6 +388,14 @@ v1_router.include_router(
     recursos.router,
     prefix="/recursos",
     tags=["recursos"],
+)
+
+# Webs: enlaces cortos y redirecciones de holandesnawar.com, editables desde
+# el panel. `/resolver` es público (lo llama la web). Ver `src/routers/webs.py`.
+v1_router.include_router(
+    webs.router,
+    prefix="/webs",
+    tags=["webs"],
 )
 
 # Automatizaciones: lo que la escuela hace sola y lo que añade el admin.
