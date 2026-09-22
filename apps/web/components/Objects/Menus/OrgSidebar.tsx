@@ -32,6 +32,7 @@ import {
   VideoCamera,
   NotePencil,
   ChartLineUp,
+  FolderSimple,
   ChatCircleDots,
   Envelope,
   List,
@@ -177,6 +178,8 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     { key: 'playgrounds', href: '/playgrounds', label: 'Playgrounds', icon: <Cube size={20} weight="fill" />, show: false },
     { key: 'store', href: '/store', label: 'Store', icon: <ShoppingBag size={20} weight="fill" />, show: isEnabled('payments') },
     { key: 'consultas', href: '/consultas', label: 'Consultas', icon: <Question size={20} weight="fill" />, show: true },
+    // Lo que el equipo comparte: apuntes, audios, carpetas de Drive, enlaces.
+    { key: 'recursos', href: '/recursos', label: 'Recursos', icon: <FolderSimple size={20} weight="fill" />, show: isAuthenticated },
     // Para el equipo: redactar la respuesta, que el tablón de arriba solo la
     // enseña. Vive fuera del panel a propósito, porque el profe no entra ahí.
     { key: 'responder-consultas', href: '/responder-consultas', label: 'Responder consultas', icon: <Question size={20} weight="bold" />, show: isStaff },

@@ -23,6 +23,7 @@ import {
   ChatCircleDots,
   Headphones,
   ChartBar,
+  FolderSimple,
   Lightning,
   DotsThree,
   UsersThree,
@@ -487,6 +488,13 @@ function DashLeftMenu() {
               label="Automatizaciones"
               isCollapsed={isCollapsed}
               active={isActivePath('/dash/workflows')}
+            />
+            <MenuLink
+              href="/dash/recursos"
+              icon={<FolderSimple size={20} weight="fill" />}
+              label="Recursos"
+              isCollapsed={isCollapsed}
+              active={isActivePath('/dash/recursos')}
             />
             </>
             )}
