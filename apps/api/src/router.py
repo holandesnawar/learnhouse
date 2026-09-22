@@ -7,7 +7,7 @@ from src.routers import health
 from src.routers import instance
 from src.routers import plans
 from src.routers import usergroups
-from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup
+from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos
 from src.routers import notifications as notifications_router_module
 from src.routers import stream
 from src.routers import api_tokens
@@ -369,6 +369,17 @@ v1_router.include_router(
     prefix="/stats",
     tags=["stats"],
     dependencies=[Depends(get_non_api_token_user)],
+)
+
+# Contactos: la ficha de cada persona (guías, solicitudes, matrículas, pagos)
+# y el aviso que manda la web cuando alguien descarga una guía. Sin
+# dependencia de sesión al montarlo: `/evento` es público (con candado
+# opcional) y las lecturas piden administrador dentro. Ver
+# `src/routers/contactos.py`.
+v1_router.include_router(
+    contactos.router,
+    prefix="/contactos",
+    tags=["contactos"],
 )
 
 # Automatizaciones: lo que la escuela hace sola y lo que añade el admin.

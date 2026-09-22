@@ -367,6 +367,18 @@ async def _mark_enrollment_paid(
 _VENTANA_MISMO_INTENTO = timedelta(hours=24)
 
 
+def _guardar_procedencia(row: Enrollment, data) -> None:
+    """De qué anuncio viene y por dónde pasó. Solo se escribe lo que venga con
+    algo: un reintento sin contexto no borra lo que ya se sabía."""
+    for campo in ("utm_source", "utm_medium", "utm_campaign", "referrer"):
+        valor = (getattr(data, campo, "") or "").strip()
+        if valor:
+            setattr(row, campo, valor[:120])
+    pasos = ",".join(x for x in (getattr(data, "recorrido", None) or []) if x)[:400]
+    if pasos:
+        row.recorrido = pasos
+
+
 async def _matricula_sin_pagar_reciente(email: str, db_session: AsyncSession):
     """La matrícula sin pagar que este email dejó abierta hace poco, si la hay.
 
@@ -533,6 +545,7 @@ async def enroll_and_checkout_session(data, db_session: AsyncSession) -> dict:
             created_at=now,
             updated_at=now,
         )
+    _guardar_procedencia(row, data)
     db_session.add(row)
     await db_session.commit()
     await db_session.refresh(row)
@@ -700,6 +713,7 @@ async def enroll_and_payment_intent(data, db_session: AsyncSession) -> dict:
             created_at=now,
             updated_at=now,
         )
+    _guardar_procedencia(row, data)
     db_session.add(row)
     await db_session.commit()
     await db_session.refresh(row)
