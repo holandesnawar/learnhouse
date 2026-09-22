@@ -29,6 +29,10 @@ class ResourceFolder(SQLModel, table=True):
     # Para ordenarlas a mano. Menor = más arriba. Empate → más antigua primero.
     position: int = 0
     created_at: str = ""
+    # Solo para el equipo: el alumno no la ve. Para las facturas del negocio,
+    # contratos, lo que sea del administrador. Columna añadida después de crear
+    # la tabla → en _ADDED_COLUMNS.
+    private: bool = False
 
 
 class ResourceItem(SQLModel, table=True):
@@ -53,6 +57,7 @@ class ResourceItem(SQLModel, table=True):
 class FolderWrite(BaseModel):
     name: str
     description: str = ""
+    private: bool = False
 
 
 class LinkWrite(BaseModel):

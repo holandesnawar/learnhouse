@@ -1,6 +1,8 @@
 'use client'
-import DashboardHome from '@components/Dashboard/Home/DashboardHome'
+import NawarHome from '@components/Dashboard/Home/NawarHome'
 
+/** La portada del panel de la escuela. La de LearnHouse (DashboardHome) sigue
+ *  en el repo por si hace falta volver. */
 export default function DashboardPage() {
-  return <DashboardHome />
+  return <NawarHome />
 }

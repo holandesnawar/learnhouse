@@ -377,6 +377,8 @@ _ADDED_COLUMNS = [
     "ALTER TABLE IF EXISTS enrollment ADD COLUMN IF NOT EXISTS utm_campaign VARCHAR DEFAULT ''",
     "ALTER TABLE IF EXISTS enrollment ADD COLUMN IF NOT EXISTS recorrido VARCHAR DEFAULT ''",
     "ALTER TABLE IF EXISTS enrollment ADD COLUMN IF NOT EXISTS referrer VARCHAR DEFAULT ''",
+    # Carpetas de recursos solo para el equipo (facturas del negocio, etc.).
+    "ALTER TABLE IF EXISTS resource_folder ADD COLUMN IF NOT EXISTS private BOOLEAN DEFAULT FALSE",
 ]
 
 

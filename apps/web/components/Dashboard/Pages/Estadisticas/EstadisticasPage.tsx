@@ -165,6 +165,18 @@ export default function EstadisticasPage() {
   useEffect(() => {
     if (isCloser) setTab('contactos')
   }, [isCloser])
+  // La barra del panel enlaza directo a una pestaña (?tab=contactos). Se lee
+  // de window y no con useSearchParams: ese hook obliga a envolver la página
+  // en Suspense o el build de Next se cae, y aquí no aporta nada más.
+  useEffect(() => {
+    const leer = () => {
+      const pedida = new URLSearchParams(window.location.search).get('tab')
+      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'facturas' || pedida === 'utm') setTab(pedida)
+    }
+    leer()
+    window.addEventListener('popstate', leer)
+    return () => window.removeEventListener('popstate', leer)
+  }, [])
   const [period, setPeriod] = useState<'month' | 'quarter'>('month')
   const [stats, setStats] = useState<SchoolStats | null>(null)
   const [loaded, setLoaded] = useState(false)
