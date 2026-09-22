@@ -19,7 +19,7 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { euros, getSchoolStats, type SchoolStats } from '@services/stats/school'
 import { getContactos, type Contacto } from '@services/stats/contactos'
-import { AddressBook, ArrowRight, BookOpen, ChartBar, EnvelopeSimple, FolderSimple, Question, Receipt, UsersThree } from '@phosphor-icons/react'
+import { AddressBook, ArrowRight, BookOpen, ChartBar, EnvelopeSimple, FolderSimple, Globe, Question, Receipt, UsersThree } from '@phosphor-icons/react'
 
 const CARD = 'rounded-2xl border border-[#E6EBF5] bg-white p-4 sm:p-5'
 
@@ -64,6 +64,7 @@ export default function NawarHome() {
     { href: '/dash/avisos', label: 'Avisos y correos', que: 'Escribir a los alumnos', icon: <EnvelopeSimple size={20} weight="fill" /> },
     { href: '/dash/courses', label: 'Cursos', que: 'La formación y la clase semanal', icon: <BookOpen size={20} weight="fill" /> },
     { href: '/dash/recursos', label: 'Recursos y documentos', que: 'Archivos y enlaces, tuyos y de los alumnos', icon: <FolderSimple size={20} weight="fill" /> },
+    { href: '/dash/webs', label: 'Webs', que: 'Enlaces, redirecciones, páginas y UTM', icon: <Globe size={20} weight="fill" /> },
     { href: '/dash/users/settings/usergroups', label: 'Equipo y grupos', que: 'Profes, closers, alumnos', icon: <UsersThree size={20} weight="fill" /> },
   ].filter((a) => !isCloser || a.label === 'Contactos' || a.label === 'Estadísticas')
 
