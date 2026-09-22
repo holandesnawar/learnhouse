@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import FacturasPanel from './FacturasPanel'
 import ContactosPanel from './ContactosPanel'
+import LlamadasPanel from './LlamadasPanel'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { updateOrgAccesoCloser } from '@services/settings/org'
 import { getAPIUrl } from '@services/config/config'
@@ -160,7 +161,7 @@ export default function EstadisticasPage() {
       .catch(() => setCloserVeNumeros(false))
   }, [org?.id])
 
-  const [tab, setTab] = useState<'numeros' | 'contactos' | 'facturas' | 'utm'>('numeros')
+  const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'utm'>('numeros')
   // El closer arranca en Contactos, que es lo suyo.
   useEffect(() => {
     if (isCloser) setTab('contactos')
@@ -171,7 +172,7 @@ export default function EstadisticasPage() {
   useEffect(() => {
     const leer = () => {
       const pedida = new URLSearchParams(window.location.search).get('tab')
-      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'facturas' || pedida === 'utm') setTab(pedida)
+      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'llamadas' || pedida === 'facturas' || pedida === 'utm') setTab(pedida)
     }
     leer()
     window.addEventListener('popstate', leer)
@@ -231,10 +232,11 @@ export default function EstadisticasPage() {
         {[
           { id: 'numeros' as const, label: 'Números' },
           { id: 'contactos' as const, label: 'Contactos' },
+          { id: 'llamadas' as const, label: 'Llamadas' },
           { id: 'facturas' as const, label: 'Facturas' },
         ]
           // El closer: Contactos siempre, Números solo si se lo han abierto.
-          .filter((t) => !isCloser || t.id === 'contactos' || (t.id === 'numeros' && closerVeNumeros === true))
+          .filter((t) => !isCloser || t.id === 'contactos' || t.id === 'llamadas' || (t.id === 'numeros' && closerVeNumeros === true))
           .map((t) => (
           <button
             key={t.id}
@@ -262,6 +264,8 @@ export default function EstadisticasPage() {
           ) : null}
           <ContactosPanel />
         </>
+      ) : tab === 'llamadas' ? (
+        <LlamadasPanel />
       ) : tab === 'facturas' ? (
         <FacturasPanel />
       ) : !loaded ? (

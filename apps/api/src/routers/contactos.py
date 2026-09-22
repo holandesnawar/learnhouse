@@ -28,6 +28,7 @@ from src.services.contactos.contactos import (
     listar_contactos,
     registrar_evento,
 )
+from src.services.contactos.llamadas import listar_llamadas
 from src.services.orgs.acceso import exigir_acceso
 
 logger = logging.getLogger(__name__)
@@ -73,6 +74,20 @@ async def api_contactos(
     # Administradores y el closer (CONTACTOS_ROLE_IDS). El profe no: no vende.
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
     return await listar_contactos(q, min(max(limit, 1), 2000), db_session)
+
+
+@router.get(
+    "/org/{org_id}/llamadas",
+    summary="Quién ha pedido una llamada (la cualificación de /agendar), con sus respuestas.",
+)
+async def api_llamadas(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    return {"llamadas": await listar_llamadas(db_session)}
 
 
 @router.get(

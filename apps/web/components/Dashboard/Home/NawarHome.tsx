@@ -19,7 +19,7 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { euros, getSchoolStats, type SchoolStats } from '@services/stats/school'
 import { getContactos, type Contacto } from '@services/stats/contactos'
-import { AddressBook, ArrowRight, BookOpen, ChartBar, EnvelopeSimple, FolderSimple, Globe, Question, Receipt, UsersThree } from '@phosphor-icons/react'
+import { AddressBook, ArrowRight, BookOpen, ChartBar, EnvelopeSimple, FolderSimple, Globe, PhoneCall, Question, Receipt, UsersThree } from '@phosphor-icons/react'
 
 const CARD = 'rounded-2xl border border-[#E6EBF5] bg-white p-4 sm:p-5'
 
@@ -58,6 +58,7 @@ export default function NawarHome() {
 
   const accesos = [
     { href: '/dash/estadisticas?tab=contactos', label: 'Contactos', que: 'Quién es cada lead y qué ha visto', icon: <AddressBook size={20} weight="fill" /> },
+    { href: '/dash/estadisticas?tab=llamadas', label: 'Llamadas', que: 'Quién pidió llamada y qué contestó', icon: <PhoneCall size={20} weight="fill" /> },
     { href: '/dash/estadisticas', label: 'Estadísticas', que: 'Ventas, embudo, alumnos', icon: <ChartBar size={20} weight="fill" /> },
     { href: '/dash/estadisticas?tab=facturas', label: 'Facturas', que: 'Cobros y facturas de Stripe', icon: <Receipt size={20} weight="fill" /> },
     { href: '/dash/consultas', label: 'Consultas', que: 'Dudas de los alumnos', icon: <Question size={20} weight="fill" /> },

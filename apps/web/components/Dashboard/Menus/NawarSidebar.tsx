@@ -46,6 +46,7 @@ import {
   AddressBook,
   Globe,
   LinkSimple,
+  PhoneCall,
 } from '@phosphor-icons/react'
 
 type Item = { href: string; label: string; icon: React.ReactNode; match?: (p: string) => boolean }
@@ -57,6 +58,7 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
     items: [
       { href: '/dash/estadisticas', label: 'Estadísticas', icon: <ChartBar size={18} weight="fill" />, match: (p) => p.includes('/dash/estadisticas') && !p.includes('tab=') },
       { href: '/dash/estadisticas?tab=contactos', label: 'Contactos', icon: <AddressBook size={18} weight="fill" /> },
+      { href: '/dash/estadisticas?tab=llamadas', label: 'Llamadas', icon: <PhoneCall size={18} weight="fill" /> },
       { href: '/dash/estadisticas?tab=facturas', label: 'Facturas', icon: <Receipt size={18} weight="fill" /> },
     ],
   },

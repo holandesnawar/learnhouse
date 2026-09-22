@@ -35,6 +35,7 @@ from src.db.contact_event import ContactEvent, ContactEventCreate
 from src.db.enrollment import Enrollment
 from src.db.enrollment_request import EnrollmentRequest
 from src.db.users import User
+from src.services.contactos.llamadas import avisar_equipo_llamada, extra_serializado
 from src.services.crm.systeme import SYSTEME_BASE, _headers
 from src.services.payments.solicitudes import resumen_del_lead
 
@@ -94,12 +95,21 @@ async def registrar_evento(data: ContactEventCreate, db_session: AsyncSession) -
         utm_source=(data.utm_source or "").strip()[:120],
         utm_medium=(data.utm_medium or "").strip()[:120],
         utm_campaign=(data.utm_campaign or "").strip()[:120],
-        extra=json.dumps(data.extra or {}, ensure_ascii=False)[:2000],
+        extra=extra_serializado(data.extra or {}),
         created_at=_ahora(),
     )
     db_session.add(fila)
     await db_session.commit()
     await db_session.refresh(fila)
+
+    # Una llamada pedida es lo que más vale de todo lo que entra por aquí:
+    # se avisa al equipo al momento. Va después del commit y en blando: el
+    # dato ya está a salvo pase lo que pase con el correo.
+    if fila.kind == "cualificacion":
+        try:
+            await avisar_equipo_llamada(fila, db_session)
+        except Exception:  # noqa: BLE001
+            logger.exception("No se pudo avisar de la llamada de %s", fila.email)
     return fila
 
 
