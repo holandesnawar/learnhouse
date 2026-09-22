@@ -187,6 +187,15 @@ export const MAPA_WEB: PaginaWeb[] = [
     etiquetas: ['Matrícula'],
   },
   {
+    ruta: '/agendar',
+    nombre: 'Agendar llamada (con cualificación)',
+    etapa: 'matricular',
+    que: 'Datos + seis preguntas (nivel, situación, motivo, cuándo, horas, inversión). Solo a quien encaja se le ofrece agendar; al resto, la guía gratis. Sale en Matrículas nuevas y en la ficha con sus respuestas.',
+    boton: 'Elegir día y hora → tu agenda (PUBLIC_AGENDA_URL) o WhatsApp',
+    precio: true,
+    etiquetas: ['Llamada'],
+  },
+  {
     ruta: '/matricula-formacion-nawar-a0-a1',
     nombre: '(ruta vieja)',
     etapa: 'matricular',

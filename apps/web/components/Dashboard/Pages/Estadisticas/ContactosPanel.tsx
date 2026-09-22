@@ -260,6 +260,22 @@ function Ficha({ email, onClose }: { email: string; onClose: () => void }) {
                           ? ` · ${(Number(e.extra.importe_cents) / 100).toLocaleString('es-ES', { style: 'currency', currency: String(e.extra.currency || 'eur').toUpperCase() })}`
                           : ''}
                       </p>
+                      {/* La cualificación de /agendar: las respuestas, una a una,
+                          y la nota. Es lo que hay que leer antes de la llamada. */}
+                      {e.kind === 'cualificacion' && Array.isArray(e.extra?.respuestas) ? (
+                        <div className="mt-1.5 rounded-lg bg-[#F7FAFF] border border-[#E7EEF9] px-3 py-2">
+                          <p className="text-[12px] font-semibold text-[#1D0084] mb-1">
+                            {e.extra?.apto ? 'Encaja' : 'No encaja por ahora'} · {String(e.extra?.puntuacion ?? '')} puntos
+                          </p>
+                          <ul className="space-y-0.5">
+                            {(e.extra.respuestas as any[]).map((r, j) => (
+                              <li key={j} className="text-[12px] text-gray-700">
+                                <span className="text-gray-500">{r.pregunta}</span> — <strong>{r.respuesta}</strong>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
                     </div>
                   </li>
                 ))}

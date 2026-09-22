@@ -84,6 +84,7 @@ async def crear_solicitud(
 #: Cómo se llama en cristiano cada página por la que pudo pasar.
 _NOMBRES = {
     "home": "el inicio de la web",
+    "agendar": "la página de agendar llamada",
     "landing": "la página de la formación (sin precio)",
     "landing-precio": "la página de la formación CON el precio",
     "guia-bases": "la guía de las bases",
