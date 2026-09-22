@@ -21,7 +21,6 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.core.events.database import get_db_session
 from src.db.contact_event import ContactEventCreate
-from src.db.organizations import Organization
 from src.db.users import AnonymousUser, PublicUser
 from src.security.auth import get_current_user
 from src.services.contactos.contactos import (
@@ -29,7 +28,7 @@ from src.services.contactos.contactos import (
     listar_contactos,
     registrar_evento,
 )
-from src.services.orgs.orgs import rbac_check
+from src.services.orgs.acceso import exigir_acceso
 
 logger = logging.getLogger(__name__)
 
@@ -59,22 +58,6 @@ async def api_evento(
     return {"ok": True, "id": fila.id}
 
 
-async def _admin_org(
-    request: Request,
-    org_id: int,
-    current_user: PublicUser | AnonymousUser,
-    db_session: AsyncSession,
-) -> Organization:
-    org = (
-        await db_session.execute(select(Organization).where(Organization.id == org_id))
-    ).scalars().first()
-    if not org:
-        raise HTTPException(status_code=404, detail="Organization not found")
-    # Datos personales de leads: mismo permiso que las estadísticas.
-    await rbac_check(request, org.org_uuid, current_user, "update", db_session)
-    return org
-
-
 @router.get(
     "/org/{org_id}",
     summary="Todos los contactos, una ficha por persona, el más reciente primero.",
@@ -87,7 +70,8 @@ async def api_contactos(
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ):
-    await _admin_org(request, org_id, current_user, db_session)
+    # Administradores y el closer (CONTACTOS_ROLE_IDS). El profe no: no vende.
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
     return await listar_contactos(q, min(max(limit, 1), 2000), db_session)
 
 
@@ -102,7 +86,7 @@ async def api_contacto(
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ):
-    await _admin_org(request, org_id, current_user, db_session)
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
     ficha = await detalle_contacto(email, db_session)
     if ficha is None:
         raise HTTPException(status_code=404, detail="No hay nada de ese correo")

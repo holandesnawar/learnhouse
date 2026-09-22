@@ -19,6 +19,11 @@ STUDENT_ROLE_ID = 4
 # ser administrador. Se pone y se quita metiendo a la persona en el grupo
 # "Profes" — ver `src/services/orgs/groups.py`.
 PROFE_ROLE_ID = 5
+# Holandés Nawar: el closer. Vende: llama a quien pidió plaza o dejó el pago a
+# medias. Ve Contactos (y, si el administrador lo decide, los Números) y NADA
+# más del panel: ni alumnos, ni cursos, ni cobros, ni ajustes. Se pone y se
+# quita metiendo a la persona en el grupo "Closers".
+CLOSER_ROLE_ID = 6
 
 # Role ID sets for common checks
 ADMIN_ROLE_IDS = frozenset([ADMIN_ROLE_ID])
@@ -26,6 +31,9 @@ ADMIN_OR_MAINTAINER_ROLE_IDS = frozenset([ADMIN_ROLE_ID, MAINTAINER_ROLE_ID])
 # Quién atiende a los alumnos: administradores, moderadores y profes. Es lo que
 # decide quién ve la bandeja de mensajes del equipo y el directorio de alumnos.
 STAFF_ROLE_IDS = frozenset([ADMIN_ROLE_ID, MAINTAINER_ROLE_ID, PROFE_ROLE_ID])
+# Quién puede ver los contactos y las solicitudes de plaza: los que dirigen y
+# el closer. El profe no: no vende.
+CONTACTOS_ROLE_IDS = frozenset([ADMIN_ROLE_ID, MAINTAINER_ROLE_ID, CLOSER_ROLE_ID])
 
 
 def is_admin(role_id: int) -> bool:

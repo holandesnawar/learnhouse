@@ -158,7 +158,7 @@ function DashLeftMenu() {
 
   const plan = usePlan()
   const mode = getDeploymentMode()
-  const { isProfe } = useAdminStatus()
+  const { isProfe, isCloser } = useAdminStatus()
 
   if (!org || !session) return null
   const planLabel =
@@ -179,6 +179,65 @@ function DashLeftMenu() {
   const showBoards = isEnabled('boards') && forProfe
   const showPlaygrounds = isEnabled('playgrounds') && forProfe
   const showPayments = isEnabled('payments') && forProfe
+
+  // El closer ve una barra con UNA sola cosa: Estadísticas. No es esconder
+  // enlaces de la barra normal (que es como se cuelan secciones nuevas): es
+  // otra barra, y lo que no está aquí no existe para él.
+  if (isCloser) {
+    return (
+      <nav
+        aria-label="Panel del closer"
+        className={cn(
+          "flex flex-col text-white h-screen sticky top-0 z-overlay border-r border-white/[0.08] bg-[#0f0f10] transition-all duration-300",
+          isCollapsed ? "w-[72px]" : "w-64"
+        )}
+      >
+        <div className={cn("flex items-center h-16 border-b border-white/[0.08] px-4 shrink-0", isCollapsed ? "justify-center" : "justify-between")}>
+          <Link className={cn("flex items-center transition-opacity hover:opacity-70", isCollapsed ? "" : "space-x-3")} href={'/'}>
+            <img src="/lrn-dash.svg" alt="Nawar" className="h-8 w-8" />
+            {!isCollapsed && (
+              <div className="flex flex-col min-w-0">
+                <span className="font-semibold text-sm text-white truncate">{org?.name}</span>
+                <span className="text-[9px] font-medium uppercase tracking-wider text-white/40">Closer</span>
+              </div>
+            )}
+          </Link>
+          {!isCollapsed && (
+            <button aria-label="Collapse sidebar" onClick={toggleCollapse} className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/[0.08] transition-all">
+              <SidebarSimple size={18} weight="fill" />
+            </button>
+          )}
+        </div>
+        <div className="flex-1 flex flex-col justify-center py-4 px-3">
+          <div className="space-y-1">
+            <MenuLink
+              href="/dash/estadisticas"
+              icon={<ChartBar size={20} weight="fill" />}
+              label="Contactos y ventas"
+              isCollapsed={isCollapsed}
+              active={isActivePath('/dash/estadisticas')}
+            />
+            <MenuLink
+              href="/"
+              icon={<House size={20} weight="fill" />}
+              label="Volver a la escuela"
+              isCollapsed={isCollapsed}
+              active={false}
+            />
+          </div>
+        </div>
+        <div className="border-t border-white/[0.08] p-3">
+          <button
+            onClick={() => logOutUI()}
+            className={cn("flex items-center w-full rounded-lg text-white/50 hover:text-white hover:bg-white/[0.08] transition-all", isCollapsed ? "justify-center h-10" : "px-3 py-2 gap-3")}
+          >
+            <SignOut size={20} weight="fill" />
+            {!isCollapsed && <span className="text-sm font-medium">{t('user.sign_out')}</span>}
+          </button>
+        </div>
+      </nav>
+    )
+  }
 
   return (
     <TooltipProvider delayDuration={0}>

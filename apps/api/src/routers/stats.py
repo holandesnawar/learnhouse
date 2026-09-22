@@ -12,6 +12,7 @@ from src.db.organizations import Organization
 from src.db.school_stats import ManualEntryWrite
 from src.db.users import AnonymousUser, PublicUser
 from src.security.auth import get_current_user
+from src.services.orgs.acceso import exigir_acceso
 from src.services.orgs.orgs import rbac_check
 from src.services.payments.solicitudes import marcar_contactada
 from src.services.stats.school import (
@@ -60,7 +61,9 @@ async def api_school_stats(
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ):
-    await _admin_org(request, org_id, current_user, db_session)
+    # Administradores siempre; el closer solo si el administrador le abrió
+    # los Números (Panel → Estadísticas → Contactos → "Qué ve el closer").
+    await exigir_acceso(request, org_id, current_user, "numeros", db_session)
     return await school_stats(org_id, db_session)
 
 
@@ -112,7 +115,9 @@ async def api_marcar_solicitud(
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ):
-    await _admin_org(request, org_id, current_user, db_session)
+    # Marcar "ya le he escrito" es trabajo del closer: pasa con la puerta de
+    # contactos, no con la de administrador.
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
     resultado = await marcar_contactada(request_id, bool(data.contacted), db_session)
     if resultado is None:
         raise HTTPException(status_code=404, detail="No existe esa solicitud")

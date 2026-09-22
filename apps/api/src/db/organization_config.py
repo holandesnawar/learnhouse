@@ -83,6 +83,17 @@ class AccesoProfesConfig(BaseModel):
     ven_todo: bool = False
 
 
+class AccesoCloserConfig(BaseModel):
+    """Qué ve el closer en el panel, además de Contactos (que ve siempre).
+
+    `numeros`: la pestaña Números de Estadísticas (ventas, embudo, alumnos).
+    Por defecto no: el dinero de la escuela no es cosa del que vende a comisión
+    salvo que el administrador lo decida.
+    """
+
+    numeros: bool = False
+
+
 class DirectWelcomeConfig(BaseModel):
     # Mensaje automático que recibe el alumno en su conversación con el equipo.
     message: str = ""

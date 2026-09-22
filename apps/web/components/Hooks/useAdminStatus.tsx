@@ -97,6 +97,12 @@ interface UseAdminStatusReturn {
      * primero. Espejo de `STAFF_ROLE_IDS` en `src/security/rbac/constants.py`.
      */
     isStaff: boolean;
+    /**
+     * El closer: vende. Entra al panel pero solo a Estadísticas → Contactos
+     * (y a Números si el administrador se lo abre). Espejo de CLOSER_ROLE_ID
+     * en `src/security/rbac/constants.py`.
+     */
+    isCloser: boolean;
 }
 
 function extractRightsFromRoles(userRoles: Role[], orgId: number): Rights | null {
@@ -181,6 +187,8 @@ function extractRightsFromRoles(userRoles: Role[], orgId: number): Rights | null
 
 /** El rol "Profe" de la escuela (ver `src/security/rbac/constants.py`). */
 export const PROFE_ROLE_ID = 5;
+/** El rol "Closer" (ver `src/security/rbac/constants.py`). */
+export const CLOSER_ROLE_ID = 6;
 /** Administrador (1) · Moderador (2) · Profe (5): los que atienden alumnos. */
 const STAFF_ROLE_IDS = [1, 2, PROFE_ROLE_ID];
 
@@ -229,6 +237,12 @@ function useAdminStatus(): UseAdminStatusReturn {
         [isSuperadmin, roleId]
     );
 
+    // Un superadministrador nunca es closer, aunque le metan en el grupo.
+    const isCloser = useMemo(
+        () => !isSuperadmin && roleId === CLOSER_ROLE_ID,
+        [isSuperadmin, roleId]
+    );
+
     const isStaff = useMemo(
         () => isAuthenticated && !!orgId && (isSuperadmin || (roleId !== null && STAFF_ROLE_IDS.includes(roleId))),
         [isAuthenticated, orgId, isSuperadmin, roleId]
@@ -246,14 +260,16 @@ function useAdminStatus(): UseAdminStatusReturn {
     // Se corta aquí y no en el rol porque el rol ya existe creado en producción
     // y `setup.py` solo siembra los que faltan: cambiarlo allí no habría tenido
     // ningún efecto sobre la escuela que ya está en marcha.
+    // El closer tampoco dirige: entra al panel por su propia puerta
+    // (AdminAuthorization le deja solo en Estadísticas), no por esta.
     const isAdmin = useMemo(
-        () => (isAuthenticated && orgId ? isSuperadmin || (rights?.dashboard?.action_access === true && !isProfe) : false),
-        [isAuthenticated, orgId, isSuperadmin, rights, isProfe]
+        () => (isAuthenticated && orgId ? isSuperadmin || (rights?.dashboard?.action_access === true && !isProfe && !isCloser) : false),
+        [isAuthenticated, orgId, isSuperadmin, rights, isProfe, isCloser]
     );
 
     const loading = !isAuthenticated && session.status !== 'unauthenticated';
 
-    return { isAdmin, loading, userRoles, rights, roleId, isProfe, isStaff };
+    return { isAdmin, loading, userRoles, rights, roleId, isProfe, isStaff, isCloser };
 }
 
 export default useAdminStatus;

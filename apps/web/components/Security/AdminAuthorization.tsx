@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useLHSession } from '@components/Contexts/LHSessionContext';
 import useAdminStatus from '@components/Hooks/useAdminStatus';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import PageLoading from '@components/Objects/Loaders/PageLoading';
 import { getUriWithOrg } from '@services/config/config';
 import { useOrg } from '@components/Contexts/OrgContext';
@@ -28,7 +28,13 @@ const AdminAuthorization: React.FC<AuthorizationProps> = ({ children, authorizat
   const session = useLHSession() as any;
   const org = useOrg() as any;
   const router = useRouter();
-  const { isAdmin, loading } = useAdminStatus() as any
+  const { isAdmin, isCloser, loading } = useAdminStatus() as any
+  const pathname = usePathname() || ''
+  // El closer entra al panel, pero SOLO a Estadísticas (Contactos y, si se
+  // le abre, Números). Cualquier otra ruta del panel le manda allí. Es la
+  // misma idea que "el panel se protege entero": la lista de lo que el
+  // closer puede ver es de UNA ruta, y todo lo demás nace cerrado para él.
+  const rutaDelCloser = pathname.includes('/dash/estadisticas')
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   const isUserAuthenticated = useMemo(() => session.status === 'authenticated', [session.status]);
@@ -44,8 +50,11 @@ const AdminAuthorization: React.FC<AuthorizationProps> = ({ children, authorizat
     }
 
     if (authorizationMode === 'page') {
-      if (isAdmin) {
+      if (isAdmin || (isCloser && rutaDelCloser)) {
         setIsAuthorized(true);
+      } else if (isCloser) {
+        setIsAuthorized(false);
+        router.push(getUriWithOrg(org?.slug, '/dash/estadisticas'));
       } else {
         // A la escuela, no a /dash: quien no puede entrar al panel tampoco
         // puede entrar a su portada, y mandarle ahí sería un bucle.
@@ -53,9 +62,10 @@ const AdminAuthorization: React.FC<AuthorizationProps> = ({ children, authorizat
         router.push(getUriWithOrg(org?.slug, '/'));
       }
     } else if (authorizationMode === 'component') {
-      setIsAuthorized(isAdmin);
+      // Los menús del panel: el closer los ve (recortados a lo suyo).
+      setIsAuthorized(isAdmin || isCloser);
     }
-  }, [loading, isUserAuthenticated, isAdmin, authorizationMode, router, org?.slug]);
+  }, [loading, isUserAuthenticated, isAdmin, isCloser, rutaDelCloser, authorizationMode, router, org?.slug]);
 
   useEffect(() => {
     authorizeUser();

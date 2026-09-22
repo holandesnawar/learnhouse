@@ -181,6 +181,18 @@ export async function updateOrgAccesoProfes(
   return await errorHandling(result)
 }
 
+export async function updateOrgAccesoCloser(
+  org_id: number,
+  numeros: boolean,
+  access_token: string
+) {
+  const result: any = await fetch(
+    `${getAPIUrl()}orgs/${org_id}/config/acceso_closer`,
+    RequestBodyWithAuthHeader('PUT', { numeros }, null, access_token)
+  )
+  return await errorHandling(result)
+}
+
 export async function updateOrgFontConfig(
   org_id: string,
   font: string,

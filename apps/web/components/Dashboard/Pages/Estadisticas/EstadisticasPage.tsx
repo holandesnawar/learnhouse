@@ -4,6 +4,9 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import FacturasPanel from './FacturasPanel'
 import ContactosPanel from './ContactosPanel'
+import useAdminStatus from '@components/Hooks/useAdminStatus'
+import { updateOrgAccesoCloser } from '@services/settings/org'
+import { getAPIUrl } from '@services/config/config'
 import { useOrg } from '@components/Contexts/OrgContext'
 import {
   baseSinUtm,
@@ -144,7 +147,24 @@ export default function EstadisticasPage() {
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
 
+  const { isCloser, isAdmin } = useAdminStatus()
+  // Qué ve el closer además de Contactos. Lo decide el administrador desde
+  // esta misma pantalla; el closer lo lee para saber qué pestañas enseñar.
+  // El servidor lo exige igual: esto solo evita enseñar una pestaña que daría 403.
+  const [closerVeNumeros, setCloserVeNumeros] = useState<boolean | null>(null)
+  useEffect(() => {
+    if (!org?.id) return
+    fetch(`${getAPIUrl()}orgs/${org.id}/config/acceso_closer`)
+      .then((r) => r.json())
+      .then((d) => setCloserVeNumeros(!!d?.numeros))
+      .catch(() => setCloserVeNumeros(false))
+  }, [org?.id])
+
   const [tab, setTab] = useState<'numeros' | 'contactos' | 'facturas' | 'utm'>('numeros')
+  // El closer arranca en Contactos, que es lo suyo.
+  useEffect(() => {
+    if (isCloser) setTab('contactos')
+  }, [isCloser])
   const [period, setPeriod] = useState<'month' | 'quarter'>('month')
   const [stats, setStats] = useState<SchoolStats | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -152,10 +172,15 @@ export default function EstadisticasPage() {
 
   const load = useCallback(async () => {
     if (!org?.id || !accessToken) return
+    // Al closer sin Números no se le piden: darían 403.
+    if (isCloser && closerVeNumeros !== true) {
+      setLoaded(true)
+      return
+    }
     const data = await getSchoolStats(org.id, accessToken)
     setStats(data)
     setLoaded(true)
-  }, [org?.id, accessToken])
+  }, [org?.id, accessToken, isCloser, closerVeNumeros])
 
   useEffect(() => {
     load()
@@ -196,7 +221,10 @@ export default function EstadisticasPage() {
           { id: 'contactos' as const, label: 'Contactos' },
           { id: 'facturas' as const, label: 'Facturas' },
           { id: 'utm' as const, label: 'Enlaces UTM' },
-        ].map((t) => (
+        ]
+          // El closer: Contactos siempre, Números solo si se lo han abierto.
+          .filter((t) => !isCloser || t.id === 'contactos' || (t.id === 'numeros' && closerVeNumeros === true))
+          .map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
@@ -214,7 +242,17 @@ export default function EstadisticasPage() {
       {tab === 'utm' ? (
         <UtmNotepad />
       ) : tab === 'contactos' ? (
-        <ContactosPanel />
+        <>
+          {isAdmin ? (
+            <QueVeElCloser
+              orgId={org?.id}
+              accessToken={accessToken}
+              numeros={closerVeNumeros}
+              onChange={setCloserVeNumeros}
+            />
+          ) : null}
+          <ContactosPanel />
+        </>
       ) : tab === 'facturas' ? (
         <FacturasPanel />
       ) : !loaded ? (
@@ -1553,6 +1591,63 @@ function UtmNotepad() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+
+/**
+ * Lo que ve el closer, decidido por el administrador. Contactos lo ve
+ * siempre (es su trabajo); los Números —ventas, embudo, alumnos— solo si se
+ * marca aquí. El servidor lo exige por su cuenta: esto no es la seguridad,
+ * es el interruptor.
+ *
+ * Quién es closer: quien está en el grupo "Closers" (Usuarios → Grupos).
+ */
+function QueVeElCloser({
+  orgId,
+  accessToken,
+  numeros,
+  onChange,
+}: {
+  orgId: number | undefined
+  accessToken: string
+  numeros: boolean | null
+  onChange: (v: boolean) => void
+}) {
+  const [guardando, setGuardando] = useState(false)
+  const cambiar = async () => {
+    if (!orgId || numeros === null) return
+    setGuardando(true)
+    try {
+      await updateOrgAccesoCloser(orgId, !numeros, accessToken)
+      onChange(!numeros)
+      toast.success(!numeros ? 'El closer ya ve también los Números.' : 'El closer ve solo Contactos.')
+    } catch {
+      toast.error('No se pudo guardar')
+    } finally {
+      setGuardando(false)
+    }
+  }
+  return (
+    <div className={`${CARD} flex flex-col sm:flex-row sm:items-center gap-3`}>
+      <div className="flex-1 min-w-0">
+        <p className="text-[13.5px] font-semibold text-gray-900">Qué ve el closer</p>
+        <p className="text-[12.5px] text-gray-500">
+          Quien está en el grupo <strong>Closers</strong> (Usuarios → Grupos) entra al panel y ve
+          solo esta pestaña de Contactos. Aquí decides si además ve los Números.
+        </p>
+      </div>
+      <button
+        onClick={cambiar}
+        disabled={guardando || numeros === null}
+        className={`shrink-0 inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-[13px] font-semibold transition-colors disabled:opacity-60 ${
+          numeros ? 'bg-[#1D0084] text-white' : 'bg-[#F0F5FF] text-[#1D0084] hover:bg-[#E4EDFF]'
+        }`}
+      >
+        {guardando ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} className={numeros ? '' : 'opacity-30'} />}
+        {numeros ? 'Ve también los Números' : 'Solo Contactos'}
+      </button>
     </div>
   )
 }

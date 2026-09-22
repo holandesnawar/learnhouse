@@ -57,7 +57,7 @@ function DashMobileMenu() {
   // Arriba del todo con los demas hooks, y NUNCA despues del `return null` de
   // abajo: un hook que a veces se llama y a veces no hace que React tire la
   // pantalla entera ("Rendered more hooks than during the previous render").
-  const { isProfe } = useAdminStatus()
+  const { isProfe, isCloser } = useAdminStatus()
 
   React.useEffect(() => { setMounted(true) }, [])
 
@@ -80,6 +80,28 @@ function DashMobileMenu() {
 
   async function logOutUI() {
     await signOut({ redirect: true, callbackUrl: getUriWithOrg(org.slug, '/login') })
+  }
+
+  // El closer: una pastilla con Estadísticas y salir. Nada más existe para él.
+  if (isCloser) {
+    return createPortal(
+      <nav
+        aria-label="Panel del closer"
+        className="fixed inset-x-0 mx-auto w-fit z-[9999]"
+        style={{ bottom: 'calc(env(safe-area-inset-bottom) + 1.5rem)' }}
+      >
+        <div className="flex items-center gap-0.5 px-1.5 py-1.5 bg-[#111113]/90 backdrop-blur-xl rounded-full" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}>
+          <PillLink href="/dash/estadisticas" icon={<ChartBar size={18} weight="fill" />} active={isActive('/dash/estadisticas')} />
+          <Link href="/" className="flex items-center justify-center px-2.5 py-2.5 rounded-full text-white/60 hover:text-white transition-all" aria-label="Volver a la escuela">
+            <House size={18} weight="fill" />
+          </Link>
+          <button onClick={() => logOutUI()} className="flex items-center justify-center px-2.5 py-2.5 rounded-full text-red-400 hover:text-red-300 transition-all" aria-label="Salir">
+            <SignOut size={18} weight="fill" />
+          </button>
+        </div>
+      </nav>,
+      document.body
+    )
   }
 
   const close = () => { setMenuOpen(false); setLangExpanded(false) }
