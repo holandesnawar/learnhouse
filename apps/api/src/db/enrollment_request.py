@@ -44,6 +44,10 @@ class EnrollmentRequest(SQLModel, table=True):
     # cuando no es nuestro propio dominio: dentro de la web el recorrido ya lo
     # cuenta mejor.
     referrer: str = Field(default="", max_length=120)
+    # De qué anuncio viene. Vacío = orgánico. En _ADDED_COLUMNS.
+    utm_source: str = Field(default="", max_length=120)
+    utm_medium: str = Field(default="", max_length=120)
+    utm_campaign: str = Field(default="", max_length=120)
     product: str = Field(default="formacion-a0-a1", index=True)
     created_at: str = Field(default="", index=True)
     # Cuándo se le escribió. Vacío = pendiente. Es lo que hace que la lista del
@@ -59,3 +63,6 @@ class EnrollmentRequestCreate(BaseModel):
     source: str = "web"
     recorrido: list[str] = []
     referrer: str = ""
+    utm_source: str = ""
+    utm_medium: str = ""
+    utm_campaign: str = ""

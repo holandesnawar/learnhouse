@@ -368,6 +368,15 @@ _ADDED_COLUMNS = [
     # Qué había visto el lead antes de dejar sus datos.
     "ALTER TABLE IF EXISTS enrollment_request ADD COLUMN IF NOT EXISTS recorrido VARCHAR DEFAULT ''",
     "ALTER TABLE IF EXISTS enrollment_request ADD COLUMN IF NOT EXISTS referrer VARCHAR DEFAULT ''",
+    # De qué anuncio viene cada solicitud y cada venta (Contactos, sept 2026).
+    "ALTER TABLE IF EXISTS enrollment_request ADD COLUMN IF NOT EXISTS utm_source VARCHAR DEFAULT ''",
+    "ALTER TABLE IF EXISTS enrollment_request ADD COLUMN IF NOT EXISTS utm_medium VARCHAR DEFAULT ''",
+    "ALTER TABLE IF EXISTS enrollment_request ADD COLUMN IF NOT EXISTS utm_campaign VARCHAR DEFAULT ''",
+    "ALTER TABLE IF EXISTS enrollment ADD COLUMN IF NOT EXISTS utm_source VARCHAR DEFAULT ''",
+    "ALTER TABLE IF EXISTS enrollment ADD COLUMN IF NOT EXISTS utm_medium VARCHAR DEFAULT ''",
+    "ALTER TABLE IF EXISTS enrollment ADD COLUMN IF NOT EXISTS utm_campaign VARCHAR DEFAULT ''",
+    "ALTER TABLE IF EXISTS enrollment ADD COLUMN IF NOT EXISTS recorrido VARCHAR DEFAULT ''",
+    "ALTER TABLE IF EXISTS enrollment ADD COLUMN IF NOT EXISTS referrer VARCHAR DEFAULT ''",
 ]
 
 

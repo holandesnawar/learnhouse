@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import FacturasPanel from './FacturasPanel'
+import ContactosPanel from './ContactosPanel'
 import { useOrg } from '@components/Contexts/OrgContext'
 import {
   baseSinUtm,
@@ -143,7 +144,7 @@ export default function EstadisticasPage() {
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
 
-  const [tab, setTab] = useState<'numeros' | 'facturas' | 'utm'>('numeros')
+  const [tab, setTab] = useState<'numeros' | 'contactos' | 'facturas' | 'utm'>('numeros')
   const [period, setPeriod] = useState<'month' | 'quarter'>('month')
   const [stats, setStats] = useState<SchoolStats | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -192,6 +193,7 @@ export default function EstadisticasPage() {
       <div className="flex gap-1 border-b border-[#DDE6F5]">
         {[
           { id: 'numeros' as const, label: 'Números' },
+          { id: 'contactos' as const, label: 'Contactos' },
           { id: 'facturas' as const, label: 'Facturas' },
           { id: 'utm' as const, label: 'Enlaces UTM' },
         ].map((t) => (
@@ -211,6 +213,8 @@ export default function EstadisticasPage() {
 
       {tab === 'utm' ? (
         <UtmNotepad />
+      ) : tab === 'contactos' ? (
+        <ContactosPanel />
       ) : tab === 'facturas' ? (
         <FacturasPanel />
       ) : !loaded ? (

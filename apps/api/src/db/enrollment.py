@@ -45,6 +45,14 @@ class Enrollment(SQLModel, table=True):
     # una guía gratis— que sí necesita su correo y su factura. Con la marca en
     # la matrícula, cada pago se atiende una vez y solo una.
     provisioned_at: str = Field(default="", index=True)
+    # De dónde vino esta venta: el anuncio (utm) y por qué páginas pasó antes
+    # de llegar al pago. Lo manda la web con el formulario. Vacío = orgánico o
+    # de antes de que se guardara. Van en _ADDED_COLUMNS.
+    utm_source: str = Field(default="", max_length=120)
+    utm_medium: str = Field(default="", max_length=120)
+    utm_campaign: str = Field(default="", max_length=120)
+    recorrido: str = Field(default="", max_length=400)
+    referrer: str = Field(default="", max_length=120)
 
 
 class EnrollmentCreate(BaseModel):
@@ -54,6 +62,11 @@ class EnrollmentCreate(BaseModel):
     phone: str = ""
     country: str = ""
     city: str = ""
+    utm_source: str = ""
+    utm_medium: str = ""
+    utm_campaign: str = ""
+    recorrido: list[str] = []
+    referrer: str = ""
 
 
 class EnrollmentResponse(BaseModel):
