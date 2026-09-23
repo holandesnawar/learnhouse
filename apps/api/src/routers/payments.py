@@ -91,6 +91,67 @@ async def api_enroll_intent(
     return EnrollmentIntentResponse(**result)
 
 
+_PAGINA_ENLACE = """<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Holandés Nawar</title></head>
+<body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+background:#1D0084;color:#fff;font-family:system-ui,sans-serif;padding:24px;text-align:center">
+<div style="max-width:420px"><h1 style="font-size:22px;margin:0 0 12px">{titulo}</h1>
+<p style="font-size:16px;line-height:1.6;opacity:.9;margin:0">{texto}</p></div></body></html>"""
+
+
+@router.get(
+    "/pagar/{token}",
+    summary="Abre un enlace de pago personal: crea la sesión y lleva al checkout.",
+    description=(
+        "Público. El enlace lo crea el equipo desde el panel "
+        "(`POST /contactos/org/{id}/enlace-pago`) y lleva los datos firmados. "
+        "Al abrirlo se crea la sesión de pago en ese momento (las de Stripe "
+        "caducan en 24 h; el enlace dura más) y se redirige al checkout de la "
+        "escuela ya rellenado. El cobro sigue el camino de siempre: cuenta, "
+        "correo, factura y venta."
+    ),
+)
+async def api_pagar_enlace(
+    token: str,
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from fastapi.responses import HTMLResponse
+
+    from config.config import get_learnhouse_config
+    from src.db.enrollment import EnrollmentCreate
+    from src.services.payments.enlace import verificar
+
+    datos = verificar(token, get_learnhouse_config().security_config.auth_jwt_secret_key)
+    if not datos:
+        return HTMLResponse(
+            _PAGINA_ENLACE.format(
+                titulo="Este enlace ya no vale",
+                texto="Ha caducado o no está completo. Escríbenos por WhatsApp y te mandamos uno nuevo.",
+            ),
+            status_code=410,
+        )
+    pedido = EnrollmentCreate(
+        email=datos["e"],
+        first_name=datos.get("f") or "",
+        last_name=datos.get("l") or "",
+        phone=datos.get("p") or "",
+        utm_source="equipo",
+        utm_medium="enlace-pago",
+        recorrido=["enlace-pago"],
+    )
+    try:
+        resultado = await enroll_and_checkout_session(pedido, db_session)
+    except HTTPException as exc:
+        return HTMLResponse(
+            _PAGINA_ENLACE.format(
+                titulo="Ahora mismo no se puede pagar",
+                texto=f"{exc.detail}. Escríbenos por WhatsApp y lo vemos.",
+            ),
+            status_code=exc.status_code,
+        )
+    return RedirectResponse(url=resultado["payment_url"], status_code=303)
+
+
 @router.get(
     "/checkout/formacion",
     summary="Redirect the buyer to a Stripe Checkout Session for the formación.",

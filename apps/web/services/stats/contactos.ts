@@ -113,6 +113,8 @@ export interface Llamada {
   motivo_fuera: string
   /** Cuándo reservó hora en el calendario de /agendar. Vacío si no. */
   reservada_at: string
+  /** Los que no terminaron: la última pregunta que contestaron. */
+  ultima_pregunta?: string
   respuestas: { pregunta: string; respuesta: string; puntos: number }[]
   sin_respuestas: boolean
   vio_precio: boolean
@@ -154,5 +156,56 @@ export async function marcarLlamada(
     return res.ok
   } catch {
     return false
+  }
+}
+
+/** Una cita reservada en Calendly (services/contactos/agenda.py). */
+export interface Cita {
+  inicio: string
+  fin: string
+  titulo: string
+  nombre: string
+  email: string
+  telefono: string
+  enlace: string
+  cancelar_url: string
+  cambiar_url: string
+}
+
+export interface Agenda {
+  configurado: boolean
+  citas: Cita[]
+  error?: string
+}
+
+export async function getAgenda(orgId: number, accessToken: string, forzar = false): Promise<Agenda | null> {
+  try {
+    const res = await fetch(
+      `${getAPIUrl()}contactos/org/${orgId}/agenda${forzar ? '?forzar=true' : ''}`,
+      RequestBodyWithAuthHeader('GET', null, null, accessToken)
+    )
+    if (!res.ok) return null
+    return await res.json()
+  } catch {
+    return null
+  }
+}
+
+/** Crea un enlace de pago personal: el checkout de la escuela ya rellenado. */
+export async function crearEnlacePago(
+  orgId: number,
+  datos: { email: string; first_name: string; last_name?: string; phone?: string },
+  accessToken: string
+): Promise<{ url?: string; dias?: number; error?: string }> {
+  try {
+    const res = await fetch(
+      `${getAPIUrl()}contactos/org/${orgId}/enlace-pago`,
+      RequestBodyWithAuthHeader('POST', datos, null, accessToken)
+    )
+    const cuerpo = await res.json().catch(() => ({}))
+    if (!res.ok) return { error: cuerpo?.detail || 'No se ha podido crear el enlace' }
+    return cuerpo
+  } catch {
+    return { error: 'No se ha podido crear el enlace' }
   }
 }

@@ -199,10 +199,13 @@ falsa.** Costó una conversación entera y una recomendación equivocada de paga
 el plan Pro. Lo que hay de verdad:
 
 **`.github/workflows/db-backup.yaml` — "DB Backup → Cloudflare R2".** Un
-workflow de GitHub Actions, activo, que cada **domingo a las 04:00 UTC** hace
+workflow de GitHub Actions, activo, que **cada día a las 04:00 UTC** hace
 `pg_dump` del Postgres de Railway, lo comprime y lo sube a un bucket de
-**Cloudflare R2**. Guarda las **12 últimas** (≈3 meses) y borra el resto.
-Verificado el 23/08/2026: lleva **18 ejecuciones** y la última terminó en verde.
+**Cloudflare R2**. Guarda las **30 últimas** (un mes) y borra el resto.
+(Esta línea decía "cada domingo" y "12 últimas": el workflow se cambió a diario
+y la ficha no. Mirar el `cron` del yaml antes de repetir la frecuencia.)
+Verificado el 23/09/2026: ejecución 49 en verde ese mismo día; la copia del
+volumen (04:30) y la prueba de restauración del lunes, también en verde.
 
 - Se puede lanzar a mano desde la pestaña **Actions → Run workflow**.
 - Vive en la rama por defecto (`dev`), que es **imprescindible**: GitHub solo
@@ -1271,8 +1274,8 @@ de presentación, no de goteo.
 ### Pendiente de este repaso
 - **Hay una matrícula de prueba en producción** (`prueba@ejemplo.com`, "Prueba
   Test", 4 filas del 15/09 a las 22:41) creada por mis propias pruebas. No hubo
-  cobro. Se ofreció un botón de **"descartar"** en Matrículas nuevas para
-  quitarla de la lista; **sin aprobar**.
+  cobro. Desde el 23/09 el usuario la puede quitar con la papelera de
+  Matrículas nuevas (ver más abajo).
 - Todo lo de "Pendiente, ofrecido y NO aprobado" de septiembre sigue igual.
 
 ## Agendar llamada y Panel → Llamadas (22→23/09/2026)
@@ -1332,9 +1335,51 @@ de presentación, no de goteo.
   enseña **"Hora reservada"**. El día exacto lo tiene Calendly, no la escuela.
   ⚠️ `assets.calendly.com` está bloqueado desde este entorno: para capturas,
   servir un `widget.js` falso con `page.route`.
-  Calendario propio en el panel: propuesto, **sin aprobar**.
+  Calendario propio en el panel: propuesto, **sin aprobar** (la agenda de
+  abajo lo lee de Calendly, que es otra cosa).
+- **Respuestas guardadas una a una** (23/09): la web manda el modo `parcial`
+  otra vez con cada respuesta (`respuestas`, `textos`, `ultima`), y la escuela
+  **reescribe la misma línea** `agendar-empezado` si es del mismo correo y de
+  las últimas 24 h (`_empezado_reciente` en `contactos.py`), en vez de crear
+  una por respuesta. Llamadas enseña en los "No terminó" lo que llegó a
+  contestar y "se fue después de «X»". Para llamar en frío con algo.
+  ⚠️ El correo al equipo sale con **cada cualificación terminada, encaje o no**.
+- **Agenda de Calendly en Llamadas** (`services/contactos/agenda.py`): con un
+  token personal de Calendly en Railway (`LEARNHOUSE_CALENDLY_TOKEN`; en
+  Calendly: Integraciones → API y webhooks) la pestaña enseña "Próximas
+  llamadas" con día, hora, persona, teléfono y enlace de la videollamada, y
+  pone "Llamada jue 25 sep · 18:00" en la línea de esa persona. Solo lee;
+  sin token, explica cómo ponerlo. La API normal de Calendly va con el token
+  personal; los **webhooks** son de plan de pago, por eso se LEE y no se
+  escucha. `api.calendly.com` no se alcanza desde este entorno: sin probar en
+  vivo cuando se escribió.
+- **Enlace de pago personal** (`services/payments/enlace.py`, botón "Crear su
+  enlace de pago" en cada línea de Llamadas, también para el closer): los
+  datos de la persona firmados con HMAC (el secreto JWT de la escuela), 14
+  días. `GET /api/v1/payments/pagar/{token}` crea la sesión de pago **al
+  abrirlo** (las de Stripe caducan en 24 h) y redirige al checkout de siempre,
+  ya rellenado. **Por qué no un Payment Link de Stripe**: no pasa por nuestro
+  webhook, así que ni cuenta ni correo ni factura (el caso de "Dar de alta a
+  mano"). Este sí, porque ES el checkout de la escuela. En las estadísticas
+  sale como `utm_medium=enlace-pago`.
 - ⚠️ Para capturas de `/agendar` en local, **interceptar `/api/cualificacion`**
   con Playwright (`page.route`): el paso de datos ya escribe en producción.
+
+## Matrículas nuevas: por días y plegable (23/09/2026)
+La lista crecía sin fin y el usuario tenía que bajar "media hora" para llegar a
+los números. Ahora (`EstadisticasPage.tsx` → `Solicitudes`):
+- **Una sola lista** mezclando solicitudes y los que llegaron al pago sin
+  terminar, ordenada por fecha y **agrupada: Hoy, Ayer, Esta semana, Este mes,
+  Anteriores, Ya atendidas**. Solo Hoy y Ayer abiertos de serie; cada grupo se
+  pliega con su flecha y la sección entera también ("Ocultar"). Lo plegado se
+  recuerda en el navegador (`localStorage`, detrás de try/catch).
+- **Papelera, solo administradores** (el closer marca "Hecho", no borra): la
+  solicitud se **borra** de verdad (`DELETE /stats/org/{id}/solicitudes/{rid}`,
+  no lleva cobro detrás); la matrícula sin pagar pasa a `status="descartada"`
+  (`POST /stats/org/{id}/matriculas/descartar`), que no sale en la lista y
+  **no cuenta en el embudo ni en leads por mes**. Las pagadas no se tocan.
+- Pedido y pendiente: una sección de **estadísticas generales** de la escuela
+  (alumnos, leads nuevos, progreso). El usuario dijo "por ahora" lo de plegar.
 
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con

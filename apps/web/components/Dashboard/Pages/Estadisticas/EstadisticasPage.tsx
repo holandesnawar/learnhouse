@@ -15,6 +15,8 @@ import {
   deleteManualEntry,
   euros,
   getSchoolStats,
+  borrarSolicitud,
+  descartarMatricula,
   marcarSolicitud,
   readUtmLinks,
   saveManualEntry,
@@ -27,6 +29,8 @@ import {
   AlertTriangle,
   BarChart3,
   Check,
+  ChevronDown,
+  ChevronRight,
   Copy,
   Link2,
   Loader2,
@@ -282,7 +286,7 @@ export default function EstadisticasPage() {
       ) : (
         <div className="space-y-8">
           {/* ── A quién llamar hoy ───────────────────────────────── */}
-          <Solicitudes rows={stats.requests} desdeCheckout={stats.sales?.funnel?.pending ?? []} />
+          <Solicitudes rows={stats.requests} desdeCheckout={stats.sales?.funnel?.pending ?? []} puedeBorrar={Boolean(isAdmin)} />
 
           {/* ── Quién necesita un empujón ────────────────────────── */}
           <AtRisk rows={stats.at_risk} />
@@ -556,279 +560,365 @@ export default function EstadisticasPage() {
 /* ── Alumnos que necesitan un empujón ────────────────────────────── */
 
 /**
- * Matrículas nuevas: quien dejó sus datos en el formulario que NO cobra
- * (/matricula-a0-a1 y la de anuncios) y espera que le llamemos.
- *
- * Va lo primero de la pantalla a propósito: es lo único de aquí que caduca.
- * Un número de ventas se mira cuando se puede; a alguien que acaba de pedir
- * plaza hay que escribirle hoy.
- *
- * El botón "Hecho" no borra nada, solo la baja al final de la lista: así se ve
- * de un vistazo qué queda por hacer sin perder el histórico.
- */
-/**
- * Todo el que ha dejado sus datos y hay que escribirle, en UN solo sitio.
+ * Matrículas nuevas: todo el que dejó sus datos y hay que escribirle, en UN
+ * solo sitio.
  *
  * ⚠️ Antes había dos listas en dos pantallas distintas y eso escondía gente:
+ * quien rellena el formulario SIN pago crea una solicitud, y quien llega al
+ * pago y no termina crea una matrícula pendiente. Para escribirles son lo
+ * mismo, así que van juntas; cada fila dice de cuál es, porque el mensaje
+ * cambia (el que llegó a la caja ya vio el precio).
  *
- *  · Quien rellena el formulario SIN pago (/matricula-a0-a1 y el de anuncios)
- *    crea una solicitud, y salía aquí.
- *  · Quien rellena el formulario CON pago (/matricula-formacion-nawar) y no
- *    termina crea una matrícula pendiente, y salía abajo del todo, dentro de
- *    la tarjeta del embudo.
+ * Ordenadas por día (Hoy, Ayer, Esta semana…) y cada grupo se pliega con su
+ * flecha. Abiertos solo Hoy y Ayer: la lista crecía sin fin y había que bajar
+ * media hora para llegar a los números. Lo que se pliega se recuerda en este
+ * navegador. Las ya atendidas van a su propio grupo, plegado.
  *
- * Para quien tiene que escribirles son lo mismo: alguien que dejó su contacto
- * y no ha comprado. Buscar en dos sitios es cómo se pierde uno.
- *
- * Y no valen igual al redactar el mensaje: el segundo LLEGÓ A LA CAJA, así que
- * vio el precio con seguridad. Eso no hace falta rastrearlo — se deduce de que
- * la matrícula existe.
+ * "Hecho" no borra nada. La papelera (solo administradores) es para las
+ * pruebas: la solicitud se borra de verdad y la matrícula sin pagar se marca
+ * descartada, que deja de contar en el embudo.
  */
+type FilaMatricula = {
+  clave: string
+  tipo: 'solicitud' | 'pago'
+  id?: number
+  name: string
+  email: string
+  phone: string
+  created_at: string
+  source?: string
+  vino_de?: string
+  vio_precio?: boolean
+  camino?: string
+  hecha: boolean
+  ya_alumno?: boolean
+}
+
+const GRUPOS_MATRICULA = [
+  { id: 'hoy', label: 'Hoy' },
+  { id: 'ayer', label: 'Ayer' },
+  { id: 'semana', label: 'Esta semana' },
+  { id: 'mes', label: 'Este mes' },
+  { id: 'antes', label: 'Anteriores' },
+  { id: 'atendidas', label: 'Ya atendidas' },
+] as const
+const ABIERTOS_DE_SERIE = ['hoy', 'ayer']
+const CLAVE_PLEGADO = 'nawar.matriculas.abiertos'
+
+function grupoDeFecha(iso: string): string {
+  const d = new Date(iso)
+  if (!iso || Number.isNaN(d.getTime())) return 'antes'
+  const hoy = new Date()
+  hoy.setHours(0, 0, 0, 0)
+  const dia = new Date(d)
+  dia.setHours(0, 0, 0, 0)
+  const dias = Math.round((hoy.getTime() - dia.getTime()) / 86400000)
+  if (dias <= 0) return 'hoy'
+  if (dias === 1) return 'ayer'
+  if (dias < 7) return 'semana'
+  if (dias < 31) return 'mes'
+  return 'antes'
+}
+
 function Solicitudes({
   rows,
   desdeCheckout = [],
+  puedeBorrar = false,
 }: {
   rows: SchoolStats['requests']
   desdeCheckout?: NonNullable<SchoolStats['sales']>['funnel']['pending']
+  puedeBorrar?: boolean
 }) {
   const org = useOrg() as any
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
 
-  // Copia local para que el botón responda al instante y no haya que esperar
-  // a recargar toda la pantalla.
+  // Copias locales para que los botones respondan al instante sin recargar.
   const [hechas, setHechas] = useState<Record<number, boolean>>({})
-  const [guardando, setGuardando] = useState<number | null>(null)
+  const [quitadas, setQuitadas] = useState<Record<string, boolean>>({})
+  const [guardando, setGuardando] = useState<string | null>(null)
+  const [abiertos, setAbiertos] = useState<string[]>(ABIERTOS_DE_SERIE)
+  const [plegadaEntera, setPlegadaEntera] = useState(false)
 
-  const solicitudes = rows ?? []
-  const conPago = desdeCheckout ?? []
-  const porAtender = conPago.filter((p) => !p.ya_alumno)
-  const yaAlumnos = conPago.filter((p) => p.ya_alumno)
-  if (!solicitudes.length && !conPago.length) return null
+  useEffect(() => {
+    try {
+      const guardado = JSON.parse(localStorage.getItem(CLAVE_PLEGADO) || 'null')
+      if (guardado && Array.isArray(guardado.abiertos)) {
+        setAbiertos(guardado.abiertos)
+        setPlegadaEntera(Boolean(guardado.plegada))
+      }
+    } catch {}
+  }, [])
 
-  const estaHecha = (r: NonNullable<SchoolStats['requests']>[number]) =>
-    hechas[r.id] ?? Boolean(r.contacted_at)
+  function recordar(nuevosAbiertos: string[], plegada: boolean) {
+    try {
+      localStorage.setItem(CLAVE_PLEGADO, JSON.stringify({ abiertos: nuevosAbiertos, plegada }))
+    } catch {}
+  }
+  function alternarGrupo(id: string) {
+    const nuevos = abiertos.includes(id) ? abiertos.filter((g) => g !== id) : [...abiertos, id]
+    setAbiertos(nuevos)
+    recordar(nuevos, plegadaEntera)
+  }
+  function alternarTodo() {
+    setPlegadaEntera(!plegadaEntera)
+    recordar(abiertos, !plegadaEntera)
+  }
 
-  async function alternar(id: number, ahora: boolean) {
-    setGuardando(id)
-    const ok = await marcarSolicitud(org?.id, id, !ahora, accessToken)
+  const filas: FilaMatricula[] = useMemo(() => {
+    const deSolicitud: FilaMatricula[] = (rows ?? []).map((r) => ({
+      clave: `s-${r.id}`,
+      tipo: 'solicitud',
+      id: r.id,
+      name: r.name,
+      email: r.email,
+      phone: r.phone,
+      created_at: r.created_at,
+      source: r.source,
+      vino_de: r.vino_de,
+      vio_precio: r.vio_precio,
+      camino: r.camino,
+      hecha: hechas[r.id] ?? Boolean(r.contacted_at),
+    }))
+    const dePago: FilaMatricula[] = (desdeCheckout ?? []).map((p) => ({
+      clave: `p-${p.email}`,
+      tipo: 'pago',
+      name: p.name,
+      email: p.email,
+      phone: p.phone,
+      created_at: p.created_at,
+      hecha: Boolean(p.ya_alumno),
+      ya_alumno: p.ya_alumno,
+    }))
+    return [...deSolicitud, ...dePago]
+      .filter((f) => !quitadas[f.clave])
+      .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
+  }, [rows, desdeCheckout, hechas, quitadas])
+
+  if (!(rows ?? []).length && !(desdeCheckout ?? []).length) return null
+
+  const porGrupo: Record<string, FilaMatricula[]> = {}
+  for (const f of filas) {
+    const g = f.hecha ? 'atendidas' : grupoDeFecha(f.created_at)
+    ;(porGrupo[g] ||= []).push(f)
+  }
+  const pendientes = filas.filter((f) => !f.hecha).length
+
+  async function marcar(f: FilaMatricula) {
+    if (f.id == null) return
+    setGuardando(f.clave)
+    const ok = await marcarSolicitud(org?.id, f.id, !f.hecha, accessToken)
     setGuardando(null)
     if (!ok) {
       toast.error('No se ha podido guardar')
       return
     }
-    setHechas((prev) => ({ ...prev, [id]: !ahora }))
+    setHechas((prev) => ({ ...prev, [f.id as number]: !f.hecha }))
   }
 
-  const pendientes = solicitudes.filter((r) => !estaHecha(r))
-  const ordenadas = [...solicitudes].sort(
-    (a, b) => Number(estaHecha(a)) - Number(estaHecha(b))
-  )
+  async function quitar(f: FilaMatricula) {
+    const aviso =
+      f.tipo === 'solicitud'
+        ? `¿Borrar la matrícula de ${f.name || f.email}? Es para las de prueba: no se puede deshacer.`
+        : `¿Quitar a ${f.name || f.email} de la lista? Llegó al pago y no pagó. Deja de contar en el embudo (pensado para tus pruebas).`
+    if (!window.confirm(aviso)) return
+    setGuardando(f.clave)
+    const ok =
+      f.tipo === 'solicitud'
+        ? await borrarSolicitud(org?.id, f.id as number, accessToken)
+        : await descartarMatricula(org?.id, f.email, accessToken)
+    setGuardando(null)
+    if (!ok) {
+      toast.error('No se ha podido borrar')
+      return
+    }
+    setQuitadas((prev) => ({ ...prev, [f.clave]: true }))
+    toast.success('Quitada')
+  }
 
   return (
     <section className="space-y-3">
-      <h2 className="text-[15px] font-bold text-gray-900 flex items-center gap-2">
-        <UserPlus size={16} className="text-[#025dc7]" /> Matrículas nuevas
-      </h2>
-      <div className={CARD}>
-        {solicitudes.length === 0 && conPago.length === 0 ? (
-          <p className="text-[13.5px] text-gray-700 py-2">
-            Todavía no ha pedido plaza nadie por el formulario.
-          </p>
-        ) : (
-          <>
-            <p className="text-[12.5px] text-[#9CA3AF] mb-3">
-              {pendientes.length === 0
-                ? 'Has escrito a todos. Aquí abajo quedan los ya atendidos.'
-                : `${pendientes.length} ${
-                    pendientes.length === 1 ? 'persona espera' : 'personas esperan'
-                  } que les escribas. No han pagado: la venta se cierra hablando.`}
-            </p>
-            <div className="space-y-1.5">
-              {ordenadas.map((r) => {
-                const hecha = estaHecha(r)
-                const tel = (r.phone || '').replace(/[^\d+]/g, '')
-                const wa = tel
-                  ? `https://wa.me/${tel.replace(/^\+/, '').replace(/^00/, '')}`
-                  : ''
-                const cuando = r.created_at
-                  ? new Date(r.created_at).toLocaleDateString('es-ES', {
-                      day: 'numeric',
-                      month: 'short',
-                    })
-                  : ''
-                return (
-                  <div
-                    key={r.id}
-                    className={`rounded-xl border px-3.5 py-2.5 flex items-center gap-3 transition-opacity ${
-                      hecha ? 'border-[#E7EEF9] opacity-55' : 'border-[#DDE6F5] bg-[#F7FAFF]'
-                    }`}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13.5px] font-semibold text-gray-900 truncate">
-                        {r.name || r.email}
-                        {r.source === 'ads' && (
-                          <span className="ml-2 text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-[0.06em]">
-                            anuncio
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-[12px] text-gray-500 truncate">
-                        {r.email}
-                        {r.phone ? ` · ${r.phone}` : ''}
-                        {cuando ? <span className="text-[#9CA3AF]"> · {cuando}</span> : null}
-                      </p>
-                      {/* Lo que hay que saber ANTES de escribirle. Si no ha
-                          visto el precio, el mensaje no puede empezar por ahí:
-                          dejó sus datos sin saber cuánto cuesta. */}
-                      <p className="text-[12px] mt-0.5" title={r.camino || undefined}>
-                        {r.vino_de ? (
-                          <span className="text-[#5A6480]">Vino de {r.vino_de}</span>
-                        ) : (
-                          <span className="text-[#9CA3AF]">Sin rastro de por dónde llegó</span>
-                        )}
-                        {' · '}
-                        {/* Los dos lados NO valen lo mismo, y el texto lo dice.
-                            "Ya vio el precio" solo se pone si cargó la página que
-                            lo enseña, así que cuando sale es verdad. El otro lado
-                            es la AUSENCIA de rastro, y el rastro se pierde si
-                            cambió de móvil, si volvió otro día o si navega en
-                            privado. Poner "no ha visto el precio" a secas afirmaba
-                            algo que no se sabe. */}
-                        {r.vio_precio ? (
-                          <span className="text-emerald-700 font-semibold">ya vio el precio</span>
-                        ) : (
-                          <span
-                            className="text-[#8A6A2A] font-semibold"
-                            title="El rastro dura una visita: si volvió otro día o cambió de móvil, puede haberlo visto igual."
-                          >
-                            sin rastro de haber visto el precio
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                    {wa && !hecha && (
-                      <a
-                        href={wa}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="shrink-0 inline-flex items-center px-3 py-1.5 rounded-lg bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7] text-[12px] font-bold transition-colors"
-                      >
-                        WhatsApp
-                      </a>
-                    )}
-                    {!hecha && (
-                      <a
-                        href={`mailto:${r.email}`}
-                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7] text-[12px] font-bold transition-colors"
-                      >
-                        <Mail size={13} /> Escribir
-                      </a>
-                    )}
-                    <button
-                      onClick={() => alternar(r.id, hecha)}
-                      disabled={guardando === r.id}
-                      className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold transition-colors disabled:opacity-50 ${
-                        hecha
-                          ? 'text-[#9CA3AF] hover:text-gray-700'
-                          : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
-                      }`}
-                    >
-                      {hecha ? 'Deshacer' : (<><Check size={13} /> Hecho</>)}
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
+      <button onClick={alternarTodo} className="w-full flex items-center gap-2 text-left">
+        <h2 className="text-[15px] font-bold text-gray-900 flex items-center gap-2">
+          <UserPlus size={16} className="text-[#025dc7]" /> Matrículas nuevas
+        </h2>
+        {pendientes > 0 ? (
+          <span className="rounded-full bg-[#E6F0FF] text-[#025dc7] text-[11.5px] font-bold px-2 py-0.5 tabular-nums">
+            {pendientes} por atender
+          </span>
+        ) : null}
+        <span className="ml-auto text-[12px] font-semibold text-[#5A6480] flex items-center gap-1">
+          {plegadaEntera ? 'Ver' : 'Ocultar'}
+          {plegadaEntera ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
+        </span>
+      </button>
 
-            {/* Los que llegaron a la caja y no terminaron. Van en el MISMO sitio
-                porque para escribirles son lo mismo, pero aparte porque el
-                mensaje cambia: estos ya saben cuánto cuesta. */}
-            {conPago.length > 0 && (
-              <div className="mt-5 pt-4 border-t border-[#E7EEF9]">
-                <p className="text-[13px] font-semibold text-gray-900">
-                  Llegaron al pago y no terminaron
-                </p>
-                <p className="text-[12.5px] text-[#9CA3AF] mt-0.5 mb-3">
-                  {porAtender.length === 1 ? 'Una persona rellenó' : `${porAtender.length} personas rellenaron`}{' '}
-                  la matrícula y se quedaron en la caja. Vieron el precio, así que no hace
-                  falta contárselo: pregúntales qué les frenó.
-                  {yaAlumnos.length > 0 && (
-                    <>
-                      {' '}Abajo, apagados, {yaAlumnos.length === 1 ? 'uno que ya' : `${yaAlumnos.length} que ya`}{' '}
-                      había comprado: no hay que escribirles, pero se enseñan para que nada
-                      desaparezca sin explicación.
-                    </>
-                  )}
-                </p>
-                <div className="space-y-1.5">
-                  {[...porAtender, ...yaAlumnos].map((p) => {
-                    const tel = (p.phone || '').replace(/[^\d+]/g, '')
-                    const wa = tel
-                      ? `https://wa.me/${tel.replace(/^\+/, '').replace(/^00/, '')}`
-                      : ''
-                    const cuando = p.created_at
-                      ? new Date(p.created_at).toLocaleDateString('es-ES', {
-                          day: 'numeric',
-                          month: 'short',
-                        })
-                      : ''
-                    return (
-                      <div
-                        key={p.email}
-                        className={`rounded-xl border px-3.5 py-2.5 flex items-center gap-3 ${
-                          p.ya_alumno
-                            ? 'border-[#E7EEF9] opacity-55'
-                            : 'border-[#DDE6F5] bg-[#F7FAFF]'
-                        }`}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[13.5px] font-semibold text-gray-900 truncate">
-                            {p.name || p.email}
-                          </p>
-                          <p className="text-[12px] text-gray-500 truncate">
-                            {p.email}
-                            {p.phone ? ` · ${p.phone}` : ''}
-                            {cuando ? <span className="text-[#9CA3AF]"> · {cuando}</span> : null}
-                          </p>
-                          {p.ya_alumno ? (
-                            <p className="text-[12px] mt-0.5 text-[#9CA3AF] font-semibold">
-                              Ya es alumno · compró en otro intento, no hace falta escribirle
-                            </p>
-                          ) : (
-                            <p className="text-[12px] mt-0.5 text-emerald-700 font-semibold">
-                              Llegó al pago · vio el precio
-                            </p>
-                          )}
-                        </div>
-                        {wa && !p.ya_alumno && (
-                          <a
-                            href={wa}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="shrink-0 inline-flex items-center px-3 py-1.5 rounded-lg bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7] text-[12px] font-bold transition-colors"
-                          >
-                            WhatsApp
-                          </a>
-                        )}
-                        {!p.ya_alumno && (
-                          <a
-                            href={`mailto:${p.email}`}
-                            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7] text-[12px] font-bold transition-colors"
-                          >
-                            <Mail size={13} /> Escribir
-                          </a>
-                        )}
-                      </div>
-                    )
-                  })}
+      {plegadaEntera ? null : (
+        <div className={CARD}>
+          <p className="text-[12.5px] text-[#9CA3AF] mb-3">
+            {pendientes === 0
+              ? 'Has escrito a todos. Las atendidas quedan abajo, plegadas.'
+              : `${pendientes} ${pendientes === 1 ? 'persona espera' : 'personas esperan'} que les escribas. Pliega con la flecha los días que ya tengas vistos.`}
+          </p>
+          <div className="space-y-2">
+            {GRUPOS_MATRICULA.filter((g) => porGrupo[g.id]?.length).map((g) => {
+              const abierto = abiertos.includes(g.id)
+              const lista = porGrupo[g.id]
+              return (
+                <div key={g.id} className="rounded-xl border border-[#E7EEF9]">
+                  <button
+                    onClick={() => alternarGrupo(g.id)}
+                    className="w-full flex items-center gap-2 px-3.5 py-2.5 text-left hover:bg-[#F7FAFF] rounded-xl"
+                  >
+                    {abierto ? (
+                      <ChevronDown size={15} className="text-[#5A6480]" />
+                    ) : (
+                      <ChevronRight size={15} className="text-[#5A6480]" />
+                    )}
+                    <span className="text-[13.5px] font-semibold text-gray-900">{g.label}</span>
+                    <span className="text-[12px] text-[#9CA3AF] tabular-nums">{lista.length}</span>
+                  </button>
+                  {abierto ? (
+                    <div className="space-y-1.5 px-2 pb-2">
+                      {lista.map((f) => (
+                        <FilaDeMatricula
+                          key={f.clave}
+                          f={f}
+                          guardando={guardando === f.clave}
+                          puedeBorrar={puedeBorrar}
+                          marcar={() => marcar(f)}
+                          quitar={() => quitar(f)}
+                        />
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
-              </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
+function FilaDeMatricula({
+  f,
+  guardando,
+  puedeBorrar,
+  marcar,
+  quitar,
+}: {
+  f: FilaMatricula
+  guardando: boolean
+  puedeBorrar: boolean
+  marcar: () => void
+  quitar: () => void
+}) {
+  const tel = (f.phone || '').replace(/[^\d+]/g, '')
+  const wa = tel ? `https://wa.me/${tel.replace(/^\+/, '').replace(/^00/, '')}` : ''
+  const cuando = f.created_at
+    ? new Date(f.created_at).toLocaleString('es-ES', {
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : ''
+  return (
+    <div
+      className={`rounded-xl border px-3.5 py-2.5 flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-2 transition-opacity ${
+        f.hecha ? 'border-[#E7EEF9] opacity-60' : 'border-[#DDE6F5] bg-[#F7FAFF]'
+      }`}
+    >
+      <div className="flex-1 min-w-0 basis-full sm:basis-auto">
+        <p className="text-[13.5px] font-semibold text-gray-900 truncate">
+          {f.name || f.email}
+          {f.source === 'ads' && (
+            <span className="ml-2 text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-[0.06em]">
+              anuncio
+            </span>
+          )}
+        </p>
+        <p className="text-[12px] text-gray-500 truncate">
+          {f.email}
+          {f.phone ? ` · ${f.phone}` : ''}
+          {cuando ? <span className="text-[#9CA3AF]"> · {cuando}</span> : null}
+        </p>
+        {f.tipo === 'pago' ? (
+          f.ya_alumno ? (
+            <p className="text-[12px] mt-0.5 text-[#9CA3AF] font-semibold">
+              Ya es alumno · compró en otro intento, no hace falta escribirle
+            </p>
+          ) : (
+            <p className="text-[12px] mt-0.5 text-emerald-700 font-semibold">
+              Llegó al pago y no terminó · vio el precio: pregúntale qué le frenó
+            </p>
+          )
+        ) : (
+          // Si no ha visto el precio, el mensaje no puede empezar por ahí.
+          // "Sin rastro" y no "no lo ha visto": el rastro dura una visita.
+          <p className="text-[12px] mt-0.5" title={f.camino || undefined}>
+            {f.vino_de ? (
+              <span className="text-[#5A6480]">Vino de {f.vino_de}</span>
+            ) : (
+              <span className="text-[#9CA3AF]">Sin rastro de por dónde llegó</span>
             )}
-          </>
+            {' · '}
+            {f.vio_precio ? (
+              <span className="text-emerald-700 font-semibold">ya vio el precio</span>
+            ) : (
+              <span
+                className="text-[#8A6A2A] font-semibold"
+                title="El rastro dura una visita: si volvió otro día o cambió de móvil, puede haberlo visto igual."
+              >
+                sin rastro de haber visto el precio
+              </span>
+            )}
+          </p>
         )}
       </div>
-    </section>
+      {wa && !f.hecha && (
+        <a
+          href={wa}
+          target="_blank"
+          rel="noreferrer"
+          className="shrink-0 inline-flex items-center px-3 py-1.5 rounded-lg bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7] text-[12px] font-bold transition-colors"
+        >
+          WhatsApp
+        </a>
+      )}
+      {!f.hecha && (
+        <a
+          href={`mailto:${f.email}`}
+          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7] text-[12px] font-bold transition-colors"
+        >
+          <Mail size={13} /> Escribir
+        </a>
+      )}
+      {f.tipo === 'solicitud' && (
+        <button
+          onClick={marcar}
+          disabled={guardando}
+          className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold transition-colors disabled:opacity-50 ${
+            f.hecha ? 'text-[#9CA3AF] hover:text-gray-700' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
+          }`}
+        >
+          {f.hecha ? 'Deshacer' : (<><Check size={13} /> Hecho</>)}
+        </button>
+      )}
+      {puedeBorrar && !f.ya_alumno && (
+        <button
+          onClick={quitar}
+          disabled={guardando}
+          title={f.tipo === 'solicitud' ? 'Borrar (para las de prueba)' : 'Quitar de la lista (para las de prueba)'}
+          aria-label="Borrar"
+          className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg text-[#9CA3AF] hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+        >
+          {guardando ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+        </button>
+      )}
+    </div>
   )
 }
 

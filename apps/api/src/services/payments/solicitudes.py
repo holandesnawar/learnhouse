@@ -91,6 +91,7 @@ _NOMBRES = {
     "gracias-bases": "la descarga de la guía de las bases",
     "guia-hebben": "la guía hebben/zijn",
     "gracias-hebben": "la descarga de la guía hebben/zijn",
+    "enlace-pago": "un enlace de pago que le mandó el equipo",
 }
 
 #: La única página que enseña la cifra. Si no pasó por aquí, no ha visto nunca
@@ -176,3 +177,43 @@ async def marcar_contactada(
     db_session.add(fila)
     await db_session.commit()
     return {"id": fila.id, "contacted_at": fila.contacted_at}
+
+
+async def borrar_solicitud(request_id: int, db_session: AsyncSession) -> bool:
+    """Borra una solicitud de verdad. Es para las de prueba: una solicitud no
+    lleva cobro detrás, así que no se pierde nada que haya que cuadrar. Para
+    quitar de la vista a alguien real está "Hecho", que no borra."""
+    fila = (
+        await db_session.execute(
+            select(EnrollmentRequest).where(EnrollmentRequest.id == request_id)
+        )
+    ).scalars().first()
+    if fila is None:
+        return False
+    await db_session.delete(fila)
+    await db_session.commit()
+    return True
+
+
+async def descartar_matricula(email: str, db_session: AsyncSession) -> int:
+    """Quita de las listas a quien llegó al pago sin terminar (casi siempre
+    una prueba propia). NO borra: pasa sus filas sin pagar a `descartada`,
+    que ni sale en Matrículas nuevas ni cuenta en el embudo. Las pagadas no se
+    tocan nunca. Devuelve cuántas filas cambió."""
+    from src.db.enrollment import Enrollment
+
+    clave = (email or "").strip().lower()
+    if not clave:
+        return 0
+    filas = (
+        await db_session.execute(select(Enrollment).where(Enrollment.status == "pending"))
+    ).scalars().all()
+    cambiadas = 0
+    for f in filas:
+        if (f.email or "").strip().lower() == clave:
+            f.status = "descartada"
+            db_session.add(f)
+            cambiadas += 1
+    if cambiadas:
+        await db_session.commit()
+    return cambiadas

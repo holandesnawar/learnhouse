@@ -93,7 +93,15 @@ async def _sales_block(org_id: int, db_session: AsyncSession) -> dict:
     # contarían como "gente que se matriculó y no pagó" e inflarían el abandono.
     # `created_at` y no `paid_at`, porque una matrícula empezada nunca llega a
     # tener fecha de pago.
-    started = len([r for r in rows if not desde or (r.created_at or "") >= desde])
+    # Las descartadas desde el panel (pruebas propias) no cuentan: son
+    # justo lo que se quería quitar del abandono.
+    started = len(
+        [
+            r
+            for r in rows
+            if r.status != "descartada" and (not desde or (r.created_at or "") >= desde)
+        ]
+    )
 
     # La lista de recuperación de verdad, con nombre y contacto. Una persona =
     # una entrada aunque haya empezado el formulario dos veces (el botón
@@ -108,7 +116,7 @@ async def _sales_block(org_id: int, db_session: AsyncSession) -> dict:
     emails_pagados = {(r.email or "").lower() for r in paid}
     pendientes: dict[str, dict] = {}
     for r in sorted(rows, key=lambda r: r.created_at or ""):
-        if r.status == "paid" or (desde and (r.created_at or "") < desde):
+        if r.status in ("paid", "descartada") or (desde and (r.created_at or "") < desde):
             continue
         clave = (r.email or "").lower()
         if not clave:
@@ -144,7 +152,7 @@ async def _sales_block(org_id: int, db_session: AsyncSession) -> dict:
             "pending": sorted(pendientes.values(), key=lambda p: p["created_at"], reverse=True),
         },
         # Matrículas iniciadas por mes: es el denominador del coste por lead.
-        "leads_by_month": _count_by_month([r.created_at for r in rows]),
+        "leads_by_month": _count_by_month([r.created_at for r in rows if r.status != "descartada"]),
     }
 
 
