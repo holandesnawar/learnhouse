@@ -137,7 +137,9 @@ def elegir_eventos(eventos: list) -> list:
     """De todos los eventos de llamada (ya en orden, el más nuevo primero),
     los que salen en la lista. Función pura, para probarla sin base de datos.
 
-    - Cada cualificación terminada sale siempre.
+    - De las cualificaciones terminadas sale solo la última de cada correo:
+      desde /agendar se puede volver atrás, cambiar una respuesta y enviar
+      otra vez, y eso es la misma persona, no dos llamadas.
     - Un "agendar-empezado" sale solo si ese correo no ha terminado nunca, y
       una sola vez por correo: si empezó tres veces sin acabar, es una
       persona, no tres. Si terminó alguna vez, ya tiene su línea con las
@@ -146,8 +148,12 @@ def elegir_eventos(eventos: list) -> list:
     terminaron = {e.email for e in eventos if e.kind == "cualificacion"}
     salida = []
     vistos: set[str] = set()
+    terminadas_vistas: set[str] = set()
     for e in eventos:
         if e.kind == "cualificacion":
+            if e.email in terminadas_vistas:
+                continue
+            terminadas_vistas.add(e.email)
             salida.append(e)
         elif e.kind == "agendar-empezado" and e.email not in terminaron and e.email not in vistos:
             vistos.add(e.email)
