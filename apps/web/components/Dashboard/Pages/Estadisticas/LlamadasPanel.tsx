@@ -19,7 +19,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
-import { getLlamadas, type Llamada } from '@services/stats/contactos'
+import { getLlamadas, marcarLlamada, type Llamada } from '@services/stats/contactos'
 import { marcarSolicitud } from '@services/stats/school'
 import { Check, ChevronDown, ChevronRight, Loader2, PhoneCall, RotateCcw } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -61,13 +61,13 @@ export default function LlamadasPanel() {
   }, [cargar])
 
   async function alternar(l: Llamada) {
-    if (!l.solicitud_id) {
-      toast.error('Esta llamada no tiene solicitud asociada; márcala desde Contactos.')
-      return
-    }
     const ahora = Boolean(l.contacted_at)
     setGuardando(l.id)
-    const ok = await marcarSolicitud(org?.id, l.solicitud_id, !ahora, accessToken)
+    // Con solicitud, la misma marca que Matrículas nuevas; sin ella (los que
+    // no terminaron), la marca va en el propio evento.
+    const ok = l.solicitud_id
+      ? await marcarSolicitud(org?.id, l.solicitud_id, !ahora, accessToken)
+      : await marcarLlamada(org?.id, l.id, !ahora, accessToken)
     setGuardando(null)
     if (!ok) {
       toast.error('No se ha podido guardar')
@@ -105,6 +105,7 @@ export default function LlamadasPanel() {
         <p className="text-[12.5px] text-[#5A6480] mt-1.5 leading-relaxed">
           Cada persona que termina el formulario de agendar sale aquí con todas sus respuestas, y te llega
           también por correo. Si encajaba, ya vio el botón de reservar día y hora; si no reservó, escríbele tú.
+          Quien dejó sus datos y se fue a mitad sale como «No terminó»: es a quien más conviene escribir.
           Cuando la hayas atendido, márcala.
         </p>
       </div>
@@ -181,13 +182,19 @@ function Lista({
               <div className="flex-1 min-w-0">
                 <p className="text-[13.5px] font-semibold text-gray-900 truncate">
                   {l.name || l.email}
-                  <span
-                    className={`ml-2 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold align-middle ${
-                      l.apto ? 'bg-[#E8FBF3] text-[#0E9F6E]' : 'bg-[#FFFBF2] text-[#8A6A2A]'
-                    }`}
-                  >
-                    {l.apto ? 'Encaja' : 'No encaja'} · {l.puntuacion} pts
-                  </span>
+                  {l.terminado ? (
+                    <span
+                      className={`ml-2 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold align-middle ${
+                        l.apto ? 'bg-[#E8FBF3] text-[#0E9F6E]' : 'bg-[#FFFBF2] text-[#8A6A2A]'
+                      }`}
+                    >
+                      {l.apto ? 'Encaja' : 'No encaja'} · {l.puntuacion} pts
+                    </span>
+                  ) : (
+                    <span className="ml-2 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold align-middle bg-[#EAF3FF] text-[#025dc7]">
+                      No terminó
+                    </span>
+                  )}
                 </p>
                 <p className="text-[12px] text-gray-500 truncate">
                   {l.email}
@@ -211,7 +218,12 @@ function Lista({
                   {l.utm_campaign ? ` · campaña ${l.utm_campaign}` : ''}
                 </p>
 
-                {l.sin_respuestas ? (
+                {!l.terminado ? (
+                  <p className="text-[12.5px] text-gray-600">
+                    Dejó su nombre, correo y teléfono y se fue antes de contestar las preguntas. Escríbele: ya
+                    mostró interés.
+                  </p>
+                ) : l.sin_respuestas ? (
                   <p className="text-[12.5px] text-gray-500">No se guardaron las respuestas de esta llamada.</p>
                 ) : (
                   <ul className="rounded-lg bg-[#F7FAFF] border border-[#E7EEF9] divide-y divide-[#E7EEF9]">

@@ -17,6 +17,11 @@ De dónde sale
 -------------
 - `contact_event` con `kind == "cualificacion"` → la persona, la nota
   (`extra.puntuacion`, `extra.apto`) y las respuestas (`extra.respuestas`).
+- `contact_event` con `kind == "agendar-empezado"` → la web lo manda en
+  cuanto la persona pasa la pantalla de datos. Si después no llega su
+  cualificación, sale aquí como **"No terminó"**: dejó nombre, correo y
+  teléfono y se fue a mitad. Es el lead que más se perdía con un formulario
+  largo, y justo al que conviene escribir.
 - `enrollment_request` con `source == "llamada"` → el mismo formulario crea
   también una solicitud, y esa fila es la que lleva la marca de "atendida"
   (`contacted_at`). La lista une las dos por correo, así el botón de "ya le he
@@ -90,8 +95,10 @@ def fila_llamada(evento: dict, solicitud: Optional[dict]) -> dict:
         respuestas = []
 
     nombre = f"{evento.get('first_name') or ''} {evento.get('last_name') or ''}".strip()
+    terminado = evento.get("kind", "cualificacion") != "agendar-empezado"
     return {
         "id": evento.get("id"),
+        "terminado": terminado,
         "name": nombre,
         "email": evento.get("email") or "",
         "phone": evento.get("phone") or "",
@@ -107,26 +114,53 @@ def fila_llamada(evento: dict, solicitud: Optional[dict]) -> dict:
             for r in respuestas
             if isinstance(r, dict)
         ],
-        "sin_respuestas": bool(extra.get("_truncado")) or not respuestas,
+        "sin_respuestas": terminado and (bool(extra.get("_truncado")) or not respuestas),
         **resumen_del_lead(
             evento.get("recorrido") or "", evento.get("referrer") or "", evento.get("source") or "llamada"
         ),
         "utm_campaign": evento.get("utm_campaign") or "",
         "solicitud_id": (solicitud or {}).get("id"),
-        "contacted_at": (solicitud or {}).get("contacted_at") or "",
+        # Atendida: la marca de la solicitud (la misma de Matrículas nuevas)
+        # o, si no hay solicitud (los que no terminaron, o si la escuela
+        # rechazó la solicitud por el tope), la que se guarda en el evento.
+        "contacted_at": (solicitud or {}).get("contacted_at") or str(extra.get("atendida_at") or ""),
     }
 
 
+def elegir_eventos(eventos: list) -> list:
+    """De todos los eventos de llamada (ya en orden, el más nuevo primero),
+    los que salen en la lista. Función pura, para probarla sin base de datos.
+
+    - Cada cualificación terminada sale siempre.
+    - Un "agendar-empezado" sale solo si ese correo no ha terminado nunca, y
+      una sola vez por correo: si empezó tres veces sin acabar, es una
+      persona, no tres. Si terminó alguna vez, ya tiene su línea con las
+      respuestas y el "empezado" sobra.
+    """
+    terminaron = {e.email for e in eventos if e.kind == "cualificacion"}
+    salida = []
+    vistos: set[str] = set()
+    for e in eventos:
+        if e.kind == "cualificacion":
+            salida.append(e)
+        elif e.kind == "agendar-empezado" and e.email not in terminaron and e.email not in vistos:
+            vistos.add(e.email)
+            salida.append(e)
+    return salida
+
+
 async def listar_llamadas(db_session: AsyncSession, limite: int = 200) -> list[dict]:
-    """Las cualificaciones, la más reciente arriba, con la marca de atendida."""
-    eventos = (
+    """Las cualificaciones y los que empezaron sin terminar, la más reciente
+    arriba, con la marca de atendida."""
+    todos = (
         await db_session.execute(
             select(ContactEvent)
-            .where(ContactEvent.kind == "cualificacion")
+            .where(ContactEvent.kind.in_(["cualificacion", "agendar-empezado"]))  # type: ignore[attr-defined]
             .order_by(ContactEvent.id.desc())  # type: ignore[attr-defined]
-            .limit(limite)
+            .limit(limite * 3)
         )
     ).scalars().all()
+    eventos = elegir_eventos(list(todos))[:limite]
     if not eventos:
         return []
 
@@ -148,6 +182,7 @@ async def listar_llamadas(db_session: AsyncSession, limite: int = 200) -> list[d
         fila_llamada(
             {
                 "id": e.id,
+                "kind": e.kind,
                 "email": e.email,
                 "first_name": e.first_name,
                 "last_name": e.last_name,
@@ -218,3 +253,27 @@ async def avisar_equipo_llamada(fila: ContactEvent, db_session: AsyncSession) ->
         except Exception:  # noqa: BLE001
             logger.exception("No se pudo avisar a %s de la llamada de %s", destino, fila.email)
     return enviados
+
+
+async def marcar_llamada(event_id: int, atendida: bool, db_session: AsyncSession) -> Optional[dict]:
+    """Marca como atendida una llamada que no tiene solicitud (la marca va en
+    el propio evento, dentro de `extra`)."""
+    from datetime import datetime, timezone
+
+    fila = (
+        await db_session.execute(select(ContactEvent).where(ContactEvent.id == event_id))
+    ).scalars().first()
+    if fila is None or fila.kind not in ("cualificacion", "agendar-empezado"):
+        return None
+    try:
+        extra = json.loads(fila.extra) if fila.extra else {}
+    except Exception:  # noqa: BLE001
+        extra = {}
+    if atendida:
+        extra["atendida_at"] = datetime.now(timezone.utc).isoformat()
+    else:
+        extra.pop("atendida_at", None)
+    fila.extra = extra_serializado(extra)
+    db_session.add(fila)
+    await db_session.commit()
+    return {"id": fila.id, "contacted_at": extra.get("atendida_at", "")}

@@ -16,6 +16,7 @@ import logging
 import os
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -28,7 +29,7 @@ from src.services.contactos.contactos import (
     listar_contactos,
     registrar_evento,
 )
-from src.services.contactos.llamadas import listar_llamadas
+from src.services.contactos.llamadas import listar_llamadas, marcar_llamada
 from src.services.orgs.acceso import exigir_acceso
 
 logger = logging.getLogger(__name__)
@@ -88,6 +89,29 @@ async def api_llamadas(
 ):
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
     return {"llamadas": await listar_llamadas(db_session)}
+
+
+class MarcaLlamada(BaseModel):
+    atendida: bool
+
+
+@router.put(
+    "/org/{org_id}/llamadas/{event_id}",
+    summary="Marca como atendida una llamada sin solicitud (p. ej. las que no terminaron).",
+)
+async def api_marcar_llamada(
+    request: Request,
+    org_id: int,
+    event_id: int,
+    data: MarcaLlamada,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    res = await marcar_llamada(event_id, data.atendida, db_session)
+    if res is None:
+        raise HTTPException(status_code=404, detail="No existe esa llamada")
+    return res
 
 
 @router.get(

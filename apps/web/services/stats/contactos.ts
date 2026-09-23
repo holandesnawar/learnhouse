@@ -101,6 +101,8 @@ export const ESTADO_TEXTO: Record<EstadoContacto, string> = {
  */
 export interface Llamada {
   id: number
+  /** false = dejó sus datos y se fue a mitad del formulario. */
+  terminado: boolean
   name: string
   email: string
   phone: string
@@ -128,5 +130,25 @@ export async function getLlamadas(orgId: number, accessToken: string): Promise<L
     return Array.isArray(data?.llamadas) ? data.llamadas : []
   } catch {
     return null
+  }
+}
+
+/** Marca como atendida una llamada que no tiene solicitud (las que no
+ *  terminaron el formulario). La marca va en el propio evento. */
+export async function marcarLlamada(
+  orgId: number,
+  eventId: number,
+  atendida: boolean,
+  accessToken: string | undefined
+): Promise<boolean> {
+  if (!orgId || !accessToken) return false
+  try {
+    const res = await fetch(
+      `${getAPIUrl()}contactos/org/${orgId}/llamadas/${eventId}`,
+      RequestBodyWithAuthHeader('PUT', { atendida }, null, accessToken)
+    )
+    return res.ok
+  } catch {
+    return false
   }
 }
