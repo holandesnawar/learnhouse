@@ -150,3 +150,9 @@ def test_motivo_de_quedarse_fuera_llega_a_la_fila_y_al_correo():
     assert llamada["motivo_fuera"].startswith("Compromiso 1")
     out = send_llamada_pedida_email("admin@ejemplo.com", llamada, preview=True)
     assert "Compromiso 1 de 5" in out["html"]
+
+
+def test_hora_reservada_llega_a_la_fila():
+    fila = fila_llamada({"id": 3, "email": "a@b.c", "reservada_at": "2026-09-23T11:00:00+00:00", "extra": {"apto": True}}, None)
+    assert fila["reservada_at"].startswith("2026-09-23")
+    assert fila_llamada({"id": 3, "email": "a@b.c"}, None)["reservada_at"] == ""

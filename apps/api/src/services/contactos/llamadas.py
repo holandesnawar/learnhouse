@@ -123,6 +123,8 @@ def fila_llamada(evento: dict, solicitud: Optional[dict]) -> dict:
             evento.get("recorrido") or "", evento.get("referrer") or "", evento.get("source") or "llamada"
         ),
         "utm_campaign": evento.get("utm_campaign") or "",
+        # Cuándo reservó hora en el calendario (vacío si todavía no).
+        "reservada_at": evento.get("reservada_at") or "",
         "solicitud_id": (solicitud or {}).get("id"),
         # Atendida: la marca de la solicitud (la misma de Matrículas nuevas)
         # o, si no hay solicitud (los que no terminaron, o si la escuela
@@ -182,6 +184,25 @@ async def listar_llamadas(db_session: AsyncSession, limite: int = 200) -> list[d
         # La más reciente de cada correo manda (van en orden descendente).
         solicitudes.setdefault(f.email, {"id": f.id, "contacted_at": f.contacted_at or ""})
 
+    # Quién ya reservó hora en el calendario de /agendar (evento "reunion",
+    # lo manda la web cuando Calendly avisa). Solo cuenta si es posterior a su
+    # cualificación: una reunión vieja no dice nada de la petición de hoy.
+    reservas: dict[str, tuple[int, str]] = {}
+    for r in (
+        await db_session.execute(
+            select(ContactEvent)
+            .where(ContactEvent.kind == "reunion")
+            .where(ContactEvent.email.in_(emails))  # type: ignore[attr-defined]
+        )
+    ).scalars().all():
+        previa = reservas.get(r.email)
+        if previa is None or (r.id or 0) > previa[0]:
+            reservas[r.email] = (r.id or 0, r.created_at or "")
+
+    def _reserva(e) -> str:
+        r = reservas.get(e.email)
+        return r[1] if r and r[0] > (e.id or 0) else ""
+
     return [
         fila_llamada(
             {
@@ -197,6 +218,7 @@ async def listar_llamadas(db_session: AsyncSession, limite: int = 200) -> list[d
                 "utm_campaign": e.utm_campaign,
                 "created_at": e.created_at,
                 "extra": e.extra,
+                "reservada_at": _reserva(e),
             },
             solicitudes.get(e.email),
         )
