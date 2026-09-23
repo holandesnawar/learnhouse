@@ -1305,9 +1305,14 @@ de presentación, no de goteo.
   de Matrículas nuevas) o, si no hay, `extra.atendida_at` en el evento.
 - ⚠️ `contact_event.extra` se cortaba con `[:2000]` y rompía el JSON: la ficha
   salía sin respuestas. Ahora `extra_serializado` recorta sin romperlo.
-- Al terminar, si encaja: **Calendly incrustado en la misma página**, como ICO
-  (23/09): texto que prepara la llamada a la izquierda y el calendario a la
-  derecha; en móvil, el texto y un botón que abre el calendario debajo. URL
+- Al terminar, si encaja: primero la pantalla **"Encajas"** (qué viene: llamada
+  de 15-20 min y confirmación por WhatsApp) con el **compromiso de asistir**
+  (A sí / B no, como ICO; "no" lleva a la guía sin presión). Con "sí",
+  **Calendly incrustado**: en el ordenador a media página con el texto al
+  lado; en el móvil a pantalla completa con una X para volver.
+- Estilo de los campos (23/09, "demasiado oscuro"): texto como Typeform, solo
+  la línea de debajo; cajas de respuesta con velo `#4da3ff` al 13 %, más claro
+  que el fondo y sin sombra. El tinte azul oscuro de antes apagaba la página. URL
   `calendly.com/holandesconnawar/llamada-de-consultoria` (`PUBLIC_AGENDA_URL` la
   cambia). Nombre y correo van rellenos. El script de Calendly solo se carga
   en esa pantalla. Al reservar, Calendly avisa a la página
