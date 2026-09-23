@@ -1279,13 +1279,15 @@ de presentación, no de goteo.
 
 - **`/agendar`** (web, `nawar-web/src/pages/agendar.astro` + `src/lib/cualificacion.ts`):
   cualificación antes de la llamada, al estilo de ICO/Typeform (letras A-B-C,
-  teclado, pasa sola al elegir). **Siete preguntas**: nivel, dónde vive, para
-  qué, qué espera conseguir (abierta), horas, dinero (sin cifra) y compromiso
-  1-5. Corte en 8 sobre 14. **Todavía no se enlaza desde ningún sitio**
+  teclado, pasa sola al elegir). **Nueve preguntas**: nivel, dónde vive, para
+  qué, edad, ocupación, qué espera conseguir (abierta), horas, dinero (sin
+  cifra) y compromiso 1-5. Corte en 9 sobre 15. **Todavía no se enlaza desde ningún sitio**
   (decisión del usuario: "estamos probando").
-- ⚠️ **Edad, ocupación, cuándo empieza y quién decide se QUITARON a propósito**
-  (23/09): para 397 € cada pantalla de más cuesta leads. "Cuándo empiezas" lo
-  trabaja el closer en la llamada. No volver a meterlas sin preguntar.
+- ⚠️ **"Cuándo empieza" y "quién decide" se QUITARON a propósito** (23/09):
+  casi no hay menores ni gente que no decida sola, y "cuándo empiezas" lo
+  trabaja el closer en la llamada. **Edad y ocupación SE QUEDAN**: las quité
+  por leer mal el mensaje y el usuario las pidió de vuelta. Releer qué pide
+  exactamente antes de quitar nada.
 - **El contacto se guarda al pasar la pantalla de datos** (evento
   `agendar-empezado`), no al final. Quien se va a mitad sale en Llamadas como
   **"No terminó"**. Solo el evento: `/payments/solicitudes` tiene tope de
