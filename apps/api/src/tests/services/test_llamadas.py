@@ -82,3 +82,56 @@ def test_correo_al_equipo_lleva_las_respuestas():
     assert "¿Nivel?" in out["html"] and "Cero &lt;b&gt;" in out["html"]
     assert "tab=llamadas" in out["html"]
     assert "wa.me/31612345678" in out["html"]
+
+
+# ── Los que empezaron y no terminaron ──────────────────────────────────────
+
+from types import SimpleNamespace
+
+from src.services.contactos.llamadas import elegir_eventos
+
+
+def _ev(id, kind, email):
+    return SimpleNamespace(id=id, kind=kind, email=email)
+
+
+def test_empezado_sin_terminar_sale_una_vez():
+    eventos = [
+        _ev(5, "agendar-empezado", "ana@x.com"),
+        _ev(3, "agendar-empezado", "ana@x.com"),
+        _ev(2, "agendar-empezado", "luis@x.com"),
+    ]
+    ids = [e.id for e in elegir_eventos(eventos)]
+    assert ids == [5, 2]
+
+
+def test_empezado_que_luego_termino_no_sale():
+    eventos = [
+        _ev(9, "cualificacion", "ana@x.com"),
+        _ev(8, "agendar-empezado", "ana@x.com"),
+    ]
+    assert [e.id for e in elegir_eventos(eventos)] == [9]
+
+
+def test_si_termino_alguna_vez_no_se_duplica_por_volver_a_empezar():
+    eventos = [
+        _ev(12, "agendar-empezado", "ana@x.com"),
+        _ev(9, "cualificacion", "ana@x.com"),
+    ]
+    assert [e.id for e in elegir_eventos(eventos)] == [9]
+
+
+def test_fila_sin_terminar():
+    fila = fila_llamada({"id": 4, "kind": "agendar-empezado", "email": "a@b.c", "first_name": "Ana"}, None)
+    assert fila["terminado"] is False
+    # No es que "no se guardaran": es que no llegó a contestar.
+    assert fila["sin_respuestas"] is False
+    assert fila["contacted_at"] == ""
+
+
+def test_marca_de_atendida_en_el_evento():
+    fila = fila_llamada(
+        {"id": 4, "kind": "agendar-empezado", "email": "a@b.c", "extra": {"atendida_at": "2026-09-23T10:00:00+00:00"}},
+        None,
+    )
+    assert fila["contacted_at"].startswith("2026-09-23")

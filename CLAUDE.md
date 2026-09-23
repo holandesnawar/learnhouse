@@ -1,8 +1,8 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-09-21 (primeras ventas reales, rastro del lead y
-> repaso del módulo 3 — ver "Repaso de septiembre" más abajo).
+> Última actualización: 2026-09-23 (agendar llamada y Panel → Llamadas; antes,
+> primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
 
 ## Resumen
 Academia de cursos sobre **LearnHouse**, auto-alojada en Railway.
@@ -1274,6 +1274,33 @@ de presentación, no de goteo.
   cobro. Se ofreció un botón de **"descartar"** en Matrículas nuevas para
   quitarla de la lista; **sin aprobar**.
 - Todo lo de "Pendiente, ofrecido y NO aprobado" de septiembre sigue igual.
+
+## Agendar llamada y Panel → Llamadas (22→23/09/2026)
+
+- **`/agendar`** (web, `nawar-web/src/pages/agendar.astro` + `src/lib/cualificacion.ts`):
+  cualificación antes de la llamada, al estilo de ICO/Typeform (letras A-B-C,
+  teclado, pasa sola al elegir). **Siete preguntas**: nivel, dónde vive, para
+  qué, qué espera conseguir (abierta), horas, dinero (sin cifra) y compromiso
+  1-5. Corte en 8 sobre 14. **Todavía no se enlaza desde ningún sitio**
+  (decisión del usuario: "estamos probando").
+- ⚠️ **Edad, ocupación, cuándo empieza y quién decide se QUITARON a propósito**
+  (23/09): para 397 € cada pantalla de más cuesta leads. "Cuándo empiezas" lo
+  trabaja el closer en la llamada. No volver a meterlas sin preguntar.
+- **El contacto se guarda al pasar la pantalla de datos** (evento
+  `agendar-empezado`), no al final. Quien se va a mitad sale en Llamadas como
+  **"No terminó"**. Solo el evento: `/payments/solicitudes` tiene tope de
+  5/hora/IP y todas las llamadas de la web salen de IPs de Vercel.
+- **Panel → Llamadas** (`LlamadasPanel.tsx`, `services/contactos/llamadas.py`):
+  una línea por persona, se abre y salen todas las respuestas. Cada
+  cualificación terminada **manda un correo a los administradores**
+  (`send_llamada_pedida_email`). La marca de atendida es la solicitud (la misma
+  de Matrículas nuevas) o, si no hay, `extra.atendida_at` en el evento.
+- ⚠️ `contact_event.extra` se cortaba con `[:2000]` y rompía el JSON: la ficha
+  salía sin respuestas. Ahora `extra_serializado` recorta sin romperlo.
+- Al terminar, si encaja: botón de reservar (`PUBLIC_AGENDA_URL` en Vercel, o
+  WhatsApp si no está). Calendario propio en el panel: propuesto, **sin aprobar**.
+- ⚠️ Para capturas de `/agendar` en local, **interceptar `/api/cualificacion`**
+  con Playwright (`page.route`): el paso de datos ya escribe en producción.
 
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
