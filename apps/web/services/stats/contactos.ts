@@ -111,6 +111,8 @@ export interface Llamada {
   puntuacion: number
   /** Por qué se quedó fuera (línea roja de la web). Vacío si encaja. */
   motivo_fuera: string
+  /** Cuándo reservó hora en el calendario de /agendar. Vacío si no. */
+  reservada_at: string
   respuestas: { pregunta: string; respuesta: string; puntos: number }[]
   sin_respuestas: boolean
   vio_precio: boolean

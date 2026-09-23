@@ -1305,8 +1305,17 @@ de presentación, no de goteo.
   de Matrículas nuevas) o, si no hay, `extra.atendida_at` en el evento.
 - ⚠️ `contact_event.extra` se cortaba con `[:2000]` y rompía el JSON: la ficha
   salía sin respuestas. Ahora `extra_serializado` recorta sin romperlo.
-- Al terminar, si encaja: botón de reservar (`PUBLIC_AGENDA_URL` en Vercel, o
-  WhatsApp si no está). Calendario propio en el panel: propuesto, **sin aprobar**.
+- Al terminar, si encaja: **Calendly incrustado en la misma página**, como ICO
+  (23/09): texto que prepara la llamada a la izquierda y el calendario a la
+  derecha; en móvil, el texto y un botón que abre el calendario debajo. URL
+  `calendly.com/holandesconnawar/llamada-de-consultoria` (`PUBLIC_AGENDA_URL` la
+  cambia). Nombre y correo van rellenos. El script de Calendly solo se carga
+  en esa pantalla. Al reservar, Calendly avisa a la página
+  (`calendly.event_scheduled`) → evento `reunion` en la escuela → Llamadas
+  enseña **"Hora reservada"**. El día exacto lo tiene Calendly, no la escuela.
+  ⚠️ `assets.calendly.com` está bloqueado desde este entorno: para capturas,
+  servir un `widget.js` falso con `page.route`.
+  Calendario propio en el panel: propuesto, **sin aprobar**.
 - ⚠️ Para capturas de `/agendar` en local, **interceptar `/api/cualificacion`**
   con Playwright (`page.route`): el paso de datos ya escribe en producción.
 

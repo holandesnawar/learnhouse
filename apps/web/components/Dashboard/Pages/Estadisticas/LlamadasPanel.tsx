@@ -104,7 +104,8 @@ export default function LlamadasPanel() {
         </h2>
         <p className="text-[12.5px] text-[#5A6480] mt-1.5 leading-relaxed">
           Cada persona que termina el formulario de agendar sale aquí con todas sus respuestas, y te llega
-          también por correo. Si encajaba, ya vio el botón de reservar día y hora; si no reservó, escríbele tú.
+          también por correo. Si encajaba, tuvo el calendario delante; si no reservó, escríbele tú.
+          Quien ya eligió día en el calendario sale con «Hora reservada»: el día exacto lo tienes en Calendly.
           Quien dejó sus datos y se fue a mitad sale como «No terminó»: es a quien más conviene escribir.
           Cuando la hayas atendido, márcala.
         </p>
@@ -182,6 +183,11 @@ function Lista({
               <div className="flex-1 min-w-0">
                 <p className="text-[13.5px] font-semibold text-gray-900 truncate">
                   {l.name || l.email}
+                  {l.reservada_at ? (
+                    <span className="ml-2 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold align-middle bg-[#E8FBF3] text-[#0E9F6E]">
+                      Hora reservada
+                    </span>
+                  ) : null}
                   {l.terminado ? (
                     <span
                       className={`ml-2 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold align-middle ${
