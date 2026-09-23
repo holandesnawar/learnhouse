@@ -156,3 +156,12 @@ def test_hora_reservada_llega_a_la_fila():
     fila = fila_llamada({"id": 3, "email": "a@b.c", "reservada_at": "2026-09-23T11:00:00+00:00", "extra": {"apto": True}}, None)
     assert fila["reservada_at"].startswith("2026-09-23")
     assert fila_llamada({"id": 3, "email": "a@b.c"}, None)["reservada_at"] == ""
+
+
+def test_reenviar_la_cualificacion_no_duplica_la_llamada():
+    eventos = [
+        _ev(20, "cualificacion", "ana@x.com"),
+        _ev(18, "cualificacion", "ana@x.com"),
+        _ev(15, "cualificacion", "luis@x.com"),
+    ]
+    assert [e.id for e in elegir_eventos(eventos)] == [20, 15]

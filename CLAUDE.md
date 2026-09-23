@@ -1305,11 +1305,23 @@ de presentación, no de goteo.
   de Matrículas nuevas) o, si no hay, `extra.atendida_at` en el evento.
 - ⚠️ `contact_event.extra` se cortaba con `[:2000]` y rompía el JSON: la ficha
   salía sin respuestas. Ahora `extra_serializado` recorta sin romperlo.
-- Al terminar, si encaja: primero la pantalla **"Encajas"** (qué viene: llamada
-  de 15-20 min y confirmación por WhatsApp) con el **compromiso de asistir**
-  (A sí / B no, como ICO; "no" lleva a la guía sin presión). Con "sí",
-  **Calendly incrustado**: en el ordenador a media página con el texto al
-  lado; en el móvil a pantalla completa con una X para volver.
+- Al terminar, si encaja: primero la pantalla **"Encajas"**: "encajas para una
+  **llamada**" (no "la formación es para ti": ahí aún no se vende), **media
+  hora**, "puedes hacernos todas las preguntas", y el **compromiso de asistir**
+  (A sí / B no; "no" lleva a la guía sin presión). Sin "te escribimos por
+  WhatsApp" y sin el aviso de pocos huecos: eso va SOLO en la página del
+  calendario, para no repetirlo.
+- Con "sí", el calendario. **Ordenador: la página entera partida en dos
+  mitades** (clase `ag-split`), sin la línea de pasos, texto a la izquierda
+  sin el nombre (ya se usó en "Encajas") y Calendly a la derecha de arriba
+  abajo, alto de pantalla, con `hide_event_type_details=1` para que el
+  calendario empiece arriba y quepa sin bajar. **Móvil**: a pantalla
+  completa con una X. Hay "‹ Anterior" en "Encajas" y en el calendario.
+- ⚠️ El evento de Calendly dice **45 min** y la página dice media hora: la
+  duración se cambia en Calendly, no aquí.
+- Al volver atrás y reenviar, Llamadas enseña solo la **última**
+  cualificación de cada correo (`elegir_eventos`). El correo al equipo sí
+  sale otra vez, con las respuestas nuevas.
 - Estilo de los campos (23/09, "demasiado oscuro"): texto como Typeform, solo
   la línea de debajo; cajas de respuesta con velo `#4da3ff` al 13 %, más claro
   que el fondo y sin sombra. El tinte azul oscuro de antes apagaba la página. URL
