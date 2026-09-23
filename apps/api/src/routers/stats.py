@@ -14,7 +14,11 @@ from src.db.users import AnonymousUser, PublicUser
 from src.security.auth import get_current_user
 from src.services.orgs.acceso import exigir_acceso
 from src.services.orgs.orgs import rbac_check
-from src.services.payments.solicitudes import marcar_contactada
+from src.services.payments.solicitudes import (
+    borrar_solicitud,
+    descartar_matricula,
+    marcar_contactada,
+)
 from src.services.stats.school import (
     delete_manual_entry,
     save_manual_entry,
@@ -122,6 +126,43 @@ async def api_marcar_solicitud(
     if resultado is None:
         raise HTTPException(status_code=404, detail="No existe esa solicitud")
     return resultado
+
+
+@router.delete(
+    "/org/{org_id}/solicitudes/{request_id}",
+    summary="Borra una solicitud de plaza (para las de prueba).",
+)
+async def api_borrar_solicitud(
+    request: Request,
+    org_id: int,
+    request_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    # Borrar es de administradores; el closer solo marca "Hecho".
+    await _admin_org(request, org_id, current_user, db_session)
+    if not await borrar_solicitud(request_id, db_session):
+        raise HTTPException(status_code=404, detail="No existe esa solicitud")
+    return {"detail": "ok"}
+
+
+class Descarte(BaseModel):
+    email: str
+
+
+@router.post(
+    "/org/{org_id}/matriculas/descartar",
+    summary="Quita de las listas a quien llegó al pago y no pagó (pruebas).",
+)
+async def api_descartar_matricula(
+    request: Request,
+    org_id: int,
+    data: Descarte,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_org(request, org_id, current_user, db_session)
+    return {"descartadas": await descartar_matricula(data.email, db_session)}
 
 
 @router.delete(

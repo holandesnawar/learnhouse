@@ -81,10 +81,61 @@ def _instante(texto: str) -> float:
         return 0.0
 
 
+#: Cuánto dura una misma visita a /agendar a efectos del "No terminó".
+_VENTANA_AGENDAR_SEG = 24 * 3600
+
+
+async def _empezado_reciente(email: str, db_session: AsyncSession) -> Optional[ContactEvent]:
+    """El "agendar-empezado" de ese correo en las últimas 24 h, si lo hay."""
+    fila = (
+        await db_session.execute(
+            select(ContactEvent)
+            .where(ContactEvent.email == email)
+            .where(ContactEvent.kind == "agendar-empezado")
+            .order_by(ContactEvent.id.desc())  # type: ignore[attr-defined]
+        )
+    ).scalars().first()
+    if fila is None or not fila.created_at:
+        return None
+    try:
+        creada = datetime.fromisoformat(str(fila.created_at).replace("Z", "+00:00"))
+        if creada.tzinfo is None:
+            creada = creada.replace(tzinfo=timezone.utc)
+    except Exception:  # noqa: BLE001
+        return None
+    if (datetime.now(timezone.utc) - creada).total_seconds() > _VENTANA_AGENDAR_SEG:
+        return None
+    return fila
+
+
 async def registrar_evento(data: ContactEventCreate, db_session: AsyncSession) -> ContactEvent:
-    """Guarda lo que hizo una persona. Se recorta todo: viene de fuera."""
+    """Guarda lo que hizo una persona. Se recorta todo: viene de fuera.
+
+    Excepción: `agendar-empezado`. La web lo manda al dejar los datos y luego
+    otra vez con cada respuesta (23/09: "que se vaya guardando lo que el lead
+    toca"). Esas llamadas actualizan SU fila en vez de crear una por
+    respuesta: una persona = una línea, y si se va a mitad queda todo lo que
+    llegó a contestar.
+    """
+    email = str(data.email).strip().lower()[:255]
+    if (data.kind or "").strip() == "agendar-empezado":
+        previa = await _empezado_reciente(email, db_session)
+        if previa is not None:
+            previa.first_name = (data.first_name or "").strip()[:120] or previa.first_name
+            previa.last_name = (data.last_name or "").strip()[:120] or previa.last_name
+            previa.phone = (data.phone or "").strip()[:40] or previa.phone
+            recorrido = ",".join(x for x in (data.recorrido or []) if x)[:400]
+            if recorrido:
+                previa.recorrido = recorrido
+            if data.extra:
+                previa.extra = extra_serializado(data.extra)
+            db_session.add(previa)
+            await db_session.commit()
+            await db_session.refresh(previa)
+            return previa
+
     fila = ContactEvent(
-        email=str(data.email).strip().lower()[:255],
+        email=email,
         kind=(data.kind or "").strip()[:40],
         first_name=(data.first_name or "").strip()[:120],
         last_name=(data.last_name or "").strip()[:120],

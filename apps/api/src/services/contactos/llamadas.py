@@ -119,6 +119,8 @@ def fila_llamada(evento: dict, solicitud: Optional[dict]) -> dict:
             if isinstance(r, dict)
         ],
         "sin_respuestas": terminado and (bool(extra.get("_truncado")) or not respuestas),
+        # Solo en los que no terminaron: en qué pregunta se quedaron.
+        "ultima_pregunta": "" if terminado else str(extra.get("ultima") or ""),
         **resumen_del_lead(
             evento.get("recorrido") or "", evento.get("referrer") or "", evento.get("source") or "llamada"
         ),

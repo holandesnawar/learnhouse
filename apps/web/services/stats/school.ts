@@ -243,6 +243,43 @@ export async function marcarSolicitud(
   }
 }
 
+/** Borra una solicitud de plaza (las de prueba). Solo administradores. */
+export async function borrarSolicitud(
+  orgId: number,
+  requestId: number,
+  accessToken: string | undefined
+): Promise<boolean> {
+  if (!orgId || !accessToken) return false
+  try {
+    const r = await fetch(
+      `${base()}/org/${orgId}/solicitudes/${requestId}`,
+      RequestBodyWithAuthHeader('DELETE', null, null, accessToken)
+    )
+    return r.ok
+  } catch {
+    return false
+  }
+}
+
+/** Quita de las listas a quien llegó al pago y no pagó. No borra: la marca
+ *  como descartada y deja de contar en el embudo. Solo administradores. */
+export async function descartarMatricula(
+  orgId: number,
+  email: string,
+  accessToken: string | undefined
+): Promise<boolean> {
+  if (!orgId || !accessToken) return false
+  try {
+    const r = await fetch(
+      `${base()}/org/${orgId}/matriculas/descartar`,
+      RequestBodyWithAuthHeader('POST', { email }, null, accessToken)
+    )
+    return r.ok
+  } catch {
+    return false
+  }
+}
+
 export interface UtmLink {
   name: string
   url: string

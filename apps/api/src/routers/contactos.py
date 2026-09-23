@@ -29,6 +29,7 @@ from src.services.contactos.contactos import (
     listar_contactos,
     registrar_evento,
 )
+from src.services.contactos.agenda import agenda
 from src.services.contactos.llamadas import listar_llamadas, marcar_llamada
 from src.services.orgs.acceso import exigir_acceso
 
@@ -89,6 +90,56 @@ async def api_llamadas(
 ):
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
     return {"llamadas": await listar_llamadas(db_session)}
+
+
+@router.get(
+    "/org/{org_id}/agenda",
+    summary="Las llamadas reservadas en Calendly, con día, hora y persona.",
+)
+async def api_agenda(
+    request: Request,
+    org_id: int,
+    forzar: bool = False,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    return await agenda(forzar=forzar)
+
+
+class PedidoEnlace(BaseModel):
+    email: str
+    first_name: str
+    last_name: str = ""
+    phone: str = ""
+
+
+@router.post(
+    "/org/{org_id}/enlace-pago",
+    summary="Crea un enlace de pago personal (el checkout de la escuela, ya rellenado).",
+)
+async def api_enlace_pago(
+    request: Request,
+    org_id: int,
+    data: PedidoEnlace,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    # El closer también: es su herramienta para cerrar después de la llamada.
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    from config.config import get_learnhouse_config
+    from src.services.payments.enlace import DIAS_VALIDEZ, firmar
+    from src.services.payments.payments import _academy_url
+
+    email = data.email.strip().lower()
+    if "@" not in email or not data.first_name.strip():
+        raise HTTPException(status_code=400, detail="Hacen falta el nombre y un correo válido")
+    secreto = get_learnhouse_config().security_config.auth_jwt_secret_key
+    token = firmar(
+        {"e": email, "f": data.first_name.strip()[:120], "l": data.last_name.strip()[:120], "p": data.phone.strip()[:40]},
+        secreto,
+    )
+    return {"url": f"{_academy_url()}/api/v1/payments/pagar/{token}", "dias": DIAS_VALIDEZ}
 
 
 class MarcaLlamada(BaseModel):
