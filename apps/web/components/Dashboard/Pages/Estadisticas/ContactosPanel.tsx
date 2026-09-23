@@ -266,6 +266,7 @@ function Ficha({ email, onClose }: { email: string; onClose: () => void }) {
                         <div className="mt-1.5 rounded-lg bg-[#F7FAFF] border border-[#E7EEF9] px-3 py-2">
                           <p className="text-[12px] font-semibold text-[#1D0084] mb-1">
                             {e.extra?.apto ? 'Encaja' : 'No encaja por ahora'} · {String(e.extra?.puntuacion ?? '')} puntos
+                            {!e.extra?.apto && e.extra?.motivo_fuera ? ` · ${String(e.extra.motivo_fuera)}` : ''}
                           </p>
                           <ul className="space-y-0.5">
                             {(e.extra.respuestas as any[]).map((r, j) => (

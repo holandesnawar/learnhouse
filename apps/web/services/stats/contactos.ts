@@ -109,6 +109,8 @@ export interface Llamada {
   created_at: string
   apto: boolean
   puntuacion: number
+  /** Por qué se quedó fuera (línea roja de la web). Vacío si encaja. */
+  motivo_fuera: string
   respuestas: { pregunta: string; respuesta: string; puntos: number }[]
   sin_respuestas: boolean
   vio_precio: boolean

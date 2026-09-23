@@ -218,6 +218,9 @@ function Lista({
                   {l.utm_campaign ? ` · campaña ${l.utm_campaign}` : ''}
                 </p>
 
+                {l.terminado && !l.apto && l.motivo_fuera ? (
+                  <p className="text-[12.5px] text-[#8A6A2A]">Se quedó fuera por: {l.motivo_fuera}.</p>
+                ) : null}
                 {!l.terminado ? (
                   <p className="text-[12.5px] text-gray-600">
                     Dejó su nombre, correo y teléfono y se fue antes de contestar las preguntas. Escríbele: ya

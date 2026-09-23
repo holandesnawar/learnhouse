@@ -1281,7 +1281,13 @@ de presentación, no de goteo.
   cualificación antes de la llamada, al estilo de ICO/Typeform (letras A-B-C,
   teclado, pasa sola al elegir). **Nueve preguntas**: nivel, dónde vive, para
   qué, edad, ocupación, qué espera conseguir (abierta), horas, dinero (sin
-  cifra) y compromiso 1-5. Corte en 9 sobre 15. **Todavía no se enlaza desde ningún sitio**
+  cifra) y compromiso 1-5. **Quién queda fuera lo deciden tres líneas
+  rojas, no la suma** (23/09, "más flexible"): sin capacidad de inversión ni
+  intención de buscarla, compromiso 1 de 5, o curiosidad sin vivir ni mudarse.
+  La suma queda como temperatura para ordenar a quién llamar. Con el corte en
+  9 quedaba fuera 1 de cada 10 leads serios ("me cuesta pero busco la forma"
+  + pocas horas) y pasaban curiosos. El A2 NO es línea roja: lo ve el closer.
+  El motivo sale en Llamadas, en la ficha y en el correo (`motivo_fuera`). **Todavía no se enlaza desde ningún sitio**
   (decisión del usuario: "estamos probando").
 - ⚠️ **"Cuándo empieza" y "quién decide" se QUITARON a propósito** (23/09):
   casi no hay menores ni gente que no decida sola, y "cuándo empiezas" lo

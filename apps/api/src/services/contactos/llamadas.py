@@ -105,6 +105,10 @@ def fila_llamada(evento: dict, solicitud: Optional[dict]) -> dict:
         "created_at": evento.get("created_at") or "",
         "apto": bool(extra.get("apto")),
         "puntuacion": int(extra.get("puntuacion") or 0),
+        # Por qué se quedó fuera (una de las líneas rojas de la web). Vacío si
+        # encaja, y también en las llamadas de antes del 23/09, que decidía
+        # una suma con corte y no guardaba motivo.
+        "motivo_fuera": str(extra.get("motivo_fuera") or ""),
         "respuestas": [
             {
                 "pregunta": str(r.get("pregunta", "")),

@@ -788,7 +788,14 @@ def send_llamada_pedida_email(
     telefono = html.escape(llamada.get("phone") or "")
     apto = bool(llamada.get("apto"))
     puntos = int(llamada.get("puntuacion") or 0)
-    encaja = "Encaja: se le ofrece la llamada" if apto else "No encaja por ahora: se le mandó a la guía"
+    motivo = (llamada.get("motivo_fuera") or "").strip()
+    encaja = (
+        "Encaja: se le ofrece la llamada"
+        if apto
+        else f"No encaja por ahora: {html.escape(motivo)}. Se le mandó a la guía"
+        if motivo
+        else "No encaja por ahora: se le mandó a la guía"
+    )
     color = "#0E9F6E" if apto else "#8A6A2A"
 
     filas = "".join(
