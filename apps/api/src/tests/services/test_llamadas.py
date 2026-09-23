@@ -135,3 +135,18 @@ def test_marca_de_atendida_en_el_evento():
         None,
     )
     assert fila["contacted_at"].startswith("2026-09-23")
+
+
+def test_motivo_de_quedarse_fuera_llega_a_la_fila_y_al_correo():
+    llamada = fila_llamada(
+        {
+            "id": 2,
+            "email": "x@y.z",
+            "first_name": "Luis",
+            "extra": {"apto": False, "puntuacion": 9, "motivo_fuera": "Compromiso 1 de 5: dice que no es su momento", "respuestas": []},
+        },
+        None,
+    )
+    assert llamada["motivo_fuera"].startswith("Compromiso 1")
+    out = send_llamada_pedida_email("admin@ejemplo.com", llamada, preview=True)
+    assert "Compromiso 1 de 5" in out["html"]
