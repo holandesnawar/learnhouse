@@ -34,7 +34,9 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.contact_event import ContactEvent, ContactEventCreate
 from src.db.enrollment import Enrollment
 from src.db.enrollment_request import EnrollmentRequest
+from src.db.user_organizations import UserOrganization
 from src.db.users import User
+from src.security.rbac.constants import STUDENT_ROLE_ID
 from src.services.contactos.llamadas import avisar_equipo_llamada, extra_serializado
 from src.services.crm.systeme import SYSTEME_BASE, _headers
 from src.services.payments.solicitudes import resumen_del_lead
@@ -344,7 +346,18 @@ async def _todos_los_eventos(db_session: AsyncSession) -> list[dict]:
 
 
 async def _emails_con_cuenta(db_session: AsyncSession) -> set[str]:
-    filas = (await db_session.execute(select(User.email))).all()
+    """Los correos de quien tiene cuenta DE ALUMNO en la escuela.
+
+    ⚠️ Antes contaba cualquier cuenta, así que el administrador, el closer y
+    los profes (que dejan sus correos probando formularios) salían como
+    "alumnos": el usuario vio 12 y no había 12. Ahora solo rol de alumno."""
+    filas = (
+        await db_session.execute(
+            select(User.email)
+            .join(UserOrganization, UserOrganization.user_id == User.id)
+            .where(UserOrganization.role_id == STUDENT_ROLE_ID)
+        )
+    ).all()
     return {str(e[0]).strip().lower() for e in filas if e and e[0]}
 
 
@@ -411,7 +424,7 @@ async def etiquetas_en_systeme(email: str) -> dict:
         return {"ok": False, "motivo": "systeme.io no contestó", "etiquetas": [], "campos": []}
 
 
-async def borrar_contacto(email: str, db_session: AsyncSession) -> dict:
+async def borrar_contacto(email: str, db_session: AsyncSession, del_todo: bool = False) -> dict:
     """
     Borra el rastro de una persona que era una prueba (o un lead que no vale):
     sus eventos (guías, llamadas, cualificaciones), sus solicitudes de plaza y
@@ -424,6 +437,12 @@ async def borrar_contacto(email: str, db_session: AsyncSession) -> dict:
     - systeme.io: el CRM sigue igual; la escuela solo borra lo suyo.
     Si queda algo de eso, la persona sigue saliendo como alumno y se dice por
     qué en la respuesta, para que no parezca que el borrado ha fallado.
+
+    `del_todo=True` es para los ALUMNOS de prueba (el administrador comprando
+    con su correo, cuentas de test): además quita sus matrículas pagadas de la
+    escuela y su acceso como alumno. No devuelve nada en Stripe (el cobro y la
+    factura siguen allí) ni borra la cuenta: solo deja de ser alumno. A una
+    cuenta del equipo no se le quita nada: su rol no es de alumno.
     """
     clave = (email or "").strip().lower()
     if not clave or "@" not in clave:
@@ -442,11 +461,29 @@ async def borrar_contacto(email: str, db_session: AsyncSession) -> dict:
     for f in (
         await db_session.execute(select(Enrollment).where(func.lower(Enrollment.email) == clave))
     ).scalars().all():
-        if f.status == "paid":
+        if f.status == "paid" and not del_todo:
             pagadas += 1
             continue
         await db_session.delete(f)
         borrados["matriculas"] += 1
+
+    accesos_quitados = 0
+    if del_todo:
+        usuarios = (
+            await db_session.execute(select(User).where(func.lower(User.email) == clave))
+        ).scalars().all()
+        for u in usuarios:
+            for link in (
+                await db_session.execute(
+                    select(UserOrganization).where(
+                        UserOrganization.user_id == u.id,
+                        UserOrganization.role_id == STUDENT_ROLE_ID,
+                    )
+                )
+            ).scalars().all():
+                await db_session.delete(link)
+                accesos_quitados += 1
+    borrados["accesos"] = accesos_quitados
 
     await db_session.commit()
     tiene_cuenta = clave in await _emails_con_cuenta(db_session)

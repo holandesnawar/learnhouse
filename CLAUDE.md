@@ -1440,6 +1440,24 @@ prueba o leads malos, estén donde estén.
   matrícula (pidió plaza o llegó al pago, también los que ya pagaron), por día
   de matrícula.
 
+## Alumnos que no lo eran y pruebas en Llamadas (24/09/2026)
+- ⚠️ **"No hay 12 alumnos"**: `_emails_con_cuenta` contaba CUALQUIER cuenta,
+  así que el administrador, el closer y los profes salían como alumnos en
+  Contactos. Ahora solo cuenta quien tiene **rol de alumno**
+  (`STUDENT_ROLE_ID`) en la escuela.
+- **Borrar "del todo" a un alumno de prueba** (`del_todo=true` en
+  `DELETE /contactos/org/{id}/contacto`): además del rastro, borra sus
+  matrículas **pagadas** de la escuela y le quita el rol de alumno. **No toca
+  Stripe** (el cobro y la factura siguen; no se devuelve nada) ni borra la
+  cuenta. Lo usa la papelera de Contactos cuando la persona está en la etapa
+  "Alumno", con un aviso distinto. A una cuenta del equipo no se le quita nada:
+  su rol no es de alumno.
+- **Papelera a la vista en cada llamada**, sin tener que abrirla.
+- **Textos para el closer**: "Pidieron plaza" dice que fue en la campaña de
+  lanzamiento, por el formulario de contacto, que no pasaba por el pago. Él lo
+  leía como gente que abandonó la caja. Cada línea dice qué hizo
+  (`ETAPA_MATRICULA`) en vez de "Se matriculó".
+
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
   `git branch --show-current` antes de dar por buena ninguna que ponga aquí.

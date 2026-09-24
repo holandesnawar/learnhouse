@@ -22,6 +22,7 @@ import toast from 'react-hot-toast'
 import {
   avisoTrasBorrar,
   borrarContacto,
+  ETAPA_MATRICULA,
   ETAPA_TEXTO,
   ESTADO_TEXTO,
   type EtapaContacto,
@@ -104,7 +105,7 @@ function Fila({
             {c.telefono ? ` · ${c.telefono}` : ''}
           </p>
           <p className="text-[12px] mt-0.5 text-[#5A6480] truncate">
-            {deMatricula ? 'Se matriculó' : c.ultimo_contacto.que}
+            {deMatricula ? ETAPA_MATRICULA[c.etapa] || 'Se matriculó' : c.ultimo_contacto.que}
             <span className="text-[#9CA3AF]"> · {fecha(cuando, true)}</span>
             {c.vio_precio ? <span className="text-[#0E9F6E] font-semibold"> · vio el precio</span> : null}
             {c.utm_campaign ? <span className="text-[#025dc7]"> · {c.utm_campaign}</span> : null}
@@ -147,12 +148,17 @@ function Ficha({
 
   async function borrar() {
     if (!onBorrado) return
+    // Un alumno de prueba se borra del todo (pagos de la escuela y acceso);
+    // el resto, solo su rastro. Mismo criterio que la papelera de la línea.
+    const esAlumno = d?.etapa === 'alumno'
     const ok = window.confirm(
-      `¿Borrar a ${d?.nombre || email}? Es para pruebas o leads que no valen: se borran sus guías, llamadas, solicitudes y matrículas sin pagar. No se puede deshacer. Los pagos, la cuenta y el CRM no se tocan.`
+      esAlumno
+        ? `¿Borrar a ${d?.nombre || email}? Es ALUMNO: solo si era una prueba tuya. Se borra todo su rastro, sus pagos de la escuela (en Stripe el cobro y la factura siguen igual, no se devuelve nada) y su acceso como alumno. No se puede deshacer.`
+        : `¿Borrar a ${d?.nombre || email}? Es para pruebas o leads que no valen: se borran sus guías, llamadas, solicitudes y matrículas sin pagar. No se puede deshacer. Los pagos, la cuenta y el CRM no se tocan.`
     )
     if (!ok) return
     setBorrando(true)
-    const r = await borrarContacto(org?.id, email, accessToken)
+    const r = await borrarContacto(org?.id, email, accessToken, esAlumno)
     setBorrando(false)
     if (!r.ok) {
       toast.error(r.error || 'No se ha podido borrar')
@@ -462,8 +468,12 @@ function MapaWeb() {
 /** Las etapas, en orden. Las del closer son solo las de matrícula. */
 const ETAPAS_ADMIN: { id: EtapaContacto; nombre: string; que: string }[] = [
   { id: 'lead', nombre: 'Leads', que: 'Dejaron el correo: guía, Instagram o lista de espera' },
-  { id: 'pidio', nombre: 'Pidieron plaza', que: 'Formulario de plaza o de llamada, sin pagar' },
-  { id: 'en-pago', nombre: 'Llegaron al pago', que: 'Y no terminaron de pagar' },
+  // Aclarado a petición del usuario: el closer leía "pidieron plaza" y "no
+  // llegaron al pago" como si esa gente hubiera abandonado la caja. No: en la
+  // campaña de lanzamiento el formulario era de contacto, sin pago; esas
+  // personas se cierran llamando.
+  { id: 'pidio', nombre: 'Pidieron plaza', que: 'En la campaña de lanzamiento, por el formulario de contacto. No pasaba por el pago: se cierra llamando' },
+  { id: 'en-pago', nombre: 'Llegaron al pago', que: 'Rellenaron la matrícula con precio y no terminaron de pagar' },
   { id: 'alumno', nombre: 'Alumnos', que: 'Pagaron o tienen cuenta' },
 ]
 const ETAPAS_CLOSER = ETAPAS_ADMIN.filter((e) => e.id !== 'lead').map((e) =>
@@ -509,14 +519,13 @@ export default function ContactosPanel() {
   const totalMatriculas = (datos?.contactos ?? []).filter((c) => c.matricula_at).length
 
   // Borrar a una persona (solo administradores), desde la línea o la ficha.
-  async function borrarPersona(c: { email: string; nombre?: string }) {
-    if (
-      !window.confirm(
-        `¿Borrar a ${c.nombre || c.email}? Es para pruebas o leads que no valen: se borran sus guías, llamadas, solicitudes y matrículas sin pagar. No se puede deshacer. Los pagos, la cuenta y el CRM no se tocan.`
-      )
-    )
-      return
-    const r = await borrarContacto(org?.id, c.email, accessToken)
+  async function borrarPersona(c: { email: string; nombre?: string; etapa?: EtapaContacto }) {
+    const esAlumno = c.etapa === 'alumno'
+    const aviso = esAlumno
+      ? `¿Borrar a ${c.nombre || c.email}? Es ALUMNO: solo si era una prueba tuya. Se borra todo su rastro, sus pagos de la escuela (en Stripe el cobro y la factura siguen igual, no se devuelve nada) y su acceso como alumno. No se puede deshacer.`
+      : `¿Borrar a ${c.nombre || c.email}? Es para pruebas o leads que no valen: se borran sus guías, llamadas, solicitudes y matrículas sin pagar. No se puede deshacer. Los pagos, la cuenta y el CRM no se tocan.`
+    if (!window.confirm(aviso)) return
+    const r = await borrarContacto(org?.id, c.email, accessToken, esAlumno)
     if (!r.ok) {
       toast.error(r.error || 'No se ha podido borrar')
       return

@@ -47,6 +47,14 @@ export interface Contacto {
 
 export type EtapaContacto = 'lead' | 'pidio' | 'en-pago' | 'alumno'
 
+/** Lo que hizo al matricularse, en una línea (para el closer y "Matrículas hechas"). */
+export const ETAPA_MATRICULA: Record<EtapaContacto, string> = {
+  lead: 'Dejó sus datos',
+  pidio: 'Pidió plaza por el formulario (campaña de lanzamiento)',
+  'en-pago': 'Llegó al pago y no pagó',
+  alumno: 'Ya es alumno',
+}
+
 export const ETAPA_TEXTO: Record<EtapaContacto, string> = {
   lead: 'Lead',
   pidio: 'Pidió plaza',
@@ -231,11 +239,15 @@ export async function crearEnlacePago(
 export async function borrarContacto(
   orgId: number,
   email: string,
-  accessToken: string
+  accessToken: string,
+  /** Para alumnos de prueba: quita también sus pagos de la escuela y su acceso. */
+  delTodo = false
 ): Promise<{ ok: boolean; quedan?: { pagadas: number; cuenta: boolean }; error?: string }> {
   try {
+    const params = new URLSearchParams({ email })
+    if (delTodo) params.set('del_todo', 'true')
     const res = await fetch(
-      `${getAPIUrl()}contactos/org/${orgId}/contacto?${new URLSearchParams({ email }).toString()}`,
+      `${getAPIUrl()}contactos/org/${orgId}/contacto?${params.toString()}`,
       RequestBodyWithAuthHeader('DELETE', null, null, accessToken)
     )
     const cuerpo = await res.json().catch(() => ({}))
