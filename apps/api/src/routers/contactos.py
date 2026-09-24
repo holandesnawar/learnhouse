@@ -273,7 +273,7 @@ class GuionWrite(BaseModel):
     texto: str = ""
 
 
-@router.put("/org/{org_id}/guion", summary="Cambia el guion de llamada (solo administradores).")
+@router.put("/org/{org_id}/guion", summary="Cambia el guion de llamada (administradores y closer).")
 async def api_guardar_guion(
     request: Request,
     org_id: int,
@@ -281,10 +281,9 @@ async def api_guardar_guion(
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ):
-    org = (await db_session.execute(select(Organization).where(Organization.id == org_id))).scalars().first()
-    if not org:
-        raise HTTPException(status_code=404, detail="Organization not found")
-    await rbac_check(request, org.org_uuid, current_user, "update", db_session)
+    # El closer también lo edita (24/09): es quien lo usa y quien sabe qué
+    # funciona en la llamada. Misma puerta que el resto de Contactos.
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
     try:
         return await guardar_guion(org_id, data.texto, db_session)
     except ValueError as exc:

@@ -1,8 +1,8 @@
 'use client'
 
 /**
- * Guion de llamada: lo que el closer tiene delante mientras habla. Lo lee el
- * closer; lo cambia el administrador desde aquí mismo (botón "Editar").
+ * Guion de llamada: lo que el closer tiene delante mientras habla. Lo pueden
+ * cambiar el administrador y el closer desde aquí mismo (botón "Editar").
  * El texto de fábrica y el razonamiento están en
  * apps/api/src/services/contactos/guion.py.
  *
@@ -66,7 +66,9 @@ export default function GuionPanel() {
   const org = useOrg() as any
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
-  const { isAdmin } = useAdminStatus()
+  const { isAdmin, isCloser } = useAdminStatus()
+  // Lo editan los dos: el administrador y el closer, que es quien lo usa.
+  const puedeEditar = isAdmin || isCloser
 
   const [texto, setTexto] = useState('')
   const [deFabrica, setDeFabrica] = useState(true)
@@ -113,7 +115,7 @@ export default function GuionPanel() {
           Lo que hay que contar en cada llamada y cómo responder a las dudas de siempre. Así el precio, la garantía y lo
           que incluye la formación se dicen igual que en la web.
         </p>
-        {isAdmin && !editando ? (
+        {puedeEditar && !editando ? (
           <button
             onClick={() => {
               setBorrador(texto)
@@ -168,7 +170,7 @@ export default function GuionPanel() {
       ) : (
         <div className={CARD}>
           <Texto texto={texto} />
-          {isAdmin && deFabrica ? (
+          {puedeEditar && deFabrica ? (
             <p className="mt-4 text-[11.5px] text-[#9CA3AF]">
               Es el guion de fábrica. Cámbialo con "Editar" cuando quieras adaptarlo.
             </p>
