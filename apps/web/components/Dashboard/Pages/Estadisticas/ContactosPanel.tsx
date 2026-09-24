@@ -18,13 +18,18 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import PorDia from './PorDia'
+import { marcarSolicitud } from '@services/stats/school'
 import Seguimiento from './Seguimiento'
 import toast from 'react-hot-toast'
 import {
   avisoTrasBorrar,
   borrarContacto,
   cuandoLlamar,
-  getRecordatorios,
+  getResumenSeguimiento,
+  quitarDeMetricas,
+  volverAContar,
+  type NotaReciente,
+  type ResumenSeguimiento,
   hoyISO,
   type VolverALlamar,
   ETAPA_MATRICULA,
@@ -36,7 +41,7 @@ import {
   type Contacto,
   type ContactoDetalle,
 } from '@services/stats/contactos'
-import { BellRing, ChevronDown, ChevronRight, Loader2, Map as MapIcon, Search, Tag, Trash2, X } from 'lucide-react'
+import { BellRing, Check, ChevronDown, ChevronRight, Eye, EyeOff, Loader2, Map as MapIcon, NotebookPen, RotateCcw, Search, Tag, Trash2, X } from 'lucide-react'
 import { ETAPAS, MAPA_WEB } from '@lib/nawar/mapaWeb'
 
 const CARD = 'rounded-2xl border border-[#DDE6F5] bg-white p-3.5 sm:p-5'
@@ -86,26 +91,44 @@ function Fila({
   c,
   onOpen,
   deMatricula,
-  onBorrar,
   llamar,
+  notas = 0,
+  onQuitar,
+  onAtendida,
+  guardando = false,
 }: {
   c: Contacto
   onOpen: () => void
   deMatricula: boolean
   llamar?: VolverALlamar
-  /** Solo administradores: la papelera, a la vista en cada línea. */
-  onBorrar?: () => void
+  /** Cuántas notas le ha dejado el equipo. */
+  notas?: number
+  /** Solo administradores: borrar (lead) o quitar de las métricas (alumno). */
+  onQuitar?: () => void
+  /** Marcar atendida su solicitud de plaza (closer y administrador). */
+  onAtendida?: () => void
+  guardando?: boolean
 }) {
   // Al closer (y en "Matrículas hechas") importa CUÁNDO se matriculó; si no,
   // lo último que hizo.
   const cuando = deMatricula ? c.matricula_at : c.ultimo_contacto.when
+  const esAlumno = c.etapa === 'alumno'
   return (
-    <div className="rounded-xl border border-[#DDE6F5] bg-[#F7FAFF] hover:bg-[#EEF4FF] flex items-center transition-colors">
+    <div
+      className={`rounded-xl border flex items-stretch transition-colors ${
+        c.atendida ? 'border-[#E7EEF9] bg-white' : 'border-[#DDE6F5] bg-[#F7FAFF] hover:bg-[#EEF4FF]'
+      } ${c.fuera_de_metricas ? 'opacity-60' : ''}`}
+    >
       <button onClick={onOpen} className="flex-1 min-w-0 text-left px-3.5 py-2.5 flex items-center gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-[13.5px] font-semibold text-gray-900 flex items-center gap-2 min-w-0">
+          <p className="text-[13.5px] font-semibold text-gray-900 flex items-center gap-1.5 min-w-0 flex-wrap">
             <span className="truncate">{c.nombre || c.email}</span>
             <EtapaPill etapa={c.etapa} />
+            {c.atendida ? (
+              <span className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold bg-[#E8FBF3] text-[#0E9F6E]">
+                <Check size={11} /> Atendida
+              </span>
+            ) : null}
             {llamar ? (
               <span
                 className={`shrink-0 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
@@ -113,6 +136,16 @@ function Fila({
                 }`}
               >
                 Llamar {cuandoLlamar(llamar.fecha)}
+              </span>
+            ) : null}
+            {notas ? (
+              <span className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold bg-[#F0F5FF] text-[#025dc7]">
+                <NotebookPen size={11} /> {notas} {notas === 1 ? 'nota' : 'notas'}
+              </span>
+            ) : null}
+            {c.fuera_de_metricas ? (
+              <span className="shrink-0 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold bg-[#F3F4F6] text-[#6B7590]">
+                Fuera de los números
               </span>
             ) : null}
           </p>
@@ -129,14 +162,35 @@ function Fila({
         </div>
         <ChevronRight size={16} className="text-[#9CA3AF] shrink-0" />
       </button>
-      {onBorrar ? (
+      {onAtendida ? (
         <button
-          onClick={onBorrar}
-          title="Borrar (era una prueba o no vale)"
-          aria-label={`Borrar a ${c.nombre || c.email}`}
-          className="shrink-0 self-stretch px-3 border-l border-[#DDE6F5] text-red-500 hover:text-red-700 hover:bg-red-50 rounded-r-xl transition-colors"
+          onClick={onAtendida}
+          disabled={guardando}
+          title={c.atendida ? 'Volver a pendiente' : 'Marcar como atendida'}
+          className={`shrink-0 px-3 border-l border-[#DDE6F5] text-[12px] font-bold transition-colors disabled:opacity-50 ${
+            c.atendida ? 'text-[#9CA3AF] hover:text-gray-700' : 'text-[#0E9F6E] hover:bg-[#E8FBF3]'
+          }`}
         >
-          <Trash2 size={16} />
+          {c.atendida ? <RotateCcw size={15} /> : <Check size={16} />}
+        </button>
+      ) : null}
+      {onQuitar ? (
+        <button
+          onClick={onQuitar}
+          disabled={guardando}
+          title={
+            c.fuera_de_metricas
+              ? 'Volver a contarle en los números'
+              : esAlumno
+                ? 'Quitar de los números (era una prueba). Sigue pudiendo entrar.'
+                : 'Borrar (era una prueba o no vale)'
+          }
+          aria-label={esAlumno ? `Quitar a ${c.nombre || c.email} de los números` : `Borrar a ${c.nombre || c.email}`}
+          className={`shrink-0 px-3 border-l border-[#DDE6F5] rounded-r-xl transition-colors disabled:opacity-50 ${
+            esAlumno || c.fuera_de_metricas ? 'text-[#5A6480] hover:bg-[#F0F5FF]' : 'text-red-500 hover:text-red-700 hover:bg-red-50'
+          }`}
+        >
+          {c.fuera_de_metricas ? <Eye size={16} /> : esAlumno ? <EyeOff size={16} /> : <Trash2 size={16} />}
         </button>
       ) : null}
     </div>
@@ -147,44 +201,23 @@ function Ficha({
   email,
   onClose,
   sinCrm = false,
-  onBorrado,
+  onQuitar,
+  quitarEtiqueta = 'Borrar',
   onCambioFecha,
 }: {
   email: string
   onClose: () => void
   sinCrm?: boolean
   onCambioFecha?: (email: string, v: VolverALlamar | null) => void
-  /** Solo para administradores: si llega, sale el botón de borrar. */
-  onBorrado?: (email: string, quedan?: { pagadas: number; cuenta: boolean }) => void
+  /** Solo administradores: borrar (lead) o quitar de los números (alumno). */
+  onQuitar?: () => void
+  quitarEtiqueta?: string
 }) {
   const org = useOrg() as any
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
   const [d, setD] = useState<ContactoDetalle | null>(null)
   const [cargando, setCargando] = useState(true)
-  const [borrando, setBorrando] = useState(false)
-
-  async function borrar() {
-    if (!onBorrado) return
-    // Un alumno de prueba se borra del todo (pagos de la escuela y acceso);
-    // el resto, solo su rastro. Mismo criterio que la papelera de la línea.
-    const esAlumno = d?.etapa === 'alumno'
-    const ok = window.confirm(
-      esAlumno
-        ? `¿Borrar a ${d?.nombre || email}? Es ALUMNO: solo si era una prueba tuya. Se borra todo su rastro, sus pagos de la escuela (en Stripe el cobro y la factura siguen igual, no se devuelve nada) y su acceso como alumno. No se puede deshacer.`
-        : `¿Borrar a ${d?.nombre || email}? Es para pruebas o leads que no valen: se borran sus guías, llamadas, solicitudes y matrículas sin pagar. No se puede deshacer. Los pagos, la cuenta y el CRM no se tocan.`
-    )
-    if (!ok) return
-    setBorrando(true)
-    const r = await borrarContacto(org?.id, email, accessToken, esAlumno)
-    setBorrando(false)
-    if (!r.ok) {
-      toast.error(r.error || 'No se ha podido borrar')
-      return
-    }
-    onBorrado(email, r.quedan)
-  }
-
   useEffect(() => {
     let vivo = true
     setCargando(true)
@@ -243,13 +276,14 @@ function Ficha({
                     Sin rastro de haber visto el precio
                   </span>
                 )}
-                {onBorrado ? (
+                {onQuitar ? (
                   <button
-                    onClick={borrar}
-                    disabled={borrando}
-                    className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50"
+                    onClick={onQuitar}
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                      quitarEtiqueta === 'Borrar' ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-[#F3F4F6] text-[#5A6480] hover:bg-[#E9ECF2]'
+                    }`}
                   >
-                    <Trash2 size={11} /> Borrar
+                    {quitarEtiqueta === 'Borrar' ? <Trash2 size={11} /> : <EyeOff size={11} />} {quitarEtiqueta}
                   </button>
                 ) : null}
                 {wa ? (
@@ -387,16 +421,6 @@ function Ficha({
               </ol>
             </div>
 
-            {onBorrado ? (
-              <button
-                onClick={borrar}
-                disabled={borrando}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12.5px] font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
-              >
-                {borrando ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                Borrar este contacto (era una prueba)
-              </button>
-            ) : null}
           </div>
         )}
       </aside>
@@ -501,6 +525,48 @@ const ETAPAS_CLOSER = ETAPAS_ADMIN.filter((e) => e.id !== 'lead').map((e) =>
   e.id === 'alumno' ? { ...e, nombre: 'Ya son alumnos', que: 'Ya pagaron: no hace falta llamar' } : e
 )
 
+/**
+ * Lo último que ha apuntado el equipo (sobre todo el closer), para que el
+ * administrador lo vea sin abrir ficha por ficha. Tocar una nota abre la ficha.
+ */
+function UltimasNotas({
+  notas,
+  nombreDe,
+  abrir,
+}: {
+  notas: NotaReciente[]
+  nombreDe: (email: string) => string
+  abrir: (email: string) => void
+}) {
+  const [todas, setTodas] = useState(false)
+  if (!notas.length) return null
+  const vistas = todas ? notas : notas.slice(0, 3)
+  return (
+    <div className={CARD}>
+      <p className="text-[14px] font-bold text-gray-900 flex items-center gap-2">
+        <NotebookPen size={15} className="text-[#025dc7]" /> Lo último que ha apuntado el equipo
+      </p>
+      <ul className="mt-2.5 divide-y divide-[#EEF2F9]">
+        {vistas.map((n) => (
+          <li key={n.id}>
+            <button onClick={() => abrir(n.email)} className="w-full text-left py-2.5 hover:bg-[#F7FAFF] rounded-lg px-1.5">
+              <p className="text-[12px] text-gray-500">
+                <strong className="text-gray-900">{nombreDe(n.email)}</strong> · {n.autor} · {fecha(n.created_at, true)}
+              </p>
+              <p className="text-[13px] text-gray-800 mt-0.5 line-clamp-2 whitespace-pre-wrap">{n.texto}</p>
+            </button>
+          </li>
+        ))}
+      </ul>
+      {notas.length > 3 ? (
+        <button onClick={() => setTodas((v) => !v)} className="mt-1 text-[12.5px] font-semibold text-[#025dc7] hover:underline">
+          {todas ? 'Ver menos' : `Ver las ${notas.length} últimas`}
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
 export default function ContactosPanel() {
   const org = useOrg() as any
   const session = useLHSession() as any
@@ -512,72 +578,119 @@ export default function ContactosPanel() {
   const [cargando, setCargando] = useState(true)
   const [abierto, setAbierto] = useState<string | null>(null)
   const [etapa, setEtapa] = useState<EtapaContacto | null>(null)
+  const [guardando, setGuardando] = useState<string | null>(null)
+  const [verFuera, setVerFuera] = useState(false)
   // "Matrículas hechas": solo quien rellenó la matrícula (pidió plaza o llegó
-  // al pago), por día de matrícula. Es lo que ve siempre el closer.
+  // al pago), por día de matrícula. Es lo que ve siempre el closer. Se puede
+  // abrir directo con ?vista=matriculas (el enlace de Estadísticas).
   const [soloMatriculasElegido, setSoloMatriculas] = useState(false)
+  useEffect(() => {
+    try {
+      if (new URLSearchParams(window.location.search).get('vista') === 'matriculas') setSoloMatriculas(true)
+    } catch {}
+  }, [])
   const soloMatriculas = isCloser || soloMatriculasElegido
 
-  const [recordatorios, setRecordatorios] = useState<Record<string, VolverALlamar>>({})
+  const [resumen, setResumen] = useState<ResumenSeguimiento>({ recordatorios: {}, notas_por_email: {}, ultimas_notas: [] })
+  const recordatorios = resumen.recordatorios
 
   const cargar = useCallback(async () => {
     if (!org?.id || !accessToken) return
     setCargando(true)
-    const [lista, recs] = await Promise.all([getContactos(org.id, '', accessToken), getRecordatorios(org.id, accessToken)])
+    const [lista, res] = await Promise.all([getContactos(org.id, '', accessToken), getResumenSeguimiento(org.id, accessToken)])
     setDatos(lista)
-    setRecordatorios(recs)
+    setResumen(res)
     setCargando(false)
   }, [org?.id, accessToken])
 
   const cambioFecha = (email: string, v: VolverALlamar | null) =>
-    setRecordatorios((prev) => {
-      const next = { ...prev }
-      if (v) next[email.toLowerCase()] = v
-      else delete next[email.toLowerCase()]
-      return next
+    setResumen((prev) => {
+      const recs = { ...prev.recordatorios }
+      if (v) recs[email.toLowerCase()] = v
+      else delete recs[email.toLowerCase()]
+      return { ...prev, recordatorios: recs }
     })
 
   useEffect(() => {
     cargar()
   }, [cargar])
 
-  // El servidor ya le manda al closer solo las matrículas; esto es por si
-  // acaso y para ordenar por la fecha buena.
+  // Los quitados de los números no cuentan en nada: ni en las tarjetas ni en
+  // la lista. Se pueden ver abajo ("N fuera de los números") y devolver.
+  const todos = datos?.contactos ?? []
+  const fuera = todos.filter((c) => c.fuera_de_metricas)
   const lista = useMemo(() => {
-    const todos = datos?.contactos ?? []
-    return soloMatriculas ? todos.filter((c) => c.matricula_at) : todos
-  }, [datos, soloMatriculas])
+    const cuentan = todos.filter((c) => !c.fuera_de_metricas)
+    return soloMatriculas ? cuentan.filter((c) => c.matricula_at) : cuentan
+  }, [todos, soloMatriculas])
 
   const etapas = soloMatriculas ? ETAPAS_CLOSER : ETAPAS_ADMIN
-  const totalTodos = datos?.contactos.length ?? 0
-  const totalMatriculas = (datos?.contactos ?? []).filter((c) => c.matricula_at).length
+  const totalTodos = todos.filter((c) => !c.fuera_de_metricas).length
+  const totalMatriculas = todos.filter((c) => !c.fuera_de_metricas && c.matricula_at).length
+  const nombreDe = (email: string) => todos.find((c) => c.email === email)?.nombre || email
 
-  // Borrar a una persona (solo administradores), desde la línea o la ficha.
-  async function borrarPersona(c: { email: string; nombre?: string; etapa?: EtapaContacto }) {
-    const esAlumno = c.etapa === 'alumno'
-    const aviso = esAlumno
-      ? `¿Borrar a ${c.nombre || c.email}? Es ALUMNO: solo si era una prueba tuya. Se borra todo su rastro, sus pagos de la escuela (en Stripe el cobro y la factura siguen igual, no se devuelve nada) y su acceso como alumno. No se puede deshacer.`
-      : `¿Borrar a ${c.nombre || c.email}? Es para pruebas o leads que no valen: se borran sus guías, llamadas, solicitudes y matrículas sin pagar. No se puede deshacer. Los pagos, la cuenta y el CRM no se tocan.`
-    if (!window.confirm(aviso)) return
-    const r = await borrarContacto(org?.id, c.email, accessToken, esAlumno)
-    if (!r.ok) {
-      toast.error(r.error || 'No se ha podido borrar')
-      return
+  const actualizarFicha = (email: string, cambios: Partial<Contacto>) =>
+    setDatos((prev) =>
+      prev ? { ...prev, contactos: prev.contactos.map((x) => (x.email === email ? { ...x, ...cambios } : x)) } : prev
+    )
+
+  // Administrador: a un lead se le BORRA; a un alumno se le QUITA de los
+  // números (sigue pudiendo entrar: 24/09, "no quiero quitarlo de la escuela").
+  async function quitar(c: Contacto) {
+    if (c.fuera_de_metricas) {
+      setGuardando(c.email)
+      const r = await volverAContar(org?.id, c.email, accessToken)
+      setGuardando(null)
+      if (!r.ok) return toast.error(r.error || 'No se ha podido guardar')
+      actualizarFicha(c.email, { fuera_de_metricas: false })
+      return toast.success('Vuelve a contar en los números')
     }
-    trasBorrar(c.email, r.quedan)
-  }
-
-  function trasBorrar(email: string, quedan?: { pagadas: number; cuenta: boolean }) {
+    if (c.etapa === 'alumno') {
+      if (
+        !window.confirm(
+          `¿Quitar a ${c.nombre || c.email} de los números? Deja de contar en las estadísticas, los gastos y las plazas. Su cuenta, su acceso a la escuela y sus pagos siguen igual. Se puede deshacer.`
+        )
+      )
+        return
+      setGuardando(c.email)
+      const r = await quitarDeMetricas(org?.id, c.email, accessToken)
+      setGuardando(null)
+      if (!r.ok) return toast.error(r.error || 'No se ha podido guardar')
+      setAbierto(null)
+      actualizarFicha(c.email, { fuera_de_metricas: true })
+      return toast.success('Quitado de los números')
+    }
+    if (
+      !window.confirm(
+        `¿Borrar a ${c.nombre || c.email}? Es para pruebas o leads que no valen: se borran sus guías, llamadas, solicitudes, notas y matrículas sin pagar. No se puede deshacer.`
+      )
+    )
+      return
+    setGuardando(c.email)
+    const r = await borrarContacto(org?.id, c.email, accessToken)
+    setGuardando(null)
+    if (!r.ok) return toast.error(r.error || 'No se ha podido borrar')
     setAbierto(null)
-    const aviso = avisoTrasBorrar(quedan)
+    const aviso = avisoTrasBorrar(r.quedan)
     if (aviso === 'Borrado') {
-      // Fuera de la lista al momento, sin recargar.
-      setDatos((prev) => (prev ? { ...prev, contactos: prev.contactos.filter((x) => x.email !== email) } : prev))
+      setDatos((prev) => (prev ? { ...prev, contactos: prev.contactos.filter((x) => x.email !== c.email) } : prev))
       toast.success('Borrado')
     } else {
       toast(aviso, { duration: 7000 })
       cargar()
     }
   }
+
+  // Atendida = su solicitud de plaza marcada (la misma marca que Llamadas).
+  async function alternarAtendida(c: Contacto) {
+    if (!c.solicitud_id) return
+    setGuardando(c.email)
+    const ok = await marcarSolicitud(org?.id, c.solicitud_id, !c.atendida, accessToken)
+    setGuardando(null)
+    if (!ok) return toast.error('No se ha podido guardar')
+    actualizarFicha(c.email, { atendida: !c.atendida })
+  }
+
   const cuenta = (id: EtapaContacto) => lista.filter((c) => c.etapa === id).length
 
   // El buscador filtra en el navegador: la lista ya viene entera y así
@@ -605,10 +718,14 @@ export default function ContactosPanel() {
       c={c}
       deMatricula={soloMatriculas}
       onOpen={() => setAbierto(c.email)}
-      onBorrar={isAdmin ? () => borrarPersona(c) : undefined}
+      onQuitar={isAdmin ? () => quitar(c) : undefined}
+      onAtendida={c.solicitud_id ? () => alternarAtendida(c) : undefined}
+      guardando={guardando === c.email}
       llamar={recordatorios[c.email.toLowerCase()]}
+      notas={resumen.notas_por_email[c.email.toLowerCase()] || 0}
     />
   )
+  const contactoAbierto = todos.find((c) => c.email === abierto)
 
   return (
     <section className="space-y-4">
@@ -637,14 +754,14 @@ export default function ContactosPanel() {
 
       <p className="text-[13px] text-[#5A6480] leading-relaxed">
         {soloMatriculas
-          ? 'Todas las matrículas: quien pidió plaza o llegó al pago (y los que ya pagaron). Ordenadas por el día en que se matricularon. Abre una para ver lo que ha hecho y sus respuestas.'
-          : 'Una ficha por persona que ha dejado sus datos, en la etapa más lejana a la que llegó. Ordenadas por el día de su último movimiento. Toca una etapa para ver solo esa.'}
+          ? 'Quien pidió plaza o llegó al pago (y los que ya pagaron), por el día en que se matricularon. Abre una para ver sus respuestas, apuntar notas y poner cuándo volver a llamar. El ✓ la marca como atendida.'
+          : 'Una ficha por persona que ha dejado sus datos, en la etapa más lejana a la que llegó, por el día de su último movimiento. Toca una etapa para ver solo esa.'}
       </p>
 
       {/* Lo que toca hoy (y lo que se pasó de fecha), antes que nada. */}
       {(() => {
         const hoy = hoyISO()
-        const tocan = (datos?.contactos ?? [])
+        const tocan = lista
           .filter((c) => recordatorios[c.email.toLowerCase()]?.fecha && recordatorios[c.email.toLowerCase()].fecha <= hoy)
           .sort((a, b) => recordatorios[a.email.toLowerCase()].fecha.localeCompare(recordatorios[b.email.toLowerCase()].fecha))
         if (!tocan.length) return null
@@ -661,6 +778,9 @@ export default function ContactosPanel() {
           </div>
         )
       })()}
+
+      {/* El administrador ve lo que va apuntando el closer. */}
+      {isAdmin ? <UltimasNotas notas={resumen.ultimas_notas} nombreDe={nombreDe} abrir={setAbierto} /> : null}
 
       {/* Las etapas SON los filtros, y suman el total: cada persona está en una sola. */}
       <div className={`grid grid-cols-2 ${etapas.length === 4 ? 'lg:grid-cols-4' : 'sm:grid-cols-3'} gap-2.5`}>
@@ -749,6 +869,26 @@ export default function ContactosPanel() {
             resto.
           </p>
         ) : null}
+
+        {/* Los quitados de los números: fuera de todo, pero a la vista si se piden. */}
+        {isAdmin && fuera.length ? (
+          <div className="mt-4 pt-3 border-t border-[#EEF2F9]">
+            <button
+              onClick={() => setVerFuera((v) => !v)}
+              className="text-[12.5px] font-semibold text-[#5A6480] hover:text-gray-900 inline-flex items-center gap-1.5"
+            >
+              {verFuera ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              {fuera.length} fuera de los números (pruebas)
+            </button>
+            {verFuera ? (
+              <div className="mt-2 space-y-1.5">
+                {fuera.map((c) => (
+                  <React.Fragment key={c.email}>{fila(c)}</React.Fragment>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {isCloser ? null : <MapaWeb />}
@@ -758,7 +898,14 @@ export default function ContactosPanel() {
           email={abierto}
           sinCrm={isCloser}
           onClose={() => setAbierto(null)}
-          onBorrado={isAdmin ? trasBorrar : undefined}
+          onQuitar={isAdmin && contactoAbierto ? () => quitar(contactoAbierto) : undefined}
+          quitarEtiqueta={
+            contactoAbierto?.fuera_de_metricas
+              ? 'Volver a contar'
+              : contactoAbierto?.etapa === 'alumno'
+                ? 'Quitar de los números'
+                : 'Borrar'
+          }
           onCambioFecha={cambioFecha}
         />
       ) : null}

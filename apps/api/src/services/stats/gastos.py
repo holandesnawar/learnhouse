@@ -110,8 +110,13 @@ async def panel_gastos(org_id: int, db_session: AsyncSession) -> dict:
     pagadas = (
         await db_session.execute(select(Enrollment).where(Enrollment.status == "paid"))
     ).scalars().all()
+    from src.services.contactos.metricas import emails_excluidos, ids_excluidos
+
+    fuera = await emails_excluidos(db_session)
     ventas = []
     for r in pagadas:
+        if (r.email or "").strip().lower() in fuera:
+            continue
         fecha = r.paid_at or r.updated_at or r.created_at or ""
         # Misma fecha de corte que las ventas y las plazas: las pruebas no cuentan.
         if desde and (r.paid_at or "") < desde:
@@ -123,16 +128,33 @@ async def panel_gastos(org_id: int, db_session: AsyncSession) -> dict:
             select(SchoolExpense).where(SchoolExpense.org_id == org_id).order_by(SchoolExpense.fecha.desc(), SchoolExpense.id.desc())  # type: ignore[attr-defined]
         )
     ).scalars().all()
-    alumnos = (
-        await db_session.execute(
-            select(func.count()).select_from(UserOrganization).where(
-                UserOrganization.org_id == org_id, UserOrganization.role_id == STUDENT_ROLE_ID
-            )
-        )
-    ).scalar() or 0
+    fuera_ids = await ids_excluidos(db_session)
+    alumnos = len(
+        [
+            u
+            for u in (
+                await db_session.execute(
+                    select(UserOrganization.user_id).where(
+                        UserOrganization.org_id == org_id, UserOrganization.role_id == STUDENT_ROLE_ID
+                    )
+                )
+            ).scalars().all()
+            if u not in fuera_ids
+        ]
+    )
 
-    datos = resumen_gastos(ventas, [(g.fecha, g.categoria, g.importe_cents) for g in filas], int(alumnos))
-    datos["gastos"] = [
+    # Lo que se apuntaba antes en Estadísticas → "Lo que escribes tú" (gasto
+    # del mes para captar y coste de entregar). Esa pantalla ya no lo pide:
+    # un solo sitio para los gastos. Lo antiguo se enseña aquí y cuenta igual,
+    # marcado como tal, para no perder nada de lo ya apuntado.
+    from src.db.school_stats import ManualEntry
+
+    antiguos = (
+        await db_session.execute(
+            select(ManualEntry).where(ManualEntry.org_id == org_id, ManualEntry.kind.in_(("cost", "delivery")))  # type: ignore[attr-defined]
+        )
+    ).scalars().all()
+    lista = [
         {
             "id": g.id,
             "fecha": g.fecha,
@@ -140,9 +162,26 @@ async def panel_gastos(org_id: int, db_session: AsyncSession) -> dict:
             "concepto": g.concepto,
             "importe_cents": g.importe_cents,
             "nota": g.nota,
+            "antiguo_id": None,
         }
-        for g in filas[:500]
+        for g in filas
+    ] + [
+        {
+            "id": None,
+            "fecha": f"{m.period}-01" if len(m.period) == 7 else m.period,
+            "categoria": "publicidad" if m.kind == "cost" else "profes",
+            "concepto": (m.label or m.note or ("Gasto del mes para captar" if m.kind == "cost" else "Coste de entregar el curso")),
+            "importe_cents": int(round((m.value or 0) * 100)),
+            "nota": "Apuntado antes en Estadísticas",
+            "antiguo_id": m.id,
+        }
+        for m in antiguos
+        if (m.value or 0) > 0
     ]
+    lista.sort(key=lambda g: g["fecha"], reverse=True)
+
+    datos = resumen_gastos(ventas, [(g["fecha"], g["categoria"], g["importe_cents"]) for g in lista], int(alumnos))
+    datos["gastos"] = lista[:500]
     datos["categorias"] = CATEGORIAS
     datos["desde"] = desde
     return datos

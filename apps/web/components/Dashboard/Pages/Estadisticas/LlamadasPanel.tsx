@@ -451,6 +451,7 @@ function AgendaCard({
   abrir: (email: string) => void
   tieneFicha: (email: string) => boolean
 }) {
+  const { isAdmin } = useAdminStatus()
   return (
     <div className={CARD}>
       <div className="flex items-center justify-between gap-3">
@@ -471,11 +472,18 @@ function AgendaCard({
       {agenda === null ? (
         <p className="text-[12.5px] text-gray-500 mt-2">{cargando ? 'Cargando…' : 'No se ha podido leer la agenda.'}</p>
       ) : !agenda.configurado ? (
-        <p className="text-[12.5px] text-[#5A6480] mt-2 leading-relaxed">
-          Para ver aquí el día y la hora de cada llamada, conecta Calendly: en Calendly, Integraciones → API y
-          webhooks → crea un token de acceso personal, y pégalo en Railway como{' '}
-          <code className="text-[11.5px] bg-[#F0F5FF] px-1 rounded">LEARNHOUSE_CALENDLY_TOKEN</code>.
-        </p>
+        isAdmin ? (
+          <p className="text-[12.5px] text-[#5A6480] mt-2 leading-relaxed">
+            Para ver aquí el día y la hora de cada llamada, conecta Calendly: en Calendly, Integraciones → API y
+            webhooks → crea un token de acceso personal, y pégalo en Railway como{' '}
+            <code className="text-[11.5px] bg-[#F0F5FF] px-1 rounded">LEARNHOUSE_CALENDLY_TOKEN</code>.
+          </p>
+        ) : (
+          // Al closer no le sirve una instrucción de Railway: no puede hacerla.
+          <p className="text-[12.5px] text-[#5A6480] mt-2 leading-relaxed">
+            El día y la hora de cada llamada los tienes en tu Calendly. Quien reservó sale abajo como «Hora reservada».
+          </p>
+        )
       ) : agenda.error ? (
         <p className="text-[12.5px] text-red-700 mt-2">{agenda.error}</p>
       ) : agenda.citas.length === 0 ? (

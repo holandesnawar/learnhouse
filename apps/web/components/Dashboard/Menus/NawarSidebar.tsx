@@ -62,9 +62,15 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
       { href: '/dash/estadisticas', label: 'Estadísticas', icon: <ChartBar size={18} weight="fill" />, match: (p) => p.includes('/dash/estadisticas') && !p.includes('tab=') },
       { href: '/dash/estadisticas?tab=contactos', label: 'Contactos', icon: <AddressBook size={18} weight="fill" /> },
       { href: '/dash/estadisticas?tab=llamadas', label: 'Llamadas', icon: <PhoneCall size={18} weight="fill" /> },
+      { href: '/dash/estadisticas?tab=guion', label: 'Guion de llamada', icon: <Scroll size={18} weight="fill" /> },
+    ],
+  },
+  {
+    // El dinero aparte de las ventas: lo cobrado (facturas) y lo gastado.
+    titulo: 'Dinero',
+    items: [
       { href: '/dash/estadisticas?tab=facturas', label: 'Facturas', icon: <Receipt size={18} weight="fill" /> },
       { href: '/dash/estadisticas?tab=gastos', label: 'Gastos', icon: <Wallet size={18} weight="fill" /> },
-      { href: '/dash/estadisticas?tab=guion', label: 'Guion de llamada', icon: <Scroll size={18} weight="fill" /> },
     ],
   },
   {
@@ -87,8 +93,8 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
   {
     titulo: 'Web',
     items: [
+      { href: '/dash/estadisticas?tab=paginas', label: 'Páginas de la web', icon: <Globe size={18} weight="fill" /> },
       { href: '/dash/webs', label: 'Enlaces y redirecciones', icon: <LinkSimple size={18} weight="bold" />, match: (p) => p.includes('/dash/webs') && !p.includes('tab=') },
-      { href: '/dash/webs?tab=paginas', label: 'Páginas', icon: <Globe size={18} weight="fill" /> },
       { href: '/dash/webs?tab=utm', label: 'Enlaces UTM', icon: <Globe size={18} weight="regular" /> },
     ],
   },
@@ -107,9 +113,9 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
  * entrada delante no sabía qué era cada cosa.
  */
 export function gruposDelCloser(veNumeros: boolean): Grupo[] {
-  const ventas = GRUPOS_DEL_PANEL[0].items
-  const por = (label: string) => ventas.find((i) => i.label === label) as Item
-  const items = [por('Contactos'), por('Llamadas'), por('Guion de llamada')]
+  const todos = GRUPOS_DEL_PANEL.flatMap((g) => g.items)
+  const por = (label: string) => todos.find((i) => i.label === label) as Item
+  const items = [por('Contactos'), por('Llamadas'), por('Guion de llamada'), por('Páginas de la web')]
   if (veNumeros) {
     items.push({ ...por('Estadísticas'), href: '/dash/estadisticas?tab=numeros', label: 'Números', match: undefined })
   }

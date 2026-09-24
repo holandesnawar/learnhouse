@@ -43,9 +43,18 @@ const VACIO: WebLinkWrite = { slug: '', destination: '', kind: 'enlace', utm_sou
 
 export default function WebsPage() {
   const [tab, setTab] = useState<'enlaces' | 'paginas' | 'utm'>('enlaces')
+  // La barra lateral cambia el ?tab= con un Link de Next, que no vuelve a
+  // montar la página: se relee cada poco (igual que en Estadísticas). Sin
+  // esto, pulsar "Enlaces UTM" estando en esta página no hacía nada.
   useEffect(() => {
-    const t = new URLSearchParams(window.location.search).get('tab')
-    if (t === 'enlaces' || t === 'paginas' || t === 'utm') setTab(t)
+    const leer = () => {
+      const t = new URLSearchParams(window.location.search).get('tab')
+      if (t === 'enlaces' || t === 'paginas' || t === 'utm') setTab(t)
+      else if (!t) setTab('enlaces')
+    }
+    leer()
+    const id = window.setInterval(leer, 400)
+    return () => window.clearInterval(id)
   }, [])
   return (
     <div className="h-full w-full bg-[#f8f8f8] px-4 sm:px-9 py-6 sm:py-9 pb-24 lg:pb-10 space-y-5 sm:space-y-6">
@@ -56,12 +65,16 @@ export default function WebsPage() {
       <div className="flex gap-1 border-b border-[#DDE6F5] overflow-x-auto">
         {[
           { id: 'enlaces' as const, label: 'Enlaces y redirecciones' },
-          { id: 'paginas' as const, label: 'Páginas' },
+          { id: 'paginas' as const, label: 'Lista técnica' },
           { id: 'utm' as const, label: 'Enlaces UTM' },
         ].map((t) => (
           <button
             key={t.id}
-            onClick={() => setTab(t.id)}
+            onClick={() => {
+              setTab(t.id)
+              // Que la dirección siga a la pestaña, o el relector la devolvería.
+              window.history.replaceState(null, '', t.id === 'enlaces' ? window.location.pathname : `?tab=${t.id}`)
+            }}
             className={`shrink-0 px-4 py-2.5 text-[14px] font-semibold border-b-2 -mb-px transition-colors ${
               tab === t.id ? 'border-[#4da3ff] text-[#025dc7]' : 'border-transparent text-gray-500 hover:text-gray-800'
             }`}

@@ -31,12 +31,15 @@ from src.services.contactos.contactos import (
     registrar_evento,
 )
 from src.services.contactos.agenda import agenda
+from src.services.contactos.embudo_agendar import embudo_agendar
+from src.services.contactos.metricas import excluir, volver_a_contar
 from src.services.contactos.guion import guardar_guion, leer_guion
 from src.services.contactos.seguimiento import (
     anadir_nota,
     borrar_nota,
     fecha_valida,
     poner_recordatorio,
+    resumen_seguimiento,
     seguimiento_de,
     todos_los_recordatorios,
 )
@@ -244,6 +247,67 @@ async def api_recordatorio(
     return {"volver_a_llamar": await poner_recordatorio(data.email, data.fecha, data.motivo, _nombre(current_user), db_session)}
 
 
+@router.get("/org/{org_id}/seguimiento-resumen", summary="Fechas de volver a llamar, notas por persona y últimas notas del equipo.")
+async def api_seguimiento_resumen(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    return await resumen_seguimiento(db_session)
+
+
+@router.get("/org/{org_id}/agendar-embudo", summary="Números de /agendar: empiezan, terminan, encajan, reservan.")
+async def api_agendar_embudo(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    return await embudo_agendar(db_session)
+
+
+class Exclusion(BaseModel):
+    email: str
+    motivo: str = ""
+
+
+async def _solo_admin(request: Request, org_id: int, current_user, db_session: AsyncSession) -> None:
+    org = (await db_session.execute(select(Organization).where(Organization.id == org_id))).scalars().first()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    await rbac_check(request, org.org_uuid, current_user, "update", db_session)
+
+
+@router.post("/org/{org_id}/metricas/excluir", summary="Quita a una persona de los números (sigue pudiendo entrar).")
+async def api_excluir(
+    request: Request,
+    org_id: int,
+    data: Exclusion,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _solo_admin(request, org_id, current_user, db_session)
+    if not await excluir(data.email, data.motivo, db_session):
+        raise HTTPException(status_code=400, detail="Falta un correo válido")
+    return {"ok": True}
+
+
+@router.delete("/org/{org_id}/metricas/excluir", summary="Vuelve a contar a una persona en los números.")
+async def api_volver_a_contar(
+    request: Request,
+    org_id: int,
+    email: str,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _solo_admin(request, org_id, current_user, db_session)
+    await volver_a_contar(email, db_session)
+    return {"ok": True}
+
+
 @router.get("/org/{org_id}/recordatorios", summary="Todas las fechas de volver a llamar (correo → fecha).")
 async def api_recordatorios(
     request: Request,
@@ -321,7 +385,6 @@ async def api_borrar_contacto(
     request: Request,
     org_id: int,
     email: str,
-    del_todo: bool = False,
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ):
@@ -330,7 +393,7 @@ async def api_borrar_contacto(
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
     await rbac_check(request, org.org_uuid, current_user, "update", db_session)
-    res = await borrar_contacto(email, db_session, del_todo=del_todo)
+    res = await borrar_contacto(email, db_session)
     if not res.get("ok"):
         raise HTTPException(status_code=400, detail=res.get("motivo") or "No se ha podido borrar")
     return res

@@ -43,6 +43,11 @@ export interface Contacto {
   etapa: EtapaContacto
   /** Cuándo se matriculó por primera vez (pidió plaza o llegó al pago). Vacío si nunca. */
   matricula_at: string
+  /** La última solicitud de plaza (para marcarla atendida) y si ya lo está. */
+  solicitud_id?: number | null
+  atendida?: boolean
+  /** Quitado de los números (prueba). Sigue pudiendo entrar a la escuela. */
+  fuera_de_metricas?: boolean
 }
 
 export type EtapaContacto = 'lead' | 'pidio' | 'en-pago' | 'alumno'
@@ -239,13 +244,10 @@ export async function crearEnlacePago(
 export async function borrarContacto(
   orgId: number,
   email: string,
-  accessToken: string,
-  /** Para alumnos de prueba: quita también sus pagos de la escuela y su acceso. */
-  delTodo = false
+  accessToken: string
 ): Promise<{ ok: boolean; quedan?: { pagadas: number; cuenta: boolean }; error?: string }> {
   try {
     const params = new URLSearchParams({ email })
-    if (delTodo) params.set('del_todo', 'true')
     const res = await fetch(
       `${getAPIUrl()}contactos/org/${orgId}/contacto?${params.toString()}`,
       RequestBodyWithAuthHeader('DELETE', null, null, accessToken)
@@ -357,4 +359,60 @@ export function cuandoLlamar(fecha: string): string {
   const d = new Date(`${fecha}T12:00:00`)
   if (Number.isNaN(d.getTime())) return fecha
   return d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+// ── Quitar de las métricas (pruebas): sigue pudiendo entrar a la escuela ──
+
+export async function quitarDeMetricas(orgId: number, email: string, accessToken: string) {
+  return pedir<{ ok: boolean }>(`contactos/org/${orgId}/metricas/excluir`, 'POST', { email, motivo: 'prueba' }, accessToken)
+}
+
+export async function volverAContar(orgId: number, email: string, accessToken: string) {
+  return pedir<{ ok: boolean }>(
+    `contactos/org/${orgId}/metricas/excluir?${new URLSearchParams({ email }).toString()}`,
+    'DELETE',
+    null,
+    accessToken
+  )
+}
+
+// ── Resumen de seguimiento: fechas, notas por persona y últimas notas ─────
+
+export interface NotaReciente {
+  id: number
+  email: string
+  texto: string
+  autor: string
+  created_at: string
+}
+
+export interface ResumenSeguimiento {
+  recordatorios: Record<string, VolverALlamar>
+  notas_por_email: Record<string, number>
+  ultimas_notas: NotaReciente[]
+}
+
+export async function getResumenSeguimiento(orgId: number, accessToken: string): Promise<ResumenSeguimiento> {
+  const r = await pedir<ResumenSeguimiento>(`contactos/org/${orgId}/seguimiento-resumen`, 'GET', null, accessToken)
+  return r.datos ?? { recordatorios: {}, notas_por_email: {}, ultimas_notas: [] }
+}
+
+// ── Números de /agendar ───────────────────────────────────────────────────
+
+export interface PasoAgendar {
+  empezaron: number
+  terminaron: number
+  encajan: number
+  no_encajan: number
+  reservaron: number
+}
+
+export async function getEmbudoAgendar(orgId: number, accessToken: string) {
+  const r = await pedir<{ '7d': PasoAgendar; '30d': PasoAgendar; total: PasoAgendar }>(
+    `contactos/org/${orgId}/agendar-embudo`,
+    'GET',
+    null,
+    accessToken
+  )
+  return r.datos ?? null
 }

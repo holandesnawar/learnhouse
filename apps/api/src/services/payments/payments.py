@@ -167,10 +167,16 @@ async def get_seat_status(db_session: AsyncSession) -> dict:
     desde = _desde_cuando()
     ocupadas = 0
     try:
-        statement = select(func.count()).select_from(Enrollment).where(Enrollment.status == "paid")
+        statement = select(Enrollment.email).where(Enrollment.status == "paid")
         if desde:
             statement = statement.where(Enrollment.paid_at >= desde)  # type: ignore
-        ocupadas = int((await db_session.execute(statement)).scalar() or 0)
+        # Las pruebas quitadas de las métricas tampoco ocupan plaza.
+        from src.services.contactos.metricas import emails_excluidos
+
+        fuera = await emails_excluidos(db_session)
+        ocupadas = len(
+            [e for e in (await db_session.execute(statement)).scalars().all() if (e or "").strip().lower() not in fuera]
+        )
     except Exception:
         # Si la cuenta falla no cerramos la tienda por nuestra cuenta: se
         # informa de 0 ocupadas y manda el interruptor manual.

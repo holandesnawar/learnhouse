@@ -1,7 +1,9 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-09-23 (agendar llamada y Panel → Llamadas; antes,
+> Última actualización: 2026-09-24 (panel repasado: "quitar de los números",
+> Páginas de la web para el closer, notas visibles al admin; antes 23/09,
+> agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
 
 ## Resumen
@@ -1447,13 +1449,10 @@ prueba o leads malos, estén donde estén.
   así que el administrador, el closer y los profes salían como alumnos en
   Contactos. Ahora solo cuenta quien tiene **rol de alumno**
   (`STUDENT_ROLE_ID`) en la escuela.
-- **Borrar "del todo" a un alumno de prueba** (`del_todo=true` en
-  `DELETE /contactos/org/{id}/contacto`): además del rastro, borra sus
-  matrículas **pagadas** de la escuela y le quita el rol de alumno. **No toca
-  Stripe** (el cobro y la factura siguen; no se devuelve nada) ni borra la
-  cuenta. Lo usa la papelera de Contactos cuando la persona está en la etapa
-  "Alumno", con un aviso distinto. A una cuenta del equipo no se le quita nada:
-  su rol no es de alumno.
+- ~~Borrar "del todo" a un alumno de prueba~~ **QUITADO el mismo día** (ver
+  "Quitar de los números" más abajo): le quitaba el rol de alumno y el usuario
+  NO quería eso. A quien se le aplicó mientras existió (PR #74) hay que volver
+  a darle el rol en Panel → Usuarios si debe seguir entrando.
 - **Papelera a la vista en cada llamada**, sin tener que abrirla.
 - **Textos para el closer**: "Pidieron plaza" dice que fue en la campaña de
   lanzamiento, por el formulario de contacto, que no pasaba por el pago. Él lo
@@ -1501,6 +1500,79 @@ prueba o leads malos, estén donde estén.
   gasto del mes / alumnos actuales** (rol 4). Mes a mes y en total.
 - El bloque viejo "gasto del mes" (`school_manual_entry`, kind `cost`) sigue en
   Números para el coste por lead; no se ha tocado.
+
+## El panel repasado entero: claridad (24/09/2026)
+Petición: "repasa toda la plataforma de admin como un director de SaaS de
+infoproducto… claridad máxima… y que el closer tenga lo que necesita".
+Se montó la escuela EN LOCAL para mirarla con capturas (receta abajo).
+
+### "Quitar de los números", no borrar al alumno
+El usuario: *"si borro el alumno desde contactos, ¿lo borro de la escuela? No
+quiero eso, más bien quitarlo de las métricas"*.
+- Tabla nueva **`metric_exclusion`** (email + motivo), servicio
+  `services/contactos/metricas.py` (`emails_excluidos`, `ids_excluidos`,
+  `excluir`, `volver_a_contar`). Rutas `POST/DELETE
+  /contactos/org/{id}/metricas/excluir` (solo administradores).
+- **Quien está ahí no cuenta en**: ventas, ingresos, embudo
+  (`stats/school.py`), alumnos, activos y avance, Gastos (ventas y coste por
+  alumno), **plazas** (`get_seat_status`) y los números de Contactos.
+  **Su cuenta, su acceso y su pago no se tocan.** Se deshace con un clic.
+- En Contactos: papelera roja para leads (borra el rastro), **ojo tachado**
+  para alumnos (quitar de los números), y un conmutador "N fuera de los
+  números (pruebas)" para verlos y devolverlos.
+- Cualquier cálculo NUEVO de ventas o alumnos tiene que filtrar por
+  `emails_excluidos` / `ids_excluidos`, o volverá a contar las pruebas.
+- De paso: los **activos** de Estadísticas contaban las visitas de todos
+  (admin, closer, profes). Ahora solo alumnos.
+
+### El administrador ve las notas del closer
+- `resumen_seguimiento` + `GET /contactos/org/{id}/seguimiento-resumen`:
+  arriba de Contactos, **"Lo último que ha apuntado el equipo"** (autor, fecha,
+  persona) y en cada línea "N notas" y "Llamar hoy/el jue".
+- El ✓ de "atendida" se puede marcar desde la propia línea de Contactos.
+
+### Páginas de la web (closer y admin)
+`?tab=paginas` → `PaginasPanel.tsx`. Arriba **/agendar con sus números**
+(empezaron → terminaron → encajan → reservaron hora, 7/30 días/siempre;
+`services/contactos/embudo_agendar.py`, función pura con test). Debajo, las
+páginas por etapa con **"Si te llega de aquí:"** = qué sabe ya esa persona
+(sobre todo si vio el precio). Textos en `lib/nawar/mapaWeb.ts`
+(`MAPA_WEB` + `SABE_POR_RUTA`), **escritos a mano: si cambia la web, cambiar
+ahí**. La lista técnica de la web sigue en Web → "Lista técnica".
+
+### Orden del panel
+- Barra: **Ventas** (Estadísticas, Contactos, Llamadas, Guion) · **Dinero**
+  (Facturas, Gastos) · Alumnos · Formación · **Web** (Páginas de la web,
+  Enlaces y redirecciones, UTM). El closer: Contactos, Llamadas, Guion,
+  Páginas de la web (+ Números si se le abren).
+- **Estadísticas empieza por un resumen** (leads 7 días, matrículas, ventas 30
+  días, activos) y un aviso "N matrículas esperan que las llamen → Contactos".
+  **La lista "Matrículas nuevas" se quitó**: repetía Contactos.
+- **Un solo sitio para los gastos**: Gastos enseña también los apuntados antes
+  en Estadísticas (`school_manual_entry` cost → publicidad, delivery → profes,
+  marcados "Apuntado antes en Estadísticas"). En Estadísticas solo queda la
+  asistencia a la clase en vivo.
+- Facturas: "Dar de alta a mano" plegado; un solo botón Actualizar.
+- Al closer: sin la bienvenida de alumno (`StudentOnboarding` no sale) y sin
+  la instrucción de Railway para conectar Calendly.
+- Inicio del panel: las etiquetas de "Últimos contactos" usan la etapa (antes
+  decía "Lead" a quien había pedido plaza).
+
+### Fallos arreglados de paso
+- **`AdminAuthorization`** mandaba al administrador a "/" si la organización
+  aún no había cargado (carrera). Ahora espera a la organización.
+- Estadísticas y Web no seguían los enlaces de la barra al cambiar `?tab=`
+  (o volver a la pestaña sin `tab`): ahora releen la URL.
+
+### Revisar el panel en local (cómo se hizo)
+Postgres 16 (puerto 5433, `initdb` como usuario `postgres`), Redis (6380), la
+API en un venv con **fastapi 0.136.1 + starlette 0.50.0** (las más nuevas no
+arrancan) y **sin pgvector** (se quita `course_embedding` antes de
+`create_all`), `next dev` en 3001 y un proxy Node en 3000 (`/api/v1` y
+`/content` a la API, lo demás a Next). Datos de ejemplo con un script y
+capturas con Playwright entrando como admin y como closer. Facturas da 500 en
+local (no hay clave de Stripe) y Calendly no se alcanza: eso NO se puede
+comprobar así.
 
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con

@@ -11,7 +11,7 @@
  *   - redirects:  nawar-web/astro.config.mjs
  *   - etiquetas:  cada página (`ETIQUETA_CRM`, `tagName`), waitlist.ts
  *                 (`TAG_NAME`) e inro-systeme.ts (`ETIQUETA_POR_DEFECTO`).
- * Última revisión: 22/09/2026.
+ * Última revisión: 24/09/2026 (/agendar al día: nueve preguntas y sin precio).
  */
 
 export type Etapa = 'captar' | 'convencer' | 'matricular' | 'pagar'
@@ -171,7 +171,7 @@ export const MAPA_WEB: PaginaWeb[] = [
     ruta: '/matricula-formacion-nawar-a0-a1-ads',
     nombre: 'Formulario de contacto (anuncios)',
     etapa: 'matricular',
-    que: 'Nombre, correo, teléfono. NO cobra: la venta se cierra hablando. Sale en Matrículas nuevas.',
+    que: 'Nombre, correo, teléfono. NO cobra: la venta se cierra hablando. Sale en Contactos como «Pidió plaza».',
     boton: 'Enviar → gracias',
     precio: false,
     etiquetas: ['Matrícula ads'],
@@ -190,9 +190,9 @@ export const MAPA_WEB: PaginaWeb[] = [
     ruta: '/agendar',
     nombre: 'Agendar llamada (con cualificación)',
     etapa: 'matricular',
-    que: 'Datos + seis preguntas (nivel, situación, motivo, cuándo, horas, inversión). Solo a quien encaja se le ofrece agendar; al resto, la guía gratis. Sale en Matrículas nuevas y en la ficha con sus respuestas.',
-    boton: 'Elegir día y hora → tu agenda (PUBLIC_AGENDA_URL) o WhatsApp',
-    precio: true,
+    que: 'Nombre, correo y teléfono + nueve preguntas (nivel, dónde vive, para qué, edad, ocupación, qué espera conseguir, horas, dinero y compromiso). Quien encaja confirma que asistirá y elige hora en Calendly; al resto se le ofrece la guía gratis. Todo sale en Llamadas, con las respuestas, aunque se vaya a mitad.',
+    boton: 'Elegir día y hora → Calendly (calendly.com/holandesnawar/llamada-de-consultoria)',
+    precio: false,
     etiquetas: ['Llamada'],
   },
   {
@@ -217,3 +217,25 @@ export const MAPA_WEB: PaginaWeb[] = [
     etiquetas: ['Se quita «Matriculado sin pagar»; se pone la de alumno'],
   },
 ]
+
+/**
+ * Para el closer: qué sabe ya quien viene de cada página, antes de llamarle.
+ * Aparte del mapa para no repetir en cada entrada lo que solo importa en la
+ * pantalla "Páginas de la web" del closer. Si falta una ruta, no se enseña nada.
+ */
+export const SABE_POR_RUTA: Record<string, string> = {
+  '/guia/bases-neerlandes': 'Ha bajado una guía gratis. No conoce el precio ni la formación a fondo: es un lead frío.',
+  '/guia/bases-neerlandes-a': 'Viene de un anuncio y ha bajado la guía. No conoce el precio.',
+  '/guia/hebben-zijn': 'Ha bajado la guía de hebben/zijn. No conoce el precio.',
+  '/guia/hebben-zijn-a': 'Viene de un anuncio; tras la guía pasa por la landing de anuncios, sin precio.',
+  '/lista-de-espera': 'Quería apuntarse cuando la matrícula estaba cerrada. Tiene interés, pero no sabe el precio.',
+  '/formacion-nawar': 'Ha visto la landing CON precio (397 €, pago a plazos con Klarna). Ya sabe cuánto cuesta.',
+  '/formacion-nawar-a0-a1': 'Ha visto la landing SIN precio. Sabe qué es la formación, pero no cuánto cuesta.',
+  '/formacion-a0-a1-sept-ads': 'Viene de anuncios, landing SIN precio. No sabe cuánto cuesta: empieza por su caso.',
+  '/formacion-a0-a1': 'Ha visto la landing larga, con precio, garantía y desglose.',
+  '/matricula-formacion-nawar': 'Ha rellenado la matrícula que cobra y ha llegado a la caja: conoce el precio. Si no pagó, algo le frenó: pregúntale qué.',
+  '/matricula-formacion-nawar-a0-a1-ads': 'Pidió plaza desde un anuncio, sin ver el precio. Espera que le llamemos.',
+  '/matricula-a0-a1': 'Pidió plaza por el formulario de contacto (campaña de lanzamiento), sin ver el precio. Espera que le llamemos.',
+  '/agendar': 'No ha visto el precio en esta página. Sabe que es una llamada de media hora para ver su caso, sin compromiso. Sus respuestas están en Llamadas.',
+  'app.holandesnawar.com/auth/matricula-formacion-nawar-a0-a1': 'Está en la caja de pago: conoce el precio y está a un paso.',
+}
