@@ -1430,6 +1430,15 @@ prueba o leads malos, estén donde estén.
   contacto"), cada llamada abierta y la papelera de Matrículas nuevas, que
   antes solo borraba esa fila y ahora borra a la persona.
 - Las matrículas `descartada` (el descarte viejo) ya no salen en Contactos.
+- ⚠️ **"No veo los botones de borrar"** (24/09): estaban publicados, pero uno
+  vivía al final de la ficha (había que bajar) y el otro era un icono gris de
+  14 px. Ahora hay **papelera roja en cada línea de Contactos**, "Borrar" arriba
+  en la ficha, y en Matrículas nuevas un botón rojo con texto. Lección: un
+  botón que no se ve no existe para el usuario.
+- **Filtro "Matrículas hechas"** en Contactos (administrador): arriba, al lado
+  de "Todos los contactos". Enseña lo mismo que ve el closer: quien rellenó la
+  matrícula (pidió plaza o llegó al pago, también los que ya pagaron), por día
+  de matrícula.
 
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con

@@ -935,9 +935,11 @@ function FilaDeMatricula({
           disabled={guardando}
           title="Borrar (era una prueba o no vale)"
           aria-label="Borrar"
-          className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg text-[#9CA3AF] hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+          // Antes era un icono gris de 14 px y no se veía: el usuario dijo que
+          // no había botón de borrar teniéndolo delante.
+          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-[12px] font-bold transition-colors disabled:opacity-50"
         >
-          {guardando ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+          {guardando ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />} Borrar
         </button>
       )}
     </div>
