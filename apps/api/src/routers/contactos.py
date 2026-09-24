@@ -31,7 +31,8 @@ from src.services.contactos.contactos import (
 )
 from src.services.contactos.agenda import agenda
 from src.services.contactos.llamadas import listar_llamadas, marcar_llamada
-from src.services.orgs.acceso import exigir_acceso
+from src.security.rbac.constants import CLOSER_ROLE_ID
+from src.services.orgs.acceso import exigir_acceso, rol_en_la_escuela
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,9 @@ async def api_contactos(
 ):
     # Administradores y el closer (CONTACTOS_ROLE_IDS). El profe no: no vende.
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
-    return await listar_contactos(q, min(max(limit, 1), 2000), db_session)
+    # Al closer solo le llegan las matrículas: quién bajó una guía no es cosa suya.
+    es_closer = (await rol_en_la_escuela(current_user.id, org_id, db_session)) == CLOSER_ROLE_ID
+    return await listar_contactos(q, min(max(limit, 1), 2000), db_session, solo_matriculas=es_closer)
 
 
 @router.get(

@@ -13,10 +13,11 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { signOut } from '@components/Contexts/AuthContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
+import useCloserVeNumeros from '@components/Hooks/useCloserVeNumeros'
 import { getUriWithOrg } from '@services/config/config'
 import { cn } from '@/lib/utils'
 import { ArrowSquareOut, List, SignOut, X } from '@phosphor-icons/react'
-import { GRUPOS_DEL_PANEL, activo } from './NawarSidebar'
+import { GRUPOS_DEL_PANEL, activo, gruposDelCloser } from './NawarSidebar'
 
 export default function NawarMobileMenu() {
   const org = useOrg() as any
@@ -26,6 +27,7 @@ export default function NawarMobileMenu() {
   const [mounted, setMounted] = useState(false)
   const [search, setSearch] = useState('')
   const { isCloser } = useAdminStatus()
+  const closerVeNumeros = useCloserVeNumeros(isCloser)
 
   useEffect(() => setMounted(true), [])
   useEffect(() => {
@@ -35,9 +37,7 @@ export default function NawarMobileMenu() {
 
   if (!org || !session || !mounted) return null
 
-  const grupos = isCloser
-    ? [{ titulo: 'Ventas', items: GRUPOS_DEL_PANEL[0].items.filter((i) => i.label !== 'Facturas') }]
-    : GRUPOS_DEL_PANEL
+  const grupos = isCloser ? gruposDelCloser(closerVeNumeros) : GRUPOS_DEL_PANEL
   // Los tres de la barra: lo que más se abre.
   const rapidos = grupos.flatMap((g) => g.items).slice(0, 3)
 

@@ -17,6 +17,7 @@ import { DASHBOARD_MENU_ITEMS, DashboardMenuItem } from '@/lib/dashboard-menu-it
 import { isFeatureAvailable } from '@services/plans/plans'
 import {
   Books,
+  ChartBar,
   House,
   CalendarBlank,
   Barbell,
@@ -70,7 +71,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const { data: unreadRows } = useUnreadCommunity()
   const unreadTotal = (unreadRows || []).reduce((acc, r) => acc + (r.unread || 0), 0)
   const mentionTotal = (unreadRows || []).reduce((acc, r) => acc + (r.mentions || 0), 0)
-  const { isProfe, isAdmin: puedeEntrarAlPanel, isStaff } = useAdminStatus()
+  const { isProfe, isAdmin: puedeEntrarAlPanel, isStaff, isCloser } = useAdminStatus()
   const [isOpen, setIsOpen] = useState(false) // mobile drawer
   const [collapsed, setCollapsed] = useState(false) // desktop collapse
   const [isFocusMode, setIsFocusMode] = useState(false)
@@ -325,6 +326,23 @@ export const OrgSidebar = (props: { orgslug: string }) => {
                 </Link>
               )
             })}
+          </>
+        )}
+        {/* El closer no dirige la escuela, así que no le sale el bloque del
+            panel de arriba. Le sale UNA entrada que lleva a lo suyo: sus
+            contactos (las matrículas) y sus llamadas. */}
+        {isAuthenticated && isCloser && (
+          <>
+            <div className="my-2 border-t border-white/10" />
+            <NavLink
+              item={{
+                key: 'panel-closer',
+                href: '/dash/estadisticas?tab=contactos',
+                label: 'Panel',
+                icon: <ChartBar size={20} weight="fill" />,
+                show: true,
+              }}
+            />
           </>
         )}
       </nav>

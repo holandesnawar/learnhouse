@@ -39,6 +39,19 @@ export interface Contacto {
   primer_contacto: { kind: string; que: string; when: string }
   ultimo_contacto: { kind: string; que: string; when: string }
   n_eventos: number
+  /** La etapa más avanzada a la que llegó. Una sola por persona. */
+  etapa: EtapaContacto
+  /** Cuándo se matriculó por primera vez (pidió plaza o llegó al pago). Vacío si nunca. */
+  matricula_at: string
+}
+
+export type EtapaContacto = 'lead' | 'pidio' | 'en-pago' | 'alumno'
+
+export const ETAPA_TEXTO: Record<EtapaContacto, string> = {
+  lead: 'Lead',
+  pidio: 'Pidió plaza',
+  'en-pago': 'Llegó al pago',
+  alumno: 'Alumno',
 }
 
 export interface ContactoDetalle extends Contacto {

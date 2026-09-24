@@ -1381,6 +1381,35 @@ los números. Ahora (`EstadisticasPage.tsx` → `Solicitudes`):
 - Pedido y pendiente: una sección de **estadísticas generales** de la escuela
   (alumnos, leads nuevos, progreso). El usuario dijo "por ahora" lo de plegar.
 
+## El panel del closer y Contactos, ordenados (24/09/2026)
+El usuario entró como closer y lo vio "un poco caos": un título "Estadísticas"
+con pestañas que repetían la barra, y en Contactos gente que solo bajó una
+guía, que no es trabajo del closer.
+
+- **El closer ve dos secciones: Contactos y Llamadas** (`gruposDelCloser` en
+  `NawarSidebar.tsx`, la usa también el menú del móvil). "Estadísticas" solo si
+  el administrador le abre los Números, y entonces sale como "Números".
+- **En la barra de la escuela le sale "Panel"** (`OrgSidebar.tsx`), que lleva a
+  sus Contactos. El bloque de panel del administrador no le sale: no dirige.
+- **Su Contactos son solo las matrículas**: quien pidió plaza o llegó al pago
+  (`matricula_at`, la primera `solicitud`/`matricula`). **Se filtra en el
+  servidor** (`listar_contactos(..., solo_matriculas=True)` cuando el rol es
+  el del closer), no solo en la pantalla. Sin el bloque del CRM en la ficha.
+- **Una sola etapa por persona** (`etapa_de`: lead → pidio → en-pago →
+  alumno, la más avanzada). Antes cada tarjeta contaba con su criterio y no
+  sumaban el total (49+32+23+12 = 116 de 111). Ahora las tarjetas **son** los
+  filtros y suman el total.
+- **Listas por día y plegables** (`PorDia.tsx`, compartido): Hoy y Ayer
+  abiertos, lo demás plegado y recordado en el navegador. Contactos agrupa por
+  último movimiento (administrador) o por día de matrícula (closer); Llamadas,
+  por el día en que la pidieron. Buscando, la lista sale entera sin grupos.
+- **Sin barra de pestañas**: el título de la página es la sección abierta en
+  la barra (Estadísticas, Contactos, Llamadas, Facturas). Como el `Link` de
+  Next no dispara `popstate` al cambiar `?tab=`, la página lo relee cada 400 ms,
+  igual que ya hacía la barra.
+- El mapa de la web va al final y plegado; el ajuste "Qué ve el closer", debajo
+  de la lista.
+
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
   `git branch --show-current` antes de dar por buena ninguna que ponga aquí.

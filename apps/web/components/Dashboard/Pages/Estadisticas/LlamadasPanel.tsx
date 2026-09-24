@@ -19,6 +19,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
+import PorDia from './PorDia'
 import { crearEnlacePago, getAgenda, getLlamadas, marcarLlamada, type Agenda, type Cita, type Llamada } from '@services/stats/contactos'
 import { marcarSolicitud } from '@services/stats/school'
 import { CalendarDays, Check, ChevronDown, ChevronRight, Copy, CreditCard, Loader2, PhoneCall, RefreshCw, RotateCcw, Video } from 'lucide-react'
@@ -126,18 +127,12 @@ export default function LlamadasPanel() {
 
   return (
     <div className="space-y-4">
-      <div className={CARD}>
-        <h2 className="text-[15px] font-bold text-gray-900 flex items-center gap-2">
-          <PhoneCall size={16} className="text-[#025dc7]" /> Llamadas pedidas
-        </h2>
-        <p className="text-[12.5px] text-[#5A6480] mt-1.5 leading-relaxed">
-          Cada persona que termina el formulario de agendar sale aquí con todas sus respuestas, y te llega
-          también por correo. Si encajaba, tuvo el calendario delante; si no reservó, escríbele tú.
-          Quien ya eligió día en el calendario sale con «Hora reservada»: el día exacto lo tienes en Calendly.
-          Quien dejó sus datos y se fue a mitad sale como «No terminó»: es a quien más conviene escribir.
-          Cuando la hayas atendido, márcala.
-        </p>
-      </div>
+      {/* Lo justo para saber qué es cada cosa. Antes era un párrafo de cinco
+          líneas que nadie leía. */}
+      <p className="text-[13px] text-[#5A6480] leading-relaxed">
+        Quien pide una llamada en la web, con sus respuestas. Ábrela para leerlas antes de llamar y márcala
+        cuando la hayas atendido. <strong className="text-gray-800">No terminó</strong> = dejó sus datos y se fue a mitad.
+      </p>
 
       <AgendaCard
         agenda={agenda}
@@ -156,14 +151,26 @@ export default function LlamadasPanel() {
         </div>
       ) : (
         <>
-          <Lista
-            titulo={pendientes.length === 0 ? 'Todas atendidas' : `Por atender · ${pendientes.length}`}
-            filas={pendientes}
-            abierta={abierta}
-            setAbierta={setAbierta}
-            alternar={alternar}
-            guardando={guardando}
-            citaDe={citaDe}
+          <h3 className="text-[14px] font-bold text-gray-900">
+            {pendientes.length === 0 ? 'Todas atendidas' : `Por atender · ${pendientes.length}`}
+          </h3>
+          {/* Por día en que la pidieron, como Matrículas nuevas: Hoy y Ayer
+              abiertos, lo viejo plegado. */}
+          <PorDia
+            items={pendientes}
+            fecha={(l) => l.created_at}
+            clave={(l) => l.id}
+            recordarComo="llamadas"
+            render={(l) => (
+              <Lista
+                filas={[l]}
+                abierta={abierta}
+                setAbierta={setAbierta}
+                alternar={alternar}
+                guardando={guardando}
+                citaDe={citaDe}
+              />
+            )}
           />
           {atendidas.length > 0 && (
             <div>
