@@ -20,8 +20,9 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import PorDia from './PorDia'
+import Seguimiento from './Seguimiento'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
-import { avisoTrasBorrar, borrarContacto, crearEnlacePago, getAgenda, getLlamadas, marcarLlamada, type Agenda, type Cita, type Llamada } from '@services/stats/contactos'
+import { avisoTrasBorrar, borrarContacto, crearEnlacePago, cuandoLlamar, getAgenda, getRecordatorios, hoyISO, type VolverALlamar, getLlamadas, marcarLlamada, type Agenda, type Cita, type Llamada } from '@services/stats/contactos'
 import { marcarSolicitud } from '@services/stats/school'
 import { CalendarDays, Check, ChevronDown, ChevronRight, Copy, CreditCard, Loader2, PhoneCall, RefreshCw, RotateCcw, Trash2, Video } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -60,6 +61,15 @@ export default function LlamadasPanel() {
   const [guardando, setGuardando] = useState<number | null>(null)
   const [verAtendidas, setVerAtendidas] = useState(false)
   const [agenda, setAgenda] = useState<Agenda | null>(null)
+  const [recordatorios, setRecordatorios] = useState<Record<string, VolverALlamar>>({})
+  const llamarDe = (email: string) => recordatorios[(email || '').toLowerCase()]
+  const cambioFecha = (email: string, v: VolverALlamar | null) =>
+    setRecordatorios((prev) => {
+      const next = { ...prev }
+      if (v) next[email.toLowerCase()] = v
+      else delete next[email.toLowerCase()]
+      return next
+    })
   const [cargandoAgenda, setCargandoAgenda] = useState(false)
 
   const { isAdmin } = useAdminStatus()
@@ -82,7 +92,8 @@ export default function LlamadasPanel() {
 
   const cargar = useCallback(async () => {
     if (!org?.id || !accessToken) return
-    const data = await getLlamadas(org.id, accessToken)
+    const [data, recs] = await Promise.all([getLlamadas(org.id, accessToken), getRecordatorios(org.id, accessToken)])
+    setRecordatorios(recs)
     if (data === null) setFallo(true)
     else setLlamadas(data)
   }, [org?.id, accessToken])
@@ -189,6 +200,8 @@ export default function LlamadasPanel() {
                 guardando={guardando}
                 citaDe={citaDe}
                 borrar={isAdmin ? borrar : undefined}
+                llamarDe={llamarDe}
+                onCambioFecha={cambioFecha}
               />
             )}
           />
@@ -202,7 +215,7 @@ export default function LlamadasPanel() {
                 Ya atendidas · {atendidas.length}
               </button>
               {verAtendidas && (
-                <Lista filas={atendidas} abierta={abierta} setAbierta={setAbierta} alternar={alternar} guardando={guardando} citaDe={citaDe} borrar={isAdmin ? borrar : undefined} apagada />
+                <Lista filas={atendidas} abierta={abierta} setAbierta={setAbierta} alternar={alternar} guardando={guardando} citaDe={citaDe} borrar={isAdmin ? borrar : undefined} llamarDe={llamarDe} onCambioFecha={cambioFecha} apagada />
               )}
             </div>
           )}
@@ -221,6 +234,8 @@ function Lista({
   guardando,
   citaDe,
   borrar,
+  llamarDe,
+  onCambioFecha,
   apagada = false,
 }: {
   titulo?: string
@@ -231,6 +246,8 @@ function Lista({
   guardando: number | null
   citaDe: (email: string) => Cita | undefined
   borrar?: (l: Llamada) => void
+  llamarDe?: (email: string) => VolverALlamar | undefined
+  onCambioFecha?: (email: string, v: VolverALlamar | null) => void
   apagada?: boolean
 }) {
   if (filas.length === 0 && !titulo) return null
@@ -241,6 +258,7 @@ function Lista({
         const open = abierta === l.id
         const hecha = Boolean(l.contacted_at)
         const cita = citaDe(l.email)
+        const llamar = llamarDe?.(l.email)
         return (
           <div
             key={l.id}
@@ -256,6 +274,15 @@ function Lista({
               <div className="flex-1 min-w-0">
                 <p className="text-[13.5px] font-semibold text-gray-900 truncate">
                   {l.name || l.email}
+                  {llamar ? (
+                    <span
+                      className={`ml-2 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold align-middle ${
+                        llamar.fecha <= hoyISO() ? 'bg-red-50 text-red-600' : 'bg-[#FFFBF2] text-[#8A6A2A]'
+                      }`}
+                    >
+                      Volver a llamar {cuandoLlamar(llamar.fecha)}
+                    </span>
+                  ) : null}
                   {cita ? (
                     <span className="ml-2 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold align-middle bg-[#E8FBF3] text-[#0E9F6E]">
                       Llamada {diaHora(cita.inicio)}
@@ -396,6 +423,7 @@ function Lista({
                     </a>
                   ) : null}
                 </div>
+                <Seguimiento email={l.email} onCambioFecha={onCambioFecha} />
                 <EnlacePago llamada={l} />
               </div>
             )}

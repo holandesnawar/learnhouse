@@ -467,6 +467,11 @@ async def borrar_contacto(email: str, db_session: AsyncSession, del_todo: bool =
         await db_session.delete(f)
         borrados["matriculas"] += 1
 
+    # Sus notas y su fecha de volver a llamar: si era una prueba, también sobran.
+    from src.services.contactos.seguimiento import borrar_seguimiento
+
+    await borrar_seguimiento(clave, db_session)
+
     accesos_quitados = 0
     if del_todo:
         usuarios = (

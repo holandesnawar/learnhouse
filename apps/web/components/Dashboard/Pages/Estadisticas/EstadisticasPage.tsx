@@ -5,6 +5,8 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import FacturasPanel from './FacturasPanel'
 import ContactosPanel from './ContactosPanel'
 import LlamadasPanel from './LlamadasPanel'
+import GastosPanel from './GastosPanel'
+import GuionPanel from './GuionPanel'
 import { avisoTrasBorrar, borrarContacto } from '@services/stats/contactos'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { updateOrgAccesoCloser } from '@services/settings/org'
@@ -39,10 +41,12 @@ import {
   Plus,
   Receipt,
   RefreshCw,
+  ScrollText,
   Trash2,
   TrendingDown,
   UserPlus,
   Users,
+  Wallet,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -166,7 +170,7 @@ export default function EstadisticasPage() {
       .catch(() => setCloserVeNumeros(false))
   }, [org?.id])
 
-  const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'utm'>('numeros')
+  const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'gastos' | 'guion' | 'utm'>('numeros')
   // El closer arranca en Contactos, que es lo suyo.
   useEffect(() => {
     if (isCloser) setTab('contactos')
@@ -177,7 +181,7 @@ export default function EstadisticasPage() {
   useEffect(() => {
     const leer = () => {
       const pedida = new URLSearchParams(window.location.search).get('tab')
-      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'llamadas' || pedida === 'facturas' || pedida === 'utm') setTab(pedida)
+      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'llamadas' || pedida === 'facturas' || pedida === 'gastos' || pedida === 'guion' || pedida === 'utm') setTab(pedida)
     }
     leer()
     window.addEventListener('popstate', leer)
@@ -192,7 +196,7 @@ export default function EstadisticasPage() {
   }, [])
   // El closer sin Números no se queda nunca en esa sección.
   useEffect(() => {
-    if (isCloser && tab !== 'contactos' && tab !== 'llamadas' && !(tab === 'numeros' && closerVeNumeros === true)) {
+    if (isCloser && tab !== 'contactos' && tab !== 'llamadas' && tab !== 'guion' && !(tab === 'numeros' && closerVeNumeros === true)) {
       setTab('contactos')
     }
   }, [isCloser, tab, closerVeNumeros])
@@ -246,6 +250,10 @@ export default function EstadisticasPage() {
             <PhoneCall size={22} className="text-[#025dc7] shrink-0" />
           ) : tab === 'facturas' ? (
             <Receipt size={22} className="text-[#025dc7] shrink-0" />
+          ) : tab === 'gastos' ? (
+            <Wallet size={22} className="text-[#025dc7] shrink-0" />
+          ) : tab === 'guion' ? (
+            <ScrollText size={22} className="text-[#025dc7] shrink-0" />
           ) : (
             <BarChart3 size={22} className="text-[#025dc7] shrink-0" />
           )}
@@ -256,7 +264,11 @@ export default function EstadisticasPage() {
                 ? 'Llamadas'
                 : tab === 'facturas'
                   ? 'Facturas'
-                  : 'Estadísticas'}
+                  : tab === 'gastos'
+                    ? 'Gastos'
+                    : tab === 'guion'
+                      ? 'Guion de llamada'
+                      : 'Estadísticas'}
           </h1>
         </div>
         <button
@@ -286,6 +298,10 @@ export default function EstadisticasPage() {
         <LlamadasPanel key={vuelta} />
       ) : tab === 'facturas' ? (
         <FacturasPanel key={vuelta} />
+      ) : tab === 'gastos' ? (
+        <GastosPanel key={vuelta} />
+      ) : tab === 'guion' ? (
+        <GuionPanel key={vuelta} />
       ) : !loaded ? (
         <div className="flex justify-center py-20">
           <Loader2 className="animate-spin text-gray-400" size={28} />

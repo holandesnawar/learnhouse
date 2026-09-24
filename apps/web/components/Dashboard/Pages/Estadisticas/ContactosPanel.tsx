@@ -18,10 +18,15 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import PorDia from './PorDia'
+import Seguimiento from './Seguimiento'
 import toast from 'react-hot-toast'
 import {
   avisoTrasBorrar,
   borrarContacto,
+  cuandoLlamar,
+  getRecordatorios,
+  hoyISO,
+  type VolverALlamar,
   ETAPA_MATRICULA,
   ETAPA_TEXTO,
   ESTADO_TEXTO,
@@ -31,7 +36,7 @@ import {
   type Contacto,
   type ContactoDetalle,
 } from '@services/stats/contactos'
-import { ChevronDown, ChevronRight, Loader2, Map as MapIcon, Search, Tag, Trash2, X } from 'lucide-react'
+import { BellRing, ChevronDown, ChevronRight, Loader2, Map as MapIcon, Search, Tag, Trash2, X } from 'lucide-react'
 import { ETAPAS, MAPA_WEB } from '@lib/nawar/mapaWeb'
 
 const CARD = 'rounded-2xl border border-[#DDE6F5] bg-white p-3.5 sm:p-5'
@@ -82,10 +87,12 @@ function Fila({
   onOpen,
   deMatricula,
   onBorrar,
+  llamar,
 }: {
   c: Contacto
   onOpen: () => void
   deMatricula: boolean
+  llamar?: VolverALlamar
   /** Solo administradores: la papelera, a la vista en cada línea. */
   onBorrar?: () => void
 }) {
@@ -99,6 +106,15 @@ function Fila({
           <p className="text-[13.5px] font-semibold text-gray-900 flex items-center gap-2 min-w-0">
             <span className="truncate">{c.nombre || c.email}</span>
             <EtapaPill etapa={c.etapa} />
+            {llamar ? (
+              <span
+                className={`shrink-0 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                  llamar.fecha <= hoyISO() ? 'bg-red-50 text-red-600' : 'bg-[#FFFBF2] text-[#8A6A2A]'
+                }`}
+              >
+                Llamar {cuandoLlamar(llamar.fecha)}
+              </span>
+            ) : null}
           </p>
           <p className="text-[12px] text-gray-500 truncate">
             {c.email}
@@ -132,10 +148,12 @@ function Ficha({
   onClose,
   sinCrm = false,
   onBorrado,
+  onCambioFecha,
 }: {
   email: string
   onClose: () => void
   sinCrm?: boolean
+  onCambioFecha?: (email: string, v: VolverALlamar | null) => void
   /** Solo para administradores: si llega, sale el botón de borrar. */
   onBorrado?: (email: string, quedan?: { pagadas: number; cuenta: boolean }) => void
 }) {
@@ -246,6 +264,9 @@ function Ficha({
                 ) : null}
               </div>
             </div>
+
+            {/* Lo primero que se mira antes de llamar: cuándo toca y qué se habló. */}
+            <Seguimiento email={email} onCambioFecha={onCambioFecha} />
 
             {/* De dónde viene: lo que decide cómo empezar el mensaje. */}
             <div className={CARD}>
@@ -496,12 +517,24 @@ export default function ContactosPanel() {
   const [soloMatriculasElegido, setSoloMatriculas] = useState(false)
   const soloMatriculas = isCloser || soloMatriculasElegido
 
+  const [recordatorios, setRecordatorios] = useState<Record<string, VolverALlamar>>({})
+
   const cargar = useCallback(async () => {
     if (!org?.id || !accessToken) return
     setCargando(true)
-    setDatos(await getContactos(org.id, '', accessToken))
+    const [lista, recs] = await Promise.all([getContactos(org.id, '', accessToken), getRecordatorios(org.id, accessToken)])
+    setDatos(lista)
+    setRecordatorios(recs)
     setCargando(false)
   }, [org?.id, accessToken])
+
+  const cambioFecha = (email: string, v: VolverALlamar | null) =>
+    setRecordatorios((prev) => {
+      const next = { ...prev }
+      if (v) next[email.toLowerCase()] = v
+      else delete next[email.toLowerCase()]
+      return next
+    })
 
   useEffect(() => {
     cargar()
@@ -573,6 +606,7 @@ export default function ContactosPanel() {
       deMatricula={soloMatriculas}
       onOpen={() => setAbierto(c.email)}
       onBorrar={isAdmin ? () => borrarPersona(c) : undefined}
+      llamar={recordatorios[c.email.toLowerCase()]}
     />
   )
 
@@ -606,6 +640,27 @@ export default function ContactosPanel() {
           ? 'Todas las matrículas: quien pidió plaza o llegó al pago (y los que ya pagaron). Ordenadas por el día en que se matricularon. Abre una para ver lo que ha hecho y sus respuestas.'
           : 'Una ficha por persona que ha dejado sus datos, en la etapa más lejana a la que llegó. Ordenadas por el día de su último movimiento. Toca una etapa para ver solo esa.'}
       </p>
+
+      {/* Lo que toca hoy (y lo que se pasó de fecha), antes que nada. */}
+      {(() => {
+        const hoy = hoyISO()
+        const tocan = (datos?.contactos ?? [])
+          .filter((c) => recordatorios[c.email.toLowerCase()]?.fecha && recordatorios[c.email.toLowerCase()].fecha <= hoy)
+          .sort((a, b) => recordatorios[a.email.toLowerCase()].fecha.localeCompare(recordatorios[b.email.toLowerCase()].fecha))
+        if (!tocan.length) return null
+        return (
+          <div className="rounded-2xl border border-red-200 bg-red-50/60 p-3.5 sm:p-4">
+            <p className="text-[13.5px] font-bold text-red-700 flex items-center gap-1.5">
+              <BellRing size={15} /> Para llamar hoy · {tocan.length}
+            </p>
+            <div className="mt-2 space-y-1.5">
+              {tocan.map((c) => (
+                <React.Fragment key={c.email}>{fila(c)}</React.Fragment>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Las etapas SON los filtros, y suman el total: cada persona está en una sola. */}
       <div className={`grid grid-cols-2 ${etapas.length === 4 ? 'lg:grid-cols-4' : 'sm:grid-cols-3'} gap-2.5`}>
@@ -704,6 +759,7 @@ export default function ContactosPanel() {
           sinCrm={isCloser}
           onClose={() => setAbierto(null)}
           onBorrado={isAdmin ? trasBorrar : undefined}
+          onCambioFecha={cambioFecha}
         />
       ) : null}
     </section>

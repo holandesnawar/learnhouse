@@ -266,3 +266,95 @@ export function avisoTrasBorrar(quedan?: { pagadas: number; cuenta: boolean }): 
   if (quedan.cuenta) partes.push('una cuenta en la escuela')
   return `Borrado. Tiene ${partes.join(' y ')}: eso no se borra desde aquí, así que sigue saliendo como alumno.`
 }
+
+// ── Seguimiento: notas y "volver a llamar" ────────────────────────────────
+
+export interface NotaContacto {
+  id: number
+  texto: string
+  autor: string
+  autor_id: number
+  created_at: string
+}
+
+export interface VolverALlamar {
+  fecha: string
+  motivo: string
+  autor?: string
+}
+
+async function pedir<T>(url: string, metodo: string, cuerpo: unknown, accessToken: string): Promise<{ ok: boolean; datos?: T; error?: string }> {
+  try {
+    const res = await fetch(`${getAPIUrl()}${url}`, RequestBodyWithAuthHeader(metodo, cuerpo, null, accessToken))
+    const datos = await res.json().catch(() => ({}))
+    if (!res.ok) return { ok: false, error: (datos as any)?.detail || 'No se ha podido guardar' }
+    return { ok: true, datos: datos as T }
+  } catch {
+    return { ok: false, error: 'No se ha podido conectar' }
+  }
+}
+
+export async function getSeguimiento(orgId: number, email: string, accessToken: string) {
+  return pedir<{ notas: NotaContacto[]; volver_a_llamar: VolverALlamar | null }>(
+    `contactos/org/${orgId}/seguimiento?${new URLSearchParams({ email }).toString()}`,
+    'GET',
+    null,
+    accessToken
+  )
+}
+
+export async function anadirNota(orgId: number, email: string, texto: string, accessToken: string) {
+  return pedir<NotaContacto>(`contactos/org/${orgId}/notas`, 'POST', { email, texto }, accessToken)
+}
+
+export async function borrarNota(orgId: number, notaId: number, accessToken: string) {
+  return pedir<{ ok: boolean }>(`contactos/org/${orgId}/notas/${notaId}`, 'DELETE', null, accessToken)
+}
+
+export async function ponerRecordatorio(orgId: number, email: string, fecha: string, motivo: string, accessToken: string) {
+  return pedir<{ volver_a_llamar: VolverALlamar | null }>(
+    `contactos/org/${orgId}/recordatorio`,
+    'PUT',
+    { email, fecha, motivo },
+    accessToken
+  )
+}
+
+export async function getRecordatorios(orgId: number, accessToken: string): Promise<Record<string, VolverALlamar>> {
+  const r = await pedir<{ recordatorios: Record<string, VolverALlamar> }>(
+    `contactos/org/${orgId}/recordatorios`,
+    'GET',
+    null,
+    accessToken
+  )
+  return r.datos?.recordatorios ?? {}
+}
+
+// ── Guion de llamada ──────────────────────────────────────────────────────
+
+export async function getGuion(orgId: number, accessToken: string) {
+  return pedir<{ texto: string; de_fabrica: boolean }>(`contactos/org/${orgId}/guion`, 'GET', null, accessToken)
+}
+
+export async function guardarGuion(orgId: number, texto: string, accessToken: string) {
+  return pedir<{ texto: string; de_fabrica: boolean }>(`contactos/org/${orgId}/guion`, 'PUT', { texto }, accessToken)
+}
+
+/** "AAAA-MM-DD" de hoy en la hora del que mira. */
+export function hoyISO(dias = 0): string {
+  const d = new Date()
+  d.setDate(d.getDate() + dias)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
+
+/** "hoy", "mañana", "ayer" o "jue 26 sep". */
+export function cuandoLlamar(fecha: string): string {
+  if (!fecha) return ''
+  if (fecha === hoyISO()) return 'hoy'
+  if (fecha === hoyISO(1)) return 'mañana'
+  if (fecha === hoyISO(-1)) return 'ayer'
+  const d = new Date(`${fecha}T12:00:00`)
+  if (Number.isNaN(d.getTime())) return fecha
+  return d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })
+}

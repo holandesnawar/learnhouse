@@ -360,3 +360,84 @@ export function euros(cents: number | null | undefined): string {
   const value = (cents || 0) / 100
   return value.toLocaleString('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: value % 1 === 0 ? 0 : 2 })
 }
+
+// ── Gastos (cuadro de mando, no contabilidad) ─────────────────────────────
+
+export interface MesGastos {
+  mes: string
+  label: string
+  ventas: number
+  ingresos_cents: number
+  gastos_cents: number
+  por_categoria: Record<string, number>
+  margen_cents: number
+  coste_por_matricula_cents: number | null
+  coste_por_alumno_cents: number | null
+}
+
+export interface Gasto {
+  id: number
+  fecha: string
+  categoria: string
+  concepto: string
+  importe_cents: number
+  nota: string
+}
+
+export interface PanelGastos {
+  total: {
+    ventas: number
+    ingresos_cents: number
+    gastos_cents: number
+    margen_cents: number
+    margen_pct: number | null
+    por_categoria: Record<string, number>
+    coste_por_matricula_cents: number | null
+  }
+  meses: MesGastos[]
+  alumnos: number
+  gastos: Gasto[]
+  categorias: Record<string, string>
+  desde: string
+}
+
+export async function getGastos(orgId: number, accessToken: string | undefined): Promise<PanelGastos | null> {
+  if (!orgId || !accessToken) return null
+  try {
+    const r = await fetch(`${base()}/org/${orgId}/gastos`, RequestBodyWithAuthHeader('GET', null, null, accessToken))
+    if (!r.ok) return null
+    return await r.json()
+  } catch {
+    return null
+  }
+}
+
+export async function guardarGasto(
+  orgId: number,
+  datos: { fecha: string; categoria: string; concepto: string; importe: number; nota: string },
+  accessToken: string | undefined,
+  id?: number
+): Promise<{ ok: boolean; error?: string }> {
+  if (!orgId || !accessToken) return { ok: false, error: 'Sin sesión' }
+  try {
+    const r = await fetch(
+      `${base()}/org/${orgId}/gastos${id ? `/${id}` : ''}`,
+      RequestBodyWithAuthHeader(id ? 'PUT' : 'POST', datos, null, accessToken)
+    )
+    if (r.ok) return { ok: true }
+    const cuerpo = await r.json().catch(() => ({}))
+    return { ok: false, error: cuerpo?.detail || 'No se ha podido guardar' }
+  } catch {
+    return { ok: false, error: 'No se ha podido guardar' }
+  }
+}
+
+export async function borrarGasto(orgId: number, id: number, accessToken: string | undefined): Promise<boolean> {
+  if (!orgId || !accessToken) return false
+  try {
+    const r = await fetch(`${base()}/org/${orgId}/gastos/${id}`, RequestBodyWithAuthHeader('DELETE', null, null, accessToken))
+    return r.ok
+  } catch {
+    return false
+  }
+}

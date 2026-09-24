@@ -31,6 +31,15 @@ from src.services.contactos.contactos import (
     registrar_evento,
 )
 from src.services.contactos.agenda import agenda
+from src.services.contactos.guion import guardar_guion, leer_guion
+from src.services.contactos.seguimiento import (
+    anadir_nota,
+    borrar_nota,
+    fecha_valida,
+    poner_recordatorio,
+    seguimiento_de,
+    todos_los_recordatorios,
+)
 from src.services.contactos.llamadas import listar_llamadas, marcar_llamada
 from src.security.rbac.constants import CLOSER_ROLE_ID
 from src.services.orgs.acceso import exigir_acceso, rol_en_la_escuela
@@ -146,6 +155,140 @@ async def api_enlace_pago(
         secreto,
     )
     return {"url": f"{_academy_url()}/api/v1/payments/pagar/{token}", "dias": DIAS_VALIDEZ}
+
+
+# ── Seguimiento: notas y "volver a llamar" (closer y administradores) ──────
+
+
+def _nombre(user) -> str:
+    nombre = f"{getattr(user, 'first_name', '') or ''} {getattr(user, 'last_name', '') or ''}".strip()
+    return nombre or getattr(user, "username", "") or getattr(user, "email", "") or "Equipo"
+
+
+async def _es_admin(user, org_id: int, db_session: AsyncSession) -> bool:
+    from src.security.rbac.constants import ADMIN_OR_MAINTAINER_ROLE_IDS
+    from src.security.rbac.rbac import is_user_superadmin
+
+    if await is_user_superadmin(user.id, db_session):
+        return True
+    return (await rol_en_la_escuela(user.id, org_id, db_session)) in ADMIN_OR_MAINTAINER_ROLE_IDS
+
+
+@router.get("/org/{org_id}/seguimiento", summary="Notas y fecha de volver a llamar de una persona.")
+async def api_seguimiento(
+    request: Request,
+    org_id: int,
+    email: str,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    return await seguimiento_de(email, db_session)
+
+
+class NuevaNota(BaseModel):
+    email: str
+    texto: str
+
+
+@router.post("/org/{org_id}/notas", summary="Añade una nota a una persona.")
+async def api_nueva_nota(
+    request: Request,
+    org_id: int,
+    data: NuevaNota,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    if "@" not in data.email or not data.texto.strip():
+        raise HTTPException(status_code=400, detail="Falta el correo o el texto de la nota")
+    return await anadir_nota(data.email, data.texto, current_user.id, _nombre(current_user), db_session)
+
+
+@router.delete("/org/{org_id}/notas/{nota_id}", summary="Borra una nota (la tuya, o cualquiera si eres administrador).")
+async def api_borrar_nota(
+    request: Request,
+    org_id: int,
+    nota_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    res = await borrar_nota(nota_id, current_user.id, await _es_admin(current_user, org_id, db_session), db_session)
+    if res is None:
+        raise HTTPException(status_code=404, detail="No existe esa nota")
+    if res is False:
+        raise HTTPException(status_code=403, detail="Solo puedes borrar tus propias notas")
+    return {"ok": True}
+
+
+class Recordatorio(BaseModel):
+    email: str
+    fecha: str = ""
+    motivo: str = ""
+
+
+@router.put("/org/{org_id}/recordatorio", summary="Pone o quita la fecha de volver a llamar.")
+async def api_recordatorio(
+    request: Request,
+    org_id: int,
+    data: Recordatorio,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    if "@" not in data.email:
+        raise HTTPException(status_code=400, detail="Falta el correo")
+    if data.fecha and not fecha_valida(data.fecha):
+        raise HTTPException(status_code=400, detail="La fecha no es válida")
+    return {"volver_a_llamar": await poner_recordatorio(data.email, data.fecha, data.motivo, _nombre(current_user), db_session)}
+
+
+@router.get("/org/{org_id}/recordatorios", summary="Todas las fechas de volver a llamar (correo → fecha).")
+async def api_recordatorios(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    return {"recordatorios": await todos_los_recordatorios(db_session)}
+
+
+# ── Guion de llamada ────────────────────────────────────────────────────────
+
+
+@router.get("/org/{org_id}/guion", summary="El guion de llamada del closer.")
+async def api_guion(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    return await leer_guion(org_id, db_session)
+
+
+class GuionWrite(BaseModel):
+    texto: str = ""
+
+
+@router.put("/org/{org_id}/guion", summary="Cambia el guion de llamada (solo administradores).")
+async def api_guardar_guion(
+    request: Request,
+    org_id: int,
+    data: GuionWrite,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    org = (await db_session.execute(select(Organization).where(Organization.id == org_id))).scalars().first()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    await rbac_check(request, org.org_uuid, current_user, "update", db_session)
+    try:
+        return await guardar_guion(org_id, data.texto, db_session)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
 
 
 class MarcaLlamada(BaseModel):
