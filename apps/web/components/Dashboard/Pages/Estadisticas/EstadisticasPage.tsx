@@ -36,7 +36,9 @@ import {
   Loader2,
   Mail,
   Pencil,
+  PhoneCall,
   Plus,
+  Receipt,
   RefreshCw,
   Trash2,
   TrendingDown,
@@ -180,8 +182,21 @@ export default function EstadisticasPage() {
     }
     leer()
     window.addEventListener('popstate', leer)
-    return () => window.removeEventListener('popstate', leer)
+    // La barra lateral cambia el ?tab= con un Link de Next, que no dispara
+    // popstate ni vuelve a montar la página: se mira cada poco, como hace la
+    // propia barra para saber qué entrada marcar.
+    const id = window.setInterval(leer, 400)
+    return () => {
+      window.removeEventListener('popstate', leer)
+      window.clearInterval(id)
+    }
   }, [])
+  // El closer sin Números no se queda nunca en esa sección.
+  useEffect(() => {
+    if (isCloser && tab !== 'contactos' && tab !== 'llamadas' && !(tab === 'numeros' && closerVeNumeros === true)) {
+      setTab('contactos')
+    }
+  }, [isCloser, tab, closerVeNumeros])
   const [period, setPeriod] = useState<'month' | 'quarter'>('month')
   const [stats, setStats] = useState<SchoolStats | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -203,8 +218,12 @@ export default function EstadisticasPage() {
     load()
   }, [load])
 
+  // Contactos, Llamadas y Facturas cargan lo suyo: "Actualizar" las vuelve a
+  // montar para que pidan los datos otra vez.
+  const [vuelta, setVuelta] = useState(0)
   const refresh = async () => {
     setReloading(true)
+    setVuelta((v) => v + 1)
     await load()
     setReloading(false)
   }
@@ -218,9 +237,28 @@ export default function EstadisticasPage() {
     // de abajo para la barra del navegador ya lo pone el layout del panel.
     <div className="h-full w-full bg-[#f8f8f8] px-4 sm:px-9 py-6 sm:py-9 pb-10 space-y-5 sm:space-y-6">
       <div className="flex items-center justify-between gap-2">
+        {/* El título es el de la sección que se ha abierto en la barra. Antes
+            todo se llamaba "Estadísticas" con pestañas debajo que repetían la
+            barra, y el closer no sabía dónde estaba. */}
         <div className="flex items-center gap-2 min-w-0">
-          <BarChart3 size={22} className="text-[#025dc7] shrink-0" />
-          <h1 className="text-xl sm:text-3xl font-bold text-gray-900 truncate">Estadísticas</h1>
+          {tab === 'contactos' ? (
+            <Users size={22} className="text-[#025dc7] shrink-0" />
+          ) : tab === 'llamadas' ? (
+            <PhoneCall size={22} className="text-[#025dc7] shrink-0" />
+          ) : tab === 'facturas' ? (
+            <Receipt size={22} className="text-[#025dc7] shrink-0" />
+          ) : (
+            <BarChart3 size={22} className="text-[#025dc7] shrink-0" />
+          )}
+          <h1 className="text-xl sm:text-3xl font-bold text-gray-900 truncate">
+            {tab === 'contactos'
+              ? 'Contactos'
+              : tab === 'llamadas'
+                ? 'Llamadas'
+                : tab === 'facturas'
+                  ? 'Facturas'
+                  : 'Estadísticas'}
+          </h1>
         </div>
         <button
           onClick={refresh}
@@ -232,32 +270,10 @@ export default function EstadisticasPage() {
         </button>
       </div>
 
-      <div className="flex gap-1 border-b border-[#DDE6F5]">
-        {[
-          { id: 'numeros' as const, label: 'Números' },
-          { id: 'contactos' as const, label: 'Contactos' },
-          { id: 'llamadas' as const, label: 'Llamadas' },
-          { id: 'facturas' as const, label: 'Facturas' },
-        ]
-          // El closer: Contactos siempre, Números solo si se lo han abierto.
-          .filter((t) => !isCloser || t.id === 'contactos' || t.id === 'llamadas' || (t.id === 'numeros' && closerVeNumeros === true))
-          .map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`px-4 py-2.5 text-[14px] font-semibold border-b-2 -mb-px transition-colors ${
-              tab === t.id
-                ? 'border-[#4da3ff] text-[#025dc7]'
-                : 'border-transparent text-gray-500 hover:text-gray-800'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
       {tab === 'contactos' ? (
         <>
+          <ContactosPanel key={vuelta} />
+          {/* Un ajuste que se toca una vez: abajo, no encima de la lista. */}
           {isAdmin ? (
             <QueVeElCloser
               orgId={org?.id}
@@ -266,12 +282,11 @@ export default function EstadisticasPage() {
               onChange={setCloserVeNumeros}
             />
           ) : null}
-          <ContactosPanel />
         </>
       ) : tab === 'llamadas' ? (
-        <LlamadasPanel />
+        <LlamadasPanel key={vuelta} />
       ) : tab === 'facturas' ? (
-        <FacturasPanel />
+        <FacturasPanel key={vuelta} />
       ) : !loaded ? (
         <div className="flex justify-center py-20">
           <Loader2 className="animate-spin text-gray-400" size={28} />

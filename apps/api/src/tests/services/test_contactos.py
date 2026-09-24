@@ -62,3 +62,29 @@ def test_las_etiquetas_se_juntan_sin_repetir():
         _ev("guia-bases", "2026-09-03", "a@x.com", tag="Guía Bases"),
     ]
     assert fusionar_contactos(eventos, set())[0]["etiquetas"] == ["Guía Bases", "Lista de espera"]
+
+
+def test_una_sola_etapa_por_persona_la_mas_avanzada():
+    def etapa(eventos, cuentas=()):
+        return fusionar_contactos(eventos, set(cuentas))[0]["etapa"]
+
+    assert etapa([_ev("guia-bases", "2026-09-01", "a@x.com")]) == "lead"
+    assert etapa([_ev("guia-bases", "2026-09-01", "a@x.com"), _ev("solicitud", "2026-09-02", "a@x.com")]) == "pidio"
+    assert etapa([_ev("agendar-empezado", "2026-09-02", "a@x.com")]) == "pidio"
+    assert etapa([_ev("solicitud", "2026-09-02", "a@x.com"), _ev("matricula", "2026-09-03", "a@x.com")]) == "en-pago"
+    assert etapa([_ev("matricula", "2026-09-03", "a@x.com"), _ev("pago", "2026-09-03", "a@x.com")]) == "alumno"
+    assert etapa([_ev("guia-bases", "2026-09-01", "a@x.com")], ["a@x.com"]) == "alumno"
+
+
+def test_la_fecha_de_matricula_es_la_primera_solicitud_o_matricula():
+    f = fusionar_contactos(
+        [
+            _ev("guia-bases", "2026-09-01T10:00:00", "a@x.com"),
+            _ev("matricula", "2026-09-12T10:00:00", "a@x.com"),
+            _ev("solicitud", "2026-09-05T10:00:00", "a@x.com"),
+        ],
+        set(),
+    )[0]
+    assert f["matricula_at"] == "2026-09-05T10:00:00"
+    solo_guia = fusionar_contactos([_ev("guia-bases", "2026-09-01", "b@x.com")], set())[0]
+    assert solo_guia["matricula_at"] == ""

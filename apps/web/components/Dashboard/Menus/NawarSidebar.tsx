@@ -24,6 +24,7 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { signOut } from '@components/Contexts/AuthContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
+import useCloserVeNumeros from '@components/Hooks/useCloserVeNumeros'
 import { getUriWithOrg } from '@services/config/config'
 import { getOrgLogoMediaDirectory } from '@services/media/media'
 import UserAvatar from '@components/Objects/UserAvatar'
@@ -96,6 +97,21 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
   },
 ]
 
+/**
+ * Lo que ve el closer: Contactos (solo las matrículas) y Llamadas. Nada de
+ * "Estadísticas" salvo que el administrador le abra los Números: con esa
+ * entrada delante no sabía qué era cada cosa.
+ */
+export function gruposDelCloser(veNumeros: boolean): Grupo[] {
+  const ventas = GRUPOS_DEL_PANEL[0].items
+  const por = (label: string) => ventas.find((i) => i.label === label) as Item
+  const items = [por('Contactos'), por('Llamadas')]
+  if (veNumeros) {
+    items.push({ ...por('Estadísticas'), href: '/dash/estadisticas?tab=numeros', label: 'Números', match: undefined })
+  }
+  return [{ titulo: 'Tu panel', items }]
+}
+
 export function activo(item: Item, pathname: string, search: string): boolean {
   const completo = `${pathname}${search}`
   if (item.href.includes('?')) return completo === item.href || completo.startsWith(item.href + '&')
@@ -110,6 +126,7 @@ export default function NawarSidebar() {
   const [search, setSearch] = useState('')
   const [isCollapsed, setIsCollapsed] = useState(false)
   const { isCloser } = useAdminStatus()
+  const closerVeNumeros = useCloserVeNumeros(isCloser)
 
   useEffect(() => {
     // Los enlaces a pestañas llevan ?tab=; la ruta sola no lo sabe.
@@ -145,9 +162,7 @@ export default function NawarSidebar() {
   if (!org || !session) return null
 
   // El closer: solo Ventas → Contactos (y Estadísticas si se lo abren).
-  const grupos = isCloser
-    ? [{ titulo: 'Ventas', items: GRUPOS_DEL_PANEL[0].items.filter((i) => i.label !== 'Facturas') }]
-    : GRUPOS_DEL_PANEL
+  const grupos = isCloser ? gruposDelCloser(closerVeNumeros) : GRUPOS_DEL_PANEL
 
   return (
     <nav

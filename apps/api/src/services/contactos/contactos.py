@@ -61,6 +61,27 @@ NOMBRES_TIPO = {
 #: pago es ver el precio, por definición.
 _CON_PRECIO = {"matricula", "pago"}
 
+#: Lo que cuenta como "se matriculó": pidió plaza por el formulario o llegó al
+#: pago. Es lo único que ve el closer en Contactos (la gente que solo bajó una
+#: guía no es trabajo suyo) y la fecha por la que se agrupa su lista.
+_MATRICULA = {"solicitud", "matricula"}
+
+#: Pidió hablar con nosotros: el formulario de plaza o el de la llamada.
+_PIDIO = {"solicitud", "cualificacion", "agendar-empezado", "reunion"}
+
+
+def etapa_de(tipos: set[str], tiene_cuenta: bool) -> str:
+    """La etapa MÁS AVANZADA a la que llegó la persona. Una sola por ficha, así
+    que los contadores del panel suman el total (antes cada tarjeta contaba con
+    su propio criterio, se solapaban y no cuadraban)."""
+    if tiene_cuenta or "pago" in tipos or "alta-manual" in tipos:
+        return "alumno"
+    if "matricula" in tipos:
+        return "en-pago"
+    if tipos & _PIDIO:
+        return "pidio"
+    return "lead"
+
 
 def _ahora() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -238,6 +259,7 @@ def fusionar_contactos(eventos: list[dict], con_cuenta: set[str]) -> list[dict]:
                 etiquetas.append(t)
 
         primero, ult = lista[0], lista[-1]
+        de_matricula = [e for e in lista if e["kind"] in _MATRICULA]
         nombre = f"{ultimo('first_name')} {ultimo('last_name')}".strip()
         resumen = resumen_del_lead(",".join(pasos), ultimo("referrer"), ultimo("source"))
 
@@ -257,6 +279,9 @@ def fusionar_contactos(eventos: list[dict], con_cuenta: set[str]) -> list[dict]:
                 "primer_contacto": {"kind": primero["kind"], "que": primero["que"], "when": primero["when"]},
                 "ultimo_contacto": {"kind": ult["kind"], "que": ult["que"], "when": ult["when"]},
                 "n_eventos": len(lista),
+                "etapa": etapa_de(tipos, email in con_cuenta),
+                # Cuándo se matriculó por primera vez (vacío si nunca).
+                "matricula_at": de_matricula[0]["when"] if de_matricula else "",
                 "eventos": lista,
             }
         )
@@ -320,8 +345,15 @@ async def _emails_con_cuenta(db_session: AsyncSession) -> set[str]:
     return {str(e[0]).strip().lower() for e in filas if e and e[0]}
 
 
-async def listar_contactos(q: str, limit: int, db_session: AsyncSession) -> dict:
+async def listar_contactos(
+    q: str, limit: int, db_session: AsyncSession, solo_matriculas: bool = False
+) -> dict:
     fichas = fusionar_contactos(await _todos_los_eventos(db_session), await _emails_con_cuenta(db_session))
+    if solo_matriculas:
+        # El closer: solo quien se matriculó, lo más reciente arriba. Se filtra
+        # AQUÍ y no en la pantalla, para que los demás no le lleguen nunca.
+        fichas = [f for f in fichas if f["matricula_at"]]
+        fichas.sort(key=lambda f: _instante(f["matricula_at"]), reverse=True)
     total = len(fichas)
     q = (q or "").strip().lower()
     if q:
