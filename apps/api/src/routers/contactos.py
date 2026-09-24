@@ -25,6 +25,7 @@ from src.db.contact_event import ContactEventCreate
 from src.db.users import AnonymousUser, PublicUser
 from src.security.auth import get_current_user
 from src.services.contactos.contactos import (
+    borrar_contacto,
     detalle_contacto,
     listar_contactos,
     registrar_evento,
@@ -33,6 +34,8 @@ from src.services.contactos.agenda import agenda
 from src.services.contactos.llamadas import listar_llamadas, marcar_llamada
 from src.security.rbac.constants import CLOSER_ROLE_ID
 from src.services.orgs.acceso import exigir_acceso, rol_en_la_escuela
+from src.services.orgs.orgs import rbac_check
+from src.db.organizations import Organization
 
 logger = logging.getLogger(__name__)
 
@@ -165,6 +168,28 @@ async def api_marcar_llamada(
     res = await marcar_llamada(event_id, data.atendida, db_session)
     if res is None:
         raise HTTPException(status_code=404, detail="No existe esa llamada")
+    return res
+
+
+@router.delete(
+    "/org/{org_id}/contacto",
+    summary="Borra el rastro de una persona que era una prueba (no toca pagos ni cuentas).",
+)
+async def api_borrar_contacto(
+    request: Request,
+    org_id: int,
+    email: str,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    # Solo administradores: el closer ve y marca, pero no borra.
+    org = (await db_session.execute(select(Organization).where(Organization.id == org_id))).scalars().first()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    await rbac_check(request, org.org_uuid, current_user, "update", db_session)
+    res = await borrar_contacto(email, db_session)
+    if not res.get("ok"):
+        raise HTTPException(status_code=400, detail=res.get("motivo") or "No se ha podido borrar")
     return res
 
 

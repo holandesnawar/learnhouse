@@ -1410,6 +1410,27 @@ guía, que no es trabajo del closer.
 - El mapa de la web va al final y plegado; el ajuste "Qué ve el closer", debajo
   de la lista.
 
+## Borrar pruebas y leads que no valen (24/09/2026)
+Petición del usuario: poder quitar, como administrador, cualquier cosa suya de
+prueba o leads malos, estén donde estén.
+
+- **Una sola función para todo**: `borrar_contacto(email)` en
+  `services/contactos/contactos.py`, endpoint
+  `DELETE /contactos/org/{id}/contacto?email=` (solo administradores,
+  `rbac_check … "update"`; el closer no borra).
+- **Borra a la persona entera**: sus eventos (guías, llamadas,
+  cualificaciones), sus solicitudes y sus matrículas **sin pagar**. Así no se
+  queda colgada en otra pantalla.
+- **NO toca, a propósito**: matrículas pagadas (dinero y facturas; para pruebas
+  de pago está `LEARNHOUSE_FORMACION_DESDE`), la cuenta de usuario (eso es
+  Panel → Usuarios) ni systeme.io. Si queda algo de eso, la respuesta lo dice
+  y la pantalla avisa de que sigue saliendo como alumno. Un borrado que parece
+  que no ha funcionado es peor que un aviso.
+- **Botón en los tres sitios**: la ficha de Contactos ("Borrar este
+  contacto"), cada llamada abierta y la papelera de Matrículas nuevas, que
+  antes solo borraba esa fila y ahora borra a la persona.
+- Las matrículas `descartada` (el descarte viejo) ya no salen en Contactos.
+
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
   `git branch --show-current` antes de dar por buena ninguna que ponga aquí.

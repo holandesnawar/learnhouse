@@ -222,3 +222,35 @@ export async function crearEnlacePago(
     return { error: 'No se ha podido crear el enlace' }
   }
 }
+
+/**
+ * Borra el rastro de una persona que era una prueba (o un lead que no vale):
+ * eventos, solicitudes y matrículas sin pagar. No toca pagos, cuentas ni el
+ * CRM. Solo administradores.
+ */
+export async function borrarContacto(
+  orgId: number,
+  email: string,
+  accessToken: string
+): Promise<{ ok: boolean; quedan?: { pagadas: number; cuenta: boolean }; error?: string }> {
+  try {
+    const res = await fetch(
+      `${getAPIUrl()}contactos/org/${orgId}/contacto?${new URLSearchParams({ email }).toString()}`,
+      RequestBodyWithAuthHeader('DELETE', null, null, accessToken)
+    )
+    const cuerpo = await res.json().catch(() => ({}))
+    if (!res.ok) return { ok: false, error: cuerpo?.detail || 'No se ha podido borrar' }
+    return { ok: true, quedan: cuerpo?.quedan }
+  } catch {
+    return { ok: false, error: 'No se ha podido borrar' }
+  }
+}
+
+/** El texto que se enseña tras borrar, diciendo qué NO se ha tocado. */
+export function avisoTrasBorrar(quedan?: { pagadas: number; cuenta: boolean }): string {
+  if (!quedan || (!quedan.pagadas && !quedan.cuenta)) return 'Borrado'
+  const partes = []
+  if (quedan.pagadas) partes.push(quedan.pagadas === 1 ? 'un pago' : `${quedan.pagadas} pagos`)
+  if (quedan.cuenta) partes.push('una cuenta en la escuela')
+  return `Borrado. Tiene ${partes.join(' y ')}: eso no se borra desde aquí, así que sigue saliendo como alumno.`
+}

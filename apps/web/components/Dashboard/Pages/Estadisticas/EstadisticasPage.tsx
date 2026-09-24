@@ -5,6 +5,7 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import FacturasPanel from './FacturasPanel'
 import ContactosPanel from './ContactosPanel'
 import LlamadasPanel from './LlamadasPanel'
+import { avisoTrasBorrar, borrarContacto } from '@services/stats/contactos'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { updateOrgAccesoCloser } from '@services/settings/org'
 import { getAPIUrl } from '@services/config/config'
@@ -15,8 +16,6 @@ import {
   deleteManualEntry,
   euros,
   getSchoolStats,
-  borrarSolicitud,
-  descartarMatricula,
   marcarSolicitud,
   readUtmLinks,
   saveManualEntry,
@@ -731,24 +730,32 @@ function Solicitudes({
     setHechas((prev) => ({ ...prev, [f.id as number]: !f.hecha }))
   }
 
+  // Borrar = quitar a la persona entera, igual que desde Contactos y
+  // Llamadas: sus solicitudes, matrículas sin pagar y demás rastro. Una prueba
+  // no debe seguir apareciendo en otra pantalla.
   async function quitar(f: FilaMatricula) {
-    const aviso =
-      f.tipo === 'solicitud'
-        ? `¿Borrar la matrícula de ${f.name || f.email}? Es para las de prueba: no se puede deshacer.`
-        : `¿Quitar a ${f.name || f.email} de la lista? Llegó al pago y no pagó. Deja de contar en el embudo (pensado para tus pruebas).`
-    if (!window.confirm(aviso)) return
+    if (
+      !window.confirm(
+        `¿Borrar a ${f.name || f.email}? Es para pruebas o leads que no valen: desaparece de Matrículas, Contactos y Llamadas. No se puede deshacer. Los pagos, la cuenta y el CRM no se tocan.`
+      )
+    )
+      return
     setGuardando(f.clave)
-    const ok =
-      f.tipo === 'solicitud'
-        ? await borrarSolicitud(org?.id, f.id as number, accessToken)
-        : await descartarMatricula(org?.id, f.email, accessToken)
+    const r = await borrarContacto(org?.id, f.email, accessToken)
     setGuardando(null)
-    if (!ok) {
-      toast.error('No se ha podido borrar')
+    if (!r.ok) {
+      toast.error(r.error || 'No se ha podido borrar')
       return
     }
-    setQuitadas((prev) => ({ ...prev, [f.clave]: true }))
-    toast.success('Quitada')
+    // Fuera todas las filas de ese correo, no solo la tocada.
+    setQuitadas((prev) => {
+      const next = { ...prev }
+      for (const x of filas) if (x.email.toLowerCase() === f.email.toLowerCase()) next[x.clave] = true
+      return next
+    })
+    const aviso = avisoTrasBorrar(r.quedan)
+    if (aviso === 'Borrado') toast.success(aviso)
+    else toast(aviso, { duration: 7000 })
   }
 
   return (
@@ -926,7 +933,7 @@ function FilaDeMatricula({
         <button
           onClick={quitar}
           disabled={guardando}
-          title={f.tipo === 'solicitud' ? 'Borrar (para las de prueba)' : 'Quitar de la lista (para las de prueba)'}
+          title="Borrar (era una prueba o no vale)"
           aria-label="Borrar"
           className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg text-[#9CA3AF] hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
         >
