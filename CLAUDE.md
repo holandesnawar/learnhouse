@@ -1478,8 +1478,9 @@ prueba o leads malos, estén donde estén.
 
 ### Guion de llamada
 - Entrada "Guion de llamada" en la barra del closer y del administrador
-  (`?tab=guion`, `GuionPanel.tsx`). Lo lee el closer; lo edita el administrador
-  ("Editar"), con formato sencillo: `## ` título, `- ` punto.
+  (`?tab=guion`, `GuionPanel.tsx`). **Lo editan el administrador y el closer**
+  ("Editar"; el closer desde el 24/09, a petición del usuario), con formato
+  sencillo: `## ` título, `- ` punto.
 - Se guarda en org_config `guion_llamada.texto`; vacío = el de fábrica, escrito
   en `services/contactos/guion.py` con los datos de la oferta (397 → 497 €,
   15 días de garantía, Klarna, 16 semanas, 7 módulos, clase semanal, 6 meses).

@@ -3,8 +3,8 @@ Guion de llamada del closer: qué contar, en qué orden, y cómo responder a las
 dudas de siempre. Así cualquiera que llame dice lo mismo que la web (precio,
 garantía, qué incluye).
 
-Vive en org_config["guion_llamada"] como texto: lo edita el administrador
-desde la propia pantalla y lo lee el closer. Si no hay nada guardado, sale el
+Vive en org_config["guion_llamada"] como texto: lo editan el administrador
+y el closer desde la propia pantalla. Si no hay nada guardado, sale el
 de fábrica de abajo. Formato sencillo: "## " es un título, "- " un punto.
 
 ⚠️ Si cambian el precio, la garantía o lo que incluye la formación, hay que
