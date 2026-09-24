@@ -179,6 +179,7 @@ async def api_borrar_contacto(
     request: Request,
     org_id: int,
     email: str,
+    del_todo: bool = False,
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ):
@@ -187,7 +188,7 @@ async def api_borrar_contacto(
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
     await rbac_check(request, org.org_uuid, current_user, "update", db_session)
-    res = await borrar_contacto(email, db_session)
+    res = await borrar_contacto(email, db_session, del_todo=del_todo)
     if not res.get("ok"):
         raise HTTPException(status_code=400, detail=res.get("motivo") or "No se ha podido borrar")
     return res

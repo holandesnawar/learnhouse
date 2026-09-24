@@ -248,9 +248,10 @@ function Lista({
               open ? 'border-[#4da3ff] bg-white' : hecha || apagada ? 'border-[#E7EEF9] bg-white opacity-70' : 'border-[#DDE6F5] bg-[#F7FAFF]'
             }`}
           >
+            <div className="flex items-stretch">
             <button
               onClick={() => setAbierta(open ? null : l.id)}
-              className="w-full text-left px-3.5 py-2.5 flex items-center gap-3"
+              className="flex-1 min-w-0 text-left px-3.5 py-2.5 flex items-center gap-3"
             >
               <div className="flex-1 min-w-0">
                 <p className="text-[13.5px] font-semibold text-gray-900 truncate">
@@ -286,6 +287,18 @@ function Lista({
               </div>
               {open ? <ChevronDown size={16} className="text-gray-400 shrink-0" /> : <ChevronRight size={16} className="text-gray-400 shrink-0" />}
             </button>
+            {/* Papelera a la vista, sin tener que abrir la llamada (solo administradores). */}
+            {borrar ? (
+              <button
+                onClick={() => borrar(l)}
+                title="Borrar (era una prueba o no vale)"
+                aria-label={`Borrar a ${l.name || l.email}`}
+                className="shrink-0 px-3 border-l border-[#DDE6F5] text-red-500 hover:text-red-700 hover:bg-red-50 rounded-r-xl transition-colors"
+              >
+                <Trash2 size={16} />
+              </button>
+            ) : null}
+            </div>
 
             {open && (
               <div className="px-3.5 pb-3.5 space-y-3">
