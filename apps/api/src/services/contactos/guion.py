@@ -36,7 +36,7 @@ GUION_DE_FABRICA = """## Antes de llamar
 - Apunta lo que diga en las notas: es lo que usarás al presentar.
 
 ## 3. Presentar la formación (5 min, con SUS palabras)
-- Formación A0 → A1: 16 semanas, 7 módulos, más de 15 h de vídeo explicado desde el español.
+- Formación A0 → A1: 16 semanas, 10 módulos, más de 15 h de vídeo explicado desde el español.
 - Lecciones y ejercicios paso a paso en la escuela, con su progreso.
 - Una clase en directo cada semana con un profesor (y si no puede, queda grabada).
 - Comunidad privada de alumnos y dudas con el equipo.
