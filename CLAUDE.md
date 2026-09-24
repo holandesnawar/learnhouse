@@ -1482,7 +1482,7 @@ prueba o leads malos, estén donde estén.
   sencillo: `## ` título, `- ` punto.
 - Se guarda en org_config `guion_llamada.texto`; vacío = el de fábrica, escrito
   en `services/contactos/guion.py` con los datos de la oferta (397 → 497 €,
-  15 días de garantía, Klarna, 16 semanas, 7 módulos, clase semanal, 6 meses).
+  15 días de garantía, Klarna, 16 semanas, 10 módulos, clase semanal, 6 meses).
   ⚠️ **Si cambia la oferta, cambiarlo también ahí.**
 - "Sus resultados" del closer NO se hizo: el usuario dijo que toda venta por
   llamada es suya, así que no aporta.
@@ -1573,6 +1573,27 @@ arrancan) y **sin pgvector** (se quita `course_embedding` antes de
 capturas con Playwright entrando como admin y como closer. Facturas da 500 en
 local (no hay clave de Stripe) y Calendly no se alcanza: eso NO se puede
 comprobar así.
+
+## Web: SEO, preguntas frecuentes y pasos de la home (24/09/2026)
+Todo en `nawar-web` (PR #13 reutilizado y #83).
+- **La formación son 16 semanas en 10 módulos** (dato del usuario; antes el
+  guion decía 7). Aparece en `guion.py`, en `public/llms.txt` y en la FAQ
+  "¿Cuánto se tarda…?". Si cambia, cambiarlo en los tres.
+- **"Así de sencillo" (home)**: el botón va al formulario de contacto
+  (`CTA_PRINCIPAL`), que NO cobra, así que los pasos son: matricúlate →
+  hablamos contigo → entras y empiezas. El título "Dos clics. Listo." se
+  queda (el usuario lo prefiere corto).
+- **Fuera el "90 %"** también en la home: cifras sin fuente, nunca.
+- **El pie de página** (home y blog) ya no es un formulario de lista de
+  espera: es un botón "Matricularme" a `CTA_PRINCIPAL`.
+- **SEO/IA**: "¿Qué es Nawar?" de la FAQ es el párrafo que describe la escuela
+  (material propio, módulos interactivos, progreso, clases de conversación,
+  consultas, comunidad; SIN las 16 semanas, decisión del usuario). Cinco
+  preguntas nuevas en `landing.json` (y en el respaldo de `FAQNuevo.astro`).
+  Home con título "Curso de neerlandés online para hispanohablantes | Holandés
+  Nawar" y ficha `Course` en JSON-LD. `public/llms.txt` para las IAs.
+- Las landings de venta siguen fuera de Google a propósito (`robots.txt`,
+  `Disallow: /formacion-`): el SEO se juega en home, blog y Nuestra visión.
 
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
