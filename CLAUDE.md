@@ -1328,8 +1328,10 @@ de presentación, no de goteo.
 - Estilo de los campos (23/09, "demasiado oscuro"): texto como Typeform, solo
   la línea de debajo; cajas de respuesta con velo `#4da3ff` al 13 %, más claro
   que el fondo y sin sombra. El tinte azul oscuro de antes apagaba la página. URL
-  `calendly.com/holandesconnawar/llamada-de-consultoria` (`PUBLIC_AGENDA_URL` la
-  cambia). Nombre y correo van rellenos. El script de Calendly solo se carga
+  `calendly.com/holandesnawar/llamada-de-consultoria` (`PUBLIC_AGENDA_URL` la
+  cambia; ⚠️ si esa variable está puesta en Vercel, manda ella sobre el código).
+  El enlace de política de privacidad va SOLO en la pantalla de datos (24/09:
+  en el pie de todas "molestaba"). Nombre y correo van rellenos. El script de Calendly solo se carga
   en esa pantalla. Al reservar, Calendly avisa a la página
   (`calendly.event_scheduled`) → evento `reunion` en la escuela → Llamadas
   enseña **"Hora reservada"**. El día exacto lo tiene Calendly, no la escuela.
