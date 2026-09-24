@@ -1460,6 +1460,47 @@ prueba o leads malos, estén donde estén.
   leía como gente que abandonó la caja. Cada línea dice qué hizo
   (`ETAPA_MATRICULA`) en vez de "Se matriculó".
 
+## Closer: notas, volver a llamar y guion · Gastos (24/09/2026)
+
+### Seguimiento de cada persona (closer y administradores)
+- Tablas nuevas `contact_nota` (historial de notas, con autor) y
+  `contact_recordatorio` (una fecha de "volver a llamar" por correo + motivo),
+  en `src/db/contact_seguimiento.py`. Van por **correo**, como toda la ficha.
+- Servicio `services/contactos/seguimiento.py`, rutas en `routers/contactos.py`
+  (`/seguimiento`, `/notas`, `/recordatorio`, `/recordatorios`), todas con la
+  puerta de contactos (closer incluido). Una nota la borra su autor o un
+  administrador; no se editan, para que quede el historial.
+- Pantalla: `Seguimiento.tsx`, dentro de la ficha de Contactos y de cada
+  llamada abierta. Botones "Mañana / En 3 días / En una semana" o fecha a mano.
+  En las listas, etiqueta "Llamar hoy/el jue 26" (roja si ya toca o se pasó), y
+  arriba de Contactos la caja **"Para llamar hoy"**.
+- `borrar_contacto` también borra notas y fecha.
+
+### Guion de llamada
+- Entrada "Guion de llamada" en la barra del closer y del administrador
+  (`?tab=guion`, `GuionPanel.tsx`). Lo lee el closer; lo edita el administrador
+  ("Editar"), con formato sencillo: `## ` título, `- ` punto.
+- Se guarda en org_config `guion_llamada.texto`; vacío = el de fábrica, escrito
+  en `services/contactos/guion.py` con los datos de la oferta (397 → 497 €,
+  15 días de garantía, Klarna, 16 semanas, 7 módulos, clase semanal, 6 meses).
+  ⚠️ **Si cambia la oferta, cambiarlo también ahí.**
+- "Sus resultados" del closer NO se hizo: el usuario dijo que toda venta por
+  llamada es suya, así que no aporta.
+
+### Gastos (solo administradores)
+- **Cuadro de mando, no contabilidad** (lo decidido el 27/08, confirmado hoy):
+  las facturas van al programa del gestor (Moneybird si la empresa es de NL,
+  Holded si es de ES). Aquí solo importes.
+- Tabla `school_expense` (fecha, categoría publicidad/profes/herramientas/otros,
+  concepto, importe en céntimos, nota). Rutas `/stats/org/{id}/gastos`
+  (GET/POST/PUT/DELETE). Cálculo puro `resumen_gastos` en
+  `services/stats/gastos.py` con tests (`test_gastos.py`).
+- Cifras: ingresos (ventas pagadas desde `LEARNHOUSE_FORMACION_DESDE`), gastos,
+  margen, **coste por matrícula = publicidad / ventas**, **coste por alumno =
+  gasto del mes / alumnos actuales** (rol 4). Mes a mes y en total.
+- El bloque viejo "gasto del mes" (`school_manual_entry`, kind `cost`) sigue en
+  Números para el coste por lead; no se ha tocado.
+
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
   `git branch --show-current` antes de dar por buena ninguna que ponga aquí.

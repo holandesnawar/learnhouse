@@ -9,7 +9,11 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.core.events.database import get_db_session
 from src.db.organizations import Organization
+from datetime import datetime
+
+from src.db.school_expense import SchoolExpenseWrite
 from src.db.school_stats import ManualEntryWrite
+from src.services.stats.gastos import borrar_gasto, guardar_gasto, panel_gastos
 from src.db.users import AnonymousUser, PublicUser
 from src.security.auth import get_current_user
 from src.services.orgs.acceso import exigir_acceso
@@ -163,6 +167,74 @@ async def api_descartar_matricula(
 ):
     await _admin_org(request, org_id, current_user, db_session)
     return {"descartadas": await descartar_matricula(data.email, db_session)}
+
+
+# ── Gastos: cuadro de mando, no contabilidad (ver src/db/school_expense.py) ──
+
+
+@router.get("/org/{org_id}/gastos", summary="Gastos apuntados y lo que dicen: margen, coste por matrícula y por alumno.")
+async def api_gastos(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_org(request, org_id, current_user, db_session)
+    return await panel_gastos(org_id, db_session)
+
+
+def _validar_gasto(data: SchoolExpenseWrite) -> None:
+    try:
+        datetime.strptime(data.fecha, "%Y-%m-%d")
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="La fecha no es válida")
+    if data.importe is None or data.importe <= 0:
+        raise HTTPException(status_code=400, detail="El importe tiene que ser mayor que cero")
+
+
+@router.post("/org/{org_id}/gastos", summary="Apunta un gasto.")
+async def api_nuevo_gasto(
+    request: Request,
+    org_id: int,
+    data: SchoolExpenseWrite,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_org(request, org_id, current_user, db_session)
+    _validar_gasto(data)
+    g = await guardar_gasto(org_id, data.fecha, data.categoria, data.concepto, data.importe, data.nota, db_session)
+    return {"id": g.id if g else None}
+
+
+@router.put("/org/{org_id}/gastos/{gasto_id}", summary="Cambia un gasto.")
+async def api_cambiar_gasto(
+    request: Request,
+    org_id: int,
+    gasto_id: int,
+    data: SchoolExpenseWrite,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_org(request, org_id, current_user, db_session)
+    _validar_gasto(data)
+    g = await guardar_gasto(org_id, data.fecha, data.categoria, data.concepto, data.importe, data.nota, db_session, gasto_id)
+    if g is None:
+        raise HTTPException(status_code=404, detail="No existe ese gasto")
+    return {"id": g.id}
+
+
+@router.delete("/org/{org_id}/gastos/{gasto_id}", summary="Borra un gasto.")
+async def api_borrar_gasto(
+    request: Request,
+    org_id: int,
+    gasto_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_org(request, org_id, current_user, db_session)
+    if not await borrar_gasto(org_id, gasto_id, db_session):
+        raise HTTPException(status_code=404, detail="No existe ese gasto")
+    return {"ok": True}
 
 
 @router.delete(
