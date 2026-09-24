@@ -1,5 +1,6 @@
 'use client'
 
+import useAdminStatus from '@components/Hooks/useAdminStatus'
 import React, { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
@@ -73,7 +74,17 @@ const CANAL_PRESENTACIONES = 'dfb8999d-42a9-4b36-92b4-ff924b1a0f91'
  * el final de la página justo al alumno que acaba de entrar, que es el que más
  * necesita verla entera.
  */
-export default function StudentOnboarding({
+/**
+ * El "Empieza aquí" es para alumnos. El closer entra a la escuela a trabajar
+ * (su Panel), no a estudiar: se le salía la bienvenida de alumno cada vez.
+ */
+export default function StudentOnboarding(props: { orgslug: string; modo?: 'panel' | 'aviso' }) {
+  const { isCloser } = useAdminStatus()
+  if (isCloser) return null
+  return <StudentOnboardingAlumno {...props} />
+}
+
+function StudentOnboardingAlumno({
   orgslug,
   modo = 'aviso',
 }: {

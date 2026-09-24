@@ -7,7 +7,8 @@ import ContactosPanel from './ContactosPanel'
 import LlamadasPanel from './LlamadasPanel'
 import GastosPanel from './GastosPanel'
 import GuionPanel from './GuionPanel'
-import { avisoTrasBorrar, borrarContacto } from '@services/stats/contactos'
+import PaginasPanel from './PaginasPanel'
+import { getContactos, type Contacto } from '@services/stats/contactos'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { updateOrgAccesoCloser } from '@services/settings/org'
 import { getAPIUrl } from '@services/config/config'
@@ -33,6 +34,7 @@ import {
   ChevronDown,
   ChevronRight,
   Copy,
+  Globe,
   Link2,
   Loader2,
   Mail,
@@ -170,7 +172,11 @@ export default function EstadisticasPage() {
       .catch(() => setCloserVeNumeros(false))
   }, [org?.id])
 
-  const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'gastos' | 'guion' | 'utm'>('numeros')
+  // Para el relector de la dirección (efecto sin dependencias): el closer sin
+  // ?tab= va a Contactos, no a Números, o saltaría de una a otra sin parar.
+  const esCloserRef = React.useRef(false)
+  esCloserRef.current = isCloser
+  const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'gastos' | 'guion' | 'paginas' | 'utm'>('numeros')
   // El closer arranca en Contactos, que es lo suyo.
   useEffect(() => {
     if (isCloser) setTab('contactos')
@@ -181,7 +187,9 @@ export default function EstadisticasPage() {
   useEffect(() => {
     const leer = () => {
       const pedida = new URLSearchParams(window.location.search).get('tab')
-      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'llamadas' || pedida === 'facturas' || pedida === 'gastos' || pedida === 'guion' || pedida === 'utm') setTab(pedida)
+      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'llamadas' || pedida === 'facturas' || pedida === 'gastos' || pedida === 'guion' || pedida === 'paginas' || pedida === 'utm') setTab(pedida)
+      // Sin ?tab= (el enlace «Estadísticas» de la barra) = los números.
+      else if (!pedida) setTab(esCloserRef.current ? 'contactos' : 'numeros')
     }
     leer()
     window.addEventListener('popstate', leer)
@@ -196,12 +204,13 @@ export default function EstadisticasPage() {
   }, [])
   // El closer sin Números no se queda nunca en esa sección.
   useEffect(() => {
-    if (isCloser && tab !== 'contactos' && tab !== 'llamadas' && tab !== 'guion' && !(tab === 'numeros' && closerVeNumeros === true)) {
+    if (isCloser && tab !== 'contactos' && tab !== 'llamadas' && tab !== 'guion' && tab !== 'paginas' && !(tab === 'numeros' && closerVeNumeros === true)) {
       setTab('contactos')
     }
   }, [isCloser, tab, closerVeNumeros])
   const [period, setPeriod] = useState<'month' | 'quarter'>('month')
   const [stats, setStats] = useState<SchoolStats | null>(null)
+  const [contactosResumen, setContactosResumen] = useState<Contacto[] | null>(null)
   const [loaded, setLoaded] = useState(false)
   const [reloading, setReloading] = useState(false)
 
@@ -212,8 +221,9 @@ export default function EstadisticasPage() {
       setLoaded(true)
       return
     }
-    const data = await getSchoolStats(org.id, accessToken)
+    const [data, cs] = await Promise.all([getSchoolStats(org.id, accessToken), getContactos(org.id, '', accessToken)])
     setStats(data)
+    setContactosResumen(cs?.contactos ?? null)
     setLoaded(true)
   }, [org?.id, accessToken, isCloser, closerVeNumeros])
 
@@ -254,6 +264,8 @@ export default function EstadisticasPage() {
             <Wallet size={22} className="text-[#025dc7] shrink-0" />
           ) : tab === 'guion' ? (
             <ScrollText size={22} className="text-[#025dc7] shrink-0" />
+          ) : tab === 'paginas' ? (
+            <Globe size={22} className="text-[#025dc7] shrink-0" />
           ) : (
             <BarChart3 size={22} className="text-[#025dc7] shrink-0" />
           )}
@@ -268,7 +280,9 @@ export default function EstadisticasPage() {
                     ? 'Gastos'
                     : tab === 'guion'
                       ? 'Guion de llamada'
-                      : 'Estadísticas'}
+                      : tab === 'paginas'
+                        ? 'Páginas de la web'
+                        : 'Estadísticas'}
           </h1>
         </div>
         <button
@@ -302,6 +316,8 @@ export default function EstadisticasPage() {
         <GastosPanel key={vuelta} />
       ) : tab === 'guion' ? (
         <GuionPanel key={vuelta} />
+      ) : tab === 'paginas' ? (
+        <PaginasPanel key={vuelta} />
       ) : !loaded ? (
         <div className="flex justify-center py-20">
           <Loader2 className="animate-spin text-gray-400" size={28} />
@@ -315,11 +331,11 @@ export default function EstadisticasPage() {
         </div>
       ) : (
         <div className="space-y-8">
-          {/* ── A quién llamar hoy ───────────────────────────────── */}
-          <Solicitudes rows={stats.requests} desdeCheckout={stats.sales?.funnel?.pending ?? []} puedeBorrar={Boolean(isAdmin)} />
-
-          {/* ── Quién necesita un empujón ────────────────────────── */}
-          <AtRisk rows={stats.at_risk} />
+          {/* ── La escuela de un vistazo ─────────────────────────── */}
+          {/* Antes aquí iba la lista entera de "Matrículas nuevas", que repetía
+              Contactos → Matrículas hechas (donde además se atienden, se
+              anotan y se programan). Ahora solo el número y el enlace. */}
+          <Resumen stats={stats} contactos={contactosResumen} />
 
           {/* ── Dinero ───────────────────────────────────────────── */}
           <section className="space-y-3">
@@ -439,15 +455,16 @@ export default function EstadisticasPage() {
                       ? `: ${sales.funnel.pending!.length} ${sales.funnel.pending!.length === 1 ? 'persona' : 'personas'} (un intento repetido cuenta una vez).`
                       : '.'}
                   </p>
-                  {/* La lista de estas personas vive ARRIBA, en "Matrículas
-                      nuevas", junto al resto de gente a la que hay que escribir.
-                      Estaba aquí abajo, dentro del embudo, y era el segundo
-                      sitio donde buscar: quien miraba la lista de arriba no los
-                      veía y daba por hecho que no existían. */}
+                  {/* La lista de estas personas vive en Contactos (etapa
+                      "Llegaron al pago"). Aquí solo el enlace: un segundo sitio
+                      donde buscarlos es un sitio donde no mirar. */}
                   {(sales.funnel.pending?.length ?? 0) > 0 && (
-                    <p className="mt-2 text-[12px] text-[#025dc7] font-semibold">
-                      Los tienes arriba, en Matrículas nuevas.
-                    </p>
+                    <a
+                      href="/dash/estadisticas?tab=contactos&vista=matriculas"
+                      className="mt-2 inline-block text-[12px] text-[#025dc7] font-semibold hover:underline"
+                    >
+                      Los tienes en Contactos →
+                    </a>
                   )}
                 </div>
               </>
@@ -511,6 +528,9 @@ export default function EstadisticasPage() {
               </div>
             )}
           </section>
+
+          {/* Alumnos sin señales de vida: justo debajo de los números de alumnos. */}
+          <AtRisk rows={stats.at_risk} />
 
           {/* ── Avance del curso ─────────────────────────────────── */}
           <section className="space-y-3">
@@ -590,375 +610,81 @@ export default function EstadisticasPage() {
 /* ── Alumnos que necesitan un empujón ────────────────────────────── */
 
 /**
- * Matrículas nuevas: todo el que dejó sus datos y hay que escribirle, en UN
- * solo sitio.
- *
- * ⚠️ Antes había dos listas en dos pantallas distintas y eso escondía gente:
- * quien rellena el formulario SIN pago crea una solicitud, y quien llega al
- * pago y no termina crea una matrícula pendiente. Para escribirles son lo
- * mismo, así que van juntas; cada fila dice de cuál es, porque el mensaje
- * cambia (el que llegó a la caja ya vio el precio).
- *
- * Ordenadas por día (Hoy, Ayer, Esta semana…) y cada grupo se pliega con su
- * flecha. Abiertos solo Hoy y Ayer: la lista crecía sin fin y había que bajar
- * media hora para llegar a los números. Lo que se pliega se recuerda en este
- * navegador. Las ya atendidas van a su propio grupo, plegado.
- *
- * "Hecho" no borra nada. La papelera (solo administradores) es para las
- * pruebas: la solicitud se borra de verdad y la matrícula sin pagar se marca
- * descartada, que deja de contar en el embudo.
+ * La escuela de un vistazo: lo que ha entrado (leads, matrículas), lo que se
+ * ha cobrado y cuántos alumnos siguen activos. Cada cifra con su enlace a
+ * donde se trabaja.
  */
-type FilaMatricula = {
-  clave: string
-  tipo: 'solicitud' | 'pago'
-  id?: number
-  name: string
-  email: string
-  phone: string
-  created_at: string
-  source?: string
-  vino_de?: string
-  vio_precio?: boolean
-  camino?: string
-  hecha: boolean
-  ya_alumno?: boolean
-}
-
-const GRUPOS_MATRICULA = [
-  { id: 'hoy', label: 'Hoy' },
-  { id: 'ayer', label: 'Ayer' },
-  { id: 'semana', label: 'Esta semana' },
-  { id: 'mes', label: 'Este mes' },
-  { id: 'antes', label: 'Anteriores' },
-  { id: 'atendidas', label: 'Ya atendidas' },
-] as const
-const ABIERTOS_DE_SERIE = ['hoy', 'ayer']
-const CLAVE_PLEGADO = 'nawar.matriculas.abiertos'
-
-function grupoDeFecha(iso: string): string {
-  const d = new Date(iso)
-  if (!iso || Number.isNaN(d.getTime())) return 'antes'
-  const hoy = new Date()
-  hoy.setHours(0, 0, 0, 0)
-  const dia = new Date(d)
-  dia.setHours(0, 0, 0, 0)
-  const dias = Math.round((hoy.getTime() - dia.getTime()) / 86400000)
-  if (dias <= 0) return 'hoy'
-  if (dias === 1) return 'ayer'
-  if (dias < 7) return 'semana'
-  if (dias < 31) return 'mes'
-  return 'antes'
-}
-
-function Solicitudes({
-  rows,
-  desdeCheckout = [],
-  puedeBorrar = false,
-}: {
-  rows: SchoolStats['requests']
-  desdeCheckout?: NonNullable<SchoolStats['sales']>['funnel']['pending']
-  puedeBorrar?: boolean
-}) {
-  const org = useOrg() as any
-  const session = useLHSession() as any
-  const accessToken = session?.data?.tokens?.access_token
-
-  // Copias locales para que los botones respondan al instante sin recargar.
-  const [hechas, setHechas] = useState<Record<number, boolean>>({})
-  const [quitadas, setQuitadas] = useState<Record<string, boolean>>({})
-  const [guardando, setGuardando] = useState<string | null>(null)
-  const [abiertos, setAbiertos] = useState<string[]>(ABIERTOS_DE_SERIE)
-  const [plegadaEntera, setPlegadaEntera] = useState(false)
-
-  useEffect(() => {
-    try {
-      const guardado = JSON.parse(localStorage.getItem(CLAVE_PLEGADO) || 'null')
-      if (guardado && Array.isArray(guardado.abiertos)) {
-        setAbiertos(guardado.abiertos)
-        setPlegadaEntera(Boolean(guardado.plegada))
-      }
-    } catch {}
-  }, [])
-
-  function recordar(nuevosAbiertos: string[], plegada: boolean) {
-    try {
-      localStorage.setItem(CLAVE_PLEGADO, JSON.stringify({ abiertos: nuevosAbiertos, plegada }))
-    } catch {}
+function Resumen({ stats, contactos }: { stats: SchoolStats; contactos: Contacto[] | null }) {
+  const ahora = Date.now()
+  const dentro = (iso: string, dias: number) => {
+    const t = Date.parse(iso || '')
+    return Number.isFinite(t) && ahora - t <= dias * 86400000
   }
-  function alternarGrupo(id: string) {
-    const nuevos = abiertos.includes(id) ? abiertos.filter((g) => g !== id) : [...abiertos, id]
-    setAbiertos(nuevos)
-    recordar(nuevos, plegadaEntera)
-  }
-  function alternarTodo() {
-    setPlegadaEntera(!plegadaEntera)
-    recordar(abiertos, !plegadaEntera)
-  }
+  const cs = (contactos ?? []).filter((c) => !c.fuera_de_metricas)
+  const leads7 = cs.filter((c) => dentro(c.primer_contacto.when, 7)).length
+  const leads30 = cs.filter((c) => dentro(c.primer_contacto.when, 30)).length
+  const mat7 = cs.filter((c) => c.matricula_at && dentro(c.matricula_at, 7)).length
+  const mat30 = cs.filter((c) => c.matricula_at && dentro(c.matricula_at, 30)).length
+  const porAtender = cs.filter((c) => c.matricula_at && c.etapa !== 'alumno' && !c.atendida).length
+  const ventas30 = stats.sales?.last_30_days
+  const alumnos = stats.students
 
-  const filas: FilaMatricula[] = useMemo(() => {
-    const deSolicitud: FilaMatricula[] = (rows ?? []).map((r) => ({
-      clave: `s-${r.id}`,
-      tipo: 'solicitud',
-      id: r.id,
-      name: r.name,
-      email: r.email,
-      phone: r.phone,
-      created_at: r.created_at,
-      source: r.source,
-      vino_de: r.vino_de,
-      vio_precio: r.vio_precio,
-      camino: r.camino,
-      hecha: hechas[r.id] ?? Boolean(r.contacted_at),
-    }))
-    const dePago: FilaMatricula[] = (desdeCheckout ?? []).map((p) => ({
-      clave: `p-${p.email}`,
-      tipo: 'pago',
-      name: p.name,
-      email: p.email,
-      phone: p.phone,
-      created_at: p.created_at,
-      hecha: Boolean(p.ya_alumno),
-      ya_alumno: p.ya_alumno,
-    }))
-    return [...deSolicitud, ...dePago]
-      .filter((f) => !quitadas[f.clave])
-      .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
-  }, [rows, desdeCheckout, hechas, quitadas])
-
-  if (!(rows ?? []).length && !(desdeCheckout ?? []).length) return null
-
-  const porGrupo: Record<string, FilaMatricula[]> = {}
-  for (const f of filas) {
-    const g = f.hecha ? 'atendidas' : grupoDeFecha(f.created_at)
-    ;(porGrupo[g] ||= []).push(f)
-  }
-  const pendientes = filas.filter((f) => !f.hecha).length
-
-  async function marcar(f: FilaMatricula) {
-    if (f.id == null) return
-    setGuardando(f.clave)
-    const ok = await marcarSolicitud(org?.id, f.id, !f.hecha, accessToken)
-    setGuardando(null)
-    if (!ok) {
-      toast.error('No se ha podido guardar')
-      return
-    }
-    setHechas((prev) => ({ ...prev, [f.id as number]: !f.hecha }))
-  }
-
-  // Borrar = quitar a la persona entera, igual que desde Contactos y
-  // Llamadas: sus solicitudes, matrículas sin pagar y demás rastro. Una prueba
-  // no debe seguir apareciendo en otra pantalla.
-  async function quitar(f: FilaMatricula) {
-    if (
-      !window.confirm(
-        `¿Borrar a ${f.name || f.email}? Es para pruebas o leads que no valen: desaparece de Matrículas, Contactos y Llamadas. No se puede deshacer. Los pagos, la cuenta y el CRM no se tocan.`
-      )
+  const Cifra = ({ label, valor, nota, href }: { label: string; valor: string; nota: string; href?: string }) => {
+    const cuerpo = (
+      <>
+        <p className={LABEL}>{label}</p>
+        <p className={BIG}>{valor}</p>
+        <p className="text-[12px] text-gray-500 mt-0.5">{nota}</p>
+      </>
     )
-      return
-    setGuardando(f.clave)
-    const r = await borrarContacto(org?.id, f.email, accessToken)
-    setGuardando(null)
-    if (!r.ok) {
-      toast.error(r.error || 'No se ha podido borrar')
-      return
-    }
-    // Fuera todas las filas de ese correo, no solo la tocada.
-    setQuitadas((prev) => {
-      const next = { ...prev }
-      for (const x of filas) if (x.email.toLowerCase() === f.email.toLowerCase()) next[x.clave] = true
-      return next
-    })
-    const aviso = avisoTrasBorrar(r.quedan)
-    if (aviso === 'Borrado') toast.success(aviso)
-    else toast(aviso, { duration: 7000 })
+    return href ? (
+      <a href={href} className={`${CARD} block hover:border-[#4da3ff] transition-colors`}>
+        {cuerpo}
+      </a>
+    ) : (
+      <div className={CARD}>{cuerpo}</div>
+    )
   }
 
   return (
     <section className="space-y-3">
-      <button onClick={alternarTodo} className="w-full flex items-center gap-2 text-left">
-        <h2 className="text-[15px] font-bold text-gray-900 flex items-center gap-2">
-          <UserPlus size={16} className="text-[#025dc7]" /> Matrículas nuevas
-        </h2>
-        {pendientes > 0 ? (
-          <span className="rounded-full bg-[#E6F0FF] text-[#025dc7] text-[11.5px] font-bold px-2 py-0.5 tabular-nums">
-            {pendientes} por atender
-          </span>
-        ) : null}
-        <span className="ml-auto text-[12px] font-semibold text-[#5A6480] flex items-center gap-1">
-          {plegadaEntera ? 'Ver' : 'Ocultar'}
-          {plegadaEntera ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
-        </span>
-      </button>
-
-      {plegadaEntera ? null : (
-        <div className={CARD}>
-          <p className="text-[12.5px] text-[#9CA3AF] mb-3">
-            {pendientes === 0
-              ? 'Has escrito a todos. Las atendidas quedan abajo, plegadas.'
-              : `${pendientes} ${pendientes === 1 ? 'persona espera' : 'personas esperan'} que les escribas. Pliega con la flecha los días que ya tengas vistos.`}
-          </p>
-          <div className="space-y-2">
-            {GRUPOS_MATRICULA.filter((g) => porGrupo[g.id]?.length).map((g) => {
-              const abierto = abiertos.includes(g.id)
-              const lista = porGrupo[g.id]
-              return (
-                <div key={g.id} className="rounded-xl border border-[#E7EEF9]">
-                  <button
-                    onClick={() => alternarGrupo(g.id)}
-                    className="w-full flex items-center gap-2 px-3.5 py-2.5 text-left hover:bg-[#F7FAFF] rounded-xl"
-                  >
-                    {abierto ? (
-                      <ChevronDown size={15} className="text-[#5A6480]" />
-                    ) : (
-                      <ChevronRight size={15} className="text-[#5A6480]" />
-                    )}
-                    <span className="text-[13.5px] font-semibold text-gray-900">{g.label}</span>
-                    <span className="text-[12px] text-[#9CA3AF] tabular-nums">{lista.length}</span>
-                  </button>
-                  {abierto ? (
-                    <div className="space-y-1.5 px-2 pb-2">
-                      {lista.map((f) => (
-                        <FilaDeMatricula
-                          key={f.clave}
-                          f={f}
-                          guardando={guardando === f.clave}
-                          puedeBorrar={puedeBorrar}
-                          marcar={() => marcar(f)}
-                          quitar={() => quitar(f)}
-                        />
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-    </section>
-  )
-}
-
-function FilaDeMatricula({
-  f,
-  guardando,
-  puedeBorrar,
-  marcar,
-  quitar,
-}: {
-  f: FilaMatricula
-  guardando: boolean
-  puedeBorrar: boolean
-  marcar: () => void
-  quitar: () => void
-}) {
-  const tel = (f.phone || '').replace(/[^\d+]/g, '')
-  const wa = tel ? `https://wa.me/${tel.replace(/^\+/, '').replace(/^00/, '')}` : ''
-  const cuando = f.created_at
-    ? new Date(f.created_at).toLocaleString('es-ES', {
-        day: 'numeric',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : ''
-  return (
-    <div
-      className={`rounded-xl border px-3.5 py-2.5 flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-2 transition-opacity ${
-        f.hecha ? 'border-[#E7EEF9] opacity-60' : 'border-[#DDE6F5] bg-[#F7FAFF]'
-      }`}
-    >
-      <div className="flex-1 min-w-0 basis-full sm:basis-auto">
-        <p className="text-[13.5px] font-semibold text-gray-900 truncate">
-          {f.name || f.email}
-          {f.source === 'ads' && (
-            <span className="ml-2 text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-[0.06em]">
-              anuncio
-            </span>
-          )}
-        </p>
-        <p className="text-[12px] text-gray-500 truncate">
-          {f.email}
-          {f.phone ? ` · ${f.phone}` : ''}
-          {cuando ? <span className="text-[#9CA3AF]"> · {cuando}</span> : null}
-        </p>
-        {f.tipo === 'pago' ? (
-          f.ya_alumno ? (
-            <p className="text-[12px] mt-0.5 text-[#9CA3AF] font-semibold">
-              Ya es alumno · compró en otro intento, no hace falta escribirle
-            </p>
-          ) : (
-            <p className="text-[12px] mt-0.5 text-emerald-700 font-semibold">
-              Llegó al pago y no terminó · vio el precio: pregúntale qué le frenó
-            </p>
-          )
-        ) : (
-          // Si no ha visto el precio, el mensaje no puede empezar por ahí.
-          // "Sin rastro" y no "no lo ha visto": el rastro dura una visita.
-          <p className="text-[12px] mt-0.5" title={f.camino || undefined}>
-            {f.vino_de ? (
-              <span className="text-[#5A6480]">Vino de {f.vino_de}</span>
-            ) : (
-              <span className="text-[#9CA3AF]">Sin rastro de por dónde llegó</span>
-            )}
-            {' · '}
-            {f.vio_precio ? (
-              <span className="text-emerald-700 font-semibold">ya vio el precio</span>
-            ) : (
-              <span
-                className="text-[#8A6A2A] font-semibold"
-                title="El rastro dura una visita: si volvió otro día o cambió de móvil, puede haberlo visto igual."
-              >
-                sin rastro de haber visto el precio
-              </span>
-            )}
-          </p>
-        )}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Cifra
+          label="Leads nuevos · 7 días"
+          valor={contactos ? String(leads7) : '—'}
+          nota={contactos ? `${leads30} en 30 días` : 'Cargando…'}
+          href="/dash/estadisticas?tab=contactos"
+        />
+        <Cifra
+          label="Matrículas · 7 días"
+          valor={contactos ? String(mat7) : '—'}
+          nota={contactos ? `${mat30} en 30 días` : 'Cargando…'}
+          href="/dash/estadisticas?tab=contactos&vista=matriculas"
+        />
+        <Cifra
+          label="Ventas · 30 días"
+          valor={ventas30 ? euros(ventas30.revenue_cents) : '—'}
+          nota={ventas30 ? `${ventas30.sales} ${ventas30.sales === 1 ? 'venta' : 'ventas'}` : ''}
+          href="/dash/estadisticas?tab=facturas"
+        />
+        <Cifra
+          label="Alumnos activos · 7 días"
+          valor={alumnos ? String(alumnos.active_7d) : '—'}
+          nota={alumnos ? `de ${alumnos.total} alumnos` : ''}
+        />
       </div>
-      {wa && !f.hecha && (
+      {porAtender > 0 ? (
         <a
-          href={wa}
-          target="_blank"
-          rel="noreferrer"
-          className="shrink-0 inline-flex items-center px-3 py-1.5 rounded-lg bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7] text-[12px] font-bold transition-colors"
+          href="/dash/estadisticas?tab=contactos&vista=matriculas"
+          className="flex items-center justify-between gap-3 rounded-2xl border border-[#4da3ff]/40 bg-[#EAF3FF] px-4 py-3 hover:bg-[#dfeeff] transition-colors"
         >
-          WhatsApp
+          <span className="text-[13.5px] text-[#0a1656]">
+            <strong>{porAtender}</strong> {porAtender === 1 ? 'matrícula espera' : 'matrículas esperan'} que las llamen
+          </span>
+          <span className="text-[13px] font-bold text-[#025dc7]">Abrir en Contactos →</span>
         </a>
-      )}
-      {!f.hecha && (
-        <a
-          href={`mailto:${f.email}`}
-          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7] text-[12px] font-bold transition-colors"
-        >
-          <Mail size={13} /> Escribir
-        </a>
-      )}
-      {f.tipo === 'solicitud' && (
-        <button
-          onClick={marcar}
-          disabled={guardando}
-          className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold transition-colors disabled:opacity-50 ${
-            f.hecha ? 'text-[#9CA3AF] hover:text-gray-700' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
-          }`}
-        >
-          {f.hecha ? 'Deshacer' : (<><Check size={13} /> Hecho</>)}
-        </button>
-      )}
-      {puedeBorrar && !f.ya_alumno && (
-        <button
-          onClick={quitar}
-          disabled={guardando}
-          title="Borrar (era una prueba o no vale)"
-          aria-label="Borrar"
-          // Antes era un icono gris de 14 px y no se veía: el usuario dijo que
-          // no había botón de borrar teniéndolo delante.
-          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-[12px] font-bold transition-colors disabled:opacity-50"
-        >
-          {guardando ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />} Borrar
-        </button>
-      )}
-    </div>
+      ) : null}
+    </section>
   )
 }
 
@@ -1184,22 +910,15 @@ function ManualBlocks({ stats, onSaved }: { stats: SchoolStats; onSaved: () => v
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
 
-  const thisMonth = useMemo(() => new Date().toISOString().slice(0, 7), [])
   const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
 
-  const [costPeriod, setCostPeriod] = useState(thisMonth)
-  const [costValue, setCostValue] = useState('')
-  const [costNote, setCostNote] = useState('')
   const [attDate, setAttDate] = useState(today)
   const [attValue, setAttValue] = useState('')
   const [attNote, setAttNote] = useState('')
-  const [delPeriod, setDelPeriod] = useState(thisMonth)
-  const [delValue, setDelValue] = useState('')
-  const [delNote, setDelNote] = useState('')
   const [saving, setSaving] = useState(false)
 
   const save = async (
-    kind: 'cost' | 'delivery' | 'attendance',
+    kind: 'attendance',
     period: string,
     value: string,
     note: string,
@@ -1215,16 +934,8 @@ function ManualBlocks({ stats, onSaved }: { stats: SchoolStats; onSaved: () => v
     setSaving(false)
     if (ok) {
       toast.success('Guardado')
-      if (kind === 'cost') {
-        setCostValue('')
-        setCostNote('')
-      } else if (kind === 'delivery') {
-        setDelValue('')
-        setDelNote('')
-      } else {
-        setAttValue('')
-        setAttNote('')
-      }
+      setAttValue('')
+      setAttNote('')
       onSaved()
     } else {
       toast.error('No se pudo guardar')
@@ -1241,244 +952,22 @@ function ManualBlocks({ stats, onSaved }: { stats: SchoolStats; onSaved: () => v
     }
   }
 
-  const costs = stats.manual?.costs ?? []
-  const delivery = stats.manual?.delivery ?? []
   const attendance = stats.manual?.attendance ?? []
 
   return (
     <section className="space-y-3">
-      <h2 className="text-[15px] font-bold text-gray-900">Lo que escribes tú</h2>
+      <h2 className="text-[15px] font-bold text-gray-900">Lo que apuntas tú</h2>
 
-      <div className={CARD}>
-        <h3 className="text-[14px] font-bold text-gray-900">Gasto del mes y coste por lead</h3>
-        <p className="text-[12.5px] text-[#9CA3AF] mt-0.5 mb-3">
-          Apunta lo que te has gastado ese mes (herramientas, publicidad…). El coste por lead se
-          calcula sobre las matrículas empezadas de ese mismo mes.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-[150px_130px_1fr_auto] gap-2 items-start">
-          <input type="month" value={costPeriod} onChange={(e) => setCostPeriod(e.target.value)} className={INPUT} />
-          <input
-            value={costValue}
-            onChange={(e) => setCostValue(e.target.value)}
-            placeholder="Euros"
-            inputMode="decimal"
-            className={INPUT}
-          />
-          <input
-            value={costNote}
-            onChange={(e) => setCostNote(e.target.value)}
-            placeholder="En qué (opcional)"
-            className={INPUT}
-          />
-          <button
-            onClick={() => save('cost', costPeriod, costValue, costNote)}
-            disabled={saving}
-            className={BTN}
-          >
-            <Plus size={15} /> Guardar
-          </button>
-        </div>
-
-        {costs.length > 0 && (
-          <>
-          {/* Móvil: lista, no tabla (mismo motivo que en las ventas). */}
-          <div className="mt-4 sm:hidden space-y-2">
-            {costs.map((c) => (
-              <div key={c.id} className="rounded-xl border border-[#E7EEF9] px-3.5 py-3">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-[13.5px] font-bold text-gray-900 capitalize">{c.label}</span>
-                  <span className="flex items-center gap-2">
-                    <span className="text-[14px] font-bold text-[#025dc7] tabular-nums">
-                      {c.cost_per_lead_cents === null ? '—' : `${euros(c.cost_per_lead_cents)} / lead`}
-                    </span>
-                    <button
-                      onClick={() => remove(c.id)}
-                      className="text-gray-300 hover:text-rose-500 transition-colors"
-                      aria-label="Borrar"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </span>
-                </div>
-                <p className="text-[12px] text-[#9CA3AF] tabular-nums mt-0.5">
-                  {euros(c.cost_cents)} · {c.leads} {c.leads === 1 ? 'matrícula' : 'matrículas'}
-                  {c.note && <span> · {c.note}</span>}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-4 hidden sm:block overflow-x-auto">
-            <table className="w-full text-[13.5px] min-w-[460px]">
-              <thead>
-                <tr className="text-left text-[#9CA3AF]">
-                  <th className="font-semibold py-2 pr-3">Mes</th>
-                  <th className="font-semibold py-2 pr-3 text-right">Gasto</th>
-                  <th className="font-semibold py-2 pr-3 text-right">Matrículas</th>
-                  <th className="font-semibold py-2 pr-3 text-right">Coste por lead</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#EEF3FB]">
-                {costs.map((c) => (
-                  <tr key={c.id}>
-                    <td className="py-2.5 pr-3 font-semibold text-gray-900 capitalize">{c.label}</td>
-                    <td className="py-2.5 pr-3 text-right tabular-nums">{euros(c.cost_cents)}</td>
-                    <td className="py-2.5 pr-3 text-right tabular-nums text-gray-500">{c.leads}</td>
-                    <td className="py-2.5 pr-3 text-right tabular-nums font-bold text-[#025dc7]">
-                      {c.cost_per_lead_cents === null ? '—' : euros(c.cost_per_lead_cents)}
-                    </td>
-                    <td className="py-2.5 text-right">
-                      <button
-                        onClick={() => remove(c.id)}
-                        className="text-gray-300 hover:text-rose-500 transition-colors"
-                        aria-label="Borrar"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          </>
-        )}
-      </div>
-
-      <div className={CARD}>
-        <h3 className="text-[14px] font-bold text-gray-900">Coste de entregar el curso</h3>
-        <p className="text-[12.5px] text-[#9CA3AF] mt-0.5 mb-3">
-          Lo que cuesta dar las clases ese mes: profes, correcciones, sesiones en vivo. No es coste
-          de captar — va aparte porque crece con los alumnos, no con los leads.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-[150px_130px_1fr_auto] gap-2 items-start">
-          <input type="month" value={delPeriod} onChange={(e) => setDelPeriod(e.target.value)} className={INPUT} />
-          <input
-            value={delValue}
-            onChange={(e) => setDelValue(e.target.value)}
-            placeholder="Euros"
-            inputMode="decimal"
-            className={INPUT}
-          />
-          <input
-            value={delNote}
-            onChange={(e) => setDelNote(e.target.value)}
-            placeholder="Quién / qué (opcional)"
-            className={INPUT}
-          />
-          <button
-            onClick={() => save('delivery', delPeriod, delValue, delNote)}
-            disabled={saving}
-            className={BTN}
-          >
-            <Plus size={15} /> Guardar
-          </button>
-        </div>
-
-        {delivery.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {delivery.map((d) => (
-              <span
-                key={d.id}
-                className="inline-flex items-center gap-1.5 text-[12px] font-semibold bg-[#F0F5FF] text-[#0a1656] rounded-full pl-2.5 pr-1.5 py-1"
-              >
-                <span className="capitalize">{d.label}</span>
-                <span className="tabular-nums">{euros(d.cost_cents)}</span>
-                <button
-                  onClick={() => remove(d.id)}
-                  className="text-[#9CA3AF] hover:text-rose-500 transition-colors"
-                  aria-label="Borrar"
-                >
-                  <Trash2 size={12} />
-                </button>
-              </span>
-            ))}
-          </div>
-        )}
-
-        {(stats.margin?.length ?? 0) > 0 && (
-          <div className="mt-4">
-            <p className="text-[13px] font-bold text-gray-900 mb-2">Margen por mes</p>
-
-            {/* Móvil: una tarjeta por mes. */}
-            <div className="sm:hidden space-y-2">
-              {stats.margin!.map((m) => (
-                <div key={m.key} className="rounded-xl border border-[#E7EEF9] px-3.5 py-3">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-[13.5px] font-bold text-gray-900 capitalize">{m.label}</span>
-                    <span
-                      className={`text-[15px] font-bold tabular-nums ${
-                        m.margin_cents >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                      }`}
-                    >
-                      {euros(m.margin_cents)}
-                    </span>
-                  </div>
-                  <p className="text-[12px] text-[#9CA3AF] tabular-nums mt-0.5">
-                    {euros(m.revenue_cents)} − {euros(m.marketing_cents + m.delivery_cents)} de gasto
-                  </p>
-                  <p className="text-[12px] text-[#9CA3AF] tabular-nums">
-                    {m.margin_per_student_cents !== null
-                      ? `${euros(m.margin_per_student_cents)} por alumno`
-                      : 'Sin ventas'}
-                    {m.breakeven_sales !== null && ` · cubres el gasto con ${m.breakeven_sales}`}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            <div className="hidden sm:block overflow-x-auto">
-              <table className="w-full text-[13.5px] min-w-[620px]">
-                <thead>
-                  <tr className="text-left text-[#9CA3AF]">
-                    <th className="font-semibold py-2 pr-3">Mes</th>
-                    <th className="font-semibold py-2 pr-3 text-right">Ingresos</th>
-                    <th className="font-semibold py-2 pr-3 text-right">Captar</th>
-                    <th className="font-semibold py-2 pr-3 text-right">Entregar</th>
-                    <th className="font-semibold py-2 pr-3 text-right">Margen</th>
-                    <th className="font-semibold py-2 pr-3 text-right">Por alumno</th>
-                    <th className="font-semibold py-2 text-right">Equilibrio</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#EEF3FB]">
-                  {stats.margin!.map((m) => (
-                    <tr key={m.key}>
-                      <td className="py-2.5 pr-3 font-semibold text-gray-900 capitalize">{m.label}</td>
-                      <td className="py-2.5 pr-3 text-right tabular-nums">{euros(m.revenue_cents)}</td>
-                      <td className="py-2.5 pr-3 text-right tabular-nums text-gray-500">
-                        {euros(m.marketing_cents)}
-                      </td>
-                      <td className="py-2.5 pr-3 text-right tabular-nums text-gray-500">
-                        {euros(m.delivery_cents)}
-                      </td>
-                      <td
-                        className={`py-2.5 pr-3 text-right tabular-nums font-bold ${
-                          m.margin_cents >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                        }`}
-                      >
-                        {euros(m.margin_cents)}
-                      </td>
-                      <td className="py-2.5 pr-3 text-right tabular-nums font-bold text-[#025dc7]">
-                        {m.margin_per_student_cents === null
-                          ? '—'
-                          : euros(m.margin_per_student_cents)}
-                      </td>
-                      <td className="py-2.5 text-right tabular-nums text-gray-500">
-                        {m.breakeven_sales === null ? '—' : `${m.breakeven_sales} ventas`}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="mt-2 text-[11.5px] text-[#9CA3AF]">
-              El coste de los profes es casi el mismo con 20 alumnos que con 40, así que cada plaza
-              que llenas es casi todo margen. Por eso interesa llenar la cohorte, no solo vender.
-            </p>
-          </div>
-        )}
-      </div>
+      {/* Los gastos (captar y entregar) se apuntan ahora en UN solo sitio:
+          la sección Gastos. Aquí había dos formularios más y una tabla de
+          margen que repetían lo mismo; lo ya apuntado aquí sale en Gastos. */}
+      <p className="text-[12.5px] text-[#5A6480]">
+        Los gastos (profes, publicidad, herramientas) se apuntan en{' '}
+        <a href="/dash/estadisticas?tab=gastos" className="text-[#025dc7] font-semibold hover:underline">
+          Gastos
+        </a>
+        , con el margen y el coste por matrícula.
+      </p>
 
       <div className={CARD}>
         <h3 className="text-[14px] font-bold text-gray-900">Asistencia a la clase en vivo</h3>
@@ -1589,7 +1078,8 @@ function QueVeElCloser({
         <p className="text-[13.5px] font-semibold text-gray-900">Qué ve el closer</p>
         <p className="text-[12.5px] text-gray-500">
           Quien está en el grupo <strong>Closers</strong> (Usuarios → Grupos) entra al panel y ve
-          solo esta pestaña de Contactos. Aquí decides si además ve los Números.
+          Contactos (solo las matrículas), Llamadas, el Guion de llamada y las Páginas de la web.
+          Aquí decides si además ve los Números.
         </p>
       </div>
       <button
@@ -1600,7 +1090,7 @@ function QueVeElCloser({
         }`}
       >
         {guardando ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} className={numeros ? '' : 'opacity-30'} />}
-        {numeros ? 'Ve también los Números' : 'Solo Contactos'}
+        {numeros ? 'Ve también los Números' : 'Sin los Números'}
       </button>
     </div>
   )

@@ -11,6 +11,7 @@ import {
   UserPlus,
   Copy,
 } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { getAPIUrl } from '@services/config/config'
@@ -48,6 +49,7 @@ interface MatriculaPagada {
 }
 
 export default function FacturasPanel() {
+  const [altaAbierta, setAltaAbierta] = useState(false)
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
 
@@ -222,22 +224,22 @@ export default function FacturasPanel() {
             {modo || '—'}
           </span>
         </p>
-        <button
-          onClick={refrescar}
-          className="shrink-0 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-[13px] font-semibold text-[#025dc7] hover:bg-[#EAF3FF] transition-colors"
-        >
-          <RefreshCw size={15} className={recargando ? 'animate-spin' : ''} />
-          Actualizar
-        </button>
+        {/* Sin "Actualizar" propio: el de arriba de la página ya recarga esto. */}
       </div>
 
       {/* Alta a mano. Va ARRIBA, antes de la lista, porque cuando se abre esta
           pantalla con un alumno esperando es lo que se viene a hacer. */}
+      {/* Sigue arriba, pero plegado: se usa poco y abierto tapaba la lista. */}
       <div className="rounded-xl border border-[#DDE6F5] bg-[#F7FAFF] px-4 py-3.5">
-        <p className="flex items-center gap-2 text-[14px] font-bold text-[#1D0084]">
-          <UserPlus size={16} className="text-[#025dc7]" />
-          Dar de alta a mano
-        </p>
+        <button onClick={() => setAltaAbierta((v) => !v)} className="w-full flex items-center justify-between gap-2 text-left">
+          <span className="flex items-center gap-2 text-[14px] font-bold text-[#1D0084]">
+            <UserPlus size={16} className="text-[#025dc7]" />
+            Dar de alta a mano
+            <span className="font-normal text-[12.5px] text-[#5A6480]">· para quien pagó por fuera del checkout</span>
+          </span>
+          <ChevronDown size={16} className={`text-[#5A6480] transition-transform ${altaAbierta ? 'rotate-180' : ''}`} />
+        </button>
+        {altaAbierta ? (<>
         <p className="mt-1 text-[13px] text-[#5A6480] leading-relaxed max-w-2xl">
           Para quien pagó por fuera del checkout (un enlace de pago, una transferencia) o
           para quien el correo de bienvenida se perdió. Crea la cuenta si no existe, le
@@ -321,6 +323,7 @@ export default function FacturasPanel() {
             </button>
           </div>
         )}
+        </>) : null}
       </div>
 
       {filas.length === 0 && (

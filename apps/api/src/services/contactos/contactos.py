@@ -262,6 +262,8 @@ def fusionar_contactos(eventos: list[dict], con_cuenta: set[str]) -> list[dict]:
 
         primero, ult = lista[0], lista[-1]
         de_matricula = [e for e in lista if e["kind"] in _MATRICULA]
+        solicitudes = [e for e in lista if e["kind"] == "solicitud"]
+        ultima_solicitud = solicitudes[-1] if solicitudes else None
         nombre = f"{ultimo('first_name')} {ultimo('last_name')}".strip()
         resumen = resumen_del_lead(",".join(pasos), ultimo("referrer"), ultimo("source"))
 
@@ -284,6 +286,10 @@ def fusionar_contactos(eventos: list[dict], con_cuenta: set[str]) -> list[dict]:
                 "etapa": etapa_de(tipos, email in con_cuenta),
                 # Cuándo se matriculó por primera vez (vacío si nunca).
                 "matricula_at": de_matricula[0]["when"] if de_matricula else "",
+                # Para marcar "atendida" desde Contactos (la misma marca que
+                # Matrículas nuevas y Llamadas): la última solicitud de plaza.
+                "solicitud_id": (ultima_solicitud or {}).get("extra", {}).get("solicitud_id"),
+                "atendida": bool((ultima_solicitud or {}).get("extra", {}).get("contactada")),
                 "eventos": lista,
             }
         )
@@ -318,7 +324,7 @@ async def _todos_los_eventos(db_session: AsyncSession) -> list[dict]:
                 source=r.source, recorrido=r.recorrido, referrer=r.referrer,
                 utm_source=getattr(r, "utm_source", ""), utm_medium=getattr(r, "utm_medium", ""),
                 utm_campaign=getattr(r, "utm_campaign", ""),
-                extra={"contactada": bool(r.contacted_at)},
+                extra={"contactada": bool(r.contacted_at), "solicitud_id": r.id},
             )
         )
 
@@ -365,6 +371,11 @@ async def listar_contactos(
     q: str, limit: int, db_session: AsyncSession, solo_matriculas: bool = False
 ) -> dict:
     fichas = fusionar_contactos(await _todos_los_eventos(db_session), await _emails_con_cuenta(db_session))
+    from src.services.contactos.metricas import emails_excluidos
+
+    fuera = await emails_excluidos(db_session)
+    for f in fichas:
+        f["fuera_de_metricas"] = f["email"] in fuera
     if solo_matriculas:
         # El closer: solo quien se matriculó, lo más reciente arriba. Se filtra
         # AQUÍ y no en la pantalla, para que los demás no le lleguen nunca.
@@ -424,7 +435,7 @@ async def etiquetas_en_systeme(email: str) -> dict:
         return {"ok": False, "motivo": "systeme.io no contestó", "etiquetas": [], "campos": []}
 
 
-async def borrar_contacto(email: str, db_session: AsyncSession, del_todo: bool = False) -> dict:
+async def borrar_contacto(email: str, db_session: AsyncSession) -> dict:
     """
     Borra el rastro de una persona que era una prueba (o un lead que no vale):
     sus eventos (guías, llamadas, cualificaciones), sus solicitudes de plaza y
@@ -438,11 +449,10 @@ async def borrar_contacto(email: str, db_session: AsyncSession, del_todo: bool =
     Si queda algo de eso, la persona sigue saliendo como alumno y se dice por
     qué en la respuesta, para que no parezca que el borrado ha fallado.
 
-    `del_todo=True` es para los ALUMNOS de prueba (el administrador comprando
-    con su correo, cuentas de test): además quita sus matrículas pagadas de la
-    escuela y su acceso como alumno. No devuelve nada en Stripe (el cobro y la
-    factura siguen allí) ni borra la cuenta: solo deja de ser alumno. A una
-    cuenta del equipo no se le quita nada: su rol no es de alumno.
+    Para un ALUMNO de prueba no se borra nada de esto: se le quita de las
+    métricas (`services/contactos/metricas.py`) y sigue pudiendo entrar. Antes
+    había un "borrar del todo" que le quitaba el acceso, y no era lo que se
+    quería (24/09).
     """
     clave = (email or "").strip().lower()
     if not clave or "@" not in clave:
@@ -461,7 +471,7 @@ async def borrar_contacto(email: str, db_session: AsyncSession, del_todo: bool =
     for f in (
         await db_session.execute(select(Enrollment).where(func.lower(Enrollment.email) == clave))
     ).scalars().all():
-        if f.status == "paid" and not del_todo:
+        if f.status == "paid":
             pagadas += 1
             continue
         await db_session.delete(f)
@@ -472,23 +482,6 @@ async def borrar_contacto(email: str, db_session: AsyncSession, del_todo: bool =
 
     await borrar_seguimiento(clave, db_session)
 
-    accesos_quitados = 0
-    if del_todo:
-        usuarios = (
-            await db_session.execute(select(User).where(func.lower(User.email) == clave))
-        ).scalars().all()
-        for u in usuarios:
-            for link in (
-                await db_session.execute(
-                    select(UserOrganization).where(
-                        UserOrganization.user_id == u.id,
-                        UserOrganization.role_id == STUDENT_ROLE_ID,
-                    )
-                )
-            ).scalars().all():
-                await db_session.delete(link)
-                accesos_quitados += 1
-    borrados["accesos"] = accesos_quitados
 
     await db_session.commit()
     tiene_cuenta = clave in await _emails_con_cuenta(db_session)

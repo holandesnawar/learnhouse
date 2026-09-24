@@ -56,6 +56,11 @@ def _sale_date(row: Enrollment) -> str:
 
 async def _sales_block(org_id: int, db_session: AsyncSession) -> dict:
     rows = (await db_session.execute(select(Enrollment))).scalars().all()
+    # Los que se han quitado de las métricas (pruebas) no cuentan en nada.
+    from src.services.contactos.metricas import emails_excluidos
+
+    fuera = await emails_excluidos(db_session)
+    rows = [r for r in rows if (r.email or "").strip().lower() not in fuera]
 
     # La misma fecha de corte que las plazas (`LEARNHOUSE_FORMACION_DESDE`): las
     # matrículas de prueba de antes de abrir siguen guardadas, pero no cuentan
@@ -166,23 +171,38 @@ def _count_by_month(dates: list[str]) -> dict[str, int]:
 
 
 async def _students_block(org_id: int, db_session: AsyncSession) -> dict:
-    members = (
-        await db_session.execute(
-            select(UserOrganization).where(
-                UserOrganization.org_id == org_id,
-                UserOrganization.role_id == STUDENT_ROLE_ID,
+    from src.services.contactos.metricas import ids_excluidos
+
+    fuera = await ids_excluidos(db_session)
+    members = [
+        m
+        for m in (
+            await db_session.execute(
+                select(UserOrganization).where(
+                    UserOrganization.org_id == org_id,
+                    UserOrganization.role_id == STUDENT_ROLE_ID,
+                )
             )
-        )
-    ).scalars().all()
+        ).scalars().all()
+        if m.user_id not in fuera
+    ]
+    ids_alumnos = {m.user_id for m in members}
 
     new_by_month = _count_by_month([m.creation_date for m in members])
 
     today = datetime.now(timezone.utc).date()
     since_7 = (today - timedelta(days=7)).isoformat()
     since_30 = (today - timedelta(days=30)).isoformat()
-    visits = (
-        await db_session.execute(select(StudentProgress.last_visit_date))
-    ).scalars().all()
+    # ⚠️ Solo las visitas de ALUMNOS: antes se contaban las de todo el mundo
+    # (administrador, closer, profes), y "activos" podía salir mayor que el
+    # total de alumnos.
+    visits = [
+        v
+        for uid, v in (
+            await db_session.execute(select(StudentProgress.user_id, StudentProgress.last_visit_date))
+        ).all()
+        if uid in ids_alumnos
+    ]
     active_7 = sum(1 for v in visits if v and v >= since_7)
     active_30 = sum(1 for v in visits if v and v >= since_30)
 
@@ -209,6 +229,8 @@ async def _course_block(org_id: int, db_session: AsyncSession) -> list[dict]:
     # revisar el contenido— salían en el avance por módulos como si fueran
     # alumnos estudiando. Cambiarle el rol a una cuenta de prueba ahora la deja
     # fuera de aquí también, sin borrar nada.
+    from src.services.contactos.metricas import ids_excluidos
+
     alumnos_ids = set(
         (
             await db_session.execute(
@@ -218,7 +240,7 @@ async def _course_block(org_id: int, db_session: AsyncSession) -> list[dict]:
                 )
             )
         ).scalars().all()
-    )
+    ) - await ids_excluidos(db_session)
 
     out: list[dict] = []
     for course in courses:
@@ -342,6 +364,10 @@ async def _people_blocks(org_id: int, db_session: AsyncSession) -> dict:
             )
         )
     ).all()
+    from src.services.contactos.metricas import ids_excluidos
+
+    fuera = await ids_excluidos(db_session)
+    rows = [(m, u) for m, u in rows if m.user_id not in fuera]
 
     user_ids = [int(m.user_id) for m, _ in rows]
     if not user_ids:

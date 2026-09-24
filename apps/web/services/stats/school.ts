@@ -376,7 +376,9 @@ export interface MesGastos {
 }
 
 export interface Gasto {
-  id: number
+  /** null en los antiguos (apuntados en Estadísticas): esos llevan antiguo_id. */
+  id: number | null
+  antiguo_id?: number | null
   fecha: string
   categoria: string
   concepto: string

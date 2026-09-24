@@ -38,9 +38,13 @@ const AdminAuthorization: React.FC<AuthorizationProps> = ({ children, authorizat
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   const isUserAuthenticated = useMemo(() => session.status === 'authenticated', [session.status]);
+  // ⚠️ Esperar también a la escuela: `isAdmin` necesita su id, y si la
+  // sesión llegaba antes que los datos de la escuela, se daba por hecho que
+  // no eras administrador y te mandaba al inicio (pasaba con conexión lenta).
+  const cargando = loading || (isUserAuthenticated && !org?.id)
 
   const authorizeUser = useCallback(() => {
-    if (loading) {
+    if (cargando) {
       return; // Wait until the admin status is determined
     }
 
@@ -65,13 +69,13 @@ const AdminAuthorization: React.FC<AuthorizationProps> = ({ children, authorizat
       // Los menús del panel: el closer los ve (recortados a lo suyo).
       setIsAuthorized(isAdmin || isCloser);
     }
-  }, [loading, isUserAuthenticated, isAdmin, isCloser, rutaDelCloser, authorizationMode, router, org?.slug]);
+  }, [cargando, isUserAuthenticated, isAdmin, isCloser, rutaDelCloser, authorizationMode, router, org?.slug]);
 
   useEffect(() => {
     authorizeUser();
   }, [authorizeUser]);
 
-  if (loading) {
+  if (cargando) {
     return (
       <div className="flex justify-center items-center h-screen">
         <PageLoading />
@@ -82,7 +86,7 @@ const AdminAuthorization: React.FC<AuthorizationProps> = ({ children, authorizat
   if (authorizationMode === 'page' && !isAuthorized) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <h1 className="text-2xl">You are not authorized to access this page</h1>
+        <p className="text-[15px] text-gray-500">No tienes acceso a esta página.</p>
       </div>
     );
   }

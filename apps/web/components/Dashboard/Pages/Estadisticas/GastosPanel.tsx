@@ -11,7 +11,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
-import { borrarGasto, euros, getGastos, guardarGasto, type PanelGastos } from '@services/stats/school'
+import { borrarGasto, deleteManualEntry, euros, getGastos, guardarGasto, type Gasto, type PanelGastos } from '@services/stats/school'
 import { hoyISO } from '@services/stats/contactos'
 import { Loader2, Plus, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -69,9 +69,12 @@ export default function GastosPanel() {
     cargar()
   }
 
-  async function quitar(id: number) {
+  async function quitar(g: Gasto) {
     if (!window.confirm('¿Borrar este gasto?')) return
-    if (!(await borrarGasto(org?.id, id, accessToken))) {
+    const ok = g.antiguo_id
+      ? await deleteManualEntry(org?.id, g.antiguo_id, accessToken)
+      : await borrarGasto(org?.id, g.id as number, accessToken)
+    if (!ok) {
       toast.error('No se ha podido borrar')
       return
     }
@@ -219,7 +222,7 @@ export default function GastosPanel() {
         ) : (
           <ul className="divide-y divide-[#EEF2F9]">
             {datos.gastos.map((g) => (
-              <li key={g.id} className="py-2.5 flex items-center gap-3">
+              <li key={g.id ?? `antiguo-${g.antiguo_id}`} className="py-2.5 flex items-center gap-3">
                 <span className="text-[12px] text-gray-500 tabular-nums w-[82px] shrink-0">{g.fecha}</span>
                 <span className="shrink-0 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold bg-[#EAF3FF] text-[#025dc7]">
                   {cat[g.categoria] || g.categoria}
@@ -228,7 +231,7 @@ export default function GastosPanel() {
                   {g.concepto || <span className="text-gray-400">Sin concepto</span>}
                 </span>
                 <span className="text-[13px] font-semibold tabular-nums text-gray-900">{euros(g.importe_cents)}</span>
-                <button onClick={() => quitar(g.id)} aria-label="Borrar gasto" className="text-gray-400 hover:text-red-600">
+                <button onClick={() => quitar(g)} aria-label="Borrar gasto" className="text-gray-400 hover:text-red-600">
                   <Trash2 size={14} />
                 </button>
               </li>

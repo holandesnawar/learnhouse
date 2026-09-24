@@ -120,3 +120,23 @@ async def borrar_seguimiento(email: str, db_session: AsyncSession) -> None:
             await db_session.execute(select(modelo).where(func.lower(modelo.email) == clave))
         ).scalars().all():
             await db_session.delete(f)
+
+
+async def resumen_seguimiento(db_session: AsyncSession, ultimas: int = 30) -> dict:
+    """Lo que necesitan las listas de un vistazo: la fecha de volver a llamar
+    de cada persona, cuántas notas tiene, y las últimas notas del equipo (para
+    que el administrador vea lo que va apuntando el closer sin abrir fichas)."""
+    notas = (
+        await db_session.execute(select(ContactNota).order_by(ContactNota.id.desc()))  # type: ignore[attr-defined]
+    ).scalars().all()
+    por_email: dict[str, int] = {}
+    for n in notas:
+        por_email[n.email] = por_email.get(n.email, 0) + 1
+    return {
+        "recordatorios": await todos_los_recordatorios(db_session),
+        "notas_por_email": por_email,
+        "ultimas_notas": [
+            {"id": n.id, "email": n.email, "texto": n.texto, "autor": n.autor, "created_at": n.created_at}
+            for n in notas[:ultimas]
+        ],
+    }
