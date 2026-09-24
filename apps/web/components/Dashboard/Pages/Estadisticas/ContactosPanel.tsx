@@ -18,7 +18,10 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import PorDia from './PorDia'
+import toast from 'react-hot-toast'
 import {
+  avisoTrasBorrar,
+  borrarContacto,
   ETAPA_TEXTO,
   ESTADO_TEXTO,
   type EtapaContacto,
@@ -27,7 +30,7 @@ import {
   type Contacto,
   type ContactoDetalle,
 } from '@services/stats/contactos'
-import { ChevronDown, ChevronRight, Loader2, Map as MapIcon, Search, Tag, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, Loader2, Map as MapIcon, Search, Tag, Trash2, X } from 'lucide-react'
 import { ETAPAS, MAPA_WEB } from '@lib/nawar/mapaWeb'
 
 const CARD = 'rounded-2xl border border-[#DDE6F5] bg-white p-3.5 sm:p-5'
@@ -102,12 +105,40 @@ function Fila({ c, onOpen, deMatricula }: { c: Contacto; onOpen: () => void; deM
   )
 }
 
-function Ficha({ email, onClose, sinCrm = false }: { email: string; onClose: () => void; sinCrm?: boolean }) {
+function Ficha({
+  email,
+  onClose,
+  sinCrm = false,
+  onBorrado,
+}: {
+  email: string
+  onClose: () => void
+  sinCrm?: boolean
+  /** Solo para administradores: si llega, sale el botón de borrar. */
+  onBorrado?: (email: string, quedan?: { pagadas: number; cuenta: boolean }) => void
+}) {
   const org = useOrg() as any
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
   const [d, setD] = useState<ContactoDetalle | null>(null)
   const [cargando, setCargando] = useState(true)
+  const [borrando, setBorrando] = useState(false)
+
+  async function borrar() {
+    if (!onBorrado) return
+    const ok = window.confirm(
+      `¿Borrar a ${d?.nombre || email}? Es para pruebas o leads que no valen: se borran sus guías, llamadas, solicitudes y matrículas sin pagar. No se puede deshacer. Los pagos, la cuenta y el CRM no se tocan.`
+    )
+    if (!ok) return
+    setBorrando(true)
+    const r = await borrarContacto(org?.id, email, accessToken)
+    setBorrando(false)
+    if (!r.ok) {
+      toast.error(r.error || 'No se ha podido borrar')
+      return
+    }
+    onBorrado(email, r.quedan)
+  }
 
   useEffect(() => {
     let vivo = true
@@ -298,6 +329,17 @@ function Ficha({ email, onClose, sinCrm = false }: { email: string; onClose: () 
                 ))}
               </ol>
             </div>
+
+            {onBorrado ? (
+              <button
+                onClick={borrar}
+                disabled={borrando}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12.5px] font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
+              >
+                {borrando ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                Borrar este contacto (era una prueba)
+              </button>
+            ) : null}
           </div>
         )}
       </aside>
@@ -402,7 +444,7 @@ export default function ContactosPanel() {
   const org = useOrg() as any
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
-  const { isCloser } = useAdminStatus()
+  const { isCloser, isAdmin } = useAdminStatus()
 
   const [q, setQ] = useState('')
   const [datos, setDatos] = useState<{ total: number; mostrados: number; contactos: Contacto[] } | null>(null)
@@ -552,7 +594,31 @@ export default function ContactosPanel() {
 
       {isCloser ? null : <MapaWeb />}
 
-      {abierto ? <Ficha email={abierto} sinCrm={isCloser} onClose={() => setAbierto(null)} /> : null}
+      {abierto ? (
+        <Ficha
+          email={abierto}
+          sinCrm={isCloser}
+          onClose={() => setAbierto(null)}
+          onBorrado={
+            isAdmin
+              ? (email, quedan) => {
+                  setAbierto(null)
+                  const aviso = avisoTrasBorrar(quedan)
+                  if (aviso === 'Borrado') {
+                    // Fuera de la lista al momento, sin recargar.
+                    setDatos((prev) =>
+                      prev ? { ...prev, contactos: prev.contactos.filter((c) => c.email !== email) } : prev
+                    )
+                    toast.success('Borrado')
+                  } else {
+                    toast(aviso, { duration: 7000 })
+                    cargar()
+                  }
+                }
+              : undefined
+          }
+        />
+      ) : null}
     </section>
   )
 }

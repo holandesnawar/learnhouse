@@ -20,9 +20,10 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import PorDia from './PorDia'
-import { crearEnlacePago, getAgenda, getLlamadas, marcarLlamada, type Agenda, type Cita, type Llamada } from '@services/stats/contactos'
+import useAdminStatus from '@components/Hooks/useAdminStatus'
+import { avisoTrasBorrar, borrarContacto, crearEnlacePago, getAgenda, getLlamadas, marcarLlamada, type Agenda, type Cita, type Llamada } from '@services/stats/contactos'
 import { marcarSolicitud } from '@services/stats/school'
-import { CalendarDays, Check, ChevronDown, ChevronRight, Copy, CreditCard, Loader2, PhoneCall, RefreshCw, RotateCcw, Video } from 'lucide-react'
+import { CalendarDays, Check, ChevronDown, ChevronRight, Copy, CreditCard, Loader2, PhoneCall, RefreshCw, RotateCcw, Trash2, Video } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const CARD = 'rounded-2xl border border-[#DDE6F5] bg-white p-3.5 sm:p-5'
@@ -60,6 +61,24 @@ export default function LlamadasPanel() {
   const [verAtendidas, setVerAtendidas] = useState(false)
   const [agenda, setAgenda] = useState<Agenda | null>(null)
   const [cargandoAgenda, setCargandoAgenda] = useState(false)
+
+  const { isAdmin } = useAdminStatus()
+  // Solo administradores: quitar a quien era una prueba o no vale. Borra a la
+  // persona entera (sus llamadas, solicitudes y matrículas sin pagar), igual
+  // que desde Contactos.
+  async function borrar(l: Llamada) {
+    if (!window.confirm(`¿Borrar a ${l.name || l.email}? Es para pruebas o leads que no valen. No se puede deshacer. Los pagos, la cuenta y el CRM no se tocan.`)) return
+    const r = await borrarContacto(org?.id, l.email, accessToken)
+    if (!r.ok) {
+      toast.error(r.error || 'No se ha podido borrar')
+      return
+    }
+    setAbierta(null)
+    setLlamadas((prev) => (prev ? prev.filter((x) => x.email !== l.email) : prev))
+    const aviso = avisoTrasBorrar(r.quedan)
+    if (aviso === 'Borrado') toast.success(aviso)
+    else toast(aviso, { duration: 7000 })
+  }
 
   const cargar = useCallback(async () => {
     if (!org?.id || !accessToken) return
@@ -169,6 +188,7 @@ export default function LlamadasPanel() {
                 alternar={alternar}
                 guardando={guardando}
                 citaDe={citaDe}
+                borrar={isAdmin ? borrar : undefined}
               />
             )}
           />
@@ -182,7 +202,7 @@ export default function LlamadasPanel() {
                 Ya atendidas · {atendidas.length}
               </button>
               {verAtendidas && (
-                <Lista filas={atendidas} abierta={abierta} setAbierta={setAbierta} alternar={alternar} guardando={guardando} citaDe={citaDe} apagada />
+                <Lista filas={atendidas} abierta={abierta} setAbierta={setAbierta} alternar={alternar} guardando={guardando} citaDe={citaDe} borrar={isAdmin ? borrar : undefined} apagada />
               )}
             </div>
           )}
@@ -200,6 +220,7 @@ function Lista({
   alternar,
   guardando,
   citaDe,
+  borrar,
   apagada = false,
 }: {
   titulo?: string
@@ -209,6 +230,7 @@ function Lista({
   alternar: (l: Llamada) => void
   guardando: number | null
   citaDe: (email: string) => Cita | undefined
+  borrar?: (l: Llamada) => void
   apagada?: boolean
 }) {
   if (filas.length === 0 && !titulo) return null
@@ -341,6 +363,15 @@ function Lista({
                     {guardando === l.id ? <Loader2 size={13} className="animate-spin" /> : hecha ? <RotateCcw size={13} /> : <Check size={13} />}
                     {hecha ? 'Volver a pendiente' : 'Ya la he atendido'}
                   </button>
+                  {borrar ? (
+                    <button
+                      onClick={() => borrar(l)}
+                      title="Borrar (era una prueba o no vale)"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 size={13} /> Borrar
+                    </button>
+                  ) : null}
                   {cita?.enlace ? (
                     <a
                       href={cita.enlace}

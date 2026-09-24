@@ -28,7 +28,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 import httpx
-from sqlmodel import select
+from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.contact_event import ContactEvent, ContactEventCreate
@@ -327,6 +327,9 @@ async def _todos_los_eventos(db_session: AsyncSession) -> list[dict]:
             utm_source=getattr(r, "utm_source", ""), utm_medium=getattr(r, "utm_medium", ""),
             utm_campaign=getattr(r, "utm_campaign", ""),
         )
+        # Las descartadas desde el panel eran pruebas: no son un contacto.
+        if r.status == "descartada":
+            continue
         eventos.append(_evento("matricula", r.created_at, r.email, source="checkout", **comunes))
         if r.status == "paid":
             eventos.append(
@@ -406,3 +409,45 @@ async def etiquetas_en_systeme(email: str) -> dict:
     except Exception as exc:  # noqa: BLE001
         logger.warning("systeme.io no contestó para %s: %s", email, exc)
         return {"ok": False, "motivo": "systeme.io no contestó", "etiquetas": [], "campos": []}
+
+
+async def borrar_contacto(email: str, db_session: AsyncSession) -> dict:
+    """
+    Borra el rastro de una persona que era una prueba (o un lead que no vale):
+    sus eventos (guías, llamadas, cualificaciones), sus solicitudes de plaza y
+    sus matrículas SIN pagar.
+
+    Lo que NO toca, a propósito:
+    - Las matrículas pagadas: son dinero cobrado y facturas. Si era una prueba
+      de pago, para eso está la fecha de corte `LEARNHOUSE_FORMACION_DESDE`.
+    - La cuenta de usuario: borrarla es otra cosa (Panel → Usuarios).
+    - systeme.io: el CRM sigue igual; la escuela solo borra lo suyo.
+    Si queda algo de eso, la persona sigue saliendo como alumno y se dice por
+    qué en la respuesta, para que no parezca que el borrado ha fallado.
+    """
+    clave = (email or "").strip().lower()
+    if not clave or "@" not in clave:
+        return {"ok": False, "motivo": "Falta un correo válido"}
+
+    borrados = {"eventos": 0, "solicitudes": 0, "matriculas": 0}
+    for modelo, nombre in ((ContactEvent, "eventos"), (EnrollmentRequest, "solicitudes")):
+        filas = (
+            await db_session.execute(select(modelo).where(func.lower(modelo.email) == clave))
+        ).scalars().all()
+        for f in filas:
+            await db_session.delete(f)
+            borrados[nombre] += 1
+
+    pagadas = 0
+    for f in (
+        await db_session.execute(select(Enrollment).where(func.lower(Enrollment.email) == clave))
+    ).scalars().all():
+        if f.status == "paid":
+            pagadas += 1
+            continue
+        await db_session.delete(f)
+        borrados["matriculas"] += 1
+
+    await db_session.commit()
+    tiene_cuenta = clave in await _emails_con_cuenta(db_session)
+    return {"ok": True, "borrados": borrados, "quedan": {"pagadas": pagadas, "cuenta": tiene_cuenta}}
