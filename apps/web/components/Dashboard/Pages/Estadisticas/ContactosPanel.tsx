@@ -76,32 +76,53 @@ function EtapaPill({ etapa }: { etapa: EtapaContacto }) {
 }
 
 /** Una línea por persona: quién es, cómo contactarla y lo último que hizo. */
-function Fila({ c, onOpen, deMatricula }: { c: Contacto; onOpen: () => void; deMatricula: boolean }) {
-  // Al closer le importa CUÁNDO se matriculó; al administrador, lo último que hizo.
+function Fila({
+  c,
+  onOpen,
+  deMatricula,
+  onBorrar,
+}: {
+  c: Contacto
+  onOpen: () => void
+  deMatricula: boolean
+  /** Solo administradores: la papelera, a la vista en cada línea. */
+  onBorrar?: () => void
+}) {
+  // Al closer (y en "Matrículas hechas") importa CUÁNDO se matriculó; si no,
+  // lo último que hizo.
   const cuando = deMatricula ? c.matricula_at : c.ultimo_contacto.when
   return (
-    <button
-      onClick={onOpen}
-      className="w-full text-left rounded-xl border border-[#DDE6F5] bg-[#F7FAFF] hover:bg-[#EEF4FF] px-3.5 py-2.5 flex items-center gap-3 transition-colors"
-    >
-      <div className="flex-1 min-w-0">
-        <p className="text-[13.5px] font-semibold text-gray-900 flex items-center gap-2 min-w-0">
-          <span className="truncate">{c.nombre || c.email}</span>
-          <EtapaPill etapa={c.etapa} />
-        </p>
-        <p className="text-[12px] text-gray-500 truncate">
-          {c.email}
-          {c.telefono ? ` · ${c.telefono}` : ''}
-        </p>
-        <p className="text-[12px] mt-0.5 text-[#5A6480] truncate">
-          {deMatricula ? 'Se matriculó' : c.ultimo_contacto.que}
-          <span className="text-[#9CA3AF]"> · {fecha(cuando, true)}</span>
-          {c.vio_precio ? <span className="text-[#0E9F6E] font-semibold"> · vio el precio</span> : null}
-          {c.utm_campaign ? <span className="text-[#025dc7]"> · {c.utm_campaign}</span> : null}
-        </p>
-      </div>
-      <ChevronRight size={16} className="text-[#9CA3AF] shrink-0" />
-    </button>
+    <div className="rounded-xl border border-[#DDE6F5] bg-[#F7FAFF] hover:bg-[#EEF4FF] flex items-center transition-colors">
+      <button onClick={onOpen} className="flex-1 min-w-0 text-left px-3.5 py-2.5 flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-[13.5px] font-semibold text-gray-900 flex items-center gap-2 min-w-0">
+            <span className="truncate">{c.nombre || c.email}</span>
+            <EtapaPill etapa={c.etapa} />
+          </p>
+          <p className="text-[12px] text-gray-500 truncate">
+            {c.email}
+            {c.telefono ? ` · ${c.telefono}` : ''}
+          </p>
+          <p className="text-[12px] mt-0.5 text-[#5A6480] truncate">
+            {deMatricula ? 'Se matriculó' : c.ultimo_contacto.que}
+            <span className="text-[#9CA3AF]"> · {fecha(cuando, true)}</span>
+            {c.vio_precio ? <span className="text-[#0E9F6E] font-semibold"> · vio el precio</span> : null}
+            {c.utm_campaign ? <span className="text-[#025dc7]"> · {c.utm_campaign}</span> : null}
+          </p>
+        </div>
+        <ChevronRight size={16} className="text-[#9CA3AF] shrink-0" />
+      </button>
+      {onBorrar ? (
+        <button
+          onClick={onBorrar}
+          title="Borrar (era una prueba o no vale)"
+          aria-label={`Borrar a ${c.nombre || c.email}`}
+          className="shrink-0 self-stretch px-3 border-l border-[#DDE6F5] text-red-500 hover:text-red-700 hover:bg-red-50 rounded-r-xl transition-colors"
+        >
+          <Trash2 size={16} />
+        </button>
+      ) : null}
+    </div>
   )
 }
 
@@ -198,6 +219,15 @@ function Ficha({
                     Sin rastro de haber visto el precio
                   </span>
                 )}
+                {onBorrado ? (
+                  <button
+                    onClick={borrar}
+                    disabled={borrando}
+                    className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50"
+                  >
+                    <Trash2 size={11} /> Borrar
+                  </button>
+                ) : null}
                 {wa ? (
                   <a
                     href={wa}
@@ -451,6 +481,10 @@ export default function ContactosPanel() {
   const [cargando, setCargando] = useState(true)
   const [abierto, setAbierto] = useState<string | null>(null)
   const [etapa, setEtapa] = useState<EtapaContacto | null>(null)
+  // "Matrículas hechas": solo quien rellenó la matrícula (pidió plaza o llegó
+  // al pago), por día de matrícula. Es lo que ve siempre el closer.
+  const [soloMatriculasElegido, setSoloMatriculas] = useState(false)
+  const soloMatriculas = isCloser || soloMatriculasElegido
 
   const cargar = useCallback(async () => {
     if (!org?.id || !accessToken) return
@@ -467,10 +501,41 @@ export default function ContactosPanel() {
   // acaso y para ordenar por la fecha buena.
   const lista = useMemo(() => {
     const todos = datos?.contactos ?? []
-    return isCloser ? todos.filter((c) => c.matricula_at) : todos
-  }, [datos, isCloser])
+    return soloMatriculas ? todos.filter((c) => c.matricula_at) : todos
+  }, [datos, soloMatriculas])
 
-  const etapas = isCloser ? ETAPAS_CLOSER : ETAPAS_ADMIN
+  const etapas = soloMatriculas ? ETAPAS_CLOSER : ETAPAS_ADMIN
+  const totalTodos = datos?.contactos.length ?? 0
+  const totalMatriculas = (datos?.contactos ?? []).filter((c) => c.matricula_at).length
+
+  // Borrar a una persona (solo administradores), desde la línea o la ficha.
+  async function borrarPersona(c: { email: string; nombre?: string }) {
+    if (
+      !window.confirm(
+        `¿Borrar a ${c.nombre || c.email}? Es para pruebas o leads que no valen: se borran sus guías, llamadas, solicitudes y matrículas sin pagar. No se puede deshacer. Los pagos, la cuenta y el CRM no se tocan.`
+      )
+    )
+      return
+    const r = await borrarContacto(org?.id, c.email, accessToken)
+    if (!r.ok) {
+      toast.error(r.error || 'No se ha podido borrar')
+      return
+    }
+    trasBorrar(c.email, r.quedan)
+  }
+
+  function trasBorrar(email: string, quedan?: { pagadas: number; cuenta: boolean }) {
+    setAbierto(null)
+    const aviso = avisoTrasBorrar(quedan)
+    if (aviso === 'Borrado') {
+      // Fuera de la lista al momento, sin recargar.
+      setDatos((prev) => (prev ? { ...prev, contactos: prev.contactos.filter((x) => x.email !== email) } : prev))
+      toast.success('Borrado')
+    } else {
+      toast(aviso, { duration: 7000 })
+      cargar()
+    }
+  }
   const cuenta = (id: EtapaContacto) => lista.filter((c) => c.etapa === id).length
 
   // El buscador filtra en el navegador: la lista ya viene entera y así
@@ -492,14 +557,44 @@ export default function ContactosPanel() {
     [lista, etapa, t]
   )
 
-  const fechaDe = (c: Contacto) => (isCloser ? c.matricula_at : c.ultimo_contacto.when)
-  const fila = (c: Contacto) => <Fila c={c} deMatricula={isCloser} onOpen={() => setAbierto(c.email)} />
+  const fechaDe = (c: Contacto) => (soloMatriculas ? c.matricula_at : c.ultimo_contacto.when)
+  const fila = (c: Contacto) => (
+    <Fila
+      c={c}
+      deMatricula={soloMatriculas}
+      onOpen={() => setAbierto(c.email)}
+      onBorrar={isAdmin ? () => borrarPersona(c) : undefined}
+    />
+  )
 
   return (
     <section className="space-y-4">
+      {/* Administrador: todos los contactos o solo las matrículas hechas. */}
+      {isCloser ? null : (
+        <div className="inline-flex rounded-xl bg-[#F0F5FF] p-1">
+          {[
+            { id: false, label: 'Todos los contactos', n: totalTodos },
+            { id: true, label: 'Matrículas hechas', n: totalMatriculas },
+          ].map((o) => (
+            <button
+              key={String(o.id)}
+              onClick={() => {
+                setSoloMatriculas(o.id)
+                setEtapa(null)
+              }}
+              className={`px-3.5 py-2 rounded-lg text-[13px] font-semibold transition-colors ${
+                soloMatriculasElegido === o.id ? 'bg-white text-[#1D0084] shadow-sm' : 'text-[#5A6480] hover:text-[#1D0084]'
+              }`}
+            >
+              {o.label} <span className="tabular-nums opacity-70">{o.n}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       <p className="text-[13px] text-[#5A6480] leading-relaxed">
-        {isCloser
-          ? 'Todas las matrículas: quien pidió plaza o llegó al pago. Ordenadas por el día en que se matricularon. Abre una para ver lo que ha hecho y sus respuestas.'
+        {soloMatriculas
+          ? 'Todas las matrículas: quien pidió plaza o llegó al pago (y los que ya pagaron). Ordenadas por el día en que se matricularon. Abre una para ver lo que ha hecho y sus respuestas.'
           : 'Una ficha por persona que ha dejado sus datos, en la etapa más lejana a la que llegó. Ordenadas por el día de su último movimiento. Toca una etapa para ver solo esa.'}
       </p>
 
@@ -548,7 +643,7 @@ export default function ContactosPanel() {
               </>
             ) : (
               <>
-                {visibles.length} {isCloser ? 'matrículas' : 'contactos'}
+                {visibles.length} {soloMatriculas ? 'matrículas' : 'contactos'}
               </>
             )}
           </p>
@@ -580,7 +675,7 @@ export default function ContactosPanel() {
             items={[...visibles].sort((a, b) => (fechaDe(b) || '').localeCompare(fechaDe(a) || ''))}
             fecha={fechaDe}
             clave={(c) => c.email}
-            recordarComo={isCloser ? 'contactos-closer' : 'contactos'}
+            recordarComo={soloMatriculas ? 'contactos-matriculas' : 'contactos'}
             render={fila}
           />
         )}
@@ -599,24 +694,7 @@ export default function ContactosPanel() {
           email={abierto}
           sinCrm={isCloser}
           onClose={() => setAbierto(null)}
-          onBorrado={
-            isAdmin
-              ? (email, quedan) => {
-                  setAbierto(null)
-                  const aviso = avisoTrasBorrar(quedan)
-                  if (aviso === 'Borrado') {
-                    // Fuera de la lista al momento, sin recargar.
-                    setDatos((prev) =>
-                      prev ? { ...prev, contactos: prev.contactos.filter((c) => c.email !== email) } : prev
-                    )
-                    toast.success('Borrado')
-                  } else {
-                    toast(aviso, { duration: 7000 })
-                    cargar()
-                  }
-                }
-              : undefined
-          }
+          onBorrado={isAdmin ? trasBorrar : undefined}
         />
       ) : null}
     </section>
