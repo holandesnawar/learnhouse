@@ -985,6 +985,25 @@ uno:
   (dinsdag/donderdag, zaterdag/zondag, juni/juli, januari/februari,
   **maart/maandag**).
 
+### ⚠️ Pistas y barajado: que el ejercicio no se resuelva solo (26/09/2026)
+El usuario vio "Escribe con «Ik eet»: «Como pan con queso»" con la pista
+"brood met kaas" debajo, y un "Empareja" con la derecha alineada con la
+izquierda. Tres arreglos:
+- **La pista se esconde** tras "💡 Ver pista" (`Pista` en `LessonViewer.tsx`).
+  Y se reescribieron las 13 que daban la respuesta. **Regla al escribir una
+  pista: nunca la respuesta ni media respuesta**; vale la primera letra, una
+  palabra auxiliar («con» = met) o dónde fijarse.
+- **"Escribe en neerlandés" ya no falla por el punto final**
+  (`aciertaEscrito` en `answerCheck.ts`: ignora puntuación final, ¿¡,
+  mayúsculas, espacios y el apóstrofo del iPhone; las tildes SÍ cuentan). Por
+  eso se quitaron los "sin punto final" de las pistas. Acepta `alsoAccept`.
+- **Barajado de verdad** (`lib/exercises-app/barajar.ts`, con tests):
+  `sort(() => Math.random() - 0.5)` estaba sesgado. En `courseData.ts` la buena
+  va PRIMERA en 492 de 529 opciones, así que **toda pantalla con opciones tiene
+  que barajar**; "Elige el emoji" y "El intruso" no barajaban nada. Empareja
+  nunca deja una traducción junto a su palabra; ordenar frase y letras nunca
+  salen ya resueltas.
+
 ### El auto-avance: solo al acertar
 En Spreken la pantalla pasa sola a los **1,4 s al acertar**; al fallar espera al
 clic. Al fallar hay algo que leer (la frase que hasta ese momento solo se había

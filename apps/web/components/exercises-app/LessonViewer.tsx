@@ -18,7 +18,8 @@ import { useLHSession } from '@components/Contexts/LHSessionContext';
 import useAdminStatus from '@components/Hooks/useAdminStatus';
 import { saveItemResult } from '@/lib/exercises/exercises';
 import { saveLastAttempt, getLastAttempt, type LastAttempt } from '@/lib/exercises-app/lastAttempts';
-import { aciertaEnEspanol } from '@/lib/exercises-app/answerCheck';
+import { aciertaEnEspanol, aciertaEscrito } from '@/lib/exercises-app/answerCheck';
+import { barajar, barajarSinCoincidir, barajarSinResolver } from '@/lib/exercises-app/barajar';
 import { markLessonCompletedRemote, patchStudentProgress, listLessonCompletions } from '@services/student/progress';
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -1047,7 +1048,7 @@ export function ExerciseRunner({ exercises, onDone, onBack, hasBackStep, onSubPr
 /* ── Classify step ── */
 
 function ClassifyStep({ groups, items, onDone, onBack }: { groups: ClassifyGroup[]; items: ClassifyItemData[]; onDone: () => void; onBack: () => void }) {
-  const queue = useMemo(() => [...items].sort(() => Math.random() - 0.5).slice(0, Math.min(10, items.length)), [items]);
+  const queue = useMemo(() => barajar(items).slice(0, Math.min(10, items.length)), [items]);
   const [index, setIndex] = useState(0);
   const [result, setResult] = useState<{ correct: boolean; correctId: string } | null>(null);
   const [score, setScore] = useState(0);
@@ -1385,9 +1386,7 @@ function FlashcardSection({
   onComplete: () => void;
 }) {
   const [mode, setMode] = useState<'nl-es' | 'es-nl'>('nl-es');
-  const [queue, setQueue] = useState<VocabularyItem[]>(() =>
-    [...items].sort(() => Math.random() - 0.5)
-  );
+  const [queue, setQueue] = useState<VocabularyItem[]>(() => barajar(items));
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [knownCount, setKnownCount] = useState(0);
@@ -1446,14 +1445,14 @@ function FlashcardSection({
   function handleShuffle() {
     if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
     setIsAdvancing(false);
-    setQueue(q => [...q].sort(() => Math.random() - 0.5));
+    setQueue(q => barajar(q));
     setIndex(0);
     setFlipped(false);
     setDone(false);
   }
 
   function handleRestart() {
-    setQueue([...items].sort(() => Math.random() - 0.5));
+    setQueue(barajar(items));
     setIndex(0);
     setFlipped(false);
     setKnownCount(0);
@@ -1715,6 +1714,32 @@ function MultipleChoiceExercise({
   );
 }
 
+/**
+ * La pista, escondida hasta que el alumno la pide. Antes salía siempre debajo
+ * del enunciado, y muchas daban media respuesta ("brood met kaas" para "Como
+ * pan con queso"): el ejercicio se resolvía leyendo la pista.
+ */
+function Pista({ texto, destacada = false }: { texto?: string; destacada?: boolean }) {
+  const [vista, setVista] = useState(false);
+  if (!texto) return null;
+  if (!vista) {
+    return (
+      <button
+        type="button"
+        onClick={() => setVista(true)}
+        className="mt-2 inline-flex items-center gap-1 text-[13px] font-semibold text-[#025dc7] hover:underline"
+      >
+        💡 Ver pista
+      </button>
+    );
+  }
+  return (
+    <p className={destacada ? 'text-[14px] text-[#025dc7] font-medium mt-1' : 'text-[13px] text-[#9CA3AF] mt-2'}>
+      💡 {texto}
+    </p>
+  );
+}
+
 function WriteAnswerExercise({
   exercise,
   onAnswer,
@@ -1726,7 +1751,7 @@ function WriteAnswerExercise({
 }) {
   const [value, setValue] = useState(initialAnswer ?? '');
   const [submitted, setSubmitted] = useState(initialAnswer !== undefined);
-  const isCorrect = value.trim().toLowerCase() === exercise.correctAnswer.trim().toLowerCase();
+  const isCorrect = aciertaEscrito(value, exercise.correctAnswer, exercise.alsoAccept);
 
   function handleSubmit() {
     if (!value.trim() || submitted) return;
@@ -1738,9 +1763,7 @@ function WriteAnswerExercise({
     <div className="space-y-4">
       <div className="rounded-2xl p-5 border border-[#DDE6F5] bg-white">
         <p className="text-[16px] font-semibold text-gray-900 leading-snug">{exercise.prompt}</p>
-        {exercise.hint && (
-          <p className="text-[13px] text-[#9CA3AF] mt-2">💡 {exercise.hint}</p>
-        )}
+        <Pista texto={exercise.hint} />
       </div>
       <input
         type="text"
@@ -1879,7 +1902,7 @@ function FillBlankExercise({
             </span>
             {parts[1] ?? ''}
           </p>
-          {exercise.hint && <p className="text-[13px] text-[#9CA3AF] mt-2">💡 {exercise.hint}</p>}
+          <Pista texto={exercise.hint} />
         </div>
 
         {/* Option chips — tap = escucha audio + rellena el hueco (no envía) */}
@@ -1949,9 +1972,7 @@ function FillBlankExercise({
             </Fragment>
           ))}
         </p>
-        {exercise.hint && (
-          <p className="text-[13px] text-[#9CA3AF] mt-2">💡 {exercise.hint}</p>
-        )}
+        <Pista texto={exercise.hint} />
       </div>
 
       {!submitted && (
@@ -2397,6 +2418,24 @@ function SprekenChooseExercise({
   );
 }
 
+/** Fichas de "ordena la frase" / "escucha y traduce", nunca ya en su sitio. */
+function fichasBarajadas(exercise: ExerciseItem): string[] {
+  const norm = (t: string) => t.trim().toLowerCase().replace(/\s+/g, ' ');
+  const solucion = norm(exercise.correctAnswer ?? '');
+  const fichas = exercise.options ?? [];
+  return barajarSinResolver(fichas, orden =>
+    orden.every((x, i) => x === fichas[i]) || norm(orden.join(' ')).startsWith(solucion),
+  );
+}
+
+/** Letras de "ordena las letras", nunca formando ya la palabra. */
+function letrasBarajadas(word: string): string[] {
+  return barajarSinResolver(
+    word.split('').map((ch, i) => `${ch}__${i}`),
+    orden => orden.map(k => k.split('__')[0]).join('').toLowerCase() === word.toLowerCase(),
+  );
+}
+
 function OrderSentenceExercise({
   exercise,
   onAnswer,
@@ -2404,9 +2443,7 @@ function OrderSentenceExercise({
   exercise: ExerciseItem;
   onAnswer: (correct: boolean, answer: string) => void;
 }) {
-  const [available, setAvailable] = useState<string[]>(() =>
-    [...(exercise.options ?? [])].sort(() => Math.random() - 0.5)
-  );
+  const [available, setAvailable] = useState<string[]>(() => fichasBarajadas(exercise));
   const [sentence, setSentence] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
   // Comparación tolerante: ignora MAYÚSCULAS y espacios extra. (Las fichas
@@ -2433,7 +2470,7 @@ function OrderSentenceExercise({
   }
 
   function handleReset() {
-    setAvailable([...(exercise.options ?? [])].sort(() => Math.random() - 0.5));
+    setAvailable(fichasBarajadas(exercise));
     setSentence([]);
     setSubmitted(false);
   }
@@ -2502,9 +2539,7 @@ function OrderSentenceExercise({
 
 function WordScrambleExercise({ exercise, onAnswer }: { exercise: ExerciseItem; onAnswer: (correct: boolean, answer: string) => void }) {
   const word = exercise.correctAnswer;
-  const [letters, setLetters] = useState<string[]>(() =>
-    word.split('').map((ch, i) => `${ch}__${i}`).sort(() => Math.random() - 0.5)
-  );
+  const [letters, setLetters] = useState<string[]>(() => letrasBarajadas(word));
   const [selected, setSelected] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const formed = selected.map(k => k.split('__')[0]).join('');
@@ -2526,7 +2561,7 @@ function WordScrambleExercise({ exercise, onAnswer }: { exercise: ExerciseItem; 
     onAnswer(isCorrect, formed);
   }
   function handleReset() {
-    setLetters(word.split('').map((ch, i) => `${ch}__${i}`).sort(() => Math.random() - 0.5));
+    setLetters(letrasBarajadas(word));
     setSelected([]);
     setSubmitted(false);
   }
@@ -2535,7 +2570,7 @@ function WordScrambleExercise({ exercise, onAnswer }: { exercise: ExerciseItem; 
     <div className="space-y-4">
       <div className="rounded-2xl p-5 border border-[#DDE6F5] bg-white">
         <p className="text-[17px] font-semibold text-gray-900 leading-snug">{exercise.prompt}</p>
-        {exercise.hint && <p className="text-[14px] text-[#025dc7] font-medium mt-1">💡 {exercise.hint}</p>}
+        <Pista texto={exercise.hint} destacada />
       </div>
 
       {/* Answer area */}
@@ -2603,7 +2638,8 @@ function MatchPairsExercise({ exercise, onAnswer }: { exercise: ExerciseItem; on
   const [done, setDone] = useState(false);
   const [errors, setErrors] = useState(0);
 
-  const rightItems = useMemo(() => [...pairs.map(p => p.right)].sort(() => Math.random() - 0.5), []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Ninguna traducción al lado de su palabra: ver barajar.ts.
+  const rightItems = useMemo(() => barajarSinCoincidir(pairs.map(p => p.right)), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (rightSel && leftSel) {
@@ -2766,7 +2802,8 @@ function EmojiChoiceExercise({
 }) {
   const [selected, setSelected] = useState<string | null>(initialAnswer ?? null);
   const isAnswered = selected !== null;
-  const options = exercise.options ?? [];
+  // Sin barajar, la buena salía casi siempre la primera: así está escrita en courseData.
+  const options = useMemo(() => barajar(exercise.options ?? []), [exercise.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function pick(opt: string) {
     if (isAnswered) return;
@@ -2822,7 +2859,8 @@ function OddOneOutExercise({
 }) {
   const [selected, setSelected] = useState<string | null>(initialAnswer ?? null);
   const isAnswered = selected !== null;
-  const options = exercise.options ?? [];
+  // Sin barajar, la buena salía casi siempre la primera: así está escrita en courseData.
+  const options = useMemo(() => barajar(exercise.options ?? []), [exercise.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function pick(opt: string) {
     if (isAnswered) return;
@@ -3090,9 +3128,7 @@ function ListenTranslateExercise({ exercise, onAnswer }: { exercise: ExerciseIte
     ? exercise.prompt.replace(/\s*[:：]?\s*"[^"]+"\s*\.?\s*$/, '').trim() || 'Escucha y traduce al español'
     : 'Escucha y traduce al español';
 
-  const [available, setAvailable] = useState<string[]>(() =>
-    [...(exercise.options ?? [])].sort(() => Math.random() - 0.5)
-  );
+  const [available, setAvailable] = useState<string[]>(() => fichasBarajadas(exercise));
   const [sentence, setSentence] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const composed = sentence.join(' ');
@@ -3116,7 +3152,7 @@ function ListenTranslateExercise({ exercise, onAnswer }: { exercise: ExerciseIte
     onAnswer(isCorrect, composed);
   }
   function handleReset() {
-    setAvailable([...(exercise.options ?? [])].sort(() => Math.random() - 0.5));
+    setAvailable(fichasBarajadas(exercise));
     setSentence([]);
     setSubmitted(false);
   }

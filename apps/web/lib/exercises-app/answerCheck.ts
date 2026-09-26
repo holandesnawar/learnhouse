@@ -61,3 +61,27 @@ export function respuestasValidasEs(correcta: string, otras: string[] = []): str
 export function aciertaEnEspanol(compuesta: string, correcta: string, otras: string[] = []): boolean {
   return respuestasValidasEs(correcta, otras).includes(normalizar(compuesta))
 }
+
+// ── Escribir en neerlandés ────────────────────────────────────────────────
+// Antes se comparaba el texto tal cual, así que "Ik eet brood met kaas." con
+// punto salía MAL, y cada pista tenía que avisar "sin punto final". Ahora da
+// igual la puntuación del final (. ! ? …), los ¿¡ del principio, los espacios
+// de más, las mayúsculas y el apóstrofo tipográfico (’ en vez de ', que es lo
+// que pone el teclado del iPhone en "'s avonds"). Las tildes SÍ cuentan:
+// "één" y "een" no son la misma palabra.
+function normalizarEscrito(texto: string): string {
+  return texto
+    .replace(/[\u2018\u2019\u02BC]/g, "'")
+    .trim()
+    .toLowerCase()
+    .replace(/^[¿¡\s]+/, '')
+    .replace(/[.!?…\s]+$/, '')
+    .replace(/\s+/g, ' ')
+}
+
+/** ¿Lo que ha escrito el alumno vale? `otras` = respuestas alternativas. */
+export function aciertaEscrito(escrito: string, correcta: string, otras: string[] = []): boolean {
+  const dado = normalizarEscrito(escrito)
+  if (!dado) return false
+  return [correcta, ...otras].some((r) => normalizarEscrito(r) === dado)
+}

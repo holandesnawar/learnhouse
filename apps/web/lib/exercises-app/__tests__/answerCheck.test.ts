@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { aciertaEnEspanol, respuestasValidasEs } from '../answerCheck'
+import { aciertaEnEspanol, aciertaEscrito, respuestasValidasEs } from '../answerCheck'
 
 describe('traducción al español sin pronombre', () => {
   test('acepta la respuesta tal cual', () => {
@@ -48,5 +48,26 @@ describe('traducción al español sin pronombre', () => {
     expect(aciertaEnEspanol('Mi apellido termina con Z', 'Mi apellido empieza con Z', otras)).toBe(false)
     // Y a las alternativas también se les cae el pronombre.
     expect(aciertaEnEspanol('Hago deporte por la noche', 'Yo hago deporte por la tarde', ['Yo hago deporte por la noche'])).toBe(true)
+  })
+})
+
+describe('aciertaEscrito (escribir en neerlandés)', () => {
+  test('el punto final, las mayúsculas y los espacios no cuentan', () => {
+    expect(aciertaEscrito('Ik eet brood met kaas.', 'Ik eet brood met kaas')).toBe(true)
+    expect(aciertaEscrito('  ik eet  brood met kaas  ', 'Ik eet brood met kaas')).toBe(true)
+    expect(aciertaEscrito('Hoe gaat het?', 'Hoe gaat het')).toBe(true)
+  })
+  test('el apóstrofo del iPhone vale', () => {
+    expect(aciertaEscrito('Ik werk ’s avonds', "Ik werk 's avonds")).toBe(true)
+  })
+  test('una palabra distinta sigue estando mal', () => {
+    expect(aciertaEscrito('Ik eet brood met ham', 'Ik eet brood met kaas')).toBe(false)
+    expect(aciertaEscrito('', 'Ik eet brood met kaas')).toBe(false)
+  })
+  test('las tildes cuentan', () => {
+    expect(aciertaEscrito('Ik heb een broer', 'Ik heb één broer')).toBe(false)
+  })
+  test('acepta las alternativas', () => {
+    expect(aciertaEscrito('Zij is dokter', 'Zij is arts', ['Zij is dokter'])).toBe(true)
   })
 })
