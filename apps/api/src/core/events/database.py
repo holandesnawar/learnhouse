@@ -379,6 +379,12 @@ _ADDED_COLUMNS = [
     "ALTER TABLE IF EXISTS enrollment ADD COLUMN IF NOT EXISTS referrer VARCHAR DEFAULT ''",
     # Carpetas de recursos solo para el equipo (facturas del negocio, etc.).
     "ALTER TABLE IF EXISTS resource_folder ADD COLUMN IF NOT EXISTS private BOOLEAN DEFAULT FALSE",
+    # Facturas de la empresa: cada gasto puede llevar su factura (sept 2026).
+    "ALTER TABLE IF EXISTS school_expense ADD COLUMN IF NOT EXISTS proveedor VARCHAR(200) DEFAULT ''",
+    "ALTER TABLE IF EXISTS school_expense ADD COLUMN IF NOT EXISTS numero VARCHAR(80) DEFAULT ''",
+    "ALTER TABLE IF EXISTS school_expense ADD COLUMN IF NOT EXISTS archivo VARCHAR(300) DEFAULT ''",
+    "ALTER TABLE IF EXISTS school_expense ADD COLUMN IF NOT EXISTS archivo_nombre VARCHAR(200) DEFAULT ''",
+    "ALTER TABLE IF EXISTS school_expense ADD COLUMN IF NOT EXISTS fijo_id INTEGER DEFAULT 0",
 ]
 
 

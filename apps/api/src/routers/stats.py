@@ -2,7 +2,8 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import FileResponse
+from fastapi import File, UploadFile, APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -202,7 +203,10 @@ async def api_nuevo_gasto(
 ):
     await _admin_org(request, org_id, current_user, db_session)
     _validar_gasto(data)
-    g = await guardar_gasto(org_id, data.fecha, data.categoria, data.concepto, data.importe, data.nota, db_session)
+    g = await guardar_gasto(
+        org_id, data.fecha, data.categoria, data.concepto, data.importe, data.nota, db_session,
+        proveedor=data.proveedor, numero=data.numero, fijo_id=data.fijo_id,
+    )
     return {"id": g.id if g else None}
 
 
@@ -217,10 +221,57 @@ async def api_cambiar_gasto(
 ):
     await _admin_org(request, org_id, current_user, db_session)
     _validar_gasto(data)
-    g = await guardar_gasto(org_id, data.fecha, data.categoria, data.concepto, data.importe, data.nota, db_session, gasto_id)
+    g = await guardar_gasto(
+        org_id, data.fecha, data.categoria, data.concepto, data.importe, data.nota, db_session, gasto_id,
+        proveedor=data.proveedor, numero=data.numero, fijo_id=data.fijo_id,
+    )
     if g is None:
         raise HTTPException(status_code=404, detail="No existe ese gasto")
     return {"id": g.id}
+
+
+@router.post("/org/{org_id}/gastos/{gasto_id}/archivo", summary="Sube el PDF o la foto de la factura de un gasto.")
+async def api_subir_factura(
+    request: Request,
+    org_id: int,
+    gasto_id: int,
+    archivo: UploadFile = File(...),
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_org(request, org_id, current_user, db_session)
+    from src.services.stats.gastos import MAX_FACTURA_BYTES, guardar_archivo
+
+    datos = await archivo.read(MAX_FACTURA_BYTES + 1)
+    r = await guardar_archivo(org_id, gasto_id, archivo.filename or "", datos, db_session)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    return r
+
+
+@router.get("/org/{org_id}/gastos/{gasto_id}/archivo", summary="Baja la factura de un gasto (solo administradores).")
+async def api_bajar_factura(
+    request: Request,
+    org_id: int,
+    gasto_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_org(request, org_id, current_user, db_session)
+    from src.services.stats.gastos import archivo_de
+
+    r = await archivo_de(org_id, gasto_id, db_session)
+    if r is None:
+        raise HTTPException(status_code=404, detail="Este gasto no tiene factura")
+    ruta, nombre = r
+    tipos = {".pdf": "application/pdf", ".png": "image/png", ".webp": "image/webp", ".heic": "image/heic"}
+    return FileResponse(
+        path=str(ruta),
+        media_type=tipos.get(ruta.suffix.lower(), "image/jpeg"),
+        filename=nombre,
+        content_disposition_type="inline",
+        headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"},
+    )
 
 
 @router.post("/org/{org_id}/gastos-fijos", summary="Apunta un gasto fijo mensual.")

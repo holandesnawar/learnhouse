@@ -76,3 +76,36 @@ def test_los_fijos_suman_en_el_resumen():
     r = resumen_gastos([("2026-09-10", 39700)], expandir_fijos([{"desde": "2026-09", "categoria": "herramientas", "importe_cents": 5000}], "2026-09"), 1)
     assert r["total"]["gastos_cents"] == 5000
     assert r["total"]["margen_cents"] == 34700
+
+
+# ── Facturas de la empresa ──────────────────────────────────────────────────
+from src.services.stats.gastos import extension_valida, ruta_segura  # noqa: E402
+
+
+def test_solo_pdf_o_foto():
+    assert extension_valida("factura.PDF") == ".pdf"
+    assert extension_valida("ticket.jpeg") == ".jpeg"
+    assert extension_valida("virus.exe") == ""
+    assert extension_valida("sin_extension") == ""
+
+
+def test_la_ruta_de_una_factura_no_se_sale_de_privado():
+    assert ruta_segura("privado/facturas/1/abc.pdf") is not None
+    assert ruta_segura("privado/../orgs/logo.png") is None
+    assert ruta_segura("orgs/x/logo.png") is None
+    assert ruta_segura("/etc/passwd") is None
+    assert ruta_segura("") is None
+
+
+def test_content_nunca_sirve_privado():
+    import asyncio
+
+    import pytest
+    from fastapi import HTTPException
+
+    from src.db.users import AnonymousUser
+    from src.routers.local_content import _check_content_access
+
+    with pytest.raises(HTTPException) as e:
+        asyncio.run(_check_content_access("privado/facturas/1/abc.pdf", AnonymousUser(), None))
+    assert e.value.status_code == 403

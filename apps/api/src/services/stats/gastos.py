@@ -24,7 +24,8 @@ from src.services.stats.periods import month_label
 CATEGORIAS = {
     "publicidad": "Publicidad",
     "profes": "Profes",
-    "herramientas": "Herramientas",
+    "herramientas": "Software y herramientas",
+    "servicios": "Gestoría y servicios",
     "otros": "Otros",
 }
 
@@ -194,6 +195,11 @@ async def panel_gastos(org_id: int, db_session: AsyncSession) -> dict:
             "importe_cents": g.importe_cents,
             "nota": g.nota,
             "antiguo_id": None,
+            "proveedor": g.proveedor or "",
+            "numero": g.numero or "",
+            "tiene_archivo": bool(g.archivo),
+            "archivo_nombre": g.archivo_nombre or "",
+            "fijo_id": g.fijo_id or 0,
         }
         for g in filas
     ] + [
@@ -252,9 +258,10 @@ async def panel_gastos(org_id: int, db_session: AsyncSession) -> dict:
     for f in fijos:
         f["activo"] = fijo_activo(f, mes_actual)
 
+    # La factura de un gasto fijo no suma: el fijo ya cuenta solo cada mes.
     datos = resumen_gastos(
         ventas,
-        [(g["fecha"], g["categoria"], g["importe_cents"]) for g in lista] + expandir_fijos(fijos, mes_actual),
+        [(g["fecha"], g["categoria"], g["importe_cents"]) for g in lista if not g.get("fijo_id")] + expandir_fijos(fijos, mes_actual),
         int(alumnos),
     )
     datos["fijos"] = fijos
@@ -265,7 +272,19 @@ async def panel_gastos(org_id: int, db_session: AsyncSession) -> dict:
     return datos
 
 
-async def guardar_gasto(org_id: int, fecha: str, categoria: str, concepto: str, importe: float, nota: str, db_session: AsyncSession, gasto_id: Optional[int] = None) -> Optional[SchoolExpense]:
+async def guardar_gasto(
+    org_id: int,
+    fecha: str,
+    categoria: str,
+    concepto: str,
+    importe: float,
+    nota: str,
+    db_session: AsyncSession,
+    gasto_id: Optional[int] = None,
+    proveedor: str = "",
+    numero: str = "",
+    fijo_id: int = 0,
+) -> Optional[SchoolExpense]:
     if gasto_id is not None:
         g = (
             await db_session.execute(
@@ -281,6 +300,9 @@ async def guardar_gasto(org_id: int, fecha: str, categoria: str, concepto: str, 
     g.concepto = (concepto or "").strip()[:200]
     g.importe_cents = int(round(float(importe) * 100))
     g.nota = (nota or "").strip()[:500]
+    g.proveedor = (proveedor or "").strip()[:200]
+    g.numero = (numero or "").strip()[:80]
+    g.fijo_id = int(fijo_id or 0)
     db_session.add(g)
     await db_session.commit()
     await db_session.refresh(g)
@@ -295,6 +317,7 @@ async def borrar_gasto(org_id: int, gasto_id: int, db_session: AsyncSession) -> 
     ).scalars().first()
     if g is None:
         return False
+    borrar_archivo(g.archivo)
     await db_session.delete(g)
     await db_session.commit()
     return True
@@ -349,3 +372,75 @@ async def borrar_fijo(org_id: int, fijo_id: int, db_session: AsyncSession) -> bo
     await db_session.delete(f)
     await db_session.commit()
     return True
+
+
+# ── El papel de la factura ──────────────────────────────────────────────────
+# Se guarda en content/privado/facturas/<org>/ (dentro del volumen, así entra
+# en la copia diaria a R2) y NUNCA se sirve por /content: ver local_content.py.
+
+import uuid as _uuid  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+CONTENT_DIR = Path("content")
+EXTENSIONES_FACTURA = {".pdf", ".jpg", ".jpeg", ".png", ".webp", ".heic"}
+MAX_FACTURA_BYTES = 15 * 1024 * 1024
+
+
+def extension_valida(nombre: str) -> str:
+    ext = Path(nombre or "").suffix.lower()
+    return ext if ext in EXTENSIONES_FACTURA else ""
+
+
+def ruta_segura(relativa: str) -> Optional[Path]:
+    """La ruta en disco de una factura, solo si está dentro de privado/."""
+    if not relativa or ".." in relativa or relativa.startswith("/") or not relativa.startswith("privado/"):
+        return None
+    base = CONTENT_DIR.resolve()
+    ruta = (base / relativa).resolve()
+    return ruta if str(ruta).startswith(str(base)) else None
+
+
+def borrar_archivo(relativa: str) -> None:
+    ruta = ruta_segura(relativa)
+    if ruta and ruta.is_file():
+        try:
+            ruta.unlink()
+        except OSError:
+            pass
+
+
+async def guardar_archivo(org_id: int, gasto_id: int, nombre: str, datos: bytes, db_session: AsyncSession) -> dict:
+    g = (
+        await db_session.execute(select(SchoolExpense).where(SchoolExpense.id == gasto_id, SchoolExpense.org_id == org_id))
+    ).scalars().first()
+    if g is None:
+        return {"ok": False, "motivo": "No existe ese gasto"}
+    ext = extension_valida(nombre)
+    if not ext:
+        return {"ok": False, "motivo": "Solo PDF o foto (jpg, png, webp, heic)"}
+    if not datos:
+        return {"ok": False, "motivo": "El archivo está vacío"}
+    if len(datos) > MAX_FACTURA_BYTES:
+        return {"ok": False, "motivo": "El archivo pasa de 15 MB"}
+    relativa = f"privado/facturas/{org_id}/{_uuid.uuid4().hex}{ext}"
+    ruta = CONTENT_DIR / relativa
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    ruta.write_bytes(datos)
+    borrar_archivo(g.archivo)
+    g.archivo = relativa
+    g.archivo_nombre = Path(nombre).name[:200]
+    db_session.add(g)
+    await db_session.commit()
+    return {"ok": True, "archivo_nombre": g.archivo_nombre}
+
+
+async def archivo_de(org_id: int, gasto_id: int, db_session: AsyncSession) -> Optional[tuple[Path, str]]:
+    g = (
+        await db_session.execute(select(SchoolExpense).where(SchoolExpense.id == gasto_id, SchoolExpense.org_id == org_id))
+    ).scalars().first()
+    if g is None:
+        return None
+    ruta = ruta_segura(g.archivo)
+    if ruta is None or not ruta.is_file():
+        return None
+    return ruta, g.archivo_nombre or ruta.name

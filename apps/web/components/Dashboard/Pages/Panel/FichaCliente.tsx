@@ -25,6 +25,8 @@ import {
 } from '@services/panel/panel'
 import Seguimiento from '@components/Dashboard/Pages/Estadisticas/Seguimiento'
 import { FilaTarea, TareaForm } from './Tareas'
+import { quitarPersona } from './quitarPersona'
+import useAdminStatus from '@components/Hooks/useAdminStatus'
 import {
   CheckCircle2,
   CreditCard,
@@ -89,6 +91,7 @@ export default function FichaCliente({
   const org = useOrg() as any
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
+  const { isAdmin } = useAdminStatus()
   const [ficha, setFicha] = useState<Ficha | null>(null)
   const [error, setError] = useState('')
 
@@ -198,6 +201,26 @@ export default function FichaCliente({
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-700 text-[12.5px] font-bold hover:bg-red-100"
               >
                 {quitarEtiqueta}
+              </button>
+            ) : isAdmin && ficha ? (
+              // Sin botón de fuera (tablero, Tareas, Clientes, inicio): el de
+              // siempre, con la misma regla que Contactos (ver quitarPersona).
+              <button
+                onClick={async () => {
+                  const r = await quitarPersona(org?.id, accessToken, {
+                    email: ficha.email,
+                    nombre: ficha.nombre,
+                    esAlumno: ficha.tablero.etapa === 'alumno',
+                    fuera: ficha.fuera_de_metricas,
+                  })
+                  if (!r) return
+                  onCambio?.()
+                  if (r === 'borrado' || r === 'fuera') onClose()
+                  else setFicha({ ...ficha, fuera_de_metricas: false })
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-700 text-[12.5px] font-bold hover:bg-red-100"
+              >
+                {ficha.fuera_de_metricas ? 'Volver a contar' : ficha.tablero.etapa === 'alumno' ? 'Quitar de los números' : 'Borrar'}
               </button>
             ) : null}
             {ficha?.fuera_de_metricas ? (
