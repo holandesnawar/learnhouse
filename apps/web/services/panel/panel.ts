@@ -34,6 +34,10 @@ export interface Tarjeta {
   que_hizo: string
   utm_campaign: string
   fuera_de_metricas: boolean
+  /** Día que pidió plaza o llegó al pago: ordena las columnas (lo nuevo arriba). */
+  llegada: string
+  /** Fuera del tablero: quitada a mano o fuera de los números (prueba). */
+  oculto: boolean
   tareas: number
 }
 
@@ -119,6 +123,10 @@ export const moverTarjeta = (
   cambio: { email: string; etapa: EtapaTablero; canal?: Canal; motivo?: string },
   t: string
 ) => pedir<{ ok: boolean }>(`panel/org/${orgId}/tablero`, 'PUT', cambio, t)
+
+/** Quitar del tablero (o devolver) sin borrar nada. Solo administradores. */
+export const ocultarTarjeta = (orgId: number, email: string, oculto: boolean, t: string) =>
+  pedir<{ ok: boolean }>(`panel/org/${orgId}/tablero/ocultar`, 'PUT', { email, oculto }, t)
 
 export const getFichaCliente = (orgId: number, email: string, t: string) =>
   pedir<FichaCliente>(`panel/org/${orgId}/cliente?${new URLSearchParams({ email }).toString()}`, 'GET', null, t)

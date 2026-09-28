@@ -1683,6 +1683,17 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
   pantalla. Misma regla que Contactos, en un solo sitio
   (`Panel/quitarPersona.ts`): quien NO ha pagado se BORRA; quien ya es alumno
   NO se borra (hay cobro y factura) y se quita de los números.
+  - ⚠️ **"Sigo sin poder borrar" (28/09)**: al alumno solo se le quitaba de
+    los números y **la tarjeta seguía en el tablero**, así que parecía que la
+    papelera no hacía nada (y un segundo clic lo devolvía a los números). Ahora
+    la papelera de un alumno pregunta: **"Quitarlo solo del tablero"** (columna
+    `lead_pipeline.oculto`, en `_ADDED_COLUMNS`; sigue contando) o **"Era una
+    prueba: también de los números"**. Quien está fuera de los números tampoco
+    sale en el tablero. Las quitadas se ven y se devuelven con "N quitadas del
+    tablero" (`PUT /panel/org/{id}/tablero/ocultar`, solo administradores). La
+    papelera va en rojo, no en gris claro.
+  - **Orden del tablero: lo más nuevo arriba** en cada columna (`llegada` = día
+    que pidió plaza o llegó al pago). Antes arriba iba lo más parado.
 - **Facturas en dos partes** (`FacturasDosPartes.tsx`, `?vista=empresa`): "De
   alumnos" (lo de Stripe, como estaba) y "De la empresa"
   (`FacturasEmpresaPanel.tsx`). **Cada factura de la empresa ES un gasto**

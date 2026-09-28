@@ -113,3 +113,30 @@ def test_campana_sin_gasto_no_divide_por_cero():
     r = metricas([{"id": 1, "nombre": "X", "utm_campaign": "x", "gasto_cents": 0}], [], {})
     assert r["campanas"][0]["coste_por_lead_cents"] is None
     assert r["total"]["retorno"] is None
+
+
+def test_tablero_lo_mas_nuevo_arriba_y_sin_pruebas():
+    import asyncio
+
+    from src.services.panel import pipeline
+
+    async def sin_guardadas(_db):
+        return {"x@x.com": {"etapa": "", "oculto": True}}
+
+    fichas = [
+        _ficha(email="viejo@x.com", matricula_at="2026-09-01T10:00:00"),
+        _ficha(email="nuevo@x.com", matricula_at="2026-09-20T10:00:00+00:00"),
+        _ficha(email="medio@x.com", matricula_at="2026-09-10T10:00:00"),
+        _ficha(email="prueba@x.com", etapa="alumno", matricula_at="2026-09-25", fuera_de_metricas=True),
+        _ficha(email="x@x.com", etapa="alumno", matricula_at="2026-09-26"),
+    ]
+    original = pipeline.guardadas
+    pipeline.guardadas = sin_guardadas
+    try:
+        t = asyncio.run(pipeline.tablero(fichas, None))["tarjetas"]
+    finally:
+        pipeline.guardadas = original
+    visibles = [c["email"] for c in t if not c["oculto"]]
+    assert visibles == ["nuevo@x.com", "medio@x.com", "viejo@x.com"]
+    # Las quitadas siguen llegando (para poder devolverlas), marcadas.
+    assert {c["email"] for c in t if c["oculto"]} == {"prueba@x.com", "x@x.com"}
