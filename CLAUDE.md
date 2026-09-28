@@ -1700,6 +1700,15 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
     app, el navegador de Instagram) y el botón parece muerto.
   - **Orden del tablero: lo más nuevo arriba** en cada columna (`llegada` = día
     que pidió plaza o llegó al pago). Antes arriba iba lo más parado.
+  - **Cada columna enseña las 6 más nuevas** y un botón "Ver las N que faltan"
+    / "Ver 20 más" (`POR_COLUMNA`); buscando salen todas. Era pesado bajar por
+    todas con mucha gente contactada.
+  - **Aviso de notas en la tarjeta**: etiqueta ámbar "nota / N notas" junto al
+    canal (el tablero trae `notas` y `ultima_nota`; al pasar el ratón sale la
+    última). El closer también la ve.
+  - **Un color por columna** (Nuevo azul, Contactado morado, En revisión ámbar,
+    Propuesta rosa, Alumno verde, Perdido gris), con franja arriba. Antes eran
+    tres azules seguidos.
 - **Facturas en dos partes** (`FacturasDosPartes.tsx`, `?vista=empresa`): "De
   alumnos" (lo de Stripe, como estaba) y "De la empresa"
   (`FacturasEmpresaPanel.tsx`). **Cada factura de la empresa ES un gasto**

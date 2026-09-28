@@ -45,8 +45,22 @@ async def api_tablero(
     for t in await tareas.listar(db_session, current_user.id, True, solo_pendientes=True):
         if t["email"]:
             pendientes[t["email"]] = pendientes.get(t["email"], 0) + 1
+    # Notas del equipo: cuántas y la última, para que la tarjeta avise de que
+    # hay algo apuntado sin tener que abrirla (pedido del usuario, 28/09).
+    from sqlmodel import select as _select
+
+    from src.db.contact_seguimiento import ContactNota
+
+    notas: dict[str, dict] = {}
+    for n in (await db_session.execute(_select(ContactNota).order_by(ContactNota.created_at))).scalars().all():
+        clave = (n.email or "").strip().lower()
+        d = notas.setdefault(clave, {"n": 0, "ultima": ""})
+        d["n"] += 1
+        d["ultima"] = (n.texto or "")[:160]
     for c in datos["tarjetas"]:
         c["tareas"] = pendientes.get(c["email"], 0)
+        c["notas"] = notas.get(c["email"], {}).get("n", 0)
+        c["ultima_nota"] = notas.get(c["email"], {}).get("ultima", "")
     return datos
 
 

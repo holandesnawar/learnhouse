@@ -37,14 +37,16 @@ import FichaCliente from './FichaCliente'
 import { quitarPersona } from './quitarPersona'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { quitarDeMetricas, volverAContar } from '@services/stats/contactos'
-import { CheckSquare, Eye, Loader2, RotateCcw, Search, X } from 'lucide-react'
+import { CheckSquare, ChevronDown, Eye, Loader2, RotateCcw, Search, StickyNote, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 
+// Un color por columna, que se distingan de un vistazo (antes había tres
+// azules seguidos: "hay más colores, no solo azul", 28/09).
 const COLOR: Record<EtapaTablero, string> = {
   nuevo: '#4da3ff',
-  contactado: '#025dc7',
+  contactado: '#8B5CF6',
   revision: '#E4B252',
-  propuesta: '#1D0084',
+  propuesta: '#EC4899',
   alumno: '#0E9F6E',
   perdido: '#9CA3AF',
 }
@@ -56,6 +58,21 @@ const QUE_ES: Record<EtapaTablero, string> = {
   propuesta: 'Tiene el precio o el enlace de pago',
   alumno: 'Ha pagado',
   perdido: 'No sigue, por ahora',
+}
+
+const POR_COLUMNA = 6
+
+function VerMas({ id, total, vistas, onMas }: { id: string; total: number; vistas: number; onMas: (id: string) => void }) {
+  if (total <= vistas) return null
+  return (
+    <button
+      onClick={() => onMas(id)}
+      className="w-full inline-flex items-center justify-center gap-1 rounded-lg border border-dashed border-[#C9D6EC] bg-white/60 py-2 text-[12px] font-semibold text-[#025dc7] hover:bg-white"
+    >
+      <ChevronDown size={13} />
+      {total - vistas <= 20 ? `Ver ${total - vistas === 1 ? 'la que falta' : `las ${total - vistas} que faltan`}` : `Ver 20 más · quedan ${total - vistas}`}
+    </button>
+  )
 }
 
 function TarjetaVista({ t, onAbrir }: { t: Tarjeta; onAbrir: () => void }) {
@@ -74,6 +91,16 @@ function TarjetaVista({ t, onAbrir }: { t: Tarjeta; onAbrir: () => void }) {
         {t.vio_precio ? (
           <span className="inline-flex items-center gap-0.5 rounded-full bg-[#E8FBF3] text-[#0E9F6E] px-2 py-0.5 text-[10.5px] font-semibold">
             <Eye size={10} /> precio
+          </span>
+        ) : null}
+        {t.notas ? (
+          // Hay notas del equipo: se ve sin abrir la ficha. Al pasar el ratón,
+          // la última.
+          <span
+            title={t.ultima_nota ? `Última nota: ${t.ultima_nota}` : 'Tiene notas'}
+            className="inline-flex items-center gap-0.5 rounded-full bg-[#FFF4D6] text-[#8A6A2A] px-2 py-0.5 text-[10.5px] font-semibold"
+          >
+            <StickyNote size={10} /> {t.notas === 1 ? 'nota' : `${t.notas} notas`}
           </span>
         ) : null}
         {t.tareas ? (
@@ -101,6 +128,11 @@ export default function KanbanPanel() {
   const [abierta, setAbierta] = useState<string | null>(null)
   // En el móvil se ve una columna cada vez.
   const [columnaMovil, setColumnaMovil] = useState<EtapaTablero>('nuevo')
+  // Cuántas se ven por columna: las más nuevas y "Ver más" para el resto, así
+  // no hay que bajar por todas cuando se ha contactado a mucha gente.
+  const [cuantas, setCuantas] = useState<Record<string, number>>({})
+  const verCuantas = (id: string) => (q.trim() ? Infinity : cuantas[id] ?? POR_COLUMNA)
+  const verMas = (id: string) => setCuantas((c) => ({ ...c, [id]: (c[id] ?? POR_COLUMNA) + 20 }))
   const { isAdmin } = useAdminStatus()
 
   // Alumno que se quiere quitar: se pregunta cómo (solo del tablero o también de los números).
@@ -303,15 +335,17 @@ export default function KanbanPanel() {
                 columnaMovil === e.id ? 'bg-[#1D0084] text-white' : 'bg-white border border-[#DDE6F5] text-[#5A6480]'
               }`}
             >
+              <span className="inline-block w-2 h-2 rounded-full mr-1.5 align-middle" style={{ background: COLOR[e.id] }} />
               {e.nombre} <span className="opacity-70">{porColumna[e.id]?.length ?? 0}</span>
             </button>
           ))}
         </div>
         <p className="text-[12px] text-[#8A96AB] mt-2">{QUE_ES[columnaMovil]}. Ábrela para cambiarla de columna.</p>
         <div className="mt-2 space-y-2">
-          {(porColumna[columnaMovil] ?? []).map((t) => (
+          {(porColumna[columnaMovil] ?? []).slice(0, verCuantas(columnaMovil)).map((t) => (
             <TarjetaVista key={t.email} t={t} onAbrir={() => setAbierta(t.email)} />
           ))}
+          <VerMas id={columnaMovil} total={porColumna[columnaMovil]?.length ?? 0} vistas={verCuantas(columnaMovil)} onMas={verMas} />
           {!porColumna[columnaMovil]?.length ? <p className="text-[13px] text-[#8A96AB] py-6 text-center">Nadie en esta columna.</p> : null}
         </div>
       </div>
@@ -326,7 +360,8 @@ export default function KanbanPanel() {
                   <div
                     ref={prov.innerRef}
                     {...prov.droppableProps}
-                    className={`rounded-2xl p-2.5 min-h-[420px] transition-colors ${snap.isDraggingOver ? 'bg-[#EAF3FF]' : 'bg-[#EEF2F9]'}`}
+                    style={{ borderTopColor: COLOR[e.id] }}
+                    className={`rounded-2xl border-t-4 p-2.5 min-h-[420px] transition-colors ${snap.isDraggingOver ? 'bg-[#EAF3FF]' : 'bg-[#EEF2F9]'}`}
                   >
                     <div className="px-1 pb-2">
                       <div className="flex items-center gap-2">
@@ -337,7 +372,7 @@ export default function KanbanPanel() {
                       <p className="text-[11px] text-[#8A96AB] mt-0.5">{QUE_ES[e.id]}</p>
                     </div>
                     <div className="space-y-2">
-                      {(porColumna[e.id] ?? []).map((t, i) => (
+                      {(porColumna[e.id] ?? []).slice(0, verCuantas(e.id)).map((t, i) => (
                         <Draggable draggableId={t.email} index={i} key={t.email} isDragDisabled={t.etapa === 'alumno'}>
                           {(p) => (
                             <div ref={p.innerRef} {...p.draggableProps} {...p.dragHandleProps}>
@@ -347,6 +382,7 @@ export default function KanbanPanel() {
                         </Draggable>
                       ))}
                       {prov.placeholder}
+                      <VerMas id={e.id} total={porColumna[e.id]?.length ?? 0} vistas={verCuantas(e.id)} onMas={verMas} />
                     </div>
                   </div>
                 )}

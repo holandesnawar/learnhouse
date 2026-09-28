@@ -39,6 +39,9 @@ export interface Tarjeta {
   /** Fuera del tablero: quitada a mano o fuera de los números (prueba). */
   oculto: boolean
   tareas: number
+  /** Notas del equipo sobre esta persona, y la última (para el aviso de la tarjeta). */
+  notas: number
+  ultima_nota: string
 }
 
 export interface Tablero {
