@@ -305,13 +305,39 @@ function UltimasNotas({
   abrir: (email: string) => void
 }) {
   const [todas, setTodas] = useState(false)
+  // Plegado de serie y recordado en este navegador: arriba del todo ocupaba
+  // media pantalla ("que se pueda hacer pequeño", 28/09). Plegado sigue
+  // diciendo cuántas hay y de quién es la última.
+  const [abierto, setAbierto] = useState(false)
+  useEffect(() => {
+    try {
+      setAbierto(localStorage.getItem('nawar.contactos.notas') === 'abierto')
+    } catch {}
+  }, [])
+  function alternar() {
+    const v = !abierto
+    setAbierto(v)
+    try {
+      localStorage.setItem('nawar.contactos.notas', v ? 'abierto' : 'plegado')
+    } catch {}
+  }
   if (!notas.length) return null
   const vistas = todas ? notas : notas.slice(0, 3)
+  const ultima = notas[0]
   return (
-    <div className={CARD}>
-      <p className="text-[14px] font-bold text-gray-900 flex items-center gap-2">
-        <NotebookPen size={15} className="text-[#025dc7]" /> Lo último que ha apuntado el equipo
-      </p>
+    <div className="rounded-2xl border border-[#DDE6F5] bg-white px-3.5 sm:px-5 py-3">
+      <button onClick={alternar} className="w-full flex items-center gap-2 text-left">
+        {abierto ? <ChevronDown size={16} className="text-[#8A96AB] shrink-0" /> : <ChevronRight size={16} className="text-[#8A96AB] shrink-0" />}
+        <NotebookPen size={15} className="text-[#025dc7] shrink-0" />
+        <span className="text-[14px] font-bold text-gray-900 shrink-0">Notas del equipo</span>
+        {!abierto && ultima ? (
+          <span className="text-[12.5px] text-gray-500 truncate min-w-0">
+            · la última, de {ultima.autor} sobre <strong className="text-gray-700 font-semibold">{nombreDe(ultima.email)}</strong>, {fecha(ultima.created_at, true)}
+          </span>
+        ) : null}
+      </button>
+      {abierto ? (
+      <>
       <ul className="mt-2.5 divide-y divide-[#EEF2F9]">
         {vistas.map((n) => (
           <li key={n.id}>
@@ -328,6 +354,8 @@ function UltimasNotas({
         <button onClick={() => setTodas((v) => !v)} className="mt-1 text-[12.5px] font-semibold text-[#025dc7] hover:underline">
           {todas ? 'Ver menos' : `Ver las ${notas.length} últimas`}
         </button>
+      ) : null}
+      </>
       ) : null}
     </div>
   )
@@ -563,7 +591,7 @@ export default function ContactosPanel() {
               <p className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${activa ? 'text-white/75' : 'text-[#8A96AB]'}`}>
                 {i + 1} · {e.nombre}
               </p>
-              <p className={`text-[24px] font-semibold tabular-nums leading-tight mt-0.5 ${activa ? 'text-white' : 'text-[#1D0084]'}`}>
+              <p className={`text-[28px] font-bold tabular-nums leading-tight mt-0.5 ${activa ? 'text-white' : 'text-gray-900'}`}>
                 {cuenta(e.id)}
               </p>
               <p className={`text-[11.5px] leading-snug ${activa ? 'text-white/80' : 'text-gray-500'}`}>{e.que}</p>

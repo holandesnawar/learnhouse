@@ -37,19 +37,27 @@ import FichaCliente from './FichaCliente'
 import { quitarPersona } from './quitarPersona'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { quitarDeMetricas, volverAContar } from '@services/stats/contactos'
-import { CheckSquare, ChevronDown, Eye, Loader2, RotateCcw, Search, StickyNote, X } from 'lucide-react'
+import { CheckSquare, ChevronDown, ChevronsLeft, Eye, Loader2, RotateCcw, Search, StickyNote, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-// Un color por columna, que se distingan de un vistazo (antes había tres
-// azules seguidos: "hay más colores, no solo azul", 28/09).
+// Un color por columna, solo en el punto junto al nombre y en tonos apagados.
+// Primero eran tres azules seguidos ("hay más colores, no solo azul") y luego
+// franjas de color arriba de cada columna, que "se ve algo IA, poco
+// profesional" (28/09). El color distingue; no decora.
 const COLOR: Record<EtapaTablero, string> = {
-  nuevo: '#4da3ff',
-  contactado: '#8B5CF6',
-  revision: '#E4B252',
-  propuesta: '#EC4899',
-  alumno: '#0E9F6E',
-  perdido: '#9CA3AF',
+  nuevo: '#5B8DEF',
+  contactado: '#9B87F5',
+  revision: '#D9A93E',
+  propuesta: '#E07AA8',
+  alumno: '#2BA67A',
+  perdido: '#A3ACBA',
 }
+
+// Columnas plegadas: una tira estrecha con el nombre y la cuenta. Perdido
+// nace plegada (es la que obligaba a desplazarse a la derecha) y lo que se
+// pliega se recuerda en este navegador.
+const PLEGADAS_DE_SERIE: EtapaTablero[] = ['perdido']
+const CLAVE_PLEGADAS = 'nawar.tablero.plegadas'
 
 const QUE_ES: Record<EtapaTablero, string> = {
   nuevo: 'Todavía nadie le ha escrito',
@@ -131,6 +139,20 @@ export default function KanbanPanel() {
   // Cuántas se ven por columna: las más nuevas y "Ver más" para el resto, así
   // no hay que bajar por todas cuando se ha contactado a mucha gente.
   const [cuantas, setCuantas] = useState<Record<string, number>>({})
+  const [plegadas, setPlegadas] = useState<string[]>(PLEGADAS_DE_SERIE)
+  useEffect(() => {
+    try {
+      const g = JSON.parse(localStorage.getItem(CLAVE_PLEGADAS) || 'null')
+      if (Array.isArray(g)) setPlegadas(g)
+    } catch {}
+  }, [])
+  function plegar(id: string) {
+    const nuevas = plegadas.includes(id) ? plegadas.filter((x) => x !== id) : [...plegadas, id]
+    setPlegadas(nuevas)
+    try {
+      localStorage.setItem(CLAVE_PLEGADAS, JSON.stringify(nuevas))
+    } catch {}
+  }
   const verCuantas = (id: string) => (q.trim() ? Infinity : cuantas[id] ?? POR_COLUMNA)
   const verMas = (id: string) => setCuantas((c) => ({ ...c, [id]: (c[id] ?? POR_COLUMNA) + 20 }))
   const { isAdmin } = useAdminStatus()
@@ -353,23 +375,62 @@ export default function KanbanPanel() {
       {/* Ordenador: el tablero entero */}
       <div className="hidden lg:block overflow-x-auto pb-2">
         <DragDropContext onDragEnd={alSoltar}>
-          <div className="grid grid-flow-col auto-cols-[minmax(188px,1fr)] gap-2.5 min-w-[1180px]">
-            {datos.etapas.map((e) => (
+          <div
+            className="grid gap-2.5"
+            style={{
+              gridTemplateColumns: datos.etapas.map((e) => (plegadas.includes(e.id) ? '44px' : 'minmax(180px,1fr)')).join(' '),
+              minWidth: datos.etapas.reduce((n, e) => n + (plegadas.includes(e.id) ? 44 : 180) + 10, 0),
+            }}
+          >
+            {datos.etapas.map((e) => {
+              const plegada = plegadas.includes(e.id)
+              const n = porColumna[e.id]?.length ?? 0
+              return (
               <Droppable droppableId={e.id} key={e.id} isDropDisabled={e.id === 'alumno'}>
-                {(prov, snap) => (
+                {(prov, snap) =>
+                  plegada ? (
+                    // Plegada: se sigue pudiendo soltar una tarjeta encima.
+                    <div
+                      ref={prov.innerRef}
+                      {...prov.droppableProps}
+                      className={`rounded-xl border min-h-[420px] transition-colors ${
+                        snap.isDraggingOver ? 'bg-[#EAF3FF] border-[#4da3ff]' : 'bg-[#F4F6FA] border-[#E6EBF3]'
+                      }`}
+                    >
+                      <button
+                        onClick={() => plegar(e.id)}
+                        title={`Desplegar ${e.nombre}`}
+                        className="w-full h-full min-h-[420px] flex flex-col items-center gap-2 pt-3 text-[#5A6480] hover:text-gray-900"
+                      >
+                        <span className="w-2 h-2 rounded-full" style={{ background: COLOR[e.id] }} />
+                        <span className="text-[12px] font-semibold tabular-nums">{n}</span>
+                        <span className="text-[12.5px] font-semibold [writing-mode:vertical-rl]">{e.nombre}</span>
+                      </button>
+                      <div className="hidden">{prov.placeholder}</div>
+                    </div>
+                  ) : (
                   <div
                     ref={prov.innerRef}
                     {...prov.droppableProps}
-                    style={{ borderTopColor: COLOR[e.id] }}
-                    className={`rounded-2xl border-t-4 p-2.5 min-h-[420px] transition-colors ${snap.isDraggingOver ? 'bg-[#EAF3FF]' : 'bg-[#EEF2F9]'}`}
+                    className={`rounded-xl border p-2 min-h-[420px] transition-colors ${
+                      snap.isDraggingOver ? 'bg-[#EAF3FF] border-[#4da3ff]' : 'bg-[#F4F6FA] border-[#E6EBF3]'
+                    }`}
                   >
-                    <div className="px-1 pb-2">
+                    <div className="px-1.5 pt-1 pb-2">
                       <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full" style={{ background: COLOR[e.id] }} />
-                        <p className="text-[13px] font-bold text-gray-900">{e.nombre}</p>
-                        <span className="ml-auto text-[12px] font-semibold text-[#5A6480] tabular-nums">{porColumna[e.id]?.length ?? 0}</span>
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: COLOR[e.id] }} />
+                        <p className="text-[13px] font-semibold text-gray-900 truncate">{e.nombre}</p>
+                        <span className="text-[12px] font-medium text-[#8A96AB] tabular-nums">{n}</span>
+                        <button
+                          onClick={() => plegar(e.id)}
+                          title="Plegar columna"
+                          aria-label={`Plegar ${e.nombre}`}
+                          className="ml-auto p-1 rounded-md text-[#A3ACBA] hover:text-gray-900 hover:bg-white"
+                        >
+                          <ChevronsLeft size={14} />
+                        </button>
                       </div>
-                      <p className="text-[11px] text-[#8A96AB] mt-0.5">{QUE_ES[e.id]}</p>
+                      <p className="text-[11px] text-[#8A96AB] mt-0.5 leading-snug">{QUE_ES[e.id]}</p>
                     </div>
                     <div className="space-y-2">
                       {(porColumna[e.id] ?? []).slice(0, verCuantas(e.id)).map((t, i) => (
@@ -382,12 +443,14 @@ export default function KanbanPanel() {
                         </Draggable>
                       ))}
                       {prov.placeholder}
-                      <VerMas id={e.id} total={porColumna[e.id]?.length ?? 0} vistas={verCuantas(e.id)} onMas={verMas} />
+                      <VerMas id={e.id} total={n} vistas={verCuantas(e.id)} onMas={verMas} />
                     </div>
                   </div>
-                )}
+                  )
+                }
               </Droppable>
-            ))}
+              )
+            })}
           </div>
         </DragDropContext>
       </div>

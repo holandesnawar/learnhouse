@@ -1706,9 +1706,22 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
   - **Aviso de notas en la tarjeta**: etiqueta ámbar "nota / N notas" junto al
     canal (el tablero trae `notas` y `ultima_nota`; al pasar el ratón sale la
     última). El closer también la ve.
-  - **Un color por columna** (Nuevo azul, Contactado morado, En revisión ámbar,
-    Propuesta rosa, Alumno verde, Perdido gris), con franja arriba. Antes eran
-    tres azules seguidos.
+  - **Un color por columna, solo en el punto junto al nombre** y en tonos
+    apagados. Hubo franjas de color arriba y "se veía algo IA, poco
+    profesional" (28/09): columnas gris claro con borde fino, sin franjas.
+  - **Columnas plegables** (flecha « junto al nombre): quedan en una tira de
+    44 px con el nombre en vertical y la cuenta; se puede soltar una tarjeta
+    encima. **Perdido nace plegada** (obligaba a desplazarse a la derecha) y
+    lo plegado se recuerda en el navegador (`nawar.tablero.plegadas`).
+- **Contactos (28/09)**: "Notas del equipo" nace **plegada** en una línea que
+  dice de quién es la última (se recuerda abierta/plegada). Las cifras de las
+  etapas, más gordas y en negro.
+- **RGPD (28/09)**: el usuario **no quiere casilla** en los formularios de las
+  guías: vale el "al hacer clic, confirmo que he leído y aceptado la política
+  de privacidad" que ya hay. El aviso de cookies (Meta Pixel y Google
+  Analytics cargan sin preguntar) queda **aparcado a propósito**, "por ahora
+  no". La política de privacidad es una plantilla genérica sin encargados ni
+  plazos: pendiente de reescribir cuando lo pida.
 - **Facturas en dos partes** (`FacturasDosPartes.tsx`, `?vista=empresa`): "De
   alumnos" (lo de Stripe, como estaba) y "De la empresa"
   (`FacturasEmpresaPanel.tsx`). **Cada factura de la empresa ES un gasto**
