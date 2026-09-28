@@ -166,3 +166,20 @@ export function fechaCorta(cuando: string): string {
 
 export const euros = (cents: number) =>
   `${(cents / 100).toLocaleString('es-ES', { minimumFractionDigits: cents % 100 ? 2 : 0, maximumFractionDigits: 2 })} €`
+
+export interface Cliente {
+  email: string
+  nombre: string
+  telefono: string
+  total_cents: number
+  pagos: number
+  ultimo_pago: string
+  primer_pago: string
+  productos: string[]
+  tiene_cuenta: boolean
+  ultima_visita: string
+  lecciones: number
+}
+
+export const getClientes = (orgId: number, t: string) =>
+  pedir<{ clientes: Cliente[]; total_cents: number; n: number }>(`panel/org/${orgId}/clientes`, 'GET', null, t)

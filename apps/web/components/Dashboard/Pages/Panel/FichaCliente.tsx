@@ -131,6 +131,28 @@ export default function FichaCliente({
   }
 
   const esAlumno = ficha?.tablero.etapa === 'alumno'
+  const bloquePagos = ficha ? (
+    <Bloque
+              icono={<CreditCard size={15} />}
+              titulo="Pagos"
+              derecha={ficha.pagos.length ? <span className="text-[13px] font-bold text-[#1D0084]">{euros(ficha.total_pagado_cents)}</span> : null}
+            >
+              {ficha.pagos.length ? (
+                <ul className="divide-y divide-[#EEF2F9]">
+                  {ficha.pagos.map((p, i) => (
+                    <li key={i} className="py-1.5 flex items-center justify-between text-[12.5px]">
+                      <span className="text-gray-800">
+                        {fechaCorta(p.fecha)} · {p.producto === 'formacion-a0-a1' ? 'Formación A0-A1' : p.producto || 'Pago'}
+                      </span>
+                      <span className="font-semibold tabular-nums text-gray-900">{euros(p.importe_cents)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-[12.5px] text-[#8A96AB]">Todavía no ha pagado nada.</p>
+              )}
+            </Bloque>
+  ) : null
   const tel = soloDigitos(ficha?.telefono || '')
 
   return (
@@ -224,6 +246,7 @@ export default function FichaCliente({
                   </p>
                 </>
               )}
+              {esAlumno ? null : (
               <div className="mt-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8A96AB] mb-1.5">Le estamos hablando por</p>
                 <div className="flex flex-wrap gap-1.5">
@@ -241,7 +264,11 @@ export default function FichaCliente({
                   ))}
                 </div>
               </div>
+              )}
             </Bloque>
+
+            {/* A un alumno, lo primero que interesa es lo que ha pagado. */}
+            {esAlumno ? bloquePagos : null}
 
             {/* Qué ha visto y de dónde viene */}
             <Bloque icono={<Eye size={15} />} titulo="Qué ha visto">
@@ -331,27 +358,7 @@ export default function FichaCliente({
               </Bloque>
             ) : null}
 
-            {/* Lo que ha pagado */}
-            <Bloque
-              icono={<CreditCard size={15} />}
-              titulo="Pagos"
-              derecha={ficha.pagos.length ? <span className="text-[13px] font-bold text-[#1D0084]">{euros(ficha.total_pagado_cents)}</span> : null}
-            >
-              {ficha.pagos.length ? (
-                <ul className="divide-y divide-[#EEF2F9]">
-                  {ficha.pagos.map((p, i) => (
-                    <li key={i} className="py-1.5 flex items-center justify-between text-[12.5px]">
-                      <span className="text-gray-800">
-                        {fechaCorta(p.fecha)} · {p.producto === 'formacion-a0-a1' ? 'Formación A0-A1' : p.producto || 'Pago'}
-                      </span>
-                      <span className="font-semibold tabular-nums text-gray-900">{euros(p.importe_cents)}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-[12.5px] text-[#8A96AB]">Todavía no ha pagado nada.</p>
-              )}
-            </Bloque>
+            {esAlumno ? null : bloquePagos}
 
             {/* Correos */}
             <Bloque icono={<Mail size={15} />} titulo="Correos de la escuela">

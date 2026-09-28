@@ -9,6 +9,7 @@ import GastosPanel from './GastosPanel'
 import GuionPanel from './GuionPanel'
 import KanbanPanel from '../Panel/KanbanPanel'
 import TareasPanel from '../Panel/TareasPanel'
+import ClientesPanel from '../Panel/ClientesPanel'
 import PaginasPanel from './PaginasPanel'
 import { getContactos, type Contacto } from '@services/stats/contactos'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
@@ -51,6 +52,7 @@ import {
   Trash2,
   TrendingDown,
   UserPlus,
+  UserCheck,
   Users,
   Wallet,
 } from 'lucide-react'
@@ -180,7 +182,7 @@ export default function EstadisticasPage() {
   // ?tab= va a Contactos, no a Números, o saltaría de una a otra sin parar.
   const esCloserRef = React.useRef(false)
   esCloserRef.current = isCloser
-  const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'gastos' | 'guion' | 'paginas' | 'utm' | 'matriculas' | 'tareas'>('numeros')
+  const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'gastos' | 'guion' | 'paginas' | 'utm' | 'matriculas' | 'tareas' | 'clientes'>('numeros')
   // El closer arranca en Contactos, que es lo suyo.
   useEffect(() => {
     if (isCloser) setTab('contactos')
@@ -191,7 +193,7 @@ export default function EstadisticasPage() {
   useEffect(() => {
     const leer = () => {
       const pedida = new URLSearchParams(window.location.search).get('tab')
-      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'llamadas' || pedida === 'facturas' || pedida === 'gastos' || pedida === 'guion' || pedida === 'paginas' || pedida === 'utm' || pedida === 'matriculas' || pedida === 'tareas') setTab(pedida)
+      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'llamadas' || pedida === 'facturas' || pedida === 'gastos' || pedida === 'guion' || pedida === 'paginas' || pedida === 'utm' || pedida === 'matriculas' || pedida === 'tareas' || pedida === 'clientes') setTab(pedida)
       // Sin ?tab= (el enlace «Estadísticas» de la barra) = los números.
       else if (!pedida) setTab(esCloserRef.current ? 'contactos' : 'numeros')
     }
@@ -274,6 +276,8 @@ export default function EstadisticasPage() {
             <KanbanSquare size={22} className="text-[#025dc7] shrink-0" />
           ) : tab === 'tareas' ? (
             <ListChecks size={22} className="text-[#025dc7] shrink-0" />
+          ) : tab === 'clientes' ? (
+            <UserCheck size={22} className="text-[#025dc7] shrink-0" />
           ) : (
             <BarChart3 size={22} className="text-[#025dc7] shrink-0" />
           )}
@@ -294,7 +298,9 @@ export default function EstadisticasPage() {
                           ? 'Matrículas'
                           : tab === 'tareas'
                             ? 'Tareas'
-                            : 'Estadísticas'}
+                            : tab === 'clientes'
+                              ? 'Clientes'
+                              : 'Estadísticas'}
           </h1>
         </div>
         <button
@@ -334,6 +340,8 @@ export default function EstadisticasPage() {
         <KanbanPanel key={vuelta} />
       ) : tab === 'tareas' ? (
         <TareasPanel key={vuelta} />
+      ) : tab === 'clientes' ? (
+        <ClientesPanel key={vuelta} />
       ) : !loaded ? (
         <div className="flex justify-center py-20">
           <Loader2 className="animate-spin text-gray-400" size={28} />

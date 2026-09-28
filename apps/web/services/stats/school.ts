@@ -401,6 +401,21 @@ export interface PanelGastos {
   gastos: Gasto[]
   categorias: Record<string, string>
   desde: string
+  /** Gastos que se repiten cada mes (cuentan solos mientras estén activos). */
+  fijos: GastoFijo[]
+  fijos_al_mes_cents: number
+}
+
+export interface GastoFijo {
+  id: number
+  concepto: string
+  categoria: string
+  importe_cents: number
+  /** "AAAA-MM" */
+  desde: string
+  hasta: string
+  nota: string
+  activo: boolean
 }
 
 export async function getGastos(orgId: number, accessToken: string | undefined): Promise<PanelGastos | null> {
@@ -443,3 +458,26 @@ export async function borrarGasto(orgId: number, id: number, accessToken: string
     return false
   }
 }
+
+async function pedirFijo(url: string, metodo: string, cuerpo: unknown, accessToken: string | undefined) {
+  if (!accessToken) return { ok: false, error: 'Sin sesión' }
+  try {
+    const r = await fetch(`${base()}${url}`, RequestBodyWithAuthHeader(metodo, cuerpo, null, accessToken))
+    const d = await r.json().catch(() => ({}))
+    return r.ok ? { ok: true } : { ok: false, error: (d as any)?.detail || 'No se ha podido guardar' }
+  } catch {
+    return { ok: false, error: 'No se ha podido conectar' }
+  }
+}
+
+export const crearFijo = (
+  orgId: number,
+  datos: { concepto: string; categoria: string; importe: number; desde: string; nota?: string },
+  accessToken: string | undefined
+) => pedirFijo(`/org/${orgId}/gastos-fijos`, 'POST', datos, accessToken)
+
+export const cambiarFijo = (orgId: number, id: number, datos: Record<string, unknown>, accessToken: string | undefined) =>
+  pedirFijo(`/org/${orgId}/gastos-fijos/${id}`, 'PUT', datos, accessToken)
+
+export const borrarFijo = (orgId: number, id: number, accessToken: string | undefined) =>
+  pedirFijo(`/org/${orgId}/gastos-fijos/${id}`, 'DELETE', null, accessToken)

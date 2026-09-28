@@ -70,3 +70,19 @@ def test_fecha_de_tarea():
     assert fecha_ok("2026-10-01") == "2026-10-01"
     assert fecha_ok("mañana") == ""
     assert fecha_ok("") == ""
+
+
+def test_clientes_agrupados_por_correo():
+    from src.services.panel.clientes import agrupar_pagos
+
+    c = agrupar_pagos(
+        [
+            {"email": "Ana@x.com", "nombre": "Ana", "importe_cents": 19700, "fecha": "2026-09-10", "producto": "formacion-a0-a1"},
+            {"email": "ana@x.com", "nombre": "Ana García", "importe_cents": 20000, "fecha": "2026-10-10", "producto": "formacion-a0-a1"},
+            {"email": "leo@x.com", "nombre": "Leo", "importe_cents": 39700, "fecha": "2026-09-20", "producto": "formacion-a0-a1"},
+        ]
+    )
+    assert [x["email"] for x in c] == ["ana@x.com", "leo@x.com"]
+    assert c[0]["total_cents"] == 39700 and c[0]["pagos"] == 2
+    assert c[0]["nombre"] == "Ana García"
+    assert c[0]["primer_pago"] == "2026-09-10"

@@ -47,6 +47,7 @@ import {
   AddressBook,
   Kanban,
   ListChecks,
+  UserCheck,
   Globe,
   LinkSimple,
   PhoneCall,
@@ -73,6 +74,7 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
     // El dinero aparte de las ventas: lo cobrado (facturas) y lo gastado.
     titulo: 'Dinero',
     items: [
+      { href: '/dash/estadisticas?tab=clientes', label: 'Clientes', icon: <UserCheck size={18} weight="fill" /> },
       { href: '/dash/estadisticas?tab=facturas', label: 'Facturas', icon: <Receipt size={18} weight="fill" /> },
       { href: '/dash/estadisticas?tab=gastos', label: 'Gastos', icon: <Wallet size={18} weight="fill" /> },
     ],

@@ -11,9 +11,9 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
-import { borrarGasto, deleteManualEntry, euros, getGastos, guardarGasto, type Gasto, type PanelGastos } from '@services/stats/school'
+import { borrarFijo, borrarGasto, cambiarFijo, crearFijo, deleteManualEntry, euros, getGastos, guardarGasto, type Gasto, type GastoFijo, type PanelGastos } from '@services/stats/school'
 import { hoyISO } from '@services/stats/contactos'
-import { Loader2, Plus, Trash2 } from 'lucide-react'
+import { Loader2, Plus, Repeat, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const CARD = 'rounded-2xl border border-[#DDE6F5] bg-white p-3.5 sm:p-5'
@@ -27,6 +27,161 @@ function Cifra({ label, valor, nota, color = 'text-[#1D0084]' }: { label: string
       <p className={LABEL}>{label}</p>
       <p className={`text-[22px] sm:text-[26px] font-semibold tabular-nums leading-tight mt-1 ${color}`}>{valor}</p>
       {nota ? <p className="text-[11.5px] text-gray-500 mt-0.5 leading-snug">{nota}</p> : null}
+    </div>
+  )
+}
+
+const MES_ACTUAL = () => new Date().toISOString().slice(0, 7)
+
+function mesLargo(mes: string) {
+  if (!mes) return ''
+  const d = new Date(`${mes}-01T12:00:00`)
+  return Number.isNaN(d.getTime()) ? mes : d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+}
+
+/**
+ * Gastos que se repiten cada mes (herramientas, cuotas, un profe fijo). Se
+ * apuntan una vez y cuentan solos en cada mes; "Dar de baja" los para desde
+ * este mes sin borrar lo que costaron antes.
+ */
+function GastosFijos({ datos, orgId, accessToken, onCambio }: { datos: PanelGastos; orgId: number; accessToken: string; onCambio: () => void }) {
+  const [form, setForm] = useState({ concepto: '', categoria: 'herramientas', importe: '', desde: MES_ACTUAL() })
+  const [guardando, setGuardando] = useState(false)
+  const cat = datos.categorias
+
+  async function anadir() {
+    const importe = Number(String(form.importe).replace(',', '.'))
+    if (!form.concepto.trim() || !(importe > 0)) {
+      toast.error('Pon qué es y cuánto cuesta al mes')
+      return
+    }
+    setGuardando(true)
+    const r = await crearFijo(orgId, { ...form, importe }, accessToken)
+    setGuardando(false)
+    if (!r.ok) return toast.error(r.error || 'No se ha podido guardar')
+    setForm({ concepto: '', categoria: form.categoria, importe: '', desde: MES_ACTUAL() })
+    toast.success('Gasto fijo apuntado')
+    onCambio()
+  }
+  async function baja(f: GastoFijo) {
+    if (!window.confirm(`¿Dar de baja «${f.concepto}»? Deja de contar a partir del mes que viene; lo de antes se queda.`)) return
+    const r = await cambiarFijo(orgId, f.id, { hasta: MES_ACTUAL() }, accessToken)
+    if (!r.ok) return toast.error(r.error || 'No se ha podido cambiar')
+    onCambio()
+  }
+  async function reactivar(f: GastoFijo) {
+    const r = await cambiarFijo(orgId, f.id, { hasta: '' }, accessToken)
+    if (!r.ok) return toast.error(r.error || 'No se ha podido cambiar')
+    onCambio()
+  }
+  async function quitar(f: GastoFijo) {
+    if (!window.confirm(`¿Borrar «${f.concepto}» del todo? También desaparece de los meses pasados. Si solo ya no lo pagas, mejor «Dar de baja».`)) return
+    const r = await borrarFijo(orgId, f.id, accessToken)
+    if (!r.ok) return toast.error(r.error || 'No se ha podido borrar')
+    onCambio()
+  }
+
+  const activos = datos.fijos.filter((f) => f.activo)
+  const inactivos = datos.fijos.filter((f) => !f.activo)
+
+  return (
+    <div className={CARD}>
+      <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1">
+        <p className="text-[14px] font-bold text-gray-900 flex items-center gap-2">
+          <Repeat size={15} className="text-[#025dc7]" /> Gastos fijos mensuales
+        </p>
+        <p className="text-[13px] text-[#5A6480]">
+          Ahora: <strong className="text-[#1D0084] tabular-nums">{euros(datos.fijos_al_mes_cents)}</strong> al mes
+        </p>
+      </div>
+      <p className="text-[12.5px] text-[#5A6480] mb-3">Se apuntan una vez y cuentan solos cada mes: herramientas, cuotas, un profe con sueldo fijo.</p>
+      <div className="grid grid-cols-2 sm:grid-cols-[minmax(0,1fr)_150px_120px_140px_auto] gap-2">
+        <input
+          value={form.concepto}
+          onChange={(e) => setForm({ ...form, concepto: e.target.value })}
+          placeholder="Qué es: «Calendly», «Zoom», «Profe clase semanal»"
+          className={`${INPUT} col-span-2 sm:col-span-1`}
+        />
+        <select value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} className={INPUT}>
+          {Object.entries(cat).map(([id, nombre]) => (
+            <option key={id} value={id}>
+              {nombre}
+            </option>
+          ))}
+        </select>
+        <input value={form.importe} onChange={(e) => setForm({ ...form, importe: e.target.value })} inputMode="decimal" placeholder="€ al mes" className={INPUT} />
+        <input type="month" value={form.desde} onChange={(e) => setForm({ ...form, desde: e.target.value })} className={INPUT} aria-label="Desde" />
+        <button
+          onClick={anadir}
+          disabled={guardando}
+          className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] text-[13px] font-bold disabled:opacity-50"
+        >
+          <Plus size={14} /> Añadir
+        </button>
+      </div>
+      {datos.fijos.length ? (
+        <ul className="mt-3 divide-y divide-[#EEF2F9]">
+          {[...activos, ...inactivos].map((f) => (
+            <li key={f.id} className={`py-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 ${f.activo ? '' : 'opacity-55'}`}>
+              <span className="shrink-0 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold bg-[#EAF3FF] text-[#025dc7]">{cat[f.categoria] || f.categoria}</span>
+              <span className="flex-1 min-w-0 text-[13px] text-gray-800 truncate">{f.concepto}</span>
+              <span className="text-[12px] text-[#8A96AB]">
+                {f.activo ? `desde ${mesLargo(f.desde)}` : f.hasta ? `hasta ${mesLargo(f.hasta)}` : `empieza ${mesLargo(f.desde)}`}
+              </span>
+              <span className="text-[13px] font-semibold tabular-nums text-gray-900">{euros(f.importe_cents)}/mes</span>
+              {f.activo ? (
+                <button onClick={() => baja(f)} className="text-[12px] font-semibold text-[#5A6480] hover:text-gray-900">
+                  Dar de baja
+                </button>
+              ) : f.hasta ? (
+                <button onClick={() => reactivar(f)} className="text-[12px] font-semibold text-[#025dc7] hover:underline">
+                  Reactivar
+                </button>
+              ) : null}
+              <button onClick={() => quitar(f)} aria-label="Borrar gasto fijo" className="text-gray-400 hover:text-red-600">
+                <Trash2 size={14} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  )
+}
+
+/** Ingresos contra gastos, mes a mes: dos barras por mes, la escala la marca el mayor. */
+function IngresosVsGastos({ datos }: { datos: PanelGastos }) {
+  const meses = [...datos.meses].slice(0, 12).reverse()
+  if (!meses.length) return null
+  const max = Math.max(1, ...meses.map((m) => Math.max(m.ingresos_cents, m.gastos_cents)))
+  return (
+    <div className={CARD}>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <p className="text-[14px] font-bold text-gray-900">Ingresos y gastos por mes</p>
+        <div className="flex items-center gap-3 text-[11.5px] text-[#5A6480]">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="w-3 h-2 rounded-sm bg-[#0E9F6E]" /> Ingresos
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="w-3 h-2 rounded-sm bg-[#E5484D]" /> Gastos
+          </span>
+        </div>
+      </div>
+      <div className="space-y-2.5">
+        {meses.map((m) => (
+          <div key={m.mes} className="grid grid-cols-[112px_minmax(0,1fr)_92px] items-center gap-3">
+            <span className="text-[12px] text-[#5A6480] capitalize truncate">{m.label}</span>
+            <div className="space-y-1">
+              <div className="h-2.5 rounded-full bg-[#0E9F6E]" style={{ width: `${Math.max(m.ingresos_cents ? 1.5 : 0, (m.ingresos_cents / max) * 100)}%` }} />
+              <div className="h-2.5 rounded-full bg-[#E5484D]" style={{ width: `${Math.max(m.gastos_cents ? 1.5 : 0, (m.gastos_cents / max) * 100)}%` }} />
+            </div>
+            <span className={`text-right text-[12.5px] font-semibold tabular-nums ${m.margen_cents < 0 ? 'text-red-600' : 'text-[#0E9F6E]'}`}>
+              {m.margen_cents >= 0 ? '+' : ''}
+              {euros(m.margen_cents)}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -124,9 +279,13 @@ export default function GastosPanel() {
         />
       </div>
 
+      <IngresosVsGastos datos={datos} />
+
+      <GastosFijos datos={datos} orgId={org?.id} accessToken={accessToken} onCambio={cargar} />
+
       {/* Apuntar un gasto */}
       <div className={CARD}>
-        <p className="text-[14px] font-bold text-gray-900 mb-3">Apuntar un gasto</p>
+        <p className="text-[14px] font-bold text-gray-900 mb-3">Apuntar un gasto suelto</p>
         <div className="grid grid-cols-2 sm:grid-cols-[130px_150px_minmax(0,1fr)_120px] gap-2">
           <input type="date" value={form.fecha} onChange={(e) => setForm({ ...form, fecha: e.target.value })} className={INPUT} />
           <select value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} className={INPUT}>

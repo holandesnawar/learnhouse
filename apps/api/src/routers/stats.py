@@ -11,9 +11,9 @@ from src.core.events.database import get_db_session
 from src.db.organizations import Organization
 from datetime import datetime
 
-from src.db.school_expense import SchoolExpenseWrite
+from src.db.school_expense import SchoolExpenseWrite, RecurringExpenseWrite
 from src.db.school_stats import ManualEntryWrite
-from src.services.stats.gastos import borrar_gasto, guardar_gasto, panel_gastos
+from src.services.stats.gastos import borrar_fijo, borrar_gasto, guardar_fijo, guardar_gasto, panel_gastos
 from src.db.users import AnonymousUser, PublicUser
 from src.security.auth import get_current_user
 from src.services.orgs.acceso import exigir_acceso
@@ -221,6 +221,51 @@ async def api_cambiar_gasto(
     if g is None:
         raise HTTPException(status_code=404, detail="No existe ese gasto")
     return {"id": g.id}
+
+
+@router.post("/org/{org_id}/gastos-fijos", summary="Apunta un gasto fijo mensual.")
+async def api_nuevo_fijo(
+    request: Request,
+    org_id: int,
+    data: RecurringExpenseWrite,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_org(request, org_id, current_user, db_session)
+    if data.importe is None or data.importe <= 0:
+        raise HTTPException(status_code=400, detail="El importe tiene que ser mayor que cero")
+    f = await guardar_fijo(org_id, data.model_dump(), db_session)
+    return {"id": f.id if f else None}
+
+
+@router.put("/org/{org_id}/gastos-fijos/{fijo_id}", summary="Cambia un gasto fijo (o lo da de baja poniendo hasta).")
+async def api_cambiar_fijo(
+    request: Request,
+    org_id: int,
+    fijo_id: int,
+    data: dict,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_org(request, org_id, current_user, db_session)
+    f = await guardar_fijo(org_id, data, db_session, fijo_id)
+    if f is None:
+        raise HTTPException(status_code=404, detail="No existe ese gasto fijo")
+    return {"id": f.id}
+
+
+@router.delete("/org/{org_id}/gastos-fijos/{fijo_id}", summary="Borra un gasto fijo (también de los meses pasados).")
+async def api_borrar_fijo(
+    request: Request,
+    org_id: int,
+    fijo_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_org(request, org_id, current_user, db_session)
+    if not await borrar_fijo(org_id, fijo_id, db_session):
+        raise HTTPException(status_code=404, detail="No existe ese gasto fijo")
+    return {"ok": True}
 
 
 @router.delete("/org/{org_id}/gastos/{gasto_id}", summary="Borra un gasto.")
