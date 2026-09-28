@@ -45,6 +45,8 @@ import {
   UserCircle,
   UsersThree,
   AddressBook,
+  Kanban,
+  ListChecks,
   Globe,
   LinkSimple,
   PhoneCall,
@@ -60,7 +62,9 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
     titulo: 'Ventas',
     items: [
       { href: '/dash/estadisticas', label: 'Estadísticas', icon: <ChartBar size={18} weight="fill" />, match: (p) => p.includes('/dash/estadisticas') && !p.includes('tab=') },
+      { href: '/dash/estadisticas?tab=matriculas', label: 'Matrículas', icon: <Kanban size={18} weight="fill" /> },
       { href: '/dash/estadisticas?tab=contactos', label: 'Contactos', icon: <AddressBook size={18} weight="fill" /> },
+      { href: '/dash/estadisticas?tab=tareas', label: 'Tareas', icon: <ListChecks size={18} weight="fill" /> },
       { href: '/dash/estadisticas?tab=llamadas', label: 'Llamadas', icon: <PhoneCall size={18} weight="fill" /> },
       { href: '/dash/estadisticas?tab=guion', label: 'Guion de llamada', icon: <Scroll size={18} weight="fill" /> },
     ],
@@ -115,7 +119,7 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
 export function gruposDelCloser(veNumeros: boolean): Grupo[] {
   const todos = GRUPOS_DEL_PANEL.flatMap((g) => g.items)
   const por = (label: string) => todos.find((i) => i.label === label) as Item
-  const items = [por('Contactos'), por('Llamadas'), por('Guion de llamada'), por('Páginas de la web')]
+  const items = [por('Matrículas'), por('Tareas'), por('Contactos'), por('Llamadas'), por('Guion de llamada'), por('Páginas de la web')]
   if (veNumeros) {
     items.push({ ...por('Estadísticas'), href: '/dash/estadisticas?tab=numeros', label: 'Números', match: undefined })
   }

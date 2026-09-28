@@ -206,10 +206,52 @@ def send_email(to: EmailStr, subject: str, body: str, dry_run: bool = False):
         logger.error("Refusing to send email: invalid recipient %r", to)
         raise HTTPException(status_code=400, detail="Invalid recipient email address")
 
-    if mailing.email_provider == "smtp":
-        return _send_email_smtp(sender, to_addr, subject, body, mailing)
-    else:
-        return _send_email_resend(sender, to_addr, subject, body, mailing)
+    try:
+        if mailing.email_provider == "smtp":
+            resultado = _send_email_smtp(sender, to_addr, subject, body, mailing)
+        else:
+            resultado = _send_email_resend(sender, to_addr, subject, body, mailing)
+    except Exception:
+        _apuntar_correo(to_addr, subject, ok=False)
+        raise
+    _apuntar_correo(to_addr, subject, ok=True)
+    return resultado
+
+
+def _apuntar_correo(to: str, subject: str, ok: bool) -> None:
+    """Deja constancia del correo en `email_log`, para el historial del
+    cliente en el panel. En blando y sin bloquear: `send_email` es síncrona y
+    la llaman desde rutas async, así que se apunta en una tarea aparte del
+    bucle que ya está corriendo. Si no hay bucle (un script suelto), no se
+    apunta y ya: el correo importa más que su registro."""
+    import asyncio
+
+    try:
+        bucle = asyncio.get_running_loop()
+    except RuntimeError:
+        return
+
+    async def _guardar():
+        try:
+            from datetime import datetime, timezone
+
+            from src.core.events.database import _async_session_factory
+            from src.db.panel_negocio import EmailLog
+
+            async with _async_session_factory() as db:
+                db.add(
+                    EmailLog(
+                        email=to.strip().lower()[:255],
+                        asunto=(subject or "")[:300],
+                        ok=ok,
+                        created_at=datetime.now(timezone.utc).isoformat(),
+                    )
+                )
+                await db.commit()
+        except Exception:  # noqa: BLE001
+            logger.warning("No se pudo apuntar el correo a %s", to, exc_info=True)
+
+    bucle.create_task(_guardar())
 
 
 def _send_email_resend(sender: str, to: str, subject: str, body: str, mailing):

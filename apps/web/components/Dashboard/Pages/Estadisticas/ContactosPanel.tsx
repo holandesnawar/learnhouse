@@ -19,6 +19,7 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import PorDia from './PorDia'
 import { marcarSolicitud } from '@services/stats/school'
+import FichaCliente from '../Panel/FichaCliente'
 import Seguimiento from './Seguimiento'
 import toast from 'react-hot-toast'
 import {
@@ -197,242 +198,6 @@ function Fila({
   )
 }
 
-function Ficha({
-  email,
-  onClose,
-  sinCrm = false,
-  onQuitar,
-  quitarEtiqueta = 'Borrar',
-  onCambioFecha,
-}: {
-  email: string
-  onClose: () => void
-  sinCrm?: boolean
-  onCambioFecha?: (email: string, v: VolverALlamar | null) => void
-  /** Solo administradores: borrar (lead) o quitar de los números (alumno). */
-  onQuitar?: () => void
-  quitarEtiqueta?: string
-}) {
-  const org = useOrg() as any
-  const session = useLHSession() as any
-  const accessToken = session?.data?.tokens?.access_token
-  const [d, setD] = useState<ContactoDetalle | null>(null)
-  const [cargando, setCargando] = useState(true)
-  useEffect(() => {
-    let vivo = true
-    setCargando(true)
-    getContactoDetalle(org?.id, email, accessToken).then((r) => {
-      if (!vivo) return
-      setD(r)
-      setCargando(false)
-    })
-    return () => {
-      vivo = false
-    }
-  }, [org?.id, email, accessToken])
-
-  const tel = (d?.telefono || '').replace(/[^\d+]/g, '')
-  const wa = tel ? `https://wa.me/${tel.replace(/^\+/, '').replace(/^00/, '')}` : ''
-
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-[#1D0084]/30" onClick={onClose} aria-hidden="true" />
-      <aside className="relative w-full max-w-[520px] h-full bg-white shadow-2xl overflow-y-auto p-5 sm:p-7">
-        <button
-          onClick={onClose}
-          aria-label="Cerrar"
-          className="absolute top-4 right-4 rounded-lg p-2 text-gray-500 hover:bg-[#F0F5FF]"
-        >
-          <X size={18} />
-        </button>
-
-        {cargando ? (
-          <div className="flex items-center gap-2 text-[13.5px] text-gray-500 py-10">
-            <Loader2 size={16} className="animate-spin" /> Cargando la ficha…
-          </div>
-        ) : !d ? (
-          <p className="text-[13.5px] text-gray-700 py-10">No se ha podido cargar esta ficha.</p>
-        ) : (
-          <div className="space-y-5">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8A96AB]">
-                Contacto
-              </p>
-              <h2 className="text-[22px] font-bold text-[#1D0084] leading-tight mt-1 pr-8">
-                {d.nombre || d.email}
-              </h2>
-              <p className="text-[13px] text-gray-600 mt-1">
-                {d.email}
-                {d.telefono ? ` · ${d.telefono}` : ''}
-              </p>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <EstadoPill estado={d.estado} />
-                {d.vio_precio ? (
-                  <span className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold bg-[#E8FBF3] text-[#0E9F6E]">
-                    Ya vio el precio
-                  </span>
-                ) : (
-                  <span className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold bg-[#F3F4F6] text-[#6B7590]">
-                    Sin rastro de haber visto el precio
-                  </span>
-                )}
-                {onQuitar ? (
-                  <button
-                    onClick={onQuitar}
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
-                      quitarEtiqueta === 'Borrar' ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-[#F3F4F6] text-[#5A6480] hover:bg-[#E9ECF2]'
-                    }`}
-                  >
-                    {quitarEtiqueta === 'Borrar' ? <Trash2 size={11} /> : <EyeOff size={11} />} {quitarEtiqueta}
-                  </button>
-                ) : null}
-                {wa ? (
-                  <a
-                    href={wa}
-                    target="_blank"
-                    rel="noopener"
-                    className="inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-[#4da3ff] text-[#0a1656]"
-                  >
-                    Escribir por WhatsApp
-                  </a>
-                ) : null}
-              </div>
-            </div>
-
-            {/* Lo primero que se mira antes de llamar: cuándo toca y qué se habló. */}
-            <Seguimiento email={email} onCambioFecha={onCambioFecha} />
-
-            {/* De dónde viene: lo que decide cómo empezar el mensaje. */}
-            <div className={CARD}>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8A96AB] mb-2">
-                De dónde viene
-              </p>
-              <dl className="text-[13px] space-y-1.5">
-                <div className="flex gap-3">
-                  <dt className="w-24 shrink-0 text-gray-500">Vino de</dt>
-                  <dd className="text-gray-900">{d.vino_de || 'Sin rastro'}</dd>
-                </div>
-                {d.camino ? (
-                  <div className="flex gap-3">
-                    <dt className="w-24 shrink-0 text-gray-500">Camino</dt>
-                    <dd className="text-gray-900">{d.camino}</dd>
-                  </div>
-                ) : null}
-                <div className="flex gap-3">
-                  <dt className="w-24 shrink-0 text-gray-500">Campaña</dt>
-                  <dd className="text-gray-900">
-                    {d.utm_campaign || <span className="text-[#9CA3AF]">Orgánico o sin UTM</span>}
-                    {d.utm_source ? (
-                      <span className="text-gray-500">
-                        {' '}
-                        · {d.utm_source}
-                        {d.utm_medium ? ` / ${d.utm_medium}` : ''}
-                      </span>
-                    ) : null}
-                  </dd>
-                </div>
-              </dl>
-            </div>
-
-            {/* Lo que systeme.io tiene: sus etiquetas son "en qué campaña de correos está".
-                El closer no lo necesita para llamar: se le ahorra. */}
-            {sinCrm ? null : <div className={CARD}>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8A96AB] mb-2 flex items-center gap-1.5">
-                <Tag size={12} /> En el CRM (systeme.io)
-              </p>
-              {!d.systeme.ok ? (
-                <p className="text-[13px] text-[#8A6A2A]">
-                  No se ha podido consultar: {d.systeme.motivo || 'sin respuesta'}.
-                </p>
-              ) : d.systeme.existe === false ? (
-                <p className="text-[13px] text-gray-600">
-                  Este correo <strong>no está</strong> en systeme.io.
-                </p>
-              ) : (
-                <>
-                  {d.systeme.etiquetas.length ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      {d.systeme.etiquetas.map((t) => (
-                        <span
-                          key={t}
-                          className="inline-flex rounded-full px-2 py-0.5 text-[11.5px] font-semibold bg-[#EAF3FF] text-[#025dc7]"
-                        >
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-[13px] text-gray-600">Está en el CRM pero sin ninguna etiqueta.</p>
-                  )}
-                  {d.systeme.campos.length ? (
-                    <dl className="mt-3 text-[12.5px] space-y-1">
-                      {d.systeme.campos.map((c) => (
-                        <div key={c.slug} className="flex gap-3">
-                          <dt className="w-32 shrink-0 text-gray-500 truncate">{c.slug}</dt>
-                          <dd className="text-gray-900 truncate">{c.valor}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  ) : null}
-                </>
-              )}
-            </div>}
-
-            {/* El historial, de lo más reciente a lo más antiguo. */}
-            <div className={CARD}>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8A96AB] mb-3">
-                Qué ha hecho
-              </p>
-              <ol className="space-y-3">
-                {[...d.eventos].reverse().map((e, i) => (
-                  <li key={i} className="flex gap-3">
-                    <span className="mt-1.5 w-2 h-2 rounded-full bg-[#4da3ff] shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-[13.5px] font-semibold text-gray-900">{e.que}</p>
-                      <p className="text-[12px] text-gray-500">
-                        {fecha(e.when, true)}
-                        {e.tag ? ` · etiqueta «${e.tag}»` : ''}
-                        {e.utm_campaign ? ` · campaña ${e.utm_campaign}` : ''}
-                        {e.recorrido ? ` · pasó por: ${e.recorrido.split(',').join(' → ')}` : ''}
-                        {e.kind === 'pago' && typeof e.extra?.importe_cents === 'number'
-                          ? ` · ${(Number(e.extra.importe_cents) / 100).toLocaleString('es-ES', { style: 'currency', currency: String(e.extra.currency || 'eur').toUpperCase() })}`
-                          : ''}
-                      </p>
-                      {/* La cualificación de /agendar: las respuestas, una a una,
-                          y la nota. Es lo que hay que leer antes de la llamada. */}
-                      {e.kind === 'cualificacion' && Array.isArray(e.extra?.respuestas) ? (
-                        <div className="mt-1.5 rounded-lg bg-[#F7FAFF] border border-[#E7EEF9] px-3 py-2">
-                          <p className="text-[12px] font-semibold text-[#1D0084] mb-1">
-                            {e.extra?.apto ? 'Encaja' : 'No encaja por ahora'} · {String(e.extra?.puntuacion ?? '')} puntos
-                            {!e.extra?.apto && e.extra?.motivo_fuera ? ` · ${String(e.extra.motivo_fuera)}` : ''}
-                          </p>
-                          <ul className="space-y-0.5">
-                            {(e.extra.respuestas as any[]).map((r, j) => (
-                              <li key={j} className="text-[12px] text-gray-700">
-                                <span className="text-gray-500">{r.pregunta}</span> — <strong>{r.respuesta}</strong>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      ) : null}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </div>
-
-          </div>
-        )}
-      </aside>
-    </div>
-  )
-}
-
-/**
- * El mapa de la web: las páginas ordenadas por etapa, con qué enseña cada una,
- * a dónde manda y con qué etiqueta entra la gente. Es consulta, no trabajo de
- * cada día: va al final y plegado. Los datos están a mano en lib/nawar/mapaWeb.ts.
- */
 function MapaWeb() {
   const [abierto, setAbierto] = useState(false)
   return (
@@ -894,10 +659,13 @@ export default function ContactosPanel() {
       {isCloser ? null : <MapaWeb />}
 
       {abierto ? (
-        <Ficha
+        // La ficha completa del panel (la misma del tablero y de Tareas): antes
+        // Contactos tenía su propia ficha, más corta, y había que ir a otra
+        // pantalla para ver pagos, correos o tareas.
+        <FichaCliente
           email={abierto}
-          sinCrm={isCloser}
           onClose={() => setAbierto(null)}
+          onCambio={cargar}
           onQuitar={isAdmin && contactoAbierto ? () => quitar(contactoAbierto) : undefined}
           quitarEtiqueta={
             contactoAbierto?.fuera_de_metricas

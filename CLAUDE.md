@@ -1614,6 +1614,49 @@ Todo en `nawar-web` (PR #13 reutilizado y #83).
 - Las landings de venta siguen fuera de Google a propósito (`robots.txt`,
   `Disallow: /formacion-`): el SEO se juega en home, blog y Nuestra visión.
 
+## Panel de negocio: kanban, ficha del cliente y tareas (28/09/2026)
+Petición del usuario, viendo el panel de otro emprendedor: "no solo página,
+clic, ver y fuera, sino indagar, que tenga todo a mano". Por entregas:
+**1) kanban + ficha + tareas (HECHO)**, 2) gastos fijos y clientes con lo que
+pagaron, 3) ads y un inicio tipo centro de mando.
+
+- **Matrículas** (`?tab=matriculas`, `Panel/KanbanPanel.tsx`): Nuevo →
+  Contactado → En revisión → Propuesta → Alumno, y Perdido. Entra quien está
+  en la etapa pidio/en-pago/alumno de Contactos (quien solo bajó una guía,
+  no). **Alumno no se elige: sale sola al pagar** y gana a cualquier columna.
+  Sin mover, va a Nuevo, o a Contactado si ya estaba atendida. Canal por
+  persona (WhatsApp, llamada, correo, Instagram, otro). Salir de Nuevo marca
+  sus solicitudes como atendidas (y volver, las desmarca), para que Contactos
+  y Llamadas digan lo mismo. Ordenador: arrastrar (`@hello-pangea/dnd`);
+  móvil: una columna cada vez y se mueve desde la ficha.
+- **Ficha del cliente** (`Panel/FichaCliente.tsx`, panel lateral): columna y
+  canal, qué páginas vio (en orden, marca la del precio), tareas con esa
+  persona, notas y volver a llamar, pagos y total, correos de la escuela,
+  etiquetas de systeme.io (solo administradores) y una línea de tiempo con
+  todo. **Es la misma en el tablero, Tareas, el inicio y Contactos** (la
+  ficha vieja de Contactos se quitó; su botón de borrar/quitar de los números
+  sigue, arriba).
+- **Correos**: tabla `email_log`, que llena `send_email` en una tarea aparte
+  (`_apuntar_correo`, en blando). **Empieza vacía el 28/09**: lo anterior no
+  está, y lo que manda systeme.io tampoco (vive allí).
+- **Tareas** (`?tab=tareas`, `Panel/TareasPanel.tsx` + `Panel/Tareas.tsx`):
+  para uno mismo o para otro del equipo del panel (administradores y closer;
+  los profes no, que no entran al panel), con fecha, "importante" y colgadas
+  de una persona. Vencidas / Hoy / Próximas / Sin fecha. El closer ve las
+  suyas y las que ha mandado; los administradores, todas. Borra quien la creó
+  o un administrador. En el inicio del panel, "Mis tareas" y el tablero en
+  cifras.
+- Backend: `src/db/panel_negocio.py` (tablas `lead_pipeline`, `panel_task`,
+  `email_log`), `services/panel/{pipeline,tareas,cliente}.py`, rutas
+  `/api/v1/panel/org/{id}/{tablero,cliente,equipo,tareas}` con la puerta de
+  contactos. Lógica pura con test en `src/tests/services/test_panel.py`.
+- Arreglado de paso: `AdminAuthorization` se rompía (`org.slug` de null) si
+  alguien sin sesión abría el panel antes de cargar la escuela.
+- ⚠️ **Entorno local**: el proxy Node tiene que pasar el WebSocket (HMR de
+  Next) o la página NO se hidrata y el formulario de entrar se envía como GET
+  con la contraseña en la URL. Y `LEARNHOUSE_SQL_CONNECTION_STRING` va como
+  `postgresql://` (sin `+asyncpg`): el arranque crea un motor síncrono con ella.
+
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
   `git branch --show-current` antes de dar por buena ninguna que ponga aquí.

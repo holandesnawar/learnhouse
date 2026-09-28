@@ -481,7 +481,10 @@ async def borrar_contacto(email: str, db_session: AsyncSession) -> dict:
     from src.services.contactos.seguimiento import borrar_seguimiento
 
     await borrar_seguimiento(clave, db_session)
+    # Y su tarjeta del kanban de matrículas.
+    from src.services.panel.pipeline import borrar_de_tablero
 
+    await borrar_de_tablero(clave, db_session)
 
     await db_session.commit()
     tiene_cuenta = clave in await _emails_con_cuenta(db_session)
