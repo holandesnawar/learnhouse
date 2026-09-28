@@ -1678,6 +1678,30 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
   con lo de cada día; el resto está en la barra. La barra: Ventas · Dinero
   (Clientes, Facturas, Gastos) · Alumnos · Formación · **Captación y web**
   (Anuncios, Páginas, Enlaces, UTM).
+- **Borrar matrículas** (28/09): papelera en cada tarjeta del tablero (siempre
+  a la vista, solo administradores) y botón en la ficha, desde cualquier
+  pantalla. Misma regla que Contactos, en un solo sitio
+  (`Panel/quitarPersona.ts`): quien NO ha pagado se BORRA; quien ya es alumno
+  NO se borra (hay cobro y factura) y se quita de los números.
+- **Facturas en dos partes** (`FacturasDosPartes.tsx`, `?vista=empresa`): "De
+  alumnos" (lo de Stripe, como estaba) y "De la empresa"
+  (`FacturasEmpresaPanel.tsx`). **Cada factura de la empresa ES un gasto**
+  (`school_expense` gana `proveedor`, `numero`, `archivo`, `archivo_nombre`,
+  `fijo_id`, en `_ADDED_COLUMNS`): se apunta una vez y sale en Gastos y en
+  Facturas. PDF o foto (15 MB), arrastrar o elegir; reparto por categoría y
+  periodo; "sin el papel" para ver a cuáles les falta; **CSV para la
+  gestoría**. Categorías: publicidad, profes, software y herramientas,
+  **gestoría y servicios** (nueva), otros.
+  - **Factura de un gasto fijo** (`fijo_id`): se guarda el papel pero NO suma,
+    porque el fijo ya cuenta solo cada mes.
+  - ⚠️ **Los archivos van a `content/privado/facturas/<org>/`** (dentro del
+    volumen, así entran en la copia diaria) y `/content` **NUNCA sirve
+    `privado/`**, ni con sesión (`local_content.py`): antes, cualquier ruta
+    desconocida solo pedía "haber entrado", o sea que un alumno con el enlace
+    habría abierto una factura. Se bajan solo por
+    `GET /stats/org/{id}/gastos/{gid}/archivo` (administradores) y la pantalla
+    las abre pidiéndolas con la sesión (`abrirFactura`), no con un enlace.
+  - Sigue sin ser contabilidad: el IVA y los libros, el gestor.
 - Arreglado de paso: `AdminAuthorization` se rompía (`org.slug` de null) si
   alguien sin sesión abría el panel antes de cargar la escuela.
 - ⚠️ **Entorno local**: el proxy Node tiene que pasar el WebSocket (HMR de

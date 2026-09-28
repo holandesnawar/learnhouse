@@ -386,6 +386,13 @@ export interface Gasto {
   nota: string
   /** Viene de una campaña de Anuncios: se cambia allí, no aquí. */
   anuncio_id?: number
+  /** La factura (facturas de la empresa). */
+  proveedor?: string
+  numero?: string
+  tiene_archivo?: boolean
+  archivo_nombre?: string
+  /** Factura de un gasto fijo: no suma, el fijo ya cuenta solo. */
+  fijo_id?: number
 }
 
 export interface PanelGastos {
@@ -433,18 +440,18 @@ export async function getGastos(orgId: number, accessToken: string | undefined):
 
 export async function guardarGasto(
   orgId: number,
-  datos: { fecha: string; categoria: string; concepto: string; importe: number; nota: string },
+  datos: { fecha: string; categoria: string; concepto: string; importe: number; nota: string; proveedor?: string; numero?: string; fijo_id?: number },
   accessToken: string | undefined,
   id?: number
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string; id?: number }> {
   if (!orgId || !accessToken) return { ok: false, error: 'Sin sesión' }
   try {
     const r = await fetch(
       `${base()}/org/${orgId}/gastos${id ? `/${id}` : ''}`,
       RequestBodyWithAuthHeader(id ? 'PUT' : 'POST', datos, null, accessToken)
     )
-    if (r.ok) return { ok: true }
     const cuerpo = await r.json().catch(() => ({}))
+    if (r.ok) return { ok: true, id: cuerpo?.id ?? id }
     return { ok: false, error: cuerpo?.detail || 'No se ha podido guardar' }
   } catch {
     return { ok: false, error: 'No se ha podido guardar' }
@@ -483,3 +490,51 @@ export const cambiarFijo = (orgId: number, id: number, datos: Record<string, unk
 
 export const borrarFijo = (orgId: number, id: number, accessToken: string | undefined) =>
   pedirFijo(`/org/${orgId}/gastos-fijos/${id}`, 'DELETE', null, accessToken)
+
+/** Sube el PDF o la foto de la factura de un gasto. */
+export async function subirFactura(orgId: number, gastoId: number, archivo: File, accessToken: string | undefined) {
+  if (!accessToken) return { ok: false, error: 'Sin sesión' }
+  const body = new FormData()
+  body.append('archivo', archivo)
+  try {
+    const r = await fetch(`${base()}/org/${orgId}/gastos/${gastoId}/archivo`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}` },
+      credentials: 'include',
+      body,
+    })
+    const d = await r.json().catch(() => ({}))
+    return r.ok ? { ok: true } : { ok: false, error: (d as any)?.detail || 'No se ha podido subir' }
+  } catch {
+    return { ok: false, error: 'No se ha podido conectar' }
+  }
+}
+
+/**
+ * Abre la factura en una pestaña nueva. No es un enlace normal: la factura
+ * solo se baja con la sesión de administrador, así que se pide con la
+ * cabecera y se abre lo recibido.
+ */
+export async function abrirFactura(orgId: number, gastoId: number, accessToken: string | undefined) {
+  if (!accessToken) return false
+  // La pestaña se abre YA (antes de esperar): si se abre después, Safari la
+  // bloquea como ventana emergente.
+  const ventana = window.open('', '_blank')
+  try {
+    const r = await fetch(`${base()}/org/${orgId}/gastos/${gastoId}/archivo`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      credentials: 'include',
+    })
+    if (!r.ok) {
+      ventana?.close()
+      return false
+    }
+    const url = URL.createObjectURL(await r.blob())
+    if (ventana) ventana.location.href = url
+    else window.location.href = url
+    return true
+  } catch {
+    ventana?.close()
+    return false
+  }
+}

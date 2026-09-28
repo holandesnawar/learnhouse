@@ -73,6 +73,13 @@ async def _check_content_access(
     """
     parts = file_path.split('/')
 
+    # privado/ (facturas de la empresa): NUNCA por aquí, ni con sesión. Solo
+    # se bajan por /stats/org/{id}/gastos/{gid}/archivo, que exige
+    # administrador. Sin esta línea caerían en "ruta desconocida", que solo
+    # pide haber entrado: cualquier alumno con el enlace podría abrirlas.
+    if parts and parts[0] == 'privado':
+        raise HTTPException(status_code=403, detail="Access denied")
+
     # Activity content: requires course to be public or user to be org member
     if (
         len(parts) >= 6

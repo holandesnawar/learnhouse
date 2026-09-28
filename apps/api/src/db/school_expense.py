@@ -26,6 +26,17 @@ class SchoolExpense(SQLModel, table=True):
     importe_cents: int = 0
     nota: str = Field(default="", max_length=500)
     created_at: str = ""
+    # La factura (facturas de la empresa, sept 2026). Todo opcional: un gasto
+    # puede no tener factura todavía.
+    proveedor: str = Field(default="", max_length=200)
+    numero: str = Field(default="", max_length=80)
+    # Ruta relativa dentro de content/ (siempre bajo privado/: ver
+    # local_content.py) y el nombre con el que se subió.
+    archivo: str = Field(default="", max_length=300)
+    archivo_nombre: str = Field(default="", max_length=200)
+    # Si es la factura de un gasto FIJO de un mes, no suma otra vez: el fijo
+    # ya cuenta solo cada mes. Solo se guarda para tener el papel.
+    fijo_id: int = 0
 
 
 class SchoolExpenseWrite(BaseModel):
@@ -34,6 +45,9 @@ class SchoolExpenseWrite(BaseModel):
     concepto: str = ""
     importe: float
     nota: str = ""
+    proveedor: str = ""
+    numero: str = ""
+    fijo_id: int = 0
 
 
 class SchoolRecurringExpense(SQLModel, table=True):

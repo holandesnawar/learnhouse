@@ -2,13 +2,13 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
-import FacturasPanel from './FacturasPanel'
 import ContactosPanel from './ContactosPanel'
 import LlamadasPanel from './LlamadasPanel'
 import GastosPanel from './GastosPanel'
 import GuionPanel from './GuionPanel'
 import KanbanPanel from '../Panel/KanbanPanel'
 import TareasPanel from '../Panel/TareasPanel'
+import FacturasDosPartes from './FacturasDosPartes'
 import ClientesPanel from '../Panel/ClientesPanel'
 import AnunciosPanel from '../Panel/AnunciosPanel'
 import PaginasPanel from './PaginasPanel'
@@ -335,7 +335,7 @@ export default function EstadisticasPage() {
       ) : tab === 'llamadas' ? (
         <LlamadasPanel key={vuelta} />
       ) : tab === 'facturas' ? (
-        <FacturasPanel key={vuelta} />
+        <FacturasDosPartes key={vuelta} />
       ) : tab === 'gastos' ? (
         <GastosPanel key={vuelta} />
       ) : tab === 'guion' ? (

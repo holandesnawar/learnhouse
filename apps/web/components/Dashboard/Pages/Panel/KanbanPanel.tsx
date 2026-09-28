@@ -26,7 +26,9 @@ import {
   type Tarjeta,
 } from '@services/panel/panel'
 import FichaCliente from './FichaCliente'
-import { CheckSquare, Eye, Loader2, Search } from 'lucide-react'
+import { quitarPersona } from './quitarPersona'
+import useAdminStatus from '@components/Hooks/useAdminStatus'
+import { CheckSquare, Eye, Loader2, Search, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const COLOR: Record<EtapaTablero, string> = {
@@ -47,13 +49,26 @@ const QUE_ES: Record<EtapaTablero, string> = {
   perdido: 'No sigue, por ahora',
 }
 
-function TarjetaVista({ t, onAbrir }: { t: Tarjeta; onAbrir: () => void }) {
+function TarjetaVista({ t, onAbrir, onBorrar }: { t: Tarjeta; onAbrir: () => void; onBorrar?: () => void }) {
   return (
+    <div className="group relative">
+    {onBorrar ? (
+      // Solo administradores. Siempre a la vista: escondida hasta pasar el ratón
+      // no se veía (ya pasó con los botones de borrar de Contactos).
+      <button
+        onClick={onBorrar}
+        aria-label={t.etapa === 'alumno' ? 'Quitar de los números' : 'Borrar matrícula'}
+        title={t.etapa === 'alumno' ? 'Quitar de los números' : 'Borrar matrícula'}
+        className="absolute right-1.5 top-1.5 z-10 p-1.5 rounded-md text-[#B9C6DC] hover:text-red-600 hover:bg-red-50 transition-colors"
+      >
+        <Trash2 size={13} />
+      </button>
+    ) : null}
     <button
       onClick={onAbrir}
       className="w-full text-left rounded-xl bg-white border border-[#E6EBF5] hover:border-[#4da3ff] shadow-[0_1px_2px_rgba(16,24,40,0.04)] px-3 py-2.5 transition-colors"
     >
-      <p className="text-[13.5px] font-semibold text-gray-900 truncate">{t.nombre || t.email}</p>
+      <p className="text-[13.5px] font-semibold text-gray-900 truncate pr-6">{t.nombre || t.email}</p>
       <p className="text-[11.5px] text-[#5A6480] truncate">{t.que_hizo}</p>
       <div className="mt-2 flex flex-wrap items-center gap-1">
         {t.canal ? (
@@ -72,6 +87,7 @@ function TarjetaVista({ t, onAbrir }: { t: Tarjeta; onAbrir: () => void }) {
         <span className="ml-auto text-[10.5px] text-[#8A96AB]">{haceCuanto(t.desde)}</span>
       </div>
     </button>
+    </div>
   )
 }
 
@@ -86,6 +102,12 @@ export default function KanbanPanel() {
   const [abierta, setAbierta] = useState<string | null>(null)
   // En el móvil se ve una columna cada vez.
   const [columnaMovil, setColumnaMovil] = useState<EtapaTablero>('nuevo')
+  const { isAdmin } = useAdminStatus()
+
+  async function borrar(t: Tarjeta) {
+    const r = await quitarPersona(org?.id, accessToken, { email: t.email, nombre: t.nombre, esAlumno: t.etapa === 'alumno', fuera: t.fuera_de_metricas })
+    if (r) cargar()
+  }
 
   const cargar = useCallback(async () => {
     if (!org?.id || !accessToken) return
@@ -209,7 +231,7 @@ export default function KanbanPanel() {
         <p className="text-[12px] text-[#8A96AB] mt-2">{QUE_ES[columnaMovil]}. Ábrela para cambiarla de columna.</p>
         <div className="mt-2 space-y-2">
           {(porColumna[columnaMovil] ?? []).map((t) => (
-            <TarjetaVista key={t.email} t={t} onAbrir={() => setAbierta(t.email)} />
+            <TarjetaVista key={t.email} t={t} onAbrir={() => setAbierta(t.email)} onBorrar={isAdmin ? () => borrar(t) : undefined} />
           ))}
           {!porColumna[columnaMovil]?.length ? <p className="text-[13px] text-[#8A96AB] py-6 text-center">Nadie en esta columna.</p> : null}
         </div>
@@ -240,7 +262,7 @@ export default function KanbanPanel() {
                         <Draggable draggableId={t.email} index={i} key={t.email} isDragDisabled={t.etapa === 'alumno'}>
                           {(p) => (
                             <div ref={p.innerRef} {...p.draggableProps} {...p.dragHandleProps}>
-                              <TarjetaVista t={t} onAbrir={() => setAbierta(t.email)} />
+                              <TarjetaVista t={t} onAbrir={() => setAbierta(t.email)} onBorrar={isAdmin ? () => borrar(t) : undefined} />
                             </div>
                           )}
                         </Draggable>
