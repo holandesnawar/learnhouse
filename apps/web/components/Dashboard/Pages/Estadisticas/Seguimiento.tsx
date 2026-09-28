@@ -26,6 +26,7 @@ import {
 } from '@services/stats/contactos'
 import { BellRing, Loader2, NotebookPen, Trash2, X } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { confirmar } from '@lib/nawar/confirmar'
 
 function fechaHora(iso: string) {
   const d = new Date(iso)
@@ -102,7 +103,7 @@ export default function Seguimiento({
   }
 
   async function quitarNota(n: NotaContacto) {
-    if (!window.confirm('¿Borrar esta nota?')) return
+    if (!(await confirmar('¿Borrar esta nota?'))) return
     const r = await borrarNota(org?.id, n.id, accessToken)
     if (!r.ok) {
       toast.error(r.error || 'No se ha podido borrar')

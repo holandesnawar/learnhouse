@@ -26,6 +26,7 @@ import { avisoTrasBorrar, borrarContacto, crearEnlacePago, cuandoLlamar, getAgen
 import { marcarSolicitud } from '@services/stats/school'
 import { CalendarDays, Check, ChevronDown, ChevronRight, Copy, CreditCard, Loader2, PhoneCall, RefreshCw, RotateCcw, Trash2, Video } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { confirmar } from '@lib/nawar/confirmar'
 
 const CARD = 'rounded-2xl border border-[#DDE6F5] bg-white p-3.5 sm:p-5'
 
@@ -77,7 +78,7 @@ export default function LlamadasPanel() {
   // persona entera (sus llamadas, solicitudes y matrículas sin pagar), igual
   // que desde Contactos.
   async function borrar(l: Llamada) {
-    if (!window.confirm(`¿Borrar a ${l.name || l.email}? Es para pruebas o leads que no valen. No se puede deshacer. Los pagos, la cuenta y el CRM no se tocan.`)) return
+    if (!(await confirmar(`¿Borrar a ${l.name || l.email}? Es para pruebas o leads que no valen. No se puede deshacer. Los pagos, la cuenta y el CRM no se tocan.`))) return
     const r = await borrarContacto(org?.id, l.email, accessToken)
     if (!r.ok) {
       toast.error(r.error || 'No se ha podido borrar')

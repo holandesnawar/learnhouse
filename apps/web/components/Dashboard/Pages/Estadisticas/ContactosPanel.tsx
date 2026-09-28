@@ -44,6 +44,7 @@ import {
 } from '@services/stats/contactos'
 import { BellRing, Check, ChevronDown, ChevronRight, Eye, EyeOff, Loader2, Map as MapIcon, NotebookPen, RotateCcw, Search, Tag, Trash2, X } from 'lucide-react'
 import { ETAPAS, MAPA_WEB } from '@lib/nawar/mapaWeb'
+import { confirmar } from '@lib/nawar/confirmar'
 
 const CARD = 'rounded-2xl border border-[#DDE6F5] bg-white p-3.5 sm:p-5'
 
@@ -412,9 +413,9 @@ export default function ContactosPanel() {
     }
     if (c.etapa === 'alumno') {
       if (
-        !window.confirm(
+        !(await confirmar(
           `¿Quitar a ${c.nombre || c.email} de los números? Deja de contar en las estadísticas, los gastos y las plazas. Su cuenta, su acceso a la escuela y sus pagos siguen igual. Se puede deshacer.`
-        )
+        ))
       )
         return
       setGuardando(c.email)
@@ -426,9 +427,9 @@ export default function ContactosPanel() {
       return toast.success('Quitado de los números')
     }
     if (
-      !window.confirm(
+      !(await confirmar(
         `¿Borrar a ${c.nombre || c.email}? Es para pruebas o leads que no valen: se borran sus guías, llamadas, solicitudes, notas y matrículas sin pagar. No se puede deshacer.`
-      )
+      ))
     )
       return
     setGuardando(c.email)

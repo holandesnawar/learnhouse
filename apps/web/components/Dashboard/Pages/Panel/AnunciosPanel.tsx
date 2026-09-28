@@ -25,6 +25,7 @@ import {
 import FichaCliente from './FichaCliente'
 import { ChevronDown, ChevronRight, Loader2, Megaphone, Plus, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { confirmar } from '@lib/nawar/confirmar'
 
 const CARD = 'rounded-2xl border border-[#DDE6F5] bg-white p-3.5 sm:p-5'
 const INPUT =
@@ -154,7 +155,7 @@ function FilaCampana({
   const [editando, setEditando] = useState(false)
 
   async function quitar() {
-    if (!window.confirm(`¿Borrar la campaña «${c.nombre}»? La gente que trajo no se toca.`)) return
+    if (!(await confirmar(`¿Borrar la campaña «${c.nombre}»? La gente que trajo no se toca.`))) return
     const r = await borrarCampana(org?.id, c.id, accessToken)
     if (!r.ok) return toast.error(r.error || 'No se ha podido borrar')
     onCambio()

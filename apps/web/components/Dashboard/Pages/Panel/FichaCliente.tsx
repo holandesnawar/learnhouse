@@ -40,6 +40,7 @@ import {
   Sparkles,
   Tag,
   X,
+  Trash2,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { VolverALlamar } from '@services/stats/contactos'
@@ -200,7 +201,7 @@ export default function FichaCliente({
                 onClick={onQuitar}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-700 text-[12.5px] font-bold hover:bg-red-100"
               >
-                {quitarEtiqueta}
+                <Trash2 size={13} /> {quitarEtiqueta}
               </button>
             ) : isAdmin && ficha ? (
               // Sin botón de fuera (tablero, Tareas, Clientes, inicio): el de
@@ -220,6 +221,7 @@ export default function FichaCliente({
                 }}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-700 text-[12.5px] font-bold hover:bg-red-100"
               >
+                {ficha.fuera_de_metricas ? null : <Trash2 size={13} />}
                 {ficha.fuera_de_metricas ? 'Volver a contar' : ficha.tablero.etapa === 'alumno' ? 'Quitar de los números' : 'Borrar'}
               </button>
             ) : null}
