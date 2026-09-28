@@ -49,7 +49,7 @@ const AdminAuthorization: React.FC<AuthorizationProps> = ({ children, authorizat
     }
 
     if (!isUserAuthenticated) {
-      router.push(getUriWithOrg(org.slug, '/login'));
+      router.push(getUriWithOrg(org?.slug, '/login'));
       return;
     }
 

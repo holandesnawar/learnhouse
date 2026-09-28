@@ -20,7 +20,11 @@ import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { euros, getSchoolStats, type SchoolStats } from '@services/stats/school'
 import { getContactos, type Contacto } from '@services/stats/contactos'
 import { ETAPA_TEXTO } from '@services/stats/contactos'
-import { AddressBook, ArrowRight, BookOpen, ChartBar, EnvelopeSimple, FolderSimple, Globe, PhoneCall, Question, Receipt, UsersThree, Wallet } from '@phosphor-icons/react'
+import { AddressBook, ArrowRight, BookOpen, ChartBar, EnvelopeSimple, FolderSimple, Globe, Kanban, ListChecks, PhoneCall, Question, Receipt, UsersThree, Wallet } from '@phosphor-icons/react'
+import { getTablero, getTareas, type Tablero, type Tarea } from '@services/panel/panel'
+import { hoyISO } from '@services/stats/contactos'
+import FichaCliente from '@components/Dashboard/Pages/Panel/FichaCliente'
+import { FilaTarea, TareaForm } from '@components/Dashboard/Pages/Panel/Tareas'
 
 const CARD = 'rounded-2xl border border-[#E6EBF5] bg-white p-4 sm:p-5'
 
@@ -42,12 +46,32 @@ export default function NawarHome() {
   const { isCloser } = useAdminStatus()
   const [stats, setStats] = useState<SchoolStats | null | 'error'>(null)
   const [contactos, setContactos] = useState<Contacto[] | null>(null)
+  const [tablero, setTablero] = useState<Tablero | null>(null)
+  const [tareas, setTareas] = useState<Tarea[] | null>(null)
+  const [yo, setYo] = useState(0)
+  const [abierta, setAbierta] = useState<string | null>(null)
 
   useEffect(() => {
     if (!org?.id || !token) return
-    getSchoolStats(org.id, token).then((s) => setStats(s ?? 'error'))
+    // El closer no ve los números: no se le piden (darían 403).
+    if (!isCloser) getSchoolStats(org.id, token).then((s) => setStats(s ?? 'error'))
     getContactos(org.id, '', token).then((r) => setContactos(r?.contactos ?? []))
-  }, [org?.id, token])
+    getTablero(org.id, token).then((r) => setTablero(r.ok && r.datos ? r.datos : null))
+    getTareas(org.id, token, { pendientes: true }).then((r) => {
+      if (r.ok && r.datos) {
+        setTareas(r.datos.tareas)
+        setYo(r.datos.yo)
+      } else setTareas([])
+    })
+  }, [org?.id, token, isCloser])
+
+  const misTareas = (tareas ?? []).filter((t) => t.asignado_id === yo && t.estado !== 'hecha')
+  const hoy = hoyISO()
+  const urgentes = misTareas.filter((t) => t.fecha && t.fecha <= hoy).length
+  const columnas = (tablero?.etapas ?? []).map((e) => ({
+    ...e,
+    n: (tablero?.tarjetas ?? []).filter((t) => t.etapa === e.id && !t.fuera_de_metricas).length,
+  }))
 
   const s = stats && stats !== 'error' ? stats : null
   const mesActual = s?.sales?.by_month?.[s.sales.by_month.length - 1]
@@ -58,6 +82,8 @@ export default function NawarHome() {
   const saludo = hora < 13 ? 'Buenos días' : hora < 20 ? 'Buenas tardes' : 'Buenas noches'
 
   const accesos = [
+    { href: '/dash/estadisticas?tab=matriculas', label: 'Matrículas', que: 'En qué punto está cada persona', icon: <Kanban size={20} weight="fill" /> },
+    { href: '/dash/estadisticas?tab=tareas', label: 'Tareas', que: 'Lo tuyo y lo del equipo', icon: <ListChecks size={20} weight="fill" /> },
     { href: '/dash/estadisticas?tab=contactos', label: 'Contactos', que: 'Quién es cada lead y qué ha visto', icon: <AddressBook size={20} weight="fill" /> },
     { href: '/dash/estadisticas?tab=llamadas', label: 'Llamadas', que: 'Quién pidió llamada y qué contestó', icon: <PhoneCall size={20} weight="fill" /> },
     { href: '/dash/estadisticas', label: 'Estadísticas', que: 'Ventas, embudo, alumnos', icon: <ChartBar size={20} weight="fill" /> },
@@ -69,7 +95,7 @@ export default function NawarHome() {
     { href: '/dash/recursos', label: 'Recursos y documentos', que: 'Archivos y enlaces, tuyos y de los alumnos', icon: <FolderSimple size={20} weight="fill" /> },
     { href: '/dash/estadisticas?tab=paginas', label: 'Páginas de la web', que: 'Por dónde llega la gente y qué ha visto', icon: <Globe size={20} weight="fill" /> },
     { href: '/dash/users/settings/usergroups', label: 'Equipo y grupos', que: 'Profes, closers, alumnos', icon: <UsersThree size={20} weight="fill" /> },
-  ].filter((a) => !isCloser || a.label === 'Contactos' || a.label === 'Estadísticas')
+  ].filter((a) => !isCloser || ['Matrículas', 'Tareas', 'Contactos', 'Llamadas', 'Páginas de la web'].includes(a.label))
 
   return (
     <div className="h-full w-full bg-[#F7F8FB] px-4 sm:px-9 py-6 sm:py-9 pb-24 lg:pb-10">
@@ -81,7 +107,7 @@ export default function NawarHome() {
           <p className="text-[14px] text-gray-500 mt-1">Así va la escuela hoy.</p>
         </div>
 
-        {stats === 'error' ? (
+        {isCloser ? null : stats === 'error' ? (
           <div className={CARD}>
             <p className="text-[13.5px] text-gray-700">No se han podido cargar los números. Prueba a recargar.</p>
           </div>
@@ -114,6 +140,65 @@ export default function NawarHome() {
           </div>
         )}
 
+        {/* El tablero de matrículas de un vistazo: cada columna lleva a él. */}
+        <div className={CARD}>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[15px] font-bold text-gray-900">Matrículas</h2>
+            <Link href="/dash/estadisticas?tab=matriculas" className="text-[13px] font-semibold text-[#025dc7] inline-flex items-center gap-1">
+              Abrir el tablero <ArrowRight size={14} />
+            </Link>
+          </div>
+          {tablero === null ? (
+            <p className="text-[13px] text-gray-400">Cargando…</p>
+          ) : (
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+              {columnas.map((c) => (
+                <Link
+                  key={c.id}
+                  href="/dash/estadisticas?tab=matriculas"
+                  className="rounded-xl bg-[#F5F7FB] hover:bg-[#EAF3FF] px-3 py-2.5 transition-colors"
+                >
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400 truncate">{c.nombre}</p>
+                  <p className={`text-[22px] font-semibold tabular-nums leading-tight ${c.id === 'alumno' ? 'text-[#0E9F6E]' : c.id === 'perdido' ? 'text-gray-400' : 'text-[#1D0084]'}`}>
+                    {c.n}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Mis tareas: lo que me toca hoy, sin ir a otra pantalla. */}
+        <div className={CARD}>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-[15px] font-bold text-gray-900">
+              Mis tareas
+              {urgentes ? <span className="ml-2 rounded-full bg-red-50 text-red-700 px-2 py-0.5 text-[11.5px] font-semibold">{urgentes} para hoy o vencidas</span> : null}
+            </h2>
+            <Link href="/dash/estadisticas?tab=tareas" className="text-[13px] font-semibold text-[#025dc7] inline-flex items-center gap-1">
+              Todas <ArrowRight size={14} />
+            </Link>
+          </div>
+          <TareaForm compacto onCreada={(t) => setTareas((ts) => [t, ...(ts ?? [])])} />
+          {tareas === null ? (
+            <p className="text-[13px] text-gray-400 mt-2">Cargando…</p>
+          ) : misTareas.length === 0 ? (
+            <p className="text-[13px] text-gray-500 mt-3">No tienes nada pendiente.</p>
+          ) : (
+            <div className="mt-1 divide-y divide-[#EEF2FA]">
+              {misTareas.slice(0, 6).map((t) => (
+                <FilaTarea
+                  key={t.id}
+                  tarea={t}
+                  onCambio={(n) => setTareas((ts) => (ts ?? []).map((x) => (x.id === n.id ? n : x)))}
+                  onBorrada={(id) => setTareas((ts) => (ts ?? []).filter((x) => x.id !== id))}
+                  onAbrirPersona={setAbierta}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className={`${CARD} lg:col-span-2`}>
             <div className="flex items-center justify-between mb-3">
@@ -129,7 +214,7 @@ export default function NawarHome() {
             ) : (
               <ul className="divide-y divide-[#EEF2FA]">
                 {ultimos.map((c) => (
-                  <li key={c.email} className="py-2.5 flex items-center gap-3">
+                  <li key={c.email} className="py-2.5 flex items-center gap-3 cursor-pointer hover:bg-[#F8FAFF] -mx-2 px-2 rounded-lg" onClick={() => setAbierta(c.email)}>
                     <div className="flex-1 min-w-0">
                       <p className="text-[13.5px] font-semibold text-gray-900 truncate">{c.nombre || c.email}</p>
                       <p className="text-[12px] text-gray-500 truncate">
@@ -176,6 +261,7 @@ export default function NawarHome() {
           </div>
         </div>
       </div>
+      {abierta ? <FichaCliente email={abierta} onClose={() => setAbierta(null)} /> : null}
     </div>
   )
 }
