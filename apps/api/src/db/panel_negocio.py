@@ -28,6 +28,9 @@ class LeadPipeline(SQLModel, table=True):
     # whatsapp · llamada · email · instagram · otro ("" = sin decir)
     canal: str = Field(default="", max_length=20)
     motivo: str = Field(default="", max_length=200)
+    # Quitada del tablero a mano (un alumno que ya no hace falta ver ahí). No
+    # borra nada ni la saca de los números: solo deja de salir en el kanban.
+    oculto: bool = False
     updated_at: str = ""
     updated_by: str = Field(default="", max_length=120)
 

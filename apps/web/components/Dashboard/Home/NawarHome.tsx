@@ -72,7 +72,7 @@ export default function NawarHome() {
   const urgentes = misTareas.filter((t) => t.fecha && t.fecha <= hoy).length
   const columnas = (tablero?.etapas ?? []).map((e) => ({
     ...e,
-    n: (tablero?.tarjetas ?? []).filter((t) => t.etapa === e.id && !t.fuera_de_metricas).length,
+    n: (tablero?.tarjetas ?? []).filter((t) => t.etapa === e.id && !t.oculto).length,
   }))
 
   const s = stats && stats !== 'error' ? stats : null

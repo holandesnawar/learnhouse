@@ -10,6 +10,12 @@ Columnas: nuevo → contactado → revision → propuesta → alumno, y perdido
 aparte. "Alumno" no se elige: sale sola en cuanto paga, y en cuanto paga se
 va ahí aunque alguien la hubiera dejado en otra columna.
 
+Orden: lo más nuevo arriba (`llegada` = el día que pidió plaza o llegó al
+pago). Una tarjeta puede quitarse del tablero sin borrar nada (`oculto`), y
+quien está fuera de los números (pruebas) tampoco sale: si no, un alumno de
+prueba se quedaba en "Alumno" para siempre, porque a quien ha pagado no se le
+borra.
+
 La colocación es una función pura (`colocar`), con test.
 """
 
@@ -39,6 +45,19 @@ _EN_TABLERO = {"pidio", "en-pago", "alumno"}
 
 def _ahora() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _instante(texto: str) -> float:
+    """Fecha en texto → número comparable (con o sin zona; rota = 0)."""
+    if not texto:
+        return 0.0
+    try:
+        d = datetime.fromisoformat(str(texto).replace("Z", "+00:00"))
+        if d.tzinfo is None:
+            d = d.replace(tzinfo=timezone.utc)
+        return d.timestamp()
+    except Exception:  # noqa: BLE001
+        return 0.0
 
 
 def colocar(ficha: dict, guardada: Optional[dict]) -> dict:
@@ -71,6 +90,10 @@ def colocar(ficha: dict, guardada: Optional[dict]) -> dict:
         "que_hizo": (ficha.get("ultimo_contacto") or {}).get("que", ""),
         "utm_campaign": ficha.get("utm_campaign", ""),
         "fuera_de_metricas": bool(ficha.get("fuera_de_metricas")),
+        # El día que llegó (pidió plaza o llegó al pago): ordena las columnas.
+        "llegada": ficha.get("matricula_at") or (ficha.get("primer_contacto") or {}).get("when", ""),
+        # Fuera del tablero: quitada a mano, o fuera de los números (prueba).
+        "oculto": bool(guardada.get("oculto")) or bool(ficha.get("fuera_de_metricas")),
     }
 
 
@@ -81,7 +104,10 @@ def en_tablero(ficha: dict) -> bool:
 async def guardadas(db_session: AsyncSession) -> dict[str, dict]:
     filas = (await db_session.execute(select(LeadPipeline))).scalars().all()
     return {
-        f.email: {"etapa": f.etapa, "canal": f.canal, "motivo": f.motivo, "updated_at": f.updated_at, "updated_by": f.updated_by}
+        f.email: {
+            "etapa": f.etapa, "canal": f.canal, "motivo": f.motivo, "oculto": bool(getattr(f, "oculto", False)),
+            "updated_at": f.updated_at, "updated_by": f.updated_by,
+        }
         for f in filas
     }
 
@@ -89,6 +115,7 @@ async def guardadas(db_session: AsyncSession) -> dict[str, dict]:
 async def tablero(fichas: list[dict], db_session: AsyncSession) -> dict:
     ya = await guardadas(db_session)
     tarjetas = [colocar(f, ya.get(f["email"])) for f in fichas if en_tablero(f)]
+    tarjetas.sort(key=lambda t: _instante(t["llegada"]), reverse=True)
     return {"etapas": ETAPAS, "tarjetas": tarjetas}
 
 
@@ -136,8 +163,29 @@ async def mover(email: str, etapa: str, canal: Optional[str], motivo: Optional[s
     return {"ok": True, "etapa": etapa, "canal": fila.canal}
 
 
+async def ocultar(email: str, oculto: bool, autor: str, db_session: AsyncSession) -> dict:
+    """Quita a alguien del tablero (o lo devuelve) sin tocar nada más: ni su
+    columna, ni sus pagos, ni los números. Es lo que se hace con un alumno que
+    ya no hace falta ver en el kanban."""
+    clave = (email or "").strip().lower()
+    if not clave or "@" not in clave:
+        return {"ok": False, "motivo": "Falta un correo válido"}
+    fila = (
+        await db_session.execute(select(LeadPipeline).where(func.lower(LeadPipeline.email) == clave))
+    ).scalars().first()
+    if fila is None:
+        if not oculto:
+            return {"ok": True, "oculto": False}
+        fila = LeadPipeline(email=clave, etapa="")
+    fila.oculto = bool(oculto)
+    fila.updated_by = (autor or "")[:120]
+    db_session.add(fila)
+    await db_session.commit()
+    return {"ok": True, "oculto": fila.oculto}
+
+
 async def borrar_de_tablero(email: str, db_session: AsyncSession) -> None:
     for f in (
-        await db_session.execute(select(LeadPipeline).where(LeadPipeline.email == email))
+        await db_session.execute(select(LeadPipeline).where(func.lower(LeadPipeline.email) == (email or "").strip().lower()))
     ).scalars().all():
         await db_session.delete(f)

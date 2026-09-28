@@ -72,6 +72,29 @@ async def api_mover(
     return r
 
 
+class Ocultar(BaseModel):
+    email: str
+    oculto: bool = True
+
+
+@router.put("/org/{org_id}/tablero/ocultar", summary="Quita a alguien del tablero (o lo devuelve) sin borrar nada.")
+async def api_ocultar(
+    request: Request,
+    org_id: int,
+    data: Ocultar,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    # Solo administradores, como borrar: el closer mueve, no quita.
+    if not await _es_admin(current_user, org_id, db_session):
+        raise HTTPException(status_code=403, detail="Solo los administradores pueden quitar a alguien del tablero")
+    r = await pipeline.ocultar(data.email, data.oculto, _nombre(current_user), db_session)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    return r
+
+
 @router.get("/org/{org_id}/cliente", summary="Todo de una persona: tablero, páginas, correos, pagos, notas y tareas.")
 async def api_cliente(
     request: Request,
