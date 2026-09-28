@@ -1618,7 +1618,7 @@ Todo en `nawar-web` (PR #13 reutilizado y #83).
 Petición del usuario, viendo el panel de otro emprendedor: "no solo página,
 clic, ver y fuera, sino indagar, que tenga todo a mano". Por entregas:
 **1) kanban + ficha + tareas (HECHO)**, **2) gastos fijos y clientes con lo
-que pagaron (HECHO)**, 3) ads y un inicio tipo centro de mando.
+que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
 
 - **Matrículas** (`?tab=matriculas`, `Panel/KanbanPanel.tsx`): Nuevo →
   Contactado → En revisión → Propuesta → Alumno, y Perdido. Entra quien está
@@ -1662,6 +1662,22 @@ que pagaron (HECHO)**, 3) ads y un inicio tipo centro de mando.
   escuela (última visita) y lecciones hechas. "Sin entrar esta semana" =
   a quién escribir. Al abrir, la misma ficha (a un alumno le salen los pagos
   arriba y sin los botones de canal).
+- **Anuncios** (`?tab=anuncios`, solo administradores; tabla `ad_campaign`,
+  `services/panel/ads.py` con `metricas` pura y test): cada campaña se
+  apunta con nombre, plataforma, **el mismo `utm_campaign` que su enlace**,
+  fechas y lo gastado. La escuela cruza ese utm con los leads (cualquier
+  contacto por ese enlace, no solo el primero: quien bajó la guía por un
+  anuncio y compró semanas después cuenta) y saca leads, matrículas, ventas,
+  ingresos, € por lead, € por venta y retorno (ingresos ÷ gasto). Los utm que
+  traen leads sin campaña apuntada salen aparte con botón "Apuntar". **El
+  gasto de cada campaña cuenta solo en Gastos** como publicidad del mes en que
+  empezó ("Anuncio: …", se cambia en Anuncios, no en Gastos): no se teclea dos
+  veces. La escuela NO habla con Meta ni Google: el gasto se teclea.
+- **Inicio del panel** = centro de mando: cifras, tablero de matrículas, mis
+  tareas, anuncios (si hay) y últimos contactos (abren la ficha). "Ir a" solo
+  con lo de cada día; el resto está en la barra. La barra: Ventas · Dinero
+  (Clientes, Facturas, Gastos) · Alumnos · Formación · **Captación y web**
+  (Anuncios, Páginas, Enlaces, UTM).
 - Arreglado de paso: `AdminAuthorization` se rompía (`org.slug` de null) si
   alguien sin sesión abría el panel antes de cargar la escuela.
 - ⚠️ **Entorno local**: el proxy Node tiene que pasar el WebSocket (HMR de

@@ -65,3 +65,24 @@ class EmailLog(SQLModel, table=True):
     asunto: str = Field(default="", max_length=300)
     ok: bool = True
     created_at: str = Field(default="", index=True)
+
+
+class AdCampaign(SQLModel, table=True):
+    """Una campaña de anuncios, apuntada a mano. Se une a los leads por su
+    `utm_campaign`: el mismo valor que lleva el enlace del anuncio. El gasto
+    se teclea (la escuela no habla con Meta ni con Google)."""
+
+    __tablename__ = "ad_campaign"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    org_id: int = Field(default=0, index=True)
+    nombre: str = Field(default="", max_length=200)
+    # meta · google · tiktok · youtube · otro
+    plataforma: str = Field(default="meta", max_length=20)
+    utm_campaign: str = Field(default="", index=True, max_length=120)
+    # "AAAA-MM-DD"
+    inicio: str = Field(default="", max_length=10)
+    fin: str = Field(default="", max_length=10)
+    gasto_cents: int = 0
+    notas: str = Field(default="", max_length=1000)
+    created_at: str = ""

@@ -20,8 +20,8 @@ import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { euros, getSchoolStats, type SchoolStats } from '@services/stats/school'
 import { getContactos, type Contacto } from '@services/stats/contactos'
 import { ETAPA_TEXTO } from '@services/stats/contactos'
-import { AddressBook, ArrowRight, BookOpen, ChartBar, EnvelopeSimple, FolderSimple, Globe, Kanban, ListChecks, PhoneCall, Question, Receipt, UsersThree, Wallet } from '@phosphor-icons/react'
-import { getTablero, getTareas, type Tablero, type Tarea } from '@services/panel/panel'
+import { AddressBook, ArrowRight, BookOpen, ChartBar, EnvelopeSimple, FolderSimple, Globe, Kanban, ListChecks, Megaphone, PhoneCall, Question, Receipt, UserCheck, UsersThree, Wallet } from '@phosphor-icons/react'
+import { euros as eurosPanel, getAds, getTablero, getTareas, type PanelAds, type Tablero, type Tarea } from '@services/panel/panel'
 import { hoyISO } from '@services/stats/contactos'
 import FichaCliente from '@components/Dashboard/Pages/Panel/FichaCliente'
 import { FilaTarea, TareaForm } from '@components/Dashboard/Pages/Panel/Tareas'
@@ -50,11 +50,13 @@ export default function NawarHome() {
   const [tareas, setTareas] = useState<Tarea[] | null>(null)
   const [yo, setYo] = useState(0)
   const [abierta, setAbierta] = useState<string | null>(null)
+  const [ads, setAds] = useState<PanelAds | null>(null)
 
   useEffect(() => {
     if (!org?.id || !token) return
     // El closer no ve los números: no se le piden (darían 403).
     if (!isCloser) getSchoolStats(org.id, token).then((s) => setStats(s ?? 'error'))
+    if (!isCloser) getAds(org.id, token).then((r) => setAds(r.ok && r.datos ? r.datos : null))
     getContactos(org.id, '', token).then((r) => setContactos(r?.contactos ?? []))
     getTablero(org.id, token).then((r) => setTablero(r.ok && r.datos ? r.datos : null))
     getTareas(org.id, token, { pendientes: true }).then((r) => {
@@ -87,6 +89,8 @@ export default function NawarHome() {
     { href: '/dash/estadisticas?tab=contactos', label: 'Contactos', que: 'Quién es cada lead y qué ha visto', icon: <AddressBook size={20} weight="fill" /> },
     { href: '/dash/estadisticas?tab=llamadas', label: 'Llamadas', que: 'Quién pidió llamada y qué contestó', icon: <PhoneCall size={20} weight="fill" /> },
     { href: '/dash/estadisticas', label: 'Estadísticas', que: 'Ventas, embudo, alumnos', icon: <ChartBar size={20} weight="fill" /> },
+    { href: '/dash/estadisticas?tab=clientes', label: 'Clientes', que: 'Quién ha pagado y si sigue entrando', icon: <UserCheck size={20} weight="fill" /> },
+    { href: '/dash/estadisticas?tab=anuncios', label: 'Anuncios', que: 'Qué trae cada campaña y cuánto cuesta', icon: <Megaphone size={20} weight="fill" /> },
     { href: '/dash/estadisticas?tab=facturas', label: 'Facturas', que: 'Cobros y facturas de Stripe', icon: <Receipt size={20} weight="fill" /> },
     { href: '/dash/estadisticas?tab=gastos', label: 'Gastos', que: 'Lo que gastas, el margen y el coste por matrícula', icon: <Wallet size={20} weight="fill" /> },
     { href: '/dash/consultas', label: 'Consultas', que: 'Dudas de los alumnos', icon: <Question size={20} weight="fill" /> },
@@ -95,7 +99,14 @@ export default function NawarHome() {
     { href: '/dash/recursos', label: 'Recursos y documentos', que: 'Archivos y enlaces, tuyos y de los alumnos', icon: <FolderSimple size={20} weight="fill" /> },
     { href: '/dash/estadisticas?tab=paginas', label: 'Páginas de la web', que: 'Por dónde llega la gente y qué ha visto', icon: <Globe size={20} weight="fill" /> },
     { href: '/dash/users/settings/usergroups', label: 'Equipo y grupos', que: 'Profes, closers, alumnos', icon: <UsersThree size={20} weight="fill" /> },
-  ].filter((a) => !isCloser || ['Matrículas', 'Tareas', 'Contactos', 'Llamadas', 'Páginas de la web'].includes(a.label))
+  ]
+    // Lo de cada día: el resto está en la barra de la izquierda y repetirlo
+    // aquí entero era una segunda barra.
+    .filter((a) =>
+      isCloser
+        ? ['Matrículas', 'Tareas', 'Contactos', 'Llamadas', 'Páginas de la web'].includes(a.label)
+        : ['Matrículas', 'Tareas', 'Clientes', 'Anuncios', 'Gastos', 'Consultas', 'Avisos y correos'].includes(a.label)
+    )
 
   return (
     <div className="h-full w-full bg-[#F7F8FB] px-4 sm:px-9 py-6 sm:py-9 pb-24 lg:pb-10">
@@ -198,6 +209,34 @@ export default function NawarHome() {
             </div>
           )}
         </div>
+
+        {/* Anuncios: qué está trayendo cada campaña. Solo si hay alguna. */}
+        {ads && ads.campanas.length ? (
+          <div className={CARD}>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-[15px] font-bold text-gray-900">Anuncios</h2>
+              <Link href="/dash/estadisticas?tab=anuncios" className="text-[13px] font-semibold text-[#025dc7] inline-flex items-center gap-1">
+                Ver todos <ArrowRight size={14} />
+              </Link>
+            </div>
+            <ul className="divide-y divide-[#EEF2FA]">
+              {[...ads.campanas]
+                .sort((a, b) => b.leads - a.leads)
+                .slice(0, 4)
+                .map((c) => (
+                  <li key={c.id} className="py-2.5 flex items-center gap-3">
+                    <span className="flex-1 min-w-0 text-[13.5px] font-semibold text-gray-900 truncate">{c.nombre}</span>
+                    <span className="text-[12.5px] text-gray-500 tabular-nums">
+                      {c.leads} {c.leads === 1 ? 'lead' : 'leads'} · {c.ventas} {c.ventas === 1 ? 'venta' : 'ventas'}
+                    </span>
+                    <span className="w-24 text-right text-[12.5px] font-semibold tabular-nums text-[#1D0084]">
+                      {c.coste_por_lead_cents !== null ? `${eurosPanel(c.coste_por_lead_cents)}/lead` : '—'}
+                    </span>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        ) : null}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className={`${CARD} lg:col-span-2`}>
