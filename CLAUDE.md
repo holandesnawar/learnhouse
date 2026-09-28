@@ -1617,8 +1617,8 @@ Todo en `nawar-web` (PR #13 reutilizado y #83).
 ## Panel de negocio: kanban, ficha del cliente y tareas (28/09/2026)
 Petición del usuario, viendo el panel de otro emprendedor: "no solo página,
 clic, ver y fuera, sino indagar, que tenga todo a mano". Por entregas:
-**1) kanban + ficha + tareas (HECHO)**, 2) gastos fijos y clientes con lo que
-pagaron, 3) ads y un inicio tipo centro de mando.
+**1) kanban + ficha + tareas (HECHO)**, **2) gastos fijos y clientes con lo
+que pagaron (HECHO)**, 3) ads y un inicio tipo centro de mando.
 
 - **Matrículas** (`?tab=matriculas`, `Panel/KanbanPanel.tsx`): Nuevo →
   Contactado → En revisión → Propuesta → Alumno, y Perdido. Entra quien está
@@ -1650,6 +1650,18 @@ pagaron, 3) ads y un inicio tipo centro de mando.
   `email_log`), `services/panel/{pipeline,tareas,cliente}.py`, rutas
   `/api/v1/panel/org/{id}/{tablero,cliente,equipo,tareas}` con la puerta de
   contactos. Lógica pura con test en `src/tests/services/test_panel.py`.
+- **Gastos fijos mensuales** (tabla `school_recurring_expense`, en Gastos):
+  concepto, categoría, € al mes y desde qué mes. **Cuentan solos cada mes**
+  (`expandir_fijos`, pura con test) hasta que se dan de baja (`hasta` = este
+  mes; lo pasado se queda). Borrar un fijo lo quita también de los meses
+  pasados: la pantalla lo avisa y ofrece "Dar de baja". No salen en "Lo
+  apuntado" (serían una fila por mes). En Gastos hay además un gráfico de
+  ingresos contra gastos por mes con el margen.
+- **Clientes** (`?tab=clientes`, solo administradores: es dinero): quien ha
+  pagado, el último pago arriba, con total, número de pagos, si entra a la
+  escuela (última visita) y lecciones hechas. "Sin entrar esta semana" =
+  a quién escribir. Al abrir, la misma ficha (a un alumno le salen los pagos
+  arriba y sin los botones de canal).
 - Arreglado de paso: `AdminAuthorization` se rompía (`org.slug` de null) si
   alguien sin sesión abría el panel antes de cargar la escuela.
 - ⚠️ **Entorno local**: el proxy Node tiene que pasar el WebSocket (HMR de

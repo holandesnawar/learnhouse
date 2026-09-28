@@ -16,7 +16,7 @@ from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.enrollment import Enrollment
-from src.db.school_expense import SchoolExpense
+from src.db.school_expense import SchoolExpense, SchoolRecurringExpense
 from src.db.user_organizations import UserOrganization
 from src.security.rbac.constants import STUDENT_ROLE_ID
 from src.services.stats.periods import month_label
@@ -103,6 +103,37 @@ def resumen_gastos(
     }
 
 
+def _siguiente_mes(mes: str) -> str:
+    y, m = int(mes[:4]), int(mes[5:7])
+    return f"{y + (m == 12)}-{1 if m == 12 else m + 1:02d}"
+
+
+def expandir_fijos(fijos: list[dict], hasta_mes: str) -> list[tuple[str, str, int]]:
+    """Cada gasto fijo, convertido en un gasto por mes: desde su `desde` hasta
+    su `hasta` (o hasta `hasta_mes`, el mes actual, si sigue activo). Función
+    pura, con test. Devuelve (fecha AAAA-MM-01, categoría, céntimos)."""
+    filas: list[tuple[str, str, int]] = []
+    for f in fijos:
+        desde = (f.get("desde") or "")[:7]
+        if len(desde) != 7:
+            continue
+        fin = (f.get("hasta") or "")[:7] or hasta_mes
+        fin = min(fin, hasta_mes)
+        mes = desde
+        vueltas = 0
+        while mes <= fin and vueltas < 240:
+            filas.append((f"{mes}-01", f.get("categoria") or "otros", int(f.get("importe_cents") or 0)))
+            mes = _siguiente_mes(mes)
+            vueltas += 1
+    return filas
+
+
+def fijo_activo(f: dict, mes: str) -> bool:
+    desde = (f.get("desde") or "")[:7]
+    hasta = (f.get("hasta") or "")[:7]
+    return bool(desde) and desde <= mes and (not hasta or hasta >= mes)
+
+
 async def panel_gastos(org_id: int, db_session: AsyncSession) -> dict:
     from src.services.payments.payments import _desde_cuando
 
@@ -180,7 +211,35 @@ async def panel_gastos(org_id: int, db_session: AsyncSession) -> dict:
     ]
     lista.sort(key=lambda g: g["fecha"], reverse=True)
 
-    datos = resumen_gastos(ventas, [(g["fecha"], g["categoria"], g["importe_cents"]) for g in lista], int(alumnos))
+    # Los gastos fijos: uno por mes mientras estén activos. No salen en "Lo
+    # apuntado" (sería una fila por mes y por gasto): se ven en su bloque.
+    mes_actual = datetime.now(timezone.utc).strftime("%Y-%m")
+    fijos = [
+        {
+            "id": f.id,
+            "concepto": f.concepto,
+            "categoria": f.categoria,
+            "importe_cents": f.importe_cents,
+            "desde": f.desde,
+            "hasta": f.hasta,
+            "nota": f.nota,
+        }
+        for f in (
+            await db_session.execute(
+                select(SchoolRecurringExpense).where(SchoolRecurringExpense.org_id == org_id).order_by(SchoolRecurringExpense.id)  # type: ignore[attr-defined]
+            )
+        ).scalars().all()
+    ]
+    for f in fijos:
+        f["activo"] = fijo_activo(f, mes_actual)
+
+    datos = resumen_gastos(
+        ventas,
+        [(g["fecha"], g["categoria"], g["importe_cents"]) for g in lista] + expandir_fijos(fijos, mes_actual),
+        int(alumnos),
+    )
+    datos["fijos"] = fijos
+    datos["fijos_al_mes_cents"] = sum(f["importe_cents"] for f in fijos if f["activo"])
     datos["gastos"] = lista[:500]
     datos["categorias"] = CATEGORIAS
     datos["desde"] = desde
@@ -218,5 +277,56 @@ async def borrar_gasto(org_id: int, gasto_id: int, db_session: AsyncSession) -> 
     if g is None:
         return False
     await db_session.delete(g)
+    await db_session.commit()
+    return True
+
+
+def _mes_ok(texto: str) -> str:
+    texto = (texto or "").strip()[:7]
+    try:
+        datetime.strptime(texto, "%Y-%m")
+        return texto
+    except ValueError:
+        return ""
+
+
+async def guardar_fijo(org_id: int, data: dict, db_session: AsyncSession, fijo_id: Optional[int] = None) -> Optional[SchoolRecurringExpense]:
+    if fijo_id is not None:
+        f = (
+            await db_session.execute(
+                select(SchoolRecurringExpense).where(SchoolRecurringExpense.id == fijo_id, SchoolRecurringExpense.org_id == org_id)
+            )
+        ).scalars().first()
+        if f is None:
+            return None
+    else:
+        f = SchoolRecurringExpense(org_id=org_id, created_at=datetime.now(timezone.utc).isoformat())
+    if "concepto" in data:
+        f.concepto = (data.get("concepto") or "").strip()[:200]
+    if "categoria" in data:
+        f.categoria = data.get("categoria") if data.get("categoria") in CATEGORIAS else "otros"
+    if "importe" in data and data.get("importe") is not None:
+        f.importe_cents = int(round(float(data["importe"]) * 100))
+    if "desde" in data:
+        f.desde = _mes_ok(data.get("desde") or "") or f.desde or datetime.now(timezone.utc).strftime("%Y-%m")
+    if "hasta" in data:
+        f.hasta = _mes_ok(data.get("hasta") or "")
+    if "nota" in data:
+        f.nota = (data.get("nota") or "").strip()[:500]
+    db_session.add(f)
+    await db_session.commit()
+    await db_session.refresh(f)
+    return f
+
+
+async def borrar_fijo(org_id: int, fijo_id: int, db_session: AsyncSession) -> bool:
+    f = (
+        await db_session.execute(
+            select(SchoolRecurringExpense).where(SchoolRecurringExpense.id == fijo_id, SchoolRecurringExpense.org_id == org_id)
+        )
+    ).scalars().first()
+    if f is None:
+        return False
+    await db_session.delete(f)
     await db_session.commit()
     return True

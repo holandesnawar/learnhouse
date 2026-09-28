@@ -22,6 +22,7 @@ from src.services.contactos.metricas import emails_excluidos
 from src.services.orgs.acceso import exigir_acceso
 from src.services.panel import pipeline, tareas
 from src.services.panel.cliente import ficha_cliente
+from src.services.panel.clientes import listar_clientes
 
 router = APIRouter()
 
@@ -175,3 +176,17 @@ async def api_borrar_tarea(
     if not r.get("ok"):
         raise HTTPException(status_code=403, detail=r.get("motivo"))
     return r
+
+
+@router.get("/org/{org_id}/clientes", summary="Quien ha pagado, con lo que pagó y si sigue entrando (administradores).")
+async def api_clientes(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    # Es dinero: solo administradores (el closer no ve ingresos).
+    if not await _es_admin(current_user, org_id, db_session):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    return await listar_clientes(db_session)
