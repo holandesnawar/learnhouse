@@ -29,6 +29,7 @@ import {
 import { hoyISO } from '@services/stats/contactos'
 import { Download, FileText, Loader2, Paperclip, Plus, Trash2, Upload } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { confirmar } from '@lib/nawar/confirmar'
 
 const CARD = 'rounded-2xl border border-[#DDE6F5] bg-white p-3.5 sm:p-5'
 const INPUT =
@@ -247,7 +248,7 @@ function Fila({ g, cat, orgId, accessToken, onCambio }: { g: Gasto; cat: Record<
     onCambio()
   }
   async function quitar() {
-    if (!g.id || !window.confirm('¿Borrar esta factura? También sale de Gastos.')) return
+    if (!g.id || !(await confirmar('¿Borrar esta factura? También sale de Gastos.'))) return
     if (!(await borrarGasto(orgId, g.id, accessToken))) return toast.error('No se ha podido borrar')
     onCambio()
   }

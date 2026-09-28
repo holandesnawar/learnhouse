@@ -15,6 +15,7 @@ import { borrarFijo, borrarGasto, cambiarFijo, crearFijo, deleteManualEntry, eur
 import { hoyISO } from '@services/stats/contactos'
 import { Loader2, Plus, Repeat, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { confirmar } from '@lib/nawar/confirmar'
 
 const CARD = 'rounded-2xl border border-[#DDE6F5] bg-white p-3.5 sm:p-5'
 const LABEL = 'text-[10px] sm:text-[11px] font-semibold text-[#8A96AB] uppercase tracking-[0.08em]'
@@ -64,7 +65,7 @@ function GastosFijos({ datos, orgId, accessToken, onCambio }: { datos: PanelGast
     onCambio()
   }
   async function baja(f: GastoFijo) {
-    if (!window.confirm(`¿Dar de baja «${f.concepto}»? Deja de contar a partir del mes que viene; lo de antes se queda.`)) return
+    if (!(await confirmar(`¿Dar de baja «${f.concepto}»? Deja de contar a partir del mes que viene; lo de antes se queda.`, { boton: 'Dar de baja', peligro: false }))) return
     const r = await cambiarFijo(orgId, f.id, { hasta: MES_ACTUAL() }, accessToken)
     if (!r.ok) return toast.error(r.error || 'No se ha podido cambiar')
     onCambio()
@@ -75,7 +76,7 @@ function GastosFijos({ datos, orgId, accessToken, onCambio }: { datos: PanelGast
     onCambio()
   }
   async function quitar(f: GastoFijo) {
-    if (!window.confirm(`¿Borrar «${f.concepto}» del todo? También desaparece de los meses pasados. Si solo ya no lo pagas, mejor «Dar de baja».`)) return
+    if (!(await confirmar(`¿Borrar «${f.concepto}» del todo? También desaparece de los meses pasados. Si solo ya no lo pagas, mejor «Dar de baja».`))) return
     const r = await borrarFijo(orgId, f.id, accessToken)
     if (!r.ok) return toast.error(r.error || 'No se ha podido borrar')
     onCambio()
@@ -225,7 +226,7 @@ export default function GastosPanel() {
   }
 
   async function quitar(g: Gasto) {
-    if (!window.confirm('¿Borrar este gasto?')) return
+    if (!(await confirmar('¿Borrar este gasto?'))) return
     const ok = g.antiguo_id
       ? await deleteManualEntry(org?.id, g.antiguo_id, accessToken)
       : await borrarGasto(org?.id, g.id as number, accessToken)

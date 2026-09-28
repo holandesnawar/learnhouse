@@ -1690,8 +1690,14 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
     `lead_pipeline.oculto`, en `_ADDED_COLUMNS`; sigue contando) o **"Era una
     prueba: también de los números"**. Quien está fuera de los números tampoco
     sale en el tablero. Las quitadas se ven y se devuelven con "N quitadas del
-    tablero" (`PUT /panel/org/{id}/tablero/ocultar`, solo administradores). La
-    papelera va en rojo, no en gris claro.
+    tablero" (`PUT /panel/org/{id}/tablero/ocultar`, solo administradores).
+  - **El botón de borrar va DENTRO de la ficha** ("Borrar" / "Quitar del
+    tablero", arriba, junto a WhatsApp), no en cada tarjeta: en la tarjeta
+    "era muy grande" (usuario, 28/09).
+  - ⚠️ **Nada de `window.confirm` en el panel**: se usa `confirmar()` de
+    `lib/nawar/confirmar.tsx`, pintado por la escuela. El del navegador lo
+    bloquean o lo contestan solo algunos móviles (la escuela instalada como
+    app, el navegador de Instagram) y el botón parece muerto.
   - **Orden del tablero: lo más nuevo arriba** en cada columna (`llegada` = día
     que pidió plaza o llegó al pago). Antes arriba iba lo más parado.
 - **Facturas en dos partes** (`FacturasDosPartes.tsx`, `?vista=empresa`): "De

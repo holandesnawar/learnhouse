@@ -9,7 +9,8 @@
  * la columna (móvil). "Alumno" no se arrastra: sale sola al pagar.
  * En cada columna, lo más nuevo arriba (el día que llegó).
  *
- * La papelera (solo administradores): a quien no ha pagado se le BORRA; a un
+ * Borrar (solo administradores), dentro de la ficha de cada persona —en la
+ * tarjeta ocupaba demasiado (28/09)—: a quien no ha pagado se le BORRA; a un
  * alumno no (hay cobro y factura), y se elige entre quitarlo solo del tablero
  * o, si era una prueba, también de los números. Antes a un alumno solo se le
  * quitaba de los números y la tarjeta seguía ahí: "no puedo borrarla".
@@ -36,7 +37,7 @@ import FichaCliente from './FichaCliente'
 import { quitarPersona } from './quitarPersona'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { quitarDeMetricas, volverAContar } from '@services/stats/contactos'
-import { CheckSquare, Eye, Loader2, RotateCcw, Search, Trash2, X } from 'lucide-react'
+import { CheckSquare, Eye, Loader2, RotateCcw, Search, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const COLOR: Record<EtapaTablero, string> = {
@@ -57,26 +58,14 @@ const QUE_ES: Record<EtapaTablero, string> = {
   perdido: 'No sigue, por ahora',
 }
 
-function TarjetaVista({ t, onAbrir, onBorrar }: { t: Tarjeta; onAbrir: () => void; onBorrar?: () => void }) {
+function TarjetaVista({ t, onAbrir }: { t: Tarjeta; onAbrir: () => void }) {
   return (
     <div className="group relative">
-    {onBorrar ? (
-      // Solo administradores. Siempre a la vista: escondida hasta pasar el ratón
-      // no se veía (ya pasó con los botones de borrar de Contactos).
-      <button
-        onClick={onBorrar}
-        aria-label={t.etapa === 'alumno' ? 'Quitar del tablero' : 'Borrar matrícula'}
-        title={t.etapa === 'alumno' ? 'Quitar del tablero' : 'Borrar matrícula'}
-        className="absolute right-1.5 top-1.5 z-10 p-1.5 rounded-md text-red-400 hover:text-red-600 bg-white hover:bg-red-50 transition-colors"
-      >
-        <Trash2 size={15} />
-      </button>
-    ) : null}
     <button
       onClick={onAbrir}
       className="w-full text-left rounded-xl bg-white border border-[#E6EBF5] hover:border-[#4da3ff] shadow-[0_1px_2px_rgba(16,24,40,0.04)] px-3 py-2.5 transition-colors"
     >
-      <p className="text-[13.5px] font-semibold text-gray-900 truncate pr-6">{t.nombre || t.email}</p>
+      <p className="text-[13.5px] font-semibold text-gray-900 truncate">{t.nombre || t.email}</p>
       <p className="text-[11.5px] text-[#5A6480] truncate">{t.que_hizo}</p>
       <div className="mt-2 flex flex-wrap items-center gap-1">
         {t.canal ? (
@@ -125,7 +114,10 @@ export default function KanbanPanel() {
       return
     }
     const r = await quitarPersona(org?.id, accessToken, { email: t.email, nombre: t.nombre, esAlumno: false })
-    if (r) cargar()
+    if (r) {
+      setAbierta(null)
+      cargar()
+    }
   }
 
   async function quitarAlumno(t: Tarjeta, tambienNumeros: boolean) {
@@ -138,6 +130,7 @@ export default function KanbanPanel() {
     }
     toast.success(tambienNumeros ? 'Quitado del tablero y de los números' : 'Quitado del tablero')
     setPregunta(null)
+    setAbierta(null)
     cargar()
   }
 
@@ -225,6 +218,7 @@ export default function KanbanPanel() {
   }
 
   const quitadas = (datos.tarjetas ?? []).filter((c) => c.oculto)
+  const tarjetaAbierta = abierta ? datos.tarjetas.find((c) => c.email === abierta) : undefined
   const total = filtradas.length
   const abiertos = filtradas.filter((c) => c.etapa !== 'alumno' && c.etapa !== 'perdido').length
 
@@ -316,7 +310,7 @@ export default function KanbanPanel() {
         <p className="text-[12px] text-[#8A96AB] mt-2">{QUE_ES[columnaMovil]}. Ábrela para cambiarla de columna.</p>
         <div className="mt-2 space-y-2">
           {(porColumna[columnaMovil] ?? []).map((t) => (
-            <TarjetaVista key={t.email} t={t} onAbrir={() => setAbierta(t.email)} onBorrar={isAdmin ? () => borrar(t) : undefined} />
+            <TarjetaVista key={t.email} t={t} onAbrir={() => setAbierta(t.email)} />
           ))}
           {!porColumna[columnaMovil]?.length ? <p className="text-[13px] text-[#8A96AB] py-6 text-center">Nadie en esta columna.</p> : null}
         </div>
@@ -347,7 +341,7 @@ export default function KanbanPanel() {
                         <Draggable draggableId={t.email} index={i} key={t.email} isDragDisabled={t.etapa === 'alumno'}>
                           {(p) => (
                             <div ref={p.innerRef} {...p.draggableProps} {...p.dragHandleProps}>
-                              <TarjetaVista t={t} onAbrir={() => setAbierta(t.email)} onBorrar={isAdmin ? () => borrar(t) : undefined} />
+                              <TarjetaVista t={t} onAbrir={() => setAbierta(t.email)} />
                             </div>
                           )}
                         </Draggable>
@@ -363,7 +357,7 @@ export default function KanbanPanel() {
       </div>
 
       {pregunta ? (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-3" onClick={() => !haciendo && setPregunta(null)}>
+        <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/40 p-3" onClick={() => !haciendo && setPregunta(null)}>
           <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start gap-3">
               <p className="flex-1 text-[16px] font-bold text-gray-900">Quitar a {pregunta.nombre || pregunta.email}</p>
@@ -397,7 +391,15 @@ export default function KanbanPanel() {
         </div>
       ) : null}
 
-      {abierta ? <FichaCliente email={abierta} onClose={() => setAbierta(null)} onCambio={cargar} /> : null}
+      {abierta ? (
+        <FichaCliente
+          email={abierta}
+          onClose={() => setAbierta(null)}
+          onCambio={cargar}
+          onQuitar={isAdmin && tarjetaAbierta ? () => borrar(tarjetaAbierta) : undefined}
+          quitarEtiqueta={tarjetaAbierta?.etapa === 'alumno' ? 'Quitar del tablero' : 'Borrar'}
+        />
+      ) : null}
     </div>
   )
 }

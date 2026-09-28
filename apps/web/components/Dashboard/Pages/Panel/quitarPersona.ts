@@ -13,6 +13,7 @@
 
 import { avisoTrasBorrar, borrarContacto, quitarDeMetricas, volverAContar } from '@services/stats/contactos'
 import toast from 'react-hot-toast'
+import { confirmar } from '@lib/nawar/confirmar'
 
 export type Resultado = 'borrado' | 'fuera' | 'vuelve' | null
 
@@ -33,9 +34,9 @@ export async function quitarPersona(
   }
   if (p.esAlumno) {
     if (
-      !window.confirm(
+      !(await confirmar(
         `${quien} ya ha pagado, así que no se borra: se quita de los números (estadísticas, gastos y plazas). Su cuenta, su acceso y su pago siguen igual. ¿Seguimos?`
-      )
+      ))
     )
       return null
     const r = await quitarDeMetricas(orgId, p.email, accessToken)
@@ -46,7 +47,7 @@ export async function quitarPersona(
     toast.success('Quitado de los números')
     return 'fuera'
   }
-  if (!window.confirm(`¿Borrar la matrícula de ${quien}? Se borran sus guías, llamadas, solicitudes, notas y matrículas sin pagar. No se puede deshacer.`))
+  if (!(await confirmar(`¿Borrar la matrícula de ${quien}? Se borran sus guías, llamadas, solicitudes, notas y matrículas sin pagar. No se puede deshacer.`)))
     return null
   const r = await borrarContacto(orgId, p.email, accessToken)
   if (!r.ok) {

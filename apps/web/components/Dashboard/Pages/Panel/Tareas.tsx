@@ -20,6 +20,7 @@ import {
 import { hoyISO } from '@services/stats/contactos'
 import { Check, Flag, Loader2, Plus, Trash2, User } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { confirmar } from '@lib/nawar/confirmar'
 
 const INPUT =
   'w-full bg-[#F0F5FF] rounded-lg px-3 py-2 text-[13.5px] text-[#1D0084] placeholder:text-[#1D0084]/45 border border-transparent outline-none focus:bg-white focus:border-[#4da3ff]'
@@ -173,7 +174,7 @@ export function FilaTarea({
     else toast.error(r.error || 'No se ha podido cambiar')
   }
   async function quitar() {
-    if (!window.confirm('¿Borrar esta tarea?')) return
+    if (!(await confirmar('¿Borrar esta tarea?'))) return
     const r = await borrarTarea(org?.id, tarea.id, accessToken)
     if (r.ok) onBorrada(tarea.id)
     else toast.error(r.error || 'No se ha podido borrar')

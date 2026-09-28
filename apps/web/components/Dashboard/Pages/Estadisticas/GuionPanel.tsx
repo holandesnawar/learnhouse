@@ -17,6 +17,7 @@ import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { getGuion, guardarGuion } from '@services/stats/contactos'
 import { Loader2, Pencil, RotateCcw } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { confirmar } from '@lib/nawar/confirmar'
 
 const CARD = 'rounded-2xl border border-[#DDE6F5] bg-white p-4 sm:p-6'
 
@@ -142,8 +143,8 @@ export default function GuionPanel() {
           />
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
             <button
-              onClick={() => {
-                if (window.confirm('¿Volver al guion de fábrica? Se pierde lo que hayas cambiado.')) guardar('')
+              onClick={async () => {
+                if (await confirmar('¿Volver al guion de fábrica? Se pierde lo que hayas cambiado.', { boton: 'Sí, volver' })) guardar('')
               }}
               disabled={guardando}
               className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-gray-500 hover:text-gray-800 disabled:opacity-50"
