@@ -384,6 +384,8 @@ export interface Gasto {
   concepto: string
   importe_cents: number
   nota: string
+  /** Viene de una campaña de Anuncios: se cambia allí, no aquí. */
+  anuncio_id?: number
 }
 
 export interface PanelGastos {

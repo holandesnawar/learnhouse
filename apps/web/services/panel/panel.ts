@@ -183,3 +183,37 @@ export interface Cliente {
 
 export const getClientes = (orgId: number, t: string) =>
   pedir<{ clientes: Cliente[]; total_cents: number; n: number }>(`panel/org/${orgId}/clientes`, 'GET', null, t)
+
+export interface Campana {
+  id: number
+  nombre: string
+  plataforma: string
+  utm_campaign: string
+  inicio: string
+  fin: string
+  gasto_cents: number
+  notas: string
+  leads: number
+  matriculas: number
+  ventas: number
+  ingresos_cents: number
+  coste_por_lead_cents: number | null
+  coste_por_venta_cents: number | null
+  retorno: number | null
+  personas: { email: string; nombre: string; etapa: string; when: string }[]
+}
+
+export interface PanelAds {
+  campanas: Campana[]
+  sin_apuntar: { utm_campaign: string; leads: number; ventas: number }[]
+  total: { gasto_cents: number; leads: number; ventas: number; ingresos_cents: number; retorno: number | null }
+  plataformas: Record<string, string>
+}
+
+export type CampanaNueva = { nombre?: string; plataforma?: string; utm_campaign?: string; inicio?: string; fin?: string; gasto?: number; notas?: string }
+
+export const getAds = (orgId: number, t: string) => pedir<PanelAds>(`panel/org/${orgId}/ads`, 'GET', null, t)
+export const crearCampana = (orgId: number, d: CampanaNueva, t: string) => pedir<{ ok: boolean }>(`panel/org/${orgId}/ads`, 'POST', d, t)
+export const cambiarCampana = (orgId: number, id: number, d: CampanaNueva, t: string) =>
+  pedir<{ ok: boolean }>(`panel/org/${orgId}/ads/${id}`, 'PUT', d, t)
+export const borrarCampana = (orgId: number, id: number, t: string) => pedir<{ ok: boolean }>(`panel/org/${orgId}/ads/${id}`, 'DELETE', null, t)

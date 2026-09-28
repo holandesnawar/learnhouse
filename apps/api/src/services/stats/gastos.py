@@ -209,6 +209,25 @@ async def panel_gastos(org_id: int, db_session: AsyncSession) -> dict:
         for m in antiguos
         if (m.value or 0) > 0
     ]
+    # Lo gastado en anuncios se apunta en Anuncios y cuenta aquí solo, como
+    # publicidad del mes en que empezó la campaña: así no se teclea dos veces.
+    from src.db.panel_negocio import AdCampaign
+
+    for c in (await db_session.execute(select(AdCampaign).where(AdCampaign.org_id == org_id))).scalars().all():
+        if (c.gasto_cents or 0) <= 0:
+            continue
+        lista.append(
+            {
+                "id": None,
+                "fecha": c.inicio or (c.created_at or "")[:10],
+                "categoria": "publicidad",
+                "concepto": f"Anuncio: {c.nombre}",
+                "importe_cents": int(c.gasto_cents),
+                "nota": "Se cambia en Anuncios",
+                "antiguo_id": None,
+                "anuncio_id": c.id,
+            }
+        )
     lista.sort(key=lambda g: g["fecha"], reverse=True)
 
     # Los gastos fijos: uno por mes mientras estén activos. No salen en "Lo

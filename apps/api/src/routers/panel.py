@@ -20,7 +20,7 @@ from src.security.auth import get_current_user
 from src.services.contactos.contactos import _emails_con_cuenta, _todos_los_eventos, fusionar_contactos
 from src.services.contactos.metricas import emails_excluidos
 from src.services.orgs.acceso import exigir_acceso
-from src.services.panel import pipeline, tareas
+from src.services.panel import ads, pipeline, tareas
 from src.services.panel.cliente import ficha_cliente
 from src.services.panel.clientes import listar_clientes
 
@@ -190,3 +190,78 @@ async def api_clientes(
     if not await _es_admin(current_user, org_id, db_session):
         raise HTTPException(status_code=403, detail="Solo administradores")
     return await listar_clientes(db_session)
+
+
+# ── Anuncios (solo administradores: es dinero) ─────────────────────────────
+
+
+async def _solo_admin(request: Request, org_id: int, current_user, db_session: AsyncSession) -> None:
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    if not await _es_admin(current_user, org_id, db_session):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+
+
+@router.get("/org/{org_id}/ads", summary="Campañas de anuncios con los leads, matrículas y ventas que trajo cada una.")
+async def api_ads(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _solo_admin(request, org_id, current_user, db_session)
+    return await ads.panel_ads(org_id, db_session)
+
+
+class CampanaIn(BaseModel):
+    nombre: Optional[str] = None
+    plataforma: Optional[str] = None
+    utm_campaign: Optional[str] = None
+    inicio: Optional[str] = None
+    fin: Optional[str] = None
+    gasto: Optional[float] = None
+    notas: Optional[str] = None
+
+
+@router.post("/org/{org_id}/ads", summary="Apunta una campaña.")
+async def api_nueva_campana(
+    request: Request,
+    org_id: int,
+    data: CampanaIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _solo_admin(request, org_id, current_user, db_session)
+    r = await ads.guardar(org_id, data.model_dump(exclude_none=True), db_session)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    return r
+
+
+@router.put("/org/{org_id}/ads/{campana_id}", summary="Cambia una campaña (gasto, fechas…).")
+async def api_cambiar_campana(
+    request: Request,
+    org_id: int,
+    campana_id: int,
+    data: CampanaIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _solo_admin(request, org_id, current_user, db_session)
+    r = await ads.guardar(org_id, data.model_dump(exclude_none=True), db_session, campana_id)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    return r
+
+
+@router.delete("/org/{org_id}/ads/{campana_id}", summary="Borra una campaña (los leads no se tocan).")
+async def api_borrar_campana(
+    request: Request,
+    org_id: int,
+    campana_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _solo_admin(request, org_id, current_user, db_session)
+    if not await ads.borrar(org_id, campana_id, db_session):
+        raise HTTPException(status_code=404, detail="No existe esa campaña")
+    return {"ok": True}

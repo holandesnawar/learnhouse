@@ -86,3 +86,30 @@ def test_clientes_agrupados_por_correo():
     assert c[0]["total_cents"] == 39700 and c[0]["pagos"] == 2
     assert c[0]["nombre"] == "Ana García"
     assert c[0]["primer_pago"] == "2026-09-10"
+
+
+def test_anuncios_cuentan_leads_ventas_y_retorno():
+    from src.services.panel.ads import metricas
+
+    fichas = [
+        {"email": "a@x.com", "etapa": "lead", "utm_campaign": "reels-sept", "eventos": [], "primer_contacto": {"when": "2026-09-01"}},
+        {"email": "b@x.com", "etapa": "pidio", "utm_campaign": "", "eventos": [{"utm_campaign": "Reels-Sept"}], "primer_contacto": {"when": "2026-09-02"}},
+        {"email": "c@x.com", "etapa": "alumno", "utm_campaign": "reels-sept", "eventos": [], "primer_contacto": {"when": "2026-09-03"}},
+        {"email": "d@x.com", "etapa": "lead", "utm_campaign": "guia-oct", "eventos": [], "primer_contacto": {"when": "2026-09-04"}},
+    ]
+    r = metricas([{"id": 1, "nombre": "Reels", "utm_campaign": "reels-sept", "gasto_cents": 30000}], fichas, {"c@x.com": 39700})
+    c = r["campanas"][0]
+    assert (c["leads"], c["matriculas"], c["ventas"]) == (3, 2, 1)
+    assert c["coste_por_lead_cents"] == 10000
+    assert c["coste_por_venta_cents"] == 30000
+    assert c["retorno"] == 1.32
+    # La que no está apuntada sale aparte, para no perderla.
+    assert r["sin_apuntar"] == [{"utm_campaign": "guia-oct", "leads": 1, "ventas": 0}]
+
+
+def test_campana_sin_gasto_no_divide_por_cero():
+    from src.services.panel.ads import metricas
+
+    r = metricas([{"id": 1, "nombre": "X", "utm_campaign": "x", "gasto_cents": 0}], [], {})
+    assert r["campanas"][0]["coste_por_lead_cents"] is None
+    assert r["total"]["retorno"] is None
