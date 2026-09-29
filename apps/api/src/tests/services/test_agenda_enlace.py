@@ -37,8 +37,10 @@ def test_cita_desde_calendly():
         {"name": "Ana", "email": "Ana@X.com", "status": "active", "cancel_url": "c", "reschedule_url": "r"},
         {"name": "Cancelada", "email": "b@x.com", "status": "canceled"},
     ]
-    citas = cita_desde_calendly(evento, invitados)
-    assert len(citas) == 1
+    citas = cita_desde_calendly({**evento, "uri": "https://api.calendly.com/scheduled_events/EV1"}, invitados)
+    # Las canceladas también salen (el calendario las enseña tachadas).
+    assert [c["estado"] for c in citas] == ["activa", "cancelada"]
+    assert citas[0]["id"] == "EV1:ana@x.com"
     assert citas[0]["email"] == "ana@x.com"
     assert citas[0]["telefono"] == "+31612345678"
     assert citas[0]["inicio"].startswith("2026-09-25T16")
@@ -48,3 +50,22 @@ def test_cita_con_enlace_de_videollamada():
     evento = {"start_time": "t", "location": {"type": "zoom", "join_url": "https://zoom.us/j/1"}}
     citas = cita_desde_calendly(evento, [{"name": "Ana", "email": "a@x.com"}])
     assert citas[0]["enlace"] == "https://zoom.us/j/1" and citas[0]["telefono"] == ""
+
+
+def test_cita_reprogramada_dice_por_que():
+    evento = {"start_time": "t", "status": "canceled", "uri": "x/EV2"}
+    inv = {"name": "Ana", "email": "a@x.com", "status": "canceled", "rescheduled": True, "cancellation": {"reason": "No puedo"}}
+    c = cita_desde_calendly(evento, [inv])[0]
+    assert c["estado"] == "cancelada" and c["reprogramada"] and c["motivo_cancelacion"] == "No puedo"
+
+
+def test_calendario_de_google_desde_el_codigo_pegado():
+    from src.services.contactos.resultado_llamada import calendario_de_google, url_de_google
+
+    codigo = '<iframe src="https://calendar.google.com/calendar/embed?src=abc123%40group.calendar.google.com&ctz=Europe%2FAmsterdam" style="border: 0" width="800"></iframe>'
+    cal = calendario_de_google(codigo)
+    assert cal == {"ids": ["abc123@group.calendar.google.com"], "zona": "Europe/Amsterdam"}
+    assert url_de_google(cal).startswith("https://calendar.google.com/calendar/embed?src=abc123%40group.calendar.google.com")
+    # Lo que no es un calendario de Google no pasa.
+    assert calendario_de_google('<iframe src="https://malo.com/x?src=a@b.c"></iframe>')["ids"] == []
+    assert calendario_de_google("javascript:alert(1)")["ids"] == []

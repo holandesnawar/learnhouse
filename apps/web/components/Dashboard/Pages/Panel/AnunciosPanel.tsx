@@ -27,21 +27,21 @@ import { ChevronDown, ChevronRight, Loader2, Megaphone, Plus, Trash2 } from 'luc
 import toast from 'react-hot-toast'
 import { confirmar } from '@lib/nawar/confirmar'
 
-const CARD = 'rounded-2xl border border-[#DDE6F5] bg-white p-3.5 sm:p-5'
+const CARD = 'rounded-lg border border-[#E5E7EB] bg-white p-3.5 sm:p-5'
 const INPUT =
-  'w-full bg-[#F0F5FF] rounded-lg px-3 py-2 text-[13.5px] text-[#1D0084] placeholder:text-[#1D0084]/45 border border-transparent outline-none focus:bg-white focus:border-[#4da3ff]'
+  'w-full bg-white rounded-md px-3 py-2 text-[13.5px] text-gray-900 placeholder:text-gray-400 border border-[#D1D5DB] outline-none focus:border-gray-900'
 
 const ETAPA: Record<string, { texto: string; clase: string }> = {
-  lead: { texto: 'Lead', clase: 'bg-[#F3F4F6] text-[#5A6480]' },
-  pidio: { texto: 'Pidió plaza', clase: 'bg-[#EAF3FF] text-[#025dc7]' },
-  'en-pago': { texto: 'Llegó al pago', clase: 'bg-[#FFFBF2] text-[#8A6A2A]' },
-  alumno: { texto: 'Alumno', clase: 'bg-[#E8FBF3] text-[#0E9F6E]' },
+  lead: { texto: 'Lead', clase: 'bg-[#F3F4F6] text-[#6B7280]' },
+  pidio: { texto: 'Pidió plaza', clase: 'text-gray-700' },
+  'en-pago': { texto: 'Llegó al pago', clase: 'text-[#B45309]' },
+  alumno: { texto: 'Alumno', clase: 'text-[#15803D]' },
 }
 
 function Cifra({ label, valor, nota }: { label: string; valor: string; nota?: string }) {
   return (
     <div className={CARD}>
-      <p className="text-[10px] sm:text-[11px] font-semibold text-[#8A96AB] uppercase tracking-[0.08em]">{label}</p>
+      <p className="text-[10px] sm:text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-[0.08em]">{label}</p>
       <p className="text-[22px] sm:text-[26px] font-semibold tabular-nums leading-tight mt-1 text-[#1D0084]">{valor}</p>
       {nota ? <p className="text-[11.5px] text-gray-500 mt-0.5 leading-snug">{nota}</p> : null}
     </div>
@@ -51,7 +51,7 @@ function Cifra({ label, valor, nota }: { label: string; valor: string; nota?: st
 function Dato({ label, valor, fuerte = false }: { label: string; valor: string; fuerte?: boolean }) {
   return (
     <div>
-      <p className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[#8A96AB]">{label}</p>
+      <p className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[#9CA3AF]">{label}</p>
       <p className={`text-[14px] tabular-nums ${fuerte ? 'font-bold text-[#1D0084]' : 'font-semibold text-gray-900'}`}>{valor}</p>
     </div>
   )
@@ -103,33 +103,33 @@ function FormCampana({
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-[150px_170px_140px_auto] gap-2 items-end">
         <label className="block">
-          <span className="block text-[11px] font-semibold text-[#8A96AB] mb-1">Empieza</span>
+          <span className="block text-[11px] font-semibold text-[#9CA3AF] mb-1">Empieza</span>
           <input type="date" value={f.inicio} onChange={(e) => setF({ ...f, inicio: e.target.value })} className={INPUT} />
         </label>
         <label className="block">
-          <span className="block text-[11px] font-semibold text-[#8A96AB] mb-1">Termina (si ya acabó)</span>
+          <span className="block text-[11px] font-semibold text-[#9CA3AF] mb-1">Termina (si ya acabó)</span>
           <input type="date" value={f.fin} onChange={(e) => setF({ ...f, fin: e.target.value })} className={INPUT} />
         </label>
         <label className="block">
-          <span className="block text-[11px] font-semibold text-[#8A96AB] mb-1">Gastado hasta hoy</span>
+          <span className="block text-[11px] font-semibold text-[#9CA3AF] mb-1">Gastado hasta hoy</span>
           <input value={f.gasto} onChange={(e) => setF({ ...f, gasto: e.target.value })} inputMode="decimal" placeholder="€" className={INPUT} />
         </label>
         <div className="flex gap-2 justify-end col-span-2 sm:col-span-1">
           {onCancelar ? (
-            <button onClick={onCancelar} className="px-3 py-2 rounded-lg text-[13px] font-semibold text-[#5A6480] hover:bg-[#F0F5FF]">
+            <button onClick={onCancelar} className="px-3 py-2 rounded-lg text-[13px] font-semibold text-[#6B7280] hover:bg-[#F3F4F6]">
               Cancelar
             </button>
           ) : null}
           <button
             onClick={guardar}
             disabled={guardando}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] text-[13px] font-bold disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#025dc7] hover:bg-[#014fa9] text-white text-[13px] font-bold disabled:opacity-50"
           >
             {guardando ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} {inicial ? 'Guardar' : 'Apuntar'}
           </button>
         </div>
       </div>
-      <p className="text-[11.5px] text-[#8A96AB] leading-relaxed">
+      <p className="text-[11.5px] text-[#9CA3AF] leading-relaxed">
         El <span className="font-mono">utm_campaign</span> tiene que ser exactamente el del enlace del anuncio (lo ves en Enlaces UTM): es
         lo que une la campaña con la gente que llegó por ella. El gasto se va sumando a Gastos como publicidad.
       </p>
@@ -162,13 +162,13 @@ function FilaCampana({
   }
 
   return (
-    <div className="border-b border-[#EEF2F9] last:border-b-0">
+    <div className="border-b border-[#F3F4F6] last:border-b-0">
       <button onClick={() => setAbierta((a) => !a)} className="w-full text-left px-4 py-3 hover:bg-[#F8FAFF] transition-colors">
         <div className="flex items-start gap-2">
-          {abierta ? <ChevronDown size={16} className="mt-0.5 text-[#8A96AB] shrink-0" /> : <ChevronRight size={16} className="mt-0.5 text-[#8A96AB] shrink-0" />}
+          {abierta ? <ChevronDown size={16} className="mt-0.5 text-[#9CA3AF] shrink-0" /> : <ChevronRight size={16} className="mt-0.5 text-[#9CA3AF] shrink-0" />}
           <div className="min-w-0 flex-1">
             <p className="text-[14px] font-semibold text-gray-900 truncate">{c.nombre}</p>
-            <p className="text-[11.5px] text-[#5A6480] truncate">
+            <p className="text-[11.5px] text-[#6B7280] truncate">
               {plataformas[c.plataforma] || c.plataforma} · <span className="font-mono">{c.utm_campaign}</span>
               {c.inicio ? ` · ${fechaCorta(c.inicio)}${c.fin ? ` – ${fechaCorta(c.fin)}` : ''}` : ''}
             </p>
@@ -203,7 +203,7 @@ function FilaCampana({
             />
           ) : (
             <div className="flex flex-wrap items-center gap-2 text-[12.5px]">
-              <span className="text-[#5A6480]">
+              <span className="text-[#6B7280]">
                 {c.ingresos_cents ? `Ingresos: ${euros(c.ingresos_cents)}` : 'Sin ventas todavía'}
                 {c.coste_por_venta_cents !== null ? ` · ${euros(c.coste_por_venta_cents)} por venta` : ''}
               </span>
@@ -216,7 +216,7 @@ function FilaCampana({
             </div>
           )}
           {c.personas.length ? (
-            <ul className="rounded-xl border border-[#E6EBF5] divide-y divide-[#EEF2F9]">
+            <ul className="rounded-lg border border-[#E6EBF5] divide-y divide-[#F3F4F6]">
               {c.personas.map((p) => (
                 <li key={p.email}>
                   <button onClick={() => onAbrir(p.email)} className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-[#F8FAFF]">
@@ -224,13 +224,13 @@ function FilaCampana({
                     <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${ETAPA[p.etapa]?.clase || ETAPA.lead.clase}`}>
                       {ETAPA[p.etapa]?.texto || p.etapa}
                     </span>
-                    <span className="shrink-0 text-[11px] text-[#8A96AB] w-14 text-right">{fechaCorta(p.when)}</span>
+                    <span className="shrink-0 text-[11px] text-[#9CA3AF] w-14 text-right">{fechaCorta(p.when)}</span>
                   </button>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-[12.5px] text-[#8A96AB]">Todavía no ha llegado nadie con este utm_campaign.</p>
+            <p className="text-[12.5px] text-[#9CA3AF]">Todavía no ha llegado nadie con este utm_campaign.</p>
           )}
         </div>
       ) : null}
@@ -281,7 +281,7 @@ export default function AnunciosPanel() {
   const t = datos.total
   return (
     <div className="space-y-5">
-      <p className="text-[13px] text-[#5A6480] leading-relaxed max-w-3xl">
+      <p className="text-[13px] text-[#6B7280] leading-relaxed max-w-3xl">
         Apunta cada campaña con lo que has gastado y verás qué trajo: leads, matrículas y ventas, y cuánto costó cada uno. Cuenta
         cualquiera que haya llegado por su enlace, aunque comprara semanas después.
       </p>
@@ -300,23 +300,23 @@ export default function AnunciosPanel() {
         <FormCampana key={JSON.stringify(nueva)} plataformas={datos.plataformas} inicial={nueva ?? undefined} onGuardar={crear} />
       </div>
 
-      <div className="rounded-2xl border border-[#DDE6F5] bg-white overflow-hidden">
+      <div className="rounded-lg border border-[#E5E7EB] bg-white overflow-hidden">
         {datos.campanas.length ? (
           datos.campanas.map((c) => <FilaCampana key={c.id} c={c} plataformas={datos.plataformas} onCambio={cargar} onAbrir={setAbierta} />)
         ) : (
-          <p className="text-[13.5px] text-[#8A96AB] py-10 text-center">Todavía no hay campañas apuntadas.</p>
+          <p className="text-[13.5px] text-[#9CA3AF] py-10 text-center">Todavía no hay campañas apuntadas.</p>
         )}
       </div>
 
       {datos.sin_apuntar.length ? (
         <div className={CARD}>
           <p className="text-[14px] font-bold text-gray-900">Llegan leads de campañas que no has apuntado</p>
-          <p className="text-[12.5px] text-[#5A6480] mt-1 mb-3">Apúntalas para ver lo que te han costado.</p>
-          <ul className="divide-y divide-[#EEF2F9]">
+          <p className="text-[12.5px] text-[#6B7280] mt-1 mb-3">Apúntalas para ver lo que te han costado.</p>
+          <ul className="divide-y divide-[#F3F4F6]">
             {datos.sin_apuntar.map((s) => (
               <li key={s.utm_campaign} className="py-2 flex items-center gap-3">
                 <span className="flex-1 min-w-0 font-mono text-[12.5px] text-gray-800 truncate">{s.utm_campaign}</span>
-                <span className="text-[12px] text-[#5A6480]">
+                <span className="text-[12px] text-[#6B7280]">
                   {s.leads} {s.leads === 1 ? 'lead' : 'leads'}
                   {s.ventas ? ` · ${s.ventas} ${s.ventas === 1 ? 'venta' : 'ventas'}` : ''}
                 </span>

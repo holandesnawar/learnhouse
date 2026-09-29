@@ -35,3 +35,20 @@ class ContactRecordatorio(SQLModel, table=True):
     motivo: str = Field(default="", max_length=200)
     autor: str = Field(default="", max_length=120)
     updated_at: str = ""
+
+
+class CallOutcome(SQLModel, table=True):
+    """Qué pasó en una llamada de Calendly: lo apunta el closer al colgar.
+    Una fila por cita y persona (`cita_id` = uuid del evento + correo)."""
+
+    __tablename__ = "call_outcome"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    cita_id: str = Field(default="", index=True, max_length=200)
+    email: str = Field(default="", index=True, max_length=255)
+    # compra · piensa · no-encaja · no-vino
+    resultado: str = Field(default="", max_length=20)
+    nota: str = Field(default="", max_length=2000)
+    inicio: str = Field(default="", max_length=40)
+    autor: str = Field(default="", max_length=120)
+    updated_at: str = ""

@@ -31,6 +31,7 @@ from src.services.contactos.contactos import (
     registrar_evento,
 )
 from src.services.contactos.agenda import agenda
+from src.services.contactos.resultado_llamada import guardar_google, guardar_resultado, leer_google, resultados
 from src.services.contactos.embudo_agendar import embudo_agendar
 from src.services.contactos.metricas import excluir, volver_a_contar
 from src.services.contactos.guion import guardar_guion, leer_guion
@@ -122,7 +123,68 @@ async def api_agenda(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
-    return await agenda(forzar=forzar)
+    datos = await agenda(forzar=forzar)
+    # El resultado de cada llamada vive en la escuela, no en Calendly: se
+    # añade aquí, fuera de la caché, para que se vea en cuanto se apunta.
+    hechos = await resultados(db_session)
+    return {**datos, "citas": [{**c, "resultado": hechos.get(c.get("id") or "")} for c in datos.get("citas") or []]}
+
+
+class ResultadoLlamada(BaseModel):
+    cita_id: str
+    email: str
+    resultado: str
+    nota: str = ""
+    inicio: str = ""
+
+
+@router.post("/org/{org_id}/llamadas/resultado", summary="Qué pasó en una llamada (closer y administradores).")
+async def api_resultado_llamada(
+    request: Request,
+    org_id: int,
+    data: ResultadoLlamada,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    r = await guardar_resultado(
+        data.cita_id, data.email, data.resultado, data.nota, data.inicio, _nombre(current_user), current_user.id, db_session
+    )
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    return r
+
+
+@router.get("/org/{org_id}/agenda-google", summary="El calendario de Google que se enseña en Llamadas.")
+async def api_agenda_google(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    return await leer_google(org_id, db_session)
+
+
+class CodigoGoogle(BaseModel):
+    codigo: str = ""
+
+
+@router.put("/org/{org_id}/agenda-google", summary="Pega el código del calendario de Google (administradores).")
+async def api_guardar_agenda_google(
+    request: Request,
+    org_id: int,
+    data: CodigoGoogle,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    if not await _es_admin(current_user, org_id, db_session):
+        raise HTTPException(status_code=403, detail="Solo los administradores cambian el calendario")
+    try:
+        return await guardar_google(org_id, data.codigo, db_session)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 class PedidoEnlace(BaseModel):

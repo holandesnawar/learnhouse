@@ -20,11 +20,11 @@ type Vista = 'mias' | 'equipo' | 'hechas'
 function Grupo({ titulo, tareas, children, tono }: { titulo: string; tareas: Tarea[]; children: React.ReactNode; tono?: 'rojo' }) {
   if (!tareas.length) return null
   return (
-    <section className="rounded-2xl border border-[#DDE6F5] bg-white px-4 py-2">
-      <p className={`text-[12px] font-semibold uppercase tracking-[0.08em] pt-2 ${tono === 'rojo' ? 'text-red-700' : 'text-[#8A96AB]'}`}>
+    <section className="rounded-lg border border-[#E5E7EB] bg-white px-4 py-2">
+      <p className={`text-[12px] font-semibold uppercase tracking-[0.08em] pt-2 ${tono === 'rojo' ? 'text-red-700' : 'text-[#9CA3AF]'}`}>
         {titulo} · {tareas.length}
       </p>
-      <div className="divide-y divide-[#EEF2F9]">{children}</div>
+      <div className="divide-y divide-[#F3F4F6]">{children}</div>
     </section>
   )
 }
@@ -102,7 +102,7 @@ export default function TareasPanel() {
           <button
             key={id}
             onClick={() => setVista(id)}
-            className={`px-3 py-1.5 rounded-lg text-[12.5px] font-semibold ${vista === id ? 'bg-[#1D0084] text-white' : 'bg-white border border-[#DDE6F5] text-[#5A6480]'}`}
+            className={`px-3 py-1.5 rounded-lg text-[12.5px] font-semibold ${vista === id ? 'bg-gray-900 text-white' : 'bg-white border border-[#E5E7EB] text-[#6B7280]'}`}
           >
             {label}
           </button>
@@ -111,7 +111,7 @@ export default function TareasPanel() {
           <select
             value={persona}
             onChange={(e) => setPersona(Number(e.target.value))}
-            className="ml-auto bg-white border border-[#DDE6F5] rounded-lg px-2.5 py-1.5 text-[12.5px] text-gray-800"
+            className="ml-auto bg-white border border-[#E5E7EB] rounded-lg px-2.5 py-1.5 text-[12.5px] text-gray-800"
           >
             <option value={0}>Todos</option>
             {(equipo?.equipo ?? []).map((m) => (
@@ -128,7 +128,7 @@ export default function TareasPanel() {
           <Loader2 className="animate-spin text-gray-400" size={22} />
         </div>
       ) : !visibles.length ? (
-        <p className="text-[13.5px] text-[#8A96AB] py-10 text-center">
+        <p className="text-[13.5px] text-[#9CA3AF] py-10 text-center">
           {vista === 'hechas' ? 'Todavía no hay tareas hechas.' : 'Nada pendiente por aquí.'}
         </p>
       ) : vista === 'hechas' ? (

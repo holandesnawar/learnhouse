@@ -23,7 +23,7 @@ import toast from 'react-hot-toast'
 import { confirmar } from '@lib/nawar/confirmar'
 
 const INPUT =
-  'w-full bg-[#F0F5FF] rounded-lg px-3 py-2 text-[13.5px] text-[#1D0084] placeholder:text-[#1D0084]/45 border border-transparent outline-none focus:bg-white focus:border-[#4da3ff]'
+  'w-full bg-white rounded-md px-3 py-2 text-[13.5px] text-gray-900 placeholder:text-gray-400 border border-[#D1D5DB] outline-none focus:border-gray-900'
 
 let equipoCache: { equipo: MiembroEquipo[]; yo: number } | null = null
 
@@ -93,7 +93,7 @@ export function TareaForm({
   }
 
   return (
-    <div className={compacto ? 'space-y-2' : 'rounded-2xl border border-[#DDE6F5] bg-white p-3.5 sm:p-4 space-y-2'}>
+    <div className={compacto ? 'space-y-2' : 'rounded-lg border border-[#E5E7EB] bg-white p-3.5 sm:p-4 space-y-2'}>
       <input
         value={titulo}
         onChange={(e) => setTitulo(e.target.value)}
@@ -112,7 +112,7 @@ export function TareaForm({
               key={l}
               type="button"
               onClick={() => setFecha(f)}
-              className={`px-2.5 py-1.5 rounded-lg text-[12px] font-semibold ${fecha === f ? 'bg-[#1D0084] text-white' : 'bg-[#F0F5FF] text-[#025dc7]'}`}
+              className={`px-2.5 py-1.5 rounded-lg text-[12px] font-semibold ${fecha === f ? 'bg-gray-900 text-white' : 'border border-[#E5E7EB] bg-white text-gray-800'}`}
             >
               {l}
             </button>
@@ -133,14 +133,14 @@ export function TareaForm({
         <button
           type="button"
           onClick={() => setAlta((a) => !a)}
-          className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold ${alta ? 'bg-red-50 text-red-700' : 'bg-[#F0F5FF] text-[#5A6480]'}`}
+          className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold ${alta ? 'text-red-600' : 'border border-[#E5E7EB] bg-white text-gray-600'}`}
         >
           <Flag size={12} /> Importante
         </button>
         <button
           onClick={guardar}
           disabled={guardando || !titulo.trim()}
-          className="ml-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] text-[13px] font-bold disabled:opacity-40"
+          className="ml-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#025dc7] hover:bg-[#014fa9] text-white text-[13px] font-bold disabled:opacity-40"
         >
           {guardando ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Añadir
         </button>
@@ -186,7 +186,7 @@ export function FilaTarea({
         onClick={alternar}
         aria-label={hecha ? 'Marcar pendiente' : 'Marcar hecha'}
         className={`mt-0.5 shrink-0 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
-          hecha ? 'bg-[#0E9F6E] border-[#0E9F6E]' : 'border-[#B9C6DC] hover:border-[#025dc7]'
+          hecha ? 'bg-[#0E9F6E] border-[#0E9F6E]' : 'border-[#9CA3AF] hover:border-[#025dc7]'
         }`}
       >
         {hecha ? <Check size={12} className="text-white" strokeWidth={3} /> : null}
@@ -196,11 +196,11 @@ export function FilaTarea({
           {tarea.prioridad === 'alta' && !hecha ? <Flag size={12} className="inline text-red-600 mr-1 -mt-0.5" /> : null}
           {tarea.titulo}
         </p>
-        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-[#5A6480]">
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-[#6B7280]">
           {f && !hecha ? (
             <span
               className={`rounded-full px-2 py-0.5 font-semibold ${
-                f.tono === 'rojo' ? 'bg-red-50 text-red-700' : f.tono === 'azul' ? 'bg-[#EAF3FF] text-[#025dc7]' : 'bg-[#F3F4F6] text-[#5A6480]'
+                f.tono === 'rojo' ? 'text-red-600' : f.tono === 'azul' ? 'text-gray-700' : 'bg-[#F3F4F6] text-[#6B7280]'
               }`}
             >
               {f.texto}
@@ -221,7 +221,7 @@ export function FilaTarea({
           {tarea.creado_por && tarea.creado_por !== tarea.asignado ? <span>· de {tarea.creado_por}</span> : null}
         </div>
       </div>
-      <button onClick={quitar} aria-label="Borrar tarea" className="shrink-0 mt-0.5 text-[#B9C6DC] hover:text-red-600">
+      <button onClick={quitar} aria-label="Borrar tarea" className="shrink-0 mt-0.5 text-[#9CA3AF] hover:text-red-600">
         <Trash2 size={14} />
       </button>
     </div>

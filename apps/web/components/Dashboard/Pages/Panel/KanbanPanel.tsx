@@ -39,6 +39,7 @@ import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { quitarDeMetricas, volverAContar } from '@services/stats/contactos'
 import { CheckSquare, ChevronDown, ChevronsLeft, Eye, Loader2, RotateCcw, Search, StickyNote, X } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { BOTON, filtro } from './ui'
 
 // Un color por columna, solo en el punto junto al nombre y en tonos apagados.
 // Primero eran tres azules seguidos ("hay más colores, no solo azul") y luego
@@ -75,7 +76,7 @@ function VerMas({ id, total, vistas, onMas }: { id: string; total: number; vista
   return (
     <button
       onClick={() => onMas(id)}
-      className="w-full inline-flex items-center justify-center gap-1 rounded-lg border border-dashed border-[#C9D6EC] bg-white/60 py-2 text-[12px] font-semibold text-[#025dc7] hover:bg-white"
+      className="w-full inline-flex items-center justify-center gap-1 rounded-md py-1.5 text-[12.5px] font-medium text-gray-600 hover:text-gray-900 hover:bg-white"
     >
       <ChevronDown size={13} />
       {total - vistas <= 20 ? `Ver ${total - vistas === 1 ? 'la que falta' : `las ${total - vistas} que faltan`}` : `Ver 20 más · quedan ${total - vistas}`}
@@ -84,44 +85,42 @@ function VerMas({ id, total, vistas, onMas }: { id: string; total: number; vista
 }
 
 function TarjetaVista({ t, onAbrir }: { t: Tarjeta; onAbrir: () => void }) {
+  // Sin cajitas de color (29/09, "que parezca un software"): una línea de
+  // datos en gris con iconos pequeños. Las notas van en negro para que se
+  // vean de un vistazo, que es para lo que están (pedido del 28/09).
   return (
-    <div className="group relative">
     <button
       onClick={onAbrir}
-      className="w-full text-left rounded-xl bg-white border border-[#E6EBF5] hover:border-[#4da3ff] shadow-[0_1px_2px_rgba(16,24,40,0.04)] px-3 py-2.5 transition-colors"
+      className="w-full text-left rounded-md bg-white border border-[#E5E7EB] hover:border-[#9CA3AF] px-3 py-2.5 transition-colors"
     >
-      <p className="text-[13.5px] font-semibold text-gray-900 truncate">{t.nombre || t.email}</p>
-      <p className="text-[11.5px] text-[#5A6480] truncate">{t.que_hizo}</p>
-      <div className="mt-2 flex flex-wrap items-center gap-1">
-        {t.canal ? (
-          <span className="rounded-full bg-[#EAF3FF] text-[#025dc7] px-2 py-0.5 text-[10.5px] font-semibold">{NOMBRE_CANAL[t.canal]}</span>
-        ) : null}
-        {t.vio_precio ? (
-          <span className="inline-flex items-center gap-0.5 rounded-full bg-[#E8FBF3] text-[#0E9F6E] px-2 py-0.5 text-[10.5px] font-semibold">
-            <Eye size={10} /> precio
-          </span>
-        ) : null}
-        {t.notas ? (
-          // Hay notas del equipo: se ve sin abrir la ficha. Al pasar el ratón,
-          // la última.
-          <span
-            title={t.ultima_nota ? `Última nota: ${t.ultima_nota}` : 'Tiene notas'}
-            className="inline-flex items-center gap-0.5 rounded-full bg-[#FFF4D6] text-[#8A6A2A] px-2 py-0.5 text-[10.5px] font-semibold"
-          >
-            <StickyNote size={10} /> {t.notas === 1 ? 'nota' : `${t.notas} notas`}
-          </span>
-        ) : null}
-        {t.tareas ? (
-          <span className="inline-flex items-center gap-0.5 rounded-full bg-[#FFFBF2] text-[#8A6A2A] px-2 py-0.5 text-[10.5px] font-semibold">
-            <CheckSquare size={10} /> {t.tareas}
-          </span>
-        ) : null}
-        <span className="ml-auto text-[10.5px] text-[#8A96AB]" title="Cuándo llegó">
+      <div className="flex items-baseline gap-2">
+        <p className="flex-1 min-w-0 text-[13.5px] font-medium text-gray-900 truncate">{t.nombre || t.email}</p>
+        <span className="shrink-0 text-[11.5px] text-gray-400 tabular-nums" title="Cuándo llegó">
           {haceCuanto(t.llegada || t.desde)}
         </span>
       </div>
+      <p className="text-[12px] text-gray-500 truncate">{t.que_hizo}</p>
+      {t.canal || t.vio_precio || t.notas || t.tareas ? (
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11.5px] text-gray-500">
+          {t.canal ? <span>{NOMBRE_CANAL[t.canal]}</span> : null}
+          {t.vio_precio ? (
+            <span className="inline-flex items-center gap-1">
+              <Eye size={11} /> vio precio
+            </span>
+          ) : null}
+          {t.notas ? (
+            <span title={t.ultima_nota ? `Última nota: ${t.ultima_nota}` : 'Tiene notas'} className="inline-flex items-center gap-1 font-medium text-gray-900">
+              <StickyNote size={11} /> {t.notas}
+            </span>
+          ) : null}
+          {t.tareas ? (
+            <span className="inline-flex items-center gap-1" title="Tareas pendientes">
+              <CheckSquare size={11} /> {t.tareas}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
     </button>
-    </div>
   )
 }
 
@@ -278,7 +277,7 @@ export default function KanbanPanel() {
 
   return (
     <div className="space-y-4">
-      <p className="text-[13px] text-[#5A6480] leading-relaxed max-w-3xl">
+      <p className="text-[13px] text-[#6B7280] leading-relaxed max-w-3xl">
         Cada persona que pidió plaza, llegó al pago o pidió una llamada, en el punto en el que está. Ábrela para ver todo de
         esa persona y cambiarla de columna<span className="hidden lg:inline"> (o arrástrala)</span>. Arriba de cada columna, lo
         más nuevo; abajo, lo más antiguo.
@@ -286,18 +285,18 @@ export default function KanbanPanel() {
 
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8A96AB]" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Buscar por nombre, correo o teléfono"
-            className="w-full bg-white border border-[#DDE6F5] rounded-lg pl-9 pr-3 py-2 text-[13.5px] text-gray-900 outline-none focus:border-[#4da3ff]"
+            className="w-full h-9 bg-white border border-[#E5E7EB] rounded-md pl-9 pr-3 text-[13.5px] text-gray-900 outline-none focus:border-gray-900"
           />
         </div>
         <div className="flex gap-1 overflow-x-auto">
           <button
             onClick={() => setCanal('')}
-            className={`shrink-0 px-3 py-2 rounded-lg text-[12.5px] font-semibold ${!canal ? 'bg-[#1D0084] text-white' : 'bg-white border border-[#DDE6F5] text-[#5A6480]'}`}
+            className={filtro(!canal)}
           >
             Todos los canales
           </button>
@@ -305,7 +304,7 @@ export default function KanbanPanel() {
             <button
               key={c.id}
               onClick={() => setCanal(canal === c.id ? '' : c.id)}
-              className={`shrink-0 px-3 py-2 rounded-lg text-[12.5px] font-semibold ${canal === c.id ? 'bg-[#1D0084] text-white' : 'bg-white border border-[#DDE6F5] text-[#5A6480]'}`}
+              className={filtro(canal === c.id)}
             >
               {c.nombre}
             </button>
@@ -313,7 +312,7 @@ export default function KanbanPanel() {
         </div>
       </div>
 
-      <p className="text-[12px] text-[#8A96AB]">
+      <p className="text-[12px] text-[#9CA3AF]">
         {total} {total === 1 ? 'persona' : 'personas'} · {abiertos} en curso
         {isAdmin && quitadas.length ? (
           <>
@@ -326,18 +325,18 @@ export default function KanbanPanel() {
       </p>
 
       {isAdmin && verQuitadas && quitadas.length ? (
-        <div className="rounded-xl border border-[#DDE6F5] bg-white divide-y divide-[#EEF2F9]">
+        <div className="rounded-lg border border-[#E5E7EB] bg-white divide-y divide-[#F3F4F6]">
           {quitadas.map((t) => (
             <div key={t.email} className="flex items-center gap-3 px-3 py-2">
               <div className="min-w-0 flex-1">
                 <p className="text-[13px] font-semibold text-gray-900 truncate">{t.nombre || t.email}</p>
-                <p className="text-[11.5px] text-[#8A96AB] truncate">
+                <p className="text-[11.5px] text-[#9CA3AF] truncate">
                   {t.fuera_de_metricas ? 'Prueba: fuera del tablero y de los números' : 'Quitado del tablero (sigue contando)'}
                 </p>
               </div>
               <button
                 onClick={() => devolver(t)}
-                className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-[#DDE6F5] px-2.5 py-1.5 text-[12px] font-semibold text-[#025dc7] hover:border-[#4da3ff]"
+                className={BOTON}
               >
                 <RotateCcw size={12} /> Devolver
               </button>
@@ -354,7 +353,7 @@ export default function KanbanPanel() {
               key={e.id}
               onClick={() => setColumnaMovil(e.id)}
               className={`shrink-0 px-3 py-1.5 rounded-lg text-[12.5px] font-semibold ${
-                columnaMovil === e.id ? 'bg-[#1D0084] text-white' : 'bg-white border border-[#DDE6F5] text-[#5A6480]'
+                columnaMovil === e.id ? 'bg-gray-900 text-white' : 'bg-white border border-[#E5E7EB] text-[#6B7280]'
               }`}
             >
               <span className="inline-block w-2 h-2 rounded-full mr-1.5 align-middle" style={{ background: COLOR[e.id] }} />
@@ -362,13 +361,13 @@ export default function KanbanPanel() {
             </button>
           ))}
         </div>
-        <p className="text-[12px] text-[#8A96AB] mt-2">{QUE_ES[columnaMovil]}. Ábrela para cambiarla de columna.</p>
+        <p className="text-[12px] text-[#9CA3AF] mt-2">{QUE_ES[columnaMovil]}. Ábrela para cambiarla de columna.</p>
         <div className="mt-2 space-y-2">
           {(porColumna[columnaMovil] ?? []).slice(0, verCuantas(columnaMovil)).map((t) => (
             <TarjetaVista key={t.email} t={t} onAbrir={() => setAbierta(t.email)} />
           ))}
           <VerMas id={columnaMovil} total={porColumna[columnaMovil]?.length ?? 0} vistas={verCuantas(columnaMovil)} onMas={verMas} />
-          {!porColumna[columnaMovil]?.length ? <p className="text-[13px] text-[#8A96AB] py-6 text-center">Nadie en esta columna.</p> : null}
+          {!porColumna[columnaMovil]?.length ? <p className="text-[13px] text-[#9CA3AF] py-6 text-center">Nadie en esta columna.</p> : null}
         </div>
       </div>
 
@@ -393,14 +392,14 @@ export default function KanbanPanel() {
                     <div
                       ref={prov.innerRef}
                       {...prov.droppableProps}
-                      className={`rounded-xl border min-h-[420px] transition-colors ${
-                        snap.isDraggingOver ? 'bg-[#EAF3FF] border-[#4da3ff]' : 'bg-[#F4F6FA] border-[#E6EBF3]'
+                      className={`rounded-lg border min-h-[420px] transition-colors ${
+                        snap.isDraggingOver ? 'bg-[#F3F4F6] border-[#9CA3AF]' : 'bg-[#F9FAFB] border-[#E5E7EB]'
                       }`}
                     >
                       <button
                         onClick={() => plegar(e.id)}
                         title={`Desplegar ${e.nombre}`}
-                        className="w-full h-full min-h-[420px] flex flex-col items-center gap-2 pt-3 text-[#5A6480] hover:text-gray-900"
+                        className="w-full h-full min-h-[420px] flex flex-col items-center gap-2 pt-3 text-[#6B7280] hover:text-gray-900"
                       >
                         <span className="w-2 h-2 rounded-full" style={{ background: COLOR[e.id] }} />
                         <span className="text-[12px] font-semibold tabular-nums">{n}</span>
@@ -412,15 +411,15 @@ export default function KanbanPanel() {
                   <div
                     ref={prov.innerRef}
                     {...prov.droppableProps}
-                    className={`rounded-xl border p-2 min-h-[420px] transition-colors ${
-                      snap.isDraggingOver ? 'bg-[#EAF3FF] border-[#4da3ff]' : 'bg-[#F4F6FA] border-[#E6EBF3]'
+                    className={`rounded-lg border p-2 min-h-[420px] transition-colors ${
+                      snap.isDraggingOver ? 'bg-[#F3F4F6] border-[#9CA3AF]' : 'bg-[#F9FAFB] border-[#E5E7EB]'
                     }`}
                   >
                     <div className="px-1.5 pt-1 pb-2">
                       <div className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full shrink-0" style={{ background: COLOR[e.id] }} />
                         <p className="text-[13px] font-semibold text-gray-900 truncate">{e.nombre}</p>
-                        <span className="text-[12px] font-medium text-[#8A96AB] tabular-nums">{n}</span>
+                        <span className="text-[12px] font-medium text-[#9CA3AF] tabular-nums">{n}</span>
                         <button
                           onClick={() => plegar(e.id)}
                           title="Plegar columna"
@@ -430,7 +429,7 @@ export default function KanbanPanel() {
                           <ChevronsLeft size={14} />
                         </button>
                       </div>
-                      <p className="text-[11px] text-[#8A96AB] mt-0.5 leading-snug">{QUE_ES[e.id]}</p>
+                      <p className="text-[11px] text-[#9CA3AF] mt-0.5 leading-snug">{QUE_ES[e.id]}</p>
                     </div>
                     <div className="space-y-2">
                       {(porColumna[e.id] ?? []).slice(0, verCuantas(e.id)).map((t, i) => (
@@ -457,35 +456,35 @@ export default function KanbanPanel() {
 
       {pregunta ? (
         <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/40 p-3" onClick={() => !haciendo && setPregunta(null)}>
-          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md rounded-lg bg-white p-5 border border-[#E5E7EB]" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start gap-3">
               <p className="flex-1 text-[16px] font-bold text-gray-900">Quitar a {pregunta.nombre || pregunta.email}</p>
-              <button onClick={() => setPregunta(null)} aria-label="Cerrar" className="p-1 text-[#8A96AB] hover:text-gray-900">
+              <button onClick={() => setPregunta(null)} aria-label="Cerrar" className="p-1 text-[#9CA3AF] hover:text-gray-900">
                 <X size={18} />
               </button>
             </div>
-            <p className="mt-1 text-[13px] text-[#5A6480] leading-relaxed">
+            <p className="mt-1 text-[13px] text-[#6B7280] leading-relaxed">
               Ya es alumno: su cuenta, su acceso a la escuela y su pago no se borran nunca desde aquí.
             </p>
             <div className="mt-4 space-y-2">
               <button
                 disabled={haciendo}
                 onClick={() => quitarAlumno(pregunta, false)}
-                className="w-full text-left rounded-xl border border-[#DDE6F5] hover:border-[#4da3ff] px-4 py-3 disabled:opacity-60"
+                className="w-full text-left rounded-md border border-[#E5E7EB] hover:bg-[#F9FAFB] px-4 py-3 disabled:opacity-60"
               >
                 <p className="text-[14px] font-semibold text-gray-900">Quitarlo solo del tablero</p>
-                <p className="text-[12.5px] text-[#5A6480]">Es un alumno de verdad. Sigue contando en ventas y alumnos.</p>
+                <p className="text-[12.5px] text-[#6B7280]">Es un alumno de verdad. Sigue contando en ventas y alumnos.</p>
               </button>
               <button
                 disabled={haciendo}
                 onClick={() => quitarAlumno(pregunta, true)}
-                className="w-full text-left rounded-xl border border-red-200 hover:border-red-400 bg-red-50/40 px-4 py-3 disabled:opacity-60"
+                className="w-full text-left rounded-md border border-[#FCA5A5] hover:bg-red-50 px-4 py-3 disabled:opacity-60"
               >
                 <p className="text-[14px] font-semibold text-red-700">Era una prueba: quitarlo también de los números</p>
-                <p className="text-[12.5px] text-[#5A6480]">Deja de contar en ventas, alumnos, gastos y plazas.</p>
+                <p className="text-[12.5px] text-[#6B7280]">Deja de contar en ventas, alumnos, gastos y plazas.</p>
               </button>
             </div>
-            <p className="mt-3 text-[12px] text-[#8A96AB]">Se puede deshacer desde «quitadas del tablero».</p>
+            <p className="mt-3 text-[12px] text-[#9CA3AF]">Se puede deshacer desde «quitadas del tablero».</p>
           </div>
         </div>
       ) : null}

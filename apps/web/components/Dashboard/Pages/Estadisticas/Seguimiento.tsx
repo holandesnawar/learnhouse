@@ -125,8 +125,8 @@ export default function Seguimiento({
   return (
     <div className="space-y-3">
       {/* Volver a llamar */}
-      <div className="rounded-xl border border-[#DDE6F5] bg-white px-3.5 py-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8A96AB] flex items-center gap-1.5">
+      <div className="rounded-lg border border-[#E5E7EB] bg-white px-3.5 py-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF] flex items-center gap-1.5">
           <BellRing size={12} /> Volver a llamar
         </p>
         {llamar ? (
@@ -148,7 +148,7 @@ export default function Seguimiento({
               key={o.dias}
               onClick={() => guardarFecha(hoyISO(o.dias))}
               disabled={guardando}
-              className="px-2.5 py-1 rounded-lg bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7] text-[12px] font-semibold disabled:opacity-50"
+              className="px-2.5 py-1 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#F9FAFB] text-gray-800 text-[12px] font-semibold disabled:opacity-50"
             >
               {o.label}
             </button>
@@ -161,7 +161,7 @@ export default function Seguimiento({
               setFecha(e.target.value)
               if (e.target.value) guardarFecha(e.target.value)
             }}
-            className="px-2 py-1 rounded-lg border border-[#DDE6F5] text-[12px] text-[#1D0084] bg-white"
+            className="px-2 py-1 rounded-lg border border-[#E5E7EB] text-[12px] text-[#1D0084] bg-white"
           />
           {llamar ? (
             <button
@@ -180,13 +180,13 @@ export default function Seguimiento({
             if (llamar && motivo !== (llamar.motivo || '')) guardarFecha(llamar.fecha, motivo)
           }}
           placeholder="Motivo (opcional): «lo habla con su pareja», «cobra el día 25»…"
-          className="mt-2 w-full px-2.5 py-1.5 rounded-lg bg-[#F7FAFF] border border-[#E7EEF9] text-[12.5px] text-gray-800 placeholder:text-gray-400 outline-none focus:border-[#4da3ff]"
+          className="mt-2 w-full px-2.5 py-1.5 rounded-lg bg-[#F9FAFB] border border-[#F3F4F6] text-[12.5px] text-gray-800 placeholder:text-gray-400 outline-none focus:border-gray-900"
         />
       </div>
 
       {/* Notas */}
-      <div className="rounded-xl border border-[#DDE6F5] bg-white px-3.5 py-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8A96AB] flex items-center gap-1.5">
+      <div className="rounded-lg border border-[#E5E7EB] bg-white px-3.5 py-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF] flex items-center gap-1.5">
           <NotebookPen size={12} /> Notas
         </p>
         <textarea
@@ -194,13 +194,13 @@ export default function Seguimiento({
           onChange={(e) => setTexto(e.target.value)}
           rows={2}
           placeholder="Qué le frena, qué le dijiste, qué quedó pendiente…"
-          className="mt-2 w-full px-2.5 py-2 rounded-lg bg-[#F7FAFF] border border-[#E7EEF9] text-[13px] text-gray-800 placeholder:text-gray-400 outline-none focus:border-[#4da3ff] resize-y"
+          className="mt-2 w-full px-2.5 py-2 rounded-lg bg-[#F9FAFB] border border-[#F3F4F6] text-[13px] text-gray-800 placeholder:text-gray-400 outline-none focus:border-gray-900 resize-y"
         />
         <div className="flex justify-end mt-1.5">
           <button
             onClick={guardarNota}
             disabled={guardando || !texto.trim()}
-            className="px-3 py-1.5 rounded-lg bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] text-[12px] font-bold disabled:opacity-40"
+            className="px-3 py-1.5 rounded-lg bg-[#025dc7] hover:bg-[#014fa9] text-white text-[12px] font-bold disabled:opacity-40"
           >
             Guardar nota
           </button>
@@ -210,7 +210,7 @@ export default function Seguimiento({
         ) : (
           <ul className="mt-2 space-y-2">
             {notas.map((n) => (
-              <li key={n.id} className="rounded-lg bg-[#F7FAFF] border border-[#E7EEF9] px-3 py-2">
+              <li key={n.id} className="rounded-lg bg-[#F9FAFB] border border-[#F3F4F6] px-3 py-2">
                 <p className="text-[13px] text-gray-900 whitespace-pre-wrap break-words">{n.texto}</p>
                 <p className="mt-1 text-[11px] text-gray-500 flex items-center justify-between gap-2">
                   <span>

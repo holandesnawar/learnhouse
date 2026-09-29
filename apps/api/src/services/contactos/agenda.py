@@ -20,6 +20,11 @@ del panel sigue igual.
 Salen también las citas que se reservaron directamente en Calendly, sin pasar
 por /agendar: la lista es la de Calendly, no la nuestra.
 
+Desde el 29/09 trae también las **pasadas** (45 días) y las **canceladas o
+reprogramadas**, para que el closer vea en la escuela el calendario entero y
+apunte qué pasó en cada llamada (`resultado_llamada.py`). Sigue sin escribir
+nada en Calendly.
+
 Falla en blando: si Calendly no contesta, la agenda dice por qué y el panel
 sigue funcionando. Caché de un minuto en memoria para no pedirle lo mismo a
 Calendly cada vez que alguien abre la pestaña.
@@ -53,9 +58,11 @@ def cita_desde_calendly(evento: dict, invitados: list[dict]) -> list[dict]:
     if not enlace and isinstance(ubicacion.get("location"), str) and ubicacion["location"].startswith("http"):
         enlace = ubicacion["location"]
     salida = []
+    uuid = str(evento.get("uri", "")).rstrip("/").rsplit("/", 1)[-1]
+    evento_cancelado = (evento.get("status") or "active") != "active"
     for inv in invitados:
-        if (inv.get("status") or "active") != "active":
-            continue
+        cancelada = evento_cancelado or (inv.get("status") or "active") != "active"
+        cancelacion = inv.get("cancellation") or evento.get("cancellation") or {}
         # El teléfono solo viene si el evento lo pide (tipo "llamada
         # telefónica") o si hay una pregunta que lo recoja.
         telefono = ubicacion.get("location") if ubicacion.get("type") == "outbound_call" else ""
@@ -73,6 +80,12 @@ def cita_desde_calendly(evento: dict, invitados: list[dict]) -> list[dict]:
                 "enlace": enlace,
                 "cancelar_url": inv.get("cancel_url") or "",
                 "cambiar_url": inv.get("reschedule_url") or "",
+                # Una por persona y cita: el id sirve para colgarle el resultado.
+                "id": f"{uuid}:{(inv.get('email') or '').strip().lower()}" if uuid else "",
+                "estado": "cancelada" if cancelada else "activa",
+                # Reprogramada = la canceló para coger otra hora; la nueva sale aparte.
+                "reprogramada": bool(inv.get("rescheduled")),
+                "motivo_cancelacion": str(cancelacion.get("reason") or "")[:300] if cancelada else "",
             }
         )
     return salida
@@ -87,7 +100,8 @@ async def _get(cliente: httpx.AsyncClient, url: str, params: Optional[dict] = No
 
 
 async def agenda(forzar: bool = False) -> dict:
-    """Las citas activas desde hace 12 h hasta dentro de 60 días, por fecha."""
+    """Las citas desde hace 45 días hasta dentro de 60, activas y canceladas,
+    por fecha."""
     token = _token()
     if not token:
         return {"configurado": False, "citas": []}
@@ -96,27 +110,33 @@ async def agenda(forzar: bool = False) -> dict:
     if not forzar and _cache["datos"] is not None and _cache["hasta"] > ahora:
         return _cache["datos"]
 
-    desde = (datetime.now(timezone.utc) - timedelta(hours=12)).strftime("%Y-%m-%dT%H:%M:%S.000000Z")
+    desde = (datetime.now(timezone.utc) - timedelta(days=45)).strftime("%Y-%m-%dT%H:%M:%S.000000Z")
     hasta = (datetime.now(timezone.utc) + timedelta(days=60)).strftime("%Y-%m-%dT%H:%M:%S.000000Z")
     try:
         async with httpx.AsyncClient(
             timeout=10.0, headers={"Authorization": f"Bearer {token}"}
         ) as cliente:
             yo = (await _get(cliente, f"{API}/users/me")).get("resource") or {}
-            eventos = (
-                await _get(
-                    cliente,
-                    f"{API}/scheduled_events",
-                    {
-                        "user": yo.get("uri", ""),
-                        "status": "active",
-                        "min_start_time": desde,
-                        "max_start_time": hasta,
-                        "sort": "start_time:asc",
-                        "count": 50,
-                    },
-                )
-            ).get("collection") or []
+            # Sin filtro de estado: salen también las canceladas. Se pagina
+            # (100 por página) con tope, por si algún día hay muchas.
+            eventos: list[dict] = []
+            pagina = await _get(
+                cliente,
+                f"{API}/scheduled_events",
+                {
+                    "user": yo.get("uri", ""),
+                    "min_start_time": desde,
+                    "max_start_time": hasta,
+                    "sort": "start_time:asc",
+                    "count": 100,
+                },
+            )
+            for _ in range(5):
+                eventos.extend(pagina.get("collection") or [])
+                siguiente = (pagina.get("pagination") or {}).get("next_page")
+                if not siguiente:
+                    break
+                pagina = await _get(cliente, siguiente)
 
             async def invitados(ev: dict) -> list[dict]:
                 uuid = str(ev.get("uri", "")).rstrip("/").rsplit("/", 1)[-1]
