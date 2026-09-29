@@ -101,6 +101,8 @@ export interface FichaCliente {
   notas: NotaContacto[]
   volver_a_llamar: VolverALlamar | null
   tareas: Tarea[]
+  /** Sus llamadas de Calendly, pasadas y próximas, con lo que pasó. */
+  llamadas: import('@services/stats/contactos').Cita[]
   /** Solo administradores. */
   systeme: { ok: boolean; motivo?: string; existe?: boolean; etiquetas: string[]; campos: { slug: string; valor: string }[] } | null
   linea: ItemLinea[]

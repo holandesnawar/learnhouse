@@ -1716,6 +1716,41 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
 - **Contactos (28/09)**: "Notas del equipo" nace **plegada** en una línea que
   dice de quién es la última (se recuerda abierta/plegada). Las cifras de las
   etapas, más gordas y en negro.
+- **Llamadas = la mesa del closer (29/09)**. Decidido con el usuario:
+  **Calendly se queda para reservar** (horarios, zonas horarias,
+  recordatorios, reprogramar, Google Calendar: no rehacerlo) y **la escuela es
+  donde se trabaja**. La disponibilidad se ajusta en Calendly/Google Calendar.
+  - **Agenda** arriba de Llamadas: semana (ordenador) o lista (móvil) con las
+    citas de Calendly de 45 días atrás a 60 adelante, **también canceladas y
+    reprogramadas** (tachadas, con el motivo). Cada cita: entrar, WhatsApp,
+    cambiar hora, ver ficha.
+  - **"¿Qué pasó?"** en cada llamada pasada: Va a pagar → Propuesta, Lo piensa
+    → En revisión, No encaja → Perdido, No vino → no se mueve. Tabla
+    `call_outcome` (una fila por `cita_id` = uuid del evento + correo), deja
+    además una nota en su historial. **NO se escribe nada en Calendly** (el
+    usuario: "lo de no se presentó no hace falta"). Lista "Llamadas sin
+    apuntar qué pasó" encima de las solicitudes.
+  - La ficha de la persona enseña sus llamadas con el resultado.
+  - **Pestaña Google Calendar**: el `<iframe>` del calendario del usuario. Se
+    guarda SOLO el id y la zona (org_config `agenda_google`) y la dirección se
+    rehace en `resultado_llamada.py` (nunca se pinta HTML pegado). De serie,
+    el calendario que pasó el 29/09. ⚠️ **No hacerlo público**: se verían los
+    nombres de los leads; lo ve quien tenga la cuenta de Google a la que se ha
+    compartido. Lo cambian solo administradores.
+  - **Zoom: NO conectado, a propósito.** Daría asistencia/duración (el closer
+    ya la marca) y grabaciones/transcripción con Zoom de pago: para más
+    adelante, para formar closers. Meter la videollamada dentro de la escuela
+    (Meeting SDK) no compensa. Webhooks de Calendly (avisos al instante) son
+    de pago: sin ellos, la agenda se lee al abrir la pantalla.
+- **Estilo del panel de ventas (29/09): "tiene que parecer un software, como
+  Calendly"**. Las etiquetas en cajitas pastel, las sombras y los grises
+  azulados lo hacían ver "barato, IA". Piezas en `Panel/ui.tsx` (`TARJETA`,
+  `BOTON`, `BOTON_PRINCIPAL`, `filtro`, `Estado` = punto de color + texto,
+  `Meta` = datos en gris con " · "). Reglas: blanco/gris/negro, bordes
+  `#E5E7EB`, sin sombras, color solo en lo que se toca (`#025dc7`) y en lo
+  que importa (rojo vencido, verde pagado). Aplicado a Llamadas, Matrículas,
+  Contactos, la ficha, Tareas, Seguimiento, Guion, Clientes y Anuncios.
+  **Cualquier pantalla nueva del panel sale de `ui.tsx`.**
 - **RGPD (28/09)**: el usuario **no quiere casilla** en los formularios de las
   guías: vale el "al hacer clic, confirmo que he leído y aceptado la política
   de privacidad" que ya hay. El aviso de cookies (Meta Pixel y Google

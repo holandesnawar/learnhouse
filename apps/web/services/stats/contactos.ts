@@ -196,7 +196,43 @@ export interface Cita {
   enlace: string
   cancelar_url: string
   cambiar_url: string
+  /** uuid del evento + correo: a esto se cuelga el resultado. */
+  id: string
+  estado: 'activa' | 'cancelada'
+  reprogramada: boolean
+  motivo_cancelacion: string
+  /** Lo que apuntó el closer al colgar (se guarda en la escuela, no en Calendly). */
+  resultado?: { resultado: ResultadoLlamada; nombre: string; nota: string; autor: string; cuando: string } | null
 }
+
+export type ResultadoLlamada = 'compra' | 'piensa' | 'no-encaja' | 'no-vino'
+
+export const RESULTADOS: { id: ResultadoLlamada; nombre: string; que: string }[] = [
+  { id: 'compra', nombre: 'Va a pagar', que: 'Pasa a Propuesta' },
+  { id: 'piensa', nombre: 'Lo piensa', que: 'Pasa a En revisión' },
+  { id: 'no-encaja', nombre: 'No encaja', que: 'Pasa a Perdido' },
+  { id: 'no-vino', nombre: 'No vino', que: 'Se queda donde está' },
+]
+
+export async function guardarResultado(
+  orgId: number,
+  datos: { cita_id: string; email: string; resultado: ResultadoLlamada; nota: string; inicio: string },
+  accessToken: string
+) {
+  return pedir<{ ok: boolean; columna: string }>(`contactos/org/${orgId}/llamadas/resultado`, 'POST', datos, accessToken)
+}
+
+export interface AgendaGoogle {
+  ids: string[]
+  zona: string
+  url: string
+}
+
+export const getAgendaGoogle = (orgId: number, accessToken: string) =>
+  pedir<AgendaGoogle>(`contactos/org/${orgId}/agenda-google`, 'GET', null, accessToken)
+
+export const guardarAgendaGoogle = (orgId: number, codigo: string, accessToken: string) =>
+  pedir<AgendaGoogle>(`contactos/org/${orgId}/agenda-google`, 'PUT', { codigo }, accessToken)
 
 export interface Agenda {
   configurado: boolean

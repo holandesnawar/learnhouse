@@ -80,15 +80,15 @@ export default function PorDia<T>({
         const abierto = abiertos.includes(g.id)
         const lista = porGrupo[g.id]
         return (
-          <div key={g.id} className="rounded-xl border border-[#E7EEF9] bg-white">
+          <div key={g.id} className="rounded-lg border border-[#F3F4F6] bg-white">
             <button
               onClick={() => alternar(g.id)}
-              className="w-full flex items-center gap-2 px-3.5 py-2.5 text-left hover:bg-[#F7FAFF] rounded-xl"
+              className="w-full flex items-center gap-2 px-3.5 py-2.5 text-left hover:bg-[#F9FAFB] rounded-lg"
             >
               {abierto ? (
-                <ChevronDown size={15} className="text-[#5A6480]" />
+                <ChevronDown size={15} className="text-[#6B7280]" />
               ) : (
-                <ChevronRight size={15} className="text-[#5A6480]" />
+                <ChevronRight size={15} className="text-[#6B7280]" />
               )}
               <span className="text-[13.5px] font-semibold text-gray-900">{g.label}</span>
               <span className="text-[12px] text-[#9CA3AF] tabular-nums">{lista.length}</span>

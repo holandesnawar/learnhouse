@@ -19,7 +19,7 @@ import { Loader2, Pencil, RotateCcw } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { confirmar } from '@lib/nawar/confirmar'
 
-const CARD = 'rounded-2xl border border-[#DDE6F5] bg-white p-4 sm:p-6'
+const CARD = 'rounded-lg border border-[#E5E7EB] bg-white p-4 sm:p-6'
 
 /** Pinta el texto: "## " → título, "- " → punto, lo demás → párrafo. */
 function Texto({ texto }: { texto: string }) {
@@ -112,7 +112,7 @@ export default function GuionPanel() {
   return (
     <div className="space-y-4 max-w-3xl">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-[13px] text-[#5A6480] leading-relaxed">
+        <p className="text-[13px] text-[#6B7280] leading-relaxed">
           Lo que hay que contar en cada llamada y cómo responder a las dudas de siempre. Así el precio, la garantía y lo
           que incluye la formación se dicen igual que en la web.
         </p>
@@ -122,7 +122,7 @@ export default function GuionPanel() {
               setBorrador(texto)
               setEditando(true)
             }}
-            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7] text-[12.5px] font-bold"
+            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#F9FAFB] text-gray-800 text-[12.5px] font-bold"
           >
             <Pencil size={13} /> Editar
           </button>
@@ -139,7 +139,7 @@ export default function GuionPanel() {
             value={borrador}
             onChange={(e) => setBorrador(e.target.value)}
             rows={28}
-            className="w-full px-3 py-2.5 rounded-xl bg-[#F7FAFF] border border-[#E7EEF9] text-[13px] font-mono text-gray-800 outline-none focus:border-[#4da3ff]"
+            className="w-full px-3 py-2.5 rounded-lg bg-[#F9FAFB] border border-[#F3F4F6] text-[13px] font-mono text-gray-800 outline-none focus:border-gray-900"
           />
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
             <button
@@ -161,7 +161,7 @@ export default function GuionPanel() {
               <button
                 onClick={() => guardar(borrador)}
                 disabled={guardando}
-                className="px-4 py-2 rounded-lg bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] text-[13px] font-bold disabled:opacity-50"
+                className="px-4 py-2 rounded-lg bg-[#025dc7] hover:bg-[#014fa9] text-white text-[13px] font-bold disabled:opacity-50"
               >
                 {guardando ? 'Guardando…' : 'Guardar'}
               </button>

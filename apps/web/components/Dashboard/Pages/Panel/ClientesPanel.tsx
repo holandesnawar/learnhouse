@@ -13,12 +13,12 @@ import { euros, fechaCorta, getClientes, haceCuanto, type Cliente } from '@servi
 import FichaCliente from './FichaCliente'
 import { ChevronRight, Loader2, Search } from 'lucide-react'
 
-const CARD = 'rounded-2xl border border-[#DDE6F5] bg-white p-3.5 sm:p-5'
+const CARD = 'rounded-lg border border-[#E5E7EB] bg-white p-3.5 sm:p-5'
 
 function Cifra({ label, valor, nota }: { label: string; valor: string; nota?: string }) {
   return (
     <div className={CARD}>
-      <p className="text-[10px] sm:text-[11px] font-semibold text-[#8A96AB] uppercase tracking-[0.08em]">{label}</p>
+      <p className="text-[10px] sm:text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-[0.08em]">{label}</p>
       <p className="text-[22px] sm:text-[26px] font-semibold tabular-nums leading-tight mt-1 text-[#1D0084]">{valor}</p>
       {nota ? <p className="text-[11.5px] text-gray-500 mt-0.5">{nota}</p> : null}
     </div>
@@ -80,19 +80,19 @@ export default function ClientesPanel() {
       </div>
 
       <div className="relative">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8A96AB]" />
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Buscar por nombre, correo o teléfono"
-          className="w-full bg-white border border-[#DDE6F5] rounded-lg pl-9 pr-3 py-2 text-[13.5px] text-gray-900 outline-none focus:border-[#4da3ff]"
+          className="w-full bg-white border border-[#E5E7EB] rounded-lg pl-9 pr-3 py-2 text-[13.5px] text-gray-900 outline-none focus:border-gray-900"
         />
       </div>
 
       {!lista.length ? (
-        <p className="text-[13.5px] text-[#8A96AB] py-10 text-center">Todavía no hay clientes.</p>
+        <p className="text-[13.5px] text-[#9CA3AF] py-10 text-center">Todavía no hay clientes.</p>
       ) : (
-        <div className="rounded-2xl border border-[#DDE6F5] bg-white divide-y divide-[#EEF2F9] overflow-hidden">
+        <div className="rounded-lg border border-[#E5E7EB] bg-white divide-y divide-[#F3F4F6] overflow-hidden">
           {lista.map((c) => {
             const a = actividad(c)
             return (
@@ -103,20 +103,20 @@ export default function ClientesPanel() {
               >
                 <div className="min-w-0 flex-1">
                   <p className="text-[14px] font-semibold text-gray-900 truncate">{c.nombre || c.email}</p>
-                  <p className="text-[12px] text-[#5A6480] truncate">
+                  <p className="text-[12px] text-[#6B7280] truncate">
                     {c.email}
                     {c.telefono ? ` · ${c.telefono}` : ''}
                   </p>
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11.5px]">
                     <span
                       className={`rounded-full px-2 py-0.5 font-semibold ${
-                        a.tono === 'verde' ? 'bg-[#E8FBF3] text-[#0E9F6E]' : a.tono === 'ambar' ? 'bg-[#FFFBF2] text-[#8A6A2A]' : 'bg-[#F3F4F6] text-[#6B7590]'
+                        a.tono === 'verde' ? 'text-[#15803D]' : a.tono === 'ambar' ? 'text-[#B45309]' : 'bg-[#F3F4F6] text-[#6B7590]'
                       }`}
                     >
                       {a.texto}
                     </span>
                     {c.tiene_cuenta ? (
-                      <span className="rounded-full px-2 py-0.5 font-semibold bg-[#F3F4F6] text-[#5A6480]">
+                      <span className="rounded-full px-2 py-0.5 font-semibold bg-[#F3F4F6] text-[#6B7280]">
                         {c.lecciones} {c.lecciones === 1 ? 'lección hecha' : 'lecciones hechas'}
                       </span>
                     ) : null}
@@ -124,7 +124,7 @@ export default function ClientesPanel() {
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="text-[14px] font-bold tabular-nums text-[#1D0084]">{euros(c.total_cents)}</p>
-                  <p className="text-[11.5px] text-[#8A96AB]">
+                  <p className="text-[11.5px] text-[#9CA3AF]">
                     {c.pagos > 1 ? `${c.pagos} pagos · ` : ''}
                     {fechaCorta(c.ultimo_pago)}
                   </p>

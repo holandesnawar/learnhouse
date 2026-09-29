@@ -46,7 +46,7 @@ import { BellRing, Check, ChevronDown, ChevronRight, Eye, EyeOff, Loader2, Map a
 import { ETAPAS, MAPA_WEB } from '@lib/nawar/mapaWeb'
 import { confirmar } from '@lib/nawar/confirmar'
 
-const CARD = 'rounded-2xl border border-[#DDE6F5] bg-white p-3.5 sm:p-5'
+const CARD = 'rounded-lg border border-[#E5E7EB] bg-white p-3.5 sm:p-5'
 
 function fecha(iso: string, conHora = false) {
   if (!iso) return ''
@@ -62,10 +62,10 @@ function fecha(iso: string, conHora = false) {
 function EstadoPill({ estado }: { estado: Contacto['estado'] }) {
   const estilo =
     estado === 'alumno'
-      ? 'bg-[#E8FBF3] text-[#0E9F6E]'
+      ? 'text-[#15803D]'
       : estado === 'matriculado-sin-pagar'
-        ? 'bg-[#FFFBF2] text-[#8A6A2A]'
-        : 'bg-[#EAF3FF] text-[#025dc7]'
+        ? 'text-[#B45309]'
+        : 'text-gray-700'
   return (
     <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${estilo}`}>
       {ESTADO_TEXTO[estado]}
@@ -74,10 +74,10 @@ function EstadoPill({ estado }: { estado: Contacto['estado'] }) {
 }
 
 const ESTILO_ETAPA: Record<EtapaContacto, string> = {
-  lead: 'bg-[#F3F4F6] text-[#5A6480]',
-  pidio: 'bg-[#EAF3FF] text-[#025dc7]',
-  'en-pago': 'bg-[#FFFBF2] text-[#8A6A2A]',
-  alumno: 'bg-[#E8FBF3] text-[#0E9F6E]',
+  lead: 'bg-[#F3F4F6] text-[#6B7280]',
+  pidio: 'text-gray-700',
+  'en-pago': 'text-[#B45309]',
+  alumno: 'text-[#15803D]',
 }
 
 function EtapaPill({ etapa }: { etapa: EtapaContacto }) {
@@ -117,8 +117,8 @@ function Fila({
   const esAlumno = c.etapa === 'alumno'
   return (
     <div
-      className={`rounded-xl border flex items-stretch transition-colors ${
-        c.atendida ? 'border-[#E7EEF9] bg-white' : 'border-[#DDE6F5] bg-[#F7FAFF] hover:bg-[#EEF4FF]'
+      className={`rounded-lg border flex items-stretch transition-colors ${
+        c.atendida ? 'border-[#F3F4F6] bg-white' : 'border-[#E5E7EB] bg-[#F9FAFB] hover:bg-[#EEF4FF]'
       } ${c.fuera_de_metricas ? 'opacity-60' : ''}`}
     >
       <button onClick={onOpen} className="flex-1 min-w-0 text-left px-3.5 py-2.5 flex items-center gap-3">
@@ -127,26 +127,26 @@ function Fila({
             <span className="truncate">{c.nombre || c.email}</span>
             <EtapaPill etapa={c.etapa} />
             {c.atendida ? (
-              <span className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold bg-[#E8FBF3] text-[#0E9F6E]">
+              <span className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold text-[#15803D]">
                 <Check size={11} /> Atendida
               </span>
             ) : null}
             {llamar ? (
               <span
                 className={`shrink-0 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                  llamar.fecha <= hoyISO() ? 'bg-red-50 text-red-600' : 'bg-[#FFFBF2] text-[#8A6A2A]'
+                  llamar.fecha <= hoyISO() ? 'text-red-600' : 'text-[#B45309]'
                 }`}
               >
                 Llamar {cuandoLlamar(llamar.fecha)}
               </span>
             ) : null}
             {notas ? (
-              <span className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold bg-[#F0F5FF] text-[#025dc7]">
+              <span className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold border border-[#E5E7EB] bg-white text-gray-800">
                 <NotebookPen size={11} /> {notas} {notas === 1 ? 'nota' : 'notas'}
               </span>
             ) : null}
             {c.fuera_de_metricas ? (
-              <span className="shrink-0 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold bg-[#F3F4F6] text-[#6B7590]">
+              <span className="shrink-0 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold text-gray-500">
                 Fuera de los números
               </span>
             ) : null}
@@ -155,10 +155,10 @@ function Fila({
             {c.email}
             {c.telefono ? ` · ${c.telefono}` : ''}
           </p>
-          <p className="text-[12px] mt-0.5 text-[#5A6480] truncate">
+          <p className="text-[12px] mt-0.5 text-[#6B7280] truncate">
             {deMatricula ? ETAPA_MATRICULA[c.etapa] || 'Se matriculó' : c.ultimo_contacto.que}
             <span className="text-[#9CA3AF]"> · {fecha(cuando, true)}</span>
-            {c.vio_precio ? <span className="text-[#0E9F6E] font-semibold"> · vio el precio</span> : null}
+            {c.vio_precio ? <span className="text-[#15803D] font-semibold"> · vio el precio</span> : null}
             {c.utm_campaign ? <span className="text-[#025dc7]"> · {c.utm_campaign}</span> : null}
           </p>
         </div>
@@ -169,8 +169,8 @@ function Fila({
           onClick={onAtendida}
           disabled={guardando}
           title={c.atendida ? 'Volver a pendiente' : 'Marcar como atendida'}
-          className={`shrink-0 px-3 border-l border-[#DDE6F5] text-[12px] font-bold transition-colors disabled:opacity-50 ${
-            c.atendida ? 'text-[#9CA3AF] hover:text-gray-700' : 'text-[#0E9F6E] hover:bg-[#E8FBF3]'
+          className={`shrink-0 px-3 border-l border-[#E5E7EB] text-[12px] font-bold transition-colors disabled:opacity-50 ${
+            c.atendida ? 'text-[#9CA3AF] hover:text-gray-700' : 'text-[#15803D] hover:bg-[#F3F4F6]'
           }`}
         >
           {c.atendida ? <RotateCcw size={15} /> : <Check size={16} />}
@@ -188,8 +188,8 @@ function Fila({
                 : 'Borrar (era una prueba o no vale)'
           }
           aria-label={esAlumno ? `Quitar a ${c.nombre || c.email} de los números` : `Borrar a ${c.nombre || c.email}`}
-          className={`shrink-0 px-3 border-l border-[#DDE6F5] rounded-r-xl transition-colors disabled:opacity-50 ${
-            esAlumno || c.fuera_de_metricas ? 'text-[#5A6480] hover:bg-[#F0F5FF]' : 'text-red-500 hover:text-red-700 hover:bg-red-50'
+          className={`shrink-0 px-3 border-l border-[#E5E7EB] rounded-r-xl transition-colors disabled:opacity-50 ${
+            esAlumno || c.fuera_de_metricas ? 'text-[#6B7280] hover:bg-[#F3F4F6]' : 'text-red-500 hover:text-red-700 hover:bg-red-50'
           }`}
         >
           {c.fuera_de_metricas ? <Eye size={16} /> : esAlumno ? <EyeOff size={16} /> : <Trash2 size={16} />}
@@ -224,40 +224,40 @@ function MapaWeb() {
                   <div
                     key={p.ruta}
                     className={`rounded-lg border px-3 py-2 text-[12.5px] ${
-                      p.redirigeA ? 'border-[#E7EEF9] opacity-60' : 'border-[#DDE6F5]'
+                      p.redirigeA ? 'border-[#F3F4F6] opacity-60' : 'border-[#E5E7EB]'
                     }`}
                   >
                     <p className="font-semibold text-gray-900 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                       <span>{p.nombre}</span>
                       <span className="font-mono text-[11.5px] text-[#025dc7] break-all">{p.ruta}</span>
                       {p.precio ? (
-                        <span className="rounded-full bg-[#E8FBF3] text-[#0E9F6E] px-1.5 py-0.5 text-[10.5px] font-semibold">
+                        <span className="rounded-full text-[#15803D] px-1.5 py-0.5 text-[10.5px] font-semibold">
                           enseña el precio
                         </span>
                       ) : (
-                        <span className="rounded-full bg-[#F3F4F6] text-[#6B7590] px-1.5 py-0.5 text-[10.5px] font-semibold">
+                        <span className="rounded-full text-gray-500 px-1.5 py-0.5 text-[10.5px] font-semibold">
                           sin precio
                         </span>
                       )}
                       {p.ads ? (
-                        <span className="rounded-full bg-[#FFFBF2] text-[#8A6A2A] px-1.5 py-0.5 text-[10.5px] font-semibold">
+                        <span className="rounded-full text-[#B45309] px-1.5 py-0.5 text-[10.5px] font-semibold">
                           anuncios
                         </span>
                       ) : null}
                     </p>
                     <p className="text-gray-600 mt-0.5">{p.que}</p>
                     <p className="text-gray-500 mt-0.5">
-                      <span className="text-[#8A96AB]">Botón:</span> {p.boton}
+                      <span className="text-[#9CA3AF]">Botón:</span> {p.boton}
                       {p.etiquetas.length ? (
                         <>
                           {' · '}
-                          <span className="text-[#8A96AB]">Etiqueta:</span> {p.etiquetas.join(', ')}
+                          <span className="text-[#9CA3AF]">Etiqueta:</span> {p.etiquetas.join(', ')}
                         </>
                       ) : null}
                       {p.redirigeA ? (
                         <>
                           {' · '}
-                          <span className="text-[#8A6A2A]">Redirige a {p.redirigeA}</span>
+                          <span className="text-[#B45309]">Redirige a {p.redirigeA}</span>
                         </>
                       ) : null}
                     </p>
@@ -325,9 +325,9 @@ function UltimasNotas({
   const vistas = todas ? notas : notas.slice(0, 3)
   const ultima = notas[0]
   return (
-    <div className="rounded-2xl border border-[#DDE6F5] bg-white px-3.5 sm:px-5 py-3">
+    <div className="rounded-lg border border-[#E5E7EB] bg-white px-3.5 sm:px-5 py-3">
       <button onClick={alternar} className="w-full flex items-center gap-2 text-left">
-        {abierto ? <ChevronDown size={16} className="text-[#8A96AB] shrink-0" /> : <ChevronRight size={16} className="text-[#8A96AB] shrink-0" />}
+        {abierto ? <ChevronDown size={16} className="text-[#9CA3AF] shrink-0" /> : <ChevronRight size={16} className="text-[#9CA3AF] shrink-0" />}
         <NotebookPen size={15} className="text-[#025dc7] shrink-0" />
         <span className="text-[14px] font-bold text-gray-900 shrink-0">Notas del equipo</span>
         {!abierto && ultima ? (
@@ -338,10 +338,10 @@ function UltimasNotas({
       </button>
       {abierto ? (
       <>
-      <ul className="mt-2.5 divide-y divide-[#EEF2F9]">
+      <ul className="mt-2.5 divide-y divide-[#F3F4F6]">
         {vistas.map((n) => (
           <li key={n.id}>
-            <button onClick={() => abrir(n.email)} className="w-full text-left py-2.5 hover:bg-[#F7FAFF] rounded-lg px-1.5">
+            <button onClick={() => abrir(n.email)} className="w-full text-left py-2.5 hover:bg-[#F9FAFB] rounded-lg px-1.5">
               <p className="text-[12px] text-gray-500">
                 <strong className="text-gray-900">{nombreDe(n.email)}</strong> · {n.autor} · {fecha(n.created_at, true)}
               </p>
@@ -525,7 +525,7 @@ export default function ContactosPanel() {
     <section className="space-y-4">
       {/* Administrador: todos los contactos o solo las matrículas hechas. */}
       {isCloser ? null : (
-        <div className="inline-flex rounded-xl bg-[#F0F5FF] p-1">
+        <div className="inline-flex rounded-lg bg-[#F3F4F6] p-1">
           {[
             { id: false, label: 'Todos los contactos', n: totalTodos },
             { id: true, label: 'Matrículas hechas', n: totalMatriculas },
@@ -537,7 +537,7 @@ export default function ContactosPanel() {
                 setEtapa(null)
               }}
               className={`px-3.5 py-2 rounded-lg text-[13px] font-semibold transition-colors ${
-                soloMatriculasElegido === o.id ? 'bg-white text-[#1D0084] shadow-sm' : 'text-[#5A6480] hover:text-[#1D0084]'
+                soloMatriculasElegido === o.id ? 'bg-white text-[#1D0084] shadow-sm' : 'text-[#6B7280] hover:text-[#1D0084]'
               }`}
             >
               {o.label} <span className="tabular-nums opacity-70">{o.n}</span>
@@ -546,7 +546,7 @@ export default function ContactosPanel() {
         </div>
       )}
 
-      <p className="text-[13px] text-[#5A6480] leading-relaxed">
+      <p className="text-[13px] text-[#6B7280] leading-relaxed">
         {soloMatriculas
           ? 'Quien pidió plaza o llegó al pago (y los que ya pagaron), por el día en que se matricularon. Abre una para ver sus respuestas, apuntar notas y poner cuándo volver a llamar. El ✓ la marca como atendida.'
           : 'Una ficha por persona que ha dejado sus datos, en la etapa más lejana a la que llegó, por el día de su último movimiento. Toca una etapa para ver solo esa.'}
@@ -560,7 +560,7 @@ export default function ContactosPanel() {
           .sort((a, b) => recordatorios[a.email.toLowerCase()].fecha.localeCompare(recordatorios[b.email.toLowerCase()].fecha))
         if (!tocan.length) return null
         return (
-          <div className="rounded-2xl border border-red-200 bg-red-50/60 p-3.5 sm:p-4">
+          <div className="rounded-lg border border-red-200 bg-red-50/60 p-3.5 sm:p-4">
             <p className="text-[13.5px] font-bold text-red-700 flex items-center gap-1.5">
               <BellRing size={15} /> Para llamar hoy · {tocan.length}
             </p>
@@ -584,11 +584,11 @@ export default function ContactosPanel() {
             <button
               key={e.id}
               onClick={() => setEtapa(activa ? null : e.id)}
-              className={`text-left rounded-xl border px-3.5 py-3 transition-colors ${
-                activa ? 'border-[#1D0084] bg-[#1D0084] text-white' : 'border-[#DDE6F5] bg-white hover:border-[#4da3ff]'
+              className={`text-left rounded-lg border px-3.5 py-3 transition-colors ${
+                activa ? 'border-gray-900 bg-gray-900 text-white' : 'border-[#E5E7EB] bg-white hover:border-[#9CA3AF]'
               }`}
             >
-              <p className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${activa ? 'text-white/75' : 'text-[#8A96AB]'}`}>
+              <p className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${activa ? 'text-white/75' : 'text-[#9CA3AF]'}`}>
                 {i + 1} · {e.nombre}
               </p>
               <p className={`text-[28px] font-bold tabular-nums leading-tight mt-0.5 ${activa ? 'text-white' : 'text-gray-900'}`}>
@@ -608,10 +608,10 @@ export default function ContactosPanel() {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Buscar por nombre, correo o teléfono"
-              className="w-full bg-[#F0F5FF] rounded-xl pl-9 pr-3 py-2.5 text-[13.5px] text-[#1D0084] placeholder:text-[#1D0084]/45 border border-transparent outline-none focus:bg-white focus:border-[#4da3ff] focus:ring-[3px] focus:ring-[#4da3ff]/22 transition-colors"
+              className="w-full bg-white rounded-md pl-9 pr-3 py-2 text-[13.5px] text-gray-900 placeholder:text-gray-400 border border-[#E5E7EB] outline-none focus:bg-white focus:border-gray-900 focus:ring-[3px] focus:ring-[#4da3ff]/22 transition-colors"
             />
           </label>
-          <p className="text-[12.5px] text-[#5A6480] shrink-0">
+          <p className="text-[12.5px] text-[#6B7280] shrink-0">
             {etapa ? (
               <>
                 Solo <strong>{etapas.find((e) => e.id === etapa)?.nombre}</strong> · {visibles.length}{' '}
@@ -666,10 +666,10 @@ export default function ContactosPanel() {
 
         {/* Los quitados de los números: fuera de todo, pero a la vista si se piden. */}
         {isAdmin && fuera.length ? (
-          <div className="mt-4 pt-3 border-t border-[#EEF2F9]">
+          <div className="mt-4 pt-3 border-t border-[#F3F4F6]">
             <button
               onClick={() => setVerFuera((v) => !v)}
-              className="text-[12.5px] font-semibold text-[#5A6480] hover:text-gray-900 inline-flex items-center gap-1.5"
+              className="text-[12.5px] font-semibold text-[#6B7280] hover:text-gray-900 inline-flex items-center gap-1.5"
             >
               {verFuera ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
               {fuera.length} fuera de los números (pruebas)

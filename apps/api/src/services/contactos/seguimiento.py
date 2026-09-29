@@ -115,7 +115,9 @@ async def todos_los_recordatorios(db_session: AsyncSession) -> dict[str, dict]:
 async def borrar_seguimiento(email: str, db_session: AsyncSession) -> None:
     """Para el borrado de pruebas: sin commit (lo hace quien llama)."""
     clave = _clave(email)
-    for modelo in (ContactNota, ContactRecordatorio):
+    from src.db.contact_seguimiento import CallOutcome
+
+    for modelo in (ContactNota, ContactRecordatorio, CallOutcome):
         for f in (
             await db_session.execute(select(modelo).where(func.lower(modelo.email) == clave))
         ).scalars().all():

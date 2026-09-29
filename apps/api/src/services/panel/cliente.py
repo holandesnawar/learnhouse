@@ -103,6 +103,22 @@ async def ficha_cliente(email: str, user_id: int, es_admin: bool, db_session: As
     seg = await seguimiento_de(clave, db_session)
     tareas = await tareas_srv.listar(db_session, user_id, es_admin, email=clave)
 
+    # Sus llamadas de Calendly (pasadas y próximas) con lo que pasó en cada
+    # una. En blando: si Calendly no contesta, la ficha sale igual.
+    llamadas: list[dict] = []
+    try:
+        from src.services.contactos.agenda import agenda
+        from src.services.contactos.resultado_llamada import resultados
+
+        hechos = await resultados(db_session)
+        llamadas = [
+            {**c, "resultado": hechos.get(c.get("id") or "")}
+            for c in (await agenda()).get("citas") or []
+            if c.get("email") == clave
+        ]
+    except Exception:  # noqa: BLE001
+        llamadas = []
+
     return {
         "email": clave,
         "nombre": ficha["nombre"],
@@ -122,6 +138,7 @@ async def ficha_cliente(email: str, user_id: int, es_admin: bool, db_session: As
         "notas": seg.get("notas", []),
         "volver_a_llamar": seg.get("volver_a_llamar"),
         "tareas": tareas,
+        "llamadas": llamadas,
         "systeme": crm,
         "linea": linea_de_tiempo(ficha["eventos"], correos, seg.get("notas", []), tareas),
     }
