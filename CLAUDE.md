@@ -1742,16 +1742,19 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
     adelante, para formar closers. Meter la videollamada dentro de la escuela
     (Meeting SDK) no compensa. Webhooks de Calendly (avisos al instante) son
     de pago: sin ellos, la agenda se lee al abrir la pantalla.
-- **La matrícula de la web ES `/agendar` (29/09)**. Se retiró el formulario
-  corto (nombre, correo, teléfono): `/matricula-a0-a1` y
-  `/matricula-formacion-nawar-a0-a1-ads` son ahora páginas mínimas que mandan
-  a /agendar **conservando los `?utm_…`** (una redirección de Astro los
-  perdía). Todos los botones sin precio (home, visión, blog, guías, contacto,
-  landings sin precio) van a /agendar; las **landings con precio**
-  (`/formacion-nawar`, `/formacion-a0-a1`) siguen yendo al **pago**. Para
-  tráfico muy frío el paso es la guía, no la matrícula.
-  - /agendar guarda el contacto en la 2ª pantalla, así que no pierde a nadie
-    frente al formulario corto (quien se va sale como "No terminó").
+- **A dónde lleva cada botón de la web (decidido el 29/09, tras una vuelta)**:
+  - **Formulario corto** `/matricula-a0-a1` (nombre, correo y teléfono
+    obligatorio): `CTA_PRINCIPAL` = menú de toda la web, home, Nuestra
+    visión, el blog entero y la gracias de la guía de las bases. Es tráfico
+    frío y lo corto capta más (así lo hacen otras academias a este precio).
+  - **/agendar**: SOLO las landings sin precio (`/formacion-nawar-a0-a1`,
+    `/formacion-a0-a1-sept-ads`). El formulario de anuncios
+    (`/matricula-formacion-nawar-a0-a1-ads`) se retiró: es una página mínima
+    que manda a /agendar **conservando los `?utm_…`** (la redirección de
+    Astro los perdía).
+  - **Pago**: las landings con precio (`/formacion-nawar`, `/formacion-a0-a1`).
+  - Se probó a mandarlo TODO a /agendar y se deshizo el mismo día: no volver
+    a hacerlo sin preguntar.
   - **`_MATRICULA` incluye `agendar-empezado`, `cualificacion` y `reunion`**:
     si no, quien pasa por /agendar sin que llegue la solicitud (tope 5/h/IP,
     todas las peticiones de la web salen de Vercel) NO salía en el Contactos
