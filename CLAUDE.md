@@ -1758,8 +1758,10 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
     del closer. `/payments/solicitudes` se salta el tope si llega
     `X-Web-Token` = `LEARNHOUSE_WEB_TOKEN` (la web lo manda si tiene
     `SCHOOL_WEB_TOKEN`). Sin la variable, el tope sigue.
-  - El evento **Lead del píxel** lo dispara /agendar al dejar los datos (antes,
-    la gracias del formulario de anuncios). La campaña (`guardarUTM`) se
+  - /agendar avisa al píxel con **`SubmitApplication`, NO con `Lead`**: el
+    `Lead` lo disparan las guías y es con lo que miden las campañas; con los
+    dos, quien baja la guía y luego pide plaza contaba doble (lo vio el
+    usuario el 29/09). La campaña (`guardarUTM`) se
     guarda ya en el `Layout` de toda la web, y el guardado parcial también la
     manda.
 - **Estilo del panel de ventas (29/09): "tiene que parecer un software, como
