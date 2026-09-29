@@ -1745,10 +1745,12 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
 - **A dónde lleva cada botón de la web (decidido el 29/09, tras una vuelta)**:
   - **Formulario corto** `/matricula-a0-a1` (nombre, correo y teléfono
     obligatorio): `CTA_PRINCIPAL` = menú de toda la web, home, Nuestra
-    visión, el blog entero y la gracias de la guía de las bases. Es tráfico
+    visión y el blog entero. Sin la línea "No se te cobra nada ahora. Te
+    escribimos…" bajo el botón (quitada a petición, 29/09). Es tráfico
     frío y lo corto capta más (así lo hacen otras academias a este precio).
-  - **/agendar**: SOLO las landings sin precio (`/formacion-nawar-a0-a1`,
-    `/formacion-a0-a1-sept-ads`). El formulario de anuncios
+  - **/agendar**: las landings sin precio (`/formacion-nawar-a0-a1`,
+    `/formacion-a0-a1-sept-ads`) y la gracias de la guía de las bases (quien
+    acaba de bajar la guía está caliente). El formulario de anuncios
     (`/matricula-formacion-nawar-a0-a1-ads`) se retiró: es una página mínima
     que manda a /agendar **conservando los `?utm_…`** (la redirección de
     Astro los perdía).
