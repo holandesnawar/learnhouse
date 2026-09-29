@@ -46,6 +46,7 @@ import {
 import toast from 'react-hot-toast'
 import { BOTON, BOTON_PELIGRO, Estado, META } from './ui'
 import type { VolverALlamar } from '@services/stats/contactos'
+import { numeroWhatsApp } from '@/lib/nawar/telefono'
 
 const ETAPAS: { id: EtapaTablero; nombre: string }[] = [
   { id: 'nuevo', nombre: 'Nuevo' },
@@ -70,9 +71,6 @@ function Bloque({ icono, titulo, children, derecha }: { icono: React.ReactNode; 
   )
 }
 
-function soloDigitos(tel: string) {
-  return (tel || '').replace(/[^\d]/g, '')
-}
 
 export default function FichaCliente({
   email,
@@ -159,7 +157,7 @@ export default function FichaCliente({
               )}
             </Bloque>
   ) : null
-  const tel = soloDigitos(ficha?.telefono || '')
+  const tel = numeroWhatsApp(ficha?.telefono)
 
   return (
     <div className="fixed inset-0 z-[60] flex justify-end" role="dialog" aria-modal="true">

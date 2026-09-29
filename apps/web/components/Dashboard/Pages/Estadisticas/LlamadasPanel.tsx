@@ -51,6 +51,7 @@ import { Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Loader2, RotateCcw
 import toast from 'react-hot-toast'
 import { confirmar } from '@lib/nawar/confirmar'
 import { BOTON, BOTON_PELIGRO, BOTON_PRINCIPAL, ENLACE, Estado, META, Meta, Seccion, TARJETA, filtro, type Tono } from '../Panel/ui'
+import { numeroWhatsApp } from '@/lib/nawar/telefono'
 
 // ── Fechas ────────────────────────────────────────────────────────────────
 
@@ -77,7 +78,7 @@ function lunesDe(d: Date) {
 const mismoDia = (a: Date, b: Date) => a.toDateString() === b.toDateString()
 
 function whatsapp(tel: string) {
-  const num = (tel || '').replace(/[^\d+]/g, '').replace(/^\+/, '').replace(/^00/, '')
+  const num = numeroWhatsApp(tel)
   return num ? `https://wa.me/${num}` : ''
 }
 
@@ -859,7 +860,7 @@ function EnlacePago({ llamada }: { llamada: Llamada }) {
     setDias(r.dias || 0)
   }
 
-  const num = (llamada.phone || '').replace(/[^\d+]/g, '').replace(/^\+/, '').replace(/^00/, '')
+  const num = numeroWhatsApp(llamada.phone)
   const textoWa = encodeURIComponent(`Hola${nombre ? ` ${nombre}` : ''}, aquí tienes tu enlace para apuntarte a la formación: ${url}`)
 
   return (
