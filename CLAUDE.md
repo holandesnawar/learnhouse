@@ -1742,6 +1742,26 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
     adelante, para formar closers. Meter la videollamada dentro de la escuela
     (Meeting SDK) no compensa. Webhooks de Calendly (avisos al instante) son
     de pago: sin ellos, la agenda se lee al abrir la pantalla.
+- **La matrícula de la web ES `/agendar` (29/09)**. Se retiró el formulario
+  corto (nombre, correo, teléfono): `/matricula-a0-a1` y
+  `/matricula-formacion-nawar-a0-a1-ads` son ahora páginas mínimas que mandan
+  a /agendar **conservando los `?utm_…`** (una redirección de Astro los
+  perdía). Todos los botones sin precio (home, visión, blog, guías, contacto,
+  landings sin precio) van a /agendar; las **landings con precio**
+  (`/formacion-nawar`, `/formacion-a0-a1`) siguen yendo al **pago**. Para
+  tráfico muy frío el paso es la guía, no la matrícula.
+  - /agendar guarda el contacto en la 2ª pantalla, así que no pierde a nadie
+    frente al formulario corto (quien se va sale como "No terminó").
+  - **`_MATRICULA` incluye `agendar-empezado`, `cualificacion` y `reunion`**:
+    si no, quien pasa por /agendar sin que llegue la solicitud (tope 5/h/IP,
+    todas las peticiones de la web salen de Vercel) NO salía en el Contactos
+    del closer. `/payments/solicitudes` se salta el tope si llega
+    `X-Web-Token` = `LEARNHOUSE_WEB_TOKEN` (la web lo manda si tiene
+    `SCHOOL_WEB_TOKEN`). Sin la variable, el tope sigue.
+  - El evento **Lead del píxel** lo dispara /agendar al dejar los datos (antes,
+    la gracias del formulario de anuncios). La campaña (`guardarUTM`) se
+    guarda ya en el `Layout` de toda la web, y el guardado parcial también la
+    manda.
 - **Estilo del panel de ventas (29/09): "tiene que parecer un software, como
   Calendly"**. Las etiquetas en cajitas pastel, las sombras y los grises
   azulados lo hacían ver "barato, IA". Piezas en `Panel/ui.tsx` (`TARJETA`,

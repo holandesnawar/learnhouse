@@ -11,7 +11,7 @@
  *   - redirects:  nawar-web/astro.config.mjs
  *   - etiquetas:  cada página (`ETIQUETA_CRM`, `tagName`), waitlist.ts
  *                 (`TAG_NAME`) e inro-systeme.ts (`ETIQUETA_POR_DEFECTO`).
- * Última revisión: 24/09/2026 (/agendar al día: nueve preguntas y sin precio).
+ * Última revisión: 29/09/2026 (/agendar ES la matrícula: se retiró el formulario corto).
  */
 
 export type Etapa = 'captar' | 'convencer' | 'matricular' | 'pagar'
@@ -106,7 +106,7 @@ export const MAPA_WEB: PaginaWeb[] = [
     nombre: 'Home',
     etapa: 'convencer',
     que: 'La portada. Sin precio.',
-    boton: 'Matricularme → /matricula-formacion-nawar',
+    boton: 'Matricularme → /agendar',
     precio: false,
     etiquetas: [],
   },
@@ -124,7 +124,7 @@ export const MAPA_WEB: PaginaWeb[] = [
     nombre: 'Landing sin precio',
     etapa: 'convencer',
     que: 'Misma página, para tráfico frío. No enseña cifra.',
-    boton: 'Formulario de contacto → /matricula-formacion-nawar-a0-a1-ads',
+    boton: 'Reservar mi plaza → /agendar',
     precio: false,
     etiquetas: [],
   },
@@ -133,7 +133,7 @@ export const MAPA_WEB: PaginaWeb[] = [
     nombre: 'Landing de anuncios',
     etapa: 'convencer',
     que: 'La de las campañas de Meta. Sin precio.',
-    boton: 'Formulario de contacto → /matricula-formacion-nawar-a0-a1-ads',
+    boton: 'Reservar mi plaza → /agendar',
     precio: false,
     etiquetas: [],
     ads: true,
@@ -143,7 +143,7 @@ export const MAPA_WEB: PaginaWeb[] = [
     nombre: 'Landing larga (precio, garantía, desglose)',
     etapa: 'convencer',
     que: 'Otra landing distinta, con todo el detalle.',
-    boton: 'Matricularme',
+    boton: 'Matricularme → /matricula-formacion-nawar',
     precio: true,
     etiquetas: [],
   },
@@ -152,7 +152,7 @@ export const MAPA_WEB: PaginaWeb[] = [
     nombre: 'Nuestra visión',
     etapa: 'convencer',
     que: 'Quiénes somos. Sin precio.',
-    boton: 'Matricularme → /matricula-formacion-nawar',
+    boton: 'Matricularme → /agendar',
     precio: false,
     etiquetas: [],
   },
@@ -168,29 +168,10 @@ export const MAPA_WEB: PaginaWeb[] = [
     etiquetas: ['Matriculado sin pagar (se quita al pagar)'],
   },
   {
-    ruta: '/matricula-formacion-nawar-a0-a1-ads',
-    nombre: 'Formulario de contacto (anuncios)',
-    etapa: 'matricular',
-    que: 'Nombre, correo, teléfono. NO cobra: la venta se cierra hablando. Sale en Contactos como «Pidió plaza».',
-    boton: 'Enviar → gracias',
-    precio: false,
-    etiquetas: ['Matrícula ads'],
-    ads: true,
-  },
-  {
-    ruta: '/matricula-a0-a1',
-    nombre: 'Formulario de contacto (sin anuncios)',
-    etapa: 'matricular',
-    que: 'Igual que el de anuncios, para el enlace que se manda a mano.',
-    boton: 'Enviar → gracias',
-    precio: false,
-    etiquetas: ['Matrícula'],
-  },
-  {
     ruta: '/agendar',
-    nombre: 'Agendar llamada (con cualificación)',
+    nombre: 'Matrícula: agendar llamada (con cualificación)',
     etapa: 'matricular',
-    que: 'Nombre, correo y teléfono + nueve preguntas (nivel, dónde vive, para qué, edad, ocupación, qué espera conseguir, horas, dinero y compromiso). Quien encaja confirma que asistirá y elige hora en Calendly; al resto se le ofrece la guía gratis. Todo sale en Llamadas, con las respuestas, aunque se vaya a mitad.',
+    que: 'LA matrícula de la web desde el 29/09: todos los botones sin precio llevan aquí. Nombre, correo y teléfono + nueve preguntas (nivel, dónde vive, para qué, edad, ocupación, qué espera conseguir, horas, dinero y compromiso). Quien encaja confirma que asistirá y elige hora en Calendly; al resto se le ofrece la guía gratis. Todo sale en Llamadas, con las respuestas, aunque se vaya a mitad.',
     boton: 'Elegir día y hora → Calendly (calendly.com/holandesnawar/llamada-de-consultoria)',
     precio: false,
     etiquetas: ['Llamada'],
@@ -199,7 +180,7 @@ export const MAPA_WEB: PaginaWeb[] = [
     ruta: '/matricula-formacion-nawar-a0-a1',
     nombre: '(ruta vieja)',
     etapa: 'matricular',
-    que: 'Ya no existe: redirige a la lista de espera. No mandar este enlace.',
+    que: 'Ya no existe: manda a /agendar. Igual que /matricula-a0-a1 y /matricula-formacion-nawar-a0-a1-ads, el formulario corto retirado el 29/09 (conservan la campaña del enlace).',
     boton: '—',
     precio: false,
     etiquetas: [],
@@ -234,8 +215,9 @@ export const SABE_POR_RUTA: Record<string, string> = {
   '/formacion-a0-a1-sept-ads': 'Viene de anuncios, landing SIN precio. No sabe cuánto cuesta: empieza por su caso.',
   '/formacion-a0-a1': 'Ha visto la landing larga, con precio, garantía y desglose.',
   '/matricula-formacion-nawar': 'Ha rellenado la matrícula que cobra y ha llegado a la caja: conoce el precio. Si no pagó, algo le frenó: pregúntale qué.',
-  '/matricula-formacion-nawar-a0-a1-ads': 'Pidió plaza desde un anuncio, sin ver el precio. Espera que le llamemos.',
-  '/matricula-a0-a1': 'Pidió plaza por el formulario de contacto (campaña de lanzamiento), sin ver el precio. Espera que le llamemos.',
+  // Formulario corto, retirado el 29/09: se quedan por quien entró antes.
+  '/matricula-formacion-nawar-a0-a1-ads': 'Pidió plaza desde un anuncio (formulario viejo), sin ver el precio. Espera que le llamemos.',
+  '/matricula-a0-a1': 'Pidió plaza por el formulario de contacto viejo (campaña de lanzamiento), sin ver el precio. Espera que le llamemos.',
   '/agendar': 'No ha visto el precio en esta página. Sabe que es una llamada de media hora para ver su caso, sin compromiso. Sus respuestas están en Llamadas.',
   'app.holandesnawar.com/auth/matricula-formacion-nawar-a0-a1': 'Está en la caja de pago: conoce el precio y está a un paso.',
 }

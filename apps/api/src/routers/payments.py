@@ -41,6 +41,17 @@ def _enforce_enroll_rate_limit(request: Request) -> None:
         )
 
 
+def _es_la_web(request: Request) -> bool:
+    """La cabecera X-Web-Token coincide con LEARNHOUSE_WEB_TOKEN. Sin la
+    variable puesta, nunca: si no, cualquiera se saltaría el tope."""
+    import hmac
+    import os
+
+    esperado = (os.environ.get("LEARNHOUSE_WEB_TOKEN") or "").strip()
+    dado = (request.headers.get("X-Web-Token") or "").strip()
+    return bool(esperado and dado and hmac.compare_digest(dado, esperado))
+
+
 @router.post(
     "/enroll",
     response_model=EnrollmentResponse,
@@ -187,7 +198,11 @@ async def api_solicitud(
 ):
     # El mismo tope que la matrícula de pago (5/hora/IP): es una escritura
     # pública, y sin esto un script llenaría la lista del panel de basura.
-    _enforce_enroll_rate_limit(request)
+    # Salvo que venga de la web con su clave: todas las peticiones de la web
+    # salen de las mismas IP de Vercel, y desde que /agendar es la matrícula
+    # (29/09) la sexta persona de una hora se quedaría sin solicitud.
+    if not _es_la_web(request):
+        _enforce_enroll_rate_limit(request)
     fila = await crear_solicitud(data, db_session)
     return {"ok": True, "id": fila.id}
 

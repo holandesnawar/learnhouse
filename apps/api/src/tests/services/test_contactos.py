@@ -88,3 +88,23 @@ def test_la_fecha_de_matricula_es_la_primera_solicitud_o_matricula():
     assert f["matricula_at"] == "2026-09-05T10:00:00"
     solo_guia = fusionar_contactos([_ev("guia-bases", "2026-09-01", "b@x.com")], set())[0]
     assert solo_guia["matricula_at"] == ""
+
+
+def test_quien_pasa_por_agendar_cuenta_como_matricula():
+    """Desde el 29/09 la matrícula es /agendar: sin solicitud (la web puede
+    toparse con el límite por IP) tiene que salir igual en el Contactos del
+    closer, que filtra por matricula_at."""
+    from src.services.contactos.contactos import _evento, fusionar_contactos
+
+    fichas = fusionar_contactos(
+        [
+            _evento("guia", "2026-09-20T10:00:00", "ana@x.com"),
+            _evento("agendar-empezado", "2026-09-29T10:00:00", "ana@x.com", first_name="Ana"),
+            _evento("guia", "2026-09-21T10:00:00", "leo@x.com"),
+        ],
+        set(),
+    )
+    por = {f["email"]: f for f in fichas}
+    assert por["ana@x.com"]["matricula_at"].startswith("2026-09-29")
+    assert por["ana@x.com"]["etapa"] == "pidio"
+    assert por["leo@x.com"]["matricula_at"] == ""
