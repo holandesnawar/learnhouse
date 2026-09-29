@@ -1314,10 +1314,9 @@ de presentación, no de goteo.
   El motivo sale en Llamadas, en la ficha y en el correo (`motivo_fuera`).
   ⚠️ **Puede pagar (contado o plazos) + 2 h o más a la semana = encaja
   SIEMPRE**, gane la línea roja que gane (`puedeYTieneTiempo`, 29/09): se
-  rechazó a alguien con nivel cero, dinero y tiempo. El teléfono se guarda
-  con prefijo (`nawar-web/src/lib/telefono.ts`: 06… → +31, 04… → +32) y el
-  panel lo arregla también para los viejos (`lib/nawar/telefono.ts`): un
-  "06 12…" abría un wa.me que no llevaba a nadie. **Todavía no se enlaza desde ningún sitio**
+  rechazó a alguien con nivel cero, dinero y tiempo. ⚠️ **El teléfono NO
+  se convierte a +31**: hay números de otros países (usuario, 29/09). Solo se
+  limpia (espacios fuera, 00 → +) y el formulario pide el prefijo del país. **Todavía no se enlaza desde ningún sitio**
   (decisión del usuario: "estamos probando").
 - ⚠️ **"Cuándo empieza" y "quién decide" se QUITARON a propósito** (23/09):
   casi no hay menores ni gente que no decida sola, y "cuándo empiezas" lo
