@@ -1316,7 +1316,11 @@ de presentación, no de goteo.
   SIEMPRE**, gane la línea roja que gane (`puedeYTieneTiempo`, 29/09): se
   rechazó a alguien con nivel cero, dinero y tiempo. ⚠️ **El teléfono NO
   se convierte a +31**: hay números de otros países (usuario, 29/09). Solo se
-  limpia (espacios fuera, 00 → +) y el formulario pide el prefijo del país. **Todavía no se enlaza desde ningún sitio**
+  limpia (espacios fuera, 00 → +) y el formulario pide el prefijo del país.
+  La opción D de "¿Dónde estás?" es **"En otro país"** (valor `otro`, antes
+  "Ninguna de estas") y abre un campo "¿En qué país?" (`textos.pais`,
+  obligatorio): en Llamadas sale "En otro país: México". Sirve para adivinar
+  el prefijo cuando el número llega sin él. **Todavía no se enlaza desde ningún sitio**
   (decisión del usuario: "estamos probando").
 - ⚠️ **"Cuándo empieza" y "quién decide" se QUITARON a propósito** (23/09):
   casi no hay menores ni gente que no decida sola, y "cuándo empiezas" lo
