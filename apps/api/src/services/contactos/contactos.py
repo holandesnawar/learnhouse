@@ -66,7 +66,12 @@ _CON_PRECIO = {"matricula", "pago"}
 #: Lo que cuenta como "se matriculó": pidió plaza por el formulario o llegó al
 #: pago. Es lo único que ve el closer en Contactos (la gente que solo bajó una
 #: guía no es trabajo suyo) y la fecha por la que se agrupa su lista.
-_MATRICULA = {"solicitud", "matricula"}
+# Desde el 29/09 la matrícula de la web ES /agendar: quien deja sus datos ahí
+# ("agendar-empezado"), termina las preguntas ("cualificacion") o reserva hora
+# ("reunion") se ha matriculado, aunque la solicitud que manda la web no
+# llegue (la puerta de /payments/solicitudes tiene tope por IP). Sin esto no
+# saldría en el Contactos del closer, que filtra por esta fecha.
+_MATRICULA = {"solicitud", "matricula", "agendar-empezado", "cualificacion", "reunion"}
 
 #: Pidió hablar con nosotros: el formulario de plaza o el de la llamada.
 _PIDIO = {"solicitud", "cualificacion", "agendar-empezado", "reunion"}
