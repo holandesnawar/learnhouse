@@ -52,6 +52,10 @@ NOMBRES_TIPO = {
     "instagram": "Escribió por Instagram",
     "solicitud": "Pidió plaza por el formulario",
     "agendar-empezado": "Empezó el formulario de llamada (dejó sus datos)",
+    # El proceso de admisión (02/10): es una MATRÍCULA, no una llamada. El
+    # texto real lo arma `_que_admision` con lo que vio y dónde se quedó.
+    "admision": "Empezó el proceso de admisión (dejó sus datos para ver el vídeo)",
+    "enlace-pago": "El equipo le creó un enlace de pago",
     "cualificacion": "Pidió una llamada (contestó la cualificación)",
     "matricula": "Empezó la matrícula (llegó al pago)",
     "pago": "Pagó la formación",
@@ -71,10 +75,10 @@ _CON_PRECIO = {"matricula", "pago"}
 # ("reunion") se ha matriculado, aunque la solicitud que manda la web no
 # llegue (la puerta de /payments/solicitudes tiene tope por IP). Sin esto no
 # saldría en el Contactos del closer, que filtra por esta fecha.
-_MATRICULA = {"solicitud", "matricula", "agendar-empezado", "cualificacion", "reunion"}
+_MATRICULA = {"solicitud", "matricula", "agendar-empezado", "admision", "cualificacion", "reunion"}
 
 #: Pidió hablar con nosotros: el formulario de plaza o el de la llamada.
-_PIDIO = {"solicitud", "cualificacion", "agendar-empezado", "reunion"}
+_PIDIO = {"solicitud", "cualificacion", "agendar-empezado", "admision", "reunion"}
 
 
 def etapa_de(tipos: set[str], tiene_cuenta: bool) -> str:
@@ -113,13 +117,18 @@ def _instante(texto: str) -> float:
 _VENTANA_AGENDAR_SEG = 24 * 3600
 
 
-async def _empezado_reciente(email: str, db_session: AsyncSession) -> Optional[ContactEvent]:
-    """El "agendar-empezado" de ese correo en las últimas 24 h, si lo hay."""
+#: Los eventos que se van REESCRIBIENDO mientras la persona avanza (una línea
+#: por persona y visita): /agendar y el proceso de admisión.
+_SE_COMPLETAN = ("agendar-empezado", "admision")
+
+
+async def _empezado_reciente(email: str, db_session: AsyncSession, kind: str = "agendar-empezado") -> Optional[ContactEvent]:
+    """El "agendar-empezado" (o "admision") de ese correo en las últimas 24 h."""
     fila = (
         await db_session.execute(
             select(ContactEvent)
             .where(ContactEvent.email == email)
-            .where(ContactEvent.kind == "agendar-empezado")
+            .where(ContactEvent.kind == kind)
             .order_by(ContactEvent.id.desc())  # type: ignore[attr-defined]
         )
     ).scalars().first()
@@ -146,8 +155,8 @@ async def registrar_evento(data: ContactEventCreate, db_session: AsyncSession) -
     llegó a contestar.
     """
     email = str(data.email).strip().lower()[:255]
-    if (data.kind or "").strip() == "agendar-empezado":
-        previa = await _empezado_reciente(email, db_session)
+    if (data.kind or "").strip() in _SE_COMPLETAN:
+        previa = await _empezado_reciente(email, db_session, (data.kind or "").strip())
         if previa is not None:
             previa.first_name = (data.first_name or "").strip()[:120] or previa.first_name
             previa.last_name = (data.last_name or "").strip()[:120] or previa.last_name
@@ -193,10 +202,40 @@ async def registrar_evento(data: ContactEventCreate, db_session: AsyncSession) -
     return fila
 
 
+def _que_admision(extra: dict) -> str:
+    """El proceso de admisión en una línea: qué vio y dónde se quedó."""
+    texto = "Proceso de admisión: dejó sus datos"
+    if (extra or {}).get("video") == "visto":
+        texto += " y vio el vídeo entero"
+    else:
+        texto += ", no terminó el vídeo"
+    ultima = str((extra or {}).get("ultima") or "")
+    if ultima:
+        texto += f"; en las preguntas se quedó en «{ultima}»"
+    return texto
+
+
+def _que(kind: str, campos: dict) -> str:
+    """El texto de la línea de tiempo. Casi siempre fijo; algunos dependen de
+    lo que se sabe de ese paso."""
+    extra = campos.get("extra") or {}
+    if kind == "admision":
+        return _que_admision(extra)
+    if kind == "matricula":
+        if campos.get("utm_medium") == "enlace-pago" or "enlace-pago" in str(campos.get("recorrido") or ""):
+            return "Abrió el enlace de pago que le mandó el equipo (llegó al pago y vio el precio)"
+        return "Rellenó la matrícula de la web y llegó al pago (vio el precio)"
+    if kind == "solicitud" and campos.get("source") == "admision":
+        return "Se matriculó en el proceso de admisión"
+    if kind == "enlace-pago" and extra.get("autor"):
+        return f"{extra['autor']} le creó un enlace de pago"
+    return NOMBRES_TIPO.get(kind, kind)
+
+
 def _evento(kind: str, when: str, email: str, **campos) -> dict:
     base = {
         "kind": kind,
-        "que": NOMBRES_TIPO.get(kind, kind),
+        "que": _que(kind, campos),
         "when": when or "",
         "email": email,
         "first_name": "",

@@ -178,6 +178,11 @@ async def listar_llamadas(db_session: AsyncSession, limite: int = 200) -> list[d
             .limit(limite * 3)
         )
     ).scalars().all()
+    # El proceso de admisión NO es una llamada (02/10, usuario): quien solo
+    # dejó sus datos para ver el vídeo es una matrícula y sale en Contactos y
+    # en el tablero. Aquí entra cuando termina las preguntas (cualificación).
+    # Los primeros días se guardaba como "agendar-empezado" con esa marca.
+    todos = [t for t in todos if not (t.kind == "agendar-empezado" and '"embudo": "admision"' in (t.extra or ""))]
     eventos = elegir_eventos(list(todos))[:limite]
     if not eventos:
         return []
@@ -188,7 +193,7 @@ async def listar_llamadas(db_session: AsyncSession, limite: int = 200) -> list[d
         await db_session.execute(
             select(EnrollmentRequest)
             .where(EnrollmentRequest.email.in_(emails))  # type: ignore[attr-defined]
-            .where(EnrollmentRequest.source == "llamada")
+            .where(EnrollmentRequest.source.in_(["llamada", "admision"]))  # type: ignore[attr-defined]
             .order_by(EnrollmentRequest.id.desc())  # type: ignore[attr-defined]
         )
     ).scalars().all()

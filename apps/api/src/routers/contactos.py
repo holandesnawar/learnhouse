@@ -215,6 +215,22 @@ async def api_enlace_pago(
     if "@" not in email or not data.first_name.strip():
         raise HTTPException(status_code=400, detail="Hacen falta el nombre y un correo válido")
     secreto = get_learnhouse_config().security_config.auth_jwt_secret_key
+    # Se apunta en su ficha quién le creó el enlace: si luego llega al pago,
+    # se sabe por qué vio el precio (02/10: "¿cómo encontró el precio?").
+    try:
+        from src.db.contact_event import ContactEventCreate
+        from src.services.contactos.contactos import registrar_evento
+
+        await registrar_evento(
+            ContactEventCreate(
+                email=email, kind="enlace-pago", first_name=data.first_name.strip()[:120],
+                last_name=data.last_name.strip()[:120], phone=data.phone.strip()[:40],
+                source="equipo", extra={"autor": _nombre(current_user)},
+            ),
+            db_session,
+        )
+    except Exception:  # noqa: BLE001
+        pass
     token = firmar(
         {"e": email, "f": data.first_name.strip()[:120], "l": data.last_name.strip()[:120], "p": data.phone.strip()[:40]},
         secreto,
