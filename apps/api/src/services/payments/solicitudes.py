@@ -85,6 +85,8 @@ async def crear_solicitud(
 _NOMBRES = {
     "home": "el inicio de la web",
     "agendar": "la página de agendar llamada",
+    "admision": "el proceso de admisión (el vídeo)",
+    "admision-preguntas": "las preguntas del proceso de admisión",
     "landing": "la página de la formación (sin precio)",
     "landing-precio": "la página de la formación CON el precio",
     "guia-bases": "la guía de las bases",
@@ -114,6 +116,10 @@ def resumen_del_lead(recorrido: str, referrer: str, source: str) -> dict:
 
     if pasos:
         entrada = _NOMBRES.get(pasos[0], pasos[0])
+        # Si aterrizó directamente en un formulario (desde Instagram, un
+        # anuncio, un correo…), la web de origen dice más que el formulario.
+        if referrer:
+            entrada = f"{entrada}, llegando desde {referrer}"
     elif referrer:
         entrada = referrer
     elif source == "ads":

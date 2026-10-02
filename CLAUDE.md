@@ -1861,6 +1861,17 @@ enlace**, fuera de Google (`robots.txt`) y sin enlazar desde la web.
   pasa a "vio el vídeo entero" (con texto para el closer: "está muy cerca").
   /agendar no manda nada y no cambia. Ojo: la escuela **reemplaza** el `extra`
   del "agendar-empezado" en cada envío, así que la web manda siempre la marca.
+- **Quien rellena la ventanita YA es una matrícula** (02/10, pedido del
+  usuario: "que se guarde como lead matrícula y de dónde viene, y si sigue se
+  vaya completando"). Con `matricula: true` (solo la ventanita, no cada
+  respuesta) `/api/cualificacion` crea también la **solicitud** (`source:
+  'llamada'`, recorrido, web de origen y campaña): sale en Contactos y en el
+  tablero como "pidió plaza". Al terminar las preguntas, la solicitud final
+  cae en la MISMA fila (la escuela reaprovecha el correo en 24 h). El panel
+  dice "Vino de el proceso de admisión (el vídeo), llegando desde
+  instagram.com": `resumen_del_lead` añade la web de origen cuando la hay.
+  Ojo: sin `SCHOOL_WEB_TOKEN` en Vercel, esa solicitud cuenta para el tope de
+  5/hora de la escuela; el evento se guarda igual.
 - **Píxel de Meta:** dejar los datos = `SubmitApplication` (misma marca de
   sesión que /agendar, no cuenta doble); vídeo entero = `AdmisionVideoVisto`;
   terminar las preguntas = `AdmisionCompletada`; reservar = `Schedule`.
