@@ -32,18 +32,38 @@ def paginas_vistas(ficha: dict) -> list[dict]:
 
 
 def por_que_vio_el_precio(eventos: list[dict]) -> str:
-    """Por qué la ficha dice "ha visto el precio", en una frase. Vacío si no
-    lo ha visto. Pregunta del usuario (02/10): "¿cómo encontró el precio si
-    solo le pasé lo de agendar llamada?"."""
+    """Por qué la ficha dice "ha visto el precio", en una frase, con lo que
+    guardó la matrícula al crearse (02/10, "¿cómo encontró Paula el precio?").
+
+    La escuela solo apunta "llegó al pago" de dos maneras: el formulario de
+    pago de la web (/matricula-formacion-nawar) o un enlace de pago creado en
+    el panel (basta con ABRIRLO, aunque no se pague). Cada matrícula guarda
+    cuál fue y desde dónde llegó: aquí se cuenta. Vacío si no lo ha visto."""
     for e in eventos:
-        if e.get("kind") == "matricula" and (
-            e.get("utm_medium") == "enlace-pago" or "enlace-pago" in str(e.get("recorrido") or "")
-        ):
-            return "Abrió un enlace de pago que le mandó el equipo: en esa página está el precio."
+        if e.get("kind") != "matricula":
+            continue
+        rec = str(e.get("recorrido") or "")
+        if e.get("utm_medium") == "enlace-pago" or "enlace-pago" in rec:
+            return (
+                "Llegó a la caja de pago con un enlace de pago creado en el panel (Llamadas → «Crear su enlace "
+                "de pago»). La matrícula se crea al ABRIR el enlace: si nadie se lo mandó, puede que alguien "
+                "del equipo lo abriera para verlo."
+            )
+        texto = "Rellenó ella misma el formulario de pago de la web (la página de matrícula con el precio)"
+        if e.get("referrer"):
+            texto += f", llegando desde {e['referrer']}"
+        if e.get("utm_campaign") or e.get("utm_source"):
+            texto += f", con el enlace de la campaña «{e.get('utm_campaign') or e.get('utm_source')}»"
+        pasos = [NOMBRES_PAGINA.get(p, p) for p in rec.split(",") if p]
+        if pasos:
+            texto += ". Antes pasó por: " + " → ".join(pasos)
+        elif not e.get("referrer"):
+            texto += ". Entró directamente a esa página (un enlace guardado, un correo o un mensaje)"
+        return texto + "."
     if any("landing-precio" in str(e.get("recorrido") or "") for e in eventos):
         return "Pasó por la página de la formación que enseña el precio."
-    if any(e.get("kind") in ("matricula", "pago") for e in eventos):
-        return "Rellenó la matrícula de la web y llegó a la caja de pago, que enseña el precio."
+    if any(e.get("kind") == "pago" for e in eventos):
+        return "Pagó la formación."
     return ""
 
 

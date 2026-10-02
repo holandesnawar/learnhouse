@@ -147,8 +147,11 @@ def test_por_que_vio_el_precio():
 
     enlace = [{"kind": "matricula", "utm_medium": "enlace-pago", "recorrido": "enlace-pago"}]
     assert "enlace de pago" in por_que_vio_el_precio(enlace)
-    web = [{"kind": "matricula", "utm_medium": "", "recorrido": "home"}]
-    assert "matrícula de la web" in por_que_vio_el_precio(web)
+    web = [{"kind": "matricula", "utm_medium": "", "recorrido": "home", "referrer": "mail.google.com"}]
+    t = por_que_vio_el_precio(web)
+    assert "formulario de pago de la web" in t and "mail.google.com" in t and "el inicio de la web" in t
+    directo = por_que_vio_el_precio([{"kind": "matricula", "recorrido": "", "referrer": ""}])
+    assert "directamente" in directo
     assert por_que_vio_el_precio([{"kind": "solicitud", "recorrido": "agendar"}]) == ""
 
 
