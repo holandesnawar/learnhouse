@@ -31,6 +31,22 @@ def paginas_vistas(ficha: dict) -> list[dict]:
     return [{"id": p, "nombre": NOMBRES_PAGINA.get(p, p), "precio": p == "landing-precio"} for p in vistas]
 
 
+def por_que_vio_el_precio(eventos: list[dict]) -> str:
+    """Por qué la ficha dice "ha visto el precio", en una frase. Vacío si no
+    lo ha visto. Pregunta del usuario (02/10): "¿cómo encontró el precio si
+    solo le pasé lo de agendar llamada?"."""
+    for e in eventos:
+        if e.get("kind") == "matricula" and (
+            e.get("utm_medium") == "enlace-pago" or "enlace-pago" in str(e.get("recorrido") or "")
+        ):
+            return "Abrió un enlace de pago que le mandó el equipo: en esa página está el precio."
+    if any("landing-precio" in str(e.get("recorrido") or "") for e in eventos):
+        return "Pasó por la página de la formación que enseña el precio."
+    if any(e.get("kind") in ("matricula", "pago") for e in eventos):
+        return "Rellenó la matrícula de la web y llegó a la caja de pago, que enseña el precio."
+    return ""
+
+
 def linea_de_tiempo(eventos: list[dict], correos: list[dict], notas: list[dict], tareas: list[dict]) -> list[dict]:
     """Todo lo que ha pasado con esta persona, lo más reciente arriba."""
     items: list[dict] = []
@@ -126,6 +142,7 @@ async def ficha_cliente(email: str, user_id: int, es_admin: bool, db_session: As
         "etapa_contacto": ficha["etapa"],
         "tablero": tablero,
         "vio_precio": ficha["vio_precio"],
+        "precio_por": por_que_vio_el_precio(eventos),
         "vino_de": ficha["vino_de"],
         "utm": {"source": ficha["utm_source"], "medium": ficha["utm_medium"], "campaign": ficha["utm_campaign"]},
         "etiquetas": ficha["etiquetas"],

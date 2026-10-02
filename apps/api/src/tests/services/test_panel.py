@@ -140,3 +140,23 @@ def test_tablero_lo_mas_nuevo_arriba_y_sin_pruebas():
     assert visibles == ["nuevo@x.com", "medio@x.com", "viejo@x.com"]
     # Las quitadas siguen llegando (para poder devolverlas), marcadas.
     assert {c["email"] for c in t if c["oculto"]} == {"prueba@x.com", "x@x.com"}
+
+
+def test_por_que_vio_el_precio():
+    from src.services.panel.cliente import por_que_vio_el_precio
+
+    enlace = [{"kind": "matricula", "utm_medium": "enlace-pago", "recorrido": "enlace-pago"}]
+    assert "enlace de pago" in por_que_vio_el_precio(enlace)
+    web = [{"kind": "matricula", "utm_medium": "", "recorrido": "home"}]
+    assert "matrícula de la web" in por_que_vio_el_precio(web)
+    assert por_que_vio_el_precio([{"kind": "solicitud", "recorrido": "agendar"}]) == ""
+
+
+def test_la_admision_cuenta_como_matricula_y_dice_que_vio():
+    from src.services.contactos.contactos import _evento, etapa_de
+
+    e = _evento("admision", "2026-10-02T10:00:00", "p@x.com", extra={"video": "visto", "ultima": "Horas a la semana"})
+    assert "vio el vídeo entero" in e["que"] and "Horas a la semana" in e["que"]
+    assert etapa_de({"admision"}, False) == "pidio"
+    m = _evento("matricula", "", "p@x.com", utm_medium="enlace-pago", recorrido="enlace-pago")
+    assert "enlace de pago" in m["que"]

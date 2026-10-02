@@ -45,7 +45,8 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { BOTON, BOTON_PELIGRO, Estado, META } from './ui'
-import type { VolverALlamar } from '@services/stats/contactos'
+import { avisoTrasBorrar, borrarContacto, type VolverALlamar } from '@services/stats/contactos'
+import { confirmar } from '@lib/nawar/confirmar'
 import { numeroWhatsApp } from '@/lib/nawar/telefono'
 
 const ETAPAS: { id: EtapaTablero; nombre: string }[] = [
@@ -196,7 +197,48 @@ export default function FichaCliente({
             <a href={`mailto:${email}`} className={BOTON}>
               <Mail size={13} /> Correo
             </a>
-            {onQuitar ? (
+            {ficha?.fuera_de_metricas && (isAdmin || onQuitar) ? (
+              // Fuera de los números (una prueba): volver a contar es lo
+              // contrario de borrar, así que va en gris y sin papelera; y al
+              // lado, borrar su rastro de verdad (notas, llamadas, tareas…),
+              // que es lo que se busca con una prueba. El pago y la cuenta,
+              // si los hay, se quedan (02/10: "le di a borrar y nada").
+              <>
+                <button
+                  onClick={async () => {
+                    if (onQuitar) return onQuitar()
+                    const r = await quitarPersona(org?.id, accessToken, { email: ficha.email, nombre: ficha.nombre, esAlumno: true, fuera: true })
+                    if (r) {
+                      onCambio?.()
+                      setFicha({ ...ficha, fuera_de_metricas: false })
+                    }
+                  }}
+                  className={BOTON}
+                >
+                  <Eye size={13} /> Volver a contar
+                </button>
+                <button
+                  onClick={async () => {
+                    if (
+                      !(await confirmar(
+                        `¿Borrar el rastro de ${ficha.nombre || ficha.email}? Se borran sus notas, llamadas, tareas, solicitudes y matrículas sin pagar, y deja de salir en el panel. Si pagó, el pago y la factura se quedan, y su cuenta también.`,
+                        { boton: 'Borrar su rastro', peligro: true }
+                      ))
+                    )
+                      return
+                    const r = await borrarContacto(org?.id, ficha.email, accessToken)
+                    if (!r.ok) return toast.error(r.error || 'No se ha podido borrar')
+                    const aviso = avisoTrasBorrar(r.quedan)
+                    toast.success(aviso === 'Borrado' ? 'Borrado' : 'Borrado su rastro. Sigue fuera de los números.')
+                    onCambio?.()
+                    onClose()
+                  }}
+                  className={BOTON_PELIGRO}
+                >
+                  <Trash2 size={13} /> Borrar su rastro
+                </button>
+              </>
+            ) : onQuitar ? (
               <button
                 onClick={onQuitar}
                 className={BOTON_PELIGRO}
@@ -342,6 +384,7 @@ export default function FichaCliente({
                   <span className="rounded-md px-2.5 py-1 text-[12px] font-semibold text-[#B45309]">Campaña: {ficha.utm.campaign}</span>
                 ) : null}
               </div>
+              {ficha.vio_precio && ficha.precio_por ? <p className="text-[12.5px] text-gray-700 mt-2">{ficha.precio_por}</p> : null}
               {ficha.vino_de ? <p className="text-[12.5px] text-[#6B7280] mt-2">Llegó por {ficha.vino_de}.</p> : null}
               {ficha.paginas.length ? (
                 <ol className="mt-2.5 space-y-1">

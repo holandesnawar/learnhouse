@@ -1872,6 +1872,29 @@ enlace**, fuera de Google (`robots.txt`) y sin enlazar desde la web.
   instagram.com": `resumen_del_lead` añade la web de origen cuando la hay.
   Ojo: sin `SCHOOL_WEB_TOKEN` en Vercel, esa solicitud cuenta para el tope de
   5/hora de la escuela; el evento se guarda igual.
+- ⚠️ **El proceso de admisión NO es una llamada** (02/10, usuario: "no te
+  dije que contase como llamada, solo como matrícula, pero que diga qué vio y
+  dónde se quedó"). La ventanita y cada respuesta van como evento **`admision`**
+  (no `agendar-empezado`), que se reescribe en la misma fila (`_SE_COMPLETAN`),
+  cuenta como matrícula (`_MATRICULA`, `_PIDIO`) y **no sale en Llamadas**
+  hasta que termina las preguntas (`cualificacion`). Las solicitudes llevan
+  `source: 'admision'` (Llamadas las une igual que las de `llamada`). La línea
+  de tiempo lo cuenta con `_que_admision`: "Proceso de admisión: dejó sus datos
+  y vio el vídeo entero; en las preguntas se quedó en «Horas a la semana»".
+  Los primeros del 02/10 se guardaron como `agendar-empezado` con
+  `embudo: admision`: Llamadas los filtra.
+- **Por qué "ha visto el precio"** (02/10, "¿cómo encontró Paula el precio?"):
+  la ficha lo explica (`por_que_vio_el_precio`): enlace de pago del equipo,
+  la landing con precio, o la matrícula de la web. Llegar a la caja de pago
+  es ver el precio. Desde el 02/10 crear un enlace de pago deja un evento
+  `enlace-pago` con quién lo creó.
+- **Pruebas que no se iban** (02/10): una prueba que ya pagó no se borra, se
+  quita de los números; pero si tenía una nota, seguía saliendo en "Notas del
+  equipo", y en su ficha el botón rojo con papelera decía "Volver a contar"
+  (o sea, lo contrario). Ahora las notas de quien está fuera de los números no
+  salen en el resumen, "Volver a contar" va en gris, y al lado hay **"Borrar
+  su rastro"** (`borrar_contacto`: notas, llamadas, tareas, solicitudes; el
+  pago, la factura y la cuenta se quedan).
 - **Píxel de Meta:** dejar los datos = `SubmitApplication` (misma marca de
   sesión que /agendar, no cuenta doble); vídeo entero = `AdmisionVideoVisto`;
   terminar las preguntas = `AdmisionCompletada`; reservar = `Schedule`.

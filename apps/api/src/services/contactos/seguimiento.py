@@ -131,6 +131,12 @@ async def resumen_seguimiento(db_session: AsyncSession, ultimas: int = 30) -> di
     notas = (
         await db_session.execute(select(ContactNota).order_by(ContactNota.id.desc()))  # type: ignore[attr-defined]
     ).scalars().all()
+    # Quien está fuera de los números (pruebas) no sale en "Lo último que ha
+    # apuntado el equipo": si no, una prueba con una nota no se va nunca.
+    from src.services.contactos.metricas import emails_excluidos
+
+    fuera = await emails_excluidos(db_session)
+    notas = [n for n in notas if (n.email or "").lower() not in fuera]
     por_email: dict[str, int] = {}
     for n in notas:
         por_email[n.email] = por_email.get(n.email, 0) + 1

@@ -89,6 +89,8 @@ export interface FichaCliente {
   etapa_contacto: string
   tablero: Tarjeta
   vio_precio: boolean
+  /** Por qué ha visto el precio, en una frase (vacío si no lo ha visto). */
+  precio_por?: string
   vino_de: string
   utm: { source: string; medium: string; campaign: string }
   etiquetas: string[]
