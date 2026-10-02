@@ -1819,6 +1819,50 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
   con la contraseña en la URL. Y `LEARNHOUSE_SQL_CONNECTION_STRING` va como
   `postgresql://` (sin `+asyncpg`): el arranque crea un motor síncrono con ella.
 
+## Proceso de admisión: el embudo nuevo (02/10/2026)
+Pedido del usuario: "que entren ganas de rellenarlo, sin fricción, pero que
+filtre a los que quieren aprender". Se eligió el mix: **pedir poco al
+principio y más solo a quien ya está dentro**. En pruebas: **solo por
+enlace**, fuera de Google (`robots.txt`) y sin enlazar desde la web.
+
+- **`/proceso-de-admision`** (web, `src/pages/proceso-de-admision/index.astro`,
+  todo explicado en `src/lib/admision.ts`). Título "Proceso de admisión ·
+  Paso 1 de 3" (**"admisión", no "reserva tu plaza"**: el usuario lo quiere
+  más premium). Línea de 3 pasos: Tus datos · El vídeo · Tu admisión.
+  1. **Vídeo bloqueado**: al darle al play sale una ventanita con **tres
+     datos** (nombre, correo, WhatsApp). Sin apellidos ni país ni ciudad, a
+     propósito: cada campo resta gente.
+  2. **El teléfono lleva un desplegable de prefijo con bandera** (`PREFIJOS`):
+     cerrado enseña solo "🇳🇱 +31". Así el número llega SIEMPRE con prefijo
+     (el caso de Paula, 29/09) y se sabe el país sin preguntarlo. Si escriben
+     06…, el 0 se quita (`telefonoCompleto`).
+  3. **El botón "Siguiente paso" está a la vista desde el principio pero
+     bloqueado** (pedido del usuario) y se desbloquea y se ilumina al terminar
+     el vídeo. Si el reproductor no deja saber cuándo acaba (bloqueador,
+     fallo), se abre solo: nadie se queda atascado por un fallo nuestro.
+- **El vídeo** sale de `PUBLIC_ADMISION_VIDEO` (Vercel) o de `VIDEO_URL` en
+  `admision.ts`: vale Bunny (`iframe.mediadelivery.net/embed/…`), YouTube,
+  Vimeo o un .mp4. Cada uno avisa del final con su API (player.js de Bunny,
+  la iframe API de YouTube, la de Vimeo, o `ended` del `<video>`). Vacío =
+  aviso "se está preparando" y el botón abierto.
+- **`/proceso-de-admision/paso-3`** es una **COPIA de /agendar** (pedido del
+  usuario: probar sin tocar el que funciona) con los datos ya puestos y otro
+  texto de entrada. Las preguntas y la nota son las mismas
+  (`lib/cualificacion.ts`); **si se cambia la lógica de /agendar, mirar si
+  hay que llevarla a la copia**.
+- **A la escuela llega por la misma puerta que /agendar** (`/api/cualificacion`),
+  con `embudo: 'admision'` y `video: 'empezado' | 'visto'` dentro del `extra`
+  del evento. Al dejar los datos ya sale en **Panel → Llamadas** como "No
+  terminó · Proceso de admisión · no terminó el vídeo"; al acabar el vídeo
+  pasa a "vio el vídeo entero" (con texto para el closer: "está muy cerca").
+  /agendar no manda nada y no cambia. Ojo: la escuela **reemplaza** el `extra`
+  del "agendar-empezado" en cada envío, así que la web manda siempre la marca.
+- **Píxel de Meta:** dejar los datos = `SubmitApplication` (misma marca de
+  sesión que /agendar, no cuenta doble); vídeo entero = `AdmisionVideoVisto`;
+  terminar las preguntas = `AdmisionCompletada`; reservar = `Schedule`.
+- El navegador recuerda los datos y si vio el vídeo (`localStorage`): quien
+  vuelve no repite nada.
+
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
   `git branch --show-current` antes de dar por buena ninguna que ponga aquí.

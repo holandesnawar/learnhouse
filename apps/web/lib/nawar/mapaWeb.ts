@@ -186,6 +186,15 @@ export const MAPA_WEB: PaginaWeb[] = [
     etiquetas: ['Llamada'],
   },
   {
+    ruta: '/proceso-de-admision',
+    nombre: 'Proceso de admisión (en pruebas, solo por enlace)',
+    etapa: 'matricular',
+    que: 'Embudo nuevo del 02/10, en tres pasos. 1) Vídeo bloqueado: para verlo deja nombre, correo y WhatsApp (con prefijo del país). 2) El vídeo; el botón de seguir está bloqueado hasta que termina. 3) Las mismas preguntas que /agendar con los datos ya puestos (/proceso-de-admision/paso-3) y, si encaja, Calendly. En Llamadas sale marcado "Proceso de admisión" y si vio el vídeo entero.',
+    boton: 'Siguiente paso → /proceso-de-admision/paso-3 → Calendly',
+    precio: false,
+    etiquetas: ['Llamada'],
+  },
+  {
     ruta: '/matricula-formacion-nawar-a0-a1',
     nombre: '(ruta vieja)',
     etapa: 'matricular',
@@ -227,6 +236,7 @@ export const SABE_POR_RUTA: Record<string, string> = {
   // Formulario corto, retirado el 29/09: se quedan por quien entró antes.
   '/matricula-formacion-nawar-a0-a1-ads': 'Pidió plaza desde un anuncio (formulario viejo), sin ver el precio. Espera que le llamemos.',
   '/matricula-a0-a1': 'Pidió plaza por el formulario corto (nombre, correo y teléfono), sin ver el precio. Espera que le llamemos.',
+  '/proceso-de-admision': 'Vio (o empezó) el vídeo de la formación. En Llamadas pone si lo vio entero. Sabe que el último paso es una llamada.',
   '/agendar': 'No ha visto el precio en esta página. Sabe que es una llamada de media hora para ver su caso, sin compromiso. Sus respuestas están en Llamadas.',
   'app.holandesnawar.com/auth/matricula-formacion-nawar-a0-a1': 'Está en la caja de pago: conoce el precio y está a un paso.',
 }

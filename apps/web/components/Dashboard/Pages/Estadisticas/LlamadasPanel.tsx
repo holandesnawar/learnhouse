@@ -751,6 +751,7 @@ function Lista({
                 <Meta
                   partes={[
                     l.terminado ? `${l.apto ? 'Encaja' : 'No encaja'} · ${l.puntuacion} pts` : 'No terminó',
+                    l.embudo === 'admision' ? `Proceso de admisión · ${l.video === 'visto' ? 'vio el vídeo entero' : 'no terminó el vídeo'}` : '',
                     l.email,
                     l.phone,
                     fecha(l.created_at),
@@ -773,7 +774,11 @@ function Lista({
                 {l.terminado && !l.apto && l.motivo_fuera ? <p className="text-[13px] text-gray-700">Se quedó fuera por: {l.motivo_fuera}.</p> : null}
                 {!l.terminado && l.respuestas.length === 0 ? (
                   <p className="text-[13px] text-gray-700">
-                    Dejó su nombre, correo y teléfono y se fue antes de contestar las preguntas. Escríbele: ya mostró interés.
+                    {l.embudo === 'admision'
+                      ? l.video === 'visto'
+                        ? 'Dejó sus datos y vio el vídeo entero, pero no contestó las preguntas. Escríbele: está muy cerca.'
+                        : 'Dejó sus datos para ver el vídeo y no lo terminó. Escríbele: ya mostró interés.'
+                      : 'Dejó su nombre, correo y teléfono y se fue antes de contestar las preguntas. Escríbele: ya mostró interés.'}
                   </p>
                 ) : l.sin_respuestas ? (
                   <p className={META}>No se guardaron las respuestas de esta llamada.</p>

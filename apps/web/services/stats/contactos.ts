@@ -141,6 +141,10 @@ export interface Llamada {
   reservada_at: string
   /** Los que no terminaron: la última pregunta que contestaron. */
   ultima_pregunta?: string
+  /** 'admision' = viene de /proceso-de-admision. Vacío = /agendar. */
+  embudo?: string
+  /** En el proceso de admisión: 'empezado' o 'visto' (vio el vídeo entero). */
+  video?: string
   respuestas: { pregunta: string; respuesta: string; puntos: number }[]
   sin_respuestas: boolean
   vio_precio: boolean
