@@ -224,7 +224,7 @@ def _que(kind: str, campos: dict) -> str:
     if kind == "matricula":
         if campos.get("utm_medium") == "enlace-pago" or "enlace-pago" in str(campos.get("recorrido") or ""):
             return "Abrió el enlace de pago que le mandó el equipo (llegó al pago y vio el precio)"
-        return "Rellenó la matrícula de la web y llegó al pago (vio el precio)"
+        return "Rellenó el formulario de pago de la web y llegó a la caja (vio el precio)"
     if kind == "solicitud" and campos.get("source") == "admision":
         return "Se matriculó en el proceso de admisión"
     if kind == "enlace-pago" and extra.get("autor"):

@@ -1888,6 +1888,15 @@ enlace**, fuera de Google (`robots.txt`) y sin enlazar desde la web.
   la landing con precio, o la matrícula de la web. Llegar a la caja de pago
   es ver el precio. Desde el 02/10 crear un enlace de pago deja un evento
   `enlace-pago` con quién lo creó.
+  ⚠️ **Solo hay DOS caminos a "llegó al pago"** (`Enrollment`): el formulario
+  de pago de la web (`/matricula-formacion-nawar`, vía `/api/enroll`) o
+  ABRIR un enlace de pago del panel (`/payments/pagar/{token}`; abrirlo ya crea
+  la matrícula, aunque no se pague). La ficha dice cuál fue con lo que guardó
+  esa matrícula (web de origen, campaña, páginas). Ninguna página sin precio
+  enlaza a la caja (contado en el HTML servido el 02/10). Y hasta el 02/10 la
+  landing con precio `/formacion-nawar` y su formulario **no se apuntaban en
+  el recorrido** (`recorrido.ts`): quien entraba por un enlace directo llegaba
+  a la caja "sin recorrido".
 - **Pruebas que no se iban** (02/10): una prueba que ya pagó no se borra, se
   quita de los números; pero si tenía una nota, seguía saliendo en "Notas del
   equipo", y en su ficha el botón rojo con papelera decía "Volver a contar"
