@@ -177,3 +177,12 @@ def test_fila_llamada_marca_el_proceso_de_admision():
     # Lo de /agendar de siempre no lleva marca.
     vieja = fila_llamada({"id": 1, "kind": "cualificacion", "email": "a@x.com", "extra": "{}"}, None)
     assert vieja["embudo"] == "" and vieja["video"] == ""
+
+
+def test_resumen_del_lead_del_proceso_de_admision():
+    from src.services.payments.solicitudes import resumen_del_lead
+
+    r = resumen_del_lead("admision,admision-preguntas", "instagram.com", "llamada")
+    assert r["vino_de"] == "el proceso de admisión (el vídeo), llegando desde instagram.com"
+    assert r["camino"] == "el proceso de admisión (el vídeo) → las preguntas del proceso de admisión"
+    assert r["vio_precio"] is False
