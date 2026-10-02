@@ -1828,7 +1828,11 @@ enlace**, fuera de Google (`robots.txt`) y sin enlazar desde la web.
 - **`/proceso-de-admision`** (web, `src/pages/proceso-de-admision/index.astro`,
   todo explicado en `src/lib/admision.ts`). Título "Proceso de admisión ·
   Paso 1 de 3" (**"admisión", no "reserva tu plaza"**: el usuario lo quiere
-  más premium). Línea de 3 pasos: Tus datos · El vídeo · Tu admisión.
+  más premium). Línea de 3 pasos: Tus datos · El vídeo · Tu matrícula.
+  **Arriba "Proceso de admisión", pero los botones dicen "matrícula"**
+  ("completar mi matrícula", 02/10: "seguir con mi admisión" no le gustaba).
+  Título: **"De cero al A1 de neerlandés en 16 semanas"**; el subtítulo va al
+  ancho del vídeo, en dos líneas.
   1. **Vídeo bloqueado**: al darle al play sale una ventanita con **tres
      datos** (nombre, correo, WhatsApp). Sin apellidos ni país ni ciudad, a
      propósito: cada campo resta gente.
