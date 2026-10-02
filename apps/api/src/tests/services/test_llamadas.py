@@ -165,3 +165,15 @@ def test_reenviar_la_cualificacion_no_duplica_la_llamada():
         _ev(15, "cualificacion", "luis@x.com"),
     ]
     assert [e.id for e in elegir_eventos(eventos)] == [20, 15]
+
+
+def test_fila_llamada_marca_el_proceso_de_admision():
+    fila = fila_llamada(
+        {"id": 9, "kind": "agendar-empezado", "email": "p@x.com", "extra": json.dumps({"embudo": "admision", "video": "visto"})},
+        None,
+    )
+    assert fila["embudo"] == "admision" and fila["video"] == "visto"
+    assert fila["terminado"] is False
+    # Lo de /agendar de siempre no lleva marca.
+    vieja = fila_llamada({"id": 1, "kind": "cualificacion", "email": "a@x.com", "extra": "{}"}, None)
+    assert vieja["embudo"] == "" and vieja["video"] == ""

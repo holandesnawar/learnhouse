@@ -125,6 +125,10 @@ def fila_llamada(evento: dict, solicitud: Optional[dict]) -> dict:
             evento.get("recorrido") or "", evento.get("referrer") or "", evento.get("source") or "llamada"
         ),
         "utm_campaign": evento.get("utm_campaign") or "",
+        # De qué embudo viene (02/10): "admision" = /proceso-de-admision, con
+        # el vídeo ("empezado" o "visto"). Vacío = /agendar de siempre.
+        "embudo": str(extra.get("embudo") or ""),
+        "video": str(extra.get("video") or ""),
         # Cuándo reservó hora en el calendario (vacío si todavía no).
         "reservada_at": evento.get("reservada_at") or "",
         "solicitud_id": (solicitud or {}).get("id"),
