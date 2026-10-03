@@ -1762,6 +1762,11 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
     (`separar_quitadas`). También se esconden solas las citas de quien está
     **fuera de los números**. Debajo de la agenda, "N quitadas del
     calendario" con "Devolver". Borrar a la persona NO devuelve su cita.
+  - **«Crear enlace de pago» en todos lados** (03/10, "a veces puedo y otras
+    no"): solo existía en la lista de solicitudes de Llamadas. Ahora es una
+    pieza (`Panel/EnlacePago.tsx`) que sale también en **cada cita del
+    calendario** (para cerrar en la llamada) y en **la ficha** de quien aún no
+    es alumno. Sin nombre, usa lo de antes de la @ (el backend pide uno).
   - La ficha de la persona enseña sus llamadas con el resultado.
   - **Pestaña Google Calendar**: el `<iframe>` del calendario del usuario. Se
     guarda SOLO el id y la zona (org_config `agenda_google`) y la dirección se

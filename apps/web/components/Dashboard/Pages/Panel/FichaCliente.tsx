@@ -26,6 +26,7 @@ import {
 import Seguimiento from '@components/Dashboard/Pages/Estadisticas/Seguimiento'
 import { FilaTarea, TareaForm } from './Tareas'
 import { quitarPersona } from './quitarPersona'
+import EnlacePago from './EnlacePago'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import {
   CalendarDays,
@@ -305,6 +306,9 @@ export default function FichaCliente({
                         {e.nombre}
                       </button>
                     ))}
+                  </div>
+                  <div className="mt-3">
+                    <EnlacePago email={ficha.email} nombre={ficha.nombre} telefono={ficha.telefono} />
                   </div>
                   <p className="text-[11.5px] text-[#9CA3AF] mt-2">
                     {ficha.tablero.movido_por
