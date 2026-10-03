@@ -1425,6 +1425,46 @@ async def process_webhook_event(
         )
 
 
+async def _reclamar_matricula(enrollment, db_session: AsyncSession) -> bool:
+    """Reclama la matrícula para atenderla (correo de bienvenida) de forma
+    ATÓMICA. Devuelve True solo a UNO de los que llamen a la vez.
+
+    Por qué (03/10, "¿por qué le llegaron dos correos de Welkom?"): una compra
+    por la caja de la escuela dispara DOS avisos de Stripe casi a la vez,
+    `checkout.session.completed` y `payment_intent.succeeded`, y la escuela
+    escucha los dos. Cada uno miraba "¿ya está atendida?" antes de que el otro
+    lo apuntara, y los dos mandaban el correo. Ahora la marca se pone con un
+    UPDATE condicionado: el primero la pone y sigue; el segundo no cambia
+    ninguna fila y se da por enterado."""
+    from sqlalchemy import or_, update
+
+    from src.db.enrollment import Enrollment
+
+    ahora = datetime.now(timezone.utc).isoformat()
+    res = await db_session.execute(
+        update(Enrollment)
+        .where(Enrollment.id == enrollment.id)
+        .where(or_(Enrollment.provisioned_at.is_(None), Enrollment.provisioned_at == ""))  # type: ignore[union-attr]
+        .values(provisioned_at=ahora)
+    )
+    await db_session.commit()
+    ganada = (res.rowcount or 0) > 0
+    if ganada:
+        enrollment.provisioned_at = ahora
+    return ganada
+
+
+async def _soltar_matricula(enrollment, db_session: AsyncSession) -> None:
+    """Si al final el correo no se pudo mandar, se quita la marca para que el
+    siguiente reintento de Stripe lo vuelva a intentar."""
+    try:
+        enrollment.provisioned_at = ""
+        db_session.add(enrollment)
+        await db_session.commit()
+    except Exception:
+        logger.exception("No se pudo soltar la matrícula %s", getattr(enrollment, "id", "?"))
+
+
 async def _provision_after_payment(
     email: str,
     name: str,
@@ -1563,18 +1603,13 @@ async def _handle_checkout_session(obj: dict, db_session: AsyncSession) -> dict:
     # La marca de "ya atendida" va en la matrícula, no en la cuenta: quien
     # compra teniendo ya cuenta también necesita su correo de bienvenida, y un
     # reintento de Stripe no debe mandarlo dos veces.
-    ya_atendida = bool(
-        enrollment is not None and (getattr(enrollment, "provisioned_at", "") or "").strip()
-    )
+    # La marca se reclama ANTES de mandar nada y de forma atómica: Stripe
+    # manda a la vez este aviso y el del PaymentIntent (ver _reclamar_matricula).
+    ya_atendida = enrollment is not None and not await _reclamar_matricula(enrollment, db_session)
     resultado = await _provision_after_payment(email, name, db_session, ya_atendida=ya_atendida)
 
-    if enrollment is not None and resultado.get("atendida_ahora"):
-        try:
-            enrollment.provisioned_at = datetime.now(timezone.utc).isoformat()
-            db_session.add(enrollment)
-            await db_session.commit()
-        except Exception:
-            logger.exception("No se pudo marcar la matrícula %s como atendida", enrollment.id)
+    if enrollment is not None and not ya_atendida and not resultado.get("atendida_ahora"):
+        await _soltar_matricula(enrollment, db_session)
 
     # Y las automatizaciones de "cuando alguien paga", igual que en el otro
     # camino. Se tragan sus errores: el cobro ya está hecho.
@@ -1628,18 +1663,12 @@ async def _handle_payment_intent(obj: dict, db_session: AsyncSession) -> dict:
     email = (enrollment.email or "").strip().lower()
     name = f"{enrollment.first_name} {enrollment.last_name}".strip()
 
-    ya_atendida = bool((getattr(enrollment, "provisioned_at", "") or "").strip())
+    # Reclamada de forma atómica antes de mandar nada (ver _reclamar_matricula):
+    # con la sesión de pago llegan a la vez este aviso y el de la sesión.
+    ya_atendida = not await _reclamar_matricula(enrollment, db_session)
     result = await _provision_after_payment(email, name, db_session, ya_atendida=ya_atendida)
-
-    # Se marca ANTES de la factura: si la factura falla, el correo ya ha salido
-    # y no queremos que un reintento de Stripe lo mande otra vez.
-    if result.get("atendida_ahora"):
-        try:
-            enrollment.provisioned_at = datetime.now(timezone.utc).isoformat()
-            db_session.add(enrollment)
-            await db_session.commit()
-        except Exception:
-            logger.exception("No se pudo marcar la matrícula %s como atendida", enrollment.id)
+    if not ya_atendida and not result.get("atendida_ahora"):
+        await _soltar_matricula(enrollment, db_session)
 
     # La factura NAWAR-XXXX que el Checkout de Stripe generaba solo. Best-effort:
     # nunca bloquea.
