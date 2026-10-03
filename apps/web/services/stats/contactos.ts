@@ -206,12 +206,13 @@ export interface Cita {
   reprogramada: boolean
   motivo_cancelacion: string
   /** Lo que apuntó el closer al colgar (se guarda en la escuela, no en Calendly). */
-  resultado?: { resultado: ResultadoLlamada; nombre: string; nota: string; autor: string; cuando: string } | null
+  resultado?: { resultado: ResultadoLlamada; nombre: string; nota: string; autor: string; cuando: string; auto?: boolean } | null
 }
 
-export type ResultadoLlamada = 'compra' | 'piensa' | 'no-encaja' | 'no-vino'
+export type ResultadoLlamada = 'pagado' | 'compra' | 'piensa' | 'no-encaja' | 'no-vino'
 
 export const RESULTADOS: { id: ResultadoLlamada; nombre: string; que: string }[] = [
+  { id: 'pagado', nombre: 'Pagó', que: 'Venta cerrada: deja de salir para llamar' },
   { id: 'compra', nombre: 'Va a pagar', que: 'Pasa a Propuesta' },
   { id: 'piensa', nombre: 'Lo piensa', que: 'Pasa a En revisión' },
   { id: 'no-encaja', nombre: 'No encaja', que: 'Pasa a Perdido' },

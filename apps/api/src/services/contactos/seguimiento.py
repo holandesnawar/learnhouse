@@ -109,7 +109,16 @@ async def poner_recordatorio(
 async def todos_los_recordatorios(db_session: AsyncSession) -> dict[str, dict]:
     """correo → {fecha, motivo}. Para marcar las líneas y la lista de "Hoy"."""
     filas = (await db_session.execute(select(ContactRecordatorio))).scalars().all()
-    return {r.email: {"fecha": r.fecha, "motivo": r.motivo} for r in filas if r.fecha}
+    # Quien ya pagó no sale para llamar: la venta está cerrada (03/10). La
+    # fecha se queda guardada por si acaso, pero no avisa.
+    from src.services.contactos.contactos import emails_que_pagaron
+
+    pagaron = await emails_que_pagaron(db_session)
+    return {
+        r.email: {"fecha": r.fecha, "motivo": r.motivo}
+        for r in filas
+        if r.fecha and (r.email or "").lower() not in pagaron
+    }
 
 
 async def borrar_seguimiento(email: str, db_session: AsyncSession) -> None:

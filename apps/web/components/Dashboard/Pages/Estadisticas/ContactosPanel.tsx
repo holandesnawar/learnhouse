@@ -556,7 +556,7 @@ export default function ContactosPanel() {
       {(() => {
         const hoy = hoyISO()
         const tocan = lista
-          .filter((c) => recordatorios[c.email.toLowerCase()]?.fecha && recordatorios[c.email.toLowerCase()].fecha <= hoy)
+          .filter((c) => c.etapa !== 'alumno' && recordatorios[c.email.toLowerCase()]?.fecha && recordatorios[c.email.toLowerCase()].fecha <= hoy)
           .sort((a, b) => recordatorios[a.email.toLowerCase()].fecha.localeCompare(recordatorios[b.email.toLowerCase()].fecha))
         if (!tocan.length) return null
         return (

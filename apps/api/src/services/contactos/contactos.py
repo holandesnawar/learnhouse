@@ -411,6 +411,19 @@ async def _emails_con_cuenta(db_session: AsyncSession) -> set[str]:
     return {str(e[0]).strip().lower() for e in filas if e and e[0]}
 
 
+async def emails_que_pagaron(db_session: AsyncSession) -> set[str]:
+    """Quien ya es alumno: cuenta de alumno o una matrícula pagada. Sirve para
+    que el panel deje de pedir que se le llame (03/10: "ya cerramos la venta y
+    me sigue saliendo para llamar hoy")."""
+    pagaron = set(await _emails_con_cuenta(db_session))
+    for (email,) in (
+        await db_session.execute(select(Enrollment.email).where(Enrollment.status == "paid"))
+    ).all():
+        if email:
+            pagaron.add(str(email).strip().lower())
+    return pagaron
+
+
 async def listar_contactos(
     q: str, limit: int, db_session: AsyncSession, solo_matriculas: bool = False
 ) -> dict:

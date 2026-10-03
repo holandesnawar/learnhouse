@@ -35,6 +35,9 @@ from src.db.contact_seguimiento import CallOutcome
 from src.db.organization_config import OrganizationConfig
 
 RESULTADOS = {
+    # "Pagó" (03/10): la venta cerrada. No mueve columna porque la de Alumno
+    # se pone sola con el pago; quita la fecha de volver a llamar.
+    "pagado": "Pagó",
     "compra": "Va a pagar",
     "piensa": "Lo piensa",
     "no-encaja": "No encaja",
@@ -93,6 +96,14 @@ async def guardar_resultado(
         await anadir_nota(clave, texto, autor_id, autor, db_session)
     except Exception:  # noqa: BLE001
         pass
+
+    if resultado == "pagado":
+        from src.services.contactos.seguimiento import poner_recordatorio
+
+        try:
+            await poner_recordatorio(clave, "", "", autor, db_session)
+        except Exception:  # noqa: BLE001
+            pass
 
     etapa = A_COLUMNA.get(resultado)
     if etapa:

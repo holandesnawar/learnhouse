@@ -352,7 +352,7 @@ export default function FichaCliente({
                           {cancelada ? (
                             <Estado>{c.reprogramada ? 'Reprogramada' : 'Cancelada'}</Estado>
                           ) : c.resultado ? (
-                            <Estado tono={c.resultado.resultado === 'compra' ? 'verde' : c.resultado.resultado === 'piensa' ? 'ambar' : 'gris'}>{c.resultado.nombre}</Estado>
+                            <Estado tono={c.resultado.resultado === 'compra' || c.resultado.resultado === 'pagado' ? 'verde' : c.resultado.resultado === 'piensa' ? 'ambar' : 'gris'}>{c.resultado.nombre}</Estado>
                           ) : pasada ? (
                             <Estado tono="rojo">Sin apuntar qué pasó</Estado>
                           ) : (
