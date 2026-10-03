@@ -30,6 +30,7 @@ import {
   borrarContacto,
   crearEnlacePago,
   cuandoLlamar,
+  devolverCita,
   getAgenda,
   getAgendaGoogle,
   getLlamadas,
@@ -38,6 +39,7 @@ import {
   guardarResultado,
   hoyISO,
   marcarLlamada,
+  quitarCita,
   RESULTADOS,
   type Agenda,
   type AgendaGoogle,
@@ -207,6 +209,15 @@ export default function LlamadasPanel() {
         cargando={cargandoAgenda}
         recargar={() => cargarAgenda(true)}
         abrirCita={setCita}
+        devolver={async (c) => {
+          const r = await devolverCita(org?.id, c.id, accessToken)
+          if (!r.ok) {
+            toast.error(r.error || 'No se ha podido devolver')
+            return
+          }
+          toast.success('Vuelve a salir en el calendario')
+          cargarAgenda(true)
+        }}
       />
 
       {sinApuntar.length ? (
@@ -295,6 +306,12 @@ export default function LlamadasPanel() {
             setAgenda((a) => (a ? { ...a, citas: a.citas.map((x) => (x.id === c.id ? c : x)) } : a))
             setCita(null)
           }}
+          onQuitada={(c) => {
+            setAgenda((a) =>
+              a ? { ...a, citas: a.citas.filter((x) => x.id !== c.id), quitadas: [{ ...c, quitada_por: 'mano' }, ...(a.quitadas || [])] } : a
+            )
+            setCita(null)
+          }}
         />
       ) : null}
       {ficha ? <FichaCliente email={ficha} onClose={() => setFicha(null)} onCambio={() => cargarAgenda(true)} /> : null}
@@ -311,14 +328,18 @@ function AgendaVista({
   cargando,
   recargar,
   abrirCita,
+  devolver,
 }: {
   agenda: Agenda | null
   cargando: boolean
   recargar: () => void
   abrirCita: (c: Cita) => void
+  devolver: (c: Cita) => void
 }) {
   const { isAdmin } = useAdminStatus()
   const [vista, setVista] = useState<Vista>('semana')
+  const [verQuitadas, setVerQuitadas] = useState(false)
+  const quitadas = agenda?.quitadas || []
   const [lunes, setLunes] = useState(() => lunesDe(new Date()))
   const dias = useMemo(
     () =>
@@ -431,6 +452,36 @@ function AgendaVista({
           <div className={vista === 'semana' ? 'lg:hidden' : ''}>
             <CitasEnLista citas={citas} abrir={abrirCita} />
           </div>
+          {isAdmin && quitadas.length ? (
+            <div>
+              <button onClick={() => setVerQuitadas((v) => !v)} className={`${ENLACE} inline-flex items-center gap-1`}>
+                <ChevronDown size={14} className={verQuitadas ? 'rotate-180' : ''} />
+                {quitadas.length} {quitadas.length === 1 ? 'quitada' : 'quitadas'} del calendario
+              </button>
+              {verQuitadas ? (
+                <div className={`${TARJETA} mt-2 divide-y divide-[#F3F4F6]`}>
+                  {quitadas.map((c) => (
+                    <div key={c.id} className="px-4 py-2.5 flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13.5px] font-medium text-gray-900 truncate">{c.nombre || c.email}</p>
+                        <Meta
+                          partes={[
+                            diaHora(c.inicio),
+                            c.quitada_por === 'prueba' ? 'fuera de los números (prueba)' : 'quitada a mano',
+                          ]}
+                        />
+                      </div>
+                      {c.quitada_por === 'mano' ? (
+                        <button onClick={() => devolver(c)} className={BOTON}>
+                          <RotateCcw size={13} /> Devolver
+                        </button>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </>
       )}
     </Seccion>
@@ -513,13 +564,17 @@ function CitaDialogo({
   cita,
   onClose,
   onGuardado,
+  onQuitada,
   verFicha,
 }: {
   cita: Cita
   onClose: () => void
   onGuardado: (c: Cita) => void
+  onQuitada: (c: Cita) => void
   verFicha: (email: string) => void
 }) {
+  const { isAdmin } = useAdminStatus()
+  const [quitando, setQuitando] = useState(false)
   const org = useOrg() as any
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
@@ -548,6 +603,23 @@ function CitaDialogo({
     const elegido = RESULTADOS.find((x) => x.id === resultado)
     toast.success(elegido ? `Apuntado: ${elegido.nombre}` : 'Apuntado')
     onGuardado({ ...cita, resultado: { resultado, nombre: elegido?.nombre || '', nota, autor: '', cuando: new Date().toISOString() } })
+  }
+
+  async function quitar() {
+    const ok = await confirmar(
+      `¿Quitar la cita de ${cita.nombre || cita.email} del calendario? Solo deja de salir aquí: en Calendly sigue igual y a la persona no le llega nada. Se puede devolver.`,
+      { boton: 'Quitar del calendario' }
+    )
+    if (!ok) return
+    setQuitando(true)
+    const r = await quitarCita(org?.id, cita, accessToken)
+    setQuitando(false)
+    if (!r.ok) {
+      toast.error(r.error || 'No se ha podido quitar')
+      return
+    }
+    toast.success('Quitada del calendario')
+    onQuitada(cita)
   }
 
   return (
@@ -591,6 +663,11 @@ function CitaDialogo({
             <a href={cita.cambiar_url} target="_blank" rel="noreferrer" className={BOTON}>
               Cambiar hora
             </a>
+          ) : null}
+          {isAdmin ? (
+            <button onClick={quitar} disabled={quitando} className={BOTON_PELIGRO}>
+              {quitando ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />} Quitar del calendario
+            </button>
           ) : null}
         </div>
 

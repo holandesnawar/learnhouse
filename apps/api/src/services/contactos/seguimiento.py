@@ -130,6 +130,10 @@ async def borrar_seguimiento(email: str, db_session: AsyncSession) -> None:
         for f in (
             await db_session.execute(select(modelo).where(func.lower(modelo.email) == clave))
         ).scalars().all():
+            # La cita sigue en Calendly: si se quitó del calendario, que siga
+            # quitada aunque se borre a la persona.
+            if modelo is CallOutcome and f.resultado == "quitada":
+                continue
             await db_session.delete(f)
 
 

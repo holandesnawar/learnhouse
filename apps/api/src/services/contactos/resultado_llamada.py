@@ -113,6 +113,62 @@ async def guardar_resultado(
     return {"ok": True, "resultado": resultado, "columna": etapa or ""}
 
 
+# ── Quitar una cita del calendario ──────────────────────────────────────
+#
+# 03/10, el usuario: "quiero poder eliminar del calendario de llamadas la
+# prueba que hice". Las citas viven en Calendly y la escuela solo las LEE, así
+# que no se borran allí (cancelarla mandaría un correo a la persona): se
+# esconden aquí. Se guarda en la misma tabla, con el resultado "quitada", y se
+# devuelve borrando esa fila. No deja nota ni mueve el tablero.
+
+QUITADA = "quitada"
+
+
+async def quitar_cita(cita_id: str, email: str, nombre: str, inicio: str, autor: str, db_session: AsyncSession) -> dict:
+    if not cita_id:
+        return {"ok": False, "motivo": "Falta la cita"}
+    fila = (await db_session.execute(select(CallOutcome).where(CallOutcome.cita_id == cita_id))).scalars().first()
+    if fila is None:
+        fila = CallOutcome(cita_id=cita_id, email=(email or "").strip().lower())
+    fila.resultado = QUITADA
+    # Lo que hubiera apuntado se pierde: quitar es para pruebas y errores.
+    fila.nota = (nombre or "")[:200]
+    fila.inicio = (inicio or "")[:40]
+    fila.autor = (autor or "")[:120]
+    fila.updated_at = _ahora()
+    db_session.add(fila)
+    await db_session.commit()
+    return {"ok": True}
+
+
+async def devolver_cita(cita_id: str, db_session: AsyncSession) -> dict:
+    fila = (await db_session.execute(select(CallOutcome).where(CallOutcome.cita_id == cita_id))).scalars().first()
+    if fila is not None and fila.resultado == QUITADA:
+        await db_session.delete(fila)
+        await db_session.commit()
+    return {"ok": True}
+
+
+def separar_quitadas(citas: list[dict], hechos: dict[str, dict], fuera: set[str]) -> tuple[list[dict], list[dict]]:
+    """Las citas que se enseñan y las quitadas. Función pura, con test.
+
+    Fuera del calendario: las quitadas a mano y las de quien está fuera de los
+    números (pruebas). Las quitadas a mano se pueden devolver; las otras
+    vuelven solas al volver a contar a esa persona."""
+    visibles: list[dict] = []
+    quitadas: list[dict] = []
+    for c in citas:
+        r = hechos.get(c.get("id") or "") or {}
+        email = (c.get("email") or "").lower()
+        if r.get("resultado") == QUITADA:
+            quitadas.append({**c, "quitada_por": "mano", "resultado": None})
+        elif email and email in fuera:
+            quitadas.append({**c, "quitada_por": "prueba", "resultado": None})
+        else:
+            visibles.append(c)
+    return visibles, quitadas
+
+
 # ── Calendario de Google ────────────────────────────────────────────────
 
 _ID_VALIDO = re.compile(r"^[A-Za-z0-9._%+\-#]+@[A-Za-z0-9.\-]+$")

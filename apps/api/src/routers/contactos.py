@@ -31,7 +31,15 @@ from src.services.contactos.contactos import (
     registrar_evento,
 )
 from src.services.contactos.agenda import agenda
-from src.services.contactos.resultado_llamada import guardar_google, guardar_resultado, leer_google, resultados
+from src.services.contactos.resultado_llamada import (
+    devolver_cita,
+    guardar_google,
+    guardar_resultado,
+    leer_google,
+    quitar_cita,
+    resultados,
+    separar_quitadas,
+)
 from src.services.contactos.embudo_agendar import embudo_agendar
 from src.services.contactos.metricas import excluir, volver_a_contar
 from src.services.contactos.guion import guardar_guion, leer_guion
@@ -139,7 +147,44 @@ async def api_agenda(
             return {"resultado": "pagado", "nombre": "Pagó", "nota": "", "autor": "", "cuando": "", "auto": True}
         return r
 
-    return {**datos, "citas": [{**c, "resultado": _resultado(c)} for c in datos.get("citas") or []]}
+    from src.services.contactos.metricas import emails_excluidos
+
+    visibles, quitadas = separar_quitadas(datos.get("citas") or [], hechos, await emails_excluidos(db_session))
+    return {**datos, "citas": [{**c, "resultado": _resultado(c)} for c in visibles], "quitadas": quitadas}
+
+
+class CitaQuitada(BaseModel):
+    cita_id: str
+    email: str = ""
+    nombre: str = ""
+    inicio: str = ""
+
+
+@router.post("/org/{org_id}/agenda/quitar", summary="Quita una cita del calendario de Llamadas (administradores).")
+async def api_quitar_cita(
+    request: Request,
+    org_id: int,
+    data: CitaQuitada,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _solo_admin(request, org_id, current_user, db_session)
+    r = await quitar_cita(data.cita_id, data.email, data.nombre, data.inicio, _nombre(current_user), db_session)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    return r
+
+
+@router.delete("/org/{org_id}/agenda/quitar", summary="Devuelve al calendario una cita quitada (administradores).")
+async def api_devolver_cita(
+    request: Request,
+    org_id: int,
+    cita_id: str,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _solo_admin(request, org_id, current_user, db_session)
+    return await devolver_cita(cita_id, db_session)
 
 
 class ResultadoLlamada(BaseModel):

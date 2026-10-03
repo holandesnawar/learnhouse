@@ -1755,6 +1755,13 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
     llamar**: `todos_los_recordatorios` lo salta, "Para llamar hoy" filtra
     `etapa alumno`, y su cita pasada sin apuntar sale sola como «Pagó» en vez
     de «¿Qué pasó?».
+  - **«Quitar del calendario»** (03/10, "eliminar del calendario la prueba
+    que hice"): botón rojo en cada cita, solo administradores. **No toca
+    Calendly** (cancelar allí le mandaría un correo a la persona): se guarda
+    en `call_outcome` con resultado `quitada` y la agenda la esconde
+    (`separar_quitadas`). También se esconden solas las citas de quien está
+    **fuera de los números**. Debajo de la agenda, "N quitadas del
+    calendario" con "Devolver". Borrar a la persona NO devuelve su cita.
   - La ficha de la persona enseña sus llamadas con el resultado.
   - **Pestaña Google Calendar**: el `<iframe>` del calendario del usuario. Se
     guarda SOLO el id y la zona (org_config `agenda_google`) y la dirección se
