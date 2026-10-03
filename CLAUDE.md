@@ -1948,6 +1948,17 @@ enlace**, fuera de Google (`robots.txt`) y sin enlazar desde la web.
   terminar las preguntas = `AdmisionCompletada`; reservar = `Schedule`.
 - El navegador recuerda los datos y si vio el vídeo (`localStorage`): quien
   vuelve no repite nada.
+- **Lanzado el 03/10**: `CTA_PRINCIPAL` (menú, home, Nuestra visión, blog) →
+  `/proceso-de-admision`. Las landings sin precio siguen en /agendar y las de
+  precio en el pago. El formulario corto `/matricula-a0-a1` sigue vivo.
+- **systeme.io por hitos** (03/10, "¿entra al CRM con etiqueta de que vio el
+  VSL?": NO entraba hasta terminar las preguntas). Ahora `/api/cualificacion`
+  con `hito`: ventanita → «Admisión - datos» (+ `origen` y UTM); vídeo entero →
+  «Admisión - vio el vídeo»; preguntas terminadas → «Llamada» + «Admisión -
+  completada». Las respuestas sueltas NO van al CRM (sin `hito`).
+- **Previsualización**: mientras está bloqueado, el vídeo se reproduce en
+  silencio y en bucle detrás del candado (`#ad-preview`, `muted=true&loop=true`
+  en Bunny); al desbloquear se quita y entra el reproductor de verdad.
 
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
