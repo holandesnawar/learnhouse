@@ -207,6 +207,8 @@ export interface Cita {
   motivo_cancelacion: string
   /** Lo que apuntó el closer al colgar (se guarda en la escuela, no en Calendly). */
   resultado?: { resultado: ResultadoLlamada; nombre: string; nota: string; autor: string; cuando: string; auto?: boolean } | null
+  /** Solo en `quitadas`: a mano (se puede devolver) o por ser una prueba fuera de los números. */
+  quitada_por?: 'mano' | 'prueba'
 }
 
 export type ResultadoLlamada = 'pagado' | 'compra' | 'piensa' | 'no-encaja' | 'no-vino'
@@ -242,8 +244,22 @@ export const guardarAgendaGoogle = (orgId: number, codigo: string, accessToken: 
 export interface Agenda {
   configurado: boolean
   citas: Cita[]
+  /** Las que no se enseñan: quitadas a mano o de pruebas fuera de los números. */
+  quitadas?: Cita[]
   error?: string
 }
+
+/** Esconde una cita del calendario de Llamadas. En Calendly sigue igual. */
+export const quitarCita = (orgId: number, c: Cita, accessToken: string) =>
+  pedir<{ ok: boolean }>(
+    `contactos/org/${orgId}/agenda/quitar`,
+    'POST',
+    { cita_id: c.id, email: c.email, nombre: c.nombre, inicio: c.inicio },
+    accessToken
+  )
+
+export const devolverCita = (orgId: number, citaId: string, accessToken: string) =>
+  pedir<{ ok: boolean }>(`contactos/org/${orgId}/agenda/quitar?cita_id=${encodeURIComponent(citaId)}`, 'DELETE', null, accessToken)
 
 export async function getAgenda(orgId: number, accessToken: string, forzar = false): Promise<Agenda | null> {
   try {
