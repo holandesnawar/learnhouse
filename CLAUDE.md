@@ -1876,7 +1876,10 @@ enlace**, fuera de Google (`robots.txt`) y sin enlazar desde la web.
   `admision.ts`: vale Bunny (`iframe.mediadelivery.net/embed/…`), YouTube,
   Vimeo o un .mp4. Cada uno avisa del final con su API (player.js de Bunny,
   la iframe API de YouTube, la de Vimeo, o `ended` del `<video>`). Vacío =
-  aviso "se está preparando" y el botón abierto.
+  aviso "se está preparando" y el botón abierto. **Desde el 03/10 lleva el
+  vídeo de matrícula** (`VIDEO_POR_DEFECTO`, Bunny biblioteca 675650). ⚠️ Si
+  en la web sale negro o con error, es la lista de dominios permitidos de esa
+  biblioteca de Bunny: tiene que incluir `www.holandesnawar.com`.
 - **`/proceso-de-admision/paso-3`** es una **COPIA de /agendar** (pedido del
   usuario: probar sin tocar el que funciona) con los datos ya puestos y otro
   texto de entrada. Las preguntas y la nota son las mismas
