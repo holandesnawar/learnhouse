@@ -1748,6 +1748,13 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
     además una nota en su historial. **NO se escribe nada en Calendly** (el
     usuario: "lo de no se presentó no hace falta"). Lista "Llamadas sin
     apuntar qué pasó" encima de las solicitudes.
+  - **«Pagó»** (03/10, Zulay: "ya cerramos la venta y no hay opción de
+    pagó"): quinto resultado. No mueve columna (Alumno sale sola al pagar) y
+    borra la fecha de volver a llamar. Además, **quien ya pagó** (rol de
+    alumno o matrícula `paid`, `emails_que_pagaron`) **nunca sale para
+    llamar**: `todos_los_recordatorios` lo salta, "Para llamar hoy" filtra
+    `etapa alumno`, y su cita pasada sin apuntar sale sola como «Pagó» en vez
+    de «¿Qué pasó?».
   - La ficha de la persona enseña sus llamadas con el resultado.
   - **Pestaña Google Calendar**: el `<iframe>` del calendario del usuario. Se
     guarda SOLO el id y la zona (org_config `agenda_google`) y la dirección se

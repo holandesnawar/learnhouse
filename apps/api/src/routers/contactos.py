@@ -127,7 +127,19 @@ async def api_agenda(
     # El resultado de cada llamada vive en la escuela, no en Calendly: se
     # añade aquí, fuera de la caché, para que se vea en cuanto se apunta.
     hechos = await resultados(db_session)
-    return {**datos, "citas": [{**c, "resultado": hechos.get(c.get("id") or "")} for c in datos.get("citas") or []]}
+    # Quien ya pagó no deja su llamada en "¿Qué pasó?": la venta habla sola
+    # (03/10). Si nadie apuntó nada, sale como "Pagó" automáticamente.
+    from src.services.contactos.contactos import emails_que_pagaron
+
+    pagaron = await emails_que_pagaron(db_session)
+
+    def _resultado(c: dict):
+        r = hechos.get(c.get("id") or "")
+        if r is None and (c.get("email") or "").lower() in pagaron:
+            return {"resultado": "pagado", "nombre": "Pagó", "nota": "", "autor": "", "cuando": "", "auto": True}
+        return r
+
+    return {**datos, "citas": [{**c, "resultado": _resultado(c)} for c in datos.get("citas") or []]}
 
 
 class ResultadoLlamada(BaseModel):

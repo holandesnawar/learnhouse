@@ -86,7 +86,7 @@ function whatsapp(tel: string) {
 function estadoDe(c: Cita): { texto: string; tono: Tono; pendiente: boolean } {
   if (c.estado === 'cancelada') return { texto: c.reprogramada ? 'Reprogramada' : 'Cancelada', tono: 'gris', pendiente: false }
   if (c.resultado) {
-    const tono: Tono = c.resultado.resultado === 'compra' ? 'verde' : c.resultado.resultado === 'piensa' ? 'ambar' : 'gris'
+    const tono: Tono = c.resultado.resultado === 'compra' || c.resultado.resultado === 'pagado' ? 'verde' : c.resultado.resultado === 'piensa' ? 'ambar' : 'gris'
     return { texto: c.resultado.nombre, tono, pendiente: false }
   }
   const pasada = new Date(c.fin || c.inicio).getTime() < Date.now()
