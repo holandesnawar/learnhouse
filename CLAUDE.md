@@ -1859,8 +1859,11 @@ enlace**, fuera de Google (`robots.txt`) y sin enlazar desde la web.
   más premium). Línea de 3 pasos: **Datos · Método · Matrícula** (02/10).
   **Arriba "Proceso de admisión", pero los botones dicen "matrícula"**
   ("completar mi matrícula", 02/10: "seguir con mi admisión" no le gustaba).
-  Título: **"De cero al A1 de neerlandés en 16 semanas"**; el subtítulo va al
-  ancho del vídeo, en dos líneas.
+  Título (03/10): **"El método para llegar al A1 en 16 semanas"** (casa con el
+  paso «Método»; antes "De cero al A1 de neerlandés en 16 semanas").
+  Descripción: **"Mira el vídeo entero: verás cómo es la formación por dentro
+  y si encaja contigo. Al terminar, se abre el último paso de tu matrícula."**
+  Va al ancho del vídeo, en dos líneas.
   1. **Vídeo bloqueado**: al darle al play sale una ventanita con **tres
      datos** (nombre, correo, WhatsApp). Sin apellidos ni país ni ciudad, a
      propósito: cada campo resta gente.
@@ -1957,11 +1960,13 @@ enlace**, fuera de Google (`robots.txt`) y sin enlazar desde la web.
   «Admisión - vio el vídeo»; preguntas terminadas → «Llamada» + «Admisión -
   completada». Las respuestas sueltas NO van al CRM (sin `hito`).
 - **Previsualización**: mientras está bloqueado, un trozo del vídeo
-  (`PREVIEW_DESDE`–`PREVIEW_HASTA`, segundos 20 a 28) en silencio y en bucle
-  detrás del candado (`#ad-preview`, `muted=true&t=20` + player.js que vuelve
-  al 20 en el 28). ⚠️ **player.js se carga ANTES de crear el iframe**: al revés,
-  el aviso de "listo" de Bunny se perdía, no llegaban los tiempos y se veía el
-  vídeo entero (03/10).
+  (`PREVIEW_DESDE`–`PREVIEW_HASTA`, ahora **segundos 9 a 15**, elegido por el
+  usuario tras probar 20-30 y 35-40) en silencio y en bucle detrás del candado
+  (`#ad-preview`). ⚠️ **Los tiempos de player.js NO llegaban** desde Bunny y se
+  veía el vídeo entero, así que el bucle lo lleva un **reloj**: cada tramo
+  monta un iframe nuevo con `muted=true&t=<desde>` encima del viejo y quita el
+  viejo 1,8 s después. Si algún día player.js sí manda tiempos, el reloj no
+  actúa. Que Bunny respete `t=` está confirmado por el usuario (03/10).
 - **Sigue donde lo dejó** (03/10): el segundo al que llegó va a
   `localStorage` (`nawar.admision.posicion`) y al volver arranca 2 s antes;
   el bloqueo de saltos cuenta desde ahí. Se borra al terminar el vídeo.
