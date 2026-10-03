@@ -1956,9 +1956,15 @@ enlace**, fuera de Google (`robots.txt`) y sin enlazar desde la web.
   con `hito`: ventanita → «Admisión - datos» (+ `origen` y UTM); vídeo entero →
   «Admisión - vio el vídeo»; preguntas terminadas → «Llamada» + «Admisión -
   completada». Las respuestas sueltas NO van al CRM (sin `hito`).
-- **Previsualización**: mientras está bloqueado, el vídeo se reproduce en
-  silencio y en bucle detrás del candado (`#ad-preview`, `muted=true&loop=true`
-  en Bunny); al desbloquear se quita y entra el reproductor de verdad.
+- **Previsualización**: mientras está bloqueado, un trozo del vídeo
+  (`PREVIEW_DESDE`–`PREVIEW_HASTA`, segundos 20 a 28) en silencio y en bucle
+  detrás del candado (`#ad-preview`, `muted=true&t=20` + player.js que vuelve
+  al 20 en el 28). ⚠️ **player.js se carga ANTES de crear el iframe**: al revés,
+  el aviso de "listo" de Bunny se perdía, no llegaban los tiempos y se veía el
+  vídeo entero (03/10).
+- **Sigue donde lo dejó** (03/10): el segundo al que llegó va a
+  `localStorage` (`nawar.admision.posicion`) y al volver arranca 2 s antes;
+  el bloqueo de saltos cuenta desde ahí. Se borra al terminar el vídeo.
 
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
