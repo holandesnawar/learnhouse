@@ -527,7 +527,7 @@ def send_payment_welcome_email(
         </p>
         <p style="{STYLES['p']}">
             Para entrar la primera vez, crea tu contraseña pulsando el botón.
-            El enlace caduca en 1 hora.
+            El enlace vale durante 7 días.
         </p>
         <a href="{reset_url}" class="brand-btn" style="{STYLES['button']}">
             Crear mi contraseña y empezar

@@ -352,6 +352,15 @@ Detalles que importan:
 - **La marca de atendida va en `enrollment.provisioned_at`**, nunca en el
   usuario. Un reintento de Stripe no repite el correo; una compra de alguien con
   cuenta sí lo recibe.
+- ⚠️ **Dos correos «Welkom» para la misma compra (03/10, Zulay Garcia).** La
+  sesión de pago dispara DOS avisos a la vez (`checkout.session.completed` y
+  `payment_intent.succeeded`) y la escuela escucha los dos. Cada uno miraba
+  `provisioned_at` ANTES de que el otro lo escribiera → los dos mandaban el
+  correo. Ahora se **reclama** con un `UPDATE … WHERE provisioned_at = ''`
+  (`_reclamar_matricula`): solo uno cambia la fila y manda; si el envío falla,
+  `_soltar_matricula` quita la marca para que el reintento lo vuelva a
+  intentar. Test: `test_bienvenida_una_vez.py`. De paso, el correo decía "el
+  enlace caduca en 1 hora" y dura 7 días (`_TTL_ALTA_TRAS_PAGAR`).
 - **`allow_promotion_codes=False`** a propósito: una caja vacía de cupón avisa de
   un descuento que el comprador no tiene, y parte se va a buscarlo y no vuelve.
 - `enroll_and_payment_intent` se queda en el código como vuelta atrás. La página
