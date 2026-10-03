@@ -1877,9 +1877,11 @@ enlace**, fuera de Google (`robots.txt`) y sin enlazar desde la web.
   Vimeo o un .mp4. Cada uno avisa del final con su API (player.js de Bunny,
   la iframe API de YouTube, la de Vimeo, o `ended` del `<video>`). Vacío =
   aviso "se está preparando" y el botón abierto. **Desde el 03/10 lleva el
-  vídeo de matrícula** (`VIDEO_POR_DEFECTO`, Bunny biblioteca 675650). ⚠️ Si
-  en la web sale negro o con error, es la lista de dominios permitidos de esa
-  biblioteca de Bunny: tiene que incluir `www.holandesnawar.com`.
+  vídeo de matrícula** (`VIDEO_POR_DEFECTO`). Vive en **su propia biblioteca
+  de Bunny (769328)**, separada de las lecciones, para poder dejarle solo
+  play/pausa sin tocar los vídeos del curso. ⚠️ Si en la web sale negro o con
+  error, es la lista de dominios permitidos de esa biblioteca: tiene que
+  incluir `www.holandesnawar.com`.
   **Sin saltos** (03/10, "solo pausar, no echar alante y atrás"): hasta verlo
   entero, si alguien mueve la barra se le devuelve a donde iba (`vigilar`, con
   1,5 s de margen), y el final solo cuenta si llegó de verdad
