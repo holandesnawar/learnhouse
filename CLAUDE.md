@@ -1880,6 +1880,12 @@ enlace**, fuera de Google (`robots.txt`) y sin enlazar desde la web.
   vídeo de matrícula** (`VIDEO_POR_DEFECTO`, Bunny biblioteca 675650). ⚠️ Si
   en la web sale negro o con error, es la lista de dominios permitidos de esa
   biblioteca de Bunny: tiene que incluir `www.holandesnawar.com`.
+  **Sin saltos** (03/10, "solo pausar, no echar alante y atrás"): hasta verlo
+  entero, si alguien mueve la barra se le devuelve a donde iba (`vigilar`, con
+  1,5 s de margen), y el final solo cuenta si llegó de verdad
+  (`terminadoDeVerdad`). Quien ya lo vio entero se mueve libre. La barra de
+  Bunny se sigue viendo: quitarla es en Bunny → biblioteca → Player, y vale
+  para TODOS los vídeos de esa biblioteca.
 - **`/proceso-de-admision/paso-3`** es una **COPIA de /agendar** (pedido del
   usuario: probar sin tocar el que funciona) con los datos ya puestos y otro
   texto de entrada. Las preguntas y la nota son las mismas
