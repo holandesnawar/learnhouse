@@ -24,11 +24,11 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import PorDia from './PorDia'
 import Seguimiento from './Seguimiento'
 import FichaCliente from '../Panel/FichaCliente'
+import EnlacePago from '../Panel/EnlacePago'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import {
   avisoTrasBorrar,
   borrarContacto,
-  crearEnlacePago,
   cuandoLlamar,
   devolverCita,
   getAgenda,
@@ -49,7 +49,7 @@ import {
   type VolverALlamar,
 } from '@services/stats/contactos'
 import { marcarSolicitud } from '@services/stats/school'
-import { Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Loader2, RotateCcw, Trash2, Video, X } from 'lucide-react'
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Loader2, RotateCcw, Trash2, Video, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { confirmar } from '@lib/nawar/confirmar'
 import { BOTON, BOTON_PELIGRO, BOTON_PRINCIPAL, ENLACE, Estado, META, Meta, Seccion, TARJETA, filtro, type Tono } from '../Panel/ui'
@@ -659,6 +659,7 @@ function CitaDialogo({
           <button onClick={() => verFicha(cita.email)} className={BOTON}>
             Ver ficha
           </button>
+          {cita.resultado?.resultado === 'pagado' ? null : <EnlacePago email={cita.email} nombre={cita.nombre} telefono={cita.telefono} />}
           {cita.cambiar_url && !cancelada && !pasada ? (
             <a href={cita.cambiar_url} target="_blank" rel="noreferrer" className={BOTON}>
               Cambiar hora
@@ -902,7 +903,9 @@ function Lista({
                   ) : null}
                 </div>
                 <Seguimiento email={l.email} onCambioFecha={onCambioFecha} />
-                <EnlacePago llamada={l} />
+                <div>
+                  <EnlacePago email={l.email} nombre={l.name} telefono={l.phone} />
+                </div>
               </div>
             )}
           </div>
@@ -912,61 +915,3 @@ function Lista({
   )
 }
 
-/**
- * Enlace de pago personal: el checkout de la escuela con sus datos ya puestos.
- * Para mandárselo por WhatsApp después de la llamada. Paga por el camino de
- * siempre, así que la cuenta, el correo y la factura salen solos (con un
- * Payment Link de Stripe no pasaba y había que dar de alta a mano).
- */
-function EnlacePago({ llamada }: { llamada: Llamada }) {
-  const org = useOrg() as any
-  const session = useLHSession() as any
-  const accessToken = session?.data?.tokens?.access_token
-  const [url, setUrl] = useState('')
-  const [dias, setDias] = useState(0)
-  const [creando, setCreando] = useState(false)
-
-  const partes = (llamada.name || '').trim().split(/\s+/)
-  const nombre = partes[0] || ''
-  const apellidos = partes.slice(1).join(' ')
-
-  async function crear() {
-    setCreando(true)
-    const r = await crearEnlacePago(org?.id, { email: llamada.email, first_name: nombre || llamada.email, last_name: apellidos, phone: llamada.phone }, accessToken)
-    setCreando(false)
-    if (!r.url) {
-      toast.error(r.error || 'No se ha podido crear el enlace')
-      return
-    }
-    setUrl(r.url)
-    setDias(r.dias || 0)
-  }
-
-  const num = numeroWhatsApp(llamada.phone)
-  const textoWa = encodeURIComponent(`Hola${nombre ? ` ${nombre}` : ''}, aquí tienes tu enlace para apuntarte a la formación: ${url}`)
-
-  return (
-    <div className="rounded-md border border-[#E5E7EB] px-3 py-2.5">
-      {!url ? (
-        <button onClick={crear} disabled={creando} className={`${ENLACE} inline-flex items-center gap-1.5 disabled:opacity-50`}>
-          {creando ? <Loader2 size={13} className="animate-spin" /> : null} Crear su enlace de pago
-        </button>
-      ) : (
-        <div className="space-y-2">
-          <p className={META}>Enlace listo, con sus datos puestos. Vale {dias} días. Al pagar se le crea la cuenta y le llega la factura.</p>
-          <div className="flex flex-wrap items-center gap-2">
-            <input readOnly value={url} className="flex-1 min-w-[180px] h-8 text-[12.5px] border border-[#E5E7EB] rounded-md px-2.5 text-gray-700" />
-            <button onClick={() => navigator.clipboard.writeText(url).then(() => toast.success('Copiado'))} className={BOTON}>
-              <Copy size={13} /> Copiar
-            </button>
-            {num ? (
-              <a href={`https://wa.me/${num}?text=${textoWa}`} target="_blank" rel="noreferrer" className={BOTON_PRINCIPAL}>
-                Mandar por WhatsApp
-              </a>
-            ) : null}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
