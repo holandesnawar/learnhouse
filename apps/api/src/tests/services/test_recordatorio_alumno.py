@@ -78,3 +78,50 @@ async def test_enviar_apunta_el_recordatorio_y_la_prueba_no(db, org, user_role, 
         assert enviados[-1]["to"] == regular_user.email
     filas = (await db.execute(select(StudentReminder))).scalars().all()
     assert len(filas) == 1 and filas[0].tipo == "tres_dias" and filas[0].sent_by == "Admin"
+
+
+# --- Cada botón debajo de su frase -----------------------------------------
+
+from src.services.panel.recordatorio import colocar_botones  # noqa: E402
+
+
+def test_los_botones_van_donde_esta_su_marca():
+    t = "Hola:\n\nSigue aquí.\n\n[seguir]\n\nCuenta tu victoria.\n[victoria]\n\nDudas.\n\n[consulta]"
+    assert colocar_botones(t) == [
+        ("texto", "Hola:\n\nSigue aquí."),
+        ("boton", "seguir"),
+        ("texto", "Cuenta tu victoria."),
+        ("boton", "victoria"),
+        ("texto", "Dudas."),
+        ("boton", "consulta"),
+    ]
+
+
+def test_marca_que_falta_va_al_final_y_repetida_cuenta_una_vez():
+    t = "A\n\n[seguir]\n\nB\n\n[seguir]"
+    assert colocar_botones(t) == [("texto", "A"), ("boton", "seguir"), ("texto", "B"), ("boton", "victoria"), ("boton", "consulta")]
+
+
+def test_texto_viejo_sin_marcas_pone_cada_boton_debajo_de_su_parrafo():
+    t = "Hola:\n\nSeguir justo donde lo dejaste.\n\n¿Alguna victoria?\n\nSi tienes dudas, haz una consulta."
+    assert [x for x in colocar_botones(t)] == [
+        ("texto", "Hola:"),
+        ("texto", "Seguir justo donde lo dejaste."),
+        ("boton", "seguir"),
+        ("texto", "¿Alguna victoria?"),
+        ("boton", "victoria"),
+        ("texto", "Si tienes dudas, haz una consulta."),
+        ("boton", "consulta"),
+    ]
+
+
+def test_el_correo_de_fabrica_no_ensenya_las_marcas():
+    from src.services.panel.recordatorio import DE_FABRICA, rellenar
+
+    for tipo in ("tres_dias", "semana"):
+        h = send_recordatorio_alumno_email(
+            "a@b.com", asunto="x", texto=rellenar(DE_FABRICA[tipo]["texto"], {"nombre": "Ana", "dias": 4}), preview=True
+        )["html"]
+        assert "[seguir]" not in h and "[victoria]" not in h and "[consulta]" not in h
+        # El de seguir va antes que el de victoria, y este antes que el de consulta.
+        assert h.index("Seguir donde lo dejé") < h.index("Compartir una victoria") < h.index("Hacer una consulta")

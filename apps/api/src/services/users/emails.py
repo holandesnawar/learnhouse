@@ -787,24 +787,36 @@ def send_recordatorio_alumno_email(
     El texto llega ya rellenado y en plano: `parrafos()` lo escapa entero, así
     que lo que se teclee en el panel no puede meter etiquetas.
     """
+    from src.services.panel.recordatorio import colocar_botones
+
     b = {"seguir": "Seguir donde lo dejé", "victoria": "Compartir una victoria", "consulta": "Hacer una consulta"}
     b.update({k: v for k, v in (botones or {}).items() if isinstance(v, str) and v.strip()})
+    urls = {
+        "seguir": seguir_url or RUTA_FORMACION_URL,
+        "victoria": victoria_url or ACADEMY_URL,
+        "consulta": consulta_url or ACADEMY_URL,
+    }
     secundario = (
-        "display: inline-block; margin: 6px 4px 0 4px; padding: 11px 18px; background-color: #ffffff; "
+        "display: inline-block; padding: 12px 22px; background-color: #ffffff; "
         "color: #025dc7; text-decoration: none; border-radius: 10px; border: 1.5px solid #cfe3ff; "
-        "font-size: 13px; font-weight: 700; line-height: 1;"
+        "font-size: 14px; font-weight: 700; line-height: 1;"
     )
+    # Cada botón justo debajo de la frase que lo explica (ver colocar_botones).
+    partes = []
+    for tipo, valor in colocar_botones(texto):
+        if tipo == "texto":
+            partes.append(parrafos(valor, STYLES["p"]))
+        else:
+            estilo = STYLES["button"] if valor == "seguir" else secundario
+            clase = ' class="brand-btn"' if valor == "seguir" else ""
+            partes.append(
+                f'<div style="margin: 0 0 26px 0;"><a href="{html.escape(urls[valor])}"{clase} style="{estilo}">'
+                f"{html.escape(b[valor])}</a></div>"
+            )
     body_content = f"""
         <h1 style="{STYLES['h1']}">{html.escape(asunto)}</h1>
         <div style="text-align: left;">
-            {parrafos(texto, STYLES['p'])}
-        </div>
-        <a href="{html.escape(seguir_url or RUTA_FORMACION_URL)}" class="brand-btn" style="{STYLES['button']}">
-            {html.escape(b["seguir"])}
-        </a>
-        <div style="margin-top: 14px;">
-            <a href="{html.escape(victoria_url or ACADEMY_URL)}" style="{secundario}">{html.escape(b["victoria"])}</a>
-            <a href="{html.escape(consulta_url or ACADEMY_URL)}" style="{secundario}">{html.escape(b["consulta"])}</a>
+            {''.join(partes)}
         </div>
     """
     return send_email(

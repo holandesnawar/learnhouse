@@ -216,8 +216,9 @@ export default function RecordatorioModal({
               <label className="text-[13px] font-medium text-gray-800">Texto</label>
               <textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={11} className={`${CAMPO} py-2.5 leading-relaxed resize-y`} />
               <p className={META}>
-                Huecos: <code>{'{nombre}'}</code>, <code>{'{dias}'}</code> y <code>{'{clase}'}</code> (la clase a la que lleva el botón).
-                Una línea en blanco separa párrafos; <code>*así*</code> va en negrita.
+                Los botones salen donde pongas <code>[seguir]</code>, <code>[victoria]</code> y <code>[consulta]</code>, cada uno en su
+                propia línea. Huecos: <code>{'{nombre}'}</code>, <code>{'{dias}'}</code> y <code>{'{clase}'}</code> (la clase a la que
+                lleva el botón). Una línea en blanco separa párrafos; <code>*así*</code> va en negrita.
               </p>
             </div>
 

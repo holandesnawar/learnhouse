@@ -2018,7 +2018,11 @@ sin salir de la pantalla. Lo que sí se apunta, clase a clase, es el recorrido
   `{clase}` rellenados a mano (`rellenar`, sin `.format()`). Tres botones:
   seguir donde lo dejó (`clase_para_seguir`: la abierta a medias o la
   siguiente pendiente), compartir una victoria (`/communities`) y hacer una
-  consulta (`/consultas`); sus textos también se editan. Plantillas en
+  consulta (`/consultas`); sus textos también se editan. **Cada botón va
+  justo debajo de su frase** ("no los 3 al final"): se marca en el texto con
+  `[seguir]`, `[victoria]`, `[consulta]` en su propia línea
+  (`colocar_botones`); un texto sin marcas los pone debajo del párrafo que
+  habla de cada cosa, y lo que no encuentre sitio, al final. Plantillas en
   org_config `recordatorio_alumno`. Cada envío queda en la tabla
   `student_reminder` y la lista dice "Recordado hace X"; "Mandármelo a mí" es
   una prueba y no se apunta. Ruta `/panel/org/{id}/recordatorio/...`, solo
