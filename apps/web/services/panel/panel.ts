@@ -217,6 +217,30 @@ export interface AvanceAlumno {
 export const getClientes = (orgId: number, t: string) =>
   pedir<{ clientes: Cliente[]; total_cents: number; n: number }>(`panel/org/${orgId}/clientes`, 'GET', null, t)
 
+/** Un alumno en Panel → Alumnos → Progreso. Ver apps/api/src/services/panel/alumnos.py. */
+export interface AlumnoProgreso {
+  user_id: number
+  nombre: string
+  email: string
+  alta: string
+  /** ISO en UTC con hora ("…T18:05:00Z") o solo el día ("2026-10-04"). */
+  ultima_entrada: string
+  /** Dónde se quedó: la última clase que abrió o terminó. */
+  donde: { modulo: string; clase: string; cuando: string; como: 'abrio' | 'termino' | 'repaso' } | null
+  siguiente: { modulo: string; clase: string } | null
+  hechas: number
+  total: number
+  pct: number
+  modulos: { nombre: string; hechas: number; total: number }[]
+  dias_que_entro: number
+  entradas_7d: number
+  racha: number
+  estado: { id: 'activo' | 'enfriando' | 'descolgado' | 'sin-empezar' | 'nunca'; texto: string; dias: number | null }
+}
+
+export const getAlumnosProgreso = (orgId: number, t: string) =>
+  pedir<{ alumnos: AlumnoProgreso[]; total_clases: number }>(`panel/org/${orgId}/alumnos`, 'GET', null, t)
+
 export interface Campana {
   id: number
   nombre: string
