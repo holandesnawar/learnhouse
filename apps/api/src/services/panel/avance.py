@@ -90,7 +90,7 @@ async def clases_en_orden(db_session: AsyncSession, course_id: int) -> list[dict
     """Las clases publicadas del curso, módulo a módulo y en su orden."""
     filas = (
         await db_session.execute(
-            select(Chapter.name, Activity.id, Activity.name, CourseChapter.order, ChapterActivity.order)
+            select(Chapter.name, Activity.id, Activity.name, CourseChapter.order, ChapterActivity.order, Activity.activity_uuid)
             .join(ChapterActivity, ChapterActivity.chapter_id == Chapter.id)
             .join(Activity, Activity.id == ChapterActivity.activity_id)
             .join(
@@ -104,11 +104,11 @@ async def clases_en_orden(db_session: AsyncSession, course_id: int) -> list[dict
     filas = sorted(filas, key=lambda f: (f[3] if f[3] is not None else 10**6, f[4] or 0, f[1]))
     vistas: set[int] = set()
     out: list[dict] = []
-    for modulo, aid, clase, _co, _ao in filas:
+    for modulo, aid, clase, _co, _ao, auuid in filas:
         if aid in vistas:
             continue
         vistas.add(aid)
-        out.append({"id": int(aid), "modulo": modulo or "", "clase": clase or ""})
+        out.append({"id": int(aid), "uuid": auuid or "", "modulo": modulo or "", "clase": clase or ""})
     return out
 
 

@@ -54,6 +54,7 @@ import {
   PhoneCall,
   Scroll,
   Wallet,
+  ChartLineUp,
 } from '@phosphor-icons/react'
 
 type Item = { href: string; label: string; icon: React.ReactNode; match?: (p: string) => boolean }
@@ -83,6 +84,8 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
   {
     titulo: 'Alumnos',
     items: [
+      // Por dónde va cada alumno y cuándo entró (04/10/2026).
+      { href: '/dash/estadisticas?tab=progreso', label: 'Progreso', icon: <ChartLineUp size={18} weight="fill" /> },
       { href: '/dash/users/settings/users', label: 'Usuarios', icon: <UserCircle size={18} weight="fill" />, match: (p) => p.includes('/dash/users') },
       { href: '/dash/communities', label: 'Comunidad', icon: <ChatsCircle size={18} weight="fill" /> },
       { href: '/dash/consultas', label: 'Consultas', icon: <Question size={18} weight="fill" /> },

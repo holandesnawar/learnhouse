@@ -1991,6 +1991,18 @@ sin salir de la pantalla. Lo que sí se apunta, clase a clase, es el recorrido
   `proximos`: las 3 próximas aperturas con fecha y nombre. Para saber qué
   módulo se abre mañana: Actions → «Drip» → la última ejecución, o lanzarla a
   mano (no repite correos: `drip_email_sent`). Módulo 3 abrió el 21/09.
+- **Panel → Alumnos → Progreso** (`?tab=progreso`, `Panel/ProgresoPanel.tsx`,
+  `services/panel/alumnos.py`, `GET /panel/org/{id}/alumnos`, solo
+  administradores). Pedido del 04/10: "en qué lección se quedó cada persona y
+  qué día entró por última vez, más moderno". Una fila por alumno: **se quedó
+  en** = lo más reciente entre la última clase que ABRIÓ
+  (`student_progress.current_position`, con hora) y la última que TERMINÓ
+  (`trail_step`); **última vez** = lo más reciente de eso y de las visitas
+  diarias (sin hora); avance por clases; estado activo (≤3 días) / se enfría
+  (4-7) / descolgado (>7) / sin empezar. Arriba las cuatro cifras hacen de
+  filtro; al abrir una fila, avance por módulo, "le falta primero" y la ficha.
+  Las horas se pintan en hora de Países Bajos. Lógica pura con test
+  (`test_progreso_alumnos.py`).
 - **Ver los datos reales sin entrar en producción**: la prueba de restauración
   (`db-restore-test.yaml`, Actions → Run workflow) imprime ahora las fechas del
   goteo, las clases hechas por curso y una fila por alumno (alta, clases,

@@ -22,6 +22,7 @@ from src.services.contactos.metricas import emails_excluidos
 from src.services.orgs.acceso import exigir_acceso
 from src.services.panel import ads, pipeline, tareas
 from src.services.panel.cliente import ficha_cliente
+from src.services.panel.alumnos import listar_alumnos
 from src.services.panel.clientes import listar_clientes
 
 router = APIRouter()
@@ -227,6 +228,19 @@ async def api_clientes(
     if not await _es_admin(current_user, org_id, db_session):
         raise HTTPException(status_code=403, detail="Solo administradores")
     return await listar_clientes(db_session)
+
+
+@router.get("/org/{org_id}/alumnos", summary="Progreso de cada alumno: dónde se quedó y cuándo entró (administradores).")
+async def api_alumnos(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    if not await _es_admin(current_user, org_id, db_session):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    return await listar_alumnos(org_id, db_session)
 
 
 # ── Anuncios (solo administradores: es dinero) ─────────────────────────────
