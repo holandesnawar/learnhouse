@@ -53,9 +53,13 @@ async def list_org_recipients(
     tiempo eso enseña a ignorar los correos de la escuela justo a quien tiene
     que leerlos.
     """
+    from src.services.panel.testers import ids_testers
+
+    # Las cuentas del grupo Testers no reciben nada (services/panel/testers.py).
+    testers = await ids_testers(org_id, db_session)
     rows = (
         await db_session.execute(
-            select(User.email, User.first_name, User.username)
+            select(User.email, User.first_name, User.username, User.id)
             .join(UserOrganization, UserOrganization.user_id == User.id)  # type: ignore
             .where(
                 UserOrganization.org_id == org_id,
@@ -66,7 +70,9 @@ async def list_org_recipients(
 
     recipients: List[Tuple[str, str]] = []
     seen = set()
-    for email, first_name, username in rows:
+    for email, first_name, username, uid in rows:
+        if uid in testers:
+            continue
         if not email or email in seen:
             continue
         seen.add(email)

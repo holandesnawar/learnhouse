@@ -216,20 +216,15 @@ async def _alumno(org_id: int, user_id: int, db_session: AsyncSession) -> dict:
     raise LookupError("Ese alumno no está en la escuela (o está fuera de los números)")
 
 
-async def montar(
-    org_id: int, user_id: int, tipo: str, asunto: str, texto: str, db_session: AsyncSession, *, enviar_a: str = "", preview: bool = True
-) -> dict:
-    """Arma el correo para ese alumno. Con preview=True solo lo devuelve;
-    si no, lo manda a `enviar_a` (o al alumno si va vacío)."""
+def _armar(alumno: dict, plantillas: dict, tipo: str, asunto: str, texto: str, *, enviar_a: str = "", preview: bool = True) -> dict:
+    """Arma (y con preview=False, manda) el correo para un alumno ya leído."""
     from src.services.users.emails import ACADEMY_URL, send_recordatorio_alumno_email
 
     if tipo not in TIPOS:
         raise ValueError("Tipo de recordatorio desconocido")
-    alumno = await _alumno(org_id, user_id, db_session)
-    plantillas = (await leer_plantillas(org_id, db_session))["plantillas"]
     base = plantillas[tipo]
-    nombre = (alumno["nombre"] or "").split(" ")[0] or "alumno/a"
-    dias = alumno["estado"].get("dias")
+    nombre = (alumno.get("nombre") or "").split(" ")[0] or "alumno/a"
+    dias = (alumno.get("estado") or {}).get("dias")
     clase = ""
     if alumno.get("seguir_uuid"):
         # El nombre de la clase a la que lleva el botón, por si el texto la usa.
@@ -254,23 +249,159 @@ async def montar(
     return {"para": enviar_a or alumno["email"], "asunto": asunto_final, "html": (r or {}).get("html", "") if preview else ""}
 
 
+async def montar(
+    org_id: int, user_id: int, tipo: str, asunto: str, texto: str, db_session: AsyncSession, *, enviar_a: str = "", preview: bool = True
+) -> dict:
+    """Arma el correo para ese alumno. Con preview=True solo lo devuelve;
+    si no, lo manda a `enviar_a` (o al alumno si va vacío)."""
+    if tipo not in TIPOS:
+        raise ValueError("Tipo de recordatorio desconocido")
+    alumno = await _alumno(org_id, user_id, db_session)
+    plantillas = (await leer_plantillas(org_id, db_session))["plantillas"]
+    return _armar(alumno, plantillas, tipo, asunto, texto, enviar_a=enviar_a, preview=preview)
+
+
+async def _apuntar(user_id: int, tipo: str, asunto: str, quien: str, db_session: AsyncSession) -> None:
+    from src.db.recordatorios import StudentReminder
+
+    db_session.add(
+        StudentReminder(
+            user_id=user_id,
+            tipo=tipo,
+            asunto=(asunto or "")[:200],
+            sent_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            sent_by=(quien or "")[:120],
+        )
+    )
+    await db_session.commit()
+
+
 async def enviar(
     org_id: int, user_id: int, tipo: str, asunto: str, texto: str, quien: str, db_session: AsyncSession, *, a_mi: str = ""
 ) -> dict:
     """Manda el recordatorio. Con `a_mi` (un correo del equipo) es una prueba:
     no se apunta como recordatorio a ese alumno."""
-    from src.db.recordatorios import StudentReminder
-
     r = await montar(org_id, user_id, tipo, asunto, texto, db_session, enviar_a=a_mi, preview=False)
     if not a_mi:
-        db_session.add(
-            StudentReminder(
-                user_id=user_id,
-                tipo=tipo,
-                asunto=r["asunto"][:200],
-                sent_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                sent_by=(quien or "")[:120],
-            )
-        )
-        await db_session.commit()
+        await _apuntar(user_id, tipo, r["asunto"], quien, db_session)
     return {"ok": True, "para": r["para"], "asunto": r["asunto"], "prueba": bool(a_mi)}
+
+
+# ── El automático: «1 semana sin entrar» ───────────────────────────────────
+#
+# Pedido del usuario (04/10/2026): que el correo de "esta semana no has
+# entrado" salga solo, **solo a alumnos**, editable en Avisos y con un
+# interruptor de activar/desactivar, **apagado de serie** ("todavía no lo
+# actives: tengo que sacar de alumnos a gente que no lo es"). Lo lanza la
+# tarea diaria del goteo (`/notifications/drip-diario`, 07:00 UTC) después de
+# los avisos de módulo. Usa SIEMPRE la plantilla «semana», la misma que el
+# manual: editarla en un sitio la cambia en los dos.
+
+DIAS_AUTO = 7
+TOPE_POR_DIA = 60  # por si algo se tuerce, nunca más que esto de una vez
+AUTOR_AUTO = "Automático"
+
+
+def toca_automatico(ultima_entrada: str, alta: str, ultimo_recordatorio: str, hoy, dias: int = DIAS_AUTO) -> bool:
+    """¿Le toca hoy el recordatorio automático? Función pura, con test.
+
+    - Cuenta desde la última vez que entró; si no ha entrado nunca, desde el
+      alta.
+    - Hace falta llevar `dias` o más.
+    - Uno por racha de silencio: si ya se le recordó (a mano o solo) después
+      de su última entrada, no se repite hasta que vuelva y se vuelva a ir.
+    """
+    from datetime import date as _date
+
+    ref = (ultima_entrada or alta or "")[:10]
+    if not ref:
+        return False
+    try:
+        dia_ref = _date.fromisoformat(ref)
+    except ValueError:
+        return False
+    if (hoy - dia_ref).days < dias:
+        return False
+    if ultimo_recordatorio and ultimo_recordatorio[:10] >= ref:
+        return False
+    return True
+
+
+async def leer_auto(org_id: int, db_session: AsyncSession) -> dict:
+    fila = (
+        await db_session.execute(select(OrganizationConfig).where(OrganizationConfig.org_id == org_id))
+    ).scalars().first()
+    guardado = (fila.config or {}).get("recordatorio_auto") if fila and isinstance(fila.config, dict) else None
+    g = guardado if isinstance(guardado, dict) else {}
+    return {"activo": bool(g.get("activo")), "cambiado_en": g.get("cambiado_en", ""), "por": g.get("por", ""), "dias": DIAS_AUTO}
+
+
+async def guardar_auto(org_id: int, activo: bool, quien: str, db_session: AsyncSession) -> dict:
+    fila = (
+        await db_session.execute(select(OrganizationConfig).where(OrganizationConfig.org_id == org_id))
+    ).scalars().first()
+    if fila is None:
+        raise ValueError("La escuela no tiene configuración")
+    config = json.loads(json.dumps(fila.config or {}))
+    config["recordatorio_auto"] = {
+        "activo": bool(activo),
+        "cambiado_en": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "por": (quien or "")[:120],
+    }
+    fila.config = config
+    fila.update_date = str(datetime.now())
+    db_session.add(fila)
+    await db_session.commit()
+    return await leer_auto(org_id, db_session)
+
+
+async def candidatos_auto(org_id: int, db_session: AsyncSession) -> list[dict]:
+    """A quién le tocaría hoy. Ya sin Testers ni pruebas (`listar_alumnos`)."""
+    from src.services.panel.alumnos import listar_alumnos
+
+    hoy = datetime.now(timezone.utc).date()
+    out = []
+    for a in (await listar_alumnos(org_id, db_session))["alumnos"]:
+        previo = (a.get("ultimo_recordatorio") or {}).get("sent_at", "")
+        if toca_automatico(a.get("ultima_entrada", ""), a.get("alta", ""), previo, hoy):
+            out.append(a)
+    return out
+
+
+async def recordatorio_automatico(org_id: int, db_session: AsyncSession) -> dict:
+    """Lo que hace la tarea diaria. Apagado = no manda nada, solo dice a
+    cuántos les habría tocado. No lanza: un alumno que falle no para al resto."""
+    import logging
+
+    estado = await leer_auto(org_id, db_session)
+    candidatos = await candidatos_auto(org_id, db_session)
+    if not estado["activo"]:
+        return {"activo": False, "enviados": 0, "le_tocaria_a": len(candidatos)}
+    plantillas = (await leer_plantillas(org_id, db_session))["plantillas"]
+    enviados = 0
+    for a in candidatos[:TOPE_POR_DIA]:
+        try:
+            r = _armar(a, plantillas, "semana", "", "", preview=False)
+            await _apuntar(a["user_id"], "semana", r["asunto"], AUTOR_AUTO, db_session)
+            enviados += 1
+        except Exception:  # noqa: BLE001
+            logging.getLogger(__name__).exception("Recordatorio automático: falló con el alumno %s", a.get("user_id"))
+    return {"activo": True, "enviados": enviados, "candidatos": len(candidatos)}
+
+
+ALUMNO_DE_EJEMPLO = {
+    "user_id": 0,
+    "nombre": "Lucía Fernández",
+    "email": "",
+    "estado": {"dias": 9},
+    "seguir_uuid": "",
+    "donde": {"modulo": "Módulo 2", "clase": "2.4 Lezen"},
+    "siguiente": {"modulo": "Módulo 2", "clase": "2.4 Lezen"},
+}
+
+
+async def vista_auto(org_id: int, asunto: str, texto: str, db_session: AsyncSession, *, enviar_a: str = "") -> dict:
+    """El correo automático con un alumno de ejemplo. Con `enviar_a`, se lo
+    manda a esa dirección (prueba); si no, solo lo devuelve."""
+    plantillas = (await leer_plantillas(org_id, db_session))["plantillas"]
+    return _armar(dict(ALUMNO_DE_EJEMPLO, email=enviar_a or "ejemplo@ejemplo.com"), plantillas, "semana", asunto, texto, enviar_a=enviar_a, preview=not enviar_a)

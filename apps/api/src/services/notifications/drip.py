@@ -99,6 +99,11 @@ async def avisar_modulos_abiertos_hoy(org_id: int, db_session: AsyncSession) -> 
             )
         )
     ).all()
+    # Las cuentas del grupo Testers no reciben nada (services/panel/testers.py).
+    from src.services.panel.testers import ids_testers
+
+    testers = await ids_testers(org_id, db_session)
+    alumnos = [a for a in alumnos if a[0] not in testers]
     if not alumnos:
         return {"enviados": 0, "motivo": "no hay alumnos"}
 

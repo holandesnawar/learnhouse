@@ -2031,6 +2031,27 @@ sin salir de la pantalla. Lo que sí se apunta, clase a clase, es el recorrido
   `student_reminder` y la lista dice "Recordado hace X"; "Mandármelo a mí" es
   una prueba y no se apunta. Ruta `/panel/org/{id}/recordatorio/...`, solo
   administradores. Tests: `test_recordatorio_alumno.py`.
+- **Recordatorio AUTOMÁTICO «1 semana sin entrar»** (04/10; Avisos → pestaña
+  «1 semana sin entrar», `Avisos/RecordatorioAuto.tsx`). **Apagado de serie**
+  (org_config `recordatorio_auto.activo`), con interruptor: el usuario aún
+  tiene que sacar de alumnos a cuentas que no lo son. Lo lanza la tarea diaria
+  del goteo (`/notifications/drip-diario`, 07:00 UTC) después de los avisos de
+  módulo; apagado, solo dice `le_tocaria_a`. Regla (`toca_automatico`, pura con
+  test): 7 días o más desde la última entrada (o desde el alta si nunca entró)
+  y **uno por racha de silencio**: si ya se le recordó (a mano o solo) después
+  de su última entrada, no se repite. Usa la plantilla «semana», **la misma del
+  manual**: editarla en Avisos la cambia en Progreso. Tope de 60 por día. Se
+  apunta en `student_reminder` con `sent_by="Automático"`. La pantalla enseña a
+  quién le saldría hoy y deja «Ver cómo queda» / «Mandármelo a mí» con un
+  alumno de ejemplo. Rutas `/panel/org/{id}/recordatorio-auto[/vista]`.
+  Tests: `test_recordatorio_auto.py`.
+- **Grupo «Testers»** (04/10, `services/panel/testers.py`): un grupo de
+  usuarios normal (Panel → Escuela → Equipo y grupos) llamado «Testers» (vale
+  también «Tester», «Pruebas»; sin mayúsculas ni acentos). Quien esté dentro
+  **no recibe NINGÚN correo de alumno** (avisos `broadcast.py`, módulo abierto
+  `drip.py`, recordatorios) y **no sale en Progreso**. Su cuenta y acceso no se
+  tocan. Decisión del usuario: los testers no reciben "ninguno". El grupo NO se
+  crea solo: lo crea el usuario desde el panel.
 - **Estadísticas = solo números del negocio** (04/10, "quitamos tema alumnos
   de Estadísticas"): fuera "A quién escribir", "Avance de la formación" y
   "Cómo va la cohorte" (activación, respuesta a mensajes, retención). Queda:
