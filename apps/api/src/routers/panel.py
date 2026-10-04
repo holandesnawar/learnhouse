@@ -20,7 +20,7 @@ from src.security.auth import get_current_user
 from src.services.contactos.contactos import _emails_con_cuenta, _todos_los_eventos, fusionar_contactos
 from src.services.contactos.metricas import emails_excluidos
 from src.services.orgs.acceso import exigir_acceso
-from src.services.panel import ads, pipeline, tareas
+from src.services.panel import ads, pipeline, recordatorio, tareas
 from src.services.panel.cliente import ficha_cliente
 from src.services.panel.alumnos import listar_alumnos
 from src.services.panel.clientes import listar_clientes
@@ -241,6 +241,90 @@ async def api_alumnos(
     if not await _es_admin(current_user, org_id, db_session):
         raise HTTPException(status_code=403, detail="Solo administradores")
     return await listar_alumnos(org_id, db_session)
+
+
+# ── Recordatorio a un alumno (Progreso). Solo administradores, y siempre a mano.
+
+
+class RecordatorioIn(BaseModel):
+    tipo: str = "semana"
+    asunto: str = ""
+    texto: str = ""
+    # True = mandármelo a mí para ver cómo queda (no cuenta como recordatorio).
+    a_mi: bool = False
+
+
+async def _admin_progreso(request: Request, org_id: int, current_user, db_session: AsyncSession) -> None:
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    if not await _es_admin(current_user, org_id, db_session):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+
+
+@router.get("/org/{org_id}/recordatorio/plantillas", summary="Textos del recordatorio a alumnos.")
+async def api_recordatorio_plantillas(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_progreso(request, org_id, current_user, db_session)
+    return await recordatorio.leer_plantillas(org_id, db_session)
+
+
+@router.put("/org/{org_id}/recordatorio/plantillas", summary="Guardar los textos del recordatorio.")
+async def api_recordatorio_guardar(
+    request: Request,
+    org_id: int,
+    datos: dict,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_progreso(request, org_id, current_user, db_session)
+    try:
+        return await recordatorio.guardar_plantillas(org_id, datos, db_session)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/org/{org_id}/recordatorio/{user_id}/vista", summary="Cómo le llegaría el recordatorio (no manda nada).")
+async def api_recordatorio_vista(
+    request: Request,
+    org_id: int,
+    user_id: int,
+    datos: RecordatorioIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_progreso(request, org_id, current_user, db_session)
+    try:
+        return await recordatorio.montar(org_id, user_id, datos.tipo, datos.asunto, datos.texto, db_session)
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/org/{org_id}/recordatorio/{user_id}", summary="Mandar el recordatorio a ese alumno (o a mí, de prueba).")
+async def api_recordatorio_enviar(
+    request: Request,
+    org_id: int,
+    user_id: int,
+    datos: RecordatorioIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_progreso(request, org_id, current_user, db_session)
+    a_mi = (current_user.email or "") if datos.a_mi else ""
+    if datos.a_mi and not a_mi:
+        raise HTTPException(status_code=400, detail="Tu cuenta no tiene correo")
+    try:
+        return await recordatorio.enviar(
+            org_id, user_id, datos.tipo, datos.asunto, datos.texto, _nombre(current_user), db_session, a_mi=a_mi
+        )
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # ── Anuncios (solo administradores: es dinero) ─────────────────────────────

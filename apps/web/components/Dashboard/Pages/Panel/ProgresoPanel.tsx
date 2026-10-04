@@ -17,9 +17,10 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { getAlumnosProgreso, type AlumnoProgreso } from '@services/panel/panel'
-import { ChevronDown, Loader2, Mail, Search } from 'lucide-react'
+import { Bell, ChevronDown, Loader2, Mail, Search } from 'lucide-react'
 import FichaCliente from './FichaCliente'
-import { BOTON, Estado, TARJETA, filtro, type Tono } from './ui'
+import RecordatorioModal from './RecordatorioModal'
+import { BOTON, BOTON_PRINCIPAL, Estado, TARJETA, filtro, type Tono } from './ui'
 
 type Filtro = 'todos' | 'activo' | 'enfriando' | 'descolgado' | 'sin-empezar'
 type Orden = 'entrada' | 'avance' | 'nombre'
@@ -107,7 +108,26 @@ function Cifra({ label, valor, nota, activo, onClick }: { label: string; valor: 
   )
 }
 
-function Fila({ a, abierta, onToggle, onFicha }: { a: AlumnoProgreso; abierta: boolean; onToggle: () => void; onFicha: () => void }) {
+function haceDias(iso: string): string {
+  const t = Date.parse(iso)
+  if (!Number.isFinite(t)) return ''
+  const d = Math.floor((Date.now() - t) / 86400000)
+  return d <= 0 ? 'hoy' : d === 1 ? 'ayer' : `hace ${d} días`
+}
+
+function Fila({
+  a,
+  abierta,
+  onToggle,
+  onFicha,
+  onRecordar,
+}: {
+  a: AlumnoProgreso
+  abierta: boolean
+  onToggle: () => void
+  onFicha: () => void
+  onRecordar: () => void
+}) {
   return (
     <div>
       <button onClick={onToggle} className="w-full text-left px-4 py-3.5 hover:bg-[#F9FAFB] transition-colors">
@@ -175,6 +195,11 @@ function Fila({ a, abierta, onToggle, onFicha }: { a: AlumnoProgreso; abierta: b
             <p className="text-[12px] text-[#6B7280] truncate pl-3">
               {!a.ultima_entrada ? `Alta ${cuando(a.alta)}` : a.entradas_7d ? `${a.entradas_7d} ${a.entradas_7d === 1 ? 'día' : 'días'} esta semana` : 'Ningún día esta semana'}
             </p>
+            {a.ultimo_recordatorio ? (
+              <p className="text-[12px] text-[#6B7280] truncate pl-3 flex items-center gap-1">
+                <Bell size={11} /> Recordado {haceDias(a.ultimo_recordatorio.sent_at)}
+              </p>
+            ) : null}
           </div>
 
           <div className="min-w-0">
@@ -216,7 +241,18 @@ function Fila({ a, abierta, onToggle, onFicha }: { a: AlumnoProgreso; abierta: b
                 <dt className="text-[#6B7280]">Alumno desde</dt>
                 <dd className="text-gray-900">{a.alta ? new Date(`${a.alta}T12:00:00`).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</dd>
               </div>
+              <div>
+                <dt className="text-[#6B7280]">Último recordatorio</dt>
+                <dd className="text-gray-900">
+                  {a.ultimo_recordatorio
+                    ? `${haceDias(a.ultimo_recordatorio.sent_at)}${a.ultimo_recordatorio.por ? `, por ${a.ultimo_recordatorio.por}` : ''}`
+                    : 'Ninguno todavía'}
+                </dd>
+              </div>
               <div className="flex flex-wrap gap-2 pt-1">
+                <button onClick={onRecordar} className={BOTON_PRINCIPAL}>
+                  <Bell size={14} /> Mandar recordatorio
+                </button>
                 <button onClick={onFicha} className={BOTON}>
                   Ver su ficha
                 </button>
@@ -265,6 +301,7 @@ export default function ProgresoPanel() {
   const [orden, setOrden] = useState<Orden>('entrada')
   const [abierta, setAbierta] = useState<number | null>(null)
   const [ficha, setFicha] = useState<string | null>(null)
+  const [recordar, setRecordar] = useState<AlumnoProgreso | null>(null)
 
   const cargar = useCallback(async () => {
     if (!org?.id || !token) return
@@ -363,6 +400,7 @@ export default function ProgresoPanel() {
                 abierta={abierta === a.user_id}
                 onToggle={() => setAbierta((v) => (v === a.user_id ? null : a.user_id))}
                 onFicha={() => setFicha(a.email)}
+                onRecordar={() => setRecordar(a)}
               />
             ))}
           </div>
@@ -379,6 +417,7 @@ export default function ProgresoPanel() {
       </p>
 
       {ficha ? <FichaCliente email={ficha} onClose={() => setFicha(null)} /> : null}
+      {recordar ? <RecordatorioModal alumno={recordar} onClose={() => setRecordar(null)} onEnviado={cargar} /> : null}
     </div>
   )
 }

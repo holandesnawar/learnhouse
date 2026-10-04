@@ -771,6 +771,50 @@ def send_new_direct_message_email(
     )
 
 
+def send_recordatorio_alumno_email(
+    email: EmailStr,
+    asunto: str = "Ana, esta semana no has entrado a la escuela",
+    texto: str = "Hola Ana:\n\nEsta semana no has entrado a la escuela. Recuerda que *cada día suma*.",
+    seguir_url: str = "",
+    victoria_url: str = "",
+    consulta_url: str = "",
+    botones: Optional[dict] = None,
+    preview: bool = False,
+):
+    """Recordatorio a un alumno que lleva días sin entrar. Lo manda el equipo A
+    MANO desde Panel → Alumnos → Progreso (`services/panel/recordatorio.py`).
+
+    El texto llega ya rellenado y en plano: `parrafos()` lo escapa entero, así
+    que lo que se teclee en el panel no puede meter etiquetas.
+    """
+    b = {"seguir": "Seguir donde lo dejé", "victoria": "Compartir una victoria", "consulta": "Hacer una consulta"}
+    b.update({k: v for k, v in (botones or {}).items() if isinstance(v, str) and v.strip()})
+    secundario = (
+        "display: inline-block; margin: 6px 4px 0 4px; padding: 11px 18px; background-color: #ffffff; "
+        "color: #025dc7; text-decoration: none; border-radius: 10px; border: 1.5px solid #cfe3ff; "
+        "font-size: 13px; font-weight: 700; line-height: 1;"
+    )
+    body_content = f"""
+        <h1 style="{STYLES['h1']}">{html.escape(asunto)}</h1>
+        <div style="text-align: left;">
+            {parrafos(texto, STYLES['p'])}
+        </div>
+        <a href="{html.escape(seguir_url or RUTA_FORMACION_URL)}" class="brand-btn" style="{STYLES['button']}">
+            {html.escape(b["seguir"])}
+        </a>
+        <div style="margin-top: 14px;">
+            <a href="{html.escape(victoria_url or ACADEMY_URL)}" style="{secundario}">{html.escape(b["victoria"])}</a>
+            <a href="{html.escape(consulta_url or ACADEMY_URL)}" style="{secundario}">{html.escape(b["consulta"])}</a>
+        </div>
+    """
+    return send_email(
+        dry_run=preview,
+        to=email,
+        subject=asunto,
+        body=_email_layout(title=asunto, body_content=body_content),
+    )
+
+
 def send_llamada_pedida_email(
     email: EmailStr,
     llamada: dict,

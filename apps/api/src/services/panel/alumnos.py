@@ -28,6 +28,7 @@ from typing import Optional
 from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from src.db.recordatorios import StudentReminder
 from src.db.student_progress import StudentProgress, StudentVisitDay
 from src.db.trail_steps import TrailStep
 from src.db.user_organizations import UserOrganization
@@ -85,7 +86,9 @@ def donde_y_cuando(
     if posicion and pos_cuando:
         clase = clases_por_uuid.get(_sin_prefijo(str(posicion.get("activity_uuid") or "")))
         if clase:
-            candidatos.append({"modulo": clase["modulo"], "clase": clase["clase"], "cuando": pos_cuando, "como": "abrio"})
+            candidatos.append(
+                {"modulo": clase["modulo"], "clase": clase["clase"], "cuando": pos_cuando, "como": "abrio", "uuid": clase.get("uuid", "")}
+            )
         elif posicion.get("lesson_title"):
             # Lección abierta en la app de ejercicios (repaso), fuera del curso.
             candidatos.append(
@@ -99,6 +102,7 @@ def donde_y_cuando(
                 "clase": ultima_terminada.get("clase", ""),
                 "cuando": _iso(ultima_terminada["fecha"]),
                 "como": "termino",
+                "uuid": ultima_terminada.get("uuid", ""),
             }
         )
 
@@ -114,6 +118,20 @@ def donde_y_cuando(
             ultima = max(mismas)
 
     return {"donde": donde, "ultima_entrada": ultima}
+
+
+def clase_para_seguir(donde: Optional[dict], siguiente: Optional[dict]) -> str:
+    """La clase a la que lleva "Seguir donde lo dejé" (uuid, o "" = la
+    portada de la formación). Pura, con test.
+
+    Si la última que abrió la dejó a medias, a esa. Si la terminó, a la
+    primera que le falta: volver a una clase ya hecha no es "seguir".
+    """
+    if donde and donde.get("como") == "abrio" and donde.get("uuid"):
+        return donde["uuid"]
+    if siguiente and siguiente.get("uuid"):
+        return siguiente["uuid"]
+    return (donde or {}).get("uuid") or ""
 
 
 def estado_de(ultima_entrada: str, hechas: int, hoy: date) -> dict:
@@ -228,6 +246,7 @@ async def listar_alumnos(org_id: int, db_session: AsyncSession) -> dict:
                 "ultima_entrada": dc["ultima_entrada"],
                 "donde": dc["donde"],
                 "siguiente": avance["siguiente"],
+                "seguir_uuid": clase_para_seguir(dc["donde"], avance["siguiente"]),
                 "hechas": avance["hechas"],
                 "total": avance["total"],
                 "pct": avance["pct"],
@@ -238,6 +257,17 @@ async def listar_alumnos(org_id: int, db_session: AsyncSession) -> dict:
                 "estado": estado_de(dc["ultima_entrada"], avance["hechas"], hoy),
             }
         )
+
+    # Último recordatorio mandado a cada uno, para no repetir sin darse cuenta.
+    ultimos: dict[int, dict] = {}
+    for r in (
+        await db_session.execute(
+            select(StudentReminder).where(StudentReminder.user_id.in_(ids)).order_by(StudentReminder.id)  # type: ignore[attr-defined]
+        )
+    ).scalars().all():
+        ultimos[int(r.user_id)] = {"sent_at": r.sent_at, "tipo": r.tipo, "por": r.sent_by}
+    for a in alumnos:
+        a["ultimo_recordatorio"] = ultimos.get(a["user_id"])
 
     # Lo más reciente arriba; quien no ha entrado nunca, al final.
     alumnos.sort(key=lambda a: _clave(a["ultima_entrada"]) if a["ultima_entrada"] else "", reverse=True)
