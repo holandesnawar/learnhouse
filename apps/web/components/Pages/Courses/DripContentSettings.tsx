@@ -1,5 +1,7 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { queryKeys } from '@lib/query/keys'
 import { CalendarClock, ChevronDown } from 'lucide-react'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { useOrg } from '@components/Contexts/OrgContext'
@@ -37,10 +39,38 @@ export default function DripContentSettings({ course, defaultOpen = false }: { c
     return init
   })
   const [saving, setSaving] = useState(false)
+  // Qué dijo el servidor al guardar, en una línea que se queda a la vista.
+  // Antes solo había un aviso flotante que se iba en dos segundos, y si el
+  // botón no hacía nada (sesión sin cargar) no salía NADA: "le doy a guardar y
+  // no se guarda" (04/10/2026).
+  const [resultado, setResultado] = useState<{ ok: boolean; texto: string } | null>(null)
+  const queryClient = useQueryClient()
+
+  // ⚠️ El formulario se rellenaba UNA vez, al montarse. Si la escuela aún no
+  // había cargado (o venía de la caché de hace 5 minutos), se quedaba con los
+  // valores viejos para siempre y, al guardar, los volvía a escribir encima.
+  // Ahora se vuelve a rellenar cada vez que cambia lo guardado, salvo que ya
+  // hayas tocado algo.
+  const tocado = useRef(false)
+  const guardadoJSON = JSON.stringify(stored || {})
+  useEffect(() => {
+    if (tocado.current) return
+    setEnabled(!!stored.enabled)
+    const o: { [k: string]: number } = {}
+    const f: { [k: string]: string } = {}
+    chapters.forEach((c) => {
+      o[c.chapter_uuid] = Number(stored?.chapters?.[c.chapter_uuid] ?? 0)
+      f[c.chapter_uuid] = String(stored?.fechas?.[c.chapter_uuid] ?? '')
+    })
+    setOffsets(o)
+    setFechas(f)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [guardadoJSON, chapters.length])
 
   if (!isAdmin || chapters.length === 0) return null
 
   const setDay = (uuid: string, v: string) => {
+    tocado.current = true
     const n = Math.max(0, parseInt(v || '0', 10) || 0)
     setOffsets((prev) => ({ ...prev, [uuid]: n }))
   }
@@ -48,6 +78,7 @@ export default function DripContentSettings({ course, defaultOpen = false }: { c
   // Quick start: one module per week (0, 7, 14, …). Admin can then tweak each
   // value (e.g. leave the first two at 0, add a 2-week gap for a review week).
   const autofill = () => {
+    tocado.current = true
     const next: { [k: string]: number } = {}
     chapters.forEach((c, i) => {
       next[c.chapter_uuid] = i * 7
@@ -56,8 +87,12 @@ export default function DripContentSettings({ course, defaultOpen = false }: { c
   }
 
   const save = async () => {
-    if (!org?.id || !access_token) return
+    if (!org?.id || !access_token) {
+      setResultado({ ok: false, texto: 'La sesión aún no ha cargado. Espera un segundo y vuelve a darle; si sigue, recarga la página.' })
+      return
+    }
     setSaving(true)
+    setResultado(null)
     try {
       // Solo se mandan las fechas puestas: una cadena vacía guardada haría que
       // el backend creyera que hay fecha y bloqueara el capítulo para siempre.
@@ -65,13 +100,32 @@ export default function DripContentSettings({ course, defaultOpen = false }: { c
       Object.entries(fechas).forEach(([k, v]) => {
         if (v && v.trim()) soloConFecha[k] = v.trim()
       })
-      await updateOrgDripConfig(
+      const res: any = await updateOrgDripConfig(
         String(org.id),
         { enabled, chapters: offsets, fechas: soloConFecha },
         access_token
       )
-      toast.success('Calendario de goteo guardado. Recarga para ver los cambios.')
-    } catch {
+      const guardado = res?.drip_content || { enabled, chapters: offsets, fechas: soloConFecha }
+
+      // La escuela en memoria pasa a tener lo que se acaba de guardar, y se
+      // pide de nuevo al servidor: así, al volver a esta pantalla o a la del
+      // curso, se ve lo guardado y no lo de hace cinco minutos.
+      if (org?.slug) {
+        queryClient.setQueriesData({ queryKey: queryKeys.org.detail(org.slug) }, (viejo: any) => {
+          if (!viejo?.config?.config) return viejo
+          return { ...viejo, config: { ...viejo.config, config: { ...viejo.config.config, drip_content: guardado } } }
+        })
+        queryClient.invalidateQueries({ queryKey: queryKeys.org.detail(org.slug) })
+      }
+      tocado.current = false
+
+      const n = Object.keys(guardado.fechas || {}).length
+      const texto = `Guardado. ${n} ${n === 1 ? 'módulo con fecha' : 'módulos con fecha'}${guardado.enabled ? '' : ' · ⚠️ el goteo está DESACTIVADO, no se cierra nada'}.`
+      setResultado({ ok: true, texto })
+      toast.success('Calendario guardado')
+    } catch (e: any) {
+      const motivo = e?.message || 'sin respuesta del servidor'
+      setResultado({ ok: false, texto: `No se ha guardado: ${motivo}${e?.status ? ` (error ${e.status})` : ''}` })
       toast.error('No se pudo guardar el calendario')
     } finally {
       setSaving(false)
@@ -107,7 +161,10 @@ export default function DripContentSettings({ course, defaultOpen = false }: { c
             <input
               type="checkbox"
               checked={enabled}
-              onChange={(e) => setEnabled(e.target.checked)}
+              onChange={(e) => {
+                tocado.current = true
+                setEnabled(e.target.checked)
+              }}
               className="w-4 h-4 accent-[#4da3ff]"
             />
             Activar desbloqueo por fecha (días desde la matrícula de cada alumno)
@@ -149,9 +206,10 @@ export default function DripContentSettings({ course, defaultOpen = false }: { c
                   <input
                     type="date"
                     value={fechas[c.chapter_uuid] || ''}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      tocado.current = true
                       setFechas((prev) => ({ ...prev, [c.chapter_uuid]: e.target.value }))
-                    }
+                    }}
                     aria-label={`Fecha fija de apertura de ${c.name}`}
                     className="bg-[#F0F5FF] rounded-lg px-2.5 py-1.5 text-[13px] text-[#1D0084] border border-transparent outline-none focus:bg-white focus:border-[#4da3ff] transition-colors"
                   />
@@ -176,6 +234,11 @@ export default function DripContentSettings({ course, defaultOpen = false }: { c
           >
             {saving ? 'Guardando…' : 'Guardar calendario'}
           </button>
+          {resultado ? (
+            <p className={`text-[13px] leading-relaxed ${resultado.ok ? 'text-[#15803D]' : 'text-red-700'}`}>
+              {resultado.texto}
+            </p>
+          ) : null}
         </div>
       )}
     </div>
