@@ -35,8 +35,11 @@ DE_FABRICA: dict = {
             "Hola {nombre}:\n\n"
             "Llevas {dias} días sin entrar a la escuela. No pasa nada, pero cuanto antes vuelvas, más fácil es retomar.\n\n"
             "*Cada día suma.* Con diez minutos de práctica hoy ya avanzas. Te dejamos el botón para seguir justo donde lo dejaste.\n\n"
+            "[seguir]\n\n"
             "¿Has conseguido algo estos días? Entender un cartel, decir una frase en el súper... Compártelo con tus compañeros: les anima a ellos y a ti.\n\n"
-            "Y si algo se te ha atascado, haznos una consulta y lo vemos juntos."
+            "[victoria]\n\n"
+            "Y si algo se te ha atascado, haznos una consulta y lo vemos juntos.\n\n"
+            "[consulta]"
         ),
     },
     "semana": {
@@ -45,8 +48,11 @@ DE_FABRICA: dict = {
             "Hola {nombre}:\n\n"
             "Esta semana no has entrado a la escuela. Recuerda que *cada día suma*: un poco de práctica, aunque sean diez minutos, marca la diferencia.\n\n"
             "Te dejamos el botón para seguir justo donde lo dejaste.\n\n"
+            "[seguir]\n\n"
             "¿Tienes alguna victoria que contar? Compártela con tus compañeros en la comunidad.\n\n"
-            "Y si tienes dudas, haz una consulta: para eso estamos."
+            "[victoria]\n\n"
+            "Y si tienes dudas, haz una consulta: para eso estamos.\n\n"
+            "[consulta]"
         ),
     },
     "botones": {
@@ -57,6 +63,65 @@ DE_FABRICA: dict = {
 }
 
 _HUECO = re.compile(r"\{(nombre|dias|clase)\}")
+
+BOTONES = ("seguir", "victoria", "consulta")
+_MARCA = re.compile(r"^\s*\[(seguir|victoria|consulta)\]\s*$", re.IGNORECASE)
+# Para textos guardados antes de las marcas: debajo de qué párrafo va cada botón.
+_PISTAS = {
+    "seguir": ("donde lo dejaste", "donde lo dejó", "seguir"),
+    "victoria": ("victoria", "logro", "compañeros"),
+    "consulta": ("consulta", "duda"),
+}
+
+
+def colocar_botones(texto: str) -> list[tuple[str, str]]:
+    """Trocea el texto en párrafos y botones: `[("texto", …), ("boton", "seguir"), …]`.
+    Función pura, con test.
+
+    Cada botón va donde está su marca (`[seguir]`, `[victoria]`, `[consulta]`
+    en su propia línea), para que quede justo debajo de la frase que lo
+    explica (pedido del usuario, 04/10: "los botones justo debajo de cada
+    frase, no los tres al final"). Un texto sin ninguna marca —guardado antes—
+    los coloca debajo del párrafo que habla de cada cosa. Lo que no encuentre
+    sitio va al final, para que ningún botón se pierda; una marca repetida
+    solo cuenta la primera vez.
+    """
+    trozos: list[tuple[str, str]] = []
+    puestos: set[str] = set()
+    lineas = (texto or "").split("\n")
+    if any(_MARCA.match(l) for l in lineas):
+        actual: list[str] = []
+        for l in lineas:
+            m = _MARCA.match(l)
+            if not m:
+                actual.append(l)
+                continue
+            if "\n".join(actual).strip():
+                trozos.append(("texto", "\n".join(actual).strip()))
+            actual = []
+            clave = m.group(1).lower()
+            if clave not in puestos:
+                trozos.append(("boton", clave))
+                puestos.add(clave)
+        if "\n".join(actual).strip():
+            trozos.append(("texto", "\n".join(actual).strip()))
+    else:
+        parrafos_ = [p.strip() for p in (texto or "").split("\n\n") if p.strip()]
+        detras: dict[int, list[str]] = {}
+        for clave in BOTONES:
+            for i, p in enumerate(parrafos_):
+                if any(pista in p.lower() for pista in _PISTAS[clave]):
+                    detras.setdefault(i, []).append(clave)
+                    puestos.add(clave)
+                    break
+        for i, p in enumerate(parrafos_):
+            trozos.append(("texto", p))
+            for clave in detras.get(i, []):
+                trozos.append(("boton", clave))
+    for clave in BOTONES:
+        if clave not in puestos:
+            trozos.append(("boton", clave))
+    return trozos
 
 
 def rellenar(texto: str, valores: dict) -> str:
