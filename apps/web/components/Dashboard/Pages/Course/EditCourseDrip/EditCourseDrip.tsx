@@ -27,10 +27,10 @@ export default function EditCourseDrip() {
           <h1 className="text-xl font-bold text-gray-900">Goteo de contenido</h1>
         </div>
         <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-          Decide cuántos días después de matricularse se le abre cada módulo a
-          cada alumno. El contador es individual: empieza el día que entra, no
-          en una fecha fija del calendario. Déjalo en 0 para que un módulo esté
-          disponible desde el primer día.
+          Decide cuándo se abre cada módulo: en una <strong>fecha</strong> igual
+          para todos, o a los <strong>días</strong> de que entre cada alumno. Si
+          un módulo tiene fecha, manda la fecha. Déjalo sin fecha y en 0 para
+          que esté abierto desde el primer día.
         </p>
 
         {courseStructure ? (
