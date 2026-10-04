@@ -2017,8 +2017,12 @@ sin salir de la pantalla. Lo que sí se apunta, clase a clase, es el recorrido
   (`tipo_para`: 7 o más, o nunca, = semana). Huecos `{nombre}`, `{dias}`,
   `{clase}` rellenados a mano (`rellenar`, sin `.format()`). Tres botones:
   seguir donde lo dejó (`clase_para_seguir`: la abierta a medias o la
-  siguiente pendiente), compartir una victoria (`/communities`) y hacer una
-  consulta (`/consultas`); sus textos también se editan. **Cada botón va
+  siguiente pendiente), compartir una victoria (**directo al canal 🏆
+  Victorias**, `/community/community_bbe57cb8-…`; comprobado por la API el
+  04/10) y hacer una consulta (`/consultas`); sus textos y sus enlaces
+  (`enlaces`, ruta que empieza por `/` o dirección entera, `url_enlace`) se
+  editan en la ventana. ⚠️ La ruta del canal lleva el prefijo `community_`:
+  sin él, «Community not found». **Cada botón va
   justo debajo de su frase** ("no los 3 al final"): se marca en el texto con
   `[seguir]`, `[victoria]`, `[consulta]` en su propia línea
   (`colocar_botones`); un texto sin marcas los pone debajo del párrafo que

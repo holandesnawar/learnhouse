@@ -49,7 +49,7 @@ DE_FABRICA: dict = {
             "Esta semana no has entrado a la escuela. Recuerda que *cada día suma*: un poco de práctica, aunque sean diez minutos, marca la diferencia.\n\n"
             "Te dejamos el botón para seguir justo donde lo dejaste.\n\n"
             "[seguir]\n\n"
-            "¿Tienes alguna victoria que contar? Compártela con tus compañeros en la comunidad.\n\n"
+            "¿Tienes alguna victoria que contar? Compártela con tus compañeros en el canal de Victorias.\n\n"
             "[victoria]\n\n"
             "Y si tienes dudas, haz una consulta: para eso estamos.\n\n"
             "[consulta]"
@@ -59,6 +59,15 @@ DE_FABRICA: dict = {
         "seguir": "Seguir donde lo dejé",
         "victoria": "Compartir una victoria",
         "consulta": "Hacer una consulta",
+    },
+    # A dónde lleva cada botón (los de "seguir" se calculan por alumno). Una
+    # ruta que empieza por "/" es dentro de la escuela; también vale una
+    # dirección entera. "Compartir una victoria" va directo al canal
+    # 🏆 Victorias de la comunidad (pedido del usuario, 04/10), no a la lista
+    # de canales.
+    "enlaces": {
+        "victoria": "/community/community_bbe57cb8-5197-4195-bc1f-6615aed4dcab",
+        "consulta": "/consultas",
     },
 }
 
@@ -165,7 +174,7 @@ async def guardar_plantillas(org_id: int, datos: dict, db_session: AsyncSession)
     if fila is None:
         raise ValueError("La escuela no tiene configuración")
     limpio: dict = {}
-    for clave in ("tres_dias", "semana", "botones"):
+    for clave in ("tres_dias", "semana", "botones", "enlaces"):
         bloque = (datos or {}).get(clave)
         if isinstance(bloque, dict):
             limpio[clave] = {k: str(v)[:4000] for k, v in bloque.items() if isinstance(v, str)}
@@ -176,6 +185,18 @@ async def guardar_plantillas(org_id: int, datos: dict, db_session: AsyncSession)
     db_session.add(fila)
     await db_session.commit()
     return await leer_plantillas(org_id, db_session)
+
+
+def url_enlace(valor: str, por_defecto: str, base: str) -> str:
+    """Una ruta de la escuela ("/community/…") o una dirección entera
+    ("https://…"). Lo demás no vale y se usa el de fábrica: un enlace roto en
+    un correo ya mandado no se puede arreglar. Función pura, con test."""
+    v = (valor or "").strip()
+    if v.startswith(("https://", "http://")):
+        return v
+    if v.startswith("/") and " " not in v:
+        return base.rstrip("/") + v
+    return base.rstrip("/") + por_defecto
 
 
 def _url_seguir(seguir_uuid: str) -> str:
@@ -225,8 +246,8 @@ async def montar(
         asunto=asunto_final,
         texto=texto_final,
         seguir_url=_url_seguir(alumno.get("seguir_uuid", "")),
-        victoria_url=f"{ACADEMY_URL}/communities",
-        consulta_url=f"{ACADEMY_URL}/consultas",
+        victoria_url=url_enlace(plantillas["enlaces"]["victoria"], DE_FABRICA["enlaces"]["victoria"], ACADEMY_URL),
+        consulta_url=url_enlace(plantillas["enlaces"]["consulta"], DE_FABRICA["enlaces"]["consulta"], ACADEMY_URL),
         botones=plantillas["botones"],
         preview=preview,
     )
