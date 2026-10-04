@@ -1971,6 +1971,27 @@ enlace**, fuera de Google (`robots.txt`) y sin enlazar desde la web.
   `localStorage` (`nawar.admision.posicion`) y al volver arranca 2 s antes;
   el bloqueo de saltos cuenta desde ahí. Se borra al terminar el vídeo.
 
+## El progreso del alumno en el panel: por CLASES, no por lecciones (04/10/2026)
+"No veo por dónde van, sale todo 0": Clientes decía "0 lecciones hechas" a
+todo el mundo. **No era que nadie avanzara**: contaba `lesson_completion`, que
+dentro de la formación **no se escribe nunca**. Cada sección de una lección
+(Samenvatting, Flashcards, Lezen…) es su propia clase del curso, y
+`LessonViewer` solo apunta la lección cuando se terminan TODAS las secciones
+sin salir de la pantalla. Lo que sí se apunta, clase a clase, es el recorrido
+(`trail_step`, vía `trail/add_activity`), lo mismo que usan las Estadísticas.
+- `services/panel/avance.py` (`resumir_avance`, pura con test): clases hechas
+  de cuántas, %, **la última que terminó** (por fecha) y **la primera que le
+  falta** (por orden), y el reparto por módulo. Curso = `FORMACION_UUID`
+  (el mismo de `lib/nawar/cursos.ts`).
+- Clientes enseña "N de M clases · %" y "Va por Módulo X · clase"; la ficha de
+  un alumno tiene el bloque **Formación** con una barra por módulo.
+- ⚠️ Lo mismo afecta a lo que ve el ALUMNO y lee de `lesson_completion`
+  ("lecciones esta semana", el tiempo por lección): sin arreglar todavía.
+- **La tarea diaria del goteo** (`drip-emails.yaml`) devuelve ahora
+  `proximos`: las 3 próximas aperturas con fecha y nombre. Para saber qué
+  módulo se abre mañana: Actions → «Drip» → la última ejecución, o lanzarla a
+  mano (no repite correos: `drip_email_sent`). Módulo 3 abrió el 21/09.
+
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
   `git branch --show-current` antes de dar por buena ninguna que ponga aquí.

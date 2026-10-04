@@ -105,6 +105,8 @@ export interface FichaCliente {
   tareas: Tarea[]
   /** Sus llamadas de Calendly, pasadas y próximas, con lo que pasó. */
   llamadas: import('@services/stats/contactos').Cita[]
+  /** Por dónde va en la formación (null si no tiene cuenta). */
+  avance?: AvanceAlumno | null
   /** Solo administradores. */
   systeme: { ok: boolean; motivo?: string; existe?: boolean; etiquetas: string[]; campos: { slug: string; valor: string }[] } | null
   linea: ItemLinea[]
@@ -193,7 +195,23 @@ export interface Cliente {
   productos: string[]
   tiene_cuenta: boolean
   ultima_visita: string
-  lecciones: number
+  /** Por dónde va en la formación (sin el reparto por módulo). */
+  avance: Omit<AvanceAlumno, 'modulos'> | null
+}
+
+/**
+ * Avance en la formación, contado por CLASES del curso (cada sección de una
+ * lección es una clase). Ver apps/api/src/services/panel/avance.py.
+ */
+export interface AvanceAlumno {
+  hechas: number
+  total: number
+  pct: number
+  /** La última que terminó (por fecha). */
+  ultima: { modulo: string; clase: string; fecha: string } | null
+  /** La primera que le falta, en el orden del curso. */
+  siguiente: { modulo: string; clase: string } | null
+  modulos: { nombre: string; hechas: number; total: number }[]
 }
 
 export const getClientes = (orgId: number, t: string) =>

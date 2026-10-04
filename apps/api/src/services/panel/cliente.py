@@ -155,6 +155,20 @@ async def ficha_cliente(email: str, user_id: int, es_admin: bool, db_session: As
     except Exception:  # noqa: BLE001
         llamadas = []
 
+    # Por dónde va en la formación, si tiene cuenta (ver services/panel/avance.py).
+    avance = None
+    try:
+        from src.db.users import User
+        from src.services.panel.avance import avance_formacion
+
+        uid = (
+            await db_session.execute(select(User.id).where(func.lower(User.email) == clave))
+        ).scalars().first()
+        if uid:
+            avance = (await avance_formacion(db_session, [int(uid)])).get(int(uid))
+    except Exception:  # noqa: BLE001
+        avance = None
+
     return {
         "email": clave,
         "nombre": ficha["nombre"],
@@ -176,6 +190,7 @@ async def ficha_cliente(email: str, user_id: int, es_admin: bool, db_session: As
         "volver_a_llamar": seg.get("volver_a_llamar"),
         "tareas": tareas,
         "llamadas": llamadas,
+        "avance": avance,
         "systeme": crm,
         "linea": linea_de_tiempo(ficha["eventos"], correos, seg.get("notas", []), tareas),
     }

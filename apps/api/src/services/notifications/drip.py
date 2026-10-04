@@ -35,6 +35,32 @@ logger = logging.getLogger(__name__)
 ROL_ALUMNO = 4
 
 
+def proximas_aperturas(fechas: dict, nombres: dict[str, str], hoy: str, cuantas: int = 3) -> list[dict]:
+    """Los próximos módulos que se abren DESPUÉS de hoy, por fecha. Pura, con
+    test. Va en cada respuesta de la tarea diaria para que el registro de
+    GitHub Actions conteste "¿qué módulo se abre mañana?" sin entrar en la
+    base de datos (pregunta real del usuario, 04/10/2026)."""
+    futuras = sorted(
+        (str(f)[:10], cu) for cu, f in fechas.items() if f and str(f)[:10] > hoy
+    )
+    return [{"fecha": f, "modulo": nombres.get(cu) or cu} for f, cu in futuras[:cuantas]]
+
+
+async def _nombres_de_modulos(fechas: dict, db_session: AsyncSession) -> dict[str, str]:
+    if not fechas:
+        return {}
+    return {
+        cu: nombre or ""
+        for cu, nombre in (
+            await db_session.execute(
+                select(Chapter.chapter_uuid, Chapter.name).where(
+                    Chapter.chapter_uuid.in_(list(fechas.keys()))  # type: ignore[attr-defined]
+                )
+            )
+        ).all()
+    }
+
+
 async def avisar_modulos_abiertos_hoy(org_id: int, db_session: AsyncSession) -> dict:
     """Manda el correo a cada alumno por cada módulo que se le abre HOY.
 
@@ -56,8 +82,12 @@ async def avisar_modulos_abiertos_hoy(org_id: int, db_session: AsyncSession) -> 
 
     hoy = datetime.now().date().isoformat()
     abren_hoy = [cu for cu, fecha in fechas.items() if str(fecha)[:10] == hoy]
+    try:
+        proximos = proximas_aperturas(fechas, await _nombres_de_modulos(fechas, db_session), hoy)
+    except Exception:  # noqa: BLE001
+        proximos = []
     if not abren_hoy:
-        return {"enviados": 0, "motivo": f"hoy ({hoy}) no abre ningún módulo"}
+        return {"enviados": 0, "motivo": f"hoy ({hoy}) no abre ningún módulo", "proximos": proximos}
 
     alumnos = (
         await db_session.execute(
@@ -142,4 +172,4 @@ async def avisar_modulos_abiertos_hoy(org_id: int, db_session: AsyncSession) -> 
         await db_session.commit()
 
     logger.info("Goteo: %s avisos enviados (%s módulos abren hoy)", enviados, len(abren_hoy))
-    return {"enviados": enviados, "modulos": len(abren_hoy), "fecha": hoy}
+    return {"enviados": enviados, "modulos": len(abren_hoy), "fecha": hoy, "proximos": proximos}
