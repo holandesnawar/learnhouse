@@ -2003,6 +2003,14 @@ sin salir de la pantalla. Lo que sí se apunta, clase a clase, es el recorrido
   filtro; al abrir una fila, avance por módulo, "le falta primero" y la ficha.
   Las horas se pintan en hora de Países Bajos. Lógica pura con test
   (`test_progreso_alumnos.py`).
+- **Estadísticas = solo números del negocio** (04/10, "quitamos tema alumnos
+  de Estadísticas"): fuera "A quién escribir", "Avance de la formación" y
+  "Cómo va la cohorte" (activación, respuesta a mensajes, retención). Queda:
+  resumen, Dinero (ventas, por periodo, checkout, **devoluciones**, que se
+  movieron aquí porque son dinero) y la asistencia a la clase en vivo. La
+  cifra "Alumnos activos" y una línea al final llevan a Alumnos → Progreso.
+  Estilo de `ui.tsx` (gris/negro, sin tintes azules). El backend sigue
+  calculando `at_risk`/`retention`/`courses`, sin pintarse.
 - **Ver los datos reales sin entrar en producción**: la prueba de restauración
   (`db-restore-test.yaml`, Actions → Run workflow) imprime ahora las fechas del
   goteo, las clases hechas por curso y una fila por alumno (alta, clases,

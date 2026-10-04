@@ -33,7 +33,6 @@ import {
   type UtmLink,
 } from '@services/stats/school'
 import {
-  AlertTriangle,
   BarChart3,
   Check,
   ChevronDown,
@@ -54,7 +53,6 @@ import {
   RefreshCw,
   ScrollText,
   Trash2,
-  TrendingDown,
   UserPlus,
   UserCheck,
   Users,
@@ -62,16 +60,16 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-const CARD = 'rounded-2xl border border-[#DDE6F5] bg-white p-3.5 sm:p-5'
+const CARD = 'rounded-lg border border-[#E5E7EB] bg-white p-3.5 sm:p-5'
 // En móvil las etiquetas son de dos palabras ("ACTIVOS 30 DÍAS") y en tres
 // columnas se cortaban: letra más pequeña y sin `tracking` para que quepan.
 const LABEL =
-  'text-[10px] sm:text-[11px] font-bold text-[#9CA3AF] uppercase tracking-normal sm:tracking-wider leading-tight'
-const BIG = 'text-[22px] sm:text-[30px] font-bold text-[#1D0084] leading-tight mt-1 tabular-nums'
+  'text-[10px] sm:text-[11px] font-semibold text-[#6B7280] uppercase tracking-normal sm:tracking-[0.08em] leading-tight'
+const BIG = 'text-[22px] sm:text-[28px] font-semibold text-gray-900 leading-tight mt-1 tabular-nums'
 const INPUT =
-  'bg-[#F0F5FF] rounded-xl px-3 py-2 text-[14px] text-[#1D0084] placeholder:text-[#1D0084]/45 border border-transparent outline-none focus:bg-white focus:border-[#4da3ff] focus:ring-[3px] focus:ring-[#4da3ff]/22 transition-colors w-full'
+  'h-9 bg-white rounded-md px-3 text-[13.5px] text-gray-900 placeholder:text-[#9CA3AF] border border-[#E5E7EB] outline-none focus:border-[#025dc7] transition-colors w-full'
 const BTN =
-  'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] text-[14px] font-bold transition-colors disabled:opacity-60'
+  'inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-md bg-[#025dc7] hover:bg-[#014fa9] text-white text-[13.5px] font-medium transition-colors disabled:opacity-60'
 
 /** Nombre bonito para el identificador de producto. */
 function productName(id: string): string {
@@ -98,7 +96,7 @@ function SalesTable({ rows }: { rows: SalesRow[] }) {
           <div key={r.key} className="rounded-xl border border-[#E7EEF9] px-3.5 py-3">
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-[13.5px] font-bold text-gray-900 capitalize">{r.label}</span>
-              <span className="text-[15px] font-bold text-[#025dc7] tabular-nums">
+              <span className="text-[15px] font-semibold text-gray-900 tabular-nums">
                 {euros(r.revenue_cents)}
               </span>
             </div>
@@ -110,7 +108,7 @@ function SalesTable({ rows }: { rows: SalesRow[] }) {
                 {Object.entries(r.by_product).map(([id, p]) => (
                   <span
                     key={id}
-                    className="text-[11px] font-semibold bg-[#F0F5FF] text-[#025dc7] rounded-full px-2 py-0.5"
+                    className="text-[12px] text-[#6B7280]"
                   >
                     {productName(id)} · {p.sales}
                   </span>
@@ -137,7 +135,7 @@ function SalesTable({ rows }: { rows: SalesRow[] }) {
             <tr key={r.key}>
               <td className="py-2.5 pr-3 font-semibold text-gray-900 capitalize">{r.label}</td>
               <td className="py-2.5 pr-3 text-right tabular-nums">{r.sales}</td>
-              <td className="py-2.5 pr-3 text-right tabular-nums font-bold text-[#025dc7]">
+              <td className="py-2.5 pr-3 text-right tabular-nums font-semibold text-gray-900">
                 {euros(r.revenue_cents)}
               </td>
               <td className="py-2.5 pr-3 text-right tabular-nums text-gray-500">
@@ -148,7 +146,7 @@ function SalesTable({ rows }: { rows: SalesRow[] }) {
                   {Object.entries(r.by_product).map(([id, p]) => (
                     <span
                       key={id}
-                      className="text-[11px] font-semibold bg-[#F0F5FF] text-[#025dc7] rounded-full px-2 py-0.5"
+                      className="text-[12px] text-[#6B7280]"
                     >
                       {productName(id)} · {p.sales}
                     </span>
@@ -411,7 +409,7 @@ export default function EstadisticasPage() {
                 <div className={CARD}>
                   <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
                     <h3 className="text-[14px] font-bold text-gray-900">Ventas por periodo</h3>
-                    <div className="flex gap-1 bg-[#F0F5FF] rounded-lg p-1">
+                    <div className="flex gap-1.5">
                       {[
                         { id: 'month' as const, label: 'Por mes' },
                         { id: 'quarter' as const, label: 'Por trimestre' },
@@ -419,8 +417,8 @@ export default function EstadisticasPage() {
                         <button
                           key={p.id}
                           onClick={() => setPeriod(p.id)}
-                          className={`px-3 py-1.5 rounded-md text-[12.5px] font-semibold transition-colors ${
-                            period === p.id ? 'bg-white text-[#025dc7] shadow-sm' : 'text-gray-500'
+                          className={`h-8 px-3 rounded-md text-[13px] font-medium border transition-colors ${
+                            period === p.id ? 'bg-gray-900 border-gray-900 text-white' : 'bg-white border-[#E5E7EB] text-gray-700 hover:bg-[#F9FAFB]'
                           }`}
                         >
                           {p.label}
@@ -449,7 +447,7 @@ export default function EstadisticasPage() {
                           </span>
                           <span className="text-[13.5px] tabular-nums text-gray-500">
                             {p.sales} ·{' '}
-                            <span className="font-bold text-[#025dc7]">
+                            <span className="font-semibold text-gray-900">
                               {euros(p.revenue_cents)}
                             </span>
                           </span>
@@ -465,26 +463,26 @@ export default function EstadisticasPage() {
                   <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
                     <div>
                       <p className={LABEL}>Empezaron</p>
-                      <p className="text-[20px] sm:text-[22px] font-bold text-gray-900 tabular-nums mt-0.5">
+                      <p className="text-[20px] sm:text-[22px] font-semibold text-gray-900 tabular-nums mt-0.5">
                         {sales.funnel.started}
                       </p>
                     </div>
                     <div>
                       <p className={LABEL}>Pagaron</p>
-                      <p className="text-[20px] sm:text-[22px] font-bold text-emerald-600 tabular-nums mt-0.5">
+                      <p className="text-[20px] sm:text-[22px] font-semibold text-[#15803D] tabular-nums mt-0.5">
                         {sales.funnel.paid}
                       </p>
                     </div>
                     <div>
                       <p className={LABEL}>Conversión</p>
-                      <p className="text-[20px] sm:text-[22px] font-bold text-[#025dc7] tabular-nums mt-0.5">
+                      <p className="text-[20px] sm:text-[22px] font-semibold text-gray-900 tabular-nums mt-0.5">
                         {sales.funnel.conversion_pct}%
                       </p>
                     </div>
                   </div>
-                  <div className="mt-3 h-2 rounded-full bg-[#F0F5FF] overflow-hidden">
+                  <div className="mt-3 h-1.5 rounded-full bg-[#F3F4F6] overflow-hidden">
                     <div
-                      className="h-full bg-[#4da3ff] rounded-full"
+                      className="h-full bg-gray-900 rounded-full"
                       style={{ width: `${Math.min(100, sales.funnel.conversion_pct)}%` }}
                     />
                   </div>
@@ -507,137 +505,33 @@ export default function EstadisticasPage() {
                     </a>
                   )}
                 </div>
+
+                {/* Devoluciones: es dinero, así que se queda aquí. */}
+                <div className={CARD}>
+                  <p className={LABEL}>Devoluciones</p>
+                  <p className={BIG}>{stats.refunds?.available ? stats.refunds.refunds : '—'}</p>
+                  <p className="text-[12px] text-[#6B7280] mt-1">
+                    {stats.refunds?.available
+                      ? `${euros(stats.refunds.refunded_cents)} devueltos · ${stats.refunds.disputes} disputas`
+                      : 'Stripe no ha contestado'}
+                  </p>
+                </div>
               </>
             )}
           </section>
 
-          {/* ── Alumnos ──────────────────────────────────────────── */}
-          <section className="space-y-3">
-            <h2 className="text-[15px] font-bold text-gray-900 flex items-center gap-2">
-              <Users size={16} className="text-[#025dc7]" /> Alumnos
-            </h2>
-            {!stats.students ? (
-              <div className={CARD}>
-                <Empty>No se han podido calcular los alumnos.</Empty>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-3">
-                <div className={CARD}>
-                  <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
-                    <div>
-                      <p className={LABEL}>Total</p>
-                      <p className="text-[20px] sm:text-[22px] font-bold text-gray-900 tabular-nums mt-0.5">
-                        {stats.students.total}
-                      </p>
-                    </div>
-                    <div>
-                      <p className={LABEL}>Activos 7 días</p>
-                      <p className="text-[20px] sm:text-[22px] font-bold text-[#025dc7] tabular-nums mt-0.5">
-                        {stats.students.active_7d}
-                      </p>
-                    </div>
-                    <div>
-                      <p className={LABEL}>Activos 30 días</p>
-                      <p className="text-[20px] sm:text-[22px] font-bold text-[#025dc7] tabular-nums mt-0.5">
-                        {stats.students.active_30d}
-                        {/* El % en su propia línea: pegado al número no cabía. */}
-                        <span className="block text-[11px] text-[#9CA3AF] font-semibold">
-                          {stats.students.active_30d_pct}% del total
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className={CARD}>
-                  <p className="text-[13px] font-bold text-gray-900 mb-2">Altas por mes</p>
-                  {stats.students.new_by_month.length === 0 ? (
-                    <Empty>Sin altas todavía.</Empty>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {stats.students.new_by_month.slice(0, 6).map((m) => (
-                        <div key={m.key} className="flex items-center justify-between">
-                          <span className="text-[13px] text-gray-700 capitalize">{m.label}</span>
-                          <span className="text-[13px] font-bold tabular-nums text-[#025dc7]">
-                            {m.count}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </section>
-
-          {/* Alumnos sin señales de vida: justo debajo de los números de alumnos. */}
-          <AtRisk rows={stats.at_risk} />
-
-          {/* ── Avance del curso ─────────────────────────────────── */}
-          <section className="space-y-3">
-            <h2 className="text-[15px] font-bold text-gray-900">Avance de la formación</h2>
-            {!stats.courses || stats.courses.length === 0 ? (
-              <div className={CARD}>
-                <Empty>Todavía no hay cursos con alumnos dentro.</Empty>
-              </div>
-            ) : (
-              stats.courses
-                .filter((c) => c.students_started > 0 || c.modules.length > 0)
-                .map((course) => (
-                  <div key={course.course_uuid} className={CARD}>
-                    <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
-                      <h3 className="text-[14px] font-bold text-gray-900">{course.name}</h3>
-                      <span className="text-[12px] font-semibold text-[#9CA3AF] tabular-nums">
-                        {course.students_started} alumnos dentro
-                      </span>
-                    </div>
-
-                    {course.modules.length === 0 ? (
-                      <Empty>Este curso no tiene módulos.</Empty>
-                    ) : (
-                      <div className="space-y-2.5">
-                        {course.modules.map((m) => (
-                          <div key={m.name}>
-                            <div className="flex items-center justify-between gap-2 mb-1">
-                              <span className="text-[13px] font-semibold text-gray-800 truncate">
-                                {m.name}
-                              </span>
-                              <span className="text-[12.5px] tabular-nums shrink-0 text-gray-500">
-                                {m.students_completed} de {course.students_started}{' '}
-                                <span className="font-bold text-[#025dc7]">({m.pct}%)</span>
-                              </span>
-                            </div>
-                            <div className="h-1.5 rounded-full bg-[#F0F5FF] overflow-hidden">
-                              <div
-                                className="h-full bg-[#4da3ff] rounded-full"
-                                style={{ width: `${Math.min(100, m.pct)}%` }}
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {course.biggest_drop && (
-                      <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-amber-50 border border-amber-200 px-3.5 py-3">
-                        <TrendingDown size={16} className="text-amber-600 shrink-0 mt-0.5" />
-                        <p className="text-[12.5px] text-amber-800 leading-relaxed">
-                          Donde más gente se cae: después de{' '}
-                          <strong>{course.biggest_drop.after}</strong> se pierden{' '}
-                          <strong>{course.biggest_drop.lost}</strong> alumnos antes de{' '}
-                          <strong>{course.biggest_drop.activity}</strong>.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ))
-            )}
-            <p className="text-[11px] text-[#9CA3AF]">
-              &quot;Completó el módulo&quot; = terminó todas sus clases.
-            </p>
-          </section>
-
-          {/* ── Cómo va la cohorte ───────────────────────────────── */}
-          <Cohorte stats={stats} />
+          {/* Lo de los alumnos (quién está activo, quién se descuelga, por
+              dónde va cada uno) vive en Alumnos → Progreso desde el 04/10:
+              aquí solo los números del negocio. */}
+          <a
+            href="/dash/estadisticas?tab=progreso"
+            className={`${CARD} flex items-center justify-between gap-3 hover:bg-[#F9FAFB] transition-colors`}
+          >
+            <span className="text-[13.5px] text-gray-700">
+              Por dónde va cada alumno y quién lleva días sin entrar
+            </span>
+            <span className="text-[13px] font-medium text-[#025dc7] shrink-0">Alumnos → Progreso</span>
+          </a>
 
           {/* ── Datos que escribes tú ────────────────────────────── */}
           <ManualBlocks stats={stats} onSaved={load} />
@@ -647,12 +541,10 @@ export default function EstadisticasPage() {
   )
 }
 
-/* ── Alumnos que necesitan un empujón ────────────────────────────── */
-
 /**
  * La escuela de un vistazo: lo que ha entrado (leads, matrículas), lo que se
  * ha cobrado y cuántos alumnos siguen activos. Cada cifra con su enlace a
- * donde se trabaja.
+ * donde se trabaja (la de alumnos, a Alumnos → Progreso).
  */
 function Resumen({ stats, contactos }: { stats: SchoolStats; contactos: Contacto[] | null }) {
   const ahora = Date.now()
@@ -678,7 +570,7 @@ function Resumen({ stats, contactos }: { stats: SchoolStats; contactos: Contacto
       </>
     )
     return href ? (
-      <a href={href} className={`${CARD} block hover:border-[#4da3ff] transition-colors`}>
+      <a href={href} className={`${CARD} block hover:bg-[#F9FAFB] transition-colors`}>
         {cuerpo}
       </a>
     ) : (
@@ -711,239 +603,24 @@ function Resumen({ stats, contactos }: { stats: SchoolStats; contactos: Contacto
           label="Alumnos activos · 7 días"
           valor={alumnos ? String(alumnos.active_7d) : '—'}
           nota={alumnos ? `de ${alumnos.total} alumnos` : ''}
+          href="/dash/estadisticas?tab=progreso"
         />
       </div>
       {porAtender > 0 ? (
         <a
           href="/dash/estadisticas?tab=contactos&vista=matriculas"
-          className="flex items-center justify-between gap-3 rounded-2xl border border-[#4da3ff]/40 bg-[#EAF3FF] px-4 py-3 hover:bg-[#dfeeff] transition-colors"
+          className="flex items-center justify-between gap-3 rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 hover:bg-[#F9FAFB] transition-colors"
         >
-          <span className="text-[13.5px] text-[#0a1656]">
+          <span className="text-[13.5px] text-gray-800">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#DC2626] mr-2 align-middle" />
             <strong>{porAtender}</strong> {porAtender === 1 ? 'matrícula espera' : 'matrículas esperan'} que las llamen
           </span>
-          <span className="text-[13px] font-bold text-[#025dc7]">Abrir en Contactos →</span>
+          <span className="text-[13px] font-medium text-[#025dc7]">Abrir en Contactos →</span>
         </a>
       ) : null}
     </section>
   )
 }
-
-function AtRisk({ rows }: { rows: SchoolStats['at_risk'] }) {
-  if (!rows) return null
-  return (
-    <section className="space-y-3">
-      <h2 className="text-[15px] font-bold text-gray-900 flex items-center gap-2">
-        <AlertTriangle size={16} className="text-amber-500" /> A quién escribir
-      </h2>
-      <div className={CARD}>
-        {rows.length === 0 ? (
-          <div className="flex items-center gap-2.5 py-2">
-            <Check size={18} className="text-emerald-500 shrink-0" />
-            <p className="text-[13.5px] text-gray-700">
-              Nadie descolgado ahora mismo. Todos han entrado esta semana.
-            </p>
-          </div>
-        ) : (
-          <>
-            <p className="text-[12.5px] text-[#9CA3AF] mb-3">
-              {rows.length} {rows.length === 1 ? 'alumno' : 'alumnos'} sin señales de vida. Los que
-              no han empezado van primero: son los que se piden el reembolso.
-            </p>
-            <div className="space-y-1.5">
-              {rows.map((r) => (
-                <div
-                  key={r.user_id}
-                  className="rounded-xl border border-[#E7EEF9] px-3.5 py-2.5 flex items-center gap-3"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13.5px] font-semibold text-gray-900 truncate">{r.name}</p>
-                    <p className="text-[12px] text-gray-500 truncate">
-                      <span
-                        className={
-                          r.activities_done === 0 ? 'text-amber-700 font-semibold' : ''
-                        }
-                      >
-                        {r.reason}
-                      </span>
-                      {r.days_since_join !== null && (
-                        <span className="text-[#9CA3AF]"> · alumno desde hace {r.days_since_join} días</span>
-                      )}
-                    </p>
-                  </div>
-                  <a
-                    href={`mailto:${r.email}`}
-                    className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7] text-[12px] font-bold transition-colors"
-                  >
-                    <Mail size={13} /> Escribir
-                  </a>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-    </section>
-  )
-}
-
-/* ── Activación, retención, soporte y devoluciones ───────────────── */
-
-function Cohorte({ stats }: { stats: SchoolStats }) {
-  const { activation, retention, support, refunds } = stats
-  return (
-    <section className="space-y-3">
-      <h2 className="text-[15px] font-bold text-gray-900">Cómo va la cohorte</h2>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className={CARD}>
-          <p className={LABEL}>Arrancan en {activation?.window_days ?? 7} días</p>
-          <p className={BIG}>{activation ? `${activation.pct}%` : '—'}</p>
-          <p className="text-[11.5px] text-[#9CA3AF] mt-1">
-            {activation
-              ? `${activation.activated} de ${activation.eligible} hicieron algo su primera semana`
-              : 'Sin datos'}
-          </p>
-        </div>
-
-        <div className={CARD}>
-          <p className={LABEL}>Respuesta a mensajes</p>
-          <p className={BIG}>
-            {support?.median_hours === null || !support ? '—' : `${support.median_hours} h`}
-          </p>
-          <p className="text-[11.5px] text-[#9CA3AF] mt-1">
-            {support
-              ? `${support.under_24h_pct}% en menos de 24 h · ${support.pending} sin contestar`
-              : 'Sin datos'}
-          </p>
-        </div>
-
-        <div className={CARD}>
-          <p className={LABEL}>Devoluciones</p>
-          <p className={BIG}>{refunds?.available ? refunds.refunds : '—'}</p>
-          <p className="text-[11.5px] text-[#9CA3AF] mt-1">
-            {refunds?.available
-              ? `${euros(refunds.refunded_cents)} devueltos · ${refunds.disputes} disputas`
-              : 'Stripe no ha contestado'}
-          </p>
-        </div>
-      </div>
-
-      {retention && retention.cohorts.length > 0 && (
-        <div className={CARD}>
-          <h3 className="text-[14px] font-bold text-gray-900">Quién sigue entrando</h3>
-          <p className="text-[12.5px] text-[#9CA3AF] mt-0.5 mb-3">
-            Cada fila es la gente que se dio de alta ese mes. Las semanas cuentan desde SU alta, no
-            del calendario, así que se pueden comparar entre sí.
-          </p>
-
-          {/* Sin historial no se sabe si volvieron: mejor decirlo que pintar
-              una rejilla de ceros que parece que nadie ha vuelto nunca. */}
-          {retention.weeks.every((w) => w === null) ? (
-            <div className="rounded-xl bg-[#F0F5FF] px-3.5 py-3">
-              <p className="text-[12.5px] text-[#0a1656] leading-relaxed">
-                Todavía no hay historial de visitas, así que aún no se puede saber quién repite.
-                Empieza a contar desde hoy: dentro de una semana verás la primera columna, y el
-                cuadro se irá llenando solo.
-              </p>
-              <div className="mt-2.5 flex flex-wrap gap-1.5">
-                {retention.cohorts.map((c) => (
-                  <span
-                    key={c.key}
-                    className="text-[12px] font-semibold bg-white border border-[#DDE6F5] rounded-full px-2.5 py-1 capitalize"
-                  >
-                    {c.label}: {c.size} {c.size === 1 ? 'alta' : 'altas'}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ) : (
-          <>
-          {/* Móvil: una tarjeta por cohorte, con el mes y cuánta gente
-              delante. En tabla, esa columna se quedaba fuera de la pantalla. */}
-          <div className="sm:hidden space-y-2">
-            {retention.cohorts.map((c) => (
-              <div key={c.key} className="rounded-xl border border-[#E7EEF9] px-3.5 py-3">
-                <p className="text-[13.5px] font-bold text-gray-900 capitalize">
-                  {c.label}{' '}
-                  <span className="text-[12px] font-semibold text-[#9CA3AF]">
-                    · {c.size} {c.size === 1 ? 'alta' : 'altas'}
-                  </span>
-                </p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {c.weeks.map((w, i) => (
-                    <span
-                      key={i}
-                      className="text-[11.5px] font-semibold rounded-md px-2 py-1 tabular-nums"
-                      style={{
-                        backgroundColor:
-                          w === null ? '#F5F7FB' : `rgba(77,163,255,${Math.max(0.08, w / 100) * 0.35})`,
-                        color: w === null ? '#C6D2E6' : w >= 50 ? '#025dc7' : '#8a6a2a',
-                      }}
-                    >
-                      S{i + 1} {w === null ? '—' : `${w}%`}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="hidden sm:block overflow-x-auto">
-            <table className="w-full text-[13px] min-w-[420px]">
-              <thead>
-                <tr className="text-left text-[#9CA3AF]">
-                  <th className="font-semibold py-2 pr-3">Alta</th>
-                  {retention.weeks.map((_, i) => (
-                    <th key={i} className="font-semibold py-2 px-1.5 text-center">
-                      S{i + 1}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#EEF3FB]">
-                {retention.cohorts.map((c) => (
-                  <tr key={c.key}>
-                    <td className="py-2 pr-3 font-semibold text-gray-900 capitalize whitespace-nowrap">
-                      {c.label}{' '}
-                      <span className="text-[11px] text-[#9CA3AF] font-normal">({c.size})</span>
-                    </td>
-                    {c.weeks.map((w, i) => (
-                      <td key={i} className="py-2 px-1.5 text-center">
-                        {w === null ? (
-                          <span className="text-[#DDE6F5]">·</span>
-                        ) : (
-                          <span
-                            className="inline-block min-w-[38px] rounded-md py-0.5 text-[12px] font-bold tabular-nums"
-                            style={{
-                              backgroundColor: `rgba(77,163,255,${Math.max(0.08, w / 100) * 0.35})`,
-                              color: w >= 50 ? '#025dc7' : '#8a6a2a',
-                            }}
-                          >
-                            {w}%
-                          </span>
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          </>
-          )}
-          {retention.tracking_since && !retention.weeks.every((w) => w === null) && (
-            <p className="mt-3 text-[11.5px] text-[#9CA3AF]">
-              Con datos desde el {retention.tracking_since}: antes de esa fecha no se guardaban las
-              visitas, así que las semanas anteriores salen vacías.
-            </p>
-          )}
-        </div>
-      )}
-    </section>
-  )
-}
-
-/* ── Gasto del mes + asistencia a los directos ───────────────────── */
 
 function ManualBlocks({ stats, onSaved }: { stats: SchoolStats; onSaved: () => void }) {
   const org = useOrg() as any
