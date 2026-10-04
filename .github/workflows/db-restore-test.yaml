@@ -131,6 +131,45 @@ jobs:
             fi
           done
 
+      - name: Cómo van los alumnos (solo números)
+        # Sin nombres ni correos: este repositorio es PÚBLICO y el registro de
+        # Actions lo ve cualquiera. Sirve para contestar "¿alguien ha empezado?"
+        # con los datos reales sin entrar en producción (04/10/2026).
+        if: success()
+        # Un fallo aquí no pone en rojo la prueba de la copia, que es lo suyo.
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          q() { "$PSQL" -P pager=off -c "$1"; }
+
+          echo "== Goteo: fecha de apertura de cada módulo =="
+          q "SELECT ch.name AS modulo, f.value AS abre
+               FROM organizationconfig oc,
+                    jsonb_each_text(COALESCE(oc.config::jsonb->'drip_content'->'fechas','{}'::jsonb)) f
+               LEFT JOIN chapter ch ON ch.chapter_uuid = f.key
+              ORDER BY f.value;"
+          q "SELECT oc.config::jsonb->'drip_content'->>'enabled' AS goteo_activado,
+                    oc.config::jsonb->'drip_content'->'chapters' AS desfase_por_dias
+               FROM organizationconfig oc;"
+
+          echo "== Clases completadas por curso (todas las cuentas) =="
+          q "SELECT c.course_uuid, c.name, count(*) AS clases_hechas, count(DISTINCT ts.user_id) AS personas
+               FROM trailstep ts JOIN course c ON c.id = ts.course_id
+              WHERE ts.complete GROUP BY 1,2 ORDER BY 3 DESC;"
+
+          echo "== Alumnos (rol 4), uno por fila y sin datos personales =="
+          q "SELECT row_number() OVER (ORDER BY uo.creation_date) AS alumno,
+                    left(uo.creation_date, 10) AS alta,
+                    (SELECT count(*) FROM trailstep ts WHERE ts.user_id = uo.user_id AND ts.complete) AS clases_hechas,
+                    (SELECT left(max(ts.creation_date), 10) FROM trailstep ts WHERE ts.user_id = uo.user_id) AS ultima_clase,
+                    (SELECT count(*) FROM exercise_attempt ea WHERE ea.user_id = uo.user_id) AS ejercicios,
+                    (SELECT count(*) FROM lesson_completion lc WHERE lc.user_id = uo.user_id) AS lecciones,
+                    (SELECT count(*) FROM student_visit_day v WHERE v.user_id = uo.user_id) AS dias_que_entro,
+                    (SELECT sp.last_visit_date FROM student_progress sp WHERE sp.user_id = uo.user_id) AS ultima_visita
+               FROM userorganization uo
+              WHERE uo.role_id = 4
+              ORDER BY uo.creation_date;"
+
       - name: Resumen
         if: always()
         run: |
