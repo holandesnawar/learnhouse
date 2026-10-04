@@ -327,6 +327,72 @@ async def api_recordatorio_enviar(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+# ── Recordatorio automático «1 semana sin entrar» (Avisos). Solo administradores.
+
+
+class AutoIn(BaseModel):
+    activo: bool
+
+
+class AutoVistaIn(BaseModel):
+    asunto: str = ""
+    texto: str = ""
+    a_mi: bool = False
+
+
+@router.get("/org/{org_id}/recordatorio-auto", summary="Estado del recordatorio automático y a quién le tocaría hoy.")
+async def api_recordatorio_auto(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_progreso(request, org_id, current_user, db_session)
+    from src.services.panel.testers import grupos_de_testers, ids_testers
+
+    estado = await recordatorio.leer_auto(org_id, db_session)
+    candidatos = await recordatorio.candidatos_auto(org_id, db_session)
+    grupos = await grupos_de_testers(org_id, db_session)
+    return {
+        **estado,
+        "le_tocaria_hoy": [
+            {"user_id": a["user_id"], "nombre": a["nombre"], "email": a["email"], "ultima_entrada": a["ultima_entrada"], "dias": a["estado"].get("dias")}
+            for a in candidatos
+        ],
+        "testers": {"grupo": grupos[0].name if grupos else "", "cuentas": len(await ids_testers(org_id, db_session))},
+    }
+
+
+@router.put("/org/{org_id}/recordatorio-auto", summary="Activar o desactivar el recordatorio automático.")
+async def api_recordatorio_auto_guardar(
+    request: Request,
+    org_id: int,
+    datos: AutoIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_progreso(request, org_id, current_user, db_session)
+    try:
+        return await recordatorio.guardar_auto(org_id, datos.activo, _nombre(current_user), db_session)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/org/{org_id}/recordatorio-auto/vista", summary="El correo automático con un alumno de ejemplo (o mandármelo a mí).")
+async def api_recordatorio_auto_vista(
+    request: Request,
+    org_id: int,
+    datos: AutoVistaIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_progreso(request, org_id, current_user, db_session)
+    a_mi = (current_user.email or "") if datos.a_mi else ""
+    if datos.a_mi and not a_mi:
+        raise HTTPException(status_code=400, detail="Tu cuenta no tiene correo")
+    return await recordatorio.vista_auto(org_id, datos.asunto, datos.texto, db_session, enviar_a=a_mi)
+
+
 # ── Anuncios (solo administradores: es dinero) ─────────────────────────────
 
 

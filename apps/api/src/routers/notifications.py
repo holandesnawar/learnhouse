@@ -112,5 +112,17 @@ async def api_drip_diario(
     from src.services.notifications.drip import avisar_modulos_abiertos_hoy
 
     resultado = await avisar_modulos_abiertos_hoy(org_id, db_session)
+
+    # El recordatorio «1 semana sin entrar» va en la misma tarea diaria. Solo
+    # manda si está ACTIVADO en Avisos (apagado de serie); si no, dice a
+    # cuántos les habría tocado. Un fallo aquí no tumba el aviso de módulos.
+    try:
+        from src.services.panel.recordatorio import recordatorio_automatico
+
+        resultado["recordatorio"] = await recordatorio_automatico(org_id, db_session)
+    except Exception as e:  # noqa: BLE001
+        logger.exception("Recordatorio automático falló")
+        resultado["recordatorio"] = {"error": str(e)[:200]}
+
     logger.info("Goteo diario: %s", resultado)
     return resultado

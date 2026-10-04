@@ -155,7 +155,10 @@ def estado_de(ultima_entrada: str, hechas: int, hoy: date) -> dict:
 async def listar_alumnos(org_id: int, db_session: AsyncSession) -> dict:
     from src.services.contactos.metricas import ids_excluidos
 
-    fuera = await ids_excluidos(db_session)
+    from src.services.panel.testers import ids_testers
+
+    # Fuera de los números (pruebas) y las cuentas del grupo Testers.
+    fuera = await ids_excluidos(db_session) | await ids_testers(org_id, db_session)
     filas = [
         (m, u)
         for m, u in (
