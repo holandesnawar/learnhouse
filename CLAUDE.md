@@ -1768,6 +1768,12 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
     calendario** (para cerrar en la llamada) y en **la ficha** de quien aún no
     es alumno. Sin nombre, usa lo de antes de la @ (el backend pide uno).
   - La ficha de la persona enseña sus llamadas con el resultado.
+  - **Icono de nota en cada cita** (04/10, "cuando dejo una nota quiero verlo
+    en Llamadas"): «nota / N notas» en ámbar bajo el estado, en la semana y en
+    la lista del móvil (`IconoNota` en `LlamadasPanel.tsx`). Sale del
+    `seguimiento-resumen` (notas del historial por correo) o de la nota del
+    «¿Qué pasó?» de esa cita; al pasar el ratón, la última. Se recarga al
+    guardar una cita o cerrar una ficha.
   - **Pestaña Google Calendar**: el `<iframe>` del calendario del usuario. Se
     guarda SOLO el id y la zona (org_config `agenda_google`) y la dirección se
     rehace en `resultado_llamada.py` (nunca se pinta HTML pegado). De serie,

@@ -35,6 +35,7 @@ import {
   getAgendaGoogle,
   getLlamadas,
   getRecordatorios,
+  getResumenSeguimiento,
   guardarAgendaGoogle,
   guardarResultado,
   hoyISO,
@@ -49,7 +50,7 @@ import {
   type VolverALlamar,
 } from '@services/stats/contactos'
 import { marcarSolicitud } from '@services/stats/school'
-import { Check, ChevronDown, ChevronLeft, ChevronRight, Loader2, RotateCcw, Trash2, Video, X } from 'lucide-react'
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Loader2, NotebookPen, RotateCcw, Trash2, Video, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { confirmar } from '@lib/nawar/confirmar'
 import { BOTON, BOTON_PELIGRO, BOTON_PRINCIPAL, ENLACE, Estado, META, Meta, Seccion, TARJETA, filtro, type Tono } from '../Panel/ui'
@@ -113,6 +114,7 @@ export default function LlamadasPanel() {
   const [cita, setCita] = useState<Cita | null>(null)
   const [ficha, setFicha] = useState<string | null>(null)
   const [recordatorios, setRecordatorios] = useState<Record<string, VolverALlamar>>({})
+  const [notas, setNotas] = useState<NotasPorEmail>({})
   const llamarDe = (email: string) => recordatorios[(email || '').toLowerCase()]
   const cambioFecha = (email: string, v: VolverALlamar | null) =>
     setRecordatorios((prev) => {
@@ -135,6 +137,24 @@ export default function LlamadasPanel() {
     if (aviso === 'Borrado') toast.success(aviso)
     else toast(aviso, { duration: 7000 })
   }
+
+  // Quién tiene notas, para el icono de las citas. Se vuelve a pedir al
+  // cerrar una cita o una ficha, que es donde se apuntan.
+  const cargarNotas = useCallback(async () => {
+    if (!org?.id || !accessToken) return
+    const r = await getResumenSeguimiento(org.id, accessToken)
+    const m: NotasPorEmail = {}
+    for (const [email, n] of Object.entries(r.notas_por_email || {})) m[email.toLowerCase()] = { n, ultima: '' }
+    // ultimas_notas viene de la más nueva a la más vieja: la primera de cada correo es su última.
+    for (const nota of r.ultimas_notas || []) {
+      const k = (nota.email || '').toLowerCase()
+      if (m[k] && !m[k].ultima) m[k].ultima = nota.texto
+    }
+    setNotas(m)
+  }, [org?.id, accessToken])
+  useEffect(() => {
+    cargarNotas()
+  }, [cargarNotas])
 
   const cargar = useCallback(async () => {
     if (!org?.id || !accessToken) return
@@ -209,6 +229,7 @@ export default function LlamadasPanel() {
         cargando={cargandoAgenda}
         recargar={() => cargarAgenda(true)}
         abrirCita={setCita}
+        notas={notas}
         devolver={async (c) => {
           const r = await devolverCita(org?.id, c.id, accessToken)
           if (!r.ok) {
@@ -305,6 +326,7 @@ export default function LlamadasPanel() {
           onGuardado={(c) => {
             setAgenda((a) => (a ? { ...a, citas: a.citas.map((x) => (x.id === c.id ? c : x)) } : a))
             setCita(null)
+            cargarNotas()
           }}
           onQuitada={(c) => {
             setAgenda((a) =>
@@ -314,7 +336,14 @@ export default function LlamadasPanel() {
           }}
         />
       ) : null}
-      {ficha ? <FichaCliente email={ficha} onClose={() => setFicha(null)} onCambio={() => cargarAgenda(true)} /> : null}
+      {ficha ? <FichaCliente
+          email={ficha}
+          onClose={() => {
+            setFicha(null)
+            cargarNotas()
+          }}
+          onCambio={() => cargarAgenda(true)}
+        /> : null}
     </div>
   )
 }
@@ -329,12 +358,14 @@ function AgendaVista({
   recargar,
   abrirCita,
   devolver,
+  notas,
 }: {
   agenda: Agenda | null
   cargando: boolean
   recargar: () => void
   abrirCita: (c: Cita) => void
   devolver: (c: Cita) => void
+  notas: NotasPorEmail
 }) {
   const { isAdmin } = useAdminStatus()
   const [vista, setVista] = useState<Vista>('semana')
@@ -442,7 +473,7 @@ function AgendaVista({
                   </div>
                   <div className="p-1.5 space-y-1.5 flex-1">
                     {delDia.map((c) => (
-                      <CitaBloque key={c.id || c.inicio + c.email} c={c} onClick={() => abrirCita(c)} />
+                      <CitaBloque key={c.id || c.inicio + c.email} c={c} onClick={() => abrirCita(c)} notas={notas} />
                     ))}
                   </div>
                 </div>
@@ -450,7 +481,7 @@ function AgendaVista({
             })}
           </div>
           <div className={vista === 'semana' ? 'lg:hidden' : ''}>
-            <CitasEnLista citas={citas} abrir={abrirCita} />
+            <CitasEnLista citas={citas} abrir={abrirCita} notas={notas} />
           </div>
           {isAdmin && quitadas.length ? (
             <div>
@@ -488,7 +519,29 @@ function AgendaVista({
   )
 }
 
-function CitaBloque({ c, onClick }: { c: Cita; onClick: () => void }) {
+/** Notas de cada persona (por correo en minúsculas): cuántas y la última. */
+type NotasPorEmail = Record<string, { n: number; ultima: string }>
+
+/**
+ * El icono de "hay notas" en una cita (04/10, pedido del usuario: "cuando
+ * dejo una nota quiero ver un icono en Llamadas"). Cuenta las notas del
+ * historial de la persona y, si no las hubiera cargado aún, la nota del
+ * resultado de esa misma cita. Al pasar el ratón, la última.
+ */
+function IconoNota({ c, notas, className = '' }: { c: Cita; notas: NotasPorEmail; className?: string }) {
+  const info = notas[(c.email || '').toLowerCase()]
+  const n = Math.max(info?.n || 0, c.resultado?.nota ? 1 : 0)
+  if (!n) return null
+  const ultima = info?.ultima || c.resultado?.nota || ''
+  return (
+    <span title={ultima ? `Última nota: ${ultima}` : undefined} className={`inline-flex items-center gap-1 text-[11.5px] font-medium text-[#B45309] ${className}`}>
+      <NotebookPen size={12} strokeWidth={2.2} />
+      {n === 1 ? 'nota' : `${n} notas`}
+    </span>
+  )
+}
+
+function CitaBloque({ c, onClick, notas }: { c: Cita; onClick: () => void; notas: NotasPorEmail }) {
   const e = estadoDe(c)
   const cancelada = c.estado === 'cancelada'
   return (
@@ -503,12 +556,13 @@ function CitaBloque({ c, onClick }: { c: Cita; onClick: () => void }) {
       <Estado tono={e.tono} className="mt-0.5 !text-[11.5px]">
         {e.texto}
       </Estado>
+      <IconoNota c={c} notas={notas} className="mt-0.5 flex" />
     </button>
   )
 }
 
 /** Lista por días: lo que viene (desde hoy) y, plegado, lo de antes. */
-function CitasEnLista({ citas, abrir }: { citas: Cita[]; abrir: (c: Cita) => void }) {
+function CitasEnLista({ citas, abrir, notas }: { citas: Cita[]; abrir: (c: Cita) => void; notas: NotasPorEmail }) {
   const [verPasadas, setVerPasadas] = useState(false)
   const inicioHoy = new Date()
   inicioHoy.setHours(0, 0, 0, 0)
@@ -536,6 +590,7 @@ function CitasEnLista({ citas, abrir }: { citas: Cita[]; abrir: (c: Cita) => voi
                 <span className="flex-1 min-w-0">
                   <span className={`block text-[14px] font-medium truncate ${cancelada ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{c.nombre || c.email}</span>
                   <span className="block text-[12.5px] text-gray-500 truncate">{c.email}</span>
+                  <IconoNota c={c} notas={notas} className="mt-0.5" />
                 </span>
                 <Estado tono={e.tono}>{e.texto}</Estado>
               </button>
