@@ -2003,6 +2003,20 @@ sin salir de la pantalla. Lo que sí se apunta, clase a clase, es el recorrido
   filtro; al abrir una fila, avance por módulo, "le falta primero" y la ficha.
   Las horas se pintan en hora de Países Bajos. Lógica pura con test
   (`test_progreso_alumnos.py`).
+- **Recordatorio a un alumno** (04/10, desde Progreso → abrir alumno →
+  "Mandar recordatorio"; `Panel/RecordatorioModal.tsx`,
+  `services/panel/recordatorio.py`, `send_recordatorio_alumno_email`). **Solo
+  a mano, nunca sale solo.** Dos textos editables, «unos días» (`tres_dias`) y
+  «esta semana» (`semana`); se propone uno según los días sin entrar
+  (`tipo_para`: 7 o más, o nunca, = semana). Huecos `{nombre}`, `{dias}`,
+  `{clase}` rellenados a mano (`rellenar`, sin `.format()`). Tres botones:
+  seguir donde lo dejó (`clase_para_seguir`: la abierta a medias o la
+  siguiente pendiente), compartir una victoria (`/communities`) y hacer una
+  consulta (`/consultas`); sus textos también se editan. Plantillas en
+  org_config `recordatorio_alumno`. Cada envío queda en la tabla
+  `student_reminder` y la lista dice "Recordado hace X"; "Mandármelo a mí" es
+  una prueba y no se apunta. Ruta `/panel/org/{id}/recordatorio/...`, solo
+  administradores. Tests: `test_recordatorio_alumno.py`.
 - **Estadísticas = solo números del negocio** (04/10, "quitamos tema alumnos
   de Estadísticas"): fuera "A quién escribir", "Avance de la formación" y
   "Cómo va la cohorte" (activación, respuesta a mensajes, retención). Queda:

@@ -236,7 +236,33 @@ export interface AlumnoProgreso {
   entradas_7d: number
   racha: number
   estado: { id: 'activo' | 'enfriando' | 'descolgado' | 'sin-empezar' | 'nunca'; texto: string; dias: number | null }
+  /** La clase a la que lleva "Seguir donde lo dejé" en el recordatorio. */
+  seguir_uuid: string
+  ultimo_recordatorio: { sent_at: string; tipo: string; por: string } | null
 }
+
+export type TipoRecordatorio = 'tres_dias' | 'semana'
+export interface PlantillasRecordatorio {
+  tres_dias: { asunto: string; texto: string }
+  semana: { asunto: string; texto: string }
+  botones: { seguir: string; victoria: string; consulta: string }
+}
+
+export const getPlantillasRecordatorio = (orgId: number, t: string) =>
+  pedir<{ plantillas: PlantillasRecordatorio; de_fabrica: PlantillasRecordatorio }>(`panel/org/${orgId}/recordatorio/plantillas`, 'GET', null, t)
+
+export const guardarPlantillasRecordatorio = (orgId: number, datos: PlantillasRecordatorio, t: string) =>
+  pedir<{ plantillas: PlantillasRecordatorio; de_fabrica: PlantillasRecordatorio }>(`panel/org/${orgId}/recordatorio/plantillas`, 'PUT', datos, t)
+
+export const vistaRecordatorio = (orgId: number, userId: number, datos: { tipo: TipoRecordatorio; asunto: string; texto: string }, t: string) =>
+  pedir<{ para: string; asunto: string; html: string }>(`panel/org/${orgId}/recordatorio/${userId}/vista`, 'POST', datos, t)
+
+export const enviarRecordatorio = (
+  orgId: number,
+  userId: number,
+  datos: { tipo: TipoRecordatorio; asunto: string; texto: string; a_mi?: boolean },
+  t: string
+) => pedir<{ ok: boolean; para: string; asunto: string; prueba: boolean }>(`panel/org/${orgId}/recordatorio/${userId}`, 'POST', datos, t)
 
 export const getAlumnosProgreso = (orgId: number, t: string) =>
   pedir<{ alumnos: AlumnoProgreso[]; total_clases: number }>(`panel/org/${orgId}/alumnos`, 'GET', null, t)

@@ -62,6 +62,8 @@ def resumir_avance(clases: list[dict], hechas: dict[int, str]) -> dict:
     for c in clases:
         if c["id"] not in suyas:
             siguiente = {"modulo": c["modulo"], "clase": c["clase"]}
+            if c.get("uuid"):
+                siguiente["uuid"] = c["uuid"]
             break
 
     total = len(clases)
