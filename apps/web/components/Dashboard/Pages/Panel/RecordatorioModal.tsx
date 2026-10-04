@@ -63,6 +63,7 @@ export default function RecordatorioModal({
   const [asunto, setAsunto] = useState('')
   const [texto, setTexto] = useState('')
   const [botones, setBotones] = useState<PlantillasRecordatorio['botones'] | null>(null)
+  const [enlaces, setEnlaces] = useState<PlantillasRecordatorio['enlaces'] | null>(null)
   const [verBotones, setVerBotones] = useState(false)
   const [vista, setVista] = useState<{ asunto: string; html: string } | null>(null)
   const [ocupado, setOcupado] = useState<'' | 'vista' | 'guardar' | 'prueba' | 'enviar'>('')
@@ -75,6 +76,7 @@ export default function RecordatorioModal({
       setPlantillas(r.datos.plantillas)
       setFabrica(r.datos.de_fabrica)
       setBotones(r.datos.plantillas.botones)
+      setEnlaces(r.datos.plantillas.enlaces)
     })
   }, [org?.id, token])
 
@@ -94,13 +96,14 @@ export default function RecordatorioModal({
   }, [onClose])
 
   const nombre = alumno.nombre.split(' ')[0] || alumno.nombre
-  const cambiado = !!plantillas && (asunto !== plantillas[tipo].asunto || texto !== plantillas[tipo].texto || JSON.stringify(botones) !== JSON.stringify(plantillas.botones))
+  const cambiado = !!plantillas && (asunto !== plantillas[tipo].asunto || texto !== plantillas[tipo].texto || JSON.stringify(botones) !== JSON.stringify(plantillas.botones) || JSON.stringify(enlaces) !== JSON.stringify(plantillas.enlaces))
 
   // Los textos de los botones se guardan en la plantilla, así que para que la
   // vista previa y el envío los usen hay que guardarlos antes.
   const guardarBotonesSiHace = async () => {
-    if (!plantillas || !botones || JSON.stringify(botones) === JSON.stringify(plantillas.botones)) return true
-    const r = await guardarPlantillasRecordatorio(org.id, { ...plantillas, botones }, token)
+    if (!plantillas || !botones || !enlaces) return true
+    if (JSON.stringify(botones) === JSON.stringify(plantillas.botones) && JSON.stringify(enlaces) === JSON.stringify(plantillas.enlaces)) return true
+    const r = await guardarPlantillasRecordatorio(org.id, { ...plantillas, botones, enlaces }, token)
     if (!r.ok || !r.datos) {
       setError(r.error || 'No se han podido guardar los botones')
       return false
@@ -121,10 +124,10 @@ export default function RecordatorioModal({
   }
 
   const guardar = async () => {
-    if (!plantillas || !botones) return
+    if (!plantillas || !botones || !enlaces) return
     setOcupado('guardar')
     setError('')
-    const r = await guardarPlantillasRecordatorio(org.id, { ...plantillas, botones, [tipo]: { asunto, texto } }, token)
+    const r = await guardarPlantillasRecordatorio(org.id, { ...plantillas, botones, enlaces, [tipo]: { asunto, texto } }, token)
     setOcupado('')
     if (!r.ok || !r.datos) return setError(r.error || 'No se ha podido guardar')
     setPlantillas(r.datos.plantillas)
@@ -136,6 +139,7 @@ export default function RecordatorioModal({
     setAsunto(fabrica[tipo].asunto)
     setTexto(fabrica[tipo].texto)
     setBotones(fabrica.botones)
+    setEnlaces(fabrica.enlaces)
     setVista(null)
   }
 
@@ -234,13 +238,25 @@ export default function RecordatorioModal({
                   {(
                     [
                       ['seguir', 'Lleva a la clase donde lo dejó'],
-                      ['victoria', 'Lleva a la comunidad'],
+                      ['victoria', 'Lleva al canal 🏆 Victorias de la comunidad'],
                       ['consulta', 'Lleva a Consultas'],
                     ] as const
                   ).map(([k, nota]) => (
                     <div key={k}>
                       <input value={botones[k]} onChange={(e) => setBotones({ ...botones, [k]: e.target.value })} className={`${CAMPO} h-9`} />
-                      <p className="text-[11.5px] text-[#9CA3AF] mt-0.5">{nota}</p>
+                      {k !== 'seguir' && enlaces ? (
+                        <input
+                          value={enlaces[k]}
+                          onChange={(e) => setEnlaces({ ...enlaces, [k]: e.target.value })}
+                          placeholder="/community/… o https://…"
+                          aria-label={`Enlace del botón ${botones[k]}`}
+                          className={`${CAMPO} h-8 mt-1 text-[12.5px] text-[#4B5563]`}
+                        />
+                      ) : null}
+                      <p className="text-[11.5px] text-[#9CA3AF] mt-0.5">
+                        {nota}
+                        {k !== 'seguir' ? '. Una ruta de la escuela (empieza por /) o una dirección entera.' : ''}
+                      </p>
                     </div>
                   ))}
                 </div>

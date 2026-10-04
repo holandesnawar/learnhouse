@@ -125,3 +125,20 @@ def test_el_correo_de_fabrica_no_ensenya_las_marcas():
         assert "[seguir]" not in h and "[victoria]" not in h and "[consulta]" not in h
         # El de seguir va antes que el de victoria, y este antes que el de consulta.
         assert h.index("Seguir donde lo dejé") < h.index("Compartir una victoria") < h.index("Hacer una consulta")
+
+
+# --- A dónde llevan los botones ---------------------------------------------
+
+from src.services.panel.recordatorio import url_enlace  # noqa: E402
+
+
+def test_victoria_va_al_canal_de_victorias_por_defecto():
+    assert DE_FABRICA["enlaces"]["victoria"] == "/community/community_bbe57cb8-5197-4195-bc1f-6615aed4dcab"
+
+
+def test_url_enlace():
+    base = "https://app.ejemplo.com"
+    assert url_enlace("/community/x", "/def", base) == "https://app.ejemplo.com/community/x"
+    assert url_enlace("https://otra.com/a", "/def", base) == "https://otra.com/a"
+    assert url_enlace("javascript:alert(1)", "/def", base) == "https://app.ejemplo.com/def"
+    assert url_enlace("", "/def", base + "/") == "https://app.ejemplo.com/def"

@@ -246,6 +246,8 @@ export interface PlantillasRecordatorio {
   tres_dias: { asunto: string; texto: string }
   semana: { asunto: string; texto: string }
   botones: { seguir: string; victoria: string; consulta: string }
+  /** A dónde llevan: una ruta de la escuela ("/community/…") o una dirección entera. */
+  enlaces: { victoria: string; consulta: string }
 }
 
 export const getPlantillasRecordatorio = (orgId: number, t: string) =>
