@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-09-24 (panel repasado: "quitar de los números",
+> Última actualización: 2026-10-04 (home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -2068,6 +2068,28 @@ sin salir de la pantalla. Lo que sí se apunta, clase a clase, es el recorrido
   esa madrugada, no lo de este momento. El 04/10 dijo: 7 alumnos, 224 clases
   completadas en la formación y **0 `lesson_completion` para todos**, lo que
   confirma el fallo de arriba.
+
+## La home de la web, repasada (04/10/2026)
+Todo en `nawar-web` (PR #121 y #122).
+- **Bloque de confianza del proceso de admisión, EN PRUEBAS** en
+  `/v4/pruebas` (copia de `/proceso-de-admision`, fuera de Google con
+  `Disallow: /v4/`): "Más de 2 años ayudando a hispanohablantes…", tres
+  opiniones con foto (si la foto no carga, se esconde) y "Sin compromiso".
+  ⚠️ Nada de "me ascendieron a los 4 meses": la formación acaba de empezar.
+  Si gusta, se pasa a `/proceso-de-admision`.
+- **El popup de la guía gratis sale solo en el blog**, no en la home: competía
+  con "Matricularme" y abarataba la primera impresión.
+- **"Tres pasos."** (antes "Dos clics. Listo."): inicia tu matrícula (nombre,
+  correo y WhatsApp), complétala (preguntas + hora) y **llamada de admisión
+  como filtro**. Lo premium selecciona, no presume de fácil. Si
+  `CTA_PRINCIPAL` cambia de destino, reescribir `ProcesoSection.astro`.
+- **Un solo botón: "Matricularme"** (fuera "Apúntate" y "Quiero empezar") y
+  **un solo nombre: Nawar es "la escuela"**. "Academia" no se usa ni para la
+  competencia ("cursos tradicionales"); "Formación A0-A1" solo como producto.
+- Fuera de la home: "a tu ritmo, sin horarios fijos" (es una cohorte de 16
+  semanas con clase semanal: la FAQ es ahora "¿Hay horarios fijos?"),
+  "Precios elevados" en los dolores (no competir por precio) y "una app o un
+  vídeo no puede darte feedback" (el curso es en gran parte vídeo).
 
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
