@@ -29,6 +29,7 @@ import { quitarPersona } from './quitarPersona'
 import EnlacePago from './EnlacePago'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import {
+  BookOpen,
   CalendarDays,
   CheckCircle2,
   CreditCard,
@@ -158,6 +159,49 @@ export default function FichaCliente({
                 <p className="text-[12.5px] text-[#9CA3AF]">Todavía no ha pagado nada.</p>
               )}
             </Bloque>
+  ) : null
+  // Por dónde va en la formación: clases hechas, la última y lo que le toca.
+  const av = ficha?.avance
+  const bloqueAvance = av ? (
+    <Bloque
+      icono={<BookOpen size={15} />}
+      titulo="Formación"
+      derecha={<span className="text-[12.5px] font-semibold tabular-nums text-gray-900">{av.hechas} de {av.total} clases · {av.pct} %</span>}
+    >
+      <div className="space-y-1 text-[12.5px]">
+        {av.ultima ? (
+          <p className="text-gray-800">
+            <span className="text-[#6B7280]">Lo último que hizo:</span> {av.ultima.modulo} · {av.ultima.clase}
+            {av.ultima.fecha ? <span className="text-[#9CA3AF]"> · {fechaCorta(av.ultima.fecha)}</span> : null}
+          </p>
+        ) : (
+          <p className="text-[#9CA3AF]">Todavía no ha terminado ninguna clase.</p>
+        )}
+        {av.siguiente && av.hechas ? (
+          <p className="text-gray-800">
+            <span className="text-[#6B7280]">Le falta primero:</span> {av.siguiente.modulo} · {av.siguiente.clase}
+          </p>
+        ) : null}
+      </div>
+      {av.modulos.length ? (
+        <ul className="mt-3 space-y-1.5">
+          {av.modulos.map((m) => (
+            <li key={m.nombre} className="flex items-center gap-2.5 text-[12px]">
+              <span className="w-[42%] shrink-0 truncate text-gray-700">{m.nombre}</span>
+              <span className="flex-1 h-1.5 rounded-full bg-[#F3F4F6] overflow-hidden">
+                <span
+                  className={`block h-full rounded-full ${m.total && m.hechas === m.total ? 'bg-[#15803D]' : 'bg-gray-800'}`}
+                  style={{ width: `${m.total ? Math.round((m.hechas * 100) / m.total) : 0}%` }}
+                />
+              </span>
+              <span className="w-12 shrink-0 text-right tabular-nums text-[#6B7280]">
+                {m.hechas}/{m.total}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </Bloque>
   ) : null
   const tel = numeroWhatsApp(ficha?.telefono)
 
@@ -340,6 +384,7 @@ export default function FichaCliente({
 
             {/* A un alumno, lo primero que interesa es lo que ha pagado. */}
             {esAlumno ? bloquePagos : null}
+            {esAlumno ? bloqueAvance : null}
 
             {/* Sus llamadas de Calendly y lo que pasó en cada una (se apunta en Llamadas). */}
             {ficha.llamadas?.length ? (

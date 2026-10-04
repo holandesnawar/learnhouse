@@ -115,12 +115,19 @@ export default function ClientesPanel() {
                     >
                       {a.texto}
                     </span>
-                    {c.tiene_cuenta ? (
-                      <span className="rounded-full px-2 py-0.5 font-semibold bg-[#F3F4F6] text-[#6B7280]">
-                        {c.lecciones} {c.lecciones === 1 ? 'lección hecha' : 'lecciones hechas'}
+                    {c.avance ? (
+                      <span className="rounded-full px-2 py-0.5 font-semibold bg-[#F3F4F6] text-[#6B7280] tabular-nums">
+                        {c.avance.hechas} de {c.avance.total} clases · {c.avance.pct} %
                       </span>
                     ) : null}
                   </div>
+                  {c.avance?.ultima ? (
+                    <p className="mt-1 text-[12px] text-[#6B7280] truncate">
+                      Va por {c.avance.ultima.modulo} · {c.avance.ultima.clase}
+                    </p>
+                  ) : c.avance ? (
+                    <p className="mt-1 text-[12px] text-[#9CA3AF] truncate">Todavía no ha terminado ninguna clase</p>
+                  ) : null}
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="text-[14px] font-bold tabular-nums text-[#1D0084]">{euros(c.total_cents)}</p>

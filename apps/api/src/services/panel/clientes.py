@@ -10,9 +10,10 @@ from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.enrollment import Enrollment
-from src.db.student_progress import LessonCompletion, StudentProgress
+from src.db.student_progress import StudentProgress
 from src.db.users import User
 from src.services.contactos.metricas import emails_excluidos
+from src.services.panel.avance import avance_formacion
 
 
 def agrupar_pagos(filas: list[dict]) -> list[dict]:
@@ -58,7 +59,9 @@ async def listar_clientes(db_session: AsyncSession) -> dict:
     ]
     clientes = agrupar_pagos(filas)
 
-    # Si sigue entrando: última visita y lecciones hechas, por su cuenta.
+    # Si sigue entrando: última visita y por dónde va en la formación.
+    # El avance sale de las CLASES hechas (trail_step), no de
+    # lesson_completion: ver el porqué en services/panel/avance.py.
     correos = [c["email"] for c in clientes]
     usuarios = {}
     if correos:
@@ -68,21 +71,16 @@ async def listar_clientes(db_session: AsyncSession) -> dict:
             usuarios[u.email.strip().lower()] = u.id
     ids = list(usuarios.values())
     visitas: dict[int, str] = {}
-    hechas: dict[int, int] = {}
     if ids:
         for p in (await db_session.execute(select(StudentProgress).where(StudentProgress.user_id.in_(ids)))).scalars().all():  # type: ignore[attr-defined]
             visitas[p.user_id] = p.last_visit_date or ""
-        for uid, n in (
-            await db_session.execute(
-                select(LessonCompletion.user_id, func.count()).where(LessonCompletion.user_id.in_(ids)).group_by(LessonCompletion.user_id)  # type: ignore[attr-defined]
-            )
-        ).all():
-            hechas[uid] = int(n)
+    avances = await avance_formacion(db_session, ids)
     for c in clientes:
         uid = usuarios.get(c["email"])
         c["tiene_cuenta"] = uid is not None
         c["ultima_visita"] = visitas.get(uid, "") if uid else ""
-        c["lecciones"] = hechas.get(uid, 0) if uid else 0
+        a = avances.get(uid) if uid else None
+        c["avance"] = {k: v for k, v in a.items() if k != "modulos"} if a else None
 
     return {
         "clientes": clientes,
