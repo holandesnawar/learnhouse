@@ -1991,6 +1991,14 @@ sin salir de la pantalla. Lo que sí se apunta, clase a clase, es el recorrido
   `proximos`: las 3 próximas aperturas con fecha y nombre. Para saber qué
   módulo se abre mañana: Actions → «Drip» → la última ejecución, o lanzarla a
   mano (no repite correos: `drip_email_sent`). Módulo 3 abrió el 21/09.
+- **Ver los datos reales sin entrar en producción**: la prueba de restauración
+  (`db-restore-test.yaml`, Actions → Run workflow) imprime ahora las fechas del
+  goteo, las clases hechas por curso y una fila por alumno (alta, clases,
+  ejercicios, días que entró, última visita). **Solo números: el repo es
+  PÚBLICO**, nunca meter nombres ni correos en ese registro. Lee la copia de
+  esa madrugada, no lo de este momento. El 04/10 dijo: 7 alumnos, 224 clases
+  completadas en la formación y **0 `lesson_completion` para todos**, lo que
+  confirma el fallo de arriba.
 
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
