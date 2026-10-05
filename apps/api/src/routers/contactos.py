@@ -14,6 +14,7 @@ Dos puertas:
 import hmac
 import logging
 import os
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
@@ -53,6 +54,12 @@ from src.services.contactos.seguimiento import (
     todos_los_recordatorios,
 )
 from src.services.contactos.llamadas import listar_llamadas, marcar_llamada
+from src.services.contactos.templadas import (
+    actualizar_templada,
+    crear_templada,
+    listar_templadas,
+    quitar_templada,
+)
 from src.security.rbac.constants import CLOSER_ROLE_ID
 from src.services.orgs.acceso import exigir_acceso, rol_en_la_escuela
 from src.services.orgs.orgs import rbac_check
@@ -117,6 +124,72 @@ async def api_llamadas(
 ):
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
     return {"llamadas": await listar_llamadas(db_session)}
+
+
+# ── Llamadas templadas (closer y administradores) ──────────────────────────
+
+
+@router.get("/org/{org_id}/templadas", summary="Gente que mostró interés y se quedó ahí: las automáticas y las de mano.")
+async def api_templadas(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    return await listar_templadas(db_session)
+
+
+class Templada(BaseModel):
+    nombre: Optional[str] = None
+    telefono: Optional[str] = None
+    email: Optional[str] = None
+    notas: Optional[str] = None
+    llamar_el: Optional[str] = None
+    estado: Optional[str] = None
+
+
+def _respuesta_templada(r: dict) -> dict:
+    if not r.get("ok"):
+        raise HTTPException(status_code=r.get("codigo", 400), detail=r.get("motivo"))
+    return r
+
+
+@router.post("/org/{org_id}/templadas", summary="Apunta a mano a alguien para llamar.")
+async def api_nueva_templada(
+    request: Request,
+    org_id: int,
+    data: Templada,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    return _respuesta_templada(await crear_templada(data.model_dump(exclude_none=True), _nombre(current_user), db_session))
+
+
+@router.put("/org/{org_id}/templadas/{templada_id}", summary="Cambia notas, fecha, datos o estado de una llamada templada.")
+async def api_cambiar_templada(
+    request: Request,
+    org_id: int,
+    templada_id: int,
+    data: Templada,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    return _respuesta_templada(await actualizar_templada(templada_id, data.model_dump(exclude_none=True), db_session))
+
+
+@router.delete("/org/{org_id}/templadas/{templada_id}", summary="Quita a alguien de las llamadas templadas.")
+async def api_quitar_templada(
+    request: Request,
+    org_id: int,
+    templada_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    return _respuesta_templada(await quitar_templada(templada_id, db_session))
 
 
 @router.get(

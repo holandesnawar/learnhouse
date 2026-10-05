@@ -1774,6 +1774,20 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
     `seguimiento-resumen` (notas del historial por correo) o de la nota del
     «¿Qué pasó?» de esa cita; al pasar el ratón, la última. Se recarga al
     guardar una cita o cerrar una ficha.
+  - **Llamadas templadas** (05/10, "gente que mostró interés pero se quedó
+    ahí"): lista al final de Llamadas (`LlamadasTempladas.tsx`,
+    `services/contactos/templadas.py`, tabla `llamada_templada`, rutas
+    `/contactos/org/{id}/templadas`, closer y administradores). **Entra
+    sola** quien dejó sus datos en /agendar o en el proceso de admisión y no
+    terminó las preguntas (pasada media hora, por si aún está rellenando);
+    se guarda como fila la primera vez que se abre la lista (`sincronizar`,
+    `clave` única `auto:<correo>`). **Los «No terminó» ya NO salen en
+    Solicitudes de llamada**: viven aquí. **A mano**: nombre, móvil, correo
+    opcional, notas y un día aproximado (Hoy, Mañana, En 3 días…). Arriba lo
+    que toca hoy o se pasó. Dejan de salir solos quien termina las preguntas
+    y quien paga. «Quitar» una automática la descarta (no vuelve); una de
+    mano se borra. `borrar_contacto` también la borra. Test:
+    `test_llamadas_templadas.py`.
   - **Pestaña Google Calendar**: el `<iframe>` del calendario del usuario. Se
     guarda SOLO el id y la zona (org_config `agenda_google`) y la dirección se
     rehace en `resultado_llamada.py` (nunca se pinta HTML pegado). De serie,

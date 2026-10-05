@@ -14,6 +14,10 @@
  * respuestas. La marca de "atendida" es la misma que en Contactos y el
  * tablero (la solicitud que crea el formulario).
  *
+ * Y al final, las LLAMADAS TEMPLADAS (05/10): quien se quedó a medias del
+ * formulario y la gente que el equipo apunta a mano (`LlamadasTempladas`).
+ * Los «No terminó» ya no salen en Solicitudes: viven allí.
+ *
  * Estilo: el de `Panel/ui.tsx` (29/09, "que parezca un software, como
  * Calendly"): blanco y gris, sin cajitas de color.
  */
@@ -25,6 +29,7 @@ import PorDia from './PorDia'
 import Seguimiento from './Seguimiento'
 import FichaCliente from '../Panel/FichaCliente'
 import EnlacePago from '../Panel/EnlacePago'
+import LlamadasTempladas from './LlamadasTempladas'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import {
   avisoTrasBorrar,
@@ -161,7 +166,8 @@ export default function LlamadasPanel() {
     const [data, recs] = await Promise.all([getLlamadas(org.id, accessToken), getRecordatorios(org.id, accessToken)])
     setRecordatorios(recs)
     if (data === null) setFallo(true)
-    else setLlamadas(data)
+    // Los que no terminaron el formulario van a «Llamadas templadas».
+    else setLlamadas(data.filter((l) => l.terminado))
   }, [org?.id, accessToken])
   useEffect(() => {
     cargar()
@@ -259,8 +265,8 @@ export default function LlamadasPanel() {
 
       <Seccion titulo={pendientes.length === 0 ? 'Solicitudes de llamada · todas atendidas' : `Solicitudes de llamada · ${pendientes.length} por atender`}>
         <p className={META}>
-          Quien rellenó el formulario de agendar llamada, con sus respuestas. Márcala cuando la hayas atendido.
-          «No terminó» = dejó sus datos y se fue a mitad.
+          Quien rellenó el formulario de agendar llamada, con sus respuestas. Márcala cuando la hayas atendido. Quien dejó sus
+          datos y se fue a mitad está más abajo, en «Llamadas templadas».
         </p>
         {llamadas.length === 0 ? (
           <div className={`${TARJETA} p-5`}>
@@ -314,6 +320,8 @@ export default function LlamadasPanel() {
           </>
         )}
       </Seccion>
+
+      <LlamadasTempladas verFicha={setFicha} />
 
       {cita ? (
         <CitaDialogo
