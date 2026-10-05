@@ -58,6 +58,7 @@ from src.services.contactos.templadas import (
     actualizar_templada,
     crear_templada,
     listar_templadas,
+    mandar_a_templadas,
     quitar_templada,
 )
 from src.security.rbac.constants import CLOSER_ROLE_ID
@@ -164,7 +165,30 @@ async def api_nueva_templada(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
-    return _respuesta_templada(await crear_templada(data.model_dump(exclude_none=True), _nombre(current_user), db_session))
+    return _respuesta_templada(
+        await crear_templada(data.model_dump(exclude_none=True), _nombre(current_user), db_session, current_user.id)
+    )
+
+
+class MandarTemplada(BaseModel):
+    email: str
+    nombre: str = ""
+    telefono: str = ""
+    llamar_el: str = ""
+
+
+@router.post("/org/{org_id}/templadas/mandar", summary="Manda a una persona desde su ficha a las llamadas templadas.")
+async def api_mandar_templada(
+    request: Request,
+    org_id: int,
+    data: MandarTemplada,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    return _respuesta_templada(
+        await mandar_a_templadas(data.email, data.nombre, data.telefono, data.llamar_el, _nombre(current_user), db_session)
+    )
 
 
 @router.put("/org/{org_id}/templadas/{templada_id}", summary="Cambia notas, fecha, datos o estado de una llamada templada.")
@@ -177,7 +201,11 @@ async def api_cambiar_templada(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
-    return _respuesta_templada(await actualizar_templada(templada_id, data.model_dump(exclude_none=True), db_session))
+    return _respuesta_templada(
+        await actualizar_templada(
+            templada_id, data.model_dump(exclude_none=True), db_session, _nombre(current_user), current_user.id
+        )
+    )
 
 
 @router.delete("/org/{org_id}/templadas/{templada_id}", summary="Quita a alguien de las llamadas templadas.")

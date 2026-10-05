@@ -1,4 +1,5 @@
 'use client'
+import type { Templada } from '@services/stats/contactos'
 import { getAPIUrl } from '@services/config/config'
 import { RequestBodyWithAuthHeader } from '@services/utils/ts/requests'
 import type { NotaContacto, VolverALlamar } from '@services/stats/contactos'
@@ -107,6 +108,8 @@ export interface FichaCliente {
   llamadas: import('@services/stats/contactos').Cita[]
   /** Por dónde va en la formación (null si no tiene cuenta). */
   avance?: AvanceAlumno | null
+  /** Su fila en Llamadas templadas, si la tiene. */
+  templada?: Templada | null
   /** Solo administradores. */
   systeme: { ok: boolean; motivo?: string; existe?: boolean; etiquetas: string[]; campos: { slug: string; valor: string }[] } | null
   linea: ItemLinea[]

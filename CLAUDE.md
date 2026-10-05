@@ -1788,6 +1788,18 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
     y quien paga. «Quitar» una automática la descarta (no vuelve); una de
     mano se borra. `borrar_contacto` también la borra. Test:
     `test_llamadas_templadas.py`.
+    - **Las notas van también a la ficha** (05/10): si la fila tiene correo,
+      cada vez que cambian sus notas entra una nota en el historial de la
+      ficha («Llamadas templadas: …», `_nota_a_la_ficha`), también al ponerle
+      el correo a una de mano.
+    - **Botón «Mandar a llamadas templadas»** en la ficha (bloque Matrícula,
+      quien aún no es alumno; `POST …/templadas/mandar`, `mandar_a_templadas`):
+      la pone para llamar HOY. Si ya estaba, no duplica: la vuelve a dejar
+      pendiente. La ficha trae `templada` y enseña «En llamadas templadas ·
+      llamar hoy». Nadie entra dos veces: `sincronizar` mira todos los
+      correos de la lista, no solo las automáticas.
+    - «Quitar» una fila CON correo la descarta (si se borrara, la persona
+      volvería a entrar sola); solo se borran las de mano sin correo.
   - **Pestaña Google Calendar**: el `<iframe>` del calendario del usuario. Se
     guarda SOLO el id y la zona (org_config `agenda_google`) y la dirección se
     rehace en `resultado_llamada.py` (nunca se pinta HTML pegado). De serie,
