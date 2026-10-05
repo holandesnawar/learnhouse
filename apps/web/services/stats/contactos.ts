@@ -473,3 +473,39 @@ export async function getEmbudoAgendar(orgId: number, accessToken: string) {
   )
   return r.datos ?? null
 }
+
+// ── Llamadas templadas: gente que mostró interés y se quedó ahí ────────────
+
+export type Templada = {
+  id: number
+  nombre: string
+  telefono: string
+  email: string
+  notas: string
+  /** "AAAA-MM-DD", aproximada. Vacía = sin fecha. */
+  llamar_el: string
+  toca: '' | 'vencida' | 'hoy' | 'proxima'
+  origen: 'mano' | 'agendar' | 'admision'
+  origen_nombre: string
+  /** Las automáticas: qué dejó a medias. */
+  detalle: string
+  estado: 'pendiente' | 'hecha' | 'descartada'
+  creado_por: string
+  created_at: string
+  updated_at: string
+  hecha_at: string
+}
+
+export type DatosTemplada = Partial<Pick<Templada, 'nombre' | 'telefono' | 'email' | 'notas' | 'llamar_el' | 'estado'>>
+
+export const getTempladas = (orgId: number, accessToken: string) =>
+  pedir<{ pendientes: Templada[]; cerradas: Templada[] }>(`contactos/org/${orgId}/templadas`, 'GET', null, accessToken)
+
+export const crearTemplada = (orgId: number, datos: DatosTemplada, accessToken: string) =>
+  pedir<{ templada: Templada }>(`contactos/org/${orgId}/templadas`, 'POST', datos, accessToken)
+
+export const cambiarTemplada = (orgId: number, id: number, datos: DatosTemplada, accessToken: string) =>
+  pedir<{ templada: Templada }>(`contactos/org/${orgId}/templadas/${id}`, 'PUT', datos, accessToken)
+
+export const quitarTemplada = (orgId: number, id: number, accessToken: string) =>
+  pedir<{ borrada: boolean }>(`contactos/org/${orgId}/templadas/${id}`, 'DELETE', null, accessToken)

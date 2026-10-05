@@ -542,6 +542,10 @@ async def borrar_contacto(email: str, db_session: AsyncSession) -> dict:
     from src.services.panel.pipeline import borrar_de_tablero
 
     await borrar_de_tablero(clave, db_session)
+    # Y de las llamadas templadas.
+    from src.services.contactos.templadas import borrar_templadas_de
+
+    await borrar_templadas_de(clave, db_session)
 
     await db_session.commit()
     tiene_cuenta = clave in await _emails_con_cuenta(db_session)
