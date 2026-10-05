@@ -37,10 +37,16 @@ function fechaHora(iso: string) {
 export default function Seguimiento({
   email,
   onCambioFecha,
+  soloNotas = false,
+  onCambioNotas,
 }: {
   email: string
   /** Para que la lista de fuera marque la línea sin recargar. */
   onCambioFecha?: (email: string, v: VolverALlamar | null) => void
+  /** Sin el bloque de "volver a llamar" (Llamadas templadas: allí no hay fechas). */
+  soloNotas?: boolean
+  /** Al añadir o borrar una nota, para que la lista de fuera se ponga al día. */
+  onCambioNotas?: () => void
 }) {
   const org = useOrg() as any
   const session = useLHSession() as any
@@ -100,6 +106,7 @@ export default function Seguimiento({
     }
     setNotas((prev) => [r.datos as NotaContacto, ...prev])
     setTexto('')
+    onCambioNotas?.()
   }
 
   async function quitarNota(n: NotaContacto) {
@@ -110,6 +117,7 @@ export default function Seguimiento({
       return
     }
     setNotas((prev) => prev.filter((x) => x.id !== n.id))
+    onCambioNotas?.()
   }
 
   if (cargando) {
@@ -125,6 +133,7 @@ export default function Seguimiento({
   return (
     <div className="space-y-3">
       {/* Volver a llamar */}
+      {soloNotas ? null : (
       <div className="rounded-lg border border-[#E5E7EB] bg-white px-3.5 py-3">
         <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF] flex items-center gap-1.5">
           <BellRing size={12} /> Volver a llamar
@@ -183,6 +192,7 @@ export default function Seguimiento({
           className="mt-2 w-full px-2.5 py-1.5 rounded-lg bg-[#F9FAFB] border border-[#F3F4F6] text-[12.5px] text-gray-800 placeholder:text-gray-400 outline-none focus:border-gray-900"
         />
       </div>
+      )}
 
       {/* Notas */}
       <div className="rounded-lg border border-[#E5E7EB] bg-white px-3.5 py-3">

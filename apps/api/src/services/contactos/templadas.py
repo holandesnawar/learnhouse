@@ -11,7 +11,10 @@ Dos maneras de entrar:
   llamada» como «No terminó», mezclados con quien sí pidió la llamada; ahora
   viven aquí.
 - **A mano**: el closer o un administrador apunta a alguien con nombre, móvil,
-  notas y un día aproximado para llamar. El correo es opcional.
+  y notas. El correo es opcional. Sin fechas: cada persona está pendiente o
+  hecha (05/10, "pendiente o hecho y ya").
+- Las NOTAS: con correo, son las mismas de su ficha (una sola lista, la de
+  `contact_nota`); sin correo, viven en la propia fila.
 
 Las automáticas se guardan como filas de verdad la primera vez que se abre la
 lista (`sincronizar`): así se les pueden poner notas y fecha igual que a las
@@ -23,15 +26,15 @@ Quién deja de salir solo: quien termina las preguntas (ya está en
 
 import json
 import logging
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
-from zoneinfo import ZoneInfo
 
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.contact_event import ContactEvent
+from src.db.contact_seguimiento import ContactNota
 from src.db.enrollment_request import EnrollmentRequest
 from src.db.llamadas_templadas import LlamadaTemplada
 
@@ -43,15 +46,9 @@ ESTADOS = ("pendiente", "hecha", "descartada")
 #: Quien dejó sus datos hace menos de esto puede estar rellenando todavía.
 ESPERA_ANTES_DE_LISTAR = timedelta(minutes=30)
 
-_ZONA = ZoneInfo("Europe/Amsterdam")
-
 
 def _ahora() -> str:
     return datetime.now(timezone.utc).isoformat()
-
-
-def hoy_local() -> date:
-    return datetime.now(_ZONA).date()
 
 
 def _fecha(iso: str) -> Optional[datetime]:
@@ -60,14 +57,6 @@ def _fecha(iso: str) -> Optional[datetime]:
     except ValueError:
         return None
     return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
-
-
-def fecha_valida(texto: str) -> bool:
-    try:
-        datetime.strptime(texto, "%Y-%m-%d")
-        return True
-    except (TypeError, ValueError):
-        return False
 
 
 def _extra(texto) -> dict:
@@ -147,39 +136,27 @@ def filas_automaticas(
     return salida
 
 
-def toca(llamar_el: str, hoy: date) -> str:
-    """"vencida", "hoy", "proxima" o "" (sin fecha). Función pura."""
-    if not fecha_valida(llamar_el):
-        return ""
-    d = date.fromisoformat(llamar_el)
-    if d < hoy:
-        return "vencida"
-    return "hoy" if d == hoy else "proxima"
+def ordenar_pendientes(filas: list[dict]) -> list[dict]:
+    """Lo más nuevo arriba (cuando entró en la lista). Sin fechas de llamada:
+    el usuario lo quiere simple, «pendiente o hecho» (05/10). Función pura."""
+    return sorted(filas, key=lambda f: f.get("created_at") or "", reverse=True)
 
 
-def ordenar_pendientes(filas: list[dict], hoy: date) -> list[dict]:
-    """Primero lo que toca hoy o ya se pasó (lo más atrasado arriba), luego las
-    que tienen fecha (la más cercana arriba) y al final las que no tienen
-    fecha (la más nueva arriba). Función pura, con test."""
-
-    con_fecha = sorted((f for f in filas if toca(f.get("llamar_el") or "", hoy)), key=lambda f: f["llamar_el"])
-    sin_fecha = sorted(
-        (f for f in filas if not toca(f.get("llamar_el") or "", hoy)),
-        key=lambda f: f.get("created_at") or "",
-        reverse=True,
-    )
-    return con_fecha + sin_fecha
-
-
-def _dict(f: LlamadaTemplada, hoy: date) -> dict:
+def _dict(f: LlamadaTemplada, notas: Optional[dict] = None) -> dict:
+    """`notas`: {correo: (cuántas, la última)} de la ficha. Con correo, las
+    notas SON las de la ficha; sin correo, las de la propia fila."""
+    n, ultima = (notas or {}).get((f.email or "").lower(), (0, ""))
+    if not f.email:
+        n, ultima = (1 if f.notas else 0), f.notas
     return {
         "id": f.id,
         "nombre": f.nombre,
         "telefono": f.telefono,
         "email": f.email,
-        "notas": f.notas,
-        "llamar_el": f.llamar_el,
-        "toca": toca(f.llamar_el, hoy),
+        # Solo las de quien no tiene correo (no tiene ficha donde guardarlas).
+        "notas": "" if f.email else f.notas,
+        "n_notas": n,
+        "ultima_nota": ultima,
         "origen": f.origen,
         "origen_nombre": ORIGENES.get(f.origen, f.origen),
         "detalle": f.detalle,
@@ -189,6 +166,24 @@ def _dict(f: LlamadaTemplada, hoy: date) -> dict:
         "updated_at": f.updated_at,
         "hecha_at": f.hecha_at,
     }
+
+
+async def _notas_por_email(emails: set[str], db_session: AsyncSession) -> dict[str, tuple[int, str]]:
+    """Cuántas notas tiene cada correo en su ficha y la última."""
+    if not emails:
+        return {}
+    salida: dict[str, tuple[int, str]] = {}
+    for email, texto in (
+        await db_session.execute(
+            select(ContactNota.email, ContactNota.texto)
+            .where(ContactNota.email.in_(emails))  # type: ignore[attr-defined]
+            .order_by(ContactNota.id.desc())  # type: ignore[attr-defined]
+        )
+    ).all():
+        clave = str(email).lower()
+        n, ultima = salida.get(clave, (0, ""))
+        salida[clave] = (n + 1, ultima or str(texto or ""))
+    return salida
 
 
 async def _atendidos_en_solicitudes(emails: set[str], db_session: AsyncSession) -> dict[str, str]:
@@ -292,7 +287,7 @@ async def sincronizar(db_session: AsyncSession) -> int:
 
 
 async def listar_templadas(db_session: AsyncSession) -> dict:
-    """Las pendientes en orden de llamada, y las hechas o descartadas aparte."""
+    """Las pendientes (lo más nuevo arriba) y las hechas o quitadas aparte."""
     try:
         await sincronizar(db_session)
     except Exception:  # noqa: BLE001
@@ -304,10 +299,11 @@ async def listar_templadas(db_session: AsyncSession) -> dict:
 
     pagaron = await emails_que_pagaron(db_session)
     terminaron = await _terminaron(db_session)
-    hoy = hoy_local()
+    filas = (await db_session.execute(select(LlamadaTemplada))).scalars().all()
+    notas = await _notas_por_email({(f.email or "").lower() for f in filas if f.email}, db_session)
     pendientes: list[dict] = []
     cerradas: list[dict] = []
-    for f in (await db_session.execute(select(LlamadaTemplada))).scalars().all():
+    for f in filas:
         email = (f.email or "").lower()
         if f.estado == "pendiente":
             # Ya pagó: es alumno, no hay que llamarle para venderle nada.
@@ -317,52 +313,47 @@ async def listar_templadas(db_session: AsyncSession) -> dict:
             # «Solicitudes de llamada», con sus respuestas.
             if f.origen != "mano" and email in terminaron:
                 continue
-            pendientes.append(_dict(f, hoy))
+            pendientes.append(_dict(f, notas))
         else:
-            cerradas.append(_dict(f, hoy))
-    cerradas.sort(key=lambda x: x["updated_at"] or x["hecha_at"] or "", reverse=True)
-    return {"pendientes": ordenar_pendientes(pendientes, hoy), "cerradas": cerradas[:150]}
+            cerradas.append(_dict(f, notas))
+    cerradas.sort(key=lambda x: x["hecha_at"] or x["updated_at"] or "", reverse=True)
+    return {"pendientes": ordenar_pendientes(pendientes), "cerradas": cerradas[:150]}
 
 
 def _limpio(texto: Optional[str], tope: int) -> str:
     return str(texto or "").strip()[:tope]
 
 
-async def _nota_a_la_ficha(email: str, notas: str, autor_id: int, autor: str, db_session: AsyncSession) -> None:
-    """Las notas de aquí también quedan en la ficha de la persona (05/10:
-    "que las notas vayan también a la ficha"). La ficha es un historial: cada
-    vez que cambian, entra una nota nueva con el texto entero. Solo si hay
-    correo, que es lo que une a la persona con su ficha."""
-    if not email or not notas.strip():
+async def _pasar_notas_a_la_ficha(fila: LlamadaTemplada, autor_id: int, autor: str, db_session: AsyncSession) -> None:
+    """Con correo, las notas de la persona son UNA sola lista: la de su ficha
+    (05/10: "si le añado notas a un lead, son las mismas que salen en llamada
+    templada"). Lo que se escribiera en la fila antes de tener correo se pasa a
+    la ficha y la fila se queda vacía."""
+    if not fila.email or not (fila.notas or "").strip():
         return
     from src.services.contactos.seguimiento import anadir_nota
 
-    try:
-        await anadir_nota(email, f"Llamadas templadas: {notas.strip()}", autor_id, autor, db_session)
-    except Exception:  # noqa: BLE001
-        # La nota de la lista ya está guardada; la copia no debe tumbarla.
-        logger.exception("No se ha podido copiar la nota de la llamada templada a la ficha")
-        await db_session.rollback()
+    texto = fila.notas.strip()
+    fila.notas = ""
+    db_session.add(fila)
+    await db_session.commit()
+    await anadir_nota(fila.email, texto, autor_id, autor, db_session)
 
 
 async def crear_templada(datos: dict, autor: str, db_session: AsyncSession, autor_id: int = 0) -> dict:
     nombre = _limpio(datos.get("nombre"), 160)
     telefono = _limpio(datos.get("telefono"), 40)
     email = _limpio(datos.get("email"), 255).lower()
-    llamar_el = _limpio(datos.get("llamar_el"), 10)
     if not nombre and not telefono:
         return {"ok": False, "motivo": "Pon al menos el nombre o el móvil"}
     if email and "@" not in email:
         return {"ok": False, "motivo": "El correo no es válido"}
-    if llamar_el and not fecha_valida(llamar_el):
-        return {"ok": False, "motivo": "La fecha no es válida"}
     ahora = _ahora()
     fila = LlamadaTemplada(
         nombre=nombre,
         telefono=telefono,
         email=email,
         notas=_limpio(datos.get("notas"), 4000),
-        llamar_el=llamar_el,
         origen="mano",
         estado="pendiente",
         clave=None,
@@ -373,9 +364,13 @@ async def crear_templada(datos: dict, autor: str, db_session: AsyncSession, auto
     db_session.add(fila)
     await db_session.commit()
     await db_session.refresh(fila)
-    resultado = {"ok": True, "templada": _dict(fila, hoy_local())}
-    await _nota_a_la_ficha(fila.email, fila.notas, autor_id, autor, db_session)
-    return resultado
+    await _pasar_notas_a_la_ficha(fila, autor_id, autor, db_session)
+    return {"ok": True, "templada": await _con_notas(fila, db_session)}
+
+
+async def _con_notas(fila: LlamadaTemplada, db_session: AsyncSession) -> dict:
+    email = (fila.email or "").lower()
+    return _dict(fila, await _notas_por_email({email} if email else set(), db_session))
 
 
 async def actualizar_templada(
@@ -387,7 +382,6 @@ async def actualizar_templada(
     ).scalars().first()
     if fila is None:
         return {"ok": False, "motivo": "No existe", "codigo": 404}
-    antes = (fila.email, fila.notas)
     if "nombre" in cambios:
         fila.nombre = _limpio(cambios["nombre"], 160)
     if "telefono" in cambios:
@@ -400,12 +394,8 @@ async def actualizar_templada(
         if fila.origen == "mano":
             fila.email = email
     if "notas" in cambios:
+        # Con correo, una nota nueva va a la ficha (ver _pasar_notas_a_la_ficha).
         fila.notas = _limpio(cambios["notas"], 4000)
-    if "llamar_el" in cambios:
-        f = _limpio(cambios["llamar_el"], 10)
-        if f and not fecha_valida(f):
-            return {"ok": False, "motivo": "La fecha no es válida"}
-        fila.llamar_el = f
     if "estado" in cambios:
         estado = str(cambios["estado"] or "")
         if estado not in ESTADOS:
@@ -419,11 +409,8 @@ async def actualizar_templada(
     db_session.add(fila)
     await db_session.commit()
     await db_session.refresh(fila)
-    resultado = {"ok": True, "templada": _dict(fila, hoy_local())}
-    # A la ficha, si cambiaron las notas o si acaba de ponérsele el correo.
-    if (fila.email, fila.notas) != antes and fila.notas and (fila.notas != antes[1] or not antes[0]):
-        await _nota_a_la_ficha(fila.email, fila.notas, autor_id, autor, db_session)
-    return resultado
+    await _pasar_notas_a_la_ficha(fila, autor_id, autor, db_session)
+    return {"ok": True, "templada": await _con_notas(fila, db_session)}
 
 
 async def templada_de(email: str, db_session: AsyncSession) -> Optional[dict]:
@@ -436,21 +423,16 @@ async def templada_de(email: str, db_session: AsyncSession) -> Optional[dict]:
             select(LlamadaTemplada).where(LlamadaTemplada.email == clave).order_by(LlamadaTemplada.id.desc())  # type: ignore[attr-defined]
         )
     ).scalars().first()
-    return _dict(fila, hoy_local()) if fila else None
+    return await _con_notas(fila, db_session) if fila else None
 
 
-async def mandar_a_templadas(
-    email: str, nombre: str, telefono: str, llamar_el: str, autor: str, db_session: AsyncSession
-) -> dict:
-    """El botón de la ficha: pone a la persona en la lista para llamarla. Si
-    ya estaba (pendiente, hecha o quitada) no se duplica: se vuelve a poner
-    pendiente con la fecha nueva, y sus notas se quedan."""
+async def mandar_a_templadas(email: str, nombre: str, telefono: str, autor: str, db_session: AsyncSession) -> dict:
+    """El botón de la ficha: pone a la persona en la lista, pendiente. Si ya
+    estaba (pendiente, hecha o quitada) no se duplica: vuelve a pendiente y
+    sube arriba de la lista."""
     clave = _limpio(email, 255).lower()
     if "@" not in clave:
         return {"ok": False, "motivo": "Falta un correo válido"}
-    llamar_el = _limpio(llamar_el, 10) or hoy_local().isoformat()
-    if not fecha_valida(llamar_el):
-        return {"ok": False, "motivo": "La fecha no es válida"}
     fila = (
         await db_session.execute(
             select(LlamadaTemplada).where(LlamadaTemplada.email == clave).order_by(LlamadaTemplada.id.desc())  # type: ignore[attr-defined]
@@ -470,18 +452,18 @@ async def mandar_a_templadas(
             creado_por=autor[:120],
             created_at=ahora,
         )
-    else:
+    elif not ya_estaba:
         fila.estado = "pendiente"
         fila.hecha_at = ""
+        # Vuelve a entrar: arriba de la lista.
+        fila.created_at = ahora
         fila.nombre = fila.nombre or _limpio(nombre, 160)
         fila.telefono = fila.telefono or _limpio(telefono, 40)
-    fila.llamar_el = llamar_el
     fila.updated_at = ahora
     db_session.add(fila)
     await db_session.commit()
     await db_session.refresh(fila)
-    return {"ok": True, "ya_estaba": ya_estaba, "templada": _dict(fila, hoy_local())}
-
+    return {"ok": True, "ya_estaba": ya_estaba, "templada": await _con_notas(fila, db_session)}
 
 async def quitar_templada(templada_id: int, db_session: AsyncSession) -> dict:
     """Las de mano SIN correo se borran. Las demás se quedan como descartadas:

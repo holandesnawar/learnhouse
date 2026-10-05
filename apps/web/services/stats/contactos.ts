@@ -481,10 +481,10 @@ export type Templada = {
   nombre: string
   telefono: string
   email: string
+  /** Solo de quien NO tiene correo; con correo, las notas son las de su ficha. */
   notas: string
-  /** "AAAA-MM-DD", aproximada. Vacía = sin fecha. */
-  llamar_el: string
-  toca: '' | 'vencida' | 'hoy' | 'proxima'
+  n_notas: number
+  ultima_nota: string
   origen: 'mano' | 'agendar' | 'admision'
   origen_nombre: string
   /** Las automáticas: qué dejó a medias. */
@@ -496,7 +496,7 @@ export type Templada = {
   hecha_at: string
 }
 
-export type DatosTemplada = Partial<Pick<Templada, 'nombre' | 'telefono' | 'email' | 'notas' | 'llamar_el' | 'estado'>>
+export type DatosTemplada = Partial<Pick<Templada, 'nombre' | 'telefono' | 'email' | 'notas' | 'estado'>>
 
 export const getTempladas = (orgId: number, accessToken: string) =>
   pedir<{ pendientes: Templada[]; cerradas: Templada[] }>(`contactos/org/${orgId}/templadas`, 'GET', null, accessToken)
@@ -507,10 +507,10 @@ export const crearTemplada = (orgId: number, datos: DatosTemplada, accessToken: 
 export const cambiarTemplada = (orgId: number, id: number, datos: DatosTemplada, accessToken: string) =>
   pedir<{ templada: Templada }>(`contactos/org/${orgId}/templadas/${id}`, 'PUT', datos, accessToken)
 
-/** Desde la ficha: a la lista para llamarla (hoy, si no se dice otro día). Si ya estaba, no se duplica. */
+/** Desde la ficha: a la lista, pendiente. Si ya estaba, no se duplica. */
 export const mandarATemplada = (
   orgId: number,
-  datos: { email: string; nombre?: string; telefono?: string; llamar_el?: string },
+  datos: { email: string; nombre?: string; telefono?: string },
   accessToken: string
 ) => pedir<{ ya_estaba: boolean; templada: Templada }>(`contactos/org/${orgId}/templadas/mandar`, 'POST', datos, accessToken)
 

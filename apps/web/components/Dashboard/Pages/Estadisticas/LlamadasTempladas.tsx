@@ -6,22 +6,25 @@
  * Gente que mostró interés y se quedó ahí. Entra sola quien dejó sus datos en
  * /agendar o en el proceso de admisión y no terminó las preguntas (antes
  * salían en «Solicitudes de llamada» como «No terminó»), y el closer o un
- * administrador puede apuntar a quien quiera: nombre, móvil, notas y un día
- * aproximado para llamar. El correo es opcional.
+ * administrador puede apuntar a quien quiera: nombre, móvil y notas. El
+ * correo es opcional. También se manda desde la ficha de la persona.
  *
- * Orden: lo que toca hoy o ya se pasó, arriba; luego por fecha; al final las
- * que no tienen fecha. Lo calcula la escuela (`services/contactos/templadas.py`).
+ * Sin fechas: cada persona está pendiente o hecha (usuario, 05/10: "pendiente
+ * o hecho y ya"). Lo más nuevo, arriba.
+ *
+ * Las NOTAS: si la persona tiene correo, son las mismas de su ficha (el mismo
+ * bloque, `Seguimiento` con `soloNotas`): lo que se apunta aquí sale allí y al
+ * revés. Sin correo no hay ficha, y las notas viven en la propia fila.
  */
 
 import React, { useCallback, useEffect, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
+import Seguimiento from './Seguimiento'
 import {
   cambiarTemplada,
   crearTemplada,
-  cuandoLlamar,
   getTempladas,
-  hoyISO,
   quitarTemplada,
   type DatosTemplada,
   type Templada,
@@ -29,17 +32,8 @@ import {
 import { Check, ChevronDown, ChevronRight, Loader2, Phone, Plus, RotateCcw, Trash2, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { confirmar } from '@lib/nawar/confirmar'
-import { BOTON, BOTON_PELIGRO, BOTON_PRINCIPAL, ENLACE, Estado, META, Meta, Seccion, TARJETA } from '../Panel/ui'
+import { BOTON, BOTON_PELIGRO, BOTON_PRINCIPAL, Estado, META, Meta, Seccion, TARJETA } from '../Panel/ui'
 import { numeroWhatsApp } from '@/lib/nawar/telefono'
-
-const ATAJOS: [string, number][] = [
-  ['Hoy', 0],
-  ['Mañana', 1],
-  ['En 3 días', 3],
-  ['En una semana', 7],
-  ['En 2 semanas', 14],
-  ['En un mes', 30],
-]
 
 const CAMPO =
   'w-full h-9 px-3 rounded-md border border-[#D1D5DB] bg-white text-[14px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#025dc7] focus:ring-2 focus:ring-[#025dc7]/15'
@@ -51,17 +45,11 @@ function diaCorto(iso: string) {
   return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
 }
 
-function TocaLlamar({ t }: { t: Templada }) {
-  if (!t.llamar_el) return null
-  if (t.toca === 'vencida') return <Estado tono="rojo">Tocaba {cuandoLlamar(t.llamar_el)}</Estado>
-  if (t.toca === 'hoy') return <Estado tono="rojo">Llamar hoy</Estado>
-  return <Estado tono="gris">Llamar {cuandoLlamar(t.llamar_el)}</Estado>
-}
-
-/** Nombre, móvil, correo, cuándo y notas: el mismo formulario para apuntar y para editar. */
+/** Nombre, móvil y correo (y las notas, si aún no hay ficha a la que llevarlas). */
 function Formulario({
   inicial,
   correoFijo,
+  conNotas,
   guardando,
   textoBoton,
   onGuardar,
@@ -69,6 +57,7 @@ function Formulario({
 }: {
   inicial: DatosTemplada
   correoFijo?: boolean
+  conNotas: boolean
   guardando: boolean
   textoBoton: string
   onGuardar: (d: DatosTemplada) => void
@@ -106,43 +95,19 @@ function Formulario({
           />
         </div>
       </div>
-      <div>
-        <label className={ETIQUETA}>Cuándo llamar (más o menos)</label>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {ATAJOS.map(([texto, dias]) => {
-            const valor = hoyISO(dias)
-            return (
-              <button
-                key={texto}
-                type="button"
-                onClick={() => setD((x) => ({ ...x, llamar_el: valor }))}
-                className={`h-8 px-2.5 rounded-md border text-[12.5px] font-medium transition-colors ${
-                  d.llamar_el === valor ? 'bg-gray-900 border-gray-900 text-white' : 'bg-white border-[#E5E7EB] text-gray-700 hover:bg-[#F9FAFB]'
-                }`}
-              >
-                {texto}
-              </button>
-            )
-          })}
-          <input type="date" className={`${CAMPO} !w-auto`} value={d.llamar_el || ''} onChange={pon('llamar_el')} />
-          {d.llamar_el ? (
-            <button type="button" onClick={() => setD((x) => ({ ...x, llamar_el: '' }))} className={`${ENLACE} !text-gray-500`}>
-              Sin fecha
-            </button>
-          ) : null}
+      {conNotas ? (
+        <div>
+          <label className={ETIQUETA}>
+            Notas <span className="font-normal text-gray-400">· con correo, van a su ficha</span>
+          </label>
+          <textarea
+            className={`${CAMPO} !h-auto py-2 min-h-[72px] leading-relaxed`}
+            value={d.notas || ''}
+            onChange={pon('notas')}
+            placeholder="Qué le interesa, por qué no siguió, qué le dijiste…"
+          />
         </div>
-      </div>
-      <div>
-        <label className={ETIQUETA}>
-          Notas <span className="font-normal text-gray-400">· si tiene correo, se guardan también en su ficha</span>
-        </label>
-        <textarea
-          className={`${CAMPO} !h-auto py-2 min-h-[84px] leading-relaxed`}
-          value={d.notas || ''}
-          onChange={pon('notas')}
-          placeholder="Qué le interesa, por qué no siguió, qué le dijiste…"
-        />
-      </div>
+      ) : null}
       <div className="flex flex-wrap gap-2">
         <button type="submit" disabled={guardando} className={BOTON_PRINCIPAL}>
           {guardando ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
@@ -214,10 +179,10 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
 
   async function quitar(t: Templada) {
     const quien = t.nombre || t.telefono || t.email
-    const pregunta =
-      t.origen === 'mano' && !t.email
-        ? `¿Borrar a ${quien} de las llamadas templadas? Sus notas de aquí se pierden.`
-        : `¿Quitar a ${quien} de las llamadas templadas? No vuelve a entrar sola (se puede devolver desde «Hechas o quitadas»). Su ficha y sus notas no se tocan.`
+    const borra = t.origen === 'mano' && !t.email
+    const pregunta = borra
+      ? `¿Borrar a ${quien} de las llamadas templadas? Sus notas de aquí se pierden.`
+      : `¿Quitar a ${quien} de las llamadas templadas? No vuelve a entrar sola (se puede devolver desde «Hechas o quitadas»). Su ficha y sus notas no se tocan.`
     if (!(await confirmar(pregunta))) return
     const r = await quitarTemplada(org.id, t.id, accessToken)
     if (!r.ok) {
@@ -228,12 +193,9 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
     cargar()
   }
 
-  const total = pendientes?.length ?? 0
-  const tocan = (pendientes || []).filter((t) => t.toca === 'hoy' || t.toca === 'vencida').length
-
   return (
     <Seccion
-      titulo={`Llamadas templadas${pendientes ? ` · ${total}${tocan ? `, ${tocan} para hoy` : ''}` : ''}`}
+      titulo={`Llamadas templadas${pendientes ? ` · ${pendientes.length} pendiente${pendientes.length === 1 ? '' : 's'}` : ''}`}
       extra={
         !nueva ? (
           <button onClick={() => setNueva(true)} className={`${BOTON} whitespace-nowrap`}>
@@ -244,7 +206,7 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
     >
       <p className={META}>
         Gente que mostró interés y se quedó ahí. Entra sola quien dejó sus datos en «agendar llamada» o en el proceso de admisión y no
-        terminó las preguntas. Y aquí puedes apuntar a quien quieras, aunque solo tengas su móvil.
+        terminó las preguntas. Aquí puedes apuntar a quien quieras, aunque solo tengas su móvil, o mandarlo desde su ficha.
       </p>
 
       {nueva ? (
@@ -256,7 +218,8 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
             </button>
           </div>
           <Formulario
-            inicial={{ llamar_el: '' }}
+            inicial={{}}
+            conNotas
             guardando={guardando === 'nueva'}
             textoBoton="Apuntar"
             onGuardar={apuntar}
@@ -282,25 +245,27 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
           {pendientes.map((t) => {
             const open = abierta === t.id
             const wa = numeroWhatsApp(t.telefono)
+            const resumen = t.ultima_nota || t.detalle
             return (
               <div key={t.id}>
                 <button onClick={() => setAbierta(open ? null : t.id)} className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-[#F9FAFB]">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 min-w-0">
                       <p className="text-[14px] font-medium text-gray-900 truncate">{t.nombre || t.telefono || t.email}</p>
-                      <TocaLlamar t={t} />
+                      <Estado tono="ambar" className="shrink-0">
+                        Pendiente
+                      </Estado>
                     </div>
                     <Meta
                       partes={[
                         t.origen === 'mano' ? `Apuntada por ${t.creado_por || 'el equipo'}` : t.origen_nombre,
                         t.telefono,
                         diaCorto(t.created_at),
+                        t.n_notas ? `${t.n_notas} nota${t.n_notas === 1 ? '' : 's'}` : '',
                       ]}
                     />
-                    {t.notas || t.detalle ? (
-                      <p className={`text-[12.5px] text-gray-700 mt-0.5 ${open ? 'whitespace-pre-wrap break-words' : 'truncate'}`}>
-                        {t.notas || t.detalle}
-                      </p>
+                    {resumen ? (
+                      <p className={`text-[12.5px] text-gray-700 mt-0.5 ${open ? 'whitespace-pre-wrap break-words' : 'truncate'}`}>{resumen}</p>
                     ) : null}
                   </div>
                   {open ? <ChevronDown size={16} className="text-gray-400 shrink-0" /> : <ChevronRight size={16} className="text-gray-400 shrink-0" />}
@@ -308,8 +273,11 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
 
                 {open ? (
                   <div className="px-4 pb-4 pt-1 space-y-3">
-                    {t.origen !== 'mano' && t.detalle && t.notas ? <p className={META}>{t.detalle}</p> : null}
+                    {t.origen !== 'mano' && t.detalle && t.ultima_nota ? <p className={META}>{t.detalle}</p> : null}
                     <div className="flex flex-wrap gap-2">
+                      <button onClick={() => cambiar(t, { estado: 'hecha' }, 'Hecha')} disabled={guardando === t.id} className={BOTON_PRINCIPAL}>
+                        <Check size={13} /> Marcar como hecha
+                      </button>
                       {t.telefono ? (
                         <a href={`tel:${t.telefono.replace(/[^\d+]/g, '')}`} className={BOTON}>
                           <Phone size={13} /> Llamar
@@ -325,19 +293,19 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
                           Ver ficha
                         </button>
                       ) : null}
-                      <button onClick={() => cambiar(t, { estado: 'hecha' }, 'Hecha')} disabled={guardando === t.id} className={BOTON}>
-                        <Check size={13} /> Ya está hecha
-                      </button>
                       <button onClick={() => quitar(t)} className={`${BOTON_PELIGRO} ml-auto`}>
                         <Trash2 size={13} /> {t.origen === 'mano' && !t.email ? 'Borrar' : 'Quitar'}
                       </button>
                     </div>
+                    {/* Con correo, las notas son las de su ficha: el mismo bloque. */}
+                    {t.email ? <Seguimiento email={t.email} soloNotas onCambioNotas={cargar} /> : null}
                     <Formulario
                       key={`${t.id}-${t.updated_at}`}
-                      inicial={{ nombre: t.nombre, telefono: t.telefono, email: t.email, notas: t.notas, llamar_el: t.llamar_el }}
+                      inicial={{ nombre: t.nombre, telefono: t.telefono, email: t.email, notas: t.notas }}
                       correoFijo={t.origen !== 'mano'}
+                      conNotas={!t.email}
                       guardando={guardando === t.id}
-                      textoBoton="Guardar"
+                      textoBoton="Guardar datos"
                       onGuardar={(d) => {
                         const { email, ...resto } = d
                         cambiar(t, t.origen === 'mano' ? d : resto)
@@ -365,11 +333,16 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
               {cerradas.map((t) => (
                 <div key={t.id} className="px-4 py-2.5 flex items-center gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[14px] text-gray-800 truncate">{t.nombre || t.telefono || t.email}</p>
-                    <Meta partes={[t.estado === 'hecha' ? 'Hecha' : 'Quitada', diaCorto(t.hecha_at), t.notas]} />
+                    <div className="flex items-center gap-3 min-w-0">
+                      <p className="text-[14px] text-gray-800 truncate">{t.nombre || t.telefono || t.email}</p>
+                      <Estado tono={t.estado === 'hecha' ? 'verde' : 'gris'} className="shrink-0">
+                        {t.estado === 'hecha' ? 'Hecha' : 'Quitada'}
+                      </Estado>
+                    </div>
+                    <Meta partes={[diaCorto(t.hecha_at), t.ultima_nota]} />
                   </div>
-                  <button onClick={() => cambiar(t, { estado: 'pendiente' }, 'Vuelve a la lista')} className={BOTON}>
-                    <RotateCcw size={13} /> Devolver
+                  <button onClick={() => cambiar(t, { estado: 'pendiente' }, 'Vuelve a pendiente')} className={BOTON}>
+                    <RotateCcw size={13} /> A pendiente
                   </button>
                 </div>
               ))}

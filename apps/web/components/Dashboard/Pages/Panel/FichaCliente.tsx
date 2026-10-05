@@ -48,7 +48,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { BOTON, BOTON_PELIGRO, Estado, META } from './ui'
-import { avisoTrasBorrar, borrarContacto, cuandoLlamar, mandarATemplada, type VolverALlamar } from '@services/stats/contactos'
+import { avisoTrasBorrar, borrarContacto, mandarATemplada, type VolverALlamar } from '@services/stats/contactos'
 import { confirmar } from '@lib/nawar/confirmar'
 import { numeroWhatsApp } from '@/lib/nawar/telefono'
 
@@ -357,7 +357,7 @@ export default function FichaCliente({
                     {ficha.templada?.estado === 'pendiente' ? (
                       <span className="inline-flex items-center gap-1.5 h-8 text-[12.5px] text-[#4B5563]">
                         <PhoneCall size={13} className="text-gray-500" />
-                        En llamadas templadas{ficha.templada.llamar_el ? ` · llamar ${cuandoLlamar(ficha.templada.llamar_el)}` : ''}
+                        En llamadas templadas · pendiente
                       </span>
                     ) : (
                       <button
@@ -369,7 +369,7 @@ export default function FichaCliente({
                           )
                           if (!r.ok || !r.datos) return toast.error(r.error || 'No se ha podido mandar')
                           setFicha({ ...ficha, templada: r.datos.templada })
-                          toast.success('En Llamadas templadas, para llamar hoy')
+                          toast.success('Está en Llamadas templadas, pendiente')
                           onCambio?.()
                         }}
                         className={BOTON}

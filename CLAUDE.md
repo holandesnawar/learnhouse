@@ -1781,25 +1781,30 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
     sola** quien dejó sus datos en /agendar o en el proceso de admisión y no
     terminó las preguntas (pasada media hora, por si aún está rellenando);
     se guarda como fila la primera vez que se abre la lista (`sincronizar`,
-    `clave` única `auto:<correo>`). **Los «No terminó» ya NO salen en
-    Solicitudes de llamada**: viven aquí. **A mano**: nombre, móvil, correo
-    opcional, notas y un día aproximado (Hoy, Mañana, En 3 días…). Arriba lo
-    que toca hoy o se pasó. Dejan de salir solos quien termina las preguntas
-    y quien paga. «Quitar» una automática la descarta (no vuelve); una de
-    mano se borra. `borrar_contacto` también la borra. Test:
-    `test_llamadas_templadas.py`.
-    - **Las notas van también a la ficha** (05/10): si la fila tiene correo,
-      cada vez que cambian sus notas entra una nota en el historial de la
-      ficha («Llamadas templadas: …», `_nota_a_la_ficha`), también al ponerle
-      el correo a una de mano.
+    `clave` única `auto:<correo>`; nadie entra dos veces, mira todos los
+    correos de la lista). **Los «No terminó» ya NO salen en Solicitudes de
+    llamada**: viven aquí. **A mano**: nombre, móvil, correo opcional y
+    notas. Dejan de salir solos quien termina las preguntas y quien paga.
+    Test: `test_llamadas_templadas.py`.
+    - ⚠️ **Sin fechas: Pendiente o Hecha y ya** (usuario, 05/10). Hubo un día
+      aproximado para llamar y se quitó el mismo día. La columna `llamar_el`
+      sigue en la tabla, sin usarse. Lo más nuevo arriba (`created_at` =
+      cuándo entró en la lista; mandarla otra vez desde la ficha la sube).
+    - ⚠️ **Las notas son LAS MISMAS que las de la ficha** (usuario, 05/10).
+      Con correo, la fila no guarda notas: se usa `contact_nota`, y la
+      pantalla pinta el mismo bloque que la ficha (`Seguimiento` con
+      `soloNotas`). Lo que se apunta en un sitio sale en el otro. Sin correo,
+      las notas viven en la fila (`notas`); al ponerle correo, pasan a la
+      ficha (`_pasar_notas_a_la_ficha`). La lista trae `n_notas` y
+      `ultima_nota`. Se probó antes a COPIAR las notas con un prefijo
+      «Llamadas templadas: …» y no era lo que quería.
     - **Botón «Mandar a llamadas templadas»** en la ficha (bloque Matrícula,
-      quien aún no es alumno; `POST …/templadas/mandar`, `mandar_a_templadas`):
-      la pone para llamar HOY. Si ya estaba, no duplica: la vuelve a dejar
-      pendiente. La ficha trae `templada` y enseña «En llamadas templadas ·
-      llamar hoy». Nadie entra dos veces: `sincronizar` mira todos los
-      correos de la lista, no solo las automáticas.
+      quien aún no es alumno; `POST …/templadas/mandar`, `mandar_a_templadas`).
+      Si ya estaba, no duplica; si estaba hecha o quitada, vuelve a pendiente.
+      La ficha trae `templada` y enseña «En llamadas templadas · pendiente».
     - «Quitar» una fila CON correo la descarta (si se borrara, la persona
       volvería a entrar sola); solo se borran las de mano sin correo.
+      `borrar_contacto` también las borra.
   - **Pestaña Google Calendar**: el `<iframe>` del calendario del usuario. Se
     guarda SOLO el id y la zona (org_config `agenda_google`) y la dirección se
     rehace en `resultado_llamada.py` (nunca se pinta HTML pegado). De serie,
