@@ -110,3 +110,42 @@ async def test_lista_de_verdad(db):
     assert lista["pendientes"] == []
     assert [c["email"] for c in lista["cerradas"]] == ["ana@x.com"]
     assert len((await db.execute(LlamadaTemplada.__table__.select())).all()) == 1
+
+
+@pytest.mark.asyncio
+async def test_las_notas_van_tambien_a_la_ficha(db):
+    from src.services.contactos.seguimiento import seguimiento_de
+
+    r = await crear_templada({"nombre": "Sol", "email": "sol@x.com", "notas": "Quiere empezar en enero"}, "Closer", db, 7)
+    await actualizar_templada(r["templada"]["id"], {"llamar_el": "2026-10-09"}, db, "Closer", 7)  # sin cambiar notas: nada
+    await actualizar_templada(r["templada"]["id"], {"notas": "Le llamo el jueves"}, db, "Closer", 7)
+    notas = [n["texto"] for n in (await seguimiento_de("sol@x.com", db))["notas"]]
+    assert sorted(notas) == ["Llamadas templadas: Le llamo el jueves", "Llamadas templadas: Quiere empezar en enero"]
+
+    # Sin correo no hay ficha a la que copiar; al ponérselo, se copia.
+    r = await crear_templada({"nombre": "Pepe", "notas": "Vecino"}, "Closer", db, 7)
+    await actualizar_templada(r["templada"]["id"], {"email": "pepe@x.com"}, db, "Closer", 7)
+    assert [n["texto"] for n in (await seguimiento_de("pepe@x.com", db))["notas"]] == ["Llamadas templadas: Vecino"]
+
+
+@pytest.mark.asyncio
+async def test_mandar_desde_la_ficha_sin_duplicar(db):
+    from src.services.contactos.templadas import mandar_a_templadas, templada_de
+
+    viejo = (datetime.now(timezone.utc) - timedelta(hours=3)).isoformat()
+    db.add(ContactEvent(email="eva@x.com", kind="agendar-empezado", first_name="Eva", created_at=viejo))
+    await db.commit()
+
+    r = await mandar_a_templadas("eva@x.com", "Eva", "+316", "", "Closer", db)
+    assert r["ok"] and not r["ya_estaba"] and r["templada"]["toca"] == "hoy"
+    # Abrir la lista no la mete otra vez como automática.
+    lista = await listar_templadas(db)
+    assert [p["email"] for p in lista["pendientes"]] == ["eva@x.com"]
+
+    # Mandarla otra vez no duplica; si estaba quitada, vuelve.
+    assert (await quitar_templada(r["templada"]["id"], db))["borrada"] is False
+    assert [c["email"] for c in (await listar_templadas(db))["cerradas"]] == ["eva@x.com"]
+    r2 = await mandar_a_templadas("eva@x.com", "Eva", "", "2026-12-01", "Closer", db)
+    assert r2["templada"]["id"] == r["templada"]["id"] and r2["templada"]["estado"] == "pendiente"
+    assert (await templada_de("EVA@x.com", db))["llamar_el"] == "2026-12-01"
+    assert not (await mandar_a_templadas("sin-correo", "X", "", "", "Closer", db))["ok"]

@@ -507,5 +507,12 @@ export const crearTemplada = (orgId: number, datos: DatosTemplada, accessToken: 
 export const cambiarTemplada = (orgId: number, id: number, datos: DatosTemplada, accessToken: string) =>
   pedir<{ templada: Templada }>(`contactos/org/${orgId}/templadas/${id}`, 'PUT', datos, accessToken)
 
+/** Desde la ficha: a la lista para llamarla (hoy, si no se dice otro día). Si ya estaba, no se duplica. */
+export const mandarATemplada = (
+  orgId: number,
+  datos: { email: string; nombre?: string; telefono?: string; llamar_el?: string },
+  accessToken: string
+) => pedir<{ ya_estaba: boolean; templada: Templada }>(`contactos/org/${orgId}/templadas/mandar`, 'POST', datos, accessToken)
+
 export const quitarTemplada = (orgId: number, id: number, accessToken: string) =>
   pedir<{ borrada: boolean }>(`contactos/org/${orgId}/templadas/${id}`, 'DELETE', null, accessToken)

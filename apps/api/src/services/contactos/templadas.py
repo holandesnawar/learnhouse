@@ -234,13 +234,11 @@ async def sincronizar(db_session: AsyncSession) -> int:
     if not eventos:
         return 0
 
-    existentes = {
-        f.clave: f
-        for f in (
-            await db_session.execute(select(LlamadaTemplada).where(LlamadaTemplada.clave.is_not(None)))  # type: ignore[union-attr]
-        ).scalars().all()
-    }
-    ya_estan = {k[len("auto:") :] for k in existentes if k and k.startswith("auto:")}
+    todas = (await db_session.execute(select(LlamadaTemplada))).scalars().all()
+    existentes = {f.clave: f for f in todas if f.clave}
+    # Quien ya está en la lista, de la forma que sea (automática, a mano o
+    # mandada desde su ficha), no entra otra vez.
+    ya_estan = {(f.email or "").lower() for f in todas if f.email}
     como_dict = [
         {
             "kind": e.kind,
@@ -330,7 +328,24 @@ def _limpio(texto: Optional[str], tope: int) -> str:
     return str(texto or "").strip()[:tope]
 
 
-async def crear_templada(datos: dict, autor: str, db_session: AsyncSession) -> dict:
+async def _nota_a_la_ficha(email: str, notas: str, autor_id: int, autor: str, db_session: AsyncSession) -> None:
+    """Las notas de aquí también quedan en la ficha de la persona (05/10:
+    "que las notas vayan también a la ficha"). La ficha es un historial: cada
+    vez que cambian, entra una nota nueva con el texto entero. Solo si hay
+    correo, que es lo que une a la persona con su ficha."""
+    if not email or not notas.strip():
+        return
+    from src.services.contactos.seguimiento import anadir_nota
+
+    try:
+        await anadir_nota(email, f"Llamadas templadas: {notas.strip()}", autor_id, autor, db_session)
+    except Exception:  # noqa: BLE001
+        # La nota de la lista ya está guardada; la copia no debe tumbarla.
+        logger.exception("No se ha podido copiar la nota de la llamada templada a la ficha")
+        await db_session.rollback()
+
+
+async def crear_templada(datos: dict, autor: str, db_session: AsyncSession, autor_id: int = 0) -> dict:
     nombre = _limpio(datos.get("nombre"), 160)
     telefono = _limpio(datos.get("telefono"), 40)
     email = _limpio(datos.get("email"), 255).lower()
@@ -358,16 +373,21 @@ async def crear_templada(datos: dict, autor: str, db_session: AsyncSession) -> d
     db_session.add(fila)
     await db_session.commit()
     await db_session.refresh(fila)
-    return {"ok": True, "templada": _dict(fila, hoy_local())}
+    resultado = {"ok": True, "templada": _dict(fila, hoy_local())}
+    await _nota_a_la_ficha(fila.email, fila.notas, autor_id, autor, db_session)
+    return resultado
 
 
-async def actualizar_templada(templada_id: int, cambios: dict, db_session: AsyncSession) -> dict:
+async def actualizar_templada(
+    templada_id: int, cambios: dict, db_session: AsyncSession, autor: str = "", autor_id: int = 0
+) -> dict:
     """Cambia solo lo que llega (los campos que no vienen se quedan)."""
     fila = (
         await db_session.execute(select(LlamadaTemplada).where(LlamadaTemplada.id == templada_id))
     ).scalars().first()
     if fila is None:
         return {"ok": False, "motivo": "No existe", "codigo": 404}
+    antes = (fila.email, fila.notas)
     if "nombre" in cambios:
         fila.nombre = _limpio(cambios["nombre"], 160)
     if "telefono" in cambios:
@@ -399,18 +419,80 @@ async def actualizar_templada(templada_id: int, cambios: dict, db_session: Async
     db_session.add(fila)
     await db_session.commit()
     await db_session.refresh(fila)
-    return {"ok": True, "templada": _dict(fila, hoy_local())}
+    resultado = {"ok": True, "templada": _dict(fila, hoy_local())}
+    # A la ficha, si cambiaron las notas o si acaba de ponérsele el correo.
+    if (fila.email, fila.notas) != antes and fila.notas and (fila.notas != antes[1] or not antes[0]):
+        await _nota_a_la_ficha(fila.email, fila.notas, autor_id, autor, db_session)
+    return resultado
+
+
+async def templada_de(email: str, db_session: AsyncSession) -> Optional[dict]:
+    """La fila de esa persona en la lista, si la tiene (la más reciente)."""
+    clave = (email or "").strip().lower()
+    if not clave:
+        return None
+    fila = (
+        await db_session.execute(
+            select(LlamadaTemplada).where(LlamadaTemplada.email == clave).order_by(LlamadaTemplada.id.desc())  # type: ignore[attr-defined]
+        )
+    ).scalars().first()
+    return _dict(fila, hoy_local()) if fila else None
+
+
+async def mandar_a_templadas(
+    email: str, nombre: str, telefono: str, llamar_el: str, autor: str, db_session: AsyncSession
+) -> dict:
+    """El botón de la ficha: pone a la persona en la lista para llamarla. Si
+    ya estaba (pendiente, hecha o quitada) no se duplica: se vuelve a poner
+    pendiente con la fecha nueva, y sus notas se quedan."""
+    clave = _limpio(email, 255).lower()
+    if "@" not in clave:
+        return {"ok": False, "motivo": "Falta un correo válido"}
+    llamar_el = _limpio(llamar_el, 10) or hoy_local().isoformat()
+    if not fecha_valida(llamar_el):
+        return {"ok": False, "motivo": "La fecha no es válida"}
+    fila = (
+        await db_session.execute(
+            select(LlamadaTemplada).where(LlamadaTemplada.email == clave).order_by(LlamadaTemplada.id.desc())  # type: ignore[attr-defined]
+        )
+    ).scalars().first()
+    ahora = _ahora()
+    ya_estaba = fila is not None and fila.estado == "pendiente"
+    if fila is None:
+        fila = LlamadaTemplada(
+            nombre=_limpio(nombre, 160),
+            telefono=_limpio(telefono, 40),
+            email=clave,
+            origen="mano",
+            detalle="Mandada desde su ficha",
+            estado="pendiente",
+            clave=None,
+            creado_por=autor[:120],
+            created_at=ahora,
+        )
+    else:
+        fila.estado = "pendiente"
+        fila.hecha_at = ""
+        fila.nombre = fila.nombre or _limpio(nombre, 160)
+        fila.telefono = fila.telefono or _limpio(telefono, 40)
+    fila.llamar_el = llamar_el
+    fila.updated_at = ahora
+    db_session.add(fila)
+    await db_session.commit()
+    await db_session.refresh(fila)
+    return {"ok": True, "ya_estaba": ya_estaba, "templada": _dict(fila, hoy_local())}
 
 
 async def quitar_templada(templada_id: int, db_session: AsyncSession) -> dict:
-    """Las de mano se borran. Las automáticas se quedan como descartadas: si
-    se borraran, volverían a entrar solas la próxima vez que se abra la lista."""
+    """Las de mano SIN correo se borran. Las demás se quedan como descartadas:
+    si se borraran, la persona volvería a entrar sola la próxima vez que se
+    abra la lista (si dejó un formulario a medias)."""
     fila = (
         await db_session.execute(select(LlamadaTemplada).where(LlamadaTemplada.id == templada_id))
     ).scalars().first()
     if fila is None:
         return {"ok": False, "motivo": "No existe", "codigo": 404}
-    if fila.origen == "mano":
+    if fila.origen == "mano" and not fila.email:
         await db_session.delete(fila)
         await db_session.commit()
         return {"ok": True, "borrada": True}

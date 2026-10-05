@@ -133,7 +133,9 @@ function Formulario({
         </div>
       </div>
       <div>
-        <label className={ETIQUETA}>Notas</label>
+        <label className={ETIQUETA}>
+          Notas <span className="font-normal text-gray-400">· si tiene correo, se guardan también en su ficha</span>
+        </label>
         <textarea
           className={`${CAMPO} !h-auto py-2 min-h-[84px] leading-relaxed`}
           value={d.notas || ''}
@@ -213,9 +215,9 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
   async function quitar(t: Templada) {
     const quien = t.nombre || t.telefono || t.email
     const pregunta =
-      t.origen === 'mano'
+      t.origen === 'mano' && !t.email
         ? `¿Borrar a ${quien} de las llamadas templadas? Sus notas de aquí se pierden.`
-        : `¿Quitar a ${quien} de las llamadas templadas? No vuelve a entrar sola. Su ficha y su historial no se tocan.`
+        : `¿Quitar a ${quien} de las llamadas templadas? No vuelve a entrar sola (se puede devolver desde «Hechas o quitadas»). Su ficha y sus notas no se tocan.`
     if (!(await confirmar(pregunta))) return
     const r = await quitarTemplada(org.id, t.id, accessToken)
     if (!r.ok) {
@@ -327,7 +329,7 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
                         <Check size={13} /> Ya está hecha
                       </button>
                       <button onClick={() => quitar(t)} className={`${BOTON_PELIGRO} ml-auto`}>
-                        <Trash2 size={13} /> {t.origen === 'mano' ? 'Borrar' : 'Quitar'}
+                        <Trash2 size={13} /> {t.origen === 'mano' && !t.email ? 'Borrar' : 'Quitar'}
                       </button>
                     </div>
                     <Formulario

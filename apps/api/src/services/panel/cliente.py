@@ -169,6 +169,14 @@ async def ficha_cliente(email: str, user_id: int, es_admin: bool, db_session: As
     except Exception:  # noqa: BLE001
         avance = None
 
+    # Si está en Llamadas templadas (para el botón de la ficha).
+    try:
+        from src.services.contactos.templadas import templada_de
+
+        templada = await templada_de(clave, db_session)
+    except Exception:  # noqa: BLE001
+        templada = None
+
     return {
         "email": clave,
         "nombre": ficha["nombre"],
@@ -191,6 +199,7 @@ async def ficha_cliente(email: str, user_id: int, es_admin: bool, db_session: As
         "tareas": tareas,
         "llamadas": llamadas,
         "avance": avance,
+        "templada": templada,
         "systeme": crm,
         "linea": linea_de_tiempo(ficha["eventos"], correos, seg.get("notas", []), tareas),
     }
