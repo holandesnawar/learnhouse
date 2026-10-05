@@ -1,7 +1,7 @@
 """Llamadas templadas (05/10/2026): quien se quedó a medias entra solo, y el
 closer puede apuntar a gente a mano con nombre, móvil, notas y fecha."""
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -16,7 +16,6 @@ from src.services.contactos.templadas import (
     listar_templadas,
     ordenar_pendientes,
     quitar_templada,
-    toca,
 )
 
 AHORA = datetime(2026, 10, 5, 12, 0, tzinfo=timezone.utc)
@@ -63,17 +62,9 @@ def test_admision_antigua_marcada_con_embudo():
     assert filas[0]["origen"] == "admision"
 
 
-def test_orden_primero_lo_que_toca():
-    hoy = date(2026, 10, 5)
-    assert toca("2026-10-04", hoy) == "vencida" and toca("2026-10-05", hoy) == "hoy" and toca("", hoy) == ""
-    filas = [
-        {"id": 1, "llamar_el": "", "created_at": "2026-10-01"},
-        {"id": 2, "llamar_el": "2026-10-09", "created_at": ""},
-        {"id": 3, "llamar_el": "2026-10-05", "created_at": ""},
-        {"id": 4, "llamar_el": "2026-10-02", "created_at": ""},
-        {"id": 5, "llamar_el": "", "created_at": "2026-10-03"},
-    ]
-    assert [f["id"] for f in ordenar_pendientes(filas, hoy)] == [4, 3, 2, 5, 1]
+def test_orden_lo_mas_nuevo_arriba():
+    filas = [{"id": 1, "created_at": "2026-10-01"}, {"id": 2, "created_at": "2026-10-04"}, {"id": 3, "created_at": ""}]
+    assert [f["id"] for f in ordenar_pendientes(filas)] == [2, 1, 3]
 
 
 @pytest.mark.asyncio
@@ -98,9 +89,11 @@ async def test_lista_de_verdad(db):
     assert len(lista["pendientes"]) == 2
 
     ana = next(p for p in lista["pendientes"] if p["nombre"] == "Ana")
-    r = await actualizar_templada(ana["id"], {"llamar_el": "2026-10-20", "notas": "Llamar tarde"}, db)
-    assert r["templada"]["llamar_el"] == "2026-10-20"
-    assert not (await actualizar_templada(ana["id"], {"llamar_el": "mañana"}, db))["ok"]
+    r = await actualizar_templada(ana["id"], {"estado": "hecha"}, db)
+    assert r["templada"]["estado"] == "hecha"
+    r = await actualizar_templada(ana["id"], {"estado": "pendiente"}, db)
+    assert r["templada"]["estado"] == "pendiente"
+    assert not (await actualizar_templada(ana["id"], {"estado": "rara"}, db))["ok"]
 
     # Quitar una automática la descarta (no vuelve a entrar); una de mano se borra.
     assert (await quitar_templada(ana["id"], db))["borrada"] is False
@@ -113,19 +106,25 @@ async def test_lista_de_verdad(db):
 
 
 @pytest.mark.asyncio
-async def test_las_notas_van_tambien_a_la_ficha(db):
-    from src.services.contactos.seguimiento import seguimiento_de
+async def test_las_notas_son_las_de_la_ficha(db):
+    from src.services.contactos.seguimiento import anadir_nota, seguimiento_de
 
+    # Con correo, la nota va a la ficha (sin prefijos) y la fila no guarda copia.
     r = await crear_templada({"nombre": "Sol", "email": "sol@x.com", "notas": "Quiere empezar en enero"}, "Closer", db, 7)
-    await actualizar_templada(r["templada"]["id"], {"llamar_el": "2026-10-09"}, db, "Closer", 7)  # sin cambiar notas: nada
-    await actualizar_templada(r["templada"]["id"], {"notas": "Le llamo el jueves"}, db, "Closer", 7)
-    notas = [n["texto"] for n in (await seguimiento_de("sol@x.com", db))["notas"]]
-    assert sorted(notas) == ["Llamadas templadas: Le llamo el jueves", "Llamadas templadas: Quiere empezar en enero"]
+    assert r["templada"]["notas"] == "" and r["templada"]["n_notas"] == 1
+    assert [n["texto"] for n in (await seguimiento_de("sol@x.com", db))["notas"]] == ["Quiere empezar en enero"]
 
-    # Sin correo no hay ficha a la que copiar; al ponérselo, se copia.
+    # Una nota puesta desde la ficha sale en la lista.
+    await anadir_nota("sol@x.com", "Le llamo el jueves", 7, "Closer", db)
+    sol = next(p for p in (await listar_templadas(db))["pendientes"] if p["email"] == "sol@x.com")
+    assert sol["n_notas"] == 2 and sol["ultima_nota"] == "Le llamo el jueves"
+
+    # Sin correo, las notas viven en la fila; al ponerle correo, pasan a la ficha.
     r = await crear_templada({"nombre": "Pepe", "notas": "Vecino"}, "Closer", db, 7)
-    await actualizar_templada(r["templada"]["id"], {"email": "pepe@x.com"}, db, "Closer", 7)
-    assert [n["texto"] for n in (await seguimiento_de("pepe@x.com", db))["notas"]] == ["Llamadas templadas: Vecino"]
+    assert r["templada"]["notas"] == "Vecino" and r["templada"]["ultima_nota"] == "Vecino"
+    r = await actualizar_templada(r["templada"]["id"], {"email": "pepe@x.com"}, db, "Closer", 7)
+    assert r["templada"]["notas"] == "" and r["templada"]["ultima_nota"] == "Vecino"
+    assert [n["texto"] for n in (await seguimiento_de("pepe@x.com", db))["notas"]] == ["Vecino"]
 
 
 @pytest.mark.asyncio
@@ -136,8 +135,8 @@ async def test_mandar_desde_la_ficha_sin_duplicar(db):
     db.add(ContactEvent(email="eva@x.com", kind="agendar-empezado", first_name="Eva", created_at=viejo))
     await db.commit()
 
-    r = await mandar_a_templadas("eva@x.com", "Eva", "+316", "", "Closer", db)
-    assert r["ok"] and not r["ya_estaba"] and r["templada"]["toca"] == "hoy"
+    r = await mandar_a_templadas("eva@x.com", "Eva", "+316", "Closer", db)
+    assert r["ok"] and not r["ya_estaba"] and r["templada"]["estado"] == "pendiente"
     # Abrir la lista no la mete otra vez como automática.
     lista = await listar_templadas(db)
     assert [p["email"] for p in lista["pendientes"]] == ["eva@x.com"]
@@ -145,7 +144,8 @@ async def test_mandar_desde_la_ficha_sin_duplicar(db):
     # Mandarla otra vez no duplica; si estaba quitada, vuelve.
     assert (await quitar_templada(r["templada"]["id"], db))["borrada"] is False
     assert [c["email"] for c in (await listar_templadas(db))["cerradas"]] == ["eva@x.com"]
-    r2 = await mandar_a_templadas("eva@x.com", "Eva", "", "2026-12-01", "Closer", db)
+    r2 = await mandar_a_templadas("eva@x.com", "Eva", "", "Closer", db)
     assert r2["templada"]["id"] == r["templada"]["id"] and r2["templada"]["estado"] == "pendiente"
-    assert (await templada_de("EVA@x.com", db))["llamar_el"] == "2026-12-01"
-    assert not (await mandar_a_templadas("sin-correo", "X", "", "", "Closer", db))["ok"]
+    assert (await mandar_a_templadas("eva@x.com", "Eva", "", "Closer", db))["ya_estaba"] is True
+    assert (await templada_de("EVA@x.com", db))["estado"] == "pendiente"
+    assert not (await mandar_a_templadas("sin-correo", "X", "", "Closer", db))["ok"]

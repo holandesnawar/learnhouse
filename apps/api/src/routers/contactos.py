@@ -146,7 +146,6 @@ class Templada(BaseModel):
     telefono: Optional[str] = None
     email: Optional[str] = None
     notas: Optional[str] = None
-    llamar_el: Optional[str] = None
     estado: Optional[str] = None
 
 
@@ -174,7 +173,6 @@ class MandarTemplada(BaseModel):
     email: str
     nombre: str = ""
     telefono: str = ""
-    llamar_el: str = ""
 
 
 @router.post("/org/{org_id}/templadas/mandar", summary="Manda a una persona desde su ficha a las llamadas templadas.")
@@ -187,7 +185,7 @@ async def api_mandar_templada(
 ):
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
     return _respuesta_templada(
-        await mandar_a_templadas(data.email, data.nombre, data.telefono, data.llamar_el, _nombre(current_user), db_session)
+        await mandar_a_templadas(data.email, data.nombre, data.telefono, _nombre(current_user), db_session)
     )
 
 

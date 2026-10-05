@@ -9,6 +9,7 @@ gente a mano: nombre, móvil, notas y fecha de llamada más o menos".
 Por eso aquí, a diferencia del resto de la ficha, el CORREO es opcional: a
 alguien que escribió por WhatsApp o que conociste en persona solo le tienes el
 número. Las filas automáticas sí llevan el correo (sale del formulario).
+Con correo, las notas no se guardan aquí: son las de su ficha (`contact_nota`).
 """
 
 from typing import Optional
@@ -24,7 +25,8 @@ class LlamadaTemplada(SQLModel, table=True):
     telefono: str = Field(default="", max_length=40)
     email: str = Field(default="", index=True, max_length=255)
     notas: str = Field(default="", max_length=4000)
-    # Cuándo llamar, "AAAA-MM-DD". Es una fecha aproximada: un día, no una cita.
+    # Ya no se usa (05/10: "pendiente o hecho y ya", sin fechas). Se deja la
+    # columna para no tocar la tabla ya creada.
     llamar_el: str = Field(default="", max_length=10)
     # mano · agendar · admision
     origen: str = Field(default="mano", max_length=20)
