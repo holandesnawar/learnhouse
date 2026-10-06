@@ -34,6 +34,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.contact_event import ContactEvent, ContactEventCreate
 from src.db.enrollment import Enrollment
 from src.db.enrollment_request import EnrollmentRequest
+from src.db.reservas import ReservaPago, ReservaPlaza
 from src.db.user_organizations import UserOrganization
 from src.db.users import User
 from src.security.rbac.constants import STUDENT_ROLE_ID
@@ -59,13 +60,16 @@ NOMBRES_TIPO = {
     "cualificacion": "Pidió una llamada (contestó la cualificación)",
     "matricula": "Empezó la matrícula (llegó al pago)",
     "pago": "Pagó la formación",
+    # Un pago de una plaza reservada (señal, a cuenta o el resto). El texto
+    # con el importe lo pone `_que`.
+    "senal": "Pagó una parte (plaza reservada)",
     "reunion": "Reservó una reunión",
     "alta-manual": "Dado de alta a mano",
 }
 
 #: Los tipos en los que la persona ha visto el precio con seguridad: llegar al
 #: pago es ver el precio, por definición.
-_CON_PRECIO = {"matricula", "pago"}
+_CON_PRECIO = {"matricula", "pago", "senal"}
 
 #: Lo que cuenta como "se matriculó": pidió plaza por el formulario o llegó al
 #: pago. Es lo único que ve el closer en Contactos (la gente que solo bajó una
@@ -75,7 +79,7 @@ _CON_PRECIO = {"matricula", "pago"}
 # ("reunion") se ha matriculado, aunque la solicitud que manda la web no
 # llegue (la puerta de /payments/solicitudes tiene tope por IP). Sin esto no
 # saldría en el Contactos del closer, que filtra por esta fecha.
-_MATRICULA = {"solicitud", "matricula", "agendar-empezado", "admision", "cualificacion", "reunion"}
+_MATRICULA = {"solicitud", "matricula", "agendar-empezado", "admision", "cualificacion", "reunion", "senal"}
 
 #: Pidió hablar con nosotros: el formulario de plaza o el de la llamada.
 _PIDIO = {"solicitud", "cualificacion", "agendar-empezado", "admision", "reunion"}
@@ -87,7 +91,9 @@ def etapa_de(tipos: set[str], tiene_cuenta: bool) -> str:
     su propio criterio, se solapaban y no cuadraban)."""
     if tiene_cuenta or "pago" in tipos or "alta-manual" in tipos:
         return "alumno"
-    if "matricula" in tipos:
+    # Con una señal pagada sigue SIN ser alumno (no tiene acceso hasta
+    # completar): está en el pago, a medias.
+    if "matricula" in tipos or "senal" in tipos:
         return "en-pago"
     if tipos & _PIDIO:
         return "pidio"
@@ -228,8 +234,23 @@ def _que(kind: str, campos: dict) -> str:
     if kind == "solicitud" and campos.get("source") == "admision":
         return "Se matriculó en el proceso de admisión"
     if kind == "enlace-pago" and extra.get("autor"):
+        if extra.get("importe_cents"):
+            return f"{extra['autor']} le creó un enlace de pago de {_euros(extra['importe_cents'])}"
         return f"{extra['autor']} le creó un enlace de pago"
+    if kind == "senal":
+        importe = _euros(extra.get("importe_cents") or 0)
+        if extra.get("tipo") == "resto":
+            return f"Pagó lo que faltaba ({importe}): matrícula completa"
+        if extra.get("tipo") == "parcial":
+            return f"Pagó {importe} a cuenta (le faltan {_euros(extra.get('pendiente_cents') or 0)})"
+        return f"Pagó una señal de {importe}: plaza reservada, sin acceso hasta completar"
     return NOMBRES_TIPO.get(kind, kind)
+
+
+def _euros(cents) -> str:
+    valor = int(cents or 0) / 100
+    texto = f"{valor:.2f}".replace(".", ",")
+    return (texto[:-3] if texto.endswith(",00") else texto) + " €"
 
 
 def _evento(kind: str, when: str, email: str, **campos) -> dict:
@@ -382,7 +403,10 @@ async def _todos_los_eventos(db_session: AsyncSession) -> list[dict]:
         # Las descartadas desde el panel eran pruebas: no son un contacto.
         if r.status == "descartada":
             continue
-        eventos.append(_evento("matricula", r.created_at, r.email, source="checkout", **comunes))
+        # La matrícula que se crea al completar una reserva no es "llegó al
+        # pago": ese paso ya lo cuentan los pagos de la reserva (abajo).
+        if getattr(r, "recorrido", "") != "reserva":
+            eventos.append(_evento("matricula", r.created_at, r.email, source="checkout", **comunes))
         if r.status == "paid":
             eventos.append(
                 _evento(
@@ -392,6 +416,31 @@ async def _todos_los_eventos(db_session: AsyncSession) -> list[dict]:
                     **comunes,
                 )
             )
+
+    # Los pagos de plazas reservadas (señal, a cuenta, el resto).
+    reservas = {r.id: r for r in (await db_session.execute(select(ReservaPlaza))).scalars().all()}
+    pagados = sorted(
+        (p for p in (await db_session.execute(select(ReservaPago).where(ReservaPago.estado == "pagado"))).scalars().all()),
+        key=lambda p: str(p.paid_at or ""),
+    )
+    acumulado: dict[int, int] = {}
+    for p in pagados:
+        r = reservas.get(p.reserva_id)
+        if r is None:
+            continue
+        acumulado[r.id] = acumulado.get(r.id, 0) + int(p.importe_cents or 0)
+        eventos.append(
+            _evento(
+                "senal", p.paid_at or p.created_at, r.email,
+                first_name=r.first_name, last_name=r.last_name, phone=r.phone, source="stripe",
+                extra={
+                    "tipo": p.tipo,
+                    "importe_cents": p.importe_cents,
+                    "pendiente_cents": max(0, int(r.total_cents or 0) - acumulado[r.id]),
+                    "reserva": r.id,
+                },
+            )
+        )
     return eventos
 
 

@@ -27,6 +27,7 @@ import Seguimiento from '@components/Dashboard/Pages/Estadisticas/Seguimiento'
 import { FilaTarea, TareaForm } from './Tareas'
 import { quitarPersona } from './quitarPersona'
 import EnlacePago from './EnlacePago'
+import ReservaPlaza from './ReservaPlaza'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import {
   BookOpen,
@@ -330,9 +331,23 @@ export default function FichaCliente({
             {/* Dónde está en el tablero */}
             <Bloque icono={<Sparkles size={15} />} titulo="Matrícula">
               {esAlumno ? (
-                <p className="text-[13px] text-[#15803D] font-semibold flex items-center gap-1.5">
-                  <CheckCircle2 size={15} /> Ya es alumno
-                </p>
+                <>
+                  <p className="text-[13px] text-[#15803D] font-semibold flex items-center gap-1.5">
+                    <CheckCircle2 size={15} /> Ya es alumno
+                  </p>
+                  {ficha.reserva?.estado === 'abierta' ? (
+                    <div className="mt-3">
+                      <ReservaPlaza
+                        email={ficha.email}
+                        nombre={ficha.nombre}
+                        telefono={ficha.telefono}
+                        reserva={ficha.reserva}
+                        esAlumno
+                        onCambio={(r) => setFicha({ ...ficha, reserva: r })}
+                      />
+                    </div>
+                  ) : null}
+                </>
               ) : (
                 <>
                   <div className="flex flex-wrap gap-1.5">
@@ -377,6 +392,20 @@ export default function FichaCliente({
                         <PhoneCall size={13} /> Mandar a Llamadas
                       </button>
                     )}
+                  </div>
+                  {/* Señal para reservar la plaza y lo que falta (06/10). */}
+                  <div className="mt-2">
+                    <ReservaPlaza
+                      email={ficha.email}
+                      nombre={ficha.nombre}
+                      telefono={ficha.telefono}
+                      reserva={ficha.reserva}
+                      esAlumno={false}
+                      onCambio={(r) => {
+                        setFicha({ ...ficha, reserva: r })
+                        onCambio?.()
+                      }}
+                    />
                   </div>
                   <p className="text-[11.5px] text-[#9CA3AF] mt-2">
                     {ficha.tablero.movido_por

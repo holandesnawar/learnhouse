@@ -30,6 +30,7 @@ import {
   NOMBRE_CANAL,
   ocultarTarjeta,
   type EtapaTablero,
+  euros,
   type Tablero,
   type Tarjeta,
 } from '@services/panel/panel'
@@ -100,6 +101,13 @@ function TarjetaVista({ t, onAbrir }: { t: Tarjeta; onAbrir: () => void }) {
         </span>
       </div>
       <p className="text-[12px] text-gray-500 truncate">{t.que_hizo}</p>
+      {t.reserva ? (
+        <p className="mt-1 text-[11.5px] font-medium text-gray-900 tabular-nums" title="Plaza reservada: entra a la escuela cuando pague lo que falta">
+          {t.reserva.pagado_cents > 0
+            ? `Señal ${euros(t.reserva.pagado_cents)} · faltan ${euros(t.reserva.pendiente_cents)}`
+            : 'Enlace de señal enviado, sin pagar'}
+        </p>
+      ) : null}
       {t.canal || t.vio_precio || t.notas || t.tareas ? (
         <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11.5px] text-gray-500">
           {t.canal ? <span>{NOMBRE_CANAL[t.canal]}</span> : null}

@@ -164,6 +164,44 @@ async def api_pagar_enlace(
 
 
 @router.get(
+    "/reserva/{token}",
+    summary="Abre un enlace de señal o de pago a cuenta: crea la sesión y lleva al checkout.",
+    description=(
+        "Público. Lo crea el equipo desde la ficha (`POST /contactos/org/{id}/reserva/enlace`). "
+        "Cobra solo esa parte; el acceso a la escuela se da cuando lo pagado llega al total "
+        "(ver services/payments/reservas.py)."
+    ),
+)
+async def api_pagar_reserva(
+    token: str,
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from fastapi.responses import HTMLResponse
+
+    from src.services.payments.reservas import abrir_pago
+
+    try:
+        url = await abrir_pago(token, db_session)
+    except HTTPException as exc:
+        titulo = "Ya está todo pagado" if exc.status_code == 409 else (
+            "Este enlace ya no vale" if exc.status_code == 410 else "Ahora mismo no se puede pagar"
+        )
+        import html
+
+        detalle = str(exc.detail).rstrip()
+        if detalle and detalle[-1] not in ".!?":
+            detalle += "."
+        return HTMLResponse(
+            _PAGINA_ENLACE.format(
+                titulo=titulo,
+                texto=html.escape(f"{detalle} Si tienes cualquier duda, escríbenos por WhatsApp."),
+            ),
+            status_code=exc.status_code,
+        )
+    return RedirectResponse(url=url, status_code=303)
+
+
+@router.get(
     "/checkout/formacion",
     summary="Redirect the buyer to a Stripe Checkout Session for the formación.",
     description=(

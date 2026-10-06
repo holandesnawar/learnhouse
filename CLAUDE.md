@@ -2184,6 +2184,43 @@ documentos, «La ven: … · Cambiar»): **Todos**, **Solo administradores** o
   profes). «Recursos y documentos» salió de Formación; `/dash/recursos` sigue
   funcionando si alguien tiene el enlace guardado.
 
+## Reservar plaza con señal y cobrar el resto (06/10/2026)
+Pedido: "Manuel está en llamada, falla Klarna o su tarjeta y no cierra. Se le
+pasa un enlace de 50 € como señal para guardarse la plaza; queda en su ficha
+lo que pagó y lo que falta. Con la señal NO entra; al completar, acceso. Con
+el checkout nuestro de siempre." Todo en `services/payments/reservas.py`
+(docstring largo: leerlo antes de tocar), tablas `reserva_plaza` y
+`reserva_pago` (`src/db/reservas.py`). Test: `test_reservas_senal.py`.
+- **Ficha → Matrícula → «Cobrar una señal»**: importe (50 € por defecto) y
+  total (el precio del Price de Stripe; **solo un administrador** puede poner
+  otro). Luego «Enlace por lo que falta» (por defecto todo lo pendiente; se
+  puede poner menos y pagar en partes). Administradores: «Cambiar total» (tiene
+  que quedar algo por pagar) y «Cancelar reserva» (libera la plaza; **NO
+  devuelve dinero**, eso en Stripe).
+- El enlace (`/api/v1/payments/reserva/{token}`, firmado, 14 días) crea la
+  sesión de pago AL ABRIRLO por ese importe, **recortado a lo que quede
+  pendiente** (un enlace viejo no cobra de más), cierra la sesión anterior sin
+  pagar de esa reserva, y lleva a la caja de siempre con `tipo`/`tot`/`prev`:
+  la caja enseña «Total · Ya pagado · Señal/Pagas ahora». Stripe emite factura
+  de cada parte (`invoice_creation`, concepto «Señal · reserva de plaza…»).
+- **Mientras falte algo NO hay fila `paid` en `enrollment`**, a propósito: medio
+  panel lee eso como "es alumno" (ventas, tablero, quién no hay que llamar). Al
+  completar se crea la matrícula `paid` con el TOTAL cobrado
+  (`recorrido="reserva"`) y se da el alta con `_provision_after_payment`, igual
+  que un pago normal. O sea: **la señal no cuenta como venta ni ingreso en
+  Estadísticas hasta completarse**; en Clientes sale «Plazas reservadas ·
+  pendiente de cobrar».
+- Los dos avisos de Stripe del mismo cobro: el pago se reclama con UPDATE
+  condicionado y `pagado_cents` se RECALCULA con una suma en la base de datos.
+  La rama va al principio de `_handle_checkout_session` y
+  `_handle_payment_intent` (metadato `reserva_pago_id`).
+- **La señal ocupa plaza** (`emails_con_plaza_reservada` en `get_seat_status`)
+  y por eso lo que falta se puede pagar aunque la convocatoria esté llena.
+- Al volver del pago de una señal: `/auth/bienvenido?reserva=1&pag=&pend=`
+  enseña «¡Plaza reservada!» (no "mira tu correo": aún no hay cuenta).
+- Tarjeta del tablero: «Señal 50 € · faltan 347 €». Línea de tiempo: evento
+  `senal` (cuenta como "en el pago", no como alumno).
+
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
   `git branch --show-current` antes de dar por buena ninguna que ponga aquí.

@@ -396,6 +396,107 @@ async def api_enlace_pago(
     return {"url": f"{_academy_url()}/api/v1/payments/pagar/{token}", "dias": DIAS_VALIDEZ}
 
 
+# ── Reservar plaza con señal y cobrar el resto (06/10/2026) ───────────────
+#
+# Todo en services/payments/reservas.py. El closer crea enlaces y ve lo que
+# lleva pagado cada uno; el total distinto del precio, cambiarlo o cancelar
+# la reserva, solo administradores (es lo que se le cobra a la persona).
+
+
+class PedidoReserva(BaseModel):
+    email: str
+    first_name: str = ""
+    last_name: str = ""
+    phone: str = ""
+    importe_cents: int
+    # Solo lo tiene en cuenta si lo pide un administrador y la reserva es nueva.
+    total_cents: Optional[int] = None
+
+
+@router.get("/org/{org_id}/reserva/precio", summary="El precio de la formación (el total por defecto de una reserva).")
+async def api_reserva_precio(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    from src.services.payments.reservas import SENAL_POR_DEFECTO_CENTS, precio_formacion
+
+    cents, moneda = await precio_formacion()
+    return {"total_cents": cents, "moneda": moneda, "senal_cents": SENAL_POR_DEFECTO_CENTS}
+
+
+@router.post("/org/{org_id}/reserva/enlace", summary="Enlace de pago por una parte (señal o lo que falta).")
+async def api_reserva_enlace(
+    request: Request,
+    org_id: int,
+    data: PedidoReserva,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    from src.services.payments.reservas import crear_enlace
+
+    return await crear_enlace(
+        email=data.email,
+        first_name=data.first_name or data.email.split("@")[0],
+        last_name=data.last_name,
+        phone=data.phone,
+        importe_cents=data.importe_cents,
+        total_cents=data.total_cents,
+        autor=_nombre(current_user),
+        es_admin=await _es_admin(current_user, org_id, db_session),
+        db_session=db_session,
+    )
+
+
+@router.get("/org/{org_id}/reservas", summary="Plazas reservadas con señal, pendientes de completar.")
+async def api_reservas(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    from src.services.payments.reservas import reservas_abiertas
+
+    return {"reservas": await reservas_abiertas(db_session)}
+
+
+class CambioReserva(BaseModel):
+    total_cents: int
+
+
+@router.put("/org/{org_id}/reserva/{reserva_id}", summary="Cambia el total pactado (administradores).")
+async def api_reserva_total(
+    request: Request,
+    org_id: int,
+    reserva_id: int,
+    data: CambioReserva,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _solo_admin(request, org_id, current_user, db_session)
+    from src.services.payments.reservas import cambiar_total
+
+    return await cambiar_total(reserva_id, data.total_cents, db_session)
+
+
+@router.delete("/org/{org_id}/reserva/{reserva_id}", summary="Cancela la reserva y libera la plaza (administradores).")
+async def api_reserva_cancelar(
+    request: Request,
+    org_id: int,
+    reserva_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _solo_admin(request, org_id, current_user, db_session)
+    from src.services.payments.reservas import cancelar
+
+    return await cancelar(reserva_id, db_session)
+
+
 # ── Seguimiento: notas y "volver a llamar" (closer y administradores) ──────
 
 

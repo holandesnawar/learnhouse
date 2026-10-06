@@ -162,12 +162,15 @@ function MissingParams() {
   )
 }
 
-/** El "Paso 2 de 2 · Pago seguro" de siempre. */
-function CabeceraPago() {
+/**
+ * El "Paso 2 de 2 · Pago seguro" de siempre. Con un pago por partes (señal o
+ * lo que falta, ver `TipoPago`) el rótulo dice qué se está pagando.
+ */
+function CabeceraPago({ tipo = '' }: { tipo?: TipoPago }) {
   return (
     <div>
       <div className="text-[12px] font-bold text-[#4da3ff] tracking-wider uppercase">
-        Paso 2 de 2
+        {tipo === 'resto' ? 'Completa tu matrícula' : tipo ? 'Reserva de plaza' : 'Paso 2 de 2'}
       </div>
       <h1
         className="text-[24px] sm:text-[30px] font-bold text-[#1D0084] leading-tight mt-1"
@@ -186,7 +189,7 @@ function CabeceraPago() {
  * que sus datos han viajado bien desde el formulario, y el "Cambiar" le deja
  * corregir una errata sin tener que rehacer el pago.
  */
-function PagandoComo({ email, fullName }: { email: string; fullName: string }) {
+function PagandoComo({ email, fullName, cambiar = true }: { email: string; fullName: string; cambiar?: boolean }) {
   if (!email) return null
   return (
     <div className="flex items-start gap-2.5 sm:gap-3 bg-[#F0F5FF] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3">
@@ -200,12 +203,14 @@ function PagandoComo({ email, fullName }: { email: string; fullName: string }) {
           <span className="font-normal text-[#0a1656]">{email}</span>
         </div>
       </div>
-      <a
-        href={MATRICULA_URL}
-        className="shrink-0 self-center text-[12px] font-semibold text-[#4da3ff] hover:underline"
-      >
-        Cambiar
-      </a>
+      {cambiar ? (
+        <a
+          href={MATRICULA_URL}
+          className="shrink-0 self-center text-[12px] font-semibold text-[#4da3ff] hover:underline"
+        >
+          Cambiar
+        </a>
+      ) : null}
     </div>
   )
 }
@@ -254,17 +259,20 @@ function CajaDeStripe({
   stripePromise,
   email,
   fullName,
+  tipo = '',
 }: {
   clientSecret: string
   stripePromise: Promise<StripeJS | null>
   email: string
   fullName: string
+  tipo?: TipoPago
 }) {
   return (
     <div className="space-y-5">
-      <CabeceraPago />
-      <PagandoComo email={email} fullName={fullName} />
-      <AvisoKlarna />
+      <CabeceraPago tipo={tipo} />
+      <PagandoComo email={email} fullName={fullName} cambiar={!tipo} />
+      {/* En una señal (50 €) hablar de pagar a plazos confunde. */}
+      {tipo === 'senal' ? null : <AvisoKlarna />}
       {/* La caja de pago se sale del relleno de la tarjeta y llega de borde a
           borde, pegada abajo.
 
@@ -371,7 +379,75 @@ function CheckoutInner({
   )
 }
 
-function CourseSummary({ amountCents, currency }: { amountCents: number; currency: string }) {
+/**
+ * Pago por partes (06/10/2026): una señal para reservar la plaza, un pago a
+ * cuenta o lo que falta. Lo pone el enlace que crea el equipo desde la ficha
+ * (services/payments/reservas.py). Vacío = la matrícula de siempre.
+ */
+type TipoPago = '' | 'senal' | 'parcial' | 'resto'
+
+function DesglosePorPartes({
+  tipo,
+  amountCents,
+  totalCents,
+  prevCents,
+  money,
+}: {
+  tipo: TipoPago
+  amountCents: number
+  totalCents: number
+  prevCents: number
+  money: (v: number) => string
+}) {
+  const quedara = Math.max(0, totalCents - prevCents - amountCents)
+  const etiqueta = tipo === 'senal' ? 'Señal · reserva tu plaza' : tipo === 'resto' ? 'Pagas ahora (lo que falta)' : 'Pagas ahora'
+  return (
+    <div className="border-t border-gray-200 mt-6 pt-4 space-y-2">
+      <div className="flex items-baseline justify-between gap-3 text-[13.5px] text-gray-600">
+        <span>Total de la formación</span>
+        <span className="tabular-nums">{money(totalCents / 100)}</span>
+      </div>
+      {prevCents > 0 ? (
+        <div className="flex items-baseline justify-between gap-3 text-[13.5px] text-gray-600">
+          <span>Ya pagado</span>
+          <span className="tabular-nums">− {money(prevCents / 100)}</span>
+        </div>
+      ) : null}
+      <div className="flex items-baseline justify-between gap-3 pt-1">
+        <span className="text-[13px] text-[#1D0084] font-semibold uppercase tracking-wider">{etiqueta}</span>
+        <span className="text-[24px] font-extrabold text-[#1D0084] leading-none tabular-nums">{money(amountCents / 100)}</span>
+      </div>
+      <p className="text-[12.5px] text-[#0a1656] bg-[#F0F5FF] rounded-xl px-3 py-2.5 leading-relaxed">
+        {tipo === 'resto' ? (
+          <>
+            <strong className="text-[#1D0084]">Con este pago completas tu matrícula.</strong> Al terminar te llega un
+            correo para crear tu contraseña y entrar en la escuela.
+          </>
+        ) : (
+          <>
+            <strong className="text-[#1D0084]">Tu plaza queda reservada.</strong> El acceso a la escuela se abre cuando
+            completes el pago: te quedarán {money(quedara / 100)}.
+          </>
+        )}
+      </p>
+      <div className="text-[12px] text-gray-500 text-right">IVA incl.</div>
+    </div>
+  )
+}
+
+function CourseSummary({
+  amountCents,
+  currency,
+  tipo = '',
+  totalCents = 0,
+  prevCents = 0,
+}: {
+  amountCents: number
+  currency: string
+  tipo?: TipoPago
+  totalCents?: number
+  prevCents?: number
+}) {
   // Price comes off the Stripe Price object via the payment_url so the
   // displayed total tracks whatever you set in Dashboard without a redeploy.
   // Fallback to 297 EUR if the params are missing for any reason.
@@ -433,6 +509,9 @@ function CourseSummary({ amountCents, currency }: { amountCents: number; currenc
         ))}
       </ul>
 
+      {tipo && totalCents > 0 ? (
+        <DesglosePorPartes tipo={tipo} amountCents={amountCents} totalCents={totalCents} prevCents={prevCents} money={money} />
+      ) : (
       <div className="border-t border-gray-200 mt-6 pt-4 flex items-baseline justify-between gap-3">
         <span className="text-[13px] text-gray-500 font-semibold uppercase tracking-wider">
           Total
@@ -454,6 +533,7 @@ function CourseSummary({ amountCents, currency }: { amountCents: number; currenc
           <div className="text-[12px] text-gray-500 mt-1">Pago único · IVA incl.</div>
         </div>
       </div>
+      )}
 
       <div className="mt-4 flex items-start gap-2.5 bg-[#F0F5FF] rounded-xl px-3 py-3">
         <ShieldCheck size={16} className="shrink-0 mt-0.5 text-[#4da3ff]" strokeWidth={2.5} />
@@ -475,6 +555,11 @@ function CheckoutPageBody() {
   const email = decodeURIComponent(sp.get('em') || '')
   const fullName = decodeURIComponent(sp.get('nm') || '')
   const phone = decodeURIComponent(sp.get('ph') || '')
+  // Pago por partes (señal / a cuenta / lo que falta): ver `TipoPago`.
+  const tipoCrudo = sp.get('tipo') || ''
+  const tipo: TipoPago = tipoCrudo === 'senal' || tipoCrudo === 'parcial' || tipoCrudo === 'resto' ? tipoCrudo : ''
+  const totalCents = parseInt(sp.get('tot') || '0', 10) || 0
+  const prevCents = parseInt(sp.get('prev') || '0', 10) || 0
 
   const stripePromise = React.useMemo<Promise<StripeJS | null> | null>(() => {
     if (!publishableKey) return null
@@ -509,6 +594,7 @@ function CheckoutPageBody() {
               stripePromise={stripePromise}
               email={email}
               fullName={fullName}
+              tipo={tipo}
             />
           ) : (
             <Elements
@@ -519,7 +605,7 @@ function CheckoutPageBody() {
             </Elements>
           )}
         </div>
-        <CourseSummary amountCents={amountCents} currency={currency} />
+        <CourseSummary amountCents={amountCents} currency={currency} tipo={tipo} totalCents={totalCents} prevCents={prevCents} />
       </div>
     </div>
   )

@@ -11,6 +11,7 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { euros, fechaCorta, getClientes, haceCuanto, type Cliente } from '@services/panel/panel'
 import FichaCliente from './FichaCliente'
+import PlazasReservadas from './PlazasReservadas'
 import { ChevronRight, Loader2, Search } from 'lucide-react'
 
 const CARD = 'rounded-lg border border-[#E5E7EB] bg-white p-3.5 sm:p-5'
@@ -78,6 +79,9 @@ export default function ClientesPanel() {
         <Cifra label="Ticket medio" valor={datos.n ? euros(Math.round(datos.total_cents / datos.n)) : '—'} />
         <Cifra label="Sin entrar esta semana" valor={String(sinEntrar)} nota="Los que conviene escribir" />
       </div>
+
+      {/* Quien pagó una señal y aún no ha completado: lo que falta por cobrar. */}
+      <PlazasReservadas onAbrir={setAbierta} vuelta={abierta ? 1 : 0} />
 
       <div className="relative">
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
