@@ -40,7 +40,13 @@ from src.db.llamadas_templadas import LlamadaTemplada
 
 logger = logging.getLogger(__name__)
 
-ORIGENES = {"mano": "Apuntada a mano", "agendar": "Agendar llamada", "admision": "Proceso de admisión"}
+ORIGENES = {
+    "mano": "Apuntada a mano",
+    "agendar": "Agendar llamada",
+    "admision": "Proceso de admisión",
+    # Terminó las preguntas (pidió la llamada) y no reservó hora (06/10).
+    "llamada": "Pidió llamada, sin hora",
+}
 ESTADOS = ("pendiente", "hecha", "descartada")
 
 #: Quien dejó sus datos hace menos de esto puede estar rellenando todavía.
@@ -79,6 +85,14 @@ def origen_de(kind: str, extra: dict) -> str:
 
 def detalle_de(origen: str, extra: dict) -> str:
     """Qué dejó a medias, en una línea para el closer. Función pura."""
+    if origen == "llamada":
+        que = "Terminó la admisión" if extra.get("embudo") == "admision" else "Pidió la llamada"
+        if extra.get("apto"):
+            encaje = "encaja"
+        else:
+            motivo = str(extra.get("motivo_fuera") or "").strip()
+            encaje = f"no encaja: {motivo}" if motivo else "no encaja"
+        return f"{que} ({encaje}) y no reservó hora"
     ultima = str(extra.get("ultima") or "").strip()
     if origen == "admision":
         texto = "Dejó sus datos y vio el vídeo entero" if extra.get("video") == "visto" else "Dejó sus datos y no terminó el vídeo"
@@ -88,9 +102,31 @@ def detalle_de(origen: str, extra: dict) -> str:
     return "Dejó sus datos y no contestó ninguna pregunta"
 
 
+def reservaron_de(eventos: list[dict]) -> set[str]:
+    """Quién reservó hora DESPUÉS de su última cualificación (evento
+    "reunion", lo manda la web cuando Calendly avisa). Función pura."""
+    ultima_cual: dict[str, datetime] = {}
+    reuniones: dict[str, list[datetime]] = {}
+    for e in eventos:
+        email = str(e.get("email") or "").strip().lower()
+        cuando = _fecha(e.get("created_at") or "")
+        if not email or cuando is None:
+            continue
+        if e.get("kind") == "cualificacion":
+            if email not in ultima_cual or cuando > ultima_cual[email]:
+                ultima_cual[email] = cuando
+        elif e.get("kind") == "reunion":
+            reuniones.setdefault(email, []).append(cuando)
+    return {
+        email
+        for email, horas in reuniones.items()
+        if email not in ultima_cual or any(h >= ultima_cual[email] for h in horas)
+    }
+
+
 def filas_automaticas(
     eventos: list[dict],
-    terminaron: set[str],
+    reservaron: set[str],
     pagaron: set[str],
     ya_estan: set[str],
     atendidos: dict[str, str],
@@ -98,27 +134,41 @@ def filas_automaticas(
 ) -> list[dict]:
     """Quién entra solo en la lista. Función pura, con test.
 
-    `eventos`: los "agendar-empezado" y "admision", el más nuevo primero, como
-    dicts con kind, email, nombre, telefono, created_at y extra.
-    `ya_estan`: correos que ya tienen su fila automática (sea cual sea su
-    estado: una descartada no vuelve).
+    `eventos`: los "agendar-empezado", "admision" y "cualificacion", el más
+    nuevo primero, como dicts con kind, email, nombre, telefono, created_at y
+    extra. Entra:
+    - quien dejó sus datos y no terminó las preguntas, y
+    - (06/10) quien SÍ las terminó, o sea, pidió la llamada, pero no reservó
+      hora (`reservaron`).
+    `ya_estan`: correos que ya tienen su fila (sea cual sea su estado: una
+    descartada no vuelve).
     `atendidos`: correo → cuándo se marcó atendido en la lista vieja; entran
     ya como hechos, para no volver a pedir que se llame a quien ya se llamó.
     """
-    salida: list[dict] = []
-    vistos: set[str] = set()
+    por_email: dict[str, dict] = {}
+    orden: list[str] = []
     for e in eventos:
         email = str(e.get("email") or "").strip().lower()
-        if not email or email in vistos:
+        if not email:
             continue
-        vistos.add(email)
-        if email in terminaron or email in pagaron or email in ya_estan:
+        if email not in por_email:
+            por_email[email] = {}
+            orden.append(email)
+        clave = "cual" if e.get("kind") == "cualificacion" else "medias"
+        por_email[email].setdefault(clave, e)
+
+    salida: list[dict] = []
+    for email in orden:
+        if email in pagaron or email in ya_estan or email in reservaron:
             continue
+        info = por_email[email]
+        e = info.get("cual") or info.get("medias")
         cuando = _fecha(e.get("created_at") or "")
+        # Puede estar rellenando todavía (o a punto de reservar hora).
         if cuando is not None and ahora - cuando < ESPERA_ANTES_DE_LISTAR:
             continue
         extra = _extra(e.get("extra"))
-        origen = origen_de(str(e.get("kind") or ""), extra)
+        origen = "llamada" if info.get("cual") else origen_de(str(e.get("kind") or ""), extra)
         atendido = atendidos.get(email) or str(extra.get("atendida_at") or "")
         salida.append(
             {
@@ -255,39 +305,16 @@ async def _atendidos_en_solicitudes(emails: set[str], db_session: AsyncSession) 
     return salida
 
 
-async def _terminaron(db_session: AsyncSession) -> set[str]:
-    return {
-        str(e).strip().lower()
-        for (e,) in (
-            await db_session.execute(select(ContactEvent.email).where(ContactEvent.kind == "cualificacion"))
-        ).all()
-        if e
-    }
-
-
-async def sincronizar(db_session: AsyncSession) -> int:
-    """Mete en la lista a quien se quedó a medias y aún no está. Devuelve
-    cuántos entraron. También pone al día el «qué dejó a medias» de los
-    automáticos pendientes (alguien puede haber contestado una pregunta más)."""
-    from src.services.contactos.contactos import emails_que_pagaron
-
-    eventos = (
+async def _eventos_de_llamada(db_session: AsyncSession) -> list[dict]:
+    filas = (
         await db_session.execute(
             select(ContactEvent)
-            .where(ContactEvent.kind.in_(["agendar-empezado", "admision"]))  # type: ignore[attr-defined]
+            .where(ContactEvent.kind.in_(["agendar-empezado", "admision", "cualificacion", "reunion"]))  # type: ignore[attr-defined]
             .order_by(ContactEvent.id.desc())  # type: ignore[attr-defined]
-            .limit(2000)
+            .limit(4000)
         )
     ).scalars().all()
-    if not eventos:
-        return 0
-
-    todas = (await db_session.execute(select(LlamadaTemplada))).scalars().all()
-    existentes = {f.clave: f for f in todas if f.clave}
-    # Quien ya está en la lista, de la forma que sea (automática, a mano o
-    # mandada desde su ficha), no entra otra vez.
-    ya_estan = {(f.email or "").lower() for f in todas if f.email}
-    como_dict = [
+    return [
         {
             "kind": e.kind,
             "email": e.email,
@@ -296,32 +323,56 @@ async def sincronizar(db_session: AsyncSession) -> int:
             "created_at": e.created_at,
             "extra": e.extra,
         }
-        for e in eventos
+        for e in filas
     ]
 
-    # El «qué dejó a medias» de los que ya están y siguen pendientes.
-    cambiadas = False
-    vistos: set[str] = set()
+
+async def sincronizar(db_session: AsyncSession) -> int:
+    """Mete en la lista a quien se quedó a medias (o pidió llamada y no
+    reservó hora) y aún no está. Devuelve cuántos entraron. También pone al
+    día el «qué dejó a medias» de los automáticos pendientes (alguien puede
+    haber contestado una pregunta más, o haber terminado)."""
+    from src.services.contactos.contactos import emails_que_pagaron
+
+    todos = await _eventos_de_llamada(db_session)
+    reservaron = reservaron_de(todos)
+    como_dict = [e for e in todos if e["kind"] != "reunion"]
+    if not como_dict:
+        return 0
+
+    filas = (await db_session.execute(select(LlamadaTemplada))).scalars().all()
+    existentes = {f.clave: f for f in filas if f.clave}
+    # Quien ya está en la lista, de la forma que sea (automática, a mano o
+    # mandada desde su ficha), no entra otra vez.
+    ya_estan = {(f.email or "").lower() for f in filas if f.email}
+
+    # El «qué dejó a medias» de los que ya están y siguen pendientes. Si ha
+    # terminado las preguntas desde entonces, pasa a «Pidió llamada, sin hora».
+    por_email: dict[str, dict] = {}
     for e in como_dict:
         email = (e["email"] or "").strip().lower()
-        if email in vistos:
-            continue
-        vistos.add(email)
+        clave = "cual" if e["kind"] == "cualificacion" else "medias"
+        por_email.setdefault(email, {}).setdefault(clave, e)
+    cambiadas = False
+    for email, info in por_email.items():
         fila = existentes.get(f"auto:{email}")
-        if fila is not None and fila.estado == "pendiente":
-            extra = _extra(e["extra"])
-            nuevo = detalle_de(origen_de(e["kind"], extra), extra)
-            if nuevo != fila.detalle:
-                fila.detalle = nuevo
-                db_session.add(fila)
-                cambiadas = True
+        if fila is None or fila.estado != "pendiente":
+            continue
+        e = info.get("cual") or info.get("medias")
+        extra = _extra(e["extra"])
+        origen = "llamada" if info.get("cual") else origen_de(e["kind"], extra)
+        nuevo = detalle_de(origen, extra)
+        if nuevo != fila.detalle or origen != fila.origen:
+            fila.detalle, fila.origen = nuevo, origen
+            db_session.add(fila)
+            cambiadas = True
     if cambiadas:
         await db_session.commit()
 
-    emails = {(e["email"] or "").strip().lower() for e in como_dict} - ya_estan
+    emails = set(por_email) - ya_estan
     nuevas = filas_automaticas(
         como_dict,
-        await _terminaron(db_session),
+        reservaron,
         await emails_que_pagaron(db_session),
         ya_estan,
         await _atendidos_en_solicitudes(emails, db_session),
@@ -362,7 +413,7 @@ async def listar_templadas(db_session: AsyncSession) -> dict:
     from src.services.contactos.contactos import emails_que_pagaron
 
     pagaron = await emails_que_pagaron(db_session)
-    terminaron = await _terminaron(db_session)
+    reservaron = reservaron_de(await _eventos_de_llamada(db_session))
     filas = (await db_session.execute(select(LlamadaTemplada))).scalars().all()
     correos = {(f.email or "").lower() for f in filas if f.email}
     notas = await _notas_por_email(correos, db_session)
@@ -376,9 +427,9 @@ async def listar_templadas(db_session: AsyncSession) -> dict:
             # Ya pagó: es alumno, no hay que llamarle para venderle nada.
             if email and email in pagaron:
                 continue
-            # Una automática que luego terminó las preguntas ya sale en
-            # «Solicitudes de llamada», con sus respuestas.
-            if f.origen != "mano" and email in terminaron:
+            # Una automática que ya reservó hora en el calendario está en la
+            # agenda: aquí sobra.
+            if f.origen != "mano" and email in reservaron:
                 continue
             # Quien no tiene correo no tiene ficha: cuenta desde que se apuntó.
             pendientes.append(con_temperatura(_dict(f, notas), fichas.get(email), f.temperatura_manual or "", ahora))

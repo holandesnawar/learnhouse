@@ -266,7 +266,7 @@ export default function LlamadasPanel() {
       <Seccion titulo={pendientes.length === 0 ? 'Solicitudes de llamada · todas atendidas' : `Solicitudes de llamada · ${pendientes.length} por atender`}>
         <p className={META}>
           Quien rellenó el formulario de agendar llamada, con sus respuestas. Márcala cuando la hayas atendido. Quien dejó sus
-          datos y se fue a mitad está más abajo, en «Llamadas templadas».
+          datos y se fue a mitad, o pidió la llamada y no reservó hora, está más abajo, en «Llamadas».
         </p>
         {llamadas.length === 0 ? (
           <div className={`${TARJETA} p-5`}>
