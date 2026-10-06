@@ -13,9 +13,11 @@
  * o hecho y ya").
  *
  * TEMPERATURA (06/10): cada pendiente lleva su urgencia a la vista, sin abrirla,
- * según la última vez que hizo algo con nosotros: rojo «llamar ya» (menos de
- * 48 h), amarillo templado (hasta 7 días), verde frío. La más caliente, arriba.
- * Lo calcula la escuela (`temperatura` en `services/contactos/templadas.py`).
+ * según CUÁNDO ENTRÓ EN EL FLUJO en su ficha (su primera matrícula): rojo
+ * «llamar ya» (menos de 48 h), amarillo templado (hasta 7 días), verde frío.
+ * Al lado, lo último que hizo según la ficha. El equipo la puede cambiar a mano
+ * al abrirla (y devolverla a la automática). La más caliente, arriba. Lo
+ * calcula la escuela (`con_temperatura` en `services/contactos/templadas.py`).
  * Arriba, las tres cifras hacen de filtro.
  *
  * Las NOTAS: si la persona tiene correo, son las mismas de su ficha (el mismo
@@ -52,13 +54,54 @@ const TEMPERATURA: Record<Temperatura, { color: string; texto: string; plural: s
   frio: { color: '#16A34A', texto: 'Frío', plural: 'fríos' },
 }
 
-function Termometro({ t }: { t?: Temperatura }) {
+function Termometro({ t, aMano }: { t?: Temperatura; aMano?: boolean }) {
   const v = TEMPERATURA[t || 'frio']
   return (
     <span className="inline-flex items-center gap-1.5 shrink-0 text-[12.5px] font-semibold" style={{ color: v.color }}>
       <span className="w-2 h-2 rounded-full" style={{ background: v.color }} />
       {v.texto}
+      {aMano ? <span className="font-normal text-gray-400">· a mano</span> : null}
     </span>
+  )
+}
+
+const NOMBRE_CORTO: Record<Temperatura, string> = { caliente: 'Caliente', templado: 'Templado', frio: 'Frío' }
+
+/** Los tres colores para ponerlo a mano, y «Automática» para devolverlo. */
+function ElegirTemperatura({ t, cambiar, guardando }: { t: Templada; cambiar: (v: Temperatura | '') => void; guardando: boolean }) {
+  const manual = t.temperatura_manual || ''
+  const auto = t.temperatura_auto || 'frio'
+  return (
+    <div>
+      <p className="text-[12.5px] font-medium text-gray-700 mb-1.5">Temperatura</p>
+      <div className="flex flex-wrap gap-1.5">
+        {(['caliente', 'templado', 'frio'] as Temperatura[]).map((v) => {
+          const activo = manual === v
+          return (
+            <button
+              key={v}
+              disabled={guardando}
+              onClick={() => cambiar(activo ? '' : v)}
+              className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-md border text-[12.5px] font-medium transition-colors disabled:opacity-50 ${
+                activo ? 'border-gray-900 bg-gray-900 text-white' : 'border-[#E5E7EB] bg-white text-gray-800 hover:bg-[#F9FAFB]'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full" style={{ background: TEMPERATURA[v].color }} />
+              {NOMBRE_CORTO[v]}
+            </button>
+          )
+        })}
+        <button
+          disabled={guardando || !manual}
+          onClick={() => cambiar('')}
+          className={`inline-flex items-center h-8 px-3 rounded-md border text-[12.5px] font-medium transition-colors disabled:cursor-default ${
+            !manual ? 'border-gray-900 bg-gray-900 text-white' : 'border-[#E5E7EB] bg-white text-gray-800 hover:bg-[#F9FAFB]'
+          }`}
+        >
+          Automática · {NOMBRE_CORTO[auto].toLowerCase()}
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -242,8 +285,9 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
       <p className={META}>
         Gente que mostró interés y se quedó ahí. Entra sola quien dejó sus datos en «agendar llamada» o en el proceso de admisión y no
         terminó las preguntas. Aquí puedes apuntar a quien quieras, aunque solo tengas su móvil, o mandarlo desde su ficha.
-        Por la última vez que hizo algo con nosotros: <b className="text-[#DC2626] font-semibold">rojo</b>, en las últimas 48 horas;{' '}
-        <b className="text-[#D97706] font-semibold">amarillo</b>, esta semana; <b className="text-[#16A34A] font-semibold">verde</b>, hace más.
+        El color sale de cuándo entró en el flujo según su ficha: <b className="text-[#DC2626] font-semibold">rojo</b>, hace menos de 48 horas;{' '}
+        <b className="text-[#D97706] font-semibold">amarillo</b>, esta semana; <b className="text-[#16A34A] font-semibold">verde</b>, hace más. Al
+        abrir a alguien lo podéis cambiar a mano.
       </p>
 
       {nueva ? (
@@ -312,19 +356,19 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
           {pendientes.filter((t) => !filtro || (t.temperatura || 'frio') === filtro).map((t) => {
             const open = abierta === t.id
             const wa = numeroWhatsApp(t.telefono)
-            const resumen = t.ultima_nota || t.detalle
+            const resumen = t.ultima_nota || t.que_hizo || t.detalle
             return (
               <div key={t.id}>
                 <button onClick={() => setAbierta(open ? null : t.id)} className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-[#F9FAFB]">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <p className="text-[14px] font-medium text-gray-900 truncate">{t.nombre || t.telefono || t.email}</p>
-                      <Termometro t={t.temperatura} />
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 min-w-0">
+                      <p className="text-[14px] font-medium text-gray-900 truncate max-w-full">{t.nombre || t.telefono || t.email}</p>
+                      <Termometro t={t.temperatura} aMano={Boolean(t.temperatura_manual)} />
                     </div>
                     <Meta
                       partes={[
                         t.origen === 'mano' ? `Apuntada por ${t.creado_por || 'el equipo'}` : t.origen_nombre,
-                        t.ultima_senal ? `Última señal ${haceDias(t.ultima_senal)}` : diaCorto(t.created_at),
+                        t.entro ? `Entró ${haceDias(t.entro)}` : diaCorto(t.created_at),
                         t.telefono,
                         t.n_notas ? `${t.n_notas} nota${t.n_notas === 1 ? '' : 's'}` : '',
                       ]}
@@ -338,7 +382,15 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
 
                 {open ? (
                   <div className="px-4 pb-4 pt-1 space-y-3">
-                    {t.origen !== 'mano' && t.detalle && t.ultima_nota ? <p className={META}>{t.detalle}</p> : null}
+                    <ElegirTemperatura t={t} guardando={guardando === t.id} cambiar={(v) => cambiar(t, { temperatura: v }, v ? `Puesta en ${NOMBRE_CORTO[v].toLowerCase()}` : 'Vuelve a la automática')} />
+                    {t.que_hizo ? (
+                      <p className={META}>
+                        Según su ficha: entró {haceDias(t.entro)}. Lo último: {t.que_hizo.charAt(0).toLowerCase() + t.que_hizo.slice(1)}
+                        {t.que_hizo_at ? ` · ${haceDias(t.que_hizo_at)}` : ''}
+                      </p>
+                    ) : t.origen !== 'mano' && t.detalle && t.ultima_nota ? (
+                      <p className={META}>{t.detalle}</p>
+                    ) : null}
                     <div className="flex flex-wrap gap-2">
                       <button onClick={() => cambiar(t, { estado: 'hecha' }, 'Hecha')} disabled={guardando === t.id} className={BOTON_PRINCIPAL}>
                         <Check size={13} /> Marcar como hecha

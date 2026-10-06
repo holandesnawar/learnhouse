@@ -32,6 +32,9 @@ class LlamadaTemplada(SQLModel, table=True):
     origen: str = Field(default="mano", max_length=20)
     # Para las automáticas, qué dejó a medias ("se fue después de «Horas»…").
     detalle: str = Field(default="", max_length=300)
+    # caliente · templado · frio, puesta a mano por el equipo. Vacía = la
+    # calcula la escuela. Va en `_ADDED_COLUMNS` (la tabla ya existía).
+    temperatura_manual: str = Field(default="", max_length=12)
     # pendiente · hecha · descartada
     estado: str = Field(default="pendiente", index=True, max_length=20)
     # Las automáticas: "auto:<correo>". Única, para no meter a la misma persona
