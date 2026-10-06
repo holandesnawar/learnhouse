@@ -1788,8 +1788,7 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
     Test: `test_llamadas_templadas.py`.
     - ⚠️ **Sin fechas: Pendiente o Hecha y ya** (usuario, 05/10). Hubo un día
       aproximado para llamar y se quitó el mismo día. La columna `llamar_el`
-      sigue en la tabla, sin usarse. Lo más nuevo arriba (`created_at` =
-      cuándo entró en la lista; mandarla otra vez desde la ficha la sube).
+      sigue en la tabla, sin usarse. El orden lo pone la temperatura (abajo).
     - ⚠️ **Las notas son LAS MISMAS que las de la ficha** (usuario, 05/10).
       Con correo, la fila no guarda notas: se usa `contact_nota`, y la
       pantalla pinta el mismo bloque que la ficha (`Seguimiento` con
@@ -1798,6 +1797,15 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
       ficha (`_pasar_notas_a_la_ficha`). La lista trae `n_notas` y
       `ultima_nota`. Se probó antes a COPIAR las notas con un prefijo
       «Llamadas templadas: …» y no era lo que quería.
+    - **Temperatura** (06/10, "el que hizo matrícula ayer y no agendó está
+      más caliente"): cada pendiente lleva a la vista, sin abrirla, rojo
+      «Caliente · llamar ya» (última señal hace menos de 48 h), amarillo
+      «Templado» (hasta 7 días) o verde «Frío». **Última señal** = lo más
+      reciente de sus eventos de la web, solicitudes y matrículas (y, si no
+      tiene correo, cuándo se apuntó): `_ultimas_senales` + `temperatura`
+      (pura, con test). Las notas del equipo NO cuentan: son nuestras, no
+      suyas. Orden: la más caliente arriba y, dentro, la señal más reciente.
+      Arriba, «N calientes · N templados · N fríos» hacen de filtro.
     - **Botón «Mandar a llamadas templadas»** en la ficha (bloque Matrícula,
       quien aún no es alumno; `POST …/templadas/mandar`, `mandar_a_templadas`).
       Si ya estaba, no duplica; si estaba hecha o quitada, vuelve a pendiente.
