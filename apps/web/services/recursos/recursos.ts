@@ -22,9 +22,20 @@ export interface Carpeta {
   description: string
   position: number
   created_at: string
-  /** Solo para el equipo: el alumno no la ve. */
+  /** Sin grupos: solo administradores. Con grupos no cuenta. */
   private: boolean
+  /** Quién la ve: ids de grupos de usuarios y/o 'alumnos'. Vacío = todos. */
+  grupos: Grupo[]
   items: RecursoItem[]
+}
+
+/** Un grupo de usuarios (su id) o 'alumnos' = todo el que tiene rol de alumno. */
+export type Grupo = number | 'alumnos'
+
+/** Quién ve una carpeta, como lo guarda el servidor. */
+export interface QuienVe {
+  private: boolean
+  grupos: Grupo[]
 }
 
 const base = () => `${getAPIUrl()}recursos`
@@ -82,13 +93,13 @@ async function json<T>(r: Response): Promise<T> {
   return d as T
 }
 
-export async function crearCarpeta(orgId: number, name: string, description: string, accessToken: string, priv = false): Promise<Carpeta> {
-  const r = await fetch(`${base()}/org/${orgId}/carpetas`, RequestBodyWithAuthHeader('POST', { name, description, private: priv }, null, accessToken))
+export async function crearCarpeta(orgId: number, name: string, description: string, accessToken: string, quien: QuienVe = { private: false, grupos: [] }): Promise<Carpeta> {
+  const r = await fetch(`${base()}/org/${orgId}/carpetas`, RequestBodyWithAuthHeader('POST', { name, description, ...quien }, null, accessToken))
   return json<Carpeta>(r)
 }
 
-export async function editarCarpeta(orgId: number, id: number, name: string, description: string, accessToken: string, priv = false): Promise<Carpeta> {
-  const r = await fetch(`${base()}/org/${orgId}/carpetas/${id}`, RequestBodyWithAuthHeader('PUT', { name, description, private: priv }, null, accessToken))
+export async function editarCarpeta(orgId: number, id: number, name: string, description: string, accessToken: string, quien: QuienVe): Promise<Carpeta> {
+  const r = await fetch(`${base()}/org/${orgId}/carpetas/${id}`, RequestBodyWithAuthHeader('PUT', { name, description, ...quien }, null, accessToken))
   return json<Carpeta>(r)
 }
 

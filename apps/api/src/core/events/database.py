@@ -386,6 +386,8 @@ _ADDED_COLUMNS = [
     "ALTER TABLE IF EXISTS school_expense ADD COLUMN IF NOT EXISTS archivo_nombre VARCHAR(200) DEFAULT ''",
     "ALTER TABLE IF EXISTS school_expense ADD COLUMN IF NOT EXISTS fijo_id INTEGER DEFAULT 0",
     "ALTER TABLE IF EXISTS lead_pipeline ADD COLUMN IF NOT EXISTS oculto BOOLEAN DEFAULT FALSE",
+    # Quién ve cada carpeta de Recursos (06/10): grupos de usuarios / "alumnos".
+    "ALTER TABLE IF EXISTS resource_folder ADD COLUMN IF NOT EXISTS grupos VARCHAR(400) DEFAULT ''",
     # Temperatura puesta a mano en Llamadas templadas (06/10). Vacía = automática.
     "ALTER TABLE IF EXISTS llamada_templada ADD COLUMN IF NOT EXISTS temperatura_manual VARCHAR(12) DEFAULT ''",
 ]

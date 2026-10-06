@@ -7,6 +7,7 @@ el volumen. Un solo sitio para los archivos de la escuela, y las mismas
 comprobaciones de formato y tamaño (25 MB por archivo).
 """
 
+import json
 import logging
 from datetime import datetime, timezone
 from typing import Optional
@@ -18,6 +19,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.organizations import Organization
 from src.db.recursos import FolderWrite, LinkWrite, ResourceFolder, ResourceItem
 from src.db.user_organizations import UserOrganization
+from src.db.usergroup_user import UserGroupUser
+from src.db.usergroups import UserGroup
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +48,89 @@ async def org_del_usuario(current_user, db_session: AsyncSession) -> int:
     return int(org_id)
 
 
+#: Rol de alumno (el mismo que `security/rbac/constants.py`).
+ROL_ALUMNO = 4
+ALUMNOS = "alumnos"
+
+
+def leer_grupos(texto: str) -> list:
+    """Los grupos guardados en la carpeta: ids (int) y/o "alumnos"."""
+    try:
+        valor = json.loads(texto) if texto else []
+    except Exception:  # noqa: BLE001
+        return []
+    salida: list = []
+    for v in valor if isinstance(valor, list) else []:
+        if v == ALUMNOS:
+            salida.append(ALUMNOS)
+        elif isinstance(v, int) or (isinstance(v, str) and v.isdigit()):
+            salida.append(int(v))
+    return salida
+
+
+def puede_ver(privada: bool, grupos: list, es_admin: bool, mios: set) -> bool:
+    """¿Ve esta persona la carpeta? Función pura, con test.
+
+    `mios`: los ids de sus grupos de usuarios, más "alumnos" si es alumno.
+    El administrador lo ve todo. Si la carpeta tiene grupos, solo quien esté
+    en alguno (lo de "privada" no cuenta entonces). Si no tiene grupos y es
+    privada, solo administradores. Si no, todos."""
+    if es_admin:
+        return True
+    if grupos:
+        return bool(set(grupos) & mios)
+    return not privada
+
+
+async def quien_soy(user_id: int, org_id: int, db_session: AsyncSession) -> tuple[bool, set]:
+    """(¿es administrador?, sus grupos + "alumnos" si es alumno)."""
+    from src.security.rbac.constants import ADMIN_OR_MAINTAINER_ROLE_IDS
+    from src.security.rbac.rbac import is_user_superadmin
+
+    rol = (
+        await db_session.execute(
+            select(UserOrganization.role_id).where(UserOrganization.user_id == user_id, UserOrganization.org_id == org_id)
+        )
+    ).scalars().first()
+    es_admin = rol in ADMIN_OR_MAINTAINER_ROLE_IDS
+    if not es_admin:
+        try:
+            es_admin = bool(await is_user_superadmin(user_id, db_session))
+        except Exception:  # noqa: BLE001
+            es_admin = False
+    mios: set = {
+        int(g)
+        for (g,) in (
+            await db_session.execute(select(UserGroupUser.usergroup_id).where(UserGroupUser.user_id == user_id))
+        ).all()
+    }
+    if rol == ROL_ALUMNO:
+        mios.add(ALUMNOS)
+    return es_admin, mios
+
+
+async def _grupos_validos(org_id: int, pedidos: list, db_session: AsyncSession) -> list:
+    """Solo grupos de esta escuela (y "alumnos"), sin repetir."""
+    de_la_escuela = {
+        int(g)
+        for (g,) in (await db_session.execute(select(UserGroup.id).where(UserGroup.org_id == org_id))).all()
+    }
+    salida: list = []
+    for v in leer_grupos(json.dumps(pedidos or [])):
+        if (v == ALUMNOS or v in de_la_escuela) and v not in salida:
+            salida.append(v)
+    return salida
+
+
+def _poner_grupos(f: ResourceFolder, data: FolderWrite, validos: list) -> None:
+    """Guarda los grupos. Si se pidieron grupos y ninguno vale (borrados, de
+    otra escuela), la carpeta se queda en «solo administradores»: pedir
+    «solo estos» nunca puede acabar en «todos»."""
+    f.grupos = json.dumps(validos)
+    if data.grupos and not validos:
+        f.private = True
+
+
 def _folder_dict(f: ResourceFolder, items: list[ResourceItem]) -> dict:
     return {
         "id": f.id,
@@ -53,6 +139,7 @@ def _folder_dict(f: ResourceFolder, items: list[ResourceItem]) -> dict:
         "position": f.position,
         "created_at": f.created_at,
         "private": bool(getattr(f, "private", False)),
+        "grupos": leer_grupos(getattr(f, "grupos", "") or ""),
         "items": [
             {
                 "id": i.id,
@@ -69,9 +156,17 @@ def _folder_dict(f: ResourceFolder, items: list[ResourceItem]) -> dict:
     }
 
 
-async def listar(org_id: int, db_session: AsyncSession, *, con_privadas: bool = False) -> list[dict]:
-    """Las carpetas. Al alumno NO se le mandan las privadas (ni sus items):
-    se filtra aquí, en el servidor, no escondiéndolas en la pantalla."""
+async def listar(
+    org_id: int,
+    db_session: AsyncSession,
+    *,
+    con_privadas: bool = False,
+    es_admin: bool = False,
+    mios: Optional[set] = None,
+) -> list[dict]:
+    """Las carpetas. A quien no le toca una carpeta NO se le manda (ni sus
+    items): se filtra aquí, en el servidor, no escondiéndola en la pantalla.
+    `con_privadas` = el panel del administrador: todas."""
     carpetas = (
         await db_session.execute(
             select(ResourceFolder)
@@ -80,7 +175,11 @@ async def listar(org_id: int, db_session: AsyncSession, *, con_privadas: bool = 
         )
     ).scalars().all()
     if not con_privadas:
-        carpetas = [f for f in carpetas if not getattr(f, "private", False)]
+        carpetas = [
+            f
+            for f in carpetas
+            if puede_ver(bool(getattr(f, "private", False)), leer_grupos(getattr(f, "grupos", "") or ""), es_admin, mios or set())
+        ]
     items = (
         await db_session.execute(
             select(ResourceItem)
@@ -122,6 +221,7 @@ async def crear_carpeta(org_id: int, data: FolderWrite, db_session: AsyncSession
         created_at=_ahora(),
         private=bool(data.private),
     )
+    _poner_grupos(f, data, await _grupos_validos(org_id, data.grupos or [], db_session))
     db_session.add(f)
     await db_session.commit()
     await db_session.refresh(f)
@@ -136,6 +236,8 @@ async def editar_carpeta(org_id: int, folder_id: int, data: FolderWrite, db_sess
     f.name = nombre
     f.description = (data.description or "").strip()[:400]
     f.private = bool(data.private)
+    if data.grupos is not None:
+        _poner_grupos(f, data, await _grupos_validos(org_id, data.grupos, db_session))
     db_session.add(f)
     await db_session.commit()
     await db_session.refresh(f)

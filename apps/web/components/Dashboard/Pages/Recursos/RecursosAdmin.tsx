@@ -8,15 +8,17 @@
  * puesto, si no el volumen). Borrar un recurso lo quita de la lista pero NO
  * borra el archivo físico: perder un PDF por un clic no compensa.
  *
- * Una carpeta con el candado es SOLO PARA EL EQUIPO: el alumno no la ve (se
- * filtra en el servidor). Para las facturas del negocio, contratos, etc.
+ * «Quién la ve» (06/10): todos, solo administradores, o solo los grupos de
+ * usuarios que se marquen (Usuarios → Grupos) y/o «Alumnos». Así el grupo de
+ * closers ve la carpeta comercial y nada más. Se filtra en el SERVIDOR; el
+ * administrador las ve todas.
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { FolderSimple } from '@phosphor-icons/react'
-import { ArrowDown, ArrowUp, Link2, Loader2, Lock, LockOpen, Pencil, Plus, Trash2, Upload, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Check, Eye, Link2, Loader2, Lock, Pencil, Plus, Trash2, Upload, Users, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import {
   abrirUrl,
@@ -31,7 +33,10 @@ import {
   subirArchivo,
   tamano,
   type Carpeta,
+  type Grupo,
+  type QuienVe,
 } from '@services/recursos/recursos'
+import { getUserGroups } from '@services/usergroups/usergroups'
 import IconoRecurso from '@components/Pages/Recursos/IconoRecurso'
 
 const CARD = 'rounded-2xl border border-[#DDE6F5] bg-white p-3.5 sm:p-5'
@@ -40,6 +45,19 @@ const INPUT =
 const BTN = 'inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors disabled:opacity-60'
 const BTN_PRI = `${BTN} bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656]`
 const BTN_SEC = `${BTN} bg-[#F0F5FF] hover:bg-[#E4EDFF] text-[#1D0084]`
+
+type GrupoUsuarios = { id: number; name: string }
+
+/** «Todos», «Solo administradores» o «Solo: Closers, Alumnos». */
+function resumenQuien(c: Carpeta, grupos: GrupoUsuarios[]): string {
+  const gs = c.grupos || []
+  if (gs.length) {
+    return `Solo: ${gs
+      .map((g) => (g === 'alumnos' ? 'Alumnos' : grupos.find((x) => x.id === g)?.name || 'un grupo borrado'))
+      .join(', ')}`
+  }
+  return c.private ? 'Solo administradores' : 'Todos'
+}
 
 function mover<T>(lista: T[], i: number, dir: -1 | 1): T[] {
   const j = i + dir
@@ -56,6 +74,16 @@ export default function RecursosAdmin() {
   const [carpetas, setCarpetas] = useState<Carpeta[] | null>(null)
   const [nuevaCarpeta, setNuevaCarpeta] = useState('')
   const [creando, setCreando] = useState(false)
+  const [grupos, setGrupos] = useState<GrupoUsuarios[]>([])
+
+  useEffect(() => {
+    if (!org?.id || !accessToken) return
+    getUserGroups(org.id, accessToken)
+      .then((r: any) => {
+        if (r?.success && Array.isArray(r.data)) setGrupos(r.data.map((g: any) => ({ id: g.id, name: g.name })))
+      })
+      .catch(() => {})
+  }, [org?.id, accessToken])
 
   const cargar = useCallback(async () => {
     if (!org?.id || !accessToken) return
@@ -99,9 +127,10 @@ export default function RecursosAdmin() {
         <h1 className="text-xl sm:text-3xl font-bold text-gray-900 truncate">Recursos</h1>
       </div>
       <p className="text-[13.5px] text-gray-600 -mt-2">
-        Lo que ves aquí lo ven los alumnos en <strong>Recursos</strong>, en el mismo orden, salvo
-        las carpetas con candado, que son solo para el equipo (tus facturas, contratos, lo que
-        quieras guardar). Archivos de hasta 25 MB o enlaces: un Drive, un vídeo, una web.
+        Cada carpeta sale en <strong>Recursos</strong> a quien tú digas en «Quién la ve»: todos,
+        solo administradores, o solo unos grupos (por ejemplo, la carpeta comercial solo para el
+        grupo de closers, y la del curso solo para «Alumnos»). Tú las ves todas. Archivos de
+        hasta 25 MB o enlaces: un Drive, un vídeo, una web.
       </p>
 
       <div className={`${CARD} flex flex-col sm:flex-row gap-2`}>
@@ -130,6 +159,7 @@ export default function RecursosAdmin() {
           <CarpetaAdmin
             key={c.id}
             carpeta={c}
+            grupos={grupos}
             esPrimera={i === 0}
             esUltima={i === carpetas.length - 1}
             onMover={(dir) => moverCarpeta(i, dir)}
@@ -143,12 +173,14 @@ export default function RecursosAdmin() {
 
 function CarpetaAdmin({
   carpeta,
+  grupos,
   esPrimera,
   esUltima,
   onMover,
   onCambio,
 }: {
   carpeta: Carpeta
+  grupos: GrupoUsuarios[]
   esPrimera: boolean
   esUltima: boolean
   onMover: (dir: -1 | 1) => void
@@ -164,14 +196,16 @@ function CarpetaAdmin({
   const [titulo, setTitulo] = useState('')
   const [url, setUrl] = useState('')
   const [ocupado, setOcupado] = useState(false)
+  const [eligiendo, setEligiendo] = useState(false)
   const fileRef = useRef<HTMLInputElement | null>(null)
 
-  const alternarPrivada = async () => {
+  const quienAhora: QuienVe = { private: carpeta.private, grupos: carpeta.grupos || [] }
+
+  const guardarQuien = async (quien: QuienVe) => {
     setOcupado(true)
     try {
-      await editarCarpeta(org.id, carpeta.id, carpeta.name, carpeta.description, accessToken, !carpeta.private)
+      await editarCarpeta(org.id, carpeta.id, carpeta.name, carpeta.description, accessToken, quien)
       await onCambio()
-      toast.success(!carpeta.private ? 'Solo la ve el equipo.' : 'Ya la ven los alumnos.')
     } catch (e: any) {
       toast.error(e?.message || 'No se pudo cambiar')
     } finally {
@@ -179,10 +213,17 @@ function CarpetaAdmin({
     }
   }
 
+  /** Marcar o desmarcar un grupo. Quitar el último deja la carpeta en
+   * «Solo administradores», nunca abierta a todos sin querer. */
+  const alternarGrupo = (g: Grupo) => {
+    const gs = quienAhora.grupos.includes(g) ? quienAhora.grupos.filter((x) => x !== g) : [...quienAhora.grupos, g]
+    guardarQuien({ private: gs.length === 0 ? true : false, grupos: gs })
+  }
+
   const guardarNombre = async () => {
     setOcupado(true)
     try {
-      await editarCarpeta(org.id, carpeta.id, nombre, descripcion, accessToken, carpeta.private)
+      await editarCarpeta(org.id, carpeta.id, nombre, descripcion, accessToken, quienAhora)
       setEditando(false)
       await onCambio()
     } catch (e: any) {
@@ -269,11 +310,6 @@ function CarpetaAdmin({
               <h2 className="text-[16px] font-bold text-[#1D0084] flex items-center gap-2 min-w-0">
                 <FolderSimple size={18} weight="fill" className="text-[#025dc7] shrink-0" />
                 <span className="truncate">{carpeta.name}</span>
-                {carpeta.private ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#F3F4F6] text-[#6B7590] px-2 py-0.5 text-[10.5px] font-semibold">
-                    <Lock size={10} /> solo equipo
-                  </span>
-                ) : null}
               </h2>
               {carpeta.description ? <p className="text-[13px] text-gray-500 mt-0.5">{carpeta.description}</p> : null}
             </>
@@ -282,13 +318,60 @@ function CarpetaAdmin({
         <div className="flex items-center gap-1 shrink-0">
           <button onClick={() => onMover(-1)} disabled={esPrimera} aria-label="Subir" className="p-1.5 rounded-lg text-gray-500 hover:bg-[#F0F5FF] disabled:opacity-30"><ArrowUp size={15} /></button>
           <button onClick={() => onMover(1)} disabled={esUltima} aria-label="Bajar" className="p-1.5 rounded-lg text-gray-500 hover:bg-[#F0F5FF] disabled:opacity-30"><ArrowDown size={15} /></button>
-          <button onClick={alternarPrivada} disabled={ocupado} aria-label={carpeta.private ? 'Hacerla visible a los alumnos' : 'Solo para el equipo'} title={carpeta.private ? 'Solo la ve el equipo. Pulsa para que la vean los alumnos.' : 'La ven los alumnos. Pulsa para dejarla solo para el equipo.'} className="p-1.5 rounded-lg text-gray-500 hover:bg-[#F0F5FF]">
-            {carpeta.private ? <Lock size={15} /> : <LockOpen size={15} />}
-          </button>
           <button onClick={() => setEditando((v) => !v)} aria-label="Renombrar" className="p-1.5 rounded-lg text-gray-500 hover:bg-[#F0F5FF]"><Pencil size={15} /></button>
           <button onClick={borrar} aria-label="Borrar carpeta" className="p-1.5 rounded-lg text-red-500 hover:bg-red-50"><Trash2 size={15} /></button>
         </div>
       </div>
+
+      {editando ? null : (
+        <button
+          onClick={() => setEligiendo((v) => !v)}
+          className="mt-2 inline-flex items-start gap-1.5 text-[12.5px] text-gray-600 hover:text-[#025dc7] text-left"
+          title="Cambiar quién ve esta carpeta"
+        >
+          <span className="mt-0.5 shrink-0">
+            {quienAhora.grupos.length ? <Users size={13} /> : carpeta.private ? <Lock size={13} /> : <Eye size={13} />}
+          </span>
+          <span className="min-w-0">
+            La ven: <strong className="font-semibold text-gray-900">{resumenQuien(carpeta, grupos)}</strong>{' '}
+            <span className="text-[#025dc7] font-semibold whitespace-nowrap">· Cambiar</span>
+          </span>
+        </button>
+      )}
+
+      {eligiendo ? (
+        <div className="mt-3 rounded-xl border border-[#E5E7EB] p-3 space-y-2.5">
+          <p className="text-[13px] font-semibold text-gray-900">¿Quién ve esta carpeta?</p>
+          <div className="flex flex-wrap gap-1.5">
+            <Opcion activa={!quienAhora.grupos.length && !quienAhora.private} disabled={ocupado} onClick={() => guardarQuien({ private: false, grupos: [] })}>
+              <Eye size={13} /> Todos
+            </Opcion>
+            <Opcion activa={!quienAhora.grupos.length && quienAhora.private} disabled={ocupado} onClick={() => guardarQuien({ private: true, grupos: [] })}>
+              <Lock size={13} /> Solo administradores
+            </Opcion>
+          </div>
+          <p className="text-[12.5px] text-gray-600">O solo estos (puedes marcar varios):</p>
+          <div className="flex flex-wrap gap-1.5">
+            <Opcion activa={quienAhora.grupos.includes('alumnos')} disabled={ocupado} onClick={() => alternarGrupo('alumnos')}>
+              Alumnos
+            </Opcion>
+            {grupos.map((g) => (
+              <Opcion key={g.id} activa={quienAhora.grupos.includes(g.id)} disabled={ocupado} onClick={() => alternarGrupo(g.id)}>
+                {g.name}
+              </Opcion>
+            ))}
+          </div>
+          <p className="text-[12px] text-gray-500 leading-relaxed">
+            «Alumnos» = todo el que tiene rol de alumno. Los demás son tus grupos de{' '}
+            <a href="/dash/users/settings/usergroups" className="text-[#025dc7] font-semibold">
+              Usuarios → Grupos
+            </a>
+            {grupos.length ? '' : ' (aún no tienes ninguno: crea uno, por ejemplo «Closers», y mete dentro a quien toque)'}.
+            Los administradores las ven todas.
+          </p>
+          <button onClick={() => setEligiendo(false)} className={BTN_SEC}>Listo</button>
+        </div>
+      ) : null}
 
       {carpeta.items.length === 0 ? (
         <p className="text-[13px] text-[#9CA3AF] mt-3">Vacía. Añade un enlace o un archivo.</p>
@@ -337,5 +420,30 @@ function CarpetaAdmin({
         )}
       </div>
     </section>
+  )
+}
+
+function Opcion({
+  activa,
+  disabled,
+  onClick,
+  children,
+}: {
+  activa: boolean
+  disabled?: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12.5px] font-semibold transition-colors disabled:opacity-60 ${
+        activa ? 'border-[#025dc7] bg-[#025dc7] text-white' : 'border-[#E5E7EB] bg-white text-gray-700 hover:border-gray-400'
+      }`}
+    >
+      {activa ? <Check size={13} /> : null}
+      {children}
+    </button>
   )
 }
