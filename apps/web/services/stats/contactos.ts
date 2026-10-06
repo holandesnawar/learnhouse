@@ -485,6 +485,10 @@ export type Templada = {
   notas: string
   n_notas: number
   ultima_nota: string
+  /** Solo en las pendientes: cuánto de caliente está (06/10). */
+  temperatura?: Temperatura
+  /** La última vez que hizo algo con nosotros (de ahí sale la temperatura). */
+  ultima_senal?: string
   origen: 'mano' | 'agendar' | 'admision'
   origen_nombre: string
   /** Las automáticas: qué dejó a medias. */
@@ -495,6 +499,9 @@ export type Templada = {
   updated_at: string
   hecha_at: string
 }
+
+/** Rojo (menos de 48 h), amarillo (hasta 7 días), verde (más). */
+export type Temperatura = 'caliente' | 'templado' | 'frio'
 
 export type DatosTemplada = Partial<Pick<Templada, 'nombre' | 'telefono' | 'email' | 'notas' | 'estado'>>
 

@@ -10,7 +10,13 @@
  * correo es opcional. También se manda desde la ficha de la persona.
  *
  * Sin fechas: cada persona está pendiente o hecha (usuario, 05/10: "pendiente
- * o hecho y ya"). Lo más nuevo, arriba.
+ * o hecho y ya").
+ *
+ * TEMPERATURA (06/10): cada pendiente lleva su urgencia a la vista, sin abrirla,
+ * según la última vez que hizo algo con nosotros: rojo «llamar ya» (menos de
+ * 48 h), amarillo templado (hasta 7 días), verde frío. La más caliente, arriba.
+ * Lo calcula la escuela (`temperatura` en `services/contactos/templadas.py`).
+ * Arriba, las tres cifras hacen de filtro.
  *
  * Las NOTAS: si la persona tiene correo, son las mismas de su ficha (el mismo
  * bloque, `Seguimiento` con `soloNotas`): lo que se apunta aquí sale allí y al
@@ -28,6 +34,7 @@ import {
   quitarTemplada,
   type DatosTemplada,
   type Templada,
+  type Temperatura,
 } from '@services/stats/contactos'
 import { Check, ChevronDown, ChevronRight, Loader2, Phone, Plus, RotateCcw, Trash2, X } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -38,6 +45,33 @@ import { numeroWhatsApp } from '@/lib/nawar/telefono'
 const CAMPO =
   'w-full h-9 px-3 rounded-md border border-[#D1D5DB] bg-white text-[14px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#025dc7] focus:ring-2 focus:ring-[#025dc7]/15'
 const ETIQUETA = 'block text-[12.5px] font-medium text-gray-700 mb-1'
+
+const TEMPERATURA: Record<Temperatura, { color: string; texto: string; plural: string }> = {
+  caliente: { color: '#DC2626', texto: 'Caliente · llamar ya', plural: 'calientes' },
+  templado: { color: '#D97706', texto: 'Templado', plural: 'templados' },
+  frio: { color: '#16A34A', texto: 'Frío', plural: 'fríos' },
+}
+
+function Termometro({ t }: { t?: Temperatura }) {
+  const v = TEMPERATURA[t || 'frio']
+  return (
+    <span className="inline-flex items-center gap-1.5 shrink-0 text-[12.5px] font-semibold" style={{ color: v.color }}>
+      <span className="w-2 h-2 rounded-full" style={{ background: v.color }} />
+      {v.texto}
+    </span>
+  )
+}
+
+/** "hoy", "ayer", "hace 5 días". */
+function haceDias(iso?: string) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const dias = Math.floor((Date.now() - d.getTime()) / 86400000)
+  if (dias <= 0) return 'hoy'
+  if (dias === 1) return 'ayer'
+  return `hace ${dias} días`
+}
 
 function diaCorto(iso: string) {
   const d = new Date(iso)
@@ -135,6 +169,7 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
   const [abierta, setAbierta] = useState<number | null>(null)
   const [guardando, setGuardando] = useState<number | 'nueva' | null>(null)
   const [verCerradas, setVerCerradas] = useState(false)
+  const [filtro, setFiltro] = useState<Temperatura | null>(null)
 
   const cargar = useCallback(async () => {
     if (!org?.id || !accessToken) return
@@ -207,6 +242,8 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
       <p className={META}>
         Gente que mostró interés y se quedó ahí. Entra sola quien dejó sus datos en «agendar llamada» o en el proceso de admisión y no
         terminó las preguntas. Aquí puedes apuntar a quien quieras, aunque solo tengas su móvil, o mandarlo desde su ficha.
+        Por la última vez que hizo algo con nosotros: <b className="text-[#DC2626] font-semibold">rojo</b>, en las últimas 48 horas;{' '}
+        <b className="text-[#D97706] font-semibold">amarillo</b>, esta semana; <b className="text-[#16A34A] font-semibold">verde</b>, hace más.
       </p>
 
       {nueva ? (
@@ -228,6 +265,32 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
         </div>
       ) : null}
 
+      {pendientes && pendientes.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {(['caliente', 'templado', 'frio'] as Temperatura[]).map((t) => {
+            const n = pendientes.filter((p) => (p.temperatura || 'frio') === t).length
+            const activo = filtro === t
+            return (
+              <button
+                key={t}
+                onClick={() => setFiltro(activo ? null : t)}
+                className={`inline-flex items-center gap-2 h-9 px-3 rounded-md border text-[13px] transition-colors ${
+                  activo ? 'border-gray-900 bg-gray-900 text-white' : 'border-[#E5E7EB] bg-white text-gray-800 hover:bg-[#F9FAFB]'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full" style={{ background: TEMPERATURA[t].color }} />
+                <span className="font-semibold tabular-nums">{n}</span> {TEMPERATURA[t].plural}
+              </button>
+            )
+          })}
+          {filtro ? (
+            <button onClick={() => setFiltro(null)} className="text-[13px] text-gray-500 hover:text-gray-900 px-1">
+              Ver todos
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       {fallo ? (
         <div className={`${TARJETA} p-4`}>
           <p className="text-[14px] text-gray-600">{fallo}</p>
@@ -240,9 +303,13 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
         <div className={`${TARJETA} p-4`}>
           <p className="text-[14px] text-gray-600">No hay nadie pendiente.</p>
         </div>
+      ) : filtro && !pendientes.some((t) => (t.temperatura || 'frio') === filtro) ? (
+        <div className={`${TARJETA} p-4`}>
+          <p className="text-[14px] text-gray-600">Ahora mismo no hay nadie {TEMPERATURA[filtro].plural.replace('calientes', 'caliente')}.</p>
+        </div>
       ) : (
         <div className={`${TARJETA} divide-y divide-[#F3F4F6]`}>
-          {pendientes.map((t) => {
+          {pendientes.filter((t) => !filtro || (t.temperatura || 'frio') === filtro).map((t) => {
             const open = abierta === t.id
             const wa = numeroWhatsApp(t.telefono)
             const resumen = t.ultima_nota || t.detalle
@@ -252,15 +319,13 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 min-w-0">
                       <p className="text-[14px] font-medium text-gray-900 truncate">{t.nombre || t.telefono || t.email}</p>
-                      <Estado tono="ambar" className="shrink-0">
-                        Pendiente
-                      </Estado>
+                      <Termometro t={t.temperatura} />
                     </div>
                     <Meta
                       partes={[
                         t.origen === 'mano' ? `Apuntada por ${t.creado_por || 'el equipo'}` : t.origen_nombre,
+                        t.ultima_senal ? `Última señal ${haceDias(t.ultima_senal)}` : diaCorto(t.created_at),
                         t.telefono,
-                        diaCorto(t.created_at),
                         t.n_notas ? `${t.n_notas} nota${t.n_notas === 1 ? '' : 's'}` : '',
                       ]}
                     />

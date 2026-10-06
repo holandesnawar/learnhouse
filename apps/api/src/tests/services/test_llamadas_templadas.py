@@ -15,6 +15,7 @@ from src.services.contactos.templadas import (
     filas_automaticas,
     listar_templadas,
     ordenar_pendientes,
+    temperatura,
     quitar_templada,
 )
 
@@ -62,9 +63,21 @@ def test_admision_antigua_marcada_con_embudo():
     assert filas[0]["origen"] == "admision"
 
 
-def test_orden_lo_mas_nuevo_arriba():
-    filas = [{"id": 1, "created_at": "2026-10-01"}, {"id": 2, "created_at": "2026-10-04"}, {"id": 3, "created_at": ""}]
-    assert [f["id"] for f in ordenar_pendientes(filas)] == [2, 1, 3]
+def test_temperatura_por_la_ultima_senal():
+    assert temperatura((AHORA - timedelta(hours=20)).isoformat(), AHORA) == "caliente"  # ayer
+    assert temperatura((AHORA - timedelta(days=3)).isoformat(), AHORA) == "templado"
+    assert temperatura((AHORA - timedelta(days=9)).isoformat(), AHORA) == "frio"
+    assert temperatura("", AHORA) == "frio"
+
+
+def test_orden_la_mas_caliente_arriba():
+    filas = [
+        {"id": 1, "temperatura": "frio", "ultima_senal": "2026-09-20"},
+        {"id": 2, "temperatura": "caliente", "ultima_senal": "2026-10-04"},
+        {"id": 3, "temperatura": "templado", "ultima_senal": "2026-10-01"},
+        {"id": 4, "temperatura": "caliente", "ultima_senal": "2026-10-05"},
+    ]
+    assert [f["id"] for f in ordenar_pendientes(filas)] == [4, 2, 3, 1]
 
 
 @pytest.mark.asyncio
@@ -82,6 +95,8 @@ async def test_lista_de_verdad(db):
     assert not (await crear_templada({"notas": "sin nada"}, "Closer", db))["ok"]
 
     lista = await listar_templadas(db)
+    # Ana dejó sus datos hace 3 horas: caliente. Luis se acaba de apuntar: caliente.
+    assert {p["temperatura"] for p in lista["pendientes"]} == {"caliente"}
     nombres = sorted(p["nombre"] or p["email"] for p in lista["pendientes"])
     assert nombres == ["Ana", "Luis"]
     # Abrir la lista otra vez no duplica.
@@ -149,3 +164,21 @@ async def test_mandar_desde_la_ficha_sin_duplicar(db):
     assert (await mandar_a_templadas("eva@x.com", "Eva", "", "Closer", db))["ya_estaba"] is True
     assert (await templada_de("EVA@x.com", db))["estado"] == "pendiente"
     assert not (await mandar_a_templadas("sin-correo", "X", "", "Closer", db))["ok"]
+
+
+@pytest.mark.asyncio
+async def test_la_temperatura_sube_si_vuelve_a_dar_senales(db):
+    from src.db.enrollment_request import EnrollmentRequest
+
+    hace10 = (datetime.now(timezone.utc) - timedelta(days=10)).isoformat()
+    db.add(ContactEvent(email="leo@x.com", kind="agendar-empezado", first_name="Leo", created_at=hace10))
+    await db.commit()
+    leo = (await listar_templadas(db))["pendientes"][0]
+    assert leo["temperatura"] == "frio"
+
+    # Ayer pidió plaza por otro formulario: vuelve a estar caliente.
+    ayer = (datetime.now(timezone.utc) - timedelta(hours=20)).isoformat()
+    db.add(EnrollmentRequest(email="leo@x.com", first_name="Leo", created_at=ayer))
+    await db.commit()
+    leo = (await listar_templadas(db))["pendientes"][0]
+    assert leo["temperatura"] == "caliente"
