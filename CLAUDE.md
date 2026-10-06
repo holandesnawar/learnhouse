@@ -2148,6 +2148,16 @@ Todo en `nawar-web` (PR #121 y #122).
   "Precios elevados" en los dolores (no competir por precio) y "una app o un
   vídeo no puede darte feedback" (el curso es en gran parte vídeo).
 
+## «Panel de control» en la barra de la escuela, recortado (06/10/2026)
+Pedido del usuario: "quítame tantas cosas que no sirven, déjalo en
+estadísticas, matrículas, usuarios y cursos". El bloque que ve el
+administrador en la barra de la ESCUELA (`OrgSidebar`) sale ahora de
+`PANEL_EN_LA_ESCUELA` (`lib/dashboard-menu-items.ts`): Estadísticas,
+Matrículas (`/dash/estadisticas?tab=matriculas`), Usuarios y Cursos. Fuera
+Inicio, Tareas, Comunidades, Automatizaciones y Organización **solo de esa
+barra**: siguen en la barra del propio panel (`NawarSidebar`).
+`DASHBOARD_MENU_ITEMS` sigue existiendo, ya no lo usa nadie.
+
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
   `git branch --show-current` antes de dar por buena ninguna que ponga aquí.
