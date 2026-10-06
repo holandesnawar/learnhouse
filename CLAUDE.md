@@ -2176,6 +2176,13 @@ documentos, «La ven: … · Cambiar»): **Todos**, **Solo administradores** o
   la comercial, las carpetas del curso van en «Alumnos».
 - Los archivos siguen siendo enlaces del almacén de adjuntos: quien tenga el
   enlace de un archivo lo abre. El filtro esconde la carpeta, no cifra el PDF.
+- **Vive en el panel, debajo de «Guion de llamada»** (06/10, "en panel y no
+  en escuela"): `?tab=recursos` de `EstadisticasPage`. El administrador ve
+  ahí `RecursosAdmin` (gestiona y ve todas); el closer, `RecursosPage` (solo
+  las de su grupo). Los dos con `embebido` (sin su propio título). En la barra
+  de la ESCUELA, «Recursos» ya solo sale a quien no tiene panel (alumnos y
+  profes). «Recursos y documentos» salió de Formación; `/dash/recursos` sigue
+  funcionando si alguien tiene el enlace guardado.
 
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con

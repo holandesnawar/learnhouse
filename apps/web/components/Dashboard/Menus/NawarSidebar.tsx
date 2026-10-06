@@ -70,6 +70,9 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
       { href: '/dash/estadisticas?tab=tareas', label: 'Tareas', icon: <ListChecks size={18} weight="fill" /> },
       { href: '/dash/estadisticas?tab=llamadas', label: 'Llamadas', icon: <PhoneCall size={18} weight="fill" /> },
       { href: '/dash/estadisticas?tab=guion', label: 'Guion de llamada', icon: <Scroll size={18} weight="fill" /> },
+      // Debajo del guion (06/10): cada uno ve las carpetas de su grupo; el
+      // administrador, todas y las gestiona aquí mismo.
+      { href: '/dash/estadisticas?tab=recursos', label: 'Recursos', icon: <FolderSimple size={18} weight="fill" /> },
     ],
   },
   {
@@ -96,7 +99,6 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
     titulo: 'Formación',
     items: [
       { href: '/dash/courses', label: 'Cursos', icon: <BookOpen size={18} weight="fill" /> },
-      { href: '/dash/recursos', label: 'Recursos y documentos', icon: <FolderSimple size={18} weight="fill" /> },
       { href: '/dash/workflows', label: 'Automatizaciones', icon: <Lightning size={18} weight="fill" /> },
     ],
   },
@@ -126,7 +128,7 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
 export function gruposDelCloser(veNumeros: boolean): Grupo[] {
   const todos = GRUPOS_DEL_PANEL.flatMap((g) => g.items)
   const por = (label: string) => todos.find((i) => i.label === label) as Item
-  const items = [por('Matrículas'), por('Tareas'), por('Contactos'), por('Llamadas'), por('Guion de llamada'), por('Páginas de la web')]
+  const items = [por('Matrículas'), por('Tareas'), por('Contactos'), por('Llamadas'), por('Guion de llamada'), por('Recursos'), por('Páginas de la web')]
   if (veNumeros) {
     items.push({ ...por('Estadísticas'), href: '/dash/estadisticas?tab=numeros', label: 'Números', match: undefined })
   }
