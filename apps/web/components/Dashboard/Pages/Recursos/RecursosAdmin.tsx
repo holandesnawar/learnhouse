@@ -67,7 +67,9 @@ function mover<T>(lista: T[], i: number, dir: -1 | 1): T[] {
   return copia
 }
 
-export default function RecursosAdmin() {
+/** `embebido`: dentro de una sección del panel (Ventas → Recursos), que ya
+ * pone su título y su margen. */
+export default function RecursosAdmin({ embebido = false }: { embebido?: boolean }) {
   const org = useOrg() as any
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
@@ -121,12 +123,14 @@ export default function RecursosAdmin() {
   }
 
   return (
-    <div className="h-full w-full bg-[#f8f8f8] px-4 sm:px-9 py-6 sm:py-9 pb-10 space-y-5 sm:space-y-6">
-      <div className="flex items-center gap-2 min-w-0">
-        <FolderSimple size={22} weight="fill" className="text-[#025dc7] shrink-0" />
-        <h1 className="text-xl sm:text-3xl font-bold text-gray-900 truncate">Recursos</h1>
-      </div>
-      <p className="text-[13.5px] text-gray-600 -mt-2">
+    <div className={embebido ? 'space-y-5 sm:space-y-6' : 'h-full w-full bg-[#f8f8f8] px-4 sm:px-9 py-6 sm:py-9 pb-10 space-y-5 sm:space-y-6'}>
+      {embebido ? null : (
+        <div className="flex items-center gap-2 min-w-0">
+          <FolderSimple size={22} weight="fill" className="text-[#025dc7] shrink-0" />
+          <h1 className="text-xl sm:text-3xl font-bold text-gray-900 truncate">Recursos</h1>
+        </div>
+      )}
+      <p className={`text-[13.5px] text-gray-600 ${embebido ? '' : '-mt-2'}`}>
         Cada carpeta sale en <strong>Recursos</strong> a quien tú digas en «Quién la ve»: todos,
         solo administradores, o solo unos grupos (por ejemplo, la carpeta comercial solo para el
         grupo de closers, y la del curso solo para «Alumnos»). Tú las ves todas. Archivos de

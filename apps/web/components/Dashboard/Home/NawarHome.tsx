@@ -96,7 +96,7 @@ export default function NawarHome() {
     { href: '/dash/consultas', label: 'Consultas', que: 'Dudas de los alumnos', icon: <Question size={20} weight="fill" /> },
     { href: '/dash/avisos', label: 'Avisos y correos', que: 'Escribir a los alumnos', icon: <EnvelopeSimple size={20} weight="fill" /> },
     { href: '/dash/courses', label: 'Cursos', que: 'La formación y la clase semanal', icon: <BookOpen size={20} weight="fill" /> },
-    { href: '/dash/recursos', label: 'Recursos y documentos', que: 'Archivos y enlaces, tuyos y de los alumnos', icon: <FolderSimple size={20} weight="fill" /> },
+    { href: '/dash/estadisticas?tab=recursos', label: 'Recursos', que: 'Archivos y enlaces, tuyos y de los alumnos', icon: <FolderSimple size={20} weight="fill" /> },
     { href: '/dash/estadisticas?tab=paginas', label: 'Páginas de la web', que: 'Por dónde llega la gente y qué ha visto', icon: <Globe size={20} weight="fill" /> },
     { href: '/dash/users/settings/usergroups', label: 'Equipo y grupos', que: 'Profes, closers, alumnos', icon: <UsersThree size={20} weight="fill" /> },
   ]

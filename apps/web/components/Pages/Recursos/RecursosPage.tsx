@@ -23,7 +23,8 @@ const ETIQUETA: Record<ReturnType<typeof tipoDe>, string> = {
   archivo: 'Archivo',
 }
 
-export default function RecursosPage() {
+/** `embebido`: en el panel (el closer, Ventas → Recursos), sin el título. */
+export default function RecursosPage({ embebido = false }: { embebido?: boolean }) {
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
   const [carpetas, setCarpetas] = useState<Carpeta[] | null>(null)
@@ -35,13 +36,17 @@ export default function RecursosPage() {
 
   return (
     <div className="pb-10">
-      <div className="flex items-center gap-2 mb-2">
-        <FolderSimple size={24} weight="fill" className="text-[#025dc7]" />
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Recursos</h1>
-      </div>
-      <p className="text-[14px] text-gray-600 mb-6">
-        Materiales de la escuela: apuntes, audios, carpetas compartidas y enlaces útiles.
-      </p>
+      {embebido ? null : (
+        <>
+          <div className="flex items-center gap-2 mb-2">
+            <FolderSimple size={24} weight="fill" className="text-[#025dc7]" />
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Recursos</h1>
+          </div>
+          <p className="text-[14px] text-gray-600 mb-6">
+            Materiales de la escuela: apuntes, audios, carpetas compartidas y enlaces útiles.
+          </p>
+        </>
+      )}
 
       {carpetas === null ? (
         <div className="flex justify-center py-16">
