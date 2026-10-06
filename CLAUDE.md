@@ -1779,13 +1779,24 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
     `services/contactos/templadas.py`, tabla `llamada_templada`, rutas
     `/contactos/org/{id}/templadas`, closer y administradores). **Entra
     sola** quien dejó sus datos en /agendar o en el proceso de admisión y no
-    terminó las preguntas (pasada media hora, por si aún está rellenando);
+    terminó las preguntas, o las terminó y no reservó hora (pasada media
+    hora, por si aún está rellenando o reservando);
     se guarda como fila la primera vez que se abre la lista (`sincronizar`,
     `clave` única `auto:<correo>`; nadie entra dos veces, mira todos los
     correos de la lista). **Los «No terminó» ya NO salen en Solicitudes de
     llamada**: viven aquí. **A mano**: nombre, móvil, correo opcional y
     notas. Dejan de salir solos quien termina las preguntas y quien paga.
     Test: `test_llamadas_templadas.py`.
+    - ⚠️ **En pantalla se llama «Llamadas»** (06/10, a petición del usuario);
+      en el código sigue siendo `templadas` / `llamada_templada`. La ficha
+      dice «Mandar a Llamadas» y «En la lista de Llamadas · pendiente».
+    - **Entra también quien pidió la llamada y NO reservó hora** (06/10): la
+      cualificación terminada sin evento `reunion` posterior (`reservaron_de`,
+      pura con test). Origen `llamada` («Pidió llamada, sin hora»), con
+      «Pidió la llamada (encaja / no encaja: motivo) y no reservó hora». Una
+      que estaba a medias y termina pasa sola a ese origen; si luego reserva,
+      sale de la lista (ya está en la agenda). Siguen saliendo TAMBIÉN en
+      «Solicitudes de llamada» (el usuario dijo «también»).
     - ⚠️ **Sin fechas: Pendiente o Hecha y ya** (usuario, 05/10). Hubo un día
       aproximado para llamar y se quitó el mismo día. La columna `llamar_el`
       sigue en la tabla, sin usarse. El orden lo pone la temperatura (abajo).

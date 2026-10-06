@@ -357,7 +357,7 @@ export default function FichaCliente({
                     {ficha.templada?.estado === 'pendiente' ? (
                       <span className="inline-flex items-center gap-1.5 h-8 text-[12.5px] text-[#4B5563]">
                         <PhoneCall size={13} className="text-gray-500" />
-                        En llamadas templadas · pendiente
+                        En la lista de Llamadas · pendiente
                       </span>
                     ) : (
                       <button
@@ -369,12 +369,12 @@ export default function FichaCliente({
                           )
                           if (!r.ok || !r.datos) return toast.error(r.error || 'No se ha podido mandar')
                           setFicha({ ...ficha, templada: r.datos.templada })
-                          toast.success('Está en Llamadas templadas, pendiente')
+                          toast.success('Está en la lista de Llamadas, pendiente')
                           onCambio?.()
                         }}
                         className={BOTON}
                       >
-                        <PhoneCall size={13} /> Mandar a llamadas templadas
+                        <PhoneCall size={13} /> Mandar a Llamadas
                       </button>
                     )}
                   </div>

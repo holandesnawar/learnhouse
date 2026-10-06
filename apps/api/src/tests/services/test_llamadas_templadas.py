@@ -17,6 +17,7 @@ from src.services.contactos.templadas import (
     ordenar_pendientes,
     temperatura,
     con_temperatura,
+    reservaron_de,
     quitar_templada,
 )
 
@@ -45,12 +46,37 @@ def test_entra_quien_se_quedo_a_medias_una_vez_por_correo():
     assert filas[0]["clave"] == "auto:ana@x.com"
 
 
-def test_no_entran_los_que_terminaron_pagaron_ya_estan_o_estan_rellenando():
+def test_no_entran_los_que_reservaron_pagaron_ya_estan_o_estan_rellenando():
     filas = filas_automaticas(
         [_ev("fin@x.com"), _ev("pago@x.com"), _ev("ya@x.com"), _ev("ahora@x.com", hace_h=0.2)],
         {"fin@x.com"}, {"pago@x.com"}, {"ya@x.com"}, {}, AHORA,
     )
     assert filas == []
+
+
+def test_entra_quien_pidio_llamada_y_no_reservo_hora():
+    eventos = [
+        _ev("eva@x.com", kind="cualificacion", extra={"apto": True}),
+        _ev("eva@x.com", hace_h=6),  # el «agendar-empezado» de antes
+        _ev("noe@x.com", kind="cualificacion", extra={"apto": False, "motivo_fuera": "sin capacidad de inversión"}),
+    ]
+    filas = filas_automaticas(eventos, set(), set(), set(), {}, AHORA)
+    assert [(f["email"], f["origen"]) for f in filas] == [("eva@x.com", "llamada"), ("noe@x.com", "llamada")]
+    assert filas[0]["detalle"] == "Pidió la llamada (encaja) y no reservó hora"
+    assert "no encaja: sin capacidad" in filas[1]["detalle"]
+    # Si reservó hora, no entra.
+    assert filas_automaticas(eventos, {"eva@x.com", "noe@x.com"}, set(), set(), {}, AHORA) == []
+
+
+def test_reservo_hora_solo_si_es_despues_de_su_ultima_cualificacion():
+    eventos = [
+        {"kind": "cualificacion", "email": "a@x.com", "created_at": "2026-10-05T10:00:00Z"},
+        {"kind": "reunion", "email": "a@x.com", "created_at": "2026-10-05T10:05:00Z"},
+        # Reservó una vez, luego volvió a pedir llamada y ya no reservó.
+        {"kind": "reunion", "email": "b@x.com", "created_at": "2026-09-20T10:00:00Z"},
+        {"kind": "cualificacion", "email": "b@x.com", "created_at": "2026-10-05T10:00:00Z"},
+    ]
+    assert reservaron_de(eventos) == {"a@x.com"}
 
 
 def test_atendido_en_la_lista_vieja_entra_como_hecha():
@@ -101,6 +127,8 @@ async def test_lista_de_verdad(db):
     db.add(ContactEvent(email="ana@x.com", kind="agendar-empezado", first_name="Ana", phone="+316", created_at=viejo))
     db.add(ContactEvent(email="fin@x.com", kind="agendar-empezado", created_at=viejo))
     db.add(ContactEvent(email="fin@x.com", kind="cualificacion", created_at=viejo))
+    # Pidió la llamada y SÍ reservó hora: está en la agenda, aquí no.
+    db.add(ContactEvent(email="fin@x.com", kind="reunion", created_at=viejo))
     db.add(ContactEvent(email="pago@x.com", kind="admision", created_at=viejo))
     db.add(Enrollment(email="pago@x.com", first_name="P", last_name="P", status="paid", created_at=viejo))
     await db.commit()
@@ -206,3 +234,22 @@ async def test_la_temperatura_sale_de_la_ficha_y_se_cambia_a_mano(db):
     assert not (await actualizar_templada(leo["id"], {"temperatura": "tibio"}, db))["ok"]
     await actualizar_templada(leo["id"], {"temperatura": ""}, db)
     assert (await listar_templadas(db))["pendientes"][0]["temperatura"] == "frio"
+
+
+@pytest.mark.asyncio
+async def test_la_que_estaba_a_medias_y_luego_pide_llamada_sigue_en_la_lista(db):
+    hace5 = (datetime.now(timezone.utc) - timedelta(hours=5)).isoformat()
+    hace3 = (datetime.now(timezone.utc) - timedelta(hours=3)).isoformat()
+    db.add(ContactEvent(email="ivy@x.com", kind="agendar-empezado", first_name="Ivy", created_at=hace5))
+    await db.commit()
+    assert (await listar_templadas(db))["pendientes"][0]["origen"] == "agendar"
+
+    db.add(ContactEvent(email="ivy@x.com", kind="cualificacion", first_name="Ivy", extra='{"apto": true}', created_at=hace3))
+    await db.commit()
+    ivy = (await listar_templadas(db))["pendientes"][0]
+    assert ivy["origen"] == "llamada" and "no reservó hora" in ivy["detalle"]
+
+    # Reserva hora: sale de la lista (ya está en la agenda).
+    db.add(ContactEvent(email="ivy@x.com", kind="reunion", created_at=datetime.now(timezone.utc).isoformat()))
+    await db.commit()
+    assert (await listar_templadas(db))["pendientes"] == []

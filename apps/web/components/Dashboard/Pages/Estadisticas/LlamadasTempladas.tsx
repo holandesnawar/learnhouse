@@ -1,7 +1,10 @@
 'use client'
 
 /**
- * Llamadas templadas — dentro de Panel → Llamadas (05/10/2026).
+ * Llamadas (antes «Llamadas templadas»; renombrada el 06/10 a petición del
+ * usuario) — la lista de a quién llamar, dentro de Panel → Llamadas (05/10/2026).
+ * Desde el 06/10 entra también, sola, quien terminó las preguntas (pidió la
+ * llamada) y no reservó hora.
  *
  * Gente que mostró interés y se quedó ahí. Entra sola quien dejó sus datos en
  * /agendar o en el proceso de admisión y no terminó las preguntas (antes
@@ -259,8 +262,8 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
     const quien = t.nombre || t.telefono || t.email
     const borra = t.origen === 'mano' && !t.email
     const pregunta = borra
-      ? `¿Borrar a ${quien} de las llamadas templadas? Sus notas de aquí se pierden.`
-      : `¿Quitar a ${quien} de las llamadas templadas? No vuelve a entrar sola (se puede devolver desde «Hechas o quitadas»). Su ficha y sus notas no se tocan.`
+      ? `¿Borrar a ${quien} de la lista de Llamadas? Sus notas de aquí se pierden.`
+      : `¿Quitar a ${quien} de la lista de Llamadas? No vuelve a entrar sola (se puede devolver desde «Hechas o quitadas»). Su ficha y sus notas no se tocan.`
     if (!(await confirmar(pregunta))) return
     const r = await quitarTemplada(org.id, t.id, accessToken)
     if (!r.ok) {
@@ -273,7 +276,7 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
 
   return (
     <Seccion
-      titulo={`Llamadas templadas${pendientes ? ` · ${pendientes.length} pendiente${pendientes.length === 1 ? '' : 's'}` : ''}`}
+      titulo={`Llamadas${pendientes ? ` · ${pendientes.length} pendiente${pendientes.length === 1 ? '' : 's'}` : ''}`}
       extra={
         !nueva ? (
           <button onClick={() => setNueva(true)} className={`${BOTON} whitespace-nowrap`}>
@@ -283,8 +286,9 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
       }
     >
       <p className={META}>
-        Gente que mostró interés y se quedó ahí. Entra sola quien dejó sus datos en «agendar llamada» o en el proceso de admisión y no
-        terminó las preguntas. Aquí puedes apuntar a quien quieras, aunque solo tengas su móvil, o mandarlo desde su ficha.
+        A quién llamar. Entra solo quien dejó sus datos en «agendar llamada» o en el proceso de admisión y no terminó las preguntas, y
+        quien pidió la llamada pero no reservó hora. Aquí puedes apuntar a quien quieras, aunque solo tengas su móvil, o mandarlo desde
+        su ficha.
         El color sale de cuándo entró en el flujo según su ficha: <b className="text-[#DC2626] font-semibold">rojo</b>, hace menos de 48 horas;{' '}
         <b className="text-[#D97706] font-semibold">amarillo</b>, esta semana; <b className="text-[#16A34A] font-semibold">verde</b>, hace más. Al
         abrir a alguien lo podéis cambiar a mano.
