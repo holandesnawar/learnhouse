@@ -13,7 +13,7 @@ import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { HeaderProfileBox } from '@components/Security/HeaderProfileBox'
 import NotificationsBell from '@components/Objects/Menus/NotificationsBell'
 import MessagesBell from '@components/Objects/Menus/MessagesBell'
-import { DASHBOARD_MENU_ITEMS, DashboardMenuItem } from '@/lib/dashboard-menu-items'
+import { PANEL_EN_LA_ESCUELA, DashboardMenuItem } from '@/lib/dashboard-menu-items'
 import { isFeatureAvailable } from '@services/plans/plans'
 import {
   Books,
@@ -201,7 +201,8 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     { key: 'copilot', href: '/copilot', label: 'Copilot', icon: <ChatCircle size={20} weight="fill" />, show: false },
   ]
 
-  const dashItems = DASHBOARD_MENU_ITEMS.filter((item: DashboardMenuItem) => {
+  // Solo lo de cada día (06/10): el resto vive en la barra del propio panel.
+  const dashItems = PANEL_EN_LA_ESCUELA.filter((item: DashboardMenuItem) => {
     // El profe entra al panel, pero solo a lo suyo.
     if (isProfe && !item.forProfe) return false
     if (!item.featureKey) return true
@@ -322,7 +323,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
                   <span className="shrink-0">
                     <Icon size={20} weight="fill" />
                   </span>
-                  <span className="truncate">{t(item.labelKey)}</span>
+                  <span className="truncate">{item.label ?? t(item.labelKey)}</span>
                 </Link>
               )
             })}
