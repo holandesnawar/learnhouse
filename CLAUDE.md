@@ -2184,6 +2184,16 @@ documentos, «La ven: … · Cambiar»): **Todos**, **Solo administradores** o
   profes). «Recursos y documentos» salió de Formación; `/dash/recursos` sigue
   funcionando si alguien tiene el enlace guardado.
 
+## /agendar ya es el proceso de admisión (06/10/2026)
+"Quien baja la guía acaba en /agendar, frío y directo; mejor el vídeo". En
+`nawar-web`, `src/pages/agendar.astro` es ahora una página mínima que manda a
+`/proceso-de-admision` **conservando los `?utm_…`** (nawar-web PR #123). Por
+eso todo lo que enlaza a /agendar (la gracias de la guía de las bases, las
+landings sin precio, guías y mensajes ya enviados) entra por el vídeo. Las
+preguntas y la hora siguen en `/proceso-de-admision/paso-3`; el formulario
+viejo de /agendar solo está en el historial de git. ⚠️ Lo de arriba que habla
+de "/agendar" como página con su propio formulario describe cómo era antes.
+
 ## Reservar plaza con señal y cobrar el resto (06/10/2026)
 Pedido: "Manuel está en llamada, falla Klarna o su tarjeta y no cierra. Se le
 pasa un enlace de 50 € como señal para guardarse la plaza; queda en su ficha
