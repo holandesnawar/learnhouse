@@ -2137,8 +2137,17 @@ Todo en `nawar-web` (PR #121 y #122).
   + dudas rápidas (respuestas copiadas de la FAQ de la web). ⚠️ **Los nombres
   y bios del equipo son INVENTADOS** (pedido del usuario, para probar el
   diseño): cambiarlos por los de verdad antes de pasar nada a
-  /proceso-de-admision. Pendiente que el usuario confirme si las tres
-  opiniones (Manuel Torres, Carlos R., Lucía V.) son de alumnos reales.
+  /proceso-de-admision.
+  - **Rehecha el mismo día** (nawar-web PR #126): **las opiniones NO eran
+    reales y se quitaron** (no volver a ponerlas). «El método» pasó a **«El
+    camino»**: acciones del alumno (sigues las lecciones → te apoyas en la
+    clase semanal → nos tienes siempre (consultas) → te vales por ti mismo +
+    certificado), pintado con `MetodoFunciona` de la landing y su mockup del
+    panel (el componente acepta ahora `pasos`, `badge`, `titulo`, `acento`,
+    `sub`; sin ellos, igual que siempre). Todo lo de debajo del vídeo va en
+    claro con las piezas de la landing (`.l8`, `badge-light`, `mf-title`,
+    `ParaTiSection`, garantía, `np-faq`): el usuario pidió "la letra y el
+    diseño como el home y las landings", no tarjetas de cristal sobre azul.
 - **Bloque de confianza del proceso de admisión, EN PRUEBAS** en
   `/v4/pruebas` (copia de `/proceso-de-admision`, fuera de Google con
   `Disallow: /v4/`): "Más de 2 años ayudando a hispanohablantes…", tres
