@@ -1,7 +1,8 @@
 """
 Recursos — carpetas con archivos y enlaces para los alumnos.
 
-Leer: cualquiera que esté dentro de la escuela (su propia organización).
+Leer: cada uno lo que le toca según los grupos de la carpeta (06/10); el
+administrador, todo.
 Gestionar: administradores (`rbac_check … "update"`), con el `org_id` en la
 ruta como en el resto del panel.
 """
@@ -28,6 +29,7 @@ from src.services.recursos.recursos import (
     ordenar_carpetas,
     ordenar_items,
     org_del_usuario,
+    quien_soy,
     subir_archivo,
 )
 
@@ -51,7 +53,9 @@ async def api_listar(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     org_id = await org_del_usuario(current_user, db_session)
-    return await listar(org_id, db_session)
+    # Cada uno ve lo suyo (grupos); el administrador, todo.
+    es_admin, mios = await quien_soy(int(current_user.id), org_id, db_session)
+    return await listar(org_id, db_session, es_admin=es_admin, mios=mios)
 
 
 @router.get("/org/{org_id}", summary="Lo mismo, para el panel (administradores).")

@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-04 (home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-06 (recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -2157,6 +2157,25 @@ Matrículas (`/dash/estadisticas?tab=matriculas`), Usuarios y Cursos. Fuera
 Inicio, Tareas, Comunidades, Automatizaciones y Organización **solo de esa
 barra**: siguen en la barra del propio panel (`NawarSidebar`).
 `DASHBOARD_MENU_ITEMS` sigue existiendo, ya no lo usa nadie.
+
+## Recursos por grupos (06/10/2026)
+Pedido: "el grupo closer solo puede ver el recurso comercial; admin ve todo".
+Cada carpeta de Recursos tiene **«Quién la ve»** (Panel → Recursos y
+documentos, «La ven: … · Cambiar»): **Todos**, **Solo administradores** o
+**solo estos**, marcando grupos de usuarios (Usuarios → Grupos) y/o
+**«Alumnos»** (= cualquiera con rol de alumno, rol 4; no hace falta grupo).
+- Columna `resource_folder.grupos` (JSON de ids y/o `"alumnos"`, en
+  `_ADDED_COLUMNS`). `puede_ver` y `leer_grupos` puras con test
+  (`test_recursos_grupos.py`); `quien_soy` saca rol + grupos del usuario.
+- **Se filtra en el servidor** (`GET /recursos/`): lo que no te toca ni se
+  manda. El administrador (roles 1-2 o superadmin) lo ve todo.
+- Con grupos, `private` no cuenta. Quitar el último grupo deja la carpeta en
+  «Solo administradores», y pedir grupos que no valen (borrados, de otra
+  escuela) también: «solo estos» nunca acaba en «todos».
+- ⚠️ **«Todos» incluye al closer y a los profes.** Para que el closer vea SOLO
+  la comercial, las carpetas del curso van en «Alumnos».
+- Los archivos siguen siendo enlaces del almacén de adjuntos: quien tenga el
+  enlace de un archivo lo abre. El filtro esconde la carpeta, no cifra el PDF.
 
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con

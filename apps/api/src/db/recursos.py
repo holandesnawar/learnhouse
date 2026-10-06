@@ -7,12 +7,17 @@ carpeta contiene items; un item es un enlace (`kind = "link"`, con su `url`)
 o un archivo subido (`kind = "file"`, con la `url` del volumen o de R2 y el
 nombre original para enseñarlo).
 
-Lo ve todo el que está dentro de la escuela; lo gestiona el administrador.
-Sin permisos por grupo en esta versión: cuando haga falta el "VIP" (enero),
-se añade `usergroup_id` a la carpeta y se filtra al listar.
+Lo gestiona el administrador. Quién VE cada carpeta (06/10/2026, "el grupo de
+closers solo puede ver la carpeta comercial; el admin ve todo"):
+- `grupos` vacío y no privada → todo el que está dentro de la escuela.
+- `grupos` con algo → solo quien esté en alguno de esos grupos de usuarios
+  (Panel → Usuarios → Grupos), y "alumnos" = cualquiera con rol de alumno.
+- privada y sin grupos → solo administradores.
+- Los administradores lo ven todo, siempre.
+Ver `puede_ver` en `services/recursos/recursos.py`.
 """
 
-from typing import Optional
+from typing import Optional, Union
 
 from pydantic import BaseModel
 from sqlalchemy import Column, ForeignKey, Integer
@@ -33,6 +38,9 @@ class ResourceFolder(SQLModel, table=True):
     # contratos, lo que sea del administrador. Columna añadida después de crear
     # la tabla → en _ADDED_COLUMNS.
     private: bool = False
+    # Quién la ve: JSON con ids de grupos de usuarios y/o "alumnos". Vacío =
+    # todos. Columna añadida después → en _ADDED_COLUMNS.
+    grupos: str = Field(default="", max_length=400)
 
 
 class ResourceItem(SQLModel, table=True):
@@ -58,6 +66,8 @@ class FolderWrite(BaseModel):
     name: str
     description: str = ""
     private: bool = False
+    # None = no tocar los que tenga (pantallas viejas que no los mandan).
+    grupos: Optional[list[Union[int, str]]] = None
 
 
 class LinkWrite(BaseModel):
