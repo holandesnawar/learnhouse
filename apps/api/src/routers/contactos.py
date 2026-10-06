@@ -147,6 +147,8 @@ class Templada(BaseModel):
     email: Optional[str] = None
     notas: Optional[str] = None
     estado: Optional[str] = None
+    # caliente · templado · frio, o "" para volver a la automática.
+    temperatura: Optional[str] = None
 
 
 def _respuesta_templada(r: dict) -> dict:

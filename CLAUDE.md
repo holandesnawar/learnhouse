@@ -1799,13 +1799,20 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
       «Llamadas templadas: …» y no era lo que quería.
     - **Temperatura** (06/10, "el que hizo matrícula ayer y no agendó está
       más caliente"): cada pendiente lleva a la vista, sin abrirla, rojo
-      «Caliente · llamar ya» (última señal hace menos de 48 h), amarillo
-      «Templado» (hasta 7 días) o verde «Frío». **Última señal** = lo más
-      reciente de sus eventos de la web, solicitudes y matrículas (y, si no
-      tiene correo, cuándo se apuntó): `_ultimas_senales` + `temperatura`
-      (pura, con test). Las notas del equipo NO cuentan: son nuestras, no
-      suyas. Orden: la más caliente arriba y, dentro, la señal más reciente.
-      Arriba, «N calientes · N templados · N fríos» hacen de filtro.
+      «Caliente · llamar ya» (entró hace menos de 48 h), amarillo «Templado»
+      (hasta 7 días) o verde «Frío». ⚠️ **Se mide por CUÁNDO ENTRÓ EN EL
+      FLUJO según su ficha** (`matricula_at` de `fusionar_contactos`, si no el
+      primer contacto; sin correo, cuándo se apuntó). La primera versión
+      usaba "la última señal" y salían TODOS rojos, de hoy o de ayer: cualquier
+      cosa reciente con su correo (un enlace de pago del equipo, un reenvío)
+      los recalentaba. Al lado sale **lo último que hizo según la ficha**
+      (`ultimo_contacto.que`), para que decida el equipo. **Se cambia a mano**
+      (closer y administradores): al abrirla, Caliente / Templado / Frío o
+      «Automática · …» para devolverla (`temperatura_manual`, columna en
+      `_ADDED_COLUMNS`; en la lista sale «· a mano»). `con_temperatura` y
+      `temperatura`, puras con test. Orden: la más caliente arriba y, dentro,
+      quien entró más tarde. Arriba, «N calientes · N templados · N fríos»
+      hacen de filtro.
     - **Botón «Mandar a llamadas templadas»** en la ficha (bloque Matrícula,
       quien aún no es alumno; `POST …/templadas/mandar`, `mandar_a_templadas`).
       Si ya estaba, no duplica; si estaba hecha o quitada, vuelve a pendiente.

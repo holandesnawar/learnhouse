@@ -138,18 +138,24 @@ def filas_automaticas(
 
 #: Temperatura de un lead pendiente (06/10, usuario: "el que hizo matrícula
 #: ayer y no agendó está más caliente: rojo, llamar lo antes posible; amarillo
-#: templado; verde más frío"). Se mide por la ÚLTIMA vez que la persona hizo
-#: algo con nosotros (dejar datos, una respuesta más, pedir plaza, llegar al
-#: pago), no por cuándo entró en la lista.
+#: templado; verde más frío").
+#: ⚠️ Se mide por CUÁNDO ENTRÓ EN EL FLUJO según su ficha (su primera
+#: matrícula: pidió plaza, dejó datos en /agendar o en la admisión, llegó al
+#: pago), no por "la última señal". Esa fue la primera versión y salían todos
+#: rojos, de hoy o de ayer: cualquier cosa reciente con su correo (un enlace de
+#: pago del equipo, un reenvío del formulario) los recalentaba. Lo que hizo
+#: después se enseña al lado, para que el equipo decida, y el color se puede
+#: poner a mano (`temperatura_manual`).
 HORAS_CALIENTE = 48
 DIAS_TEMPLADO = 7
+TEMPERATURAS = ("caliente", "templado", "frio")
 _ORDEN_TEMPERATURA = {"caliente": 0, "templado": 1, "frio": 2}
 
 
-def temperatura(ultima_senal: str, ahora: datetime) -> str:
-    """"caliente" (menos de 48 h), "templado" (hasta 7 días) o "frio". Sin
-    fecha que leer, frío. Función pura, con test."""
-    cuando = _fecha(ultima_senal)
+def temperatura(entro: str, ahora: datetime) -> str:
+    """"caliente" (entró hace menos de 48 h), "templado" (hasta 7 días) o
+    "frio". Sin fecha que leer, frío. Función pura, con test."""
+    cuando = _fecha(entro)
     if cuando is None:
         return "frio"
     horas = (ahora - cuando).total_seconds() / 3600
@@ -161,21 +167,32 @@ def temperatura(ultima_senal: str, ahora: datetime) -> str:
 
 
 def ordenar_pendientes(filas: list[dict]) -> list[dict]:
-    """La más caliente arriba; dentro de cada temperatura, quien dio señales
-    más recientemente. Función pura, con test."""
-    por_fecha = sorted(filas, key=lambda f: f.get("ultima_senal") or f.get("created_at") or "", reverse=True)
+    """La más caliente arriba; dentro de cada temperatura, quien entró más
+    recientemente. Función pura, con test."""
+    por_fecha = sorted(filas, key=lambda f: _fecha(f.get("entro") or f.get("created_at") or "") or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
     return sorted(por_fecha, key=lambda f: _ORDEN_TEMPERATURA.get(f.get("temperatura") or "frio", 2))
 
 
-def _mas_reciente(*fechas: str) -> str:
-    """La más reciente de varias fechas en texto, comparando de verdad (no
-    todas vienen con el mismo formato)."""
-    mejor, mejor_dt = "", None
-    for f in fechas:
-        dt = _fecha(f) if f else None
-        if dt is not None and (mejor_dt is None or dt > mejor_dt):
-            mejor, mejor_dt = f, dt
-    return mejor
+def con_temperatura(fila: dict, ficha: Optional[dict], manual: str, ahora: datetime) -> dict:
+    """Le pone a una fila lo que dice su ficha (cuándo entró en el flujo y qué
+    fue lo último que hizo) y su temperatura. Función pura, con test."""
+    entro = ""
+    if ficha:
+        entro = ficha.get("matricula_at") or (ficha.get("primer_contacto") or {}).get("when") or ""
+    entro = entro or fila.get("created_at") or ""
+    ultimo = (ficha or {}).get("ultimo_contacto") or {}
+    auto = temperatura(entro, ahora)
+    fila.update(
+        {
+            "entro": entro,
+            "que_hizo": ultimo.get("que") or "",
+            "que_hizo_at": ultimo.get("when") or "",
+            "temperatura_auto": auto,
+            "temperatura_manual": manual if manual in TEMPERATURAS else "",
+            "temperatura": manual if manual in TEMPERATURAS else auto,
+        }
+    )
+    return fila
 
 
 def _dict(f: LlamadaTemplada, notas: Optional[dict] = None) -> dict:
@@ -322,24 +339,15 @@ async def sincronizar(db_session: AsyncSession) -> int:
     return entraron
 
 
-async def _ultimas_senales(emails: set[str], db_session: AsyncSession) -> dict[str, str]:
-    """Por correo, la última vez que esa persona hizo algo: un evento de la
-    web, una solicitud de plaza o una matrícula (llegar al pago)."""
+async def _fichas_por_email(emails: set[str], db_session: AsyncSession) -> dict[str, dict]:
+    """La ficha de cada correo, la MISMA que se ve en Contactos y en la ficha
+    del cliente (`fusionar_contactos`), para que la lista diga lo mismo."""
     if not emails:
         return {}
-    from src.db.enrollment import Enrollment
+    from src.services.contactos.contactos import _todos_los_eventos, fusionar_contactos
 
-    salida: dict[str, str] = {}
-    consultas = [
-        select(ContactEvent.email, ContactEvent.created_at).where(ContactEvent.email.in_(emails)),  # type: ignore[attr-defined]
-        select(EnrollmentRequest.email, EnrollmentRequest.created_at).where(EnrollmentRequest.email.in_(emails)),  # type: ignore[attr-defined]
-        select(Enrollment.email, Enrollment.created_at).where(Enrollment.email.in_(emails)),  # type: ignore[attr-defined]
-    ]
-    for consulta in consultas:
-        for email, cuando in (await db_session.execute(consulta)).all():
-            clave = str(email or "").lower()
-            salida[clave] = _mas_reciente(salida.get(clave, ""), str(cuando or ""))
-    return salida
+    eventos = [e for e in await _todos_los_eventos(db_session) if (e.get("email") or "").strip().lower() in emails]
+    return {f["email"]: f for f in fusionar_contactos(eventos, set())}
 
 
 async def listar_templadas(db_session: AsyncSession) -> dict:
@@ -358,7 +366,7 @@ async def listar_templadas(db_session: AsyncSession) -> dict:
     filas = (await db_session.execute(select(LlamadaTemplada))).scalars().all()
     correos = {(f.email or "").lower() for f in filas if f.email}
     notas = await _notas_por_email(correos, db_session)
-    senales = await _ultimas_senales(correos, db_session)
+    fichas = await _fichas_por_email(correos, db_session)
     ahora = datetime.now(timezone.utc)
     pendientes: list[dict] = []
     cerradas: list[dict] = []
@@ -372,11 +380,8 @@ async def listar_templadas(db_session: AsyncSession) -> dict:
             # «Solicitudes de llamada», con sus respuestas.
             if f.origen != "mano" and email in terminaron:
                 continue
-            fila = _dict(f, notas)
-            # Quien no tiene correo: lo único que se sabe es cuándo se apuntó.
-            fila["ultima_senal"] = _mas_reciente(f.created_at, senales.get(email, "")) if email else f.created_at
-            fila["temperatura"] = temperatura(fila["ultima_senal"], ahora)
-            pendientes.append(fila)
+            # Quien no tiene correo no tiene ficha: cuenta desde que se apuntó.
+            pendientes.append(con_temperatura(_dict(f, notas), fichas.get(email), f.temperatura_manual or "", ahora))
         else:
             cerradas.append(_dict(f, notas))
     cerradas.sort(key=lambda x: x["hecha_at"] or x["updated_at"] or "", reverse=True)
@@ -459,6 +464,12 @@ async def actualizar_templada(
     if "notas" in cambios:
         # Con correo, una nota nueva va a la ficha (ver _pasar_notas_a_la_ficha).
         fila.notas = _limpio(cambios["notas"], 4000)
+    if "temperatura" in cambios:
+        t = str(cambios["temperatura"] or "")
+        if t and t not in TEMPERATURAS:
+            return {"ok": False, "motivo": "Temperatura no válida"}
+        # Vacía = vuelve a la automática.
+        fila.temperatura_manual = t
     if "estado" in cambios:
         estado = str(cambios["estado"] or "")
         if estado not in ESTADOS:

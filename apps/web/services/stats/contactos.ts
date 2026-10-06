@@ -485,10 +485,16 @@ export type Templada = {
   notas: string
   n_notas: number
   ultima_nota: string
-  /** Solo en las pendientes: cuánto de caliente está (06/10). */
+  /** Solo en las pendientes: cuánto de caliente está (06/10). La manual manda. */
   temperatura?: Temperatura
-  /** La última vez que hizo algo con nosotros (de ahí sale la temperatura). */
-  ultima_senal?: string
+  temperatura_auto?: Temperatura
+  /** Puesta a mano por el equipo; vacía = automática. */
+  temperatura_manual?: Temperatura | ''
+  /** Cuándo entró en el flujo según su ficha (su primera matrícula). */
+  entro?: string
+  /** Lo último que hizo, tal como lo cuenta su ficha. */
+  que_hizo?: string
+  que_hizo_at?: string
   origen: 'mano' | 'agendar' | 'admision'
   origen_nombre: string
   /** Las automáticas: qué dejó a medias. */
@@ -503,7 +509,10 @@ export type Templada = {
 /** Rojo (menos de 48 h), amarillo (hasta 7 días), verde (más). */
 export type Temperatura = 'caliente' | 'templado' | 'frio'
 
-export type DatosTemplada = Partial<Pick<Templada, 'nombre' | 'telefono' | 'email' | 'notas' | 'estado'>>
+export type DatosTemplada = Partial<Pick<Templada, 'nombre' | 'telefono' | 'email' | 'notas' | 'estado'>> & {
+  /** caliente · templado · frio, o '' para volver a la automática. */
+  temperatura?: Temperatura | ''
+}
 
 export const getTempladas = (orgId: number, accessToken: string) =>
   pedir<{ pendientes: Templada[]; cerradas: Templada[] }>(`contactos/org/${orgId}/templadas`, 'GET', null, accessToken)
