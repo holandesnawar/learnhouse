@@ -2190,8 +2190,9 @@ documentos, «La ven: … · Cambiar»): **Todos**, **Solo administradores** o
 `/proceso-de-admision` **conservando los `?utm_…`** (nawar-web PR #123). Por
 eso todo lo que enlaza a /agendar (la gracias de la guía de las bases, las
 landings sin precio, guías y mensajes ya enviados) entra por el vídeo. Las
-preguntas y la hora siguen en `/proceso-de-admision/paso-3`; el formulario
-viejo de /agendar solo está en el historial de git. ⚠️ Lo de arriba que habla
+preguntas y la hora siguen en `/proceso-de-admision/paso-3`. **El formulario
+viejo de /agendar, tal cual, vive en `/proceso-agendar`** (nawar-web PR #124,
+fuera de Google): para mandarlo solo, sin vídeo, a quien ya está caliente. ⚠️ Lo de arriba que habla
 de "/agendar" como página con su propio formulario describe cómo era antes.
 
 ## Reservar plaza con señal y cobrar el resto (06/10/2026)
