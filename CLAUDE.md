@@ -2128,6 +2128,17 @@ sin salir de la pantalla. Lo que sí se apunta, clase a clase, es el recorrido
 
 ## La home de la web, repasada (04/10/2026)
 Todo en `nawar-web` (PR #121 y #122).
+- **/v4/pruebas, ampliada el 06/10** (nawar-web PR #125), debajo del botón:
+  qué pasa ahora (vídeo → preguntas → 30 min), el método en 4 bloques con
+  piezas en HTML/CSS que imitan la escuela, **«Quién te acompaña en el
+  camino»** (tarjetas con el nombre sobre degradado azul y una cortina que
+  sube con la bio al pasar el ratón o tocar; se deslizan en el móvil; constante
+  `EQUIPO`, `foto` vacía = iniciales), las opiniones, «¿Es para ti?» y garantía
+  + dudas rápidas (respuestas copiadas de la FAQ de la web). ⚠️ **Los nombres
+  y bios del equipo son INVENTADOS** (pedido del usuario, para probar el
+  diseño): cambiarlos por los de verdad antes de pasar nada a
+  /proceso-de-admision. Pendiente que el usuario confirme si las tres
+  opiniones (Manuel Torres, Carlos R., Lucía V.) son de alumnos reales.
 - **Bloque de confianza del proceso de admisión, EN PRUEBAS** en
   `/v4/pruebas` (copia de `/proceso-de-admision`, fuera de Google con
   `Disallow: /v4/`): "Más de 2 años ayudando a hispanohablantes…", tres
