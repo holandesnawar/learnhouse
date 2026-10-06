@@ -62,6 +62,8 @@ def por_que_vio_el_precio(eventos: list[dict]) -> str:
         return texto + "."
     if any("landing-precio" in str(e.get("recorrido") or "") for e in eventos):
         return "Pasó por la página de la formación que enseña el precio."
+    if any(e.get("kind") == "senal" for e in eventos):
+        return "Pagó una señal para reservar su plaza con un enlace que le creó el equipo."
     if any(e.get("kind") == "pago" for e in eventos):
         return "Pagó la formación."
     return ""
@@ -115,8 +117,30 @@ async def ficha_cliente(email: str, user_id: int, es_admin: bool, db_session: As
         for r in (
             await db_session.execute(select(Enrollment).where(func.lower(Enrollment.email) == clave))
         ).scalars().all()
-        if r.status == "paid"
+        # La matrícula que cierra una reserva lleva el total: aquí se enseñan
+        # sus pagos uno a uno (abajo), no dos veces.
+        if r.status == "paid" and getattr(r, "recorrido", "") != "reserva"
     ]
+    # Los pagos de plazas reservadas: la señal, lo pagado a cuenta y el resto.
+    from src.db.reservas import ReservaPago, ReservaPlaza
+    from src.services.payments.reservas import NOMBRE_TIPO
+
+    for pago, _reserva in (
+        await db_session.execute(
+            select(ReservaPago, ReservaPlaza)
+            .join(ReservaPlaza, ReservaPlaza.id == ReservaPago.reserva_id)
+            .where(func.lower(ReservaPlaza.email) == clave)
+            .where(ReservaPago.estado == "pagado")
+        )
+    ).all():
+        pagos.append(
+            {
+                "fecha": pago.paid_at or pago.created_at,
+                "importe_cents": pago.importe_cents or 0,
+                "moneda": pago.currency or "eur",
+                "producto": NOMBRE_TIPO.get(pago.tipo, "Pago"),
+            }
+        )
     pagos.sort(key=lambda p: str(p["fecha"] or ""), reverse=True)
 
     correos = [
@@ -177,7 +201,16 @@ async def ficha_cliente(email: str, user_id: int, es_admin: bool, db_session: As
     except Exception:  # noqa: BLE001
         templada = None
 
+    # Plaza reservada con señal: lo pagado, lo pendiente y sus pagos.
+    try:
+        from src.services.payments.reservas import reserva_de
+
+        reserva = await reserva_de(clave, db_session)
+    except Exception:  # noqa: BLE001
+        reserva = None
+
     return {
+        "reserva": reserva,
         "email": clave,
         "nombre": ficha["nombre"],
         "telefono": ficha["telefono"],

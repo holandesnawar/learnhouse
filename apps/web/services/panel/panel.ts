@@ -43,6 +43,8 @@ export interface Tarjeta {
   /** Notas del equipo sobre esta persona, y la última (para el aviso de la tarjeta). */
   notas: number
   ultima_nota: string
+  /** Plaza reservada con señal: lo pagado y lo que le falta (sin acceso aún). */
+  reserva?: { pagado_cents: number; total_cents: number; pendiente_cents: number } | null
 }
 
 export interface Tablero {
@@ -110,6 +112,8 @@ export interface FichaCliente {
   avance?: AvanceAlumno | null
   /** Su fila en Llamadas templadas, si la tiene. */
   templada?: Templada | null
+  /** Plaza reservada con señal (la abierta, o la última si no hay ninguna abierta). */
+  reserva?: import('@services/stats/contactos').Reserva | null
   /** Solo administradores. */
   systeme: { ok: boolean; motivo?: string; existe?: boolean; etiquetas: string[]; campos: { slug: string; valor: string }[] } | null
   linea: ItemLinea[]

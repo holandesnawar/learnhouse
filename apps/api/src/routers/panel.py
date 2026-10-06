@@ -58,7 +58,17 @@ async def api_tablero(
         d = notas.setdefault(clave, {"n": 0, "ultima": ""})
         d["n"] += 1
         d["ultima"] = (n.texto or "")[:160]
+    # Plaza reservada con señal: cuánto lleva y cuánto le falta (06/10).
+    from src.services.payments.reservas import reservas_abiertas
+
+    reservas = {r["email"]: r for r in await reservas_abiertas(db_session)}
     for c in datos["tarjetas"]:
+        r = reservas.get(c["email"])
+        c["reserva"] = (
+            {"pagado_cents": r["pagado_cents"], "total_cents": r["total_cents"], "pendiente_cents": r["pendiente_cents"]}
+            if r
+            else None
+        )
         c["tareas"] = pendientes.get(c["email"], 0)
         c["notas"] = notas.get(c["email"], {}).get("n", 0)
         c["ultima_nota"] = notas.get(c["email"], {}).get("ultima", "")

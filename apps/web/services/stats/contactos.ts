@@ -532,3 +532,62 @@ export const mandarATemplada = (
 
 export const quitarTemplada = (orgId: number, id: number, accessToken: string) =>
   pedir<{ borrada: boolean }>(`contactos/org/${orgId}/templadas/${id}`, 'DELETE', null, accessToken)
+
+// ── Reservar plaza con señal y cobrar el resto (06/10/2026) ──────────────
+// Ver services/payments/reservas.py en la API.
+
+export type PagoReserva = {
+  id: number
+  tipo: 'senal' | 'parcial' | 'resto'
+  /** «Señal (reserva de plaza)», «Pago parcial», «Pago restante». */
+  nombre: string
+  importe_cents: number
+  /** pendiente = enlace abierto y sin pagar todavía. */
+  estado: 'pendiente' | 'pagado' | 'caducado'
+  creado_por: string
+  created_at: string
+  paid_at: string
+}
+
+export type Reserva = {
+  id: number
+  email: string
+  nombre: string
+  telefono: string
+  estado: 'abierta' | 'completada' | 'cancelada'
+  total_cents: number
+  pagado_cents: number
+  pendiente_cents: number
+  moneda: string
+  creado_por: string
+  created_at: string
+  completada_at: string
+  cancelada_at: string
+  pagos: PagoReserva[]
+}
+
+export type EnlaceReserva = {
+  url: string
+  dias: number
+  tipo: 'senal' | 'parcial' | 'resto'
+  importe_cents: number
+  reserva: Reserva
+}
+
+export const getPrecioReserva = (orgId: number, accessToken: string) =>
+  pedir<{ total_cents: number; moneda: string; senal_cents: number }>(`contactos/org/${orgId}/reserva/precio`, 'GET', null, accessToken)
+
+export const crearEnlaceReserva = (
+  orgId: number,
+  datos: { email: string; first_name: string; last_name?: string; phone?: string; importe_cents: number; total_cents?: number },
+  accessToken: string
+) => pedir<EnlaceReserva>(`contactos/org/${orgId}/reserva/enlace`, 'POST', datos, accessToken)
+
+export const getReservas = (orgId: number, accessToken: string) =>
+  pedir<{ reservas: Reserva[] }>(`contactos/org/${orgId}/reservas`, 'GET', null, accessToken)
+
+export const cambiarTotalReserva = (orgId: number, id: number, total_cents: number, accessToken: string) =>
+  pedir<Reserva>(`contactos/org/${orgId}/reserva/${id}`, 'PUT', { total_cents }, accessToken)
+
+export const cancelarReserva = (orgId: number, id: number, accessToken: string) =>
+  pedir<Reserva>(`contactos/org/${orgId}/reserva/${id}`, 'DELETE', null, accessToken)

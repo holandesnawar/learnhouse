@@ -174,9 +174,14 @@ async def get_seat_status(db_session: AsyncSession) -> dict:
         from src.services.contactos.metricas import emails_excluidos
 
         fuera = await emails_excluidos(db_session)
-        ocupadas = len(
-            [e for e in (await db_session.execute(statement)).scalars().all() if (e or "").strip().lower() not in fuera]
-        )
+        con_plaza = {
+            (e or "").strip().lower() for e in (await db_session.execute(statement)).scalars().all()
+        }
+        # Quien pagó una señal también ocupa plaza: para eso la pagó.
+        from src.services.payments.reservas import emails_con_plaza_reservada
+
+        con_plaza |= await emails_con_plaza_reservada(db_session)
+        ocupadas = len([e for e in con_plaza if e and e not in fuera])
     except Exception:
         # Si la cuenta falla no cerramos la tienda por nuestra cuenta: se
         # informa de 0 ocupadas y manda el interruptor manual.
@@ -1559,6 +1564,13 @@ async def _handle_checkout_session(obj: dict, db_session: AsyncSession) -> dict:
 
     session_id = obj.get("id") or ""
     metadatos = obj.get("metadata") or {}
+
+    # Una señal o un pago a cuenta de una plaza reservada: va por su camino
+    # (services/payments/reservas.py). Solo da acceso cuando se completa.
+    if str(metadatos.get("reserva_pago_id") or "").isdigit():
+        from src.services.payments.reservas import atender_pago
+
+        return await atender_pago(int(metadatos["reserva_pago_id"]), int(obj.get("amount_total") or 0), db_session)
     importe = int(obj.get("amount_total") or 0)
     moneda = (obj.get("currency") or "eur").lower()
 
@@ -1634,6 +1646,15 @@ async def _handle_payment_intent(obj: dict, db_session: AsyncSession) -> dict:
     enrollment by metadata.enrollment_id (set when the PI was created)
     so we have an authoritative email + name to provision against."""
     intent_id = obj.get("id") or ""
+    # Pago de una plaza reservada (señal o resto): ver reservas.py. Llega
+    # también por la sesión de pago; `atender_pago` lo apunta una sola vez.
+    pago_reserva = str((obj.get("metadata") or {}).get("reserva_pago_id") or "")
+    if pago_reserva.isdigit():
+        from src.services.payments.reservas import atender_pago
+
+        return await atender_pago(
+            int(pago_reserva), int(obj.get("amount_received") or obj.get("amount") or 0), db_session
+        )
     enrollment_id_str = (obj.get("metadata") or {}).get("enrollment_id") or ""
 
     enrollment = None
