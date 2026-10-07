@@ -2285,6 +2285,23 @@ Nawar. Tres páginas en `nawar-web`, fuera de Google (`robots.txt`
     `src/pages/formacion/v2/index.astro` cuando existan.
   - `docs.holandesnawar.com` **ya se alcanza** desde este entorno (07/10);
     CloudFront (el logo) sigue bloqueado.
+- **Tercera vuelta (07/10)**: el formulario dice **"Solicita información"**
+  (no "Solicita tu plaza"), y fuera las cifras de la cabecera (en el móvil
+  empujaban el formulario). El programa pasa a **"Plan de estudios"** en
+  OSCURO (como UDIA; todo blanco "dolía a la vista" y las tarjetas dentro de
+  tarjetas parecían popups) y por **etapas, no por módulos**: cada una con
+  objetivo, "lo que trabajas", **hito al terminar** y los módulos que incluye
+  en pequeño. Etapa 4 = "Consolidación" (módulo 10 + repaso + cierre,
+  semanas 14-16): con un solo módulo y "3 semanas" no cuadraba.
+  - ⚠️ **La barra de etapas pegada "vibraba"** en el móvil: desenfoque
+    (`backdrop-filter`) en algo pegajoso + `scrollTo` suave de las píldoras
+    mientras la página baja. Ahora fondo sólido, sin transiciones, y las
+    píldoras solo se mueven (de golpe) si la activa se sale de la vista.
+  - Fuera la garantía y las preguntas frecuentes. Nueva sección "Tu día a
+    día, resuelto en neerlandés" (como las "salidas profesionales" de UDIA,
+    sin prometer trabajo ni exámenes). Competencias en panel oscuro.
+  - Botón pegado del móvil como UDIA: teléfono a la izquierda, flecha a la
+    derecha.
 - La recomendación que se le dio para el anuncio: esta página con el
   formulario corto, y **llamar en menos de 15 minutos** (la página promete
   "te escribimos muy pronto"); la home se deja como está hasta ver números en
