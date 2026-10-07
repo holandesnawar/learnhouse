@@ -50,6 +50,9 @@ class EnrollmentRequest(SQLModel, table=True):
     utm_campaign: str = Field(default="", max_length=120)
     # Qué anuncio concreto (07/10). En _ADDED_COLUMNS.
     utm_content: str = Field(default="", max_length=120)
+    # En Meta: el conjunto de anuncios y dónde se vio. En _ADDED_COLUMNS.
+    utm_term: str = Field(default="", max_length=120)
+    utm_placement: str = Field(default="", max_length=120)
     product: str = Field(default="formacion-a0-a1", index=True)
     created_at: str = Field(default="", index=True)
     # Cuándo se le escribió. Vacío = pendiente. Es lo que hace que la lista del
@@ -69,3 +72,5 @@ class EnrollmentRequestCreate(BaseModel):
     utm_medium: str = ""
     utm_campaign: str = ""
     utm_content: str = ""
+    utm_term: str = ""
+    utm_placement: str = ""

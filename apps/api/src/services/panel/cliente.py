@@ -222,6 +222,8 @@ async def ficha_cliente(email: str, user_id: int, es_admin: bool, db_session: As
         "utm": {
             "source": ficha["utm_source"], "medium": ficha["utm_medium"], "campaign": ficha["utm_campaign"],
             "content": ficha.get("utm_content", ""),
+            "term": ficha.get("utm_term", ""),
+            "placement": ficha.get("utm_placement", ""),
         },
         "etiquetas": ficha["etiquetas"],
         "fuera_de_metricas": ficha["fuera_de_metricas"],

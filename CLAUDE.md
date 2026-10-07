@@ -2399,7 +2399,7 @@ Para la campaña de Meta «LEADS | VSL Matricula | oct26» (NL+BE, español,
     terminar), una vez por visita. `Schedule` al reservar en Calendly.
   - **Sin banner de cookies** (aparcado a propósito, ver RGPD): el píxel
     carga para todos. Si algún día se pone, se pierden los eventos de quien no
-    acepte. **Sin CAPI**: si se monta, mandar el MISMO eventID.
+    acepte. CAPI: ver abajo.
 - **Procedencia**: `fbclid` y `utm_*` viajan a cada paso (`conLaEntrada`):
   sin fbclid no hay cookie `_fbc`. Se guardan **cuatro** UTM: `utm_content`
   (en Meta, el nombre del anuncio) es nuevo, columna en `contact_event` y
@@ -2409,6 +2409,30 @@ Para la campaña de Meta «LEADS | VSL Matricula | oct26» (NL+BE, español,
   systeme.io, `origen = formacion-nawar-fb`.
 - **Panel → Anuncios** une campaña y leads por `utm_campaign` EXACTO (sin
   mayúsculas): la campaña se apunta allí con el mismo valor que el enlace.
+  Valor FIJO acordado: **`vsl-matricula-oct26`** (no `{{campaign.name}}`: si
+  se renombra la campaña en Meta, el panel dejaría de cuadrar sin avisar).
+- **Parámetros de URL del anuncio** (07/10): `utm_source=facebook`,
+  `utm_medium=paid`, `utm_campaign=vsl-matricula-oct26`,
+  `utm_content={{ad.name}}`, `utm_term={{adset.name}}`,
+  `utm_placement={{placement}}`. La escuela guarda los SEIS (`utm_term` y
+  `utm_placement` son columnas nuevas en `contact_event` y
+  `enrollment_request`, en `_ADDED_COLUMNS`) y la ficha enseña «Anuncio»,
+  «Conjunto» y «Ubicación».
+- **Conversión personalizada en Meta** (recomendada por el chat de anuncios
+  del usuario, sin código): «Lead y la URL contiene `/formacion-nawar-fb`».
+  Hace falta porque las guías TAMBIÉN mandan `Lead` al mismo píxel: con
+  `Lead` a secas, el conjunto aprendería de gente que baja guías gratis. El
+  Lead del embudo sale desde la propia página `/formacion-nawar-fb` (y el de
+  CAPI lleva esa dirección en `event_source_url`), así que la regla lo pilla.
+- **CAPI HECHO** (07/10, nawar-web PR #137, `src/lib/metaCapi.ts`): el Lead se
+  manda TAMBIÉN desde `/api/cualificacion` a la API de conversiones, con el
+  MISMO `event_id` que el navegador (`lead_event_id`, lo crea la página antes
+  de enviar). Datos cifrados (em, ph, fn), IP, navegador, `fbc` (cookie o
+  rehecho del `fbclid`) y `fbp`. **Solo con `META_CAPI_TOKEN` en Vercel**
+  (Administrador de eventos → el píxel → Configuración → API de conversiones →
+  Generar identificador); sin él no hace nada. `META_CAPI_TEST_CODE` manda a
+  «Probar eventos» (quitarlo después). Aun así la escuela enseñará más leads
+  que Meta: el número para decidir es el de la escuela.
 - Pendiente (pedido del usuario, "de ahí luego"): otra versión con barra
   superior para los botones de la home y las landings, en su propia
   dirección, para no mezclar los leads del anuncio con los de la web.
