@@ -2341,11 +2341,17 @@ Nawar. Tres páginas en `nawar-web`, fuera de Google (`robots.txt`
     `todo.explicado.movil.png` (con rótulos), en `docs.holandesnawar.com/img/Landing/`.
   - **Un solo formulario**: el cierre son los tres pasos + un botón que sube
     al de arriba. **Botones "Solicitar información" sin sombra exterior.**
-  - "Así es una semana", imágenes definitivas (PR #132): 1 lecciones → la
-    portada de la formación (`cuantos cursos has empezado.png`), 2 ejercicios
-    → `bonus.ejercicios`, 3 consultas → `bonus.soporte`, 4 **clase en
-    directo → `bonus.clases`** (la de la landing). ⚠️ **`bonus.comun` (la de
-    la comunidad, con caras) "parece un poco IA"**: no usarla.
+  - "Así es una semana" (PR #133): 1 lecciones → `bonus.clases` (la captura
+    de la lección), 2 ejercicios → `bonus.ejercicios`, 3 consultas →
+    `bonus.soporte`, 4 **clase en directo → una videollamada DIBUJADA** en un
+    portátil (diapositiva de la lección compartida, cámara del profe y los
+    alumnos con la LETRA de su perfil, sin fotos ni nombres: pedido del
+    usuario). Medida en `cqw` para que el móvil sea la misma imagen. ⚠️
+    **`bonus.comun` (la de la comunidad, con caras) "parece un poco IA"**: no
+    usarla. La cámara del profe es la cara del vídeo de `bonus.clases`
+    recortada (`nawar-web/public/img/formacion-v2/profe-camara.png`, 140×95):
+    **no hay ninguna foto de profes reales** en los repos ni en el CDN que se
+    alcance; cuando el usuario mande una, se cambia ese archivo.
   - ⚠️ **El vídeo de `/formacion/v2/video` y el sonido** (PR #132): se
     forzaba `muted=true` y el aviso "Toca para activar el sonido" salía
     siempre, pero quien llega del formulario ya ha tocado la web y Chrome le
