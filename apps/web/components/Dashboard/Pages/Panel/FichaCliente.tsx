@@ -489,6 +489,13 @@ export default function FichaCliente({
                 {ficha.utm.content ? (
                   <span className="rounded-md px-2.5 py-1 text-[12px] font-semibold text-[#B45309]">Anuncio: {ficha.utm.content}</span>
                 ) : null}
+                {/* En Meta: el conjunto de anuncios (utm_term) y dónde lo vio (utm_placement). */}
+                {ficha.utm.term ? (
+                  <span className="rounded-md px-2.5 py-1 text-[12px] font-semibold text-gray-600">Conjunto: {ficha.utm.term}</span>
+                ) : null}
+                {ficha.utm.placement ? (
+                  <span className="rounded-md px-2.5 py-1 text-[12px] font-semibold text-gray-600">Ubicación: {ficha.utm.placement}</span>
+                ) : null}
               </div>
               {ficha.vio_precio && ficha.precio_por ? <p className="text-[12.5px] text-gray-700 mt-2">{ficha.precio_por}</p> : null}
               {ficha.vino_de ? <p className="text-[12.5px] text-[#6B7280] mt-2">Llegó por {ficha.vino_de}.</p> : null}

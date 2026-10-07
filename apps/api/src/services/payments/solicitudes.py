@@ -70,7 +70,7 @@ async def crear_solicitud(
         fila.recorrido = recorrido
     if (data.referrer or "").strip():
         fila.referrer = data.referrer.strip()[:120]
-    for campo in ("utm_source", "utm_medium", "utm_campaign", "utm_content"):
+    for campo in ("utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "utm_placement"):
         valor = (getattr(data, campo, "") or "").strip()
         if valor:
             setattr(fila, campo, valor[:120])

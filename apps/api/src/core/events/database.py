@@ -375,6 +375,11 @@ _ADDED_COLUMNS = [
     # Qué anuncio concreto (utm_content, 07/10): el embudo del anuncio de Meta.
     "ALTER TABLE IF EXISTS enrollment_request ADD COLUMN IF NOT EXISTS utm_content VARCHAR DEFAULT ''",
     "ALTER TABLE IF EXISTS contact_event ADD COLUMN IF NOT EXISTS utm_content VARCHAR DEFAULT ''",
+    # El conjunto de anuncios y la ubicación (utm_term, utm_placement, 07/10).
+    "ALTER TABLE IF EXISTS enrollment_request ADD COLUMN IF NOT EXISTS utm_term VARCHAR DEFAULT ''",
+    "ALTER TABLE IF EXISTS enrollment_request ADD COLUMN IF NOT EXISTS utm_placement VARCHAR DEFAULT ''",
+    "ALTER TABLE IF EXISTS contact_event ADD COLUMN IF NOT EXISTS utm_term VARCHAR DEFAULT ''",
+    "ALTER TABLE IF EXISTS contact_event ADD COLUMN IF NOT EXISTS utm_placement VARCHAR DEFAULT ''",
     "ALTER TABLE IF EXISTS enrollment ADD COLUMN IF NOT EXISTS utm_source VARCHAR DEFAULT ''",
     "ALTER TABLE IF EXISTS enrollment ADD COLUMN IF NOT EXISTS utm_medium VARCHAR DEFAULT ''",
     "ALTER TABLE IF EXISTS enrollment ADD COLUMN IF NOT EXISTS utm_campaign VARCHAR DEFAULT ''",

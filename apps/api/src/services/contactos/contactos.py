@@ -191,6 +191,8 @@ async def registrar_evento(data: ContactEventCreate, db_session: AsyncSession) -
         utm_medium=(data.utm_medium or "").strip()[:120],
         utm_campaign=(data.utm_campaign or "").strip()[:120],
         utm_content=(getattr(data, "utm_content", "") or "").strip()[:120],
+        utm_term=(getattr(data, "utm_term", "") or "").strip()[:120],
+        utm_placement=(getattr(data, "utm_placement", "") or "").strip()[:120],
         extra=extra_serializado(data.extra or {}),
         created_at=_ahora(),
     )
@@ -271,6 +273,8 @@ def _evento(kind: str, when: str, email: str, **campos) -> dict:
         "utm_medium": "",
         "utm_campaign": "",
         "utm_content": "",
+        "utm_term": "",
+        "utm_placement": "",
         "extra": {},
     }
     base.update({k: v for k, v in campos.items() if v is not None})
@@ -347,6 +351,8 @@ def fusionar_contactos(eventos: list[dict], con_cuenta: set[str]) -> list[dict]:
                 "utm_medium": ultimo("utm_medium"),
                 "utm_campaign": ultimo("utm_campaign"),
                 "utm_content": ultimo("utm_content"),
+                "utm_term": ultimo("utm_term"),
+                "utm_placement": ultimo("utm_placement"),
                 "etiquetas": etiquetas,
                 "primer_contacto": {"kind": primero["kind"], "que": primero["que"], "when": primero["when"]},
                 "ultimo_contacto": {"kind": ult["kind"], "que": ult["que"], "when": ult["when"]},
@@ -381,6 +387,8 @@ async def _todos_los_eventos(db_session: AsyncSession) -> list[dict]:
                 source=r.source, tag=r.tag, recorrido=r.recorrido, referrer=r.referrer,
                 utm_source=r.utm_source, utm_medium=r.utm_medium, utm_campaign=r.utm_campaign,
                 utm_content=getattr(r, "utm_content", "") or "",
+                utm_term=getattr(r, "utm_term", "") or "",
+                utm_placement=getattr(r, "utm_placement", "") or "",
                 extra=extra,
             )
         )
@@ -394,6 +402,8 @@ async def _todos_los_eventos(db_session: AsyncSession) -> list[dict]:
                 utm_source=getattr(r, "utm_source", ""), utm_medium=getattr(r, "utm_medium", ""),
                 utm_campaign=getattr(r, "utm_campaign", ""),
                 utm_content=getattr(r, "utm_content", "") or "",
+                utm_term=getattr(r, "utm_term", "") or "",
+                utm_placement=getattr(r, "utm_placement", "") or "",
                 extra={"contactada": bool(r.contacted_at), "solicitud_id": r.id},
             )
         )
