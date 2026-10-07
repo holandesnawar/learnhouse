@@ -2262,6 +2262,29 @@ Nawar. Tres páginas en `nawar-web`, fuera de Google (`robots.txt`
   formacion-v2` (`/api/cualificacion` acepta ahora `origen`; sin él, sigue
   siendo `proceso-de-admision`). Píxel: `SubmitApplication` (misma marca de
   sesión que el proceso de admisión, no cuenta doble).
+- **Segunda vuelta (07/10, "más profesional, moderno y clean")**: el programa
+  va en **4 fases** (no 10 módulos sueltos) y, como UDIA, al bajar las fases
+  se quedan **pegadas arriba en el móvil** (píldoras con su color y una raya
+  de progreso; en el ordenador, la columna "Recorrido"). Ojo: las secciones
+  usan `overflow: clip`, no `hidden`, o lo pegajoso deja de pegarse.
+  Mockups: las ilustraciones de las landings (`docs.holandesnawar.com/img/
+  Landing/bonus.*.png`, todas 16:9 menos ejercicios, casi cuadrada), el
+  **certificado de verdad** (`Certificado.final.landing.png` sobre
+  `fondo.certificado.png`, girado -7°) y el panel del alumno de
+  `MetodoFunciona` (por eso la página importa `nawar-sections.css` y
+  `landing-08-08-2026.css`). Más Metodología y "¿A quién va dirigido?".
+  - **Los 10 módulos de verdad** (salen del goteo, en el registro de la
+    tarea diaria y de la prueba de restauración): 1 Over jou, 2 Familie &
+    vrienden, 3 Eten en drinken, 4 Het werk, 5 Hobby's & vrije tijd, 6 Thuis
+    & wonen, 7 Gezondheid, 8 Vervoer & reizen, 9 De stad & afspraken, 10
+    Dagelijks leven. Abren: M3 21/09, M4 12/10, M5 26/10, M6 09/11, M7
+    23/11, M8 30/11, M9 y M10 07/12. Fases: 1-3 Las bases, 4-6 Tu vida aquí,
+    7-9 Valerte por ti mismo, 10 Tu día a día.
+  - ⚠️ Los temas de los módulos 5 a 10 en la página están **deducidos del
+    nombre** (no hay lecciones escritas todavía): cambiarlos en `FASES` de
+    `src/pages/formacion/v2/index.astro` cuando existan.
+  - `docs.holandesnawar.com` **ya se alcanza** desde este entorno (07/10);
+    CloudFront (el logo) sigue bloqueado.
 - La recomendación que se le dio para el anuncio: esta página con el
   formulario corto, y **llamar en menos de 15 minutos** (la página promete
   "te escribimos muy pronto"); la home se deja como está hasta ver números en
