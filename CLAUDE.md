@@ -2360,6 +2360,18 @@ Nawar. Tres páginas en `nawar-web`, fuera de Google (`robots.txt`
     el aviso solo sale si player.js CONFIRMA `getMuted`, y tocarlo quita el
     silencio sin remontar nada. La cuenta atrás de respaldo no baja si el
     reproductor avisa de que está en pausa (el iPhone espera al play).
+  - ⚠️ **La barra de etapas del móvil temblaba por TERCERA vez** ("al
+    scrollear rápido", PR #134). La causa de verdad: era `position: sticky` y
+    la web entera lleva **`body { overflow-x: hidden }`** (`global.css`); con
+    eso Safari del iPhone recoloca lo pegajoso en cada fotograma. Quitar
+    desenfoques y código de scroll (vueltas anteriores) no bastaba. Ahora la
+    barra de dentro del plan es normal y una **copia FIJA** (`#fv-fases-fija`,
+    fuera de la sección) baja arriba mientras el plan pasa por debajo: un
+    IntersectionObserver sobre el plan ENTERO (franja `-70px 0px -88% 0px`).
+    No con marcas sueltas al principio/final: al saltar de golpe por encima
+    de una marca el navegador no avisa y la barra se quedaba puesta.
+    **Regla: en `nawar-web` nada de `position: sticky` en móvil; fijo +
+    IntersectionObserver.** (No se toca `global.css`: es toda la web.)
 - **Equipo con caras**: recomendado SÍ, pero solo con fotos, nombres y papel
   reales. Pendiente de que el usuario los mande.
 - La recomendación que se le dio para el anuncio: esta página con el
