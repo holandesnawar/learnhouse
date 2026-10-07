@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-07 (/formacion/v2 para anuncios; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-07 (/formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -2302,6 +2302,34 @@ Nawar. Tres páginas en `nawar-web`, fuera de Google (`robots.txt`
     sin prometer trabajo ni exámenes). Competencias en panel oscuro.
   - Botón pegado del móvil como UDIA: teléfono a la izquierda, flecha a la
     derecha.
+- **Cuarta vuelta (07/10, "ponte serio, esto va en el CTA de un buen UGC")**
+  (nawar-web PR #130):
+  - Cabecera **sin botón en la barra**, titular largo ("Aprende neerlandés
+    desde cero y deja de depender de otros en Países Bajos") y el formulario
+    en **cristal oscuro**: la caja blanca sobre el azul "chocaba, se ve IA".
+    El formulario es un componente (`components/formacion-v2/FormSolicitud.astro`)
+    y sale **dos veces** (arriba y en el cierre); el script lo engancha por
+    `data-fv-form`, no por id.
+  - **Iconos solos, sin baldosa detrás** (como en las landings). Regla para
+    cualquier página nueva.
+  - "Lo que cambia" = **antes / después** con la columna "Con la Formación
+    Nawar" en banda azul. Las cinco tarjetas iguales eran "sosas".
+  - "Así es una semana" ya NO usa `MetodoFunciona` (el panel azul "chocaba"):
+    pasos que se abren + piezas claras con contenido REAL de `courseData.ts`
+    (Les 1, el diálogo "Kennismaken in het café", la explicación de
+    `m1l1e-3` como consulta, `m1l1sp-3`). Pasa sola cada 6 s hasta que se toca.
+  - Fuera Metodología. "¿A quién?" → **"¿Te reconoces?"**: frases de quien
+    llega, sin nombre ni foto; **nunca convertirlas en testimonios**.
+  - Cierre = "Tu admisión empieza en 30 segundos" (3 pasos) + formulario, con
+    el pie dentro. Fuera el CTA final y el pie aparte ("no aportan nada").
+  - ⚠️ **La barra de etapas seguía vibrando** al bajar despacio en el móvil.
+    Ahora no hay NADA de código en el scroll: un IntersectionObserver (franja
+    al 40 % de la pantalla) marca la etapa, la raya avanza **por etapas** con
+    transición de CSS, y fuera `will-change`/`translateZ` de la barra y el
+    desenfoque del botón pegado. No se puede probar la inercia del iPhone desde
+    aquí: confirmarlo en un móvil de verdad.
+- **Equipo con caras**: recomendado SÍ, pero solo con fotos, nombres y papel
+  reales. Pendiente de que el usuario los mande.
 - La recomendación que se le dio para el anuncio: esta página con el
   formulario corto, y **llamar en menos de 15 minutos** (la página promete
   "te escribimos muy pronto"); la home se deja como está hasta ver números en
