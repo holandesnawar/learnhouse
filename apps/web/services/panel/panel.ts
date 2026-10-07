@@ -95,7 +95,7 @@ export interface FichaCliente {
   /** Por qué ha visto el precio, en una frase (vacío si no lo ha visto). */
   precio_por?: string
   vino_de: string
-  utm: { source: string; medium: string; campaign: string }
+  utm: { source: string; medium: string; campaign: string; content?: string }
   etiquetas: string[]
   fuera_de_metricas: boolean
   primer_contacto: { kind: string; que: string; when: string }

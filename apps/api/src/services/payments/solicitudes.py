@@ -70,7 +70,7 @@ async def crear_solicitud(
         fila.recorrido = recorrido
     if (data.referrer or "").strip():
         fila.referrer = data.referrer.strip()[:120]
-    for campo in ("utm_source", "utm_medium", "utm_campaign"):
+    for campo in ("utm_source", "utm_medium", "utm_campaign", "utm_content"):
         valor = (getattr(data, campo, "") or "").strip()
         if valor:
             setattr(fila, campo, valor[:120])
@@ -90,6 +90,9 @@ _NOMBRES = {
     "landing": "la página de la formación (sin precio)",
     "landing-precio": "la página de la formación CON el precio",
     "landing-metodo": "la página que explica la formación, para anuncios (sin precio)",
+    # 07/10: el embudo del anuncio de Facebook/Instagram (nawar-web
+    # /formacion-nawar-fb, antes /formacion/v2 = "landing-metodo").
+    "anuncio-fb": "la página del anuncio de Facebook e Instagram (sin precio)",
     "matricula-pago": "el formulario de matrícula con pago (enseña el precio)",
     "guia-bases": "la guía de las bases",
     "gracias-bases": "la descarga de la guía de las bases",

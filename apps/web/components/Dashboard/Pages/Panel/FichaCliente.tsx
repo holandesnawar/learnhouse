@@ -485,6 +485,10 @@ export default function FichaCliente({
                 {ficha.utm.campaign ? (
                   <span className="rounded-md px-2.5 py-1 text-[12px] font-semibold text-[#B45309]">Campaña: {ficha.utm.campaign}</span>
                 ) : null}
+                {/* El anuncio concreto (utm_content, 07/10): en Meta, el nombre del anuncio. */}
+                {ficha.utm.content ? (
+                  <span className="rounded-md px-2.5 py-1 text-[12px] font-semibold text-[#B45309]">Anuncio: {ficha.utm.content}</span>
+                ) : null}
               </div>
               {ficha.vio_precio && ficha.precio_por ? <p className="text-[12.5px] text-gray-700 mt-2">{ficha.precio_por}</p> : null}
               {ficha.vino_de ? <p className="text-[12.5px] text-[#6B7280] mt-2">Llegó por {ficha.vino_de}.</p> : null}

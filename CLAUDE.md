@@ -2374,6 +2374,44 @@ Nawar. Tres páginas en `nawar-web`, fuera de Google (`robots.txt`
     IntersectionObserver.** (No se toca `global.css`: es toda la web.)
 - **Equipo con caras**: recomendado SÍ, pero solo con fotos, nombres y papel
   reales. Pendiente de que el usuario los mande.
+
+### ⚠️ El embudo vive ahora en `/formacion-nawar-fb` (07/10, nawar-web PR #135)
+Para la campaña de Meta «LEADS | VSL Matricula | oct26» (NL+BE, español,
+25-55, €15/día, conversión «Cliente potencial» = `Lead` en el píxel
+**1410831147818099**, el de toda la web, «Hebben&Zijn» en Meta).
+- **Direcciones** (decisión del usuario: "-fb" para que se lea de dónde
+  vienen): `/formacion-nawar-fb` (página), `/formacion-nawar-fb/vsl` (vídeo),
+  `/formacion-nawar-fb/proceso-de-admision` (formulario + Calendly). Todo sale
+  de `EMBUDO_FB` en `nawar-web/src/lib/admision.ts`. `/formacion/v2…`
+  redirige con páginas mínimas que conservan TODA la dirección. Lo de arriba
+  que dice `/formacion/v2` describe las mismas páginas.
+- **Píxel** (especificación del usuario, 07/10):
+  - `Lead` **solo tras respuesta OK** de `/api/cualificacion` (nunca al
+    pulsar ni al cargar), una vez por visita (`LEAD_FB` en sessionStorage) y
+    con `eventID` (para deduplicar si algún día hay CAPI). ⚠️ Antes NO se
+    mandaba nunca: solo `SubmitApplication`, y la campaña no habría visto
+    ninguna conversión. `SubmitApplication` se sigue mandando a la vez.
+  - **Coincidencia avanzada**: justo antes del Lead,
+    `fbq('init', PIXEL_META, {em, ph, fn})`; y `Layout.astro` arranca el
+    píxel en todas las páginas con los datos de `nawar.admision.datos` si la
+    persona ya los dejó. El id sale de `PIXEL_META` (un solo sitio).
+  - `VSLVisto` al cargar el vídeo, `VSL50` al pasar de la mitad (también al
+    terminar), una vez por visita. `Schedule` al reservar en Calendly.
+  - **Sin banner de cookies** (aparcado a propósito, ver RGPD): el píxel
+    carga para todos. Si algún día se pone, se pierden los eventos de quien no
+    acepte. **Sin CAPI**: si se monta, mandar el MISMO eventID.
+- **Procedencia**: `fbclid` y `utm_*` viajan a cada paso (`conLaEntrada`):
+  sin fbclid no hay cookie `_fbc`. Se guardan **cuatro** UTM: `utm_content`
+  (en Meta, el nombre del anuncio) es nuevo, columna en `contact_event` y
+  `enrollment_request` (`_ADDED_COLUMNS`), y sale en la ficha como
+  «Anuncio: …». A systeme.io NO va (no tiene ese campo). El recorrido marca
+  `anuncio-fb` («la página del anuncio de Facebook e Instagram»); en
+  systeme.io, `origen = formacion-nawar-fb`.
+- **Panel → Anuncios** une campaña y leads por `utm_campaign` EXACTO (sin
+  mayúsculas): la campaña se apunta allí con el mismo valor que el enlace.
+- Pendiente (pedido del usuario, "de ahí luego"): otra versión con barra
+  superior para los botones de la home y las landings, en su propia
+  dirección, para no mezclar los leads del anuncio con los de la web.
 - La recomendación que se le dio para el anuncio: esta página con el
   formulario corto, y **llamar en menos de 15 minutos** (la página promete
   "te escribimos muy pronto"); la home se deja como está hasta ver números en
