@@ -2328,6 +2328,32 @@ Nawar. Tres páginas en `nawar-web`, fuera de Google (`robots.txt`
     transición de CSS, y fuera `will-change`/`translateZ` de la barra y el
     desenfoque del botón pegado. No se puede probar la inercia del iPhone desde
     aquí: confirmarlo en un móvil de verdad.
+- **Quinta vuelta (07/10)** (nawar-web PR #131):
+  - **Titulares sobre oscuro con el degradado de las landings** (`.fv-grad` =
+    `.text-gradient-white`: blanco → 72 %), el acento en `#4da3ff`. "No
+    blanco plano": es la letra de siempre de los títulos.
+  - "Así es una semana" ya NO lleva piezas dibujadas: cada paso enseña su
+    **captura real** (las ilustraciones `bonus.*` de las landings: clases →
+    lecciones, ejercicios, soporte → consultas, comun → grupo y clase). Se
+    quitó "Una formación, no un curso de vídeos", que repetía esas imágenes.
+    Las imágenes "buenas" de la escuela (para cualquier página): `bonus.*`,
+    `Todo.pc.png` / `todoo.movil.png` (todo junto) y `todo.pc.explic.png` /
+    `todo.explicado.movil.png` (con rótulos), en `docs.holandesnawar.com/img/Landing/`.
+  - **Un solo formulario**: el cierre son los tres pasos + un botón que sube
+    al de arriba. **Botones "Solicitar información" sin sombra exterior.**
+  - "Así es una semana", imágenes definitivas (PR #132): 1 lecciones → la
+    portada de la formación (`cuantos cursos has empezado.png`), 2 ejercicios
+    → `bonus.ejercicios`, 3 consultas → `bonus.soporte`, 4 **clase en
+    directo → `bonus.clases`** (la de la landing). ⚠️ **`bonus.comun` (la de
+    la comunidad, con caras) "parece un poco IA"**: no usarla.
+  - ⚠️ **El vídeo de `/formacion/v2/video` y el sonido** (PR #132): se
+    forzaba `muted=true` y el aviso "Toca para activar el sonido" salía
+    siempre, pero quien llega del formulario ya ha tocado la web y Chrome le
+    deja sonar: se oía, salía el aviso igual y, al tocarlo, se volvía a montar
+    el reproductor desde el principio. Ahora arranca sin forzar el silencio,
+    el aviso solo sale si player.js CONFIRMA `getMuted`, y tocarlo quita el
+    silencio sin remontar nada. La cuenta atrás de respaldo no baja si el
+    reproductor avisa de que está en pausa (el iPhone espera al play).
 - **Equipo con caras**: recomendado SÍ, pero solo con fotos, nombres y papel
   reales. Pendiente de que el usuario los mande.
 - La recomendación que se le dio para el anuncio: esta página con el
