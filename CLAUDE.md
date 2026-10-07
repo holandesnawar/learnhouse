@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-06 (recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-07 (/formacion/v2 para anuncios; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -2214,6 +2214,58 @@ preguntas y la hora siguen en `/proceso-de-admision/paso-3`. **El formulario
 viejo de /agendar, tal cual, vive en `/proceso-agendar`** (nawar-web PR #124,
 fuera de Google): para mandarlo solo, sin vídeo, a quien ya está caliente. ⚠️ Lo de arriba que habla
 de "/agendar" como página con su propio formulario describe cómo era antes.
+
+## /formacion/v2: la página para anuncios, como UDIA (07/10/2026, EN PRUEBAS)
+Pedido: "vamos a tirar un ad en Meta explicando el método y la escuela". Se
+miró el embudo de UDIA (udia.es/detalles-curso/…: página que EXPLICA el curso
+con nombre/correo/teléfono arriba → "¡Te falta un paso!" con vídeo y botón
+"Agenda tu llamada de admisión" bloqueado con cuenta atrás → "Formulario de
+admisión" con "Comenzar") y se copió el FLUJO, no el diseño: todo con la marca
+Nawar. Tres páginas en `nawar-web`, fuera de Google (`robots.txt`
+`Disallow: /formacion/` y fuera del sitemap) y sin enlazar desde la web:
+- **`/formacion/v2`** (`src/pages/formacion/v2/index.astro`): cabecera oscura
+  con el formulario de tres datos (nombre, correo, WhatsApp con prefijo) y
+  debajo, en claro: los **dolores reales** (lo que el usuario pidió por encima
+  de todo: el médico, las cartas, que tu pareja o tus hijos hablen por ti,
+  quedarte fuera de la conversación), lo que sabrás hacer, el camino (4
+  acciones), el programa por fases con navegación lateral, qué incluye, para
+  quién es / no es, garantía de 15 días y dudas. **Sin precio** y sin la
+  pregunta "¿cuánto cuesta?" (mismo criterio que la landing sin precio).
+  Botón pegado abajo en el móvil.
+  - ⚠️ **El programa solo detalla los módulos 1 a 4**, los que están en
+    `courseData.ts`, con sus lecciones reales. Del 5 al 10 NO se inventó
+    temario: dice cómo se abren y las cifras de la landing (10 módulos, +360
+    lecciones, +15 h). Cuando haya contenido, añadir fases en `FASES`.
+  - **Sin la sección del equipo**: los nombres de /v4/pruebas son inventados
+    y en una página de anuncios no pueden ir. Se añade con los reales.
+  - El texto es propio de esta página (el 06/10 el usuario se quejó de que en
+    /v4/pruebas se copiaron las secciones de la landing "literalmente y su
+    copy"). Se comparten las piezas de marca, no el texto.
+- **`/formacion/v2/video`**: aviso arriba "¡No cierres ni recargues esta
+  página!" (en `#4da3ff`, no en rojo como UDIA), "¡Te falta un paso!", el
+  vídeo de admisión arrancando solo y en silencio con "Toca para activar el
+  sonido" (vuelve a empezar con sonido si llevaba menos de 20 s), y el botón
+  bloqueado con "Se desbloquea en m:ss" y barra. La cuenta atrás usa
+  `VIDEO_SEGUNDOS` (177, en `lib/admision.ts`: **si cambia el vídeo, cambiarlo
+  ahí**). Baja con los tiempos de player.js si llegan (y entonces no se puede
+  adelantar la barra, y en pausa se para); si no llegan en 4 s, con el reloj
+  mientras la página está a la vista. Lo visto se guarda en el navegador.
+- **`/formacion/v2/formulario`**: COPIA de `/proceso-de-admision/paso-3` con
+  otra entrada: portada centrada "Formulario de admisión Nawar" + "Comenzar".
+  Mismas preguntas, nota y Calendly: si se cambia la lógica de /agendar o del
+  paso 3, mirar si hay que traerla aquí.
+- **A la escuela llega como el proceso de admisión** (`embudo: 'admision'`,
+  matrícula al dejar los datos, "vio el vídeo" al terminar), así que Llamadas,
+  Contactos y el tablero lo tratan igual. Lo distingue el recorrido: marca
+  `landing-metodo` ("la página que explica la formación, para anuncios", en
+  `_NOMBRES` de `solicitudes.py`) y en systeme.io el campo `origen =
+  formacion-v2` (`/api/cualificacion` acepta ahora `origen`; sin él, sigue
+  siendo `proceso-de-admision`). Píxel: `SubmitApplication` (misma marca de
+  sesión que el proceso de admisión, no cuenta doble).
+- La recomendación que se le dio para el anuncio: esta página con el
+  formulario corto, y **llamar en menos de 15 minutos** (la página promete
+  "te escribimos muy pronto"); la home se deja como está hasta ver números en
+  Panel → Anuncios (campaña apuntada con el mismo `utm_campaign`).
 
 ## Reservar plaza con señal y cobrar el resto (06/10/2026)
 Pedido: "Manuel está en llamada, falla Klarna o su tarjeta y no cierra. Se le

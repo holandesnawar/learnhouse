@@ -89,6 +89,7 @@ _NOMBRES = {
     "admision-preguntas": "las preguntas del proceso de admisión",
     "landing": "la página de la formación (sin precio)",
     "landing-precio": "la página de la formación CON el precio",
+    "landing-metodo": "la página que explica la formación, para anuncios (sin precio)",
     "matricula-pago": "el formulario de matrícula con pago (enseña el precio)",
     "guia-bases": "la guía de las bases",
     "gracias-bases": "la descarga de la guía de las bases",

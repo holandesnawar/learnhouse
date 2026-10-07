@@ -195,6 +195,15 @@ export const MAPA_WEB: PaginaWeb[] = [
     etiquetas: ['Llamada'],
   },
   {
+    ruta: '/formacion/v2',
+    nombre: 'Página de la formación para anuncios (en pruebas, solo por enlace)',
+    etapa: 'matricular',
+    que: 'Como hace UDIA (07/10): una página que EXPLICA la formación, sin precio (dolores de depender de otros, lo que sabrás hacer, el camino, el programa, qué incluye, para quién es, garantía y dudas), con nombre, correo y WhatsApp arriba del todo. Al mandarlo: un vídeo con el botón "Agenda tu llamada de admisión" bloqueado y una cuenta atrás (/formacion/v2/video), y luego el formulario de admisión (/formacion/v2/formulario) y Calendly. En el panel cuenta como el proceso de admisión; en systeme.io, origen "formacion-v2". Llamar en cuanto entra.',
+    boton: 'Solicitar mi plaza → vídeo → formulario de admisión → Calendly',
+    precio: false,
+    etiquetas: ['Admisión - datos', 'Admisión - vio el vídeo', 'Llamada'],
+  },
+  {
     ruta: '/matricula-formacion-nawar-a0-a1',
     nombre: '(ruta vieja)',
     etapa: 'matricular',
@@ -237,6 +246,7 @@ export const SABE_POR_RUTA: Record<string, string> = {
   '/matricula-formacion-nawar-a0-a1-ads': 'Pidió plaza desde un anuncio (formulario viejo), sin ver el precio. Espera que le llamemos.',
   '/matricula-a0-a1': 'Pidió plaza por el formulario corto (nombre, correo y teléfono), sin ver el precio. Espera que le llamemos.',
   '/proceso-de-admision': 'Vio (o empezó) el vídeo de la formación. En Llamadas pone si lo vio entero. Sabe que el último paso es una llamada.',
+  '/formacion/v2': 'Ha leído la página que explica la formación (sin precio) y ha dejado nombre, correo y WhatsApp. Le dijimos que le escribiríamos muy pronto: llámale ya. En Llamadas pone si vio el vídeo y hasta dónde llegó en las preguntas.',
   '/agendar': 'No ha visto el precio en esta página. Sabe que es una llamada de media hora para ver su caso, sin compromiso. Sus respuestas están en Llamadas.',
   'app.holandesnawar.com/auth/matricula-formacion-nawar-a0-a1': 'Está en la caja de pago: conoce el precio y está a un paso.',
 }
