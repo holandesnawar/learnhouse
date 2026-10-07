@@ -47,6 +47,9 @@ class ContactEvent(SQLModel, table=True):
     utm_source: str = Field(default="", max_length=120)
     utm_medium: str = Field(default="", max_length=120)
     utm_campaign: str = Field(default="", max_length=120)
+    # Qué anuncio concreto (07/10): en Meta, el nombre del anuncio. En
+    # _ADDED_COLUMNS: la tabla ya existía.
+    utm_content: str = Field(default="", max_length=120)
     # Lo que no encaja en ninguna columna, en JSON (usuario de Instagram, etc.).
     extra: str = ""
     created_at: str = Field(default="", index=True)
@@ -65,4 +68,5 @@ class ContactEventCreate(BaseModel):
     utm_source: str = ""
     utm_medium: str = ""
     utm_campaign: str = ""
+    utm_content: str = ""
     extra: dict = {}

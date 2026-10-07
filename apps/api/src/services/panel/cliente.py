@@ -219,7 +219,10 @@ async def ficha_cliente(email: str, user_id: int, es_admin: bool, db_session: As
         "vio_precio": ficha["vio_precio"],
         "precio_por": por_que_vio_el_precio(eventos),
         "vino_de": ficha["vino_de"],
-        "utm": {"source": ficha["utm_source"], "medium": ficha["utm_medium"], "campaign": ficha["utm_campaign"]},
+        "utm": {
+            "source": ficha["utm_source"], "medium": ficha["utm_medium"], "campaign": ficha["utm_campaign"],
+            "content": ficha.get("utm_content", ""),
+        },
         "etiquetas": ficha["etiquetas"],
         "fuera_de_metricas": ficha["fuera_de_metricas"],
         "primer_contacto": ficha["primer_contacto"],
