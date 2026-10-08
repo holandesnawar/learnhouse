@@ -2353,9 +2353,10 @@ Nawar. Tres páginas en `nawar-web`, fuera de Google (`robots.txt`
     captura del usuario: `nawar-web/public/img/formacion-v2/profe-clase.jpg`
     (4:3, 440×330; sale de `IMG.profe`). Para cambiarlo, otra foto 4:3 en ese
     archivo. No hay más fotos de profes en los repos ni en el CDN.
-  - En el móvil, los títulos de `/formacion-nawar-fb/proceso-de-admision`
-    llevan más interlineado (1,3 en la portada, 1,4 en las preguntas):
-    con 1,15 "quedaban pegados" (08/10).
+  - En el móvil, el titular de `/formacion-nawar-fb` (la página de los
+    datos, antes del VSL) va con 1,18 de interlineado: con 1,06 "quedaba
+    pegado" (08/10, PR #140). ⚠️ Primero se cambió por error el formulario
+    de admisión: "la página de formulario" era ESTA, la de los datos.
   - ⚠️ **El vídeo de `/formacion/v2/video` y el sonido** (PR #132): se
     forzaba `muted=true` y el aviso "Toca para activar el sonido" salía
     siempre, pero quien llega del formulario ya ha tocado la web y Chrome le
