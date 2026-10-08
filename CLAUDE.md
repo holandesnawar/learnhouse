@@ -2399,6 +2399,11 @@ Nawar. Tres páginas en `nawar-web`, fuera de Google (`robots.txt`
   - **Prefijo belga automático**: zona horaria `Europe/Brussels` → +32;
     045-049 con +31 → +32; 06 con +32 → +31; nunca si eligió a mano.
   - En el VSL, el vídeo sin sombra (caía sobre el botón y lo apagaba).
+  - Las imágenes de «Así es una semana», en móvil y tableta, al 92 % dentro
+    del margen de la página (PR #143). Iban al 114 % y, en el móvil, con
+    -12 px a cada lado: tocaban los bordes de la pantalla ("más pequeñas,
+    con espacio en los lados"; ya lo había pedido antes y se arregló solo
+    la videollamada dibujada).
   - Recomendado y pendiente de que lo pida: **avisar al equipo al instante
     cuando alguien deja sus datos** (hoy solo se avisa al terminar las
     preguntas, y la página del vídeo promete "te escribimos muy pronto"),
