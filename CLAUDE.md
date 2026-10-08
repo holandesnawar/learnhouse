@@ -2379,6 +2379,32 @@ Nawar. Tres páginas en `nawar-web`, fuera de Google (`robots.txt`
     IntersectionObserver.** (No se toca `global.css`: es toda la web.)
 - **Equipo con caras**: recomendado SÍ, pero solo con fotos, nombres y papel
   reales. Pendiente de que el usuario los mande.
+- **Sexta vuelta (08/10, ya con los anuncios en marcha)** (nawar-web PR #141 y
+  #142):
+  - **Gris sobre blanco, NO: casi negro (`#171a2e`)** (usuario: "la letra
+    gris cuando toca fondo blanco tiene que ser negra"). Regla para toda
+    página nueva.
+  - El formulario de cristal: el blanco translúcido sobre `#1D0084` sale
+    LILA. El velo va en azul con verde (`rgba(0,140,255,…)`), que cancela el
+    violeta; campos en azul marino translúcido. La línea de privacidad, a la
+    izquierda.
+  - Certificado SIN caja blanca: `fondo.certificado.png` trae el blanco
+    dentro, así que los dos bloques se pintan en CSS (`.fv-cert-b1/b2`, con
+    las medidas de la imagen) y el certificado va encima.
+  - Etapa 04 en dorado suave (`#f2cd6b`): lila se confundía con la 03.
+    Título del plan: «de cero a independiente».
+  - Bajo el formulario, tira de cristal con icono + título + línea (no tres
+    checks: "sosos").
+  - Primera sección: «Vives aquí, pero otros hablan por ti».
+  - **Prefijo belga automático**: zona horaria `Europe/Brussels` → +32;
+    045-049 con +31 → +32; 06 con +32 → +31; nunca si eligió a mano.
+  - En el VSL, el vídeo sin sombra (caía sobre el botón y lo apagaba).
+  - Recomendado y pendiente de que lo pida: **avisar al equipo al instante
+    cuando alguien deja sus datos** (hoy solo se avisa al terminar las
+    preguntas, y la página del vídeo promete "te escribimos muy pronto"),
+    acortar el texto de la cabecera en el móvil para que «Nombre» se vea sin
+    bajar, una línea bajo el botón con lo que viene después, aviso de correo
+    mal escrito y las imágenes en WebP (unos 2 MB en PNG hoy).
 
 ### ⚠️ El embudo vive ahora en `/formacion-nawar-fb` (07/10, nawar-web PR #135)
 Para la campaña de Meta «LEADS | VSL Matricula | oct26» (NL+BE, español,
