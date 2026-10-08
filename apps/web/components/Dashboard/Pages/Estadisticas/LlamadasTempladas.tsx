@@ -360,7 +360,10 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
           {pendientes.filter((t) => !filtro || (t.temperatura || 'frio') === filtro).map((t) => {
             const open = abierta === t.id
             const wa = numeroWhatsApp(t.telefono)
-            const resumen = t.ultima_nota || t.que_hizo || t.detalle
+            // Lo primero, dónde se quedó (08/10: "no salen dónde se quedaron";
+            // antes ganaba «lo último que hizo», que solía ser «se matriculó»).
+            // Las respuestas, en su ficha («Ver ficha y respuestas»).
+            const resumen = (t.origen !== 'mano' && t.detalle) || t.ultima_nota || t.que_hizo
             return (
               <div key={t.id}>
                 <button onClick={() => setAbierta(open ? null : t.id)} className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-[#F9FAFB]">
@@ -392,8 +395,6 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
                         Según su ficha: entró {haceDias(t.entro)}. Lo último: {t.que_hizo.charAt(0).toLowerCase() + t.que_hizo.slice(1)}
                         {t.que_hizo_at ? ` · ${haceDias(t.que_hizo_at)}` : ''}
                       </p>
-                    ) : t.origen !== 'mano' && t.detalle && t.ultima_nota ? (
-                      <p className={META}>{t.detalle}</p>
                     ) : null}
                     <div className="flex flex-wrap gap-2">
                       <button onClick={() => cambiar(t, { estado: 'hecha' }, 'Hecha')} disabled={guardando === t.id} className={BOTON_PRINCIPAL}>
@@ -411,7 +412,7 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
                       ) : null}
                       {t.email ? (
                         <button onClick={() => verFicha(t.email)} className={BOTON}>
-                          Ver ficha
+                          Ver ficha y respuestas
                         </button>
                       ) : null}
                       <button onClick={() => quitar(t)} className={`${BOTON_PELIGRO} ml-auto`}>

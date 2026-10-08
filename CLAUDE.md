@@ -2033,6 +2033,17 @@ enlace**, fuera de Google (`robots.txt`) y sin enlazar desde la web.
 - **Sigue donde lo dejó** (03/10): el segundo al que llegó va a
   `localStorage` (`nawar.admision.posicion`) y al volver arranca 2 s antes;
   el bloqueo de saltos cuenta desde ahí. Se borra al terminar el vídeo.
+- ⚠️ **Las respuestas, en la FICHA** (08/10, caso Lina: "vio el vídeo y
+  completó el formulario, pero no están en ningún lado las respuestas"). Se
+  guardaban en el `extra` del evento (`admision` a medias, `cualificacion` al
+  terminar), pero la ficha no las enseñaba: solo salían en Llamadas →
+  «Solicitudes de llamada» (si terminó; plegadas por día o en «Ya atendidas»)
+  y quien no terminaba ya ni ahí. Ahora `proceso_admision` (pura, con test,
+  en `services/panel/cliente.py`) mete en la ficha el bloque **«Proceso de
+  admisión»**: dónde se quedó en una frase (vídeo, cuántas preguntas, encaja o
+  no, si reservó hora) y TODAS las respuestas. En la lista «Llamadas»
+  (templadas) la línea dice primero dónde se quedó, y el botón es «Ver ficha
+  y respuestas». Test: `test_proceso_admision.py`.
 
 ## El progreso del alumno en el panel: por CLASES, no por lecciones (04/10/2026)
 "No veo por dónde van, sale todo 0": Clientes decía "0 lecciones hechas" a
