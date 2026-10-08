@@ -33,6 +33,7 @@ import {
   BookOpen,
   CalendarDays,
   CheckCircle2,
+  ClipboardList,
   CreditCard,
   Eye,
   Globe,
@@ -434,6 +435,38 @@ export default function FichaCliente({
               </div>
               )}
             </Bloque>
+
+            {/* Lo que contestó en las preguntas y dónde se quedó (08/10: estaba
+                guardado pero la ficha no lo enseñaba; solo salía en Llamadas y,
+                si no terminaba, ni ahí). */}
+            {ficha.admision ? (
+              <Bloque
+                icono={<ClipboardList size={15} />}
+                titulo={ficha.admision.terminado ? 'Proceso de admisión · terminado' : 'Proceso de admisión · a medias'}
+              >
+                <Estado
+                  tono={
+                    ficha.admision.reservo ? 'verde' : ficha.admision.terminado ? (ficha.admision.apto ? 'azul' : 'gris') : 'ambar'
+                  }
+                  className="!items-start !text-[13px] !text-gray-900 [&>span:first-child]:mt-[7px]"
+                >
+                  {ficha.admision.resumen}
+                </Estado>
+                {ficha.admision.cuando ? <p className={`${META} mt-1`}>{fechaCorta(ficha.admision.cuando)}</p> : null}
+                {ficha.admision.respuestas.length ? (
+                  <dl className="mt-3 divide-y divide-[#F3F4F6] border-t border-[#F3F4F6]">
+                    {ficha.admision.respuestas.map((r, i) => (
+                      <div key={`${r.pregunta}-${i}`} className="py-2">
+                        <dt className="text-[12px] text-gray-500">{r.pregunta}</dt>
+                        <dd className="text-[13.5px] text-gray-900 whitespace-pre-wrap break-words">{r.respuesta}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                ) : (
+                  <p className={`${META} mt-2`}>No llegó a contestar ninguna pregunta.</p>
+                )}
+              </Bloque>
+            ) : null}
 
             {/* A un alumno, lo primero que interesa es lo que ha pagado. */}
             {esAlumno ? bloquePagos : null}

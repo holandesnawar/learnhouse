@@ -85,6 +85,21 @@ export interface ItemLinea {
   estado?: string
 }
 
+/** El proceso de admisión de una persona (services/panel/cliente.py → proceso_admision). */
+export interface ProcesoAdmision {
+  terminado: boolean
+  cuando: string
+  apto: boolean | null
+  motivo_fuera: string
+  reservo: boolean
+  video: '' | 'empezado' | 'visto'
+  embudo: '' | 'admision'
+  ultima: string
+  /** Dónde se quedó, en una frase. */
+  resumen: string
+  respuestas: { pregunta: string; respuesta: string }[]
+}
+
 export interface FichaCliente {
   email: string
   nombre: string
@@ -100,6 +115,9 @@ export interface FichaCliente {
   fuera_de_metricas: boolean
   primer_contacto: { kind: string; que: string; when: string }
   paginas: { id: string; nombre: string; precio: boolean }[]
+  /** Lo que contestó en las preguntas de admisión (o de /agendar) y dónde se
+   *  quedó. null si nunca empezó el proceso. */
+  admision?: ProcesoAdmision | null
   pagos: { fecha: string; importe_cents: number; moneda: string; producto: string }[]
   total_pagado_cents: number
   correos: { asunto: string; ok: boolean; created_at: string }[]
