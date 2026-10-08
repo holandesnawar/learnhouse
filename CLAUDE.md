@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-07 (/formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-08 (API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -2424,15 +2424,37 @@ Para la campaña de Meta «LEADS | VSL Matricula | oct26» (NL+BE, español,
   `Lead` a secas, el conjunto aprendería de gente que baja guías gratis. El
   Lead del embudo sale desde la propia página `/formacion-nawar-fb` (y el de
   CAPI lleva esa dirección en `event_source_url`), así que la regla lo pilla.
-- **CAPI HECHO** (07/10, nawar-web PR #137, `src/lib/metaCapi.ts`): el Lead se
-  manda TAMBIÉN desde `/api/cualificacion` a la API de conversiones, con el
-  MISMO `event_id` que el navegador (`lead_event_id`, lo crea la página antes
-  de enviar). Datos cifrados (em, ph, fn), IP, navegador, `fbc` (cookie o
-  rehecho del `fbclid`) y `fbp`. **Solo con `META_CAPI_TOKEN` en Vercel**
-  (Administrador de eventos → el píxel → Configuración → API de conversiones →
-  Generar identificador); sin él no hace nada. `META_CAPI_TEST_CODE` manda a
-  «Probar eventos» (quitarlo después). Aun así la escuela enseñará más leads
-  que Meta: el número para decidir es el de la escuela.
+- **CAPI HECHO** (07/10 el Lead, nawar-web PR #137; 08/10 el resto, PR #138;
+  `src/lib/metaCapi.ts`): **Lead, Schedule, VSLVisto y VSL50** salen TAMBIÉN
+  desde el servidor a la API de conversiones, cada uno con el MISMO
+  `event_id` que su evento del navegador (lo crea la página y lo da al píxel
+  como `eventID`): Meta deduplica.
+  - Lead y Schedule, por `/api/cualificacion` (`lead_event_id` al dejar los
+    datos; `schedule_event_id` con la reserva de Calendly, en el embudo FB y en
+    `/proceso-de-admision/paso-3`). Ahí llegan los datos en claro (son los del
+    formulario) y se cifran antes de mandar.
+  - VSLVisto y VSL50, por **`/api/embudo`** (solo esos dos nombres). El
+    navegador manda los datos YA cifrados (`metaNavegador.ts`): esa ruta no ve
+    nunca un correo. Nombre neutro a propósito: "pixel"/"track" los cortan
+    los bloqueadores.
+  - ⚠️ **A Meta solo le llegan huellas SHA-256**: `cuerpoEvento` tira cualquier
+    em/ph/fn que no tenga forma de huella. Normalización común en
+    `metaUsuario.ts` (correo en minúsculas, teléfono solo cifras con prefijo y
+    sin ceros delante, nombre en minúsculas sin puntuación).
+  - `fbp`/`fbc` de las cookies `_fbp`/`_fbc` (`fbc` rehecho del `fbclid` si
+    no hay cookie), IP, navegador, `action_source: website` y
+    `event_source_url` (solo de esta web).
+  - **Token en `META_CAPI_ACCESS_TOKEN` en Vercel** (vale también el viejo
+    `META_CAPI_TOKEN`); va en el cuerpo, no en la dirección. Sin token no hace
+    nada. **Graph API v26.0** (la actual en oct 2026); `META_GRAPH_VERSION` la
+    cambia sin tocar código. `META_CAPI_TEST_CODE` manda a «Probar eventos»
+    (quitarlo después).
+  - ⚠️ En el Administrador de eventos, mirar el píxel **Hebben&Zijn
+    (1410831147818099)**. El usuario estuvo en «Pixel Aprender Holandés»
+    (434038652393992, portfolio «Aprende Holandés Online»), que NO es el de
+    la web: ahí no aparece nada.
+  - Aun así la escuela enseñará más leads que Meta: el número para decidir es
+    el de la escuela.
 - Pendiente (pedido del usuario, "de ahí luego"): otra versión con barra
   superior para los botones de la home y las landings, en su propia
   dirección, para no mezclar los leads del anuncio con los de la web.
