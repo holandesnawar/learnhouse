@@ -2502,9 +2502,21 @@ Para la campaña de Meta «LEADS | VSL Matricula | oct26» (NL+BE, español,
     la web: ahí no aparece nada.
   - Aun así la escuela enseñará más leads que Meta: el número para decidir es
     el de la escuela.
-- Pendiente (pedido del usuario, "de ahí luego"): otra versión con barra
-  superior para los botones de la home y las landings, en su propia
-  dirección, para no mezclar los leads del anuncio con los de la web.
+- **`/formacion` = la versión de la WEB (09/10, nawar-web PR #145, EN
+  PRUEBAS)**: COPIA de `/formacion-nawar-fb` con la barra (`NavbarLanding`) y
+  el pie (`FooterNuevo`) de la web; los dos aceptan `ctaHref` y aquí
+  «Matricularme» baja al formulario. Camino propio (`EMBUDO_WEB`):
+  `/formacion` → `/formacion/vsl` → `/formacion/proceso-de-admision`.
+  Recorrido `formacion-web` («la página de la formación de la web» en
+  `_NOMBRES`), `origen = formacion-web` en systeme.io y `content_name`
+  «Formación Nawar web» en los eventos de Meta (Lead, VSLVisto, VSL50,
+  Schedule): no se mezcla con el anuncio, cuya conversión solo cuenta
+  `/formacion-nawar-fb`. noindex y fuera del mapa del sitio. ⚠️ **Los botones
+  de la web (`CTA_PRINCIPAL`) NO llevan aquí todavía: esperar el visto bueno
+  del usuario.** ⚠️ Es copia: un cambio en una de las dos, mirar la otra.
+  - Necesita `import '../../styles/nawar-sections.css'`: ahí vive el estilo
+    del pie (sin él sale en texto plano). La barra fija mide 72 px: cabecera
+    más baja, barra de etapas del móvil en `top: 72px` y saltos con +72.
 - La recomendación que se le dio para el anuncio: esta página con el
   formulario corto, y **llamar en menos de 15 minutos** (la página promete
   "te escribimos muy pronto"); la home se deja como está hasta ver números en

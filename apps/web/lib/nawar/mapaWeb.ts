@@ -204,6 +204,15 @@ export const MAPA_WEB: PaginaWeb[] = [
     etiquetas: ['Admisión - datos', 'Admisión - vio el vídeo', 'Llamada'],
   },
   {
+    ruta: '/formacion',
+    nombre: 'Página de la formación de la web (en pruebas)',
+    etapa: 'matricular',
+    que: 'Desde el 09/10: la MISMA página que la del anuncio (/formacion-nawar-fb), pero con la barra y el pie de la web, para quien llega desde la web. Su propio camino: /formacion/vsl (el vídeo) y /formacion/proceso-de-admision (las preguntas y Calendly). En el panel cuenta como el proceso de admisión y su recorrido dice "la página de la formación de la web"; en systeme.io, origen "formacion-web". Fuera de Google mientras se prueba; los botones de la web aún no llevan aquí.',
+    boton: 'Solicitar información → vídeo → formulario de admisión → Calendly',
+    precio: false,
+    etiquetas: ['Admisión - datos', 'Admisión - vio el vídeo', 'Llamada'],
+  },
+  {
     ruta: '/matricula-formacion-nawar-a0-a1',
     nombre: '(ruta vieja)',
     etapa: 'matricular',
@@ -247,6 +256,7 @@ export const SABE_POR_RUTA: Record<string, string> = {
   '/matricula-a0-a1': 'Pidió plaza por el formulario corto (nombre, correo y teléfono), sin ver el precio. Espera que le llamemos.',
   '/proceso-de-admision': 'Vio (o empezó) el vídeo de la formación. En Llamadas pone si lo vio entero. Sabe que el último paso es una llamada.',
   '/formacion-nawar-fb': 'Viene de un anuncio de Facebook o Instagram: ha leído la página que explica la formación (sin precio) y ha dejado nombre, correo y WhatsApp. Le dijimos que le escribiríamos muy pronto: llámale ya. En Llamadas pone si vio el vídeo y hasta dónde llegó en las preguntas.',
+  '/formacion': 'Viene de la web: ha leído la página que explica la formación (sin precio) y ha dejado nombre, correo y WhatsApp. Le dijimos que le escribiríamos muy pronto. En Llamadas pone si vio el vídeo y hasta dónde llegó en las preguntas.',
   '/agendar': 'No ha visto el precio en esta página. Sabe que es una llamada de media hora para ver su caso, sin compromiso. Sus respuestas están en Llamadas.',
   'app.holandesnawar.com/auth/matricula-formacion-nawar-a0-a1': 'Está en la caja de pago: conoce el precio y está a un paso.',
 }
