@@ -528,6 +528,11 @@ async def actualizar_templada(
         if estado != fila.estado:
             fila.estado = estado
             fila.hecha_at = _ahora() if estado != "pendiente" else ""
+            # Vuelve a entrar en la lista: cuenta desde ahora, igual que al
+            # mandarla desde la ficha. Así el tablero de Matrículas la vuelve
+            # a poner en Seguimiento aunque alguien la hubiera movido antes.
+            if estado == "pendiente":
+                fila.created_at = _ahora()
     if not fila.nombre and not fila.telefono:
         return {"ok": False, "motivo": "Pon al menos el nombre o el móvil"}
     fila.updated_at = _ahora()
@@ -589,6 +594,134 @@ async def mandar_a_templadas(email: str, nombre: str, telefono: str, autor: str,
     await db_session.commit()
     await db_session.refresh(fila)
     return {"ok": True, "ya_estaba": ya_estaba, "templada": await _con_notas(fila, db_session)}
+
+async def cerrar_pendientes_de(email: str, estado: str, db_session: AsyncSession) -> int:
+    """Al sacar a alguien de Seguimiento en el tablero de Matrículas: su
+    llamada pendiente pasa a hecha (o a quitada, si va a Perdido). Devuelve
+    cuántas se cerraron."""
+    clave = (email or "").strip().lower()
+    if not clave or estado not in ("hecha", "descartada"):
+        return 0
+    ahora = _ahora()
+    n = 0
+    for f in (
+        await db_session.execute(
+            select(LlamadaTemplada).where(LlamadaTemplada.email == clave).where(LlamadaTemplada.estado == "pendiente")
+        )
+    ).scalars().all():
+        f.estado = estado
+        f.hecha_at = f.updated_at = ahora
+        db_session.add(f)
+        n += 1
+    if n:
+        await db_session.commit()
+    return n
+
+
+def elegir_por_email(filas: list[dict]) -> dict[str, dict]:
+    """Una fila por correo para el tablero: la pendiente (que se ve en la
+    lista) si la hay; si no, la más reciente. `filas` en el orden en que se
+    crearon. Función pura, con test."""
+    salida: dict[str, dict] = {}
+    for f in filas:
+        email = (f.get("email") or "").strip().lower()
+        if not email:
+            continue
+        ya = salida.get(email)
+        if ya is None or f.get("estado") == "pendiente" or ya.get("estado") != "pendiente":
+            salida[email] = f
+    return salida
+
+
+def _para_el_tablero(
+    f: LlamadaTemplada, notas: dict, ficha: Optional[dict], pagaron: set[str], reservaron: set[str], ahora: datetime
+) -> dict:
+    """Una fila tal como la ve el tablero: con temperatura si está pendiente
+    Y la lista de Llamadas la enseña; con `estado` vacío si está pendiente
+    pero la lista la esconde (ya pagó, o reservó hora); `desde` = cuándo entró
+    (o volvió a entrar) en la lista. Misma regla que `listar_templadas`."""
+    email = (f.email or "").lower()
+    d = _dict(f, notas)
+    visible = f.estado == "pendiente" and not (email and email in pagaron) and not (
+        f.origen != "mano" and email in reservaron
+    )
+    if visible:
+        d = con_temperatura(d, ficha, f.temperatura_manual or "", ahora)
+    elif f.estado == "pendiente":
+        d["estado"] = ""
+    d["desde"] = f.created_at or ""
+    return d
+
+
+async def llamada_de(email: str, ficha: Optional[dict], db_session: AsyncSession) -> Optional[dict]:
+    """La fila de una persona tal como la ve el tablero (para que su ficha
+    diga la misma columna que su tarjeta). Sin fila, None."""
+    clave = (email or "").strip().lower()
+    if not clave:
+        return None
+    filas = (
+        await db_session.execute(
+            select(LlamadaTemplada).where(LlamadaTemplada.email == clave).order_by(LlamadaTemplada.id)  # type: ignore[attr-defined]
+        )
+    ).scalars().all()
+    if not filas:
+        return None
+    from src.services.contactos.contactos import emails_que_pagaron
+
+    eventos = [
+        {"kind": e.kind, "email": (e.email or "").lower(), "created_at": e.created_at}
+        for e in (
+            await db_session.execute(
+                select(ContactEvent)
+                .where(ContactEvent.email == clave)
+                .where(ContactEvent.kind.in_(["cualificacion", "reunion"]))  # type: ignore[attr-defined]
+            )
+        ).scalars().all()
+    ]
+    pagaron = await emails_que_pagaron(db_session)
+    notas = await _notas_por_email({clave}, db_session)
+    ahora = datetime.now(timezone.utc)
+    datos = [_para_el_tablero(f, notas, ficha, pagaron, reservaron_de(eventos), ahora) for f in filas]
+    return elegir_por_email(datos).get(clave)
+
+
+async def para_el_tablero(fichas: dict[str, dict], db_session: AsyncSession) -> tuple[dict[str, dict], list[dict]]:
+    """Lo que el tablero de Matrículas necesita de esta lista (08/10, la
+    columna «Seguimiento»):
+
+    - por correo, su fila (`estado` y `desde` = cuándo entró o volvió a
+      entrar), ya con la temperatura si está pendiente;
+    - las pendientes SIN ficha (apuntadas a mano solo con el móvil, o con un
+      correo que no ha dejado ningún otro rastro): tarjetas sueltas.
+
+    Una pendiente que esta lista no enseña (ya pagó; automática con hora ya
+    reservada) llega con `estado` vacío: para el tablero no está pendiente.
+    `fichas`: correo → ficha de Contactos (para la temperatura).
+    """
+    try:
+        await sincronizar(db_session)
+    except Exception:  # noqa: BLE001
+        logger.exception("No se han podido meter las llamadas automáticas (tablero)")
+        await db_session.rollback()
+
+    from src.services.contactos.contactos import emails_que_pagaron
+
+    pagaron = await emails_que_pagaron(db_session)
+    reservaron = reservaron_de(await _eventos_de_llamada(db_session))
+    filas = (await db_session.execute(select(LlamadaTemplada).order_by(LlamadaTemplada.id))).scalars().all()  # type: ignore[attr-defined]
+    notas = await _notas_por_email({(f.email or "").lower() for f in filas if f.email}, db_session)
+    ahora = datetime.now(timezone.utc)
+
+    datos = [_para_el_tablero(f, notas, fichas.get((f.email or "").lower()), pagaron, reservaron, ahora) for f in filas]
+
+    por_email = {e: d for e, d in elegir_por_email(datos).items() if e in fichas}
+    sueltas = [
+        d
+        for d in datos
+        if d["estado"] == "pendiente" and (not d["email"] or d["email"].lower() not in fichas)
+    ]
+    return por_email, ordenar_pendientes(sueltas)
+
 
 async def quitar_templada(templada_id: int, db_session: AsyncSession) -> dict:
     """Las de mano SIN correo se borran. Las demás se quedan como descartadas:

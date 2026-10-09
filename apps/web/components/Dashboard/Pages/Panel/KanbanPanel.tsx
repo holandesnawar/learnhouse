@@ -2,8 +2,19 @@
 
 /**
  * Matrículas en kanban: en qué punto está cada persona que pidió plaza, llegó
- * al pago o pidió una llamada. Nuevo → Contactado → En revisión → Propuesta →
- * Alumno, y Perdido aparte.
+ * al pago, pidió una llamada o está pendiente en la lista de Llamadas.
+ * Nuevo → Contactado → En revisión → Propuesta → Seguimiento → Perdido →
+ * Alumno.
+ *
+ * SEGUIMIENTO = la lista de Llamadas (08/10): quien hay que volver a llamar.
+ * Cada tarjeta enseña su temperatura y dónde se quedó. Moverla allí la apunta
+ * en Llamadas; sacarla la marca como hecha. Las de Llamadas sin ficha (solo
+ * con el móvil) salen sueltas: no se arrastran y se abren con su detalle de
+ * Llamadas (`LlamadaSuelta`).
+ *
+ * «Llamar hoy» (08/10, el closer ya no tiene Contactos): la tarjeta enseña la
+ * fecha de volver a llamar, en rojo si toca, y arriba hay un filtro con las
+ * que tocan hoy o se pasaron.
  *
  * Se arrastra la tarjeta de una columna a otra (ordenador) o se abre y se elige
  * la columna (móvil). "Alumno" no se arrastra: sale sola al pagar.
@@ -35,10 +46,13 @@ import {
   type Tarjeta,
 } from '@services/panel/panel'
 import FichaCliente from './FichaCliente'
+import LlamadaSuelta from './LlamadaSuelta'
+import { Termometro } from '../Estadisticas/LlamadasTempladas'
+import { cuandoLlamar, hoyISO } from '@services/stats/contactos'
 import { quitarPersona } from './quitarPersona'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { quitarDeMetricas, volverAContar } from '@services/stats/contactos'
-import { CheckSquare, ChevronDown, ChevronsLeft, Eye, Loader2, RotateCcw, Search, StickyNote, X } from 'lucide-react'
+import { CheckSquare, ChevronDown, ChevronsLeft, Eye, Loader2, PhoneCall, RotateCcw, Search, StickyNote, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { BOTON, filtro } from './ui'
 
@@ -51,6 +65,7 @@ const COLOR: Record<EtapaTablero, string> = {
   contactado: '#9B87F5',
   revision: '#D9A93E',
   propuesta: '#E07AA8',
+  seguimiento: '#3E9BB0',
   alumno: '#2BA67A',
   perdido: '#A3ACBA',
 }
@@ -66,11 +81,18 @@ const QUE_ES: Record<EtapaTablero, string> = {
   contactado: 'Ya le hemos escrito o llamado',
   revision: 'Lo está pensando o falta un dato',
   propuesta: 'Tiene el precio o el enlace de pago',
+  seguimiento: 'Hay que volver a llamarle (la lista de Llamadas)',
   alumno: 'Ha pagado',
   perdido: 'No sigue, por ahora',
 }
 
 const POR_COLUMNA = 6
+
+// En Seguimiento, la más caliente arriba (como en Llamadas).
+const ORDEN_TEMPERATURA: Record<string, number> = { caliente: 0, templado: 1, frio: 2 }
+
+/** La fecha de volver a llamar toca hoy o ya se pasó. */
+const tocaLlamar = (t: Tarjeta) => Boolean(t.volver_a_llamar?.fecha && t.volver_a_llamar.fecha <= hoyISO())
 
 function VerMas({ id, total, vistas, onMas }: { id: string; total: number; vistas: number; onMas: (id: string) => void }) {
   if (total <= vistas) return null
@@ -100,7 +122,28 @@ function TarjetaVista({ t, onAbrir }: { t: Tarjeta; onAbrir: () => void }) {
           {haceCuanto(t.llegada || t.desde)}
         </span>
       </div>
-      <p className="text-[12px] text-gray-500 truncate">{t.que_hizo}</p>
+      {t.llamada ? (
+        <div className="mt-0.5">
+          <span className="text-[11.5px]">
+            <Termometro t={t.llamada.temperatura} aMano={Boolean(t.llamada.temperatura_manual)} />
+          </span>
+          {/* Dónde se quedó (o la última nota, si la apuntaron a mano). */}
+          <p className="text-[12px] text-gray-600 line-clamp-2">
+            {(t.llamada.origen !== 'mano' && t.llamada.detalle) || t.ultima_nota || t.que_hizo}
+          </p>
+        </div>
+      ) : (
+        <p className="text-[12px] text-gray-500 truncate">{t.que_hizo}</p>
+      )}
+      {t.volver_a_llamar?.fecha ? (
+        <p
+          className={`mt-1 inline-flex items-center gap-1 text-[11.5px] font-medium ${tocaLlamar(t) ? 'text-red-600' : 'text-gray-700'}`}
+          title={t.volver_a_llamar.motivo || 'Volver a llamar'}
+        >
+          <PhoneCall size={11} />
+          Llamar {cuandoLlamar(t.volver_a_llamar.fecha)}
+        </p>
+      ) : null}
       {t.reserva ? (
         <p className="mt-1 text-[11.5px] font-medium text-gray-900 tabular-nums" title="Plaza reservada: entra a la escuela cuando pague lo que falta">
           {t.reserva.pagado_cents > 0
@@ -140,6 +183,8 @@ export default function KanbanPanel() {
   const [error, setError] = useState('')
   const [q, setQ] = useState('')
   const [canal, setCanal] = useState<string>('')
+  const [soloHoy, setSoloHoy] = useState(false)
+  // La tarjeta abierta (por su id: el correo, o «llamada:<id>» en las sueltas).
   const [abierta, setAbierta] = useState<string | null>(null)
   // En el móvil se ve una columna cada vez.
   const [columnaMovil, setColumnaMovil] = useState<EtapaTablero>('nuevo')
@@ -229,9 +274,11 @@ export default function KanbanPanel() {
       (c) =>
         !c.oculto &&
         (!canal || c.canal === canal) &&
+        (!soloHoy || tocaLlamar(c)) &&
         (!t || c.email.includes(t) || c.nombre.toLowerCase().includes(t) || c.telefono.includes(t))
     )
-  }, [datos, q, canal])
+  }, [datos, q, canal, soloHoy])
+  const paraHoy = useMemo(() => (datos?.tarjetas ?? []).filter((c) => !c.oculto && tocaLlamar(c)).length, [datos])
 
   const porColumna = useMemo(() => {
     const m: Record<string, Tarjeta[]> = {}
@@ -244,15 +291,19 @@ export default function KanbanPanel() {
       return Number.isNaN(d) ? 0 : d
     }
     for (const k of Object.keys(m)) m[k].sort((a, b) => cuando(b) - cuando(a))
+    // Seguimiento: la más caliente arriba; dentro, la más nueva.
+    m.seguimiento?.sort(
+      (a, b) => (ORDEN_TEMPERATURA[a.llamada?.temperatura ?? 'frio'] ?? 2) - (ORDEN_TEMPERATURA[b.llamada?.temperatura ?? 'frio'] ?? 2) || cuando(b) - cuando(a)
+    )
     return m
   }, [datos, filtradas])
 
   async function alSoltar(r: DropResult) {
     if (!r.destination || !datos) return
     const destino = r.destination.droppableId as EtapaTablero
-    const email = r.draggableId
-    const tarjeta = datos.tarjetas.find((t) => t.email === email)
-    if (!tarjeta || tarjeta.etapa === destino) return
+    const id = r.draggableId
+    const tarjeta = datos.tarjetas.find((t) => t.id === id)
+    if (!tarjeta || tarjeta.etapa === destino || tarjeta.suelta) return
     if (destino === 'alumno' || tarjeta.etapa === 'alumno') {
       toast('La columna Alumno se llena sola cuando alguien paga.')
       return
@@ -261,12 +312,25 @@ export default function KanbanPanel() {
     const antes = datos
     setDatos({
       ...datos,
-      tarjetas: datos.tarjetas.map((t) => (t.email === email ? { ...t, etapa: destino, desde: new Date().toISOString() } : t)),
+      tarjetas: datos.tarjetas.map((t) =>
+        t.id === id ? { ...t, etapa: destino, desde: new Date().toISOString(), llamada: destino === 'seguimiento' ? t.llamada : null } : t
+      ),
     })
-    const res = await moverTarjeta(org?.id, { email, etapa: destino }, accessToken)
+    const res = await moverTarjeta(
+      org?.id,
+      { email: tarjeta.email, etapa: destino, nombre: tarjeta.nombre, telefono: tarjeta.telefono },
+      accessToken
+    )
     if (!res.ok) {
       setDatos(antes)
       toast.error(res.error || 'No se ha podido mover')
+      return
+    }
+    // Seguimiento va a juego con Llamadas: se relee para traer su temperatura
+    // y dónde se quedó (o para que salga de allí).
+    if (destino === 'seguimiento' || tarjeta.etapa === 'seguimiento') {
+      toast.success(destino === 'seguimiento' ? 'En Seguimiento: pendiente en Llamadas' : 'Hecha en Llamadas')
+      cargar()
     }
   }
 
@@ -279,16 +343,16 @@ export default function KanbanPanel() {
   }
 
   const quitadas = (datos.tarjetas ?? []).filter((c) => c.oculto)
-  const tarjetaAbierta = abierta ? datos.tarjetas.find((c) => c.email === abierta) : undefined
+  const tarjetaAbierta = abierta ? datos.tarjetas.find((c) => c.id === abierta) : undefined
   const total = filtradas.length
   const abiertos = filtradas.filter((c) => c.etapa !== 'alumno' && c.etapa !== 'perdido').length
 
   return (
     <div className="space-y-4">
       <p className="text-[13px] text-[#6B7280] leading-relaxed max-w-3xl">
-        Cada persona que pidió plaza, llegó al pago o pidió una llamada, en el punto en el que está. Ábrela para ver todo de
-        esa persona y cambiarla de columna<span className="hidden lg:inline"> (o arrástrala)</span>. Arriba de cada columna, lo
-        más nuevo; abajo, lo más antiguo.
+        Cada persona que mostró interés (pidió plaza, llegó al pago, pidió una llamada o está para llamar), en el punto en el que
+        está. Ábrela para ver todo de esa persona y cambiarla de columna<span className="hidden lg:inline"> (o arrástrala)</span>.
+        Seguimiento es la lista de Llamadas: a quién volver a llamar, la más caliente arriba.
       </p>
 
       <div className="flex flex-col sm:flex-row gap-2">
@@ -302,6 +366,14 @@ export default function KanbanPanel() {
           />
         </div>
         <div className="flex gap-1 overflow-x-auto">
+          <button
+            onClick={() => setSoloHoy((v) => !v)}
+            className={`${filtro(soloHoy)} inline-flex items-center gap-1.5`}
+            title="Las que tienen la fecha de volver a llamar hoy o ya pasada"
+          >
+            <PhoneCall size={13} className={soloHoy ? '' : paraHoy ? 'text-red-600' : 'text-gray-400'} />
+            Llamar hoy <span className="tabular-nums opacity-80">{paraHoy}</span>
+          </button>
           <button
             onClick={() => setCanal('')}
             className={filtro(!canal)}
@@ -335,7 +407,7 @@ export default function KanbanPanel() {
       {isAdmin && verQuitadas && quitadas.length ? (
         <div className="rounded-lg border border-[#E5E7EB] bg-white divide-y divide-[#F3F4F6]">
           {quitadas.map((t) => (
-            <div key={t.email} className="flex items-center gap-3 px-3 py-2">
+            <div key={t.id} className="flex items-center gap-3 px-3 py-2">
               <div className="min-w-0 flex-1">
                 <p className="text-[13px] font-semibold text-gray-900 truncate">{t.nombre || t.email}</p>
                 <p className="text-[11.5px] text-[#9CA3AF] truncate">
@@ -372,7 +444,7 @@ export default function KanbanPanel() {
         <p className="text-[12px] text-[#9CA3AF] mt-2">{QUE_ES[columnaMovil]}. Ábrela para cambiarla de columna.</p>
         <div className="mt-2 space-y-2">
           {(porColumna[columnaMovil] ?? []).slice(0, verCuantas(columnaMovil)).map((t) => (
-            <TarjetaVista key={t.email} t={t} onAbrir={() => setAbierta(t.email)} />
+            <TarjetaVista key={t.id} t={t} onAbrir={() => setAbierta(t.id)} />
           ))}
           <VerMas id={columnaMovil} total={porColumna[columnaMovil]?.length ?? 0} vistas={verCuantas(columnaMovil)} onMas={verMas} />
           {!porColumna[columnaMovil]?.length ? <p className="text-[13px] text-[#9CA3AF] py-6 text-center">Nadie en esta columna.</p> : null}
@@ -441,10 +513,10 @@ export default function KanbanPanel() {
                     </div>
                     <div className="space-y-2">
                       {(porColumna[e.id] ?? []).slice(0, verCuantas(e.id)).map((t, i) => (
-                        <Draggable draggableId={t.email} index={i} key={t.email} isDragDisabled={t.etapa === 'alumno'}>
+                        <Draggable draggableId={t.id} index={i} key={t.id} isDragDisabled={t.etapa === 'alumno' || Boolean(t.suelta)}>
                           {(p) => (
                             <div ref={p.innerRef} {...p.draggableProps} {...p.dragHandleProps}>
-                              <TarjetaVista t={t} onAbrir={() => setAbierta(t.email)} />
+                              <TarjetaVista t={t} onAbrir={() => setAbierta(t.id)} />
                             </div>
                           )}
                         </Draggable>
@@ -497,9 +569,11 @@ export default function KanbanPanel() {
         </div>
       ) : null}
 
-      {abierta ? (
+      {tarjetaAbierta?.suelta && tarjetaAbierta.llamada ? (
+        <LlamadaSuelta key={tarjetaAbierta.id} llamada={tarjetaAbierta.llamada} onClose={() => setAbierta(null)} onCambio={cargar} />
+      ) : abierta && tarjetaAbierta ? (
         <FichaCliente
-          email={abierta}
+          email={tarjetaAbierta.email}
           onClose={() => setAbierta(null)}
           onCambio={cargar}
           onQuitar={isAdmin && tarjetaAbierta ? () => borrar(tarjetaAbierta) : undefined}

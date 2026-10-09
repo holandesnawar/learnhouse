@@ -9,7 +9,7 @@ import type { NotaContacto, VolverALlamar } from '@services/stats/contactos'
  * Lo que devuelve el servidor sale de `apps/api/src/services/panel/`.
  */
 
-export type EtapaTablero = 'nuevo' | 'contactado' | 'revision' | 'propuesta' | 'alumno' | 'perdido'
+export type EtapaTablero = 'nuevo' | 'contactado' | 'revision' | 'propuesta' | 'seguimiento' | 'perdido' | 'alumno'
 export type Canal = '' | 'whatsapp' | 'llamada' | 'email' | 'instagram' | 'otro'
 
 export const CANALES: { id: Canal; nombre: string }[] = [
@@ -22,6 +22,8 @@ export const CANALES: { id: Canal; nombre: string }[] = [
 export const NOMBRE_CANAL: Record<string, string> = Object.fromEntries(CANALES.map((c) => [c.id, c.nombre]))
 
 export interface Tarjeta {
+  /** El correo; o «llamada:<id>» en las sueltas (de Llamadas, sin ficha). */
+  id: string
   email: string
   nombre: string
   telefono: string
@@ -45,6 +47,12 @@ export interface Tarjeta {
   ultima_nota: string
   /** Plaza reservada con señal: lo pagado y lo que le falta (sin acceso aún). */
   reserva?: { pagado_cents: number; total_cents: number; pendiente_cents: number } | null
+  /** En Seguimiento: su fila de la lista de Llamadas (temperatura, dónde se quedó). */
+  llamada?: Templada | null
+  /** De Llamadas sin ficha (apuntada a mano solo con el móvil): no se arrastra. */
+  suelta?: boolean
+  /** La fecha de volver a llamar, si la tiene. */
+  volver_a_llamar?: VolverALlamar | null
 }
 
 export interface Tablero {
@@ -154,7 +162,8 @@ export const getTablero = (orgId: number, t: string) => pedir<Tablero>(`panel/or
 
 export const moverTarjeta = (
   orgId: number,
-  cambio: { email: string; etapa: EtapaTablero; canal?: Canal; motivo?: string },
+  // nombre y teléfono: por si, al ir a Seguimiento, entra nueva en Llamadas.
+  cambio: { email: string; etapa: EtapaTablero; canal?: Canal; motivo?: string; nombre?: string; telefono?: string },
   t: string
 ) => pedir<{ ok: boolean }>(`panel/org/${orgId}/tablero`, 'PUT', cambio, t)
 

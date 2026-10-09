@@ -128,7 +128,9 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
 export function gruposDelCloser(veNumeros: boolean): Grupo[] {
   const todos = GRUPOS_DEL_PANEL.flatMap((g) => g.items)
   const por = (label: string) => todos.find((i) => i.label === label) as Item
-  const items = [por('Matrículas'), por('Tareas'), por('Contactos'), por('Llamadas'), por('Guion de llamada'), por('Recursos'), por('Páginas de la web')]
+  // Sin Contactos (08/10): el closer trabaja desde Matrículas y Llamadas.
+  // Contactos (todos los leads, también los de las guías) es del administrador.
+  const items = [por('Matrículas'), por('Llamadas'), por('Tareas'), por('Guion de llamada'), por('Recursos'), por('Páginas de la web')]
   if (veNumeros) {
     items.push({ ...por('Estadísticas'), href: '/dash/estadisticas?tab=numeros', label: 'Números', match: undefined })
   }

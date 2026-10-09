@@ -41,6 +41,11 @@ async def api_tablero(
     for f in fichas:
         f["fuera_de_metricas"] = f["email"] in fuera
     datos = await pipeline.tablero(fichas, db_session)
+    # Volver a llamar: la fecha y el motivo, para «Llamar hoy» en la tarjeta
+    # (08/10: el closer ya no tiene Contactos, que es donde estaba).
+    from src.services.contactos.seguimiento import todos_los_recordatorios
+
+    recordatorios = await todos_los_recordatorios(db_session)
     # Cuántas tareas pendientes tiene cada persona, para la tarjeta.
     pendientes: dict[str, int] = {}
     for t in await tareas.listar(db_session, current_user.id, True, solo_pendientes=True):
@@ -70,8 +75,15 @@ async def api_tablero(
             else None
         )
         c["tareas"] = pendientes.get(c["email"], 0)
-        c["notas"] = notas.get(c["email"], {}).get("n", 0)
-        c["ultima_nota"] = notas.get(c["email"], {}).get("ultima", "")
+        if c.get("suelta") and not c["email"]:
+            # Sin correo, las notas viven en su fila de Llamadas.
+            c["notas"] = (c.get("llamada") or {}).get("n_notas", 0)
+            c["ultima_nota"] = ((c.get("llamada") or {}).get("ultima_nota") or "")[:160]
+        else:
+            c["notas"] = notas.get(c["email"], {}).get("n", 0)
+            c["ultima_nota"] = notas.get(c["email"], {}).get("ultima", "")
+        r = recordatorios.get(c["email"]) if c["email"] else None
+        c["volver_a_llamar"] = r if r and c["etapa"] != "alumno" else None
     return datos
 
 
@@ -80,6 +92,9 @@ class Movimiento(BaseModel):
     etapa: str
     canal: Optional[str] = None
     motivo: Optional[str] = None
+    # Por si al ir a Seguimiento entra nueva en la lista de Llamadas.
+    nombre: str = ""
+    telefono: str = ""
 
 
 @router.put("/org/{org_id}/tablero", summary="Mueve a una persona de columna o cambia su canal.")
@@ -91,7 +106,10 @@ async def api_mover(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
-    r = await pipeline.mover(data.email, data.etapa, data.canal, data.motivo, _nombre(current_user), db_session)
+    r = await pipeline.mover(
+        data.email, data.etapa, data.canal, data.motivo, _nombre(current_user), db_session,
+        nombre=data.nombre, telefono=data.telefono,
+    )
     if not r.get("ok"):
         raise HTTPException(status_code=400, detail=r.get("motivo"))
     return r

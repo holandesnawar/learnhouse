@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-08 (API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-09 (Matrículas con la columna Seguimiento = Llamadas y el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -2521,6 +2521,52 @@ Para la campaña de Meta «LEADS | VSL Matricula | oct26» (NL+BE, español,
   formulario corto, y **llamar en menos de 15 minutos** (la página promete
   "te escribimos muy pronto"); la home se deja como está hasta ver números en
   Panel → Anuncios (campaña apuntada con el mismo `utm_campaign`).
+
+## Matrículas con Seguimiento; el closer sin Contactos (09/10/2026)
+Pedido: "contactos que solo la vea admin, y closer se quede con matrículas y
+llamadas… mete las llamadas templadas en matrículas… nuevo, contactado, en
+revisión, propuesta, seguimiento, perdido, alumno… solo gente que haya
+mostrado interés… que no se pierda nada".
+- **Columnas**: Nuevo → Contactado → En revisión → Propuesta →
+  **Seguimiento** → Perdido → Alumno (`ETAPAS` en
+  `services/panel/pipeline.py`; Alumno ahora al final).
+- **Seguimiento = la lista de Llamadas** (la de «templadas»), a juego en los
+  dos sentidos: mover a Seguimiento apunta en Llamadas, pendiente
+  (`mandar_a_templadas`); sacar de Seguimiento la marca hecha, o quitada si
+  va a Perdido (`cerrar_pendientes_de`); marcarla hecha en Llamadas la saca a
+  Contactado. **Manda lo último que pasó**: si alguien movido a mano vuelve
+  a Llamadas DESPUÉS (otra vez sus datos, o «A pendiente», que ahora pone
+  `created_at` a ahora), vuelve a Seguimiento (`colocar`, con test).
+  Ir a Seguimiento NO toca la marca de atendida de sus solicitudes.
+- Las tarjetas de Seguimiento llevan la temperatura y dónde se quedó; la
+  columna, la más caliente arriba. Los de Llamadas **sin ficha** (apuntados a
+  mano solo con el móvil) salen como **tarjetas sueltas** (`tarjeta_suelta`,
+  id `llamada:<id>`): no se arrastran y se abren con `LlamadaSuelta.tsx`,
+  que reutiliza `DetalleLlamada` (sacado de `LlamadasTempladas.tsx`; la
+  lista de Llamadas se ve igual que antes).
+- El tablero mete solo a los automáticos al abrirse (`para_el_tablero` llama a
+  `sincronizar`): el closer ya no necesita abrir Llamadas para que entren.
+- **Quién entra**: etapas pidio / en-pago / alumno (como antes) + a quien el
+  equipo le creó un **enlace de pago** + quien está **pendiente en Llamadas**
+  + quien ya fue **movido** a mano (si no, el que entró por Llamadas
+  desaparecía al pasarlo a Contactado). **Fuera**: solo guías, lista de
+  espera e Instagram. Ofrecido meter lista de espera / Instagram si lo pide.
+- **«Llamar hoy»**: cada tarjeta enseña su fecha de volver a llamar (roja si
+  toca) y arriba hay un filtro con las que tocan hoy o se pasaron (antes solo
+  estaba en Contactos).
+- La ficha: el botón «Mandar a Llamadas» se quitó (lo hace el botón de
+  columna Seguimiento); dice «Pendiente de llamar (lista de Llamadas)». Su
+  columna se calcula igual que la tarjeta (`llamada_de` en `templadas.py`).
+- **El closer ya no tiene Contactos**: barra (`gruposDelCloser`: Matrículas,
+  Llamadas, Tareas, Guion, Recursos, Páginas), inicio del panel («Últimas
+  matrículas»), su entrada «Panel» de la escuela y su pestaña por defecto van
+  a Matrículas; `?tab=contactos` le redirige. La API de contactos sigue
+  dándole solo las matrículas (las mismas personas del tablero), porque la
+  usa Números si se los abren. El administrador sigue igual.
+- Test con base de datos de verdad (SQLite en memoria):
+  `src/tests/services/test_tablero_seguimiento.py`. ⚠️ En `src/tests` hay
+  fallos ANTERIORES y ajenos (Zapier, reset de contraseña, límites de uso,
+  setup, grupos, root router): no son de esto.
 
 ## Reservar plaza con señal y cobrar el resto (06/10/2026)
 Pedido: "Manuel está en llamada, falla Klarna o su tarjeta y no cierra. Se le

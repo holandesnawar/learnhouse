@@ -104,7 +104,7 @@ export default function NawarHome() {
     // aquí entero era una segunda barra.
     .filter((a) =>
       isCloser
-        ? ['Matrículas', 'Tareas', 'Contactos', 'Llamadas', 'Páginas de la web'].includes(a.label)
+        ? ['Matrículas', 'Llamadas', 'Tareas', 'Páginas de la web'].includes(a.label)
         : ['Matrículas', 'Tareas', 'Clientes', 'Anuncios', 'Gastos', 'Consultas', 'Avisos y correos'].includes(a.label)
     )
 
@@ -241,8 +241,8 @@ export default function NawarHome() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className={`${CARD} lg:col-span-2`}>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-[15px] font-bold text-gray-900">Últimos contactos</h2>
-              <Link href="/dash/estadisticas?tab=contactos" className="text-[13px] font-semibold text-[#025dc7] inline-flex items-center gap-1">
+              <h2 className="text-[15px] font-bold text-gray-900">{isCloser ? 'Últimas matrículas' : 'Últimos contactos'}</h2>
+              <Link href={isCloser ? '/dash/estadisticas?tab=matriculas' : '/dash/estadisticas?tab=contactos'} className="text-[13px] font-semibold text-[#025dc7] inline-flex items-center gap-1">
                 Ver todos <ArrowRight size={14} />
               </Link>
             </div>
