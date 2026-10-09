@@ -209,6 +209,20 @@ async def listar_alumnos(org_id: int, db_session: AsyncSession) -> dict:
             if int(aid) not in suyas or (f and f < suyas[int(aid)]):
                 suyas[int(aid)] = f
 
+    # Quien entró desde el 10/10/2026 abre la formación por avance: su fila
+    # enseña qué tiene abierto y por qué no lo demás (`avance_modulos.py`).
+    from src.services.courses.avance_modulos import (
+        ajustes_avance,
+        estado_avance,
+        leer_fecha,
+        resumen_para_el_panel,
+        usa_avance,
+    )
+    from src.services.courses.locks import get_drip_settings
+
+    goteo = await get_drip_settings(org_id, db_session)
+    ajustes = ajustes_avance(goteo) if goteo else {"activo": False, "desde": ""}
+
     hoy = datetime.now(timezone.utc).date()
     hace7 = hoy.toordinal() - 6
     alumnos: list[dict] = []
@@ -258,8 +272,15 @@ async def listar_alumnos(org_id: int, db_session: AsyncSession) -> dict:
                 "entradas_7d": entradas_7d,
                 "racha": int(p.current_streak or 0) if p else 0,
                 "estado": estado_de(dc["ultima_entrada"], avance["hechas"], hoy),
+                "por_avance": False,
+                "aperturas": [],
             }
         )
+        if usa_avance(leer_fecha(m.creation_date), ajustes):
+            estado = await estado_avance(uid, org_id, db_session, drip=goteo)
+            if estado:
+                alumnos[-1]["por_avance"] = True
+                alumnos[-1]["aperturas"] = resumen_para_el_panel(estado)
 
     # Último recordatorio mandado a cada uno, para no repetir sin darse cuenta.
     ultimos: dict[int, dict] = {}

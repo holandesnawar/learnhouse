@@ -65,6 +65,9 @@ class ChapterRead(ChapterBase):
     # Computed per-request: ISO date when a drip-locked chapter unlocks for this
     # user (enrollment date + configured day offset). None when not drip-locked.
     unlock_date: Optional[str] = None
+    # Por qué sigue cerrado, para el alumno, cuando depende de su avance
+    # ("Se abre cuando termines el módulo 2: te faltan 14 clases.").
+    unlock_reason: Optional[str] = None
     pass
 
 

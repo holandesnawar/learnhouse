@@ -582,6 +582,14 @@ const CourseClient = (props: any) => {
                               <span>{chapter.activities.length} {t('activities.activities')}</span>
                             </div>
                           )}
+                          {/* Cerrado por el goteo: cuándo o qué falta para que se abra. */}
+                          {chapter.is_locked && (chapter.unlock_reason || chapter.unlock_date) ? (
+                            <p className="text-[13px] text-[#5A6480] leading-snug">
+                              {chapter.unlock_reason
+                                ? chapter.unlock_reason
+                                : `Se abre el ${new Date(chapter.unlock_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}.`}
+                            </p>
+                          ) : null}
                         </div>
                       </div>
                       <div className={`transition-all duration-200 ${isExpanded ? 'block' : 'hidden'}`}>

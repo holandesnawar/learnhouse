@@ -38,6 +38,15 @@ export default function DripContentSettings({ course, defaultOpen = false }: { c
     })
     return init
   })
+  // Apertura por avance (09/10/2026): quien entra desde `desde` abre la
+  // formación según termina cada módulo, no por las fechas de abajo. Sin nada
+  // guardado vale "activo desde el 10/10/2026" (lo decidió el usuario). La
+  // regla: apps/api/src/services/courses/avance_modulos.py.
+  const avanceGuardado = (): { activo: boolean; desde: string } => ({
+    activo: stored?.avance ? stored.avance.activo !== false : true,
+    desde: String(stored?.avance?.desde || '2026-10-10').slice(0, 10),
+  })
+  const [avance, setAvance] = useState(avanceGuardado)
   const [saving, setSaving] = useState(false)
   // Qué dijo el servidor al guardar, en una línea que se queda a la vista.
   // Antes solo había un aviso flotante que se iba en dos segundos, y si el
@@ -64,6 +73,7 @@ export default function DripContentSettings({ course, defaultOpen = false }: { c
     })
     setOffsets(o)
     setFechas(f)
+    setAvance(avanceGuardado())
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [guardadoJSON, chapters.length])
 
@@ -102,10 +112,10 @@ export default function DripContentSettings({ course, defaultOpen = false }: { c
       })
       const res: any = await updateOrgDripConfig(
         String(org.id),
-        { enabled, chapters: offsets, fechas: soloConFecha },
+        { enabled, chapters: offsets, fechas: soloConFecha, avance },
         access_token
       )
-      const guardado = res?.drip_content || { enabled, chapters: offsets, fechas: soloConFecha }
+      const guardado = res?.drip_content || { enabled, chapters: offsets, fechas: soloConFecha, avance }
 
       // La escuela en memoria pasa a tener lo que se acaba de guardar, y se
       // pide de nuevo al servidor: así, al volver a esta pantalla o a la del
@@ -190,6 +200,43 @@ export default function DripContentSettings({ course, defaultOpen = false }: { c
             <strong>Días</strong>: abre a esos días del alta de cada alumno, así
             que cada uno lo ve en un día distinto. Si pones fecha, manda la fecha.
           </p>
+
+          {/* Va encima de las fechas porque cambia a quién se le aplican. */}
+          <div className="rounded-lg border border-[#DDE6F5] bg-[#F8FAFF] p-3.5 space-y-2.5">
+            <label className="flex items-center gap-2 text-[13.5px] font-semibold text-[#1D0084] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={avance.activo}
+                onChange={(e) => {
+                  tocado.current = true
+                  setAvance((a) => ({ ...a, activo: e.target.checked }))
+                }}
+                className="w-4 h-4 accent-[#4da3ff]"
+              />
+              Formación: los alumnos nuevos abren los módulos por avance
+            </label>
+            <div className="flex flex-wrap items-center gap-2 text-[13px] text-gray-700">
+              <span>Para quien entra desde el</span>
+              <input
+                type="date"
+                value={avance.desde}
+                disabled={!avance.activo}
+                onChange={(e) => {
+                  tocado.current = true
+                  setAvance((a) => ({ ...a, desde: e.target.value }))
+                }}
+                aria-label="Fecha desde la que se abre por avance"
+                className="bg-white rounded-lg px-2.5 py-1.5 text-[13px] text-[#1D0084] border border-[#DDE6F5] outline-none focus:border-[#4da3ff] disabled:opacity-40"
+              />
+            </div>
+            <ul className="text-[12.5px] text-[#5A6480] leading-relaxed list-disc pl-4 space-y-0.5">
+              <li>Introducción y módulos 1 y 2: abiertos desde el primer día.</li>
+              <li>Módulo 3: a las 2 semanas de entrar, si ha terminado el 1 y el 2.</li>
+              <li>Del 4 en adelante: al terminar el anterior y pasada 1 semana desde que se le abrió (2 semanas tras el 5 y el 7).</li>
+              <li>Terminado = el 80 % de las clases del módulo. Lo que se abre no se vuelve a cerrar.</li>
+              <li>Quien entró antes sigue con las fechas de abajo. A un alumno concreto se le puede abrir un módulo a mano en Alumnos → Progreso.</li>
+            </ul>
+          </div>
 
           <div className="space-y-1.5">
             {chapters.map((c, i) => {

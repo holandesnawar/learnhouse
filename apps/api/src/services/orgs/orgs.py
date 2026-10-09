@@ -1500,6 +1500,18 @@ async def update_org_drip_config(
     }
 
     updated_config = _deep_copy_config(org_config)
+
+    # La apertura por avance: si llega, se limpia; si no llega (una pantalla
+    # vieja que no la conoce), se conserva la guardada. Así guardar el
+    # calendario nunca la borra sin querer.
+    from src.services.courses.avance_modulos import ajustes_avance
+
+    if isinstance(drip.get("avance"), dict):
+        drip_content["avance"] = ajustes_avance({"avance": drip["avance"]})
+    else:
+        anterior = (updated_config.get("drip_content") or {}) if isinstance(updated_config, dict) else {}
+        if isinstance(anterior, dict) and isinstance(anterior.get("avance"), dict):
+            drip_content["avance"] = anterior["avance"]
     # Top-level key so it round-trips for both v1 and v2 configs.
     updated_config["drip_content"] = drip_content
 

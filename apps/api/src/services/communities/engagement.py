@@ -408,10 +408,30 @@ async def _module_items(
             offsets = {}
         if not isinstance(fechas, dict):
             fechas = {}
-        if not offsets and not fechas:
-            continue
 
         opened: dict[str, datetime] = {}
+
+        # Quien entró desde el 10/10/2026 abre la formación por avance
+        # (`services/courses/avance_modulos.py`): para él, las fechas fijas de
+        # la formación NO valen —el 12/10 la campana le habría dicho "has
+        # desbloqueado el módulo 4" con el módulo cerrado— y lo que se le
+        # abre sale del cálculo. Los que abren al entrar (1 y 2) no son
+        # novedad: ya los tiene desde el primer día.
+        if settings:
+            from src.services.courses.avance_modulos import estado_avance
+
+            avance = await estado_avance(user_id, org_id, db_session, drip=settings)
+            if avance:
+                fechas = {k: v for k, v in fechas.items() if k not in avance}
+                offsets = {k: v for k, v in offsets.items() if k not in avance}
+                for chapter_uuid, paso in avance.items():
+                    abre = paso.get("abre")
+                    if paso.get("abierto") and paso.get("como") != "entrada" and abre is not None:
+                        if abre <= now and (now - abre) <= timedelta(days=21):
+                            opened[chapter_uuid] = abre
+
+        if not offsets and not fechas and not opened:
+            continue
 
         # Fecha fija: igual para todos, no depende del alta. Se resuelve antes
         # justamente por eso — si el alta no se pudiera leer, el desfase por

@@ -197,6 +197,47 @@ async def get_user_trail_with_orgid(
     return await _build_trail_read(trail, list(trail_runs_raw), db_session)
 
 
+async def cerrada_por_el_goteo(activity: Activity, course: Course, user: PublicUser, db_session: AsyncSession) -> bool:
+    """¿El módulo de esta clase sigue cerrado para este usuario por el goteo?
+
+    ⚠️ Encontrado el 09/10/2026: abrir la DIRECCIÓN de una clase de un módulo
+    cerrado (un enlace guardado, el botón "Siguiente", escribirla a mano) la
+    apuntaba como HECHA, porque la pantalla marca el contenido al abrirlo y
+    aquí no se miraba el candado. La pantalla enseñaba "este módulo aún no está
+    disponible" y por detrás contaba la clase. Con la apertura por avance
+    (`services/courses/avance_modulos.py`) eso además sumaría para el 80 %.
+
+    Mismo criterio que la propia clase (`activities.py`): el administrador y,
+    si así se ha decidido, los profes, no tienen goteo. Ante cualquier fallo,
+    False: no se le niega a nadie apuntar una clase por un error nuestro.
+    """
+    try:
+        from src.db.courses.chapters import Chapter
+        from src.services.courses.locks import (
+            drip_locked_chapters,
+            is_org_admin,
+            is_org_staff,
+            profes_ven_todo,
+        )
+
+        chapter_uuid = (
+            await db_session.execute(
+                select(Chapter.chapter_uuid)
+                .join(ChapterActivity, ChapterActivity.chapter_id == Chapter.id)
+                .where(ChapterActivity.activity_id == activity.id)
+            )
+        ).scalars().first()
+        if not chapter_uuid or not user or not user.id:
+            return False
+        if await is_org_admin(user.id, course.org_id, db_session):
+            return False
+        if await is_org_staff(user.id, course.org_id, db_session) and await profes_ven_todo(course.org_id, db_session):
+            return False
+        return chapter_uuid in await drip_locked_chapters([chapter_uuid], course.org_id, user, db_session)
+    except Exception:  # noqa: BLE001
+        return False
+
+
 async def add_activity_to_trail(
     request: Request,
     user: PublicUser,
@@ -252,7 +293,11 @@ async def add_activity_to_trail(
     trailstep = (await db_session.execute(statement)).scalars().first()
 
     is_new_completion = trailstep is None
-    if is_new_completion:
+    # Una clase de un módulo que el goteo aún le cierra no se apunta (ver
+    # `cerrada_por_el_goteo`). Sin error: la pantalla ya enseña el candado.
+    if is_new_completion and await cerrada_por_el_goteo(activity, course, user, db_session):
+        is_new_completion = False
+    elif is_new_completion:
         trailstep = TrailStep(
             trailrun_id=trailrun.id if trailrun.id is not None else 0,
             activity_id=activity.id if activity.id is not None else 0,

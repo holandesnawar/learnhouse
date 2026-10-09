@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-09 (Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-09 (apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -1099,6 +1099,10 @@ cero avisos, siempre.
 
 **Cualquier cosa que hable del goteo tiene que mirar `fechas` primero y el
 desfase después.** Vale para la campana, para `drip.py` y para lo que venga.
+⚠️ **Desde el 09/10/2026 hay un tercer camino que va ANTES de los dos: la
+apertura por avance** (ver "Apertura de módulos por avance" más abajo). Para
+los alumnos que entran desde el 10/10, las fechas fijas de la formación no
+valen.
 
 ### La campana ahora agrupa por canal
 Antes listaba mensaje a mensaje y llamaba "Importante" a los fijados. Ahora
@@ -2623,6 +2627,49 @@ desde fuera… mover agarrando como Trello… y ver siempre de dónde viene".
   el rescate de notas.
   ⚠️ En `src/tests` hay fallos ANTERIORES y ajenos (Zapier, reset de
   contraseña, límites de uso, setup, grupos, root router): no son de esto.
+
+## Apertura de módulos por avance (09/10/2026)
+Decidido con el usuario: entrada continua, cada alumno con su reloj. **La
+primera convocatoria NO se toca**: sigue con sus fechas fijas (M4 12/10,
+M5 26/10…). Todo en `apps/api/src/services/courses/avance_modulos.py`
+(cabecera larga: leerla antes de tocar), tests en `test_avance_modulos.py`.
+- **A quién**: ALUMNOS (rol 4) cuyo `user_organization.creation_date` (= día
+  del pago) es desde `drip_content.avance.desde`, en hora de Países Bajos. Sin
+  nada guardado vale **activo desde 2026-10-10** (`DESDE_POR_DEFECTO`). Se
+  cambia en el curso → pestaña Goteo (recuadro "los alumnos nuevos abren los
+  módulos por avance"). Solo la FORMACIÓN (`FORMACION_UUID`); la clase semanal
+  sigue con su goteo. El equipo (profes…) que entre después sigue las fechas:
+  el profe comparte pantalla en la clase.
+- **Reglas**: introducción, M1 y M2 al entrar. M3: 2 semanas desde la entrada
+  Y el 1 y el 2 terminados. Del 4 en adelante: el anterior terminado Y 1
+  semana desde que SE ABRIÓ el anterior (2 semanas tras el M5 y el M7).
+  **Terminado = 80 % de las clases publicadas** (`trail_step`). Un capítulo
+  sin número tras los módulos (un "Examen final") sigue la regla general:
+  así el más rápido abre el M10 a los 77 días y el examen a los 84 (semana 13).
+  Un módulo sin clases no se puede terminar (no abre el siguiente).
+- **Lo que se abre no se cierra**: tabla `modulo_abierto`. La tarea diaria
+  (`drip-diario`, `avisar_aperturas_por_avance`) apunta cada apertura y manda
+  el correo de "módulo abierto" (solo si es de los últimos 3 días; registro
+  solo con números, el repo es público). Lo apuntado manda sobre el cálculo.
+- **Abrir a mano**: Panel → Alumnos → Progreso → abrir al alumno → «Abrir ya»
+  en el módulo (y «Deshacer» para lo abierto a mano). Solo administradores.
+  Ahí sale también por qué está cerrado cada módulo.
+- **El alumno ve el motivo**: `unlock_reason` en capítulos y clases ("Se abre
+  cuando termines el módulo 2: te faltan 3 clases.", o "Se abre después del
+  módulo 3." si el anterior aún está cerrado). Sale bajo cada módulo cerrado
+  del curso y en la pantalla de clase cerrada. `drip_locks_detalle` (en
+  `locks.py`) es la función con motivo; `drip_locked_chapters` sigue igual
+  para quien solo quiere saber si está cerrado (valor "" = cerrado sin fecha).
+- ⚠️ **El 12/10 el correo y la campana del M4 NO deben llegar a los nuevos**:
+  `drip.py` y `_module_items` se saltan las fechas fijas de la formación para
+  quien va por avance. Cualquier aviso nuevo del goteo, igual.
+- ⚠️ **Fallo viejo arreglado de paso**: abrir la DIRECCIÓN de una clase de un
+  módulo cerrado la apuntaba como hecha (la pantalla marca al abrir y
+  `trail/add_activity` no miraba el candado). Ahora `cerrada_por_el_goteo` en
+  `services/trail/trail.py` no la apunta. Con el avance habría sumado al 80 %.
+- Pendiente de decidir: el examen final (no existe aún), descanso entre
+  módulos, aviso tras 2 semanas sin avanzar, ampliación de pago tras la
+  semana 16.
 
 ## Reservar plaza con señal y cobrar el resto (06/10/2026)
 Pedido: "Manuel está en llamada, falla Klarna o su tarjeta y no cierra. Se le

@@ -140,15 +140,68 @@ async def drip_locked_chapters(
     """Map ``{chapter_uuid: unlock_date_iso}`` for chapters still locked by drip.
 
     A chapter absent from the returned map is NOT drip-locked for this user.
+    Con la apertura por avance la fecha puede no saberse todavía: entonces el
+    valor es "" (sigue cerrado). El motivo está en `drip_locks_detalle`.
+    """
+    detalle = await drip_locks_detalle(
+        chapter_uuids, org_id, current_user, db_session, drip=drip, is_admin=is_admin
+    )
+    return {cu: d.get("fecha") or "" for cu, d in detalle.items()}
+
+
+async def drip_locks_detalle(
+    chapter_uuids: Iterable[str],
+    org_id: int,
+    current_user: PublicUser | AnonymousUser | APITokenUser,
+    db_session: AsyncSession,
+    *,
+    drip: dict | None = None,
+    is_admin: bool = False,
+) -> dict[str, dict]:
+    """``{chapter_uuid: {"fecha": iso | None, "motivo": str | None}}`` de los
+    capítulos que el goteo todavía le cierra a este usuario.
+
     Admins and chapters with offset <= 0 are never drip-locked. When the
     enrollment date can't be resolved we fail OPEN (no drip lock) so paying
     students never get accidentally shut out.
+
+    Tres formas de abrir, por este orden:
+
+    1. **Apertura por avance** (`services/courses/avance_modulos.py`): solo
+       la formación y solo para quien entró desde la fecha de corte. Para
+       ellos las fechas fijas y los días de abajo no cuentan en la formación.
+    2. **Fecha fija** (`fechas`).
+    3. **Días desde el alta** (`chapters`).
     """
     if is_admin:
         return {}
     settings = drip if drip is not None else await get_drip_settings(org_id, db_session)
     if not settings:
         return {}
+    if isinstance(current_user, AnonymousUser):
+        return {}
+
+    chapter_uuids = [cu for cu in chapter_uuids if cu]
+    locked: dict[str, dict] = {}
+    acting_user_id = resolve_acting_user_id(current_user)
+
+    # 1. Apertura por avance. `estado_avance` devuelve None si a este alumno
+    # no le toca (o si algo falla al leer: entonces, goteo de siempre).
+    from src.services.courses.avance_modulos import estado_avance, para_el_navegador
+
+    avance = await estado_avance(acting_user_id, org_id, db_session, drip=settings)
+    if avance:
+        resto: list[str] = []
+        for cu in chapter_uuids:
+            paso = avance.get(cu)
+            if paso is None:
+                resto.append(cu)
+                continue
+            if not paso["abierto"]:
+                fecha = paso["abre"] if paso["motivo"] is None else paso["fecha_minima"]
+                locked[cu] = {"fecha": para_el_navegador(fecha), "motivo": paso["motivo"]}
+        chapter_uuids = resto
+
     offsets = settings.get("chapters") or {}
     # Fecha fija: `{chapter_uuid: "2026-09-15"}`.
     #
@@ -166,25 +219,19 @@ async def drip_locked_chapters(
     if not isinstance(fechas, dict):
         fechas = {}
     if not offsets and not fechas:
-        return {}
-
-    if isinstance(current_user, AnonymousUser):
-        return {}
+        return locked
 
     now = datetime.now()
-    locked: dict[str, str] = {}
 
     # Las fechas fijas se resuelven ANTES de mirar el alta, porque no la
     # necesitan: si el alta no se puede leer, el desfase por días falla abierto
     # pero la fecha de la cohorte sigue siendo válida.
     pendientes: list[str] = []
     for cu in chapter_uuids:
-        if not cu:
-            continue
         fecha = _parse_dt(str(fechas.get(cu) or "")) if fechas.get(cu) else None
         if fecha is not None:
             if now < fecha:
-                locked[cu] = fecha.isoformat()
+                locked[cu] = {"fecha": fecha.isoformat(), "motivo": None}
             continue
         pendientes.append(cu)
 
@@ -192,7 +239,6 @@ async def drip_locked_chapters(
         return locked
 
     # Enrollment date = when the user joined this org.
-    acting_user_id = resolve_acting_user_id(current_user)
     uo = (await db_session.execute(
         select(UserOrganization).where(
             UserOrganization.user_id == acting_user_id,
@@ -212,7 +258,7 @@ async def drip_locked_chapters(
             continue
         unlock_at = enrolled_at + timedelta(days=offset)
         if now < unlock_at:
-            locked[cu] = unlock_at.isoformat()
+            locked[cu] = {"fecha": unlock_at.isoformat(), "motivo": None}
     return locked
 
 

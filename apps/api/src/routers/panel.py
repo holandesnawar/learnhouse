@@ -271,6 +271,52 @@ async def api_alumnos(
     return await listar_alumnos(org_id, db_session)
 
 
+# ── Abrir un módulo a mano a un alumno que va por avance (Progreso).
+
+
+@router.post(
+    "/org/{org_id}/alumnos/{user_id}/modulos/{chapter_uuid}/abrir",
+    summary="Abrirle ya un módulo de la formación a un alumno que va por avance (administradores).",
+)
+async def api_abrir_modulo(
+    request: Request,
+    org_id: int,
+    user_id: int,
+    chapter_uuid: str,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.courses.avance_modulos import abrir_a_mano
+
+    await _admin_progreso(request, org_id, current_user, db_session)
+    por = " ".join(x for x in [current_user.first_name, current_user.last_name] if x).strip() or current_user.username
+    r = await abrir_a_mano(org_id, user_id, chapter_uuid, por, db_session)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    return r
+
+
+@router.delete(
+    "/org/{org_id}/alumnos/{user_id}/modulos/{chapter_uuid}/abrir",
+    summary="Deshacer «Abrir ya» (solo lo abierto a mano).",
+)
+async def api_quitar_apertura(
+    request: Request,
+    org_id: int,
+    user_id: int,
+    chapter_uuid: str,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.courses.avance_modulos import quitar_apertura_a_mano
+
+    await _admin_progreso(request, org_id, current_user, db_session)
+    r = await quitar_apertura_a_mano(org_id, user_id, chapter_uuid, db_session)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    return r
+
+
 # ── Recordatorio a un alumno (Progreso). Solo administradores, y siempre a mano.
 
 

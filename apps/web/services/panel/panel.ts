@@ -277,7 +277,35 @@ export interface AlumnoProgreso {
   /** La clase a la que lleva "Seguir donde lo dejé" en el recordatorio. */
   seguir_uuid: string
   ultimo_recordatorio: { sent_at: string; tipo: string; por: string } | null
+  /** Entró desde el 10/10/2026: la formación se le abre por avance. */
+  por_avance: boolean
+  /** Solo si va por avance: cada módulo con su candado. Ver apps/api/src/services/courses/avance_modulos.py. */
+  aperturas: AperturaModulo[]
 }
+
+export interface AperturaModulo {
+  uuid: string
+  nombre: string
+  numero: number | null
+  abierto: boolean
+  /** entrada = desde el primer día; avance = lo abrió su avance; mano = lo abrió el equipo. */
+  como: 'entrada' | 'avance' | 'mano' | null
+  /** Cuándo se abrió (o se abrirá, si ya solo falta tiempo). ISO con Z. */
+  abre: string | null
+  /** La primera fecha en que podría abrirse, si aún no ha llegado. */
+  fecha_minima: string | null
+  /** Por qué sigue cerrado ("Se abre cuando termine el módulo 2: le faltan 3 clases."). */
+  motivo: string | null
+  hechas: number
+  necesarias: number
+  total: number
+}
+
+export const abrirModulo = (orgId: number, userId: number, chapterUuid: string, t: string) =>
+  pedir<{ ok: boolean }>(`panel/org/${orgId}/alumnos/${userId}/modulos/${encodeURIComponent(chapterUuid)}/abrir`, 'POST', {}, t)
+
+export const quitarAperturaModulo = (orgId: number, userId: number, chapterUuid: string, t: string) =>
+  pedir<{ ok: boolean }>(`panel/org/${orgId}/alumnos/${userId}/modulos/${encodeURIComponent(chapterUuid)}/abrir`, 'DELETE', null, t)
 
 export type TipoRecordatorio = 'tres_dias' | 'semana'
 export interface PlantillasRecordatorio {

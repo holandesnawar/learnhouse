@@ -16,8 +16,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
-import { getAlumnosProgreso, type AlumnoProgreso } from '@services/panel/panel'
-import { Bell, ChevronDown, Loader2, Mail, Search } from 'lucide-react'
+import {
+  abrirModulo,
+  getAlumnosProgreso,
+  quitarAperturaModulo,
+  type AlumnoProgreso,
+  type AperturaModulo,
+} from '@services/panel/panel'
+import { Bell, ChevronDown, Loader2, Lock, Mail, Search } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { confirmar } from '@lib/nawar/confirmar'
 import FichaCliente from './FichaCliente'
 import RecordatorioModal from './RecordatorioModal'
 import { BOTON, BOTON_PRINCIPAL, Estado, TARJETA, filtro, type Tono } from './ui'
@@ -115,18 +123,91 @@ function haceDias(iso: string): string {
   return d <= 0 ? 'hoy' : d === 1 ? 'ayer' : `hace ${d} días`
 }
 
+/** "24 oct" (y el año si no es este). */
+function diaCorto(iso: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const mismoAno = d.getFullYear() === new Date().getFullYear()
+  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', ...(mismoAno ? {} : { year: 'numeric' }), timeZone: ZONA })
+}
+
+/**
+ * Los módulos de quien va por avance (entró desde el 10/10/2026): cuáles
+ * tiene abiertos, por qué no los demás, y «Abrir ya» para saltarse la regla.
+ * La regla está en apps/api/src/services/courses/avance_modulos.py.
+ */
+function ModulosPorAvance({
+  a,
+  onAbrir,
+  onDeshacer,
+}: {
+  a: AlumnoProgreso
+  onAbrir: (m: AperturaModulo) => void
+  onDeshacer: (m: AperturaModulo) => void
+}) {
+  return (
+    <ul className="space-y-3">
+      {a.aperturas.map((m) => {
+        const pct = m.total ? Math.round((m.hechas * 100) / m.total) : 0
+        let estado = ''
+        if (m.abierto) {
+          if (m.como === 'mano') estado = `Abierto a mano el ${diaCorto(m.abre)}`
+          else if (m.como === 'avance') estado = `Abierto el ${diaCorto(m.abre)}`
+        } else if (m.motivo) {
+          estado = m.fecha_minima ? `${m.motivo} No antes del ${diaCorto(m.fecha_minima)}.` : m.motivo
+        } else if (m.abre) {
+          estado = `Ya ha terminado lo anterior: se abre el ${diaCorto(m.abre)}.`
+        }
+        return (
+          <li key={m.uuid} className="text-[12.5px]">
+            <div className="grid grid-cols-[minmax(0,1fr)_96px_44px] items-center gap-3">
+              <span className={`truncate flex items-center gap-1.5 ${m.abierto ? 'text-gray-800' : 'text-[#9CA3AF]'}`}>
+                {m.abierto ? null : <Lock size={12} className="shrink-0" />}
+                {modulo(m.nombre)}
+              </span>
+              <Barra pct={pct} llena={m.total > 0 && m.hechas === m.total} />
+              <span className="text-right tabular-nums text-[#6B7280]">
+                {m.hechas}/{m.total}
+              </span>
+            </div>
+            {estado || !m.abierto || m.como === 'mano' ? (
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 pl-[18px]">
+                {estado ? <span className="text-[#6B7280]">{estado}</span> : null}
+                {!m.abierto ? (
+                  <button onClick={() => onAbrir(m)} className="font-medium text-[#025dc7] hover:underline">
+                    Abrir ya
+                  </button>
+                ) : m.como === 'mano' ? (
+                  <button onClick={() => onDeshacer(m)} className="font-medium text-[#6B7280] hover:text-gray-900 hover:underline">
+                    Deshacer
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
 function Fila({
   a,
   abierta,
   onToggle,
   onFicha,
   onRecordar,
+  onAbrir,
+  onDeshacer,
 }: {
   a: AlumnoProgreso
   abierta: boolean
   onToggle: () => void
   onFicha: () => void
   onRecordar: () => void
+  onAbrir: (m: AperturaModulo) => void
+  onDeshacer: (m: AperturaModulo) => void
 }) {
   return (
     <div>
@@ -238,6 +319,14 @@ function Fila({
                 </dd>
               </div>
               <div>
+                <dt className="text-[#6B7280]">Cómo se le abren los módulos</dt>
+                <dd className="text-gray-900">
+                  {a.por_avance
+                    ? 'Por avance: cada uno al terminar el anterior (80 % de las clases) y pasada su espera.'
+                    : 'Por las fechas de la primera convocatoria.'}
+                </dd>
+              </div>
+              <div>
                 <dt className="text-[#6B7280]">Alumno desde</dt>
                 <dd className="text-gray-900">{a.alta ? new Date(`${a.alta}T12:00:00`).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</dd>
               </div>
@@ -264,7 +353,9 @@ function Fila({
 
             <div>
               <p className="text-[12px] font-semibold text-[#6B7280] uppercase tracking-[0.08em] mb-2">Por módulo</p>
-              {a.modulos.length ? (
+              {a.por_avance && a.aperturas.length ? (
+                <ModulosPorAvance a={a} onAbrir={onAbrir} onDeshacer={onDeshacer} />
+              ) : a.modulos.length ? (
                 <ul className="space-y-2">
                   {a.modulos.map((m) => {
                     const pct = m.total ? Math.round((m.hechas * 100) / m.total) : 0
@@ -315,6 +406,36 @@ export default function ProgresoPanel() {
   useEffect(() => {
     cargar()
   }, [cargar])
+
+  async function abrir(a: AlumnoProgreso, m: AperturaModulo) {
+    const si = await confirmar(
+      `¿Abrirle ya el ${modulo(m.nombre)} a ${a.nombre}? Se le abre ahora, sin esperar a que termine el anterior. El siguiente módulo cuenta su espera desde hoy.`,
+      { boton: 'Abrir ya', peligro: false }
+    )
+    if (!si) return
+    const r = await abrirModulo(org.id, a.user_id, m.uuid, token)
+    if (!r.ok) {
+      toast.error(r.error || 'No se ha podido abrir')
+      return
+    }
+    toast.success('Abierto')
+    cargar()
+  }
+
+  async function deshacer(a: AlumnoProgreso, m: AperturaModulo) {
+    const si = await confirmar(
+      `¿Volver a cerrarle el ${modulo(m.nombre)} a ${a.nombre}? Queda como diga su avance.`,
+      { boton: 'Sí, deshacer', peligro: false }
+    )
+    if (!si) return
+    const r = await quitarAperturaModulo(org.id, a.user_id, m.uuid, token)
+    if (!r.ok) {
+      toast.error(r.error || 'No se ha podido deshacer')
+      return
+    }
+    toast.success('Hecho')
+    cargar()
+  }
 
   const cuenta = useMemo(() => {
     const c = { todos: 0, activo: 0, enfriando: 0, descolgado: 0, 'sin-empezar': 0 }
@@ -401,6 +522,8 @@ export default function ProgresoPanel() {
                 onToggle={() => setAbierta((v) => (v === a.user_id ? null : a.user_id))}
                 onFicha={() => setFicha(a.email)}
                 onRecordar={() => setRecordar(a)}
+                onAbrir={(m) => abrir(a, m)}
+                onDeshacer={(m) => deshacer(a, m)}
               />
             ))}
           </div>

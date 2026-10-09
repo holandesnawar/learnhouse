@@ -147,6 +147,9 @@ class DripContentConfig(BaseModel):
     enabled: bool = False
     chapters: dict[str, int] = {}
     fechas: dict[str, str] = {}
+    # Apertura por avance (`services/courses/avance_modulos.py`):
+    # ``{"activo": bool, "desde": "2026-10-10"}``. None = no tocar lo guardado.
+    avance: Optional[dict] = None
 
 
 class CollectionsOrgConfig(BaseModel):

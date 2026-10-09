@@ -22,7 +22,7 @@ from src.security.rbac import check_resource_access, AccessAction
 from src.services.courses.activities.versioning import create_activity_version
 from src.services.courses.locks import (
     batch_accessible_restricted_uuids,
-    drip_locked_chapters,
+    drip_locks_detalle,
     is_locked_for_user,
     is_org_staff,
     profes_ven_todo,
@@ -325,14 +325,17 @@ async def _apply_activity_lock(
         # criterios distintos. Ahora los dos miran el mismo ajuste.
         equipo = await is_org_staff(acting_user_id, course.org_id, db_session)
         equipo_ve_todo = equipo and await profes_ven_todo(course.org_id, db_session)
-        drip = await drip_locked_chapters(
+        drip = await drip_locks_detalle(
             [parent_chapter_row.chapter_uuid],
             course.org_id,
             current_user,
             db_session,
             is_admin=admin or equipo_ve_todo,
         )
-        drip_unlock = drip.get(parent_chapter_row.chapter_uuid)
+        detalle = drip.get(parent_chapter_row.chapter_uuid)
+        drip_unlock = None if detalle is None else (detalle.get("fecha") or "")
+        if detalle is not None:
+            activity_read.unlock_reason = detalle.get("motivo")
 
     activity_locked = chapter_locked or (drip_unlock is not None) or await is_locked_for_user(
         activity.lock_type,
