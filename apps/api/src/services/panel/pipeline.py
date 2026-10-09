@@ -8,21 +8,33 @@ está pendiente en la lista de Llamadas. Quien solo bajó una guía, se apuntó 
 la lista de espera o escribió por Instagram, no: eso es captación, no
 matrícula (08/10, "solo gente que haya mostrado interés").
 
-Columnas: nuevo → contactado → revision → propuesta → seguimiento → perdido →
-alumno. "Alumno" no se elige: sale sola en cuanto paga, y en cuanto paga se
-va ahí aunque alguien la hubiera dejado en otra columna.
+Columnas (09/10): nuevo → llamar ("Por llamar") → contactado → revision →
+seguimiento → descartado → alumno. "Alumno" no se elige: sale sola en cuanto paga, y en cuanto paga se
+va ahí aunque alguien la hubiera dejado en otra columna. "Propuesta" se quitó
+(se decide en la llamada) y lo que había allí pasa a Seguimiento; "Perdido" se
+llama ahora Descartado. Las filas viejas se leen con `_ANTES` (no se reescribe
+nada en la base de datos).
 
-SEGUIMIENTO = la lista de Llamadas (08/10, "métela en matrículas para ver las
-que tocan"). Quien está pendiente allí sale en esta columna, y las dos van a
-juego en los dos sentidos:
-- mover a alguien a Seguimiento lo apunta en Llamadas, pendiente;
-- sacarlo de Seguimiento (a cualquier columna) lo marca como hecho allí, o
-  como quitado si va a Perdido;
-- marcarlo como hecho en Llamadas lo saca de Seguimiento (a Contactado).
-Lo último que pasó manda: si alguien que ya estaba en una columna vuelve a
-la lista de Llamadas (dejó otra vez sus datos, o lo mandaron desde su
-ficha), vuelve a Seguimiento. Los de Llamadas sin ficha (apuntados a mano
-solo con el móvil) salen como tarjetas sueltas en Seguimiento.
+TODO LO QUE ENTRA, A LLAMAR (09/10, "me da igual que sea por llamada o por
+formulario"; "nuevo pero ¿y qué?… los antiguos leads más fríos tienen que
+ser llamar"). A quien nadie ha movido le toca una de las dos primeras, por
+cuándo llegó:
+- **Nuevo**: llegó hace menos de 48 h (`HORAS_CALIENTE`): en rojo, llamar ya;
+- **Por llamar**: más antiguo y sin hablar con él todavía; también quien «No
+  vino» a su llamada (`resultado_llamada.py`) o a quien se manda a mano.
+Quien se quedó a medias en la admisión o pidió llamada y no reservó hora
+también entra así, con su temperatura (rojo, amarillo, verde) como en
+Llamadas. Con la lista de Llamadas va a juego:
+- sacar a alguien de Nuevo / Por llamar lo marca como hecho en Llamadas (o
+  como quitado si va a Descartado): ya se ha hablado con él;
+- marcarlo como hecho en Llamadas lo pasa a Contactado si nadie lo había
+  movido;
+- lo último que pasó manda: si alguien ya movido vuelve a Llamadas DESPUÉS
+  (dejó otra vez sus datos, «A pendiente», «Mandar a Llamadas»), vuelve a
+  Nuevo o Por llamar. Con un margen (`_MARGEN_SEG`) para que mover y apuntar
+  a la vez no cuente como "volver".
+Los de Llamadas sin ficha (apuntados a mano solo con el móvil) salen como
+tarjetas sueltas en Nuevo o Por llamar.
 
 Orden: lo más nuevo arriba (`llegada` = el día que pidió plaza o llegó al
 pago). Una tarjeta puede quitarse del tablero sin borrar nada (`oculto`), y
@@ -41,17 +53,24 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.enrollment_request import EnrollmentRequest
 from src.db.panel_negocio import LeadPipeline
+from src.services.contactos.templadas import temperatura
 
 ETAPAS = [
     {"id": "nuevo", "nombre": "Nuevo"},
+    {"id": "llamar", "nombre": "Por llamar"},
     {"id": "contactado", "nombre": "Contactado"},
     {"id": "revision", "nombre": "En revisión"},
-    {"id": "propuesta", "nombre": "Propuesta"},
     {"id": "seguimiento", "nombre": "Seguimiento"},
-    {"id": "perdido", "nombre": "Perdido"},
+    {"id": "descartado", "nombre": "Descartado"},
     {"id": "alumno", "nombre": "Alumno"},
 ]
-ETAPAS_MOVIBLES = {"nuevo", "contactado", "revision", "propuesta", "seguimiento", "perdido"}
+ETAPAS_MOVIBLES = {"nuevo", "llamar", "contactado", "revision", "seguimiento", "descartado"}
+#: Las dos columnas de "hay que llamarle": salir de ellas es haberle atendido.
+POR_LLAMAR = {"nuevo", "llamar"}
+#: Columnas que ya no existen, y a dónde va lo que quedó guardado en ellas.
+_ANTES = {"propuesta": "seguimiento", "perdido": "descartado"}
+#: Mover a alguien y apuntarlo en Llamadas en el mismo momento no es "volver".
+_MARGEN_SEG = 120
 CANALES = {"", "whatsapp", "llamada", "email", "instagram", "otro"}
 
 #: Etapas de Contactos que entran en el tablero.
@@ -85,7 +104,25 @@ def _cuando_paso(ficha: dict, kinds: set[str]) -> str:
     return ""
 
 
-def colocar(ficha: dict, guardada: Optional[dict], llamada: Optional[dict] = None) -> dict:
+def etapa_guardada(etapa: str) -> str:
+    """La columna guardada, con las viejas pasadas a las de ahora; vacía si no
+    vale."""
+    etapa = _ANTES.get(etapa or "", etapa or "")
+    return etapa if etapa in ETAPAS_MOVIBLES else ""
+
+
+def entro_en_el_flujo(ficha: dict) -> str:
+    """Cuándo entró: su primera matrícula, el enlace de pago que le creó el
+    equipo o, si no, su primer contacto. Lo mismo que mide la temperatura de
+    Llamadas (`con_temperatura`): así la columna y el color dicen lo mismo."""
+    return (
+        ficha.get("matricula_at")
+        or _cuando_paso(ficha, _TAMBIEN_ENTRAN)
+        or (ficha.get("primer_contacto") or {}).get("when", "")
+    )
+
+
+def colocar(ficha: dict, guardada: Optional[dict], llamada: Optional[dict] = None, ahora: Optional[datetime] = None) -> dict:
     """Dónde va una ficha de Contactos en el tablero.
 
     `llamada`: su fila en la lista de Llamadas, si la tiene: {"estado",
@@ -94,29 +131,34 @@ def colocar(ficha: dict, guardada: Optional[dict], llamada: Optional[dict] = Non
 
     - Si ya es alumno: columna "alumno", pase lo que pase.
     - Si alguien la movió: donde la dejaron, salvo que haya vuelto a la lista
-      de Llamadas DESPUÉS de ese movimiento: entonces, "seguimiento".
-    - Si está pendiente en Llamadas: "seguimiento".
-    - Si estaba en "seguimiento" y en Llamadas ya no está pendiente: alguien
-      la ha llamado (o la ha quitado de la lista): "contactado".
-    - Si no: "contactado" si ya estaba marcada como atendida (o hecha en
-      Llamadas), y si no "nuevo".
+      de Llamadas DESPUÉS de ese movimiento: entonces, a llamar.
+    - Si no: "contactado" si ya se la atendió (solicitud marcada, o hecha en
+      Llamadas) y no está pendiente; si no, a llamar.
+    "A llamar" = "nuevo" si llegó hace menos de 48 h, "llamar" si no.
     """
     guardada = guardada or {}
     llamada = llamada or {}
-    movida = guardada.get("etapa") if guardada.get("etapa") in ETAPAS_MOVIBLES else ""
+    movida = etapa_guardada(guardada.get("etapa", ""))
     en_llamadas = llamada.get("estado", "")
     pendiente = en_llamadas == "pendiente"
+    llegada = (
+        ficha.get("matricula_at")
+        or _cuando_paso(ficha, _TAMBIEN_ENTRAN)
+        or (llamada.get("desde") if pendiente else "")
+        or (ficha.get("primer_contacto") or {}).get("when", "")
+    )
+    # Rojo (menos de 48 h) = Nuevo; si no, Por llamar.
+    calor = temperatura(entro_en_el_flujo(ficha) or llegada, ahora or datetime.now(timezone.utc))
+    a_llamar = "nuevo" if calor == "caliente" else "llamar"
     if ficha.get("etapa") == "alumno":
         etapa = "alumno"
-    elif movida and movida != "seguimiento":
-        volvio = pendiente and _instante(llamada.get("desde", "")) > _instante(guardada.get("updated_at", ""))
-        etapa = "seguimiento" if volvio else movida
+    elif movida:
+        volvio = pendiente and _instante(llamada.get("desde", "")) > _instante(guardada.get("updated_at", "")) + _MARGEN_SEG
+        etapa = a_llamar if volvio else movida
     elif pendiente:
-        etapa = "seguimiento"
-    elif movida == "seguimiento":
-        etapa = "contactado" if en_llamadas else "seguimiento"
+        etapa = a_llamar
     else:
-        etapa = "contactado" if ficha.get("atendida") or en_llamadas == "hecha" else "nuevo"
+        etapa = "contactado" if ficha.get("atendida") or en_llamadas == "hecha" else a_llamar
     return {
         "id": ficha.get("email", ""),
         "email": ficha.get("email", ""),
@@ -136,10 +178,8 @@ def colocar(ficha: dict, guardada: Optional[dict], llamada: Optional[dict] = Non
         "fuera_de_metricas": bool(ficha.get("fuera_de_metricas")),
         # El día que llegó (pidió plaza, llegó al pago, le crearon un enlace
         # de pago o entró en Llamadas): ordena las columnas.
-        "llegada": ficha.get("matricula_at")
-        or _cuando_paso(ficha, _TAMBIEN_ENTRAN)
-        or (llamada.get("desde") if pendiente else "")
-        or (ficha.get("primer_contacto") or {}).get("when", ""),
+        "llegada": llegada,
+        "temperatura": calor,
         # Fuera del tablero: quitada a mano, o fuera de los números (prueba).
         "oculto": bool(guardada.get("oculto")) or bool(ficha.get("fuera_de_metricas")),
     }
@@ -158,14 +198,14 @@ def en_tablero(ficha: dict, en_llamadas: bool = False, movida: bool = False) -> 
 
 def tarjeta_suelta(llamada: dict) -> dict:
     """Una persona de Llamadas sin ficha (apuntada a mano solo con el móvil, o
-    con un correo que no ha dejado ningún otro rastro): tarjeta en
-    "seguimiento" que no se arrastra. Función pura."""
+    con un correo que no ha dejado ningún otro rastro): tarjeta en "nuevo" o
+    "llamar" (por cuándo se apuntó) que no se arrastra. Función pura."""
     return {
         "id": f"llamada:{llamada.get('id')}",
         "email": llamada.get("email", ""),
         "nombre": llamada.get("nombre", ""),
         "telefono": llamada.get("telefono", ""),
-        "etapa": "seguimiento",
+        "etapa": "nuevo" if (llamada.get("temperatura_auto") or llamada.get("temperatura")) == "caliente" else "llamar",
         "canal": "",
         "motivo": "",
         "desde": llamada.get("created_at", ""),
@@ -179,6 +219,7 @@ def tarjeta_suelta(llamada: dict) -> dict:
         "oculto": False,
         "suelta": True,
         "llamada": llamada,
+        "temperatura": llamada.get("temperatura") or "frio",
     }
 
 
@@ -199,16 +240,21 @@ async def tablero(fichas: list[dict], db_session: AsyncSession) -> dict:
     ya = await guardadas(db_session)
     por_email = {f["email"]: f for f in fichas}
     llamadas, sueltas = await para_el_tablero(por_email, db_session)
+    ahora = datetime.now(timezone.utc)
     tarjetas = []
     for f in fichas:
         llamada = llamadas.get(f["email"])
-        movida = (ya.get(f["email"]) or {}).get("etapa") in ETAPAS_MOVIBLES
-        if not en_tablero(f, bool(llamada and llamada.get("estado") == "pendiente"), movida):
+        pendiente = bool(llamada and llamada.get("estado") == "pendiente")
+        movida = bool(etapa_guardada((ya.get(f["email"]) or {}).get("etapa", "")))
+        if not en_tablero(f, pendiente, movida):
             continue
-        t = colocar(f, ya.get(f["email"]), llamada)
-        # En Seguimiento, la tarjeta enseña lo de Llamadas: temperatura y
-        # dónde se quedó.
-        t["llamada"] = llamada if t["etapa"] == "seguimiento" and llamada and llamada.get("estado") == "pendiente" else None
+        t = colocar(f, ya.get(f["email"]), llamada, ahora)
+        # En Nuevo y Por llamar, la temperatura (como en Llamadas: la de su
+        # fila si la tiene, que puede estar puesta a mano; si no, por cuándo
+        # llegó) y, si se quedó a medias, dónde.
+        t["llamada"] = llamada if t["etapa"] in POR_LLAMAR and pendiente else None
+        # La de Llamadas manda si está ahí (puede estar puesta a mano).
+        t["temperatura"] = ((llamada or {}).get("temperatura") if pendiente else "") or t["temperatura"]
         t["suelta"] = False
         tarjetas.append(t)
     tarjetas += [tarjeta_suelta(s) for s in sueltas]
@@ -229,18 +275,19 @@ async def mover(
     """Mueve a alguien de columna (y/o cambia el canal).
 
     De paso deja la marca de "atendida" de sus solicitudes a juego, para que
-    Contactos y Llamadas digan lo mismo que el tablero: salir de "nuevo" es
-    haberla atendido; volver a "nuevo", no. Ir a "seguimiento" no la toca
-    (se puede ir ahí sin haberle escrito nunca).
+    Contactos y Llamadas digan lo mismo que el tablero: ir a "contactado" o
+    más allá es haberla atendido; volver a "nuevo", no; "llamar" no la toca
+    (puede ser un «no contestó»).
 
-    Y la lista de Llamadas, también a juego: ir a "seguimiento" la apunta
-    allí, pendiente (`nombre` y `telefono`, por si entra nueva); ir a
-    cualquier otra columna marca como hecha su llamada pendiente (o como
-    quitada, si va a "perdido").
+    Y la lista de Llamadas, también a juego: ir más allá de las dos de llamar
+    marca como hecha su llamada pendiente (o como quitada, si va a
+    "descartado"). Ir a "nuevo" o "llamar" no toca la lista. `nombre` y `telefono` ya no se usan (se
+    quedan para no romper a quien los mande).
     """
     clave = (email or "").strip().lower()
     if not clave or "@" not in clave:
         return {"ok": False, "motivo": "Falta un correo válido"}
+    etapa = _ANTES.get(etapa, etapa)
     if etapa not in ETAPAS_MOVIBLES:
         return {"ok": False, "motivo": "Esa columna no se puede elegir (Alumno sale sola al pagar)"}
     if canal is not None and canal not in CANALES:
@@ -260,7 +307,7 @@ async def mover(
     fila.updated_by = (autor or "")[:120]
     db_session.add(fila)
 
-    if etapa != "seguimiento":
+    if etapa != "llamar":
         atendida = etapa != "nuevo"
         for s in (
             await db_session.execute(select(EnrollmentRequest).where(func.lower(EnrollmentRequest.email) == clave))
@@ -274,12 +321,10 @@ async def mover(
 
     await db_session.commit()
 
-    from src.services.contactos.templadas import cerrar_pendientes_de, mandar_a_templadas
+    if etapa not in POR_LLAMAR:
+        from src.services.contactos.templadas import cerrar_pendientes_de
 
-    if etapa == "seguimiento":
-        await mandar_a_templadas(clave, nombre, telefono, autor, db_session)
-    else:
-        await cerrar_pendientes_de(clave, "descartada" if etapa == "perdido" else "hecha", db_session)
+        await cerrar_pendientes_de(clave, "descartada" if etapa == "descartado" else "hecha", db_session)
     return {"ok": True, "etapa": etapa, "canal": fila.canal}
 
 

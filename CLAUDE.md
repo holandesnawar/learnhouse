@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-09 (Matrículas con la columna Seguimiento = Llamadas y el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-09 (Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -2522,51 +2522,85 @@ Para la campaña de Meta «LEADS | VSL Matricula | oct26» (NL+BE, español,
   "te escribimos muy pronto"); la home se deja como está hasta ver números en
   Panel → Anuncios (campaña apuntada con el mismo `utm_campaign`).
 
-## Matrículas con Seguimiento; el closer sin Contactos (09/10/2026)
-Pedido: "contactos que solo la vea admin, y closer se quede con matrículas y
-llamadas… mete las llamadas templadas en matrículas… nuevo, contactado, en
-revisión, propuesta, seguimiento, perdido, alumno… solo gente que haya
-mostrado interés… que no se pierda nada".
-- **Columnas**: Nuevo → Contactado → En revisión → Propuesta →
-  **Seguimiento** → Perdido → Alumno (`ETAPAS` en
-  `services/panel/pipeline.py`; Alumno ahora al final).
-- **Seguimiento = la lista de Llamadas** (la de «templadas»), a juego en los
-  dos sentidos: mover a Seguimiento apunta en Llamadas, pendiente
-  (`mandar_a_templadas`); sacar de Seguimiento la marca hecha, o quitada si
-  va a Perdido (`cerrar_pendientes_de`); marcarla hecha en Llamadas la saca a
-  Contactado. **Manda lo último que pasó**: si alguien movido a mano vuelve
-  a Llamadas DESPUÉS (otra vez sus datos, o «A pendiente», que ahora pone
-  `created_at` a ahora), vuelve a Seguimiento (`colocar`, con test).
-  Ir a Seguimiento NO toca la marca de atendida de sus solicitudes.
-- Las tarjetas de Seguimiento llevan la temperatura y dónde se quedó; la
-  columna, la más caliente arriba. Los de Llamadas **sin ficha** (apuntados a
-  mano solo con el móvil) salen como **tarjetas sueltas** (`tarjeta_suelta`,
-  id `llamada:<id>`): no se arrastran y se abren con `LlamadaSuelta.tsx`,
-  que reutiliza `DetalleLlamada` (sacado de `LlamadasTempladas.tsx`; la
-  lista de Llamadas se ve igual que antes).
+## Matrículas: Nuevo y Por llamar; el closer sin Contactos (09/10/2026)
+Pedido (dos vueltas el mismo día): "contactos que solo la vea admin, y closer
+se quede con matrículas y llamadas… solo gente que haya mostrado interés…
+que no se pierda nada". Y después, corrigiendo la primera versión: "todo lo
+que entre tiene que estar en nuevo, me da igual que sea por llamada o por
+formulario… que salga la nota de caliente llamar hoy como siempre… en vez de
+perdido, descartado… las notas son globales… propuesta sobra, pasa los
+propuestos a seguimiento… quita la explicación de las columnas, es obvio".
+Y una tercera: "nuevo pero ¿y qué? si ya se llamó va a contactado, y los
+antiguos leads más fríos tienen que ser llamar, no nuevo ni contactado".
+- **Columnas**: Nuevo → **Por llamar** (id `llamar`) → Contactado → En
+  revisión → Seguimiento → Descartado → Alumno (`ETAPAS` en
+  `services/panel/pipeline.py`). **Fuera Propuesta**
+  (se decide en la llamada) y **Perdido se llama Descartado** (id
+  `descartado`). Las filas viejas de `lead_pipeline` NO se reescriben: se leen
+  con `_ANTES` (`propuesta` → seguimiento, `perdido` → descartado) en
+  `etapa_guardada`, y `mover` acepta aún los nombres viejos.
+- ⚠️ **Primera versión, deshecha**: Seguimiento = la lista de Llamadas (lo
+  pendiente en Llamadas iba a esa columna). NO era eso: **todo lo que entra,
+  a llamar**, también quien se quedó a medias en la admisión o pidió llamada
+  y no reservó hora.
+- **Nuevo o Por llamar, solo**: a quien nadie ha movido le toca Nuevo si
+  entró hace menos de 48 h (rojo, `HORAS_CALIENTE`) y Por llamar si es más
+  antiguo y nadie ha hablado con él. Se mide con `entro_en_el_flujo` (primera
+  matrícula, enlace de pago o primer contacto): la MISMA fecha que la
+  temperatura de Llamadas, así columna y color no se contradicen. «No vino» a
+  su llamada → Por llamar. Mover entre Nuevo y Por llamar no toca Llamadas ni
+  la marca de atendida (Por llamar puede ser «no contestó»).
+- **Las dos llevan la temperatura** de cada tarjeta (rojo «Caliente · llamar
+  ya», amarillo, verde; la de su fila de Llamadas si la tiene, que puede estar
+  puesta a mano) y, si está pendiente en Llamadas, dónde se quedó. Las dos
+  ordenan la más caliente arriba.
+- **Llamadas, a juego**: sacar a alguien de Nuevo / Por llamar marca su
+  llamada pendiente como hecha (o quitada, si va a Descartado;
+  `cerrar_pendientes_de`); volver a ellas no toca la lista; marcarla hecha en Llamadas, si nadie la había movido,
+  la pasa a Contactado. **Lo último que pasó manda**: si alguien ya movido
+  vuelve a Llamadas DESPUÉS (otra vez sus datos, «A pendiente» —que ahora pone
+  `created_at` a ahora—, «Mandar a Llamadas»), vuelve a Nuevo o Por llamar;
+  con `_MARGEN_SEG` = 2 min para que mover y apuntar a la vez no cuente.
+- **«¿Qué pasó?»** de una llamada: Va a pagar → Seguimiento, Lo piensa → En
+  revisión, No encaja → Descartado, No vino → Por llamar (`A_COLUMNA` en
+  `resultado_llamada.py`).
+- **Notas: UNA sola lista por persona** (`contact_nota`): las de la ficha,
+  las de Llamadas y el «¿Qué pasó?» de cada llamada («Llamada del 05/10: Lo
+  piensa. …»). En la ficha el bloque «Notas y volver a llamar» va **justo
+  debajo de Matrícula**. ⚠️ Se encontró un hueco: las notas escritas en una
+  fila de Llamadas CON correo antes del 05/10 (cuando las notas pasaron a ser
+  las de la ficha) no salían en ninguna parte. `_rescatar_notas` (al principio
+  de `sincronizar`) las pasa a la ficha con su autor y su fecha y vacía la
+  fila.
+- Los de Llamadas **sin ficha** (apuntados solo con el móvil) salen como
+  **tarjetas sueltas en Nuevo o Por llamar** (`tarjeta_suelta`, id
+  `llamada:<id>`): no se
+  arrastran y se abren con `LlamadaSuelta.tsx`, que reutiliza
+  `DetalleLlamada` (sacado de `LlamadasTempladas.tsx`; Llamadas se ve igual).
 - El tablero mete solo a los automáticos al abrirse (`para_el_tablero` llama a
-  `sincronizar`): el closer ya no necesita abrir Llamadas para que entren.
-- **Quién entra**: etapas pidio / en-pago / alumno (como antes) + a quien el
-  equipo le creó un **enlace de pago** + quien está **pendiente en Llamadas**
-  + quien ya fue **movido** a mano (si no, el que entró por Llamadas
-  desaparecía al pasarlo a Contactado). **Fuera**: solo guías, lista de
-  espera e Instagram. Ofrecido meter lista de espera / Instagram si lo pide.
+  `sincronizar`).
+- **Quién entra**: etapas pidio / en-pago / alumno + a quien el equipo le creó
+  un **enlace de pago** + quien está **pendiente en Llamadas** + quien ya fue
+  **movido** a mano (si no, el que entró por Llamadas desaparecía al pasarlo a
+  Contactado). **Fuera**: solo guías, lista de espera e Instagram.
 - **«Llamar hoy»**: cada tarjeta enseña su fecha de volver a llamar (roja si
-  toca) y arriba hay un filtro con las que tocan hoy o se pasaron (antes solo
-  estaba en Contactos).
-- La ficha: el botón «Mandar a Llamadas» se quitó (lo hace el botón de
-  columna Seguimiento); dice «Pendiente de llamar (lista de Llamadas)». Su
-  columna se calcula igual que la tarjeta (`llamada_de` en `templadas.py`).
+  toca) y arriba hay un filtro con las de hoy o pasadas.
+- **Sin explicación bajo las columnas** (`QUE_ES` se quitó).
+- La ficha: «Mandar a Llamadas» sigue (la pone pendiente allí y la devuelve a
+  Nuevo o Por llamar). Su columna se calcula igual que la tarjeta (`llamada_de`).
 - **El closer ya no tiene Contactos**: barra (`gruposDelCloser`: Matrículas,
   Llamadas, Tareas, Guion, Recursos, Páginas), inicio del panel («Últimas
   matrículas»), su entrada «Panel» de la escuela y su pestaña por defecto van
   a Matrículas; `?tab=contactos` le redirige. La API de contactos sigue
-  dándole solo las matrículas (las mismas personas del tablero), porque la
-  usa Números si se los abren. El administrador sigue igual.
-- Test con base de datos de verdad (SQLite en memoria):
-  `src/tests/services/test_tablero_seguimiento.py`. ⚠️ En `src/tests` hay
-  fallos ANTERIORES y ajenos (Zapier, reset de contraseña, límites de uso,
-  setup, grupos, root router): no son de esto.
+  dándole solo las matrículas (las usa Números si se los abren). El
+  administrador sigue igual.
+- Tests: `test_panel.py` (colocar con un "ahora" fijo, 48 h, columnas
+  viejas, margen) y
+  `test_tablero_llamadas.py` con base de datos de verdad (SQLite en memoria):
+  el ciclo Nuevo / Por llamar ↔ Llamadas, «No vino», las columnas viejas y
+  el rescate de notas.
+  ⚠️ En `src/tests` hay fallos ANTERIORES y ajenos (Zapier, reset de
+  contraseña, límites de uso, setup, grupos, root router): no son de esto.
 
 ## Reservar plaza con señal y cobrar el resto (06/10/2026)
 Pedido: "Manuel está en llamada, falla Klarna o su tarjeta y no cierra. Se le

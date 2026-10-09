@@ -215,10 +215,10 @@ export type ResultadoLlamada = 'pagado' | 'compra' | 'piensa' | 'no-encaja' | 'n
 
 export const RESULTADOS: { id: ResultadoLlamada; nombre: string; que: string }[] = [
   { id: 'pagado', nombre: 'Pagó', que: 'Venta cerrada: deja de salir para llamar' },
-  { id: 'compra', nombre: 'Va a pagar', que: 'Pasa a Propuesta' },
+  { id: 'compra', nombre: 'Va a pagar', que: 'Pasa a Seguimiento' },
   { id: 'piensa', nombre: 'Lo piensa', que: 'Pasa a En revisión' },
-  { id: 'no-encaja', nombre: 'No encaja', que: 'Pasa a Perdido' },
-  { id: 'no-vino', nombre: 'No vino', que: 'Se queda donde está' },
+  { id: 'no-encaja', nombre: 'No encaja', que: 'Pasa a Descartado' },
+  { id: 'no-vino', nombre: 'No vino', que: 'Pasa a Por llamar' },
 ]
 
 export async function guardarResultado(

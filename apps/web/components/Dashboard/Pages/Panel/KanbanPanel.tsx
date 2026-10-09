@@ -3,14 +3,17 @@
 /**
  * Matrículas en kanban: en qué punto está cada persona que pidió plaza, llegó
  * al pago, pidió una llamada o está pendiente en la lista de Llamadas.
- * Nuevo → Contactado → En revisión → Propuesta → Seguimiento → Perdido →
- * Alumno.
+ * Nuevo → Por llamar → Contactado → En revisión → Seguimiento → Descartado →
+ * Alumno (09/10: fuera Propuesta, que se decide en la llamada; Perdido es
+ * ahora Descartado).
  *
- * SEGUIMIENTO = la lista de Llamadas (08/10): quien hay que volver a llamar.
- * Cada tarjeta enseña su temperatura y dónde se quedó. Moverla allí la apunta
- * en Llamadas; sacarla la marca como hecha. Las de Llamadas sin ficha (solo
- * con el móvil) salen sueltas: no se arrastran y se abren con su detalle de
- * Llamadas (`LlamadaSuelta`).
+ * TODO LO QUE ENTRA, A LLAMAR: Nuevo si llegó hace menos de 48 h (rojo,
+ * «llamar ya»), Por llamar si es más antiguo y nadie ha hablado con él (o no
+ * vino a su llamada). Las dos con su temperatura a la vista (como en Llamadas)
+ * y, si se quedó a medias, dónde. Sacar a alguien de ahí lo marca como hecho
+ * en Llamadas. Los de Llamadas sin ficha (solo con el móvil) salen sueltos:
+ * no se arrastran y se abren con su detalle de Llamadas (`LlamadaSuelta`).
+ * Sin explicación bajo cada columna (09/10: "es obvio").
  *
  * «Llamar hoy» (08/10, el closer ya no tiene Contactos): la tarjeta enseña la
  * fecha de volver a llamar, en rojo si toca, y arriba hay un filtro con las
@@ -62,33 +65,24 @@ import { BOTON, filtro } from './ui'
 // profesional" (28/09). El color distingue; no decora.
 const COLOR: Record<EtapaTablero, string> = {
   nuevo: '#5B8DEF',
+  llamar: '#E07AA8',
   contactado: '#9B87F5',
   revision: '#D9A93E',
-  propuesta: '#E07AA8',
   seguimiento: '#3E9BB0',
+  descartado: '#A3ACBA',
   alumno: '#2BA67A',
-  perdido: '#A3ACBA',
 }
 
-// Columnas plegadas: una tira estrecha con el nombre y la cuenta. Perdido
+// Columnas plegadas: una tira estrecha con el nombre y la cuenta. Descartado
 // nace plegada (es la que obligaba a desplazarse a la derecha) y lo que se
 // pliega se recuerda en este navegador.
-const PLEGADAS_DE_SERIE: EtapaTablero[] = ['perdido']
+const PLEGADAS_DE_SERIE: EtapaTablero[] = ['descartado']
 const CLAVE_PLEGADAS = 'nawar.tablero.plegadas'
-
-const QUE_ES: Record<EtapaTablero, string> = {
-  nuevo: 'Todavía nadie le ha escrito',
-  contactado: 'Ya le hemos escrito o llamado',
-  revision: 'Lo está pensando o falta un dato',
-  propuesta: 'Tiene el precio o el enlace de pago',
-  seguimiento: 'Hay que volver a llamarle (la lista de Llamadas)',
-  alumno: 'Ha pagado',
-  perdido: 'No sigue, por ahora',
-}
 
 const POR_COLUMNA = 6
 
-// En Seguimiento, la más caliente arriba (como en Llamadas).
+// En Nuevo y Por llamar, la más caliente arriba (como en Llamadas).
+const A_LLAMAR: EtapaTablero[] = ['nuevo', 'llamar']
 const ORDEN_TEMPERATURA: Record<string, number> = { caliente: 0, templado: 1, frio: 2 }
 
 /** La fecha de volver a llamar toca hoy o ya se pasó. */
@@ -122,14 +116,15 @@ function TarjetaVista({ t, onAbrir }: { t: Tarjeta; onAbrir: () => void }) {
           {haceCuanto(t.llegada || t.desde)}
         </span>
       </div>
-      {t.llamada ? (
+      {A_LLAMAR.includes(t.etapa) && t.temperatura ? (
         <div className="mt-0.5">
           <span className="text-[11.5px]">
-            <Termometro t={t.llamada.temperatura} aMano={Boolean(t.llamada.temperatura_manual)} />
+            <Termometro t={t.temperatura} aMano={Boolean(t.llamada?.temperatura_manual)} />
           </span>
-          {/* Dónde se quedó (o la última nota, si la apuntaron a mano). */}
+          {/* Dónde se quedó, si está pendiente en Llamadas (o la última nota,
+              si la apuntaron a mano); si no, lo último que hizo. */}
           <p className="text-[12px] text-gray-600 line-clamp-2">
-            {(t.llamada.origen !== 'mano' && t.llamada.detalle) || t.ultima_nota || t.que_hizo}
+            {(t.llamada && ((t.llamada.origen !== 'mano' && t.llamada.detalle) || t.ultima_nota)) || t.que_hizo}
           </p>
         </div>
       ) : (
@@ -195,7 +190,8 @@ export default function KanbanPanel() {
   useEffect(() => {
     try {
       const g = JSON.parse(localStorage.getItem(CLAVE_PLEGADAS) || 'null')
-      if (Array.isArray(g)) setPlegadas(g)
+      // «perdido» se llama ahora «descartado» (09/10).
+      if (Array.isArray(g)) setPlegadas(g.map((x: string) => (x === 'perdido' ? 'descartado' : x)))
     } catch {}
   }, [])
   function plegar(id: string) {
@@ -291,10 +287,11 @@ export default function KanbanPanel() {
       return Number.isNaN(d) ? 0 : d
     }
     for (const k of Object.keys(m)) m[k].sort((a, b) => cuando(b) - cuando(a))
-    // Seguimiento: la más caliente arriba; dentro, la más nueva.
-    m.seguimiento?.sort(
-      (a, b) => (ORDEN_TEMPERATURA[a.llamada?.temperatura ?? 'frio'] ?? 2) - (ORDEN_TEMPERATURA[b.llamada?.temperatura ?? 'frio'] ?? 2) || cuando(b) - cuando(a)
-    )
+    // Nuevo y Por llamar: la más caliente arriba; dentro, la más nueva.
+    for (const k of A_LLAMAR)
+      m[k]?.sort(
+        (a, b) => (ORDEN_TEMPERATURA[a.temperatura ?? 'frio'] ?? 2) - (ORDEN_TEMPERATURA[b.temperatura ?? 'frio'] ?? 2) || cuando(b) - cuando(a)
+      )
     return m
   }, [datos, filtradas])
 
@@ -313,7 +310,7 @@ export default function KanbanPanel() {
     setDatos({
       ...datos,
       tarjetas: datos.tarjetas.map((t) =>
-        t.id === id ? { ...t, etapa: destino, desde: new Date().toISOString(), llamada: destino === 'seguimiento' ? t.llamada : null } : t
+        t.id === id ? { ...t, etapa: destino, desde: new Date().toISOString(), llamada: A_LLAMAR.includes(destino) ? t.llamada : null } : t
       ),
     })
     const res = await moverTarjeta(
@@ -326,12 +323,8 @@ export default function KanbanPanel() {
       toast.error(res.error || 'No se ha podido mover')
       return
     }
-    // Seguimiento va a juego con Llamadas: se relee para traer su temperatura
-    // y dónde se quedó (o para que salga de allí).
-    if (destino === 'seguimiento' || tarjeta.etapa === 'seguimiento') {
-      toast.success(destino === 'seguimiento' ? 'En Seguimiento: pendiente en Llamadas' : 'Hecha en Llamadas')
-      cargar()
-    }
+    // Salir de Nuevo / Por llamar la marca como hecha en Llamadas: se relee.
+    if (A_LLAMAR.includes(tarjeta.etapa) || A_LLAMAR.includes(destino)) cargar()
   }
 
   if (!datos) {
@@ -345,14 +338,13 @@ export default function KanbanPanel() {
   const quitadas = (datos.tarjetas ?? []).filter((c) => c.oculto)
   const tarjetaAbierta = abierta ? datos.tarjetas.find((c) => c.id === abierta) : undefined
   const total = filtradas.length
-  const abiertos = filtradas.filter((c) => c.etapa !== 'alumno' && c.etapa !== 'perdido').length
+  const abiertos = filtradas.filter((c) => c.etapa !== 'alumno' && c.etapa !== 'descartado').length
 
   return (
     <div className="space-y-4">
       <p className="text-[13px] text-[#6B7280] leading-relaxed max-w-3xl">
-        Cada persona que mostró interés (pidió plaza, llegó al pago, pidió una llamada o está para llamar), en el punto en el que
-        está. Ábrela para ver todo de esa persona y cambiarla de columna<span className="hidden lg:inline"> (o arrástrala)</span>.
-        Seguimiento es la lista de Llamadas: a quién volver a llamar, la más caliente arriba.
+        Lo que entra va a Nuevo, en rojo: llámale ya. Si en 48 horas nadie ha hablado con esa persona, pasa sola a Por llamar.
+        Ábrela para ver todo, sus notas y cambiarla de columna<span className="hidden lg:inline"> (o arrástrala)</span>.
       </p>
 
       <div className="flex flex-col sm:flex-row gap-2">
@@ -441,7 +433,6 @@ export default function KanbanPanel() {
             </button>
           ))}
         </div>
-        <p className="text-[12px] text-[#9CA3AF] mt-2">{QUE_ES[columnaMovil]}. Ábrela para cambiarla de columna.</p>
         <div className="mt-2 space-y-2">
           {(porColumna[columnaMovil] ?? []).slice(0, verCuantas(columnaMovil)).map((t) => (
             <TarjetaVista key={t.id} t={t} onAbrir={() => setAbierta(t.id)} />
@@ -509,7 +500,6 @@ export default function KanbanPanel() {
                           <ChevronsLeft size={14} />
                         </button>
                       </div>
-                      <p className="text-[11px] text-[#9CA3AF] mt-0.5 leading-snug">{QUE_ES[e.id]}</p>
                     </div>
                     <div className="space-y-2">
                       {(porColumna[e.id] ?? []).slice(0, verCuantas(e.id)).map((t, i) => (

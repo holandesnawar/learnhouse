@@ -327,6 +327,34 @@ async def _eventos_de_llamada(db_session: AsyncSession) -> list[dict]:
     ]
 
 
+async def _rescatar_notas(filas: list[LlamadaTemplada], db_session: AsyncSession) -> int:
+    """Las notas que se escribieron en la fila de una persona CON correo antes
+    de que las notas pasaran a ser las de su ficha (05/10) no salían en ningún
+    sitio: la lista solo enseña las de la ficha. Aquí se pasan a la ficha, con
+    su autor y su fecha, y la fila se queda vacía (09/10, "que no se pierda
+    nada"). Devuelve cuántas se pasaron."""
+    n = 0
+    for f in filas:
+        texto = (f.notas or "").strip()
+        if not f.email or not texto:
+            continue
+        db_session.add(
+            ContactNota(
+                email=f.email.strip().lower(),
+                texto=texto[:4000],
+                autor_id=0,
+                autor=(f.creado_por or "Llamadas")[:120],
+                created_at=f.updated_at or f.created_at or _ahora(),
+            )
+        )
+        f.notas = ""
+        db_session.add(f)
+        n += 1
+    if n:
+        await db_session.commit()
+    return n
+
+
 async def sincronizar(db_session: AsyncSession) -> int:
     """Mete en la lista a quien se quedó a medias (o pidió llamada y no
     reservó hora) y aún no está. Devuelve cuántos entraron. También pone al
@@ -334,13 +362,19 @@ async def sincronizar(db_session: AsyncSession) -> int:
     haber contestado una pregunta más, o haber terminado)."""
     from src.services.contactos.contactos import emails_que_pagaron
 
+    filas = (await db_session.execute(select(LlamadaTemplada))).scalars().all()
+    try:
+        await _rescatar_notas(filas, db_session)
+    except Exception:  # noqa: BLE001
+        logger.exception("No se han podido pasar a la ficha las notas viejas de Llamadas")
+        await db_session.rollback()
+
     todos = await _eventos_de_llamada(db_session)
     reservaron = reservaron_de(todos)
     como_dict = [e for e in todos if e["kind"] != "reunion"]
     if not como_dict:
         return 0
 
-    filas = (await db_session.execute(select(LlamadaTemplada))).scalars().all()
     existentes = {f.clave: f for f in filas if f.clave}
     # Quien ya está en la lista, de la forma que sea (automática, a mano o
     # mandada desde su ficha), no entra otra vez.
@@ -596,8 +630,8 @@ async def mandar_a_templadas(email: str, nombre: str, telefono: str, autor: str,
     return {"ok": True, "ya_estaba": ya_estaba, "templada": await _con_notas(fila, db_session)}
 
 async def cerrar_pendientes_de(email: str, estado: str, db_session: AsyncSession) -> int:
-    """Al sacar a alguien de Seguimiento en el tablero de Matrículas: su
-    llamada pendiente pasa a hecha (o a quitada, si va a Perdido). Devuelve
+    """Al sacar a alguien de Nuevo en el tablero de Matrículas: su
+    llamada pendiente pasa a hecha (o a quitada, si va a Descartado). Devuelve
     cuántas se cerraron."""
     clave = (email or "").strip().lower()
     if not clave or estado not in ("hecha", "descartada"):

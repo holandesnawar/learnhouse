@@ -43,7 +43,9 @@ RESULTADOS = {
     "no-encaja": "No encaja",
     "no-vino": "No vino",
 }
-A_COLUMNA = {"compra": "propuesta", "piensa": "revision", "no-encaja": "perdido"}
+# 09/10: sin Propuesta (va a Seguimiento), Perdido se llama Descartado, y
+# quien no vino vuelve a Por llamar.
+A_COLUMNA = {"compra": "seguimiento", "piensa": "revision", "no-encaja": "descartado", "no-vino": "llamar"}
 
 
 def _ahora() -> str:
