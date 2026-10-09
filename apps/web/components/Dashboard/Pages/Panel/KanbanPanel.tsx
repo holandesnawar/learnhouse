@@ -3,9 +3,10 @@
 /**
  * Matrículas en kanban: en qué punto está cada persona que pidió plaza, llegó
  * al pago, pidió una llamada o está pendiente en la lista de Llamadas.
- * Nuevo → Por llamar → Contactado → En revisión → Seguimiento → Descartado →
- * Alumno (09/10: fuera Propuesta, que se decide en la llamada; Perdido es
- * ahora Descartado).
+ * Nuevo → Por llamar → Contactado → Seguimiento → Descartado → Alumno (09/10:
+ * fuera Propuesta y En revisión, que se juntaron en Seguimiento —«va a
+ * pagar» o «lo piensa» va en una nota, que la tarjeta enseña—; Perdido es
+ * ahora Descartado). Se arrastra de una columna a otra en el ordenador.
  *
  * TODO LO QUE ENTRA, A LLAMAR: Nuevo si llegó hace menos de 48 h (rojo,
  * «llamar ya»), Por llamar si es más antiguo y nadie ha hablado con él (o no
@@ -67,7 +68,6 @@ const COLOR: Record<EtapaTablero, string> = {
   nuevo: '#5B8DEF',
   llamar: '#E07AA8',
   contactado: '#9B87F5',
-  revision: '#D9A93E',
   seguimiento: '#3E9BB0',
   descartado: '#A3ACBA',
   alumno: '#2BA67A',
@@ -103,12 +103,22 @@ function VerMas({ id, total, vistas, onMas }: { id: string; total: number; vista
 
 function TarjetaVista({ t, onAbrir }: { t: Tarjeta; onAbrir: () => void }) {
   // Sin cajitas de color (29/09, "que parezca un software"): una línea de
-  // datos en gris con iconos pequeños. Las notas van en negro para que se
-  // vean de un vistazo, que es para lo que están (pedido del 28/09).
+  // datos en gris con iconos pequeños. La última nota va entera (dos líneas)
+  // y en negro: se lee sin abrir la tarjeta (09/10, "que una nota se pueda
+  // leer desde fuera", p. ej. «va a pagar» o «lo piensa» en Seguimiento).
+  // ⚠️ Un <div>, NO un <button>: @hello-pangea/dnd no deja empezar a
+  // arrastrar desde un botón, y con <button> arrastrar no funcionaba nunca.
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onAbrir}
-      className="w-full text-left rounded-md bg-white border border-[#E5E7EB] hover:border-[#9CA3AF] px-3 py-2.5 transition-colors"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') onAbrir()
+      }}
+      className={`w-full text-left rounded-md bg-white border border-[#E5E7EB] hover:border-[#9CA3AF] px-3 py-2.5 transition-colors outline-none focus-visible:border-gray-900 ${
+        t.suelta ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'
+      }`}
     >
       <div className="flex items-baseline gap-2">
         <p className="flex-1 min-w-0 text-[13.5px] font-medium text-gray-900 truncate">{t.nombre || t.email}</p>
@@ -123,13 +133,24 @@ function TarjetaVista({ t, onAbrir }: { t: Tarjeta; onAbrir: () => void }) {
           </span>
           {/* Dónde se quedó, si está pendiente en Llamadas (o la última nota,
               si la apuntaron a mano); si no, lo último que hizo. */}
-          <p className="text-[12px] text-gray-600 line-clamp-2">
-            {(t.llamada && ((t.llamada.origen !== 'mano' && t.llamada.detalle) || t.ultima_nota)) || t.que_hizo}
-          </p>
+          {(t.llamada && t.llamada.origen !== 'mano' && t.llamada.detalle) || t.que_hizo ? (
+            <p className="text-[12px] text-gray-600 line-clamp-2">
+              {(t.llamada && t.llamada.origen !== 'mano' && t.llamada.detalle) || t.que_hizo}
+            </p>
+          ) : null}
         </div>
-      ) : (
+      ) : t.que_hizo ? (
         <p className="text-[12px] text-gray-500 truncate">{t.que_hizo}</p>
-      )}
+      ) : null}
+      {t.ultima_nota ? (
+        <p
+          className="mt-1 flex items-start gap-1.5 text-[12px] leading-snug text-gray-900"
+          title={t.notas > 1 ? `${t.notas} notas · la última: ${t.ultima_nota}` : t.ultima_nota}
+        >
+          <StickyNote size={12} className="mt-[2px] shrink-0 text-gray-400" />
+          <span className="line-clamp-2">{t.ultima_nota}</span>
+        </p>
+      ) : null}
       {t.volver_a_llamar?.fecha ? (
         <p
           className={`mt-1 inline-flex items-center gap-1 text-[11.5px] font-medium ${tocaLlamar(t) ? 'text-red-600' : 'text-gray-700'}`}
@@ -146,17 +167,23 @@ function TarjetaVista({ t, onAbrir }: { t: Tarjeta; onAbrir: () => void }) {
             : 'Enlace de señal enviado, sin pagar'}
         </p>
       ) : null}
-      {t.canal || t.vio_precio || t.notas || t.tareas ? (
+      {t.origen || t.canal || t.vio_precio || t.notas > 1 || t.tareas ? (
         <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11.5px] text-gray-500">
+          {/* De dónde viene (09/10): «Anuncio Meta», «Web · inicio», «Guía»… */}
+          {t.origen ? (
+            <span className={t.origen.startsWith('Anuncio') ? 'font-medium text-gray-800' : ''} title="De dónde viene">
+              {t.origen}
+            </span>
+          ) : null}
           {t.canal ? <span>{NOMBRE_CANAL[t.canal]}</span> : null}
           {t.vio_precio ? (
             <span className="inline-flex items-center gap-1">
               <Eye size={11} /> vio precio
             </span>
           ) : null}
-          {t.notas ? (
-            <span title={t.ultima_nota ? `Última nota: ${t.ultima_nota}` : 'Tiene notas'} className="inline-flex items-center gap-1 font-medium text-gray-900">
-              <StickyNote size={11} /> {t.notas}
+          {t.notas > 1 ? (
+            <span title="Notas en su ficha" className="inline-flex items-center gap-1">
+              <StickyNote size={11} /> {t.notas} notas
             </span>
           ) : null}
           {t.tareas ? (
@@ -166,7 +193,7 @@ function TarjetaVista({ t, onAbrir }: { t: Tarjeta; onAbrir: () => void }) {
           ) : null}
         </div>
       ) : null}
-    </button>
+    </div>
   )
 }
 

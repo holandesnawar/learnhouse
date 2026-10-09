@@ -45,8 +45,8 @@ def test_atendida_sin_mover_va_a_contactado():
 
 
 def test_se_queda_donde_la_dejaron():
-    c = colocar(_ficha(), {"etapa": "revision", "canal": "whatsapp", "updated_at": "2026-09-25"})
-    assert c["etapa"] == "revision"
+    c = colocar(_ficha(), {"etapa": "seguimiento", "canal": "whatsapp", "updated_at": "2026-09-25"})
+    assert c["etapa"] == "seguimiento"
     assert c["canal"] == "whatsapp"
     assert c["desde"] == "2026-09-25"
 
@@ -59,6 +59,27 @@ def test_columnas_viejas_se_leen_como_las_nuevas():
     # 09/10: Propuesta pasa a Seguimiento y Perdido se llama Descartado.
     assert colocar(_ficha(), {"etapa": "propuesta", "updated_at": "2026-09-25"})["etapa"] == "seguimiento"
     assert colocar(_ficha(), {"etapa": "perdido", "updated_at": "2026-09-25"})["etapa"] == "descartado"
+    # Y En revisión se juntó con Seguimiento.
+    assert colocar(_ficha(), {"etapa": "revision", "updated_at": "2026-09-25"})["etapa"] == "seguimiento"
+
+
+def test_de_donde_viene():
+    from src.services.panel.pipeline import origen_corto
+
+    assert origen_corto({"pasos": ["anuncio-fb", "admision"]}) == "Anuncio Meta"
+    # Un anuncio gana aunque luego pasara por la web.
+    assert origen_corto({"pasos": ["home", "formacion-web", "anuncio-fb"]}) == "Anuncio Meta"
+    assert origen_corto({"pasos": [], "utm_source": "facebook", "utm_medium": "paid"}) == "Anuncio Meta"
+    assert origen_corto({"pasos": [], "utm_source": "google", "utm_medium": "cpc"}) == "Anuncio · Google"
+    assert origen_corto({"pasos": ["home", "formacion-web", "admision"]}) == "Web · inicio"
+    assert origen_corto({"pasos": ["vision", "formacion-web"]}) == "Web · Nuestra visión"
+    assert origen_corto({"pasos": ["blog", "formacion-web"]}) == "Web · blog"
+    assert origen_corto({"pasos": ["formacion-web"]}) == "Web · formación"
+    assert origen_corto({"pasos": ["guia-bases", "gracias-bases", "admision"]}) == "Guía"
+    assert origen_corto({"pasos": [], "utm_source": "instagram"}) == "Instagram"
+    assert origen_corto({}) == ""
+    # Y llega a la tarjeta.
+    assert colocar(_ficha(pasos=["home", "formacion-web"]), None)["origen"] == "Web · inicio"
 
 
 def test_una_etapa_rara_guardada_no_rompe():
@@ -144,7 +165,7 @@ def test_campana_sin_gasto_no_divide_por_cero():
 def test_las_columnas_en_su_orden():
     from src.services.panel.pipeline import ETAPAS
 
-    assert [e["id"] for e in ETAPAS] == ["nuevo", "llamar", "contactado", "revision", "seguimiento", "descartado", "alumno"]
+    assert [e["id"] for e in ETAPAS] == ["nuevo", "llamar", "contactado", "seguimiento", "descartado", "alumno"]
 
 
 def test_pendiente_en_llamadas_va_a_llamar():
@@ -173,7 +194,7 @@ def test_hecha_en_llamadas_pasa_a_contactado():
     hecha = {"estado": "hecha", "desde": "2026-10-05T10:00:00+00:00"}
     assert colocar(_ficha(), None, hecha)["etapa"] == "contactado"
     # Si alguien la había movido, se queda donde la dejaron.
-    assert colocar(_ficha(), {"etapa": "revision", "updated_at": "2026-10-04"}, hecha)["etapa"] == "revision"
+    assert colocar(_ficha(), {"etapa": "seguimiento", "updated_at": "2026-10-04"}, hecha)["etapa"] == "seguimiento"
     # Quitada de la lista sin haberla movido nunca: lo de siempre.
     assert colocar(_ficha(), None, {"estado": "descartada", "desde": ""})["etapa"] == "nuevo"
     # Pendiente que la lista no enseña (ya reservó hora): como si no estuviera.
@@ -204,7 +225,7 @@ def test_tarjeta_suelta_de_llamadas():
     t = tarjeta_suelta({"id": 7, "nombre": "Luis", "telefono": "+31 6", "email": "", "detalle": "", "origen_nombre": "Apuntada a mano", "created_at": "2026-10-07", "temperatura_auto": "caliente"})
     assert t["id"] == "llamada:7" and t["etapa"] == "nuevo" and t["suelta"] is True
     assert tarjeta_suelta({"id": 8, "temperatura_auto": "frio"})["etapa"] == "llamar"
-    assert t["que_hizo"] == "Apuntada a mano"
+    assert t["que_hizo"] == "" and t["origen"] == "Apuntada a mano"
 
 
 def test_una_fila_de_llamadas_por_correo():

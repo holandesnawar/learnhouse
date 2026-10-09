@@ -2532,9 +2532,14 @@ perdido, descartado… las notas son globales… propuesta sobra, pasa los
 propuestos a seguimiento… quita la explicación de las columnas, es obvio".
 Y una tercera: "nuevo pero ¿y qué? si ya se llamó va a contactado, y los
 antiguos leads más fríos tienen que ser llamar, no nuevo ni contactado".
-- **Columnas**: Nuevo → **Por llamar** (id `llamar`) → Contactado → En
-  revisión → Seguimiento → Descartado → Alumno (`ETAPAS` en
-  `services/panel/pipeline.py`). **Fuera Propuesta**
+Y una cuarta: "junta seguimiento y en revisión, y que una nota se pueda leer
+desde fuera… mover agarrando como Trello… y ver siempre de dónde viene".
+- **Columnas**: Nuevo → **Por llamar** (id `llamar`) → Contactado →
+  Seguimiento → Descartado → Alumno (`ETAPAS` en
+  `services/panel/pipeline.py`). **En revisión se juntó con Seguimiento**
+  (fila vieja `revision` → seguimiento en `_ANTES`): «va a pagar» o «lo
+  piensa» se apunta como NOTA (botones rápidos «Va a pagar» / «Lo piensa» en
+  la ficha cuando está en Seguimiento) y la tarjeta la enseña. **Fuera Propuesta**
   (se decide en la llamada) y **Perdido se llama Descartado** (id
   `descartado`). Las filas viejas de `lead_pipeline` NO se reescriben: se leen
   con `_ANTES` (`propuesta` → seguimiento, `perdido` → descartado) en
@@ -2561,9 +2566,26 @@ antiguos leads más fríos tienen que ser llamar, no nuevo ni contactado".
   vuelve a Llamadas DESPUÉS (otra vez sus datos, «A pendiente» —que ahora pone
   `created_at` a ahora—, «Mandar a Llamadas»), vuelve a Nuevo o Por llamar;
   con `_MARGEN_SEG` = 2 min para que mover y apuntar a la vez no cuente.
-- **«¿Qué pasó?»** de una llamada: Va a pagar → Seguimiento, Lo piensa → En
-  revisión, No encaja → Descartado, No vino → Por llamar (`A_COLUMNA` en
-  `resultado_llamada.py`).
+- **«¿Qué pasó?»** de una llamada: Va a pagar → Seguimiento, Lo piensa →
+  Seguimiento, No encaja → Descartado, No vino → Por llamar (`A_COLUMNA` en
+  `resultado_llamada.py`). La nota que deja («Llamada del 05/10: Lo piensa…»)
+  es la que sale en la tarjeta.
+- **La tarjeta enseña la ÚLTIMA NOTA entera** (dos líneas, en negro), sin
+  abrirla, en todas las columnas. Escribir una nota en la ficha recarga el
+  tablero (`onCambioNotas`).
+- **De dónde viene, en la tarjeta** (`origen_corto`, puro con test):
+  «Anuncio Meta» (pasó por `anuncio-fb` o trae campaña de pago de
+  Facebook/Instagram; gana a todo, en negrita), «Anuncio · Google»… y si no,
+  la PRIMERA página: «Web · inicio», «Web · Nuestra visión», «Web · blog»,
+  «Web · formación», «Guía», «Enlace de pago». Las fichas traen ahora `pasos`
+  (las marcas en orden). En la web, `recorrido.ts` apunta también
+  `/nuestra-vision` (`vision`) y `/blog/*` (`blog`), que antes no dejaban
+  rastro; sus nombres están en `_NOMBRES`.
+- ⚠️ **Arrastrar NO funcionaba nunca**: la tarjeta era un `<button>` y
+  `@hello-pangea/dnd` se niega a empezar a arrastrar desde botones (su
+  `interactiveTagNames`: input, button, textarea…). Ahora es un `<div
+  role="button">` con teclado (Enter). Comprobado con Playwright arrastrando
+  con el ratón y recargando. En el móvil se mueve desde la ficha.
 - **Notas: UNA sola lista por persona** (`contact_nota`): las de la ficha,
   las de Llamadas y el «¿Qué pasó?» de cada llamada («Llamada del 05/10: Lo
   piensa. …»). En la ficha el bloque «Notas y volver a llamar» va **justo

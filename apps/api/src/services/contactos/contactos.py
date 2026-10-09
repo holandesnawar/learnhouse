@@ -347,6 +347,9 @@ def fusionar_contactos(eventos: list[dict], con_cuenta: set[str]) -> list[dict]:
                 "vio_precio": vio_precio,
                 "vino_de": resumen.get("vino_de", ""),
                 "camino": resumen.get("camino", ""),
+                # Las marcas de página en orden (para el «de dónde viene» corto
+                # del tablero, `origen_corto`).
+                "pasos": pasos,
                 "utm_source": ultimo("utm_source"),
                 "utm_medium": ultimo("utm_medium"),
                 "utm_campaign": ultimo("utm_campaign"),

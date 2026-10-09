@@ -82,11 +82,13 @@ async def test_todo_lo_que_entra_va_a_nuevo_y_llamadas_va_a_juego(db):
     sueltas = [x for x in t.values() if x.get("suelta")]
     assert len(sueltas) == 1 and sueltas[0]["nombre"] == "Luis" and sueltas[0]["etapa"] == "nuevo"
 
-    # El closer la llama y la pasa a En revisión: hecha en Llamadas.
-    assert (await pipeline.mover("ana@x.com", "revision", None, None, "Closer", db))["ok"]
+    # El closer la llama y la pasa a Seguimiento: hecha en Llamadas.
+    assert (await pipeline.mover("ana@x.com", "seguimiento", None, None, "Closer", db))["ok"]
     assert await _llamadas(db, "ana@x.com") == ["hecha"]
     t = await _tablero(db)
-    assert t["ana@x.com"]["etapa"] == "revision" and t["ana@x.com"]["llamada"] is None
+    assert t["ana@x.com"]["etapa"] == "seguimiento" and t["ana@x.com"]["llamada"] is None
+    # Y la tarjeta dice de dónde viene: la admisión de la web, sin anuncio.
+    assert t["ana@x.com"]["origen"] == ""
 
     # Una hora después la vuelven a poner pendiente en Llamadas: a Nuevo.
     await _hace_una_hora_que_la_movieron(db, "ana@x.com")

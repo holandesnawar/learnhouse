@@ -43,9 +43,10 @@ RESULTADOS = {
     "no-encaja": "No encaja",
     "no-vino": "No vino",
 }
-# 09/10: sin Propuesta (va a Seguimiento), Perdido se llama Descartado, y
-# quien no vino vuelve a Por llamar.
-A_COLUMNA = {"compra": "seguimiento", "piensa": "revision", "no-encaja": "descartado", "no-vino": "llamar"}
+# 09/10: sin Propuesta ni En revisión (las dos van a Seguimiento, y la nota
+# que deja dice cuál: «Va a pagar» / «Lo piensa»), Perdido se llama
+# Descartado, y quien no vino vuelve a Por llamar.
+A_COLUMNA = {"compra": "seguimiento", "piensa": "seguimiento", "no-encaja": "descartado", "no-vino": "llamar"}
 
 
 def _ahora() -> str:

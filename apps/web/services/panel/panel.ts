@@ -9,7 +9,7 @@ import type { NotaContacto, VolverALlamar } from '@services/stats/contactos'
  * Lo que devuelve el servidor sale de `apps/api/src/services/panel/`.
  */
 
-export type EtapaTablero = 'nuevo' | 'llamar' | 'contactado' | 'revision' | 'seguimiento' | 'descartado' | 'alumno'
+export type EtapaTablero = 'nuevo' | 'llamar' | 'contactado' | 'seguimiento' | 'descartado' | 'alumno'
 export type Canal = '' | 'whatsapp' | 'llamada' | 'email' | 'instagram' | 'otro'
 
 export const CANALES: { id: Canal; nombre: string }[] = [
@@ -36,6 +36,8 @@ export interface Tarjeta {
   vino_de: string
   que_hizo: string
   utm_campaign: string
+  /** De dónde viene, corto: «Anuncio Meta», «Web · inicio», «Guía»… */
+  origen?: string
   fuera_de_metricas: boolean
   /** Día que pidió plaza o llegó al pago: ordena las columnas (lo nuevo arriba). */
   llegada: string

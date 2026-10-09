@@ -50,7 +50,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { BOTON, BOTON_PELIGRO, Estado, META } from './ui'
-import { avisoTrasBorrar, borrarContacto, mandarATemplada, type VolverALlamar } from '@services/stats/contactos'
+import { anadirNota, avisoTrasBorrar, borrarContacto, mandarATemplada, type VolverALlamar } from '@services/stats/contactos'
 import { confirmar } from '@lib/nawar/confirmar'
 import { numeroWhatsApp } from '@/lib/nawar/telefono'
 
@@ -58,7 +58,6 @@ const ETAPAS: { id: EtapaTablero; nombre: string }[] = [
   { id: 'nuevo', nombre: 'Nuevo' },
   { id: 'llamar', nombre: 'Por llamar' },
   { id: 'contactado', nombre: 'Contactado' },
-  { id: 'revision', nombre: 'En revisión' },
   { id: 'seguimiento', nombre: 'Seguimiento' },
   { id: 'descartado', nombre: 'Descartado' },
 ]
@@ -102,6 +101,8 @@ export default function FichaCliente({
   const { isAdmin } = useAdminStatus()
   const [ficha, setFicha] = useState<Ficha | null>(null)
   const [error, setError] = useState('')
+  // Para volver a pintar las notas al apuntar una con los botones rápidos.
+  const [vueltaNotas, setVueltaNotas] = useState(0)
 
   const cargar = useCallback(async () => {
     if (!org?.id || !accessToken) return
@@ -371,6 +372,28 @@ export default function FichaCliente({
                       </button>
                     ))}
                   </div>
+                  {/* En Seguimiento, lo que se sabe de un toque (09/10): se apunta
+                      como nota, y la tarjeta enseña la última sin abrirla. */}
+                  {ficha.tablero.etapa === 'seguimiento' ? (
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <span className="text-[12px] text-[#6B7280]">Apuntar:</span>
+                      {['Va a pagar', 'Lo piensa'].map((texto) => (
+                        <button
+                          key={texto}
+                          onClick={async () => {
+                            const r = await anadirNota(org?.id, ficha.email, texto, accessToken)
+                            if (!r.ok) return toast.error(r.error || 'No se ha podido apuntar')
+                            toast.success(`Apuntado: ${texto}`)
+                            setVueltaNotas((n) => n + 1)
+                            onCambio?.()
+                          }}
+                          className="px-2.5 py-1 rounded-md text-[12px] font-medium border border-[#E5E7EB] bg-white text-gray-800 hover:bg-[#F9FAFB]"
+                        >
+                          {texto}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                   <div className="mt-3 flex flex-wrap items-start gap-2">
                     <EnlacePago email={ficha.email} nombre={ficha.nombre} telefono={ficha.telefono} />
                     {/* Mandarla a Llamadas la pone pendiente allí y la devuelve a
@@ -446,7 +469,7 @@ export default function FichaCliente({
                 «¿Qué pasó?» de cada llamada, que se apunta aquí como «Llamada
                 del 05/10: Lo piensa…»), y son lo primero que hay que leer. */}
             <Bloque icono={<NotebookPen size={15} />} titulo="Notas y volver a llamar">
-              <Seguimiento email={ficha.email} onCambioFecha={onCambioFecha} />
+              <Seguimiento key={vueltaNotas} email={ficha.email} onCambioFecha={onCambioFecha} onCambioNotas={onCambio} />
             </Bloque>
 
             {/* Lo que contestó en las preguntas y dónde se quedó (08/10: estaba

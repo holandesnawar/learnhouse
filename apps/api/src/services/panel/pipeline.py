@@ -8,11 +8,13 @@ está pendiente en la lista de Llamadas. Quien solo bajó una guía, se apuntó 
 la lista de espera o escribió por Instagram, no: eso es captación, no
 matrícula (08/10, "solo gente que haya mostrado interés").
 
-Columnas (09/10): nuevo → llamar ("Por llamar") → contactado → revision →
-seguimiento → descartado → alumno. "Alumno" no se elige: sale sola en cuanto paga, y en cuanto paga se
+Columnas (09/10): nuevo → llamar ("Por llamar") → contactado → seguimiento →
+descartado → alumno. "Alumno" no se elige: sale sola en cuanto paga, y en cuanto paga se
 va ahí aunque alguien la hubiera dejado en otra columna. "Propuesta" se quitó
-(se decide en la llamada) y lo que había allí pasa a Seguimiento; "Perdido" se
-llama ahora Descartado. Las filas viejas se leen con `_ANTES` (no se reescribe
+(se decide en la llamada) y "En revisión" se juntó con Seguimiento (lo que
+había en las dos está en Seguimiento: «va a pagar» o «lo piensa» se apunta
+en una nota, que la tarjeta enseña sin abrirla); "Perdido" se llama ahora
+Descartado. Las filas viejas se leen con `_ANTES` (no se reescribe
 nada en la base de datos).
 
 TODO LO QUE ENTRA, A LLAMAR (09/10, "me da igual que sea por llamada o por
@@ -59,16 +61,15 @@ ETAPAS = [
     {"id": "nuevo", "nombre": "Nuevo"},
     {"id": "llamar", "nombre": "Por llamar"},
     {"id": "contactado", "nombre": "Contactado"},
-    {"id": "revision", "nombre": "En revisión"},
     {"id": "seguimiento", "nombre": "Seguimiento"},
     {"id": "descartado", "nombre": "Descartado"},
     {"id": "alumno", "nombre": "Alumno"},
 ]
-ETAPAS_MOVIBLES = {"nuevo", "llamar", "contactado", "revision", "seguimiento", "descartado"}
+ETAPAS_MOVIBLES = {"nuevo", "llamar", "contactado", "seguimiento", "descartado"}
 #: Las dos columnas de "hay que llamarle": salir de ellas es haberle atendido.
 POR_LLAMAR = {"nuevo", "llamar"}
 #: Columnas que ya no existen, y a dónde va lo que quedó guardado en ellas.
-_ANTES = {"propuesta": "seguimiento", "perdido": "descartado"}
+_ANTES = {"propuesta": "seguimiento", "revision": "seguimiento", "perdido": "descartado"}
 #: Mover a alguien y apuntarlo en Llamadas en el mismo momento no es "volver".
 _MARGEN_SEG = 120
 CANALES = {"", "whatsapp", "llamada", "email", "instagram", "otro"}
@@ -109,6 +110,58 @@ def etapa_guardada(etapa: str) -> str:
     vale."""
     etapa = _ANTES.get(etapa or "", etapa or "")
     return etapa if etapa in ETAPAS_MOVIBLES else ""
+
+
+#: De dónde viene, en dos palabras, por la primera página por la que entró.
+_ORIGEN_WEB = {
+    "home": "Web · inicio",
+    "vision": "Web · Nuestra visión",
+    "blog": "Web · blog",
+    "formacion-web": "Web · formación",
+    "landing": "Web · landing",
+    "landing-precio": "Web · landing con precio",
+    "matricula-pago": "Web · pago",
+    "agendar": "Web · agendar",
+    "admision": "Web · admisión",
+    "admision-preguntas": "Web · admisión",
+}
+_MEDIOS_DE_PAGO = {"paid", "cpc", "ppc", "ads", "paid_social", "paidsocial", "paid-social"}
+_FUENTES_META = {"facebook", "fb", "instagram", "ig", "meta"}
+
+
+def origen_corto(ficha: dict) -> str:
+    """De dónde viene una matrícula, para la tarjeta (09/10, "asegúrate que
+    puedo ver siempre si viene de la home o de la de ads"). Función pura.
+
+    - "Anuncio Meta": pasó por la página del anuncio (`anuncio-fb`, o la vieja
+      `landing-metodo`) o trae una campaña de pago de Facebook/Instagram. Gana
+      a todo: si un anuncio la trajo alguna vez, es del anuncio.
+    - "Anuncio · <fuente>": otra campaña de pago (Google…).
+    - Si no, por la PRIMERA página por la que entró: "Web · inicio", "Web ·
+      Nuestra visión", "Web · blog", "Web · formación"…, "Guía" o "Enlace de
+      pago".
+    - Sin páginas apuntadas, la fuente del enlace si la hay ("Instagram").
+    Vacío si no se sabe.
+    """
+    pasos = ficha.get("pasos") or []
+    medio = (ficha.get("utm_medium") or "").strip().lower()
+    fuente = (ficha.get("utm_source") or "").strip().lower()
+    if "anuncio-fb" in pasos or "landing-metodo" in pasos:
+        return "Anuncio Meta"
+    if medio in _MEDIOS_DE_PAGO:
+        if fuente in _FUENTES_META or not fuente:
+            return "Anuncio Meta" if fuente else "Anuncio"
+        return f"Anuncio · {fuente.capitalize()}"
+    if pasos:
+        primero = pasos[0]
+        if primero.startswith("guia-") or primero.startswith("gracias-"):
+            return "Guía"
+        if primero == "enlace-pago":
+            return "Enlace de pago"
+        return _ORIGEN_WEB.get(primero, "Web")
+    if fuente:
+        return fuente.capitalize()
+    return ""
 
 
 def entro_en_el_flujo(ficha: dict) -> str:
@@ -175,6 +228,7 @@ def colocar(ficha: dict, guardada: Optional[dict], llamada: Optional[dict] = Non
         "vino_de": ficha.get("vino_de", ""),
         "que_hizo": (ficha.get("ultimo_contacto") or {}).get("que", ""),
         "utm_campaign": ficha.get("utm_campaign", ""),
+        "origen": origen_corto(ficha),
         "fuera_de_metricas": bool(ficha.get("fuera_de_metricas")),
         # El día que llegó (pidió plaza, llegó al pago, le crearon un enlace
         # de pago o entró en Llamadas): ordena las columnas.
@@ -212,8 +266,11 @@ def tarjeta_suelta(llamada: dict) -> dict:
         "movido_por": "",
         "vio_precio": False,
         "vino_de": "",
-        "que_hizo": llamada.get("detalle") or llamada.get("origen_nombre", ""),
+        # Lo que dejó a medias; las de mano no tienen (su origen ya lo dice).
+        "que_hizo": llamada.get("detalle", "") if llamada.get("origen") != "mano" else "",
         "utm_campaign": "",
+        # Sin ficha no hay páginas: lo que diga Llamadas ("Apuntada a mano"…).
+        "origen": llamada.get("origen_nombre", ""),
         "fuera_de_metricas": False,
         "llegada": llamada.get("entro") or llamada.get("created_at", ""),
         "oculto": False,
