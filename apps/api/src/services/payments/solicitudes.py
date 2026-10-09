@@ -96,6 +96,9 @@ _NOMBRES = {
     # 09/10: la misma página con la barra y el pie de la web (nawar-web
     # /formacion), para quien llega desde la web y no desde el anuncio.
     "formacion-web": "la página de la formación de la web (sin precio)",
+    # 09/10: las otras dos puertas de la web a /formacion.
+    "vision": "la página Nuestra visión",
+    "blog": "el blog",
     "matricula-pago": "el formulario de matrícula con pago (enseña el precio)",
     "guia-bases": "la guía de las bases",
     "gracias-bases": "la descarga de la guía de las bases",
