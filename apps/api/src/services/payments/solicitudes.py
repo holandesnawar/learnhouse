@@ -93,6 +93,9 @@ _NOMBRES = {
     # 07/10: el embudo del anuncio de Facebook/Instagram (nawar-web
     # /formacion-nawar-fb, antes /formacion/v2 = "landing-metodo").
     "anuncio-fb": "la página del anuncio de Facebook e Instagram (sin precio)",
+    # 09/10: la misma página con la barra y el pie de la web (nawar-web
+    # /formacion), para quien llega desde la web y no desde el anuncio.
+    "formacion-web": "la página de la formación de la web (sin precio)",
     "matricula-pago": "el formulario de matrícula con pago (enseña el precio)",
     "guia-bases": "la guía de las bases",
     "gracias-bases": "la descarga de la guía de las bases",
