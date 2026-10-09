@@ -111,3 +111,6 @@ class ActivityRead(ActivityBase):
     # Computed per-request: ISO date when a drip-locked activity unlocks for this
     # user (enrollment date + configured day offset). None when not drip-locked.
     unlock_date: Optional[str] = None
+    # Por qué sigue cerrada cuando depende del avance del alumno (ver
+    # `services/courses/avance_modulos.py`).
+    unlock_reason: Optional[str] = None

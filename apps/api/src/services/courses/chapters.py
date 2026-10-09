@@ -21,7 +21,7 @@ from fastapi import HTTPException, status, Request
 from src.security.rbac import check_resource_access, AccessAction
 from src.services.courses.locks import (
     batch_accessible_restricted_uuids,
-    drip_locked_chapters,
+    drip_locks_detalle,
     is_locked_for_user,
     is_org_staff,
     profes_ven_todo,
@@ -424,7 +424,7 @@ async def _apply_locks_to_chapters(
     equipo = False if is_anon else await is_org_staff(acting_user_id, course.org_id, db_session)
     equipo_ve_todo = equipo and await profes_ven_todo(course.org_id, db_session)
 
-    drip_locked = await drip_locked_chapters(
+    drip_locked = await drip_locks_detalle(
         [c.chapter_uuid for c in chapters],
         course.org_id,
         current_user,
@@ -433,7 +433,12 @@ async def _apply_locks_to_chapters(
     )
 
     for chapter in chapters:
-        drip_unlock = drip_locked.get(chapter.chapter_uuid)
+        detalle = drip_locked.get(chapter.chapter_uuid)
+        # "" = cerrado sin fecha conocida (la apertura por avance): sigue
+        # siendo distinto de None, que es "no está cerrado por el goteo".
+        drip_unlock = None if detalle is None else (detalle.get("fecha") or "")
+        if detalle is not None:
+            chapter.unlock_reason = detalle.get("motivo")
         usergroup_locked = False if course_grants_access else await is_locked_for_user(
             chapter.lock_type,
             chapter.chapter_uuid,
@@ -479,6 +484,7 @@ async def _apply_locks_to_chapters(
             activity.is_locked = activity_locked
             if drip_unlock is not None:
                 activity.unlock_date = drip_unlock
+                activity.unlock_reason = chapter.unlock_reason
             if activity_locked:
                 activity.content = {}
                 activity.details = None

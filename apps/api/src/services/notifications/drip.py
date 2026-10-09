@@ -14,6 +14,11 @@ candados, pero aquí no se avisa: con fechas fijas todos abren el módulo el
 mismo día y el correo tiene sentido; con desfases cada alumno abre el suyo un
 día distinto y "hoy" deja de significar nada común. Si algún día se usan
 desfases, esta función deja constancia en el registro en vez de callarse.
+
+**Desde el 10/10/2026, la apertura por avance** (`avisar_aperturas_por_avance`,
+al final): quien entra desde esa fecha abre la formación según termina cada
+módulo, así que se le avisa alumno a alumno. Y a esos alumnos NO les llegan
+los avisos de las fechas fijas de la formación, que ya no son las suyas.
 """
 
 import logging
@@ -107,6 +112,14 @@ async def avisar_modulos_abiertos_hoy(org_id: int, db_session: AsyncSession) -> 
     if not alumnos:
         return {"enviados": 0, "motivo": "no hay alumnos"}
 
+    # ⚠️ Quien entró desde el 10/10/2026 abre la formación POR AVANCE, no por
+    # estas fechas: el 12/10 le habría llegado "se te ha abierto el módulo 4"
+    # con el módulo cerrado. Sus avisos salen de `avisar_aperturas_por_avance`.
+    from src.services.courses.avance_modulos import ids_con_avance, uuids_de_la_formacion
+
+    con_avance = await ids_con_avance(org_id, db_session, ajustes)
+    de_la_formacion = await uuids_de_la_formacion(org_id, db_session) if con_avance else set()
+
     from src.services.email.textos import usar_textos
     from src.services.orgs.orgs import get_org_email_texts
     from src.services.users.emails import send_module_unlocked_email
@@ -135,6 +148,8 @@ async def avisar_modulos_abiertos_hoy(org_id: int, db_session: AsyncSession) -> 
 
         for user_id, email, first_name, username in alumnos:
             if not email:
+                continue
+            if user_id in con_avance and chapter_uuid in de_la_formacion:
                 continue
             # ¿Ya se le avisó de este módulo? La tarea se puede reintentar
             # —un fallo de red, un lanzamiento a mano— y sin esto el alumno
@@ -178,3 +193,115 @@ async def avisar_modulos_abiertos_hoy(org_id: int, db_session: AsyncSession) -> 
 
     logger.info("Goteo: %s avisos enviados (%s módulos abren hoy)", enviados, len(abren_hoy))
     return {"enviados": enviados, "modulos": len(abren_hoy), "fecha": hoy, "proximos": proximos}
+
+
+#: Una apertura por avance se avisa si es de estos últimos días. Más atrás
+#: ya no es novedad (y evita una tanda de correos viejos si la tarea estuvo
+#: parada una temporada).
+DIAS_PARA_AVISAR = 3
+
+
+async def avisar_aperturas_por_avance(org_id: int, db_session: AsyncSession) -> dict:
+    """La otra mitad del aviso: los módulos que se le abren a un alumno POR SU
+    AVANCE (los que entraron desde el 10/10/2026, ver
+    `services/courses/avance_modulos.py`).
+
+    Aquí no hay "hoy abre el módulo 4 para todos": a cada uno se le abre
+    cuando termina el anterior y pasa la espera. Así que la tarea diaria
+    pregunta, alumno a alumno, qué se le ha abierto desde la última vez; lo
+    apunta en `modulo_abierto` (desde ahí ya no se le vuelve a cerrar) y le
+    manda el mismo correo de siempre. Si el alumno lo abrió ayer por la tarde,
+    el correo le llega esta mañana: la campana ya se lo enseñó al momento.
+
+    Solo números en la respuesta: el registro de GitHub Actions es público.
+    """
+    from datetime import timedelta
+
+    from src.services.courses.avance_modulos import ahora_utc, guardar_aperturas, ids_con_avance
+    from src.services.panel.testers import ids_testers
+
+    ajustes = await get_drip_settings(org_id, db_session)
+    if not ajustes:
+        return {"apuntados": 0, "enviados": 0, "motivo": "el goteo está apagado"}
+    con_avance = await ids_con_avance(org_id, db_session, ajustes)
+    if not con_avance:
+        return {"apuntados": 0, "enviados": 0, "motivo": "nadie entra por avance todavía"}
+
+    alumnos = (
+        await db_session.execute(
+            select(User.id, User.email, User.first_name, User.username)
+            .join(UserOrganization, UserOrganization.user_id == User.id)  # type: ignore
+            .where(
+                UserOrganization.org_id == org_id,
+                UserOrganization.role_id == ROL_ALUMNO,
+                UserOrganization.user_id.in_(list(con_avance)),  # type: ignore[attr-defined]
+            )
+        )
+    ).all()
+    testers = await ids_testers(org_id, db_session)
+    alumnos = [a for a in alumnos if a[0] not in testers]
+    if not alumnos:
+        return {"apuntados": 0, "enviados": 0, "alumnos": 0}
+
+    nuevas = await guardar_aperturas(org_id, [a[0] for a in alumnos], db_session)
+    datos = {a[0]: a for a in alumnos}
+    limite = ahora_utc() - timedelta(days=DIAS_PARA_AVISAR)
+
+    from src.services.email.textos import usar_textos
+    from src.services.orgs.orgs import get_org_email_texts
+    from src.services.users.emails import send_module_unlocked_email
+
+    textos = await get_org_email_texts(org_id, db_session) if nuevas else {}
+    enviados = 0
+    for user_id, chapter_uuid, abierto in nuevas:
+        if abierto < limite:
+            continue
+        _uid, email, first_name, username = datos[user_id]
+        if not email:
+            continue
+        ya = (
+            await db_session.execute(
+                select(DripEmailSent.id).where(
+                    DripEmailSent.user_id == user_id,
+                    DripEmailSent.chapter_uuid == chapter_uuid,
+                )
+            )
+        ).scalars().first()
+        if ya:
+            continue
+        capitulo = (
+            await db_session.execute(select(Chapter).where(Chapter.chapter_uuid == chapter_uuid))
+        ).scalars().first()
+        if not capitulo:
+            continue
+        lecciones = len(
+            (
+                await db_session.execute(
+                    select(ChapterActivity.id).where(ChapterActivity.chapter_id == capitulo.id)
+                )
+            ).scalars().all()
+        )
+        try:
+            with usar_textos(textos):
+                send_module_unlocked_email(
+                    email=email,
+                    name=first_name or username or "alumno/a",
+                    module_name=capitulo.name or "un módulo nuevo",
+                    lesson_count=lecciones,
+                )
+        except Exception:  # noqa: BLE001
+            logger.exception("No se pudo avisar a %s del módulo %s (avance)", user_id, chapter_uuid)
+            continue
+        db_session.add(
+            DripEmailSent(
+                user_id=user_id,
+                chapter_uuid=chapter_uuid,
+                sent_at=datetime.now(timezone.utc).isoformat(),
+            )
+        )
+        enviados += 1
+    if enviados:
+        await db_session.commit()
+
+    logger.info("Goteo por avance: %s aperturas apuntadas, %s avisos", len(nuevas), enviados)
+    return {"alumnos": len(alumnos), "apuntados": len(nuevas), "enviados": enviados}

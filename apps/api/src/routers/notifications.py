@@ -113,6 +113,16 @@ async def api_drip_diario(
 
     resultado = await avisar_modulos_abiertos_hoy(org_id, db_session)
 
+    # Los que entraron desde el 10/10/2026: a cada uno se le abre la formación
+    # por su avance, y se le avisa aquí. Un fallo no tumba lo de arriba.
+    try:
+        from src.services.notifications.drip import avisar_aperturas_por_avance
+
+        resultado["por_avance"] = await avisar_aperturas_por_avance(org_id, db_session)
+    except Exception as e:  # noqa: BLE001
+        logger.exception("Avisos por avance fallaron")
+        resultado["por_avance"] = {"error": str(e)[:200]}
+
     # El recordatorio «1 semana sin entrar» va en la misma tarea diaria. Solo
     # manda si está ACTIVADO en Avisos (apagado de serie); si no, dice a
     # cuántos les habría tocado. Un fallo aquí no tumba el aviso de módulos.

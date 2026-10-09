@@ -154,6 +154,8 @@ export async function updateOrgDripConfig(
     chapters: { [chapterUuid: string]: number }
     /** Fecha fija de apertura por capítulo (`"2026-09-15"`). Manda sobre los días. */
     fechas?: { [chapterUuid: string]: string }
+    /** Apertura por avance de la formación para quien entra desde `desde`. */
+    avance?: { activo: boolean; desde: string }
   },
   access_token: string
 ) {
