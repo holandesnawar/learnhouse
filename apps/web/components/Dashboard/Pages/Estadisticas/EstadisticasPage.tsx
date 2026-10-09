@@ -184,13 +184,14 @@ export default function EstadisticasPage() {
   }, [org?.id])
 
   // Para el relector de la dirección (efecto sin dependencias): el closer sin
-  // ?tab= va a Contactos, no a Números, o saltaría de una a otra sin parar.
+  // ?tab= va a Matrículas, no a Números, o saltaría de una a otra sin parar.
   const esCloserRef = React.useRef(false)
   esCloserRef.current = isCloser
   const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'gastos' | 'guion' | 'paginas' | 'utm' | 'matriculas' | 'tareas' | 'clientes' | 'anuncios' | 'progreso' | 'recursos'>('numeros')
-  // El closer arranca en Contactos, que es lo suyo.
+  // El closer arranca en Matrículas, que es lo suyo (08/10: Contactos es solo
+  // del administrador).
   useEffect(() => {
-    if (isCloser) setTab('contactos')
+    if (isCloser) setTab('matriculas')
   }, [isCloser])
   // La barra del panel enlaza directo a una pestaña (?tab=contactos). Se lee
   // de window y no con useSearchParams: ese hook obliga a envolver la página
@@ -200,7 +201,7 @@ export default function EstadisticasPage() {
       const pedida = new URLSearchParams(window.location.search).get('tab')
       if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'llamadas' || pedida === 'facturas' || pedida === 'gastos' || pedida === 'guion' || pedida === 'paginas' || pedida === 'utm' || pedida === 'matriculas' || pedida === 'tareas' || pedida === 'clientes' || pedida === 'anuncios' || pedida === 'progreso' || pedida === 'recursos') setTab(pedida)
       // Sin ?tab= (el enlace «Estadísticas» de la barra) = los números.
-      else if (!pedida) setTab(esCloserRef.current ? 'contactos' : 'numeros')
+      else if (!pedida) setTab(esCloserRef.current ? 'matriculas' : 'numeros')
     }
     leer()
     window.addEventListener('popstate', leer)
@@ -215,8 +216,8 @@ export default function EstadisticasPage() {
   }, [])
   // El closer sin Números no se queda nunca en esa sección.
   useEffect(() => {
-    if (isCloser && tab !== 'contactos' && tab !== 'llamadas' && tab !== 'guion' && tab !== 'recursos' && tab !== 'paginas' && tab !== 'matriculas' && tab !== 'tareas' && !(tab === 'numeros' && closerVeNumeros === true)) {
-      setTab('contactos')
+    if (isCloser && tab !== 'llamadas' && tab !== 'guion' && tab !== 'recursos' && tab !== 'paginas' && tab !== 'matriculas' && tab !== 'tareas' && !(tab === 'numeros' && closerVeNumeros === true)) {
+      setTab('matriculas')
     }
   }, [isCloser, tab, closerVeNumeros])
   const [period, setPeriod] = useState<'month' | 'quarter'>('month')

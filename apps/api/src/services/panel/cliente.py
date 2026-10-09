@@ -211,11 +211,20 @@ async def ficha_cliente(email: str, user_id: int, es_admin: bool, db_session: As
     guardada = (
         await db_session.execute(select(LeadPipeline).where(LeadPipeline.email == clave))
     ).scalars().first()
+    # Su fila en Llamadas, como la ve el tablero: la ficha dice la misma
+    # columna que la tarjeta (Seguimiento incluido).
+    try:
+        from src.services.contactos.templadas import llamada_de
+
+        llamada = await llamada_de(clave, ficha, db_session)
+    except Exception:  # noqa: BLE001
+        llamada = None
     tablero = colocar(
         ficha,
         {"etapa": guardada.etapa, "canal": guardada.canal, "motivo": guardada.motivo, "updated_at": guardada.updated_at, "updated_by": guardada.updated_by}
         if guardada
         else None,
+        llamada,
     )
 
     pagos = [

@@ -331,15 +331,15 @@ export const OrgSidebar = (props: { orgslug: string }) => {
           </>
         )}
         {/* El closer no dirige la escuela, así que no le sale el bloque del
-            panel de arriba. Le sale UNA entrada que lleva a lo suyo: sus
-            contactos (las matrículas) y sus llamadas. */}
+            panel de arriba. Le sale UNA entrada que lleva a lo suyo: las
+            matrículas (el tablero) y sus llamadas. */}
         {isAuthenticated && isCloser && (
           <>
             <div className="my-2 border-t border-white/10" />
             <NavLink
               item={{
                 key: 'panel-closer',
-                href: '/dash/estadisticas?tab=contactos',
+                href: '/dash/estadisticas?tab=matriculas',
                 label: 'Panel',
                 icon: <ChartBar size={20} weight="fill" />,
                 show: true,

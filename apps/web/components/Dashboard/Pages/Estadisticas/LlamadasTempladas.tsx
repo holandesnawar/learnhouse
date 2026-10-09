@@ -51,13 +51,13 @@ const CAMPO =
   'w-full h-9 px-3 rounded-md border border-[#D1D5DB] bg-white text-[14px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#025dc7] focus:ring-2 focus:ring-[#025dc7]/15'
 const ETIQUETA = 'block text-[12.5px] font-medium text-gray-700 mb-1'
 
-const TEMPERATURA: Record<Temperatura, { color: string; texto: string; plural: string }> = {
+export const TEMPERATURA: Record<Temperatura, { color: string; texto: string; plural: string }> = {
   caliente: { color: '#DC2626', texto: 'Caliente · llamar ya', plural: 'calientes' },
   templado: { color: '#D97706', texto: 'Templado', plural: 'templados' },
   frio: { color: '#16A34A', texto: 'Frío', plural: 'fríos' },
 }
 
-function Termometro({ t, aMano }: { t?: Temperatura; aMano?: boolean }) {
+export function Termometro({ t, aMano }: { t?: Temperatura; aMano?: boolean }) {
   const v = TEMPERATURA[t || 'frio']
   return (
     <span className="inline-flex items-center gap-1.5 shrink-0 text-[12.5px] font-semibold" style={{ color: v.color }}>
@@ -200,6 +200,81 @@ function Formulario({
         ) : null}
       </div>
     </form>
+  )
+}
+
+/**
+ * Lo que sale al abrir a una persona de la lista: temperatura, qué hizo,
+ * llamar, WhatsApp, marcar como hecha, quitar, sus notas y sus datos. Lo usa
+ * también el tablero de Matrículas para las tarjetas sueltas de Seguimiento
+ * (las de Llamadas sin ficha, 08/10).
+ */
+export function DetalleLlamada({
+  t,
+  guardando,
+  cambiar,
+  quitar,
+  verFicha,
+  onCambioNotas,
+  className = '',
+}: {
+  t: Templada
+  guardando: boolean
+  cambiar: (d: DatosTemplada, aviso?: string) => unknown
+  quitar: () => void
+  /** Sin él no sale «Ver ficha y respuestas» (quien no tiene ficha). */
+  verFicha?: (email: string) => void
+  onCambioNotas: () => void
+  className?: string
+}) {
+  const wa = numeroWhatsApp(t.telefono)
+  return (
+                  <div className={className}>
+                    <ElegirTemperatura t={t} guardando={guardando} cambiar={(v) => cambiar({ temperatura: v }, v ? `Puesta en ${NOMBRE_CORTO[v].toLowerCase()}` : 'Vuelve a la automática')} />
+                    {t.que_hizo ? (
+                      <p className={META}>
+                        Según su ficha: entró {haceDias(t.entro)}. Lo último: {t.que_hizo.charAt(0).toLowerCase() + t.que_hizo.slice(1)}
+                        {t.que_hizo_at ? ` · ${haceDias(t.que_hizo_at)}` : ''}
+                      </p>
+                    ) : null}
+                    <div className="flex flex-wrap gap-2">
+                      <button onClick={() => cambiar({ estado: 'hecha' }, 'Hecha')} disabled={guardando} className={BOTON_PRINCIPAL}>
+                        <Check size={13} /> Marcar como hecha
+                      </button>
+                      {t.telefono ? (
+                        <a href={`tel:${t.telefono.replace(/[^\d+]/g, '')}`} className={BOTON}>
+                          <Phone size={13} /> Llamar
+                        </a>
+                      ) : null}
+                      {wa ? (
+                        <a href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer" className={BOTON}>
+                          WhatsApp
+                        </a>
+                      ) : null}
+                      {t.email && verFicha ? (
+                        <button onClick={() => verFicha(t.email)} className={BOTON}>
+                          Ver ficha y respuestas
+                        </button>
+                      ) : null}
+                      <button onClick={quitar} className={`${BOTON_PELIGRO} ml-auto`}>
+                        <Trash2 size={13} /> {t.origen === 'mano' && !t.email ? 'Borrar' : 'Quitar'}
+                      </button>
+                    </div>
+                    {/* Con correo, las notas son las de su ficha: el mismo bloque. */}
+                    {t.email ? <Seguimiento email={t.email} soloNotas onCambioNotas={onCambioNotas} /> : null}
+                    <Formulario
+                      key={`${t.id}-${t.updated_at}`}
+                      inicial={{ nombre: t.nombre, telefono: t.telefono, email: t.email, notas: t.notas }}
+                      correoFijo={t.origen !== 'mano'}
+                      conNotas={!t.email}
+                      guardando={guardando}
+                      textoBoton="Guardar datos"
+                      onGuardar={(d) => {
+                        const { email, ...resto } = d
+                        cambiar(t.origen === 'mano' ? d : resto)
+                      }}
+                    />
+                  </div>
   )
 }
 
@@ -359,7 +434,6 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
         <div className={`${TARJETA} divide-y divide-[#F3F4F6]`}>
           {pendientes.filter((t) => !filtro || (t.temperatura || 'frio') === filtro).map((t) => {
             const open = abierta === t.id
-            const wa = numeroWhatsApp(t.telefono)
             // Lo primero, dónde se quedó (08/10: "no salen dónde se quedaron";
             // antes ganaba «lo último que hizo», que solía ser «se matriculó»).
             // Las respuestas, en su ficha («Ver ficha y respuestas»).
@@ -388,52 +462,15 @@ export default function LlamadasTempladas({ verFicha }: { verFicha: (email: stri
                 </button>
 
                 {open ? (
-                  <div className="px-4 pb-4 pt-1 space-y-3">
-                    <ElegirTemperatura t={t} guardando={guardando === t.id} cambiar={(v) => cambiar(t, { temperatura: v }, v ? `Puesta en ${NOMBRE_CORTO[v].toLowerCase()}` : 'Vuelve a la automática')} />
-                    {t.que_hizo ? (
-                      <p className={META}>
-                        Según su ficha: entró {haceDias(t.entro)}. Lo último: {t.que_hizo.charAt(0).toLowerCase() + t.que_hizo.slice(1)}
-                        {t.que_hizo_at ? ` · ${haceDias(t.que_hizo_at)}` : ''}
-                      </p>
-                    ) : null}
-                    <div className="flex flex-wrap gap-2">
-                      <button onClick={() => cambiar(t, { estado: 'hecha' }, 'Hecha')} disabled={guardando === t.id} className={BOTON_PRINCIPAL}>
-                        <Check size={13} /> Marcar como hecha
-                      </button>
-                      {t.telefono ? (
-                        <a href={`tel:${t.telefono.replace(/[^\d+]/g, '')}`} className={BOTON}>
-                          <Phone size={13} /> Llamar
-                        </a>
-                      ) : null}
-                      {wa ? (
-                        <a href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer" className={BOTON}>
-                          WhatsApp
-                        </a>
-                      ) : null}
-                      {t.email ? (
-                        <button onClick={() => verFicha(t.email)} className={BOTON}>
-                          Ver ficha y respuestas
-                        </button>
-                      ) : null}
-                      <button onClick={() => quitar(t)} className={`${BOTON_PELIGRO} ml-auto`}>
-                        <Trash2 size={13} /> {t.origen === 'mano' && !t.email ? 'Borrar' : 'Quitar'}
-                      </button>
-                    </div>
-                    {/* Con correo, las notas son las de su ficha: el mismo bloque. */}
-                    {t.email ? <Seguimiento email={t.email} soloNotas onCambioNotas={cargar} /> : null}
-                    <Formulario
-                      key={`${t.id}-${t.updated_at}`}
-                      inicial={{ nombre: t.nombre, telefono: t.telefono, email: t.email, notas: t.notas }}
-                      correoFijo={t.origen !== 'mano'}
-                      conNotas={!t.email}
-                      guardando={guardando === t.id}
-                      textoBoton="Guardar datos"
-                      onGuardar={(d) => {
-                        const { email, ...resto } = d
-                        cambiar(t, t.origen === 'mano' ? d : resto)
-                      }}
-                    />
-                  </div>
+                  <DetalleLlamada
+                    t={t}
+                    guardando={guardando === t.id}
+                    cambiar={(d, aviso) => cambiar(t, d, aviso)}
+                    quitar={() => quitar(t)}
+                    verFicha={verFicha}
+                    onCambioNotas={cargar}
+                    className="px-4 pb-4 pt-1 space-y-3"
+                  />
                 ) : null}
               </div>
             )

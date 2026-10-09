@@ -50,7 +50,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { BOTON, BOTON_PELIGRO, Estado, META } from './ui'
-import { avisoTrasBorrar, borrarContacto, mandarATemplada, type VolverALlamar } from '@services/stats/contactos'
+import { avisoTrasBorrar, borrarContacto, type VolverALlamar } from '@services/stats/contactos'
 import { confirmar } from '@lib/nawar/confirmar'
 import { numeroWhatsApp } from '@/lib/nawar/telefono'
 
@@ -59,6 +59,7 @@ const ETAPAS: { id: EtapaTablero; nombre: string }[] = [
   { id: 'contactado', nombre: 'Contactado' },
   { id: 'revision', nombre: 'En revisión' },
   { id: 'propuesta', nombre: 'Propuesta' },
+  { id: 'seguimiento', nombre: 'Seguimiento' },
   { id: 'perdido', nombre: 'Perdido' },
 ]
 
@@ -124,13 +125,16 @@ export default function FichaCliente({
 
   async function mover(etapa: EtapaTablero, canal?: Canal) {
     if (!ficha) return
-    const r = await moverTarjeta(org?.id, { email: ficha.email, etapa, canal }, accessToken)
+    const r = await moverTarjeta(org?.id, { email: ficha.email, etapa, canal, nombre: ficha.nombre, telefono: ficha.telefono }, accessToken)
     if (!r.ok) {
       toast.error(r.error || 'No se ha podido mover')
       return
     }
     setFicha({ ...ficha, tablero: { ...ficha.tablero, etapa, canal: canal ?? ficha.tablero.canal } })
     onCambio?.()
+    // Seguimiento va a juego con la lista de Llamadas: se relee para enseñar
+    // si está pendiente allí.
+    cargar()
   }
 
   function tareaCambiada(t: Tarea) {
@@ -370,29 +374,14 @@ export default function FichaCliente({
                   </div>
                   <div className="mt-3 flex flex-wrap items-start gap-2">
                     <EnlacePago email={ficha.email} nombre={ficha.nombre} telefono={ficha.telefono} />
+                    {/* Seguimiento = la lista de Llamadas (08/10): el botón de
+                        columna hace lo que hacía «Mandar a Llamadas». */}
                     {ficha.templada?.estado === 'pendiente' ? (
                       <span className="inline-flex items-center gap-1.5 h-8 text-[12.5px] text-[#4B5563]">
                         <PhoneCall size={13} className="text-gray-500" />
-                        En la lista de Llamadas · pendiente
+                        Pendiente de llamar (lista de Llamadas)
                       </span>
-                    ) : (
-                      <button
-                        onClick={async () => {
-                          const r = await mandarATemplada(
-                            org?.id,
-                            { email: ficha.email, nombre: ficha.nombre, telefono: ficha.telefono },
-                            accessToken
-                          )
-                          if (!r.ok || !r.datos) return toast.error(r.error || 'No se ha podido mandar')
-                          setFicha({ ...ficha, templada: r.datos.templada })
-                          toast.success('Está en la lista de Llamadas, pendiente')
-                          onCambio?.()
-                        }}
-                        className={BOTON}
-                      >
-                        <PhoneCall size={13} /> Mandar a Llamadas
-                      </button>
-                    )}
+                    ) : null}
                   </div>
                   {/* Señal para reservar la plaza y lo que falta (06/10). */}
                   <div className="mt-2">
