@@ -50,17 +50,17 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { BOTON, BOTON_PELIGRO, Estado, META } from './ui'
-import { avisoTrasBorrar, borrarContacto, type VolverALlamar } from '@services/stats/contactos'
+import { avisoTrasBorrar, borrarContacto, mandarATemplada, type VolverALlamar } from '@services/stats/contactos'
 import { confirmar } from '@lib/nawar/confirmar'
 import { numeroWhatsApp } from '@/lib/nawar/telefono'
 
 const ETAPAS: { id: EtapaTablero; nombre: string }[] = [
   { id: 'nuevo', nombre: 'Nuevo' },
+  { id: 'llamar', nombre: 'Por llamar' },
   { id: 'contactado', nombre: 'Contactado' },
   { id: 'revision', nombre: 'En revisión' },
-  { id: 'propuesta', nombre: 'Propuesta' },
   { id: 'seguimiento', nombre: 'Seguimiento' },
-  { id: 'perdido', nombre: 'Perdido' },
+  { id: 'descartado', nombre: 'Descartado' },
 ]
 
 function Bloque({ icono, titulo, children, derecha }: { icono: React.ReactNode; titulo: string; children: React.ReactNode; derecha?: React.ReactNode }) {
@@ -132,8 +132,7 @@ export default function FichaCliente({
     }
     setFicha({ ...ficha, tablero: { ...ficha.tablero, etapa, canal: canal ?? ficha.tablero.canal } })
     onCambio?.()
-    // Seguimiento va a juego con la lista de Llamadas: se relee para enseñar
-    // si está pendiente allí.
+    // Salir de Nuevo la marca como hecha en Llamadas: se relee para enseñarlo.
     cargar()
   }
 
@@ -362,7 +361,7 @@ export default function FichaCliente({
                         onClick={() => mover(e.id)}
                         className={`px-2.5 py-1.5 rounded-lg text-[12px] font-semibold transition-colors ${
                           ficha.tablero.etapa === e.id
-                            ? e.id === 'perdido'
+                            ? e.id === 'descartado'
                               ? 'bg-gray-600 text-white'
                               : 'bg-gray-900 text-white'
                             : 'border border-[#E5E7EB] bg-white text-gray-800 hover:bg-[#F9FAFB]'
@@ -374,14 +373,31 @@ export default function FichaCliente({
                   </div>
                   <div className="mt-3 flex flex-wrap items-start gap-2">
                     <EnlacePago email={ficha.email} nombre={ficha.nombre} telefono={ficha.telefono} />
-                    {/* Seguimiento = la lista de Llamadas (08/10): el botón de
-                        columna hace lo que hacía «Mandar a Llamadas». */}
+                    {/* Mandarla a Llamadas la pone pendiente allí y la devuelve a
+                        Nuevo o Por llamar en el tablero: hay que llamarla (09/10). */}
                     {ficha.templada?.estado === 'pendiente' ? (
                       <span className="inline-flex items-center gap-1.5 h-8 text-[12.5px] text-[#4B5563]">
                         <PhoneCall size={13} className="text-gray-500" />
-                        Pendiente de llamar (lista de Llamadas)
+                        En la lista de Llamadas · pendiente
                       </span>
-                    ) : null}
+                    ) : (
+                      <button
+                        onClick={async () => {
+                          const r = await mandarATemplada(
+                            org?.id,
+                            { email: ficha.email, nombre: ficha.nombre, telefono: ficha.telefono },
+                            accessToken
+                          )
+                          if (!r.ok || !r.datos) return toast.error(r.error || 'No se ha podido mandar')
+                          toast.success('En Llamadas, pendiente: vuelve a Nuevo o Por llamar')
+                          onCambio?.()
+                          cargar()
+                        }}
+                        className={BOTON}
+                      >
+                        <PhoneCall size={13} /> Mandar a Llamadas
+                      </button>
+                    )}
                   </div>
                   {/* Señal para reservar la plaza y lo que falta (06/10). */}
                   <div className="mt-2">
@@ -423,6 +439,14 @@ export default function FichaCliente({
                 </div>
               </div>
               )}
+            </Bloque>
+
+            {/* Notas y volver a llamar, justo debajo de la matrícula (09/10): son
+                las MISMAS en todas partes (Llamadas, la lista de Llamadas, el
+                «¿Qué pasó?» de cada llamada, que se apunta aquí como «Llamada
+                del 05/10: Lo piensa…»), y son lo primero que hay que leer. */}
+            <Bloque icono={<NotebookPen size={15} />} titulo="Notas y volver a llamar">
+              <Seguimiento email={ficha.email} onCambioFecha={onCambioFecha} />
             </Bloque>
 
             {/* Lo que contestó en las preguntas y dónde se quedó (08/10: estaba
@@ -552,11 +576,6 @@ export default function FichaCliente({
                   ))}
                 </div>
               ) : null}
-            </Bloque>
-
-            {/* Notas y volver a llamar (lo mismo que en Contactos) */}
-            <Bloque icono={<NotebookPen size={15} />} titulo="Notas y volver a llamar">
-              <Seguimiento email={ficha.email} onCambioFecha={onCambioFecha} />
             </Bloque>
 
             {/* Lo que systeme.io sabe: sus etiquetas son "en qué campaña de correos está". */}

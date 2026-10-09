@@ -1,5 +1,5 @@
 'use client'
-import type { Templada } from '@services/stats/contactos'
+import type { Templada, Temperatura } from '@services/stats/contactos'
 import { getAPIUrl } from '@services/config/config'
 import { RequestBodyWithAuthHeader } from '@services/utils/ts/requests'
 import type { NotaContacto, VolverALlamar } from '@services/stats/contactos'
@@ -9,7 +9,7 @@ import type { NotaContacto, VolverALlamar } from '@services/stats/contactos'
  * Lo que devuelve el servidor sale de `apps/api/src/services/panel/`.
  */
 
-export type EtapaTablero = 'nuevo' | 'contactado' | 'revision' | 'propuesta' | 'seguimiento' | 'perdido' | 'alumno'
+export type EtapaTablero = 'nuevo' | 'llamar' | 'contactado' | 'revision' | 'seguimiento' | 'descartado' | 'alumno'
 export type Canal = '' | 'whatsapp' | 'llamada' | 'email' | 'instagram' | 'otro'
 
 export const CANALES: { id: Canal; nombre: string }[] = [
@@ -47,8 +47,10 @@ export interface Tarjeta {
   ultima_nota: string
   /** Plaza reservada con señal: lo pagado y lo que le falta (sin acceso aún). */
   reserva?: { pagado_cents: number; total_cents: number; pendiente_cents: number } | null
-  /** En Seguimiento: su fila de la lista de Llamadas (temperatura, dónde se quedó). */
+  /** En Nuevo y Por llamar, si está pendiente en Llamadas: su fila (dónde se quedó, temperatura a mano). */
   llamada?: Templada | null
+  /** Rojo (llamar ya), amarillo o verde, por cuándo llegó (o puesta a mano en Llamadas). */
+  temperatura?: Temperatura
   /** De Llamadas sin ficha (apuntada a mano solo con el móvil): no se arrastra. */
   suelta?: boolean
   /** La fecha de volver a llamar, si la tiene. */

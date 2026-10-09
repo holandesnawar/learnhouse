@@ -1,7 +1,9 @@
 """Kanban de matrículas y ficha del cliente: la lógica pura."""
 
+from datetime import datetime, timezone
+
 from src.services.panel.cliente import linea_de_tiempo, paginas_vistas
-from src.services.panel.pipeline import colocar, en_tablero
+from src.services.panel.pipeline import colocar as _colocar, en_tablero
 from src.services.panel.tareas import fecha_ok
 
 
@@ -19,8 +21,23 @@ def _ficha(**kw):
     return base
 
 
+#: "Ahora" de los tests: un día después de que Ana pidiera plaza (20/09).
+AHORA = datetime(2026, 9, 21, 9, 0, tzinfo=timezone.utc)
+
+
+def colocar(ficha, guardada, llamada=None, ahora=AHORA):
+    return _colocar(ficha, guardada, llamada, ahora)
+
+
 def test_sin_mover_va_a_nuevo():
     assert colocar(_ficha(), None)["etapa"] == "nuevo"
+
+
+def test_sin_mover_y_mas_de_48_horas_va_a_por_llamar():
+    # 09/10: "los antiguos leads más fríos tienen que ser llamar".
+    tres_dias_despues = datetime(2026, 9, 23, 11, 0, tzinfo=timezone.utc)
+    c = colocar(_ficha(), None, ahora=tres_dias_despues)
+    assert c["etapa"] == "llamar" and c["temperatura"] == "templado"
 
 
 def test_atendida_sin_mover_va_a_contactado():
@@ -28,14 +45,20 @@ def test_atendida_sin_mover_va_a_contactado():
 
 
 def test_se_queda_donde_la_dejaron():
-    c = colocar(_ficha(), {"etapa": "propuesta", "canal": "whatsapp", "updated_at": "2026-09-25"})
-    assert c["etapa"] == "propuesta"
+    c = colocar(_ficha(), {"etapa": "revision", "canal": "whatsapp", "updated_at": "2026-09-25"})
+    assert c["etapa"] == "revision"
     assert c["canal"] == "whatsapp"
     assert c["desde"] == "2026-09-25"
 
 
 def test_al_pagar_pasa_a_alumno_aunque_la_movieran():
-    assert colocar(_ficha(etapa="alumno"), {"etapa": "perdido"})["etapa"] == "alumno"
+    assert colocar(_ficha(etapa="alumno"), {"etapa": "descartado"})["etapa"] == "alumno"
+
+
+def test_columnas_viejas_se_leen_como_las_nuevas():
+    # 09/10: Propuesta pasa a Seguimiento y Perdido se llama Descartado.
+    assert colocar(_ficha(), {"etapa": "propuesta", "updated_at": "2026-09-25"})["etapa"] == "seguimiento"
+    assert colocar(_ficha(), {"etapa": "perdido", "updated_at": "2026-09-25"})["etapa"] == "descartado"
 
 
 def test_una_etapa_rara_guardada_no_rompe():
@@ -115,43 +138,49 @@ def test_campana_sin_gasto_no_divide_por_cero():
     assert r["total"]["retorno"] is None
 
 
-# ── Seguimiento = la lista de Llamadas (08/10) ───────────────────────────
+# ── Todo lo que entra va a Nuevo; Llamadas a juego (09/10) ───────────────
 
 
 def test_las_columnas_en_su_orden():
     from src.services.panel.pipeline import ETAPAS
 
-    assert [e["id"] for e in ETAPAS] == ["nuevo", "contactado", "revision", "propuesta", "seguimiento", "perdido", "alumno"]
+    assert [e["id"] for e in ETAPAS] == ["nuevo", "llamar", "contactado", "revision", "seguimiento", "descartado", "alumno"]
 
 
-def test_pendiente_en_llamadas_va_a_seguimiento():
+def test_pendiente_en_llamadas_va_a_llamar():
     llamada = {"estado": "pendiente", "desde": "2026-10-05T10:00:00+00:00"}
-    assert colocar(_ficha(), None, llamada)["etapa"] == "seguimiento"
-    # Aunque estuviera atendida.
-    assert colocar(_ficha(atendida=True), None, llamada)["etapa"] == "seguimiento"
+    assert colocar(_ficha(), None, llamada)["etapa"] == "nuevo"
+    # Aunque estuviera atendida: vuelve a tocar llamarla.
+    assert colocar(_ficha(atendida=True), None, llamada)["etapa"] == "nuevo"
 
 
 def test_manda_lo_ultimo_que_paso():
     llamada = {"estado": "pendiente", "desde": "2026-10-05T10:00:00+00:00"}
-    # La movieron ANTES de que volviera a la lista de Llamadas: Seguimiento.
+    # La movieron ANTES de que volviera a la lista de Llamadas: a llamar (Por
+    # llamar, porque pidió plaza hace semanas).
     antes = {"etapa": "contactado", "updated_at": "2026-10-01T10:00:00+00:00"}
-    assert colocar(_ficha(), antes, llamada)["etapa"] == "seguimiento"
+    el_6 = datetime(2026, 10, 6, 9, 0, tzinfo=timezone.utc)
+    assert colocar(_ficha(), antes, llamada, el_6)["etapa"] == "llamar"
     # La movieron DESPUÉS: donde la dejaron.
-    despues = {"etapa": "propuesta", "updated_at": "2026-10-06T10:00:00+00:00"}
-    assert colocar(_ficha(), despues, llamada)["etapa"] == "propuesta"
+    despues = {"etapa": "seguimiento", "updated_at": "2026-10-06T10:00:00+00:00"}
+    assert colocar(_ficha(), despues, llamada)["etapa"] == "seguimiento"
+    # Mover y apuntar en Llamadas en el mismo minuto no es "volver".
+    a_la_vez = {"etapa": "seguimiento", "updated_at": "2026-10-05T09:59:30+00:00"}
+    assert colocar(_ficha(), a_la_vez, llamada)["etapa"] == "seguimiento"
 
 
-def test_hecha_en_llamadas_sale_de_seguimiento():
+def test_hecha_en_llamadas_pasa_a_contactado():
     hecha = {"estado": "hecha", "desde": "2026-10-05T10:00:00+00:00"}
-    assert colocar(_ficha(), {"etapa": "seguimiento", "updated_at": "2026-10-04"}, hecha)["etapa"] == "contactado"
     assert colocar(_ficha(), None, hecha)["etapa"] == "contactado"
+    # Si alguien la había movido, se queda donde la dejaron.
+    assert colocar(_ficha(), {"etapa": "revision", "updated_at": "2026-10-04"}, hecha)["etapa"] == "revision"
     # Quitada de la lista sin haberla movido nunca: lo de siempre.
     assert colocar(_ficha(), None, {"estado": "descartada", "desde": ""})["etapa"] == "nuevo"
     # Pendiente que la lista no enseña (ya reservó hora): como si no estuviera.
     assert colocar(_ficha(), None, {"estado": "", "desde": "2026-10-05"})["etapa"] == "nuevo"
 
 
-def test_al_pagar_sale_de_seguimiento():
+def test_al_pagar_sale_de_llamar():
     llamada = {"estado": "pendiente", "desde": "2026-10-05T10:00:00+00:00"}
     assert colocar(_ficha(etapa="alumno"), None, llamada)["etapa"] == "alumno"
 
@@ -172,8 +201,9 @@ def test_quien_entra_en_el_tablero():
 def test_tarjeta_suelta_de_llamadas():
     from src.services.panel.pipeline import tarjeta_suelta
 
-    t = tarjeta_suelta({"id": 7, "nombre": "Luis", "telefono": "+31 6", "email": "", "detalle": "", "origen_nombre": "Apuntada a mano", "created_at": "2026-10-07"})
-    assert t["id"] == "llamada:7" and t["etapa"] == "seguimiento" and t["suelta"] is True
+    t = tarjeta_suelta({"id": 7, "nombre": "Luis", "telefono": "+31 6", "email": "", "detalle": "", "origen_nombre": "Apuntada a mano", "created_at": "2026-10-07", "temperatura_auto": "caliente"})
+    assert t["id"] == "llamada:7" and t["etapa"] == "nuevo" and t["suelta"] is True
+    assert tarjeta_suelta({"id": 8, "temperatura_auto": "frio"})["etapa"] == "llamar"
     assert t["que_hizo"] == "Apuntada a mano"
 
 

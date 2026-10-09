@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Tarjeta suelta de Seguimiento (08/10): alguien de la lista de Llamadas que
+ * Tarjeta suelta de Nuevo / Por llamar (08/10): alguien de la lista de Llamadas que
  * no tiene ficha (apuntado a mano solo con el móvil, o con un correo que no ha
  * dejado ningún otro rastro). Como no hay ficha que abrir, se abre esto: lo
  * mismo que sale al abrirlo en Llamadas (`DetalleLlamada`), en el mismo panel
@@ -41,7 +41,7 @@ export default function LlamadaSuelta({ llamada, onClose, onCambio }: { llamada:
     }
     toast.success(aviso)
     onCambio()
-    // Hecha: sale de Seguimiento.
+    // Hecha: sale del tablero (sin correo no hay columna a la que pasar).
     if (d.estado && d.estado !== 'pendiente') onClose()
     else {
       // Lo que devuelve el servidor no trae la temperatura (sale al listar):
@@ -89,7 +89,7 @@ export default function LlamadaSuelta({ llamada, onClose, onCambio }: { llamada:
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
             <Termometro t={t.temperatura} aMano={Boolean(t.temperatura_manual)} />
             <span className={META}>
-              Seguimiento · {t.origen === 'mano' ? `apuntada por ${t.creado_por || 'el equipo'}` : t.origen_nombre}
+              {t.origen === 'mano' ? `Apuntada por ${t.creado_por || 'el equipo'}` : t.origen_nombre}
             </span>
           </div>
           {t.origen !== 'mano' && t.detalle ? <p className="mt-1.5 text-[13px] text-gray-800">{t.detalle}</p> : null}
@@ -106,8 +106,8 @@ export default function LlamadaSuelta({ llamada, onClose, onCambio }: { llamada:
             />
           </div>
           <p className="mt-3 text-[12px] text-[#9CA3AF] leading-relaxed">
-            No tiene ficha porque no ha dejado ningún formulario con su correo. Al marcarla como hecha o quitarla, sale de
-            Seguimiento.
+            No tiene ficha porque no ha dejado ningún formulario con su correo. Al marcarla como hecha o quitarla, sale del
+            tablero (sigue en Llamadas, en «Hechas o quitadas»).
           </p>
         </div>
       </div>

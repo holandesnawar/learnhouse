@@ -170,7 +170,7 @@ export default function NawarHome() {
                   className="rounded-xl bg-[#F5F7FB] hover:bg-[#EAF3FF] px-3 py-2.5 transition-colors"
                 >
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400 truncate">{c.nombre}</p>
-                  <p className={`text-[22px] font-semibold tabular-nums leading-tight ${c.id === 'alumno' ? 'text-[#0E9F6E]' : c.id === 'perdido' ? 'text-gray-400' : 'text-[#1D0084]'}`}>
+                  <p className={`text-[22px] font-semibold tabular-nums leading-tight ${c.id === 'alumno' ? 'text-[#0E9F6E]' : c.id === 'descartado' ? 'text-gray-400' : 'text-[#1D0084]'}`}>
                     {c.n}
                   </p>
                 </Link>
