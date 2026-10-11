@@ -54,3 +54,36 @@ export function nextBroadcastLabel(
 
   return fallback
 }
+
+const MESES: Record<string, number> = {
+  enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6, julio: 7, agosto: 8,
+  septiembre: 9, setiembre: 9, octubre: 10, noviembre: 11, diciembre: 12,
+}
+
+/** "SEPTIEMBRE - 2026" → { anio: 2026, mes: 9 }. null si el nombre no es un mes con su año. */
+export function mesDelCapitulo(nombre: string | null | undefined): { anio: number; mes: number } | null {
+  const texto = (nombre || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  const m = texto.match(/([a-z]+)\s*[-–—·/,]?\s*(\d{4})/)
+  if (!m || !MESES[m[1]]) return null
+  return { anio: Number(m[2]), mes: MESES[m[1]] }
+}
+
+/**
+ * Las sesiones grabadas de la clase semanal van en un capítulo por mes
+ * ("SEPTIEMBRE - 2026"). Un mes que ya ha pasado y se quedó SIN ninguna
+ * grabación no se enseña (usuario, 11/10/2026: "quita septiembre, ya
+ * pasó"): es una caja vacía que dice "0 actividades". El capítulo sigue en
+ * el editor del curso; solo deja de verse aquí. El mes en curso, los que
+ * vienen y cualquier capítulo que no sea un mes se enseñan siempre.
+ */
+export function sesionesVisibles<T extends { name?: string | null; activities?: unknown[] | null }>(
+  capitulos: T[],
+  hoy: Date = new Date()
+): T[] {
+  const ahora = hoy.getFullYear() * 12 + hoy.getMonth() + 1
+  return capitulos.filter((c) => {
+    if ((c.activities?.length || 0) > 0) return true
+    const mes = mesDelCapitulo(c.name)
+    return !mes || mes.anio * 12 + mes.mes >= ahora
+  })
+}

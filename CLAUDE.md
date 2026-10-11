@@ -2521,6 +2521,22 @@ Para la campaña de Meta «LEADS | VSL Matricula | oct26» (NL+BE, español,
   - Necesita `import '../../styles/nawar-sections.css'`: ahí vive el estilo
     del pie (sin él sale en texto plano). La barra fija mide 72 px: cabecera
     más baja, barra de etapas del móvil en `top: 72px` y saltos con +72.
+- **Velocidad (10/10, nawar-web PR #149)**: medido con Lighthouse en local
+  (PageSpeed sin cuota y la web bloqueada desde aquí), el móvil pasó de 73 a
+  89-98 y el ordenador de 85 a 100. Tres cosas: las ilustraciones y el
+  certificado en **WebP servidos desde la web** (`public/img/formacion-v2/`
+  leccion/ejercicios/consultas/certificado.webp, 1200 px; antes PNG de
+  `docs.holandesnawar.com`, 1,8 MB), la de las lecciones **ya no `eager`**, y
+  **Inter y Poppins desde la propia web y precargadas** (`public/fonts/`,
+  `src/styles/fuentes-locales.css`, prop `fuentesLocales` del `Layout`; SOLO
+  en estas dos páginas, el resto sigue con Google). Lo último quitó el salto
+  del formulario al llegar la letra (CLS 0,25 → 0). ⚠️ El `favicon.png` de la
+  web pesa **261 KB** (500×500) y es ahora lo que más pesa: el usuario dijo
+  que no se tocara por ahora (también es el icono de la escuela).
+  Para medir sin la web: `astro build`, servir `.vercel/output/static` con
+  `npx serve` y `npx lighthouse@12` con `CHROME_PATH` de `/opt/pw-browsers`.
+  ⚠️ El Chrome de aquí NO acepta el certificado del proxy: las imágenes y
+  fuentes de fuera se bajan con `curl` y se sirven desde otro puerto local.
 - La recomendación que se le dio para el anuncio: esta página con el
   formulario corto, y **llamar en menos de 15 minutos** (la página promete
   "te escribimos muy pronto"); la home se deja como está hasta ver números en
@@ -2670,6 +2686,17 @@ M5 26/10…). Todo en `apps/api/src/services/courses/avance_modulos.py`
 - Pendiente de decidir: el examen final (no existe aún), descanso entre
   módulos, aviso tras 2 semanas sin avanzar, ampliación de pago tras la
   semana 16.
+
+## Sesiones grabadas: los meses vacíos que ya pasaron no salen (11/10/2026)
+La clase semanal (`Clases Nawar`, `COURSES_AS_SESSIONS` en `course.tsx`)
+guarda las grabaciones en un capítulo por mes ("SEPTIEMBRE - 2026"). El
+usuario: "quita septiembre, ya pasó" (estaba vacío, "0 actividades"). Como
+el capítulo vive en la base de datos y desde aquí no se puede borrar,
+`sesionesVisibles` (`lib/course/weeklyClass.ts`, con test) esconde **un mes
+ya pasado SIN grabaciones**. Un mes pasado con grabaciones, el mes en curso,
+los que vienen y lo que no sea un mes se ven siempre. El capítulo sigue en el
+editor del curso (si se quiere borrar de verdad: Cursos → Clase semanal →
+Contenido).
 
 ## Reservar plaza con señal y cobrar el resto (06/10/2026)
 Pedido: "Manuel está en llamada, falla Klarna o su tarjeta y no cierra. Se le
