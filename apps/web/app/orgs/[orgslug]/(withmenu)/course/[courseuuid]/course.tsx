@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next'
 import CommunityChannelsCards from '@components/Objects/Communities/CommunityChannelsCards'
 import CourseFAQ from '@components/Pages/Activity/CourseFAQ'
 import WeeklyClassBanner from '@components/Pages/Courses/WeeklyClassBanner'
+import { sesionesVisibles } from '@/lib/course/weeklyClass'
 import { getLessonIcon } from '@components/Pages/Activity/CourseLessonsSidebar'
 import { useAnalytics } from '@/hooks/useAnalytics'
 
@@ -39,6 +40,13 @@ const COURSES_AS_SESSIONS = {
     if (!uuid) return false
     return COURSES_AS_SESSIONS_UUIDS.has(uuid.replace(/^course_/, ''))
   },
+}
+
+/** Los capítulos que se pintan: en la clase semanal, sin los meses que ya
+ *  pasaron vacíos (ver `sesionesVisibles`). */
+function capitulosAVer(course: any): any[] {
+  const todos = course?.chapters ?? []
+  return COURSES_AS_SESSIONS.has(course?.course_uuid) ? sesionesVisibles(todos) : todos
 }
 
 const CourseClient = (props: any) => {
@@ -92,7 +100,7 @@ const CourseClient = (props: any) => {
     if (course?.chapters) {
       const totalActivities = course.chapters.reduce((sum: number, chapter: any) => sum + (chapter.activities?.length || 0), 0)
       const defaultExpanded: {[key: string]: boolean} = {}
-      course.chapters.forEach((chapter: any, idx: number) => {
+      capitulosAVer(course).forEach((chapter: any, idx: number) => {
         defaultExpanded[chapter.chapter_uuid] = idx === 0 ? true : totalActivities <= 5
       })
       setExpandedChapters(defaultExpanded)
@@ -543,7 +551,7 @@ const CourseClient = (props: any) => {
                 )}
               </h2>
               <div className="bg-white nice-shadow rounded-2xl overflow-hidden border border-[#DDE6F5] divide-y divide-[#DDE6F5]">
-                {(course.chapters ?? []).map((chapter: any, idx: number) => {
+                {capitulosAVer(course).map((chapter: any, idx: number) => {
                   const isExpanded = expandedChapters[chapter.chapter_uuid] ?? (idx === 0); // Default to expanded for first chapter
                   return (
                     <div key={chapter.chapter_uuid || `chapter-${chapter.name}`} className="">
