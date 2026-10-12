@@ -15,6 +15,14 @@ import { resendVerificationEmail } from '@services/auth/auth'
 import { getOrgLogoMediaDirectory } from '@services/media/media'
 import AuthShell from '@components/Auth/AuthShell'
 import InstallAppPrompt from '@components/PWA/InstallAppPrompt'
+import { rutaParaVolver } from '@/lib/auth/volver'
+
+/** El puente de después de entrar, con la ruta a la que volver si la hay. */
+function puenteTrasEntrar(): string {
+  const puente = `${window.location.origin}/redirect_from_auth`
+  const volver = rutaParaVolver(new URLSearchParams(window.location.search).get('redirect'))
+  return volver ? `${puente}?redirect=${encodeURIComponent(volver)}` : puente
+}
 
 interface LoginClientProps {
   org: any
@@ -51,7 +59,7 @@ const LoginClient = (props: LoginClientProps) => {
       document.cookie = `LH_oauth_org_id=${props.org.id}${baseAttributes}${domainAttr}`;
     }
     // Use absolute URL with current origin for custom domain support
-    signIn('google', { callbackUrl: `${window.location.origin}/redirect_from_auth` });
+    signIn('google', { callbackUrl: puenteTrasEntrar() });
   };
 
   // Check if SSO is enabled for this organization (requires enterprise plan)
@@ -151,7 +159,7 @@ const LoginClient = (props: LoginClientProps) => {
       }
 
       // Use absolute URL with current origin for custom domain support
-      const callbackUrl = `${window.location.origin}/redirect_from_auth`;
+      const callbackUrl = puenteTrasEntrar();
 
       const res = await signIn('credentials', {
         redirect: false,
