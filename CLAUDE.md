@@ -2754,6 +2754,14 @@ Una alumna pidió "algo físico para imprimir, consultar y repasar".
   falla, vuelve el visor del navegador** de antes (sin la columna de
   miniaturas): nadie se queda sin el documento. Los enlaces dentro del PDF no
   se pueden pulsar en esta vista; para eso, «Descargar».
+- **El nombre del archivo al descargar lleva módulo y lección** (12/10):
+  las clases se numeran por lección dentro de cada módulo, así que hay un
+  «2.7 Werkboek» en el módulo 1 y otro en el 2, y en la carpeta de descargas
+  se pisaban. La CLASE se sigue llamando «2.7 Werkboek» (decisión del usuario:
+  a juego con el resto); el ARCHIVO sale como «Werkboek - Módulo 1 - Lección
+  2.pdf» (`lib/nawar/nombrePdf.ts`, con test). El módulo lo saca del nombre
+  del capítulo («MODULE 1 - …») y la lección del número de la clase. No hay que
+  renombrar nada al subir el PDF.
 
 ## Reservar plaza con señal y cobrar el resto (06/10/2026)
 Pedido: "Manuel está en llamada, falla Klarna o su tarjeta y no cierra. Se le

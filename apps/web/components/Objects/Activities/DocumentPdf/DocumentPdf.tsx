@@ -3,15 +3,7 @@ import { getActivityMediaDirectory } from '@services/media/media'
 import { Download } from 'lucide-react'
 import React, { useState } from 'react'
 import PaginasPdf from './PaginasPdf'
-
-/** "Cuaderno de repaso · Módulo 1" → "Cuaderno de repaso - Módulo 1.pdf". */
-function nombreDeArchivo(nombre: string | undefined): string {
-  const limpio = (nombre || 'documento')
-    .replace(/[\\/:*?"<>|·]+/g, '-')
-    .replace(/\s+/g, ' ')
-    .trim()
-  return /\.pdf$/i.test(limpio) ? limpio : `${limpio}.pdf`
-}
+import { capituloDeLaClase, nombreParaDescargar } from '@/lib/nawar/nombrePdf'
 
 function DocumentPdfActivity({
   activity,
@@ -60,7 +52,7 @@ function DocumentPdfActivity({
           </p>
           <a
             href={url}
-            download={nombreDeArchivo(activity?.name)}
+            download={nombreParaDescargar(activity?.name, capituloDeLaClase(course, activity?.activity_uuid))}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-lg bg-[#4da3ff] hover:bg-[#5eb4ff] px-4 py-2.5 text-[14px] font-semibold text-[#0a1656] transition-colors"
