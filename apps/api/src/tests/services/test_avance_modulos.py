@@ -351,3 +351,37 @@ async def test_el_equipo_nuevo_sigue_las_fechas_de_la_convocatoria(db, org, user
     # Con las fechas de la convocatoria: el 3 abierto (21/09), el 4 cerrado.
     assert set(await drip_locks_detalle(TODOS, org.id, profe, db)) == {"ch_m4", "ch_otro"}
     assert await am.ids_con_avance(org.id, db) == set()
+
+
+def test_el_werkboek_y_los_pdf_no_cuentan_para_el_80():
+    from src.db.courses.activities import ActivityTypeEnum
+
+    assert not am.cuenta_para_avance("1.7 Werkboek", ActivityTypeEnum.TYPE_DOCUMENT)
+    assert not am.cuenta_para_avance("1.7 Werkboek", ActivityTypeEnum.TYPE_DYNAMIC)
+    assert not am.cuenta_para_avance("Resumen en PDF", ActivityTypeEnum.TYPE_DOCUMENT)
+    assert am.cuenta_para_avance("1.4 Lezen", ActivityTypeEnum.TYPE_DYNAMIC)
+    assert am.cuenta_para_avance("1.1 Les", ActivityTypeEnum.TYPE_VIDEO)
+
+
+async def test_un_werkboek_en_el_modulo_no_cambia_lo_que_falta(db, org, user_role):
+    """Con un Werkboek al final del módulo 1, el módulo sigue teniendo 5 clases
+    que cuentan y el 3 se abre igual sin abrir el PDF."""
+    await _escuela(db, org)
+    ahora = str(datetime.now())
+    db.add(Activity(id=500, name="1.7 Werkboek", activity_type=ActivityTypeEnum.TYPE_DOCUMENT,
+                    activity_sub_type=ActivitySubTypeEnum.SUBTYPE_DOCUMENT_PDF, content={"filename": "w.pdf"},
+                    published=True, org_id=org.id, course_id=10, activity_uuid="a500", creation_date=ahora, update_date=ahora))
+    db.add(ChapterActivity(order=99, chapter_id=2, activity_id=500, course_id=10, org_id=org.id,
+                           creation_date=ahora, update_date=ahora))
+    await db.commit()
+
+    modulos = {m["uuid"]: m for m in await am.modulos_en_orden(10, db)}
+    assert 500 not in modulos["ch_m1"]["clases"] and len(modulos["ch_m1"]["clases"]) == 5
+
+    entrada = datetime.now() - timedelta(days=20)
+    await _con_corte(db, org, (entrada - timedelta(days=1)).date().isoformat())
+    alumno = await _alumno(db, org, user_role, 52, entrada)
+    # 4 de 5 del módulo 1 y 4 de 5 del 2, sin abrir el Werkboek: el 3, abierto.
+    await _hizo(db, org, 52, [106, 107, 108, 109, 111, 112, 113, 114], entrada + timedelta(days=2))
+    cerrados = await drip_locks_detalle(TODOS, org.id, alumno, db)
+    assert "ch_m3" not in cerrados

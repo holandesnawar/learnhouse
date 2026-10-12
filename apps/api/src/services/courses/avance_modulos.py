@@ -25,7 +25,8 @@ clase semanal y cualquier otro curso siguen con su goteo de siempre.
   espera mínima es de **2 semanas**. La espera cuenta desde que se ABRIÓ el
   anterior, no desde que lo terminó: quien va rápido no espera de más.
 - "Terminado" = el **80 %** de las clases del módulo hechas (`trail_step`).
-  Con el 100 %, una sola clase sin marcar dejaba al alumno atascado.
+  Con el 100 %, una sola clase sin marcar dejaba al alumno atascado. El
+  Werkboek y las clases de PDF no cuentan (`cuenta_para_avance`).
 - Un capítulo sin número que va después de los módulos (un "Examen final",
   si algún día se añade) sigue la regla general: 1 semana después del
   anterior y con el anterior terminado.
@@ -144,6 +145,21 @@ def terminado_el(clases: list[int], hechas: dict[int, datetime]) -> datetime | N
         return None
     fechas = sorted(hechas[c] for c in set(clases) if c in hechas)
     return fechas[n - 1] if len(fechas) >= n else None
+
+
+def cuenta_para_avance(nombre: str | None, tipo) -> bool:
+    """¿Esta clase cuenta para el 80 % que abre el módulo siguiente?
+
+    El **Werkboek** (12/10/2026) no: es el PDF para imprimir que va al final
+    de cada lección («1.7 Werkboek»), material de apoyo que no todo el mundo
+    quiere. Si contara, el módulo 1 pasaría de 42 a 48 clases y quien se los
+    saltara tendría que hacer 39 de las 42 de verdad en vez de 34: se le
+    pediría más sin querer. Por lo mismo no cuenta ninguna clase de PDF
+    (`TYPE_DOCUMENT`), se llame como se llame.
+    """
+    if "werkboek" in (nombre or "").lower():
+        return False
+    return str(getattr(tipo, "value", tipo) or "") != "TYPE_DOCUMENT"
 
 
 def _etiqueta(paso: dict) -> str:
@@ -282,13 +298,22 @@ async def modulos_en_orden(course_id: int, db_session: AsyncSession) -> list[dic
     capitulos = sorted(capitulos, key=lambda f: (f[3] if f[3] is not None else 10**6, f[0]))
 
     clases: dict[int, list[tuple[int, int]]] = {}
-    for chapter_id, activity_id, orden in (
+    for chapter_id, activity_id, orden, nombre_clase, tipo in (
         await db_session.execute(
-            select(ChapterActivity.chapter_id, ChapterActivity.activity_id, ChapterActivity.order)
+            select(
+                ChapterActivity.chapter_id,
+                ChapterActivity.activity_id,
+                ChapterActivity.order,
+                Activity.name,
+                Activity.activity_type,
+            )
             .join(Activity, Activity.id == ChapterActivity.activity_id)
             .where(ChapterActivity.course_id == course_id, Activity.published == True)  # noqa: E712
         )
     ).all():
+        # El Werkboek y los PDF no cuentan para el 80 % (`cuenta_para_avance`).
+        if not cuenta_para_avance(nombre_clase, tipo):
+            continue
         clases.setdefault(int(chapter_id), []).append((orden or 0, int(activity_id)))
 
     vistos: set[int] = set()
