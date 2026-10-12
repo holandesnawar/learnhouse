@@ -2704,9 +2704,23 @@ Una alumna pidió "algo físico para imprimir, consultar y repasar".
   vocabulario, frases, lectura y diálogo) y unos 25-30 ejercicios por lección
   que se hacen en papel, con las **soluciones al final**: el alumno se corrige
   solo, nadie del equipo corrige. Los de escuchar se quedan en la escuela:
-  cada lección lleva un QR a `/ejercicios/modulo/<módulo>/leccion/<lección>`.
-  Al final, «Tu turno»: escribir su presentación y, si quiere corrección,
-  mandarla como consulta.
+  cada lección lleva un QR (abajo). Al final, «Tu turno»: escribir su
+  presentación y, si quiere corrección, mandarla como consulta.
+- ⚠️ **El QR va a `/leccion/<lección>/flashcards`**, NO a
+  `/ejercicios/modulo/…` (la app de ejercicios suelta, «Repasar», escondida
+  del menú: ahí el alumno no está en su formación). Esa dirección la busca la
+  escuela en el curso (`lib/nawar/leccionEnElCurso.ts`, con test; página en
+  `(withmenu)/leccion/[lessonId]/[[...parte]]`) por el `embed_url`
+  `nawar:<módulo>/<lección>/<parte>` y abre esa clase. **No lleva el id de la
+  clase a propósito**: un QR impreso no se cambia, y el id cambia si se rehace
+  la clase en el panel. Partes: `flashcards` (sin parte, también),
+  `samenvatting`, `oefeningen`, `lezen`, `luisteren`, `spreken`. Si la lección
+  no tiene esa parte, su primera clase; si no está en el curso, la portada.
+- **Volver tras entrar** (12/10): el QR abre Safari, no la app instalada, y
+  muchas veces sin sesión. `proxy.ts` manda a `/login?redirect=<ruta>` y, tras
+  la contraseña, el puente `/redirect_from_auth` lleva a esa ruta
+  (`lib/auth/volver.ts`: solo rutas de la escuela, nunca otra web). Vale para
+  cualquier enlace, no solo los QR.
 - **Cómo se hace**: `bun scripts/cuaderno-repaso.ts <módulo> salida.md` (desde
   `apps/web`) saca el contenido de `courseData.ts`, sin inventar nada; delante
   va el encargo de diseño (`scripts/cuaderno-encargo-modulo-1.md`: marca, A4,

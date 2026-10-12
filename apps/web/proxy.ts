@@ -2,6 +2,7 @@ import { getAPIUrl } from './services/config/config'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { isLocalhost as isLocalhostCheck } from './services/utils/ts/hostUtils'
+import { rutaParaVolver } from './lib/auth/volver'
 
 // =============================================================================
 // Tenancy
@@ -252,7 +253,12 @@ export default async function proxy(req: NextRequest) {
   )
 
   if (!isPublicPath && !hasSession) {
-    return NextResponse.redirect(new URL('/login', req.url))
+    // Con la ruta pedida, para volver a ella tras entrar (un QR del Werkboek,
+    // un enlace de un correo). Ver lib/auth/volver.ts.
+    const login = new URL('/login', req.url)
+    const volver = rutaParaVolver(`${pathname}${search}`)
+    if (volver) login.searchParams.set('redirect', volver)
+    return NextResponse.redirect(login)
   }
 
   // -------------------------------------------------------------------------
@@ -404,6 +410,11 @@ export default async function proxy(req: NextRequest) {
   // 8. Auth redirect bridge (cross-domain return path)
   // -------------------------------------------------------------------------
   if (pathname === '/redirect_from_auth') {
+    // Venía de un enlace antes de entrar: se vuelve a él.
+    const volver = rutaParaVolver(req.nextUrl.searchParams.get('redirect'))
+    if (volver) {
+      return NextResponse.redirect(new URL(volver, req.url))
+    }
     const queryString = req.nextUrl.searchParams.toString()
     const customDomain = req.cookies.get('LH_custom_domain')?.value
 

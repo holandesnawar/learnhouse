@@ -128,7 +128,7 @@ S.push('# Soluciones', '')
 
 lecciones.forEach((les, li) => {
   const num = les.isExtra ? `Extra ${lecciones.filter((x) => x.isExtra).indexOf(les) + 1}` : `Lección ${les.order}`
-  const url = `https://app.holandesnawar.com/ejercicios/modulo/${moduleId}/leccion/${les.id}`
+  const url = `https://app.holandesnawar.com/leccion/${les.id}/flashcards`
   p('---', '', `## ${num} · ${les.title.replace(/^Les \d+ — /, '').replace(/^Extra \| /, '')}`, `*${les.subtitle}*`, '')
   p(`**Objetivo:** ${limpio(les.learningObjective)}`, '', `**Practicar con audio (código QR):** ${url}`, '')
   S.push(`## ${num} · ${les.title.replace(/^Les \d+ — /, '').replace(/^Extra \| /, '')}`, '')
