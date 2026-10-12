@@ -1,7 +1,8 @@
 import { useOrg } from '@components/Contexts/OrgContext'
 import { getActivityMediaDirectory } from '@services/media/media'
 import { Download } from 'lucide-react'
-import React from 'react'
+import React, { useState } from 'react'
+import PaginasPdf from './PaginasPdf'
 
 /** "Cuaderno de repaso · Módulo 1" → "Cuaderno de repaso - Módulo 1.pdf". */
 function nombreDeArchivo(nombre: string | undefined): string {
@@ -24,6 +25,7 @@ function DocumentPdfActivity({
   className?: string
 }) {
   const org = useOrg() as any
+  const [visorDelNavegador, setVisorDelNavegador] = useState(false)
   const resolvedOrgUuid = orgUuid || org?.org_uuid
   const url = getActivityMediaDirectory(
     resolvedOrgUuid,
@@ -68,9 +70,21 @@ function DocumentPdfActivity({
           </a>
         </div>
       ) : null}
-      <div className="bg-zinc-900 sm:rounded-md">
-        <iframe className="sm:rounded-lg w-full h-[85vh] sm:h-[900px]" src={url} />
-      </div>
+      {/* Las páginas las pinta la escuela (PaginasPdf.tsx explica por qué).
+          Si no puede, el visor del navegador de siempre, sin su columna de
+          miniaturas. */}
+      {url && !visorDelNavegador ? (
+        <div className="mx-3 sm:mx-0 pb-28">
+          <PaginasPdf url={url} alFallar={() => setVisorDelNavegador(true)} />
+        </div>
+      ) : (
+        <div className="bg-zinc-900 sm:rounded-md">
+          <iframe
+            className="sm:rounded-lg w-full h-[85vh] sm:h-[900px]"
+            src={url ? `${url}#navpanes=0&view=FitH` : url}
+          />
+        </div>
+      )}
     </div>
   )
 }
