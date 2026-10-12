@@ -2741,6 +2741,19 @@ Una alumna pidió "algo físico para imprimir, consultar y repasar".
 - **Clase de PDF en el curso** (`DocumentPdf.tsx`): lleva arriba
   «Descargar para imprimir». El visor de dentro de la página en el iPhone solo
   enseña la primera página y no deja descargar.
+- **Las páginas las pinta la escuela, no el navegador** (12/10, "¿no se puede
+  ver mejor sin eso incrustado?"). Antes era un `<iframe>` y salía el visor
+  del NAVEGADOR (en Chrome/Arc la barra oscura con miniaturas; en el iPhone,
+  una sola página). Ahora `PaginasPdf.tsx` usa **pdf.js** (`pdfjs-dist`,
+  build `legacy` para iPhones viejos) y enseña todas las páginas en blanco,
+  una debajo de otra, igual en todas partes. Se pintan al acercarse a la
+  pantalla, de una en una, y cada una acaba en una `<img>` (un lienzo por
+  página revienta la memoria del iPhone). El trabajador de pdf.js va en su
+  propio archivo (`pdf.worker.ts`) con `new Worker(new URL(…,
+  import.meta.url))`, la forma que entienden Turbopack y webpack. **Si pdf.js
+  falla, vuelve el visor del navegador** de antes (sin la columna de
+  miniaturas): nadie se queda sin el documento. Los enlaces dentro del PDF no
+  se pueden pulsar en esta vista; para eso, «Descargar».
 
 ## Reservar plaza con señal y cobrar el resto (06/10/2026)
 Pedido: "Manuel está en llamada, falla Klarna o su tarjeta y no cierra. Se le
