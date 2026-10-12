@@ -2698,6 +2698,30 @@ los que vienen y lo que no sea un mes se ven siempre. El capítulo sigue en el
 editor del curso (si se quiere borrar de verdad: Cursos → Clase semanal →
 Contenido).
 
+## Cuadernos de repaso en PDF, para imprimir (12/10/2026)
+Una alumna pidió "algo físico para imprimir, consultar y repasar".
+- **Qué lleva**: todo lo de cada lección del módulo (teoría con sus tablas,
+  vocabulario, frases, lectura y diálogo) y unos 25-30 ejercicios por lección
+  que se hacen en papel, con las **soluciones al final**: el alumno se corrige
+  solo, nadie del equipo corrige. Los de escuchar se quedan en la escuela:
+  cada lección lleva un QR a `/ejercicios/modulo/<módulo>/leccion/<lección>`.
+  Al final, «Tu turno»: escribir su presentación y, si quiere corrección,
+  mandarla como consulta.
+- **Cómo se hace**: `bun scripts/cuaderno-repaso.ts <módulo> salida.md` (desde
+  `apps/web`) saca el contenido de `courseData.ts`, sin inventar nada; delante
+  va el encargo de diseño (`scripts/cuaderno-encargo-modulo-1.md`: marca, A4,
+  fondo blanco para no gastar tinta, legible en blanco y negro). Se le da a
+  **Claude Design** junto con el logo de la escuela (el PNG con transparencia
+  de `content/orgs/<org>/logos/`).
+- **Dónde va: en Recursos**, decisión del usuario ("que vaya a por él el que lo
+  necesite, no que todos tengan que pasar por ahí"). Se recomendó ponerlo como
+  última clase de cada módulo porque **Recursos no sabe del goteo**: una
+  carpeta para «Alumnos» enseña los cuadernos de todos los módulos a todos.
+  Así que cada cuaderno se sube cuando su módulo se abre.
+- **Clase de PDF en el curso** (`DocumentPdf.tsx`): lleva arriba
+  «Descargar para imprimir». El visor de dentro de la página en el iPhone solo
+  enseña la primera página y no deja descargar.
+
 ## Reservar plaza con señal y cobrar el resto (06/10/2026)
 Pedido: "Manuel está en llamada, falla Klarna o su tarjeta y no cierra. Se le
 pasa un enlace de 50 € como señal para guardarse la plaza; queda en su ficha
