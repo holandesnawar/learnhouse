@@ -2713,11 +2713,17 @@ Una alumna pidió "algo físico para imprimir, consultar y repasar".
   fondo blanco para no gastar tinta, legible en blanco y negro). Se le da a
   **Claude Design** junto con el logo de la escuela (el PNG con transparencia
   de `content/orgs/<org>/logos/`).
-- **Dónde va: en Recursos**, decisión del usuario ("que vaya a por él el que lo
-  necesite, no que todos tengan que pasar por ahí"). Se recomendó ponerlo como
-  última clase de cada módulo porque **Recursos no sabe del goteo**: una
-  carpeta para «Alumnos» enseña los cuadernos de todos los módulos a todos.
-  Así que cada cuaderno se sube cuando su módulo se abre.
+- **Se llama «Werkboek»** (en neerlandés, como el resto del currículo) y va
+  **uno por lección, como ÚLTIMA clase de cada lección**: «1.7 Werkboek» (el
+  número que le toque), antes de la lección siguiente. Decisión final del
+  usuario el 12/10, tras pensar en Recursos: dentro del curso respeta el goteo
+  solo (Recursos no sabe de goteo) y no obliga a nada, porque se marca hecha
+  al abrirla y se pasa con «Siguiente». Los hace el propio usuario en Claude
+  Design.
+- ⚠️ **El Werkboek y cualquier clase de PDF NO cuentan para el 80 %** de la
+  apertura por avance (`cuenta_para_avance` en `avance_modulos.py`): si
+  contaran, el módulo 1 pasaría de 42 a 48 clases y quien se los saltara
+  tendría que hacer 39 de las 42 de verdad en vez de 34.
 - **Clase de PDF en el curso** (`DocumentPdf.tsx`): lleva arriba
   «Descargar para imprimir». El visor de dentro de la página en el iPhone solo
   enseña la primera página y no deja descargar.
