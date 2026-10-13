@@ -9,7 +9,7 @@ import type { NotaContacto, VolverALlamar } from '@services/stats/contactos'
  * Lo que devuelve el servidor sale de `apps/api/src/services/panel/`.
  */
 
-export type EtapaTablero = 'nuevo' | 'llamar' | 'contactado' | 'seguimiento' | 'descartado' | 'alumno'
+export type EtapaTablero = 'nuevo' | 'llamar' | 'contactado' | 'agendado' | 'seguimiento' | 'descartado' | 'alumno'
 export type Canal = '' | 'whatsapp' | 'llamada' | 'email' | 'instagram' | 'otro'
 
 export const CANALES: { id: Canal; nombre: string }[] = [

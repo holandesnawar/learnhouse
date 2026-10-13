@@ -165,7 +165,7 @@ def test_campana_sin_gasto_no_divide_por_cero():
 def test_las_columnas_en_su_orden():
     from src.services.panel.pipeline import ETAPAS
 
-    assert [e["id"] for e in ETAPAS] == ["nuevo", "llamar", "contactado", "seguimiento", "descartado", "alumno"]
+    assert [e["id"] for e in ETAPAS] == ["nuevo", "llamar", "contactado", "agendado", "seguimiento", "descartado", "alumno"]
 
 
 def test_pendiente_en_llamadas_va_a_llamar():
@@ -300,3 +300,11 @@ def test_la_admision_cuenta_como_matricula_y_dice_que_vio():
     assert etapa_de({"admision"}, False) == "pidio"
     m = _evento("matricula", "", "p@x.com", utm_medium="enlace-pago", recorrido="enlace-pago")
     assert "enlace de pago" in m["que"]
+
+
+def test_agendado_se_elige_a_mano():
+    """«Agendado» (13/10) se puede elegir y guardar; nada coloca a nadie ahí solo."""
+    from src.services.panel.pipeline import ETAPAS_MOVIBLES, etapa_guardada
+
+    assert "agendado" in ETAPAS_MOVIBLES
+    assert etapa_guardada("agendado") == "agendado"

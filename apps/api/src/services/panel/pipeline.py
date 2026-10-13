@@ -8,8 +8,10 @@ está pendiente en la lista de Llamadas. Quien solo bajó una guía, se apuntó 
 la lista de espera o escribió por Instagram, no: eso es captación, no
 matrícula (08/10, "solo gente que haya mostrado interés").
 
-Columnas (09/10): nuevo → llamar ("Por llamar") → contactado → seguimiento →
-descartado → alumno. "Alumno" no se elige: sale sola en cuanto paga, y en cuanto paga se
+Columnas (09/10): nuevo → llamar ("Por llamar") → contactado → agendado →
+seguimiento → descartado → alumno. "Agendado" (13/10, "déjala vacía, yo meto
+todo") solo se llena a mano: nada coloca a nadie ahí solo, ni la reserva de
+Calendly. "Alumno" no se elige: sale sola en cuanto paga, y en cuanto paga se
 va ahí aunque alguien la hubiera dejado en otra columna. "Propuesta" se quitó
 (se decide en la llamada) y "En revisión" se juntó con Seguimiento (lo que
 había en las dos está en Seguimiento: «va a pagar» o «lo piensa» se apunta
@@ -61,11 +63,12 @@ ETAPAS = [
     {"id": "nuevo", "nombre": "Nuevo"},
     {"id": "llamar", "nombre": "Por llamar"},
     {"id": "contactado", "nombre": "Contactado"},
+    {"id": "agendado", "nombre": "Agendado"},
     {"id": "seguimiento", "nombre": "Seguimiento"},
     {"id": "descartado", "nombre": "Descartado"},
     {"id": "alumno", "nombre": "Alumno"},
 ]
-ETAPAS_MOVIBLES = {"nuevo", "llamar", "contactado", "seguimiento", "descartado"}
+ETAPAS_MOVIBLES = {"nuevo", "llamar", "contactado", "agendado", "seguimiento", "descartado"}
 #: Las dos columnas de "hay que llamarle": salir de ellas es haberle atendido.
 POR_LLAMAR = {"nuevo", "llamar"}
 #: Columnas que ya no existen, y a dónde va lo que quedó guardado en ellas.
