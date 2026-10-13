@@ -33,7 +33,10 @@ function ClientAdminLayout({
                     {isMobile && <NawarMobileMenu />}
                     <div className="flex flex-col lg:flex-row bg-[#F7F8FB] min-h-screen">
                         {!isMobile && <NawarSidebar />}
-                        <div className="flex flex-col w-full relative isolate pb-24 lg:pb-0">
+                        {/* min-w-0: sin él esta caja crecía hasta el ancho de lo más ancho de
+                            dentro (el tablero de Matrículas) y la PÁGINA entera se desplazaba de
+                            lado, barra lateral incluida. Con él, lo ancho se desplaza en su marco. */}
+                        <div className="flex flex-col w-full min-w-0 relative isolate pb-24 lg:pb-0">
                             {children}
                         </div>
                     </div>

@@ -70,6 +70,7 @@ const COLOR: Record<EtapaTablero, string> = {
   contactado: '#9B87F5',
   agendado: '#D4A24C',
   seguimiento: '#3E9BB0',
+  'pendiente-pago': '#D9826A',
   descartado: '#A3ACBA',
   alumno: '#2BA67A',
 }
