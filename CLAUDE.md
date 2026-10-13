@@ -2564,6 +2564,10 @@ desde fuera… mover agarrando como Trello… y ver siempre de dónde viene".
   `descartado`). Las filas viejas de `lead_pipeline` NO se reescriben: se leen
   con `_ANTES` (`propuesta` → seguimiento, `perdido` → descartado) en
   `etapa_guardada`, y `mover` acepta aún los nombres viejos.
+- **«Agendado»** (13/10, "déjala vacía, yo meto todo"): columna entre
+  Contactado y Seguimiento (id `agendado`). **Solo se llena a mano**: nada
+  coloca a nadie ahí solo, tampoco la reserva de Calendly. Moverla ahí desde
+  Nuevo / Por llamar cuenta como atendida, igual que Contactado.
 - ⚠️ **Primera versión, deshecha**: Seguimiento = la lista de Llamadas (lo
   pendiente en Llamadas iba a esa columna). NO era eso: **todo lo que entra,
   a llamar**, también quien se quedó a medias en la admisión o pidió llamada
