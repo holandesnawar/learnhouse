@@ -2578,6 +2578,11 @@ desde fuera… mover agarrando como Trello… y ver siempre de dónde viene".
   llamar") y no "Falta de pago" (suena a impago) ni "Pendiente de pago" (no
   cabía en la cabecera de la columna y salía cortado). Se cambia en `ETAPAS`
   y en la lista de la ficha.
+- **«No show»** (13/10, "una columna más de no show antes de descartado"):
+  entre Por pagar y Descartado (id `no-show`), punto ciruela `#9A5296`. Quien
+  no se presentó a su llamada. Se mueve a mano o **sola al apuntar «No vino»**
+  en el «¿Qué pasó?» de Llamadas (antes «No vino» llevaba a Por llamar). Con
+  nueve columnas, el resumen del inicio del panel va de tres en tres.
 - ⚠️ **Con ocho columnas el tablero no cabe en un portátil**, y la PÁGINA
   entera se desplazaba de lado (barra lateral incluida): la caja del contenido
   del panel (`dash/ClientAdminLayout.tsx`) era un hijo de flex sin `min-w-0` y
@@ -2592,7 +2597,7 @@ desde fuera… mover agarrando como Trello… y ver siempre de dónde viene".
   antiguo y nadie ha hablado con él. Se mide con `entro_en_el_flujo` (primera
   matrícula, enlace de pago o primer contacto): la MISMA fecha que la
   temperatura de Llamadas, así columna y color no se contradicen. «No vino» a
-  su llamada → Por llamar. Mover entre Nuevo y Por llamar no toca Llamadas ni
+  su llamada → No show (desde el 13/10). Mover entre Nuevo y Por llamar no toca Llamadas ni
   la marca de atendida (Por llamar puede ser «no contestó»).
 - **Las dos llevan la temperatura** de cada tarjeta (rojo «Caliente · llamar
   ya», amarillo, verde; la de su fila de Llamadas si la tiene, que puede estar
@@ -2606,7 +2611,7 @@ desde fuera… mover agarrando como Trello… y ver siempre de dónde viene".
   `created_at` a ahora—, «Mandar a Llamadas»), vuelve a Nuevo o Por llamar;
   con `_MARGEN_SEG` = 2 min para que mover y apuntar a la vez no cuente.
 - **«¿Qué pasó?»** de una llamada: Va a pagar → Seguimiento, Lo piensa →
-  Seguimiento, No encaja → Descartado, No vino → Por llamar (`A_COLUMNA` en
+  Seguimiento, No encaja → Descartado, No vino → No show (`A_COLUMNA` en
   `resultado_llamada.py`). La nota que deja («Llamada del 05/10: Lo piensa…»)
   es la que sale en la tarjeta.
 - **La tarjeta enseña la ÚLTIMA NOTA entera** (dos líneas, en negro), sin

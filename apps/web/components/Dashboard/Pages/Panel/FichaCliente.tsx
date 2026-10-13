@@ -61,6 +61,7 @@ const ETAPAS: { id: EtapaTablero; nombre: string }[] = [
   { id: 'agendado', nombre: 'Agendado' },
   { id: 'seguimiento', nombre: 'Seguimiento' },
   { id: 'pendiente-pago', nombre: 'Por pagar' },
+  { id: 'no-show', nombre: 'No show' },
   { id: 'descartado', nombre: 'Descartado' },
 ]
 

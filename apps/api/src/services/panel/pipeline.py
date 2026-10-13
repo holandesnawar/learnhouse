@@ -9,10 +9,12 @@ la lista de espera o escribió por Instagram, no: eso es captación, no
 matrícula (08/10, "solo gente que haya mostrado interés").
 
 Columnas (09/10): nuevo → llamar ("Por llamar") → contactado → agendado →
-seguimiento → pendiente-pago → descartado → alumno. "Agendado" (13/10, "déjala
-vacía, yo meto todo") y "Por pagar" (13/10, quien dijo que sí y aún no ha
-pagado) solo se llenan a mano: nada coloca a nadie ahí solo, ni la reserva
-de Calendly ni una señal cobrada. "Alumno" no se elige: sale sola en cuanto paga, y en cuanto paga se
+seguimiento → pendiente-pago → no-show → descartado → alumno. "Agendado"
+(13/10, "déjala vacía, yo meto todo") y "Por pagar" (13/10, quien dijo que sí
+y aún no ha pagado) solo se llenan a mano: nada coloca a nadie ahí solo, ni la
+reserva de Calendly ni una señal cobrada. "No show" (13/10) es quien no se
+presentó a su llamada: se mueve a mano o al apuntar «No vino» en Llamadas
+(`resultado_llamada.py`). "Alumno" no se elige: sale sola en cuanto paga, y en cuanto paga se
 va ahí aunque alguien la hubiera dejado en otra columna. "Propuesta" se quitó
 (se decide en la llamada) y "En revisión" se juntó con Seguimiento (lo que
 había en las dos está en Seguimiento: «va a pagar» o «lo piensa» se apunta
@@ -25,8 +27,8 @@ formulario"; "nuevo pero ¿y qué?… los antiguos leads más fríos tienen que
 ser llamar"). A quien nadie ha movido le toca una de las dos primeras, por
 cuándo llegó:
 - **Nuevo**: llegó hace menos de 48 h (`HORAS_CALIENTE`): en rojo, llamar ya;
-- **Por llamar**: más antiguo y sin hablar con él todavía; también quien «No
-  vino» a su llamada (`resultado_llamada.py`) o a quien se manda a mano.
+- **Por llamar**: más antiguo y sin hablar con él todavía, o a quien se manda
+  a mano.
 Quien se quedó a medias en la admisión o pidió llamada y no reservó hora
 también entra así, con su temperatura (rojo, amarillo, verde) como en
 Llamadas. Con la lista de Llamadas va a juego:
@@ -67,10 +69,11 @@ ETAPAS = [
     {"id": "agendado", "nombre": "Agendado"},
     {"id": "seguimiento", "nombre": "Seguimiento"},
     {"id": "pendiente-pago", "nombre": "Por pagar"},
+    {"id": "no-show", "nombre": "No show"},
     {"id": "descartado", "nombre": "Descartado"},
     {"id": "alumno", "nombre": "Alumno"},
 ]
-ETAPAS_MOVIBLES = {"nuevo", "llamar", "contactado", "agendado", "seguimiento", "pendiente-pago", "descartado"}
+ETAPAS_MOVIBLES = {"nuevo", "llamar", "contactado", "agendado", "seguimiento", "pendiente-pago", "no-show", "descartado"}
 #: Las dos columnas de "hay que llamarle": salir de ellas es haberle atendido.
 POR_LLAMAR = {"nuevo", "llamar"}
 #: Columnas que ya no existen, y a dónde va lo que quedó guardado en ellas.

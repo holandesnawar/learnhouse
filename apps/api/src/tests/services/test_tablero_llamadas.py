@@ -127,15 +127,15 @@ async def test_quien_entra_por_llamadas_no_desaparece_al_moverlo(db):
     assert await _llamadas(db, "lead@x.com") == ["hecha"]
 
 
-async def test_no_vino_vuelve_a_por_llamar(db):
+async def test_no_vino_pasa_a_no_show(db):
     from src.services.contactos.resultado_llamada import guardar_resultado
 
     db.add(EnrollmentRequest(email="sol@x.com", first_name="Sol", created_at=_hace(5)))
     await db.commit()
-    await pipeline.mover("sol@x.com", "contactado", None, None, "Closer", db)
+    await pipeline.mover("sol@x.com", "agendado", None, None, "Closer", db)
     r = await guardar_resultado("cita-1", "sol@x.com", "no-vino", "No contestó", "2026-10-09T10:00:00Z", "Closer", 1, db)
-    assert r["columna"] == "llamar"
-    assert (await _tablero(db))["sol@x.com"]["etapa"] == "llamar"
+    assert r["columna"] == "no-show"
+    assert (await _tablero(db))["sol@x.com"]["etapa"] == "no-show"
     # Y lo que pasó queda en sus notas, las de la ficha.
     notas = (await db.execute(select(ContactNota).where(ContactNota.email == "sol@x.com"))).scalars().all()
     assert any("No vino" in n.texto and "No contestó" in n.texto for n in notas)
