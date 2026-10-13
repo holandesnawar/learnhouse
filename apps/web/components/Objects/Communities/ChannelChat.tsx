@@ -52,6 +52,7 @@ import {
   type PollResults,
 } from '@services/communities/engagement'
 import { useOrg } from '@components/Contexts/OrgContext'
+import { avisaATodos } from '@/lib/communities/menciones'
 
 dayjs.extend(relativeTime)
 dayjs.extend(utc)
@@ -1390,6 +1391,14 @@ export function ChannelChat({
                 </button>
               )}
             </div>
+          )}
+
+          {/* Que se vea antes de enviar que @all avisará a todo el canal */}
+          {avisaATodos(text) && (
+            <p className="mb-2 flex items-center gap-1.5 text-[12.5px] text-[#025dc7]">
+              <AtSign size={13} className="shrink-0" />
+              Con @all, a todos los del canal les saldrá un aviso en la campana.
+            </p>
           )}
 
           {/* Sugerencias al escribir @ */}

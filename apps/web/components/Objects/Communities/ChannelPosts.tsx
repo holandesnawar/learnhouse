@@ -9,6 +9,7 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 import utc from 'dayjs/plugin/utc'
 import 'dayjs/locale/es'
 import {
+  AtSign,
   FileText,
   ImageIcon,
   Loader2,
@@ -39,6 +40,13 @@ import VoiceRecorder from '@components/Pages/Messages/VoiceRecorder'
 import ComposerButton from './ComposerButton'
 import ConfirmDialog from './ConfirmDialog'
 import { QUICK_EMOJIS } from '@/lib/chat/emojis'
+import {
+  avisaATodos,
+  mencionEnCurso,
+  ponerMencion,
+  sugerencias,
+  trozosConMenciones,
+} from '@/lib/communities/menciones'
 
 dayjs.extend(relativeTime)
 dayjs.extend(utc)
@@ -95,6 +103,23 @@ function attachmentsOf(d: DiscussionWithAuthor): ChatAttachment[] {
   }
 }
 
+/** El texto con las menciones (@all, @nombre) en negrita, como en el chat. */
+function ConMenciones({ texto }: { texto: string }) {
+  return (
+    <>
+      {trozosConMenciones(texto).map((t, i) =>
+        t.mencion ? (
+          <span key={i} className="font-bold text-[#025dc7]">
+            {t.texto}
+          </span>
+        ) : (
+          <React.Fragment key={i}>{t.texto}</React.Fragment>
+        )
+      )}
+    </>
+  )
+}
+
 function authorName(d: DiscussionWithAuthor): string {
   const a: any = d.author
   if (!a) return 'Alguien'
@@ -129,6 +154,16 @@ export default function ChannelPosts({
 
   const [composing, setComposing] = useState(false)
   const [counts, setCounts] = useState<Record<string, number>>({})
+
+  // A quién se puede mencionar: quien ya ha publicado en el canal (como en el
+  // chat: los alumnos no pueden leer la lista de miembros).
+  const nombres = useMemo(
+    () =>
+      discussions
+        .map((d: DiscussionWithAuthor) => authorName(d).split(' ')[0])
+        .filter((n: string) => n && n !== 'Alguien'),
+    [discussions]
+  )
 
   // Cuántos comentarios tiene cada post (una llamada por post, en paralelo).
   useEffect(() => {
@@ -276,11 +311,11 @@ export default function ChannelPosts({
                           'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")',
                       }}
                     >
-                      {d.title}
+                      <ConMenciones texto={d.title} />
                     </h3>
                     {body && (
                       <p className="text-[14px] text-[#3F4A61] leading-relaxed mt-1.5 line-clamp-3 whitespace-pre-wrap">
-                        {body}
+                        <ConMenciones texto={body} />
                       </p>
                     )}
                   </Link>
@@ -351,6 +386,7 @@ export default function ChannelPosts({
         <PostComposer
           communityUuid={communityUuid}
           channelName={channelName}
+          nombres={nombres}
           onClose={() => setComposing(false)}
           onPublished={() => {
             setComposing(false)
@@ -375,11 +411,13 @@ export default function ChannelPosts({
 function PostComposer({
   communityUuid,
   channelName,
+  nombres,
   onClose,
   onPublished,
 }: {
   communityUuid: string
   channelName: string
+  nombres: string[]
   onClose: () => void
   onPublished: () => void
 }) {
@@ -393,6 +431,43 @@ function PostComposer({
   const [saving, setSaving] = useState(false)
   const imageInputRef = React.useRef<HTMLInputElement>(null)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const bodyRef = React.useRef<HTMLTextAreaElement>(null)
+  // Lo escrito tras la @ que se está tecleando en el cuerpo (null = ninguna).
+  const [mencion, setMencion] = useState<string | null>(null)
+  const candidatos = mencion === null ? [] : sugerencias(mencion, nombres)
+  const paraTodos = avisaATodos(`${title}\n${body}`)
+
+  const escribirCuerpo = (value: string, cursor: number) => {
+    setBody(value)
+    setMencion(mencionEnCurso(value.slice(0, cursor)))
+  }
+
+  const elegirMencion = (nombre: string) => {
+    const ta = bodyRef.current
+    const cursor = ta ? ta.selectionStart : body.length
+    const hecho = ponerMencion(body, cursor, nombre)
+    setBody(hecho.texto)
+    setMencion(null)
+    requestAnimationFrame(() => {
+      ta?.focus()
+      ta?.setSelectionRange(hecho.cursor, hecho.cursor)
+    })
+  }
+
+  /** El botón de la arroba: escribe una @ donde está el cursor, como el teclado. */
+  const mencionarAlguien = () => {
+    const ta = bodyRef.current
+    const cursor = ta ? ta.selectionStart : body.length
+    const antes = body.slice(0, cursor)
+    const arroba = antes.length === 0 || /\s$/.test(antes) ? '@' : ' @'
+    const value = antes + arroba + body.slice(cursor)
+    const nuevo = cursor + arroba.length
+    escribirCuerpo(value, nuevo)
+    requestAnimationFrame(() => {
+      ta?.focus()
+      ta?.setSelectionRange(nuevo, nuevo)
+    })
+  }
 
   const attach = async (files: FileList | null) => {
     if (!files?.length || !accessToken) return
@@ -498,12 +573,41 @@ function PostComposer({
             }}
           />
           <textarea
+            ref={bodyRef}
             value={body}
-            onChange={(e) => setBody(e.target.value)}
+            onChange={(e) => escribirCuerpo(e.target.value, e.target.selectionStart)}
+            onBlur={() => setTimeout(() => setMencion(null), 150)}
             rows={6}
             placeholder="Cuenta lo que quieras…"
             className="w-full mt-2 resize-none text-[15px] text-[#3F4A61] leading-relaxed placeholder:text-[#9CA3AF] outline-none"
           />
+
+          {/* Sugerencias al escribir @, como en el chat */}
+          {candidatos.length > 0 && (
+            <div className="mt-1 rounded-xl border border-[#DDE6F5] bg-white nice-shadow overflow-hidden max-h-44 overflow-y-auto">
+              {candidatos.map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => elegirMencion(name)}
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-[#F0F5FF] flex items-center gap-2"
+                >
+                  <AtSign size={13} className="text-[#025dc7] shrink-0" />
+                  <span className={name === 'all' ? 'font-bold text-[#025dc7]' : ''}>
+                    {name === 'all' ? 'all — avisar a todo el canal' : name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {paraTodos && (
+            <p className="mt-2 flex items-center gap-1.5 text-[12.5px] text-[#025dc7]">
+              <AtSign size={13} className="shrink-0" />
+              Con @all, a todos los del canal les saldrá un aviso en la campana.
+            </p>
+          )}
 
           {recording && (
             <div className="mt-2 rounded-xl bg-[#F8FAFF] border border-[#DDE6F5] px-3 py-2.5">
@@ -571,6 +675,9 @@ function PostComposer({
             disabled={uploading}
           >
             <ImageIcon size={17} />
+          </ComposerButton>
+          <ComposerButton label="Mencionar a alguien" onClick={mencionarAlguien}>
+            <AtSign size={17} />
           </ComposerButton>
           <ComposerButton
             label="Grabar una nota de voz"
