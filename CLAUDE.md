@@ -1110,6 +1110,28 @@ Antes listaba mensaje a mensaje y llamaba "Importante" a los fijados. Ahora
 quitó lo de Importante. Detalle: **el id del item lleva la fecha del último
 mensaje**, para que descartarlo no lo silencie para siempre.
 
+### @all y las menciones: chat y tablón (13/10/2026)
+Hay **dos tipos de canal** (`community.kind`): **chat** (`ChannelChat.tsx`) y
+**tablón** (`posts`, `ChannelPosts.tsx`: título, cuerpo, fotos, comentarios).
+Solo el chat sabía de menciones: al escribir la @ salía la lista con «all —
+avisar a todo el canal» y la @ salía en negrita. En el tablón no había NADA,
+y el usuario creyó que @all no funcionaba ("solo pasa en presentaciones").
+- El servidor sí avisaba con @all en el CUERPO de una publicación (lo busca en
+  el texto, `mentions_in`), pero **no en el TÍTULO**, que en el tablón es un
+  campo aparte. Ahora mira los dos (`texto_para_menciones`, test
+  `test_menciones.py`), y en la campana el aviso de un tablón empieza por el
+  título.
+- El tablón tiene ahora la misma lista de sugerencias al escribir la @ (en el
+  sitio del cursor, no solo al final), un botón de @ y las menciones en
+  negrita en la tarjeta. Las piezas, en `lib/communities/menciones.ts` (con
+  test).
+- En los dos tipos, si el texto lleva @all o @todos, sale debajo «Con @all, a
+  todos los del canal les saldrá un aviso en la campana»: antes no había forma
+  de saber que lo había reconocido.
+- **@all no manda correo.** Para eso, el botón «Avisar» del panel o, en el
+  chat, la casilla «Avisar por email a todos los alumnos» (solo
+  administradores; el tablón no la tiene).
+
 ### Mensajes directos: citar, editar, retirar, borrar el hilo
 `direct_message` gana `reply_to_id` y `edited_at` (en `_ADDED_COLUMNS`). Nuevas
 funciones en `services/messages/direct.py`: `edit_message`, `delete_message`,

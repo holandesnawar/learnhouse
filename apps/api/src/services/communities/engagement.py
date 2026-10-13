@@ -82,6 +82,16 @@ def mentions_in(text: str) -> Tuple[bool, List[str]]:
     return all_flag, names
 
 
+def texto_para_menciones(discussion) -> str:
+    """Donde se buscan las menciones: el título y el cuerpo.
+
+    En los canales de tablón el título es un campo aparte (13/10: un «@all» en
+    el título de una publicación no avisaba a nadie). En el chat el título es la
+    primera línea del mensaje, así que leerlo dos veces no cambia nada.
+    """
+    return f"{getattr(discussion, 'title', '') or ''}\n{message_text(discussion.content)}"
+
+
 def mentions_user(text: str, user: User) -> bool:
     all_flag, names = mentions_in(text)
     if all_flag:
@@ -206,7 +216,7 @@ async def get_unread(
         if not rows:
             continue
 
-        mention_count = sum(1 for d in rows if mentions_user(message_text(d.content), user))
+        mention_count = sum(1 for d in rows if mentions_user(texto_para_menciones(d), user))
         out.append(
             UnreadCount(
                 community_uuid=community.community_uuid,
@@ -257,9 +267,12 @@ async def _mention_items(
 
     out: List[dict] = []
     for discussion, community, author in rows:
-        text = message_text(discussion.content)
-        if not mentions_user(text, user):
+        if not mentions_user(texto_para_menciones(discussion), user):
             continue
+        text = message_text(discussion.content)
+        # En un tablón lo que se lee primero es el título de la publicación.
+        if getattr(community, "kind", "chat") == "posts" and discussion.title:
+            text = f"{discussion.title}: {text}" if text else discussion.title
         who = author.first_name or author.username or "Alguien"
         out.append(
             {
