@@ -1731,6 +1731,9 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
   - **Un color por columna, solo en el punto junto al nombre** y en tonos
     apagados. Hubo franjas de color arriba y "se veía algo IA, poco
     profesional" (28/09): columnas gris claro con borde fino, sin franjas.
+    **Descartado también lleva color** (rojo oscuro `#B4413C`): era gris para
+    que se viera apagado y el usuario preguntó por qué no tenía color como
+    las demás (13/10). Todas salen de `COLOR` en `KanbanPanel.tsx`.
   - **Columnas plegables** (flecha « junto al nombre): quedan en una tira de
     44 px con el nombre en vertical y la cuenta; se puede soltar una tarjeta
     encima. **Perdido nace plegada** (obligaba a desplazarse a la derecha) y
