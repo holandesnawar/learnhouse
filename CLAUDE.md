@@ -2568,6 +2568,18 @@ desde fuera… mover agarrando como Trello… y ver siempre de dónde viene".
   Contactado y Seguimiento (id `agendado`). **Solo se llena a mano**: nada
   coloca a nadie ahí solo, tampoco la reserva de Calendly. Moverla ahí desde
   Nuevo / Por llamar cuenta como atendida, igual que Contactado.
+- **«Por pagar»** (13/10, "antes de descartado, falta de pago algo así"):
+  columna entre Seguimiento y Descartado (id `pendiente-pago`), para quien
+  dijo que sí y aún no ha pagado. **También solo a mano**: ni una señal
+  cobrada coloca a nadie ahí. Se llama "Por pagar" (a juego con "Por
+  llamar") y no "Falta de pago" (suena a impago) ni "Pendiente de pago" (no
+  cabía en la cabecera de la columna y salía cortado). Se cambia en `ETAPAS`
+  y en la lista de la ficha.
+- ⚠️ **Con ocho columnas el tablero no cabe en un portátil**, y la PÁGINA
+  entera se desplazaba de lado (barra lateral incluida): la caja del contenido
+  del panel (`dash/ClientAdminLayout.tsx`) era un hijo de flex sin `min-w-0` y
+  crecía hasta el ancho del tablero. Con `min-w-0`, solo se desplaza el
+  tablero dentro de su marco. Vale para cualquier cosa ancha del panel.
 - ⚠️ **Primera versión, deshecha**: Seguimiento = la lista de Llamadas (lo
   pendiente en Llamadas iba a esa columna). NO era eso: **todo lo que entra,
   a llamar**, también quien se quedó a medias en la admisión o pidió llamada
