@@ -66,7 +66,8 @@ import { BOTON, filtro } from './ui'
 // profesional" (28/09). El color distingue; no decora. Descartado era gris
 // para que se viera "apagado", y parecía que le faltaba el color ("¿por qué
 // no tiene color como los demás?", 13/10): ahora rojo oscuro, que se separa
-// del naranja suave de Por pagar, que va justo al lado.
+// del naranja suave de Por pagar. No show, entre las dos, va en ciruela para
+// no confundirse con ninguna.
 const COLOR: Record<EtapaTablero, string> = {
   nuevo: '#5B8DEF',
   llamar: '#E07AA8',
@@ -74,6 +75,7 @@ const COLOR: Record<EtapaTablero, string> = {
   agendado: '#D4A24C',
   seguimiento: '#3E9BB0',
   'pendiente-pago': '#D9826A',
+  'no-show': '#9A5296',
   descartado: '#B4413C',
   alumno: '#2BA67A',
 }

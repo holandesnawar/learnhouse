@@ -162,7 +162,8 @@ export default function NawarHome() {
           {tablero === null ? (
             <p className="text-[13px] text-gray-400">Cargando…</p>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            // Nueve columnas (13/10): de tres en tres no queda ninguna suelta.
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {columnas.map((c) => (
                 <Link
                   key={c.id}

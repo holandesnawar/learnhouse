@@ -7,7 +7,7 @@ Al colgar, el closer toca una de cuatro opciones y, si quiere, una nota. Con
 eso:
 - queda apuntado en la cita (se ve en el calendario y en la ficha);
 - la tarjeta del tablero de Matrículas se mueve sola a donde toca
-  (`A_COLUMNA`); "No vino" no la mueve;
+  (`A_COLUMNA`); "Pagó" no la mueve (Alumno sale sola con el pago);
 - se deja una nota en su historial, para que el administrador la vea en
   "Notas del equipo" como cualquier otra.
 No se escribe nada en Calendly (decisión del usuario, 29/09: "lo de no se
@@ -45,8 +45,9 @@ RESULTADOS = {
 }
 # 09/10: sin Propuesta ni En revisión (las dos van a Seguimiento, y la nota
 # que deja dice cuál: «Va a pagar» / «Lo piensa»), Perdido se llama
-# Descartado, y quien no vino vuelve a Por llamar.
-A_COLUMNA = {"compra": "seguimiento", "piensa": "seguimiento", "no-encaja": "descartado", "no-vino": "llamar"}
+# Descartado. Quien no vino volvía a Por llamar; desde el 13/10 tiene su
+# columna, No show.
+A_COLUMNA = {"compra": "seguimiento", "piensa": "seguimiento", "no-encaja": "descartado", "no-vino": "no-show"}
 
 
 def _ahora() -> str:

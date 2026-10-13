@@ -218,7 +218,7 @@ export const RESULTADOS: { id: ResultadoLlamada; nombre: string; que: string }[]
   { id: 'compra', nombre: 'Va a pagar', que: 'Pasa a Seguimiento' },
   { id: 'piensa', nombre: 'Lo piensa', que: 'Pasa a Seguimiento' },
   { id: 'no-encaja', nombre: 'No encaja', que: 'Pasa a Descartado' },
-  { id: 'no-vino', nombre: 'No vino', que: 'Pasa a Por llamar' },
+  { id: 'no-vino', nombre: 'No vino', que: 'Pasa a No show' },
 ]
 
 export async function guardarResultado(

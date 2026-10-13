@@ -16,6 +16,7 @@ export type EtapaTablero =
   | 'agendado'
   | 'seguimiento'
   | 'pendiente-pago'
+  | 'no-show'
   | 'descartado'
   | 'alumno'
 export type Canal = '' | 'whatsapp' | 'llamada' | 'email' | 'instagram' | 'otro'
