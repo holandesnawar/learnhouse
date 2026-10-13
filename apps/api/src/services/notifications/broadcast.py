@@ -80,6 +80,22 @@ async def list_org_recipients(
     return recipients
 
 
+#: El botón del correo de novedades cuando no se escribe ninguno (13/10/2026):
+#: "que lleve siempre un botón a la escuela para ver". Solo en los avisos a
+#: alumnos; las automatizaciones pueden escribir a quien aún no tiene cuenta.
+BOTON_POR_DEFECTO = "Entrar a la escuela"
+
+
+def boton_del_aviso(label: str, url: str) -> Tuple[str, str]:
+    """El botón de un aviso de novedades: el que se escribió, o a la escuela.
+    Función pura."""
+    from src.services.users.emails import ACADEMY_URL
+
+    label = (label or "").strip()
+    url = (url or "").strip()
+    return (label or BOTON_POR_DEFECTO, url or ACADEMY_URL)
+
+
 def _send_many(
     kind: str,
     recipients: List[Tuple[str, str]],
@@ -113,6 +129,7 @@ def _send_many_inner(
     send_news_email,
 ) -> None:
     sent = 0
+    cta_label, cta_url = boton_del_aviso(payload.get("cta_label") or "", payload.get("cta_url") or "")
     for email, name in recipients:
         try:
             if kind == "news":
@@ -121,8 +138,8 @@ def _send_many_inner(
                     name=name,
                     title=payload.get("title") or "Novedades",
                     body_html=payload.get("body_html") or "",
-                    cta_label=payload.get("cta_label") or "",
-                    cta_url=payload.get("cta_url") or "",
+                    cta_label=cta_label,
+                    cta_url=cta_url,
                 )
             elif kind == "class":
                 send_class_scheduled_email(

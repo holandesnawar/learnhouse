@@ -63,13 +63,17 @@ const PLANTILLA = `<h1>Novedades de esta semana</h1>
 </ul>
 <p>Nos vemos dentro.</p>`
 
+const BOTON_POR_DEFECTO = 'Entrar a la escuela'
+
 export default function AvisosComposer() {
   const org = useOrg() as any
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
 
   const [subject, setSubject] = useState('Novedades de esta semana')
-  const [ctaLabel, setCtaLabel] = useState('Ver los detalles')
+  // El correo lleva SIEMPRE un botón (13/10): si se dejan vacíos, el servidor
+  // pone «Entrar a la escuela» hacia la escuela (`boton_del_aviso`).
+  const [ctaLabel, setCtaLabel] = useState(BOTON_POR_DEFECTO)
   const [ctaUrl, setCtaUrl] = useState(getSchoolUrl())
   const [testOnly, setTestOnly] = useState(true)
   const [sending, setSending] = useState(false)
@@ -235,13 +239,11 @@ export default function AvisosComposer() {
                   className="avisos-body avisos-preview"
                   dangerouslySetInnerHTML={{ __html: editor?.getHTML() || '' }}
                 />
-                {ctaLabel.trim() && ctaUrl.trim() && (
-                  <div className="mt-6">
-                    <span className="inline-block bg-[#4da3ff] text-[#0a1656] font-bold text-[14px] px-8 py-3.5 rounded-[10px]">
-                      {ctaLabel}
-                    </span>
-                  </div>
-                )}
+                <div className="mt-6">
+                  <span className="inline-block bg-[#4da3ff] text-[#0a1656] font-bold text-[14px] px-8 py-3.5 rounded-[10px]">
+                    {ctaLabel.trim() || BOTON_POR_DEFECTO}
+                  </span>
+                </div>
               </div>
             </div>
           ) : (
@@ -253,12 +255,12 @@ export default function AvisosComposer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           <div>
             <label className="block text-[13px] font-semibold text-[#0a1656] mb-1.5">
-              Texto del botón <span className="font-normal text-gray-400">(opcional)</span>
+              Texto del botón
             </label>
             <input
               value={ctaLabel}
               onChange={(e) => setCtaLabel(e.target.value)}
-              placeholder="Entrar a la formación"
+              placeholder={BOTON_POR_DEFECTO}
               className="w-full bg-white rounded-lg px-4 py-2.5 text-[14px] border border-[#DDE6F5] outline-none focus:border-[#4da3ff]"
             />
           </div>
@@ -273,6 +275,10 @@ export default function AvisosComposer() {
               className="w-full bg-white rounded-lg px-4 py-2.5 text-[14px] border border-[#DDE6F5] outline-none focus:border-[#4da3ff]"
             />
           </div>
+          <p className="sm:col-span-2 -mt-2 text-[12.5px] text-gray-500">
+            El correo lleva siempre un botón. Si dejas estos campos vacíos, dice
+            «{BOTON_POR_DEFECTO}» y lleva a la escuela.
+          </p>
         </div>
 
         {/* Destinatarios */}
