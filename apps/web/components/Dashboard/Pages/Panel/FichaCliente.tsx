@@ -27,6 +27,7 @@ import Seguimiento from '@components/Dashboard/Pages/Estadisticas/Seguimiento'
 import { FilaTarea, TareaForm } from './Tareas'
 import { quitarPersona } from './quitarPersona'
 import EnlacePago from './EnlacePago'
+import PlanPagosFicha from './PlanPagosFicha'
 import ReservaPlaza from './ReservaPlaza'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import {
@@ -343,6 +344,12 @@ export default function FichaCliente({
                   <p className="text-[13px] text-[#15803D] font-semibold flex items-center gap-1.5">
                     <CheckCircle2 size={15} /> Ya es alumno
                   </p>
+                  {/* Si paga en 3 plazos: cuántos lleva y si alguno no entró (14/10). */}
+                  {ficha.plan_pagos ? (
+                    <div className="mt-3">
+                      <PlanPagosFicha key={ficha.plan_pagos.id} plan={ficha.plan_pagos} />
+                    </div>
+                  ) : null}
                   {ficha.reserva?.estado === 'abierta' ? (
                     <div className="mt-3">
                       <ReservaPlaza

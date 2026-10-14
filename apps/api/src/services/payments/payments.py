@@ -1417,6 +1417,12 @@ async def process_webhook_event(
             return await _handle_checkout_session(obj, db_session)
         if event_type == "payment_intent.succeeded":
             return await _handle_payment_intent(obj, db_session)
+        # Los cobros 2 y 3 de un plan de pagos (ver plazos.py). Opcionales: si
+        # no están activados en Stripe, la tarea diaria pregunta por ellos.
+        if event_type in ("invoice.paid", "invoice.payment_succeeded", "invoice.payment_failed"):
+            from src.services.payments.plazos import atender_factura
+
+            return await atender_factura(obj, event_type != "invoice.payment_failed", db_session)
         return {"detail": f"ignored:{event_type}"}
     except HTTPException:
         raise
@@ -1611,6 +1617,18 @@ async def _handle_checkout_session(obj: dict, db_session: AsyncSession) -> dict:
             or ""
         ).strip().lower()
         name = ((obj.get("customer_details") or {}).get("name") or "").strip()
+
+    # El primer cobro de un plan de pagos propio (14/10, ver plazos.py): el
+    # alta es la de siempre, aquí abajo; además se apunta el plan y se le pone
+    # a la suscripción el calendario que la corta al último pago. Nunca puede
+    # impedir el alta.
+    if obj.get("mode") == "subscription" or str(metadatos.get("plan") or "") == "plazos":
+        try:
+            from src.services.payments.plazos import registrar_primer_pago
+
+            await registrar_primer_pago(obj, enrollment, db_session)
+        except Exception:  # noqa: BLE001
+            logger.exception("No se pudo apuntar el plan de pagos de la sesión %s", session_id)
 
     # La marca de "ya atendida" va en la matrícula, no en la cuenta: quien
     # compra teniendo ya cuenta también necesita su correo de bienvenida, y un

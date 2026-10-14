@@ -153,6 +153,8 @@ export interface FichaCliente {
   templada?: Templada | null
   /** Plaza reservada con señal (la abierta, o la última si no hay ninguna abierta). */
   reserva?: import('@services/stats/contactos').Reserva | null
+  /** Su plan de pagos propio en 3 plazos (el vivo, o el último). */
+  plan_pagos?: import('@services/stats/contactos').PlanPagos | null
   /** Solo administradores. */
   systeme: { ok: boolean; motivo?: string; existe?: boolean; etiquetas: string[]; campos: { slug: string; valor: string }[] } | null
   linea: ItemLinea[]
@@ -244,6 +246,11 @@ export interface Cliente {
   ultima_visita: string
   /** Por dónde va en la formación (sin el reparto por módulo). */
   avance: Omit<AvanceAlumno, 'modulos'> | null
+  /** Si paga en 3 plazos: cuántos lleva y si alguno no entró. */
+  plazos?: Pick<
+    import('@services/stats/contactos').PlanPagos,
+    'estado' | 'estado_nombre' | 'cuotas' | 'cuotas_pagadas' | 'total_cents' | 'pendiente_cents' | 'proximo_cobro' | 'fallo'
+  > | null
 }
 
 /**

@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-09 (apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-14 (plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -2891,6 +2891,52 @@ el checkout nuestro de siempre." Todo en `services/payments/reservas.py`
   enseña «¡Plaza reservada!» (no "mira tu correo": aún no hay cuenta).
 - Tarjeta del tablero: «Señal 50 € · faltan 347 €». Línea de tiempo: evento
   `senal` (cuenta como "en el pago", no como alumno).
+
+## Plan de pagos propio: 3 plazos de 145 € (14/10/2026)
+Pedido: "un plan de pagos propio como backup, para los que no conocen Klarna
+o en un momento no les funciona… con algo de riesgo pero por un poco más de
+dinero, 145 € 3 plazos… para el mismo producto y que dé acceso". Todo en
+`services/payments/plazos.py` (docstring largo: leerlo antes de tocar), tabla
+`plan_pagos` (`src/db/plan_pagos.py`). Test: `test_plazos.py` (Stripe falso).
+- **Solo por enlace del equipo**: ficha / Llamadas → «Crear enlace de pago»
+  → elegir **«3 plazos»** (`Panel/EnlacePago.tsx`, `plan: "plazos"` firmado
+  en el enlace como `pl`). NO sale en la caja pública: es el plan B de Klarna.
+- Al abrirlo: sesión de pago de Stripe en **modo suscripción**, embebida en la
+  caja de siempre (`?cuotas=3`: «Hoy pagas 145 € · después 2 pagos más al mes
+  · total 435 €», sin el aviso de Klarna). Métodos: tarjeta, iDEAL y
+  Bancontact (los dos últimos dejan domiciliación SEPA para los cobros
+  siguientes); si Stripe no los admite en suscripción, solo tarjeta.
+- **El precio mensual se crea solo** en Stripe, en el MISMO producto que
+  `LEARNHOUSE_STRIPE_FORMACION_PRICE_ID`, con `lookup_key`
+  `nawar-formacion-plazos-14500-mes`. Cuota y número salen de
+  `LEARNHOUSE_PLAZOS_CUOTA_CENTS` (14500) y `LEARNHOUSE_PLAZOS_CUOTAS` (3);
+  cambiar la cuota crea otro precio y los planes en marcha siguen con el suyo.
+- **Acceso con el PRIMER pago** (riesgo asumido): `checkout.session.completed`
+  hace el alta de siempre (matrícula `paid`, cuenta, correo) y además
+  `registrar_primer_pago` apunta el plan y le pone a la suscripción un
+  **calendario de Stripe de 3 meses con `end_behavior: cancel`**: la corta
+  Stripe. ⚠️ Con la API `2026-04-22.dahlia` la fase va con
+  `duration: {interval: month, interval_count: 3}`; `iterations` ya no existe.
+- **Cobros 2 y 3**: Stripe los hace solo, con factura NAWAR cada uno. La
+  escuela se entera por `invoice.paid` / `invoice.payment_failed` si se
+  añaden al webhook de Stripe (opcional) y si no, por la tarea diaria
+  (`drip-diario` → `sincronizar_planes`, solo números en el registro: repo
+  público). Cada cobro se apunta por el id de su factura
+  (`PlanPagos.facturas`): nunca cuenta dos veces. Lo cobrado va a
+  `enrollment.amount_cents` (las estadísticas suman lo que ha entrado de
+  verdad; la venta cuenta en el mes del primer pago).
+- Red de seguridad: si un plan llega a 3 pagos sin calendario, la tarea diaria
+  pone `cancel_at_period_end` (queda un mes entero antes de un 4.º cobro).
+- **Cobro fallido**: el plan pasa a «Cobro fallido» (rojo en Clientes y en la
+  ficha, con el motivo y cuándo reintenta Stripe) y sale **un correo a los
+  administradores por factura** (`send_plazo_fallido_email`). **El acceso NO
+  se quita solo**: lo decide el equipo en Panel → Usuarios. Al cliente le
+  escribe Stripe si está activado en Stripe (Facturación → pagos fallidos).
+- Ficha: bloque del plan bajo «Ya es alumno» (`Panel/PlanPagosFicha.tsx`)
+  con «Comprobar con Stripe» (`POST /contactos/org/{id}/plazos/{plan}/comprobar`)
+  y cada pago en la lista de pagos («Pago 2 de 3 (plazos)»).
+- No se abre un plan a quien ya es alumno ni a quien ya tiene uno (409): dos
+  suscripciones serían dos cobros al mes.
 
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con

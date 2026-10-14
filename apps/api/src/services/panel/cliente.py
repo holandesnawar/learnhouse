@@ -231,6 +231,12 @@ async def ficha_cliente(
         nombres_anuncios=nombres_anuncios,
     )
 
+    # El plan de pagos propio (3 plazos): su matrícula lleva la suma de lo
+    # cobrado, así que aquí se enseñan sus pagos uno a uno y no la suma.
+    from src.services.payments.plazos import plan_de, planes_de
+
+    planes = await planes_de(clave, db_session)
+    de_planes = {p.enrollment_id for p in planes if p.enrollment_id}
     pagos = [
         {
             "fecha": r.paid_at or r.updated_at or r.created_at,
@@ -243,8 +249,21 @@ async def ficha_cliente(
         ).scalars().all()
         # La matrícula que cierra una reserva lleva el total: aquí se enseñan
         # sus pagos uno a uno (abajo), no dos veces.
-        if r.status == "paid" and getattr(r, "recorrido", "") != "reserva"
+        if r.status == "paid" and getattr(r, "recorrido", "") != "reserva" and r.id not in de_planes
     ]
+    from src.services.payments.plazos import resumen as resumen_plan
+
+    for plan in planes:
+        datos_plan = resumen_plan(plan)
+        for p in datos_plan["pagos"]:
+            pagos.append(
+                {
+                    "fecha": p["fecha"],
+                    "importe_cents": p["importe_cents"],
+                    "moneda": datos_plan["moneda"],
+                    "producto": f"Pago {p['numero']} de {datos_plan['cuotas']} (plazos)",
+                }
+            )
     # Los pagos de plazas reservadas: la señal, lo pagado a cuenta y el resto.
     from src.db.reservas import ReservaPago, ReservaPlaza
     from src.services.payments.reservas import NOMBRE_TIPO
@@ -335,6 +354,7 @@ async def ficha_cliente(
 
     return {
         "reserva": reserva,
+        "plan_pagos": await plan_de(clave, db_session),
         "email": clave,
         "nombre": ficha["nombre"],
         "telefono": ficha["telefono"],

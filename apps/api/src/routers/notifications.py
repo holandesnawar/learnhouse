@@ -134,5 +134,15 @@ async def api_drip_diario(
         logger.exception("Recordatorio automático falló")
         resultado["recordatorio"] = {"error": str(e)[:200]}
 
+    # Los planes de pagos propios (3 plazos): se le pregunta a Stripe por los
+    # cobros 2 y 3, por si sus avisos no están activados. Solo números.
+    try:
+        from src.services.payments.plazos import sincronizar_planes
+
+        resultado["plazos"] = await sincronizar_planes(db_session)
+    except Exception as e:  # noqa: BLE001
+        logger.exception("Revisión de planes de pagos falló")
+        resultado["plazos"] = {"error": type(e).__name__}
+
     logger.info("Goteo diario: %s", resultado)
     return resultado
