@@ -75,7 +75,17 @@ async def listar_clientes(db_session: AsyncSession) -> dict:
         for p in (await db_session.execute(select(StudentProgress).where(StudentProgress.user_id.in_(ids)))).scalars().all():  # type: ignore[attr-defined]
             visitas[p.user_id] = p.last_visit_date or ""
     avances = await avance_formacion(db_session, ids)
+    # Quien paga en 3 plazos: cuántos lleva y si alguno no entró (14/10).
+    from src.services.payments.plazos import planes_por_email
+
+    planes = await planes_por_email(db_session)
     for c in clientes:
+        p = planes.get((c["email"] or "").strip().lower())
+        c["plazos"] = (
+            {k: p[k] for k in ("estado", "estado_nombre", "cuotas", "cuotas_pagadas", "total_cents", "pendiente_cents", "proximo_cobro", "fallo")}
+            if p
+            else None
+        )
         uid = usuarios.get(c["email"])
         c["tiene_cuenta"] = uid is not None
         c["ultima_visita"] = visitas.get(uid, "") if uid else ""

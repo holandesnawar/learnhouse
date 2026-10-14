@@ -275,11 +275,65 @@ export async function getAgenda(orgId: number, accessToken: string, forzar = fal
 }
 
 /** Crea un enlace de pago personal: el checkout de la escuela ya rellenado. */
+/**
+ * Plan de pagos propio: la formación en 3 pagos al mes (14/10/2026). Es una
+ * suscripción de Stripe que corta sola al último pago; el acceso se da con
+ * el primero. Ver apps/api/src/services/payments/plazos.py.
+ */
+export interface PlanPagos {
+  id: number
+  /** activo | fallido | completado | cancelado */
+  estado: string
+  estado_nombre: string
+  cuotas: number
+  cuota_cents: number
+  total_cents: number
+  cuotas_pagadas: number
+  pagado_cents: number
+  pendiente_cents: number
+  moneda: string
+  /** Fecha ISO del siguiente cobro (vacía si ya no quedan). */
+  proximo_cobro: string
+  /** Por qué no entró el último cobro, si no entró. */
+  fallo: string
+  creado_por: string
+  created_at: string
+  completado_at: string
+  sincronizado_at: string
+  pagos: { factura: string; importe_cents: number; fecha: string; numero: number }[]
+}
+
+export interface CondicionesPlazos {
+  cuotas: number
+  cuota_cents: number
+  total_cents: number
+  moneda: string
+}
+
+/** Pregunta a Stripe cómo va un plan (cobros hechos, fallos, próximo cobro). */
+export async function comprobarPlazos(
+  orgId: number,
+  planId: number,
+  accessToken: string
+): Promise<{ ok: boolean; plan?: PlanPagos; error?: string }> {
+  try {
+    const res = await fetch(
+      `${getAPIUrl()}contactos/org/${orgId}/plazos/${planId}/comprobar`,
+      RequestBodyWithAuthHeader('POST', {}, null, accessToken)
+    )
+    const cuerpo = await res.json().catch(() => ({}))
+    if (!res.ok) return { ok: false, error: cuerpo?.detail || 'No se ha podido comprobar' }
+    return { ok: true, plan: cuerpo }
+  } catch {
+    return { ok: false, error: 'No se ha podido comprobar' }
+  }
+}
+
 export async function crearEnlacePago(
   orgId: number,
-  datos: { email: string; first_name: string; last_name?: string; phone?: string },
+  datos: { email: string; first_name: string; last_name?: string; phone?: string; plan?: '' | 'plazos' },
   accessToken: string
-): Promise<{ url?: string; dias?: number; error?: string }> {
+): Promise<{ url?: string; dias?: number; plan?: CondicionesPlazos; error?: string }> {
   try {
     const res = await fetch(
       `${getAPIUrl()}contactos/org/${orgId}/enlace-pago`,

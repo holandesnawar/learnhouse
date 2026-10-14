@@ -166,11 +166,11 @@ function MissingParams() {
  * El "Paso 2 de 2 · Pago seguro" de siempre. Con un pago por partes (señal o
  * lo que falta, ver `TipoPago`) el rótulo dice qué se está pagando.
  */
-function CabeceraPago({ tipo = '' }: { tipo?: TipoPago }) {
+function CabeceraPago({ tipo = '', cuotas = 0 }: { tipo?: TipoPago; cuotas?: number }) {
   return (
     <div>
       <div className="text-[12px] font-bold text-[#4da3ff] tracking-wider uppercase">
-        {tipo === 'resto' ? 'Completa tu matrícula' : tipo ? 'Reserva de plaza' : 'Paso 2 de 2'}
+        {cuotas ? `Pago en ${cuotas} plazos` : tipo === 'resto' ? 'Completa tu matrícula' : tipo ? 'Reserva de plaza' : 'Paso 2 de 2'}
       </div>
       <h1
         className="text-[24px] sm:text-[30px] font-bold text-[#1D0084] leading-tight mt-1"
@@ -260,19 +260,22 @@ function CajaDeStripe({
   email,
   fullName,
   tipo = '',
+  cuotas = 0,
 }: {
   clientSecret: string
   stripePromise: Promise<StripeJS | null>
   email: string
   fullName: string
   tipo?: TipoPago
+  cuotas?: number
 }) {
   return (
     <div className="space-y-5">
-      <CabeceraPago tipo={tipo} />
-      <PagandoComo email={email} fullName={fullName} cambiar={!tipo} />
-      {/* En una señal (50 €) hablar de pagar a plazos confunde. */}
-      {tipo === 'senal' ? null : <AvisoKlarna />}
+      <CabeceraPago tipo={tipo} cuotas={cuotas} />
+      <PagandoComo email={email} fullName={fullName} cambiar={!tipo && !cuotas} />
+      {/* En una señal (50 €) hablar de pagar a plazos confunde; y en el plan
+          propio de plazos, Klarna es justo lo que no ha funcionado. */}
+      {tipo === 'senal' || cuotas ? null : <AvisoKlarna />}
       {/* La caja de pago se sale del relleno de la tarjeta y llega de borde a
           borde, pegada abajo.
 
@@ -435,18 +438,51 @@ function DesglosePorPartes({
   )
 }
 
+/**
+ * El plan de pagos propio (14/10/2026): la formación en 3 pagos al mes,
+ * cobrados solos con el mismo método de pago. Se entra con el primero y al
+ * último se acaba sin hacer nada (apps/api/src/services/payments/plazos.py).
+ */
+function DesglosePlazos({ cuotas, cuotaCents, money }: { cuotas: number; cuotaCents: number; money: (v: number) => string }) {
+  return (
+    <div className="border-t border-gray-200 mt-6 pt-4 space-y-2">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-[13px] text-[#1D0084] font-semibold uppercase tracking-wider">Hoy pagas</span>
+        <span className="text-[24px] font-extrabold text-[#1D0084] leading-none tabular-nums">{money(cuotaCents / 100)}</span>
+      </div>
+      <div className="flex items-baseline justify-between gap-3 text-[13.5px] text-gray-600">
+        <span>
+          Después, {cuotas - 1} {cuotas - 1 === 1 ? 'pago' : 'pagos'} más al mes
+        </span>
+        <span className="tabular-nums">{money(cuotaCents / 100)} / mes</span>
+      </div>
+      <div className="flex items-baseline justify-between gap-3 text-[13.5px] text-gray-600">
+        <span>Total en {cuotas} pagos</span>
+        <span className="tabular-nums">{money((cuotas * cuotaCents) / 100)}</span>
+      </div>
+      <p className="text-[12.5px] text-[#0a1656] bg-[#F0F5FF] rounded-xl px-3 py-2.5 leading-relaxed">
+        <strong className="text-[#1D0084]">Entras en la escuela desde hoy.</strong> Los otros pagos se cobran solos cada
+        mes con el mismo método de pago, y al {cuotas === 3 ? 'tercero' : `pago ${cuotas}`} se acaba: no hay nada que cancelar.
+      </p>
+      <div className="text-[12px] text-gray-500 text-right">IVA incl.</div>
+    </div>
+  )
+}
+
 function CourseSummary({
   amountCents,
   currency,
   tipo = '',
   totalCents = 0,
   prevCents = 0,
+  cuotas = 0,
 }: {
   amountCents: number
   currency: string
   tipo?: TipoPago
   totalCents?: number
   prevCents?: number
+  cuotas?: number
 }) {
   // Price comes off the Stripe Price object via the payment_url so the
   // displayed total tracks whatever you set in Dashboard without a redeploy.
@@ -509,7 +545,9 @@ function CourseSummary({
         ))}
       </ul>
 
-      {tipo && totalCents > 0 ? (
+      {cuotas && amountCents > 0 ? (
+        <DesglosePlazos cuotas={cuotas} cuotaCents={amountCents} money={money} />
+      ) : tipo && totalCents > 0 ? (
         <DesglosePorPartes tipo={tipo} amountCents={amountCents} totalCents={totalCents} prevCents={prevCents} money={money} />
       ) : (
       <div className="border-t border-gray-200 mt-6 pt-4 flex items-baseline justify-between gap-3">
@@ -560,6 +598,9 @@ function CheckoutPageBody() {
   const tipo: TipoPago = tipoCrudo === 'senal' || tipoCrudo === 'parcial' || tipoCrudo === 'resto' ? tipoCrudo : ''
   const totalCents = parseInt(sp.get('tot') || '0', 10) || 0
   const prevCents = parseInt(sp.get('prev') || '0', 10) || 0
+  // El plan propio en plazos (3 pagos al mes): ver `DesglosePlazos`.
+  const cuotasCrudo = parseInt(sp.get('cuotas') || '0', 10) || 0
+  const cuotas = cuotasCrudo >= 2 && cuotasCrudo <= 12 ? cuotasCrudo : 0
 
   const stripePromise = React.useMemo<Promise<StripeJS | null> | null>(() => {
     if (!publishableKey) return null
@@ -595,6 +636,7 @@ function CheckoutPageBody() {
               email={email}
               fullName={fullName}
               tipo={tipo}
+              cuotas={cuotas}
             />
           ) : (
             <Elements
@@ -605,7 +647,14 @@ function CheckoutPageBody() {
             </Elements>
           )}
         </div>
-        <CourseSummary amountCents={amountCents} currency={currency} tipo={tipo} totalCents={totalCents} prevCents={prevCents} />
+        <CourseSummary
+          amountCents={amountCents}
+          currency={currency}
+          tipo={tipo}
+          totalCents={totalCents}
+          prevCents={prevCents}
+          cuotas={cuotas}
+        />
       </div>
     </div>
   )

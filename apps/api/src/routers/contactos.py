@@ -350,6 +350,8 @@ class PedidoEnlace(BaseModel):
     first_name: str
     last_name: str = ""
     phone: str = ""
+    # "" = pago único (o Klarna); "plazos" = el plan propio de 3 pagos al mes.
+    plan: str = ""
 
 
 @router.post(
@@ -383,17 +385,39 @@ async def api_enlace_pago(
             ContactEventCreate(
                 email=email, kind="enlace-pago", first_name=data.first_name.strip()[:120],
                 last_name=data.last_name.strip()[:120], phone=data.phone.strip()[:40],
-                source="equipo", extra={"autor": _nombre(current_user)},
+                source="equipo",
+                extra={"autor": _nombre(current_user), **({"plan": "plazos"} if data.plan == "plazos" else {})},
             ),
             db_session,
         )
     except Exception:  # noqa: BLE001
         pass
-    token = firmar(
-        {"e": email, "f": data.first_name.strip()[:120], "l": data.last_name.strip()[:120], "p": data.phone.strip()[:40]},
-        secreto,
-    )
-    return {"url": f"{_academy_url()}/api/v1/payments/pagar/{token}", "dias": DIAS_VALIDEZ}
+    datos = {"e": email, "f": data.first_name.strip()[:120], "l": data.last_name.strip()[:120], "p": data.phone.strip()[:40]}
+    respuesta: dict = {}
+    if data.plan == "plazos":
+        from src.services.payments.plazos import condiciones
+
+        datos.update({"pl": "plazos", "a": _nombre(current_user)[:60]})
+        respuesta["plan"] = condiciones()
+    token = firmar(datos, secreto)
+    return {"url": f"{_academy_url()}/api/v1/payments/pagar/{token}", "dias": DIAS_VALIDEZ, **respuesta}
+
+
+@router.post(
+    "/org/{org_id}/plazos/{plan_id}/comprobar",
+    summary="Pregunta a Stripe cómo va un plan de pagos (cobros hechos, fallos, próximo cobro).",
+)
+async def api_comprobar_plazos(
+    request: Request,
+    org_id: int,
+    plan_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    from src.services.payments.plazos import comprobar_ahora
+
+    return await comprobar_ahora(plan_id, db_session)
 
 
 # ── Reservar plaza con señal y cobrar el resto (06/10/2026) ───────────────

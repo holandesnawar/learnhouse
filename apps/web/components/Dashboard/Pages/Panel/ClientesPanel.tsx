@@ -119,6 +119,20 @@ export default function ClientesPanel() {
                     >
                       {a.texto}
                     </span>
+                    {/* Paga en 3 plazos (14/10): cuántos lleva, en rojo si uno no entró. */}
+                    {c.plazos ? (
+                      <span
+                        className={`rounded-full px-2 py-0.5 font-semibold tabular-nums ${
+                          c.plazos.estado === 'fallido' || c.plazos.estado === 'cancelado'
+                            ? 'bg-[#FEF2F2] text-[#B91C1C]'
+                            : 'bg-[#F3F4F6] text-[#6B7280]'
+                        }`}
+                        title={c.plazos.fallo || undefined}
+                      >
+                        Plazos {c.plazos.cuotas_pagadas} de {c.plazos.cuotas}
+                        {c.plazos.estado === 'fallido' ? ' · cobro fallido' : c.plazos.estado === 'cancelado' ? ' · sin completar' : ''}
+                      </span>
+                    ) : null}
                     {c.avance ? (
                       <span className="rounded-full px-2 py-0.5 font-semibold bg-[#F3F4F6] text-[#6B7280] tabular-nums">
                         {c.avance.hechas} de {c.avance.total} clases · {c.avance.pct} %
@@ -135,6 +149,9 @@ export default function ClientesPanel() {
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="text-[14px] font-bold tabular-nums text-[#1D0084]">{euros(c.total_cents)}</p>
+                  {c.plazos && c.plazos.pendiente_cents > 0 ? (
+                    <p className="text-[11.5px] text-[#9CA3AF] tabular-nums">de {euros(c.plazos.total_cents)}</p>
+                  ) : null}
                   <p className="text-[11.5px] text-[#9CA3AF]">
                     {c.pagos > 1 ? `${c.pagos} pagos · ` : ''}
                     {fechaCorta(c.ultimo_pago)}

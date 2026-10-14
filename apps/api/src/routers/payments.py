@@ -151,12 +151,20 @@ async def api_pagar_enlace(
         recorrido=["enlace-pago"],
     )
     try:
-        resultado = await enroll_and_checkout_session(pedido, db_session)
+        if datos.get("pl") == "plazos":
+            # El plan de pagos propio, en 3 pagos al mes (ver plazos.py).
+            from src.services.payments.plazos import abrir_plazos
+
+            resultado = await abrir_plazos(pedido, str(datos.get("a") or ""), db_session)
+        else:
+            resultado = await enroll_and_checkout_session(pedido, db_session)
     except HTTPException as exc:
+        import html
+
         return HTMLResponse(
             _PAGINA_ENLACE.format(
-                titulo="Ahora mismo no se puede pagar",
-                texto=f"{exc.detail}. Escríbenos por WhatsApp y lo vemos.",
+                titulo="Ya está en marcha" if exc.status_code == 409 else "Ahora mismo no se puede pagar",
+                texto=html.escape(f"{exc.detail}. Escríbenos por WhatsApp y lo vemos."),
             ),
             status_code=exc.status_code,
         )

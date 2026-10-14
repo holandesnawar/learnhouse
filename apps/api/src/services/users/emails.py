@@ -892,6 +892,45 @@ def send_llamada_pedida_email(
     )
 
 
+def send_plazo_fallido_email(
+    email: EmailStr,
+    plan: dict,
+    preview: bool = False,
+):
+    """Aviso AL EQUIPO: no entró un cobro de un plan de pagos propio (3
+    plazos, ver services/payments/plazos.py). Uno por factura, no uno por
+    cada reintento de Stripe. El acceso NO se quita solo: lo decide el equipo.
+    """
+    nombre = html.escape(plan.get("nombre") or plan.get("email") or "Alguien")
+    correo = html.escape(plan.get("email") or "")
+    telefono = html.escape(plan.get("telefono") or "")
+    fallo = html.escape(plan.get("fallo") or "No se pudo cobrar un pago del plan.")
+    pagado = f"{int(plan.get('pagado_cents') or 0) / 100:.2f}".replace(".", ",")
+    total = f"{int(plan.get('total_cents') or 0) / 100:.2f}".replace(".", ",")
+    tel_num = "".join(ch for ch in (plan.get("telefono") or "") if ch.isdigit())
+    wa = f"https://wa.me/{tel_num}" if tel_num else ""
+
+    body_content = f"""
+        <h1 style="{STYLES['h1']}">Un pago a plazos no ha entrado</h1>
+        <p style="{STYLES['p']}"><strong>{nombre}</strong><br>{correo}{' · ' + telefono if telefono else ''}</p>
+        <p style="{STYLES['p']}">{fallo}</p>
+        <p style="{STYLES['p']}">Lleva pagados {pagado} € de {total} € ({int(plan.get('cuotas_pagadas') or 0)} de {int(plan.get('cuotas') or 0)} pagos). Sigue teniendo acceso a la escuela: si hay que quitárselo, es en Panel → Usuarios.</p>
+        <a href="{ACADEMY_URL}/dash/estadisticas?tab=clientes" class="brand-btn" style="{STYLES['button']}">Ver en el panel</a>
+        {f'<p style="margin: 16px 0 0 0; font-size: 13px;"><a href="{wa}" style="color: #025dc7; font-weight: 600;">Escribirle por WhatsApp</a></p>' if wa else ''}
+    """
+
+    return send_email(
+        dry_run=preview,
+        to=email,
+        subject=f"Pago a plazos sin cobrar: {plan.get('nombre') or plan.get('email') or 'alguien'}",
+        body=_email_layout(
+            title="Un pago a plazos no ha entrado",
+            body_content=body_content,
+            footer_note="Recibes esto porque eres administrador de la escuela.",
+        ),
+    )
+
+
 def send_certificate_ready_email(
     email: EmailStr,
     name: str = "alumno/a",
