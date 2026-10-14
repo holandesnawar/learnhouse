@@ -335,3 +335,39 @@ def test_no_show_se_elige_a_mano():
     assert "no-show" in ETAPAS_MOVIBLES
     assert etapa_guardada("no-show") == "no-show"
     assert A_COLUMNA["no-vino"] == "no-show"
+
+
+def test_nombre_del_anuncio_limpio_y_renombrado():
+    """El nombre que manda Meta se congela al publicar (14/10): la escuela lo
+    descodifica si llega con %20/%7C y deja ponerle uno propio."""
+    from src.services.panel.ads import anuncios_vistos, limpiar_anuncio, nombre_del_anuncio
+    from src.services.panel.pipeline import origen_corto
+
+    assert limpiar_anuncio("VIDEO | UGC | VSL | A") == "VIDEO | UGC | VSL | A"
+    assert limpiar_anuncio("VIDEO%20%7C%20UGC%20%7C%20VSL%20%7C%20A") == "VIDEO | UGC | VSL | A"
+    # Codificado dos veces.
+    assert limpiar_anuncio("VIDEO%2520%257C%2520UGC") == "VIDEO | UGC"
+    assert limpiar_anuncio("{{ad.name}}") == ""
+    assert limpiar_anuncio("  UGC-Laura-14oct ") == "UGC-Laura-14oct"
+
+    nombres = {"video | ugc | vsl | a": "UGC octubre 1 · A"}
+    assert nombre_del_anuncio("VIDEO%20%7C%20UGC%20%7C%20VSL%20%7C%20A", nombres) == "UGC octubre 1 · A"
+    assert nombre_del_anuncio("VIDEO | UGC | VSL | B", nombres) == "VIDEO | UGC | VSL | B"
+
+    ficha = {"pasos": ["anuncio-fb"], "utm_source": "facebook", "utm_medium": "paid", "utm_content": "VIDEO | UGC | VSL | A"}
+    assert origen_corto(ficha, nombres) == "Anuncio Meta · UGC octubre 1 · A"
+    assert origen_corto(ficha) == "Anuncio Meta · VIDEO | UGC | VSL | A"
+
+    fichas = [
+        {"email": "a@x.com", "etapa": "alumno", "eventos": [{"utm_content": "VIDEO | UGC | VSL | A", "when": "2026-10-02T10:00:00"}]},
+        {"email": "b@x.com", "etapa": "pidio", "eventos": [
+            {"utm_content": "VIDEO%20%7C%20UGC%20%7C%20VSL%20%7C%20A", "when": "2026-10-05T10:00:00"},
+            {"utm_content": "VIDEO | UGC | VSL | A", "when": "2026-10-06T10:00:00"},
+        ]},
+        {"email": "c@x.com", "etapa": "pidio", "eventos": [{"utm_content": "UGC-Laura-14oct", "when": "2026-10-14T09:00:00"}]},
+    ]
+    vistos = anuncios_vistos(fichas, nombres)
+    assert [a["meta"] for a in vistos] == ["UGC-Laura-14oct", "VIDEO | UGC | VSL | A"]
+    a = vistos[1]
+    assert (a["leads"], a["ventas"], a["nombre"]) == (2, 1, "UGC octubre 1 · A")
+    assert a["primero"].startswith("2026-10-02") and a["ultimo"].startswith("2026-10-05")
