@@ -174,7 +174,7 @@ def test_campana_sin_gasto_no_divide_por_cero():
 def test_las_columnas_en_su_orden():
     from src.services.panel.pipeline import ETAPAS
 
-    assert [e["id"] for e in ETAPAS] == ["nuevo", "llamar", "contactado", "agendado", "seguimiento", "pendiente-pago", "no-show", "descartado", "alumno"]
+    assert [e["id"] for e in ETAPAS] == ["nuevo", "llamar", "no-contesta", "contactado", "agendado", "seguimiento", "pendiente-pago", "no-show", "descartado", "alumno"]
 
 
 def test_pendiente_en_llamadas_va_a_llamar():

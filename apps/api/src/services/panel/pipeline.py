@@ -8,8 +8,11 @@ está pendiente en la lista de Llamadas. Quien solo bajó una guía, se apuntó 
 la lista de espera o escribió por Instagram, no: eso es captación, no
 matrícula (08/10, "solo gente que haya mostrado interés").
 
-Columnas (09/10): nuevo → llamar ("Por llamar") → contactado → agendado →
-seguimiento → pendiente-pago → no-show → descartado → alumno. "Por pagar"
+Columnas (09/10): nuevo → llamar ("Por llamar") → no-contesta → contactado →
+agendado → seguimiento → pendiente-pago → no-show → descartado → alumno.
+"No contesta" (14/10, "una columna más de no contesta") es de las de llamar:
+se la ha llamado y no cogió, así que sigue pendiente en Llamadas, con su
+temperatura, y no cuenta como atendida (`POR_LLAMAR`). Solo a mano. "Por pagar"
 (13/10, quien dijo que sí y aún no ha pagado) solo se llena a mano: ni una
 señal cobrada coloca a nadie ahí. "Agendado" nació igual (13/10, "déjala
 vacía, yo meto todo") y desde el 14/10 se llena TAMBIÉN sola con Calendly
@@ -67,6 +70,7 @@ from src.services.contactos.templadas import temperatura
 ETAPAS = [
     {"id": "nuevo", "nombre": "Nuevo"},
     {"id": "llamar", "nombre": "Por llamar"},
+    {"id": "no-contesta", "nombre": "No contesta"},
     {"id": "contactado", "nombre": "Contactado"},
     {"id": "agendado", "nombre": "Agendado"},
     {"id": "seguimiento", "nombre": "Seguimiento"},
@@ -75,9 +79,10 @@ ETAPAS = [
     {"id": "descartado", "nombre": "Descartado"},
     {"id": "alumno", "nombre": "Alumno"},
 ]
-ETAPAS_MOVIBLES = {"nuevo", "llamar", "contactado", "agendado", "seguimiento", "pendiente-pago", "no-show", "descartado"}
-#: Las dos columnas de "hay que llamarle": salir de ellas es haberle atendido.
-POR_LLAMAR = {"nuevo", "llamar"}
+ETAPAS_MOVIBLES = {"nuevo", "llamar", "no-contesta", "contactado", "agendado", "seguimiento", "pendiente-pago", "no-show", "descartado"}
+#: Las columnas de "hay que llamarle": salir de ellas es haberle atendido.
+#: "No contesta" también: se le llamó y no cogió, sigue por atender.
+POR_LLAMAR = {"nuevo", "llamar", "no-contesta"}
 #: Columnas que ya no existen, y a dónde va lo que quedó guardado en ellas.
 _ANTES = {"propuesta": "seguimiento", "revision": "seguimiento", "perdido": "descartado"}
 #: Mover a alguien y apuntarlo en Llamadas en el mismo momento no es "volver".
@@ -465,7 +470,9 @@ async def mover(
     fila.updated_by = (autor or "")[:120]
     db_session.add(fila)
 
-    if etapa != "llamar":
+    # Por llamar y No contesta no tocan la marca (puede que ya se le
+    # escribiera); Nuevo la quita; cualquier otra columna es haberle atendido.
+    if etapa not in ("llamar", "no-contesta"):
         atendida = etapa != "nuevo"
         for s in (
             await db_session.execute(select(EnrollmentRequest).where(func.lower(EnrollmentRequest.email) == clave))

@@ -2669,6 +2669,15 @@ desde fuera… mover agarrando como Trello… y ver siempre de dónde viene".
   no se presentó a su llamada. Se mueve a mano o **sola al apuntar «No vino»**
   en el «¿Qué pasó?» de Llamadas (antes «No vino» llevaba a Por llamar). Con
   nueve columnas, el resumen del inicio del panel va de tres en tres.
+- **«No contesta»** (14/10, "una columna más de no contesta"): entre Por
+  llamar y Contactado (id `no-contesta`), punto verde oliva `#8FA03C`. Solo a
+  mano. **Es de las de llamar** (`POR_LLAMAR` en `pipeline.py`, `A_LLAMAR` en
+  `KanbanPanel.tsx`): se le llamó y no cogió, así que sigue **pendiente en
+  Llamadas**, con su temperatura y dónde se quedó, ordenada la más caliente
+  arriba, y **no cuenta como atendida** (no toca `contacted_at`, igual que Por
+  llamar). Al pasarla a Contactado (o a cualquier otra) se marca hecha en
+  Llamadas. Si reserva en Calendly, a Agendado como desde cualquier columna.
+  Test: `test_no_contesta_sigue_pendiente_de_llamar`. Son ya diez columnas.
 - ⚠️ **Con ocho columnas el tablero no cabe en un portátil**, y la PÁGINA
   entera se desplazaba de lado (barra lateral incluida): la caja del contenido
   del panel (`dash/ClientAdminLayout.tsx`) era un hijo de flex sin `min-w-0` y
