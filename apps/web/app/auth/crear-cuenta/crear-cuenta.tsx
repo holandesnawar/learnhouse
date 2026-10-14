@@ -10,6 +10,7 @@ import { resetPassword } from '@services/auth/auth'
 import { useTranslation } from 'react-i18next'
 import { getOrgLogoMediaDirectory } from '@services/media/media'
 import AuthShell from '@components/Auth/AuthShell'
+import { useAuth } from '@components/Contexts/AuthContext'
 import {
   PasswordStrengthIndicator,
   validatePasswordStrength,
@@ -59,6 +60,14 @@ function CrearCuentaClient({ org }: CrearCuentaClientProps) {
   const [showMessage, setShowMessage] = React.useState(false)
   const [showNewPassword, setShowNewPassword] = React.useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false)
+  const { signIn } = useAuth()
+  // ⚠️ Un solo envío (14/10/2026). Antes, tras crear la cuenta, el formulario
+  // seguía ahí con «Crear cuenta y entrar» activo: quien lo pulsaba otra vez
+  // para entrar —o pulsaba dos veces— gastaba un código ya usado y veía
+  // «caducado» aunque su contraseña ya estuviera puesta. Ahora el botón se
+  // bloquea mientras envía y, al acabar, se entra solo en la escuela.
+  const enviando = React.useRef(false)
+  const [hecho, setHecho] = React.useState(false)
 
   const formik = useFormik({
     initialValues: {
@@ -70,6 +79,8 @@ function CrearCuentaClient({ org }: CrearCuentaClientProps) {
     validate: (values) => validate(values, t),
     enableReinitialize: true,
     onSubmit: async (values) => {
+      if (enviando.current || hecho) return
+      enviando.current = true
       setIsSubmitting(true)
       setError('')
       setMessage('')
@@ -81,13 +92,37 @@ function CrearCuentaClient({ org }: CrearCuentaClientProps) {
         values.reset_code
       )
       if (res.status == 200) {
-        setMessage('Cuenta creada. Ya puedes entrar a la escuela.')
+        setHecho(true)
+        setMessage('Cuenta creada. Entrando en la escuela…')
         setShowMessage(true)
+        // Lo que promete el botón: crear la cuenta Y entrar.
+        try {
+          const puente = `${window.location.origin}/redirect_from_auth`
+          const entrada = await signIn('credentials', {
+            redirect: false,
+            email: values.email,
+            password: values.new_password,
+            callbackUrl: puente,
+          })
+          if (entrada && !entrada.error) {
+            window.location.href = puente
+            return
+          }
+        } catch {
+          /* si no entra solo, queda el botón de «Entrar» */
+        }
+        setMessage('Cuenta creada. Ya puedes entrar a la escuela.')
         setIsSubmitting(false)
       } else {
-        setError(res.data?.detail ?? t('auth.error_generic'))
+        const detalle = res.data?.detail
+        setError(
+          typeof detalle === 'string'
+            ? detalle
+            : detalle?.message ?? t('auth.error_generic')
+        )
         setShowMessage(true)
         setIsSubmitting(false)
+        enviando.current = false
       }
     },
   })
@@ -156,6 +191,24 @@ function CrearCuentaClient({ org }: CrearCuentaClientProps) {
             Pon una contraseña para entrar a la escuela.
           </p>
 
+          {hecho ? (
+            <div className="flex flex-col items-center gap-4 text-center">
+              <CheckCircle size={40} className="text-[#4da3ff]" />
+              <p className="text-[15px] text-white/85">
+                Tu contraseña está guardada.
+                {isSubmitting ? ' Entrando en la escuela…' : ''}
+              </p>
+              {!isSubmitting ? (
+                <Link
+                  href="/login"
+                  className="w-full inline-flex items-center justify-center gap-2.5 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold py-3.5 rounded-xl transition-colors text-[15px]"
+                >
+                  Entrar a la escuela
+                  <ArrowRight size={15} strokeWidth={2.5} />
+                </Link>
+              ) : null}
+            </div>
+          ) : (
           <FormLayout onSubmit={formik.handleSubmit}>
             <div className="flex flex-col gap-4 text-left">
               {/* Email — pre-llenado y solo lectura porque viene del email de bienvenida */}
@@ -236,7 +289,10 @@ function CrearCuentaClient({ org }: CrearCuentaClientProps) {
               </Form.Field>
 
               <Form.Submit asChild>
-                <button className="mt-2 w-full inline-flex items-center justify-center gap-2.5 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#1D0084] font-bold py-3.5 rounded-xl transition-colors text-[15px]">
+                <button
+                  disabled={isSubmitting}
+                  className="mt-2 w-full inline-flex items-center justify-center gap-2.5 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold py-3.5 rounded-xl transition-colors text-[15px] disabled:opacity-70 disabled:cursor-wait"
+                >
                   {isSubmitting ? t('common.loading') : (
                     <>
                       Crear cuenta y entrar
@@ -247,6 +303,7 @@ function CrearCuentaClient({ org }: CrearCuentaClientProps) {
               </Form.Submit>
             </div>
           </FormLayout>
+          )}
         </div>
 
         <Link

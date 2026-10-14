@@ -603,6 +603,21 @@ systeme.io con la etiqueta de lista de espera y guarda de dónde vino.
     cuando el código cubre varias (no existe, no coincide, caducó) manda a
     investigar la causa equivocada. Si vuelve a pasar algo así, mirar la clave
     antes que el reloj.
+  - ⚠️ **Segunda vez (14/10/2026, John y German): «caducado» y luego SÍ
+    podían entrar.** Otra causa distinta: tras crear la cuenta, la pantalla
+    (`auth/crear-cuenta/crear-cuenta.tsx`) dejaba el formulario con el botón
+    «Crear cuenta y entrar» activo y solo una franja verde arriba. El alumno
+    lo volvía a pulsar para ENTRAR (o tocaba dos veces en el móvil), el
+    segundo envío llegaba con el código ya gastado y salía «caducado» encima
+    del éxito. Arreglo: un solo envío (botón bloqueado + `useRef`), al
+    terminar **entra solo** en la escuela (`signIn('credentials')` →
+    `/redirect_from_auth`) y el formulario se sustituye por «Tu contraseña
+    está guardada · Entrar a la escuela». En el servidor,
+    `_misma_contrasena_reciente` (password_reset.py, test
+    `test_crear_cuenta_repetida.py`): repetir con el código gastado y la
+    MISMA contraseña puesta hace menos de 24 h contesta éxito, y el mensaje
+    de error dice ahora «ya se usó o ha caducado; si ya creaste tu
+    contraseña, entra con ella».
 - **Email rebrand**: todos los emails (welcome, reset, invite, role-changed, verify, payment-welcome) usan layout Nawar (banner cloudfront + logo footer + ¿Dudas? info@holandesnawar.com + Términos/Privacidad apuntando a holandesnawar.com). Color del botón `#4da3ff` + texto `#0a1656`, no se invierte en dark mode. Constante `BANNER_URL` + `LOGO_URL` + `TERMS_URL`/`PRIVACY_URL` en `apps/api/src/services/users/emails.py`.
 - **Backend nuevo**:
   - Tabla `exercise_attempt` (último intento por sección + falladas).

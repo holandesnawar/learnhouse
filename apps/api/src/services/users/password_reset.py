@@ -184,6 +184,29 @@ async def send_reset_password_code(
     return "Si existe una cuenta con ese correo, te hemos enviado un código. Por favor, revisa tu correo"
 
 
+#: Cuánto tiempo después de poner la contraseña se acepta repetir el envío.
+_VENTANA_REPETIR = 24 * 60 * 60
+
+
+def _misma_contrasena_reciente(user: User, new_password: str, ahora: datetime | None = None) -> bool:
+    """¿La contraseña de la cuenta YA es esa y se puso hace menos de un día?
+    Sirve para no dar "caducado" a quien repite el envío de crear cuenta."""
+    from src.security.security import security_verify_password
+
+    cuando = getattr(user, "password_changed_at", None)
+    if not cuando or not user.password:
+        return False
+    if cuando.tzinfo is None:
+        cuando = cuando.replace(tzinfo=timezone.utc)
+    ahora = ahora or datetime.now(timezone.utc)
+    if (ahora - cuando).total_seconds() > _VENTANA_REPETIR:
+        return False
+    try:
+        return security_verify_password(new_password, user.password)
+    except Exception:  # noqa: BLE001
+        return False
+
+
 async def change_password_with_reset_code(
     request: Request,
     db_session: AsyncSession,
@@ -269,10 +292,22 @@ async def change_password_with_reset_code(
     reset_code_value = r.get(reset_key)
 
     if reset_code_value is None:
+        # El enlace ya se usó y es la MISMA contraseña de hace un rato (14/10/2026,
+        # alumnos nuevos "les sale caducado y luego pueden entrar"): la pantalla
+        # de crear cuenta dejaba el botón activo tras el éxito y quien lo volvía
+        # a pulsar —o lo pulsaba dos veces— gastaba un código ya usado. No es un
+        # error: su contraseña ya es esa. Se contesta lo mismo que la primera vez.
+        # No filtra nada: para llegar aquí hay que saber ya la contraseña.
+        if _misma_contrasena_reciente(user, new_password):
+            logging.info(f"Reset code reused with the password just set for user: {user.user_uuid}")
+            return "Tu contraseña se ha cambiado correctamente"
         logging.warning(f"Invalid reset code attempt for user: {user.user_uuid}")
         raise HTTPException(
             status_code=400,
-            detail="El enlace ya no es válido o ha caducado. Pide uno nuevo en «¿Olvidaste tu contraseña?».",
+            detail=(
+                "Este enlace ya se usó o ha caducado. Si ya creaste tu contraseña, entra con ella; "
+                "si no, pide uno nuevo en «¿Olvidaste tu contraseña?»."
+            ),
         )
 
     reset_code_object = json.loads(reset_code_value)
@@ -420,10 +455,22 @@ async def change_password_with_reset_code_platform(
     reset_code_value = r.get(reset_key)
 
     if reset_code_value is None:
+        # El enlace ya se usó y es la MISMA contraseña de hace un rato (14/10/2026,
+        # alumnos nuevos "les sale caducado y luego pueden entrar"): la pantalla
+        # de crear cuenta dejaba el botón activo tras el éxito y quien lo volvía
+        # a pulsar —o lo pulsaba dos veces— gastaba un código ya usado. No es un
+        # error: su contraseña ya es esa. Se contesta lo mismo que la primera vez.
+        # No filtra nada: para llegar aquí hay que saber ya la contraseña.
+        if _misma_contrasena_reciente(user, new_password):
+            logging.info(f"Reset code reused with the password just set for user: {user.user_uuid}")
+            return "Tu contraseña se ha cambiado correctamente"
         logging.warning(f"Invalid reset code attempt for user: {user.user_uuid}")
         raise HTTPException(
             status_code=400,
-            detail="El enlace ya no es válido o ha caducado. Pide uno nuevo en «¿Olvidaste tu contraseña?».",
+            detail=(
+                "Este enlace ya se usó o ha caducado. Si ya creaste tu contraseña, entra con ella; "
+                "si no, pide uno nuevo en «¿Olvidaste tu contraseña?»."
+            ),
         )
 
     reset_code_object = json.loads(reset_code_value)
