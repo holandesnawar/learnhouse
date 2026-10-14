@@ -176,9 +176,13 @@ function TarjetaVista({ t, onAbrir }: { t: Tarjeta; onAbrir: () => void }) {
       ) : null}
       {t.origen || t.canal || t.vio_precio || t.notas > 1 || t.tareas ? (
         <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11.5px] text-gray-500">
-          {/* De dónde viene (09/10): «Anuncio Meta», «Web · inicio», «Guía»… */}
+          {/* De dónde viene (09/10): «Anuncio Meta», «Web · inicio», «Guía»…
+              Desde el 14/10 con el anuncio concreto detrás: «Anuncio Meta · UGC-Laura». */}
           {t.origen ? (
-            <span className={t.origen.startsWith('Anuncio') ? 'font-medium text-gray-800' : ''} title="De dónde viene">
+            <span
+              className={`max-w-full truncate ${t.origen.startsWith('Anuncio') ? 'font-medium text-gray-800' : ''}`}
+              title={`De dónde viene: ${t.origen}`}
+            >
               {t.origen}
             </span>
           ) : null}
