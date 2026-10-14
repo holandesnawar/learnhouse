@@ -9,10 +9,12 @@ la lista de espera o escribió por Instagram, no: eso es captación, no
 matrícula (08/10, "solo gente que haya mostrado interés").
 
 Columnas (09/10): nuevo → llamar ("Por llamar") → contactado → agendado →
-seguimiento → pendiente-pago → no-show → descartado → alumno. "Agendado"
-(13/10, "déjala vacía, yo meto todo") y "Por pagar" (13/10, quien dijo que sí
-y aún no ha pagado) solo se llenan a mano: nada coloca a nadie ahí solo, ni la
-reserva de Calendly ni una señal cobrada. "No show" (13/10) es quien no se
+seguimiento → pendiente-pago → no-show → descartado → alumno. "Por pagar"
+(13/10, quien dijo que sí y aún no ha pagado) solo se llena a mano: ni una
+señal cobrada coloca a nadie ahí. "Agendado" nació igual (13/10, "déjala
+vacía, yo meto todo") y desde el 14/10 se llena TAMBIÉN sola con Calendly
+("si ese mail tiene una reunión agendada en futuro, que se mueva a agendado"):
+ver `cita_que_manda`. "No show" (13/10) es quien no se
 presentó a su llamada: se mueve a mano o al apuntar «No vino» en Llamadas
 (`resultado_llamada.py`). "Alumno" no se elige: sale sola en cuanto paga, y en cuanto paga se
 va ahí aunque alguien la hubiera dejado en otra columna. "Propuesta" se quitó
@@ -199,12 +201,72 @@ def entro_en_el_flujo(ficha: dict) -> str:
     )
 
 
+#: Una llamada que YA pasó solo cuenta si se reservó desde este día: así, al
+#: estrenar esto, las llamadas viejas sin «¿Qué pasó?» no mueven a nadie.
+AGENDADO_AUTO_DESDE = "2026-10-14"
+
+
+def cita_que_manda(citas: list[dict], movida_el: str, ahora: datetime) -> Optional[dict]:
+    """La llamada de Calendly que pone a esta persona en Agendado, o None.
+    Función pura, con test.
+
+    `citas`: las suyas, ya sin las quitadas del calendario ni las que tienen
+    «¿Qué pasó?» apuntado (eso ya la movió de columna). Cuenta una cita activa
+    (no cancelada) reservada DESPUÉS del último movimiento a mano: lo último
+    que pasó manda, como con Llamadas. Si el closer la mueve después de que
+    reservara, gana el closer; si vuelve a reservar, vuelve a Agendado.
+
+    Se queda en Agendado también cuando la llamada ya ha pasado, hasta que se
+    apunte «¿Qué pasó?» o alguien la mueva: si no, al pasar la hora la tarjeta
+    volvería sola a Por llamar sin que nadie hubiera hecho nada.
+
+    Devuelve la próxima si hay alguna por delante; si no, la última."""
+    tope = _instante(movida_el) + _MARGEN_SEG if movida_el else 0.0
+    ya = ahora.timestamp()
+    futuras, pasadas = [], []
+    for c in citas or []:
+        if c.get("estado") != "activa":
+            continue
+        futura = _instante(c.get("inicio", "")) > ya
+        if not futura and str(c.get("reservada") or "")[:10] < AGENDADO_AUTO_DESDE:
+            continue
+        if tope and _instante(c.get("reservada", "")) <= tope:
+            continue
+        (futuras if futura else pasadas).append(c)
+    if futuras:
+        return min(futuras, key=lambda c: _instante(c.get("inicio", "")))
+    if pasadas:
+        return max(pasadas, key=lambda c: _instante(c.get("inicio", "")))
+    return None
+
+
+async def citas_por_email(db_session: AsyncSession) -> dict[str, list[dict]]:
+    """Las llamadas de Calendly de cada correo que aún pueden mover a alguien
+    a Agendado: sin las quitadas del calendario ni las que ya tienen
+    «¿Qué pasó?». En blando: sin Calendly (o sin token), vacío."""
+    try:
+        from src.services.contactos.agenda import agenda
+        from src.services.contactos.resultado_llamada import resultados
+
+        datos = await agenda()
+        hechos = await resultados(db_session)
+    except Exception:  # noqa: BLE001
+        return {}
+    salida: dict[str, list[dict]] = {}
+    for c in datos.get("citas") or []:
+        email = (c.get("email") or "").strip().lower()
+        if email and not hechos.get(c.get("id") or ""):
+            salida.setdefault(email, []).append(c)
+    return salida
+
+
 def colocar(
     ficha: dict,
     guardada: Optional[dict],
     llamada: Optional[dict] = None,
     ahora: Optional[datetime] = None,
     nombres_anuncios: Optional[dict] = None,
+    citas: Optional[list[dict]] = None,
 ) -> dict:
     """Dónde va una ficha de Contactos en el tablero.
 
@@ -242,6 +304,12 @@ def colocar(
         etapa = a_llamar
     else:
         etapa = "contactado" if ficha.get("atendida") or en_llamadas == "hecha" else a_llamar
+    # Reservó una llamada en Calendly después del último movimiento: Agendado.
+    cita = None
+    if etapa != "alumno":
+        cita = cita_que_manda(citas or [], guardada.get("updated_at", "") if movida else "", ahora or datetime.now(timezone.utc))
+        if cita:
+            etapa = "agendado"
     return {
         "id": ficha.get("email", ""),
         "email": ficha.get("email", ""),
@@ -264,6 +332,8 @@ def colocar(
         # de pago o entró en Llamadas): ordena las columnas.
         "llegada": llegada,
         "temperatura": calor,
+        # La llamada de Calendly que la tiene en Agendado (la tarjeta enseña el día).
+        "cita": {"inicio": cita.get("inicio", ""), "id": cita.get("id", "")} if cita else None,
         # Fuera del tablero: quitada a mano, o fuera de los números (prueba).
         "oculto": bool(guardada.get("oculto")) or bool(ficha.get("fuera_de_metricas")),
     }
@@ -327,6 +397,7 @@ async def tablero(fichas: list[dict], db_session: AsyncSession, nombres_anuncios
     ya = await guardadas(db_session)
     por_email = {f["email"]: f for f in fichas}
     llamadas, sueltas = await para_el_tablero(por_email, db_session)
+    citas = await citas_por_email(db_session)
     ahora = datetime.now(timezone.utc)
     tarjetas = []
     for f in fichas:
@@ -335,7 +406,7 @@ async def tablero(fichas: list[dict], db_session: AsyncSession, nombres_anuncios
         movida = bool(etapa_guardada((ya.get(f["email"]) or {}).get("etapa", "")))
         if not en_tablero(f, pendiente, movida):
             continue
-        t = colocar(f, ya.get(f["email"]), llamada, ahora, nombres_anuncios)
+        t = colocar(f, ya.get(f["email"]), llamada, ahora, nombres_anuncios, citas.get(f["email"]))
         # En Nuevo y Por llamar, la temperatura (como en Llamadas: la de su
         # fila si la tiene, que puede estar puesta a mano; si no, por cuándo
         # llegó) y, si se quedó a medias, dónde.

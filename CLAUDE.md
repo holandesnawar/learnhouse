@@ -2636,9 +2636,27 @@ desde fuera… mover agarrando como Trello… y ver siempre de dónde viene".
   con `_ANTES` (`propuesta` → seguimiento, `perdido` → descartado) en
   `etapa_guardada`, y `mover` acepta aún los nombres viejos.
 - **«Agendado»** (13/10, "déjala vacía, yo meto todo"): columna entre
-  Contactado y Seguimiento (id `agendado`). **Solo se llena a mano**: nada
-  coloca a nadie ahí solo, tampoco la reserva de Calendly. Moverla ahí desde
-  Nuevo / Por llamar cuenta como atendida, igual que Contactado.
+  Contactado y Seguimiento (id `agendado`). Moverla ahí desde Nuevo / Por
+  llamar cuenta como atendida, igual que Contactado.
+  - ⚠️ **Desde el 14/10 se llena TAMBIÉN sola con Calendly** ("si ese mail
+    tiene una reunión agendada en futuro, que se mueva a agendado"):
+    `cita_que_manda` en `pipeline.py` (pura, con test en `test_panel.py`).
+    Cuenta una cita ACTIVA de la agenda de Calendly (la misma que lee
+    Llamadas, `agenda.py`, que ahora trae `reservada` = cuándo se reservó)
+    reservada DESPUÉS del último movimiento a mano: lo último que pasó manda.
+    Si el closer la mueve después, gana el closer; si vuelve a reservar,
+    vuelve a Agendado. Vale desde cualquier columna menos Alumno. Cancelada
+    = no cuenta. Las citas quitadas del calendario o con «¿Qué pasó?»
+    apuntado no cuentan (`citas_por_email`): «¿Qué pasó?» ya la mueve.
+  - Pasada la hora se queda en Agendado hasta apuntar «¿Qué pasó?» o moverla
+    (si no, volvería sola a Por llamar sin que nadie hiciera nada). Las
+    llamadas que ya pasaron solo cuentan si se reservaron desde el 14/10
+    (`AGENDADO_AUTO_DESDE`): al estrenarlo no se movió a nadie por llamadas
+    viejas.
+  - La tarjeta enseña «Llamada jue 16 oct · 18:00» y, si ya pasó, «Llamada
+    del … · falta «¿Qué pasó?»» en ámbar. No se guarda nada: se calcula al
+    abrir el tablero (agenda con caché de 1 minuto). Sin
+    `LEARNHOUSE_CALENDLY_TOKEN`, no hace nada.
 - **«Por pagar»** (13/10, "antes de descartado, falta de pago algo así"):
   columna entre Seguimiento y Descartado (id `pendiente-pago`), para quien
   dijo que sí y aún no ha pagado. **También solo a mano**: ni una señal

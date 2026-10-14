@@ -66,6 +66,9 @@ export interface Tarjeta {
   suelta?: boolean
   /** La fecha de volver a llamar, si la tiene. */
   volver_a_llamar?: VolverALlamar | null
+  /** La llamada de Calendly que la tiene en Agendado (14/10): reservó después
+   *  del último movimiento a mano. */
+  cita?: { inicio: string; id: string } | null
 }
 
 export interface Tablero {

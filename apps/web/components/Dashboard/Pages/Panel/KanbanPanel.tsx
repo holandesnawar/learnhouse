@@ -56,7 +56,7 @@ import { cuandoLlamar, hoyISO } from '@services/stats/contactos'
 import { quitarPersona } from './quitarPersona'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { quitarDeMetricas, volverAContar } from '@services/stats/contactos'
-import { CheckSquare, ChevronDown, ChevronsLeft, Eye, Loader2, PhoneCall, RotateCcw, Search, StickyNote, X } from 'lucide-react'
+import { CalendarCheck, CheckSquare, ChevronDown, ChevronsLeft, Eye, Loader2, PhoneCall, RotateCcw, Search, StickyNote, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { BOTON, filtro } from './ui'
 
@@ -91,6 +91,15 @@ const POR_COLUMNA = 6
 // En Nuevo y Por llamar, la más caliente arriba (como en Llamadas).
 const A_LLAMAR: EtapaTablero[] = ['nuevo', 'llamar']
 const ORDEN_TEMPERATURA: Record<string, number> = { caliente: 0, templado: 1, frio: 2 }
+
+/** «jue 16 oct · 18:00», en hora de Países Bajos. */
+function diaHora(iso: string) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const dia = d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Amsterdam' })
+  const hora = d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Amsterdam' })
+  return `${dia.replace(/\./g, '').replace(',', '')} · ${hora}`
+}
 
 /** La fecha de volver a llamar toca hoy o ya se pasó. */
 const tocaLlamar = (t: Tarjeta) => Boolean(t.volver_a_llamar?.fecha && t.volver_a_llamar.fecha <= hoyISO())
@@ -166,6 +175,21 @@ function TarjetaVista({ t, onAbrir }: { t: Tarjeta; onAbrir: () => void }) {
           <PhoneCall size={11} />
           Llamar {cuandoLlamar(t.volver_a_llamar.fecha)}
         </p>
+      ) : null}
+      {/* Reservó en Calendly (14/10): por eso está en Agendado. Si la llamada
+          ya pasó, falta apuntar «¿Qué pasó?» en Llamadas. */}
+      {t.cita?.inicio ? (
+        new Date(t.cita.inicio).getTime() > Date.now() ? (
+          <p className="mt-1 flex items-center gap-1 text-[11.5px] font-medium text-gray-700" title="Reservada en Calendly">
+            <CalendarCheck size={11} className="shrink-0" />
+            Llamada {diaHora(t.cita.inicio)}
+          </p>
+        ) : (
+          <p className="mt-1 flex items-center gap-1 text-[11.5px] font-medium text-[#B45309]" title="Apúntalo en Llamadas → ¿Qué pasó?">
+            <CalendarCheck size={11} className="shrink-0" />
+            Llamada del {diaHora(t.cita.inicio)} · falta «¿Qué pasó?»
+          </p>
+        )
       ) : null}
       {t.reserva ? (
         <p className="mt-1 text-[11.5px] font-medium text-gray-900 tabular-nums" title="Plaza reservada: entra a la escuela cuando pague lo que falta">

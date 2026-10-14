@@ -16,7 +16,7 @@ from src.services.contactos.contactos import _emails_con_cuenta, _todos_los_even
 from src.services.contactos.seguimiento import seguimiento_de
 from src.services.panel import tareas as tareas_srv
 from src.services.panel.ads import limpiar_anuncio, nombre_del_anuncio
-from src.services.panel.pipeline import colocar
+from src.services.panel.pipeline import citas_por_email, colocar
 from src.services.payments.solicitudes import _NOMBRES as NOMBRES_PAGINA
 
 
@@ -229,6 +229,8 @@ async def ficha_cliente(
         else None,
         llamada,
         nombres_anuncios=nombres_anuncios,
+        # Su llamada de Calendly, para que la ficha diga Agendado como la tarjeta.
+        citas=(await citas_por_email(db_session)).get(clave),
     )
 
     # El plan de pagos propio (3 plazos): su matrícula lleva la suma de lo
