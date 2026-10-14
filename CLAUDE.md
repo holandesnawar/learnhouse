@@ -2491,7 +2491,13 @@ Para la campaña de Meta «LEADS | VSL Matricula | oct26» (NL+BE, español,
   sin fbclid no hay cookie `_fbc`. Se guardan **cuatro** UTM: `utm_content`
   (en Meta, el nombre del anuncio) es nuevo, columna en `contact_event` y
   `enrollment_request` (`_ADDED_COLUMNS`), y sale en la ficha como
-  «Anuncio: …». A systeme.io NO va (no tiene ese campo). El recorrido marca
+  «Anuncio: …». A systeme.io NO va (no tiene ese campo). Desde el 14/10 la
+  TARJETA del tablero también lo dice: «Anuncio Meta · UGC-Laura-14oct»
+  (`_con_anuncio` en `pipeline.py`). **Para distinguir un anuncio de otro
+  basta el NOMBRE del anuncio en Meta** (llega solo por `{{ad.name}}`):
+  ponerle tipo, quién sale y fecha, sin tildes. Una campaña nueva lleva su
+  propio `utm_campaign` fijo y se apunta en Panel → Anuncios con ese mismo
+  valor; un anuncio nuevo dentro de la misma campaña no cambia nada. El recorrido marca
   `anuncio-fb` («la página del anuncio de Facebook e Instagram»); en
   systeme.io, `origen = formacion-nawar-fb`.
 - **Panel → Anuncios** une campaña y leads por `utm_campaign` EXACTO (sin

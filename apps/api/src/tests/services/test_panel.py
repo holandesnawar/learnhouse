@@ -78,6 +78,15 @@ def test_de_donde_viene():
     assert origen_corto({"pasos": ["guia-bases", "gracias-bases", "admision"]}) == "Guía"
     assert origen_corto({"pasos": [], "utm_source": "instagram"}) == "Instagram"
     assert origen_corto({}) == ""
+    # El anuncio concreto (utm_content = {{ad.name}} en Meta) va detrás.
+    assert (
+        origen_corto({"pasos": ["anuncio-fb"], "utm_source": "facebook", "utm_medium": "paid", "utm_content": "UGC-Laura-14oct"})
+        == "Anuncio Meta · UGC-Laura-14oct"
+    )
+    # Una plantilla sin sustituir no es un nombre.
+    assert origen_corto({"pasos": ["anuncio-fb"], "utm_content": "{{ad.name}}"}) == "Anuncio Meta"
+    # Fuera de los anuncios no se enseña aunque venga.
+    assert origen_corto({"pasos": ["home"], "utm_content": "boton-menu"}) == "Web · inicio"
     # Y llega a la tarjeta.
     assert colocar(_ficha(pasos=["home", "formacion-web"]), None)["origen"] == "Web · inicio"
 

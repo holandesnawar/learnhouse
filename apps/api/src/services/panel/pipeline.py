@@ -137,13 +137,25 @@ _MEDIOS_DE_PAGO = {"paid", "cpc", "ppc", "ads", "paid_social", "paidsocial", "pa
 _FUENTES_META = {"facebook", "fb", "instagram", "ig", "meta"}
 
 
+def _con_anuncio(origen: str, ficha: dict) -> str:
+    """Añade el anuncio concreto (14/10, "que nos salga de qué anuncio
+    vienen"): en Meta es `utm_content={{ad.name}}`, o sea el nombre que se le
+    pone al anuncio en el Administrador de anuncios. Un `{{…}}` sin sustituir
+    (el enlace abierto fuera de Meta) no es un nombre y no se enseña."""
+    anuncio = (ficha.get("utm_content") or "").strip()
+    if not anuncio or "{{" in anuncio:
+        return origen
+    return f"{origen} · {anuncio[:60]}"
+
+
 def origen_corto(ficha: dict) -> str:
     """De dónde viene una matrícula, para la tarjeta (09/10, "asegúrate que
     puedo ver siempre si viene de la home o de la de ads"). Función pura.
 
     - "Anuncio Meta": pasó por la página del anuncio (`anuncio-fb`, o la vieja
       `landing-metodo`) o trae una campaña de pago de Facebook/Instagram. Gana
-      a todo: si un anuncio la trajo alguna vez, es del anuncio.
+      a todo: si un anuncio la trajo alguna vez, es del anuncio. Si se sabe el
+      anuncio concreto, va detrás: "Anuncio Meta · UGC-Laura-14oct".
     - "Anuncio · <fuente>": otra campaña de pago (Google…).
     - Si no, por la PRIMERA página por la que entró: "Web · inicio", "Web ·
       Nuestra visión", "Web · blog", "Web · formación"…, "Guía" o "Enlace de
@@ -155,11 +167,11 @@ def origen_corto(ficha: dict) -> str:
     medio = (ficha.get("utm_medium") or "").strip().lower()
     fuente = (ficha.get("utm_source") or "").strip().lower()
     if "anuncio-fb" in pasos or "landing-metodo" in pasos:
-        return "Anuncio Meta"
+        return _con_anuncio("Anuncio Meta", ficha)
     if medio in _MEDIOS_DE_PAGO:
         if fuente in _FUENTES_META or not fuente:
-            return "Anuncio Meta" if fuente else "Anuncio"
-        return f"Anuncio · {fuente.capitalize()}"
+            return _con_anuncio("Anuncio Meta" if fuente else "Anuncio", ficha)
+        return _con_anuncio(f"Anuncio · {fuente.capitalize()}", ficha)
     if pasos:
         primero = pasos[0]
         if primero.startswith("guia-") or primero.startswith("gracias-"):
