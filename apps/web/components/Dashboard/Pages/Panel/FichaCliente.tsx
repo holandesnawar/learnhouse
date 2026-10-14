@@ -58,6 +58,7 @@ import { numeroWhatsApp } from '@/lib/nawar/telefono'
 const ETAPAS: { id: EtapaTablero; nombre: string }[] = [
   { id: 'nuevo', nombre: 'Nuevo' },
   { id: 'llamar', nombre: 'Por llamar' },
+  { id: 'no-contesta', nombre: 'No contesta' },
   { id: 'contactado', nombre: 'Contactado' },
   { id: 'agendado', nombre: 'Agendado' },
   { id: 'seguimiento', nombre: 'Seguimiento' },

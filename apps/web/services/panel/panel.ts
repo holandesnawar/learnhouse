@@ -12,6 +12,7 @@ import type { NotaContacto, VolverALlamar } from '@services/stats/contactos'
 export type EtapaTablero =
   | 'nuevo'
   | 'llamar'
+  | 'no-contesta'
   | 'contactado'
   | 'agendado'
   | 'seguimiento'

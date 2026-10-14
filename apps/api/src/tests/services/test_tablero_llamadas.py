@@ -141,6 +141,33 @@ async def test_no_vino_pasa_a_no_show(db):
     assert any("No vino" in n.texto and "No contestó" in n.texto for n in notas)
 
 
+async def test_no_contesta_sigue_pendiente_de_llamar(db):
+    # 14/10: se le llamó y no cogió. Sigue pendiente en Llamadas, con su
+    # temperatura y dónde se quedó, y no cuenta como atendida.
+    db.add(
+        ContactEvent(
+            email="noe@x.com", kind="admision", first_name="Noe",
+            extra=json.dumps({"embudo": "admision", "video": "visto"}), created_at=_hace(3),
+        )
+    )
+    db.add(EnrollmentRequest(email="noe@x.com", first_name="Noe", created_at=_hace(3)))
+    await db.commit()
+    assert (await _tablero(db))["noe@x.com"]["etapa"] == "nuevo"
+
+    assert (await pipeline.mover("noe@x.com", "no-contesta", None, None, "Closer", db))["ok"]
+    t = (await _tablero(db))["noe@x.com"]
+    assert t["etapa"] == "no-contesta" and t["llamada"] and t["temperatura"] == "caliente"
+    assert await _llamadas(db, "noe@x.com") == ["pendiente"]
+    s = (await db.execute(select(EnrollmentRequest).where(EnrollmentRequest.email == "noe@x.com"))).scalars().first()
+    assert not s.contacted_at
+
+    # Al final coge: a Contactado, y entonces sí, hecha en Llamadas.
+    await pipeline.mover("noe@x.com", "contactado", None, None, "Closer", db)
+    assert await _llamadas(db, "noe@x.com") == ["hecha"]
+    await db.refresh(s)
+    assert s.contacted_at
+
+
 async def test_volver_a_nuevo_no_toca_llamadas_y_desmarca_atendida(db):
     db.add(EnrollmentRequest(email="eva@x.com", first_name="Eva", created_at=_hace(5)))
     await db.commit()

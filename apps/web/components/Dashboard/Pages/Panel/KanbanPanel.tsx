@@ -67,10 +67,12 @@ import { BOTON, filtro } from './ui'
 // para que se viera "apagado", y parecía que le faltaba el color ("¿por qué
 // no tiene color como los demás?", 13/10): ahora rojo oscuro, que se separa
 // del naranja suave de Por pagar. No show, entre las dos, va en ciruela para
-// no confundirse con ninguna.
+// no confundirse con ninguna. No contesta (14/10), junto a Por llamar, en
+// verde oliva: el único tono que no estaba.
 const COLOR: Record<EtapaTablero, string> = {
   nuevo: '#5B8DEF',
   llamar: '#E07AA8',
+  'no-contesta': '#8FA03C',
   contactado: '#9B87F5',
   agendado: '#D4A24C',
   seguimiento: '#3E9BB0',
@@ -88,8 +90,8 @@ const CLAVE_PLEGADAS = 'nawar.tablero.plegadas'
 
 const POR_COLUMNA = 6
 
-// En Nuevo y Por llamar, la más caliente arriba (como en Llamadas).
-const A_LLAMAR: EtapaTablero[] = ['nuevo', 'llamar']
+// En Nuevo, Por llamar y No contesta, la más caliente arriba (como en Llamadas).
+const A_LLAMAR: EtapaTablero[] = ['nuevo', 'llamar', 'no-contesta']
 const ORDEN_TEMPERATURA: Record<string, number> = { caliente: 0, templado: 1, frio: 2 }
 
 /** «jue 16 oct · 18:00», en hora de Países Bajos. */
