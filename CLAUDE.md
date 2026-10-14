@@ -1193,10 +1193,13 @@ compilado, no en el fuente.
   lleva el certificado", que es lo que hay de verdad.
 
 ### Pendiente, ofrecido y NO aprobado
-- **`holandesnawar.com/acceder` es un login de mentira** ("Login solo-diseño"):
-  siempre contesta "Correo o contraseña incorrectos". El de verdad es
-  `https://app.holandesnawar.com/login`. Lo suyo es convertirlo en un redirect.
-  Está sin decidir.
+- ~~El login de mentira de la web~~ **HECHO el 14/10/2026** (nawar-web PR
+  #150). Era `/acceso` (no `/acceder`), un formulario «solo diseño» que
+  contestaba siempre "Correo o contraseña incorrectos", y lo enlazaba
+  «Acceso a alumnos» del menú de toda la web: algún alumno nuevo creyó que su
+  contraseña no valía. Ahora ese botón va directo a
+  `app.holandesnawar.com/login` (`ESCUELA_URL`) y `/acceso` y `/login` de la
+  web redirigen (302) a la escuela.
 - **Dirección de facturación en el checkout de Stripe** (una línea): se
   recomendó, el usuario dijo "lo dejamos así". Si el gestor la pide, es cambiar
   `billing_address_collection`.
