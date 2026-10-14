@@ -371,3 +371,60 @@ def test_nombre_del_anuncio_limpio_y_renombrado():
     a = vistos[1]
     assert (a["leads"], a["ventas"], a["nombre"]) == (2, 1, "UGC octubre 1 · A")
     assert a["primero"].startswith("2026-10-02") and a["ultimo"].startswith("2026-10-05")
+
+
+# ── Calendly → Agendado (14/10) ────────────────────────────────────────────
+
+#: "Ahora" para Calendly: 14/10 a mediodía.
+HOY = datetime(2026, 10, 14, 12, 0, tzinfo=timezone.utc)
+
+
+def _cita(inicio="2026-10-16T16:00:00Z", reservada="2026-10-14T10:00:00Z", estado="activa"):
+    return {"id": "ev1:ana@correo.com", "inicio": inicio, "reservada": reservada, "estado": estado, "email": "ana@correo.com"}
+
+
+def _con_citas(ficha, guardada, citas):
+    return _colocar(ficha, guardada, None, HOY, None, citas)
+
+
+def test_reservar_en_calendly_pasa_a_agendado():
+    c = _con_citas(_ficha(), None, [_cita()])
+    assert c["etapa"] == "agendado" and c["cita"]["inicio"] == "2026-10-16T16:00:00Z"
+    # Aunque estuviera en otra columna, si reservó después de que la movieran.
+    for antes in ("llamar", "contactado", "seguimiento", "no-show", "descartado"):
+        c = _con_citas(_ficha(), {"etapa": antes, "updated_at": "2026-10-13T09:00:00+00:00"}, [_cita()])
+        assert c["etapa"] == "agendado", antes
+
+
+def test_si_el_closer_la_mueve_despues_de_la_reserva_manda_el_closer():
+    c = _con_citas(_ficha(), {"etapa": "seguimiento", "updated_at": "2026-10-14T11:00:00+00:00"}, [_cita()])
+    assert c["etapa"] == "seguimiento" and c["cita"] is None
+
+
+def test_una_cita_cancelada_no_la_mueve():
+    # Ana pidió plaza el 20/09: sin la cita, a Por llamar.
+    assert _con_citas(_ficha(), None, [_cita(estado="cancelada")])["etapa"] == "llamar"
+
+
+def test_el_alumno_sigue_en_alumno():
+    assert _con_citas(_ficha(etapa="alumno"), None, [_cita()])["etapa"] == "alumno"
+
+
+def test_tras_la_llamada_sigue_en_agendado_hasta_que_se_apunte_que_paso():
+    pasada = _cita(inicio="2026-10-14T09:00:00Z", reservada="2026-10-14T08:00:00Z")
+    assert _con_citas(_ficha(), None, [pasada])["etapa"] == "agendado"
+    # Pero una llamada vieja, reservada antes de estrenar esto, no mueve a nadie.
+    vieja = _cita(inicio="2026-10-10T09:00:00Z", reservada="2026-10-08T08:00:00Z")
+    assert _con_citas(_ficha(), None, [vieja])["etapa"] != "agendado"
+
+
+def test_con_varias_sale_la_proxima():
+    from src.services.panel.pipeline import cita_que_manda
+
+    citas = [
+        _cita(inicio="2026-10-20T10:00:00Z"),
+        _cita(inicio="2026-10-15T10:00:00Z"),
+        _cita(inicio="2026-10-14T09:00:00Z"),  # ya pasó
+    ]
+    assert cita_que_manda(citas, "", HOY)["inicio"] == "2026-10-15T10:00:00Z"
+    assert cita_que_manda([], "", HOY) is None

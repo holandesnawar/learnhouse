@@ -85,6 +85,9 @@ def cita_desde_calendly(evento: dict, invitados: list[dict]) -> list[dict]:
                 "estado": "cancelada" if cancelada else "activa",
                 # Reprogramada = la canceló para coger otra hora; la nueva sale aparte.
                 "reprogramada": bool(inv.get("rescheduled")),
+                # Cuándo la reservó (no cuándo es): el tablero la compara con
+                # el último movimiento a mano para ponerla en Agendado.
+                "reservada": inv.get("created_at") or evento.get("created_at") or "",
                 "motivo_cancelacion": str(cancelacion.get("reason") or "")[:300] if cancelada else "",
             }
         )
