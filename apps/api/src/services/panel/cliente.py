@@ -15,6 +15,7 @@ from src.db.panel_negocio import EmailLog, LeadPipeline
 from src.services.contactos.contactos import _emails_con_cuenta, _todos_los_eventos, fusionar_contactos
 from src.services.contactos.seguimiento import seguimiento_de
 from src.services.panel import tareas as tareas_srv
+from src.services.panel.ads import limpiar_anuncio, nombre_del_anuncio
 from src.services.panel.pipeline import colocar
 from src.services.payments.solicitudes import _NOMBRES as NOMBRES_PAGINA
 
@@ -195,7 +196,9 @@ def linea_de_tiempo(eventos: list[dict], correos: list[dict], notas: list[dict],
     return items
 
 
-async def ficha_cliente(email: str, user_id: int, es_admin: bool, db_session: AsyncSession) -> dict | None:
+async def ficha_cliente(
+    email: str, user_id: int, es_admin: bool, db_session: AsyncSession, nombres_anuncios: dict | None = None
+) -> dict | None:
     clave = (email or "").strip().lower()
     if not clave:
         return None
@@ -225,6 +228,7 @@ async def ficha_cliente(email: str, user_id: int, es_admin: bool, db_session: As
         if guardada
         else None,
         llamada,
+        nombres_anuncios=nombres_anuncios,
     )
 
     pagos = [
@@ -341,7 +345,10 @@ async def ficha_cliente(email: str, user_id: int, es_admin: bool, db_session: As
         "vino_de": ficha["vino_de"],
         "utm": {
             "source": ficha["utm_source"], "medium": ficha["utm_medium"], "campaign": ficha["utm_campaign"],
-            "content": ficha.get("utm_content", ""),
+            # El anuncio con el nombre de la escuela si se le puso uno, y el que
+            # manda Meta tal cual (congelado al publicar) para el «tal cual».
+            "content": nombre_del_anuncio(ficha.get("utm_content", ""), nombres_anuncios),
+            "content_meta": limpiar_anuncio(ficha.get("utm_content", "")),
             "term": ficha.get("utm_term", ""),
             "placement": ficha.get("utm_placement", ""),
         },

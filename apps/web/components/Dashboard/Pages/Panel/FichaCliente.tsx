@@ -559,7 +559,12 @@ export default function FichaCliente({
                 ) : null}
                 {/* El anuncio concreto (utm_content, 07/10): en Meta, el nombre del anuncio. */}
                 {ficha.utm.content ? (
-                  <span className="rounded-md px-2.5 py-1 text-[12px] font-semibold text-[#B45309]">Anuncio: {ficha.utm.content}</span>
+                  <span
+                    className="rounded-md px-2.5 py-1 text-[12px] font-semibold text-[#B45309]"
+                    title={ficha.utm.content_meta && ficha.utm.content_meta !== ficha.utm.content ? `En Meta: ${ficha.utm.content_meta}` : undefined}
+                  >
+                    Anuncio: {ficha.utm.content}
+                  </span>
                 ) : null}
                 {/* En Meta: el conjunto de anuncios (utm_term) y dónde lo vio (utm_placement). */}
                 {ficha.utm.term ? (

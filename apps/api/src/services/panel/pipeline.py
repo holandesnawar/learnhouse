@@ -137,18 +137,22 @@ _MEDIOS_DE_PAGO = {"paid", "cpc", "ppc", "ads", "paid_social", "paidsocial", "pa
 _FUENTES_META = {"facebook", "fb", "instagram", "ig", "meta"}
 
 
-def _con_anuncio(origen: str, ficha: dict) -> str:
+def _con_anuncio(origen: str, ficha: dict, nombres: Optional[dict] = None) -> str:
     """Añade el anuncio concreto (14/10, "que nos salga de qué anuncio
     vienen"): en Meta es `utm_content={{ad.name}}`, o sea el nombre que se le
-    pone al anuncio en el Administrador de anuncios. Un `{{…}}` sin sustituir
-    (el enlace abierto fuera de Meta) no es un nombre y no se enseña."""
-    anuncio = (ficha.get("utm_content") or "").strip()
-    if not anuncio or "{{" in anuncio:
+    pone al anuncio en el Administrador de anuncios. Si en Panel → Anuncios se
+    le ha puesto un nombre de la escuela, ese (`nombres`; ver `ads.py`). Un
+    `{{…}}` sin sustituir (el enlace abierto fuera de Meta) no es un nombre y
+    no se enseña."""
+    from src.services.panel.ads import nombre_del_anuncio
+
+    anuncio = nombre_del_anuncio(ficha.get("utm_content") or "", nombres)
+    if not anuncio:
         return origen
     return f"{origen} · {anuncio[:60]}"
 
 
-def origen_corto(ficha: dict) -> str:
+def origen_corto(ficha: dict, nombres_anuncios: Optional[dict] = None) -> str:
     """De dónde viene una matrícula, para la tarjeta (09/10, "asegúrate que
     puedo ver siempre si viene de la home o de la de ads"). Función pura.
 
@@ -167,11 +171,11 @@ def origen_corto(ficha: dict) -> str:
     medio = (ficha.get("utm_medium") or "").strip().lower()
     fuente = (ficha.get("utm_source") or "").strip().lower()
     if "anuncio-fb" in pasos or "landing-metodo" in pasos:
-        return _con_anuncio("Anuncio Meta", ficha)
+        return _con_anuncio("Anuncio Meta", ficha, nombres_anuncios)
     if medio in _MEDIOS_DE_PAGO:
         if fuente in _FUENTES_META or not fuente:
-            return _con_anuncio("Anuncio Meta" if fuente else "Anuncio", ficha)
-        return _con_anuncio(f"Anuncio · {fuente.capitalize()}", ficha)
+            return _con_anuncio("Anuncio Meta" if fuente else "Anuncio", ficha, nombres_anuncios)
+        return _con_anuncio(f"Anuncio · {fuente.capitalize()}", ficha, nombres_anuncios)
     if pasos:
         primero = pasos[0]
         if primero.startswith("guia-") or primero.startswith("gracias-"):
@@ -195,7 +199,13 @@ def entro_en_el_flujo(ficha: dict) -> str:
     )
 
 
-def colocar(ficha: dict, guardada: Optional[dict], llamada: Optional[dict] = None, ahora: Optional[datetime] = None) -> dict:
+def colocar(
+    ficha: dict,
+    guardada: Optional[dict],
+    llamada: Optional[dict] = None,
+    ahora: Optional[datetime] = None,
+    nombres_anuncios: Optional[dict] = None,
+) -> dict:
     """Dónde va una ficha de Contactos en el tablero.
 
     `llamada`: su fila en la lista de Llamadas, si la tiene: {"estado",
@@ -248,7 +258,7 @@ def colocar(ficha: dict, guardada: Optional[dict], llamada: Optional[dict] = Non
         "vino_de": ficha.get("vino_de", ""),
         "que_hizo": (ficha.get("ultimo_contacto") or {}).get("que", ""),
         "utm_campaign": ficha.get("utm_campaign", ""),
-        "origen": origen_corto(ficha),
+        "origen": origen_corto(ficha, nombres_anuncios),
         "fuera_de_metricas": bool(ficha.get("fuera_de_metricas")),
         # El día que llegó (pidió plaza, llegó al pago, le crearon un enlace
         # de pago o entró en Llamadas): ordena las columnas.
@@ -311,7 +321,7 @@ async def guardadas(db_session: AsyncSession) -> dict[str, dict]:
     }
 
 
-async def tablero(fichas: list[dict], db_session: AsyncSession) -> dict:
+async def tablero(fichas: list[dict], db_session: AsyncSession, nombres_anuncios: Optional[dict] = None) -> dict:
     from src.services.contactos.templadas import para_el_tablero
 
     ya = await guardadas(db_session)
@@ -325,7 +335,7 @@ async def tablero(fichas: list[dict], db_session: AsyncSession) -> dict:
         movida = bool(etapa_guardada((ya.get(f["email"]) or {}).get("etapa", "")))
         if not en_tablero(f, pendiente, movida):
             continue
-        t = colocar(f, ya.get(f["email"]), llamada, ahora)
+        t = colocar(f, ya.get(f["email"]), llamada, ahora, nombres_anuncios)
         # En Nuevo y Por llamar, la temperatura (como en Llamadas: la de su
         # fila si la tiene, que puede estar puesta a mano; si no, por cuándo
         # llegó) y, si se quedó a medias, dónde.

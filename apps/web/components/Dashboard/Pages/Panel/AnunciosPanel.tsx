@@ -18,6 +18,8 @@ import {
   euros,
   fechaCorta,
   getAds,
+  nombrarAnuncio,
+  type AnuncioVisto,
   type Campana,
   type CampanaNueva,
   type PanelAds,
@@ -238,6 +240,65 @@ function FilaCampana({
   )
 }
 
+/** Un anuncio con su nombre de Meta y el de la escuela (14/10). Meta congela
+ *  el nombre al publicar; aquí se le pone el que se quiera ver en la tarjeta de
+ *  Matrículas y en la ficha. */
+function FilaAnuncio({ a, onGuardado }: { a: AnuncioVisto; onGuardado: () => void }) {
+  const org = useOrg() as any
+  const session = useLHSession() as any
+  const accessToken = session?.data?.tokens?.access_token
+  const [nombre, setNombre] = useState(a.nombre)
+  const [guardando, setGuardando] = useState(false)
+  const cambiado = nombre.trim() !== a.nombre
+
+  async function guardar() {
+    setGuardando(true)
+    const r = await nombrarAnuncio(org?.id, a.meta, nombre.trim(), accessToken)
+    setGuardando(false)
+    if (!r.ok) {
+      toast.error(r.error || 'No se ha podido guardar')
+      return
+    }
+    toast.success(nombre.trim() ? 'Nombre guardado' : 'Vuelve a salir el nombre de Meta')
+    onGuardado()
+  }
+
+  return (
+    <li className="py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+      <div className="flex-1 min-w-0">
+        <p className="text-[13px] font-semibold text-gray-900 truncate" title={a.meta}>
+          {a.nombre || a.meta}
+        </p>
+        <p className="text-[11.5px] text-[#6B7280] truncate">
+          {a.nombre ? <>En Meta: <span className="font-mono">{a.meta}</span> · </> : null}
+          {a.leads} {a.leads === 1 ? 'persona' : 'personas'}
+          {a.ventas ? ` · ${a.ventas} ${a.ventas === 1 ? 'venta' : 'ventas'}` : ''}
+          {a.primero ? ` · desde el ${fechaCorta(a.primero)}` : ''}
+        </p>
+      </div>
+      <div className="flex items-center gap-2 sm:w-[340px]">
+        <input
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && cambiado) guardar()
+          }}
+          placeholder="Nombre en la escuela (p. ej. UGC octubre 1)"
+          maxLength={80}
+          className={INPUT}
+        />
+        <button
+          onClick={guardar}
+          disabled={!cambiado || guardando}
+          className="shrink-0 rounded-md px-3 py-2 text-[12.5px] font-semibold text-white bg-gray-900 disabled:bg-[#E5E7EB] disabled:text-[#9CA3AF]"
+        >
+          {guardando ? <Loader2 size={14} className="animate-spin" /> : 'Guardar'}
+        </button>
+      </div>
+    </li>
+  )
+}
+
 export default function AnunciosPanel() {
   const org = useOrg() as any
   const session = useLHSession() as any
@@ -307,6 +368,21 @@ export default function AnunciosPanel() {
           <p className="text-[13.5px] text-[#9CA3AF] py-10 text-center">Todavía no hay campañas apuntadas.</p>
         )}
       </div>
+
+      {datos.anuncios?.length ? (
+        <div className={CARD}>
+          <p className="text-[14px] font-bold text-gray-900">Tus anuncios</p>
+          <p className="text-[12.5px] text-[#6B7280] mt-1 mb-2 leading-relaxed">
+            Cada anuncio llega con el nombre que tenía en Meta al publicarlo, y Meta no lo cambia aunque lo renombres. Ponle
+            aquí el nombre que quieras ver en Matrículas y en la ficha de cada persona.
+          </p>
+          <ul className="divide-y divide-[#F3F4F6]">
+            {datos.anuncios.map((a) => (
+              <FilaAnuncio key={`${a.meta}-${a.nombre}`} a={a} onGuardado={cargar} />
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {datos.sin_apuntar.length ? (
         <div className={CARD}>

@@ -13,10 +13,24 @@ Los utm_campaign que aparecen en los leads sin campaña apuntada salen aparte,
 para que no se pierdan ("hay 12 leads de 'reels-oct' y no sé qué es").
 
 El cálculo es una función pura (`metricas`), con test.
+
+Los ANUNCIOS concretos (14/10)
+------------------------------
+Dentro de una campaña, cada anuncio llega por `utm_content={{ad.name}}`: el
+nombre que tenía el anuncio en Meta AL PUBLICARLO. Meta lo congela ahí; si se
+renombra después, sigue mandando el viejo. Por eso la escuela deja ponerle a
+cada anuncio su nombre de aquí (`nombres_anuncios` en org_config, por el nombre
+que manda Meta en minúsculas): «VIDEO | UGC | VSL | A» → «UGC octubre 1 · A».
+El nombre de aquí es el que sale en la tarjeta de Matrículas y en la ficha.
+`limpiar_anuncio` deshace además una codificación de más (`%20`, `%7C`) por si
+algún enlace llega así: el navegador ya descodifica una vez, pero no dos.
 """
 
+import json
+import re
 from datetime import datetime, timezone
 from typing import Optional
+from urllib.parse import unquote
 
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -37,6 +51,103 @@ def campanas_de(ficha: dict) -> set[str]:
     vistas.add(_clave(ficha.get("utm_campaign", "")))
     vistas.discard("")
     return vistas
+
+
+def limpiar_anuncio(crudo: str) -> str:
+    """El nombre del anuncio tal como se lee. Si llega con `%20`/`%7C` sin
+    descodificar (una o dos veces), se descodifica. Un `{{…}}` sin sustituir
+    (el enlace abierto fuera de Meta) no es un nombre: vacío. Función pura."""
+    texto = (crudo or "").strip()
+    for _ in range(2):
+        if not re.search(r"%[0-9A-Fa-f]{2}", texto):
+            break
+        texto = unquote(texto)
+    texto = re.sub(r"\s+", " ", texto).strip()
+    return "" if "{{" in texto else texto
+
+
+def nombre_del_anuncio(crudo: str, nombres: Optional[dict] = None) -> str:
+    """El nombre de la escuela si se le puso uno; si no, el de Meta, limpio."""
+    limpio = limpiar_anuncio(crudo)
+    if not limpio:
+        return ""
+    return ((nombres or {}).get(limpio.lower()) or "").strip() or limpio
+
+
+def anuncios_vistos(fichas: list[dict], nombres: Optional[dict] = None) -> list[dict]:
+    """Cada anuncio que ha traído a alguien: su nombre en Meta, el de la
+    escuela, cuántas personas y cuántas pagaron, y cuándo llegó la primera y la
+    última. Una persona cuenta una vez por anuncio. Función pura."""
+    por: dict[str, dict] = {}
+    for f in fichas:
+        suyos: dict[str, str] = {}
+        for e in f.get("eventos") or []:
+            limpio = limpiar_anuncio(e.get("utm_content", ""))
+            if limpio:
+                cuando = e.get("when", "") or ""
+                previo = suyos.get(limpio)
+                suyos[limpio] = min(previo, cuando) if previo else cuando
+        propio = limpiar_anuncio(f.get("utm_content", ""))
+        if propio and propio not in suyos:
+            suyos[propio] = ""
+        for limpio, cuando in suyos.items():
+            clave = limpio.lower()
+            a = por.setdefault(clave, {"meta": limpio, "leads": 0, "ventas": 0, "primero": "", "ultimo": ""})
+            a["leads"] += 1
+            if f.get("etapa") == "alumno":
+                a["ventas"] += 1
+            if cuando:
+                a["primero"] = min(a["primero"], cuando) if a["primero"] else cuando
+                a["ultimo"] = max(a["ultimo"], cuando)
+    filas = [
+        {**a, "nombre": ((nombres or {}).get(clave) or "").strip()}
+        for clave, a in por.items()
+    ]
+    filas.sort(key=lambda a: a["ultimo"], reverse=True)
+    return filas
+
+
+async def leer_nombres(org_id: int, db_session: AsyncSession) -> dict[str, str]:
+    from src.db.organization_config import OrganizationConfig
+
+    if db_session is None:
+        return {}
+    fila = (
+        await db_session.execute(select(OrganizationConfig).where(OrganizationConfig.org_id == org_id))
+    ).scalars().first()
+    if not fila or not isinstance(fila.config, dict):
+        return {}
+    guardado = fila.config.get("nombres_anuncios")
+    if not isinstance(guardado, dict):
+        return {}
+    return {str(k): str(v) for k, v in guardado.items() if v}
+
+
+async def guardar_nombre(org_id: int, meta: str, nombre: str, db_session: AsyncSession) -> dict:
+    """Pone (o quita, con nombre vacío) el nombre de la escuela a un anuncio."""
+    from src.db.organization_config import OrganizationConfig
+
+    limpio = limpiar_anuncio(meta)
+    if not limpio:
+        return {"ok": False, "motivo": "Falta el nombre del anuncio"}
+    fila = (
+        await db_session.execute(select(OrganizationConfig).where(OrganizationConfig.org_id == org_id))
+    ).scalars().first()
+    if fila is None:
+        return {"ok": False, "motivo": "La escuela no tiene configuración"}
+    config = json.loads(json.dumps(fila.config or {}))
+    nombres = config.get("nombres_anuncios") if isinstance(config.get("nombres_anuncios"), dict) else {}
+    nombre = (nombre or "").strip()[:80]
+    if nombre:
+        nombres[limpio.lower()] = nombre
+    else:
+        nombres.pop(limpio.lower(), None)
+    config["nombres_anuncios"] = nombres
+    fila.config = config
+    fila.update_date = str(datetime.now())
+    db_session.add(fila)
+    await db_session.commit()
+    return {"ok": True, "meta": limpio, "nombre": nombre}
 
 
 def metricas(campanas: list[dict], fichas: list[dict], ingresos_por_email: dict[str, int]) -> dict:
@@ -138,6 +249,7 @@ async def panel_ads(org_id: int, db_session: AsyncSession) -> dict:
         ingresos[e] = ingresos.get(e, 0) + int(r.amount_cents or 0)
     datos = metricas(await listar(org_id, db_session), fichas, ingresos)
     datos["plataformas"] = PLATAFORMAS
+    datos["anuncios"] = anuncios_vistos(fichas, await leer_nombres(org_id, db_session))
     return datos
 
 

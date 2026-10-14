@@ -131,7 +131,7 @@ export interface FichaCliente {
   /** Por qué ha visto el precio, en una frase (vacío si no lo ha visto). */
   precio_por?: string
   vino_de: string
-  utm: { source: string; medium: string; campaign: string; content?: string; term?: string; placement?: string }
+  utm: { source: string; medium: string; campaign: string; content?: string; content_meta?: string; term?: string; placement?: string }
   etiquetas: string[]
   fuera_de_metricas: boolean
   primer_contacto: { kind: string; que: string; when: string }
@@ -381,8 +381,20 @@ export interface Campana {
   personas: { email: string; nombre: string; etapa: string; when: string }[]
 }
 
+/** Un anuncio concreto (utm_content): el nombre que manda Meta, congelado al
+ *  publicar, y el que se le ha puesto en la escuela (vacío si ninguno). */
+export interface AnuncioVisto {
+  meta: string
+  nombre: string
+  leads: number
+  ventas: number
+  primero: string
+  ultimo: string
+}
+
 export interface PanelAds {
   campanas: Campana[]
+  anuncios: AnuncioVisto[]
   sin_apuntar: { utm_campaign: string; leads: number; ventas: number }[]
   total: { gasto_cents: number; leads: number; ventas: number; ingresos_cents: number; retorno: number | null }
   plataformas: Record<string, string>
@@ -395,3 +407,5 @@ export const crearCampana = (orgId: number, d: CampanaNueva, t: string) => pedir
 export const cambiarCampana = (orgId: number, id: number, d: CampanaNueva, t: string) =>
   pedir<{ ok: boolean }>(`panel/org/${orgId}/ads/${id}`, 'PUT', d, t)
 export const borrarCampana = (orgId: number, id: number, t: string) => pedir<{ ok: boolean }>(`panel/org/${orgId}/ads/${id}`, 'DELETE', null, t)
+export const nombrarAnuncio = (orgId: number, meta: string, nombre: string, t: string) =>
+  pedir<{ ok: boolean; nombre: string }>(`panel/org/${orgId}/ads/nombre`, 'PUT', { meta, nombre }, t)

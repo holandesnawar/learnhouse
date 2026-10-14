@@ -2497,7 +2497,18 @@ Para la campaña de Meta «LEADS | VSL Matricula | oct26» (NL+BE, español,
   basta el NOMBRE del anuncio en Meta** (llega solo por `{{ad.name}}`):
   ponerle tipo, quién sale y fecha, sin tildes. Una campaña nueva lleva su
   propio `utm_campaign` fijo y se apunta en Panel → Anuncios con ese mismo
-  valor; un anuncio nuevo dentro de la misma campaña no cambia nada. El recorrido marca
+  valor; un anuncio nuevo dentro de la misma campaña no cambia nada.
+  ⚠️ **Meta congela el nombre del anuncio AL PUBLICAR**: si se renombra
+  después, `{{ad.name}}` sigue mandando el viejo. Por eso **Panel → Anuncios
+  → «Tus anuncios»** (14/10) lista cada anuncio que ha traído a alguien, con
+  el nombre que manda Meta, personas, ventas y desde cuándo, y deja ponerle
+  un **nombre de la escuela** (org_config `nombres_anuncios`, por el nombre de
+  Meta en minúsculas; `PUT /panel/org/{id}/ads/nombre`). Ese nombre sale en
+  la tarjeta y en la ficha (al pasar el ratón, el de Meta). Los primeros, A y
+  B, se llaman en Meta `VIDEO | UGC | VSL | A`: **llegan legibles**, porque
+  el navegador descodifica `%20`/`%7C` una vez (`URLSearchParams.get` en
+  `utm.ts`), y la escuela descodifica además lo que llegue codificado de más
+  (`limpiar_anuncio` en `ads.py`, test en `test_panel.py`). El recorrido marca
   `anuncio-fb` («la página del anuncio de Facebook e Instagram»); en
   systeme.io, `origen = formacion-nawar-fb`.
 - **Panel → Anuncios** une campaña y leads por `utm_campaign` EXACTO (sin

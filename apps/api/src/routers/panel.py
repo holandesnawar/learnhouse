@@ -40,7 +40,7 @@ async def api_tablero(
     fuera = await emails_excluidos(db_session)
     for f in fichas:
         f["fuera_de_metricas"] = f["email"] in fuera
-    datos = await pipeline.tablero(fichas, db_session)
+    datos = await pipeline.tablero(fichas, db_session, await ads.leer_nombres(org_id, db_session))
     # Volver a llamar: la fecha y el motivo, para «Llamar hoy» en la tarjeta
     # (08/10: el closer ya no tiene Contactos, que es donde estaba).
     from src.services.contactos.seguimiento import todos_los_recordatorios
@@ -147,7 +147,13 @@ async def api_cliente(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
-    ficha = await ficha_cliente(email, current_user.id, await _es_admin(current_user, org_id, db_session), db_session)
+    ficha = await ficha_cliente(
+        email,
+        current_user.id,
+        await _es_admin(current_user, org_id, db_session),
+        db_session,
+        nombres_anuncios=await ads.leer_nombres(org_id, db_session),
+    )
     if ficha is None:
         raise HTTPException(status_code=404, detail="No hay nadie con ese correo")
     return ficha
@@ -495,6 +501,26 @@ class CampanaIn(BaseModel):
     fin: Optional[str] = None
     gasto: Optional[float] = None
     notas: Optional[str] = None
+
+
+class NombreAnuncioIn(BaseModel):
+    meta: str
+    nombre: str = ""
+
+
+@router.put("/org/{org_id}/ads/nombre", summary="El nombre de la escuela de un anuncio (el de Meta no se puede cambiar).")
+async def api_nombre_anuncio(
+    request: Request,
+    org_id: int,
+    data: NombreAnuncioIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _solo_admin(request, org_id, current_user, db_session)
+    r = await ads.guardar_nombre(org_id, data.meta, data.nombre, db_session)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    return r
 
 
 @router.post("/org/{org_id}/ads", summary="Apunta una campaña.")
