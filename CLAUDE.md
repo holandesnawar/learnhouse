@@ -1889,6 +1889,39 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
     - «Quitar» una fila CON correo la descarta (si se borrara, la persona
       volvería a entrar sola); solo se borran las de mano sin correo.
       `borrar_contacto` también las borra.
+  - **Agendar desde la escuela** (15/10, "un botón o clic en un sitio vacío
+    para crear una llamada… que agende automáticamente"): **«Nueva
+    llamada»** arriba de la agenda, clic en el hueco vacío de un día (hoy en
+    adelante; en la semana sale «+ Llamada» al pasar el ratón) y **«Agendar
+    llamada»** en la ficha (con sus datos puestos). Ventana
+    `Panel/NuevaLlamada.tsx`: nombre, correo, WhatsApp, día y **las horas
+    libres que da Calendly** (`event_type_available_times`), solo esas.
+    Backend `services/contactos/reservar.py` (docstring: leerlo), rutas
+    `GET /contactos/org/{id}/agenda/huecos?dia=` y `POST …/agenda/reservar`
+    (closer y administradores). Reserva con **`POST /invitees`** de la API de
+    Calendly: Calendly manda su correo con el enlace como si hubiera reservado
+    la persona. ⚠️ **Esa llamada es de los planes de PAGO de Calendly** (en el
+    gratis, 403): entonces NO falla, devuelve la página de Calendly de ESA
+    hora con nombre y correo puestos (`modo: "enlace"`, botón «Abrir Calendly
+    y confirmar»: un clic en «Programar evento»). El evento es el de slug
+    `llamada-de-consultoria` (`LEARNHOUSE_CALENDLY_EVENTO` lo cambia). Deja en
+    la ficha el evento **`llamada-equipo`** («Rida le agendó una llamada para
+    el jue 16 oct, 18:00»; cuenta como matrícula, NO es `reunion` para no
+    inflar los números de /agendar) y marca hecha su fila pendiente de
+    Llamadas; en el tablero pasa sola a Agendado (`cita_que_manda`).
+    `api.calendly.com` no se alcanza desde aquí: probado con un Calendly
+    falso (`test_reservar_llamada.py`), NO contra el de verdad.
+  - **«Recordar por WhatsApp»** (15/10) en cada cita que aún no ha pasado
+    (Llamadas y ficha): abre WhatsApp con el mensaje escrito («Hola Ana, soy
+    Rida de Holandés Nawar. Te escribo para recordarte tu llamada de mañana a
+    las 18:00. Aquí tienes el enlace para entrar: …»), hora de Países Bajos;
+    sin enlace, esa línea se quita. **No se manda solo**: eso pediría la API
+    de WhatsApp Business. El lápiz cambia el texto (huecos `{nombre}`,
+    `{cuando}`, `{hora}`, `{enlace}`) y se guarda **en ese navegador**, para
+    que cada uno firme con su nombre. `Panel/RecordatorioWhatsApp.tsx` +
+    `lib/nawar/recordatorioLlamada.ts` (con test). Las citas traen ahora el
+    teléfono que la persona dejó en la web si Calendly no lo trae
+    (`telefonos_por_email`), así que el botón WhatsApp sale en más citas.
   - **Pestaña Google Calendar**: el `<iframe>` del calendario del usuario. Se
     guarda SOLO el id y la zona (org_config `agenda_google`) y la dirección se
     rehace en `resultado_llamada.py` (nunca se pinta HTML pegado). De serie,

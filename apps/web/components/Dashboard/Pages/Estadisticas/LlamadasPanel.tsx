@@ -4,7 +4,9 @@
  * Llamadas — la mesa de trabajo del closer.
  *
  * Arriba, la AGENDA: las citas de Calendly en una semana (pasadas, próximas,
- * canceladas y reprogramadas), cada una con su enlace para entrar y, al
+ * canceladas y reprogramadas). «Nueva llamada» (o un clic en el hueco vacío
+ * de un día) la agenda en Calendly sin salir de aquí (15/10, `NuevaLlamada`),
+ * y cada cita lleva «Recordar por WhatsApp». Cada una con su enlace para entrar y, al
  * colgar, "¿Qué pasó?" (va a pagar / lo piensa / no encaja / no vino), que
  * mueve sola la tarjeta del tablero de Matrículas. Al lado, el calendario de
  * Google del usuario, por si allí tiene más cosas. El closer no tiene que
@@ -30,6 +32,8 @@ import Seguimiento from './Seguimiento'
 import FichaCliente from '../Panel/FichaCliente'
 import EnlacePago from '../Panel/EnlacePago'
 import LlamadasTempladas from './LlamadasTempladas'
+import NuevaLlamada from '../Panel/NuevaLlamada'
+import RecordatorioWhatsApp from '../Panel/RecordatorioWhatsApp'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import {
   avisoTrasBorrar,
@@ -55,7 +59,7 @@ import {
   type VolverALlamar,
 } from '@services/stats/contactos'
 import { marcarSolicitud } from '@services/stats/school'
-import { Check, ChevronDown, ChevronLeft, ChevronRight, Loader2, NotebookPen, RotateCcw, Trash2, Video, X } from 'lucide-react'
+import { CalendarPlus, Check, ChevronDown, ChevronLeft, ChevronRight, Loader2, NotebookPen, Plus, RotateCcw, Trash2, Video, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { confirmar } from '@lib/nawar/confirmar'
 import { BOTON, BOTON_PELIGRO, BOTON_PRINCIPAL, ENLACE, Estado, META, Meta, Seccion, TARJETA, filtro, type Tono } from '../Panel/ui'
@@ -118,6 +122,7 @@ export default function LlamadasPanel() {
   const [cargandoAgenda, setCargandoAgenda] = useState(false)
   const [cita, setCita] = useState<Cita | null>(null)
   const [ficha, setFicha] = useState<string | null>(null)
+  const [nueva, setNueva] = useState<{ dia?: Date } | null>(null)
   const [recordatorios, setRecordatorios] = useState<Record<string, VolverALlamar>>({})
   const [notas, setNotas] = useState<NotasPorEmail>({})
   const llamarDe = (email: string) => recordatorios[(email || '').toLowerCase()]
@@ -235,6 +240,7 @@ export default function LlamadasPanel() {
         cargando={cargandoAgenda}
         recargar={() => cargarAgenda(true)}
         abrirCita={setCita}
+        nuevaLlamada={(dia) => setNueva({ dia })}
         notas={notas}
         devolver={async (c) => {
           const r = await devolverCita(org?.id, c.id, accessToken)
@@ -344,6 +350,7 @@ export default function LlamadasPanel() {
           }}
         />
       ) : null}
+      {nueva ? <NuevaLlamada dia={nueva.dia} onClose={() => setNueva(null)} onHecho={() => cargarAgenda(true)} /> : null}
       {ficha ? <FichaCliente
           email={ficha}
           onClose={() => {
@@ -365,6 +372,7 @@ function AgendaVista({
   cargando,
   recargar,
   abrirCita,
+  nuevaLlamada,
   devolver,
   notas,
 }: {
@@ -372,6 +380,7 @@ function AgendaVista({
   cargando: boolean
   recargar: () => void
   abrirCita: (c: Cita) => void
+  nuevaLlamada: (dia?: Date) => void
   devolver: (c: Cita) => void
   notas: NotasPorEmail
 }) {
@@ -426,8 +435,9 @@ function AgendaVista({
             </button>
           ))}
         </div>
+        <div className="ml-auto flex items-center gap-1">
         {vista === 'semana' ? (
-          <div className="hidden lg:flex items-center gap-1 ml-auto">
+          <div className="hidden lg:flex items-center gap-1 mr-2">
             <button onClick={() => setLunes(lunesDe(new Date()))} className={BOTON}>
               Hoy
             </button>
@@ -440,6 +450,12 @@ function AgendaVista({
             <span className="text-[13.5px] font-medium text-gray-900 ml-2 tabular-nums">{rango}</span>
           </div>
         ) : null}
+        {vista !== 'google' ? (
+          <button onClick={() => nuevaLlamada()} className={BOTON_PRINCIPAL}>
+            <CalendarPlus size={14} /> Nueva llamada
+          </button>
+        ) : null}
+        </div>
       </div>
 
       {vista === 'google' ? (
@@ -467,8 +483,10 @@ function AgendaVista({
             {dias.map((d) => {
               const delDia = citas.filter((c) => mismoDia(new Date(c.inicio), d)).sort((a, b) => a.inicio.localeCompare(b.inicio))
               const esHoy = mismoDia(d, hoy)
+              // Hoy y los días que vienen: un clic en el hueco vacío agenda.
+              const libre = esHoy || d > hoy
               return (
-                <div key={d.toISOString()} className="min-h-[260px] flex flex-col">
+                <div key={d.toISOString()} className="min-h-[260px] flex flex-col group">
                   <div className="px-2.5 py-2 border-b border-[#F3F4F6]">
                     <p className="text-[11px] uppercase tracking-[0.06em] text-gray-500">{d.toLocaleDateString('es-ES', { weekday: 'short' })}</p>
                     <p
@@ -479,10 +497,24 @@ function AgendaVista({
                       {d.getDate()}
                     </p>
                   </div>
-                  <div className="p-1.5 space-y-1.5 flex-1">
+                  <div
+                    className={`p-1.5 space-y-1.5 flex-1 ${libre ? 'cursor-pointer hover:bg-[#F9FAFB]' : ''}`}
+                    onClick={(ev) => {
+                      if (libre && ev.target === ev.currentTarget) nuevaLlamada(d)
+                    }}
+                    title={libre ? 'Agendar una llamada este día' : undefined}
+                  >
                     {delDia.map((c) => (
                       <CitaBloque key={c.id || c.inicio + c.email} c={c} onClick={() => abrirCita(c)} notas={notas} />
                     ))}
+                    {libre ? (
+                      <button
+                        onClick={() => nuevaLlamada(d)}
+                        className="w-full rounded-md border border-dashed border-[#D1D5DB] py-1 text-[12px] text-gray-500 opacity-0 group-hover:opacity-100 hover:text-gray-900 hover:border-gray-400 inline-flex items-center justify-center gap-1 transition-opacity"
+                      >
+                        <Plus size={12} /> Llamada
+                      </button>
+                    ) : null}
                   </div>
                 </div>
               )
@@ -718,6 +750,10 @@ function CitaDialogo({
             <a href={whatsapp(cita.telefono)} target="_blank" rel="noreferrer" className={BOTON}>
               WhatsApp
             </a>
+          ) : null}
+          {/* El recordatorio ya escrito, con la hora y el enlace (15/10). */}
+          {!cancelada && !pasada ? (
+            <RecordatorioWhatsApp nombre={cita.nombre} telefono={cita.telefono} inicio={cita.inicio} enlace={cita.enlace} />
           ) : null}
           <button onClick={() => verFicha(cita.email)} className={BOTON}>
             Ver ficha

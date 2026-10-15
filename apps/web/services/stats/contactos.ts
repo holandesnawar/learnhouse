@@ -261,6 +261,52 @@ export const quitarCita = (orgId: number, c: Cita, accessToken: string) =>
 export const devolverCita = (orgId: number, citaId: string, accessToken: string) =>
   pedir<{ ok: boolean }>(`contactos/org/${orgId}/agenda/quitar?cita_id=${encodeURIComponent(citaId)}`, 'DELETE', null, accessToken)
 
+/** Las horas libres de un día en Calendly (15/10), para agendar desde la escuela. */
+export interface Huecos {
+  configurado: boolean
+  huecos: { inicio: string; url: string }[]
+  evento?: string
+  duracion?: number
+  error?: string
+}
+
+export async function getHuecos(orgId: number, dia: string, accessToken: string): Promise<Huecos | null> {
+  try {
+    const res = await fetch(
+      `${getAPIUrl()}contactos/org/${orgId}/agenda/huecos?dia=${encodeURIComponent(dia)}`,
+      RequestBodyWithAuthHeader('GET', null, null, accessToken)
+    )
+    if (!res.ok) return null
+    return await res.json()
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Agenda una llamada en Calendly. `modo: "reservada"` = ya está, y Calendly le
+ * ha mandado el correo con el enlace; `modo: "enlace"` = Calendly no deja
+ * hacerlo desde fuera (su plan gratis): `url` es su página de esa hora con
+ * nombre y correo puestos, solo falta confirmar.
+ */
+export async function reservarLlamada(
+  orgId: number,
+  datos: { nombre: string; email: string; telefono?: string; inicio: string; url?: string },
+  accessToken: string
+): Promise<{ ok: boolean; modo?: 'reservada' | 'enlace'; url?: string; motivo?: string; error?: string }> {
+  try {
+    const res = await fetch(
+      `${getAPIUrl()}contactos/org/${orgId}/agenda/reservar`,
+      RequestBodyWithAuthHeader('POST', datos, null, accessToken)
+    )
+    const cuerpo = await res.json().catch(() => ({}))
+    if (!res.ok) return { ok: false, error: cuerpo?.detail || 'No se ha podido agendar' }
+    return { ok: true, ...cuerpo }
+  } catch {
+    return { ok: false, error: 'No se ha podido agendar' }
+  }
+}
+
 export async function getAgenda(orgId: number, accessToken: string, forzar = false): Promise<Agenda | null> {
   try {
     const res = await fetch(

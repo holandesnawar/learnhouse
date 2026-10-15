@@ -251,7 +251,66 @@ async def api_agenda(
     from src.services.contactos.metricas import emails_excluidos
 
     visibles, quitadas = separar_quitadas(datos.get("citas") or [], hechos, await emails_excluidos(db_session))
-    return {**datos, "citas": [{**c, "resultado": _resultado(c)} for c in visibles], "quitadas": quitadas}
+    # Calendly solo trae el teléfono si el evento lo pide: si no, el que dejó
+    # en la web, para el WhatsApp y el recordatorio de la cita (15/10).
+    from src.services.contactos.reservar import telefonos_por_email
+
+    try:
+        tels = await telefonos_por_email({c.get("email") or "" for c in visibles if not c.get("telefono")}, db_session)
+    except Exception:  # noqa: BLE001
+        tels = {}
+    return {
+        **datos,
+        "citas": [
+            {**c, "telefono": c.get("telefono") or tels.get((c.get("email") or "").lower(), ""), "resultado": _resultado(c)}
+            for c in visibles
+        ],
+        "quitadas": quitadas,
+    }
+
+
+@router.get("/org/{org_id}/agenda/huecos", summary="Las horas libres de un día en Calendly, para agendar desde la escuela.")
+async def api_huecos(
+    request: Request,
+    org_id: int,
+    dia: str,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    from src.services.contactos.reservar import huecos
+
+    return await huecos(dia)
+
+
+class PedidoReservar(BaseModel):
+    nombre: str
+    email: str
+    telefono: str = ""
+    #: La hora elegida, en ISO (la que dio /agenda/huecos).
+    inicio: str
+    #: La página de Calendly de esa hora (por si hay que confirmar allí).
+    url: str = ""
+
+
+@router.post("/org/{org_id}/agenda/reservar", summary="Agenda una llamada en Calendly desde la escuela (closer y administradores).")
+async def api_reservar(
+    request: Request,
+    org_id: int,
+    data: PedidoReservar,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    from src.services.contactos.reservar import reservar
+
+    r = await reservar(
+        nombre=data.nombre, email=data.email, telefono=data.telefono, inicio=data.inicio, url_hueco=data.url,
+        autor=_nombre(current_user), db_session=db_session,
+    )
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo") or "No se ha podido agendar")
+    return r
 
 
 class CitaQuitada(BaseModel):
