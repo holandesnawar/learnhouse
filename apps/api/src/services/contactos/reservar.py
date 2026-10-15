@@ -294,7 +294,11 @@ async def reservar(
                 "event_type": tipo.get("uri", ""),
                 "start_time": _z(cuando),
                 "invitee": {"name": nombre, "email": email, "timezone": str(ZONA)},
-                "tracking": {"utm_source": "escuela", "utm_medium": "panel", "utm_campaign": "agendada-por-el-equipo"},
+                # SIN `tracking`, a propósito (15/10): si se manda, Calendly
+                # exige TODOS sus campos (utm_content, utm_term,
+                # salesforce_uuid…) y rechazaba la reserva entera con «The
+                # supplied parameters are invalid». Quién la agendó ya queda
+                # en la escuela (evento `llamada-equipo`).
             }
             respuestas = respuestas_obligatorias(tipo, telefono)
             if respuestas:
