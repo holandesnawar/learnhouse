@@ -22,7 +22,9 @@ def test_tipo_de_pago():
     assert R.tipo_de_pago(39700, 0, 5000) == "senal"
     assert R.tipo_de_pago(39700, 5000, 10000) == "parcial"
     assert R.tipo_de_pago(39700, 5000, 34700) == "resto"
-    assert R.tipo_de_pago(39700, 0, 39700) == "resto"
+    # Todo de una vez: el «Otro importe» del panel, un pago normal.
+    assert R.tipo_de_pago(39700, 0, 39700) == "unico"
+    assert R.tipo_de_pago(43500, 0, 43500) == "unico"
 
 
 def test_nunca_se_cobra_mas_de_lo_pendiente():
@@ -49,7 +51,8 @@ async def test_el_enlace_crea_la_reserva_una_vez_y_no_cobra_de_mas(db, org):
         assert a["reserva"]["total_cents"] == 39700 and a["reserva"]["pendiente_cents"] == 39700
         # Un segundo enlace cobra a cuenta de la MISMA reserva.
         b = await R.crear_enlace(importe_cents=39700, **datos)
-        assert b["reserva"]["id"] == a["reserva"]["id"] and b["tipo"] == "resto"
+        # Sin nada pagado todavía, ese segundo enlace lo paga todo de una vez.
+        assert b["reserva"]["id"] == a["reserva"]["id"] and b["tipo"] == "unico"
         with pytest.raises(HTTPException):
             await R.crear_enlace(importe_cents=40000, **datos)
     filas = (await db.execute(select(ReservaPlaza))).scalars().all()
@@ -216,7 +219,9 @@ async def test_abrir_el_enlace_cierra_la_sesion_vieja_y_recorta_el_importe(db, o
     assert caducadas == ["cs_x"]
     # Pedía 500 € y solo faltan 397: se cobran 397.
     assert creadas[0]["line_items"][0]["price_data"]["unit_amount"] == 39700
-    assert "tipo=resto" in url and "tot=39700" in url and "prev=0" in url
+    # Sin nada pagado, es un pago único: la caja normal, sin desglose.
+    assert "tipo=" not in url and "tot=" not in url
+    assert creadas[0]["line_items"][0]["price_data"]["product_data"]["name"] == "Formación Nawar A0-A1"
     pagos = (await db.execute(select(ReservaPago).where(ReservaPago.reserva_id == r.id))).scalars().all()
     assert sorted(p.estado for p in pagos) == ["caducado", "pendiente"]
 

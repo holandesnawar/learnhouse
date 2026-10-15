@@ -250,6 +250,8 @@ def _que(kind: str, campos: dict) -> str:
         return texto if extra.get("confirmada", True) else texto + " (a confirmar en Calendly)"
     if kind == "senal":
         importe = _euros(extra.get("importe_cents") or 0)
+        if extra.get("tipo") == "unico":
+            return f"Pagó {importe} en un solo pago: matrícula completa"
         if extra.get("tipo") == "resto":
             return f"Pagó lo que faltaba ({importe}): matrícula completa"
         if extra.get("tipo") == "parcial":
