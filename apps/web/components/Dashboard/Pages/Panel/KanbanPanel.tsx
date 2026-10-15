@@ -197,7 +197,7 @@ function TarjetaVista({ t, onAbrir }: { t: Tarjeta; onAbrir: () => void }) {
         <p className="mt-1 text-[11.5px] font-medium text-gray-900 tabular-nums" title="Plaza reservada: entra a la escuela cuando pague lo que falta">
           {t.reserva.pagado_cents > 0
             ? `Señal ${euros(t.reserva.pagado_cents)} · faltan ${euros(t.reserva.pendiente_cents)}`
-            : 'Enlace de señal enviado, sin pagar'}
+            : 'Enlace de pago enviado, sin pagar'}
         </p>
       ) : null}
       {t.origen || t.canal || t.vio_precio || t.notas > 1 || t.tareas ? (

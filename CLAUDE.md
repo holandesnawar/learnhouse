@@ -2978,6 +2978,13 @@ el checkout nuestro de siempre." Todo en `services/payments/reservas.py`
   enseña «¡Plaza reservada!» (no "mira tu correo": aún no hay cuenta).
 - Tarjeta del tablero: «Señal 50 € · faltan 347 €». Línea de tiempo: evento
   `senal` (cuenta como "en el pago", no como alumno).
+- **«Otro importe»** (15/10, "un botón rápido para un pago de 435 único"): en
+  «Crear enlace de pago», al lado de «Pago único» y «3 plazos», **solo
+  administradores**. Usa esta misma reserva con total = importe, y el pago que
+  lo cubre todo de una vez es de tipo **`unico`** (`tipo_de_pago`): concepto
+  «Formación Nawar A0-A1», factura sin desglose y la caja de pago normal (sin
+  `tipo/tot/prev` en la dirección). Al pagar, alta, correo y factura como
+  siempre. Si ya tenía una reserva abierta con otro total, manda ese total.
 
 ## Plan de pagos propio: 3 plazos de 145 € (14/10/2026)
 Pedido: "un plan de pagos propio como backup, para los que no conocen Klarna

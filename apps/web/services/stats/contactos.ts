@@ -638,8 +638,8 @@ export const quitarTemplada = (orgId: number, id: number, accessToken: string) =
 
 export type PagoReserva = {
   id: number
-  tipo: 'senal' | 'parcial' | 'resto'
-  /** «Señal (reserva de plaza)», «Pago parcial», «Pago restante». */
+  tipo: 'senal' | 'parcial' | 'resto' | 'unico'
+  /** «Señal (reserva de plaza)», «Pago parcial», «Pago restante», «Pago único». */
   nombre: string
   importe_cents: number
   /** pendiente = enlace abierto y sin pagar todavía. */
@@ -669,7 +669,7 @@ export type Reserva = {
 export type EnlaceReserva = {
   url: string
   dias: number
-  tipo: 'senal' | 'parcial' | 'resto'
+  tipo: 'senal' | 'parcial' | 'resto' | 'unico'
   importe_cents: number
   reserva: Reserva
 }

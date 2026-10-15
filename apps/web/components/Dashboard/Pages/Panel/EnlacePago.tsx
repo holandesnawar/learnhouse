@@ -13,12 +13,17 @@
  * «3 plazos» (14/10/2026): el plan de pagos propio, para quien no conoce
  * Klarna o a quien Klarna le falla. Cobra el primer mes al pagar (y ya entra
  * en la escuela) y los otros dos solos, al mes; al tercero se acaba solo.
+ *
+ * «Otro importe» (15/10/2026, solo administradores): un pago único a otro
+ * precio (p. ej. 435 €). Va por la reserva de plaza con el total = lo que se
+ * cobra, así que al pagar entra en la escuela como con el pago normal.
  */
 
 import React, { useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
-import { crearEnlacePago, type CondicionesPlazos } from '@services/stats/contactos'
+import { crearEnlacePago, crearEnlaceReserva, type CondicionesPlazos } from '@services/stats/contactos'
+import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { Copy, CreditCard, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { BOTON, BOTON_PRINCIPAL, META } from './ui'
@@ -31,14 +36,18 @@ export default function EnlacePago({ email, nombre: nombreCompleto, telefono }: 
   const [url, setUrl] = useState('')
   const [dias, setDias] = useState(0)
   const [creando, setCreando] = useState(false)
-  const [plan, setPlan] = useState<'' | 'plazos'>('')
+  const [plan, setPlan] = useState<'' | 'plazos' | 'otro'>('')
   const [condiciones, setCondiciones] = useState<CondicionesPlazos | null>(null)
+  const { isAdmin } = useAdminStatus()
+  const [otro, setOtro] = useState('435')
+  const [importe, setImporte] = useState(0)
 
   const partes = (nombreCompleto || '').trim().split(/\s+/).filter(Boolean)
   const nombre = partes[0] || ''
   const apellidos = partes.slice(1).join(' ')
 
   async function crear() {
+    if (plan === 'otro') return crearOtro()
     setCreando(true)
     const r = await crearEnlacePago(
       org?.id,
@@ -56,6 +65,29 @@ export default function EnlacePago({ email, nombre: nombreCompleto, telefono }: 
     setCondiciones(r.plan || null)
   }
 
+  async function crearOtro() {
+    const cents = Math.round(parseFloat(otro.replace(',', '.')) * 100)
+    if (!Number.isFinite(cents) || cents < 50) {
+      toast.error('Pon un importe en euros, por ejemplo 435')
+      return
+    }
+    setCreando(true)
+    const r = await crearEnlaceReserva(
+      org?.id,
+      { email, first_name: nombre || email.split('@')[0] || email, last_name: apellidos, phone: telefono || '', importe_cents: cents, total_cents: cents },
+      accessToken
+    )
+    setCreando(false)
+    if (!r.ok || !r.datos?.url) {
+      toast.error(r.error || 'No se ha podido crear el enlace')
+      return
+    }
+    setUrl(r.datos.url)
+    setDias(r.datos.dias || 0)
+    setImporte(r.datos.importe_cents)
+    setCondiciones(null)
+  }
+
   const euros = (c: number) => `${(c / 100).toLocaleString('es-ES', { maximumFractionDigits: 2 })} €`
   const textoPlazos = condiciones
     ? `${condiciones.cuotas} pagos de ${euros(condiciones.cuota_cents)} al mes (${euros(condiciones.total_cents)} en total)`
@@ -64,7 +96,7 @@ export default function EnlacePago({ email, nombre: nombreCompleto, telefono }: 
   const num = numeroWhatsApp(telefono)
   const textoWa = encodeURIComponent(
     `Hola${nombre ? ` ${nombre}` : ''}, aquí tienes tu enlace para apuntarte a la formación${
-      textoPlazos ? ` en ${textoPlazos}` : ''
+      textoPlazos ? ` en ${textoPlazos}` : importe ? ` (${euros(importe)})` : ''
     }: ${url}`
   )
 
@@ -77,6 +109,8 @@ export default function EnlacePago({ email, nombre: nombreCompleto, telefono }: 
             [
               ['', 'Pago único'],
               ['plazos', '3 plazos'],
+              // Otro precio, de una vez: solo quien dirige (el closer no fija precios).
+              ...(isAdmin ? ([['otro', 'Otro importe']] as const) : []),
             ] as const
           ).map(([id, texto]) => (
             <button
@@ -90,6 +124,18 @@ export default function EnlacePago({ email, nombre: nombreCompleto, telefono }: 
             </button>
           ))}
         </div>
+        {plan === 'otro' ? (
+          <label className="inline-flex items-center gap-1 h-8 rounded-md border border-[#D1D5DB] px-2 bg-white">
+            <input
+              value={otro}
+              onChange={(e) => setOtro(e.target.value)}
+              inputMode="decimal"
+              aria-label="Importe en euros"
+              className="w-16 text-[13px] font-medium tabular-nums text-gray-900 outline-none"
+            />
+            <span className="text-[12.5px] text-gray-500">€</span>
+          </label>
+        ) : null}
         <button onClick={crear} disabled={creando || !email} className={`${BOTON} disabled:opacity-50`}>
           {creando ? <Loader2 size={13} className="animate-spin" /> : <CreditCard size={13} />} Crear enlace de pago
         </button>
@@ -102,6 +148,11 @@ export default function EnlacePago({ email, nombre: nombreCompleto, telefono }: 
         <p className={META}>
           Enlace <strong className="text-gray-900 font-semibold">en {textoPlazos}</strong>, con sus datos puestos. Vale {dias} días.
           Con el primer pago entra en la escuela; los otros se cobran solos cada mes y al último se acaba.
+        </p>
+      ) : importe ? (
+        <p className={META}>
+          Enlace de <strong className="text-gray-900 font-semibold">{euros(importe)} en un solo pago</strong>, con sus datos puestos. Vale {dias}{' '}
+          días. Al pagar se le crea la cuenta y le llega la factura.
         </p>
       ) : (
         <p className={META}>Enlace listo, con sus datos puestos. Vale {dias} días. Al pagar se le crea la cuenta y le llega la factura.</p>

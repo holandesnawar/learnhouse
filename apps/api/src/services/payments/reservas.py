@@ -62,6 +62,7 @@ NOMBRE_TIPO = {
     "senal": "Señal (reserva de plaza)",
     "parcial": "Pago parcial",
     "resto": "Pago restante",
+    "unico": "Pago único",
 }
 
 
@@ -78,9 +79,11 @@ def pendiente_de(total_cents: int, pagado_cents: int) -> int:
 
 def tipo_de_pago(total_cents: int, pagado_antes: int, importe: int) -> str:
     """Cómo se llama este pago: el que completa es «resto»; el primero que no
-    completa, «señal»; uno intermedio, «parcial»."""
+    completa, «señal»; uno intermedio, «parcial». El que lo paga todo de una
+    vez, «unico»: el enlace de «Otro importe» del panel (15/10), un pago
+    normal a otro precio que el de la formación."""
     if pagado_antes + importe >= total_cents:
-        return "resto"
+        return "unico" if pagado_antes <= 0 else "resto"
     if pagado_antes <= 0:
         return "senal"
     return "parcial"
@@ -416,6 +419,7 @@ async def abrir_pago(token: str, db_session: AsyncSession) -> str:
         "senal": "Señal · reserva de plaza · Formación Nawar A0-A1",
         "parcial": "Pago a cuenta · Formación Nawar A0-A1",
         "resto": "Pago restante · Formación Nawar A0-A1",
+        "unico": "Formación Nawar A0-A1",
     }[tipo]
     metadatos = {
         "product": reserva.product or "formacion-a0-a1",
@@ -455,11 +459,18 @@ async def abrir_pago(token: str, db_session: AsyncSession) -> str:
                 "enabled": True,
                 "invoice_data": {
                     "description": concepto,
-                    "footer": (
-                        f"Total de la formación: {reserva.total_cents / 100:.2f} €. "
-                        f"Pagado con este: {pagado_despues / 100:.2f} €. "
-                        f"Pendiente: {falta_despues / 100:.2f} €."
-                    ).replace(".", ","),
+                    # Un pago único no lleva el desglose: no hay partes.
+                    **(
+                        {}
+                        if tipo == "unico"
+                        else {
+                            "footer": (
+                                f"Total de la formación: {reserva.total_cents / 100:.2f} €. "
+                                f"Pagado con este: {pagado_despues / 100:.2f} €. "
+                                f"Pendiente: {falta_despues / 100:.2f} €."
+                            ).replace(".", ",")
+                        }
+                    ),
                     "metadata": {"product": reserva.product or "formacion-a0-a1", "reserva_id": str(reserva.id)},
                 },
             },
@@ -489,7 +500,8 @@ async def abrir_pago(token: str, db_session: AsyncSession) -> str:
         f"?cs={quote(secreto_cliente, safe='')}&pk={quote(pk, safe='')}"
         f"&amt={importe}&cur={reserva.currency or 'eur'}"
         f"&em={quote(reserva.email, safe='')}&nm={quote(nombre, safe='')}&ph={quote(reserva.phone or '', safe='')}"
-        f"&tipo={tipo}&tot={reserva.total_cents}&prev={int(reserva.pagado_cents or 0)}"
+        # Un pago único se ve como la caja normal, sin «ya pagado · falta».
+        + ("" if tipo == "unico" else f"&tipo={tipo}&tot={reserva.total_cents}&prev={int(reserva.pagado_cents or 0)}")
     )
 
 
