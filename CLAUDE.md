@@ -2721,6 +2721,14 @@ desde fuera… mover agarrando como Trello… y ver siempre de dónde viene".
   no se presentó a su llamada. Se mueve a mano o **sola al apuntar «No vino»**
   en el «¿Qué pasó?» de Llamadas (antes «No vino» llevaba a Por llamar). Con
   nueve columnas, el resumen del inicio del panel va de tres en tres.
+  - **«¿Quieres agendar otra llamada?»** (15/10): al guardar «No vino», la
+    misma ventana lo pregunta; «Sí, agendar otra» abre «Nueva llamada» con
+    nombre, correo y WhatsApp puestos (`onReagendar` en `LlamadasPanel.tsx`).
+    Cerrar la ventana ahí es contestar que no. Una cita ya apuntada como «No
+    vino» enseña «Agendar otra llamada» al reabrirla. La nueva reserva la
+    pasa sola de No show a Agendado: por eso `cita_que_manda` NO usa el margen
+    de 2 min (`_MARGEN_SEG`); con él, una reserva hecha al minuto de «No vino»
+    no contaba (test `test_no_vino_y_se_le_agenda_otra_al_momento`).
 - **«No contesta»** (14/10, "una columna más de no contesta"): entre Por
   llamar y Contactado (id `no-contesta`), punto verde oliva `#8FA03C`. Solo a
   mano. **Es de las de llamar** (`POR_LLAMAR` en `pipeline.py`, `A_LLAMAR` en

@@ -122,7 +122,7 @@ export default function LlamadasPanel() {
   const [cargandoAgenda, setCargandoAgenda] = useState(false)
   const [cita, setCita] = useState<Cita | null>(null)
   const [ficha, setFicha] = useState<string | null>(null)
-  const [nueva, setNueva] = useState<{ dia?: Date } | null>(null)
+  const [nueva, setNueva] = useState<{ dia?: Date; inicial?: { nombre?: string; email?: string; telefono?: string } } | null>(null)
   const [recordatorios, setRecordatorios] = useState<Record<string, VolverALlamar>>({})
   const [notas, setNotas] = useState<NotasPorEmail>({})
   const llamarDe = (email: string) => recordatorios[(email || '').toLowerCase()]
@@ -342,6 +342,13 @@ export default function LlamadasPanel() {
             setCita(null)
             cargarNotas()
           }}
+          // «No vino» → «¿Agendar otra?» → la ventana de Nueva llamada con sus datos (15/10).
+          onReagendar={(c) => {
+            setAgenda((a) => (a ? { ...a, citas: a.citas.map((x) => (x.id === c.id ? c : x)) } : a))
+            setCita(null)
+            cargarNotas()
+            setNueva({ inicial: { nombre: c.nombre, email: c.email, telefono: c.telefono } })
+          }}
           onQuitada={(c) => {
             setAgenda((a) =>
               a ? { ...a, citas: a.citas.filter((x) => x.id !== c.id), quitadas: [{ ...c, quitada_por: 'mano' }, ...(a.quitadas || [])] } : a
@@ -350,7 +357,7 @@ export default function LlamadasPanel() {
           }}
         />
       ) : null}
-      {nueva ? <NuevaLlamada dia={nueva.dia} onClose={() => setNueva(null)} onHecho={() => cargarAgenda(true)} /> : null}
+      {nueva ? <NuevaLlamada dia={nueva.dia} inicial={nueva.inicial} onClose={() => setNueva(null)} onHecho={() => cargarAgenda(true)} /> : null}
       {ficha ? <FichaCliente
           email={ficha}
           onClose={() => {
@@ -659,12 +666,14 @@ function CitaDialogo({
   cita,
   onClose,
   onGuardado,
+  onReagendar,
   onQuitada,
   verFicha,
 }: {
   cita: Cita
   onClose: () => void
   onGuardado: (c: Cita) => void
+  onReagendar: (c: Cita) => void
   onQuitada: (c: Cita) => void
   verFicha: (email: string) => void
 }) {
@@ -676,15 +685,20 @@ function CitaDialogo({
   const [resultado, setResultado] = useState<ResultadoLlamada | ''>(cita.resultado?.resultado || '')
   const [nota, setNota] = useState(cita.resultado?.nota || '')
   const [guardando, setGuardando] = useState(false)
+  // Tras apuntar «No vino»: la cita ya guardada, mientras se pregunta si se le
+  // agenda otra. Cerrar la ventana en ese momento es contestar que no.
+  const [sinVenir, setSinVenir] = useState<Cita | null>(null)
   const pasada = new Date(cita.inicio).getTime() < Date.now()
   const cancelada = cita.estado === 'cancelada'
   const e = estadoDe(cita)
+  const cerrar = useCallback(() => (sinVenir ? onGuardado(sinVenir) : onClose()), [sinVenir, onGuardado, onClose])
+  const primerNombre = (cita.nombre || '').trim().split(' ')[0]
 
   useEffect(() => {
-    const f = (ev: KeyboardEvent) => ev.key === 'Escape' && onClose()
+    const f = (ev: KeyboardEvent) => ev.key === 'Escape' && cerrar()
     window.addEventListener('keydown', f)
     return () => window.removeEventListener('keydown', f)
-  }, [onClose])
+  }, [cerrar])
 
   async function guardar() {
     if (!resultado) return
@@ -697,7 +711,12 @@ function CitaDialogo({
     }
     const elegido = RESULTADOS.find((x) => x.id === resultado)
     toast.success(elegido ? `Apuntado: ${elegido.nombre}` : 'Apuntado')
-    onGuardado({ ...cita, resultado: { resultado, nombre: elegido?.nombre || '', nota, autor: '', cuando: new Date().toISOString() } })
+    const guardada = { ...cita, resultado: { resultado, nombre: elegido?.nombre || '', nota, autor: '', cuando: new Date().toISOString() } }
+    if (resultado === 'no-vino') {
+      setSinVenir(guardada)
+      return
+    }
+    onGuardado(guardada)
   }
 
   async function quitar() {
@@ -718,7 +737,7 @@ function CitaDialogo({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/30 p-3" onClick={onClose} role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/30 p-3" onClick={cerrar} role="dialog" aria-modal="true">
       <div className="w-full max-w-md rounded-xl bg-white border border-[#E5E7EB]" onClick={(ev) => ev.stopPropagation()}>
         <div className="px-5 pt-5 pb-4 border-b border-[#F3F4F6]">
           <div className="flex items-start gap-3">
@@ -729,7 +748,7 @@ function CitaDialogo({
                 {cita.fin ? `–${hora(cita.fin)}` : ''}
               </p>
             </div>
-            <button onClick={onClose} aria-label="Cerrar" className="p-1 -m-1 text-gray-400 hover:text-gray-900">
+            <button onClick={cerrar} aria-label="Cerrar" className="p-1 -m-1 text-gray-400 hover:text-gray-900">
               <X size={18} />
             </button>
           </div>
@@ -758,6 +777,12 @@ function CitaDialogo({
           <button onClick={() => verFicha(cita.email)} className={BOTON}>
             Ver ficha
           </button>
+          {/* Una que no vino, abierta otra vez más tarde: se le puede agendar otra. */}
+          {cita.resultado?.resultado === 'no-vino' && !sinVenir ? (
+            <button onClick={() => onReagendar(cita)} className={BOTON}>
+              <CalendarPlus size={14} /> Agendar otra llamada
+            </button>
+          ) : null}
           {cita.resultado?.resultado === 'pagado' ? null : <EnlacePago email={cita.email} nombre={cita.nombre} telefono={cita.telefono} />}
           {cita.cambiar_url && !cancelada && !pasada ? (
             <a href={cita.cambiar_url} target="_blank" rel="noreferrer" className={BOTON}>
@@ -771,7 +796,22 @@ function CitaDialogo({
           ) : null}
         </div>
 
-        {pasada && !cancelada ? (
+        {sinVenir ? (
+          <div className="px-5 pb-5 border-t border-[#F3F4F6] pt-4">
+            <p className={META}>Apuntado: no vino. Pasa a No show.</p>
+            <p className="text-[14px] font-semibold text-gray-900 mt-1">
+              ¿Quieres agendar otra llamada{primerNombre ? ` con ${primerNombre}` : ''}?
+            </p>
+            <div className="mt-2.5 flex gap-2">
+              <button onClick={() => onReagendar(sinVenir)} className={`${BOTON_PRINCIPAL} flex-1 h-9 justify-center`}>
+                <CalendarPlus size={14} /> Sí, agendar otra
+              </button>
+              <button onClick={() => onGuardado(sinVenir)} className={`${BOTON} h-9`}>
+                No, ya está
+              </button>
+            </div>
+          </div>
+        ) : pasada && !cancelada ? (
           <div className="px-5 pb-5 border-t border-[#F3F4F6] pt-4">
             <p className="text-[14px] font-semibold text-gray-900">¿Qué pasó?</p>
             <div className="mt-2.5 grid grid-cols-2 gap-2">
