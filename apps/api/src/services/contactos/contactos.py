@@ -64,6 +64,9 @@ NOMBRES_TIPO = {
     # con el importe lo pone `_que`.
     "senal": "Pagó una parte (plaza reservada)",
     "reunion": "Reservó una reunión",
+    # Una llamada que agendó el equipo desde la escuela (15/10,
+    # services/contactos/reservar.py). El texto con quién y cuándo, `_que`.
+    "llamada-equipo": "El equipo le agendó una llamada",
     "alta-manual": "Dado de alta a mano",
 }
 
@@ -79,10 +82,10 @@ _CON_PRECIO = {"matricula", "pago", "senal"}
 # ("reunion") se ha matriculado, aunque la solicitud que manda la web no
 # llegue (la puerta de /payments/solicitudes tiene tope por IP). Sin esto no
 # saldría en el Contactos del closer, que filtra por esta fecha.
-_MATRICULA = {"solicitud", "matricula", "agendar-empezado", "admision", "cualificacion", "reunion", "senal"}
+_MATRICULA = {"solicitud", "matricula", "agendar-empezado", "admision", "cualificacion", "reunion", "senal", "llamada-equipo"}
 
 #: Pidió hablar con nosotros: el formulario de plaza o el de la llamada.
-_PIDIO = {"solicitud", "cualificacion", "agendar-empezado", "admision", "reunion"}
+_PIDIO = {"solicitud", "cualificacion", "agendar-empezado", "admision", "reunion", "llamada-equipo"}
 
 
 def etapa_de(tipos: set[str], tiene_cuenta: bool) -> str:
@@ -240,6 +243,11 @@ def _que(kind: str, campos: dict) -> str:
         if extra.get("importe_cents"):
             return f"{extra['autor']} le creó un enlace de pago de {_euros(extra['importe_cents'])}"
         return f"{extra['autor']} le creó un enlace de pago"
+    if kind == "llamada-equipo":
+        quien = extra.get("autor") or "El equipo"
+        cuando = _dia_y_hora(extra.get("inicio") or "")
+        texto = f"{quien} le agendó una llamada" + (f" para el {cuando}" if cuando else "")
+        return texto if extra.get("confirmada", True) else texto + " (a confirmar en Calendly)"
     if kind == "senal":
         importe = _euros(extra.get("importe_cents") or 0)
         if extra.get("tipo") == "resto":
@@ -248,6 +256,24 @@ def _que(kind: str, campos: dict) -> str:
             return f"Pagó {importe} a cuenta (le faltan {_euros(extra.get('pendiente_cents') or 0)})"
         return f"Pagó una señal de {importe}: plaza reservada, sin acceso hasta completar"
     return NOMBRES_TIPO.get(kind, kind)
+
+
+_DIAS = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"]
+_MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
+
+
+def _dia_y_hora(iso: str) -> str:
+    """«jue 16 oct, 18:00» en hora de Países Bajos."""
+    from zoneinfo import ZoneInfo
+
+    try:
+        d = datetime.fromisoformat(str(iso).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return ""
+    if d.tzinfo is None:
+        d = d.replace(tzinfo=timezone.utc)
+    d = d.astimezone(ZoneInfo("Europe/Amsterdam"))
+    return f"{_DIAS[d.weekday()]} {d.day} {_MESES[d.month - 1]}, {d:%H:%M}"
 
 
 def _euros(cents) -> str:

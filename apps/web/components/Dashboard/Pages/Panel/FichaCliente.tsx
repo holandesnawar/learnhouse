@@ -28,11 +28,14 @@ import { FilaTarea, TareaForm } from './Tareas'
 import { quitarPersona } from './quitarPersona'
 import EnlacePago from './EnlacePago'
 import PlanPagosFicha from './PlanPagosFicha'
+import NuevaLlamada from './NuevaLlamada'
+import RecordatorioWhatsApp from './RecordatorioWhatsApp'
 import ReservaPlaza from './ReservaPlaza'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import {
   BookOpen,
   CalendarDays,
+  CalendarPlus,
   CheckCircle2,
   ClipboardList,
   CreditCard,
@@ -108,6 +111,8 @@ export default function FichaCliente({
   const [error, setError] = useState('')
   // Para volver a pintar las notas al apuntar una con los botones rápidos.
   const [vueltaNotas, setVueltaNotas] = useState(0)
+  // «Agendar llamada» (15/10): la ventana de Llamadas, con sus datos puestos.
+  const [agendar, setAgendar] = useState(false)
 
   const cargar = useCallback(async () => {
     if (!org?.id || !accessToken) return
@@ -122,12 +127,13 @@ export default function FichaCliente({
     cargar()
   }, [cargar])
 
-  // Escape cierra, como cualquier panel lateral.
+  // Escape cierra, como cualquier panel lateral (con la ventana de agendar
+  // abierta, Escape cierra solo esa).
   useEffect(() => {
-    const f = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    const f = (e: KeyboardEvent) => e.key === 'Escape' && !agendar && onClose()
     window.addEventListener('keydown', f)
     return () => window.removeEventListener('keydown', f)
-  }, [onClose])
+  }, [onClose, agendar])
 
   async function mover(etapa: EtapaTablero, canal?: Canal) {
     if (!ficha) return
@@ -406,6 +412,9 @@ export default function FichaCliente({
                     </div>
                   ) : null}
                   <div className="mt-3 flex flex-wrap items-start gap-2">
+                    <button onClick={() => setAgendar(true)} className={BOTON}>
+                      <CalendarPlus size={13} /> Agendar llamada
+                    </button>
                     <EnlacePago email={ficha.email} nombre={ficha.nombre} telefono={ficha.telefono} />
                     {/* Mandarla a Llamadas la pone pendiente allí y la devuelve a
                         Nuevo o Por llamar en el tablero: hay que llamarla (09/10). */}
@@ -528,7 +537,7 @@ export default function FichaCliente({
                     const pasada = new Date(c.fin || c.inicio).getTime() < Date.now()
                     const cuando = new Date(c.inicio).toLocaleString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
                     return (
-                      <li key={c.id || c.inicio} className="py-2 flex items-start gap-3">
+                      <li key={c.id || c.inicio} className="py-2 flex flex-wrap items-start gap-x-3 gap-y-1">
                         <span className={`w-[140px] shrink-0 text-[13px] tabular-nums ${cancelada ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{cuando}</span>
                         <div className="flex-1 min-w-0">
                           {cancelada ? (
@@ -546,6 +555,17 @@ export default function FichaCliente({
                           <a href={c.enlace} target="_blank" rel="noreferrer" className="text-[13px] font-medium text-[#025dc7] hover:underline shrink-0">
                             Entrar
                           </a>
+                        ) : null}
+                        {!cancelada && !pasada ? (
+                          <div className="basis-full sm:pl-[152px]">
+                            <RecordatorioWhatsApp
+                              nombre={ficha.nombre || c.nombre}
+                              telefono={c.telefono || ficha.telefono}
+                              inicio={c.inicio}
+                              enlace={c.enlace}
+                              compacto
+                            />
+                          </div>
                         ) : null}
                       </li>
                     )
@@ -702,6 +722,16 @@ export default function FichaCliente({
           </div>
         )}
       </div>
+      {agendar && ficha ? (
+        <NuevaLlamada
+          inicial={{ nombre: ficha.nombre, email: ficha.email, telefono: ficha.telefono }}
+          onClose={() => setAgendar(false)}
+          onHecho={() => {
+            cargar()
+            onCambio?.()
+          }}
+        />
+      ) : null}
     </div>
   )
 }
