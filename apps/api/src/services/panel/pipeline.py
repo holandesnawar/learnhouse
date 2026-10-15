@@ -225,8 +225,13 @@ def cita_que_manda(citas: list[dict], movida_el: str, ahora: datetime) -> Option
     apunte «¿Qué pasó?» o alguien la mueva: si no, al pasar la hora la tarjeta
     volvería sola a Por llamar sin que nadie hubiera hecho nada.
 
-    Devuelve la próxima si hay alguna por delante; si no, la última."""
-    tope = _instante(movida_el) + _MARGEN_SEG if movida_el else 0.0
+    Devuelve la próxima si hay alguna por delante; si no, la última.
+
+    Sin el margen de Llamadas (`_MARGEN_SEG`), a propósito: «No vino» la mueve
+    a No show y justo después se le puede agendar otra llamada desde la misma
+    ventana (15/10). Con el margen, esa reserva de hace un minuto no contaría
+    y la tarjeta se quedaría en No show."""
+    tope = _instante(movida_el) if movida_el else 0.0
     ya = ahora.timestamp()
     futuras, pasadas = [], []
     for c in citas or []:

@@ -401,6 +401,14 @@ def test_si_el_closer_la_mueve_despues_de_la_reserva_manda_el_closer():
     assert c["etapa"] == "seguimiento" and c["cita"] is None
 
 
+def test_no_vino_y_se_le_agenda_otra_al_momento():
+    # «No vino» la pasa a No show a las 10:00:00 y desde la misma ventana se le
+    # agenda otra 40 segundos después: a Agendado, con la nueva.
+    otra = _cita(inicio="2026-10-17T16:00:00Z", reservada="2026-10-14T10:00:40Z")
+    c = _con_citas(_ficha(), {"etapa": "no-show", "updated_at": "2026-10-14T10:00:00+00:00"}, [otra])
+    assert c["etapa"] == "agendado" and c["cita"]["inicio"] == "2026-10-17T16:00:00Z"
+
+
 def test_una_cita_cancelada_no_la_mueve():
     # Ana pidió plaza el 20/09: sin la cita, a Por llamar.
     assert _con_citas(_ficha(), None, [_cita(estado="cancelada")])["etapa"] == "llamar"
