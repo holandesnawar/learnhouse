@@ -293,7 +293,7 @@ export async function reservarLlamada(
   orgId: number,
   datos: { nombre: string; email: string; telefono?: string; inicio: string; url?: string },
   accessToken: string
-): Promise<{ ok: boolean; modo?: 'reservada' | 'enlace'; url?: string; motivo?: string; error?: string }> {
+): Promise<{ ok: boolean; modo?: 'reservada' | 'enlace'; url?: string; motivo?: string; plan?: boolean; codigo?: number; error?: string }> {
   try {
     const res = await fetch(
       `${getAPIUrl()}contactos/org/${orgId}/agenda/reservar`,

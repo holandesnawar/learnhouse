@@ -33,6 +33,7 @@ forma de las respuestas está sacada de la documentación, y lo puro tiene test.
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -68,24 +69,74 @@ def evento_elegido(tipos: list[dict], preferido: str = EVENTO_POR_DEFECTO) -> Op
     return activos[0] if activos else None
 
 
-def ubicacion_para(tipo: dict, telefono: str = "") -> Optional[dict]:
-    """El objeto `location` que pide `POST /invitees`: el primero que tenga el
-    tipo de evento. Sin ubicaciones en el evento, no se manda (Calendly lo
-    rechaza si se manda de más)."""
-    lugares = tipo.get("locations") or []
-    if not lugares:
-        return None
-    lugar = lugares[0] or {}
-    kind = str(lugar.get("kind") or "")
+def telefono_e164(telefono: str) -> str:
+    """«+31 6 1234 5678» o «0031…» → «+31612345678». Calendly pide los
+    teléfonos así. Sin prefijo no se inventa ninguno: va tal cual, con +."""
+    texto = (telefono or "").strip()
+    cifras = re.sub(r"\D", "", texto)
+    if texto.startswith("00"):
+        cifras = cifras[2:]
+    return f"+{cifras}" if cifras else ""
+
+
+def _una_ubicacion(lugar: dict, telefono: str) -> Optional[dict]:
+    kind = str((lugar or {}).get("kind") or "")
     if not kind:
         return None
     salida: dict[str, Any] = {"kind": kind}
     if kind == "outbound_call":
         # «Te llamamos nosotros»: el número es el de la persona.
         if telefono:
-            salida["location"] = telefono
+            salida["location"] = telefono_e164(telefono)
     elif kind not in _VIDEO and lugar.get("location"):
         salida["location"] = lugar["location"]
+    return salida
+
+
+def ubicaciones_para(tipo: dict, telefono: str = "") -> list[Optional[dict]]:
+    """Las `location` que se pueden probar con `POST /invitees`, por orden: cada
+    una de las del tipo de evento y, al final, ninguna. Si Calendly rechaza una
+    ubicación (`invalid_location_choice`), se prueba la siguiente en vez de
+    rendirse. Sin ubicaciones en el evento, solo «ninguna»: Calendly rechaza
+    una que el evento no tiene."""
+    salida: list[Optional[dict]] = []
+    for lugar in tipo.get("locations") or []:
+        u = _una_ubicacion(lugar, telefono)
+        if u and u not in salida:
+            salida.append(u)
+    salida.append(None)
+    return salida
+
+
+def ubicacion_para(tipo: dict, telefono: str = "") -> Optional[dict]:
+    """La primera que se prueba (ver `ubicaciones_para`)."""
+    return ubicaciones_para(tipo, telefono)[0]
+
+
+#: Lo que se contesta en una pregunta OBLIGATORIA de texto del evento, cuando
+#: agenda el equipo (la persona no está delante para contestarla).
+RESPUESTA_DEL_EQUIPO = "Agendada por el equipo de Holandés Nawar"
+
+
+def respuestas_obligatorias(tipo: dict, telefono: str = "") -> list[dict]:
+    """`questions_and_answers` para las preguntas OBLIGATORIAS del evento de
+    Calendly: sin ellas, Calendly no deja reservar. Teléfono → el suyo; de
+    elegir → la primera opción; de texto → `RESPUESTA_DEL_EQUIPO`. Las que no
+    son obligatorias no se tocan."""
+    salida = []
+    for q in tipo.get("custom_questions") or []:
+        if not q.get("required") or q.get("enabled") is False:
+            continue
+        tipo_q = str(q.get("type") or "")
+        if tipo_q == "phone_number":
+            respuesta = telefono_e164(telefono)
+        elif tipo_q in ("single_select", "multi_select"):
+            opciones = q.get("answer_choices") or []
+            respuesta = str(opciones[0]) if opciones else RESPUESTA_DEL_EQUIPO
+        else:
+            respuesta = RESPUESTA_DEL_EQUIPO
+        if respuesta:
+            salida.append({"question": str(q.get("name") or ""), "answer": respuesta, "position": int(q.get("position") or 0)})
     return salida
 
 
@@ -146,7 +197,13 @@ def _motivo(r: httpx.Response) -> str:
     except Exception:  # noqa: BLE001
         return f"Calendly contestó {r.status_code}"
     detalles = cuerpo.get("details") or []
-    extra = "; ".join(str(d.get("message") or "") for d in detalles if isinstance(d, dict) and d.get("message"))
+    # «parámetro: mensaje»: sin el nombre del parámetro, un «is invalid» no
+    # dice qué falta (15/10: la reserva fallaba y no se sabía por qué).
+    extra = "; ".join(
+        f"{d.get('parameter')}: {d.get('message')}" if d.get("parameter") else str(d.get("message") or "")
+        for d in detalles
+        if isinstance(d, dict) and d.get("message")
+    )
     texto = str(cuerpo.get("message") or cuerpo.get("title") or f"Calendly contestó {r.status_code}")
     return f"{texto}{' (' + extra + ')' if extra else ''}"
 
@@ -233,25 +290,44 @@ async def reservar(
         async with _cliente() as cliente:
             tipo = await _tipo(cliente)
             plan_b = plan_b or enlace_de_hora(str(tipo.get("scheduling_url") or ""), cuando)
-            cuerpo: dict[str, Any] = {
+            base: dict[str, Any] = {
                 "event_type": tipo.get("uri", ""),
                 "start_time": _z(cuando),
                 "invitee": {"name": nombre, "email": email, "timezone": str(ZONA)},
                 "tracking": {"utm_source": "escuela", "utm_medium": "panel", "utm_campaign": "agendada-por-el-equipo"},
             }
-            lugar = ubicacion_para(tipo, telefono)
-            if lugar:
-                cuerpo["location"] = lugar
-            creada = (await _pedir(cliente, "POST", f"{A.API}/invitees", json=cuerpo)).get("resource") or {}
+            respuestas = respuestas_obligatorias(tipo, telefono)
+            if respuestas:
+                base["questions_and_answers"] = respuestas
+            # Se prueba cada ubicación del evento y, al final, sin ninguna:
+            # solo se pasa a la siguiente si lo que Calendly rechaza es ESO.
+            creada: dict = {}
+            ultimo: Optional[FalloCalendly] = None
+            for lugar in ubicaciones_para(tipo, telefono):
+                cuerpo = {**base, **({"location": lugar} if lugar else {})}
+                try:
+                    creada = (await _pedir(cliente, "POST", f"{A.API}/invitees", json=cuerpo)).get("resource") or {}
+                    break
+                except FalloCalendly as exc:
+                    if exc.codigo == 400 and "location" in exc.motivo.lower():
+                        logger.warning("Calendly rechaza la ubicación %s: se prueba otra", (lugar or {}).get("kind"))
+                        ultimo = exc
+                        continue
+                    raise
+            else:
+                # Todas las ubicaciones rechazadas.
+                raise ultimo or FalloCalendly("Calendly no aceptó ninguna ubicación", 400)
     except FalloCalendly as exc:
-        logger.warning("Calendly no dejó agendar por la API (%s): se manda a su página", exc.codigo)
-        plan = " En el plan gratis de Calendly esto no se puede hacer desde fuera." if exc.codigo in (401, 403) else ""
+        logger.warning("Calendly no dejó agendar por la API (%s): %s", exc.codigo, exc.motivo)
         await _apuntar(email, nombre, telefono, cuando, autor, False, db_session)
         return {
             "ok": True,
             "modo": "enlace",
             "url": con_datos(plan_b, nombre, email) if plan_b else "",
-            "motivo": f"{exc.motivo}.{plan}".replace("..", "."),
+            "motivo": exc.motivo,
+            "codigo": exc.codigo,
+            # 403: lo de reservar desde fuera es de los planes de pago de Calendly.
+            "plan": exc.codigo in (401, 403),
         }
     except Exception as exc:  # noqa: BLE001
         logger.exception("No se pudo agendar en Calendly")
