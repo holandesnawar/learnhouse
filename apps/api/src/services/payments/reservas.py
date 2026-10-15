@@ -240,8 +240,10 @@ async def crear_enlace(
 ) -> dict:
     """Crea (o reaprovecha) la reserva y devuelve el enlace firmado.
 
-    El total solo lo puede fijar un administrador (es lo que se le cobra a la
-    persona); para el closer, el precio de la formación. Una reserva abierta
+    El total de una SEÑAL solo lo puede fijar un administrador (es lo que se
+    le cobra a la persona); para el closer, el precio de la formación. Pero un
+    pago único a otro precio («Otro importe», total = importe) lo puede crear
+    también el closer (15/10/2026: "el closer también"). Una reserva abierta
     mantiene su total: el enlace nuevo cobra a cuenta de ella."""
     from config.config import get_learnhouse_config
     from src.services.contactos.contactos import emails_que_pagaron
@@ -257,7 +259,9 @@ async def crear_enlace(
     reserva = await reserva_abierta_de(clave, db_session)
     ahora = _ahora()
     if reserva is None:
-        if es_admin and total_cents:
+        # «Otro importe»: todo de una vez, a ese precio. Lo puede hacer el closer.
+        pago_unico = bool(total_cents) and int(total_cents) == int(importe_cents or 0)
+        if total_cents and (es_admin or pago_unico):
             total, moneda = int(total_cents), "eur"
         else:
             total, moneda = await precio_formacion()

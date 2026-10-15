@@ -14,8 +14,8 @@
  * Klarna o a quien Klarna le falla. Cobra el primer mes al pagar (y ya entra
  * en la escuela) y los otros dos solos, al mes; al tercero se acaba solo.
  *
- * «Otro importe» (15/10/2026, solo administradores): un pago único a otro
- * precio (p. ej. 435 €). Va por la reserva de plaza con el total = lo que se
+ * «Otro importe» (15/10/2026, administradores y closer): un pago único a
+ * otro precio (p. ej. 435 €). Va por la reserva de plaza con el total = lo que se
  * cobra, así que al pagar entra en la escuela como con el pago normal.
  */
 
@@ -23,7 +23,6 @@ import React, { useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { crearEnlacePago, crearEnlaceReserva, type CondicionesPlazos } from '@services/stats/contactos'
-import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { Copy, CreditCard, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { BOTON, BOTON_PRINCIPAL, META } from './ui'
@@ -38,7 +37,6 @@ export default function EnlacePago({ email, nombre: nombreCompleto, telefono }: 
   const [creando, setCreando] = useState(false)
   const [plan, setPlan] = useState<'' | 'plazos' | 'otro'>('')
   const [condiciones, setCondiciones] = useState<CondicionesPlazos | null>(null)
-  const { isAdmin } = useAdminStatus()
   const [otro, setOtro] = useState('435')
   const [importe, setImporte] = useState(0)
 
@@ -109,8 +107,8 @@ export default function EnlacePago({ email, nombre: nombreCompleto, telefono }: 
             [
               ['', 'Pago único'],
               ['plazos', '3 plazos'],
-              // Otro precio, de una vez: solo quien dirige (el closer no fija precios).
-              ...(isAdmin ? ([['otro', 'Otro importe']] as const) : []),
+              // Otro precio, de una vez (administradores y closer).
+              ['otro', 'Otro importe'],
             ] as const
           ).map(([id, texto]) => (
             <button

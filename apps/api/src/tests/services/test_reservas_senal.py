@@ -75,6 +75,22 @@ async def test_el_closer_no_fija_el_total(db, org):
 
 
 @pytest.mark.asyncio
+async def test_el_closer_si_puede_crear_un_pago_unico_a_otro_precio(db, org):
+    # «Otro importe» (15/10): total = importe, todo de una vez. Vale para el closer.
+    async def precio():
+        return 39700, "eur"
+
+    with patch.object(R, "precio_formacion", precio), patch(
+        "src.services.payments.payments._academy_url", lambda: "https://escuela.test"
+    ):
+        a = await R.crear_enlace(
+            email="u@x.com", first_name="U", last_name="", phone="", importe_cents=43500,
+            total_cents=43500, autor="Closer", es_admin=False, db_session=db,
+        )
+    assert a["reserva"]["total_cents"] == 43500 and a["tipo"] == "unico"
+
+
+@pytest.mark.asyncio
 async def test_a_un_alumno_no_se_le_crea_reserva(db, org):
     db.add(Enrollment(email="ya@x.com", status="paid", created_at="2026-10-01"))
     await db.commit()
