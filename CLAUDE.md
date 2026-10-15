@@ -1924,6 +1924,12 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
       **Si vuelve a pasar, lo primero es leer ese texto**: 403 = plan
       gratis de Calendly (solo se arregla con su plan Standard); 400 = algo
       del evento que aún falta mandar.
+    - ✅ **La causa real (15/10, con el texto a la vista)**: el bloque
+      `tracking` (utm_source/medium/campaign). Si se manda, Calendly exige
+      TODOS sus campos («tracking.utm_content: is missing; tracking.utm_term:
+      is missing; tracking.salesforce_uuid: is missing») y rechaza la reserva
+      entera. Se quitó: **no mandar `tracking`**. El usuario tiene Calendly
+      **Standard** (de pago): la API de reservar sí está disponible.
   - **«Recordar por WhatsApp»** (15/10) en cada cita que aún no ha pasado
     (Llamadas y ficha): abre WhatsApp con el mensaje escrito («Hola Ana, soy
     Rida de Holandés Nawar. Te escribo para recordarte tu llamada de mañana a

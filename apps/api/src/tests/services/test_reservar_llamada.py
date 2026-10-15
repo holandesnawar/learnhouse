@@ -146,6 +146,8 @@ async def test_agenda_en_calendly_y_apunta_a_la_persona(db):
     assert cuerpo["event_type"].endswith("LLAMADA") and cuerpo["location"] == {"kind": "google_conference"}
     assert cuerpo["invitee"] == {"name": "Ana Gil", "email": "ana@x.com", "timezone": "Europe/Amsterdam"}
     assert cuerpo["start_time"].endswith("Z")
+    # Con `tracking` a medias Calendly rechaza la reserva entera (15/10).
+    assert "tracking" not in cuerpo
     assert A._cache["hasta"] == 0.0  # la agenda se vuelve a pedir
 
     ev = (await db.execute(select(ContactEvent).where(ContactEvent.email == "ana@x.com"))).scalars().one()
