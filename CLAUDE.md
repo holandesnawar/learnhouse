@@ -1911,6 +1911,19 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
     Llamadas; en el tablero pasa sola a Agendado (`cita_que_manda`).
     `api.calendly.com` no se alcanza desde aquí: probado con un Calendly
     falso (`test_reservar_llamada.py`), NO contra el de verdad.
+    - ⚠️ **Primera prueba real (15/10): «Calendly falló» y abrió la página
+      para confirmar a mano.** No se pudo ver el motivo desde aquí. Se
+      añadió: respuestas a las **preguntas OBLIGATORIAS** del evento
+      (`respuestas_obligatorias`: teléfono → el suyo en formato +31…, de
+      elegir → la primera opción, de texto → «Agendada por el equipo de
+      Holandés Nawar»), **reintento con cada ubicación del evento y al
+      final sin ninguna** si lo rechazado es la ubicación
+      (`invalid_location_choice`, `ubicaciones_para`), el motivo con el
+      NOMBRE del parámetro rechazado, y la ventana enseña «Lo que dijo
+      Calendly» tal cual y solo culpa al plan si es un 403 (`plan: true`).
+      **Si vuelve a pasar, lo primero es leer ese texto**: 403 = plan
+      gratis de Calendly (solo se arregla con su plan Standard); 400 = algo
+      del evento que aún falta mandar.
   - **«Recordar por WhatsApp»** (15/10) en cada cita que aún no ha pasado
     (Llamadas y ficha): abre WhatsApp con el mensaje escrito («Hola Ana, soy
     Rida de Holandés Nawar. Te escribo para recordarte tu llamada de mañana a

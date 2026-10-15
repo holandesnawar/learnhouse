@@ -12,6 +12,7 @@ from src.db.contact_event import ContactEvent
 from src.db.enrollment import Enrollment  # noqa: F401  (registra la tabla)
 from src.db.enrollment_request import EnrollmentRequest  # noqa: F401
 from src.db.llamadas_templadas import LlamadaTemplada
+from src.db.reservas import ReservaPago, ReservaPlaza  # noqa: F401  (las lee la línea de tiempo)
 from src.services.contactos import agenda as A
 from src.services.contactos import reservar as R
 
@@ -67,10 +68,12 @@ def test_los_limites_del_dia_en_paises_bajos():
 
 
 class CalendlyFalso:
-    def __init__(self, reservar_status=201, motivo="Forbidden"):
+    def __init__(self, reservar_status=201, motivo="Forbidden", rechaza_ubicacion=False, tipos=None):
         self.pedidos: list[tuple[str, str, dict]] = []
         self.reservar_status = reservar_status
         self.motivo = motivo
+        self.rechaza_ubicacion = rechaza_ubicacion
+        self.tipos = tipos or TIPOS
 
     def __call__(self):
         falso = self
@@ -88,7 +91,7 @@ class CalendlyFalso:
                 if url.endswith("/users/me"):
                     return httpx.Response(200, json={"resource": {"uri": "https://api.calendly.com/users/YO"}}, request=pedido)
                 if url.endswith("/event_types"):
-                    return httpx.Response(200, json={"collection": TIPOS}, request=pedido)
+                    return httpx.Response(200, json={"collection": falso.tipos}, request=pedido)
                 if url.endswith("/event_type_available_times"):
                     return httpx.Response(200, json={"collection": [
                         {"status": "available", "start_time": "2026-10-16T16:00:00Z",
@@ -96,6 +99,9 @@ class CalendlyFalso:
                         {"status": "available", "start_time": "2026-10-16T09:00:00Z", "scheduling_url": "u2"},
                     ]}, request=pedido)
                 if url.endswith("/invitees") and metodo == "POST":
+                    if falso.rechaza_ubicacion and "location" in kw["json"]:
+                        return httpx.Response(400, json={"title": "Invalid Argument", "message": "The supplied parameters are invalid.",
+                                                         "details": [{"parameter": "location", "message": "invalid_location_choice"}]}, request=pedido)
                     if falso.reservar_status >= 400:
                         return httpx.Response(falso.reservar_status, json={"title": "Permission Denied", "message": falso.motivo}, request=pedido)
                     return httpx.Response(201, json={"resource": {
@@ -169,7 +175,7 @@ async def test_en_el_plan_gratis_manda_a_la_pagina_de_calendly_rellenada(db):
                              url_hueco=hueco, autor="Rida", db_session=db)
     assert r["ok"] and r["modo"] == "enlace"
     assert r["url"].startswith(hueco) and "name=Ana+Gil" in r["url"] and "email=ana%40x.com" in r["url"]
-    assert "plan gratis" in r["motivo"] and "paid plan" in r["motivo"]
+    assert r["plan"] is True and "paid plan" in r["motivo"]
     ev = (await db.execute(select(ContactEvent).where(ContactEvent.email == "ana@x.com"))).scalars().one()
     assert ev.kind == "llamada-equipo"
 
@@ -192,3 +198,61 @@ async def test_el_telefono_de_la_web_para_las_citas(db):
     await db.commit()
     tels = await R.telefonos_por_email({"ANA@x.com", "leo@x.com", "nadie@x.com"}, db)
     assert tels == {"ana@x.com": "+31600000002"}
+
+
+# ── 15/10: «Calendly falló» al agendar ─────────────────────────────────────
+
+
+def test_el_telefono_como_lo_pide_calendly():
+    assert R.telefono_e164("+31 6 1234 5678") == "+31612345678"
+    assert R.telefono_e164("0032 470 12 34 56") == "+32470123456"
+    assert R.telefono_e164("") == ""
+
+
+def test_respuestas_a_las_preguntas_obligatorias():
+    tipo = {"custom_questions": [
+        {"name": "Teléfono", "type": "phone_number", "required": True, "enabled": True, "position": 0},
+        {"name": "¿Qué nivel tienes?", "type": "single_select", "required": True, "enabled": True, "position": 1,
+         "answer_choices": ["Cero", "A1"]},
+        {"name": "Cuéntanos algo", "type": "text", "required": True, "enabled": True, "position": 2},
+        {"name": "Opcional", "type": "string", "required": False, "enabled": True, "position": 3},
+        {"name": "Apagada", "type": "string", "required": True, "enabled": False, "position": 4},
+    ]}
+    assert R.respuestas_obligatorias(tipo, "+31 6 1") == [
+        {"question": "Teléfono", "answer": "+3161", "position": 0},
+        {"question": "¿Qué nivel tienes?", "answer": "Cero", "position": 1},
+        {"question": "Cuéntanos algo", "answer": R.RESPUESTA_DEL_EQUIPO, "position": 2},
+    ]
+    assert R.respuestas_obligatorias({}, "") == []
+
+
+def test_las_ubicaciones_que_se_prueban():
+    tipo = {"locations": [{"kind": "google_conference"}, {"kind": "outbound_call"}]}
+    assert R.ubicaciones_para(tipo, "+31 6 12") == [
+        {"kind": "google_conference"}, {"kind": "outbound_call", "location": "+31612"}, None]
+    assert R.ubicaciones_para({}, "") == [None]
+
+
+@pytest.mark.asyncio
+async def test_si_calendly_rechaza_la_ubicacion_prueba_sin_ella(db):
+    tipos = [{**TIPOS[1], "custom_questions": [
+        {"name": "Teléfono", "type": "phone_number", "required": True, "enabled": True, "position": 0}]}]
+    falso = CalendlyFalso(rechaza_ubicacion=True, tipos=tipos)
+    with patch.object(A, "_token", lambda: "tok"), patch.object(R, "_cliente", falso):
+        r = await R.reservar(nombre="Ana Gil", email="ana@x.com", telefono="+31 6 1", inicio=MANANA.isoformat(),
+                             url_hueco="", autor="Rida", db_session=db)
+    assert r["ok"] and r["modo"] == "reservada"
+    cuerpos = [kw["json"] for m, u, kw in falso.pedidos if u.endswith("/invitees")]
+    assert [("location" in c) for c in cuerpos] == [True, False]
+    assert cuerpos[-1]["questions_and_answers"] == [{"question": "Teléfono", "answer": "+3161", "position": 0}]
+
+
+@pytest.mark.asyncio
+async def test_otro_rechazo_se_explica_tal_cual(db):
+    falso = CalendlyFalso(reservar_status=400, motivo="The selected time is no longer available")
+    with patch.object(A, "_token", lambda: "tok"), patch.object(R, "_cliente", falso):
+        r = await R.reservar(nombre="Ana", email="ana@x.com", telefono="", inicio=MANANA.isoformat(),
+                             url_hueco="u", autor="Rida", db_session=db)
+    assert r["modo"] == "enlace" and r["plan"] is False and "no longer available" in r["motivo"]
+    # Un rechazo que no es de la ubicación no se reintenta.
+    assert len([1 for m, u, kw in falso.pedidos if u.endswith("/invitees")]) == 1

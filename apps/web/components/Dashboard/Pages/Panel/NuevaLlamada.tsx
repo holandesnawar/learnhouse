@@ -52,7 +52,7 @@ export default function NuevaLlamada({
   const [cargando, setCargando] = useState(false)
   const [hueco, setHueco] = useState<{ inicio: string; url: string } | null>(null)
   const [enviando, setEnviando] = useState(false)
-  const [confirmar, setConfirmar] = useState<{ url: string; motivo: string } | null>(null)
+  const [confirmar, setConfirmar] = useState<{ url: string; motivo: string; plan: boolean } | null>(null)
 
   useEffect(() => {
     const f = (ev: KeyboardEvent) => ev.key === 'Escape' && onClose()
@@ -87,7 +87,7 @@ export default function NuevaLlamada({
       return
     }
     if (r.modo === 'enlace') {
-      setConfirmar({ url: r.url || '', motivo: r.motivo || '' })
+      setConfirmar({ url: r.url || '', motivo: r.motivo || '', plan: Boolean(r.plan) })
       return
     }
     toast.success(`Agendada. A ${nombre.trim().split(' ')[0]} le llega el correo de Calendly con el enlace.`, { duration: 6000 })
@@ -113,10 +113,18 @@ export default function NuevaLlamada({
         {confirmar ? (
           <div className="px-5 py-4 space-y-3">
             <p className="text-[13.5px] text-gray-900">
-              Calendly no deja agendar desde fuera con tu plan, así que te abro su página <strong>de esa hora</strong>, con el nombre y
-              el correo ya puestos: solo pulsa <strong>«Programar evento»</strong>.
+              {confirmar.plan
+                ? 'Tu plan de Calendly no deja agendar desde fuera (es de sus planes de pago).'
+                : 'Calendly no la ha aceptado directamente.'}{' '}
+              Te abro su página <strong>de esa hora</strong>, con el nombre y el correo ya puestos: solo pulsa{' '}
+              <strong>«Programar evento»</strong>.
             </p>
-            {confirmar.motivo ? <p className={`${META} !whitespace-normal`}>Calendly dijo: {confirmar.motivo}</p> : null}
+            {/* El motivo tal cual: es lo que hace falta para arreglarlo (15/10). */}
+            {confirmar.motivo ? (
+              <p className="text-[12.5px] text-gray-700 bg-[#F9FAFB] border border-[#E5E7EB] rounded-md px-2.5 py-2 !whitespace-normal break-words">
+                <span className="font-medium">Lo que dijo Calendly:</span> {confirmar.motivo}
+              </p>
+            ) : null}
             {confirmar.url ? (
               <a
                 href={confirmar.url}
