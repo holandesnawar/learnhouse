@@ -9,7 +9,10 @@ import { getAPIUrl } from '@services/config/config'
 import { getUserAvatarMediaDirectory } from '@services/media/media'
 import { removeUserFromOrg, removeUsersFromOrg, updateUserRole } from '@services/organizations/orgs'
 import { apiFetch } from '@services/utils/ts/requests'
-import { LogOut, Search, ChevronLeft, ChevronRight, Shield, User, Crown, Users, CheckCircle2, XCircle, Mail, Globe, ArrowUp, ArrowDown, X, Filter, Download, RotateCcw } from 'lucide-react'
+import { LogOut, Search, ChevronLeft, ChevronRight, Shield, User, Crown, Users, CheckCircle2, XCircle, Mail, Globe, ArrowUp, ArrowDown, X, Filter, Download, RotateCcw, IdCard } from 'lucide-react'
+import { FichaAlumno } from '@components/Dashboard/Pages/Panel/ProgresoPanel'
+import { getAlumnosProgreso, type AlumnoProgreso } from '@services/panel/panel'
+import useAdminStatus from '@components/Hooks/useAdminStatus'
 import React, { useState, useCallback, useMemo } from 'react'
 import toast from 'react-hot-toast'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -50,6 +53,25 @@ function OrgUsers() {
   const [filterRole, setFilterRole] = useState<string>('')
   const [filterStatus, setFilterStatus] = useState<string>('')
   const [filterGroupId, setFilterGroupId] = useState<string>('')
+  // La ficha del alumno (15/10/2026): cuándo entró y «Mandar recordatorio».
+  const [fichaAlumno, setFichaAlumno] = useState<{ id: number; nombre: string } | null>(null)
+  const { isAdmin } = useAdminStatus()
+  // Cuántos días lleva cada alumno sin entrar, de la misma lista que Progreso
+  // (solo administradores: es lo que deja ver esa lista).
+  const { data: progreso } = useQuery<AlumnoProgreso[]>({
+    queryKey: ['nawar', 'alumnos-progreso', org?.id],
+    queryFn: async () => {
+      const r = await getAlumnosProgreso(org.id, access_token)
+      return r.ok && r.datos ? r.datos.alumnos : []
+    },
+    enabled: Boolean(org?.id && access_token && isAdmin),
+    staleTime: 60_000,
+  })
+  const progresoDe = useMemo(() => {
+    const m = new Map<number, AlumnoProgreso>()
+    for (const a of progreso || []) m.set(a.user_id, a)
+    return m
+  }, [progreso])
 
   const buildQuery = () => {
     const params = new URLSearchParams()
@@ -606,6 +628,20 @@ function OrgUsers() {
                                 Last login: {formatShortDate(user.user.last_login_at)}
                               </span>
                             )}
+                            {/* Días sin entrar a la escuela (no solo sin iniciar sesión). */}
+                            {progresoDe.get(user.user.id) ? (
+                              <span
+                                className={`text-xs font-medium ${
+                                  ['descolgado', 'nunca'].includes(progresoDe.get(user.user.id)!.estado.id)
+                                    ? 'text-red-700'
+                                    : progresoDe.get(user.user.id)!.estado.id === 'enfriando'
+                                      ? 'text-amber-700'
+                                      : 'text-gray-500'
+                                }`}
+                              >
+                                {progresoDe.get(user.user.id)!.estado.texto}
+                              </span>
+                            ) : null}
                           </div>
                         </td>
 
@@ -658,6 +694,16 @@ function OrgUsers() {
                         {/* Actions */}
                         <td className="px-6 py-4 text-right">
                           <div className="inline-flex items-center gap-2">
+                          {isAdmin ? (
+                            <button
+                              onClick={() => setFichaAlumno({ id: user.user.id, nombre: `${user.user.first_name} ${user.user.last_name}`.trim() })}
+                              className="inline-flex items-center gap-1.5 h-8 px-3 bg-gray-900 text-white hover:bg-gray-800 rounded-md text-xs font-medium transition-all"
+                              title="Cuándo entró, por dónde va y mandarle un recordatorio"
+                            >
+                              <IdCard className="w-3.5 h-3.5" />
+                              <span>Ficha</span>
+                            </button>
+                          ) : null}
                           <ConfirmationModal
                             confirmationButtonText="Sí, reiniciar progreso"
                             confirmationMessage={`Esto borrará TODO el progreso de @${user.user.username} (recorrido del curso, racha, lecciones completadas e intentos de ejercicios). Sus notas/resaltados se conservan. Esta acción no se puede deshacer.`}
@@ -736,6 +782,7 @@ function OrgUsers() {
               </div>
             )}
           </div>
+      {fichaAlumno ? <FichaAlumno userId={fichaAlumno.id} nombre={fichaAlumno.nombre} onClose={() => setFichaAlumno(null)} /> : null}
     </div>
   )
 }

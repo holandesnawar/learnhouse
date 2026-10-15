@@ -23,7 +23,7 @@ import {
   type AlumnoProgreso,
   type AperturaModulo,
 } from '@services/panel/panel'
-import { Bell, ChevronDown, Loader2, Lock, Mail, Search } from 'lucide-react'
+import { Bell, ChevronDown, Loader2, Lock, Mail, Search, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { confirmar } from '@lib/nawar/confirmar'
 import FichaCliente from './FichaCliente'
@@ -192,6 +192,110 @@ function ModulosPorAvance({
   )
 }
 
+/** Lo de dentro de un alumno: estado, constancia, recordatorio y módulos.
+ * Lo usan la fila abierta de Progreso y la ficha del alumno de Usuarios. */
+export function DetalleAlumno({
+  a,
+  onFicha,
+  onRecordar,
+  onAbrir,
+  onDeshacer,
+  apilado = false,
+}: {
+  a: AlumnoProgreso
+  onFicha?: () => void
+  onRecordar: () => void
+  onAbrir: (m: AperturaModulo) => void
+  onDeshacer: (m: AperturaModulo) => void
+  /** En un panel estrecho (la ficha de Usuarios): una columna siempre. */
+  apilado?: boolean
+}) {
+  return (
+    <div
+      className={`rounded-lg bg-[#F9FAFB] border border-[#F3F4F6] p-4 grid gap-4 ${
+        apilado ? '' : 'lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]'
+      }`}
+    >
+      <dl className="space-y-2 text-[13px]">
+        <div>
+          <dt className="text-[#6B7280]">Estado</dt>
+          <dd className="text-gray-900">{a.estado.texto}</dd>
+        </div>
+        <div>
+          <dt className="text-[#6B7280]">Le falta primero</dt>
+          <dd className="text-gray-900">
+            {a.siguiente ? `${modulo(a.siguiente.modulo)} · ${a.siguiente.clase}` : a.total ? 'Nada: ha terminado la formación' : '—'}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[#6B7280]">Constancia</dt>
+          <dd className="text-gray-900">
+            Ha entrado {a.dias_que_entro} {a.dias_que_entro === 1 ? 'día' : 'días'} en total
+            {a.racha > 1 ? ` · racha de ${a.racha} días` : ''}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[#6B7280]">Cómo se le abren los módulos</dt>
+          <dd className="text-gray-900">
+            {a.por_avance
+              ? 'Por avance: cada uno al terminar el anterior (80 % de las clases) y pasada su espera.'
+              : 'Por las fechas de la primera convocatoria.'}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[#6B7280]">Alumno desde</dt>
+          <dd className="text-gray-900">{a.alta ? new Date(`${a.alta}T12:00:00`).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</dd>
+        </div>
+        <div>
+          <dt className="text-[#6B7280]">Último recordatorio</dt>
+          <dd className="text-gray-900">
+            {a.ultimo_recordatorio
+              ? `${haceDias(a.ultimo_recordatorio.sent_at)}${a.ultimo_recordatorio.por ? `, por ${a.ultimo_recordatorio.por}` : ''}`
+              : 'Ninguno todavía'}
+          </dd>
+        </div>
+        <div className="flex flex-wrap gap-2 pt-1">
+          <button onClick={onRecordar} className={BOTON_PRINCIPAL}>
+            <Bell size={14} /> Mandar recordatorio
+          </button>
+          {onFicha ? (
+            <button onClick={onFicha} className={BOTON}>
+              Ver su ficha
+            </button>
+          ) : null}
+          <a href={`mailto:${a.email}`} className={BOTON}>
+            <Mail size={14} /> Escribirle
+          </a>
+        </div>
+      </dl>
+
+      <div>
+        <p className="text-[12px] font-semibold text-[#6B7280] uppercase tracking-[0.08em] mb-2">Por módulo</p>
+        {a.por_avance && a.aperturas.length ? (
+          <ModulosPorAvance a={a} onAbrir={onAbrir} onDeshacer={onDeshacer} />
+        ) : a.modulos.length ? (
+          <ul className="space-y-2">
+            {a.modulos.map((m) => {
+              const pct = m.total ? Math.round((m.hechas * 100) / m.total) : 0
+              return (
+                <li key={m.nombre} className="grid grid-cols-[minmax(0,1fr)_96px_44px] items-center gap-3 text-[12.5px]">
+                  <span className="truncate text-gray-800">{modulo(m.nombre)}</span>
+                  <Barra pct={pct} llena={m.total > 0 && m.hechas === m.total} />
+                  <span className="text-right tabular-nums text-[#6B7280]">
+                    {m.hechas}/{m.total}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        ) : (
+          <p className="text-[13px] text-[#9CA3AF]">El curso no tiene clases publicadas.</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function Fila({
   a,
   abierta,
@@ -299,85 +403,149 @@ function Fila({
 
       {abierta ? (
         <div className="px-4 pb-4 lg:pl-16">
-          <div className="rounded-lg bg-[#F9FAFB] border border-[#F3F4F6] p-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-            <dl className="space-y-2 text-[13px]">
-              <div>
-                <dt className="text-[#6B7280]">Estado</dt>
-                <dd className="text-gray-900">{a.estado.texto}</dd>
-              </div>
-              <div>
-                <dt className="text-[#6B7280]">Le falta primero</dt>
-                <dd className="text-gray-900">
-                  {a.siguiente ? `${modulo(a.siguiente.modulo)} · ${a.siguiente.clase}` : a.total ? 'Nada: ha terminado la formación' : '—'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[#6B7280]">Constancia</dt>
-                <dd className="text-gray-900">
-                  Ha entrado {a.dias_que_entro} {a.dias_que_entro === 1 ? 'día' : 'días'} en total
-                  {a.racha > 1 ? ` · racha de ${a.racha} días` : ''}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[#6B7280]">Cómo se le abren los módulos</dt>
-                <dd className="text-gray-900">
-                  {a.por_avance
-                    ? 'Por avance: cada uno al terminar el anterior (80 % de las clases) y pasada su espera.'
-                    : 'Por las fechas de la primera convocatoria.'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[#6B7280]">Alumno desde</dt>
-                <dd className="text-gray-900">{a.alta ? new Date(`${a.alta}T12:00:00`).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</dd>
-              </div>
-              <div>
-                <dt className="text-[#6B7280]">Último recordatorio</dt>
-                <dd className="text-gray-900">
-                  {a.ultimo_recordatorio
-                    ? `${haceDias(a.ultimo_recordatorio.sent_at)}${a.ultimo_recordatorio.por ? `, por ${a.ultimo_recordatorio.por}` : ''}`
-                    : 'Ninguno todavía'}
-                </dd>
-              </div>
-              <div className="flex flex-wrap gap-2 pt-1">
-                <button onClick={onRecordar} className={BOTON_PRINCIPAL}>
-                  <Bell size={14} /> Mandar recordatorio
-                </button>
-                <button onClick={onFicha} className={BOTON}>
-                  Ver su ficha
-                </button>
-                <a href={`mailto:${a.email}`} className={BOTON}>
-                  <Mail size={14} /> Escribirle
-                </a>
-              </div>
-            </dl>
-
-            <div>
-              <p className="text-[12px] font-semibold text-[#6B7280] uppercase tracking-[0.08em] mb-2">Por módulo</p>
-              {a.por_avance && a.aperturas.length ? (
-                <ModulosPorAvance a={a} onAbrir={onAbrir} onDeshacer={onDeshacer} />
-              ) : a.modulos.length ? (
-                <ul className="space-y-2">
-                  {a.modulos.map((m) => {
-                    const pct = m.total ? Math.round((m.hechas * 100) / m.total) : 0
-                    return (
-                      <li key={m.nombre} className="grid grid-cols-[minmax(0,1fr)_96px_44px] items-center gap-3 text-[12.5px]">
-                        <span className="truncate text-gray-800">{modulo(m.nombre)}</span>
-                        <Barra pct={pct} llena={m.total > 0 && m.hechas === m.total} />
-                        <span className="text-right tabular-nums text-[#6B7280]">
-                          {m.hechas}/{m.total}
-                        </span>
-                      </li>
-                    )
-                  })}
-                </ul>
-              ) : (
-                <p className="text-[13px] text-[#9CA3AF]">El curso no tiene clases publicadas.</p>
-              )}
-            </div>
-          </div>
+          <DetalleAlumno a={a} onFicha={onFicha} onRecordar={onRecordar} onAbrir={onAbrir} onDeshacer={onDeshacer} />
         </div>
       ) : null}
     </div>
+  )
+}
+
+/** Abrirle ya un módulo (o deshacerlo), preguntando antes. true si se hizo. */
+async function abrirAMano(orgId: number, token: string, a: AlumnoProgreso, m: AperturaModulo): Promise<boolean> {
+  const si = await confirmar(
+    `¿Abrirle ya el ${modulo(m.nombre)} a ${a.nombre}? Se le abre ahora, sin esperar a que termine el anterior. El siguiente módulo cuenta su espera desde hoy.`,
+    { boton: 'Abrir ya', peligro: false }
+  )
+  if (!si) return false
+  const r = await abrirModulo(orgId, a.user_id, m.uuid, token)
+  if (!r.ok) {
+    toast.error(r.error || 'No se ha podido abrir')
+    return false
+  }
+  toast.success('Abierto')
+  return true
+}
+
+async function deshacerAMano(orgId: number, token: string, a: AlumnoProgreso, m: AperturaModulo): Promise<boolean> {
+  const si = await confirmar(`¿Volver a cerrarle el ${modulo(m.nombre)} a ${a.nombre}? Queda como diga su avance.`, {
+    boton: 'Sí, deshacer',
+    peligro: false,
+  })
+  if (!si) return false
+  const r = await quitarAperturaModulo(orgId, a.user_id, m.uuid, token)
+  if (!r.ok) {
+    toast.error(r.error || 'No se ha podido deshacer')
+    return false
+  }
+  toast.success('Hecho')
+  return true
+}
+
+/**
+ * La ficha de un alumno, en un panel lateral (15/10/2026, "en la ficha del
+ * alumno en Usuarios, si veo que estuvo 7 días sin entrar, enviarle un
+ * recordatorio a mano"). Lo mismo que se ve al abrir su fila en Progreso:
+ * cuándo entró, dónde se quedó, sus módulos y «Mandar recordatorio».
+ *
+ * Sale de la misma lista que Progreso (`GET /panel/org/{id}/alumnos`), así que
+ * quien no está ahí (sin rol de alumno, en el grupo Testers o fuera de los
+ * números) lo dice en vez de enseñar una ficha vacía.
+ */
+export function FichaAlumno({ userId, nombre, onClose }: { userId: number; nombre?: string; onClose: () => void }) {
+  const org = useOrg() as any
+  const session = useLHSession() as any
+  const token = session?.data?.tokens?.access_token
+  const [alumnos, setAlumnos] = useState<AlumnoProgreso[] | null>(null)
+  const [error, setError] = useState('')
+  const [recordar, setRecordar] = useState<AlumnoProgreso | null>(null)
+  const [ficha, setFicha] = useState<string | null>(null)
+
+  const cargar = useCallback(async () => {
+    if (!org?.id || !token) return
+    const r = await getAlumnosProgreso(org.id, token)
+    if (r.ok && r.datos) {
+      setAlumnos(r.datos.alumnos)
+      setError('')
+    } else setError(r.error || 'No se ha podido cargar')
+  }, [org?.id, token])
+
+  useEffect(() => {
+    cargar()
+  }, [cargar])
+
+  // Escape cierra la ficha, salvo que haya otra ventana encima (que se cierra ella).
+  useEffect(() => {
+    const f = (e: KeyboardEvent) => e.key === 'Escape' && !recordar && !ficha && onClose()
+    window.addEventListener('keydown', f)
+    return () => window.removeEventListener('keydown', f)
+  }, [onClose, recordar, ficha])
+
+  const a = alumnos?.find((x) => x.user_id === userId) || null
+
+  return (
+    <>
+      <div className="fixed inset-0 z-[60] flex justify-end" role="dialog" aria-modal="true">
+        <button aria-label="Cerrar" onClick={onClose} className="absolute inset-0 bg-black/25" />
+        <div className="relative h-full w-full sm:max-w-[560px] bg-white border-l border-[#E5E7EB] overflow-y-auto">
+          <div className="sticky top-0 z-10 bg-white border-b border-[#E5E7EB] px-4 sm:px-5 pt-4 pb-3 flex items-start justify-between gap-3">
+            <div className="min-w-0 flex items-center gap-3">
+              <Iniciales nombre={a?.nombre || nombre || '?'} />
+              <div className="min-w-0">
+                <p className="text-[18px] font-semibold text-gray-900 truncate">{a?.nombre || nombre || 'Alumno'}</p>
+                {a ? <p className="text-[12.5px] text-[#6B7280] truncate">{a.email}</p> : null}
+              </div>
+            </div>
+            <button onClick={onClose} aria-label="Cerrar" className="shrink-0 p-1.5 rounded-lg text-[#6B7280] hover:bg-[#F3F4F6]">
+              <X size={18} />
+            </button>
+          </div>
+
+          <div className="px-4 sm:px-5 py-4 space-y-4">
+            {error ? (
+              <p className="text-[13.5px] text-red-700">{error}</p>
+            ) : !alumnos ? (
+              <div className="flex justify-center py-16">
+                <Loader2 className="animate-spin text-gray-400" size={24} />
+              </div>
+            ) : !a ? (
+              <p className="text-[13.5px] text-gray-700 leading-relaxed">
+                No sale en el progreso de los alumnos: no tiene el rol de alumno, está en el grupo Testers o está fuera de los
+                números. Por eso no se le puede mandar un recordatorio desde aquí.
+              </p>
+            ) : (
+              <>
+                {/* Lo primero: cuándo entró por última vez y el recordatorio, a la vista. */}
+                <div className={`${TARJETA} p-4`}>
+                  <Estado tono={TONO[a.estado.id]}>
+                    <span className="text-[14px] font-semibold text-gray-900">{a.estado.texto}</span>
+                  </Estado>
+                  <p className="text-[12.5px] text-[#6B7280] mt-1 pl-3">
+                    {a.ultima_entrada ? `Última vez: ${cuando(a.ultima_entrada)}` : `Alta: ${cuando(a.alta)}`}
+                    {a.ultimo_recordatorio ? ` · Recordado ${haceDias(a.ultimo_recordatorio.sent_at)}` : ''}
+                  </p>
+                  <p className="text-[12.5px] text-[#6B7280] mt-0.5 pl-3 truncate">
+                    {a.donde ? `Se quedó en ${a.donde.clase} · ${modulo(a.donde.modulo)}` : 'Todavía no ha abierto ninguna clase'}
+                  </p>
+                  <p className="text-[12.5px] text-[#6B7280] mt-0.5 pl-3">
+                    {a.hechas} de {a.total} clases · {a.pct} %
+                  </p>
+                </div>
+                <DetalleAlumno
+                  a={a}
+                  apilado
+                  onFicha={() => setFicha(a.email)}
+                  onRecordar={() => setRecordar(a)}
+                  onAbrir={async (m) => (await abrirAMano(org.id, token, a, m)) && cargar()}
+                  onDeshacer={async (m) => (await deshacerAMano(org.id, token, a, m)) && cargar()}
+                />
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+      {ficha ? <FichaCliente email={ficha} onClose={() => setFicha(null)} /> : null}
+      {recordar ? <RecordatorioModal alumno={recordar} onClose={() => setRecordar(null)} onEnviado={cargar} /> : null}
+    </>
   )
 }
 
@@ -408,33 +576,11 @@ export default function ProgresoPanel() {
   }, [cargar])
 
   async function abrir(a: AlumnoProgreso, m: AperturaModulo) {
-    const si = await confirmar(
-      `¿Abrirle ya el ${modulo(m.nombre)} a ${a.nombre}? Se le abre ahora, sin esperar a que termine el anterior. El siguiente módulo cuenta su espera desde hoy.`,
-      { boton: 'Abrir ya', peligro: false }
-    )
-    if (!si) return
-    const r = await abrirModulo(org.id, a.user_id, m.uuid, token)
-    if (!r.ok) {
-      toast.error(r.error || 'No se ha podido abrir')
-      return
-    }
-    toast.success('Abierto')
-    cargar()
+    if (await abrirAMano(org.id, token, a, m)) cargar()
   }
 
   async function deshacer(a: AlumnoProgreso, m: AperturaModulo) {
-    const si = await confirmar(
-      `¿Volver a cerrarle el ${modulo(m.nombre)} a ${a.nombre}? Queda como diga su avance.`,
-      { boton: 'Sí, deshacer', peligro: false }
-    )
-    if (!si) return
-    const r = await quitarAperturaModulo(org.id, a.user_id, m.uuid, token)
-    if (!r.ok) {
-      toast.error(r.error || 'No se ha podido deshacer')
-      return
-    }
-    toast.success('Hecho')
-    cargar()
+    if (await deshacerAMano(org.id, token, a, m)) cargar()
   }
 
   const cuenta = useMemo(() => {

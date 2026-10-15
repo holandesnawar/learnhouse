@@ -2209,6 +2209,16 @@ sin salir de la pantalla. Lo que sí se apunta, clase a clase, es el recorrido
   `student_reminder` y la lista dice "Recordado hace X"; "Mandármelo a mí" es
   una prueba y no se apunta. Ruta `/panel/org/{id}/recordatorio/...`, solo
   administradores. Tests: `test_recordatorio_alumno.py`.
+- **Ficha del alumno desde Usuarios** (15/10, "en la ficha del alumno en
+  Usuarios, si veo que estuvo 7 días sin entrar, enviarle recordatorio a
+  mano"): en Panel → Usuarios cada fila lleva **«Ficha»** (solo
+  administradores) y, bajo «Last login», cuántos días lleva sin entrar a la
+  escuela (rojo a partir de 8, ámbar de 4 a 7), sacado de la misma lista que
+  Progreso. «Ficha» abre `FichaAlumno` (en `ProgresoPanel.tsx`): un panel
+  lateral con el mismo detalle que la fila abierta de Progreso
+  (`DetalleAlumno`, ahora pieza aparte), «Mandar recordatorio», abrir
+  módulos y «Ver su ficha». Quien no sale en Progreso (sin rol de alumno,
+  Testers o fuera de los números) lo dice en vez de enseñar una ficha vacía.
 - **Recordatorio AUTOMÁTICO «1 semana sin entrar»** (04/10; Avisos → pestaña
   «1 semana sin entrar», `Avisos/RecordatorioAuto.tsx`). **Apagado de serie**
   (org_config `recordatorio_auto.activo`), con interruptor: el usuario aún
