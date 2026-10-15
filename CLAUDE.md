@@ -2989,8 +2989,10 @@ el checkout nuestro de siempre." Todo en `services/payments/reservas.py`
 - Tarjeta del tablero: «Señal 50 € · faltan 347 €». Línea de tiempo: evento
   `senal` (cuenta como "en el pago", no como alumno).
 - **«Otro importe»** (15/10, "un botón rápido para un pago de 435 único"): en
-  «Crear enlace de pago», al lado de «Pago único» y «3 plazos», **solo
-  administradores**. Usa esta misma reserva con total = importe, y el pago que
+  «Crear enlace de pago», al lado de «Pago único» y «3 plazos»,
+  **administradores y closer** (el mismo día: "el closer también"; el
+  servidor deja al closer fijar el total solo si total = importe, o sea un
+  pago único: el total de una SEÑAL sigue siendo de administradores). Usa esta misma reserva con total = importe, y el pago que
   lo cubre todo de una vez es de tipo **`unico`** (`tipo_de_pago`): concepto
   «Formación Nawar A0-A1», factura sin desglose y la caja de pago normal (sin
   `tipo/tot/prev` en la dirección). Al pagar, alta, correo y factura como
