@@ -56,6 +56,8 @@ import {
   borrarFlecha,
   cambiarFlecha,
   cambiarNodo,
+  crearClaseGratuita,
+  utmDeClase,
   crearFlecha,
   crearNodo,
   getMapa,
@@ -369,6 +371,7 @@ function Lienzo({
   // La tarjeta en la que se está escribiendo el título, y el menú del «+».
   const [editando, setEditando] = useState<number | null>(null)
   const [mas, setMas] = useState<{ nodo: NodoVision; x: number; y: number } | null>(null)
+  const [plantilla, setPlantilla] = useState(false)
   // La recién creada sale ya elegida, para seguir con Tab / Intro.
   const seleccionar = useRef<string | null>(null)
 
@@ -823,6 +826,22 @@ function Lienzo({
                     <span className={`${META} block pl-4`}>{t.que}</span>
                   </button>
                 ))}
+                <p className="px-2.5 pt-2.5 pb-1 mt-1 border-t border-[#F3F4F6] text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF]">
+                  Plantillas
+                </p>
+                <button
+                  onClick={() => {
+                    setMenu(false)
+                    setPlantilla(true)
+                  }}
+                  className="w-full text-left rounded-md px-2.5 py-2 hover:bg-[#F9FAFB]"
+                >
+                  <span className="flex items-center gap-2 text-[13.5px] font-medium text-gray-900">
+                    <span className="w-2 h-2 rounded-full" style={{ background: '#025dc7' }} />
+                    Campaña de clase gratuita
+                  </span>
+                  <span className={`${META} block pl-4`}>El embudo entero, con fechas: anuncio, reels, página, clase, llamadas…</span>
+                </button>
               </div>
             </>
           ) : null}
@@ -948,6 +967,25 @@ function Lienzo({
         tarjeta: su página
       </p>
 
+      {plantilla && datos ? (
+        <VentanaClaseGratuita
+          enInicio={!datos.mapa.nodo_padre_id}
+          onClose={() => setPlantilla(false)}
+          onCrear={async (v) => {
+            const r = await crearClaseGratuita(orgId, { mapa_id: datos.mapa.id, ...v }, token)
+            if (!r.ok || !r.datos) {
+              toast.error(r.error || 'No se ha podido crear la campaña')
+              return false
+            }
+            setPlantilla(false)
+            toast.success('Campaña creada: este es su embudo')
+            onCambioCampanas()
+            onIr(r.datos.submapa_id)
+            return true
+          }}
+        />
+      ) : null}
+
       {/* El menú del «+»: qué añadir unido a esta tarjeta, o dentro de su mapa. */}
       {mas ? (
         <>
@@ -1040,6 +1078,95 @@ function Lienzo({
           }}
         />
       ) : null}
+    </div>
+  )
+}
+
+
+/** La plantilla «Campaña de clase gratuita»: el día (y la hora) de la clase;
+ *  el nombre y el utm_campaign salen solos y se pueden cambiar. */
+function VentanaClaseGratuita({
+  enInicio,
+  onClose,
+  onCrear,
+}: {
+  enInicio: boolean
+  onClose: () => void
+  onCrear: (v: { fecha: string; hora: string; titulo: string; utm_campaign: string }) => Promise<boolean>
+}) {
+  const [fecha, setFecha] = useState('')
+  const [hora, setHora] = useState('19:00')
+  const [titulo, setTitulo] = useState('')
+  const [utm, setUtm] = useState('')
+  const [utmTocado, setUtmTocado] = useState(false)
+  const [creando, setCreando] = useState(false)
+  const CAMPO = 'w-full h-9 rounded-md border border-[#E5E7EB] bg-white px-2.5 text-[13.5px] text-gray-900 outline-none focus:border-gray-900'
+  const ROTULO = 'block text-[12px] font-medium text-[#6B7280] mb-1'
+  const utmFinal = utmTocado ? utm : utmDeClase(fecha)
+
+  return (
+    <div className="fixed inset-0 z-[66] flex items-center justify-center bg-black/30 p-3" role="dialog" aria-modal="true">
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault()
+          if (!fecha) return toast.error('Pon el día de la clase')
+          setCreando(true)
+          const ok = await onCrear({ fecha, hora, titulo: titulo.trim(), utm_campaign: utmFinal.trim() })
+          if (!ok) setCreando(false)
+        }}
+        className="w-full max-w-[460px] rounded-lg border border-[#E5E7EB] bg-white p-5 space-y-4"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-[16px] font-semibold text-gray-900">Campaña de clase gratuita</h3>
+            <p className={`${META} mt-0.5`}>
+              Crea la campaña con todo su embudo: anuncio UGC, reels, historias, DMs del setter, página de la clase, recordatorios, la
+              clase, la oferta, las llamadas y el cierre. Cada paso con lo que hace falta y su fecha límite.
+            </p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Cerrar" className="p-1 rounded-md text-[#6B7280] hover:bg-[#F3F4F6]">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <label>
+            <span className={ROTULO}>Día de la clase</span>
+            <input type="date" required value={fecha} onChange={(e) => setFecha(e.target.value)} className={CAMPO} autoFocus />
+          </label>
+          <label>
+            <span className={ROTULO}>Hora (Países Bajos)</span>
+            <input type="time" value={hora} onChange={(e) => setHora(e.target.value)} className={CAMPO} />
+          </label>
+        </div>
+        <label className="block">
+          <span className={ROTULO}>Nombre (opcional)</span>
+          <input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Clase gratuita · vie 6 nov" className={CAMPO} />
+        </label>
+        <label className="block">
+          <span className={ROTULO}>utm_campaign de todos sus enlaces</span>
+          <input
+            value={utmFinal}
+            onChange={(e) => {
+              setUtmTocado(true)
+              setUtm(e.target.value)
+            }}
+            placeholder="clase-gratis-06nov"
+            className={CAMPO}
+          />
+        </label>
+        <p className={META}>
+          {enInicio ? 'Se crea dentro de la vertical «Campañas». ' : 'Se crea en este mapa. '}
+          Todo nace «Pendiente»: marca lo que ya tengas hecho.
+        </p>
+        <div className="flex gap-2">
+          <button type="submit" disabled={creando} className="inline-flex items-center gap-1.5 h-9 px-4 rounded-md bg-gray-900 text-white text-[13.5px] font-medium hover:bg-black disabled:opacity-50">
+            {creando ? <Loader2 size={14} className="animate-spin" /> : null} Crear campaña
+          </button>
+          <button type="button" onClick={onClose} className={BOTON}>
+            Cancelar
+          </button>
+        </div>
+      </form>
     </div>
   )
 }

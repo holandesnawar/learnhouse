@@ -335,6 +335,26 @@ export const guardarPago = (org: number, nodoId: number, datos: Partial<Pago>, t
   pedir<Pago>(id ? `org/${org}/campanas/${nodoId}/pagos/${id}` : `org/${org}/campanas/${nodoId}/pagos`, id ? 'PUT' : 'POST', datos, t)
 export const borrarPago = (org: number, id: number, t: string) => pedir<{ ok: boolean }>(`org/${org}/campanas/pagos/${id}`, 'DELETE', null, t)
 
+/** Plantilla: una campaña de clase gratuita con todo su embudo, con fechas desde el día de la clase. */
+export const crearClaseGratuita = (
+  org: number,
+  datos: { mapa_id: number; fecha: string; hora?: string; titulo?: string; utm_campaign?: string },
+  t: string
+) =>
+  pedir<{ ok: boolean; campana_id: number; mapa_id: number; submapa_id: number; utm_campaign: string }>(
+    `org/${org}/plantillas/clase-gratuita`,
+    'POST',
+    datos,
+    t
+  )
+
+const MESES_UTM = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+/** El mismo que pone el servidor si no se escribe otro: clase-gratis-06nov. */
+export const utmDeClase = (fecha: string) => {
+  const [, m, d] = (fecha || '').split('-').map(Number)
+  return m && d ? `clase-gratis-${String(d).padStart(2, '0')}${MESES_UTM[m - 1]}` : ''
+}
+
 export const getAjustes = (org: number, t: string) =>
   pedir<{ ajustes: Ajustes; de_fabrica: Ajustes; metricas: Record<string, MetricaInfo> }>(`org/${org}/ajustes`, 'GET', null, t)
 export const guardarAjustes = (org: number, ajustes: Ajustes, t: string) => pedir<Ajustes>(`org/${org}/ajustes`, 'PUT', ajustes, t)

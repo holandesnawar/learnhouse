@@ -295,3 +295,17 @@ async def api_guardar_ajustes(request: Request, org_id: int, data: dict[str, Any
     if not r.get("ok"):
         raise HTTPException(status_code=400, detail=r.get("motivo"))
     return r["ajustes"]
+
+
+# ── plantillas ──────────────────────────────────────────────────────────────
+
+
+@router.post("/org/{org_id}/plantillas/clase-gratuita", summary="Crea una campaña de clase gratuita con todo su embudo.")
+async def api_plantilla_clase(request: Request, org_id: int, data: dict[str, Any], current_user: PublicUser = Depends(get_current_user), db_session: AsyncSession = Depends(get_db_session)):
+    await _solo_admin(request, org_id, current_user, db_session)
+    from src.services.vision.plantillas import crear_clase_gratuita
+
+    r = await crear_clase_gratuita(org_id, data or {}, db_session)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    return r
