@@ -137,7 +137,7 @@ export default function WeeklyClassBanner() {
             en los ajustes del curso. Tener dos sitios para lo mismo acababa
             siempre en dos títulos distintos, uno encima del otro. */}
         {field('subtitle', 'Subtítulo', { textarea: true })}
-        {field('live_url', 'Enlace del directo (Ir al directo)', { placeholder: 'https://… (Zoom, Meet, YouTube en directo)' })}
+        {field('live_url', 'Enlace del directo (Ir a la clase)', { placeholder: 'https://… (Zoom, Meet, YouTube en directo)' })}
 
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -231,14 +231,14 @@ export default function WeeklyClassBanner() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold py-2.5 px-4 rounded-lg text-[14px] transition-colors"
               >
-                <Radio size={16} strokeWidth={2.5} /> Ir al directo
+                <Radio size={16} strokeWidth={2.5} /> Ir a la clase
               </a>
             ) : (
               <button
                 onClick={() => toast('El enlace del directo aún no está configurado.')}
                 className="inline-flex items-center gap-2 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold py-2.5 px-4 rounded-lg text-[14px] transition-colors"
               >
-                <Radio size={16} strokeWidth={2.5} /> Ir al directo
+                <Radio size={16} strokeWidth={2.5} /> Ir a la clase
               </button>
             )}
             <button
