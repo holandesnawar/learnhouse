@@ -13,6 +13,19 @@
  *   quedó la vista del mapa.
  * - Borrar con el teclado está apagado a propósito: una tarjeta se borra
  *   desde su página, con aviso (puede llevar un mapa entero dentro).
+ *
+ * 17/10 ("pantalla completa, más orden, más simple para ideas, y con un plus
+ * crear algo dentro sin estar deslizando y uniendo flechas"):
+ * - «+» en el borde de cada tarjeta: otra unida a ella (con su flecha), o
+ *   dentro de su mapa si es una vertical o una campaña. Con una tarjeta
+ *   elegida, Tab crea una unida y Intro una hermana (como en los programas de
+ *   mapas mentales). Lo nuevo se escribe en la propia tarjeta.
+ * - Doble clic en el fondo: una nota (idea) ahí mismo.
+ * - «Ordenar» coloca todo como un mapa mental (`lib/nawar/ordenarMapa.ts`),
+ *   con «Deshacer». Al arrastrar, las tarjetas se ajustan a una rejilla.
+ * - Pantalla completa de verdad: el mapa ocupa toda la ventana (y el
+ *   navegador pasa a pantalla completa si lo deja). El botón de las esquinas
+ *   que parecía de pantalla completa era «encajar»: ahora se llama «Ver todo».
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -21,8 +34,8 @@ import {
   ReactFlowProvider,
   Background,
   BackgroundVariant,
-  Controls,
   MiniMap,
+  Panel,
   ConnectionMode,
   MarkerType,
   useNodesState,
@@ -35,13 +48,14 @@ import {
   type Viewport,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { AlertTriangle, ChevronRight, Loader2, Plus, X, Trash2 } from 'lucide-react'
+import { AlertTriangle, ChevronRight, Loader2, Maximize2, Minimize2, Network, Plus, X, Trash2, ZoomIn, ZoomOut } from 'lucide-react'
 import toast from 'react-hot-toast'
 import {
   TIPOS,
   abrirSubmapa,
   borrarFlecha,
   cambiarFlecha,
+  cambiarNodo,
   crearFlecha,
   crearNodo,
   getMapa,
@@ -49,6 +63,7 @@ import {
   guardarVista,
   moverNodos,
   fechaCorta,
+  type FlechaVision,
   type MapaVision,
   type MetricaInfo,
   type NodoVision,
@@ -56,6 +71,7 @@ import {
 } from '@services/vision/vision'
 import TarjetaNodo, { type DatosTarjeta, type NodoFlow } from './TarjetaNodo'
 import PaginaNodo from './PaginaNodo'
+import { ordenarMapa } from '@lib/nawar/ordenarMapa'
 import { BOTON, BOTON_PELIGRO, META, filtro } from '../Panel/ui'
 
 const TIPOS_DE_NODO: NodeTypes = { tarjeta: TarjetaNodo }
@@ -110,7 +126,32 @@ function huecoLibre(centro: { x: number; y: number }, nodos: NodoFlow[]): { x: n
   return { x: Math.round(x0), y: Math.round(y0) }
 }
 
+/** Dónde poner una tarjeta nueva unida a `padre`: hacia fuera (del lado
+ *  contrario a su propio padre, o del lado donde ya tiene las suyas), debajo
+ *  de las que ya cuelgan de ella por ese lado y sin pisar ninguna. */
+function sitioAlLado(padre: NodoFlow, nodos: NodoFlow[], hijos: string[], abuelo?: NodoFlow): { x: number; y: number } {
+  const W = 236
+  const H = 110
+  const centro = (n: NodoFlow) => n.position.x + (n.measured?.width ?? 236) / 2
+  const suyos = nodos.filter((n) => hijos.includes(n.id))
+  let lado = 1
+  if (suyos.length) lado = suyos.filter((n) => centro(n) >= centro(padre)).length * 2 >= suyos.length ? 1 : -1
+  else if (abuelo) lado = centro(padre) >= centro(abuelo) ? 1 : -1
+  const x = lado === 1 ? padre.position.x + (padre.measured?.width ?? 236) + 110 : padre.position.x - W - 110
+  const ocupados = nodos.map((n) => ({ x: n.position.x, y: n.position.y, w: n.measured?.width ?? 236, h: n.measured?.height ?? 100 }))
+  const libre = (y: number) => ocupados.every((o) => x + W + 16 < o.x || o.x + o.w + 16 < x || y + H + 16 < o.y || o.y + o.h + 16 < y)
+  const deEseLado = suyos.filter((n) => (lado === 1 ? centro(n) >= centro(padre) : centro(n) < centro(padre)))
+  let y = deEseLado.length ? Math.max(...deEseLado.map((n) => n.position.y + (n.measured?.height ?? 100))) + 28 : padre.position.y
+  for (let i = 0; i < 60 && !libre(y); i++) y += 30
+  return { x: Math.round(x / 12) * 12, y: Math.round(y / 12) * 12 }
+}
+
+/** Las que se escriben en la propia tarjeta; campaña y métrica abren su página (hay que configurarlas). */
+const CON_PAGINA: TipoNodo[] = ['campana', 'metrica']
+const NOMBRE_EN_MENU: Partial<Record<TipoNodo, string>> = { nota: 'Nota / idea' }
+
 type Ir = { mapaId: number | null; foco?: number; vez: number }
+type Foco = { id: number; vez: number; editar?: boolean }
 
 /** Las pestañas de mapas abiertos y el mapa de la pestaña activa. */
 export default function MapasVision({
@@ -135,7 +176,48 @@ export default function MapasVision({
   const [estado, setEstado] = useState<{ pestanas: Pestana[]; activa: string }>(
     () => leerPestanas() ?? { pestanas: [{ id: 'inicio', mapaId: null, nombre: 'Inicio' }], activa: 'inicio' }
   )
-  const [foco, setFoco] = useState<{ id: number; vez: number } | null>(null)
+  const [foco, setFoco] = useState<Foco | null>(null)
+  // Pantalla completa: el mapa ocupa toda la ventana y, si el navegador lo
+  // deja, la pantalla entera (en el iPhone no: ahí solo la ventana).
+  const [completa, setCompleta] = useState(false)
+  const nativa = useRef(false)
+  const ponerCompleta = useCallback(async (si: boolean) => {
+    setCompleta(si)
+    try {
+      if (si && document.fullscreenEnabled && !document.fullscreenElement) {
+        await document.documentElement.requestFullscreen()
+        nativa.current = true
+      } else if (!si && document.fullscreenElement) {
+        nativa.current = false
+        await document.exitFullscreen()
+      }
+    } catch {
+      /* el navegador no deja: se queda en la ventana entera, que ya sirve */
+    }
+  }, [])
+  useEffect(() => {
+    // Salir con Esc de la pantalla completa del navegador sale también de aquí.
+    const alCambiar = () => {
+      if (!document.fullscreenElement && nativa.current) {
+        nativa.current = false
+        setCompleta(false)
+      }
+    }
+    document.addEventListener('fullscreenchange', alCambiar)
+    return () => {
+      document.removeEventListener('fullscreenchange', alCambiar)
+      if (document.fullscreenElement && nativa.current) document.exitFullscreen().catch(() => {})
+    }
+  }, [])
+  useEffect(() => {
+    if (!completa) return
+    // Sin la del navegador (iPhone), Esc también sale, salvo con una ventana abierta.
+    const f = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !document.querySelector('[role="dialog"]')) ponerCompleta(false)
+    }
+    window.addEventListener('keydown', f)
+    return () => window.removeEventListener('keydown', f)
+  }, [completa, ponerCompleta])
 
   useEffect(() => {
     try {
@@ -147,7 +229,7 @@ export default function MapasVision({
 
   const activa = estado.pestanas.find((p) => p.id === estado.activa) ?? estado.pestanas[0]
 
-  const irA = useCallback((mapaId: number | null, opciones: { nueva?: boolean; foco?: number } = {}) => {
+  const irA = useCallback((mapaId: number | null, opciones: { nueva?: boolean; foco?: number; editar?: boolean } = {}) => {
     setEstado((e) => {
       const ya = e.pestanas.find((p) => p.mapaId === mapaId)
       if (opciones.nueva) {
@@ -160,7 +242,7 @@ export default function MapasVision({
         pestanas: e.pestanas.map((p) => (p.id === e.activa ? { ...p, mapaId, nombre: p.mapaId === mapaId ? p.nombre : '…' } : p)),
       }
     })
-    setFoco(opciones.foco ? { id: opciones.foco, vez: Date.now() } : null)
+    setFoco(opciones.foco ? { id: opciones.foco, vez: Date.now(), editar: opciones.editar } : null)
   }, [])
 
   useEffect(() => {
@@ -181,8 +263,8 @@ export default function MapasVision({
   }
 
   return (
-    <div className="space-y-0">
-      <div className="flex items-end gap-1 overflow-x-auto border-b border-[#E5E7EB] -mb-px">
+    <div className={completa ? 'fixed inset-0 z-[999] flex flex-col bg-[#F3F4F6] p-2 sm:p-3' : ''}>
+      <div className="shrink-0 flex items-end gap-1 overflow-x-auto border-b border-[#E5E7EB] -mb-px">
         {estado.pestanas.map((p) => {
           const sel = p.id === activa.id
           return (
@@ -233,6 +315,8 @@ export default function MapasVision({
           onNombre={(nombre) => nombrar(activa.id, nombre)}
           onVerCampana={onVerCampana}
           onCambioCampanas={onCambioCampanas}
+          completa={completa}
+          onCompleta={ponerCompleta}
         />
       </ReactFlowProvider>
     </div>
@@ -250,17 +334,21 @@ function Lienzo({
   onNombre,
   onVerCampana,
   onCambioCampanas,
+  completa,
+  onCompleta,
 }: {
   orgId: number
   token: string
   mapaId: number | null
-  foco: { id: number; vez: number } | null
+  foco: Foco | null
   campanas: { id: number; titulo: string }[]
   metricas: Record<string, MetricaInfo>
-  onIr: (mapaId: number | null, opciones?: { nueva?: boolean; foco?: number }) => void
+  onIr: (mapaId: number | null, opciones?: { nueva?: boolean; foco?: number; editar?: boolean }) => void
   onNombre: (nombre: string) => void
   onVerCampana: (id: number) => void
   onCambioCampanas: () => void
+  completa: boolean
+  onCompleta: (si: boolean) => void
 }) {
   const rf = useReactFlow<NodoFlow>()
   const listas = useNodesInitialized()
@@ -278,6 +366,11 @@ function Lienzo({
   const reloj = useRef<ReturnType<typeof setTimeout> | null>(null)
   const encuadrado = useRef(false)
   const tocadoCampana = useRef(false)
+  // La tarjeta en la que se está escribiendo el título, y el menú del «+».
+  const [editando, setEditando] = useState<number | null>(null)
+  const [mas, setMas] = useState<{ nodo: NodoVision; x: number; y: number } | null>(null)
+  // La recién creada sale ya elegida, para seguir con Tab / Intro.
+  const seleccionar = useRef<string | null>(null)
 
   const cargar = useCallback(
     async (quieto = false) => {
@@ -306,7 +399,11 @@ function Lienzo({
 
   // Venir desde fuera a una tarjeta concreta: se abre su página.
   useEffect(() => {
-    if (foco && datos?.nodos.some((n) => n.id === foco.id)) setAbierto({ id: foco.id, nueva: false })
+    if (!foco || !datos?.nodos.some((n) => n.id === foco.id)) return
+    if (foco.editar) {
+      seleccionar.current = String(foco.id)
+      setEditando(foco.id)
+    } else setAbierto({ id: foco.id, nueva: false })
   }, [foco, datos?.mapa.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // La vista guardada, o encuadrar todo la primera vez.
@@ -339,6 +436,22 @@ function Lienzo({
 
   const tituloCampana = useMemo(() => new Map(campanas.map((c) => [c.id, c.titulo])), [campanas])
 
+  // Las tarjetas van memorizadas: sus funciones no cambian (llaman a la última versión).
+  const masRef = useRef((n: NodoVision, x: number, y: number) => setMas({ nodo: n, x, y }))
+  const onMasTarjeta = useCallback((n: NodoVision, x: number, y: number) => masRef.current(n, x, y), [])
+  const tituloRef = useRef<(n: NodoVision, t: string | null) => void>(() => {})
+  const onTituloTarjeta = useCallback((n: NodoVision, t: string | null) => tituloRef.current(n, t), [])
+  tituloRef.current = (n, texto) => {
+    setEditando(null)
+    const t = (texto ?? '').trim()
+    if (!t || t === n.titulo) return
+    setDatos((d) => d && { ...d, nodos: d.nodos.map((x) => (x.id === n.id ? { ...x, titulo: t } : x)) })
+    cambiarNodo(orgId, n.id, { titulo: t }, token).then((r) => {
+      if (!r.ok) toast.error(r.error || 'No se ha podido guardar el título')
+      else if (n.tipo === 'campana') onCambioCampanas()
+    })
+  }
+
   const datosPorId = useMemo(() => {
     const m: Record<string, DatosTarjeta> = {}
     for (const n of datos?.nodos ?? []) {
@@ -349,23 +462,32 @@ function Lienzo({
         campanaTitulo: n.tipo === 'metrica' && cid ? tituloCampana.get(cid) : undefined,
         metricas,
         atenuado: soloUrgente && !n.urgente,
+        editando: editando === n.id,
         onAbrir: onAbrirTarjeta,
+        onMas: onMasTarjeta,
+        onTitulo: onTituloTarjeta,
       }
     }
     return m
-  }, [datos?.nodos, datos?.cifras, tituloCampana, metricas, soloUrgente, onAbrirTarjeta])
+  }, [datos?.nodos, datos?.cifras, tituloCampana, metricas, soloUrgente, editando, onAbrirTarjeta, onMasTarjeta, onTituloTarjeta])
 
   // Las tarjetas de React Flow siguen a los datos; la posición manda la de pantalla.
   useEffect(() => {
     setNodes((prev) => {
       const porId = new Map(prev.map((p) => [p.id, p]))
-      return (datos?.nodos ?? []).map((n) => {
+      const elegir = seleccionar.current
+      const lista = (datos?.nodos ?? []).map((n) => {
         const id = String(n.id)
         const p = porId.get(id)
         const data = datosPorId[id]
         if (p) return p.data === data ? p : { ...p, data }
-        return { id, type: 'tarjeta' as const, position: { x: n.x, y: n.y }, data }
+        return { id, type: 'tarjeta' as const, position: { x: n.x, y: n.y }, data, selected: id === elegir }
       })
+      if (elegir && lista.some((n) => n.id === elegir)) {
+        seleccionar.current = null
+        return lista.map((n) => (n.selected && n.id !== elegir ? { ...n, selected: false } : n))
+      }
+      return lista
     })
   }, [datos?.nodos, datosPorId, setNodes])
 
@@ -456,13 +578,123 @@ function Lienzo({
     if (!datos) return
     const r = caja.current?.getBoundingClientRect()
     const centro = r ? rf.screenToFlowPosition({ x: r.left + r.width / 2, y: r.top + r.height / 2 }) : { x: 0, y: 0 }
-    const sitio = huecoLibre(centro, rf.getNodes())
+    await nuevaEn(huecoLibre(centro, rf.getNodes()), tipo)
+  }
+
+  /** Una tarjeta suelta en ese sitio: se escribe en ella (o se abre su página). */
+  async function nuevaEn(sitio: { x: number; y: number }, tipo: TipoNodo) {
+    if (!datos) return
     const res = await crearNodo(orgId, { mapa_id: datos.mapa.id, tipo, x: sitio.x, y: sitio.y }, token)
     if (!res.ok || !res.datos) return toast.error(res.error || 'No se ha podido crear')
-    setDatos((d) => d && { ...d, nodos: [...d.nodos, res.datos!] })
-    setAbierto({ id: res.datos.id, nueva: true })
-    if (tipo === 'campana') onCambioCampanas()
+    recienCreada(res.datos)
   }
+
+  function recienCreada(nodo: NodoVision, flecha?: FlechaVision) {
+    seleccionar.current = String(nodo.id)
+    setDatos((d) => d && { ...d, nodos: [...d.nodos, nodo], flechas: flecha ? [...d.flechas, flecha] : d.flechas })
+    if (CON_PAGINA.includes(nodo.tipo)) setAbierto({ id: nodo.id, nueva: true })
+    else setEditando(nodo.id)
+    if (nodo.tipo === 'campana') onCambioCampanas()
+  }
+
+  /** El «+» (o Tab / Intro): otra tarjeta unida a `padreId`, con su flecha. */
+  async function crearUnida(padreId: string, tipo: TipoNodo) {
+    setMas(null)
+    const padre = rf.getNode(padreId)
+    if (!padre || !datos) return
+    const hijos = datos.flechas.filter((f) => String(f.origen) === padreId).map((f) => String(f.destino))
+    const sube = datos.flechas.find((f) => String(f.destino) === padreId)
+    const sitio = sitioAlLado(padre, rf.getNodes(), hijos, sube ? rf.getNode(String(sube.origen)) : undefined)
+    const res = await crearNodo(orgId, { mapa_id: datos.mapa.id, tipo, x: sitio.x, y: sitio.y }, token)
+    if (!res.ok || !res.datos) return toast.error(res.error || 'No se ha podido crear')
+    const f = await crearFlecha(orgId, { mapa_id: datos.mapa.id, origen: Number(padreId), destino: res.datos.id }, token)
+    recienCreada(res.datos, f.ok ? f.datos : undefined)
+  }
+
+  /** El «+» de una vertical o una campaña: algo DENTRO de su mapa, y se entra. */
+  async function crearDentro(padre: NodoVision, tipo: TipoNodo) {
+    setMas(null)
+    let sub = padre.submapa_id
+    if (!sub) {
+      const r = await abrirSubmapa(orgId, padre.id, token)
+      if (!r.ok || !r.datos) return toast.error(r.error || 'No se ha podido crear su mapa')
+      sub = r.datos.mapa_id
+    }
+    // Debajo de lo que ya haya dentro, para no pisar nada.
+    const m = await getMapa(orgId, sub, token)
+    const hay = m.ok && m.datos ? m.datos.nodos : []
+    const x = hay.length ? Math.min(...hay.map((n) => n.x)) : 0
+    const y = hay.length ? Math.max(...hay.map((n) => n.y)) + 170 : 0
+    const res = await crearNodo(orgId, { mapa_id: sub, tipo, x, y }, token)
+    if (!res.ok || !res.datos) return toast.error(res.error || 'No se ha podido crear')
+    if (tipo === 'campana') onCambioCampanas()
+    onIr(sub, { foco: res.datos.id, editar: !CON_PAGINA.includes(tipo) })
+  }
+
+  /** «Ordenar»: todo como un mapa mental, con «Deshacer». */
+  function ordenar() {
+    const ns = rf.getNodes()
+    if (!ns.length) return
+    const antes = Object.fromEntries(ns.map((n) => [n.id, { x: n.position.x, y: n.position.y }]))
+    const despues = ordenarMapa(
+      ns.map((n) => ({ id: n.id, x: n.position.x, y: n.position.y, w: n.measured?.width ?? 236, h: n.measured?.height ?? 100 })),
+      (datos?.flechas ?? []).map((f) => ({ origen: String(f.origen), destino: String(f.destino) }))
+    )
+    const aplicar = (pos: Record<string, { x: number; y: number }>) => {
+      setNodes((lista) => lista.map((n) => (pos[n.id] ? { ...n, position: pos[n.id] } : n)))
+      moverNodos(
+        orgId,
+        Object.entries(pos).map(([id, p]) => ({ id: Number(id), x: Math.round(p.x), y: Math.round(p.y) })),
+        token
+      ).then((r) => !r.ok && toast.error('No se ha podido guardar el orden'))
+      window.setTimeout(() => rf.fitView({ padding: 0.2, maxZoom: 1, duration: 300 }), 60)
+    }
+    aplicar(despues)
+    toast(
+      (t) => (
+        <span className="flex items-center gap-3 text-[13px]">
+          Mapa ordenado
+          <button
+            onClick={() => {
+              aplicar(antes)
+              toast.dismiss(t.id)
+            }}
+            className="font-semibold text-[#025dc7] hover:underline"
+          >
+            Deshacer
+          </button>
+        </span>
+      ),
+      { duration: 7000 }
+    )
+  }
+
+  // Tab: una unida a la elegida · Intro: una hermana · F2: cambiar el título.
+  const teclasRef = useRef<(e: KeyboardEvent) => void>(() => {})
+  teclasRef.current = (e) => {
+    if (abierto || editando || mas || flechaSel || !datos) return
+    const el = e.target as HTMLElement | null
+    if (el?.closest?.('input, textarea, select, [contenteditable="true"], [role="dialog"]')) return
+    const elegidas = rf.getNodes().filter((n) => n.selected)
+    if (elegidas.length !== 1) return
+    const n = elegidas[0]
+    if (e.key === 'Tab') {
+      e.preventDefault()
+      crearUnida(n.id, 'nota')
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      const sube = datos.flechas.find((f) => String(f.destino) === n.id)
+      crearUnida(sube ? String(sube.origen) : n.id, 'nota')
+    } else if (e.key === 'F2') {
+      e.preventDefault()
+      setEditando(Number(n.id))
+    }
+  }
+  useEffect(() => {
+    const f = (e: KeyboardEvent) => teclasRef.current(e)
+    window.addEventListener('keydown', f)
+    return () => window.removeEventListener('keydown', f)
+  }, [])
 
   const flecha = datos?.flechas.find((f) => f.id === flechaSel) ?? null
 
@@ -496,9 +728,11 @@ function Lienzo({
     )
   }
 
+  const ICONO = 'w-7 h-7 rounded-md flex items-center justify-center text-gray-700 hover:bg-[#F3F4F6]'
+
   return (
-    <div className="rounded-b-lg rounded-tr-lg border border-[#E5E7EB] bg-white">
-      {/* Barra: migas de pan, añadir, lo urgente. */}
+    <div className={`rounded-b-lg rounded-tr-lg border border-[#E5E7EB] bg-white ${completa ? 'flex-1 min-h-0 flex flex-col' : ''}`}>
+      {/* Barra: migas de pan, añadir, lo urgente, ordenar, pantalla completa. */}
       <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b border-[#F3F4F6]">
         <nav className="flex items-center gap-0.5 min-w-0 text-[13px]">
           {(datos?.migas ?? []).map((m, i, todas) => (
@@ -515,6 +749,17 @@ function Lienzo({
           ))}
         </nav>
         <div className="flex-1" />
+        <button onClick={ordenar} className={BOTON} title="Colocar todo como un mapa mental (se puede deshacer)">
+          <Network size={14} /> <span className="hidden md:inline">Ordenar</span>
+        </button>
+        <button
+          onClick={() => onCompleta(!completa)}
+          className={BOTON}
+          title={completa ? 'Salir de pantalla completa (Esc)' : 'Pantalla completa'}
+        >
+          {completa ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+          <span className="hidden md:inline">{completa ? 'Salir' : 'Pantalla completa'}</span>
+        </button>
         <button onClick={() => setSoloUrgente((v) => !v)} className={filtro(soloUrgente)}>
           Solo urgente
         </button>
@@ -584,7 +829,7 @@ function Lienzo({
         </div>
       </div>
 
-      <div ref={caja} className="relative h-[calc(100vh-290px)] min-h-[460px]">
+      <div ref={caja} className={completa ? 'relative flex-1 min-h-0' : 'relative h-[calc(100vh-290px)] min-h-[460px]'}>
         {!datos ? (
           <div className="absolute inset-0 flex items-center justify-center">
             <Loader2 className="animate-spin text-gray-400" size={26} />
@@ -605,18 +850,43 @@ function Lienzo({
               setFlechaSel(f?.id ?? null)
               setTextoFlecha(f?.etiqueta ?? '')
             }}
-            onPaneClick={() => setFlechaSel(null)}
+            onPaneClick={(e) => {
+              setFlechaSel(null)
+              // Doble clic en el fondo: una idea ahí mismo.
+              if (e.detail === 2) {
+                const p = rf.screenToFlowPosition({ x: e.clientX, y: e.clientY })
+                nuevaEn({ x: Math.round((p.x - 110) / 12) * 12, y: Math.round((p.y - 30) / 12) * 12 }, 'nota')
+              }
+            }}
             connectionMode={ConnectionMode.Loose}
             connectionLineStyle={{ stroke: '#025dc7', strokeWidth: 1.5 }}
             deleteKeyCode={null}
             zoomOnDoubleClick={false}
             edgesReconnectable={false}
+            snapToGrid
+            snapGrid={[12, 12]}
             minZoom={0.15}
             maxZoom={2}
             proOptions={{ hideAttribution: true }}
           >
             <Background variant={BackgroundVariant.Dots} gap={22} size={1.2} color="#D9DEE7" />
-            <Controls showInteractive={false} position="bottom-left" />
+            <Panel position="bottom-left">
+              <div className="flex items-center gap-0.5 rounded-lg border border-[#E5E7EB] bg-white p-1">
+                <button onClick={() => rf.zoomOut({ duration: 150 })} className={ICONO} title="Alejar" aria-label="Alejar">
+                  <ZoomOut size={15} />
+                </button>
+                <button onClick={() => rf.zoomIn({ duration: 150 })} className={ICONO} title="Acercar" aria-label="Acercar">
+                  <ZoomIn size={15} />
+                </button>
+                <button
+                  onClick={() => rf.fitView({ padding: 0.2, maxZoom: 1, duration: 250 })}
+                  className="h-7 px-2 rounded-md text-[12px] font-medium text-gray-700 hover:bg-[#F3F4F6]"
+                  title="Ver todo el mapa"
+                >
+                  Ver todo
+                </button>
+              </div>
+            </Panel>
             <MiniMap
               className="!hidden md:!block"
               pannable
@@ -633,7 +903,8 @@ function Lienzo({
             <div className="max-w-[340px] text-center">
               <p className="text-[15px] font-semibold text-gray-900">Este mapa está vacío</p>
               <p className={`${META} mt-1`}>
-                Pulsa «Añadir» para poner la primera tarjeta. Luego arrastra desde su borde hasta otra para unirlas con una flecha.
+                Haz doble clic en cualquier sitio para escribir la primera idea, o pulsa «Añadir». Luego, con el «+» de cada tarjeta, le cuelgas lo
+                demás.
               </p>
             </div>
           </div>
@@ -672,9 +943,59 @@ function Lienzo({
         ) : null}
       </div>
 
-      <p className={`${META} px-3 py-2 border-t border-[#F3F4F6] hidden sm:block`}>
-        Doble clic en una tarjeta para abrir su página · arrastra desde su borde hasta otra para unirlas · clic en una flecha para ponerle texto o borrarla
+      <p className={`${META} shrink-0 px-3 py-2 border-t border-[#F3F4F6] hidden sm:block`}>
+        Doble clic en el fondo: una idea · «+» de una tarjeta: añadir algo unido (o dentro) · Tab: unida · Intro: hermana · doble clic en una
+        tarjeta: su página
       </p>
+
+      {/* El menú del «+»: qué añadir unido a esta tarjeta, o dentro de su mapa. */}
+      {mas ? (
+        <>
+          <button aria-label="Cerrar" className="fixed inset-0 z-[64] cursor-default" onClick={() => setMas(null)} />
+          <div
+            className="fixed z-[65] w-[300px] rounded-lg border border-[#E5E7EB] bg-white p-2"
+            style={{
+              left: Math.min(mas.x + 10, (typeof window !== 'undefined' ? window.innerWidth : 1200) - 312),
+              top: Math.max(8, Math.min(mas.y - 24, (typeof window !== 'undefined' ? window.innerHeight : 800) - 330)),
+            }}
+          >
+            <p className="px-1 pb-1.5 text-[12px] text-[#6B7280] truncate">
+              Unida a <span className="font-semibold text-gray-900">{mas.nodo.titulo || 'esta tarjeta'}</span>
+            </p>
+            <div className="grid grid-cols-2 gap-0.5">
+              {TIPOS.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => crearUnida(String(mas.nodo.id), t.id)}
+                  className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-gray-900 hover:bg-[#F3F4F6]"
+                >
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: t.color }} />
+                  <span className="truncate">{NOMBRE_EN_MENU[t.id] ?? t.nombre}</span>
+                </button>
+              ))}
+            </div>
+            {mas.nodo.tipo === 'vertical' || mas.nodo.tipo === 'campana' ? (
+              <>
+                <p className="px-1 pt-2.5 pb-1.5 mt-1.5 border-t border-[#F3F4F6] text-[12px] text-[#6B7280] truncate">
+                  Dentro de <span className="font-semibold text-gray-900">{mas.nodo.titulo}</span> (en su mapa)
+                </p>
+                <div className="grid grid-cols-2 gap-0.5">
+                  {TIPOS.filter((t) => t.id !== 'vertical').map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => crearDentro(mas.nodo, t.id)}
+                      className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-gray-900 hover:bg-[#F3F4F6]"
+                    >
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: t.color }} />
+                      <span className="truncate">{NOMBRE_EN_MENU[t.id] ?? t.nombre}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : null}
+          </div>
+        </>
+      ) : null}
 
       {nodoAbierto ? (
         <PaginaNodo
