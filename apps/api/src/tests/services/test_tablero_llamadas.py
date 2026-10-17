@@ -210,3 +210,43 @@ async def test_las_notas_viejas_de_llamadas_pasan_a_la_ficha(db):
     # Una segunda vez no la duplica.
     await _tablero(db)
     assert len((await db.execute(select(ContactNota).where(ContactNota.email == "rosa@x.com"))).scalars().all()) == 1
+
+
+async def test_dos_filas_del_mismo_correo_no_devuelven_la_tarjeta(db):
+    """17/10, "cambiamos algo y vuelve a su lugar": dos movimientos a la vez
+    dejaban dos filas del mismo correo; mover escribía en una y el tablero
+    podía leer la otra. Ahora manda la última que se tocó y mover deja una."""
+    db.add(EnrollmentRequest(email="eva@x.com", first_name="Eva", created_at=_hace(100)))
+    db.add(LeadPipeline(email="eva@x.com", etapa="contactado", updated_at=_hace(5)))
+    db.add(LeadPipeline(email="Eva@x.com", etapa="seguimiento", updated_at=_hace(3)))
+    await db.commit()
+
+    # Manda la que se tocó la última, también en la ficha.
+    from src.services.panel.cliente import ficha_cliente
+
+    assert (await _tablero(db))["eva@x.com"]["etapa"] == "seguimiento"
+    assert (await ficha_cliente("eva@x.com", 1, True, db))["tablero"]["etapa"] == "seguimiento"
+
+    # Se descarta: se queda descartada y solo queda una fila.
+    await pipeline.mover("eva@x.com", "descartado", None, None, "Rida", db)
+    assert (await _tablero(db))["eva@x.com"]["etapa"] == "descartado"
+    filas = (await db.execute(select(LeadPipeline))).scalars().all()
+    assert [(f.email, f.etapa) for f in filas] == [("eva@x.com", "descartado")]
+
+
+async def test_descartada_antes_de_entrar_en_llamadas_no_vuelve(db):
+    """17/10, "descarté y volvió a aparecer": la lista de Llamadas recoge a
+    quien deja la admisión a medias pasada media hora. Si en esa media hora
+    ya la habían descartado, entra cerrada y la tarjeta sigue en Descartado."""
+    db.add(ContactEvent(email="mia@x.com", kind="admision", first_name="Mia", created_at=_hace(2)))
+    await db.commit()
+    # La descartan cuando aún no estaba en Llamadas (dejó los datos hace una hora y media).
+    await pipeline.mover("mia@x.com", "descartado", None, None, "Rida", db)
+    fila = (await db.execute(select(LeadPipeline).where(LeadPipeline.email == "mia@x.com"))).scalars().first()
+    fila.updated_at = _hace(1.5)
+    db.add(fila)
+    await db.commit()
+
+    t = await _tablero(db)
+    assert t["mia@x.com"]["etapa"] == "descartado"
+    assert await _llamadas(db, "mia@x.com") == ["descartada"]

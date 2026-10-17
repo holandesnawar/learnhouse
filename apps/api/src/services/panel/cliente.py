@@ -11,12 +11,12 @@ from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.enrollment import Enrollment
-from src.db.panel_negocio import EmailLog, LeadPipeline
+from src.db.panel_negocio import EmailLog
 from src.services.contactos.contactos import _emails_con_cuenta, _todos_los_eventos, fusionar_contactos
 from src.services.contactos.seguimiento import seguimiento_de
 from src.services.panel import tareas as tareas_srv
 from src.services.panel.ads import limpiar_anuncio, nombre_del_anuncio
-from src.services.panel.pipeline import citas_por_email, colocar
+from src.services.panel.pipeline import citas_por_email, colocar, filas_de
 from src.services.payments.solicitudes import _NOMBRES as NOMBRES_PAGINA
 
 
@@ -211,9 +211,8 @@ async def ficha_cliente(
 
     ficha["fuera_de_metricas"] = clave in await emails_excluidos(db_session)
 
-    guardada = (
-        await db_session.execute(select(LeadPipeline).where(LeadPipeline.email == clave))
-    ).scalars().first()
+    # La misma fila que lee el tablero (la última que se tocó, si hubiera dos).
+    guardada = next(iter(await filas_de(clave, db_session)), None)
     # Su fila en Llamadas, como la ve el tablero: la ficha dice la misma
     # columna que la tarjeta (Seguimiento incluido).
     try:

@@ -390,15 +390,44 @@ def tarjeta_suelta(llamada: dict) -> dict:
     }
 
 
+def _la_buena(filas: list) -> list:
+    """Las filas de un mismo correo, la que manda primero: la última que se
+    tocó (y, a igualdad, la más nueva).
+
+    ⚠️ (17/10, "cambiamos algo y vuelve a su lugar"; "descarté y volvió a
+    aparecer"). La tabla NO impide dos filas para el mismo correo, y las había:
+    dos movimientos a la vez (closer y administrador, o arrastrar y apuntar
+    «¿Qué pasó?») creaban cada uno la suya. Entonces `mover` escribía en una y
+    el tablero leía la otra, en un orden que la base de datos no garantiza: a
+    veces la tarjeta se quedaba y a veces volvía a su sitio. Ahora todos leen
+    la misma (esta) y `mover` borra las demás."""
+    return sorted(filas, key=lambda f: (_instante(f.updated_at or ""), f.id or 0), reverse=True)
+
+
+async def filas_de(email: str, db_session: AsyncSession) -> list[LeadPipeline]:
+    """Las filas de ese correo (sin mayúsculas), la que manda primero."""
+    clave = (email or "").strip().lower()
+    if not clave:
+        return []
+    filas = (
+        await db_session.execute(select(LeadPipeline).where(func.lower(LeadPipeline.email) == clave))
+    ).scalars().all()
+    return _la_buena(list(filas))
+
+
 async def guardadas(db_session: AsyncSession) -> dict[str, dict]:
-    filas = (await db_session.execute(select(LeadPipeline))).scalars().all()
-    return {
-        f.email: {
-            "etapa": f.etapa, "canal": f.canal, "motivo": f.motivo, "oculto": bool(getattr(f, "oculto", False)),
+    """Una por correo (en minúsculas): la última que se tocó (`_la_buena`)."""
+    por_email: dict[str, list] = {}
+    for f in (await db_session.execute(select(LeadPipeline))).scalars().all():
+        por_email.setdefault((f.email or "").strip().lower(), []).append(f)
+    salida: dict[str, dict] = {}
+    for email, filas in por_email.items():
+        f = _la_buena(filas)[0]
+        salida[email] = {
+            "etapa": f.etapa, "canal": f.canal, "motivo": f.motivo, "oculto": any(bool(getattr(x, "oculto", False)) for x in filas),
             "updated_at": f.updated_at, "updated_by": f.updated_by,
         }
-        for f in filas
-    }
+    return salida
 
 
 async def tablero(fichas: list[dict], db_session: AsyncSession, nombres_anuncios: Optional[dict] = None) -> dict:
@@ -461,11 +490,14 @@ async def mover(
     if canal is not None and canal not in CANALES:
         return {"ok": False, "motivo": "Canal desconocido"}
 
-    fila = (
-        await db_session.execute(select(LeadPipeline).where(LeadPipeline.email == clave))
-    ).scalars().first()
-    if fila is None:
-        fila = LeadPipeline(email=clave)
+    filas = await filas_de(clave, db_session)
+    fila = filas[0] if filas else LeadPipeline(email=clave)
+    # Si había más de una fila para este correo, se quedan en una (ver `_la_buena`).
+    for sobra in filas[1:]:
+        if getattr(sobra, "oculto", False):
+            fila.oculto = True
+        await db_session.delete(sobra)
+    fila.email = clave
     fila.etapa = etapa
     if canal is not None:
         fila.canal = canal
@@ -505,13 +537,14 @@ async def ocultar(email: str, oculto: bool, autor: str, db_session: AsyncSession
     clave = (email or "").strip().lower()
     if not clave or "@" not in clave:
         return {"ok": False, "motivo": "Falta un correo válido"}
-    fila = (
-        await db_session.execute(select(LeadPipeline).where(func.lower(LeadPipeline.email) == clave))
-    ).scalars().first()
-    if fila is None:
+    filas = await filas_de(clave, db_session)
+    if not filas:
         if not oculto:
             return {"ok": True, "oculto": False}
-        fila = LeadPipeline(email=clave, etapa="")
+        filas = [LeadPipeline(email=clave, etapa="")]
+    fila = filas[0]
+    for sobra in filas[1:]:
+        await db_session.delete(sobra)
     fila.oculto = bool(oculto)
     fila.updated_by = (autor or "")[:120]
     db_session.add(fila)

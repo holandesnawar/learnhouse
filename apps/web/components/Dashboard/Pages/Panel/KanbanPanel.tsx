@@ -33,7 +33,7 @@
  * (`apps/api/src/services/panel/pipeline.py`).
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DragDropContext, Draggable, Droppable, type DropResult } from '@hello-pangea/dnd'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
@@ -317,9 +317,21 @@ export default function KanbanPanel() {
     cargar()
   }
 
+  // ⚠️ (17/10, "cambiamos algo y vuelve a su lugar"). Leer el tablero tarda
+  // un par de segundos; si mientras tanto se movía una tarjeta, la respuesta
+  // vieja llegaba DESPUÉS y la pintaba donde estaba antes. Ahora se tira
+  // cualquier lectura que empezó antes de un movimiento (o con uno a medias),
+  // y también una lectura que ya no es la última que se pidió.
+  const lectura = useRef(0)
+  const movimientos = useRef(0)
+  const moviendo = useRef(0)
   const cargar = useCallback(async () => {
     if (!org?.id || !accessToken) return
+    const mia = ++lectura.current
+    const movimientosAlEmpezar = movimientos.current
+    const habiaUnoAMedias = moviendo.current > 0
     const r = await getTablero(org.id, accessToken)
+    if (mia !== lectura.current || movimientos.current !== movimientosAlEmpezar || habiaUnoAMedias) return
     if (r.ok && r.datos) setDatos(r.datos)
     else setError(r.error || 'No se ha podido cargar el tablero')
   }, [org?.id, accessToken])
@@ -369,26 +381,29 @@ export default function KanbanPanel() {
       toast('La columna Alumno se llena sola cuando alguien paga.')
       return
     }
-    // Se mueve ya en pantalla y, si el servidor dice que no, se deshace.
-    const antes = datos
-    setDatos({
-      ...datos,
-      tarjetas: datos.tarjetas.map((t) =>
-        t.id === id ? { ...t, etapa: destino, desde: new Date().toISOString(), llamada: A_LLAMAR.includes(destino) ? t.llamada : null } : t
-      ),
-    })
+    // Se mueve ya en pantalla y, si el servidor dice que no, se deshace (solo
+    // esa tarjeta: puede haber otras moviéndose a la vez).
+    const origen = tarjeta.etapa
+    const ponerEn = (etapa: EtapaTablero, extra: Partial<Tarjeta> = {}) =>
+      setDatos((d) => (d ? { ...d, tarjetas: d.tarjetas.map((t) => (t.id === id ? { ...t, etapa, ...extra } : t)) } : d))
+    movimientos.current++
+    moviendo.current++
+    ponerEn(destino, { desde: new Date().toISOString(), llamada: A_LLAMAR.includes(destino) ? tarjeta.llamada : null })
     const res = await moverTarjeta(
       org?.id,
       { email: tarjeta.email, etapa: destino, nombre: tarjeta.nombre, telefono: tarjeta.telefono },
       accessToken
     )
+    moviendo.current--
     if (!res.ok) {
-      setDatos(antes)
+      ponerEn(origen, { desde: tarjeta.desde, llamada: tarjeta.llamada })
       toast.error(res.error || 'No se ha podido mover')
       return
     }
-    // Salir de Nuevo / Por llamar la marca como hecha en Llamadas: se relee.
-    if (A_LLAMAR.includes(tarjeta.etapa) || A_LLAMAR.includes(destino)) cargar()
+    // Se relee siempre: así lo que se ve es lo que ha guardado el servidor
+    // (Llamadas a juego, la temperatura…). Si hay otro movimiento a medias,
+    // esta lectura se tira y la hará el último.
+    if (moviendo.current === 0) cargar()
   }
 
   if (!datos) {
