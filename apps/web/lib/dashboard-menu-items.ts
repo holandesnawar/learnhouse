@@ -11,6 +11,7 @@ import {
   ChalkboardSimple,
   Cube,
   Kanban,
+  Binoculars,
 } from '@phosphor-icons/react'
 
 export interface DashboardMenuItem {
@@ -117,6 +118,7 @@ export const DASHBOARD_MENU_ITEMS: DashboardMenuItem[] = [
  */
 export const PANEL_EN_LA_ESCUELA: DashboardMenuItem[] = [
   { id: 'estadisticas', href: '/dash/estadisticas', icon: ChartBar, labelKey: 'common.statistics' },
+  { id: 'vision', href: '/dash/estadisticas?tab=vision', icon: Binoculars, labelKey: '', label: 'Visión' },
   { id: 'matriculas', href: '/dash/estadisticas?tab=matriculas', icon: Kanban, labelKey: '', label: 'Matrículas' },
   { id: 'users', href: '/dash/users/settings/users', icon: Users, labelKey: 'common.users' },
   { id: 'courses', href: '/dash/courses', icon: BookOpen, labelKey: 'courses.courses' },

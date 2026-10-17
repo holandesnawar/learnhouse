@@ -382,7 +382,7 @@ export default function GastosPanel() {
         ) : (
           <ul className="divide-y divide-[#EEF2F9]">
             {datos.gastos.map((g) => (
-              <li key={g.id ?? (g.anuncio_id ? `anuncio-${g.anuncio_id}` : `antiguo-${g.antiguo_id}`)} className="py-2.5 flex items-center gap-3">
+              <li key={g.id ?? (g.anuncio_id ? `anuncio-${g.anuncio_id}` : g.vision_id ? `vision-${g.vision_id}-${g.concepto}` : `antiguo-${g.antiguo_id}`)} className="py-2.5 flex items-center gap-3">
                 <span className="text-[12px] text-gray-500 tabular-nums w-[82px] shrink-0">{g.fecha}</span>
                 <span className="shrink-0 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold bg-[#EAF3FF] text-[#025dc7]">
                   {cat[g.categoria] || g.categoria}
@@ -394,6 +394,10 @@ export default function GastosPanel() {
                 {g.anuncio_id ? (
                   <a href="/dash/estadisticas?tab=anuncios" className="text-[12px] font-semibold text-[#025dc7] hover:underline">
                     Anuncios
+                  </a>
+                ) : g.vision_id ? (
+                  <a href="/dash/estadisticas?tab=vision" className="text-[12px] font-semibold text-[#025dc7] hover:underline">
+                    Visión
                   </a>
                 ) : (
                   <button onClick={() => quitar(g)} aria-label="Borrar gasto" className="text-gray-400 hover:text-red-600">

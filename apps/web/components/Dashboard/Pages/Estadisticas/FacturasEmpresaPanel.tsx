@@ -268,6 +268,7 @@ function Fila({ g, cat, orgId, accessToken, onCambio }: { g: Gasto; cat: Record<
             g.numero ? `nº ${g.numero}` : '',
             g.fijo_id ? 'factura de un gasto fijo' : '',
             g.anuncio_id ? 'desde Anuncios' : '',
+            g.vision_id ? 'desde Visión' : '',
             g.antiguo_id ? 'apuntado antes en Estadísticas' : '',
           ]
             .filter(Boolean)
@@ -439,7 +440,7 @@ export default function FacturasEmpresaPanel() {
         {visibles.length ? (
           <ul className="divide-y divide-[#EEF2F9]">
             {visibles.map((g) => (
-              <Fila key={g.id ?? (g.anuncio_id ? `a-${g.anuncio_id}` : `v-${g.antiguo_id}`)} g={g} cat={cat} orgId={org?.id} accessToken={accessToken} onCambio={cargar} />
+              <Fila key={g.id ?? (g.anuncio_id ? `a-${g.anuncio_id}` : g.vision_id ? `vi-${g.vision_id}-${g.concepto}` : `v-${g.antiguo_id}`)} g={g} cat={cat} orgId={org?.id} accessToken={accessToken} onCambio={cargar} />
             ))}
           </ul>
         ) : (
