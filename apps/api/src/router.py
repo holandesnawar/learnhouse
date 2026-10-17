@@ -7,7 +7,7 @@ from src.routers import health
 from src.routers import instance
 from src.routers import plans
 from src.routers import usergroups
-from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs, panel
+from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs, panel, vision
 from src.routers import notifications as notifications_router_module
 from src.routers import stream
 from src.routers import api_tokens
@@ -389,6 +389,14 @@ v1_router.include_router(
     panel.router,
     prefix="/panel",
     tags=["panel"],
+)
+
+# Visión: el mapa del negocio y el centro de campañas. Solo administradores,
+# comprobado en cada ruta. Ver `src/routers/vision.py`.
+v1_router.include_router(
+    vision.router,
+    prefix="/vision",
+    tags=["vision"],
 )
 
 # Recursos: carpetas con archivos y enlaces para los alumnos. Leer, quien está

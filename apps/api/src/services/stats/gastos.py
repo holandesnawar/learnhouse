@@ -234,6 +234,13 @@ async def panel_gastos(org_id: int, db_session: AsyncSession) -> dict:
                 "anuncio_id": c.id,
             }
         )
+    # Lo apuntado en las campañas de Visión (17/10/2026), igual: se cambia allí.
+    try:
+        from src.services.vision.campanas import gastos_para_el_panel
+
+        lista.extend(await gastos_para_el_panel(org_id, db_session))
+    except Exception:  # noqa: BLE001
+        await db_session.rollback()
     lista.sort(key=lambda g: g["fecha"], reverse=True)
 
     # Los gastos fijos: uno por mes mientras estén activos. No salen en "Lo

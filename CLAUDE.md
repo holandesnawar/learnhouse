@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-14 (plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-17 (Visión: mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -3043,6 +3043,73 @@ dinero, 145 € 3 plazos… para el mismo producto y que dé acceso". Todo en
   y cada pago en la lista de pagos («Pago 2 de 3 (plazos)»).
 - No se abre un plan a quien ya es alumno ni a quien ya tiene uno (409): dos
   suscripciones serían dos cobros al mes.
+
+## Visión: el mapa del negocio y el centro de campañas (17/10/2026)
+Pedido: "el final boss de las estadísticas": una pestaña SOLO para
+administradores, debajo de Estadísticas (barra del panel y bloque de panel de
+la barra de la escuela), con un mapa tipo Miro/Notion y las campañas con sus
+números conectados a la escuela. **Fase 1 hecha; las fases 2 y 3 del encargo
+(conectar con Meta, automatizaciones…) NO están construidas.**
+- Dónde: `?tab=vision` de `EstadisticasPage` → `Vision/VisionPage.tsx`, con
+  tres partes: **Mapa · Campañas · Ajustes** (se recuerda la última; la
+  primera vez, Mapa en el ordenador y Campañas en el móvil). El closer no
+  entra (el efecto de EstadisticasPage lo saca) y la API lo comprueba en cada
+  ruta (`_solo_admin`).
+- **Backend**: tablas `vision_map`, `vision_node`, `vision_edge`,
+  `vision_campaign_data`, `vision_payment` (`src/db/vision.py`, nuevas: las
+  crea `create_all` al desplegar). Servicios en `services/vision/`:
+  `calculo.py` (cuentas puras, docstring con cada fórmula), `escuela.py`
+  (los números de la escuela por `utm_campaign`), `mapa.py` (mapas, tarjetas,
+  flechas, archivos), `campanas.py` (datos, pagos, ajustes, cuadro de mando).
+  Rutas `/api/v1/vision/org/{id}/…`. Tests: `test_vision.py`.
+- **El mapa** (`MapaVision.tsx`, React Flow `@xyflow/react` 12): tarjetas de
+  tipo vertical, campaña, anuncio, contenido, paso del embudo, tarea, nota y
+  métrica. El primer Inicio se siembra con «Holandés Nawar» y las verticales
+  (Marketing, Ventas, Formación, Equipo, Dinero, Legal, Campañas). Vertical y
+  campaña tienen **su mapa dentro** («Crear/Abrir su mapa»), con migas de pan
+  y **pestañas** de mapas abiertos (en el navegador, `nawar.vision.pestanas`).
+  Unir: arrastrar desde el borde y soltar en otra tarjeta. Clic en una flecha
+  = texto o borrarla. **Borrar con el teclado está apagado a propósito**: una
+  tarjeta se borra desde su página (puede llevar un mapa entero dentro). Lo
+  nuevo cae en un hueco libre cerca del centro (`huecoLibre`).
+- **La página de cada tarjeta** (doble clic, `PaginaNodo.tsx`, como Notion):
+  estado, Urgente / Importante, responsable, fechas, etiquetas, texto con
+  formato (Tiptap), tareas, enlaces y archivos (25 MB, en
+  `content/privado/vision/<org>/`, nunca servidos por `/content`: se abren
+  pidiéndolos con la sesión). Se guarda sola. «Lo urgente» junta lo urgente
+  sin hacer de TODOS los mapas; «Solo urgente» apaga el resto en el mapa.
+- **Campañas** (`CampanasVision.tsx` + `CampanaDetalle.tsx`): el negocio en
+  total (cobrado → devoluciones → Klarna → closer → profe → gastos =
+  resultado), el gráfico semanal y la tabla con semáforo. En cada campaña se
+  apuntan los números **por día o por semana** (gasto, impresiones, clics,
+  otros gastos con categoría, devoluciones) y pagos a mano. **Leads,
+  agendadas, presentadas y ventas salen solos de la escuela por el
+  `utm_campaign` de la tarjeta**; un número apuntado a mano manda sobre el de
+  la escuela, campo a campo. Un pago apuntado con el correo de una venta de la
+  escuela no cuenta otra venta: le pone el método (Klarna) o «sin llamada».
+  Sin gasto apuntado, se usa el de Panel → Anuncios con el mismo utm.
+- **Fórmulas acordadas con el usuario (17/10)**: ventas netas = cobrado −
+  devoluciones − Klarna; **closer 10 % y 15 % desde el 16/10/2026** (cada venta
+  con el % del día en que se cobró, solo las que pasaron por llamada); **sin
+  comisión del director** (se quitó); CAC = (anuncios + otros gastos DE ESA
+  campaña: clase gratis del profe, vídeo UGC…) ÷ ventas; ROAS = cobrado ÷
+  anuncios; CAC máximo = lo que deja cada alumno. **El profe de la clase
+  semanal (75 €/semana) solo en el total del negocio**, no en las campañas.
+  Precio 397 € (se cambia en Ajustes: "lo vamos subiendo") y plazos 3×145.
+- **Ajustes** (`AjustesVision.tsx`, org_config `vision_ajustes`): precio,
+  plazos, tramos del closer, **Klarna % y fijo (de serie 0: hay que ponerlo;
+  la campaña avisa si hay ventas con Klarna y está a 0)**, profe y desde
+  cuándo, y los umbrales del semáforo (dinero en euros).
+- **Con Gastos**: lo apuntado en una campaña sale en Gastos y en Facturas →
+  De la empresa como filas «Visión · campaña: …» con enlace a Visión (se
+  cambian allí). El gasto en anuncios NO se repite si esa campaña ya tiene
+  gasto en Panel → Anuncios.
+- ⚠️ **`RequestBodyWithAuthHeader` NO manda el cuerpo en los PATCH** (solo
+  POST, PUT y DELETE). Cambiar una tarjeta daba 422 y el aviso de error (un
+  objeto) rompía la pantalla entera. `services/vision/vision.ts` hace su
+  propio `fetch`. Si otra pantalla usa PATCH con ese ayudante, mismo fallo.
+- Probado en local con capturas: mapa, página, submapa, pestañas, flechas,
+  métrica, archivo, datos, pago con Klarna, Ajustes, Gastos y móvil.
 
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con

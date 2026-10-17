@@ -15,6 +15,7 @@ import AnunciosPanel from '../Panel/AnunciosPanel'
 import PaginasPanel from './PaginasPanel'
 import RecursosAdmin from '../Recursos/RecursosAdmin'
 import RecursosPage from '@components/Pages/Recursos/RecursosPage'
+import VisionPage from '../Vision/VisionPage'
 import { getContactos, type Contacto } from '@services/stats/contactos'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { updateOrgAccesoCloser } from '@services/settings/org'
@@ -60,6 +61,7 @@ import {
   Users,
   Wallet,
   FolderOpen,
+  Telescope,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -187,7 +189,7 @@ export default function EstadisticasPage() {
   // ?tab= va a Matrículas, no a Números, o saltaría de una a otra sin parar.
   const esCloserRef = React.useRef(false)
   esCloserRef.current = isCloser
-  const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'gastos' | 'guion' | 'paginas' | 'utm' | 'matriculas' | 'tareas' | 'clientes' | 'anuncios' | 'progreso' | 'recursos'>('numeros')
+  const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'gastos' | 'guion' | 'paginas' | 'utm' | 'matriculas' | 'tareas' | 'clientes' | 'anuncios' | 'progreso' | 'recursos' | 'vision'>('numeros')
   // El closer arranca en Matrículas, que es lo suyo (08/10: Contactos es solo
   // del administrador).
   useEffect(() => {
@@ -199,7 +201,7 @@ export default function EstadisticasPage() {
   useEffect(() => {
     const leer = () => {
       const pedida = new URLSearchParams(window.location.search).get('tab')
-      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'llamadas' || pedida === 'facturas' || pedida === 'gastos' || pedida === 'guion' || pedida === 'paginas' || pedida === 'utm' || pedida === 'matriculas' || pedida === 'tareas' || pedida === 'clientes' || pedida === 'anuncios' || pedida === 'progreso' || pedida === 'recursos') setTab(pedida)
+      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'llamadas' || pedida === 'facturas' || pedida === 'gastos' || pedida === 'guion' || pedida === 'paginas' || pedida === 'utm' || pedida === 'matriculas' || pedida === 'tareas' || pedida === 'clientes' || pedida === 'anuncios' || pedida === 'progreso' || pedida === 'recursos' || pedida === 'vision') setTab(pedida)
       // Sin ?tab= (el enlace «Estadísticas» de la barra) = los números.
       else if (!pedida) setTab(esCloserRef.current ? 'matriculas' : 'numeros')
     }
@@ -290,6 +292,8 @@ export default function EstadisticasPage() {
             <Megaphone size={22} className="text-[#025dc7] shrink-0" />
           ) : tab === 'progreso' ? (
             <GraduationCap size={22} className="text-[#025dc7] shrink-0" />
+          ) : tab === 'vision' ? (
+            <Telescope size={22} className="text-[#025dc7] shrink-0" />
           ) : (
             <BarChart3 size={22} className="text-[#025dc7] shrink-0" />
           )}
@@ -318,7 +322,9 @@ export default function EstadisticasPage() {
                                 ? 'Anuncios'
                                 : tab === 'progreso'
                                   ? 'Progreso de los alumnos'
-                                  : 'Estadísticas'}
+                                  : tab === 'vision'
+                                    ? 'Visión'
+                                    : 'Estadísticas'}
           </h1>
         </div>
         <button
@@ -367,6 +373,8 @@ export default function EstadisticasPage() {
         <AnunciosPanel key={vuelta} />
       ) : tab === 'progreso' ? (
         <ProgresoPanel key={vuelta} />
+      ) : tab === 'vision' ? (
+        <VisionPage key={vuelta} />
       ) : !loaded ? (
         <div className="flex justify-center py-20">
           <Loader2 className="animate-spin text-gray-400" size={28} />

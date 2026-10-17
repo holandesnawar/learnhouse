@@ -55,6 +55,7 @@ import {
   Scroll,
   Wallet,
   ChartLineUp,
+  Binoculars,
 } from '@phosphor-icons/react'
 
 type Item = { href: string; label: string; icon: React.ReactNode; match?: (p: string) => boolean }
@@ -65,6 +66,8 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
     titulo: 'Ventas',
     items: [
       { href: '/dash/estadisticas', label: 'Estadísticas', icon: <ChartBar size={18} weight="fill" />, match: (p) => p.includes('/dash/estadisticas') && !p.includes('tab=') },
+      // Visión (17/10): el mapa del negocio y las campañas. Solo administradores.
+      { href: '/dash/estadisticas?tab=vision', label: 'Visión', icon: <Binoculars size={18} weight="fill" /> },
       { href: '/dash/estadisticas?tab=matriculas', label: 'Matrículas', icon: <Kanban size={18} weight="fill" /> },
       { href: '/dash/estadisticas?tab=contactos', label: 'Contactos', icon: <AddressBook size={18} weight="fill" /> },
       { href: '/dash/estadisticas?tab=tareas', label: 'Tareas', icon: <ListChecks size={18} weight="fill" /> },

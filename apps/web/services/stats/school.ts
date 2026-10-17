@@ -386,6 +386,8 @@ export interface Gasto {
   nota: string
   /** Viene de una campaña de Anuncios: se cambia allí, no aquí. */
   anuncio_id?: number
+  /** Viene de los números de una campaña de Visión: se cambia allí. */
+  vision_id?: number
   /** La factura (facturas de la empresa). */
   proveedor?: string
   numero?: string
