@@ -288,3 +288,61 @@ async def test_cuadro_de_mando_con_la_escuela_de_mentira(db, org):
     assert sorted(f["importe_cents"] for f in filas) == [10000, 30000]
     assert r["negocio"]["gastos_cents"] == 40000
     assert r["negocio"]["ingresos_cents"] == 39700
+
+
+# ── plantilla: campaña de clase gratuita ────────────────────────────────────
+
+
+def test_plan_clase_gratuita_fechas_y_flechas():
+    from datetime import date
+
+    from src.services.vision.plantillas import plan_clase_gratuita, utm_por_defecto
+
+    plan = plan_clase_gratuita(date(2026, 11, 6), "", "19:00")
+    assert plan["utm"] == utm_por_defecto(date(2026, 11, 6)) == "clase-gratis-06nov"
+    c = plan["campana"]
+    assert c["tipo"] == "campana" and c["utm_campaign"] == "clase-gratis-06nov"
+    assert (c["inicio"], c["fin"]) == ("2026-10-27", "2026-11-09")
+    por = {n["clave"]: n for n in plan["nodos"]}
+    # Fechas límite contadas desde el día de la clase.
+    assert por["pagina"]["vence"] == "2026-10-27"
+    assert por["ugc"]["vence"] == "2026-10-30"
+    assert por["clase"]["vence"] == "2026-11-06"
+    assert por["cierre"]["vence"] == "2026-11-09"
+    # Lo que ya está hecho en la escuela sale en verde; lo demás, pendiente.
+    assert por["listo"]["estado"] == "hecho"
+    assert "estado" not in por["pagina"]
+    # Los enlaces llevan la campaña.
+    assert "utm_campaign=clase-gratis-06nov" in por["ugc"]["cuerpo"]
+    assert "setter-NOMBRE" in por["setter"]["cuerpo"]
+    # Toda flecha une tarjetas que existen, y todo el tráfico llega a la página.
+    for a, b, _ in plan["flechas"]:
+        assert a in por and b in por
+    assert {a for a, b, _ in plan["flechas"] if b == "pagina"} == {"ugc", "reels", "historias", "setter"}
+    # Las cifras: tarjetas de métrica de esta campaña.
+    assert {n["metrica"]["clave"] for n in plan["nodos"] if n["tipo"] == "metrica"} == {"coste_lead", "coste_agendada", "cierre", "cac"}
+
+
+async def test_crear_clase_gratuita_va_dentro_de_campanas(db):
+    from src.services.vision.plantillas import crear_clase_gratuita
+
+    inicio = await M.leer_mapa(1, None, db)
+    r = await crear_clase_gratuita(1, {"mapa_id": inicio["mapa"]["id"], "fecha": "2026-11-06", "hora": "19:00"}, db)
+    assert r["ok"]
+    # Desde Inicio, la campaña va dentro de la vertical «Campañas».
+    campanas_v = next(n for n in inicio["nodos"] if n["titulo"] == "Campañas")
+    dentro = await M.leer_mapa(1, r["mapa_id"], db)
+    assert dentro["mapa"]["nodo_padre_id"] == campanas_v["id"]
+    camp = next(n for n in dentro["nodos"] if n["id"] == r["campana_id"])
+    assert camp["tipo"] == "campana" and camp["utm_campaign"] == "clase-gratis-06nov" and camp["submapa_id"] == r["submapa_id"]
+    # Su mapa, con el embudo entero y sus flechas.
+    sub = await M.leer_mapa(1, r["submapa_id"], db)
+    titulos = {n["titulo"] for n in sub["nodos"]}
+    assert {"Página de la clase", "La clase en directo", "Anuncio UGC en Meta", "DMs del setter"} <= titulos
+    assert len(sub["flechas"]) == 11
+    metricas = [n for n in sub["nodos"] if n["tipo"] == "metrica"]
+    assert metricas and all(n["metrica"]["campana_id"] == r["campana_id"] for n in metricas)
+    # Sin fecha, no.
+    assert not (await crear_clase_gratuita(1, {"fecha": ""}, db))["ok"]
+    assert (await db.execute(VisionNodo.__table__.select())).first() is not None
+    assert (await db.execute(VisionFlecha.__table__.select())).first() is not None

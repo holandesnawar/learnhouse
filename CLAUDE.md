@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-17 (Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-17 (Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -3158,6 +3158,29 @@ números conectados a la escuela. **Fase 1 hecha; las fases 2 y 3 del encargo
   - Tarjetas más limpias: el estado solo en tareas, campañas, anuncios,
     contenidos y pasos del embudo (o si se cambió); «Entrar →» en vez del
     botón con borde.
+- **Plantilla «Campaña de clase gratuita»** (17/10, "damos una clase gratuita
+  como imán, cogemos el teléfono; anuncio UGC en Meta, reels, historias, DMs
+  del setter… créame el mapa estilo embudo con lo que está listo y lo que
+  falta, incluida la página de la clase"). Mapa → «Añadir» → «Plantillas».
+  Pide el día y la hora de la clase; el nombre y el `utm_campaign`
+  (`clase-gratis-06nov`) salen solos. Desde Inicio se crea DENTRO de la
+  vertical «Campañas». Su mapa trae el embudo de izquierda a derecha (tráfico
+  → página de la clase → recordatorios → clase → oferta / repetición 48 h →
+  llamadas → cierre), cada paso con su lista y su fecha límite contada desde
+  el día de la clase (D-10 la página y el UGC, D-7 anuncios y reels, D+3 el
+  cierre), arriba objetivo, fechas clave y «Lo que ya está hecho en la
+  escuela» (en verde), y abajo las cifras de la campaña. Todo lo demás nace
+  «Pendiente». `services/vision/plantillas.py` (`plan_clase_gratuita` pura con
+  test), ruta `POST /vision/org/{id}/plantillas/clase-gratuita`.
+  - **Setters, sin código**: cada setter manda su enlace con
+    `utm_content=setter-NOMBRE` (la tarjeta «DMs del setter» lo trae escrito).
+    La escuela ya guarda `utm_content` venga de donde venga, y Panel →
+    Anuncios → «Tus anuncios» cuenta personas y ventas de cada uno (se le pone
+    nombre: «Setter · Laura»). Quien se apunta SIN su enlace no se puede
+    atribuir solo: nota en la ficha. Propuesto y NO hecho: campo «Lo trajo»
+    en la ficha y que la tarjeta diga «Setter · Laura» en vez de «Anuncio».
+  - ⚠️ La **página de la clase NO existe** en la web: es lo primero que
+    falta (D-10). Lo que necesita está en la lista de su tarjeta.
 
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
