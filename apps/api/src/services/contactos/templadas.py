@@ -131,6 +131,7 @@ def filas_automaticas(
     ya_estan: set[str],
     atendidos: dict[str, str],
     ahora: datetime,
+    movidos: Optional[dict[str, tuple[str, str]]] = None,
 ) -> list[dict]:
     """Quién entra solo en la lista. Función pura, con test.
 
@@ -144,7 +145,14 @@ def filas_automaticas(
     descartada no vuelve).
     `atendidos`: correo → cuándo se marcó atendido en la lista vieja; entran
     ya como hechos, para no volver a pedir que se llame a quien ya se llamó.
+    `movidos`: correo → (columna, cuándo) del tablero de Matrículas. Quien ya
+    se movió a mano fuera de las de llamar DESPUÉS de lo que hizo entra ya
+    cerrado: hecho, o quitado si se descartó (17/10, "descarté y volvió a
+    aparecer"). Pasaba con quien se descartaba en la media hora que la lista
+    espera antes de recoger a alguien (`ESPERA_ANTES_DE_LISTAR`).
     """
+    from src.services.panel.pipeline import POR_LLAMAR, etapa_guardada
+
     por_email: dict[str, dict] = {}
     orden: list[str] = []
     for e in eventos:
@@ -170,6 +178,14 @@ def filas_automaticas(
         extra = _extra(e.get("extra"))
         origen = "llamada" if info.get("cual") else origen_de(str(e.get("kind") or ""), extra)
         atendido = atendidos.get(email) or str(extra.get("atendida_at") or "")
+        estado = "hecha" if atendido else "pendiente"
+        columna, movida_el = (movidos or {}).get(email, ("", ""))
+        columna = etapa_guardada(columna)
+        if columna and columna not in POR_LLAMAR and cuando is not None:
+            movida = _fecha(movida_el)
+            if movida is not None and movida >= cuando:
+                estado = "descartada" if columna == "descartado" else "hecha"
+                atendido = atendido or movida_el
         salida.append(
             {
                 "clave": f"auto:{email}",
@@ -178,8 +194,8 @@ def filas_automaticas(
                 "telefono": str(e.get("telefono") or "").strip(),
                 "origen": origen,
                 "detalle": detalle_de(origen, extra),
-                "estado": "hecha" if atendido else "pendiente",
-                "hecha_at": atendido,
+                "estado": estado,
+                "hecha_at": atendido if estado != "pendiente" else "",
                 "created_at": e.get("created_at") or "",
             }
         )
@@ -404,6 +420,11 @@ async def sincronizar(db_session: AsyncSession) -> int:
         await db_session.commit()
 
     emails = set(por_email) - ya_estan
+    if not emails:
+        return 0
+    from src.services.panel.pipeline import guardadas
+
+    movidos = {e: (g.get("etapa") or "", g.get("updated_at") or "") for e, g in (await guardadas(db_session)).items()}
     nuevas = filas_automaticas(
         como_dict,
         reservaron,
@@ -411,6 +432,7 @@ async def sincronizar(db_session: AsyncSession) -> int:
         ya_estan,
         await _atendidos_en_solicitudes(emails, db_session),
         datetime.now(timezone.utc),
+        movidos,
     )
     entraron = 0
     for datos in nuevas:

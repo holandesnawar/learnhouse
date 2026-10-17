@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-17 (Visión: mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-17 (Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -2816,6 +2816,27 @@ desde fuera… mover agarrando como Trello… y ver siempre de dónde viene".
   Contactado). **Fuera**: solo guías, lista de espera e Instagram.
 - **«Llamar hoy»**: cada tarjeta enseña su fecha de volver a llamar (roja si
   toca) y arriba hay un filtro con las de hoy o pasadas.
+- ⚠️ **"Cambiamos algo y vuelve a su lugar" / "descarté y volvió a
+  aparecer"** (17/10, usuario y closer). Tres causas, arregladas juntas:
+  1. `lead_pipeline` NO tiene el correo único, y había filas repetidas (dos
+     movimientos a la vez: closer y administrador, o arrastrar y «¿Qué
+     pasó?»). `mover` escribía en una y el tablero leía otra, en un orden que
+     Postgres no garantiza: a veces se quedaba y a veces volvía. Ahora todo lee
+     la misma (`filas_de` / `_la_buena`: la última que se tocó, sin
+     mayúsculas) y `mover` borra las demás. No se puso el índice único a
+     propósito: con filas repetidas en producción, crearlo fallaría.
+  2. La pantalla: leer el tablero tarda un par de segundos y una lectura vieja
+     llegaba DESPUÉS de mover otra tarjeta y la pintaba donde estaba. Ahora
+     `KanbanPanel` tira cualquier lectura que empezó antes de un movimiento (o
+     con uno a medias) y relee al terminar el último.
+  3. Llamadas recoge a quien deja la admisión a medias pasada media hora
+     (`ESPERA_ANTES_DE_LISTAR`); si en esa media hora ya lo habían movido a
+     mano, entraba como pendiente. Ahora entra cerrado (hecho, o quitado si se
+     descartó) si se movió después de lo que hizo (`movidos` en
+     `filas_automaticas`).
+  Tests: `test_dos_filas_del_mismo_correo_no_devuelven_la_tarjeta`,
+  `test_descartada_antes_de_entrar_en_llamadas_no_vuelve`,
+  `test_quien_ya_se_movio_a_mano_entra_cerrado`.
 - **Sin explicación bajo las columnas** (`QUE_ES` se quitó).
 - La ficha: «Mandar a Llamadas» sigue (la pone pendiente allí y la devuelve a
   Nuevo o Por llamar). Su columna se calcula igual que la tarjeta (`llamada_de`).
@@ -3110,6 +3131,33 @@ números conectados a la escuela. **Fase 1 hecha; las fases 2 y 3 del encargo
   propio `fetch`. Si otra pantalla usa PATCH con ese ayudante, mismo fallo.
 - Probado en local con capturas: mapa, página, submapa, pestañas, flechas,
   métrica, archivo, datos, pago con Klarna, Ajustes, Gastos y móvil.
+- **Segunda vuelta del mapa (17/10, "pantalla completa no funciona… con un
+  plus crear algo dentro sin estar deslizando y uniendo flechas… más orden…
+  para ideas más simple… más profesional")**:
+  - ⚠️ "No funciona" era el botón de esquinas de React Flow, que es
+    ENCAJAR, no pantalla completa. Ahora los controles son propios y con
+    nombre («−», «+», «Ver todo») y hay un botón **«Pantalla completa»** de
+    verdad: el mapa ocupa la ventana entera (`fixed`, z-[999], por debajo de
+    `confirmar()` y de los avisos) y, si el navegador deja, la pantalla
+    entera (`requestFullscreen` sobre el DOCUMENTO, no sobre el mapa: si no,
+    los avisos y las ventanas que cuelgan del body no se verían). Esc sale.
+  - **«+» en el borde derecho de cada tarjeta**: otra tarjeta unida (con su
+    flecha, hacia fuera: del lado contrario a su padre) o, en verticales y
+    campañas, **dentro de su mapa** (se crea el mapa si no existe y se entra).
+    Con una tarjeta elegida: **Tab** = una unida, **Intro** = una hermana,
+    **F2** = cambiar el título. **Doble clic en el fondo** = una nota ahí.
+    Lo nuevo se escribe EN la tarjeta (Intro guarda); campaña y métrica
+    abren su página porque hay que configurarlas.
+  - ⚠️ El texto no llegaba a la tarjeta nueva: React Flow la pinta escondida
+    hasta medirla y ahí no se puede dar el foco. `TituloEnLaTarjeta`
+    reintenta unos fotogramas.
+  - **«Ordenar»** (`lib/nawar/ordenarMapa.ts`, pura con test): la raíz con
+    más ramas se queda y sus ramas salen a los dos lados como un mapa mental;
+    lo suelto va debajo. Con «Deshacer» en el aviso. Arrastrar se ajusta a una
+    rejilla de 12 px.
+  - Tarjetas más limpias: el estado solo en tareas, campañas, anuncios,
+    contenidos y pasos del embudo (o si se cambió); «Entrar →» en vez del
+    botón con borde.
 
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con

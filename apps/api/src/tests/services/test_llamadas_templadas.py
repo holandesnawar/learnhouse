@@ -253,3 +253,21 @@ async def test_la_que_estaba_a_medias_y_luego_pide_llamada_sigue_en_la_lista(db)
     db.add(ContactEvent(email="ivy@x.com", kind="reunion", created_at=datetime.now(timezone.utc).isoformat()))
     await db.commit()
     assert (await listar_templadas(db))["pendientes"] == []
+
+
+def test_quien_ya_se_movio_a_mano_entra_cerrado():
+    """Movida en el tablero después de dejar sus datos: entra hecha (o
+    quitada si se descartó). Movida antes, o a una de las de llamar: pendiente."""
+    eventos = [_ev(e, kind="admision", hace_h=5) for e in ("a@x.com", "b@x.com", "c@x.com", "d@x.com")]
+    iso = lambda h: (AHORA - timedelta(hours=h)).isoformat()  # noqa: E731
+    movidos = {
+        "a@x.com": ("descartado", iso(2)),
+        "b@x.com": ("contactado", iso(2)),
+        "c@x.com": ("descartado", iso(9)),
+        "d@x.com": ("no-contesta", iso(2)),
+    }
+    filas = {f["email"]: f for f in filas_automaticas(eventos, set(), set(), set(), {}, AHORA, movidos)}
+    assert filas["a@x.com"]["estado"] == "descartada"
+    assert filas["b@x.com"]["estado"] == "hecha" and filas["b@x.com"]["hecha_at"]
+    assert filas["c@x.com"]["estado"] == "pendiente" and not filas["c@x.com"]["hecha_at"]
+    assert filas["d@x.com"]["estado"] == "pendiente"
