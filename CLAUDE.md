@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-17 (Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-18 (ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -2790,6 +2790,23 @@ desde fuera… mover agarrando como Trello… y ver siempre de dónde viene".
   (las marcas en orden). En la web, `recorrido.ts` apunta también
   `/nuestra-vision` (`vision`) y `/blog/*` (`blog`), que antes no dejaban
   rastro; sus nombres están en `_NOMBRES`.
+- **Etiqueta «Ads» / «Orgánico» arriba en la ficha** (18/10, "diferenciar que
+  alguien agende por orgánico o por ads"), junto al correo y el teléfono.
+  `canal_de` en `pipeline.py` (pura, test `test_ads_u_organico`). **Ads** =
+  alguna de sus visitas llegó con un enlace de anuncio de pago (`utm_medium`
+  paid/cpc…) o pasó por la página del anuncio; detrás, plataforma y anuncio
+  («Meta · VSL A») y, si había llegado ANTES sin anuncio, «Antes ya había
+  llegado sin anuncio: Guía». **Orgánico** = lo demás: el setter si vino con
+  su enlace (`utm_content=setter-laura` → «Setter · Laura»; o el nombre que
+  se le puso en «Tus anuncios»), o lo primero que se sabe: «Instagram ·
+  historias», «Instagram · DM» (Inrō), la web de la que venía (`referrer`),
+  «Guía», «Web · inicio». Lo que hace el equipo (enlace de pago, llamada que
+  agenda, alta a mano) no cuenta como origen.
+  ⚠️ Desde el 18/10 `origen_corto` busca el anuncio en TODAS sus visitas, no
+  en el último enlace: antes, quien llegó por un anuncio y volvió por un DM
+  dejaba de salir como «Anuncio Meta» en la tarjeta. Solo se distingue bien si
+  cada canal orgánico lleva su enlace con `utm_source` (bio, historias, reels,
+  DM del setter): sin enlace, solo queda la web de la que venía.
 - ⚠️ **Arrastrar NO funcionaba nunca**: la tarjeta era un `<button>` y
   `@hello-pangea/dnd` se niega a empezar a arrastrar desde botones (su
   `interactiveTagNames`: input, button, textarea…). Ahora es un `<div

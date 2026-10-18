@@ -16,7 +16,7 @@ from src.services.contactos.contactos import _emails_con_cuenta, _todos_los_even
 from src.services.contactos.seguimiento import seguimiento_de
 from src.services.panel import tareas as tareas_srv
 from src.services.panel.ads import limpiar_anuncio, nombre_del_anuncio
-from src.services.panel.pipeline import citas_por_email, colocar, filas_de
+from src.services.panel.pipeline import canal_de, citas_por_email, colocar, filas_de
 from src.services.payments.solicitudes import _NOMBRES as NOMBRES_PAGINA
 
 
@@ -364,6 +364,8 @@ async def ficha_cliente(
         "vio_precio": ficha["vio_precio"],
         "precio_por": por_que_vio_el_precio(eventos),
         "vino_de": ficha["vino_de"],
+        # «Ads» u «Orgánico», arriba junto a sus datos (ver `canal_de`).
+        "canal": canal_de(ficha, nombres_anuncios),
         "utm": {
             "source": ficha["utm_source"], "medium": ficha["utm_medium"], "campaign": ficha["utm_campaign"],
             # El anuncio con el nombre de la escuela si se le puso uno, y el que

@@ -135,6 +135,10 @@ export interface FichaCliente {
   /** Por qué ha visto el precio, en una frase (vacío si no lo ha visto). */
   precio_por?: string
   vino_de: string
+  /** «Ads» u «Orgánico» (`canal_de` en pipeline.py): `detalle` dice por dónde
+   *  («Meta · VSL A», «Setter · Laura», «Instagram · historias») y `antes`, si
+   *  llegó por un anuncio, por dónde había llegado antes sin él. */
+  canal?: { canal: 'ads' | 'organico'; detalle: string; antes: string }
   utm: { source: string; medium: string; campaign: string; content?: string; content_meta?: string; term?: string; placement?: string }
   etiquetas: string[]
   fuera_de_metricas: boolean

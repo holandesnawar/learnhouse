@@ -142,6 +142,31 @@ _ORIGEN_WEB = {
 }
 _MEDIOS_DE_PAGO = {"paid", "cpc", "ppc", "ads", "paid_social", "paidsocial", "paid-social"}
 _FUENTES_META = {"facebook", "fb", "instagram", "ig", "meta"}
+#: Las páginas a las que solo se llega desde un anuncio.
+_PAGINAS_DE_ANUNCIO = ("anuncio-fb", "landing-metodo")
+
+
+def _es_de_pago(visita: dict) -> bool:
+    return (visita.get("utm_medium") or "").strip().lower() in _MEDIOS_DE_PAGO
+
+
+def _visitas(ficha: dict) -> list[dict]:
+    """Sus visitas en orden (los eventos de `fusionar_contactos`). Sin ellas,
+    la propia ficha hace de visita única (así valen las fichas de los tests)."""
+    return ficha.get("eventos") or [ficha]
+
+
+def _visita_de_pago(ficha: dict) -> Optional[dict]:
+    """La primera visita cuyo enlace era de un anuncio de pago, o None."""
+    return next((v for v in _visitas(ficha) if _es_de_pago(v)), None)
+
+
+def _visita_de_anuncio(ficha: dict) -> Optional[dict]:
+    """La primera visita de pago o que pasó por la página del anuncio."""
+    for v in _visitas(ficha):
+        if _es_de_pago(v) or any(p in (v.get("recorrido") or "").split(",") for p in _PAGINAS_DE_ANUNCIO):
+            return v
+    return None
 
 
 def _con_anuncio(origen: str, ficha: dict, nombres: Optional[dict] = None) -> str:
@@ -175,24 +200,145 @@ def origen_corto(ficha: dict, nombres_anuncios: Optional[dict] = None) -> str:
     Vacío si no se sabe.
     """
     pasos = ficha.get("pasos") or []
-    medio = (ficha.get("utm_medium") or "").strip().lower()
-    fuente = (ficha.get("utm_source") or "").strip().lower()
-    if "anuncio-fb" in pasos or "landing-metodo" in pasos:
-        return _con_anuncio("Anuncio Meta", ficha, nombres_anuncios)
-    if medio in _MEDIOS_DE_PAGO:
+    # El anuncio puede venir en cualquiera de sus visitas, no solo en la
+    # última (18/10): quien llegó por un anuncio y volvió por un DM sigue
+    # siendo del anuncio, y la tarjeta dice lo mismo que la etiqueta de la
+    # ficha (`canal_de`).
+    pago = _visita_de_pago(ficha)
+    fuente = ((pago or {}).get("utm_source") or "").strip().lower()
+    if any(p in pasos for p in _PAGINAS_DE_ANUNCIO):
+        return _con_anuncio("Anuncio Meta", _visita_de_anuncio(ficha) or ficha, nombres_anuncios)
+    if pago:
         if fuente in _FUENTES_META or not fuente:
-            return _con_anuncio("Anuncio Meta" if fuente else "Anuncio", ficha, nombres_anuncios)
-        return _con_anuncio(f"Anuncio · {fuente.capitalize()}", ficha, nombres_anuncios)
+            return _con_anuncio("Anuncio Meta" if fuente else "Anuncio", pago, nombres_anuncios)
+        return _con_anuncio(f"Anuncio · {fuente.capitalize()}", pago, nombres_anuncios)
+    fuente = (ficha.get("utm_source") or "").strip().lower()
     if pasos:
-        primero = pasos[0]
-        if primero.startswith("guia-") or primero.startswith("gracias-"):
-            return "Guía"
-        if primero == "enlace-pago":
-            return "Enlace de pago"
-        return _ORIGEN_WEB.get(primero, "Web")
+        return _por_pagina(pasos[0])
     if fuente:
         return fuente.capitalize()
     return ""
+
+
+def _por_pagina(primera: str) -> str:
+    """De dónde viene, por la primera página por la que entró."""
+    if primera.startswith("guia-") or primera.startswith("gracias-"):
+        return "Guía"
+    if primera == "enlace-pago":
+        return "Enlace de pago"
+    return _ORIGEN_WEB.get(primera, "Web")
+
+
+#: Las redes y otros sitios, con su nombre (para el detalle de «Orgánico»).
+_REDES = {
+    "instagram": "Instagram", "ig": "Instagram", "facebook": "Facebook", "fb": "Facebook", "meta": "Meta",
+    "tiktok": "TikTok", "youtube": "YouTube", "yt": "YouTube", "whatsapp": "WhatsApp", "wa": "WhatsApp",
+    "google": "Google", "email": "Correo", "mail": "Correo", "newsletter": "Correo", "systeme": "Correo",
+}
+#: El medio de un enlace orgánico, como se dice (lo que va detrás de «Instagram ·»).
+_MEDIOS = {
+    "dm": "DM", "dms": "DM", "stories": "historias", "story": "historias", "historias": "historias",
+    "historia": "historias", "reel": "reels", "reels": "reels", "bio": "bio", "post": "publicación",
+    "publicacion": "publicación",
+}
+#: Medios que no añaden nada.
+_MEDIOS_VACIOS = {"organic", "organico", "orgánico", "social", "referral", "none", "(none)", "web", "link"}
+#: Lo que hace el equipo o la escuela, no la persona: no dice por dónde llegó.
+_NO_DICEN_DE_DONDE = {"enlace-pago", "llamada-equipo", "alta-manual", "pago", "senal"}
+#: Al buscar de qué web llegó, por el nombre de la dirección.
+_WEBS = (
+    ("instagram", "Instagram"), ("facebook", "Facebook"), ("fb.", "Facebook"), ("tiktok", "TikTok"),
+    ("youtube", "YouTube"), ("youtu.be", "YouTube"), ("whatsapp", "WhatsApp"), ("wa.me", "WhatsApp"),
+    ("google", "Google"), ("bing", "Bing"), ("chatgpt", "ChatGPT"),
+)
+
+
+def _pista_organica(visita: dict) -> str:
+    """Por dónde llegó en esa visita, sin anuncio: la red y el medio de su
+    enlace, un DM de Instagram, la web de la que venía o su primera página."""
+    if visita.get("kind") in _NO_DICEN_DE_DONDE or (visita.get("utm_medium") or "").strip().lower() == "enlace-pago":
+        return ""
+    fuente = (visita.get("utm_source") or "").strip().lower()
+    if fuente:
+        medio = (visita.get("utm_medium") or "").strip().lower()
+        red = _REDES.get(fuente, fuente.capitalize())
+        dicho = _MEDIOS.get(medio, "" if medio in _MEDIOS_VACIOS else medio)
+        return f"{red} · {dicho}" if dicho else red
+    if visita.get("kind") == "instagram":
+        return "Instagram · DM"
+    web = (visita.get("referrer") or "").strip().lower()
+    if web and "holandesnawar" not in web:
+        for trozo, nombre in _WEBS:
+            if trozo in web:
+                return nombre
+        return web.split("//")[-1].split("/")[0].removeprefix("www.")[:40]
+    primera = next((p for p in (visita.get("recorrido") or "").split(",") if p), "")
+    return _por_pagina(primera) if primera and primera != "enlace-pago" else ""
+
+
+def _setter(ficha: dict, nombres: Optional[dict] = None) -> str:
+    """«Setter · Laura» si alguna visita llegó con el enlace de un setter
+    (`utm_content=setter-laura`; ver la plantilla de clase gratuita). Si en
+    Panel → Anuncios se le puso un nombre, ese."""
+    from src.services.panel.ads import limpiar_anuncio, nombre_del_anuncio
+
+    for v in _visitas(ficha):
+        limpio = limpiar_anuncio(v.get("utm_content") or "")
+        if not limpio.lower().startswith("setter"):
+            continue
+        propio = nombre_del_anuncio(limpio, nombres)
+        if propio != limpio:
+            return propio
+        quien = limpio[len("setter"):].strip(" -_").replace("-", " ").replace("_", " ").strip()
+        return f"Setter · {quien.title()}" if quien else "Setter"
+    return ""
+
+
+def canal_de(ficha: dict, nombres_anuncios: Optional[dict] = None) -> dict:
+    """«Ads» u «Orgánico», para la etiqueta de arriba de la ficha (18/10,
+    "diferenciar que alguien agende por orgánico o por ads"). Función pura.
+
+    - `ads`: alguna de sus visitas llegó con un enlace de anuncio de pago
+      (`utm_medium` paid, cpc…) o pasó por la página del anuncio. La misma
+      regla que la tarjeta (`origen_corto`): si un anuncio la trajo alguna
+      vez, es del anuncio. `detalle`: plataforma y anuncio ("Meta · VSL A").
+      `antes`: por dónde había llegado ANTES sin anuncio, si fue así.
+    - `organico`: todo lo demás. `detalle`: el setter si vino con su enlace
+      ("Setter · Laura"); si no, por dónde llegó la primera vez que se sabe
+      ("Instagram · historias", "Instagram · DM", "Google", "Web · inicio",
+      "Guía"). Vacío si no se sabe (la dio de alta el equipo, por ejemplo).
+    """
+    pasos = ficha.get("pasos") or []
+    visitas = _visitas(ficha)
+    anuncio = _visita_de_anuncio(ficha)
+    if anuncio or any(p in pasos for p in _PAGINAS_DE_ANUNCIO):
+        fuente = ((anuncio or {}).get("utm_source") or "").strip().lower()
+        if anuncio is None or not _es_de_pago(anuncio) or fuente in _FUENTES_META:
+            # La página del anuncio solo la anuncia Meta.
+            plataforma = "Meta"
+        else:
+            # Un enlace de pago sin fuente no dice de qué plataforma es.
+            plataforma = _REDES.get(fuente, fuente.capitalize()) if fuente else ""
+        from src.services.panel.ads import nombre_del_anuncio
+
+        nombre = nombre_del_anuncio((anuncio or ficha).get("utm_content") or "", nombres_anuncios)
+        antes = ""
+        if anuncio is not None:
+            for v in visitas[: next((i for i, v in enumerate(visitas) if v is anuncio), 0)]:
+                antes = _pista_organica(v)
+                if antes:
+                    break
+        return {
+            "canal": "ads",
+            "detalle": " · ".join(t for t in (plataforma, nombre[:60]) if t),
+            "antes": antes,
+        }
+    detalle = _setter(ficha, nombres_anuncios)
+    if not detalle:
+        detalle = next((p for p in (_pista_organica(v) for v in visitas) if p), "")
+    if not detalle and pasos and pasos[0] != "enlace-pago":
+        detalle = _por_pagina(pasos[0])
+    return {"canal": "organico", "detalle": detalle, "antes": ""}
 
 
 def entro_en_el_flujo(ficha: dict) -> str:
