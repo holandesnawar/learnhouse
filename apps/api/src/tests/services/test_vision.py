@@ -298,27 +298,44 @@ def test_plan_clase_gratuita_fechas_y_flechas():
 
     from src.services.vision.plantillas import plan_clase_gratuita, utm_por_defecto
 
-    plan = plan_clase_gratuita(date(2026, 11, 6), "", "19:00")
+    # La fecha es el día que EMPIEZA la campaña (la clase es grabada).
+    plan = plan_clase_gratuita(date(2026, 11, 6), "")
     assert plan["utm"] == utm_por_defecto(date(2026, 11, 6)) == "clase-gratis-06nov"
     c = plan["campana"]
     assert c["tipo"] == "campana" and c["utm_campaign"] == "clase-gratis-06nov"
-    assert (c["inicio"], c["fin"]) == ("2026-10-27", "2026-11-09")
+    assert c["inicio"] == "2026-11-06" and "fin" not in c
     por = {n["clave"]: n for n in plan["nodos"]}
-    # Fechas límite contadas desde el día de la clase.
-    assert por["pagina"]["vence"] == "2026-10-27"
-    assert por["ugc"]["vence"] == "2026-10-30"
-    assert por["clase"]["vence"] == "2026-11-06"
-    assert por["cierre"]["vence"] == "2026-11-09"
+    # Nada de clase en directo: ni recordatorios ni repetición de 48 h.
+    assert not {"recordatorios", "repeticion", "oferta", "cierre", "pagina"} & set(por)
+    assert "directo" not in por["clase"]["titulo"]
+    # Fechas límite contadas desde el día que empieza.
+    assert por["clase"]["vence"] == "2026-10-30"
+    assert por["pagina_ads"]["vence"] == por["pagina_org"]["vence"] == "2026-11-03"
+    assert por["ugc"]["vence"] == "2026-11-06"
     # Lo que ya está hecho en la escuela sale en verde; lo demás, pendiente.
     assert por["listo"]["estado"] == "hecho"
-    assert "estado" not in por["pagina"]
-    # Los enlaces llevan la campaña.
-    assert "utm_campaign=clase-gratis-06nov" in por["ugc"]["cuerpo"]
+    assert "estado" not in por["pagina_ads"]
+    # Dos páginas: el anuncio va a la de ads; reels, historias y setter a la orgánica.
+    assert {a for a, b, _ in plan["flechas"] if b == "pagina_ads"} == {"ugc"}
+    assert {a for a, b, _ in plan["flechas"] if b == "pagina_org"} == {"reels", "historias", "setter"}
+    assert "utm_medium=paid" in por["ugc"]["cuerpo"] and "utm_campaign=clase-gratis-06nov" in por["ugc"]["cuerpo"]
+    assert "utm_medium=paid" not in por["reels"]["cuerpo"]
     assert "setter-NOMBRE" in por["setter"]["cuerpo"]
-    # Toda flecha une tarjetas que existen, y todo el tráfico llega a la página.
+    # Seis correos en cadena: «aquí tienes tu clase», «por si la quieres volver
+    # a ver» y los de convencer, todos con el botón de agendar.
+    correos = [n for n in plan["nodos"] if n["clave"].startswith("correo")]
+    assert [n["clave"] for n in correos] == [f"correo{i}" for i in range(1, 7)]
+    assert "Aquí tienes tu clase" in correos[0]["cuerpo"] and "volver a ver" in correos[1]["cuerpo"]
+    assert all("[enlace para agendar]" in n["cuerpo"] for n in correos)
+    cadena = [(a, b) for a, b, _ in plan["flechas"] if a.startswith("correo") and b.startswith("correo")]
+    assert cadena == [(f"correo{i}", f"correo{i + 1}") for i in range(1, 6)]
+    assert ("correo6", "agendar", "botón en todos") in plan["flechas"]
+    # Sin precio en los correos: eso se habla en la llamada.
+    assert not any("€" in n["cuerpo"] for n in correos)
+    # Toda flecha une tarjetas que existen y no hay claves repetidas.
+    assert len(por) == len(plan["nodos"])
     for a, b, _ in plan["flechas"]:
         assert a in por and b in por
-    assert {a for a, b, _ in plan["flechas"] if b == "pagina"} == {"ugc", "reels", "historias", "setter"}
     # Las cifras: tarjetas de métrica de esta campaña.
     assert {n["metrica"]["clave"] for n in plan["nodos"] if n["tipo"] == "metrica"} == {"coste_lead", "coste_agendada", "cierre", "cac"}
 
@@ -338,8 +355,9 @@ async def test_crear_clase_gratuita_va_dentro_de_campanas(db):
     # Su mapa, con el embudo entero y sus flechas.
     sub = await M.leer_mapa(1, r["submapa_id"], db)
     titulos = {n["titulo"] for n in sub["nodos"]}
-    assert {"Página de la clase", "La clase en directo", "Anuncio UGC en Meta", "DMs del setter"} <= titulos
-    assert len(sub["flechas"]) == 11
+    assert {"Página de la clase · ads", "Página de la clase · orgánico", "La clase (grabada)", "Anuncio UGC en Meta", "DMs del setter"} <= titulos
+    assert "Correo 2 · Por si la quieres volver a ver" in titulos
+    assert len(sub["flechas"]) == 16
     metricas = [n for n in sub["nodos"] if n["tipo"] == "metrica"]
     assert metricas and all(n["metrica"]["campana_id"] == r["campana_id"] for n in metricas)
     # Sin fecha, no.

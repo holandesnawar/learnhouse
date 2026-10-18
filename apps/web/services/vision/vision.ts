@@ -335,10 +335,10 @@ export const guardarPago = (org: number, nodoId: number, datos: Partial<Pago>, t
   pedir<Pago>(id ? `org/${org}/campanas/${nodoId}/pagos/${id}` : `org/${org}/campanas/${nodoId}/pagos`, id ? 'PUT' : 'POST', datos, t)
 export const borrarPago = (org: number, id: number, t: string) => pedir<{ ok: boolean }>(`org/${org}/campanas/pagos/${id}`, 'DELETE', null, t)
 
-/** Plantilla: una campaña de clase gratuita con todo su embudo, con fechas desde el día de la clase. */
+/** Plantilla: una campaña de clase gratuita (grabada) con todo su embudo, con fechas desde el día que empieza. */
 export const crearClaseGratuita = (
   org: number,
-  datos: { mapa_id: number; fecha: string; hora?: string; titulo?: string; utm_campaign?: string },
+  datos: { mapa_id: number; fecha: string; titulo?: string; utm_campaign?: string },
   t: string
 ) =>
   pedir<{ ok: boolean; campana_id: number; mapa_id: number; submapa_id: number; utm_campaign: string }>(
