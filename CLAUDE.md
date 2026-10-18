@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-18 (ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-18 (plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -3175,29 +3175,47 @@ números conectados a la escuela. **Fase 1 hecha; las fases 2 y 3 del encargo
   - Tarjetas más limpias: el estado solo en tareas, campañas, anuncios,
     contenidos y pasos del embudo (o si se cambió); «Entrar →» en vez del
     botón con borde.
-- **Plantilla «Campaña de clase gratuita»** (17/10, "damos una clase gratuita
-  como imán, cogemos el teléfono; anuncio UGC en Meta, reels, historias, DMs
-  del setter… créame el mapa estilo embudo con lo que está listo y lo que
-  falta, incluida la página de la clase"). Mapa → «Añadir» → «Plantillas».
-  Pide el día y la hora de la clase; el nombre y el `utm_campaign`
-  (`clase-gratis-06nov`) salen solos. Desde Inicio se crea DENTRO de la
-  vertical «Campañas». Su mapa trae el embudo de izquierda a derecha (tráfico
-  → página de la clase → recordatorios → clase → oferta / repetición 48 h →
-  llamadas → cierre), cada paso con su lista y su fecha límite contada desde
-  el día de la clase (D-10 la página y el UGC, D-7 anuncios y reels, D+3 el
-  cierre), arriba objetivo, fechas clave y «Lo que ya está hecho en la
-  escuela» (en verde), y abajo las cifras de la campaña. Todo lo demás nace
-  «Pendiente». `services/vision/plantillas.py` (`plan_clase_gratuita` pura con
-  test), ruta `POST /vision/org/{id}/plantillas/clase-gratuita`.
+- **Plantilla «Campaña de clase gratuita»** (17/10, rehecha el 18/10).
+  Mapa → «Añadir» → «Plantillas». ⚠️ **NO es una clase en directo**
+  (corrección del usuario el 18/10): es una clase GRABADA como imán de leads.
+  Se deja el correo, llega la clase, se ve y después se puede agendar la
+  llamada. Pide solo el **día que empieza** la campaña; el nombre y el
+  `utm_campaign` (`clase-gratis-02nov`) salen solos. Desde Inicio se crea
+  DENTRO de la vertical «Campañas». Su mapa:
+  - Tráfico: anuncio UGC → **«Página de la clase · ads»**; reels y bio,
+    historias y DMs del setter → **«Página de la clase · orgánico»**. Son dos
+    páginas a propósito ("así sabemos de dónde vienen"), y cada tarjeta trae
+    sus enlaces con utm (ads: `utm_medium=paid`; orgánico: instagram + reels,
+    bio, stories o dm).
+  - Al apuntarse: **Correo 1 «Aquí tienes tu clase»** → «La clase (grabada)»
+    → «Agendar llamada» (decidir entre /proceso-agendar y
+    /proceso-de-admision) → «Llamadas del closer» → «Venta».
+  - Debajo, la secuencia: **Correo 2 «Por si la quieres volver a ver»** y
+    los correos 3 a 6 para convencer, todos con el botón de agendar (días 0,
+    1, 2, 4, 6 y 8: PROPUESTA, el usuario no los dio). Cada correo lleva un
+    BORRADOR escrito solo con datos reales (16 semanas, 10 módulos, clase
+    semanal, consultas, comunidad, certificado, 15 días de garantía, llamada
+    de 30 min sin compromiso; sin precio). Lo que no se sabe (tema de la
+    clase, quién la da, enlaces, [nombre]) va entre [corchetes]: "si no sabes
+    no te inventes".
+  - Notas «por decidir»: desde dónde salen los correos (systeme.io o
+    Automatizaciones) y si quien se apunta a la clase sale ya en Matrículas
+    (hoy, quien solo baja una guía sale en Contactos y pasa a Matrículas al
+    pedir llamada).
+  - Fechas límite desde el día que empieza: clase grabada D-7, UGC D-5,
+    páginas y correos D-3. Todo nace «Pendiente». La campaña creada ANTES
+    del 18/10 con la versión del directo no se actualiza sola: se borra
+    desde su página y se crea otra.
+  - `services/vision/plantillas.py` (`plan_clase_gratuita` y `_CORREOS`,
+    puras con test), ruta `POST /vision/org/{id}/plantillas/clase-gratuita`.
   - **Setters, sin código**: cada setter manda su enlace con
-    `utm_content=setter-NOMBRE` (la tarjeta «DMs del setter» lo trae escrito).
-    La escuela ya guarda `utm_content` venga de donde venga, y Panel →
-    Anuncios → «Tus anuncios» cuenta personas y ventas de cada uno (se le pone
-    nombre: «Setter · Laura»). Quien se apunta SIN su enlace no se puede
-    atribuir solo: nota en la ficha. Propuesto y NO hecho: campo «Lo trajo»
-    en la ficha y que la tarjeta diga «Setter · Laura» en vez de «Anuncio».
-  - ⚠️ La **página de la clase NO existe** en la web: es lo primero que
-    falta (D-10). Lo que necesita está en la lista de su tarjeta.
+    `utm_content=setter-NOMBRE`. La ficha dice «Orgánico · Setter · Nombre»
+    (`canal_de`) y Panel → Anuncios → «Tus anuncios» cuenta sus personas y
+    ventas. Quien se apunta SIN su enlace no se puede atribuir solo: nota en
+    la ficha.
+  - ⚠️ **Las dos páginas de la clase NO existen** en la web: es lo primero
+    que falta. Cuando se hagan, la marca de la de ads tiene que contar como
+    anuncio en la escuela (`_PAGINAS_DE_ANUNCIO` en `pipeline.py`).
 
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con

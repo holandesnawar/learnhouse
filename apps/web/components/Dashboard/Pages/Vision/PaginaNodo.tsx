@@ -302,7 +302,7 @@ export default function PaginaNodo({
             </div>
 
             <span className={ETIQUETA}>Responsable</span>
-            <input value={n.responsable} onChange={(e) => poner({ responsable: e.target.value }, true)} placeholder="Claudia, el closer…" className={CAMPO} />
+            <input value={n.responsable} onChange={(e) => poner({ responsable: e.target.value }, true)} placeholder="Quién se encarga (tú, el closer, el profe…)" className={CAMPO} />
 
             <span className={ETIQUETA}>Fechas</span>
             <div className="grid grid-cols-3 gap-1.5">

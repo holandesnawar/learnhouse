@@ -1083,8 +1083,9 @@ function Lienzo({
 }
 
 
-/** La plantilla «Campaña de clase gratuita»: el día (y la hora) de la clase;
- *  el nombre y el utm_campaign salen solos y se pueden cambiar. */
+/** La plantilla «Campaña de clase gratuita» (clase GRABADA como imán de
+ *  leads): el día que empieza la campaña; el nombre y el utm_campaign salen
+ *  solos y se pueden cambiar. */
 function VentanaClaseGratuita({
   enInicio,
   onClose,
@@ -1092,10 +1093,9 @@ function VentanaClaseGratuita({
 }: {
   enInicio: boolean
   onClose: () => void
-  onCrear: (v: { fecha: string; hora: string; titulo: string; utm_campaign: string }) => Promise<boolean>
+  onCrear: (v: { fecha: string; titulo: string; utm_campaign: string }) => Promise<boolean>
 }) {
   const [fecha, setFecha] = useState('')
-  const [hora, setHora] = useState('19:00')
   const [titulo, setTitulo] = useState('')
   const [utm, setUtm] = useState('')
   const [utmTocado, setUtmTocado] = useState(false)
@@ -1109,9 +1109,9 @@ function VentanaClaseGratuita({
       <form
         onSubmit={async (e) => {
           e.preventDefault()
-          if (!fecha) return toast.error('Pon el día de la clase')
+          if (!fecha) return toast.error('Pon el día que empieza la campaña')
           setCreando(true)
-          const ok = await onCrear({ fecha, hora, titulo: titulo.trim(), utm_campaign: utmFinal.trim() })
+          const ok = await onCrear({ fecha, titulo: titulo.trim(), utm_campaign: utmFinal.trim() })
           if (!ok) setCreando(false)
         }}
         className="w-full max-w-[460px] rounded-lg border border-[#E5E7EB] bg-white p-5 space-y-4"
@@ -1120,27 +1120,22 @@ function VentanaClaseGratuita({
           <div>
             <h3 className="text-[16px] font-semibold text-gray-900">Campaña de clase gratuita</h3>
             <p className={`${META} mt-0.5`}>
-              Crea la campaña con todo su embudo: anuncio UGC, reels, historias, DMs del setter, página de la clase, recordatorios, la
-              clase, la oferta, las llamadas y el cierre. Cada paso con lo que hace falta y su fecha límite.
+              La clase grabada como regalo: una página para ads y otra para orgánico, el correo «aquí tienes tu clase», la
+              secuencia de seguimiento con sus borradores, agendar llamada, llamadas y venta. Cada paso con lo que hace falta y su
+              fecha límite.
             </p>
           </div>
           <button type="button" onClick={onClose} aria-label="Cerrar" className="p-1 rounded-md text-[#6B7280] hover:bg-[#F3F4F6]">
             <X size={16} />
           </button>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <label>
-            <span className={ROTULO}>Día de la clase</span>
-            <input type="date" required value={fecha} onChange={(e) => setFecha(e.target.value)} className={CAMPO} autoFocus />
-          </label>
-          <label>
-            <span className={ROTULO}>Hora (Países Bajos)</span>
-            <input type="time" value={hora} onChange={(e) => setHora(e.target.value)} className={CAMPO} />
-          </label>
-        </div>
+        <label className="block">
+          <span className={ROTULO}>Día que empieza (páginas abiertas y anuncios en marcha)</span>
+          <input type="date" required value={fecha} onChange={(e) => setFecha(e.target.value)} className={CAMPO} autoFocus />
+        </label>
         <label className="block">
           <span className={ROTULO}>Nombre (opcional)</span>
-          <input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Clase gratuita · vie 6 nov" className={CAMPO} />
+          <input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Clase gratuita · desde vie 6 nov" className={CAMPO} />
         </label>
         <label className="block">
           <span className={ROTULO}>utm_campaign de todos sus enlaces</span>
