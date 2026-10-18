@@ -2541,6 +2541,29 @@ Nawar. Tres páginas en `nawar-web`, fuera de Google (`robots.txt`
     acortar el texto de la cabecera en el móvil para que «Nombre» se vea sin
     bajar, una línea bajo el botón con lo que viene después, aviso de correo
     mal escrito y las imágenes en WebP (unos 2 MB en PNG hoy).
+- **Séptima vuelta (18/10, "que se vea premium")** (nawar-web PR #152,
+  en las dos copias, anuncio y web):
+  - ⚠️ **Las cifras de los círculos** (competencias 1-8, los tres pasos)
+    "no están centradas, me da mucho toc": quedaban 1-1,5 px abajo (medido
+    a 4x con Playwright: tinta de la cifra contra el centro del círculo). La
+    causa era un `padding-top: 2px` de antes de las fuentes propias. Ahora
+    sin relleno y la cifra en un `<i>` con `text-box: trim-both cap
+    alphabetic`. **Para medir algo así, medir; a ojo no se ve en Linux y en
+    el Mac ampliado sí.**
+  - Letra más blanca en todo lo azul (entradillas al 0,93, pasos, plan,
+    cinta, formulario). Regla: sobre `#1D0084`, texto de lectura ≥ 0,85.
+  - Textos serios: fuera «vas al día», «hasta que te sale», «No es ver
+    vídeos y ya», «tú solo» (→ «sin depender de nadie» / «por tu cuenta»).
+  - Fuera las comillas gigantes de «¿Te reconoces?» (parecían testimonios
+    sin nombre) y «Plazas limitadas por convocatoria» (con la entrada
+    continua ya no es verdad): la etiqueta es «Cómo empezar».
+  - **El botón «Solicitar información» fijo también en el ordenador**, en la
+    esquina de abajo a la derecha (en el móvil, a lo ancho como antes). Toda
+    la píldora es el enlace. Se esconde con un formulario o el botón del
+    cierre a la vista, y en el pie (en la del anuncio, `.fv-pie`).
+  - Propuesto y NO hecho: quitar la cinta que se mueve, el aviso «¡No
+    cierres ni recargues esta página!» del vídeo y el logo enlazado desde el
+    CDN de systeme.io (subirlo a la web).
 
 ### ⚠️ El embudo vive ahora en `/formacion-nawar-fb` (07/10, nawar-web PR #135)
 Para la campaña de Meta «LEADS | VSL Matricula | oct26» (NL+BE, español,
