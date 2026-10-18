@@ -85,6 +85,31 @@ function Bloque({ icono, titulo, children, derecha }: { icono: React.ReactNode; 
   )
 }
 
+/** «Ads» u «Orgánico» junto a sus datos (18/10, "una etiqueta que diga ads u
+ *  orgánico cerca de sus datos arriba"). La regla, en `canal_de` (pipeline.py):
+ *  si un anuncio la trajo alguna vez, Ads. */
+function EtiquetaCanal({ canal }: { canal: NonNullable<Ficha['canal']> }) {
+  const ads = canal.canal === 'ads'
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
+      <span
+        className="inline-flex items-center gap-1.5 rounded-md border border-[#E5E7EB] bg-white px-2 py-0.5 text-[12px] font-semibold text-gray-900"
+        title={
+          ads
+            ? 'Llegó por un enlace de anuncio de pago (o por la página del anuncio).'
+            : 'Llegó sin anuncio: web, guía, Instagram, un setter… (lo que no lleva enlace de anuncio).'
+        }
+      >
+        <span className="w-1.5 h-1.5 rounded-full" style={{ background: ads ? '#2563EB' : '#16A34A' }} />
+        {ads ? 'Ads' : 'Orgánico'}
+      </span>
+      {canal.detalle ? <span className="text-[12.5px] text-[#4B5563] truncate max-w-full">{canal.detalle}</span> : null}
+      {canal.antes ? (
+        <span className="text-[12px] text-[#6B7280] truncate max-w-full">Antes ya había llegado sin anuncio: {canal.antes}</span>
+      ) : null}
+    </div>
+  )
+}
 
 export default function FichaCliente({
   email,
@@ -236,6 +261,7 @@ export default function FichaCliente({
                 {email}
                 {ficha?.telefono ? ` · ${ficha.telefono}` : ''}
               </p>
+              {ficha?.canal ? <EtiquetaCanal canal={ficha.canal} /> : null}
             </div>
             <button onClick={onClose} aria-label="Cerrar" className="shrink-0 p-1.5 rounded-lg text-[#6B7280] hover:bg-[#F3F4F6]">
               <X size={18} />

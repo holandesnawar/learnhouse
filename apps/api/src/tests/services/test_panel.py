@@ -91,6 +91,53 @@ def test_de_donde_viene():
     assert colocar(_ficha(pasos=["home", "formacion-web"]), None)["origen"] == "Web · inicio"
 
 
+def _visita(kind="admision", **campos):
+    base = {"kind": kind, "recorrido": "", "referrer": "", "utm_source": "", "utm_medium": "", "utm_content": ""}
+    return {**base, **campos}
+
+
+def test_ads_u_organico():
+    from src.services.panel.pipeline import canal_de, origen_corto
+
+    # Por la página del anuncio, con el nombre del anuncio.
+    anuncio = _visita(recorrido="anuncio-fb", utm_source="facebook", utm_medium="paid", utm_content="VIDEO | UGC | VSL | A")
+    ficha = {"pasos": ["anuncio-fb"], "eventos": [anuncio]}
+    assert canal_de(ficha) == {"canal": "ads", "detalle": "Meta · VIDEO | UGC | VSL | A", "antes": ""}
+    # Con el nombre que se le puso en la escuela.
+    assert canal_de(ficha, {"video | ugc | vsl | a": "UGC Laura"})["detalle"] == "Meta · UGC Laura"
+    # Llegó antes por la guía y luego por un anuncio: Ads, y se dice el antes.
+    guia = _visita("guia-bases", recorrido="guia-bases,gracias-bases")
+    ficha = {"pasos": ["guia-bases", "gracias-bases", "anuncio-fb"], "eventos": [guia, anuncio]}
+    assert canal_de(ficha)["canal"] == "ads"
+    assert canal_de(ficha)["antes"] == "Guía"
+    # Llegó por un anuncio y volvió por un DM: sigue siendo del anuncio, en la
+    # ficha y en la tarjeta (antes la tarjeta miraba solo el último enlace).
+    dm = _visita(utm_source="instagram", utm_medium="dm", utm_content="setter-laura")
+    ficha = {"pasos": [], "utm_source": "instagram", "utm_medium": "dm", "utm_content": "setter-laura",
+             "eventos": [_visita("guia-bases", utm_source="facebook", utm_medium="paid", utm_content="Guia A"), dm]}
+    assert canal_de(ficha) == {"canal": "ads", "detalle": "Meta · Guia A", "antes": ""}
+    assert origen_corto(ficha) == "Anuncio Meta · Guia A"
+    # Google de pago.
+    assert canal_de({"eventos": [_visita(utm_source="google", utm_medium="cpc")]})["detalle"] == "Google"
+
+    # Orgánico: el setter gana, con su nombre.
+    ficha = {"pasos": ["home"], "eventos": [_visita(recorrido="home"), dm]}
+    assert canal_de(ficha) == {"canal": "organico", "detalle": "Setter · Laura", "antes": ""}
+    assert canal_de(ficha, {"setter-laura": "Setter Laura G."})["detalle"] == "Setter Laura G."
+    # Instagram con su medio, un DM de Inrō, la web de la que venía, la página.
+    assert canal_de({"eventos": [_visita(utm_source="ig", utm_medium="stories")]})["detalle"] == "Instagram · historias"
+    assert canal_de({"eventos": [_visita("instagram")]})["detalle"] == "Instagram · DM"
+    assert canal_de({"eventos": [_visita(referrer="l.instagram.com", recorrido="home")]})["detalle"] == "Instagram"
+    assert canal_de({"eventos": [_visita(referrer="www.chatgpt.com", recorrido="home")]})["detalle"] == "ChatGPT"
+    assert canal_de({"eventos": [_visita(referrer="https://www.holandesnawar.com/blog", recorrido="blog")]})["detalle"] == "Web · blog"
+    # Lo primero que se sabe manda: la guía antes que el enlace de Instagram.
+    ficha = {"pasos": ["guia-bases"], "eventos": [_visita("guia-bases", recorrido="guia-bases"), _visita(utm_source="instagram", utm_medium="bio")]}
+    assert canal_de(ficha)["detalle"] == "Guía"
+    # Lo que hace el equipo no dice por dónde llegó.
+    ficha = {"pasos": ["enlace-pago"], "eventos": [_visita("enlace-pago", recorrido="enlace-pago", utm_medium="enlace-pago", utm_source="panel")]}
+    assert canal_de(ficha) == {"canal": "organico", "detalle": "", "antes": ""}
+
+
 def test_una_etapa_rara_guardada_no_rompe():
     assert colocar(_ficha(), {"etapa": "loquesea"})["etapa"] == "nuevo"
 
