@@ -443,7 +443,25 @@ function DesglosePorPartes({
  * cobrados solos con el mismo método de pago. Se entra con el primero y al
  * último se acaba sin hacer nada (apps/api/src/services/payments/plazos.py).
  */
-function DesglosePlazos({ cuotas, cuotaCents, money }: { cuotas: number; cuotaCents: number; money: (v: number) => string }) {
+function DesglosePlazos({
+  cuotas,
+  cuotaCents,
+  totalCents = 0,
+  money,
+}: {
+  cuotas: number
+  cuotaCents: number
+  totalCents?: number
+  money: (v: number) => string
+}) {
+  // El total llega en `tot` (19/10: 435 o 497 €). 497 en 3 no se divide: los
+  // céntimos que sobran van en las primeras cuotas (165,67 · 165,67 · 165,66),
+  // igual que `reparto` en plazos.py.
+  const total = totalCents > 0 ? totalCents : cuotas * cuotaCents
+  const base = Math.floor(total / cuotas)
+  const resto = total - base * cuotas
+  const siguientes = Array.from({ length: cuotas }, (_, i) => (i < resto ? base + 1 : base)).slice(1)
+  const iguales = siguientes.every((c) => c === siguientes[0])
   return (
     <div className="border-t border-gray-200 mt-6 pt-4 space-y-2">
       <div className="flex items-baseline justify-between gap-3">
@@ -454,11 +472,19 @@ function DesglosePlazos({ cuotas, cuotaCents, money }: { cuotas: number; cuotaCe
         <span>
           Después, {cuotas - 1} {cuotas - 1 === 1 ? 'pago' : 'pagos'} más al mes
         </span>
-        <span className="tabular-nums">{money(cuotaCents / 100)} / mes</span>
+        <span className="tabular-nums text-right shrink-0">
+          {iguales
+            ? `${money(siguientes[0] / 100)} / mes`
+            : siguientes.map((c, i) => (
+                <span key={i} className="block whitespace-nowrap">
+                  {money(c / 100)}
+                </span>
+              ))}
+        </span>
       </div>
       <div className="flex items-baseline justify-between gap-3 text-[13.5px] text-gray-600">
         <span>Total en {cuotas} pagos</span>
-        <span className="tabular-nums">{money((cuotas * cuotaCents) / 100)}</span>
+        <span className="tabular-nums">{money(total / 100)}</span>
       </div>
       <p className="text-[12.5px] text-[#0a1656] bg-[#F0F5FF] rounded-xl px-3 py-2.5 leading-relaxed">
         <strong className="text-[#1D0084]">Entras en la escuela desde hoy.</strong> Los otros pagos se cobran solos cada
@@ -546,7 +572,7 @@ function CourseSummary({
       </ul>
 
       {cuotas && amountCents > 0 ? (
-        <DesglosePlazos cuotas={cuotas} cuotaCents={amountCents} money={money} />
+        <DesglosePlazos cuotas={cuotas} cuotaCents={amountCents} totalCents={totalCents} money={money} />
       ) : tipo && totalCents > 0 ? (
         <DesglosePorPartes tipo={tipo} amountCents={amountCents} totalCents={totalCents} prevCents={prevCents} money={money} />
       ) : (

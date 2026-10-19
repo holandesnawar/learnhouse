@@ -51,7 +51,20 @@ def test_texto_del_fallo():
 
 
 def test_condiciones_de_serie():
-    assert Z.condiciones() == {"cuotas": 3, "cuota_cents": 14500, "total_cents": 43500, "moneda": "eur"}
+    assert Z.condiciones() == {"cuotas": 3, "cuota_cents": 14500, "ultima_cents": 14500, "total_cents": 43500, "moneda": "eur"}
+
+
+def test_497_en_tres_cuotas_sin_perder_un_centimo():
+    # 19/10: "en pago a plazos elegir el total, 435 o 497 €".
+    assert Z.reparto(49700, 3) == [16567, 16567, 16566] and sum(Z.reparto(49700, 3)) == 49700
+    assert Z.reparto(43500, 3) == [14500, 14500, 14500]
+    assert Z.tramos([16567, 16567, 16566]) == [(16567, 2), (16566, 1)]
+    assert Z.tramos([14500, 14500, 14500]) == [(14500, 3)]
+    assert Z.totales() == [43500, 49700]
+    # Solo los totales ofrecidos: otro cualquiera (o ninguno) es el de serie.
+    assert Z.total_valido(49700) == 49700
+    assert Z.total_valido(12345) == Z.total_valido(None) == Z.total_valido("x") == 43500
+    assert Z.condiciones(49700) == {"cuotas": 3, "cuota_cents": 16567, "ultima_cents": 16566, "total_cents": 49700, "moneda": "eur"}
 
 
 # ── un Stripe de mentira ───────────────────────────────────────────────────
@@ -64,12 +77,18 @@ class StripeFalso:
         self.facturas = []
         precio_existe_ = precio_existe
 
-        def listar_precios(**kw):
-            return {"data": [{"id": "price_plazos"}]} if precio_existe_ or self.precios_creados else {"data": []}
+        def _id_de(clave):
+            # 145 € es "price_plazos" (el de siempre); otro importe, el suyo.
+            return "price_plazos" if clave.endswith("-14500-mes") else "price_" + clave.split("-")[-2]
+
+        def listar_precios(lookup_keys=(), **kw):
+            clave = list(lookup_keys)[0]
+            hay = any(p["lookup_key"] == clave for p in self.precios_creados) or (precio_existe_ and clave.endswith("-14500-mes"))
+            return {"data": [{"id": _id_de(clave)}]} if hay else {"data": []}
 
         def crear_precio(**kw):
             self.precios_creados.append(kw)
-            return {"id": "price_plazos"}
+            return {"id": _id_de(kw["lookup_key"])}
 
         def crear_sesion(**kw):
             if ideal_falla and "ideal" in kw["payment_method_types"]:
@@ -79,7 +98,9 @@ class StripeFalso:
 
         def crear_calendario(from_subscription):
             self.suscripcion["schedule"] = "sub_sched_1"
-            return {"id": "sub_sched_1", "phases": [{"start_date": 1792108800, "items": [{"price": "price_plazos", "quantity": 1}]}]}
+            # La fase de ahora lleva el precio con el que se pagó el primero.
+            precio = self.sesiones[-1]["line_items"][0]["price"] if self.sesiones else "price_plazos"
+            return {"id": "sub_sched_1", "phases": [{"start_date": 1792108800, "items": [{"price": precio, "quantity": 1}]}]}
 
         self.Price = SimpleNamespace(
             list=listar_precios, create=crear_precio,
@@ -184,14 +205,16 @@ async def test_a_un_alumno_o_a_quien_ya_tiene_plan_no_se_le_abre_otro(db, org):
 # ── el primer cobro ────────────────────────────────────────────────────────
 
 
-async def _primer_pago(db, falso, veces=1):
+async def _primer_pago(db, falso, veces=1, total=None):
     with _Varios(_con_stripe(falso)):
-        await Z.abrir_plazos(_pedido(), "Zulay", db)
+        await Z.abrir_plazos(_pedido(), "Zulay", db, total_cents=total)
     fila = (await db.execute(select(Enrollment))).scalars().one()
+    meta = falso.sesiones[-1]["metadata"]
     sesion = {
-        "id": "cs_plazos", "mode": "subscription", "payment_status": "paid", "amount_total": 14500,
+        "id": "cs_plazos", "mode": "subscription", "payment_status": "paid", "amount_total": Z.condiciones(total)["cuota_cents"],
         "currency": "eur", "subscription": "sub_1", "invoice": "in_1", "customer": "cus_1",
-        "metadata": {"plan": "plazos", "cuotas": "3", "enrollment_id": str(fila.id), "autor": "Zulay"},
+        # Los metadatos que se pusieron al abrir (con el total desde el 19/10).
+        "metadata": {**meta, "enrollment_id": str(fila.id)},
     }
     altas = []
 
@@ -363,3 +386,63 @@ def test_las_facturas_se_guardan_como_json():
     plan = PlanPagos(facturas=json.dumps({"in_1": {"c": 14500, "f": "2026-10-14"}}), cuotas=3, cuota_cents=14500)
     r = Z.resumen(plan)
     assert r["pagos"] == [{"factura": "in_1", "importe_cents": 14500, "fecha": "2026-10-14", "numero": 1}]
+
+
+# ── 497 € en 3 plazos (19/10) ──────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_el_enlace_de_497_cobra_165_67_y_lo_dice(db, org):
+    falso = StripeFalso()
+    with _Varios(_con_stripe(falso)):
+        r = await Z.abrir_plazos(_pedido(), "Zulay", db, total_cents=49700)
+    assert falso.precios_creados[0]["unit_amount"] == 16567
+    assert falso.precios_creados[0]["product"] == "prod_formacion"
+    sesion = falso.sesiones[0]
+    assert sesion["line_items"] == [{"price": "price_16567", "quantity": 1}]
+    assert sesion["metadata"]["total_cents"] == "49700"
+    assert "497 € en total" in sesion["subscription_data"]["description"]
+    assert "amt=16567" in r["payment_url"] and "tot=49700" in r["payment_url"] and "cuotas=3" in r["payment_url"]
+    assert r["amount"] == 16567
+
+
+@pytest.mark.asyncio
+async def test_un_total_que_no_se_ofrece_es_el_de_serie(db, org):
+    falso = StripeFalso()
+    with _Varios(_con_stripe(falso)):
+        r = await Z.abrir_plazos(_pedido(), "", db, total_cents=1)
+    assert falso.precios_creados[0]["unit_amount"] == 14500 and "tot=43500" in r["payment_url"]
+
+
+@pytest.mark.asyncio
+async def test_497_stripe_cobra_dos_de_165_67_y_uno_de_165_66_y_corta(db, org):
+    falso = StripeFalso()
+    fila, altas = await _primer_pago(db, falso, total=49700)
+    assert altas == ["ana@x.com"]
+    plan = (await db.execute(select(PlanPagos))).scalars().one()
+    assert plan.total_cents == 49700 and plan.cuota_cents == 16567 and plan.pagado_cents == 16567
+    # El calendario: 2 meses con el precio del primer pago y 1 con el de 165,66.
+    cal = falso.calendarios[0]
+    assert cal["end_behavior"] == "cancel"
+    uno, dos = cal["phases"]
+    assert uno["items"] == [{"price": "price_16567", "quantity": 1}] and uno["start_date"] == 1792108800
+    assert uno["duration"] == {"interval": "month", "interval_count": 2}
+    assert dos["items"] == [{"price": "price_16566", "quantity": 1}]
+    assert dos["duration"] == {"interval": "month", "interval_count": 1} and dos["proration_behavior"] == "none"
+    assert {p["unit_amount"] for p in falso.precios_creados} == {16567, 16566}
+    # La ficha: 497 € en total y lo que falta.
+    r = Z.resumen(plan)
+    assert r["total_cents"] == 49700 and r["pendiente_cents"] == 49700 - 16567
+    # Los cobros 2 y 3 lo completan.
+    for i, c in ((2, 16567), (3, 16566)):
+        await Z.atender_factura({"id": f"in_{i}", "amount_paid": c, "status_transitions": {"paid_at": 1794787200},
+                                 "parent": {"subscription_details": {"subscription": "sub_1"}}}, True, db)
+    await db.refresh(plan)
+    assert plan.estado == "completado" and plan.pagado_cents == 49700
+    await db.refresh(fila)
+    assert fila.amount_cents == 49700
+
+
+def test_un_plan_de_antes_sin_total_guardado_sigue_contando_3_por_145():
+    viejo = PlanPagos(email="a@x.com", cuotas=3, cuota_cents=14500, total_cents=0)
+    assert Z.total_del_plan(viejo) == 43500 and Z.resumen(viejo)["total_cents"] == 43500

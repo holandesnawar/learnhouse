@@ -14,6 +14,10 @@
  * Klarna o a quien Klarna le falla. Cobra el primer mes al pagar (y ya entra
  * en la escuela) y los otros dos solos, al mes; al tercero se acaba solo.
  *
+ * Con «3 plazos» se elige el total (19/10/2026): 435 € (3 × 145) o 497 €
+ * (165,67 · 165,67 · 165,66). Los dos que acepta el servidor: `totales` en
+ * apps/api/src/services/payments/plazos.py; si cambian allí, cambiarlos aquí.
+ *
  * «Otro importe» (15/10/2026, administradores y closer): un pago único a
  * otro precio (p. ej. 435 €). Va por la reserva de plaza con el total = lo que se
  * cobra, así que al pagar entra en la escuela como con el pago normal.
@@ -28,6 +32,17 @@ import toast from 'react-hot-toast'
 import { BOTON, BOTON_PRINCIPAL, META } from './ui'
 import { numeroWhatsApp } from '@/lib/nawar/telefono'
 
+/** Los totales que se pueden elegir con «3 plazos» (ver la cabecera). */
+const TOTALES_PLAZOS = [43500, 49700]
+
+/** Las cuotas de un total, como `reparto` en plazos.py: los céntimos que
+ *  sobran van en las primeras (497 € → 165,67 · 165,67 · 165,66). */
+function repartoPlazos(total: number, n: number): number[] {
+  const base = Math.floor(total / n)
+  const resto = total - base * n
+  return Array.from({ length: n }, (_, i) => (i < resto ? base + 1 : base))
+}
+
 export default function EnlacePago({ email, nombre: nombreCompleto, telefono }: { email: string; nombre?: string; telefono?: string }) {
   const org = useOrg() as any
   const session = useLHSession() as any
@@ -38,6 +53,7 @@ export default function EnlacePago({ email, nombre: nombreCompleto, telefono }: 
   const [plan, setPlan] = useState<'' | 'plazos' | 'otro'>('')
   const [condiciones, setCondiciones] = useState<CondicionesPlazos | null>(null)
   const [otro, setOtro] = useState('435')
+  const [totalPlazos, setTotalPlazos] = useState(TOTALES_PLAZOS[0])
   const [importe, setImporte] = useState(0)
 
   const partes = (nombreCompleto || '').trim().split(/\s+/).filter(Boolean)
@@ -50,7 +66,14 @@ export default function EnlacePago({ email, nombre: nombreCompleto, telefono }: 
     const r = await crearEnlacePago(
       org?.id,
       // Sin nombre, la parte del correo antes de la @: el backend pide uno.
-      { email, first_name: nombre || email.split('@')[0] || email, last_name: apellidos, phone: telefono || '', plan },
+      {
+        email,
+        first_name: nombre || email.split('@')[0] || email,
+        last_name: apellidos,
+        phone: telefono || '',
+        plan,
+        ...(plan === 'plazos' ? { total_cents: totalPlazos } : {}),
+      },
       accessToken
     )
     setCreando(false)
@@ -87,9 +110,11 @@ export default function EnlacePago({ email, nombre: nombreCompleto, telefono }: 
   }
 
   const euros = (c: number) => `${(c / 100).toLocaleString('es-ES', { maximumFractionDigits: 2 })} €`
-  const textoPlazos = condiciones
-    ? `${condiciones.cuotas} pagos de ${euros(condiciones.cuota_cents)} al mes (${euros(condiciones.total_cents)} en total)`
-    : ''
+  const textoPlazos = !condiciones
+    ? ''
+    : condiciones.ultima_cents && condiciones.ultima_cents !== condiciones.cuota_cents
+      ? `${condiciones.cuotas} pagos al mes (${repartoPlazos(condiciones.total_cents, condiciones.cuotas).map(euros).join(', ')}; ${euros(condiciones.total_cents)} en total)`
+      : `${condiciones.cuotas} pagos de ${euros(condiciones.cuota_cents)} al mes (${euros(condiciones.total_cents)} en total)`
 
   const num = numeroWhatsApp(telefono)
   const textoWa = encodeURIComponent(
@@ -122,6 +147,23 @@ export default function EnlacePago({ email, nombre: nombreCompleto, telefono }: 
             </button>
           ))}
         </div>
+        {plan === 'plazos' ? (
+          // El total del plan propio: 435 € (3 × 145) o 497 €.
+          <div className="inline-flex rounded-md border border-[#E5E7EB] p-0.5 bg-white" role="group" aria-label="Total a plazos">
+            {TOTALES_PLAZOS.map((t) => (
+              <button
+                key={t}
+                onClick={() => setTotalPlazos(t)}
+                title={`3 pagos: ${repartoPlazos(t, 3).map(euros).join(' · ')}`}
+                className={`h-7 px-2.5 rounded text-[12px] font-medium tabular-nums transition-colors ${
+                  totalPlazos === t ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-[#F9FAFB]'
+                }`}
+              >
+                {euros(t)}
+              </button>
+            ))}
+          </div>
+        ) : null}
         {plan === 'otro' ? (
           <label className="inline-flex items-center gap-1 h-8 rounded-md border border-[#D1D5DB] px-2 bg-white">
             <input

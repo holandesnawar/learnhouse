@@ -398,6 +398,8 @@ _ADDED_COLUMNS = [
     "ALTER TABLE IF EXISTS resource_folder ADD COLUMN IF NOT EXISTS grupos VARCHAR(400) DEFAULT ''",
     # Temperatura puesta a mano en Llamadas templadas (06/10). Vacía = automática.
     "ALTER TABLE IF EXISTS llamada_templada ADD COLUMN IF NOT EXISTS temperatura_manual VARCHAR(12) DEFAULT ''",
+    # El total del plan de pagos propio (19/10): 435 o 497 €. 0 = cuotas × cuota.
+    "ALTER TABLE IF EXISTS plan_pagos ADD COLUMN IF NOT EXISTS total_cents INTEGER DEFAULT 0",
 ]
 
 
