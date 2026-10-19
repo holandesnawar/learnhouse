@@ -193,6 +193,16 @@ export default function NuevaLlamada({
                   ))}
                 </div>
               )}
+              {/* 19/10: "¿por qué no puedo agendar hoy a las 18:00 si tengo
+                  hueco?". Calendly no ofrece horas que empiecen antes de su
+                  «aviso mínimo» (de serie, 4 horas), y la escuela solo puede
+                  agendar las horas que da Calendly. */}
+              {fecha === hoy && huecos?.configurado && !huecos.error ? (
+                <p className={`${META} mt-2`}>
+                  Para hoy, Calendly solo da las horas que empiezan después de su «aviso mínimo» (de serie, 4 horas desde
+                  ahora). Si falta una hora que tienes libre, bájalo en Calendly: el evento → Límites de reserva → Aviso mínimo.
+                </p>
+              ) : null}
             </div>
 
             <div className="flex gap-2 pt-1">
