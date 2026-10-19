@@ -31,6 +31,14 @@ Cómo va
    manda UN correo a los administradores por factura. **No se quita el
    acceso solo**: lo decide el equipo.
 
+Dos totales (19/10/2026, "en pago a plazos elegir el total, 435 o 497 €"): el
+de serie (3 × 145 €) y 497 €. 497 no se divide entre 3, así que las cuotas son
+165,67 · 165,67 · 165,66 (`reparto`): los céntimos que sobran van en las
+primeras. Cada importe es su propio precio mensual en Stripe, y el calendario
+lleva un tramo por importe (`tramos`): 2 meses a 165,67 y 1 a 165,66. El total
+va firmado en el enlace (`pt`), en los metadatos de la sesión y en el plan
+(`total_cents`).
+
 Lo que cuida
 ------------
 - Contar dos veces: cada cobro se apunta por el id de su factura
@@ -92,9 +100,55 @@ def cuota_cents() -> int:
     return int(raw) if raw.isdigit() and int(raw) >= 50 else 14500
 
 
-def condiciones() -> dict:
-    n, c = cuotas(), cuota_cents()
-    return {"cuotas": n, "cuota_cents": c, "total_cents": n * c, "moneda": "eur"}
+#: El otro total que se puede elegir al crear el enlace (19/10).
+TOTAL_ALTO_CENTS = 49700
+
+
+def totales() -> list[int]:
+    """Los totales que se pueden elegir: el de serie (cuotas × cuota) y 497 €."""
+    return sorted({cuotas() * cuota_cents(), TOTAL_ALTO_CENTS})
+
+
+def total_valido(total: Any = None) -> int:
+    """El total pedido si es uno de los permitidos; si no (o sin pedir), el de
+    serie. Así un enlace con un total raro no cobra lo que no se ofreció."""
+    try:
+        pedido = int(total or 0)
+    except (TypeError, ValueError):
+        pedido = 0
+    return pedido if pedido in totales() else cuotas() * cuota_cents()
+
+
+def reparto(total_cents: int, n: int) -> list[int]:
+    """Las cuotas de un total: iguales si se divide; si no, los céntimos que
+    sobran van en las primeras (497 € en 3 → 16567, 16567, 16566)."""
+    n = max(1, int(n or 1))
+    base, resto = divmod(max(0, int(total_cents or 0)), n)
+    return [base + 1] * resto + [base] * (n - resto)
+
+
+def tramos(lista: list[int]) -> list[tuple[int, int]]:
+    """Las cuotas seguidas iguales, juntas: (importe, meses). Un tramo por
+    precio en el calendario de Stripe."""
+    salida: list[tuple[int, int]] = []
+    for c in lista:
+        if salida and salida[-1][0] == c:
+            salida[-1] = (c, salida[-1][1] + 1)
+        else:
+            salida.append((c, 1))
+    return salida
+
+
+def condiciones(total_cents: Any = None) -> dict:
+    n = cuotas()
+    total = total_valido(total_cents)
+    lista = reparto(total, n)
+    return {"cuotas": n, "cuota_cents": lista[0], "ultima_cents": lista[-1], "total_cents": total, "moneda": "eur"}
+
+
+def total_del_plan(plan: PlanPagos) -> int:
+    """El total de un plan; los de antes del 19/10 no lo guardaban."""
+    return int(plan.total_cents or 0) or int(plan.cuotas or 0) * int(plan.cuota_cents or 0)
 
 
 # ── lectura de objetos de Stripe (dict del webhook o StripeObject) ─────────
@@ -199,7 +253,7 @@ def resumen(plan: PlanPagos) -> dict:
         ({"factura": k, "importe_cents": int(v.get("c") or 0), "fecha": v.get("f") or ""} for k, v in leer_facturas(plan.facturas).items()),
         key=lambda p: str(p["fecha"]),
     )
-    total = int(plan.cuotas or 0) * int(plan.cuota_cents or 0)
+    total = total_del_plan(plan)
     return {
         "id": plan.id,
         "estado": plan.estado,
@@ -271,8 +325,8 @@ async def planes_por_email(db_session: AsyncSession) -> dict[str, dict]:
 _PRECIO: dict[str, str] = {}
 
 
-def precio_plazos() -> str:
-    """El Price mensual de los plazos, en el MISMO producto que la matrícula.
+def precio_plazos(cuota: Optional[int] = None) -> str:
+    """El Price mensual de una cuota, en el MISMO producto que la matrícula.
 
     Se busca por `lookup_key` (lleva el importe: si se cambia la cuota, sale
     otro precio y el viejo sigue valiendo para los planes ya en marcha). Si no
@@ -281,7 +335,7 @@ def precio_plazos() -> str:
 
     from src.services.payments.payments import _formacion_price_id
 
-    cuota = cuota_cents()
+    cuota = int(cuota or cuota_cents())
     clave = f"nawar-formacion-plazos-{cuota}-mes"
     if clave in _PRECIO:
         return _PRECIO[clave]
@@ -305,7 +359,7 @@ def precio_plazos() -> str:
                     unit_amount=cuota,
                     recurring={"interval": "month"},
                     lookup_key=clave,
-                    nickname=f"{cuotas()} plazos de {euros} €",
+                    nickname=f"Plazos: cuota de {euros} €",
                     metadata={"plan": "plazos"},
                 )
             )
@@ -321,9 +375,10 @@ def precio_plazos() -> str:
 # ── la persona abre el enlace ──────────────────────────────────────────────
 
 
-async def abrir_plazos(data, autor: str, db_session: AsyncSession) -> dict:
+async def abrir_plazos(data, autor: str, db_session: AsyncSession, total_cents: Any = None) -> dict:
     """Guarda la matrícula y abre la caja de pago en modo suscripción. Devuelve
-    lo mismo que `enroll_and_checkout_session` (con `payment_url`)."""
+    lo mismo que `enroll_and_checkout_session` (con `payment_url`). `total_cents`
+    es el total elegido al crear el enlace (`total_valido`)."""
     import stripe
 
     from src.db.enrollment import Enrollment
@@ -340,9 +395,11 @@ async def abrir_plazos(data, autor: str, db_session: AsyncSession) -> dict:
     P._usar_stripe()
     academy = P._academy_url()
     full_name = f"{data.first_name} {data.last_name}".strip() or data.first_name or "Alumno"
-    n, cuota = cuotas(), cuota_cents()
+    n = cuotas()
+    total = total_valido(total_cents)
+    cuota = reparto(total, n)[0]
     try:
-        precio = precio_plazos()
+        precio = precio_plazos(cuota)
     except HTTPException:
         raise
     except Exception as exc:  # noqa: BLE001
@@ -378,12 +435,13 @@ async def abrir_plazos(data, autor: str, db_session: AsyncSession) -> dict:
     await db_session.commit()
     await db_session.refresh(fila)
 
-    euros = f"{cuota / 100:.2f}".replace(".", ",").replace(",00", "")
+    euros = f"{total / 100:.2f}".replace(".", ",").replace(",00", "")
     metadatos = {
         "product": "formacion-a0-a1",
         "source": "plan-plazos",
         "plan": "plazos",
         "cuotas": str(n),
+        "total_cents": str(total),
         "enrollment_id": str(fila.id or ""),
         "autor": (autor or "")[:60],
     }
@@ -397,7 +455,7 @@ async def abrir_plazos(data, autor: str, db_session: AsyncSession) -> dict:
         metadata=metadatos,
         subscription_data={
             "metadata": metadatos,
-            "description": f"Formación Nawar A0-A1 · {n} pagos de {euros} € (se acaba sola al pago {n})",
+            "description": f"Formación Nawar A0-A1 · {n} pagos, {euros} € en total (se acaba sola al pago {n})",
         },
     )
     # Tarjeta, iDEAL y Bancontact (los dos últimos dejan una domiciliación SEPA
@@ -432,7 +490,7 @@ async def abrir_plazos(data, autor: str, db_session: AsyncSession) -> dict:
             f"{academy}/auth/matricula-formacion-nawar-a0-a1"
             f"?ei={fila.id or 0}&cs={quote(secreto, safe='')}&pk={quote(pk, safe='')}"
             f"&amt={cuota}&cur=eur&em={quote(email, safe='')}&nm={quote(full_name, safe='')}"
-            f"&ph={quote(data.phone or '', safe='')}&cuotas={n}"
+            f"&ph={quote(data.phone or '', safe='')}&cuotas={n}&tot={total}"
         ),
     }
 
@@ -462,17 +520,25 @@ def asegurar_final(plan: PlanPagos) -> str:
         {"price": _id(_v(it, "price")), "quantity": int(_v(it, "quantity", 1) or 1)}
         for it in (_v(fase, "items", []) or [])
     ]
-    stripe.SubscriptionSchedule.modify(
-        _id(calendario),
-        end_behavior="cancel",
-        phases=[
+    # Un tramo por importe: con 497 € en 3, dos meses a 165,67 (el precio con
+    # el que se pagó el primero) y uno a 165,66. Con cuotas iguales, uno solo.
+    partes = tramos(reparto(total_del_plan(plan), int(plan.cuotas or 3))) or [(int(plan.cuota_cents or 0), int(plan.cuotas or 3))]
+    nuevas = [
+        {
+            "items": items,
+            "start_date": _v(fase, "start_date"),
+            "duration": {"interval": "month", "interval_count": partes[0][1]},
+        }
+    ]
+    for importe, meses in partes[1:]:
+        nuevas.append(
             {
-                "items": items,
-                "start_date": _v(fase, "start_date"),
-                "duration": {"interval": "month", "interval_count": int(plan.cuotas or 3)},
+                "items": [{"price": precio_plazos(importe), "quantity": 1}],
+                "duration": {"interval": "month", "interval_count": meses},
+                "proration_behavior": "none",
             }
-        ],
-    )
+        )
+    stripe.SubscriptionSchedule.modify(_id(calendario), end_behavior="cancel", phases=nuevas)
     plan.stripe_schedule_id = _id(calendario)
     return plan.stripe_schedule_id
 
@@ -538,6 +604,8 @@ async def registrar_primer_pago(obj: dict, enrollment, db_session: AsyncSession)
             stripe_subscription_id=sub_id,
             cuotas=int(meta.get("cuotas") or 0) or cuotas(),
             cuota_cents=int(obj.get("amount_total") or 0) or cuota_cents(),
+            # Los enlaces de antes del 19/10 no lo llevan: cuotas × cuota.
+            total_cents=int(meta.get("total_cents") or 0),
             currency=(obj.get("currency") or "eur").lower(),
             creado_por=str(meta.get("autor") or "")[:120],
             created_at=_ahora(),

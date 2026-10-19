@@ -404,6 +404,12 @@ async def api_guardar_agenda_google(
         raise HTTPException(status_code=400, detail=str(exc))
 
 
+def _total_plazos(pedido: int) -> int:
+    from src.services.payments.plazos import total_valido
+
+    return total_valido(pedido)
+
+
 class PedidoEnlace(BaseModel):
     email: str
     first_name: str
@@ -411,6 +417,8 @@ class PedidoEnlace(BaseModel):
     phone: str = ""
     # "" = pago único (o Klarna); "plazos" = el plan propio de 3 pagos al mes.
     plan: str = ""
+    # Con "plazos", el total elegido (435 o 497 €, ver `totales` en plazos.py).
+    total_cents: int = 0
 
 
 @router.post(
@@ -445,7 +453,10 @@ async def api_enlace_pago(
                 email=email, kind="enlace-pago", first_name=data.first_name.strip()[:120],
                 last_name=data.last_name.strip()[:120], phone=data.phone.strip()[:40],
                 source="equipo",
-                extra={"autor": _nombre(current_user), **({"plan": "plazos"} if data.plan == "plazos" else {})},
+                extra={
+                    "autor": _nombre(current_user),
+                    **({"plan": "plazos", "total_cents": _total_plazos(data.total_cents)} if data.plan == "plazos" else {}),
+                },
             ),
             db_session,
         )
@@ -456,8 +467,9 @@ async def api_enlace_pago(
     if data.plan == "plazos":
         from src.services.payments.plazos import condiciones
 
-        datos.update({"pl": "plazos", "a": _nombre(current_user)[:60]})
-        respuesta["plan"] = condiciones()
+        total = _total_plazos(data.total_cents)
+        datos.update({"pl": "plazos", "pt": total, "a": _nombre(current_user)[:60]})
+        respuesta["plan"] = condiciones(total)
     token = firmar(datos, secreto)
     return {"url": f"{_academy_url()}/api/v1/payments/pagar/{token}", "dias": DIAS_VALIDEZ, **respuesta}
 

@@ -37,7 +37,12 @@ class PlanPagos(SQLModel, table=True):
     # El calendario de Stripe que corta la suscripción al tercer cobro.
     stripe_schedule_id: str = Field(default="", max_length=80)
     cuotas: int = 3
+    # La PRIMERA cuota. Con un total que no se divide entre las cuotas (497 €
+    # en 3) no todas son iguales: ver `total_cents` y `reparto` en plazos.py.
     cuota_cents: int = 0
+    # Lo que se paga en total (19/10: elegir 435 o 497 €). 0 en los planes de
+    # antes de que existiera: entonces es cuotas × cuota_cents.
+    total_cents: int = 0
     currency: str = Field(default="eur", max_length=8)
     cuotas_pagadas: int = 0
     pagado_cents: int = 0

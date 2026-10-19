@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-18 (plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-19 (plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -3104,6 +3104,19 @@ dinero, 145 € 3 plazos… para el mismo producto y que dé acceso". Todo en
   y cada pago en la lista de pagos («Pago 2 de 3 (plazos)»).
 - No se abre un plan a quien ya es alumno ni a quien ya tiene uno (409): dos
   suscripciones serían dos cobros al mes.
+- **Dos totales: 435 € o 497 €** (19/10, "en pago a plazos elegir el total").
+  Al elegir «3 plazos» en el enlace salen dos botones, «435 €» y «497 €»
+  (`TOTALES_PLAZOS` en `EnlacePago.tsx`; el servidor solo acepta los de
+  `totales()` en `plazos.py`, cualquier otro cae al de serie). 497 no se
+  divide entre 3: las cuotas son **165,67 · 165,67 · 165,66** (`reparto`: los
+  céntimos que sobran van en las primeras). Cada importe es su propio precio
+  mensual en Stripe (`lookup_key` `nawar-formacion-plazos-<céntimos>-mes`) y
+  el calendario lleva un tramo por importe (`tramos`): 2 meses a 165,67 y 1 a
+  165,66, y se cancela al acabar. El total va firmado en el enlace (`pt`), en
+  los metadatos de la sesión (`total_cents`) y en el plan (columna
+  `plan_pagos.total_cents`, en `_ADDED_COLUMNS`; 0 en los planes de antes =
+  cuotas × cuota). La caja de pago lo lee de `tot` y enseña las cuotas que
+  quedan una a una si no son iguales. Tests en `test_plazos.py`.
 
 ## Visión: el mapa del negocio y el centro de campañas (17/10/2026)
 Pedido: "el final boss de las estadísticas": una pestaña SOLO para

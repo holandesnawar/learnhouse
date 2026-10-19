@@ -155,7 +155,7 @@ async def api_pagar_enlace(
             # El plan de pagos propio, en 3 pagos al mes (ver plazos.py).
             from src.services.payments.plazos import abrir_plazos
 
-            resultado = await abrir_plazos(pedido, str(datos.get("a") or ""), db_session)
+            resultado = await abrir_plazos(pedido, str(datos.get("a") or ""), db_session, total_cents=datos.get("pt"))
         else:
             resultado = await enroll_and_checkout_session(pedido, db_session)
     except HTTPException as exc:

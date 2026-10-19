@@ -242,6 +242,9 @@ def _que(kind: str, campos: dict) -> str:
     if kind == "enlace-pago" and extra.get("autor"):
         if extra.get("importe_cents"):
             return f"{extra['autor']} le creó un enlace de pago de {_euros(extra['importe_cents'])}"
+        if extra.get("plan") == "plazos":
+            total = extra.get("total_cents")
+            return f"{extra['autor']} le creó un enlace de pago a plazos{f' ({_euros(total)} en total)' if total else ''}"
         return f"{extra['autor']} le creó un enlace de pago"
     if kind == "llamada-equipo":
         quien = extra.get("autor") or "El equipo"

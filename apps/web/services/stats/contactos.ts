@@ -351,7 +351,10 @@ export interface PlanPagos {
 
 export interface CondicionesPlazos {
   cuotas: number
+  /** La primera cuota. */
   cuota_cents: number
+  /** La última: con 497 € en 3, un céntimo menos que las otras. */
+  ultima_cents?: number
   total_cents: number
   moneda: string
 }
@@ -377,7 +380,7 @@ export async function comprobarPlazos(
 
 export async function crearEnlacePago(
   orgId: number,
-  datos: { email: string; first_name: string; last_name?: string; phone?: string; plan?: '' | 'plazos' },
+  datos: { email: string; first_name: string; last_name?: string; phone?: string; plan?: '' | 'plazos'; total_cents?: number },
   accessToken: string
 ): Promise<{ url?: string; dias?: number; plan?: CondicionesPlazos; error?: string }> {
   try {
