@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-19 (plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-20 (cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -1376,9 +1376,12 @@ de presentación, no de goteo.
   9 quedaba fuera 1 de cada 10 leads serios ("me cuesta pero busco la forma"
   + pocas horas) y pasaban curiosos. El A2 NO es línea roja: lo ve el closer.
   El motivo sale en Llamadas, en la ficha y en el correo (`motivo_fuera`).
-  ⚠️ **Puede pagar (contado o plazos) + 2 h o más a la semana = encaja
-  SIEMPRE**, gane la línea roja que gane (`puedeYTieneTiempo`, 29/09): se
-  rechazó a alguien con nivel cero, dinero y tiempo. ⚠️ **El teléfono NO
+  ⚠️ **Puede pagar (contado, plazos o «me cuesta, pero busco la forma») +
+  2 h o más a la semana = encaja SIEMPRE**, gane la línea roja que gane
+  (`puedeYTieneTiempo`, 29/09): se rechazó a alguien con nivel cero, dinero
+  y tiempo. «Me cuesta, pero busco la forma» se sumó el 20/10 (nawar-web
+  PR #153): se quedó fuera alguien en México, «Curiosidad, por ahora»,
+  compromiso 5 de 5 y 2-4 h. ⚠️ **El teléfono NO
   se convierte a +31**: hay números de otros países (usuario, 29/09). Solo se
   limpia (espacios fuera, 00 → +) y el formulario pide el prefijo del país.
   La opción D de "¿Dónde estás?" es **"En otro país"** (valor `otro`, antes
