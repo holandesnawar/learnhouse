@@ -84,6 +84,26 @@ _CATALOG: Dict[str, Dict] = {
             email=to, name=name, preview=True
         ),
     },
+    "plazo_fallido_alumno": {
+        "name": "Pago a plazos sin cobrar",
+        "when": (
+            "Cuando no entra un pago del plan a plazos propio (tarjeta rechazada "
+            "o domiciliación devuelta). Uno por pago, con el botón para pagarlo "
+            "con otra tarjeta. Al equipo le llega su aviso aparte."
+        ),
+        "build": lambda to, name: E.send_plazo_fallido_alumno_email(
+            to,
+            {
+                "nombre": name,
+                "numero": 2,
+                "cuotas": 3,
+                "importe_cents": 16567,
+                "reintento": "16/11/2026",
+                "pagar_url": "https://invoice.stripe.com/i/ejemplo",
+            },
+            preview=True,
+        ),
+    },
     "certificate_ready": {
         "name": "Certificado listo",
         "when": "Cuando el alumno completa la formación entera.",

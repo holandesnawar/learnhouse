@@ -332,6 +332,52 @@ async def plan_de(email: str, db_session: AsyncSession) -> Optional[dict]:
     return resumen(elegido)
 
 
+async def listar_planes(db_session: AsyncSession) -> dict:
+    """Para Estadísticas → Pagos a plazos (20/10/2026: "en qué punto están del
+    pago… quién tiene un pago aplazado"): todos los planes, los vivos primero
+    (los de cobro fallido arriba), con la persona, en qué pago van, el próximo
+    cobro y si Stripe tiene puesto el calendario que lo corta al último pago.
+    Quien está fuera de los números (pruebas) sale marcado, no escondido."""
+    from src.services.contactos.metricas import emails_excluidos
+
+    fuera = await emails_excluidos(db_session)
+    orden = {"fallido": 0, "activo": 1, "cancelado": 2, "completado": 3}
+    filas = sorted(
+        (await db_session.execute(select(PlanPagos))).scalars().all(),
+        key=lambda p: (orden.get(p.estado, 9), p.proximo_cobro or "9999", -(p.id or 0)),
+    )
+    planes = []
+    for p in filas:
+        r = resumen(p)
+        email = (p.email or "").strip().lower()
+        planes.append(
+            {
+                **r,
+                "email": email,
+                "nombre": f"{p.first_name} {p.last_name}".strip(),
+                "telefono": p.phone,
+                # El calendario de Stripe que corta la suscripción al último
+                # pago. Sin él, la tarea diaria lo vuelve a intentar y, si llega
+                # al último pago sin él, corta la suscripción (`_red_de_seguridad`).
+                "calendario": bool(p.stripe_schedule_id),
+                "fuera_de_metricas": email in fuera,
+            }
+        )
+    vivos = [x for x in planes if x["estado"] in VIVOS and not x["fuera_de_metricas"]]
+    return {
+        "planes": planes,
+        "totales": {
+            "vivos": len(vivos),
+            "fallidos": sum(1 for x in vivos if x["estado"] == "fallido"),
+            "completados": sum(1 for x in planes if x["estado"] == "completado" and not x["fuera_de_metricas"]),
+            "cancelados": sum(1 for x in planes if x["estado"] == "cancelado" and not x["fuera_de_metricas"]),
+            "pendiente_cents": sum(int(x["pendiente_cents"] or 0) for x in vivos),
+            "cobrado_cents": sum(int(x["pagado_cents"] or 0) for x in planes if not x["fuera_de_metricas"]),
+            "sin_calendario": sum(1 for x in vivos if not x["calendario"]),
+        },
+    }
+
+
 async def planes_por_email(db_session: AsyncSession) -> dict[str, dict]:
     """Para listas (Clientes, tablero): el último plan de cada correo."""
     salida: dict[str, dict] = {}
@@ -688,23 +734,44 @@ async def atender_factura(inv: dict, pagada: bool, db_session: AsyncSession) -> 
         plan.fallo = texto_fallo(numero, plan.cuotas, int(inv.get("amount_due") or plan.cuota_cents), inv.get("next_payment_attempt"))
         plan.estado = "fallido"
         if plan.fallo_avisado != factura:
-            await _avisar_fallo(plan, numero, db_session)
+            await _avisar_fallo(plan, numero, db_session, inv)
             plan.fallo_avisado = factura
     await _guardar(plan, db_session)
     return {"detail": "plan de pagos actualizado", "estado": plan.estado, "pagadas": plan.cuotas_pagadas}
 
 
-async def _avisar_fallo(plan: PlanPagos, numero: int, db_session: AsyncSession) -> int:
-    """Un correo a cada administrador. Nunca lanza."""
+async def _avisar_fallo(plan: PlanPagos, numero: int, db_session: AsyncSession, factura: Any = None) -> int:
+    """Un correo a la alumna o alumno, con el botón para pagar esa cuota
+    (20/10/2026: "que le llegue un mail"), y otro a cada administrador. Una
+    vez por factura (lo controla quien llama con `fallo_avisado`). Nunca
+    lanza. Devuelve cuántos correos salieron."""
     try:
         from src.services.contactos.llamadas import emails_de_administradores
-        from src.services.users.emails import send_plazo_fallido_email
+        from src.services.users.emails import send_plazo_fallido_alumno_email, send_plazo_fallido_email
 
+        nombre = f"{plan.first_name} {plan.last_name}".strip()
         enviados = 0
+        alumno_avisado = False
+        if plan.email:
+            try:
+                send_plazo_fallido_alumno_email(plan.email, {
+                    "nombre": nombre,
+                    "numero": numero,
+                    "cuotas": plan.cuotas,
+                    "importe_cents": int(_v(factura, "amount_due", 0) or 0) or int(plan.cuota_cents or 0),
+                    "reintento": _fecha_corta(_v(factura, "next_payment_attempt")) if factura is not None else "",
+                    # La página de Stripe de esa factura: se paga con otra
+                    # tarjeta o iDEAL y la suscripción sigue sola.
+                    "pagar_url": str(_v(factura, "hosted_invoice_url", "") or ""),
+                })
+                enviados += 1
+                alumno_avisado = True
+            except Exception:  # noqa: BLE001
+                logger.exception("No se pudo avisar a la persona del cobro fallido del plan %s", plan.id)
         for destino in await emails_de_administradores(db_session):
             try:
                 send_plazo_fallido_email(destino, {**resumen(plan), "email": plan.email,
-                                                   "nombre": f"{plan.first_name} {plan.last_name}".strip(),
+                                                   "nombre": nombre, "alumno_avisado": alumno_avisado,
                                                    "telefono": plan.phone, "numero": numero, "fallo": plan.fallo})
                 enviados += 1
             except Exception:  # noqa: BLE001
@@ -751,7 +818,7 @@ async def sincronizar(plan: PlanPagos, db_session: AsyncSession) -> dict:
         plan.fallo = texto_fallo(pagadas + 1, plan.cuotas, cents, _v(ultima, "next_payment_attempt") if ultima else None)
         clave = _id(ultima) if ultima else f"sub:{estado_stripe}"
         if plan.fallo_avisado != clave:
-            await _avisar_fallo(plan, pagadas + 1, db_session)
+            await _avisar_fallo(plan, pagadas + 1, db_session, ultima)
             plan.fallo_avisado = clave
     else:
         plan.fallo = ""

@@ -915,7 +915,8 @@ def send_plazo_fallido_email(
         <p style="{STYLES['p']}"><strong>{nombre}</strong><br>{correo}{' · ' + telefono if telefono else ''}</p>
         <p style="{STYLES['p']}">{fallo}</p>
         <p style="{STYLES['p']}">Lleva pagados {pagado} € de {total} € ({int(plan.get('cuotas_pagadas') or 0)} de {int(plan.get('cuotas') or 0)} pagos). Sigue teniendo acceso a la escuela: si hay que quitárselo, es en Panel → Usuarios.</p>
-        <a href="{ACADEMY_URL}/dash/estadisticas?tab=clientes" class="brand-btn" style="{STYLES['button']}">Ver en el panel</a>
+        <p style="{STYLES['p']}">{'A la alumna o alumno le ha llegado un correo con un botón para pagar esta cuota.' if plan.get('alumno_avisado') else 'No se le ha podido mandar el correo para pagar esta cuota: escríbele.'}</p>
+        <a href="{ACADEMY_URL}/dash/estadisticas?tab=plazos" class="brand-btn" style="{STYLES['button']}">Ver en el panel</a>
         {f'<p style="margin: 16px 0 0 0; font-size: 13px;"><a href="{wa}" style="color: #025dc7; font-weight: 600;">Escribirle por WhatsApp</a></p>' if wa else ''}
     """
 
@@ -927,6 +928,50 @@ def send_plazo_fallido_email(
             title="Un pago a plazos no ha entrado",
             body_content=body_content,
             footer_note="Recibes esto porque eres administrador de la escuela.",
+        ),
+    )
+
+
+def send_plazo_fallido_alumno_email(
+    email: EmailStr,
+    datos: dict,
+    preview: bool = False,
+):
+    """Aviso AL ALUMNO: no entró un cobro de su plan de pagos (20/10/2026, "si
+    alguien no se le hizo la domiciliación bancaria, que le llegue un mail").
+    Uno por factura, a la vez que el del equipo. Lleva el botón a la página de
+    Stripe de ESA factura (`hosted_invoice_url`), donde puede pagarla con otra
+    tarjeta (y los métodos que tenga activados la cuenta de Stripe); si se
+    paga ahí, el plan sigue solo."""
+    nombre = html.escape((datos.get("nombre") or "").split(" ")[0] or "")
+    numero = int(datos.get("numero") or 0)
+    cuotas = int(datos.get("cuotas") or 0)
+    importe = f"{int(datos.get('importe_cents') or 0) / 100:.2f}".replace(".", ",").replace(",00", "")
+    reintento = html.escape(datos.get("reintento") or "")
+    pagar_url = html.escape(datos.get("pagar_url") or "", quote=True)
+
+    boton = (
+        f'<a href="{pagar_url}" class="brand-btn" style="{STYLES["button"]}">Pagar este pago ahora</a>'
+        if pagar_url
+        else ""
+    )
+    body_content = f"""
+        <h1 style="{STYLES['h1']}">No hemos podido cobrar tu pago</h1>
+        <p style="{STYLES['p']}">Hola{(' ' + nombre) if nombre else ''},</p>
+        <p style="{STYLES['p']}">Hemos intentado cobrar el pago {numero} de {cuotas} de tu Formación Nawar A0-A1 ({importe} €) y no ha entrado. Suele pasar si la tarjeta ha caducado, si ese día no había saldo o si el banco ha devuelto la domiciliación.</p>
+        {f'<p style="{STYLES["p"]}">Lo volveremos a intentar el {reintento}. Si prefieres solucionarlo ya, puedes pagarlo ahora, por ejemplo con otra tarjeta:</p>' if reintento and pagar_url else ''}
+        {f'<p style="{STYLES["p"]}">Puedes pagarlo ahora, por ejemplo con otra tarjeta:</p>' if pagar_url and not reintento else ''}
+        {boton}
+        <p style="{STYLES['p']}; margin-top: 24px;">De momento sigues teniendo acceso a la escuela. Si ya lo has solucionado, ignora este correo. Si tienes cualquier duda, escríbenos a info@holandesnawar.com.</p>
+    """
+
+    return send_email(
+        dry_run=preview,
+        to=email,
+        subject=f"No hemos podido cobrar tu pago {numero} de {cuotas}",
+        body=_email_layout(
+            title="No hemos podido cobrar tu pago",
+            body_content=body_content,
         ),
     )
 

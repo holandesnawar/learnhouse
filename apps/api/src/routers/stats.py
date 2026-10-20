@@ -349,3 +349,53 @@ async def api_delete_manual(
     if not ok:
         raise HTTPException(status_code=404, detail="No existe ese dato")
     return {"detail": "ok"}
+
+
+@router.get(
+    "/org/{org_id}/kpis",
+    summary="KPIs de ventas: embudo de la web, entradas, llamadas (asistencia, no-show, cierre) y ventas.",
+)
+async def api_kpis(
+    request: Request,
+    org_id: int,
+    dias: int = 30,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.stats.kpis import kpis
+
+    await _admin_org(request, org_id, current_user, db_session)
+    return await kpis(dias, db_session)
+
+
+@router.get(
+    "/org/{org_id}/plazos",
+    summary="Los planes de pago a plazos: en qué pago va cada uno, próximo cobro y fallos.",
+)
+async def api_plazos(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.payments.plazos import listar_planes
+
+    await _admin_org(request, org_id, current_user, db_session)
+    return await listar_planes(db_session)
+
+
+@router.post(
+    "/org/{org_id}/plazos/comprobar",
+    summary="Pregunta a Stripe por todos los planes vivos ahora (lo mismo que la tarea diaria).",
+)
+async def api_comprobar_plazos_todos(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.payments.plazos import listar_planes, sincronizar_planes
+
+    await _admin_org(request, org_id, current_user, db_session)
+    resultado = await sincronizar_planes(db_session)
+    return {"resultado": resultado, **(await listar_planes(db_session))}

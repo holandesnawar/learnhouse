@@ -16,6 +16,8 @@ import PaginasPanel from './PaginasPanel'
 import RecursosAdmin from '../Recursos/RecursosAdmin'
 import RecursosPage from '@components/Pages/Recursos/RecursosPage'
 import VisionPage from '../Vision/VisionPage'
+import KpisPanel from '../Panel/KpisPanel'
+import PlazosPanel from '../Panel/PlazosPanel'
 import { getContactos, type Contacto } from '@services/stats/contactos'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { updateOrgAccesoCloser } from '@services/settings/org'
@@ -37,6 +39,8 @@ import {
 } from '@services/stats/school'
 import {
   BarChart3,
+  CalendarClock,
+  Gauge,
   Check,
   ChevronDown,
   ChevronRight,
@@ -189,7 +193,7 @@ export default function EstadisticasPage() {
   // ?tab= va a Matrículas, no a Números, o saltaría de una a otra sin parar.
   const esCloserRef = React.useRef(false)
   esCloserRef.current = isCloser
-  const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'gastos' | 'guion' | 'paginas' | 'utm' | 'matriculas' | 'tareas' | 'clientes' | 'anuncios' | 'progreso' | 'recursos' | 'vision'>('numeros')
+  const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'gastos' | 'guion' | 'paginas' | 'utm' | 'matriculas' | 'tareas' | 'clientes' | 'anuncios' | 'progreso' | 'recursos' | 'vision' | 'kpis' | 'plazos'>('numeros')
   // El closer arranca en Matrículas, que es lo suyo (08/10: Contactos es solo
   // del administrador).
   useEffect(() => {
@@ -201,7 +205,7 @@ export default function EstadisticasPage() {
   useEffect(() => {
     const leer = () => {
       const pedida = new URLSearchParams(window.location.search).get('tab')
-      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'llamadas' || pedida === 'facturas' || pedida === 'gastos' || pedida === 'guion' || pedida === 'paginas' || pedida === 'utm' || pedida === 'matriculas' || pedida === 'tareas' || pedida === 'clientes' || pedida === 'anuncios' || pedida === 'progreso' || pedida === 'recursos' || pedida === 'vision') setTab(pedida)
+      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'llamadas' || pedida === 'facturas' || pedida === 'gastos' || pedida === 'guion' || pedida === 'paginas' || pedida === 'utm' || pedida === 'matriculas' || pedida === 'tareas' || pedida === 'clientes' || pedida === 'anuncios' || pedida === 'progreso' || pedida === 'recursos' || pedida === 'vision' || pedida === 'kpis' || pedida === 'plazos') setTab(pedida)
       // Sin ?tab= (el enlace «Estadísticas» de la barra) = los números.
       else if (!pedida) setTab(esCloserRef.current ? 'matriculas' : 'numeros')
     }
@@ -294,6 +298,10 @@ export default function EstadisticasPage() {
             <GraduationCap size={22} className="text-[#025dc7] shrink-0" />
           ) : tab === 'vision' ? (
             <Telescope size={22} className="text-[#025dc7] shrink-0" />
+          ) : tab === 'kpis' ? (
+            <Gauge size={22} className="text-[#025dc7] shrink-0" />
+          ) : tab === 'plazos' ? (
+            <CalendarClock size={22} className="text-[#025dc7] shrink-0" />
           ) : (
             <BarChart3 size={22} className="text-[#025dc7] shrink-0" />
           )}
@@ -324,7 +332,11 @@ export default function EstadisticasPage() {
                                   ? 'Progreso de los alumnos'
                                   : tab === 'vision'
                                     ? 'Visión'
-                                    : 'Estadísticas'}
+                                    : tab === 'kpis'
+                                      ? 'KPIs'
+                                      : tab === 'plazos'
+                                        ? 'Pagos a plazos'
+                                        : 'Estadísticas'}
           </h1>
         </div>
         <button
@@ -375,6 +387,10 @@ export default function EstadisticasPage() {
         <ProgresoPanel key={vuelta} />
       ) : tab === 'vision' ? (
         <VisionPage key={vuelta} />
+      ) : tab === 'kpis' ? (
+        <KpisPanel key={vuelta} />
+      ) : tab === 'plazos' ? (
+        <PlazosPanel key={vuelta} />
       ) : !loaded ? (
         <div className="flex justify-center py-20">
           <Loader2 className="animate-spin text-gray-400" size={28} />

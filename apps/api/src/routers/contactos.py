@@ -81,6 +81,36 @@ def _candado_web(request: Request) -> None:
 
 
 @router.post(
+    "/paso",
+    status_code=204,
+    summary="La web avisa de hasta dónde llega una visita de un embudo (sin datos personales).",
+    description=(
+        "Público. Lo manda el navegador directamente, como texto (así no hay "
+        "consulta previa de CORS): `{s: sesión al azar, e: embudo, p: paso, v: % "
+        "del vídeo, utm_…}`. Ver services/contactos/embudo_visitas.py."
+    ),
+)
+async def api_paso(request: Request, db_session: AsyncSession = Depends(get_db_session)):
+    import json
+
+    from fastapi import Response
+
+    from src.services.contactos.embudo_visitas import apuntar_paso
+    from src.services.security.rate_limiting import check_rate_limit, get_client_ip
+
+    permitido, _, _ = check_rate_limit(f"embudo-paso:{get_client_ip(request)}", 300, 3600)
+    if permitido:
+        try:
+            datos = json.loads((await request.body())[:4000] or b"{}")
+            if isinstance(datos, dict):
+                await apuntar_paso(datos, db_session)
+        except Exception:  # noqa: BLE001
+            # Es un contador: un fallo aquí no le importa a quien navega.
+            logger.warning("No se pudo apuntar un paso del embudo", exc_info=True)
+    return Response(status_code=204)
+
+
+@router.post(
     "/evento",
     summary="La web avisa de algo que hizo una persona (guía descargada, DM…).",
 )
