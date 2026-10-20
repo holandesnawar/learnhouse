@@ -19,7 +19,7 @@ from src.core.events.database import get_db_session
 from src.db.users import PublicUser
 from src.routers.panel import _solo_admin
 from src.security.auth import get_current_user
-from src.services.vision import campanas, mapa
+from src.services.vision import campanas, mapa, trabajo
 
 router = APIRouter()
 
@@ -75,6 +75,53 @@ async def api_urgente(request: Request, org_id: int, current_user: PublicUser = 
     return {"nodos": await mapa.urgentes(org_id, db_session)}
 
 
+# ── el tablero y las semanas ────────────────────────────────────────────────
+
+
+async def _nombres_del_equipo(org_id: int, db_session: AsyncSession) -> list[str]:
+    """El nombre de pila de cada persona del equipo del panel, para proponerlo."""
+    from src.services.panel.tareas import equipo
+
+    try:
+        miembros = await equipo(org_id, db_session)
+    except Exception:  # noqa: BLE001
+        await db_session.rollback()
+        return []
+    nombres = []
+    for m in miembros:
+        nombre = (m.get("nombre") or "").strip()
+        if nombre and "@" not in nombre:
+            nombres.append(nombre.split()[0])
+    return nombres
+
+
+@router.get("/org/{org_id}/trabajo", summary="Las tarjetas de trabajo de todos los mapas, con su área y sus encargados.")
+async def api_trabajo(request: Request, org_id: int, current_user: PublicUser = Depends(get_current_user), db_session: AsyncSession = Depends(get_db_session)):
+    await _solo_admin(request, org_id, current_user, db_session)
+    return await trabajo.listar(org_id, db_session, equipo=await _nombres_del_equipo(org_id, db_session))
+
+
+class TareaIn(BaseModel):
+    titulo: str
+    area_id: Optional[int] = None
+    tipo: str = "tarea"
+    estado: str = "pendiente"
+    responsable: str = ""
+    vence: str = ""
+    inicio: str = ""
+    fin: str = ""
+    urgente: bool = False
+
+
+@router.post("/org/{org_id}/trabajo", summary="Una tarjeta nueva desde el tablero, en el mapa de su área.")
+async def api_crear_tarea(request: Request, org_id: int, data: TareaIn, current_user: PublicUser = Depends(get_current_user), db_session: AsyncSession = Depends(get_db_session)):
+    await _solo_admin(request, org_id, current_user, db_session)
+    n = await trabajo.crear_tarea(org_id, data.model_dump(), db_session)
+    if n is None:
+        raise HTTPException(status_code=400, detail="Ponle un título")
+    return n
+
+
 # ── tarjetas ────────────────────────────────────────────────────────────────
 
 
@@ -96,6 +143,15 @@ async def api_crear_nodo(request: Request, org_id: int, data: NodoIn, current_us
     if n is None:
         raise HTTPException(status_code=404, detail="Ese mapa no existe")
     return n
+
+
+@router.get("/org/{org_id}/nodos/{nodo_id}", summary="Una tarjeta con todo lo de dentro.")
+async def api_leer_nodo(request: Request, org_id: int, nodo_id: int, current_user: PublicUser = Depends(get_current_user), db_session: AsyncSession = Depends(get_db_session)):
+    await _solo_admin(request, org_id, current_user, db_session)
+    n = await mapa.nodo(org_id, nodo_id, db_session)
+    if n is None:
+        raise HTTPException(status_code=404, detail="Esa tarjeta no existe")
+    return mapa.nodo_dict(n)
 
 
 @router.patch("/org/{org_id}/nodos/{nodo_id}", summary="Cambia lo que venga de una tarjeta.")

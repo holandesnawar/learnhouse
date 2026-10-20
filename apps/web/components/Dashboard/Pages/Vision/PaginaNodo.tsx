@@ -2,9 +2,9 @@
 
 /**
  * La página de una tarjeta de Visión, en un panel lateral (doble clic en la
- * tarjeta): como una página de Notion. Propiedades arriba (estado, Urgente /
- * Importante, responsable, fechas, etiquetas), el texto con formato, la lista
- * de tareas, los enlaces y los archivos.
+ * tarjeta, o clic en el tablero): como una página de Notion. Propiedades
+ * arriba (estado, Urgente / Importante, encargados, fechas, etiquetas), el
+ * texto con formato, la lista de tareas, los enlaces y los archivos.
  *
  * Se guarda sola: lo que se escribe, a los 0,7 s de dejar de escribir; lo que
  * se elige (estado, urgente…), al momento. Al cerrar se guarda lo que quede.
@@ -32,6 +32,7 @@ import {
   BarChart3,
   Check,
   CopyPlus,
+  MapPin,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { confirmar } from '@lib/nawar/confirmar'
@@ -42,12 +43,14 @@ import {
   borrarArchivo,
   borrarNodo,
   cambiarNodo,
+  getTrabajo,
   subirArchivo,
   type MetricaInfo,
   type NodoVision,
   type TipoNodo,
 } from '@services/vision/vision'
 import { BOTON, BOTON_PELIGRO, META } from '../Panel/ui'
+import Personas from './Personas'
 
 const CAMPO =
   'w-full h-8 rounded-md border border-[#E5E7EB] bg-white px-2.5 text-[13px] text-gray-900 outline-none focus:border-gray-900'
@@ -79,6 +82,8 @@ export default function PaginaNodo({
   onVerCampana,
   onClose,
   nueva = false,
+  personas,
+  onVerEnMapa,
 }: {
   orgId: number
   token: string
@@ -93,6 +98,10 @@ export default function PaginaNodo({
   onClose: () => void
   /** Recién creada: el título viene seleccionado para escribir encima. */
   nueva?: boolean
+  /** Nombres que proponer como encargados. Sin ellos, se piden al abrir. */
+  personas?: string[]
+  /** Desde el tablero: un botón para ver la tarjeta en su mapa. */
+  onVerEnMapa?: (n: NodoVision) => void
 }) {
   const [n, setN] = useState<NodoVision>(inicial)
   const [guardando, setGuardando] = useState(false)
@@ -100,6 +109,7 @@ export default function PaginaNodo({
   const [nuevaTarea, setNuevaTarea] = useState('')
   const [nuevoEnlace, setNuevoEnlace] = useState({ titulo: '', url: '' })
   const [etiquetasTexto, setEtiquetasTexto] = useState(inicial.etiquetas.join(', '))
+  const [nombres, setNombres] = useState<string[]>(personas ?? [])
   const pendiente = useRef<Partial<NodoVision>>({})
   const reloj = useRef<ReturnType<typeof setTimeout> | null>(null)
   const archivoRef = useRef<HTMLInputElement>(null)
@@ -107,6 +117,16 @@ export default function PaginaNodo({
   // guardaría a destiempo lo que se está escribiendo.
   const onCambioRef = useRef(onCambio)
   onCambioRef.current = onCambio
+
+  // Desde el mapa no se sabe quién hay: se piden los nombres una vez.
+  useEffect(() => {
+    if (personas) return setNombres(personas)
+    let vivo = true
+    getTrabajo(orgId, token).then((r) => vivo && r.ok && r.datos && setNombres(r.datos.personas))
+    return () => {
+      vivo = false
+    }
+  }, [personas, orgId, token])
 
   // Si cambia la tarjeta abierta (otra), se empieza de cero.
   useEffect(() => {
@@ -301,8 +321,8 @@ export default function PaginaNodo({
               </span>
             </div>
 
-            <span className={ETIQUETA}>Responsable</span>
-            <input value={n.responsable} onChange={(e) => poner({ responsable: e.target.value }, true)} placeholder="Quién se encarga (tú, el closer, el profe…)" className={CAMPO} />
+            <span className={ETIQUETA}>Encargados</span>
+            <Personas valor={n.responsable} onCambio={(texto) => poner({ responsable: texto })} sugerencias={nombres} placeholder="Quién se encarga: escribe el nombre y pulsa Intro" />
 
             <span className={ETIQUETA}>Fechas</span>
             <div className="grid grid-cols-3 gap-1.5">
@@ -391,6 +411,11 @@ export default function PaginaNodo({
 
           {/* Acciones de la tarjeta. */}
           <div className="flex flex-wrap gap-2">
+            {onVerEnMapa ? (
+              <button onClick={() => onVerEnMapa(n)} className={BOTON}>
+                <MapPin size={14} /> Ver en el mapa
+              </button>
+            ) : null}
             {n.tipo === 'campana' ? (
               <button onClick={() => onVerCampana(n)} className={BOTON}>
                 <BarChart3 size={14} /> Datos y métricas

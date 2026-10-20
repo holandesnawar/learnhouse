@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-20 (KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-20 (Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -3357,6 +3357,51 @@ números conectados a la escuela. **Fase 1 hecha; las fases 2 y 3 del encargo
   - ⚠️ **Las dos páginas de la clase NO existen** en la web: es lo primero
     que falta. Cuando se hagan, la marca de la de ads tiene que contar como
     anuncio en la escuela (`_PAGINAS_DE_ANUNCIO` en `pipeline.py`).
+
+## Visión: Tablero (columnas y semanas) y encargados (20/10/2026)
+Pedido: el mapa "es un coñazo de llevar al día"; quería columnas tipo kanban,
+encargados "escribiendo el nombre de la persona" y una línea de tiempo por
+semanas "para ver qué voy haciendo y qué tengo pendiente". **Sin tabla ni
+columna nueva**: el tablero son las MISMAS tarjetas del mapa (`vision_node`).
+- Pestaña **Tablero**, la primera de Visión y donde arranca la primera vez
+  (`Vision/TableroVision.tsx`). Arriba: Columnas / Semanas, área, «Solo
+  urgente», buscar, «Nueva tarea» y una fila de personas para ver solo lo de
+  cada una (se recuerda en el navegador, `nawar.vision.tablero`). Debajo, una
+  línea: por hacer · atrasadas · para esta semana · hechas esta semana.
+- **Columnas** = el `estado`: Ideas · Por hacer (`pendiente`) · En curso ·
+  Bloqueado · Hecho. En el ordenador se arrastran (`@hello-pangea/dnd`, la
+  tarjeta es `div role=button` por lo de siempre); en el móvil, una columna
+  cada vez y se cambia desde la página. Cada columna enseña 12 y «Ver más»; en
+  Hecho, lo de las 2 últimas semanas. Orden: urgente, lo que vence antes,
+  importante. Clic = la página de siempre (`PaginaNodo`), con «Ver en el mapa».
+- **Semanas**: en el ordenador, una línea de tiempo de 10 semanas (Antes / Hoy
+  / Después) con una barra por tarjeta de su inicio a su fin o fecha límite
+  (`rangoDe` en `lib/nawar/semanasTrabajo.ts`, con test), agrupadas por su
+  camino («Campañas › Clase gratis 02nov»). Un grupo de más de 10 nace plegado
+  y enseña una sola barra de todo el grupo (`nawar.vision.semanas.plegados`).
+  Las barras cortas llevan el título al lado. En la cabecera, «✓ N hechas» por
+  semana. En el móvil, una lista: Atrasadas, Esta semana, las siguientes; lo
+  pasado y lo sin fecha, plegados.
+- **Al pasar una tarjeta a Hecho sin fecha de fin, el servidor le pone hoy**
+  (hora de Países Bajos, `_aplicar` en `services/vision/mapa.py`): así sale en
+  la semana en que se terminó. Con un fin ya puesto, no se toca.
+- **Encargados** (`Vision/Personas.tsx`): etiquetas con su circulito de
+  iniciales (color fijo por nombre); se escribe el nombre e Intro o coma.
+  Propone los ya usados y el nombre de pila del equipo del panel, pero vale
+  cualquiera (sin cuenta). Se guardan en `responsable` separados por comas
+  (`personas_de` / `juntar_personas`, 120 letras como mucho). En la página de
+  la tarjeta el campo se llama «Encargados» (antes «Responsable», texto libre:
+  lo viejo se lee igual).
+- Qué sale en el tablero (`services/vision/trabajo.py`, `es_de_trabajo`):
+  tareas, campañas, anuncios, contenidos y pasos del embudo; las notas solo con
+  encargado, fecha o estado idea/bloqueado/hecho. Verticales y métricas nunca.
+  El **área** es la tarjeta del mapa de Inicio de la que cuelga su mapa.
+- «Nueva tarea» (`POST /vision/org/{id}/trabajo`, `crear_tarea`) la pone en el
+  mapa de dentro de su área (lo crea si no existe), **debajo de todo** lo que
+  haya; sin área, en Inicio. Rutas nuevas: `GET …/trabajo` y
+  `GET …/nodos/{id}` (la tarjeta entera; la lista va sin el texto de dentro).
+- Tests: `test_vision.py` (encargados, qué sale, áreas, crear y la fecha de
+  hecho) y `lib/nawar/__tests__/semanasTrabajo.test.ts`.
 
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con

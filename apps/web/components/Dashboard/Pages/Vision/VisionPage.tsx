@@ -2,10 +2,12 @@
 
 /**
  * Visión (17/10/2026): el mapa del negocio y el centro de campañas, solo para
- * administradores. Tres partes: Mapa (las tarjetas y sus submapas), Campañas
- * (el cuadro de mando y cada campaña con sus números) y Ajustes.
+ * administradores. Cuatro partes: Tablero (las mismas tarjetas del mapa como
+ * trabajo: columnas y semanas, desde el 20/10), Mapa (las tarjetas y sus
+ * submapas), Campañas (el cuadro de mando y cada campaña con sus números) y
+ * Ajustes.
  *
- * En el móvil arranca en Campañas: el mapa se usa en el ordenador.
+ * La primera vez arranca en el Tablero: es lo del día a día.
  */
 
 import React, { useCallback, useEffect, useState } from 'react'
@@ -19,6 +21,7 @@ import { TARJETA, filtro } from '../Panel/ui'
 import CampanasVision from './CampanasVision'
 import CampanaDetalle from './CampanaDetalle'
 import AjustesVision from './AjustesVision'
+import TableroVision from './TableroVision'
 
 // React Flow mide el navegador: el mapa solo se pinta en el cliente.
 const MapasVision = dynamic(() => import('./MapaVision'), {
@@ -30,7 +33,7 @@ const MapasVision = dynamic(() => import('./MapaVision'), {
   ),
 })
 
-type Parte = 'mapa' | 'campanas' | 'ajustes'
+type Parte = 'tablero' | 'mapa' | 'campanas' | 'ajustes'
 const CLAVE_PARTE = 'nawar.vision.parte'
 
 export default function VisionPage() {
@@ -39,13 +42,13 @@ export default function VisionPage() {
   const token: string | undefined = session?.data?.tokens?.access_token
   const { isAdmin, loading } = useAdminStatus()
 
-  const [parte, setParte] = useState<Parte>('campanas')
+  const [parte, setParte] = useState<Parte>('tablero')
   const [abierta, setAbierta] = useState<number | null>(null)
   const [tablero, setTablero] = useState<Tablero | null>(null)
   const [error, setError] = useState('')
   const [ir, setIr] = useState<{ mapaId: number | null; foco?: number; vez: number } | null>(null)
 
-  // La última parte abierta; la primera vez, Mapa en el ordenador y Campañas en el móvil.
+  // La última parte abierta; la primera vez, el Tablero.
   useEffect(() => {
     let guardada: string | null = null
     try {
@@ -53,8 +56,7 @@ export default function VisionPage() {
     } catch {
       /* sin almacenamiento */
     }
-    if (guardada === 'mapa' || guardada === 'campanas' || guardada === 'ajustes') setParte(guardada)
-    else setParte(window.innerWidth >= 1024 ? 'mapa' : 'campanas')
+    if (guardada === 'tablero' || guardada === 'mapa' || guardada === 'campanas' || guardada === 'ajustes') setParte(guardada)
   }, [])
 
   const elegir = (p: Parte) => {
@@ -96,6 +98,7 @@ export default function VisionPage() {
       <div className="flex gap-1.5">
         {(
           [
+            ['tablero', 'Tablero'],
             ['mapa', 'Mapa'],
             ['campanas', 'Campañas'],
             ['ajustes', 'Ajustes'],
@@ -115,7 +118,22 @@ export default function VisionPage() {
         ))}
       </div>
 
-      {parte === 'mapa' ? (
+      {parte === 'tablero' ? (
+        <TableroVision
+          orgId={org.id}
+          token={token}
+          campanas={campanas}
+          metricas={tablero?.metricas ?? {}}
+          onIrAlMapa={(mapaId, foco) => {
+            setIr({ mapaId, foco, vez: Date.now() })
+            elegir('mapa')
+          }}
+          onVerCampana={(id) => {
+            setAbierta(id)
+            elegir('campanas')
+          }}
+        />
+      ) : parte === 'mapa' ? (
         <MapasVision
           orgId={org.id}
           token={token}

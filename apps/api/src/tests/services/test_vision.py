@@ -364,3 +364,77 @@ async def test_crear_clase_gratuita_va_dentro_de_campanas(db):
     assert not (await crear_clase_gratuita(1, {"fecha": ""}, db))["ok"]
     assert (await db.execute(VisionNodo.__table__.select())).first() is not None
     assert (await db.execute(VisionFlecha.__table__.select())).first() is not None
+
+
+# ── el tablero y las semanas ────────────────────────────────────────────────
+
+from src.services.vision import trabajo as T  # noqa: E402
+
+
+def test_encargados_separados_por_comas():
+    assert M.personas_de(" Rida ,laura;  RIDA , ") == ["Rida", "laura"]
+    assert M.personas_de(["Ana", "ana", " Bea "]) == ["Ana", "Bea"]
+    # Sin pasar de las 120 letras de la columna: se corta por nombres enteros.
+    largo = M.juntar_personas([f"Persona número {i}" for i in range(20)])
+    assert len(largo) <= 120 and largo.endswith(tuple(str(i) for i in range(10)))
+
+
+def test_que_tarjetas_salen_en_el_tablero():
+    assert T.es_de_trabajo({"tipo": "tarea"})
+    assert T.es_de_trabajo({"tipo": "embudo"})
+    assert not T.es_de_trabajo({"tipo": "vertical", "responsable": "Rida"})
+    assert not T.es_de_trabajo({"tipo": "metrica", "vence": "2026-10-20"})
+    # Una nota suelta no es trabajo; con encargado, fecha o un estado que dice algo, sí.
+    assert not T.es_de_trabajo({"tipo": "nota", "estado": "pendiente"})
+    assert not T.es_de_trabajo({"tipo": "nota", "estado": "en-curso"})
+    assert T.es_de_trabajo({"tipo": "nota", "responsable": "Rida"})
+    assert T.es_de_trabajo({"tipo": "nota", "vence": "2026-10-24"})
+    assert T.es_de_trabajo({"tipo": "nota", "estado": "idea"})
+
+
+def test_area_de_cada_mapa():
+    mapas = [{"id": 1, "nodo_padre_id": None}, {"id": 2, "nodo_padre_id": 10}, {"id": 3, "nodo_padre_id": 20}, {"id": 4, "nodo_padre_id": 99}]
+    nodos = [{"id": 10, "mapa_id": 1, "titulo": "Campañas"}, {"id": 20, "mapa_id": 2, "titulo": "Clase gratis 02nov"}]
+    a = T.areas_de_los_mapas(mapas, nodos, inicio_id=1)
+    assert a[1] == {"area_id": None, "area": "", "ruta": ""}
+    assert a[2] == {"area_id": 10, "area": "Campañas", "ruta": "Campañas"}
+    assert a[3] == {"area_id": 10, "area": "Campañas", "ruta": "Campañas › Clase gratis 02nov"}
+    # Un mapa cuyo padre ya no existe: sin área, sin romperse.
+    assert a[4]["area_id"] is None
+
+
+def test_lo_nuevo_va_debajo_de_todo():
+    assert T.sitio_debajo([]) == (0.0, 0.0)
+    assert T.sitio_debajo([(-400, -200), (300, 160), (0, 0)]) == (-400, 300)
+
+
+async def test_tablero_crear_en_un_area_y_hecho_pone_la_fecha(db, org):
+    inicio = await M.leer_mapa(1, None, db)
+    marketing = next(n for n in inicio["nodos"] if n["titulo"] == "Marketing")
+    t = await T.crear_tarea(1, {"titulo": "Guion vídeo YouTube", "area_id": marketing["id"], "responsable": "Rida, Laura", "vence": "2026-10-24", "estado": "idea"}, db)
+    assert t["tipo"] == "tarea" and t["estado"] == "idea" and t["responsable"] == "Rida, Laura"
+    # Va dentro del mapa de Marketing, que se crea si no existía.
+    dentro = await M.leer_mapa(1, t["mapa_id"], db)
+    assert dentro["mapa"]["nodo_padre_id"] == marketing["id"]
+    # Sin título no se crea; un área que no existe la deja en Inicio.
+    assert await T.crear_tarea(1, {"titulo": "  "}, db) is None
+    suelta = await T.crear_tarea(1, {"titulo": "Llamar a la gestoría", "area_id": 99999}, db)
+    assert suelta["mapa_id"] == inicio["mapa"]["id"]
+
+    lista = await T.listar(1, db, equipo=["Zulay", "rida"])
+    por_id = {x["id"]: x for x in lista["tarjetas"]}
+    assert por_id[t["id"]]["area"] == "Marketing" and por_id[t["id"]]["personas"] == ["Rida", "Laura"]
+    assert "cuerpo" not in por_id[t["id"]]
+    assert por_id[suelta["id"]]["area"] == ""
+    # Las verticales no salen como tarjetas; sí como áreas para elegir.
+    assert not any(x["tipo"] == "vertical" for x in lista["tarjetas"])
+    assert "Marketing" in [a["titulo"] for a in lista["areas"]]
+    assert lista["personas"] == ["Laura", "Rida", "Zulay"]
+
+    # Pasarla a hecho sin fecha de fin le pone hoy; con fin ya puesto, no la toca.
+    with patch.object(M, "hoy_nl", return_value="2026-10-20"):
+        h = await M.cambiar_nodo(1, t["id"], {"estado": "hecho"}, db)
+        assert h["fin"] == "2026-10-20"
+        await M.cambiar_nodo(1, suelta["id"], {"fin": "2026-10-18"}, db)
+        h2 = await M.cambiar_nodo(1, suelta["id"], {"estado": "hecho"}, db)
+        assert h2["fin"] == "2026-10-18"
