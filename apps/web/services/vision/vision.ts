@@ -325,6 +325,33 @@ export async function abrirArchivo(org: number, nodoId: number, archivoId: strin
 export const borrarArchivo = (org: number, nodoId: number, archivoId: string, t: string) =>
   pedir<NodoVision>(`org/${org}/nodos/${nodoId}/archivos/${archivoId}`, 'DELETE', null, t)
 
+/** Una tarjeta del mapa vista en el tablero de trabajo: con su área y sin el texto de dentro. */
+export type TarjetaTrabajo = Omit<NodoVision, 'cuerpo'> & {
+  area_id: number | null
+  /** La tarjeta del mapa de Inicio de la que cuelga (Marketing, Ventas…). Vacío = Inicio. */
+  area: string
+  /** El camino entero: «Campañas › Clase gratis 02nov». */
+  ruta: string
+  personas: string[]
+}
+
+export interface Trabajo {
+  tarjetas: TarjetaTrabajo[]
+  areas: { id: number; titulo: string }[]
+  /** Los nombres ya usados como encargados y los del equipo del panel. */
+  personas: string[]
+  inicio_id: number
+  hoy: string
+}
+
+export const getTrabajo = (org: number, t: string) => pedir<Trabajo>(`org/${org}/trabajo`, 'GET', null, t)
+export const crearTarea = (
+  org: number,
+  datos: { titulo: string; area_id: number | null; estado: EstadoNodo; responsable?: string; vence?: string; tipo?: TipoNodo },
+  t: string
+) => pedir<NodoVision>(`org/${org}/trabajo`, 'POST', datos, t)
+export const getNodo = (org: number, id: number, t: string) => pedir<NodoVision>(`org/${org}/nodos/${id}`, 'GET', null, t)
+
 export const getTablero = (org: number, t: string) => pedir<Tablero>(`org/${org}/campanas`, 'GET', null, t)
 export const getCampana = (org: number, id: number, t: string) =>
   pedir<Campana & { ajustes: Ajustes; metricas: Record<string, MetricaInfo>; avisos_escuela: string[] }>(`org/${org}/campanas/${id}`, 'GET', null, t)

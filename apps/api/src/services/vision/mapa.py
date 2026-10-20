@@ -19,10 +19,12 @@ El mapa de Visión: lienzos, tarjetas (nodos), flechas, submapas y archivos.
 from __future__ import annotations
 
 import json
+import re
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
+from zoneinfo import ZoneInfo
 
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -71,6 +73,39 @@ _SEMILLA = [
 
 def _ahora() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def hoy_nl() -> str:
+    """El día de hoy en Países Bajos ("AAAA-MM-DD")."""
+    return datetime.now(ZoneInfo("Europe/Amsterdam")).date().isoformat()
+
+
+def personas_de(texto) -> list[str]:
+    """Los encargados de una tarjeta: «Rida, Laura» → ["Rida", "Laura"].
+
+    Van en la columna `responsable` separados por comas (sin columna nueva).
+    Sin repetidos (sin mirar mayúsculas) y cada nombre de 40 letras como mucho.
+    """
+    partes = texto if isinstance(texto, list) else re.split(r"[,;]", str(texto or ""))
+    vistos: set[str] = set()
+    salida: list[str] = []
+    for p in partes:
+        nombre = " ".join(str(p or "").split())[:40]
+        if nombre and nombre.lower() not in vistos:
+            vistos.add(nombre.lower())
+            salida.append(nombre)
+    return salida
+
+
+def juntar_personas(nombres: list[str], largo: int = 120) -> str:
+    """Al revés que `personas_de`, sin pasar del largo de la columna."""
+    texto = ""
+    for n in nombres:
+        siguiente = f"{texto}, {n}" if texto else n
+        if len(siguiente) > largo:
+            break
+        texto = siguiente
+    return texto
 
 
 def _lista(texto: str) -> list:
@@ -229,7 +264,12 @@ def _texto(v, largo: int) -> str:
 
 
 def _aplicar(n: VisionNodo, datos: dict) -> None:
-    """Pone en el nodo los campos que vengan, ya limpios."""
+    """Pone en el nodo los campos que vengan, ya limpios.
+
+    Al pasar una tarjeta a «Hecho» sin fecha de fin, la fecha de fin es hoy:
+    así la línea de tiempo de Visión la pone en la semana en que se terminó.
+    """
+    antes = n.estado
     if "tipo" in datos and datos["tipo"] in TIPOS:
         n.tipo = datos["tipo"]
     if "titulo" in datos:
@@ -242,10 +282,12 @@ def _aplicar(n: VisionNodo, datos: dict) -> None:
     if "etiquetas" in datos and isinstance(datos["etiquetas"], list):
         n.etiquetas = json.dumps([_texto(e, 40) for e in datos["etiquetas"] if _texto(e, 40)][:20], ensure_ascii=False)
     if "responsable" in datos:
-        n.responsable = _texto(datos["responsable"], 120)
+        n.responsable = juntar_personas(personas_de(datos["responsable"]))
     for f in ("inicio", "fin", "vence"):
         if f in datos:
             setattr(n, f, _fecha(datos[f]))
+    if n.estado == "hecho" and antes != "hecho" and not n.fin and "fin" not in datos:
+        n.fin = hoy_nl()
     for c in ("x", "y"):
         if c in datos and isinstance(datos[c], (int, float)):
             setattr(n, c, float(datos[c]))
