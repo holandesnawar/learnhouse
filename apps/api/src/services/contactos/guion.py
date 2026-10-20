@@ -45,8 +45,8 @@ GUION_DE_FABRICA = """## Antes de llamar
 - Conéctalo con lo que te ha contado: "Me dijiste que [su motivo]; esto está pensado justo para eso."
 
 ## 4. Precio
-- "La inversión es de 397 €, precio de la cohorte fundadora. Después pasa a 497 €."
-- Pago único con IVA incluido. Se puede pagar con iDEAL o tarjeta, o a plazos con Klarna sin recargo.
+- "La inversión es de 435 €, IVA incluido. Lo puedes pagar de una vez con iDEAL o tarjeta, o con Klarna a plazos sin recargo."
+- Solo si Klarna no le vale o no le funciona: nuestro plan a plazos, 3 pagos de 165,67 € (497 €) o 4 pagos de 135 € (540 €). Entra con el primer pago y elige 3 o 4 en la página de pago (botón «A plazos» de su ficha).
 - Garantía de 15 días: si no es para él, escribe a soporte@holandesnawar.com y se le devuelve el 100 %.
 - Después del precio, calla y deja que conteste.
 

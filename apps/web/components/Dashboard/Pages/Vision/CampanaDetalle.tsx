@@ -606,7 +606,7 @@ function FormPago({ inicial, onGuardar, onCancelar }: { inicial: Partial<Pago>; 
         </label>
         <label>
           <span className={ROTULO}>Importe (€)</span>
-          <input inputMode="decimal" required value={f.importe} onChange={poner('importe')} placeholder="397" className={CAMPO} />
+          <input inputMode="decimal" required value={f.importe} onChange={poner('importe')} placeholder="435" className={CAMPO} />
         </label>
         <label>
           <span className={ROTULO}>Cómo pagó</span>

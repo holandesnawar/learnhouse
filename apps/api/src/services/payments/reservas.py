@@ -208,22 +208,11 @@ async def emails_con_plaza_reservada(db_session: AsyncSession) -> set[str]:
 
 
 async def precio_formacion() -> tuple[int, str]:
-    """El precio de la formación, del Price de Stripe (el mismo que cobra la
-    matrícula normal). Así el total de una reserva sale del mismo sitio."""
-    import stripe
+    """El precio de la formación en un pago (`precio_base_cents`, el mismo que
+    cobra la matrícula normal). Así el total de una reserva sale del mismo sitio."""
+    from src.services.payments.payments import precio_base_cents
 
-    from src.services.payments.payments import _formacion_price_id, _usar_stripe
-
-    _usar_stripe()
-    try:
-        price = stripe.Price.retrieve(_formacion_price_id())
-        cents = price.get("unit_amount") if hasattr(price, "get") else getattr(price, "unit_amount", 0)
-        moneda = price.get("currency") if hasattr(price, "get") else getattr(price, "currency", "eur")
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=f"No se ha podido leer el precio de Stripe: {exc}")
-    if not cents:
-        raise HTTPException(status_code=500, detail="El precio de la formación en Stripe está vacío")
-    return int(cents), (moneda or "eur").lower()
+    return precio_base_cents(), "eur"
 
 
 async def crear_enlace(

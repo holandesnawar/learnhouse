@@ -85,10 +85,84 @@ def _webhook_secret() -> str:
 
 
 def _formacion_price_id() -> str:
+    """El Price de `LEARNHOUSE_STRIPE_FORMACION_PRICE_ID`: el de 397 € de antes
+    del 20/10/2026. Ya solo sirve para dos cosas: dar el PRODUCTO de Stripe del
+    que cuelgan los precios nuevos y cobrar los enlaces de pago creados antes
+    del cambio (que respetan 397 hasta caducar). Para cobrar, `_precio_base_id`."""
     price = os.environ.get("LEARNHOUSE_STRIPE_FORMACION_PRICE_ID")
     if not price:
         raise HTTPException(status_code=500, detail="Formación price id not configured")
     return price
+
+
+#: El precio de la formación en un pago, con Klarna incluido (20/10/2026:
+#: "397 se va fuera, el precio base es 435"). Los plazos propios van aparte
+#: (`OPCIONES` en plazos.py).
+PRECIO_BASE_CENTS = 43500
+
+
+def precio_base_cents() -> int:
+    """`LEARNHOUSE_FORMACION_PRECIO_CENTS` lo cambia sin desplegar; 435 € de serie."""
+    raw = (os.environ.get("LEARNHOUSE_FORMACION_PRECIO_CENTS") or "").strip()
+    return int(raw) if raw.isdigit() and int(raw) >= 50 else PRECIO_BASE_CENTS
+
+
+_PRECIOS: dict[str, str] = {}
+
+
+def precio_en_stripe(clave: str, cents: int, *, mensual: bool = False, nombre: str = "", meta: Optional[dict] = None) -> str:
+    """Un Price del MISMO producto que la matrícula, buscado por `lookup_key`
+    (que lleva el importe) y creado si no existe: cambiar el precio no pide
+    tocar el panel de Stripe, y el viejo sigue valiendo para lo que ya se
+    vendió con él. Hay que haber llamado antes a `_usar_stripe()`."""
+    if clave in _PRECIOS:
+        return _PRECIOS[clave]
+
+    def _ident(obj) -> str:
+        if isinstance(obj, str):
+            return obj
+        return (obj.get("id") if hasattr(obj, "get") else getattr(obj, "id", "")) or ""
+
+    def buscar() -> str:
+        res = stripe.Price.list(lookup_keys=[clave], active=True, limit=1)
+        datos = res.get("data") if hasattr(res, "get") else getattr(res, "data", None)
+        return _ident(list(datos or [])[0]) if datos else ""
+
+    precio = buscar()
+    if not precio:
+        base = stripe.Price.retrieve(_formacion_price_id())
+        producto = _ident(base.get("product") if hasattr(base, "get") else getattr(base, "product", ""))
+        if not producto:
+            raise HTTPException(status_code=500, detail="El precio de la formación en Stripe no tiene producto")
+        moneda = (base.get("currency") if hasattr(base, "get") else getattr(base, "currency", "eur")) or "eur"
+        try:
+            precio = _ident(
+                stripe.Price.create(
+                    product=producto,
+                    currency=str(moneda),
+                    unit_amount=int(cents),
+                    lookup_key=clave,
+                    nickname=nombre or clave,
+                    metadata=meta or {},
+                    **({"recurring": {"interval": "month"}} if mensual else {}),
+                )
+            )
+        except Exception:  # noqa: BLE001
+            # Dos personas abriendo a la vez el primer enlace: el otro ya lo creó.
+            precio = buscar()
+            if not precio:
+                raise
+    _PRECIOS[clave] = precio
+    return precio
+
+
+def _precio_base_id() -> str:
+    """El Price del pago único de hoy (435 €), creado solo si hace falta."""
+    cents = precio_base_cents()
+    euros = f"{cents / 100:.2f}".replace(".", ",").replace(",00", "")
+    return precio_en_stripe(
+        f"nawar-formacion-unico-{cents}", cents, nombre=f"Pago único: {euros} €", meta={"plan": "unico"}
+    )
 
 
 def _stripe_publishable() -> str:
@@ -229,7 +303,7 @@ async def create_formacion_checkout_session() -> str:
     try:
         session = stripe.checkout.Session.create(
             mode="payment",
-            line_items=[{"price": _formacion_price_id(), "quantity": 1}],
+            line_items=[{"price": _precio_base_id(), "quantity": 1}],
             success_url=f"{academy}/auth/bienvenido?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{academy}/",
             allow_promotion_codes=True,
@@ -299,7 +373,7 @@ async def enroll_and_checkout(
         session = stripe.checkout.Session.create(
             mode="payment",
             customer=customer.id,
-            line_items=[{"price": _formacion_price_id(), "quantity": 1}],
+            line_items=[{"price": _precio_base_id(), "quantity": 1}],
             success_url=f"{academy}/auth/bienvenido?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{academy}/auth/matricula-formacion-nawar-a0-a1",
             allow_promotion_codes=True,
@@ -461,7 +535,7 @@ def _cancelar_intento_anterior(payment_intent_id: str) -> None:
         logger.warning("No se pudo cancelar el PaymentIntent %s", payment_intent_id, exc_info=True)
 
 
-async def enroll_and_checkout_session(data, db_session: AsyncSession) -> dict:
+async def enroll_and_checkout_session(data, db_session: AsyncSession, precio_id: str = "") -> dict:
     """
     Guarda la matrícula y abre una **sesión de pago de Stripe, embebida**.
 
@@ -497,9 +571,11 @@ async def enroll_and_checkout_session(data, db_session: AsyncSession) -> dict:
     email = str(data.email).strip().lower()
     full_name = f"{data.first_name} {data.last_name}".strip() or data.first_name or "Alumno"
 
-    # El importe sale del Price, para que cambiarlo en Stripe no pida despliegue.
+    # El de hoy (435 €) salvo que se pida otro: un enlace de pago creado antes
+    # del 20/10 respeta el de entonces (397 €, `_formacion_price_id`).
     try:
-        price = stripe.Price.retrieve(_formacion_price_id())
+        precio = precio_id or _precio_base_id()
+        price = stripe.Price.retrieve(precio)
         unit_amount = price.get("unit_amount") if hasattr(price, "get") else getattr(price, "unit_amount", None)
         currency_raw = price.get("currency") if hasattr(price, "get") else getattr(price, "currency", "eur")
     except Exception as exc:
@@ -582,7 +658,7 @@ async def enroll_and_checkout_session(data, db_session: AsyncSession) -> dict:
             # página — solo que ahora se llama así.
             ui_mode="embedded_page",
             mode="payment",
-            line_items=[{"price": _formacion_price_id(), "quantity": 1}],
+            line_items=[{"price": precio, "quantity": 1}],
             customer=customer.id,
             # Al volver, la página de bienvenida de siempre.
             return_url=f"{academy}/auth/bienvenido?session_id={{CHECKOUT_SESSION_ID}}",
@@ -667,7 +743,7 @@ async def enroll_and_payment_intent(data, db_session: AsyncSession) -> dict:
 
     # Pull amount + currency off the Price so we don't hardcode the figure.
     try:
-        price = stripe.Price.retrieve(_formacion_price_id())
+        price = stripe.Price.retrieve(_precio_base_id())
         unit_amount = price.get("unit_amount") if hasattr(price, "get") else getattr(price, "unit_amount", None)
         currency_raw = price.get("currency") if hasattr(price, "get") else getattr(price, "currency", "eur")
     except Exception as exc:

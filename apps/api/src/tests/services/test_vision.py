@@ -12,12 +12,12 @@ def _venta(importe=39700, metodo="unico", fecha="2026-10-20", con_llamada=True):
 
 def test_ajustes_de_fabrica_y_lo_que_no_vale():
     a = C.normalizar_ajustes(None)
-    assert a["precio_cents"] == 39700 and a["profe_semanal_cents"] == 7500
+    assert a["precio_cents"] == 43500 and a["profe_semanal_cents"] == 7500
     assert a["closer"] == [{"desde": "", "pct": 10.0}, {"desde": "2026-10-16", "pct": 15.0}]
     # Un tramo con un % imposible o una fecha rota no rompe nada.
     b = C.normalizar_ajustes({"closer": [{"desde": "mañana", "pct": 12}, {"desde": "2026-11-01", "pct": 140}], "precio_cents": "abc"})
     assert b["closer"] == [{"desde": "", "pct": 12.0}]
-    assert b["precio_cents"] == 39700
+    assert b["precio_cents"] == 43500
     assert b["umbrales"]["cac"] == {"verde": 100, "rojo": 150}
 
 
@@ -80,7 +80,7 @@ def test_campana_completa():
 def test_sin_ventas_el_cac_maximo_sale_del_precio():
     m = C.calcular_campana({"gasto_ads_cents": 5000, "leads": 3}, AJ, hoy="2026-10-20")
     assert m["ventas"] == 0 and m["cac"] is None and m["cierre"] is None
-    assert m["cac_maximo"] == round(39700 * 0.85)
+    assert m["cac_maximo"] == round(43500 * 0.85)
     assert m["margen"] == -5000
 
 
