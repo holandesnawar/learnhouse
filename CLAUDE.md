@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-20 (cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-20 (precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -405,10 +405,13 @@ nuestro gana en casi todo. Lo que hace que gane, para no desmontarlo por error:
 - **La garantía va pegada al precio, en su propio bloque con escudo**, no como un
   check más de la lista. Enterrada entre "Certificado al terminar" pesaba lo
   mismo que cualquier otra cosa; ahí abajo es donde el comprador duda.
-- **Ancla de precio**: el total enseña el `497 €` tachado al lado del `397 €` y
-  "Precio fundador · después 497 €". Un 397 a secas es solo un número. La
-  constante es `REGULAR_PRICE_CENTS` y **el ancla se esconde sola** si algún día
-  el precio ya vale eso o más.
+- **Ancla de precio**: el total enseña el `597 €` tachado al lado del `435 €` y
+  "Precio fundador · después 597 €" (desde el 20/10/2026; antes 497 junto a
+  397). Un 435 a secas es solo un número. La constante es
+  `REGULAR_PRICE_CENTS` y **el ancla se esconde sola** si algún día el precio
+  ya vale eso o más. ⚠️ Se avisó al usuario de que un precio tachado que nunca
+  se ha cobrado puede leerse como engañoso (normas europeas de anuncio de
+  precios); él eligió el 597 tachado.
 - **iDEAL como pestaña visible es CRÍTICO** para este público: los alumnos viven
   en Países Bajos y ahí iDEAL no es "otro método", es EL método. Esconderlo
   detrás de un desplegable con "Tarjeta" preseleccionada mata ventas.
@@ -1576,7 +1579,8 @@ prueba o leads malos, estén donde estén.
   ("Editar"; el closer desde el 24/09, a petición del usuario), con formato
   sencillo: `## ` título, `- ` punto.
 - Se guarda en org_config `guion_llamada.texto`; vacío = el de fábrica, escrito
-  en `services/contactos/guion.py` con los datos de la oferta (397 → 497 €,
+  en `services/contactos/guion.py` con los datos de la oferta (435 €, plazos
+  propios 497/540 desde el 20/10; antes 397 → 497 €,
   15 días de garantía, Klarna, 16 semanas, 10 módulos, clase semanal, 6 meses).
   ⚠️ **Si cambia la oferta, cambiarlo también ahí.**
 - "Sus resultados" del closer NO se hizo: el usuario dijo que toda venta por
@@ -3120,6 +3124,49 @@ dinero, 145 € 3 plazos… para el mismo producto y que dé acceso". Todo en
   `plan_pagos.total_cents`, en `_ADDED_COLUMNS`; 0 en los planes de antes =
   cuotas × cuota). La caja de pago lo lee de `tot` y enseña las cuotas que
   quedan una a una si no son iguales. Tests en `test_plazos.py`.
+  ⚠️ **Sustituido el 20/10** (abajo): el total ya no se elige al crear el
+  enlace. Los enlaces de antes siguen cobrando lo que decían.
+
+## Precios desde el 20/10/2026: 435 € y plazos de 3 o 4
+"397 se va fuera, el precio base es 435, pago único o con Klarna. Pago a 3
+meses 497, y pago a 4 meses 540… que elijan desde la misma página si lo
+quieren en 3 o 4 plazos". Decidido con el usuario el 20/10 (los 540 = 4 × 135
+los propuse yo: cuota redonda y "un poquito más alto").
+- **Pago único o Klarna: 435 €.** El Price lo crea la escuela sola
+  (`_precio_base_id` → `precio_en_stripe` en `payments.py`, `lookup_key`
+  `nawar-formacion-unico-43500`, mismo producto que
+  `LEARNHOUSE_STRIPE_FORMACION_PRICE_ID`). `LEARNHOUSE_FORMACION_PRECIO_CENTS`
+  lo cambia sin desplegar. La caja pública de la web, los enlaces nuevos y el
+  total de una señal (`precio_formacion` en `reservas.py`) cobran este.
+- ⚠️ **`LEARNHOUSE_STRIPE_FORMACION_PRICE_ID` sigue siendo el de 397 €** y ya
+  no cobra nada nuevo: da el PRODUCTO del que cuelgan los precios y cobra los
+  **enlaces de pago creados antes del cambio**, que respetan 397 € hasta
+  caducar (14 días; decisión del usuario). Se distinguen porque los nuevos
+  llevan el precio firmado (`pu`). NO cambiar esa variable a otro producto.
+- **Plazos propios: la persona elige 3 pagos (165,67 · 165,67 · 165,66 =
+  497 €) o 4 de 135 € (540 €)** en la página de pago (`OPCIONES` en
+  `plazos.py`). El enlace «A plazos» lleva `pv: 2` y ningún número;
+  `/payments/pagar/{token}` sin `?cuotas=` redirige a
+  `/auth/matricula-formacion-nawar-a0-a1?elegir=plazos&t=…&op=3x49700,4x54000`
+  (`elegir.tsx`), y al elegir vuelve con `?cuotas=3|4` y se crea la sesión de
+  suscripción. Un número que no está en `OPCIONES` vuelve a la elección. El
+  plan guarda `cuotas` y `total_cents`; el calendario de Stripe corta al
+  último pago (un tramo de 4 meses a 135 €). Los enlaces a plazos de antes del
+  20/10 (sin `pv`) siguen con 3 pagos y su total (`total_valido`).
+- **La ficha** (`EnlacePago.tsx`): dos botones que crean el enlace al
+  pulsarlos, «Pago único o Klarna · 435 €» y «A plazos · 3 o 4 meses», y
+  debajo **«Otro importe»** pequeño y en gris ("que se vea menos, así el closer
+  no se lía"), con 397 € puesto, para un pago único a otro precio.
+- **Caja de pago**: ancla `597 €` tachado (antes 497). La web
+  (`nawar-web/src/lib/precio.ts`, `PRECIO_FORMACION`) enseña 435 en las
+  landings con precio y en el píxel de la compra.
+- Guion de fábrica, Visión (precio de fábrica 435) y `mapaWeb.ts`, a 435. ⚠️
+  Si el guion se editó en el panel, manda el editado: cambiarlo allí.
+- Tests: `test_precio_435.py` (precio nuevo, enlaces viejos a 397, elegir
+  plazos) y `test_plazos.py` (4 pagos de 135 y corta al cuarto).
+- Recomendado y sin decidir: una regla para los plazos impagados (p. ej. una
+  cuota sin pagar 7 días → se pausa el acceso; hoy es a mano) y que la
+  comisión del closer en plazos vaya sobre lo cobrado.
 
 ## Visión: el mapa del negocio y el centro de campañas (17/10/2026)
 Pedido: "el final boss de las estadísticas": una pestaña SOLO para
@@ -3173,6 +3220,8 @@ números conectados a la escuela. **Fase 1 hecha; las fases 2 y 3 del encargo
   anuncios; CAC máximo = lo que deja cada alumno. **El profe de la clase
   semanal (75 €/semana) solo en el total del negocio**, no en las campañas.
   Precio 397 € (se cambia en Ajustes: "lo vamos subiendo") y plazos 3×145.
+  ⚠️ Desde el 20/10 el de fábrica es 435 € (y 3 × 165,67), pero si Ajustes ya
+  se guardó con 397, manda lo guardado: cambiarlo allí.
 - **Ajustes** (`AjustesVision.tsx`, org_config `vision_ajustes`): precio,
   plazos, tramos del closer, **Klarna % y fijo (de serie 0: hay que ponerlo;
   la campaña avisa si hay ventas con Klarna y está a 0)**, profe y desde

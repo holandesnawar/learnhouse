@@ -205,13 +205,14 @@ async def test_a_un_alumno_o_a_quien_ya_tiene_plan_no_se_le_abre_otro(db, org):
 # ── el primer cobro ────────────────────────────────────────────────────────
 
 
-async def _primer_pago(db, falso, veces=1, total=None):
+async def _primer_pago(db, falso, veces=1, total=None, n=None):
     with _Varios(_con_stripe(falso)):
-        await Z.abrir_plazos(_pedido(), "Zulay", db, total_cents=total)
+        await Z.abrir_plazos(_pedido(), "Zulay", db, total_cents=total, n_cuotas=n)
     fila = (await db.execute(select(Enrollment))).scalars().one()
     meta = falso.sesiones[-1]["metadata"]
+    primera = Z.condiciones_de(n, Z.OPCIONES[n])["cuota_cents"] if n else Z.condiciones(total)["cuota_cents"]
     sesion = {
-        "id": "cs_plazos", "mode": "subscription", "payment_status": "paid", "amount_total": Z.condiciones(total)["cuota_cents"],
+        "id": "cs_plazos", "mode": "subscription", "payment_status": "paid", "amount_total": primera,
         "currency": "eur", "subscription": "sub_1", "invoice": "in_1", "customer": "cus_1",
         # Los metadatos que se pusieron al abrir (con el total desde el 19/10).
         "metadata": {**meta, "enrollment_id": str(fila.id)},
@@ -446,3 +447,58 @@ async def test_497_stripe_cobra_dos_de_165_67_y_uno_de_165_66_y_corta(db, org):
 def test_un_plan_de_antes_sin_total_guardado_sigue_contando_3_por_145():
     viejo = PlanPagos(email="a@x.com", cuotas=3, cuota_cents=14500, total_cents=0)
     assert Z.total_del_plan(viejo) == 43500 and Z.resumen(viejo)["total_cents"] == 43500
+
+
+# ── 3 o 4 pagos, a elegir por la persona (20/10) ───────────────────────────
+
+
+def test_las_dos_opciones_de_la_pagina_de_pago():
+    assert Z.opciones() == [
+        {"cuotas": 3, "cuota_cents": 16567, "ultima_cents": 16566, "total_cents": 49700, "moneda": "eur"},
+        {"cuotas": 4, "cuota_cents": 13500, "ultima_cents": 13500, "total_cents": 54000, "moneda": "eur"},
+    ]
+
+
+@pytest.mark.asyncio
+async def test_4_pagos_de_135_entra_con_el_primero_y_stripe_corta_al_cuarto(db, org):
+    falso = StripeFalso()
+    fila, altas = await _primer_pago(db, falso, n=4)
+    assert altas == ["ana@x.com"]
+    sesion = falso.sesiones[0]
+    assert sesion["line_items"] == [{"price": "price_13500", "quantity": 1}]
+    assert sesion["metadata"]["cuotas"] == "4" and sesion["metadata"]["total_cents"] == "54000"
+    assert "4 pagos, 540 € en total" in sesion["subscription_data"]["description"]
+    plan = (await db.execute(select(PlanPagos))).scalars().one()
+    assert plan.cuotas == 4 and plan.total_cents == 54000 and plan.cuota_cents == 13500 and plan.estado == "activo"
+    # Un solo tramo de 4 meses y se cancela al acabar.
+    cal = falso.calendarios[0]
+    assert cal["end_behavior"] == "cancel" and len(cal["phases"]) == 1
+    assert cal["phases"][0]["duration"] == {"interval": "month", "interval_count": 4}
+    for i in (2, 3):
+        await Z.atender_factura({"id": f"in_{i}", "amount_paid": 13500, "status_transitions": {"paid_at": 1794787200},
+                                 "parent": {"subscription_details": {"subscription": "sub_1"}}}, True, db)
+    await db.refresh(plan)
+    assert plan.estado == "activo" and plan.cuotas_pagadas == 3  # aún falta el cuarto
+    await Z.atender_factura({"id": "in_4", "amount_paid": 13500, "status_transitions": {"paid_at": 1797379200},
+                             "parent": {"subscription_details": {"subscription": "sub_1"}}}, True, db)
+    await db.refresh(plan)
+    assert plan.estado == "completado" and plan.pagado_cents == 54000
+    await db.refresh(fila)
+    assert fila.amount_cents == 54000
+
+
+@pytest.mark.asyncio
+async def test_3_pagos_elegidos_son_los_de_497(db, org):
+    falso = StripeFalso()
+    with _Varios(_con_stripe(falso)):
+        r = await Z.abrir_plazos(_pedido(), "", db, n_cuotas=3)
+    assert "amt=16567" in r["payment_url"] and "tot=49700" in r["payment_url"] and "cuotas=3" in r["payment_url"]
+
+
+@pytest.mark.asyncio
+async def test_un_enlace_de_antes_sigue_con_lo_que_decia(db, org):
+    # Sin número elegido (enlace de antes del 20/10): 3 pagos con su total.
+    falso = StripeFalso()
+    with _Varios(_con_stripe(falso)):
+        r = await Z.abrir_plazos(_pedido(), "", db, total_cents=43500)
+    assert "amt=14500" in r["payment_url"] and "tot=43500" in r["payment_url"] and "cuotas=3" in r["payment_url"]

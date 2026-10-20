@@ -18,7 +18,7 @@ import { getSchoolUrl } from '@services/config/config'
 // Minimal chrome on the checkout: just the Nawar logo top-left linking back
 // to the landing. Full navbar + footer kill the focus the buyer needs on a
 // payment page.
-const LOGO_URL = 'https://d1yei2z3i6k35z.cloudfront.net/9533860/671a9c9265e23_Logo_Nawar_2.png'
+export const LOGO_URL = 'https://d1yei2z3i6k35z.cloudfront.net/9533860/671a9c9265e23_Logo_Nawar_2.png'
 
 // What lands on the right rail. Tweak the copy here without touching layout.
 const COURSE_IMAGE = 'https://docs.holandesnawar.com/img/Portada%2016x9.png'
@@ -64,12 +64,14 @@ const COURSE_FEATURES = [
  */
 const MATRICULA_URL = 'https://www.holandesnawar.com/matricula-formacion-nawar'
 
-const GUARANTEE_DAYS = 15
+export const GUARANTEE_DAYS = 15
 
-// El precio de después del lanzamiento. Sirve de ancla: un 397 € a secas es
-// solo un número; al lado del 497 € es una decisión. Si algún día el total ya
-// vale esto o más, el ancla se esconde sola (ver `showAnchor` más abajo).
-const REGULAR_PRICE_CENTS = 49700
+// El precio de después. Sirve de ancla: un 435 € a secas es solo un número; al
+// lado del 597 € es una decisión. 20/10/2026: el pago único pasa de 397 a 435 y
+// el ancla de 497 a 597 ("ya que seguirá subiendo"; 497 es ahora el total a 3
+// plazos y tacharlo confundiría). Si algún día el total ya vale esto o más, el
+// ancla se esconde sola (ver `showAnchor` más abajo).
+const REGULAR_PRICE_CENTS = 59700
 
 // Stripe Appearance API — palette + spacing matches the rest of /auth/* and
 // nawar-web inputs. Card iframe colours are passed via `variables` (Stripe
@@ -231,7 +233,7 @@ function AvisoKlarna() {
 }
 
 /** El pie de "pago seguro", sin nombrar a Stripe (decisión del usuario). */
-function PieSeguro() {
+export function PieSeguro() {
   return (
     <div className="flex items-center justify-center gap-1.5 text-[12px] text-gray-500">
       <ShieldCheck size={13} />
@@ -438,8 +440,10 @@ function DesglosePorPartes({
   )
 }
 
+const ORDINAL: Record<number, string> = { 2: 'segundo', 3: 'tercero', 4: 'cuarto' }
+
 /**
- * El plan de pagos propio (14/10/2026): la formación en 3 pagos al mes,
+ * El plan de pagos propio (14/10/2026): la formación en 3 o 4 pagos al mes,
  * cobrados solos con el mismo método de pago. Se entra con el primero y al
  * último se acaba sin hacer nada (apps/api/src/services/payments/plazos.py).
  */
@@ -454,7 +458,7 @@ function DesglosePlazos({
   totalCents?: number
   money: (v: number) => string
 }) {
-  // El total llega en `tot` (19/10: 435 o 497 €). 497 en 3 no se divide: los
+  // El total llega en `tot` (desde el 20/10, 497 € en 3 o 540 € en 4). 497 en 3 no se divide: los
   // céntimos que sobran van en las primeras cuotas (165,67 · 165,67 · 165,66),
   // igual que `reparto` en plazos.py.
   const total = totalCents > 0 ? totalCents : cuotas * cuotaCents
@@ -488,7 +492,7 @@ function DesglosePlazos({
       </div>
       <p className="text-[12.5px] text-[#0a1656] bg-[#F0F5FF] rounded-xl px-3 py-2.5 leading-relaxed">
         <strong className="text-[#1D0084]">Entras en la escuela desde hoy.</strong> Los otros pagos se cobran solos cada
-        mes con el mismo método de pago, y al {cuotas === 3 ? 'tercero' : `pago ${cuotas}`} se acaba: no hay nada que cancelar.
+        mes con el mismo método de pago, y al {ORDINAL[cuotas] || `pago ${cuotas}`} se acaba: no hay nada que cancelar.
       </p>
       <div className="text-[12px] text-gray-500 text-right">IVA incl.</div>
     </div>
@@ -522,8 +526,8 @@ function CourseSummary({
       maximumFractionDigits: 2,
     }).format(value)
   const totalLabel = money(totalValue)
-  // El ancla solo tiene sentido mientras el precio de lanzamiento sea menor.
-  // El día que la formación valga 497, enseñar "después 497" sería ridículo.
+  // El ancla solo tiene sentido mientras el precio de hoy sea menor.
+  // El día que la formación valga 597, enseñar "después 597" sería ridículo.
   const showAnchor = amountCents > 0 && amountCents < REGULAR_PRICE_CENTS
   const anchorLabel = money(REGULAR_PRICE_CENTS / 100)
 
@@ -692,7 +696,7 @@ function CheckoutPageBody() {
 // EXACT same recipe as AuthShell (color + dots + corner glows) on the
 // page container, so it scrolls with content the way the other auth
 // pages do — not pinned to the viewport.
-export default function PagoClient() {
+export function FondoPago({ children }: { children: React.ReactNode }) {
   return (
     <div
       className="relative min-h-screen flex flex-col text-white overflow-x-hidden"
@@ -710,9 +714,17 @@ export default function PagoClient() {
         <Suspense
           fallback={<div className="text-white/70 mt-12">Cargando pago…</div>}
         >
-          <CheckoutPageBody />
+          {children}
         </Suspense>
       </main>
     </div>
+  )
+}
+
+export default function PagoClient() {
+  return (
+    <FondoPago>
+      <CheckoutPageBody />
+    </FondoPago>
   )
 }

@@ -380,9 +380,17 @@ export async function comprobarPlazos(
 
 export async function crearEnlacePago(
   orgId: number,
-  datos: { email: string; first_name: string; last_name?: string; phone?: string; plan?: '' | 'plazos'; total_cents?: number },
+  datos: { email: string; first_name: string; last_name?: string; phone?: string; plan?: '' | 'plazos' },
   accessToken: string
-): Promise<{ url?: string; dias?: number; plan?: CondicionesPlazos; error?: string }> {
+): Promise<{
+  url?: string
+  dias?: number
+  /** Pago único (o Klarna): el precio firmado en el enlace. */
+  precio_cents?: number
+  /** «A plazos»: lo que podrá elegir la persona al abrirlo (3 o 4 pagos). */
+  opciones?: CondicionesPlazos[]
+  error?: string
+}> {
   try {
     const res = await fetch(
       `${getAPIUrl()}contactos/org/${orgId}/enlace-pago`,

@@ -404,20 +404,16 @@ async def api_guardar_agenda_google(
         raise HTTPException(status_code=400, detail=str(exc))
 
 
-def _total_plazos(pedido: int) -> int:
-    from src.services.payments.plazos import total_valido
-
-    return total_valido(pedido)
-
-
 class PedidoEnlace(BaseModel):
     email: str
     first_name: str
     last_name: str = ""
     phone: str = ""
-    # "" = pago único (o Klarna); "plazos" = el plan propio de 3 pagos al mes.
+    # "" = pago único (o Klarna); "plazos" = el plan propio: la persona elige
+    # 3 o 4 pagos en la página de pago (`OPCIONES` en plazos.py).
     plan: str = ""
-    # Con "plazos", el total elegido (435 o 497 €, ver `totales` en plazos.py).
+    # Ya no se usa (19/10: el total de los plazos se elegía aquí). Se acepta
+    # para que una pantalla vieja abierta no falle.
     total_cents: int = 0
 
 
@@ -436,7 +432,7 @@ async def api_enlace_pago(
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
     from config.config import get_learnhouse_config
     from src.services.payments.enlace import DIAS_VALIDEZ, firmar
-    from src.services.payments.payments import _academy_url
+    from src.services.payments.payments import _academy_url, precio_base_cents
 
     email = data.email.strip().lower()
     if "@" not in email or not data.first_name.strip():
@@ -455,7 +451,7 @@ async def api_enlace_pago(
                 source="equipo",
                 extra={
                     "autor": _nombre(current_user),
-                    **({"plan": "plazos", "total_cents": _total_plazos(data.total_cents)} if data.plan == "plazos" else {}),
+                    **({"plan": "plazos"} if data.plan == "plazos" else {"precio_cents": precio_base_cents()}),
                 },
             ),
             db_session,
@@ -465,11 +461,16 @@ async def api_enlace_pago(
     datos = {"e": email, "f": data.first_name.strip()[:120], "l": data.last_name.strip()[:120], "p": data.phone.strip()[:40]}
     respuesta: dict = {}
     if data.plan == "plazos":
-        from src.services.payments.plazos import condiciones
+        from src.services.payments.plazos import opciones
 
-        total = _total_plazos(data.total_cents)
-        datos.update({"pl": "plazos", "pt": total, "a": _nombre(current_user)[:60]})
-        respuesta["plan"] = condiciones(total)
+        # `pv: 2` = la persona elige 3 o 4 pagos al abrirlo (20/10/2026).
+        datos.update({"pl": "plazos", "pv": 2, "a": _nombre(current_user)[:60]})
+        respuesta["opciones"] = opciones()
+    else:
+        # El precio va firmado: un enlace sin él es de antes del 20/10 y
+        # respeta el de entonces (397 €) hasta caducar.
+        datos["pu"] = precio_base_cents()
+        respuesta["precio_cents"] = datos["pu"]
     token = firmar(datos, secreto)
     return {"url": f"{_academy_url()}/api/v1/payments/pagar/{token}", "dias": DIAS_VALIDEZ, **respuesta}
 

@@ -1,6 +1,8 @@
 """Public endpoints driving Stripe checkout + webhook for the formación."""
 
 import logging
+from typing import Optional
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -124,6 +126,7 @@ background:#1D0084;color:#fff;font-family:system-ui,sans-serif;padding:24px;text
 )
 async def api_pagar_enlace(
     token: str,
+    cuotas: Optional[int] = None,
     db_session: AsyncSession = Depends(get_db_session),
 ):
     from fastapi.responses import HTMLResponse
@@ -131,6 +134,7 @@ async def api_pagar_enlace(
     from config.config import get_learnhouse_config
     from src.db.enrollment import EnrollmentCreate
     from src.services.payments.enlace import verificar
+    from src.services.payments.payments import _academy_url, _formacion_price_id
 
     datos = verificar(token, get_learnhouse_config().security_config.auth_jwt_secret_key)
     if not datos:
@@ -152,12 +156,33 @@ async def api_pagar_enlace(
     )
     try:
         if datos.get("pl") == "plazos":
-            # El plan de pagos propio, en 3 pagos al mes (ver plazos.py).
-            from src.services.payments.plazos import abrir_plazos
+            # El plan de pagos propio (ver plazos.py).
+            from src.services.payments.plazos import OPCIONES, abrir_plazos
 
-            resultado = await abrir_plazos(pedido, str(datos.get("a") or ""), db_session, total_cents=datos.get("pt"))
+            if datos.get("pv") == 2 and cuotas not in OPCIONES:
+                # Desde el 20/10 la persona elige 3 o 4 pagos en la página de
+                # pago: primero se le enseñan las opciones, y al elegir vuelve
+                # aquí con `?cuotas=` y entonces se crea la sesión.
+                opciones = ",".join(f"{n}x{t}" for n, t in sorted(OPCIONES.items()))
+                nombre = f"{pedido.first_name} {pedido.last_name}".strip()
+                return RedirectResponse(
+                    url=(
+                        f"{_academy_url()}/auth/matricula-formacion-nawar-a0-a1?elegir=plazos"
+                        f"&t={quote(token, safe='')}&op={quote(opciones, safe='')}"
+                        f"&em={quote(pedido.email, safe='')}&nm={quote(nombre, safe='')}"
+                    ),
+                    status_code=303,
+                )
+            resultado = await abrir_plazos(
+                pedido, str(datos.get("a") or ""), db_session,
+                total_cents=datos.get("pt"), n_cuotas=cuotas if datos.get("pv") == 2 else None,
+            )
         else:
-            resultado = await enroll_and_checkout_session(pedido, db_session)
+            # Los enlaces de antes del 20/10 no llevan `pu` y respetan el precio
+            # de entonces (397 €) hasta caducar; los nuevos, el de hoy.
+            resultado = await enroll_and_checkout_session(
+                pedido, db_session, precio_id="" if datos.get("pu") else _formacion_price_id()
+            )
     except HTTPException as exc:
         import html
 

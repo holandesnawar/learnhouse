@@ -32,9 +32,10 @@ from typing import Optional
 
 AJUSTES_POR_DEFECTO: dict = {
     # El precio de la formación al contado (se va subiendo: se cambia aquí).
-    "precio_cents": 39700,
-    # El plan propio en plazos (ver services/payments/plazos.py).
-    "plazos": {"cuotas": 3, "cuota_cents": 14500},
+    "precio_cents": 43500,
+    # El plan propio en plazos (ver services/payments/plazos.py: 3 pagos de
+    # 165,67 € o 4 de 135 €). Aquí, el de 3.
+    "plazos": {"cuotas": 3, "cuota_cents": 16567},
     # Comisión del closer por tramos: cada venta usa el último tramo que ya
     # había empezado el día del cobro. "desde" vacío = desde siempre.
     "closer": [{"desde": "", "pct": 10.0}, {"desde": "2026-10-16", "pct": 15.0}],

@@ -31,13 +31,19 @@ Cómo va
    manda UN correo a los administradores por factura. **No se quita el
    acceso solo**: lo decide el equipo.
 
-Dos totales (19/10/2026, "en pago a plazos elegir el total, 435 o 497 €"): el
-de serie (3 × 145 €) y 497 €. 497 no se divide entre 3, así que las cuotas son
-165,67 · 165,67 · 165,66 (`reparto`): los céntimos que sobran van en las
-primeras. Cada importe es su propio precio mensual en Stripe, y el calendario
-lleva un tramo por importe (`tramos`): 2 meses a 165,67 y 1 a 165,66. El total
-va firmado en el enlace (`pt`), en los metadatos de la sesión y en el plan
-(`total_cents`).
+3 o 4 pagos, a elegir por la persona (20/10/2026, "pago a 3 meses 497, y a 4
+meses 540… que elijan desde la misma página si lo quieren en 3 o 4 plazos"):
+`OPCIONES`. El enlace del equipo ya no lleva el número de pagos: al abrirlo,
+la página de pago enseña las dos opciones y la sesión de Stripe se crea al
+elegir (`/payments/pagar/{token}?cuotas=3|4`). 497 no se divide entre 3, así
+que las cuotas son 165,67 · 165,67 · 165,66 (`reparto`): los céntimos que
+sobran van en las primeras. Cada importe es su propio precio mensual en
+Stripe, y el calendario lleva un tramo por importe (`tramos`): 2 meses a
+165,67 y 1 a 165,66. Cuotas y total van en los metadatos de la sesión y en el
+plan (`cuotas`, `total_cents`).
+
+Los enlaces creados ANTES del 20/10 siguen como se mandaron: 3 pagos de 145 €
+(435) o de 165,67 (497), el total firmado en el enlace (`pt`, `total_valido`).
 
 Lo que cuida
 ------------
@@ -100,18 +106,34 @@ def cuota_cents() -> int:
     return int(raw) if raw.isdigit() and int(raw) >= 50 else 14500
 
 
-#: El otro total que se puede elegir al crear el enlace (19/10).
+#: Lo que la persona elige en la página de pago: número de pagos → total
+#: (20/10/2026). 4 × 135 € justos; 497 en 3, con los céntimos en las primeras.
+OPCIONES: dict[int, int] = {3: 49700, 4: 54000}
+
+#: El otro total que se podía elegir al crear el enlace (19/10). Solo para los
+#: enlaces de antes del 20/10, que siguen cobrando lo que decían.
 TOTAL_ALTO_CENTS = 49700
 
 
+def condiciones_de(n: int, total: int) -> dict:
+    lista = reparto(total, n)
+    return {"cuotas": n, "cuota_cents": lista[0], "ultima_cents": lista[-1], "total_cents": total, "moneda": "eur"}
+
+
+def opciones() -> list[dict]:
+    """Las opciones de la página de pago, de menos a más pagos."""
+    return [condiciones_de(n, total) for n, total in sorted(OPCIONES.items())]
+
+
 def totales() -> list[int]:
-    """Los totales que se pueden elegir: el de serie (cuotas × cuota) y 497 €."""
+    """Enlaces de antes del 20/10: el de serie (cuotas × cuota) y 497 €."""
     return sorted({cuotas() * cuota_cents(), TOTAL_ALTO_CENTS})
 
 
 def total_valido(total: Any = None) -> int:
-    """El total pedido si es uno de los permitidos; si no (o sin pedir), el de
-    serie. Así un enlace con un total raro no cobra lo que no se ofreció."""
+    """Enlaces de antes del 20/10: el total pedido si es uno de los de
+    entonces; si no (o sin pedir), el de serie. Así un enlace con un total raro
+    no cobra lo que no se ofreció."""
     try:
         pedido = int(total or 0)
     except (TypeError, ValueError):
@@ -140,10 +162,8 @@ def tramos(lista: list[int]) -> list[tuple[int, int]]:
 
 
 def condiciones(total_cents: Any = None) -> dict:
-    n = cuotas()
-    total = total_valido(total_cents)
-    lista = reparto(total, n)
-    return {"cuotas": n, "cuota_cents": lista[0], "ultima_cents": lista[-1], "total_cents": total, "moneda": "eur"}
+    """Enlaces de antes del 20/10 (3 pagos y su total)."""
+    return condiciones_de(cuotas(), total_valido(total_cents))
 
 
 def total_del_plan(plan: PlanPagos) -> int:
@@ -375,10 +395,11 @@ def precio_plazos(cuota: Optional[int] = None) -> str:
 # ── la persona abre el enlace ──────────────────────────────────────────────
 
 
-async def abrir_plazos(data, autor: str, db_session: AsyncSession, total_cents: Any = None) -> dict:
+async def abrir_plazos(data, autor: str, db_session: AsyncSession, total_cents: Any = None, n_cuotas: Any = None) -> dict:
     """Guarda la matrícula y abre la caja de pago en modo suscripción. Devuelve
-    lo mismo que `enroll_and_checkout_session` (con `payment_url`). `total_cents`
-    es el total elegido al crear el enlace (`total_valido`)."""
+    lo mismo que `enroll_and_checkout_session` (con `payment_url`). `n_cuotas`
+    es lo que eligió la persona (`OPCIONES`); sin él, un enlace de antes del
+    20/10: 3 pagos con el total firmado en el enlace (`total_valido`)."""
     import stripe
 
     from src.db.enrollment import Enrollment
@@ -395,8 +416,14 @@ async def abrir_plazos(data, autor: str, db_session: AsyncSession, total_cents: 
     P._usar_stripe()
     academy = P._academy_url()
     full_name = f"{data.first_name} {data.last_name}".strip() or data.first_name or "Alumno"
-    n = cuotas()
-    total = total_valido(total_cents)
+    try:
+        elegido = int(n_cuotas or 0)
+    except (TypeError, ValueError):
+        elegido = 0
+    if elegido in OPCIONES:
+        n, total = elegido, OPCIONES[elegido]
+    else:
+        n, total = cuotas(), total_valido(total_cents)
     cuota = reparto(total, n)[0]
     try:
         precio = precio_plazos(cuota)
