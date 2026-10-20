@@ -56,6 +56,8 @@ import {
   Wallet,
   ChartLineUp,
   Binoculars,
+  Gauge,
+  CalendarDots,
 } from '@phosphor-icons/react'
 
 type Item = { href: string; label: string; icon: React.ReactNode; match?: (p: string) => boolean }
@@ -66,6 +68,8 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
     titulo: 'Ventas',
     items: [
       { href: '/dash/estadisticas', label: 'Estadísticas', icon: <ChartBar size={18} weight="fill" />, match: (p) => p.includes('/dash/estadisticas') && !p.includes('tab=') },
+      // KPIs (20/10): embudo de la web, entradas, llamadas y cierre. Solo administradores.
+      { href: '/dash/estadisticas?tab=kpis', label: 'KPIs', icon: <Gauge size={18} weight="fill" /> },
       // Visión (17/10): el mapa del negocio y las campañas. Solo administradores.
       { href: '/dash/estadisticas?tab=vision', label: 'Visión', icon: <Binoculars size={18} weight="fill" /> },
       { href: '/dash/estadisticas?tab=matriculas', label: 'Matrículas', icon: <Kanban size={18} weight="fill" /> },
@@ -83,6 +87,8 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
     titulo: 'Dinero',
     items: [
       { href: '/dash/estadisticas?tab=clientes', label: 'Clientes', icon: <UserCheck size={18} weight="fill" /> },
+      // Pagos a plazos (20/10): quién paga a plazos, en qué pago va y los fallos.
+      { href: '/dash/estadisticas?tab=plazos', label: 'Pagos a plazos', icon: <CalendarDots size={18} weight="fill" /> },
       { href: '/dash/estadisticas?tab=facturas', label: 'Facturas', icon: <Receipt size={18} weight="fill" /> },
       { href: '/dash/estadisticas?tab=gastos', label: 'Gastos', icon: <Wallet size={18} weight="fill" /> },
     ],

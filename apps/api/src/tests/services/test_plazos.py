@@ -280,21 +280,32 @@ async def test_un_cobro_fallido_avisa_una_vez_y_no_quita_el_acceso(db, org):
     fila, _ = await _primer_pago(db, falso)
     avisos = []
 
+    al_alumno = []
+
     def correo(destino, datos):
-        avisos.append((destino, datos["numero"]))
+        avisos.append((destino, datos["numero"], datos["alumno_avisado"]))
+
+    def correo_alumno(destino, datos):
+        al_alumno.append((destino, datos))
 
     async def admins(_db):
         return ["jefa@x.com"]
 
-    fallo = {"id": "in_2", "amount_due": 14500, "next_payment_attempt": 1794787200, "subscription": "sub_1"}
+    fallo = {"id": "in_2", "amount_due": 14500, "next_payment_attempt": 1794787200, "subscription": "sub_1",
+             "hosted_invoice_url": "https://invoice.stripe.com/i/in_2"}
     with patch("src.services.users.emails.send_plazo_fallido_email", correo), patch(
-        "src.services.contactos.llamadas.emails_de_administradores", admins
-    ):
+        "src.services.users.emails.send_plazo_fallido_alumno_email", correo_alumno
+    ), patch("src.services.contactos.llamadas.emails_de_administradores", admins):
         await Z.atender_factura(fallo, False, db)
         await Z.atender_factura(fallo, False, db)  # Stripe reintenta: no se repite el aviso
     plan = (await db.execute(select(PlanPagos))).scalars().one()
     assert plan.estado == "fallido" and "pago 2 de 3" in plan.fallo
-    assert avisos == [("jefa@x.com", 2)]
+    assert avisos == [("jefa@x.com", 2, True)]
+    # A la persona, un correo con el botón para pagar esa cuota (20/10).
+    assert len(al_alumno) == 1 and al_alumno[0][0] == "ana@x.com"
+    datos = al_alumno[0][1]
+    assert datos["pagar_url"] == "https://invoice.stripe.com/i/in_2" and datos["importe_cents"] == 14500
+    assert datos["numero"] == 2 and datos["cuotas"] == 3 and datos["reintento"] == "16/11/2026"
     await db.refresh(fila)
     assert fila.status == "paid"  # sigue siendo alumno: lo decide el equipo
 
@@ -349,7 +360,7 @@ async def test_la_tarea_diaria_ve_un_cobro_fallido(db, org):
     ]
     avisos = []
 
-    async def avisar(plan, numero, _db):
+    async def avisar(plan, numero, _db, factura=None):
         avisos.append(numero)
         return 1
 
