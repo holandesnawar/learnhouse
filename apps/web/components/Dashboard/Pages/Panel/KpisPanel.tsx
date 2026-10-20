@@ -188,7 +188,7 @@ export default function KpisPanel() {
         <Cifra
           titulo="Se presentan"
           valor={pct(ll.pct_asistencia)}
-          sub={conResultado ? `${ll.presentadas} de ${conResultado} llamadas con resultado` : 'Sin llamadas con resultado'}
+          sub={conResultado ? `${ll.presentadas} de ${conResultado} llamada${conResultado === 1 ? '' : 's'} con resultado` : 'Sin llamadas con resultado'}
         />
         <Cifra titulo="No se presentan" valor={pct(ll.pct_no_show)} sub={`${ll.no_vino} llamada${ll.no_vino === 1 ? '' : 's'}`} />
         <Cifra

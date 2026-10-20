@@ -193,7 +193,9 @@ def _embudo_ventas(entradas: list[dict], citas_por_email: dict[str, list], prese
             if proceso.get("apto"):
                 encajan += 1
         email = f["email"]
-        if any(e.get("kind") in _RESERVA for e in eventos) or citas_por_email.get(email):
+        # Quien se presentó a una llamada la reservó, aunque la reserva no
+        # conste (hecha en Calendly a mano, o de hace más de 45 días).
+        if any(e.get("kind") in _RESERVA for e in eventos) or citas_por_email.get(email) or email in presentados:
             reservan += 1
         if email in presentados:
             presentan += 1

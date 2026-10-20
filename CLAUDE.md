@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-20 (precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-20 (KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -3167,6 +3167,59 @@ los propuse yo: cuota redonda y "un poquito más alto").
 - Recomendado y sin decidir: una regla para los plazos impagados (p. ej. una
   cuota sin pagar 7 días → se pausa el acceso; hoy es a mano) y que la
   comisión del closer en plazos vaya sobre lo cobrado.
+
+## KPIs y Pagos a plazos en Estadísticas (20/10/2026)
+Pedido: "cuánto % de llamadas se cierra, cuántas entran al día, qué porcentaje
+no se presenta, qué porcentaje ve el anuncio y de ahí cuántos dejan su mail…
+cuántos ven el vídeo y continúan y cuántos en el vídeo se van" y "una parte
+de pagos aplazados… quién tiene un pago aplazado". En Estadísticas, NO en
+Visión (lo dijo el usuario). Solo administradores.
+- **Visitas anónimas** (tabla nueva `embudo_visita`, aprobada por el usuario):
+  una fila por sesión del navegador y embudo (`anuncio` = /formacion-nawar-fb,
+  `web` = /formacion, `admision` = /proceso-de-admision), con día (hora NL),
+  canal (ads si `utm_medium` es de pago) y hasta dónde llegó: visita, datos,
+  `video_pct` (1/25/50/75/100, solo sube), formulario, preguntas, reserva. Sin
+  nombre, correo ni IP. `POST /api/v1/contactos/paso` (público, texto plano
+  para no hacer consulta previa de CORS, 300/hora por IP, siempre 204).
+  `services/contactos/embudo_visitas.py` (`resumen` pura, test
+  `test_embudo_visitas.py`). La web: `nawar-web/src/lib/pasosEmbudo.ts`
+  (`marcarPaso`, `marcarVideo`; sesión al azar en `sessionStorage`, cada paso
+  una vez por sesión) en las páginas del anuncio, sus copias de /formacion y
+  /proceso-de-admision (+ paso-3). ⚠️ En `/proceso-de-admision/index.astro` ya
+  había un `marcarPaso` propio (la línea de pasos): ahí se importa como
+  `pasoEmbudo`. **Se cuentan desde el 20/10**: antes no hay visitas.
+- **`/stats/org/{id}/kpis?dias=`** (`services/stats/kpis.py`, `calcular` pura,
+  test `test_kpis.py`). Tres unidades que NO se mezclan: visitas (embudo de la
+  web), personas que ENTRARON en el periodo (embudo de ventas, cohorte: entran
+  → vídeo entero → preguntas → encajan → reservan → se presentan → pagan) y
+  llamadas con fecha en el periodo (las de Calendly, que llega 45 días atrás, +
+  lo apuntado en «¿Qué pasó?»): presentadas, no vino, sin apuntar, futuras,
+  canceladas, % asistencia y no-show (sobre las que tienen resultado) y % de
+  cierre (personas que se presentaron y ya han pagado). Una llamada pasada sin
+  «¿Qué pasó?» pero con pago cuenta como presentada. Entrada = primera
+  matrícula o enlace de pago (`cuando_entro`), no quien solo bajó una guía.
+  Más ventas del periodo (único/Klarna, plazos, otro importe) y una serie por
+  día. Todo sin quien está fuera de los números.
+- **Pestaña KPIs** (`?tab=kpis`, `Panel/KpisPanel.tsx`): cifras, gráfica por
+  día de una sola serie (con «Ver tabla»), embudo de la web con filtros de
+  embudo y canal («se quedan aquí N» en cada paso) y embudo de ventas.
+- **Pestaña Pagos a plazos** (`?tab=plazos`, `Panel/PlazosPanel.tsx`, bajo
+  Dinero; `GET /stats/org/{id}/plazos` = `listar_planes` en `plazos.py`): cada
+  plan con en qué pago va, lo pagado y el total, el próximo cobro, el fallo y
+  si Stripe tiene puesto el calendario que lo corta al último pago; «Comprobar
+  ahora» por plan y «Comprobar todos con Stripe» (`POST …/plazos/comprobar`,
+  lo mismo que la tarea diaria). Debajo, las plazas con señal a las que les
+  falta el resto. El 20/10 la tarea diaria decía: 1 plan, al día, 0 errores.
+- **Correo al alumno si falla un cobro** (decisión del usuario: lo manda la
+  escuela, no Stripe): `send_plazo_fallido_alumno_email`, desde
+  `_avisar_fallo` a la vez que el del equipo, una vez por factura
+  (`fallo_avisado`). Lleva el botón a la página de Stripe de ESA factura
+  (`hosted_invoice_url`) para pagarla con otra tarjeta; si se paga ahí, el
+  plan sigue solo. Sale en Avisos → Correos automáticos («Pago a plazos sin
+  cobrar»). ⚠️ El aviso llega al día siguiente por la tarea diaria, salvo que
+  se añadan `invoice.payment_failed` e `invoice.paid` al webhook de Stripe.
+  ⚠️ Si en Stripe están activados sus propios correos de pago fallido,
+  llegarían dos: desactivarlos allí.
 
 ## Visión: el mapa del negocio y el centro de campañas (17/10/2026)
 Pedido: "el final boss de las estadísticas": una pestaña SOLO para

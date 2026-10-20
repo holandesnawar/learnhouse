@@ -246,7 +246,7 @@ export default function PlazosPanel() {
           titulo="Terminados"
           extra={
             <button onClick={() => setVerAcabados((v) => !v)} className={ENLACE}>
-              {verAcabados ? 'Ocultar' : `Ver los ${acabados.length}`}
+              {verAcabados ? 'Ocultar' : `Ver (${acabados.length})`}
             </button>
           }
         >
