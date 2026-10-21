@@ -2571,6 +2571,20 @@ Nawar. Tres páginas en `nawar-web`, fuera de Google (`robots.txt`
   - Propuesto y NO hecho: quitar la cinta que se mueve, el aviso «¡No
     cierres ni recargues esta página!» del vídeo y el logo enlazado desde el
     CDN de systeme.io (subirlo a la web).
+- **Octava vuelta (21/10, "desde el móvil es un poco desastre")** (nawar-web
+  PR #156, en las dos copias):
+  - **Márgenes del móvil: 24 px a los lados**, los del pie de página y el
+    logo de la barra (antes 16: "demasiado poco margen"). Regla para toda
+    página nueva de la web: en el móvil, 24 px.
+  - **El fondo de la cabecera y del cierre = el de la guía y la home**
+    (`.hero-glow1/2` + `.dots-dark` de `nawar-sections.css`, copiados en
+    `.fv-luz1/2`): fuera la malla de 78 px y las luces fuertes. "El fondo es
+    otro que el de la guía".
+  - "La letra también es otra": la letra YA era la misma (Inter y Poppins,
+    medido); lo que cambiaba era el estilo de la cabecera. Ahora la pastilla
+    va en azul sólido como la de la guía, el titular con el mismo apretado
+    (-0,045em) y la entradilla en blanco. Si vuelve a decirlo, preguntar qué
+    texto exacto.
 
 ### ⚠️ El embudo vive ahora en `/formacion-nawar-fb` (07/10, nawar-web PR #135)
 Para la campaña de Meta «LEADS | VSL Matricula | oct26» (NL+BE, español,
