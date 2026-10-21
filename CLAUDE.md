@@ -2585,6 +2585,19 @@ Nawar. Tres páginas en `nawar-web`, fuera de Google (`robots.txt`
     va en azul sólido como la de la guía, el titular con el mismo apretado
     (-0,045em) y la entradilla en blanco. Si vuelve a decirlo, preguntar qué
     texto exacto.
+  - **El titular, con el diseño del de la guía** (21/10, segunda parte, PR
+    #157): "el fondo ok, pero la letra del título sí tiene que tener el mismo
+    diseño". Ahora es `.guide-title` + `.text-gradient-white`: blanco a 45 %
+    en CADA renglón (`background-size: 100% <alto de línea>`, 1,06em; en el
+    móvil 1,18em) y **sin la parte en azul** («deja de depender de otros»).
+  - ⚠️ **La barra de etapas del móvil "hacía un efecto raro"**: la copia fija
+    bajaba deslizándose mientras la de la página seguía a la vista (dos rayas).
+    Ahora, al llegar la barra a la línea de arriba (72 px con la barra de la
+    web, 0 en la del anuncio), se esconde (`.oculta`) y la copia fija sale en
+    su MISMO sitio, sin animación: parece pegajosa sin serlo. Dos
+    IntersectionObserver (la barra cruzando la línea y el final del plan) y en
+    cada aviso se miran las posiciones reales (`colocar`): aguanta los saltos
+    de golpe. Sigue la regla de no usar `position: sticky` en el móvil.
 
 ### ⚠️ El embudo vive ahora en `/formacion-nawar-fb` (07/10, nawar-web PR #135)
 Para la campaña de Meta «LEADS | VSL Matricula | oct26» (NL+BE, español,
