@@ -2598,6 +2598,15 @@ Nawar. Tres páginas en `nawar-web`, fuera de Google (`robots.txt`
     IntersectionObserver (la barra cruzando la línea y el final del plan) y en
     cada aviso se miran las posiciones reales (`colocar`): aguanta los saltos
     de golpe. Sigue la regla de no usar `position: sticky` en el móvil.
+  - ⚠️ **Las colas de la y, j, p salían cortadas** (21/10, PR #158, "mira
+    cómo no termina su efecto"): el degradado de la guía se repite al alto de
+    la línea, y con 1,06 la cola de cada letra entraba en el renglón de abajo,
+    donde el degradado empezaba otra vez en blanco. En la guía no pasa porque
+    su titular no tiene esas letras. Ahora interlineado **1,14** en el
+    ordenador (1,18 en el móvil) y cada renglón empieza APAGADO en la franja
+    de la cola de arriba y se pone blanco donde empiezan las tildes. Las
+    cuentas, con la Poppins 700 medida en el navegador, están en el CSS de
+    `.fv-h1`: **si se cambia el interlineado, rehacerlas.**
 
 ### ⚠️ El embudo vive ahora en `/formacion-nawar-fb` (07/10, nawar-web PR #135)
 Para la campaña de Meta «LEADS | VSL Matricula | oct26» (NL+BE, español,
