@@ -469,9 +469,11 @@ class PedidoEnlace(BaseModel):
     # "" = pago único (o Klarna); "plazos" = el plan propio: la persona elige
     # 3 o 4 pagos en la página de pago (`OPCIONES` en plazos.py).
     plan: str = ""
-    # Ya no se usa (19/10: el total de los plazos se elegía aquí). Se acepta
-    # para que una pantalla vieja abierta no falle.
+    # Con plan "plazos": un total y un número de pagos a medida («Otro
+    # importe» a plazos, 22/10/2026). Sin total, la persona elige 3 o 4 pagos
+    # al abrirlo. (Del 19/10 al 20/10 el total también venía aquí.)
     total_cents: int = 0
+    cuotas: int = 0
 
 
 @router.post(
@@ -494,6 +496,16 @@ async def api_enlace_pago(
     email = data.email.strip().lower()
     if "@" not in email or not data.first_name.strip():
         raise HTTPException(status_code=400, detail="Hacen falta el nombre y un correo válido")
+    medida = None
+    if data.plan == "plazos" and data.total_cents:
+        from src.services.payments.plazos import TOTAL_A_MEDIDA_MAX, a_medida
+
+        medida = a_medida(data.total_cents, data.cuotas or 3)
+        if medida is None:
+            raise HTTPException(
+                status_code=400,
+                detail=f"A plazos: de 2 a 6 pagos, al menos 0,50 € cada uno y como mucho {TOTAL_A_MEDIDA_MAX // 100} € en total",
+            )
     secreto = get_learnhouse_config().security_config.auth_jwt_secret_key
     # Se apunta en su ficha quién le creó el enlace: si luego llega al pago,
     # se sabe por qué vio el precio (02/10: "¿cómo encontró el precio?").
@@ -508,7 +520,11 @@ async def api_enlace_pago(
                 source="equipo",
                 extra={
                     "autor": _nombre(current_user),
-                    **({"plan": "plazos"} if data.plan == "plazos" else {"precio_cents": precio_base_cents()}),
+                    **(
+                        {"plan": "plazos", **({"cuotas": medida[0], "total_cents": medida[1]} if medida else {})}
+                        if data.plan == "plazos"
+                        else {"precio_cents": precio_base_cents()}
+                    ),
                 },
             ),
             db_session,
@@ -517,7 +533,14 @@ async def api_enlace_pago(
         pass
     datos = {"e": email, "f": data.first_name.strip()[:120], "l": data.last_name.strip()[:120], "p": data.phone.strip()[:40]}
     respuesta: dict = {}
-    if data.plan == "plazos":
+    if data.plan == "plazos" and medida:
+        from src.services.payments.plazos import condiciones_de
+
+        # `pv: 3` = a medida: total y número de pagos fijados aquí (22/10).
+        datos.update({"pl": "plazos", "pv": 3, "pt": medida[1], "pn": medida[0], "a": _nombre(current_user)[:60]})
+        respuesta["opciones"] = [condiciones_de(medida[0], medida[1])]
+        respuesta["a_medida"] = True
+    elif data.plan == "plazos":
         from src.services.payments.plazos import opciones
 
         # `pv: 2` = la persona elige 3 o 4 pagos al abrirlo (20/10/2026).
