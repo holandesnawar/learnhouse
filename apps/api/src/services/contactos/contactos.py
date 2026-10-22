@@ -211,6 +211,23 @@ async def registrar_evento(data: ContactEventCreate, db_session: AsyncSession) -
             await avisar_equipo_llamada(fila, db_session)
         except Exception:  # noqa: BLE001
             logger.exception("No se pudo avisar de la llamada de %s", fila.email)
+    # Ha reservado hora (22/10/2026): a quien reparte las llamadas entre los
+    # closers, para que diga quién la atiende (`reparto.py`). La web no manda
+    # la hora (Calendly solo le dice que se ha reservado): el correo va sin ella.
+    if fila.kind == "reunion":
+        try:
+            from src.services.panel.reparto import avisar_llamada_nueva
+
+            await avisar_llamada_nueva(
+                {
+                    "nombre": " ".join(x for x in (fila.first_name, fila.last_name) if x).strip(),
+                    "email": fila.email,
+                    "telefono": fila.phone,
+                },
+                db_session,
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception("No se pudo avisar de la reserva de %s", fila.email)
     return fila
 
 

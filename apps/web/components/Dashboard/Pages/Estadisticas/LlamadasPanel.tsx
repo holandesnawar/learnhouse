@@ -405,7 +405,24 @@ function AgendaVista({
       }),
     [lunes]
   )
-  const citas = agenda?.citas || []
+  // «Mías» (22/10, dos closers): las que llevo yo y las que aún no tiene nadie
+  // (si no, una sin repartir no la vería nadie). Se recuerda en el navegador.
+  const [soloMias, setSoloMiasEstado] = useState<boolean | null>(null)
+  useEffect(() => {
+    try {
+      const g = localStorage.getItem('nawar.agenda.mias')
+      if (g === '1' || g === '0') setSoloMiasEstado(g === '1')
+    } catch {}
+  }, [])
+  const mias = soloMias ?? !isAdmin
+  const setSoloMias = (v: boolean) => {
+    setSoloMiasEstado(v)
+    try {
+      localStorage.setItem('nawar.agenda.mias', v ? '1' : '0')
+    } catch {}
+  }
+  const hayReparto = (agenda?.citas || []).some((c) => c.closer_id)
+  const citas = (agenda?.citas || []).filter((c) => !mias || !hayReparto || !c.closer_id || c.closer_id === agenda?.yo)
   const hoy = new Date()
   const domingo = dias[6]
   const rango = `${dias[0].toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} – ${domingo.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}`
@@ -441,6 +458,11 @@ function AgendaVista({
               {nombre}
             </button>
           ))}
+          {hayReparto && vista !== 'google' ? (
+            <button onClick={() => setSoloMias(!mias)} className={`${filtro(mias)} ml-2`} title="Las que llevas tú y las que aún no tienen closer">
+              Solo las mías
+            </button>
+          ) : null}
         </div>
         <div className="ml-auto flex items-center gap-1">
         {vista === 'semana' ? (
@@ -603,9 +625,18 @@ function CitaBloque({ c, onClick, notas }: { c: Cita; onClick: () => void; notas
       <Estado tono={e.tono} className="mt-0.5 !text-[11.5px]">
         {e.texto}
       </Estado>
+      <QuienLaLleva c={c} />
       <IconoNota c={c} notas={notas} className="mt-0.5 flex" />
     </button>
   )
+}
+
+/** El closer que lleva la llamada; «Sin asignar» en las que vienen y no tiene nadie. */
+function QuienLaLleva({ c }: { c: Cita }) {
+  if (c.closer) return <span className="block text-[11.5px] text-gray-500 truncate">{c.closer.split(/\s+/)[0]}</span>
+  if (c.estado === 'activa' && new Date(c.inicio).getTime() > Date.now())
+    return <span className="block text-[11.5px] text-[#B45309] truncate">Sin asignar</span>
+  return null
 }
 
 /** Lista por días: lo que viene (desde hoy) y, plegado, lo de antes. */
@@ -637,6 +668,7 @@ function CitasEnLista({ citas, abrir, notas }: { citas: Cita[]; abrir: (c: Cita)
                 <span className="flex-1 min-w-0">
                   <span className={`block text-[14px] font-medium truncate ${cancelada ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{c.nombre || c.email}</span>
                   <span className="block text-[12.5px] text-gray-500 truncate">{c.email}</span>
+                  <QuienLaLleva c={c} />
                   <IconoNota c={c} notas={notas} className="mt-0.5" />
                 </span>
                 <Estado tono={e.tono}>{e.texto}</Estado>

@@ -209,6 +209,9 @@ export interface Cita {
   resultado?: { resultado: ResultadoLlamada; nombre: string; nota: string; autor: string; cuando: string; auto?: boolean } | null
   /** Solo en `quitadas`: a mano (se puede devolver) o por ser una prueba fuera de los números. */
   quitada_por?: 'mano' | 'prueba'
+  /** El closer que lleva la llamada (22/10): 0 = sin asignar. */
+  closer_id?: number
+  closer?: string
 }
 
 export type ResultadoLlamada = 'pagado' | 'compra' | 'piensa' | 'no-encaja' | 'no-vino'
@@ -247,6 +250,8 @@ export interface Agenda {
   /** Las que no se enseñan: quitadas a mano o de pruebas fuera de los números. */
   quitadas?: Cita[]
   error?: string
+  /** Quién soy, para «Solo las mías». */
+  yo?: number
 }
 
 /** Esconde una cita del calendario de Llamadas. En Calendly sigue igual. */

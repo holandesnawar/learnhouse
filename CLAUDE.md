@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-22 (incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-22 (Matrículas en dos mesas, Leads y Ventas, con closer asignado y reparto; «Esta semana» del alumno cuenta las clases terminadas; antes, el mismo día, incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -2176,8 +2176,14 @@ sin salir de la pantalla. Lo que sí se apunta, clase a clase, es el recorrido
   (el mismo de `lib/nawar/cursos.ts`).
 - Clientes enseña "N de M clases · %" y "Va por Módulo X · clase"; la ficha de
   un alumno tiene el bloque **Formación** con una barra por módulo.
-- ⚠️ Lo mismo afecta a lo que ve el ALUMNO y lee de `lesson_completion`
-  ("lecciones esta semana", el tiempo por lección): sin arreglar todavía.
+- ⚠️ Lo mismo afectaba a lo que ve el ALUMNO: «Esta semana» del Inicio
+  decía «0 lecciones terminadas» a quien había estudiado. **Arreglado el
+  22/10/2026** (PR #196): cuenta las clases terminadas del recorrido, que el
+  Inicio ya tiene con su fecha (`fechasDeClases` y `semanaConClases` en
+  `services/student/insights.ts`, test `semanaClases.test.ts`), también en la
+  tira de días. La fecha de `trail_step` se escribe en UTC sin zona: se lee
+  como UTC. Mi progreso ya contaba por el recorrido. El tiempo por lección no
+  se enseña en ningún sitio.
 - **La tarea diaria del goteo** (`drip-emails.yaml`) devuelve ahora
   `proximos`: las 3 próximas aperturas con fecha y nombre. Para saber qué
   módulo se abre mañana: Actions → «Drip» → la última ejecución, o lanzarla a
@@ -3438,6 +3444,54 @@ columna nueva**: el tablero son las MISMAS tarjetas del mapa (`vision_node`).
   `GET …/nodos/{id}` (la tarjeta entera; la lista va sin el texto de dentro).
 - Tests: `test_vision.py` (encargados, qué sale, áreas, crear y la fecha de
   hecho) y `lib/nawar/__tests__/semanasTrabajo.test.ts`.
+
+## Matrículas en dos mesas: Leads y Ventas, con reparto entre closers (22/10/2026)
+Pedido (entra un segundo closer): "un CRM para el seguimiento del lead y otro
+desde la llamada hasta la venta… cada llamada que se agende le llegue a Diego,
+el closer principal, y diga esta para mí o esta para el otro". Se hizo como
+**dos tableros sobre la misma tarjeta y la misma ficha**, no dos sistemas
+(las notas ya se juntaron una vez por estar repartidas).
+- **Leads**: Nuevo, Por llamar, No contesta, Contactado, Descartado.
+  **Ventas**: Por asignar, Agendada, No show, Seguimiento, Por pagar, Ganada
+  (= Alumno), Perdida (= Descartado). La columna decide la mesa (`mesa_de` en
+  `pipeline.py`, pura con test); Descartado va a Ventas solo si llegó a tener
+  una llamada (cita de Calendly no cancelada, «¿Qué pasó?» que no sea
+  «quitada», closer asignado o evento `reunion`/`llamada-equipo`:
+  `emails_con_llamada`). «Por asignar» NO es una etapa: son las de Agendado
+  sin closer (`columnaDe` en `KanbanPanel.tsx`).
+- **Closer asignado**: columnas `closer_id`, `closer`, `asignado_at`,
+  `asignado_por` en `lead_pipeline` (en `_ADDED_COLUMNS`, aprobadas por el
+  usuario). `pipeline.asignar` NO toca la etapa ni `updated_at`: esa fecha
+  decide si una reserva de Calendly la pasa a Agendado (`cita_que_manda`).
+  Una fila que solo guarda el closer va con etapa vacía. Si hay filas
+  repetidas, el closer sale de la del último reparto (`_la_asignada`) y
+  `mover` / `ocultar` lo copian a la que se queda.
+- **Reparto**: `services/panel/reparto.py` (docstring: leerlo). Quien reparte
+  se elige en Ventas («Reparte las llamadas», solo administradores; org_config
+  `reparto_llamadas`). Cuando la web avisa de una reserva (`reunion`), le llega
+  `send_llamada_agendada_email` (si no hay nadie puesto, a los
+  administradores). En «Por asignar», botones «Para mí» / «Para <closer>»
+  (`Panel/Reparto.tsx`, también en la ficha, fila «Closer»); al otro le llega
+  `send_llamada_asignada_email` con el día, el teléfono y el enlace de la
+  videollamada. Soltar una tarjeta en «Por asignar» le quita el closer;
+  soltar en Agendada una sin closer es quedársela. Si un closer agenda desde
+  el panel (`/agenda/reservar`), se la queda él.
+- **«Mías»**: en Ventas (de serie para el closer, «Todas» para el
+  administrador) y en la agenda de Llamadas («Solo las mías», que enseña
+  también las que no tiene nadie). Cada cita de la agenda lleva su closer
+  (`closer_id`/`closer` en `/contactos/org/{id}/agenda`) y «Sin asignar» en
+  ámbar si viene y no lo tiene nadie. Arriba de Ventas, cada closer con «N en
+  curso · N ganadas».
+- ⚠️ **El enlace de la videollamada sigue siendo el del evento de Calendly**
+  (el de Diego): el otro closer entra con ese mismo enlace, con «permitir
+  entrar antes que el anfitrión» en Zoom. Lo limpio viene con la agenda
+  propia (siguiente paso): un enlace de la escuela por llamada que lleva a la
+  sala de quien la tenga.
+- ⚠️ Visión calcula la comisión del closer como si hubiera uno solo: con dos,
+  falta repartirla por `closer_id` (pendiente).
+- Tests: `test_reparto_llamadas.py` (mesas, a quién avisar, asignar sin mover
+  la tarjeta ni su fecha, descartado por mesa, filas repetidas). Probado en
+  local con capturas como administrador, closer y móvil, y arrastrando.
 
 ## Incidente de Railway: claves robadas y despliegues parados (21-22/10/2026)
 Railway avisó de que un tercero pudo leer las variables de entorno de sus

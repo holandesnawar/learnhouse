@@ -55,6 +55,23 @@ prueba se quedaba en "Alumno" para siempre, porque a quien ha pagado no se le
 borra.
 
 La colocación es una función pura (`colocar`), con test.
+
+DOS MESAS (22/10/2026, "uno para el seguimiento del lead y otro desde la
+llamada hasta la venta"; entra un segundo closer). No son dos sistemas: es la
+misma tarjeta, la misma ficha y las mismas notas, y la columna decide en qué
+mesa sale (`mesa_de`):
+- **Leads** (del embudo a la llamada): Nuevo, Por llamar, No contesta,
+  Contactado y Descartado.
+- **Ventas** (de la llamada al cobro): Agendado, No show, Seguimiento, Por
+  pagar, Alumno y Descartado. La pantalla separa de Agendado las que aún no
+  tienen closer («Por asignar»).
+Descartado sale en Ventas si la persona llegó a tener una llamada (una cita de
+Calendly no cancelada, un «¿Qué pasó?», un closer asignado o una reserva
+avisada por la web) y en Leads si no.
+
+Cada tarjeta lleva su closer (`closer_id`, `asignar`). Lo reparte el closer
+principal (o quien tenga el panel) desde «Por asignar», y al asignado le llega
+un correo. Asignar no cambia la columna ni la fecha del último movimiento.
 """
 
 from datetime import datetime, timezone
@@ -88,6 +105,24 @@ _ANTES = {"propuesta": "seguimiento", "revision": "seguimiento", "perdido": "des
 #: Mover a alguien y apuntarlo en Llamadas en el mismo momento no es "volver".
 _MARGEN_SEG = 120
 CANALES = {"", "whatsapp", "llamada", "email", "instagram", "otro"}
+
+#: Las dos mesas: en cuál sale cada columna (Descartado depende, `mesa_de`).
+MESA_LEADS = {"nuevo", "llamar", "no-contesta", "contactado"}
+MESA_VENTAS = {"agendado", "no-show", "seguimiento", "pendiente-pago", "alumno"}
+#: Pasos de la ficha que dicen que tuvo (o reservó) una llamada.
+_PASOS_DE_LLAMADA = {"reunion", "llamada-equipo"}
+
+
+def mesa_de(etapa: str, tuvo_llamada: bool) -> str:
+    """«leads» o «ventas». Descartado va a Ventas solo si llegó a tener una
+    llamada: quien se descarta sin haber hablado nunca con un closer es un
+    lead que no siguió, no una venta perdida. Función pura."""
+    if etapa in MESA_VENTAS:
+        return "ventas"
+    if etapa == "descartado" and tuvo_llamada:
+        return "ventas"
+    return "leads"
+
 
 #: Etapas de Contactos que entran en el tablero.
 _EN_TABLERO = {"pidio", "en-pago", "alumno"}
@@ -416,6 +451,33 @@ async def citas_por_email(db_session: AsyncSession) -> dict[str, list[dict]]:
     return salida
 
 
+async def emails_con_llamada(db_session: AsyncSession) -> set[str]:
+    """Quien llegó a tener una llamada: una cita de Calendly no cancelada (las
+    de los últimos 45 días que da la agenda) o un «¿Qué pasó?» apuntado (que
+    no sea «quitada del calendario»). Para saber en qué mesa va Descartado.
+    En blando: si algo falla, vacío."""
+    salida: set[str] = set()
+    try:
+        from src.services.contactos.agenda import agenda
+
+        for c in (await agenda()).get("citas") or []:
+            if c.get("estado") == "activa" and c.get("email"):
+                salida.add(c["email"].strip().lower())
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        from src.db.contact_seguimiento import CallOutcome
+
+        for email, resultado in (
+            await db_session.execute(select(CallOutcome.email, CallOutcome.resultado))
+        ).all():
+            if email and resultado != "quitada":
+                salida.add(email.strip().lower())
+    except Exception:  # noqa: BLE001
+        pass
+    return salida
+
+
 def colocar(
     ficha: dict,
     guardada: Optional[dict],
@@ -423,6 +485,7 @@ def colocar(
     ahora: Optional[datetime] = None,
     nombres_anuncios: Optional[dict] = None,
     citas: Optional[list[dict]] = None,
+    con_llamada: bool = False,
 ) -> dict:
     """Dónde va una ficha de Contactos en el tablero.
 
@@ -492,6 +555,13 @@ def colocar(
         "cita": {"inicio": cita.get("inicio", ""), "id": cita.get("id", "")} if cita else None,
         # Fuera del tablero: quitada a mano, o fuera de los números (prueba).
         "oculto": bool(guardada.get("oculto")) or bool(ficha.get("fuera_de_metricas")),
+        # Leads o Ventas (`mesa_de`), y el closer que lleva su llamada.
+        "mesa": mesa_de(
+            etapa,
+            con_llamada or bool(cita) or bool(guardada.get("closer_id")) or bool(_cuando_paso(ficha, _PASOS_DE_LLAMADA)),
+        ),
+        "closer_id": int(guardada.get("closer_id") or 0),
+        "closer": guardada.get("closer", "") if guardada.get("closer_id") else "",
     }
 
 
@@ -531,6 +601,9 @@ def tarjeta_suelta(llamada: dict) -> dict:
         "llegada": llamada.get("entro") or llamada.get("created_at", ""),
         "oculto": False,
         "suelta": True,
+        "mesa": "leads",
+        "closer_id": 0,
+        "closer": "",
         "llamada": llamada,
         "temperatura": llamada.get("temperatura") or "frio",
     }
@@ -569,11 +642,20 @@ async def guardadas(db_session: AsyncSession) -> dict[str, dict]:
     salida: dict[str, dict] = {}
     for email, filas in por_email.items():
         f = _la_buena(filas)[0]
+        asignada = _la_asignada(filas)
         salida[email] = {
             "etapa": f.etapa, "canal": f.canal, "motivo": f.motivo, "oculto": any(bool(getattr(x, "oculto", False)) for x in filas),
             "updated_at": f.updated_at, "updated_by": f.updated_by,
+            "closer_id": int(getattr(asignada, "closer_id", 0) or 0),
+            "closer": getattr(asignada, "closer", "") or "",
         }
     return salida
+
+
+def _la_asignada(filas: list):
+    """De las filas de un mismo correo, la del último reparto (vale también
+    para «quitar el closer», que deja la marca con closer 0)."""
+    return max(filas, key=lambda f: (_instante(getattr(f, "asignado_at", "") or ""), f.id or 0))
 
 
 async def tablero(fichas: list[dict], db_session: AsyncSession, nombres_anuncios: Optional[dict] = None) -> dict:
@@ -583,6 +665,7 @@ async def tablero(fichas: list[dict], db_session: AsyncSession, nombres_anuncios
     por_email = {f["email"]: f for f in fichas}
     llamadas, sueltas = await para_el_tablero(por_email, db_session)
     citas = await citas_por_email(db_session)
+    con_llamada = await emails_con_llamada(db_session)
     ahora = datetime.now(timezone.utc)
     tarjetas = []
     for f in fichas:
@@ -591,7 +674,10 @@ async def tablero(fichas: list[dict], db_session: AsyncSession, nombres_anuncios
         movida = bool(etapa_guardada((ya.get(f["email"]) or {}).get("etapa", "")))
         if not en_tablero(f, pendiente, movida):
             continue
-        t = colocar(f, ya.get(f["email"]), llamada, ahora, nombres_anuncios, citas.get(f["email"]))
+        t = colocar(
+            f, ya.get(f["email"]), llamada, ahora, nombres_anuncios, citas.get(f["email"]),
+            con_llamada=f["email"] in con_llamada,
+        )
         # En Nuevo y Por llamar, la temperatura (como en Llamadas: la de su
         # fila si la tiene, que puede estar puesta a mano; si no, por cuándo
         # llegó) y, si se quedó a medias, dónde.
@@ -639,6 +725,8 @@ async def mover(
     filas = await filas_de(clave, db_session)
     fila = filas[0] if filas else LeadPipeline(email=clave)
     # Si había más de una fila para este correo, se quedan en una (ver `_la_buena`).
+    if filas:
+        _copiar_closer(fila, _la_asignada(filas))
     for sobra in filas[1:]:
         if getattr(sobra, "oculto", False):
             fila.oculto = True
@@ -676,6 +764,47 @@ async def mover(
     return {"ok": True, "etapa": etapa, "canal": fila.canal}
 
 
+def _copiar_closer(destino, origen) -> None:
+    """Al quedarse con una sola fila, que no se pierda el reparto."""
+    if origen is None or origen is destino:
+        return
+    destino.closer_id = int(getattr(origen, "closer_id", 0) or 0)
+    destino.closer = getattr(origen, "closer", "") or ""
+    destino.asignado_at = getattr(origen, "asignado_at", "") or ""
+    destino.asignado_por = getattr(origen, "asignado_por", "") or ""
+
+
+async def asignar(
+    email: str, closer_id: int, closer: str, autor: str, db_session: AsyncSession
+) -> dict:
+    """Le pone (o le quita, con 0) el closer que lleva su llamada. No toca la
+    columna ni `updated_at` (ver el modelo). Devuelve si ha cambiado, para
+    avisar solo cuando hay un closer nuevo."""
+    clave = (email or "").strip().lower()
+    if not clave or "@" not in clave:
+        return {"ok": False, "motivo": "Falta un correo válido"}
+    filas = await filas_de(clave, db_session)
+    if filas:
+        fila = filas[0]
+        antes = int(getattr(_la_asignada(filas), "closer_id", 0) or 0)
+        for sobra in filas[1:]:
+            if getattr(sobra, "oculto", False):
+                fila.oculto = True
+            await db_session.delete(sobra)
+    else:
+        # Nadie la ha movido: fila sin etapa, solo con el reparto.
+        fila = LeadPipeline(email=clave, etapa="")
+        antes = 0
+    closer_id = int(closer_id or 0)
+    fila.closer_id = closer_id
+    fila.closer = (closer or "")[:120] if closer_id else ""
+    fila.asignado_at = _ahora()
+    fila.asignado_por = (autor or "")[:120]
+    db_session.add(fila)
+    await db_session.commit()
+    return {"ok": True, "closer_id": closer_id, "closer": fila.closer, "cambia": closer_id != antes}
+
+
 async def ocultar(email: str, oculto: bool, autor: str, db_session: AsyncSession) -> dict:
     """Quita a alguien del tablero (o lo devuelve) sin tocar nada más: ni su
     columna, ni sus pagos, ni los números. Es lo que se hace con un alumno que
@@ -689,6 +818,8 @@ async def ocultar(email: str, oculto: bool, autor: str, db_session: AsyncSession
             return {"ok": True, "oculto": False}
         filas = [LeadPipeline(email=clave, etapa="")]
     fila = filas[0]
+    if len(filas) > 1:
+        _copiar_closer(fila, _la_asignada(filas))
     for sobra in filas[1:]:
         await db_session.delete(sobra)
     fila.oculto = bool(oculto)

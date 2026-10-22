@@ -212,7 +212,12 @@ async def ficha_cliente(
     ficha["fuera_de_metricas"] = clave in await emails_excluidos(db_session)
 
     # La misma fila que lee el tablero (la última que se tocó, si hubiera dos).
-    guardada = next(iter(await filas_de(clave, db_session)), None)
+    filas = await filas_de(clave, db_session)
+    guardada = next(iter(filas), None)
+    # El closer de su llamada: el del último reparto (puede estar en otra fila).
+    from src.services.panel.pipeline import _la_asignada, emails_con_llamada
+
+    asignada = _la_asignada(filas) if filas else None
     # Su fila en Llamadas, como la ve el tablero: la ficha dice la misma
     # columna que la tarjeta (Seguimiento incluido).
     try:
@@ -223,13 +228,18 @@ async def ficha_cliente(
         llamada = None
     tablero = colocar(
         ficha,
-        {"etapa": guardada.etapa, "canal": guardada.canal, "motivo": guardada.motivo, "updated_at": guardada.updated_at, "updated_by": guardada.updated_by}
+        {
+            "etapa": guardada.etapa, "canal": guardada.canal, "motivo": guardada.motivo, "updated_at": guardada.updated_at,
+            "updated_by": guardada.updated_by,
+            "closer_id": int(getattr(asignada, "closer_id", 0) or 0), "closer": getattr(asignada, "closer", "") or "",
+        }
         if guardada
         else None,
         llamada,
         nombres_anuncios=nombres_anuncios,
         # Su llamada de Calendly, para que la ficha diga Agendado como la tarjeta.
         citas=(await citas_por_email(db_session)).get(clave),
+        con_llamada=clave in await emails_con_llamada(db_session),
     )
 
     # El plan de pagos propio (3 plazos): su matrícula lleva la suma de lo
