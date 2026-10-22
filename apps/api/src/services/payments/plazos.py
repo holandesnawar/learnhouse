@@ -45,6 +45,14 @@ plan (`cuotas`, `total_cents`).
 Los enlaces creados ANTES del 20/10 siguen como se mandaron: 3 pagos de 145 €
 (435) o de 165,67 (497), el total firmado en el enlace (`pt`, `total_valido`).
 
+A MEDIDA (22/10/2026, "en «Otro importe» poder poner 435 y que salga a
+plazos"): el equipo fija el total y el número de pagos al crear el enlace
+(`pv: 3`, con `pt` y `pn` firmados). La persona no elige nada: al abrirlo va
+directa a la caja con esas cuotas. `a_medida` pone los límites (de 2 a 6
+pagos, al menos 50 céntimos por cobro, que es el mínimo de Stripe, y como
+mucho 3.000 € en total, para que una errata no cobre de más). El resto es
+igual que los otros planes: el calendario corta al último pago.
+
 Lo que cuida
 ------------
 - Contar dos veces: cada cobro se apunta por el id de su factura
@@ -109,6 +117,22 @@ def cuota_cents() -> int:
 #: Lo que la persona elige en la página de pago: número de pagos → total
 #: (20/10/2026). 4 × 135 € justos; 497 en 3, con los céntimos en las primeras.
 OPCIONES: dict[int, int] = {3: 49700, 4: 54000}
+
+#: A medida: cuántos pagos se pueden poner y el total más alto, en céntimos.
+CUOTAS_A_MEDIDA = range(2, 7)
+TOTAL_A_MEDIDA_MAX = 300000
+
+
+def a_medida(total: Any, n: Any) -> Optional[tuple[int, int]]:
+    """(pagos, total) si el plan a medida vale; None si no. Función pura."""
+    try:
+        total, n = int(total or 0), int(n or 0)
+    except (TypeError, ValueError):
+        return None
+    if n not in CUOTAS_A_MEDIDA or total < 50 * n or total > TOTAL_A_MEDIDA_MAX:
+        return None
+    return n, total
+
 
 #: El otro total que se podía elegir al crear el enlace (19/10). Solo para los
 #: enlaces de antes del 20/10, que siguen cobrando lo que decían.
@@ -441,11 +465,19 @@ def precio_plazos(cuota: Optional[int] = None) -> str:
 # ── la persona abre el enlace ──────────────────────────────────────────────
 
 
-async def abrir_plazos(data, autor: str, db_session: AsyncSession, total_cents: Any = None, n_cuotas: Any = None) -> dict:
+async def abrir_plazos(
+    data,
+    autor: str,
+    db_session: AsyncSession,
+    total_cents: Any = None,
+    n_cuotas: Any = None,
+    medida: Optional[tuple[int, int]] = None,
+) -> dict:
     """Guarda la matrícula y abre la caja de pago en modo suscripción. Devuelve
-    lo mismo que `enroll_and_checkout_session` (con `payment_url`). `n_cuotas`
-    es lo que eligió la persona (`OPCIONES`); sin él, un enlace de antes del
-    20/10: 3 pagos con el total firmado en el enlace (`total_valido`)."""
+    lo mismo que `enroll_and_checkout_session` (con `payment_url`). `medida`:
+    (pagos, total) fijados por el equipo (`a_medida`). Si no, `n_cuotas` es lo
+    que eligió la persona (`OPCIONES`); sin él, un enlace de antes del 20/10:
+    3 pagos con el total firmado en el enlace (`total_valido`)."""
     import stripe
 
     from src.db.enrollment import Enrollment
@@ -466,7 +498,9 @@ async def abrir_plazos(data, autor: str, db_session: AsyncSession, total_cents: 
         elegido = int(n_cuotas or 0)
     except (TypeError, ValueError):
         elegido = 0
-    if elegido in OPCIONES:
+    if medida:
+        n, total = medida
+    elif elegido in OPCIONES:
         n, total = elegido, OPCIONES[elegido]
     else:
         n, total = cuotas(), total_valido(total_cents)

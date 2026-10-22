@@ -5,6 +5,8 @@
 - Los enlaces de pago creados antes del cambio (sin `pu`) respetan el precio de
   entonces (397 €, `LEARNHOUSE_STRIPE_FORMACION_PRICE_ID`) hasta caducar.
 - El enlace «A plazos» nuevo (`pv: 2`) lleva primero a elegir 3 o 4 pagos.
+- El enlace a plazos «a medida» (`pv: 3`, 22/10) va directo a la caja con el
+  total y los pagos que puso el equipo.
 """
 
 from types import SimpleNamespace
@@ -64,8 +66,9 @@ async def _abrir(datos: dict, cuotas=None):
         llamadas["unico"] = precio_id
         return {"payment_url": "https://escuela.test/pago-unico"}
 
-    async def plazos(pedido, autor, db, total_cents=None, n_cuotas=None):
+    async def plazos(pedido, autor, db, total_cents=None, n_cuotas=None, medida=None):
         llamadas["plazos"] = (total_cents, n_cuotas)
+        llamadas["medida"] = medida
         return {"payment_url": "https://escuela.test/pago-plazos"}
 
     parches = [
@@ -111,3 +114,35 @@ async def test_a_plazos_primero_se_elige_y_luego_se_paga():
 async def test_un_enlace_a_plazos_de_antes_no_pregunta():
     r, ll = await _abrir({"pl": "plazos", "pt": 49700}, cuotas=4)
     assert ll["plazos"] == (49700, None)
+
+
+# ── a plazos a medida (22/10/2026) ─────────────────────────────────────────
+
+
+def test_los_limites_de_un_plan_a_medida():
+    assert Z.a_medida(43500, 3) == (3, 43500)
+    assert Z.a_medida("43500", "2") == (2, 43500)
+    assert Z.a_medida(43500, 6) == (6, 43500)
+    # Un solo pago no es un plan; más de 6, tampoco.
+    assert Z.a_medida(43500, 1) is None and Z.a_medida(43500, 7) is None
+    # Menos de 0,50 € por cobro (el mínimo de Stripe), o más de 3.000 €.
+    assert Z.a_medida(140, 3) is None and Z.a_medida(150, 3) == (3, 150)
+    assert Z.a_medida(300001, 3) is None
+    assert Z.a_medida(None, 3) is None and Z.a_medida("no", 3) is None
+
+
+@pytest.mark.asyncio
+async def test_un_enlace_a_medida_va_directo_a_la_caja():
+    r, ll = await _abrir({"pl": "plazos", "pv": 3, "pt": 43500, "pn": 3})
+    assert ll["medida"] == (3, 43500)
+    assert r.status_code == 303 and r.headers["location"] == "https://escuela.test/pago-plazos"
+    # El número de pagos lo puso el equipo: un `?cuotas=` en la dirección no lo cambia.
+    r, ll = await _abrir({"pl": "plazos", "pv": 3, "pt": 43500, "pn": 3}, cuotas=4)
+    assert ll["medida"] == (3, 43500)
+
+
+@pytest.mark.asyncio
+async def test_un_enlace_a_medida_mal_hecho_no_cobra():
+    r, ll = await _abrir({"pl": "plazos", "pv": 3, "pt": 43500, "pn": 9})
+    assert "plazos" not in ll and r.status_code == 400
+    assert "no está bien hecho" in r.body.decode()

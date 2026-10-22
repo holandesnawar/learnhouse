@@ -205,12 +205,17 @@ async def test_a_un_alumno_o_a_quien_ya_tiene_plan_no_se_le_abre_otro(db, org):
 # ── el primer cobro ────────────────────────────────────────────────────────
 
 
-async def _primer_pago(db, falso, veces=1, total=None, n=None):
+async def _primer_pago(db, falso, veces=1, total=None, n=None, medida=None):
     with _Varios(_con_stripe(falso)):
-        await Z.abrir_plazos(_pedido(), "Zulay", db, total_cents=total, n_cuotas=n)
+        await Z.abrir_plazos(_pedido(), "Zulay", db, total_cents=total, n_cuotas=n, medida=medida)
     fila = (await db.execute(select(Enrollment))).scalars().one()
     meta = falso.sesiones[-1]["metadata"]
-    primera = Z.condiciones_de(n, Z.OPCIONES[n])["cuota_cents"] if n else Z.condiciones(total)["cuota_cents"]
+    if medida:
+        primera = Z.condiciones_de(*medida)["cuota_cents"]
+    elif n:
+        primera = Z.condiciones_de(n, Z.OPCIONES[n])["cuota_cents"]
+    else:
+        primera = Z.condiciones(total)["cuota_cents"]
     sesion = {
         "id": "cs_plazos", "mode": "subscription", "payment_status": "paid", "amount_total": primera,
         "currency": "eur", "subscription": "sub_1", "invoice": "in_1", "customer": "cus_1",
@@ -513,3 +518,38 @@ async def test_un_enlace_de_antes_sigue_con_lo_que_decia(db, org):
     with _Varios(_con_stripe(falso)):
         r = await Z.abrir_plazos(_pedido(), "", db, total_cents=43500)
     assert "amt=14500" in r["payment_url"] and "tot=43500" in r["payment_url"] and "cuotas=3" in r["payment_url"]
+
+
+# ── a medida: el equipo pone el total y los pagos (22/10/2026) ────────────
+
+
+@pytest.mark.asyncio
+async def test_435_en_3_a_medida_son_3_de_145(db, org):
+    falso = StripeFalso()
+    with _Varios(_con_stripe(falso)):
+        r = await Z.abrir_plazos(_pedido(), "Diego", db, medida=(3, 43500))
+    assert "amt=14500" in r["payment_url"] and "tot=43500" in r["payment_url"] and "cuotas=3" in r["payment_url"]
+    sesion = falso.sesiones[0]
+    assert sesion["metadata"]["cuotas"] == "3" and sesion["metadata"]["total_cents"] == "43500"
+    assert "3 pagos, 435 € en total" in sesion["subscription_data"]["description"]
+
+
+@pytest.mark.asyncio
+async def test_a_medida_en_2_pagos_que_no_se_dividen_y_corta_al_segundo(db, org):
+    falso = StripeFalso()
+    fila, altas = await _primer_pago(db, falso, medida=(2, 60001))
+    assert altas == ["ana@x.com"]
+    plan = (await db.execute(select(PlanPagos))).scalars().one()
+    assert plan.cuotas == 2 and plan.total_cents == 60001 and plan.cuota_cents == 30001
+    # Un mes a 300,01 y otro a 300,00; se cancela al acabar.
+    cal = falso.calendarios[0]
+    assert cal["end_behavior"] == "cancel"
+    uno, dos = cal["phases"]
+    assert uno["items"] == [{"price": "price_30001", "quantity": 1}]
+    assert uno["duration"] == {"interval": "month", "interval_count": 1}
+    assert dos["items"] == [{"price": "price_30000", "quantity": 1}]
+    assert dos["duration"] == {"interval": "month", "interval_count": 1}
+    await Z.atender_factura({"id": "in_2", "amount_paid": 30000, "status_transitions": {"paid_at": 1794787200},
+                             "parent": {"subscription_details": {"subscription": "sub_1"}}}, True, db)
+    await db.refresh(plan)
+    assert plan.estado == "completado" and plan.pagado_cents == 60001

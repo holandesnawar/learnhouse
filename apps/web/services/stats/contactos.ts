@@ -385,15 +385,28 @@ export async function comprobarPlazos(
 
 export async function crearEnlacePago(
   orgId: number,
-  datos: { email: string; first_name: string; last_name?: string; phone?: string; plan?: '' | 'plazos' },
+  datos: {
+    email: string
+    first_name: string
+    last_name?: string
+    phone?: string
+    plan?: '' | 'plazos'
+    /** Con plan «plazos»: total y número de pagos a medida (de 2 a 6). Sin
+     *  total, la persona elige 3 o 4 pagos al abrirlo. */
+    total_cents?: number
+    cuotas?: number
+  },
   accessToken: string
 ): Promise<{
   url?: string
   dias?: number
   /** Pago único (o Klarna): el precio firmado en el enlace. */
   precio_cents?: number
-  /** «A plazos»: lo que podrá elegir la persona al abrirlo (3 o 4 pagos). */
+  /** «A plazos»: lo que podrá elegir la persona al abrirlo (3 o 4 pagos), o
+   *  el único plan si es a medida. */
   opciones?: CondicionesPlazos[]
+  /** El total y los pagos los fijó el equipo: la persona no elige nada. */
+  a_medida?: boolean
   error?: string
 }> {
   try {

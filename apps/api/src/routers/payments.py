@@ -157,9 +157,16 @@ async def api_pagar_enlace(
     try:
         if datos.get("pl") == "plazos":
             # El plan de pagos propio (ver plazos.py).
-            from src.services.payments.plazos import OPCIONES, abrir_plazos
+            from src.services.payments.plazos import OPCIONES, a_medida, abrir_plazos
 
-            if datos.get("pv") == 2 and cuotas not in OPCIONES:
+            if datos.get("pv") == 3:
+                # A medida (22/10/2026): el equipo fijó el total y el número
+                # de pagos; la persona va directa a la caja.
+                medida = a_medida(datos.get("pt"), datos.get("pn"))
+                if medida is None:
+                    raise HTTPException(status_code=400, detail="Este enlace a plazos no está bien hecho")
+                resultado = await abrir_plazos(pedido, str(datos.get("a") or ""), db_session, medida=medida)
+            elif datos.get("pv") == 2 and cuotas not in OPCIONES:
                 # Desde el 20/10 la persona elige 3 o 4 pagos en la página de
                 # pago: primero se le enseñan las opciones, y al elegir vuelve
                 # aquí con `?cuotas=` y entonces se crea la sesión.
@@ -173,10 +180,11 @@ async def api_pagar_enlace(
                     ),
                     status_code=303,
                 )
-            resultado = await abrir_plazos(
-                pedido, str(datos.get("a") or ""), db_session,
-                total_cents=datos.get("pt"), n_cuotas=cuotas if datos.get("pv") == 2 else None,
-            )
+            else:
+                resultado = await abrir_plazos(
+                    pedido, str(datos.get("a") or ""), db_session,
+                    total_cents=datos.get("pt"), n_cuotas=cuotas if datos.get("pv") == 2 else None,
+                )
         else:
             # Los enlaces de antes del 20/10 no llevan `pu` y respetan el precio
             # de entonces (397 €) hasta caducar; los nuevos, el de hoy.

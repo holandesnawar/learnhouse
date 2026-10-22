@@ -440,7 +440,7 @@ function DesglosePorPartes({
   )
 }
 
-const ORDINAL: Record<number, string> = { 2: 'segundo', 3: 'tercero', 4: 'cuarto' }
+const ORDINAL: Record<number, string> = { 2: 'segundo', 3: 'tercero', 4: 'cuarto', 5: 'quinto', 6: 'sexto' }
 
 /**
  * El plan de pagos propio (14/10/2026): la formación en 3 o 4 pagos al mes,
