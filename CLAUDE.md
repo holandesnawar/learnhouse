@@ -3271,6 +3271,21 @@ Visión (lo dijo el usuario). Solo administradores.
   se añadan `invoice.payment_failed` e `invoice.paid` al webhook de Stripe.
   ⚠️ Si en Stripe están activados sus propios correos de pago fallido,
   llegarían dos: desactivarlos allí.
+- **Stripe, cómo se le dijo al usuario que lo dejara (22/10/2026; comprobar
+  en el panel de Stripe si hace falta saberlo seguro)**. En el webhook de siempre (NO uno
+  nuevo: cada uno tiene su secreto y la escuela solo conoce el del que hay)
+  se añaden `invoice.paid` e `invoice.payment_failed`. Las facturas que no
+  son de un plan se ignoran solas. En Configuración → Facturación →
+  Suscripciones y correos: «falla un pago con tarjeta» APAGADO (lo manda la
+  escuela, en español), «tarjetas a punto de caducar» ENCENDIDO, «Gestión de
+  suscripciones» APAGADO SIEMPRE (si no, el alumno podría cancelar sus
+  plazos), y el aviso de próximas renovaciones a elección del usuario. El
+  aviso obligatorio antes de cada domiciliación SEPA lo manda Stripe solo y
+  no se toca. Ese correo de fallo solo le llega a quien ya paga a plazos:
+  a quien le falla la tarjeta en la caja no le llega nada (lo ve en pantalla).
+  Ofrecido y sin decidir: un interruptor para apagar el correo de fallo de la
+  escuela, y poner `preferred_locales=["es"]` al crear el cliente de Stripe
+  para que sus recibos y avisos salgan en español.
 
 ## Visión: el mapa del negocio y el centro de campañas (17/10/2026)
 Pedido: "el final boss de las estadísticas": una pestaña SOLO para
