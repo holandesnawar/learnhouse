@@ -289,13 +289,31 @@ async def api_agenda(
         tels = await telefonos_por_email({c.get("email") or "" for c in visibles if not c.get("telefono")}, db_session)
     except Exception:  # noqa: BLE001
         tels = {}
+    # El closer que lleva cada llamada (22/10), para «Solo las mías».
+    from src.services.panel.pipeline import guardadas
+
+    try:
+        repartidas = await guardadas(db_session)
+    except Exception:  # noqa: BLE001
+        repartidas = {}
+
+    def _closer(c: dict) -> dict:
+        g = repartidas.get((c.get("email") or "").lower()) or {}
+        return {"closer_id": g.get("closer_id", 0), "closer": g.get("closer", "") if g.get("closer_id") else ""}
+
     return {
         **datos,
         "citas": [
-            {**c, "telefono": c.get("telefono") or tels.get((c.get("email") or "").lower(), ""), "resultado": _resultado(c)}
+            {
+                **c,
+                "telefono": c.get("telefono") or tels.get((c.get("email") or "").lower(), ""),
+                "resultado": _resultado(c),
+                **_closer(c),
+            }
             for c in visibles
         ],
         "quitadas": quitadas,
+        "yo": current_user.id,
     }
 
 
@@ -340,6 +358,15 @@ async def api_reservar(
     )
     if not r.get("ok"):
         raise HTTPException(status_code=400, detail=r.get("motivo") or "No se ha podido agendar")
+    # La agenda un closer: se la queda él, sin pasar por «Por asignar» (22/10).
+    # Si la agenda un administrador, sale en «Por asignar» para repartirla.
+    if (await rol_en_la_escuela(current_user.id, org_id, db_session)) == CLOSER_ROLE_ID:
+        try:
+            from src.services.panel.pipeline import asignar
+
+            await asignar(data.email, current_user.id, _nombre(current_user), _nombre(current_user), db_session)
+        except Exception:  # noqa: BLE001
+            logger.exception("No se pudo asignar la llamada a quien la agendó")
     return r
 
 

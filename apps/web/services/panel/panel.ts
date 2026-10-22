@@ -70,6 +70,11 @@ export interface Tarjeta {
   /** La llamada de Calendly que la tiene en Agendado (14/10): reservó después
    *  del último movimiento a mano. */
   cita?: { inicio: string; id: string } | null
+  /** Leads (del embudo a la llamada) o Ventas (de la llamada al cobro), 22/10. */
+  mesa?: 'leads' | 'ventas'
+  /** El closer que lleva su llamada (0 = sin asignar). */
+  closer_id?: number
+  closer?: string
 }
 
 export interface Tablero {
@@ -189,6 +194,22 @@ export const moverTarjeta = (
   cambio: { email: string; etapa: EtapaTablero; canal?: Canal; motivo?: string; nombre?: string; telefono?: string },
   t: string
 ) => pedir<{ ok: boolean }>(`panel/org/${orgId}/tablero`, 'PUT', cambio, t)
+
+/** Le pone (o le quita, con 0) el closer que lleva su llamada. */
+export const asignarCloser = (orgId: number, email: string, closerId: number, t: string) =>
+  pedir<{ ok: boolean; closer_id: number; closer: string; avisado?: boolean }>(
+    `panel/org/${orgId}/tablero/asignar`,
+    'PUT',
+    { email, closer_id: closerId },
+    t
+  )
+
+/** Quién reparte las llamadas (0 = nadie: avisa a los administradores) y el equipo. */
+export const getReparto = (orgId: number, t: string) =>
+  pedir<{ repartidor_id: number; equipo: MiembroEquipo[]; yo: number }>(`panel/org/${orgId}/reparto`, 'GET', null, t)
+
+export const guardarReparto = (orgId: number, repartidorId: number, t: string) =>
+  pedir<{ ok: boolean }>(`panel/org/${orgId}/reparto`, 'PUT', { repartidor_id: repartidorId }, t)
 
 /** Quitar del tablero (o devolver) sin borrar nada. Solo administradores. */
 export const ocultarTarjeta = (orgId: number, email: string, oculto: boolean, t: string) =>

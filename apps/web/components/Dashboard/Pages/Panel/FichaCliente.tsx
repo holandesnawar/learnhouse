@@ -31,6 +31,7 @@ import PlanPagosFicha from './PlanPagosFicha'
 import NuevaLlamada from './NuevaLlamada'
 import RecordatorioWhatsApp from './RecordatorioWhatsApp'
 import ReservaPlaza from './ReservaPlaza'
+import { BotonesReparto, useReparto } from './Reparto'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import {
   BookOpen,
@@ -58,6 +59,9 @@ import { anadirNota, avisoTrasBorrar, borrarContacto, mandarATemplada, type Volv
 import { confirmar } from '@lib/nawar/confirmar'
 import { numeroWhatsApp } from '@/lib/nawar/telefono'
 
+// Las columnas de cada mesa (22/10): Leads hasta la llamada, Ventas después.
+const ETAPAS_LEADS: EtapaTablero[] = ['nuevo', 'llamar', 'no-contesta', 'contactado']
+const ETAPAS_VENTAS: EtapaTablero[] = ['agendado', 'no-show', 'seguimiento', 'pendiente-pago', 'descartado']
 const ETAPAS: { id: EtapaTablero; nombre: string }[] = [
   { id: 'nuevo', nombre: 'Nuevo' },
   { id: 'llamar', nombre: 'Por llamar' },
@@ -138,6 +142,7 @@ export default function FichaCliente({
   const [vueltaNotas, setVueltaNotas] = useState(0)
   // «Agendar llamada» (15/10): la ventana de Llamadas, con sus datos puestos.
   const [agendar, setAgendar] = useState(false)
+  const reparto = useReparto()
 
   const cargar = useCallback(async () => {
     if (!org?.id || !accessToken) return
@@ -398,23 +403,45 @@ export default function FichaCliente({
                 </>
               ) : (
                 <>
-                  <div className="flex flex-wrap gap-1.5">
-                    {ETAPAS.map((e) => (
-                      <button
-                        key={e.id}
-                        onClick={() => mover(e.id)}
-                        className={`px-2.5 py-1.5 rounded-lg text-[12px] font-semibold transition-colors ${
-                          ficha.tablero.etapa === e.id
-                            ? e.id === 'descartado'
-                              ? 'bg-gray-600 text-white'
-                              : 'bg-gray-900 text-white'
-                            : 'border border-[#E5E7EB] bg-white text-gray-800 hover:bg-[#F9FAFB]'
-                        }`}
-                      >
-                        {e.nombre}
-                      </button>
-                    ))}
-                  </div>
+                  {[
+                    { titulo: 'Leads', ids: ETAPAS_LEADS },
+                    { titulo: 'Ventas', ids: ETAPAS_VENTAS },
+                  ].map((g) => (
+                    <div key={g.titulo} className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                      <span className="w-14 shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF]">{g.titulo}</span>
+                      {ETAPAS.filter((e) => g.ids.includes(e.id)).map((e) => (
+                        <button
+                          key={e.id}
+                          onClick={() => mover(e.id)}
+                          className={`px-2.5 py-1.5 rounded-lg text-[12px] font-semibold transition-colors ${
+                            ficha.tablero.etapa === e.id
+                              ? e.id === 'descartado'
+                                ? 'bg-gray-600 text-white'
+                                : 'bg-gray-900 text-white'
+                              : 'border border-[#E5E7EB] bg-white text-gray-800 hover:bg-[#F9FAFB]'
+                          }`}
+                        >
+                          {e.id === 'agendado' ? 'Agendada' : e.id === 'descartado' ? 'Descartado' : e.nombre}
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                  {/* Quién lleva su llamada (22/10): al otro closer le llega un correo. */}
+                  {ficha.tablero.mesa === 'ventas' || ficha.tablero.closer_id ? (
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <span className="w-14 shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF]">Closer</span>
+                      <BotonesReparto
+                        email={ficha.email}
+                        closerId={ficha.tablero.closer_id || 0}
+                        reparto={reparto}
+                        onHecho={(id, nombre) => {
+                          setFicha({ ...ficha, tablero: { ...ficha.tablero, closer_id: id, closer: nombre } })
+                          onCambio?.()
+                        }}
+                        pequeno
+                      />
+                    </div>
+                  ) : null}
                   {/* En Seguimiento, lo que se sabe de un toque (09/10): se apunta
                       como nota, y la tarjeta enseña la última sin abrirla. */}
                   {ficha.tablero.etapa === 'seguimiento' ? (

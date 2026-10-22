@@ -31,6 +31,15 @@
  * quitaba de los números y la tarjeta seguía ahí: "no puedo borrarla".
  * La lógica de qué va en cada columna vive en el servidor
  * (`apps/api/src/services/panel/pipeline.py`).
+ *
+ * DOS MESAS (22/10/2026, entra un segundo closer): arriba se elige
+ * **Leads** (del embudo a la llamada: Nuevo, Por llamar, No contesta,
+ * Contactado, Descartado) o **Ventas** (de la llamada al cobro: Por asignar,
+ * Agendada, No show, Seguimiento, Por pagar, Ganada, Perdida). Es la misma
+ * tarjeta y la misma ficha; la columna decide la mesa. «Por asignar» son las
+ * agendadas sin closer: se reparten con «Para mí» / «Para <otro>»
+ * (`Reparto.tsx`). En Ventas, «Mías» enseña solo las tuyas (y las que están
+ * por asignar, que son de todos).
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -38,8 +47,10 @@ import { DragDropContext, Draggable, Droppable, type DropResult } from '@hello-p
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import {
+  asignarCloser,
   CANALES,
   getTablero,
+  guardarReparto,
   haceCuanto,
   moverTarjeta,
   NOMBRE_CANAL,
@@ -56,9 +67,10 @@ import { cuandoLlamar, hoyISO } from '@services/stats/contactos'
 import { quitarPersona } from './quitarPersona'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { quitarDeMetricas, volverAContar } from '@services/stats/contactos'
-import { CalendarCheck, CheckSquare, ChevronDown, ChevronsLeft, Eye, Loader2, PhoneCall, RotateCcw, Search, StickyNote, X } from 'lucide-react'
+import { CalendarCheck, CheckSquare, ChevronDown, ChevronsLeft, Eye, Loader2, PhoneCall, RotateCcw, Search, StickyNote, UserRound, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { BOTON, filtro } from './ui'
+import { BotonesReparto, nombreCorto, useReparto, type Reparto } from './Reparto'
 
 // Un color por columna, solo en el punto junto al nombre y en tonos apagados.
 // Primero eran tres azules seguidos ("hay más colores, no solo azul") y luego
@@ -69,7 +81,12 @@ import { BOTON, filtro } from './ui'
 // del naranja suave de Por pagar. No show, entre las dos, va en ciruela para
 // no confundirse con ninguna. No contesta (14/10), junto a Por llamar, en
 // verde oliva: el único tono que no estaba.
-const COLOR: Record<EtapaTablero, string> = {
+type Mesa = 'leads' | 'ventas'
+/** Una columna de la pantalla: una etapa, o «Por asignar» (agendada sin closer). */
+type ColumnaId = EtapaTablero | 'por-asignar'
+
+const COLOR: Record<ColumnaId, string> = {
+  'por-asignar': '#64748B',
   nuevo: '#5B8DEF',
   llamar: '#E07AA8',
   'no-contesta': '#8FA03C',
@@ -85,8 +102,37 @@ const COLOR: Record<EtapaTablero, string> = {
 // Columnas plegadas: una tira estrecha con el nombre y la cuenta. Descartado
 // nace plegada (es la que obligaba a desplazarse a la derecha) y lo que se
 // pliega se recuerda en este navegador.
-const PLEGADAS_DE_SERIE: EtapaTablero[] = ['descartado']
+const PLEGADAS_DE_SERIE: ColumnaId[] = ['descartado']
 const CLAVE_PLEGADAS = 'nawar.tablero.plegadas'
+const CLAVE_MESA = 'nawar.tablero.mesa'
+const CLAVE_MIAS = 'nawar.tablero.mias'
+
+// Las columnas de cada mesa. En Ventas, Alumno es «Ganada» y Descartado,
+// «Perdida» (el servidor pone en Ventas a quien se descarta tras una llamada).
+const COLUMNAS: Record<Mesa, { id: ColumnaId; nombre: string }[]> = {
+  leads: [
+    { id: 'nuevo', nombre: 'Nuevo' },
+    { id: 'llamar', nombre: 'Por llamar' },
+    { id: 'no-contesta', nombre: 'No contesta' },
+    { id: 'contactado', nombre: 'Contactado' },
+    { id: 'descartado', nombre: 'Descartado' },
+  ],
+  ventas: [
+    { id: 'por-asignar', nombre: 'Por asignar' },
+    { id: 'agendado', nombre: 'Agendada' },
+    { id: 'no-show', nombre: 'No show' },
+    { id: 'seguimiento', nombre: 'Seguimiento' },
+    { id: 'pendiente-pago', nombre: 'Por pagar' },
+    { id: 'alumno', nombre: 'Ganada' },
+    { id: 'descartado', nombre: 'Perdida' },
+  ],
+}
+const EN_CURSO_VENTAS: EtapaTablero[] = ['agendado', 'no-show', 'seguimiento', 'pendiente-pago']
+
+const mesaDe = (t: Tarjeta): Mesa => (t.mesa === 'ventas' ? 'ventas' : 'leads')
+/** En qué columna de la pantalla sale: las agendadas sin closer, en «Por asignar». */
+const columnaDe = (t: Tarjeta): ColumnaId =>
+  mesaDe(t) === 'ventas' && t.etapa === 'agendado' && !t.closer_id ? 'por-asignar' : t.etapa
 
 const POR_COLUMNA = 6
 
@@ -119,7 +165,17 @@ function VerMas({ id, total, vistas, onMas }: { id: string; total: number; vista
   )
 }
 
-function TarjetaVista({ t, onAbrir }: { t: Tarjeta; onAbrir: () => void }) {
+function TarjetaVista({
+  t,
+  onAbrir,
+  reparto,
+  onAsignada,
+}: {
+  t: Tarjeta
+  onAbrir: () => void
+  reparto?: Reparto
+  onAsignada?: (closerId: number, closer: string) => void
+}) {
   // Sin cajitas de color (29/09, "que parezca un software"): una línea de
   // datos en gris con iconos pequeños. La última nota va entera (dos líneas)
   // y en negro: se lee sin abrir la tarjeta (09/10, "que una nota se pueda
@@ -193,6 +249,18 @@ function TarjetaVista({ t, onAbrir }: { t: Tarjeta; onAbrir: () => void }) {
           </p>
         )
       ) : null}
+      {/* Ventas: quién la lleva; y en «Por asignar», repartirla sin abrirla. */}
+      {mesaDe(t) === 'ventas' && t.closer ? (
+        <p className="mt-1 flex items-center gap-1 text-[11.5px] font-medium text-gray-700" title="El closer que lleva su llamada">
+          <UserRound size={11} className="shrink-0" />
+          {t.closer_id === reparto?.yo ? 'Tuya' : nombreCorto(t.closer)}
+        </p>
+      ) : null}
+      {reparto && columnaDe(t) === 'por-asignar' && onAsignada ? (
+        <div className="mt-2">
+          <BotonesReparto email={t.email} closerId={t.closer_id || 0} reparto={reparto} onHecho={onAsignada} pequeno />
+        </div>
+      ) : null}
       {t.reserva ? (
         <p className="mt-1 text-[11.5px] font-medium text-gray-900 tabular-nums" title="Plaza reservada: entra a la escuela cuando pague lo que falta">
           {t.reserva.pagado_cents > 0
@@ -245,8 +313,39 @@ export default function KanbanPanel() {
   const [soloHoy, setSoloHoy] = useState(false)
   // La tarjeta abierta (por su id: el correo, o «llamada:<id>» en las sueltas).
   const [abierta, setAbierta] = useState<string | null>(null)
+  // Leads o Ventas, y en Ventas, solo las mías (se recuerda en el navegador;
+  // los correos de reparto abren con `?mesa=ventas`).
+  const [mesa, setMesaEstado] = useState<Mesa>('leads')
+  const [soloMias, setSoloMiasEstado] = useState<boolean | null>(null)
+  const reparto = useReparto()
   // En el móvil se ve una columna cada vez.
-  const [columnaMovil, setColumnaMovil] = useState<EtapaTablero>('nuevo')
+  const [columnaMovil, setColumnaMovil] = useState<ColumnaId>('nuevo')
+  useEffect(() => {
+    try {
+      const deLaDireccion = new URLSearchParams(window.location.search).get('mesa')
+      const guardada = localStorage.getItem(CLAVE_MESA)
+      const m = deLaDireccion === 'ventas' || deLaDireccion === 'leads' ? deLaDireccion : guardada
+      if (m === 'ventas' || m === 'leads') {
+        setMesaEstado(m)
+        setColumnaMovil(COLUMNAS[m][0].id)
+      }
+      const mias = localStorage.getItem(CLAVE_MIAS)
+      if (mias === '1' || mias === '0') setSoloMiasEstado(mias === '1')
+    } catch {}
+  }, [])
+  function setMesa(m: Mesa) {
+    setMesaEstado(m)
+    setColumnaMovil(COLUMNAS[m][0].id)
+    try {
+      localStorage.setItem(CLAVE_MESA, m)
+    } catch {}
+  }
+  function setSoloMias(v: boolean) {
+    setSoloMiasEstado(v)
+    try {
+      localStorage.setItem(CLAVE_MIAS, v ? '1' : '0')
+    } catch {}
+  }
   // Cuántas se ven por columna: las más nuevas y "Ver más" para el resto, así
   // no hay que bajar por todas cuando se ha contactado a mucha gente.
   const [cuantas, setCuantas] = useState<Record<string, number>>({})
@@ -268,6 +367,8 @@ export default function KanbanPanel() {
   const verCuantas = (id: string) => (q.trim() ? Infinity : cuantas[id] ?? POR_COLUMNA)
   const verMas = (id: string) => setCuantas((c) => ({ ...c, [id]: (c[id] ?? POR_COLUMNA) + 20 }))
   const { isAdmin } = useAdminStatus()
+  // Sin elegir nada: el closer ve las suyas y quien dirige, todas.
+  const mias = soloMias ?? !isAdmin
 
   // Alumno que se quiere quitar: se pregunta cómo (solo del tablero o también de los números).
   const [pregunta, setPregunta] = useState<Tarjeta | null>(null)
@@ -340,22 +441,51 @@ export default function KanbanPanel() {
     cargar()
   }, [cargar])
 
+  // Las de esta mesa; en Ventas con «Mías», las mías y las que están por
+  // asignar (son de todos hasta que alguien se las queda).
+  const deLaMesa = useMemo(
+    () =>
+      (datos?.tarjetas ?? []).filter(
+        (c) =>
+          !c.oculto &&
+          mesaDe(c) === mesa &&
+          (mesa !== 'ventas' || !mias || c.closer_id === reparto.yo || columnaDe(c) === 'por-asignar')
+      ),
+    [datos, mesa, mias, reparto.yo]
+  )
   const filtradas = useMemo(() => {
     const t = q.trim().toLowerCase()
-    return (datos?.tarjetas ?? []).filter(
+    return deLaMesa.filter(
       (c) =>
-        !c.oculto &&
         (!canal || c.canal === canal) &&
         (!soloHoy || tocaLlamar(c)) &&
         (!t || c.email.includes(t) || c.nombre.toLowerCase().includes(t) || c.telefono.includes(t))
     )
-  }, [datos, q, canal, soloHoy])
-  const paraHoy = useMemo(() => (datos?.tarjetas ?? []).filter((c) => !c.oculto && tocaLlamar(c)).length, [datos])
+  }, [deLaMesa, q, canal, soloHoy])
+  const paraHoy = useMemo(() => deLaMesa.filter((c) => tocaLlamar(c)).length, [deLaMesa])
+  const enCadaMesa = useMemo(() => {
+    const n = { leads: 0, ventas: 0 }
+    for (const c of datos?.tarjetas ?? []) if (!c.oculto && c.etapa !== 'alumno' && c.etapa !== 'descartado') n[mesaDe(c)]++
+    return n
+  }, [datos])
+  // Cómo va cada closer en Ventas: en curso y ganadas.
+  const porCloser = useMemo(() => {
+    const m = new Map<number, { nombre: string; curso: number; ganadas: number }>()
+    for (const c of datos?.tarjetas ?? []) {
+      if (c.oculto || mesaDe(c) !== 'ventas' || !c.closer_id) continue
+      const x = m.get(c.closer_id) ?? { nombre: c.closer || '', curso: 0, ganadas: 0 }
+      if (EN_CURSO_VENTAS.includes(c.etapa)) x.curso++
+      if (c.etapa === 'alumno') x.ganadas++
+      m.set(c.closer_id, x)
+    }
+    return Array.from(m.entries()).map(([id, x]) => ({ id, ...x }))
+  }, [datos])
+  const columnas = COLUMNAS[mesa]
 
   const porColumna = useMemo(() => {
     const m: Record<string, Tarjeta[]> = {}
-    for (const e of datos?.etapas ?? []) m[e.id] = []
-    for (const c of filtradas) (m[c.etapa] ??= []).push(c)
+    for (const e of columnas) m[e.id] = []
+    for (const c of filtradas) (m[columnaDe(c)] ??= []).push(c)
     // Lo más nuevo arriba, lo más antiguo abajo (pedido del usuario, 28/09).
     const cuando = (t: Tarjeta) => {
       const x = t.llegada || t.desde || ''
@@ -369,16 +499,44 @@ export default function KanbanPanel() {
         (a, b) => (ORDEN_TEMPERATURA[a.temperatura ?? 'frio'] ?? 2) - (ORDEN_TEMPERATURA[b.temperatura ?? 'frio'] ?? 2) || cuando(b) - cuando(a)
       )
     return m
-  }, [datos, filtradas])
+  }, [columnas, filtradas])
+
+  // Asignada desde «Por asignar» (o la ficha): se ve ya y se relee.
+  function asignada(id: string, closerId: number, closer: string, releer = true) {
+    setDatos((d) => (d ? { ...d, tarjetas: d.tarjetas.map((t) => (t.id === id ? { ...t, closer_id: closerId, closer } : t)) } : d))
+    if (releer) cargar()
+  }
+
+  // Al arrastrar: se ve ya, y se relee cuando el servidor lo ha guardado.
+  async function cambiarCloser(tarjeta: Tarjeta, closerId: number) {
+    const quien = reparto.equipo.find((m) => m.id === closerId)
+    asignada(tarjeta.id, closerId, quien?.nombre ?? '', false)
+    const r = await asignarCloser(org?.id, tarjeta.email, closerId, accessToken)
+    if (!r.ok) {
+      asignada(tarjeta.id, tarjeta.closer_id || 0, tarjeta.closer || '', false)
+      toast.error(r.error || 'No se ha podido asignar')
+      return
+    }
+    if (moviendo.current === 0) cargar()
+  }
 
   async function alSoltar(r: DropResult) {
     if (!r.destination || !datos) return
-    const destino = r.destination.droppableId as EtapaTablero
+    const columnaDestino = r.destination.droppableId as ColumnaId
     const id = r.draggableId
     const tarjeta = datos.tarjetas.find((t) => t.id === id)
-    if (!tarjeta || tarjeta.etapa === destino || tarjeta.suelta) return
-    if (destino === 'alumno' || tarjeta.etapa === 'alumno') {
-      toast('La columna Alumno se llena sola cuando alguien paga.')
+    if (!tarjeta || columnaDe(tarjeta) === columnaDestino || tarjeta.suelta) return
+    if (columnaDestino === 'alumno' || tarjeta.etapa === 'alumno') {
+      toast('Ganada (Alumno) se llena sola cuando alguien paga.')
+      return
+    }
+    const destino: EtapaTablero = columnaDestino === 'por-asignar' ? 'agendado' : columnaDestino
+    // Soltarla en «Por asignar» le quita el closer; soltar en Agendada una sin
+    // closer es quedársela (si no, volvería a salir en «Por asignar»).
+    const closerNuevo =
+      columnaDestino === 'por-asignar' ? 0 : columnaDestino === 'agendado' && !tarjeta.closer_id ? reparto.yo : null
+    if (destino === tarjeta.etapa) {
+      if (closerNuevo !== null) await cambiarCloser(tarjeta, closerNuevo)
       return
     }
     // Se mueve ya en pantalla y, si el servidor dice que no, se deshace (solo
@@ -394,6 +552,13 @@ export default function KanbanPanel() {
       { email: tarjeta.email, etapa: destino, nombre: tarjeta.nombre, telefono: tarjeta.telefono },
       accessToken
     )
+    if (res.ok && closerNuevo !== null) {
+      // Primero la columna y luego el closer: así no compiten por la misma fila.
+      const quien = reparto.equipo.find((m) => m.id === closerNuevo)
+      asignada(tarjeta.id, closerNuevo, quien?.nombre ?? '', false)
+      const a = await asignarCloser(org?.id, tarjeta.email, closerNuevo, accessToken)
+      if (!a.ok) toast.error(a.error || 'Movida, pero no se ha podido asignar')
+    }
     moviendo.current--
     if (!res.ok) {
       ponerEn(origen, { desde: tarjeta.desde, llamada: tarjeta.llamada })
@@ -421,10 +586,90 @@ export default function KanbanPanel() {
 
   return (
     <div className="space-y-4">
+      {/* Leads o Ventas (22/10). */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="inline-flex rounded-lg border border-[#E5E7EB] bg-white p-0.5">
+          {(['leads', 'ventas'] as Mesa[]).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMesa(m)}
+              className={`h-8 px-3.5 rounded-md text-[13px] font-semibold inline-flex items-center gap-1.5 ${
+                mesa === m ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-[#F9FAFB]'
+              }`}
+            >
+              {m === 'leads' ? 'Leads' : 'Ventas'}
+              <span className={`tabular-nums text-[12px] ${mesa === m ? 'opacity-70' : 'text-[#9CA3AF]'}`}>{enCadaMesa[m]}</span>
+            </button>
+          ))}
+        </div>
+        {mesa === 'ventas' ? (
+          <div className="inline-flex rounded-lg border border-[#E5E7EB] bg-white p-0.5">
+            {[
+              { v: true, nombre: 'Mías' },
+              { v: false, nombre: 'Todas' },
+            ].map((o) => (
+              <button
+                key={o.nombre}
+                onClick={() => setSoloMias(o.v)}
+                className={`h-8 px-3 rounded-md text-[12.5px] font-semibold ${
+                  mias === o.v ? 'bg-[#F3F4F6] text-gray-900' : 'text-[#6B7280] hover:text-gray-900'
+                }`}
+              >
+                {o.nombre}
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+
       <p className="text-[13px] text-[#6B7280] leading-relaxed max-w-3xl">
-        Lo que entra va a Nuevo, en rojo: llámale ya. Si en 48 horas nadie ha hablado con esa persona, pasa sola a Por llamar.
+        {mesa === 'leads' ? (
+          <>
+            Lo que entra va a Nuevo, en rojo: llámale ya. Si en 48 horas nadie ha hablado con esa persona, pasa sola a Por llamar.
+            Cuando reserva una llamada, pasa a Ventas.
+          </>
+        ) : (
+          <>
+            Cada llamada que se reserva entra en Por asignar y le llega un correo a quien reparte. Pulsa «Para mí» o pásasela
+            al otro closer: le llegará un correo con la llamada.
+          </>
+        )}{' '}
         Ábrela para ver todo, sus notas y cambiarla de columna<span className="hidden lg:inline"> (o arrástrala)</span>.
       </p>
+
+      {mesa === 'ventas' && (porCloser.length || isAdmin) ? (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] text-[#6B7280]">
+          {porCloser.map((c) => (
+            <span key={c.id} className="inline-flex items-center gap-1.5">
+              <UserRound size={12} className="text-gray-400" />
+              <span className="font-semibold text-gray-900">{c.id === reparto.yo ? 'Tú' : nombreCorto(c.nombre)}</span>
+              {c.curso} en curso · {c.ganadas} {c.ganadas === 1 ? 'ganada' : 'ganadas'}
+            </span>
+          ))}
+          {isAdmin && reparto.equipo.length ? (
+            <label className="w-full sm:w-auto sm:ml-auto flex items-center gap-1.5">
+              <span className="shrink-0">Reparte las llamadas:</span>
+              <select
+                value={reparto.repartidorId}
+                onChange={async (e) => {
+                  const r = await guardarReparto(org?.id, Number(e.target.value), accessToken)
+                  if (!r.ok) return toast.error(r.error || 'No se ha podido guardar')
+                  toast.success('Guardado')
+                  reparto.recargar()
+                }}
+                className="min-w-0 flex-1 sm:flex-none h-8 rounded-md border border-[#E5E7EB] bg-white px-2 text-[12.5px] text-gray-900"
+              >
+                <option value={0}>Nadie (avisa a los administradores)</option>
+                {reparto.equipo.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.nombre}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
@@ -499,7 +744,7 @@ export default function KanbanPanel() {
       {/* Móvil: una columna cada vez, con pestañas */}
       <div className="lg:hidden">
         <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1">
-          {datos.etapas.map((e) => (
+          {columnas.map((e) => (
             <button
               key={e.id}
               onClick={() => setColumnaMovil(e.id)}
@@ -514,7 +759,13 @@ export default function KanbanPanel() {
         </div>
         <div className="mt-2 space-y-2">
           {(porColumna[columnaMovil] ?? []).slice(0, verCuantas(columnaMovil)).map((t) => (
-            <TarjetaVista key={t.id} t={t} onAbrir={() => setAbierta(t.id)} />
+            <TarjetaVista
+              key={t.id}
+              t={t}
+              onAbrir={() => setAbierta(t.id)}
+              reparto={reparto}
+              onAsignada={(id, nombre) => asignada(t.id, id, nombre)}
+            />
           ))}
           <VerMas id={columnaMovil} total={porColumna[columnaMovil]?.length ?? 0} vistas={verCuantas(columnaMovil)} onMas={verMas} />
           {!porColumna[columnaMovil]?.length ? <p className="text-[13px] text-[#9CA3AF] py-6 text-center">Nadie en esta columna.</p> : null}
@@ -527,11 +778,11 @@ export default function KanbanPanel() {
           <div
             className="grid gap-2.5"
             style={{
-              gridTemplateColumns: datos.etapas.map((e) => (plegadas.includes(e.id) ? '44px' : 'minmax(180px,1fr)')).join(' '),
-              minWidth: datos.etapas.reduce((n, e) => n + (plegadas.includes(e.id) ? 44 : 180) + 10, 0),
+              gridTemplateColumns: columnas.map((e) => (plegadas.includes(e.id) ? '44px' : 'minmax(180px,1fr)')).join(' '),
+              minWidth: columnas.reduce((n, e) => n + (plegadas.includes(e.id) ? 44 : 180) + 10, 0),
             }}
           >
-            {datos.etapas.map((e) => {
+            {columnas.map((e) => {
               const plegada = plegadas.includes(e.id)
               const n = porColumna[e.id]?.length ?? 0
               return (
@@ -585,7 +836,12 @@ export default function KanbanPanel() {
                         <Draggable draggableId={t.id} index={i} key={t.id} isDragDisabled={t.etapa === 'alumno' || Boolean(t.suelta)}>
                           {(p) => (
                             <div ref={p.innerRef} {...p.draggableProps} {...p.dragHandleProps}>
-                              <TarjetaVista t={t} onAbrir={() => setAbierta(t.id)} />
+                              <TarjetaVista
+                                t={t}
+                                onAbrir={() => setAbierta(t.id)}
+                                reparto={reparto}
+                                onAsignada={(id, nombre) => asignada(t.id, id, nombre)}
+                              />
                             </div>
                           )}
                         </Draggable>

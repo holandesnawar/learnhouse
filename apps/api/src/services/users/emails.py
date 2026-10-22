@@ -892,6 +892,85 @@ def send_llamada_pedida_email(
     )
 
 
+def _llamada_datos(d: dict) -> tuple[str, str, str]:
+    """Nombre, línea de contacto y botón de WhatsApp de una llamada."""
+    nombre = html.escape(d.get("nombre") or d.get("email") or "Alguien")
+    contacto = " · ".join(html.escape(x) for x in (d.get("email") or "", d.get("telefono") or "") if x)
+    tel_num = "".join(ch for ch in (d.get("telefono") or "") if ch.isdigit())
+    wa = (
+        f'<p style="margin: 16px 0 0 0; font-size: 13px;"><a href="https://wa.me/{tel_num}" style="color: #025dc7; font-weight: 600;">Escribirle por WhatsApp</a></p>'
+        if tel_num
+        else ""
+    )
+    return nombre, contacto, wa
+
+
+def send_llamada_agendada_email(email: EmailStr, datos: dict, preview: bool = False):
+    """Aviso AL EQUIPO (22/10/2026): alguien ha reservado una llamada. Le llega
+    a quien reparte las llamadas entre los closers (o a los administradores si
+    no hay nadie puesto), para que diga en el panel quién la atiende.
+
+    datos: nombre, email, telefono, cuando ("jue 23 oct · 18:00", o vacío si
+    aún no se sabe: la web avisa de la reserva sin la hora)."""
+    nombre, contacto, wa = _llamada_datos(datos)
+    cuando = html.escape(datos.get("cuando") or "")
+    body_content = f"""
+        <h1 style="{STYLES['h1']}">{nombre} ha reservado una llamada</h1>
+        <p style="{STYLES['p']}">
+            {('<strong>' + cuando + '</strong><br>') if cuando else ''}{contacto}
+        </p>
+        <p style="{STYLES['p']}">Está en <strong>Por asignar</strong>: dile en el panel quién la atiende.</p>
+        <a href="{ACADEMY_URL}/dash/estadisticas?tab=matriculas&mesa=ventas" class="brand-btn" style="{STYLES['button']}">Repartirla</a>
+        {wa}
+    """
+    return send_email(
+        dry_run=preview,
+        to=email,
+        subject=f"Llamada nueva: {datos.get('nombre') or datos.get('email') or 'alguien'}" + (f" · {datos.get('cuando')}" if datos.get("cuando") else ""),
+        body=_email_layout(
+            title=f"{nombre} ha reservado una llamada",
+            body_content=body_content,
+            footer_note="Recibes esto porque repartes las llamadas entre los closers de la escuela.",
+        ),
+    )
+
+
+def send_llamada_asignada_email(email: EmailStr, datos: dict, preview: bool = False):
+    """Aviso AL CLOSER (22/10/2026): le han pasado una llamada. datos: nombre,
+    email, telefono, cuando, por (quién se la ha pasado), enlace (para entrar a
+    la videollamada, si se sabe)."""
+    nombre, contacto, wa = _llamada_datos(datos)
+    cuando = html.escape(datos.get("cuando") or "")
+    por = html.escape(datos.get("por") or "")
+    enlace = datos.get("enlace") or ""
+    entrar = (
+        f'<p style="margin: 16px 0 0 0; font-size: 13px;"><a href="{html.escape(enlace)}" style="color: #025dc7; font-weight: 600;">Enlace de la videollamada</a></p>'
+        if enlace.startswith("http")
+        else ""
+    )
+    body_content = f"""
+        <h1 style="{STYLES['h1']}">Te han pasado una llamada</h1>
+        <p style="{STYLES['p']}">
+            <strong>{nombre}</strong>{(' · ' + cuando) if cuando else ''}<br>
+            {contacto}
+        </p>
+        {('<p style="' + STYLES['p'] + '">Te la ha pasado ' + por + '.</p>') if por else ''}
+        <a href="{ACADEMY_URL}/dash/estadisticas?tab=matriculas&mesa=ventas" class="brand-btn" style="{STYLES['button']}">Ver su ficha</a>
+        {entrar}
+        {wa}
+    """
+    return send_email(
+        dry_run=preview,
+        to=email,
+        subject=f"Te han pasado una llamada: {datos.get('nombre') or datos.get('email') or 'alguien'}" + (f" · {datos.get('cuando')}" if datos.get("cuando") else ""),
+        body=_email_layout(
+            title="Te han pasado una llamada",
+            body_content=body_content,
+            footer_note="Recibes esto porque eres closer de la escuela.",
+        ),
+    )
+
+
 def send_plazo_fallido_email(
     email: EmailStr,
     plan: dict,

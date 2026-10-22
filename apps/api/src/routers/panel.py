@@ -115,6 +115,120 @@ async def api_mover(
     return r
 
 
+class Asignacion(BaseModel):
+    email: str
+    # 0 = quitarle el closer (vuelve a «Por asignar»).
+    closer_id: int = 0
+
+
+def _cuando(inicio: str) -> str:
+    """«jue 23 oct · 18:00», en hora de Países Bajos (para el correo)."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    try:
+        d = datetime.fromisoformat(inicio.replace("Z", "+00:00")).astimezone(ZoneInfo("Europe/Amsterdam"))
+    except Exception:  # noqa: BLE001
+        return ""
+    dias = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"]
+    meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
+    return f"{dias[d.weekday()]} {d.day} {meses[d.month - 1]} · {d:%H:%M}"
+
+
+@router.put("/org/{org_id}/tablero/asignar", summary="Le pone (o le quita) el closer que lleva su llamada.")
+async def api_asignar(
+    request: Request,
+    org_id: int,
+    data: Asignacion,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    closer = None
+    if data.closer_id:
+        closer = next((m for m in await tareas.equipo(org_id, db_session) if m["id"] == data.closer_id), None)
+        if closer is None:
+            raise HTTPException(status_code=400, detail="Esa persona no está en el equipo del panel")
+    r = await pipeline.asignar(
+        data.email, data.closer_id, (closer or {}).get("nombre", ""), _nombre(current_user), db_session
+    )
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    # Al closer que la recibe, un correo, salvo que se la quede quien reparte.
+    if closer and r.get("cambia") and closer["id"] != current_user.id:
+        from src.services.panel.reparto import avisar_asignada
+
+        from datetime import datetime, timezone
+
+        try:
+            citas = (await pipeline.citas_por_email(db_session)).get(data.email.strip().lower()) or []
+            cita = pipeline.cita_que_manda(citas, "", datetime.now(timezone.utc))
+        except Exception:  # noqa: BLE001
+            cita = None
+        ficha = next(
+            (
+                f
+                for f in fusionar_contactos(await _todos_los_eventos(db_session), await _emails_con_cuenta(db_session))
+                if f["email"] == data.email.strip().lower()
+            ),
+            {},
+        )
+        r["avisado"] = avisar_asignada(
+            closer.get("email", ""),
+            {
+                "nombre": ficha.get("nombre") or (cita or {}).get("nombre") or "",
+                "email": data.email.strip().lower(),
+                "telefono": ficha.get("telefono") or (cita or {}).get("telefono") or "",
+                "cuando": _cuando((cita or {}).get("inicio", "")),
+                "enlace": (cita or {}).get("enlace", ""),
+                "por": _nombre(current_user),
+            },
+        )
+    return r
+
+
+@router.get("/org/{org_id}/reparto", summary="Quién reparte las llamadas y el equipo entre el que se reparten.")
+async def api_reparto(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    from src.services.panel import reparto
+
+    return {
+        **(await reparto.leer(db_session, org_id)),
+        "equipo": await tareas.equipo(org_id, db_session),
+        "yo": current_user.id,
+    }
+
+
+class Reparto(BaseModel):
+    repartidor_id: int = 0
+
+
+@router.put("/org/{org_id}/reparto", summary="Quién reparte las llamadas (administradores).")
+async def api_guardar_reparto(
+    request: Request,
+    org_id: int,
+    data: Reparto,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    if not await _es_admin(current_user, org_id, db_session):
+        raise HTTPException(status_code=403, detail="Solo los administradores eligen quién reparte")
+    if data.repartidor_id and not any(m["id"] == data.repartidor_id for m in await tareas.equipo(org_id, db_session)):
+        raise HTTPException(status_code=400, detail="Esa persona no está en el equipo del panel")
+    from src.services.panel import reparto
+
+    r = await reparto.guardar(org_id, data.repartidor_id, db_session)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    return r
+
+
 class Ocultar(BaseModel):
     email: str
     oculto: bool = True

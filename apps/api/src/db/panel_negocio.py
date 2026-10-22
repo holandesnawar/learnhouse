@@ -33,6 +33,15 @@ class LeadPipeline(SQLModel, table=True):
     oculto: bool = False
     updated_at: str = ""
     updated_by: str = Field(default="", max_length=120)
+    # El closer que lleva su llamada (22/10/2026, dos closers): 0 = sin
+    # asignar. Asignar NO toca `updated_at`: esa fecha dice cuándo se la movió
+    # de columna, y con ella se decide si una reserva de Calendly la pasa a
+    # Agendado (`cita_que_manda`). Una fila que solo guarda el closer lleva la
+    # etapa vacía (nadie la ha movido).
+    closer_id: int = 0
+    closer: str = Field(default="", max_length=120)
+    asignado_at: str = ""
+    asignado_por: str = Field(default="", max_length=120)
 
 
 class PanelTask(SQLModel, table=True):
