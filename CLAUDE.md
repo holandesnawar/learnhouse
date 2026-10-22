@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-20 (Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-22 (incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -3438,6 +3438,56 @@ columna nueva**: el tablero son las MISMAS tarjetas del mapa (`vision_node`).
   `GET …/nodos/{id}` (la tarjeta entera; la lista va sin el texto de dentro).
 - Tests: `test_vision.py` (encargados, qué sale, áreas, crear y la fecha de
   hecho) y `lib/nawar/__tests__/semanasTrabajo.test.ts`.
+
+## Incidente de Railway: claves robadas y despliegues parados (21-22/10/2026)
+Railway avisó de que un tercero pudo leer las variables de entorno de sus
+clientes (lo publicó el 21/10; iban a por claves de IA) y **paró todos los
+despliegues** durante horas. Se rotaron Stripe y ElevenLabs y se rompieron los
+cobros y el audio durante un rato. Lo que hay que saber para la próxima:
+- ⚠️ **Cambiar una variable en Railway NO cambia nada hasta un despliegue
+  nuevo.** Cada despliegue se queda con las variables de cuando se creó; un
+  «Restart» tampoco las coge. Con los despliegues parados, el despliegue activo
+  seguía siendo el del día anterior y la escuela usaba las claves viejas.
+- ⚠️ **No borrar la clave vieja hasta comprobar que la escuela usa la nueva.**
+  Se borraron demasiado pronto y fallaron los cobros («Expired API Key») y el
+  audio. Probar que el audio suena NO lo demuestra (sonaba con la vieja).
+  Cómo se comprueba: el error de Stripe en Panel → Facturas enseña las 4
+  últimas letras de la clave en uso, y en Stripe cada clave tiene «Último
+  uso». Una clave de Stripe caducada no se puede recuperar.
+- **Cambiar claves sin desplegar**: Railway → learnhouse → Console (entra en
+  el contenedor que está en marcha). `export VARIABLE='valor'` y
+  `pm2 restart learnhouse-api --update-env` (Stripe y todo lo del backend) o
+  `learnhouse-web` (ElevenLabs, que lo lee la ruta `/api/tts` de Next). Dura
+  hasta el siguiente despliegue, que ya coge las de Railway: **las Variables
+  de Railway tienen que llevar la misma clave**.
+- ⚠️ **Reiniciar `learnhouse-web` con pm2 dejó vivo el proceso viejo**
+  (`next-server`, fuera de pm2) ocupando el puerto 8000: el nuevo moría con
+  `EADDRINUSE` (pm2 «errored», 49 reinicios) y la escuela seguía funcionando
+  con el viejo y su clave vieja. Se ve con
+  `pm2 logs learnhouse-web --err --lines 8 --nostream`. Quién tiene el 8000
+  (no hay `ps` ni `ss` en el contenedor):
+  `ino=$(awk '$4=="0A" && $2 ~ /:1F40$/ {print $10}' /proc/net/tcp /proc/net/tcp6 | head -1); for p in /proc/[0-9]*; do ls -l $p/fd 2>/dev/null | grep -q "socket:\[$ino\]" && echo "PID ${p#/proc/}: $(tr '\0' ' ' < $p/cmdline)"; done`
+  y luego `kill <PID>; sleep 3; kill -9 <PID>; pm2 restart learnhouse-web`.
+  Mientras, si ese proceso viejo se cae, nadie lo levanta.
+- El audio que sale robótico es la voz del navegador: es la reserva cuando
+  `/api/tts` falla. `curl https://academia.holandesnawar.nl/api/tts?text=…`
+  enseña el motivo que da ElevenLabs tal cual (así salió «tiene 50
+  caracteres, necesita 51»).
+- Qué guarda Railway y hay que rotar si vuelve a pasar: `LEARNHOUSE_AUTH_JWT_SECRET_KEY`
+  (con ella se fabrica la sesión de cualquiera; al cambiarla todos vuelven a
+  entrar y **los enlaces de pago y de señal ya enviados dejan de abrirse**,
+  porque se firman con ella), Stripe (clave y secreto del webhook), Resend,
+  ElevenLabs, Calendly, `SYSTEME_API_KEY`, `CONSULTAS_SUPABASE_SERVICE_KEY`,
+  la contraseña de Postgres (la base de datos se puede abrir desde internet:
+  las copias entran desde GitHub; tras cambiarla, `RAILWAY_DATABASE_URL` en
+  GitHub) y Redis. Las de pareja, con el mismo valor en los dos lados:
+  `LEARNHOUSE_CRON_TOKEN` ↔ GitHub `SCHOOL_CRON_TOKEN`,
+  `LEARNHOUSE_BACKUP_TOKEN` ↔ GitHub `SCHOOL_BACKUP_TOKEN`,
+  `LEARNHOUSE_WEB_TOKEN` ↔ Vercel `SCHOOL_WEB_TOKEN`. Vercel y GitHub no
+  estaban afectados.
+- Estado al cerrar el 22/10: Stripe y ElevenLabs rotados y funcionando (por
+  la Console). **Pendiente**: JWT, Resend, contraseña de Postgres, secreto del
+  webhook de Stripe y el resto, a hacer con los despliegues ya abiertos.
 
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
