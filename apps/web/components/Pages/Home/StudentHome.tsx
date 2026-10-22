@@ -17,6 +17,7 @@ import dynamic from 'next/dynamic'
 import { useQueryClient } from '@tanstack/react-query'
 import { registerVisit, type StudentVisit } from '@services/student/progress'
 import { useStudentInsights } from '@/hooks/queries/useStudentInsights'
+import { fechasDeClases, semanaConClases } from '@services/student/insights'
 import { isWeeklyClassCourse } from '@/lib/course/formacionProgress'
 import { RUTA_CLASE_SEMANAL } from '@/lib/nawar/cursos'
 import SafeArea from '@components/Objects/StyledElements/Error/SafeArea'
@@ -102,7 +103,13 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
   // One cached fetch with the real progress signals (completions, attempts,
   // weak words, streak) — feeds every progress-aware card below. Cached via
   // react-query: al volver al Inicio los datos aparecen al instante.
-  const { data: insights } = useStudentInsights()
+  const { data: insightsCrudos } = useStudentInsights()
+  // «Esta semana» y la tira de días cuentan las clases del curso que el alumno
+  // ha terminado (con su fecha, del recorrido), no `lesson_completion`, que en
+  // la formación no se escribe nunca: ver `semanaConClases`.
+  const insights = insightsCrudos
+    ? { ...insightsCrudos, week: semanaConClases(insightsCrudos.week, fechasDeClases(runs)) }
+    : insightsCrudos
 
   return (
     <GeneralWrapperStyled>

@@ -197,6 +197,69 @@ export function computeInsights(
   }
 }
 
+/**
+ * Las fechas en que el alumno terminó cada clase de sus cursos (una por clase),
+ * sacadas del recorrido (`trail_step`), que el Inicio ya tiene en `runs`.
+ *
+ * Por qué hace falta (22/10/2026): «Esta semana» contaba las lecciones con
+ * `lesson_completion`, que dentro de la formación NO se escribe nunca — cada
+ * parte de una lección (Samenvatting, Flashcards, Lezen…) es su propia clase del
+ * curso y el visor solo apunta la lección entera si se hacen todas sin salir.
+ * Así que a quien había estudiado toda la semana le salía «0 lecciones
+ * terminadas». Lo que sí se apunta, clase a clase y con fecha, es esto.
+ *
+ * La fecha la escribe el servidor con `datetime.now()` en UTC y sin zona
+ * ("2026-10-03 14:22:11.123456"): se lee como UTC para que una clase hecha a
+ * las 00:30 del lunes en Países Bajos no caiga en la semana anterior.
+ */
+export function fechasDeClases(runs: any[] | null | undefined): Date[] {
+  const primera = new Map<string, Date>()
+  for (const run of runs ?? []) {
+    for (const step of run?.steps ?? []) {
+      if (step?.complete !== true || step?.activity_id == null) continue
+      const crudo = String(step.creation_date || '').trim().replace(' ', 'T').slice(0, 19)
+      if (!crudo) continue
+      const d = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(crudo) ? crudo : `${crudo}Z`)
+      if (isNaN(d.getTime())) continue
+      const clave = `${run?.course_id ?? ''}:${step.activity_id}`
+      const antes = primera.get(clave)
+      if (!antes || d < antes) primera.set(clave, d)
+    }
+  }
+  return Array.from(primera.values())
+}
+
+/**
+ * «Esta semana» contada por las clases terminadas del curso. Las clases son lo
+ * que el alumno ve como «lecciones» en la formación (el buscador del curso dice
+ * «Buscar lección»), así que la tarjeta sigue diciendo «lecciones terminadas».
+ * Sin ninguna clase hecha nunca (alguien que solo usa la app de repaso), se
+ * queda la cuenta de antes.
+ */
+export function semanaConClases(week: WeekStats, clases: Date[], now: Date = new Date()): WeekStats {
+  if (!clases.length) return week
+  const monday = startOfWeek(now)
+  const prevMonday = new Date(monday)
+  prevMonday.setDate(monday.getDate() - 7)
+  const dias = new Set(week.activeDays)
+  let estaSemana = 0
+  let semanaPasada = 0
+  for (const d of clases) {
+    if (d >= monday) {
+      estaSemana++
+      dias.add(isoDay(d))
+    } else if (d >= prevMonday) {
+      semanaPasada++
+    }
+  }
+  return {
+    ...week,
+    activeDays: Array.from(dias).sort(),
+    lessonsCompleted: estaSemana,
+    lessonsPrevWeek: semanaPasada,
+  }
+}
+
 export async function getStudentInsights(
   accessToken: string | undefined
 ): Promise<StudentInsights> {
