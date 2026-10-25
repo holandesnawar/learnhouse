@@ -728,7 +728,7 @@ async def api_guardar_tandas(
     return await tandas.resumen(org_id, db_session)
 
 
-@router.post("/org/{org_id}/tandas/beta", summary="Mete en «Beta» a todos los alumnos que no están en el programa nuevo.")
+@router.post("/org/{org_id}/tandas/beta", summary="Mete en «Beta» a los alumnos de antes del cambio que no están en el programa nuevo.")
 async def api_tandas_beta(
     request: Request,
     org_id: int,
@@ -739,3 +739,40 @@ async def api_tandas_beta(
     from src.services.panel import tandas
 
     return await tandas.meter_en_beta(org_id, db_session)
+
+
+class DecidirIn(BaseModel):
+    user_id: int
+    # «nuevo» o «beta»
+    a: str
+
+
+@router.get("/org/{org_id}/tandas/por-decidir", summary="Alumnos nuevos sin programa: el aviso del administrador.")
+async def api_tandas_por_decidir(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _solo_admin(request, org_id, current_user, db_session)
+    from src.services.panel import tandas
+
+    pendientes = await tandas.por_decidir(org_id, db_session)
+    return {"n": len(pendientes), "alumnos": [{"id": a["id"], "nombre": a["nombre"], "entro": a["entro"]} for a in pendientes]}
+
+
+@router.post("/org/{org_id}/tandas/decidir", summary="Pone a un alumno nuevo en el programa nuevo o en la beta.")
+async def api_tandas_decidir(
+    request: Request,
+    org_id: int,
+    data: DecidirIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _solo_admin(request, org_id, current_user, db_session)
+    from src.services.panel import tandas
+
+    r = await tandas.decidir(org_id, data.user_id, data.a, db_session)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    return r

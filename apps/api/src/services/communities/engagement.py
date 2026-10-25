@@ -583,6 +583,40 @@ async def _module_items(
     return out
 
 
+async def _decidir_items(user_id: int, org_ids: List[int], db_session: AsyncSession) -> List[dict]:
+    """Solo para administradores: los alumnos nuevos que venían de antes del
+    cambio y esperan que se decida si van al programa nuevo o a la beta
+    (services/panel/tandas.py). En la escuela y no por correo: así lo pidió
+    el usuario (26/10/2026). Desaparece sola al decidirlo."""
+    from src.security.rbac.constants import ADMIN_OR_MAINTAINER_ROLE_IDS
+    from src.security.superadmin import is_user_superadmin
+    from src.services.panel.tandas import por_decidir
+
+    roles = (
+        await db_session.execute(
+            select(UserOrganization.role_id).where(
+                UserOrganization.user_id == user_id, UserOrganization.org_id.in_(org_ids)  # type: ignore
+            )
+        )
+    ).scalars().all()
+    if not (any(r in ADMIN_OR_MAINTAINER_ROLE_IDS for r in roles) or await is_user_superadmin(user_id, db_session)):
+        return []
+    out: List[dict] = []
+    for org_id in org_ids:
+        for a in await por_decidir(org_id, db_session):
+            out.append(
+                {
+                    "id": f"tanda:{a['id']}",
+                    "kind": "decidir",
+                    "title": f"{a['nombre']} ha pagado: ¿programa nuevo o beta?",
+                    "excerpt": "Venía de antes del cambio y todavía no está en ningún programa. Decídelo en Tandas y grupos.",
+                    "url": "/dash/estadisticas?tab=tandas",
+                    "date": a["entro"],
+                }
+            )
+    return out
+
+
 async def list_notifications(
     current_user: PublicUser | AnonymousUser,
     db_session: AsyncSession,
@@ -620,6 +654,7 @@ async def list_notifications(
         _channel_items(user, org_ids, db_session),
         _announcement_items(org_ids, db_session),
         _module_items(user_id, org_ids, db_session),
+        _decidir_items(user_id, org_ids, db_session),
     ):
         try:
             raw.extend(await source)

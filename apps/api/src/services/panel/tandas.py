@@ -6,7 +6,7 @@ ven la clase semanal como los de la beta… separar con etiquetas, por ejemplo
 matrículas noviembre… reciben una masterclass en directo y spreekuren… si
 alguien hace el pago, me gustaría recibir un mail yo primero".
 
-Decidido con él ese día:
+Decidido ese día:
 - **La bienvenida sale AL MOMENTO** (no se retrasa una semana): el alumno entra
   ya metido en sus grupos y solo ve lo suyo.
 - **Dos grupos a la vez**: el de la TANDA («Matrícula octubre 2026», para saber
@@ -23,28 +23,44 @@ Cómo va:
   (nombre fijo; vacío = por el mes en que paga).
 - Al dar de alta tras un pago (`_provision_after_payment`, la primera vez; y el
   alta a mano de quien no tenía cuenta), `al_entrar` mete al alumno en los dos
-  grupos y avisa a los administradores con el correo «Alumno nuevo». El correo
-  sale SIEMPRE, también con los grupos apagados. Nunca lanza: el alumno ya ha
-  pagado y su alta no puede fallar por esto.
+  grupos. Nunca lanza: el alumno ya ha pagado y su alta no puede fallar por
+  esto.
+- **Sin correo al equipo** (26/10, "no quiero un mail para mí sobre quién pagó
+  y qué grupo es"). Hubo uno, «Alumno nuevo», un día; se quitó.
+- **La beta está cerrada, salvo quien venía de antes** (26/10, "a no ser que
+  sea una matrícula que se quedó en Por pagar, esa sí podría entrar"). Si quien
+  paga estaba en la columna «Por pagar» desde antes del cambio, reservó plaza
+  con señal antes, o el equipo le creó un enlace de pago antes
+  (`motivo_beta`), NO entra en ningún grupo: queda «por decidir» y al
+  administrador le sale el aviso en la escuela (campana, inicio del panel y
+  Tandas y grupos) con dos botones, «Programa nuevo» o «Beta» (`decidir`).
+  Mientras, ve la formación como cualquiera, pero ni la clase semanal ni la
+  masterclass. El resto entra solo en el programa nuevo, y aun así se le puede
+  pasar a la beta con un clic desde la lista de alumnos nuevos.
+- **La bienvenida no cambia y sale al momento**: no habla de la clase semanal
+  ni de la masterclass (formación, contraseña y «Primeros pasos»), así que vale
+  para los dos programas y nadie se queda esperando su correo tras pagar.
 - **Beta**: `meter_en_beta` crea el grupo «Beta» y mete a todos los alumnos
-  (rol 4) que no están en el programa nuevo. Se usa una vez y ANTES de cerrar
-  la clase semanal al grupo Beta: si se cierra antes, la beta se queda sin su
-  clase. Se puede repetir sin miedo (no duplica).
-- `resumen` enseña cada grupo con su gente y QUIÉN VE cada curso y cada canal
-  (todos, o solo tal grupo), y avisa del error que más se va a cometer: un
-  curso o canal con grupo pero marcado como público, que lo ve todo el mundo
-  igual (`quien_lo_ve`).
+  (rol 4) que entraron ANTES del día del cambio y no están en el programa
+  nuevo. Se usa una vez y ANTES de cerrar la clase semanal al grupo Beta: si se
+  cierra antes, la beta se queda sin su clase. Se puede repetir sin miedo (no
+  duplica, y no toca a los que entran desde el cambio: esos se deciden uno a
+  uno).
+- `resumen` enseña cada grupo con su gente, los alumnos nuevos con su programa
+  y QUIÉN VE cada curso y cada canal (todos, o solo tal grupo), y avisa del
+  error que más se va a cometer: un curso o canal con grupo pero marcado como
+  público, que lo ve todo el mundo igual (`quien_lo_ve`).
 """
 
 import json
 import logging
 import unicodedata
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
-from sqlmodel import select
+from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.usergroup_resources import UserGroupResource
@@ -120,6 +136,58 @@ def quien_lo_ve(publico: bool, grupos: list[str], publicado: bool = True) -> dic
 
 def hoy_nl(ahora: Optional[datetime] = None) -> str:
     return (ahora or datetime.now(ZONA)).astimezone(ZONA).date().isoformat()
+
+
+def leer_instante(texto: Any) -> Optional[datetime]:
+    """Una fecha guardada en texto, con o sin zona (sin zona = UTC, que es como
+    escribe el servidor), o None si no se entiende."""
+    if not texto:
+        return None
+    try:
+        d = datetime.fromisoformat(str(texto).strip().replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+    return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
+
+
+def dia_nl(texto: Any) -> str:
+    """El día (AAAA-MM-DD, hora de Países Bajos) de una fecha guardada; "" si no hay."""
+    d = leer_instante(texto)
+    return d.astimezone(ZONA).date().isoformat() if d else ""
+
+
+def _ddmm(dia: str) -> str:
+    return f"{dia[8:10]}/{dia[5:7]}" if len(dia) >= 10 else dia
+
+
+def motivo_beta(desde: str, por_pagar_el: str = "", senal_el: str = "", enlace_el: str = "") -> str:
+    """Por qué alguien que acaba de pagar podría ser de la beta, o "" si no.
+
+    Cuenta lo que pasó ANTES del día del cambio (`desde`): estar en la columna
+    «Por pagar», reservar plaza con señal o que el equipo le creara un enlace
+    de pago. Eso se le vendió con la clase semanal. Lo que pase desde el
+    cambio no cuenta: desde ese día «Por pagar» también se llena con gente del
+    programa nuevo. Sin día del cambio, nadie es candidato."""
+    if not desde:
+        return ""
+    for cuando, texto in (
+        (por_pagar_el, "Estaba en «Por pagar» desde el {}"),
+        (senal_el, "Reservó plaza con señal el {}"),
+        (enlace_el, "Le creasteis un enlace de pago el {}"),
+    ):
+        dia = dia_nl(cuando)
+        if dia and dia < desde:
+            return texto.format(_ddmm(dia)) + ", antes del cambio."
+    return ""
+
+
+def programa_de(grupos: set[int], programa_id: int, beta_id: int) -> str:
+    """En qué programa está alguien por sus grupos: nuevo, beta, los dos o ""."""
+    en_nuevo = bool(programa_id) and programa_id in grupos
+    en_beta = bool(beta_id) and beta_id in grupos
+    if en_nuevo and en_beta:
+        return "los dos"
+    return "nuevo" if en_nuevo else "beta" if en_beta else ""
 
 
 # ── configuración ──────────────────────────────────────────────────────────
@@ -253,67 +321,133 @@ async def _org_de(user_id: int, db_session: AsyncSession) -> Optional[int]:
     ).scalars().first()
 
 
-async def _telefono(email: str, db_session: AsyncSession) -> str:
-    from src.db.enrollment import Enrollment
+async def _sacar(user_id: int, grupo_ids: list[int], db_session: AsyncSession) -> None:
+    """Saca a esa persona de esos grupos (si estaba)."""
+    if not grupo_ids:
+        return
+    filas = (
+        await db_session.execute(
+            select(UserGroupUser).where(
+                UserGroupUser.user_id == user_id,
+                UserGroupUser.usergroup_id.in_(grupo_ids),  # type: ignore[attr-defined]
+            )
+        )
+    ).scalars().all()
+    for f in filas:
+        await db_session.delete(f)
+    if filas:
+        await db_session.commit()
 
+
+async def _deshacer(db_session: AsyncSession, user=None) -> None:
+    """Tras un fallo de la base de datos, deja la sesión usable: esto corre en
+    mitad del alta de alguien que acaba de pagar, y detrás va su bienvenida.
+
+    ⚠️ Deshacer CADUCA todo lo cargado en la sesión, y quien llama usa el
+    usuario justo después (su código de contraseña y el correo de bienvenida):
+    se vuelve a leer, o al tocarlo la escuela fallaría sin mandar nada."""
     try:
-        filas = (
-            await db_session.execute(select(Enrollment).where(Enrollment.email == email))
-        ).scalars().all()
-        for fila in sorted(filas, key=lambda f: f.updated_at or f.created_at or "", reverse=True):
-            if (fila.phone or "").strip():
-                return fila.phone.strip()
+        await db_session.rollback()
     except Exception:  # noqa: BLE001
-        logger.warning("No se pudo leer el teléfono de %s", email, exc_info=True)
-    return ""
+        return
+    if user is not None:
+        try:
+            await db_session.refresh(user)
+        except Exception:  # noqa: BLE001
+            logger.warning("No se pudo volver a leer al alumno tras deshacer", exc_info=True)
 
 
-async def al_entrar(user, nombre: str, email: str, db_session: AsyncSession, avisar: bool = True) -> list[str]:
-    """Lo que pasa cuando un alumno nuevo entra tras pagar: sus grupos y el
-    correo al equipo. Nunca lanza."""
-    grupos: list[str] = []
+async def motivo_beta_de(email: str, desde: str, db_session: AsyncSession) -> str:
+    """`motivo_beta` con los datos de esa persona. En blando: si algo falla, ""
+    (entra en el programa nuevo, que es lo de siempre desde el cambio)."""
+    from src.db.contact_event import ContactEvent
+    from src.db.reservas import ReservaPlaza
+    from src.services.panel.pipeline import etapa_guardada, filas_de
+
+    clave = (email or "").strip().lower()
+    if not clave or not desde:
+        return ""
     try:
-        org_id = await _org_de(user.id, db_session)
-        if org_id:
-            grupos = await asignar(user.id, org_id, db_session)
-    except Exception:  # noqa: BLE001
-        logger.exception("No se pudo meter a %s en sus grupos", email)
-    if not avisar:
-        return grupos
-    try:
-        from src.services.contactos.llamadas import emails_de_administradores
-        from src.services.users.emails import send_alumno_nuevo_email
-
-        datos = {
-            "nombre": (nombre or getattr(user, "first_name", "") or "").strip(),
-            "email": email,
-            "telefono": await _telefono(email, db_session),
-            "grupos": grupos,
-        }
-        for destino in await emails_de_administradores(db_session):
-            try:
-                send_alumno_nuevo_email(destino, datos)
-            except Exception:  # noqa: BLE001
-                logger.exception("No salió el aviso de alumno nuevo a un administrador")
-    except Exception:  # noqa: BLE001
-        logger.exception("No se pudo avisar del alumno nuevo %s", email)
-    return grupos
-
-
-async def meter_en_beta(org_id: int, db_session: AsyncSession) -> dict:
-    """Crea «Beta» y mete a todos los alumnos que no están en el programa nuevo."""
-    from src.db.user_organizations import UserOrganization
-
-    alumnos = [
-        int(u)
-        for u in (
+        por_pagar = ""
+        filas = await filas_de(clave, db_session)
+        if filas and etapa_guardada(filas[0].etapa) == "pendiente-pago":
+            por_pagar = filas[0].updated_at or ""
+        senales = (
             await db_session.execute(
-                select(UserOrganization.user_id).where(
-                    UserOrganization.org_id == org_id, UserOrganization.role_id == ROL_ALUMNO
+                select(ReservaPlaza.created_at).where(
+                    func.lower(ReservaPlaza.email) == clave, ReservaPlaza.estado != "cancelada"
                 )
             )
         ).scalars().all()
-    ]
+        enlaces = (
+            await db_session.execute(
+                select(ContactEvent.created_at).where(
+                    func.lower(ContactEvent.email) == clave, ContactEvent.kind == "enlace-pago"
+                )
+            )
+        ).scalars().all()
+        primero = lambda fechas: min((f for f in fechas if leer_instante(f)), key=lambda f: leer_instante(f), default="")  # noqa: E731
+        return motivo_beta(desde, por_pagar, primero(senales), primero(enlaces))
+    except Exception:  # noqa: BLE001
+        # Sin deshacer aquí: si la base de datos ha fallado, lo hace
+        # `al_entrar`, que sabe qué hay que volver a leer.
+        logger.warning("No se pudo mirar si un alumno nuevo venía de la beta", exc_info=True)
+        return ""
+
+
+async def al_entrar(user, email: str, db_session: AsyncSession, ahora: Optional[datetime] = None) -> list[str]:
+    """Lo que pasa cuando un alumno nuevo entra tras pagar: sus grupos, o
+    «por decidir» si venía de antes del cambio. Nunca lanza."""
+    uid = user.id
+    try:
+        org_id = await _org_de(uid, db_session)
+        if not org_id:
+            return []
+        cfg = await config(db_session, org_id)
+        if not toca(cfg, hoy_nl(ahora)):
+            return []
+        if await motivo_beta_de(email, cfg["desde"], db_session):
+            # Sin nombre ni correo en el registro: solo que queda pendiente.
+            logger.info("Alumno nuevo por decidir (programa nuevo o beta): user_id=%s", uid)
+            return []
+        return await asignar(uid, org_id, db_session, ahora=ahora)
+    except Exception:  # noqa: BLE001
+        logger.exception("No se pudo meter a un alumno nuevo en sus grupos (user_id=%s)", uid)
+        await _deshacer(db_session, user)
+        return []
+
+
+async def _alumnos(org_id: int, db_session: AsyncSession) -> dict[int, str]:
+    """Los alumnos (rol 4) de la escuela con su fecha de entrada."""
+    from src.db.user_organizations import UserOrganization
+
+    return {
+        int(uid): str(creado or "")
+        for uid, creado in (
+            await db_session.execute(
+                select(UserOrganization.user_id, UserOrganization.creation_date).where(
+                    UserOrganization.org_id == org_id, UserOrganization.role_id == ROL_ALUMNO
+                )
+            )
+        ).all()
+    }
+
+
+async def _grupo_beta(org_id: int, db_session: AsyncSession) -> Optional[UserGroup]:
+    for g in await _grupos(org_id, db_session):
+        if normalizar(g.name) == normalizar(NOMBRE_BETA):
+            return g
+    return None
+
+
+async def meter_en_beta(org_id: int, db_session: AsyncSession) -> dict:
+    """Crea «Beta» y mete a todos los alumnos de ANTES del cambio que no están
+    en el programa nuevo. Los que entran desde el cambio no se tocan: quien
+    está por decidir se decide uno a uno (`decidir`)."""
+    cfg = await config(db_session, org_id)
+    alumnos = await _alumnos(org_id, db_session)
+    if cfg["desde"]:
+        alumnos = {u: c for u, c in alumnos.items() if not dia_nl(c) or dia_nl(c) < cfg["desde"]}
     programa = await grupo_del_programa(org_id, db_session, crear=False)
     del_programa = await _miembros(programa.id, db_session) if programa else set()
     beta = await _grupo_por_nombre(org_id, NOMBRE_BETA, "Alumnos de la primera convocatoria (clase semanal).", db_session)
@@ -321,26 +455,119 @@ async def meter_en_beta(org_id: int, db_session: AsyncSession) -> dict:
     return {"ok": True, "grupo": beta.name, "entran": entran, "total": len(await _miembros(beta.id, db_session))}
 
 
+async def alumnos_nuevos(org_id: int, db_session: AsyncSession, con_motivo: bool = True) -> list[dict]:
+    """Los alumnos que han entrado desde el cambio, el último arriba, con su
+    programa ("" = por decidir). Sin las cuentas de prueba (Testers) ni quien
+    está fuera de los números. Vacío con las tandas apagadas o sin día."""
+    from src.db.users import User
+    from src.services.contactos.metricas import ids_excluidos
+    from src.services.panel.testers import ids_testers
+
+    cfg = await config(db_session, org_id)
+    if not cfg["activo"] or not cfg["desde"]:
+        return []
+    fuera = await ids_testers(org_id, db_session)
+    try:
+        fuera |= await ids_excluidos(db_session)
+    except Exception:  # noqa: BLE001
+        logger.warning("No se pudo leer quién está fuera de los números", exc_info=True)
+    nuevos = {
+        u: c for u, c in (await _alumnos(org_id, db_session)).items() if u not in fuera and dia_nl(c) >= cfg["desde"]
+    }
+    if not nuevos:
+        return []
+    programa = await grupo_del_programa(org_id, db_session, crear=False)
+    beta = await _grupo_beta(org_id, db_session)
+    claves = [g.id for g in (programa, beta) if g is not None]
+    grupos_de: dict[int, set[int]] = {}
+    if claves:
+        for uid, gid in (
+            await db_session.execute(
+                select(UserGroupUser.user_id, UserGroupUser.usergroup_id).where(
+                    UserGroupUser.usergroup_id.in_(claves),  # type: ignore[attr-defined]
+                    UserGroupUser.user_id.in_(list(nuevos)),  # type: ignore[attr-defined]
+                )
+            )
+        ).all():
+            grupos_de.setdefault(int(uid), set()).add(int(gid))
+    usuarios = {
+        u.id: u
+        for u in (await db_session.execute(select(User).where(User.id.in_(list(nuevos))))).scalars().all()  # type: ignore[attr-defined]
+    }
+    salida = []
+    for uid, creado in nuevos.items():
+        u = usuarios.get(uid)
+        if u is None:
+            continue
+        nombre = " ".join(x for x in ((u.first_name or "").strip(), (u.last_name or "").strip()) if x) or u.username or u.email
+        programa_actual = programa_de(grupos_de.get(uid, set()), programa.id if programa else 0, beta.id if beta else 0)
+        d = leer_instante(creado)
+        salida.append(
+            {
+                "id": uid,
+                "nombre": nombre,
+                "email": u.email,
+                "entro": d.astimezone(timezone.utc).isoformat() if d else "",
+                "programa": programa_actual,
+                "motivo": (await motivo_beta_de(u.email, cfg["desde"], db_session)) if con_motivo else "",
+            }
+        )
+    return sorted(salida, key=lambda x: x["entro"], reverse=True)
+
+
+async def por_decidir(org_id: int, db_session: AsyncSession) -> list[dict]:
+    """Los alumnos nuevos que no tienen programa: el aviso del administrador."""
+    return [a for a in await alumnos_nuevos(org_id, db_session, con_motivo=False) if not a["programa"]]
+
+
+async def decidir(org_id: int, user_id: int, a: str, db_session: AsyncSession) -> dict:
+    """Pone a un alumno en el programa nuevo («nuevo»: el grupo del programa y
+    el de su tanda, por el día en que entró) o en la beta («beta»: fuera del
+    programa y de su tanda). Se puede cambiar cuantas veces haga falta."""
+    if a not in ("nuevo", "beta"):
+        return {"ok": False, "motivo": "Elige «nuevo» o «beta»"}
+    creado = (await _alumnos(org_id, db_session)).get(user_id)
+    if creado is None:
+        return {"ok": False, "motivo": "No es alumno de la escuela"}
+    cfg = await config(db_session, org_id)
+    tanda = nombre_tanda(dia_nl(creado) or hoy_nl(), cfg["tanda"])
+    programa = await grupo_del_programa(org_id, db_session)
+    if a == "nuevo":
+        grupo_tanda = await _grupo_por_nombre(org_id, tanda, "Alumnos que se matricularon en esta tanda.", db_session)
+        for grupo in (programa, grupo_tanda):
+            if grupo is not None:
+                await _meter([user_id], grupo, db_session)
+        beta = await _grupo_beta(org_id, db_session)
+        await _sacar(user_id, [beta.id] if beta else [], db_session)
+        return {"ok": True, "programa": "nuevo", "grupos": [g.name for g in (programa, grupo_tanda) if g is not None]}
+    beta = await _grupo_por_nombre(org_id, NOMBRE_BETA, "Alumnos de la primera convocatoria (clase semanal).", db_session)
+    await _meter([user_id], beta, db_session)
+    quitar = [programa.id] if programa else []
+    quitar += [
+        g.id
+        for g in await _grupos(org_id, db_session)
+        if normalizar(g.name) == normalizar(tanda) or normalizar(g.name).startswith("matricula ")
+    ]
+    await _sacar(user_id, quitar, db_session)
+    return {"ok": True, "programa": "beta", "grupos": [beta.name]}
+
+
 async def resumen(org_id: int, db_session: AsyncSession) -> dict:
-    """La pantalla de Tandas: la configuración, cada grupo con su gente y quién
-    ve cada curso y cada canal."""
+    """La pantalla de Tandas: la configuración, los alumnos nuevos con su
+    programa, cada grupo con su gente y quién ve cada curso y cada canal."""
     from src.db.communities.communities import Community
     from src.db.courses.courses import Course
-    from src.db.user_organizations import UserOrganization
 
     cfg = await config(db_session, org_id)
     grupos = await _grupos(org_id, db_session)
     por_id = {g.id: g for g in grupos}
-    alumnos = {
-        int(u)
-        for u in (
-            await db_session.execute(
-                select(UserOrganization.user_id).where(
-                    UserOrganization.org_id == org_id, UserOrganization.role_id == ROL_ALUMNO
-                )
-            )
-        ).scalars().all()
-    }
+    entradas = await _alumnos(org_id, db_session)
+    alumnos = set(entradas)
+    # Los que entran desde el cambio no cuentan como «sin grupo»: van en su
+    # propia lista (`nuevos`), con los botones para decidir.
+    corte = cfg["desde"] if cfg["activo"] else ""
+    de_antes = {u for u, c in entradas.items() if not corte or not dia_nl(c) or dia_nl(c) < corte}
+    nuevos = await alumnos_nuevos(org_id, db_session)
     lista = []
     con_grupo_clave: set[int] = set()
     for g in sorted(grupos, key=lambda x: normalizar(x.name)):
@@ -387,7 +614,9 @@ async def resumen(org_id: int, db_session: AsyncSession) -> dict:
         "tanda_de_hoy": nombre_tanda(hoy_nl(), cfg["tanda"]),
         "grupos": lista,
         "alumnos": len(alumnos),
-        "alumnos_sin_grupo": len(alumnos - con_grupo_clave),
+        "alumnos_sin_grupo": len(de_antes - con_grupo_clave),
+        "nuevos": nuevos,
+        "por_decidir": sum(1 for a in nuevos if not a["programa"]),
         "cursos": sorted(cursos, key=lambda x: normalizar(x["nombre"])),
         "canales": sorted(canales, key=lambda x: normalizar(x["nombre"])),
     }

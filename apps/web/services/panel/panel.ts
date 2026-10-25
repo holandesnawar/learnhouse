@@ -468,6 +468,19 @@ export interface GrupoTanda {
   es_tanda: boolean
 }
 
+/** Un alumno que ha entrado desde el día del cambio. */
+export interface AlumnoNuevo {
+  id: number
+  nombre: string
+  email: string
+  /** Cuándo pagó (ISO, UTC). */
+  entro: string
+  /** '' = por decidir (venía de antes del cambio: «Por pagar», señal o enlace). */
+  programa: '' | 'nuevo' | 'beta' | 'los dos'
+  /** Por qué podría ser de la beta («Estaba en «Por pagar» desde el 20/10…»). */
+  motivo: string
+}
+
 export interface Tandas {
   activo: boolean
   desde: string
@@ -477,6 +490,8 @@ export interface Tandas {
   grupos: GrupoTanda[]
   alumnos: number
   alumnos_sin_grupo: number
+  nuevos: AlumnoNuevo[]
+  por_decidir: number
   cursos: AccesoRecurso[]
   canales: AccesoRecurso[]
 }
@@ -488,3 +503,9 @@ export const guardarTandas = (orgId: number, cambios: { activo?: boolean; desde?
 
 export const meterEnBeta = (orgId: number, t: string) =>
   pedir<{ ok: boolean; grupo: string; entran: number; total: number }>(`panel/org/${orgId}/tandas/beta`, 'POST', {}, t)
+
+export const getPorDecidir = (orgId: number, t: string) =>
+  pedir<{ n: number; alumnos: { id: number; nombre: string; entro: string }[] }>(`panel/org/${orgId}/tandas/por-decidir`, 'GET', null, t)
+
+export const decidirPrograma = (orgId: number, userId: number, a: 'nuevo' | 'beta', t: string) =>
+  pedir<{ ok: boolean; programa: string; grupos: string[] }>(`panel/org/${orgId}/tandas/decidir`, 'POST', { user_id: userId, a }, t)

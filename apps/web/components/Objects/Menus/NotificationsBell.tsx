@@ -11,7 +11,7 @@ import {
   markNotificationsSeen,
   type NotificationFeed,
 } from '@services/communities/engagement'
-import { Bell, AtSign, Pin, Megaphone, Unlock, Trash2, MessagesSquare } from 'lucide-react'
+import { Bell, AtSign, Pin, Megaphone, Unlock, Trash2, MessagesSquare, UserCheck } from 'lucide-react'
 
 /**
  * Campana del alumno. Recoge lo que se puede perder si no entra ese día:
@@ -32,6 +32,9 @@ const KIND_STYLE: Record<string, { icon: any; color: string }> = {
   pinned: { icon: Pin, color: 'text-[#025dc7]' },
   announcement: { icon: Megaphone, color: 'text-[#4da3ff]' },
   module: { icon: Unlock, color: 'text-emerald-500' },
+  // Solo administradores: un alumno nuevo que venía de antes del cambio espera
+  // que se decida si va al programa nuevo o a la beta (Tandas y grupos).
+  decidir: { icon: UserCheck, color: 'text-[#025dc7]' },
 }
 
 /** El aviso puede traer una ruta de la escuela o una dirección completa. */
