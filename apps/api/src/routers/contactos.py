@@ -43,7 +43,7 @@ from src.services.contactos.resultado_llamada import (
 )
 from src.services.contactos.embudo_agendar import embudo_agendar
 from src.services.contactos.metricas import excluir, volver_a_contar
-from src.services.contactos.guion import guardar_guion, leer_guion
+from src.services.contactos.guion import guardar_enfoque, guardar_guion, leer_enfoque, leer_guion
 from src.services.contactos.seguimiento import (
     anadir_nota,
     borrar_nota,
@@ -863,6 +863,36 @@ async def api_guardar_guion(
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
     try:
         return await guardar_guion(org_id, data.texto, db_session)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+# ── Enfoque: el programa nuevo contado para el closer (25/10/2026) ────────
+
+
+@router.get("/org/{org_id}/enfoque", summary="El enfoque del closer: qué se vende y cómo.")
+async def api_enfoque(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    return await leer_enfoque(org_id, db_session)
+
+
+@router.put("/org/{org_id}/enfoque", summary="Cambia el enfoque (administradores y closer).")
+async def api_guardar_enfoque(
+    request: Request,
+    org_id: int,
+    data: GuionWrite,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    # Como el guion: lo editan el administrador y el closer.
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    try:
+        return await guardar_enfoque(org_id, data.texto, db_session)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
 

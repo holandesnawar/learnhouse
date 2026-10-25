@@ -528,6 +528,16 @@ export async function guardarGuion(orgId: number, texto: string, accessToken: st
   return pedir<{ texto: string; de_fabrica: boolean }>(`contactos/org/${orgId}/guion`, 'PUT', { texto }, accessToken)
 }
 
+// ── Enfoque: el programa nuevo contado para el closer (25/10/2026) ────────
+
+export async function getEnfoque(orgId: number, accessToken: string) {
+  return pedir<{ texto: string; de_fabrica: boolean }>(`contactos/org/${orgId}/enfoque`, 'GET', null, accessToken)
+}
+
+export async function guardarEnfoque(orgId: number, texto: string, accessToken: string) {
+  return pedir<{ texto: string; de_fabrica: boolean }>(`contactos/org/${orgId}/enfoque`, 'PUT', { texto }, accessToken)
+}
+
 /** "AAAA-MM-DD" de hoy en la hora del que mira. */
 export function hoyISO(dias = 0): string {
   const d = new Date()

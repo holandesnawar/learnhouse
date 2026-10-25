@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-25 (tandas: nadie entra solo en ningún grupo, el administrador elige el de cada alumno que paga, con aviso en la escuela y sin correo; antes, el mismo día, la beta y el programa nuevo separados por grupos; antes, el mismo día, el closer ve KPIs sin el dinero; antes 22/10: «Otro importe» también a plazos, de 2 a 6 pagos; antes, Matrículas en dos mesas, Leads y Ventas, con closer asignado y reparto; «Esta semana» del alumno cuenta las clases terminadas; antes, el mismo día, incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-25 (pestaña «Enfoque» para el closer con el programa nuevo; tandas: nadie entra solo en ningún grupo, el administrador elige el de cada alumno que paga, con aviso en la escuela y sin correo; antes, el mismo día, la beta y el programa nuevo separados por grupos; antes, el mismo día, el closer ve KPIs sin el dinero; antes 22/10: «Otro importe» también a plazos, de 2 a 6 pagos; antes, Matrículas en dos mesas, Leads y Ventas, con closer asignado y reparto; «Esta semana» del alumno cuenta las clases terminadas; antes, el mismo día, incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -1583,6 +1583,18 @@ prueba o leads malos, estén donde estén.
   propios 497/540 desde el 20/10; antes 397 → 497 €,
   15 días de garantía, Klarna, 16 semanas, 10 módulos, clase semanal, 6 meses).
   ⚠️ **Si cambia la oferta, cambiarlo también ahí.**
+- **Enfoque** (25/10/2026, `?tab=enfoque`, en la barra del closer y del
+  administrador junto al guion): una segunda página igual que el guion
+  (`GuionPanel` con `doc="enfoque"`, org_config `enfoque_closer`,
+  `ENFOQUE_DE_FABRICA` en `guion.py`, rutas `/contactos/org/{id}/enfoque`) con
+  el programa nuevo contado para vender: qué ha cambiado, la semana del alumno,
+  qué incluye, precio, cómo contarlo, qué hacer con los leads de antes del
+  cambio y las preguntas de la gente (`### ` = pregunta). Lo que no se sabía
+  (días, horas, grabaciones, quién da las clases) va como «[POR COMPLETAR: …]»
+  y la pantalla lo resalta en ámbar. El guion de fábrica dejó de decir «clase
+  en directo cada semana… queda grabada» y apunta al Enfoque. Test
+  `test_guion_enfoque.py`: los precios de los dos textos tienen que ser los
+  del cobro (`PRECIO_BASE_CENTS`, `OPCIONES`).
 - "Sus resultados" del closer NO se hizo: el usuario dijo que toda venta por
   llamada es suya, así que no aporta.
 
@@ -3615,9 +3627,10 @@ el recibo de Stripe y no podría entrar), la comunidad **separada del todo** y
 - Tests: `test_tandas.py` (nadie entra solo, por decidir, sugerencia,
   decidir, Beta, campana por grupos y la del administrador, avisos por grupo),
   `cursosEnDirecto.test.ts`, `eventosGrupo.test.ts`.
-- ⚠️ **Lo que vende el equipo tiene que decir lo nuevo**: el guion de fábrica
-  (`guion.py`), la web y la caja de pago hablan de «clase semanal». Se le avisó
-  al usuario de cambiarlo antes de vender con el programa nuevo.
+- ⚠️ **Lo que vende el equipo tiene que decir lo nuevo**: el closer lo tiene en
+  la pestaña **Enfoque** (y el guion de fábrica ya habla de masterclass y
+  spreekuren; si el guion se editó en el panel, manda el editado). La web y
+  la caja de pago siguen hablando de «clase semanal»: pendiente.
 - Pendiente: los de la beta que manden su vídeo se meten a mano en el grupo
   del programa (Usuarios → Grupos) y ven también lo nuevo.
 
