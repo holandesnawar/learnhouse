@@ -68,6 +68,7 @@ import {
   Wallet,
   FolderOpen,
   Telescope,
+  Compass,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -195,7 +196,7 @@ export default function EstadisticasPage() {
   // ?tab= va a Matrículas, no a Números, o saltaría de una a otra sin parar.
   const esCloserRef = React.useRef(false)
   esCloserRef.current = isCloser
-  const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'gastos' | 'guion' | 'paginas' | 'utm' | 'matriculas' | 'tareas' | 'clientes' | 'anuncios' | 'progreso' | 'recursos' | 'vision' | 'kpis' | 'plazos' | 'tandas'>('numeros')
+  const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'gastos' | 'guion' | 'paginas' | 'utm' | 'matriculas' | 'tareas' | 'clientes' | 'anuncios' | 'progreso' | 'recursos' | 'vision' | 'kpis' | 'plazos' | 'tandas' | 'enfoque'>('numeros')
   // El closer arranca en Matrículas, que es lo suyo (08/10: Contactos es solo
   // del administrador).
   useEffect(() => {
@@ -207,7 +208,7 @@ export default function EstadisticasPage() {
   useEffect(() => {
     const leer = () => {
       const pedida = new URLSearchParams(window.location.search).get('tab')
-      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'llamadas' || pedida === 'facturas' || pedida === 'gastos' || pedida === 'guion' || pedida === 'paginas' || pedida === 'utm' || pedida === 'matriculas' || pedida === 'tareas' || pedida === 'clientes' || pedida === 'anuncios' || pedida === 'progreso' || pedida === 'recursos' || pedida === 'vision' || pedida === 'kpis' || pedida === 'plazos' || pedida === 'tandas') setTab(pedida)
+      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'llamadas' || pedida === 'facturas' || pedida === 'gastos' || pedida === 'guion' || pedida === 'paginas' || pedida === 'utm' || pedida === 'matriculas' || pedida === 'tareas' || pedida === 'clientes' || pedida === 'anuncios' || pedida === 'progreso' || pedida === 'recursos' || pedida === 'vision' || pedida === 'kpis' || pedida === 'plazos' || pedida === 'tandas' || pedida === 'enfoque') setTab(pedida)
       // Sin ?tab= (el enlace «Estadísticas» de la barra) = los números.
       else if (!pedida) setTab(esCloserRef.current ? 'matriculas' : 'numeros')
     }
@@ -224,7 +225,7 @@ export default function EstadisticasPage() {
   }, [])
   // El closer sin Números no se queda nunca en esa sección.
   useEffect(() => {
-    if (isCloser && tab !== 'llamadas' && tab !== 'guion' && tab !== 'recursos' && tab !== 'paginas' && tab !== 'matriculas' && tab !== 'tareas' && tab !== 'kpis' && !(tab === 'numeros' && closerVeNumeros === true)) {
+    if (isCloser && tab !== 'llamadas' && tab !== 'guion' && tab !== 'enfoque' && tab !== 'recursos' && tab !== 'paginas' && tab !== 'matriculas' && tab !== 'tareas' && tab !== 'kpis' && !(tab === 'numeros' && closerVeNumeros === true)) {
       setTab('matriculas')
     }
   }, [isCloser, tab, closerVeNumeros])
@@ -284,6 +285,8 @@ export default function EstadisticasPage() {
             <Wallet size={22} className="text-[#025dc7] shrink-0" />
           ) : tab === 'guion' ? (
             <ScrollText size={22} className="text-[#025dc7] shrink-0" />
+          ) : tab === 'enfoque' ? (
+            <Compass size={22} className="text-[#025dc7] shrink-0" />
           ) : tab === 'recursos' ? (
             <FolderOpen size={22} className="text-[#025dc7] shrink-0" />
           ) : tab === 'paginas' ? (
@@ -320,6 +323,8 @@ export default function EstadisticasPage() {
                     ? 'Gastos'
                     : tab === 'guion'
                       ? 'Guion de llamada'
+                      : tab === 'enfoque'
+                      ? 'Enfoque'
                       : tab === 'recursos'
                       ? 'Recursos'
                       : tab === 'paginas'
@@ -376,6 +381,8 @@ export default function EstadisticasPage() {
         <GastosPanel key={vuelta} />
       ) : tab === 'guion' ? (
         <GuionPanel key={vuelta} />
+      ) : tab === 'enfoque' ? (
+        <GuionPanel key={vuelta} doc="enfoque" />
       ) : tab === 'recursos' ? (
         // El administrador las gestiona (y las ve todas); el closer ve las de su grupo.
         isAdmin ? <RecursosAdmin key={vuelta} embebido /> : <RecursosPage key={vuelta} embebido />

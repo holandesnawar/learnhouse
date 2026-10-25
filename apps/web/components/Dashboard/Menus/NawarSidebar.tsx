@@ -59,6 +59,7 @@ import {
   Gauge,
   CalendarDots,
   Tag,
+  Compass,
 } from '@phosphor-icons/react'
 
 type Item = { href: string; label: string; icon: React.ReactNode; match?: (p: string) => boolean }
@@ -79,6 +80,9 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
       { href: '/dash/estadisticas?tab=tareas', label: 'Tareas', icon: <ListChecks size={18} weight="fill" /> },
       { href: '/dash/estadisticas?tab=llamadas', label: 'Llamadas', icon: <PhoneCall size={18} weight="fill" /> },
       { href: '/dash/estadisticas?tab=guion', label: 'Guion de llamada', icon: <Scroll size={18} weight="fill" /> },
+      // Enfoque (25/10): el programa nuevo (masterclass y spreekuren) contado
+      // para vender, con precio y preguntas. Lo editan admin y closer.
+      { href: '/dash/estadisticas?tab=enfoque', label: 'Enfoque', icon: <Compass size={18} weight="fill" /> },
       // Debajo del guion (06/10): cada uno ve las carpetas de su grupo; el
       // administrador, todas y las gestiona aquí mismo.
       { href: '/dash/estadisticas?tab=recursos', label: 'Recursos', icon: <FolderSimple size={18} weight="fill" /> },
@@ -143,7 +147,7 @@ export function gruposDelCloser(veNumeros: boolean): Grupo[] {
   const por = (label: string) => todos.find((i) => i.label === label) as Item
   // Sin Contactos (08/10): el closer trabaja desde Matrículas y Llamadas.
   // Contactos (todos los leads, también los de las guías) es del administrador.
-  const items = [por('Matrículas'), por('Llamadas'), por('KPIs'), por('Tareas'), por('Guion de llamada'), por('Recursos'), por('Páginas de la web')]
+  const items = [por('Matrículas'), por('Llamadas'), por('KPIs'), por('Tareas'), por('Enfoque'), por('Guion de llamada'), por('Recursos'), por('Páginas de la web')]
   if (veNumeros) {
     items.push({ ...por('Estadísticas'), href: '/dash/estadisticas?tab=numeros', label: 'Números', match: undefined })
   }

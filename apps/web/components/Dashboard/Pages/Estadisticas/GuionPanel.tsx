@@ -6,22 +6,65 @@
  * El texto de fábrica y el razonamiento están en
  * apps/api/src/services/contactos/guion.py.
  *
- * Formato sencillo a propósito: "## " es un título y "- " un punto. Así el
- * administrador lo edita en una caja de texto sin tener que aprender nada.
+ * La misma pantalla pinta el «Enfoque» (`doc="enfoque"`, 25/10/2026): el
+ * programa nuevo (masterclass y spreekuren) contado para el closer, con precio
+ * y las preguntas que hace la gente.
+ *
+ * Formato sencillo a propósito: "## " es un título, "### " un subtítulo (una
+ * pregunta) y "- " un punto. Así el administrador lo edita en una caja de
+ * texto sin tener que aprender nada. Lo que va entre «[POR COMPLETAR: …]» se
+ * resalta, para ver de un vistazo lo que falta por rellenar.
  */
 
 import React, { useEffect, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
-import { getGuion, guardarGuion } from '@services/stats/contactos'
+import { getEnfoque, getGuion, guardarEnfoque, guardarGuion } from '@services/stats/contactos'
 import { Loader2, Pencil, RotateCcw } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { confirmar } from '@lib/nawar/confirmar'
 
 const CARD = 'rounded-lg border border-[#E5E7EB] bg-white p-4 sm:p-6'
 
-/** Pinta el texto: "## " → título, "- " → punto, lo demás → párrafo. */
+const DOCS = {
+  guion: {
+    leer: getGuion,
+    guardar: guardarGuion,
+    intro:
+      'Lo que hay que contar en cada llamada y cómo responder a las dudas de siempre. Así el precio, la garantía y lo que incluye la formación se dicen igual que en la web.',
+    guardado: 'Guion guardado',
+    nombre: 'el guion',
+  },
+  enfoque: {
+    leer: getEnfoque,
+    guardar: guardarEnfoque,
+    intro:
+      'Qué se vende desde el 26/10: el programa nuevo con masterclass y spreekuren, el precio y las preguntas que te va a hacer la gente.',
+    guardado: 'Enfoque guardado',
+    nombre: 'el enfoque',
+  },
+}
+
+/** Resalta «[POR COMPLETAR: …]»: lo que aún hay que rellenar. */
+function ConHuecos({ texto }: { texto: string }) {
+  const trozos = texto.split(/(\[POR COMPLETAR[^\]]*\])/g)
+  return (
+    <>
+      {trozos.map((t, i) =>
+        t.startsWith('[POR COMPLETAR') ? (
+          <span key={i} className="rounded px-1 bg-[#FFFBF2] text-[#8A6A2A] font-medium">
+            {t}
+          </span>
+        ) : (
+          <React.Fragment key={i}>{t}</React.Fragment>
+        )
+      )}
+    </>
+  )
+}
+
+/** Pinta el texto: "## " → título, "### " → subtítulo, "- " → punto, lo demás → párrafo. */
 function Texto({ texto }: { texto: string }) {
   const bloques: React.ReactNode[] = []
   let puntos: string[] = []
@@ -32,7 +75,9 @@ function Texto({ texto }: { texto: string }) {
         {puntos.map((p, i) => (
           <li key={i} className="flex gap-2 text-[14px] text-gray-800 leading-relaxed">
             <span className="mt-2 w-1.5 h-1.5 rounded-full bg-[#4da3ff] shrink-0" />
-            <span>{p}</span>
+            <span>
+              <ConHuecos texto={p} />
+            </span>
           </li>
         ))}
       </ul>
@@ -41,7 +86,14 @@ function Texto({ texto }: { texto: string }) {
   }
   texto.split('\n').forEach((linea, i) => {
     const l = linea.trim()
-    if (l.startsWith('## ')) {
+    if (l.startsWith('### ')) {
+      cerrarLista(`l${i}`)
+      bloques.push(
+        <h4 key={i} className="text-[14px] font-semibold text-gray-900 mt-4 mb-1">
+          {l.slice(4)}
+        </h4>
+      )
+    } else if (l.startsWith('## ')) {
       cerrarLista(`l${i}`)
       bloques.push(
         <h3 key={i} className="text-[15.5px] font-bold text-[#1D0084] mt-5 mb-2 first:mt-0">
@@ -54,7 +106,7 @@ function Texto({ texto }: { texto: string }) {
       cerrarLista(`l${i}`)
       bloques.push(
         <p key={i} className="text-[14px] text-gray-800 leading-relaxed mb-3">
-          {l}
+          <ConHuecos texto={l} />
         </p>
       )
     }
@@ -63,7 +115,8 @@ function Texto({ texto }: { texto: string }) {
   return <div>{bloques}</div>
 }
 
-export default function GuionPanel() {
+export default function GuionPanel({ doc = 'guion' }: { doc?: keyof typeof DOCS }) {
+  const D = DOCS[doc]
   const org = useOrg() as any
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
@@ -80,16 +133,16 @@ export default function GuionPanel() {
 
   useEffect(() => {
     if (!org?.id || !accessToken) return
-    getGuion(org.id, accessToken).then((r) => {
+    D.leer(org.id, accessToken).then((r) => {
       setTexto(r.datos?.texto ?? '')
       setDeFabrica(r.datos?.de_fabrica ?? true)
       setCargando(false)
     })
-  }, [org?.id, accessToken])
+  }, [org?.id, accessToken, D])
 
   async function guardar(nuevo: string) {
     setGuardando(true)
-    const r = await guardarGuion(org?.id, nuevo, accessToken)
+    const r = await D.guardar(org?.id, nuevo, accessToken)
     setGuardando(false)
     if (!r.ok || !r.datos) {
       toast.error(r.error || 'No se ha podido guardar')
@@ -98,7 +151,7 @@ export default function GuionPanel() {
     setTexto(r.datos.texto)
     setDeFabrica(r.datos.de_fabrica)
     setEditando(false)
-    toast.success('Guion guardado')
+    toast.success(D.guardado)
   }
 
   if (cargando) {
@@ -112,10 +165,7 @@ export default function GuionPanel() {
   return (
     <div className="space-y-4 max-w-3xl">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-[13px] text-[#6B7280] leading-relaxed">
-          Lo que hay que contar en cada llamada y cómo responder a las dudas de siempre. Así el precio, la garantía y lo
-          que incluye la formación se dicen igual que en la web.
-        </p>
+        <p className="text-[13px] text-[#6B7280] leading-relaxed">{D.intro}</p>
         {puedeEditar && !editando ? (
           <button
             onClick={() => {
@@ -133,6 +183,7 @@ export default function GuionPanel() {
         <div className={CARD}>
           <p className="text-[12px] text-gray-500 mb-2">
             Una línea que empieza por <code className="bg-[#F0F5FF] px-1 rounded">## </code> es un título; por{' '}
+            <code className="bg-[#F0F5FF] px-1 rounded">### </code>, un subtítulo (una pregunta); por{' '}
             <code className="bg-[#F0F5FF] px-1 rounded">- </code>, un punto.
           </p>
           <textarea
@@ -144,7 +195,7 @@ export default function GuionPanel() {
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
             <button
               onClick={async () => {
-                if (await confirmar('¿Volver al guion de fábrica? Se pierde lo que hayas cambiado.', { boton: 'Sí, volver' })) guardar('')
+                if (await confirmar(`¿Volver a ${D.nombre} de fábrica? Se pierde lo que hayas cambiado.`, { boton: 'Sí, volver' })) guardar('')
               }}
               disabled={guardando}
               className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-gray-500 hover:text-gray-800 disabled:opacity-50"
@@ -173,7 +224,7 @@ export default function GuionPanel() {
           <Texto texto={texto} />
           {puedeEditar && deFabrica ? (
             <p className="mt-4 text-[11.5px] text-[#9CA3AF]">
-              Es el guion de fábrica. Cámbialo con "Editar" cuando quieras adaptarlo.
+              Es {D.nombre} de fábrica. Cámbialo con "Editar" cuando quieras adaptarlo.
             </p>
           ) : null}
         </div>
