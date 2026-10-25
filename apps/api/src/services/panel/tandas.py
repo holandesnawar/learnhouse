@@ -1,55 +1,53 @@
 """
-Tandas de alumnos y grupos automáticos (25/10/2026).
+Tandas de alumnos: cada alumno nuevo, en su grupo, elegido por el equipo
+(25/10/2026).
 
 Pedido del usuario: "a partir de mañana, los nuevos van en un grupo nuevo; no
 ven la clase semanal como los de la beta… separar con etiquetas, por ejemplo
-matrículas noviembre… reciben una masterclass en directo y spreekuren… si
-alguien hace el pago, me gustaría recibir un mail yo primero".
+matrículas noviembre… reciben una masterclass en directo y spreekuren".
 
-Decidido ese día:
-- **La bienvenida sale AL MOMENTO** (no se retrasa una semana): el alumno entra
-  ya metido en sus grupos y solo ve lo suyo.
-- **Dos grupos a la vez**: el de la TANDA («Matrícula octubre 2026», para saber
-  de qué tanda es; se crea solo cada mes, o se fija a mano con `tanda`) y el
-  del PROGRAMA («Programa nuevo»: el que abre la masterclass y los spreekuren).
-- **La comunidad, separada del todo**: cada canal se cierra a su grupo desde el
-  panel (Comunidad → canal → Acceso). Esto NO lo hace el código: así se ve y
-  se puede deshacer.
+⚠️ **NADIE entra solo en ningún grupo.** Lo dijo el usuario dos veces el
+mismo día: "yo quería poder elegir: que cuando alguien pague se me notifique
+para decidir en qué grupo entra; los que están en Por pagar hay que darles la
+clase de conversación". Hubo una versión que metía sola a todo el que pagaba
+en el programa nuevo, y otra que además le mandaba un correo «Alumno nuevo» al
+equipo: las dos se quitaron. El pago NO llama a nada de aquí.
 
 Cómo va:
-- org_config `tandas`: `activo`, `desde` (AAAA-MM-DD, hora de Países Bajos),
-  `programa_id` (el grupo del programa; si no existe, se crea «Programa nuevo»
-  y se apunta su id, así que renombrarlo en el panel no rompe nada) y `tanda`
-  (nombre fijo; vacío = por el mes en que paga).
-- Al dar de alta tras un pago (`_provision_after_payment`, la primera vez; y el
-  alta a mano de quien no tenía cuenta), `al_entrar` mete al alumno en los dos
-  grupos. Nunca lanza: el alumno ya ha pagado y su alta no puede fallar por
-  esto.
-- **Sin correo al equipo** (26/10, "no quiero un mail para mí sobre quién pagó
-  y qué grupo es"). Hubo uno, «Alumno nuevo», un día; se quitó.
-- **La beta está cerrada, salvo quien venía de antes** (26/10, "a no ser que
-  sea una matrícula que se quedó en Por pagar, esa sí podría entrar"). Si quien
-  paga estaba en la columna «Por pagar» desde antes del cambio, reservó plaza
-  con señal antes, o el equipo le creó un enlace de pago antes
-  (`motivo_beta`), NO entra en ningún grupo: queda «por decidir» y al
-  administrador le sale el aviso en la escuela (campana, inicio del panel y
-  Tandas y grupos) con dos botones, «Programa nuevo» o «Beta» (`decidir`).
-  Mientras, ve la formación como cualquiera, pero ni la clase semanal ni la
-  masterclass. El resto entra solo en el programa nuevo, y aun así se le puede
-  pasar a la beta con un clic desde la lista de alumnos nuevos.
+- org_config `tandas`: `activo` (avisar para elegir), `desde` (AAAA-MM-DD,
+  hora de Países Bajos: el día del cambio), `programa_id` (el grupo del
+  programa nuevo; si no existe, se crea «Programa nuevo» y se apunta su id,
+  así que renombrarlo en el panel no rompe nada) y `tanda` (nombre fijo del
+  grupo de la tanda; vacío = por el mes en que pagó).
+- **Por decidir** (`por_decidir`): todo alumno (rol 4) que pagó desde
+  `desde` y no está ni en el programa nuevo ni en la beta. Sin Testers ni
+  quien está fuera de los números. No se guarda nada: sale de los grupos.
+- **El aviso es en la escuela, no por correo**: en la campana de los
+  administradores (`_decidir_items` en engagement.py), en el inicio del panel
+  y arriba de Tandas y grupos, con dos botones: «Programa nuevo» y «Beta»
+  (`decidir`). Desaparece al elegir.
+- **La sugerencia** (`sugerencia` en cada alumno): Beta si ANTES del cambio
+  estaba en «Por pagar», reservó plaza con señal o el equipo le creó un enlace
+  de pago (`motivo_beta`): a esos se les vendió la clase de conversación. Si
+  no, el programa nuevo. Solo marca el botón; decide el equipo.
+- `decidir`: «nuevo» = el grupo del programa y el de su tanda (por el día en
+  que entró); «beta» = el grupo Beta, y fuera del programa y de su tanda. Se
+  puede cambiar cuantas veces haga falta.
+- Mientras no se elige, el alumno ve la formación, pero ni la clase semanal
+  ni la masterclass (cada una cerrada a su grupo en su Acceso).
 - **La bienvenida no cambia y sale al momento**: no habla de la clase semanal
   ni de la masterclass (formación, contraseña y «Primeros pasos»), así que vale
-  para los dos programas y nadie se queda esperando su correo tras pagar.
-- **Beta**: `meter_en_beta` crea el grupo «Beta» y mete a todos los alumnos
-  (rol 4) que entraron ANTES del día del cambio y no están en el programa
-  nuevo. Se usa una vez y ANTES de cerrar la clase semanal al grupo Beta: si se
-  cierra antes, la beta se queda sin su clase. Se puede repetir sin miedo (no
-  duplica, y no toca a los que entran desde el cambio: esos se deciden uno a
+  para los dos y nadie se queda esperando su correo tras pagar.
+- **Beta**: `meter_en_beta` crea el grupo «Beta» y mete a los alumnos (rol 4)
+  que entraron ANTES del día del cambio y no están en el programa nuevo. Se
+  usa una vez y ANTES de cerrar la clase semanal al grupo Beta: si se cierra
+  antes, la beta se queda sin su clase. Se puede repetir sin miedo (no
+  duplica, y no toca a los que entran desde el cambio: esos se eligen uno a
   uno).
-- `resumen` enseña cada grupo con su gente, los alumnos nuevos con su programa
-  y QUIÉN VE cada curso y cada canal (todos, o solo tal grupo), y avisa del
-  error que más se va a cometer: un curso o canal con grupo pero marcado como
-  público, que lo ve todo el mundo igual (`quien_lo_ve`).
+- `resumen` enseña los alumnos nuevos con su programa, cada grupo con su
+  gente y QUIÉN VE cada curso y cada canal (todos, o solo tal grupo), y avisa
+  del error que más se va a cometer: un curso o canal con grupo pero marcado
+  como público, que lo ve todo el mundo igual (`quien_lo_ve`).
 """
 
 import json
@@ -110,11 +108,6 @@ def nombre_tanda(dia: str, fija: str = "") -> str:
         return fija.strip()[:100]
     anio, mes = int(dia[:4]), int(dia[5:7])
     return f"Matrícula {MESES[mes - 1]} {anio}"
-
-
-def toca(config: dict, hoy: str) -> bool:
-    """Si a quien paga hoy (AAAA-MM-DD, hora NL) se le meten los grupos."""
-    return bool(config.get("activo")) and (not config.get("desde") or hoy >= config["desde"])
 
 
 def quien_lo_ve(publico: bool, grupos: list[str], publicado: bool = True) -> dict:
@@ -296,31 +289,6 @@ async def _meter(user_ids: list[int], grupo: UserGroup, db_session: AsyncSession
     return nuevos
 
 
-async def asignar(user_id: int, org_id: int, db_session: AsyncSession, ahora: Optional[datetime] = None) -> list[str]:
-    """Mete a un alumno que acaba de pagar en el programa y en su tanda, si las
-    tandas están encendidas. Devuelve los nombres de los grupos."""
-    cfg = await config(db_session, org_id)
-    hoy = hoy_nl(ahora)
-    if not toca(cfg, hoy):
-        return []
-    programa = await grupo_del_programa(org_id, db_session)
-    tanda = await _grupo_por_nombre(
-        org_id, nombre_tanda(hoy, cfg["tanda"]), "Alumnos que se matricularon en esta tanda.", db_session
-    )
-    for grupo in (programa, tanda):
-        if grupo is not None:
-            await _meter([user_id], grupo, db_session)
-    return [g.name for g in (programa, tanda) if g is not None]
-
-
-async def _org_de(user_id: int, db_session: AsyncSession) -> Optional[int]:
-    from src.db.user_organizations import UserOrganization
-
-    return (
-        await db_session.execute(select(UserOrganization.org_id).where(UserOrganization.user_id == user_id))
-    ).scalars().first()
-
-
 async def _sacar(user_id: int, grupo_ids: list[int], db_session: AsyncSession) -> None:
     """Saca a esa persona de esos grupos (si estaba)."""
     if not grupo_ids:
@@ -339,27 +307,9 @@ async def _sacar(user_id: int, grupo_ids: list[int], db_session: AsyncSession) -
         await db_session.commit()
 
 
-async def _deshacer(db_session: AsyncSession, user=None) -> None:
-    """Tras un fallo de la base de datos, deja la sesión usable: esto corre en
-    mitad del alta de alguien que acaba de pagar, y detrás va su bienvenida.
-
-    ⚠️ Deshacer CADUCA todo lo cargado en la sesión, y quien llama usa el
-    usuario justo después (su código de contraseña y el correo de bienvenida):
-    se vuelve a leer, o al tocarlo la escuela fallaría sin mandar nada."""
-    try:
-        await db_session.rollback()
-    except Exception:  # noqa: BLE001
-        return
-    if user is not None:
-        try:
-            await db_session.refresh(user)
-        except Exception:  # noqa: BLE001
-            logger.warning("No se pudo volver a leer al alumno tras deshacer", exc_info=True)
-
-
 async def motivo_beta_de(email: str, desde: str, db_session: AsyncSession) -> str:
     """`motivo_beta` con los datos de esa persona. En blando: si algo falla, ""
-    (entra en el programa nuevo, que es lo de siempre desde el cambio)."""
+    (la sugerencia queda en el programa nuevo; decide igual el equipo)."""
     from src.db.contact_event import ContactEvent
     from src.db.reservas import ReservaPlaza
     from src.services.panel.pipeline import etapa_guardada, filas_de
@@ -389,32 +339,8 @@ async def motivo_beta_de(email: str, desde: str, db_session: AsyncSession) -> st
         primero = lambda fechas: min((f for f in fechas if leer_instante(f)), key=lambda f: leer_instante(f), default="")  # noqa: E731
         return motivo_beta(desde, por_pagar, primero(senales), primero(enlaces))
     except Exception:  # noqa: BLE001
-        # Sin deshacer aquí: si la base de datos ha fallado, lo hace
-        # `al_entrar`, que sabe qué hay que volver a leer.
         logger.warning("No se pudo mirar si un alumno nuevo venía de la beta", exc_info=True)
         return ""
-
-
-async def al_entrar(user, email: str, db_session: AsyncSession, ahora: Optional[datetime] = None) -> list[str]:
-    """Lo que pasa cuando un alumno nuevo entra tras pagar: sus grupos, o
-    «por decidir» si venía de antes del cambio. Nunca lanza."""
-    uid = user.id
-    try:
-        org_id = await _org_de(uid, db_session)
-        if not org_id:
-            return []
-        cfg = await config(db_session, org_id)
-        if not toca(cfg, hoy_nl(ahora)):
-            return []
-        if await motivo_beta_de(email, cfg["desde"], db_session):
-            # Sin nombre ni correo en el registro: solo que queda pendiente.
-            logger.info("Alumno nuevo por decidir (programa nuevo o beta): user_id=%s", uid)
-            return []
-        return await asignar(uid, org_id, db_session, ahora=ahora)
-    except Exception:  # noqa: BLE001
-        logger.exception("No se pudo meter a un alumno nuevo en sus grupos (user_id=%s)", uid)
-        await _deshacer(db_session, user)
-        return []
 
 
 async def _alumnos(org_id: int, db_session: AsyncSession) -> dict[int, str]:
@@ -502,6 +428,7 @@ async def alumnos_nuevos(org_id: int, db_session: AsyncSession, con_motivo: bool
         nombre = " ".join(x for x in ((u.first_name or "").strip(), (u.last_name or "").strip()) if x) or u.username or u.email
         programa_actual = programa_de(grupos_de.get(uid, set()), programa.id if programa else 0, beta.id if beta else 0)
         d = leer_instante(creado)
+        motivo = (await motivo_beta_de(u.email, cfg["desde"], db_session)) if con_motivo else ""
         salida.append(
             {
                 "id": uid,
@@ -509,15 +436,19 @@ async def alumnos_nuevos(org_id: int, db_session: AsyncSession, con_motivo: bool
                 "email": u.email,
                 "entro": d.astimezone(timezone.utc).isoformat() if d else "",
                 "programa": programa_actual,
-                "motivo": (await motivo_beta_de(u.email, cfg["desde"], db_session)) if con_motivo else "",
+                "motivo": motivo,
+                # Qué botón se marca: la beta a quien se le vendió la clase de
+                # conversación antes del cambio. Decide igual el equipo.
+                "sugerencia": "beta" if motivo else "nuevo",
             }
         )
     return sorted(salida, key=lambda x: x["entro"], reverse=True)
 
 
-async def por_decidir(org_id: int, db_session: AsyncSession) -> list[dict]:
-    """Los alumnos nuevos que no tienen programa: el aviso del administrador."""
-    return [a for a in await alumnos_nuevos(org_id, db_session, con_motivo=False) if not a["programa"]]
+async def por_decidir(org_id: int, db_session: AsyncSession, con_motivo: bool = False) -> list[dict]:
+    """Los alumnos nuevos que aún no tienen programa: el aviso del
+    administrador. Con `con_motivo`, también por qué se sugiere la beta."""
+    return [a for a in await alumnos_nuevos(org_id, db_session, con_motivo=con_motivo) if not a["programa"]]
 
 
 async def decidir(org_id: int, user_id: int, a: str, db_session: AsyncSession) -> dict:

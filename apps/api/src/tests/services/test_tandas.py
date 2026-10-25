@@ -1,17 +1,17 @@
-"""Tandas y grupos automáticos al pagar (25/10/2026): services/panel/tandas.py.
+"""Tandas: cada alumno nuevo en su grupo, elegido por el equipo (25/10/2026):
+services/panel/tandas.py.
 
-- Quien paga con las tandas encendidas entra en «Programa nuevo» y en el grupo
-  de su mes; con ellas apagadas, en ninguno. Sin correo al equipo (26/10).
-- Quien venía de antes del cambio («Por pagar», señal o enlace de pago) no
-  entra en nada: queda por decidir, con su aviso en la campana del
-  administrador, y `decidir` lo pone en el programa nuevo o en la beta.
+- Nadie entra solo en ningún grupo: quien paga desde el día del cambio queda
+  por decidir, con su aviso en la campana del administrador, y `decidir` lo
+  pone en el programa nuevo o en la beta (y se puede cambiar).
+- Se sugiere la beta a quien antes del cambio estaba en «Por pagar», reservó
+  con señal o tenía un enlace de pago.
 - «Beta» mete a los alumnos de antes, no a los del programa nuevo ni a los que
   entran desde el cambio, y repetirlo no duplica.
 - Quién ve un curso o un canal, con el aviso del curso con grupo pero público.
 """
 
 from datetime import datetime
-from unittest.mock import patch
 
 from sqlmodel import select
 
@@ -28,23 +28,15 @@ from src.db.user_organizations import UserOrganization
 from src.db.users import User
 from src.services.panel import tandas
 
-DOMINGO = datetime(2026, 10, 25, 12, tzinfo=tandas.ZONA)
-LUNES = datetime(2026, 10, 26, 9, tzinfo=tandas.ZONA)
-
-
 def test_nombre_de_la_tanda_por_mes_o_fijo():
     assert tandas.nombre_tanda("2026-10-26") == "Matrícula octubre 2026"
     assert tandas.nombre_tanda("2026-11-03") == "Matrícula noviembre 2026"
     assert tandas.nombre_tanda("2026-10-26", " Matrícula noviembre 2026 ") == "Matrícula noviembre 2026"
 
 
-def test_desde_cuando_toca():
-    cfg = tandas.leer_config({"activo": True, "desde": "2026-10-26"})
-    assert not tandas.toca(cfg, "2026-10-25") and tandas.toca(cfg, "2026-10-26")
-    assert not tandas.toca(tandas.leer_config({"activo": False, "desde": "2026-10-01"}), "2026-10-26")
-    # Encendidas sin fecha: desde ya.
-    assert tandas.toca(tandas.leer_config({"activo": True}), "2026-10-26")
+def test_la_configuracion_con_valores_seguros():
     assert tandas.leer_config("basura") == {"activo": False, "desde": "", "programa_id": 0, "tanda": ""}
+    assert tandas.leer_config({"activo": 1, "desde": "2026-10-26T00:00", "programa_id": "7"})["programa_id"] == 7
 
 
 def test_quien_ve_cada_curso_o_canal():
@@ -78,66 +70,61 @@ async def _grupos_de(db, uid: int) -> set[str]:
     return {g.name for g in (await db.execute(select(UserGroup))).scalars().all() if g.id in ids}
 
 
-async def test_con_las_tandas_encendidas_entra_en_el_programa_y_en_su_mes(db, org):
+async def test_nadie_entra_solo_todos_quedan_por_decidir(db, org):
+    """El pago no mete a nadie en ningún grupo: cada alumno nuevo sale para
+    elegir. Y no es cosa de que falte la llamada: el pago ya no llama a nada
+    de las tandas."""
+    import inspect
+
+    from src.services.payments import payments
+
+    assert "tandas" not in inspect.getsource(payments)
     await _escuela(db, org, {"activo": True, "desde": "2026-10-26"})
-    ana = await _alumno(db, org, 10, "ana@x.com")
-    # El domingo todavía no toca.
-    assert await tandas.asignar(ana.id, org.id, db, ahora=DOMINGO) == []
-    assert await tandas.asignar(ana.id, org.id, db, ahora=LUNES) == ["Programa nuevo", "Matrícula octubre 2026"]
+    ana = await _alumno(db, org, 10, "ana@x.com", entro="2026-10-26 08:00:00")
+    beto = await _alumno(db, org, 11, "beto@x.com", entro="2026-10-27 09:00:00")
+    pendientes = await tandas.por_decidir(org.id, db)
+    assert {p["id"] for p in pendientes} == {ana.id, beto.id}
+    assert await _grupos_de(db, ana.id) == set() and await _grupos_de(db, beto.id) == set()
+
+
+async def test_apagado_no_avisa_de_nadie(db, org):
+    await _escuela(db, org, {"activo": False, "desde": "2026-10-26"})
+    await _alumno(db, org, 10, "ana@x.com", entro="2026-10-26 08:00:00")
+    assert await tandas.por_decidir(org.id, db) == []
+
+
+async def test_elegir_el_programa_nuevo_y_cambiar_de_idea(db, org):
+    await _escuela(db, org, {"activo": True, "desde": "2026-10-26"})
+    ana = await _alumno(db, org, 10, "ana@x.com", entro="2026-10-26 08:00:00")
+    r = await tandas.decidir(org.id, ana.id, "nuevo", db)
+    assert r["ok"] and r["grupos"] == ["Programa nuevo", "Matrícula octubre 2026"]
     assert await _grupos_de(db, ana.id) == {"Programa nuevo", "Matrícula octubre 2026"}
+    assert await tandas.por_decidir(org.id, db) == []
+    # Repetir no duplica.
+    await tandas.decidir(org.id, ana.id, "nuevo", db)
+    assert len((await db.execute(select(UserGroupUser).where(UserGroupUser.user_id == ana.id))).scalars().all()) == 2
+    # A la beta: fuera del programa y de su tanda.
+    await tandas.decidir(org.id, ana.id, "beta", db)
+    assert await _grupos_de(db, ana.id) == {"Beta"}
     # El grupo del programa queda apuntado: renombrarlo no rompe nada.
     cfg = await tandas.config(db, org.id)
     programa = (await db.execute(select(UserGroup).where(UserGroup.id == cfg["programa_id"]))).scalars().one()
     programa.name = "Masterclass + Spreekuren"
     db.add(programa)
     await db.commit()
-    beto = await _alumno(db, org, 11, "beto@x.com")
-    assert await tandas.asignar(beto.id, org.id, db, ahora=LUNES) == ["Masterclass + Spreekuren", "Matrícula octubre 2026"]
-    assert len((await db.execute(select(UserGroup))).scalars().all()) == 2
-    # Repetir no duplica.
-    await tandas.asignar(beto.id, org.id, db, ahora=LUNES)
-    assert len((await db.execute(select(UserGroupUser).where(UserGroupUser.user_id == beto.id))).scalars().all()) == 2
+    await tandas.decidir(org.id, ana.id, "nuevo", db)
+    assert await _grupos_de(db, ana.id) == {"Masterclass + Spreekuren", "Matrícula octubre 2026"}
+    assert not (await tandas.decidir(org.id, ana.id, "otro", db))["ok"]
+    assert not (await tandas.decidir(org.id, 999, "beta", db))["ok"]
 
 
-async def test_una_tanda_con_nombre_fijo(db, org):
-    await _escuela(db, org, {"activo": True, "tanda": "Matrícula noviembre 2026"})
-    ana = await _alumno(db, org, 10, "ana@x.com")
-    assert await tandas.asignar(ana.id, org.id, db, ahora=LUNES) == ["Programa nuevo", "Matrícula noviembre 2026"]
-
-
-async def test_al_entrar_mete_en_sus_grupos_y_no_escribe_a_nadie(db, org):
-    await _escuela(db, org, {"activo": True})
-    ana = await _alumno(db, org, 10, "ana@x.com")
-
-    def no_escribas(*a, **k):
-        raise AssertionError("al_entrar no manda correos")
-
-    with patch("src.services.email.utils.send_email", no_escribas):
-        grupos = await tandas.al_entrar(ana, "ana@x.com", db, ahora=LUNES)
-    assert grupos == ["Programa nuevo", "Matrícula octubre 2026"]
-    assert await _grupos_de(db, ana.id) == {"Programa nuevo", "Matrícula octubre 2026"}
-
-
-async def test_si_la_base_de_datos_falla_el_alta_sigue(db, org):
-    """Corre en mitad del alta de quien acaba de pagar: un fallo no puede
-    dejar ni la sesión rota ni al usuario sin leer (detrás va su bienvenida)."""
-    await _escuela(db, org, {"activo": True})
-    ana = await _alumno(db, org, 10, "ana@x.com")
-
-    async def roto(*a, **k):
-        raise RuntimeError("se cayó la base de datos")
-
-    with patch.object(tandas, "asignar", roto):
-        assert await tandas.al_entrar(ana, "ana@x.com", db, ahora=LUNES) == []
-    assert ana.email == "ana@x.com" and ana.user_uuid == "user_10"
-    assert (await db.execute(select(User).where(User.id == ana.id))).scalars().one().email == "ana@x.com"
-
-
-async def test_apagadas_no_mete_en_nada(db, org):
-    await _escuela(db, org)
-    ana = await _alumno(db, org, 10, "ana@x.com")
-    assert await tandas.al_entrar(ana, "ana@x.com", db, ahora=LUNES) == []
-    assert await _grupos_de(db, ana.id) == set()
+async def test_la_tanda_va_por_el_mes_en_que_entro_o_con_nombre_fijo(db, org):
+    await _escuela(db, org, {"activo": True, "desde": "2026-10-26", "tanda": "Matrícula noviembre 2026"})
+    ana = await _alumno(db, org, 10, "ana@x.com", entro="2026-10-31 10:00:00")
+    assert (await tandas.decidir(org.id, ana.id, "nuevo", db))["grupos"] == ["Programa nuevo", "Matrícula noviembre 2026"]
+    await tandas.guardar(org.id, {"tanda": ""}, db)
+    beto = await _alumno(db, org, 11, "beto@x.com", entro="2026-11-02 10:00:00")
+    assert (await tandas.decidir(org.id, beto.id, "nuevo", db))["grupos"] == ["Programa nuevo", "Matrícula noviembre 2026"]
 
 
 def test_quien_podria_ser_de_la_beta():
@@ -163,50 +150,23 @@ def test_en_que_programa_esta():
     assert tandas.programa_de({1}, 0, 0) == ""
 
 
-async def test_quien_venia_de_por_pagar_queda_por_decidir_y_se_decide(db, org):
-    await _escuela(db, org, {"activo": True, "desde": "2026-10-26"})
-    ana = await _alumno(db, org, 10, "ana@x.com", entro="2026-10-26 08:00:00")
-    beto = await _alumno(db, org, 11, "beto@x.com", entro="2026-10-26 09:00:00")
-    db.add(LeadPipeline(email="Ana@x.com", etapa="pendiente-pago", updated_at="2026-10-20T10:00:00+00:00"))
-    # Beto llegó a «Por pagar» ya con el programa nuevo: entra solo.
-    db.add(LeadPipeline(email="beto@x.com", etapa="pendiente-pago", updated_at="2026-10-26T07:00:00+00:00"))
-    await db.commit()
-
-    assert await tandas.al_entrar(ana, "ana@x.com", db, ahora=LUNES) == []
-    assert await _grupos_de(db, ana.id) == set()
-    assert await tandas.al_entrar(beto, "beto@x.com", db, ahora=LUNES) == ["Programa nuevo", "Matrícula octubre 2026"]
-
-    pendientes = await tandas.por_decidir(org.id, db)
-    assert [p["id"] for p in pendientes] == [ana.id]
-
-    assert (await tandas.decidir(org.id, ana.id, "beta", db))["programa"] == "beta"
-    assert await _grupos_de(db, ana.id) == {"Beta"}
-    assert await tandas.por_decidir(org.id, db) == []
-    # Cambiar de idea: al programa nuevo, con la tanda del día en que entró.
-    await tandas.decidir(org.id, ana.id, "nuevo", db)
-    assert await _grupos_de(db, ana.id) == {"Programa nuevo", "Matrícula octubre 2026"}
-    # Y quien entró solo en el programa nuevo se puede pasar a la beta.
-    await tandas.decidir(org.id, beto.id, "beta", db)
-    assert await _grupos_de(db, beto.id) == {"Beta"}
-
-    assert not (await tandas.decidir(org.id, ana.id, "otro", db))["ok"]
-    assert not (await tandas.decidir(org.id, 999, "beta", db))["ok"]
-
-
-async def test_una_senal_o_un_enlace_de_antes_tambien_dejan_por_decidir(db, org):
+async def test_se_sugiere_la_beta_a_quien_venia_de_antes(db, org):
     await _escuela(db, org, {"activo": True, "desde": "2026-10-26"})
     ana = await _alumno(db, org, 10, "ana@x.com", entro="2026-10-27 08:00:00")
     beto = await _alumno(db, org, 11, "beto@x.com", entro="2026-10-27 08:00:00")
     carla = await _alumno(db, org, 12, "carla@x.com", entro="2026-10-27 08:00:00")
-    db.add(ReservaPlaza(email="ana@x.com", created_at="2026-10-21T10:00:00+00:00"))
-    db.add(ContactEvent(email="beto@x.com", kind="enlace-pago", created_at="2026-10-23T10:00:00+00:00"))
-    # Una señal cancelada no cuenta.
-    db.add(ReservaPlaza(email="carla@x.com", estado="cancelada", created_at="2026-10-21T10:00:00+00:00"))
+    dani = await _alumno(db, org, 13, "dani@x.com", entro="2026-10-27 08:00:00")
+    eva = await _alumno(db, org, 14, "eva@x.com", entro="2026-10-27 08:00:00")
+    db.add(LeadPipeline(email="Ana@x.com", etapa="pendiente-pago", updated_at="2026-10-20T10:00:00+00:00"))
+    db.add(ReservaPlaza(email="beto@x.com", created_at="2026-10-21T10:00:00+00:00"))
+    db.add(ContactEvent(email="carla@x.com", kind="enlace-pago", created_at="2026-10-23T10:00:00+00:00"))
+    # Una señal cancelada no cuenta, y «Por pagar» desde el cambio tampoco.
+    db.add(ReservaPlaza(email="dani@x.com", estado="cancelada", created_at="2026-10-21T10:00:00+00:00"))
+    db.add(LeadPipeline(email="eva@x.com", etapa="pendiente-pago", updated_at="2026-10-26T07:00:00+00:00"))
     await db.commit()
-    for u in (ana, beto, carla):
-        await tandas.al_entrar(u, u.email, db, ahora=LUNES)
-    assert {p["id"] for p in await tandas.por_decidir(org.id, db)} == {ana.id, beto.id}
-    assert "Programa nuevo" in await _grupos_de(db, carla.id)
+
+    sugerencias = {a["id"]: a["sugerencia"] for a in await tandas.por_decidir(org.id, db, con_motivo=True)}
+    assert sugerencias == {ana.id: "beta", beto.id: "beta", carla.id: "beta", dani.id: "nuevo", eva.id: "nuevo"}
 
 
 async def test_el_resumen_trae_los_nuevos_sin_testers_y_beta_no_los_toca(db, org):
@@ -221,7 +181,6 @@ async def test_el_resumen_trae_los_nuevos_sin_testers_y_beta_no_los_toca(db, org
     await db.refresh(testers)
     db.add(UserGroupUser(usergroup_id=testers.id, user_id=prueba.id, org_id=org.id, creation_date="", update_date=""))
     await db.commit()
-    await tandas.al_entrar(ana, "ana@x.com", db, ahora=LUNES)
 
     # «Beta» solo mete a los de antes del cambio: Ana sigue por decidir.
     assert (await tandas.meter_en_beta(org.id, db))["entran"] == 1
@@ -231,7 +190,8 @@ async def test_el_resumen_trae_los_nuevos_sin_testers_y_beta_no_los_toca(db, org
     res = await tandas.resumen(org.id, db)
     assert res["alumnos_sin_grupo"] == 0 and res["por_decidir"] == 1
     assert [n["id"] for n in res["nuevos"]] == [ana.id]  # sin la cuenta de prueba
-    assert res["nuevos"][0]["programa"] == "" and "Por pagar" in res["nuevos"][0]["motivo"]
+    nueva = res["nuevos"][0]
+    assert nueva["programa"] == "" and "Por pagar" in nueva["motivo"] and nueva["sugerencia"] == "beta"
 
 
 async def test_la_campana_avisa_al_administrador_y_no_al_alumno(db, org):
@@ -240,15 +200,19 @@ async def test_la_campana_avisa_al_administrador_y_no_al_alumno(db, org):
     await _escuela(db, org, {"activo": True, "desde": "2026-10-26"})
     admin = await _alumno(db, org, 1, "rida@x.com", rol=1)
     ana = await _alumno(db, org, 11, "ana@x.com", entro="2026-10-26 08:00:00")
+    beto = await _alumno(db, org, 12, "beto@x.com", entro="2026-10-26 09:00:00")
     db.add(LeadPipeline(email="ana@x.com", etapa="pendiente-pago", updated_at="2026-10-20T10:00:00+00:00"))
     await db.commit()
-    await tandas.al_entrar(ana, "ana@x.com", db, ahora=LUNES)
 
-    items = await _decidir_items(admin.id, [org.id], db)
-    assert [i["id"] for i in items] == [f"tanda:{ana.id}"]
-    assert items[0]["url"] == "/dash/estadisticas?tab=tandas" and "programa nuevo o beta" in items[0]["title"]
+    items = {i["id"]: i for i in await _decidir_items(admin.id, [org.id], db)}
+    assert set(items) == {f"tanda:{ana.id}", f"tanda:{beto.id}"}
+    assert items[f"tanda:{ana.id}"]["url"] == "/dash/estadisticas?tab=tandas"
+    assert "elige su grupo" in items[f"tanda:{ana.id}"]["title"]
+    assert "Te sugerimos la beta" in items[f"tanda:{ana.id}"]["excerpt"]
+    assert "Te sugerimos" not in items[f"tanda:{beto.id}"]["excerpt"]
     assert await _decidir_items(ana.id, [org.id], db) == []
-    await tandas.decidir(org.id, ana.id, "nuevo", db)
+    await tandas.decidir(org.id, ana.id, "beta", db)
+    await tandas.decidir(org.id, beto.id, "nuevo", db)
     assert await _decidir_items(admin.id, [org.id], db) == []
 
 
@@ -256,7 +220,7 @@ async def test_beta_mete_a_los_de_antes_y_no_a_los_nuevos(db, org):
     await _escuela(db, org, {"activo": True})
     viejos = [await _alumno(db, org, i, f"v{i}@x.com") for i in (10, 11, 12)]
     nueva = await _alumno(db, org, 13, "nueva@x.com")
-    await tandas.asignar(nueva.id, org.id, db, ahora=LUNES)
+    await tandas.decidir(org.id, nueva.id, "nuevo", db)
 
     r = await tandas.meter_en_beta(org.id, db)
     assert r == {"ok": True, "grupo": "Beta", "entran": 3, "total": 3}
@@ -293,7 +257,7 @@ async def test_un_alumno_nuevo_no_ve_los_canales_de_la_beta(db, org):
     await _escuela(db, org, {"activo": True})
     viejo = await _alumno(db, org, 10, "viejo@x.com")
     nueva = await _alumno(db, org, 11, "nueva@x.com")
-    await tandas.asignar(nueva.id, org.id, db, ahora=LUNES)
+    await tandas.decidir(org.id, nueva.id, "nuevo", db)
     await tandas.meter_en_beta(org.id, db)
     beta = (await db.execute(select(UserGroup).where(UserGroup.name == "Beta"))).scalars().one()
     cfg = await tandas.config(db, org.id)
@@ -323,7 +287,7 @@ async def test_un_aviso_de_grupo_solo_le_llega_a_ese_grupo(db, org):
     await _escuela(db, org, {"activo": True})
     await _alumno(db, org, 10, "viejo@x.com")
     nueva = await _alumno(db, org, 11, "nueva@x.com")
-    await tandas.asignar(nueva.id, org.id, db, ahora=LUNES)
+    await tandas.decidir(org.id, nueva.id, "nuevo", db)
     await tandas.meter_en_beta(org.id, db)
     beta = (await db.execute(select(UserGroup).where(UserGroup.name == "Beta"))).scalars().one()
 

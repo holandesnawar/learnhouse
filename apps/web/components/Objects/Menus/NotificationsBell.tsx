@@ -32,8 +32,8 @@ const KIND_STYLE: Record<string, { icon: any; color: string }> = {
   pinned: { icon: Pin, color: 'text-[#025dc7]' },
   announcement: { icon: Megaphone, color: 'text-[#4da3ff]' },
   module: { icon: Unlock, color: 'text-emerald-500' },
-  // Solo administradores: un alumno nuevo que venía de antes del cambio espera
-  // que se decida si va al programa nuevo o a la beta (Tandas y grupos).
+  // Solo administradores: un alumno que ha pagado espera que se elija si va al
+  // programa nuevo o a la beta (Tandas y grupos).
   decidir: { icon: UserCheck, color: 'text-[#025dc7]' },
 }
 

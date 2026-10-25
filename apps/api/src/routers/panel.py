@@ -747,7 +747,7 @@ class DecidirIn(BaseModel):
     a: str
 
 
-@router.get("/org/{org_id}/tandas/por-decidir", summary="Alumnos nuevos sin programa: el aviso del administrador.")
+@router.get("/org/{org_id}/tandas/por-decidir", summary="Alumnos que han pagado y esperan que se elija su grupo.")
 async def api_tandas_por_decidir(
     request: Request,
     org_id: int,
