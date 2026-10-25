@@ -222,7 +222,7 @@ export default function EstadisticasPage() {
   }, [])
   // El closer sin Números no se queda nunca en esa sección.
   useEffect(() => {
-    if (isCloser && tab !== 'llamadas' && tab !== 'guion' && tab !== 'recursos' && tab !== 'paginas' && tab !== 'matriculas' && tab !== 'tareas' && !(tab === 'numeros' && closerVeNumeros === true)) {
+    if (isCloser && tab !== 'llamadas' && tab !== 'guion' && tab !== 'recursos' && tab !== 'paginas' && tab !== 'matriculas' && tab !== 'tareas' && tab !== 'kpis' && !(tab === 'numeros' && closerVeNumeros === true)) {
       setTab('matriculas')
     }
   }, [isCloser, tab, closerVeNumeros])

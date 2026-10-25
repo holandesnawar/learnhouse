@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 
 from src.services.contactos.contactos import _evento, fusionar_contactos
-from src.services.stats.kpis import calcular, cuando_entro, dia_nl
+from src.services.stats.kpis import calcular, cuando_entro, dia_nl, para_el_closer
 
 AHORA = datetime(2026, 10, 20, 20, 0, tzinfo=timezone.utc)
 
@@ -108,3 +108,15 @@ def test_cuando_entro_y_el_dia_en_hora_de_paises_bajos():
     assert dia_nl("2026-10-19T23:30:00Z") == "2026-10-20"  # medianoche y media en NL
     assert cuando_entro({"matricula_at": "", "eventos": [{"kind": "guia-bases", "when": "2026-10-01T00:00:00Z"}]}) == ""
     assert cuando_entro({"matricula_at": "2026-10-10T00:00:00Z", "eventos": [{"kind": "enlace-pago", "when": "2026-10-05T00:00:00Z"}]}) == "2026-10-05T00:00:00Z"
+
+
+def test_el_closer_ve_los_kpis_sin_el_dinero():
+    k = _datos()
+    assert k["ventas"]["cobrado_cents"] > 0
+    c = para_el_closer(k)
+    # De las ventas, solo cuántas: ni lo cobrado, ni el ticket, ni el reparto.
+    assert c["ventas"] == {"n": k["ventas"]["n"]} and c["para_closer"] is True
+    # Lo demás, igual.
+    assert c["llamadas"] == k["llamadas"] and c["serie"] == k["serie"] and c["embudo_ventas"] == k["embudo_ventas"]
+    # No toca los datos del administrador.
+    assert "cobrado_cents" in k["ventas"] and "para_closer" not in k
