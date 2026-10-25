@@ -54,6 +54,11 @@ const CLASE_EN_VIVO_PATH = '/calendario'
 // en gente que no llega. Mismo criterio que el botón de Victorias.
 // Si algún día se borra ese canal, aquí va el identificador del nuevo (sale de
 // la barra del navegador al abrirlo).
+//
+// Es el de la BETA. Con la comunidad separada por grupos (26/10/2026), el
+// alumno del programa nuevo no puede abrirlo: el paso usa el canal de
+// presentaciones que ESE alumno ve (la lista de canales ya viene filtrada por
+// su grupo) y este solo vale mientras se carga.
 const CANAL_PRESENTACIONES = 'dfb8999d-42a9-4b36-92b4-ff924b1a0f91'
 
 // Widget flotante "Primeros pasos" para el alumno (abajo-derecha, plegable).
@@ -111,6 +116,7 @@ function StudentOnboardingAlumno({
   // Plegado, NO escondido. Ver `togglePlegado` más abajo.
   const [collapsed, setCollapsed] = useState(false)
   const [presented, setPresented] = useState(false)
+  const [rutaPresentaciones, setRutaPresentaciones] = useState(`/community/${CANAL_PRESENTACIONES}`)
   const [communityChecked, setCommunityChecked] = useState(false)
   const [forceReady, setForceReady] = useState(false)
   const [showWelcome, setShowWelcome] = useState(false)
@@ -135,7 +141,13 @@ function StudentOnboardingAlumno({
       try {
         const comms: any[] = await getCommunities(org.id, 1, 100, null, accessToken)
         if (!active || !Array.isArray(comms) || comms.length === 0) return
-        const target = comms.find((c) => /present/i.test(c?.name || '')) || comms[0]
+        const suyo = comms.find((c) => /present/i.test(c?.name || ''))
+        // Sin canal de presentaciones a la vista, a la lista de sus canales:
+        // mejor que mandarle a uno que le diría que no existe.
+        setRutaPresentaciones(
+          suyo ? `/community/${String(suyo.community_uuid || '').replace(/^community_/, '')}` : '/communities'
+        )
+        const target = suyo || comms[0]
         const discussions: any[] = await getDiscussions(target.community_uuid, 'recent', 1, 100, null, accessToken)
         if (!active) return
         setPresented(Array.isArray(discussions) && discussions.some((d) => d?.author?.id === currentUserId))
@@ -212,7 +224,7 @@ function StudentOnboardingAlumno({
       id: 'community',
       title: 'Preséntate en Comunidad',
       cta: 'Entrar',
-      href: getUriWithOrg(orgslug, `/community/${CANAL_PRESENTACIONES}`),
+      href: getUriWithOrg(orgslug, rutaPresentaciones),
       icon: <MessagesSquare size={19} />,
       isDone: presented,
     },

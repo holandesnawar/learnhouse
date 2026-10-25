@@ -21,7 +21,7 @@ import { euros, getSchoolStats, type SchoolStats } from '@services/stats/school'
 import { getContactos, type Contacto } from '@services/stats/contactos'
 import { ETAPA_TEXTO } from '@services/stats/contactos'
 import { AddressBook, ArrowRight, BookOpen, ChartBar, EnvelopeSimple, FolderSimple, Globe, Kanban, ListChecks, Megaphone, PhoneCall, Question, Receipt, UserCheck, UsersThree, Wallet } from '@phosphor-icons/react'
-import { euros as eurosPanel, getAds, getTablero, getTareas, type PanelAds, type Tablero, type Tarea } from '@services/panel/panel'
+import { euros as eurosPanel, getAds, getPorDecidir, getTablero, getTareas, type PanelAds, type Tablero, type Tarea } from '@services/panel/panel'
 import { hoyISO } from '@services/stats/contactos'
 import FichaCliente from '@components/Dashboard/Pages/Panel/FichaCliente'
 import { FilaTarea, TareaForm } from '@components/Dashboard/Pages/Panel/Tareas'
@@ -51,12 +51,17 @@ export default function NawarHome() {
   const [yo, setYo] = useState(0)
   const [abierta, setAbierta] = useState<string | null>(null)
   const [ads, setAds] = useState<PanelAds | null>(null)
+  // Alumnos nuevos que venían de antes del cambio y esperan que se decida su
+  // programa (Tandas y grupos, 26/10/2026). El aviso es aquí y en la campana,
+  // no por correo.
+  const [porDecidir, setPorDecidir] = useState<{ id: number; nombre: string }[]>([])
 
   useEffect(() => {
     if (!org?.id || !token) return
     // El closer no ve los números: no se le piden (darían 403).
     if (!isCloser) getSchoolStats(org.id, token).then((s) => setStats(s ?? 'error'))
     if (!isCloser) getAds(org.id, token).then((r) => setAds(r.ok && r.datos ? r.datos : null))
+    if (!isCloser) getPorDecidir(org.id, token).then((r) => setPorDecidir(r.ok && r.datos ? r.datos.alumnos : []))
     getContactos(org.id, '', token).then((r) => setContactos(r?.contactos ?? []))
     getTablero(org.id, token).then((r) => setTablero(r.ok && r.datos ? r.datos : null))
     getTareas(org.id, token, { pendientes: true }).then((r) => {
@@ -117,6 +122,23 @@ export default function NawarHome() {
           </h1>
           <p className="text-[14px] text-gray-500 mt-1">Así va la escuela hoy.</p>
         </div>
+
+        {porDecidir.length > 0 ? (
+          <Link
+            href="/dash/estadisticas?tab=tandas"
+            className={`${CARD} flex items-center justify-between gap-3 hover:border-[#025dc7] transition-colors`}
+          >
+            <span className="text-[13.5px] text-gray-900 leading-relaxed">
+              <strong className="font-semibold">
+                {porDecidir.length === 1 ? `${porDecidir[0].nombre} ha pagado` : `${porDecidir.length} alumnos nuevos han pagado`}
+              </strong>{' '}
+              y {porDecidir.length === 1 ? 'venía' : 'venían'} de antes del cambio: ¿programa nuevo o beta?
+            </span>
+            <span className="text-[13px] font-semibold text-[#025dc7] inline-flex items-center gap-1 shrink-0">
+              Decidir <ArrowRight size={14} />
+            </span>
+          </Link>
+        ) : null}
 
         {isCloser ? null : stats === 'error' ? (
           <div className={CARD}>

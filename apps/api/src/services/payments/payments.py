@@ -1024,13 +1024,13 @@ async def dar_de_alta_a_mano(
 
     user, _ = await _create_paid_user(email, nombre or "", db_session)
 
-    # Quien no tenía cuenta entra en su tanda como cualquiera que paga
-    # (services/panel/tandas.py). Sin correo al equipo: lo está haciendo el
-    # propio equipo.
+    # Quien no tenía cuenta entra en su tanda como cualquiera que paga, o
+    # queda «por decidir» si venía de antes del cambio
+    # (services/panel/tandas.py).
     if not ya_existia:
         from src.services.panel.tandas import al_entrar
 
-        await al_entrar(user, nombre or "", email, db_session, avisar=False)
+        await al_entrar(user, email, db_session)
 
     org_uuid = ""
     try:
@@ -1604,13 +1604,13 @@ async def _provision_after_payment(
         logger.info("Matrícula de %s ya atendida — no se repite el correo", email)
         return {"detail": "already provisioned", "created": False, "atendida_ahora": False, **who}
 
-    # Sus grupos (la tanda y el programa nuevo) y el correo «Alumno nuevo» al
-    # equipo (25/10/2026, services/panel/tandas.py). Antes del correo de
-    # bienvenida: cuando entre por primera vez, ya tiene que ver solo lo suyo.
-    # Nunca lanza.
+    # Sus grupos (la tanda y el programa nuevo), o «por decidir» si venía de
+    # antes del cambio: al administrador le sale el aviso en la escuela, sin
+    # correo (services/panel/tandas.py). Antes del correo de bienvenida:
+    # cuando entre por primera vez, ya tiene que ver solo lo suyo. Nunca lanza.
     from src.services.panel.tandas import al_entrar
 
-    await al_entrar(user, name, email, db_session)
+    await al_entrar(user, email, db_session)
 
     # La escuela hace falta para la clave que lee la pantalla de crear cuenta.
     org_uuid = ""

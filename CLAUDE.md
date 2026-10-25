@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-25 (tandas: la beta y el programa nuevo separados por grupos, correo al pagar; antes, el mismo día, el closer ve KPIs sin el dinero; antes 22/10: «Otro importe» también a plazos, de 2 a 6 pagos; antes, Matrículas en dos mesas, Leads y Ventas, con closer asignado y reparto; «Esta semana» del alumno cuenta las clases terminadas; antes, el mismo día, incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-26 (tandas: sin correo al pagar; quien venía de «Por pagar» queda por decidir con aviso en la escuela; antes 25/10, la beta y el programa nuevo separados por grupos; antes, el mismo día, el closer ve KPIs sin el dinero; antes 22/10: «Otro importe» también a plazos, de 2 a 6 pagos; antes, Matrículas en dos mesas, Leads y Ventas, con closer asignado y reparto; «Esta semana» del alumno cuenta las clases terminadas; antes, el mismo día, incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -3529,8 +3529,8 @@ el closer principal, y diga esta para mí o esta para el otro". Se hizo como
 Pedido: "a partir de mañana, los nuevos van a un grupo nuevo… no ven la clase
 semanal como los de la beta… etiquetas tipo «matrículas noviembre»… reciben
 una masterclass en directo 1 vez a la semana y 2 spreekuren con un profe
-junior… si alguien paga, recibir un mail yo primero". Decidido con él: la
-bienvenida sale AL MOMENTO (se le desaconsejó retrasarla una semana: ya tiene
+junior… si alguien paga, recibir un mail yo primero". Decidido ese día: la
+bienvenida sale AL MOMENTO (se desaconsejó retrasarla una semana: ya tiene
 el recibo de Stripe y no podría entrar), la comunidad **separada del todo** y
 **dos grupos** por alumno (el del mes y el del programa).
 - **Todo en `services/panel/tandas.py`** (docstring: leerlo). org_config
@@ -3539,13 +3539,42 @@ el recibo de Stripe y no podría entrar), la comunidad **separada del todo** y
   renombrarlo no rompe nada) y `tanda` (nombre fijo; vacío = «Matrícula
   octubre 2026» por el mes del pago).
 - **Al pagar**: `_provision_after_payment` (la primera vez) llama a
-  `al_entrar`, que mete al alumno en sus dos grupos y manda
-  `send_alumno_nuevo_email` a los administradores (SIEMPRE, también con las
-  tandas apagadas). El alta a mano de quien no tenía cuenta también entra en
-  su tanda, sin correo al equipo. Nunca lanza.
-- **Beta**: `meter_en_beta` crea «Beta» y mete a todos los alumnos (rol 4) que
-  no están en el programa. ⚠️ **ANTES de cerrar la «Clase semanal» a «Beta»**:
-  al revés, la beta se queda sin su clase. Repetirlo no duplica.
+  `al_entrar`, que mete al alumno en sus dos grupos. El alta a mano de quien
+  no tenía cuenta, igual. Nunca lanza.
+- ⚠️ **SIN correo al equipo** (26/10: "no quiero un mail para mí sobre quién
+  pagó y qué grupo es"). Hubo uno un día, «Alumno nuevo»
+  (`send_alumno_nuevo_email`); se quitó entero, plantilla y catálogo.
+- **La beta está cerrada, salvo quien venía de antes** (26/10: "a no ser que
+  sea una matrícula que se quedó en Por pagar, esa sí podría entrar… un aviso
+  en la escuela para mí que diga tú al nuevo, tú al beta"). `motivo_beta`
+  (pura, con test): quien paga y ANTES del día del cambio estaba en la columna
+  «Por pagar» (`lead_pipeline.updated_at`), reservó plaza con señal (no
+  cancelada) o recibió un enlace de pago (evento `enlace-pago`) **no entra en
+  ningún grupo**: queda **por decidir**. Lo de después del cambio no cuenta
+  (desde ese día «Por pagar» también es del programa nuevo). Mientras, ve la
+  formación pero ni la clase semanal ni la masterclass.
+- **El aviso es en la escuela, nunca por correo**: arriba de Tandas y grupos
+  («Por decidir», con el motivo y los botones «Programa nuevo» / «Beta»), en
+  el inicio del panel (una línea que lleva allí) y en la **campana de los
+  administradores** (`_decidir_items` en `engagement.py`, tipo `decidir`).
+  Desaparece al decidir. `decidir` pone el programa y la tanda de su día de
+  entrada, o la beta (y le quita el programa y la tanda); se puede cambiar.
+  Rutas `GET /panel/org/{id}/tandas/por-decidir` y `POST …/tandas/decidir`.
+- **«Alumnos nuevos»** en la misma pantalla: quien ha entrado desde el cambio
+  (sin Testers ni quien está fuera de los números), con su programa y «Pasar a
+  la beta» / «Pasar al programa nuevo» (con confirmación). Por si se escapa
+  alguien que la detección no ve (p. ej. uno de la beta que estaba en
+  Seguimiento).
+- **La bienvenida no se toca**: no habla de clase semanal ni de masterclass
+  (formación, contraseña, «Primeros pasos»), así que vale para los dos. El
+  paso «Preséntate en Comunidad» de «Primeros pasos» iba fijo al canal de
+  presentaciones de la beta: ahora va al canal de presentaciones que ve ESE
+  alumno (o a la lista de canales si no tiene ninguno).
+- **Beta**: `meter_en_beta` crea «Beta» y mete a los alumnos (rol 4) de ANTES
+  del día del cambio que no están en el programa (los que entran desde el
+  cambio no los toca nunca: se deciden uno a uno). ⚠️ **ANTES de cerrar la
+  «Clase semanal» a «Beta»**: al revés, la beta se queda sin su clase.
+  Repetirlo no duplica.
 - **El acceso a cursos y canales NO lo toca el código**: se hace en el panel
   (curso o canal → Acceso → «Solo usuarios» → añadir el grupo). Reglas de
   LearnHouse (`resource_access.py`): público y publicado = lo ve todo el mundo
@@ -3576,7 +3605,8 @@ el recibo de Stripe y no podría entrar), la comunidad **separada del todo** y
     quien puede abrirlo (`community_uuid` → `grupos_del_aviso`). ⚠️ Un aviso
     de grupo NO se guarda en la campana (es la misma para todos y no tiene
     grupos: haría falta una columna).
-- Tests: `test_tandas.py` (tandas, Beta, campana por grupos, avisos por grupo),
+- Tests: `test_tandas.py` (tandas, por decidir, decidir, Beta, campana por
+  grupos y la del administrador, avisos por grupo),
   `cursosEnDirecto.test.ts`, `eventosGrupo.test.ts`.
 - ⚠️ **Lo que vende el equipo tiene que decir lo nuevo**: el guion de fábrica
   (`guion.py`), la web y la caja de pago hablan de «clase semanal». Se le avisó
