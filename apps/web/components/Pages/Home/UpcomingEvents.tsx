@@ -6,6 +6,8 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import { getUriWithOrg } from '@services/config/config'
 import { CalendarDays, Clock, ArrowRight } from 'lucide-react'
 import { CalendarBlank } from '@phosphor-icons/react'
+import { useMisGrupos } from '@/hooks/queries/useMisGrupos'
+import { eventoParaMi } from '@/lib/nawar/eventosGrupo'
 
 interface LhEvent {
   id: string
@@ -13,6 +15,7 @@ interface LhEvent {
   date: string
   time?: string
   link?: string
+  grupos?: number[]
 }
 
 const MONTHS_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
@@ -25,13 +28,17 @@ function readEvents(org: any): LhEvent[] {
 export default function UpcomingEvents({ orgslug }: { orgslug: string }) {
   const org = useOrg() as any
   const todayStr = dayjs().format('YYYY-MM-DD')
+  // Solo los de su grupo (25/10/2026): a los nuevos no se les anuncia la
+  // clase semanal de la beta.
+  const { data: yo } = useMisGrupos()
 
   const upcoming = useMemo(() => {
     return readEvents(org)
+      .filter((e) => eventoParaMi(e, yo))
       .filter((e) => e?.date && e.date >= todayStr)
       .sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')))
       .slice(0, 2) // solo los dos siguientes: el Inicio no es el calendario
-  }, [org, todayStr])
+  }, [org, todayStr, yo])
 
   return (
     <div className="mb-10">

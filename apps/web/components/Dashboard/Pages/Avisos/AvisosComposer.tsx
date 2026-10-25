@@ -7,6 +7,7 @@ import { getLinkExtension } from '@components/Objects/Editor/EditorConf'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { broadcastNotification } from '@services/notifications/broadcast'
+import { useMisGrupos } from '@/hooks/queries/useMisGrupos'
 import toast from 'react-hot-toast'
 import { getSchoolUrl } from '@services/config/config'
 import {
@@ -76,6 +77,13 @@ export default function AvisosComposer() {
   const [ctaLabel, setCtaLabel] = useState(BOTON_POR_DEFECTO)
   const [ctaUrl, setCtaUrl] = useState(getSchoolUrl())
   const [testOnly, setTestOnly] = useState(true)
+  // A todos los alumnos o solo a un grupo (25/10/2026: la beta y el programa
+  // nuevo). Un aviso de grupo no sale en la campana: es la misma para todos.
+  const { data: yo } = useMisGrupos()
+  const grupos = (yo?.todos || []).filter((g) => !/^(testers?|pruebas)$/i.test(g.nombre.trim()))
+  const [grupo, setGrupo] = useState('')
+  const nombreGrupo = grupos.find((g) => String(g.id) === grupo)?.nombre || ''
+  const aQuien = nombreGrupo ? `a los alumnos de «${nombreGrupo}»` : 'a TODOS los alumnos'
   const [sending, setSending] = useState(false)
   const [preview, setPreview] = useState(false)
 
@@ -123,7 +131,7 @@ export default function AvisosComposer() {
     }
     if (!testOnly) {
       const ok = window.confirm(
-        `Se va a enviar "${subject}" a TODOS los alumnos.\n\n¿Seguro que quieres mandarlo?`
+        `Se va a enviar "${subject}" ${aQuien}.\n\n¿Seguro que quieres mandarlo?`
       )
       if (!ok) return
     }
@@ -138,6 +146,7 @@ export default function AvisosComposer() {
         cta_label: ctaLabel.trim(),
         cta_url: ctaUrl.trim(),
         test_only: testOnly,
+        grupos: grupo ? [Number(grupo)] : [],
       },
       accessToken
     )
@@ -282,7 +291,29 @@ export default function AvisosComposer() {
         </div>
 
         {/* Destinatarios */}
-        <div className="bg-white border border-[#DDE6F5] rounded-xl p-4 mb-5">
+        <div className="bg-white border border-[#DDE6F5] rounded-xl p-4 mb-5 space-y-3">
+          {grupos.length ? (
+            <label className="block">
+              <span className="block text-[14px] font-semibold text-gray-900 mb-1">A quién</span>
+              <select
+                value={grupo}
+                onChange={(e) => setGrupo(e.target.value)}
+                className="w-full sm:w-auto rounded-lg border border-gray-200 px-3 py-2 text-sm bg-white outline-none focus:ring-2 focus:ring-[#025dc7]/30"
+              >
+                <option value="">Todos los alumnos</option>
+                {grupos.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    Solo {g.nombre}
+                  </option>
+                ))}
+              </select>
+              {grupo ? (
+                <span className="block mt-1 text-[12.5px] text-gray-500">
+                  Solo por correo: un aviso de grupo no sale en la campana, que es la misma para todos.
+                </span>
+              ) : null}
+            </label>
+          ) : null}
           <label className="flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
@@ -312,7 +343,7 @@ export default function AvisosComposer() {
           } ${sending ? 'opacity-60 pointer-events-none' : ''}`}
         >
           {sending ? <Loader2 size={17} className="animate-spin" /> : <Send size={17} />}
-          {testOnly ? 'Enviarme la prueba' : 'Enviar a todos los alumnos'}
+          {testOnly ? 'Enviarme la prueba' : nombreGrupo ? `Enviar a «${nombreGrupo}»` : 'Enviar a todos los alumnos'}
         </button>
       </div>
 

@@ -49,6 +49,11 @@ class BroadcastPayload(BaseModel):
     cta_url: str = ""
     # true = enviar solo a quien lo escribe, para probar.
     test_only: bool = False
+    # Solo a estos grupos de usuarios (25/10/2026: la beta y el programa
+    # nuevo). Vacío = a todos los alumnos.
+    grupos: list[int] = []
+    # Desde un canal de la comunidad: solo a quien puede abrir ese canal.
+    community_uuid: str = ""
 
 
 @router.post(

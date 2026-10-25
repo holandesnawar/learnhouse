@@ -19,3 +19,29 @@ export const CURSO_CLASE_SEMANAL_UUID = 'bfbcb42b-7dc3-4448-9df8-5d7b96135859'
 export const RUTA_FORMACION = `/course/${CURSO_FORMACION_UUID}`
 /** La clase semanal en vivo y sus grabaciones. */
 export const RUTA_CLASE_SEMANAL = `/course/${CURSO_CLASE_SEMANAL_UUID}`
+
+/** Un curso de la lista sin el prefijo `course_` de la base de datos. */
+export const uuidDeCurso = (c: { course_uuid?: string } | null | undefined) =>
+  String(c?.course_uuid || '').replace(/^course_/, '')
+
+export type CursoEnDirecto = { uuid: string; nombre: string }
+
+/**
+ * Las clases en directo que ve ESTE alumno (25/10/2026): los cursos de su
+ * lista que no son la formación. La lista ya viene filtrada por el servidor
+ * según sus grupos, así que la beta ve «Clase semanal» y el programa nuevo
+ * ve su masterclass y sus spreekuren, sin escribir aquí ningún id más.
+ * Sin publicar no salen (el equipo los ve en la lista, pero son borradores).
+ * La clase semanal, primero y con su nombre de siempre.
+ */
+export function cursosEnDirecto(lista: any[]): CursoEnDirecto[] {
+  return (Array.isArray(lista) ? lista : [])
+    .filter((c) => c && c.published !== false && uuidDeCurso(c) && uuidDeCurso(c) !== CURSO_FORMACION_UUID)
+    .map((c) => ({
+      uuid: uuidDeCurso(c),
+      nombre: uuidDeCurso(c) === CURSO_CLASE_SEMANAL_UUID ? 'Clase semanal' : String(c.name || 'Clases en directo'),
+    }))
+    .sort((a, b) =>
+      a.uuid === CURSO_CLASE_SEMANAL_UUID ? -1 : b.uuid === CURSO_CLASE_SEMANAL_UUID ? 1 : a.nombre.localeCompare(b.nombre, 'es')
+    )
+}

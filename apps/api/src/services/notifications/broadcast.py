@@ -14,7 +14,7 @@ import html as html_module
 import logging
 import re
 from datetime import datetime, timezone
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from fastapi import HTTPException, Request
 from sqlmodel import select
@@ -42,7 +42,7 @@ ROL_ALUMNO = 4
 
 
 async def list_org_recipients(
-    org_id: int, db_session: AsyncSession
+    org_id: int, db_session: AsyncSession, grupos: Optional[List[int]] = None
 ) -> List[Tuple[str, str]]:
     """(email, nombre) de cada ALUMNO de la escuela.
 
@@ -68,10 +68,25 @@ async def list_org_recipients(
         )
     ).all()
 
+    # Solo los de esos grupos (25/10/2026: la beta y el programa nuevo).
+    en_grupos: Optional[set] = None
+    if grupos:
+        from src.db.usergroup_user import UserGroupUser
+
+        en_grupos = set(
+            (
+                await db_session.execute(
+                    select(UserGroupUser.user_id).where(UserGroupUser.usergroup_id.in_(grupos))  # type: ignore[attr-defined]
+                )
+            ).scalars().all()
+        )
+
     recipients: List[Tuple[str, str]] = []
     seen = set()
     for email, first_name, username, uid in rows:
         if uid in testers:
+            continue
+        if en_grupos is not None and uid not in en_grupos:
             continue
         if not email or email in seen:
             continue
@@ -192,15 +207,44 @@ async def broadcast(
         own_name = getattr(current_user, "first_name", None) or "prueba"
         return {"recipients": [(own_email, own_name)], "count": 1, "test": True}
 
+    grupos = await grupos_del_aviso(payload, db_session)
+
     # El aviso también se queda en la campana de la plataforma: el correo se
     # pierde en la bandeja, la campana sigue ahí cuando el alumno entra.
-    try:
-        await _record_org_notification(org_id, kind, payload, db_session)
-    except Exception as e:  # noqa: BLE001
-        logger.warning("Aviso no guardado en la campana: %s", e)
+    # Uno solo para algunos grupos NO: la campana es la misma para todos y
+    # le contaría a la beta lo del programa nuevo (o al revés).
+    if not grupos:
+        try:
+            await _record_org_notification(org_id, kind, payload, db_session)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Aviso no guardado en la campana: %s", e)
 
-    recipients = await list_org_recipients(org_id, db_session)
+    recipients = await list_org_recipients(org_id, db_session, grupos=grupos)
     return {"recipients": recipients, "count": len(recipients)}
+
+
+async def grupos_del_aviso(payload: dict, db_session: AsyncSession) -> List[int]:
+    """A qué grupos va un aviso: los que se eligieron o, si sale de un canal
+    de la comunidad, los del canal (si el canal es para todos, a todos).
+    Lista vacía = a todos los alumnos."""
+    grupos = [int(g) for g in (payload.get("grupos") or []) if str(g).isdigit()]
+    uuid = (payload.get("community_uuid") or "").strip()
+    if grupos or not uuid:
+        return grupos
+    from src.db.communities.communities import Community
+    from src.db.usergroup_resources import UserGroupResource
+
+    canal = (await db_session.execute(select(Community).where(Community.community_uuid == uuid))).scalars().first()
+    if canal is None or canal.public:
+        return []
+    return [
+        int(g)
+        for g in (
+            await db_session.execute(
+                select(UserGroupResource.usergroup_id).where(UserGroupResource.resource_uuid == uuid)
+            )
+        ).scalars().all()
+    ]
 
 
 def _plain_text(html_text: str) -> str:

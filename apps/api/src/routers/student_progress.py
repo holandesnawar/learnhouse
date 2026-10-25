@@ -263,3 +263,49 @@ async def api_course_modules(
 ):
     """La lista que pinta Repasar: viene del curso, no del contenido escrito."""
     return {"modulos": await modulos_del_curso(org_id, current_user, db_session)}
+
+
+# ── grupos (25/10/2026: la beta y el programa nuevo) ───────────────────────
+
+
+@router.get(
+    "/mis-grupos",
+    summary="Los grupos de usuarios de quien pregunta; al equipo, además, todos los de la escuela.",
+)
+async def api_mis_grupos(
+    request: Request,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    """Para enseñar a cada alumno solo los eventos de su grupo (el calendario
+    vive en la configuración de la escuela y lo lee el navegador). El equipo
+    (administradores, moderadores y profes) los ve todos y recibe la lista de
+    grupos para elegir a quién va cada evento."""
+    from sqlmodel import select
+
+    from src.db.user_organizations import UserOrganization
+    from src.db.usergroup_user import UserGroupUser
+    from src.db.usergroups import UserGroup
+    from src.security.rbac.constants import ADMIN_OR_MAINTAINER_ROLE_IDS, STAFF_ROLE_IDS
+    from src.security.superadmin import is_user_superadmin
+
+    uid = getattr(current_user, "id", None)
+    if not uid:
+        return {"grupos": [], "equipo": False, "todos": []}
+    mios = sorted(
+        int(g)
+        for g in (await db_session.execute(select(UserGroupUser.usergroup_id).where(UserGroupUser.user_id == uid))).scalars().all()
+    )
+    vinculos = (await db_session.execute(select(UserOrganization).where(UserOrganization.user_id == uid))).scalars().all()
+    equipo = await is_user_superadmin(uid, db_session) or any(
+        v.role_id in set(ADMIN_OR_MAINTAINER_ROLE_IDS) | set(STAFF_ROLE_IDS) for v in vinculos
+    )
+    todos = []
+    if equipo and vinculos:
+        todos = [
+            {"id": g.id, "nombre": g.name}
+            for g in (
+                await db_session.execute(select(UserGroup).where(UserGroup.org_id.in_([v.org_id for v in vinculos])))  # type: ignore[attr-defined]
+            ).scalars().all()
+        ]
+    return {"grupos": mios, "equipo": equipo, "todos": sorted(todos, key=lambda g: g["nombre"].lower())}

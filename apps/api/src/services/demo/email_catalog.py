@@ -104,6 +104,23 @@ _CATALOG: Dict[str, Dict] = {
             preview=True,
         ),
     },
+    "alumno_nuevo": {
+        "name": "Alumno nuevo (al equipo)",
+        "when": (
+            "A los administradores, cada vez que alguien paga y se le crea la "
+            "cuenta. Dice en qué grupos ha entrado (Panel → Alumnos → Tandas y grupos)."
+        ),
+        "build": lambda to, name: E.send_alumno_nuevo_email(
+            to,
+            {
+                "nombre": name,
+                "email": "alumno@ejemplo.com",
+                "telefono": "+31 6 12345678",
+                "grupos": ["Programa nuevo", "Matrícula noviembre 2026"],
+            },
+            preview=True,
+        ),
+    },
     "certificate_ready": {
         "name": "Certificado listo",
         "when": "Cuando el alumno completa la formación entera.",

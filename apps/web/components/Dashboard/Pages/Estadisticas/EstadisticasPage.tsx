@@ -18,6 +18,7 @@ import RecursosPage from '@components/Pages/Recursos/RecursosPage'
 import VisionPage from '../Vision/VisionPage'
 import KpisPanel from '../Panel/KpisPanel'
 import PlazosPanel from '../Panel/PlazosPanel'
+import TandasPanel from '../Panel/TandasPanel'
 import { getContactos, type Contacto } from '@services/stats/contactos'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { updateOrgAccesoCloser } from '@services/settings/org'
@@ -40,6 +41,7 @@ import {
 import {
   BarChart3,
   CalendarClock,
+  Tags,
   Gauge,
   Check,
   ChevronDown,
@@ -193,7 +195,7 @@ export default function EstadisticasPage() {
   // ?tab= va a Matrículas, no a Números, o saltaría de una a otra sin parar.
   const esCloserRef = React.useRef(false)
   esCloserRef.current = isCloser
-  const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'gastos' | 'guion' | 'paginas' | 'utm' | 'matriculas' | 'tareas' | 'clientes' | 'anuncios' | 'progreso' | 'recursos' | 'vision' | 'kpis' | 'plazos'>('numeros')
+  const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'gastos' | 'guion' | 'paginas' | 'utm' | 'matriculas' | 'tareas' | 'clientes' | 'anuncios' | 'progreso' | 'recursos' | 'vision' | 'kpis' | 'plazos' | 'tandas'>('numeros')
   // El closer arranca en Matrículas, que es lo suyo (08/10: Contactos es solo
   // del administrador).
   useEffect(() => {
@@ -205,7 +207,7 @@ export default function EstadisticasPage() {
   useEffect(() => {
     const leer = () => {
       const pedida = new URLSearchParams(window.location.search).get('tab')
-      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'llamadas' || pedida === 'facturas' || pedida === 'gastos' || pedida === 'guion' || pedida === 'paginas' || pedida === 'utm' || pedida === 'matriculas' || pedida === 'tareas' || pedida === 'clientes' || pedida === 'anuncios' || pedida === 'progreso' || pedida === 'recursos' || pedida === 'vision' || pedida === 'kpis' || pedida === 'plazos') setTab(pedida)
+      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'llamadas' || pedida === 'facturas' || pedida === 'gastos' || pedida === 'guion' || pedida === 'paginas' || pedida === 'utm' || pedida === 'matriculas' || pedida === 'tareas' || pedida === 'clientes' || pedida === 'anuncios' || pedida === 'progreso' || pedida === 'recursos' || pedida === 'vision' || pedida === 'kpis' || pedida === 'plazos' || pedida === 'tandas') setTab(pedida)
       // Sin ?tab= (el enlace «Estadísticas» de la barra) = los números.
       else if (!pedida) setTab(esCloserRef.current ? 'matriculas' : 'numeros')
     }
@@ -302,6 +304,8 @@ export default function EstadisticasPage() {
             <Gauge size={22} className="text-[#025dc7] shrink-0" />
           ) : tab === 'plazos' ? (
             <CalendarClock size={22} className="text-[#025dc7] shrink-0" />
+          ) : tab === 'tandas' ? (
+            <Tags size={22} className="text-[#025dc7] shrink-0" />
           ) : (
             <BarChart3 size={22} className="text-[#025dc7] shrink-0" />
           )}
@@ -336,6 +340,8 @@ export default function EstadisticasPage() {
                                       ? 'KPIs'
                                       : tab === 'plazos'
                                         ? 'Pagos a plazos'
+                                        : tab === 'tandas'
+                                          ? 'Tandas y grupos'
                                         : 'Estadísticas'}
           </h1>
         </div>
@@ -391,6 +397,8 @@ export default function EstadisticasPage() {
         <KpisPanel key={vuelta} />
       ) : tab === 'plazos' ? (
         <PlazosPanel key={vuelta} />
+      ) : tab === 'tandas' ? (
+        <TandasPanel key={vuelta} />
       ) : !loaded ? (
         <div className="flex justify-center py-20">
           <Loader2 className="animate-spin text-gray-400" size={28} />

@@ -708,6 +708,9 @@ export function ChannelChat({
             title: `${channelName}: ${title || msg.slice(0, 80)}`,
             body: msg,
             url: typeof window !== 'undefined' ? window.location.href : '',
+            // Solo a quien puede abrir este canal (25/10/2026: un canal de la
+            // beta no escribe a los del programa nuevo).
+            community_uuid: communityUuid,
           },
           accessToken
         )

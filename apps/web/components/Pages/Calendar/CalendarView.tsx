@@ -7,6 +7,8 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { updateOrgEvents } from '@services/organizations/orgs'
 import { broadcastNotification } from '@services/notifications/broadcast'
+import { useMisGrupos } from '@/hooks/queries/useMisGrupos'
+import { eventoParaMi, paraQuien } from '@/lib/nawar/eventosGrupo'
 import {
   ChevronLeft,
   ChevronRight,
@@ -30,6 +32,8 @@ interface LhEvent {
   time?: string
   link?: string
   description?: string
+  /** Solo para estos grupos de usuarios (25/10/2026). Vacío = para todos. */
+  grupos?: number[]
 }
 
 const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
@@ -62,6 +66,9 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
   // permiso dicen lo mismo.
   const { isStaff } = useAdminStatus() as any
   const canEdit = !!isStaff
+  // Cada uno ve los eventos de su grupo (la beta, la clase semanal; el programa
+  // nuevo, la masterclass y los spreekuren). El equipo, todos.
+  const { data: yo } = useMisGrupos()
   const [notifying, setNotifying] = useState<string | null>(null)
   // Al llegar desde el email (?evento=…) se resalta ese evento y se lleva la
   // vista hasta él.
@@ -93,11 +100,8 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
     ]
       .filter(Boolean)
       .join(' ')
-    if (
-      !soloAMi &&
-      !window.confirm(`Se enviará un email a TODOS los alumnos con:\n\n${ev.title}\n${whenText}\n\n¿Enviar?`)
-    )
-      return
+    const aQuien = ev.grupos?.length ? `a los alumnos de «${paraQuien(ev, yo?.todos).replace(/^Solo /, '')}»` : 'a TODOS los alumnos'
+    if (!soloAMi && !window.confirm(`Se enviará un email ${aQuien} con:\n\n${ev.title}\n${whenText}\n\n¿Enviar?`)) return
     setNotifying(ev.id)
     // Con enlace de reunión el botón entra directo a la clase; sin él, lleva
     // al evento concreto del calendario (antes caía en la portada).
@@ -114,6 +118,7 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
         url: ev.link || '',
         event_url: eventUrl,
         test_only: soloAMi,
+        grupos: ev.grupos || [],
       },
       accessToken
     )
@@ -132,14 +137,16 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState<LhEvent | null>(null)
 
+  const visibles = useMemo(() => events.filter((e) => eventoParaMi(e, yo)), [events, yo])
+
   const eventsByDay = useMemo(() => {
     const map: Record<string, LhEvent[]> = {}
-    for (const ev of events) {
+    for (const ev of visibles) {
       if (!ev?.date) continue
       ;(map[ev.date] ||= []).push(ev)
     }
     return map
-  }, [events])
+  }, [visibles])
 
   const gridDays = useMemo(() => {
     const first = cursor.startOf('month')
@@ -153,11 +160,11 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
 
   const upcoming = useMemo(
     () =>
-      [...events]
+      [...visibles]
         .filter((e) => e.date && e.date >= todayStr)
         .sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')))
         .slice(0, 8),
-    [events, todayStr]
+    [visibles, todayStr]
   )
 
   const persist = async (next: LhEvent[]) => {
@@ -327,6 +334,7 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
                         <Clock size={12} /> {ev.time}
                       </span>
                     )}
+                    {canEdit && ev.grupos?.length ? <span className="text-[#025dc7]">{paraQuien(ev, yo?.todos)}</span> : null}
                   </div>
                   {ev.description && <p className="mt-1 text-sm text-gray-600 whitespace-pre-line">{ev.description}</p>}
                   {ev.link && (
@@ -381,6 +389,7 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
           onClose={() => setEditing(null)}
           onSave={saveEvent}
           onDelete={events.some((e) => e.id === editing.id) ? () => deleteEvent(editing.id) : undefined}
+          grupos={(yo?.todos || []).filter((g) => !/^(testers?|pruebas)$/i.test(g.nombre.trim()))}
         />
       )}
     </GeneralWrapperStyled>
@@ -393,12 +402,14 @@ function EventModal({
   onClose,
   onSave,
   onDelete,
+  grupos = [],
 }: {
   event: LhEvent
   saving: boolean
   onClose: () => void
   onSave: (e: LhEvent) => void
   onDelete?: () => void
+  grupos?: { id: number; nombre: string }[]
 }) {
   const [form, setForm] = useState<LhEvent>(event)
   const set = (k: keyof LhEvent, v: string) => setForm((f) => ({ ...f, [k]: v }))
@@ -432,6 +443,23 @@ function EventModal({
             <label className="block text-sm font-medium text-gray-700 mb-1">Enlace (Zoom, Meet…)</label>
             <input value={form.link || ''} onChange={(e) => set('link', e.target.value)} placeholder="https://…" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#025dc7]/30" />
           </div>
+          {grupos.length ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Para quién</label>
+              <select
+                value={form.grupos?.[0] ? String(form.grupos[0]) : ''}
+                onChange={(e) => setForm((f) => ({ ...f, grupos: e.target.value ? [Number(e.target.value)] : [] }))}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#025dc7]/30 bg-white"
+              >
+                <option value="">Todos los alumnos</option>
+                {grupos.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    Solo {g.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
             <textarea value={form.description || ''} onChange={(e) => set('description', e.target.value)} rows={3} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#025dc7]/30 resize-y" />

@@ -445,3 +445,46 @@ export const cambiarCampana = (orgId: number, id: number, d: CampanaNueva, t: st
 export const borrarCampana = (orgId: number, id: number, t: string) => pedir<{ ok: boolean }>(`panel/org/${orgId}/ads/${id}`, 'DELETE', null, t)
 export const nombrarAnuncio = (orgId: number, meta: string, nombre: string, t: string) =>
   pedir<{ ok: boolean; nombre: string }>(`panel/org/${orgId}/ads/nombre`, 'PUT', { meta, nombre }, t)
+
+// ── Tandas y grupos (25/10/2026, apps/api/src/services/panel/tandas.py) ──
+
+export interface AccesoRecurso {
+  nombre: string
+  uuid: string
+  grupos: string[]
+  /** «Todo el mundo», «Solo Beta», «Todos los que han entrado»… */
+  texto: string
+  /** Algo raro, p. ej. con grupo pero marcado como público. */
+  aviso: string
+}
+
+export interface GrupoTanda {
+  id: number
+  nombre: string
+  personas: number
+  alumnos: number
+  es_programa: boolean
+  es_beta: boolean
+  es_tanda: boolean
+}
+
+export interface Tandas {
+  activo: boolean
+  desde: string
+  programa_id: number
+  tanda: string
+  tanda_de_hoy: string
+  grupos: GrupoTanda[]
+  alumnos: number
+  alumnos_sin_grupo: number
+  cursos: AccesoRecurso[]
+  canales: AccesoRecurso[]
+}
+
+export const getTandas = (orgId: number, t: string) => pedir<Tandas>(`panel/org/${orgId}/tandas`, 'GET', null, t)
+
+export const guardarTandas = (orgId: number, cambios: { activo?: boolean; desde?: string; tanda?: string }, t: string) =>
+  pedir<Tandas>(`panel/org/${orgId}/tandas`, 'PUT', cambios, t)
+
+export const meterEnBeta = (orgId: number, t: string) =>
+  pedir<{ ok: boolean; grupo: string; entran: number; total: number }>(`panel/org/${orgId}/tandas/beta`, 'POST', {}, t)
