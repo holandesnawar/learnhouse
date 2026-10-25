@@ -22,6 +22,10 @@ export async function broadcastNotification(
     cta_url?: string
     /** true = enviar solo a quien lo escribe, para probar. */
     test_only?: boolean
+    /** Solo a estos grupos de usuarios (25/10/2026). Vacío = a todos. */
+    grupos?: number[]
+    /** Desde un canal: solo a quien puede abrirlo. */
+    community_uuid?: string
   },
   accessToken: string | undefined
 ): Promise<{ queued: number; test?: boolean } | null> {

@@ -190,6 +190,9 @@ async def get_unread(
             select(Community).where(Community.org_id.in_(org_ids))  # type: ignore
         )
     ).scalars().all()
+    vistos = await _canales_que_ve(user_id, org_ids, db_session)
+    if vistos is not None:
+        communities = [c for c in communities if c.id in vistos]
     if not communities:
         return []
 
@@ -225,6 +228,59 @@ async def get_unread(
             )
         )
     return out
+
+
+####################################################
+# Qué canales ve cada uno (25/10/2026)
+####################################################
+
+
+def puede_ver_canal(publico: bool, grupos_del_canal: set, mis_grupos: set) -> bool:
+    """Las mismas reglas que la lista de canales (communities.py): público, o
+    sin grupos, o con un grupo del que soy. Función pura, con test."""
+    return bool(publico) or not grupos_del_canal or bool(set(grupos_del_canal) & set(mis_grupos))
+
+
+async def _canales_que_ve(user_id: int, org_ids: List[int], db_session: AsyncSession) -> Optional[set]:
+    """Los ids de los canales que esta persona puede abrir; None = todos (los
+    administradores). Con la comunidad separada por grupos (la beta y el
+    programa nuevo, 25/10/2026), la campana y los «sin leer» de un alumno no
+    pueden hablarle de canales que no ve: le saldría «15 mensajes nuevos en»
+    un canal que al pulsar le da error."""
+    from src.db.usergroup_resources import UserGroupResource
+    from src.db.usergroup_user import UserGroupUser
+    from src.security.rbac.constants import ADMIN_OR_MAINTAINER_ROLE_IDS
+    from src.security.superadmin import is_user_superadmin
+
+    roles = (
+        await db_session.execute(
+            select(UserOrganization.role_id).where(
+                UserOrganization.user_id == user_id, UserOrganization.org_id.in_(org_ids)  # type: ignore
+            )
+        )
+    ).scalars().all()
+    if any(r in ADMIN_OR_MAINTAINER_ROLE_IDS for r in roles) or await is_user_superadmin(user_id, db_session):
+        return None
+    mis_grupos = set(
+        (
+            await db_session.execute(select(UserGroupUser.usergroup_id).where(UserGroupUser.user_id == user_id))
+        ).scalars().all()
+    )
+    grupos_de: dict = {}
+    for uuid, gid in (
+        await db_session.execute(
+            select(UserGroupResource.resource_uuid, UserGroupResource.usergroup_id).where(
+                UserGroupResource.org_id.in_(org_ids)  # type: ignore
+            )
+        )
+    ).all():
+        grupos_de.setdefault(uuid, set()).add(gid)
+    canales = (
+        await db_session.execute(
+            select(Community.id, Community.community_uuid, Community.public).where(Community.org_id.in_(org_ids))  # type: ignore
+        )
+    ).all()
+    return {cid for cid, uuid, publico in canales if puede_ver_canal(publico, grupos_de.get(uuid, set()), mis_grupos)}
 
 
 ####################################################
@@ -265,8 +321,11 @@ async def _mention_items(
         )
     ).all()
 
+    vistos = await _canales_que_ve(user.id, org_ids, db_session)
     out: List[dict] = []
     for discussion, community, author in rows:
+        if vistos is not None and community.id not in vistos:
+            continue
         if not mentions_user(texto_para_menciones(discussion), user):
             continue
         text = message_text(discussion.content)
@@ -310,6 +369,9 @@ async def _channel_items(
             select(Community).where(Community.org_id.in_(org_ids))  # type: ignore
         )
     ).scalars().all()
+    vistos = await _canales_que_ve(user.id, org_ids, db_session)
+    if vistos is not None:
+        communities = [c for c in communities if c.id in vistos]
     if not communities:
         return []
 

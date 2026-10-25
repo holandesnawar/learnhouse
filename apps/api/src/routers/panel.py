@@ -680,3 +680,62 @@ async def api_borrar_campana(
     if not await ads.borrar(org_id, campana_id, db_session):
         raise HTTPException(status_code=404, detail="No existe esa campaña")
     return {"ok": True}
+
+
+# ── Tandas y grupos (25/10/2026, services/panel/tandas.py) ────────────────
+
+
+class TandasIn(BaseModel):
+    activo: Optional[bool] = None
+    desde: Optional[str] = None
+    tanda: Optional[str] = None
+
+
+@router.get("/org/{org_id}/tandas", summary="Grupos automáticos al pagar, grupos y quién ve cada curso y canal.")
+async def api_tandas(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _solo_admin(request, org_id, current_user, db_session)
+    from src.services.panel import tandas
+
+    return await tandas.resumen(org_id, db_session)
+
+
+@router.put("/org/{org_id}/tandas", summary="Enciende o apaga los grupos automáticos al pagar.")
+async def api_guardar_tandas(
+    request: Request,
+    org_id: int,
+    data: TandasIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _solo_admin(request, org_id, current_user, db_session)
+    from src.services.panel import tandas
+
+    cambios = data.model_dump(exclude_none=True)
+    if cambios.get("desde") and len(cambios["desde"]) != 10:
+        raise HTTPException(status_code=400, detail="La fecha va como AAAA-MM-DD")
+    r = await tandas.guardar(org_id, cambios, db_session)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    if r.get("activo"):
+        # Que el grupo del programa exista ya (y se pueda elegir en el Acceso
+        # de cursos y canales) antes de que pague nadie.
+        await tandas.grupo_del_programa(org_id, db_session)
+    return await tandas.resumen(org_id, db_session)
+
+
+@router.post("/org/{org_id}/tandas/beta", summary="Mete en «Beta» a todos los alumnos que no están en el programa nuevo.")
+async def api_tandas_beta(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _solo_admin(request, org_id, current_user, db_session)
+    from src.services.panel import tandas
+
+    return await tandas.meter_en_beta(org_id, db_session)

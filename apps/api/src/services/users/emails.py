@@ -971,6 +971,38 @@ def send_llamada_asignada_email(email: EmailStr, datos: dict, preview: bool = Fa
     )
 
 
+def send_alumno_nuevo_email(email: EmailStr, datos: dict, preview: bool = False):
+    """Aviso AL EQUIPO (25/10/2026, "si alguien hace el pago, me gustaría
+    recibir un mail yo primero"): alguien acaba de pagar y ya tiene su cuenta.
+    Dice en qué grupos ha entrado (services/panel/tandas.py), para darle la
+    bienvenida y comprobar que está donde toca. datos: nombre, email,
+    telefono, grupos (lista de nombres)."""
+    nombre, contacto, wa = _llamada_datos(datos)
+    grupos = [html.escape(g) for g in (datos.get("grupos") or []) if g]
+    linea_grupos = (
+        f"Ha entrado en: <strong>{' · '.join(grupos)}</strong>."
+        if grupos
+        else "No ha entrado en ningún grupo: los grupos automáticos están apagados (Panel → Alumnos → Tandas y grupos)."
+    )
+    body_content = f"""
+        <h1 style="{STYLES['h1']}">{nombre} acaba de pagar</h1>
+        <p style="{STYLES['p']}">{contacto}</p>
+        <p style="{STYLES['p']}">Ya tiene su cuenta y le ha llegado el correo para crear la contraseña. {linea_grupos}</p>
+        <a href="{ACADEMY_URL}/dash/estadisticas?tab=clientes" class="brand-btn" style="{STYLES['button']}">Ver en Clientes</a>
+        {wa}
+    """
+    return send_email(
+        dry_run=preview,
+        to=email,
+        subject=f"Alumno nuevo: {datos.get('nombre') or datos.get('email') or 'alguien'}",
+        body=_email_layout(
+            title=f"{nombre} acaba de pagar",
+            body_content=body_content,
+            footer_note="Recibes esto porque eres administrador de la escuela.",
+        ),
+    )
+
+
 def send_plazo_fallido_email(
     email: EmailStr,
     plan: dict,

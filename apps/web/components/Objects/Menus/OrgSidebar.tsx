@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { useUnreadCommunity } from '@/hooks/queries/useUnreadCommunity'
+import { useCursosEnDirecto } from '@/hooks/queries/useCursosEnDirecto'
 import { getUriWithOrg } from '@services/config/config'
 import { getOrgLogoMediaDirectory } from '@services/media/media'
 import { useOrg } from '@components/Contexts/OrgContext'
@@ -69,6 +70,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   // Punto rojo en Comunidad: lo que hace que el alumno entre sin que nadie se
   // lo pida. Se refresca cada 30 s en segundo plano.
   const { data: unreadRows } = useUnreadCommunity()
+  const { data: enDirecto } = useCursosEnDirecto()
   const unreadTotal = (unreadRows || []).reduce((acc, r) => acc + (r.unread || 0), 0)
   const mentionTotal = (unreadRows || []).reduce((acc, r) => acc + (r.mentions || 0), 0)
   const { isProfe, isAdmin: puedeEntrarAlPanel, isStaff, isCloser } = useAdminStatus()
@@ -172,7 +174,16 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     // guardando en el servidor.
     { key: 'ejercicios', href: '/ejercicios', label: 'Repasar', icon: <Barbell size={20} weight="fill" />, show: false },
     { key: 'calendario', href: '/calendario', label: 'Eventos', icon: <CalendarBlank size={20} weight="fill" />, show: true },
-    { key: 'clase-semanal', href: '/course/bfbcb42b-7dc3-4448-9df8-5d7b96135859', label: 'Clase semanal', icon: <VideoCamera size={20} weight="fill" />, show: true },
+    // Las clases en directo de cada uno (25/10/2026): la beta ve «Clase
+    // semanal» y el programa nuevo su masterclass y sus spreekuren. Salen de
+    // los cursos que le deja ver el servidor, según sus grupos.
+    ...(enDirecto || []).map((c) => ({
+      key: `directo-${c.uuid}`,
+      href: `/course/${c.uuid}`,
+      label: c.nombre,
+      icon: <VideoCamera size={20} weight="fill" />,
+      show: true,
+    })),
     { key: 'collections', href: '/collections', label: t('collections.collections'), icon: <SquaresFour size={20} weight="fill" />, show: isEnabled('collections') },
     { key: 'podcasts', href: '/podcasts', label: t('podcasts.podcasts'), icon: <Headphones size={20} weight="fill" />, show: isEnabled('podcasts') },
     { key: 'communities', href: '/communities', label: t('communities.title'), icon: <ChatsCircle size={20} weight="fill" />, show: isEnabled('communities') },

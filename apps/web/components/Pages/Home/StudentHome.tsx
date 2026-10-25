@@ -19,7 +19,7 @@ import { registerVisit, type StudentVisit } from '@services/student/progress'
 import { useStudentInsights } from '@/hooks/queries/useStudentInsights'
 import { fechasDeClases, semanaConClases } from '@services/student/insights'
 import { isWeeklyClassCourse } from '@/lib/course/formacionProgress'
-import { RUTA_CLASE_SEMANAL } from '@/lib/nawar/cursos'
+import { CURSO_CLASE_SEMANAL_UUID, RUTA_CLASE_SEMANAL } from '@/lib/nawar/cursos'
 import SafeArea from '@components/Objects/StyledElements/Error/SafeArea'
 import StudentOnboarding from '@components/Pages/Home/StudentOnboarding'
 
@@ -153,7 +153,11 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
       {trailReady && runs.length === 0 && coursesReady && (
         <div className="mb-6">
           {formacion ? (
-            <ArranqueFormacion course={formacion} orgslug={orgslug} hayGrabaciones={courseList.length > 1} />
+            <ArranqueFormacion
+              course={formacion}
+              orgslug={orgslug}
+              hayGrabaciones={courseList.some((c: any) => String(c?.course_uuid || '').includes(CURSO_CLASE_SEMANAL_UUID))}
+            />
           ) : courseList.length === 0 ? (
             <>
               <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Tus cursos</h2>
