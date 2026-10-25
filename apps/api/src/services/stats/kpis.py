@@ -347,6 +347,17 @@ def calcular(
     }
 
 
+def para_el_closer(datos: dict) -> dict:
+    """Los KPIs que ve el closer (25/10/2026, "que el closer vea los KPIs sin
+    lo de ventas cobradas"): todo igual, pero de las ventas solo cuántas. Sin
+    lo cobrado, el ticket medio ni el reparto por forma de pago. Se quita en el
+    servidor, no solo en la pantalla. Función pura."""
+    salida = dict(datos)
+    salida["ventas"] = {"n": int((datos.get("ventas") or {}).get("n") or 0)}
+    salida["para_closer"] = True
+    return salida
+
+
 async def kpis(dias: int, db_session) -> dict:
     from sqlmodel import select
 

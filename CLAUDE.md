@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-22 («Otro importe» también a plazos, de 2 a 6 pagos; antes, Matrículas en dos mesas, Leads y Ventas, con closer asignado y reparto; «Esta semana» del alumno cuenta las clases terminadas; antes, el mismo día, incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-25 (el closer ve KPIs sin el dinero; antes 22/10: «Otro importe» también a plazos, de 2 a 6 pagos; antes, Matrículas en dos mesas, Leads y Ventas, con closer asignado y reparto; «Esta semana» del alumno cuenta las clases terminadas; antes, el mismo día, incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -3224,7 +3224,8 @@ Pedido: "cuánto % de llamadas se cierra, cuántas entran al día, qué porcenta
 no se presenta, qué porcentaje ve el anuncio y de ahí cuántos dejan su mail…
 cuántos ven el vídeo y continúan y cuántos en el vídeo se van" y "una parte
 de pagos aplazados… quién tiene un pago aplazado". En Estadísticas, NO en
-Visión (lo dijo el usuario). Solo administradores.
+Visión (lo dijo el usuario). Solo administradores (KPIs, también el closer
+desde el 25/10: ver abajo).
 - **Visitas anónimas** (tabla nueva `embudo_visita`, aprobada por el usuario):
   una fila por sesión del navegador y embudo (`anuncio` = /formacion-nawar-fb,
   `web` = /formacion, `admision` = /proceso-de-admision), con día (hora NL),
@@ -3251,6 +3252,13 @@ Visión (lo dijo el usuario). Solo administradores.
   matrícula o enlace de pago (`cuando_entro`), no quien solo bajó una guía.
   Más ventas del periodo (único/Klarna, plazos, otro importe) y una serie por
   día. Todo sin quien está fuera de los números.
+- **El closer también ve KPIs** (25/10/2026, "que el closer vea los KPIs sin
+  lo de ventas cobradas"): entrada «KPIs» en su barra (`gruposDelCloser`) y la
+  ruta pasa con la puerta de contactos. **El dinero se quita en el servidor**
+  (`para_el_closer` en `kpis.py`, test en `test_kpis.py`): de las ventas solo
+  le llega cuántas; ni lo cobrado, ni el ticket medio, ni el reparto por forma
+  de pago. La pantalla no enseña el bloque «Ventas cobradas en estos días» y la
+  tarjeta «Ventas» dice «en estos N días» en vez de los euros.
 - **Pestaña KPIs** (`?tab=kpis`, `Panel/KpisPanel.tsx`): cifras, gráfica por
   día de una sola serie (con «Ver tabla»), embudo de la web con filtros de
   embudo y canal («se quedan aquí N» en cada paso) y embudo de ventas.

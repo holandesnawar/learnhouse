@@ -362,10 +362,16 @@ async def api_kpis(
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ):
-    from src.services.stats.kpis import kpis
+    from src.security.rbac.constants import CLOSER_ROLE_ID
+    from src.services.orgs.acceso import rol_en_la_escuela
+    from src.services.stats.kpis import kpis, para_el_closer
 
-    await _admin_org(request, org_id, current_user, db_session)
-    return await kpis(dias, db_session)
+    # Administradores y el closer (25/10/2026). Al closer, sin el dinero.
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    datos = await kpis(dias, db_session)
+    if (await rol_en_la_escuela(current_user.id, org_id, db_session)) == CLOSER_ROLE_ID:
+        return para_el_closer(datos)
+    return datos
 
 
 @router.get(

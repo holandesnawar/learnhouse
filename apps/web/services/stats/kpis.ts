@@ -57,13 +57,16 @@ export interface Kpis {
     pct_no_show: number | null
     pct_cierre: number | null
   }
+  /** Al closer solo le llega `n` (sin el dinero ni el reparto). */
   ventas: {
     n: number
-    cobrado_cents: number
-    ticket_medio_cents: number | null
-    con_llamada: number
-    tipos: { unico: number; plazos: number; otro: number }
+    cobrado_cents?: number
+    ticket_medio_cents?: number | null
+    con_llamada?: number
+    tipos?: { unico: number; plazos: number; otro: number }
   }
+  /** La versión del closer (25/10/2026): sin lo cobrado. */
+  para_closer?: boolean
   serie: {
     dia: string
     visitas: number

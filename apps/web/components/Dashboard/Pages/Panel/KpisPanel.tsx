@@ -9,7 +9,9 @@
  * Todo lo calcula el servidor (apps/api/src/services/stats/kpis.py). Tres
  * unidades que no se mezclan: VISITAS (embudo de la web, anónimas), PERSONAS
  * (embudo de ventas, quien entró en el periodo) y LLAMADAS (con fecha en el
- * periodo). Solo administradores.
+ * periodo). Administradores y el closer; al closer el servidor no le manda
+ * el dinero (25/10/2026, "sin lo de ventas cobradas"), y aquí no sale el
+ * bloque «Ventas cobradas en estos días».
  */
 
 import React, { useEffect, useState } from 'react'
@@ -148,6 +150,8 @@ export default function KpisPanel() {
   }
 
   const ll = datos.llamadas
+  const v = datos.ventas
+  const conDinero = !datos.para_closer && v.cobrado_cents !== undefined
   const conResultado = ll.presentadas + ll.no_vino
   const web = datos.embudo_web[embudo].canales[canal]
   const ventas = datos.embudo_ventas.pasos
@@ -198,8 +202,12 @@ export default function KpisPanel() {
         />
         <Cifra
           titulo="Ventas"
-          valor={String(datos.ventas.n)}
-          sub={`${euros(datos.ventas.cobrado_cents)} cobrados${datos.ventas.ticket_medio_cents ? ` · ${euros(datos.ventas.ticket_medio_cents)} de media` : ''}`}
+          valor={String(v.n)}
+          sub={
+            conDinero
+              ? `${euros(v.cobrado_cents || 0)} cobrados${v.ticket_medio_cents ? ` · ${euros(v.ticket_medio_cents)} de media` : ''}`
+              : `en estos ${datos.dias} días`
+          }
         />
       </div>
       {ll.sin_apuntar ? (
@@ -372,16 +380,17 @@ export default function KpisPanel() {
           </p>
         </Seccion>
 
+        {conDinero ? (
         <Seccion titulo="Ventas cobradas en estos días">
           <div className={`${TARJETA} divide-y divide-[#F3F4F6] text-[13.5px]`}>
             {(
               [
-                ['Ventas', String(datos.ventas.n)],
-                ['Cobrado', euros(datos.ventas.cobrado_cents)],
-                ['Después de una llamada', String(datos.ventas.con_llamada)],
-                ['Pago único o Klarna', String(datos.ventas.tipos.unico)],
-                ['A plazos', String(datos.ventas.tipos.plazos)],
-                ['Otro importe o señal completada', String(datos.ventas.tipos.otro)],
+                ['Ventas', String(v.n)],
+                ['Cobrado', euros(v.cobrado_cents || 0)],
+                ['Después de una llamada', String(v.con_llamada ?? 0)],
+                ['Pago único o Klarna', String(v.tipos?.unico ?? 0)],
+                ['A plazos', String(v.tipos?.plazos ?? 0)],
+                ['Otro importe o señal completada', String(v.tipos?.otro ?? 0)],
               ] as const
             ).map(([texto, valor]) => (
               <div key={texto} className="px-4 py-2.5 flex items-baseline justify-between gap-3">
@@ -398,6 +407,7 @@ export default function KpisPanel() {
             </Link>
           </p>
         </Seccion>
+        ) : null}
       </div>
     </div>
   )

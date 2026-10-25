@@ -68,7 +68,8 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
     titulo: 'Ventas',
     items: [
       { href: '/dash/estadisticas', label: 'Estadísticas', icon: <ChartBar size={18} weight="fill" />, match: (p) => p.includes('/dash/estadisticas') && !p.includes('tab=') },
-      // KPIs (20/10): embudo de la web, entradas, llamadas y cierre. Solo administradores.
+      // KPIs (20/10): embudo de la web, entradas, llamadas y cierre. El closer
+      // también, sin el dinero (25/10).
       { href: '/dash/estadisticas?tab=kpis', label: 'KPIs', icon: <Gauge size={18} weight="fill" /> },
       // Visión (17/10): el mapa del negocio y las campañas. Solo administradores.
       { href: '/dash/estadisticas?tab=vision', label: 'Visión', icon: <Binoculars size={18} weight="fill" /> },
@@ -139,7 +140,7 @@ export function gruposDelCloser(veNumeros: boolean): Grupo[] {
   const por = (label: string) => todos.find((i) => i.label === label) as Item
   // Sin Contactos (08/10): el closer trabaja desde Matrículas y Llamadas.
   // Contactos (todos los leads, también los de las guías) es del administrador.
-  const items = [por('Matrículas'), por('Llamadas'), por('Tareas'), por('Guion de llamada'), por('Recursos'), por('Páginas de la web')]
+  const items = [por('Matrículas'), por('Llamadas'), por('KPIs'), por('Tareas'), por('Guion de llamada'), por('Recursos'), por('Páginas de la web')]
   if (veNumeros) {
     items.push({ ...por('Estadísticas'), href: '/dash/estadisticas?tab=numeros', label: 'Números', match: undefined })
   }
