@@ -479,6 +479,8 @@ export interface AlumnoNuevo {
   programa: '' | 'nuevo' | 'beta' | 'los dos'
   /** Por qué podría ser de la beta («Estaba en «Por pagar» desde el 20/10…»). */
   motivo: string
+  /** El botón que se marca: la beta si hay motivo. Decide el equipo. */
+  sugerencia?: 'nuevo' | 'beta'
 }
 
 export interface Tandas {

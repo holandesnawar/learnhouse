@@ -584,10 +584,10 @@ async def _module_items(
 
 
 async def _decidir_items(user_id: int, org_ids: List[int], db_session: AsyncSession) -> List[dict]:
-    """Solo para administradores: los alumnos nuevos que venían de antes del
-    cambio y esperan que se decida si van al programa nuevo o a la beta
-    (services/panel/tandas.py). En la escuela y no por correo: así lo pidió
-    el usuario (26/10/2026). Desaparece sola al decidirlo."""
+    """Solo para administradores: cada alumno que ha pagado desde el día del
+    cambio y aún no tiene grupo, para elegir si va al programa nuevo o a la
+    beta (services/panel/tandas.py). En la escuela y no por correo: así lo
+    pidió el usuario (25/10/2026). Desaparece sola al elegir."""
     from src.security.rbac.constants import ADMIN_OR_MAINTAINER_ROLE_IDS
     from src.security.superadmin import is_user_superadmin
     from src.services.panel.tandas import por_decidir
@@ -603,13 +603,17 @@ async def _decidir_items(user_id: int, org_ids: List[int], db_session: AsyncSess
         return []
     out: List[dict] = []
     for org_id in org_ids:
-        for a in await por_decidir(org_id, db_session):
+        for a in await por_decidir(org_id, db_session, con_motivo=True):
             out.append(
                 {
                     "id": f"tanda:{a['id']}",
                     "kind": "decidir",
-                    "title": f"{a['nombre']} ha pagado: ¿programa nuevo o beta?",
-                    "excerpt": "Venía de antes del cambio y todavía no está en ningún programa. Decídelo en Tandas y grupos.",
+                    "title": f"{a['nombre']} ha pagado: elige su grupo",
+                    "excerpt": (
+                        f"{a['motivo']} Te sugerimos la beta (clase de conversación)."
+                        if a.get("motivo")
+                        else "¿Programa nuevo o beta? Elígelo en Tandas y grupos."
+                    ),
                     "url": "/dash/estadisticas?tab=tandas",
                     "date": a["entro"],
                 }

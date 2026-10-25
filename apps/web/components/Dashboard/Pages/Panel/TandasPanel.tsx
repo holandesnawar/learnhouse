@@ -3,13 +3,14 @@
 /**
  * Panel → Alumnos → Tandas y grupos (25/10/2026). Separa la beta (clase
  * semanal) del programa nuevo (masterclass y spreekuren):
- *  - quien paga desde el día elegido entra solo en «Programa nuevo» y en el
- *    grupo de su mes («Matrícula octubre 2026»). Sin correo al equipo;
- *  - quien venía de antes del cambio («Por pagar», señal o enlace de pago)
- *    queda «por decidir»: sale arriba con «Programa nuevo» / «Beta», y en la
- *    campana del administrador (26/10/2026);
- *  - «Alumnos nuevos»: los que han entrado desde el cambio, con su programa y
- *    un botón para pasarlos al otro;
+ *  - NADIE entra solo en ningún grupo: cada alumno que paga desde el día
+ *    del cambio sale arriba («Han pagado: elige su grupo») con «Programa
+ *    nuevo» / «Beta», y en la campana y el inicio del panel. Sin correo.
+ *    Se marca la beta a quien antes del cambio estaba en «Por pagar», tenía
+ *    una señal o un enlace de pago: a esos se les vendió la clase de
+ *    conversación (25/10/2026, "quiero elegir yo");
+ *  - «Alumnos nuevos»: los ya elegidos, con su programa y un botón para
+ *    pasarlos al otro;
  *  - un botón mete a los alumnos de antes del cambio en «Beta»;
  *  - «Quién ve qué» enseña cada curso y canal con su acceso, para comprobar
  *    que la separación está bien hecha.
@@ -103,7 +104,7 @@ export default function TandasPanel() {
       return
     }
     setDatos(r.datos)
-    toast.success(r.datos.activo ? 'Guardado: los nuevos entrarán en sus grupos' : 'Guardado: los grupos automáticos están apagados')
+    toast.success(r.datos.activo ? 'Guardado: te saldrá cada alumno que pague para elegir su grupo' : 'Guardado: apagado, no te avisa de nadie')
   }
 
   async function laBeta() {
@@ -163,7 +164,7 @@ export default function TandasPanel() {
   const semanalSoloBeta = !!semanal && !semanal.aviso && semanal.grupos.length > 0 && semanal.texto.startsWith('Solo')
   const canalesAbiertos = datos.canales.filter((c) => !c.texto.startsWith('Solo')).length
   const pasos: { hecho: boolean; texto: React.ReactNode }[] = [
-    { hecho: datos.activo, texto: 'Encender «los nuevos entran en sus grupos» (abajo).' },
+    { hecho: datos.activo, texto: 'Encender «Avisarme de cada alumno que pague» con el día del cambio (abajo).' },
     {
       hecho: !!betaG && datos.alumnos_sin_grupo === 0,
       texto:
@@ -211,15 +212,15 @@ export default function TandasPanel() {
   return (
     <div className="space-y-7 max-w-3xl">
       <p className="text-[14px] text-gray-700 leading-relaxed">
-        La beta sigue con su clase semanal y quien entra desde el día que elijas va al programa nuevo (masterclass y spreekuren). Cada uno
-        ve solo lo suyo: lo decide el grupo en el que está.
+        La beta sigue con su clase semanal y el programa nuevo tiene la masterclass y los spreekuren. Cada alumno que pague desde el día del
+        cambio te sale aquí para que elijas tú a cuál va. Cada uno ve solo lo suyo: lo decide el grupo en el que está.
       </p>
 
       {pendientes.length > 0 ? (
-        <Seccion titulo={`Por decidir (${pendientes.length})`}>
+        <Seccion titulo={`Han pagado: elige su grupo (${pendientes.length})`}>
           <p className={META}>
-            Han pagado desde el cambio, pero venían de antes: se les vendió con la clase semanal. Elige a dónde va cada uno. Hasta entonces
-            ven la formación, pero ni la clase semanal ni la masterclass.
+            Hasta que elijas, ven la formación, pero ni la clase semanal ni la masterclass. En azul, lo que te sugerimos: la beta a quien
+            antes del cambio estaba en «Por pagar», tenía una señal o un enlace de pago.
           </p>
           <div className={`${TARJETA} divide-y divide-[#F3F4F6]`}>
             {pendientes.map((a) => (
@@ -232,12 +233,21 @@ export default function TandasPanel() {
                   {a.motivo ? <p className="text-[12.5px] text-[#8A6A2A] mt-0.5">{a.motivo}</p> : null}
                 </div>
                 <div className="flex gap-2 shrink-0">
-                  <button onClick={() => decidir(a, 'nuevo')} disabled={!!ocupado} className={`${BOTON_PRINCIPAL} disabled:opacity-50`}>
-                    {ocupado === a.id ? <Loader2 size={13} className="animate-spin" /> : null} Programa nuevo
+                  <button
+                    onClick={() => decidir(a, 'nuevo')}
+                    disabled={!!ocupado}
+                    className={`${a.sugerencia === 'beta' ? BOTON : BOTON_PRINCIPAL} disabled:opacity-50`}
+                  >
+                    Programa nuevo
                   </button>
-                  <button onClick={() => decidir(a, 'beta')} disabled={!!ocupado} className={`${BOTON} disabled:opacity-50`}>
-                    Beta
+                  <button
+                    onClick={() => decidir(a, 'beta')}
+                    disabled={!!ocupado}
+                    className={`${a.sugerencia === 'beta' ? BOTON_PRINCIPAL : BOTON} disabled:opacity-50`}
+                  >
+                    Beta · clase de conversación
                   </button>
+                  {ocupado === a.id ? <Loader2 size={14} className="animate-spin text-gray-400 self-center" /> : null}
                 </div>
               </div>
             ))}
@@ -262,7 +272,7 @@ export default function TandasPanel() {
         </ol>
       </Seccion>
 
-      <Seccion titulo="Los nuevos entran en sus grupos">
+      <Seccion titulo="Avisarme de cada alumno que pague">
         <div className={`${TARJETA} p-4 space-y-3`}>
           <label className="flex items-start gap-3 cursor-pointer">
             <input
@@ -273,8 +283,8 @@ export default function TandasPanel() {
               className="mt-1 h-4 w-4 accent-[#025dc7]"
             />
             <span className="text-[13.5px] text-gray-900 leading-relaxed">
-              Quien pague entra en «{programa?.nombre || 'Programa nuevo'}» y en el grupo de su tanda. Si venía de antes del cambio («Por
-              pagar», señal o enlace de pago), queda por decidir: te sale aquí arriba y en la campana.
+              Cada alumno que pague desde este día te sale aquí arriba, en el inicio del panel y en la campana, para que elijas su grupo.
+              Nadie entra solo en ninguno.
             </span>
           </label>
           <div className="flex flex-wrap items-end gap-3">
@@ -288,7 +298,7 @@ export default function TandasPanel() {
               />
             </label>
             <label className="text-[12.5px] text-[#6B7280] flex-1 min-w-[200px]">
-              Nombre de la tanda (vacío = por el mes en que paga)
+              Nombre de la tanda (vacío = por el mes en que pagó)
               <input
                 value={tanda}
                 onChange={(e) => setTanda(e.target.value)}
@@ -302,10 +312,10 @@ export default function TandasPanel() {
           </div>
           <p className={META}>
             {datos.activo
-              ? `Quien pague hoy entraría en «${programa?.nombre || 'Programa nuevo'}» y «${datos.tanda_de_hoy}»${
-                  datos.desde ? ` (a partir del ${datos.desde.split('-').reverse().join('/')})` : ''
-                }.`
-              : 'Apagado: quien pague no entra en ningún grupo y ve lo mismo que hasta ahora.'}
+              ? `Encendido${datos.desde ? `: quien pague desde el ${datos.desde.split('-').reverse().join('/')} te saldrá para elegir` : ''}. Al elegir «${
+                  programa?.nombre || 'Programa nuevo'
+                }» entra también en el grupo de su tanda (este mes, «${datos.tanda_de_hoy}»).`
+              : 'Apagado: no te avisa de nadie. Con la clase semanal ya cerrada a «Beta», quien pague sin grupo solo verá la formación.'}
           </p>
         </div>
       </Seccion>

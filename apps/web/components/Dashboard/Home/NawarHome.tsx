@@ -51,9 +51,9 @@ export default function NawarHome() {
   const [yo, setYo] = useState(0)
   const [abierta, setAbierta] = useState<string | null>(null)
   const [ads, setAds] = useState<PanelAds | null>(null)
-  // Alumnos nuevos que venían de antes del cambio y esperan que se decida su
-  // programa (Tandas y grupos, 26/10/2026). El aviso es aquí y en la campana,
-  // no por correo.
+  // Alumnos que han pagado y esperan que se elija su grupo: programa nuevo o
+  // beta (Tandas y grupos, 25/10/2026). El aviso es aquí y en la campana, no
+  // por correo.
   const [porDecidir, setPorDecidir] = useState<{ id: number; nombre: string }[]>([])
 
   useEffect(() => {
@@ -131,11 +131,11 @@ export default function NawarHome() {
             <span className="text-[13.5px] text-gray-900 leading-relaxed">
               <strong className="font-semibold">
                 {porDecidir.length === 1 ? `${porDecidir[0].nombre} ha pagado` : `${porDecidir.length} alumnos nuevos han pagado`}
-              </strong>{' '}
-              y {porDecidir.length === 1 ? 'venía' : 'venían'} de antes del cambio: ¿programa nuevo o beta?
+              </strong>
+              : elige {porDecidir.length === 1 ? 'su grupo' : 'el grupo de cada uno'}, programa nuevo o beta.
             </span>
             <span className="text-[13px] font-semibold text-[#025dc7] inline-flex items-center gap-1 shrink-0">
-              Decidir <ArrowRight size={14} />
+              Elegir <ArrowRight size={14} />
             </span>
           </Link>
         ) : null}
