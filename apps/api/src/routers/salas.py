@@ -16,7 +16,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.core.events.database import get_db_session
 from src.db.courses.courses import Course
-from src.db.users import PublicUser
+from src.db.users import AnonymousUser, PublicUser
 from src.security.auth import get_current_user
 from src.security.rbac.resource_access import check_resource_access
 from src.security.rbac.types import AccessAction, AccessContext
@@ -28,7 +28,11 @@ router = APIRouter()
 
 
 async def _curso(request: Request, course_uuid: str, current_user, db_session: AsyncSession) -> Course:
-    """El curso, si esta persona puede verlo (si no, 403/404)."""
+    """El curso, si esta persona puede verlo (si no, 401/403/404)."""
+    # Sin sesión no se entra nunca, aunque el curso sea público: la entrada
+    # lleva el nombre de quien entra y la sala es solo para alumnos.
+    if isinstance(current_user, AnonymousUser) or not getattr(current_user, "id", 0):
+        raise HTTPException(status_code=401, detail="Entra en la escuela para usar la sala")
     limpio = salas.uuid_curso(course_uuid)
     curso = (
         await db_session.execute(
