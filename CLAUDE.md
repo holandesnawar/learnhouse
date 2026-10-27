@@ -3753,6 +3753,16 @@ va siempre en marcha, en bucle, sin sonido ni botones, y la caja toma la
 forma del vídeo (sin franjas negras). En una clase en directo, si el curso
 tiene VÍDEO de portada, sale encima del recuadro (una portada con foto no,
 para no cambiar la clase semanal de siempre).
+- **Con vídeo, el recuadro es una franja** (27/10, en pruebas con la
+  Masterclass: "quitar ese bloque y ponerlo en línea… que se vea claro un
+  botón para entrar"): `WeeklyClassBanner compacto`. «Próxima emisión» con
+  día y hora en grande, «Con Paul · 60 min» debajo (solo lo rellenado), y a
+  la derecha «Entrar a la clase» grande, «Clases anteriores» y «Editar».
+  Sin subtítulo ni los cuatro bloques. Con gente en la sala dice «En directo
+  ahora» y «Entrar ahora». Lo decide `course.tsx`: clase en directo + vídeo
+  de portada. Si gusta, se lleva a las demás quitando esa condición.
+- En las clases en directo, los ajustes de la sala (solo administradores)
+  van DEBAJO del recuadro, no encima de la portada.
 
 ### La sala con los colores de la marca (27/10/2026)
 "¿Se puede cambiar el color? Azul de marca, no verde". Daily solo deja

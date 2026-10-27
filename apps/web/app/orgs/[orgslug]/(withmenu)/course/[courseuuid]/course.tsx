@@ -347,8 +347,9 @@ const CourseClient = (props: any) => {
 
             {/* La sala en directo dentro de la escuela (Daily): en cualquier
                 curso que no sea la formación. El alumno solo la ve encendida;
-                el administrador, siempre, para encenderla. */}
-            {uuidDeCurso(course) !== CURSO_FORMACION_UUID && (
+                el administrador, siempre, para encenderla. En una clase en
+                directo va debajo del recuadro (más abajo). */}
+            {uuidDeCurso(course) !== CURSO_FORMACION_UUID && !enDirecto && (
               <div className="pt-2">
                 <SalaEnDirecto courseUuid={uuidDeCurso(course)} soloAjustes={enDirecto} />
               </div>
@@ -366,13 +367,18 @@ const CourseClient = (props: any) => {
 
                   // Clase en directo: el recuadro editable (en vez de la foto
                   // estática). Si el curso tiene un VÍDEO de portada (la de la
-                  // Masterclass), va encima, en bucle: la foto no, para no
-                  // cambiar la clase semanal de siempre.
+                  // Masterclass), va encima, en bucle, y el recuadro se queda
+                  // en una franja con el botón de entrar: la foto no, para no
+                  // cambiar la clase semanal de siempre. Los ajustes de la sala
+                  // (solo administradores) van debajo: lo primero que se ve es
+                  // la portada y lo que le importa al alumno.
                   if (enDirecto) {
+                    const conVideo = course.thumbnail_type === 'video' && !!videoPortada
                     return (
                       <div className="space-y-4">
-                        {course.thumbnail_type === 'video' && videoPortada && <VideoPortada src={videoPortada} />}
-                        <WeeklyClassBanner courseUuid={uuidDeCurso(course)} />
+                        {conVideo && <VideoPortada src={videoPortada} />}
+                        <WeeklyClassBanner courseUuid={uuidDeCurso(course)} compacto={conVideo} />
+                        <SalaEnDirecto courseUuid={uuidDeCurso(course)} soloAjustes />
                       </div>
                     );
                   }
