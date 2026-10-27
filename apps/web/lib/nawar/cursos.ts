@@ -34,6 +34,8 @@ export type AjustesDirecto = {
   activo: boolean
   grabar: boolean
   directo: boolean
+  /** Si la página enseña las clases grabadas; null = sin decidir (`conGrabadas`). */
+  grabadas: boolean | null
   banner: Record<string, string> | null
 }
 
@@ -46,8 +48,22 @@ export function ajustesDirecto(config: any, curso: string | null | undefined): A
     activo: !!p.activo,
     grabar: !!p.grabar,
     directo: !!p.directo,
+    grabadas: typeof p.grabadas === 'boolean' ? p.grabadas : null,
     banner: p.banner && typeof p.banner === 'object' ? p.banner : null,
   }
+}
+
+/**
+ * ¿Enseña esta clase en directo sus clases grabadas? (27/10/2026: "en
+ * Spreekclub lo de clases grabadas no va, y por ahora en Masterclass
+ * tampoco"). Lo decide el administrador en la página del curso; sin decidir,
+ * solo la clase semanal de siempre, que es la única que tiene grabaciones. Una
+ * copia de la clase semanal (otro grupo) se enciende a mano.
+ */
+export function conGrabadas(config: any, curso: string | null | undefined): boolean {
+  const uuid = String(curso || '').replace(/^course_/, '')
+  const elegido = ajustesDirecto(config, uuid).grabadas
+  return elegido ?? uuid === CURSO_CLASE_SEMANAL_UUID
 }
 
 /**

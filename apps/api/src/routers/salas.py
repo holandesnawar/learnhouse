@@ -108,6 +108,8 @@ async def api_entrar(
 class SalaIn(BaseModel):
     activo: Optional[bool] = None
     grabar: Optional[bool] = None
+    # Si la página enseña las clases grabadas (27/10).
+    grabadas: Optional[bool] = None
 
 
 @router.put("/course/{course_uuid}", summary="Encender o apagar la sala de un curso y si se graba (administradores).")
@@ -123,7 +125,9 @@ async def api_guardar(
     if not admin:
         raise HTTPException(status_code=403, detail="Solo administradores")
     try:
-        return await salas.guardar_config(curso.org_id, curso.course_uuid, body.activo, body.grabar, db_session)
+        return await salas.guardar_config(
+            curso.org_id, curso.course_uuid, body.activo, body.grabar, db_session, grabadas=body.grabadas
+        )
     except salas.SalaError as exc:
         raise _error(exc) from exc
 

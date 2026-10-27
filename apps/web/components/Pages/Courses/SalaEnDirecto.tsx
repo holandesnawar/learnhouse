@@ -15,6 +15,8 @@ import Link from 'next/link'
 import { Video, Users, Circle, Download, ChevronDown, ChevronUp, Power, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
+import { useOrg } from '@components/Contexts/OrgContext'
+import { conGrabadas } from '@/lib/nawar/cursos'
 import {
   enlaceGrabacion,
   getGrabaciones,
@@ -105,8 +107,10 @@ function Grabaciones({ curso, token }: { curso: string; token: string }) {
  */
 export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { courseUuid: string; soloAjustes?: boolean }) {
   const session = useLHSession() as any
+  const org = useOrg() as any
   const token: string = session?.data?.tokens?.access_token || ''
   const curso = String(courseUuid || '').replace(/^course_/, '')
+  const grabadas = conGrabadas(org?.config?.config, curso)
   const [sala, setSala] = useState<EstadoSala | null>(null)
   const [guardando, setGuardando] = useState(false)
   const [verGrabaciones, setVerGrabaciones] = useState(false)
@@ -131,16 +135,20 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
     return () => window.clearInterval(t)
   }, [sala?.activo, cargar])
 
-  async function cambiar(cambios: { activo?: boolean; grabar?: boolean }) {
+  async function cambiar(cambios: { activo?: boolean; grabar?: boolean; grabadas?: boolean }) {
     setGuardando(true)
     try {
       const r = await guardarSala(curso, cambios, token)
       setSala((s) => (s ? { ...s, ...r } : s))
       // Encender o apagar cambia cómo se pinta el curso entero (su recuadro,
       // «Ir a la clase»): se recarga para que lo coja de la escuela.
-      if (cambios.activo !== undefined) window.setTimeout(() => window.location.reload(), 700)
+      if (cambios.activo !== undefined || cambios.grabadas !== undefined) window.setTimeout(() => window.location.reload(), 700)
       toast.success(
-        cambios.activo === true
+        cambios.grabadas !== undefined
+          ? cambios.grabadas
+            ? 'Las clases grabadas vuelven a salir en esta página'
+            : 'Las clases grabadas ya no salen en esta página'
+          : cambios.activo === true
           ? 'Sala encendida'
           : cambios.activo === false
             ? 'Sala apagada'
@@ -158,6 +166,22 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
   if (!sala) return null
   if (!sala.admin && (soloAjustes || !sala.activo)) return null
 
+  // ¿Enseña esta página sus clases grabadas? (27/10: en Spreekclub no van, y
+  // por ahora en Masterclass tampoco). Solo en las clases en directo, con la
+  // sala encendida o apagada.
+  const casillaGrabadas = soloAjustes ? (
+    <label className="inline-flex items-center gap-2 text-[13px] text-gray-900 cursor-pointer">
+      <input
+        type="checkbox"
+        checked={grabadas}
+        disabled={guardando}
+        onChange={(e) => cambiar({ grabadas: e.target.checked })}
+        className="accent-[#025dc7]"
+      />
+      Enseñar las clases grabadas en esta página
+    </label>
+  ) : null
+
   // Apagada: solo la ve el administrador, en una línea, para encenderla.
   if (!sala.activo) {
     return (
@@ -173,6 +197,7 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
           {!sala.con_clave && (
             <p className="text-[12.5px] text-[#8A6A2A] mt-1">Falta la clave de Daily en Railway (LEARNHOUSE_DAILY_API_KEY).</p>
           )}
+          {casillaGrabadas ? <div className="mt-2.5">{casillaGrabadas}</div> : null}
         </div>
         <button
           onClick={() => cambiar({ activo: true })}
@@ -203,6 +228,7 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
           />
           Grabar sola cuando entra alguien del equipo
         </label>
+        {casillaGrabadas}
         <button
           onClick={() => setVerGrabaciones((v) => !v)}
           className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#025dc7]"

@@ -19,6 +19,8 @@ import { getSala, guardarRecuadro, rutaSala } from '@services/salas/salas'
 const SUBTITULO_SEMANAL =
   'Cada semana nos vemos en directo para repasar la formación, resolver tus dudas y practicar hablando holandés. Si no puedes asistir, la clase queda grabada aquí para siempre.'
 const SUBTITULO_OTROS = 'Nos vemos en directo cada semana. Si no puedes venir, la sesión queda grabada aquí.'
+// Sin clases grabadas en la página (Spreekclub, Masterclass): no prometerlas.
+const SUBTITULO_SIN_GRABADAS = 'Nos vemos en directo cada semana.'
 
 const DEFAULTS = {
   title: 'Clases semanales',
@@ -57,7 +59,16 @@ function InfoBlock({ icon, label, value }: { icon: React.ReactNode; label: strin
  * ("quitar ese bloque y ponerlo en línea… que se vea claro un botón para
  * entrar").
  */
-export default function WeeklyClassBanner({ courseUuid, compacto = false }: { courseUuid: string; compacto?: boolean }) {
+export default function WeeklyClassBanner({
+  courseUuid,
+  compacto = false,
+  grabadas = true,
+}: {
+  courseUuid: string
+  compacto?: boolean
+  /** La página enseña las clases grabadas: si no, fuera «Clases anteriores» (27/10). */
+  grabadas?: boolean
+}) {
   const org = useOrg() as any
   const session = useLHSession() as any
   const token: string = session?.data?.tokens?.access_token || ''
@@ -107,7 +118,7 @@ export default function WeeklyClassBanner({ courseUuid, compacto = false }: { co
 
   const v = {
     title: data.title.trim() || DEFAULTS.title,
-    subtitle: data.subtitle.trim() || (esLaDeSiempre ? SUBTITULO_SEMANAL : SUBTITULO_OTROS),
+    subtitle: data.subtitle.trim() || (!grabadas ? SUBTITULO_SIN_GRABADAS : esLaDeSiempre ? SUBTITULO_SEMANAL : SUBTITULO_OTROS),
     live_url: data.live_url.trim(),
     next_day: nextBroadcastLabel(
       data.next_weekday,
@@ -332,12 +343,14 @@ export default function WeeklyClassBanner({ courseUuid, compacto = false }: { co
             enDirecto ? 'Entrar ahora' : 'Entrar a la clase'
           )}
           <div className="flex items-center justify-center sm:justify-start gap-4">
-            <button
-              onClick={goToRecordings}
-              className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-[#025dc7] hover:text-[#1D0084] transition-colors"
-            >
-              <ListVideo size={15} /> Clases anteriores
-            </button>
+            {grabadas ? (
+              <button
+                onClick={goToRecordings}
+                className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-[#025dc7] hover:text-[#1D0084] transition-colors"
+              >
+                <ListVideo size={15} /> Clases anteriores
+              </button>
+            ) : null}
             <AuthenticatedClientElement ressourceType="courses" action="update" checkMethod="roles" orgId={orgId}>
               <button
                 onClick={startEdit}
@@ -398,12 +411,14 @@ export default function WeeklyClassBanner({ courseUuid, compacto = false }: { co
                 <Radio size={16} strokeWidth={2.5} /> Ir a la clase
               </button>
             )}
-            <button
-              onClick={goToRecordings}
-              className="inline-flex items-center gap-2 bg-white hover:bg-[#F0F5FF] border border-[#DDE6F5] hover:border-[#4da3ff] text-[#025dc7] font-semibold py-2.5 px-4 rounded-lg text-[14px] transition-colors"
-            >
-              <ListVideo size={16} /> Clases anteriores
-            </button>
+            {grabadas ? (
+              <button
+                onClick={goToRecordings}
+                className="inline-flex items-center gap-2 bg-white hover:bg-[#F0F5FF] border border-[#DDE6F5] hover:border-[#4da3ff] text-[#025dc7] font-semibold py-2.5 px-4 rounded-lg text-[14px] transition-colors"
+              >
+                <ListVideo size={16} /> Clases anteriores
+              </button>
+            ) : null}
           </div>
           {ajustes.activo && (
             <p className="mt-3 text-[13px] text-[#3F4A61] flex items-center gap-2 min-w-0">

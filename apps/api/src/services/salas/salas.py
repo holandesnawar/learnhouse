@@ -332,12 +332,21 @@ async def _olvidar_cache(org_id: int, db_session: AsyncSession) -> None:
 
 
 async def guardar_config(
-    org_id: int, course_uuid: str, activo: Optional[bool], grabar: Optional[bool], db_session: AsyncSession
+    org_id: int,
+    course_uuid: str,
+    activo: Optional[bool],
+    grabar: Optional[bool],
+    db_session: AsyncSession,
+    grabadas: Optional[bool] = None,
 ) -> dict:
     """Encender/apagar la sala y la grabación. Encenderla marca además el curso
     como de clases en directo (`directo`), y eso se queda al apagarla: así el
     curso no vuelve a pintarse como una formación con «Empezar curso»
-    (`esCursoEnDirecto` en apps/web/lib/nawar/cursos.ts)."""
+    (`esCursoEnDirecto` en apps/web/lib/nawar/cursos.ts).
+
+    `grabadas` (27/10/2026): si la página del curso enseña sus clases grabadas
+    («Sesiones grabadas» y «Clases anteriores»). Sin guardar, solo la clase
+    semanal de siempre (`conGrabadas` en el mismo archivo del navegador)."""
     cambios: dict = {}
     if activo is not None:
         cambios["activo"] = bool(activo)
@@ -345,8 +354,13 @@ async def guardar_config(
             cambios["directo"] = True
     if grabar is not None:
         cambios["grabar"] = bool(grabar)
+    if grabadas is not None:
+        cambios["grabadas"] = bool(grabadas)
     guardado = await _escribir(org_id, course_uuid, cambios, db_session)
-    return {"activo": bool(guardado.get("activo")), "grabar": bool(guardado.get("grabar"))}
+    salida = {"activo": bool(guardado.get("activo")), "grabar": bool(guardado.get("grabar"))}
+    if isinstance(guardado.get("grabadas"), bool):
+        salida["grabadas"] = guardado["grabadas"]
+    return salida
 
 
 # El recuadro de arriba de cada clase en directo (día, hora, profe…). Antes

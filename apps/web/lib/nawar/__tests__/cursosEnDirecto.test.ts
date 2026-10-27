@@ -3,6 +3,7 @@ import {
   CURSO_CLASE_SEMANAL_UUID,
   CURSO_FORMACION_UUID,
   ajustesDirecto,
+  conGrabadas,
   cursosEnDirecto,
   esCursoEnDirecto,
 } from '../cursos'
@@ -54,8 +55,18 @@ describe('qué curso se pinta como clase en directo', () => {
   test('los ajustes, con el recuadro de cada curso', () => {
     const config = { salas: { abc: { activo: true, grabar: true, banner: { teacher: 'Paul' } } } }
     expect(ajustesDirecto(config, 'course_abc')).toEqual({
-      activo: true, grabar: true, directo: false, banner: { teacher: 'Paul' },
+      activo: true, grabar: true, directo: false, grabadas: null, banner: { teacher: 'Paul' },
     })
-    expect(ajustesDirecto(null, 'abc')).toEqual({ activo: false, grabar: false, directo: false, banner: null })
+    expect(ajustesDirecto(null, 'abc')).toEqual({ activo: false, grabar: false, directo: false, grabadas: null, banner: null })
+  })
+
+  test('las clases grabadas: sin decidir, solo en la clase semanal de siempre', () => {
+    const config = { salas: { spreek: { directo: true }, master: { directo: true, grabadas: false }, copia: { grabadas: true } } }
+    expect(conGrabadas(config, CURSO_CLASE_SEMANAL_UUID)).toBe(true)
+    expect(conGrabadas(config, 'course_spreek')).toBe(false)
+    expect(conGrabadas(config, 'master')).toBe(false)
+    expect(conGrabadas(config, 'copia')).toBe(true)
+    // Se pueden quitar también de la de siempre.
+    expect(conGrabadas({ salas: { [CURSO_CLASE_SEMANAL_UUID]: { grabadas: false } } }, CURSO_CLASE_SEMANAL_UUID)).toBe(false)
   })
 })
