@@ -24,6 +24,7 @@ import CommunityChannelsCards from '@components/Objects/Communities/CommunityCha
 import CourseFAQ from '@components/Pages/Activity/CourseFAQ'
 import WeeklyClassBanner from '@components/Pages/Courses/WeeklyClassBanner'
 import SalaEnDirecto from '@components/Pages/Courses/SalaEnDirecto'
+import VideoPortada from '@components/Pages/Courses/VideoPortada'
 import { CURSO_FORMACION_UUID, ajustesDirecto, esCursoEnDirecto, uuidDeCurso } from '@/lib/nawar/cursos'
 import { sesionesVisibles } from '@/lib/course/weeklyClass'
 import { getLessonIcon } from '@components/Pages/Activity/CourseLessonsSidebar'
@@ -359,14 +360,26 @@ const CourseClient = (props: any) => {
                   const showVideo = course.thumbnail_type === 'video' || (course.thumbnail_type === 'both' && activeThumbnailType === 'video');
                   const showImage = course.thumbnail_type === 'image' || (course.thumbnail_type === 'both' && activeThumbnailType === 'image') || !course.thumbnail_type;
 
-                  // Clase semanal: banner HTML editable (en vez de la foto estática).
+                  const videoPortada = course.thumbnail_video
+                    ? getCourseThumbnailMediaDirectory(org?.org_uuid, course?.course_uuid, course?.thumbnail_video)
+                    : ''
+
+                  // Clase en directo: el recuadro editable (en vez de la foto
+                  // estática). Si el curso tiene un VÍDEO de portada (la de la
+                  // Masterclass), va encima, en bucle: la foto no, para no
+                  // cambiar la clase semanal de siempre.
                   if (enDirecto) {
-                    return <WeeklyClassBanner courseUuid={uuidDeCurso(course)} />;
+                    return (
+                      <div className="space-y-4">
+                        {course.thumbnail_type === 'video' && videoPortada && <VideoPortada src={videoPortada} />}
+                        <WeeklyClassBanner courseUuid={uuidDeCurso(course)} />
+                      </div>
+                    );
                   }
 
-                  if (showVideo && course.thumbnail_video) {
+                  if (showVideo && videoPortada) {
                     return (
-                      <div className="relative inset-0 ring-1 ring-inset ring-black/10 rounded-2xl shadow-xl w-full h-[180px] md:h-[340px] overflow-hidden">
+                      <VideoPortada src={videoPortada}>
                         {course.thumbnail_type === 'both' && (
                           <div className="absolute top-3 right-3 z-10">
                             <div className="bg-black/20 backdrop-blur-sm rounded-lg p-1 flex space-x-1">
@@ -395,22 +408,7 @@ const CourseClient = (props: any) => {
                             </div>
                           </div>
                         )}
-                        <div className="w-full h-full">
-                          <video
-                            src={getCourseThumbnailMediaDirectory(
-                              org?.org_uuid,
-                              course?.course_uuid,
-                              course?.thumbnail_video
-                            )}
-                            className="w-full h-full bg-black rounded-2xl"
-                            controls
-                            autoPlay
-                            muted
-                            preload="metadata"
-                            playsInline
-                          />
-                        </div>
-                      </div>
+                      </VideoPortada>
                     );
                   } else if (showImage && (course.extra_metadata?.banner_image || course.thumbnail_image)) {
                     // Prefer the banner_image (uploaded separately for the
