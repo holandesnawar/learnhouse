@@ -29,11 +29,12 @@ const COURSE_SUBTITLE = 'De cero a A1 en neerlandés'
 // beneficio, es una condición del producto, y ocupaba el primer sitio —el que
 // más se lee— diciendo algo que no ayuda a decidir. Además promete para siempre
 // algo que depende de que la escuela siga en pie.
-// La clase semanal en vivo es lo que de verdad separa esto de un curso grabado,
-// y no estaba.
+// Las clases en directo son lo que de verdad separa esto de un curso grabado.
+// Desde el 27/10/2026 (programa nuevo) son la masterclass semanal y los grupos
+// de conversación, no la «clase semanal» de la beta.
 const COURSE_FEATURES = [
   'Lecciones + ejercicios paso a paso',
-  'Clase online semanal',
+  'Masterclass semanal y grupos de conversación',
   'Comunidad privada de alumnos',
   'Certificado al terminar',
 ]

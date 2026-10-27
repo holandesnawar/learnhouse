@@ -3629,8 +3629,15 @@ el recibo de Stripe y no podría entrar), la comunidad **separada del todo** y
   `cursosEnDirecto.test.ts`, `eventosGrupo.test.ts`.
 - ⚠️ **Lo que vende el equipo tiene que decir lo nuevo**: el closer lo tiene en
   la pestaña **Enfoque** (y el guion de fábrica ya habla de masterclass y
-  spreekuren; si el guion se editó en el panel, manda el editado). La web y
-  la caja de pago siguen hablando de «clase semanal»: pendiente.
+  spreekuren; si el guion se editó en el panel, manda el editado). **La web y
+  la caja de pago, al día desde el 27/10/2026** (nawar-web PR #159 y la lista
+  `COURSE_FEATURES` de `checkout.tsx`): «masterclass semanal» (un tema
+  concreto, explicado en directo, para ponerlo en práctica esa semana; queda
+  grabada) y «grupos de conversación» (dos a la semana). En
+  `/formacion-nawar-fb` y `/formacion`, sección «En directo, cada semana».
+  ⚠️ Lo de «grabada» y «dos a la semana» lo puse yo con lo que se sabía:
+  si cambia, buscar «masterclass» en nawar-web. Sin tocar a propósito:
+  `BenefitsSection` (escondida) y `/v4/pruebas`.
 - Pendiente: los de la beta que manden su vídeo se meten a mano en el grupo
   del programa (Usuarios → Grupos) y ven también lo nuevo.
 
