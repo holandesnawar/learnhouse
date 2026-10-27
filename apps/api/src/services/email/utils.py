@@ -181,11 +181,15 @@ def get_base_url_from_request(request: Request) -> str:
     return f"{request.url.scheme}://{request.url.netloc}"
 
 
-def send_email(to: EmailStr, subject: str, body: str, dry_run: bool = False):
+def send_email(to: EmailStr, subject: str, body: str, dry_run: bool = False, reply_to: str = ""):
     """Con dry_run=True no envía nada: devuelve el HTML ya montado.
 
     Es lo que permite previsualizar en el panel cualquier correo automático
     exactamente como le llega al alumno, sin mandárselo a nadie.
+
+    `reply_to`: a dónde va la respuesta si la persona contesta (sin él, al
+    noreply del remitente, que nadie lee). Lo usa el correo de Rida al
+    reservar una llamada (`services/contactos/correo_reserva.py`).
     """
     from fastapi import HTTPException
 
@@ -208,9 +212,9 @@ def send_email(to: EmailStr, subject: str, body: str, dry_run: bool = False):
 
     try:
         if mailing.email_provider == "smtp":
-            resultado = _send_email_smtp(sender, to_addr, subject, body, mailing)
+            resultado = _send_email_smtp(sender, to_addr, subject, body, mailing, reply_to)
         else:
-            resultado = _send_email_resend(sender, to_addr, subject, body, mailing)
+            resultado = _send_email_resend(sender, to_addr, subject, body, mailing, reply_to)
     except Exception:
         _apuntar_correo(to_addr, subject, ok=False)
         raise
@@ -254,16 +258,19 @@ def _apuntar_correo(to: str, subject: str, ok: bool) -> None:
     bucle.create_task(_guardar())
 
 
-def _send_email_resend(sender: str, to: str, subject: str, body: str, mailing):
+def _send_email_resend(sender: str, to: str, subject: str, body: str, mailing, reply_to: str = ""):
     from fastapi import HTTPException
     resend.api_key = mailing.resend_api_key
+    datos = {
+        "from": sender,
+        "to": [to],
+        "subject": subject,
+        "html": body,
+    }
+    if reply_to:
+        datos["reply_to"] = [reply_to]
     try:
-        return resend.Emails.send({
-            "from": sender,
-            "to": [to],
-            "subject": subject,
-            "html": body,
-        })
+        return resend.Emails.send(datos)
     except Exception as e:
         logger.error("Resend email failed to %s: %s", to, e, exc_info=True)
         raise HTTPException(status_code=503, detail="Email service temporarily unavailable")
@@ -272,12 +279,14 @@ def _send_email_resend(sender: str, to: str, subject: str, body: str, mailing):
 _SMTP_TIMEOUT = 15
 
 
-def _send_email_smtp(sender: str, to: str, subject: str, body: str, mailing):
+def _send_email_smtp(sender: str, to: str, subject: str, body: str, mailing, reply_to: str = ""):
     from fastapi import HTTPException
     msg = MIMEMultipart("alternative")
     msg["From"] = sender
     msg["To"] = to
     msg["Subject"] = subject
+    if reply_to:
+        msg["Reply-To"] = reply_to
     msg.attach(MIMEText(body, "html"))
 
     server = None

@@ -111,6 +111,29 @@ async def api_paso(request: Request, db_session: AsyncSession = Depends(get_db_s
 
 
 @router.post(
+    "/calendly/aviso",
+    summary="Calendly avisa de una reserva (firmado). Manda el correo de Rida una vez por persona.",
+    description=(
+        "Público, pero solo vale con la firma de Calendly (`Calendly-Webhook-Signature`, "
+        "con la clave que la escuela le dio al conectarlo). 401 sin firma válida; 503 si "
+        "hay que reintentar. Ver services/contactos/correo_reserva.py."
+    ),
+)
+async def api_calendly_aviso(request: Request, db_session: AsyncSession = Depends(get_db_session)):
+    from src.services.contactos.correo_reserva import atender_aviso
+
+    cuerpo = (await request.body())[:200_000]
+    try:
+        hecho = await atender_aviso(cuerpo, request.headers.get("calendly-webhook-signature", ""), db_session)
+    except PermissionError:
+        raise HTTPException(status_code=401, detail="Firma no válida")
+    except Exception:  # noqa: BLE001
+        logger.exception("No se pudo atender un aviso de Calendly")
+        raise HTTPException(status_code=503, detail="Inténtalo más tarde")
+    return {"ok": True, "hecho": hecho}
+
+
+@router.post(
     "/evento",
     summary="La web avisa de algo que hizo una persona (guía descargada, DM…).",
 )

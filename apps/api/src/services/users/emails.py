@@ -119,19 +119,27 @@ STYLES = {
 }
 
 
-def _company_footer() -> str:
+def _company_footer(firma: bool = True) -> str:
     """Quiet white-on-white footer: sign-off, logo, copyright + legal.
 
     Same surface as the body — no brand-coloured block, no socials. Just a
     friendly signature, the brand mark and the typical small print, all aligned
     to the left to match the rest of the message.
+
+    `firma=False`: sin «Un saludo, El equipo de Nawar», para los correos que
+    ya firma una persona (el de Rida al reservar una llamada).
     """
     year = datetime.now().year
+    despedida = (
+        """<p style="margin: 0 0 2px 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.6;">Un saludo,</p>
+                            <p style="margin: 0 0 18px 0; font-size: 15px; font-weight: 800; color: #4da3ff !important; line-height: 1.4;">El equipo de Nawar</p>"""
+        if firma
+        else ""
+    )
     return f"""
                     <tr>
                         <td style="padding: 8px 32px 12px 32px; text-align: left; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-                            <p style="margin: 0 0 2px 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.6;">Un saludo,</p>
-                            <p style="margin: 0 0 18px 0; font-size: 15px; font-weight: 800; color: #4da3ff !important; line-height: 1.4;">El equipo de Nawar</p>
+                            {despedida}
                             {FOOTER_LOGO_HTML}
                         </td>
                     </tr>
@@ -149,7 +157,7 @@ def _company_footer() -> str:
                     </tr>"""
 
 
-def _email_layout(title: str, body_content: str, footer_note: str = "") -> str:
+def _email_layout(title: str, body_content: str, footer_note: str = "", firma: bool = True) -> str:
     """Single-surface Nawar layout: banner glued to the top, then everything
     typeset on white and aligned to the left — message, sign-off, logo, copyright.
     No nested cards, no brand-coloured blocks, no social row.
@@ -192,7 +200,7 @@ def _email_layout(title: str, body_content: str, footer_note: str = "") -> str:
                         <td style="padding: 40px 32px 28px 32px; text-align: left;">
                             {body_content}
                         </td>
-                    </tr>{note_block}{_company_footer()}
+                    </tr>{note_block}{_company_footer(firma)}
                 </table>
             </td>
         </tr>
@@ -824,6 +832,35 @@ def send_recordatorio_alumno_email(
         to=email,
         subject=asunto,
         body=_email_layout(title=asunto, body_content=body_content),
+    )
+
+
+def send_correo_reserva_email(
+    email: EmailStr,
+    asunto: str = "Un mensaje de Rida antes de tu llamada",
+    texto: str = "¡Hola, Ana!\n\nSoy Rida Nawar, el fundador de Holandés Nawar.",
+    preview: bool = False,
+):
+    """El correo de Rida a quien acaba de reservar una llamada (27/10/2026).
+    Sale solo, una vez por persona, cuando Calendly avisa de la reserva
+    (`services/contactos/correo_reserva.py`).
+
+    Es una carta: sin título grande y sin «El equipo de Nawar» al pie, porque
+    la firma Rida dentro del texto. El texto llega ya rellenado y en plano:
+    `parrafos()` lo escapa entero. Si la persona contesta, la respuesta va a
+    info@ (no al noreply del remitente).
+    """
+    body_content = f"""
+        <div style="text-align: left;">
+            {parrafos(texto, STYLES['p'])}
+        </div>
+    """
+    return send_email(
+        dry_run=preview,
+        to=email,
+        subject=asunto,
+        body=_email_layout(title=asunto, body_content=body_content, firma=False),
+        reply_to=SUPPORT_EMAIL,
     )
 
 

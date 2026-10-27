@@ -388,6 +388,32 @@ export const guardarRecordatorioAuto = (orgId: number, activo: boolean, t: strin
 export const vistaRecordatorioAuto = (orgId: number, datos: { asunto: string; texto: string; a_mi?: boolean }, t: string) =>
   pedir<{ para: string; asunto: string; html: string }>(`panel/org/${orgId}/recordatorio-auto/vista`, 'POST', datos, t)
 
+/** El correo de Rida al reservar una llamada (apps/api/src/services/contactos/correo_reserva.py). */
+export interface CorreoReserva {
+  activo: boolean
+  asunto: string
+  texto: string
+  cambiado_en: string
+  por: string
+  de_fabrica: { asunto: string; texto: string }
+  huecos: string[]
+  conexion: { conectado: boolean; motivo: string; plan?: boolean }
+  ultimo_aviso: { at: string; ok: boolean; que: string } | null
+  enviados: number
+}
+
+export const getCorreoReserva = (orgId: number, t: string) =>
+  pedir<CorreoReserva>(`panel/org/${orgId}/correo-reserva`, 'GET', null, t)
+
+export const guardarCorreoReserva = (orgId: number, datos: { activo?: boolean; asunto?: string; texto?: string }, t: string) =>
+  pedir<CorreoReserva>(`panel/org/${orgId}/correo-reserva`, 'PUT', datos, t)
+
+export const vistaCorreoReserva = (orgId: number, datos: { asunto: string; texto: string; a_mi?: boolean }, t: string) =>
+  pedir<{ para: string; asunto: string; html: string }>(`panel/org/${orgId}/correo-reserva/vista`, 'POST', datos, t)
+
+export const conectarCorreoReserva = (orgId: number, t: string) =>
+  pedir<CorreoReserva>(`panel/org/${orgId}/correo-reserva/conectar`, 'POST', {}, t)
+
 export const enviarRecordatorio = (
   orgId: number,
   userId: number,
