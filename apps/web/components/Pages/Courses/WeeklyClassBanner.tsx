@@ -51,10 +51,11 @@ function InfoBlock({ icon, label, value }: { icon: React.ReactNode; label: strin
 
 /**
  * `compacto` (27/10/2026, la Masterclass): el curso lleva un vídeo de portada
- * encima, así que el recuadro ya no tiene que presentar nada. Se queda en una
- * franja: cuándo es la próxima clase y con quién, y un botón grande para
- * entrar. Sin el subtítulo ni los cuatro bloques ("quitar ese bloque y
- * ponerlo en línea… que se vea claro un botón para entrar").
+ * encima, así que el recuadro ya no tiene que presentar nada. Se queda en unas
+ * líneas sueltas debajo del vídeo, sin marco: cuándo es la próxima clase y con
+ * quién, y un botón grande para entrar. Sin el subtítulo ni los cuatro bloques
+ * ("quitar ese bloque y ponerlo en línea… que se vea claro un botón para
+ * entrar").
  */
 export default function WeeklyClassBanner({ courseUuid, compacto = false }: { courseUuid: string; compacto?: boolean }) {
   const org = useOrg() as any
@@ -279,73 +280,72 @@ export default function WeeklyClassBanner({ courseUuid, compacto = false }: { co
   }
 
   if (compacto) {
-    // Solo lo que se ha rellenado: «Con Por confirmar» no dice nada.
+    // Sin recuadro ni dos columnas (27/10, segunda vuelta: "quitar el marco
+    // y ponerlo en línea"): debajo del vídeo, como debajo de un vídeo de
+    // YouTube, una línea con cuándo, otra con quién, y el botón. Solo lo que
+    // se ha rellenado: «Con Por confirmar» no dice nada.
     const hora = data.schedule.trim()
     const cuando = hora ? `${v.next_day} · ${hora}` : v.next_day
     const profe = data.teacher.trim()
     const duracion = data.duration.trim()
     const enDirecto = ajustes.activo && dentro.length > 0
     return (
-      <div className="w-full rounded-2xl bg-white border border-[#DDE6F5] p-5 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-          <div className="flex-1 min-w-0">
-            {enDirecto ? (
-              <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#15803D]">
-                <Circle size={8} className="fill-[#16A34A] text-[#16A34A]" /> En directo ahora
-              </p>
-            ) : (
-              <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#025dc7]">
-                <CalendarDays size={13} /> Próxima emisión
-              </p>
+      <div className="w-full pt-1">
+        {enDirecto ? (
+          <p className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-[#15803D]">
+            <Circle size={8} className="fill-[#16A34A] text-[#16A34A]" /> En directo ahora
+          </p>
+        ) : (
+          <p className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-[#025dc7]">
+            <CalendarDays size={13} /> Próxima emisión
+          </p>
+        )}
+        <p
+          className="mt-1 text-[22px] sm:text-[26px] font-semibold text-[#0a1656] leading-tight break-words first-letter:uppercase"
+          style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+        >
+          {cuando}
+        </p>
+        {(profe || duracion || enDirecto) && (
+          <p className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-[15px] text-[#3F4A61]">
+            {profe && (
+              <span className="inline-flex items-center gap-1.5">
+                <User size={16} className="text-[#025dc7]" /> Con {profe}
+              </span>
             )}
-            <p
-              className="mt-1 text-[19px] sm:text-[21px] font-semibold text-[#0a1656] leading-snug break-words"
-              style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
-            >
-              {cuando}
-            </p>
-            {(profe || duracion || enDirecto) && (
-              <p className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[14px] text-[#3F4A61]">
-                {profe && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <User size={15} className="text-[#025dc7]" /> Con {profe}
-                  </span>
-                )}
-                {duracion && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Timer size={15} className="text-[#025dc7]" /> {duracion}
-                  </span>
-                )}
-                {enDirecto && (
-                  <span className="min-w-0 truncate">
-                    {dentro.length === 1 ? '1 persona en la sala' : `${dentro.length} personas en la sala`}
-                  </span>
-                )}
-              </p>
+            {duracion && (
+              <span className="inline-flex items-center gap-1.5">
+                <Timer size={16} className="text-[#025dc7]" /> {duracion}
+              </span>
             )}
-          </div>
+            {enDirecto && (
+              <span className="min-w-0 truncate">
+                {dentro.length === 1 ? '1 persona en la sala' : `${dentro.length} personas en la sala`}
+              </span>
+            )}
+          </p>
+        )}
 
-          <div className="flex flex-col items-stretch sm:items-end gap-2 shrink-0">
-            {botonEntrar(
-              'inline-flex items-center justify-center gap-2 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold py-3.5 px-7 rounded-lg text-[15px] transition-colors',
-              enDirecto ? 'Entrar ahora' : 'Entrar a la clase'
-            )}
-            <div className="flex items-center justify-center sm:justify-end gap-3">
+        <div className="mt-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+          {botonEntrar(
+            'inline-flex items-center justify-center gap-2 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold py-3.5 px-8 rounded-lg text-[15px] transition-colors',
+            enDirecto ? 'Entrar ahora' : 'Entrar a la clase'
+          )}
+          <div className="flex items-center justify-center sm:justify-start gap-4">
+            <button
+              onClick={goToRecordings}
+              className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-[#025dc7] hover:text-[#1D0084] transition-colors"
+            >
+              <ListVideo size={15} /> Clases anteriores
+            </button>
+            <AuthenticatedClientElement ressourceType="courses" action="update" checkMethod="roles" orgId={orgId}>
               <button
-                onClick={goToRecordings}
-                className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#025dc7] hover:text-[#1D0084] transition-colors"
+                onClick={startEdit}
+                className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#5A6480] hover:text-[#025dc7] transition-colors"
               >
-                <ListVideo size={14} /> Clases anteriores
+                <Pencil size={13} /> Editar
               </button>
-              <AuthenticatedClientElement ressourceType="courses" action="update" checkMethod="roles" orgId={orgId}>
-                <button
-                  onClick={startEdit}
-                  className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#5A6480] hover:text-[#025dc7] transition-colors"
-                >
-                  <Pencil size={12} /> Editar
-                </button>
-              </AuthenticatedClientElement>
-            </div>
+            </AuthenticatedClientElement>
           </div>
         </div>
       </div>

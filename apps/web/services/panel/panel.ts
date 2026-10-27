@@ -69,7 +69,7 @@ export interface Tarjeta {
   volver_a_llamar?: VolverALlamar | null
   /** La llamada de Calendly que la tiene en Agendado (14/10): reservó después
    *  del último movimiento a mano. */
-  cita?: { inicio: string; id: string } | null
+  cita?: { inicio: string; id: string; confirmada?: boolean } | null
   /** Leads (del embudo a la llamada) o Ventas (de la llamada al cobro), 22/10. */
   mesa?: 'leads' | 'ventas'
   /** El closer que lleva su llamada (0 = sin asignar). */

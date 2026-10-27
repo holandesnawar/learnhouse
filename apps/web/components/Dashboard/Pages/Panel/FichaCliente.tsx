@@ -599,8 +599,10 @@ export default function FichaCliente({
                             <Estado tono={c.resultado.resultado === 'compra' || c.resultado.resultado === 'pagado' ? 'verde' : c.resultado.resultado === 'piensa' ? 'ambar' : 'gris'}>{c.resultado.nombre}</Estado>
                           ) : pasada ? (
                             <Estado tono="rojo">Sin apuntar qué pasó</Estado>
+                          ) : c.confirmada ? (
+                            <Estado tono="verde">Confirmada</Estado>
                           ) : (
-                            <Estado tono="azul">Programada</Estado>
+                            <Estado tono="ambar">Sin confirmar</Estado>
                           )}
                           {c.resultado?.nota ? <p className={`${META} !whitespace-normal mt-0.5`}>{c.resultado.nota}</p> : null}
                         </div>

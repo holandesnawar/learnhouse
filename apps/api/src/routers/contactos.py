@@ -324,6 +324,14 @@ async def api_agenda(
         g = repartidas.get((c.get("email") or "").lower()) or {}
         return {"closer_id": g.get("closer_id", 0), "closer": g.get("closer", "") if g.get("closer_id") else ""}
 
+    # Quien ya ha dicho que viene (27/10, `confirmar_llamada.py`).
+    from src.services.contactos.confirmar_llamada import confirmadas
+
+    try:
+        confirmada = await confirmadas(db_session)
+    except Exception:  # noqa: BLE001
+        confirmada = {}
+
     return {
         **datos,
         "citas": [
@@ -331,6 +339,7 @@ async def api_agenda(
                 **c,
                 "telefono": c.get("telefono") or tels.get((c.get("email") or "").lower(), ""),
                 "resultado": _resultado(c),
+                "confirmada": confirmada.get(c.get("id") or ""),
                 **_closer(c),
             }
             for c in visibles
@@ -447,6 +456,47 @@ async def api_resultado_llamada(
     r = await guardar_resultado(
         data.cita_id, data.email, data.resultado, data.nota, data.inicio, _nombre(current_user), current_user.id, db_session
     )
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    return r
+
+
+class CitaConfirmada(BaseModel):
+    cita_id: str
+    email: str
+    nombre: str = ""
+    inicio: str = ""
+
+
+@router.post("/org/{org_id}/llamadas/confirmar", summary="La persona ha confirmado que viene a su llamada (closer y administradores).")
+async def api_confirmar_llamada(
+    request: Request,
+    org_id: int,
+    data: CitaConfirmada,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.contactos.confirmar_llamada import confirmar
+
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    r = await confirmar(data.cita_id, data.email, data.nombre, data.inicio, _nombre(current_user), db_session)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    return r
+
+
+@router.delete("/org/{org_id}/llamadas/confirmar", summary="Quita la marca de confirmada de una llamada (closer y administradores).")
+async def api_quitar_confirmacion(
+    request: Request,
+    org_id: int,
+    cita_id: str,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.contactos.confirmar_llamada import quitar
+
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    r = await quitar(cita_id, db_session)
     if not r.get("ok"):
         raise HTTPException(status_code=400, detail=r.get("motivo"))
     return r

@@ -37,6 +37,8 @@ ZONA = ZoneInfo("Europe/Amsterdam")
 
 #: Se presentó a la llamada (los resultados de «¿Qué pasó?» menos «No vino»).
 VINO = {"pagado", "compra", "piensa", "no-encaja"}
+#: Desde cuándo se apunta si la persona confirmó su llamada (`confirmar_llamada.py`).
+CONFIRMAR_DESDE = "2026-10-27"
 _RESERVA = {"reunion", "llamada-equipo"}
 _ENTRA_TAMBIEN = {"enlace-pago"}
 
@@ -82,8 +84,12 @@ def _llamadas(
     desde: str,
     hasta: str,
     ahora: datetime,
+    confirmadas: Optional[set[str]] = None,
 ) -> dict:
-    """Las llamadas con fecha en el periodo, una por cita, con su estado."""
+    """Las llamadas con fecha en el periodo, una por cita, con su estado.
+    `confirmadas`: los ids de las citas que la persona confirmó antes
+    (`confirmar_llamada.py`), para comparar el no-show con y sin confirmar."""
+    confirmadas = confirmadas or set()
     por_cita = {r["cita_id"]: r for r in resultados if r.get("cita_id")}
     lista: list[dict] = []
     vistas: set[str] = set()
@@ -99,7 +105,7 @@ def _llamadas(
             continue
         vistas.add(cid)
         lista.append({"email": email, "inicio": c.get("inicio") or "", "cancelada": c.get("estado") == "cancelada",
-                      "resultado": (res or {}).get("resultado", "")})
+                      "resultado": (res or {}).get("resultado", ""), "confirmada": cid in confirmadas})
     # Lo apuntado en «¿Qué pasó?» que Calendly ya no devuelve (más de 45 días)
     # o sin Calendly conectado.
     for r in resultados:
@@ -108,7 +114,8 @@ def _llamadas(
         if cid in vistas or r.get("resultado") == "quitada" or not entra(email, r.get("inicio") or ""):
             continue
         vistas.add(cid)
-        lista.append({"email": email, "inicio": r.get("inicio") or "", "cancelada": False, "resultado": r.get("resultado") or ""})
+        lista.append({"email": email, "inicio": r.get("inicio") or "", "cancelada": False, "resultado": r.get("resultado") or "",
+                      "confirmada": cid in confirmadas})
     # Sin Calendly: las que agendó el equipo desde la escuela (llevan la hora).
     if citas is None:
         for e in eventos_equipo:
@@ -159,6 +166,21 @@ def _llamadas(
         if momento and momento <= ahora:
             cuentas["hechas"] += 1
 
+    # ¿Sirve confirmar? (27/10): el no-show de las llamadas que la persona
+    # confirmó antes contra el de las que no. Solo desde el día en que se
+    # empezó a apuntar: antes no se podía confirmar ninguna.
+    def _no_show(sel: list[dict]) -> dict:
+        nv = sum(1 for x in sel if x["estado"] == "no-vino")
+        return {"con_resultado": len(sel), "no_vino": nv, "pct_no_show": _pct(nv, len(sel))}
+
+    comparables = [x for x in lista if x["dia"] >= CONFIRMAR_DESDE and x.get("estado") in ("presentada", "no-vino")]
+    confirmacion = {
+        "desde": CONFIRMAR_DESDE,
+        "confirmadas": sum(1 for x in lista if x.get("estado") != "cancelada" and x.get("confirmada")),
+        "si": _no_show([x for x in comparables if x.get("confirmada")]),
+        "no": _no_show([x for x in comparables if not x.get("confirmada")]),
+    }
+
     cerradas = {e for e in presentados if e in pagaron}
     van_a_pagar = {x["email"] for x in lista if x.get("resultado") == "compra" and x["email"] not in pagaron}
     con_resultado = cuentas["presentadas"] + cuentas["no_vino"]
@@ -171,6 +193,7 @@ def _llamadas(
         "pct_asistencia": _pct(cuentas["presentadas"], con_resultado),
         "pct_no_show": _pct(cuentas["no_vino"], con_resultado),
         "pct_cierre": _pct(len(cerradas), len(presentados)),
+        "confirmacion": confirmacion,
         "lista": lista,
     }
 
@@ -246,7 +269,9 @@ def calcular(
             entradas.append({**f, "_dia": dia, "_canal": canal_de(f).get("canal", "organico")})
 
     eventos_equipo = [e for f in fichas for e in f.get("eventos") or [] if e.get("kind") == "llamada-equipo"]
-    llamadas = _llamadas(citas, resultados, eventos_equipo, pagaron, fuera, desde, hasta, ahora)
+    from src.services.contactos.confirmar_llamada import ids_confirmadas
+
+    llamadas = _llamadas(citas, resultados, eventos_equipo, pagaron, fuera, desde, hasta, ahora, ids_confirmadas(fichas))
     presentados = {x["email"] for x in llamadas["lista"] if x.get("estado") == "presentada"}
 
     citas_por_email: dict[str, list] = {}

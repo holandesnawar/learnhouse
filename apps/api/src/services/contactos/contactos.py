@@ -70,6 +70,7 @@ NOMBRES_TIPO = {
     # El correo de Rida al reservar (27/10, services/contactos/correo_reserva.py).
     # Es además la marca de que ya le llegó: no se le vuelve a mandar.
     "correo-reserva": "Le llegó el correo de Rida (al reservar la llamada)",
+    "llamada-confirmada": "Confirmó que viene a su llamada",
     "alta-manual": "Dado de alta a mano",
 }
 
@@ -274,6 +275,10 @@ def _que(kind: str, campos: dict) -> str:
         cuando = _dia_y_hora(extra.get("inicio") or "")
         texto = f"{quien} le agendó una llamada" + (f" para el {cuando}" if cuando else "")
         return texto if extra.get("confirmada", True) else texto + " (a confirmar en Calendly)"
+    if kind == "llamada-confirmada":
+        cuando = _dia_y_hora(extra.get("inicio") or "")
+        texto = "Confirmó que viene a su llamada" + (f" del {cuando}" if cuando else "")
+        return texto + (f" (lo apuntó {extra['autor']})" if extra.get("autor") else "")
     if kind == "senal":
         importe = _euros(extra.get("importe_cents") or 0)
         if extra.get("tipo") == "unico":

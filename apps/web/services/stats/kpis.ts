@@ -56,6 +56,13 @@ export interface Kpis {
     pct_asistencia: number | null
     pct_no_show: number | null
     pct_cierre: number | null
+    /** ¿Sirve confirmar? (27/10): no-show de las confirmadas antes contra las que no. */
+    confirmacion?: {
+      desde: string
+      confirmadas: number
+      si: NoShow
+      no: NoShow
+    }
   }
   /** Al closer solo le llega `n` (sin el dinero ni el reparto). */
   ventas: {
@@ -127,3 +134,9 @@ export const getPlazos = (orgId: number, accessToken: string) =>
 
 export const comprobarTodosLosPlazos = (orgId: number, accessToken: string) =>
   pedir<ListaPlazos>(`stats/org/${orgId}/plazos/comprobar`, 'POST', accessToken)
+
+export interface NoShow {
+  con_resultado: number
+  no_vino: number
+  pct_no_show: number | null
+}

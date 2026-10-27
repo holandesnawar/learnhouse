@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-27 (el correo de Rida al reservar una llamada lo manda la escuela, avisada por Calendly; antes, el mismo día, salas en directo DENTRO de la escuela con Daily, empezando por el Spreekclub, con grabación automática al entrar el profe; antes 25/10: pestaña «Enfoque» para el closer con el programa nuevo; tandas: nadie entra solo en ningún grupo, el administrador elige el de cada alumno que paga, con aviso en la escuela y sin correo; antes, el mismo día, la beta y el programa nuevo separados por grupos; antes, el mismo día, el closer ve KPIs sin el dinero; antes 22/10: «Otro importe» también a plazos, de 2 a 6 pagos; antes, Matrículas en dos mesas, Leads y Ventas, con closer asignado y reparto; «Esta semana» del alumno cuenta las clases terminadas; antes, el mismo día, incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-27 (seteo a mano: «Confirmada» en cada llamada, lista «Por confirmar», dos WhatsApp ya escritos y el no-show de confirmadas en KPIs; la Masterclass sin marco bajo el vídeo; antes, el mismo día, el correo de Rida al reservar una llamada lo manda la escuela, avisada por Calendly; antes, el mismo día, salas en directo DENTRO de la escuela con Daily, empezando por el Spreekclub, con grabación automática al entrar el profe; antes 25/10: pestaña «Enfoque» para el closer con el programa nuevo; tandas: nadie entra solo en ningún grupo, el administrador elige el de cada alumno que paga, con aviso en la escuela y sin correo; antes, el mismo día, la beta y el programa nuevo separados por grupos; antes, el mismo día, el closer ve KPIs sin el dinero; antes 22/10: «Otro importe» también a plazos, de 2 a 6 pagos; antes, Matrículas en dos mesas, Leads y Ventas, con closer asignado y reparto; «Esta semana» del alumno cuenta las clases terminadas; antes, el mismo día, incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -3756,9 +3756,12 @@ para no cambiar la clase semanal de siempre).
 - **Con vídeo, el recuadro es una franja** (27/10, en pruebas con la
   Masterclass: "quitar ese bloque y ponerlo en línea… que se vea claro un
   botón para entrar"): `WeeklyClassBanner compacto`. «Próxima emisión» con
-  día y hora en grande, «Con Paul · 60 min» debajo (solo lo rellenado), y a
-  la derecha «Entrar a la clase» grande, «Clases anteriores» y «Editar».
-  Sin subtítulo ni los cuatro bloques. Con gente en la sala dice «En directo
+  día y hora en grande, «Con Paul · 60 min» debajo (solo lo rellenado), y
+  debajo «Entrar a la clase» grande, «Clases anteriores» y «Editar».
+  Sin subtítulo ni los cuatro bloques. ⚠️ **Sin marco y en una sola
+  columna** (segunda vuelta, 27/10: "quitar el marco… no en bloque con dos
+  columnas"): la primera versión era una tarjeta con borde, texto a la
+  izquierda y botón a la derecha, y al usuario le pareció lo mismo de antes. Con gente en la sala dice «En directo
   ahora» y «Entrar ahora». Lo decide `course.tsx`: clase en directo + vídeo
   de portada. Si gusta, se lleva a las demás quitando esa condición.
 - En las clases en directo, los ajustes de la sala (solo administradores)
@@ -3817,10 +3820,42 @@ clara, recordatorio de 1 h, correo del fundador «Andy» al reservar, WhatsApp).
   (Redis, 30 min) aunque avisen la web y Calendly.
 - Probado con un Calendly falso y un aviso firmado de verdad contra la escuela
   en local; NO contra Calendly de verdad. Tests: `test_correo_reserva.py`.
-- Pendiente y ofrecido: recordatorio de 1 h y WhatsApp automático desde la
-  escuela (API de WhatsApp Business de Meta, plantillas aprobadas), con «¿Lo
-  confirmas? Responde SÍ» y la confirmación en Llamadas. SMS de Calendly
-  desaconsejado (número extranjero, 180 caracteres, operadoras que bloquean).
+- SMS de Calendly desaconsejado (número extranjero, 180 caracteres,
+  operadoras que bloquean).
+
+### El seteo a mano y «Confirmada» (27/10/2026)
+Pregunta del usuario: "¿WhatsApp automático, renta, o que lo haga el closer
+nuevo seteando?". **Decidido: a mano, el closer.** Con unas pocas reservas al
+día ahorraría minutos y pide verificar la empresa en Meta, un número para la
+API y plantillas aprobadas; lo que sube la asistencia es que conteste una
+persona, y el correo de Rida ya promete que el asesor le escribe por WhatsApp
+y le llama para confirmar. Automatizar cuando pasen de ~10 reservas al día o
+se queden reservas sin mensaje, y con los números de abajo delante.
+- El proceso: WhatsApp «Confirmar cita» en cuanto reserva → si no contesta en
+  unas horas, llamada → el mismo día, WhatsApp «Recordatorio». El de 1 h
+  antes lo manda Calendly por correo.
+- **Dos mensajes ya escritos** (`RecordatorioWhatsApp.tsx`, textos en
+  `lib/nawar/recordatorioLlamada.ts` con test): «Confirmar cita» y
+  «Recordatorio». Firman con el nombre de la cuenta de quien lo manda
+  (`{yo}`); sin nombre en la cuenta, «soy del equipo de Holandés Nawar».
+  ⚠️ La cuenta admin del usuario NO tiene nombre puesto. Cada texto se cambia
+  con su lápiz y se guarda en ese navegador (el del recordatorio conserva la
+  clave de antes).
+- **«Confirmada»**: en la ventana de cada cita que aún no ha pasado
+  («Marcar como confirmada» / «Quitar») y en la lista **«Por confirmar · hoy
+  y mañana»**, arriba de todo en Llamadas (`porConfirmar`, con «Confirmar
+  cita», «Llamar» y «Confirmada» en cada línea). Las citas que vienen dicen
+  «Confirmada» (verde) o «Sin confirmar» (ámbar) en la agenda y en la ficha;
+  la tarjeta del tablero, «Llamada jue 30 oct · 18:00 · confirmada».
+- Se guarda como `contact_event` `llamada-confirmada` con el id de la cita en
+  `extra` (`services/contactos/confirmar_llamada.py`, sin tabla nueva): una
+  por cita, y sale en la línea de tiempo («Confirmó que viene a su llamada
+  del … (lo apuntó Diego)»). Rutas `POST/DELETE
+  /contactos/org/{id}/llamadas/confirmar` (closer y administradores). No se
+  escribe nada en Calendly.
+- **KPIs → «¿Sirve confirmar la llamada?»**: no-show de las confirmadas
+  contra las que no, desde el 27/10 (`CONFIRMAR_DESDE` en `kpis.py`) y solo
+  con «¿Qué pasó?» apuntado. Tests: `test_confirmar_llamada.py`.
 
 ## Incidente de Railway: claves robadas y despliegues parados (21-22/10/2026)
 Railway avisó de que un tercero pudo leer las variables de entorno de sus
