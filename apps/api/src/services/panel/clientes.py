@@ -6,6 +6,9 @@ Se junta por CORREO como el resto del panel. Las pruebas quitadas de los
 números no salen (`metric_exclusion`), igual que en las ventas.
 """
 
+import logging
+from typing import Optional
+
 from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -14,6 +17,8 @@ from src.db.student_progress import StudentProgress
 from src.db.users import User
 from src.services.contactos.metricas import emails_excluidos
 from src.services.panel.avance import avance_formacion
+
+logger = logging.getLogger(__name__)
 
 
 def agrupar_pagos(filas: list[dict]) -> list[dict]:
@@ -43,7 +48,7 @@ def agrupar_pagos(filas: list[dict]) -> list[dict]:
     return sorted(por.values(), key=lambda c: c["ultimo_pago"], reverse=True)
 
 
-async def listar_clientes(db_session: AsyncSession) -> dict:
+async def listar_clientes(db_session: AsyncSession, org_id: Optional[int] = None) -> dict:
     fuera = await emails_excluidos(db_session)
     filas = [
         {
@@ -92,8 +97,20 @@ async def listar_clientes(db_session: AsyncSession) -> dict:
         a = avances.get(uid) if uid else None
         c["avance"] = {k: v for k, v in a.items() if k != "modulos"} if a else None
 
+    # La comisión del closer de cada venta (27/10, `comisiones.py`): solo la
+    # piden los administradores, que son los únicos que ven Clientes.
+    comisiones: list[dict] = []
+    if org_id is not None:
+        from src.services.panel.comisiones import para_clientes
+
+        try:
+            comisiones = await para_clientes(clientes, org_id, db_session)
+        except Exception:  # noqa: BLE001
+            logger.warning("No se pudo calcular la comisión del closer", exc_info=True)
+
     return {
         "clientes": clientes,
         "total_cents": sum(c["total_cents"] for c in clientes),
         "n": len(clientes),
+        "comisiones": comisiones,
     }
