@@ -375,7 +375,80 @@ async def api_clientes(
     # Es dinero: solo administradores (el closer no ve ingresos).
     if not await _es_admin(current_user, org_id, db_session):
         raise HTTPException(status_code=403, detail="Solo administradores")
-    return await listar_clientes(db_session)
+    return await listar_clientes(db_session, org_id)
+
+
+class ComisionIn(BaseModel):
+    email: str
+    # Lo que se le pagó al closer, en céntimos (0 = sin apuntar).
+    importe_cents: int = 0
+    nota: str = ""
+
+
+class ComisionesTodasIn(BaseModel):
+    # Las ventas pendientes que se marcan de una vez (las de un closer).
+    emails: list[str]
+
+
+@router.post("/org/{org_id}/comisiones", summary="Marca pagada la comisión del closer de una venta (administradores).")
+async def api_comision_pagada(
+    request: Request,
+    org_id: int,
+    data: ComisionIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.panel import comisiones
+
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    if not await _es_admin(current_user, org_id, db_session):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    r = await comisiones.marcar(data.email, data.importe_cents, _nombre(current_user), db_session, data.nota)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    return r
+
+
+@router.post("/org/{org_id}/comisiones/todas", summary="Marca pagadas varias comisiones a la vez, con lo que le toca a cada una (administradores).")
+async def api_comisiones_todas(
+    request: Request,
+    org_id: int,
+    data: ComisionesTodasIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.panel import comisiones
+
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    if not await _es_admin(current_user, org_id, db_session):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    # Lo que le toca a cada una se recalcula aquí, con los datos de ahora.
+    datos = await listar_clientes(db_session, org_id)
+    por_email = {c["email"]: c for c in datos["clientes"]}
+    hechas = 0
+    for email in {(e or "").strip().lower() for e in data.emails[:500]}:
+        c = por_email.get(email)
+        if not c or (c.get("comision") or {}).get("pagada"):
+            continue
+        await comisiones.marcar(email, (c.get("comision") or {}).get("estimada_cents") or 0, _nombre(current_user), db_session)
+        hechas += 1
+    return {"ok": True, "marcadas": hechas}
+
+
+@router.delete("/org/{org_id}/comisiones", summary="Quita la marca de comisión pagada de una venta (administradores).")
+async def api_comision_quitar(
+    request: Request,
+    org_id: int,
+    email: str,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.panel import comisiones
+
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    if not await _es_admin(current_user, org_id, db_session):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    return await comisiones.desmarcar(email, db_session)
 
 
 @router.get("/org/{org_id}/alumnos", summary="Progreso de cada alumno: dónde se quedó y cuándo entró (administradores).")

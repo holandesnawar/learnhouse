@@ -280,6 +280,27 @@ export interface Cliente {
     import('@services/stats/contactos').PlanPagos,
     'estado' | 'estado_nombre' | 'cuotas' | 'cuotas_pagadas' | 'total_cents' | 'pendiente_cents' | 'proximo_cobro' | 'fallo'
   > | null
+  /** La comisión del closer de esta venta (27/10, solo administradores). */
+  comision?: ComisionVenta | null
+}
+
+/** ¿Pagada la comisión del closer? Ver apps/api/src/services/panel/comisiones.py. */
+export interface ComisionVenta {
+  pagada: { importe_cents: number; cuando: string; por: string; nota?: string } | null
+  /** Lo que le toca, aproximado: su % del día del cobro sobre lo cobrado. */
+  estimada_cents: number
+  /** Pasó por una llamada: solo esas cuentan como pendientes. */
+  con_llamada: boolean
+  closer: string
+}
+
+export interface ComisionesCloser {
+  closer: string
+  pendientes: number
+  pendiente_cents: number
+  pagadas: number
+  pagado_cents: number
+  emails: string[]
 }
 
 /**
@@ -298,7 +319,16 @@ export interface AvanceAlumno {
 }
 
 export const getClientes = (orgId: number, t: string) =>
-  pedir<{ clientes: Cliente[]; total_cents: number; n: number }>(`panel/org/${orgId}/clientes`, 'GET', null, t)
+  pedir<{ clientes: Cliente[]; total_cents: number; n: number; comisiones?: ComisionesCloser[] }>(`panel/org/${orgId}/clientes`, 'GET', null, t)
+
+export const marcarComision = (orgId: number, email: string, importe_cents: number, t: string) =>
+  pedir<{ ok: boolean }>(`panel/org/${orgId}/comisiones`, 'POST', { email, importe_cents }, t)
+
+export const marcarComisiones = (orgId: number, emails: string[], t: string) =>
+  pedir<{ ok: boolean; marcadas: number }>(`panel/org/${orgId}/comisiones/todas`, 'POST', { emails }, t)
+
+export const quitarComision = (orgId: number, email: string, t: string) =>
+  pedir<{ ok: boolean }>(`panel/org/${orgId}/comisiones?email=${encodeURIComponent(email)}`, 'DELETE', null, t)
 
 /** Un alumno en Panel → Alumnos → Progreso. Ver apps/api/src/services/panel/alumnos.py. */
 export interface AlumnoProgreso {
