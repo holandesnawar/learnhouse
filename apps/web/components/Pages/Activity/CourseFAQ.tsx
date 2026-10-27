@@ -74,13 +74,48 @@ const DEFAULT_COURSE_FAQ: { intro?: string; items: FAQ[] } = {
   items: FORMACION_FAQ,
 }
 
+/**
+ * Las de una clase en directo con la sala de la escuela (27/10/2026: la clase
+ * semanal partida en grupos, el Spreekclub…). Sin día ni hora escritos (cada
+ * grupo tiene los suyos, en el recuadro de arriba) y sin Zoom: se entra desde
+ * la escuela. Las de la formación no pintaban nada en estas páginas.
+ */
+const FAQ_DIRECTO: { intro?: string; items: FAQ[] } = {
+  items: [
+    {
+      q: '¿Cuándo es la clase?',
+      a: 'El día y la hora los tienes arriba, en el recuadro de esta página, y también en Eventos.',
+    },
+    {
+      q: '¿Cómo entro?',
+      a: 'Aquí mismo: pulsa «Ir a la clase» y entras con tu nombre, sin otra pestaña y sin instalar nada. Vale el ordenador o el móvil. Si el navegador te pregunta por la cámara y el micrófono, dale a «Permitir».',
+    },
+    {
+      q: '¿Y si no puedo venir?',
+      a: 'No pasa nada. Las clases se graban y quedan aquí, en «Sesiones grabadas», para que las veas cuando te venga bien.',
+    },
+    {
+      q: '¿Tengo que hablar?',
+      a: 'Puedes hablar y te animamos a hacerlo, respetando el turno de palabra. Pero nadie te va a obligar: si un día prefieres solo escuchar, también se aprende.',
+    },
+    {
+      q: '¿Puedo mandar mi duda antes para que la resolvamos en directo?',
+      a: 'Sí. Abre una consulta desde cualquier lección o desde "Consultas" en el menú. Las preguntas que más se repiten las cubrimos en la siguiente clase.',
+    },
+  ],
+}
+
 interface CourseFAQProps {
   courseUuid: string
+  /** Es una clase en directo (`esCursoEnDirecto`). */
+  enDirecto?: boolean
+  /** Su sala de la escuela está encendida: ya no se entra por Zoom. */
+  conSala?: boolean
   /** Compact = sidebar variant: smaller header, tighter paddings. */
   compact?: boolean
 }
 
-export default function CourseFAQ({ courseUuid, compact = false }: CourseFAQProps) {
+export default function CourseFAQ({ courseUuid, compact = false, enDirecto = false, conSala = false }: CourseFAQProps) {
   const org = useOrg() as any
   const session = useLHSession() as any
   const { isAdmin } = (useAdminStatus() as any) || {}
@@ -91,7 +126,11 @@ export default function CourseFAQ({ courseUuid, compact = false }: CourseFAQProp
   const key = (courseUuid || '').replace(/^course_/, '')
   // Cada curso puede tener las suyas; si no las tiene, van las de la
   // formación. Antes, un curso sin entrada propia no enseñaba el bloque.
-  const hardcoded = key ? (COURSE_FAQS[key] ?? DEFAULT_COURSE_FAQ) : undefined
+  // Una clase en directo sin las suyas (o la clase semanal de siempre, que
+  // dice «por Zoom», con la sala ya encendida) lleva las de las clases en
+  // directo, no las de la formación.
+  const propias = COURSE_FAQS[key] && !conSala ? COURSE_FAQS[key] : undefined
+  const hardcoded = key ? (propias ?? (enDirecto ? FAQ_DIRECTO : DEFAULT_COURSE_FAQ)) : undefined
 
   // Las preguntas de cada curso viven en su propio hueco dentro del objeto faq
   // de la organización. Antes compartían `items` con las consultas frecuentes,

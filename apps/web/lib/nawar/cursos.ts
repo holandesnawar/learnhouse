@@ -24,6 +24,48 @@ export const RUTA_CLASE_SEMANAL = `/course/${CURSO_CLASE_SEMANAL_UUID}`
 export const uuidDeCurso = (c: { course_uuid?: string } | null | undefined) =>
   String(c?.course_uuid || '').replace(/^course_/, '')
 
+/**
+ * Lo que la escuela guarda de cada curso de clases en directo: org_config
+ * `salas` = { uuid del curso (sin `course_`): { activo, grabar, directo,
+ * banner } }. Lo escribe la API (`services/salas/salas.py`); el navegador lo
+ * lee de la configuración de la escuela, que ya tiene cargada.
+ */
+export type AjustesDirecto = {
+  activo: boolean
+  grabar: boolean
+  directo: boolean
+  banner: Record<string, string> | null
+}
+
+export function ajustesDirecto(config: any, curso: string | null | undefined): AjustesDirecto {
+  const uuid = String(curso || '').replace(/^course_/, '')
+  const todas = config && typeof config === 'object' ? config.salas : null
+  const propia = todas && typeof todas === 'object' ? todas[uuid] : null
+  const p = propia && typeof propia === 'object' ? propia : {}
+  return {
+    activo: !!p.activo,
+    grabar: !!p.grabar,
+    directo: !!p.directo,
+    banner: p.banner && typeof p.banner === 'object' ? p.banner : null,
+  }
+}
+
+/**
+ * ¿Es un curso de clases en directo? (27/10/2026, la clase semanal partida en
+ * dos grupos.) La clase semanal de siempre, y cualquier curso al que se le ha
+ * encendido alguna vez la sala (`directo` se queda puesto al apagarla, para
+ * que el curso no vuelva a parecer una formación). Estos cursos se pintan como
+ * la clase semanal: su recuadro con día y hora, las grabaciones por meses y
+ * sin progreso ni «Empezar curso».
+ */
+export function esCursoEnDirecto(curso: string | null | undefined, config: any): boolean {
+  const uuid = String(curso || '').replace(/^course_/, '')
+  if (!uuid) return false
+  if (uuid === CURSO_CLASE_SEMANAL_UUID) return true
+  const a = ajustesDirecto(config, uuid)
+  return a.activo || a.directo
+}
+
 export type CursoEnDirecto = { uuid: string; nombre: string }
 
 /**

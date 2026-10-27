@@ -98,7 +98,12 @@ function Grabaciones({ curso, token }: { curso: string; token: string }) {
   )
 }
 
-export default function SalaEnDirecto({ courseUuid }: { courseUuid: string }) {
+/**
+ * `soloAjustes` (27/10/2026): en una clase en directo (la clase semanal y las
+ * que se crean como ella) la entrada va en su recuadro, «Ir a la clase», así
+ * que aquí solo quedan los ajustes del administrador. El alumno no ve nada.
+ */
+export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { courseUuid: string; soloAjustes?: boolean }) {
   const session = useLHSession() as any
   const token: string = session?.data?.tokens?.access_token || ''
   const curso = String(courseUuid || '').replace(/^course_/, '')
@@ -131,6 +136,9 @@ export default function SalaEnDirecto({ courseUuid }: { courseUuid: string }) {
     try {
       const r = await guardarSala(curso, cambios, token)
       setSala((s) => (s ? { ...s, ...r } : s))
+      // Encender o apagar cambia cómo se pinta el curso entero (su recuadro,
+      // «Ir a la clase»): se recarga para que lo coja de la escuela.
+      if (cambios.activo !== undefined) window.setTimeout(() => window.location.reload(), 700)
       toast.success(
         cambios.activo === true
           ? 'Sala encendida'
@@ -148,7 +156,7 @@ export default function SalaEnDirecto({ courseUuid }: { courseUuid: string }) {
   }
 
   if (!sala) return null
-  if (!sala.activo && !sala.admin) return null
+  if (!sala.admin && (soloAjustes || !sala.activo)) return null
 
   // Apagada: solo la ve el administrador, en una línea, para encenderla.
   if (!sala.activo) {
@@ -160,7 +168,7 @@ export default function SalaEnDirecto({ courseUuid }: { courseUuid: string }) {
           </p>
           <p className="text-[13px] text-[#5A6480] mt-0.5">
             Al encenderla, quien ve este curso entra a la videollamada aquí mismo, sin otra pestaña y con su nombre
-            puesto. Solo la ves tú.
+            puesto{soloAjustes ? ', y «Ir a la clase» lleva a la sala en vez de a Zoom' : ''}. Solo la ves tú.
           </p>
           {!sala.con_clave && (
             <p className="text-[12.5px] text-[#8A6A2A] mt-1">Falta la clave de Daily en Railway (LEARNHOUSE_DAILY_API_KEY).</p>
@@ -173,6 +181,58 @@ export default function SalaEnDirecto({ courseUuid }: { courseUuid: string }) {
         >
           <Power size={15} /> Encender la sala
         </button>
+      </div>
+    )
+  }
+
+  const ajustesAdmin = (clase: string) => (
+    <div className={clase}>
+      {!sala.con_clave && (
+        <p className="text-[12.5px] text-[#8A6A2A] flex items-center gap-1.5">
+          <AlertTriangle size={14} /> Falta la clave de Daily en Railway (LEARNHOUSE_DAILY_API_KEY).
+        </p>
+      )}
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <label className="inline-flex items-center gap-2 text-[13px] text-gray-900 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={sala.grabar}
+            disabled={guardando}
+            onChange={(e) => cambiar({ grabar: e.target.checked })}
+            className="accent-[#025dc7]"
+          />
+          Grabar sola cuando entra alguien del equipo
+        </label>
+        <button
+          onClick={() => setVerGrabaciones((v) => !v)}
+          className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#025dc7]"
+        >
+          Grabaciones {verGrabaciones ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
+        <button
+          onClick={() => cambiar({ activo: false })}
+          disabled={guardando}
+          className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#5A6480] hover:text-gray-900"
+        >
+          <Power size={13} /> Apagar la sala
+        </button>
+      </div>
+      {verGrabaciones && <Grabaciones curso={curso} token={token} />}
+      <p className="text-[12px] text-[#5A6480]">Solo lo ves tú (administradores).</p>
+    </div>
+  )
+
+  // En una clase en directo, solo los ajustes, en una tarjeta pequeña.
+  if (soloAjustes) {
+    return (
+      <div className="w-full rounded-2xl bg-white border border-[#E5E7EB] p-4">
+        <p className="text-[14px] font-semibold text-gray-900 flex items-center gap-2">
+          <Video size={16} className="text-[#025dc7]" /> Sala en directo · encendida
+          <span className="font-normal text-[#5A6480]">
+            · {sala.presentes.length ? `${sala.presentes.length} dentro ahora` : 'nadie dentro ahora'}
+          </span>
+        </p>
+        {ajustesAdmin('mt-3 space-y-3')}
       </div>
     )
   }
@@ -211,42 +271,7 @@ export default function SalaEnDirecto({ courseUuid }: { courseUuid: string }) {
         </Link>
       </div>
 
-      {sala.admin && (
-        <div className="mt-4 pt-4 border-t border-[#E5E7EB] space-y-3">
-          {!sala.con_clave && (
-            <p className="text-[12.5px] text-[#8A6A2A] flex items-center gap-1.5">
-              <AlertTriangle size={14} /> Falta la clave de Daily en Railway (LEARNHOUSE_DAILY_API_KEY).
-            </p>
-          )}
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            <label className="inline-flex items-center gap-2 text-[13px] text-gray-900 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={sala.grabar}
-                disabled={guardando}
-                onChange={(e) => cambiar({ grabar: e.target.checked })}
-                className="accent-[#025dc7]"
-              />
-              Grabar sola cuando entra alguien del equipo
-            </label>
-            <button
-              onClick={() => setVerGrabaciones((v) => !v)}
-              className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#025dc7]"
-            >
-              Grabaciones {verGrabaciones ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            </button>
-            <button
-              onClick={() => cambiar({ activo: false })}
-              disabled={guardando}
-              className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#5A6480] hover:text-gray-900"
-            >
-              <Power size={13} /> Apagar la sala
-            </button>
-          </div>
-          {verGrabaciones && <Grabaciones curso={curso} token={token} />}
-          <p className="text-[12px] text-[#5A6480]">Solo lo ves tú (administradores).</p>
-        </div>
-      )}
+      {sala.admin && ajustesAdmin('mt-4 pt-4 border-t border-[#E5E7EB] space-y-3')}
     </div>
   )
 }

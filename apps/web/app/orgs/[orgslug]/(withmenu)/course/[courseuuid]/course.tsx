@@ -24,31 +24,22 @@ import CommunityChannelsCards from '@components/Objects/Communities/CommunityCha
 import CourseFAQ from '@components/Pages/Activity/CourseFAQ'
 import WeeklyClassBanner from '@components/Pages/Courses/WeeklyClassBanner'
 import SalaEnDirecto from '@components/Pages/Courses/SalaEnDirecto'
-import { CURSO_FORMACION_UUID, uuidDeCurso } from '@/lib/nawar/cursos'
+import { CURSO_FORMACION_UUID, ajustesDirecto, esCursoEnDirecto, uuidDeCurso } from '@/lib/nawar/cursos'
 import { sesionesVisibles } from '@/lib/course/weeklyClass'
 import { getLessonIcon } from '@components/Pages/Activity/CourseLessonsSidebar'
 import { useAnalytics } from '@/hooks/useAnalytics'
 
-// Courses that are "session libraries" (e.g. Clase semanal) rather than a
-// real progression. For these we hide the start/leave-course actions box,
-// the per-lesson progress tracker, and relabel "Lecciones" → "Sesiones".
-// Stored without the `course_` prefix so we can match both the URL form and
-// the DB form via a helper.
-const COURSES_AS_SESSIONS_UUIDS = new Set<string>([
-  'bfbcb42b-7dc3-4448-9df8-5d7b96135859', // Clase semanal — recordings
-])
-const COURSES_AS_SESSIONS = {
-  has(uuid: string | undefined | null): boolean {
-    if (!uuid) return false
-    return COURSES_AS_SESSIONS_UUIDS.has(uuid.replace(/^course_/, ''))
-  },
-}
+// Las clases en directo (la clase semanal y las que se crean como ella, p. ej.
+// la clase semanal partida en dos grupos) son bibliotecas de sesiones, no un
+// camino: sin el recuadro de empezar/dejar el curso ni el progreso por clase,
+// y «Lecciones» pasa a «Sesiones grabadas». Cuál lo es lo decide
+// `esCursoEnDirecto` (lib/nawar/cursos.ts) con la configuración de la escuela.
 
-/** Los capítulos que se pintan: en la clase semanal, sin los meses que ya
+/** Los capítulos que se pintan: en una clase en directo, sin los meses que ya
  *  pasaron vacíos (ver `sesionesVisibles`). */
-function capitulosAVer(course: any): any[] {
+function capitulosAVer(course: any, enDirecto: boolean): any[] {
   const todos = course?.chapters ?? []
-  return COURSES_AS_SESSIONS.has(course?.course_uuid) ? sesionesVisibles(todos) : todos
+  return enDirecto ? sesionesVisibles(todos) : todos
 }
 
 const CourseClient = (props: any) => {
@@ -76,6 +67,7 @@ const CourseClient = (props: any) => {
   });
 
   const course = initialCourse || clientCourseData;
+  const enDirecto = esCursoEnDirecto(course?.course_uuid, org?.config?.config)
 
   const { track } = useAnalytics()
 
@@ -102,12 +94,12 @@ const CourseClient = (props: any) => {
     if (course?.chapters) {
       const totalActivities = course.chapters.reduce((sum: number, chapter: any) => sum + (chapter.activities?.length || 0), 0)
       const defaultExpanded: {[key: string]: boolean} = {}
-      capitulosAVer(course).forEach((chapter: any, idx: number) => {
+      capitulosAVer(course, enDirecto).forEach((chapter: any, idx: number) => {
         defaultExpanded[chapter.chapter_uuid] = idx === 0 ? true : totalActivities <= 5
       })
       setExpandedChapters(defaultExpanded)
     }
-  }, [course])
+  }, [course, enDirecto])
 
   // Show loading state if fetching course data client-side
   if (!initialCourse && !serverError && courseLoading) {
@@ -344,7 +336,7 @@ const CourseClient = (props: any) => {
                 igual que Mi progreso, Mis notas o Eventos. Antes el título del
                 curso iba suelto y era la única pantalla sin icono. */}
             <div className="flex items-center gap-2 pb-2 pt-2">
-              {COURSES_AS_SESSIONS.has(course.course_uuid) ? (
+              {enDirecto ? (
                 <Video size={24} className="text-[#025dc7] shrink-0" />
               ) : (
                 <Books size={24} className="text-[#025dc7] shrink-0" />
@@ -357,7 +349,7 @@ const CourseClient = (props: any) => {
                 el administrador, siempre, para encenderla. */}
             {uuidDeCurso(course) !== CURSO_FORMACION_UUID && (
               <div className="pt-2">
-                <SalaEnDirecto courseUuid={uuidDeCurso(course)} />
+                <SalaEnDirecto courseUuid={uuidDeCurso(course)} soloAjustes={enDirecto} />
               </div>
             )}
 
@@ -368,8 +360,8 @@ const CourseClient = (props: any) => {
                   const showImage = course.thumbnail_type === 'image' || (course.thumbnail_type === 'both' && activeThumbnailType === 'image') || !course.thumbnail_type;
 
                   // Clase semanal: banner HTML editable (en vez de la foto estática).
-                  if (COURSES_AS_SESSIONS.has(course.course_uuid)) {
-                    return <WeeklyClassBanner />;
+                  if (enDirecto) {
+                    return <WeeklyClassBanner courseUuid={uuidDeCurso(course)} />;
                   }
 
                   if (showVideo && course.thumbnail_video) {
@@ -492,8 +484,8 @@ const CourseClient = (props: any) => {
                 )}
               </div>
 
-              <div className={`course_metadata_right w-full md:w-1/4 ${COURSES_AS_SESSIONS.has(course.course_uuid) ? 'md:self-start md:sticky md:top-6' : 'space-y-4'}`}>
-                {COURSES_AS_SESSIONS.has(course.course_uuid) ? (
+              <div className={`course_metadata_right w-full md:w-1/4 ${enDirecto ? 'md:self-start md:sticky md:top-6' : 'space-y-4'}`}>
+                {enDirecto ? (
                   // Session-library courses: no enrolment/progress — surface the
                   // community channel cards in the right rail, stacked one per row.
                   // The FAQ moves down next to "Sesiones grabadas".
@@ -552,7 +544,7 @@ const CourseClient = (props: any) => {
 
             <div id="sesiones-grabadas" className="w-full mt-10 mb-12 scroll-mt-24">
               <h2 className="pb-5 text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2.5" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
-                {COURSES_AS_SESSIONS.has(course.course_uuid) ? (
+                {enDirecto ? (
                   <>
                     <Video size={22} className="text-[#025dc7]" />
                     Sesiones grabadas
@@ -562,7 +554,7 @@ const CourseClient = (props: any) => {
                 )}
               </h2>
               <div className="bg-white nice-shadow rounded-2xl overflow-hidden border border-[#DDE6F5] divide-y divide-[#DDE6F5]">
-                {capitulosAVer(course).map((chapter: any, idx: number) => {
+                {capitulosAVer(course, enDirecto).map((chapter: any, idx: number) => {
                   const isExpanded = expandedChapters[chapter.chapter_uuid] ?? (idx === 0); // Default to expanded for first chapter
                   return (
                     <div key={chapter.chapter_uuid || `chapter-${chapter.name}`} className="">
@@ -686,11 +678,15 @@ const CourseClient = (props: any) => {
               </div>
             </div>
 
-            {COURSES_AS_SESSIONS.has(course.course_uuid) ? (
+            {enDirecto ? (
               // Session courses: communities are in the right rail, so here we
               // surface the FAQ (its own heading matches "Sesiones grabadas").
               <div className="mt-8">
-                <CourseFAQ courseUuid={course.course_uuid} />
+                <CourseFAQ
+                  courseUuid={course.course_uuid}
+                  enDirecto={enDirecto}
+                  conSala={ajustesDirecto(org?.config?.config, course.course_uuid).activo}
+                />
               </div>
             ) : (
               /* Community channels — quick access to the chats */
@@ -703,7 +699,7 @@ const CourseClient = (props: any) => {
           {/* Mobile Actions Box — hidden for session-library courses, where
               the FAQ on the right rail (rendered above the chapters on
               mobile) already conveys everything the student needs. */}
-          {isMobile && !COURSES_AS_SESSIONS.has(course.course_uuid) && (
+          {isMobile && !enDirecto && (
             <CourseActionsMobile courseuuid={courseuuid} orgslug={orgslug} course={course} trailData={trailData} />
           )}
         </>

@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'bun:test'
-import { CURSO_CLASE_SEMANAL_UUID, CURSO_FORMACION_UUID, cursosEnDirecto } from '../cursos'
+import {
+  CURSO_CLASE_SEMANAL_UUID,
+  CURSO_FORMACION_UUID,
+  ajustesDirecto,
+  cursosEnDirecto,
+  esCursoEnDirecto,
+} from '../cursos'
 
 describe('las clases en directo de cada alumno', () => {
   const formacion = { course_uuid: `course_${CURSO_FORMACION_UUID}`, name: 'Formación', published: true }
@@ -24,5 +30,32 @@ describe('las clases en directo de cada alumno', () => {
 
   test('sin lista, nada', () => {
     expect(cursosEnDirecto(undefined as any)).toEqual([])
+  })
+})
+
+describe('qué curso se pinta como clase en directo', () => {
+  test('la clase semanal de siempre, aunque no tenga nada guardado', () => {
+    expect(esCursoEnDirecto(`course_${CURSO_CLASE_SEMANAL_UUID}`, {})).toBe(true)
+    expect(esCursoEnDirecto(CURSO_CLASE_SEMANAL_UUID, undefined)).toBe(true)
+  })
+
+  test('otro curso, en cuanto tiene la sala encendida, y lo sigue siendo al apagarla', () => {
+    const config = { salas: { 'grupo-2': { activo: true }, viejo: { activo: false, directo: true } } }
+    expect(esCursoEnDirecto('course_grupo-2', config)).toBe(true)
+    expect(esCursoEnDirecto('viejo', config)).toBe(true)
+  })
+
+  test('la formación y los cursos sin sala, no', () => {
+    expect(esCursoEnDirecto(`course_${CURSO_FORMACION_UUID}`, { salas: {} })).toBe(false)
+    expect(esCursoEnDirecto('otro', { salas: { otro: { activo: false } } })).toBe(false)
+    expect(esCursoEnDirecto('', null)).toBe(false)
+  })
+
+  test('los ajustes, con el recuadro de cada curso', () => {
+    const config = { salas: { abc: { activo: true, grabar: true, banner: { teacher: 'Paul' } } } }
+    expect(ajustesDirecto(config, 'course_abc')).toEqual({
+      activo: true, grabar: true, directo: false, banner: { teacher: 'Paul' },
+    })
+    expect(ajustesDirecto(null, 'abc')).toEqual({ activo: false, grabar: false, directo: false, banner: null })
   })
 })

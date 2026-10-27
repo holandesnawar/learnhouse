@@ -1,18 +1,28 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import AuthenticatedClientElement from '@components/Security/AuthenticatedClientElement'
-import { updateOrgWeeklyClassBannerConfig } from '@services/settings/org'
-import { CalendarDays, Clock, User, Timer, Radio, ListVideo, Pencil, Check, X } from 'lucide-react'
+import { CalendarDays, Clock, User, Timer, Radio, ListVideo, Pencil, Check, X, Circle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { WEEKDAYS, nextBroadcastLabel } from '@/lib/course/weeklyClass'
+import { CURSO_CLASE_SEMANAL_UUID, ajustesDirecto } from '@/lib/nawar/cursos'
+import { getSala, guardarRecuadro, rutaSala } from '@services/salas/salas'
+
+// Cada clase en directo tiene su recuadro (27/10/2026: la clase semanal se
+// parte en dos grupos, cada uno con su día y su profe). Se guarda por curso en
+// org_config `salas[curso].banner`. La clase semanal de siempre lee el
+// recuadro viejo de toda la escuela (`weekly_class_banner`) mientras no se
+// guarde el suyo, así que no cambia nada hasta que se edite.
+const SUBTITULO_SEMANAL =
+  'Cada semana nos vemos en directo para repasar la formación, resolver tus dudas y practicar hablando holandés. Si no puedes asistir, la clase queda grabada aquí para siempre.'
+const SUBTITULO_OTROS = 'Nos vemos en directo cada semana. Si no puedes venir, la sesión queda grabada aquí.'
 
 const DEFAULTS = {
   title: 'Clases semanales',
-  subtitle:
-    'Cada semana nos vemos en directo para repasar la formación, resolver tus dudas y practicar hablando holandés. Si no puedes asistir, la clase queda grabada aquí para siempre.',
+  subtitle: SUBTITULO_SEMANAL,
   live_url: '',
   next_day: 'Por confirmar',
   schedule: 'Por confirmar',
@@ -39,11 +49,35 @@ function InfoBlock({ icon, label, value }: { icon: React.ReactNode; label: strin
   )
 }
 
-export default function WeeklyClassBanner() {
+export default function WeeklyClassBanner({ courseUuid }: { courseUuid: string }) {
   const org = useOrg() as any
   const session = useLHSession() as any
+  const token: string = session?.data?.tokens?.access_token || ''
   const orgId = org?.id
-  const stored = org?.config?.config?.weekly_class_banner || {}
+  const curso = String(courseUuid || '').replace(/^course_/, '')
+  const ajustes = ajustesDirecto(org?.config?.config, curso)
+  const esLaDeSiempre = curso === CURSO_CLASE_SEMANAL_UUID
+  const stored: any = ajustes.banner || (esLaDeSiempre ? org?.config?.config?.weekly_class_banner : null) || {}
+  // Con la sala encendida, «Ir a la clase» lleva a la sala de la escuela, no
+  // al enlace de Zoom. Y se enseña quién hay dentro.
+  const [dentro, setDentro] = useState<string[]>([])
+
+  useEffect(() => {
+    if (!ajustes.activo || !token || !curso) return
+    let vivo = true
+    const leer = () =>
+      getSala(curso, token)
+        .then((s) => vivo && setDentro(s.presentes || []))
+        .catch(() => {})
+    leer()
+    const t = window.setInterval(() => {
+      if (document.visibilityState === 'visible') leer()
+    }, 30000)
+    return () => {
+      vivo = false
+      window.clearInterval(t)
+    }
+  }, [ajustes.activo, token, curso])
 
   const [data, setData] = useState({
     title: stored.title ?? '',
@@ -65,7 +99,7 @@ export default function WeeklyClassBanner() {
 
   const v = {
     title: data.title.trim() || DEFAULTS.title,
-    subtitle: data.subtitle.trim() || DEFAULTS.subtitle,
+    subtitle: data.subtitle.trim() || (esLaDeSiempre ? SUBTITULO_SEMANAL : SUBTITULO_OTROS),
     live_url: data.live_url.trim(),
     next_day: nextBroadcastLabel(
       data.next_weekday,
@@ -85,12 +119,12 @@ export default function WeeklyClassBanner() {
   async function handleSave() {
     setSaving(true)
     try {
-      await updateOrgWeeklyClassBannerConfig(String(orgId), draft, session?.data?.tokens?.access_token)
+      await guardarRecuadro(curso, draft, token)
       setData(draft)
       setEditing(false)
-      toast.success('Banner actualizado')
-    } catch {
-      toast.error('No se pudo guardar el banner')
+      toast.success('Recuadro actualizado')
+    } catch (e: any) {
+      toast.error(e?.message || 'No se pudo guardar el recuadro')
     } finally {
       setSaving(false)
     }
@@ -131,13 +165,19 @@ export default function WeeklyClassBanner() {
     return (
       <div className="w-full rounded-2xl bg-white nice-shadow border border-[#DDE6F5] p-4 sm:p-5 space-y-3">
         <h3 className="text-sm font-bold text-[#1D0084]" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
-          Editar banner de clases semanales
+          Editar el recuadro de esta clase
         </h3>
         {/* El título ya no vive aquí: es el nombre del curso, que se cambia
             en los ajustes del curso. Tener dos sitios para lo mismo acababa
             siempre en dos títulos distintos, uno encima del otro. */}
         {field('subtitle', 'Subtítulo', { textarea: true })}
-        {field('live_url', 'Enlace del directo (Ir a la clase)', { placeholder: 'https://… (Zoom, Meet, YouTube en directo)' })}
+        {ajustes.activo ? (
+          <p className="text-[12px] text-[#5A6480] leading-relaxed">
+            «Ir a la clase» lleva a la sala de la escuela (está encendida), así que no hace falta enlace de Zoom.
+          </p>
+        ) : (
+          field('live_url', 'Enlace del directo (Ir a la clase)', { placeholder: 'https://… (Zoom, Meet, YouTube en directo)' })
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -224,7 +264,14 @@ export default function WeeklyClassBanner() {
             {v.subtitle}
           </p>
           <div className="mt-5 flex flex-wrap gap-2.5">
-            {v.live_url ? (
+            {ajustes.activo ? (
+              <Link
+                href={rutaSala(curso)}
+                className="inline-flex items-center gap-2 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold py-2.5 px-4 rounded-lg text-[14px] transition-colors"
+              >
+                <Radio size={16} strokeWidth={2.5} /> Ir a la clase
+              </Link>
+            ) : v.live_url ? (
               <a
                 href={v.live_url}
                 target="_blank"
@@ -248,6 +295,24 @@ export default function WeeklyClassBanner() {
               <ListVideo size={16} /> Clases anteriores
             </button>
           </div>
+          {ajustes.activo && (
+            <p className="mt-3 text-[13px] text-[#3F4A61] flex items-center gap-2 min-w-0">
+              {dentro.length ? (
+                <>
+                  <Circle size={8} className="fill-[#16A34A] text-[#16A34A] shrink-0" />
+                  <span className="truncate">
+                    {dentro.length === 1 ? 'Hay 1 persona en la sala' : `Hay ${dentro.length} personas en la sala`}:{' '}
+                    {dentro.join(', ')}
+                  </span>
+                </>
+              ) : (
+                <span className="text-[#5A6480]">
+                  La clase es aquí, en la escuela: entras con tu nombre, sin otra pestaña.
+                  {ajustes.grabar ? ' Se graba cuando entra el profe.' : ''}
+                </span>
+              )}
+            </p>
+          )}
         </div>
 
         {/* Derecha: 4 bloques */}

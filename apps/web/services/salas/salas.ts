@@ -73,5 +73,9 @@ export const getGrabaciones = (curso: string, token: string) =>
 export const enlaceGrabacion = (curso: string, id: string, token: string) =>
   pedir<{ url: string }>(`${base(curso)}/grabaciones/${encodeURIComponent(id)}/descarga`, token)
 
+/** El recuadro de una clase en directo (día, hora, profe…), por curso. */
+export const guardarRecuadro = (curso: string, recuadro: Record<string, string>, token: string) =>
+  pedir<Record<string, string>>(`${base(curso)}/recuadro`, token, 'PUT', recuadro)
+
 /** La dirección de la sala dentro de la escuela. */
 export const rutaSala = (curso: string) => `/sala/${String(curso).replace(/^course_/, '')}`
