@@ -3803,9 +3803,15 @@ clara, recordatorio de 1 h, correo del fundador «Andy» al reservar, WhatsApp).
 - El texto (de Rida, ordenado: `DE_FABRICA`) se edita en Avisos → «Al
   reservar», con «Ver cómo queda» y «Mandármelo a mí». Huecos `{nombre}`,
   `{dia}`, `{hora}` (en la zona de la persona), `{enlace}`, `{cambiar}`; un
-  hueco mal escrito no deja guardar. Es una carta: sin título grande ni «El
-  equipo de Nawar» al pie (`_email_layout(firma=False)`), y la respuesta va a
-  info@ (`send_email(reply_to=…)`, nuevo).
+  hueco mal escrito no deja guardar. Es una carta, con su propia plantilla
+  (`_carta_layout` en `emails.py`; usuario: "el banner grande y la letra
+  chica… en el móvil como doble fondo"): franja baja con el azul del banner y
+  el logo en vez del banner entero, letra de 16 px, menos aire arriba, **sin
+  fondo blanco propio** (Gmail en modo oscuro lo volvía una caja gris dentro
+  de la suya; para Apple Mail va la regla `prefers-color-scheme`), Inter
+  donde el correo la carga (Gmail no carga ninguna: sale la del sistema) y
+  sin «El equipo de Nawar» al pie. La respuesta va a info@
+  (`send_email(reply_to=…)`, nuevo).
 - De paso, el «llamada nueva, repártela» sale también con las reservas hechas
   directamente en Calendly; `avisar_llamada_nueva` no repite la misma reserva
   (Redis, 30 min) aunque avisen la web y Calendly.

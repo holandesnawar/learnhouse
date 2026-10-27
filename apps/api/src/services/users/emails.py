@@ -119,27 +119,19 @@ STYLES = {
 }
 
 
-def _company_footer(firma: bool = True) -> str:
+def _company_footer() -> str:
     """Quiet white-on-white footer: sign-off, logo, copyright + legal.
 
     Same surface as the body — no brand-coloured block, no socials. Just a
     friendly signature, the brand mark and the typical small print, all aligned
     to the left to match the rest of the message.
-
-    `firma=False`: sin «Un saludo, El equipo de Nawar», para los correos que
-    ya firma una persona (el de Rida al reservar una llamada).
     """
     year = datetime.now().year
-    despedida = (
-        """<p style="margin: 0 0 2px 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.6;">Un saludo,</p>
-                            <p style="margin: 0 0 18px 0; font-size: 15px; font-weight: 800; color: #4da3ff !important; line-height: 1.4;">El equipo de Nawar</p>"""
-        if firma
-        else ""
-    )
     return f"""
                     <tr>
                         <td style="padding: 8px 32px 12px 32px; text-align: left; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-                            {despedida}
+                            <p style="margin: 0 0 2px 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.6;">Un saludo,</p>
+                            <p style="margin: 0 0 18px 0; font-size: 15px; font-weight: 800; color: #4da3ff !important; line-height: 1.4;">El equipo de Nawar</p>
                             {FOOTER_LOGO_HTML}
                         </td>
                     </tr>
@@ -157,7 +149,7 @@ def _company_footer(firma: bool = True) -> str:
                     </tr>"""
 
 
-def _email_layout(title: str, body_content: str, footer_note: str = "", firma: bool = True) -> str:
+def _email_layout(title: str, body_content: str, footer_note: str = "") -> str:
     """Single-surface Nawar layout: banner glued to the top, then everything
     typeset on white and aligned to the left — message, sign-off, logo, copyright.
     No nested cards, no brand-coloured blocks, no social row.
@@ -200,7 +192,81 @@ def _email_layout(title: str, body_content: str, footer_note: str = "", firma: b
                         <td style="padding: 40px 32px 28px 32px; text-align: left;">
                             {body_content}
                         </td>
-                    </tr>{note_block}{_company_footer(firma)}
+                    </tr>{note_block}{_company_footer()}
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>"""
+
+
+#: La letra de las cartas: Inter donde el correo la carga (Apple Mail, el
+#: correo del iPhone) y la del sistema donde no (Gmail no carga ninguna).
+FUENTE_CARTA = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+ESTILO_CARTA_P = "margin: 0 0 18px 0; font-size: 16px; line-height: 1.65; color: #1f2430; font-weight: 400;"
+
+
+def _carta_layout(title: str, body_content: str) -> str:
+    """Un correo que firma una persona (27/10/2026: el de Rida al reservar).
+
+    Distinto de `_email_layout` a propósito ("el banner grande y la letra
+    chica… en el móvil como doble fondo"):
+    - **Franja baja** con el azul del banner y el logo, en vez del banner
+      entero (144 px de alto a 600 de ancho). El degradado lo pinta el correo;
+      donde no se entiende, queda el azul liso de `bgcolor`.
+    - **Letra de 16 px** (los demás llevan 14) y menos aire arriba.
+    - **Sin fondo propio**: con el blanco puesto, Gmail en modo oscuro lo
+      convierte en un gris que no es el suyo y sale una caja dentro de otra.
+      Sin fondo, el texto va sobre el del propio correo. Para Apple Mail, que
+      con `color-scheme` no oscurece nada solo, va la regla de modo oscuro.
+    - Sin «El equipo de Nawar» ni logo al pie: lo firma la persona.
+    """
+    year = datetime.now().year
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
+    <title>{title}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {{ margin: 0; padding: 0; }}
+        a {{ text-decoration: none; }}
+        @media (prefers-color-scheme: dark) {{
+            .carta p {{ color: #e6e8ef !important; }}
+            .carta-pie p, .carta-pie a {{ color: #9aa3b5 !important; }}
+        }}
+    </style>
+</head>
+<body style="margin: 0; padding: 0; font-family: {FUENTE_CARTA};">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr>
+            <td align="center" style="padding: 12px 12px 0 12px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width: 600px; width: 100%;">
+                    <tr>
+                        <td align="center" bgcolor="#1593f2" style="background-color: #1593f2; background-image: linear-gradient(90deg, #0a6cf5 0%, #22c3f2 50%, #0a6cf5 100%); border-radius: 14px; padding: 16px 24px; font-size: 0; line-height: 0;">
+                            <img src="{LOGO_URL}" alt="Holandés Nawar" width="112" style="display: inline-block; width: 112px; height: auto; border: 0;" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="carta" style="padding: 28px 20px 8px 20px; text-align: left; font-family: {FUENTE_CARTA};">
+                            {body_content}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="carta-pie" style="padding: 8px 20px 28px 20px;">
+                            <p style="margin: 0; font-size: 11px; color: #8a90a0; line-height: 1.7; text-align: left; font-family: {FUENTE_CARTA};">
+                                © {year} Holandés Nawar
+                                <span style="margin: 0 6px;">·</span>
+                                <a href="{TERMS_URL}" style="color: #8a90a0; text-decoration: none;">Términos</a>
+                                <span style="margin: 0 6px;">·</span>
+                                <a href="{PRIVACY_URL}" style="color: #8a90a0; text-decoration: none;">Privacidad</a>
+                            </p>
+                        </td>
+                    </tr>
                 </table>
             </td>
         </tr>
@@ -845,21 +911,16 @@ def send_correo_reserva_email(
     Sale solo, una vez por persona, cuando Calendly avisa de la reserva
     (`services/contactos/correo_reserva.py`).
 
-    Es una carta: sin título grande y sin «El equipo de Nawar» al pie, porque
-    la firma Rida dentro del texto. El texto llega ya rellenado y en plano:
-    `parrafos()` lo escapa entero. Si la persona contesta, la respuesta va a
-    info@ (no al noreply del remitente).
-    """
-    body_content = f"""
-        <div style="text-align: left;">
-            {parrafos(texto, STYLES['p'])}
-        </div>
+    Es una carta (`_carta_layout`): franja baja con el logo, letra de 16 px y
+    sin «El equipo de Nawar» al pie, porque la firma Rida dentro del texto. El
+    texto llega ya rellenado y en plano: `parrafos()` lo escapa entero. Si la
+    persona contesta, la respuesta va a info@ (no al noreply del remitente).
     """
     return send_email(
         dry_run=preview,
         to=email,
         subject=asunto,
-        body=_email_layout(title=asunto, body_content=body_content, firma=False),
+        body=_carta_layout(title=asunto, body_content=parrafos(texto, ESTILO_CARTA_P)),
         reply_to=SUPPORT_EMAIL,
     )
 
