@@ -221,6 +221,18 @@ async def test_la_sala_apagada_no_deja_entrar_y_el_alumno_no_la_enciende(
     assert exc.value.status_code == 403
 
 
+async def test_sin_sesion_no_entra_aunque_el_curso_sea_publico(
+    db, org, course, admin_user, anonymous_user, mock_request, acceso_permitido, monkeypatch
+):
+    await _con_config(db, org)
+    monkeypatch.setattr(salas, "_daily", DailyFalso())
+    await rutas.api_guardar(mock_request, "test", rutas.SalaIn(activo=True), admin_user, db)
+    for ruta in (rutas.api_entrar, rutas.api_sala):
+        with pytest.raises(HTTPException) as exc:
+            await ruta(mock_request, "test", anonymous_user, db)
+        assert exc.value.status_code == 401
+
+
 async def test_sin_acceso_al_curso_no_entra(db, org, course, regular_user, mock_request):
     await _con_config(db, org)
     with patch.object(rutas, "check_resource_access",
