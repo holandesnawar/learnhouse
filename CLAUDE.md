@@ -3682,9 +3682,51 @@ nombre guardado". Lo mismo se querrá para la clase semanal y la masterclass;
   Chromium, admin y alumna). **NO probado contra Daily de verdad**: daily.co
   no se alcanza desde este entorno. Si algo falla, la pantalla enseña el
   texto de Daily: leerlo primero (p. ej. una propiedad que su API rechace).
-- Pendiente: la clase semanal y la masterclass (es encenderla en su curso),
-  sesiones con horario (hoy la sala está abierta siempre), varias mesas a la
-  vez para el Spreekclub, y lo de Bunny.
+- Pendiente: sesiones con horario (hoy la sala está abierta siempre), varias
+  mesas a la vez para el Spreekclub (propuesto: una sala por mesa, libre o
+  por grupo; Daily tiene además salas pequeñas que reparte el profe) y lo de
+  Bunny.
+
+### Varias clases en directo: la clase semanal partida en grupos (27/10/2026)
+Pedido: "dividir en dos grupos los alumnos que hay ahora… que unos vean en
+clase semanal sus clases grabadas y otros las del otro grupo". **Cada grupo,
+su curso**: el de siempre y una COPIA (Cursos → «Duplicar» en la tarjeta del
+curso, que copia capítulos y grabaciones y lo deja privado), cada uno cerrado
+a su grupo en Acceso. La escuela ya no trata como clase semanal solo el
+curso fijo:
+- **`esCursoEnDirecto`** (`lib/nawar/cursos.ts`, con test): la clase semanal
+  de siempre, o cualquier curso con la sala encendida alguna vez
+  (`salas[uuid].directo`, que se queda al apagarla). Esos cursos se pintan
+  como la clase semanal: recuadro con día/hora/profe, «Sesiones grabadas» por
+  meses, sin «Empezar curso» ni progreso. Lo usan `course.tsx`, Mi progreso y
+  el Inicio (`isWeeklyClassCourse(uuid, config)`), que antes solo conocían el
+  curso fijo y habrían tomado la copia por la formación.
+- **Recuadro por curso** (`WeeklyClassBanner courseUuid`): org_config
+  `salas[uuid].banner`, `PUT /salas/course/{uuid}/recuadro` (administradores,
+  `limpiar_recuadro`). La clase semanal de siempre lee el viejo
+  `weekly_class_banner` de toda la escuela hasta que se guarde el suyo.
+- **«Ir a la clase» lleva a la sala** si está encendida (y enseña quién hay
+  dentro); si no, al enlace de Zoom de siempre. En estos cursos la tarjeta de
+  la sala solo enseña los ajustes al administrador (`soloAjustes`).
+- **Preguntas frecuentes**: una clase en directo sin las suyas lleva
+  `FAQ_DIRECTO` (sin día ni hora ni Zoom), no las de la formación; la clase
+  semanal de siempre, con la sala encendida, también (las suyas dicen «por
+  Zoom»). Se editan en la página.
+- El Inicio enlaza las grabaciones a SU clase en directo (antes
+  `RUTA_CLASE_SEMANAL` fija, y además nunca salía: buscaba en una lista que
+  ya venía sin las clases en directo).
+- El navegador lee `salas` de la configuración de la escuela, que Redis
+  guarda 2 min: `_escribir` borra esa caché, y encender/apagar recarga la
+  página.
+
+### La sala con los colores de la marca (27/10/2026)
+"¿Se puede cambiar el color? Azul de marca, no verde". Daily solo deja
+cambiar los colores con su librería: la sala va ahora con
+**`@daily-co/daily-js` 0.93.0** (cargada solo en esa página) y `TEMA_NAWAR`
+en `SalaPage.tsx` (botones `#4DA3FF` con letra `#0A1656` sobre azul oscuro).
+De paso, «Salir» en la llamada vuelve al curso (`left-meeting`). Si la
+librería no carga, se pinta el iframe suelto de antes. Los colores no se han
+podido ver contra Daily de verdad desde aquí.
 
 ## Incidente de Railway: claves robadas y despliegues parados (21-22/10/2026)
 Railway avisó de que un tercero pudo leer las variables de entorno de sus

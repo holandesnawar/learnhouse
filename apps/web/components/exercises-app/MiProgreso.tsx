@@ -67,12 +67,12 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
   // La clase semanal queda fuera — es otro curso, no el camino A0-A1.
   const courseUuid: string | undefined = useMemo(() => {
     const list: any[] = (Array.isArray(courses) ? courses : []).filter(
-      (c: any) => !isWeeklyClassCourse(c?.course_uuid)
+      (c: any) => !isWeeklyClassCourse(c?.course_uuid, org?.config?.config)
     )
     if (!list.length) return undefined
     const started = list.find((c) => findRun(trailData, c.course_uuid))
     return (started ?? list[0])?.course_uuid?.replace('course_', '')
-  }, [courses, trailData])
+  }, [courses, trailData, org])
 
   const { data: course, isFetched: courseFetched } = useCourseFull(courseUuid)
 

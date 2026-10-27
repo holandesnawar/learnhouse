@@ -16,6 +16,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi import HTTPException
+from sqlmodel import select
 
 from src.db.organization_config import OrganizationConfig
 from src.routers import salas as rutas
@@ -188,6 +189,26 @@ async def test_guardar_ajustes(db, org):
     assert await salas.config_de(org.id, CURSO.replace("course_", ""), db) == {"activo": True, "grabar": True}
 
 
+async def test_encender_marca_el_curso_en_directo_y_no_pierde_el_recuadro(db, org):
+    await _con_config(db, org)
+    await salas.guardar_recuadro(org.id, CURSO, {"teacher": "Paul", "schedule": "19:00", "raro": "x"}, db)
+    await salas.guardar_config(org.id, CURSO, True, True, db)
+    await salas.guardar_config(org.id, CURSO, False, None, db)
+    fila = (await db.execute(select(OrganizationConfig).where(OrganizationConfig.org_id == org.id))).scalars().first()
+    guardado = fila.config["salas"]["8a1d1fab-ffbb-44ef-8f21-04ef63676d6e"]
+    # Apagada, pero sigue siendo una clase en directo, con su recuadro y la grabación puesta.
+    assert guardado["activo"] is False and guardado["directo"] is True and guardado["grabar"] is True
+    assert guardado["banner"]["teacher"] == "Paul" and guardado["banner"]["schedule"] == "19:00"
+    assert "raro" not in guardado["banner"]
+
+
+def test_recuadro_solo_campos_conocidos_y_con_tope():
+    r = salas.limpiar_recuadro({"teacher": "  Paul  ", "subtitle": "x" * 900, "otro": "no"})
+    assert r["teacher"] == "Paul" and len(r["subtitle"]) == 600 and "otro" not in r
+    assert set(r) == set(salas.CAMPOS_RECUADRO)
+    assert salas.limpiar_recuadro(None)["live_url"] == ""
+
+
 @pytest.fixture
 def acceso_permitido():
     with patch.object(rutas, "check_resource_access",
@@ -219,6 +240,13 @@ async def test_la_sala_apagada_no_deja_entrar_y_el_alumno_no_la_enciende(
     with pytest.raises(HTTPException) as exc:
         await rutas.api_grabaciones(mock_request, "test", regular_user, db)
     assert exc.value.status_code == 403
+
+    # El recuadro (día, hora, profe) lo cambia solo un administrador.
+    with pytest.raises(HTTPException) as exc:
+        await rutas.api_recuadro(mock_request, "test", rutas.RecuadroIn(teacher="Yo"), regular_user, db)
+    assert exc.value.status_code == 403
+    r = await rutas.api_recuadro(mock_request, "test", rutas.RecuadroIn(teacher="Paul"), admin_user, db)
+    assert r["teacher"] == "Paul"
 
 
 async def test_sin_sesion_no_entra_aunque_el_curso_sea_publico(

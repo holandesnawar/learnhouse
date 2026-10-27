@@ -14,6 +14,7 @@
  */
 
 import type { LastAttempt } from '@/lib/exercises-app/lastAttempts'
+import { esCursoEnDirecto } from '@/lib/nawar/cursos'
 
 export interface ActivityLike {
   id: number
@@ -88,8 +89,12 @@ const PRACTICE_SECTIONS = new Set(['vocabulary', 'flashcards', 'lezen', 'luister
  */
 export const WEEKLY_CLASS_COURSE_UUID = 'bfbcb42b-7dc3-4448-9df8-5d7b96135859'
 
-export function isWeeklyClassCourse(uuid: unknown): boolean {
-  return String(uuid || '').includes(WEEKLY_CLASS_COURSE_UUID)
+export function isWeeklyClassCourse(uuid: unknown, orgConfig?: any): boolean {
+  // Desde el 27/10/2026 puede haber más de una clase en directo (la clase
+  // semanal partida en grupos): con la configuración de la escuela, cuenta
+  // cualquiera de ellas (`esCursoEnDirecto`).
+  if (String(uuid || '').includes(WEEKLY_CLASS_COURSE_UUID)) return true
+  return orgConfig ? esCursoEnDirecto(String(uuid || ''), orgConfig) : false
 }
 
 /**

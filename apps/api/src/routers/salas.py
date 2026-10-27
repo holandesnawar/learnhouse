@@ -128,6 +128,38 @@ async def api_guardar(
         raise _error(exc) from exc
 
 
+class RecuadroIn(BaseModel):
+    subtitle: Optional[str] = ""
+    live_url: Optional[str] = ""
+    next_day: Optional[str] = ""
+    next_weekday: Optional[str] = ""
+    next_date: Optional[str] = ""
+    schedule: Optional[str] = ""
+    teacher: Optional[str] = ""
+    duration: Optional[str] = ""
+
+
+@router.put(
+    "/course/{course_uuid}/recuadro",
+    summary="El recuadro de una clase en directo: día, hora, profe… (administradores).",
+)
+async def api_recuadro(
+    request: Request,
+    course_uuid: str,
+    body: RecuadroIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    curso = await _curso(request, course_uuid, current_user, db_session)
+    _, admin = await _roles(current_user, curso.org_id, db_session)
+    if not admin:
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    try:
+        return await salas.guardar_recuadro(curso.org_id, curso.course_uuid, body.model_dump(), db_session)
+    except salas.SalaError as exc:
+        raise _error(exc) from exc
+
+
 @router.get("/course/{course_uuid}/grabaciones", summary="Las grabaciones de la sala (administradores).")
 async def api_grabaciones(
     request: Request,

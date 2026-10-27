@@ -19,7 +19,7 @@ import { registerVisit, type StudentVisit } from '@services/student/progress'
 import { useStudentInsights } from '@/hooks/queries/useStudentInsights'
 import { fechasDeClases, semanaConClases } from '@services/student/insights'
 import { isWeeklyClassCourse } from '@/lib/course/formacionProgress'
-import { CURSO_CLASE_SEMANAL_UUID, RUTA_CLASE_SEMANAL } from '@/lib/nawar/cursos'
+import { CURSO_CLASE_SEMANAL_UUID } from '@/lib/nawar/cursos'
 import SafeArea from '@components/Objects/StyledElements/Error/SafeArea'
 import StudentOnboarding from '@components/Pages/Home/StudentOnboarding'
 
@@ -62,13 +62,25 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
 
   // La "Clase semanal" (directos) no es un curso de la formación: se ve en su
   // propia sección del menú, no en "Tus cursos" ni en "Continúa donde lo dejaste".
-  const isHidden = isWeeklyClassCourse
+  const isHidden = (uuid: unknown) => isWeeklyClassCourse(uuid, org?.config?.config)
   const runs: any[] = (Array.isArray(trailData?.runs) ? trailData.runs : []).filter(
     (r: any) => !isHidden(r?.course?.course_uuid)
   )
   const courseList: any[] = (Array.isArray(courses) ? courses : []).filter(
     (c: any) => !isHidden(c?.course_uuid)
   )
+  // Su clase en directo (la que le toca por su grupo), para decirle dónde están
+  // las grabaciones. Antes se buscaba la clase semanal en `courseList`, que ya
+  // viene SIN las clases en directo: nunca salía.
+  const directo: any = (Array.isArray(courses) ? courses : []).find((c: any) => isHidden(c?.course_uuid))
+  const claseEnDirecto = directo
+    ? {
+        uuid: String(directo.course_uuid || '').replace(/^course_/, ''),
+        nombre: String(directo.course_uuid || '').includes(CURSO_CLASE_SEMANAL_UUID)
+          ? 'Clase semanal'
+          : String(directo.name || 'Clase en directo'),
+      }
+    : null
 
   // Cuál de los cursos es LA formación, para poder llevar al alumno nuevo
   // directo a ella en vez de ponerle a elegir.
@@ -156,7 +168,7 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
             <ArranqueFormacion
               course={formacion}
               orgslug={orgslug}
-              hayGrabaciones={courseList.some((c: any) => String(c?.course_uuid || '').includes(CURSO_CLASE_SEMANAL_UUID))}
+              grabaciones={claseEnDirecto}
             />
           ) : courseList.length === 0 ? (
             <>
@@ -329,11 +341,11 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
 function ArranqueFormacion({
   course,
   orgslug,
-  hayGrabaciones,
+  grabaciones,
 }: {
   course: any
   orgslug: string
-  hayGrabaciones: boolean
+  grabaciones: { uuid: string; nombre: string } | null
 }) {
   const uuid = String(course?.course_uuid || '').replace('course_', '')
   return (
@@ -365,15 +377,18 @@ function ArranqueFormacion({
           <ArrowRight size={16} strokeWidth={2.5} />
         </Link>
       </div>
-      {hayGrabaciones && (
+      {grabaciones && (
         <p className="mt-3 text-[12.5px] text-[#9CA3AF] leading-relaxed">
           {/* Antes esto llevaba a `/courses`, el índice genérico: el alumno
               buscaba una grabación y aterrizaba en una lista de cursos donde
               tenía que adivinar cuál. Va directo a Clase semanal, que es donde
               están las grabaciones. */}
           Las grabaciones de las clases semanales están en{' '}
-          <Link href={getUriWithOrg(orgslug, RUTA_CLASE_SEMANAL)} className="text-[#025dc7] hover:underline font-medium">
-            Clase semanal
+          <Link
+            href={getUriWithOrg(orgslug, `/course/${grabaciones.uuid}`)}
+            className="text-[#025dc7] hover:underline font-medium"
+          >
+            {grabaciones.nombre}
           </Link>
           , para repasar cuando te venga bien.
         </p>

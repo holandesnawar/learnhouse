@@ -295,23 +295,72 @@ async def config_de(org_id: int, course_uuid: str, db_session: AsyncSession) -> 
     return leer_config(fila.config if fila else {}, course_uuid)
 
 
-async def guardar_config(
-    org_id: int, course_uuid: str, activo: Optional[bool], grabar: Optional[bool], db_session: AsyncSession
-) -> dict:
+async def _escribir(org_id: int, course_uuid: str, cambios: dict, db_session: AsyncSession) -> dict:
+    """Mezcla `cambios` en lo guardado de ese curso (sin perder lo demás:
+    el recuadro, `directo`…) y devuelve lo que queda guardado."""
     fila = await _fila_config(org_id, db_session)
     if fila is None:
         raise SalaError("La escuela no tiene configuración.", 500)
     config = json.loads(json.dumps(fila.config or {}))
     todas = config.get(CLAVE) if isinstance(config.get(CLAVE), dict) else {}
-    actual = leer_config(config, course_uuid)
-    if activo is not None:
-        actual["activo"] = bool(activo)
-    if grabar is not None:
-        actual["grabar"] = bool(grabar)
-    todas[uuid_curso(course_uuid)] = actual
+    uuid = uuid_curso(course_uuid)
+    propia = todas.get(uuid) if isinstance(todas.get(uuid), dict) else {}
+    propia = {**propia, **cambios}
+    todas[uuid] = propia
     config[CLAVE] = todas
     fila.config = config
     fila.update_date = str(datetime.now())
     db_session.add(fila)
     await db_session.commit()
-    return actual
+    await _olvidar_cache(org_id, db_session)
+    return propia
+
+
+async def _olvidar_cache(org_id: int, db_session: AsyncSession) -> None:
+    """El navegador lee estos ajustes de la configuración de la escuela, que
+    Redis guarda 2 minutos: se borra para que el cambio se vea al recargar."""
+    try:
+        from src.db.organizations import Organization
+        from src.services.orgs.cache import invalidate_org_cache, invalidate_org_config_cache
+
+        invalidate_org_config_cache(org_id)
+        org = (await db_session.execute(select(Organization).where(Organization.id == org_id))).scalars().first()
+        if org is not None:
+            invalidate_org_cache(org.slug)
+    except Exception:  # noqa: BLE001 — sin caché, se ve a los 2 minutos igual
+        logger.debug("No se pudo borrar la caché de la escuela", exc_info=True)
+
+
+async def guardar_config(
+    org_id: int, course_uuid: str, activo: Optional[bool], grabar: Optional[bool], db_session: AsyncSession
+) -> dict:
+    """Encender/apagar la sala y la grabación. Encenderla marca además el curso
+    como de clases en directo (`directo`), y eso se queda al apagarla: así el
+    curso no vuelve a pintarse como una formación con «Empezar curso»
+    (`esCursoEnDirecto` en apps/web/lib/nawar/cursos.ts)."""
+    cambios: dict = {}
+    if activo is not None:
+        cambios["activo"] = bool(activo)
+        if activo:
+            cambios["directo"] = True
+    if grabar is not None:
+        cambios["grabar"] = bool(grabar)
+    guardado = await _escribir(org_id, course_uuid, cambios, db_session)
+    return {"activo": bool(guardado.get("activo")), "grabar": bool(guardado.get("grabar"))}
+
+
+# El recuadro de arriba de cada clase en directo (día, hora, profe…). Antes
+# había UNO para toda la escuela (`weekly_class_banner`), que sigue valiendo
+# para la clase semanal de siempre mientras no se guarde el suyo.
+CAMPOS_RECUADRO = ("subtitle", "live_url", "next_day", "next_weekday", "next_date", "schedule", "teacher", "duration")
+
+
+def limpiar_recuadro(datos: Any) -> dict:
+    """Solo los campos conocidos, como texto y con un tope (función pura)."""
+    datos = datos if isinstance(datos, dict) else {}
+    return {k: str(datos.get(k) or "").strip()[:600] for k in CAMPOS_RECUADRO}
+
+
+async def guardar_recuadro(org_id: int, course_uuid: str, datos: dict, db_session: AsyncSession) -> dict:
+    guardado = await _escribir(org_id, course_uuid, {"banner": limpiar_recuadro(datos)}, db_session)
+    return guardado["banner"]
