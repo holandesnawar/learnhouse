@@ -294,7 +294,8 @@ export default function WeeklyClassBanner({
     // Sin recuadro ni dos columnas (27/10, segunda vuelta: "quitar el marco
     // y ponerlo en línea"): debajo del vídeo, como debajo de un vídeo de
     // YouTube, una línea con cuándo, otra con quién, y el botón. Solo lo que
-    // se ha rellenado: «Con Por confirmar» no dice nada.
+    // se ha rellenado: «Con Por confirmar» no dice nada. Letra gruesa (27/10,
+    // "esta letra tan fina no me convence"): la fecha en negrita, no semibold.
     const hora = data.schedule.trim()
     const cuando = hora ? `${v.next_day} · ${hora}` : v.next_day
     const profe = data.teacher.trim()
@@ -303,22 +304,22 @@ export default function WeeklyClassBanner({
     return (
       <div className="w-full pt-1">
         {enDirecto ? (
-          <p className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-[#15803D]">
+          <p className="flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-[0.08em] text-[#15803D]">
             <Circle size={8} className="fill-[#16A34A] text-[#16A34A]" /> En directo ahora
           </p>
         ) : (
-          <p className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-[#025dc7]">
+          <p className="flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-[0.08em] text-[#025dc7]">
             <CalendarDays size={13} /> Próxima emisión
           </p>
         )}
         <p
-          className="mt-1 text-[22px] sm:text-[26px] font-semibold text-[#0a1656] leading-tight break-words first-letter:uppercase"
+          className="mt-1 text-[23px] sm:text-[28px] font-bold tracking-[-0.01em] text-[#0a1656] leading-tight break-words first-letter:uppercase"
           style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
         >
           {cuando}
         </p>
         {(profe || duracion || enDirecto) && (
-          <p className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-[15px] text-[#3F4A61]">
+          <p className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-[15px] font-medium text-[#1F2937]">
             {profe && (
               <span className="inline-flex items-center gap-1.5">
                 <User size={16} className="text-[#025dc7]" /> Con {profe}
@@ -346,7 +347,7 @@ export default function WeeklyClassBanner({
             {grabadas ? (
               <button
                 onClick={goToRecordings}
-                className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-[#025dc7] hover:text-[#1D0084] transition-colors"
+                className="inline-flex items-center gap-1.5 text-[14px] font-bold text-[#025dc7] hover:text-[#1D0084] transition-colors"
               >
                 <ListVideo size={15} /> Clases anteriores
               </button>

@@ -3761,7 +3761,11 @@ para no cambiar la clase semanal de siempre).
   Sin subtítulo ni los cuatro bloques. ⚠️ **Sin marco y en una sola
   columna** (segunda vuelta, 27/10: "quitar el marco… no en bloque con dos
   columnas"): la primera versión era una tarjeta con borde, texto a la
-  izquierda y botón a la derecha, y al usuario le pareció lo mismo de antes. Con gente en la sala dice «En directo
+  izquierda y botón a la derecha, y al usuario le pareció lo mismo de antes.
+  **Letra gruesa** (27/10, "esta letra tan fina no me convence"): la fecha
+  en Poppins **bold** 28 px (no semibold, excepción a la regla de las cifras
+  grandes), «Próxima emisión» y «Clases anteriores» en bold, y «Con Paul ·
+  60 min» en medium y casi negro. Con gente en la sala dice «En directo
   ahora» y «Entrar ahora». Lo decide `course.tsx`: clase en directo + vídeo
   de portada. Si gusta, se lleva a las demás quitando esa condición.
 - En las clases en directo, los ajustes de la sala (solo administradores)
