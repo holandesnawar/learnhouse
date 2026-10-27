@@ -287,7 +287,11 @@ export interface Cliente {
 /** ¿Pagada la comisión del closer? Ver apps/api/src/services/panel/comisiones.py. */
 export interface ComisionVenta {
   pagada: { importe_cents: number; cuando: string; por: string; nota?: string } | null
-  /** Lo que le toca, aproximado: su % del día del cobro sobre lo cobrado. */
+  /** Sobre qué se calcula: el TOTAL de la venta (con plazos, el del plan). */
+  base_cents: number
+  /** Su % del día del primer pago (Visión → Ajustes). */
+  pct: number
+  /** Lo que le toca, aproximado: ese % sobre el total de la venta. */
   estimada_cents: number
   /** Pasó por una llamada: solo esas cuentan como pendientes. */
   con_llamada: boolean
@@ -319,7 +323,12 @@ export interface AvanceAlumno {
 }
 
 export const getClientes = (orgId: number, t: string) =>
-  pedir<{ clientes: Cliente[]; total_cents: number; n: number; comisiones?: ComisionesCloser[] }>(`panel/org/${orgId}/clientes`, 'GET', null, t)
+  pedir<{ clientes: Cliente[]; total_cents: number; n: number; comisiones?: ComisionesCloser[]; porcentajes_comision?: number[] }>(
+    `panel/org/${orgId}/clientes`,
+    'GET',
+    null,
+    t
+  )
 
 export const marcarComision = (orgId: number, email: string, importe_cents: number, t: string) =>
   pedir<{ ok: boolean }>(`panel/org/${orgId}/comisiones`, 'POST', { email, importe_cents }, t)

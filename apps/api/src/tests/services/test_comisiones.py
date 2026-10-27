@@ -7,6 +7,7 @@ from sqlmodel import select
 from src.db.comision_closer import ComisionCloser
 from src.db.contact_event import ContactEvent
 from src.db.enrollment import Enrollment
+from src.db.plan_pagos import PlanPagos
 from src.services.panel import comisiones as K
 
 TRAMOS = [{"desde": "", "pct": 10.0}, {"desde": "2026-10-16", "pct": 15.0}]
@@ -17,6 +18,29 @@ def test_lo_que_le_toca_va_por_el_dia_en_que_se_cobro():
     assert K.estimada(39700, "2026-10-10", TRAMOS) == 3970  # 10 %
     assert K.estimada(0, "2026-10-20", TRAMOS) == 0
     assert K.estimada(43500, "2026-10-20", []) == 0
+
+
+def test_sobre_el_total_de_la_venta_tambien_a_plazos():
+    # Pago único: lo cobrado. A plazos: el total del plan, aunque falten pagos.
+    assert K.base_de({"total_cents": 43500}) == 43500
+    assert K.base_de({"total_cents": 16567, "plazos": {"total_cents": 49700}}) == 49700
+    assert K.base_de({"total_cents": 54000, "plazos": {"total_cents": 54000}}) == 54000
+    por, _ = K.estado_de(
+        [{"email": "pl@x.com", "total_cents": 16567, "primer_pago": "2026-10-20", "plazos": {"total_cents": 49700}}],
+        {},
+        {"pl@x.com"},
+        {},
+        TRAMOS,
+    )
+    assert por["pl@x.com"]["base_cents"] == 49700
+    assert por["pl@x.com"]["pct"] == 15.0
+    assert por["pl@x.com"]["estimada_cents"] == 7455  # 15 % de 497 €, no de 165,67 €
+
+
+def test_los_porcentajes_para_elegir():
+    assert K.porcentajes(TRAMOS) == [10.0, 15.0]
+    assert K.porcentajes([]) == [10.0, 15.0]
+    assert K.porcentajes([{"desde": "", "pct": 12}]) == [12.0]
 
 
 def test_resumen_por_closer_solo_con_las_de_llamada():
@@ -65,6 +89,15 @@ async def test_en_clientes(db, org):
     assert por["ana@x.com"]["con_llamada"] is True and por["ana@x.com"]["estimada_cents"] == 6525
     assert por["luis@x.com"]["con_llamada"] is False
     assert datos["comisiones"][0]["pendientes"] == 1
+    assert datos["porcentajes_comision"]  # los de Visión, o 10 y 15
+
+    # A plazos: sobre el total del plan, no sobre el primer pago.
+    db.add(Enrollment(email="pl@x.com", first_name="Pl", status="paid", amount_cents=16567, paid_at="2026-10-22T10:00:00"))
+    db.add(PlanPagos(email="pl@x.com", stripe_subscription_id="sub_1", cuotas=3, cuota_cents=16567, total_cents=49700, cuotas_pagadas=1, pagado_cents=16567))
+    await db.commit()
+    datos = await listar_clientes(db, org.id)
+    pl = next(c for c in datos["clientes"] if c["email"] == "pl@x.com")["comision"]
+    assert pl["base_cents"] == 49700 and pl["estimada_cents"] == round(49700 * pl["pct"] / 100)
 
     await K.marcar("ana@x.com", 6525, "Rida", db)
     datos = await listar_clientes(db, org.id)

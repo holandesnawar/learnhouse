@@ -10,10 +10,14 @@ ficha ni en la línea de tiempo.
 - Una venta = un cliente (por correo, como `listar_clientes`). Sin fila en
   `comision_closer`, la comisión está **pendiente**; con fila, **pagada**, con
   el día, quién la marcó y, si se apuntó, cuánto.
-- **Lo que le toca, aproximado**: el % del closer del día en que se cobró
-  (los tramos de Visión → Ajustes: 10 % y 15 % desde el 16/10/2026) sobre lo
-  cobrado. No resta Klarna ni devoluciones, por eso se enseña con «≈» y se
-  puede cambiar al marcarla. Con plazos, sobre lo cobrado hasta ese día.
+- **Lo que le toca, aproximado**: el % del closer del día del primer pago
+  (los tramos de Visión → Ajustes: 10 % y 15 % desde el 16/10/2026) sobre el
+  **TOTAL de la venta** (`base_de`). Con plazos, el total del plan aunque aún
+  falten pagos ("que sea del total, no del primer pago solo", 27/10). No resta
+  Klarna ni devoluciones, por eso se enseña con «≈».
+- Al marcarla, el administrador elige el % (los de los tramos: 10 o 15) y el
+  importe se ajusta solo; también se puede escribir a mano. Se guarda el
+  importe, no el %: la pantalla deduce el % si cuadra con uno de ellos.
 - Solo cuentan como pendientes las ventas que **pasaron por una llamada**
   (cita de Calendly, «¿Qué pasó?» apuntado, closer asignado, o una reserva o
   llamada del equipo en su ficha), igual que la comisión de Visión. Las demás
@@ -39,11 +43,26 @@ def _ahora() -> str:
 
 
 def estimada(importe_cents: int, fecha: str, tramos: list[dict]) -> int:
-    """Lo que le toca al closer de una venta: su % del día en que se cobró
-    sobre lo cobrado. Función pura."""
+    """Lo que le toca al closer de una venta: su % del día del primer pago
+    sobre el total de la venta. Función pura."""
     from src.services.vision.calculo import pct_closer
 
     return round(max(0, int(importe_cents or 0)) * pct_closer((fecha or "")[:10], tramos or []) / 100)
+
+
+def base_de(cliente: dict) -> int:
+    """Sobre qué se calcula la comisión: el TOTAL de la venta. Con plazos, el
+    total del plan (497, 540…), no lo cobrado hasta hoy. Función pura."""
+    cobrado = int(cliente.get("total_cents") or 0)
+    plan = int((cliente.get("plazos") or {}).get("total_cents") or 0)
+    return max(cobrado, plan)
+
+
+def porcentajes(tramos: list[dict]) -> list[float]:
+    """Los % que se pueden elegir al marcar: los de los tramos de Visión
+    (10 y 15). Sin tramos guardados, esos dos. Función pura."""
+    vistos = sorted({float(t.get("pct") or 0) for t in (tramos or []) if float(t.get("pct") or 0) > 0})
+    return vistos or [10.0, 15.0]
 
 
 def estado_de(
@@ -55,10 +74,13 @@ def estado_de(
 ) -> tuple[dict[str, dict], list[dict]]:
     """La comisión de cada cliente y el resumen por closer. Función pura.
 
-    clientes: los de `listar_clientes` (email, total_cents, primer_pago).
+    clientes: los de `listar_clientes` (email, total_cents, primer_pago y,
+    si paga a plazos, `plazos.total_cents`).
     pagadas: {email: {importe_cents, cuando, por}} de `comision_closer`.
     Devuelve ({email: comision}, [resumen por closer, el más pendiente arriba]).
     """
+    from src.services.vision.calculo import pct_closer
+
     por_email: dict[str, dict] = {}
     resumen: dict[str, dict] = {}
     for c in clientes:
@@ -68,9 +90,12 @@ def estado_de(
         closer = closers.get(email) or ""
         llamada = email in con_llamada or bool(closer)
         pagada = pagadas.get(email)
+        base = base_de(c)
         com = {
             "pagada": pagada,
-            "estimada_cents": estimada(c.get("total_cents") or 0, c.get("primer_pago") or "", tramos),
+            "base_cents": base,
+            "pct": pct_closer((c.get("primer_pago") or "")[:10], tramos or []),
+            "estimada_cents": estimada(base, c.get("primer_pago") or "", tramos),
             "con_llamada": llamada,
             "closer": closer,
         }
@@ -156,8 +181,9 @@ async def con_llamada(db_session: AsyncSession) -> set[str]:
     return salida
 
 
-async def para_clientes(clientes: list[dict], org_id: int, db_session: AsyncSession) -> list[dict]:
-    """Pone `comision` en cada cliente y devuelve el resumen por closer."""
+async def para_clientes(clientes: list[dict], org_id: int, db_session: AsyncSession) -> tuple[list[dict], list[float]]:
+    """Pone `comision` en cada cliente y devuelve el resumen por closer y los
+    % que se pueden elegir al marcar."""
     from src.services.panel.pipeline import guardadas
     from src.services.vision.campanas import leer_ajustes
 
@@ -173,4 +199,4 @@ async def para_clientes(clientes: list[dict], org_id: int, db_session: AsyncSess
     por_email, resumen = estado_de(clientes, await pagadas(db_session), await con_llamada(db_session), closers, tramos)
     for c in clientes:
         c["comision"] = por_email.get((c.get("email") or "").strip().lower())
-    return resumen
+    return resumen, porcentajes(tramos)
