@@ -25,7 +25,7 @@ import CourseFAQ from '@components/Pages/Activity/CourseFAQ'
 import WeeklyClassBanner from '@components/Pages/Courses/WeeklyClassBanner'
 import SalaEnDirecto from '@components/Pages/Courses/SalaEnDirecto'
 import VideoPortada from '@components/Pages/Courses/VideoPortada'
-import { CURSO_FORMACION_UUID, ajustesDirecto, esCursoEnDirecto, uuidDeCurso } from '@/lib/nawar/cursos'
+import { CURSO_CLASE_SEMANAL_UUID, CURSO_FORMACION_UUID, ajustesDirecto, conGrabadas, esCursoEnDirecto, uuidDeCurso } from '@/lib/nawar/cursos'
 import { sesionesVisibles } from '@/lib/course/weeklyClass'
 import { getLessonIcon } from '@components/Pages/Activity/CourseLessonsSidebar'
 import { useAnalytics } from '@/hooks/useAnalytics'
@@ -69,6 +69,9 @@ const CourseClient = (props: any) => {
 
   const course = initialCourse || clientCourseData;
   const enDirecto = esCursoEnDirecto(course?.course_uuid, org?.config?.config)
+  // Spreekclub y Masterclass, sin clases grabadas (27/10): ni la sección ni
+  // «Clases anteriores». Lo cambia el administrador en esta misma página.
+  const grabadas = !enDirecto || conGrabadas(org?.config?.config, course?.course_uuid)
 
   const { track } = useAnalytics()
 
@@ -377,7 +380,7 @@ const CourseClient = (props: any) => {
                     return (
                       <div className="space-y-4">
                         {conVideo && <VideoPortada src={videoPortada} />}
-                        <WeeklyClassBanner courseUuid={uuidDeCurso(course)} compacto={conVideo} />
+                        <WeeklyClassBanner courseUuid={uuidDeCurso(course)} compacto={conVideo} grabadas={grabadas} />
                         <SalaEnDirecto courseUuid={uuidDeCurso(course)} soloAjustes />
                       </div>
                     );
@@ -481,7 +484,11 @@ const CourseClient = (props: any) => {
                   }
                 })()}
 
-                {course.about && course.about.trim() && (
+                {/* La descripción no sale en las clases en directo nuevas (Spreekclub,
+                    Masterclass, 27/10): LearnHouse obliga a escribirla al crear el
+                    curso, pero ahí presenta el recuadro. La clase semanal de
+                    siempre sigue como estaba. */}
+                {course.about && course.about.trim() && (!enDirecto || uuidDeCurso(course) === CURSO_CLASE_SEMANAL_UUID) && (
                   <div className="course_metadata_left">
                     <p className="whitespace-pre-line break-words w-full leading-relaxed tracking-normal text-pretty hyphens-auto">{course.about}</p>
                   </div>
@@ -546,6 +553,7 @@ const CourseClient = (props: any) => {
               )
             })()}
 
+            {grabadas ? (
             <div id="sesiones-grabadas" className="w-full mt-10 mb-12 scroll-mt-24">
               <h2 className="pb-5 text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2.5" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
                 {enDirecto ? (
@@ -681,6 +689,7 @@ const CourseClient = (props: any) => {
                 })}
               </div>
             </div>
+            ) : null}
 
             {enDirecto ? (
               // Session courses: communities are in the right rail, so here we
@@ -690,6 +699,7 @@ const CourseClient = (props: any) => {
                   courseUuid={course.course_uuid}
                   enDirecto={enDirecto}
                   conSala={ajustesDirecto(org?.config?.config, course.course_uuid).activo}
+                  conGrabadas={grabadas}
                 />
               </div>
             ) : (

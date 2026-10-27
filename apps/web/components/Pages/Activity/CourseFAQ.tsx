@@ -111,11 +111,13 @@ interface CourseFAQProps {
   enDirecto?: boolean
   /** Su sala de la escuela está encendida: ya no se entra por Zoom. */
   conSala?: boolean
+  /** La página enseña las clases grabadas. Si no, fuera la pregunta que las promete. */
+  conGrabadas?: boolean
   /** Compact = sidebar variant: smaller header, tighter paddings. */
   compact?: boolean
 }
 
-export default function CourseFAQ({ courseUuid, compact = false, enDirecto = false, conSala = false }: CourseFAQProps) {
+export default function CourseFAQ({ courseUuid, compact = false, enDirecto = false, conSala = false, conGrabadas = true }: CourseFAQProps) {
   const org = useOrg() as any
   const session = useLHSession() as any
   const { isAdmin } = (useAdminStatus() as any) || {}
@@ -130,7 +132,10 @@ export default function CourseFAQ({ courseUuid, compact = false, enDirecto = fal
   // dice «por Zoom», con la sala ya encendida) lleva las de las clases en
   // directo, no las de la formación.
   const propias = COURSE_FAQS[key] && !conSala ? COURSE_FAQS[key] : undefined
-  const hardcoded = key ? (propias ?? (enDirecto ? FAQ_DIRECTO : DEFAULT_COURSE_FAQ)) : undefined
+  // Sin clases grabadas (Spreekclub, Masterclass), fuera la respuesta que
+  // manda a «Sesiones grabadas»: esa sección no está en la página.
+  const directo = conGrabadas ? FAQ_DIRECTO : { ...FAQ_DIRECTO, items: FAQ_DIRECTO.items.filter((i) => !/grabad/i.test(i.a)) }
+  const hardcoded = key ? (propias ?? (enDirecto ? directo : DEFAULT_COURSE_FAQ)) : undefined
 
   // Las preguntas de cada curso viven en su propio hueco dentro del objeto faq
   // de la organización. Antes compartían `items` con las consultas frecuentes,

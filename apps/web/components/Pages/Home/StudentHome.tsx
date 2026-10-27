@@ -19,7 +19,7 @@ import { registerVisit, type StudentVisit } from '@services/student/progress'
 import { useStudentInsights } from '@/hooks/queries/useStudentInsights'
 import { fechasDeClases, semanaConClases } from '@services/student/insights'
 import { isWeeklyClassCourse } from '@/lib/course/formacionProgress'
-import { CURSO_CLASE_SEMANAL_UUID } from '@/lib/nawar/cursos'
+import { CURSO_CLASE_SEMANAL_UUID, conGrabadas } from '@/lib/nawar/cursos'
 import SafeArea from '@components/Objects/StyledElements/Error/SafeArea'
 import StudentOnboarding from '@components/Pages/Home/StudentOnboarding'
 
@@ -72,7 +72,10 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
   // Su clase en directo (la que le toca por su grupo), para decirle dónde están
   // las grabaciones. Antes se buscaba la clase semanal en `courseList`, que ya
   // viene SIN las clases en directo: nunca salía.
-  const directo: any = (Array.isArray(courses) ? courses : []).find((c: any) => isHidden(c?.course_uuid))
+  // Solo una que tenga grabaciones (27/10): Spreekclub y Masterclass no las enseñan.
+  const directo: any = (Array.isArray(courses) ? courses : []).find(
+    (c: any) => isHidden(c?.course_uuid) && conGrabadas(org?.config?.config, c?.course_uuid)
+  )
   const claseEnDirecto = directo
     ? {
         uuid: String(directo.course_uuid || '').replace(/^course_/, ''),

@@ -202,6 +202,17 @@ async def test_encender_marca_el_curso_en_directo_y_no_pierde_el_recuadro(db, or
     assert "raro" not in guardado["banner"]
 
 
+async def test_quitar_las_clases_grabadas_no_toca_lo_demas(db, org):
+    await _con_config(db, org)
+    await salas.guardar_config(org.id, CURSO, True, True, db)
+    r = await salas.guardar_config(org.id, CURSO, None, None, db, grabadas=False)
+    assert r == {"activo": True, "grabar": True, "grabadas": False}
+    fila = (await db.execute(select(OrganizationConfig).where(OrganizationConfig.org_id == org.id))).scalars().first()
+    guardado = fila.config["salas"]["8a1d1fab-ffbb-44ef-8f21-04ef63676d6e"]
+    assert guardado["grabadas"] is False and guardado["directo"] is True and guardado["activo"] is True
+    assert (await salas.guardar_config(org.id, CURSO, None, None, db, grabadas=True))["grabadas"] is True
+
+
 def test_recuadro_solo_campos_conocidos_y_con_tope():
     r = salas.limpiar_recuadro({"teacher": "  Paul  ", "subtitle": "x" * 900, "otro": "no"})
     assert r["teacher"] == "Paul" and len(r["subtitle"]) == 600 and "otro" not in r
