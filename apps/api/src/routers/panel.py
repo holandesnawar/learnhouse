@@ -605,6 +605,106 @@ async def api_recordatorio_auto_vista(
     return await recordatorio.vista_auto(org_id, datos.asunto, datos.texto, db_session, enviar_a=a_mi)
 
 
+# ── El correo de Rida al reservar una llamada (Avisos). Solo administradores.
+# services/contactos/correo_reserva.py
+
+
+class CorreoReservaIn(BaseModel):
+    activo: Optional[bool] = None
+    asunto: Optional[str] = None
+    texto: Optional[str] = None
+
+
+class CorreoReservaVistaIn(BaseModel):
+    asunto: str = ""
+    texto: str = ""
+    a_mi: bool = False
+
+
+async def _estado_correo_reserva(org_id: int, db_session: AsyncSession, conexion: Optional[dict] = None) -> dict:
+    from sqlmodel import select
+
+    from src.db.contact_event import ContactEvent
+    from src.services.contactos import correo_reserva as C
+
+    estado = await C.leer(db_session, org_id)
+    enviados = (
+        await db_session.execute(select(ContactEvent.id).where(ContactEvent.kind == C.TIPO_EVENTO))
+    ).all()
+    return {
+        **estado,
+        "conexion": conexion if conexion is not None else await C.estado_conexion(),
+        "ultimo_aviso": C.ultimo_aviso(),
+        "enviados": len(enviados),
+    }
+
+
+@router.get("/org/{org_id}/correo-reserva", summary="El correo de Rida al reservar: texto, si está encendido y si Calendly avisa.")
+async def api_correo_reserva(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_progreso(request, org_id, current_user, db_session)
+    return await _estado_correo_reserva(org_id, db_session)
+
+
+@router.put("/org/{org_id}/correo-reserva", summary="Guardar el texto y encenderlo o apagarlo (al encenderlo, conecta Calendly).")
+async def api_correo_reserva_guardar(
+    request: Request,
+    org_id: int,
+    datos: CorreoReservaIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.contactos import correo_reserva as C
+
+    await _admin_progreso(request, org_id, current_user, db_session)
+    try:
+        await C.guardar(org_id, datos.model_dump(), _nombre(current_user), db_session)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    # Encenderlo sin que Calendly avise no serviría de nada: se conecta aquí.
+    conexion = await C.conectar() if datos.activo else None
+    return await _estado_correo_reserva(org_id, db_session, conexion)
+
+
+@router.post("/org/{org_id}/correo-reserva/vista", summary="El correo de Rida con una reserva de ejemplo (o mandármelo a mí).")
+async def api_correo_reserva_vista(
+    request: Request,
+    org_id: int,
+    datos: CorreoReservaVistaIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.contactos import correo_reserva as C
+
+    await _admin_progreso(request, org_id, current_user, db_session)
+    a_mi = (current_user.email or "") if datos.a_mi else ""
+    if datos.a_mi and not a_mi:
+        raise HTTPException(status_code=400, detail="Tu cuenta no tiene correo")
+    try:
+        return await C.vista(
+            org_id, datos.asunto, datos.texto, db_session, enviar_a=a_mi, nombre=getattr(current_user, "first_name", "") or ""
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/org/{org_id}/correo-reserva/conectar", summary="Volver a pedirle a Calendly que avise a la escuela de cada reserva.")
+async def api_correo_reserva_conectar(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.contactos import correo_reserva as C
+
+    await _admin_progreso(request, org_id, current_user, db_session)
+    return await _estado_correo_reserva(org_id, db_session, await C.conectar(forzar=True))
+
+
 # ── Anuncios (solo administradores: es dinero) ─────────────────────────────
 
 

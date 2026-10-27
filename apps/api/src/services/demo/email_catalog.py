@@ -147,7 +147,26 @@ _CATALOG: Dict[str, Dict] = {
             preview=True,
         ),
     },
+    "correo_reserva": {
+        "name": "Mensaje de Rida al reservar una llamada",
+        "when": "Al momento, cuando alguien reserva su llamada en Calendly (una vez por persona). "
+        "Aquí sale el texto de fábrica: el tuyo se edita y se enciende en «Al reservar».",
+        "build": lambda to, name: _correo_reserva(to, name),
+    },
 }
+
+
+def _correo_reserva(to: str, name: str):
+    from src.services.contactos import correo_reserva as C
+
+    reserva = C.reserva_de_ejemplo(to, name)
+    valores = C.valores_de(reserva)
+    return E.send_correo_reserva_email(
+        to,
+        C.rellenar(C.DE_FABRICA["asunto"], valores),
+        C.rellenar(C.DE_FABRICA["texto"], valores),
+        preview=True,
+    )
 
 
 def list_templates() -> List[dict]:

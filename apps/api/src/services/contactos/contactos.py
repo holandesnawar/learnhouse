@@ -67,6 +67,9 @@ NOMBRES_TIPO = {
     # Una llamada que agendó el equipo desde la escuela (15/10,
     # services/contactos/reservar.py). El texto con quién y cuándo, `_que`.
     "llamada-equipo": "El equipo le agendó una llamada",
+    # El correo de Rida al reservar (27/10, services/contactos/correo_reserva.py).
+    # Es además la marca de que ya le llegó: no se le vuelve a mandar.
+    "correo-reserva": "Le llegó el correo de Rida (al reservar la llamada)",
     "alta-manual": "Dado de alta a mano",
 }
 

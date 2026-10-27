@@ -95,6 +95,21 @@ async def avisar_llamada_nueva(datos: dict, db_session: AsyncSession) -> int:
     from src.services.contactos.llamadas import emails_de_administradores
     from src.services.users.emails import send_llamada_agendada_email
 
+    # Desde el 27/10 avisan de una reserva la web (evento `reunion`) y
+    # Calendly (`correo_reserva.py`): la misma reserva, un solo correo. En
+    # Redis y en blando: sin Redis, puede salir dos veces, nunca ninguna.
+    email = str(datos.get("email") or "").strip().lower()
+    r = None
+    if email:
+        try:
+            from src.core.redis import get_redis_client
+
+            r = get_redis_client()
+            if r is not None and not r.set(f"llamada-nueva:{email}", "1", nx=True, ex=1800):
+                return 0
+        except Exception:  # noqa: BLE001
+            r = None
+
     try:
         _, eq = await _equipo_de_la_escuela(db_session)
         a_quien = destinos((await leer(db_session))["repartidor_id"], eq, await emails_de_administradores(db_session))
@@ -108,6 +123,12 @@ async def avisar_llamada_nueva(datos: dict, db_session: AsyncSession) -> int:
             enviados += 1
         except Exception:  # noqa: BLE001
             logger.exception("No se pudo avisar de la llamada nueva")
+    if not enviados and r is not None:
+        # No salió ninguno: que el siguiente aviso de esta reserva lo intente.
+        try:
+            r.delete(f"llamada-nueva:{email}")
+        except Exception:  # noqa: BLE001
+            pass
     return enviados
 
 

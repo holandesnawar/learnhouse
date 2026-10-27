@@ -4,7 +4,8 @@ import AvisosComposer from './AvisosComposer'
 import EmailCatalog from './EmailCatalog'
 import SeedCommunity from './SeedCommunity'
 import RecordatorioAuto from './RecordatorioAuto'
-import { Mail, PenLine, Inbox, Sparkles, BellRing } from 'lucide-react'
+import CorreoReserva from './CorreoReserva'
+import { Mail, PenLine, Inbox, Sparkles, BellRing, CalendarCheck } from 'lucide-react'
 
 /**
  * La pantalla de Avisos tiene tres caras:
@@ -12,10 +13,11 @@ import { Mail, PenLine, Inbox, Sparkles, BellRing } from 'lucide-react'
  *  - Correos automáticos: los que la escuela manda sola, para verlos por dentro.
  *  - 1 semana sin entrar: el recordatorio que sale solo (con su interruptor,
  *    apagado de serie) y su texto, que se edita aquí.
+ *  - Al reservar: el correo de Rida a quien reserva su llamada en Calendly.
  *  - Arranque: sembrar la comunidad antes de que entren los primeros alumnos.
  */
 export default function AvisosTabs() {
-  const [tab, setTab] = useState<'escribir' | 'automaticos' | 'semana' | 'arranque'>('escribir')
+  const [tab, setTab] = useState<'escribir' | 'automaticos' | 'semana' | 'reserva' | 'arranque'>('escribir')
 
   const tabClass = (active: boolean) =>
     `inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-[14px] font-semibold transition-colors ${
@@ -47,6 +49,10 @@ export default function AvisosTabs() {
           <BellRing size={16} />
           1 semana sin entrar
         </button>
+        <button className={tabClass(tab === 'reserva')} onClick={() => setTab('reserva')}>
+          <CalendarCheck size={16} />
+          Al reservar
+        </button>
         <button className={tabClass(tab === 'arranque')} onClick={() => setTab('arranque')}>
           <Sparkles size={16} />
           Arranque
@@ -59,6 +65,8 @@ export default function AvisosTabs() {
         <EmailCatalog />
       ) : tab === 'semana' ? (
         <RecordatorioAuto />
+      ) : tab === 'reserva' ? (
+        <CorreoReserva />
       ) : (
         <SeedCommunity />
       )}
