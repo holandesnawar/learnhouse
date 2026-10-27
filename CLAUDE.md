@@ -3549,7 +3549,14 @@ el closer principal, y diga esta para mí o esta para el otro". Se hizo como
     asignado»): pendientes con su total aproximado, lo pagado y «Marcar las N
     como pagadas».
   - **Lo que le toca es aproximado**: el % de Visión → Ajustes del día del
-    primer pago sobre lo cobrado, sin restar Klarna ni devoluciones.
+    primer pago sobre el **TOTAL de la venta**, sin restar Klarna ni
+    devoluciones. ⚠️ Con plazos, el total del PLAN (497, 540…) aunque falten
+    pagos, no lo cobrado hasta hoy (`base_de`; usuario el 27/10: "que sea del
+    total, no del primer pago solo").
+  - **Al marcarla se elige el %** (botones 10 % / 15 %, los de los tramos de
+    Visión: `porcentajes`) y el importe se ajusta solo; también se escribe a
+    mano. Se guarda solo el importe: la etiqueta enseña «(15 %)» si cuadra
+    con uno de ellos (`lib/nawar/comision.ts`, con test).
   - **Solo cuentan como pendientes las que pasaron por una llamada** (cita de
     Calendly, «¿Qué pasó?», closer asignado, o `reunion`/`llamada-equipo` en
     la ficha). Las demás se pueden marcar igual.

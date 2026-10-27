@@ -10,6 +10,8 @@
  * que le toca aproximado y lo que se le pagó. Arriba, lo pendiente por closer
  * con «Marcar todas pagadas». El closer no ve esta pantalla. Lógica en
  * apps/api/src/services/panel/comisiones.py.
+ * Sobre el TOTAL de la venta (con plazos, el del plan), y al marcarla se
+ * elige el % (10 o 15) y el importe se ajusta solo (lib/nawar/comision.ts).
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
@@ -30,6 +32,7 @@ import FichaCliente from './FichaCliente'
 import PlazasReservadas from './PlazasReservadas'
 import { BOTON, BOTON_PRINCIPAL } from './ui'
 import { confirmar } from '@lib/nawar/confirmar'
+import { aCaja, comisionCents, leerEuros, pctQueCuadra, textoPct } from '@lib/nawar/comision'
 import toast from 'react-hot-toast'
 import { ChevronRight, HandCoins, Loader2, Search } from 'lucide-react'
 
@@ -59,7 +62,13 @@ export default function ClientesPanel() {
   const org = useOrg() as any
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
-  const [datos, setDatos] = useState<{ clientes: Cliente[]; total_cents: number; n: number; comisiones?: ComisionesCloser[] } | null>(null)
+  const [datos, setDatos] = useState<{
+    clientes: Cliente[]
+    total_cents: number
+    n: number
+    comisiones?: ComisionesCloser[]
+    porcentajes_comision?: number[]
+  } | null>(null)
   const [error, setError] = useState('')
   const [q, setQ] = useState('')
   const [abierta, setAbierta] = useState<string | null>(null)
@@ -98,17 +107,13 @@ export default function ClientesPanel() {
       setEditando(null)
       return
     }
-    const cents = c.comision?.pagada?.importe_cents || c.comision?.estimada_cents || 0
-    setImporte(cents ? (cents / 100).toFixed(2).replace('.', ',') : '')
+    setImporte(aCaja(c.comision?.pagada?.importe_cents || c.comision?.estimada_cents || 0))
     setEditando(c.email)
   }
 
   async function guardarComision(c: Cliente) {
-    // «65,25», «1.200,50» o «65.25»: con coma, los puntos son de miles.
-    const limpio = (importe || '0').trim()
-    const numero = limpio.includes(',') ? limpio.replace(/\./g, '').replace(',', '.') : limpio
-    const cents = Math.round(parseFloat(numero) * 100)
-    if (!Number.isFinite(cents) || cents < 0) {
+    const cents = leerEuros(importe)
+    if (cents === null) {
       toast.error('Escribe un importe válido, por ejemplo 65,25')
       return
     }
@@ -168,6 +173,8 @@ export default function ClientesPanel() {
   const comisiones = datos.comisiones ?? []
   const nPendientes = datos.clientes.filter((c) => c.comision && !c.comision.pagada && c.comision.con_llamada).length
   const nPagadas = datos.clientes.filter((c) => c.comision?.pagada).length
+  // Los % que se pueden elegir al marcar (los de Visión → Ajustes: 10 y 15).
+  const pcts = datos.porcentajes_comision?.length ? datos.porcentajes_comision : [10, 15]
 
   return (
     <div className="space-y-4">
@@ -214,7 +221,8 @@ export default function ClientesPanel() {
             ))}
           </div>
           <p className="px-4 pb-3 pt-1 text-[11.5px] text-[#9CA3AF]">
-            «≈» es su % (Visión → Ajustes) sobre lo cobrado, sin restar Klarna ni devoluciones. Al marcar una venta puedes apuntar lo que le pagaste de verdad.
+            «≈» es su % (Visión → Ajustes) sobre el total de la venta (a plazos, el total del plan aunque falten pagos), sin restar Klarna ni devoluciones. Al
+            marcar una venta eliges el % o escribes lo que le pagaste de verdad.
           </p>
         </div>
       ) : null}
@@ -258,6 +266,10 @@ export default function ClientesPanel() {
           {lista.map((c) => {
             const a = actividad(c)
             const com = c.comision
+            const base = com?.base_cents || c.total_cents
+            const pctPagada = com?.pagada ? pctQueCuadra(base, com.pagada.importe_cents, pcts) : null
+            const enCaja = editando === c.email ? leerEuros(importe) : null
+            const pctEnCaja = enCaja !== null ? pctQueCuadra(base, enCaja, pcts) : null
             return (
               <div key={c.email}>
               <div
@@ -317,9 +329,11 @@ export default function ClientesPanel() {
                         title={com.closer ? `Closer: ${com.closer}` : undefined}
                       >
                         {com.pagada
-                          ? `Comisión pagada${com.pagada.importe_cents ? ` · ${euros(com.pagada.importe_cents)}` : ''} · ${fechaCorta(com.pagada.cuando)}`
+                          ? `Comisión pagada${com.pagada.importe_cents ? ` · ${euros(com.pagada.importe_cents)}` : ''}${
+                              pctPagada !== null ? ` (${textoPct(pctPagada)})` : ''
+                            } · ${fechaCorta(com.pagada.cuando)}`
                           : com.con_llamada
-                            ? `Comisión pendiente · ≈ ${euros(com.estimada_cents)}`
+                            ? `Comisión pendiente · ≈ ${euros(com.estimada_cents)}${com.pct ? ` (${textoPct(com.pct)})` : ''}`
                             : 'Sin llamada · sin comisión'}
                       </button>
                     ) : null}
@@ -354,9 +368,27 @@ export default function ClientesPanel() {
                     </span>
                   ) : (
                     <span className="text-[#6B7280] w-full">
-                      ¿Cuánto le pagaste{com.closer ? ` a ${com.closer.split(/\s+/)[0]}` : ' al closer'}? Le toca ≈ {euros(com.estimada_cents)}.
+                      ¿Cuánto le pagaste{com.closer ? ` a ${com.closer.split(/\s+/)[0]}` : ' al closer'}?
                     </span>
                   )}
+                  <span className="text-[#6B7280] w-full -mt-1">
+                    Sobre el total de la venta: <span className="font-semibold text-gray-900 tabular-nums">{euros(base)}</span>
+                    {c.plazos && base > c.total_cents ? ` · a plazos, cobrado ${euros(c.total_cents)} hasta hoy` : ''}
+                  </span>
+                  {/* Elegir el % ajusta el importe solo; también se puede escribir a mano. */}
+                  <div className="flex items-center gap-1">
+                    {pcts.map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setImporte(aCaja(comisionCents(base, p)))}
+                        className={`rounded-md border px-2.5 py-1.5 text-[13px] font-semibold tabular-nums transition-colors ${
+                          pctEnCaja === p ? 'border-gray-900 bg-gray-900 text-white' : 'border-[#D1D5DB] bg-white text-gray-700 hover:bg-[#F9FAFB]'
+                        }`}
+                      >
+                        {textoPct(p)}
+                      </button>
+                    ))}
+                  </div>
                   <div className="relative">
                     <input
                       value={importe}

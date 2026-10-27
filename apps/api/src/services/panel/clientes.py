@@ -100,11 +100,12 @@ async def listar_clientes(db_session: AsyncSession, org_id: Optional[int] = None
     # La comisión del closer de cada venta (27/10, `comisiones.py`): solo la
     # piden los administradores, que son los únicos que ven Clientes.
     comisiones: list[dict] = []
+    porcentajes: list[float] = []
     if org_id is not None:
         from src.services.panel.comisiones import para_clientes
 
         try:
-            comisiones = await para_clientes(clientes, org_id, db_session)
+            comisiones, porcentajes = await para_clientes(clientes, org_id, db_session)
         except Exception:  # noqa: BLE001
             logger.warning("No se pudo calcular la comisión del closer", exc_info=True)
 
@@ -113,4 +114,5 @@ async def listar_clientes(db_session: AsyncSession, org_id: Optional[int] = None
         "total_cents": sum(c["total_cents"] for c in clientes),
         "n": len(clientes),
         "comisiones": comisiones,
+        "porcentajes_comision": porcentajes,
     }
