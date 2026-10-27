@@ -391,6 +391,24 @@ async def api_alumnos(
     return await listar_alumnos(org_id, db_session)
 
 
+@router.get(
+    "/org/{org_id}/camino",
+    summary="El camino de 16 semanas de cada alumno: cuándo entró, en qué semana va y a cuántas clases en directo fue.",
+)
+async def api_camino(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    if not await _es_admin(current_user, org_id, db_session):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    from src.services.panel.camino import camino
+
+    return await camino(org_id, db_session)
+
+
 # ── Abrir un módulo a mano a un alumno que va por avance (Progreso).
 
 

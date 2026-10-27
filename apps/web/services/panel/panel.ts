@@ -398,6 +398,36 @@ export const enviarRecordatorio = (
 export const getAlumnosProgreso = (orgId: number, t: string) =>
   pedir<{ alumnos: AlumnoProgreso[]; total_clases: number }>(`panel/org/${orgId}/alumnos`, 'GET', null, t)
 
+/** El camino de 16 semanas de cada alumno (apps/api/src/services/panel/camino.py). */
+export type EstadoCamino = 'en-curso' | 'ultimas' | 'terminado' | 'sin-empezar' | 'sin-fecha'
+
+export interface AlumnoCamino {
+  user_id: number
+  nombre: string
+  email: string
+  grupos: string[]
+  /** El día que entró (AAAA-MM-DD, hora de Países Bajos). */
+  entro: string
+  semana: number
+  /** Último día de la semana 16. */
+  termina: string
+  estado: EstadoCamino
+  dias_quedan: number | null
+  /** Clases en directo a las que fue (sala de la escuela, 10 min o más). */
+  clases_directo: number
+  clases_por_curso: { curso: string; n: number }[]
+}
+
+export const getCamino = (orgId: number, t: string) =>
+  pedir<{
+    semanas: number
+    hoy: string
+    alumnos: AlumnoCamino[]
+    cursos: { uuid: string; nombre: string }[]
+    minimo_min: number
+    aviso: string
+  }>(`panel/org/${orgId}/camino`, 'GET', null, t)
+
 export interface Campana {
   id: number
   nombre: string

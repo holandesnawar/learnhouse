@@ -3719,6 +3719,34 @@ curso fijo:
   guarda 2 min: `_escribir` borra esa caché, y encender/apagar recarga la
   página.
 
+### Camino de 16 semanas: Panel → Alumnos → Camino (27/10/2026)
+"Ver en columnas cada alumno: cuándo entró y cuántas clases tomó ya… y cuándo
+se termina su camino de 16 clases". Decidido con él: TABLA, con las dos cosas.
+`services/panel/camino.py` (docstring), `GET /panel/org/{id}/camino` (solo
+administradores), `Panel/CaminoPanel.tsx` (`?tab=camino`), test `test_camino.py`.
+- **Semana del camino** (`semana_del_camino`, pura): desde el día que pagó
+  (`user_organization.creation_date`, hora NL, el mismo de la apertura por
+  avance). Termina el último día de la semana 16 (entra + 111 días). Estados:
+  en curso, últimas semanas (15 y 16), terminado.
+- **Clases en directo a las que fue de verdad** (`asistencias`, pura): de las
+  sesiones de Daily (`GET /meetings?room=`, con `participants`; si no vienen
+  dentro, `/meetings/{id}/participants`). Cuenta por el `user_id` que la
+  escuela pone en la entrada, una vez por sesión y con 10 min o más dentro
+  (sumando si entra y sale). Salas = cursos con `salas[uuid]` activo o
+  directo. Caché de 5 min por sala; si Daily falla, la tabla sale igual con
+  el motivo. ⚠️ Solo cuenta desde el 27/10/2026 (lo de Zoom no se sabe).
+- Columnas: alumno, grupos (Beta · Grupo 1, Programa nuevo…), entró, semana
+  (barra), clases en directo (con el reparto por curso), termina. Ordenable
+  por cabecera; en el móvil, tarjetas. Al tocar, `FichaAlumno` de Progreso.
+- Sin pruebas (fuera de los números) ni Testers.
+
+### Vídeo de portada en bucle (27/10/2026)
+`components/Pages/Courses/VideoPortada.tsx`: el vídeo de portada de un curso
+va siempre en marcha, en bucle, sin sonido ni botones, y la caja toma la
+forma del vídeo (sin franjas negras). En una clase en directo, si el curso
+tiene VÍDEO de portada, sale encima del recuadro (una portada con foto no,
+para no cambiar la clase semanal de siempre).
+
 ### La sala con los colores de la marca (27/10/2026)
 "¿Se puede cambiar el color? Azul de marca, no verde". Daily solo deja
 cambiar los colores con su librería: la sala va ahora con

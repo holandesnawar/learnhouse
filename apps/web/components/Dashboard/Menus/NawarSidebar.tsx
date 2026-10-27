@@ -60,6 +60,7 @@ import {
   CalendarDots,
   Tag,
   Compass,
+  Path,
 } from '@phosphor-icons/react'
 
 type Item = { href: string; label: string; icon: React.ReactNode; match?: (p: string) => boolean }
@@ -104,6 +105,8 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
     items: [
       // Por dónde va cada alumno y cuándo entró (04/10/2026).
       { href: '/dash/estadisticas?tab=progreso', label: 'Progreso', icon: <ChartLineUp size={18} weight="fill" /> },
+      // Las 16 semanas de cada alumno y sus clases en directo (27/10/2026).
+      { href: '/dash/estadisticas?tab=camino', label: 'Camino (16 semanas)', icon: <Path size={18} weight="fill" /> },
       // La beta y el programa nuevo, separados por grupos (25/10/2026).
       { href: '/dash/estadisticas?tab=tandas', label: 'Tandas y grupos', icon: <Tag size={18} weight="fill" /> },
       { href: '/dash/users/settings/users', label: 'Usuarios', icon: <UserCircle size={18} weight="fill" />, match: (p) => p.includes('/dash/users') },
