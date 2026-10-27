@@ -7,7 +7,7 @@ from src.routers import health
 from src.routers import instance
 from src.routers import plans
 from src.routers import usergroups
-from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs, panel, vision
+from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs, panel, vision, salas
 from src.routers import notifications as notifications_router_module
 from src.routers import stream
 from src.routers import api_tokens
@@ -397,6 +397,14 @@ v1_router.include_router(
     vision.router,
     prefix="/vision",
     tags=["vision"],
+)
+
+# Salas en directo dentro de la escuela (Daily). Entrar, quien ve el curso;
+# encender y grabaciones, administradores. Ver `src/services/salas/salas.py`.
+v1_router.include_router(
+    salas.router,
+    prefix="/salas",
+    tags=["salas"],
 )
 
 # Recursos: carpetas con archivos y enlaces para los alumnos. Leer, quien está
