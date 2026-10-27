@@ -322,11 +322,13 @@ async def ficha_cliente(
     llamadas: list[dict] = []
     try:
         from src.services.contactos.agenda import agenda
+        from src.services.contactos.confirmar_llamada import confirmadas
         from src.services.contactos.resultado_llamada import resultados
 
         hechos = await resultados(db_session)
+        confirmada = await confirmadas(db_session)
         llamadas = [
-            {**c, "resultado": hechos.get(c.get("id") or "")}
+            {**c, "resultado": hechos.get(c.get("id") or ""), "confirmada": confirmada.get(c.get("id") or "")}
             for c in (await agenda()).get("citas") or []
             if c.get("email") == clave
         ]

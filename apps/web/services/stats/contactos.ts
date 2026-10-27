@@ -212,6 +212,8 @@ export interface Cita {
   /** El closer que lleva la llamada (22/10): 0 = sin asignar. */
   closer_id?: number
   closer?: string
+  /** La persona ha dicho que viene (27/10): quién lo apuntó y cuándo. */
+  confirmada?: { autor: string; cuando: string } | null
 }
 
 export type ResultadoLlamada = 'pagado' | 'compra' | 'piensa' | 'no-encaja' | 'no-vino'
@@ -265,6 +267,18 @@ export const quitarCita = (orgId: number, c: Cita, accessToken: string) =>
 
 export const devolverCita = (orgId: number, citaId: string, accessToken: string) =>
   pedir<{ ok: boolean }>(`contactos/org/${orgId}/agenda/quitar?cita_id=${encodeURIComponent(citaId)}`, 'DELETE', null, accessToken)
+
+/** «Confirmada» (27/10): la persona ha dicho que sí viene a su llamada. */
+export const confirmarCita = (orgId: number, c: Cita, accessToken: string) =>
+  pedir<{ ok: boolean; confirmada: { autor: string; cuando: string } }>(
+    `contactos/org/${orgId}/llamadas/confirmar`,
+    'POST',
+    { cita_id: c.id, email: c.email, nombre: c.nombre, inicio: c.inicio },
+    accessToken
+  )
+
+export const quitarConfirmacion = (orgId: number, citaId: string, accessToken: string) =>
+  pedir<{ ok: boolean }>(`contactos/org/${orgId}/llamadas/confirmar?cita_id=${encodeURIComponent(citaId)}`, 'DELETE', null, accessToken)
 
 /** Las horas libres de un día en Calendly (15/10), para agendar desde la escuela. */
 export interface Huecos {

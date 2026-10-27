@@ -220,6 +220,36 @@ export default function KpisPanel() {
         </p>
       ) : null}
 
+      {/* ¿Sirve confirmar la llamada? (27/10): el seteo del closer en números. */}
+      {ll.confirmacion ? (
+        <Seccion titulo="¿Sirve confirmar la llamada?">
+          <p className={META}>
+            Cuántos no se presentan entre las llamadas que la persona confirmó antes (Llamadas → Por confirmar) y entre las que no. Cuenta
+            desde el {diaCorto(ll.confirmacion.desde)}, cuando se empezó a marcar, y solo las llamadas con «¿Qué pasó?» apuntado.
+          </p>
+          <div className="grid grid-cols-2 gap-3 max-w-xl">
+            <Cifra
+              titulo="Confirmadas: no se presentan"
+              valor={pct(ll.confirmacion.si.pct_no_show)}
+              sub={
+                ll.confirmacion.si.con_resultado
+                  ? `${ll.confirmacion.si.no_vino} de ${ll.confirmacion.si.con_resultado}`
+                  : 'Todavía ninguna con resultado'
+              }
+            />
+            <Cifra
+              titulo="Sin confirmar: no se presentan"
+              valor={pct(ll.confirmacion.no.pct_no_show)}
+              sub={
+                ll.confirmacion.no.con_resultado
+                  ? `${ll.confirmacion.no.no_vino} de ${ll.confirmacion.no.con_resultado}`
+                  : 'Todavía ninguna con resultado'
+              }
+            />
+          </div>
+        </Seccion>
+      ) : null}
+
       <Seccion
         titulo="Cada día"
         extra={

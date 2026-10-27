@@ -12,6 +12,11 @@
  * Google del usuario, por si allí tiene más cosas. El closer no tiene que
  * abrir ni Calendly ni Google.
  *
+ * Arriba de todo, «Por confirmar» (27/10): las de hoy y mañana que nadie ha marcado
+ * como confirmadas. Es la lista del closer que hace el seteo: WhatsApp en
+ * cuanto reservan («Confirmar cita»), una llamada si no contestan, y al decir
+ * que sí, «Confirmada». En KPIs se compara el no-show de unas y otras.
+ *
  * Debajo, quien pidió una llamada por el formulario de /agendar, con sus
  * respuestas. La marca de "atendida" es la misma que en Contactos y el
  * tablero (la solicitud que crea el formulario).
@@ -38,6 +43,7 @@ import useAdminStatus from '@components/Hooks/useAdminStatus'
 import {
   avisoTrasBorrar,
   borrarContacto,
+  confirmarCita,
   cuandoLlamar,
   devolverCita,
   getAgenda,
@@ -50,6 +56,7 @@ import {
   hoyISO,
   marcarLlamada,
   quitarCita,
+  quitarConfirmacion,
   RESULTADOS,
   type Agenda,
   type AgendaGoogle,
@@ -59,11 +66,12 @@ import {
   type VolverALlamar,
 } from '@services/stats/contactos'
 import { marcarSolicitud } from '@services/stats/school'
-import { CalendarPlus, Check, ChevronDown, ChevronLeft, ChevronRight, Loader2, NotebookPen, Plus, RotateCcw, Trash2, Video, X } from 'lucide-react'
+import { CalendarPlus, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Loader2, NotebookPen, Phone, Plus, RotateCcw, Trash2, Video, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { confirmar } from '@lib/nawar/confirmar'
 import { BOTON, BOTON_PELIGRO, BOTON_PRINCIPAL, ENLACE, Estado, META, Meta, Seccion, TARJETA, filtro, type Tono } from '../Panel/ui'
 import { numeroWhatsApp } from '@/lib/nawar/telefono'
+import { porConfirmar } from '@/lib/nawar/recordatorioLlamada'
 
 // ── Fechas ────────────────────────────────────────────────────────────────
 
@@ -102,7 +110,21 @@ function estadoDe(c: Cita): { texto: string; tono: Tono; pendiente: boolean } {
     return { texto: c.resultado.nombre, tono, pendiente: false }
   }
   const pasada = new Date(c.fin || c.inicio).getTime() < Date.now()
-  return pasada ? { texto: '¿Qué pasó?', tono: 'rojo', pendiente: true } : { texto: 'Programada', tono: 'azul', pendiente: false }
+  if (pasada) return { texto: '¿Qué pasó?', tono: 'rojo', pendiente: true }
+  // Las que vienen (27/10): si la persona ya ha dicho que viene.
+  return c.confirmada ? { texto: 'Confirmada', tono: 'verde', pendiente: false } : { texto: 'Sin confirmar', tono: 'ambar', pendiente: false }
+}
+
+/** Hace cuánto (para «lo apuntó Diego hace 2 h»). */
+function haceCuanto(iso: string) {
+  const ms = Date.now() - new Date(iso).getTime()
+  if (!iso || Number.isNaN(ms)) return ''
+  const min = Math.round(ms / 60000)
+  if (min < 1) return 'ahora mismo'
+  if (min < 60) return `hace ${min} min`
+  const h = Math.round(min / 60)
+  if (h < 24) return `hace ${h} h`
+  return `hace ${Math.round(h / 24)} d`
 }
 
 // ── Pantalla ──────────────────────────────────────────────────────────────
@@ -214,6 +236,23 @@ export default function LlamadasPanel() {
   }
 
   const sinApuntar = (agenda?.citas || []).filter((c) => estadoDe(c).pendiente)
+  const aConfirmar = porConfirmar(agenda?.citas || [])
+  const [confirmando, setConfirmando] = useState<string | null>(null)
+
+  // «Confirmada» (27/10): marcar o quitar, sin cerrar nada.
+  async function alternarConfirmada(c: Cita): Promise<Cita | null> {
+    setConfirmando(c.id)
+    const r = c.confirmada ? await quitarConfirmacion(org?.id, c.id, accessToken) : await confirmarCita(org?.id, c, accessToken)
+    setConfirmando(null)
+    if (!r.ok) {
+      toast.error(r.error || 'No se ha podido guardar')
+      return null
+    }
+    const nueva: Cita = { ...c, confirmada: c.confirmada ? null : (r.datos as any)?.confirmada || { autor: '', cuando: new Date().toISOString() } }
+    setAgenda((a) => (a ? { ...a, citas: a.citas.map((x) => (x.id === c.id ? nueva : x)) } : a))
+    toast.success(nueva.confirmada ? 'Confirmada' : 'Quitada la confirmación')
+    return nueva
+  }
 
   if (fallo) {
     return (
@@ -235,6 +274,45 @@ export default function LlamadasPanel() {
 
   return (
     <div className="space-y-8">
+      {agenda?.configurado && !agenda.error ? (
+        <Seccion titulo={aConfirmar.length ? `Por confirmar · hoy y mañana · ${aConfirmar.length}` : 'Por confirmar · hoy y mañana · ninguna'}>
+          <p className={META}>
+            Escríbeles por WhatsApp («Confirmar cita») y, si no contestan en unas horas, llámales. Cuando digan que sí, márcala como
+            confirmada.
+          </p>
+          {aConfirmar.length ? (
+            <div className={`${TARJETA} divide-y divide-[#F3F4F6]`}>
+              {aConfirmar.map((c) => (
+                <div key={c.id} className="px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <button onClick={() => setCita(c)} className="flex-1 min-w-[180px] text-left sm:flex sm:items-center sm:gap-4">
+                    <span className="block sm:order-2 min-w-0">
+                      <span className="block text-[14px] font-medium text-gray-900 truncate hover:underline">{c.nombre || c.email}</span>
+                      <QuienLaLleva c={c} />
+                    </span>
+                    <span className="block sm:order-1 text-[13px] text-gray-500 sm:w-[150px] shrink-0 tabular-nums">{diaHora(c.inicio)}</span>
+                  </button>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                    <RecordatorioWhatsApp tipos={['confirmar']} compacto nombre={c.nombre} telefono={c.telefono} inicio={c.inicio} enlace={c.enlace} />
+                    {numeroWhatsApp(c.telefono) ? (
+                      <a href={`tel:+${numeroWhatsApp(c.telefono)}`} className="text-[13px] font-medium text-[#025dc7] hover:underline inline-flex items-center gap-1">
+                        <Phone size={13} /> Llamar
+                      </a>
+                    ) : null}
+                    <button onClick={() => alternarConfirmada(c)} disabled={confirmando === c.id} className={BOTON}>
+                      {confirmando === c.id ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />} Confirmada
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className={`${TARJETA} p-4`}>
+              <p className="text-[13.5px] text-gray-600">Todas las de hoy y mañana están confirmadas (o no hay ninguna).</p>
+            </div>
+          )}
+        </Seccion>
+      ) : null}
+
       <AgendaVista
         agenda={agenda}
         cargando={cargandoAgenda}
@@ -349,6 +427,11 @@ export default function LlamadasPanel() {
             cargarNotas()
             setNueva({ inicial: { nombre: c.nombre, email: c.email, telefono: c.telefono } })
           }}
+          onConfirmada={async (c) => {
+            const nueva = await alternarConfirmada(c)
+            if (nueva) setCita(nueva)
+          }}
+          confirmando={confirmando === cita.id}
           onQuitada={(c) => {
             setAgenda((a) =>
               a ? { ...a, citas: a.citas.filter((x) => x.id !== c.id), quitadas: [{ ...c, quitada_por: 'mano' }, ...(a.quitadas || [])] } : a
@@ -700,6 +783,8 @@ function CitaDialogo({
   onGuardado,
   onReagendar,
   onQuitada,
+  onConfirmada,
+  confirmando,
   verFicha,
 }: {
   cita: Cita
@@ -707,6 +792,8 @@ function CitaDialogo({
   onGuardado: (c: Cita) => void
   onReagendar: (c: Cita) => void
   onQuitada: (c: Cita) => void
+  onConfirmada: (c: Cita) => void
+  confirmando: boolean
   verFicha: (email: string) => void
 }) {
   const { isAdmin } = useAdminStatus()
@@ -789,6 +876,27 @@ function CitaDialogo({
             {e.texto}
           </Estado>
           {cancelada && cita.motivo_cancelacion ? <p className={`${META} mt-1`}>Motivo: {cita.motivo_cancelacion}</p> : null}
+          {/* ¿Ha dicho que viene? (27/10). Solo en las que aún no han pasado. */}
+          {!cancelada && !pasada && !cita.resultado ? (
+            cita.confirmada ? (
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span className={META}>
+                  {[cita.confirmada.autor ? `Lo apuntó ${cita.confirmada.autor.split(/\s+/)[0]}` : 'Confirmada', haceCuanto(cita.confirmada.cuando)]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
+                <button onClick={() => onConfirmada(cita)} disabled={confirmando} className={`${ENLACE} !text-[12.5px]`}>
+                  Quitar
+                </button>
+              </div>
+            ) : (
+              <div className="mt-2.5">
+                <button onClick={() => onConfirmada(cita)} disabled={confirmando} className={BOTON}>
+                  {confirmando ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />} Marcar como confirmada
+                </button>
+              </div>
+            )
+          ) : null}
         </div>
 
         <div className="px-5 py-4 flex flex-wrap gap-2">
@@ -802,7 +910,8 @@ function CitaDialogo({
               WhatsApp
             </a>
           ) : null}
-          {/* El recordatorio ya escrito, con la hora y el enlace (15/10). */}
+          {/* Los WhatsApp ya escritos, con la hora y el enlace: confirmar la
+              cita y el recordatorio del mismo día (15/10 y 27/10). */}
           {!cancelada && !pasada ? (
             <RecordatorioWhatsApp nombre={cita.nombre} telefono={cita.telefono} inicio={cita.inicio} enlace={cita.enlace} />
           ) : null}

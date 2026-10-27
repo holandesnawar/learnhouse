@@ -279,7 +279,7 @@ _MEDIOS = {
 #: Medios que no añaden nada.
 _MEDIOS_VACIOS = {"organic", "organico", "orgánico", "social", "referral", "none", "(none)", "web", "link"}
 #: Lo que hace el equipo o la escuela, no la persona: no dice por dónde llegó.
-_NO_DICEN_DE_DONDE = {"enlace-pago", "llamada-equipo", "alta-manual", "pago", "senal"}
+_NO_DICEN_DE_DONDE = {"enlace-pago", "llamada-equipo", "alta-manual", "pago", "senal", "correo-reserva", "llamada-confirmada"}
 #: Al buscar de qué web llegó, por el nombre de la dirección.
 _WEBS = (
     ("instagram", "Instagram"), ("facebook", "Facebook"), ("fb.", "Facebook"), ("tiktok", "TikTok"),
@@ -666,6 +666,9 @@ async def tablero(fichas: list[dict], db_session: AsyncSession, nombres_anuncios
     llamadas, sueltas = await para_el_tablero(por_email, db_session)
     citas = await citas_por_email(db_session)
     con_llamada = await emails_con_llamada(db_session)
+    from src.services.contactos.confirmar_llamada import ids_confirmadas
+
+    confirmadas = ids_confirmadas(fichas)
     ahora = datetime.now(timezone.utc)
     tarjetas = []
     for f in fichas:
@@ -684,6 +687,9 @@ async def tablero(fichas: list[dict], db_session: AsyncSession, nombres_anuncios
         t["llamada"] = llamada if t["etapa"] in POR_LLAMAR and pendiente else None
         # La de Llamadas manda si está ahí (puede estar puesta a mano).
         t["temperatura"] = ((llamada or {}).get("temperatura") if pendiente else "") or t["temperatura"]
+        # Ya ha dicho que viene (27/10): la tarjeta lo dice junto al día.
+        if t.get("cita"):
+            t["cita"]["confirmada"] = t["cita"].get("id", "") in confirmadas
         t["suelta"] = False
         tarjetas.append(t)
     tarjetas += [tarjeta_suelta(s) for s in sueltas]
