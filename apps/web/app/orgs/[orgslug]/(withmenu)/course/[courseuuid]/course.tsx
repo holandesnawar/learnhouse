@@ -23,6 +23,8 @@ import { useTranslation } from 'react-i18next'
 import CommunityChannelsCards from '@components/Objects/Communities/CommunityChannelsCards'
 import CourseFAQ from '@components/Pages/Activity/CourseFAQ'
 import WeeklyClassBanner from '@components/Pages/Courses/WeeklyClassBanner'
+import SalaEnDirecto from '@components/Pages/Courses/SalaEnDirecto'
+import { CURSO_FORMACION_UUID, uuidDeCurso } from '@/lib/nawar/cursos'
 import { sesionesVisibles } from '@/lib/course/weeklyClass'
 import { getLessonIcon } from '@components/Pages/Activity/CourseLessonsSidebar'
 import { useAnalytics } from '@/hooks/useAnalytics'
@@ -349,6 +351,15 @@ const CourseClient = (props: any) => {
               )}
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{course.name}</h1>
             </div>
+
+            {/* La sala en directo dentro de la escuela (Daily): en cualquier
+                curso que no sea la formación. El alumno solo la ve encendida;
+                el administrador, siempre, para encenderla. */}
+            {uuidDeCurso(course) !== CURSO_FORMACION_UUID && (
+              <div className="pt-2">
+                <SalaEnDirecto courseUuid={uuidDeCurso(course)} />
+              </div>
+            )}
 
             <div className="flex flex-col md:flex-row md:items-start gap-8 pt-2">
               <div className="w-full md:w-3/4 space-y-4">

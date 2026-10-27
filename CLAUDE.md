@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-25 (pestaña «Enfoque» para el closer con el programa nuevo; tandas: nadie entra solo en ningún grupo, el administrador elige el de cada alumno que paga, con aviso en la escuela y sin correo; antes, el mismo día, la beta y el programa nuevo separados por grupos; antes, el mismo día, el closer ve KPIs sin el dinero; antes 22/10: «Otro importe» también a plazos, de 2 a 6 pagos; antes, Matrículas en dos mesas, Leads y Ventas, con closer asignado y reparto; «Esta semana» del alumno cuenta las clases terminadas; antes, el mismo día, incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-27 (salas en directo DENTRO de la escuela con Daily, empezando por el Spreekclub, con grabación automática al entrar el profe; antes 25/10: pestaña «Enfoque» para el closer con el programa nuevo; tandas: nadie entra solo en ningún grupo, el administrador elige el de cada alumno que paga, con aviso en la escuela y sin correo; antes, el mismo día, la beta y el programa nuevo separados por grupos; antes, el mismo día, el closer ve KPIs sin el dinero; antes 22/10: «Otro importe» también a plazos, de 2 a 6 pagos; antes, Matrículas en dos mesas, Leads y Ventas, con closer asignado y reparto; «Esta semana» del alumno cuenta las clases terminadas; antes, el mismo día, incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -3633,6 +3633,58 @@ el recibo de Stripe y no podría entrar), la comunidad **separada del todo** y
   la caja de pago siguen hablando de «clase semanal»: pendiente.
 - Pendiente: los de la beta que manden su vídeo se meten a mano en el grupo
   del programa (Usuarios → Grupos) y ven también lo nuevo.
+
+## Salas en directo dentro de la escuela, con Daily (27/10/2026)
+Pedido: el Spreekclub "estilo YouTalk, con las salas integradas: la gente se
+une y ya está en la sala, dentro de la escuela, sin otra pestaña y con su
+nombre guardado". Lo mismo se querrá para la clase semanal y la masterclass;
+**de momento solo se enciende en el Spreekclub, para probar.**
+- **Daily** (Daily Prebuilt en un iframe), no el SDK de Zoom: pesa poco, va
+  en el navegador del móvil sin app y se paga por minuto (10.000
+  minutos-persona gratis al mes; grabar, aparte, ~0,0135 $ por minuto
+  grabado). El SDK de Zoom pide cabeceras que romperían la caja de pago y
+  Bunny, va peor en el iPhone y cada profe a la vez necesita licencia.
+- Todo en `apps/api/src/services/salas/salas.py` (docstring: leerlo) y
+  `routers/salas.py` (`/api/v1/salas/course/{curso}`: estado, `entrar`,
+  ajustes, grabaciones y descarga). Clave `LEARNHOUSE_DAILY_API_KEY` en
+  Railway (la puso el usuario el 27/10). Tests: `test_salas.py` (Daily falso).
+- **Una sala fija y PRIVADA por curso** (`nawar-` + 16 letras del uuid), creada
+  en Daily al primer «Entrar». Se entra con una entrada firmada por la escuela
+  que lleva el nombre (`user_name`), solo si puede ver el curso (la misma
+  comprobación que su página): el enlace no sirve para un amigo. Caduca a las
+  4 h y saca de la sala (`eject_at_token_exp`): una pestaña olvidada no gasta
+  minutos toda la noche. El equipo (`STAFF_ROLE_IDS`) entra como anfitrión.
+- **Grabar**: casilla por curso. La entrada del EQUIPO lleva
+  `start_cloud_recording`: arranca sola al entrar el profe, no al entrar un
+  alumno a esperar, y para al vaciarse la sala. Si Daily no deja grabar, se
+  entra sin grabar y la sala enseña el motivo de Daily tal cual. Al alumno se
+  le avisa: «Se graba cuando entra el profe». Las grabaciones se quedan en
+  Daily y el administrador las baja desde la página del curso. **Subirlas
+  solas a Bunny y crear la sesión en el curso: siguiente paso, sin hacer**
+  (haría falta la clave de Bunny).
+- **Dónde se ve**: en la página de cualquier curso que no sea la formación,
+  arriba (`components/Pages/Courses/SalaEnDirecto.tsx`). El alumno solo la ve
+  encendida, con quién hay dentro (`/presence` de Daily, cada 30 s). El
+  administrador la ve siempre: «Encender la sala», la casilla de grabar,
+  «Grabaciones» y «Apagar la sala». Ajustes en org_config `salas` = {uuid del
+  curso: {activo, grabar}}; sin nada, apagada. La sala en sí es
+  `/sala/<curso>` (`components/Pages/Sala/SalaPage.tsx`), con la barra de la
+  escuela al lado y «Volver al curso».
+- ⚠️ **nginx prohibía la cámara en toda la escuela** (`camera=()` en
+  Permissions-Policy) y el micro a cualquier iframe (`microphone=(self)`):
+  la sala no habría podido usar ninguno. Ahora la cabecera no los declara (lo
+  de serie del navegador: la escuela los puede pedir, y un iframe de otro
+  sitio solo con `allow="camera; microphone"`, que solo lleva la sala).
+  Comprobado en Chromium con las dos cabeceras. No se usan comodines
+  (`https://*.daily.co`): no todos los navegadores los entienden y ahí la sala
+  se quedaría sin cámara.
+- Probado en local con un Daily falso (ordenador y móvil, cámara falsa de
+  Chromium, admin y alumna). **NO probado contra Daily de verdad**: daily.co
+  no se alcanza desde este entorno. Si algo falla, la pantalla enseña el
+  texto de Daily: leerlo primero (p. ej. una propiedad que su API rechace).
+- Pendiente: la clase semanal y la masterclass (es encenderla en su curso),
+  sesiones con horario (hoy la sala está abierta siempre), varias mesas a la
+  vez para el Spreekclub, y lo de Bunny.
 
 ## Incidente de Railway: claves robadas y despliegues parados (21-22/10/2026)
 Railway avisó de que un tercero pudo leer las variables de entorno de sus
