@@ -230,3 +230,52 @@ async def test_quien_no_termina_de_pagar_queda_y_recibe_un_recordatorio(db, org,
     assert [m["subject"] for m in mandados if m["to"] == "luis@x.com"] == ["Cómo sacarle partido a tu ebook"]
     n = await E.resumen(1, db)
     assert n["a_medias"] == 1 and n["por_correo"].get(E.ID_PENDIENTE) == 1
+
+
+async def test_la_lista_desbloquea_la_oferta_y_entra_en_la_campana(db, org, sin_redis_ni_crm, monkeypatch):
+    monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-11-02")
+    mandados = []
+    with patch.object(M, "send_email", side_effect=lambda **k: mandados.append(k)):
+        r = await E.apuntar_lista({"nombre": "Ana López", "email": "ANA@x.com", "telefono": "0031 6 1234 5678",
+                                   "utm_source": "instagram", "recorrido": "bf-desbloquear"}, db)
+        assert r == {"ok": True, "nuevo": True}
+        # Repetirlo no duplica ni vuelve a mandar el correo.
+        assert (await E.apuntar_lista({"nombre": "Ana", "email": "ana@x.com"}, db))["nuevo"] is False
+    filas = (await db.execute(select(ContactEvent).where(ContactEvent.kind == E.TIPO_LISTA))).scalars().all()
+    assert len(filas) == 1 and filas[0].phone == "+31612345678" and filas[0].utm_source == "instagram"
+    assert len(mandados) == 1 and mandados[0]["subject"] == "Tu acceso a la oferta de Black Friday"
+    assert "/oferta?" in mandados[0]["body"] and "/ebook/baja/" in mandados[0]["body"]
+    with pytest.raises(E.EbookError):
+        await E.apuntar_lista({"nombre": "", "email": "x@x.com"}, db)
+
+    import src.services.contactos.contactos as Cc
+
+    async def nadie(_db):
+        return set()
+
+    monkeypatch.setattr(Cc, "emails_que_pagaron", nadie)
+    for ev in filas:
+        ev.created_at = "2026-11-02T10:00:00+00:00"
+        db.add(ev)
+    await db.commit()
+    mandados.clear()
+    with patch.object(M, "send_email", side_effect=lambda **k: mandados.append(k)):
+        # Al día siguiente no le llega el c1: habla del ebook, que no compró.
+        monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-11-03")
+        assert (await E.enviar_campana(db))["enviados"] == 0
+        # A los tres días, el c2.
+        monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-11-05")
+        assert (await E.enviar_campana(db))["enviados"] == 1
+    assert [m["subject"] for m in mandados] == [E.DE_FABRICA["correos"][1]["asunto"]]
+    n = await E.resumen(1, db)
+    assert n["lista"] == 1 and n["compradores"] == 0 and n["en_campana"] == 1 and n["ultimos"][0]["via"] == "lista"
+    # Pasado el final, ya no se desbloquea nada.
+    monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-12-01")
+    with pytest.raises(E.EbookError):
+        await E.apuntar_lista({"nombre": "Eva", "email": "eva@x.com"}, db)
+
+
+def test_los_botones_de_los_correos_llevan_a_la_oferta():
+    with patch.object(E, "bf_url", return_value="https://blackfriday.holandesnawar.com"):
+        assert E.url_destino("landing", "a@x.com", "Ana", "c1").startswith("https://blackfriday.holandesnawar.com/oferta?")
+        assert E.url_destino("admision", "a@x.com", "Ana", "c1").startswith("https://blackfriday.holandesnawar.com/admision?")

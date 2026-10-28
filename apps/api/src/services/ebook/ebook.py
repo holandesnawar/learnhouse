@@ -72,6 +72,18 @@ y con su baja al pie), con el botón a la página del ebook y sus datos puestos
 (`toca_pendiente`, pura con test). No le llega si compra, reserva llamada,
 paga la formación o se da de baja. Antes de esto, esa gente se perdía: solo
 quedaba como cliente en Stripe.
+
+La lista: desbloquear la oferta sin comprar el ebook (28/10, como YouTalk)
+------------------------------------------------------------------------
+La portada de blackfriday.holandesnawar.com es un formulario (nombre, correo
+y WhatsApp) para desbloquear la oferta. `apuntar_lista` lo apunta en su ficha
+(`bf-lista`, uno por persona), le manda al momento el correo de acceso
+(`acceso`, con el botón a /oferta) y le etiqueta en systeme.io («Black Friday
+- lista»). Entra en la campaña igual que quien compra el ebook, desde el día
+en que se apuntó (`inscritos` en `_personas`), pero sin los correos marcados
+`solo_ebook` (el c1, que habla del ebook). La landing de la formación vive
+ahora en /oferta: ahí lleva el botón de todos los correos y ahí vuelve Stripe
+tras pagar el ebook.
 """
 
 from __future__ import annotations
@@ -100,6 +112,10 @@ TIPO_BAJA = "baja-bf"
 # para el recordatorio de quien no termina de pagar.
 TIPO_EMPEZADO = "ebook-empezado"
 ID_PENDIENTE = "pendiente"
+# Se apuntó en blackfriday.holandesnawar.com para desbloquear la oferta, sin
+# comprar el ebook (28/10, como YouTalk).
+TIPO_LISTA = "bf-lista"
+ID_ACCESO = "acceso"
 #: Lo que cuenta como "ya ha reservado su llamada": la campaña se para.
 TIPOS_RESERVO = ("reunion", "llamada-equipo", "correo-reserva")
 
@@ -161,10 +177,28 @@ DE_FABRICA: dict = {
         "boton": "Terminar mi pedido",
         "destino": "ebook",
     },
+    # Al apuntarse en la página para desbloquear la oferta: al momento.
+    "acceso": {
+        "asunto": "Tu acceso a la oferta de Black Friday",
+        "texto": (
+            "¡Hola, {nombre}!\n\n"
+            "Ya tienes acceso anticipado a las condiciones de Black Friday de la Formación Nawar A0-A1: "
+            "el camino completo de cero al A1 en 16 semanas, explicado en español y con clases en directo "
+            "cada semana.\n\n"
+            "Las condiciones no te las cuento por aquí: te las explica nuestro equipo en una llamada "
+            "gratuita de media hora, después de entender tu situación. Valen hasta el {hasta}.\n\n"
+            "Aquí tienes tu oferta, con todo lo que incluye la formación:\n\n"
+            "[boton]\n\n" + _FIRMA
+        ),
+        "boton": "Ver mi oferta",
+        "destino": "landing",
+    },
     "correos": [
         {
             "id": "c1",
             "dia": 1,
+            # Habla del ebook: no le llega a quien solo se apuntó a la lista.
+            "solo_ebook": True,
             "asunto": "Cómo sacarle partido a tu ebook",
             "texto": (
                 "¡Hola, {nombre}!\n\n"
@@ -235,8 +269,8 @@ DE_FABRICA: dict = {
                 "más se repiten:\n\n"
                 "*«No tengo tiempo.»* La formación está pensada para quien va con prisas. Las lecciones son "
                 "cortas y las haces cuando puedes; lo que cuenta es la constancia, no las horas.\n\n"
-                "*«Empiezo desde cero.»* Perfecto: el camino empieza por lo más básico, como tu ebook, y va "
-                "subiendo poco a poco hasta el A1.\n\n"
+                "*«Empiezo desde cero.»* Perfecto: el camino empieza por lo más básico y va subiendo poco a "
+                "poco hasta el A1.\n\n"
                 "*«¿Y si no es para mí?»* Tienes 15 días de garantía. Y antes de nada hablamos contigo: si "
                 "vemos que no podemos ayudarte, te lo decimos.\n\n"
                 "Si tienes otra duda, la resolvemos en la llamada. Es gratuita y sin compromiso.\n\n"
@@ -430,6 +464,8 @@ def config_limpia(guardado: Any) -> dict:
     entrega = _carta_limpia(g.get("entrega"), "entrega")
     pendiente = _carta_limpia(g.get("pendiente"), "pendiente")
     pendiente["apagado"] = bool(g["pendiente"].get("apagado")) if isinstance(g.get("pendiente"), dict) else False
+    acceso = _carta_limpia(g.get("acceso"), "acceso")
+    acceso["apagado"] = bool(g["acceso"].get("apagado")) if isinstance(g.get("acceso"), dict) else False
     try:
         precio = int(g.get("precio_cents") or DE_FABRICA["precio_cents"])
     except (TypeError, ValueError):
@@ -442,6 +478,7 @@ def config_limpia(guardado: Any) -> dict:
         "precio_cents": max(50, precio),
         "entrega": entrega,
         "pendiente": pendiente,
+        "acceso": acceso,
         "correos": correos_limpios(g.get("correos")),
         "pdf": str(g.get("pdf") or ""),
         "pdf_nombre": str(g.get("pdf_nombre") or ""),
@@ -494,7 +531,7 @@ def url_destino(destino: str, email: str, nombre: str, contenido: str) -> str:
     salga relleno y con la campaña para saber qué correo trajo a quién."""
     if destino == "descarga":
         return enlace_descarga(email)
-    base = bf_url() + {"admision": "/admision", "ebook": "/ebook"}.get(destino, "/")
+    base = bf_url() + {"admision": "/admision", "ebook": "/ebook"}.get(destino, "/oferta")
     q = {
         "nombre": nombre or "",
         "email": email,
@@ -547,7 +584,7 @@ async def guardar(org_id: int, datos: dict, db_session: AsyncSession) -> dict:
     for campo in ("desde", "hasta"):
         if datos.get(campo) is not None:
             nuevo[campo] = _fecha(datos[campo]) or actual[campo]
-    for clave in ("entrega", "pendiente"):
+    for clave in ("entrega", "pendiente", ID_ACCESO):
         if isinstance(datos.get(clave), dict):
             e = dict(actual[clave])
             for campo in ("asunto", "texto", "boton"):
@@ -555,14 +592,13 @@ async def guardar(org_id: int, datos: dict, db_session: AsyncSession) -> dict:
                     e[campo] = str(datos[clave][campo]).strip()[:6000]
             if datos[clave].get("destino") in DESTINOS:
                 e["destino"] = datos[clave]["destino"]
-            if clave == "pendiente" and datos[clave].get("apagado") is not None:
+            if clave != "entrega" and datos[clave].get("apagado") is not None:
                 e["apagado"] = bool(datos[clave]["apagado"])
             nuevo[clave] = e
     if isinstance(datos.get("correos"), list):
         nuevo["correos"] = datos["correos"]
     limpio = config_limpia(nuevo)
-    textos = limpio["entrega"]["asunto"] + limpio["entrega"]["texto"]
-    textos += limpio["pendiente"]["asunto"] + limpio["pendiente"]["texto"]
+    textos = "".join(limpio[k]["asunto"] + limpio[k]["texto"] for k in ("entrega", "pendiente", ID_ACCESO))
     textos += "".join(c["asunto"] + c["texto"] for c in limpio["correos"])
     malos = huecos_que_no_valen(textos)
     if malos:
@@ -715,7 +751,7 @@ async def crear_pago(datos: dict, db_session: AsyncSession) -> dict:
         "referrer": corto("referrer"),
         **{c: corto(c) for c in ("utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "utm_placement")},
     }
-    vuelta = vuelta_segura(str(datos.get("vuelta") or ""), bf_url() + "/")
+    vuelta = vuelta_segura(str(datos.get("vuelta") or ""), bf_url() + "/oferta")
     try:
         sesion = _plano(
             stripe.checkout.Session.create(
@@ -930,6 +966,89 @@ async def estado_compra(session_id: str, db_session: AsyncSession) -> dict:
     }
 
 
+# ── La lista: desbloquear la oferta sin comprar el ebook ────────────────────
+
+
+def _telefono(texto: Any) -> str:
+    """Como en /agendar: sin espacios, 00 → +. Sin convertir a +31 (hay
+    números de otros países)."""
+    t = re.sub(r"[^\d+]", "", str(texto or ""))[:24]
+    return "+" + t[2:] if t.startswith("00") else t
+
+
+async def apuntar_lista(datos: dict, db_session: AsyncSession) -> dict:
+    """Quien rellena el formulario de blackfriday.holandesnawar.com (nombre,
+    correo y WhatsApp): queda en su ficha (`bf-lista`, uno por persona), le
+    llega al momento el correo de acceso con el botón a la oferta, entra en la
+    campaña y se le etiqueta en systeme.io. Repetirlo no duplica nada:
+    actualiza el nombre y el teléfono. Devuelve si es nuevo."""
+    from src.db.contact_event import ContactEvent
+    from src.services.panel.tandas import hoy_nl
+
+    cfg = await leer(db_session)
+    if cfg.get("hasta") and hoy_nl() > cfg["hasta"]:
+        raise EbookError("La oferta de Black Friday ya ha terminado.", 503)
+    email = str(datos.get("email") or "").strip().lower()[:255]
+    nombre = re.sub(r"\s+", " ", str(datos.get("nombre") or "")).strip()[:120]
+    if not _CORREO_OK.match(email):
+        raise EbookError("Escribe un correo válido")
+    if not nombre:
+        raise EbookError("Escribe tu nombre")
+    telefono = _telefono(datos.get("telefono"))
+
+    def corto(campo: str, n: int = 120) -> str:
+        return str(datos.get(campo) or "").strip()[:n]
+
+    fila = (
+        await db_session.execute(
+            select(ContactEvent).where(ContactEvent.email == email, ContactEvent.kind == TIPO_LISTA).limit(1)
+        )
+    ).scalars().first()
+    nuevo = fila is None
+    if fila is None:
+        fila = ContactEvent(
+            email=email,
+            kind=TIPO_LISTA,
+            source="black-friday",
+            recorrido=corto("recorrido", 400),
+            referrer=corto("referrer"),
+            **{c: corto(c) for c in ("utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "utm_placement")},
+            created_at=datetime.now(timezone.utc).isoformat(),
+        )
+    partes = nombre.split(" ", 1)
+    fila.first_name = partes[0][:120]
+    fila.last_name = (partes[1] if len(partes) > 1 else "")[:120]
+    if telefono:
+        fila.phone = telefono
+    db_session.add(fila)
+    await db_session.commit()
+
+    if nuevo and not cfg[ID_ACCESO].get("apagado"):
+        # El correo de acceso, una vez. Si falla, la persona ya está dentro y
+        # ve la oferta en pantalla: se apunta en el registro y sigue.
+        try:
+            armar_acceso(cfg, email, nombre, preview=False)
+            db_session.add(
+                ContactEvent(
+                    email=email,
+                    kind=TIPO_CORREO,
+                    source="email",
+                    extra=json.dumps({"id": ID_ACCESO, "asunto": cfg[ID_ACCESO]["asunto"][:120]}),
+                    created_at=datetime.now(timezone.utc).isoformat(),
+                )
+            )
+            await db_session.commit()
+        except Exception:  # noqa: BLE001
+            logger.warning("Lista de Black Friday: el correo de acceso no salió", exc_info=True)
+    try:
+        from src.services.crm.systeme import etiquetar
+
+        await etiquetar(email, nombre, "Black Friday - lista")
+    except Exception:  # noqa: BLE001
+        logger.warning("Lista de Black Friday: no se pudo etiquetar en systeme.io", exc_info=True)
+    return {"ok": True, "nuevo": nuevo}
+
+
 # ── Los correos ─────────────────────────────────────────────────────────────
 
 
@@ -977,6 +1096,20 @@ def armar_pendiente(cfg: dict, email: str, nombre: str, *, preview: bool) -> dic
     return {"asunto": asunto, "html": (r or {}).get("html", "") if preview else ""}
 
 
+def armar_acceso(cfg: dict, email: str, nombre: str, *, preview: bool) -> dict:
+    """«Tu acceso a la oferta de Black Friday», al apuntarse a la lista."""
+    from src.services.users.emails import send_carta_ebook_email
+
+    a = cfg[ID_ACCESO]
+    valores = _valores(cfg, nombre)
+    asunto = rellenar(a["asunto"], valores)
+    botones = [("boton", a.get("boton") or "", url_destino(a.get("destino") or "landing", email, nombre, ID_ACCESO))]
+    r = send_carta_ebook_email(
+        email, asunto, rellenar(a["texto"], valores), botones=botones, baja_url=enlace_baja(email), preview=preview
+    )
+    return {"asunto": asunto, "html": (r or {}).get("html", "") if preview else ""}
+
+
 async def vista(org_id: int, cual: str, db_session: AsyncSession, *, enviar_a: str = "", nombre: str = "Ana") -> dict:
     """«Ver cómo queda» (sin `enviar_a`) o «Mandármelo a mí». Con lo guardado."""
     cfg = await leer(db_session, org_id)
@@ -985,6 +1118,8 @@ async def vista(org_id: int, cual: str, db_session: AsyncSession, *, enviar_a: s
         return armar_entrega(cfg, email, nombre, preview=not enviar_a)
     if cual == ID_PENDIENTE:
         return armar_pendiente(cfg, email, nombre, preview=not enviar_a)
+    if cual == ID_ACCESO:
+        return armar_acceso(cfg, email, nombre, preview=not enviar_a)
     c = next((c for c in cfg["correos"] if c["id"] == cual), None)
     if c is None:
         raise EbookError("No existe ese correo", 404)
@@ -1011,9 +1146,11 @@ async def baja(email: str, db_session: AsyncSession) -> None:
 
 
 async def _personas(db_session: AsyncSession) -> dict:
-    """Por correo: cuándo compró (el primer ebook) o empezó a pedirlo (el
-    último intento), su nombre, qué correos le han llegado y el último día que
-    recibió uno; y quién se ha dado de baja o ha reservado su llamada."""
+    """Por correo: cuándo compró (el primer ebook), se apuntó a la lista o
+    empezó a pedir el ebook (el último intento), su nombre, qué correos le han
+    llegado y el último día que recibió uno; y quién se ha dado de baja o ha
+    reservado su llamada. `inscritos` = quien está en la campaña (compró el
+    ebook o se apuntó a la lista), desde el primero de los dos días."""
     from src.db.contact_event import ContactEvent
     from src.services.panel.tandas import dia_nl
 
@@ -1021,12 +1158,13 @@ async def _personas(db_session: AsyncSession) -> dict:
         await db_session.execute(
             select(ContactEvent.email, ContactEvent.kind, ContactEvent.first_name, ContactEvent.last_name,
                    ContactEvent.extra, ContactEvent.created_at).where(
-                ContactEvent.kind.in_([TIPO_COMPRA, TIPO_EMPEZADO, TIPO_CORREO, TIPO_BAJA, *TIPOS_RESERVO])  # type: ignore[attr-defined]
+                ContactEvent.kind.in_([TIPO_COMPRA, TIPO_EMPEZADO, TIPO_LISTA, TIPO_CORREO, TIPO_BAJA, *TIPOS_RESERVO])  # type: ignore[attr-defined]
             )
         )
     ).all()
     compras: dict[str, dict] = {}
     empezados: dict[str, dict] = {}
+    listas: dict[str, dict] = {}
     enviados: dict[str, set] = {}
     ultimo: dict[str, str] = {}
     bajas: set[str] = set()
@@ -1040,6 +1178,10 @@ async def _personas(db_session: AsyncSession) -> dict:
             c = compras.get(email)
             if c is None or (creado or "") < c["creado"]:
                 compras[email] = {"creado": creado or "", "dia": dia, "nombre": f"{fn or ''} {ln or ''}".strip()}
+        elif kind == TIPO_LISTA:
+            c = listas.get(email)
+            if c is None or (creado or "") < c["creado"]:
+                listas[email] = {"creado": creado or "", "dia": dia, "nombre": f"{fn or ''} {ln or ''}".strip()}
         elif kind == TIPO_EMPEZADO:
             c = empezados.get(email)
             if c is None or (creado or "") > c["creado"]:
@@ -1058,7 +1200,20 @@ async def _personas(db_session: AsyncSession) -> dict:
             reservaron.add(email)
     # A medias = empezó y no ha comprado nunca (ni antes ni después).
     a_medias = {e: c for e, c in empezados.items() if e not in compras}
-    return {"compras": compras, "a_medias": a_medias, "enviados": enviados, "ultimo": ultimo, "bajas": bajas, "reservaron": reservaron}
+    inscritos: dict[str, dict] = {}
+    for email in set(compras) | set(listas):
+        uno = sorted((x for x in (compras.get(email), listas.get(email)) if x), key=lambda x: x["creado"])
+        inscritos[email] = {
+            "creado": uno[0]["creado"],
+            "dia": uno[0]["dia"],
+            "nombre": (compras.get(email) or {}).get("nombre") or uno[0]["nombre"],
+            "ebook": email in compras,
+            "lista": email in listas,
+        }
+    return {
+        "compras": compras, "listas": listas, "inscritos": inscritos, "a_medias": a_medias,
+        "enviados": enviados, "ultimo": ultimo, "bajas": bajas, "reservaron": reservaron,
+    }
 
 
 async def enviar_campana(db_session: AsyncSession, org_id: Optional[int] = None) -> dict:
@@ -1069,12 +1224,17 @@ async def enviar_campana(db_session: AsyncSession, org_id: Optional[int] = None)
 
     cfg = await leer(db_session, org_id)
     p = await _personas(db_session)
-    salida = {"compradores": len(p["compras"]), "enviados": 0, "errores": 0, "parados": 0, "a_medias": len(p["a_medias"]), "recordatorios": 0}
+    salida = {
+        "compradores": len(p["compras"]), "lista": len(p["listas"]), "enviados": 0, "errores": 0, "parados": 0,
+        "a_medias": len(p["a_medias"]), "recordatorios": 0,
+    }
     if not cfg["campana"]:
         salida["activa"] = False
         return salida
     hoy = hoy_nl()
     correos = [c for c in cfg["correos"] if not c.get("apagado")]
+    # A quien solo se apuntó a la lista no le llegan los que hablan del ebook.
+    sin_ebook = [c for c in correos if not c.get("solo_ebook")]
     pagaron = await emails_que_pagaron(db_session)
 
     async def mandar(email: str, ident: str, asunto: str, armar) -> bool:
@@ -1099,16 +1259,17 @@ async def enviar_campana(db_session: AsyncSession, org_id: Optional[int] = None)
             logger.warning("Campaña del ebook: un envío falló", exc_info=True)
             return False
 
-    for email, compra in sorted(p["compras"].items(), key=lambda kv: kv[1]["creado"]):
+    for email, quien in sorted(p["inscritos"].items(), key=lambda kv: kv[1]["creado"]):
         if email in p["bajas"] or email in p["reservaron"] or email in pagaron:
             salida["parados"] += 1
             continue
-        c = que_toca(compra["dia"], hoy, correos, p["enviados"].get(email, set()), cfg["hasta"], p["ultimo"].get(email, ""))
+        suyos = correos if quien["ebook"] else sin_ebook
+        c = que_toca(quien["dia"], hoy, suyos, p["enviados"].get(email, set()), cfg["hasta"], p["ultimo"].get(email, ""))
         if c is None:
             continue
         if salida["enviados"] >= TOPE_POR_DIA:
             break
-        await mandar(email, c["id"], c["asunto"], lambda c=c, email=email, n=compra["nombre"]: armar_correo(cfg, c, email, n, preview=False))
+        await mandar(email, c["id"], c["asunto"], lambda c=c, email=email, n=quien["nombre"]: armar_correo(cfg, c, email, n, preview=False))
 
     # El recordatorio a quien dejó sus datos y no terminó de pagar.
     pendiente = cfg["pendiente"]
@@ -1127,13 +1288,15 @@ async def enviar_campana(db_session: AsyncSession, org_id: Optional[int] = None)
 
 
 async def resumen(org_id: int, db_session: AsyncSession) -> dict:
-    """Los números de la pestaña del panel."""
+    """Los números de la pestaña del panel. Los de la campaña (en campaña,
+    reservaron, pagaron, bajas) cuentan a todos los inscritos: quien compró el
+    ebook y quien se apuntó a la lista."""
     from src.services.contactos.contactos import emails_que_pagaron
     from src.services.contactos.metricas import emails_excluidos
 
     p = await _personas(db_session)
     fuera = await emails_excluidos(db_session)
-    compras = {e: c for e, c in p["compras"].items() if e not in fuera}
+    inscritos = {e: c for e, c in p["inscritos"].items() if e not in fuera}
     pagaron = await emails_que_pagaron(db_session)
     por_correo: dict[str, int] = {}
     for email, ids in p["enviados"].items():
@@ -1141,21 +1304,26 @@ async def resumen(org_id: int, db_session: AsyncSession) -> dict:
             continue
         for i in ids:
             por_correo[i] = por_correo.get(i, 0) + 1
-    reservaron = [e for e in compras if e in p["reservaron"]]
-    alumnos = [e for e in compras if e in pagaron]
-    bajas = [e for e in compras if e in p["bajas"]]
+    reservaron = [e for e in inscritos if e in p["reservaron"]]
+    alumnos = [e for e in inscritos if e in pagaron]
+    bajas = [e for e in inscritos if e in p["bajas"]]
     parados = set(reservaron) | set(alumnos) | set(bajas)
+
+    def via(c: dict) -> str:
+        return "ebook y lista" if c["ebook"] and c["lista"] else "ebook" if c["ebook"] else "lista"
+
     return {
         "a_medias": len([e for e in p["a_medias"] if e not in fuera]),
-        "compradores": len(compras),
-        "en_campana": len([e for e in compras if e not in parados]),
+        "compradores": len([e for e in p["compras"] if e not in fuera]),
+        "lista": len([e for e in p["listas"] if e not in fuera]),
+        "en_campana": len([e for e in inscritos if e not in parados]),
         "reservaron": len(reservaron),
         "pagaron": len(alumnos),
         "bajas": len(bajas),
         "por_correo": por_correo,
         "ultimos": [
-            {"email": e, "nombre": c["nombre"], "creado": c["creado"],
+            {"email": e, "nombre": c["nombre"], "creado": c["creado"], "via": via(c),
              "estado": "pagó" if e in pagaron else "reservó" if e in p["reservaron"] else "de baja" if e in p["bajas"] else "en campaña"}
-            for e, c in sorted(compras.items(), key=lambda kv: kv[1]["creado"], reverse=True)[:30]
+            for e, c in sorted(inscritos.items(), key=lambda kv: kv[1]["creado"], reverse=True)[:30]
         ],
     }

@@ -5,6 +5,8 @@ El ebook de Black Friday a 1 € (28/10/2026). La explicación entera está en
 - Pagar y comprobar la compra: público (lo llama la página del ebook, en
   blackfriday.holandesnawar.com). Pagar tiene tope por IP: el navegador llama
   directamente a la escuela, así que la IP es la de quien compra.
+- Apuntarse a la lista para desbloquear la oferta: público, con el mismo tope
+  (lo llama la portada de blackfriday.holandesnawar.com).
 - Descargar el PDF y darse de baja: con el enlace firmado del correo.
 - Lo demás (textos, el PDF, los números): administradores.
 """
@@ -78,6 +80,34 @@ async def api_pago(request: Request, datos: PagoIn, db_session: AsyncSession = D
         )
     try:
         return await E.crear_pago(datos.model_dump(), db_session)
+    except E.EbookError as exc:
+        raise _error(exc)
+
+
+class ListaIn(PagoIn):
+    telefono: str = ""
+    # El campo trampa: un bot lo rellena; una persona no lo ve.
+    website: str = ""
+
+    @field_validator("telefono", "website", mode="before")
+    @classmethod
+    def _texto_lista(cls, v: Any) -> str:
+        return "" if v is None else str(v)
+
+
+@router.post("/lista", summary="Apuntarse para desbloquear la oferta de Black Friday (sin comprar el ebook).")
+async def api_lista(request: Request, datos: ListaIn, db_session: AsyncSession = Depends(get_db_session)):
+    permitido, _n, espera = check_rate_limit(key=f"bf-lista:{get_client_ip(request)}", max_attempts=10, window_seconds=3600)
+    if not permitido:
+        raise HTTPException(
+            status_code=429,
+            detail="Demasiados intentos. Vuelve a probar en unos minutos.",
+            headers={"Retry-After": str(max(1, espera))},
+        )
+    if datos.website.strip():
+        return {"ok": True, "nuevo": False}
+    try:
+        return await E.apuntar_lista(datos.model_dump(), db_session)
     except E.EbookError as exc:
         raise _error(exc)
 
@@ -158,6 +188,7 @@ class AjustesIn(BaseModel):
     hasta: Optional[str] = None
     entrega: Optional[dict] = None
     pendiente: Optional[dict] = None
+    acceso: Optional[dict] = None
     correos: Optional[list[dict[str, Any]]] = None
 
 

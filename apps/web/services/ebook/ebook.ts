@@ -16,6 +16,17 @@ export interface CorreoCampana {
   boton: string
   destino: Destino
   apagado: boolean
+  /** Habla del ebook: no le llega a quien solo se apuntó a la lista. */
+  solo_ebook?: boolean
+}
+
+/** Un correo suelto: el de «se quedó a medias» y el de acceso a la lista. */
+export interface CartaSuelta {
+  asunto: string
+  texto: string
+  boton: string
+  destino: Destino
+  apagado: boolean
 }
 
 export interface EbookBF {
@@ -26,7 +37,9 @@ export interface EbookBF {
   precio_cents: number
   entrega: { asunto: string; texto: string; boton: string; destino: Destino }
   /** El recordatorio a quien dejó sus datos y no terminó de pagar. */
-  pendiente: { asunto: string; texto: string; boton: string; destino: Destino; apagado: boolean }
+  pendiente: CartaSuelta
+  /** Al apuntarse en la portada de Black Friday para desbloquear la oferta. */
+  acceso: CartaSuelta
   correos: CorreoCampana[]
   pdf: string
   pdf_nombre: string
@@ -38,12 +51,13 @@ export interface EbookBF {
   numeros: {
     a_medias: number
     compradores: number
+    lista: number
     en_campana: number
     reservaron: number
     pagaron: number
     bajas: number
     por_correo: Record<string, number>
-    ultimos: { email: string; nombre: string; creado: string; estado: string }[]
+    ultimos: { email: string; nombre: string; creado: string; estado: string; via?: string }[]
   }
 }
 
@@ -71,7 +85,7 @@ export const getEbook = (orgId: number, t: string) => pedir<EbookBF>(`org/${orgI
 
 export const guardarEbook = (
   orgId: number,
-  datos: Partial<Pick<EbookBF, 'activo' | 'campana' | 'desde' | 'hasta' | 'entrega' | 'pendiente' | 'correos'>>,
+  datos: Partial<Pick<EbookBF, 'activo' | 'campana' | 'desde' | 'hasta' | 'entrega' | 'pendiente' | 'acceso' | 'correos'>>,
   t: string
 ) => pedir<EbookBF>(`org/${orgId}`, 'PUT', datos, t)
 

@@ -111,6 +111,7 @@ _NOMBRES = {
     "bf-ebook-ads": "la página del ebook de Black Friday, desde el anuncio",
     "black-friday": "la página de Black Friday de la formación (sin precio)",
     "bf-admision": "el formulario de llamada de Black Friday",
+    "bf-desbloquear": "el formulario para desbloquear la oferta de Black Friday",
 }
 
 #: La única página que enseña la cifra. Si no pasó por aquí, no ha visto nunca
