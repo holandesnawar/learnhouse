@@ -16,8 +16,8 @@ y poder acompañar al alumno cada semana". Decidido con él (boceto del 28/10):
   salir de la escuela. La corrige el equipo (administradores, moderadores y
   profes: `STAFF_ROLE_IDS`) con texto y/o nota de voz. Hoy corrige el
   administrador; el profe podrá en cuanto lo tenga. Sin correo: el aviso va
-  por la campana (al alumno, cuando está corregida; al equipo, lo que queda
-  por corregir).
+  por la campana (al alumno, cuando sale la presentación de su clase y cuando
+  su tarea está corregida; al equipo, lo que queda por corregir).
 - **Las notas de voz son privadas**: `content/privado/tareas/<org>/`, que
   `/content` no sirve nunca (local_content.py). Se bajan por
   `/tareas/audio/{entrega}/{cual}`: el alumno las suyas, el equipo todas.
@@ -333,6 +333,7 @@ async def _clases(chapter_uuids: list[str], db_session: AsyncSession) -> dict[st
                 Activity.activity_sub_type,
                 Activity.content,
                 ChapterActivity.order,
+                Activity.creation_date,
             )
             .join(ChapterActivity, ChapterActivity.chapter_id == Chapter.id)
             .join(Activity, Activity.id == ChapterActivity.activity_id)
@@ -341,7 +342,7 @@ async def _clases(chapter_uuids: list[str], db_session: AsyncSession) -> dict[st
     ).all()
     salida: dict[str, list[dict]] = {}
     vistas: set[tuple[str, int]] = set()
-    for cu, aid, auuid, nombre, tipo, sub, content, orden in sorted(filas, key=lambda f: (f[0], f[7] or 0, f[1])):
+    for cu, aid, auuid, nombre, tipo, sub, content, orden, creada in sorted(filas, key=lambda f: (f[0], f[7] or 0, f[1])):
         if (cu, aid) in vistas:
             continue
         vistas.add((cu, aid))
@@ -351,6 +352,7 @@ async def _clases(chapter_uuids: list[str], db_session: AsyncSession) -> dict[st
                 "activity_uuid": auuid or "",
                 "nombre": nombre or "",
                 "tipo": tipo_de_clase(tipo, sub, content),
+                "creada": creada or "",
             }
         )
     return salida
@@ -1098,8 +1100,140 @@ async def marcar_checkin(org_id: int, user_id: int, hito: int, nota: str, autor:
 # ── La campana ──────────────────────────────────────────────────────────────
 
 
+_DIAS = ("lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo")
+_MESES = (
+    "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+)
+
+
+def dia_largo(dia: str) -> str:
+    """«2026-11-02» → «lunes 2 de noviembre»."""
+    try:
+        d = date.fromisoformat((dia or "")[:10])
+    except (TypeError, ValueError):
+        return dia or ""
+    return f"{_DIAS[d.weekday()]} {d.day} de {_MESES[d.month - 1]}"
+
+
+def _iso(texto: str) -> str:
+    """La fecha de una clase del curso (`str(datetime.now())`, sin zona: el
+    servidor va en UTC) con la misma forma que el resto de la campana, que
+    ordena y compara las fechas como texto."""
+    try:
+        d = datetime.fromisoformat((texto or "").strip().replace(" ", "T"))
+    except ValueError:
+        return ""
+    return (d if d.tzinfo else d.replace(tzinfo=timezone.utc)).astimezone(timezone.utc).isoformat()
+
+
+def aviso_presentacion(semana: dict, presentacion: dict, curso: str, course_uuid: str, hoy: str) -> dict:
+    """El aviso de la campana de una presentación nueva («Nueva clase: …»)."""
+    fecha = semana.get("fecha") or ""
+    if not fecha or fecha > hoy:
+        texto = f"Ya puedes ver la presentación para prepararte la clase del {dia_largo(fecha)}." if fecha else (
+            "Ya puedes ver la presentación de la clase."
+        )
+    elif fecha == hoy:
+        texto = "Ya puedes ver la presentación de la clase de hoy."
+    else:
+        texto = f"Ya tienes la presentación de la clase del {dia_largo(fecha)}."
+    return {
+        "id": f"semana:{semana['id']}:{presentacion['activity_uuid']}",
+        "kind": "semana",
+        "title": f"Nueva clase: {semana['tema']}",
+        "excerpt": f"{curso} · {texto}" if curso else texto,
+        "url": f"/course/{course_uuid}/activity/{presentacion['activity_uuid'].replace('activity_', '')}",
+        "date": _iso(presentacion.get("creada") or "") or (semana.get("created_at") or ""),
+    }
+
+
+async def _ve_el_curso(user_id: int, course: Course, db_session: AsyncSession) -> bool:
+    """Lo mismo que `alumnos_del_curso`, para una persona: con grupos y sin ser
+    pública, solo la ven los de sus grupos; si no, todos."""
+    grupos = [
+        int(g)
+        for g in (
+            await db_session.execute(
+                select(UserGroupResource.usergroup_id).where(
+                    UserGroupResource.resource_uuid.in_([course.course_uuid, uuid_curso(course.course_uuid)])  # type: ignore[attr-defined]
+                )
+            )
+        ).scalars().all()
+    ]
+    if not grupos or course.public:
+        return True
+    return (
+        await db_session.execute(
+            select(UserGroupUser.id).where(
+                UserGroupUser.user_id == user_id,
+                UserGroupUser.usergroup_id.in_(grupos),  # type: ignore[attr-defined]
+            )
+        )
+    ).first() is not None
+
+
+async def presentaciones_nuevas(user_id: int, db_session: AsyncSession) -> list[dict]:
+    """La campana del alumno cuando se abre una semana con su presentación
+    (usuario, 28/10: "lo importante es cuando abro nueva semana y meto
+    presentación, y cuando se le corrige algo"). Solo a los alumnos (rol 4) y de
+    las clases que ven; de las semanas cuya clase es de los últimos 7 días o
+    está por venir, y de presentaciones subidas en las últimas 3 semanas. En
+    cuanto la abre, el aviso se va, como el de la corrección al escucharla."""
+    from src.services.panel.tandas import hoy_nl
+
+    orgs = [
+        int(o)
+        for o in (
+            await db_session.execute(
+                select(UserOrganization.org_id).where(
+                    UserOrganization.user_id == user_id, UserOrganization.role_id == ROL_ALUMNO
+                )
+            )
+        ).scalars().all()
+    ]
+    if not orgs:
+        return []
+    hoy = hoy_nl()
+    desde_clase = (date.fromisoformat(hoy) - timedelta(days=7)).isoformat()
+    desde_subida = (datetime.now(timezone.utc) - timedelta(days=DIAS_AVISO)).isoformat()
+    filas = (
+        await db_session.execute(
+            select(TareaSemana).where(
+                TareaSemana.org_id.in_(orgs),  # type: ignore[attr-defined]
+                TareaSemana.fecha >= desde_clase,
+            )
+        )
+    ).scalars().all()
+    por_curso: dict[str, list[TareaSemana]] = {}
+    for s in filas:
+        por_curso.setdefault(s.course_uuid, []).append(s)
+    salida: list[dict] = []
+    for u, semanas in por_curso.items():
+        course = await curso_de(u, db_session)
+        if course is None or not await _ve_el_curso(user_id, course, db_session):
+            continue
+        clases = await _clases([s.chapter_uuid for s in semanas], db_session)
+        presentaciones = {
+            s.id: next((c for c in clases.get(s.chapter_uuid, []) if c["tipo"] == "presentacion"), None)
+            for s in semanas
+        }
+        ids = [p["id"] for p in presentaciones.values() if p]
+        vistas = (await _hechas(course.id or 0, [user_id], ids, db_session)).get(user_id, set())
+        for s in semanas:
+            p = presentaciones.get(s.id)
+            if not p or p["id"] in vistas:
+                continue
+            aviso = aviso_presentacion({**_semana_dict(s), "created_at": s.created_at}, p, course.name or "", uuid_curso(course.course_uuid), hoy)
+            if aviso["date"] >= desde_subida:
+                salida.append(aviso)
+    return salida
+
+
 async def avisos_alumno(user_id: int, db_session: AsyncSession) -> list[dict]:
-    return [
+    """La campana del alumno: la presentación nueva de su clase y sus
+    correcciones sin escuchar."""
+    return await presentaciones_nuevas(user_id, db_session) + [
         {
             "id": f"tarea:{c['entrega_id']}:{c['corregida_at']}",
             "kind": "tarea",

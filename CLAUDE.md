@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-28 (Black Friday: ebook «Neerlandés sin miedo» a 1 € con su caja, entrega y campaña de correos desde la escuela, y blackfriday.holandesnawar.com con la landing y el formulario con la edad primero; antes, el mismo día, cada semana de la clase: presentación, ejercicios y tarea con nota de voz, corrección, «Tu semana» en el Inicio en lugar de la hoja de ruta, Seguimiento semanal y check-in cada 4 semanas; antes, el mismo día, todas las clases en directo con la franja nueva bajo su portada, también la clase semanal; antes, el 27/10, «Comisión pagada» del closer en cada venta, en Clientes y solo para administradores; antes, el mismo día, Spreekclub y Masterclass sin clases grabadas ni descripción, con casilla para volver a enseñarlas; antes, el mismo día, seteo a mano: «Confirmada» en cada llamada, lista «Por confirmar», dos WhatsApp ya escritos y el no-show de confirmadas en KPIs; la Masterclass sin marco bajo el vídeo; antes, el mismo día, el correo de Rida al reservar una llamada lo manda la escuela, avisada por Calendly; antes, el mismo día, salas en directo DENTRO de la escuela con Daily, empezando por el Spreekclub, con grabación automática al entrar el profe; antes 25/10: pestaña «Enfoque» para el closer con el programa nuevo; tandas: nadie entra solo en ningún grupo, el administrador elige el de cada alumno que paga, con aviso en la escuela y sin correo; antes, el mismo día, la beta y el programa nuevo separados por grupos; antes, el mismo día, el closer ve KPIs sin el dinero; antes 22/10: «Otro importe» también a plazos, de 2 a 6 pagos; antes, Matrículas en dos mesas, Leads y Ventas, con closer asignado y reparto; «Esta semana» del alumno cuenta las clases terminadas; antes, el mismo día, incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-28 (la campana avisa al alumno de la presentación nueva de su clase; la Clase semanal con su vídeo de portada aunque tenga foto y la fecha en negro; antes, el mismo día, Black Friday: ebook «Neerlandés sin miedo» a 1 € con su caja, entrega y campaña de correos desde la escuela, y blackfriday.holandesnawar.com con la landing y el formulario con la edad primero; antes, el mismo día, cada semana de la clase: presentación, ejercicios y tarea con nota de voz, corrección, «Tu semana» en el Inicio en lugar de la hoja de ruta, Seguimiento semanal y check-in cada 4 semanas; antes, el mismo día, todas las clases en directo con la franja nueva bajo su portada, también la clase semanal; antes, el 27/10, «Comisión pagada» del closer en cada venta, en Clientes y solo para administradores; antes, el mismo día, Spreekclub y Masterclass sin clases grabadas ni descripción, con casilla para volver a enseñarlas; antes, el mismo día, seteo a mano: «Confirmada» en cada llamada, lista «Por confirmar», dos WhatsApp ya escritos y el no-show de confirmadas en KPIs; la Masterclass sin marco bajo el vídeo; antes, el mismo día, el correo de Rida al reservar una llamada lo manda la escuela, avisada por Calendly; antes, el mismo día, salas en directo DENTRO de la escuela con Daily, empezando por el Spreekclub, con grabación automática al entrar el profe; antes 25/10: pestaña «Enfoque» para el closer con el programa nuevo; tandas: nadie entra solo en ningún grupo, el administrador elige el de cada alumno que paga, con aviso en la escuela y sin correo; antes, el mismo día, la beta y el programa nuevo separados por grupos; antes, el mismo día, el closer ve KPIs sin el dinero; antes 22/10: «Otro importe» también a plazos, de 2 a 6 pagos; antes, Matrículas en dos mesas, Leads y Ventas, con closer asignado y reparto; «Esta semana» del alumno cuenta las clases terminadas; antes, el mismo día, incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -3778,8 +3778,13 @@ administradores), `Panel/CaminoPanel.tsx` (`?tab=camino`), test `test_camino.py`
 `components/Pages/Courses/VideoPortada.tsx`: el vídeo de portada de un curso
 va siempre en marcha, en bucle, sin sonido ni botones, y la caja toma la
 forma del vídeo (sin franjas negras). En una clase en directo sale encima de
-la franja; si la portada es una FOTO (la clase semanal de siempre), sale la
-foto entera, sin recortar (28/10).
+la franja; si la portada es una FOTO, sale la foto entera, sin recortar
+(28/10).
+- ⚠️ **El vídeo gana también con «foto y vídeo»** (28/10, "mete el banner de
+  vídeo en clase semanal"): subir un vídeo a un curso que ya tenía foto lo
+  deja como `both` (`courses.py`), y la clase en directo solo enseñaba el
+  vídeo con `video`: la Clase semanal seguía con la foto vieja. Para volver a
+  la foto, «Solo imagen» en el tipo de portada del curso.
 - **Con vídeo, el recuadro es una franja** (27/10, en pruebas con la
   Masterclass: "quitar ese bloque y ponerlo en línea… que se vea claro un
   botón para entrar"): `WeeklyClassBanner compacto`. «Próxima emisión» con
@@ -3790,8 +3795,9 @@ foto entera, sin recortar (28/10).
   columnas"): la primera versión era una tarjeta con borde, texto a la
   izquierda y botón a la derecha, y al usuario le pareció lo mismo de antes.
   **Letra gruesa** (27/10, "esta letra tan fina no me convence"): la fecha
-  en Poppins **bold** 28 px (no semibold, excepción a la regla de las cifras
-  grandes), «Próxima emisión» y «Clases anteriores» en bold, y «Con Paul ·
+  en Poppins **bold** 28 px y en NEGRO (`text-gray-900`, 28/10: "la letra de
+  la fecha en negro mejor"; antes azul muy oscuro) (no semibold, excepción a
+  la regla de las cifras grandes), «Próxima emisión» y «Clases anteriores» en bold, y «Con Paul ·
   60 min» en medium y casi negro. Con gente en la sala dice «En directo
   ahora» y «Entrar ahora». **Desde el 28/10 es la ÚNICA forma** ("cambiar el
   banner antiguo de clases semanales por el nuevo, con debajo la fecha"):
@@ -3981,6 +3987,18 @@ Todo en `services/tareas/tareas.py` (docstring: leerlo), rutas
 - **La campana, sin correo**: al alumno, su corrección (`tarea`); al equipo,
   «N tareas por corregir» (`corregir`) y, a los administradores, «N check-in
   esta semana» (`checkin`). `_tareas_items` en `engagement.py`.
+  - **«Nueva clase: tema»** (`semana`, 28/10: "lo importante es cuando abro
+    nueva semana y meto presentación, y cuando se le corrige algo"): en cuanto
+    una semana tiene su presentación publicada, a cada ALUMNO (rol 4) que ve
+    esa clase (sus grupos, como `alumnos_del_curso`), con enlace directo a la
+    presentación. Solo semanas con la clase de los últimos 7 días o por venir
+    y presentaciones subidas en las últimas 3 semanas; se va sola cuando la
+    abre (como la corrección al escucharla). El id lleva la clase del PDF:
+    una clase de presentación nueva avisa otra vez; cambiar el archivo dentro
+    de la misma clase, no.
+    `presentaciones_nuevas` en `tareas.py`, test
+    `test_aviso_de_presentacion_nueva`. No hay aviso del día de la clase
+    (ejercicios y tarea abiertos): el usuario no lo quiso.
 - Probado en local de punta a punta (crear dos semanas con PDF y ejercicios,
   entregar con nota de voz con micrófono falso, corregir, aviso, Inicio, móvil).
 

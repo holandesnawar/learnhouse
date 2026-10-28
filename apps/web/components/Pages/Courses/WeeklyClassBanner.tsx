@@ -267,7 +267,7 @@ export default function WeeklyClassBanner({
         </p>
       )}
       <p
-        className="mt-1 text-[23px] sm:text-[28px] font-bold tracking-[-0.01em] text-[#0a1656] leading-tight break-words first-letter:uppercase"
+        className="mt-1 text-[23px] sm:text-[28px] font-bold tracking-[-0.01em] text-gray-900 leading-tight break-words first-letter:uppercase"
         style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
       >
         {cuando}

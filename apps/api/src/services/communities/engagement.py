@@ -622,8 +622,9 @@ async def _decidir_items(user_id: int, org_ids: List[int], db_session: AsyncSess
 
 
 async def _tareas_items(user_id: int, org_ids: List[int], db_session: AsyncSession) -> List[dict]:
-    """Las tareas de las clases (services/tareas/tareas.py): al alumno, sus
-    correcciones sin escuchar; al equipo, lo que queda por corregir y, a los
+    """Las tareas de las clases (services/tareas/tareas.py): al alumno, la
+    presentación nueva de su clase y sus correcciones sin escuchar; al equipo,
+    lo que queda por corregir y, a los
     administradores, los check-in de la semana. Sin correo (28/10/2026)."""
     from src.services.courses.locks import is_org_admin, is_org_staff
     from src.services.tareas.tareas import avisos_alumno, avisos_equipo

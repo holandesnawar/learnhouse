@@ -207,6 +207,32 @@ async def test_una_semana_de_principio_a_fin(db, org, monkeypatch, contenido):
     assert r["entregas_borradas"] == 1 and not ruta.exists()
 
 
+async def test_aviso_de_presentacion_nueva(db, org, monkeypatch, contenido):
+    c = await _clase_con_semana(db, org)
+    monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-10-30")
+    sid = (await T.crear_semana(org.id, c, {"chapter_uuid": "chapter_kleding", "tema": "De kleding", "fecha": "2026-11-02"},
+                                "Rida", db))["semana"]["id"]
+    # Luis (de la clase, sin abrirla) recibe el aviso, con enlace a la presentación.
+    avisos = await T.avisos_alumno(8, db)
+    assert [a["kind"] for a in avisos] == ["semana"]
+    a = avisos[0]
+    assert a["id"] == f"semana:{sid}:activity_70" and a["title"] == "Nueva clase: De kleding"
+    assert a["url"] == "/course/mc/activity/70" and "lunes 2 de noviembre" in a["excerpt"]
+    assert "T" in a["date"] and a["date"].endswith("+00:00")  # misma forma que el resto de la campana
+    # Ana ya la abrió: no. El de otra clase (fuera del grupo), tampoco.
+    assert await T.avisos_alumno(7, db) == []
+    assert await T.avisos_alumno(9, db) == []
+    # El equipo no: solo los alumnos.
+    await _alumno(db, org, 10, "Profe", rol=5)
+    db.add(UserGroupUser(usergroup_id=80, user_id=10, org_id=org.id, creation_date="x", update_date="x"))
+    await db.commit()
+    assert await T.avisos_alumno(10, db) == []
+    # Una semana de hace más de 7 días ya no avisa.
+    monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-11-12")
+    assert await T.avisos_alumno(8, db) == []
+    assert T.dia_largo("2026-11-02") == "lunes 2 de noviembre"
+
+
 async def test_antes_de_la_clase_solo_la_presentacion(db, org, monkeypatch, contenido):
     assert T.abierta("2026-11-02", "2026-11-01") is False
     assert T.abierta("2026-11-02", "2026-11-02") is True  # el día de la clase, ya
