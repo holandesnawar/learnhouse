@@ -42,6 +42,9 @@ function Tarjeta({ curso, courseUuid, proxima, semana, orgslug }: { curso: strin
   const ejercicios = clases.filter((c) => c.tipo === 'ejercicios')
   const ejerciciosHechos = ejercicios.filter((c) => c.hecha).length
   const tarea = semana.tarea?.estado || 'sin-tarea'
+  // Antes del día de la clase solo la presentación: lo demás se abre ese día.
+  const cerrada = semana.abierta === false
+  const luego = cerrada ? [(semana.ocultas || 0) > 0 ? 'los ejercicios' : '', semana.tiene_tarea ? 'la tarea' : ''].filter(Boolean) : []
 
   const pasos: { hecho: boolean; texto: React.ReactNode; href?: string; boton?: string }[] = []
   if (presentacion) pasos.push({ hecho: presentacion.hecha, texto: 'Mira la presentación', href: ruta(presentacion.activity_uuid), boton: 'Ver la presentación' })
@@ -58,7 +61,7 @@ function Tarjeta({ curso, courseUuid, proxima, semana, orgslug }: { curso: strin
       boton: 'Seguir: ejercicios',
     })
   }
-  if (semana.tiene_tarea)
+  if (semana.tiene_tarea && !cerrada)
     pasos.push({
       hecho: tarea === 'entregada' || tarea === 'corregida',
       texto: (
@@ -104,6 +107,12 @@ function Tarjeta({ curso, courseUuid, proxima, semana, orgslug }: { curso: strin
             {p.texto}
           </Paso>
         ))}
+        {luego.length ? (
+          <p className="pl-[28px] py-1 text-[13px] text-[#6B7280]">
+            Después, el día de la clase, se {luego.length > 1 || luego[0] === 'los ejercicios' ? 'abren' : 'abre'}{' '}
+            {luego.join(' y ')}.
+          </p>
+        ) : null}
       </div>
       <div className="mt-3">
         {siguiente?.href ? (

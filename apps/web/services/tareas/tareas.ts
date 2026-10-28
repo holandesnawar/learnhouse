@@ -27,6 +27,10 @@ export interface Semana {
   limite: string
   enunciado: string
   tiene_tarea: boolean
+  /** false = la clase aún no ha llegado: el alumno solo ve la presentación. */
+  abierta?: boolean
+  /** Cuántas clases se le abrirán al alumno el día de la clase (ejercicios…). */
+  ocultas?: number
   clases?: ClaseSemana[]
   tarea?: { estado: EstadoTarea; corregida_at: string; vista: boolean }
 }

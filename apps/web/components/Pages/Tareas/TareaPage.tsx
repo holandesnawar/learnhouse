@@ -109,7 +109,9 @@ export default function TareaPage({ tareaId }: { tareaId: string }) {
 
   const hoy = new Date().toISOString().slice(0, 10)
   const fueraDePlazo = data.limite && data.limite < hoy
-  const formulario = !corregida && (!entrega || editando)
+  // Antes del día de la clase el alumno no ve el enunciado ni puede entregar.
+  const antesDeLaClase = data.abierta === false && !data.equipo
+  const formulario = !corregida && (!entrega || editando) && !antesDeLaClase
 
   return (
     <GeneralWrapperStyled>
@@ -128,12 +130,16 @@ export default function TareaPage({ tareaId }: { tareaId: string }) {
 
         {data.equipo ? (
           <p className="mt-3 rounded-lg bg-[#F9FAFB] border border-[#E5E7EB] px-3 py-2 text-[12.5px] text-[#5A6480]">
-            Así la ve el alumno. Para corregir las entregas, ve a Seguimiento semanal.
+            Así la ve el alumno
+            {data.abierta === false ? ` a partir del ${diaCorto(data.fecha)}, el día de la clase (antes no la ve)` : ''}. Para
+            corregir las entregas, ve a Seguimiento semanal.
           </p>
         ) : null}
 
         <div className="mt-5 rounded-xl bg-[#F0F5FF] px-4 py-3.5 text-[14.5px] leading-relaxed text-[#0a1656] whitespace-pre-wrap">
-          {data.enunciado || 'Esta semana no hay tarea.'}
+          {antesDeLaClase
+            ? `La tarea se abre el ${diaCorto(data.fecha)}, el día de la clase. Mientras, mira la presentación.`
+            : data.enunciado || 'Esta semana no hay tarea.'}
         </div>
 
         {/* Lo que entregó (sin formulario abierto). */}

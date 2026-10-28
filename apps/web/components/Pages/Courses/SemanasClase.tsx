@@ -114,8 +114,30 @@ const Hecho = ({ texto = 'Hecho' }: { texto?: string }) => (
   </span>
 )
 
-/** Las filas de una semana: presentación, grabación, ejercicios, otras y la tarea. */
-function ContenidoSemana({ semana, hoy, rutaClase, orgslug }: { semana: Semana; hoy: string; rutaClase: (c: ClaseSemana) => string; orgslug: string }) {
+/** Lo que se abre el día de la clase, dicho en una línea: «Ejercicios y tarea». */
+function queSeAbre(semana: Semana): string {
+  const hay = [(semana.ocultas || 0) > 0 ? 'ejercicios' : '', semana.tiene_tarea ? 'tarea' : ''].filter(Boolean)
+  if (!hay.length) return ''
+  const texto = hay.join(' y ')
+  return texto.charAt(0).toUpperCase() + texto.slice(1)
+}
+
+/** Las filas de una semana: presentación, grabación, ejercicios, otras y la tarea.
+ * Antes del día de la clase el alumno solo ve la presentación (el servidor ya
+ * le quita lo demás) y una línea con lo que se abrirá ese día. */
+function ContenidoSemana({
+  semana,
+  hoy,
+  rutaClase,
+  orgslug,
+  admin,
+}: {
+  semana: Semana
+  hoy: string
+  rutaClase: (c: ClaseSemana) => string
+  orgslug: string
+  admin: boolean
+}) {
   const clases = semana.clases || []
   const presentaciones = clases.filter((c) => c.tipo === 'presentacion')
   const grabaciones = clases.filter((c) => c.tipo === 'grabacion')
@@ -124,19 +146,48 @@ function ContenidoSemana({ semana, hoy, rutaClase, orgslug }: { semana: Semana; 
   const hechos = ejercicios.filter((c) => c.hecha).length
   const siguienteEjercicio = ejercicios.find((c) => !c.hecha) || ejercicios[0]
   const estadoTarea = semana.tarea?.estado || 'sin-tarea'
+  const cerrada = semana.abierta === false
+
+  const filasPresentacion = presentaciones.map((c) => (
+    <Fila
+      key={c.activity_uuid}
+      tipo="presentacion"
+      titulo={c.nombre || 'Presentación'}
+      detalle="Para mirar antes de la clase"
+      estado={c.hecha ? <Hecho texto="Vista" /> : <span className="text-[#025dc7]">Ábrela</span>}
+      href={rutaClase(c)}
+    />
+  ))
+
+  if (cerrada && !admin) {
+    const seAbre = queSeAbre(semana)
+    return (
+      <div className="divide-y divide-[#EEF2F9]">
+        {filasPresentacion.length ? (
+          filasPresentacion
+        ) : (
+          <Fila tipo="presentacion" titulo="Presentación" detalle="Aún no está subida" />
+        )}
+        {seAbre ? (
+          <Fila
+            tipo={seAbre === 'Tarea' ? 'tarea' : 'ejercicios'}
+            titulo={seAbre}
+            detalle={`Se ${seAbre === 'Tarea' ? 'abre' : 'abren'} el día de la clase`}
+            estado={<span className="text-[#9CA3AF] font-semibold">Después</span>}
+          />
+        ) : null}
+      </div>
+    )
+  }
 
   return (
     <div className="divide-y divide-[#EEF2F9]">
-      {presentaciones.map((c) => (
-        <Fila
-          key={c.activity_uuid}
-          tipo="presentacion"
-          titulo={c.nombre || 'Presentación'}
-          detalle="Para mirar antes de la clase"
-          estado={c.hecha ? <Hecho texto="Vista" /> : <span className="text-[#025dc7]">Ábrela</span>}
-          href={rutaClase(c)}
-        />
-      ))}
+      {cerrada ? (
+        <p className="px-4 py-2.5 text-[12.5px] text-[#5A6480] bg-[#F9FAFB]">
+          Hasta el {diaCorto(semana.fecha)}, el día de la clase, los alumnos solo ven la presentación.
+        </p>
+      ) : null}
+      {filasPresentacion}
       {grabaciones.length ? (
         grabaciones.map((c) => (
           <Fila
@@ -255,7 +306,7 @@ export default function SemanasClase({ courseUuid, courseuuid, orgslug, curso }:
         <span className="text-[12.5px] font-semibold text-[#6B7280] shrink-0 first-letter:uppercase">{diaCorto(semana.fecha)}</span>
       </div>
       <div className="rounded-2xl border border-[#DDE6F5] bg-white overflow-hidden">
-        <ContenidoSemana semana={semana} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} />
+        <ContenidoSemana semana={semana} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={admin} />
         {admin ? <CabeceraAdmin semana={semana} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(semana)} /> : null}
       </div>
     </div>
@@ -293,7 +344,7 @@ export default function SemanasClase({ courseUuid, courseuuid, orgslug, curso }:
                 </button>
                 {abierta ? (
                   <div className="border-t border-[#EEF2F9]">
-                    <ContenidoSemana semana={s} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} />
+                    <ContenidoSemana semana={s} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={admin} />
                     {admin ? <CabeceraAdmin semana={s} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(s)} /> : null}
                   </div>
                 ) : null}

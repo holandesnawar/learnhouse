@@ -3929,6 +3929,17 @@ Todo en `services/tareas/tareas.py` (docstring: leerlo), rutas
   En curso = la última clase ya dada cuyo plazo no ha pasado; próxima = la
   primera que aún no ha llegado (`semana_actual`). Esos capítulos NO salen
   además en «Sesiones grabadas» (`capitulosAVer` en `course.tsx`).
+- ⚠️ **Antes del día de la clase, el alumno SOLO ve la presentación** (usuario,
+  28/10: "los ejercicios después de la clase; antes solo la presentación").
+  La grabación, los ejercicios y la tarea se abren el día de la clase, desde
+  las 00:00 de Países Bajos, no a la hora de la clase (`abierta`,
+  `solo_antes_de_la_clase` en `tareas.py`). El servidor se los quita de la
+  lista, la tarea sale sin enunciado («se abre el lunes 2 nov») y entregar
+  antes da 409. En «Próxima clase» sale «Ejercicios y tarea · Se abren el día
+  de la clase». El equipo lo ve todo, con la línea «Hasta el …, los alumnos
+  solo ven la presentación». Las clases siguen en el curso: por la barra
+  lateral de la presentación se podría abrir un ejercicio (son los de la
+  formación, no pasa nada).
 - **«Nueva semana»** (administradores, en la misma página,
   `Pages/Courses/SemanaModales.tsx`): tema, día, PDF, la lección de la escuela
   de la que salen los ejercicios (cuelga una clase por parte que tenga:

@@ -93,7 +93,7 @@ async def api_semanas(
 ):
     curso = await _curso(request, course_uuid, current_user, db_session)
     equipo, admin = await _roles(current_user, curso.org_id, db_session)
-    datos = await T.semanas_para_alumno(curso, current_user.id, db_session)
+    datos = await T.semanas_para_alumno(curso, current_user.id, db_session, equipo=equipo)
     return {**datos, "equipo": equipo, "admin": admin}
 
 
@@ -127,7 +127,7 @@ async def api_tarea(
 ):
     t, curso = await _tarea_y_curso(request, tarea_id, current_user, db_session)
     equipo, admin = await _roles(current_user, curso.org_id, db_session)
-    return {**await T.tarea_para(t, curso, current_user.id, db_session), "equipo": equipo, "admin": admin}
+    return {**await T.tarea_para(t, curso, current_user.id, db_session, equipo=equipo), "equipo": equipo, "admin": admin}
 
 
 @router.post("/tarea/{tarea_id}/entrega", summary="Entrega (o cambia) la tarea: texto y/o nota de voz.")
@@ -141,9 +141,12 @@ async def api_entregar(
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ):
-    t, _curso_ok = await _tarea_y_curso(request, tarea_id, current_user, db_session)
+    t, curso = await _tarea_y_curso(request, tarea_id, current_user, db_session)
+    equipo, _admin_ok = await _roles(current_user, curso.org_id, db_session)
     try:
-        return await T.entregar(t, current_user.id, texto, await _leer_audio(audio), audio_seg, quitar_audio, db_session)
+        return await T.entregar(
+            t, current_user.id, texto, await _leer_audio(audio), audio_seg, quitar_audio, db_session, equipo=equipo
+        )
     except T.TareaError as exc:
         raise _error(exc)
 
