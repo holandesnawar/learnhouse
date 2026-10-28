@@ -368,19 +368,37 @@ const CourseClient = (props: any) => {
                     ? getCourseThumbnailMediaDirectory(org?.org_uuid, course?.course_uuid, course?.thumbnail_video)
                     : ''
 
-                  // Clase en directo: el recuadro editable (en vez de la foto
-                  // estática). Si el curso tiene un VÍDEO de portada (la de la
-                  // Masterclass), va encima, en bucle, y el recuadro se queda
-                  // en una franja con el botón de entrar: la foto no, para no
-                  // cambiar la clase semanal de siempre. Los ajustes de la sala
-                  // (solo administradores) van debajo: lo primero que se ve es
-                  // la portada y lo que le importa al alumno.
+                  // Clase en directo: la portada del curso y, debajo, la franja
+                  // con la próxima clase y el botón de entrar. Con VÍDEO de
+                  // portada (la Masterclass), el vídeo en bucle; si no, la foto
+                  // entera, sin recortar (la clase semanal de siempre, 28/10:
+                  // "cambiar el banner antiguo por el nuevo"). Sin portada, solo
+                  // la franja. Los ajustes de la sala (solo administradores) van
+                  // debajo: lo primero que se ve es lo que le importa al alumno.
                   if (enDirecto) {
                     const conVideo = course.thumbnail_type === 'video' && !!videoPortada
+                    const foto = course.extra_metadata?.banner_image
+                      ? getCourseBannerMediaDirectory(org?.org_uuid, course.course_uuid, course.extra_metadata.banner_image)
+                      : course.thumbnail_image
+                        ? getCourseThumbnailMediaDirectory(org?.org_uuid, course.course_uuid, course.thumbnail_image)
+                        : ''
                     return (
                       <div className="space-y-4">
-                        {conVideo && <VideoPortada src={videoPortada} />}
-                        <WeeklyClassBanner courseUuid={uuidDeCurso(course)} compacto={conVideo} grabadas={grabadas} />
+                        {conVideo ? (
+                          <VideoPortada src={videoPortada} />
+                        ) : foto ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={foto}
+                            alt=""
+                            fetchPriority="high"
+                            className="block w-full h-auto max-h-[460px] object-cover rounded-2xl ring-1 ring-inset ring-black/10 shadow-xl bg-[#F0F5FF]"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none'
+                            }}
+                          />
+                        ) : null}
+                        <WeeklyClassBanner courseUuid={uuidDeCurso(course)} grabadas={grabadas} />
                         <SalaEnDirecto courseUuid={uuidDeCurso(course)} soloAjustes />
                       </div>
                     );
