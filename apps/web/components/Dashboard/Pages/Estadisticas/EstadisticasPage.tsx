@@ -12,6 +12,7 @@ import FacturasDosPartes from './FacturasDosPartes'
 import ClientesPanel from '../Panel/ClientesPanel'
 import ProgresoPanel from '../Panel/ProgresoPanel'
 import CaminoPanel from '../Panel/CaminoPanel'
+import SeguimientoPanel from '../Panel/SeguimientoPanel'
 import AnunciosPanel from '../Panel/AnunciosPanel'
 import PaginasPanel from './PaginasPanel'
 import RecursosAdmin from '../Recursos/RecursosAdmin'
@@ -71,6 +72,7 @@ import {
   Telescope,
   Compass,
   Route,
+  ClipboardCheck,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -198,7 +200,7 @@ export default function EstadisticasPage() {
   // ?tab= va a Matrículas, no a Números, o saltaría de una a otra sin parar.
   const esCloserRef = React.useRef(false)
   esCloserRef.current = isCloser
-  const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'gastos' | 'guion' | 'paginas' | 'utm' | 'matriculas' | 'tareas' | 'clientes' | 'anuncios' | 'progreso' | 'recursos' | 'vision' | 'kpis' | 'plazos' | 'tandas' | 'enfoque' | 'camino'>('numeros')
+  const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'gastos' | 'guion' | 'paginas' | 'utm' | 'matriculas' | 'tareas' | 'clientes' | 'anuncios' | 'progreso' | 'recursos' | 'vision' | 'kpis' | 'plazos' | 'tandas' | 'enfoque' | 'camino' | 'seguimiento'>('numeros')
   // El closer arranca en Matrículas, que es lo suyo (08/10: Contactos es solo
   // del administrador).
   useEffect(() => {
@@ -210,7 +212,7 @@ export default function EstadisticasPage() {
   useEffect(() => {
     const leer = () => {
       const pedida = new URLSearchParams(window.location.search).get('tab')
-      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'llamadas' || pedida === 'facturas' || pedida === 'gastos' || pedida === 'guion' || pedida === 'paginas' || pedida === 'utm' || pedida === 'matriculas' || pedida === 'tareas' || pedida === 'clientes' || pedida === 'anuncios' || pedida === 'progreso' || pedida === 'recursos' || pedida === 'vision' || pedida === 'kpis' || pedida === 'plazos' || pedida === 'tandas' || pedida === 'enfoque' || pedida === 'camino') setTab(pedida)
+      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'llamadas' || pedida === 'facturas' || pedida === 'gastos' || pedida === 'guion' || pedida === 'paginas' || pedida === 'utm' || pedida === 'matriculas' || pedida === 'tareas' || pedida === 'clientes' || pedida === 'anuncios' || pedida === 'progreso' || pedida === 'recursos' || pedida === 'vision' || pedida === 'kpis' || pedida === 'plazos' || pedida === 'tandas' || pedida === 'enfoque' || pedida === 'camino' || pedida === 'seguimiento') setTab(pedida)
       // Sin ?tab= (el enlace «Estadísticas» de la barra) = los números.
       else if (!pedida) setTab(esCloserRef.current ? 'matriculas' : 'numeros')
     }
@@ -305,6 +307,8 @@ export default function EstadisticasPage() {
             <GraduationCap size={22} className="text-[#025dc7] shrink-0" />
           ) : tab === 'camino' ? (
             <Route size={22} className="text-[#025dc7] shrink-0" />
+          ) : tab === 'seguimiento' ? (
+            <ClipboardCheck size={22} className="text-[#025dc7] shrink-0" />
           ) : tab === 'vision' ? (
             <Telescope size={22} className="text-[#025dc7] shrink-0" />
           ) : tab === 'kpis' ? (
@@ -345,6 +349,8 @@ export default function EstadisticasPage() {
                                   ? 'Progreso de los alumnos'
                                   : tab === 'camino'
                                   ? 'Camino de 16 semanas'
+                                  : tab === 'seguimiento'
+                                  ? 'Seguimiento semanal'
                                   : tab === 'vision'
                                     ? 'Visión'
                                     : tab === 'kpis'
@@ -406,6 +412,8 @@ export default function EstadisticasPage() {
         <ProgresoPanel key={vuelta} />
       ) : tab === 'camino' ? (
         <CaminoPanel key={vuelta} />
+      ) : tab === 'seguimiento' ? (
+        <SeguimientoPanel key={vuelta} />
       ) : tab === 'vision' ? (
         <VisionPage key={vuelta} />
       ) : tab === 'kpis' ? (

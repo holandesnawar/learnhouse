@@ -71,6 +71,8 @@ NOMBRES_TIPO = {
     # Es además la marca de que ya le llegó: no se le vuelve a mandar.
     "correo-reserva": "Le llegó el correo de Rida (al reservar la llamada)",
     "llamada-confirmada": "Confirmó que viene a su llamada",
+    # Check-in cada 4 semanas de su camino (28/10, services/tareas/tareas.py).
+    "check-in": "Check-in con el equipo",
     "alta-manual": "Dado de alta a mano",
 }
 
@@ -279,6 +281,11 @@ def _que(kind: str, campos: dict) -> str:
         cuando = _dia_y_hora(extra.get("inicio") or "")
         texto = "Confirmó que viene a su llamada" + (f" del {cuando}" if cuando else "")
         return texto + (f" (lo apuntó {extra['autor']})" if extra.get("autor") else "")
+    if kind == "check-in":
+        texto = f"Check-in de la semana {extra.get('hito')}" if extra.get("hito") else "Check-in con el equipo"
+        if extra.get("autor"):
+            texto += f" (lo hizo {extra['autor']})"
+        return texto + (f": {extra['nota']}" if extra.get("nota") else "")
     if kind == "senal":
         importe = _euros(extra.get("importe_cents") or 0)
         if extra.get("tipo") == "unico":

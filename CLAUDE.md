@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-28 (todas las clases en directo con la franja nueva bajo su portada, también la clase semanal; antes, el 27/10, «Comisión pagada» del closer en cada venta, en Clientes y solo para administradores; antes, el mismo día, Spreekclub y Masterclass sin clases grabadas ni descripción, con casilla para volver a enseñarlas; antes, el mismo día, seteo a mano: «Confirmada» en cada llamada, lista «Por confirmar», dos WhatsApp ya escritos y el no-show de confirmadas en KPIs; la Masterclass sin marco bajo el vídeo; antes, el mismo día, el correo de Rida al reservar una llamada lo manda la escuela, avisada por Calendly; antes, el mismo día, salas en directo DENTRO de la escuela con Daily, empezando por el Spreekclub, con grabación automática al entrar el profe; antes 25/10: pestaña «Enfoque» para el closer con el programa nuevo; tandas: nadie entra solo en ningún grupo, el administrador elige el de cada alumno que paga, con aviso en la escuela y sin correo; antes, el mismo día, la beta y el programa nuevo separados por grupos; antes, el mismo día, el closer ve KPIs sin el dinero; antes 22/10: «Otro importe» también a plazos, de 2 a 6 pagos; antes, Matrículas en dos mesas, Leads y Ventas, con closer asignado y reparto; «Esta semana» del alumno cuenta las clases terminadas; antes, el mismo día, incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-28 (cada semana de la clase: presentación, ejercicios y tarea con nota de voz, corrección, «Tu semana» en el Inicio en lugar de la hoja de ruta, Seguimiento semanal y check-in cada 4 semanas; antes, el mismo día, todas las clases en directo con la franja nueva bajo su portada, también la clase semanal; antes, el 27/10, «Comisión pagada» del closer en cada venta, en Clientes y solo para administradores; antes, el mismo día, Spreekclub y Masterclass sin clases grabadas ni descripción, con casilla para volver a enseñarlas; antes, el mismo día, seteo a mano: «Confirmada» en cada llamada, lista «Por confirmar», dos WhatsApp ya escritos y el no-show de confirmadas en KPIs; la Masterclass sin marco bajo el vídeo; antes, el mismo día, el correo de Rida al reservar una llamada lo manda la escuela, avisada por Calendly; antes, el mismo día, salas en directo DENTRO de la escuela con Daily, empezando por el Spreekclub, con grabación automática al entrar el profe; antes 25/10: pestaña «Enfoque» para el closer con el programa nuevo; tandas: nadie entra solo en ningún grupo, el administrador elige el de cada alumno que paga, con aviso en la escuela y sin correo; antes, el mismo día, la beta y el programa nuevo separados por grupos; antes, el mismo día, el closer ve KPIs sin el dinero; antes 22/10: «Otro importe» también a plazos, de 2 a 6 pagos; antes, Matrículas en dos mesas, Leads y Ventas, con closer asignado y reparto; «Esta semana» del alumno cuenta las clases terminadas; antes, el mismo día, incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -3907,6 +3907,71 @@ se queden reservas sin mensaje, y con los números de abajo delante.
 - **KPIs → «¿Sirve confirmar la llamada?»**: no-show de las confirmadas
   contra las que no, desde el 27/10 (`CONFIRMAR_DESDE` en `kpis.py`) y solo
   con «¿Qué pasó?» apuntado. Tests: `test_confirmar_llamada.py`.
+
+## Cada semana de la clase: presentación, ejercicios, tarea y seguimiento (28/10/2026)
+Pedido: "¿dónde encuentran los alumnos la presentación con antelación, los
+ejercicios después y dónde entregan su tarea para corregirla? … el punto medio
+entre que no me cueste 2 horas cada semana y acompañar al alumno más que en un
+solo momento semanal". Decidido con boceto el 28/10: corrige el
+administrador por ahora y luego un profe; check-in cada 4 semanas. **Tablas
+nuevas `tarea_semana` y `tarea_entrega`** (aprobadas por el usuario).
+Todo en `services/tareas/tareas.py` (docstring: leerlo), rutas
+`routers/tareas.py` (`/api/v1/tareas/…`), test `test_tareas.py`.
+- **Una semana = un capítulo del curso de la clase en directo** marcado en
+  `tarea_semana` (tema, día de la clase, enunciado de la tarea, plazo; sin
+  enunciado = sin tarea; plazo vacío = el domingo de esa semana). Dentro, las
+  clases de siempre: la presentación (PDF), la grabación y los ejercicios
+  (`nawar:`). Qué es cada una lo decide `tipo_de_clase` (PDF = presentación;
+  vídeo, Bunny o una página con Bunny = grabación; `nawar:` = ejercicios).
+- **Página de la clase** (`Pages/Courses/SemanasClase.tsx`, debajo de la
+  franja): «Esta semana · tema» con sus cosas y si el alumno las hizo,
+  «Próxima clase» (su presentación ya se ve) y «Semanas anteriores» plegadas.
+  En curso = la última clase ya dada cuyo plazo no ha pasado; próxima = la
+  primera que aún no ha llegado (`semana_actual`). Esos capítulos NO salen
+  además en «Sesiones grabadas» (`capitulosAVer` en `course.tsx`).
+- **«Nueva semana»** (administradores, en la misma página,
+  `Pages/Courses/SemanaModales.tsx`): tema, día, PDF, la lección de la escuela
+  de la que salen los ejercicios (cuelga una clase por parte que tenga:
+  Flashcards, Oefeningen, Luisteren, Lezen, Spreken) y la tarea. Crea el
+  capítulo y las clases y las PUBLICA (nacen sin publicar). La grabación se
+  añade después en el editor («Añadir clases»). «Editar semana» cambia tema,
+  día y tarea; «Quitar la semana» borra la tarea y las entregas (el capítulo
+  se queda).
+- **La tarea** (`/tarea/<id>`, `Pages/Tareas/TareaPage.tsx`): texto y/o nota
+  de voz (el grabador de los mensajes, `VoiceRecorder` con `textoGrabar`; ahora
+  guarda el tipo real: Safari graba mp4). Se cambia mientras no esté
+  corregida. La corrección (texto y/o nota de voz) sale ahí mismo; abrirla la
+  da por vista.
+- ⚠️ **Las notas de voz son privadas**: `content/privado/tareas/<org>/` (dentro
+  del volumen: entran en la copia), nunca por `/content`. Se bajan por
+  `/tareas/audio/{entrega}/{alumno|correccion}`: el alumno las suyas, el
+  equipo todas (`AudioPrivado.tsx` las pide con la sesión).
+- **«Tu semana de clase» en el Inicio** (`Pages/Home/TuSemana.tsx`) en lugar
+  de la **hoja de ruta, que se quitó** (`RoadmapSection`: la misma lista para
+  todos, cambiada a mano; lo guardado en org_config `roadmap` se queda sin
+  usar). Pasos de la semana con su check, barra y botón a lo siguiente; arriba,
+  «Tu tarea de X está corregida» si no la ha escuchado.
+- **Seguimiento semanal** (Panel → Alumnos, `?tab=seguimiento`,
+  `Panel/SeguimientoPanel.tsx`; para el profe, `/seguimiento` en la escuela
+  con «Seguimiento semanal» en su barra): por clase y semana, alumno a alumno,
+  presentación, clase (solo con la sala de la escuela: Daily dice quién estuvo
+  ESE día, 10 min o más; con Zoom sale «?»), ejercicios, tarea y **semanas sin
+  nada** (rojo con 2 o más, sobre las semanas ya cerradas). Al lado, **Por
+  corregir** (todas las clases) con el corrector. Los alumnos de una clase son
+  los de sus grupos si los tiene y no es pública (`alumnos_del_curso`). Las
+  rutas del equipo dejan pasar a `STAFF_ROLE_IDS`; crear semanas, solo
+  administradores. Quien corrige firma con el nombre de su cuenta (nunca el
+  usuario «admin»): sin nombre, el alumno lee «Corregida».
+- **Check-in cada 4 semanas** (semanas 4, 8 y 12 de su camino, el de
+  `camino.py`; `hito_pendiente`): arriba del Seguimiento, con WhatsApp ya
+  escrito y «Hecho» (+ nota). Se apunta como `contact_event` `check-in` (sale
+  en la línea de tiempo de su ficha), sin tabla nueva. Si no se hace, sigue
+  saliendo hasta que toca el siguiente.
+- **La campana, sin correo**: al alumno, su corrección (`tarea`); al equipo,
+  «N tareas por corregir» (`corregir`) y, a los administradores, «N check-in
+  esta semana» (`checkin`). `_tareas_items` en `engagement.py`.
+- Probado en local de punta a punta (crear dos semanas con PDF y ejercicios,
+  entregar con nota de voz con micrófono falso, corregir, aviso, Inicio, móvil).
 
 ## Incidente de Railway: claves robadas y despliegues parados (21-22/10/2026)
 Railway avisó de que un tercero pudo leer las variables de entorno de sus

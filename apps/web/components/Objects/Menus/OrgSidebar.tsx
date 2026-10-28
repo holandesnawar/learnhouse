@@ -39,6 +39,7 @@ import {
   Envelope,
   List,
   X,
+  ClipboardText,
 } from '@phosphor-icons/react'
 // Iconos del "modo enfoque" — los mismos que el sidebar de lecciones del curso,
 // para que abrir/cerrar la barra se vea igual dentro y fuera de una lección.
@@ -196,6 +197,9 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     // Para el equipo: redactar la respuesta, que el tablón de arriba solo la
     // enseña. Vive fuera del panel a propósito, porque el profe no entra ahí.
     { key: 'responder-consultas', href: '/responder-consultas', label: 'Responder consultas', icon: <Question size={20} weight="bold" />, show: isStaff },
+    // Las tareas por corregir y la semana de cada clase (28/10/2026). El
+    // administrador lo tiene en el panel; el profe, aquí.
+    { key: 'seguimiento', href: '/seguimiento', label: 'Seguimiento semanal', icon: <ClipboardText size={20} weight="fill" />, show: isStaff && !isAdmin },
   ]
 
   // "Tu espacio" — zona personal del alumno (separada de las páginas generales).

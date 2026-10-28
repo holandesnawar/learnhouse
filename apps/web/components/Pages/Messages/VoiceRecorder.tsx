@@ -15,9 +15,15 @@ import toast from 'react-hot-toast'
 export default function VoiceRecorder({
   onSend,
   sending,
+  etiqueta = 'Enviar',
+  textoGrabar,
 }: {
   onSend: (audio: Blob, seconds: number) => Promise<void>
   sending: boolean
+  /** El texto del botón de después de grabar (la tarea dice «Usar esta grabación»). */
+  etiqueta?: string
+  /** Con texto, el botón de grabar es grande y lo lleva (en la tarea); sin él, solo el micro. */
+  textoGrabar?: string
 }) {
   const [recording, setRecording] = useState(false)
   const [seconds, setSeconds] = useState(0)
@@ -48,7 +54,9 @@ export default function VoiceRecorder({
         if (e.data.size > 0) chunksRef.current.push(e.data)
       }
       rec.onstop = () => {
-        const out = new Blob(chunksRef.current, { type: 'audio/webm' })
+        // El tipo de verdad: Safari graba mp4 y Chrome webm. Con «webm» a secas
+        // el archivo de Safari se guardaba con una extensión que no es la suya.
+        const out = new Blob(chunksRef.current, { type: rec.mimeType || 'audio/webm' })
         setBlob(out)
         setUrl(URL.createObjectURL(out))
         stream.getTracks().forEach((t) => t.stop())
@@ -128,7 +136,7 @@ export default function VoiceRecorder({
           className="shrink-0 inline-flex items-center gap-1.5 px-3 h-9 rounded-lg bg-[#025dc7] text-white text-[13px] font-semibold hover:bg-[#0b6df0] disabled:opacity-50"
         >
           {sending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
-          Enviar
+          {etiqueta}
         </button>
       </div>
     )
@@ -148,6 +156,18 @@ export default function VoiceRecorder({
           <Square size={13} /> Parar
         </button>
       </div>
+    )
+  }
+
+  if (textoGrabar) {
+    return (
+      <button
+        type="button"
+        onClick={start}
+        className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-dashed border-[#9cc7ff] px-4 py-3 text-[14px] font-bold text-[#025dc7] hover:bg-[#F0F5FF] transition-colors"
+      >
+        <Mic size={17} /> {textoGrabar}
+      </button>
     )
   }
 
