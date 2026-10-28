@@ -925,6 +925,73 @@ def send_correo_reserva_email(
     )
 
 
+def send_carta_ebook_email(
+    email: EmailStr,
+    asunto: str,
+    texto: str,
+    botones: Optional[list] = None,
+    baja_url: str = "",
+    preview: bool = False,
+):
+    """Los correos del ebook de Black Friday (28/10/2026): la entrega del PDF
+    y la campaña que le sigue (`services/ebook/ebook.py`). Cartas de Rida,
+    como la de la reserva (`_carta_layout`).
+
+    `botones` = [(marca, texto, url)]. El texto pone cada botón donde lleve su
+    marca en una línea sola («[descarga]», «[boton]»); el que no tenga sitio
+    va al final. Con `baja_url`, una línea para darse de baja al pie: la
+    campaña es publicidad y la ley pide poder salir con un clic.
+    """
+    marcas = {m: (t, u) for m, t, u in (botones or []) if t and u}
+    secundario = (
+        "display: inline-block; padding: 12px 22px; background-color: #ffffff; "
+        "color: #025dc7; text-decoration: none; border-radius: 10px; border: 1.5px solid #cfe3ff; "
+        "font-size: 15px; font-weight: 700; line-height: 1;"
+    )
+    principal = STYLES["button"].replace("font-size: 14px", "font-size: 15px")
+
+    def boton(marca: str, primero: bool) -> str:
+        t, u = marcas[marca]
+        estilo = principal if primero else secundario
+        clase = ' class="brand-btn"' if primero else ""
+        return (
+            f'<div style="margin: 4px 0 26px 0;"><a href="{html.escape(u)}"{clase} style="{estilo}">'
+            f"{html.escape(t)}</a></div>"
+        )
+
+    partes: list[str] = []
+    puestos: list[str] = []
+    bloque: list[str] = []
+    for linea in (texto or "").split("\n"):
+        m = linea.strip()
+        if m.startswith("[") and m.endswith("]") and m[1:-1] in marcas and m[1:-1] not in puestos:
+            partes.append(parrafos("\n".join(bloque), ESTILO_CARTA_P))
+            bloque = []
+            partes.append(boton(m[1:-1], not puestos))
+            puestos.append(m[1:-1])
+        else:
+            bloque.append(linea)
+    partes.append(parrafos("\n".join(bloque), ESTILO_CARTA_P))
+    for marca in marcas:
+        if marca not in puestos:
+            partes.append(boton(marca, not puestos))
+            puestos.append(marca)
+    if baja_url:
+        partes.append(
+            '<p style="margin: 8px 0 0 0; font-size: 12px; line-height: 1.6; color: #8a90a0;">'
+            "Te escribimos porque compraste el ebook de Holandés Nawar. "
+            f'<a href="{html.escape(baja_url)}" style="color: #8a90a0; text-decoration: underline;">'
+            "No quiero recibir más correos de esta campaña</a>.</p>"
+        )
+    return send_email(
+        dry_run=preview,
+        to=email,
+        subject=asunto,
+        body=_carta_layout(title=asunto, body_content="\n".join(p for p in partes if p)),
+        reply_to=SUPPORT_EMAIL,
+    )
+
+
 def send_llamada_pedida_email(
     email: EmailStr,
     llamada: dict,

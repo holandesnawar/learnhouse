@@ -41,10 +41,11 @@ def _de_b64(texto: str) -> bytes:
     return base64.urlsafe_b64decode(texto + "=" * (-len(texto) % 4))
 
 
-def firmar(datos: dict, secreto: str, ahora: Optional[float] = None) -> str:
-    """Token `cuerpo.firma`. El cuerpo lleva los datos y la caducidad."""
+def firmar(datos: dict, secreto: str, ahora: Optional[float] = None, dias: int = DIAS_VALIDEZ) -> str:
+    """Token `cuerpo.firma`. El cuerpo lleva los datos y la caducidad (`dias`:
+    los enlaces de pago, 14; la descarga del ebook, un año)."""
     cuerpo = dict(datos)
-    cuerpo["exp"] = int((ahora or time.time()) + DIAS_VALIDEZ * 86400)
+    cuerpo["exp"] = int((ahora or time.time()) + dias * 86400)
     crudo = _b64(json.dumps(cuerpo, ensure_ascii=False, separators=(",", ":")).encode())
     firma = _b64(hmac.new(secreto.encode(), crudo.encode(), hashlib.sha256).digest())
     return f"{crudo}.{firma}"

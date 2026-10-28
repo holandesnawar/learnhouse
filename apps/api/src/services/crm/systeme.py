@@ -156,6 +156,61 @@ async def _remove_tag(
         logger.error("[systeme] -%s network error: %s", label, exc)
 
 
+async def etiquetar(email: str, nombre: str, etiqueta: str) -> None:
+    """Da de alta (si no existe) y pone una etiqueta por su nombre. Para el
+    ebook de Black Friday (28/10/2026): quien lo compra sigue en la lista del
+    usuario aunque la campaña la mande la escuela.
+
+    La etiqueta se busca por nombre y, si no existe, se crea (`POST /tags`,
+    lo mismo que hace la web; no verificado desde aquí: systeme.io está
+    bloqueado en este entorno). Nunca lanza: un fallo del CRM no puede dejar
+    a nadie sin su ebook.
+    """
+    if not os.environ.get("SYSTEME_API_KEY"):
+        return
+    clean_email = (email or "").strip().lower()
+    if not clean_email:
+        return
+    try:
+        async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT) as client:
+            contact_id = await _find_contact_id(client, clean_email)
+            if not contact_id:
+                r = await client.post(
+                    f"{SYSTEME_BASE}/contacts",
+                    headers=_headers(),
+                    json={"email": clean_email, "firstName": (nombre or "").split(" ")[0][:60]},
+                )
+                if r.status_code < 400:
+                    try:
+                        contact_id = int((r.json() or {}).get("id") or 0) or None
+                    except ValueError:
+                        contact_id = None
+                if not contact_id:
+                    contact_id = await _find_contact_id(client, clean_email)
+            if not contact_id:
+                logger.error("[systeme] no se pudo dar de alta %s", clean_email)
+                return
+            tag_id = await _find_tag_id_by_name(client, etiqueta)
+            if not tag_id:
+                r = await client.post(f"{SYSTEME_BASE}/tags", headers=_headers(), json={"name": etiqueta})
+                if r.status_code < 400:
+                    try:
+                        tag_id = int((r.json() or {}).get("id") or 0) or None
+                    except ValueError:
+                        tag_id = None
+                if not tag_id:
+                    tag_id = await _find_tag_id_by_name(client, etiqueta)
+            if not tag_id:
+                return
+            add = await client.post(
+                f"{SYSTEME_BASE}/contacts/{contact_id}/tags", headers=_headers(), json={"tagId": tag_id}
+            )
+            if add.status_code not in (200, 201, 204, 409):
+                logger.error("[systeme] error +%s: %s %s", etiqueta, add.status_code, add.text[:200])
+    except Exception:
+        logger.exception("[systeme] etiquetar falló para %s", clean_email)
+
+
 async def mark_as_alumno(email: str) -> None:
     """Adds "Alumno" and removes "Matriculado sin pagar" + "Lista de espera".
 

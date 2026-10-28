@@ -1647,6 +1647,13 @@ async def _handle_checkout_session(obj: dict, db_session: AsyncSession) -> dict:
     session_id = obj.get("id") or ""
     metadatos = obj.get("metadata") or {}
 
+    # El ebook de Black Friday a 1 € (services/ebook/ebook.py): ni matrícula
+    # ni cuenta de alumno. Se apunta en su ficha y le llega el PDF.
+    if metadatos.get("producto") == "ebook-bf":
+        from src.services.ebook.ebook import al_pagar
+
+        return {"detail": f"ebook:{await al_pagar(obj, db_session)}"}
+
     # Una señal o un pago a cuenta de una plaza reservada: va por su camino
     # (services/payments/reservas.py). Solo da acceso cuando se completa.
     if str(metadatos.get("reserva_pago_id") or "").isdigit():
@@ -1740,6 +1747,9 @@ async def _handle_payment_intent(obj: dict, db_session: AsyncSession) -> dict:
     enrollment by metadata.enrollment_id (set when the PI was created)
     so we have an authoritative email + name to provision against."""
     intent_id = obj.get("id") or ""
+    # El ebook lo atiende solo la sesión de pago (ver arriba).
+    if (obj.get("metadata") or {}).get("producto") == "ebook-bf":
+        return {"detail": "ebook: lo atiende la sesión"}
     # Pago de una plaza reservada (señal o resto): ver reservas.py. Llega
     # también por la sesión de pago; `atender_pago` lo apunta una sola vez.
     pago_reserva = str((obj.get("metadata") or {}).get("reserva_pago_id") or "")

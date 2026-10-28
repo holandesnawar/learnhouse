@@ -149,5 +149,15 @@ async def api_drip_diario(
         logger.exception("Revisión de planes de pagos falló")
         resultado["plazos"] = {"error": type(e).__name__}
 
+    # La campaña del ebook de Black Friday (services/ebook/ebook.py): un correo
+    # al día como mucho a quien compró y aún no ha reservado ni pagado.
+    try:
+        from src.services.ebook.ebook import enviar_campana
+
+        resultado["ebook"] = await enviar_campana(db_session, org_id)
+    except Exception as e:  # noqa: BLE001
+        logger.exception("Campaña del ebook falló")
+        resultado["ebook"] = {"error": type(e).__name__}
+
     logger.info("Goteo diario: %s", resultado)
     return resultado

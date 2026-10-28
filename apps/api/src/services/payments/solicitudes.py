@@ -105,6 +105,12 @@ _NOMBRES = {
     "guia-hebben": "la guía hebben/zijn",
     "gracias-hebben": "la descarga de la guía hebben/zijn",
     "enlace-pago": "un enlace de pago que le mandó el equipo",
+    # Black Friday 2026 (28/10): el ebook a 1 € (orgánico y anuncio), la
+    # página de la formación de Black Friday y su formulario de llamada.
+    "bf-ebook": "la página del ebook de Black Friday",
+    "bf-ebook-ads": "la página del ebook de Black Friday, desde el anuncio",
+    "black-friday": "la página de Black Friday de la formación (sin precio)",
+    "bf-admision": "el formulario de llamada de Black Friday",
 }
 
 #: La única página que enseña la cifra. Si no pasó por aquí, no ha visto nunca

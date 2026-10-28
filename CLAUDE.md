@@ -3984,6 +3984,76 @@ Todo en `services/tareas/tareas.py` (docstring: leerlo), rutas
 - Probado en local de punta a punta (crear dos semanas con PDF y ejercicios,
   entregar con nota de voz con micrófono falso, corregir, aviso, Inicio, móvil).
 
+## Black Friday 2026: ebook a 1 €, landing y campaña (28/10/2026)
+Pedido: "la página del ebook, dos (orgánico y ads); compran y en la de gracias
+van a blackfriday.holandesnawar.com, la landing de la formación muy top como
+la de YouTalk; de ahí, todos los botones al formulario nuestro (la edad, la
+primera); que les llegue el mail al comprar y una campaña para calentar a los
+que aún no compraron". Decidido: el ebook es el «Ebook A0-A1» de siempre
+rebautizado **«Neerlandés sin miedo»** (7 lecciones para arrancar desde cero),
+a **1 €**, campaña **del 29/10 al 30/11/2026** (el 30 es lunes; el Black
+Friday, el viernes 27). **Las páginas en la web; el cobro, la entrega y la
+campaña en la escuela; systeme.io solo recibe la etiqueta «Ebook Black
+Friday»** (por qué, en la cabecera de `services/ebook/ebook.py`).
+- **Como YouTalk, la landing NO lleva precio**: «adelántate al Black Friday,
+  condiciones especiales», y las cuenta el closer en la llamada. ⚠️ **Las
+  condiciones de Black Friday las tiene que decidir el usuario y contárselas
+  al closer**: no están escritas en ningún sitio (ni en el Enfoque).
+- **Escuela** (`services/ebook/ebook.py`, rutas `/api/v1/ebook/…`, test
+  `test_ebook.py`):
+  - `POST /pago` (público, 10/h por IP: el NAVEGADOR llama a la escuela
+    directamente, no por una ruta de Vercel, para que la IP sea la de quien
+    compra) abre una sesión de pago embebida (`embedded_page`) de 1 €:
+    tarjeta, iDEAL y Bancontact (sin Klarna), factura de Stripe, su PROPIO
+    producto en Stripe («Neerlandés sin miedo · Ebook A0-A1», Price por
+    `lookup_key` `nawar-ebook-sin-miedo-<céntimos>`). Vuelve a
+    `blackfriday.holandesnawar.com/?compra={CHECKOUT_SESSION_ID}` (o a la
+    `vuelta` que mande la web, solo si es `*.holandesnawar.com` o local).
+  - **No es una matrícula ni da cuenta**: el webhook (`_handle_checkout_session`,
+    metadato `producto=ebook-bf`) llama a `al_pagar` y el PaymentIntent se
+    ignora. La compra es un `contact_event` `ebook` con sus utm y el
+    `session_id` en `extra` (sale en Contactos con «Ads»/«Orgánico»). No entra
+    en el tablero hasta que empieza el formulario de la llamada.
+  - `al_pagar`, una vez por sesión (Redis + el propio evento), desde el
+    webhook o desde `GET /compra/{cs}` (la página de vuelta, por si el aviso
+    tarda): correo de entrega (`send_carta_ebook_email`, carta de Rida con el
+    botón de descarga y otro a la landing) y la etiqueta de systeme.io
+    (`crm/systeme.py::etiquetar`, crea contacto y etiqueta si faltan; sin
+    verificar contra systeme.io). Si el correo falla, se borra la marca y se
+    reintenta.
+  - **El PDF lo sube el administrador** (Avisos → «Ebook Black Friday») a
+    `content/privado/ebook/<org>/` y se baja con `GET /descarga/{token}`
+    (firmado con el secreto JWT, un año; `enlace.firmar(dias=…)`). Sin PDF,
+    el enlace dice «se está preparando». ⚠️ Rotar el secreto JWT invalida
+    los enlaces de descarga y de baja ya enviados.
+  - **La campaña** (`enviar_campana`, en la tarea diaria `drip-diario`, 07:00
+    UTC): 4 correos por días desde la compra (1, 3, 5, 7) y 2 de fecha fija
+    (27/11 «Hoy es Black Friday», 30/11 «Último día»). Uno al día como mucho,
+    ninguno el día de la compra, el de fecha fija gana ese día, los de días con
+    más de 2 de retraso se saltan, nada después de `hasta` (`que_toca`, pura).
+    **Se para** al reservar la llamada (`reunion`, `llamada-equipo`,
+    `correo-reserva`), al pagar la formación o con la baja (enlace al pie,
+    `GET /baja/{token}` → `baja-bf`). Cada envío deja un `correo-bf` (que NO
+    cuenta como «lo último que hizo» en Contactos: `_LOS_MANDA_LA_ESCUELA`).
+    Los botones llevan `?nombre&email&utm_source=email&utm_campaign=black-friday
+    &utm_content=<id>` para que el formulario salga relleno y se sepa qué
+    correo trajo a quién.
+  - **Panel → Avisos → «Ebook Black Friday»** (`EbookBlackFriday.tsx`,
+    `services/ebook/ebook.ts`; también con `?tab=ebook`): abrir/cerrar la
+    venta, encender/apagar la campaña, fechas, subir el PDF, números
+    (compraron, en campaña, reservaron, pagaron, bajas) y los 7 correos
+    editables (asunto, texto, botón y a dónde lleva, día o fecha, apagar uno),
+    con «Ver cómo queda» y «Mandármelo a mí». Guardado en org_config
+    `ebook_bf`; los textos de fábrica en `DE_FABRICA`. Huecos `{nombre}` y
+    `{hasta}` («lunes 30 de noviembre»); `[boton]` / `[descarga]` en una línea
+    colocan los botones.
+  - Marcas de página nuevas: `bf-ebook`, `bf-ebook-ads` (en
+    `_PAGINAS_DE_ANUNCIO`: sale como anuncio), `black-friday`, `bf-admision`
+    (`_NOMBRES` de `solicitudes.py`, `_ORIGEN_WEB` de `pipeline.py`).
+- **Web** (`nawar-web`, `src/pages/black-friday/`, `src/lib/blackFriday.ts`):
+  ver la sección de la web en el CLAUDE.md de la escuela de abajo y el PR de
+  nawar-web del 28/10.
+
 ## Incidente de Railway: claves robadas y despliegues parados (21-22/10/2026)
 Railway avisó de que un tercero pudo leer las variables de entorno de sus
 clientes (lo publicó el 21/10; iban a por claves de IA) y **paró todos los

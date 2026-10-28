@@ -174,11 +174,16 @@ _ORIGEN_WEB = {
     "agendar": "Web · agendar",
     "admision": "Web · admisión",
     "admision-preguntas": "Web · admisión",
+    # Black Friday 2026 (28/10, services/ebook/ebook.py). La del anuncio
+    # (`bf-ebook-ads`) está en _PAGINAS_DE_ANUNCIO: sale como anuncio.
+    "bf-ebook": "Ebook Black Friday",
+    "black-friday": "Black Friday",
+    "bf-admision": "Black Friday",
 }
 _MEDIOS_DE_PAGO = {"paid", "cpc", "ppc", "ads", "paid_social", "paidsocial", "paid-social"}
 _FUENTES_META = {"facebook", "fb", "instagram", "ig", "meta"}
 #: Las páginas a las que solo se llega desde un anuncio.
-_PAGINAS_DE_ANUNCIO = ("anuncio-fb", "landing-metodo")
+_PAGINAS_DE_ANUNCIO = ("anuncio-fb", "landing-metodo", "bf-ebook-ads")
 
 
 def _es_de_pago(visita: dict) -> bool:
@@ -279,7 +284,7 @@ _MEDIOS = {
 #: Medios que no añaden nada.
 _MEDIOS_VACIOS = {"organic", "organico", "orgánico", "social", "referral", "none", "(none)", "web", "link"}
 #: Lo que hace el equipo o la escuela, no la persona: no dice por dónde llegó.
-_NO_DICEN_DE_DONDE = {"enlace-pago", "llamada-equipo", "alta-manual", "pago", "senal", "correo-reserva", "llamada-confirmada", "check-in"}
+_NO_DICEN_DE_DONDE = {"enlace-pago", "llamada-equipo", "alta-manual", "pago", "senal", "correo-reserva", "llamada-confirmada", "check-in", "correo-bf", "baja-bf"}
 #: Al buscar de qué web llegó, por el nombre de la dirección.
 _WEBS = (
     ("instagram", "Instagram"), ("facebook", "Facebook"), ("fb.", "Facebook"), ("tiktok", "TikTok"),
