@@ -19,6 +19,7 @@ import {
   guardarEbook,
   subirPdfEbook,
   vistaEbook,
+  type CartaSuelta,
   type CorreoCampana,
   type Destino,
   type EbookBF,
@@ -46,7 +47,8 @@ const diaCorto = (d: string) => {
   return `${DIAS[f.getUTCDay()]} ${dd} ${f.toLocaleDateString('es-ES', { month: 'short', timeZone: 'UTC' }).replace('.', '')}`
 }
 const cuandoSale = (c: CorreoCampana) =>
-  c.fecha ? `El ${diaCorto(c.fecha)}, a todos los que sigan en la campaña` : `${c.dia === 1 ? '1 día' : `${c.dia} días`} después de comprar`
+  (c.fecha ? `El ${diaCorto(c.fecha)}, a todos los que sigan en la campaña` : `${c.dia === 1 ? '1 día' : `${c.dia} días`} después de entrar`) +
+  (c.solo_ebook ? ' · solo a quien compró el ebook' : '')
 
 function Interruptor({ activo, onClick, ocupado }: { activo: boolean; onClick: () => void; ocupado: boolean }) {
   return (
@@ -96,7 +98,8 @@ export default function EbookBlackFriday() {
   const [desde, setDesde] = useState('')
   const [hasta, setHasta] = useState('')
   const [entrega, setEntrega] = useState<EbookBF['entrega'] | null>(null)
-  const [pendiente, setPendiente] = useState<EbookBF['pendiente'] | null>(null)
+  const [pendiente, setPendiente] = useState<CartaSuelta | null>(null)
+  const [acceso, setAcceso] = useState<CartaSuelta | null>(null)
   const [correos, setCorreos] = useState<CorreoCampana[]>([])
   const [abierto, setAbierto] = useState<string>('')
   const [vista, setVista] = useState<{ cual: string; asunto: string; html: string } | null>(null)
@@ -110,6 +113,7 @@ export default function EbookBlackFriday() {
     setHasta(e.hasta)
     setEntrega(e.entrega)
     setPendiente(e.pendiente)
+    setAcceso(e.acceso)
     setCorreos(e.correos)
   }
 
@@ -130,6 +134,7 @@ export default function EbookBlackFriday() {
       hasta !== estado.hasta ||
       JSON.stringify(entrega) !== JSON.stringify(estado.entrega) ||
       JSON.stringify(pendiente) !== JSON.stringify(estado.pendiente) ||
+      JSON.stringify(acceso) !== JSON.stringify(estado.acceso) ||
       JSON.stringify(correos) !== JSON.stringify(estado.correos))
 
   const guardar = async (extra: Partial<EbookBF> = {}) => {
@@ -137,7 +142,7 @@ export default function EbookBlackFriday() {
     setError('')
     const r = await guardarEbook(
       org.id,
-      { desde, hasta, entrega: entrega || undefined, pendiente: pendiente || undefined, correos, ...extra },
+      { desde, hasta, entrega: entrega || undefined, pendiente: pendiente || undefined, acceso: acceso || undefined, correos, ...extra },
       token
     )
     if (!r.ok) {
@@ -191,6 +196,53 @@ export default function EbookBlackFriday() {
 
   const cambiarCorreo = (id: string, cambio: Partial<CorreoCampana>) =>
     setCorreos((cs) => cs.map((c) => (c.id === id ? { ...c, ...cambio } : c)))
+
+  // Un correo suelto (el de acceso a la lista y el de «se quedó a medias»):
+  // asunto, texto, botón y a dónde lleva, y se puede apagar.
+  const cartaSuelta = (clave: string, carta: CartaSuelta, poner: (c: CartaSuelta) => void, cuando: string) => (
+    <div className={`rounded-lg border border-[#E5E7EB] ${carta.apagado ? 'opacity-60' : ''}`}>
+      <button onClick={() => setAbierto(abierto === clave ? '' : clave)} className="w-full flex items-center gap-3 px-3.5 py-3 text-left">
+        <ChevronDown size={16} className={`shrink-0 text-[#6B7280] transition-transform ${abierto === clave ? '' : '-rotate-90'}`} />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[14px] font-medium text-gray-900 truncate">{carta.asunto}</span>
+          <span className={META}>
+            {carta.apagado ? 'Apagado · ' : ''}
+            {cuando}
+          </span>
+        </span>
+        <span className="shrink-0 text-[12.5px] text-[#6B7280] tabular-nums">
+          {estado?.numeros.por_correo[clave] ? `Enviado a ${estado.numeros.por_correo[clave]}` : ''}
+        </span>
+      </button>
+      {abierto === clave ? (
+        <div className="border-t border-[#F3F4F6] p-3.5 space-y-3">
+          <label className="inline-flex items-center gap-2 text-[13px] text-gray-800">
+            <input type="checkbox" checked={carta.apagado} onChange={(e) => poner({ ...carta, apagado: e.target.checked })} />
+            Apagar este correo
+          </label>
+          <input value={carta.asunto} onChange={(e) => poner({ ...carta, asunto: e.target.value })} className={`${CAMPO} h-9`} />
+          <textarea
+            value={carta.texto}
+            onChange={(e) => poner({ ...carta, texto: e.target.value })}
+            rows={12}
+            className={`${CAMPO} py-2.5 leading-relaxed resize-y`}
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input value={carta.boton} onChange={(e) => poner({ ...carta, boton: e.target.value })} placeholder="Texto del botón" className={`${CAMPO} h-9`} />
+            <select value={carta.destino} onChange={(e) => poner({ ...carta, destino: e.target.value as Destino })} className={`${CAMPO} h-9`}>
+              {DESTINOS.map((d) => (
+                <option key={d.valor} value={d.valor}>
+                  Lleva a: {d.texto}
+                </option>
+              ))}
+            </select>
+          </div>
+          {botonesVista(clave)}
+          {vistaDe(clave)}
+        </div>
+      ) : null}
+    </div>
+  )
 
   if (error && !estado) return <p className="text-[13.5px] text-red-700">{error}</p>
   if (!estado || !entrega)
@@ -291,10 +343,11 @@ export default function EbookBlackFriday() {
       {/* Números */}
       <div className={`${TARJETA} p-4 sm:p-5 space-y-3`}>
         <p className="text-[15px] font-semibold text-gray-900">Cómo va</p>
-        <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
           {[
+            ['Se apuntaron a la oferta', n.lista ?? 0],
+            ['Compraron el ebook', n.compradores],
             ['Se quedaron a medias', n.a_medias ?? 0],
-            ['Compraron', n.compradores],
             ['En la campaña', n.en_campana],
             ['Reservaron llamada', n.reservaron],
             ['Pagaron la formación', n.pagaron],
@@ -311,7 +364,7 @@ export default function EbookBlackFriday() {
             {n.ultimos.map((u) => (
               <div key={u.email} className="flex items-center justify-between gap-3 py-1.5 text-[13px]">
                 <span className="min-w-0 truncate text-gray-900">
-                  {u.nombre || u.email} <span className="text-[#9CA3AF]">· {u.email}</span>
+                  {u.nombre || u.email} <span className="text-[#9CA3AF]">· {u.email}{u.via ? ` · ${u.via}` : ''}</span>
                 </span>
                 <span className={`shrink-0 font-medium ${u.estado === 'pagó' ? 'text-[#15803D]' : u.estado === 'reservó' ? 'text-[#025dc7]' : 'text-[#6B7280]'}`}>
                   {u.estado}
@@ -328,9 +381,10 @@ export default function EbookBlackFriday() {
       <div className={`${TARJETA} p-4 sm:p-5`}>
         <p className="text-[15px] font-semibold text-gray-900 mb-1">Las páginas</p>
         <p className={`${META} mb-2`}>Usa la de anuncios solo en los anuncios: así cada compra sale como «Ads» u «Orgánico» en su ficha.</p>
+        <Enlace titulo="Desbloquear la oferta (nombre, correo y WhatsApp)" url={`${estado.bf_url}/`} />
         <Enlace titulo="Ebook · orgánico (bio, historias, DM)" url={`${estado.bf_url}/ebook`} />
         <Enlace titulo="Ebook · anuncios" url={`${estado.bf_url}/ebook-ads`} />
-        <Enlace titulo="Black Friday de la formación" url={`${estado.bf_url}/`} />
+        <Enlace titulo="La oferta (la formación; aquí llevan los correos y vuelve quien compra el ebook)" url={`${estado.bf_url}/oferta`} />
       </div>
 
       {/* Los correos */}
@@ -383,55 +437,9 @@ export default function EbookBlackFriday() {
           ) : null}
         </div>
 
-        {/* A quien dejó sus datos y no pagó */}
-        {pendiente ? (
-          <div className={`rounded-lg border border-[#E5E7EB] ${pendiente.apagado ? 'opacity-60' : ''}`}>
-            <button onClick={() => setAbierto(abierto === 'pendiente' ? '' : 'pendiente')} className="w-full flex items-center gap-3 px-3.5 py-3 text-left">
-              <ChevronDown size={16} className={`shrink-0 text-[#6B7280] transition-transform ${abierto === 'pendiente' ? '' : '-rotate-90'}`} />
-              <span className="min-w-0 flex-1">
-                <span className="block text-[14px] font-medium text-gray-900 truncate">{pendiente.asunto}</span>
-                <span className={META}>
-                  {pendiente.apagado ? 'Apagado · ' : ''}Al día siguiente, a quien dejó sus datos y no terminó de pagar
-                </span>
-              </span>
-              <span className="shrink-0 text-[12.5px] text-[#6B7280] tabular-nums">
-                {n.por_correo.pendiente ? `Enviado a ${n.por_correo.pendiente}` : ''}
-              </span>
-            </button>
-            {abierto === 'pendiente' ? (
-              <div className="border-t border-[#F3F4F6] p-3.5 space-y-3">
-                <label className="inline-flex items-center gap-2 text-[13px] text-gray-800">
-                  <input type="checkbox" checked={pendiente.apagado} onChange={(e) => setPendiente({ ...pendiente, apagado: e.target.checked })} />
-                  Apagar este correo
-                </label>
-                <input value={pendiente.asunto} onChange={(e) => setPendiente({ ...pendiente, asunto: e.target.value })} className={`${CAMPO} h-9`} />
-                <textarea
-                  value={pendiente.texto}
-                  onChange={(e) => setPendiente({ ...pendiente, texto: e.target.value })}
-                  rows={12}
-                  className={`${CAMPO} py-2.5 leading-relaxed resize-y`}
-                />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <input
-                    value={pendiente.boton}
-                    onChange={(e) => setPendiente({ ...pendiente, boton: e.target.value })}
-                    placeholder="Texto del botón"
-                    className={`${CAMPO} h-9`}
-                  />
-                  <select value={pendiente.destino} onChange={(e) => setPendiente({ ...pendiente, destino: e.target.value as Destino })} className={`${CAMPO} h-9`}>
-                    {DESTINOS.map((d) => (
-                      <option key={d.valor} value={d.valor}>
-                        Lleva a: {d.texto}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {botonesVista('pendiente')}
-                {vistaDe('pendiente')}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+        {/* Al apuntarse a la lista, y a quien dejó sus datos y no pagó */}
+        {acceso ? cartaSuelta('acceso', acceso, setAcceso, 'Al momento, a quien se apunta para desbloquear la oferta') : null}
+        {pendiente ? cartaSuelta('pendiente', pendiente, setPendiente, 'Al día siguiente, a quien dejó sus datos y no terminó de pagar') : null}
 
         {correos.map((c) => (
           <div key={c.id} className={`rounded-lg border border-[#E5E7EB] ${c.apagado ? 'opacity-60' : ''}`}>

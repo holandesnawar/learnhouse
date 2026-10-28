@@ -77,6 +77,7 @@ NOMBRES_TIPO = {
     # El ebook de Black Friday a 1 € y su campaña (28/10, services/ebook/ebook.py).
     "ebook": "Compró el ebook «Neerlandés sin miedo»",
     "ebook-empezado": "Empezó a pedir el ebook «Neerlandés sin miedo»",
+    "bf-lista": "Se apuntó para desbloquear la oferta de Black Friday",
     "correo-bf": "Le llegó un correo de la campaña de Black Friday",
     "baja-bf": "Se dio de baja de la campaña de Black Friday",
 }

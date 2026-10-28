@@ -179,6 +179,7 @@ _ORIGEN_WEB = {
     "bf-ebook": "Ebook Black Friday",
     "black-friday": "Black Friday",
     "bf-admision": "Black Friday",
+    "bf-desbloquear": "Black Friday",
 }
 _MEDIOS_DE_PAGO = {"paid", "cpc", "ppc", "ads", "paid_social", "paidsocial", "paid-social"}
 _FUENTES_META = {"facebook", "fb", "instagram", "ig", "meta"}
