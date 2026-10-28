@@ -74,6 +74,10 @@ NOMBRES_TIPO = {
     # Check-in cada 4 semanas de su camino (28/10, services/tareas/tareas.py).
     "check-in": "Check-in con el equipo",
     "alta-manual": "Dado de alta a mano",
+    # El ebook de Black Friday a 1 € y su campaña (28/10, services/ebook/ebook.py).
+    "ebook": "Compró el ebook «Neerlandés sin miedo»",
+    "correo-bf": "Le llegó un correo de la campaña de Black Friday",
+    "baja-bf": "Se dio de baja de la campaña de Black Friday",
 }
 
 #: Los tipos en los que la persona ha visto el precio con seguridad: llegar al
@@ -286,6 +290,13 @@ def _que(kind: str, campos: dict) -> str:
         if extra.get("autor"):
             texto += f" (lo hizo {extra['autor']})"
         return texto + (f": {extra['nota']}" if extra.get("nota") else "")
+    if kind == "ebook":
+        texto = "Compró el ebook «Neerlandés sin miedo»"
+        if extra.get("importe_cents"):
+            texto += f" ({_euros(extra['importe_cents'])})"
+        return texto + (" desde el anuncio" if extra.get("canal") == "ads" else "")
+    if kind == "correo-bf" and extra.get("asunto"):
+        return f"Le llegó el correo «{extra['asunto']}» (campaña de Black Friday)"
     if kind == "senal":
         importe = _euros(extra.get("importe_cents") or 0)
         if extra.get("tipo") == "unico":
@@ -347,6 +358,11 @@ def _evento(kind: str, when: str, email: str, **campos) -> dict:
     return base
 
 
+#: Lo que no hace la persona sino la escuela, a diario: no cuenta como "lo
+#: último que hizo" (sigue en su línea de tiempo).
+_LOS_MANDA_LA_ESCUELA = {"correo-bf"}
+
+
 def fusionar_contactos(eventos: list[dict], con_cuenta: set[str]) -> list[dict]:
     """
     Agrupa los eventos por correo y saca una ficha por persona.
@@ -397,7 +413,10 @@ def fusionar_contactos(eventos: list[dict], con_cuenta: set[str]) -> list[dict]:
             if t and t not in etiquetas:
                 etiquetas.append(t)
 
-        primero, ult = lista[0], lista[-1]
+        primero = lista[0]
+        # Lo último que hizo ELLA: los correos de la campaña del ebook salen
+        # cada mañana y, si contaran, subirían a todos arriba de Contactos.
+        ult = next((e for e in reversed(lista) if e["kind"] not in _LOS_MANDA_LA_ESCUELA), lista[-1])
         de_matricula = [e for e in lista if e["kind"] in _MATRICULA]
         solicitudes = [e for e in lista if e["kind"] == "solicitud"]
         ultima_solicitud = solicitudes[-1] if solicitudes else None

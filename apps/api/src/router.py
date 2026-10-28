@@ -7,7 +7,7 @@ from src.routers import health
 from src.routers import instance
 from src.routers import plans
 from src.routers import usergroups
-from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs, panel, vision, salas, tareas
+from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs, panel, vision, salas, tareas, ebook
 from src.routers import notifications as notifications_router_module
 from src.routers import stream
 from src.routers import api_tokens
@@ -414,6 +414,15 @@ v1_router.include_router(
     tareas.router,
     prefix="/tareas",
     tags=["tareas"],
+)
+
+# El ebook de Black Friday a 1 € y su campaña de correos (28/10/2026). Pagar,
+# público (la página del ebook); descargar y darse de baja, con el enlace del
+# correo; lo demás, administradores. Ver `src/services/ebook/ebook.py`.
+v1_router.include_router(
+    ebook.router,
+    prefix="/ebook",
+    tags=["ebook"],
 )
 
 # Recursos: carpetas con archivos y enlaces para los alumnos. Leer, quien está

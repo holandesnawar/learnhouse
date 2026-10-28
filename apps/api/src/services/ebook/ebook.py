@@ -1,0 +1,1025 @@
+"""
+El ebook de Black Friday a 1 € y la campaña de correos que le sigue
+(28/10/2026).
+
+Pedido del usuario: "la página del ebook, dos (una orgánico y otra ads), de
+ahí hacen la compra y en la página de gracias vamos a
+blackfriday.holandesnawar.com, la landing de la formación… que les llegue el
+mail cuando compre… y al comprar apuntarse a una campaña de mails para ir
+calentando a los que aún no compraron". El ebook es el «Ebook A0-A1» de
+siempre con otro nombre, «Neerlandés sin miedo», a 1 € (imán de leads). La
+campaña va del 29/10 al 30/11/2026.
+
+Por qué en la escuela y no en systeme.io (decidido con el usuario)
+------------------------------------------------------------------
+- **Cada comprador sale en el panel** (Contactos, con «Ads» u «Orgánico»), y
+  cuando rellena el formulario pasa a Matrículas como cualquier otro: se ve
+  cuántos compran el ebook, cuántos agendan y cuántos pagan.
+- **La campaña se para sola** en cuanto alguien reserva la llamada o paga la
+  formación: la escuela lo sabe. En systeme.io eso era el lío de etiquetas
+  de siempre.
+- **La caja de pago es la de Stripe de siempre**, embebida en la página del
+  ebook (la monta la web, `nawar-web/src/pages/black-friday/`): iDEAL,
+  Bancontact, tarjeta y la factura NAWAR que emite Stripe.
+- systeme.io solo recibe la etiqueta «Ebook Black Friday», para que la
+  persona siga en la lista del usuario.
+
+Qué NO es
+---------
+- **No es una matrícula ni da cuenta de alumno.** No se toca `enrollment`
+  (medio panel lee una fila `paid` como "es alumno"). La compra se apunta como
+  un `contact_event` de tipo `ebook`, con la campaña de la que vino y la
+  sesión de Stripe en `extra`; así sale en la ficha y no cuenta como venta de
+  la formación.
+- No entra en el tablero de Matrículas por comprar el ebook (igual que quien
+  baja una guía gratis): entra cuando empieza el formulario de la llamada.
+
+La entrega
+----------
+Al pagar (`al_pagar`, desde el webhook de Stripe y también desde la página
+de vuelta, por si el aviso tarda) sale el correo con el enlace de descarga.
+Una vez por compra: la marca es el propio `contact_event`, que se apunta
+antes de mandar y se borra si el envío falla (como el correo de Rida). El
+PDF lo sube el administrador en Panel → Avisos → «Ebook Black Friday» y vive
+en `content/privado/ebook/` (dentro del volumen, entra en la copia diaria;
+`/content` nunca sirve `privado/`). Se baja con un enlace firmado que dura un
+año (`/api/v1/ebook/descarga/{token}`).
+
+La campaña
+----------
+La lanza la tarea diaria del goteo (`/notifications/drip-diario`, 07:00 UTC).
+Cada correo lleva `dia` (días después de la compra) o `fecha` (un día fijo:
+el Black Friday y el último día). Reglas (`que_toca`, pura con test):
+- **Uno al día como mucho**, y ninguno el día de la compra (ya le llegó el
+  ebook). El de fecha fija gana ese día; los de `dia` esperan.
+- Un correo de `dia` que llega con más de `RETRASO_MAX` días de retraso se
+  salta: un «¿has abierto la lección 1?» a las dos semanas no pinta nada.
+- Nada después de `hasta`.
+- **Se para** si ha reservado una llamada (`reunion`, `llamada-equipo`,
+  `correo-reserva`), si ya pagó la formación o si se ha dado de baja (enlace
+  al pie de cada correo, `baja-bf`).
+Cada correo enviado deja un `contact_event` `correo-bf` (con su id en
+`extra`): es la marca de que ya salió y lo que se cuenta en el panel. El
+registro de la tarea diaria solo lleva números (el repo es público).
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import os
+import re
+import uuid as _uuid
+from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any, Optional
+from urllib.parse import urlencode, urlparse
+
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
+
+logger = logging.getLogger(__name__)
+
+CLAVE = "ebook_bf"
+PRODUCTO = "ebook-bf"
+TIPO_COMPRA = "ebook"
+TIPO_CORREO = "correo-bf"
+TIPO_BAJA = "baja-bf"
+#: Lo que cuenta como "ya ha reservado su llamada": la campaña se para.
+TIPOS_RESERVO = ("reunion", "llamada-equipo", "correo-reserva")
+
+NOMBRE_EBOOK = "Neerlandés sin miedo"
+SUBTITULO_EBOOK = "7 lecciones para arrancar desde cero (nivel A0-A1)"
+PRODUCTO_STRIPE = f"{NOMBRE_EBOOK} · Ebook A0-A1"
+
+DIAS_DESCARGA = 365
+RETRASO_MAX = 2
+TOPE_POR_DIA = 400
+CONTENT_DIR = Path("content")
+CARPETA = "privado/ebook"
+MAX_PDF = 40 * 1024 * 1024
+HUECOS = ("nombre", "hasta")
+
+_DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+_MESES = [
+    "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+]
+
+_FIRMA = "Un abrazo,\nRida Nawar\nFundador de Holandés Nawar"
+
+DE_FABRICA: dict = {
+    "activo": True,
+    "campana": True,
+    "desde": "2026-10-29",
+    "hasta": "2026-11-30",
+    "precio_cents": 100,
+    "entrega": {
+        "asunto": "Tu ebook «Neerlandés sin miedo» ya está aquí",
+        "texto": (
+            "¡Hola, {nombre}!\n\n"
+            "Gracias por tu compra. Aquí tienes tu ebook *Neerlandés sin miedo*: 7 lecciones para arrancar "
+            "desde cero, con su vocabulario, sus ejercicios y todas las respuestas para que te corrijas tú.\n\n"
+            "[descarga]\n\n"
+            "Un consejo para sacarle partido: una lección al día y en voz alta. Leer el neerlandés en silencio "
+            "engaña, porque crees que lo sabes hasta que lo tienes que decir.\n\n"
+            "Y una cosa más. Hasta el {hasta} tenemos condiciones especiales de Black Friday para la "
+            "Formación Nawar A0-A1, el camino completo de cero al A1 en 16 semanas. Si quieres saber si "
+            "encaja contigo, mira cómo funciona y pide tu llamada gratuita.\n\n"
+            "[boton]\n\n" + _FIRMA
+        ),
+        "boton": "Ver la Formación Nawar",
+        "destino": "landing",
+    },
+    "correos": [
+        {
+            "id": "c1",
+            "dia": 1,
+            "asunto": "Cómo sacarle partido a tu ebook",
+            "texto": (
+                "¡Hola, {nombre}!\n\n"
+                "Ayer te llegó *Neerlandés sin miedo*. Te cuento cómo aprovecharlo, porque un PDF se queda "
+                "muy fácil olvidado en la carpeta de descargas.\n\n"
+                "*Una lección al día.* Siete lecciones, siete días. No hace falta más.\n\n"
+                "*En voz alta.* Leer el neerlandés en silencio engaña: crees que lo sabes hasta que lo "
+                "tienes que decir.\n\n"
+                "*Los ejercicios, sin mirar las respuestas.* Están al final para que te corrijas tú, no para "
+                "leerlas antes.\n\n"
+                "Si te atascas con algo, contesta a este correo y te echamos una mano.\n\n"
+                "[boton]\n\n" + _FIRMA
+            ),
+            "boton": "Abrir el ebook",
+            "destino": "descarga",
+        },
+        {
+            "id": "c2",
+            "dia": 3,
+            "asunto": "Por qué el neerlandés se atasca (y no es culpa tuya)",
+            "texto": (
+                "¡Hola, {nombre}!\n\n"
+                "Hay una frase que oímos mucho: «Llevo años aquí y sigo sin atreverme a hablar».\n\n"
+                "Casi nunca es por falta de ganas. Es porque se estudia a ratos, sin un orden y sin nadie que "
+                "te diga qué está bien y qué no. Así se acumulan palabras sueltas, pero cuando toca llamar al "
+                "médico, leer una carta del ayuntamiento o hablar con el profe de tus hijos, sigues "
+                "dependiendo de otros.\n\n"
+                "Yo empecé con el neerlandés por obligación. Me quemaba tener que depender de otros para las "
+                "cosas más normales. Por eso la Formación Nawar A0-A1 es un camino: 16 semanas, 10 módulos, "
+                "y cada semana sabes qué toca y alguien revisa lo que haces.\n\n"
+                "Hasta el {hasta} tenemos condiciones especiales de Black Friday. No te las cuento aquí: te "
+                "las explica nuestro equipo en una llamada gratuita, después de entender tu situación y ver si "
+                "de verdad podemos ayudarte.\n\n"
+                "[boton]\n\n" + _FIRMA
+            ),
+            "boton": "Pedir mi llamada gratuita",
+            "destino": "admision",
+        },
+        {
+            "id": "c3",
+            "dia": 5,
+            "asunto": "Así es una semana dentro de la escuela",
+            "texto": (
+                "¡Hola, {nombre}!\n\n"
+                "Te enseño cómo es una semana normal en la Formación Nawar, para que no te lo tengas que "
+                "imaginar:\n\n"
+                "1️⃣ Lecciones cortas con su vídeo, el vocabulario con audio y ejercicios interactivos. Las "
+                "haces cuando te va bien, desde el móvil o el ordenador.\n\n"
+                "2️⃣ Una masterclass en directo cada semana sobre un tema concreto, para usarlo esa misma "
+                "semana. Si no puedes ir, queda grabada.\n\n"
+                "3️⃣ Grupos de conversación para hablar de verdad, sin vergüenza, con gente de tu nivel.\n\n"
+                "4️⃣ Una tarea cada semana que entregas por escrito o con una nota de voz, y que te devolvemos "
+                "corregida.\n\n"
+                "5️⃣ Y si te surge una duda, la preguntas en Consultas y te contestamos.\n\n"
+                "Así, semana a semana, durante 16 semanas, hasta el A1.\n\n"
+                "[boton]\n\n" + _FIRMA
+            ),
+            "boton": "Quiero saber si encaja conmigo",
+            "destino": "admision",
+        },
+        {
+            "id": "c4",
+            "dia": 7,
+            "asunto": "Las tres dudas que más nos llegan",
+            "texto": (
+                "¡Hola, {nombre}!\n\n"
+                "Antes de dar el paso, casi todo el mundo nos pregunta lo mismo. Te dejo las tres dudas que "
+                "más se repiten:\n\n"
+                "*«No tengo tiempo.»* La formación está pensada para quien va con prisas. Las lecciones son "
+                "cortas y las haces cuando puedes; lo que cuenta es la constancia, no las horas.\n\n"
+                "*«Empiezo desde cero.»* Perfecto: el camino empieza por lo más básico, como tu ebook, y va "
+                "subiendo poco a poco hasta el A1.\n\n"
+                "*«¿Y si no es para mí?»* Tienes 15 días de garantía. Y antes de nada hablamos contigo: si "
+                "vemos que no podemos ayudarte, te lo decimos.\n\n"
+                "Si tienes otra duda, la resolvemos en la llamada. Es gratuita y sin compromiso.\n\n"
+                "[boton]\n\n" + _FIRMA
+            ),
+            "boton": "Pedir mi llamada gratuita",
+            "destino": "admision",
+        },
+        {
+            "id": "bf",
+            "fecha": "2026-11-27",
+            "asunto": "Hoy es Black Friday",
+            "texto": (
+                "¡Hola, {nombre}!\n\n"
+                "Hoy es Black Friday, y queda poco para que se acaben las condiciones especiales de la "
+                "Formación Nawar A0-A1: valen hasta el {hasta} a medianoche.\n\n"
+                "Si llevas tiempo pensando en ponerte en serio con el neerlandés, este es el momento. Pide tu "
+                "llamada gratuita: nuestro equipo de admisiones verá tu caso y te contará las condiciones.\n\n"
+                "[boton]\n\n" + _FIRMA
+            ),
+            "boton": "Pedir mi llamada gratuita",
+            "destino": "admision",
+        },
+        {
+            "id": "ultimo",
+            "fecha": "2026-11-30",
+            "asunto": "Último día",
+            "texto": (
+                "¡Hola, {nombre}!\n\n"
+                "Hoy es el último día. A medianoche se acaban las condiciones especiales de Black Friday de "
+                "la Formación Nawar A0-A1.\n\n"
+                "Si quieres que veamos tu caso, pide hoy tu llamada. Y si no es tu momento, no pasa nada: "
+                "sigue con tu ebook, que ahí tienes las bases.\n\n"
+                "[boton]\n\n" + _FIRMA
+            ),
+            "boton": "Pedir mi llamada hoy",
+            "destino": "admision",
+        },
+    ],
+}
+
+DESTINOS = ("admision", "landing", "descarga")
+
+
+class EbookError(Exception):
+    def __init__(self, mensaje: str, status: int = 400):
+        super().__init__(mensaje)
+        self.mensaje = mensaje
+        self.status = status
+
+
+# ── Lógica pura (con test) ──────────────────────────────────────────────────
+
+
+def _fecha(texto: Any) -> str:
+    try:
+        return date.fromisoformat(str(texto or "")[:10]).isoformat()
+    except (TypeError, ValueError):
+        return ""
+
+
+def dia_largo(dia: str) -> str:
+    """«2026-11-30» → «lunes 30 de noviembre»."""
+    try:
+        d = date.fromisoformat(dia[:10])
+    except (TypeError, ValueError):
+        return dia or ""
+    return f"{_DIAS[d.weekday()]} {d.day} de {_MESES[d.month - 1]}"
+
+
+def ventas_abiertas(cfg: dict, hoy: str) -> tuple[bool, str]:
+    """¿Se puede comprar hoy? Encendido y sin haber pasado `hasta`. El
+    `desde` no cierra: así se puede probar el día antes de empezar."""
+    if not cfg.get("activo"):
+        return False, "La venta del ebook está cerrada ahora mismo."
+    if cfg.get("hasta") and hoy > cfg["hasta"]:
+        return False, "La oferta de Black Friday ya ha terminado."
+    return True, ""
+
+
+def que_toca(compra: str, hoy: str, correos: list[dict], enviados: set[str], hasta: str, ultimo_envio: str = "") -> Optional[dict]:
+    """El correo de la campaña que le toca HOY a quien compró el día `compra`
+    (AAAA-MM-DD, hora de Países Bajos), o None. Ver la cabecera del módulo."""
+    if not compra or hoy <= compra or (hasta and hoy > hasta) or ultimo_envio == hoy:
+        return None
+    for c in correos:
+        if c.get("fecha") and c["fecha"] == hoy and c["id"] not in enviados:
+            return c
+    for c in sorted((c for c in correos if not c.get("fecha")), key=lambda c: int(c.get("dia") or 0)):
+        if c["id"] in enviados:
+            continue
+        cuando = (date.fromisoformat(compra) + timedelta(days=int(c.get("dia") or 0))).isoformat()
+        if cuando > hoy:
+            return None
+        if (date.fromisoformat(hoy) - date.fromisoformat(cuando)).days > RETRASO_MAX:
+            continue
+        return c
+    return None
+
+
+def huecos_que_no_valen(texto: str) -> list[str]:
+    return sorted({h for h in re.findall(r"\{([^{}]*)\}", texto or "") if h not in HUECOS})
+
+
+def rellenar(texto: str, valores: dict) -> str:
+    """Los huecos a mano (sin .format()). Sin nombre, «¡Hola, {nombre}!» queda
+    «¡Hola!»."""
+    salida = texto or ""
+    for h in HUECOS:
+        salida = salida.replace("{" + h + "}", str(valores.get(h) or ""))
+    if not valores.get("nombre"):
+        salida = re.sub(r"\s*,\s*(?=[!.:])", "", salida)
+    return salida
+
+
+def nombre_pila(nombre: str) -> str:
+    n = (nombre or "").strip().split(" ")[0]
+    return n[:1].upper() + n[1:].lower() if n else ""
+
+
+def vuelta_segura(vuelta: str, por_defecto: str) -> str:
+    """A dónde vuelve Stripe tras pagar: solo una página nuestra (o local, para
+    probar). Cualquier otra cosa, la de Black Friday de siempre."""
+    try:
+        u = urlparse((vuelta or "").strip())
+    except ValueError:
+        return por_defecto
+    host = (u.hostname or "").lower()
+    nuestra = host == "holandesnawar.com" or host.endswith(".holandesnawar.com") or host in ("localhost", "127.0.0.1")
+    return vuelta.strip() if u.scheme in ("http", "https") and nuestra else por_defecto
+
+
+def con_compra(vuelta: str) -> str:
+    """La vuelta con el hueco que rellena Stripe (sin codificar: Stripe busca
+    el texto literal)."""
+    return f"{vuelta}{'&' if '?' in vuelta else '?'}compra={{CHECKOUT_SESSION_ID}}"
+
+
+def correos_limpios(guardados: Any) -> list[dict]:
+    """Los de fábrica, con lo que se haya cambiado en el panel encima (por id).
+    Un correo guardado sin asunto o sin texto vuelve al de fábrica."""
+    por_id = {c.get("id"): c for c in guardados if isinstance(c, dict)} if isinstance(guardados, list) else {}
+    salida = []
+    for base in DE_FABRICA["correos"]:
+        g = por_id.get(base["id"]) or {}
+        c = dict(base)
+        for campo in ("asunto", "texto", "boton"):
+            v = str(g.get(campo) or "").strip()
+            if v:
+                c[campo] = v
+        if g.get("destino") in DESTINOS:
+            c["destino"] = g["destino"]
+        if "fecha" in base:
+            c["fecha"] = _fecha(g.get("fecha")) or base["fecha"]
+        else:
+            try:
+                c["dia"] = max(1, min(60, int(g.get("dia") or base["dia"])))
+            except (TypeError, ValueError):
+                c["dia"] = base["dia"]
+        c["apagado"] = bool(g.get("apagado"))
+        salida.append(c)
+    return salida
+
+
+def config_limpia(guardado: Any) -> dict:
+    g = guardado if isinstance(guardado, dict) else {}
+    entrega_g = g.get("entrega") if isinstance(g.get("entrega"), dict) else {}
+    entrega = dict(DE_FABRICA["entrega"])
+    for campo in ("asunto", "texto", "boton"):
+        v = str(entrega_g.get(campo) or "").strip()
+        if v:
+            entrega[campo] = v
+    if entrega_g.get("destino") in DESTINOS:
+        entrega["destino"] = entrega_g["destino"]
+    try:
+        precio = int(g.get("precio_cents") or DE_FABRICA["precio_cents"])
+    except (TypeError, ValueError):
+        precio = DE_FABRICA["precio_cents"]
+    return {
+        "activo": bool(g.get("activo", DE_FABRICA["activo"])),
+        "campana": bool(g.get("campana", DE_FABRICA["campana"])),
+        "desde": _fecha(g.get("desde")) or DE_FABRICA["desde"],
+        "hasta": _fecha(g.get("hasta")) or DE_FABRICA["hasta"],
+        "precio_cents": max(50, precio),
+        "entrega": entrega,
+        "correos": correos_limpios(g.get("correos")),
+        "pdf": str(g.get("pdf") or ""),
+        "pdf_nombre": str(g.get("pdf_nombre") or ""),
+        "pdf_subido_en": str(g.get("pdf_subido_en") or ""),
+    }
+
+
+# ── Enlaces ─────────────────────────────────────────────────────────────────
+
+
+def bf_url() -> str:
+    """La página de Black Friday (sin barra al final)."""
+    return (os.environ.get("LEARNHOUSE_BLACKFRIDAY_URL") or "https://blackfriday.holandesnawar.com").rstrip("/")
+
+
+def _secreto() -> str:
+    from config.config import get_learnhouse_config
+
+    return get_learnhouse_config().security_config.auth_jwt_secret_key or ""
+
+
+def _api_url() -> str:
+    from src.services.users.emails import _school_url
+
+    return _school_url().rstrip("/") + "/api/v1/ebook"
+
+
+def enlace_descarga(email: str) -> str:
+    from src.services.payments.enlace import firmar
+
+    return f"{_api_url()}/descarga/{firmar({'e': email, 't': 'ebook'}, _secreto(), dias=DIAS_DESCARGA)}"
+
+
+def enlace_baja(email: str) -> str:
+    from src.services.payments.enlace import firmar
+
+    return f"{_api_url()}/baja/{firmar({'e': email, 't': 'baja'}, _secreto(), dias=DIAS_DESCARGA)}"
+
+
+def leer_token(token: str, tipo: str) -> str:
+    """El correo de un enlace firmado de ese tipo, o ""."""
+    from src.services.payments.enlace import verificar
+
+    datos = verificar(token or "", _secreto()) or {}
+    return str(datos.get("e") or "") if datos.get("t") == tipo else ""
+
+
+def url_destino(destino: str, email: str, nombre: str, contenido: str) -> str:
+    """El botón de cada correo, con nombre y correo para que el formulario
+    salga relleno y con la campaña para saber qué correo trajo a quién."""
+    if destino == "descarga":
+        return enlace_descarga(email)
+    base = bf_url() + ("/admision" if destino == "admision" else "/")
+    q = {
+        "nombre": nombre or "",
+        "email": email,
+        "utm_source": "email",
+        "utm_medium": "email",
+        "utm_campaign": "black-friday",
+        "utm_content": contenido,
+    }
+    return f"{base}?{urlencode({k: v for k, v in q.items() if v})}"
+
+
+# ── La configuración (org_config) ───────────────────────────────────────────
+
+
+async def _fila(db_session: AsyncSession, org_id: Optional[int] = None):
+    from src.db.organization_config import OrganizationConfig
+
+    q = select(OrganizationConfig)
+    if org_id is not None:
+        q = q.where(OrganizationConfig.org_id == org_id)
+    return (await db_session.execute(q)).scalars().first()
+
+
+async def leer(db_session: AsyncSession, org_id: Optional[int] = None) -> dict:
+    """Sin `org_id`, la de la escuela (single-tenancy): así lo leen el pago y
+    el webhook, que no saben de escuelas."""
+    fila = await _fila(db_session, org_id)
+    guardado = (fila.config or {}).get(CLAVE) if fila and isinstance(fila.config, dict) else None
+    return config_limpia(guardado)
+
+
+async def _escribir(org_id: int, nuevo: dict, db_session: AsyncSession) -> None:
+    fila = await _fila(db_session, org_id)
+    if fila is None:
+        raise EbookError("La escuela no tiene configuración", 500)
+    config = json.loads(json.dumps(fila.config or {}))
+    config[CLAVE] = nuevo
+    fila.config = config
+    fila.update_date = str(datetime.now())
+    db_session.add(fila)
+    await db_session.commit()
+
+
+async def guardar(org_id: int, datos: dict, db_session: AsyncSession) -> dict:
+    actual = await leer(db_session, org_id)
+    nuevo = dict(actual)
+    for campo in ("activo", "campana"):
+        if datos.get(campo) is not None:
+            nuevo[campo] = bool(datos[campo])
+    for campo in ("desde", "hasta"):
+        if datos.get(campo) is not None:
+            nuevo[campo] = _fecha(datos[campo]) or actual[campo]
+    if isinstance(datos.get("entrega"), dict):
+        e = dict(actual["entrega"])
+        for campo in ("asunto", "texto", "boton"):
+            if datos["entrega"].get(campo) is not None:
+                e[campo] = str(datos["entrega"][campo]).strip()[:6000]
+        if datos["entrega"].get("destino") in DESTINOS:
+            e["destino"] = datos["entrega"]["destino"]
+        nuevo["entrega"] = e
+    if isinstance(datos.get("correos"), list):
+        nuevo["correos"] = datos["correos"]
+    limpio = config_limpia(nuevo)
+    textos = limpio["entrega"]["asunto"] + limpio["entrega"]["texto"]
+    textos += "".join(c["asunto"] + c["texto"] for c in limpio["correos"])
+    malos = huecos_que_no_valen(textos)
+    if malos:
+        raise EbookError(
+            "Estos huecos no existen: " + ", ".join("{" + m + "}" for m in malos)
+            + ". Valen: " + ", ".join("{" + h + "}" for h in HUECOS)
+        )
+    if "[descarga]" not in limpio["entrega"]["texto"]:
+        raise EbookError("El correo de entrega tiene que llevar «[descarga]» en una línea: es donde va el botón del PDF.")
+    await _escribir(org_id, limpio, db_session)
+    return limpio
+
+
+def ruta_pdf(relativa: str) -> Optional[Path]:
+    """El PDF en disco, solo si está dentro de privado/ebook/."""
+    if not relativa or ".." in relativa or relativa.startswith("/") or not relativa.startswith(CARPETA + "/"):
+        return None
+    base = CONTENT_DIR.resolve()
+    ruta = (base / relativa).resolve()
+    return ruta if str(ruta).startswith(str(base)) else None
+
+
+async def guardar_pdf(org_id: int, nombre: str, datos: bytes, db_session: AsyncSession) -> dict:
+    if not datos:
+        raise EbookError("El archivo está vacío")
+    if len(datos) > MAX_PDF:
+        raise EbookError("El PDF pesa demasiado (máximo 40 MB)")
+    if not datos.startswith(b"%PDF"):
+        raise EbookError("Eso no es un PDF")
+    relativa = f"{CARPETA}/{org_id}/{_uuid.uuid4().hex}.pdf"
+    ruta = CONTENT_DIR / relativa
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    ruta.write_bytes(datos)
+    actual = await leer(db_session, org_id)
+    viejo = ruta_pdf(actual.get("pdf") or "")
+    actual.update(
+        pdf=relativa,
+        pdf_nombre=(nombre or "ebook.pdf")[:200],
+        pdf_subido_en=datetime.now(timezone.utc).isoformat(),
+    )
+    await _escribir(org_id, actual, db_session)
+    if viejo and viejo.is_file() and viejo != ruta.resolve():
+        try:
+            viejo.unlink()
+        except OSError:
+            pass
+    return actual
+
+
+async def pdf_para_descargar(db_session: AsyncSession) -> Optional[Path]:
+    cfg = await leer(db_session)
+    ruta = ruta_pdf(cfg.get("pdf") or "")
+    return ruta if ruta and ruta.is_file() else None
+
+
+# ── El cobro ────────────────────────────────────────────────────────────────
+
+
+def _plano(obj: Any) -> dict:
+    if obj is None:
+        return {}
+    if isinstance(obj, dict):
+        return obj
+    try:
+        return json.loads(str(obj))
+    except (TypeError, ValueError):
+        return {}
+
+
+_PRECIOS: dict[int, str] = {}
+
+
+def _precio_stripe(cents: int) -> str:
+    """El Price del ebook, buscado por `lookup_key` y creado (con su propio
+    producto, que es el nombre que sale en el recibo) si no existe."""
+    import stripe
+
+    if cents in _PRECIOS:
+        return _PRECIOS[cents]
+    clave = f"nawar-ebook-sin-miedo-{cents}"
+
+    def buscar() -> str:
+        datos = _plano(stripe.Price.list(lookup_keys=[clave], active=True, limit=1)).get("data") or []
+        return str(datos[0].get("id") or "") if datos else ""
+
+    precio = buscar()
+    if not precio:
+        try:
+            precio = str(
+                _plano(
+                    stripe.Price.create(
+                        currency="eur",
+                        unit_amount=int(cents),
+                        lookup_key=clave,
+                        nickname=f"Ebook Black Friday {cents / 100:.2f} €",
+                        product_data={"name": PRODUCTO_STRIPE},
+                        metadata={"producto": PRODUCTO},
+                    )
+                ).get("id")
+                or ""
+            )
+        except Exception:  # noqa: BLE001
+            precio = buscar()
+            if not precio:
+                raise
+    _PRECIOS[cents] = precio
+    return precio
+
+
+_CORREO_OK = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+async def crear_pago(datos: dict, db_session: AsyncSession) -> dict:
+    """Abre la sesión de pago (embebida) del ebook. Devuelve lo que la web
+    necesita para pintar la caja: `client_secret` y `publishable_key`."""
+    import stripe
+
+    from src.services.panel.tandas import hoy_nl
+    from src.services.payments.payments import _stripe_publishable, _usar_stripe
+
+    cfg = await leer(db_session)
+    abiertas, motivo = ventas_abiertas(cfg, hoy_nl())
+    if not abiertas:
+        raise EbookError(motivo, 503)
+    email = str(datos.get("email") or "").strip().lower()[:255]
+    nombre = re.sub(r"\s+", " ", str(datos.get("nombre") or "")).strip()[:120]
+    if not _CORREO_OK.match(email):
+        raise EbookError("Escribe un correo válido")
+    if not nombre:
+        raise EbookError("Escribe tu nombre")
+    canal = "ads" if str(datos.get("canal") or "") == "ads" else "organico"
+
+    _usar_stripe()
+    try:
+        precio = _precio_stripe(cfg["precio_cents"])
+        cliente = _plano(stripe.Customer.create(email=email, name=nombre, metadata={"source": PRODUCTO}))
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Ebook: no se pudo preparar el cobro")
+        raise EbookError(f"No se pudo preparar el pago: {exc}", 502)
+
+    def corto(campo: str, n: int = 120) -> str:
+        return str(datos.get(campo) or "").strip()[:n]
+
+    meta = {
+        "producto": PRODUCTO,
+        "nombre": nombre,
+        "email": email,
+        "canal": canal,
+        "recorrido": corto("recorrido", 400),
+        "referrer": corto("referrer"),
+        **{c: corto(c) for c in ("utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "utm_placement")},
+    }
+    vuelta = vuelta_segura(str(datos.get("vuelta") or ""), bf_url() + "/")
+    try:
+        sesion = _plano(
+            stripe.checkout.Session.create(
+                # Ver enroll_and_checkout_session: `embedded_page` es el modo
+                # embebido de siempre con su nombre nuevo.
+                ui_mode="embedded_page",
+                mode="payment",
+                line_items=[{"price": precio, "quantity": 1}],
+                customer=cliente.get("id"),
+                return_url=con_compra(vuelta),
+                invoice_creation={
+                    "enabled": True,
+                    "invoice_data": {
+                        "description": f"Ebook «{NOMBRE_EBOOK}»",
+                        "footer": "Gracias por confiar en Holandés Nawar.",
+                        "metadata": {"producto": PRODUCTO},
+                    },
+                },
+                allow_promotion_codes=False,
+                # Sin Klarna: a 1 € no tiene sentido. Sin Link, como la matrícula.
+                payment_method_types=["card", "ideal", "bancontact"],
+                metadata={k: v for k, v in meta.items() if v},
+                # El webhook del PaymentIntent mira esto para no tocar nada:
+                # el ebook lo atiende solo la sesión (`al_pagar`).
+                payment_intent_data={"metadata": {"producto": PRODUCTO, "factura_stripe": "1"}},
+            )
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Ebook: no se pudo crear la sesión de pago")
+        raise EbookError(f"No se pudo crear el pago: {exc}", 502)
+    if not sesion.get("client_secret"):
+        raise EbookError("Stripe no devolvió la caja de pago", 502)
+    return {
+        "client_secret": sesion["client_secret"],
+        "publishable_key": _stripe_publishable(),
+        "importe_cents": cfg["precio_cents"],
+        "moneda": "eur",
+    }
+
+
+def _redis():
+    try:
+        from src.core.redis import get_redis_client
+
+        return get_redis_client()
+    except Exception:  # noqa: BLE001
+        return None
+
+
+async def _ya_atendida(session_id: str, db_session: AsyncSession) -> bool:
+    from src.db.contact_event import ContactEvent
+
+    return bool(
+        (
+            await db_session.execute(
+                select(ContactEvent.id)
+                .where(ContactEvent.kind == TIPO_COMPRA, ContactEvent.extra.contains(session_id))  # type: ignore[attr-defined]
+                .limit(1)
+            )
+        ).first()
+    )
+
+
+async def al_pagar(sesion: dict, db_session: AsyncSession) -> str:
+    """Una compra pagada: se apunta en su ficha, le llega el ebook y se le
+    etiqueta en systeme.io. Una sola vez por sesión de pago, la llame el
+    webhook o la página de vuelta. Devuelve qué pasó."""
+    from src.db.contact_event import ContactEvent
+
+    meta = sesion.get("metadata") or {}
+    if meta.get("producto") != PRODUCTO:
+        return "no-es-ebook"
+    if sesion.get("payment_status") != "paid":
+        return "sin-pagar"
+    session_id = str(sesion.get("id") or "")
+    detalles = sesion.get("customer_details") or {}
+    email = str(detalles.get("email") or meta.get("email") or sesion.get("customer_email") or "").strip().lower()
+    if not session_id or not email:
+        return "sin-datos"
+    nombre = str(meta.get("nombre") or detalles.get("name") or "").strip()
+
+    r = _redis()
+    clave = f"ebook-compra:{session_id}"
+    if r is not None:
+        try:
+            if not r.set(clave, "1", nx=True, ex=600):
+                return "en-curso"
+        except Exception:  # noqa: BLE001
+            r = None
+    if await _ya_atendida(session_id, db_session):
+        return "ya-atendida"
+
+    partes = nombre.split(" ", 1)
+    canal = meta.get("canal") or "organico"
+    marca = ContactEvent(
+        email=email,
+        kind=TIPO_COMPRA,
+        first_name=partes[0][:120],
+        last_name=(partes[1] if len(partes) > 1 else "")[:120],
+        source=("ebook-ads" if canal == "ads" else "ebook")[:40],
+        recorrido=str(meta.get("recorrido") or "")[:400],
+        referrer=str(meta.get("referrer") or "")[:120],
+        utm_source=str(meta.get("utm_source") or "")[:120],
+        utm_medium=str(meta.get("utm_medium") or "")[:120],
+        utm_campaign=str(meta.get("utm_campaign") or "")[:120],
+        utm_content=str(meta.get("utm_content") or "")[:120],
+        utm_term=str(meta.get("utm_term") or "")[:120],
+        utm_placement=str(meta.get("utm_placement") or "")[:120],
+        extra=json.dumps(
+            {
+                "session_id": session_id,
+                "importe_cents": int(sesion.get("amount_total") or 0),
+                "moneda": (sesion.get("currency") or "eur").lower(),
+                "canal": canal,
+            }
+        ),
+        created_at=datetime.now(timezone.utc).isoformat(),
+    )
+    db_session.add(marca)
+    await db_session.commit()
+    try:
+        cfg = await leer(db_session)
+        armar_entrega(cfg, email, nombre, preview=False)
+    except Exception:
+        # Sin correo, sin marca: el reintento de Stripe (o la página de
+        # vuelta) lo vuelve a intentar.
+        await db_session.delete(marca)
+        await db_session.commit()
+        if r is not None:
+            try:
+                r.delete(clave)
+            except Exception:  # noqa: BLE001
+                pass
+        raise
+    try:
+        from src.services.crm.systeme import etiquetar
+
+        await etiquetar(email, nombre, "Ebook Black Friday")
+    except Exception:  # noqa: BLE001
+        logger.warning("Ebook: no se pudo etiquetar en systeme.io", exc_info=True)
+    return "enviado"
+
+
+async def estado_compra(session_id: str, db_session: AsyncSession) -> dict:
+    """Para la página de vuelta: si está pagado y a nombre de quién. De paso
+    atiende la compra si el aviso de Stripe aún no ha llegado."""
+    import stripe
+
+    from src.services.payments.payments import _usar_stripe
+
+    if not re.match(r"^cs_[A-Za-z0-9_]+$", session_id or ""):
+        raise EbookError("No existe esa compra", 404)
+    _usar_stripe()
+    try:
+        sesion = _plano(stripe.checkout.Session.retrieve(session_id))
+    except Exception:  # noqa: BLE001
+        raise EbookError("No existe esa compra", 404)
+    meta = sesion.get("metadata") or {}
+    if meta.get("producto") != PRODUCTO:
+        raise EbookError("No existe esa compra", 404)
+    pagado = sesion.get("payment_status") == "paid"
+    if pagado:
+        try:
+            await al_pagar(sesion, db_session)
+        except Exception:  # noqa: BLE001
+            logger.exception("Ebook: la entrega desde la página de vuelta falló")
+    detalles = sesion.get("customer_details") or {}
+    return {
+        "pagado": pagado,
+        "nombre": str(meta.get("nombre") or detalles.get("name") or ""),
+        "email": str(detalles.get("email") or meta.get("email") or ""),
+        "importe_cents": int(sesion.get("amount_total") or 0),
+        "moneda": (sesion.get("currency") or "eur").lower(),
+    }
+
+
+# ── Los correos ─────────────────────────────────────────────────────────────
+
+
+def _valores(cfg: dict, nombre: str) -> dict:
+    return {"nombre": nombre_pila(nombre), "hasta": dia_largo(cfg["hasta"])}
+
+
+def armar_entrega(cfg: dict, email: str, nombre: str, *, preview: bool) -> dict:
+    from src.services.users.emails import send_carta_ebook_email
+
+    e = cfg["entrega"]
+    valores = _valores(cfg, nombre)
+    asunto = rellenar(e["asunto"], valores)
+    botones = [
+        ("descarga", "Descargar el ebook", enlace_descarga(email)),
+        ("boton", e.get("boton") or "", url_destino(e.get("destino") or "landing", email, nombre, "entrega")),
+    ]
+    r = send_carta_ebook_email(email, asunto, rellenar(e["texto"], valores), botones=botones, preview=preview)
+    return {"asunto": asunto, "html": (r or {}).get("html", "") if preview else ""}
+
+
+def armar_correo(cfg: dict, c: dict, email: str, nombre: str, *, preview: bool) -> dict:
+    from src.services.users.emails import send_carta_ebook_email
+
+    valores = _valores(cfg, nombre)
+    asunto = rellenar(c["asunto"], valores)
+    botones = [("boton", c.get("boton") or "", url_destino(c.get("destino") or "admision", email, nombre, c["id"]))]
+    r = send_carta_ebook_email(
+        email, asunto, rellenar(c["texto"], valores), botones=botones, baja_url=enlace_baja(email), preview=preview
+    )
+    return {"asunto": asunto, "html": (r or {}).get("html", "") if preview else ""}
+
+
+async def vista(org_id: int, cual: str, db_session: AsyncSession, *, enviar_a: str = "", nombre: str = "Ana") -> dict:
+    """«Ver cómo queda» (sin `enviar_a`) o «Mandármelo a mí». Con lo guardado."""
+    cfg = await leer(db_session, org_id)
+    email = enviar_a or "ana@ejemplo.com"
+    if cual == "entrega":
+        return armar_entrega(cfg, email, nombre, preview=not enviar_a)
+    c = next((c for c in cfg["correos"] if c["id"] == cual), None)
+    if c is None:
+        raise EbookError("No existe ese correo", 404)
+    return armar_correo(cfg, c, email, nombre, preview=not enviar_a)
+
+
+async def baja(email: str, db_session: AsyncSession) -> None:
+    from src.db.contact_event import ContactEvent
+
+    ya = (
+        await db_session.execute(
+            select(ContactEvent.id).where(ContactEvent.email == email, ContactEvent.kind == TIPO_BAJA).limit(1)
+        )
+    ).first()
+    if ya:
+        return
+    db_session.add(
+        ContactEvent(email=email, kind=TIPO_BAJA, source="email", created_at=datetime.now(timezone.utc).isoformat())
+    )
+    await db_session.commit()
+
+
+# ── La campaña (tarea diaria) ───────────────────────────────────────────────
+
+
+async def _personas(db_session: AsyncSession) -> dict:
+    """Por correo: cuándo compró (el primer ebook), su nombre, qué correos le
+    han llegado y el último día que recibió uno; y quién se ha dado de baja o
+    ha reservado su llamada."""
+    from src.db.contact_event import ContactEvent
+    from src.services.panel.tandas import dia_nl
+
+    filas = (
+        await db_session.execute(
+            select(ContactEvent.email, ContactEvent.kind, ContactEvent.first_name, ContactEvent.last_name,
+                   ContactEvent.extra, ContactEvent.created_at).where(
+                ContactEvent.kind.in_([TIPO_COMPRA, TIPO_CORREO, TIPO_BAJA, *TIPOS_RESERVO])  # type: ignore[attr-defined]
+            )
+        )
+    ).all()
+    compras: dict[str, dict] = {}
+    enviados: dict[str, set] = {}
+    ultimo: dict[str, str] = {}
+    bajas: set[str] = set()
+    reservaron: set[str] = set()
+    for email, kind, fn, ln, extra, creado in filas:
+        email = (email or "").strip().lower()
+        if not email:
+            continue
+        dia = dia_nl(creado)
+        if kind == TIPO_COMPRA:
+            c = compras.get(email)
+            if c is None or (creado or "") < c["creado"]:
+                compras[email] = {"creado": creado or "", "dia": dia, "nombre": f"{fn or ''} {ln or ''}".strip()}
+        elif kind == TIPO_CORREO:
+            try:
+                ident = str(json.loads(extra or "{}").get("id") or "")
+            except (TypeError, ValueError):
+                ident = ""
+            enviados.setdefault(email, set()).add(ident)
+            if dia > ultimo.get(email, ""):
+                ultimo[email] = dia
+        elif kind == TIPO_BAJA:
+            bajas.add(email)
+        else:
+            reservaron.add(email)
+    return {"compras": compras, "enviados": enviados, "ultimo": ultimo, "bajas": bajas, "reservaron": reservaron}
+
+
+async def enviar_campana(db_session: AsyncSession, org_id: Optional[int] = None) -> dict:
+    """Lo de hoy. Solo números en lo que devuelve: va al registro público."""
+    from src.db.contact_event import ContactEvent
+    from src.services.contactos.contactos import emails_que_pagaron
+    from src.services.panel.tandas import hoy_nl
+
+    cfg = await leer(db_session, org_id)
+    p = await _personas(db_session)
+    salida = {"compradores": len(p["compras"]), "enviados": 0, "errores": 0, "parados": 0}
+    if not cfg["campana"]:
+        salida["activa"] = False
+        return salida
+    hoy = hoy_nl()
+    correos = [c for c in cfg["correos"] if not c.get("apagado")]
+    pagaron = await emails_que_pagaron(db_session)
+    for email, compra in sorted(p["compras"].items(), key=lambda kv: kv[1]["creado"]):
+        if email in p["bajas"] or email in p["reservaron"] or email in pagaron:
+            salida["parados"] += 1
+            continue
+        c = que_toca(compra["dia"], hoy, correos, p["enviados"].get(email, set()), cfg["hasta"], p["ultimo"].get(email, ""))
+        if c is None:
+            continue
+        if salida["enviados"] >= TOPE_POR_DIA:
+            break
+        marca = ContactEvent(
+            email=email,
+            kind=TIPO_CORREO,
+            source="email",
+            extra=json.dumps({"id": c["id"], "asunto": c["asunto"][:120]}),
+            created_at=datetime.now(timezone.utc).isoformat(),
+        )
+        db_session.add(marca)
+        await db_session.commit()
+        try:
+            armar_correo(cfg, c, email, compra["nombre"], preview=False)
+            salida["enviados"] += 1
+        except Exception:  # noqa: BLE001
+            # Sin correo, sin marca: mañana se reintenta.
+            await db_session.delete(marca)
+            await db_session.commit()
+            salida["errores"] += 1
+            logger.warning("Campaña del ebook: un envío falló", exc_info=True)
+    return salida
+
+
+async def resumen(org_id: int, db_session: AsyncSession) -> dict:
+    """Los números de la pestaña del panel."""
+    from src.services.contactos.contactos import emails_que_pagaron
+    from src.services.contactos.metricas import emails_excluidos
+
+    p = await _personas(db_session)
+    fuera = await emails_excluidos(db_session)
+    compras = {e: c for e, c in p["compras"].items() if e not in fuera}
+    pagaron = await emails_que_pagaron(db_session)
+    por_correo: dict[str, int] = {}
+    for email, ids in p["enviados"].items():
+        if email in fuera:
+            continue
+        for i in ids:
+            por_correo[i] = por_correo.get(i, 0) + 1
+    reservaron = [e for e in compras if e in p["reservaron"]]
+    alumnos = [e for e in compras if e in pagaron]
+    bajas = [e for e in compras if e in p["bajas"]]
+    parados = set(reservaron) | set(alumnos) | set(bajas)
+    return {
+        "compradores": len(compras),
+        "en_campana": len([e for e in compras if e not in parados]),
+        "reservaron": len(reservaron),
+        "pagaron": len(alumnos),
+        "bajas": len(bajas),
+        "por_correo": por_correo,
+        "ultimos": [
+            {"email": e, "nombre": c["nombre"], "creado": c["creado"],
+             "estado": "pagó" if e in pagaron else "reservó" if e in p["reservaron"] else "de baja" if e in p["bajas"] else "en campaña"}
+            for e, c in sorted(compras.items(), key=lambda kv: kv[1]["creado"], reverse=True)[:30]
+        ],
+    }

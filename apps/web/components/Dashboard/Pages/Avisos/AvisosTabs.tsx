@@ -1,11 +1,12 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import AvisosComposer from './AvisosComposer'
 import EmailCatalog from './EmailCatalog'
 import SeedCommunity from './SeedCommunity'
 import RecordatorioAuto from './RecordatorioAuto'
 import CorreoReserva from './CorreoReserva'
-import { Mail, PenLine, Inbox, Sparkles, BellRing, CalendarCheck } from 'lucide-react'
+import EbookBlackFriday from './EbookBlackFriday'
+import { Mail, PenLine, Inbox, Sparkles, BellRing, CalendarCheck, BookOpen } from 'lucide-react'
 
 /**
  * La pantalla de Avisos tiene tres caras:
@@ -14,10 +15,17 @@ import { Mail, PenLine, Inbox, Sparkles, BellRing, CalendarCheck } from 'lucide-
  *  - 1 semana sin entrar: el recordatorio que sale solo (con su interruptor,
  *    apagado de serie) y su texto, que se edita aquí.
  *  - Al reservar: el correo de Rida a quien reserva su llamada en Calendly.
+ *  - Ebook Black Friday: el ebook a 1 €, su PDF y su campaña de correos.
  *  - Arranque: sembrar la comunidad antes de que entren los primeros alumnos.
  */
 export default function AvisosTabs() {
-  const [tab, setTab] = useState<'escribir' | 'automaticos' | 'semana' | 'reserva' | 'arranque'>('escribir')
+  const [tab, setTab] = useState<'escribir' | 'automaticos' | 'semana' | 'reserva' | 'ebook' | 'arranque'>('escribir')
+  // Se puede entrar directo a una pestaña con ?tab= (tras pintar, para que el
+  // servidor y el navegador empiecen igual).
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get('tab')
+    if (t === 'ebook' || t === 'reserva' || t === 'semana' || t === 'automaticos') setTab(t)
+  }, [])
 
   const tabClass = (active: boolean) =>
     `inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-[14px] font-semibold transition-colors ${
@@ -53,6 +61,10 @@ export default function AvisosTabs() {
           <CalendarCheck size={16} />
           Al reservar
         </button>
+        <button className={tabClass(tab === 'ebook')} onClick={() => setTab('ebook')}>
+          <BookOpen size={16} />
+          Ebook Black Friday
+        </button>
         <button className={tabClass(tab === 'arranque')} onClick={() => setTab('arranque')}>
           <Sparkles size={16} />
           Arranque
@@ -67,6 +79,8 @@ export default function AvisosTabs() {
         <RecordatorioAuto />
       ) : tab === 'reserva' ? (
         <CorreoReserva />
+      ) : tab === 'ebook' ? (
+        <EbookBlackFriday />
       ) : (
         <SeedCommunity />
       )}
