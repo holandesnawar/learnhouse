@@ -7,8 +7,7 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useTrail } from '@/hooks/queries/useTrail'
 import { useCourses } from '@/hooks/queries/useCourses'
-import useAdminStatus from '@components/Hooks/useAdminStatus'
-import RoadmapSection from '@components/Pages/Home/RoadmapSection'
+import TuSemana from '@components/Pages/Home/TuSemana'
 import UpcomingEvents from '@components/Pages/Home/UpcomingEvents'
 import { getUriWithOrg } from '@services/config/config'
 import CommunityChannelsCards from '@components/Objects/Communities/CommunityChannelsCards'
@@ -55,7 +54,6 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
   // La regla buena es más simple: mientras no haya datos, esqueleto.
   const trailReady = trailData !== undefined
   const coursesReady = courses !== undefined
-  const { isAdmin } = useAdminStatus() as any
 
   const firstName: string =
     session?.data?.user?.first_name || session?.data?.user?.username || ''
@@ -214,6 +212,13 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
         <HomeSkeleton className="mb-8 h-[188px]" />
       )}
 
+      {/* Tu semana de clase (28/10): la semana en curso de su clase en directo
+          y lo que le falta, en el sitio de la antigua «hoja de ruta» (que era
+          la misma lista para todos y había que cambiar a mano). */}
+      <SafeArea nombre="Tu semana de clase" fallback={null}>
+        <TuSemana orgslug={orgslug} />
+      </SafeArea>
+
       {/* Esta semana + Tu repaso de hoy */}
       {insights ? (
         <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -293,10 +298,6 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
         <UpcomingEvents orgslug={orgslug} />
       </SafeArea>
 
-      {/* Weekly roadmap */}
-      <SafeArea nombre="Plan de la semana" fallback={null}>
-        <RoadmapSection canEdit={!!isAdmin} />
-      </SafeArea>
 
       {/* Consultas — moved to the bottom (a quiet helper, not the headline) */}
       <div

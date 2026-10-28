@@ -279,7 +279,7 @@ _MEDIOS = {
 #: Medios que no añaden nada.
 _MEDIOS_VACIOS = {"organic", "organico", "orgánico", "social", "referral", "none", "(none)", "web", "link"}
 #: Lo que hace el equipo o la escuela, no la persona: no dice por dónde llegó.
-_NO_DICEN_DE_DONDE = {"enlace-pago", "llamada-equipo", "alta-manual", "pago", "senal", "correo-reserva", "llamada-confirmada"}
+_NO_DICEN_DE_DONDE = {"enlace-pago", "llamada-equipo", "alta-manual", "pago", "senal", "correo-reserva", "llamada-confirmada", "check-in"}
 #: Al buscar de qué web llegó, por el nombre de la dirección.
 _WEBS = (
     ("instagram", "Instagram"), ("facebook", "Facebook"), ("fb.", "Facebook"), ("tiktok", "TikTok"),

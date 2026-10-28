@@ -25,6 +25,7 @@ import CourseFAQ from '@components/Pages/Activity/CourseFAQ'
 import WeeklyClassBanner from '@components/Pages/Courses/WeeklyClassBanner'
 import SalaEnDirecto from '@components/Pages/Courses/SalaEnDirecto'
 import VideoPortada from '@components/Pages/Courses/VideoPortada'
+import SemanasClase, { useSemanasClase } from '@components/Pages/Courses/SemanasClase'
 import { CURSO_CLASE_SEMANAL_UUID, CURSO_FORMACION_UUID, ajustesDirecto, conGrabadas, esCursoEnDirecto, uuidDeCurso } from '@/lib/nawar/cursos'
 import { sesionesVisibles } from '@/lib/course/weeklyClass'
 import { getLessonIcon } from '@components/Pages/Activity/CourseLessonsSidebar'
@@ -37,10 +38,11 @@ import { useAnalytics } from '@/hooks/useAnalytics'
 // `esCursoEnDirecto` (lib/nawar/cursos.ts) con la configuración de la escuela.
 
 /** Los capítulos que se pintan: en una clase en directo, sin los meses que ya
- *  pasaron vacíos (ver `sesionesVisibles`). */
-function capitulosAVer(course: any, enDirecto: boolean): any[] {
+ *  pasaron vacíos (ver `sesionesVisibles`) ni los que son semanas (28/10:
+ *  esas salen arriba, en «Esta semana» y «Semanas anteriores»). */
+function capitulosAVer(course: any, enDirecto: boolean, semanas: Set<string> = new Set()): any[] {
   const todos = course?.chapters ?? []
-  return enDirecto ? sesionesVisibles(todos) : todos
+  return enDirecto ? sesionesVisibles(todos).filter((c: any) => !semanas.has(c.chapter_uuid)) : todos
 }
 
 const CourseClient = (props: any) => {
@@ -72,6 +74,10 @@ const CourseClient = (props: any) => {
   // Spreekclub y Masterclass, sin clases grabadas (27/10): ni la sección ni
   // «Clases anteriores». Lo cambia el administrador en esta misma página.
   const grabadas = !enDirecto || conGrabadas(org?.config?.config, course?.course_uuid)
+  // Las semanas de la clase (presentación, ejercicios, tarea): sus capítulos
+  // no se repiten en «Sesiones grabadas».
+  const { data: datosSemanas } = useSemanasClase(course?.course_uuid, enDirecto)
+  const capitulosDeSemanas = new Set((datosSemanas?.semanas ?? []).map((s) => s.chapter_uuid))
 
   const { track } = useAnalytics()
 
@@ -98,7 +104,7 @@ const CourseClient = (props: any) => {
     if (course?.chapters) {
       const totalActivities = course.chapters.reduce((sum: number, chapter: any) => sum + (chapter.activities?.length || 0), 0)
       const defaultExpanded: {[key: string]: boolean} = {}
-      capitulosAVer(course, enDirecto).forEach((chapter: any, idx: number) => {
+      capitulosAVer(course, enDirecto, capitulosDeSemanas).forEach((chapter: any, idx: number) => {
         defaultExpanded[chapter.chapter_uuid] = idx === 0 ? true : totalActivities <= 5
       })
       setExpandedChapters(defaultExpanded)
@@ -502,6 +508,12 @@ const CourseClient = (props: any) => {
                   }
                 })()}
 
+                {/* Las semanas: «Esta semana» con su presentación, grabación,
+                    ejercicios y tarea (28/10). */}
+                {enDirecto ? (
+                  <SemanasClase courseUuid={course.course_uuid} courseuuid={courseuuid} orgslug={orgslug} curso={course} />
+                ) : null}
+
                 {/* La descripción no sale en las clases en directo nuevas (Spreekclub,
                     Masterclass, 27/10): LearnHouse obliga a escribirla al crear el
                     curso, pero ahí presenta el recuadro. La clase semanal de
@@ -584,7 +596,7 @@ const CourseClient = (props: any) => {
                 )}
               </h2>
               <div className="bg-white nice-shadow rounded-2xl overflow-hidden border border-[#DDE6F5] divide-y divide-[#DDE6F5]">
-                {capitulosAVer(course, enDirecto).map((chapter: any, idx: number) => {
+                {capitulosAVer(course, enDirecto, capitulosDeSemanas).map((chapter: any, idx: number) => {
                   const isExpanded = expandedChapters[chapter.chapter_uuid] ?? (idx === 0); // Default to expanded for first chapter
                   return (
                     <div key={chapter.chapter_uuid || `chapter-${chapter.name}`} className="">

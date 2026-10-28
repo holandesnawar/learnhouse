@@ -621,6 +621,23 @@ async def _decidir_items(user_id: int, org_ids: List[int], db_session: AsyncSess
     return out
 
 
+async def _tareas_items(user_id: int, org_ids: List[int], db_session: AsyncSession) -> List[dict]:
+    """Las tareas de las clases (services/tareas/tareas.py): al alumno, sus
+    correcciones sin escuchar; al equipo, lo que queda por corregir y, a los
+    administradores, los check-in de la semana. Sin correo (28/10/2026)."""
+    from src.services.courses.locks import is_org_admin, is_org_staff
+    from src.services.tareas.tareas import avisos_alumno, avisos_equipo
+    from src.security.superadmin import is_user_superadmin
+
+    out: List[dict] = list(await avisos_alumno(user_id, db_session))
+    superadmin = await is_user_superadmin(user_id, db_session)
+    for org_id in org_ids:
+        admin = superadmin or await is_org_admin(user_id, org_id, db_session)
+        if admin or await is_org_staff(user_id, org_id, db_session):
+            out.extend(await avisos_equipo(org_id, admin, db_session))
+    return out
+
+
 async def list_notifications(
     current_user: PublicUser | AnonymousUser,
     db_session: AsyncSession,
@@ -659,6 +676,7 @@ async def list_notifications(
         _announcement_items(org_ids, db_session),
         _module_items(user_id, org_ids, db_session),
         _decidir_items(user_id, org_ids, db_session),
+        _tareas_items(user_id, org_ids, db_session),
     ):
         try:
             raw.extend(await source)

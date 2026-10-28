@@ -7,7 +7,7 @@ from src.routers import health
 from src.routers import instance
 from src.routers import plans
 from src.routers import usergroups
-from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs, panel, vision, salas
+from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs, panel, vision, salas, tareas
 from src.routers import notifications as notifications_router_module
 from src.routers import stream
 from src.routers import api_tokens
@@ -405,6 +405,15 @@ v1_router.include_router(
     salas.router,
     prefix="/salas",
     tags=["salas"],
+)
+
+# Las semanas de las clases en directo y su tarea (28/10/2026). Entregar, quien
+# ve la clase; corregir y el seguimiento, el equipo. Ver
+# `src/services/tareas/tareas.py`.
+v1_router.include_router(
+    tareas.router,
+    prefix="/tareas",
+    tags=["tareas"],
 )
 
 # Recursos: carpetas con archivos y enlaces para los alumnos. Leer, quien está
