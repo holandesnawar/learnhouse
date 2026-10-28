@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-28 (cada semana de la clase: presentación, ejercicios y tarea con nota de voz, corrección, «Tu semana» en el Inicio en lugar de la hoja de ruta, Seguimiento semanal y check-in cada 4 semanas; antes, el mismo día, todas las clases en directo con la franja nueva bajo su portada, también la clase semanal; antes, el 27/10, «Comisión pagada» del closer en cada venta, en Clientes y solo para administradores; antes, el mismo día, Spreekclub y Masterclass sin clases grabadas ni descripción, con casilla para volver a enseñarlas; antes, el mismo día, seteo a mano: «Confirmada» en cada llamada, lista «Por confirmar», dos WhatsApp ya escritos y el no-show de confirmadas en KPIs; la Masterclass sin marco bajo el vídeo; antes, el mismo día, el correo de Rida al reservar una llamada lo manda la escuela, avisada por Calendly; antes, el mismo día, salas en directo DENTRO de la escuela con Daily, empezando por el Spreekclub, con grabación automática al entrar el profe; antes 25/10: pestaña «Enfoque» para el closer con el programa nuevo; tandas: nadie entra solo en ningún grupo, el administrador elige el de cada alumno que paga, con aviso en la escuela y sin correo; antes, el mismo día, la beta y el programa nuevo separados por grupos; antes, el mismo día, el closer ve KPIs sin el dinero; antes 22/10: «Otro importe» también a plazos, de 2 a 6 pagos; antes, Matrículas en dos mesas, Leads y Ventas, con closer asignado y reparto; «Esta semana» del alumno cuenta las clases terminadas; antes, el mismo día, incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-28 (Black Friday: ebook «Neerlandés sin miedo» a 1 € con su caja, entrega y campaña de correos desde la escuela, y blackfriday.holandesnawar.com con la landing y el formulario con la edad primero; antes, el mismo día, cada semana de la clase: presentación, ejercicios y tarea con nota de voz, corrección, «Tu semana» en el Inicio en lugar de la hoja de ruta, Seguimiento semanal y check-in cada 4 semanas; antes, el mismo día, todas las clases en directo con la franja nueva bajo su portada, también la clase semanal; antes, el 27/10, «Comisión pagada» del closer en cada venta, en Clientes y solo para administradores; antes, el mismo día, Spreekclub y Masterclass sin clases grabadas ni descripción, con casilla para volver a enseñarlas; antes, el mismo día, seteo a mano: «Confirmada» en cada llamada, lista «Por confirmar», dos WhatsApp ya escritos y el no-show de confirmadas en KPIs; la Masterclass sin marco bajo el vídeo; antes, el mismo día, el correo de Rida al reservar una llamada lo manda la escuela, avisada por Calendly; antes, el mismo día, salas en directo DENTRO de la escuela con Daily, empezando por el Spreekclub, con grabación automática al entrar el profe; antes 25/10: pestaña «Enfoque» para el closer con el programa nuevo; tandas: nadie entra solo en ningún grupo, el administrador elige el de cada alumno que paga, con aviso en la escuela y sin correo; antes, el mismo día, la beta y el programa nuevo separados por grupos; antes, el mismo día, el closer ve KPIs sin el dinero; antes 22/10: «Otro importe» también a plazos, de 2 a 6 pagos; antes, Matrículas en dos mesas, Leads y Ventas, con closer asignado y reparto; «Esta semana» del alumno cuenta las clases terminadas; antes, el mismo día, incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -4050,9 +4050,47 @@ Friday»** (por qué, en la cabecera de `services/ebook/ebook.py`).
   - Marcas de página nuevas: `bf-ebook`, `bf-ebook-ads` (en
     `_PAGINAS_DE_ANUNCIO`: sale como anuncio), `black-friday`, `bf-admision`
     (`_NOMBRES` de `solicitudes.py`, `_ORIGEN_WEB` de `pipeline.py`).
-- **Web** (`nawar-web`, `src/pages/black-friday/`, `src/lib/blackFriday.ts`):
-  ver la sección de la web en el CLAUDE.md de la escuela de abajo y el PR de
-  nawar-web del 28/10.
+- **Web** (`nawar-web`, todo sale de `src/lib/blackFriday.ts`):
+  - **El subdominio**: `blackfriday.holandesnawar.com` sirve las páginas de
+    `src/pages/black-friday/` (`/` → la landing, `/ebook`, `/ebook-ads`,
+    `/admision`). El adaptador de Vercel escribe su `config.json` y NO lee
+    las `rewrites` de `vercel.json`; por eso `src/lib/integracionSubdominios.ts`
+    (una integración que corre después del adaptador) mete al principio dos
+    rutas con `has: host`. Comprobar tras `astro build` en
+    `.vercel/output/config.json`. En www siguen en `/black-friday/…`.
+    **Los enlaces entre ellas salen de `bfRuta()`** (`PUBLIC_BLACKFRIDAY_URL`,
+    de serie el subdominio): si el subdominio fallara, poner esa variable en
+    Vercel a `https://www.holandesnawar.com/black-friday`.
+  - Lo que tiene que hacer el usuario: Vercel → proyecto → Domains → añadir
+    `blackfriday.holandesnawar.com`; Cloudflare → `CNAME blackfriday →
+    cname.vercel-dns.com` en **gris** (Solo DNS).
+  - **Ebook** (`components/black-friday/EbookBF.astro`, `canal` organico/ads):
+    botón «Consíguelo por 1 €» → ventana con nombre y correo → el NAVEGADOR
+    llama a `{ESCUELA}/api/v1/ebook/pago` (el `recorrido` va como lista; la
+    escuela lo junta) → `initEmbeddedCheckout` de Stripe dentro de la
+    ventana. Píxel: `ViewContent`, `InitiateCheckout`. La línea de privacidad
+    avisa de los correos y de la baja. Libro dibujado en CSS con el nombre
+    nuevo (las fotos del CDN llevan la portada vieja).
+  - **Landing** (`black-friday/index.astro`): la de YouTalk sin su precio,
+    con hechos reales, cuenta atrás hasta el 30/11 23:59 y, al pasar, «la
+    oferta ha terminado» con el botón a `/proceso-de-admision`. Con
+    `?compra=cs_…` pregunta a `/api/ebook-compra` (ruta de la web: la
+    escuela + CAPI `Purchase` con `event_id` = la sesión), enseña «¡Hecho,
+    {nombre}!», manda el `Purchase` del píxel con el mismo id y deja nombre y
+    correo para el formulario. ⚠️ Esa ruta solo acepta ids de Stripe de
+    verdad (`cs_test_`/`cs_live_` + 10 o más letras).
+  - **Formulario** (`black-friday/admision.astro`): copia de
+    `/proceso-agendar` con **la edad la primera pregunta** (solo aquí) y los
+    datos ya puestos; `embudo: 'black-friday'` → systeme.io `origen =
+    black-friday` y la etiqueta «Black Friday - llamada»; Meta
+    `content_name 'Black Friday'`. ⚠️ Es copia: si cambia /agendar, mirar aquí.
+  - Fuera de Google (`noindex`, robots y mapa del sitio). Los pasos del embudo
+    (`pasosEmbudo`, KPIs de visitas) NO están puestos: la escuela solo acepta
+    los embudos anuncio/web/admision.
+  - Probado en local de punta a punta con Stripe de mentira (compra,
+    vuelta, aviso, un solo correo, la ficha con «Ads» y el anuncio, el
+    formulario relleno). NO probado: Stripe de verdad ni el subdominio en
+    Vercel.
 
 ## Incidente de Railway: claves robadas y despliegues parados (21-22/10/2026)
 Railway avisó de que un tercero pudo leer las variables de entorno de sus

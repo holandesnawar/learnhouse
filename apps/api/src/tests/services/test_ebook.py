@@ -74,6 +74,14 @@ def test_textos():
     assert c2["asunto"] == "Otro asunto" and c2["dia"] == 60 and c2["texto"]
 
 
+def test_la_web_manda_el_recorrido_como_lista():
+    from src.routers.ebook import PagoIn
+
+    p = PagoIn(nombre="Ana", email="a@x.com", recorrido=["home", "bf-ebook-ads", "<script>"], utm_source=None)
+    assert p.recorrido == "home,bf-ebook-ads" and p.utm_source == ""
+    assert PagoIn(recorrido="bf-ebook").recorrido == "bf-ebook"
+
+
 def test_enlaces_firmados():
     with patch.object(E, "_secreto", return_value="secreto-de-prueba"), patch.object(
         E, "_api_url", return_value="https://app.holandesnawar.com/api/v1/ebook"

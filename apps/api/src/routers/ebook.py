@@ -11,11 +11,12 @@ El ebook de Black Friday a 1 € (28/10/2026). La explicación entera está en
 
 import html
 import logging
-from typing import Any, Optional
+import re
+from typing import Any, Optional, Union
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.core.events.database import get_db_session
@@ -44,9 +45,26 @@ class PagoIn(BaseModel):
     utm_content: str = ""
     utm_term: str = ""
     utm_placement: str = ""
-    recorrido: str = ""
+    # La web lo manda como lista de marcas (como a /payments/solicitudes);
+    # se guarda como texto separado por comas.
+    recorrido: Union[str, list[str]] = ""
     referrer: str = ""
     vuelta: str = ""
+
+    @field_validator("recorrido", mode="before")
+    @classmethod
+    def _recorrido_en_texto(cls, v: Any) -> str:
+        marcas = v if isinstance(v, list) else str(v or "").split(",")
+        limpias = [m.strip() for m in marcas if isinstance(m, str) and re.fullmatch(r"[a-z-]{1,24}", m.strip())]
+        return ",".join(limpias[-12:])[:400]
+
+    @field_validator(
+        "nombre", "email", "canal", "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term",
+        "utm_placement", "referrer", "vuelta", mode="before",
+    )
+    @classmethod
+    def _texto(cls, v: Any) -> str:
+        return "" if v is None else str(v)
 
 
 @router.post("/pago", summary="Abre la caja de pago (embebida) del ebook a 1 €.")
