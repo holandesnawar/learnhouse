@@ -381,6 +381,44 @@ export default function KpisPanel() {
         </Seccion>
       </div>
 
+      {/* Cada closer con sus llamadas (28/10, al entrar la segunda closer). */}
+      {datos.por_closer?.length ? (
+        <Seccion titulo="Por closer">
+          <div className={`${TARJETA} overflow-x-auto`}>
+            <table className="w-full text-[13.5px]">
+              <thead>
+                <tr className="text-left text-[12px] text-gray-500">
+                  <th className="px-4 py-2.5 font-medium">Closer</th>
+                  <th className="px-3 py-2.5 font-medium text-right">Agendadas</th>
+                  <th className="px-3 py-2.5 font-medium text-right">Se presentaron</th>
+                  <th className="px-3 py-2.5 font-medium text-right">No vinieron</th>
+                  <th className="px-3 py-2.5 font-medium text-right">No-show</th>
+                  <th className="px-3 py-2.5 font-medium text-right">Pagaron</th>
+                  <th className="px-4 py-2.5 font-medium text-right">Cierre</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#F3F4F6]">
+                {datos.por_closer.map((g) => (
+                  <tr key={g.closer}>
+                    <td className={`px-4 py-2.5 ${g.closer === 'Sin asignar' ? 'text-gray-500' : 'font-medium text-gray-900'}`}>{g.closer}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">{g.agendadas}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">{g.presentadas}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">{g.no_vino}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">{pct(g.pct_no_show)}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">{g.cerradas}</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-gray-900">{pct(g.pct_cierre)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className={META}>
+            Por el closer que lleva a cada persona ahora (Matrículas → Ventas). Cierre = de los que se presentaron, cuántos han pagado.
+            Solo lo ven los administradores.
+          </p>
+        </Seccion>
+      ) : null}
+
       <div className="grid lg:grid-cols-2 gap-6 items-start">
         <Seccion titulo="Llamadas con fecha en estos días">
           <div className={`${TARJETA} divide-y divide-[#F3F4F6] text-[13.5px]`}>

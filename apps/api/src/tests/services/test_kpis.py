@@ -120,3 +120,22 @@ def test_el_closer_ve_los_kpis_sin_el_dinero():
     assert c["llamadas"] == k["llamadas"] and c["serie"] == k["serie"] and c["embudo_ventas"] == k["embudo_ventas"]
     # No toca los datos del administrador.
     assert "cobrado_cents" in k["ventas"] and "para_closer" not in k
+
+
+def test_por_closer():
+    """Con dos closers (28/10): cada uno con sus llamadas, no-show y cierres."""
+    from src.services.stats.kpis import por_closer
+
+    lista = [
+        {"email": "a@x.com", "estado": "presentada"},
+        {"email": "b@x.com", "estado": "no-vino"},
+        {"email": "c@x.com", "estado": "presentada"},
+        {"email": "d@x.com", "estado": "cancelada"},
+        {"email": "e@x.com", "estado": "futura"},
+    ]
+    closers = {"a@x.com": "Diego", "b@x.com": "Diego", "c@x.com": "Laura", "d@x.com": "Laura"}
+    r = por_closer(lista, closers, pagaron={"a@x.com"})
+    assert [g["closer"] for g in r] == ["Diego", "Laura", "Sin asignar"]
+    assert r[0] == {"closer": "Diego", "agendadas": 2, "presentadas": 1, "no_vino": 1, "cerradas": 1, "pct_no_show": 50.0, "pct_cierre": 100.0}
+    assert r[1]["agendadas"] == 1 and r[1]["cerradas"] == 0  # la cancelada no cuenta
+    assert por_closer(lista, {}, set()) == []

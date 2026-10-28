@@ -12,6 +12,11 @@ la opción de quedársela o pasársela al otro closer". Así funciona:
    que la recibe le llega otro correo, salvo que se la quede quien reparte.
 3. Si el equipo reserva la llamada desde el panel, se la queda quien la
    reserva si es closer (`reservar.py`), sin pasar por «Por asignar».
+4. Si quien reserva YA tenía closer (volvió a reservar tras un No show, o se
+   la agendó un closer desde el panel), el aviso le llega a ESE closer
+   («Ha reservado una llamada contigo») y no a quien reparte: su tarjeta no
+   pasa por «Por asignar» y el aviso de repartir confundía (28/10, al entrar
+   la segunda closer).
 
 Mientras la agenda siga en Calendly, el enlace de la videollamada es el del
 evento de Calendly (el de Diego): el otro closer entra con ese mismo enlace.
@@ -112,14 +117,23 @@ async def avisar_llamada_nueva(datos: dict, db_session: AsyncSession) -> int:
 
     try:
         _, eq = await _equipo_de_la_escuela(db_session)
-        a_quien = destinos((await leer(db_session))["repartidor_id"], eq, await emails_de_administradores(db_session))
+        suyo = await _closer_que_la_lleva(email, eq, db_session)
+        a_quien = (
+            [suyo["email"].strip().lower()] if suyo
+            else destinos((await leer(db_session))["repartidor_id"], eq, await emails_de_administradores(db_session))
+        )
     except Exception:  # noqa: BLE001
         logger.exception("No se pudo leer a quién avisar de la llamada nueva")
         return 0
     enviados = 0
     for destino in a_quien:
         try:
-            send_llamada_agendada_email(destino, datos)
+            if suyo:
+                from src.services.users.emails import send_llamada_asignada_email
+
+                send_llamada_asignada_email(destino, {**datos, "vuelve": True})
+            else:
+                send_llamada_agendada_email(destino, datos)
             enviados += 1
         except Exception:  # noqa: BLE001
             logger.exception("No se pudo avisar de la llamada nueva")
@@ -130,6 +144,25 @@ async def avisar_llamada_nueva(datos: dict, db_session: AsyncSession) -> int:
         except Exception:  # noqa: BLE001
             pass
     return enviados
+
+
+async def _closer_que_la_lleva(email: str, equipo: list[dict], db_session: AsyncSession) -> Optional[dict]:
+    """El closer que ya lleva a esa persona (del equipo del panel y con correo),
+    o None."""
+    if not email:
+        return None
+    from src.services.panel.pipeline import _la_asignada, filas_de
+
+    # En blando: si no se puede saber, avisa a quien reparte, como siempre.
+    try:
+        filas = await filas_de(email, db_session)
+    except Exception:  # noqa: BLE001
+        logger.exception("No se pudo leer si esa persona ya tenía closer")
+        return None
+    closer_id = int(getattr(_la_asignada(filas), "closer_id", 0) or 0) if filas else 0
+    if not closer_id:
+        return None
+    return next((m for m in equipo if m.get("id") == closer_id and m.get("email")), None)
 
 
 def avisar_asignada(closer_email: str, datos: dict) -> bool:

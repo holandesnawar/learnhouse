@@ -47,7 +47,11 @@ const diaCorto = (d: string) => {
   return `${DIAS[f.getUTCDay()]} ${dd} ${f.toLocaleDateString('es-ES', { month: 'short', timeZone: 'UTC' }).replace('.', '')}`
 }
 const cuandoSale = (c: CorreoCampana) =>
-  c.fecha ? `El ${diaCorto(c.fecha)}, a todos los que sigan en la campaña` : `${c.dia === 1 ? '1 día' : `${c.dia} días`} después de comprar el ebook`
+  c.para === 'sin_comprar'
+    ? `El ${diaCorto(c.fecha || '')}, a quien dejó sus datos y no compró el ebook`
+    : c.fecha
+      ? `El ${diaCorto(c.fecha)}, a quien compró el ebook y sigue en la campaña`
+      : `${c.dia === 1 ? '1 día' : `${c.dia} días`} después de comprar el ebook`
 
 function Interruptor({ activo, onClick, ocupado }: { activo: boolean; onClick: () => void; ocupado: boolean }) {
   return (
@@ -99,6 +103,7 @@ export default function EbookBlackFriday() {
   const [entrega, setEntrega] = useState<EbookBF['entrega'] | null>(null)
   const [pendiente, setPendiente] = useState<CartaSuelta | null>(null)
   const [acceso, setAcceso] = useState<CartaSuelta | null>(null)
+  const [formulario, setFormulario] = useState<CartaSuelta | null>(null)
   const [correos, setCorreos] = useState<CorreoCampana[]>([])
   const [abierto, setAbierto] = useState<string>('')
   const [vista, setVista] = useState<{ cual: string; asunto: string; html: string } | null>(null)
@@ -113,6 +118,7 @@ export default function EbookBlackFriday() {
     setEntrega(e.entrega)
     setPendiente(e.pendiente)
     setAcceso(e.acceso)
+    setFormulario(e.formulario)
     setCorreos(e.correos)
   }
 
@@ -134,6 +140,7 @@ export default function EbookBlackFriday() {
       JSON.stringify(entrega) !== JSON.stringify(estado.entrega) ||
       JSON.stringify(pendiente) !== JSON.stringify(estado.pendiente) ||
       JSON.stringify(acceso) !== JSON.stringify(estado.acceso) ||
+      JSON.stringify(formulario) !== JSON.stringify(estado.formulario) ||
       JSON.stringify(correos) !== JSON.stringify(estado.correos))
 
   const guardar = async (extra: Partial<EbookBF> = {}) => {
@@ -141,7 +148,10 @@ export default function EbookBlackFriday() {
     setError('')
     const r = await guardarEbook(
       org.id,
-      { desde, hasta, entrega: entrega || undefined, pendiente: pendiente || undefined, acceso: acceso || undefined, correos, ...extra },
+      {
+        desde, hasta, entrega: entrega || undefined, pendiente: pendiente || undefined, acceso: acceso || undefined,
+        formulario: formulario || undefined, correos, ...extra,
+      },
       token
     )
     if (!r.ok) {
@@ -342,13 +352,15 @@ export default function EbookBlackFriday() {
       {/* Números */}
       <div className={`${TARJETA} p-4 sm:p-5 space-y-3`}>
         <p className="text-[15px] font-semibold text-gray-900">Cómo va</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {[
             ['Desbloquearon la oferta', n.lista ?? 0],
             ['Compraron el ebook', n.compradores],
             ['Sin comprar el ebook', n.a_medias ?? 0],
             ['En la campaña', n.en_campana],
+            ['Empezaron la llamada sin reservar', n.sin_reservar ?? 0],
             ['Reservaron llamada', n.reservaron],
+            ['No encajan', n.no_encajan ?? 0],
             ['Pagaron la formación', n.pagaron],
             ['Se dieron de baja', n.bajas],
           ].map(([t, v]) => (
@@ -443,6 +455,9 @@ export default function EbookBlackFriday() {
         {/* Al desbloquear la oferta, y a quien dejó sus datos y no compró el ebook */}
         {acceso ? cartaSuelta('acceso', acceso, setAcceso, 'Al momento, a quien desbloquea la oferta en la portada (lleva al ebook)') : null}
         {pendiente ? cartaSuelta('pendiente', pendiente, setPendiente, 'Al día siguiente, a quien dejó sus datos y no compró el ebook') : null}
+        {formulario
+          ? cartaSuelta('formulario', formulario, setFormulario, 'Al día siguiente, a quien compró, empezó a pedir su llamada y no reservó hora')
+          : null}
 
         {correos.map((c) => (
           <div key={c.id} className={`rounded-lg border border-[#E5E7EB] ${c.apagado ? 'opacity-60' : ''}`}>

@@ -307,3 +307,58 @@ def test_los_botones_de_los_correos_llevan_a_la_oferta():
         assert E.url_destino("landing", "a@x.com", "Ana", "c1").startswith("https://blackfriday.holandesnawar.com/oferta?")
         assert E.url_destino("admision", "a@x.com", "Ana", "c1").startswith("https://blackfriday.holandesnawar.com/admision?")
         assert E.url_destino("ebook", "a@x.com", "Ana", "acceso").startswith("https://blackfriday.holandesnawar.com/ebook?")
+
+
+async def test_la_campana_segmentada(db, org, sin_redis_ni_crm, monkeypatch):
+    """Quien compró y empezó a pedir la llamada sin reservar recibe «te
+    quedaste a un paso»; quien terminó y no encaja sale de la campaña; quien no
+    compró recibe los del ebook de fecha fija, nunca los de la formación."""
+    with patch.object(M, "send_email", side_effect=lambda **k: None):
+        for i, email in enumerate(["ana@x.com", "luis@x.com", "eva@x.com"]):
+            await E.al_pagar(_sesion(cs=f"cs_{i}", email=email), db)
+        await E.apuntar_lista({"nombre": "Leo", "email": "leo@x.com"}, db)
+    for ev in (await db.execute(select(ContactEvent))).scalars().all():
+        ev.created_at = "2026-11-20T10:00:00+00:00"
+        db.add(ev)
+    # Ana empieza el formulario de la llamada el 21 y no reserva; Luis lo
+    # termina el 21 y no encaja.
+    db.add(ContactEvent(email="ana@x.com", kind="agendar-empezado", created_at="2026-11-21T18:00:00+00:00",
+                        extra=json.dumps({"embudo": "black-friday"})))
+    db.add(ContactEvent(email="luis@x.com", kind="cualificacion", created_at="2026-11-21T18:00:00+00:00",
+                        extra=json.dumps({"embudo": "black-friday", "apto": False})))
+    await db.commit()
+
+    import src.services.contactos.contactos as Cc
+
+    async def nadie(_db):
+        return set()
+
+    monkeypatch.setattr(Cc, "emails_que_pagaron", nadie)
+    mandados = []
+    with patch.object(M, "send_email", side_effect=lambda **k: mandados.append(k)):
+        monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-11-22")
+        r = await E.enviar_campana(db)
+        assert r["formulario"] == 1 and r["no_encajan"] == 1
+    a = {m["to"]: m["subject"] for m in mandados}
+    assert a["ana@x.com"] == E.DE_FABRICA[E.ID_FORMULARIO]["asunto"]
+    assert "luis@x.com" not in a  # no encaja: fuera de la campaña
+    # Eva sigue la campaña normal: el c1 (tocaba el 21 y la tarea no pasó; va con un día de margen).
+    assert a["eva@x.com"] == E.DE_FABRICA["correos"][0]["asunto"]
+    # Leo no compró: el recordatorio del ebook, nunca uno de la formación.
+    assert a["leo@x.com"] == E.DE_FABRICA["pendiente"]["asunto"]
+    ana = next(m for m in mandados if m["to"] == "ana@x.com")
+    assert "/admision?" in ana["body"] and "utm_content=formulario" in ana["body"]
+
+    # El Black Friday: Leo (no compró) recibe el del ebook; Eva, el de la formación.
+    mandados.clear()
+    with patch.object(M, "send_email", side_effect=lambda **k: mandados.append(k)):
+        monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-11-27")
+        await E.enviar_campana(db)
+    a = {m["to"]: m for m in mandados}
+    assert a["leo@x.com"]["subject"] == "Hoy es Black Friday: tu ebook sigue a 1 €" and "/ebook?" in a["leo@x.com"]["body"]
+    assert a["eva@x.com"]["subject"] == "Hoy es Black Friday"
+    assert "luis@x.com" not in a
+    n = await E.resumen(1, db)
+    assert n["sin_reservar"] == 1 and n["no_encajan"] == 1
+    estados = {u["email"]: u["estado"] for u in n["ultimos"]}
+    assert estados == {"ana@x.com": "empezó la llamada", "luis@x.com": "no encaja", "eva@x.com": "en campaña", "leo@x.com": "sin comprar"}

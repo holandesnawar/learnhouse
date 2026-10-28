@@ -11,6 +11,7 @@ from sqlmodel import select
 
 from src.db.contact_event import ContactEvent
 from src.db.organization_config import OrganizationConfig
+from src.db.panel_negocio import LeadPipeline  # noqa: F401  (para que exista la tabla en la base de pruebas)
 from src.services.contactos import correo_reserva as C
 from src.services.users import emails as E
 
@@ -269,3 +270,31 @@ async def test_la_misma_reserva_avisa_una_vez_al_equipo(db):
             assert await reparto.avisar_llamada_nueva({"email": "luis@x.com"}, db) == 0
         with patch.object(E, "send_llamada_agendada_email", lambda destino, datos: enviados.append((destino, datos))):
             assert await reparto.avisar_llamada_nueva({"email": "luis@x.com"}, db) == 1
+
+
+async def test_si_ya_tenia_closer_el_aviso_va_a_su_closer(db):
+    """Segunda closer (28/10): quien ya tenía closer y vuelve a reservar (tras
+    un No show) no pasa por «Por asignar»: el aviso le llega a su closer."""
+    from src.services.panel import pipeline, reparto
+
+    await pipeline.asignar("eva@x.com", 7, "Laura", "Rida", db)
+    agendadas, asignadas = [], []
+
+    async def _equipo(_db):
+        return 1, [{"id": 7, "nombre": "Laura", "email": "laura@x.com"}, {"id": 3, "nombre": "Diego", "email": "diego@x.com"}]
+
+    async def _admins(_db):
+        return ["admin@x.com"]
+
+    with patch("src.core.redis.get_redis_client", lambda: None), patch.object(reparto, "_equipo_de_la_escuela", _equipo), patch(
+        "src.services.contactos.llamadas.emails_de_administradores", _admins
+    ), patch.object(E, "send_llamada_agendada_email", lambda d, x: agendadas.append(d)), patch.object(
+        E, "send_llamada_asignada_email", lambda d, x: asignadas.append((d, x))
+    ):
+        assert await reparto.avisar_llamada_nueva({"email": "Eva@x.com", "cuando": "vie 30 oct · 18:00"}, db) == 1
+        # Alguien nuevo, sin closer: a quien reparte (aquí, los administradores).
+        assert await reparto.avisar_llamada_nueva({"email": "nuevo@x.com"}, db) == 1
+    assert asignadas == [("laura@x.com", {"email": "Eva@x.com", "cuando": "vie 30 oct · 18:00", "vuelve": True})]
+    assert agendadas == ["admin@x.com"]
+    html = E.send_llamada_asignada_email("laura@x.com", {"nombre": "Eva", "vuelve": True}, preview=True)
+    assert "Ha reservado una llamada contigo" in str(html)

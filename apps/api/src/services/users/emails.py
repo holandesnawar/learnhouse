@@ -1103,10 +1103,13 @@ def send_llamada_agendada_email(email: EmailStr, datos: dict, preview: bool = Fa
 def send_llamada_asignada_email(email: EmailStr, datos: dict, preview: bool = False):
     """Aviso AL CLOSER (22/10/2026): le han pasado una llamada. datos: nombre,
     email, telefono, cuando, por (quién se la ha pasado), enlace (para entrar a
-    la videollamada, si se sabe)."""
+    la videollamada, si se sabe). Con `vuelve` (28/10): alguien que ya llevaba
+    ha reservado otra llamada (tras un No show, o agendada desde el panel)."""
     nombre, contacto, wa = _llamada_datos(datos)
     cuando = html.escape(datos.get("cuando") or "")
     por = html.escape(datos.get("por") or "")
+    vuelve = bool(datos.get("vuelve"))
+    titulo = "Ha reservado una llamada contigo" if vuelve else "Te han pasado una llamada"
     enlace = datos.get("enlace") or ""
     entrar = (
         f'<p style="margin: 16px 0 0 0; font-size: 13px;"><a href="{html.escape(enlace)}" style="color: #025dc7; font-weight: 600;">Enlace de la videollamada</a></p>'
@@ -1114,12 +1117,12 @@ def send_llamada_asignada_email(email: EmailStr, datos: dict, preview: bool = Fa
         else ""
     )
     body_content = f"""
-        <h1 style="{STYLES['h1']}">Te han pasado una llamada</h1>
+        <h1 style="{STYLES['h1']}">{titulo}</h1>
         <p style="{STYLES['p']}">
             <strong>{nombre}</strong>{(' · ' + cuando) if cuando else ''}<br>
             {contacto}
         </p>
-        {('<p style="' + STYLES['p'] + '">Te la ha pasado ' + por + '.</p>') if por else ''}
+        {('<p style="' + STYLES['p'] + '">Ya la llevabas tú, así que no pasa por «Por asignar».</p>') if vuelve else ('<p style="' + STYLES['p'] + '">Te la ha pasado ' + por + '.</p>') if por else ''}
         <a href="{ACADEMY_URL}/dash/estadisticas?tab=matriculas&mesa=ventas" class="brand-btn" style="{STYLES['button']}">Ver su ficha</a>
         {entrar}
         {wa}
@@ -1127,9 +1130,9 @@ def send_llamada_asignada_email(email: EmailStr, datos: dict, preview: bool = Fa
     return send_email(
         dry_run=preview,
         to=email,
-        subject=f"Te han pasado una llamada: {datos.get('nombre') or datos.get('email') or 'alguien'}" + (f" · {datos.get('cuando')}" if datos.get("cuando") else ""),
+        subject=f"{'Ha reservado llamada contigo' if vuelve else 'Te han pasado una llamada'}: {datos.get('nombre') or datos.get('email') or 'alguien'}" + (f" · {datos.get('cuando')}" if datos.get("cuando") else ""),
         body=_email_layout(
-            title="Te han pasado una llamada",
+            title=titulo,
             body_content=body_content,
             footer_note="Recibes esto porque eres closer de la escuela.",
         ),

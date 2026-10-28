@@ -242,6 +242,39 @@ def _embudo_ventas(entradas: list[dict], citas_por_email: dict[str, list], prese
     }
 
 
+def por_closer(lista: list[dict], closers: dict[str, str], pagaron: set[str]) -> list[dict]:
+    """Las llamadas del periodo repartidas por el closer que lleva a cada
+    persona (28/10, con la segunda closer): agendadas, presentadas, no vino,
+    cerradas (se presentó y ya pagó), % de no-show y % de cierre. Las que no
+    tiene nadie, en «Sin asignar». Vacía si no hay ningún closer asignado.
+    Función pura."""
+    if not any(closers.get(x["email"]) for x in lista):
+        return []
+    grupos: dict[str, dict] = {}
+    for x in lista:
+        if x.get("estado") == "cancelada":
+            continue
+        quien = closers.get(x["email"]) or "Sin asignar"
+        g = grupos.setdefault(quien, {"closer": quien, "agendadas": 0, "presentadas": 0, "no_vino": 0, "_vinieron": set()})
+        g["agendadas"] += 1
+        if x.get("estado") == "presentada":
+            g["presentadas"] += 1
+            g["_vinieron"].add(x["email"])
+        elif x.get("estado") == "no-vino":
+            g["no_vino"] += 1
+    salida = []
+    for g in grupos.values():
+        vinieron = g.pop("_vinieron")
+        cerradas = sum(1 for e in vinieron if e in pagaron)
+        salida.append({
+            **g,
+            "cerradas": cerradas,
+            "pct_no_show": _pct(g["no_vino"], g["presentadas"] + g["no_vino"]),
+            "pct_cierre": _pct(cerradas, len(vinieron)),
+        })
+    return sorted(salida, key=lambda g: (g["closer"] == "Sin asignar", -g["agendadas"], g["closer"]))
+
+
 def calcular(
     *,
     fichas: list[dict],
@@ -255,6 +288,7 @@ def calcular(
     desde: str,
     hasta: str,
     ahora: datetime,
+    closers: Optional[dict[str, str]] = None,
 ) -> dict:
     from src.services.contactos.embudo_visitas import resumen as resumen_visitas, visitas_por_dia
     from src.services.panel.pipeline import canal_de
@@ -367,6 +401,7 @@ def calcular(
         "embudo_web": resumen_visitas(visitas),
         "embudo_ventas": _embudo_ventas(entradas, citas_por_email, presentados, pagaron),
         "llamadas": {k: v for k, v in llamadas.items() if k != "lista"},
+        "por_closer": por_closer(llamadas["lista"], closers or {}, pagaron),
         "ventas": ventas_bloque,
         "serie": serie,
     }
@@ -379,6 +414,8 @@ def para_el_closer(datos: dict) -> dict:
     servidor, no solo en la pantalla. Función pura."""
     salida = dict(datos)
     salida["ventas"] = {"n": int((datos.get("ventas") or {}).get("n") or 0)}
+    # Los números de cada closer, solo para los administradores.
+    salida.pop("por_closer", None)
     salida["para_closer"] = True
     return salida
 
@@ -432,9 +469,24 @@ async def kpis(dias: int, db_session) -> dict:
     }
     visitas = await filas_entre(desde, hasta, db_session)
 
+    # Quién lleva a cada persona, con el nombre de ahora de cada closer.
+    try:
+        from src.services.panel.pipeline import guardadas
+        from src.services.panel.reparto import _equipo_de_la_escuela
+
+        _, eq = await _equipo_de_la_escuela(db_session)
+        nombres = {m["id"]: m.get("nombre") or "" for m in eq}
+        closers = {
+            e: (nombres.get(g.get("closer_id")) or g.get("closer") or "")
+            for e, g in (await guardadas(db_session)).items() if g.get("closer_id")
+        }
+    except Exception:  # noqa: BLE001
+        closers = {}
+
     salida = calcular(
         fichas=fichas, citas=citas, resultados=resultados, pagaron=pagaron, fuera=fuera, visitas=visitas,
         ventas=ventas, plazos_emails=plazos_emails, desde=desde, hasta=hasta, ahora=datetime.now(timezone.utc),
+        closers=closers,
     )
     salida["calendly"] = {
         "conectado": calendly_ok,
