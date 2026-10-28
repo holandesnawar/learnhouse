@@ -5,7 +5,7 @@
  */
 import { getAPIUrl } from '@services/config/config'
 
-export type Destino = 'admision' | 'landing' | 'descarga'
+export type Destino = 'admision' | 'landing' | 'descarga' | 'ebook'
 
 export interface CorreoCampana {
   id: string
@@ -25,6 +25,8 @@ export interface EbookBF {
   hasta: string
   precio_cents: number
   entrega: { asunto: string; texto: string; boton: string; destino: Destino }
+  /** El recordatorio a quien dejó sus datos y no terminó de pagar. */
+  pendiente: { asunto: string; texto: string; boton: string; destino: Destino; apagado: boolean }
   correos: CorreoCampana[]
   pdf: string
   pdf_nombre: string
@@ -34,6 +36,7 @@ export interface EbookBF {
   huecos: string[]
   bf_url: string
   numeros: {
+    a_medias: number
     compradores: number
     en_campana: number
     reservaron: number
@@ -68,7 +71,7 @@ export const getEbook = (orgId: number, t: string) => pedir<EbookBF>(`org/${orgI
 
 export const guardarEbook = (
   orgId: number,
-  datos: Partial<Pick<EbookBF, 'activo' | 'campana' | 'desde' | 'hasta' | 'entrega' | 'correos'>>,
+  datos: Partial<Pick<EbookBF, 'activo' | 'campana' | 'desde' | 'hasta' | 'entrega' | 'pendiente' | 'correos'>>,
   t: string
 ) => pedir<EbookBF>(`org/${orgId}`, 'PUT', datos, t)
 
