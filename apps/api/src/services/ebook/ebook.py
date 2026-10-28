@@ -67,23 +67,26 @@ Quien deja sus datos y no paga (28/10)
 Al abrir la caja de pago (`crear_pago`) se apunta un `ebook-empezado` con su
 nombre, su correo y de dónde vino (`_apuntar_empezado`, uno por persona y
 día). Sale en su ficha. Si no llega a comprar, al día siguiente le llega UN
-correo, «Tu ebook se quedó a medio camino» (`pendiente`, editable en el panel
+correo, «Tu ebook de 1 € te está esperando» (`pendiente`, editable en el panel
 y con su baja al pie), con el botón a la página del ebook y sus datos puestos
-(`toca_pendiente`, pura con test). No le llega si compra, reserva llamada,
+(`toca_pendiente`, pura con test). Lo mismo a quien se apuntó en la portada
+y no compró: uno por persona, cuente lo que cuente. No le llega si compra, reserva llamada,
 paga la formación o se da de baja. Antes de esto, esa gente se perdía: solo
 quedaba como cliente en Stripe.
 
-La lista: desbloquear la oferta sin comprar el ebook (28/10, como YouTalk)
+La portada: desbloquear la oferta, que ES el ebook (28/10, como YouTalk)
 ------------------------------------------------------------------------
-La portada de blackfriday.holandesnawar.com es un formulario (nombre, correo
-y WhatsApp) para desbloquear la oferta. `apuntar_lista` lo apunta en su ficha
-(`bf-lista`, uno por persona), le manda al momento el correo de acceso
-(`acceso`, con el botón a /oferta) y le etiqueta en systeme.io («Black Friday
-- lista»). Entra en la campaña igual que quien compra el ebook, desde el día
-en que se apuntó (`inscritos` en `_personas`), pero sin los correos marcados
-`solo_ebook` (el c1, que habla del ebook). La landing de la formación vive
-ahora en /oferta: ahí lleva el botón de todos los correos y ahí vuelve Stripe
-tras pagar el ebook.
+La portada de blackfriday.holandesnawar.com es solo un formulario (nombre,
+correo y WhatsApp) para desbloquear la oferta, sin una palabra de la
+formación. La oferta desbloqueada es el ebook a 1 € (usuario: "todo gira al
+inicio en torno al ebook"). `apuntar_lista` lo apunta en su ficha (`bf-lista`,
+uno por persona), le manda al momento el correo de acceso (`acceso`, con el
+botón a la página del ebook y sus datos puestos) y le etiqueta en systeme.io
+(«Black Friday - lista»). Si al día siguiente no ha comprado, le llega el
+recordatorio (`pendiente`, el mismo de quien abrió la caja y no pagó).
+**La campaña es solo para quien compra el ebook**: tras pagar, Stripe le lleva
+a /oferta («¡No cierres esta página!», nuestra mejor oferta y el botón a la
+llamada), y los correos de la campaña le llevan a la llamada.
 """
 
 from __future__ import annotations
@@ -162,43 +165,42 @@ DE_FABRICA: dict = {
         "boton": "Ver la Formación Nawar",
         "destino": "landing",
     },
-    # Para quien dejó sus datos y no terminó de pagar: uno, al día siguiente.
+    # Para quien dejó sus datos (en la portada o en la caja de pago) y no
+    # compró el ebook: uno, al día siguiente.
     "pendiente": {
-        "asunto": "Tu ebook se quedó a medio camino",
+        "asunto": "Tu ebook de 1 € te está esperando",
         "texto": (
             "¡Hola, {nombre}!\n\n"
-            "Empezaste a pedir *Neerlandés sin miedo*, pero el pago no llegó a terminarse. A veces es la "
-            "tarjeta, a veces se corta la conexión. Pasa.\n\n"
-            "Si todavía lo quieres, te lo he dejado preparado: con un clic vuelves y lo terminas. Sigue a "
-            "1 € hasta el {hasta}.\n\n"
+            "Te quedaste a un paso de *Neerlandés sin miedo*, el ebook para arrancar con el neerlandés desde "
+            "cero. Si se te cortó el pago o simplemente se te pasó, te lo he dejado preparado: con un clic "
+            "vuelves y es tuyo.\n\n"
+            "Sigue a 1 € hasta el {hasta}.\n\n"
             "[boton]\n\n"
             "Si tuviste algún problema al pagar, contesta a este correo y te ayudamos.\n\n" + _FIRMA
         ),
-        "boton": "Terminar mi pedido",
+        "boton": "Conseguir mi ebook",
         "destino": "ebook",
     },
-    # Al apuntarse en la página para desbloquear la oferta: al momento.
+    # Al apuntarse en la portada para desbloquear la oferta: al momento. La
+    # oferta desbloqueada ES el ebook a 1 €.
     "acceso": {
-        "asunto": "Tu acceso a la oferta de Black Friday",
+        "asunto": "Tu oferta de Black Friday está desbloqueada",
         "texto": (
             "¡Hola, {nombre}!\n\n"
-            "Ya tienes acceso anticipado a las condiciones de Black Friday de la Formación Nawar A0-A1: "
-            "el camino completo de cero al A1 en 16 semanas, explicado en español y con clases en directo "
-            "cada semana.\n\n"
-            "Las condiciones no te las cuento por aquí: te las explica nuestro equipo en una llamada "
-            "gratuita de media hora, después de entender tu situación. Valen hasta el {hasta}.\n\n"
-            "Aquí tienes tu oferta, con todo lo que incluye la formación:\n\n"
+            "Ya tienes desbloqueada tu oferta de Black Friday: *Neerlandés sin miedo*, nuestro ebook para "
+            "arrancar con el neerlandés desde cero, por solo 1 €.\n\n"
+            "Son 7 lecciones explicadas en español, con el vocabulario, los ejercicios y todas las respuestas "
+            "para que te corrijas tú. En PDF y para siempre.\n\n"
+            "La oferta vale hasta el {hasta}.\n\n"
             "[boton]\n\n" + _FIRMA
         ),
-        "boton": "Ver mi oferta",
-        "destino": "landing",
+        "boton": "Conseguir mi ebook por 1 €",
+        "destino": "ebook",
     },
     "correos": [
         {
             "id": "c1",
             "dia": 1,
-            # Habla del ebook: no le llega a quien solo se apuntó a la lista.
-            "solo_ebook": True,
             "asunto": "Cómo sacarle partido a tu ebook",
             "texto": (
                 "¡Hola, {nombre}!\n\n"
@@ -313,6 +315,36 @@ DE_FABRICA: dict = {
 }
 
 DESTINOS = ("admision", "landing", "descarga", "ebook")
+
+#: Los textos de fábrica de antes del 28/10 (tercera vuelta). Si están
+#: guardados TAL CUAL (el panel guarda las cartas enteras aunque no se toquen),
+#: se usan los de ahora: el de acceso llevaba a la formación y ya no toca. Uno
+#: retocado en el panel se respeta.
+_FABRICA_ANTERIOR = {
+    "acceso": (
+        "¡Hola, {nombre}!\n\n"
+        "Ya tienes acceso anticipado a las condiciones de Black Friday de la Formación Nawar A0-A1: "
+        "el camino completo de cero al A1 en 16 semanas, explicado en español y con clases en directo "
+        "cada semana.\n\n"
+        "Las condiciones no te las cuento por aquí: te las explica nuestro equipo en una llamada "
+        "gratuita de media hora, después de entender tu situación. Valen hasta el {hasta}.\n\n"
+        "Aquí tienes tu oferta, con todo lo que incluye la formación:\n\n"
+        "[boton]\n\n" + _FIRMA
+    ),
+    "pendiente": (
+        "¡Hola, {nombre}!\n\n"
+        "Empezaste a pedir *Neerlandés sin miedo*, pero el pago no llegó a terminarse. A veces es la "
+        "tarjeta, a veces se corta la conexión. Pasa.\n\n"
+        "Si todavía lo quieres, te lo he dejado preparado: con un clic vuelves y lo terminas. Sigue a "
+        "1 € hasta el {hasta}.\n\n"
+        "[boton]\n\n"
+        "Si tuviste algún problema al pagar, contesta a este correo y te ayudamos.\n\n" + _FIRMA
+    ),
+}
+
+
+def _sin_espacios(t: Any) -> str:
+    return re.sub(r"\s+", " ", str(t or "")).strip()
 
 
 class EbookError(Exception):
@@ -449,6 +481,8 @@ def _carta_limpia(guardada: Any, clave: str) -> dict:
     """Un correo suelto (el de entrega, el de «se quedó a medias»): el de
     fábrica con lo cambiado en el panel encima."""
     g = guardada if isinstance(guardada, dict) else {}
+    if clave in _FABRICA_ANTERIOR and _sin_espacios(g.get("texto")) == _sin_espacios(_FABRICA_ANTERIOR[clave]):
+        g = {}
     carta = dict(DE_FABRICA[clave])
     for campo in ("asunto", "texto", "boton"):
         v = str(g.get(campo) or "").strip()
@@ -979,9 +1013,10 @@ def _telefono(texto: Any) -> str:
 async def apuntar_lista(datos: dict, db_session: AsyncSession) -> dict:
     """Quien rellena el formulario de blackfriday.holandesnawar.com (nombre,
     correo y WhatsApp): queda en su ficha (`bf-lista`, uno por persona), le
-    llega al momento el correo de acceso con el botón a la oferta, entra en la
-    campaña y se le etiqueta en systeme.io. Repetirlo no duplica nada:
-    actualiza el nombre y el teléfono. Devuelve si es nuevo."""
+    llega al momento el correo de acceso con el botón a la página del ebook y
+    se le etiqueta en systeme.io. Si no compra, al día siguiente le llega el
+    recordatorio. Repetirlo no duplica nada: actualiza el nombre y el
+    teléfono. Devuelve si es nuevo."""
     from src.db.contact_event import ContactEvent
     from src.services.panel.tandas import hoy_nl
 
@@ -1025,7 +1060,7 @@ async def apuntar_lista(datos: dict, db_session: AsyncSession) -> dict:
 
     if nuevo and not cfg[ID_ACCESO].get("apagado"):
         # El correo de acceso, una vez. Si falla, la persona ya está dentro y
-        # ve la oferta en pantalla: se apunta en el registro y sigue.
+        # ve el ebook en pantalla: se apunta en el registro y sigue.
         try:
             armar_acceso(cfg, email, nombre, preview=False)
             db_session.add(
@@ -1149,8 +1184,9 @@ async def _personas(db_session: AsyncSession) -> dict:
     """Por correo: cuándo compró (el primer ebook), se apuntó a la lista o
     empezó a pedir el ebook (el último intento), su nombre, qué correos le han
     llegado y el último día que recibió uno; y quién se ha dado de baja o ha
-    reservado su llamada. `inscritos` = quien está en la campaña (compró el
-    ebook o se apuntó a la lista), desde el primero de los dos días."""
+    reservado su llamada. `a_medias` = dejó sus datos (en la portada o en la
+    caja de pago) y no ha comprado nunca, con el día de su último intento.
+    `gente` = todos los que han dejado sus datos, para la lista del panel."""
     from src.db.contact_event import ContactEvent
     from src.services.panel.tandas import dia_nl
 
@@ -1198,20 +1234,26 @@ async def _personas(db_session: AsyncSession) -> dict:
             bajas.add(email)
         else:
             reservaron.add(email)
-    # A medias = empezó y no ha comprado nunca (ni antes ni después).
-    a_medias = {e: c for e, c in empezados.items() if e not in compras}
-    inscritos: dict[str, dict] = {}
-    for email in set(compras) | set(listas):
-        uno = sorted((x for x in (compras.get(email), listas.get(email)) if x), key=lambda x: x["creado"])
-        inscritos[email] = {
+    # A medias = dejó sus datos y no ha comprado nunca (ni antes ni después).
+    # Cuenta su último intento: el recordatorio sale al día siguiente.
+    a_medias: dict[str, dict] = {}
+    for email in (set(empezados) | set(listas)) - set(compras):
+        ultimo_intento = max((x for x in (empezados.get(email), listas.get(email)) if x), key=lambda x: x["creado"])
+        a_medias[email] = {
+            **ultimo_intento,
+            "nombre": ultimo_intento["nombre"] or (listas.get(email) or empezados.get(email) or {}).get("nombre", ""),
+        }
+    gente: dict[str, dict] = {}
+    for email in set(compras) | set(listas) | set(empezados):
+        uno = sorted((x for x in (compras.get(email), listas.get(email), empezados.get(email)) if x), key=lambda x: x["creado"])
+        gente[email] = {
             "creado": uno[0]["creado"],
-            "dia": uno[0]["dia"],
-            "nombre": (compras.get(email) or {}).get("nombre") or uno[0]["nombre"],
+            "nombre": (compras.get(email) or {}).get("nombre") or uno[-1]["nombre"],
             "ebook": email in compras,
             "lista": email in listas,
         }
     return {
-        "compras": compras, "listas": listas, "inscritos": inscritos, "a_medias": a_medias,
+        "compras": compras, "listas": listas, "a_medias": a_medias, "gente": gente,
         "enviados": enviados, "ultimo": ultimo, "bajas": bajas, "reservaron": reservaron,
     }
 
@@ -1233,8 +1275,6 @@ async def enviar_campana(db_session: AsyncSession, org_id: Optional[int] = None)
         return salida
     hoy = hoy_nl()
     correos = [c for c in cfg["correos"] if not c.get("apagado")]
-    # A quien solo se apuntó a la lista no le llegan los que hablan del ebook.
-    sin_ebook = [c for c in correos if not c.get("solo_ebook")]
     pagaron = await emails_que_pagaron(db_session)
 
     async def mandar(email: str, ident: str, asunto: str, armar) -> bool:
@@ -1259,19 +1299,20 @@ async def enviar_campana(db_session: AsyncSession, org_id: Optional[int] = None)
             logger.warning("Campaña del ebook: un envío falló", exc_info=True)
             return False
 
-    for email, quien in sorted(p["inscritos"].items(), key=lambda kv: kv[1]["creado"]):
+    # La campaña, solo a quien compró el ebook: es lo que le lleva a la llamada.
+    for email, quien in sorted(p["compras"].items(), key=lambda kv: kv[1]["creado"]):
         if email in p["bajas"] or email in p["reservaron"] or email in pagaron:
             salida["parados"] += 1
             continue
-        suyos = correos if quien["ebook"] else sin_ebook
-        c = que_toca(quien["dia"], hoy, suyos, p["enviados"].get(email, set()), cfg["hasta"], p["ultimo"].get(email, ""))
+        c = que_toca(quien["dia"], hoy, correos, p["enviados"].get(email, set()), cfg["hasta"], p["ultimo"].get(email, ""))
         if c is None:
             continue
         if salida["enviados"] >= TOPE_POR_DIA:
             break
         await mandar(email, c["id"], c["asunto"], lambda c=c, email=email, n=quien["nombre"]: armar_correo(cfg, c, email, n, preview=False))
 
-    # El recordatorio a quien dejó sus datos y no terminó de pagar.
+    # El recordatorio a quien dejó sus datos (en la portada o en la caja de
+    # pago) y no compró el ebook.
     pendiente = cfg["pendiente"]
     if not pendiente.get("apagado"):
         for email, empezo in sorted(p["a_medias"].items(), key=lambda kv: kv[1]["creado"]):
@@ -1289,14 +1330,15 @@ async def enviar_campana(db_session: AsyncSession, org_id: Optional[int] = None)
 
 async def resumen(org_id: int, db_session: AsyncSession) -> dict:
     """Los números de la pestaña del panel. Los de la campaña (en campaña,
-    reservaron, pagaron, bajas) cuentan a todos los inscritos: quien compró el
-    ebook y quien se apuntó a la lista."""
+    reservaron, pagaron, bajas) cuentan a quien compró el ebook; la lista de
+    abajo, a todos los que dejaron sus datos."""
     from src.services.contactos.contactos import emails_que_pagaron
     from src.services.contactos.metricas import emails_excluidos
 
     p = await _personas(db_session)
     fuera = await emails_excluidos(db_session)
-    inscritos = {e: c for e, c in p["inscritos"].items() if e not in fuera}
+    inscritos = {e: c for e, c in p["compras"].items() if e not in fuera}
+    gente = {e: c for e, c in p["gente"].items() if e not in fuera}
     pagaron = await emails_que_pagaron(db_session)
     por_correo: dict[str, int] = {}
     for email, ids in p["enviados"].items():
@@ -1310,7 +1352,18 @@ async def resumen(org_id: int, db_session: AsyncSession) -> dict:
     parados = set(reservaron) | set(alumnos) | set(bajas)
 
     def via(c: dict) -> str:
-        return "ebook y lista" if c["ebook"] and c["lista"] else "ebook" if c["ebook"] else "lista"
+        if c["lista"]:
+            return "desbloqueó y compró" if c["ebook"] else "desbloqueó"
+        return "compró" if c["ebook"] else "abrió el pago"
+
+    def estado(e: str, c: dict) -> str:
+        if e in pagaron:
+            return "pagó"
+        if e in p["reservaron"]:
+            return "reservó"
+        if e in p["bajas"]:
+            return "de baja"
+        return "en campaña" if c["ebook"] else "sin comprar"
 
     return {
         "a_medias": len([e for e in p["a_medias"] if e not in fuera]),
@@ -1322,8 +1375,7 @@ async def resumen(org_id: int, db_session: AsyncSession) -> dict:
         "bajas": len(bajas),
         "por_correo": por_correo,
         "ultimos": [
-            {"email": e, "nombre": c["nombre"], "creado": c["creado"], "via": via(c),
-             "estado": "pagó" if e in pagaron else "reservó" if e in p["reservaron"] else "de baja" if e in p["bajas"] else "en campaña"}
-            for e, c in sorted(inscritos.items(), key=lambda kv: kv[1]["creado"], reverse=True)[:30]
+            {"email": e, "nombre": c["nombre"], "creado": c["creado"], "via": via(c), "estado": estado(e, c)}
+            for e, c in sorted(gente.items(), key=lambda kv: kv[1]["creado"], reverse=True)[:30]
         ],
     }

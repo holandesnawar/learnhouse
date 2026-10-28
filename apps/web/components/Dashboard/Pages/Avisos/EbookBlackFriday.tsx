@@ -34,7 +34,7 @@ const CAMPO =
 
 const DESTINOS: { valor: Destino; texto: string }[] = [
   { valor: 'admision', texto: 'El formulario de la llamada' },
-  { valor: 'landing', texto: 'La página de Black Friday' },
+  { valor: 'landing', texto: 'La oferta de la formación (/oferta)' },
   { valor: 'descarga', texto: 'Descargar el ebook' },
   { valor: 'ebook', texto: 'La página del ebook (para comprarlo)' },
 ]
@@ -47,8 +47,7 @@ const diaCorto = (d: string) => {
   return `${DIAS[f.getUTCDay()]} ${dd} ${f.toLocaleDateString('es-ES', { month: 'short', timeZone: 'UTC' }).replace('.', '')}`
 }
 const cuandoSale = (c: CorreoCampana) =>
-  (c.fecha ? `El ${diaCorto(c.fecha)}, a todos los que sigan en la campaña` : `${c.dia === 1 ? '1 día' : `${c.dia} días`} después de entrar`) +
-  (c.solo_ebook ? ' · solo a quien compró el ebook' : '')
+  c.fecha ? `El ${diaCorto(c.fecha)}, a todos los que sigan en la campaña` : `${c.dia === 1 ? '1 día' : `${c.dia} días`} después de comprar el ebook`
 
 function Interruptor({ activo, onClick, ocupado }: { activo: boolean; onClick: () => void; ocupado: boolean }) {
   return (
@@ -197,7 +196,7 @@ export default function EbookBlackFriday() {
   const cambiarCorreo = (id: string, cambio: Partial<CorreoCampana>) =>
     setCorreos((cs) => cs.map((c) => (c.id === id ? { ...c, ...cambio } : c)))
 
-  // Un correo suelto (el de acceso a la lista y el de «se quedó a medias»):
+  // Un correo suelto (el de la oferta desbloqueada y el recordatorio del ebook):
   // asunto, texto, botón y a dónde lleva, y se puede apagar.
   const cartaSuelta = (clave: string, carta: CartaSuelta, poner: (c: CartaSuelta) => void, cuando: string) => (
     <div className={`rounded-lg border border-[#E5E7EB] ${carta.apagado ? 'opacity-60' : ''}`}>
@@ -345,9 +344,9 @@ export default function EbookBlackFriday() {
         <p className="text-[15px] font-semibold text-gray-900">Cómo va</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
           {[
-            ['Se apuntaron a la oferta', n.lista ?? 0],
+            ['Desbloquearon la oferta', n.lista ?? 0],
             ['Compraron el ebook', n.compradores],
-            ['Se quedaron a medias', n.a_medias ?? 0],
+            ['Sin comprar el ebook', n.a_medias ?? 0],
             ['En la campaña', n.en_campana],
             ['Reservaron llamada', n.reservaron],
             ['Pagaron la formación', n.pagaron],
@@ -373,18 +372,22 @@ export default function EbookBlackFriday() {
             ))}
           </div>
         ) : (
-          <p className={META}>Todavía no ha comprado nadie.</p>
+          <p className={META}>Todavía no ha dejado sus datos nadie.</p>
         )}
       </div>
 
       {/* Las páginas */}
       <div className={`${TARJETA} p-4 sm:p-5`}>
         <p className="text-[15px] font-semibold text-gray-900 mb-1">Las páginas</p>
-        <p className={`${META} mb-2`}>Usa la de anuncios solo en los anuncios: así cada compra sale como «Ads» u «Orgánico» en su ficha.</p>
-        <Enlace titulo="Desbloquear la oferta (nombre, correo y WhatsApp)" url={`${estado.bf_url}/`} />
-        <Enlace titulo="Ebook · orgánico (bio, historias, DM)" url={`${estado.bf_url}/ebook`} />
-        <Enlace titulo="Ebook · anuncios" url={`${estado.bf_url}/ebook-ads`} />
-        <Enlace titulo="La oferta (la formación; aquí llevan los correos y vuelve quien compra el ebook)" url={`${estado.bf_url}/oferta`} />
+        <p className={`${META} mb-2`}>
+          El camino: desbloquear la oferta → el ebook a 1 € → al pagar, la oferta de la formación y el botón a la llamada. Para anuncios y
+          orgánico, el mismo enlace de la portada; con <code>utm_medium=paid</code> en el de los anuncios, cada compra sale como «Ads» en su
+          ficha.
+        </p>
+        <Enlace titulo="Desbloquear la oferta (solo el formulario: el enlace para anuncios, bio, historias y DM)" url={`${estado.bf_url}/`} />
+        <Enlace titulo="Ebook · orgánico (a aquí lleva la portada sin anuncio)" url={`${estado.bf_url}/ebook`} />
+        <Enlace titulo="Ebook · anuncios (a aquí lleva la portada con anuncio)" url={`${estado.bf_url}/ebook-ads`} />
+        <Enlace titulo="La oferta de la formación (tras pagar el ebook; aquí llevan los correos de la campaña)" url={`${estado.bf_url}/oferta`} />
       </div>
 
       {/* Los correos */}
@@ -437,9 +440,9 @@ export default function EbookBlackFriday() {
           ) : null}
         </div>
 
-        {/* Al apuntarse a la lista, y a quien dejó sus datos y no pagó */}
-        {acceso ? cartaSuelta('acceso', acceso, setAcceso, 'Al momento, a quien se apunta para desbloquear la oferta') : null}
-        {pendiente ? cartaSuelta('pendiente', pendiente, setPendiente, 'Al día siguiente, a quien dejó sus datos y no terminó de pagar') : null}
+        {/* Al desbloquear la oferta, y a quien dejó sus datos y no compró el ebook */}
+        {acceso ? cartaSuelta('acceso', acceso, setAcceso, 'Al momento, a quien desbloquea la oferta en la portada (lleva al ebook)') : null}
+        {pendiente ? cartaSuelta('pendiente', pendiente, setPendiente, 'Al día siguiente, a quien dejó sus datos y no compró el ebook') : null}
 
         {correos.map((c) => (
           <div key={c.id} className={`rounded-lg border border-[#E5E7EB] ${c.apagado ? 'opacity-60' : ''}`}>

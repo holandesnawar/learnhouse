@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-28 (Black Friday, tercera vuelta, como YouTalk: blackfriday.holandesnawar.com es solo el formulario para desbloquear la oferta, con su correo de acceso y la campaña también para quien no compró el ebook; la landing pasa a /oferta, con luz, y los correos llevan allí con los datos puestos; el formulario de la llamada ya no pide lo que sabe; antes, el mismo día, Black Friday, segunda vuelta: la página del ebook con el diseño de /ebook-a0-a1, la de gracias como upsell con la barra roja, sin cuenta atrás, y quien deja sus datos y no paga queda en su ficha y recibe un recordatorio; antes, el mismo día, la campana avisa al alumno de la presentación nueva de su clase; la Clase semanal con su vídeo de portada aunque tenga foto y la fecha en negro; antes, el mismo día, Black Friday: ebook «Neerlandés sin miedo» a 1 € con su caja, entrega y campaña de correos desde la escuela, y blackfriday.holandesnawar.com con la landing y el formulario con la edad primero; antes, el mismo día, cada semana de la clase: presentación, ejercicios y tarea con nota de voz, corrección, «Tu semana» en el Inicio en lugar de la hoja de ruta, Seguimiento semanal y check-in cada 4 semanas; antes, el mismo día, todas las clases en directo con la franja nueva bajo su portada, también la clase semanal; antes, el 27/10, «Comisión pagada» del closer en cada venta, en Clientes y solo para administradores; antes, el mismo día, Spreekclub y Masterclass sin clases grabadas ni descripción, con casilla para volver a enseñarlas; antes, el mismo día, seteo a mano: «Confirmada» en cada llamada, lista «Por confirmar», dos WhatsApp ya escritos y el no-show de confirmadas en KPIs; la Masterclass sin marco bajo el vídeo; antes, el mismo día, el correo de Rida al reservar una llamada lo manda la escuela, avisada por Calendly; antes, el mismo día, salas en directo DENTRO de la escuela con Daily, empezando por el Spreekclub, con grabación automática al entrar el profe; antes 25/10: pestaña «Enfoque» para el closer con el programa nuevo; tandas: nadie entra solo en ningún grupo, el administrador elige el de cada alumno que paga, con aviso en la escuela y sin correo; antes, el mismo día, la beta y el programa nuevo separados por grupos; antes, el mismo día, el closer ve KPIs sin el dinero; antes 22/10: «Otro importe» también a plazos, de 2 a 6 pagos; antes, Matrículas en dos mesas, Leads y Ventas, con closer asignado y reparto; «Esta semana» del alumno cuenta las clases terminadas; antes, el mismo día, incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-28 (Black Friday, cuarta vuelta: la portada de blackfriday.holandesnawar.com es solo un formulario, sin hablar de la formación; la oferta desbloqueada es el ebook a 1 € (con sus datos puestos, directo a pagar); al pagar, /oferta con la barra roja y el botón a la llamada; la campaña solo para quien compra y a quien no compra, un recordatorio del ebook; antes, el mismo día, tercera vuelta: la landing pasa a /oferta, con luz, y el formulario de la llamada ya no pide lo que sabe; antes, el mismo día, Black Friday, segunda vuelta: la página del ebook con el diseño de /ebook-a0-a1, la de gracias como upsell con la barra roja, sin cuenta atrás, y quien deja sus datos y no paga queda en su ficha y recibe un recordatorio; antes, el mismo día, la campana avisa al alumno de la presentación nueva de su clase; la Clase semanal con su vídeo de portada aunque tenga foto y la fecha en negro; antes, el mismo día, Black Friday: ebook «Neerlandés sin miedo» a 1 € con su caja, entrega y campaña de correos desde la escuela, y blackfriday.holandesnawar.com con la landing y el formulario con la edad primero; antes, el mismo día, cada semana de la clase: presentación, ejercicios y tarea con nota de voz, corrección, «Tu semana» en el Inicio en lugar de la hoja de ruta, Seguimiento semanal y check-in cada 4 semanas; antes, el mismo día, todas las clases en directo con la franja nueva bajo su portada, también la clase semanal; antes, el 27/10, «Comisión pagada» del closer en cada venta, en Clientes y solo para administradores; antes, el mismo día, Spreekclub y Masterclass sin clases grabadas ni descripción, con casilla para volver a enseñarlas; antes, el mismo día, seteo a mano: «Confirmada» en cada llamada, lista «Por confirmar», dos WhatsApp ya escritos y el no-show de confirmadas en KPIs; la Masterclass sin marco bajo el vídeo; antes, el mismo día, el correo de Rida al reservar una llamada lo manda la escuela, avisada por Calendly; antes, el mismo día, salas en directo DENTRO de la escuela con Daily, empezando por el Spreekclub, con grabación automática al entrar el profe; antes 25/10: pestaña «Enfoque» para el closer con el programa nuevo; tandas: nadie entra solo en ningún grupo, el administrador elige el de cada alumno que paga, con aviso en la escuela y sin correo; antes, el mismo día, la beta y el programa nuevo separados por grupos; antes, el mismo día, el closer ve KPIs sin el dinero; antes 22/10: «Otro importe» también a plazos, de 2 a 6 pagos; antes, Matrículas en dos mesas, Leads y Ventas, con closer asignado y reparto; «Esta semana» del alumno cuenta las clases terminadas; antes, el mismo día, incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -4065,30 +4065,38 @@ Friday»** (por qué, en la cabecera de `services/ebook/ebook.py`).
     si compra, reserva, paga la formación o se da de baja. Antes se perdían:
     solo quedaban como clientes en Stripe. Test
     `test_quien_no_termina_de_pagar_queda_y_recibe_un_recordatorio`.
-  - ⚠️ **La lista: desbloquear la oferta SIN comprar el ebook** (28/10,
-    tercera vuelta, "como YouTalk": el dominio de Black Friday solo tiene el
-    formulario para desbloquear la oferta, y los correos llevan a la oferta
-    con nombre y correo puestos). `POST /api/v1/ebook/lista` (público, 10/h
-    por IP, honeypot `website`; 503 pasado `hasta`) → `apuntar_lista`: un
-    `contact_event` **`bf-lista`** por correo (repetir no duplica: actualiza
-    nombre y teléfono), la etiqueta «Black Friday - lista» en systeme.io y, la
-    primera vez, el **correo de acceso** («Tu acceso a la oferta de Black
-    Friday», botón «Ver mi oferta» a `/oferta`; `acceso` en `DE_FABRICA`,
-    editable en el panel, se apunta como `correo-bf` con id `acceso`).
-    **La campaña es para los «inscritos»** = compraron el ebook ∪ se
-    apuntaron a la lista (`_personas`), contando los días desde lo primero
-    que hicieron. Los correos marcados `solo_ebook` (el 1, que habla del
-    ebook) no le llegan a quien solo se apuntó. Se para igual (reserva, pago,
-    baja). Los botones de los correos llevan ahora a **`/oferta`** (antes a
-    la raíz, que ahora es el formulario de desbloquear). Tests
-    `test_la_lista_desbloquea_la_oferta_y_entra_en_la_campana` y
+  - ⚠️ **La portada desbloquea la oferta, y la oferta ES EL EBOOK** (28/10,
+    cuarta vuelta; usuario: "en el formulario no tiene que salir nada aún de
+    una formación, solo formulario y ya. Luego se le desbloquea la oferta y es
+    la del ebook… todo gira al inicio en torno al ebook, landing ebook comprar
+    y listo; al terminar, no cierres esta página, nuestra mejor oferta, CTA
+    agendar"). `POST /api/v1/ebook/lista` (público, 10/h por IP, honeypot
+    `website`; 503 pasado `hasta`) → `apuntar_lista`: un `contact_event`
+    **`bf-lista`** por correo (repetir no duplica: actualiza nombre y
+    teléfono), la etiqueta «Black Friday - lista» en systeme.io y, la primera
+    vez, el **correo de acceso** («Tu oferta de Black Friday está
+    desbloqueada», botón «Conseguir mi ebook por 1 €» a `/ebook` con sus datos;
+    `acceso` en `DE_FABRICA`, se apunta como `correo-bf` con id `acceso`). Si
+    al día siguiente no ha comprado, le llega el recordatorio `pendiente` («Tu
+    ebook de 1 € te está esperando»), el mismo que a quien abrió la caja y no
+    pagó: uno por persona (`a_medias` = portada ∪ caja abierta, sin compra,
+    con el día de su último intento). **La campaña (c1…último) es SOLO para
+    quien compró el ebook**; quien solo desbloqueó no recibe nada de la
+    formación. ⚠️ Hubo una tercera vuelta, el mismo día, en la que la
+    portada hablaba de la formación, llevaba a `/oferta` y la campaña era
+    también para la lista: el usuario la corrigió. Los textos de fábrica de
+    entonces, si quedaron guardados TAL CUAL en el panel, se cambian solos por
+    los de ahora (`_FABRICA_ANTERIOR`); uno retocado se respeta. Tests
+    `test_la_portada_desbloquea_el_ebook_y_la_campana_es_para_quien_lo_compra`,
+    `test_los_textos_de_fabrica_de_antes_no_se_quedan` y
     `test_los_botones_de_los_correos_llevan_a_la_oferta`.
   - **Panel → Avisos → «Ebook Black Friday»** (`EbookBlackFriday.tsx`,
     `services/ebook/ebook.ts`; también con `?tab=ebook`): abrir/cerrar la
     venta, encender/apagar la campaña, fechas, subir el PDF, números
-    (se quedaron a medias, compraron, se apuntaron a la oferta, en campaña,
-    reservaron, pagaron, bajas), el de acceso, el de «se quedó a medio
-    camino» y los 7 correos
+    (desbloquearon la oferta, compraron el ebook, sin comprar el ebook, en
+    campaña, reservaron, pagaron, bajas; abajo, cada persona con «desbloqueó /
+    compró» y su estado), el de acceso, el recordatorio del ebook y los 7
+    correos
     editables (asunto, texto, botón y a dónde lleva, día o fecha, apagar uno),
     con «Ver cómo queda» y «Mandármelo a mí». Guardado en org_config
     `ebook_bf`; los textos de fábrica en `DE_FABRICA`. Huecos `{nombre}` y
@@ -4135,21 +4143,35 @@ Friday»** (por qué, en la cabecera de `services/ebook/ebook.py`).
     con bandera; zona `Europe/Brussels` → +32). Al enviar, el navegador llama
     a `{ESCUELA}/api/v1/ebook/lista`, guarda los datos
     (`nawar.bf.desbloqueada`), píxel `Lead` una vez por visita
-    (`content_name` «Black Friday») y lleva a
-    `/oferta?nombre&email&desbloqueada=1`. Si alguien llega a la raíz con
-    `?compra=` o con nombre y correo (un enlace viejo de un correo), un script
-    en línea le manda directo a `/oferta`. Es el enlace para la bio, las
-    historias y los mensajes del setter.
+    (`content_name` «Black Friday») y lleva **a la página del ebook**:
+    `/ebook-ads` si llegó con `utm_medium` de pago (`esDePago`, los mismos
+    medios que `_MEDIOS_DE_PAGO` de la escuela) y `/ebook` si no, con
+    `?nombre&email&desbloqueada=1`. ⚠️ **Sin una palabra de la formación**
+    (ni título, ni subtítulo, ni puntos debajo): «Déjanos tus datos y descubre
+    antes que nadie lo que hemos preparado para ti». El prefijo se corrige
+    por el número como en la página del anuncio (04… con +31 → +32; 06… con
+    +32 → +31). Si alguien llega a la raíz con `?compra=` (vuelta vieja de
+    Stripe), va directo a `/oferta`. **Es el enlace para todo**: anuncios (con
+    `utm_medium=paid`), bio, historias y mensajes del setter.
+  - **El ebook, desbloqueado** (`EbookBF.astro`): con `?desbloqueada=1`,
+    nombre y correo en la dirección o el navegador que lo recuerda
+    (`nawar.bf.desbloqueada`), un script en línea pone `bf-desbloqueada` y
+    sale encima del titular «✓ Oferta desbloqueada, Ana. Es tuya hasta el
+    lunes 30 de noviembre.». Al pulsar «Consíguelo por 1 €» va DIRECTO a la
+    caja de Stripe («Pagando como Ana · correo · Cambiar»): sus datos ya los
+    tenemos. Quien llega al ebook sin pasar por la portada lo ve como antes.
   - **`/oferta` = la landing, «más chula, con luz»** (`black-friday/oferta.astro`,
     antes `index.astro`). Las piezas de luz están en `black-friday.css`
     (`.bf-foco` haces de luz de arriba, `.bf-horizonte` línea que brilla,
     `.bf-brillo` destello que cruza los botones, `.bf-borde-luz` borde que
     gira, `.bf-sigue` foco que sigue al ratón con `iluminarAlPasar()`), todo
     quieto con «reducir movimiento». Sección nueva «La escuela por dentro» con
-    las capturas de verdad (`/img/formacion-v2/*.webp`). Quien llega con
-    `?desbloqueada=1` ve la barra roja y «[Nombre], acabas de desbloquear
-    nuestra mejor oferta»; quien vuelve otro día (correo o el navegador lo
-    recuerda), lo mismo sin la barra.
+    las capturas de verdad (`/img/formacion-v2/*.webp`). **Es la página de
+    después de comprar el ebook** (Stripe vuelve con `?compra=`): barra roja
+    y «[Nombre], acabas de desbloquear nuestra mejor oferta»; quien vuelve
+    otro día (correos de la campaña o el navegador lo recuerda,
+    `nawar.bf.comprador`), lo mismo sin la barra. Quien solo desbloqueó en la
+    portada y abre `/oferta` a mano ve la versión normal.
   - **Formulario sin pedir lo que ya se sabe**: con nombre y correo en la
     dirección y sin teléfono, la pantalla de datos solo pide el WhatsApp
     («Tu nombre y tu correo ya los tenemos», con «Cambiar»); con los tres,
