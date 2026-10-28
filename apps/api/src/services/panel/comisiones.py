@@ -191,7 +191,18 @@ async def para_clientes(clientes: list[dict], org_id: int, db_session: AsyncSess
         repartidas = await guardadas(db_session)
     except Exception:  # noqa: BLE001
         repartidas = {}
-    closers = {e: (g.get("closer") or "") for e, g in repartidas.items() if g.get("closer_id")}
+    # El nombre de AHORA de cada closer (por su id), no el que se guardó en la
+    # tarjeta al asignar: si se lo cambia en su cuenta, sus ventas no se parten
+    # en dos filas (28/10, con la segunda closer).
+    try:
+        from src.services.panel.tareas import equipo
+
+        nombres = {m["id"]: m.get("nombre") or "" for m in await equipo(org_id, db_session)}
+    except Exception:  # noqa: BLE001
+        nombres = {}
+    closers = {
+        e: (nombres.get(g.get("closer_id")) or g.get("closer") or "") for e, g in repartidas.items() if g.get("closer_id")
+    }
     try:
         tramos = (await leer_ajustes(org_id, db_session)).get("closer") or []
     except Exception:  # noqa: BLE001

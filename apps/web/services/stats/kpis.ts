@@ -64,6 +64,16 @@ export interface Kpis {
       no: NoShow
     }
   }
+  /** Las llamadas de cada closer (28/10): solo para los administradores. */
+  por_closer?: {
+    closer: string
+    agendadas: number
+    presentadas: number
+    no_vino: number
+    cerradas: number
+    pct_no_show: number | null
+    pct_cierre: number | null
+  }[]
   /** Al closer solo le llega `n` (sin el dinero ni el reparto). */
   ventas: {
     n: number

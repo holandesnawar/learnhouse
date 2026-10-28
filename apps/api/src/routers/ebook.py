@@ -189,6 +189,7 @@ class AjustesIn(BaseModel):
     entrega: Optional[dict] = None
     pendiente: Optional[dict] = None
     acceso: Optional[dict] = None
+    formulario: Optional[dict] = None
     correos: Optional[list[dict[str, Any]]] = None
 
 

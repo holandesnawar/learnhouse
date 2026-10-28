@@ -235,8 +235,27 @@ export default function LlamadasPanel() {
     setLlamadas((prev) => (prev || []).map((x) => (x.id === l.id ? { ...x, contacted_at: ahora ? '' : new Date().toISOString() } : x)))
   }
 
-  const sinApuntar = (agenda?.citas || []).filter((c) => estadoDe(c).pendiente)
-  const aConfirmar = porConfirmar(agenda?.citas || [])
+  // «Solo las mías» (22/10; desde el 28/10 vale para las tres listas, con la
+  // segunda closer): las que llevo yo y las que aún no tiene nadie (si no, una
+  // sin repartir no la vería nadie). Se recuerda en el navegador.
+  const [soloMias, setSoloMiasEstado] = useState<boolean | null>(null)
+  useEffect(() => {
+    try {
+      const g = localStorage.getItem('nawar.agenda.mias')
+      if (g === '1' || g === '0') setSoloMiasEstado(g === '1')
+    } catch {}
+  }, [])
+  const mias = soloMias ?? !isAdmin
+  const setSoloMias = (v: boolean) => {
+    setSoloMiasEstado(v)
+    try {
+      localStorage.setItem('nawar.agenda.mias', v ? '1' : '0')
+    } catch {}
+  }
+  const hayReparto = (agenda?.citas || []).some((c) => c.closer_id)
+  const esMia = (c: Cita) => !mias || !hayReparto || !c.closer_id || c.closer_id === agenda?.yo
+  const sinApuntar = (agenda?.citas || []).filter((c) => estadoDe(c).pendiente && esMia(c))
+  const aConfirmar = porConfirmar(agenda?.citas || []).filter(esMia)
   const [confirmando, setConfirmando] = useState<string | null>(null)
 
   // «Confirmada» (27/10): marcar o quitar, sin cerrar nada.
@@ -314,6 +333,8 @@ export default function LlamadasPanel() {
       ) : null}
 
       <AgendaVista
+        mias={mias}
+        setSoloMias={setSoloMias}
         agenda={agenda}
         cargando={cargandoAgenda}
         recargar={() => cargarAgenda(true)}
@@ -337,7 +358,10 @@ export default function LlamadasPanel() {
             {sinApuntar.map((c) => (
               <button key={c.id} onClick={() => setCita(c)} className="w-full text-left px-4 py-3 flex items-center gap-4 hover:bg-[#F9FAFB]">
                 <span className="flex-1 min-w-0 sm:flex sm:items-center sm:gap-4">
-                  <span className="block sm:order-2 text-[14px] font-medium text-gray-900 truncate">{c.nombre || c.email}</span>
+                  <span className="block sm:order-2 min-w-0">
+                    <span className="block text-[14px] font-medium text-gray-900 truncate">{c.nombre || c.email}</span>
+                    <QuienLaLleva c={c} />
+                  </span>
                   <span className="block sm:order-1 text-[13px] text-gray-500 sm:w-[150px] shrink-0 tabular-nums">{diaHora(c.inicio)}</span>
                 </span>
                 <span className={BOTON_PRINCIPAL}>¿Qué pasó?</span>
@@ -458,6 +482,8 @@ export default function LlamadasPanel() {
 type Vista = 'semana' | 'lista' | 'google'
 
 function AgendaVista({
+  mias,
+  setSoloMias,
   agenda,
   cargando,
   recargar,
@@ -466,6 +492,8 @@ function AgendaVista({
   devolver,
   notas,
 }: {
+  mias: boolean
+  setSoloMias: (v: boolean) => void
   agenda: Agenda | null
   cargando: boolean
   recargar: () => void
@@ -488,22 +516,8 @@ function AgendaVista({
       }),
     [lunes]
   )
-  // «Mías» (22/10, dos closers): las que llevo yo y las que aún no tiene nadie
-  // (si no, una sin repartir no la vería nadie). Se recuerda en el navegador.
-  const [soloMias, setSoloMiasEstado] = useState<boolean | null>(null)
-  useEffect(() => {
-    try {
-      const g = localStorage.getItem('nawar.agenda.mias')
-      if (g === '1' || g === '0') setSoloMiasEstado(g === '1')
-    } catch {}
-  }, [])
-  const mias = soloMias ?? !isAdmin
-  const setSoloMias = (v: boolean) => {
-    setSoloMiasEstado(v)
-    try {
-      localStorage.setItem('nawar.agenda.mias', v ? '1' : '0')
-    } catch {}
-  }
+  // «Solo las mías» viene de arriba: vale también para «Por confirmar» y
+  // «Sin apuntar qué pasó».
   const hayReparto = (agenda?.citas || []).some((c) => c.closer_id)
   const citas = (agenda?.citas || []).filter((c) => !mias || !hayReparto || !c.closer_id || c.closer_id === agenda?.yo)
   const hoy = new Date()

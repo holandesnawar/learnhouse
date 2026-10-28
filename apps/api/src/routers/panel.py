@@ -145,10 +145,19 @@ async def api_asignar(
 ):
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
     closer = None
+    eq = await tareas.equipo(org_id, db_session)
     if data.closer_id:
-        closer = next((m for m in await tareas.equipo(org_id, db_session) if m["id"] == data.closer_id), None)
+        closer = next((m for m in eq if m["id"] == data.closer_id), None)
         if closer is None:
             raise HTTPException(status_code=400, detail="Esa persona no está en el equipo del panel")
+    # Con dos closers (28/10): uno no le quita al otro una llamada que ya lleva.
+    # Si los dos pulsan «Para mí» a la vez, gana el primero. Un administrador
+    # sí puede cambiarla.
+    filas = await pipeline.filas_de(data.email, db_session)
+    ya = int(getattr(pipeline._la_asignada(filas), "closer_id", 0) or 0) if filas else 0
+    if ya and ya != data.closer_id and ya != current_user.id and not await _es_admin(current_user, org_id, db_session):
+        quien = next((m.get("nombre") for m in eq if m["id"] == ya), "") or "otra persona"
+        raise HTTPException(status_code=409, detail=f"Esta llamada ya la lleva {quien}. Si hay que cambiarla, que lo haga un administrador.")
     r = await pipeline.asignar(
         data.email, data.closer_id, (closer or {}).get("nombre", ""), _nombre(current_user), db_session
     )

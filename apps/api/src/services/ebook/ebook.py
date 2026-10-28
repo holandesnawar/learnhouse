@@ -45,8 +45,21 @@ en `content/privado/ebook/` (dentro del volumen, entra en la copia diaria;
 `/content` nunca sirve `privado/`). Se baja con un enlace firmado que dura un
 año (`/api/v1/ebook/descarga/{token}`).
 
-La campaña
-----------
+La campaña, por segmentos (28/10, quinta vuelta: "segmentar bien")
+------------------------------------------------------------------
+- **Dejó sus datos y no compró el ebook** (portada o caja abierta): el
+  recordatorio del ebook al día siguiente (`pendiente`) y, el Black Friday y el
+  último día, los dos correos del ebook (`para: sin_comprar`). Nada de la
+  formación.
+- **Compró el ebook**: la campaña de la formación (c1…último), que lleva a la
+  llamada.
+  - Si **empieza el formulario de la llamada y no reserva** (o lo termina y no
+    reserva), al día siguiente «Te quedaste a un paso de tu llamada»
+    (`formulario`), en lugar del de la campaña de ese día. Después, sigue.
+  - Si **termina las preguntas y no encaja** (`cualificacion` con `apto`
+    false), sale de la campaña: ya se le dijo que ahora no es para él.
+- **Reservó, pagó la formación o se dio de baja**: no recibe nada más.
+
 La lanza la tarea diaria del goteo (`/notifications/drip-diario`, 07:00 UTC).
 Cada correo lleva `dia` (días después de la compra) o `fecha` (un día fijo:
 el Black Friday y el último día). Reglas (`que_toca`, pura con test):
@@ -119,6 +132,13 @@ ID_PENDIENTE = "pendiente"
 # comprar el ebook (28/10, como YouTalk).
 TIPO_LISTA = "bf-lista"
 ID_ACCESO = "acceso"
+# Compró el ebook y empezó el formulario de la llamada (o lo terminó) sin
+# reservar hora: un correo para que lo termine (28/10, quinta vuelta).
+ID_FORMULARIO = "formulario"
+TIPOS_FORMULARIO = ("agendar-empezado", "cualificacion")
+#: A quién va cada correo de la campaña.
+PARA_COMPRADORES = "compradores"
+PARA_SIN_COMPRAR = "sin_comprar"
 #: Lo que cuenta como "ya ha reservado su llamada": la campaña se para.
 TIPOS_RESERVO = ("reunion", "llamada-equipo", "correo-reserva")
 
@@ -196,6 +216,21 @@ DE_FABRICA: dict = {
         ),
         "boton": "Conseguir mi ebook por 1 €",
         "destino": "ebook",
+    },
+    # A quien compró el ebook, empezó a pedir su llamada y no reservó hora:
+    # uno, al día siguiente de lo último que hizo en el formulario.
+    "formulario": {
+        "asunto": "Te quedaste a un paso de tu llamada",
+        "texto": (
+            "¡Hola, {nombre}!\n\n"
+            "Empezaste a pedir tu llamada de admisión, pero no llegaste a reservar la hora. Te lo he dejado "
+            "preparado: entras, terminas en un minuto y eliges el día que mejor te venga.\n\n"
+            "En la llamada te contamos las condiciones de Black Friday de la Formación Nawar A0-A1, que valen "
+            "hasta el {hasta}. Es gratuita, de media hora y sin compromiso.\n\n"
+            "[boton]\n\n" + _FIRMA
+        ),
+        "boton": "Terminar mi solicitud",
+        "destino": "admision",
     },
     "correos": [
         {
@@ -311,6 +346,38 @@ DE_FABRICA: dict = {
             "boton": "Pedir mi llamada hoy",
             "destino": "admision",
         },
+        # Para quien dejó sus datos y NO compró el ebook: la oferta que
+        # desbloqueó es el ebook, así que de eso hablan (nada de la formación).
+        {
+            "id": "e-bf",
+            "fecha": "2026-11-27",
+            "para": PARA_SIN_COMPRAR,
+            "asunto": "Hoy es Black Friday: tu ebook sigue a 1 €",
+            "texto": (
+                "¡Hola, {nombre}!\n\n"
+                "Hoy es Black Friday, y tu oferta sigue desbloqueada: *Neerlandés sin miedo*, el ebook para "
+                "arrancar con el neerlandés desde cero, por 1 €.\n\n"
+                "Son 7 lecciones explicadas en español, con el vocabulario, los ejercicios y todas las "
+                "respuestas. La oferta termina el {hasta}.\n\n"
+                "[boton]\n\n" + _FIRMA
+            ),
+            "boton": "Conseguir mi ebook por 1 €",
+            "destino": "ebook",
+        },
+        {
+            "id": "e-ultimo",
+            "fecha": "2026-11-30",
+            "para": PARA_SIN_COMPRAR,
+            "asunto": "Último día para tu ebook a 1 €",
+            "texto": (
+                "¡Hola, {nombre}!\n\n"
+                "Hoy es el último día. A medianoche *Neerlandés sin miedo* deja de estar a 1 €.\n\n"
+                "Si quieres empezar con el neerlandés con una base clara y en español, este es el momento.\n\n"
+                "[boton]\n\n" + _FIRMA
+            ),
+            "boton": "Conseguir mi ebook por 1 €",
+            "destino": "ebook",
+        },
     ],
 }
 
@@ -401,6 +468,22 @@ def que_toca(compra: str, hoy: str, correos: list[dict], enviados: set[str], has
             continue
         return c
     return None
+
+
+def para_quien(c: dict) -> str:
+    """A quién va un correo de la campaña: a quien compró el ebook (de serie)
+    o a quien dejó sus datos y no lo compró."""
+    return PARA_SIN_COMPRAR if c.get("para") == PARA_SIN_COMPRAR else PARA_COMPRADORES
+
+
+def toca_formulario(ultimo: str, hoy: str, enviados: set[str], hasta: str, ultimo_envio: str = "") -> bool:
+    """¿Le toca hoy el «te quedaste a un paso de tu llamada» a quien compró el
+    ebook y tocó el formulario de la llamada por última vez el día `ultimo` sin
+    reservar? Al día siguiente (o hasta RETRASO_MAX días tarde), una vez."""
+    if not ultimo or ID_FORMULARIO in enviados or ultimo_envio == hoy or (hasta and hoy > hasta):
+        return False
+    dias = (date.fromisoformat(hoy) - date.fromisoformat(ultimo)).days
+    return 1 <= dias <= 1 + RETRASO_MAX
 
 
 def toca_pendiente(empezo: str, hoy: str, enviados: set[str], hasta: str, ultimo_envio: str = "") -> bool:
@@ -500,6 +583,8 @@ def config_limpia(guardado: Any) -> dict:
     pendiente["apagado"] = bool(g["pendiente"].get("apagado")) if isinstance(g.get("pendiente"), dict) else False
     acceso = _carta_limpia(g.get("acceso"), "acceso")
     acceso["apagado"] = bool(g["acceso"].get("apagado")) if isinstance(g.get("acceso"), dict) else False
+    formulario = _carta_limpia(g.get(ID_FORMULARIO), ID_FORMULARIO)
+    formulario["apagado"] = bool(g[ID_FORMULARIO].get("apagado")) if isinstance(g.get(ID_FORMULARIO), dict) else False
     try:
         precio = int(g.get("precio_cents") or DE_FABRICA["precio_cents"])
     except (TypeError, ValueError):
@@ -513,6 +598,7 @@ def config_limpia(guardado: Any) -> dict:
         "entrega": entrega,
         "pendiente": pendiente,
         "acceso": acceso,
+        ID_FORMULARIO: formulario,
         "correos": correos_limpios(g.get("correos")),
         "pdf": str(g.get("pdf") or ""),
         "pdf_nombre": str(g.get("pdf_nombre") or ""),
@@ -618,7 +704,7 @@ async def guardar(org_id: int, datos: dict, db_session: AsyncSession) -> dict:
     for campo in ("desde", "hasta"):
         if datos.get(campo) is not None:
             nuevo[campo] = _fecha(datos[campo]) or actual[campo]
-    for clave in ("entrega", "pendiente", ID_ACCESO):
+    for clave in ("entrega", "pendiente", ID_ACCESO, ID_FORMULARIO):
         if isinstance(datos.get(clave), dict):
             e = dict(actual[clave])
             for campo in ("asunto", "texto", "boton"):
@@ -632,7 +718,7 @@ async def guardar(org_id: int, datos: dict, db_session: AsyncSession) -> dict:
     if isinstance(datos.get("correos"), list):
         nuevo["correos"] = datos["correos"]
     limpio = config_limpia(nuevo)
-    textos = "".join(limpio[k]["asunto"] + limpio[k]["texto"] for k in ("entrega", "pendiente", ID_ACCESO))
+    textos = "".join(limpio[k]["asunto"] + limpio[k]["texto"] for k in ("entrega", "pendiente", ID_ACCESO, ID_FORMULARIO))
     textos += "".join(c["asunto"] + c["texto"] for c in limpio["correos"])
     malos = huecos_que_no_valen(textos)
     if malos:
@@ -1145,6 +1231,20 @@ def armar_acceso(cfg: dict, email: str, nombre: str, *, preview: bool) -> dict:
     return {"asunto": asunto, "html": (r or {}).get("html", "") if preview else ""}
 
 
+def armar_formulario(cfg: dict, email: str, nombre: str, *, preview: bool) -> dict:
+    """«Te quedaste a un paso de tu llamada»: con su baja al pie."""
+    from src.services.users.emails import send_carta_ebook_email
+
+    f = cfg[ID_FORMULARIO]
+    valores = _valores(cfg, nombre)
+    asunto = rellenar(f["asunto"], valores)
+    botones = [("boton", f.get("boton") or "", url_destino(f.get("destino") or "admision", email, nombre, ID_FORMULARIO))]
+    r = send_carta_ebook_email(
+        email, asunto, rellenar(f["texto"], valores), botones=botones, baja_url=enlace_baja(email), preview=preview
+    )
+    return {"asunto": asunto, "html": (r or {}).get("html", "") if preview else ""}
+
+
 async def vista(org_id: int, cual: str, db_session: AsyncSession, *, enviar_a: str = "", nombre: str = "Ana") -> dict:
     """«Ver cómo queda» (sin `enviar_a`) o «Mandármelo a mí». Con lo guardado."""
     cfg = await leer(db_session, org_id)
@@ -1155,6 +1255,8 @@ async def vista(org_id: int, cual: str, db_session: AsyncSession, *, enviar_a: s
         return armar_pendiente(cfg, email, nombre, preview=not enviar_a)
     if cual == ID_ACCESO:
         return armar_acceso(cfg, email, nombre, preview=not enviar_a)
+    if cual == ID_FORMULARIO:
+        return armar_formulario(cfg, email, nombre, preview=not enviar_a)
     c = next((c for c in cfg["correos"] if c["id"] == cual), None)
     if c is None:
         raise EbookError("No existe ese correo", 404)
@@ -1186,7 +1288,9 @@ async def _personas(db_session: AsyncSession) -> dict:
     llegado y el último día que recibió uno; y quién se ha dado de baja o ha
     reservado su llamada. `a_medias` = dejó sus datos (en la portada o en la
     caja de pago) y no ha comprado nunca, con el día de su último intento.
-    `gente` = todos los que han dejado sus datos, para la lista del panel."""
+    `gente` = todos los que han dejado sus datos, para la lista del panel.
+    `formulario` = el día de lo último que hizo en el formulario de la llamada
+    (empezarlo o terminarlo) y si al terminarlo NO encajaba (`no_encaja`)."""
     from src.db.contact_event import ContactEvent
     from src.services.panel.tandas import dia_nl
 
@@ -1194,7 +1298,7 @@ async def _personas(db_session: AsyncSession) -> dict:
         await db_session.execute(
             select(ContactEvent.email, ContactEvent.kind, ContactEvent.first_name, ContactEvent.last_name,
                    ContactEvent.extra, ContactEvent.created_at).where(
-                ContactEvent.kind.in_([TIPO_COMPRA, TIPO_EMPEZADO, TIPO_LISTA, TIPO_CORREO, TIPO_BAJA, *TIPOS_RESERVO])  # type: ignore[attr-defined]
+                ContactEvent.kind.in_([TIPO_COMPRA, TIPO_EMPEZADO, TIPO_LISTA, TIPO_CORREO, TIPO_BAJA, *TIPOS_RESERVO, *TIPOS_FORMULARIO])  # type: ignore[attr-defined]
             )
         )
     ).all()
@@ -1205,6 +1309,7 @@ async def _personas(db_session: AsyncSession) -> dict:
     ultimo: dict[str, str] = {}
     bajas: set[str] = set()
     reservaron: set[str] = set()
+    formulario: dict[str, dict] = {}
     for email, kind, fn, ln, extra, creado in filas:
         email = (email or "").strip().lower()
         if not email:
@@ -1232,6 +1337,16 @@ async def _personas(db_session: AsyncSession) -> dict:
                 ultimo[email] = dia
         elif kind == TIPO_BAJA:
             bajas.add(email)
+        elif kind in TIPOS_FORMULARIO:
+            f = formulario.get(email)
+            if f is None or (creado or "") > f["creado"]:
+                no_encaja = False
+                if kind == "cualificacion":
+                    try:
+                        no_encaja = json.loads(extra or "{}").get("apto") is False
+                    except (TypeError, ValueError, AttributeError):
+                        no_encaja = False
+                formulario[email] = {"creado": creado or "", "dia": dia, "no_encaja": no_encaja}
         else:
             reservaron.add(email)
     # A medias = dejó sus datos y no ha comprado nunca (ni antes ni después).
@@ -1253,7 +1368,7 @@ async def _personas(db_session: AsyncSession) -> dict:
             "lista": email in listas,
         }
     return {
-        "compras": compras, "listas": listas, "a_medias": a_medias, "gente": gente,
+        "compras": compras, "listas": listas, "a_medias": a_medias, "gente": gente, "formulario": formulario,
         "enviados": enviados, "ultimo": ultimo, "bajas": bajas, "reservaron": reservaron,
     }
 
@@ -1268,13 +1383,16 @@ async def enviar_campana(db_session: AsyncSession, org_id: Optional[int] = None)
     p = await _personas(db_session)
     salida = {
         "compradores": len(p["compras"]), "lista": len(p["listas"]), "enviados": 0, "errores": 0, "parados": 0,
-        "a_medias": len(p["a_medias"]), "recordatorios": 0,
+        "a_medias": len(p["a_medias"]), "recordatorios": 0, "formulario": 0, "no_encajan": 0,
     }
     if not cfg["campana"]:
         salida["activa"] = False
         return salida
     hoy = hoy_nl()
-    correos = [c for c in cfg["correos"] if not c.get("apagado")]
+    activos = [c for c in cfg["correos"] if not c.get("apagado")]
+    correos = [c for c in activos if para_quien(c) == PARA_COMPRADORES]
+    sin_comprar = [c for c in activos if para_quien(c) == PARA_SIN_COMPRAR]
+    form = cfg[ID_FORMULARIO]
     pagaron = await emails_que_pagaron(db_session)
 
     async def mandar(email: str, ident: str, asunto: str, armar) -> bool:
@@ -1304,27 +1422,50 @@ async def enviar_campana(db_session: AsyncSession, org_id: Optional[int] = None)
         if email in p["bajas"] or email in p["reservaron"] or email in pagaron:
             salida["parados"] += 1
             continue
-        c = que_toca(quien["dia"], hoy, correos, p["enviados"].get(email, set()), cfg["hasta"], p["ultimo"].get(email, ""))
+        hizo = p["formulario"].get(email)
+        # Terminó las preguntas y no encaja: ya se le dijo que ahora no es para
+        # él. Seguir pidiéndole la llamada sería contradecirse.
+        if hizo and hizo["no_encaja"] and hizo["creado"] >= quien["creado"]:
+            salida["no_encajan"] += 1
+            continue
+        enviados = p["enviados"].get(email, set())
+        # Empezó a pedir su llamada después de comprar y no reservó: ese día,
+        # «te quedaste a un paso», en lugar del de la campaña.
+        if (
+            hizo and hizo["creado"] >= quien["creado"] and not form.get("apagado")
+            and toca_formulario(hizo["dia"], hoy, enviados, cfg["hasta"], p["ultimo"].get(email, ""))
+        ):
+            if salida["enviados"] >= TOPE_POR_DIA:
+                break
+            if await mandar(email, ID_FORMULARIO, form["asunto"],
+                            lambda email=email, n=quien["nombre"]: armar_formulario(cfg, email, n, preview=False)):
+                salida["formulario"] += 1
+            continue
+        c = que_toca(quien["dia"], hoy, correos, enviados, cfg["hasta"], p["ultimo"].get(email, ""))
         if c is None:
             continue
         if salida["enviados"] >= TOPE_POR_DIA:
             break
         await mandar(email, c["id"], c["asunto"], lambda c=c, email=email, n=quien["nombre"]: armar_correo(cfg, c, email, n, preview=False))
 
-    # El recordatorio a quien dejó sus datos (en la portada o en la caja de
-    # pago) y no compró el ebook.
+    # Quien dejó sus datos (en la portada o en la caja de pago) y no compró el
+    # ebook: el recordatorio al día siguiente y, después, los del ebook de
+    # fecha fija (el Black Friday y el último día). Nada de la formación.
     pendiente = cfg["pendiente"]
-    if not pendiente.get("apagado"):
-        for email, empezo in sorted(p["a_medias"].items(), key=lambda kv: kv[1]["creado"]):
-            if email in p["bajas"] or email in p["reservaron"] or email in pagaron:
-                continue
-            if not toca_pendiente(empezo["dia"], hoy, p["enviados"].get(email, set()), cfg["hasta"], p["ultimo"].get(email, "")):
-                continue
-            if salida["enviados"] >= TOPE_POR_DIA:
-                break
+    for email, empezo in sorted(p["a_medias"].items(), key=lambda kv: kv[1]["creado"]):
+        if email in p["bajas"] or email in p["reservaron"] or email in pagaron:
+            continue
+        if salida["enviados"] >= TOPE_POR_DIA:
+            break
+        enviados = p["enviados"].get(email, set())
+        if not pendiente.get("apagado") and toca_pendiente(empezo["dia"], hoy, enviados, cfg["hasta"], p["ultimo"].get(email, "")):
             if await mandar(email, ID_PENDIENTE, pendiente["asunto"],
                             lambda email=email, n=empezo["nombre"]: armar_pendiente(cfg, email, n, preview=False)):
                 salida["recordatorios"] += 1
+            continue
+        c = que_toca(empezo["dia"], hoy, sin_comprar, enviados, cfg["hasta"], p["ultimo"].get(email, ""))
+        if c is not None:
+            await mandar(email, c["id"], c["asunto"], lambda c=c, email=email, n=empezo["nombre"]: armar_correo(cfg, c, email, n, preview=False))
     return salida
 
 
@@ -1349,7 +1490,14 @@ async def resumen(org_id: int, db_session: AsyncSession) -> dict:
     reservaron = [e for e in inscritos if e in p["reservaron"]]
     alumnos = [e for e in inscritos if e in pagaron]
     bajas = [e for e in inscritos if e in p["bajas"]]
-    parados = set(reservaron) | set(alumnos) | set(bajas)
+
+    def hizo_tras_comprar(e: str) -> Optional[dict]:
+        f = p["formulario"].get(e)
+        return f if f and f["creado"] >= inscritos[e]["creado"] else None
+
+    no_encajan = [e for e in inscritos if (hizo_tras_comprar(e) or {}).get("no_encaja")]
+    parados = set(reservaron) | set(alumnos) | set(bajas) | set(no_encajan)
+    sin_reservar = [e for e in inscritos if e not in parados and hizo_tras_comprar(e)]
 
     def via(c: dict) -> str:
         if c["lista"]:
@@ -1363,7 +1511,11 @@ async def resumen(org_id: int, db_session: AsyncSession) -> dict:
             return "reservó"
         if e in p["bajas"]:
             return "de baja"
-        return "en campaña" if c["ebook"] else "sin comprar"
+        if not c["ebook"]:
+            return "sin comprar"
+        if e in no_encajan:
+            return "no encaja"
+        return "empezó la llamada" if e in sin_reservar else "en campaña"
 
     return {
         "a_medias": len([e for e in p["a_medias"] if e not in fuera]),
@@ -1371,6 +1523,8 @@ async def resumen(org_id: int, db_session: AsyncSession) -> dict:
         "lista": len([e for e in p["listas"] if e not in fuera]),
         "en_campana": len([e for e in inscritos if e not in parados]),
         "reservaron": len(reservaron),
+        "sin_reservar": len(sin_reservar),
+        "no_encajan": len(no_encajan),
         "pagaron": len(alumnos),
         "bajas": len(bajas),
         "por_correo": por_correo,

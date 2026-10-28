@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-28 (Black Friday, cuarta vuelta: la portada de blackfriday.holandesnawar.com es solo un formulario, sin hablar de la formación; la oferta desbloqueada es el ebook a 1 € (con sus datos puestos, directo a pagar); al pagar, /oferta con la barra roja y el botón a la llamada; la campaña solo para quien compra y a quien no compra, un recordatorio del ebook; antes, el mismo día, tercera vuelta: la landing pasa a /oferta, con luz, y el formulario de la llamada ya no pide lo que sabe; antes, el mismo día, Black Friday, segunda vuelta: la página del ebook con el diseño de /ebook-a0-a1, la de gracias como upsell con la barra roja, sin cuenta atrás, y quien deja sus datos y no paga queda en su ficha y recibe un recordatorio; antes, el mismo día, la campana avisa al alumno de la presentación nueva de su clase; la Clase semanal con su vídeo de portada aunque tenga foto y la fecha en negro; antes, el mismo día, Black Friday: ebook «Neerlandés sin miedo» a 1 € con su caja, entrega y campaña de correos desde la escuela, y blackfriday.holandesnawar.com con la landing y el formulario con la edad primero; antes, el mismo día, cada semana de la clase: presentación, ejercicios y tarea con nota de voz, corrección, «Tu semana» en el Inicio en lugar de la hoja de ruta, Seguimiento semanal y check-in cada 4 semanas; antes, el mismo día, todas las clases en directo con la franja nueva bajo su portada, también la clase semanal; antes, el 27/10, «Comisión pagada» del closer en cada venta, en Clientes y solo para administradores; antes, el mismo día, Spreekclub y Masterclass sin clases grabadas ni descripción, con casilla para volver a enseñarlas; antes, el mismo día, seteo a mano: «Confirmada» en cada llamada, lista «Por confirmar», dos WhatsApp ya escritos y el no-show de confirmadas en KPIs; la Masterclass sin marco bajo el vídeo; antes, el mismo día, el correo de Rida al reservar una llamada lo manda la escuela, avisada por Calendly; antes, el mismo día, salas en directo DENTRO de la escuela con Daily, empezando por el Spreekclub, con grabación automática al entrar el profe; antes 25/10: pestaña «Enfoque» para el closer con el programa nuevo; tandas: nadie entra solo en ningún grupo, el administrador elige el de cada alumno que paga, con aviso en la escuela y sin correo; antes, el mismo día, la beta y el programa nuevo separados por grupos; antes, el mismo día, el closer ve KPIs sin el dinero; antes 22/10: «Otro importe» también a plazos, de 2 a 6 pagos; antes, Matrículas en dos mesas, Leads y Ventas, con closer asignado y reparto; «Esta semana» del alumno cuenta las clases terminadas; antes, el mismo día, incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-28 (Black Friday, quinta vuelta: /oferta con las secciones de la landing de la formación; la campaña segmentada (sin comprar, compró, empezó la llamada sin reservar, no encaja); la segunda closer: el aviso de quien vuelve a reservar a su closer, nadie le quita la llamada al otro, «Solo las mías» en todas las listas de Llamadas, comisiones por id y KPIs por closer; antes, el mismo día, Black Friday, cuarta vuelta: la portada de blackfriday.holandesnawar.com es solo un formulario, sin hablar de la formación; la oferta desbloqueada es el ebook a 1 € (con sus datos puestos, directo a pagar); al pagar, /oferta con la barra roja y el botón a la llamada; la campaña solo para quien compra y a quien no compra, un recordatorio del ebook; antes, el mismo día, tercera vuelta: la landing pasa a /oferta, con luz, y el formulario de la llamada ya no pide lo que sabe; antes, el mismo día, Black Friday, segunda vuelta: la página del ebook con el diseño de /ebook-a0-a1, la de gracias como upsell con la barra roja, sin cuenta atrás, y quien deja sus datos y no paga queda en su ficha y recibe un recordatorio; antes, el mismo día, la campana avisa al alumno de la presentación nueva de su clase; la Clase semanal con su vídeo de portada aunque tenga foto y la fecha en negro; antes, el mismo día, Black Friday: ebook «Neerlandés sin miedo» a 1 € con su caja, entrega y campaña de correos desde la escuela, y blackfriday.holandesnawar.com con la landing y el formulario con la edad primero; antes, el mismo día, cada semana de la clase: presentación, ejercicios y tarea con nota de voz, corrección, «Tu semana» en el Inicio en lugar de la hoja de ruta, Seguimiento semanal y check-in cada 4 semanas; antes, el mismo día, todas las clases en directo con la franja nueva bajo su portada, también la clase semanal; antes, el 27/10, «Comisión pagada» del closer en cada venta, en Clientes y solo para administradores; antes, el mismo día, Spreekclub y Masterclass sin clases grabadas ni descripción, con casilla para volver a enseñarlas; antes, el mismo día, seteo a mano: «Confirmada» en cada llamada, lista «Por confirmar», dos WhatsApp ya escritos y el no-show de confirmadas en KPIs; la Masterclass sin marco bajo el vídeo; antes, el mismo día, el correo de Rida al reservar una llamada lo manda la escuela, avisada por Calendly; antes, el mismo día, salas en directo DENTRO de la escuela con Daily, empezando por el Spreekclub, con grabación automática al entrar el profe; antes 25/10: pestaña «Enfoque» para el closer con el programa nuevo; tandas: nadie entra solo en ningún grupo, el administrador elige el de cada alumno que paga, con aviso en la escuela y sin correo; antes, el mismo día, la beta y el programa nuevo separados por grupos; antes, el mismo día, el closer ve KPIs sin el dinero; antes 22/10: «Otro importe» también a plazos, de 2 a 6 pagos; antes, Matrículas en dos mesas, Leads y Ventas, con closer asignado y reparto; «Esta semana» del alumno cuenta las clases terminadas; antes, el mismo día, incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -3532,7 +3532,39 @@ el closer principal, y diga esta para mí o esta para el otro". Se hizo como
   propia (siguiente paso): un enlace de la escuela por llamada que lleva a la
   sala de quien la tenga.
 - ⚠️ Visión calcula la comisión del closer como si hubiera uno solo: con dos,
-  falta repartirla por `closer_id` (pendiente).
+  falta repartirla por `closer_id` (pendiente). Y el % es el mismo para todos
+  (Visión → Ajustes): si la segunda closer cobra otro %, hay que añadir un %
+  por closer.
+- **Para la segunda closer, que entra el 29/10 (28/10)**, revisado entero (el código ya
+  aceptaba varios: nada elige «el primer closer»). Arreglado:
+  - **Quien ya tenía closer y vuelve a reservar** (tras un No show, o se la
+    agendó un closer desde el panel): el aviso le llega a SU closer («Ha
+    reservado una llamada contigo», `send_llamada_asignada_email` con
+    `vuelve`) y no a quien reparte, que antes recibía «repártela» de una
+    tarjeta que no estaba en «Por asignar» (`_closer_que_la_lleva` en
+    `reparto.py`, en blando: si falla, como siempre). Test en
+    `test_correo_reserva.py`.
+  - **Un closer no le quita la llamada al otro**: `PUT …/tablero/asignar`
+    contesta 409 «Esta llamada ya la lleva X…» si ya la lleva otro y quien
+    pide no es administrador. Si los dos pulsan «Para mí» a la vez, gana el
+    primero.
+  - **«Solo las mías» vale para las tres listas de Llamadas** (la agenda, «Por
+    confirmar» y «Sin apuntar qué pasó»; el estado vive ahora en
+    `LlamadasPanel`), y «Sin apuntar» enseña quién la lleva.
+  - **Comisiones por closer con su nombre de ahora** (por `closer_id`), no el
+    texto guardado al asignar: si se cambia el nombre de la cuenta, sus ventas
+    no se parten en dos filas.
+  - **KPIs → «Por closer»** (solo administradores; a los closers se les
+    quita en el servidor, `para_el_closer`): agendadas, se presentaron, no
+    vinieron, no-show, pagaron y % de cierre de cada closer, por quien lleva a
+    cada persona ahora (`por_closer` en `kpis.py`, pura con test).
+  - Lo que NO es código y se le dijo al usuario: darle el rol (Usuarios →
+    Grupos → «Closers»), **ponerle nombre a su cuenta** (y a la del
+    administrador: `{yo}` del WhatsApp), revisar «Reparte las llamadas»,
+    Zoom con «entrar antes que el anfitrión» y sin sala de espera (el enlace
+    es el del evento de Calendly), quitar el nombre del anfitrión del título
+    de la invitación de Calendly, y compartirle el Google Calendar. NO
+    crearle un Calendly propio: sus reservas no llegarían a la escuela.
 - **«Comisión pagada» en cada venta** (27/10/2026, "saber qué venta fue ya
   pagada la comisión del closer… que lo vea yo solo"): Panel → **Clientes**
   (solo administradores; la API lo comprueba en cada ruta, el closer no lo ve
@@ -4044,6 +4076,17 @@ Friday»** (por qué, en la cabecera de `services/ebook/ebook.py`).
     (firmado con el secreto JWT, un año; `enlace.firmar(dias=…)`). Sin PDF,
     el enlace dice «se está preparando». ⚠️ Rotar el secreto JWT invalida
     los enlaces de descarga y de baja ya enviados.
+  - ⚠️ **Segmentada (28/10, quinta vuelta: "segmentar bien")**, lo explica la cabecera de
+    `ebook.py` («La campaña, por segmentos»): **sin comprar** (portada o caja
+    abierta) → recordatorio del ebook al día siguiente y, el 27/11 y el 30/11,
+    dos correos del ebook (`para: sin_comprar`, ids `e-bf` y `e-ultimo`),
+    nada de la formación; **compró** → la campaña de abajo; **compró, empezó
+    el formulario de la llamada y no reservó** → al día siguiente «Te quedaste
+    a un paso de tu llamada» (`formulario`, editable, botón a `/admision`) en
+    lugar del de la campaña ese día; **terminó las preguntas y no encaja**
+    (`cualificacion` con `apto` false) → fuera de la campaña; **reservó,
+    pagó o se dio de baja** → nada más. El panel cuenta «Empezaron la llamada
+    sin reservar» y «No encajan». Test `test_la_campana_segmentada`.
   - **La campaña** (`enviar_campana`, en la tarea diaria `drip-diario`, 07:00
     UTC): 4 correos por días desde la compra (1, 3, 5, 7) y 2 de fecha fija
     (27/11 «Hoy es Black Friday», 30/11 «Último día»). Uno al día como mucho,
@@ -4160,6 +4203,24 @@ Friday»** (por qué, en la cabecera de `services/ebook/ebook.py`).
     lunes 30 de noviembre.». Al pulsar «Consíguelo por 1 €» va DIRECTO a la
     caja de Stripe («Pagando como Ana · correo · Cambiar»): sus datos ya los
     tenemos. Quien llega al ebook sin pasar por la portada lo ve como antes.
+  - ⚠️ **Desde el 28/10 (quinta vuelta) `/oferta` lleva las secciones de la landing de la
+    formación** ("más estilo YouTalk TV y como teníamos la landing, esas
+    secciones mucho más guays"): LoQueCambia, PorQueNawar, MarcaSection,
+    PilaresSection, PresentacionNawar, MetodoFunciona, el plan de estudios de
+    Black Friday, QueIncluye, CadaUnidad, BonusSection, ParaTiSection, la
+    garantía y AccesoIncluye, dentro de `.l8` (con `nawar-sections.css` y
+    `landing-08-08-2026.css`), con los botones «Quiero mi oferta de Black
+    Friday» a `/admision` (`ctaTexto` y `nota`, props nuevas y opcionales de
+    PresentacionNawar y AccesoIncluye: la landing de siempre no cambia; el
+    script de `/oferta` les pone nombre y correo igual que a los suyos).
+    Alrededor, lo de Black Friday: barra roja, cabecera con la lección de
+    verdad recortada sin fondo (`public/img/black-friday/escuela.webp`) y dos
+    chapas (escondidas en el móvil), los pasos de la llamada con «En tu
+    llamada de admisión», dudas y cierre. **Fuera a propósito: las opiniones
+    de la landing** (una dice «me ascendieron a los 4 meses») y el
+    cronograma (habla de pagar ya). Se quitaron las secciones propias de
+    antes (todo lo que te llevas, la escuela por dentro, dolores, antes y
+    después, imagina). `youtalk-tv.com` no se alcanza desde este entorno.
   - **`/oferta` = la landing, «más chula, con luz»** (`black-friday/oferta.astro`,
     antes `index.astro`). Las piezas de luz están en `black-friday.css`
     (`.bf-foco` haces de luz de arriba, `.bf-horizonte` línea que brilla,
