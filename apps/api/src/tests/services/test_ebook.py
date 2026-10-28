@@ -223,7 +223,7 @@ async def test_quien_no_termina_de_pagar_queda_y_recibe_un_recordatorio(db, org,
         assert r["recordatorios"] == 1 and r["a_medias"] == 1
         assert (await E.enviar_campana(db))["enviados"] == 0  # no se repite
     para_ana = [m for m in mandados if m["to"] == "ana@x.com"]
-    assert len(para_ana) == 1 and "se quedó a medio camino" in para_ana[0]["subject"]
+    assert len(para_ana) == 1 and para_ana[0]["subject"] == E.DE_FABRICA["pendiente"]["asunto"]
     assert "/ebook?" in para_ana[0]["body"] and "utm_content=pendiente" in para_ana[0]["body"]
     assert "/ebook/baja/" in para_ana[0]["body"]
     # Luis (que pagó) recibe su campaña, no el recordatorio.
@@ -232,7 +232,7 @@ async def test_quien_no_termina_de_pagar_queda_y_recibe_un_recordatorio(db, org,
     assert n["a_medias"] == 1 and n["por_correo"].get(E.ID_PENDIENTE) == 1
 
 
-async def test_la_lista_desbloquea_la_oferta_y_entra_en_la_campana(db, org, sin_redis_ni_crm, monkeypatch):
+async def test_la_portada_desbloquea_el_ebook_y_la_campana_es_para_quien_lo_compra(db, org, sin_redis_ni_crm, monkeypatch):
     monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-11-02")
     mandados = []
     with patch.object(M, "send_email", side_effect=lambda **k: mandados.append(k)):
@@ -241,12 +241,20 @@ async def test_la_lista_desbloquea_la_oferta_y_entra_en_la_campana(db, org, sin_
         assert r == {"ok": True, "nuevo": True}
         # Repetirlo no duplica ni vuelve a mandar el correo.
         assert (await E.apuntar_lista({"nombre": "Ana", "email": "ana@x.com"}, db))["nuevo"] is False
+        # Luis también se apunta, y compra el ebook ese mismo día.
+        await E.apuntar_lista({"nombre": "Luis", "email": "luis@x.com"}, db)
     filas = (await db.execute(select(ContactEvent).where(ContactEvent.kind == E.TIPO_LISTA))).scalars().all()
-    assert len(filas) == 1 and filas[0].phone == "+31612345678" and filas[0].utm_source == "instagram"
-    assert len(mandados) == 1 and mandados[0]["subject"] == "Tu acceso a la oferta de Black Friday"
-    assert "/oferta?" in mandados[0]["body"] and "/ebook/baja/" in mandados[0]["body"]
+    ana = next(f for f in filas if f.email == "ana@x.com")
+    assert len(filas) == 2 and ana.phone == "+31612345678" and ana.utm_source == "instagram"
+    # El correo de acceso: la oferta desbloqueada es el ebook, con sus datos puestos.
+    acceso = [m for m in mandados if m["to"] == "ana@x.com"]
+    assert len(acceso) == 1 and acceso[0]["subject"] == E.DE_FABRICA["acceso"]["asunto"]
+    assert "/ebook?" in acceso[0]["body"] and "/oferta" not in acceso[0]["body"] and "/ebook/baja/" in acceso[0]["body"]
     with pytest.raises(E.EbookError):
         await E.apuntar_lista({"nombre": "", "email": "x@x.com"}, db)
+
+    with patch.object(M, "send_email", side_effect=lambda **k: None):
+        await E.al_pagar(_sesion(cs="cs_luis", email="luis@x.com"), db)
 
     import src.services.contactos.contactos as Cc
 
@@ -254,28 +262,48 @@ async def test_la_lista_desbloquea_la_oferta_y_entra_en_la_campana(db, org, sin_
         return set()
 
     monkeypatch.setattr(Cc, "emails_que_pagaron", nadie)
-    for ev in filas:
+    for ev in (await db.execute(select(ContactEvent).where(ContactEvent.kind.in_([E.TIPO_LISTA, E.TIPO_COMPRA, E.TIPO_CORREO])))).scalars().all():
         ev.created_at = "2026-11-02T10:00:00+00:00"
         db.add(ev)
     await db.commit()
     mandados.clear()
     with patch.object(M, "send_email", side_effect=lambda **k: mandados.append(k)):
-        # Al día siguiente no le llega el c1: habla del ebook, que no compró.
+        # Al día siguiente: Ana (no compró) recibe el recordatorio del ebook;
+        # Luis (compró) empieza la campaña.
         monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-11-03")
-        assert (await E.enviar_campana(db))["enviados"] == 0
-        # A los tres días, el c2.
-        monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-11-05")
-        assert (await E.enviar_campana(db))["enviados"] == 1
-    assert [m["subject"] for m in mandados] == [E.DE_FABRICA["correos"][1]["asunto"]]
+        assert (await E.enviar_campana(db))["enviados"] == 2
+        # Y Ana no recibe nada más de la campaña de la formación.
+        for dia in ("2026-11-05", "2026-11-07", "2026-11-09"):
+            monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None, d=dia: d)
+            await E.enviar_campana(db)
+    a_ana = [m["subject"] for m in mandados if m["to"] == "ana@x.com"]
+    assert a_ana == [E.DE_FABRICA["pendiente"]["asunto"]]
+    a_luis = [m["subject"] for m in mandados if m["to"] == "luis@x.com"]
+    assert a_luis[:2] == [E.DE_FABRICA["correos"][0]["asunto"], E.DE_FABRICA["correos"][1]["asunto"]]
     n = await E.resumen(1, db)
-    assert n["lista"] == 1 and n["compradores"] == 0 and n["en_campana"] == 1 and n["ultimos"][0]["via"] == "lista"
+    assert n["lista"] == 2 and n["compradores"] == 1 and n["a_medias"] == 1 and n["en_campana"] == 1
+    por_quien = {u["email"]: (u["via"], u["estado"]) for u in n["ultimos"]}
+    assert por_quien == {"ana@x.com": ("desbloqueó", "sin comprar"), "luis@x.com": ("desbloqueó y compró", "en campaña")}
     # Pasado el final, ya no se desbloquea nada.
     monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-12-01")
     with pytest.raises(E.EbookError):
         await E.apuntar_lista({"nombre": "Eva", "email": "eva@x.com"}, db)
 
 
+def test_los_textos_de_fabrica_de_antes_no_se_quedan():
+    """El panel guarda las cartas enteras: el acceso de antes (que llevaba a la
+    formación) vuelve al de ahora si nadie lo tocó; uno retocado se respeta."""
+    viejo = {"asunto": "Tu acceso a la oferta de Black Friday", "texto": E._FABRICA_ANTERIOR["acceso"], "boton": "Ver mi oferta",
+             "destino": "landing", "apagado": False}
+    cfg = E.config_limpia({"acceso": viejo})
+    assert cfg["acceso"]["destino"] == "ebook" and cfg["acceso"]["asunto"] == E.DE_FABRICA["acceso"]["asunto"]
+    retocado = {**viejo, "texto": viejo["texto"].replace("Aquí tienes", "Mira")}
+    assert E.config_limpia({"acceso": retocado})["acceso"]["destino"] == "landing"
+    assert E.config_limpia({"acceso": {**viejo, "apagado": True}})["acceso"]["apagado"] is True
+
+
 def test_los_botones_de_los_correos_llevan_a_la_oferta():
     with patch.object(E, "bf_url", return_value="https://blackfriday.holandesnawar.com"):
         assert E.url_destino("landing", "a@x.com", "Ana", "c1").startswith("https://blackfriday.holandesnawar.com/oferta?")
         assert E.url_destino("admision", "a@x.com", "Ana", "c1").startswith("https://blackfriday.holandesnawar.com/admision?")
+        assert E.url_destino("ebook", "a@x.com", "Ana", "acceso").startswith("https://blackfriday.holandesnawar.com/ebook?")

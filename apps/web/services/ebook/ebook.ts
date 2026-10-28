@@ -16,11 +16,9 @@ export interface CorreoCampana {
   boton: string
   destino: Destino
   apagado: boolean
-  /** Habla del ebook: no le llega a quien solo se apuntó a la lista. */
-  solo_ebook?: boolean
 }
 
-/** Un correo suelto: el de «se quedó a medias» y el de acceso a la lista. */
+/** Un correo suelto: el recordatorio del ebook y el de la oferta desbloqueada. */
 export interface CartaSuelta {
   asunto: string
   texto: string
@@ -36,9 +34,9 @@ export interface EbookBF {
   hasta: string
   precio_cents: number
   entrega: { asunto: string; texto: string; boton: string; destino: Destino }
-  /** El recordatorio a quien dejó sus datos y no terminó de pagar. */
+  /** El recordatorio a quien dejó sus datos (portada o caja de pago) y no compró. */
   pendiente: CartaSuelta
-  /** Al apuntarse en la portada de Black Friday para desbloquear la oferta. */
+  /** Al desbloquear la oferta en la portada: lleva a la página del ebook. */
   acceso: CartaSuelta
   correos: CorreoCampana[]
   pdf: string
