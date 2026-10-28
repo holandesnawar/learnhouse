@@ -35,6 +35,7 @@ const DESTINOS: { valor: Destino; texto: string }[] = [
   { valor: 'admision', texto: 'El formulario de la llamada' },
   { valor: 'landing', texto: 'La página de Black Friday' },
   { valor: 'descarga', texto: 'Descargar el ebook' },
+  { valor: 'ebook', texto: 'La página del ebook (para comprarlo)' },
 ]
 
 const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
@@ -95,6 +96,7 @@ export default function EbookBlackFriday() {
   const [desde, setDesde] = useState('')
   const [hasta, setHasta] = useState('')
   const [entrega, setEntrega] = useState<EbookBF['entrega'] | null>(null)
+  const [pendiente, setPendiente] = useState<EbookBF['pendiente'] | null>(null)
   const [correos, setCorreos] = useState<CorreoCampana[]>([])
   const [abierto, setAbierto] = useState<string>('')
   const [vista, setVista] = useState<{ cual: string; asunto: string; html: string } | null>(null)
@@ -107,6 +109,7 @@ export default function EbookBlackFriday() {
     setDesde(e.desde)
     setHasta(e.hasta)
     setEntrega(e.entrega)
+    setPendiente(e.pendiente)
     setCorreos(e.correos)
   }
 
@@ -126,12 +129,17 @@ export default function EbookBlackFriday() {
     (desde !== estado.desde ||
       hasta !== estado.hasta ||
       JSON.stringify(entrega) !== JSON.stringify(estado.entrega) ||
+      JSON.stringify(pendiente) !== JSON.stringify(estado.pendiente) ||
       JSON.stringify(correos) !== JSON.stringify(estado.correos))
 
   const guardar = async (extra: Partial<EbookBF> = {}) => {
     if (!org?.id) return false
     setError('')
-    const r = await guardarEbook(org.id, { desde, hasta, entrega: entrega || undefined, correos, ...extra }, token)
+    const r = await guardarEbook(
+      org.id,
+      { desde, hasta, entrega: entrega || undefined, pendiente: pendiente || undefined, correos, ...extra },
+      token
+    )
     if (!r.ok) {
       setError(r.error)
       return false
@@ -283,8 +291,9 @@ export default function EbookBlackFriday() {
       {/* Números */}
       <div className={`${TARJETA} p-4 sm:p-5 space-y-3`}>
         <p className="text-[15px] font-semibold text-gray-900">Cómo va</p>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
           {[
+            ['Se quedaron a medias', n.a_medias ?? 0],
             ['Compraron', n.compradores],
             ['En la campaña', n.en_campana],
             ['Reservaron llamada', n.reservaron],
@@ -373,6 +382,56 @@ export default function EbookBlackFriday() {
             </div>
           ) : null}
         </div>
+
+        {/* A quien dejó sus datos y no pagó */}
+        {pendiente ? (
+          <div className={`rounded-lg border border-[#E5E7EB] ${pendiente.apagado ? 'opacity-60' : ''}`}>
+            <button onClick={() => setAbierto(abierto === 'pendiente' ? '' : 'pendiente')} className="w-full flex items-center gap-3 px-3.5 py-3 text-left">
+              <ChevronDown size={16} className={`shrink-0 text-[#6B7280] transition-transform ${abierto === 'pendiente' ? '' : '-rotate-90'}`} />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[14px] font-medium text-gray-900 truncate">{pendiente.asunto}</span>
+                <span className={META}>
+                  {pendiente.apagado ? 'Apagado · ' : ''}Al día siguiente, a quien dejó sus datos y no terminó de pagar
+                </span>
+              </span>
+              <span className="shrink-0 text-[12.5px] text-[#6B7280] tabular-nums">
+                {n.por_correo.pendiente ? `Enviado a ${n.por_correo.pendiente}` : ''}
+              </span>
+            </button>
+            {abierto === 'pendiente' ? (
+              <div className="border-t border-[#F3F4F6] p-3.5 space-y-3">
+                <label className="inline-flex items-center gap-2 text-[13px] text-gray-800">
+                  <input type="checkbox" checked={pendiente.apagado} onChange={(e) => setPendiente({ ...pendiente, apagado: e.target.checked })} />
+                  Apagar este correo
+                </label>
+                <input value={pendiente.asunto} onChange={(e) => setPendiente({ ...pendiente, asunto: e.target.value })} className={`${CAMPO} h-9`} />
+                <textarea
+                  value={pendiente.texto}
+                  onChange={(e) => setPendiente({ ...pendiente, texto: e.target.value })}
+                  rows={12}
+                  className={`${CAMPO} py-2.5 leading-relaxed resize-y`}
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <input
+                    value={pendiente.boton}
+                    onChange={(e) => setPendiente({ ...pendiente, boton: e.target.value })}
+                    placeholder="Texto del botón"
+                    className={`${CAMPO} h-9`}
+                  />
+                  <select value={pendiente.destino} onChange={(e) => setPendiente({ ...pendiente, destino: e.target.value as Destino })} className={`${CAMPO} h-9`}>
+                    {DESTINOS.map((d) => (
+                      <option key={d.valor} value={d.valor}>
+                        Lleva a: {d.texto}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {botonesVista('pendiente')}
+                {vistaDe('pendiente')}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         {correos.map((c) => (
           <div key={c.id} className={`rounded-lg border border-[#E5E7EB] ${c.apagado ? 'opacity-60' : ''}`}>

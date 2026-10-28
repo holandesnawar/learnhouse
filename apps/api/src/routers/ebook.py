@@ -157,6 +157,7 @@ class AjustesIn(BaseModel):
     desde: Optional[str] = None
     hasta: Optional[str] = None
     entrega: Optional[dict] = None
+    pendiente: Optional[dict] = None
     correos: Optional[list[dict[str, Any]]] = None
 
 

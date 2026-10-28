@@ -45,6 +45,17 @@ def test_que_correo_toca_cada_dia():
     assert E.que_toca("2026-11-30", "2026-11-30", CORREOS, set(), hasta) is None
 
 
+def test_recordatorio_a_quien_no_termino_de_pagar():
+    hasta = "2026-11-30"
+    assert not E.toca_pendiente("2026-11-02", "2026-11-02", set(), hasta)  # el mismo día, no
+    assert E.toca_pendiente("2026-11-02", "2026-11-03", set(), hasta)  # al día siguiente
+    assert E.toca_pendiente("2026-11-02", "2026-11-05", set(), hasta)  # si la tarea falló, hasta 2 días tarde
+    assert not E.toca_pendiente("2026-11-02", "2026-11-06", set(), hasta)  # más tarde ya no pinta nada
+    assert not E.toca_pendiente("2026-11-02", "2026-11-03", {E.ID_PENDIENTE}, hasta)  # uno solo
+    assert not E.toca_pendiente("2026-11-02", "2026-11-03", set(), hasta, ultimo_envio="2026-11-03")
+    assert not E.toca_pendiente("2026-11-30", "2026-12-01", set(), hasta)  # nada después del final
+
+
 def test_ventas_y_vuelta():
     cfg = E.config_limpia(None)
     assert E.ventas_abiertas(cfg, "2026-10-28") == (True, "")  # se puede probar antes de empezar
@@ -181,3 +192,41 @@ async def test_la_campana_y_cuando_se_para(db, org, sin_redis_ni_crm, monkeypatc
     n = await E.resumen(1, db)
     assert n["compradores"] == 4 and n["en_campana"] == 1 and n["reservaron"] == 1 and n["bajas"] == 1
     assert n["pagaron"] == 1 and n["por_correo"] == {"c1": 1}
+
+
+async def test_quien_no_termina_de_pagar_queda_y_recibe_un_recordatorio(db, org, sin_redis_ni_crm, monkeypatch):
+    meta = {"utm_source": "facebook", "utm_medium": "paid", "recorrido": "bf-ebook-ads"}
+    # Ana abre la caja dos veces el mismo día: una sola línea en su ficha.
+    await E._apuntar_empezado("ana@x.com", "Ana López", "ads", meta, "cs_a1", db)
+    await E._apuntar_empezado("ana@x.com", "Ana López", "ads", {}, "cs_a2", db)
+    filas = (await db.execute(select(ContactEvent).where(ContactEvent.kind == E.TIPO_EMPEZADO))).scalars().all()
+    assert len(filas) == 1 and filas[0].utm_medium == "paid" and json.loads(filas[0].extra)["session_id"] == "cs_a2"
+    # Luis también la abre, pero paga.
+    await E._apuntar_empezado("luis@x.com", "Luis", "organico", {}, "cs_l1", db)
+    with patch.object(M, "send_email", side_effect=lambda **k: None):
+        await E.al_pagar(_sesion(cs="cs_l1", email="luis@x.com"), db)
+    for ev in (await db.execute(select(ContactEvent).where(ContactEvent.kind.in_([E.TIPO_EMPEZADO, E.TIPO_COMPRA])))).scalars().all():
+        ev.created_at = "2026-11-02T10:00:00+00:00"
+        db.add(ev)
+    await db.commit()
+
+    async def nadie(_db):
+        return set()
+
+    import src.services.contactos.contactos as Cc
+
+    monkeypatch.setattr(Cc, "emails_que_pagaron", nadie)
+    monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-11-03")
+    mandados = []
+    with patch.object(M, "send_email", side_effect=lambda **k: mandados.append(k)):
+        r = await E.enviar_campana(db)
+        assert r["recordatorios"] == 1 and r["a_medias"] == 1
+        assert (await E.enviar_campana(db))["enviados"] == 0  # no se repite
+    para_ana = [m for m in mandados if m["to"] == "ana@x.com"]
+    assert len(para_ana) == 1 and "se quedó a medio camino" in para_ana[0]["subject"]
+    assert "/ebook?" in para_ana[0]["body"] and "utm_content=pendiente" in para_ana[0]["body"]
+    assert "/ebook/baja/" in para_ana[0]["body"]
+    # Luis (que pagó) recibe su campaña, no el recordatorio.
+    assert [m["subject"] for m in mandados if m["to"] == "luis@x.com"] == ["Cómo sacarle partido a tu ebook"]
+    n = await E.resumen(1, db)
+    assert n["a_medias"] == 1 and n["por_correo"].get(E.ID_PENDIENTE) == 1
