@@ -33,6 +33,14 @@ y poder acompañar al alumno cada semana". Decidido con él (boceto del 28/10):
 La semana «en curso» es la de la última clase ya dada cuyo plazo de entrega
 no ha pasado (`semana_actual`); la «próxima», la primera clase que aún no ha
 llegado: su presentación se ve antes.
+
+**Antes del día de la clase, el alumno solo ve la presentación** (usuario,
+28/10: "los ejercicios después de la clase, antes solo la presentación"). La
+grabación, los ejercicios y la tarea se abren el día de la clase, en hora de
+Países Bajos (`abierta`): se le quitan de la lista y no puede entregar la
+tarea antes. El equipo lo ve todo siempre, para comprobar la semana. Las
+clases siguen siendo las del curso: quien entre por la barra lateral de la
+presentación podría abrir un ejercicio, pero son los de la formación.
 """
 
 from __future__ import annotations
@@ -147,6 +155,21 @@ def semana_actual(semanas: Iterable[dict], hoy: str) -> tuple[Optional[int], Opt
             actual = s.get("id")
     proxima = next((s.get("id") for s in orden if s["fecha"] > hoy), None)
     return actual, proxima
+
+
+def abierta(fecha: str, hoy: str) -> bool:
+    """¿Ya ha llegado el día de la clase? Hasta entonces el alumno solo ve la
+    presentación. Sin fecha, abierta (no hay día que esperar)."""
+    return not fecha or fecha <= hoy
+
+
+def solo_antes_de_la_clase(semana: dict) -> dict:
+    """Lo que ve el alumno de una semana cuya clase aún no ha llegado: las
+    presentaciones, cuántas cosas se abrirán ese día (`ocultas`) y la tarea
+    sin enunciado (sigue diciendo que hay tarea)."""
+    clases = semana.get("clases") or []
+    ver = [c for c in clases if c.get("tipo") == "presentacion"]
+    return {**semana, "clases": ver, "ocultas": len(clases) - len(ver), "enunciado": ""}
 
 
 def tipo_de_clase(activity_type: Any, sub_type: Any, content: Any) -> str:
@@ -369,11 +392,13 @@ def _orden_reciente(semanas: list[dict]) -> list[dict]:
 # ── El alumno ───────────────────────────────────────────────────────────────
 
 
-async def semanas_para_alumno(course: Course, user_id: int, db_session: AsyncSession) -> dict:
+async def semanas_para_alumno(course: Course, user_id: int, db_session: AsyncSession, equipo: bool = False) -> dict:
     """Las semanas de una clase para la página del curso: sus clases con «hecha»
-    o no, y el estado de su tarea."""
+    o no, y el estado de su tarea. Al alumno, de las semanas cuya clase aún no
+    ha llegado, solo la presentación (`solo_antes_de_la_clase`); al equipo, todo."""
     from src.services.panel.tandas import hoy_nl
 
+    hoy = hoy_nl()
     filas = await semanas_de(course.org_id, course.course_uuid, db_session)
     semanas = [_semana_dict(s) for s in filas]
     clases = await _clases([s["chapter_uuid"] for s in semanas], db_session)
@@ -381,6 +406,8 @@ async def semanas_para_alumno(course: Course, user_id: int, db_session: AsyncSes
     hechas = (await _hechas(course.id or 0, [user_id], ids, db_session)).get(user_id, set())
     suyas = {e.tarea_id: e for e in await _entregas([s["id"] for s in semanas], db_session, [user_id])}
     for s in semanas:
+        s["abierta"] = abierta(s["fecha"], hoy)
+        s["ocultas"] = 0
         s["clases"] = [
             {"activity_uuid": c["activity_uuid"], "nombre": c["nombre"], "tipo": c["tipo"], "hecha": c["id"] in hechas}
             for c in clases.get(s["chapter_uuid"], [])
@@ -391,8 +418,9 @@ async def semanas_para_alumno(course: Course, user_id: int, db_session: AsyncSes
             "corregida_at": (e or {}).get("corregida_at", ""),
             "vista": bool((e or {}).get("vista_at")),
         }
-    hoy = hoy_nl()
     actual, proxima = semana_actual(semanas, hoy)
+    if not equipo:
+        semanas = [s if s["abierta"] else solo_antes_de_la_clase(s) for s in semanas]
     return {
         "hoy": hoy,
         "actual": actual,
@@ -472,14 +500,21 @@ async def tarea(tarea_id: int, db_session: AsyncSession) -> TareaSemana:
     return t
 
 
-async def tarea_para(t: TareaSemana, course: Course, user_id: int, db_session: AsyncSession) -> dict:
+async def tarea_para(t: TareaSemana, course: Course, user_id: int, db_session: AsyncSession, equipo: bool = False) -> dict:
+    """La tarea para su página. Antes del día de la clase, al alumno sin el
+    enunciado (la página dice cuándo se abre)."""
+    from src.services.panel.tandas import hoy_nl
+
     e = (
         await db_session.execute(
             select(TareaEntrega).where(TareaEntrega.tarea_id == t.id, TareaEntrega.user_id == user_id)
         )
     ).scalars().first()
+    semana = {**_semana_dict(t), "abierta": abierta(t.fecha, hoy_nl())}
+    if not semana["abierta"] and not equipo:
+        semana["enunciado"] = ""
     return {
-        **_semana_dict(t),
+        **semana,
         "curso": course.name,
         "course_uuid": uuid_curso(course.course_uuid),
         "entrega": _entrega_dict(e),
@@ -527,10 +562,16 @@ async def entregar(
     audio_seg: int,
     quitar_audio: bool,
     db_session: AsyncSession,
+    equipo: bool = False,
 ) -> dict:
-    """Entrega (o cambia) la tarea. Mientras no esté corregida se puede cambiar."""
+    """Entrega (o cambia) la tarea. Mientras no esté corregida se puede cambiar.
+    El alumno, desde el día de la clase."""
+    from src.services.panel.tandas import hoy_nl
+
     if not (t.enunciado or "").strip():
         raise TareaError("Esta semana no tiene tarea")
+    if not equipo and not abierta(t.fecha, hoy_nl()):
+        raise TareaError("La tarea se abre el día de la clase", 409)
     e = (
         await db_session.execute(
             select(TareaEntrega).where(TareaEntrega.tarea_id == t.id, TareaEntrega.user_id == user_id)

@@ -207,6 +207,38 @@ async def test_una_semana_de_principio_a_fin(db, org, monkeypatch, contenido):
     assert r["entregas_borradas"] == 1 and not ruta.exists()
 
 
+async def test_antes_de_la_clase_solo_la_presentacion(db, org, monkeypatch, contenido):
+    assert T.abierta("2026-11-02", "2026-11-01") is False
+    assert T.abierta("2026-11-02", "2026-11-02") is True  # el día de la clase, ya
+    assert T.abierta("", "2026-11-01") is True
+
+    c = await _clase_con_semana(db, org)
+    monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-10-30")
+    r = await T.crear_semana(org.id, c, {"chapter_uuid": "chapter_kleding", "tema": "De kleding", "fecha": "2026-11-02",
+                                         "enunciado": "Escribe 5 frases sobre tu ropa."}, "Rida", db)
+    sid = r["semana"]["id"]
+
+    # El viernes antes: Ana ve la presentación; los ejercicios y el enunciado, no.
+    v = await T.semanas_para_alumno(c, 7, db)
+    assert v["proxima"] == sid
+    s = v["semanas"][0]
+    assert not s["abierta"] and [x["tipo"] for x in s["clases"]] == ["presentacion"]
+    assert s["ocultas"] == 2 and s["tiene_tarea"] and s["enunciado"] == ""
+    assert (await T.tarea_para(await T.tarea(sid, db), c, 7, db))["enunciado"] == ""
+    with pytest.raises(T.TareaError):  # entregar antes de la clase, no
+        await T.entregar(await T.tarea(sid, db), 7, "Ik draag een broek.", None, 0, False, db)
+    # El equipo lo ve todo, para comprobar la semana.
+    eq = (await T.semanas_para_alumno(c, 1, db, equipo=True))["semanas"][0]
+    assert len(eq["clases"]) == 3 and eq["enunciado"]
+
+    # El lunes de la clase se abre todo.
+    monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-11-02")
+    s = (await T.semanas_para_alumno(c, 7, db))["semanas"][0]
+    assert s["abierta"] and len(s["clases"]) == 3 and s["enunciado"]
+    r = await T.entregar(await T.tarea(sid, db), 7, "Ik draag een broek.", None, 0, False, db)
+    assert r["ok"]
+
+
 async def test_semanas_sin_nada(db, org, monkeypatch, contenido):
     c = await _clase_con_semana(db, org)
     ahora = str(datetime.now())
