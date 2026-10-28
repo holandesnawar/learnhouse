@@ -376,13 +376,16 @@ const CourseClient = (props: any) => {
 
                   // Clase en directo: la portada del curso y, debajo, la franja
                   // con la próxima clase y el botón de entrar. Con VÍDEO de
-                  // portada (la Masterclass), el vídeo en bucle; si no, la foto
-                  // entera, sin recortar (la clase semanal de siempre, 28/10:
-                  // "cambiar el banner antiguo por el nuevo"). Sin portada, solo
-                  // la franja. Los ajustes de la sala (solo administradores) van
-                  // debajo: lo primero que se ve es lo que le importa al alumno.
+                  // portada, el vídeo en bucle; si no, la foto entera, sin
+                  // recortar. Sin portada, solo la franja. Los ajustes de la
+                  // sala (solo administradores) van debajo: lo primero que se
+                  // ve es lo que le importa al alumno.
+                  // El vídeo gana también con «foto y vídeo» (28/10): subir un
+                  // vídeo a un curso que ya tenía foto lo deja así, y la clase
+                  // semanal seguía enseñando la foto vieja. Para volver a la
+                  // foto, «Solo imagen» en el tipo de portada del curso.
                   if (enDirecto) {
-                    const conVideo = course.thumbnail_type === 'video' && !!videoPortada
+                    const conVideo = course.thumbnail_type !== 'image' && !!videoPortada
                     const foto = course.extra_metadata?.banner_image
                       ? getCourseBannerMediaDirectory(org?.org_uuid, course.course_uuid, course.extra_metadata.banner_image)
                       : course.thumbnail_image
