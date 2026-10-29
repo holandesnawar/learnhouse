@@ -1211,10 +1211,18 @@ async def clone_course(
     # Create new course UUID
     new_course_uuid = str(f"course_{uuid4()}")
 
+    # Nawar (29/10/2026): la copia de una clase en directo es la misma clase
+    # para otro grupo (Groep rood / Groep blauw): se llama igual, sin «(Copy)».
+    # Al administrador las distingue la etiqueta de cada una.
+    from src.services.salas.salas import _fila_config, es_clase_en_directo
+
+    _cfg = await _fila_config(original_course.org_id, db_session)
+    es_directo = es_clase_en_directo(_cfg.config if _cfg else {}, original_course.course_uuid)
+
     # Create the new course
     new_course = Course(
         org_id=original_course.org_id,
-        name=f"{original_course.name} (Copy)",
+        name=original_course.name if es_directo else f"{original_course.name} (Copy)",
         description=original_course.description,
         about=original_course.about,
         learnings=original_course.learnings,
@@ -1319,6 +1327,7 @@ async def clone_course(
 
     # Map old chapter IDs to new chapters
     chapter_id_map = {}
+    chapter_uuid_map: dict = {}
 
     for original_chapter, course_chapter in chapter_results:
         new_chapter_uuid = f"chapter_{uuid4()}"
@@ -1339,6 +1348,7 @@ async def clone_course(
         await db_session.flush()  # Get new_chapter.id without committing
 
         chapter_id_map[original_chapter.id] = new_chapter.id
+        chapter_uuid_map[original_chapter.chapter_uuid] = new_chapter_uuid
 
         # Create CourseChapter link
         new_course_chapter = CourseChapter(
@@ -1472,6 +1482,20 @@ async def clone_course(
 
     # Single commit for all chapters, activities, blocks, and links
     await db_session.commit()
+
+    # Nawar: lo que la escuela guarda aparte por curso (ajustes de la clase en
+    # directo, preguntas frecuentes, semanas con tarea), también a la copia.
+    # En blando: la copia ya está hecha.
+    if es_directo:
+        try:
+            from src.services.salas.salas import copiar_a_la_copia
+
+            await copiar_a_la_copia(
+                original_course.org_id, original_course.course_uuid, new_course_uuid, chapter_uuid_map, db_session
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception("No se pudieron copiar los ajustes de la clase en directo")
+            await db_session.rollback()
 
     # Increase feature usage for the new course
     await increase_feature_usage("courses", new_course.org_id, db_session)

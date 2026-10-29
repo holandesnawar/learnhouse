@@ -338,6 +338,7 @@ async def guardar_config(
     grabar: Optional[bool],
     db_session: AsyncSession,
     grabadas: Optional[bool] = None,
+    etiqueta: Optional[str] = None,
 ) -> dict:
     """Encender/apagar la sala y la grabación. Encenderla marca además el curso
     como de clases en directo (`directo`), y eso se queda al apagarla: así el
@@ -346,7 +347,11 @@ async def guardar_config(
 
     `grabadas` (27/10/2026): si la página del curso enseña sus clases grabadas
     («Sesiones grabadas» y «Clases anteriores»). Sin guardar, solo la clase
-    semanal de siempre (`conGrabadas` en el mismo archivo del navegador)."""
+    semanal de siempre (`conGrabadas` en el mismo archivo del navegador).
+
+    `etiqueta` (29/10/2026): un rótulo que solo ven los administradores, junto
+    al nombre en la barra y en la página («Groep rood», «Groep blauw»), para
+    distinguir dos copias de la misma clase. Los alumnos no lo ven."""
     cambios: dict = {}
     if activo is not None:
         cambios["activo"] = bool(activo)
@@ -356,11 +361,120 @@ async def guardar_config(
         cambios["grabar"] = bool(grabar)
     if grabadas is not None:
         cambios["grabadas"] = bool(grabadas)
+    if etiqueta is not None:
+        cambios["etiqueta"] = limpiar_etiqueta(etiqueta)
     guardado = await _escribir(org_id, course_uuid, cambios, db_session)
     salida = {"activo": bool(guardado.get("activo")), "grabar": bool(guardado.get("grabar"))}
     if isinstance(guardado.get("grabadas"), bool):
         salida["grabadas"] = guardado["grabadas"]
+    if etiqueta is not None or guardado.get("etiqueta"):
+        salida["etiqueta"] = str(guardado.get("etiqueta") or "")
     return salida
+
+
+def limpiar_etiqueta(texto: Any) -> str:
+    """Una línea corta (pura)."""
+    return " ".join(str(texto or "").split())[:30]
+
+
+def nombre_con_etiqueta(config: Any, course_uuid: str, nombre: str) -> str:
+    """«Clase semanal · Groep rood» en las listas del equipo (Seguimiento,
+    Tandas, Camino), donde dos copias de la misma clase se llamarían igual.
+    Los alumnos no ven estas listas. Pura."""
+    todas = (config or {}).get(CLAVE) if isinstance(config, dict) else None
+    propia = (todas or {}).get(uuid_curso(course_uuid)) if isinstance(todas, dict) else None
+    etiqueta = limpiar_etiqueta(propia.get("etiqueta")) if isinstance(propia, dict) else ""
+    return f"{nombre} · {etiqueta}" if etiqueta else nombre
+
+
+# ── Duplicar una clase en directo (29/10/2026) ──────────────────────────────
+#
+# «Si duplico ese curso, ¿se queda todo igual?». El «Duplicar» de LearnHouse
+# copia capítulos, clases y archivos, pero no lo que la escuela guarda aparte
+# por curso: estos ajustes (`salas[uuid]`: que es una clase en directo, el
+# recuadro con día y hora, si enseña las grabaciones, la sala), sus preguntas
+# frecuentes (`customization.faq.courses[uuid]`) y las semanas con tarea
+# (`tarea_semana`, por capítulo). Sin esto, la copia se pintaba como una
+# formación, con «Por confirmar» y sin semanas. La etiqueta NO se copia: es
+# justo lo que distingue a una copia de la otra.
+
+CLASE_SEMANAL_UUID = "bfbcb42b-7dc3-4448-9df8-5d7b96135859"
+
+
+def es_clase_en_directo(config: Any, course_uuid: str) -> bool:
+    """El espejo de `esCursoEnDirecto` (apps/web/lib/nawar/cursos.ts). Pura."""
+    uuid = uuid_curso(course_uuid)
+    if uuid == CLASE_SEMANAL_UUID:
+        return True
+    todas = (config or {}).get(CLAVE) if isinstance(config, dict) else None
+    propia = (todas or {}).get(uuid) if isinstance(todas, dict) else None
+    return isinstance(propia, dict) and bool(propia.get("activo") or propia.get("directo"))
+
+
+def ajustes_para_la_copia(config: Any, viejo: str) -> dict:
+    """Lo que hereda la copia de una clase en directo (pura). La clase semanal
+    de siempre se rige por defectos que la copia no tendría (es en directo,
+    enseña las grabaciones y usa el recuadro viejo de toda la escuela): se
+    escriben explícitos."""
+    config = config if isinstance(config, dict) else {}
+    todas = config.get(CLAVE) if isinstance(config.get(CLAVE), dict) else {}
+    propia = todas.get(uuid_curso(viejo)) if isinstance(todas.get(uuid_curso(viejo)), dict) else {}
+    copia = {k: v for k, v in propia.items() if k != "etiqueta"}
+    copia["directo"] = True
+    if uuid_curso(viejo) == CLASE_SEMANAL_UUID:
+        copia.setdefault("grabadas", True)
+        if not copia.get("banner") and isinstance(config.get("weekly_class_banner"), dict):
+            copia["banner"] = limpiar_recuadro(config["weekly_class_banner"])
+    return copia
+
+
+def config_con_la_copia(config: Any, viejo: str, nuevo: str) -> dict:
+    """La configuración de la escuela con la copia ya dada de alta (pura):
+    sus ajustes de clase en directo y sus preguntas frecuentes, en el mismo
+    hueco en que estén las del original."""
+    config = json.loads(json.dumps(config if isinstance(config, dict) else {}))
+    v, n = uuid_curso(viejo), uuid_curso(nuevo)
+    todas = config.get(CLAVE) if isinstance(config.get(CLAVE), dict) else {}
+    todas[n] = ajustes_para_la_copia(config, viejo)
+    config[CLAVE] = todas
+    raices = [config.get("customization", {}).get("faq") if isinstance(config.get("customization"), dict) else None, config.get("faq")]
+    for raiz in raices:
+        if isinstance(raiz, dict) and isinstance(raiz.get("courses"), dict) and isinstance(raiz["courses"].get(v), dict):
+            raiz["courses"][n] = json.loads(json.dumps(raiz["courses"][v]))
+    return config
+
+
+async def copiar_a_la_copia(org_id: int, viejo: str, nuevo: str, capitulos: dict, db_session: AsyncSession) -> bool:
+    """Tras duplicar un curso: si era una clase en directo, la copia hereda sus
+    ajustes, sus preguntas y sus semanas con tarea (`capitulos` = uuid del
+    capítulo original → el de la copia). Devuelve si había algo que copiar."""
+    fila = await _fila_config(org_id, db_session)
+    if fila is None or not es_clase_en_directo(fila.config, viejo):
+        return False
+    fila.config = config_con_la_copia(fila.config, viejo, nuevo)
+    fila.update_date = str(datetime.now())
+    db_session.add(fila)
+
+    from src.db.tareas import TareaSemana
+
+    ahora = datetime.now().isoformat()
+    semanas = (
+        await db_session.execute(
+            select(TareaSemana).where(TareaSemana.org_id == org_id, TareaSemana.course_uuid == uuid_curso(viejo))
+        )
+    ).scalars().all()
+    for s in semanas:
+        if s.chapter_uuid in capitulos:
+            db_session.add(
+                TareaSemana(
+                    org_id=org_id, course_uuid=uuid_curso(nuevo), chapter_uuid=capitulos[s.chapter_uuid],
+                    tema=s.tema, fecha=s.fecha, enunciado=s.enunciado, fecha_limite=s.fecha_limite,
+                    creada_por=s.creada_por, created_at=ahora, updated_at=ahora,
+                )
+            )
+    await db_session.commit()
+    await _olvidar_cache(org_id, db_session)
+    return True
 
 
 # El recuadro de arriba de cada clase en directo (día, hora, profe…). Antes

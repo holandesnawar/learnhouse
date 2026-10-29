@@ -524,12 +524,17 @@ async def resumen(org_id: int, db_session: AsyncSession) -> dict:
         if e.usergroup_id in por_id:
             grupos_de.setdefault(e.resource_uuid, []).append(por_id[e.usergroup_id].name)
 
+    from src.services.salas.salas import nombre_con_etiqueta
+
+    fila_cfg = await _fila_config(db_session, org_id)
     cursos = []
     for c in (await db_session.execute(select(Course).where(Course.org_id == org_id))).scalars().all():
         g = sorted(grupos_de.get(c.course_uuid, []))
         cursos.append(
             {
-                "nombre": c.name,
+                # Dos copias de la clase semanal se llaman igual: la etiqueta
+                # (Groep rood / Groep blauw) dice cuál es cuál (29/10).
+                "nombre": nombre_con_etiqueta(fila_cfg.config if fila_cfg else {}, c.course_uuid, c.name),
                 "uuid": c.course_uuid.replace("course_", "", 1),
                 "grupos": g,
                 **quien_lo_ve(bool(c.public), g, bool(c.published)),

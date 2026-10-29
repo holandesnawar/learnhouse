@@ -734,11 +734,18 @@ async def clases_en_directo(org_id: int, db_session: AsyncSession) -> list[dict]
     )
     uuids |= {c["uuid"] for c in await _cursos_con_sala(org_id, db_session)}
     uuids.add(CLASE_SEMANAL_UUID)
+    from src.db.organization_config import OrganizationConfig
+    from src.services.salas.salas import nombre_con_etiqueta
+
+    fila = (
+        await db_session.execute(select(OrganizationConfig).where(OrganizationConfig.org_id == org_id))
+    ).scalars().first()
     salida = []
     for u in sorted(uuids):
         c = await curso_de(u, db_session)
         if c is not None and c.org_id == org_id:
-            salida.append({"uuid": uuid_curso(c.course_uuid), "nombre": c.name})
+            # Dos copias de la clase semanal se llaman igual: la etiqueta las distingue.
+            salida.append({"uuid": uuid_curso(c.course_uuid), "nombre": nombre_con_etiqueta(fila.config if fila else {}, c.course_uuid, c.name)})
     return sorted(salida, key=lambda c: c["nombre"].lower())
 
 

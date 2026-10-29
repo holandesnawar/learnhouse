@@ -37,6 +37,8 @@ export type AjustesDirecto = {
   /** Si la página enseña las clases grabadas; null = sin decidir (`conGrabadas`). */
   grabadas: boolean | null
   banner: Record<string, string> | null
+  /** Rótulo que solo ven los administradores («Groep rood»), 29/10/2026. */
+  etiqueta: string
 }
 
 export function ajustesDirecto(config: any, curso: string | null | undefined): AjustesDirecto {
@@ -50,7 +52,23 @@ export function ajustesDirecto(config: any, curso: string | null | undefined): A
     directo: !!p.directo,
     grabadas: typeof p.grabadas === 'boolean' ? p.grabadas : null,
     banner: p.banner && typeof p.banner === 'object' ? p.banner : null,
+    etiqueta: typeof p.etiqueta === 'string' ? p.etiqueta.trim() : '',
   }
+}
+
+/**
+ * El color de la etiqueta de un curso, por la palabra (29/10/2026: «Groep
+ * rood» / «Groep blauw»): rojo, azul, verde, amarillo o morado, en neerlandés,
+ * español o inglés. Lo demás, gris. Solo es una pista para el administrador.
+ */
+export function colorDeEtiqueta(texto: string): 'rojo' | 'azul' | 'verde' | 'amarillo' | 'morado' | 'gris' {
+  const t = String(texto || '').toLowerCase()
+  if (/\b(rood|rojo|roja|red)\b/.test(t)) return 'rojo'
+  if (/\b(blauw|azul|blue)\b/.test(t)) return 'azul'
+  if (/\b(groen|verde|green)\b/.test(t)) return 'verde'
+  if (/\b(geel|amarillo|amarilla|yellow)\b/.test(t)) return 'amarillo'
+  if (/\b(paars|morado|morada|lila|purple)\b/.test(t)) return 'morado'
+  return 'gris'
 }
 
 /**

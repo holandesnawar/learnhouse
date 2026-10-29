@@ -24,6 +24,8 @@ import CommunityChannelsCards from '@components/Objects/Communities/CommunityCha
 import CourseFAQ from '@components/Pages/Activity/CourseFAQ'
 import WeeklyClassBanner from '@components/Pages/Courses/WeeklyClassBanner'
 import SalaEnDirecto from '@components/Pages/Courses/SalaEnDirecto'
+import EtiquetaCurso from '@components/Pages/Courses/EtiquetaCurso'
+import useAdminStatus from '@components/Hooks/useAdminStatus'
 import VideoPortada from '@components/Pages/Courses/VideoPortada'
 import SemanasClase, { useSemanasClase } from '@components/Pages/Courses/SemanasClase'
 import { CURSO_CLASE_SEMANAL_UUID, CURSO_FORMACION_UUID, ajustesDirecto, conGrabadas, esCursoEnDirecto, uuidDeCurso } from '@/lib/nawar/cursos'
@@ -71,6 +73,7 @@ const CourseClient = (props: any) => {
 
   const course = initialCourse || clientCourseData;
   const enDirecto = esCursoEnDirecto(course?.course_uuid, org?.config?.config)
+  const { isAdmin: esAdministrador } = useAdminStatus()
   // Spreekclub y Masterclass, sin clases grabadas (27/10): ni la sección ni
   // «Clases anteriores». Lo cambia el administrador en esta misma página.
   const grabadas = !enDirecto || conGrabadas(org?.config?.config, course?.course_uuid)
@@ -352,6 +355,10 @@ const CourseClient = (props: any) => {
                 <Books size={24} className="text-[#025dc7] shrink-0" />
               )}
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{course.name}</h1>
+              {/* Solo administradores: cuál de las copias es (Groep rood…), 29/10. */}
+              {enDirecto && esAdministrador ? (
+                <EtiquetaCurso texto={ajustesDirecto(org?.config?.config, course.course_uuid).etiqueta} />
+              ) : null}
             </div>
 
             {/* La sala en directo dentro de la escuela (Daily): en cualquier

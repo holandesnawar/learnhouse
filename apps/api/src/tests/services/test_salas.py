@@ -279,3 +279,53 @@ async def test_sin_acceso_al_curso_no_entra(db, org, course, regular_user, mock_
         with pytest.raises(HTTPException) as exc:
             await rutas.api_entrar(mock_request, "test", regular_user, db)
     assert exc.value.status_code == 403
+
+
+# ── Duplicar una clase en directo y la etiqueta (29/10/2026) ────────────────
+
+SEMANAL = "course_bfbcb42b-7dc3-4448-9df8-5d7b96135859"
+
+
+def test_la_copia_de_la_clase_semanal_hereda_lo_suyo_menos_la_etiqueta():
+    config = {
+        "weekly_class_banner": {"teacher": "Paul", "schedule": "19:00", "raro": "x"},
+        "salas": {"bfbcb42b-7dc3-4448-9df8-5d7b96135859": {"activo": True, "grabar": True, "etiqueta": "Groep rood"}},
+        "customization": {"faq": {"items": [], "courses": {"bfbcb42b-7dc3-4448-9df8-5d7b96135859": {"items": [{"q": "¿Cuándo?", "a": "Jueves"}]}}}},
+    }
+    assert salas.es_clase_en_directo(config, SEMANAL) and not salas.es_clase_en_directo(config, CURSO)
+    nuevo = salas.config_con_la_copia(config, SEMANAL, "course_nuevo-123")
+    copia = nuevo["salas"]["nuevo-123"]
+    # Es en directo, enseña las grabaciones y se lleva el recuadro viejo de toda la escuela.
+    assert copia["directo"] and copia["grabadas"] and copia["activo"] and copia["grabar"]
+    assert copia["banner"]["teacher"] == "Paul" and "raro" not in copia["banner"]
+    assert "etiqueta" not in copia
+    assert nuevo["customization"]["faq"]["courses"]["nuevo-123"]["items"][0]["q"] == "¿Cuándo?"
+    # El original no se toca.
+    assert config["salas"]["bfbcb42b-7dc3-4448-9df8-5d7b96135859"]["etiqueta"] == "Groep rood"
+    assert "nuevo-123" not in config["salas"]
+
+
+async def test_etiqueta_solo_para_administradores(db, org):
+    await _con_config(db, org)
+    r = await salas.guardar_config(org.id, CURSO, None, None, db, etiqueta="  Groep   rood  ")
+    assert r["etiqueta"] == "Groep rood"
+    assert salas.limpiar_etiqueta("x" * 80) == "x" * 30
+    assert (await salas.guardar_config(org.id, CURSO, None, None, db, etiqueta=""))["etiqueta"] == ""
+
+
+async def test_copiar_a_la_copia_con_sus_semanas(db, org):
+    from src.db.tareas import TareaSemana
+
+    await _con_config(db, org)
+    await salas.guardar_config(org.id, CURSO, True, None, db)
+    db.add(TareaSemana(org_id=org.id, course_uuid=CURSO.replace("course_", ""), chapter_uuid="chapter_a", tema="Los colores",
+                       fecha="2026-11-02", enunciado="Graba tu presentación"))
+    db.add(TareaSemana(org_id=org.id, course_uuid=CURSO.replace("course_", ""), chapter_uuid="chapter_suelto", tema="Otra"))
+    await db.commit()
+    assert await salas.copiar_a_la_copia(org.id, CURSO, "course_copia-1", {"chapter_a": "chapter_b"}, db)
+    filas = (await db.execute(select(TareaSemana).where(TareaSemana.course_uuid == "copia-1"))).scalars().all()
+    assert [(f.chapter_uuid, f.tema, f.fecha, f.enunciado) for f in filas] == [("chapter_b", "Los colores", "2026-11-02", "Graba tu presentación")]
+    fila = (await db.execute(select(OrganizationConfig).where(OrganizationConfig.org_id == org.id))).scalars().first()
+    assert fila.config["salas"]["copia-1"]["directo"] is True
+    # Un curso normal (la formación) no se toca.
+    assert not await salas.copiar_a_la_copia(org.id, "course_otro", "course_copia-2", {}, db)

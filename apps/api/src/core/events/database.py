@@ -408,10 +408,19 @@ _ADDED_COLUMNS = [
 ]
 
 
+# Cambios de DATOS de una sola vez, idempotentes: solo actúan si el dato
+# sigue como estaba. Si alguien lo cambia después desde el panel, no se tocan.
+_DATOS_UNA_VEZ = [
+    # La clase semanal se llama «Clase semanal», no «Clases Nawar» (29/10/2026).
+    "UPDATE course SET name = 'Clase semanal' "
+    "WHERE course_uuid = 'course_bfbcb42b-7dc3-4448-9df8-5d7b96135859' AND name = 'Clases Nawar'",
+]
+
+
 async def _ensure_added_columns(conn):
     from sqlalchemy import text
 
-    for statement in _ADDED_COLUMNS:
+    for statement in _ADDED_COLUMNS + _DATOS_UNA_VEZ:
         try:
             await conn.execute(text(statement))
         except Exception as e:  # noqa: BLE001

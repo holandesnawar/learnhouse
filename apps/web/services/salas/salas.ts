@@ -66,9 +66,9 @@ export const entrarSala = (curso: string, token: string) =>
 
 export const guardarSala = (
   curso: string,
-  cambios: { activo?: boolean; grabar?: boolean; grabadas?: boolean },
+  cambios: { activo?: boolean; grabar?: boolean; grabadas?: boolean; etiqueta?: string },
   token: string
-) => pedir<{ activo: boolean; grabar: boolean; grabadas?: boolean }>(base(curso), token, 'PUT', cambios)
+) => pedir<{ activo: boolean; grabar: boolean; grabadas?: boolean; etiqueta?: string }>(base(curso), token, 'PUT', cambios)
 
 export const getGrabaciones = (curso: string, token: string) =>
   pedir<{ grabaciones: Grabacion[] }>(`${base(curso)}/grabaciones`, token)
