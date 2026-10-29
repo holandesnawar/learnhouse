@@ -3,6 +3,7 @@ import {
   CURSO_CLASE_SEMANAL_UUID,
   CURSO_FORMACION_UUID,
   ajustesDirecto,
+  colorDeEtiqueta,
   conGrabadas,
   cursosEnDirecto,
   esCursoEnDirecto,
@@ -55,9 +56,9 @@ describe('qué curso se pinta como clase en directo', () => {
   test('los ajustes, con el recuadro de cada curso', () => {
     const config = { salas: { abc: { activo: true, grabar: true, banner: { teacher: 'Paul' } } } }
     expect(ajustesDirecto(config, 'course_abc')).toEqual({
-      activo: true, grabar: true, directo: false, grabadas: null, banner: { teacher: 'Paul' },
+      activo: true, grabar: true, directo: false, grabadas: null, banner: { teacher: 'Paul' }, etiqueta: '',
     })
-    expect(ajustesDirecto(null, 'abc')).toEqual({ activo: false, grabar: false, directo: false, grabadas: null, banner: null })
+    expect(ajustesDirecto(null, 'abc')).toEqual({ activo: false, grabar: false, directo: false, grabadas: null, banner: null, etiqueta: '' })
   })
 
   test('las clases grabadas: sin decidir, solo en la clase semanal de siempre', () => {
@@ -68,5 +69,18 @@ describe('qué curso se pinta como clase en directo', () => {
     expect(conGrabadas(config, 'copia')).toBe(true)
     // Se pueden quitar también de la de siempre.
     expect(conGrabadas({ salas: { [CURSO_CLASE_SEMANAL_UUID]: { grabadas: false } } }, CURSO_CLASE_SEMANAL_UUID)).toBe(false)
+  })
+})
+
+describe('etiqueta de un curso (29/10/2026)', () => {
+  test('se lee de sus ajustes y su color sale de la palabra', () => {
+    expect(ajustesDirecto({ salas: { abc: { etiqueta: ' Groep rood ' } } }, 'course_abc').etiqueta).toBe('Groep rood')
+    expect(ajustesDirecto({}, 'abc').etiqueta).toBe('')
+    expect(colorDeEtiqueta('Groep rood')).toBe('rojo')
+    expect(colorDeEtiqueta('Groep Blauw')).toBe('azul')
+    expect(colorDeEtiqueta('Grupo verde')).toBe('verde')
+    expect(colorDeEtiqueta('Martes')).toBe('gris')
+    // «roodborst» no es rojo: palabra entera.
+    expect(colorDeEtiqueta('roodborst')).toBe('gris')
   })
 })

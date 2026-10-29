@@ -6,6 +6,8 @@ import { usePathname } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { useUnreadCommunity } from '@/hooks/queries/useUnreadCommunity'
 import { useCursosEnDirecto } from '@/hooks/queries/useCursosEnDirecto'
+import { ajustesDirecto } from '@/lib/nawar/cursos'
+import EtiquetaCurso from '@components/Pages/Courses/EtiquetaCurso'
 import { getUriWithOrg } from '@services/config/config'
 import { getOrgLogoMediaDirectory } from '@services/media/media'
 import { useOrg } from '@components/Contexts/OrgContext'
@@ -60,6 +62,8 @@ type NavItem = {
   label: string
   icon: React.ReactNode
   show: boolean
+  /** Solo administradores: «Groep rood» junto a una clase en directo (29/10). */
+  etiqueta?: string
 }
 
 export const OrgSidebar = (props: { orgslug: string }) => {
@@ -184,6 +188,9 @@ export const OrgSidebar = (props: { orgslug: string }) => {
       label: c.nombre,
       icon: <VideoCamera size={20} weight="fill" />,
       show: true,
+      // Dos copias de la misma clase (Groep rood / Groep blauw) se llaman
+      // igual: al administrador las distingue su etiqueta (29/10).
+      etiqueta: isAdmin ? ajustesDirecto(config, c.uuid).etiqueta : '',
     })),
     { key: 'collections', href: '/collections', label: t('collections.collections'), icon: <SquaresFour size={20} weight="fill" />, show: isEnabled('collections') },
     { key: 'podcasts', href: '/podcasts', label: t('podcasts.podcasts'), icon: <Headphones size={20} weight="fill" />, show: isEnabled('podcasts') },
@@ -244,6 +251,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
       <Link href={getUriWithOrg(orgslug, item.href)} className={itemClass(active)} style={itemStyle(active)}>
         <span className="shrink-0">{item.icon}</span>
         <span className="truncate">{item.label}</span>
+        {item.etiqueta ? <EtiquetaCurso texto={item.etiqueta} oscuro /> : null}
         {item.key === 'communities' && unreadTotal > 0 && (
           <span
             className={`ml-auto shrink-0 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold flex items-center justify-center ${

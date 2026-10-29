@@ -1,6 +1,8 @@
 'use client'
 import { useOrg } from '@components/Contexts/OrgContext'
 import AuthenticatedClientElement from '@components/Security/AuthenticatedClientElement'
+import EtiquetaCurso from '@components/Pages/Courses/EtiquetaCurso'
+import { ajustesDirecto } from '@/lib/nawar/cursos'
 import ConfirmationModal from '@components/Objects/StyledElements/ConfirmationModal/ConfirmationModal'
 import { getUriWithOrg, getAPIUrl } from '@services/config/config'
 import { deleteCourseFromBackend, cloneCourse } from '@services/courses/courses'
@@ -206,7 +208,7 @@ function CourseThumbnail({ course, orgslug, customLink, isDashboard = false, isS
       </Link>
 
       <div className="p-3 flex flex-col space-y-1.5">
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-2">
           <Link
             prefetch={false}
             href={courseLink}
@@ -214,6 +216,8 @@ function CourseThumbnail({ course, orgslug, customLink, isDashboard = false, isS
           >
             {course.name}
           </Link>
+          {/* En el panel: cuál de las copias es (Groep rood / Groep blauw), 29/10. */}
+          {isDashboard ? <EtiquetaCurso texto={ajustesDirecto(org?.config?.config, course.course_uuid).etiqueta} /> : null}
         </div>
         
         {course.description && (

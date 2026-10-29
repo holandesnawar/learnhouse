@@ -16,7 +16,7 @@ import { Video, Users, Circle, Download, ChevronDown, ChevronUp, Power, AlertTri
 import toast from 'react-hot-toast'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
-import { conGrabadas } from '@/lib/nawar/cursos'
+import { ajustesDirecto, conGrabadas } from '@/lib/nawar/cursos'
 import {
   enlaceGrabacion,
   getGrabaciones,
@@ -111,6 +111,10 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
   const token: string = session?.data?.tokens?.access_token || ''
   const curso = String(courseUuid || '').replace(/^course_/, '')
   const grabadas = conGrabadas(org?.config?.config, curso)
+  const etiquetaGuardada = ajustesDirecto(org?.config?.config, curso).etiqueta
+  const [etiqueta, setEtiqueta] = useState(etiquetaGuardada)
+  // La configuración de la escuela puede llegar después de pintar.
+  useEffect(() => setEtiqueta(etiquetaGuardada), [etiquetaGuardada])
   const [sala, setSala] = useState<EstadoSala | null>(null)
   const [guardando, setGuardando] = useState(false)
   const [verGrabaciones, setVerGrabaciones] = useState(false)
@@ -134,6 +138,22 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
     }, 30000)
     return () => window.clearInterval(t)
   }, [sala?.activo, cargar])
+
+  async function guardarEtiqueta() {
+    const texto = etiqueta.trim()
+    if (texto === etiquetaGuardada) return
+    setGuardando(true)
+    try {
+      await guardarSala(curso, { etiqueta: texto }, token)
+      toast.success(texto ? `Etiqueta: ${texto}` : 'Etiqueta quitada')
+      // La barra y el título la leen de la configuración de la escuela.
+      window.setTimeout(() => window.location.reload(), 700)
+    } catch (e: any) {
+      toast.error(e.message)
+    } finally {
+      setGuardando(false)
+    }
+  }
 
   async function cambiar(cambios: { activo?: boolean; grabar?: boolean; grabadas?: boolean }) {
     setGuardando(true)
@@ -169,17 +189,34 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
   // ¿Enseña esta página sus clases grabadas? (27/10: en Spreekclub no van, y
   // por ahora en Masterclass tampoco). Solo en las clases en directo, con la
   // sala encendida o apagada.
+  // Y la etiqueta que solo ve el administrador (29/10: «Groep rood» /
+  // «Groep blauw»), para distinguir dos copias de la misma clase.
   const casillaGrabadas = soloAjustes ? (
-    <label className="inline-flex items-center gap-2 text-[13px] text-gray-900 cursor-pointer">
-      <input
-        type="checkbox"
-        checked={grabadas}
-        disabled={guardando}
-        onChange={(e) => cambiar({ grabadas: e.target.checked })}
-        className="accent-[#025dc7]"
-      />
-      Enseñar las clases grabadas en esta página
-    </label>
+    <div className="flex flex-col gap-2.5">
+      <label className="inline-flex items-center gap-2 text-[13px] text-gray-900 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={grabadas}
+          disabled={guardando}
+          onChange={(e) => cambiar({ grabadas: e.target.checked })}
+          className="accent-[#025dc7]"
+        />
+        Enseñar las clases grabadas en esta página
+      </label>
+      <label className="flex flex-wrap items-center gap-2 text-[13px] text-gray-900">
+        <span>Etiqueta (solo la ves tú)</span>
+        <input
+          value={etiqueta}
+          maxLength={30}
+          disabled={guardando}
+          placeholder="Groep rood"
+          onChange={(e) => setEtiqueta(e.target.value)}
+          onBlur={guardarEtiqueta}
+          onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()}
+          className="h-8 w-40 rounded-md border border-[#E5E7EB] bg-white px-2.5 text-[13px] text-gray-900 outline-none focus:border-gray-900"
+        />
+      </label>
+    </div>
   ) : null
 
   // Apagada: solo la ve el administrador, en una línea, para encenderla.

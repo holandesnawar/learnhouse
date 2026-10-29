@@ -163,7 +163,11 @@ async def _cursos_con_sala(org_id: int, db_session: AsyncSession) -> list[dict]:
             )
         ).scalars().all()
     }
-    return [{"uuid": u, "nombre": nombres.get(u, "Clase en directo"), "sala": salas.nombre_sala(u)} for u in uuids if u in nombres]
+    return [
+        {"uuid": u, "nombre": salas.nombre_con_etiqueta(fila.config, u, nombres[u]), "sala": salas.nombre_sala(u)}
+        for u in uuids
+        if u in nombres
+    ]
 
 
 # ── La tabla ────────────────────────────────────────────────────────────────
