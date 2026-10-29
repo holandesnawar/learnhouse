@@ -1,7 +1,7 @@
 # CLAUDE.md — Holandés Nawar (LearnHouse self-hosted)
 
 > Memoria del proyecto para que cualquier sesión nueva arranque con todo el contexto.
-> Última actualización: 2026-10-28 (Black Friday, quinta vuelta: /oferta con las secciones de la landing de la formación; la campaña segmentada (sin comprar, compró, empezó la llamada sin reservar, no encaja); la segunda closer: el aviso de quien vuelve a reservar a su closer, nadie le quita la llamada al otro, «Solo las mías» en todas las listas de Llamadas, comisiones por id y KPIs por closer; antes, el mismo día, Black Friday, cuarta vuelta: la portada de blackfriday.holandesnawar.com es solo un formulario, sin hablar de la formación; la oferta desbloqueada es el ebook a 1 € (con sus datos puestos, directo a pagar); al pagar, /oferta con la barra roja y el botón a la llamada; la campaña solo para quien compra y a quien no compra, un recordatorio del ebook; antes, el mismo día, tercera vuelta: la landing pasa a /oferta, con luz, y el formulario de la llamada ya no pide lo que sabe; antes, el mismo día, Black Friday, segunda vuelta: la página del ebook con el diseño de /ebook-a0-a1, la de gracias como upsell con la barra roja, sin cuenta atrás, y quien deja sus datos y no paga queda en su ficha y recibe un recordatorio; antes, el mismo día, la campana avisa al alumno de la presentación nueva de su clase; la Clase semanal con su vídeo de portada aunque tenga foto y la fecha en negro; antes, el mismo día, Black Friday: ebook «Neerlandés sin miedo» a 1 € con su caja, entrega y campaña de correos desde la escuela, y blackfriday.holandesnawar.com con la landing y el formulario con la edad primero; antes, el mismo día, cada semana de la clase: presentación, ejercicios y tarea con nota de voz, corrección, «Tu semana» en el Inicio en lugar de la hoja de ruta, Seguimiento semanal y check-in cada 4 semanas; antes, el mismo día, todas las clases en directo con la franja nueva bajo su portada, también la clase semanal; antes, el 27/10, «Comisión pagada» del closer en cada venta, en Clientes y solo para administradores; antes, el mismo día, Spreekclub y Masterclass sin clases grabadas ni descripción, con casilla para volver a enseñarlas; antes, el mismo día, seteo a mano: «Confirmada» en cada llamada, lista «Por confirmar», dos WhatsApp ya escritos y el no-show de confirmadas en KPIs; la Masterclass sin marco bajo el vídeo; antes, el mismo día, el correo de Rida al reservar una llamada lo manda la escuela, avisada por Calendly; antes, el mismo día, salas en directo DENTRO de la escuela con Daily, empezando por el Spreekclub, con grabación automática al entrar el profe; antes 25/10: pestaña «Enfoque» para el closer con el programa nuevo; tandas: nadie entra solo en ningún grupo, el administrador elige el de cada alumno que paga, con aviso en la escuela y sin correo; antes, el mismo día, la beta y el programa nuevo separados por grupos; antes, el mismo día, el closer ve KPIs sin el dinero; antes 22/10: «Otro importe» también a plazos, de 2 a 6 pagos; antes, Matrículas en dos mesas, Leads y Ventas, con closer asignado y reparto; «Esta semana» del alumno cuenta las clases terminadas; antes, el mismo día, incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
+> Última actualización: 2026-10-29 (Panel → Correos: el email marketing, quién está dónde y a quién le llegó qué; Visión: plantilla «Campaña Black Friday», el embudo de arriba abajo con los correos de verdad que se previsualizan y cifras en vivo; el pie de los correos a quien no compró ya no dice «porque compraste»; comisión de la segunda closer: 10 % ella + 5 % Diego, en las cuentas 15 %; antes 28/10, Black Friday, quinta vuelta: /oferta con las secciones de la landing de la formación; la campaña segmentada (sin comprar, compró, empezó la llamada sin reservar, no encaja); la segunda closer: el aviso de quien vuelve a reservar a su closer, nadie le quita la llamada al otro, «Solo las mías» en todas las listas de Llamadas, comisiones por id y KPIs por closer; antes, el mismo día, Black Friday, cuarta vuelta: la portada de blackfriday.holandesnawar.com es solo un formulario, sin hablar de la formación; la oferta desbloqueada es el ebook a 1 € (con sus datos puestos, directo a pagar); al pagar, /oferta con la barra roja y el botón a la llamada; la campaña solo para quien compra y a quien no compra, un recordatorio del ebook; antes, el mismo día, tercera vuelta: la landing pasa a /oferta, con luz, y el formulario de la llamada ya no pide lo que sabe; antes, el mismo día, Black Friday, segunda vuelta: la página del ebook con el diseño de /ebook-a0-a1, la de gracias como upsell con la barra roja, sin cuenta atrás, y quien deja sus datos y no paga queda en su ficha y recibe un recordatorio; antes, el mismo día, la campana avisa al alumno de la presentación nueva de su clase; la Clase semanal con su vídeo de portada aunque tenga foto y la fecha en negro; antes, el mismo día, Black Friday: ebook «Neerlandés sin miedo» a 1 € con su caja, entrega y campaña de correos desde la escuela, y blackfriday.holandesnawar.com con la landing y el formulario con la edad primero; antes, el mismo día, cada semana de la clase: presentación, ejercicios y tarea con nota de voz, corrección, «Tu semana» en el Inicio en lugar de la hoja de ruta, Seguimiento semanal y check-in cada 4 semanas; antes, el mismo día, todas las clases en directo con la franja nueva bajo su portada, también la clase semanal; antes, el 27/10, «Comisión pagada» del closer en cada venta, en Clientes y solo para administradores; antes, el mismo día, Spreekclub y Masterclass sin clases grabadas ni descripción, con casilla para volver a enseñarlas; antes, el mismo día, seteo a mano: «Confirmada» en cada llamada, lista «Por confirmar», dos WhatsApp ya escritos y el no-show de confirmadas en KPIs; la Masterclass sin marco bajo el vídeo; antes, el mismo día, el correo de Rida al reservar una llamada lo manda la escuela, avisada por Calendly; antes, el mismo día, salas en directo DENTRO de la escuela con Daily, empezando por el Spreekclub, con grabación automática al entrar el profe; antes 25/10: pestaña «Enfoque» para el closer con el programa nuevo; tandas: nadie entra solo en ningún grupo, el administrador elige el de cada alumno que paga, con aviso en la escuela y sin correo; antes, el mismo día, la beta y el programa nuevo separados por grupos; antes, el mismo día, el closer ve KPIs sin el dinero; antes 22/10: «Otro importe» también a plazos, de 2 a 6 pagos; antes, Matrículas en dos mesas, Leads y Ventas, con closer asignado y reparto; «Esta semana» del alumno cuenta las clases terminadas; antes, el mismo día, incidente de Railway: claves rotadas, cambiar claves por la Console sin desplegar, el proceso viejo de la web que se queda con el puerto; antes 20/10: Visión: Tablero en columnas y Semanas, con encargados; antes, el mismo día, KPIs y Pagos a plazos en Estadísticas, visitas anónimas del embudo, correo al alumno si falla un cobro; antes, el mismo día, precios: 435 € único o Klarna, plazos propios de 3 (497) o 4 (540) a elegir en la página de pago; antes, el mismo día, cualificación: «me cuesta, pero busco la forma» cuenta como poder pagar; antes 19/10, plazos propios: elegir total 435 o 497 €; antes 18/10, plantilla de clase gratuita rehecha: grabada, páginas ads/orgánico y 6 correos; ficha: etiqueta «Ads» / «Orgánico»; antes 17/10, Visión: plantilla «Campaña de clase gratuita»; Matrículas: las tarjetas ya no vuelven solas a su sitio; Visión: pantalla completa, «+» en cada tarjeta, Ordenar; antes, el mismo día: Visión, mapa del negocio y centro de campañas, solo administradores; antes 14/10: plan de pagos propio en 3 plazos de 145 €; antes 09/10: apertura de módulos POR AVANCE para quien entra desde el 10/10; Matrículas: Nuevo (48 h) y Por llamar con su temperatura, sin Propuesta, Perdido = Descartado, notas únicas; el closer sin Contactos; /formacion en la web; antes 08/10: API de conversiones de Meta: Lead, Schedule, VSLVisto y VSL50 desde el servidor; antes 07/10: /formacion/v2 para anuncios, cuarta vuelta; antes 06/10: recursos por grupos, Llamadas, barra del panel recortada; antes 04/10: home de la web repasada; antes 24/09: panel repasado: "quitar de los números",
 > Páginas de la web para el closer, notas visibles al admin; antes 23/09,
 > agendar llamada y Panel → Llamadas; antes,
 > primeras ventas reales y repaso del módulo 3 — ver "Repaso de septiembre").
@@ -3353,7 +3353,12 @@ números conectados a la escuela. **Fase 1 hecha; las fases 2 y 3 del encargo
   Sin gasto apuntado, se usa el de Panel → Anuncios con el mismo utm.
 - **Fórmulas acordadas con el usuario (17/10)**: ventas netas = cobrado −
   devoluciones − Klarna; **closer 10 % y 15 % desde el 16/10/2026** (cada venta
-  con el % del día en que se cobró, solo las que pasaron por llamada); **sin
+  con el % del día en que se cobró, solo las que pasaron por llamada).
+  ⚠️ **La segunda closer (29/10)**: cobra el 10 % y Diego se lleva el 5 %
+  restante de sus ventas, por ahora; luego pasará al 15 % como Diego.
+  Decisión del usuario: **en las cuentas se deja el 15 %** (el total que sale
+  es el mismo), sin tocar Ajustes ni el código. En «Comisión pagada» se apunta
+  lo que se le pagó a cada uno a mano; **sin
   comisión del director** (se quitó); CAC = (anuncios + otros gastos DE ESA
   campaña: clase gratis del profe, vídeo UGC…) ÷ ventas; ROAS = cobrado ÷
   anuncios; CAC máximo = lo que deja cada alumno. **El profe de la clase
@@ -4269,6 +4274,84 @@ Friday»** (por qué, en la cabecera de `services/ebook/ebook.py`).
     formulario relleno) y, en la tercera vuelta, desbloquear → /oferta →
     formulario solo con preguntas, con la escuela interceptada. NO probado:
     Stripe de verdad ni el subdominio en Vercel.
+
+## Panel → Correos y el mapa de Black Friday en Visión (29/10/2026)
+Pedido: "una sección para mí sobre lo que pasa con los mails, estilo CRM
+newsletter: quién está dónde, a quién le llegó qué… no tiene que ser una
+locura pero que me sirva" y "una parte en Visión estilo mind map con la
+campaña de Black Friday, el proceso completo, de arriba abajo, que yo pueda
+editar". **Sin tablas nuevas**: todo sale de `contact_event`, `email_log` y
+`enrollment`.
+
+### Panel → Correos (`?tab=correos`, en «Captación y web», solo administradores)
+`services/correos/correos.py` (cabecera larga: leerla), `routers/correos.py`
+(`GET /api/v1/correos/org/{id}` y `…/persona?email=`), `Panel/CorreosPanel.tsx`,
+test `test_correos.py`. Cogido de las herramientas de email marketing (Klaviyo:
+cada correo con sus cifras; Kit: en qué estado está cada persona;
+ActiveCampaign: el camino de una persona):
+- Arriba: estado de la campaña y cifras (han entrado, compraron el ebook,
+  reciben correos, reservaron, pagaron, bajas) y aviso si algún correo no
+  salió esta semana.
+- **Recorrido**: los correos en sus dos ramas (no compró / compró; «Te
+  quedaste a un paso» aparte), cada uno con a cuántos les llegó, cuántos lo
+  tienen como próximo, cuántos volvieron por su botón, y quién reservó o pagó
+  después. «Ver» lo enseña tal cual llega.
+- **Personas**: dónde está cada una, su último correo y **el próximo**, que
+  sale de las MISMAS funciones que usa la tarea diaria para mandar
+  (`ebook.situacion`, `ebook.que_le_toca`, `ebook.proximo`, puras con test):
+  no se pueden contradecir. Al tocarla, su línea de tiempo y «Ver su ficha».
+- **Envíos**: todo lo que manda la escuela (`email_log`), los que fallaron en
+  rojo.
+- ⚠️ **NO se miden aperturas ni clics dentro del correo**, a propósito: las del
+  iPhone son falsas (Apple abre todos los correos) y harían falta los avisos de
+  Resend y columnas nuevas. Lo que sí se ve es quién VOLVIÓ por un correo: los
+  botones llevan `utm_source=email&utm_campaign=black-friday&utm_content=<id>`
+  y la web guarda esos utm en lo que hace la persona.
+- Quien está fuera de los números no cuenta, pero sí recibe los correos.
+
+### Visión → plantilla «Campaña Black Friday»
+Mapa → Añadir → Plantillas → «Campaña Black Friday» (`plan_black_friday` y
+`crear_black_friday` en `services/vision/plantillas.py`, ruta
+`POST /vision/org/{id}/plantillas/black-friday`). Se crea dentro de la
+vertical «Campañas» con `utm_campaign=black-friday` y, dentro, el embudo DE
+VERDAD de arriba abajo: de dónde viene (anuncios de Meta, reels y bio,
+historias, DMs del setter, cada uno con su enlace y sus utm), la portada, la
+página del ebook, «¿Paga el ebook de 1 €?», las dos ramas de correos, /oferta,
+el PDF y su QR (por hacer), la llamada en frío, el formulario, «¿Termina,
+encaja y reserva?», reservar, asignar y confirmar, la llamada y la venta.
+Arriba, **«Por decidir: las condiciones de Black Friday»** (urgente): no
+están escritas en ningún sitio y el closer las necesita.
+- **Tres tipos de tarjeta nuevos** (`TIPOS` en `services/vision/mapa.py` y
+  `vision.ts`): **Correo** (enganchado a un correo de la campaña con
+  `metrica.correo`: enseña el asunto de AHORA, cuándo sale, enviados,
+  próximo y volvieron, y «Ver el correo» lo abre tal cual llega; en su
+  página se elige cuál es y «Cambiar el texto» lleva a Avisos), **Decisión**
+  (píldora de borde discontinuo) y **Etapa** (rótulo grande, sin caja). Se
+  pueden añadir a mano en cualquier mapa.
+- **Métricas en vivo de Black Friday**: `metrica.fuente = "black-friday"` y la
+  clave de `CIFRAS_MAPA` (desbloquearon, compraron, sin comprar, empezaron la
+  llamada, reservaron, pagaron, no encajan, bajas…). En la página de una
+  métrica, «Black Friday · en vivo» en la lista de campañas. `_aplicar` guarda
+  ahora `fuente` y `correo` dentro de `metrica` (JSON, sin migración).
+- Las cifras salen de `correos.para_el_mapa` (lo mismo que Panel → Correos):
+  `_con_cifras` las pide solo si el mapa tiene correos o métricas de Black
+  Friday; `GET /vision/org/{id}/black-friday` para elegirlas en una tarjeta.
+- Los textos de los correos NO se editan en el mapa: viven en Avisos → Ebook
+  Black Friday (un solo sitio). El mapa entero sí se edita: mover, cambiar,
+  borrar y añadir.
+- La vista del correo es `Panel/VistaCorreo.tsx`, compartida con Correos.
+- Las tarjetas de páginas ya hechas nacen «Hecho» y salen en el Tablero de
+  Visión como hechas esta semana; las de fuentes, «Pendiente».
+- Tests en `test_vision.py`: cada tarjeta de correo es un correo que existe
+  (y están todos), las flechas unen tarjetas que existen y ninguna tarjeta
+  cae encima de otra.
+
+### El pie de los correos a quien no compró (arreglado 29/10)
+El correo de la oferta desbloqueada, el recordatorio del ebook y los dos de
+fecha fija a quien no compró decían al pie «Te escribimos porque compraste el
+ebook»: no lo había comprado. `send_carta_ebook_email(por_que=…)` y
+`POR_QUE_COMPRO` / `POR_QUE_SIN_COMPRAR` en `ebook.py`. Test
+`test_el_pie_dice_por_que_le_escribimos`.
 
 ## Incidente de Railway: claves robadas y despliegues parados (21-22/10/2026)
 Railway avisó de que un tercero pudo leer las variables de entorno de sus

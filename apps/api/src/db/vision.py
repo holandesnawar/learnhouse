@@ -42,6 +42,7 @@ class VisionNodo(SQLModel, table=True):
     org_id: int = Field(default=0, index=True)
     mapa_id: int = Field(default=0, index=True)
     # vertical · campana · anuncio · contenido · embudo · tarea · nota · metrica
+    # · correo · decision · etapa
     tipo: str = Field(default="nota", max_length=20)
     titulo: str = Field(default="", max_length=200)
     # idea · pendiente · en-curso · hecho · bloqueado
@@ -67,7 +68,9 @@ class VisionNodo(SQLModel, table=True):
     # Campañas: el mismo valor que el enlace del anuncio. Une la campaña con
     # los leads y las ventas de la escuela.
     utm_campaign: str = Field(default="", index=True, max_length=120)
-    # Nodos de métrica: {"campana_id": n, "clave": "cac"}.
+    # Nodos de métrica: {"campana_id": n, "clave": "cac"}, o de la campaña de
+    # Black Friday: {"fuente": "black-friday", "clave": "compraron"}. Nodos de
+    # correo: {"correo": "c2"} (el id del correo en services/ebook).
     metrica: str = Field(default="")
     created_at: str = ""
     updated_at: str = ""

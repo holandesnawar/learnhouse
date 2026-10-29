@@ -362,3 +362,16 @@ async def test_la_campana_segmentada(db, org, sin_redis_ni_crm, monkeypatch):
     assert n["sin_reservar"] == 1 and n["no_encajan"] == 1
     estados = {u["email"]: u["estado"] for u in n["ultimos"]}
     assert estados == {"ana@x.com": "empezó la llamada", "luis@x.com": "no encaja", "eva@x.com": "en campaña", "leo@x.com": "sin comprar"}
+
+
+def test_el_pie_dice_por_que_le_escribimos():
+    """A quien solo desbloqueó la oferta no se le dice que compró (29/10)."""
+    cfg = E.config_limpia({})
+    acceso = E.armar_acceso(cfg, "a@x.com", "Ana", preview=True)["html"]
+    pendiente = E.armar_pendiente(cfg, "a@x.com", "Ana", preview=True)["html"]
+    por_correo = {c["id"]: c for c in cfg["correos"]}
+    e_bf = E.armar_correo(cfg, por_correo["e-bf"], "a@x.com", "Ana", preview=True)["html"]
+    c1 = E.armar_correo(cfg, por_correo["c1"], "a@x.com", "Ana", preview=True)["html"]
+    for html in (acceso, pendiente, e_bf):
+        assert "desbloqueaste la oferta" in html and "compraste" not in html
+    assert "porque compraste el ebook" in c1

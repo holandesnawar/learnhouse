@@ -40,6 +40,12 @@ TIPOS = {
     "tarea": "Tarea",
     "nota": "Nota",
     "metrica": "Métrica",
+    # 29/10 (el mapa de Black Friday): un correo de verdad de la campaña (se
+    # previsualiza), una decisión de la persona («¿Compra?») y el rótulo de
+    # una etapa del embudo.
+    "correo": "Correo",
+    "decision": "Decisión",
+    "etapa": "Etapa",
 }
 ESTADOS = {
     "idea": "Idea",
@@ -321,7 +327,13 @@ def _aplicar(n: VisionNodo, datos: dict) -> None:
         n.utm_campaign = _texto(datos["utm_campaign"], 120).lower()
     if "metrica" in datos and isinstance(datos["metrica"], dict):
         m = datos["metrica"]
-        n.metrica = json.dumps({"campana_id": int(m.get("campana_id") or 0), "clave": _texto(m.get("clave"), 40)})
+        limpio: dict = {"campana_id": int(m.get("campana_id") or 0), "clave": _texto(m.get("clave"), 40)}
+        # De dónde sale la cifra («black-friday»: la campaña del ebook, en
+        # vivo) y, en las tarjetas de correo, cuál de la campaña es.
+        for extra in ("fuente", "correo"):
+            if _texto(m.get(extra), 30):
+                limpio[extra] = _texto(m.get(extra), 30)
+        n.metrica = json.dumps(limpio)
 
 
 async def crear_nodo(org_id: int, mapa_id: int, datos: dict, db: AsyncSession) -> Optional[dict]:

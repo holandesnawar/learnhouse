@@ -1,6 +1,11 @@
 """Visión: las cuentas de las campañas y del negocio (funciones puras)."""
 
+from src.db.contact_event import ContactEvent
+from src.db.enrollment import Enrollment
+from src.db.panel_negocio import EmailLog
 from src.services.vision import calculo as C
+
+_ = (ContactEvent, Enrollment, EmailLog)  # las lee Panel → Correos: tienen que existir en la base de pruebas
 
 
 AJ = C.normalizar_ajustes({"klarna_pct": 5, "klarna_fijo_cents": 0})
@@ -364,6 +369,56 @@ async def test_crear_clase_gratuita_va_dentro_de_campanas(db):
     assert not (await crear_clase_gratuita(1, {"fecha": ""}, db))["ok"]
     assert (await db.execute(VisionNodo.__table__.select())).first() is not None
     assert (await db.execute(VisionFlecha.__table__.select())).first() is not None
+
+
+def test_plan_black_friday_engancha_cada_correo_de_verdad():
+    """Cada tarjeta de correo es un correo que existe en la campaña, cada
+    métrica una cifra que sabe dar Panel → Correos, y las flechas unen
+    tarjetas que existen. Ninguna tarjeta encima de otra."""
+    from src.services.correos import correos as C
+    from src.services.ebook import ebook as E
+    from src.services.vision.plantillas import plan_black_friday
+
+    plan = plan_black_friday("2026-10-29", "2026-11-30")
+    claves = [n["clave"] for n in plan["nodos"]]
+    assert len(claves) == len(set(claves))
+    assert plan["campana"]["utm_campaign"] == "black-friday" and plan["campana"]["estado"] in M.ESTADOS
+    assert "lunes 30 de noviembre" in plan["campana"]["cuerpo"]
+    correos_de_verdad = {p["id"] for p in C.pasos(E.config_limpia({}))}
+    en_el_mapa = {n["metrica"]["correo"] for n in plan["nodos"] if n["tipo"] == "correo"}
+    assert en_el_mapa == correos_de_verdad  # todos, y ninguno inventado
+    assert {n["metrica"]["clave"] for n in plan["nodos"] if n["tipo"] == "metrica"} <= set(C.CIFRAS_MAPA)
+    assert all(n["metrica"]["fuente"] == "black-friday" for n in plan["nodos"] if n["tipo"] == "metrica")
+    assert all(a in claves and b in claves for a, b, _ in plan["flechas"])
+    sitios = [(n["x"], n["y"]) for n in plan["nodos"]]
+    assert len(sitios) == len(set(sitios))
+    assert all(n["tipo"] in M.TIPOS for n in plan["nodos"])
+    # Lo que no se sabe, a la vista: las condiciones de Black Friday.
+    decidir = next(n for n in plan["nodos"] if n["clave"] == "decidir")
+    assert decidir["urgente"] and decidir["importante"]
+
+
+async def test_crear_black_friday_y_las_cifras_del_mapa(db, org):
+    from src.services.correos import correos as C
+    from src.services.vision.plantillas import crear_black_friday
+
+    inicio = await M.leer_mapa(org.id, None, db)
+    r = await crear_black_friday(org.id, {"mapa_id": inicio["mapa"]["id"]}, db)
+    assert r["ok"] and r["utm_campaign"] == "black-friday"
+    campanas_v = next(n for n in inicio["nodos"] if n["titulo"] == "Campañas")
+    assert (await M.leer_mapa(org.id, r["mapa_id"], db))["mapa"]["nodo_padre_id"] == campanas_v["id"]
+    sub = await M.leer_mapa(org.id, r["submapa_id"], db)
+    tipos = {n["tipo"] for n in sub["nodos"]}
+    assert {"correo", "decision", "etapa", "metrica", "embudo"} <= tipos
+    # La métrica guarda de dónde sale la cifra y el correo, cuál es.
+    acceso = next(n for n in sub["nodos"] if n["tipo"] == "correo" and n["metrica"]["correo"] == "acceso")
+    assert acceso["metrica"]["campana_id"] == 0
+    m = next(n for n in sub["nodos"] if n["tipo"] == "metrica")
+    assert m["metrica"]["fuente"] == "black-friday" and m["metrica"]["campana_id"] == 0
+    # Las cifras en vivo: sin nadie, todo a cero y cada correo con su asunto.
+    datos = await C.para_el_mapa(org.id, db)
+    assert set(datos["cifras"]) == set(C.CIFRAS_MAPA) and not any(datos["cifras"].values())
+    assert datos["correos"]["acceso"]["asunto"] and datos["correos"]["c1"]["enviados"] == 0
 
 
 # ── el tablero y las semanas ────────────────────────────────────────────────

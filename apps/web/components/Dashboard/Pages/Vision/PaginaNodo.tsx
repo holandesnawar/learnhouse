@@ -8,6 +8,10 @@
  *
  * Se guarda sola: lo que se escribe, a los 0,7 s de dejar de escribir; lo que
  * se elige (estado, urgente…), al momento. Al cerrar se guarda lo que quede.
+ *
+ * 29/10: en una tarjeta de correo se elige cuál de la campaña de Black
+ * Friday es, se ve tal cual llega y se va a cambiar su texto (Avisos); en una
+ * métrica, además de las campañas, «Black Friday · en vivo».
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -33,7 +37,9 @@ import {
   Check,
   CopyPlus,
   MapPin,
+  Eye,
 } from 'lucide-react'
+import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { confirmar } from '@lib/nawar/confirmar'
 import {
@@ -43,7 +49,10 @@ import {
   borrarArchivo,
   borrarNodo,
   cambiarNodo,
+  FUENTE_BF,
+  getBlackFriday,
   getTrabajo,
+  type DatosBF,
   subirArchivo,
   type MetricaInfo,
   type NodoVision,
@@ -51,6 +60,7 @@ import {
 } from '@services/vision/vision'
 import { BOTON, BOTON_PELIGRO, META } from '../Panel/ui'
 import Personas from './Personas'
+import VistaCorreo, { EDITAR_CORREOS } from '../Panel/VistaCorreo'
 
 const CAMPO =
   'w-full h-8 rounded-md border border-[#E5E7EB] bg-white px-2.5 text-[13px] text-gray-900 outline-none focus:border-gray-900'
@@ -104,6 +114,14 @@ export default function PaginaNodo({
   onVerEnMapa?: (n: NodoVision) => void
 }) {
   const [n, setN] = useState<NodoVision>(inicial)
+  // Los correos y cifras de Black Friday: solo si la tarjeta los puede usar.
+  const [bf, setBf] = useState<DatosBF | null>(null)
+  const [verCorreo, setVerCorreo] = useState(false)
+  useEffect(() => {
+    if (n.tipo !== 'correo' && n.tipo !== 'metrica') return
+    if (bf) return
+    getBlackFriday(orgId, token).then((r) => r.ok && r.datos && setBf(r.datos))
+  }, [n.tipo, bf, orgId, token])
   const [guardando, setGuardando] = useState(false)
   const [subiendo, setSubiendo] = useState(false)
   const [nuevaTarea, setNuevaTarea] = useState('')
@@ -381,11 +399,20 @@ export default function PaginaNodo({
                 <span className={ETIQUETA}>Cifra</span>
                 <div className="grid grid-cols-2 gap-1.5">
                   <select
-                    value={n.metrica.campana_id ?? ''}
-                    onChange={(e) => poner({ metrica: { ...n.metrica, campana_id: Number(e.target.value) || 0 } })}
+                    value={n.metrica.fuente === FUENTE_BF ? 'bf' : (n.metrica.campana_id ?? '')}
+                    onChange={(e) =>
+                      // De una fuente a otra, la cifra se vuelve a elegir: no se llaman igual.
+                      poner({
+                        metrica:
+                          e.target.value === 'bf'
+                            ? { fuente: FUENTE_BF, clave: '' }
+                            : { campana_id: Number(e.target.value) || 0, clave: n.metrica.fuente === FUENTE_BF ? '' : n.metrica.clave },
+                      })
+                    }
                     className={CAMPO}
                   >
                     <option value="">Campaña…</option>
+                    <option value="bf">Black Friday · en vivo</option>
                     {campanas.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.titulo}
@@ -394,16 +421,76 @@ export default function PaginaNodo({
                   </select>
                   <select value={n.metrica.clave ?? ''} onChange={(e) => poner({ metrica: { ...n.metrica, clave: e.target.value } })} className={CAMPO}>
                     <option value="">Cifra…</option>
-                    {Object.entries(metricas).map(([clave, m]) => (
-                      <option key={clave} value={clave}>
-                        {m.nombre}
-                      </option>
-                    ))}
-                    <option value="leads">Leads</option>
-                    <option value="ventas">Ventas</option>
-                    <option value="ingresos_cents">Cobrado</option>
-                    <option value="coste_cents">Gastado</option>
+                    {n.metrica.fuente === FUENTE_BF ? (
+                      Object.entries(bf?.nombres ?? {}).map(([clave, nombre]) => (
+                        <option key={clave} value={clave}>
+                          {nombre}
+                        </option>
+                      ))
+                    ) : (
+                      <>
+                        {Object.entries(metricas).map(([clave, m]) => (
+                          <option key={clave} value={clave}>
+                            {m.nombre}
+                          </option>
+                        ))}
+                        <option value="leads">Leads</option>
+                        <option value="ventas">Ventas</option>
+                        <option value="ingresos_cents">Cobrado</option>
+                        <option value="coste_cents">Gastado</option>
+                      </>
+                    )}
                   </select>
+                </div>
+              </>
+            ) : null}
+
+            {n.tipo === 'correo' ? (
+              <>
+                <span className={ETIQUETA}>Correo</span>
+                <div>
+                  <select value={n.metrica.correo ?? ''} onChange={(e) => poner({ metrica: { correo: e.target.value } })} className={CAMPO}>
+                    <option value="">Elige el correo…</option>
+                    {[
+                      { grupo: 'sin_comprar', nombre: 'A quien no compró el ebook' },
+                      { grupo: 'compradores', nombre: 'A quien compró el ebook' },
+                    ].map((g) => (
+                      <optgroup key={g.grupo} label={g.nombre}>
+                        {Object.values(bf?.correos ?? {})
+                          .filter((c) => c.grupo === g.grupo)
+                          .map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.asunto}
+                            </option>
+                          ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                  {n.metrica.correo && bf?.correos[n.metrica.correo] ? (
+                    <div className="mt-2 rounded-md border border-[#E5E7EB] p-3">
+                      <p className="text-[13.5px] font-semibold text-gray-900">{bf.correos[n.metrica.correo].asunto}</p>
+                      <p className={META}>
+                        {bf.correos[n.metrica.correo].apagado ? 'Apagado: no sale' : bf.correos[n.metrica.correo].cuando}
+                      </p>
+                      <p className="mt-1.5 text-[12.5px] text-[#4B5563] tabular-nums">
+                        Enviados {bf.correos[n.metrica.correo].enviados} · lo tienen de próximo {bf.correos[n.metrica.correo].esperando} ·
+                        volvieron {bf.correos[n.metrica.correo].volvieron} · reservaron después {bf.correos[n.metrica.correo].reservaron_despues}{' '}
+                        · pagaron después {bf.correos[n.metrica.correo].pagaron_despues}
+                      </p>
+                      <div className="mt-2.5 flex flex-wrap gap-2">
+                        <button onClick={() => setVerCorreo(true)} className={BOTON}>
+                          <Eye size={13} /> Ver cómo llega
+                        </button>
+                        <Link href={EDITAR_CORREOS} className={BOTON}>
+                          Cambiar el texto <ArrowRight size={13} />
+                        </Link>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className={`${META} mt-1`}>
+                      La tarjeta enseña el asunto de ahora, cuándo sale y sus cifras. El texto se cambia en Avisos → Ebook Black Friday.
+                    </p>
+                  )}
                 </div>
               </>
             ) : null}
@@ -586,6 +673,9 @@ export default function PaginaNodo({
           </div>
         </div>
       </div>
+      {verCorreo && n.metrica.correo ? (
+        <VistaCorreo id={n.metrica.correo} asunto={bf?.correos[n.metrica.correo]?.asunto ?? n.titulo} onClose={() => setVerCorreo(false)} />
+      ) : null}
     </div>
   )
 }

@@ -461,8 +461,384 @@ async def crear_clase_gratuita(org_id: int, datos: dict, db: AsyncSession) -> di
     if destino is None:
         return {"ok": False, "motivo": "Ese mapa no existe"}
     plan = plan_clase_gratuita(fecha, str(datos.get("utm_campaign") or ""), str(datos.get("hora") or ""), str(datos.get("titulo") or ""))
-    ahora = datetime.now(timezone.utc).isoformat()
+    return await _guardar_plan(org_id, destino, plan, db)
 
+
+# ── Campaña Black Friday (29/10/2026) ───────────────────────────────────────
+#
+# El embudo de VERDAD, tal como está montado en la web y en la escuela
+# (services/ebook/ebook.py), de arriba abajo: por dónde llega la persona, lo
+# que ve en cada página, qué decide y qué le pasa en cada caso. Cada correo es
+# una tarjeta de tipo «correo» enganchada a SU correo de la campaña
+# (`metrica.correo`): enseña el asunto de ahora, cuándo sale y sus cifras, y
+# se previsualiza. Las métricas leen la campaña en vivo (`metrica.fuente =
+# black-friday`). Lo que no está hecho o no se sabe va como «por decidir» o
+# «por hacer»: la plantilla no se inventa nada.
+
+BF_UTM = "black-friday"
+BF_URL = "https://blackfriday.holandesnawar.com"
+
+
+def plan_black_friday(desde: str = "", hasta: str = "") -> dict:
+    """Las tarjetas y flechas del mapa de Black Friday. `desde` y `hasta`, las
+    fechas de la campaña (Avisos → Ebook Black Friday), solo para los textos.
+    Pura."""
+    from src.services.ebook import ebook as E
+
+    hasta_txt = E.dia_largo(hasta or E.DE_FABRICA["hasta"])
+    desde_txt = E.dia_largo(desde or E.DE_FABRICA["desde"])
+
+    def org(medio: str) -> str:
+        return f"{BF_URL}/?utm_source=instagram&utm_medium={medio}&utm_campaign={BF_UTM}"
+
+    url_ads = (
+        f"{BF_URL}/?utm_source=facebook&utm_medium=paid&utm_campaign={BF_UTM}"
+        "&utm_content={{ad.name}}&utm_term={{adset.name}}"
+    )
+
+    campana = {
+        "tipo": "campana",
+        "titulo": "Black Friday · ebook a 1 €",
+        "estado": "en-curso",
+        "importante": True,
+        "utm_campaign": BF_UTM,
+        "inicio": (desde or E.DE_FABRICA["desde"]),
+        "fin": (hasta or E.DE_FABRICA["hasta"]),
+        "etiquetas": ["black friday", "ebook"],
+        "cuerpo": _html(
+            f"Del <strong>{desde_txt}</strong> al <strong>{hasta_txt}</strong>. La puerta de entrada es el ebook "
+            f"«{E.NOMBRE_EBOOK}» a 1 €; quien lo compra ve nuestra mejor oferta y pide su llamada de admisión, "
+            "donde el closer cuenta las condiciones de Black Friday de la formación.",
+            f"Todos los enlaces llevan <strong>utm_campaign={BF_UTM}</strong> (también los botones de los correos): "
+            "así Visión le suma sola los leads, las llamadas y las ventas.",
+            "Dentro, el mapa entero de arriba abajo. Los correos se previsualizan con un clic y sus textos se "
+            "cambian en Avisos → Ebook Black Friday. Las cifras de las tarjetas grises son de ahora mismo.",
+        ),
+    }
+
+    # Columnas (x) y filas (y). De izquierda a derecha: los rótulos de las
+    # etapas, la rama de quien NO compra, el camino principal, lo que pasa al
+    # lado (métricas, el correo de «te quedaste a un paso») y los correos a
+    # quien compró; a la derecha del todo, el ebook y la llamada en frío.
+    ET, NO, CEN, LADO, COR, EXT = -460, 0, 440, 880, 1320, 1760
+    F = [0, 260, 500, 740, 980, 1220, 1460, 1700, 1940, 2180, 2420, 2660]
+
+    def correo(clave: str, id_correo: str, titulo: str, x: float, y: float, cuando: str, extra: str = "") -> dict:
+        return {
+            "clave": clave, "tipo": "correo", "titulo": titulo, "x": x, "y": y,
+            "metrica": {"correo": id_correo},
+            "etiquetas": ["correo", cuando],
+            "cuerpo": _html(extra) if extra else "",
+        }
+
+    def cifra(clave: str, titulo: str, x: float, y: float) -> dict:
+        return {"clave": f"m-{clave}", "tipo": "metrica", "titulo": titulo, "x": x, "y": y,
+                "metrica": {"fuente": BF_UTM, "clave": clave}}
+
+    def etapa(clave: str, titulo: str, y: float) -> dict:
+        return {"clave": clave, "tipo": "etapa", "titulo": titulo, "x": ET, "y": y}
+
+    nodos: list[dict] = [
+        # Arriba: lo que hay que saber antes de mirar el embudo.
+        {
+            "clave": "como", "tipo": "nota", "titulo": "Cómo leer este mapa", "x": NO, "y": -320,
+            "cuerpo": _html(
+                "- De arriba abajo, el camino de una persona: por dónde nos ve, qué página abre, qué decide.\n"
+                "- Las tarjetas con sobre son los correos de verdad: clic en «Ver» para leerlo como le llega.\n"
+                "- Las grises son cifras de ahora mismo (las mismas que Panel → Correos).\n"
+                "- Las de borde discontinuo son lo que decide la persona.\n"
+                "- Todo se puede mover, cambiar y añadir. Los textos de los correos, en Avisos → Ebook Black Friday."
+            ),
+        },
+        {
+            "clave": "decidir", "tipo": "tarea", "titulo": "Por decidir: las condiciones de Black Friday",
+            "x": CEN, "y": -320, "urgente": True, "importante": True, "estado": "pendiente",
+            "checklist": _tareas(
+                "Decidir qué condiciones tiene la formación en Black Friday (precio, plazos, regalos)",
+                "Escribirlas en el Guion o el Enfoque del closer",
+                "Contárselas a los dos closers antes de las primeras llamadas",
+            ),
+            "cuerpo": _html(
+                "La landing y los correos dicen «condiciones especiales» y que se cuentan en la llamada, pero no están "
+                "escritas en ningún sitio de la escuela. Sin ellas el closer no puede cerrar."
+            ),
+        },
+        {
+            "clave": "fechas", "tipo": "nota", "titulo": "Fechas", "x": LADO + 220, "y": -320,
+            "cuerpo": _html(
+                "- "
+                + "\n- ".join(
+                    [
+                        f"{desde_txt}: empieza la campaña",
+                        "viernes 27 de noviembre: Black Friday (correo a todos)",
+                        f"{hasta_txt}: último día (correo a todos) y se cierra la venta del ebook",
+                    ]
+                )
+            ),
+        },
+        # 1 · Nos ve.
+        etapa("e1", "1 · Nos ve", F[0]),
+        {
+            "clave": "ads", "tipo": "anuncio", "titulo": "Anuncios en Meta", "x": NO, "y": F[0],
+            "checklist": _tareas(
+                "Creativos: el ebook a 1 €, sin hablar todavía de la formación",
+                "Que lleven a la portada con los parámetros de esta tarjeta",
+                "Conversión: Lead (sale al desbloquear la oferta)",
+                f"Apuntar la campaña en Panel → Anuncios con utm_campaign={BF_UTM}",
+            ),
+            "cuerpo": _html(
+                "Quien llega con un enlace de pago (utm_medium=paid) pasa después a la página del ebook de anuncios, y en "
+                "su ficha sale «Ads» con el nombre del anuncio.",
+                "Parámetros de URL del anuncio:", f"<code>{url_ads}</code>",
+            ),
+        },
+        {
+            "clave": "reels", "tipo": "contenido", "titulo": "Reels y bio", "x": CEN, "y": F[0],
+            "checklist": _tareas("Reels con la oferta del ebook", "Enlace de la bio a la portada, con su utm"),
+            "cuerpo": _html("Reels:", f"<code>{org('reels')}</code>", "Bio:", f"<code>{org('bio')}</code>"),
+        },
+        {
+            "clave": "historias", "tipo": "contenido", "titulo": "Historias", "x": LADO, "y": F[0],
+            "checklist": _tareas("Historia con sticker de enlace a la portada", "Repetirla el viernes 27 y el lunes 30"),
+            "cuerpo": _html("Sticker:", f"<code>{org('stories')}</code>"),
+        },
+        {
+            "clave": "setter", "tipo": "contenido", "titulo": "DMs del setter", "x": COR, "y": F[0],
+            "checklist": _tareas("Cada setter, su enlace (abajo)", "Ponerle nombre en Panel → Anuncios → «Tus anuncios»"),
+            "cuerpo": _html(
+                "La ficha dice «Orgánico · Setter · Nombre».",
+                f"<code>{org('dm')}&utm_content=setter-NOMBRE</code>",
+            ),
+        },
+        # 2 · Desbloquea la oferta.
+        etapa("e2", "2 · Desbloquea la oferta", F[1]),
+        {
+            "clave": "portada", "tipo": "embudo", "titulo": "Portada: desbloquea la oferta", "x": CEN, "y": F[1],
+            "estado": "hecho", "importante": True,
+            "enlaces": [{"titulo": "Portada", "url": BF_URL}],
+            "cuerpo": _html(
+                "<strong>Lo que ve:</strong> «Desbloquea la oferta de Black Friday» y un formulario con nombre, correo y "
+                "WhatsApp. Ni una palabra de la formación.",
+                "<strong>Al enviar:</strong>",
+                "- Queda en su ficha (Contactos) con de dónde vino.\n"
+                "- systeme.io le pone la etiqueta «Black Friday - lista».\n"
+                "- Le llega al momento el correo de la oferta desbloqueada.\n"
+                "- Píxel: Lead.\n"
+                "- Pasa a la página del ebook, ya desbloqueada: la de anuncios si vino de un anuncio de pago.",
+            ),
+        },
+        cifra("desbloquearon", "Desbloquearon la oferta", LADO, F[1]),
+        correo("acceso", E.ID_ACCESO, "Correo · Oferta desbloqueada", COR, F[1], "al momento"),
+        # 3 · El ebook.
+        etapa("e3", "3 · El ebook de 1 €", F[2]),
+        {
+            "clave": "ebook", "tipo": "embudo", "titulo": "Página del ebook (desbloqueada)", "x": CEN, "y": F[2],
+            "estado": "hecho", "importante": True,
+            "enlaces": [
+                {"titulo": "Orgánico", "url": f"{BF_URL}/ebook"},
+                {"titulo": "Anuncios", "url": f"{BF_URL}/ebook-ads"},
+            ],
+            "checklist": _tareas("Comprobar que las tres opiniones de la página son reales (son las de /ebook-a0-a1)"),
+            "cuerpo": _html(
+                "<strong>Lo que ve:</strong> «✓ Oferta desbloqueada, [nombre]», el libro, opiniones, para quién es, qué "
+                "hay dentro y dudas. Sin cuenta atrás.",
+                "<strong>Al pulsar «Consíguelo por 1 €»:</strong> la caja de pago de Stripe dentro de la página (tarjeta, "
+                "iDEAL y Bancontact), con sus datos ya puestos. Al abrirla queda en su ficha «abrió el pago».",
+                "Píxel: ViewContent y InitiateCheckout.",
+            ),
+        },
+        {"clave": "paga", "tipo": "decision", "titulo": "¿Paga el ebook de 1 €?", "x": CEN, "y": F[3]},
+        cifra("compraron", "Compraron el ebook", LADO, F[3]),
+        cifra("sin_comprar", "Sin comprar el ebook", NO, F[3]),
+        # Rama: no compra.
+        correo(
+            "pendiente", E.ID_PENDIENTE, "Correo · El ebook te está esperando", NO, F[4], "al día siguiente",
+            "Uno solo, al día siguiente de dejar sus datos o abrir el pago. El botón le lleva a la página del ebook con "
+            "sus datos puestos.",
+        ),
+        correo("e_bf", "e-bf", "Correo · Black Friday (sin comprar)", NO, F[5], "27 nov"),
+        correo("e_ultimo", "e-ultimo", "Correo · Último día (sin comprar)", NO, F[6], "30 nov"),
+        {
+            "clave": "nada_formacion", "tipo": "nota", "titulo": "Sin comprar, nada de la formación", "x": NO, "y": F[7],
+            "cuerpo": _html(
+                "Quien no compra el ebook solo recibe correos del ebook. Si lo compra más tarde, pasa a la rama de la "
+                "derecha. Si se da de baja, no recibe nada más."
+            ),
+        },
+        # Rama: compra.
+        etapa("e4", "4 · Después de comprar", F[4]),
+        {
+            "clave": "oferta", "tipo": "embudo", "titulo": "Página /oferta: nuestra mejor oferta", "x": CEN, "y": F[4],
+            "estado": "hecho", "importante": True,
+            "enlaces": [{"titulo": "/oferta", "url": f"{BF_URL}/oferta"}],
+            "cuerpo": _html(
+                "<strong>Lo que ve al pagar:</strong> barra roja «¡No cierres esta página!», «[nombre], acabas de "
+                "desbloquear nuestra mejor oferta» y las secciones de la landing de la formación, sin precio.",
+                "Botón «Quiero mi oferta de Black Friday» → el formulario de la llamada, con sus datos puestos.",
+                "Píxel: Purchase (y por la API de conversiones).",
+            ),
+        },
+        correo(
+            "entrega", "entrega", "Correo · Tu ebook ya está aquí", COR, F[4], "al momento",
+            "Con el botón de descarga del PDF y otro a la formación. systeme.io le pone la etiqueta «Ebook Black Friday».",
+        ),
+        {
+            "clave": "pdf", "tipo": "contenido", "titulo": "El ebook (PDF) y sus QR", "x": EXT, "y": F[4],
+            "checklist": _tareas(
+                "PDF subido en Avisos → Ebook Black Friday",
+                "Por hacer: un QR o enlace al final del ebook hacia /oferta, con su utm (abajo)",
+                "Volver a subir el PDF con el QR",
+            ),
+            "cuerpo": _html(
+                "La descarga va firmada y dura un año. Para saber quién llega desde el ebook, el QR con:",
+                f"<code>{BF_URL}/oferta?utm_source=ebook&utm_medium=qr&utm_campaign={BF_UTM}</code>",
+            ),
+        },
+        # Los correos a quien compró, en columna.
+        correo("c1", "c1", "Correo 1 a compradores", COR, F[5], "día 1"),
+        correo("c2", "c2", "Correo 2 a compradores", COR, F[6], "día 3"),
+        correo("c3", "c3", "Correo 3 a compradores", COR, F[7], "día 5"),
+        correo("c4", "c4", "Correo 4 a compradores", COR, F[8], "día 7"),
+        correo("bf", "bf", "Correo · Hoy es Black Friday", COR, F[9], "27 nov"),
+        correo("ultimo", "ultimo", "Correo · Último día", COR, F[10], "30 nov"),
+        {
+            "clave": "reglas", "tipo": "nota", "titulo": "Reglas de los correos", "x": COR, "y": F[11],
+            "cuerpo": _html(
+                "- Uno al día como mucho, nunca el día de la compra.\n"
+                "- Se para al reservar la llamada, al pagar la formación o con la baja.\n"
+                "- Quien no encaja sale de la campaña.\n"
+                "- Todos los botones llevan a /oferta con sus datos y utm_content = el correo: así se sabe qué correo "
+                "trajo a quién (Panel → Correos, «volvieron»)."
+            ),
+        },
+        {
+            "clave": "fria", "tipo": "tarea", "titulo": "Llamada en frío a quien compró", "x": EXT, "y": F[5],
+            "checklist": _tareas(
+                "Panel → Correos → Personas → «en campaña»",
+                "Abrir a la persona → «Ver su ficha» → «Mandar a Llamadas» (o «Agendar llamada»)",
+            ),
+            "cuerpo": _html(
+                "Quien compra el ebook NO entra solo en Matrículas: entra cuando empieza el formulario de la llamada. "
+                "Para llamarle antes, se le manda a Llamadas desde su ficha y sale al closer con su temperatura."
+            ),
+        },
+        # 5 · La llamada.
+        etapa("e5", "5 · La llamada", F[5]),
+        {
+            "clave": "formulario", "tipo": "embudo", "titulo": "Formulario de la llamada (/admision)", "x": CEN, "y": F[5],
+            "estado": "hecho", "importante": True,
+            "enlaces": [{"titulo": "/admision", "url": f"{BF_URL}/admision"}],
+            "cuerpo": _html(
+                "<strong>Lo que ve:</strong> las preguntas de admisión, con la edad la primera y sin pedir lo que ya sabemos. "
+                "Al dejar los datos ya sale en Matrículas.",
+                "Al terminar, si encaja, elige la hora en Calendly. systeme.io: «Black Friday - llamada».",
+            ),
+        },
+        {"clave": "reserva_q", "tipo": "decision", "titulo": "¿Termina, encaja y reserva?", "x": CEN, "y": F[6]},
+        correo(
+            "formulario_correo", E.ID_FORMULARIO, "Correo · Te quedaste a un paso", LADO, F[6], "al día siguiente",
+            "Solo a quien compró, empezó el formulario y no reservó: uno, al día siguiente, en lugar del correo de la "
+            "campaña de ese día.",
+        ),
+        cifra("llamada", "Empezaron la llamada sin reservar", LADO, F[5]),
+        {
+            "clave": "no_encaja", "tipo": "nota", "titulo": "No encaja: sale de la campaña", "x": LADO, "y": F[7],
+            "cuerpo": _html("Termina las preguntas y no encaja (lo dicen las líneas rojas de la cualificación): no recibe "
+                            "más correos de la campaña."),
+        },
+        cifra("no_encajan", "No encajan", LADO, F[8]),
+        {
+            "clave": "reservada", "tipo": "embudo", "titulo": "Reserva su hora", "x": CEN, "y": F[7], "estado": "hecho",
+            "cuerpo": _html(
+                "- Calendly le manda la invitación de calendario y el recordatorio de 1 hora.\n"
+                "- La escuela le manda el correo de Rida (Avisos → «Al reservar»).\n"
+                "- Sale en Ventas → «Por asignar» y a quien reparte le llega el aviso."
+            ),
+        },
+        cifra("reservaron", "Reservaron la llamada", NO, F[8]),
+        {
+            "clave": "setear", "tipo": "tarea", "titulo": "Asignar y confirmar", "x": CEN, "y": F[8], "estado": "en-curso",
+            "checklist": _tareas(
+                "Ventas → «Por asignar»: «Para mí» o para la otra closer",
+                "WhatsApp «Confirmar cita» en cuanto reserva",
+                "Si no contesta en unas horas, llamada",
+                "El mismo día, WhatsApp «Recordatorio»",
+                "Marcar «Confirmada» (Llamadas → Por confirmar)",
+            ),
+        },
+        {
+            "clave": "llamada", "tipo": "tarea", "titulo": "La llamada de admisión", "x": CEN, "y": F[9], "estado": "en-curso",
+            "checklist": _tareas(
+                "Contar las condiciones de Black Friday",
+                "Crear el enlace de pago (único, Klarna o a plazos) en la llamada",
+                "Apuntar «¿Qué pasó?»",
+            ),
+        },
+        # 6 · La venta.
+        etapa("e6", "6 · La venta", F[10]),
+        {"clave": "paga_formacion", "tipo": "decision", "titulo": "¿Paga la formación?", "x": CEN, "y": F[10]},
+        {
+            "clave": "alumno", "tipo": "embudo", "titulo": "Alumno", "x": CEN, "y": F[11], "estado": "hecho",
+            "cuerpo": _html(
+                "Al pagar: cuenta, correo de bienvenida y factura, como siempre. Sale de la campaña. En Panel → Alumnos "
+                "→ Tandas y grupos hay que elegir su grupo."
+            ),
+        },
+        cifra("pagaron", "Pagaron la formación", LADO, F[11]),
+        {
+            "clave": "no_paga", "tipo": "nota", "titulo": "No paga en la llamada", "x": NO, "y": F[10],
+            "cuerpo": _html(
+                "Seguimiento en Ventas (Seguimiento o Por pagar). Mientras no reservó otra llamada ni pagó, sigue "
+                "recibiendo los correos que le queden; desde que reservó, ya no."
+            ),
+        },
+        cifra("bajas", "Se dieron de baja", EXT, F[11]),
+    ]
+
+    flechas = [
+        ("ads", "portada", ""),
+        ("reels", "portada", ""),
+        ("historias", "portada", ""),
+        ("setter", "portada", ""),
+        ("portada", "acceso", "al momento"),
+        ("portada", "ebook", "pasa sola"),
+        ("acceso", "ebook", "botón"),
+        ("ebook", "paga", ""),
+        ("paga", "pendiente", "no"),
+        ("pendiente", "e_bf", "27 nov"),
+        ("e_bf", "e_ultimo", "30 nov"),
+        ("pendiente", "ebook", "botón"),
+        ("paga", "oferta", "sí"),
+        ("paga", "entrega", "sí, al momento"),
+        ("entrega", "pdf", "descarga"),
+        ("entrega", "c1", "día 1"),
+        ("c1", "c2", "día 3"),
+        ("c2", "c3", "día 5"),
+        ("c3", "c4", "día 7"),
+        ("c4", "bf", "27 nov"),
+        ("bf", "ultimo", "30 nov"),
+        ("c1", "oferta", "botón (todos)"),
+        ("pdf", "oferta", "QR"),
+        ("oferta", "formulario", "botón"),
+        ("fria", "formulario", "si le convence"),
+        ("formulario", "reserva_q", ""),
+        ("reserva_q", "formulario_correo", "empieza y no reserva"),
+        ("formulario_correo", "formulario", "botón"),
+        ("reserva_q", "no_encaja", "no encaja"),
+        ("reserva_q", "reservada", "sí"),
+        ("reservada", "setear", ""),
+        ("setear", "llamada", ""),
+        ("llamada", "paga_formacion", ""),
+        ("paga_formacion", "alumno", "sí"),
+        ("paga_formacion", "no_paga", "todavía no"),
+    ]
+    return {"campana": campana, "nodos": nodos, "flechas": flechas, "utm": BF_UTM}
+
+
+async def _guardar_plan(org_id: int, destino: int, plan: dict, db: AsyncSession) -> dict:
+    """Guarda la tarjeta de la campaña donde toca y, en su mapa, las tarjetas
+    y flechas del plan."""
+    ahora = datetime.now(timezone.utc).isoformat()
     x, y = await _sitio_libre(org_id, destino, db)
     campana = VisionNodo(org_id=org_id, mapa_id=destino, x=x, y=y, created_at=ahora, updated_at=ahora)
     M._aplicar(campana, plan["campana"])
@@ -474,8 +850,9 @@ async def crear_clase_gratuita(org_id: int, datos: dict, db: AsyncSession) -> di
     ids: dict[str, int] = {}
     for n in plan["nodos"]:
         datos_nodo = {k: v for k, v in n.items() if k != "clave"}
-        if n["tipo"] == "metrica":
-            datos_nodo["metrica"] = {"campana_id": campana.id, "clave": n["metrica"]["clave"]}
+        m = n.get("metrica") or {}
+        if n["tipo"] == "metrica" and m.get("campana"):
+            datos_nodo["metrica"] = {"campana_id": campana.id, "clave": m["clave"]}
         nodo = VisionNodo(org_id=org_id, mapa_id=submapa, created_at=ahora, updated_at=ahora)
         M._aplicar(nodo, datos_nodo)
         db.add(nodo)
@@ -495,3 +872,13 @@ async def crear_clase_gratuita(org_id: int, datos: dict, db: AsyncSession) -> di
         db.add(sub)
     await db.commit()
     return {"ok": True, "campana_id": campana.id, "mapa_id": destino, "submapa_id": submapa, "utm_campaign": plan["utm"]}
+
+
+async def crear_black_friday(org_id: int, datos: dict, db: AsyncSession) -> dict:
+    from src.services.ebook import ebook as E
+
+    destino = await _donde_va(org_id, int(datos.get("mapa_id") or 0) or None, db)
+    if destino is None:
+        return {"ok": False, "motivo": "Ese mapa no existe"}
+    cfg = await E.leer(db, org_id)
+    return await _guardar_plan(org_id, destino, plan_black_friday(cfg.get("desde", ""), cfg.get("hasta", "")), db)

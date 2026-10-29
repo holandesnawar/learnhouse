@@ -7,7 +7,7 @@ from src.routers import health
 from src.routers import instance
 from src.routers import plans
 from src.routers import usergroups
-from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs, panel, vision, salas, tareas, ebook
+from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs, panel, vision, salas, tareas, ebook, correos
 from src.routers import notifications as notifications_router_module
 from src.routers import stream
 from src.routers import api_tokens
@@ -423,6 +423,14 @@ v1_router.include_router(
     ebook.router,
     prefix="/ebook",
     tags=["ebook"],
+)
+
+# Panel → Correos: qué pasa con el email marketing (quién está dónde, a quién
+# le llegó qué). Solo administradores. Ver `src/services/correos/correos.py`.
+v1_router.include_router(
+    correos.router,
+    prefix="/correos",
+    tags=["correos"],
 )
 
 # Recursos: carpetas con archivos y enlaces para los alumnos. Leer, quien está
