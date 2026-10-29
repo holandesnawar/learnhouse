@@ -512,8 +512,12 @@ async def _avisar_reparto(reserva: dict, db_session: AsyncSession) -> None:
     """El «llamada nueva, repártela» también para quien reserva directamente
     en Calendly. Si la web ya avisó de esta reserva, `avisar_llamada_nueva`
     no lo repite."""
+    from src.services.crm.systeme import marcar_llamada_reservada
     from src.services.panel.reparto import avisar_llamada_nueva
 
+    # La reserva hecha directamente en Calendly también saca a la persona de
+    # las campañas de systeme.io.
+    marcar_llamada_reservada(reserva.get("email") or "", reserva.get("nombre") or "")
     try:
         telefono = reserva.get("telefono") or ""
         if not telefono:

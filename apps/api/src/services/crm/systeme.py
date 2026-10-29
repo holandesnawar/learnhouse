@@ -18,6 +18,7 @@ checkout — we log and move on.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from typing import Optional
@@ -209,6 +210,33 @@ async def etiquetar(email: str, nombre: str, etiqueta: str) -> None:
                 logger.error("[systeme] error +%s: %s %s", etiqueta, add.status_code, add.text[:200])
     except Exception:
         logger.exception("[systeme] etiquetar falló para %s", clean_email)
+
+
+#: Quien reserva la llamada de admisión (29/10/2026). Con ella systeme.io
+#: saca a la persona de las campañas de correo (las de Black Friday se
+#: montan allí): «reserva → fuera de la campaña» es una regla de systeme.io.
+ETIQUETA_LLAMADA_RESERVADA = "Llamada reservada"
+
+_en_marcha: set = set()
+
+
+def etiquetar_sin_esperar(email: str, nombre: str, etiqueta: str) -> None:
+    """`etiquetar` sin hacer esperar a quien llama: un aviso de Calendly o la
+    reserva desde el panel no pueden tardar lo que tarde systeme.io. Nunca
+    lanza; fuera de un bucle de asyncio, no hace nada."""
+    if not os.environ.get("SYSTEME_API_KEY") or not (email or "").strip():
+        return
+    try:
+        tarea = asyncio.get_running_loop().create_task(etiquetar(email, nombre, etiqueta))
+    except RuntimeError:
+        return
+    # Sin referencia, el recolector podría llevarse la tarea a medias.
+    _en_marcha.add(tarea)
+    tarea.add_done_callback(_en_marcha.discard)
+
+
+def marcar_llamada_reservada(email: str, nombre: str = "") -> None:
+    etiquetar_sin_esperar(email, nombre, ETIQUETA_LLAMADA_RESERVADA)
 
 
 async def mark_as_alumno(email: str) -> None:

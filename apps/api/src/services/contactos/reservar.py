@@ -350,7 +350,11 @@ async def reservar(
 
 async def _apuntar(email: str, nombre: str, telefono: str, cuando: datetime, autor: str, hecha: bool, db_session: AsyncSession) -> None:
     """La persona, en la escuela: el evento con quién la agendó y para cuándo,
-    y su llamada pendiente en Llamadas, hecha. En blando."""
+    y su llamada pendiente en Llamadas, hecha. En blando. Y en systeme.io, la
+    etiqueta que la saca de las campañas de correo."""
+    from src.services.crm.systeme import marcar_llamada_reservada
+
+    marcar_llamada_reservada(email, nombre)
     try:
         from src.db.contact_event import ContactEventCreate
         from src.services.contactos.contactos import registrar_evento
