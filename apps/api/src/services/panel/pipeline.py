@@ -83,6 +83,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.enrollment_request import EnrollmentRequest
 from src.db.panel_negocio import LeadPipeline
 from src.services.contactos.templadas import temperatura
+from src.services.panel import black_friday as bf
 
 ETAPAS = [
     {"id": "nuevo", "nombre": "Nuevo"},
@@ -389,6 +390,8 @@ def entro_en_el_flujo(ficha: dict) -> str:
     return (
         ficha.get("matricula_at")
         or _cuando_paso(ficha, _TAMBIEN_ENTRAN)
+        # Black Friday (29/10): comprar el ebook o desbloquear la oferta.
+        or bf.cuando_entro(ficha)
         or (ficha.get("primer_contacto") or {}).get("when", "")
     )
 
@@ -515,11 +518,16 @@ def colocar(
         ficha.get("matricula_at")
         or _cuando_paso(ficha, _TAMBIEN_ENTRAN)
         or (llamada.get("desde") if pendiente else "")
+        or bf.cuando_entro(ficha)
         or (ficha.get("primer_contacto") or {}).get("when", "")
     )
     # Rojo (menos de 48 h) = Nuevo; si no, Por llamar.
     calor = temperatura(entro_en_el_flujo(ficha) or llegada, ahora or datetime.now(timezone.utc))
     a_llamar = "nuevo" if calor == "caliente" else "llamar"
+    # Quien solo desbloqueó la oferta de Black Friday (sin ebook ni matrícula)
+    # va directo a Por llamar: es más frío y pueden ser muchos (29/10).
+    if bf.solo_lista(ficha) and not pendiente:
+        a_llamar = "llamar"
     if ficha.get("etapa") == "alumno":
         etapa = "alumno"
     elif movida:
@@ -568,6 +576,8 @@ def colocar(
         ),
         "closer_id": int(guardada.get("closer_id") or 0),
         "closer": guardada.get("closer", "") if guardada.get("closer_id") else "",
+        # «ebook» o «lista» si viene de Black Friday (la tarjeta y el filtro).
+        "black_friday": bf.marca(ficha),
     }
 
 
@@ -578,6 +588,10 @@ def en_tablero(ficha: dict, en_llamadas: bool = False, movida: bool = False) -> 
     alguien la ha movido de columna; si entró por Llamadas y la pasan a
     Contactado, no puede desaparecer del tablero."""
     if en_llamadas or movida or ficha.get("etapa") in _EN_TABLERO:
+        return True
+    # Black Friday (29/10): compró el ebook, o desbloqueó la oferta con su
+    # WhatsApp (ver services/panel/black_friday.py).
+    if bf.entra_por_black_friday(ficha):
         return True
     return bool(_cuando_paso(ficha, _TAMBIEN_ENTRAN))
 
@@ -610,6 +624,7 @@ def tarjeta_suelta(llamada: dict) -> dict:
         "mesa": "leads",
         "closer_id": 0,
         "closer": "",
+        "black_friday": "",
         "llamada": llamada,
         "temperatura": llamada.get("temperatura") or "frio",
     }

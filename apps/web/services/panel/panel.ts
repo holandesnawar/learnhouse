@@ -75,6 +75,8 @@ export interface Tarjeta {
   /** El closer que lleva su llamada (0 = sin asignar). */
   closer_id?: number
   closer?: string
+  /** Viene de Black Friday (29/10): compró el ebook o solo desbloqueó la oferta. */
+  black_friday?: '' | 'ebook' | 'lista'
 }
 
 export interface Tablero {
@@ -115,6 +117,29 @@ export interface ItemLinea {
   estado?: string
 }
 
+/** Black Friday en la ficha (services/panel/black_friday.py → resumen, 29/10):
+ *  de dónde vino, si tiene el ebook y qué correos de systeme.io le han llegado
+ *  (por el calendario de la campaña: abrir un correo no se puede saber). */
+export interface BlackFridayFicha {
+  estado: '' | 'ebook' | 'lista' | 'empezo-ebook'
+  titulo: string
+  desbloqueo: { cuando: string; via: string } | null
+  ebook: { cuando: string; via: string } | null
+  empezo_ebook: string
+  /** «Compradores», «No compradores» o vacío (fuera, o sin campaña). */
+  campana: string
+  /** Si los correos aún no están encendidos, o entró antes de encenderlos. */
+  aviso: string
+  salida: { motivo: string; cuando: string } | null
+  correos: { id: string; asunto: string; cuando: string; campana: string }[]
+  proximo: { id: string; asunto: string; cuando: string } | null
+  /** Los correos en los que pulsó el botón. */
+  volvio_por: { id: string; asunto: string; cuando: string }[]
+  paginas: { id: string; nombre: string }[]
+  /** Dónde está con la llamada («Reservó su llamada», «Empezó el formulario…»). */
+  llamada: string
+}
+
 /** El proceso de admisión de una persona (services/panel/cliente.py → proceso_admision). */
 export interface ProcesoAdmision {
   terminado: boolean
@@ -144,7 +169,8 @@ export interface FichaCliente {
    *  («Meta · VSL A», «Setter · Laura», «Instagram · historias») y `antes`, si
    *  llegó por un anuncio, por dónde había llegado antes sin él. */
   canal?: { canal: 'ads' | 'organico'; detalle: string; antes: string }
-  utm: { source: string; medium: string; campaign: string; content?: string; content_meta?: string; term?: string; placement?: string }
+  /** `correo`: el asunto si el último enlace era el botón de un correo (29/10). */
+  utm: { source: string; medium: string; campaign: string; content?: string; content_meta?: string; term?: string; placement?: string; correo?: string }
   etiquetas: string[]
   fuera_de_metricas: boolean
   primer_contacto: { kind: string; que: string; when: string }
@@ -152,6 +178,8 @@ export interface FichaCliente {
   /** Lo que contestó en las preguntas de admisión (o de /agendar) y dónde se
    *  quedó. null si nunca empezó el proceso. */
   admision?: ProcesoAdmision | null
+  /** Si pasó por la campaña de Black Friday (null si no). */
+  black_friday?: BlackFridayFicha | null
   pagos: { fecha: string; importe_cents: number; moneda: string; producto: string }[]
   total_pagado_cents: number
   correos: { asunto: string; ok: boolean; created_at: string }[]

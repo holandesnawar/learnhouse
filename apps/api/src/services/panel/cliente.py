@@ -32,6 +32,16 @@ def paginas_vistas(ficha: dict) -> list[dict]:
     return [{"id": p, "nombre": NOMBRES_PAGINA.get(p, p), "precio": p == "landing-precio"} for p in vistas]
 
 
+def _correo_del_enlace(ficha: dict) -> str:
+    """El asunto del correo si el último enlace por el que volvió era el botón
+    de un correo ("" si no). Sin asunto conocido, «un correo»."""
+    from src.services.panel.black_friday import asunto_de, es_de_correo
+
+    if not es_de_correo(ficha.get("utm_source", ""), ficha.get("utm_medium", "")):
+        return ""
+    return asunto_de(ficha.get("utm_content", "")) or "un correo"
+
+
 def por_que_vio_el_precio(eventos: list[dict]) -> str:
     """Por qué la ficha dice "ha visto el precio", en una frase, con lo que
     guardó la matrícula al crearse (02/10, "¿cómo encontró Paula el precio?").
@@ -365,6 +375,18 @@ async def ficha_cliente(
     except Exception:  # noqa: BLE001
         reserva = None
 
+    # Black Friday (29/10): de dónde vino, si tiene el ebook, en qué campaña
+    # de correos está y qué le ha llegado (ver services/panel/black_friday.py).
+    try:
+        from datetime import datetime, timezone
+
+        from src.services.ebook.ebook import leer as leer_ebook
+        from src.services.panel.black_friday import resumen as resumen_bf
+
+        black_friday = resumen_bf(ficha, datetime.now(timezone.utc), (await leer_ebook(db_session)).get("systeme_desde", ""))
+    except Exception:  # noqa: BLE001
+        black_friday = None
+
     return {
         "reserva": reserva,
         "plan_pagos": await plan_de(clave, db_session),
@@ -378,8 +400,12 @@ async def ficha_cliente(
         "vino_de": ficha["vino_de"],
         # «Ads» u «Orgánico», arriba junto a sus datos (ver `canal_de`).
         "canal": canal_de(ficha, nombres_anuncios),
+        "black_friday": black_friday,
         "utm": {
             "source": ficha["utm_source"], "medium": ficha["utm_medium"], "campaign": ficha["utm_campaign"],
+            # Si el último enlace era el botón de un correo, su asunto: la ficha
+            # dice «Correo: …» y no «Anuncio: sys-n3» (29/10).
+            "correo": _correo_del_enlace(ficha),
             # El anuncio con el nombre de la escuela si se le puso uno, y el que
             # manda Meta tal cual (congelado al publicar) para el «tal cual».
             "content": nombre_del_anuncio(ficha.get("utm_content", ""), nombres_anuncios),

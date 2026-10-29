@@ -186,6 +186,7 @@ class AjustesIn(BaseModel):
     campana: Optional[bool] = None
     desde: Optional[str] = None
     hasta: Optional[str] = None
+    systeme_desde: Optional[str] = None
     entrega: Optional[dict] = None
     pendiente: Optional[dict] = None
     acceso: Optional[dict] = None
