@@ -506,20 +506,21 @@ def plan_black_friday(desde: str = "", hasta: str = "") -> dict:
         "fin": (hasta or E.DE_FABRICA["hasta"]),
         "etiquetas": ["black friday", "ebook"],
         "cuerpo": _html(
-            f"Del <strong>{desde_txt}</strong> al <strong>{hasta_txt}</strong>. La puerta de entrada es el ebook "
-            f"«{E.NOMBRE_EBOOK}» a 1 €; quien lo compra ve nuestra mejor oferta y pide su llamada de admisión, "
-            "donde el closer cuenta las condiciones de Black Friday de la formación.",
+            f"Del <strong>{desde_txt}</strong> al <strong>{hasta_txt}</strong>. La puerta de entrada es la lista "
+            f"prioritaria: quien se apunta desbloquea el ebook «{E.NOMBRE_EBOOK}» a 1 €; quien lo compra ve nuestra "
+            "mejor oferta y pide su llamada de admisión, donde el closer cuenta las condiciones de Black Friday.",
             f"Todos los enlaces llevan <strong>utm_campaign={BF_UTM}</strong> (también los botones de los correos): "
             "así Visión le suma sola los leads, las llamadas y las ventas.",
-            "Dentro, el mapa entero de arriba abajo. Los correos se previsualizan con un clic y sus textos se "
-            "cambian en Avisos → Ebook Black Friday. Las cifras de las tarjetas grises son de ahora mismo.",
+            "Los correos los manda <strong>systeme.io</strong> (dos campañas y las newsletters); la escuela solo manda "
+            "la entrega del ebook. Cada tarjeta de correo abre el suyo en systeme.io, y «le llegó» se calcula con el "
+            "calendario de su campaña desde el día en que se encendieron (Avisos → Ebook Black Friday).",
         ),
     }
 
     # Columnas (x) y filas (y). De izquierda a derecha: los rótulos de las
     # etapas, la rama de quien NO compra, el camino principal, lo que pasa al
-    # lado (métricas, el correo de «te quedaste a un paso») y los correos a
-    # quien compró; a la derecha del todo, el ebook y la llamada en frío.
+    # lado (métricas, notas), los correos a quien compró y, a la derecha del
+    # todo, las newsletters, el ebook y el aviso al closer.
     ET, NO, CEN, LADO, COR, EXT = -460, 0, 440, 880, 1320, 1760
     F = [0, 260, 500, 740, 980, 1220, 1460, 1700, 1940, 2180, 2420, 2660]
 
@@ -544,10 +545,11 @@ def plan_black_friday(desde: str = "", hasta: str = "") -> dict:
             "clave": "como", "tipo": "nota", "titulo": "Cómo leer este mapa", "x": NO, "y": -320,
             "cuerpo": _html(
                 "- De arriba abajo, el camino de una persona: por dónde nos ve, qué página abre, qué decide.\n"
-                "- Las tarjetas con sobre son los correos de verdad: clic en «Ver» para leerlo como le llega.\n"
+                "- Las tarjetas con sobre son los correos de systeme.io: «Ver en systeme.io» lo abre allí.\n"
+                "- «Le llegó» se calcula con el calendario de la campaña; «volvieron» es medido (pulsó su botón).\n"
                 "- Las grises son cifras de ahora mismo (las mismas que Panel → Correos).\n"
                 "- Las de borde discontinuo son lo que decide la persona.\n"
-                "- Todo se puede mover, cambiar y añadir. Los textos de los correos, en Avisos → Ebook Black Friday."
+                "- Todo se puede mover, cambiar y añadir."
             ),
         },
         {
@@ -564,16 +566,21 @@ def plan_black_friday(desde: str = "", hasta: str = "") -> dict:
             ),
         },
         {
-            "clave": "fechas", "tipo": "nota", "titulo": "Fechas", "x": LADO + 220, "y": -320,
+            "clave": "fechas", "tipo": "nota", "titulo": "Fechas y newsletters", "x": LADO + 220, "y": -320,
             "cuerpo": _html(
                 "- "
                 + "\n- ".join(
                     [
                         f"{desde_txt}: empieza la campaña",
-                        "viernes 27 de noviembre: Black Friday (correo a todos)",
-                        f"{hasta_txt}: último día (correo a todos) y se cierra la venta del ebook",
+                        "Lunes y martes de arranque: «Abrimos» y «¿Recuerdas…?» a toda la lista de correo (sin quien ya "
+                        "se apuntó)",
+                        "Cada semana, otra a quien aún no se ha apuntado; y a mitad, «Tenemos algo importante que "
+                        "contarte» a quien sí",
+                        "viernes 27 de noviembre: Black Friday (newsletter a la lista)",
+                        f"{hasta_txt}: último día (newsletter a la lista) y se cierra la venta del ebook",
                     ]
-                )
+                ),
+                "Quien se apunta cualquier día entra en su campaña ese mismo día: no depende de las newsletters.",
             ),
         },
         # 1 · Nos ve.
@@ -581,9 +588,9 @@ def plan_black_friday(desde: str = "", hasta: str = "") -> dict:
         {
             "clave": "ads", "tipo": "anuncio", "titulo": "Anuncios en Meta", "x": NO, "y": F[0],
             "checklist": _tareas(
-                "Creativos: el ebook a 1 €, sin hablar todavía de la formación",
+                "Creativos: la lista prioritaria / el ebook a 1 €, sin hablar todavía de la formación",
                 "Que lleven a la portada con los parámetros de esta tarjeta",
-                "Conversión: Lead (sale al desbloquear la oferta)",
+                "Conversión: Lead (sale al apuntarse en la portada)",
                 f"Apuntar la campaña en Panel → Anuncios con utm_campaign={BF_UTM}",
             ),
             "cuerpo": _html(
@@ -593,13 +600,21 @@ def plan_black_friday(desde: str = "", hasta: str = "") -> dict:
             ),
         },
         {
-            "clave": "reels", "tipo": "contenido", "titulo": "Reels y bio", "x": CEN, "y": F[0],
-            "checklist": _tareas("Reels con la oferta del ebook", "Enlace de la bio a la portada, con su utm"),
-            "cuerpo": _html("Reels:", f"<code>{org('reels')}</code>", "Bio:", f"<code>{org('bio')}</code>"),
+            "clave": "reels", "tipo": "contenido", "titulo": "Reels: «comenta OFERTA»", "x": CEN, "y": F[0],
+            "checklist": _tareas(
+                "CTA al final del reel: «Comenta OFERTA y te mando el acceso a la lista prioritaria»",
+                "En Inrō: al comentar OFERTA, DM con el enlace de abajo (para DM)",
+                "Enlace de la bio a la portada, con su utm",
+            ),
+            "cuerpo": _html(
+                "DM de Inrō:", f"<code>{org('dm')}&utm_content=reel-oferta</code>",
+                "Bio:", f"<code>{org('bio')}</code>",
+            ),
         },
         {
             "clave": "historias", "tipo": "contenido", "titulo": "Historias", "x": LADO, "y": F[0],
-            "checklist": _tareas("Historia con sticker de enlace a la portada", "Repetirla el viernes 27 y el lunes 30"),
+            "checklist": _tareas("Historia con sticker de enlace a la portada (el lunes de arranque)",
+                                 "Repetirla el viernes 27 y el lunes 30"),
             "cuerpo": _html("Sticker:", f"<code>{org('stories')}</code>"),
         },
         {
@@ -610,25 +625,33 @@ def plan_black_friday(desde: str = "", hasta: str = "") -> dict:
                 f"<code>{org('dm')}&utm_content=setter-NOMBRE</code>",
             ),
         },
-        # 2 · Desbloquea la oferta.
-        etapa("e2", "2 · Desbloquea la oferta", F[1]),
+        correo(
+            "nl_abrimos", "nl-abrimos", "Newsletter · Abrimos la lista", EXT, F[0], "a toda la lista",
+            "A toda la lista de correo, sin quien ya se apuntó. El botón desbloquea solo: nombre y correo ya los tenemos.",
+        ),
+        correo(
+            "nl_recuerdas", "nl-recuerdas", "Newsletter · ¿Recuerdas…?", EXT, F[1], "a toda la lista",
+            "Al día siguiente de «Abrimos», a quien aún no se apuntó. El botón desbloquea solo.",
+        ),
+        # 2 · Se apunta a la lista.
+        etapa("e2", "2 · Se apunta a la lista", F[1]),
         {
-            "clave": "portada", "tipo": "embudo", "titulo": "Portada: desbloquea la oferta", "x": CEN, "y": F[1],
+            "clave": "portada", "tipo": "embudo", "titulo": "Portada: la lista prioritaria", "x": CEN, "y": F[1],
             "estado": "hecho", "importante": True,
             "enlaces": [{"titulo": "Portada", "url": BF_URL}],
             "cuerpo": _html(
-                "<strong>Lo que ve:</strong> «Desbloquea la oferta de Black Friday» y un formulario con nombre, correo y "
-                "WhatsApp. Ni una palabra de la formación.",
+                "<strong>Lo que ve:</strong> «Únete a la lista prioritaria del Black Friday» y un formulario con nombre y "
+                "correo (el WhatsApp se pide al pagar el ebook). Ni una palabra de la formación.",
                 "<strong>Al enviar:</strong>",
                 "- Queda en su ficha (Contactos) con de dónde vino.\n"
-                "- systeme.io le pone la etiqueta «Black Friday - lista».\n"
-                "- Le llega al momento el correo de la oferta desbloqueada.\n"
+                "- systeme.io le pone «Black Friday - lista» y le mete en la campaña «No compradores».\n"
                 "- Píxel: Lead.\n"
-                "- Pasa a la página del ebook, ya desbloqueada: la de anuncios si vino de un anuncio de pago.",
+                "- Pasa a la página del ebook, ya desbloqueada: la de anuncios si vino de un anuncio de pago.\n"
+                "- Desde el botón de una newsletter, todo eso sin escribir nada.",
             ),
         },
-        cifra("desbloquearon", "Desbloquearon la oferta", LADO, F[1]),
-        correo("acceso", E.ID_ACCESO, "Correo · Oferta desbloqueada", COR, F[1], "al momento"),
+        cifra("desbloquearon", "Se apuntaron a la lista", LADO, F[1]),
+        correo("n0", "sys-n0", "Correo · Oferta desbloqueada", COR, F[1], "al momento"),
         # 3 · El ebook.
         etapa("e3", "3 · El ebook de 1 €", F[2]),
         {
@@ -643,28 +666,27 @@ def plan_black_friday(desde: str = "", hasta: str = "") -> dict:
                 "<strong>Lo que ve:</strong> «✓ Oferta desbloqueada, [nombre]», el libro, opiniones, para quién es, qué "
                 "hay dentro y dudas. Sin cuenta atrás.",
                 "<strong>Al pulsar «Consíguelo por 1 €»:</strong> la caja de pago de Stripe dentro de la página (tarjeta, "
-                "iDEAL y Bancontact), con sus datos ya puestos. Al abrirla queda en su ficha «abrió el pago».",
+                "iDEAL y Bancontact), con sus datos ya puestos. Stripe pide el teléfono («pon el número con el que usas "
+                "WhatsApp») y lo comprueba. Al abrirla queda en su ficha «abrió el pago».",
                 "Píxel: ViewContent y InitiateCheckout.",
             ),
         },
+        correo(
+            "nl_lista", "nl-lista", "Newsletter · Algo importante que contarte", EXT, F[2], "a la lista",
+            "A quien se apuntó a la lista (a mitad de campaña): la mejor oferta no se publica, se cuenta en la llamada. "
+            "El botón lleva a /oferta.",
+        ),
         {"clave": "paga", "tipo": "decision", "titulo": "¿Paga el ebook de 1 €?", "x": CEN, "y": F[3]},
         cifra("compraron", "Compraron el ebook", LADO, F[3]),
         cifra("sin_comprar", "Sin comprar el ebook", NO, F[3]),
-        # Rama: no compra.
-        correo(
-            "pendiente", E.ID_PENDIENTE, "Correo · El ebook te está esperando", NO, F[4], "al día siguiente",
-            "Uno solo, al día siguiente de dejar sus datos o abrir el pago. El botón le lleva a la página del ebook con "
-            "sus datos puestos.",
-        ),
-        correo("e_bf", "e-bf", "Correo · Black Friday (sin comprar)", NO, F[5], "27 nov"),
-        correo("e_ultimo", "e-ultimo", "Correo · Último día (sin comprar)", NO, F[6], "30 nov"),
-        {
-            "clave": "nada_formacion", "tipo": "nota", "titulo": "Sin comprar, nada de la formación", "x": NO, "y": F[7],
-            "cuerpo": _html(
-                "Quien no compra el ebook solo recibe correos del ebook. Si lo compra más tarde, pasa a la rama de la "
-                "derecha. Si se da de baja, no recibe nada más."
-            ),
-        },
+        # Rama: no compra (campaña «No compradores» de systeme.io).
+        correo("n1", "sys-n1", "Correo · La «e» que delata", NO, F[4], "día 1",
+               "Un consejo de pronunciación y el ebook a 1 €."),
+        correo("n3", "sys-n3", "Correo · Lo que hemos preparado", NO, F[5], "día 3",
+               "La formación y sus condiciones de Black Friday: el botón lleva a /oferta."),
+        correo("n5", "sys-n5", "Correo · Cuando otros hablan por ti", NO, F[6], "día 5",
+               "El dolor de depender de otros: el botón lleva a /oferta."),
+        correo("n7", "sys-n7", "Correo · Último aviso del ebook", NO, F[7], "día 7"),
         # Rama: compra.
         etapa("e4", "4 · Después de comprar", F[4]),
         {
@@ -680,7 +702,8 @@ def plan_black_friday(desde: str = "", hasta: str = "") -> dict:
         },
         correo(
             "entrega", "entrega", "Correo · Tu ebook ya está aquí", COR, F[4], "al momento",
-            "Con el botón de descarga del PDF y otro a la formación. systeme.io le pone la etiqueta «Ebook Black Friday».",
+            "Lo manda la ESCUELA (con el enlace de descarga firmado). systeme.io le pone «Ebook Black Friday» y le pasa "
+            "de «No compradores» a «Compradores».",
         ),
         {
             "clave": "pdf", "tipo": "contenido", "titulo": "El ebook (PDF) y sus QR", "x": EXT, "y": F[4],
@@ -694,32 +717,40 @@ def plan_black_friday(desde: str = "", hasta: str = "") -> dict:
                 f"<code>{BF_URL}/oferta?utm_source=ebook&utm_medium=qr&utm_campaign={BF_UTM}</code>",
             ),
         },
-        # Los correos a quien compró, en columna.
-        correo("c1", "c1", "Correo 1 a compradores", COR, F[5], "día 1"),
-        correo("c2", "c2", "Correo 2 a compradores", COR, F[6], "día 3"),
-        correo("c3", "c3", "Correo 3 a compradores", COR, F[7], "día 5"),
-        correo("c4", "c4", "Correo 4 a compradores", COR, F[8], "día 7"),
-        correo("bf", "bf", "Correo · Hoy es Black Friday", COR, F[9], "27 nov"),
-        correo("ultimo", "ultimo", "Correo · Último día", COR, F[10], "30 nov"),
+        # Los correos a quien compró (campaña «Compradores» de systeme.io).
+        correo("c1", "sys-c1", "Correo · Lo que de verdad hemos preparado", COR, F[5], "día 1"),
+        correo("c3", "sys-c3", "Correo · Por qué el neerlandés se atasca", COR, F[6], "día 3"),
+        correo("c5", "sys-c5", "Correo · «No tengo tiempo»…", COR, F[7], "día 5"),
+        correo("c7", "sys-c7", "Correo · Así es una semana", COR, F[8], "día 7"),
         {
-            "clave": "reglas", "tipo": "nota", "titulo": "Reglas de los correos", "x": COR, "y": F[11],
-            "cuerpo": _html(
-                "- Uno al día como mucho, nunca el día de la compra.\n"
-                "- Se para al reservar la llamada, al pagar la formación o con la baja.\n"
-                "- Quien no encaja sale de la campaña.\n"
-                "- Todos los botones llevan a /oferta con sus datos y utm_content = el correo: así se sabe qué correo "
-                "trajo a quién (Panel → Correos, «volvieron»)."
+            "clave": "nl_finales", "tipo": "tarea", "titulo": "Newsletters del 27 y del 30 de noviembre", "x": COR, "y": F[9],
+            "estado": "pendiente",
+            "checklist": _tareas(
+                "Crearlas en systeme.io con el diseño de siempre (editor visual)",
+                "Para: «Black Friday - lista» o «Ebook Black Friday»; sin «Llamada reservada» ni «Alumno»",
+                "Botón a /oferta con utm_source=systeme (no «email»: la oferta saludaría como comprador)",
             ),
         },
         {
-            "clave": "fria", "tipo": "tarea", "titulo": "Llamada en frío a quien compró", "x": EXT, "y": F[5],
+            "clave": "reglas", "tipo": "nota", "titulo": "Reglas de systeme.io", "x": COR, "y": F[10],
+            "cuerpo": _html(
+                "- «Black Friday - lista» → entra en «No compradores».\n"
+                "- «Ebook Black Friday» → sale de «No compradores» y entra en «Compradores».\n"
+                "- «Llamada reservada», «Alumno» o «Black Friday - no encaja» → sale de las dos.\n"
+                "- Las reglas solo saltan con etiquetas puestas DESPUÉS de crearlas.\n"
+                "- Todos los botones llevan utm_content = el correo: así se sabe qué correo trajo a quién."
+            ),
+        },
+        {
+            "clave": "fria", "tipo": "tarea", "titulo": "Llamar a quien compra el ebook", "x": EXT, "y": F[5],
             "checklist": _tareas(
-                "Panel → Correos → Personas → «en campaña»",
-                "Abrir a la persona → «Ver su ficha» → «Mandar a Llamadas» (o «Agendar llamada»)",
+                "Matrículas → Leads → filtro «Black Friday»: los compradores entran en Nuevo con su WhatsApp",
+                "Primero un WhatsApp corto; si contesta, la llamada",
+                "Si quiere la llamada de admisión: «Agendar llamada» desde su ficha",
             ),
             "cuerpo": _html(
-                "Quien compra el ebook NO entra solo en Matrículas: entra cuando empieza el formulario de la llamada. "
-                "Para llamarle antes, se le manda a Llamadas desde su ficha y sale al closer con su temperatura."
+                "Quien compra el ebook acaba de pagar: está caliente. En su ficha, el bloque «Black Friday» dice de dónde "
+                "vino y qué correos le han llegado. Quien solo se apuntó no dejó teléfono: no se le llama."
             ),
         },
         # 5 · La llamada.
@@ -731,27 +762,31 @@ def plan_black_friday(desde: str = "", hasta: str = "") -> dict:
             "cuerpo": _html(
                 "<strong>Lo que ve:</strong> las preguntas de admisión, con la edad la primera y sin pedir lo que ya sabemos. "
                 "Al dejar los datos ya sale en Matrículas.",
-                "Al terminar, si encaja, elige la hora en Calendly. systeme.io: «Black Friday - llamada».",
+                "Al terminar, si encaja, elige la hora en Calendly. systeme.io: «Black Friday - llamada» (y «Black Friday - "
+                "no encaja» si no encaja).",
             ),
         },
         {"clave": "reserva_q", "tipo": "decision", "titulo": "¿Termina, encaja y reserva?", "x": CEN, "y": F[6]},
-        correo(
-            "formulario_correo", E.ID_FORMULARIO, "Correo · Te quedaste a un paso", LADO, F[6], "al día siguiente",
-            "Solo a quien compró, empezó el formulario y no reservó: uno, al día siguiente, en lugar del correo de la "
-            "campaña de ese día.",
-        ),
+        {
+            "clave": "formulario_correo", "tipo": "nota", "titulo": "Te falta elegir la hora (systeme.io)", "x": LADO, "y": F[6],
+            "cuerpo": _html(
+                "Quien termina las preguntas y no reserva: un flujo de systeme.io con «Black Friday - llamada» y sin "
+                "«Llamada reservada», con el botón al formulario."
+            ),
+        },
         cifra("llamada", "Empezaron la llamada sin reservar", LADO, F[5]),
         {
-            "clave": "no_encaja", "tipo": "nota", "titulo": "No encaja: sale de la campaña", "x": LADO, "y": F[7],
-            "cuerpo": _html("Termina las preguntas y no encaja (lo dicen las líneas rojas de la cualificación): no recibe "
-                            "más correos de la campaña."),
+            "clave": "no_encaja", "tipo": "nota", "titulo": "No encaja: sale de las campañas", "x": LADO, "y": F[7],
+            "cuerpo": _html("Termina las preguntas y no encaja (lo dicen las líneas rojas de la cualificación): la web le "
+                            "pone «Black Friday - no encaja» y systeme.io le saca de las campañas."),
         },
         cifra("no_encajan", "No encajan", LADO, F[8]),
         {
             "clave": "reservada", "tipo": "embudo", "titulo": "Reserva su hora", "x": CEN, "y": F[7], "estado": "hecho",
             "cuerpo": _html(
                 "- Calendly le manda la invitación de calendario y el recordatorio de 1 hora.\n"
-                "- La escuela le manda el correo de Rida (Avisos → «Al reservar»).\n"
+                "- La escuela le manda el correo de Rida (Avisos → «Al reservar») y le pone «Llamada reservada» en "
+                "systeme.io (sale de las campañas).\n"
                 "- Sale en Ventas → «Por asignar» y a quien reparte le llega el aviso."
             ),
         },
@@ -780,16 +815,16 @@ def plan_black_friday(desde: str = "", hasta: str = "") -> dict:
         {
             "clave": "alumno", "tipo": "embudo", "titulo": "Alumno", "x": CEN, "y": F[11], "estado": "hecho",
             "cuerpo": _html(
-                "Al pagar: cuenta, correo de bienvenida y factura, como siempre. Sale de la campaña. En Panel → Alumnos "
-                "→ Tandas y grupos hay que elegir su grupo."
+                "Al pagar: cuenta, correo de bienvenida y factura, como siempre. systeme.io: «Alumno» (sale de las "
+                "campañas). En Panel → Alumnos → Tandas y grupos hay que elegir su grupo."
             ),
         },
         cifra("pagaron", "Pagaron la formación", LADO, F[11]),
         {
             "clave": "no_paga", "tipo": "nota", "titulo": "No paga en la llamada", "x": NO, "y": F[10],
             "cuerpo": _html(
-                "Seguimiento en Ventas (Seguimiento o Por pagar). Mientras no reservó otra llamada ni pagó, sigue "
-                "recibiendo los correos que le queden; desde que reservó, ya no."
+                "Seguimiento en Ventas (Seguimiento o Por pagar). Desde que reservó ya no recibe los correos de las "
+                "campañas: el seguimiento lo hace el closer."
             ),
         },
         cifra("bajas", "Se dieron de baja", EXT, F[11]),
@@ -797,32 +832,37 @@ def plan_black_friday(desde: str = "", hasta: str = "") -> dict:
 
     flechas = [
         ("ads", "portada", ""),
-        ("reels", "portada", ""),
+        ("reels", "portada", "DM de Inrō"),
         ("historias", "portada", ""),
         ("setter", "portada", ""),
-        ("portada", "acceso", "al momento"),
+        ("nl_abrimos", "portada", "botón: entra solo"),
+        ("nl_recuerdas", "portada", "botón: entra solo"),
+        ("portada", "n0", "al momento"),
         ("portada", "ebook", "pasa sola"),
-        ("acceso", "ebook", "botón"),
+        ("n0", "ebook", "botón"),
         ("ebook", "paga", ""),
-        ("paga", "pendiente", "no"),
-        ("pendiente", "e_bf", "27 nov"),
-        ("e_bf", "e_ultimo", "30 nov"),
-        ("pendiente", "ebook", "botón"),
+        ("paga", "n1", "no"),
+        ("n1", "n3", "día 3"),
+        ("n3", "n5", "día 5"),
+        ("n5", "n7", "día 7"),
+        ("n1", "ebook", "botón"),
+        ("n3", "oferta", "botón"),
         ("paga", "oferta", "sí"),
         ("paga", "entrega", "sí, al momento"),
         ("entrega", "pdf", "descarga"),
         ("entrega", "c1", "día 1"),
-        ("c1", "c2", "día 3"),
-        ("c2", "c3", "día 5"),
-        ("c3", "c4", "día 7"),
-        ("c4", "bf", "27 nov"),
-        ("bf", "ultimo", "30 nov"),
+        ("c1", "c3", "día 3"),
+        ("c3", "c5", "día 5"),
+        ("c5", "c7", "día 7"),
+        ("c7", "nl_finales", "27 y 30 nov"),
         ("c1", "oferta", "botón (todos)"),
+        ("nl_lista", "oferta", "botón"),
         ("pdf", "oferta", "QR"),
         ("oferta", "formulario", "botón"),
+        ("paga", "fria", "compró: a Nuevo"),
         ("fria", "formulario", "si le convence"),
         ("formulario", "reserva_q", ""),
-        ("reserva_q", "formulario_correo", "empieza y no reserva"),
+        ("reserva_q", "formulario_correo", "termina y no reserva"),
         ("formulario_correo", "formulario", "botón"),
         ("reserva_q", "no_encaja", "no encaja"),
         ("reserva_q", "reservada", "sí"),

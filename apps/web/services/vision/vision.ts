@@ -140,14 +140,20 @@ export interface MapaVision {
 export interface CorreoBF {
   id: string
   asunto: string
-  grupo: 'sin_comprar' | 'compradores'
+  /** "" en las newsletters de systeme.io. */
+  grupo: 'sin_comprar' | 'compradores' | ''
   cuando: string
   apagado: boolean
-  enviados: number
+  /** null en las newsletters: no se sabe a quién les llegó. */
+  enviados: number | null
   esperando: number
   volvieron: number
   reservaron_despues: number
   pagaron_despues: number
+  /** Los correos de systeme.io (29/10): se ven y se editan allí. */
+  enlace?: string
+  calculado?: boolean
+  newsletter?: boolean
 }
 
 export interface DatosBF {

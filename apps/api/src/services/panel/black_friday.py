@@ -64,6 +64,27 @@ NEWSLETTERS = {
     "nl-lista": "Tenemos algo importante que contarte",
 }
 
+#: Dónde se edita cada correo en systeme.io: el paso de su campaña o la
+#: newsletter (las dos de «abrimos» son dos botones del MISMO correo).
+SYSTEME_CAMPANA_ID = {"no-compradores": 1222373, "compradores": 1222372}
+SYSTEME_PASO_ID = {
+    "sys-n0": 6231026, "sys-n1": 6231032, "sys-n3": 6231033, "sys-n5": 6231034, "sys-n7": 6231035,
+    "sys-c1": 6231036, "sys-c3": 6231037, "sys-c5": 6231038, "sys-c7": 6231039,
+}
+SYSTEME_NEWSLETTER_ID = {"nl-abrimos-1": 5508957, "nl-abrimos-2": 5508957, "nl-recuerdas": 5508958, "nl-lista": 5508959}
+
+
+def enlace_systeme(ident: str) -> str:
+    """La página de systeme.io donde se edita ese correo ("" si no es suyo)."""
+    ident = (ident or "").strip().lower()
+    if ident in SYSTEME_PASO_ID:
+        campana = "no-compradores" if ident.startswith("sys-n") else "compradores"
+        return f"https://systeme.io/dashboard/campaigns/{SYSTEME_CAMPANA_ID[campana]}/campaign-step/{SYSTEME_PASO_ID[ident]}/edit"
+    if ident in SYSTEME_NEWSLETTER_ID:
+        return f"https://systeme.io/dashboard/newsletters/{SYSTEME_NEWSLETTER_ID[ident]}/edit"
+    return ""
+
+
 #: Todos los asuntos por el `utm_content` de su botón.
 ASUNTOS: dict[str, str] = {
     **{ident: asunto for pasos in CAMPANAS.values() for ident, asunto, _dia in pasos},

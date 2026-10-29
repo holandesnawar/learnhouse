@@ -384,9 +384,15 @@ def test_plan_black_friday_engancha_cada_correo_de_verdad():
     assert len(claves) == len(set(claves))
     assert plan["campana"]["utm_campaign"] == "black-friday" and plan["campana"]["estado"] in M.ESTADOS
     assert "lunes 30 de noviembre" in plan["campana"]["cuerpo"]
-    correos_de_verdad = {p["id"] for p in C.pasos(E.config_limpia({}))}
+    # Desde el 29/10 los correos los manda systeme.io: las dos campañas, la
+    # entrega del ebook (la escuela) y las newsletters.
+    correos_de_verdad = {p["id"] for p in C.pasos_systeme()} | {n for n, _ids, _para in C.NEWSLETTERS_SYSTEME}
     en_el_mapa = {n["metrica"]["correo"] for n in plan["nodos"] if n["tipo"] == "correo"}
     assert en_el_mapa == correos_de_verdad  # todos, y ninguno inventado
+    _ = E
+    # La portada ya no pide el WhatsApp.
+    portada = next(n for n in plan["nodos"] if n["clave"] == "portada")
+    assert "nombre y correo" in portada["cuerpo"] and "WhatsApp" in portada["cuerpo"]
     assert {n["metrica"]["clave"] for n in plan["nodos"] if n["tipo"] == "metrica"} <= set(C.CIFRAS_MAPA)
     assert all(n["metrica"]["fuente"] == "black-friday" for n in plan["nodos"] if n["tipo"] == "metrica")
     assert all(a in claves and b in claves for a, b, _ in plan["flechas"])
@@ -398,7 +404,7 @@ def test_plan_black_friday_engancha_cada_correo_de_verdad():
     assert decidir["urgente"] and decidir["importante"]
 
 
-async def test_crear_black_friday_y_las_cifras_del_mapa(db, org):
+async def test_crear_black_friday_y_las_cifras_del_mapa(db, org, monkeypatch):
     from src.services.correos import correos as C
     from src.services.vision.plantillas import crear_black_friday
 
@@ -411,14 +417,26 @@ async def test_crear_black_friday_y_las_cifras_del_mapa(db, org):
     tipos = {n["tipo"] for n in sub["nodos"]}
     assert {"correo", "decision", "etapa", "metrica", "embudo"} <= tipos
     # La métrica guarda de dónde sale la cifra y el correo, cuál es.
-    acceso = next(n for n in sub["nodos"] if n["tipo"] == "correo" and n["metrica"]["correo"] == "acceso")
+    acceso = next(n for n in sub["nodos"] if n["tipo"] == "correo" and n["metrica"]["correo"] == "sys-n0")
     assert acceso["metrica"]["campana_id"] == 0
     m = next(n for n in sub["nodos"] if n["tipo"] == "metrica")
     assert m["metrica"]["fuente"] == "black-friday" and m["metrica"]["campana_id"] == 0
     # Las cifras en vivo: sin nadie, todo a cero y cada correo con su asunto.
+    # Con la campaña de la escuela apagada (los manda systeme.io), cada tarjeta
+    # del mapa encuentra su correo, con el enlace a systeme.io.
+    from src.services.ebook import ebook as E
+
+    async def apagada(db_session, org_id=None):
+        return {**E.config_limpia({}), "campana": False, "systeme_desde": "2026-11-01"}
+
+    monkeypatch.setattr(E, "leer", apagada)
     datos = await C.para_el_mapa(org.id, db)
     assert set(datos["cifras"]) == set(C.CIFRAS_MAPA) and not any(datos["cifras"].values())
-    assert datos["correos"]["acceso"]["asunto"] and datos["correos"]["c1"]["enviados"] == 0
+    en_el_mapa = {n["metrica"]["correo"] for n in sub["nodos"] if n["tipo"] == "correo"}
+    assert en_el_mapa <= set(datos["correos"])
+    assert datos["correos"]["sys-n0"]["asunto"] and datos["correos"]["sys-c1"]["enviados"] == 0
+    assert datos["correos"]["sys-c1"]["enlace"].startswith("https://systeme.io/") and datos["correos"]["entrega"]["enlace"] == ""
+    assert datos["correos"]["nl-lista"]["newsletter"] is True
 
 
 # ── el tablero y las semanas ────────────────────────────────────────────────
