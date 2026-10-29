@@ -26,7 +26,7 @@
 
 import React, { memo, useEffect, useRef, useState } from 'react'
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
-import { ArrowRight, Eye, Paperclip, Link2, Mail, Plus } from 'lucide-react'
+import { ArrowRight, ExternalLink, Eye, Paperclip, Link2, Mail, Plus } from 'lucide-react'
 import {
   COLOR_SEMAFORO,
   ESTADO,
@@ -146,11 +146,33 @@ function CuerpoCorreo({ nodo, bf, onVer }: { nodo: NodoVision; bf?: DatosBF | nu
       <p className="text-[14px] font-semibold text-gray-900 leading-snug break-words line-clamp-2">{c.asunto}</p>
       <p className="mt-1 text-[11.5px] text-[#6B7280] leading-snug">{c.apagado ? 'Apagado: no sale' : c.cuando}</p>
       <div className="mt-2 pt-2 border-t border-[#F3F4F6] grid grid-cols-3 gap-x-2">
-        <Cifra etiqueta="Enviados" valor={String(c.enviados)} />
-        <Cifra etiqueta="Próximo" valor={String(c.esperando)} />
-        <Cifra etiqueta="Volvieron" valor={String(c.volvieron)} />
+        {c.newsletter ? (
+          <>
+            <Cifra etiqueta="Volvieron" valor={String(c.volvieron)} />
+            <Cifra etiqueta="Reservaron" valor={String(c.reservaron_despues)} />
+            <Cifra etiqueta="Pagaron" valor={String(c.pagaron_despues)} />
+          </>
+        ) : (
+          <>
+            <Cifra etiqueta={c.calculado ? 'Le llegó' : 'Enviados'} valor={String(c.enviados ?? 0)} />
+            <Cifra etiqueta="Próximo" valor={String(c.esperando)} />
+            <Cifra etiqueta="Volvieron" valor={String(c.volvieron)} />
+          </>
+        )}
       </div>
-      {onVer ? (
+      {c.enlace ? (
+        // Los correos de systeme.io se ven allí.
+        <a
+          href={c.enlace}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          onDoubleClick={(e) => e.stopPropagation()}
+          className="nodrag mt-2 inline-flex items-center gap-1 text-[12px] font-medium text-[#025dc7] hover:underline"
+        >
+          <ExternalLink size={12} /> Ver en systeme.io
+        </a>
+      ) : onVer ? (
         <button
           onClick={(e) => {
             e.stopPropagation()

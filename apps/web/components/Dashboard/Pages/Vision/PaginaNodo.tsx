@@ -454,6 +454,7 @@ export default function PaginaNodo({
                     {[
                       { grupo: 'sin_comprar', nombre: 'A quien no compró el ebook' },
                       { grupo: 'compradores', nombre: 'A quien compró el ebook' },
+                      { grupo: '', nombre: 'Newsletters (systeme.io)' },
                     ].map((g) => (
                       <optgroup key={g.grupo} label={g.nombre}>
                         {Object.values(bf?.correos ?? {})
@@ -473,17 +474,28 @@ export default function PaginaNodo({
                         {bf.correos[n.metrica.correo].apagado ? 'Apagado: no sale' : bf.correos[n.metrica.correo].cuando}
                       </p>
                       <p className="mt-1.5 text-[12.5px] text-[#4B5563] tabular-nums">
-                        Enviados {bf.correos[n.metrica.correo].enviados} · lo tienen de próximo {bf.correos[n.metrica.correo].esperando} ·
+                        {bf.correos[n.metrica.correo].newsletter
+                          ? 'Newsletter: no se sabe a quién le llegó. '
+                          : `${bf.correos[n.metrica.correo].calculado ? 'Le llegó (calculado)' : 'Enviados'} ${bf.correos[n.metrica.correo].enviados ?? 0} · lo tienen de próximo ${bf.correos[n.metrica.correo].esperando} · `}
                         volvieron {bf.correos[n.metrica.correo].volvieron} · reservaron después {bf.correos[n.metrica.correo].reservaron_despues}{' '}
                         · pagaron después {bf.correos[n.metrica.correo].pagaron_despues}
                       </p>
                       <div className="mt-2.5 flex flex-wrap gap-2">
-                        <button onClick={() => setVerCorreo(true)} className={BOTON}>
-                          <Eye size={13} /> Ver cómo llega
-                        </button>
-                        <Link href={EDITAR_CORREOS} className={BOTON}>
-                          Cambiar el texto <ArrowRight size={13} />
-                        </Link>
+                        {bf.correos[n.metrica.correo].enlace ? (
+                          // Los correos de systeme.io se ven y se cambian allí.
+                          <a href={bf.correos[n.metrica.correo].enlace} target="_blank" rel="noopener noreferrer" className={BOTON}>
+                            <ExternalLink size={13} /> Ver y cambiar en systeme.io
+                          </a>
+                        ) : (
+                          <>
+                            <button onClick={() => setVerCorreo(true)} className={BOTON}>
+                              <Eye size={13} /> Ver cómo llega
+                            </button>
+                            <Link href={EDITAR_CORREOS} className={BOTON}>
+                              Cambiar el texto <ArrowRight size={13} />
+                            </Link>
+                          </>
+                        )}
                       </div>
                     </div>
                   ) : (

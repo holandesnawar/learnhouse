@@ -150,3 +150,55 @@ def test_linea_de_tiempo():
     assert linea[0]["texto"].endswith("(desde el correo «Por qué el neerlandés se atasca»)")
     assert linea[1]["campana"] == "Black Friday" and linea[1]["correo"] == "c2"
     assert linea[3]["ok"] is False and linea[3]["campana"] == ""
+
+
+def test_con_los_correos_en_systeme_el_panel_los_calcula():
+    """29/10: con la campaña de la escuela apagada, los correos los manda
+    systeme.io. El recorrido son sus pasos y newsletters; a quién le llegó
+    cada uno se calcula con su calendario desde que se encendieron; quién
+    volvió por un botón, se mide."""
+    from datetime import datetime, timezone
+
+    cfg = {**E.config_limpia({"hasta": "2026-11-30"}), "campana": False, "systeme_desde": "2026-11-01"}
+    ahora = datetime(2026, 11, 6, 12, 0, tzinfo=timezone.utc)
+
+    def ev(kind, when, **k):
+        return {"kind": kind, "when": when, "phone": "", "recorrido": "", "utm_source": "", "utm_medium": "",
+                "utm_campaign": "", "utm_content": "", "extra": {}, **k}
+
+    fichas = [
+        # Leo se apuntó el 2 y no compra: n0, n1 y n3 ya; el n5, el 7.
+        {"email": "leo@x.com", "nombre": "Leo", "pasos": [], "etapa": "",
+         "eventos": [ev("bf-lista", "2026-11-02T10:00:00+00:00")]},
+        # Ana se apuntó por la newsletter, compró el 3 y volvió por el c1 a pedir la llamada.
+        {"email": "ana@x.com", "nombre": "Ana", "pasos": [], "etapa": "",
+         "eventos": [
+             ev("bf-lista", "2026-11-02T09:00:00+00:00", utm_source="email", utm_campaign="black-friday", utm_content="nl-abrimos-2"),
+             ev("ebook", "2026-11-03T10:00:00+00:00"),
+             ev("reunion", "2026-11-04T15:00:00+00:00", utm_source="email", utm_campaign="black-friday", utm_content="sys-c1"),
+         ]},
+        # Una prueba: no cuenta.
+        {"email": "prueba@x.com", "nombre": "Prueba", "pasos": [], "etapa": "",
+         "eventos": [ev("bf-lista", "2026-11-02T10:00:00+00:00")]},
+    ]
+    d = C.armar_panel_systeme(cfg=cfg, fichas=fichas, pagaron=set(), fuera={"prueba@x.com"}, hoy="2026-11-06",
+                              ahora=ahora, pagos={}, envios=[])
+    assert d["campana"]["fuente"] == "systeme" and d["campana"]["activa"] is True
+    personas = {x["email"]: x for x in d["personas"]}
+    assert set(personas) == {"leo@x.com", "ana@x.com"}
+    assert personas["leo@x.com"]["ultimo"]["id"] == "sys-n3" and personas["leo@x.com"]["proximo"]["id"] == "sys-n5"
+    assert personas["leo@x.com"]["proximo"]["dia"] == "2026-11-07"
+    assert personas["ana@x.com"]["situacion"] == "reservo" and personas["ana@x.com"]["proximo"] is None
+    pasos = {x["id"]: x for x in d["pasos"]}
+    assert pasos["sys-n0"]["enviados"] == 2 and pasos["sys-n5"]["esperando"] == 1
+    assert pasos["sys-c1"]["enviados"] == 1 and pasos["sys-c1"]["volvieron"] == 1 and pasos["sys-c1"]["reservaron_despues"] == 1
+    assert pasos["entrega"]["enviados"] == 1 and pasos["entrega"]["enlace"] == ""
+    assert pasos["sys-n0"]["enlace"].startswith("https://systeme.io/dashboard/campaigns/1222373/")
+    news = {x["id"]: x for x in d["newsletters"]}
+    assert news["nl-abrimos"]["volvieron"] == 1 and news["nl-abrimos"]["reservaron_despues"] == 1
+    assert news["nl-lista"]["volvieron"] == 0
+
+    # Sin el día en que se encendieron, nadie está en ninguna campaña.
+    d2 = C.armar_panel_systeme(cfg={**cfg, "systeme_desde": ""}, fichas=fichas, pagaron=set(), fuera=set(), hoy="2026-11-06",
+                               ahora=ahora, pagos={}, envios=[])
+    assert d2["campana"]["activa"] is False and d2["resumen"]["enviados"] == 1  # solo la entrega del ebook

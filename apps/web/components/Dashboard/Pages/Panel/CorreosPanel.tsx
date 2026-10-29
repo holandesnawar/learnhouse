@@ -16,17 +16,23 @@
  * - **Envíos**: todo lo que ha mandado la escuela, el más nuevo arriba, con
  *   los que no salieron en rojo.
  * Solo administradores. Estilo de `ui.tsx`.
+ *
+ * Desde el 29/10 los correos de Black Friday los manda systeme.io: el
+ * servidor devuelve `campana.fuente = 'systeme'`, los pasos de sus campañas
+ * («le llegó» calculado con su calendario) y sus newsletters. «Ver» abre el
+ * correo en systeme.io, que es donde vive.
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, CircleAlert, Eye, Loader2, Mail, MousePointerClick, Search, X } from 'lucide-react'
+import { ArrowRight, CircleAlert, ExternalLink, Eye, Loader2, Mail, MousePointerClick, Search, X } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import {
   getCorreos,
   getPersonaCorreos,
   type DetallePersona,
+  type NewsletterCorreo,
   type PanelCorreos,
   type PasoCorreo,
   type PersonaCorreos,
@@ -49,7 +55,7 @@ const TONO: Record<Situacion, Tono> = {
 }
 const ORDEN_SITUACIONES: { id: Situacion; nombre: string }[] = [
   { id: 'sin-comprar', nombre: 'Sin comprar' },
-  { id: 'comprador', nombre: 'En campaña' },
+  { id: 'comprador', nombre: 'Compraron el ebook' },
   { id: 'llamada', nombre: 'Empezaron la llamada' },
   { id: 'reservo', nombre: 'Reservaron' },
   { id: 'pago', nombre: 'Pagaron' },
@@ -108,9 +114,16 @@ function TarjetaCorreo({ paso, onVer }: { paso: PasoCorreo; onVer: (p: PasoCorre
           </p>
           <p className="text-[14px] font-medium text-gray-900 leading-snug">{paso.asunto}</p>
         </div>
-        <button onClick={() => onVer(paso)} className={`${BOTON} shrink-0`} aria-label={`Ver el correo «${paso.asunto}»`}>
-          <Eye size={13} /> Ver
-        </button>
+        {paso.enlace ? (
+          // Vive en systeme.io: se ve y se edita allí.
+          <a href={paso.enlace} target="_blank" rel="noopener noreferrer" className={`${BOTON} shrink-0`} aria-label={`Abrir «${paso.asunto}» en systeme.io`}>
+            <ExternalLink size={13} /> Ver
+          </a>
+        ) : (
+          <button onClick={() => onVer(paso)} className={`${BOTON} shrink-0`} aria-label={`Ver el correo «${paso.asunto}»`}>
+            <Eye size={13} /> Ver
+          </button>
+        )}
       </div>
       <div className="mt-3 pt-2.5 border-t border-[#F3F4F6] grid grid-cols-5 gap-2">
         <NumeroPaso etiqueta="le llegó" valor={paso.enviados} />
@@ -150,6 +163,31 @@ function Rama({ titulo, que, pasos, onVer }: { titulo: string; que: string; paso
           </div>
         </div>
       ))}
+    </div>
+  )
+}
+
+/** Una newsletter de systeme.io: no se sabe a quién le llegó, solo quién volvió por su botón. */
+function TarjetaNewsletter({ n }: { n: NewsletterCorreo }) {
+  return (
+    <div className={`${TARJETA} p-3.5`}>
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 shrink-0 w-8 h-8 rounded-md bg-[#F3F4F6] text-[#4B5563] flex items-center justify-center">
+          <Mail size={15} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6B7280] truncate">{n.para}</p>
+          <p className="text-[14px] font-medium text-gray-900 leading-snug">{n.asunto}</p>
+        </div>
+        <a href={n.enlace} target="_blank" rel="noopener noreferrer" className={`${BOTON} shrink-0`} aria-label={`Abrir «${n.asunto}» en systeme.io`}>
+          <ExternalLink size={13} /> Ver
+        </a>
+      </div>
+      <div className="mt-3 pt-2.5 border-t border-[#F3F4F6] grid grid-cols-3 gap-2">
+        <NumeroPaso etiqueta="volvieron" valor={n.volvieron} />
+        <NumeroPaso etiqueta="reservaron" valor={n.reservaron_despues} fuerte />
+        <NumeroPaso etiqueta="pagaron" valor={n.pagaron_despues} fuerte />
+      </div>
     </div>
   )
 }
@@ -214,9 +252,11 @@ function PersonaPanel({ email, onClose, onFicha }: { email: string; onClose: () 
                         ? 'Ninguno: se dio de baja.'
                         : d.situacion === 'no-encaja'
                           ? 'Ninguno: no encaja, salió de la campaña.'
-                          : d.en_campana
-                            ? 'Ninguno: ya le llegó todo lo que le tocaba.'
-                            : 'No está en la campaña de Black Friday.'}
+                          : d.aviso
+                            ? d.aviso
+                            : d.en_campana || d.situacion === 'comprador' || d.situacion === 'sin-comprar'
+                              ? 'Ninguno: ya le llegó todo lo que le tocaba.'
+                              : 'No está en la campaña de Black Friday.'}
                   </p>
                 )}
               </div>
@@ -237,13 +277,18 @@ function PersonaPanel({ email, onClose, onFicha }: { email: string; onClose: () 
                         </span>
                         <p className={`text-[13.5px] leading-snug ${x.tipo === 'correo' ? 'text-gray-900' : 'text-[#025dc7] font-medium'}`}>{x.texto}</p>
                         <Meta
-                          partes={[diaHora(x.cuando), x.campana, x.tipo === 'correo' && !x.ok ? <span className="text-red-600 font-medium">no salió</span> : '']}
+                          partes={[
+                            diaHora(x.cuando),
+                            x.campana,
+                            x.calculado ? 'calculado' : '',
+                            x.tipo === 'correo' && !x.ok ? <span className="text-red-600 font-medium">no salió</span> : '',
+                          ]}
                         />
                       </li>
                     ))}
                   </ol>
                 ) : (
-                  <p className={META}>Todavía no le ha llegado ningún correo de la escuela.</p>
+                  <p className={META}>Todavía no le ha llegado ningún correo.</p>
                 )}
               </div>
             </>
@@ -325,6 +370,8 @@ export default function CorreosPanel() {
   }
   const r = datos.resumen
   const hoy = datos.campana.hoy
+  // Desde el 29/10 los correos los manda systeme.io y aquí se calculan.
+  const systeme = datos.campana.fuente === 'systeme'
 
   return (
     <div className="space-y-7">
@@ -335,21 +382,29 @@ export default function CorreosPanel() {
             <p className="text-[15px] font-semibold text-gray-900">Campaña de Black Friday</p>
             <Meta
               partes={[
-                <Estado key="c" tono={datos.campana.activa ? 'verde' : 'gris'}>
-                  {datos.campana.activa ? 'Correos encendidos' : 'Correos apagados'}
-                </Estado>,
+                systeme ? (
+                  <Estado key="c" tono={datos.campana.activa ? 'verde' : 'ambar'}>
+                    {datos.campana.activa && datos.campana.systeme_desde
+                      ? `Correos de systeme.io desde el ${dia(datos.campana.systeme_desde, hoy)}`
+                      : 'Correos de systeme.io: falta poner desde qué día están encendidos'}
+                  </Estado>
+                ) : (
+                  <Estado key="c" tono={datos.campana.activa ? 'verde' : 'gris'}>
+                    {datos.campana.activa ? 'Correos encendidos' : 'Correos apagados'}
+                  </Estado>
+                ),
                 datos.campana.hasta
                   ? // «hasta hoy» / «hasta mañana», pero «hasta el lun 30 nov».
                     ((d) => (d === 'hoy' || d === 'mañana' ? `hasta ${d}` : `hasta el ${d}`))(dia(datos.campana.hasta, hoy))
                   : '',
-                `${r.enviados} correos enviados`,
+                systeme ? `${r.enviados} correos (calculados)` : `${r.enviados} correos enviados`,
                 `${r.enviados_7d} esta semana`,
               ]}
               className="mt-0.5 whitespace-normal"
             />
           </div>
           <Link href={EDITAR} className={BOTON}>
-            Editar textos y ajustes <ArrowRight size={13} />
+            {systeme ? 'Ajustes' : 'Editar textos y ajustes'} <ArrowRight size={13} />
           </Link>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -395,6 +450,13 @@ export default function CorreosPanel() {
       {vista === 'recorrido' ? (
         <div className="space-y-4">
           <p className={META}>
+            {systeme ? (
+              <>
+                Los correos los manda <b className="font-medium text-gray-700">systeme.io</b>. <b className="font-medium text-gray-700">Le llegó</b> se
+                calcula con el calendario de su campaña desde el día en que se encendieron (Avisos → Ebook Black Friday); «Ver» lo abre en
+                systeme.io.{' '}
+              </>
+            ) : null}
             Cada tarjeta es un correo de la campaña. <b className="font-medium text-gray-700">Le llegó</b>: a cuántos.{' '}
             <b className="font-medium text-gray-700">Esperan</b>: lo tienen como próximo. <b className="font-medium text-gray-700">Volvieron</b>:
             entraron desde su botón e hicieron algo. <b className="font-medium text-gray-700">Reservaron / pagaron</b>: después de recibirlo.
@@ -402,17 +464,38 @@ export default function CorreosPanel() {
           <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 items-start">
             <Rama
               titulo={datos.grupos.sin_comprar}
-              que="Desbloqueó la oferta o abrió el pago y no compró: todo le lleva al ebook."
+              que={
+                systeme
+                  ? 'Campaña «No compradores» de systeme.io: empieza al apuntarse a la lista y sale al comprar el ebook.'
+                  : 'Desbloqueó la oferta o abrió el pago y no compró: todo le lleva al ebook.'
+              }
               pasos={datos.pasos.filter((p) => p.grupo === 'sin_comprar')}
               onVer={setViendo}
             />
             <Rama
               titulo={datos.grupos.compradores}
-              que="Compró el ebook: todo le lleva a la llamada. Se para al reservar o pagar."
+              que={
+                systeme
+                  ? 'Campaña «Compradores» de systeme.io: todo le lleva a la oferta y a la llamada. Sale al reservar, pagar o no encajar.'
+                  : 'Compró el ebook: todo le lleva a la llamada. Se para al reservar o pagar.'
+              }
               pasos={datos.pasos.filter((p) => p.grupo === 'compradores')}
               onVer={setViendo}
             />
           </div>
+          {datos.newsletters?.length ? (
+            <div className="pt-2">
+              <p className="text-[14px] font-semibold text-gray-900">Newsletters</p>
+              <p className={`${META} mb-3`}>
+                Se mandan a mano desde systeme.io. De ellas no se sabe a quién le llegaron: solo quién volvió por su botón y qué hizo después.
+              </p>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {datos.newsletters.map((n) => (
+                  <TarjetaNewsletter key={n.id} n={n} />
+                ))}
+              </div>
+            </div>
+          ) : null}
           <p className={`${META} pt-1`}>
             Las aperturas y los clics dentro del correo no se miden: las del iPhone son falsas (Apple abre todos los correos) y harían falta
             avisos de Resend. Lo que sí se ve es quién volvió desde un correo y qué hizo después.

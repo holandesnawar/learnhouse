@@ -23,6 +23,21 @@ export interface PasoCorreo {
   volvieron: number
   reservaron_despues: number
   pagaron_despues: number
+  /** Con los correos en systeme.io (29/10): dónde se edita. Sin vista previa. */
+  enlace?: string
+  /** «Le llegó» calculado con el calendario de la campaña de systeme.io. */
+  calculado?: boolean
+}
+
+/** Las newsletters de systeme.io: de ellas solo se sabe quién volvió. */
+export interface NewsletterCorreo {
+  id: string
+  asunto: string
+  para: string
+  enlace: string
+  volvieron: number
+  reservaron_despues: number
+  pagaron_despues: number
 }
 
 export interface Proximo {
@@ -54,7 +69,16 @@ export interface Envio {
 }
 
 export interface PanelCorreos {
-  campana: { activa: boolean; venta: boolean; desde: string; hasta: string; hoy: string }
+  campana: {
+    activa: boolean
+    venta: boolean
+    desde: string
+    hasta: string
+    hoy: string
+    /** «systeme»: los correos los manda systeme.io y aquí se calculan. */
+    fuente?: 'systeme'
+    systeme_desde?: string
+  }
   resumen: {
     entraron: number
     compraron: number
@@ -71,6 +95,7 @@ export interface PanelCorreos {
   }
   grupos: Record<Grupo, string>
   pasos: PasoCorreo[]
+  newsletters?: NewsletterCorreo[]
   personas: PersonaCorreos[]
   envios: Envio[]
 }
@@ -82,6 +107,7 @@ export interface LineaPersona {
   ok: boolean
   campana: string
   correo: string
+  calculado?: boolean
 }
 
 export interface DetallePersona {
@@ -90,6 +116,8 @@ export interface DetallePersona {
   situacion: Situacion
   etiqueta: string
   en_campana: boolean
+  campana?: string
+  aviso?: string
   proximo: Proximo | null
   linea: LineaPersona[]
 }
