@@ -1190,11 +1190,12 @@ def _telefono(texto: Any) -> str:
 
 async def apuntar_lista(datos: dict, db_session: AsyncSession) -> dict:
     """Quien rellena el formulario de blackfriday.holandesnawar.com (nombre,
-    correo y WhatsApp): queda en su ficha (`bf-lista`, uno por persona), le
+    correo y WhatsApp, o solo nombre y correo desde el botón de un correo de
+    systeme.io): queda en su ficha (`bf-lista`, uno por persona), le
     llega al momento el correo de acceso con el botón a la página del ebook y
     se le etiqueta en systeme.io. Si no compra, al día siguiente le llega el
     recordatorio. Repetirlo no duplica nada: actualiza el nombre y el
-    teléfono. Devuelve si es nuevo."""
+    teléfono. Devuelve si es nuevo y si ya compró el ebook."""
     from src.db.contact_event import ContactEvent
     from src.services.panel.tandas import hoy_nl
 
@@ -1261,7 +1262,15 @@ async def apuntar_lista(datos: dict, db_session: AsyncSession) -> dict:
         await etiquetar(email, nombre, "Black Friday - lista")
     except Exception:  # noqa: BLE001
         logger.warning("Lista de Black Friday: no se pudo etiquetar en systeme.io", exc_info=True)
-    return {"ok": True, "nuevo": nuevo}
+    # Si ya compró el ebook (29/10: el botón de las newsletters de systeme.io
+    # le apunta con su nombre y su correo, sin formulario), la web le lleva a
+    # /oferta y no a comprarlo otra vez.
+    compro = (
+        await db_session.execute(
+            select(ContactEvent.id).where(ContactEvent.email == email, ContactEvent.kind == TIPO_COMPRA).limit(1)
+        )
+    ).first() is not None
+    return {"ok": True, "nuevo": nuevo, "compro": compro}
 
 
 # ── Los correos ─────────────────────────────────────────────────────────────
