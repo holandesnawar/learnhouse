@@ -57,6 +57,7 @@ import {
   cambiarFlecha,
   cambiarNodo,
   crearClaseGratuita,
+  crearBlackFriday,
   utmDeClase,
   crearFlecha,
   crearNodo,
@@ -73,6 +74,7 @@ import {
 } from '@services/vision/vision'
 import TarjetaNodo, { type DatosTarjeta, type NodoFlow } from './TarjetaNodo'
 import PaginaNodo from './PaginaNodo'
+import VistaCorreo from '../Panel/VistaCorreo'
 import { ordenarMapa } from '@lib/nawar/ordenarMapa'
 import { BOTON, BOTON_PELIGRO, META, filtro } from '../Panel/ui'
 
@@ -149,7 +151,7 @@ function sitioAlLado(padre: NodoFlow, nodos: NodoFlow[], hijos: string[], abuelo
 }
 
 /** Las que se escriben en la propia tarjeta; campaña y métrica abren su página (hay que configurarlas). */
-const CON_PAGINA: TipoNodo[] = ['campana', 'metrica']
+const CON_PAGINA: TipoNodo[] = ['campana', 'metrica', 'correo']
 const NOMBRE_EN_MENU: Partial<Record<TipoNodo, string>> = { nota: 'Nota / idea' }
 
 type Ir = { mapaId: number | null; foco?: number; vez: number }
@@ -372,6 +374,10 @@ function Lienzo({
   const [editando, setEditando] = useState<number | null>(null)
   const [mas, setMas] = useState<{ nodo: NodoVision; x: number; y: number } | null>(null)
   const [plantilla, setPlantilla] = useState(false)
+  const [creandoBf, setCreandoBf] = useState(false)
+  // «Ver el correo» en una tarjeta de correo.
+  const [verCorreo, setVerCorreo] = useState<{ id: string; asunto: string } | null>(null)
+  const onVerCorreoTarjeta = useCallback((id: string, asunto: string) => setVerCorreo({ id, asunto }), [])
   // La recién creada sale ya elegida, para seguir con Tab / Intro.
   const seleccionar = useRef<string | null>(null)
 
@@ -469,10 +475,12 @@ function Lienzo({
         onAbrir: onAbrirTarjeta,
         onMas: onMasTarjeta,
         onTitulo: onTituloTarjeta,
+        bf: datos?.bf,
+        onVerCorreo: onVerCorreoTarjeta,
       }
     }
     return m
-  }, [datos?.nodos, datos?.cifras, tituloCampana, metricas, soloUrgente, editando, onAbrirTarjeta, onMasTarjeta, onTituloTarjeta])
+  }, [datos?.nodos, datos?.cifras, datos?.bf, tituloCampana, metricas, soloUrgente, editando, onAbrirTarjeta, onMasTarjeta, onTituloTarjeta, onVerCorreoTarjeta])
 
   // Las tarjetas de React Flow siguen a los datos; la posición manda la de pantalla.
   useEffect(() => {
@@ -842,6 +850,29 @@ function Lienzo({
                   </span>
                   <span className={`${META} block pl-4`}>El embudo entero, con fechas: anuncio, reels, página, clase, llamadas…</span>
                 </button>
+                <button
+                  disabled={creandoBf}
+                  onClick={async () => {
+                    if (!datos) return
+                    setCreandoBf(true)
+                    const r = await crearBlackFriday(orgId, { mapa_id: datos.mapa.id }, token)
+                    setCreandoBf(false)
+                    setMenu(false)
+                    if (!r.ok || !r.datos) return toast.error(r.error || 'No se ha podido crear el mapa')
+                    toast.success('Este es el mapa de Black Friday: muévelo y cámbialo a tu gusto')
+                    onCambioCampanas()
+                    onIr(r.datos.submapa_id)
+                  }}
+                  className="w-full text-left rounded-md px-2.5 py-2 hover:bg-[#F9FAFB] disabled:opacity-50"
+                >
+                  <span className="flex items-center gap-2 text-[13.5px] font-medium text-gray-900">
+                    <span className="w-2 h-2 rounded-full" style={{ background: '#4338CA' }} />
+                    {creandoBf ? 'Creando…' : 'Campaña Black Friday'}
+                  </span>
+                  <span className={`${META} block pl-4`}>
+                    De arriba abajo: de dónde viene, cada página, qué decide, sus correos (con vista) y las cifras de ahora
+                  </span>
+                </button>
               </div>
             </>
           ) : null}
@@ -986,6 +1017,8 @@ function Lienzo({
         />
       ) : null}
 
+      {verCorreo ? <VistaCorreo id={verCorreo.id} asunto={verCorreo.asunto} onClose={() => setVerCorreo(null)} /> : null}
+
       {/* El menú del «+»: qué añadir unido a esta tarjeta, o dentro de su mapa. */}
       {mas ? (
         <>
@@ -1045,7 +1078,8 @@ function Lienzo({
           campanas={campanas}
           metricas={metricas}
           onCambio={(n) => {
-            if (n.tipo === 'campana' || n.tipo === 'metrica' || nodoAbierto.tipo === 'campana') tocadoCampana.current = true
+            // Las cifras (y los correos de Black Friday) dependen de lo elegido: se piden otra vez al cerrar.
+            if (n.tipo === 'campana' || n.tipo === 'metrica' || n.tipo === 'correo' || nodoAbierto.tipo === 'campana') tocadoCampana.current = true
             setDatos((d) => d && { ...d, nodos: d.nodos.map((x) => (x.id === n.id ? n : x)) })
           }}
           onBorrado={(id) => {

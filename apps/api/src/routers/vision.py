@@ -37,6 +37,19 @@ async def _con_cifras(org_id: int, datos: dict, db: AsyncSession) -> dict:
     except Exception:  # noqa: BLE001
         await db.rollback()
         datos["cifras"] = {}
+    # Las tarjetas de correo y las métricas de Black Friday: los correos de
+    # verdad de la campaña y sus cifras, en vivo (29/10).
+    if any(
+        n["tipo"] == "correo" or (n["tipo"] == "metrica" and (n.get("metrica") or {}).get("fuente") == "black-friday")
+        for n in datos["nodos"]
+    ):
+        try:
+            from src.services.correos.correos import para_el_mapa
+
+            datos["bf"] = await para_el_mapa(org_id, db)
+        except Exception:  # noqa: BLE001
+            await db.rollback()
+            datos["bf"] = None
     return datos
 
 
@@ -365,3 +378,22 @@ async def api_plantilla_clase(request: Request, org_id: int, data: dict[str, Any
     if not r.get("ok"):
         raise HTTPException(status_code=400, detail=r.get("motivo"))
     return r
+
+
+@router.post("/org/{org_id}/plantillas/black-friday", summary="Crea el mapa de la campaña de Black Friday, de arriba abajo.")
+async def api_plantilla_black_friday(request: Request, org_id: int, data: dict[str, Any], current_user: PublicUser = Depends(get_current_user), db_session: AsyncSession = Depends(get_db_session)):
+    await _solo_admin(request, org_id, current_user, db_session)
+    from src.services.vision.plantillas import crear_black_friday
+
+    r = await crear_black_friday(org_id, data or {}, db_session)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    return r
+
+
+@router.get("/org/{org_id}/black-friday", summary="Los correos y las cifras de la campaña de Black Friday, para elegirlos en una tarjeta.")
+async def api_black_friday(request: Request, org_id: int, current_user: PublicUser = Depends(get_current_user), db_session: AsyncSession = Depends(get_db_session)):
+    await _solo_admin(request, org_id, current_user, db_session)
+    from src.services.correos.correos import para_el_mapa
+
+    return await para_el_mapa(org_id, db_session)

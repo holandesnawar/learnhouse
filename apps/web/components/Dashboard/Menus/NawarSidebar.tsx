@@ -62,6 +62,7 @@ import {
   Compass,
   Path,
   ClipboardText,
+  PaperPlaneTilt,
 } from '@phosphor-icons/react'
 
 type Item = { href: string; label: string; icon: React.ReactNode; match?: (p: string) => boolean }
@@ -129,6 +130,8 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
     titulo: 'Captación y web',
     items: [
       { href: '/dash/estadisticas?tab=anuncios', label: 'Anuncios', icon: <Megaphone size={18} weight="fill" /> },
+      // Correos (29/10): el email marketing, quién está dónde y a quién le llegó qué. Solo administradores.
+      { href: '/dash/estadisticas?tab=correos', label: 'Correos', icon: <PaperPlaneTilt size={18} weight="fill" /> },
       { href: '/dash/estadisticas?tab=paginas', label: 'Páginas de la web', icon: <Globe size={18} weight="fill" /> },
       { href: '/dash/webs', label: 'Enlaces y redirecciones', icon: <LinkSimple size={18} weight="bold" />, match: (p) => p.includes('/dash/webs') && !p.includes('tab=') },
       { href: '/dash/webs?tab=utm', label: 'Enlaces UTM', icon: <Globe size={18} weight="regular" /> },

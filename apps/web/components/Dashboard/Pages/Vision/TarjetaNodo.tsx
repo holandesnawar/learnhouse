@@ -13,11 +13,20 @@
  * - El estado solo sale donde dice algo: en tareas, campañas, anuncios,
  *   contenidos y pasos del embudo, o si se ha cambiado (una vertical o una
  *   idea «Pendiente» era ruido).
+ *
+ * 29/10 (el mapa de Black Friday): tres tipos nuevos.
+ * - **Correo**: un correo de verdad de la campaña (`metrica.correo`). Enseña
+ *   el asunto de ahora, cuándo sale, a cuántos les llegó, cuántos lo tienen
+ *   como próximo y quién volvió por él; «Ver» lo abre tal cual llega.
+ * - **Decisión**: lo que decide la persona («¿Compra?»), en una píldora de
+ *   borde discontinuo.
+ * - **Etapa**: el rótulo grande de una etapa del embudo, sin caja.
+ * Y las métricas con `fuente: 'black-friday'` leen la campaña en vivo.
  */
 
 import React, { memo, useEffect, useRef, useState } from 'react'
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
-import { ArrowRight, Paperclip, Link2, Plus } from 'lucide-react'
+import { ArrowRight, Eye, Paperclip, Link2, Mail, Plus } from 'lucide-react'
 import {
   COLOR_SEMAFORO,
   ESTADO,
@@ -25,7 +34,9 @@ import {
   euros,
   fechaCorta,
   valorDe,
+  FUENTE_BF,
   type Cifras,
+  type DatosBF,
   type MetricaInfo,
   type NodoVision,
   type Semaforo,
@@ -45,6 +56,10 @@ export type DatosTarjeta = {
   onMas?: (nodo: NodoVision, x: number, y: number) => void
   /** Texto escrito en la tarjeta; null = no se cambia. */
   onTitulo?: (nodo: NodoVision, texto: string | null) => void
+  /** La campaña de Black Friday en vivo (correos y cifras), si el mapa la usa. */
+  bf?: DatosBF | null
+  /** «Ver» en una tarjeta de correo. */
+  onVerCorreo?: (id: string, asunto: string) => void
 }
 export type NodoFlow = Node<DatosTarjeta, 'tarjeta'>
 
@@ -113,10 +128,48 @@ function TituloEnLaTarjeta({ inicial, grande, onFin }: { inicial: string; grande
   )
 }
 
+/** Lo de dentro de una tarjeta de correo: el correo de verdad y sus cifras. */
+function CuerpoCorreo({ nodo, bf, onVer }: { nodo: NodoVision; bf?: DatosBF | null; onVer?: (id: string, asunto: string) => void }) {
+  const id = nodo.metrica.correo || ''
+  const c = id ? bf?.correos?.[id] : undefined
+  if (!c) {
+    return (
+      <>
+        <p className="mt-1 text-[14px] font-semibold text-gray-900 leading-snug break-words">{nodo.titulo || 'Correo'}</p>
+        <p className="mt-1 text-[11.5px] text-[#9CA3AF]">{id ? 'Ese correo ya no está en la campaña' : 'Doble clic: elige qué correo es'}</p>
+      </>
+    )
+  }
+  return (
+    <>
+      <p className="mt-1 text-[11.5px] text-[#6B7280] truncate">{nodo.titulo}</p>
+      <p className="text-[14px] font-semibold text-gray-900 leading-snug break-words line-clamp-2">{c.asunto}</p>
+      <p className="mt-1 text-[11.5px] text-[#6B7280] leading-snug">{c.apagado ? 'Apagado: no sale' : c.cuando}</p>
+      <div className="mt-2 pt-2 border-t border-[#F3F4F6] grid grid-cols-3 gap-x-2">
+        <Cifra etiqueta="Enviados" valor={String(c.enviados)} />
+        <Cifra etiqueta="Próximo" valor={String(c.esperando)} />
+        <Cifra etiqueta="Volvieron" valor={String(c.volvieron)} />
+      </div>
+      {onVer ? (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onVer(id, c.asunto)
+          }}
+          onDoubleClick={(e) => e.stopPropagation()}
+          className="nodrag mt-2 inline-flex items-center gap-1 text-[12px] font-medium text-[#025dc7] hover:underline"
+        >
+          <Eye size={12} /> Ver el correo
+        </button>
+      ) : null}
+    </>
+  )
+}
+
 const MANIJA = '!w-2.5 !h-2.5 !bg-white !border !border-[#9CA3AF] opacity-0 group-hover:opacity-100 transition-opacity'
 
 function TarjetaNodo({ data, selected }: NodeProps<NodoFlow>) {
-  const { nodo, cifras, campanaTitulo, metricas, atenuado, editando, onAbrir, onMas, onTitulo } = data
+  const { nodo, cifras, campanaTitulo, metricas, atenuado, editando, onAbrir, onMas, onTitulo, bf, onVerCorreo } = data
   const tipo = TIPO[nodo.tipo] ?? TIPO.nota
   const estado = ESTADO[nodo.estado] ?? ESTADO.pendiente
   const vencida = nodo.vence && nodo.vence < hoy() && nodo.estado !== 'hecho'
@@ -124,13 +177,29 @@ function TarjetaNodo({ data, selected }: NodeProps<NodoFlow>) {
   const grande = nodo.tipo === 'vertical'
   const abrible = nodo.tipo === 'vertical' || nodo.tipo === 'campana'
   const verEstado = CON_ESTADO.has(nodo.tipo) || (nodo.estado !== 'pendiente' && nodo.estado !== 'idea')
-  const ancho = grande ? 'w-[250px]' : nodo.tipo === 'metrica' ? 'w-[210px]' : nodo.tipo === 'nota' ? 'w-[220px]' : 'w-[236px]'
+  const ancho =
+    grande || nodo.tipo === 'correo'
+      ? 'w-[250px]'
+      : nodo.tipo === 'etapa'
+        ? 'w-[300px]'
+        : nodo.tipo === 'metrica'
+          ? 'w-[210px]'
+          : nodo.tipo === 'nota'
+            ? 'w-[220px]'
+            : 'w-[236px]'
+  const bfMetrica = nodo.tipo === 'metrica' && nodo.metrica.fuente === FUENTE_BF
+  // Cada tipo, su caja: la decisión es una píldora de borde discontinuo y la
+  // etapa no lleva caja (es un rótulo).
+  const caja =
+    nodo.tipo === 'decision'
+      ? `rounded-full border border-dashed bg-[#FFFBF2] ${selected ? 'border-[#025dc7] ring-2 ring-[#025dc7]/15' : 'border-[#C9A55C] hover:border-[#8A6A2A]'}`
+      : nodo.tipo === 'etapa'
+        ? `rounded-lg border ${selected ? 'border-[#025dc7] ring-2 ring-[#025dc7]/15 bg-white' : 'border-transparent hover:border-[#E5E7EB]'}`
+        : `rounded-lg border bg-white ${selected ? 'border-[#025dc7] ring-2 ring-[#025dc7]/15' : 'border-[#E5E7EB] hover:border-[#C7CDD6]'}`
 
   return (
     <div
-      className={`group relative rounded-lg border bg-white transition-[opacity,box-shadow] ${
-        selected ? 'border-[#025dc7] ring-2 ring-[#025dc7]/15' : 'border-[#E5E7EB] hover:border-[#C7CDD6]'
-      } ${atenuado ? 'opacity-25' : ''} ${ancho}`}
+      className={`group relative transition-[opacity,box-shadow] ${caja} ${atenuado ? 'opacity-25' : ''} ${ancho}`}
       style={nodo.tipo === 'vertical' ? { borderTop: `3px solid ${tipo.color}` } : undefined}
     >
       {/* Las cuatro manijas: se une arrastrando desde cualquiera. */}
@@ -158,19 +227,37 @@ function TarjetaNodo({ data, selected }: NodeProps<NodoFlow>) {
         </button>
       ) : null}
 
-      <div className="px-3 pt-2.5 pb-2.5">
-        <div className="flex items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[#6B7280] min-w-0">
-            <Punto color={tipo.color} />
-            <span className="truncate">{tipo.nombre}</span>
-          </span>
-          <span className="inline-flex items-center gap-1.5 shrink-0">
-            {nodo.urgente ? <span className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#DC2626]">Urgente</span> : null}
-            {nodo.importante ? <span className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#1D0084]">Importante</span> : null}
-          </span>
-        </div>
+      <div className={nodo.tipo === 'decision' ? 'px-5 py-2.5' : 'px-3 pt-2.5 pb-2.5'}>
+        {nodo.tipo === 'etapa' ? null : (
+          <div className={`flex items-center gap-2 ${nodo.tipo === 'decision' ? 'justify-center' : 'justify-between'}`}>
+            <span className="inline-flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[#6B7280] min-w-0">
+              {nodo.tipo === 'correo' ? <Mail size={12} className="text-[#4338CA] shrink-0" /> : <Punto color={tipo.color} />}
+              <span className="truncate">{nodo.tipo === 'correo' && nodo.etiquetas[1] ? `${tipo.nombre} · ${nodo.etiquetas[1]}` : tipo.nombre}</span>
+            </span>
+            {nodo.tipo === 'decision' ? null : (
+              <span className="inline-flex items-center gap-1.5 shrink-0">
+                {nodo.urgente ? <span className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#DC2626]">Urgente</span> : null}
+                {nodo.importante ? <span className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#1D0084]">Importante</span> : null}
+              </span>
+            )}
+          </div>
+        )}
 
-        {nodo.tipo === 'metrica' ? (
+        {nodo.tipo === 'correo' ? (
+          <CuerpoCorreo nodo={nodo} bf={bf} onVer={onVerCorreo} />
+        ) : nodo.tipo === 'decision' ? (
+          <p className="mt-0.5 text-[14px] font-semibold text-[#5C4512] leading-snug break-words text-center">{nodo.titulo || 'Sin título'}</p>
+        ) : nodo.tipo === 'etapa' ? (
+          <p className="text-[20px] font-semibold text-[#1D0084] leading-tight break-words">{nodo.titulo || 'Sin título'}</p>
+        ) : bfMetrica ? (
+          <>
+            <p className="mt-1.5 text-[12.5px] text-[#4B5563] truncate">{bf?.nombres?.[nodo.metrica.clave ?? ''] ?? nodo.titulo}</p>
+            <p className="text-[24px] font-semibold tabular-nums text-gray-900 leading-tight">
+              {bf && nodo.metrica.clave && nodo.metrica.clave in bf.cifras ? bf.cifras[nodo.metrica.clave] : '—'}
+            </p>
+            <p className="text-[11.5px] text-[#9CA3AF] truncate">Black Friday · ahora mismo</p>
+          </>
+        ) : nodo.tipo === 'metrica' ? (
           <>
             <p className="mt-1.5 text-[12.5px] text-[#4B5563] truncate">
               {metricas?.[nodo.metrica.clave ?? '']?.nombre ?? nodo.titulo}

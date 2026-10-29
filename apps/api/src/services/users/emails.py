@@ -932,6 +932,7 @@ def send_carta_ebook_email(
     botones: Optional[list] = None,
     baja_url: str = "",
     preview: bool = False,
+    por_que: str = "Te escribimos porque compraste el ebook de Holandés Nawar.",
 ):
     """Los correos del ebook de Black Friday (28/10/2026): la entrega del PDF
     y la campaña que le sigue (`services/ebook/ebook.py`). Cartas de Rida,
@@ -940,7 +941,9 @@ def send_carta_ebook_email(
     `botones` = [(marca, texto, url)]. El texto pone cada botón donde lleve su
     marca en una línea sola («[descarga]», «[boton]»); el que no tenga sitio
     va al final. Con `baja_url`, una línea para darse de baja al pie: la
-    campaña es publicidad y la ley pide poder salir con un clic.
+    campaña es publicidad y la ley pide poder salir con un clic. `por_que`
+    dice por qué le escribimos: a quien solo desbloqueó la oferta no se le
+    puede decir que compró (29/10).
     """
     marcas = {m: (t, u) for m, t, u in (botones or []) if t and u}
     secundario = (
@@ -979,7 +982,7 @@ def send_carta_ebook_email(
     if baja_url:
         partes.append(
             '<p style="margin: 8px 0 0 0; font-size: 12px; line-height: 1.6; color: #8a90a0;">'
-            "Te escribimos porque compraste el ebook de Holandés Nawar. "
+            f"{html.escape(por_que)} "
             f'<a href="{html.escape(baja_url)}" style="color: #8a90a0; text-decoration: underline;">'
             "No quiero recibir más correos de esta campaña</a>.</p>"
         )

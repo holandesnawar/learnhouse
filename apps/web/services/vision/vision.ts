@@ -5,7 +5,18 @@
  */
 import { getAPIUrl } from '@services/config/config'
 
-export type TipoNodo = 'vertical' | 'campana' | 'anuncio' | 'contenido' | 'embudo' | 'tarea' | 'nota' | 'metrica'
+export type TipoNodo =
+  | 'vertical'
+  | 'campana'
+  | 'anuncio'
+  | 'contenido'
+  | 'embudo'
+  | 'tarea'
+  | 'nota'
+  | 'metrica'
+  | 'correo'
+  | 'decision'
+  | 'etapa'
 export type EstadoNodo = 'idea' | 'pendiente' | 'en-curso' | 'hecho' | 'bloqueado'
 export type Semaforo = 'verde' | 'ambar' | 'rojo' | null
 
@@ -18,6 +29,10 @@ export const TIPOS: { id: TipoNodo; nombre: string; color: string; que: string }
   { id: 'tarea', nombre: 'Tarea', color: '#B45309', que: 'Algo que hacer, con responsable y fecha' },
   { id: 'nota', nombre: 'Nota', color: '#6B7280', que: 'Una idea o algo que no quieres olvidar' },
   { id: 'metrica', nombre: 'Métrica', color: '#15803D', que: 'Una cifra de una campaña, siempre al día' },
+  // 29/10 (el mapa de Black Friday).
+  { id: 'correo', nombre: 'Correo', color: '#4338CA', que: 'Un correo de la campaña de Black Friday, con su vista' },
+  { id: 'decision', nombre: 'Decisión', color: '#8A6A2A', que: 'Lo que decide la persona: ¿compra?, ¿reserva?' },
+  { id: 'etapa', nombre: 'Etapa', color: '#1D0084', que: 'El rótulo de una etapa del embudo' },
 ]
 export const TIPO = Object.fromEntries(TIPOS.map((t) => [t.id, t])) as Record<TipoNodo, (typeof TIPOS)[number]>
 
@@ -69,7 +84,9 @@ export interface NodoVision {
   archivos: Archivo[]
   submapa_id: number | null
   utm_campaign: string
-  metrica: { campana_id?: number; clave?: string }
+  /** En una métrica: de qué campaña y qué cifra (`fuente: 'black-friday'` =
+   * la campaña del ebook, en vivo). En un correo: cuál de la campaña es. */
+  metrica: { campana_id?: number; clave?: string; fuente?: string; correo?: string }
   updated_at: string
 }
 
@@ -116,7 +133,31 @@ export interface MapaVision {
   flechas: FlechaVision[]
   migas: { mapa_id: number; nombre: string }[]
   cifras: Record<string, { cifras: Cifras; semaforo: Record<string, Semaforo> }>
+  /** Solo si el mapa tiene correos o cifras de Black Friday: lo mismo que Panel → Correos. */
+  bf?: DatosBF | null
 }
+
+export interface CorreoBF {
+  id: string
+  asunto: string
+  grupo: 'sin_comprar' | 'compradores'
+  cuando: string
+  apagado: boolean
+  enviados: number
+  esperando: number
+  volvieron: number
+  reservaron_despues: number
+  pagaron_despues: number
+}
+
+export interface DatosBF {
+  correos: Record<string, CorreoBF>
+  cifras: Record<string, number>
+  nombres: Record<string, string>
+}
+
+/** La fuente de las métricas de Black Friday. */
+export const FUENTE_BF = 'black-friday'
 
 export interface MetricaInfo {
   nombre: string
@@ -370,6 +411,18 @@ export const crearClaseGratuita = (
 ) =>
   pedir<{ ok: boolean; campana_id: number; mapa_id: number; submapa_id: number; utm_campaign: string }>(
     `org/${org}/plantillas/clase-gratuita`,
+    'POST',
+    datos,
+    t
+  )
+
+/** Los correos y las cifras de Black Friday, para elegirlos en una tarjeta. */
+export const getBlackFriday = (org: number, t: string) => pedir<DatosBF>(`org/${org}/black-friday`, 'GET', null, t)
+
+/** Plantilla: el mapa entero de la campaña de Black Friday, de arriba abajo. */
+export const crearBlackFriday = (org: number, datos: { mapa_id: number }, t: string) =>
+  pedir<{ ok: boolean; campana_id: number; mapa_id: number; submapa_id: number; utm_campaign: string }>(
+    `org/${org}/plantillas/black-friday`,
     'POST',
     datos,
     t

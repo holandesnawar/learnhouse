@@ -141,6 +141,10 @@ PARA_COMPRADORES = "compradores"
 PARA_SIN_COMPRAR = "sin_comprar"
 #: Lo que cuenta como "ya ha reservado su llamada": la campaña se para.
 TIPOS_RESERVO = ("reunion", "llamada-equipo", "correo-reserva")
+#: El pie de cada correo dice por qué le escribimos (29/10: el de la oferta
+#: desbloqueada decía «porque compraste el ebook» a quien no lo había comprado).
+POR_QUE_COMPRO = "Te escribimos porque compraste el ebook de Holandés Nawar."
+POR_QUE_SIN_COMPRAR = "Te escribimos porque desbloqueaste la oferta de Black Friday de Holandés Nawar."
 
 NOMBRE_EBOOK = "Neerlandés sin miedo"
 SUBTITULO_EBOOK = "7 lecciones para arrancar desde cero (nivel A0-A1)"
@@ -494,6 +498,94 @@ def toca_pendiente(empezo: str, hoy: str, enviados: set[str], hasta: str, ultimo
         return False
     dias = (date.fromisoformat(hoy) - date.fromisoformat(empezo)).days
     return 1 <= dias <= 1 + RETRASO_MAX
+
+
+#: Dónde está cada persona en la campaña (`situacion`). El orden importa: lo
+#: que ya pasó manda sobre lo de antes.
+SITUACIONES = {
+    "pago": "pagó",
+    "reservo": "reservó",
+    "baja": "de baja",
+    "no-encaja": "no encaja",
+    "llamada": "empezó la llamada",
+    "comprador": "en campaña",
+    "sin-comprar": "sin comprar",
+}
+
+
+def situacion(email: str, p: dict, pagaron: set) -> str:
+    """Dónde está esa persona: `pago`, `reservo`, `baja`, `no-encaja`,
+    `llamada` (compró, empezó el formulario de la llamada y no reservó),
+    `comprador` o `sin-comprar`. `p` es lo de `_personas`. Pura."""
+    if email in pagaron:
+        return "pago"
+    if email in p["reservaron"]:
+        return "reservo"
+    if email in p["bajas"]:
+        return "baja"
+    compra = p["compras"].get(email)
+    if compra is None:
+        return "sin-comprar"
+    hizo = p["formulario"].get(email)
+    if hizo and hizo["creado"] >= compra["creado"]:
+        return "no-encaja" if hizo["no_encaja"] else "llamada"
+    return "comprador"
+
+
+def que_le_toca(email: str, hoy: str, p: dict, cfg: dict, pagaron: set, ultimo_envio: Optional[str] = None) -> Optional[dict]:
+    """El correo que le toca HOY a esa persona, o None: el de la campaña (el
+    dict del correo), «te quedaste a un paso» (`tipo` formulario) o el
+    recordatorio del ebook (`tipo` pendiente). Las MISMAS reglas que
+    `enviar_campana`, que la usa; el panel de Correos la usa para saber el
+    próximo correo de cada uno (`proximo`). `ultimo_envio` cambia el día del
+    último correo (para mirar días que aún no han llegado). Pura."""
+    estado = situacion(email, p, pagaron)
+    if estado in ("pago", "reservo", "baja", "no-encaja"):
+        return None
+    enviados = p["enviados"].get(email, set())
+    ultimo = p["ultimo"].get(email, "") if ultimo_envio is None else ultimo_envio
+    activos = [c for c in cfg["correos"] if not c.get("apagado")]
+    compra = p["compras"].get(email)
+    if compra is not None:
+        hizo = p["formulario"].get(email)
+        form = cfg[ID_FORMULARIO]
+        if (
+            estado == "llamada" and not form.get("apagado")
+            and toca_formulario(hizo["dia"], hoy, enviados, cfg["hasta"], ultimo)
+        ):
+            return {"id": ID_FORMULARIO, "asunto": form["asunto"], "tipo": "formulario"}
+        c = que_toca(compra["dia"], hoy, [c for c in activos if para_quien(c) == PARA_COMPRADORES], enviados, cfg["hasta"], ultimo)
+        return {**c, "tipo": "campana"} if c else None
+    empezo = p["a_medias"].get(email)
+    if empezo is None:
+        return None
+    pendiente = cfg["pendiente"]
+    if not pendiente.get("apagado") and toca_pendiente(empezo["dia"], hoy, enviados, cfg["hasta"], ultimo):
+        return {"id": ID_PENDIENTE, "asunto": pendiente["asunto"], "tipo": "pendiente"}
+    c = que_toca(empezo["dia"], hoy, [c for c in activos if para_quien(c) == PARA_SIN_COMPRAR], enviados, cfg["hasta"], ultimo)
+    return {**c, "tipo": "campana"} if c else None
+
+
+def proximo(email: str, hoy: str, p: dict, cfg: dict, pagaron: set) -> Optional[dict]:
+    """El próximo correo que le llegará a esa persona si nada cambia:
+    {id, asunto, dia}. Hoy, si aún no le ha llegado nada hoy (la tarea diaria
+    pasa a las 07:00 UTC); si no, el primer día que le toque. Pura."""
+    if not cfg.get("campana"):
+        return None
+    try:
+        d = date.fromisoformat(hoy)
+        fin = date.fromisoformat(cfg["hasta"])
+    except (TypeError, ValueError):
+        return None
+    primero = True
+    while d <= fin:
+        dia = d.isoformat()
+        t = que_le_toca(email, dia, p, cfg, pagaron, ultimo_envio=None if primero else "")
+        if t is not None:
+            return {"id": t["id"], "asunto": t["asunto"], "dia": dia}
+        primero = False
+        d += timedelta(days=1)
+    return None
 
 
 def huecos_que_no_valen(texto: str) -> list[str]:
@@ -1198,7 +1290,8 @@ def armar_correo(cfg: dict, c: dict, email: str, nombre: str, *, preview: bool) 
     asunto = rellenar(c["asunto"], valores)
     botones = [("boton", c.get("boton") or "", url_destino(c.get("destino") or "admision", email, nombre, c["id"]))]
     r = send_carta_ebook_email(
-        email, asunto, rellenar(c["texto"], valores), botones=botones, baja_url=enlace_baja(email), preview=preview
+        email, asunto, rellenar(c["texto"], valores), botones=botones, baja_url=enlace_baja(email), preview=preview,
+        por_que=POR_QUE_SIN_COMPRAR if para_quien(c) == PARA_SIN_COMPRAR else POR_QUE_COMPRO,
     )
     return {"asunto": asunto, "html": (r or {}).get("html", "") if preview else ""}
 
@@ -1212,7 +1305,8 @@ def armar_pendiente(cfg: dict, email: str, nombre: str, *, preview: bool) -> dic
     asunto = rellenar(p["asunto"], valores)
     botones = [("boton", p.get("boton") or "", url_destino(p.get("destino") or "ebook", email, nombre, ID_PENDIENTE))]
     r = send_carta_ebook_email(
-        email, asunto, rellenar(p["texto"], valores), botones=botones, baja_url=enlace_baja(email), preview=preview
+        email, asunto, rellenar(p["texto"], valores), botones=botones, baja_url=enlace_baja(email), preview=preview,
+        por_que=POR_QUE_SIN_COMPRAR,
     )
     return {"asunto": asunto, "html": (r or {}).get("html", "") if preview else ""}
 
@@ -1226,7 +1320,8 @@ def armar_acceso(cfg: dict, email: str, nombre: str, *, preview: bool) -> dict:
     asunto = rellenar(a["asunto"], valores)
     botones = [("boton", a.get("boton") or "", url_destino(a.get("destino") or "landing", email, nombre, ID_ACCESO))]
     r = send_carta_ebook_email(
-        email, asunto, rellenar(a["texto"], valores), botones=botones, baja_url=enlace_baja(email), preview=preview
+        email, asunto, rellenar(a["texto"], valores), botones=botones, baja_url=enlace_baja(email), preview=preview,
+        por_que=POR_QUE_SIN_COMPRAR,
     )
     return {"asunto": asunto, "html": (r or {}).get("html", "") if preview else ""}
 
@@ -1389,10 +1484,6 @@ async def enviar_campana(db_session: AsyncSession, org_id: Optional[int] = None)
         salida["activa"] = False
         return salida
     hoy = hoy_nl()
-    activos = [c for c in cfg["correos"] if not c.get("apagado")]
-    correos = [c for c in activos if para_quien(c) == PARA_COMPRADORES]
-    sin_comprar = [c for c in activos if para_quien(c) == PARA_SIN_COMPRAR]
-    form = cfg[ID_FORMULARIO]
     pagaron = await emails_que_pagaron(db_session)
 
     async def mandar(email: str, ident: str, asunto: str, armar) -> bool:
@@ -1417,55 +1508,42 @@ async def enviar_campana(db_session: AsyncSession, org_id: Optional[int] = None)
             logger.warning("Campaña del ebook: un envío falló", exc_info=True)
             return False
 
-    # La campaña, solo a quien compró el ebook: es lo que le lleva a la llamada.
+    # Quién recibe qué lo decide `que_le_toca` (pura, la misma que usa el panel
+    # de Correos para el próximo correo de cada uno). Primero quien compró el
+    # ebook (la campaña que lleva a la llamada), después quien dejó sus datos y
+    # no lo compró (el recordatorio y los del ebook de fecha fija).
     for email, quien in sorted(p["compras"].items(), key=lambda kv: kv[1]["creado"]):
-        if email in p["bajas"] or email in p["reservaron"] or email in pagaron:
+        estado = situacion(email, p, pagaron)
+        if estado in ("pago", "reservo", "baja"):
             salida["parados"] += 1
             continue
-        hizo = p["formulario"].get(email)
-        # Terminó las preguntas y no encaja: ya se le dijo que ahora no es para
-        # él. Seguir pidiéndole la llamada sería contradecirse.
-        if hizo and hizo["no_encaja"] and hizo["creado"] >= quien["creado"]:
+        if estado == "no-encaja":
             salida["no_encajan"] += 1
             continue
-        enviados = p["enviados"].get(email, set())
-        # Empezó a pedir su llamada después de comprar y no reservó: ese día,
-        # «te quedaste a un paso», en lugar del de la campaña.
-        if (
-            hizo and hizo["creado"] >= quien["creado"] and not form.get("apagado")
-            and toca_formulario(hizo["dia"], hoy, enviados, cfg["hasta"], p["ultimo"].get(email, ""))
-        ):
-            if salida["enviados"] >= TOPE_POR_DIA:
-                break
-            if await mandar(email, ID_FORMULARIO, form["asunto"],
+        t = que_le_toca(email, hoy, p, cfg, pagaron)
+        if t is None:
+            continue
+        if salida["enviados"] >= TOPE_POR_DIA:
+            break
+        if t["tipo"] == "formulario":
+            if await mandar(email, ID_FORMULARIO, t["asunto"],
                             lambda email=email, n=quien["nombre"]: armar_formulario(cfg, email, n, preview=False)):
                 salida["formulario"] += 1
             continue
-        c = que_toca(quien["dia"], hoy, correos, enviados, cfg["hasta"], p["ultimo"].get(email, ""))
-        if c is None:
-            continue
-        if salida["enviados"] >= TOPE_POR_DIA:
-            break
-        await mandar(email, c["id"], c["asunto"], lambda c=c, email=email, n=quien["nombre"]: armar_correo(cfg, c, email, n, preview=False))
+        await mandar(email, t["id"], t["asunto"], lambda t=t, email=email, n=quien["nombre"]: armar_correo(cfg, t, email, n, preview=False))
 
-    # Quien dejó sus datos (en la portada o en la caja de pago) y no compró el
-    # ebook: el recordatorio al día siguiente y, después, los del ebook de
-    # fecha fija (el Black Friday y el último día). Nada de la formación.
-    pendiente = cfg["pendiente"]
     for email, empezo in sorted(p["a_medias"].items(), key=lambda kv: kv[1]["creado"]):
-        if email in p["bajas"] or email in p["reservaron"] or email in pagaron:
-            continue
         if salida["enviados"] >= TOPE_POR_DIA:
             break
-        enviados = p["enviados"].get(email, set())
-        if not pendiente.get("apagado") and toca_pendiente(empezo["dia"], hoy, enviados, cfg["hasta"], p["ultimo"].get(email, "")):
-            if await mandar(email, ID_PENDIENTE, pendiente["asunto"],
+        t = que_le_toca(email, hoy, p, cfg, pagaron)
+        if t is None:
+            continue
+        if t["tipo"] == "pendiente":
+            if await mandar(email, ID_PENDIENTE, t["asunto"],
                             lambda email=email, n=empezo["nombre"]: armar_pendiente(cfg, email, n, preview=False)):
                 salida["recordatorios"] += 1
             continue
-        c = que_toca(empezo["dia"], hoy, sin_comprar, enviados, cfg["hasta"], p["ultimo"].get(email, ""))
-        if c is not None:
-            await mandar(email, c["id"], c["asunto"], lambda c=c, email=email, n=empezo["nombre"]: armar_correo(cfg, c, email, n, preview=False))
+        await mandar(email, t["id"], t["asunto"], lambda t=t, email=email, n=empezo["nombre"]: armar_correo(cfg, t, email, n, preview=False))
     return salida
 
 
@@ -1505,17 +1583,7 @@ async def resumen(org_id: int, db_session: AsyncSession) -> dict:
         return "compró" if c["ebook"] else "abrió el pago"
 
     def estado(e: str, c: dict) -> str:
-        if e in pagaron:
-            return "pagó"
-        if e in p["reservaron"]:
-            return "reservó"
-        if e in p["bajas"]:
-            return "de baja"
-        if not c["ebook"]:
-            return "sin comprar"
-        if e in no_encajan:
-            return "no encaja"
-        return "empezó la llamada" if e in sin_reservar else "en campaña"
+        return SITUACIONES[situacion(e, p, pagaron)]
 
     return {
         "a_medias": len([e for e in p["a_medias"] if e not in fuera]),
