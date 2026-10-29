@@ -375,3 +375,59 @@ def test_el_pie_dice_por_que_le_escribimos():
     for html in (acceso, pendiente, e_bf):
         assert "desbloqueaste la oferta" in html and "compraste" not in html
     assert "porque compraste el ebook" in c1
+
+
+async def test_con_la_campana_en_systeme_la_escuela_solo_entrega_el_ebook(db, org, sin_redis_ni_crm, monkeypatch):
+    """29/10: los correos de Black Friday pasan a systeme.io. Con la campaña
+    apagada en la escuela, al apuntarse no sale el de la oferta desbloqueada
+    (lo manda systeme.io), pero la etiqueta que lo dispara sí se pone; y al
+    comprar, la entrega del PDF sigue saliendo de la escuela."""
+    import src.services.crm.systeme as S
+
+    etiquetas = []
+
+    async def apuntar(email, nombre, etiqueta):
+        etiquetas.append((email, etiqueta))
+
+    monkeypatch.setattr(S, "etiquetar", apuntar)
+    apagada = E.config_limpia({"campana": False})
+
+    async def leer(*a, **k):
+        return apagada
+
+    monkeypatch.setattr(E, "leer", leer)
+    mandados = []
+    with patch.object(M, "send_email", side_effect=lambda **k: mandados.append(k)):
+        await E.apuntar_lista({"nombre": "Ana", "email": "ana@x.com"}, db)
+        assert mandados == []
+        await E.al_pagar(_sesion(cs="cs_ana", email="ana@x.com"), db)
+    assert [m["subject"] for m in mandados] == [E.DE_FABRICA["entrega"]["asunto"]]
+    assert ("ana@x.com", "Black Friday - lista") in etiquetas and ("ana@x.com", "Ebook Black Friday") in etiquetas
+
+
+async def test_reservar_la_llamada_pone_la_etiqueta_en_systeme(db, org, monkeypatch):
+    """Quien reserva (la web avisa con `reunion`) se lleva «Llamada reservada»
+    en systeme.io: con ella sale de las campañas de correo."""
+    import asyncio
+
+    import src.services.crm.systeme as S
+    from src.db.contact_event import ContactEventCreate
+    from src.services.contactos.contactos import registrar_evento
+
+    etiquetas = []
+
+    async def apuntar(email, nombre, etiqueta):
+        etiquetas.append((email, etiqueta))
+
+    monkeypatch.setattr(S, "etiquetar", apuntar)
+    monkeypatch.setenv("SYSTEME_API_KEY", "clave-de-prueba")
+    import src.services.panel.reparto as R
+
+    async def sin_aviso(*a, **k):
+        return 0
+
+    monkeypatch.setattr(R, "avisar_llamada_nueva", sin_aviso)
+    await registrar_evento(ContactEventCreate(email="Eva@x.com", kind="reunion", first_name="Eva"), db)
+    await asyncio.sleep(0)
+    await asyncio.sleep(0)
+    assert etiquetas == [("Eva@x.com", S.ETIQUETA_LLAMADA_RESERVADA)] or etiquetas == [("eva@x.com", S.ETIQUETA_LLAMADA_RESERVADA)]

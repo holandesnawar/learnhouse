@@ -227,6 +227,10 @@ async def registrar_evento(data: ContactEventCreate, db_session: AsyncSession) -
     # closers, para que diga quién la atiende (`reparto.py`). La web no manda
     # la hora (Calendly solo le dice que se ha reservado): el correo va sin ella.
     if fila.kind == "reunion":
+        # Y en systeme.io, la etiqueta que la saca de las campañas de correo.
+        from src.services.crm.systeme import marcar_llamada_reservada
+
+        marcar_llamada_reservada(fila.email, " ".join(x for x in (fila.first_name, fila.last_name) if x))
         try:
             from src.services.panel.reparto import avisar_llamada_nueva
 

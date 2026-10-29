@@ -1236,7 +1236,9 @@ async def apuntar_lista(datos: dict, db_session: AsyncSession) -> dict:
     db_session.add(fila)
     await db_session.commit()
 
-    if nuevo and not cfg[ID_ACCESO].get("apagado"):
+    # Con la campaña apagada (los correos se mandan desde systeme.io, 29/10),
+    # tampoco este: el primero de la secuencia lo manda systeme.io.
+    if nuevo and cfg["campana"] and not cfg[ID_ACCESO].get("apagado"):
         # El correo de acceso, una vez. Si falla, la persona ya está dentro y
         # ve el ebook en pantalla: se apunta en el registro y sigue.
         try:

@@ -304,7 +304,9 @@ export default function EbookBlackFriday() {
         <div className="flex items-center justify-between gap-4 border-t border-[#F3F4F6] pt-3">
           <div>
             <p className="text-[14px] font-medium text-gray-900">Campaña de correos</p>
-            <p className={META}>{estado.campana ? 'Encendida: sale cada mañana' : 'Apagada: no sale ningún correo de la campaña'}</p>
+            <p className={META}>{estado.campana
+                ? 'Encendida: sale cada mañana, y el de la oferta desbloqueada al apuntarse'
+                : 'Apagada: la escuela solo manda la entrega del ebook. El resto, desde systeme.io'}</p>
           </div>
           <Interruptor activo={estado.campana} onClick={() => alternar('campana')} ocupado={ocupado === 'campana'} />
         </div>
