@@ -89,6 +89,93 @@ function Bloque({ icono, titulo, children, derecha }: { icono: React.ReactNode; 
   )
 }
 
+/** Black Friday (29/10, para los closers): de dónde vino, si tiene el ebook,
+ *  en qué campaña de correos de systeme.io está y qué le ha llegado. Los
+ *  correos salen del CALENDARIO de la campaña (services/panel/black_friday.py):
+ *  si alguien abre un correo no se puede saber; si pulsó su botón, sí. */
+function BloqueBlackFriday({ bf }: { bf: NonNullable<Ficha['black_friday']> }) {
+  const tono = bf.estado === 'ebook' ? 'verde' : bf.estado === 'empezo-ebook' ? 'ambar' : 'azul'
+  const filas: { t: string; v: string }[] = []
+  if (bf.desbloqueo) filas.push({ t: 'Se apuntó a la lista', v: `${fechaCorta(bf.desbloqueo.cuando)} · por ${bf.desbloqueo.via}` })
+  if (bf.ebook) filas.push({ t: 'Compró el ebook (1 €)', v: `${fechaCorta(bf.ebook.cuando)} · por ${bf.ebook.via}` })
+  if (bf.empezo_ebook) filas.push({ t: 'Abrió el pago del ebook', v: `${fechaCorta(bf.empezo_ebook)} · no terminó de pagar` })
+  if (bf.llamada) filas.push({ t: 'La llamada', v: bf.llamada })
+  filas.push({
+    t: 'Correos de systeme.io',
+    v:
+      bf.aviso ||
+      (bf.salida
+        ? `Fuera de la campaña: ${bf.salida.motivo.charAt(0).toLowerCase()}${bf.salida.motivo.slice(1)}${bf.salida.cuando ? ` (${fechaCorta(bf.salida.cuando)})` : ''}`
+        : bf.campana
+          ? `En la campaña «${bf.campana}»`
+          : 'En ninguna campaña'),
+  })
+  return (
+    <Bloque icono={<Tag size={15} />} titulo="Black Friday">
+      <Estado tono={tono} className="!text-[13px] !text-gray-900">
+        {bf.titulo}
+      </Estado>
+      <dl className="mt-2.5 divide-y divide-[#F3F4F6] border-t border-[#F3F4F6]">
+        {filas.map((f) => (
+          <div key={f.t} className="py-2">
+            <dt className="text-[12px] text-gray-500">{f.t}</dt>
+            <dd className="text-[13.5px] text-gray-900 break-words">{f.v}</dd>
+          </div>
+        ))}
+      </dl>
+      {bf.correos.length || bf.proximo ? (
+        <div className="mt-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF] mb-1.5">Correos que le han llegado</p>
+          <ul className="space-y-1">
+            {bf.correos.map((c) => (
+              <li key={c.id} className="flex items-baseline gap-2 text-[12.5px] text-gray-800">
+                <Mail size={12} className="shrink-0 text-[#9CA3AF] translate-y-[1px]" />
+                <span className="w-[52px] shrink-0 text-gray-500 tabular-nums">{fechaCorta(c.cuando)}</span>
+                <span className="min-w-0">{c.asunto}</span>
+              </li>
+            ))}
+            {bf.proximo ? (
+              <li className="flex items-baseline gap-2 text-[12.5px] text-gray-500">
+                <Mail size={12} className="shrink-0 text-[#D1D5DB] translate-y-[1px]" />
+                <span className="w-[52px] shrink-0 tabular-nums">{fechaCorta(bf.proximo.cuando)}</span>
+                <span className="min-w-0">Próximo: {bf.proximo.asunto}</span>
+              </li>
+            ) : null}
+          </ul>
+          <p className={`${META} mt-1.5`}>Según el calendario de la campaña. Si lo abrió no se puede saber; si pulsó el botón, sale abajo.</p>
+        </div>
+      ) : null}
+      {bf.volvio_por.length ? (
+        <div className="mt-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF] mb-1.5">Pulsó el botón de</p>
+          <ul className="space-y-1">
+            {bf.volvio_por.map((v) => (
+              <li key={v.id} className="flex items-baseline gap-2 text-[12.5px] text-gray-900">
+                <CheckCircle2 size={12} className="shrink-0 text-[#15803D] translate-y-[1px]" />
+                <span className="w-[52px] shrink-0 text-gray-500 tabular-nums">{fechaCorta(v.cuando)}</span>
+                <span className="min-w-0">{v.asunto}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {bf.paginas.length ? (
+        <div className="mt-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF] mb-1.5">Páginas de Black Friday que vio</p>
+          <ol className="space-y-1">
+            {bf.paginas.map((p, i) => (
+              <li key={p.id} className="flex items-center gap-2 text-[12.5px] text-gray-800">
+                <span className="w-5 h-5 shrink-0 rounded-full border border-[#E5E7EB] bg-white text-gray-800 text-[10.5px] font-bold flex items-center justify-center">{i + 1}</span>
+                <span className="min-w-0">{p.nombre.charAt(0).toUpperCase() + p.nombre.slice(1)}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
+    </Bloque>
+  )
+}
+
 /** «Ads» u «Orgánico» junto a sus datos (18/10, "una etiqueta que diga ads u
  *  orgánico cerca de sus datos arriba"). La regla, en `canal_de` (pipeline.py):
  *  si un anuncio la trajo alguna vez, Ads. */
@@ -577,6 +664,9 @@ export default function FichaCliente({
               </Bloque>
             ) : null}
 
+            {/* Black Friday (29/10): de dónde vino, el ebook y sus correos. */}
+            {ficha.black_friday ? <BloqueBlackFriday bf={ficha.black_friday} /> : null}
+
             {/* A un alumno, lo primero que interesa es lo que ha pagado. */}
             {esAlumno ? bloquePagos : null}
             {esAlumno ? bloqueAvance : null}
@@ -641,7 +731,11 @@ export default function FichaCliente({
                   <span className="rounded-md px-2.5 py-1 text-[12px] font-semibold text-[#B45309]">Campaña: {ficha.utm.campaign}</span>
                 ) : null}
                 {/* El anuncio concreto (utm_content, 07/10): en Meta, el nombre del anuncio. */}
-                {ficha.utm.content ? (
+                {/* Si volvió por el botón de un correo (29/10), su asunto: antes
+                    salía «Anuncio: sys-n3». */}
+                {ficha.utm.correo ? (
+                  <span className="rounded-md px-2.5 py-1 text-[12px] font-semibold text-[#B45309]">Correo: {ficha.utm.correo}</span>
+                ) : ficha.utm.content ? (
                   <span
                     className="rounded-md px-2.5 py-1 text-[12px] font-semibold text-[#B45309]"
                     title={ficha.utm.content_meta && ficha.utm.content_meta !== ficha.utm.content ? `En Meta: ${ficha.utm.content_meta}` : undefined}

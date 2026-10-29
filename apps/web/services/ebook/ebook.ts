@@ -34,6 +34,9 @@ export interface EbookBF {
   campana: boolean
   desde: string
   hasta: string
+  /** Desde qué día están encendidos los correos de systeme.io (29/10): con
+   *  esa fecha, la ficha del closer calcula qué correos le han llegado. */
+  systeme_desde?: string
   precio_cents: number
   entrega: { asunto: string; texto: string; boton: string; destino: Destino }
   /** El recordatorio a quien dejó sus datos (portada o caja de pago) y no compró. */
@@ -89,7 +92,7 @@ export const getEbook = (orgId: number, t: string) => pedir<EbookBF>(`org/${orgI
 
 export const guardarEbook = (
   orgId: number,
-  datos: Partial<Pick<EbookBF, 'activo' | 'campana' | 'desde' | 'hasta' | 'entrega' | 'pendiente' | 'acceso' | 'formulario' | 'correos'>>,
+  datos: Partial<Pick<EbookBF, 'activo' | 'campana' | 'desde' | 'hasta' | 'systeme_desde' | 'entrega' | 'pendiente' | 'acceso' | 'formulario' | 'correos'>>,
   t: string
 ) => pedir<EbookBF>(`org/${orgId}`, 'PUT', datos, t)
 

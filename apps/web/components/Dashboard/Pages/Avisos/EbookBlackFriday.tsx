@@ -100,6 +100,7 @@ export default function EbookBlackFriday() {
   const [estado, setEstado] = useState<EbookBF | null>(null)
   const [desde, setDesde] = useState('')
   const [hasta, setHasta] = useState('')
+  const [systemeDesde, setSystemeDesde] = useState('')
   const [entrega, setEntrega] = useState<EbookBF['entrega'] | null>(null)
   const [pendiente, setPendiente] = useState<CartaSuelta | null>(null)
   const [acceso, setAcceso] = useState<CartaSuelta | null>(null)
@@ -115,6 +116,7 @@ export default function EbookBlackFriday() {
     setEstado(e)
     setDesde(e.desde)
     setHasta(e.hasta)
+    setSystemeDesde(e.systeme_desde || '')
     setEntrega(e.entrega)
     setPendiente(e.pendiente)
     setAcceso(e.acceso)
@@ -137,6 +139,7 @@ export default function EbookBlackFriday() {
     !!estado &&
     (desde !== estado.desde ||
       hasta !== estado.hasta ||
+      systemeDesde !== (estado.systeme_desde || '') ||
       JSON.stringify(entrega) !== JSON.stringify(estado.entrega) ||
       JSON.stringify(pendiente) !== JSON.stringify(estado.pendiente) ||
       JSON.stringify(acceso) !== JSON.stringify(estado.acceso) ||
@@ -149,7 +152,7 @@ export default function EbookBlackFriday() {
     const r = await guardarEbook(
       org.id,
       {
-        desde, hasta, entrega: entrega || undefined, pendiente: pendiente || undefined, acceso: acceso || undefined,
+        desde, hasta, systeme_desde: systemeDesde, entrega: entrega || undefined, pendiente: pendiente || undefined, acceso: acceso || undefined,
         formulario: formulario || undefined, correos, ...extra,
       },
       token
@@ -321,6 +324,21 @@ export default function EbookBlackFriday() {
           </label>
         </div>
         <p className={META}>Después del último día ya no se vende el ebook y no sale ningún correo más.</p>
+        {/* 29/10: los correos salen de systeme.io. Con este día, la ficha de
+            cada persona (la que ve el closer) dice qué correos le han llegado. */}
+        <label className="block space-y-1.5 border-t border-[#F3F4F6] pt-3">
+          <span className="text-[13px] font-medium text-gray-800">Correos de systeme.io encendidos desde</span>
+          <input
+            type="date"
+            value={systemeDesde}
+            onChange={(e) => setSystemeDesde(e.target.value)}
+            className={`${CAMPO} h-9 sm:max-w-[calc(50%-6px)]`}
+          />
+        </label>
+        <p className={META}>
+          El día en que activaste las campañas en systeme.io. Con él, la ficha de cada persona dice qué correos le han llegado y
+          cuál le toca. Vacío: la ficha avisa de que aún no están encendidos.
+        </p>
       </div>
 
       {/* El PDF */}

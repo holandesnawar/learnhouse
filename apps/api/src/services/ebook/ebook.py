@@ -695,6 +695,10 @@ def config_limpia(guardado: Any) -> dict:
         "pdf": str(g.get("pdf") or ""),
         "pdf_nombre": str(g.get("pdf_nombre") or ""),
         "pdf_subido_en": str(g.get("pdf_subido_en") or ""),
+        # El día en que se encendieron las campañas de correos de systeme.io
+        # (29/10): la ficha calcula con él qué correos le han llegado a cada
+        # persona (services/panel/black_friday.py). Vacío = aún apagadas.
+        "systeme_desde": _fecha(g.get("systeme_desde")) or "",
     }
 
 
@@ -796,6 +800,9 @@ async def guardar(org_id: int, datos: dict, db_session: AsyncSession) -> dict:
     for campo in ("desde", "hasta"):
         if datos.get(campo) is not None:
             nuevo[campo] = _fecha(datos[campo]) or actual[campo]
+    # Vacío vale: «aún apagadas».
+    if datos.get("systeme_desde") is not None:
+        nuevo["systeme_desde"] = _fecha(datos["systeme_desde"])
     for clave in ("entrega", "pendiente", ID_ACCESO, ID_FORMULARIO):
         if isinstance(datos.get(clave), dict):
             e = dict(actual[clave])

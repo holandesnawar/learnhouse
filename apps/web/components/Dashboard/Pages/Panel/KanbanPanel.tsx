@@ -270,8 +270,15 @@ function TarjetaVista({
             : 'Enlace de pago enviado, sin pagar'}
         </p>
       ) : null}
-      {t.origen || t.canal || t.vio_precio || t.notas > 1 || t.tareas ? (
+      {t.black_friday || t.origen || t.canal || t.vio_precio || t.notas > 1 || t.tareas ? (
         <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11.5px] text-gray-500">
+          {/* Black Friday (29/10): con el ebook comprado o solo con la oferta
+              desbloqueada. Lo demás (correos, páginas), en su ficha. */}
+          {t.black_friday ? (
+            <span className="font-medium text-gray-800" title="Entró por la campaña de Black Friday">
+              Black Friday · {t.black_friday === 'ebook' ? 'ebook' : 'sin ebook'}
+            </span>
+          ) : null}
           {/* De dónde viene (09/10): «Anuncio Meta», «Web · inicio», «Guía»…
               Desde el 14/10 con el anuncio concreto detrás: «Anuncio Meta · UGC-Laura». */}
           {t.origen ? (
@@ -313,6 +320,7 @@ export default function KanbanPanel() {
   const [q, setQ] = useState('')
   const [canal, setCanal] = useState<string>('')
   const [soloHoy, setSoloHoy] = useState(false)
+  const [soloBF, setSoloBF] = useState(false)
   // La tarjeta abierta (por su id: el correo, o «llamada:<id>» en las sueltas).
   const [abierta, setAbierta] = useState<string | null>(null)
   // Leads o Ventas, y en Ventas, solo las mías (se recuerda en el navegador;
@@ -461,10 +469,12 @@ export default function KanbanPanel() {
       (c) =>
         (!canal || c.canal === canal) &&
         (!soloHoy || tocaLlamar(c)) &&
+        (!soloBF || !!c.black_friday) &&
         (!t || c.email.includes(t) || c.nombre.toLowerCase().includes(t) || c.telefono.includes(t))
     )
-  }, [deLaMesa, q, canal, soloHoy])
+  }, [deLaMesa, q, canal, soloHoy, soloBF])
   const paraHoy = useMemo(() => deLaMesa.filter((c) => tocaLlamar(c)).length, [deLaMesa])
+  const deBlackFriday = useMemo(() => deLaMesa.filter((c) => !!c.black_friday).length, [deLaMesa])
   const enCadaMesa = useMemo(() => {
     const n = { leads: 0, ventas: 0 }
     for (const c of datos?.tarjetas ?? []) if (!c.oculto && c.etapa !== 'alumno' && c.etapa !== 'descartado') n[mesaDe(c)]++
@@ -692,6 +702,15 @@ export default function KanbanPanel() {
             <PhoneCall size={13} className={soloHoy ? '' : paraHoy ? 'text-red-600' : 'text-gray-400'} />
             Llamar hoy <span className="tabular-nums opacity-80">{paraHoy}</span>
           </button>
+          {deBlackFriday || soloBF ? (
+            <button
+              onClick={() => setSoloBF((v) => !v)}
+              className={`${filtro(soloBF)} inline-flex items-center gap-1.5`}
+              title="Quien entró por la campaña de Black Friday (compró el ebook o desbloqueó la oferta dejando su WhatsApp)"
+            >
+              Black Friday <span className="tabular-nums opacity-80">{deBlackFriday}</span>
+            </button>
+          ) : null}
           <button
             onClick={() => setCanal('')}
             className={filtro(!canal)}
