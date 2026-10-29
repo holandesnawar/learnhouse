@@ -951,9 +951,18 @@ async def crear_pago(datos: dict, db_session: AsyncSession) -> dict:
     canal = "ads" if str(datos.get("canal") or "") == "ads" else "organico"
 
     _usar_stripe()
+    # El WhatsApp se pide AQUÍ, en la caja de pago, no en la portada (29/10,
+    # usuario: "mejor pedir el WhatsApp en la compra del ebook… igual hay más
+    # posibilidades de que lo pongan bien"). Lo pide Stripe, que lo exige y lo
+    # comprueba con el prefijo del país. Si la persona ya nos lo dejó antes,
+    # va puesto en el cliente y Stripe lo enseña relleno.
+    telefono_previo = await _telefono_conocido(email, db_session)
     try:
         precio = _precio_stripe(cfg["precio_cents"])
-        cliente = _plano(stripe.Customer.create(email=email, name=nombre, metadata={"source": PRODUCTO}))
+        datos_cliente = {"email": email, "name": nombre, "metadata": {"source": PRODUCTO}}
+        if telefono_previo:
+            datos_cliente["phone"] = telefono_previo
+        cliente = _plano(stripe.Customer.create(**datos_cliente))
     except Exception as exc:  # noqa: BLE001
         logger.exception("Ebook: no se pudo preparar el cobro")
         raise EbookError(f"No se pudo preparar el pago: {exc}", 502)
@@ -971,33 +980,38 @@ async def crear_pago(datos: dict, db_session: AsyncSession) -> dict:
         **{c: corto(c) for c in ("utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "utm_placement")},
     }
     vuelta = vuelta_segura(str(datos.get("vuelta") or ""), bf_url() + "/oferta")
+    parametros = dict(
+        # Ver enroll_and_checkout_session: `embedded_page` es el modo
+        # embebido de siempre con su nombre nuevo.
+        ui_mode="embedded_page",
+        mode="payment",
+        line_items=[{"price": precio, "quantity": 1}],
+        customer=cliente.get("id"),
+        return_url=con_compra(vuelta),
+        invoice_creation={
+            "enabled": True,
+            "invoice_data": {
+                "description": f"Ebook «{NOMBRE_EBOOK}»",
+                "footer": "Gracias por confiar en Holandés Nawar.",
+                "metadata": {"producto": PRODUCTO},
+            },
+        },
+        allow_promotion_codes=False,
+        # Sin Klarna: a 1 € no tiene sentido. Sin Link, como la matrícula.
+        payment_method_types=["card", "ideal", "bancontact"],
+        metadata={k: v for k, v in meta.items() if v},
+        # El webhook del PaymentIntent mira esto para no tocar nada:
+        # el ebook lo atiende solo la sesión (`al_pagar`).
+        payment_intent_data={"metadata": {"producto": PRODUCTO, "factura_stripe": "1"}},
+    )
     try:
-        sesion = _plano(
-            stripe.checkout.Session.create(
-                # Ver enroll_and_checkout_session: `embedded_page` es el modo
-                # embebido de siempre con su nombre nuevo.
-                ui_mode="embedded_page",
-                mode="payment",
-                line_items=[{"price": precio, "quantity": 1}],
-                customer=cliente.get("id"),
-                return_url=con_compra(vuelta),
-                invoice_creation={
-                    "enabled": True,
-                    "invoice_data": {
-                        "description": f"Ebook «{NOMBRE_EBOOK}»",
-                        "footer": "Gracias por confiar en Holandés Nawar.",
-                        "metadata": {"producto": PRODUCTO},
-                    },
-                },
-                allow_promotion_codes=False,
-                # Sin Klarna: a 1 € no tiene sentido. Sin Link, como la matrícula.
-                payment_method_types=["card", "ideal", "bancontact"],
-                metadata={k: v for k, v in meta.items() if v},
-                # El webhook del PaymentIntent mira esto para no tocar nada:
-                # el ebook lo atiende solo la sesión (`al_pagar`).
-                payment_intent_data={"metadata": {"producto": PRODUCTO, "factura_stripe": "1"}},
-            )
-        )
+        try:
+            sesion = _plano(stripe.checkout.Session.create(**parametros, phone_number_collection={"enabled": True}))
+        except Exception as exc:  # noqa: BLE001
+            # Si Stripe no aceptara pedir el teléfono, que se pueda comprar
+            # igual: sin teléfono es mejor que sin venta. El motivo, al registro.
+            logger.warning("Ebook: Stripe no aceptó pedir el teléfono (%s); la caja sale sin él", exc)
+            sesion = _plano(stripe.checkout.Session.create(**parametros))
     except Exception as exc:  # noqa: BLE001
         logger.exception("Ebook: no se pudo crear la sesión de pago")
         raise EbookError(f"No se pudo crear el pago: {exc}", 502)
@@ -1014,6 +1028,32 @@ async def crear_pago(datos: dict, db_session: AsyncSession) -> dict:
         "importe_cents": cfg["precio_cents"],
         "moneda": "eur",
     }
+
+
+def telefono_de_stripe(valor: str) -> str:
+    """El teléfono que devuelve Stripe (+31612345678) tal cual, sin espacios;
+    algo que no parezca un número, nada."""
+    limpio = re.sub(r"[^\d+]", "", str(valor or ""))[:40]
+    return limpio if len(re.sub(r"\D", "", limpio)) >= 6 else ""
+
+
+async def _telefono_conocido(email: str, db_session: AsyncSession) -> str:
+    """El último teléfono que esa persona nos dejó (otro formulario, la
+    portada de antes, una compra anterior), para que Stripe lo enseñe puesto."""
+    from src.db.contact_event import ContactEvent
+
+    try:
+        fila = (
+            await db_session.execute(
+                select(ContactEvent.phone)
+                .where(ContactEvent.email == email, ContactEvent.phone != "")
+                .order_by(ContactEvent.created_at.desc())  # type: ignore[union-attr]
+                .limit(1)
+            )
+        ).first()
+    except Exception:  # noqa: BLE001
+        return ""
+    return telefono_de_stripe(fila[0]) if fila else ""
 
 
 async def _apuntar_empezado(email: str, nombre: str, canal: str, meta: dict, session_id: str, db_session: AsyncSession) -> None:
@@ -1089,6 +1129,8 @@ async def al_pagar(sesion: dict, db_session: AsyncSession) -> str:
     if not session_id or not email:
         return "sin-datos"
     nombre = str(meta.get("nombre") or detalles.get("name") or "").strip()
+    # El WhatsApp que pidió la caja de pago: a su ficha, para el closer.
+    telefono = telefono_de_stripe(detalles.get("phone") or "")
 
     r = _redis()
     clave = f"ebook-compra:{session_id}"
@@ -1109,6 +1151,7 @@ async def al_pagar(sesion: dict, db_session: AsyncSession) -> str:
         first_name=partes[0][:120],
         last_name=(partes[1] if len(partes) > 1 else "")[:120],
         source=("ebook-ads" if canal == "ads" else "ebook")[:40],
+        phone=telefono,
         recorrido=str(meta.get("recorrido") or "")[:400],
         referrer=str(meta.get("referrer") or "")[:120],
         utm_source=str(meta.get("utm_source") or "")[:120],

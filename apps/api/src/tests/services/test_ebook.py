@@ -434,3 +434,57 @@ async def test_reservar_la_llamada_pone_la_etiqueta_en_systeme(db, org, monkeypa
     await asyncio.sleep(0)
     await asyncio.sleep(0)
     assert etiquetas == [("Eva@x.com", S.ETIQUETA_LLAMADA_RESERVADA)] or etiquetas == [("eva@x.com", S.ETIQUETA_LLAMADA_RESERVADA)]
+
+
+async def test_la_caja_pide_el_whatsapp_y_lo_guarda_en_la_ficha(db, org, sin_redis_ni_crm, monkeypatch):
+    """29/10: el WhatsApp ya no se pide en la portada, sino al pagar el ebook.
+    Lo pide Stripe (lo exige y lo comprueba); si la persona ya nos lo dejó,
+    sale puesto; al pagar, va a su ficha. Si Stripe no aceptara pedirlo, la
+    caja sale igual, sin él."""
+    import stripe
+
+    import src.services.payments.payments as P
+
+    monkeypatch.setattr(P, "_usar_stripe", lambda: None)
+    monkeypatch.setattr(P, "_stripe_publishable", lambda: "pk_test_x")
+    monkeypatch.setattr(E, "_precio_stripe", lambda cents: "price_x")
+    monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-11-03")
+    clientes, sesiones = [], []
+    monkeypatch.setattr(stripe.Customer, "create", lambda **k: clientes.append(k) or {"id": "cus_1"})
+    monkeypatch.setattr(
+        stripe.checkout.Session, "create", lambda **k: sesiones.append(k) or {"id": "cs_test_w", "client_secret": "sec_1"}
+    )
+    db.add(ContactEvent(email="ana@x.com", kind="admision", phone="+31 6 1234 5678", created_at="2026-10-01T10:00:00+00:00"))
+    await db.commit()
+
+    caja = await E.crear_pago({"email": "ana@x.com", "nombre": "Ana López"}, db)
+    assert caja["client_secret"] == "sec_1"
+    assert sesiones[0]["phone_number_collection"] == {"enabled": True}
+    assert clientes[0]["phone"] == "+31612345678"  # ya nos lo había dejado
+    await E.crear_pago({"email": "leo@x.com", "nombre": "Leo"}, db)
+    assert "phone" not in clientes[1]  # nadie se inventa un número
+
+    with patch.object(M, "send_email", side_effect=lambda **k: None):
+        s = _sesion(cs="cs_tel")
+        s["customer_details"]["phone"] = "+32470123456"
+        assert await E.al_pagar(s, db) == "enviado"
+    compra = (
+        await db.execute(select(ContactEvent).where(ContactEvent.kind == E.TIPO_COMPRA, ContactEvent.email == "ana@x.com"))
+    ).scalars().first()
+    assert compra.phone == "+32470123456"
+
+    # Stripe rechaza pedir el teléfono: se puede comprar igual.
+    def exigente(**k):
+        if "phone_number_collection" in k:
+            raise RuntimeError("phone_number_collection no vale aquí")
+        sesiones.append(k)
+        return {"id": "cs_test_sin", "client_secret": "sec_2"}
+
+    monkeypatch.setattr(stripe.checkout.Session, "create", exigente)
+    assert (await E.crear_pago({"email": "eva@x.com", "nombre": "Eva"}, db))["client_secret"] == "sec_2"
+    assert "phone_number_collection" not in sesiones[-1]
+
+
+def test_telefono_de_stripe():
+    assert E.telefono_de_stripe("+31 6 12 34 56 78") == "+31612345678"
+    assert E.telefono_de_stripe("") == "" and E.telefono_de_stripe("abc") == ""
