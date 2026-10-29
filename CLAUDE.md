@@ -4423,6 +4423,16 @@ systeme.io, que es lo que la mete en su campaña.
 ⚠️ A /oferta NO se manda a quien no compró con `utm_source=email` +
 `utm_campaign=black-friday`: con esos dos, /oferta le saluda con «Ya tienes tu
 ebook». Para los botones de systeme.io a /oferta, `utm_source=systeme`.
+- ⚠️ **Los correos que hablan de la formación llevan a `/oferta`, NO a
+  `/admision`** (29/10, usuario: "¿por qué el botón va a /admision? eso es solo
+  el formulario, no el curso"). Seis botones de las campañas mandaban directo
+  al formulario de la llamada sin enseñar la formación: n3 y n5 (no
+  compradores) y c1, c3, c5 y c7 (compradores). Ahora van a `/oferta` (la
+  landing con la formación, que pasa nombre y correo a sus botones del
+  formulario), con «Ver mi oferta de Black Friday». Compradores con
+  `utm_source=email` (la oferta les saluda con «Ya tienes tu ebook») y no
+  compradores con `utm_source=systeme`. Los del ebook siguen yendo a la
+  portada con `desbloquear=1`.
 - **Los correos de systeme.io van en el editor VISUAL**, con el diseño del
   correo «QWERTY» (campaña 1193098): texto en Arial 15 px con interlineado 1,5,
   la imagen «Holandés con Nawar» (528 px) debajo, el logo (120 px) y el pie
