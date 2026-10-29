@@ -238,7 +238,7 @@ async def test_la_portada_desbloquea_el_ebook_y_la_campana_es_para_quien_lo_comp
     with patch.object(M, "send_email", side_effect=lambda **k: mandados.append(k)):
         r = await E.apuntar_lista({"nombre": "Ana López", "email": "ANA@x.com", "telefono": "0031 6 1234 5678",
                                    "utm_source": "instagram", "recorrido": "bf-desbloquear"}, db)
-        assert r == {"ok": True, "nuevo": True}
+        assert r == {"ok": True, "nuevo": True, "compro": False}
         # Repetirlo no duplica ni vuelve a mandar el correo.
         assert (await E.apuntar_lista({"nombre": "Ana", "email": "ana@x.com"}, db))["nuevo"] is False
         # Luis también se apunta, y compra el ebook ese mismo día.
@@ -255,6 +255,9 @@ async def test_la_portada_desbloquea_el_ebook_y_la_campana_es_para_quien_lo_comp
 
     with patch.object(M, "send_email", side_effect=lambda **k: None):
         await E.al_pagar(_sesion(cs="cs_luis", email="luis@x.com"), db)
+        # Si vuelve a pasar por la portada (el botón de una newsletter), la web
+        # sabe que ya lo tiene: sin teléfono también vale.
+        assert (await E.apuntar_lista({"nombre": "Luis", "email": "luis@x.com"}, db))["compro"] is True
 
     import src.services.contactos.contactos as Cc
 

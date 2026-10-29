@@ -4405,6 +4405,29 @@ interruptor **«Campaña de correos»** (Avisos → Ebook Black Friday):
 - Panel → Correos y el mapa de Visión siguen enseñando dónde está cada
   persona; los correos y sus cifras, en systeme.io.
 
+### El botón de las newsletters: desbloquear sin formulario (29/10, noche)
+Pedido: "si ya se apuntó por otra vía, que recoja mail y nombre y abra la
+página, para que no tenga que poner otra vez todo, como hace YouTalk". El
+botón de una newsletter de systeme.io lleva
+`https://blackfriday.holandesnawar.com/?desbloquear=1&email={email}&nombre={first_name}&utm_source=email&utm_medium=newsletter&utm_campaign=black-friday&utm_content=<cuál>`
+y la portada (`nawar-web/src/pages/black-friday/index.astro`) apunta sola a la
+persona (`/ebook/lista`, sin WhatsApp: no es obligatorio), con «Desbloqueando
+tu oferta…» en lugar del formulario, y la lleva al ebook con la oferta
+desbloqueada. **Si ya compró el ebook, a /oferta**: `apuntar_lista` devuelve
+ahora `compro`. El «+» de un correo llega como espacio y se arregla; un
+`{first_name}` sin sustituir no vale y el nombre sale de lo de antes de la @.
+Si algo falla, el formulario de siempre con lo que se sepa. **Sin
+`desbloquear=1` no se apunta a nadie solo**: nombre y correo en la dirección
+solo rellenan el formulario. Apuntarse pone «Black Friday - lista» en
+systeme.io, que es lo que la mete en su campaña.
+⚠️ A /oferta NO se manda a quien no compró con `utm_source=email` +
+`utm_campaign=black-friday`: con esos dos, /oferta le saluda con «Ya tienes tu
+ebook». Para los botones de systeme.io a /oferta, `utm_source=systeme`.
+- **Los correos de systeme.io van en el editor VISUAL**, con el diseño del
+  correo «QWERTY» (campaña 1193098): texto en Arial 15 px con interlineado 1,5,
+  la imagen «Holandés con Nawar» (528 px) debajo, el logo (120 px) y el pie
+  centrado con info@, la web, «Enviado a {email}» y la dirección. Firma: Rida.
+
 ### El pie de los correos a quien no compró (arreglado 29/10)
 El correo de la oferta desbloqueada, el recordatorio del ebook y los dos de
 fecha fija a quien no compró decían al pie «Te escribimos porque compraste el
