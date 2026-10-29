@@ -296,13 +296,23 @@ async def test_la_portada_desbloquea_el_ebook_y_la_campana_es_para_quien_lo_comp
 def test_los_textos_de_fabrica_de_antes_no_se_quedan():
     """El panel guarda las cartas enteras: el acceso de antes (que llevaba a la
     formación) vuelve al de ahora si nadie lo tocó; uno retocado se respeta."""
-    viejo = {"asunto": "Tu acceso a la oferta de Black Friday", "texto": E._FABRICA_ANTERIOR["acceso"], "boton": "Ver mi oferta",
+    viejo = {"asunto": "Tu acceso a la oferta de Black Friday", "texto": E._FABRICA_ANTERIOR["acceso"][-1], "boton": "Ver mi oferta",
              "destino": "landing", "apagado": False}
     cfg = E.config_limpia({"acceso": viejo})
     assert cfg["acceso"]["destino"] == "ebook" and cfg["acceso"]["asunto"] == E.DE_FABRICA["acceso"]["asunto"]
     retocado = {**viejo, "texto": viejo["texto"].replace("Aquí tienes", "Mira")}
     assert E.config_limpia({"acceso": retocado})["acceso"]["destino"] == "landing"
     assert E.config_limpia({"acceso": {**viejo, "apagado": True}})["acceso"]["apagado"] is True
+
+
+def test_las_70_paginas_sustituyen_a_las_7_lecciones():
+    """29/10: «70 páginas» en vez de «7 lecciones». Las cartas guardadas tal
+    cual con el texto de antes pasan solas al nuevo."""
+    for clave in ("entrega", "acceso"):
+        guardada = {**E.DE_FABRICA[clave], "texto": E._FABRICA_ANTERIOR[clave][0]}
+        texto = E.config_limpia({clave: guardada})[clave]["texto"]
+        assert "70 páginas" in texto and "7 lecciones" not in texto
+    assert "70 páginas" in E.SUBTITULO_EBOOK
 
 
 def test_los_botones_de_los_correos_llevan_a_la_oferta():

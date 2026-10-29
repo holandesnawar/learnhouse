@@ -147,7 +147,7 @@ POR_QUE_COMPRO = "Te escribimos porque compraste el ebook de Holandés Nawar."
 POR_QUE_SIN_COMPRAR = "Te escribimos porque desbloqueaste la oferta de Black Friday de Holandés Nawar."
 
 NOMBRE_EBOOK = "Neerlandés sin miedo"
-SUBTITULO_EBOOK = "7 lecciones para arrancar desde cero (nivel A0-A1)"
+SUBTITULO_EBOOK = "70 páginas para arrancar desde cero (nivel A0-A1)"
 PRODUCTO_STRIPE = f"{NOMBRE_EBOOK} · Ebook A0-A1"
 
 DIAS_DESCARGA = 365
@@ -176,7 +176,7 @@ DE_FABRICA: dict = {
         "asunto": "Tu ebook «Neerlandés sin miedo» ya está aquí",
         "texto": (
             "¡Hola, {nombre}!\n\n"
-            "Gracias por tu compra. Aquí tienes tu ebook *Neerlandés sin miedo*: 7 lecciones para arrancar "
+            "Gracias por tu compra. Aquí tienes tu ebook *Neerlandés sin miedo*: 70 páginas para arrancar "
             "desde cero, con su vocabulario, sus ejercicios y todas las respuestas para que te corrijas tú.\n\n"
             "[descarga]\n\n"
             "Un consejo para sacarle partido: una lección al día y en voz alta. Leer el neerlandés en silencio "
@@ -213,7 +213,7 @@ DE_FABRICA: dict = {
             "¡Hola, {nombre}!\n\n"
             "Ya tienes desbloqueada tu oferta de Black Friday: *Neerlandés sin miedo*, nuestro ebook para "
             "arrancar con el neerlandés desde cero, por solo 1 €.\n\n"
-            "Son 7 lecciones explicadas en español, con el vocabulario, los ejercicios y todas las respuestas "
+            "Son 70 páginas explicadas en español, con el vocabulario, los ejercicios y todas las respuestas "
             "para que te corrijas tú. En PDF y para siempre.\n\n"
             "La oferta vale hasta el {hasta}.\n\n"
             "[boton]\n\n" + _FIRMA
@@ -361,7 +361,7 @@ DE_FABRICA: dict = {
                 "¡Hola, {nombre}!\n\n"
                 "Hoy es Black Friday, y tu oferta sigue desbloqueada: *Neerlandés sin miedo*, el ebook para "
                 "arrancar con el neerlandés desde cero, por 1 €.\n\n"
-                "Son 7 lecciones explicadas en español, con el vocabulario, los ejercicios y todas las "
+                "Son 70 páginas explicadas en español, con el vocabulario, los ejercicios y todas las "
                 "respuestas. La oferta termina el {hasta}.\n\n"
                 "[boton]\n\n" + _FIRMA
             ),
@@ -387,12 +387,32 @@ DE_FABRICA: dict = {
 
 DESTINOS = ("admision", "landing", "descarga", "ebook")
 
-#: Los textos de fábrica de antes del 28/10 (tercera vuelta). Si están
-#: guardados TAL CUAL (el panel guarda las cartas enteras aunque no se toquen),
-#: se usan los de ahora: el de acceso llevaba a la formación y ya no toca. Uno
-#: retocado en el panel se respeta.
-_FABRICA_ANTERIOR = {
+#: Los textos de fábrica de antes, por carta: los del 28/10 (tercera vuelta: el
+#: de acceso llevaba a la formación) y los de antes del 29/10 («7 lecciones»;
+#: ahora es «70 páginas»). Si están guardados TAL CUAL (el panel guarda las
+#: cartas enteras aunque no se toquen), se usan los de ahora. Uno retocado en
+#: el panel se respeta.
+_FABRICA_ANTERIOR: dict[str, tuple[str, ...]] = {
+    "entrega": (
+        "¡Hola, {nombre}!\n\n"
+        "Gracias por tu compra. Aquí tienes tu ebook *Neerlandés sin miedo*: 7 lecciones para arrancar "
+        "desde cero, con su vocabulario, sus ejercicios y todas las respuestas para que te corrijas tú.\n\n"
+        "[descarga]\n\n"
+        "Un consejo para sacarle partido: una lección al día y en voz alta. Leer el neerlandés en silencio "
+        "engaña, porque crees que lo sabes hasta que lo tienes que decir.\n\n"
+        "Y una cosa más. Hasta el {hasta} tenemos condiciones especiales de Black Friday para la "
+        "Formación Nawar A0-A1, el camino completo de cero al A1 en 16 semanas. Si quieres saber si "
+        "encaja contigo, mira cómo funciona y pide tu llamada gratuita.\n\n"
+        "[boton]\n\n" + _FIRMA,
+    ),
     "acceso": (
+        "¡Hola, {nombre}!\n\n"
+        "Ya tienes desbloqueada tu oferta de Black Friday: *Neerlandés sin miedo*, nuestro ebook para "
+        "arrancar con el neerlandés desde cero, por solo 1 €.\n\n"
+        "Son 7 lecciones explicadas en español, con el vocabulario, los ejercicios y todas las respuestas "
+        "para que te corrijas tú. En PDF y para siempre.\n\n"
+        "La oferta vale hasta el {hasta}.\n\n"
+        "[boton]\n\n" + _FIRMA,
         "¡Hola, {nombre}!\n\n"
         "Ya tienes acceso anticipado a las condiciones de Black Friday de la Formación Nawar A0-A1: "
         "el camino completo de cero al A1 en 16 semanas, explicado en español y con clases en directo "
@@ -400,7 +420,7 @@ _FABRICA_ANTERIOR = {
         "Las condiciones no te las cuento por aquí: te las explica nuestro equipo en una llamada "
         "gratuita de media hora, después de entender tu situación. Valen hasta el {hasta}.\n\n"
         "Aquí tienes tu oferta, con todo lo que incluye la formación:\n\n"
-        "[boton]\n\n" + _FIRMA
+        "[boton]\n\n" + _FIRMA,
     ),
     "pendiente": (
         "¡Hola, {nombre}!\n\n"
@@ -409,7 +429,7 @@ _FABRICA_ANTERIOR = {
         "Si todavía lo quieres, te lo he dejado preparado: con un clic vuelves y lo terminas. Sigue a "
         "1 € hasta el {hasta}.\n\n"
         "[boton]\n\n"
-        "Si tuviste algún problema al pagar, contesta a este correo y te ayudamos.\n\n" + _FIRMA
+        "Si tuviste algún problema al pagar, contesta a este correo y te ayudamos.\n\n" + _FIRMA,
     ),
 }
 
@@ -656,7 +676,7 @@ def _carta_limpia(guardada: Any, clave: str) -> dict:
     """Un correo suelto (el de entrega, el de «se quedó a medias»): el de
     fábrica con lo cambiado en el panel encima."""
     g = guardada if isinstance(guardada, dict) else {}
-    if clave in _FABRICA_ANTERIOR and _sin_espacios(g.get("texto")) == _sin_espacios(_FABRICA_ANTERIOR[clave]):
+    if _sin_espacios(g.get("texto")) in {_sin_espacios(t) for t in _FABRICA_ANTERIOR.get(clave, ())}:
         g = {}
     carta = dict(DE_FABRICA[clave])
     for campo in ("asunto", "texto", "boton"):
