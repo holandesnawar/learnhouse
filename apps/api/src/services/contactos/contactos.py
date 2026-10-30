@@ -75,8 +75,8 @@ NOMBRES_TIPO = {
     "check-in": "Check-in con el equipo",
     "alta-manual": "Dado de alta a mano",
     # El ebook de Black Friday a 1 € y su campaña (28/10, services/ebook/ebook.py).
-    "ebook": "Compró el ebook «Neerlandés sin miedo»",
-    "ebook-empezado": "Empezó a pedir el ebook «Neerlandés sin miedo»",
+    "ebook": "Compró el ebook «Holandés sin miedo»",
+    "ebook-empezado": "Empezó a pedir el ebook «Holandés sin miedo»",
     "bf-lista": "Se apuntó para desbloquear la oferta de Black Friday",
     "correo-bf": "Le llegó un correo de la campaña de Black Friday",
     "baja-bf": "Se dio de baja de la campaña de Black Friday",
@@ -297,12 +297,12 @@ def _que(kind: str, campos: dict) -> str:
             texto += f" (lo hizo {extra['autor']})"
         return texto + (f": {extra['nota']}" if extra.get("nota") else "")
     if kind == "ebook":
-        texto = "Compró el ebook «Neerlandés sin miedo»"
+        texto = "Compró el ebook «Holandés sin miedo»"
         if extra.get("importe_cents"):
             texto += f" ({_euros(extra['importe_cents'])})"
         return texto + (" desde el anuncio" if extra.get("canal") == "ads" else "")
     if kind == "ebook-empezado":
-        texto = "Dejó sus datos para el ebook «Neerlandés sin miedo» y abrió el pago"
+        texto = "Dejó sus datos para el ebook «Holandés sin miedo» y abrió el pago"
         return texto + (" (desde el anuncio)" if extra.get("canal") == "ads" else "")
     if kind == "correo-bf" and extra.get("asunto"):
         return f"Le llegó el correo «{extra['asunto']}» (campaña de Black Friday)"

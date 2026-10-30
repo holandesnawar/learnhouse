@@ -7,7 +7,8 @@ ahí hacen la compra y en la página de gracias vamos a
 blackfriday.holandesnawar.com, la landing de la formación… que les llegue el
 mail cuando compre… y al comprar apuntarse a una campaña de mails para ir
 calentando a los que aún no compraron". El ebook es el «Ebook A0-A1» de
-siempre con otro nombre, «Neerlandés sin miedo», a 1 € (imán de leads). La
+siempre con otro nombre, «Holandés sin miedo» (hasta el 30/10, «Neerlandés sin
+miedo»), a 1 € (imán de leads). La
 campaña va del 29/10 al 30/11/2026.
 
 Por qué en la escuela y no en systeme.io (decidido con el usuario)
@@ -146,7 +147,13 @@ TIPOS_RESERVO = ("reunion", "llamada-equipo", "correo-reserva")
 POR_QUE_COMPRO = "Te escribimos porque compraste el ebook de Holandés Nawar."
 POR_QUE_SIN_COMPRAR = "Te escribimos porque desbloqueaste la oferta de Black Friday de Holandés Nawar."
 
-NOMBRE_EBOOK = "Neerlandés sin miedo"
+NOMBRE_EBOOK = "Holandés sin miedo"
+#: Los nombres que tuvo antes (30/10, usuario: "no es Neerlandés sin miedo sino
+#: Holandés sin miedo"; es el de la portada del libro). Lo que esté guardado en
+#: el panel con un nombre viejo sale con el de ahora (`_nombre_al_dia`), y el
+#: producto de Stripe se renombra solo la primera vez que se cobra
+#: (`_precio_stripe`).
+NOMBRES_ANTERIORES = ("Neerlandés sin miedo",)
 SUBTITULO_EBOOK = "70 páginas para arrancar desde cero (nivel A0-A1)"
 PRODUCTO_STRIPE = f"{NOMBRE_EBOOK} · Ebook A0-A1"
 
@@ -173,10 +180,10 @@ DE_FABRICA: dict = {
     "hasta": "2026-11-30",
     "precio_cents": 100,
     "entrega": {
-        "asunto": "Tu ebook «Neerlandés sin miedo» ya está aquí",
+        "asunto": "Tu ebook «Holandés sin miedo» ya está aquí",
         "texto": (
             "¡Hola, {nombre}!\n\n"
-            "Gracias por tu compra. Aquí tienes tu ebook *Neerlandés sin miedo*: 70 páginas para arrancar "
+            "Gracias por tu compra. Aquí tienes tu ebook *Holandés sin miedo*: 70 páginas para arrancar "
             "desde cero, con su vocabulario, sus ejercicios y todas las respuestas para que te corrijas tú.\n\n"
             "[descarga]\n\n"
             "Un consejo para sacarle partido: una lección al día y en voz alta. Leer el neerlandés en silencio "
@@ -195,7 +202,7 @@ DE_FABRICA: dict = {
         "asunto": "Tu ebook de 1 € te está esperando",
         "texto": (
             "¡Hola, {nombre}!\n\n"
-            "Te quedaste a un paso de *Neerlandés sin miedo*, el ebook para arrancar con el neerlandés desde "
+            "Te quedaste a un paso de *Holandés sin miedo*, el ebook para arrancar con el neerlandés desde "
             "cero. Si se te cortó el pago o simplemente se te pasó, te lo he dejado preparado: con un clic "
             "vuelves y es tuyo.\n\n"
             "Sigue a 1 € hasta el {hasta}.\n\n"
@@ -211,7 +218,7 @@ DE_FABRICA: dict = {
         "asunto": "Tu oferta de Black Friday está desbloqueada",
         "texto": (
             "¡Hola, {nombre}!\n\n"
-            "Ya tienes desbloqueada tu oferta de Black Friday: *Neerlandés sin miedo*, nuestro ebook para "
+            "Ya tienes desbloqueada tu oferta de Black Friday: *Holandés sin miedo*, nuestro ebook para "
             "arrancar con el neerlandés desde cero, por solo 1 €.\n\n"
             "Son 70 páginas explicadas en español, con el vocabulario, los ejercicios y todas las respuestas "
             "para que te corrijas tú. En PDF y para siempre.\n\n"
@@ -243,7 +250,7 @@ DE_FABRICA: dict = {
             "asunto": "Cómo sacarle partido a tu ebook",
             "texto": (
                 "¡Hola, {nombre}!\n\n"
-                "Ayer te llegó *Neerlandés sin miedo*. Te cuento cómo aprovecharlo, porque un PDF se queda "
+                "Ayer te llegó *Holandés sin miedo*. Te cuento cómo aprovecharlo, porque un PDF se queda "
                 "muy fácil olvidado en la carpeta de descargas.\n\n"
                 "*Una lección al día.* Siete lecciones, siete días. No hace falta más.\n\n"
                 "*En voz alta.* Leer el neerlandés en silencio engaña: crees que lo sabes hasta que lo "
@@ -359,7 +366,7 @@ DE_FABRICA: dict = {
             "asunto": "Hoy es Black Friday: tu ebook sigue a 1 €",
             "texto": (
                 "¡Hola, {nombre}!\n\n"
-                "Hoy es Black Friday, y tu oferta sigue desbloqueada: *Neerlandés sin miedo*, el ebook para "
+                "Hoy es Black Friday, y tu oferta sigue desbloqueada: *Holandés sin miedo*, el ebook para "
                 "arrancar con el neerlandés desde cero, por 1 €.\n\n"
                 "Son 70 páginas explicadas en español, con el vocabulario, los ejercicios y todas las "
                 "respuestas. La oferta termina el {hasta}.\n\n"
@@ -375,7 +382,7 @@ DE_FABRICA: dict = {
             "asunto": "Último día para tu ebook a 1 €",
             "texto": (
                 "¡Hola, {nombre}!\n\n"
-                "Hoy es el último día. A medianoche *Neerlandés sin miedo* deja de estar a 1 €.\n\n"
+                "Hoy es el último día. A medianoche *Holandés sin miedo* deja de estar a 1 €.\n\n"
                 "Si quieres empezar con el neerlandés con una base clara y en español, este es el momento.\n\n"
                 "[boton]\n\n" + _FIRMA
             ),
@@ -436,6 +443,14 @@ _FABRICA_ANTERIOR: dict[str, tuple[str, ...]] = {
 
 def _sin_espacios(t: Any) -> str:
     return re.sub(r"\s+", " ", str(t or "")).strip()
+
+
+def _nombre_al_dia(t: Any) -> str:
+    """Un texto guardado con un nombre viejo del ebook, con el de ahora."""
+    t = str(t or "")
+    for viejo in NOMBRES_ANTERIORES:
+        t = t.replace(viejo, NOMBRE_EBOOK)
+    return t
 
 
 class EbookError(Exception):
@@ -655,7 +670,7 @@ def correos_limpios(guardados: Any) -> list[dict]:
         g = por_id.get(base["id"]) or {}
         c = dict(base)
         for campo in ("asunto", "texto", "boton"):
-            v = str(g.get(campo) or "").strip()
+            v = _nombre_al_dia(g.get(campo)).strip()
             if v:
                 c[campo] = v
         if g.get("destino") in DESTINOS:
@@ -676,11 +691,12 @@ def _carta_limpia(guardada: Any, clave: str) -> dict:
     """Un correo suelto (el de entrega, el de «se quedó a medias»): el de
     fábrica con lo cambiado en el panel encima."""
     g = guardada if isinstance(guardada, dict) else {}
-    if _sin_espacios(g.get("texto")) in {_sin_espacios(t) for t in _FABRICA_ANTERIOR.get(clave, ())}:
+    anteriores = {_sin_espacios(_nombre_al_dia(t)) for t in _FABRICA_ANTERIOR.get(clave, ())}
+    if _sin_espacios(_nombre_al_dia(g.get("texto"))) in anteriores:
         g = {}
     carta = dict(DE_FABRICA[clave])
     for campo in ("asunto", "texto", "boton"):
-        v = str(g.get(campo) or "").strip()
+        v = _nombre_al_dia(g.get(campo)).strip()
         if v:
             carta[campo] = v
     if g.get("destino") in DESTINOS:
@@ -910,6 +926,23 @@ def _plano(obj: Any) -> dict:
 _PRECIOS: dict[int, str] = {}
 
 
+def _producto_al_dia(producto: Any) -> None:
+    """El nombre del producto es el que sale en la caja de pago y en la
+    factura: si el Price ya existía con el nombre viejo, se le pone el de
+    ahora. En blando: si falla, se cobra igual con el nombre de antes."""
+    import stripe
+
+    pid = producto.get("id") if isinstance(producto, dict) else producto
+    if not pid:
+        return
+    try:
+        actual = _plano(stripe.Product.retrieve(str(pid)))
+        if str(actual.get("name") or "") != PRODUCTO_STRIPE:
+            stripe.Product.modify(str(pid), name=PRODUCTO_STRIPE)
+    except Exception as e:  # noqa: BLE001
+        logger.warning("ebook: no se pudo poner el nombre al producto de Stripe: %s", e)
+
+
 def _precio_stripe(cents: int) -> str:
     """El Price del ebook, buscado por `lookup_key` y creado (con su propio
     producto, que es el nombre que sale en el recibo) si no existe."""
@@ -921,7 +954,10 @@ def _precio_stripe(cents: int) -> str:
 
     def buscar() -> str:
         datos = _plano(stripe.Price.list(lookup_keys=[clave], active=True, limit=1)).get("data") or []
-        return str(datos[0].get("id") or "") if datos else ""
+        if not datos:
+            return ""
+        _producto_al_dia(datos[0].get("product"))
+        return str(datos[0].get("id") or "")
 
     precio = buscar()
     if not precio:
