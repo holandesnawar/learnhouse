@@ -315,6 +315,49 @@ def test_las_70_paginas_sustituyen_a_las_7_lecciones():
     assert "70 páginas" in E.SUBTITULO_EBOOK
 
 
+def test_el_ebook_se_llama_holandes_sin_miedo():
+    """30/10: «Holandés sin miedo» (el de la portada), no «Neerlandés sin
+    miedo». Nada de fábrica lleva el nombre viejo, y lo guardado en el panel
+    con él (tal cual o retocado) sale con el nuevo."""
+    assert E.NOMBRE_EBOOK == "Holandés sin miedo" and E.PRODUCTO_STRIPE.startswith("Holandés sin miedo")
+    assert "Neerlandés sin miedo" not in json.dumps(E.DE_FABRICA, ensure_ascii=False)
+    retocada = {"asunto": "Tu ebook «Neerlandés sin miedo» ya está aquí",
+                "texto": "Hola {nombre}, aquí tienes *Neerlandés sin miedo*.\n\n[descarga]", "boton": "Descargar"}
+    entrega = E.config_limpia({"entrega": retocada})["entrega"]
+    assert entrega["asunto"] == "Tu ebook «Holandés sin miedo» ya está aquí"
+    assert "*Holandés sin miedo*" in entrega["texto"] and "Neerlandés sin miedo" not in entrega["texto"]
+    correos = E.correos_limpios([{"id": CORREOS[0]["id"], "texto": "Ayer te llegó *Neerlandés sin miedo*."}])
+    assert correos[0]["texto"] == "Ayer te llegó *Holandés sin miedo*."
+    # Las cartas viejas guardadas tal cual siguen pasando a las de ahora.
+    guardada = {**E.DE_FABRICA["pendiente"], "texto": E._FABRICA_ANTERIOR["pendiente"][0]}
+    assert E.config_limpia({"pendiente": guardada})["pendiente"]["texto"] == E.DE_FABRICA["pendiente"]["texto"]
+
+
+def test_el_producto_de_stripe_se_renombra(monkeypatch):
+    """El Price ya existía con el producto «Neerlandés sin miedo · …»: al
+    cobrar, se le pone el nombre de ahora (sale en la caja y en la factura)."""
+    import stripe
+
+    cambios = []
+    monkeypatch.setattr(E, "_PRECIOS", {})
+    monkeypatch.setattr(stripe.Price, "list", lambda **k: {"data": [{"id": "price_viejo", "product": "prod_1"}]})
+    monkeypatch.setattr(stripe.Product, "retrieve", lambda pid: {"id": pid, "name": "Neerlandés sin miedo · Ebook A0-A1"})
+    monkeypatch.setattr(stripe.Product, "modify", lambda pid, **k: cambios.append((pid, k)))
+    assert E._precio_stripe(100) == "price_viejo"
+    assert cambios == [("prod_1", {"name": E.PRODUCTO_STRIPE})]
+    # Con el nombre ya puesto, no se toca; y si Stripe falla, se cobra igual.
+    monkeypatch.setattr(E, "_PRECIOS", {})
+    monkeypatch.setattr(stripe.Product, "retrieve", lambda pid: {"id": pid, "name": E.PRODUCTO_STRIPE})
+    assert E._precio_stripe(100) == "price_viejo" and len(cambios) == 1
+    monkeypatch.setattr(E, "_PRECIOS", {})
+
+    def falla(pid):
+        raise RuntimeError("caído")
+
+    monkeypatch.setattr(stripe.Product, "retrieve", falla)
+    assert E._precio_stripe(100) == "price_viejo"
+
+
 def test_los_botones_de_los_correos_llevan_a_la_oferta():
     with patch.object(E, "bf_url", return_value="https://blackfriday.holandesnawar.com"):
         assert E.url_destino("landing", "a@x.com", "Ana", "c1").startswith("https://blackfriday.holandesnawar.com/oferta?")
