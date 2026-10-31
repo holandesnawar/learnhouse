@@ -43,6 +43,7 @@ import useAdminStatus from '@components/Hooks/useAdminStatus'
 import {
   avisoTrasBorrar,
   borrarContacto,
+  cancelarLlamada,
   confirmarCita,
   cuandoLlamar,
   devolverCita,
@@ -66,7 +67,7 @@ import {
   type VolverALlamar,
 } from '@services/stats/contactos'
 import { marcarSolicitud } from '@services/stats/school'
-import { CalendarPlus, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Loader2, NotebookPen, Phone, Plus, RotateCcw, Trash2, Video, X } from 'lucide-react'
+import { CalendarClock, CalendarPlus, CalendarX2, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Loader2, NotebookPen, Phone, Plus, RotateCcw, Trash2, Video, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { confirmar } from '@lib/nawar/confirmar'
 import { BOTON, BOTON_PELIGRO, BOTON_PRINCIPAL, ENLACE, Estado, META, Meta, Seccion, TARJETA, filtro, type Tono } from '../Panel/ui'
@@ -144,7 +145,8 @@ export default function LlamadasPanel() {
   const [cargandoAgenda, setCargandoAgenda] = useState(false)
   const [cita, setCita] = useState<Cita | null>(null)
   const [ficha, setFicha] = useState<string | null>(null)
-  const [nueva, setNueva] = useState<{ dia?: Date; inicial?: { nombre?: string; email?: string; telefono?: string } } | null>(null)
+  // `cambiar` (31/10): la misma ventana, para cambiarle la hora a una llamada que ya existe.
+  const [nueva, setNueva] = useState<{ dia?: Date; inicial?: { nombre?: string; email?: string; telefono?: string }; cambiar?: Cita } | null>(null)
   const [recordatorios, setRecordatorios] = useState<Record<string, VolverALlamar>>({})
   const [notas, setNotas] = useState<NotasPorEmail>({})
   const llamarDe = (email: string) => recordatorios[(email || '').toLowerCase()]
@@ -451,6 +453,16 @@ export default function LlamadasPanel() {
             cargarNotas()
             setNueva({ inicial: { nombre: c.nombre, email: c.email, telefono: c.telefono } })
           }}
+          // «Cambiar hora» (31/10): la ventana de Nueva llamada, con esta cita.
+          onCambiarHora={(c) => {
+            setCita(null)
+            setNueva({ cambiar: c })
+          }}
+          onCancelada={(c) => {
+            setAgenda((a) => (a ? { ...a, citas: a.citas.map((x) => (x.id === c.id ? c : x)) } : a))
+            setCita(null)
+            cargarAgenda(true)
+          }}
           onConfirmada={async (c) => {
             const nueva = await alternarConfirmada(c)
             if (nueva) setCita(nueva)
@@ -464,7 +476,9 @@ export default function LlamadasPanel() {
           }}
         />
       ) : null}
-      {nueva ? <NuevaLlamada dia={nueva.dia} inicial={nueva.inicial} onClose={() => setNueva(null)} onHecho={() => cargarAgenda(true)} /> : null}
+      {nueva ? (
+        <NuevaLlamada dia={nueva.dia} inicial={nueva.inicial} cambiar={nueva.cambiar} onClose={() => setNueva(null)} onHecho={() => cargarAgenda(true)} />
+      ) : null}
       {ficha ? <FichaCliente
           email={ficha}
           onClose={() => {
@@ -797,6 +811,8 @@ function CitaDialogo({
   onGuardado,
   onReagendar,
   onQuitada,
+  onCambiarHora,
+  onCancelada,
   onConfirmada,
   confirmando,
   verFicha,
@@ -806,6 +822,8 @@ function CitaDialogo({
   onGuardado: (c: Cita) => void
   onReagendar: (c: Cita) => void
   onQuitada: (c: Cita) => void
+  onCambiarHora: (c: Cita) => void
+  onCancelada: (c: Cita) => void
   onConfirmada: (c: Cita) => void
   confirmando: boolean
   verFicha: (email: string) => void
@@ -821,6 +839,11 @@ function CitaDialogo({
   // Tras apuntar «No vino»: la cita ya guardada, mientras se pregunta si se le
   // agenda otra. Cerrar la ventana en ese momento es contestar que no.
   const [sinVenir, setSinVenir] = useState<Cita | null>(null)
+  // «Cancelar la llamada» (31/10): se abre una cajita con el mensaje para la
+  // persona antes de cancelarla de verdad en Calendly.
+  const [aCancelar, setACancelar] = useState(false)
+  const [mensaje, setMensaje] = useState('')
+  const [cancelando, setCancelando] = useState(false)
   const pasada = new Date(cita.inicio).getTime() < Date.now()
   const cancelada = cita.estado === 'cancelada'
   const e = estadoDe(cita)
@@ -852,6 +875,18 @@ function CitaDialogo({
     onGuardado(guardada)
   }
 
+  async function cancelar() {
+    setCancelando(true)
+    const r = await cancelarLlamada(org?.id, cita, mensaje.trim(), accessToken)
+    setCancelando(false)
+    if (!r.ok) {
+      toast.error(`Calendly no la ha cancelado: ${r.error || 'sin motivo'}`, { duration: 8000 })
+      return
+    }
+    toast.success(`Cancelada. A ${primerNombre || 'la persona'} le llega el aviso de Calendly.`)
+    onCancelada({ ...cita, estado: 'cancelada', motivo_cancelacion: mensaje.trim() })
+  }
+
   async function quitar() {
     const ok = await confirmar(
       `¿Quitar la cita de ${cita.nombre || cita.email} del calendario? Solo deja de salir aquí: en Calendly sigue igual y a la persona no le llega nada. Se puede devolver.`,
@@ -870,8 +905,8 @@ function CitaDialogo({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/30 p-3" onClick={cerrar} role="dialog" aria-modal="true">
-      <div className="w-full max-w-md rounded-xl bg-white border border-[#E5E7EB]" onClick={(ev) => ev.stopPropagation()}>
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/30 p-3 pb-24 sm:pb-3" onClick={cerrar} role="dialog" aria-modal="true">
+      <div className="w-full max-w-md rounded-xl bg-white border border-[#E5E7EB] max-h-[calc(100vh-7.5rem)] sm:max-h-[92vh] overflow-y-auto" onClick={(ev) => ev.stopPropagation()}>
         <div className="px-5 pt-5 pb-4 border-b border-[#F3F4F6]">
           <div className="flex items-start gap-3">
             <div className="flex-1 min-w-0">
@@ -939,10 +974,17 @@ function CitaDialogo({
             </button>
           ) : null}
           {cita.resultado?.resultado === 'pagado' ? null : <EnlacePago email={cita.email} nombre={cita.nombre} telefono={cita.telefono} />}
-          {cita.cambiar_url && !cancelada && !pasada ? (
-            <a href={cita.cambiar_url} target="_blank" rel="noreferrer" className={BOTON}>
-              Cambiar hora
-            </a>
+          {/* Cambiar la hora y cancelar, desde la escuela (31/10): closers y
+              administradores, con cualquier llamada que aún no ha empezado. */}
+          {!cancelada && !pasada ? (
+            <button onClick={() => onCambiarHora(cita)} className={BOTON}>
+              <CalendarClock size={14} /> Cambiar hora
+            </button>
+          ) : null}
+          {!cancelada && !pasada && !aCancelar ? (
+            <button onClick={() => setACancelar(true)} className={BOTON}>
+              <CalendarX2 size={14} /> Cancelar la llamada
+            </button>
           ) : null}
           {isAdmin ? (
             <button onClick={quitar} disabled={quitando} className={BOTON_PELIGRO}>
@@ -950,6 +992,31 @@ function CitaDialogo({
             </button>
           ) : null}
         </div>
+
+        {aCancelar && !cancelada && !pasada ? (
+          <div className="px-5 pb-5 border-t border-[#F3F4F6] pt-4">
+            <p className="text-[14px] font-semibold text-gray-900">¿Cancelar la llamada{primerNombre ? ` con ${primerNombre}` : ''}?</p>
+            <p className={`${META} mt-0.5 !whitespace-normal`}>
+              Se cancela en Calendly y le llega su correo de cancelación. Si lo que quieres es otra hora, usa «Cambiar hora».
+            </p>
+            <textarea
+              value={mensaje}
+              onChange={(ev) => setMensaje(ev.target.value)}
+              rows={2}
+              maxLength={500}
+              placeholder="Mensaje para la persona (opcional): sale en el correo de Calendly"
+              className="mt-2.5 w-full rounded-md border border-[#D1D5DB] px-3 py-2 text-[13.5px] text-gray-900 outline-none focus:border-gray-900"
+            />
+            <div className="mt-2 flex gap-2">
+              <button onClick={cancelar} disabled={cancelando} className={`${BOTON_PELIGRO} flex-1 h-9 justify-center`}>
+                {cancelando ? <Loader2 size={13} className="animate-spin" /> : <CalendarX2 size={13} />} Sí, cancelarla
+              </button>
+              <button onClick={() => setACancelar(false)} className={`${BOTON} h-9`}>
+                No
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         {sinVenir ? (
           <div className="px-5 pb-5 border-t border-[#F3F4F6] pt-4">

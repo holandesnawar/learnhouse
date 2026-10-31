@@ -229,6 +229,8 @@ export default function FichaCliente({
   const [vueltaNotas, setVueltaNotas] = useState(0)
   // «Agendar llamada» (15/10): la ventana de Llamadas, con sus datos puestos.
   const [agendar, setAgendar] = useState(false)
+  // «Cambiar hora» de una de sus llamadas (31/10): la misma ventana.
+  const [cambiarCita, setCambiarCita] = useState<import('@services/stats/contactos').Cita | null>(null)
   const reparto = useReparto()
 
   const cargar = useCallback(async () => {
@@ -696,6 +698,14 @@ export default function FichaCliente({
                           )}
                           {c.resultado?.nota ? <p className={`${META} !whitespace-normal mt-0.5`}>{c.resultado.nota}</p> : null}
                         </div>
+                        {!cancelada && !pasada ? (
+                          <button
+                            onClick={() => setCambiarCita({ ...c, nombre: c.nombre || ficha.nombre, telefono: c.telefono || ficha.telefono })}
+                            className="text-[13px] font-medium text-[#025dc7] hover:underline shrink-0"
+                          >
+                            Cambiar hora
+                          </button>
+                        ) : null}
                         {c.enlace && !cancelada && !pasada ? (
                           <a href={c.enlace} target="_blank" rel="noreferrer" className="text-[13px] font-medium text-[#025dc7] hover:underline shrink-0">
                             Entrar
@@ -871,6 +881,16 @@ export default function FichaCliente({
           </div>
         )}
       </div>
+      {cambiarCita ? (
+        <NuevaLlamada
+          cambiar={cambiarCita}
+          onClose={() => setCambiarCita(null)}
+          onHecho={() => {
+            cargar()
+            onCambio?.()
+          }}
+        />
+      ) : null}
       {agendar && ficha ? (
         <NuevaLlamada
           inicial={{ nombre: ficha.nombre, email: ficha.email, telefono: ficha.telefono }}

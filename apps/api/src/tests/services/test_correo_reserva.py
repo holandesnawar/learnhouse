@@ -298,3 +298,34 @@ async def test_si_ya_tenia_closer_el_aviso_va_a_su_closer(db):
     assert agendadas == ["admin@x.com"]
     html = E.send_llamada_asignada_email("laura@x.com", {"nombre": "Eva", "vuelve": True}, preview=True)
     assert "Ha reservado una llamada contigo" in str(html)
+
+
+async def test_un_cambio_de_hora_del_equipo_no_manda_nada(db, escuela):
+    """31/10: el equipo cambia la hora desde la escuela. Calendly avisa de la
+    reserva nueva sin `old_invitee`; la marca de la ficha la reconoce."""
+    from datetime import datetime, timezone
+
+    from src.services.contactos import reservar as R
+
+    db.add(ContactEvent(
+        email="ana@x.com", kind=R.TIPO_CAMBIO, source="equipo",
+        extra=json.dumps({"autor": "Diego", "inicio": "2026-10-29T17:00:00+00:00"}),
+        created_at=datetime.now(timezone.utc).isoformat(),
+    ))
+    await db.commit()
+    envios, equipo = Envios(), []
+
+    async def _al_equipo(*a, **k):
+        equipo.append(a)
+
+    with patch.object(C, "_avisar_reparto", _al_equipo):
+        crudo, cabecera = firmado(aviso())
+        ps = [p for p in _parches(envios) if getattr(p, "attribute", "") != "_avisar_reparto"]
+        for p in ps:
+            p.start()
+        try:
+            assert await C.atender_aviso(crudo, cabecera, db) == "cambio-de-hora"
+        finally:
+            for p in ps:
+                p.stop()
+    assert envios.a == [] and equipo == []

@@ -71,6 +71,10 @@ NOMBRES_TIPO = {
     # Es además la marca de que ya le llegó: no se le vuelve a mandar.
     "correo-reserva": "Le llegó el correo de Rida (al reservar la llamada)",
     "llamada-confirmada": "Confirmó que viene a su llamada",
+    # El equipo le movió o le canceló la llamada desde la escuela (31/10,
+    # services/contactos/reservar.py). El texto con quién y cuándo, `_que`.
+    "llamada-cambiada": "El equipo le cambió la hora de la llamada",
+    "llamada-cancelada": "El equipo le canceló la llamada",
     # Check-in cada 4 semanas de su camino (28/10, services/tareas/tareas.py).
     "check-in": "Check-in con el equipo",
     "alta-manual": "Dado de alta a mano",
@@ -287,6 +291,16 @@ def _que(kind: str, campos: dict) -> str:
         cuando = _dia_y_hora(extra.get("inicio") or "")
         texto = f"{quien} le agendó una llamada" + (f" para el {cuando}" if cuando else "")
         return texto if extra.get("confirmada", True) else texto + " (a confirmar en Calendly)"
+    if kind == "llamada-cambiada":
+        quien = extra.get("autor") or "El equipo"
+        antes, nueva = _dia_y_hora(extra.get("antes") or ""), _dia_y_hora(extra.get("inicio") or "")
+        texto = f"{quien} le cambió la llamada" + (f" del {antes}" if antes else "") + (f" al {nueva}" if nueva else "")
+        return texto + (" (la de antes sigue en Calendly: cancélala allí)" if extra.get("sin_cancelar") else "")
+    if kind == "llamada-cancelada":
+        quien = extra.get("autor") or "El equipo"
+        cuando = _dia_y_hora(extra.get("inicio") or "")
+        texto = f"{quien} canceló su llamada" + (f" del {cuando}" if cuando else "")
+        return texto + (f": «{extra['mensaje']}»" if extra.get("mensaje") else "")
     if kind == "llamada-confirmada":
         cuando = _dia_y_hora(extra.get("inicio") or "")
         texto = "Confirmó que viene a su llamada" + (f" del {cuando}" if cuando else "")
