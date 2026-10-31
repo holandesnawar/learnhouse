@@ -3,8 +3,9 @@
 /**
  * Panel → Alumnos → Tandas y grupos (25/10/2026). Separa la beta (clase
  * semanal) del programa nuevo (masterclass y spreekuren):
- *  - desde el 31/10/2026, cada alumno que paga desde el día del cambio entra
- *    SOLO en «Programa nuevo» (y en el grupo de su tanda). Solo sale arriba
+ *  - desde el 31/10/2026, cada alumno NUEVO que paga (el que entra en la
+ *    escuela en ese momento) entra SOLO en «Programa nuevo» y en el grupo de
+ *    su tanda; a los que ya estaban no se les toca. Solo sale arriba
  *    («Han pagado: elige su grupo», campana e inicio del panel) quien antes
  *    del cambio estaba en «Por pagar», tenía una señal o un enlace de pago: a
  *    esos se les vendió la clase de conversación y lo elige el equipo. Sin
@@ -213,8 +214,8 @@ export default function TandasPanel() {
     <div className="space-y-7 max-w-3xl">
       <p className="text-[14px] text-gray-700 leading-relaxed">
         La beta sigue con su clase semanal y el programa nuevo tiene la masterclass y los spreekuren. Cada alumno que pague desde el día del
-        cambio entra solo en el programa nuevo; aquí solo te sale quien hay que elegir a mano. Cada uno ve solo lo suyo: lo decide el
-        grupo en el que está.
+        cambio entra solo en el programa nuevo en cuanto paga (a los que ya estaban no se les toca); aquí solo te sale quien hay que
+        elegir a mano. Cada uno ve solo lo suyo: lo decide el grupo en el que está.
       </p>
 
       {pendientes.length > 0 ? (
@@ -285,8 +286,9 @@ export default function TandasPanel() {
               className="mt-1 h-4 w-4 accent-[#025dc7]"
             />
             <span className="text-[13.5px] text-gray-900 leading-relaxed">
-              Cada alumno que pague desde este día entra solo en «Programa nuevo» y en el grupo de su tanda. Solo te sale aquí arriba (y en
-              la campana) quien antes del cambio estaba en «Por pagar», tenía una señal o un enlace de pago, para que elijas tú.
+              Cada alumno nuevo entra solo en «Programa nuevo» y en el grupo de su tanda en cuanto paga. A los que ya estaban no se les
+              toca. Te sale aquí arriba (y en la campana) quien hay que elegir a mano: quien antes del cambio estaba en «Por pagar»,
+              tenía una señal o un enlace de pago, o alguien que se quedó sin grupo.
             </span>
           </label>
           <div className="flex flex-wrap items-end gap-3">

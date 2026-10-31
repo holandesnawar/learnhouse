@@ -325,16 +325,24 @@ async def test_cada_alumno_nuevo_entra_solo_en_el_programa_nuevo(db, org):
     assert len((await db.execute(select(UserGroupUser).where(UserGroupUser.user_id == ana.id))).scalars().all()) == 2
 
 
-async def test_la_tarea_diaria_recoge_a_quien_se_escapo(db, org):
+async def test_meter_a_uno_no_toca_a_los_que_ya_esperaban(db, org):
+    """"No toques a los que están": al entrar Ana, Bea (que pagó antes y sigue
+    sin grupo) se queda como estaba."""
     await _escuela(db, org, {"activo": True, "desde": "2026-10-26"})
-    ana = await _alumno(db, org, 10, "ana@x.com", entro="2026-10-31 08:00:00")
-    carla = await _alumno(db, org, 12, "carla@x.com", entro="2026-10-31 08:00:00")
-    db.add(ContactEvent(email="carla@x.com", kind="enlace-pago", created_at="2026-10-23T10:00:00+00:00"))
-    await db.commit()
-    r = await tandas.entrar_solos(org.id, db)
-    assert r["entran"] == 1 and r["por_decidir"] == 1 and r["ids"] == [ana.id]
-    assert "Programa nuevo" in await _grupos_de(db, ana.id)
-    assert await _grupos_de(db, carla.id) == set()
+    bea = await _alumno(db, org, 11, "bea@x.com", entro="2026-10-28 08:00:00")
+    ana = await _alumno(db, org, 10, "ana@x.com", entro="2026-10-31 20:00:00")
+    assert await tandas.al_pagar(org.id, ana.id, db) == "nuevo"
+    assert await _grupos_de(db, bea.id) == set()
+    assert [a["id"] for a in await tandas.por_decidir(org.id, db)] == [bea.id]
+
+
+def test_la_tarea_diaria_no_toca_los_grupos():
+    """Hubo un repaso diario que metía a todos los que esperaban: se quitó."""
+    import inspect
+
+    from src.routers import notifications
+
+    assert "entrar_solos" not in inspect.getsource(notifications)
 
 
 async def test_con_las_tandas_apagadas_no_entra_nadie(db, org):
@@ -344,12 +352,34 @@ async def test_con_las_tandas_apagadas_no_entra_nadie(db, org):
     assert await _grupos_de(db, ana.id) == set()
 
 
-def test_el_alta_tras_pagar_mete_al_alumno_en_su_grupo():
+async def test_el_alta_solo_mete_a_quien_entra_ahora(db, org, monkeypatch):
     """El alta (pago, señal completada, plazos y alta a mano pasan por
-    `_create_paid_user`) llama a las tandas en sus dos salidas."""
-    import inspect
-
+    `_create_paid_user`) llama a las tandas solo cuando la persona entra en la
+    escuela en ese momento: ni en un reintento ni con quien ya era alumno."""
     from src.services.payments import payments
 
-    fuente = inspect.getsource(payments._create_paid_user)
-    assert fuente.count("_al_programa_nuevo(") == 2
+    llamadas: list[int] = []
+
+    async def _org(_db):
+        return org
+
+    async def _nada(*a, **k):
+        return None
+
+    async def _al_pagar(org_id, user_id, _db):
+        llamadas.append(user_id)
+        return "nuevo"
+
+    monkeypatch.setattr(payments, "_get_default_org", _org)
+    monkeypatch.setattr(payments, "add_user_to_students", _nada)
+    monkeypatch.setattr(tandas, "al_pagar", _al_pagar)
+
+    nueva, creada = await payments._create_paid_user("nueva@x.com", "Nueva Alumna", db)
+    assert creada and llamadas == [nueva.id]
+    # Un reintento de Stripe del mismo pago: ya está en la escuela.
+    await payments._create_paid_user("nueva@x.com", "Nueva Alumna", db)
+    assert llamadas == [nueva.id]
+    # Alguien que ya era alumno y vuelve a pasar por el alta: no se le toca.
+    vieja = await _alumno(db, org, 50, "vieja@x.com", entro="2026-10-28 08:00:00")
+    await payments._create_paid_user("vieja@x.com", "Vieja", db)
+    assert llamadas == [nueva.id] and vieja.id not in llamadas

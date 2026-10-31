@@ -1339,6 +1339,7 @@ async def _create_paid_user(
                 )
             )
         ).scalars().first()
+        recien_entrado = not link
         if not link:
             link = UserOrganization(
                 user_id=existing.id or 0,
@@ -1350,7 +1351,10 @@ async def _create_paid_user(
             db_session.add(link)
             await db_session.commit()
         await add_user_to_students(existing.id or 0, org.id or 0, db_session)
-        await _al_programa_nuevo(org.id or 0, existing.id or 0, db_session)
+        # Solo quien ENTRA ahora en la escuela; a quien ya estaba (un reintento
+        # de Stripe, un alta a mano repetida) no se le toca el grupo.
+        if recien_entrado:
+            await _al_programa_nuevo(org.id or 0, existing.id or 0, db_session)
         return existing, False
 
     first_name, _, last_name = (full_name or "").strip().partition(" ")
@@ -1387,10 +1391,12 @@ async def _create_paid_user(
 
 
 async def _al_programa_nuevo(org_id: int, user_id: int, db_session: AsyncSession) -> None:
-    """Desde el 31/10/2026, el alumno que paga entra solo en el grupo del
-    programa nuevo (services/panel/tandas.py, `al_pagar`), salvo a quien antes
-    del cambio se le vendió la clase de conversación: ese lo elige el equipo.
-    En blando: nunca tumba el alta."""
+    """Desde el 31/10/2026, el alumno que ENTRA en la escuela al pagar entra
+    solo en el grupo del programa nuevo (services/panel/tandas.py,
+    `al_pagar`), salvo a quien antes del cambio se le vendió la clase de
+    conversación: ese lo elige el equipo. Solo se llama al crear su entrada en
+    la escuela: los alumnos que ya estaban no se tocan. En blando: nunca tumba
+    el alta."""
     if not org_id or not user_id:
         return
     try:

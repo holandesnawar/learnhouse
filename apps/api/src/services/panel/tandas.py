@@ -8,10 +8,14 @@ matrículas noviembre… reciben una masterclass en directo y spreekuren".
 
 ⚠️ **Desde el 31/10/2026, cada alumno nuevo entra SOLO en el programa nuevo**
 (usuario: "ahora cada alumno que entre nuevo tiene que entrar en el grupo de
-Programa nuevo"). Al darle de alta tras pagar (`payments._create_paid_user`,
+Programa nuevo"; y enseguida: "no toques a los que están, solo los que vayan
+entrando nuevos"). Al darle de alta tras pagar (`payments._create_paid_user`,
 que usan el pago, la señal completada, los plazos y el alta a mano) se llama a
-`al_pagar`, y la tarea diaria repasa a quien se haya quedado sin grupo
-(`entrar_solos`). **Menos uno**: a quien ANTES del cambio estaba en «Por
+`al_pagar`, y SOLO cuando esa persona entra en la escuela en ese momento: a
+los alumnos que ya estaban no se les toca el grupo, ni ahora ni con ninguna
+tarea diaria (hubo un repaso diario unas horas y se quitó antes de que llegara
+a ejecutarse). Si un alta nueva falla en `al_pagar`, se queda en «Han pagado:
+elige su grupo» y la decide el equipo. **Menos uno**: a quien ANTES del cambio estaba en «Por
 pagar», reservó con señal o tenía un enlace de pago (`motivo_beta`) se le
 vendió la clase de conversación, y ese se queda en «Han pagado: elige su
 grupo» para que lo decida el equipo (lo dijo el usuario el 25/10). Sin correo
@@ -462,7 +466,9 @@ async def entrar_solos(org_id: int, db_session: AsyncSession, solo: Optional[int
     """Mete en el programa nuevo a los alumnos nuevos que aún no tienen
     programa (31/10/2026). Los que tienen sugerencia de beta (`motivo_beta`)
     se quedan por decidir: eso lo elige el equipo. Con `solo`, únicamente ese
-    alumno. Con las tandas apagadas o sin día del cambio, no hace nada."""
+    alumno, que es como se usa (`al_pagar`): sin `solo` tocaría a todos los
+    que esperan, y el usuario no quiere que se toque a los que ya están. Con
+    las tandas apagadas o sin día del cambio, no hace nada."""
     entran, se_quedan = [], 0
     for a in await por_decidir(org_id, db_session, con_motivo=True):
         if solo is not None and a["id"] != solo:
