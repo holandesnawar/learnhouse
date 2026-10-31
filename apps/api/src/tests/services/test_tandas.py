@@ -1,9 +1,10 @@
-"""Tandas: cada alumno nuevo en su grupo, elegido por el equipo (25/10/2026):
+"""Tandas: cada alumno nuevo en su grupo (25/10/2026):
 services/panel/tandas.py.
 
-- Nadie entra solo en ningún grupo: quien paga desde el día del cambio queda
-  por decidir, con su aviso en la campana del administrador, y `decidir` lo
-  pone en el programa nuevo o en la beta (y se puede cambiar).
+- Desde el 31/10, quien paga desde el día del cambio entra SOLO en el
+  programa nuevo (`al_pagar`, `entrar_solos`), salvo quien tiene sugerencia de
+  beta: ese queda por decidir, con su aviso en la campana del administrador, y
+  `decidir` lo pone en el programa nuevo o en la beta (y se puede cambiar).
 - Se sugiere la beta a quien antes del cambio estaba en «Por pagar», reservó
   con señal o tenía un enlace de pago.
 - «Beta» mete a los alumnos de antes, no a los del programa nuevo ni a los que
@@ -70,15 +71,8 @@ async def _grupos_de(db, uid: int) -> set[str]:
     return {g.name for g in (await db.execute(select(UserGroup))).scalars().all() if g.id in ids}
 
 
-async def test_nadie_entra_solo_todos_quedan_por_decidir(db, org):
-    """El pago no mete a nadie en ningún grupo: cada alumno nuevo sale para
-    elegir. Y no es cosa de que falte la llamada: el pago ya no llama a nada
-    de las tandas."""
-    import inspect
-
-    from src.services.payments import payments
-
-    assert "tandas" not in inspect.getsource(payments)
+async def test_sin_entrar_solos_quedan_por_decidir(db, org):
+    """Quien aún no ha pasado por el alta (o se escapó) sale por decidir."""
     await _escuela(db, org, {"activo": True, "desde": "2026-10-26"})
     ana = await _alumno(db, org, 10, "ana@x.com", entro="2026-10-26 08:00:00")
     beto = await _alumno(db, org, 11, "beto@x.com", entro="2026-10-27 09:00:00")
@@ -304,3 +298,58 @@ async def test_un_aviso_de_grupo_solo_le_llega_a_ese_grupo(db, org):
     assert await grupos_del_aviso({"community_uuid": "community_beta"}, db) == [beta.id]
     assert await grupos_del_aviso({"community_uuid": "community_general"}, db) == []
     assert await grupos_del_aviso({"grupos": [beta.id, "x"]}, db) == [beta.id]
+
+
+async def test_cada_alumno_nuevo_entra_solo_en_el_programa_nuevo(db, org):
+    """31/10: "cada alumno que entre nuevo tiene que entrar en el grupo de
+    Programa nuevo". Menos a quien se le vendió la clase de conversación antes
+    del cambio: ese lo sigue eligiendo el equipo."""
+    await _escuela(db, org, {"activo": True, "desde": "2026-10-26"})
+    ana = await _alumno(db, org, 10, "ana@x.com", entro="2026-10-31 08:00:00")
+    beto = await _alumno(db, org, 11, "beto@x.com", entro="2026-10-31 09:00:00")
+    viejo = await _alumno(db, org, 12, "viejo@x.com", entro="2026-10-01 09:00:00")
+    db.add(LeadPipeline(email="beto@x.com", etapa="pendiente-pago", updated_at="2026-10-20T10:00:00+00:00"))
+    await db.commit()
+
+    assert await tandas.al_pagar(org.id, ana.id, db) == "nuevo"
+    assert await _grupos_de(db, ana.id) == {"Programa nuevo", "Matrícula octubre 2026"}
+    # Beto estaba en «Por pagar» antes del cambio: se queda para elegir.
+    assert await tandas.al_pagar(org.id, beto.id, db) == ""
+    assert await _grupos_de(db, beto.id) == set()
+    assert [a["id"] for a in await tandas.por_decidir(org.id, db)] == [beto.id]
+    # El de antes del cambio no se toca nunca.
+    assert await tandas.al_pagar(org.id, viejo.id, db) == ""
+    assert await _grupos_de(db, viejo.id) == set()
+    # Repetirlo (un reintento de Stripe) no duplica.
+    assert await tandas.al_pagar(org.id, ana.id, db) == ""
+    assert len((await db.execute(select(UserGroupUser).where(UserGroupUser.user_id == ana.id))).scalars().all()) == 2
+
+
+async def test_la_tarea_diaria_recoge_a_quien_se_escapo(db, org):
+    await _escuela(db, org, {"activo": True, "desde": "2026-10-26"})
+    ana = await _alumno(db, org, 10, "ana@x.com", entro="2026-10-31 08:00:00")
+    carla = await _alumno(db, org, 12, "carla@x.com", entro="2026-10-31 08:00:00")
+    db.add(ContactEvent(email="carla@x.com", kind="enlace-pago", created_at="2026-10-23T10:00:00+00:00"))
+    await db.commit()
+    r = await tandas.entrar_solos(org.id, db)
+    assert r["entran"] == 1 and r["por_decidir"] == 1 and r["ids"] == [ana.id]
+    assert "Programa nuevo" in await _grupos_de(db, ana.id)
+    assert await _grupos_de(db, carla.id) == set()
+
+
+async def test_con_las_tandas_apagadas_no_entra_nadie(db, org):
+    await _escuela(db, org, {"activo": False, "desde": "2026-10-26"})
+    ana = await _alumno(db, org, 10, "ana@x.com", entro="2026-10-31 08:00:00")
+    assert await tandas.al_pagar(org.id, ana.id, db) == ""
+    assert await _grupos_de(db, ana.id) == set()
+
+
+def test_el_alta_tras_pagar_mete_al_alumno_en_su_grupo():
+    """El alta (pago, señal completada, plazos y alta a mano pasan por
+    `_create_paid_user`) llama a las tandas en sus dos salidas."""
+    import inspect
+
+    from src.services.payments import payments
+
+    fuente = inspect.getsource(payments._create_paid_user)
+    assert fuente.count("_al_programa_nuevo(") == 2
