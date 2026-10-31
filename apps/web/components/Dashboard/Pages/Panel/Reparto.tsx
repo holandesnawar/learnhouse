@@ -17,7 +17,7 @@ import { Check, ChevronDown, Plus } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
-import { asignarCloser, getReparto, type MiembroEquipo } from '@services/panel/panel'
+import { asignarCloser, getReparto, guardarCorreosCalendly, type MiembroEquipo } from '@services/panel/panel'
 import { colorCloser } from '@lib/nawar/colorCloser'
 import toast from 'react-hot-toast'
 
@@ -25,6 +25,8 @@ export interface Reparto {
   equipo: MiembroEquipo[]
   yo: number
   repartidorId: number
+  /** {id del usuario: su correo en Calendly} (Calendly Teams, 31/10). */
+  calendly: Record<string, string>
   recargar: () => void
 }
 
@@ -33,15 +35,22 @@ export function useReparto(): Reparto {
   const org = useOrg() as any
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
-  const [datos, setDatos] = useState<{ equipo: MiembroEquipo[]; yo: number; repartidorId: number }>({
+  const [datos, setDatos] = useState<{
+    equipo: MiembroEquipo[]
+    yo: number
+    repartidorId: number
+    calendly: Record<string, string>
+  }>({
     equipo: [],
     yo: 0,
     repartidorId: 0,
+    calendly: {},
   })
   const cargar = useCallback(async () => {
     if (!org?.id || !accessToken) return
     const r = await getReparto(org.id, accessToken)
-    if (r.ok && r.datos) setDatos({ equipo: r.datos.equipo, yo: r.datos.yo, repartidorId: r.datos.repartidor_id })
+    if (r.ok && r.datos)
+      setDatos({ equipo: r.datos.equipo, yo: r.datos.yo, repartidorId: r.datos.repartidor_id, calendly: r.datos.calendly ?? {} })
   }, [org?.id, accessToken])
   useEffect(() => {
     cargar()
@@ -300,6 +309,99 @@ export function EtiquetaCloser({
             document.body
           )
         : null}
+    </div>
+  )
+}
+
+/**
+ * «Correos de Calendly» (31/10, Calendly Teams, solo administradores): el
+ * correo con el que cada closer está en Calendly. Con el evento «por turnos»,
+ * Calendly elige el closer de cada reserva y la escuela lo reconoce por ese
+ * correo: la tarjeta sale ya con su nombre, sin pasar por «Por asignar». Si
+ * es el mismo que el de su cuenta de la escuela, no hace falta escribirlo.
+ */
+export function CorreosCalendly({ reparto }: { reparto: Reparto }) {
+  const org = useOrg() as any
+  const session = useLHSession() as any
+  const accessToken = session?.data?.tokens?.access_token
+  const [abierto, setAbierto] = useState(false)
+  const [valores, setValores] = useState<Record<string, string>>({})
+  const [guardando, setGuardando] = useState(false)
+  useEffect(() => {
+    setValores(reparto.calendly || {})
+  }, [reparto.calendly])
+  // Los closers primero; los administradores, por si alguno también atiende.
+  const personas = [...reparto.equipo].sort((a, b) => Number(b.rol === 'Closer') - Number(a.rol === 'Closer'))
+  const apuntados = Object.keys(reparto.calendly || {}).length
+
+  async function guardar() {
+    setGuardando(true)
+    const limpio = Object.fromEntries(
+      Object.entries(valores)
+        .map(([k, v]) => [k, (v || '').trim().toLowerCase()])
+        .filter(([, v]) => v.includes('@'))
+    )
+    const r = await guardarCorreosCalendly(org?.id, limpio, accessToken)
+    setGuardando(false)
+    if (!r.ok) return toast.error(r.error || 'No se ha podido guardar')
+    toast.success('Guardado')
+    setAbierto(false)
+    reparto.recargar()
+  }
+
+  if (!abierto)
+    return (
+      <button
+        type="button"
+        onClick={() => setAbierto(true)}
+        className="text-[12.5px] font-medium text-[#025dc7] hover:underline"
+        title="El correo con el que cada closer está en Calendly"
+      >
+        Correos de Calendly{apuntados ? ` · ${apuntados}` : ''}
+      </button>
+    )
+  return (
+    <div className="w-full rounded-md border border-[#E5E7EB] bg-white p-3 space-y-2">
+      <p className="text-[12.5px] text-[#6B7280] leading-relaxed">
+        Con el evento «por turnos» de Calendly, Calendly elige el closer de cada reserva y se la manda a su correo. Escribe aquí el
+        correo con el que cada uno está en Calendly y la tarjeta saldrá ya con su nombre. Si es el mismo que el de su cuenta de la
+        escuela, déjalo vacío.
+      </p>
+      {personas.map((m) => (
+        <label key={m.id} className="flex flex-wrap items-center gap-2 text-[12.5px]">
+          <span className="w-28 shrink-0 inline-flex items-center gap-1.5 font-semibold text-gray-900 truncate">
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: colorCloser(m.id, reparto.equipo, m.nombre) }} />
+            {nombreCorto(m.nombre)}
+          </span>
+          <input
+            type="email"
+            value={valores[String(m.id)] ?? ''}
+            onChange={(e) => setValores((v) => ({ ...v, [String(m.id)]: e.target.value }))}
+            placeholder={m.rol === 'Closer' ? m.email : 'Solo si también atiende llamadas'}
+            className="min-w-0 flex-1 h-8 rounded-md border border-[#E5E7EB] bg-white px-2 text-[12.5px] text-gray-900 outline-none focus:border-gray-900"
+          />
+        </label>
+      ))}
+      <div className="flex gap-2 pt-1">
+        <button
+          type="button"
+          onClick={guardar}
+          disabled={guardando}
+          className="h-8 px-3 rounded-md bg-gray-900 text-white text-[12.5px] font-semibold disabled:opacity-60"
+        >
+          {guardando ? 'Guardando…' : 'Guardar'}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setValores(reparto.calendly || {})
+            setAbierto(false)
+          }}
+          className="h-8 px-3 rounded-md border border-[#E5E7EB] bg-white text-[12.5px] font-semibold text-gray-800"
+        >
+          Cancelar
+        </button>
+      </div>
     </div>
   )
 }

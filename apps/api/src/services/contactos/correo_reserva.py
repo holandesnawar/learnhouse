@@ -34,6 +34,14 @@ Cómo
    prueba con «Mandármelo a mí» antes de encenderlo. Con él apagado, la
    escuela no manda nada (pero sigue recibiendo los avisos).
 
+Con Calendly Teams (31/10), el aviso llega para TODA la organización (cada
+closer es un usuario de Calendly y el evento es «por turnos»): la suscripción
+se pide con `scope: organization` y, si el token no puede, con `scope: user`
+como antes. Cada aviso trae quién atiende la cita (`event_memberships`): si es
+un closer, la tarjeta pasa a ser suya (`reparto.asignar_por_anfitrion`) y no
+sale el «repártela». Calendly ya le manda a ese closer la reserva y la pone en
+su calendario.
+
 De paso, a quien reparte las llamadas le llega el «llamada nueva, repártela»
 también cuando alguien reserva directamente en la página de Calendly, sin pasar
 por la web (antes solo avisaba la web). Si la web avisa de la misma reserva,
@@ -178,6 +186,8 @@ def reserva_de(aviso: dict) -> Optional[dict]:
         "cambiar": str(p.get("reschedule_url") or ""),
         "tipo_evento": str(ev.get("event_type") or ""),
         "evento": str(ev.get("uri") or p.get("event") or ""),
+        # Quién la atiende (con el evento por turnos, el closer que le tocó).
+        "anfitrion_email": A.anfitrion_de(ev)[0],
         # Un cambio de hora llega como una reserva nueva que apunta a la vieja.
         "cambio_de_hora": bool(p.get("old_invitee")),
     }
@@ -401,15 +411,23 @@ async def _yo(cliente) -> dict:
 
 
 async def _nuestras(cliente, yo: dict) -> list[dict]:
-    """Las suscripciones de Calendly que avisan a esta escuela."""
-    datos = await R._pedir(
-        cliente,
-        "GET",
-        f"{A.API}/webhook_subscriptions",
-        params={"organization": yo.get("current_organization", ""), "user": yo.get("uri", ""), "scope": "user", "count": 100},
-    )
+    """Las suscripciones de Calendly que avisan a esta escuela, de la
+    organización y del usuario."""
     url = url_aviso()
-    return [s for s in datos.get("collection") or [] if str(s.get("callback_url") or "").rstrip("/") == url]
+    salida: list[dict] = []
+    for alcance in ("organization", "user"):
+        params = {"organization": yo.get("current_organization", ""), "scope": alcance, "count": 100}
+        if alcance == "user":
+            params["user"] = yo.get("uri", "")
+        try:
+            datos = await R._pedir(cliente, "GET", f"{A.API}/webhook_subscriptions", params=params)
+        except R.FalloCalendly as exc:
+            # Sin permiso para ver las de la organización: solo las suyas.
+            if alcance == "organization" and exc.codigo in (400, 403, 404):
+                continue
+            raise
+        salida += [s for s in datos.get("collection") or [] if str(s.get("callback_url") or "").rstrip("/") == url]
+    return salida
 
 
 async def estado_conexion() -> dict:
@@ -425,12 +443,16 @@ async def estado_conexion() -> dict:
         return {"conectado": False, "motivo": f"Calendly no contesta: {e}"}
     if not nuestras:
         return {"conectado": False, "motivo": "Calendly todavía no avisa a la escuela de las reservas."}
-    if not any((s.get("state") or "active") == "active" for s in nuestras):
+    activas = [s for s in nuestras if (s.get("state") or "active") == "active"]
+    if not activas:
         return {
             "conectado": False,
             "motivo": "Calendly tiene el aviso desactivado (suele pasar si la escuela no contestó durante un tiempo). Vuelve a conectar.",
         }
-    return {"conectado": True, "motivo": ""}
+    # «user» = solo avisa de las reservas del usuario del token. Con varios
+    # closers en Calendly, hay que volver a conectar para que avise de todas.
+    alcance = "organization" if any(s.get("scope") == "organization" for s in activas) else "user"
+    return {"conectado": True, "motivo": "", "alcance": alcance}
 
 
 async def conectar(forzar: bool = False) -> dict:
@@ -447,19 +469,21 @@ async def conectar(forzar: bool = False) -> dict:
                 return {"conectado": True, "motivo": ""}
             for s in nuestras:
                 await R._pedir(cliente, "DELETE", str(s.get("uri")))
-            await R._pedir(
-                cliente,
-                "POST",
-                f"{A.API}/webhook_subscriptions",
-                json={
-                    "url": url_aviso(),
-                    "events": EVENTOS,
-                    "organization": yo.get("current_organization", ""),
-                    "user": yo.get("uri", ""),
-                    "scope": "user",
-                    "signing_key": clave_firma(_secreto()),
-                },
-            )
+            base = {"url": url_aviso(), "events": EVENTOS, "signing_key": clave_firma(_secreto())}
+            # De toda la organización (los dos closers) si el token puede;
+            # si no, del usuario, como antes.
+            try:
+                await R._pedir(
+                    cliente, "POST", f"{A.API}/webhook_subscriptions",
+                    json={**base, "organization": yo.get("current_organization", ""), "scope": "organization"},
+                )
+            except R.FalloCalendly as exc:
+                if exc.codigo not in (400, 403, 404):
+                    raise
+                await R._pedir(
+                    cliente, "POST", f"{A.API}/webhook_subscriptions",
+                    json={**base, "organization": yo.get("current_organization", ""), "user": yo.get("uri", ""), "scope": "user"},
+                )
     except R.FalloCalendly as e:
         return {"conectado": False, "motivo": f"Calendly dijo: {e.motivo}", "plan": e.codigo == 403}
     except Exception as e:  # noqa: BLE001
@@ -469,21 +493,40 @@ async def conectar(forzar: bool = False) -> dict:
     return {"conectado": True, "motivo": ""}
 
 
-_tipo_cache: dict = {"uri": "", "hasta": 0.0}
+_tipo_cache: dict = {"uris": set(), "hasta": 0.0}
 
 
-async def _tipo_de_llamada() -> str:
-    """La dirección del evento de las llamadas (una hora en memoria)."""
-    if _tipo_cache["uri"] and _tipo_cache["hasta"] > time.time():
-        return _tipo_cache["uri"]
+async def _tipos_de_llamada() -> set[str]:
+    """Las direcciones de los eventos que son la llamada (una hora en
+    memoria): el por turnos, el enlace de cada closer y el viejo."""
+    if _tipo_cache["uris"] and _tipo_cache["hasta"] > time.time():
+        return _tipo_cache["uris"]
     async with R._cliente() as cliente:
-        tipo = await R._tipo(cliente)
-    _tipo_cache.update(uri=str(tipo.get("uri") or ""), hasta=time.time() + 3600)
-    return _tipo_cache["uri"]
+        uris = R.tipos_de_llamada(await R._tipos(cliente), R._preferido())
+    _tipo_cache.update(uris=uris, hasta=time.time() + 3600)
+    return uris
+
+
+def calendly_avisa(dias: int = 14) -> bool:
+    """¿Llegó un aviso bueno de Calendly en los últimos días? Si es así, el
+    aviso de la web (`reunion`) no manda el «repártela»: lo manda este, que
+    sabe a qué closer se la dio Calendly (y no lo manda si ya tiene)."""
+    ultimo = ultimo_aviso() or {}
+    if not ultimo.get("ok"):
+        return False
+    try:
+        cuando_ = datetime.fromisoformat(str(ultimo.get("at") or "").replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    if cuando_.tzinfo is None:
+        cuando_ = cuando_.replace(tzinfo=timezone.utc)
+    return datetime.now(timezone.utc) - cuando_ <= timedelta(days=dias)
 
 
 async def _completar(reserva: dict) -> dict:
     """Si el aviso no trae la cita dentro (día, evento), se le pide a Calendly."""
+    # El aviso trae la cita entera (con `event_memberships`, el anfitrión):
+    # solo se pide a Calendly si le falta el día o el evento.
     if reserva.get("inicio") and reserva.get("tipo_evento"):
         return reserva
     uri = reserva.get("evento") or ""
@@ -497,6 +540,7 @@ async def _completar(reserva: dict) -> dict:
         "inicio": reserva.get("inicio") or str(ev.get("start_time") or ""),
         "tipo_evento": reserva.get("tipo_evento") or str(ev.get("event_type") or ""),
         "enlace": reserva.get("enlace") or str(ubicacion.get("join_url") or ""),
+        "anfitrion_email": reserva.get("anfitrion_email") or A.anfitrion_de(ev)[0],
     }
 
 
@@ -513,13 +557,16 @@ def _cuando_corto(inicio: str) -> str:
 async def _avisar_reparto(reserva: dict, db_session: AsyncSession) -> None:
     """El «llamada nueva, repártela» también para quien reserva directamente
     en Calendly. Si la web ya avisó de esta reserva, `avisar_llamada_nueva`
-    no lo repite."""
+    no lo repite. Si Calendly se la dio a un closer (evento por turnos), la
+    tarjeta pasa a ser suya y no se manda nada: Calendly ya le avisó a él."""
     from src.services.crm.systeme import marcar_llamada_reservada
-    from src.services.panel.reparto import avisar_llamada_nueva
+    from src.services.panel.reparto import asignar_por_anfitrion, avisar_llamada_nueva
 
     # La reserva hecha directamente en Calendly también saca a la persona de
     # las campañas de systeme.io.
     marcar_llamada_reservada(reserva.get("email") or "", reserva.get("nombre") or "")
+    if await asignar_por_anfitrion(reserva.get("email") or "", reserva.get("anfitrion_email") or "", db_session):
+        return
     try:
         telefono = reserva.get("telefono") or ""
         if not telefono:
@@ -610,8 +657,8 @@ async def atender_aviso(cuerpo: bytes, cabecera: str, db_session: AsyncSession) 
     # llega como una reserva nueva, sin `old_invitee`: tampoco se repite nada.
     if await R.lo_cambio_el_equipo(reserva["email"], reserva.get("inicio") or "", db_session):
         return "cambio-de-hora"
-    tipo = await _tipo_de_llamada()
-    if tipo and reserva.get("tipo_evento") and reserva["tipo_evento"] != tipo:
+    tipos = await _tipos_de_llamada()
+    if tipos and reserva.get("tipo_evento") and reserva["tipo_evento"] not in tipos:
         return "otro-evento"
 
     await _avisar_reparto(reserva, db_session)

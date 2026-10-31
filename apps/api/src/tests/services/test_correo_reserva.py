@@ -130,13 +130,13 @@ async def _sin_aviso_al_equipo(*a, **k):
 
 
 async def _tipo():
-    return LLAMADA
+    return {LLAMADA}
 
 
 def _parches(envios):
     return [
         patch.object(C, "_secreto", lambda: "secreto-de-prueba"),
-        patch.object(C, "_tipo_de_llamada", _tipo),
+        patch.object(C, "_tipos_de_llamada", _tipo),
         patch.object(C, "_avisar_reparto", _sin_aviso_al_equipo),
         patch.object(C, "_redis", lambda: None),
         patch.object(E, "send_correo_reserva_email", envios),
@@ -329,3 +329,120 @@ async def test_un_cambio_de_hora_del_equipo_no_manda_nada(db, escuela):
             for p in ps:
                 p.stop()
     assert envios.a == [] and equipo == []
+
+
+# ── Calendly Teams (31/10): el closer que elige Calendly por turnos ────────
+
+
+def test_el_anfitrion_de_la_reserva():
+    """El aviso trae quién atiende la cita (`event_memberships`)."""
+    a = aviso()
+    a["payload"]["scheduled_event"]["event_memberships"] = [
+        {"user": "https://api.calendly.com/users/BELEN", "user_email": "Belen@Nawar.com", "user_name": "Belén"}
+    ]
+    assert C.reserva_de(a)["anfitrion_email"] == "belen@nawar.com"
+    assert C.reserva_de(aviso())["anfitrion_email"] == ""
+
+
+def test_que_closer_es_el_anfitrion():
+    from src.services.panel.reparto import closer_del_anfitrion
+
+    equipo = [
+        {"id": 1, "nombre": "Rida", "rol": "Administrador", "email": "holandesnawar@gmail.com"},
+        {"id": 4, "nombre": "Diego Ruiz", "rol": "Closer", "email": "diego.personal@gmail.com"},
+        {"id": 5, "nombre": "Belén Soto", "rol": "Closer", "email": "belen@holandesnawar.com"},
+    ]
+    mapa = {"4": "diego@holandesnawar.com"}
+    # Con su correo de Calendly apuntado, o con el de su cuenta si es closer.
+    assert closer_del_anfitrion("Diego@holandesnawar.com", equipo, mapa)["id"] == 4
+    assert closer_del_anfitrion("belen@holandesnawar.com", equipo, mapa)["id"] == 5
+    # El usuario principal de Calendly no es closer: sigue a «Por asignar».
+    assert closer_del_anfitrion("holandesnawar@gmail.com", equipo, mapa) is None
+    assert closer_del_anfitrion("", equipo, mapa) is None
+    # Si el administrador también atiende, se le apunta a mano.
+    assert closer_del_anfitrion("holandesnawar@gmail.com", equipo, {"1": "holandesnawar@gmail.com"})["id"] == 1
+
+
+def test_los_correos_de_calendly_se_guardan_limpios():
+    from src.services.panel.reparto import correos_calendly
+
+    assert correos_calendly({"4": " Diego@X.com ", "x": "a@b.com", "5": "sin-arroba", 6: "c@d.com"}) == {
+        "4": "diego@x.com", "6": "c@d.com",
+    }
+    assert correos_calendly(None) == {}
+
+
+EQUIPO_TEAMS = [
+    {"id": 1, "nombre": "Rida", "rol": "Administrador", "email": "rida@x.com"},
+    {"id": 4, "nombre": "Diego Ruiz", "rol": "Closer", "email": "diego@x.com"},
+    {"id": 5, "nombre": "Belén Soto", "rol": "Closer", "email": "belen@x.com"},
+]
+
+
+async def test_la_reserva_por_turnos_queda_para_su_closer_sin_repartela(db, escuela):
+    """Calendly le da la llamada a Belén: la tarjeta es suya y a quien reparte
+    no le llega «repártela» (Calendly ya le avisó a ella). Si el anfitrión no
+    es un closer (el usuario principal), como siempre: «repártela»."""
+    from src.services.panel import pipeline, reparto
+
+    async def _equipo(_db):
+        return 1, EQUIPO_TEAMS
+
+    async def _admins(_db):
+        return ["rida@x.com"]
+
+    agendadas = []
+    with patch.object(reparto, "_equipo_de_la_escuela", _equipo), patch(
+        "src.services.contactos.llamadas.emails_de_administradores", _admins
+    ), patch("src.core.redis.get_redis_client", lambda: None), patch(
+        "src.services.crm.systeme.marcar_llamada_reservada", lambda *a, **k: None
+    ), patch.object(E, "send_llamada_agendada_email", lambda d, x: agendadas.append(d)):
+        await C._avisar_reparto({"email": "ana@x.com", "nombre": "Ana", "anfitrion_email": "belen@x.com"}, db)
+        await C._avisar_reparto({"email": "leo@x.com", "nombre": "Leo", "anfitrion_email": "rida@x.com"}, db)
+    g = await pipeline.guardadas(db)
+    assert (g["ana@x.com"]["closer_id"], g["ana@x.com"]["closer"]) == (5, "Belén Soto")
+    assert "leo@x.com" not in g
+    assert agendadas == ["rida@x.com"]
+
+
+async def test_manda_el_anfitrion_salvo_al_leer_la_agenda(db, escuela):
+    """Una reserva nueva: manda quien la tiene en su calendario. Al leer la
+    agenda, solo se rellena a quien no tiene closer."""
+    from src.services.panel import pipeline, reparto
+
+    async def _equipo(_db):
+        return 1, EQUIPO_TEAMS
+
+    await pipeline.asignar("ana@x.com", 4, "Diego Ruiz", "Rida", db)
+    with patch.object(reparto, "_equipo_de_la_escuela", _equipo):
+        hechas = await reparto.asignar_citas_por_anfitrion(
+            [
+                {"email": "ana@x.com", "estado": "activa", "anfitrion_email": "belen@x.com"},
+                {"email": "eva@x.com", "estado": "activa", "anfitrion_email": "belen@x.com"},
+                {"email": "sol@x.com", "estado": "cancelada", "anfitrion_email": "belen@x.com"},
+                {"email": "leo@x.com", "estado": "activa", "anfitrion_email": "rida@x.com"},
+            ],
+            db,
+        )
+        g = await pipeline.guardadas(db)
+        assert hechas == 1 and g["ana@x.com"]["closer_id"] == 4 and g["eva@x.com"]["closer_id"] == 5
+        assert "sol@x.com" not in g and "leo@x.com" not in g
+        # El aviso de una reserva nueva sí lo cambia: la llamada es de Belén.
+        assert (await reparto.asignar_por_anfitrion("ana@x.com", "belen@x.com", db))["id"] == 5
+    assert (await pipeline.guardadas(db))["ana@x.com"]["closer_id"] == 5
+
+
+def test_el_aviso_de_la_web_cede_al_de_calendly():
+    """Si Calendly avisa a la escuela, el «repártela» lo manda su aviso (que
+    sabe el closer) y no el de la web."""
+    from datetime import datetime, timedelta, timezone
+
+    ahora = datetime.now(timezone.utc)
+    with patch.object(C, "ultimo_aviso", lambda: {"at": ahora.isoformat(), "ok": True}):
+        assert C.calendly_avisa()
+    with patch.object(C, "ultimo_aviso", lambda: {"at": (ahora - timedelta(days=30)).isoformat(), "ok": True}):
+        assert not C.calendly_avisa()
+    with patch.object(C, "ultimo_aviso", lambda: {"at": ahora.isoformat(), "ok": False}):
+        assert not C.calendly_avisa()
+    with patch.object(C, "ultimo_aviso", lambda: None):
+        assert not C.calendly_avisa()

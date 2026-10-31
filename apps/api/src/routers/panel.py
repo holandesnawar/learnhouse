@@ -219,7 +219,10 @@ async def api_reparto(
 
 
 class Reparto(BaseModel):
-    repartidor_id: int = 0
+    # None = no tocar (se puede guardar solo lo uno o lo otro).
+    repartidor_id: Optional[int] = None
+    # {id del usuario: su correo en Calendly} (31/10, Calendly Teams).
+    calendly: Optional[dict] = None
 
 
 @router.put("/org/{org_id}/reparto", summary="Quién reparte las llamadas (administradores).")
@@ -233,11 +236,16 @@ async def api_guardar_reparto(
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
     if not await _es_admin(current_user, org_id, db_session):
         raise HTTPException(status_code=403, detail="Solo los administradores eligen quién reparte")
-    if data.repartidor_id and not any(m["id"] == data.repartidor_id for m in await tareas.equipo(org_id, db_session)):
+    eq = await tareas.equipo(org_id, db_session)
+    if data.repartidor_id and not any(m["id"] == data.repartidor_id for m in eq):
         raise HTTPException(status_code=400, detail="Esa persona no está en el equipo del panel")
+    calendly = None
+    if data.calendly is not None:
+        ids = {str(m["id"]) for m in eq}
+        calendly = {k: v for k, v in data.calendly.items() if str(k) in ids}
     from src.services.panel import reparto
 
-    r = await reparto.guardar(org_id, data.repartidor_id, db_session)
+    r = await reparto.guardar(org_id, data.repartidor_id, db_session, calendly=calendly)
     if not r.get("ok"):
         raise HTTPException(status_code=400, detail=r.get("motivo"))
     return r

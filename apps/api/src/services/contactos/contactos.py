@@ -236,8 +236,14 @@ async def registrar_evento(data: ContactEventCreate, db_session: AsyncSession) -
 
         marcar_llamada_reservada(fila.email, " ".join(x for x in (fila.first_name, fila.last_name) if x))
         try:
+            from src.services.contactos.correo_reserva import calendly_avisa
             from src.services.panel.reparto import avisar_llamada_nueva
 
+            # Si Calendly ya avisa a la escuela (31/10), el «repártela» lo
+            # manda su aviso, que sabe a qué closer se la dio Calendly por
+            # turnos (y no lo manda si ya tiene closer). La web no lo sabe.
+            if calendly_avisa():
+                return fila
             await avisar_llamada_nueva(
                 {
                     "nombre": " ".join(x for x in (fila.first_name, fila.last_name) if x).strip(),
