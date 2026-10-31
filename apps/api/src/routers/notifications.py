@@ -128,18 +128,6 @@ async def api_drip_diario(
         logger.exception("Avisos por avance fallaron")
         resultado["por_avance"] = {"error": str(e)[:200]}
 
-    # Alumnos nuevos sin grupo (31/10/2026): entran solos en el programa nuevo
-    # al pagar; esto recoge a quien se haya escapado. Los que tienen
-    # sugerencia de beta se quedan para que los elija el equipo.
-    try:
-        from src.services.panel.tandas import entrar_solos
-
-        r = await entrar_solos(org_id, db_session)
-        resultado["tandas"] = {"entran": r["entran"], "por_decidir": r["por_decidir"]}
-    except Exception as e:  # noqa: BLE001
-        logger.exception("Repaso de las tandas falló")
-        resultado["tandas"] = {"error": type(e).__name__}
-
     # El recordatorio «1 semana sin entrar» va en la misma tarea diaria. Solo
     # manda si está ACTIVADO en Avisos (apagado de serie); si no, dice a
     # cuántos les habría tocado. Un fallo aquí no tumba el aviso de módulos.
