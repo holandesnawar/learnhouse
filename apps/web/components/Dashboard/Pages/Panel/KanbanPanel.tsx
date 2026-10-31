@@ -70,7 +70,7 @@ import { quitarDeMetricas, volverAContar } from '@services/stats/contactos'
 import { CalendarCheck, CheckSquare, ChevronDown, ChevronsLeft, Eye, Loader2, PhoneCall, RotateCcw, Search, StickyNote, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { BOTON, filtro } from './ui'
-import { BotonesReparto, EtiquetaCloser, nombreCorto, useReparto, type Reparto } from './Reparto'
+import { BotonesReparto, CorreosCalendly, EtiquetaCloser, nombreCorto, useReparto, type Reparto } from './Reparto'
 import { colorCloser } from '@lib/nawar/colorCloser'
 
 // Un color por columna, solo en el punto junto al nombre y en tonos apagados.
@@ -683,8 +683,8 @@ export default function KanbanPanel() {
           </>
         ) : (
           <>
-            Cada llamada que se reserva entra en Por asignar y le llega un correo a quien reparte. Pulsa «Para mí» o pásasela
-            al otro closer: le llegará un correo con la llamada.
+            Si Calendly reparte por turnos, cada llamada entra ya con su closer. Si no, entra en Por asignar y le llega un correo a
+            quien reparte: pulsa «Para mí» o pásasela al otro closer (le llegará un correo con la llamada).
           </>
         )}{' '}
         Ábrela para ver todo, sus notas y cambiarla de columna<span className="hidden lg:inline"> (o arrástrala)</span>.
@@ -735,6 +735,7 @@ export default function KanbanPanel() {
               </select>
             </label>
           ) : null}
+          {isAdmin && reparto.equipo.length ? <CorreosCalendly reparto={reparto} /> : null}
         </div>
       ) : null}
 

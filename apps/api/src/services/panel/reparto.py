@@ -18,6 +18,18 @@ la opción de quedársela o pasársela al otro closer". Así funciona:
    pasa por «Por asignar» y el aviso de repartir confundía (28/10, al entrar
    la segunda closer).
 
+5. **Con Calendly Teams (31/10)**: un usuario de Calendly por closer y un evento
+   «por turnos» (round robin). Calendly elige el closer, le manda a ÉL la
+   reserva y se la pone en su calendario, con SU Zoom. La escuela lee quién es
+   el anfitrión de cada cita y le pone ese closer a la tarjeta
+   (`asignar_por_anfitrion`): no pasa por «Por asignar» ni le llega a nadie el
+   «repártela». El anfitrión se reconoce por su correo de Calendly: el de su
+   cuenta de la escuela si es el mismo, o el que se apunta en «Correos de
+   Calendly» (`calendly` en la configuración). Solo cuentan los closers (o
+   quien esté apuntado ahí): las citas del usuario principal de Calendly siguen
+   yendo a «Por asignar», como antes. **Manda el anfitrión**: es quien tiene la
+   llamada en su calendario y en su Zoom.
+
 Mientras la agenda siga en Calendly, el enlace de la videollamada es el del
 evento de Calendly (el de Diego): el otro closer entra con ese mismo enlace.
 Para eso, en Zoom, "permitir que los participantes entren antes que el
@@ -50,31 +62,129 @@ async def _fila_config(db_session: AsyncSession, org_id: Optional[int] = None):
     return (await db_session.execute(q)).scalars().first()
 
 
+def correos_calendly(valor) -> dict[str, str]:
+    """{id del usuario: correo en Calendly}, limpio. Función pura."""
+    if not isinstance(valor, dict):
+        return {}
+    salida = {}
+    for k, v in valor.items():
+        correo = str(v or "").strip().lower()[:255]
+        if str(k).isdigit() and "@" in correo:
+            salida[str(int(k))] = correo
+    return salida
+
+
 async def leer(db_session: AsyncSession, org_id: Optional[int] = None) -> dict:
-    """{"repartidor_id": int} (0 = nadie: avisa a los administradores). Sin
-    `org_id`, la de la escuela (single-tenancy): así lo puede leer el aviso
-    que llega de la web, que no sabe de escuelas."""
+    """{"repartidor_id": int, "calendly": {id: correo}} (0 = nadie: avisa a
+    los administradores). Sin `org_id`, la de la escuela (single-tenancy): así
+    lo puede leer el aviso que llega de la web, que no sabe de escuelas."""
     fila = await _fila_config(db_session, org_id)
     guardado = (fila.config or {}).get(CLAVE) if fila and isinstance(fila.config, dict) else None
     if not isinstance(guardado, dict):
-        return {"repartidor_id": 0}
+        return {"repartidor_id": 0, "calendly": {}}
     try:
-        return {"repartidor_id": int(guardado.get("repartidor_id") or 0)}
+        repartidor = int(guardado.get("repartidor_id") or 0)
     except (TypeError, ValueError):
-        return {"repartidor_id": 0}
+        repartidor = 0
+    return {"repartidor_id": repartidor, "calendly": correos_calendly(guardado.get("calendly"))}
 
 
-async def guardar(org_id: int, repartidor_id: int, db_session: AsyncSession) -> dict:
+async def guardar(
+    org_id: int, repartidor_id: Optional[int], db_session: AsyncSession, calendly: Optional[dict] = None
+) -> dict:
+    """Guarda quién reparte y/o los correos de Calendly de cada closer (lo
+    que venga a None se queda como estaba)."""
     fila = await _fila_config(db_session, org_id)
     if fila is None:
         return {"ok": False, "motivo": "La escuela no tiene configuración"}
     config = json.loads(json.dumps(fila.config or {}))
-    config[CLAVE] = {"repartidor_id": int(repartidor_id or 0)}
+    antes = config.get(CLAVE) if isinstance(config.get(CLAVE), dict) else {}
+    nuevo = {
+        "repartidor_id": int(repartidor_id or 0) if repartidor_id is not None else int(antes.get("repartidor_id") or 0),
+        "calendly": correos_calendly(calendly) if calendly is not None else correos_calendly(antes.get("calendly")),
+    }
+    config[CLAVE] = nuevo
     fila.config = config
     fila.update_date = str(datetime.now())
     db_session.add(fila)
     await db_session.commit()
-    return {"ok": True, "repartidor_id": int(repartidor_id or 0)}
+    return {"ok": True, **nuevo}
+
+
+def closer_del_anfitrion(anfitrion_email: str, equipo: list[dict], calendly: dict[str, str]) -> Optional[dict]:
+    """El miembro del equipo que es ese anfitrión de Calendly: el apuntado con
+    ese correo en «Correos de Calendly», o un closer con ese correo en su
+    cuenta. None si no es nadie (p. ej. el usuario principal de Calendly, que
+    no es closer): esa cita sigue yendo a «Por asignar». Función pura."""
+    correo = (anfitrion_email or "").strip().lower()
+    if not correo:
+        return None
+    for m in equipo:
+        if calendly.get(str(m.get("id"))) == correo:
+            return m
+    for m in equipo:
+        if m.get("rol") == "Closer" and str(m.get("email") or "").strip().lower() == correo:
+            return m
+    return None
+
+
+async def asignar_citas_por_anfitrion(citas: list[dict], db_session: AsyncSession) -> int:
+    """Lo mismo para toda la agenda al leerla, de una vez: a quien tiene una
+    cita activa con un closer como anfitrión y aún no tiene closer, se le pone
+    ese. Lo ya puesto (a mano o por un aviso) no se toca. Devuelve cuántas.
+    En blando."""
+    from src.services.panel.pipeline import asignar, guardadas
+
+    try:
+        org_id, eq = await _equipo_de_la_escuela(db_session)
+        mapa = (await leer(db_session, org_id or None))["calendly"]
+        pendientes: dict[str, dict] = {}
+        for c in citas:
+            email = str(c.get("email") or "").strip().lower()
+            if c.get("estado") != "activa" or not email or email in pendientes:
+                continue
+            closer = closer_del_anfitrion(str(c.get("anfitrion_email") or ""), eq, mapa)
+            if closer:
+                pendientes[email] = closer
+        if not pendientes:
+            return 0
+        ya = await guardadas(db_session)
+        hechas = 0
+        for email, closer in pendientes.items():
+            if int((ya.get(email) or {}).get("closer_id") or 0):
+                continue
+            await asignar(email, closer["id"], closer.get("nombre") or "", "Calendly", db_session)
+            hechas += 1
+        return hechas
+    except Exception:  # noqa: BLE001
+        logger.exception("No se pudieron poner los closers de Calendly")
+        return 0
+
+
+async def asignar_por_anfitrion(
+    email: str, anfitrion_email: str, db_session: AsyncSession, *, solo_si_no_tiene: bool = False
+) -> Optional[dict]:
+    """Le pone a esa persona el closer que Calendly eligió (31/10). Devuelve el
+    closer si la persona queda con él, o None si el anfitrión no es un closer
+    de la escuela. Lo usan el aviso de una reserva nueva y la reserva desde el
+    panel, y ahí manda el anfitrión: cambia el closer que hubiera.
+    `solo_si_no_tiene` no lo cambia. En blando."""
+    from src.services.panel.pipeline import _la_asignada, asignar, filas_de
+
+    try:
+        org_id, eq = await _equipo_de_la_escuela(db_session)
+        closer = closer_del_anfitrion(anfitrion_email, eq, (await leer(db_session, org_id or None))["calendly"])
+        if not closer or not email:
+            return None
+        filas = await filas_de(email, db_session)
+        ya = int(getattr(_la_asignada(filas), "closer_id", 0) or 0) if filas else 0
+        if ya == closer["id"] or (ya and solo_si_no_tiene):
+            return closer if ya == closer["id"] else None
+        await asignar(email, closer["id"], closer.get("nombre") or "", "Calendly", db_session)
+        return closer
+    except Exception:  # noqa: BLE001
+        logger.exception("No se pudo poner el closer de Calendly")
+        return None
 
 
 def destinos(repartidor_id: int, equipo: list[dict], administradores: list[str]) -> list[str]:

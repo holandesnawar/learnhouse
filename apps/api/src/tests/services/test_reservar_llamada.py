@@ -258,3 +258,34 @@ async def test_otro_rechazo_se_explica_tal_cual(db):
     assert r["modo"] == "enlace" and r["plan"] is False and "no longer available" in r["motivo"]
     # Un rechazo que no es de la ubicación no se reintenta.
     assert len([1 for m, u, kw in falso.pedidos if u.endswith("/invitees")]) == 1
+
+
+def test_con_calendly_teams_gana_el_evento_por_turnos():
+    """31/10: con un evento «por turnos» (round robin) en la organización,
+    las llamadas van a ese, aunque el viejo siga con el slug de siempre."""
+    viejo = {"uri": "u/VIEJO", "slug": "llamada-de-consultoria", "active": True, "pooling_type": None}
+    turnos = {"uri": "u/TURNOS", "slug": "llamada-de-admision", "active": True, "pooling_type": "round_robin"}
+    diego = {"uri": "u/DIEGO", "slug": "llamada-de-consultoria", "active": True, "pooling_type": None}
+    otra = {"uri": "u/OTRA", "slug": "reunion-proveedor", "active": True, "pooling_type": None}
+    assert R.evento_elegido([viejo, otra]) is viejo
+    assert R.evento_elegido([viejo, turnos, otra]) is turnos
+    # El por turnos con el slug preferido gana a otro por turnos.
+    turnos2 = {**turnos, "uri": "u/T2", "slug": "llamada-de-consultoria"}
+    assert R.evento_elegido([turnos, turnos2]) is turnos2
+    # Qué avisos de Calendly son de la llamada: el por turnos, los enlaces con
+    # el slug de siempre (el viejo y el personal de cada closer); no otra reunión.
+    assert R.tipos_de_llamada([viejo, turnos, diego, otra]) == {"u/VIEJO", "u/TURNOS", "u/DIEGO"}
+
+
+def test_el_anfitrion_de_una_cita():
+    from src.services.contactos import agenda as A
+
+    ev = {
+        "uri": "https://api.calendly.com/scheduled_events/EV",
+        "status": "active",
+        "start_time": "2026-11-04T17:00:00Z",
+        "event_memberships": [{"user": "u/BELEN", "user_email": "Belen@X.com", "user_name": "Belén Soto"}],
+    }
+    c = A.cita_desde_calendly(ev, [{"email": "ana@x.com", "status": "active"}])[0]
+    assert (c["anfitrion_email"], c["anfitrion"]) == ("belen@x.com", "Belén Soto")
+    assert A.anfitrion_de({}) == ("", "")

@@ -235,10 +235,20 @@ export const asignarCloser = (orgId: number, email: string, closerId: number, t:
 
 /** Quién reparte las llamadas (0 = nadie: avisa a los administradores) y el equipo. */
 export const getReparto = (orgId: number, t: string) =>
-  pedir<{ repartidor_id: number; equipo: MiembroEquipo[]; yo: number }>(`panel/org/${orgId}/reparto`, 'GET', null, t)
+  pedir<{ repartidor_id: number; calendly?: Record<string, string>; equipo: MiembroEquipo[]; yo: number }>(
+    `panel/org/${orgId}/reparto`,
+    'GET',
+    null,
+    t
+  )
 
 export const guardarReparto = (orgId: number, repartidorId: number, t: string) =>
   pedir<{ ok: boolean }>(`panel/org/${orgId}/reparto`, 'PUT', { repartidor_id: repartidorId }, t)
+
+/** El correo de Calendly de cada closer (31/10, Calendly Teams): {id: correo}.
+ *  Con eso la escuela sabe a quién le dio Calendly cada llamada. */
+export const guardarCorreosCalendly = (orgId: number, calendly: Record<string, string>, t: string) =>
+  pedir<{ ok: boolean; calendly: Record<string, string> }>(`panel/org/${orgId}/reparto`, 'PUT', { calendly }, t)
 
 /** Quitar del tablero (o devolver) sin borrar nada. Solo administradores. */
 export const ocultarTarjeta = (orgId: number, email: string, oculto: boolean, t: string) =>
@@ -465,7 +475,7 @@ export interface CorreoReserva {
   por: string
   de_fabrica: { asunto: string; texto: string }
   huecos: string[]
-  conexion: { conectado: boolean; motivo: string; plan?: boolean }
+  conexion: { conectado: boolean; motivo: string; plan?: boolean; alcance?: 'organization' | 'user' }
   ultimo_aviso: { at: string; ok: boolean; que: string } | null
   enviados: number
 }

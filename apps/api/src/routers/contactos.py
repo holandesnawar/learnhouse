@@ -312,6 +312,13 @@ async def api_agenda(
         tels = await telefonos_por_email({c.get("email") or "" for c in visibles if not c.get("telefono")}, db_session)
     except Exception:  # noqa: BLE001
         tels = {}
+    # Con Calendly Teams (31/10): la llamada que Calendly le dio a un closer
+    # por turnos es suya, aunque el aviso de la reserva no haya llegado (p.
+    # ej. si aún avisa solo de las del usuario principal). Solo se pone si no
+    # tenía closer: lo que el equipo cambió a mano no se toca.
+    from src.services.panel.reparto import asignar_citas_por_anfitrion
+
+    await asignar_citas_por_anfitrion(visibles, db_session)
     # El closer que lleva cada llamada (22/10), para «Solo las mías».
     from src.services.panel.pipeline import guardadas
 
@@ -390,6 +397,13 @@ async def api_reservar(
     )
     if not r.get("ok"):
         raise HTTPException(status_code=400, detail=r.get("motivo") or "No se ha podido agendar")
+    # Con el evento por turnos de Calendly Teams (31/10), la llamada es de
+    # quien Calendly eligió: la tiene en su calendario y en su Zoom.
+    if r.get("anfitrion_email"):
+        from src.services.panel.reparto import asignar_por_anfitrion
+
+        if await asignar_por_anfitrion(data.email, r["anfitrion_email"], db_session):
+            return r
     # La agenda un closer: se la queda él, sin pasar por «Por asignar» (22/10).
     # Si la agenda un administrador, sale en «Por asignar» para repartirla.
     # Si ya la llevaba un closer (un lead que alguien se quedó en Leads, 31/10),

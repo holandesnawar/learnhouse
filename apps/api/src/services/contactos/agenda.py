@@ -25,6 +25,14 @@ reprogramadas**, para que el closer vea en la escuela el calendario entero y
 apunte qué pasó en cada llamada (`resultado_llamada.py`). Sigue sin escribir
 nada en Calendly.
 
+Desde el 31/10 (Calendly Teams, un usuario por closer y un evento «por turnos»)
+lee las citas de TODA la organización de Calendly, no solo las del usuario del
+token, y cada cita trae su anfitrión (`anfitrion_email`): el closer que
+Calendly le asignó. Con eso la escuela le pone ese closer a la tarjeta
+(`reparto.asignar_por_anfitrion`). Si el token no es de un administrador de la
+organización (o el plan no tiene organización con más gente), se queda en las
+del usuario, como antes.
+
 Falla en blando: si Calendly no contesta, la agenda dice por qué y el panel
 sigue funcionando. Caché de un minuto en memoria para no pedirle lo mismo a
 Calendly cada vez que alguien abre la pestaña.
@@ -64,10 +72,20 @@ def es_cambio_de_hora(motivo: str) -> bool:
     return str(motivo or "").strip().lower().startswith(MOTIVO_CAMBIO.lower())
 
 
+def anfitrion_de(evento: dict) -> tuple[str, str]:
+    """(correo, nombre) de quien atiende la cita en Calendly: con un evento
+    «por turnos» (round robin), el closer que le tocó. Función pura."""
+    for m in evento.get("event_memberships") or []:
+        if isinstance(m, dict) and m.get("user_email"):
+            return str(m["user_email"]).strip().lower(), str(m.get("user_name") or "")
+    return "", ""
+
+
 def cita_desde_calendly(evento: dict, invitados: list[dict]) -> list[dict]:
     """Una cita del panel por invitado. Función pura (con test): recibe lo
     que devuelve Calendly y lo deja en lo que el panel necesita."""
     ubicacion = evento.get("location") or {}
+    anfitrion_email, anfitrion = anfitrion_de(evento)
     enlace = ubicacion.get("join_url") or ""
     if not enlace and isinstance(ubicacion.get("location"), str) and ubicacion["location"].startswith("http"):
         enlace = ubicacion["location"]
@@ -105,6 +123,10 @@ def cita_desde_calendly(evento: dict, invitados: list[dict]) -> list[dict]:
                 # el último movimiento a mano para ponerla en Agendado.
                 "reservada": inv.get("created_at") or evento.get("created_at") or "",
                 "motivo_cancelacion": str(cancelacion.get("reason") or "")[:300] if cancelada else "",
+                # Quién la atiende en Calendly (31/10): con el evento por
+                # turnos, el closer que le asignó Calendly.
+                "anfitrion_email": anfitrion_email,
+                "anfitrion": anfitrion,
             }
         )
     return salida
@@ -139,17 +161,19 @@ async def agenda(forzar: bool = False) -> dict:
             # Sin filtro de estado: salen también las canceladas. Se pagina
             # (100 por página) con tope, por si algún día hay muchas.
             eventos: list[dict] = []
-            pagina = await _get(
-                cliente,
-                f"{API}/scheduled_events",
-                {
-                    "user": yo.get("uri", ""),
-                    "min_start_time": desde,
-                    "max_start_time": hasta,
-                    "sort": "start_time:asc",
-                    "count": 100,
-                },
-            )
+            filtro = {"min_start_time": desde, "max_start_time": hasta, "sort": "start_time:asc", "count": 100}
+            # Las de toda la organización (los dos closers); si el token no
+            # puede (no es administrador de la organización), las suyas.
+            pagina = None
+            if yo.get("current_organization"):
+                try:
+                    pagina = await _get(cliente, f"{API}/scheduled_events", {**filtro, "organization": yo["current_organization"]})
+                except httpx.HTTPStatusError as exc:
+                    if exc.response.status_code not in (400, 403, 404):
+                        raise
+                    logger.info("Calendly no deja leer la organización (%s): solo las del usuario", exc.response.status_code)
+            if pagina is None:
+                pagina = await _get(cliente, f"{API}/scheduled_events", {**filtro, "user": yo.get("uri", "")})
             for _ in range(5):
                 eventos.extend(pagina.get("collection") or [])
                 siguiente = (pagina.get("pagination") or {}).get("next_page")

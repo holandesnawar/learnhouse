@@ -171,13 +171,26 @@ export default function CorreoReserva() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-[13px] text-gray-800 inline-flex items-center gap-2 min-w-0">
               <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${conexion.conectado ? 'bg-[#16A34A]' : 'bg-[#DC2626]'}`} />
-              {conexion.conectado ? 'Calendly avisa a la escuela de cada reserva' : 'Calendly no avisa a la escuela'}
+              {conexion.conectado
+                ? conexion.alcance === 'organization'
+                  ? 'Calendly avisa a la escuela de cada reserva, de todos los closers'
+                  : 'Calendly avisa a la escuela de cada reserva'
+                : 'Calendly no avisa a la escuela'}
             </p>
             <button onClick={conectar} disabled={!!ocupado} className={BOTON}>
               {ocupado === 'conectar' ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}{' '}
               {conexion.conectado ? 'Volver a conectar' : 'Conectar'}
             </button>
           </div>
+          {/* Calendly Teams (31/10): con un usuario por closer, el aviso tiene
+              que ser de toda la organización, no solo del usuario del token. */}
+          {conexion.conectado && conexion.alcance === 'user' ? (
+            <p className="text-[12.5px] text-[#92400E] leading-relaxed">
+              Solo avisa de las reservas del usuario principal de Calendly. Si los closers tienen su propio usuario (Calendly
+              Teams), pulsa «Volver a conectar» para que avise de todas. Hace falta que el token de Calendly sea de un
+              administrador de la cuenta.
+            </p>
+          ) : null}
           {!conexion.conectado && conexion.motivo ? (
             <p className="text-[12.5px] text-[#B91C1C] leading-relaxed">
               {conexion.motivo}

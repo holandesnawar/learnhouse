@@ -59,17 +59,51 @@ _VIDEO = {"google_conference", "zoom_conference", "microsoft_teams_conference", 
 # ── lógica pura (con test) ─────────────────────────────────────────────────
 
 
+def _clave(texto: str) -> str:
+    return (texto or "").strip().rstrip("/").rsplit("/", 1)[-1].lower()
+
+
+def _es_el_preferido(t: dict, clave: str) -> bool:
+    slug = str(t.get("slug") or "").lower()
+    url = _clave(str(t.get("scheduling_url") or ""))
+    return bool(clave) and clave in (slug, url)
+
+
+def es_por_turnos(t: dict) -> bool:
+    """¿Es un evento «por turnos» (round robin) de Calendly Teams?"""
+    return str(t.get("pooling_type") or "").lower() == "round_robin"
+
+
 def evento_elegido(tipos: list[dict], preferido: str = EVENTO_POR_DEFECTO) -> Optional[dict]:
-    """El tipo de evento a agendar: el del slug (o dirección) preferido si está
-    activo; si no, el primero activo."""
+    """El tipo de evento a agendar. Desde el 31/10, con Calendly Teams, gana
+    el evento «por turnos» (round robin: Calendly elige closer): primero el
+    por turnos con el slug preferido, luego cualquier por turnos, luego el del
+    slug (o dirección) preferido, y si no, el primero activo."""
     activos = [t for t in tipos if t.get("active", True)]
-    clave = (preferido or "").strip().rstrip("/").rsplit("/", 1)[-1].lower()
-    for t in activos:
-        slug = str(t.get("slug") or "").lower()
-        url = str(t.get("scheduling_url") or "").rstrip("/").rsplit("/", 1)[-1].lower()
-        if clave and clave in (slug, url):
-            return t
+    clave = _clave(preferido)
+    for elegir in (
+        lambda t: es_por_turnos(t) and _es_el_preferido(t, clave),
+        es_por_turnos,
+        lambda t: _es_el_preferido(t, clave),
+    ):
+        for t in activos:
+            if elegir(t):
+                return t
     return activos[0] if activos else None
+
+
+def tipos_de_llamada(tipos: list[dict], preferido: str = EVENTO_POR_DEFECTO) -> set[str]:
+    """Las direcciones de los eventos que son «la llamada de admisión»: el
+    elegido, los por turnos y los que llevan el slug preferido (el enlace
+    personal de cada closer, si lo crea con el mismo slug, y el viejo durante
+    el cambio). Lo usa el aviso de Calendly para no tratar como llamada una
+    reunión cualquiera. Función pura."""
+    clave = _clave(preferido)
+    salida = {str(t.get("uri") or "") for t in tipos if es_por_turnos(t) or _es_el_preferido(t, clave)}
+    elegido = evento_elegido(tipos, preferido)
+    if elegido:
+        salida.add(str(elegido.get("uri") or ""))
+    return {u for u in salida if u}
 
 
 def telefono_e164(telefono: str) -> str:
@@ -222,17 +256,51 @@ def _cliente() -> httpx.AsyncClient:
     return httpx.AsyncClient(timeout=15.0, headers={"Authorization": f"Bearer {A._token()}"})
 
 
-async def _tipo(cliente: httpx.AsyncClient) -> dict:
+def _preferido() -> str:
     import os
 
+    return os.environ.get("LEARNHOUSE_CALENDLY_EVENTO") or EVENTO_POR_DEFECTO
+
+
+async def _tipos(cliente: httpx.AsyncClient) -> list[dict]:
+    """Los tipos de evento activos de la organización de Calendly (los del
+    equipo y los de cada closer); si el token no puede verla, los suyos."""
     yo = (await _pedir(cliente, "GET", f"{A.API}/users/me")).get("resource") or {}
-    tipos = (
+    if yo.get("current_organization"):
+        try:
+            tipos = (
+                await _pedir(
+                    cliente, "GET", f"{A.API}/event_types",
+                    params={"organization": yo["current_organization"], "active": "true", "count": 100},
+                )
+            ).get("collection") or []
+            if tipos:
+                return tipos
+        except FalloCalendly as exc:
+            if exc.codigo not in (400, 403, 404):
+                raise
+    return (
         await _pedir(cliente, "GET", f"{A.API}/event_types", params={"user": yo.get("uri", ""), "active": "true", "count": 100})
     ).get("collection") or []
-    tipo = evento_elegido(tipos, os.environ.get("LEARNHOUSE_CALENDLY_EVENTO") or EVENTO_POR_DEFECTO)
+
+
+async def _tipo(cliente: httpx.AsyncClient) -> dict:
+    tipo = evento_elegido(await _tipos(cliente), _preferido())
     if not tipo:
         raise FalloCalendly("No hay ningún tipo de evento activo en Calendly")
     return tipo
+
+
+async def anfitrion_del_evento(cliente: httpx.AsyncClient, uri: str) -> str:
+    """El correo de quien atiende ese evento en Calendly (el closer que le tocó
+    por turnos). Vacío si no se sabe: en blando."""
+    if not str(uri).startswith("http"):
+        return ""
+    try:
+        ev = (await _pedir(cliente, "GET", uri)).get("resource") or {}
+    except Exception:  # noqa: BLE001
+        return ""
+    return A.anfitrion_de(ev)[0]
 
 
 async def _crear_invitado(cliente: httpx.AsyncClient, tipo: dict, nombre: str, email: str, telefono: str, cuando: datetime) -> dict:
@@ -326,6 +394,8 @@ async def reservar(
             tipo = await _tipo(cliente)
             plan_b = plan_b or enlace_de_hora(str(tipo.get("scheduling_url") or ""), cuando)
             creada = await _crear_invitado(cliente, tipo, nombre, email, telefono, cuando)
+            # Con el evento por turnos, a quién se la dio Calendly (31/10).
+            anfitrion = await anfitrion_del_evento(cliente, str(creada.get("event") or ""))
     except FalloCalendly as exc:
         logger.warning("Calendly no dejó agendar por la API (%s): %s", exc.codigo, exc.motivo)
         await _apuntar(email, nombre, telefono, cuando, autor, False, db_session)
@@ -348,6 +418,7 @@ async def reservar(
         "ok": True,
         "modo": "reservada",
         "evento": str(creada.get("event") or ""),
+        "anfitrion_email": anfitrion,
         "cancelar_url": str(creada.get("cancel_url") or ""),
         "cambiar_url": str(creada.get("reschedule_url") or ""),
     }
