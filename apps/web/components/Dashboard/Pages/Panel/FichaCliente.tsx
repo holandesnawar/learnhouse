@@ -515,14 +515,16 @@ export default function FichaCliente({
                       ))}
                     </div>
                   ))}
-                  {/* Quién lleva su llamada (22/10): al otro closer le llega un correo. */}
-                  {ficha.tablero.mesa === 'ventas' || ficha.tablero.closer_id ? (
+                  {/* Quién la lleva (22/10; desde el 31/10 también en Leads): al
+                      otro closer le llega un correo. */}
+                  {ficha.tablero ? (
                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
                       <span className="w-14 shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF]">Closer</span>
                       <BotonesReparto
                         email={ficha.email}
                         closerId={ficha.tablero.closer_id || 0}
                         reparto={reparto}
+                        mesa={ficha.tablero.mesa === 'ventas' ? 'ventas' : 'leads'}
                         onHecho={(id, nombre) => {
                           setFicha({ ...ficha, tablero: { ...ficha.tablero, closer_id: id, closer: nombre } })
                           onCambio?.()

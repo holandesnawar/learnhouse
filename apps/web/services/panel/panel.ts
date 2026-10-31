@@ -223,12 +223,13 @@ export const moverTarjeta = (
   t: string
 ) => pedir<{ ok: boolean }>(`panel/org/${orgId}/tablero`, 'PUT', cambio, t)
 
-/** Le pone (o le quita, con 0) el closer que lleva su llamada. */
-export const asignarCloser = (orgId: number, email: string, closerId: number, t: string) =>
+/** Le pone (o le quita, con 0) el closer que lleva su llamada. `mesa`: desde
+ *  qué mesa se asigna (en Leads aún no hay llamada y el correo lo dice). */
+export const asignarCloser = (orgId: number, email: string, closerId: number, t: string, mesa: 'leads' | 'ventas' | '' = '') =>
   pedir<{ ok: boolean; closer_id: number; closer: string; avisado?: boolean }>(
     `panel/org/${orgId}/tablero/asignar`,
     'PUT',
-    { email, closer_id: closerId },
+    { email, closer_id: closerId, mesa },
     t
   )
 

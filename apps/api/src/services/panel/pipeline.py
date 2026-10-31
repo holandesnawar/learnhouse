@@ -66,12 +66,16 @@ mesa sale (`mesa_de`):
   pagar, Alumno y Descartado. La pantalla separa de Agendado las que aún no
   tienen closer («Por asignar»).
 Descartado sale en Ventas si la persona llegó a tener una llamada (una cita de
-Calendly no cancelada, un «¿Qué pasó?», un closer asignado o una reserva
-avisada por la web) y en Leads si no.
+Calendly no cancelada, un «¿Qué pasó?» o una reserva, un cambio de hora o una
+cancelación en su ficha) y en Leads si no.
 
-Cada tarjeta lleva su closer (`closer_id`, `asignar`). Lo reparte el closer
-principal (o quien tenga el panel) desde «Por asignar», y al asignado le llega
-un correo. Asignar no cambia la columna ni la fecha del último movimiento.
+Cada tarjeta lleva su closer (`closer_id`, `asignar`), en las DOS mesas (31/10:
+"que salga una mini etiqueta con el nombre, Diego o Belén"). En Leads, un
+closer se queda un lead con «Asignarme»; en Ventas, lo reparte el closer
+principal (o quien tenga el panel) desde «Por asignar». Al asignado le llega un
+correo. Asignar no cambia la columna ni la fecha del último movimiento.
+⚠️ Tener closer NO cuenta como haber tenido una llamada (hasta el 31/10 sí):
+con los leads asignados, un lead descartado en Leads habría saltado a Ventas.
 """
 
 from datetime import datetime, timezone
@@ -110,8 +114,10 @@ CANALES = {"", "whatsapp", "llamada", "email", "instagram", "otro"}
 #: Las dos mesas: en cuál sale cada columna (Descartado depende, `mesa_de`).
 MESA_LEADS = {"nuevo", "llamar", "no-contesta", "contactado"}
 MESA_VENTAS = {"agendado", "no-show", "seguimiento", "pendiente-pago", "alumno"}
-#: Pasos de la ficha que dicen que tuvo (o reservó) una llamada.
-_PASOS_DE_LLAMADA = {"reunion", "llamada-equipo"}
+#: Pasos de la ficha que dicen que tuvo (o reservó) una llamada: la reserva
+#: avisada por la web, la que agenda el equipo, el correo de Rida (aviso de
+#: Calendly) y el cambio de hora o la cancelación desde la escuela.
+_PASOS_DE_LLAMADA = {"reunion", "llamada-equipo", "correo-reserva", "llamada-cambiada", "llamada-cancelada"}
 
 
 def mesa_de(etapa: str, tuvo_llamada: bool) -> str:
@@ -572,7 +578,7 @@ def colocar(
         # Leads o Ventas (`mesa_de`), y el closer que lleva su llamada.
         "mesa": mesa_de(
             etapa,
-            con_llamada or bool(cita) or bool(guardada.get("closer_id")) or bool(_cuando_paso(ficha, _PASOS_DE_LLAMADA)),
+            con_llamada or bool(cita) or bool(_cuando_paso(ficha, _PASOS_DE_LLAMADA)),
         ),
         "closer_id": int(guardada.get("closer_id") or 0),
         "closer": guardada.get("closer", "") if guardada.get("closer_id") else "",

@@ -119,6 +119,9 @@ class Asignacion(BaseModel):
     email: str
     # 0 = quitarle el closer (vuelve a «Por asignar»).
     closer_id: int = 0
+    # Desde qué mesa se asigna (31/10): en Leads aún no hay llamada, y el
+    # correo al closer habla de una matrícula que llamar, no de una llamada.
+    mesa: str = ""
 
 
 def _cuando(inicio: str) -> str:
@@ -157,7 +160,7 @@ async def api_asignar(
     ya = int(getattr(pipeline._la_asignada(filas), "closer_id", 0) or 0) if filas else 0
     if ya and ya != data.closer_id and ya != current_user.id and not await _es_admin(current_user, org_id, db_session):
         quien = next((m.get("nombre") for m in eq if m["id"] == ya), "") or "otra persona"
-        raise HTTPException(status_code=409, detail=f"Esta llamada ya la lleva {quien}. Si hay que cambiarla, que lo haga un administrador.")
+        raise HTTPException(status_code=409, detail=f"Ya la lleva {quien}. Si hay que cambiarla, que lo haga un administrador.")
     r = await pipeline.asignar(
         data.email, data.closer_id, (closer or {}).get("nombre", ""), _nombre(current_user), db_session
     )
@@ -191,6 +194,8 @@ async def api_asignar(
                 "cuando": _cuando((cita or {}).get("inicio", "")),
                 "enlace": (cita or {}).get("enlace", ""),
                 "por": _nombre(current_user),
+                # Un lead sin llamada (se lo pasan desde Leads): otro texto.
+                "lead": data.mesa == "leads" and not cita,
             },
         )
     return r
