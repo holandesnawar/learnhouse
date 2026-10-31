@@ -392,11 +392,16 @@ async def api_reservar(
         raise HTTPException(status_code=400, detail=r.get("motivo") or "No se ha podido agendar")
     # La agenda un closer: se la queda él, sin pasar por «Por asignar» (22/10).
     # Si la agenda un administrador, sale en «Por asignar» para repartirla.
+    # Si ya la llevaba un closer (un lead que alguien se quedó en Leads, 31/10),
+    # se queda con el suyo: agendarle una llamada no es quitársela.
     if (await rol_en_la_escuela(current_user.id, org_id, db_session)) == CLOSER_ROLE_ID:
         try:
-            from src.services.panel.pipeline import asignar
+            from src.services.panel.pipeline import _la_asignada, asignar, filas_de
 
-            await asignar(data.email, current_user.id, _nombre(current_user), _nombre(current_user), db_session)
+            filas = await filas_de(data.email, db_session)
+            ya = int(getattr(_la_asignada(filas), "closer_id", 0) or 0) if filas else 0
+            if not ya:
+                await asignar(data.email, current_user.id, _nombre(current_user), _nombre(current_user), db_session)
         except Exception:  # noqa: BLE001
             logger.exception("No se pudo asignar la llamada a quien la agendó")
     return r

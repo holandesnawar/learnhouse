@@ -1107,33 +1107,54 @@ def send_llamada_asignada_email(email: EmailStr, datos: dict, preview: bool = Fa
     """Aviso AL CLOSER (22/10/2026): le han pasado una llamada. datos: nombre,
     email, telefono, cuando, por (quién se la ha pasado), enlace (para entrar a
     la videollamada, si se sabe). Con `vuelve` (28/10): alguien que ya llevaba
-    ha reservado otra llamada (tras un No show, o agendada desde el panel)."""
+    ha reservado otra llamada (tras un No show, o agendada desde el panel).
+    Con `lead` (31/10): le han pasado una matrícula de Leads, aún sin llamada:
+    hay que llamarla, no entrar a una videollamada."""
     nombre, contacto, wa = _llamada_datos(datos)
     cuando = html.escape(datos.get("cuando") or "")
     por = html.escape(datos.get("por") or "")
     vuelve = bool(datos.get("vuelve"))
-    titulo = "Ha reservado una llamada contigo" if vuelve else "Te han pasado una llamada"
+    lead = bool(datos.get("lead")) and not vuelve
+    if lead:
+        titulo = "Te han pasado una matrícula"
+    else:
+        titulo = "Ha reservado una llamada contigo" if vuelve else "Te han pasado una llamada"
     enlace = datos.get("enlace") or ""
     entrar = (
         f'<p style="margin: 16px 0 0 0; font-size: 13px;"><a href="{html.escape(enlace)}" style="color: #025dc7; font-weight: 600;">Enlace de la videollamada</a></p>'
-        if enlace.startswith("http")
+        if enlace.startswith("http") and not lead
         else ""
     )
+    if vuelve:
+        quien = '<p style="' + STYLES['p'] + '">Ya la llevabas tú, así que no pasa por «Por asignar».</p>'
+    elif lead:
+        quien = (
+            '<p style="' + STYLES['p'] + '">'
+            + (f"Te la ha pasado {por}. " if por else "")
+            + "Aún no tiene llamada: está en Leads con tu nombre. Llámala o escríbele cuanto antes.</p>"
+        )
+    else:
+        quien = ('<p style="' + STYLES['p'] + '">Te la ha pasado ' + por + '.</p>') if por else ''
+    mesa = "leads" if lead else "ventas"
     body_content = f"""
         <h1 style="{STYLES['h1']}">{titulo}</h1>
         <p style="{STYLES['p']}">
-            <strong>{nombre}</strong>{(' · ' + cuando) if cuando else ''}<br>
+            <strong>{nombre}</strong>{(' · ' + cuando) if cuando and not lead else ''}<br>
             {contacto}
         </p>
-        {('<p style="' + STYLES['p'] + '">Ya la llevabas tú, así que no pasa por «Por asignar».</p>') if vuelve else ('<p style="' + STYLES['p'] + '">Te la ha pasado ' + por + '.</p>') if por else ''}
-        <a href="{ACADEMY_URL}/dash/estadisticas?tab=matriculas&mesa=ventas" class="brand-btn" style="{STYLES['button']}">Ver su ficha</a>
+        {quien}
+        <a href="{ACADEMY_URL}/dash/estadisticas?tab=matriculas&mesa={mesa}" class="brand-btn" style="{STYLES['button']}">Ver su ficha</a>
         {entrar}
         {wa}
     """
+    asunto = (
+        "Te han pasado una matrícula" if lead else "Ha reservado llamada contigo" if vuelve else "Te han pasado una llamada"
+    )
     return send_email(
         dry_run=preview,
         to=email,
-        subject=f"{'Ha reservado llamada contigo' if vuelve else 'Te han pasado una llamada'}: {datos.get('nombre') or datos.get('email') or 'alguien'}" + (f" · {datos.get('cuando')}" if datos.get("cuando") else ""),
+        subject=f"{asunto}: {datos.get('nombre') or datos.get('email') or 'alguien'}"
+        + (f" · {datos.get('cuando')}" if datos.get("cuando") and not lead else ""),
         body=_email_layout(
             title=titulo,
             body_content=body_content,

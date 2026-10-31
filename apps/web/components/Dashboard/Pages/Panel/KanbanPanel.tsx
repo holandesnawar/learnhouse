@@ -67,10 +67,11 @@ import { cuandoLlamar, hoyISO } from '@services/stats/contactos'
 import { quitarPersona } from './quitarPersona'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { quitarDeMetricas, volverAContar } from '@services/stats/contactos'
-import { CalendarCheck, CheckSquare, ChevronDown, ChevronsLeft, Eye, Loader2, PhoneCall, RotateCcw, Search, StickyNote, UserRound, X } from 'lucide-react'
+import { CalendarCheck, CheckSquare, ChevronDown, ChevronsLeft, Eye, Loader2, PhoneCall, RotateCcw, Search, StickyNote, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { BOTON, filtro } from './ui'
-import { BotonesReparto, nombreCorto, useReparto, type Reparto } from './Reparto'
+import { BotonesReparto, EtiquetaCloser, nombreCorto, useReparto, type Reparto } from './Reparto'
+import { colorCloser } from '@lib/nawar/colorCloser'
 
 // Un color por columna, solo en el punto junto al nombre y en tonos apagados.
 // Primero eran tres azules seguidos ("hay más colores, no solo azul") y luego
@@ -106,6 +107,9 @@ const PLEGADAS_DE_SERIE: ColumnaId[] = ['descartado']
 const CLAVE_PLEGADAS = 'nawar.tablero.plegadas'
 const CLAVE_MESA = 'nawar.tablero.mesa'
 const CLAVE_MIAS = 'nawar.tablero.mias'
+// En Leads, «Mías» aparte (31/10) y de serie «Todas»: ahí lo que no tiene
+// nadie es lo que hay que coger.
+const CLAVE_MIAS_LEADS = 'nawar.tablero.mias.leads'
 
 // Las columnas de cada mesa. En Ventas, Alumno es «Ganada» y Descartado,
 // «Perdida» (el servidor pone en Ventas a quien se descarta tras una llamada).
@@ -200,6 +204,22 @@ function TarjetaVista({
           {haceCuanto(t.llegada || t.desde)}
         </span>
       </div>
+      {/* Quién la lleva (31/10, "una mini etiqueta con el nombre, de colores
+          diferentes"), en las dos mesas y sin abrirla; sin closer,
+          «Asignarme». En «Por asignar» van los botones de repartir (abajo). */}
+      {reparto && onAsignada && !t.suelta && columnaDe(t) !== 'por-asignar' ? (
+        <div className="mt-1 flex">
+          <EtiquetaCloser
+            email={t.email}
+            closerId={t.closer_id || 0}
+            closer={t.closer || ''}
+            reparto={reparto}
+            mesa={mesaDe(t)}
+            onHecho={onAsignada}
+            ofrecer={t.etapa !== 'alumno' && t.etapa !== 'descartado'}
+          />
+        </div>
+      ) : null}
       {A_LLAMAR.includes(t.etapa) && t.temperatura ? (
         <div className="mt-0.5">
           <span className="text-[11.5px]">
@@ -251,16 +271,10 @@ function TarjetaVista({
           </p>
         )
       ) : null}
-      {/* Ventas: quién la lleva; y en «Por asignar», repartirla sin abrirla. */}
-      {mesaDe(t) === 'ventas' && t.closer ? (
-        <p className="mt-1 flex items-center gap-1 text-[11.5px] font-medium text-gray-700" title="El closer que lleva su llamada">
-          <UserRound size={11} className="shrink-0" />
-          {t.closer_id === reparto?.yo ? 'Tuya' : nombreCorto(t.closer)}
-        </p>
-      ) : null}
+      {/* En «Por asignar», repartirla sin abrirla. */}
       {reparto && columnaDe(t) === 'por-asignar' && onAsignada ? (
         <div className="mt-2">
-          <BotonesReparto email={t.email} closerId={t.closer_id || 0} reparto={reparto} onHecho={onAsignada} pequeno />
+          <BotonesReparto email={t.email} closerId={t.closer_id || 0} reparto={reparto} onHecho={onAsignada} pequeno mesa="ventas" />
         </div>
       ) : null}
       {t.reserva ? (
@@ -327,6 +341,7 @@ export default function KanbanPanel() {
   // los correos de reparto abren con `?mesa=ventas`).
   const [mesa, setMesaEstado] = useState<Mesa>('leads')
   const [soloMias, setSoloMiasEstado] = useState<boolean | null>(null)
+  const [miasLeads, setMiasLeadsEstado] = useState(false)
   const reparto = useReparto()
   // En el móvil se ve una columna cada vez.
   const [columnaMovil, setColumnaMovil] = useState<ColumnaId>('nuevo')
@@ -341,6 +356,7 @@ export default function KanbanPanel() {
       }
       const mias = localStorage.getItem(CLAVE_MIAS)
       if (mias === '1' || mias === '0') setSoloMiasEstado(mias === '1')
+      setMiasLeadsEstado(localStorage.getItem(CLAVE_MIAS_LEADS) === '1')
     } catch {}
   }, [])
   function setMesa(m: Mesa) {
@@ -351,6 +367,13 @@ export default function KanbanPanel() {
     } catch {}
   }
   function setSoloMias(v: boolean) {
+    if (mesa === 'leads') {
+      setMiasLeadsEstado(v)
+      try {
+        localStorage.setItem(CLAVE_MIAS_LEADS, v ? '1' : '0')
+      } catch {}
+      return
+    }
     setSoloMiasEstado(v)
     try {
       localStorage.setItem(CLAVE_MIAS, v ? '1' : '0')
@@ -451,17 +474,19 @@ export default function KanbanPanel() {
     cargar()
   }, [cargar])
 
-  // Las de esta mesa; en Ventas con «Mías», las mías y las que están por
-  // asignar (son de todos hasta que alguien se las queda).
+  // Las de esta mesa; con «Mías», las mías y las que no tiene nadie (en
+  // Ventas, las de «Por asignar»): son de todos hasta que alguien se las queda.
   const deLaMesa = useMemo(
     () =>
       (datos?.tarjetas ?? []).filter(
         (c) =>
           !c.oculto &&
           mesaDe(c) === mesa &&
-          (mesa !== 'ventas' || !mias || c.closer_id === reparto.yo || columnaDe(c) === 'por-asignar')
+          (mesa === 'ventas'
+            ? !mias || c.closer_id === reparto.yo || columnaDe(c) === 'por-asignar'
+            : !miasLeads || c.closer_id === reparto.yo || !c.closer_id)
       ),
-    [datos, mesa, mias, reparto.yo]
+    [datos, mesa, mias, miasLeads, reparto.yo]
   )
   const filtradas = useMemo(() => {
     const t = q.trim().toLowerCase()
@@ -491,6 +516,23 @@ export default function KanbanPanel() {
       m.set(c.closer_id, x)
     }
     return Array.from(m.entries()).map(([id, x]) => ({ id, ...x }))
+  }, [datos])
+  // En Leads (31/10): cuántos leads abiertos lleva cada closer y cuántos no
+  // tiene nadie.
+  const leadsPorCloser = useMemo(() => {
+    const m = new Map<number, { nombre: string; n: number }>()
+    let sinCloser = 0
+    for (const c of datos?.tarjetas ?? []) {
+      if (c.oculto || c.suelta || mesaDe(c) !== 'leads' || c.etapa === 'descartado') continue
+      if (!c.closer_id) {
+        sinCloser++
+        continue
+      }
+      const x = m.get(c.closer_id) ?? { nombre: c.closer || '', n: 0 }
+      x.n++
+      m.set(c.closer_id, x)
+    }
+    return { closers: Array.from(m.entries()).map(([id, x]) => ({ id, ...x })), sinCloser }
   }, [datos])
   const columnas = COLUMNAS[mesa]
 
@@ -523,7 +565,7 @@ export default function KanbanPanel() {
   async function cambiarCloser(tarjeta: Tarjeta, closerId: number) {
     const quien = reparto.equipo.find((m) => m.id === closerId)
     asignada(tarjeta.id, closerId, quien?.nombre ?? '', false)
-    const r = await asignarCloser(org?.id, tarjeta.email, closerId, accessToken)
+    const r = await asignarCloser(org?.id, tarjeta.email, closerId, accessToken, 'ventas')
     if (!r.ok) {
       asignada(tarjeta.id, tarjeta.closer_id || 0, tarjeta.closer || '', false)
       toast.error(r.error || 'No se ha podido asignar')
@@ -568,7 +610,7 @@ export default function KanbanPanel() {
       // Primero la columna y luego el closer: así no compiten por la misma fila.
       const quien = reparto.equipo.find((m) => m.id === closerNuevo)
       asignada(tarjeta.id, closerNuevo, quien?.nombre ?? '', false)
-      const a = await asignarCloser(org?.id, tarjeta.email, closerNuevo, accessToken)
+      const a = await asignarCloser(org?.id, tarjeta.email, closerNuevo, accessToken, 'ventas')
       if (!a.ok) toast.error(a.error || 'Movida, pero no se ha podido asignar')
     }
     moviendo.current--
@@ -614,31 +656,30 @@ export default function KanbanPanel() {
             </button>
           ))}
         </div>
-        {mesa === 'ventas' ? (
-          <div className="inline-flex rounded-lg border border-[#E5E7EB] bg-white p-0.5">
-            {[
-              { v: true, nombre: 'Mías' },
-              { v: false, nombre: 'Todas' },
-            ].map((o) => (
-              <button
-                key={o.nombre}
-                onClick={() => setSoloMias(o.v)}
-                className={`h-8 px-3 rounded-md text-[12.5px] font-semibold ${
-                  mias === o.v ? 'bg-[#F3F4F6] text-gray-900' : 'text-[#6B7280] hover:text-gray-900'
-                }`}
-              >
-                {o.nombre}
-              </button>
-            ))}
-          </div>
-        ) : null}
+        <div className="inline-flex rounded-lg border border-[#E5E7EB] bg-white p-0.5">
+          {[
+            { v: true, nombre: 'Mías' },
+            { v: false, nombre: 'Todas' },
+          ].map((o) => (
+            <button
+              key={o.nombre}
+              onClick={() => setSoloMias(o.v)}
+              title={o.v ? 'Las que llevas tú y las que no tiene nadie' : undefined}
+              className={`h-8 px-3 rounded-md text-[12.5px] font-semibold ${
+                (mesa === 'ventas' ? mias : miasLeads) === o.v ? 'bg-[#F3F4F6] text-gray-900' : 'text-[#6B7280] hover:text-gray-900'
+              }`}
+            >
+              {o.nombre}
+            </button>
+          ))}
+        </div>
       </div>
 
       <p className="text-[13px] text-[#6B7280] leading-relaxed max-w-3xl">
         {mesa === 'leads' ? (
           <>
             Lo que entra va a Nuevo, en rojo: llámale ya. Si en 48 horas nadie ha hablado con esa persona, pasa sola a Por llamar.
-            Cuando reserva una llamada, pasa a Ventas.
+            Pulsa «Asignarme» en la tarjeta y todos verán que la llevas tú. Cuando reserva una llamada, pasa a Ventas.
           </>
         ) : (
           <>
@@ -649,11 +690,25 @@ export default function KanbanPanel() {
         Ábrela para ver todo, sus notas y cambiarla de columna<span className="hidden lg:inline"> (o arrástrala)</span>.
       </p>
 
+      {/* Leads (31/10): cuántos lleva cada closer y cuántos no tiene nadie. */}
+      {mesa === 'leads' && leadsPorCloser.closers.length ? (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] text-[#6B7280]">
+          {leadsPorCloser.closers.map((c) => (
+            <span key={c.id} className="inline-flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: colorCloser(c.id, reparto.equipo, c.nombre) }} />
+              <span className="font-semibold text-gray-900">{c.id === reparto.yo ? 'Tú' : nombreCorto(c.nombre)}</span>
+              {c.n} {c.n === 1 ? 'lead' : 'leads'}
+            </span>
+          ))}
+          <span>{leadsPorCloser.sinCloser} sin closer</span>
+        </div>
+      ) : null}
+
       {mesa === 'ventas' && (porCloser.length || isAdmin) ? (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] text-[#6B7280]">
           {porCloser.map((c) => (
             <span key={c.id} className="inline-flex items-center gap-1.5">
-              <UserRound size={12} className="text-gray-400" />
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: colorCloser(c.id, reparto.equipo, c.nombre) }} />
               <span className="font-semibold text-gray-900">{c.id === reparto.yo ? 'Tú' : nombreCorto(c.nombre)}</span>
               {c.curso} en curso · {c.ganadas} {c.ganadas === 1 ? 'ganada' : 'ganadas'}
             </span>
