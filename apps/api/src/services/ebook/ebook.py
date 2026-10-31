@@ -80,7 +80,10 @@ Quien deja sus datos y no paga (28/10)
 --------------------------------------
 Al abrir la caja de pago (`crear_pago`) se apunta un `ebook-empezado` con su
 nombre, su correo y de dónde vino (`_apuntar_empezado`, uno por persona y
-día). Sale en su ficha. Si no llega a comprar, al día siguiente le llega UN
+día). Sale en su ficha y, desde el 31/10, entra en systeme.io con la etiqueta de
+la lista (la misma de la portada): le llegan los correos de «No
+compradores» aunque no pasara por la portada. Si no llega a comprar y los
+correos de la escuela siguen encendidos, al día siguiente le llega UN
 correo, «Tu ebook de 1 € te está esperando» (`pendiente`, editable en el panel
 y con su baja al pie), con el botón a la página del ebook y sus datos puestos
 (`toca_pendiente`, pura con test). Lo mismo a quien se apuntó en la portada
@@ -132,6 +135,9 @@ ID_PENDIENTE = "pendiente"
 # Se apuntó en blackfriday.holandesnawar.com para desbloquear la oferta, sin
 # comprar el ebook (28/10, como YouTalk).
 TIPO_LISTA = "bf-lista"
+#: La etiqueta de systeme.io que mete en la campaña «No compradores»: al
+#: apuntarse en la portada y, desde el 31/10, al abrir la caja de pago.
+ETIQUETA_LISTA = "Black Friday - lista"
 ID_ACCESO = "acceso"
 # Compró el ebook y empezó el formulario de la llamada (o lo terminó) sin
 # reservar hora: un correo para que lo termine (28/10, quinta vuelta).
@@ -1078,6 +1084,18 @@ async def crear_pago(datos: dict, db_session: AsyncSession) -> dict:
     except Exception:  # noqa: BLE001
         # Que no apuntarlo no deje a nadie sin poder pagar.
         logger.warning("Ebook: no se pudo apuntar el pedido empezado", exc_info=True)
+    # Quien deja nombre y correo y no paga (31/10, usuario: "¿qué hacemos con
+    # él?"): entra en systeme.io con la MISMA etiqueta que la portada, así le
+    # llegan los correos de «No compradores». Si paga, «Ebook Black Friday»
+    # le pasa a «Compradores». Antes, quien llegaba directo a esta página sin
+    # pasar por la portada no entraba en systeme.io: con los correos de la
+    # escuela apagados, no le llegaba nada. Sin hacer esperar a la caja.
+    try:
+        from src.services.crm.systeme import etiquetar_sin_esperar
+
+        etiquetar_sin_esperar(email, nombre, ETIQUETA_LISTA)
+    except Exception:  # noqa: BLE001
+        logger.warning("Ebook: no se pudo etiquetar en systeme.io al abrir el pago", exc_info=True)
     return {
         "client_secret": sesion["client_secret"],
         "publishable_key": _stripe_publishable(),
@@ -1365,7 +1383,7 @@ async def apuntar_lista(datos: dict, db_session: AsyncSession) -> dict:
     try:
         from src.services.crm.systeme import etiquetar
 
-        await etiquetar(email, nombre, "Black Friday - lista")
+        await etiquetar(email, nombre, ETIQUETA_LISTA)
     except Exception:  # noqa: BLE001
         logger.warning("Lista de Black Friday: no se pudo etiquetar en systeme.io", exc_info=True)
     # Si ya compró el ebook (29/10: el botón de las newsletters de systeme.io
