@@ -150,3 +150,17 @@ def test_asuntos_de_los_correos():
     assert bf.asunto_de("otro") == ""
     assert bf.es_de_correo("systeme", "email") and bf.es_de_correo("", "newsletter")
     assert not bf.es_de_correo("facebook", "paid")
+
+
+def test_quien_abre_el_pago_y_no_paga_entra_en_no_compradores():
+    # 31/10: rellenó nombre y correo en la ventana del ebook (sin pasar por la
+    # portada) y no pagó. Abrir el pago le pone la etiqueta de la lista en
+    # systeme.io, así que está en «No compradores» desde ese momento.
+    r = bf.resumen(_ficha(_ev("ebook-empezado", _dia(-2))), AHORA, _dia(-20)[:10])
+    assert r["titulo"] == "Abrió el pago del ebook y no lo compró"
+    assert r["campana"] == "No compradores"
+    assert [c["id"] for c in r["correos"]] == ["sys-n0", "sys-n1"]
+    assert r["proximo"]["id"] == "sys-n3"
+    # Si se apuntó en la portada antes, cuenta lo primero.
+    r = bf.resumen(_ficha(_ev("bf-lista", _dia(-4)), _ev("ebook-empezado", _dia(-2))), AHORA, _dia(-20)[:10])
+    assert [c["id"] for c in r["correos"]] == ["sys-n0", "sys-n1", "sys-n3"]

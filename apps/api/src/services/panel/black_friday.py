@@ -269,7 +269,13 @@ def resumen(ficha: dict, ahora: datetime, encendidos_desde: str = "") -> Optiona
     from src.services.payments.solicitudes import _NOMBRES
 
     encendidos = _instante(encendidos_desde) if encendidos_desde else None
-    t_lista = _instante((lista or {}).get("when", ""))
+    # Desde el 31/10, abrir la caja de pago del ebook también pone la
+    # etiqueta de la lista en systeme.io: entra en «No compradores» con lo
+    # primero de las dos cosas.
+    t_lista = min(
+        [t for t in (_instante((lista or {}).get("when", "")), _instante((empezo or {}).get("when", ""))) if t],
+        default=None,
+    )
     t_ebook = _instante((ebook or {}).get("when", ""))
     entra_lista = t_lista if (encendidos and t_lista and t_lista >= encendidos) else None
     entra_ebook = t_ebook if (encendidos and t_ebook and t_ebook >= encendidos) else None
@@ -296,7 +302,7 @@ def resumen(ficha: dict, ahora: datetime, encendidos_desde: str = "") -> Optiona
 
     if not encendidos:
         aviso = "Los correos de systeme.io aún no están encendidos."
-    elif (lista or ebook) and not (entra_lista or entra_ebook):
+    elif (lista or ebook or empezo) and not (entra_lista or entra_ebook):
         aviso = "Entró antes de encender los correos de systeme.io: no está en ninguna campaña."
     else:
         aviso = ""

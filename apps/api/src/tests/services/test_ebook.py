@@ -510,8 +510,16 @@ async def test_la_caja_pide_el_whatsapp_y_lo_guarda_en_la_ficha(db, org, sin_red
     db.add(ContactEvent(email="ana@x.com", kind="admision", phone="+31 6 1234 5678", created_at="2026-10-01T10:00:00+00:00"))
     await db.commit()
 
+    import src.services.crm.systeme as S
+
+    etiquetas = []
+    monkeypatch.setattr(S, "etiquetar_sin_esperar", lambda e, n, t: etiquetas.append((e, t)))
+
     caja = await E.crear_pago({"email": "ana@x.com", "nombre": "Ana López"}, db)
     assert caja["client_secret"] == "sec_1"
+    # 31/10: quien abre la caja entra en systeme.io con la etiqueta de la
+    # lista, pague o no (si no paga, le llegan los correos de «No compradores»).
+    assert etiquetas == [("ana@x.com", "Black Friday - lista")]
     assert sesiones[0]["phone_number_collection"] == {"enabled": True}
     assert clientes[0]["phone"] == "+31612345678"  # ya nos lo había dejado
     await E.crear_pago({"email": "leo@x.com", "nombre": "Leo"}, db)
