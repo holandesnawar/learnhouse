@@ -3617,7 +3617,19 @@ el closer principal, y diga esta para mí o esta para el otro". Se hizo como
     closer, sin apuntar) NO cuenta: sus citas siguen en «Por asignar» como antes.
   - El aviso de Calendly (`correo_reserva.atender_aviso`) asigna al anfitrión
     (**manda el anfitrión**, aunque la tarjeta tuviera otro: es quien tiene la
-    llamada en su calendario y su Zoom) y entonces NO manda «repártela».
+    llamada en su calendario y su Zoom) y entonces NO manda «repártela»: a los
+    administradores y a quien reparte les llega «Llamada nueva: Ana · jue 6 nov
+    · 18:00 · la lleva Belén» (`avisar_llamada_con_closer`,
+    `destinos_con_closer`; al closer no, ya le avisó Calendly). Usuario, 31/10:
+    "yo me quiero enterar cuando se agenden llamadas".
+  - Montaje decidido el 31/10: la cuenta de Calendly de siempre (la del
+    usuario, la del token y el aviso) se queda como **dueña de la
+    organización**; NO pasa a Diego. Diego y Belén entran como usuarios
+    nuevos con sus correos de Google Workspace **@nawar.es** (dominio aparte:
+    holandesnawar.com no se toca, ahí salen la newsletter de info@ y los correos
+    de la escuela), cada uno con su Google Calendar y Google Meet (Meet en vez
+    de Zoom para los closers). El correo de Rida dice «por Zoom»: cambiarlo si
+    pasan a Meet.
     Al leer la agenda (`asignar_citas_por_anfitrion`) solo se rellena a quien
     no tiene closer. Agendar desde el panel también asigna al anfitrión.
   - El aviso se pide a Calendly con `scope: organization` (y si no se puede,

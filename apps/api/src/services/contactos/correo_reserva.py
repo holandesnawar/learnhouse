@@ -558,28 +558,30 @@ async def _avisar_reparto(reserva: dict, db_session: AsyncSession) -> None:
     """El «llamada nueva, repártela» también para quien reserva directamente
     en Calendly. Si la web ya avisó de esta reserva, `avisar_llamada_nueva`
     no lo repite. Si Calendly se la dio a un closer (evento por turnos), la
-    tarjeta pasa a ser suya y no se manda nada: Calendly ya le avisó a él."""
+    tarjeta pasa a ser suya y a los administradores (y a quien reparte) les
+    llega solo un aviso de «la lleva X» (31/10, "yo me quiero enterar"): al
+    closer ya le avisó Calendly."""
     from src.services.crm.systeme import marcar_llamada_reservada
-    from src.services.panel.reparto import asignar_por_anfitrion, avisar_llamada_nueva
+    from src.services.panel.reparto import asignar_por_anfitrion, avisar_llamada_con_closer, avisar_llamada_nueva
 
     # La reserva hecha directamente en Calendly también saca a la persona de
     # las campañas de systeme.io.
     marcar_llamada_reservada(reserva.get("email") or "", reserva.get("nombre") or "")
-    if await asignar_por_anfitrion(reserva.get("email") or "", reserva.get("anfitrion_email") or "", db_session):
-        return
+    closer = await asignar_por_anfitrion(reserva.get("email") or "", reserva.get("anfitrion_email") or "", db_session)
     try:
         telefono = reserva.get("telefono") or ""
         if not telefono:
             telefono = (await R.telefonos_por_email({reserva["email"]}, db_session)).get(reserva["email"], "")
-        await avisar_llamada_nueva(
-            {
-                "nombre": reserva.get("nombre") or "",
-                "email": reserva["email"],
-                "telefono": telefono,
-                "cuando": _cuando_corto(reserva.get("inicio", "")),
-            },
-            db_session,
-        )
+        datos = {
+            "nombre": reserva.get("nombre") or "",
+            "email": reserva["email"],
+            "telefono": telefono,
+            "cuando": _cuando_corto(reserva.get("inicio", "")),
+        }
+        if closer:
+            await avisar_llamada_con_closer(datos, closer, db_session)
+        else:
+            await avisar_llamada_nueva(datos, db_session)
     except Exception:  # noqa: BLE001
         logger.exception("No se pudo avisar al equipo de la reserva de Calendly")
 

@@ -256,6 +256,59 @@ async def avisar_llamada_nueva(datos: dict, db_session: AsyncSession) -> int:
     return enviados
 
 
+def destinos_con_closer(closer: dict, repartidor_id: int, equipo: list[dict], administradores: list[str]) -> list[str]:
+    """A quién avisar de una llamada que Calendly ya le dio a un closer: los
+    administradores y quien reparte, menos ese closer (a él ya le avisó
+    Calendly). Función pura."""
+    salida: list[str] = []
+    for correo in [*administradores, *destinos(repartidor_id, equipo, [])]:
+        correo = (correo or "").strip().lower()
+        if correo and correo not in salida and correo != str(closer.get("email") or "").strip().lower():
+            salida.append(correo)
+    return salida
+
+
+async def avisar_llamada_con_closer(datos: dict, closer: dict, db_session: AsyncSession) -> int:
+    """«Ana ha reservado una llamada · la lleva Belén» (31/10): para estar al
+    tanto, sin nada que repartir. Misma marca en Redis que el «repártela», así
+    el aviso de la web no lo repite. Devuelve cuántos salieron."""
+    from src.services.contactos.llamadas import emails_de_administradores
+    from src.services.users.emails import send_llamada_agendada_email
+
+    email = str(datos.get("email") or "").strip().lower()
+    r = None
+    if email:
+        try:
+            from src.core.redis import get_redis_client
+
+            r = get_redis_client()
+            if r is not None and not r.set(f"llamada-nueva:{email}", "1", nx=True, ex=1800):
+                return 0
+        except Exception:  # noqa: BLE001
+            r = None
+    try:
+        _, eq = await _equipo_de_la_escuela(db_session)
+        a_quien = destinos_con_closer(
+            closer, (await leer(db_session))["repartidor_id"], eq, await emails_de_administradores(db_session)
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("No se pudo leer a quién avisar de la llamada")
+        return 0
+    enviados = 0
+    for destino in a_quien:
+        try:
+            send_llamada_agendada_email(destino, {**datos, "closer": closer.get("nombre") or ""})
+            enviados += 1
+        except Exception:  # noqa: BLE001
+            logger.exception("No se pudo avisar de la llamada nueva")
+    if not enviados and r is not None:
+        try:
+            r.delete(f"llamada-nueva:{email}")
+        except Exception:  # noqa: BLE001
+            pass
+    return enviados
+
+
 async def _closer_que_la_lleva(email: str, equipo: list[dict], db_session: AsyncSession) -> Optional[dict]:
     """El closer que ya lleva a esa persona (del equipo del panel y con correo),
     o None."""
