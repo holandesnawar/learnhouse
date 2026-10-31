@@ -380,9 +380,10 @@ EQUIPO_TEAMS = [
 
 
 async def test_la_reserva_por_turnos_queda_para_su_closer_sin_repartela(db, escuela):
-    """Calendly le da la llamada a Belén: la tarjeta es suya y a quien reparte
-    no le llega «repártela» (Calendly ya le avisó a ella). Si el anfitrión no
-    es un closer (el usuario principal), como siempre: «repártela»."""
+    """Calendly le da la llamada a Belén: la tarjeta es suya y a los
+    administradores les llega solo «la lleva Belén» (31/10, "yo me quiero
+    enterar"), no «repártela». Si el anfitrión no es un closer (el usuario
+    principal), como siempre: «repártela»."""
     from src.services.panel import pipeline, reparto
 
     async def _equipo(_db):
@@ -396,13 +397,29 @@ async def test_la_reserva_por_turnos_queda_para_su_closer_sin_repartela(db, escu
         "src.services.contactos.llamadas.emails_de_administradores", _admins
     ), patch("src.core.redis.get_redis_client", lambda: None), patch(
         "src.services.crm.systeme.marcar_llamada_reservada", lambda *a, **k: None
-    ), patch.object(E, "send_llamada_agendada_email", lambda d, x: agendadas.append(d)):
+    ), patch.object(E, "send_llamada_agendada_email", lambda d, x: agendadas.append((d, x.get("closer", "")))):
         await C._avisar_reparto({"email": "ana@x.com", "nombre": "Ana", "anfitrion_email": "belen@x.com"}, db)
         await C._avisar_reparto({"email": "leo@x.com", "nombre": "Leo", "anfitrion_email": "rida@x.com"}, db)
     g = await pipeline.guardadas(db)
     assert (g["ana@x.com"]["closer_id"], g["ana@x.com"]["closer"]) == (5, "Belén Soto")
     assert "leo@x.com" not in g
-    assert agendadas == ["rida@x.com"]
+    assert agendadas == [("rida@x.com", "Belén Soto"), ("rida@x.com", "")]
+
+
+def test_el_aviso_de_la_lleva_x():
+    """A quién: administradores y quien reparte, sin el closer (ya le avisó
+    Calendly) y sin repetir. Y el correo dice quién la lleva."""
+    from src.services.panel.reparto import destinos_con_closer
+
+    belen = EQUIPO_TEAMS[2]
+    assert destinos_con_closer(belen, 4, EQUIPO_TEAMS, ["rida@x.com"]) == ["rida@x.com", "diego@x.com"]
+    # Si reparte la propia Belén, a ella no (ya le llegó de Calendly).
+    assert destinos_con_closer(belen, 5, EQUIPO_TEAMS, ["Rida@x.com", "rida@x.com"]) == ["rida@x.com"]
+    r = E.send_llamada_agendada_email("rida@x.com", {"nombre": "Ana", "email": "ana@x.com", "cuando": "jue 6 nov · 18:00", "closer": "Belén Soto"}, preview=True)
+    assert r["subject"] == "Llamada nueva: Ana · jue 6 nov · 18:00 · la lleva Belén"
+    assert "La lleva <strong>Belén</strong>" in r["html"] and "Por asignar" not in r["html"]
+    r = E.send_llamada_agendada_email("rida@x.com", {"nombre": "Ana", "email": "ana@x.com"}, preview=True)
+    assert "Por asignar" in r["html"] and "la lleva" not in r["subject"]
 
 
 async def test_manda_el_anfitrion_salvo_al_leer_la_agenda(db, escuela):

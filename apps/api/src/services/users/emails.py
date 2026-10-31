@@ -1079,26 +1079,42 @@ def send_llamada_agendada_email(email: EmailStr, datos: dict, preview: bool = Fa
     no hay nadie puesto), para que diga en el panel quién la atiende.
 
     datos: nombre, email, telefono, cuando ("jue 23 oct · 18:00", o vacío si
-    aún no se sabe: la web avisa de la reserva sin la hora)."""
+    aún no se sabe: la web avisa de la reserva sin la hora). Con `closer`
+    (31/10, Calendly Teams): Calendly ya se la dio a ese closer por turnos; el
+    aviso es solo para estar al tanto, sin nada que repartir."""
     nombre, contacto, wa = _llamada_datos(datos)
     cuando = html.escape(datos.get("cuando") or "")
+    closer = html.escape(str(datos.get("closer") or "").strip().split(" ")[0])
+    if closer:
+        que_hacer = (
+            f'<p style="{STYLES["p"]}">La lleva <strong>{closer}</strong>: Calendly se la ha dado por turnos y ya '
+            "le ha llegado a su correo y a su calendario. No tienes que hacer nada.</p>"
+        )
+        boton = f'<a href="{ACADEMY_URL}/dash/estadisticas?tab=matriculas&mesa=ventas" class="brand-btn" style="{STYLES["button"]}">Ver en Ventas</a>'
+        pie = "Recibes esto para estar al tanto de las llamadas que se reservan."
+    else:
+        que_hacer = f'<p style="{STYLES["p"]}">Está en <strong>Por asignar</strong>: dile en el panel quién la atiende.</p>'
+        boton = f'<a href="{ACADEMY_URL}/dash/estadisticas?tab=matriculas&mesa=ventas" class="brand-btn" style="{STYLES["button"]}">Repartirla</a>'
+        pie = "Recibes esto porque repartes las llamadas entre los closers de la escuela."
     body_content = f"""
         <h1 style="{STYLES['h1']}">{nombre} ha reservado una llamada</h1>
         <p style="{STYLES['p']}">
             {('<strong>' + cuando + '</strong><br>') if cuando else ''}{contacto}
         </p>
-        <p style="{STYLES['p']}">Está en <strong>Por asignar</strong>: dile en el panel quién la atiende.</p>
-        <a href="{ACADEMY_URL}/dash/estadisticas?tab=matriculas&mesa=ventas" class="brand-btn" style="{STYLES['button']}">Repartirla</a>
+        {que_hacer}
+        {boton}
         {wa}
     """
     return send_email(
         dry_run=preview,
         to=email,
-        subject=f"Llamada nueva: {datos.get('nombre') or datos.get('email') or 'alguien'}" + (f" · {datos.get('cuando')}" if datos.get("cuando") else ""),
+        subject=f"Llamada nueva: {datos.get('nombre') or datos.get('email') or 'alguien'}"
+        + (f" · {datos.get('cuando')}" if datos.get("cuando") else "")
+        + (f" · la lleva {str(datos.get('closer') or '').strip().split(' ')[0]}" if closer else ""),
         body=_email_layout(
             title=f"{nombre} ha reservado una llamada",
             body_content=body_content,
-            footer_note="Recibes esto porque repartes las llamadas entre los closers de la escuela.",
+            footer_note=pie,
         ),
     )
 
