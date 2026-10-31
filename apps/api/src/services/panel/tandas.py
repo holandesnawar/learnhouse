@@ -6,12 +6,19 @@ Pedido del usuario: "a partir de mañana, los nuevos van en un grupo nuevo; no
 ven la clase semanal como los de la beta… separar con etiquetas, por ejemplo
 matrículas noviembre… reciben una masterclass en directo y spreekuren".
 
-⚠️ **NADIE entra solo en ningún grupo.** Lo dijo el usuario dos veces el
-mismo día: "yo quería poder elegir: que cuando alguien pague se me notifique
-para decidir en qué grupo entra; los que están en Por pagar hay que darles la
-clase de conversación". Hubo una versión que metía sola a todo el que pagaba
-en el programa nuevo, y otra que además le mandaba un correo «Alumno nuevo» al
-equipo: las dos se quitaron. El pago NO llama a nada de aquí.
+⚠️ **Desde el 31/10/2026, cada alumno nuevo entra SOLO en el programa nuevo**
+(usuario: "ahora cada alumno que entre nuevo tiene que entrar en el grupo de
+Programa nuevo"). Al darle de alta tras pagar (`payments._create_paid_user`,
+que usan el pago, la señal completada, los plazos y el alta a mano) se llama a
+`al_pagar`, y la tarea diaria repasa a quien se haya quedado sin grupo
+(`entrar_solos`). **Menos uno**: a quien ANTES del cambio estaba en «Por
+pagar», reservó con señal o tenía un enlace de pago (`motivo_beta`) se le
+vendió la clase de conversación, y ese se queda en «Han pagado: elige su
+grupo» para que lo decida el equipo (lo dijo el usuario el 25/10). Sin correo
+al equipo, como siempre.
+
+(Antes, del 25/10 al 31/10, NADIE entraba solo: el usuario quería elegir uno a
+uno. Hubo también una versión con correo «Alumno nuevo» al equipo, quitada.)
 
 Cómo va:
 - org_config `tandas`: `activo` (avisar para elegir), `desde` (AAAA-MM-DD,
@@ -449,6 +456,41 @@ async def por_decidir(org_id: int, db_session: AsyncSession, con_motivo: bool = 
     """Los alumnos nuevos que aún no tienen programa: el aviso del
     administrador. Con `con_motivo`, también por qué se sugiere la beta."""
     return [a for a in await alumnos_nuevos(org_id, db_session, con_motivo=con_motivo) if not a["programa"]]
+
+
+async def entrar_solos(org_id: int, db_session: AsyncSession, solo: Optional[int] = None) -> dict:
+    """Mete en el programa nuevo a los alumnos nuevos que aún no tienen
+    programa (31/10/2026). Los que tienen sugerencia de beta (`motivo_beta`)
+    se quedan por decidir: eso lo elige el equipo. Con `solo`, únicamente ese
+    alumno. Con las tandas apagadas o sin día del cambio, no hace nada."""
+    entran, se_quedan = [], 0
+    for a in await por_decidir(org_id, db_session, con_motivo=True):
+        if solo is not None and a["id"] != solo:
+            continue
+        if a["motivo"]:
+            se_quedan += 1
+            continue
+        if (await decidir(org_id, a["id"], "nuevo", db_session)).get("ok"):
+            entran.append(a["id"])
+    return {"entran": len(entran), "por_decidir": se_quedan, "ids": entran}
+
+
+async def al_pagar(org_id: int, user_id: int, db_session: AsyncSession) -> str:
+    """Lo que se hace con un alumno al darle de alta tras pagar: «nuevo» si
+    ha entrado solo en el programa nuevo, "" si no (tandas apagadas, de
+    antes del cambio, Tester, sugerencia de beta…). En blando: un fallo aquí
+    nunca puede tumbar el alta; se queda por decidir y lo recoge la tarea
+    diaria o el equipo."""
+    try:
+        r = await entrar_solos(org_id, db_session, solo=user_id)
+        return "nuevo" if r["entran"] else ""
+    except Exception:  # noqa: BLE001
+        logger.exception("No se pudo meter al alumno nuevo en el programa nuevo")
+        try:
+            await db_session.rollback()
+        except Exception:  # noqa: BLE001
+            pass
+        return ""
 
 
 async def decidir(org_id: int, user_id: int, a: str, db_session: AsyncSession) -> dict:

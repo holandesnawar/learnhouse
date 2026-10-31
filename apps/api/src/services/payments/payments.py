@@ -1350,6 +1350,7 @@ async def _create_paid_user(
             db_session.add(link)
             await db_session.commit()
         await add_user_to_students(existing.id or 0, org.id or 0, db_session)
+        await _al_programa_nuevo(org.id or 0, existing.id or 0, db_session)
         return existing, False
 
     first_name, _, last_name = (full_name or "").strip().partition(" ")
@@ -1381,7 +1382,23 @@ async def _create_paid_user(
     db_session.add(link)
     await db_session.commit()
     await add_user_to_students(user.id or 0, org.id or 0, db_session)
+    await _al_programa_nuevo(org.id or 0, user.id or 0, db_session)
     return user, True
+
+
+async def _al_programa_nuevo(org_id: int, user_id: int, db_session: AsyncSession) -> None:
+    """Desde el 31/10/2026, el alumno que paga entra solo en el grupo del
+    programa nuevo (services/panel/tandas.py, `al_pagar`), salvo a quien antes
+    del cambio se le vendió la clase de conversación: ese lo elige el equipo.
+    En blando: nunca tumba el alta."""
+    if not org_id or not user_id:
+        return
+    try:
+        from src.services.panel.tandas import al_pagar
+
+        await al_pagar(org_id, user_id, db_session)
+    except Exception:
+        logger.exception("No se pudo poner al alumno en su grupo")
 
 
 # Cuánto vale el enlace de "crea tu contraseña" que se manda al pagar.

@@ -3,12 +3,12 @@
 /**
  * Panel → Alumnos → Tandas y grupos (25/10/2026). Separa la beta (clase
  * semanal) del programa nuevo (masterclass y spreekuren):
- *  - NADIE entra solo en ningún grupo: cada alumno que paga desde el día
- *    del cambio sale arriba («Han pagado: elige su grupo») con «Programa
- *    nuevo» / «Beta», y en la campana y el inicio del panel. Sin correo.
- *    Se marca la beta a quien antes del cambio estaba en «Por pagar», tenía
- *    una señal o un enlace de pago: a esos se les vendió la clase de
- *    conversación (25/10/2026, "quiero elegir yo");
+ *  - desde el 31/10/2026, cada alumno que paga desde el día del cambio entra
+ *    SOLO en «Programa nuevo» (y en el grupo de su tanda). Solo sale arriba
+ *    («Han pagado: elige su grupo», campana e inicio del panel) quien antes
+ *    del cambio estaba en «Por pagar», tenía una señal o un enlace de pago: a
+ *    esos se les vendió la clase de conversación y lo elige el equipo. Sin
+ *    correo. (Del 25/10 al 31/10 nadie entraba solo.)
  *  - «Alumnos nuevos»: los ya elegidos, con su programa y un botón para
  *    pasarlos al otro;
  *  - un botón mete a los alumnos de antes del cambio en «Beta»;
@@ -164,7 +164,7 @@ export default function TandasPanel() {
   const semanalSoloBeta = !!semanal && !semanal.aviso && semanal.grupos.length > 0 && semanal.texto.startsWith('Solo')
   const canalesAbiertos = datos.canales.filter((c) => !c.texto.startsWith('Solo')).length
   const pasos: { hecho: boolean; texto: React.ReactNode }[] = [
-    { hecho: datos.activo, texto: 'Encender «Avisarme de cada alumno que pague» con el día del cambio (abajo).' },
+    { hecho: datos.activo, texto: 'Encender «Alumnos nuevos al programa nuevo» con el día del cambio (abajo).' },
     {
       hecho: !!betaG && datos.alumnos_sin_grupo === 0,
       texto:
@@ -213,14 +213,16 @@ export default function TandasPanel() {
     <div className="space-y-7 max-w-3xl">
       <p className="text-[14px] text-gray-700 leading-relaxed">
         La beta sigue con su clase semanal y el programa nuevo tiene la masterclass y los spreekuren. Cada alumno que pague desde el día del
-        cambio te sale aquí para que elijas tú a cuál va. Cada uno ve solo lo suyo: lo decide el grupo en el que está.
+        cambio entra solo en el programa nuevo; aquí solo te sale quien hay que elegir a mano. Cada uno ve solo lo suyo: lo decide el
+        grupo en el que está.
       </p>
 
       {pendientes.length > 0 ? (
         <Seccion titulo={`Han pagado: elige su grupo (${pendientes.length})`}>
           <p className={META}>
-            Hasta que elijas, ven la formación, pero ni la clase semanal ni la masterclass. En azul, lo que te sugerimos: la beta a quien
-            antes del cambio estaba en «Por pagar», tenía una señal o un enlace de pago.
+            Estos no entran solos: antes del cambio estaban en «Por pagar», tenían una señal o un enlace de pago, y a esos se les vendió la
+            clase de conversación. Hasta que elijas, ven la formación, pero ni la clase semanal ni la masterclass. En azul, lo que te
+            sugerimos.
           </p>
           <div className={`${TARJETA} divide-y divide-[#F3F4F6]`}>
             {pendientes.map((a) => (
@@ -272,7 +274,7 @@ export default function TandasPanel() {
         </ol>
       </Seccion>
 
-      <Seccion titulo="Avisarme de cada alumno que pague">
+      <Seccion titulo="Alumnos nuevos al programa nuevo">
         <div className={`${TARJETA} p-4 space-y-3`}>
           <label className="flex items-start gap-3 cursor-pointer">
             <input
@@ -283,8 +285,8 @@ export default function TandasPanel() {
               className="mt-1 h-4 w-4 accent-[#025dc7]"
             />
             <span className="text-[13.5px] text-gray-900 leading-relaxed">
-              Cada alumno que pague desde este día te sale aquí arriba, en el inicio del panel y en la campana, para que elijas su grupo.
-              Nadie entra solo en ninguno.
+              Cada alumno que pague desde este día entra solo en «Programa nuevo» y en el grupo de su tanda. Solo te sale aquí arriba (y en
+              la campana) quien antes del cambio estaba en «Por pagar», tenía una señal o un enlace de pago, para que elijas tú.
             </span>
           </label>
           <div className="flex flex-wrap items-end gap-3">
