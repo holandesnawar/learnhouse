@@ -50,6 +50,20 @@ def _token() -> str:
     return (os.environ.get("LEARNHOUSE_CALENDLY_TOKEN") or "").strip()
 
 
+#: Cómo empieza el motivo de cancelación cuando el EQUIPO cambia la hora desde
+#: la escuela (31/10, `reservar.cambiar_hora`). La persona lo lee en el correo
+#: de Calendly; la agenda lo usa para saber que esa cita no se canceló: se movió.
+MOTIVO_CAMBIO = "Hemos cambiado la hora de tu llamada"
+#: Hasta cuántos días por delante se leen las citas. Eran 60; con «Cambiar
+#: hora» un closer puede moverla más lejos y no debe desaparecer de la agenda.
+DIAS_ADELANTE = 120
+
+
+def es_cambio_de_hora(motivo: str) -> bool:
+    """¿La cancelación es la de un cambio de hora hecho desde la escuela?"""
+    return str(motivo or "").strip().lower().startswith(MOTIVO_CAMBIO.lower())
+
+
 def cita_desde_calendly(evento: dict, invitados: list[dict]) -> list[dict]:
     """Una cita del panel por invitado. Función pura (con test): recibe lo
     que devuelve Calendly y lo deja en lo que el panel necesita."""
@@ -83,8 +97,10 @@ def cita_desde_calendly(evento: dict, invitados: list[dict]) -> list[dict]:
                 # Una por persona y cita: el id sirve para colgarle el resultado.
                 "id": f"{uuid}:{(inv.get('email') or '').strip().lower()}" if uuid else "",
                 "estado": "cancelada" if cancelada else "activa",
-                # Reprogramada = la canceló para coger otra hora; la nueva sale aparte.
-                "reprogramada": bool(inv.get("rescheduled")),
+                # Reprogramada = se canceló para coger otra hora; la nueva sale
+                # aparte. La cambia la persona en Calendly (`rescheduled`) o el
+                # equipo desde la escuela (el motivo empieza por MOTIVO_CAMBIO).
+                "reprogramada": bool(inv.get("rescheduled")) or (cancelada and es_cambio_de_hora(cancelacion.get("reason") or "")),
                 # Cuándo la reservó (no cuándo es): el tablero la compara con
                 # el último movimiento a mano para ponerla en Agendado.
                 "reservada": inv.get("created_at") or evento.get("created_at") or "",
@@ -103,8 +119,8 @@ async def _get(cliente: httpx.AsyncClient, url: str, params: Optional[dict] = No
 
 
 async def agenda(forzar: bool = False) -> dict:
-    """Las citas desde hace 45 días hasta dentro de 60, activas y canceladas,
-    por fecha."""
+    """Las citas desde hace 45 días hasta dentro de DIAS_ADELANTE (120),
+    activas y canceladas, por fecha."""
     token = _token()
     if not token:
         return {"configurado": False, "citas": []}
@@ -114,7 +130,7 @@ async def agenda(forzar: bool = False) -> dict:
         return _cache["datos"]
 
     desde = (datetime.now(timezone.utc) - timedelta(days=45)).strftime("%Y-%m-%dT%H:%M:%S.000000Z")
-    hasta = (datetime.now(timezone.utc) + timedelta(days=60)).strftime("%Y-%m-%dT%H:%M:%S.000000Z")
+    hasta = (datetime.now(timezone.utc) + timedelta(days=DIAS_ADELANTE)).strftime("%Y-%m-%dT%H:%M:%S.000000Z")
     try:
         async with httpx.AsyncClient(
             timeout=10.0, headers={"Authorization": f"Bearer {token}"}

@@ -63,6 +63,8 @@ ACCIONES = {
     "cualificacion": "Terminó las preguntas de la llamada",
     "reunion": "Reservó la llamada",
     "llamada-equipo": "El equipo le agendó una llamada",
+    "llamada-cambiada": "El equipo le cambió la hora de la llamada",
+    "llamada-cancelada": "El equipo le canceló la llamada",
     E.TIPO_BAJA: "Se dio de baja de los correos",
 }
 GRUPOS = {E.PARA_SIN_COMPRAR: "No compró el ebook", E.PARA_COMPRADORES: "Compró el ebook"}

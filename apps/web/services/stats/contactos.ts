@@ -326,6 +326,27 @@ export async function reservarLlamada(
   }
 }
 
+/**
+ * Cambia la hora de una llamada (31/10): Calendly reserva la nueva y, si sale
+ * bien, cancela la vieja. A la persona le llegan de Calendly la cancelación
+ * («Hemos cambiado la hora de tu llamada…») y la invitación nueva. `aviso`:
+ * la nueva está, pero la vieja no se pudo cancelar.
+ */
+export const cambiarHoraLlamada = (
+  orgId: number,
+  datos: { cita_id: string; email: string; nombre: string; telefono?: string; antes: string; inicio: string; confirmada: boolean },
+  accessToken: string
+) => pedir<{ ok: boolean; cita_id: string; inicio: string; aviso: string }>(`contactos/org/${orgId}/agenda/cambiar`, 'POST', datos, accessToken)
+
+/** Cancela la llamada en Calendly (31/10). `mensaje` = lo que lee la persona. */
+export const cancelarLlamada = (orgId: number, c: Cita, mensaje: string, accessToken: string) =>
+  pedir<{ ok: boolean }>(
+    `contactos/org/${orgId}/agenda/cancelar`,
+    'POST',
+    { cita_id: c.id, email: c.email, nombre: c.nombre, inicio: c.inicio, mensaje },
+    accessToken
+  )
+
 export async function getAgenda(orgId: number, accessToken: string, forzar = false): Promise<Agenda | null> {
   try {
     const res = await fetch(

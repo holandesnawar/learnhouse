@@ -23,7 +23,9 @@ Cómo
    agenda el panel, `reservar._tipo`). Si en el Calendly hay otros eventos (una
    reunión con un proveedor), a esa gente no le llega nada.
 4. **Una vez por persona, para siempre.** Un cambio de hora no es una reserva
-   nueva: Calendly la marca (`old_invitee`) y se salta. Y quien cancela y
+   nueva: Calendly la marca (`old_invitee`) y se salta; el que hace el equipo
+   desde la escuela (31/10) no la trae, y se reconoce por su marca en la ficha
+   (`reservar.lo_cambio_el_equipo`). Y quien cancela y
    vuelve a reservar tampoco lo recibe otra vez: la marca es un evento
    `correo-reserva` en su ficha («Le llegó el correo de Rida»), que se apunta
    ANTES de mandar y se quita si el envío falla, para que el reintento de
@@ -603,6 +605,11 @@ async def atender_aviso(cuerpo: bytes, cabecera: str, db_session: AsyncSession) 
     if reserva["cambio_de_hora"]:
         return "cambio-de-hora"
     reserva = await _completar(reserva)
+    # (Después de `_completar`, que trae la hora si el aviso no la traía.)
+    # Un cambio de hora hecho desde la escuela (31/10, `reservar.cambiar_hora`)
+    # llega como una reserva nueva, sin `old_invitee`: tampoco se repite nada.
+    if await R.lo_cambio_el_equipo(reserva["email"], reserva.get("inicio") or "", db_session):
+        return "cambio-de-hora"
     tipo = await _tipo_de_llamada()
     if tipo and reserva.get("tipo_evento") and reserva["tipo_evento"] != tipo:
         return "otro-evento"

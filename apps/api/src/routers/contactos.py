@@ -402,6 +402,72 @@ async def api_reservar(
     return r
 
 
+class PedidoCambiarHora(BaseModel):
+    #: La cita que se mueve («<uuid del evento>:<correo>», el `id` de la agenda).
+    cita_id: str
+    email: str
+    nombre: str = ""
+    telefono: str = ""
+    #: La hora que tenía (ISO), para el historial y para no cancelar una pasada.
+    antes: str = ""
+    #: La hora nueva (ISO, una de las de /agenda/huecos).
+    inicio: str
+    #: El closer ya lo ha hablado con la persona: la hora nueva, confirmada.
+    confirmada: bool = False
+
+
+@router.post("/org/{org_id}/agenda/cambiar", summary="Cambia la hora de una llamada en Calendly (closer y administradores).")
+async def api_cambiar_hora(
+    request: Request,
+    org_id: int,
+    data: PedidoCambiarHora,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    """Reserva la hora nueva y, si sale bien, cancela la vieja (31/10, ver
+    `reservar.cambiar_hora`). Cualquiera del equipo de ventas puede mover
+    cualquier llamada: el closer que la lleva no cambia."""
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    from src.services.contactos.reservar import cambiar_hora
+
+    r = await cambiar_hora(
+        cita_id=data.cita_id, nombre=data.nombre, email=data.email, telefono=data.telefono, antes=data.antes,
+        inicio=data.inicio, autor=_nombre(current_user), confirmada=data.confirmada, db_session=db_session,
+    )
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo") or "No se ha podido cambiar la hora")
+    return r
+
+
+class PedidoCancelarLlamada(BaseModel):
+    cita_id: str
+    email: str = ""
+    nombre: str = ""
+    inicio: str = ""
+    #: Lo que lee la persona en el correo de Calendly (opcional).
+    mensaje: str = ""
+
+
+@router.post("/org/{org_id}/agenda/cancelar", summary="Cancela una llamada en Calendly (closer y administradores).")
+async def api_cancelar_llamada(
+    request: Request,
+    org_id: int,
+    data: PedidoCancelarLlamada,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    from src.services.contactos.reservar import cancelar_llamada
+
+    r = await cancelar_llamada(
+        cita_id=data.cita_id, nombre=data.nombre, email=data.email, inicio=data.inicio, mensaje=data.mensaje,
+        autor=_nombre(current_user), db_session=db_session,
+    )
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo") or "No se ha podido cancelar")
+    return r
+
+
 class CitaQuitada(BaseModel):
     cita_id: str
     email: str = ""

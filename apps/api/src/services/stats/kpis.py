@@ -103,6 +103,10 @@ def _llamadas(
         res = por_cita.get(cid)
         if (res or {}).get("resultado") == "quitada" or not entra(email, c.get("inicio") or ""):
             continue
+        # Una hora que se movió a otra (en Calendly o desde la escuela, 31/10)
+        # no es una cancelación: la llamada sigue, con su cita nueva.
+        if c.get("reprogramada"):
+            continue
         vistas.add(cid)
         lista.append({"email": email, "inicio": c.get("inicio") or "", "cancelada": c.get("estado") == "cancelada",
                       "resultado": (res or {}).get("resultado", ""), "confirmada": cid in confirmadas})

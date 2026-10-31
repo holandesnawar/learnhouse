@@ -26,6 +26,9 @@ Cómo
   (`cita_que_manda`). No es `reunion` a propósito: esa la manda la web cuando
   alguien reserva solo, y cuenta en los números de /agendar.
 
+Desde el 31/10, también **cambiar la hora** y **cancelar** una llamada desde
+la escuela (`cambiar_hora`, `cancelar_llamada`): ver su bloque más abajo.
+
 `api.calendly.com` no se alcanza desde el entorno donde se escribió esto: la
 forma de las respuestas está sacada de la documentación, y lo puro tiene test.
 """
@@ -232,6 +235,38 @@ async def _tipo(cliente: httpx.AsyncClient) -> dict:
     return tipo
 
 
+async def _crear_invitado(cliente: httpx.AsyncClient, tipo: dict, nombre: str, email: str, telefono: str, cuando: datetime) -> dict:
+    """`POST /invitees`: la reserva en Calendly, como si la hubiera hecho la
+    persona. Devuelve el invitado creado; lanza FalloCalendly si no se puede."""
+    base: dict[str, Any] = {
+        "event_type": tipo.get("uri", ""),
+        "start_time": _z(cuando),
+        "invitee": {"name": nombre, "email": email, "timezone": str(ZONA)},
+        # SIN `tracking`, a propósito (15/10): si se manda, Calendly exige
+        # TODOS sus campos (utm_content, utm_term, salesforce_uuid…) y
+        # rechazaba la reserva entera con «The supplied parameters are
+        # invalid». Quién la agendó ya queda en la escuela.
+    }
+    respuestas = respuestas_obligatorias(tipo, telefono)
+    if respuestas:
+        base["questions_and_answers"] = respuestas
+    # Se prueba cada ubicación del evento y, al final, sin ninguna: solo se
+    # pasa a la siguiente si lo que Calendly rechaza es ESO.
+    ultimo: Optional[FalloCalendly] = None
+    for lugar in ubicaciones_para(tipo, telefono):
+        cuerpo = {**base, **({"location": lugar} if lugar else {})}
+        try:
+            return (await _pedir(cliente, "POST", f"{A.API}/invitees", json=cuerpo)).get("resource") or {}
+        except FalloCalendly as exc:
+            if exc.codigo == 400 and "location" in exc.motivo.lower():
+                logger.warning("Calendly rechaza la ubicación %s: se prueba otra", (lugar or {}).get("kind"))
+                ultimo = exc
+                continue
+            raise
+    # Todas las ubicaciones rechazadas.
+    raise ultimo or FalloCalendly("Calendly no aceptó ninguna ubicación", 400)
+
+
 async def huecos(dia: str) -> dict:
     """Las horas libres de ese día en el evento de las llamadas."""
     if not A._token():
@@ -290,37 +325,7 @@ async def reservar(
         async with _cliente() as cliente:
             tipo = await _tipo(cliente)
             plan_b = plan_b or enlace_de_hora(str(tipo.get("scheduling_url") or ""), cuando)
-            base: dict[str, Any] = {
-                "event_type": tipo.get("uri", ""),
-                "start_time": _z(cuando),
-                "invitee": {"name": nombre, "email": email, "timezone": str(ZONA)},
-                # SIN `tracking`, a propósito (15/10): si se manda, Calendly
-                # exige TODOS sus campos (utm_content, utm_term,
-                # salesforce_uuid…) y rechazaba la reserva entera con «The
-                # supplied parameters are invalid». Quién la agendó ya queda
-                # en la escuela (evento `llamada-equipo`).
-            }
-            respuestas = respuestas_obligatorias(tipo, telefono)
-            if respuestas:
-                base["questions_and_answers"] = respuestas
-            # Se prueba cada ubicación del evento y, al final, sin ninguna:
-            # solo se pasa a la siguiente si lo que Calendly rechaza es ESO.
-            creada: dict = {}
-            ultimo: Optional[FalloCalendly] = None
-            for lugar in ubicaciones_para(tipo, telefono):
-                cuerpo = {**base, **({"location": lugar} if lugar else {})}
-                try:
-                    creada = (await _pedir(cliente, "POST", f"{A.API}/invitees", json=cuerpo)).get("resource") or {}
-                    break
-                except FalloCalendly as exc:
-                    if exc.codigo == 400 and "location" in exc.motivo.lower():
-                        logger.warning("Calendly rechaza la ubicación %s: se prueba otra", (lugar or {}).get("kind"))
-                        ultimo = exc
-                        continue
-                    raise
-            else:
-                # Todas las ubicaciones rechazadas.
-                raise ultimo or FalloCalendly("Calendly no aceptó ninguna ubicación", 400)
+            creada = await _crear_invitado(cliente, tipo, nombre, email, telefono, cuando)
     except FalloCalendly as exc:
         logger.warning("Calendly no dejó agendar por la API (%s): %s", exc.codigo, exc.motivo)
         await _apuntar(email, nombre, telefono, cuando, autor, False, db_session)
@@ -346,6 +351,272 @@ async def reservar(
         "cancelar_url": str(creada.get("cancel_url") or ""),
         "cambiar_url": str(creada.get("reschedule_url") or ""),
     }
+
+
+# ── cambiar la hora y cancelar (31/10/2026) ─────────────────────────────────
+#
+# Pedido: "los closers deben poder cambiar horas de llamadas agendadas, para
+# cualquier fecha… ellos pueden editar todo". Antes «Cambiar hora» abría la
+# página de Calendly de la PERSONA (su enlace de cambiar), fuera de la escuela.
+#
+# La API de Calendly NO tiene «mover una cita». Se hace en dos pasos, en este
+# orden: (1) se reserva la hora nueva con `POST /invitees`, igual que «Nueva
+# llamada», y (2) SOLO si eso sale bien, se cancela la vieja con
+# `POST /scheduled_events/{uuid}/cancellation`. Así, si Calendly no deja la
+# nueva, la persona sigue con su hora de antes: nunca se queda sin ninguna.
+#
+# Lo que recibe la persona: el correo de cancelación de Calendly con el motivo
+# (empieza por `A.MOTIVO_CAMBIO`, «Hemos cambiado la hora de tu llamada…») y la
+# invitación con la hora nueva. La agenda lee ese motivo y enseña la vieja
+# como «Reprogramada», no como cancelada (tampoco cuenta como cancelada en
+# KPIs).
+#
+# Lo que NO se repite: el aviso de Calendly de la reserva nueva llega a la
+# escuela como una reserva cualquiera (no trae `old_invitee`). Para que no
+# salgan otra vez el correo de Rida ni el «llamada nueva, repártela», el
+# cambio se apunta en la ficha (`llamada-cambiada`) ANTES de reservar, y
+# `correo_reserva.atender_aviso` lo busca (`es_el_cambio`). Si la reserva
+# falla, la marca se borra.
+#
+# El closer que la lleva no cambia (va por correo, no por cita). La
+# confirmación sí es de la cita: la nueva sale «Sin confirmar», salvo que el
+# closer marque que ya lo ha hablado con la persona.
+#
+# «Cualquier fecha», con un límite que no es de la escuela: las horas las da
+# Calendly, así que solo salen las de la disponibilidad del evento y dentro de
+# sus «Límites de reserva» (hasta cuántos días por delante, aviso mínimo).
+
+TIPO_CAMBIO = "llamada-cambiada"
+TIPO_CANCELADA = "llamada-cancelada"
+#: Lo que lee la persona en el correo de Calendly al cancelar la vieja.
+MOTIVO_CAMBIO_ENTERO = f"{A.MOTIVO_CAMBIO}. Te llega aparte la invitación con la hora nueva."
+#: Al cancelar sin escribir nada.
+MOTIVO_CANCELAR = "Tu llamada con Holandés Nawar se ha cancelado."
+#: Cuánto tiempo después de un cambio se reconoce su aviso de Calendly.
+_VENTANA_AVISO = timedelta(hours=2)
+
+
+def uuid_de_cita(cita_id: str) -> str:
+    """El id de cita del panel es «<uuid del evento>:<correo>»."""
+    return str(cita_id or "").split(":", 1)[0].strip()
+
+
+def uuid_de_evento(uri: str) -> str:
+    return str(uri or "").rstrip("/").rsplit("/", 1)[-1]
+
+
+def es_el_cambio(cambios: list[dict], inicio: str, ahora: Optional[datetime] = None) -> bool:
+    """¿Esta reserva (su hora de inicio) es la de un cambio de hora hecho desde
+    la escuela? `cambios`: los eventos `llamada-cambiada` de esa persona
+    ({created_at, extra}). Cuenta el cambio de las últimas 2 horas con la misma
+    hora nueva (un minuto de margen). Función pura, con test."""
+    nueva = _utc(inicio)
+    if nueva is None:
+        return False
+    ahora = ahora or datetime.now(timezone.utc)
+    for c in cambios:
+        hecho = _utc(c.get("created_at") or "")
+        hora = _utc((c.get("extra") or {}).get("inicio") or "")
+        if hecho and hora and ahora - hecho <= _VENTANA_AVISO and abs((hora - nueva).total_seconds()) <= 60:
+            return True
+    return False
+
+
+async def lo_cambio_el_equipo(email: str, inicio: str, db_session: AsyncSession) -> bool:
+    """Para el aviso de Calendly: si esta reserva es un cambio de hora del
+    equipo, no se manda ni el correo de Rida ni el de «repártela». En blando."""
+    import json
+
+    from sqlmodel import select
+
+    from src.db.contact_event import ContactEvent
+
+    try:
+        filas = (
+            await db_session.execute(
+                select(ContactEvent.created_at, ContactEvent.extra).where(
+                    ContactEvent.email == (email or "").strip().lower(), ContactEvent.kind == TIPO_CAMBIO
+                )
+            )
+        ).all()
+    except Exception:  # noqa: BLE001
+        logger.exception("No se pudo mirar si la reserva era un cambio de hora")
+        return False
+    cambios = []
+    for creado, extra in filas:
+        try:
+            datos = json.loads(extra) if isinstance(extra, str) and extra else (extra or {})
+        except ValueError:
+            datos = {}
+        cambios.append({"created_at": str(creado or ""), "extra": datos if isinstance(datos, dict) else {}})
+    return es_el_cambio(cambios, inicio)
+
+
+def _evento_de_ficha(email: str, nombre: str, telefono: str, kind: str, extra: dict):
+    import json
+
+    from src.db.contact_event import ContactEvent
+
+    partes = (nombre or "").split(" ", 1)
+    return ContactEvent(
+        email=email,
+        kind=kind,
+        first_name=partes[0][:120],
+        last_name=(partes[1] if len(partes) > 1 else "")[:120],
+        phone=(telefono or "")[:40],
+        source="equipo",
+        extra=json.dumps(extra, ensure_ascii=False),
+        created_at=datetime.now(timezone.utc).isoformat(),
+    )
+
+
+async def cambiar_hora(
+    *,
+    cita_id: str,
+    nombre: str,
+    email: str,
+    telefono: str,
+    antes: str,
+    inicio: str,
+    autor: str,
+    confirmada: bool,
+    db_session: AsyncSession,
+) -> dict:
+    """Mueve una llamada a otra hora (ver arriba). Devuelve `ok`, la cita
+    nueva (`cita_id`) y, si la vieja no se pudo cancelar, `aviso`."""
+    import json
+
+    nombre, email, telefono = (nombre or "").strip()[:120], (email or "").strip().lower()[:255], (telefono or "").strip()[:40]
+    uuid_viejo = uuid_de_cita(cita_id)
+    if not uuid_viejo or "@" not in email:
+        return {"ok": False, "motivo": "Falta la llamada que se cambia"}
+    nombre = nombre or email.split("@")[0]
+    cuando = _utc(inicio)
+    if cuando is None:
+        return {"ok": False, "motivo": "Falta la hora nueva"}
+    ahora = datetime.now(timezone.utc)
+    if cuando <= ahora:
+        return {"ok": False, "motivo": "Esa hora ya ha pasado"}
+    viejo = _utc(antes)
+    if viejo is not None and abs((cuando - viejo).total_seconds()) < 60:
+        return {"ok": False, "motivo": "Es la misma hora que ya tiene"}
+    if not A._token():
+        return {"ok": False, "motivo": "Calendly no está conectado (falta LEARNHOUSE_CALENDLY_TOKEN)"}
+
+    extra = {"autor": autor, "antes": viejo.isoformat() if viejo else "", "inicio": cuando.isoformat(), "cita_vieja": cita_id}
+    # La marca va ANTES de reservar: el aviso de Calendly de la reserva nueva
+    # puede llegar antes de que esto termine (ver `lo_cambio_el_equipo`).
+    marca = _evento_de_ficha(email, nombre, telefono, TIPO_CAMBIO, extra)
+    db_session.add(marca)
+    await db_session.commit()
+    await db_session.refresh(marca)
+
+    aviso = ""
+    try:
+        async with _cliente() as cliente:
+            tipo = await _tipo(cliente)
+            creada = await _crear_invitado(cliente, tipo, nombre, email, telefono, cuando)
+            # La vieja solo se cancela si aún no ha empezado: Calendly no deja
+            # cancelar lo que ya pasó (y entonces solo se agenda la nueva).
+            if viejo is None or viejo > ahora:
+                try:
+                    await _pedir(
+                        cliente, "POST", f"{A.API}/scheduled_events/{uuid_viejo}/cancellation",
+                        json={"reason": MOTIVO_CAMBIO_ENTERO},
+                    )
+                except FalloCalendly as exc:
+                    logger.warning("Calendly no dejó cancelar la hora vieja (%s): %s", exc.codigo, exc.motivo)
+                    aviso = (
+                        "La hora nueva ya está agendada, pero Calendly no dejó cancelar la de antes "
+                        f"(dijo: {exc.motivo}). Cancélala en Calendly para que no tenga las dos."
+                    )
+    except FalloCalendly as exc:
+        logger.warning("Calendly no dejó cambiar la hora (%s): %s", exc.codigo, exc.motivo)
+        await _quitar_marca(marca, db_session)
+        return {"ok": False, "motivo": exc.motivo, "codigo": exc.codigo}
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("No se pudo cambiar la hora en Calendly")
+        await _quitar_marca(marca, db_session)
+        return {"ok": False, "motivo": f"Calendly no contesta: {exc}"}
+
+    A._cache["hasta"] = 0.0  # que la agenda la enseñe ya
+    cita_nueva = f"{uuid_de_evento(creada.get('event') or '')}:{email}" if creada.get("event") else ""
+    try:
+        marca.extra = json.dumps({**extra, "cita_nueva": cita_nueva, "sin_cancelar": bool(aviso)}, ensure_ascii=False)
+        db_session.add(marca)
+        await db_session.commit()
+    except Exception:  # noqa: BLE001
+        logger.exception("No se pudo completar la marca del cambio de hora")
+        await db_session.rollback()
+    if confirmada and cita_nueva:
+        try:
+            from src.services.contactos.confirmar_llamada import confirmar
+
+            await confirmar(cita_nueva, email, nombre, cuando.isoformat(), autor, db_session)
+        except Exception:  # noqa: BLE001
+            logger.exception("No se pudo marcar como confirmada la hora nueva")
+            await db_session.rollback()
+    return {
+        "ok": True,
+        "cita_id": cita_nueva,
+        "inicio": cuando.isoformat(),
+        "aviso": aviso,
+        "cancelar_url": str(creada.get("cancel_url") or ""),
+        "cambiar_url": str(creada.get("reschedule_url") or ""),
+    }
+
+
+async def _quitar_marca(marca, db_session: AsyncSession) -> None:
+    try:
+        await db_session.delete(marca)
+        await db_session.commit()
+    except Exception:  # noqa: BLE001
+        logger.exception("No se pudo quitar la marca del cambio de hora")
+        await db_session.rollback()
+
+
+async def cancelar_llamada(
+    *, cita_id: str, nombre: str, email: str, inicio: str, mensaje: str, autor: str, db_session: AsyncSession
+) -> dict:
+    """Cancela la llamada en Calendly (a la persona le llega su correo de
+    cancelación, con `mensaje` como motivo) y lo deja en su ficha."""
+    email = (email or "").strip().lower()[:255]
+    uuid = uuid_de_cita(cita_id)
+    if not uuid:
+        return {"ok": False, "motivo": "Falta la llamada que se cancela"}
+    cuando = _utc(inicio)
+    if cuando is not None and cuando <= datetime.now(timezone.utc):
+        return {"ok": False, "motivo": "Esa llamada ya ha pasado: apunta en «¿Qué pasó?» lo que fue"}
+    if not A._token():
+        return {"ok": False, "motivo": "Calendly no está conectado (falta LEARNHOUSE_CALENDLY_TOKEN)"}
+    mensaje = (mensaje or "").strip()[:500]
+    try:
+        async with _cliente() as cliente:
+            await _pedir(
+                cliente, "POST", f"{A.API}/scheduled_events/{uuid}/cancellation",
+                json={"reason": mensaje or MOTIVO_CANCELAR},
+            )
+    except FalloCalendly as exc:
+        logger.warning("Calendly no dejó cancelar la llamada (%s): %s", exc.codigo, exc.motivo)
+        return {"ok": False, "motivo": exc.motivo, "codigo": exc.codigo}
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("No se pudo cancelar la llamada en Calendly")
+        return {"ok": False, "motivo": f"Calendly no contesta: {exc}"}
+
+    A._cache["hasta"] = 0.0
+    if email:
+        try:
+            db_session.add(
+                _evento_de_ficha(
+                    email, nombre, "", TIPO_CANCELADA,
+                    {"autor": autor, "inicio": cuando.isoformat() if cuando else "", "mensaje": mensaje, "cita": cita_id},
+                )
+            )
+            await db_session.commit()
+        except Exception:  # noqa: BLE001
+            logger.exception("No se pudo apuntar la cancelación de %s", email)
+            await db_session.rollback()
+    return {"ok": True}
 
 
 async def _apuntar(email: str, nombre: str, telefono: str, cuando: datetime, autor: str, hecha: bool, db_session: AsyncSession) -> None:
