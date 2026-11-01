@@ -10,12 +10,15 @@
  * y otras no"): antes solo existía en la lista de solicitudes de Llamadas, y
  * no en la cita del calendario ni en la ficha.
  *
- * Precios (20/10/2026): dos botones claros, uno por forma de pago, que crean el
- * enlace al pulsarlos.
- *  - «Pago único o Klarna · 435 €»: la caja de siempre; Klarna va dentro.
- *  - «A plazos · 3 o 4 meses»: el plan de pagos propio. La persona elige en la
- *    página de pago 3 pagos (497 €) o 4 (540 €); con el primero entra en la
- *    escuela y al último se acaba solo (apps/api/src/services/payments/plazos.py).
+ * Precios (20/10/2026; desde el 01/11/2026, los del panel): dos botones
+ * claros, uno por forma de pago, que crean el enlace al pulsarlos.
+ *  - «Pago único o Klarna · 597 €»: la caja de siempre; Klarna va dentro. La
+ *    caja de la web sigue en 435 €: este precio es solo el de los enlaces del
+ *    panel (`precio_panel_cents` en payments.py).
+ *  - «A plazos · 3 meses»: el plan de pagos propio, 3 pagos de 230 € (690 €),
+ *    sin elegir nada; con el primero entra en la escuela y al último se acaba
+ *    solo (`PLAZOS_PANEL` en apps/api/src/services/payments/plazos.py). Del
+ *    20/10 al 01/11 la persona elegía 3 (497 €) o 4 pagos (540 €).
  *  - «Otro importe», pequeño y en gris a propósito ("que se vea menos, así el
  *    closer no se lía"): un pago único a otro precio, p. ej. 397 € para quien
  *    ya lo tenía prometido. Va por la reserva de plaza con el total = lo que
@@ -35,9 +38,9 @@ import { BOTON, BOTON_PRINCIPAL, META } from './ui'
 import { numeroWhatsApp } from '@/lib/nawar/telefono'
 
 /** El pago único, para el rótulo del botón. El que cobra de verdad es
- *  `precio_base_cents` en apps/api/src/services/payments/payments.py, y
+ *  `precio_panel_cents` en apps/api/src/services/payments/payments.py, y
  *  después de crear el enlace se enseña el que devuelve el servidor. */
-const PRECIO_UNICO_CENTS = 43500
+const PRECIO_UNICO_CENTS = 59700
 
 /** Las cuotas de un total, como `reparto` en plazos.py: los céntimos que
  *  sobran van en las primeras (497 € → 165,67 · 165,67 · 165,66). */
@@ -141,7 +144,7 @@ export default function EnlacePago({ email, nombre: nombreCompleto, telefono }: 
           </button>
           <button onClick={() => crear('plazos')} disabled={!!creando || !email} className={`${BOTON} disabled:opacity-50`}>
             {creando === 'plazos' ? <Loader2 size={13} className="animate-spin" /> : <CalendarClock size={13} />}
-            A plazos · 3 o 4 meses
+            A plazos · 3 meses
           </button>
         </div>
         {otroAbierto ? (
@@ -194,23 +197,19 @@ export default function EnlacePago({ email, nombre: nombreCompleto, telefono }: 
 
   const { url, dias, tipo, importe, opciones } = hecho
   const queEs =
-    tipo === 'plazos'
-      ? `a plazos: al abrirlo elige ${textoOpciones(opciones)}`
-      : tipo === 'medida'
-        ? `a plazos: ${textoOpciones(opciones)}`
-        : tipo === 'otro'
-          ? `de ${euros(importe)} en un solo pago`
-          : `de ${euros(importe)}: pago único o, si lo prefiere, con Klarna`
+    tipo === 'plazos' || tipo === 'medida'
+      ? `a plazos: ${textoOpciones(opciones)}`
+      : tipo === 'otro'
+        ? `de ${euros(importe)} en un solo pago`
+        : `de ${euros(importe)}: pago único o, si lo prefiere, con Klarna`
   const num = numeroWhatsApp(telefono)
   const textoWa = encodeURIComponent(
     `Hola${nombre ? ` ${nombre}` : ''}, aquí tienes tu enlace para apuntarte a la formación${
-      tipo === 'plazos'
-        ? ` a plazos (eliges ${textoOpciones(opciones)})`
-        : tipo === 'medida'
-          ? ` a plazos (${textoOpciones(opciones)}: el primero hoy y los demás cada mes)`
-          : tipo === 'otro'
-            ? ` (${euros(importe)})`
-            : ` (${euros(importe)}; en la página puedes pagarlo de una vez o con Klarna)`
+      tipo === 'plazos' || tipo === 'medida'
+        ? ` a plazos (${textoOpciones(opciones)}: el primero hoy y los demás cada mes)`
+        : tipo === 'otro'
+          ? ` (${euros(importe)})`
+          : ` (${euros(importe)}; en la página puedes pagarlo de una vez o con Klarna)`
     }: ${url}`
   )
 

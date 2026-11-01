@@ -624,12 +624,13 @@ class PedidoEnlace(BaseModel):
     first_name: str
     last_name: str = ""
     phone: str = ""
-    # "" = pago único (o Klarna); "plazos" = el plan propio: la persona elige
-    # 3 o 4 pagos en la página de pago (`OPCIONES` en plazos.py).
+    # "" = pago único (o Klarna), 597 € desde el 01/11/2026; "plazos" = el
+    # plan propio: 3 pagos de 230 € (`PLAZOS_PANEL` en plazos.py).
     plan: str = ""
     # Con plan "plazos": un total y un número de pagos a medida («Otro
-    # importe» a plazos, 22/10/2026). Sin total, la persona elige 3 o 4 pagos
-    # al abrirlo. (Del 19/10 al 20/10 el total también venía aquí.)
+    # importe» a plazos, 22/10/2026). Sin total, los de `PLAZOS_PANEL`. (Del
+    # 20/10 al 01/11 la persona elegía 3 o 4 pagos al abrirlo; del 19/10 al
+    # 20/10 el total también venía aquí.)
     total_cents: int = 0
     cuotas: int = 0
 
@@ -649,13 +650,18 @@ async def api_enlace_pago(
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
     from config.config import get_learnhouse_config
     from src.services.payments.enlace import DIAS_VALIDEZ, firmar
-    from src.services.payments.payments import _academy_url, precio_base_cents
+    from src.services.payments.payments import _academy_url, precio_panel_cents
 
     email = data.email.strip().lower()
     if "@" not in email or not data.first_name.strip():
         raise HTTPException(status_code=400, detail="Hacen falta el nombre y un correo válido")
     medida = None
-    if data.plan == "plazos" and data.total_cents:
+    if data.plan == "plazos" and not data.total_cents:
+        # El botón «A plazos» (01/11/2026): 3 pagos de 230 €, sin elegir.
+        from src.services.payments.plazos import PLAZOS_PANEL
+
+        medida = PLAZOS_PANEL
+    elif data.plan == "plazos" and data.total_cents:
         from src.services.payments.plazos import TOTAL_A_MEDIDA_MAX, a_medida
 
         medida = a_medida(data.total_cents, data.cuotas or 3)
@@ -681,7 +687,7 @@ async def api_enlace_pago(
                     **(
                         {"plan": "plazos", **({"cuotas": medida[0], "total_cents": medida[1]} if medida else {})}
                         if data.plan == "plazos"
-                        else {"precio_cents": precio_base_cents()}
+                        else {"precio_cents": precio_panel_cents()}
                     ),
                 },
             ),
@@ -697,17 +703,12 @@ async def api_enlace_pago(
         # `pv: 3` = a medida: total y número de pagos fijados aquí (22/10).
         datos.update({"pl": "plazos", "pv": 3, "pt": medida[1], "pn": medida[0], "a": _nombre(current_user)[:60]})
         respuesta["opciones"] = [condiciones_de(medida[0], medida[1])]
-        respuesta["a_medida"] = True
-    elif data.plan == "plazos":
-        from src.services.payments.plazos import opciones
-
-        # `pv: 2` = la persona elige 3 o 4 pagos al abrirlo (20/10/2026).
-        datos.update({"pl": "plazos", "pv": 2, "a": _nombre(current_user)[:60]})
-        respuesta["opciones"] = opciones()
+        respuesta["a_medida"] = bool(data.total_cents)
     else:
-        # El precio va firmado: un enlace sin él es de antes del 20/10 y
-        # respeta el de entonces (397 €) hasta caducar.
-        datos["pu"] = precio_base_cents()
+        # El precio va firmado y es el que se cobra al abrirlo: 597 € desde el
+        # 01/11/2026 (el del panel; la caja de la web sigue en 435 €). Un enlace
+        # sin él es de antes del 20/10 y respeta el de entonces (397 €).
+        datos["pu"] = precio_panel_cents()
         respuesta["precio_cents"] = datos["pu"]
     token = firmar(datos, secreto)
     return {"url": f"{_academy_url()}/api/v1/payments/pagar/{token}", "dias": DIAS_VALIDEZ, **respuesta}

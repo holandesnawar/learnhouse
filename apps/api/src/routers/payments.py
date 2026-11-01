@@ -187,9 +187,17 @@ async def api_pagar_enlace(
                 )
         else:
             # Los enlaces de antes del 20/10 no llevan `pu` y respetan el precio
-            # de entonces (397 €) hasta caducar; los nuevos, el de hoy.
+            # de entonces (397 €) hasta caducar; los nuevos cobran el que llevan
+            # firmado (435 € hasta el 01/11/2026; 597 € desde entonces, el del
+            # panel).
+            try:
+                pu = int(datos.get("pu") or 0)
+            except (TypeError, ValueError):
+                pu = 0
             resultado = await enroll_and_checkout_session(
-                pedido, db_session, precio_id="" if datos.get("pu") else _formacion_price_id()
+                pedido, db_session,
+                precio_id="" if datos.get("pu") else _formacion_price_id(),
+                precio_cents=pu if pu >= 50 else 0,
             )
     except HTTPException as exc:
         import html
