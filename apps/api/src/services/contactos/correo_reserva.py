@@ -5,8 +5,10 @@ Pedido del usuario: "que cuando alguien nuevo reserve le llegue el correo desde
 la escuela… si lo hago por Calendly no es marca… eso sí, hay que controlar que
 no se envíe otra vez cuando cambiemos de hora un evento". Es el correo «Un
 mensaje de Rida antes de tu llamada» (como el de Andy en Conquer): quién es el
-fundador, por qué existe Nawar y dos avisos (la llamada es por Zoom, y te
-llamaremos para confirmarla).
+fundador, por qué existe Nawar y dos avisos (es una videollamada con el enlace
+en su correo, y te llamaremos para confirmarla). Hasta el 01/11/2026 decía «por
+Zoom»; las llamadas pasaron a Google Meet y la frase vieja se cambia sola
+(`al_dia`).
 
 Cómo
 ----
@@ -84,6 +86,29 @@ TOLERANCIA_SEG = 300
 HUECOS = ("nombre", "dia", "hora", "enlace", "cambiar")
 ZONA = ZoneInfo("Europe/Amsterdam")
 
+#: El primer aviso del correo. Dice «videollamada» y no la herramienta: las
+#: llamadas pasaron de Zoom a Google Meet (01/11/2026) y, mientras quede un
+#: evento viejo en Zoom, el texto sigue siendo verdad en los dos casos.
+FRASE_VIDEOLLAMADA = (
+    "1️⃣ Es una videollamada: el enlace para entrar te acaba de llegar por correo. Si no lo encuentras, "
+    "no pasa nada: nuestro asesor también te lo mandará por WhatsApp."
+)
+#: La frase de antes. Si sigue en un texto guardado en el panel (al encender el
+#: correo se guarda el texto entero, aunque no se toque), se cambia sola por la
+#: de arriba al leerlo: decía «por Zoom» y ya no es verdad.
+FRASES_ANTERIORES = (
+    "1️⃣ La llamada es por Zoom y el enlace te acaba de llegar por correo. Si no lo encuentras, no pasa "
+    "nada: nuestro asesor también te lo mandará por WhatsApp.",
+)
+
+
+def al_dia(texto: str) -> str:
+    """El texto guardado con la frase de Zoom cambiada por la de ahora."""
+    for vieja in FRASES_ANTERIORES:
+        texto = texto.replace(vieja, FRASE_VIDEOLLAMADA)
+    return texto
+
+
 DE_FABRICA = {
     "asunto": "Un mensaje de Rida antes de tu llamada",
     "texto": (
@@ -99,8 +124,7 @@ DE_FABRICA = {
         "En la llamada queremos entender tu situación y decirte con sinceridad si podemos ayudarte. "
         "Si no es para ti, te lo diremos.\n\n"
         "Dos cosas importantes:\n\n"
-        "1️⃣ La llamada es por Zoom y el enlace te acaba de llegar por correo. Si no lo encuentras, no pasa "
-        "nada: nuestro asesor también te lo mandará por WhatsApp.\n\n"
+        + FRASE_VIDEOLLAMADA + "\n\n"
         "2️⃣ Estate pendiente del teléfono: antes de la llamada te llamaremos para confirmar la cita. Es muy "
         "importante que la confirmes para que no se cancele.\n\n"
         "Un abrazo,\n"
@@ -245,7 +269,7 @@ def config_limpia(guardado) -> dict:
     return {
         "activo": bool(g.get("activo")),
         "asunto": asunto or DE_FABRICA["asunto"],
-        "texto": texto or DE_FABRICA["texto"],
+        "texto": al_dia(texto) or DE_FABRICA["texto"],
         "cambiado_en": str(g.get("cambiado_en") or ""),
         "por": str(g.get("por") or ""),
     }
@@ -323,7 +347,7 @@ def reserva_de_ejemplo(email: str, nombre: str = "Ana") -> dict:
         "nombre_pila": nombre_pila(nombre),
         "inicio": jueves.isoformat(),
         "zona": "Europe/Amsterdam",
-        "enlace": "https://zoom.us/j/0000000000",
+        "enlace": "https://meet.google.com/abc-defg-hij",
         "cambiar": "https://calendly.com/reschedulings/ejemplo",
     }
 
