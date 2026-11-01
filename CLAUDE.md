@@ -3622,14 +3622,21 @@ el closer principal, y diga esta para mí o esta para el otro". Se hizo como
     · 18:00 · la lleva Belén» (`avisar_llamada_con_closer`,
     `destinos_con_closer`; al closer no, ya le avisó Calendly). Usuario, 31/10:
     "yo me quiero enterar cuando se agenden llamadas".
-  - Montaje decidido el 31/10: la cuenta de Calendly de siempre (la del
-    usuario, la del token y el aviso) se queda como **dueña de la
-    organización**; NO pasa a Diego. Diego y Belén entran como usuarios
-    nuevos con sus correos de Google Workspace **@nawar.es** (dominio aparte:
-    holandesnawar.com no se toca, ahí salen la newsletter de info@ y los correos
-    de la escuela), cada uno con su Google Calendar y Google Meet (Meet en vez
-    de Zoom para los closers). El correo de Rida dice «por Zoom»: cambiarlo si
-    pasan a Meet.
+  - Montaje (01/11, "60 € al mes por Calendly… por lo menos dos cuentas"):
+    **Teams con DOS licencias**. La cuenta de Calendly de siempre (la del
+    token y el aviso, dueña de la organización) **pasa a ser la de Diego**:
+    correo de entrada diego@nawar.es y su Google Calendar; Belén entra como
+    «Usuario» con belen@nawar.es. El usuario no ocupa licencia: lo ve todo en
+    la escuela y le llega «la lleva X». Es seguro porque nawar.es es suyo
+    (Google Workspace, dominio aparte: holandesnawar.com no se toca, ahí salen
+    la newsletter de info@ y los correos de la escuela). Si al cambiar el
+    correo la agenda deja de leer Calendly, nueva clave en Railway
+    (`LEARNHOUSE_CALENDLY_TOKEN`). Las llamadas van por **Zoom** (el evento por
+    turnos con Zoom): cada closer conecta SU Zoom en su usuario de Calendly, y
+    con Zoom gratis la reunión se corta a los 40 min (la llamada es de 45).
+    Belén NO debe compartir su enlace personal de Calendly: esas reservas no
+    llegan a la escuela. Se descartó Standard × 2 (reparto hecho a mano por la
+    escuela) por ahorrar 16 €/mes.
     Al leer la agenda (`asignar_citas_por_anfitrion`) solo se rellena a quien
     no tiene closer. Agendar desde el panel también asigna al anfitrión.
   - El aviso se pide a Calendly con `scope: organization` (y si no se puede,
