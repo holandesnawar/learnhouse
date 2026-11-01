@@ -4599,6 +4599,14 @@ ebook». Para los botones de systeme.io a /oferta, `utm_source=systeme`.
   centrado con info@, la web, «Enviado a {email}» y la dirección. Firma: Rida.
 
 ### La portada: «Únete a la lista prioritaria del Black Friday» (29/10, nawar-web PR #169 y #170)
+⚠️ **El formulario, desde el 01/11 (nawar-web PR #191), es un PASE** (usuario:
+"no me gusta el formulario, blanco muy básico"): cabecera azul de la marca con
+la línea roja y azul del logo y «Lista prioritaria · Black Friday 2026», un
+corte de entrada con dos muescas (máscara CSS; el script las pone al alto de
+la línea de puntos) y debajo, en blanco, los campos con icono, el botón con
+flecha y «Gratis · Sin spam · Baja cuando quieras». La sombra va en el
+envoltorio (`filter`): la máscara se come el `box-shadow`. Lo de abajo cuenta
+la tarjeta blanca de antes.
 "Ese tiene que ser el título de la web… y que el título quede en una frase".
 Se probó con la página en BLANCO y el formulario en una tarjeta azul (#169) y
 **no gustó**: "dale la vuelta de nuevo… pero haz el bloque de formulario más
@@ -4740,7 +4748,13 @@ la landing de formacion-nawar… y la sección del equipo con la cortina".
   nawar-web PR #178)**, en este orden: Rida Nawar (fundador y creador del
   método, hispanohablante, «pasó por lo mismo que tú»), Paul Plaat (director
   académico, módulos), Bas Wanders (profesor, equipo docente, módulos) y Luna
-  Zegers (nativa; clase semanal, masterclass y módulos). Con bio, la cortina
+  Zegers (nativa; clase semanal, masterclass y módulos). **Desde el 01/11
+  (nawar-web PR #191), quinto: Diego Sosa, «Equipo de admisiones»** (el
+  closer; bio corta sobre la llamada de admisión). Su foto venía en CÍRCULO
+  con esquinas negras: recortada con rembg y puesta sobre el fondo azul de
+  las otras (reconstruido a partir de ellas), con los hombros alargados donde
+  los cortaba el círculo. Con cinco, en el ordenador van en una sola fila
+  (`data-n='5'`); en el móvil se deslizan. Con bio, la cortina
   sale al pasar el ratón o al tocar; con `rol` y `bio` vacíos la tarjeta sale
   solo con foto y nombre. No añadir datos que el usuario no haya dado.
 - **La reseña que quiere poner** (30/10): recomendado /oferta, encima del
