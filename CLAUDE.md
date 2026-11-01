@@ -4936,6 +4936,11 @@ la landing de formacion-nawar… y la sección del equipo con la cortina".
       puntos en azul). Con `?fondo=oscuro` se quita la clase (un script en
       línea) y sale el azul de la landing: para comparar. Cuando el usuario
       elija, quitar la otra.
+    - **El bonus de la comunidad, con su imagen nueva** (01/11, nawar-web PR
+      #190): la tableta con la comunidad (`comunidad..jpg` de
+      docs.holandesnawar.com) en `public/img/black-friday/comunidad.webp`,
+      por la prop `comunidadImg` de `BonusSection`. La landing sigue con
+      `bonus.comun` (la que "parece IA"): si gusta, pasarle la misma.
     - **«Todo lo que recibes» justo después de la cabecera** ("como YouTalk,
       que su segunda sección ya es todo lo que recibes… que incite a seguir
       bajando, y no tanto el convencer"), con su botón. Sin su foto
