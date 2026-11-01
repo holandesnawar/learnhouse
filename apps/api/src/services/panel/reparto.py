@@ -20,7 +20,8 @@ la opción de quedársela o pasársela al otro closer". Así funciona:
 
 5. **Con Calendly Teams (31/10)**: un usuario de Calendly por closer y un evento
    «por turnos» (round robin). Calendly elige el closer, le manda a ÉL la
-   reserva y se la pone en su calendario, con SU Zoom. La escuela lee quién es
+   reserva y se la pone en su calendario, con SU Google Meet (desde el 01/11;
+   al principio se pensó en Zoom). La escuela lee quién es
    el anfitrión de cada cita y le pone ese closer a la tarjeta
    (`asignar_por_anfitrion`): no pasa por «Por asignar» ni le llega a nadie el
    «repártela». El anfitrión se reconoce por su correo de Calendly: el de su
@@ -28,13 +29,12 @@ la opción de quedársela o pasársela al otro closer". Así funciona:
    Calendly» (`calendly` en la configuración). Solo cuentan los closers (o
    quien esté apuntado ahí): las citas del usuario principal de Calendly siguen
    yendo a «Por asignar», como antes. **Manda el anfitrión**: es quien tiene la
-   llamada en su calendario y en su Zoom.
+   llamada en su calendario y en su Meet.
 
-Mientras la agenda siga en Calendly, el enlace de la videollamada es el del
-evento de Calendly (el de Diego): el otro closer entra con ese mismo enlace.
-Para eso, en Zoom, "permitir que los participantes entren antes que el
-anfitrión". Lo bueno vendrá con la agenda propia: un enlace de la escuela por
-llamada que lleva a la sala de quien la tenga asignada.
+Antes de Calendly Teams, el enlace de la videollamada era el del evento de
+Calendly (el de Diego) y el otro closer entraba con ese mismo enlace. Con el
+evento por turnos y Google Meet, cada reserva trae el enlace de Meet de SU
+closer, creado en su Google Calendar.
 
 Los correos no lanzan nunca: el reparto ya está guardado y un fallo del correo
 no puede devolver un error a la pantalla ni a la web.

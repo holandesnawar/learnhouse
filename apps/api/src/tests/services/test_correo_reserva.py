@@ -12,6 +12,8 @@ from sqlmodel import select
 from src.db.contact_event import ContactEvent
 from src.db.organization_config import OrganizationConfig
 from src.db.panel_negocio import LeadPipeline  # noqa: F401  (para que exista la tabla en la base de pruebas)
+from src.db.enrollment import Enrollment  # noqa: F401  (ídem: sin esto, el archivo suelto falla)
+from src.db.enrollment_request import EnrollmentRequest  # noqa: F401
 from src.services.contactos import correo_reserva as C
 from src.services.users import emails as E
 
@@ -78,6 +80,30 @@ def test_lo_que_se_saca_de_una_reserva():
     assert C.reserva_de(aviso(old_invitee="https://api.calendly.com/.../OLD"))["cambio_de_hora"] is True
     assert C.reserva_de(aviso(evento="invitee.canceled")) is None
     assert C.reserva_de(aviso(email="")) is None
+
+
+def test_con_google_meet_tambien_sale_el_enlace():
+    """Desde el 01/11/2026 las llamadas van por Google Meet (Calendly lo llama
+    `google_conference`): el enlace se saca igual que el de Zoom."""
+    ev = aviso()
+    ev["payload"]["scheduled_event"]["location"] = {
+        "type": "google_conference",
+        "join_url": "https://meet.google.com/abc-defg-hij",
+    }
+    assert C.reserva_de(ev)["enlace"] == "https://meet.google.com/abc-defg-hij"
+
+
+def test_el_correo_ya_no_dice_zoom():
+    assert "zoom" not in C.DE_FABRICA["texto"].lower()
+    assert C.FRASE_VIDEOLLAMADA in C.DE_FABRICA["texto"]
+    # Un texto guardado en el panel con la frase de antes sale con la de ahora,
+    # aunque el resto lo hubiera retocado.
+    viejo = "Hola {nombre}, gracias.\n\n" + C.FRASES_ANTERIORES[0] + "\n\nUn abrazo"
+    limpio = C.config_limpia({"activo": True, "texto": viejo})
+    assert "Zoom" not in limpio["texto"]
+    assert limpio["texto"] == "Hola {nombre}, gracias.\n\n" + C.FRASE_VIDEOLLAMADA + "\n\nUn abrazo"
+    # Lo que no tiene esa frase no se toca.
+    assert C.config_limpia({"texto": "Por Zoom, sí"})["texto"] == "Por Zoom, sí"
 
 
 def test_dia_y_hora_en_la_hora_de_la_persona():
