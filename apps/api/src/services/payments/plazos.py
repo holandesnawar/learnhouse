@@ -118,6 +118,11 @@ def cuota_cents() -> int:
 #: (20/10/2026). 4 × 135 € justos; 497 en 3, con los céntimos en las primeras.
 OPCIONES: dict[int, int] = {3: 49700, 4: 54000}
 
+#: Los plazos del botón «A plazos» del panel desde el 01/11/2026 ("3 meses
+#: 690"): 3 pagos de 230 €, sin elegir nada (va como un plan a medida, `pv: 3`).
+#: `OPCIONES` se queda para los enlaces de antes, que siguen ofreciendo 3 o 4.
+PLAZOS_PANEL: tuple[int, int] = (3, 69000)
+
 #: A medida: cuántos pagos se pueden poner y el total más alto, en céntimos.
 CUOTAS_A_MEDIDA = range(2, 7)
 TOTAL_A_MEDIDA_MAX = 300000

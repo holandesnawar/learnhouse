@@ -11,8 +11,8 @@ from datetime import datetime
 
 from src.db.organization_config import OrganizationConfig
 from src.services.contactos import guion
-from src.services.payments.payments import PRECIO_BASE_CENTS
-from src.services.payments.plazos import OPCIONES
+from src.services.payments.payments import PRECIO_PANEL_CENTS
+from src.services.payments.plazos import PLAZOS_PANEL, reparto
 
 
 def _euros(cents: int) -> str:
@@ -21,9 +21,11 @@ def _euros(cents: int) -> str:
 
 def test_los_precios_de_los_textos_son_los_del_cobro():
     for texto in (guion.GUION_DE_FABRICA, guion.ENFOQUE_DE_FABRICA):
-        assert _euros(PRECIO_BASE_CENTS) in texto
-        for total in OPCIONES.values():
-            assert _euros(total) in texto
+        # Lo que vende el closer es lo que cobran sus enlaces (el panel), no la
+        # caja de la web (01/11/2026).
+        assert _euros(PRECIO_PANEL_CENTS) in texto
+        n, total = PLAZOS_PANEL
+        assert _euros(total) in texto and f"{n} pagos de {_euros(reparto(total, n)[0])}" in texto
         assert "15 días" in texto
 
 

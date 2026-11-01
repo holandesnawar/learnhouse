@@ -53,8 +53,8 @@ GUION_DE_FABRICA = """## Antes de llamar
 - Conéctalo con lo que te ha contado: "Me dijiste que [su motivo]; esto está pensado justo para eso."
 
 ## 4. Precio
-- "La inversión es de 435 €, IVA incluido. Lo puedes pagar de una vez con iDEAL o tarjeta, o con Klarna a plazos sin recargo."
-- Solo si Klarna no le vale o no le funciona: nuestro plan a plazos, 3 pagos de 165,67 € (497 €) o 4 pagos de 135 € (540 €). Entra con el primer pago y elige 3 o 4 en la página de pago (botón «A plazos» de su ficha).
+- "La inversión es de 597 €, IVA incluido. Lo puedes pagar de una vez con iDEAL o tarjeta, o con Klarna a plazos sin recargo."
+- Solo si Klarna no le vale o no le funciona: nuestro plan a plazos, 3 pagos de 230 € (690 €). Entra con el primer pago (botón «A plazos» de su ficha).
 - Garantía de 15 días: si no es para él, escribe a soporte@holandesnawar.com y se le devuelve el 100 %.
 - Después del precio, calla y deja que conteste.
 
@@ -84,7 +84,7 @@ ENFOQUE_DE_FABRICA = """## Qué ha cambiado (desde el 26/10/2026)
 - Quien se matricula desde el 26/10 entra en el programa nuevo: cada semana, una masterclass en directo y dos spreekuren para practicar hablando.
 - Ya NO se vende la «clase semanal de conversación». Esa clase sigue, pero solo para los alumnos de la primera convocatoria (la beta).
 - La formación es la misma: lecciones, ejercicios, módulos, consultas, comunidad y certificado. Cambia solo la parte en directo.
-- El precio no cambia: 435 €.
+- El precio: 597 € (ver «Precio»).
 - Por qué (para ti, no para la llamada): la masterclass la pueden seguir muchos alumnos a la vez, y para hablar están los spreekuren. Así podemos atender a más gente sin que las clases se llenen.
 
 ## Cómo es una semana del alumno
@@ -102,11 +102,10 @@ ENFOQUE_DE_FABRICA = """## Qué ha cambiado (desde el 26/10/2026)
 - Consultas con el equipo y comunidad privada de alumnos.
 - 6 meses de acceso y certificado al terminar.
 
-## Precio (igual que antes)
-- 435 €, IVA incluido. De una vez con iDEAL o tarjeta, o con Klarna a plazos sin recargo.
-- Si Klarna no le vale o no le funciona: nuestro plan a plazos, 3 pagos de 165,67 € (497 €) o 4 pagos de 135 € (540 €). Entra con el primer pago. Botón «A plazos» de su ficha: elige 3 o 4 en la página de pago.
+## Precio
+- 597 €, IVA incluido. De una vez con iDEAL o tarjeta, o con Klarna a plazos sin recargo.
+- Si Klarna no le vale o no le funciona: nuestro plan a plazos, 3 pagos de 230 € (690 €). Entra con el primer pago. Botón «A plazos» de su ficha.
 - Si en la llamada no le funciona el pago, puede reservar su plaza con una señal de 50 € («Cobrar una señal» en su ficha). Con la señal no entra todavía: entra al pagar el resto.
-- En la página de pago verá «Precio fundador · después 597 €».
 - Garantía de 15 días: si no es para él, escribe a soporte@holandesnawar.com y se le devuelve el 100 %.
 
 ## Cómo contarlo en la llamada
@@ -147,10 +146,10 @@ El mismo día que paga: le llega un correo para crear su contraseña y entra en 
 16 semanas y 10 módulos, con 6 meses de acceso. Con 20-30 minutos al día va a buen ritmo.
 
 ### ¿Cuánto cuesta? ¿Se puede pagar a plazos?
-435 €, IVA incluido, de una vez o con Klarna a plazos sin recargo. Si Klarna no le vale, nuestro plan a plazos: 3 pagos de 165,67 € (497 €) o 4 de 135 € (540 €).
+597 €, IVA incluido, de una vez o con Klarna a plazos sin recargo. Si Klarna no le vale, nuestro plan a plazos: 3 pagos de 230 € (690 €).
 
 ### ¿Por qué a plazos sale más caro?
-Pagando de una vez o con Klarna son 435 €. Nuestro plan a plazos es para quien no puede usar Klarna, y por eso cuesta algo más.
+Pagando de una vez o con Klarna son 597 €. Nuestro plan a plazos es para quien no puede usar Klarna, y por eso cuesta algo más.
 
 ### ¿Y si no me gusta?
 Tiene 15 días de garantía: si no es para él, se le devuelve el 100 %.

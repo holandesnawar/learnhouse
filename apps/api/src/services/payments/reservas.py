@@ -208,11 +208,13 @@ async def emails_con_plaza_reservada(db_session: AsyncSession) -> set[str]:
 
 
 async def precio_formacion() -> tuple[int, str]:
-    """El precio de la formación en un pago (`precio_base_cents`, el mismo que
-    cobra la matrícula normal). Así el total de una reserva sale del mismo sitio."""
-    from src.services.payments.payments import precio_base_cents
+    """El total de una reserva con señal si nadie pone otro. Las señales las
+    cobra el equipo desde la ficha, así que va con el precio del panel
+    (`precio_panel_cents`, 597 € desde el 01/11/2026), no con el de la caja de
+    la web (435 €)."""
+    from src.services.payments.payments import precio_panel_cents
 
-    return precio_base_cents(), "eur"
+    return precio_panel_cents(), "eur"
 
 
 async def crear_enlace(

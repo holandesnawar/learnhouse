@@ -7,6 +7,8 @@
 - El enlace «A plazos» nuevo (`pv: 2`) lleva primero a elegir 3 o 4 pagos.
 - El enlace a plazos «a medida» (`pv: 3`, 22/10) va directo a la caja con el
   total y los pagos que puso el equipo.
+- Desde el 01/11/2026 los enlaces del PANEL cobran 597 € en un pago y sus
+  plazos son 3 pagos de 230 € (690 €); la caja de la web sigue en 435 €.
 """
 
 from types import SimpleNamespace
@@ -62,8 +64,9 @@ def test_el_precio_se_cambia_con_una_variable(monkeypatch):
 async def _abrir(datos: dict, cuotas=None):
     llamadas = {}
 
-    async def checkout(pedido, db, precio_id=""):
+    async def checkout(pedido, db, precio_id="", precio_cents=0):
         llamadas["unico"] = precio_id
+        llamadas["precio_cents"] = precio_cents
         return {"payment_url": "https://escuela.test/pago-unico"}
 
     async def plazos(pedido, autor, db, total_cents=None, n_cuotas=None, medida=None):
@@ -93,7 +96,75 @@ async def test_un_enlace_de_antes_cobra_397_y_uno_nuevo_435():
     r, ll = await _abrir({})
     assert ll["unico"] == "price_397" and r.headers["location"] == "https://escuela.test/pago-unico"
     r, ll = await _abrir({"pu": 43500})
-    assert ll["unico"] == ""  # vacío = el precio de hoy
+    # Cobra el que lleva firmado: los enlaces de 435 € creados antes del 01/11
+    # siguen cobrando 435 € hasta caducar.
+    assert ll["unico"] == "" and ll["precio_cents"] == 43500
+
+
+# ── el precio del panel (01/11/2026) ───────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_un_enlace_del_panel_cobra_597():
+    r, ll = await _abrir({"pu": 59700})
+    assert ll["unico"] == "" and ll["precio_cents"] == 59700
+    assert r.headers["location"] == "https://escuela.test/pago-unico"
+
+
+def test_el_precio_del_panel_es_otro_price_del_mismo_producto(monkeypatch):
+    monkeypatch.delenv("LEARNHOUSE_FORMACION_PRECIO_CENTS", raising=False)
+    monkeypatch.delenv("LEARNHOUSE_PRECIO_PANEL_CENTS", raising=False)
+    assert P.precio_panel_cents() == 59700 and P.precio_base_cents() == 43500
+    falso = _StripePrecios()
+    with patch.object(P, "stripe", falso), patch.object(P, "_formacion_price_id", lambda: "price_397"), patch.object(P, "_PRECIOS", {}):
+        assert P._precio_base_id(59700) == "price_nawar-formacion-unico-59700"
+        # Sin importe, el de la web: no se mezclan.
+        assert P._precio_base_id() == "price_nawar-formacion-unico-43500"
+    assert [c["unit_amount"] for c in falso.creados] == [59700, 43500]
+    assert all(c["product"] == "prod_formacion" for c in falso.creados)
+    monkeypatch.setenv("LEARNHOUSE_PRECIO_PANEL_CENTS", "64900")
+    assert P.precio_panel_cents() == 64900
+
+
+async def _crear_enlace(pedido: dict):
+    from src.routers import contactos as RC
+
+    firmado = {}
+
+    def firmar(datos, secreto, **kw):
+        firmado.update(datos)
+        return "tok"
+
+    async def acceso(*a, **kw):
+        return None
+
+    usuario = SimpleNamespace(first_name="Diego", last_name="", username="diego", email="diego@x.com")
+    config = SimpleNamespace(security_config=SimpleNamespace(auth_jwt_secret_key="s" * 40))
+    with patch.object(RC, "exigir_acceso", acceso), patch.object(E, "firmar", firmar), patch(
+        "config.config.get_learnhouse_config", lambda: config
+    ), patch.object(P, "_academy_url", lambda: "https://escuela.test"):
+        respuesta = await RC.api_enlace_pago(
+            None, 1, RC.PedidoEnlace(email="ana@x.com", first_name="Ana", **pedido), current_user=usuario, db_session=None
+        )
+    return respuesta, firmado
+
+
+@pytest.mark.asyncio
+async def test_el_boton_azul_del_panel_firma_597():
+    r, firmado = await _crear_enlace({})
+    assert firmado["pu"] == 59700 and r["precio_cents"] == 59700
+    assert "pl" not in firmado
+
+
+@pytest.mark.asyncio
+async def test_el_boton_a_plazos_del_panel_son_3_pagos_de_230():
+    r, firmado = await _crear_enlace({"plan": "plazos"})
+    assert (firmado["pl"], firmado["pv"], firmado["pn"], firmado["pt"]) == ("plazos", 3, 3, 69000)
+    assert r["opciones"] == [Z.condiciones_de(3, 69000)]
+    assert r["opciones"][0]["cuota_cents"] == 23000
+    # «Otro importe» a plazos sigue mandando lo que pone el equipo.
+    r, firmado = await _crear_enlace({"plan": "plazos", "total_cents": 43500, "cuotas": 3})
+    assert (firmado["pn"], firmado["pt"]) == (3, 43500) and r["a_medida"] is True
 
 
 @pytest.mark.asyncio

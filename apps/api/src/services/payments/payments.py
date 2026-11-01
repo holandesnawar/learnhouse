@@ -107,6 +107,19 @@ def precio_base_cents() -> int:
     return int(raw) if raw.isdigit() and int(raw) >= 50 else PRECIO_BASE_CENTS
 
 
+#: El precio en un pago de los enlaces que crea el equipo desde el panel
+#: (01/11/2026: "el precio azul del CRM, ponerlo 597… solo el panel"). La caja
+#: de la web sigue con `precio_base_cents` (435 €). Los plazos del panel van
+#: aparte (`PLAZOS_PANEL` en plazos.py).
+PRECIO_PANEL_CENTS = 59700
+
+
+def precio_panel_cents() -> int:
+    """`LEARNHOUSE_PRECIO_PANEL_CENTS` lo cambia sin desplegar; 597 € de serie."""
+    raw = (os.environ.get("LEARNHOUSE_PRECIO_PANEL_CENTS") or "").strip()
+    return int(raw) if raw.isdigit() and int(raw) >= 50 else PRECIO_PANEL_CENTS
+
+
 _PRECIOS: dict[str, str] = {}
 
 
@@ -156,9 +169,10 @@ def precio_en_stripe(clave: str, cents: int, *, mensual: bool = False, nombre: s
     return precio
 
 
-def _precio_base_id() -> str:
-    """El Price del pago único de hoy (435 €), creado solo si hace falta."""
-    cents = precio_base_cents()
+def _precio_base_id(cents: Optional[int] = None) -> str:
+    """El Price del pago único (435 € de la web, o el importe que se pida: el
+    de un enlace del panel), creado solo si hace falta."""
+    cents = int(cents or 0) if cents and int(cents) >= 50 else precio_base_cents()
     euros = f"{cents / 100:.2f}".replace(".", ",").replace(",00", "")
     return precio_en_stripe(
         f"nawar-formacion-unico-{cents}", cents, nombre=f"Pago único: {euros} €", meta={"plan": "unico"}
@@ -535,7 +549,7 @@ def _cancelar_intento_anterior(payment_intent_id: str) -> None:
         logger.warning("No se pudo cancelar el PaymentIntent %s", payment_intent_id, exc_info=True)
 
 
-async def enroll_and_checkout_session(data, db_session: AsyncSession, precio_id: str = "") -> dict:
+async def enroll_and_checkout_session(data, db_session: AsyncSession, precio_id: str = "", precio_cents: int = 0) -> dict:
     """
     Guarda la matrícula y abre una **sesión de pago de Stripe, embebida**.
 
@@ -572,9 +586,11 @@ async def enroll_and_checkout_session(data, db_session: AsyncSession, precio_id:
     full_name = f"{data.first_name} {data.last_name}".strip() or data.first_name or "Alumno"
 
     # El de hoy (435 €) salvo que se pida otro: un enlace de pago creado antes
-    # del 20/10 respeta el de entonces (397 €, `_formacion_price_id`).
+    # del 20/10 respeta el de entonces (397 €, `_formacion_price_id`), y uno
+    # del panel cobra el importe que lleva firmado (`precio_cents`, 597 € desde
+    # el 01/11/2026).
     try:
-        precio = precio_id or _precio_base_id()
+        precio = precio_id or _precio_base_id(precio_cents or None)
         price = stripe.Price.retrieve(precio)
         unit_amount = price.get("unit_amount") if hasattr(price, "get") else getattr(price, "unit_amount", None)
         currency_raw = price.get("currency") if hasattr(price, "get") else getattr(price, "currency", "eur")
