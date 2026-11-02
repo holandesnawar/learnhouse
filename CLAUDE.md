@@ -5394,6 +5394,12 @@ la landing de formacion-nawar… y la sección del equipo con la cortina".
       (`_nombre_al_dia` lo cambia solo, test `test_son_mas_de_70_paginas`).
       ⚠️ Los correos de systeme.io (n0, n1, n7, newsletters) siguen diciendo
       «70 páginas»: no se tocaron.
+      ⚠️ **Deshecho en la WEB esa misma noche** (02/11, nawar-web; usuario:
+      "no son +70 páginas, pon 70 páginas y listo"): la página del ebook dice
+      «70 páginas» en todos lados, sin «más de» ni «+»
+      (`EBOOK_PAGINAS_TXT` = «70»). En la escuela, los correos que manda ella
+      (entrega del ebook) siguen diciendo «más de 70 páginas»: no se pidió
+      tocarlos.
     - La tercera doble página: «Los números, la conjugación…», sin «del 1 al
       20» (usuario: "pon los números y ya").
     - **Botones centrados en el móvil**: el de «¿Qué encontrarás dentro?»
