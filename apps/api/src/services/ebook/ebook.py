@@ -160,7 +160,7 @@ NOMBRE_EBOOK = "Holandés sin miedo"
 #: producto de Stripe se renombra solo la primera vez que se cobra
 #: (`_precio_stripe`).
 NOMBRES_ANTERIORES = ("Neerlandés sin miedo",)
-SUBTITULO_EBOOK = "70 páginas para arrancar desde cero (nivel A0-A1)"
+SUBTITULO_EBOOK = "más de 70 páginas para arrancar desde cero (nivel A0-A1)"
 PRODUCTO_STRIPE = f"{NOMBRE_EBOOK} · Ebook A0-A1"
 
 DIAS_DESCARGA = 365
@@ -189,7 +189,7 @@ DE_FABRICA: dict = {
         "asunto": "Tu ebook «Holandés sin miedo» ya está aquí",
         "texto": (
             "¡Hola, {nombre}!\n\n"
-            "Gracias por tu compra. Aquí tienes tu ebook *Holandés sin miedo*: 70 páginas para arrancar "
+            "Gracias por tu compra. Aquí tienes tu ebook *Holandés sin miedo*: más de 70 páginas para arrancar "
             "desde cero, con su vocabulario, sus ejercicios y todas las respuestas para que te corrijas tú.\n\n"
             "[descarga]\n\n"
             "Un consejo para sacarle partido: una lección al día y en voz alta. Leer el neerlandés en silencio "
@@ -226,7 +226,7 @@ DE_FABRICA: dict = {
             "¡Hola, {nombre}!\n\n"
             "Ya tienes desbloqueada tu oferta de Black Friday: *Holandés sin miedo*, nuestro ebook para "
             "arrancar con el neerlandés desde cero, por solo 1 €.\n\n"
-            "Son 70 páginas explicadas en español, con el vocabulario, los ejercicios y todas las respuestas "
+            "Son más de 70 páginas explicadas en español, con el vocabulario, los ejercicios y todas las respuestas "
             "para que te corrijas tú. En PDF y para siempre.\n\n"
             "La oferta vale hasta el {hasta}.\n\n"
             "[boton]\n\n" + _FIRMA
@@ -374,7 +374,7 @@ DE_FABRICA: dict = {
                 "¡Hola, {nombre}!\n\n"
                 "Hoy es Black Friday, y tu oferta sigue desbloqueada: *Holandés sin miedo*, el ebook para "
                 "arrancar con el neerlandés desde cero, por 1 €.\n\n"
-                "Son 70 páginas explicadas en español, con el vocabulario, los ejercicios y todas las "
+                "Son más de 70 páginas explicadas en español, con el vocabulario, los ejercicios y todas las "
                 "respuestas. La oferta termina el {hasta}.\n\n"
                 "[boton]\n\n" + _FIRMA
             ),
@@ -452,11 +452,17 @@ def _sin_espacios(t: Any) -> str:
 
 
 def _nombre_al_dia(t: Any) -> str:
-    """Un texto guardado con un nombre viejo del ebook, con el de ahora."""
+    """Un texto guardado con un nombre viejo del ebook, con el de ahora. Y
+    con «más de 70 páginas» donde decía «70 páginas» (02/11, usuario: "no es
+    70 páginas, sino más de 70"): así cambian también las cartas guardadas en
+    el panel, retocadas o no."""
     t = str(t or "")
     for viejo in NOMBRES_ANTERIORES:
         t = t.replace(viejo, NOMBRE_EBOOK)
-    return t
+    return _MAS_DE_70.sub("más de 70 páginas", t)
+
+
+_MAS_DE_70 = re.compile(r"(?<![Mm]ás de )(?<!\+)\b70 páginas")
 
 
 class EbookError(Exception):
