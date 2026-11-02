@@ -263,6 +263,8 @@ function TarjetaVista({
             Llamada {diaHora(t.cita.inicio)}
             {/* Ha dicho que viene (27/10, Llamadas → Por confirmar). */}
             {t.cita.confirmada ? <span className="text-[#15803D]">· confirmada</span> : null}
+            {/* Cuántos de sus tres WhatsApp lleva (02/11, Llamadas → Recordatorios). */}
+            {t.cita.whatsapp ? <span className="text-gray-500 font-normal">· WhatsApp {t.cita.whatsapp}/3</span> : null}
           </p>
         ) : (
           <p className="mt-1 flex items-center gap-1 text-[11.5px] font-medium text-[#B45309]" title="Apúntalo en Llamadas → ¿Qué pasó?">

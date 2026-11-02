@@ -71,6 +71,8 @@ NOMBRES_TIPO = {
     # Es además la marca de que ya le llegó: no se le vuelve a mandar.
     "correo-reserva": "Le llegó el correo de Rida (al reservar la llamada)",
     "llamada-confirmada": "Confirmó que viene a su llamada",
+    # Los tres WhatsApp de la llamada (02/11, services/contactos/whatsapp_llamada.py).
+    "whatsapp-llamada": "El equipo le mandó un WhatsApp de su llamada",
     # El equipo le movió o le canceló la llamada desde la escuela (31/10,
     # services/contactos/reservar.py). El texto con quién y cuándo, `_que`.
     "llamada-cambiada": "El equipo le cambió la hora de la llamada",
@@ -311,6 +313,10 @@ def _que(kind: str, campos: dict) -> str:
         cuando = _dia_y_hora(extra.get("inicio") or "")
         texto = "Confirmó que viene a su llamada" + (f" del {cuando}" if cuando else "")
         return texto + (f" (lo apuntó {extra['autor']})" if extra.get("autor") else "")
+    if kind == "whatsapp-llamada":
+        from src.services.contactos.whatsapp_llamada import texto_linea_de_tiempo
+
+        return texto_linea_de_tiempo(extra, _dia_y_hora)
     if kind == "check-in":
         texto = f"Check-in de la semana {extra.get('hito')}" if extra.get("hito") else "Check-in con el equipo"
         if extra.get("autor"):
@@ -389,7 +395,7 @@ def _evento(kind: str, when: str, email: str, **campos) -> dict:
 
 #: Lo que no hace la persona sino la escuela, a diario: no cuenta como "lo
 #: último que hizo" (sigue en su línea de tiempo).
-_LOS_MANDA_LA_ESCUELA = {"correo-bf"}
+_LOS_MANDA_LA_ESCUELA = {"correo-bf", "whatsapp-llamada"}
 
 
 def fusionar_contactos(eventos: list[dict], con_cuenta: set[str]) -> list[dict]:

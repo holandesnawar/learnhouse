@@ -335,10 +335,19 @@ async def ficha_cliente(
         from src.services.contactos.confirmar_llamada import confirmadas
         from src.services.contactos.resultado_llamada import resultados
 
+        from src.services.contactos.whatsapp_llamada import enviados as whatsapp_enviados
+
         hechos = await resultados(db_session)
         confirmada = await confirmadas(db_session)
+        whatsapp = await whatsapp_enviados(db_session)
         llamadas = [
-            {**c, "resultado": hechos.get(c.get("id") or ""), "confirmada": confirmada.get(c.get("id") or "")}
+            {
+                **c,
+                "resultado": hechos.get(c.get("id") or ""),
+                "confirmada": confirmada.get(c.get("id") or ""),
+                # Qué WhatsApp de la llamada se le han mandado (02/11).
+                "whatsapp": whatsapp.get(c.get("id") or "") or {},
+            }
             for c in (await agenda()).get("citas") or []
             if c.get("email") == clave
         ]
