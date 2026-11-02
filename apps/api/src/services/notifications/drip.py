@@ -112,9 +112,10 @@ async def avisar_modulos_abiertos_hoy(org_id: int, db_session: AsyncSession) -> 
     if not alumnos:
         return {"enviados": 0, "motivo": "no hay alumnos"}
 
-    # ⚠️ Quien entró desde el 10/10/2026 abre la formación POR AVANCE, no por
-    # estas fechas: el 12/10 le habría llegado "se te ha abierto el módulo 4"
-    # con el módulo cerrado. Sus avisos salen de `avisar_aperturas_por_avance`.
+    # ⚠️ Los alumnos abren la formación POR AVANCE, no por estas fechas
+    # (desde el 10/10/2026 los nuevos; desde el 02/11, todos): el 12/10 le
+    # habría llegado "se te ha abierto el módulo 4" con el módulo cerrado. Sus
+    # avisos salen de `avisar_aperturas_por_avance`.
     from src.services.courses.avance_modulos import ids_con_avance, uuids_de_la_formacion
 
     con_avance = await ids_con_avance(org_id, db_session, ajustes)

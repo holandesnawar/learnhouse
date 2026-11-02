@@ -412,7 +412,7 @@ export interface AperturaModulo {
   numero: number | null
   abierto: boolean
   /** entrada = desde el primer día; avance = lo abrió su avance; mano = lo abrió el equipo. */
-  como: 'entrada' | 'avance' | 'mano' | null
+  como: 'entrada' | 'avance' | 'mano' | 'empezado' | null
   /** Cuándo se abrió (o se abrirá, si ya solo falta tiempo). ISO con Z. */
   abre: string | null
   /** La primera fecha en que podría abrirse, si aún no ha llegado. */

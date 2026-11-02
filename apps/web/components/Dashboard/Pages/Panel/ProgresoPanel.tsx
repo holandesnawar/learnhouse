@@ -133,7 +133,7 @@ function diaCorto(iso: string | null): string {
 }
 
 /**
- * Los módulos de quien va por avance (entró desde el 10/10/2026): cuáles
+ * Los módulos de quien va por avance (todos los alumnos desde el 02/11/2026): cuáles
  * tiene abiertos, por qué no los demás, y «Abrir ya» para saltarse la regla.
  * La regla está en apps/api/src/services/courses/avance_modulos.py.
  */
@@ -154,6 +154,8 @@ function ModulosPorAvance({
         if (m.abierto) {
           if (m.como === 'mano') estado = `Abierto a mano el ${diaCorto(m.abre)}`
           else if (m.como === 'avance') estado = `Abierto el ${diaCorto(m.abre)}`
+          // Lo tenía abierto por fecha y ya había hecho alguna clase (02/11): no se le cierra.
+          else if (m.como === 'empezado') estado = `Abierto: ya lo había empezado (${diaCorto(m.abre)})`
         } else if (m.motivo) {
           estado = m.fecha_minima ? `${m.motivo} No antes del ${diaCorto(m.fecha_minima)}.` : m.motivo
         } else if (m.abre) {

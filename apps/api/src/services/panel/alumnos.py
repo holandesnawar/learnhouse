@@ -209,7 +209,7 @@ async def listar_alumnos(org_id: int, db_session: AsyncSession) -> dict:
             if int(aid) not in suyas or (f and f < suyas[int(aid)]):
                 suyas[int(aid)] = f
 
-    # Quien entró desde el 10/10/2026 abre la formación por avance: su fila
+    # Los alumnos abren la formación por avance (todos desde el 02/11/2026): su fila
     # enseña qué tiene abierto y por qué no lo demás (`avance_modulos.py`).
     from src.services.courses.avance_modulos import (
         ajustes_avance,
