@@ -70,7 +70,7 @@ import { quitarDeMetricas, volverAContar } from '@services/stats/contactos'
 import { CalendarCheck, CheckSquare, ChevronDown, ChevronsLeft, Eye, Loader2, PhoneCall, RotateCcw, Search, StickyNote, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { BOTON, filtro } from './ui'
-import { BotonesReparto, CorreosCalendly, EtiquetaCloser, nombreCorto, useReparto, type Reparto } from './Reparto'
+import { AgendasDelEquipo, BotonesReparto, CorreosCalendly, EtiquetaCloser, nombreCorto, useReparto, type Reparto } from './Reparto'
 import { colorCloser } from '@lib/nawar/colorCloser'
 
 // Un color por columna, solo en el punto junto al nombre y en tonos apagados.
@@ -738,6 +738,7 @@ export default function KanbanPanel() {
             </label>
           ) : null}
           {isAdmin && reparto.equipo.length ? <CorreosCalendly reparto={reparto} /> : null}
+          {isAdmin && reparto.equipo.length ? <AgendasDelEquipo reparto={reparto} /> : null}
         </div>
       ) : null}
 
