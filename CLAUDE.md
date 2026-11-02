@@ -4646,8 +4646,17 @@ Friday»** (por qué, en la cabecera de `services/ebook/ebook.py`).
     neerlandés, por solo 1 €» con las fotos del libro, las opiniones justo
     debajo, «Para ti si…», «Qué encontrarás dentro», dudas y un cierre. Fuera
     «Por qué este eBook» (repetía la cabecera y la lista) y el pie de toda la
-    web (pie mínimo). ⚠️ Las tres opiniones son las de `/ebook-a0-a1`, tal
-    cual: si alguna no es real, quitarla.
+    web (pie mínimo). ⚠️ Las tres opiniones son las de `/ebook-a0-a1`; si
+    alguna no es real, quitarla. Desde el 02/11 por la noche (nawar-web PR
+    #197) van reescritas en lenguaje de la calle y sin dos puntos, con lo
+    mismo que decía cada una (usuario: "«me gustó especialmente que incluye»
+    suena a chatbot"). Ese mismo PR: «Oferta desbloqueada, Ana. Es tuya hasta
+    el 30 de noviembre.» en UNA línea y la cabecera más arriba cuando sale;
+    «70 páginas» más abajo junto al libro; fuera la duda «¿Me prepara para el
+    examen de inburgering?» (usuario: "no es así") y, en la caja de pago, el
+    aviso «En Teléfono, pon el número con el que usas WhatsApp…» ("queda
+    feo"; Stripe sigue pidiendo el teléfono); «¿Qué encontrarás dentro?» con
+    el mismo aire arriba que abajo.
   - ⚠️ **Sin cuenta atrás en ninguna página** (28/10: "no me convence").
     `Cuenta.astro` se borró; `arrancarCuentaAtras()` sigue solo para poner
     `bf-terminado` pasado el 30/11 y esconder los botones de compra.
