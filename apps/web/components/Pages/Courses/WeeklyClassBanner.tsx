@@ -45,13 +45,24 @@ export default function WeeklyClassBanner({
   // Con la sala encendida, «Ir a la clase» lleva a la sala de la escuela, no
   // al enlace de Zoom. Y se enseña quién hay dentro.
   const [dentro, setDentro] = useState<string[]>([])
+  // Encendida o no, según la escuela AHORA (02/11/2026). La configuración se
+  // lee al abrir la página: quien la tenía abierta cuando el profe encendió la
+  // sala seguía yendo a Zoom (o a «no hay enlace») hasta recargar. Se pregunta
+  // al entrar y cada 30 s mientras la página está a la vista; hasta la primera
+  // respuesta manda lo de la configuración.
+  const [abiertaAhora, setAbiertaAhora] = useState<boolean | null>(null)
+  const abierta = abiertaAhora ?? !!ajustes.activo
 
   useEffect(() => {
-    if (!ajustes.activo || !token || !curso) return
+    if (!token || !curso) return
     let vivo = true
     const leer = () =>
       getSala(curso, token)
-        .then((s) => vivo && setDentro(s.presentes || []))
+        .then((s) => {
+          if (!vivo) return
+          setAbiertaAhora(!!s.activo)
+          setDentro(s.activo ? s.presentes || [] : [])
+        })
         .catch(() => {})
     leer()
     const t = window.setInterval(() => {
@@ -61,7 +72,7 @@ export default function WeeklyClassBanner({
       vivo = false
       window.clearInterval(t)
     }
-  }, [ajustes.activo, token, curso])
+  }, [token, curso])
 
   const [data, setData] = useState({
     title: stored.title ?? '',
@@ -145,7 +156,7 @@ export default function WeeklyClassBanner({
             siempre en dos títulos distintos, uno encima del otro. Tampoco el
             subtítulo: la franja no lo enseña (la clase semanal enseña la
             descripción del curso debajo). */}
-        {ajustes.activo ? (
+        {abierta ? (
           <p className="text-[12px] text-[#5A6480] leading-relaxed">
             «Ir a la clase» lleva a la sala de la escuela (está encendida), así que no hace falta enlace de Zoom.
           </p>
@@ -224,7 +235,7 @@ export default function WeeklyClassBanner({
         <Radio size={17} strokeWidth={2.5} /> {texto}
       </>
     )
-    if (ajustes.activo) {
+    if (abierta) {
       return (
         <Link href={rutaSala(curso)} className={className}>
           {contenido}
@@ -254,7 +265,7 @@ export default function WeeklyClassBanner({
   const cuando = hora ? `${proxima} · ${hora}` : proxima
   const profe = data.teacher.trim()
   const duracion = data.duration.trim()
-  const enDirecto = ajustes.activo && dentro.length > 0
+  const enDirecto = abierta && dentro.length > 0
   return (
     <div className="w-full pt-1">
       {enDirecto ? (

@@ -4243,6 +4243,30 @@ etiqueta, que no la pueda cambiar el profe".
   **El chat no va en el vídeo grabado.** Daily tiene desde ene. 2026 una
   opción para guardarlo aparte (`dataOutputs: ['chat-webvtt']` en
   `startRecording`), sin probar ni puesta: ofrecida al usuario.
+- **Repaso antes de la primera clase con 6-7 personas (02/11/2026, 17:15)**:
+  cámara, micro y compartir pantalla los deja pasar la cabecera de nginx
+  (comprobado en producción: `geolocation=(), interest-cohort=()`) y el iframe
+  de daily-js 0.93 ya lleva `display-capture`. Tres arreglos:
+  - **«Ir a la clase» pregunta a la escuela si la sala está encendida AHORA**
+    (`WeeklyClassBanner`: `getSala` al entrar y cada 30 s, `abierta`). Antes
+    lo leía de la configuración al abrir la página: quien la tenía abierta
+    cuando el profe encendía la sala seguía yendo a Zoom hasta recargar.
+  - **Si la grabación se para sola, el anfitrión la vuelve a poner**
+    (`grabarDeNuevo` en `SalaPage.tsx`): nadie la para a mano, así que un
+    `recording-stopped` es Daily cortándola (todos sin cámara ni micro unos
+    minutos, tiempo máximo). Como mucho 6 veces por visita y 15 s entre
+    intentos; no lo intenta tras un error de verdad. Cada vez es un archivo
+    nuevo en Grabaciones.
+  - «Salir» de la llamada lleva al curso solo con la sala en pantalla (al
+    irse por la barra, cerrar la llamada también avisa de `left-meeting` y le
+    devolvía al curso), y si falla la entrada sale «Volver a intentarlo».
+  - Sin probar contra Daily de verdad (daily.co no se alcanza desde aquí).
+  - Lo que NO es código y se le dijo: encender la sala con tiempo, probar
+    compartir pantalla en ESE ordenador antes (macOS pide el permiso de
+    «Grabación de pantalla» y obliga a reiniciar Chrome), para el audio de un
+    vídeo compartir una pestaña de Chrome con «Compartir audio», compartir
+    pantalla no va desde el iPhone, y que la grabación en Daily necesita la
+    facturación activada (mirar Grabaciones tras la prueba).
 
 ## Recordatorios de la llamada y el correo de Rida al reservar (27/10/2026)
 Problema: "mucha gente no se presenta"; objetivo, +10 % de asistencia sin
