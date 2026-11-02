@@ -29,10 +29,6 @@ Cómo
 Desde el 31/10, también **cambiar la hora** y **cancelar** una llamada desde
 la escuela (`cambiar_hora`, `cancelar_llamada`): ver su bloque más abajo.
 
-Desde el 02/11, la **«Agenda del equipo»** de cada closer: un evento oculto en
-su Calendly, abierto a cualquier hora, en el que la escuela agenda y mueve
-llamadas sin el horario del evento por turnos. Ver su bloque más abajo.
-
 `api.calendly.com` no se alcanza desde el entorno donde se escribió esto: la
 forma de las respuestas está sacada de la documentación, y lo puro tiene test.
 """
@@ -56,9 +52,6 @@ logger = logging.getLogger(__name__)
 ZONA = ZoneInfo("Europe/Amsterdam")
 #: El evento de Calendly que se agenda (su `slug`, lo último de su dirección).
 EVENTO_POR_DEFECTO = "llamada-de-consultoria"
-#: El evento oculto de cada closer para agendar a cualquier hora (02/11): su
-#: `slug`, o el nombre «Agenda del equipo». Ver «La agenda del equipo».
-EVENTO_EQUIPO = "agenda-del-equipo"
 #: Las ubicaciones que Calendly crea sola (videollamada): no piden nada más.
 _VIDEO = {"google_conference", "zoom_conference", "microsoft_teams_conference", "webex_conference", "gotomeeting_conference"}
 
@@ -106,107 +99,11 @@ def tipos_de_llamada(tipos: list[dict], preferido: str = EVENTO_POR_DEFECTO) -> 
     el cambio). Lo usa el aviso de Calendly para no tratar como llamada una
     reunión cualquiera. Función pura."""
     clave = _clave(preferido)
-    salida = {
-        str(t.get("uri") or "")
-        for t in tipos
-        if es_por_turnos(t) or _es_el_preferido(t, clave) or es_agenda_del_equipo(t)
-    }
+    salida = {str(t.get("uri") or "") for t in tipos if es_por_turnos(t) or _es_el_preferido(t, clave)}
     elegido = evento_elegido(tipos, preferido)
     if elegido:
         salida.add(str(elegido.get("uri") or ""))
     return {u for u in salida if u}
-
-
-# ── la agenda del equipo (02/11/2026) ──────────────────────────────────────
-#
-# Pedido (Belén, la segunda closer): "desde el CRM poder cambiar horas sin
-# límite de disponibilidad". La API de Calendly SOLO reserva horas libres del
-# evento (`POST /invitees` contesta 404 si la hora no está en su horario) y no
-# deja elegir el anfitrión de un evento por turnos: al mover una llamada de
-# Belén, Calendly podía dársela a Diego. Lo de «reservar fuera de horario»
-# («Override available times») existe en Calendly, pero solo a mano en su web.
-#
-# La salida: cada closer tiene en SU Calendly un evento 1 a 1, oculto
-# (secreto), llamado «Agenda del equipo», con horario amplio (todo el día),
-# aviso mínimo 0 y Google Meet. La escuela lo encuentra sola (por el slug
-# `agenda-del-equipo` o por el nombre) y, cuando el equipo agenda o cambia una
-# hora desde el panel, puede reservar ahí: salen todas las horas en las que
-# ese closer no tiene nada en su Google Calendar, y la llamada queda en SU
-# calendario y con SU Meet. Sin ese evento, todo sigue como antes (el por
-# turnos, con su horario).
-#
-# Qué agenda puede usar cada uno (`elegir_agenda`): un administrador, todas;
-# un closer, la del closer que lleva a esa persona, o la suya si no la lleva
-# nadie (no le quita la llamada al otro, como en el reparto). Se propone la
-# del closer que la lleva; si no la lleva nadie, la de quien agenda si es
-# closer; si no, el por turnos.
-
-
-def _slug(texto: str) -> str:
-    """«Agenda del equipo» → «agenda-del-equipo» (como Calendly hace los slug)."""
-    import unicodedata
-
-    t = unicodedata.normalize("NFKD", texto or "").encode("ascii", "ignore").decode().lower()
-    return re.sub(r"[^a-z0-9]+", "-", t).strip("-")
-
-
-def es_agenda_del_equipo(t: dict, clave: str = EVENTO_EQUIPO) -> bool:
-    """¿Es la «Agenda del equipo» de un closer? Un evento 1 a 1 (no por
-    turnos) con ese slug (o con un número detrás: Calendly lo añade si el slug
-    ya existía) o con ese nombre. Función pura."""
-    if es_por_turnos(t) or not t.get("active", True):
-        return False
-    clave = _clave(clave)
-    if not clave:
-        return False
-    if _es_el_preferido(t, clave):
-        return True
-    slug = str(t.get("slug") or "").lower()
-    if slug.startswith(clave + "-") and slug[len(clave) + 1:].isdigit():
-        return True
-    return _slug(str(t.get("name") or "")) == clave
-
-
-def agendas_del_equipo(tipos: list[dict], miembros: dict[str, dict], clave: str = EVENTO_EQUIPO) -> list[dict]:
-    """[{email, nombre, uri, tipo}] — una por closer de Calendly, con el
-    correo de su dueño (`profile.owner` → `miembros`). Sin correo conocido, no
-    sale: no se sabría de quién es. Función pura."""
-    salida: dict[str, dict] = {}
-    for t in tipos:
-        if not es_agenda_del_equipo(t, clave):
-            continue
-        perfil = t.get("profile") or {}
-        dueno = miembros.get(str(perfil.get("owner") or "")) or {}
-        email = str(dueno.get("email") or "").strip().lower()
-        if "@" not in email or email in salida:
-            continue
-        salida[email] = {
-            "email": email,
-            "nombre": str(dueno.get("nombre") or perfil.get("name") or email.split("@")[0]),
-            "uri": str(t.get("uri") or ""),
-            "tipo": t,
-        }
-    return sorted(salida.values(), key=lambda a: a["nombre"].lower())
-
-
-def elegir_agenda(agendas: list[dict], lleva: int, actor_id: int, es_admin: bool) -> dict:
-    """Qué agendas puede usar quien agenda y cuál se le propone (ver arriba).
-    `agendas` lleva `closer_id` (0 si su dueño no es nadie de la escuela).
-    Devuelve {"agendas": [{email, nombre, closer_id}], "propuesta": correo o
-    "" (= el por turnos)}. Función pura."""
-    dueno = lleva or actor_id
-    permitidas = [
-        {"email": a["email"], "nombre": a["nombre"], "closer_id": int(a.get("closer_id") or 0)}
-        for a in agendas
-        if es_admin or (int(a.get("closer_id") or 0) and int(a.get("closer_id") or 0) == dueno)
-    ]
-    propuesta = ""
-    for quien in ([lleva] if lleva else [actor_id]):
-        for a in permitidas:
-            if quien and a["closer_id"] == quien:
-                propuesta = a["email"]
-                break
-    return {"agendas": permitidas, "propuesta": propuesta}
 
 
 def telefono_e164(telefono: str) -> str:
@@ -365,12 +262,6 @@ def _preferido() -> str:
     return os.environ.get("LEARNHOUSE_CALENDLY_EVENTO") or EVENTO_POR_DEFECTO
 
 
-def _evento_equipo() -> str:
-    import os
-
-    return os.environ.get("LEARNHOUSE_CALENDLY_EVENTO_EQUIPO") or EVENTO_EQUIPO
-
-
 async def _tipos(cliente: httpx.AsyncClient) -> list[dict]:
     """Los tipos de evento activos de la organización de Calendly (los del
     equipo y los de cada closer); si el token no puede verla, los suyos."""
@@ -398,318 +289,6 @@ async def _tipo(cliente: httpx.AsyncClient) -> dict:
     if not tipo:
         raise FalloCalendly("No hay ningún tipo de evento activo en Calendly")
     return tipo
-
-
-async def _miembros(cliente: httpx.AsyncClient) -> dict[str, dict]:
-    """{uri del usuario de Calendly: {email, nombre}} de la organización (los
-    closers de Calendly Teams). Si el token no puede listarla, al menos él."""
-    yo = (await _pedir(cliente, "GET", f"{A.API}/users/me")).get("resource") or {}
-    salida: dict[str, dict] = {}
-    if yo.get("uri"):
-        salida[str(yo["uri"])] = {"email": str(yo.get("email") or ""), "nombre": str(yo.get("name") or "")}
-    if yo.get("current_organization"):
-        try:
-            datos = await _pedir(
-                cliente, "GET", f"{A.API}/organization_memberships",
-                params={"organization": yo["current_organization"], "count": 100},
-            )
-            for m in datos.get("collection") or []:
-                u = (m or {}).get("user") or {}
-                if u.get("uri"):
-                    salida[str(u["uri"])] = {"email": str(u.get("email") or ""), "nombre": str(u.get("name") or "")}
-        except FalloCalendly as exc:
-            logger.info("Calendly no deja listar la organización (%s): %s", exc.codigo, exc.motivo)
-    return salida
-
-
-async def _agendas(cliente: httpx.AsyncClient) -> list[dict]:
-    """La «Agenda del equipo» de cada closer en Calendly (ver arriba)."""
-    tipos = await _tipos(cliente)
-    clave = _evento_equipo()
-    if not any(es_agenda_del_equipo(t, clave) for t in tipos):
-        return []
-    miembros = await _miembros(cliente)
-    # Un dueño que no salga en la organización: se le pregunta a Calendly.
-    for t in tipos:
-        dueno = str((t.get("profile") or {}).get("owner") or "")
-        if es_agenda_del_equipo(t, clave) and dueno.startswith("http") and dueno not in miembros:
-            try:
-                u = (await _pedir(cliente, "GET", dueno)).get("resource") or {}
-                miembros[dueno] = {"email": str(u.get("email") or ""), "nombre": str(u.get("name") or "")}
-            except FalloCalendly:
-                pass
-    return agendas_del_equipo(tipos, miembros, clave)
-
-
-_agendas_cache: dict = {"hasta": 0.0, "datos": None}
-
-
-async def agendas(forzar: bool = False) -> list[dict]:
-    """Las agendas del equipo, con caché de 5 minutos (se piden al abrir la
-    ventana de agendar y en cada día que se mira)."""
-    import time
-
-    if not forzar and _agendas_cache["datos"] is not None and _agendas_cache["hasta"] > time.time():
-        return _agendas_cache["datos"]
-    async with _cliente() as cliente:
-        datos = await _agendas(cliente)
-    _agendas_cache.update(datos=datos, hasta=time.time() + 300)
-    return datos
-
-
-async def _tipo_para(cliente: httpx.AsyncClient, agenda: str) -> dict:
-    """El evento donde se agenda: con `agenda` (el correo de Calendly de un
-    closer), su «Agenda del equipo», a cualquier hora; sin ella, el de las
-    llamadas (el por turnos)."""
-    agenda = (agenda or "").strip().lower()
-    if not agenda:
-        return await _tipo(cliente)
-    for a in await _agendas(cliente):
-        if a["email"] == agenda:
-            return a["tipo"]
-    raise FalloCalendly(
-        f"No encuentro en Calendly la «Agenda del equipo» de {agenda}. Crea ese evento en su Calendly "
-        "(o elige el horario normal).",
-        404,
-    )
-
-
-async def agendas_para(*, email: str, actor_id: int, es_admin: bool, db_session: AsyncSession) -> dict:
-    """Las agendas que puede usar quien agenda o cambia la llamada de esa
-    persona, y cuál se le propone (`elegir_agenda`). Con el nombre de la
-    escuela de cada closer. En blando: si Calendly falla, sin agendas (queda
-    el por turnos) y el motivo."""
-    vacio = {"agendas": [], "propuesta": "", "lleva": 0, "hay_agendas": False}
-    if not A._token():
-        return vacio
-    try:
-        lista = await agendas()
-    except FalloCalendly as exc:
-        return {**vacio, "error": exc.motivo}
-    except Exception as exc:  # noqa: BLE001
-        logger.exception("No se pudieron leer las agendas del equipo")
-        return {**vacio, "error": f"Calendly no contesta: {exc}"}
-    from src.services.panel.pipeline import _la_asignada, filas_de
-    from src.services.panel.reparto import _equipo_de_la_escuela, closer_del_anfitrion, leer
-
-    org_id, equipo = await _equipo_de_la_escuela(db_session)
-    mapa = (await leer(db_session, org_id or None))["calendly"]
-    con_closer = []
-    for a in lista:
-        closer = closer_del_anfitrion(a["email"], equipo, mapa)
-        con_closer.append({**a, "closer_id": closer["id"] if closer else 0, "nombre": closer["nombre"] if closer else a["nombre"]})
-    lleva = 0
-    email = (email or "").strip().lower()
-    if email:
-        filas = await filas_de(email, db_session)
-        lleva = int(getattr(_la_asignada(filas), "closer_id", 0) or 0) if filas else 0
-    return {**elegir_agenda(con_closer, lleva, actor_id, es_admin), "lleva": lleva, "hay_agendas": bool(lista)}
-
-
-# ── crear la agenda desde la escuela (02/11, segunda vuelta) ───────────────
-#
-# El usuario: "no tengo acceso a su cuenta, tiene que ser otra cosa para no
-# hacerlo desde su cuenta". Desde junio de 2025 la API de Calendly deja CREAR
-# eventos 1 a 1 (`POST /event_types`, con `owner` = el usuario de Calendly del
-# closer) y poner su horario (`PATCH /event_type_availability_schedules`). El
-# token de la escuela es el de la cuenta dueña de la organización de
-# Calendly, así que un administrador de la escuela crea la «Agenda del equipo»
-# de cada closer con un botón (Matrículas → Ventas → «Agendas del equipo»),
-# sin entrar en la cuenta de nadie. Si ya existe, el botón solo le cambia el
-# horario.
-#
-# ⚠️ Escrito sin poder abrir la documentación de Calendly desde este entorno:
-# la forma de las dos peticiones sale de su registro de cambios y de su foro.
-# Por eso cada paso prueba lo razonable y, si Calendly dice que no, la
-# pantalla enseña su motivo TAL CUAL (lo primero que hay que leer). El
-# horario, si no se deja poner, se queda en un aviso: la agenda existe igual,
-# con el horario habitual de ese closer.
-
-#: El horario de la agenda si no se dice otro: de 8:00 a 22:00, todos los días.
-HORARIO_DE_SERIE = ("08:00", "22:00")
-DIAS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
-
-
-def hora_valida(texto: str) -> bool:
-    """¿«HH:MM» entre 00:00 y 23:59? Función pura."""
-    m = re.fullmatch(r"([01]\d|2[0-3]):([0-5]\d)", (texto or "").strip())
-    return bool(m)
-
-
-def reglas_de_horario(desde: str, hasta: str) -> dict:
-    """La disponibilidad de la agenda: de `desde` a `hasta` todos los días, en
-    hora de Países Bajos (como la pide Calendly). Función pura."""
-    return {
-        "timezone": str(ZONA),
-        "rules": [{"type": "wday", "wday": d, "intervals": [{"from": desde, "to": hasta}]} for d in DIAS],
-    }
-
-
-def cuerpo_agenda(owner: str, duracion: int) -> dict:
-    """El evento que se crea: 1 a 1, «Agenda del equipo», secreto, con Google
-    Meet y la duración de la llamada. Función pura."""
-    return {
-        "owner": owner,
-        "name": "Agenda del equipo",
-        "duration": int(duracion or 45),
-        "locations": [{"kind": "google_conference"}],
-        "secret": True,
-    }
-
-
-def _quitable(motivo: str, cuerpo: dict) -> Optional[str]:
-    """Si Calendly rechaza un campo que no es imprescindible (secreto,
-    ubicación), cuál quitar para probar sin él. Función pura."""
-    texto = (motivo or "").lower()
-    for campo in ("secret", "locations", "location"):
-        if campo in texto:
-            clave = "locations" if campo.startswith("location") else campo
-            if clave in cuerpo:
-                return clave
-    return None
-
-
-def explicar_fallo(exc: "FalloCalendly") -> str:
-    """Lo que dijo Calendly, con una pista si es un permiso (403)."""
-    if exc.codigo in (401, 403):
-        return (
-            f"{exc.motivo}. Calendly no deja a la clave de la escuela crear eventos para otros: hace falta que la "
-            "clave (LEARNHOUSE_CALENDLY_TOKEN) sea de un administrador de la cuenta de Calendly y tenga permiso "
-            "para crear eventos y cambiar disponibilidad."
-        )
-    return exc.motivo
-
-
-async def _correo_calendly_de(closer_id: int, db_session: AsyncSession) -> tuple[str, str]:
-    """(correo en Calendly, nombre) de ese miembro del equipo: el apuntado en
-    «Correos de Calendly» o el de su cuenta de la escuela."""
-    from src.services.panel.reparto import _equipo_de_la_escuela, leer
-
-    org_id, equipo = await _equipo_de_la_escuela(db_session)
-    mapa = (await leer(db_session, org_id or None))["calendly"]
-    for m in equipo:
-        if int(m.get("id") or 0) == int(closer_id):
-            return (mapa.get(str(m["id"])) or str(m.get("email") or "")).strip().lower(), str(m.get("nombre") or "")
-    return "", ""
-
-
-async def estado_agendas(db_session: AsyncSession) -> dict:
-    """Los closers (y quien tenga correo de Calendly apuntado) con su correo
-    de Calendly, si están en la organización de Calendly y si ya tienen
-    agenda. Para la pantalla de «Agendas del equipo»."""
-    from src.services.panel.reparto import _equipo_de_la_escuela, leer
-
-    org_id, equipo = await _equipo_de_la_escuela(db_session)
-    mapa = (await leer(db_session, org_id or None))["calendly"]
-    personas = [m for m in equipo if m.get("rol") == "Closer" or str(m.get("id")) in mapa]
-    salida = {"configurado": bool(A._token()), "personas": [], "error": ""}
-    en_calendly: set[str] = set()
-    con_agenda: set[str] = set()
-    if A._token():
-        try:
-            async with _cliente() as cliente:
-                en_calendly = {str(v.get("email") or "").strip().lower() for v in (await _miembros(cliente)).values()}
-                con_agenda = {a["email"] for a in await _agendas(cliente)}
-        except FalloCalendly as exc:
-            salida["error"] = exc.motivo
-        except Exception as exc:  # noqa: BLE001
-            logger.exception("No se pudo leer el equipo de Calendly")
-            salida["error"] = f"Calendly no contesta: {exc}"
-    for m in personas:
-        correo = (mapa.get(str(m["id"])) or str(m.get("email") or "")).strip().lower()
-        salida["personas"].append({
-            "closer_id": int(m["id"]),
-            "nombre": str(m.get("nombre") or ""),
-            "email": correo,
-            "en_calendly": correo in en_calendly,
-            "agenda": correo in con_agenda,
-        })
-    return salida
-
-
-async def crear_agenda(*, closer_id: int, desde: str, hasta: str, db_session: AsyncSession) -> dict:
-    """Crea en Calendly la «Agenda del equipo» de ese closer (o, si ya la
-    tiene, le cambia el horario) y le pone el horario `desde`–`hasta`.
-    Devuelve `ok`, `creada` (si era nueva) y `aviso` (si el horario no se
-    pudo poner); o `motivo` si no se pudo."""
-    desde, hasta = (desde or HORARIO_DE_SERIE[0]).strip(), (hasta or HORARIO_DE_SERIE[1]).strip()
-    if not (hora_valida(desde) and hora_valida(hasta)) or desde >= hasta:
-        return {"ok": False, "motivo": "El horario no vale: pon una hora de inicio anterior a la de fin (HH:MM)"}
-    if not A._token():
-        return {"ok": False, "motivo": "Calendly no está conectado (falta LEARNHOUSE_CALENDLY_TOKEN)"}
-    correo, nombre = await _correo_calendly_de(closer_id, db_session)
-    if "@" not in correo:
-        return {"ok": False, "motivo": "No sé con qué correo está esa persona en Calendly"}
-    pila = (nombre.split(" ")[0] if nombre else correo)
-    creada = False
-    aviso = ""
-    try:
-        async with _cliente() as cliente:
-            miembros = await _miembros(cliente)
-            owner = next((u for u, m in miembros.items() if str(m.get("email") or "").strip().lower() == correo), "")
-            if not owner:
-                return {
-                    "ok": False,
-                    "motivo": f"{pila} no está en la cuenta de Calendly con {correo}. Si usa otro correo en Calendly, "
-                    "apúntalo en «Correos de Calendly».",
-                }
-            tipo = next((a["tipo"] for a in await _agendas(cliente) if a["email"] == correo), None)
-            if tipo is None:
-                base = await _tipo(cliente)
-                cuerpo = cuerpo_agenda(owner, int(base.get("duration") or 45))
-                for _ in range(3):
-                    try:
-                        tipo = (await _pedir(cliente, "POST", f"{A.API}/event_types", json=cuerpo)).get("resource") or {}
-                        break
-                    except FalloCalendly as exc:
-                        quitar = _quitable(exc.motivo, cuerpo) if exc.codigo == 400 else None
-                        if not quitar:
-                            raise
-                        logger.warning("Calendly no acepta «%s» al crear la agenda: se prueba sin él", quitar)
-                        cuerpo = {k: v for k, v in cuerpo.items() if k != quitar}
-                        if quitar == "secret":
-                            aviso += "No se pudo dejar oculta: escóndela en Calendly si sale en su página. "
-                        else:
-                            aviso += "Calendly no aceptó Google Meet al crearla: revisa la ubicación del evento. "
-                creada = True
-            uri = str((tipo or {}).get("uri") or "")
-            if not uri:
-                return {"ok": False, "motivo": "Calendly no devolvió el evento creado"}
-            # El horario. Dos formas, por si la primera no es la que espera.
-            reglas = reglas_de_horario(desde, hasta)
-            ultimo: Optional[FalloCalendly] = None
-            for cuerpo_h in ({"availability_rule": reglas}, {"availability_rule": reglas, "user": owner, "availability_setting": "host"}):
-                try:
-                    await _pedir(
-                        cliente, "PATCH", f"{A.API}/event_type_availability_schedules",
-                        params={"event_type": uri}, json=cuerpo_h,
-                    )
-                    ultimo = None
-                    break
-                except FalloCalendly as exc:
-                    ultimo = exc
-                    if exc.codigo != 400:
-                        break
-            if ultimo is not None:
-                aviso += (
-                    f"La agenda está, pero Calendly no dejó ponerle el horario (dijo: {explicar_fallo(ultimo)}). "
-                    f"Mientras, tendrá el horario habitual de {pila}."
-                )
-    except FalloCalendly as exc:
-        logger.warning("Calendly no dejó crear la agenda (%s): %s", exc.codigo, exc.motivo)
-        return {"ok": False, "motivo": explicar_fallo(exc), "codigo": exc.codigo}
-    except Exception as exc:  # noqa: BLE001
-        logger.exception("No se pudo crear la agenda en Calendly")
-        return {"ok": False, "motivo": f"Calendly no contesta: {exc}"}
-    # Que se vea ya, y que sus avisos cuenten como la llamada.
-    _agendas_cache.update(hasta=0.0, datos=None)
-    try:
-        from src.services.contactos import correo_reserva
-
-        correo_reserva._tipo_cache.update(uris=set(), hasta=0.0)
-    except Exception:  # noqa: BLE001
-        pass
-    return {"ok": True, "creada": creada, "aviso": aviso.strip(), "email": correo}
 
 
 async def anfitrion_del_evento(cliente: httpx.AsyncClient, uri: str) -> str:
@@ -756,9 +335,8 @@ async def _crear_invitado(cliente: httpx.AsyncClient, tipo: dict, nombre: str, e
     raise ultimo or FalloCalendly("Calendly no aceptó ninguna ubicación", 400)
 
 
-async def huecos(dia: str, agenda: str = "") -> dict:
-    """Las horas libres de ese día en el evento de las llamadas o, con
-    `agenda`, en la «Agenda del equipo» de ese closer (cualquier hora)."""
+async def huecos(dia: str) -> dict:
+    """Las horas libres de ese día en el evento de las llamadas."""
     if not A._token():
         return {"configurado": False, "huecos": []}
     try:
@@ -769,7 +347,7 @@ async def huecos(dia: str, agenda: str = "") -> dict:
         return {"configurado": True, "huecos": [], "duracion": 0}
     try:
         async with _cliente() as cliente:
-            tipo = await _tipo_para(cliente, agenda)
+            tipo = await _tipo(cliente)
             datos = await _pedir(
                 cliente, "GET", f"{A.API}/event_type_available_times",
                 params={"event_type": tipo.get("uri", ""), "start_time": _z(desde), "end_time": _z(hasta)},
@@ -790,13 +368,11 @@ async def huecos(dia: str, agenda: str = "") -> dict:
         "huecos": salida,
         "evento": tipo.get("name") or "",
         "duracion": int(tipo.get("duration") or 0),
-        "agenda": (agenda or "").strip().lower(),
     }
 
 
 async def reservar(
-    *, nombre: str, email: str, telefono: str, inicio: str, url_hueco: str, autor: str, db_session: AsyncSession,
-    agenda: str = "",
+    *, nombre: str, email: str, telefono: str, inicio: str, url_hueco: str, autor: str, db_session: AsyncSession
 ) -> dict:
     """Agenda la llamada. `modo`: "reservada" (Calendly ya la tiene y le ha
     escrito a la persona) o "enlace" (hay que confirmar en Calendly con la
@@ -815,7 +391,7 @@ async def reservar(
     plan_b = url_hueco or ""
     try:
         async with _cliente() as cliente:
-            tipo = await _tipo_para(cliente, agenda)
+            tipo = await _tipo(cliente)
             plan_b = plan_b or enlace_de_hora(str(tipo.get("scheduling_url") or ""), cuando)
             creada = await _crear_invitado(cliente, tipo, nombre, email, telefono, cuando)
             # Con el evento por turnos, a quién se la dio Calendly (31/10).
@@ -880,8 +456,6 @@ async def reservar(
 # «Cualquier fecha», con un límite que no es de la escuela: las horas las da
 # Calendly, así que solo salen las de la disponibilidad del evento y dentro de
 # sus «Límites de reserva» (hasta cuántos días por delante, aviso mínimo).
-# Desde el 02/11, con la «Agenda del equipo» del closer (ver arriba), salen
-# todas las horas en las que no tiene nada en su calendario.
 
 TIPO_CAMBIO = "llamada-cambiada"
 TIPO_CANCELADA = "llamada-cancelada"
@@ -978,12 +552,9 @@ async def cambiar_hora(
     autor: str,
     confirmada: bool,
     db_session: AsyncSession,
-    agenda: str = "",
 ) -> dict:
     """Mueve una llamada a otra hora (ver arriba). Devuelve `ok`, la cita
-    nueva (`cita_id`) y, si la vieja no se pudo cancelar, `aviso`. Con
-    `agenda`, la nueva se reserva en la «Agenda del equipo» de ese closer
-    (cualquier hora, y en SU calendario); sin ella, en el por turnos."""
+    nueva (`cita_id`) y, si la vieja no se pudo cancelar, `aviso`."""
     import json
 
     nombre, email, telefono = (nombre or "").strip()[:120], (email or "").strip().lower()[:255], (telefono or "").strip()[:40]
@@ -1014,7 +585,7 @@ async def cambiar_hora(
     aviso = ""
     try:
         async with _cliente() as cliente:
-            tipo = await _tipo_para(cliente, agenda)
+            tipo = await _tipo(cliente)
             creada = await _crear_invitado(cliente, tipo, nombre, email, telefono, cuando)
             # La vieja solo se cancela si aún no ha empezado: Calendly no deja
             # cancelar lo que ya pasó (y entonces solo se agenda la nueva).

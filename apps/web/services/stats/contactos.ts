@@ -290,55 +290,13 @@ export interface Huecos {
   huecos: { inicio: string; url: string }[]
   evento?: string
   duracion?: number
-  /** La «Agenda del equipo» de la que salen (02/11); vacía = el por turnos. */
-  agenda?: string
   error?: string
 }
 
-/**
- * La «Agenda del equipo» de cada closer (02/11): un evento oculto de su
- * Calendly, abierto a cualquier hora. Solo vienen las que puede usar quien
- * agenda; `propuesta` = la que se elige de serie ("" = el por turnos).
- */
-export interface AgendasEquipo {
-  agendas: { email: string; nombre: string; closer_id: number }[]
-  propuesta: string
-  lleva: number
-  hay_agendas: boolean
-  error?: string
-}
-
-export async function getAgendas(orgId: number, email: string, accessToken: string): Promise<AgendasEquipo | null> {
+export async function getHuecos(orgId: number, dia: string, accessToken: string): Promise<Huecos | null> {
   try {
     const res = await fetch(
-      `${getAPIUrl()}contactos/org/${orgId}/agenda/agendas?${new URLSearchParams({ email }).toString()}`,
-      RequestBodyWithAuthHeader('GET', null, null, accessToken)
-    )
-    if (!res.ok) return null
-    return await res.json()
-  } catch {
-    return null
-  }
-}
-
-/** La «Agenda del equipo» de cada closer en Calendly (02/11): quién la tiene. */
-export interface EstadoAgendas {
-  configurado: boolean
-  personas: { closer_id: number; nombre: string; email: string; en_calendly: boolean; agenda: boolean }[]
-  error?: string
-}
-
-export const getEstadoAgendas = (orgId: number, accessToken: string) =>
-  pedir<EstadoAgendas>(`contactos/org/${orgId}/agenda/equipo`, 'GET', null, accessToken)
-
-/** Crea en Calendly la agenda de ese closer (o le cambia el horario), sin entrar en su cuenta. */
-export const crearAgendaEquipo = (orgId: number, datos: { closer_id: number; desde: string; hasta: string }, accessToken: string) =>
-  pedir<{ ok: boolean; creada: boolean; aviso: string; email: string }>(`contactos/org/${orgId}/agenda/equipo/crear`, 'POST', datos, accessToken)
-
-export async function getHuecos(orgId: number, dia: string, accessToken: string, agenda = ''): Promise<Huecos | null> {
-  try {
-    const res = await fetch(
-      `${getAPIUrl()}contactos/org/${orgId}/agenda/huecos?${new URLSearchParams({ dia, agenda }).toString()}`,
+      `${getAPIUrl()}contactos/org/${orgId}/agenda/huecos?dia=${encodeURIComponent(dia)}`,
       RequestBodyWithAuthHeader('GET', null, null, accessToken)
     )
     if (!res.ok) return null
@@ -356,7 +314,7 @@ export async function getHuecos(orgId: number, dia: string, accessToken: string,
  */
 export async function reservarLlamada(
   orgId: number,
-  datos: { nombre: string; email: string; telefono?: string; inicio: string; url?: string; agenda?: string },
+  datos: { nombre: string; email: string; telefono?: string; inicio: string; url?: string },
   accessToken: string
 ): Promise<{ ok: boolean; modo?: 'reservada' | 'enlace'; url?: string; motivo?: string; plan?: boolean; codigo?: number; error?: string }> {
   try {
@@ -380,7 +338,7 @@ export async function reservarLlamada(
  */
 export const cambiarHoraLlamada = (
   orgId: number,
-  datos: { cita_id: string; email: string; nombre: string; telefono?: string; antes: string; inicio: string; confirmada: boolean; agenda?: string },
+  datos: { cita_id: string; email: string; nombre: string; telefono?: string; antes: string; inicio: string; confirmada: boolean },
   accessToken: string
 ) => pedir<{ ok: boolean; cita_id: string; inicio: string; aviso: string }>(`contactos/org/${orgId}/agenda/cambiar`, 'POST', datos, accessToken)
 

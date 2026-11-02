@@ -207,20 +207,3 @@ async def test_si_calendly_no_deja_cancelar_no_se_apunta(db):
                                      inicio=ANTES.isoformat(), mensaje="Te escribo por WhatsApp", autor="Diego", db_session=db)
     assert not r["ok"] and "Event in the past" in r["motivo"]
     assert (await db.execute(select(ContactEvent).where(ContactEvent.kind == R.TIPO_CANCELADA))).scalars().all() == []
-
-
-@pytest.mark.asyncio
-async def test_cambiar_en_la_agenda_de_un_closer(db):
-    """02/11: la hora nueva, en la «Agenda del equipo» de Belén (cualquier
-    hora), no en el por turnos."""
-    from src.tests.services.test_reservar_llamada import AG_BELEN, TURNOS, CalendlyEquipo
-
-    falso = CalendlyEquipo(tipos=[TURNOS, AG_BELEN])
-    falso.reservar_status = 201
-    datos = dict(cita_id="VIEJO:ana@x.com", nombre="Ana Gil", email="ana@x.com", telefono="",
-                 antes=ANTES.isoformat(), inicio=NUEVA.isoformat(), autor="Belén", confirmada=False)
-    with patch.object(A, "_token", lambda: "tok"), patch.object(R, "_cliente", falso):
-        r = await R.cambiar_hora(**datos, db_session=db, agenda="belen@nawar.es")
-    assert r["ok"]
-    reserva = [kw for m, u, kw in falso.pedidos if u.endswith("/invitees")][0]
-    assert reserva["json"]["event_type"] == AG_BELEN["uri"]

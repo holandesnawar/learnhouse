@@ -369,96 +369,13 @@ async def api_huecos(
     request: Request,
     org_id: int,
     dia: str,
-    agenda: str = "",
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ):
-    """Sin `agenda`, las del evento de las llamadas (el por turnos); con el
-    correo de Calendly de un closer, las de su «Agenda del equipo» (02/11)."""
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
     from src.services.contactos.reservar import huecos
 
-    return await huecos(dia, agenda)
-
-
-@router.get("/org/{org_id}/agenda/agendas", summary="Las agendas del equipo que se pueden usar para agendar o cambiar la llamada de una persona.")
-async def api_agendas(
-    request: Request,
-    org_id: int,
-    email: str = "",
-    current_user: PublicUser = Depends(get_current_user),
-    db_session: AsyncSession = Depends(get_db_session),
-):
-    """La «Agenda del equipo» de cada closer (02/11, ver `reservar.py`): un
-    administrador, todas; un closer, la de quien lleva a esa persona o la suya.
-    Con la que se propone."""
-    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
-    from src.services.contactos.reservar import agendas_para
-
-    return await agendas_para(
-        email=email, actor_id=current_user.id, es_admin=await _es_admin(current_user, org_id, db_session),
-        db_session=db_session,
-    )
-
-
-@router.get("/org/{org_id}/agenda/equipo", summary="La «Agenda del equipo» de cada closer en Calendly: si la tiene (administradores).")
-async def api_agendas_equipo(
-    request: Request,
-    org_id: int,
-    current_user: PublicUser = Depends(get_current_user),
-    db_session: AsyncSession = Depends(get_db_session),
-):
-    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
-    if not await _es_admin(current_user, org_id, db_session):
-        raise HTTPException(status_code=403, detail="Solo los administradores")
-    from src.services.contactos.reservar import estado_agendas
-
-    return await estado_agendas(db_session)
-
-
-class PedidoCrearAgenda(BaseModel):
-    closer_id: int
-    #: El horario, en hora de Países Bajos («HH:MM»), todos los días.
-    desde: str = "08:00"
-    hasta: str = "22:00"
-
-
-@router.post("/org/{org_id}/agenda/equipo/crear", summary="Crea en Calendly la «Agenda del equipo» de un closer, o le cambia el horario (administradores).")
-async def api_crear_agenda(
-    request: Request,
-    org_id: int,
-    data: PedidoCrearAgenda,
-    current_user: PublicUser = Depends(get_current_user),
-    db_session: AsyncSession = Depends(get_db_session),
-):
-    """Sin entrar en la cuenta de Calendly del closer (02/11): lo hace la
-    escuela con su conexión a Calendly. Ver `reservar.crear_agenda`."""
-    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
-    if not await _es_admin(current_user, org_id, db_session):
-        raise HTTPException(status_code=403, detail="Solo los administradores")
-    from src.services.contactos.reservar import crear_agenda
-
-    r = await crear_agenda(closer_id=data.closer_id, desde=data.desde, hasta=data.hasta, db_session=db_session)
-    if not r.get("ok"):
-        raise HTTPException(status_code=400, detail=r.get("motivo") or "No se ha podido crear la agenda")
-    return r
-
-
-async def _agenda_permitida(agenda: str, email: str, user, org_id: int, db_session: AsyncSession) -> str:
-    """La agenda pedida, si quien agenda la puede usar (403 si no). Vacía =
-    el por turnos, que puede usar cualquiera del equipo de ventas."""
-    agenda = (agenda or "").strip().lower()
-    if not agenda:
-        return ""
-    from src.services.contactos.reservar import agendas_para
-
-    r = await agendas_para(email=email, actor_id=user.id, es_admin=await _es_admin(user, org_id, db_session), db_session=db_session)
-    if agenda not in {a["email"] for a in r.get("agendas") or []}:
-        raise HTTPException(
-            status_code=403,
-            detail="Esa agenda no la puedes usar: esta llamada la lleva otro closer. Usa la suya o el horario normal.",
-        )
-    return agenda
+    return await huecos(dia)
 
 
 class PedidoReservar(BaseModel):
@@ -469,9 +386,6 @@ class PedidoReservar(BaseModel):
     inicio: str
     #: La página de Calendly de esa hora (por si hay que confirmar allí).
     url: str = ""
-    #: La «Agenda del equipo» de un closer (su correo de Calendly), o vacía
-    #: para el evento por turnos (02/11).
-    agenda: str = ""
 
 
 @router.post("/org/{org_id}/agenda/reservar", summary="Agenda una llamada en Calendly desde la escuela (closer y administradores).")
@@ -485,10 +399,9 @@ async def api_reservar(
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
     from src.services.contactos.reservar import reservar
 
-    agenda = await _agenda_permitida(data.agenda, data.email, current_user, org_id, db_session)
     r = await reservar(
         nombre=data.nombre, email=data.email, telefono=data.telefono, inicio=data.inicio, url_hueco=data.url,
-        autor=_nombre(current_user), db_session=db_session, agenda=agenda,
+        autor=_nombre(current_user), db_session=db_session,
     )
     if not r.get("ok"):
         raise HTTPException(status_code=400, detail=r.get("motivo") or "No se ha podido agendar")
@@ -528,9 +441,6 @@ class PedidoCambiarHora(BaseModel):
     inicio: str
     #: El closer ya lo ha hablado con la persona: la hora nueva, confirmada.
     confirmada: bool = False
-    #: La «Agenda del equipo» donde se reserva la hora nueva (02/11), o vacía
-    #: para el evento por turnos.
-    agenda: str = ""
 
 
 @router.post("/org/{org_id}/agenda/cambiar", summary="Cambia la hora de una llamada en Calendly (closer y administradores).")
@@ -543,26 +453,16 @@ async def api_cambiar_hora(
 ):
     """Reserva la hora nueva y, si sale bien, cancela la vieja (31/10, ver
     `reservar.cambiar_hora`). Cualquiera del equipo de ventas puede mover
-    cualquier llamada. En el por turnos, el closer que la lleva no cambia; en
-    la «Agenda del equipo» de un closer (02/11), pasa a ser de ese closer (un
-    closer solo puede usar la suya o la de quien la lleva)."""
+    cualquier llamada: el closer que la lleva no cambia."""
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
     from src.services.contactos.reservar import cambiar_hora
 
-    agenda = await _agenda_permitida(data.agenda, data.email, current_user, org_id, db_session)
     r = await cambiar_hora(
         cita_id=data.cita_id, nombre=data.nombre, email=data.email, telefono=data.telefono, antes=data.antes,
         inicio=data.inicio, autor=_nombre(current_user), confirmada=data.confirmada, db_session=db_session,
-        agenda=agenda,
     )
     if not r.get("ok"):
         raise HTTPException(status_code=400, detail=r.get("motivo") or "No se ha podido cambiar la hora")
-    # En la agenda de un closer, la llamada queda en SU calendario y con SU
-    # Meet: la tarjeta pasa a ser suya (manda el anfitrión, como al reservar).
-    if agenda:
-        from src.services.panel.reparto import asignar_por_anfitrion
-
-        await asignar_por_anfitrion(data.email, agenda, db_session)
     return r
 
 
