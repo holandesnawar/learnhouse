@@ -240,9 +240,11 @@ export default function NuevaLlamada({
               ) : huecos.huecos.length === 0 ? (
                 <p className="text-[13px] text-gray-700 !whitespace-normal">
                   No quedan horas libres ese día. Prueba con otro.{' '}
-                  {fecha > diaDe(new Date(Date.now() + 30 * 86400000)) ? (
+                  {fecha > diaDe(new Date(Date.now() + 86400000)) ? (
                     <span className="text-gray-500">
-                      Si es una fecha lejana, puede que Calendly no deje reservar tan adelante: el evento → Límites de reserva.
+                      Si ese día tienes huecos, es que el evento de Calendly no deja reservar tan adelante. Para el
+                      equipo está la copia secreta del evento, con más días: si no la hay, que la cree el administrador
+                      en Calendly.
                     </span>
                   ) : null}
                 </p>
