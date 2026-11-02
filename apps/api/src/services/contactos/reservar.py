@@ -29,12 +29,12 @@ Cómo
 Desde el 31/10, también **cambiar la hora** y **cancelar** una llamada desde
 la escuela (`cambiar_hora`, `cancelar_llamada`): ver su bloque más abajo.
 
-Desde el 02/11, si en Calendly hay una copia SECRETA del evento por turnos (con
-más días por delante que el público, que deja solo 2), la escuela agenda y
-cambia horas en esa (`evento_elegido`). La web sigue con el público. Los
-avisos de Calendly de la copia cuentan como la llamada (`tipos_de_llamada`
-acepta todos los por turnos) y la agenda lee todas las citas de la
-organización: la escuela se entera igual.
+Desde el 02/11, si en Calendly hay una copia SECRETA del evento de las
+llamadas (del mismo tipo, con el nombre del público delante y más días por
+delante que el público, que deja solo 2), la escuela agenda y cambia horas en
+esa (`copia_del_equipo`, `evento_elegido`). La web sigue con el público. Los
+avisos de Calendly de la copia cuentan como la llamada (`tipos_de_llamada`) y
+la agenda lee todas las citas de la organización: la escuela se entera igual.
 
 `api.calendly.com` no se alcanza desde el entorno donde se escribió esto: la
 forma de las respuestas está sacada de la documentación, y lo puro tiene test.
@@ -86,41 +86,82 @@ def es_secreto(t: dict) -> bool:
     return bool(t.get("secret"))
 
 
-def evento_elegido(tipos: list[dict], preferido: str = EVENTO_POR_DEFECTO) -> Optional[dict]:
-    """El tipo de evento a agendar. Desde el 31/10, con Calendly Teams, gana
-    el evento «por turnos» (round robin: Calendly elige closer): primero el
-    por turnos con el slug preferido, luego cualquier por turnos, luego el del
-    slug (o dirección) preferido, y si no, el primero activo.
+def _normal(texto: str) -> str:
+    """Sin mayúsculas, tildes ni espacios de más: «Consultoría» = «consultoria»."""
+    import unicodedata
 
-    Desde el 02/11, por delante de todo, un por turnos SECRETO: la copia del
-    evento de las llamadas que el equipo usa con más días por delante (el
-    público deja reservar solo 2 días). Así «Nueva llamada» y «Cambiar hora»
-    de la escuela ofrecen todos esos días sin tocar el evento público."""
+    t = unicodedata.normalize("NFKD", str(texto or "")).encode("ascii", "ignore").decode().lower()
+    return " ".join(t.split())
+
+
+def evento_publico(tipos: list[dict], preferido: str = EVENTO_POR_DEFECTO) -> Optional[dict]:
+    """El evento de las llamadas que reserva la gente (el de la web). Desde el
+    31/10, con Calendly Teams, gana el «por turnos» (round robin: Calendly
+    elige closer): primero el por turnos con el slug preferido, luego
+    cualquier por turnos, luego el del slug (o dirección) preferido, y si no,
+    el primero activo. Los secretos van detrás: son la copia del equipo."""
     activos = [t for t in tipos if t.get("active", True)]
     clave = _clave(preferido)
-    for elegir in (
-        lambda t: es_por_turnos(t) and es_secreto(t),
+    reglas = (
         lambda t: es_por_turnos(t) and _es_el_preferido(t, clave),
         es_por_turnos,
         lambda t: _es_el_preferido(t, clave),
-    ):
-        for t in activos:
-            if elegir(t):
-                return t
-    return activos[0] if activos else None
+    )
+    for grupo in ([t for t in activos if not es_secreto(t)], activos):
+        for elegir in reglas:
+            for t in grupo:
+                if elegir(t):
+                    return t
+    no_secretos = [t for t in activos if not es_secreto(t)]
+    return (no_secretos or activos or [None])[0]
+
+
+def copia_del_equipo(tipos: list[dict], base: Optional[dict]) -> Optional[dict]:
+    """La copia SECRETA del evento de las llamadas que usa el equipo (02/11):
+    el público deja reservar 2 días y la copia, más. Es la copia si está
+    activa, es secreta, es del MISMO tipo que el público (individual con
+    individual, por turnos con por turnos: así nadie le pasa la llamada a otro
+    closer sin querer) y su nombre empieza por el del público («Llamada de
+    Consultoría HN (equipo)»). Con un público por turnos vale además cualquier
+    por turnos secreto. Función pura."""
+    if not base:
+        return None
+    nombre = _normal(base.get("name") or "")
+    tipo = str(base.get("pooling_type") or "").lower()
+    candidatas = [
+        t for t in tipos
+        if t.get("active", True)
+        and es_secreto(t)
+        and str(t.get("uri") or "") != str(base.get("uri") or "")
+        and str(t.get("pooling_type") or "").lower() == tipo
+    ]
+    for t in candidatas:
+        if nombre and _normal(t.get("name") or "").startswith(nombre):
+            return t
+    if es_por_turnos(base) and candidatas:
+        return candidatas[0]
+    return None
+
+
+def evento_elegido(tipos: list[dict], preferido: str = EVENTO_POR_DEFECTO) -> Optional[dict]:
+    """El evento en el que agenda y cambia horas la escuela: la copia secreta
+    del equipo si existe (más días por delante) y si no, el público."""
+    base = evento_publico(tipos, preferido)
+    return copia_del_equipo(tipos, base) or base
 
 
 def tipos_de_llamada(tipos: list[dict], preferido: str = EVENTO_POR_DEFECTO) -> set[str]:
     """Las direcciones de los eventos que son «la llamada de admisión»: el
-    elegido, los por turnos y los que llevan el slug preferido (el enlace
-    personal de cada closer, si lo crea con el mismo slug, y el viejo durante
-    el cambio). Lo usa el aviso de Calendly para no tratar como llamada una
-    reunión cualquiera. Función pura."""
+    público, su copia del equipo, los por turnos y los que llevan el slug
+    preferido (el enlace personal de cada closer, si lo crea con el mismo
+    slug, y el viejo durante el cambio). Lo usa el aviso de Calendly para no
+    tratar como llamada una reunión cualquiera. Función pura."""
     clave = _clave(preferido)
     salida = {str(t.get("uri") or "") for t in tipos if es_por_turnos(t) or _es_el_preferido(t, clave)}
-    elegido = evento_elegido(tipos, preferido)
-    if elegido:
-        salida.add(str(elegido.get("uri") or ""))
+    base = evento_publico(tipos, preferido)
+    for t in (base, copia_del_equipo(tipos, base)):
+        if t:
+            salida.add(str(t.get("uri") or ""))
     return {u for u in salida if u}
 
 
