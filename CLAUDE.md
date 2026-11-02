@@ -4757,6 +4757,13 @@ Friday»** (por qué, en la cabecera de `services/ebook/ebook.py`).
     `utm_medium=barra`, `utm_content=barra-<home|blog|vision>`; nunca un medio
     de pago. Se esconde sola pasado el 30/11 (`bfTerminado`). La página baja
     lo que mide la barra (un hueco del mismo alto antes del menú fijo).
+    ⚠️ **En el azul de la marca (#1D0084), no en negro** (02/11, PR #200;
+    usuario: "con fondo negro queda feo"), como la barra del logo de /oferta.
+  - **La portada de la lista tiene el ancho de la home** (02/11, PR #200;
+    "tiene que tener el ancho del home"): 1104 px de contenido (la caja
+    `max-w-6xl` de la home menos sus 24 px de margen). Antes 1240: llegaba casi
+    a los bordes. El titular sale en tres renglones («Únete a la / lista
+    prioritaria del / Black Friday»).
   - **Formulario** (`black-friday/admision.astro`): copia de
     `/proceso-agendar` con **la edad la primera pregunta** (solo aquí) y los
     datos ya puestos; `embudo: 'black-friday'` → systeme.io `origen =
