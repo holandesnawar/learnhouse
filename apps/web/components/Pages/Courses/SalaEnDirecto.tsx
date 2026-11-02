@@ -7,9 +7,11 @@
  *
  * - Alumno: solo la ve si la sala está encendida, con quién hay dentro.
  * - El equipo (administradores, moderadores y profes, desde el 02/11/2026):
- *   la ve siempre; la enciende y la apaga, decide si se graba (de serie sí, en
- *   cuanto entra alguien) y baja las grabaciones. La etiqueta («Groep rood»),
- *   solo los administradores.
+ *   la ve siempre; la enciende, la apaga y baja las grabaciones. Se graba
+ *   SIEMPRE, sola, en cuanto entra alguien: ya no hay casilla (02/11/2026,
+ *   "graba de principio a fin y listo"). Al alumno solo se le dice aquí, en
+ *   una línea antes de entrar («La sesión se graba»); dentro de la sala, nada.
+ *   La etiqueta («Groep rood»), solo los administradores.
  */
 
 import React, { useCallback, useEffect, useState } from 'react'
@@ -74,7 +76,7 @@ function Grabaciones({ curso, token }: { curso: string; token: string }) {
   if (!lista.length)
     return (
       <p className="text-[13px] text-[#5A6480]">
-        Aún no hay grabaciones. Con la grabación puesta, se graba sola en cuanto entra alguien a la sala.
+        Aún no hay grabaciones. Cada clase se graba sola, de principio a fin, en cuanto entra alguien a la sala.
       </p>
     )
   return (
@@ -157,7 +159,7 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
     }
   }
 
-  async function cambiar(cambios: { activo?: boolean; grabar?: boolean; grabadas?: boolean }) {
+  async function cambiar(cambios: { activo?: boolean; grabadas?: boolean }) {
     setGuardando(true)
     try {
       const r = await guardarSala(curso, cambios, token)
@@ -172,11 +174,7 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
             : 'Las clases grabadas ya no salen en esta página'
           : cambios.activo === true
           ? 'Sala encendida'
-          : cambios.activo === false
-            ? 'Sala apagada'
-            : r.grabar
-              ? 'Se grabará sola en cuanto entre alguien'
-              : 'Ya no se graba'
+          : 'Sala apagada'
       )
     } catch (e: any) {
       toast.error(e.message)
@@ -260,16 +258,6 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
         </p>
       )}
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-        <label className="inline-flex items-center gap-2 text-[13px] text-gray-900 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={sala.grabar}
-            disabled={guardando}
-            onChange={(e) => cambiar({ grabar: e.target.checked })}
-            className="accent-[#025dc7]"
-          />
-          Grabar sola en cuanto entra alguien
-        </label>
         {casillaGrabadas}
         <button
           onClick={() => setVerGrabaciones((v) => !v)}
@@ -327,8 +315,7 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
           </p>
           {dentro.length > 0 && <p className="text-[13px] text-[#3F4A61] mt-0.5 truncate">{dentro.join(', ')}</p>}
           <p className="text-[12.5px] text-[#5A6480] mt-1.5">
-            Entras con tu nombre, sin salir de la escuela.
-            {sala.grabar ? ' La sesión se graba.' : ''}
+            Entras con tu nombre, sin salir de la escuela. La sesión se graba.
           </p>
         </div>
         <Link
