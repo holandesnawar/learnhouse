@@ -88,9 +88,9 @@ def test_ajustes_por_curso_apagada_y_grabando_de_serie():
     assert salas.leer_config({}, CURSO) == {"activo": False, "grabar": True}
     config = {"salas": {"8a1d1fab-ffbb-44ef-8f21-04ef63676d6e": {"activo": True}}}
     assert salas.leer_config(config, CURSO) == {"activo": True, "grabar": True}
-    # Solo deja de grabarse si alguien quita la casilla.
+    # Desde el 02/11/2026 no hay casilla: un «grabar: false» de antes no cuenta.
     config = {"salas": {"8a1d1fab-ffbb-44ef-8f21-04ef63676d6e": {"activo": True, "grabar": False}}}
-    assert salas.leer_config(config, CURSO) == {"activo": True, "grabar": False}
+    assert salas.leer_config(config, CURSO) == {"activo": True, "grabar": True}
 
 
 def test_nombre_visible():
@@ -110,6 +110,9 @@ def test_cualquiera_que_entra_arranca_la_grabacion():
     profe = salas.propiedades_entrada("nawar-x", "Paul", 3, anfitrion=True, grabar=True, ahora=1000)
     assert profe["is_owner"] is True
     assert profe["enable_recording"] == "cloud" and profe["start_cloud_recording"] is True
+
+    # Nadie ve el botón de grabar: ni el alumno ni el equipo la paran a mano.
+    assert alumno["enable_recording_ui"] is False and profe["enable_recording_ui"] is False
 
     sin_grabar = salas.propiedades_entrada("nawar-x", "Paul", 3, anfitrion=True, grabar=False, ahora=1000)
     assert "start_cloud_recording" not in sin_grabar and "enable_recording" not in sin_grabar
@@ -199,8 +202,9 @@ async def test_guardar_ajustes(db, org):
     await _con_config(db, org)
     assert await salas.config_de(org.id, CURSO, db) == {"activo": False, "grabar": True}
     assert await salas.guardar_config(org.id, CURSO, True, None, db) == {"activo": True, "grabar": True}
-    assert await salas.guardar_config(org.id, CURSO, None, False, db) == {"activo": True, "grabar": False}
-    assert await salas.config_de(org.id, CURSO.replace("course_", ""), db) == {"activo": True, "grabar": False}
+    # Quitar la grabación ya no se puede: se graba siempre (02/11/2026).
+    assert await salas.guardar_config(org.id, CURSO, None, False, db) == {"activo": True, "grabar": True}
+    assert await salas.config_de(org.id, CURSO.replace("course_", ""), db) == {"activo": True, "grabar": True}
     assert await salas.guardar_config(org.id, CURSO, None, True, db) == {"activo": True, "grabar": True}
 
 

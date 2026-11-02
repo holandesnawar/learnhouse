@@ -24,17 +24,19 @@
  *   cambia su caja, así la llamada no se corta. Además, el botón de pantalla
  *   completa de la propia sala de Daily (`showFullscreenButton`), con el permiso
  *   `fullscreen` en su iframe.
- * - **¿Se está grabando?**: la sala escucha a Daily (`recording-started`,
- *   `recording-stopped`, `recording-error`) y lo dice arriba: «● Grabando» o
- *   por qué no. Si a los 6 s de entrar nadie ha empezado a grabar y quien
- *   entra es anfitrión, la empieza él (`startRecording`). Antes no había forma
- *   de saber si grababa: "abrí algunas salas y no veo grabación".
+ * - **Grabar, sin botones ni avisos** (02/11/2026: "graba de principio a fin
+ *   y listo"): se graba siempre, la empieza el primero que entra y nadie ve el
+ *   botón de grabar (lo esconde la entrada que da la escuela). Esta pantalla
+ *   no dice nada de la grabación; solo si Daily NO deja grabar, el equipo
+ *   (anfitrión) ve el motivo, y el alumno nada. Si a los 6 s de entrar nadie ha
+ *   empezado a grabar y quien entra es anfitrión, la empieza él
+ *   (`startRecording`).
  */
 
 import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Circle, AlertTriangle, Loader2, Maximize2, Minimize2 } from 'lucide-react'
+import { ArrowLeft, AlertTriangle, Loader2, Maximize2, Minimize2 } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { entrarSala, type EntradaSala } from '@services/salas/salas'
 
@@ -198,14 +200,6 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
         <h1 className="text-lg sm:text-xl font-bold text-gray-900 truncate">
           {entrada?.curso ? `Sala · ${entrada.curso}` : 'Sala en directo'}
         </h1>
-        {entrada?.grabar && !entrada.aviso ? (
-          grabacion.estado === 'error' ? null : (
-            <span className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#B4413C]">
-              <Circle size={9} className={`fill-[#B4413C] text-[#B4413C] ${grabacion.estado === 'grabando' ? 'animate-pulse' : ''}`} />
-              {grabacion.estado === 'grabando' ? 'Grabando' : grabacion.estado === 'parada' ? 'Grabación parada' : 'Esta sesión se graba'}
-            </span>
-          )
-        ) : null}
         {entrada && !error ? (
           <button
             onClick={alternarGrande}
@@ -216,13 +210,14 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
         ) : null}
       </div>
 
-      {grabacion.estado === 'error' ? (
+      {/* Solo el equipo ve por qué no se graba; el alumno, nada. */}
+      {grabacion.estado === 'error' && entrada?.anfitrion ? (
         <p className="bg-[#FFFBF2] text-[#8A6A2A] rounded-xl px-3 py-2 text-[13px] flex items-start gap-2">
           <AlertTriangle size={15} className="shrink-0 mt-0.5" /> No se está grabando. Lo que dice Daily: {grabacion.motivo}
         </p>
       ) : null}
 
-      {entrada?.aviso && (
+      {entrada?.aviso && entrada.anfitrion && (
         <p className="bg-[#FFFBF2] text-[#8A6A2A] rounded-xl px-3 py-2 text-[13px] flex items-start gap-2">
           <AlertTriangle size={15} className="shrink-0 mt-0.5" /> {entrada.aviso}
         </p>

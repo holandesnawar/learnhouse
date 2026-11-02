@@ -102,13 +102,15 @@ async def api_entrar(
         datos = await salas.entrar(curso.course_uuid, current_user, equipo, ajustes["grabar"])
     except salas.SalaError as exc:
         raise _error(exc) from exc
-    # `grabar` es el ajuste del curso: desde el 02/11 cualquiera que entra
-    # arranca la grabación, y la pantalla avisa de que la sesión se graba.
+    # `grabar` es siempre verdad desde el 02/11: cualquiera que entra arranca
+    # la grabación, sin botón ni aviso en la sala.
     return {**datos, "curso": curso.name, "grabar": ajustes["grabar"]}
 
 
 class SalaIn(BaseModel):
     activo: Optional[bool] = None
+    # Ya no se usa (se graba siempre, 02/11/2026); se acepta para no romper
+    # una pestaña abierta con la pantalla vieja.
     grabar: Optional[bool] = None
     # Si la página enseña las clases grabadas (27/10).
     grabadas: Optional[bool] = None

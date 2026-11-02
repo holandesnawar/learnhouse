@@ -108,7 +108,7 @@ async def test_el_profe_enciende_la_sala_y_cambia_el_recuadro_pero_no_la_etiquet
     r = await rutas.api_guardar(_req(), "directo1", rutas.SalaIn(activo=True), profe, db)
     assert r["activo"] is True and r["grabar"] is True
     r = await rutas.api_guardar(_req(), "directo1", rutas.SalaIn(grabar=False), profe, db)
-    assert r["grabar"] is False
+    assert r["grabar"] is True  # se graba siempre (02/11/2026)
     with pytest.raises(HTTPException) as exc:
         await rutas.api_guardar(_req(), "directo1", rutas.SalaIn(etiqueta="Groep rood"), profe, db)
     assert exc.value.status_code == 403 and "administrador" in exc.value.detail
