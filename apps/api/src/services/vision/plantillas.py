@@ -719,7 +719,7 @@ def plan_black_friday(desde: str = "", hasta: str = "") -> dict:
         },
         # Los correos a quien compró (campaña «Compradores» de systeme.io).
         correo("c1", "sys-c1", "Correo · Lo que de verdad hemos preparado", COR, F[5], "día 1"),
-        correo("c3", "sys-c3", "Correo · Por qué el neerlandés se atasca", COR, F[6], "día 3"),
+        correo("c3", "sys-c3", "Correo · La historia de Maite", COR, F[6], "día 3"),
         correo("c5", "sys-c5", "Correo · «No tengo tiempo»…", COR, F[7], "día 5"),
         correo("c7", "sys-c7", "Correo · Así es una semana", COR, F[8], "día 7"),
         {
