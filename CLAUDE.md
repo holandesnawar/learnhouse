@@ -4891,6 +4891,15 @@ la tarjeta blanca de antes.
 «Gratis · Sin spam · Baja cuando quieras»** (usuario: "no pega y empeora la
 conversión"), y la línea legal es solo «Al apuntarte aceptas la política de
 privacidad.», sin «y recibir nuestros correos sobre la oferta».
+Esa misma noche (nawar-web PR #196, con la de YouTalk delante): el logo más
+grande (46 px; 40 en el móvil; solo en esta página), la entradilla «Apúntate
+gratis y accede antes que nadie a **la mejor oferta del año** para
+**transformar tu neerlandés** de una vez por todas» (sin «de Holandés Nawar»)
+y, debajo de «Hasta el lunes 30 de noviembre», el recuadro «Solo por
+apuntarte» con la portada del libro (`public/img/black-friday/libro/cover.webp`):
+«Obtienes nuestra primera oferta: el libro «Holandés sin miedo», de 70
+páginas, por 1 € ~~12,50 €~~». ⚠️ Desde aquí la portada SÍ dice cuál es la
+oferta (antes, a propósito, no decía nada: «descubre lo que hemos preparado»).
 "Ese tiene que ser el título de la web… y que el título quede en una frase".
 Se probó con la página en BLANCO y el formulario en una tarjeta azul (#169) y
 **no gustó**: "dale la vuelta de nuevo… pero haz el bloque de formulario más
