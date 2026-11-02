@@ -61,7 +61,19 @@ function TablaAcceso({ filas, enlace }: { filas: AccesoRecurso[]; enlace: (f: Ac
               Cambiar
             </Link>
           </span>
-          {f.aviso ? <p className="w-full text-[12.5px] text-[#B4413C]">{f.aviso}</p> : null}
+          {f.aviso ? (
+            <p className="w-full text-[12.5px] text-[#B4413C]">
+              {f.aviso}
+              {f.colaboradores?.length ? (
+                <>
+                  {' '}
+                  <Link href={`/dash/courses/course/${f.uuid}/contributors`} className={ENLACE}>
+                    Colaboradores
+                  </Link>
+                </>
+              ) : null}
+            </p>
+          ) : null}
         </div>
       ))}
     </div>
@@ -162,7 +174,7 @@ export default function TandasPanel() {
   const decididos = datos.nuevos.filter((a) => a.programa)
   const betaG = datos.grupos.find((g) => g.es_beta)
   const semanal = datos.cursos.find((c) => c.uuid === CURSO_CLASE_SEMANAL_UUID)
-  const semanalSoloBeta = !!semanal && !semanal.aviso && semanal.grupos.length > 0 && semanal.texto.startsWith('Solo')
+  const semanalSoloBeta = !!semanal && semanal.grupos.length > 0 && semanal.texto.startsWith('Solo')
   const canalesAbiertos = datos.canales.filter((c) => !c.texto.startsWith('Solo')).length
   const pasos: { hecho: boolean; texto: React.ReactNode }[] = [
     { hecho: datos.activo, texto: 'Encender «Alumnos nuevos al programa nuevo» con el día del cambio (abajo).' },

@@ -383,3 +383,63 @@ async def test_el_alta_solo_mete_a_quien_entra_ahora(db, org, monkeypatch):
     vieja = await _alumno(db, org, 50, "vieja@x.com", entro="2026-10-28 08:00:00")
     await payments._create_paid_user("vieja@x.com", "Vieja", db)
     assert llamadas == [nueva.id] and vieja.id not in llamadas
+
+
+def test_avisos_de_colaboradores_y_cursos_repetidos():
+    assert tandas.aviso_colaboradores([]) == ""
+    uno = tandas.aviso_colaboradores(["Nawar"])
+    assert "También lo ve Nawar" in uno and "Colaboradores" in uno
+    assert "Ana y Luis" in tandas.aviso_colaboradores(["Ana", "Luis"])
+
+    miembros = {1: {10, 11, 12}, 2: {12}, 3: {11}}
+    alumnos = {10, 11, 12, 13}
+    assert tandas.alumnos_que_lo_ven(False, True, [1], miembros, alumnos) == {10, 11, 12}
+    assert tandas.alumnos_que_lo_ven(False, True, [], miembros, alumnos) == alumnos  # sin grupos: todos
+    assert tandas.alumnos_que_lo_ven(False, False, [1], miembros, alumnos) == set()  # sin publicar
+    dobles = tandas.repetidos([
+        {"uuid": "a", "base": "Clase semanal", "nombre": "Clase semanal · Groep blauw", "ven": {10, 11, 12}},
+        {"uuid": "b", "base": "Clase semanal", "nombre": "Clase semanal · Groep rood", "ven": {12}},
+        {"uuid": "c", "base": "Masterclass", "nombre": "Masterclass", "ven": {12}},
+    ])
+    assert dobles == {"a": [("Clase semanal · Groep rood", 1)], "b": [("Clase semanal · Groep blauw", 1)]}
+    assert "1 alumno ve también «Clase semanal · Groep rood»" in tandas.aviso_repetido(dobles["a"])
+
+
+async def test_quien_ve_que_dice_los_colaboradores_y_las_clases_repetidas(db, org):
+    """El caso del 02/11/2026: una cuenta de Groep rood (rol closer) veía el
+    Spreken Club, cerrado a «Programa nuevo», porque era colaboradora del curso;
+    y los de Groep rood, que seguían en «Beta», veían las dos «Clase semanal»."""
+    from src.db.resource_authors import ResourceAuthor, ResourceAuthorshipEnum, ResourceAuthorshipStatusEnum
+    from src.db.usergroup_resources import UserGroupResource
+
+    await _escuela(db, org)
+    rood = await _alumno(db, org, 20, "rood@x.com")
+    solo_beta = await _alumno(db, org, 21, "beta@x.com")
+    closer = await _alumno(db, org, 22, "closer@x.com", rol=6)
+    profe = await _alumno(db, org, 23, "profe@x.com", rol=5)
+    grupos = {}
+    for gid, nombre in ((40, "Beta"), (41, "Beta - Rood"), (42, "Programa nuevo")):
+        grupos[nombre] = UserGroup(id=gid, name=nombre, description="", org_id=org.id, usergroup_uuid=f"ug_{gid}",
+                                   creation_date="", update_date="")
+        db.add(grupos[nombre])
+    for i, (uuid, nombre) in enumerate((("course_original", "Clase semanal"), ("course_copia", "Clase semanal"),
+                                        ("course_spreken", "Spreken Club")), start=50):
+        db.add(Course(id=i, name=nombre, description="", public=False, published=True, open_to_contributors=False,
+                      org_id=org.id, course_uuid=uuid, creation_date="", update_date=""))
+    await db.commit()
+    for gid, uid in ((40, rood.id), (40, solo_beta.id), (41, rood.id), (41, closer.id)):
+        db.add(UserGroupUser(usergroup_id=gid, user_id=uid, org_id=org.id, creation_date="", update_date=""))
+    for gid, uuid in ((40, "course_original"), (41, "course_copia"), (42, "course_spreken")):
+        db.add(UserGroupResource(usergroup_id=gid, resource_uuid=uuid, org_id=org.id, creation_date="", update_date=""))
+    for uid in (closer.id, profe.id):  # el profe ya lo ve todo: no cuenta
+        db.add(ResourceAuthor(resource_uuid="course_spreken", user_id=uid, authorship=ResourceAuthorshipEnum.CONTRIBUTOR,
+                              authorship_status=ResourceAuthorshipStatusEnum.ACTIVE, creation_date="", update_date=""))
+    await db.commit()
+
+    cursos = {c["uuid"]: c for c in (await tandas.resumen(org.id, db))["cursos"]}
+    spreken = cursos["spreken"]
+    assert spreken["texto"] == "Solo Programa nuevo"
+    assert spreken["colaboradores"] == ["Alumno22"]
+    assert "También lo ve Alumno22" in spreken["aviso"]
+    assert "1 alumno ve también «Clase semanal»" in cursos["original"]["aviso"]
+    assert "1 alumno ve también «Clase semanal»" in cursos["copia"]["aviso"]
