@@ -123,6 +123,35 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
     if (!entrada || sinLibreria || !contenedor.current) return
     let vivo = true
     let llamada: any = null
+    // Volver a grabar, solo el anfitrión y con freno: como mucho 6 veces por
+    // visita y 15 s entre una y otra, para no hacer un bucle si Daily la corta
+    // nada más empezar.
+    let intentos = 0
+    let ultimo = 0
+    let espera: number | undefined
+    const grabarDeNuevo = (ms: number) => {
+      if (!entrada.grabar || !entrada.anfitrion) return
+      window.clearTimeout(espera)
+      espera = window.setTimeout(() => {
+        if (!vivo || !llamada) return
+        if (grabacionRef.current === 'grabando' || grabacionRef.current === 'error') return
+        try {
+          if (llamada.meetingState() !== 'joined-meeting') return
+        } catch {
+          return
+        }
+        if (intentos >= 6) return
+        const pronto = 15000 - (Date.now() - ultimo)
+        if (pronto > 0) return grabarDeNuevo(pronto)
+        intentos += 1
+        ultimo = Date.now()
+        try {
+          llamada.startRecording()
+        } catch {
+          /* lo dirá recording-error */
+        }
+      }, ms)
+    }
     ;(async () => {
       try {
         const { default: DailyIframe } = await import('@daily-co/daily-js')
@@ -146,11 +175,23 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
         } catch {
           /* sin el botón de Daily: queda el nuestro */
         }
-        // «Salir» dentro de la llamada = de vuelta al curso.
-        llamada.on('left-meeting', () => router.push(volver))
+        // «Salir» dentro de la llamada = de vuelta al curso. Solo con la sala
+        // en pantalla: al irse a otra página por la barra, cerrar la llamada
+        // también avisa de «left-meeting», y no hay que mandarle al curso.
+        llamada.on('left-meeting', () => {
+          if (vivo) router.push(volver)
+        })
         // ¿Se está grabando? (02/11/2026)
         llamada.on('recording-started', () => vivo && setGrabacion({ estado: 'grabando' }))
-        llamada.on('recording-stopped', () => vivo && setGrabacion({ estado: 'parada' }))
+        llamada.on('recording-stopped', () => {
+          if (!vivo) return
+          setGrabacion({ estado: 'parada' })
+          // Nadie la para a mano (no hay botón): si se ha parado, es que Daily
+          // la ha cortado (todos sin cámara ni micro unos minutos, tiempo
+          // máximo…). El anfitrión la vuelve a poner. Con un poco de azar para
+          // que dos anfitriones no lo intenten a la vez.
+          grabarDeNuevo(3000 + Math.random() * 3000)
+        })
         llamada.on('recording-error', (ev: any) => {
           const motivo = String(ev?.errorMsg || ev?.error || 'Daily no ha podido grabar')
           // Otra persona ya la había empezado: no es un fallo.
@@ -158,17 +199,8 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
           if (vivo) setGrabacion({ estado: 'error', motivo })
         })
         if (entrada.grabar) {
-          llamada.on('joined-meeting', () => {
-            window.setTimeout(() => {
-              // Nadie la ha empezado: la empieza el anfitrión.
-              if (!vivo || grabacionRef.current !== 'esperando' || !entrada.anfitrion) return
-              try {
-                llamada.startRecording()
-              } catch {
-                /* lo dirá recording-error */
-              }
-            }, 6000)
-          })
+          // Si a los 6 s nadie la ha empezado, la empieza el anfitrión.
+          llamada.on('joined-meeting', () => grabarDeNuevo(6000))
         }
       } catch {
         if (vivo) setSinLibreria(true)
@@ -179,6 +211,7 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
     })()
     return () => {
       vivo = false
+      window.clearTimeout(espera)
       try {
         llamada?.destroy()
       } catch {
@@ -229,6 +262,9 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
           <span>
             {error}
             <br />
+            <button onClick={() => window.location.reload()} className="font-semibold underline mr-4">
+              Volver a intentarlo
+            </button>
             <Link href={volver} className="font-semibold underline">
               Volver al curso
             </Link>
