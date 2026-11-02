@@ -321,6 +321,20 @@ export async function getAgendas(orgId: number, email: string, accessToken: stri
   }
 }
 
+/** La «Agenda del equipo» de cada closer en Calendly (02/11): quién la tiene. */
+export interface EstadoAgendas {
+  configurado: boolean
+  personas: { closer_id: number; nombre: string; email: string; en_calendly: boolean; agenda: boolean }[]
+  error?: string
+}
+
+export const getEstadoAgendas = (orgId: number, accessToken: string) =>
+  pedir<EstadoAgendas>(`contactos/org/${orgId}/agenda/equipo`, 'GET', null, accessToken)
+
+/** Crea en Calendly la agenda de ese closer (o le cambia el horario), sin entrar en su cuenta. */
+export const crearAgendaEquipo = (orgId: number, datos: { closer_id: number; desde: string; hasta: string }, accessToken: string) =>
+  pedir<{ ok: boolean; creada: boolean; aviso: string; email: string }>(`contactos/org/${orgId}/agenda/equipo/crear`, 'POST', datos, accessToken)
+
 export async function getHuecos(orgId: number, dia: string, accessToken: string, agenda = ''): Promise<Huecos | null> {
   try {
     const res = await fetch(

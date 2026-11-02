@@ -401,6 +401,49 @@ async def api_agendas(
     )
 
 
+@router.get("/org/{org_id}/agenda/equipo", summary="La «Agenda del equipo» de cada closer en Calendly: si la tiene (administradores).")
+async def api_agendas_equipo(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    if not await _es_admin(current_user, org_id, db_session):
+        raise HTTPException(status_code=403, detail="Solo los administradores")
+    from src.services.contactos.reservar import estado_agendas
+
+    return await estado_agendas(db_session)
+
+
+class PedidoCrearAgenda(BaseModel):
+    closer_id: int
+    #: El horario, en hora de Países Bajos («HH:MM»), todos los días.
+    desde: str = "08:00"
+    hasta: str = "22:00"
+
+
+@router.post("/org/{org_id}/agenda/equipo/crear", summary="Crea en Calendly la «Agenda del equipo» de un closer, o le cambia el horario (administradores).")
+async def api_crear_agenda(
+    request: Request,
+    org_id: int,
+    data: PedidoCrearAgenda,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    """Sin entrar en la cuenta de Calendly del closer (02/11): lo hace la
+    escuela con su conexión a Calendly. Ver `reservar.crear_agenda`."""
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    if not await _es_admin(current_user, org_id, db_session):
+        raise HTTPException(status_code=403, detail="Solo los administradores")
+    from src.services.contactos.reservar import crear_agenda
+
+    r = await crear_agenda(closer_id=data.closer_id, desde=data.desde, hasta=data.hasta, db_session=db_session)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo") or "No se ha podido crear la agenda")
+    return r
+
+
 async def _agenda_permitida(agenda: str, email: str, user, org_id: int, db_session: AsyncSession) -> str:
     """La agenda pedida, si quien agenda la puede usar (403 si no). Vacía =
     el por turnos, que puede usar cualquiera del equipo de ventas."""

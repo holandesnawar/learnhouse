@@ -327,8 +327,8 @@ export default function NuevaLlamada({
               </div>
             ) : agendas && !agendas.hay_agendas ? (
               <p className={`${META} !whitespace-normal`}>
-                Solo salen las horas del horario de Calendly. Para poder elegir cualquier hora, cada closer necesita en su
-                Calendly un evento oculto llamado «Agenda del equipo».
+                Solo salen las horas del horario de Calendly. Para poder elegir cualquier hora, un administrador crea la «Agenda
+                del equipo» de cada closer en Matrículas → Ventas → «Agendas del equipo».
               </p>
             ) : null}
 
