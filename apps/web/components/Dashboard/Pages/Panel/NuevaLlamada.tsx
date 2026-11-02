@@ -14,12 +14,26 @@
  * Si Calendly no deja reservar desde fuera (su plan gratis), en vez de fallar
  * se ofrece su página de esa hora con el nombre y el correo puestos: un clic
  * en «Programar evento» y listo. Ver apps/api/src/services/contactos/reservar.py.
+ *
+ * «Agenda» (02/11): si el closer tiene en su Calendly el evento oculto
+ * «Agenda del equipo», se puede agendar o mover la llamada ahí, a CUALQUIER
+ * hora en la que no tenga nada en su calendario, y queda en SU Calendly. Sin
+ * él, solo las horas del evento por turnos (su horario). El servidor dice qué
+ * agendas puede usar cada uno y cuál proponer (`reservar.elegir_agenda`).
  */
 
 import React, { useEffect, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
-import { cambiarHoraLlamada, getHuecos, reservarLlamada, type Cita, type Huecos } from '@services/stats/contactos'
+import {
+  cambiarHoraLlamada,
+  getAgendas,
+  getHuecos,
+  reservarLlamada,
+  type AgendasEquipo,
+  type Cita,
+  type Huecos,
+} from '@services/stats/contactos'
 import { CalendarClock, CalendarPlus, ExternalLink, Loader2, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { ZONA_ESCUELA, horaEscuela } from '@/lib/nawar/recordatorioLlamada'
@@ -30,6 +44,23 @@ const CAMPO =
 
 /** AAAA-MM-DD de una fecha, en Países Bajos. */
 const diaDe = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: ZONA_ESCUELA })
+
+/** La hora (0-23) de una fecha en Países Bajos. */
+const horaNL = (iso: string) => Number(new Date(iso).toLocaleString('en-GB', { hour: '2-digit', hourCycle: 'h23', timeZone: ZONA_ESCUELA }))
+
+/** Con muchas horas (la agenda abierta todo el día), por franjas. */
+function porFranjas(lista: { inicio: string; url: string }[]) {
+  if (lista.length <= 16) return [{ nombre: '', horas: lista }]
+  const franjas = [
+    { nombre: 'Mañana', horas: lista.filter((h) => horaNL(h.inicio) < 12) },
+    { nombre: 'Tarde', horas: lista.filter((h) => horaNL(h.inicio) >= 12 && horaNL(h.inicio) < 18) },
+    { nombre: 'Noche', horas: lista.filter((h) => horaNL(h.inicio) >= 18) },
+  ]
+  return franjas.filter((f) => f.horas.length)
+}
+
+/** «Belén Soto» → «Belén». */
+const pilaDe = (nombre: string) => (nombre || '').trim().split(' ')[0] || nombre
 
 /** «jue 30 oct, 18:00» en la hora de Países Bajos. */
 const diaYHora = (iso: string) => {
@@ -71,6 +102,11 @@ export default function NuevaLlamada({
   const [hueco, setHueco] = useState<{ inicio: string; url: string } | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [confirmar, setConfirmar] = useState<{ url: string; motivo: string; plan: boolean } | null>(null)
+  // La agenda donde se reserva: la «Agenda del equipo» de un closer (su
+  // correo de Calendly) o "" para el por turnos. `undefined` = aún cargando.
+  const [agendas, setAgendas] = useState<AgendasEquipo | null | undefined>(undefined)
+  const [agenda, setAgenda] = useState('')
+  const [correoAgendas, setCorreoAgendas] = useState(cambiar?.email || inicial?.email || '')
 
   useEffect(() => {
     const f = (ev: KeyboardEvent) => ev.key === 'Escape' && onClose()
@@ -78,12 +114,26 @@ export default function NuevaLlamada({
     return () => window.removeEventListener('keydown', f)
   }, [onClose])
 
+  // Qué agendas se pueden usar con esta persona, y cuál se propone.
   useEffect(() => {
-    if (!org?.id || !accessToken || !fecha) return
+    if (!org?.id || !accessToken) return
+    let vivo = true
+    getAgendas(org.id, correoAgendas.includes('@') ? correoAgendas.trim() : '', accessToken).then((r) => {
+      if (!vivo) return
+      setAgendas(r)
+      setAgenda(r?.propuesta || '')
+    })
+    return () => {
+      vivo = false
+    }
+  }, [org?.id, accessToken, correoAgendas])
+
+  useEffect(() => {
+    if (!org?.id || !accessToken || !fecha || agendas === undefined) return
     let vivo = true
     setCargando(true)
     setHueco(null)
-    getHuecos(org.id, fecha, accessToken).then((r) => {
+    getHuecos(org.id, fecha, accessToken, agenda).then((r) => {
       if (!vivo) return
       setHuecos(r)
       setCargando(false)
@@ -91,7 +141,10 @@ export default function NuevaLlamada({
     return () => {
       vivo = false
     }
-  }, [org?.id, accessToken, fecha])
+  }, [org?.id, accessToken, fecha, agenda, agendas])
+
+  const agendaElegida = agendas?.agendas.find((a) => a.email === agenda)
+  const deQuien = agendaElegida ? pilaDe(agendaElegida.nombre) : ''
 
   const listo = nombre.trim() && email.includes('@') && hueco
   const pila = (nombre.trim().split(' ')[0] || 'la persona').replace(/^./, (l) => l.toUpperCase())
@@ -110,6 +163,7 @@ export default function NuevaLlamada({
         antes: cambiar.inicio,
         inicio: hueco.inicio,
         confirmada: yaHablado,
+        agenda,
       },
       accessToken
     )
@@ -120,7 +174,11 @@ export default function NuevaLlamada({
       return
     }
     if (r.datos?.aviso) toast(r.datos.aviso, { duration: 12000, icon: '⚠️' })
-    else toast.success(`Hora cambiada al ${diaYHora(hueco.inicio)}. A ${pila} le llega de Calendly la invitación nueva.`, { duration: 6000 })
+    else
+      toast.success(
+        `Hora cambiada al ${diaYHora(hueco.inicio)}${deQuien ? `, en la agenda de ${deQuien}` : ''}. A ${pila} le llega de Calendly la invitación nueva.`,
+        { duration: 6000 }
+      )
     onHecho()
     onClose()
   }
@@ -129,7 +187,11 @@ export default function NuevaLlamada({
     if (!hueco) return
     if (cambiar) return cambiarHora()
     setEnviando(true)
-    const r = await reservarLlamada(org?.id, { nombre: nombre.trim(), email: email.trim(), telefono: telefono.trim(), inicio: hueco.inicio, url: hueco.url }, accessToken)
+    const r = await reservarLlamada(
+      org?.id,
+      { nombre: nombre.trim(), email: email.trim(), telefono: telefono.trim(), inicio: hueco.inicio, url: hueco.url, agenda },
+      accessToken
+    )
     setEnviando(false)
     if (!r.ok) {
       toast.error(r.error || 'No se ha podido agendar')
@@ -139,7 +201,10 @@ export default function NuevaLlamada({
       setConfirmar({ url: r.url || '', motivo: r.motivo || '', plan: Boolean(r.plan) })
       return
     }
-    toast.success(`Agendada. A ${nombre.trim().split(' ')[0]} le llega el correo de Calendly con el enlace.`, { duration: 6000 })
+    toast.success(
+      `Agendada${deQuien ? ` en la agenda de ${deQuien}` : ''}. A ${nombre.trim().split(' ')[0]} le llega el correo de Calendly con el enlace.`,
+      { duration: 6000 }
+    )
     onHecho()
     onClose()
   }
@@ -203,6 +268,7 @@ export default function NuevaLlamada({
               <p className="text-[13px] text-gray-700 bg-[#F9FAFB] border border-[#E5E7EB] rounded-md px-3 py-2 !whitespace-normal">
                 Elige el día y la hora nuevos. Calendly reserva la nueva y cancela la de antes: a {pila} le llegan los dos
                 avisos de Calendly, la cancelación y la invitación con la hora nueva.
+                {deQuien ? ` La llamada queda en el Calendly de ${deQuien}, con su Meet.` : ''}
               </p>
             ) : null}
             <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2.5 ${cambiar ? 'hidden' : ''}`}>
@@ -217,9 +283,55 @@ export default function NuevaLlamada({
             </div>
             <label className={`block ${cambiar ? 'hidden' : ''}`}>
               <span className="text-[12.5px] font-medium text-gray-700">Correo</span>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={CAMPO} />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                // Al dejar el correo, se mira quién lleva a esa persona (su agenda).
+                onBlur={() => email.includes('@') && email.trim() !== correoAgendas && setCorreoAgendas(email.trim())}
+                className={CAMPO}
+              />
               <span className={`${META} block mt-0.5`}>Ahí le llega el correo de Calendly con el enlace de la llamada.</span>
             </label>
+            {/* La agenda: la «Agenda del equipo» de un closer (cualquier hora)
+                o el horario normal del evento por turnos (02/11). */}
+            {agendas && agendas.agendas.length ? (
+              <div>
+                <p className="text-[12.5px] font-medium text-gray-700 mb-1.5">Agenda</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {agendas.agendas.map((a) => (
+                    <button
+                      key={a.email}
+                      onClick={() => setAgenda(a.email)}
+                      className={`h-8 px-3 rounded-md border text-[13px] font-medium transition-colors ${
+                        agenda === a.email ? 'bg-gray-900 border-gray-900 text-white' : 'border-[#E5E7EB] text-gray-800 hover:bg-[#F9FAFB]'
+                      }`}
+                    >
+                      {pilaDe(a.nombre)} · cualquier hora
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setAgenda('')}
+                    className={`h-8 px-3 rounded-md border text-[13px] font-medium transition-colors ${
+                      agenda === '' ? 'bg-gray-900 border-gray-900 text-white' : 'border-[#E5E7EB] text-gray-800 hover:bg-[#F9FAFB]'
+                    }`}
+                  >
+                    Horario normal (por turnos)
+                  </button>
+                </div>
+                <p className={`${META} block mt-1 !whitespace-normal`}>
+                  {deQuien
+                    ? `Salen todas las horas en las que ${deQuien} no tiene nada en su calendario, y la llamada queda en su Calendly.`
+                    : 'Solo las horas del horario del evento, y Calendly elige el closer.'}
+                </p>
+              </div>
+            ) : agendas && !agendas.hay_agendas ? (
+              <p className={`${META} !whitespace-normal`}>
+                Solo salen las horas del horario de Calendly. Para poder elegir cualquier hora, cada closer necesita en su
+                Calendly un evento oculto llamado «Agenda del equipo».
+              </p>
+            ) : null}
+
             <label className="block">
               <span className="text-[12.5px] font-medium text-gray-700">Día</span>
               <input type="date" value={fecha} min={hoy} onChange={(e) => setFecha(e.target.value)} className={CAMPO} />
@@ -227,7 +339,7 @@ export default function NuevaLlamada({
 
             <div>
               <p className="text-[12.5px] font-medium text-gray-700 mb-1.5">Hora (hora de Países Bajos)</p>
-              {cargando ? (
+              {cargando || agendas === undefined ? (
                 <p className={`${META} inline-flex items-center gap-1.5`}>
                   <Loader2 size={13} className="animate-spin" /> Mirando las horas libres en Calendly…
                 </p>
@@ -237,6 +349,11 @@ export default function NuevaLlamada({
                 <p className="text-[13px] text-gray-700">Calendly no está conectado a la escuela.</p>
               ) : huecos.error ? (
                 <p className="text-[13px] text-red-700">Calendly dijo: {huecos.error}</p>
+              ) : huecos.huecos.length === 0 && deQuien ? (
+                <p className="text-[13px] text-gray-700 !whitespace-normal">
+                  Ese día no hay horas libres en la agenda de {deQuien}: tiene el calendario ocupado, o su «Agenda del equipo»
+                  no abre ese día (su horario o sus límites de reserva en Calendly).
+                </p>
               ) : huecos.huecos.length === 0 ? (
                 <p className="text-[13px] text-gray-700 !whitespace-normal">
                   No quedan horas libres ese día. Prueba con otro.{' '}
@@ -247,17 +364,26 @@ export default function NuevaLlamada({
                   ) : null}
                 </p>
               ) : (
-                <div className="flex flex-wrap gap-1.5">
-                  {huecos.huecos.map((h) => (
-                    <button
-                      key={h.inicio}
-                      onClick={() => setHueco(h)}
-                      className={`h-8 px-3 rounded-md border text-[13px] font-medium tabular-nums transition-colors ${
-                        hueco?.inicio === h.inicio ? 'bg-gray-900 border-gray-900 text-white' : 'border-[#E5E7EB] text-gray-800 hover:bg-[#F9FAFB]'
-                      }`}
-                    >
-                      {horaEscuela(new Date(h.inicio))}
-                    </button>
+                <div className="space-y-2">
+                  {porFranjas(huecos.huecos).map((f) => (
+                    <div key={f.nombre || 'todas'}>
+                      {f.nombre ? <p className={`${META} mb-1`}>{f.nombre}</p> : null}
+                      <div className="flex flex-wrap gap-1.5">
+                        {f.horas.map((h) => (
+                          <button
+                            key={h.inicio}
+                            onClick={() => setHueco(h)}
+                            className={`h-8 px-3 rounded-md border text-[13px] font-medium tabular-nums transition-colors ${
+                              hueco?.inicio === h.inicio
+                                ? 'bg-gray-900 border-gray-900 text-white'
+                                : 'border-[#E5E7EB] text-gray-800 hover:bg-[#F9FAFB]'
+                            }`}
+                          >
+                            {horaEscuela(new Date(h.inicio))}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
@@ -266,9 +392,10 @@ export default function NuevaLlamada({
                   «aviso mínimo» (de serie, 4 horas), y la escuela solo puede
                   agendar las horas que da Calendly. */}
               {fecha === hoy && huecos?.configurado && !huecos.error ? (
-                <p className={`${META} mt-2`}>
-                  Para hoy, Calendly solo da las horas que empiezan después de su «aviso mínimo» (de serie, 4 horas desde
-                  ahora). Si falta una hora que tienes libre, bájalo en Calendly: el evento → Límites de reserva → Aviso mínimo.
+                <p className={`${META} mt-2 !whitespace-normal`}>
+                  {deQuien
+                    ? `Para hoy, solo salen las horas después del «aviso mínimo» de la «Agenda del equipo» de ${deQuien}. Si falta una, ponlo a 0 en Calendly: ese evento → Límites de reserva → Aviso mínimo.`
+                    : 'Para hoy, Calendly solo da las horas que empiezan después de su «aviso mínimo» (de serie, 4 horas desde ahora). Si falta una hora que tienes libre, bájalo en Calendly: el evento → Límites de reserva → Aviso mínimo.'}
                 </p>
               ) : null}
             </div>
