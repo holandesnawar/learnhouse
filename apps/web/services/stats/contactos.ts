@@ -214,6 +214,10 @@ export interface Cita {
   closer?: string
   /** La persona ha dicho que viene (27/10): quién lo apuntó y cuándo. */
   confirmada?: { autor: string; cuando: string } | null
+  /** Cuándo se reservó en Calendly. */
+  reservada?: string
+  /** Sus tres WhatsApp (02/11): cuál se le ha mandado, quién y cuándo. */
+  whatsapp?: Partial<Record<'presentacion' | 'recurso' | 'enlace', { autor: string; cuando: string }>> | null
 }
 
 export type ResultadoLlamada = 'pagado' | 'compra' | 'piensa' | 'no-encaja' | 'no-vino'

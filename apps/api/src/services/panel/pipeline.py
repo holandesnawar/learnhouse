@@ -292,7 +292,7 @@ _MEDIOS = {
 #: Medios que no añaden nada.
 _MEDIOS_VACIOS = {"organic", "organico", "orgánico", "social", "referral", "none", "(none)", "web", "link"}
 #: Lo que hace el equipo o la escuela, no la persona: no dice por dónde llegó.
-_NO_DICEN_DE_DONDE = {"enlace-pago", "llamada-equipo", "alta-manual", "pago", "senal", "correo-reserva", "llamada-confirmada", "llamada-cambiada", "llamada-cancelada", "check-in", "correo-bf", "baja-bf"}
+_NO_DICEN_DE_DONDE = {"enlace-pago", "llamada-equipo", "alta-manual", "pago", "senal", "correo-reserva", "llamada-confirmada", "whatsapp-llamada", "llamada-cambiada", "llamada-cancelada", "check-in", "correo-bf", "baja-bf"}
 #: Al buscar de qué web llegó, por el nombre de la dirección.
 _WEBS = (
     ("instagram", "Instagram"), ("facebook", "Facebook"), ("fb.", "Facebook"), ("tiktok", "TikTok"),
@@ -696,6 +696,9 @@ async def tablero(fichas: list[dict], db_session: AsyncSession, nombres_anuncios
     from src.services.contactos.confirmar_llamada import ids_confirmadas
 
     confirmadas = ids_confirmadas(fichas)
+    from src.services.contactos.whatsapp_llamada import enviados_de_fichas
+
+    whatsapp = enviados_de_fichas(fichas)
     ahora = datetime.now(timezone.utc)
     tarjetas = []
     for f in fichas:
@@ -717,6 +720,8 @@ async def tablero(fichas: list[dict], db_session: AsyncSession, nombres_anuncios
         # Ya ha dicho que viene (27/10): la tarjeta lo dice junto al día.
         if t.get("cita"):
             t["cita"]["confirmada"] = t["cita"].get("id", "") in confirmadas
+            # Cuántos de sus tres WhatsApp se le han mandado (02/11).
+            t["cita"]["whatsapp"] = len(whatsapp.get(t["cita"].get("id", ""), ()))
         t["suelta"] = False
         tarjetas.append(t)
     tarjetas += [tarjeta_suelta(s) for s in sueltas]

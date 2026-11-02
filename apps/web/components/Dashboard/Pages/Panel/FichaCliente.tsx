@@ -29,7 +29,7 @@ import { quitarPersona } from './quitarPersona'
 import EnlacePago from './EnlacePago'
 import PlanPagosFicha from './PlanPagosFicha'
 import NuevaLlamada from './NuevaLlamada'
-import RecordatorioWhatsApp from './RecordatorioWhatsApp'
+import SecuenciaWhatsApp, { enlaceCorto } from './SecuenciaWhatsApp'
 import ReservaPlaza from './ReservaPlaza'
 import { BotonesReparto, useReparto } from './Reparto'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
@@ -39,6 +39,7 @@ import {
   CalendarPlus,
   CheckCircle2,
   ClipboardList,
+  Copy,
   CreditCard,
   Eye,
   Globe,
@@ -52,6 +53,7 @@ import {
   Tag,
   X,
   Trash2,
+  Video,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { BOTON, BOTON_PELIGRO, Estado, META } from './ui'
@@ -708,19 +710,35 @@ export default function FichaCliente({
                             Cambiar hora
                           </button>
                         ) : null}
+                        {/* El enlace de Google Meet de su llamada (02/11): sale de la
+                            reserva de Calendly, unido a la persona por su correo. */}
                         {c.enlace && !cancelada && !pasada ? (
-                          <a href={c.enlace} target="_blank" rel="noreferrer" className="text-[13px] font-medium text-[#025dc7] hover:underline shrink-0">
-                            Entrar
-                          </a>
+                          <div className="basis-full sm:pl-[152px] flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-gray-600">
+                            <Video size={13} className="text-gray-400 shrink-0" />
+                            <a href={c.enlace} target="_blank" rel="noreferrer" className="text-[#025dc7] hover:underline break-all">
+                              {enlaceCorto(c.enlace)}
+                            </a>
+                            <button
+                              onClick={() => navigator.clipboard?.writeText(c.enlace).then(() => toast.success('Enlace copiado'))}
+                              className="text-[12.5px] font-medium text-[#025dc7] hover:underline inline-flex items-center gap-1"
+                            >
+                              <Copy size={12} /> Copiar
+                            </button>
+                          </div>
+                        ) : !cancelada && !pasada ? (
+                          <p className={`basis-full sm:pl-[152px] ${META}`}>Aún sin enlace de Google Meet en Calendly.</p>
                         ) : null}
+                        {/* Sus tres WhatsApp, en orden (02/11). */}
                         {!cancelada && !pasada ? (
-                          <div className="basis-full sm:pl-[152px]">
-                            <RecordatorioWhatsApp
-                              nombre={ficha.nombre || c.nombre}
-                              telefono={c.telefono || ficha.telefono}
-                              inicio={c.inicio}
-                              enlace={c.enlace}
-                              compacto
+                          <div className="basis-full sm:pl-[152px] pt-1">
+                            <SecuenciaWhatsApp
+                              conMeet={false}
+                              cita={{ ...c, nombre: ficha.nombre || c.nombre, telefono: c.telefono || ficha.telefono }}
+                              onCambio={(w) =>
+                                setFicha((f) =>
+                                  f ? { ...f, llamadas: (f.llamadas || []).map((x) => (x.id === c.id ? { ...x, whatsapp: w } : x)) } : f
+                                )
+                              }
                             />
                           </div>
                         ) : null}

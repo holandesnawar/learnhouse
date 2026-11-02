@@ -16,7 +16,7 @@ import logging
 import os
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -338,6 +338,13 @@ async def api_agenda(
         confirmada = await confirmadas(db_session)
     except Exception:  # noqa: BLE001
         confirmada = {}
+    # Qué WhatsApp se le han mandado ya (02/11, `whatsapp_llamada.py`).
+    from src.services.contactos.whatsapp_llamada import enviados as whatsapp_enviados
+
+    try:
+        whatsapp = await whatsapp_enviados(db_session)
+    except Exception:  # noqa: BLE001
+        whatsapp = {}
 
     return {
         **datos,
@@ -347,6 +354,7 @@ async def api_agenda(
                 "telefono": c.get("telefono") or tels.get((c.get("email") or "").lower(), ""),
                 "resultado": _resultado(c),
                 "confirmada": confirmada.get(c.get("id") or ""),
+                "whatsapp": whatsapp.get(c.get("id") or "") or {},
                 **_closer(c),
             }
             for c in visibles
@@ -585,6 +593,137 @@ async def api_quitar_confirmacion(
     if not r.get("ok"):
         raise HTTPException(status_code=400, detail=r.get("motivo"))
     return r
+
+
+class WhatsAppEnviado(BaseModel):
+    cita_id: str
+    email: str
+    paso: str
+    inicio: str = ""
+
+
+@router.post("/org/{org_id}/llamadas/whatsapp", summary="Apunta que se le mandó uno de los WhatsApp de su llamada (closer y administradores).")
+async def api_whatsapp_enviado(
+    request: Request,
+    org_id: int,
+    data: WhatsAppEnviado,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.contactos.whatsapp_llamada import marcar
+
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    r = await marcar(data.cita_id, data.email, data.paso, data.inicio, _nombre(current_user), db_session)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    return r
+
+
+@router.delete("/org/{org_id}/llamadas/whatsapp", summary="Quita la marca de enviado de uno de los WhatsApp de una llamada.")
+async def api_whatsapp_no_enviado(
+    request: Request,
+    org_id: int,
+    cita_id: str,
+    paso: str,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.contactos.whatsapp_llamada import desmarcar
+
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    r = await desmarcar(cita_id, paso, db_session)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    return r
+
+
+@router.get("/org/{org_id}/whatsapp-llamada", summary="Los tres WhatsApp de cada llamada: textos, PDF del método y horas antes.")
+async def api_mensajes_llamada(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.contactos import whatsapp_llamada as W
+
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    return W.para_la_pantalla(org_id, await W.leer(org_id, db_session))
+
+
+class MensajesLlamada(BaseModel):
+    textos: Optional[dict] = None
+    pdf_enlace: Optional[str] = None
+    horas_antes: Optional[int] = None
+
+
+@router.put("/org/{org_id}/whatsapp-llamada", summary="Cambia los WhatsApp de las llamadas (administradores y closer, como el guion).")
+async def api_guardar_mensajes_llamada(
+    request: Request,
+    org_id: int,
+    data: MensajesLlamada,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.contactos import whatsapp_llamada as W
+
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    try:
+        return await W.guardar(org_id, data.model_dump(exclude_none=True), db_session)
+    except W.WhatsAppError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/org/{org_id}/whatsapp-llamada/pdf", summary="Sube el PDF del método que va en el segundo WhatsApp.")
+async def api_pdf_metodo(
+    request: Request,
+    org_id: int,
+    archivo: UploadFile = File(...),
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.contactos import whatsapp_llamada as W
+
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    datos = await archivo.read(W.MAX_PDF + 1)
+    try:
+        return await W.guardar_pdf(org_id, archivo.filename or "metodo.pdf", datos, db_session)
+    except W.WhatsAppError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.delete("/org/{org_id}/whatsapp-llamada/pdf", summary="Quita el PDF del método subido.")
+async def api_quitar_pdf_metodo(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.contactos import whatsapp_llamada as W
+
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    return await W.quitar_pdf(org_id, db_session)
+
+
+@router.get(
+    "/metodo/{org_id}/{nombre}",
+    summary="El PDF del método (público: es el enlace que va en el segundo WhatsApp de la llamada).",
+)
+async def api_metodo_publico(org_id: int, nombre: str, db_session: AsyncSession = Depends(get_db_session)):
+    from fastapi.responses import FileResponse
+
+    from src.services.contactos import whatsapp_llamada as W
+
+    ruta = await W.pdf_publico(org_id, db_session)
+    if not ruta:
+        raise HTTPException(status_code=404, detail="Este PDF ya no está disponible. Escríbenos a info@holandesnawar.com.")
+    return FileResponse(
+        ruta,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="{W.NOMBRE_PUBLICO}"',
+            "Cache-Control": "public, max-age=300",
+        },
+    )
 
 
 @router.get("/org/{org_id}/agenda-google", summary="El calendario de Google que se enseña en Llamadas.")
