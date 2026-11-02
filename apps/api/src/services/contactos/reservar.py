@@ -29,6 +29,13 @@ Cómo
 Desde el 31/10, también **cambiar la hora** y **cancelar** una llamada desde
 la escuela (`cambiar_hora`, `cancelar_llamada`): ver su bloque más abajo.
 
+Desde el 02/11, si en Calendly hay una copia SECRETA del evento por turnos (con
+más días por delante que el público, que deja solo 2), la escuela agenda y
+cambia horas en esa (`evento_elegido`). La web sigue con el público. Los
+avisos de Calendly de la copia cuentan como la llamada (`tipos_de_llamada`
+acepta todos los por turnos) y la agenda lee todas las citas de la
+organización: la escuela se entera igual.
+
 `api.calendly.com` no se alcanza desde el entorno donde se escribió esto: la
 forma de las respuestas está sacada de la documentación, y lo puro tiene test.
 """
@@ -74,14 +81,25 @@ def es_por_turnos(t: dict) -> bool:
     return str(t.get("pooling_type") or "").lower() == "round_robin"
 
 
+def es_secreto(t: dict) -> bool:
+    """¿Es un evento secreto de Calendly (no sale en la página pública)?"""
+    return bool(t.get("secret"))
+
+
 def evento_elegido(tipos: list[dict], preferido: str = EVENTO_POR_DEFECTO) -> Optional[dict]:
     """El tipo de evento a agendar. Desde el 31/10, con Calendly Teams, gana
     el evento «por turnos» (round robin: Calendly elige closer): primero el
     por turnos con el slug preferido, luego cualquier por turnos, luego el del
-    slug (o dirección) preferido, y si no, el primero activo."""
+    slug (o dirección) preferido, y si no, el primero activo.
+
+    Desde el 02/11, por delante de todo, un por turnos SECRETO: la copia del
+    evento de las llamadas que el equipo usa con más días por delante (el
+    público deja reservar solo 2 días). Así «Nueva llamada» y «Cambiar hora»
+    de la escuela ofrecen todos esos días sin tocar el evento público."""
     activos = [t for t in tipos if t.get("active", True)]
     clave = _clave(preferido)
     for elegir in (
+        lambda t: es_por_turnos(t) and es_secreto(t),
         lambda t: es_por_turnos(t) and _es_el_preferido(t, clave),
         es_por_turnos,
         lambda t: _es_el_preferido(t, clave),

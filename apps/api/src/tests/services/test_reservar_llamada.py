@@ -277,6 +277,22 @@ def test_con_calendly_teams_gana_el_evento_por_turnos():
     assert R.tipos_de_llamada([viejo, turnos, diego, otra]) == {"u/VIEJO", "u/TURNOS", "u/DIEGO"}
 
 
+def test_la_copia_secreta_del_por_turnos_es_la_de_la_escuela():
+    """02/11: el público deja reservar 2 días; el equipo agenda y cambia horas
+    en una copia secreta con más días. La escuela usa la secreta y los avisos
+    de las dos cuentan como la llamada."""
+    publico = {"uri": "u/PUBLICO", "slug": "llamada-de-consultoria", "active": True, "pooling_type": "round_robin", "secret": False}
+    copia = {"uri": "u/COPIA", "slug": "llamada-equipo", "active": True, "pooling_type": "round_robin", "secret": True}
+    otra = {"uri": "u/OTRA", "slug": "reunion", "active": True, "pooling_type": None, "secret": True}
+    assert R.evento_elegido([publico, copia, otra]) is copia
+    assert R.evento_elegido([copia, publico]) is copia
+    # Apagada en Calendly, vuelve el público.
+    assert R.evento_elegido([publico, {**copia, "active": False}]) is publico
+    # Un evento secreto que no es por turnos no cuenta.
+    assert R.evento_elegido([publico, otra]) is publico
+    assert R.tipos_de_llamada([publico, copia, otra]) == {"u/PUBLICO", "u/COPIA"}
+
+
 def test_el_anfitrion_de_una_cita():
     from src.services.contactos import agenda as A
 
