@@ -10,6 +10,7 @@
 """
 
 import json
+import re
 from unittest.mock import patch
 
 import pytest
@@ -313,6 +314,22 @@ def test_las_70_paginas_sustituyen_a_las_7_lecciones():
         texto = E.config_limpia({clave: guardada})[clave]["texto"]
         assert "70 páginas" in texto and "7 lecciones" not in texto
     assert "70 páginas" in E.SUBTITULO_EBOOK
+
+
+def test_son_mas_de_70_paginas():
+    """02/11, usuario: "no es 70 páginas, sino más de 70". Lo de fábrica lo
+    dice, y lo guardado en el panel con «70 páginas» (tal cual o retocado)
+    sale con «más de 70», sin repetirlo donde ya lo ponía."""
+    fabrica = json.dumps(E.DE_FABRICA, ensure_ascii=False)
+    assert "más de 70 páginas" in fabrica
+    assert re.search(r"(?<!más de )\b70 páginas", fabrica) is None
+    assert E.SUBTITULO_EBOOK.startswith("más de 70 páginas")
+    retocada = {"asunto": "Tus 70 páginas", "texto": "Son 70 páginas.\n\n[descarga]", "boton": "Descargar"}
+    entrega = E.config_limpia({"entrega": retocada})["entrega"]
+    assert entrega["texto"].startswith("Son más de 70 páginas.") and entrega["asunto"] == "Tus más de 70 páginas"
+    assert E._nombre_al_dia("Más de 70 páginas y +70 páginas") == "Más de 70 páginas y +70 páginas"
+    correos = E.correos_limpios([{"id": CORREOS[0]["id"], "texto": "Son 70 páginas."}])
+    assert correos[0]["texto"] == "Son más de 70 páginas."
 
 
 def test_el_ebook_se_llama_holandes_sin_miedo():
