@@ -293,6 +293,23 @@ def test_la_copia_secreta_del_por_turnos_es_la_de_la_escuela():
     assert R.tipos_de_llamada([publico, copia, otra]) == {"u/PUBLICO", "u/COPIA"}
 
 
+def test_la_copia_secreta_de_un_evento_individual():
+    """02/11, la copia de verdad: «Llamada de Consultoría HN (equipo)», secreta
+    e individual como su original. Se reconoce por el nombre; otro evento
+    secreto (la vieja «Agenda del equipo») o una copia de otro tipo, no."""
+    publico = {"uri": "u/HN", "name": "Llamada de Consultoría HN", "slug": "llamada-de-consultoria", "active": True, "pooling_type": None, "secret": False}
+    copia = {"uri": "u/HN2", "name": "Llamada de Consultoria HN (equipo)", "slug": "llamada-de-consultoria-hn-equipo", "active": True, "pooling_type": None, "secret": True}
+    agenda = {"uri": "u/AG", "name": "Agenda del equipo", "slug": "agenda-del-equipo", "active": True, "pooling_type": None, "secret": True}
+    assert R.evento_elegido([agenda, copia, publico]) is copia
+    assert R.evento_publico([copia, publico]) is publico
+    assert R.evento_elegido([agenda, publico]) is publico
+    # Sin el secreto, no es la copia del equipo (saldría en la página pública).
+    assert R.evento_elegido([publico, {**copia, "secret": False}]) is publico
+    # Una copia por turnos de un original individual no cuenta: cambiaría de closer.
+    assert R.copia_del_equipo([publico, {**copia, "pooling_type": "round_robin"}], publico) is None
+    assert R.tipos_de_llamada([publico, copia, agenda]) == {"u/HN", "u/HN2"}
+
+
 def test_el_anfitrion_de_una_cita():
     from src.services.contactos import agenda as A
 

@@ -2029,6 +2029,23 @@ que pagaron (HECHO)**, **3) anuncios e inicio tipo centro de mando (HECHO)**.
     tarjeta se queda con el suyo), igual que antes con el público.
     «Reprogramar» desde Calendly sigue con los días del evento de la cita (el
     público): para mover lejos, «Cambiar hora» en la escuela.
+    - ⚠️ **La copia de verdad NO era por turnos** (02/11, captura del
+      usuario): «Llamada de Consultoría HN (equipo)», 45 min, Google Meet,
+      «En privado» (así llama Calendly en español al evento individual) y un
+      solo horario, «Working hours». La primera regla (solo por turnos
+      secreto) no la habría visto. Ahora `copia_del_equipo`: activa, secreta,
+      del MISMO tipo que el público (individual con individual, por turnos con
+      por turnos: así nadie pasa una llamada a otro closer sin querer) y con
+      el nombre del público delante, sin tildes ni mayúsculas. El público
+      (`evento_publico`) se elige antes entre los NO secretos. La vieja
+      «Agenda del equipo» (secreta, otro nombre) no cuenta. Para comprobar
+      cuál usa la escuela: «Nueva llamada» enseña arriba el nombre del evento.
+    - Al cambiar la hora desde la escuela no se repite nada (`lo_cambio_el_equipo`
+      corta antes que el correo de Rida, el «llamada nueva» y la etiqueta de
+      systeme.io). Lo que SÍ es del evento copia: los correos y recordatorios
+      de Calendly (hay que revisar que la copia tenga los mismos que el
+      público, también en Flujos de trabajo) y el enlace «Reprogramar» que le
+      llega a la persona, que le deja elegir los días de la copia.
   - **«Recordar por WhatsApp»** (15/10) en cada cita que aún no ha pasado
     (Llamadas y ficha): abre WhatsApp con el mensaje escrito («Hola Ana, soy
     Rida de Holandés Nawar. Te escribo para recordarte tu llamada de mañana a
