@@ -197,7 +197,7 @@ class SemanaIn(BaseModel):
     fecha_limite: Optional[str] = None
 
 
-@router.post("/course/{course_uuid}/semanas", summary="Convierte un capítulo de la clase en una semana con su tarea (administradores).")
+@router.post("/course/{course_uuid}/semanas", summary="Convierte un capítulo de la clase en una semana con su tarea (equipo).")
 async def api_crear_semana(
     request: Request,
     course_uuid: str,
@@ -206,14 +206,15 @@ async def api_crear_semana(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     curso = await _curso(request, course_uuid, current_user, db_session)
-    await _admin(current_user, curso.org_id, db_session)
+    # Desde el 02/11/2026 también los profes: preparan sus semanas.
+    await _equipo(current_user, curso.org_id, db_session)
     try:
         return await T.crear_semana(curso.org_id, curso, data.model_dump(exclude_unset=True), _nombre(current_user), db_session)
     except T.TareaError as exc:
         raise _error(exc)
 
 
-@router.put("/semana/{semana_id}", summary="Cambia el tema, el día o la tarea de una semana (administradores).")
+@router.put("/semana/{semana_id}", summary="Cambia el tema, el día o la tarea de una semana (equipo).")
 async def api_editar_semana(
     semana_id: int,
     data: SemanaIn,
@@ -222,7 +223,8 @@ async def api_editar_semana(
 ):
     try:
         s = await T.tarea(semana_id, db_session)
-        await _admin(current_user, s.org_id, db_session)
+        # Los profes ajustan los deberes (02/11/2026).
+        await _equipo(current_user, s.org_id, db_session)
         return await T.editar_semana(s, data.model_dump(exclude_unset=True, exclude={"chapter_uuid"}), db_session)
     except T.TareaError as exc:
         raise _error(exc)

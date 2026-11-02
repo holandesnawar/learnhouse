@@ -48,7 +48,8 @@ export function ajustesDirecto(config: any, curso: string | null | undefined): A
   const p = propia && typeof propia === 'object' ? propia : {}
   return {
     activo: !!p.activo,
-    grabar: !!p.grabar,
+    // De serie se graba (02/11/2026): solo deja de grabarse si se quita la casilla.
+    grabar: p.grabar !== false,
     directo: !!p.directo,
     grabadas: typeof p.grabadas === 'boolean' ? p.grabadas : null,
     banner: p.banner && typeof p.banner === 'object' ? p.banner : null,

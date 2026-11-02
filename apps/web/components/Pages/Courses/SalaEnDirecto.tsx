@@ -6,8 +6,10 @@
  * escuela, con el nombre puesto. Ver apps/api/src/services/salas/salas.py.
  *
  * - Alumno: solo la ve si la sala está encendida, con quién hay dentro.
- * - Administrador: la ve siempre; la enciende, decide si se graba sola al
- *   entrar el profe y baja las grabaciones.
+ * - El equipo (administradores, moderadores y profes, desde el 02/11/2026):
+ *   la ve siempre; la enciende y la apaga, decide si se graba (de serie sí, en
+ *   cuanto entra alguien) y baja las grabaciones. La etiqueta («Groep rood»),
+ *   solo los administradores.
  */
 
 import React, { useCallback, useEffect, useState } from 'react'
@@ -72,7 +74,7 @@ function Grabaciones({ curso, token }: { curso: string; token: string }) {
   if (!lista.length)
     return (
       <p className="text-[13px] text-[#5A6480]">
-        Aún no hay grabaciones. Se graba sola cuando entra alguien del equipo (si la grabación está puesta).
+        Aún no hay grabaciones. Con la grabación puesta, se graba sola en cuanto entra alguien a la sala.
       </p>
     )
   return (
@@ -173,7 +175,7 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
           : cambios.activo === false
             ? 'Sala apagada'
             : r.grabar
-              ? 'Se grabará sola al entrar el profe'
+              ? 'Se grabará sola en cuanto entre alguien'
               : 'Ya no se graba'
       )
     } catch (e: any) {
@@ -184,7 +186,7 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
   }
 
   if (!sala) return null
-  if (!sala.admin && (soloAjustes || !sala.activo)) return null
+  if (!sala.equipo && (soloAjustes || !sala.activo)) return null
 
   // ¿Enseña esta página sus clases grabadas? (27/10: en Spreekclub no van, y
   // por ahora en Masterclass tampoco). Solo en las clases en directo, con la
@@ -203,8 +205,10 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
         />
         Enseñar las clases grabadas en esta página
       </label>
+      {/* La etiqueta, solo administradores (02/11: "que no la pueda cambiar el profe"). */}
+      {sala.admin ? (
       <label className="flex flex-wrap items-center gap-2 text-[13px] text-gray-900">
-        <span>Etiqueta (solo la ves tú)</span>
+        <span>Etiqueta (solo la ven los administradores)</span>
         <input
           value={etiqueta}
           maxLength={30}
@@ -216,6 +220,7 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
           className="h-8 w-40 rounded-md border border-[#E5E7EB] bg-white px-2.5 text-[13px] text-gray-900 outline-none focus:border-gray-900"
         />
       </label>
+      ) : null}
     </div>
   ) : null
 
@@ -229,7 +234,7 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
           </p>
           <p className="text-[13px] text-[#5A6480] mt-0.5">
             Al encenderla, quien ve este curso entra a la videollamada aquí mismo, sin otra pestaña y con su nombre
-            puesto{soloAjustes ? ', y «Ir a la clase» lleva a la sala en vez de a Zoom' : ''}. Solo la ves tú.
+            puesto{soloAjustes ? ', y «Ir a la clase» lleva a la sala en vez de a Zoom' : ''}. Solo lo ve el equipo.
           </p>
           {!sala.con_clave && (
             <p className="text-[12.5px] text-[#8A6A2A] mt-1">Falta la clave de Daily en Railway (LEARNHOUSE_DAILY_API_KEY).</p>
@@ -263,7 +268,7 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
             onChange={(e) => cambiar({ grabar: e.target.checked })}
             className="accent-[#025dc7]"
           />
-          Grabar sola cuando entra alguien del equipo
+          Grabar sola en cuanto entra alguien
         </label>
         {casillaGrabadas}
         <button
@@ -281,7 +286,7 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
         </button>
       </div>
       {verGrabaciones && <Grabaciones curso={curso} token={token} />}
-      <p className="text-[12px] text-[#5A6480]">Solo lo ves tú (administradores).</p>
+      <p className="text-[12px] text-[#5A6480]">Solo lo ve el equipo (administradores y profes).</p>
     </div>
   )
 
@@ -323,7 +328,7 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
           {dentro.length > 0 && <p className="text-[13px] text-[#3F4A61] mt-0.5 truncate">{dentro.join(', ')}</p>}
           <p className="text-[12.5px] text-[#5A6480] mt-1.5">
             Entras con tu nombre, sin salir de la escuela.
-            {sala.grabar ? ' La sesión se graba cuando entra el profe.' : ''}
+            {sala.grabar ? ' La sesión se graba.' : ''}
           </p>
         </div>
         <Link
@@ -334,7 +339,7 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
         </Link>
       </div>
 
-      {sala.admin && ajustesAdmin('mt-4 pt-4 border-t border-[#E5E7EB] space-y-3')}
+      {sala.equipo && ajustesAdmin('mt-4 pt-4 border-t border-[#E5E7EB] space-y-3')}
     </div>
   )
 }

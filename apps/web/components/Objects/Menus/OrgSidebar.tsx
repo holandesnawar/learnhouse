@@ -190,7 +190,8 @@ export const OrgSidebar = (props: { orgslug: string }) => {
       show: true,
       // Dos copias de la misma clase (Groep rood / Groep blauw) se llaman
       // igual: al administrador las distingue su etiqueta (29/10).
-      etiqueta: isAdmin ? ajustesDirecto(config, c.uuid).etiqueta : '',
+      // La etiqueta (Groep rood…) la ve el equipo, también los profes; la cambia solo un administrador (02/11).
+      etiqueta: isStaff ? ajustesDirecto(config, c.uuid).etiqueta : '',
     })),
     { key: 'collections', href: '/collections', label: t('collections.collections'), icon: <SquaresFour size={20} weight="fill" />, show: isEnabled('collections') },
     { key: 'podcasts', href: '/podcasts', label: t('podcasts.podcasts'), icon: <Headphones size={20} weight="fill" />, show: isEnabled('podcasts') },

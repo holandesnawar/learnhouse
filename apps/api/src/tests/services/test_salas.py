@@ -3,8 +3,8 @@
 Daily no se alcanza desde las pruebas: se sustituye `_daily` por uno falso que
 apunta cada llamada. Lo que se comprueba:
 - la sala de cada curso tiene un nombre fijo y válido;
-- el alumno entra con su nombre y SIN grabar; el equipo entra como anfitrión y
-  graba solo si el curso lo tiene puesto;
+- se entra con su nombre; el equipo como anfitrión; desde el 02/11/2026 la
+  grabación viene puesta de serie y la arranca CUALQUIERA que entra;
 - si Daily no deja grabar, se entra igual sin grabar y se dice por qué;
 - sin la clave, un mensaje claro; las grabaciones solo de ESTA sala;
 - los ajustes por curso, y que la sala apagada no deja entrar.
@@ -31,6 +31,7 @@ class DailyFalso:
 
     def __init__(self, sala_existe=False, falla_grabar=False):
         self.llamadas = []
+        self.config_sala = {}
         self.sala_existe = sala_existe
         self.falla_grabar = falla_grabar
 
@@ -41,6 +42,9 @@ class DailyFalso:
         if metodo == "GET" and ruta.startswith("/rooms/"):
             if not self.sala_existe:
                 raise salas.SalaError("Daily (404): not-found", 404)
+            return {"url": "https://nawar.daily.co/" + ruta.split("/")[-1], "config": dict(self.config_sala)}
+        if metodo == "POST" and ruta.startswith("/rooms/"):
+            self.config_sala.update(cuerpo["properties"])
             return {"url": "https://nawar.daily.co/" + ruta.split("/")[-1]}
         if metodo == "POST" and ruta == "/rooms":
             self.sala_existe = True
@@ -79,11 +83,14 @@ def test_nombre_fijo_y_valido():
     assert salas.uuid_curso(CURSO) == "8a1d1fab-ffbb-44ef-8f21-04ef63676d6e"
 
 
-def test_ajustes_por_curso_apagada_de_serie():
-    assert salas.leer_config({}, CURSO) == {"activo": False, "grabar": False}
-    config = {"salas": {"8a1d1fab-ffbb-44ef-8f21-04ef63676d6e": {"activo": True, "grabar": True}}}
+def test_ajustes_por_curso_apagada_y_grabando_de_serie():
+    # Apagada de serie, pero si se enciende, graba (02/11/2026).
+    assert salas.leer_config({}, CURSO) == {"activo": False, "grabar": True}
+    config = {"salas": {"8a1d1fab-ffbb-44ef-8f21-04ef63676d6e": {"activo": True}}}
     assert salas.leer_config(config, CURSO) == {"activo": True, "grabar": True}
-    assert salas.leer_config(config, "course_otro") == {"activo": False, "grabar": False}
+    # Solo deja de grabarse si alguien quita la casilla.
+    config = {"salas": {"8a1d1fab-ffbb-44ef-8f21-04ef63676d6e": {"activo": True, "grabar": False}}}
+    assert salas.leer_config(config, CURSO) == {"activo": True, "grabar": False}
 
 
 def test_nombre_visible():
@@ -92,9 +99,11 @@ def test_nombre_visible():
     assert salas.nombre_visible(" ", "", "") == "Alumno"
 
 
-def test_entrada_del_alumno_no_graba_y_la_del_equipo_si():
+def test_cualquiera_que_entra_arranca_la_grabacion():
+    """02/11/2026: "al entrar alguien, quien sea, ya se grabe"."""
     alumno = salas.propiedades_entrada("nawar-x", "Ana", 7, anfitrion=False, grabar=True, ahora=1000)
-    assert alumno["is_owner"] is False and "start_cloud_recording" not in alumno
+    assert alumno["is_owner"] is False
+    assert alumno["enable_recording"] == "cloud" and alumno["start_cloud_recording"] is True
     assert alumno["user_name"] == "Ana" and alumno["user_id"] == "7" and alumno["lang"] == "es"
     assert alumno["exp"] == 1000 + 4 * 3600 and alumno["eject_at_token_exp"] is True
 
@@ -120,9 +129,10 @@ async def test_crea_la_sala_la_primera_vez_y_entra_con_su_nombre(monkeypatch):
     r = await salas.entrar(CURSO, Persona(), anfitrion=False, grabar=True)
     assert r["url"] == "https://nawar.daily.co/nawar-8a1d1fabffbb44ef"
     assert r["token"] == "tok-123" and r["nombre"] == "Ana García"
-    assert r["anfitrion"] is False and r["grabando"] is False and r["aviso"] == ""
+    assert r["anfitrion"] is False and r["grabando"] is True and r["aviso"] == ""
     creada = [c for c in daily.llamadas if c[:2] == ("POST", "/rooms")]
     assert len(creada) == 1 and creada[0][2]["privacy"] == "private"
+    assert creada[0][2]["properties"]["enable_recording"] == "cloud"
 
     # La segunda vez no se pregunta ni se crea: la dirección ya se sabe.
     daily.llamadas.clear()
@@ -131,9 +141,13 @@ async def test_crea_la_sala_la_primera_vez_y_entra_con_su_nombre(monkeypatch):
 
 
 async def test_el_profe_graba_y_si_daily_no_deja_entra_sin_grabar(monkeypatch):
-    monkeypatch.setattr(salas, "_daily", DailyFalso(sala_existe=True))
+    daily = DailyFalso(sala_existe=True)
+    monkeypatch.setattr(salas, "_daily", daily)
     r = await salas.entrar(CURSO, Persona(first_name="Paul", last_name=""), anfitrion=True, grabar=True)
     assert r["anfitrion"] is True and r["grabando"] is True and r["aviso"] == ""
+    # A la sala que ya existía sin grabación se le pone una vez.
+    assert ("POST", "/rooms/nawar-8a1d1fabffbb44ef", {"properties": {"enable_recording": "cloud"}}, None) in daily.llamadas
+    assert daily.config_sala["enable_recording"] == "cloud"
 
     salas._salas.clear()
     daily = DailyFalso(sala_existe=True, falla_grabar=True)
@@ -183,10 +197,11 @@ async def _con_config(db, org):
 
 async def test_guardar_ajustes(db, org):
     await _con_config(db, org)
-    assert await salas.config_de(org.id, CURSO, db) == {"activo": False, "grabar": False}
-    assert await salas.guardar_config(org.id, CURSO, True, None, db) == {"activo": True, "grabar": False}
+    assert await salas.config_de(org.id, CURSO, db) == {"activo": False, "grabar": True}
+    assert await salas.guardar_config(org.id, CURSO, True, None, db) == {"activo": True, "grabar": True}
+    assert await salas.guardar_config(org.id, CURSO, None, False, db) == {"activo": True, "grabar": False}
+    assert await salas.config_de(org.id, CURSO.replace("course_", ""), db) == {"activo": True, "grabar": False}
     assert await salas.guardar_config(org.id, CURSO, None, True, db) == {"activo": True, "grabar": True}
-    assert await salas.config_de(org.id, CURSO.replace("course_", ""), db) == {"activo": True, "grabar": True}
 
 
 async def test_encender_marca_el_curso_en_directo_y_no_pierde_el_recuadro(db, org):
@@ -242,9 +257,9 @@ async def test_la_sala_apagada_no_deja_entrar_y_el_alumno_no_la_enciende(
 
     await rutas.api_guardar(mock_request, "test", rutas.SalaIn(activo=True, grabar=True), admin_user, db)
     alumno = await rutas.api_entrar(mock_request, "test", regular_user, db)
-    assert alumno["anfitrion"] is False and alumno["grabando"] is False and alumno["nombre"] == "Regular User"
-    # No graba él, pero se le avisa de que la sesión se graba.
-    assert alumno["grabar"] is True
+    assert alumno["anfitrion"] is False and alumno["nombre"] == "Regular User"
+    # Él también arranca la grabación al entrar (02/11/2026).
+    assert alumno["grabar"] is True and alumno["grabando"] is True
     admin = await rutas.api_entrar(mock_request, "test", admin_user, db)
     assert admin["anfitrion"] is True and admin["grabando"] is True
 

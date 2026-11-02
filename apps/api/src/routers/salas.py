@@ -4,7 +4,9 @@ Salas en directo dentro de la escuela (Daily). La explicación entera está en
 
 - Ver la sala y entrar: quien puede ver el curso (la misma comprobación que la
   página del curso). El equipo entra como anfitrión.
-- Encenderla, grabar y bajar grabaciones: solo administradores.
+- Encenderla, apagarla, grabar, el recuadro y bajar grabaciones: el equipo
+  (administradores, moderadores y profes, desde el 02/11/2026). La etiqueta
+  («Groep rood») solo los administradores.
 """
 
 from typing import Optional
@@ -100,8 +102,8 @@ async def api_entrar(
         datos = await salas.entrar(curso.course_uuid, current_user, equipo, ajustes["grabar"])
     except salas.SalaError as exc:
         raise _error(exc) from exc
-    # `grabar` es el ajuste del curso: el alumno no graba, pero tiene que saber
-    # que la sesión se graba cuando entra el profe.
+    # `grabar` es el ajuste del curso: desde el 02/11 cualquiera que entra
+    # arranca la grabación, y la pantalla avisa de que la sesión se graba.
     return {**datos, "curso": curso.name, "grabar": ajustes["grabar"]}
 
 
@@ -115,7 +117,7 @@ class SalaIn(BaseModel):
     etiqueta: Optional[str] = None
 
 
-@router.put("/course/{course_uuid}", summary="Encender o apagar la sala de un curso y si se graba (administradores).")
+@router.put("/course/{course_uuid}", summary="Encender o apagar la sala de un curso y si se graba (equipo; la etiqueta, administradores).")
 async def api_guardar(
     request: Request,
     course_uuid: str,
@@ -124,9 +126,11 @@ async def api_guardar(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     curso = await _curso(request, course_uuid, current_user, db_session)
-    _, admin = await _roles(current_user, curso.org_id, db_session)
-    if not admin:
-        raise HTTPException(status_code=403, detail="Solo administradores")
+    equipo, admin = await _roles(current_user, curso.org_id, db_session)
+    if not equipo:
+        raise HTTPException(status_code=403, detail="Solo el equipo de la escuela")
+    if body.etiqueta is not None and not admin:
+        raise HTTPException(status_code=403, detail="La etiqueta solo la cambia un administrador")
     try:
         return await salas.guardar_config(
             curso.org_id, curso.course_uuid, body.activo, body.grabar, db_session, grabadas=body.grabadas,
@@ -149,7 +153,7 @@ class RecuadroIn(BaseModel):
 
 @router.put(
     "/course/{course_uuid}/recuadro",
-    summary="El recuadro de una clase en directo: día, hora, profe… (administradores).",
+    summary="El recuadro de una clase en directo: día, hora, profe… (equipo).",
 )
 async def api_recuadro(
     request: Request,
@@ -159,16 +163,16 @@ async def api_recuadro(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     curso = await _curso(request, course_uuid, current_user, db_session)
-    _, admin = await _roles(current_user, curso.org_id, db_session)
-    if not admin:
-        raise HTTPException(status_code=403, detail="Solo administradores")
+    equipo, _ = await _roles(current_user, curso.org_id, db_session)
+    if not equipo:
+        raise HTTPException(status_code=403, detail="Solo el equipo de la escuela")
     try:
         return await salas.guardar_recuadro(curso.org_id, curso.course_uuid, body.model_dump(), db_session)
     except salas.SalaError as exc:
         raise _error(exc) from exc
 
 
-@router.get("/course/{course_uuid}/grabaciones", summary="Las grabaciones de la sala (administradores).")
+@router.get("/course/{course_uuid}/grabaciones", summary="Las grabaciones de la sala (equipo).")
 async def api_grabaciones(
     request: Request,
     course_uuid: str,
@@ -176,9 +180,9 @@ async def api_grabaciones(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     curso = await _curso(request, course_uuid, current_user, db_session)
-    _, admin = await _roles(current_user, curso.org_id, db_session)
-    if not admin:
-        raise HTTPException(status_code=403, detail="Solo administradores")
+    equipo, _ = await _roles(current_user, curso.org_id, db_session)
+    if not equipo:
+        raise HTTPException(status_code=403, detail="Solo el equipo de la escuela")
     try:
         return {"grabaciones": await salas.grabaciones(curso.course_uuid)}
     except salas.SalaError as exc:
@@ -187,7 +191,7 @@ async def api_grabaciones(
 
 @router.get(
     "/course/{course_uuid}/grabaciones/{grabacion_id}/descarga",
-    summary="Enlace para bajar una grabación (administradores; caduca al rato).",
+    summary="Enlace para bajar una grabación (equipo; caduca al rato).",
 )
 async def api_descarga(
     request: Request,
@@ -197,9 +201,9 @@ async def api_descarga(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     curso = await _curso(request, course_uuid, current_user, db_session)
-    _, admin = await _roles(current_user, curso.org_id, db_session)
-    if not admin:
-        raise HTTPException(status_code=403, detail="Solo administradores")
+    equipo, _ = await _roles(current_user, curso.org_id, db_session)
+    if not equipo:
+        raise HTTPException(status_code=403, detail="Solo el equipo de la escuela")
     try:
         return {"url": await salas.enlace_descarga(curso.course_uuid, grabacion_id)}
     except salas.SalaError as exc:

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
-import AuthenticatedClientElement from '@components/Security/AuthenticatedClientElement'
+import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { CalendarDays, User, Timer, Radio, ListVideo, Pencil, Check, X, Circle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { WEEKDAYS, nextBroadcastLabel } from '@/lib/course/weeklyClass'
@@ -36,8 +36,8 @@ export default function WeeklyClassBanner({
 }) {
   const org = useOrg() as any
   const session = useLHSession() as any
+  const { isStaff } = useAdminStatus()
   const token: string = session?.data?.tokens?.access_token || ''
-  const orgId = org?.id
   const curso = String(courseUuid || '').replace(/^course_/, '')
   const ajustes = ajustesDirecto(org?.config?.config, curso)
   const esLaDeSiempre = curso === CURSO_CLASE_SEMANAL_UUID
@@ -306,14 +306,15 @@ export default function WeeklyClassBanner({
               <ListVideo size={15} /> Clases anteriores
             </button>
           ) : null}
-          <AuthenticatedClientElement ressourceType="courses" action="update" checkMethod="roles" orgId={orgId}>
+          {/* El recuadro (día, hora, profe) lo cambia el equipo, también los profes (02/11/2026). */}
+          {isStaff ? (
             <button
               onClick={startEdit}
               className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#5A6480] hover:text-[#025dc7] transition-colors"
             >
               <Pencil size={13} /> Editar
             </button>
-          </AuthenticatedClientElement>
+          ) : null}
         </div>
       </div>
     </div>
