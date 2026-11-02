@@ -38,10 +38,11 @@ export default function DripContentSettings({ course, defaultOpen = false }: { c
     })
     return init
   })
-  // Apertura por avance (09/10/2026): quien entra desde `desde` abre la
-  // formación según termina cada módulo, no por las fechas de abajo. Sin nada
-  // guardado vale "activo desde el 10/10/2026" (lo decidió el usuario). La
-  // regla: apps/api/src/services/courses/avance_modulos.py.
+  // Apertura por avance (09/10/2026; desde el 02/11, para TODOS los alumnos):
+  // la formación se abre según termina cada módulo, no por las fechas de
+  // abajo, que ya solo valen para el equipo. `desde` dice quién es de la
+  // primera convocatoria (tiene el 3 abierto desde el principio). La regla:
+  // apps/api/src/services/courses/avance_modulos.py.
   const avanceGuardado = (): { activo: boolean; desde: string } => ({
     activo: stored?.avance ? stored.avance.activo !== false : true,
     desde: String(stored?.avance?.desde || '2026-10-10').slice(0, 10),
@@ -213,10 +214,10 @@ export default function DripContentSettings({ course, defaultOpen = false }: { c
                 }}
                 className="w-4 h-4 accent-[#4da3ff]"
               />
-              Formación: los alumnos nuevos abren los módulos por avance
+              Formación: los alumnos abren los módulos por avance, no por fecha
             </label>
             <div className="flex flex-wrap items-center gap-2 text-[13px] text-gray-700">
-              <span>Para quien entra desde el</span>
+              <span>Primera convocatoria: quien entró antes del</span>
               <input
                 type="date"
                 value={avance.desde}
@@ -225,16 +226,16 @@ export default function DripContentSettings({ course, defaultOpen = false }: { c
                   tocado.current = true
                   setAvance((a) => ({ ...a, desde: e.target.value }))
                 }}
-                aria-label="Fecha desde la que se abre por avance"
+                aria-label="Fecha de corte de la primera convocatoria"
                 className="bg-white rounded-lg px-2.5 py-1.5 text-[13px] text-[#1D0084] border border-[#DDE6F5] outline-none focus:border-[#4da3ff] disabled:opacity-40"
               />
             </div>
             <ul className="text-[12.5px] text-[#5A6480] leading-relaxed list-disc pl-4 space-y-0.5">
-              <li>Introducción y módulos 1 y 2: abiertos desde el primer día.</li>
+              <li>Introducción y módulos 1 y 2: abiertos desde el primer día (la primera convocatoria, también el 3).</li>
               <li>Módulo 3: a las 2 semanas de entrar, si ha terminado el 1 y el 2.</li>
               <li>Del 4 en adelante: al terminar el anterior y pasada 1 semana desde que se le abrió (2 semanas tras el 5 y el 7).</li>
-              <li>Terminado = el 80 % de las clases del módulo. Lo que se abre no se vuelve a cerrar.</li>
-              <li>Quien entró antes sigue con las fechas de abajo. A un alumno concreto se le puede abrir un módulo a mano en Alumnos → Progreso.</li>
+              <li>Terminado = el 80 % de las clases del módulo. Lo que se abre no se vuelve a cerrar, y un módulo en el que ya ha hecho alguna clase tampoco.</li>
+              <li>Las fechas de abajo ya no valen para los alumnos de la formación, solo para el equipo. A un alumno concreto se le puede abrir un módulo a mano en Alumnos → Progreso.</li>
             </ul>
           </div>
 

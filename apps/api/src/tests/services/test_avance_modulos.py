@@ -1,8 +1,11 @@
 """La apertura de módulos por avance (09/10/2026): para quien entra desde el
 10/10, el módulo 3 se abre a las 2 semanas si ha terminado el 1 y el 2, y
 cada siguiente cuando termina el anterior y ha pasado una semana (dos tras el
-5 y el 7) desde que se le abrió. Terminado = 80 % de las clases. La primera
-convocatoria sigue con sus fechas fijas."""
+5 y el 7) desde que se le abrió. Terminado = 80 % de las clases.
+
+Desde el 02/11/2026 la primera convocatoria también va por avance (sin las
+fechas fijas), con el 1, el 2 y el 3 abiertos, y lo que alguien ya ha
+empezado no se le cierra."""
 
 from datetime import datetime, timedelta
 
@@ -142,14 +145,53 @@ def test_un_modulo_sin_clases_no_abre_el_siguiente():
     assert "estamos terminando de preparar" in estado["MODULE 4 - D"]["motivo"]
 
 
-def test_quien_entra_desde_el_10_10_en_hora_de_holanda():
+def test_la_primera_convocatoria_tiene_el_3_y_el_4_pide_solo_el_3():
+    """02/11/2026: sin fechas fijas. El 1, el 2 y el 3 abiertos; el 4 al
+    llegar al 80 % del 3 (aunque el 1 y el 2 estén a medias); el 5, al 80 %
+    del 4 y una semana después de abrirse el 4."""
+    modulos = _modulos(CURSO)
+    _intro, m1, m2, m3, m4, m5 = modulos[:6]
+    # Nada hecho: el 3 abierto, el 4 cerrado aunque lleve semanas en la escuela.
+    estado = am.calcular_aperturas(modulos, ENTRADA, {}, {}, _dia(50), primera=True)
+    assert [estado[m["uuid"]]["abierto"] for m in (m1, m2, m3, m4)] == [True, True, True, False]
+    assert estado[m4["uuid"]]["motivo"] == "Se abre cuando termines el módulo 3: te faltan 8 clases."
+    # 8 del 3 (80 %) el día 40, sin tocar el 1 ni el 2: el 4 abre ese día.
+    hechas = _hacer(m3, _dia(40), 8)
+    estado = am.calcular_aperturas(modulos, ENTRADA, hechas, {}, _dia(41), primera=True)
+    assert estado[m4["uuid"]]["abierto"] and estado[m4["uuid"]]["abre"] == _dia(40)
+    # Termina el 4 al día siguiente: el 5 espera a la semana desde que se abrió el 4.
+    hechas |= _hacer(m4, _dia(41), 8)
+    estado = am.calcular_aperturas(modulos, ENTRADA, hechas, {}, _dia(43), primera=True)
+    assert not estado[m5["uuid"]]["abierto"] and estado[m5["uuid"]]["fecha_minima"] == _dia(47)
+    assert am.calcular_aperturas(modulos, ENTRADA, hechas, {}, _dia(47), primera=True)[m5["uuid"]]["abierto"]
+
+
+def test_lo_que_ya_empezo_no_se_le_cierra():
+    """Quien tenía el 4 y el 5 abiertos por fecha y ya había hecho alguna clase
+    ahí no los pierde, aunque no llegue al 80 % del anterior."""
+    modulos = _modulos(CURSO)
+    _m3, m4, m5, m6 = modulos[3:7]
+    hechas = {m4["clases"][0]: _dia(20), m4["clases"][1]: _dia(22), m5["clases"][0]: _dia(30)}
+    estado = am.calcular_aperturas(modulos, ENTRADA, hechas, {}, _dia(50), primera=True)
+    assert estado[m4["uuid"]]["abierto"] and estado[m4["uuid"]]["como"] == "empezado"
+    assert estado[m4["uuid"]]["abre"] == _dia(20)
+    assert estado[m5["uuid"]]["abierto"] and estado[m5["uuid"]]["como"] == "empezado"
+    # El 6 sí espera: el 5 no está al 80 %.
+    assert not estado[m6["uuid"]]["abierto"]
+    assert estado[m6["uuid"]]["motivo"] == "Se abre cuando termines el módulo 5: te faltan 7 clases."
+
+
+def test_todos_van_por_avance_y_la_fecha_de_corte_dice_quien_es_de_la_primera():
     ajustes = am.ajustes_avance({"enabled": True})
     assert ajustes == {"activo": True, "desde": "2026-10-10"}
-    # 9/10 a las 23:30 en UTC ya es el 10/10 en Holanda.
-    assert am.usa_avance(datetime(2026, 10, 9, 23, 30), ajustes)
-    assert not am.usa_avance(datetime(2026, 10, 9, 21, 0), ajustes)
-    assert not am.usa_avance(datetime(2026, 9, 3), ajustes)
+    # Desde el 02/11, todos los alumnos van por avance (con el avance encendido).
+    assert am.usa_avance(datetime(2026, 9, 3), ajustes)
+    assert am.usa_avance(datetime(2026, 10, 20), ajustes)
     assert not am.usa_avance(datetime(2026, 11, 3), {"activo": False, "desde": "2026-10-10"})
+    # 9/10 a las 23:30 en UTC ya es el 10/10 en Holanda: ya no es de la primera.
+    assert not am.primera_convocatoria(datetime(2026, 10, 9, 23, 30), ajustes)
+    assert am.primera_convocatoria(datetime(2026, 10, 9, 21, 0), ajustes)
+    assert am.primera_convocatoria(datetime(2026, 9, 3), ajustes)
     assert am.ajustes_avance({"avance": {"activo": True, "desde": "basura"}})["desde"] == "2026-10-10"
 
 
@@ -199,13 +241,29 @@ async def _alumno(db, org, user_role, uid: int, entrada: datetime) -> PublicUser
 TODOS = ["ch_intro", "ch_m1", "ch_m2", "ch_m3", "ch_m4", "ch_otro"]
 
 
-async def test_la_primera_convocatoria_sigue_con_sus_fechas(db, org, user_role):
+async def test_la_primera_convocatoria_va_por_avance_sin_las_fechas(db, org, user_role):
+    """02/11/2026: el 4 de la primera convocatoria ya no abre por fecha."""
     await _escuela(db, org)
+    # El 4 con fecha ya pasada (como el 12/10 de verdad).
+    await _con_corte(db, org, "2026-10-10", {"ch_m3": "2026-09-21", "ch_m4": "2026-10-12", "ch_otro": "2099-01-01"})
     alumno = await _alumno(db, org, user_role, 50, datetime(2026, 9, 10, 12))
     cerrados = await drip_locks_detalle(TODOS, org.id, alumno, db)
-    # El 3 abrió el 21/09; el 4 y la clase semanal, con su fecha.
+    # El 3 abierto; el 4 cerrado aunque su fecha pasó; la clase semanal, con su fecha.
     assert set(cerrados) == {"ch_m4", "ch_otro"}
-    assert cerrados["ch_m4"]["motivo"] is None
+    assert cerrados["ch_m4"]["motivo"] == "Se abre cuando termines el módulo 3: te faltan 4 clases."
+    assert cerrados["ch_otro"]["fecha"].startswith("2099-01-01")
+    # Con 4 de las 5 del 3 (80 %), el 4 se abre (la semana desde el 3 ya pasó).
+    await _hizo(db, org, 50, [116, 117, 118, 119], datetime.now() - timedelta(days=1))
+    assert set(await drip_locks_detalle(TODOS, org.id, alumno, db)) == {"ch_otro"}
+
+
+async def test_la_primera_convocatoria_no_pierde_lo_empezado(db, org, user_role):
+    await _escuela(db, org)
+    await _con_corte(db, org, "2026-10-10", {"ch_m3": "2026-09-21", "ch_m4": "2026-10-12"})
+    alumno = await _alumno(db, org, user_role, 50, datetime(2026, 9, 10, 12))
+    # Hizo una clase del 4 cuando lo tenía abierto por fecha.
+    await _hizo(db, org, 50, [121], datetime(2026, 10, 20))
+    assert "ch_m4" not in await drip_locks_detalle(TODOS, org.id, alumno, db)
 
 
 async def test_quien_entra_despues_va_por_avance_y_solo_en_la_formacion(db, org, user_role):
@@ -282,16 +340,16 @@ async def test_el_correo_de_la_fecha_fija_no_le_llega_a_quien_va_por_avance(db, 
     await _alumno(db, org, user_role, 50, datetime(2026, 9, 10, 12))
     await _alumno(db, org, user_role, 51, entrada)
 
+    # Desde el 02/11 la primera convocatoria tampoco va por fechas: nadie.
     with patch("src.services.users.emails.send_module_unlocked_email") as correo:
         r = await avisar_modulos_abiertos_hoy(org.id, db)
-    assert r["enviados"] == 1
-    assert [c.kwargs["email"] for c in correo.call_args_list] == ["u50@x.com"]
+    assert r["enviados"] == 0 and not correo.called
 
     # El nuevo terminó el 1 y el 2: el 3 se le abrió ayer (día 14) → aviso.
     await _hizo(db, org, 51, list(range(106, 116)), entrada + timedelta(days=2))
     with patch("src.services.users.emails.send_module_unlocked_email") as correo:
         r = await avisar_aperturas_por_avance(org.id, db)
-        assert r == {"alumnos": 1, "apuntados": 1, "enviados": 1}
+        assert r == {"alumnos": 2, "apuntados": 1, "enviados": 1}
         assert correo.call_args.kwargs["module_name"] == "MODULE 3 - ETEN"
         # Otra vez el mismo día: nada.
         assert (await avisar_aperturas_por_avance(org.id, db))["enviados"] == 0
@@ -307,7 +365,8 @@ async def test_la_campana_no_le_anuncia_la_fecha_fija_a_quien_va_por_avance(db, 
     await _alumno(db, org, user_role, 50, datetime(2026, 9, 10, 12))
     await _alumno(db, org, user_role, 51, entrada)
 
-    assert [i["id"] for i in await _module_items(50, [org.id], db)] == ["module:ch_m4"]
+    # La primera convocatoria tampoco (02/11): su 4 está cerrado por avance.
+    assert await _module_items(50, [org.id], db) == []
     assert await _module_items(51, [org.id], db) == []
     await _hizo(db, org, 51, list(range(106, 116)), entrada + timedelta(days=2))
     assert [i["id"] for i in await _module_items(51, [org.id], db)] == ["module:ch_m3"]

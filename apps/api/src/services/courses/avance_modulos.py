@@ -36,6 +36,26 @@ clase semanal y cualquier otro curso siguen con su goteo de siempre.
 `modulo_abierto`, y lo apuntado manda sobre el cálculo (ver la tabla). El
 equipo también puede abrir un módulo a mano desde Progreso.
 
+**02/11/2026: la primera convocatoria también va por avance.** Usuario: "la
+gente va más lento de lo esperado; quitaría la fecha de desbloqueo y dejaría
+solo por progreso: al llegar al 80 % del módulo anterior, el siguiente, con un
+máximo de un módulo por semana". Desde ahí las fechas fijas de la formación
+(`drip_content.fechas`: M4 el 12/10, M5 el 26/10…) ya no valen para NINGÚN
+alumno; solo para el equipo (el profe comparte pantalla). La fecha de corte
+(`avance.desde`) ya no decide quién va por avance, sino quién es de la
+primera convocatoria (quien entró antes):
+
+- Tiene la introducción y los módulos **1, 2 y 3** abiertos desde el
+  principio (el 3 lleva abierto desde el 21/09 y se decidió no volver a
+  cerrarlo, ver CLAUDE.md).
+- El 4 se abre al llegar al 80 % del **3** (solo el anterior, no el 1 y el 2)
+  y, como los demás, una semana después de que se abriera el anterior.
+- El 4 y el 5, que tenía abiertos por fecha, se le vuelven a cerrar si no ha
+  llegado al 80 % del anterior. **Salvo lo que ya haya empezado**: un módulo
+  con alguna clase hecha se queda abierto (`como = "empezado"`, desde su
+  primera clase), para que nadie pierda de vista lo que ya estaba haciendo.
+  Esto vale para todos, no solo para la primera convocatoria.
+
 `calcular_aperturas` es pura y tiene test (`test_avance_modulos.py`).
 """
 
@@ -64,6 +84,9 @@ FORMACION_UUID = "8a1d1fab-ffbb-44ef-8f21-04ef63676d6e"
 
 UMBRAL = 0.8
 ABIERTOS_AL_ENTRAR = (1, 2)
+#: La primera convocatoria (quien entró antes de `avance.desde`) va por
+#: avance desde el 02/11/2026, con el 3 ya abierto: lo tenía desde el 21/09.
+ABIERTOS_PRIMERA_CONVOCATORIA = (1, 2, 3)
 DIAS_PRIMERA_ESPERA = 14
 DIAS_ESPERA = 7
 DIAS_ESPERA_LARGA = 14
@@ -126,10 +149,16 @@ def dia_en_holanda(d: datetime) -> str:
 
 
 def usa_avance(entrada: datetime | None, ajustes: dict) -> bool:
-    """¿A quien entró en esta fecha le toca la apertura por avance?"""
-    if entrada is None or not ajustes.get("activo"):
-        return False
-    return dia_en_holanda(entrada) >= ajustes["desde"]
+    """¿A este alumno le toca la apertura por avance? Desde el 02/11/2026, a
+    todos (con el avance encendido): la primera convocatoria también. La
+    fecha de corte solo dice quién es de la primera convocatoria."""
+    return entrada is not None and bool(ajustes.get("activo"))
+
+
+def primera_convocatoria(entrada: datetime | None, ajustes: dict) -> bool:
+    """¿Entró antes de la fecha de corte? Entonces tiene el módulo 3 abierto
+    desde el principio (ver la cabecera)."""
+    return entrada is not None and dia_en_holanda(entrada) < ajustes.get("desde", DESDE_POR_DEFECTO)
 
 
 def necesarias(total: int) -> int:
@@ -199,8 +228,12 @@ def calcular_aperturas(
     hechas: dict[int, datetime],
     guardadas: dict[str, tuple[datetime, str]],
     ahora: datetime,
+    primera: bool = False,
 ) -> dict[str, dict]:
     """Función pura, con test.
+
+    `primera`: es de la primera convocatoria (el 3 abierto desde el principio y
+    el 4 pide solo el 3).
 
     `modulos`: los capítulos de la formación EN ORDEN, cada uno
     `{uuid, nombre, numero, clases: [ids de clase publicadas]}`.
@@ -215,6 +248,7 @@ def calcular_aperturas(
     al_entrar: list[dict] = []
     anterior: dict | None = None
     en_entrada = True
+    abiertos = ABIERTOS_PRIMERA_CONVOCATORIA if primera else ABIERTOS_AL_ENTRAR
 
     for m in modulos:
         clases = list(m.get("clases") or [])
@@ -233,12 +267,18 @@ def calcular_aperturas(
             "fecha_minima": None,
         }
 
-        if en_entrada and (paso["numero"] is None or paso["numero"] in ABIERTOS_AL_ENTRAR):
+        if en_entrada and (paso["numero"] is None or paso["numero"] in abiertos):
             paso.update(abre=entrada, abierto=True, como="entrada")
             if paso["numero"] is not None:
                 al_entrar.append(paso)
         else:
-            if en_entrada:
+            if en_entrada and primera:
+                # Primera convocatoria: el 4 pide el 80 % del 3 (el anterior,
+                # como todos) y una semana desde que se le abrió.
+                en_entrada = False
+                requisitos = [anterior] if anterior else []
+                minimo = anterior["abre"] + timedelta(days=DIAS_ESPERA) if anterior and anterior["abre"] else None
+            elif en_entrada:
                 en_entrada = False
                 requisitos = al_entrar or ([anterior] if anterior else [])
                 minimo: datetime | None = entrada + timedelta(days=DIAS_PRIMERA_ESPERA)
@@ -263,6 +303,11 @@ def calcular_aperturas(
             if guardada and (paso["abre"] is None or guardada[0] < paso["abre"]):
                 paso.update(abre=guardada[0], como=guardada[1] or "avance", motivo=None)
             paso["abierto"] = paso["abre"] is not None and paso["abre"] <= ahora
+            # Lo que ya ha empezado no se le cierra (02/11/2026): un módulo
+            # con alguna clase hecha se queda abierto desde la primera.
+            if not paso["abierto"] and paso["hechas"]:
+                primera_clase = min(hechas[c] for c in set(clases) if c in hechas)
+                paso.update(abre=primera_clase, como="empezado", abierto=True)
             if paso["abierto"]:
                 paso["motivo"] = None
                 paso["fecha_minima"] = None
@@ -408,8 +453,8 @@ async def estado_avance(
 ) -> dict[str, dict] | None:
     """Los módulos de la formación de este alumno, con su apertura por avance.
 
-    None si no le toca (entró antes de la fecha de corte, el goteo está
-    apagado o no hay formación). Si algo falla al leer, también None: el
+    None si no le toca (no es alumno, el goteo o el avance están apagados o no
+    hay formación). Si algo falla al leer, también None: el
     alumno se queda con el goteo de siempre en vez de con todo cerrado.
     """
     try:
@@ -435,6 +480,7 @@ async def estado_avance(
             await clases_hechas(user_id, curso.id, db_session),
             await aperturas_guardadas(user_id, db_session),
             ahora or ahora_utc(),
+            primera=primera_convocatoria(entrada, ajustes),
         )
     except Exception:  # noqa: BLE001
         logger.exception("No se pudo calcular la apertura por avance (usuario %s)", user_id)

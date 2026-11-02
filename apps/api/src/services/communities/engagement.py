@@ -486,7 +486,8 @@ async def _module_items(
 
         opened: dict[str, datetime] = {}
 
-        # Quien entró desde el 10/10/2026 abre la formación por avance
+        # Los alumnos abren la formación por avance (desde el 02/11/2026, todos;
+        # antes, solo quien entró desde el 10/10/2026)
         # (`services/courses/avance_modulos.py`): para él, las fechas fijas de
         # la formación NO valen —el 12/10 la campana le habría dicho "has
         # desbloqueado el módulo 4" con el módulo cerrado— y lo que se le
@@ -501,7 +502,8 @@ async def _module_items(
                 offsets = {k: v for k, v in offsets.items() if k not in avance}
                 for chapter_uuid, paso in avance.items():
                     abre = paso.get("abre")
-                    if paso.get("abierto") and paso.get("como") != "entrada" and abre is not None:
+                    # Ni lo de entrada ni lo que ya había empezado son novedad.
+                    if paso.get("abierto") and paso.get("como") not in ("entrada", "empezado") and abre is not None:
                         if abre <= now and (now - abre) <= timedelta(days=21):
                             opened[chapter_uuid] = abre
 
