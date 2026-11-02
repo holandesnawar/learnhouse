@@ -24,19 +24,27 @@ Cómo va
   pestaña olvidada no se queda gastando minutos toda la noche.
 - **El equipo** (administradores, moderadores y profes, `STAFF_ROLE_IDS`) entra
   como anfitrión (`is_owner`): silencia, saca a alguien, comparte pantalla.
-- **Grabar**: si el curso lo tiene puesto, la entrada del EQUIPO lleva
-  `start_cloud_recording`, así que la grabación arranca sola cuando entra el
-  profe (no cuando entra un alumno a esperar) y se para cuando se vacía la
-  sala. Se paga aparte en Daily. Si Daily no deja grabar (plan, cuenta…), la
-  entrada se repite SIN grabar y la pantalla enseña el motivo tal cual: la
-  clase no se queda sin sala por la grabación.
-- Las grabaciones se quedan en Daily y el administrador las ve en la página
-  del curso con «Descargar» (`grabaciones`, `enlace_descarga`). Subirlas solas
+- **Grabar** (02/11/2026: "la idea es que al entrar alguien, quien sea, ya
+  se grabe, sin hacer nada más"): **de serie se graba** (solo deja de grabarse
+  si alguien quita la casilla) y la entrada de CUALQUIERA lleva
+  `start_cloud_recording`: la grabación arranca con el primero que entra y se
+  para cuando se vacía la sala. Antes solo grababa la entrada del equipo y la
+  casilla venía quitada, así que una sala encendida sin marcarla no grababa
+  nada. La sala tiene además `enable_recording: "cloud"` (se le pone a las
+  que ya existían la primera vez que alguien entra). Se paga aparte en Daily.
+  Si Daily no deja grabar (plan, cuenta…), la entrada se repite SIN grabar y
+  la pantalla enseña el motivo tal cual: la clase no se queda sin sala por la
+  grabación. Dentro de la sala, la pantalla escucha a Daily y dice
+  «● Grabando» o por qué no graba (`SalaPage.tsx`).
+- Las grabaciones se quedan en Daily y el equipo las ve en la página del
+  curso con «Descargar» (`grabaciones`, `enlace_descarga`). Subirlas solas
   a Bunny es el paso siguiente, sin hacer.
 
 Ajustes: org_config `salas` = {uuid del curso (sin `course_`): {activo,
 grabar}}. Sin nada guardado, la sala está apagada: se enciende curso a curso
-desde la propia página del curso (solo administradores).
+desde la propia página del curso. Desde el 02/11/2026 la enciende, la apaga,
+cambia el recuadro y baja las grabaciones **el equipo** (también los profes);
+la etiqueta («Groep rood») sigue siendo solo de administradores.
 
 La clave es `LEARNHOUSE_DAILY_API_KEY` (Railway). Sin ella, la pantalla dice
 que falta y el resto de la escuela sigue igual. Los errores de Daily se
@@ -95,11 +103,12 @@ def nombre_sala(course_uuid: str) -> str:
 
 
 def leer_config(config: Any, course_uuid: str) -> dict:
-    """Los ajustes de la sala de un curso. Apagada si no hay nada guardado."""
+    """Los ajustes de la sala de un curso. Apagada si no hay nada guardado, y
+    grabando salvo que alguien lo haya quitado (02/11/2026)."""
     todas = (config or {}).get(CLAVE) if isinstance(config, dict) else None
     propia = (todas or {}).get(uuid_curso(course_uuid)) if isinstance(todas, dict) else None
     propia = propia if isinstance(propia, dict) else {}
-    return {"activo": bool(propia.get("activo")), "grabar": bool(propia.get("grabar"))}
+    return {"activo": bool(propia.get("activo")), "grabar": propia.get("grabar") is not False}
 
 
 def nombre_visible(first_name: str, last_name: str, username: str) -> str:
@@ -109,8 +118,9 @@ def nombre_visible(first_name: str, last_name: str, username: str) -> str:
 
 
 def propiedades_entrada(sala: str, nombre: str, user_id: int, anfitrion: bool, grabar: bool, ahora: float) -> dict:
-    """Lo que lleva la entrada de Daily. Graba solo el anfitrión: así la
-    grabación empieza cuando entra el profe, no cuando un alumno espera."""
+    """Lo que lleva la entrada de Daily. Con la grabación puesta, la de
+    CUALQUIERA arranca la grabación al entrar (02/11/2026): la empieza el
+    primero que llega, sea quien sea."""
     props: dict = {
         "room_name": sala,
         "user_name": nombre,
@@ -120,7 +130,7 @@ def propiedades_entrada(sala: str, nombre: str, user_id: int, anfitrion: bool, g
         "exp": int(ahora) + HORAS_ENTRADA * 3600,
         "eject_at_token_exp": True,
     }
-    if anfitrion and grabar:
+    if grabar:
         props["enable_recording"] = "cloud"
         props["start_cloud_recording"] = True
     return props
@@ -209,9 +219,19 @@ async def asegurar_sala(sala: str) -> str:
                     "enable_prejoin_ui": True,
                     "enable_screenshare": True,
                     "enable_chat": True,
+                    "enable_recording": "cloud",
                 },
             },
         )
+    else:
+        # Las salas creadas antes del 02/11 no tenían la grabación en la sala:
+        # se les pone una vez. En blando: si falla, la entrada la lleva igual.
+        propiedades = datos.get("config") if isinstance(datos.get("config"), dict) else {}
+        if propiedades.get("enable_recording") != "cloud":
+            try:
+                await _daily("POST", f"/rooms/{sala}", {"properties": {"enable_recording": "cloud"}})
+            except SalaError as exc:
+                logger.warning("No se pudo poner la grabación en la sala %s: %s", sala, exc.mensaje)
     url = str(datos.get("url") or "")
     if not url:
         raise SalaError("Daily no devolvió la dirección de la sala.")
@@ -364,7 +384,7 @@ async def guardar_config(
     if etiqueta is not None:
         cambios["etiqueta"] = limpiar_etiqueta(etiqueta)
     guardado = await _escribir(org_id, course_uuid, cambios, db_session)
-    salida = {"activo": bool(guardado.get("activo")), "grabar": bool(guardado.get("grabar"))}
+    salida = {"activo": bool(guardado.get("activo")), "grabar": guardado.get("grabar") is not False}
     if isinstance(guardado.get("grabadas"), bool):
         salida["grabadas"] = guardado["grabadas"]
     if etiqueta is not None or guardado.get("etiqueta"):

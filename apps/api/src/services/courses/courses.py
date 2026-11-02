@@ -319,6 +319,21 @@ async def get_courses_orgslug(
             # This allows UserGroup members and course authors to see unpublished courses
             # they have access to, while other users only see published courses.
             needs_distinct = True
+            # Nawar (02/11/2026): el equipo (profes y moderadores) ve todos los
+            # cursos publicados de su escuela, también los cerrados a un grupo
+            # de alumnos: da esas clases (ver `_equipo_en_curso` en
+            # security/rbac/resource_access.py, que le deja abrirlos).
+            from src.security.rbac.constants import STAFF_ROLE_IDS
+
+            rol_equipo = (
+                await db_session.execute(
+                    select(UserOrganization.role_id).where(
+                        UserOrganization.user_id == acting_user_id,
+                        UserOrganization.org_id == org.id,
+                    )
+                )
+            ).scalars().first()
+            del_equipo = rol_equipo in STAFF_ROLE_IDS
             query = (
                 query
                 .outerjoin(UserGroupResource, UserGroupResource.resource_uuid == Course.course_uuid)  # type: ignore
@@ -335,7 +350,8 @@ async def get_courses_orgslug(
                     and_(Course.published == True, Course.public == True),  # Published public courses
                     and_(Course.published == True, UserGroupResource.resource_uuid.is_(None)),  # Published courses not in any UserGroup
                     UserGroupUser.user_id == acting_user_id,  # Courses in UserGroups where user is a member (including unpublished)
-                    ResourceAuthor.user_id.isnot(None)  # Courses where user is an ACTIVE resource author
+                    ResourceAuthor.user_id.isnot(None),  # Courses where user is an ACTIVE resource author
+                    *([Course.published == True] if del_equipo else []),  # Nawar: el equipo, todos los publicados
                 ))
             )
 

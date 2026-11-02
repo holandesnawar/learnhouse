@@ -319,6 +319,20 @@ class ResourceAccessChecker:
                 action="read",
             )
 
+        # Rule 3b (Nawar, 02/11/2026): el equipo de la escuela (profes y
+        # moderadores) ve todos sus cursos, también los cerrados a un grupo de
+        # alumnos (la masterclass, el Spreekclub, cada copia de la clase
+        # semanal): son los que dan esas clases. Ver `_equipo_en_curso`.
+        if await self._equipo_en_curso(resource_uuid, escribir=False):
+            return AccessDecision(
+                allowed=True,
+                reason="User is staff of the course's organization",
+                via_role=True,
+                resource_uuid=resource_uuid,
+                user_id=user_id,
+                action="read",
+            )
+
         # Rule 4: Check role-based permissions (only for public resources)
         # Non-public resources should only be accessible via authorship, admin, or usergroup membership
         if is_public:
@@ -500,6 +514,21 @@ class ResourceAccessChecker:
                 allowed=True,
                 reason="User is admin/maintainer",
                 via_admin=True,
+                resource_uuid=resource_uuid,
+                user_id=user_id,
+                action=action.value,
+            )
+
+        # Nawar (02/11/2026): el equipo (profes y moderadores) crea y cambia
+        # contenido en las CLASES EN DIRECTO (sus semanas: capítulo,
+        # presentación, ejercicios), no en la formación. Borrar, no.
+        if action in (AccessAction.CREATE, AccessAction.UPDATE) and await self._equipo_en_curso(
+            resource_uuid, escribir=True
+        ):
+            return AccessDecision(
+                allowed=True,
+                reason="User is staff and the course is a live class",
+                via_role=True,
                 resource_uuid=resource_uuid,
                 user_id=user_id,
                 action=action.value,
@@ -766,6 +795,62 @@ class ResourceAccessChecker:
         )
         self._author_cache[resource_uuid] = is_valid
         return is_valid
+
+    async def _equipo_en_curso(self, resource_uuid: str, escribir: bool) -> bool:
+        """Nawar (02/11/2026): ¿es del equipo (rol en STAFF_ROLE_IDS: profe,
+        moderador, administrador) de la escuela de este curso?
+
+        - Leer: cualquier curso de su escuela. Los profes dan la masterclass,
+          el Spreekclub y cada copia de la clase semanal, que están cerradas a
+          un grupo de alumnos en el que el profe no está.
+        - Escribir (`escribir=True`): solo si el curso es una clase en directo
+          (`salas.es_clase_en_directo`), para crear sus semanas. La formación
+          no la toca.
+
+        Solo cursos (`course_…`); lo demás sigue sus reglas de siempre."""
+        if not str(resource_uuid or "").startswith("course_"):
+            return False
+        user_id = self._get_user_id()
+        if not user_id:
+            return False
+        clave = ("equipo", resource_uuid, escribir)
+        cached = self._admin_cache.get(clave)  # type: ignore[arg-type]
+        if cached is not None:
+            return cached
+        resultado = False
+        try:
+            from src.db.courses.courses import Course
+            from src.db.organization_config import OrganizationConfig
+            from src.db.user_organizations import UserOrganization
+            from src.security.rbac.constants import STAFF_ROLE_IDS
+
+            curso = (
+                await self.db_session.execute(select(Course).where(Course.course_uuid == resource_uuid))
+            ).scalars().first()
+            if curso is not None:
+                rol = (
+                    await self.db_session.execute(
+                        select(UserOrganization.role_id).where(
+                            UserOrganization.user_id == user_id,
+                            UserOrganization.org_id == curso.org_id,
+                        )
+                    )
+                ).scalars().first()
+                resultado = rol in STAFF_ROLE_IDS
+                if resultado and escribir:
+                    from src.services.salas.salas import es_clase_en_directo
+
+                    fila = (
+                        await self.db_session.execute(
+                            select(OrganizationConfig).where(OrganizationConfig.org_id == curso.org_id)
+                        )
+                    ).scalars().first()
+                    resultado = es_clase_en_directo(fila.config if fila else {}, resource_uuid)
+        except Exception:  # noqa: BLE001 — ante la duda, las reglas de siempre
+            logger.exception("No se pudo comprobar si es del equipo (%s)", resource_uuid)
+            resultado = False
+        self._admin_cache[clave] = resultado  # type: ignore[index]
+        return resultado
 
     async def _is_admin_or_maintainer(self, resource_uuid: str) -> bool:
         """Check if current user is admin/maintainer in the resource's organization."""

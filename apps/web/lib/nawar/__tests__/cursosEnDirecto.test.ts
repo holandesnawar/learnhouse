@@ -58,7 +58,7 @@ describe('qué curso se pinta como clase en directo', () => {
     expect(ajustesDirecto(config, 'course_abc')).toEqual({
       activo: true, grabar: true, directo: false, grabadas: null, banner: { teacher: 'Paul' }, etiqueta: '',
     })
-    expect(ajustesDirecto(null, 'abc')).toEqual({ activo: false, grabar: false, directo: false, grabadas: null, banner: null, etiqueta: '' })
+    expect(ajustesDirecto(null, 'abc')).toEqual({ activo: false, grabar: true, directo: false, grabadas: null, banner: null, etiqueta: '' })
   })
 
   test('las clases grabadas: sin decidir, solo en la clase semanal de siempre', () => {

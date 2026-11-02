@@ -73,7 +73,7 @@ const CourseClient = (props: any) => {
 
   const course = initialCourse || clientCourseData;
   const enDirecto = esCursoEnDirecto(course?.course_uuid, org?.config?.config)
-  const { isAdmin: esAdministrador } = useAdminStatus()
+  const { isAdmin: esAdministrador, isStaff: esDelEquipo } = useAdminStatus()
   // Spreekclub y Masterclass, sin clases grabadas (27/10): ni la sección ni
   // «Clases anteriores». Lo cambia el administrador en esta misma página.
   const grabadas = !enDirecto || conGrabadas(org?.config?.config, course?.course_uuid)
@@ -355,8 +355,8 @@ const CourseClient = (props: any) => {
                 <Books size={24} className="text-[#025dc7] shrink-0" />
               )}
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{course.name}</h1>
-              {/* Solo administradores: cuál de las copias es (Groep rood…), 29/10. */}
-              {enDirecto && esAdministrador ? (
+              {/* El equipo: cuál de las copias es (Groep rood…), 29/10; también los profes desde el 02/11. */}
+              {enDirecto && esDelEquipo ? (
                 <EtiquetaCurso texto={ajustesDirecto(org?.config?.config, course.course_uuid).etiqueta} />
               ) : null}
             </div>

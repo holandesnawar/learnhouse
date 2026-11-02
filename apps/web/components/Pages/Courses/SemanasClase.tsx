@@ -285,8 +285,11 @@ export default function SemanasClase({ courseUuid, courseuuid, orgslug, curso }:
   const [editando, setEditando] = useState<Semana | null>(null)
 
   if (!data) return null
+  // El equipo (también los profes, 02/11/2026) prepara y cambia las semanas;
+  // quitar una semana entera (borra las entregas), solo un administrador.
   const { semanas, hoy, actual, proxima, admin } = data
-  if (!semanas.length && !admin) return null
+  const equipo = Boolean(data.equipo || admin)
+  if (!semanas.length && !equipo) return null
 
   const rutaClase = (c: ClaseSemana) =>
     getUriWithOrg(orgslug, '') + `/course/${courseuuid}/activity/${c.activity_uuid.replace('activity_', '')}`
@@ -306,8 +309,8 @@ export default function SemanasClase({ courseUuid, courseuuid, orgslug, curso }:
         <span className="text-[12.5px] font-semibold text-[#6B7280] shrink-0 first-letter:uppercase">{diaCorto(semana.fecha)}</span>
       </div>
       <div className="rounded-2xl border border-[#DDE6F5] bg-white overflow-hidden">
-        <ContenidoSemana semana={semana} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={admin} />
-        {admin ? <CabeceraAdmin semana={semana} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(semana)} /> : null}
+        <ContenidoSemana semana={semana} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={equipo} />
+        {equipo ? <CabeceraAdmin semana={semana} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(semana)} /> : null}
       </div>
     </div>
   )
@@ -344,8 +347,8 @@ export default function SemanasClase({ courseUuid, courseuuid, orgslug, curso }:
                 </button>
                 {abierta ? (
                   <div className="border-t border-[#EEF2F9]">
-                    <ContenidoSemana semana={s} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={admin} />
-                    {admin ? <CabeceraAdmin semana={s} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(s)} /> : null}
+                    <ContenidoSemana semana={s} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={equipo} />
+                    {equipo ? <CabeceraAdmin semana={s} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(s)} /> : null}
                   </div>
                 ) : null}
               </div>
@@ -357,7 +360,7 @@ export default function SemanasClase({ courseUuid, courseuuid, orgslug, curso }:
 
   return (
     <div className="w-full">
-      {admin ? (
+      {equipo ? (
         <div className="flex flex-wrap items-center justify-between gap-3 mt-6 rounded-xl border border-dashed border-[#9cc7ff] px-4 py-3">
           <p className="text-[13px] text-[#3F4A61]">
             {semanas.length
@@ -376,7 +379,7 @@ export default function SemanasClase({ courseUuid, courseuuid, orgslug, curso }:
       {semanaActual ? bloque('Esta semana', semanaActual) : null}
       {semanaProxima ? bloque('Próxima clase', semanaProxima) : null}
       {plegables('Semanas anteriores', anteriores)}
-      {admin ? plegables('Más adelante', masAdelante) : null}
+      {equipo ? plegables('Más adelante', masAdelante) : null}
 
       {nueva ? (
         <NuevaSemana
@@ -394,6 +397,7 @@ export default function SemanasClase({ courseUuid, courseuuid, orgslug, curso }:
       {editando ? (
         <EditarSemana
           semana={editando}
+          puedeQuitar={admin}
           onClose={() => setEditando(null)}
           onGuardada={() => {
             setEditando(null)

@@ -1,7 +1,8 @@
 'use client'
 
 /**
- * Crear y cambiar las semanas de una clase en directo (solo administradores).
+ * Crear y cambiar las semanas de una clase en directo (el equipo, también los
+ * profes desde el 02/11/2026; «Quitar la semana», solo administradores).
  *
  * «Nueva semana» hace de una vez lo que antes eran cinco pasos en el editor
  * del curso: crea el capítulo con el tema, sube la presentación (PDF) como
@@ -254,7 +255,18 @@ export function NuevaSemana({
   )
 }
 
-export function EditarSemana({ semana, onClose, onGuardada }: { semana: Semana; onClose: () => void; onGuardada: () => void }) {
+export function EditarSemana({
+  semana,
+  onClose,
+  onGuardada,
+  puedeQuitar = true,
+}: {
+  semana: Semana
+  onClose: () => void
+  onGuardada: () => void
+  /** Quitar la semana borra la tarea y las entregas: solo administradores. */
+  puedeQuitar?: boolean
+}) {
   const session = useLHSession() as any
   const token: string = session?.data?.tokens?.access_token || ''
   const [tema, setTema] = useState(semana.tema)
@@ -317,9 +329,13 @@ export function EditarSemana({ semana, onClose, onGuardada }: { semana: Semana; 
           La presentación, la grabación y los ejercicios se cambian en el editor del curso («Añadir clases»).
         </p>
         <div className="flex items-center justify-between gap-3">
-          <button onClick={quitar} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#B91C1C] hover:underline">
-            <Trash2 size={14} /> Quitar la semana
-          </button>
+          {puedeQuitar ? (
+            <button onClick={quitar} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#B91C1C] hover:underline">
+              <Trash2 size={14} /> Quitar la semana
+            </button>
+          ) : (
+            <span />
+          )}
           <button
             onClick={guardar}
             disabled={guardando}
