@@ -138,6 +138,72 @@ def quien_lo_ve(publico: bool, grupos: list[str], publicado: bool = True) -> dic
     return {"texto": "Solo " + ", ".join(grupos), "aviso": ""}
 
 
+def _lista_y(nombres: list[str]) -> str:
+    return nombres[0] if len(nombres) == 1 else ", ".join(nombres[:-1]) + " y " + nombres[-1]
+
+
+def aviso_colaboradores(nombres: list[str]) -> str:
+    """02/11/2026: una cuenta de Groep rood veía el Spreken Club, cerrado a
+    «Programa nuevo», y esta pantalla decía «Solo Programa nuevo». Era
+    colaboradora del curso: LearnHouse le enseña el curso a quien figura como
+    autor o colaborador, esté o no en el grupo. Si no se dice aquí, la pantalla
+    miente."""
+    if not nombres:
+        return ""
+    if len(nombres) == 1:
+        return (
+            f"También lo ve {nombres[0]}: es colaborador del curso, aunque no esté en el grupo. "
+            "Si no debe verlo, quítalo en Colaboradores."
+        )
+    return (
+        f"También lo ven {_lista_y(nombres)}: son colaboradores del curso, aunque no estén en el grupo. "
+        "Si no deben verlo, quítalos en Colaboradores."
+    )
+
+
+def alumnos_que_lo_ven(
+    publico: bool, publicado: bool, grupos_ids: list[int], miembros_de: dict[int, set[int]], alumnos: set[int]
+) -> set[int]:
+    """Los alumnos (rol 4) que tienen el curso en su lista, con las mismas
+    reglas que `get_courses_orgslug` (services/courses/courses.py)."""
+    if not publicado:
+        return set()
+    if publico or not grupos_ids:
+        return set(alumnos)
+    dentro: set[int] = set()
+    for g in grupos_ids:
+        dentro |= miembros_de.get(g, set())
+    return dentro & alumnos
+
+
+def repetidos(cursos: list[dict]) -> dict[str, list[tuple[str, int]]]:
+    """Cursos con el MISMO nombre que ve a la vez algún alumno (02/11/2026: la
+    Clase semanal original seguía abierta a «Beta», y los de Groep rood, que
+    siguen en Beta, tenían dos «Clase semanal» en la barra). Cada curso es
+    {uuid, base (el nombre tal cual), nombre (el que se enseña, con su
+    etiqueta), ven (set de alumnos)}. Devuelve, por uuid, [(el otro, cuántos)]."""
+    salida: dict[str, list[tuple[str, int]]] = {}
+    for i, a in enumerate(cursos):
+        for b in cursos[i + 1 :]:
+            if normalizar(a["base"]) != normalizar(b["base"]):
+                continue
+            n = len(a["ven"] & b["ven"])
+            if n:
+                salida.setdefault(a["uuid"], []).append((b["nombre"], n))
+                salida.setdefault(b["uuid"], []).append((a["nombre"], n))
+    return salida
+
+
+def aviso_repetido(otros: list[tuple[str, int]]) -> str:
+    if not otros:
+        return ""
+    partes = []
+    for nombre, n in otros:
+        quien = "1 alumno ve" if n == 1 else f"{n} alumnos ven"
+        partes.append(f"{quien} también «{nombre}», que se llama igual: están en un grupo de cada uno")
+    return "; ".join(partes) + ". Saca a cada alumno del grupo que no le toca, o quita ese grupo del curso."
+
+
 def hoy_nl(ahora: Optional[datetime] = None) -> str:
     return (ahora or datetime.now(ZONA)).astimezone(ZONA).date().isoformat()
 
@@ -531,6 +597,50 @@ async def decidir(org_id: int, user_id: int, a: str, db_session: AsyncSession) -
     return {"ok": True, "programa": "beta", "grupos": [beta.name]}
 
 
+async def _colaboradores_fuera(
+    cursos: list, ids_de: dict[str, list[int]], miembros_de: dict[int, set[int]], db_session: AsyncSession
+) -> dict[str, list[str]]:
+    """Por curso cerrado a grupos, los colaboradores (autores activos) que lo
+    ven SOLO por serlo: ni del equipo (que lo ve todo) ni de sus grupos. Ver
+    `aviso_colaboradores`."""
+    from src.db.resource_authors import ResourceAuthor, ResourceAuthorshipStatusEnum
+    from src.db.user_organizations import UserOrganization
+    from src.db.users import User
+    from src.security.rbac.constants import STAFF_ROLE_IDS
+
+    cerrados = {
+        c.course_uuid: c
+        for c in cursos
+        if c.published and not c.public and ids_de.get(c.course_uuid)
+    }
+    if not cerrados:
+        return {}
+    filas = (
+        await db_session.execute(
+            select(ResourceAuthor.resource_uuid, User, UserOrganization.role_id)
+            .join(User, User.id == ResourceAuthor.user_id)
+            .outerjoin(
+                UserOrganization,
+                (UserOrganization.user_id == ResourceAuthor.user_id)
+                & (UserOrganization.org_id == list(cerrados.values())[0].org_id),
+            )
+            .where(
+                ResourceAuthor.resource_uuid.in_(list(cerrados)),  # type: ignore[attr-defined]
+                ResourceAuthor.authorship_status == ResourceAuthorshipStatusEnum.ACTIVE,
+            )
+        )
+    ).all()
+    salida: dict[str, list[str]] = {}
+    for recurso, usuario, rol in filas:
+        if rol in STAFF_ROLE_IDS:
+            continue
+        if any(usuario.id in miembros_de.get(g, set()) for g in ids_de.get(recurso, [])):
+            continue
+        nombre = " ".join(x for x in (usuario.first_name, usuario.last_name) if x).strip() or usuario.username or usuario.email
+        salida.setdefault(recurso, []).append(nombre)
+    return salida
+
+
 async def resumen(org_id: int, db_session: AsyncSession) -> dict:
     """La pantalla de Tandas: la configuración, los alumnos nuevos con su
     programa, cada grupo con su gente y quién ve cada curso y cada canal."""
@@ -549,8 +659,10 @@ async def resumen(org_id: int, db_session: AsyncSession) -> dict:
     nuevos = await alumnos_nuevos(org_id, db_session)
     lista = []
     con_grupo_clave: set[int] = set()
+    miembros_de: dict[int, set[int]] = {}
     for g in sorted(grupos, key=lambda x: normalizar(x.name)):
         miembros = await _miembros(g.id, db_session)
+        miembros_de[g.id] = miembros
         clave = g.id == cfg["programa_id"] or normalizar(g.name) == normalizar(NOMBRE_BETA)
         if clave:
             con_grupo_clave |= miembros
@@ -568,26 +680,53 @@ async def resumen(org_id: int, db_session: AsyncSession) -> dict:
 
     enlaces = (await db_session.execute(select(UserGroupResource).where(UserGroupResource.org_id == org_id))).scalars().all()
     grupos_de: dict[str, list[str]] = {}
+    ids_de: dict[str, list[int]] = {}
     for e in enlaces:
         if e.usergroup_id in por_id:
             grupos_de.setdefault(e.resource_uuid, []).append(por_id[e.usergroup_id].name)
+            ids_de.setdefault(e.resource_uuid, []).append(e.usergroup_id)
 
     from src.services.salas.salas import nombre_con_etiqueta
 
     fila_cfg = await _fila_config(db_session, org_id)
+    filas_curso = (await db_session.execute(select(Course).where(Course.org_id == org_id))).scalars().all()
+    colaboradores = await _colaboradores_fuera(filas_curso, ids_de, miembros_de, db_session)
     cursos = []
-    for c in (await db_session.execute(select(Course).where(Course.org_id == org_id))).scalars().all():
+    vistas = []
+    for c in filas_curso:
         g = sorted(grupos_de.get(c.course_uuid, []))
+        nombre = nombre_con_etiqueta(fila_cfg.config if fila_cfg else {}, c.course_uuid, c.name)
+        uuid = c.course_uuid.replace("course_", "", 1)
+        acceso = quien_lo_ve(bool(c.public), g, bool(c.published))
         cursos.append(
             {
                 # Dos copias de la clase semanal se llaman igual: la etiqueta
                 # (Groep rood / Groep blauw) dice cuál es cuál (29/10).
-                "nombre": nombre_con_etiqueta(fila_cfg.config if fila_cfg else {}, c.course_uuid, c.name),
-                "uuid": c.course_uuid.replace("course_", "", 1),
+                "nombre": nombre,
+                "uuid": uuid,
                 "grupos": g,
-                **quien_lo_ve(bool(c.public), g, bool(c.published)),
+                "colaboradores": colaboradores.get(c.course_uuid, []),
+                **acceso,
             }
         )
+        vistas.append(
+            {
+                "uuid": uuid,
+                "base": c.name,
+                "nombre": nombre,
+                "ven": alumnos_que_lo_ven(
+                    bool(c.public), bool(c.published), ids_de.get(c.course_uuid, []), miembros_de, alumnos
+                ),
+            }
+        )
+    dobles = repetidos(vistas)
+    for fila in cursos:
+        avisos = [
+            fila["aviso"],
+            aviso_colaboradores(fila["colaboradores"]),
+            aviso_repetido(dobles.get(fila["uuid"], [])),
+        ]
+        fila["aviso"] = " ".join(a for a in avisos if a)
     canales = []
     for c in (await db_session.execute(select(Community).where(Community.org_id == org_id))).scalars().all():
         g = sorted(grupos_de.get(c.community_uuid, []))

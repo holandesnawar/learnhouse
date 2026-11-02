@@ -170,6 +170,77 @@ jobs:
               WHERE uo.role_id = 4
               ORDER BY uo.creation_date;"
 
+      - name: Quién ve cada curso (sin datos personales)
+        # 02/11/2026: una cuenta de Groep rood veía el Spreken Club, cerrado a
+        # «Programa nuevo». Esto enseña, curso a curso, lo mismo que mira la
+        # lista de cursos de la escuela (services/courses/courses.py,
+        # get_courses_orgslug): público, publicado, sus grupos, sus autores (por
+        # rol) y cuántas cuentas de cada rol lo ven y por qué. Solo nombres de
+        # cursos y de grupos, y cifras: el repositorio es PÚBLICO.
+        if: success()
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          q() { "$PSQL" -P pager=off -c "$1"; }
+
+          echo "== Cursos: público, publicado, grupos y autores =="
+          q "SELECT c.id, c.name AS curso, c.public AS publico, c.published AS publicado,
+                    (SELECT string_agg(coalesce(g.name, '¿grupo borrado ' || r.usergroup_id || '?'), ', ' ORDER BY g.name)
+                       FROM usergroupresource r LEFT JOIN usergroup g ON g.id = r.usergroup_id
+                      WHERE r.resource_uuid = c.course_uuid) AS grupos,
+                    (SELECT string_agg(ra.authorship_status::text || ' rol ' || coalesce(uo.role_id::text, '?'), ', ')
+                       FROM resourceauthor ra LEFT JOIN userorganization uo ON uo.user_id = ra.user_id AND uo.org_id = c.org_id
+                      WHERE ra.resource_uuid = c.course_uuid) AS autores
+               FROM course c ORDER BY c.id;"
+
+          echo "== Grupos: cuántas cuentas de cada rol hay dentro =="
+          q "SELECT g.id, g.name AS grupo, uo.role_id AS rol, count(*) AS cuentas
+               FROM usergroup g JOIN usergroupuser gu ON gu.usergroup_id = g.id
+               LEFT JOIN userorganization uo ON uo.user_id = gu.user_id AND uo.org_id = g.org_id
+              GROUP BY 1, 2, 3 ORDER BY 1, 3;"
+
+          echo "== Cuántas cuentas ven cada curso en su lista, por rol y por qué =="
+          # El mismo orden que la escuela: público, sin grupos, en un grupo suyo,
+          # autor. El equipo (roles 1, 2 y 5) ve además todo lo publicado.
+          q "WITH vis AS (
+               SELECT c.id, c.name AS curso, uo.role_id AS rol,
+                      CASE
+                        WHEN c.published AND c.public THEN 'publico'
+                        WHEN c.published AND NOT EXISTS (SELECT 1 FROM usergroupresource r WHERE r.resource_uuid = c.course_uuid) THEN 'sin grupos'
+                        WHEN EXISTS (SELECT 1 FROM usergroupresource r JOIN usergroupuser gu ON gu.usergroup_id = r.usergroup_id
+                                      WHERE r.resource_uuid = c.course_uuid AND gu.user_id = uo.user_id) THEN 'en un grupo suyo'
+                        WHEN EXISTS (SELECT 1 FROM resourceauthor ra WHERE ra.resource_uuid = c.course_uuid
+                                      AND ra.user_id = uo.user_id AND ra.authorship_status::text ILIKE 'active') THEN 'autor'
+                        WHEN c.published AND uo.role_id IN (1, 2, 5) THEN 'equipo'
+                      END AS por_que
+                 FROM course c JOIN userorganization uo ON uo.org_id = c.org_id)
+             SELECT id, curso, rol, por_que, count(*) AS cuentas
+               FROM vis WHERE por_que IS NOT NULL
+              GROUP BY 1, 2, 3, 4 ORDER BY 1, 3, 4;"
+
+          echo "== Alumnos (rol 4) que ven a la vez dos cursos con el mismo nombre =="
+          # Pasa si el original de una clase duplicada sigue abierto a un grupo
+          # en el que están también los de la copia (p. ej. «Beta»).
+          q "WITH ve AS (
+               SELECT DISTINCT c.id, c.name, gu.user_id
+                 FROM course c
+                 JOIN usergroupresource r ON r.resource_uuid = c.course_uuid
+                 JOIN usergroupuser gu ON gu.usergroup_id = r.usergroup_id
+                 JOIN userorganization uo ON uo.user_id = gu.user_id AND uo.org_id = c.org_id AND uo.role_id = 4
+                WHERE c.published)
+             SELECT a.name AS curso, a.id AS uno, b.id AS otro, count(*) AS alumnos
+               FROM ve a JOIN ve b ON b.name = a.name AND b.user_id = a.user_id AND b.id > a.id
+              GROUP BY 1, 2, 3 ORDER BY 1;"
+
+          echo "== Alumnos (rol 4) en «Beta» que están también en Rood o en Blauw =="
+          q "SELECT g2.name AS tambien_en, count(*) AS alumnos
+               FROM usergroup g1 JOIN usergroupuser a ON a.usergroup_id = g1.id
+               JOIN usergroupuser b ON b.user_id = a.user_id
+               JOIN usergroup g2 ON g2.id = b.usergroup_id AND g2.id <> g1.id
+               JOIN userorganization uo ON uo.user_id = a.user_id AND uo.org_id = g1.org_id AND uo.role_id = 4
+              WHERE g1.name = 'Beta' AND g2.name ILIKE 'Beta - %'
+              GROUP BY 1 ORDER BY 1;"
+
       - name: Resumen
         if: always()
         run: |

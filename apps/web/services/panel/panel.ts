@@ -588,8 +588,11 @@ export interface AccesoRecurso {
   grupos: string[]
   /** «Todo el mundo», «Solo Beta», «Todos los que han entrado»… */
   texto: string
-  /** Algo raro, p. ej. con grupo pero marcado como público. */
+  /** Algo raro: con grupo pero marcado como público, colaboradores que lo
+   * ven sin estar en el grupo, o alumnos que ven dos cursos con el mismo nombre. */
   aviso: string
+  /** Solo cursos: quien lo ve por ser colaborador, sin estar en sus grupos. */
+  colaboradores?: string[]
 }
 
 export interface GrupoTanda {
