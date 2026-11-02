@@ -4665,7 +4665,7 @@ Friday»** (por qué, en la cabecera de `services/ebook/ebook.py`).
     Friday» y un formulario de cristal con nombre, correo y WhatsApp (prefijo
     con bandera; zona `Europe/Brussels` → +32). Al enviar, el navegador llama
     a `{ESCUELA}/api/v1/ebook/lista`, guarda los datos
-    (`nawar.bf.desbloqueada`), píxel `Lead` una vez por visita
+    (`nawar.bf.desbloqueada`), píxel `LeadBF` una vez por visita
     (`content_name` «Black Friday») y lleva **a la página del ebook**:
     `/ebook-ads` si llegó con `utm_medium` de pago (`esDePago`, los mismos
     medios que `_MEDIOS_DE_PAGO` de la escuela) y `/ebook` si no, con
@@ -4731,11 +4731,23 @@ Friday»** (por qué, en la cabecera de `services/ebook/ebook.py`).
     llamada: ahí se cuenta la oferta). El resto ve la de antes («Adelántate al
     Black Friday»). Debajo, la formación como estaba (sin precio). Con
     `?compra` pregunta a `/api/ebook-compra` (ruta de la web: la escuela +
-    CAPI `Purchase` con `event_id` = la sesión), pone «te llega a {correo}»,
-    manda el `Purchase` del píxel con el mismo id y deja nombre y correo para
-    el formulario. ⚠️ Esa ruta solo acepta ids de Stripe de verdad
+    CAPI `CompraEbook` con `event_id` = la sesión), pone «te llega a
+    {correo}», manda el `CompraEbook` del píxel con el mismo id y deja nombre y
+    correo para el formulario. ⚠️ Esa ruta solo acepta ids de Stripe de verdad
     (`cs_test_`/`cs_live_` + 10 o más letras). Pasado el 30/11, «la oferta
     ha terminado» y el botón a `/proceso-de-admision`.
+  - ⚠️ **Black Friday NO manda `Lead` ni `Purchase` a Meta** (02/11,
+    nawar-web PR #198, a petición de quien lleva los anuncios): la portada
+    manda **`LeadBF`** (píxel + servidor por `/api/embudo`, mismo id, datos
+    cifrados en el navegador: `leadBlackFriday` en `metaNavegador.ts`) y el
+    pago confirmado del ebook **`CompraEbook`** (valor y moneda; píxel en
+    /oferta + servidor en `/api/ebook-compra`, id = la sesión de Stripe).
+    `Lead` lo siguen mandando las guías y el anuncio de la formación, y
+    `Purchase` se guarda para la formación: un ebook de 1 € ahí dentro
+    enseñaría mal a esas campañas. Para optimizar una campaña por `LeadBF` o
+    `CompraEbook`, en el Administrador de eventos se crea una **conversión
+    personalizada** con cada uno (el evento tiene que haber llegado una vez).
+    Del 29/10 al 02/11 se mandaron como `Lead` y `Purchase`.
   - **Formulario** (`black-friday/admision.astro`): copia de
     `/proceso-agendar` con **la edad la primera pregunta** (solo aquí) y los
     datos ya puestos; `embudo: 'black-friday'` → systeme.io `origen =
