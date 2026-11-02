@@ -566,3 +566,22 @@ async def test_la_caja_pide_el_whatsapp_y_lo_guarda_en_la_ficha(db, org, sin_red
 def test_telefono_de_stripe():
     assert E.telefono_de_stripe("+31 6 12 34 56 78") == "+31612345678"
     assert E.telefono_de_stripe("") == "" and E.telefono_de_stripe("abc") == ""
+
+
+def test_la_fecha_del_final_solo_va_en_los_correos_de_la_ultima_semana():
+    """02/11, usuario: «hasta el 30 de noviembre» en cada correo da «ya
+    volveré». Las cartas sueltas y los correos por días no la llevan; solo los
+    de fecha fija del final."""
+    for clave in ("entrega", "pendiente", "acceso", "formulario"):
+        assert "{hasta}" not in E.DE_FABRICA[clave]["texto"], clave
+    for c in E.DE_FABRICA["correos"]:
+        if "dia" in c:
+            assert "{hasta}" not in c["texto"], c["id"]
+    # Una carta guardada tal cual con la fecha pasa sola a la de ahora.
+    vieja = E._FABRICA_ANTERIOR["entrega"][0]
+    assert "{hasta}" in vieja
+    cfg = E.config_limpia({"entrega": {"asunto": "x", "texto": vieja}})
+    assert "{hasta}" not in cfg["entrega"]["texto"]
+    # Una retocada en el panel se respeta.
+    propia = "¡Hola, {nombre}! Hasta el {hasta}, lo mío.\n\n[descarga]"
+    assert E.config_limpia({"entrega": {"texto": propia}})["entrega"]["texto"] == propia

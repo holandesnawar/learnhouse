@@ -194,9 +194,9 @@ DE_FABRICA: dict = {
             "[descarga]\n\n"
             "Un consejo para sacarle partido: una lección al día y en voz alta. Leer el neerlandés en silencio "
             "engaña, porque crees que lo sabes hasta que lo tienes que decir.\n\n"
-            "Y una cosa más. Hasta el {hasta} tenemos condiciones especiales de Black Friday para la "
-            "Formación Nawar A0-A1, el camino completo de cero al A1 en 16 semanas. Si quieres saber si "
-            "encaja contigo, mira cómo funciona y pide tu llamada gratuita.\n\n"
+            "Y una cosa más. Por tener el ebook, tienes acceso a unas condiciones especiales de Black Friday "
+            "en la Formación Nawar A0-A1, el camino completo de cero al A1 en 16 semanas. Si quieres saber "
+            "si encaja contigo, mira cómo funciona y pide tu llamada gratuita.\n\n"
             "[boton]\n\n" + _FIRMA
         ),
         "boton": "Ver la Formación Nawar",
@@ -210,8 +210,7 @@ DE_FABRICA: dict = {
             "¡Hola, {nombre}!\n\n"
             "Te quedaste a un paso de *Holandés sin miedo*, el ebook para arrancar con el neerlandés desde "
             "cero. Si se te cortó el pago o simplemente se te pasó, te lo he dejado preparado: con un clic "
-            "vuelves y es tuyo.\n\n"
-            "Sigue a 1 € hasta el {hasta}.\n\n"
+            "vuelves y es tuyo, por 1 €.\n\n"
             "[boton]\n\n"
             "Si tuviste algún problema al pagar, contesta a este correo y te ayudamos.\n\n" + _FIRMA
         ),
@@ -228,7 +227,6 @@ DE_FABRICA: dict = {
             "arrancar con el neerlandés desde cero, por solo 1 €.\n\n"
             "Son más de 70 páginas explicadas en español, con el vocabulario, los ejercicios y todas las respuestas "
             "para que te corrijas tú. En PDF y para siempre.\n\n"
-            "La oferta vale hasta el {hasta}.\n\n"
             "[boton]\n\n" + _FIRMA
         ),
         "boton": "Conseguir mi ebook por 1 €",
@@ -242,8 +240,8 @@ DE_FABRICA: dict = {
             "¡Hola, {nombre}!\n\n"
             "Empezaste a pedir tu llamada de admisión, pero no llegaste a reservar la hora. Te lo he dejado "
             "preparado: entras, terminas en un minuto y eliges el día que mejor te venga.\n\n"
-            "En la llamada te contamos las condiciones de Black Friday de la Formación Nawar A0-A1, que valen "
-            "hasta el {hasta}. Es gratuita, de media hora y sin compromiso.\n\n"
+            "En la llamada te contamos las condiciones de Black Friday de la Formación Nawar A0-A1. Es "
+            "gratuita, de media hora y sin compromiso.\n\n"
             "[boton]\n\n" + _FIRMA
         ),
         "boton": "Terminar mi solicitud",
@@ -283,7 +281,7 @@ DE_FABRICA: dict = {
                 "Yo empecé con el neerlandés por obligación. Me quemaba tener que depender de otros para las "
                 "cosas más normales. Por eso la Formación Nawar A0-A1 es un camino: 16 semanas, 10 módulos, "
                 "y cada semana sabes qué toca y alguien revisa lo que haces.\n\n"
-                "Hasta el {hasta} tenemos condiciones especiales de Black Friday. No te las cuento aquí: te "
+                "Para quien tiene el ebook hay condiciones especiales de Black Friday. No te las cuento aquí: te "
                 "las explica nuestro equipo en una llamada gratuita, después de entender tu situación y ver si "
                 "de verdad podemos ayudarte.\n\n"
                 "[boton]\n\n" + _FIRMA
@@ -402,11 +400,23 @@ DESTINOS = ("admision", "landing", "descarga", "ebook")
 
 #: Los textos de fábrica de antes, por carta: los del 28/10 (tercera vuelta: el
 #: de acceso llevaba a la formación) y los de antes del 29/10 («7 lecciones»;
-#: ahora es «70 páginas»). Si están guardados TAL CUAL (el panel guarda las
+#: ahora es «70 páginas») y los de antes del 02/11 (decían «hasta el {hasta}»:
+#: la fecha lejana repetida en cada correo da «ya volveré», usuario; solo la
+#: llevan los correos de la última semana). Si están guardados TAL CUAL (el panel guarda las
 #: cartas enteras aunque no se toquen), se usan los de ahora. Uno retocado en
 #: el panel se respeta.
 _FABRICA_ANTERIOR: dict[str, tuple[str, ...]] = {
     "entrega": (
+        "¡Hola, {nombre}!\n\n"
+        "Gracias por tu compra. Aquí tienes tu ebook *Holandés sin miedo*: más de 70 páginas para arrancar "
+        "desde cero, con su vocabulario, sus ejercicios y todas las respuestas para que te corrijas tú.\n\n"
+        "[descarga]\n\n"
+        "Un consejo para sacarle partido: una lección al día y en voz alta. Leer el neerlandés en silencio "
+        "engaña, porque crees que lo sabes hasta que lo tienes que decir.\n\n"
+        "Y una cosa más. Hasta el {hasta} tenemos condiciones especiales de Black Friday para la "
+        "Formación Nawar A0-A1, el camino completo de cero al A1 en 16 semanas. Si quieres saber si "
+        "encaja contigo, mira cómo funciona y pide tu llamada gratuita.\n\n"
+        "[boton]\n\n" + _FIRMA,
         "¡Hola, {nombre}!\n\n"
         "Gracias por tu compra. Aquí tienes tu ebook *Neerlandés sin miedo*: 7 lecciones para arrancar "
         "desde cero, con su vocabulario, sus ejercicios y todas las respuestas para que te corrijas tú.\n\n"
@@ -419,6 +429,13 @@ _FABRICA_ANTERIOR: dict[str, tuple[str, ...]] = {
         "[boton]\n\n" + _FIRMA,
     ),
     "acceso": (
+        "¡Hola, {nombre}!\n\n"
+        "Ya tienes desbloqueada tu oferta de Black Friday: *Holandés sin miedo*, nuestro ebook para "
+        "arrancar con el neerlandés desde cero, por solo 1 €.\n\n"
+        "Son más de 70 páginas explicadas en español, con el vocabulario, los ejercicios y todas las respuestas "
+        "para que te corrijas tú. En PDF y para siempre.\n\n"
+        "La oferta vale hasta el {hasta}.\n\n"
+        "[boton]\n\n" + _FIRMA,
         "¡Hola, {nombre}!\n\n"
         "Ya tienes desbloqueada tu oferta de Black Friday: *Neerlandés sin miedo*, nuestro ebook para "
         "arrancar con el neerlandés desde cero, por solo 1 €.\n\n"
@@ -437,12 +454,27 @@ _FABRICA_ANTERIOR: dict[str, tuple[str, ...]] = {
     ),
     "pendiente": (
         "¡Hola, {nombre}!\n\n"
+        "Te quedaste a un paso de *Holandés sin miedo*, el ebook para arrancar con el neerlandés desde "
+        "cero. Si se te cortó el pago o simplemente se te pasó, te lo he dejado preparado: con un clic "
+        "vuelves y es tuyo.\n\n"
+        "Sigue a 1 € hasta el {hasta}.\n\n"
+        "[boton]\n\n"
+        "Si tuviste algún problema al pagar, contesta a este correo y te ayudamos.\n\n" + _FIRMA,
+        "¡Hola, {nombre}!\n\n"
         "Empezaste a pedir *Neerlandés sin miedo*, pero el pago no llegó a terminarse. A veces es la "
         "tarjeta, a veces se corta la conexión. Pasa.\n\n"
         "Si todavía lo quieres, te lo he dejado preparado: con un clic vuelves y lo terminas. Sigue a "
         "1 € hasta el {hasta}.\n\n"
         "[boton]\n\n"
         "Si tuviste algún problema al pagar, contesta a este correo y te ayudamos.\n\n" + _FIRMA,
+    ),
+    "formulario": (
+        "¡Hola, {nombre}!\n\n"
+        "Empezaste a pedir tu llamada de admisión, pero no llegaste a reservar la hora. Te lo he dejado "
+        "preparado: entras, terminas en un minuto y eliges el día que mejor te venga.\n\n"
+        "En la llamada te contamos las condiciones de Black Friday de la Formación Nawar A0-A1, que valen "
+        "hasta el {hasta}. Es gratuita, de media hora y sin compromiso.\n\n"
+        "[boton]\n\n" + _FIRMA,
     ),
 }
 
