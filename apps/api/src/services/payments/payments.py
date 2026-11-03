@@ -72,6 +72,64 @@ def _usar_stripe() -> None:
     stripe.api_key = _stripe_secret()
 
 
+# ── Métodos de pago de la caja ──────────────────────────────────────────────
+#
+# La lista va escrita a mano (no `automatic_payment_methods`) para decidir
+# nosotros qué sale: sin `link` (mete una cuenta en mitad del pago) y sin
+# `sepa_debit` (lento y raro aquí). Por eso un método que se enciende en el
+# panel de Stripe NO sale en la caja hasta que se añade aquí: pasó con
+# Scalapay (03/11/2026, "está activado en Stripe y no aparece").
+#
+# Scalapay (paga en 3 o 4 plazos) tiene dos condiciones:
+# - Solo existe desde la versión de la API `2026-05-27.dahlia`, y la librería
+#   de Stripe que usa la escuela (15.1.0) habla con la `2026-04-22.dahlia`.
+#   Por eso la sesión que lo lleva se crea con esa versión, solo esa llamada.
+#   Las versiones de un mismo nombre (dahlia) no rompen nada entre sí.
+# - Cobra de 5 € a 4.999,99 € y solo en euros: el ebook de 1 € no lo lleva.
+#   Tampoco los plazos propios (suscripción): Scalapay no hace cobros
+#   periódicos.
+# Si Stripe no deja ofrecerlo en una sesión (cuenta sin acceso, importe, lo que
+# sea), la sesión se crea otra vez SIN Scalapay y el motivo va al registro:
+# antes una caja sin Scalapay que una caja que no abre.
+
+METODOS_DE_PAGO = ["card", "ideal", "klarna", "bancontact"]
+VERSION_API_SCALAPAY = "2026-05-27.dahlia"
+SCALAPAY_MIN_CENTS = 500
+SCALAPAY_MAX_CENTS = 499_999
+
+
+def metodos_de_pago(importe_cents: int, moneda: str = "eur") -> list[str]:
+    """Los métodos que se ofrecen en la caja para ese importe."""
+    metodos = list(METODOS_DE_PAGO)
+    if (moneda or "eur").lower() == "eur" and SCALAPAY_MIN_CENTS <= int(importe_cents or 0) <= SCALAPAY_MAX_CENTS:
+        metodos.append("scalapay")
+    return metodos
+
+
+def crear_sesion_de_pago(importe_cents: int, moneda: str = "eur", **datos):
+    """`stripe.checkout.Session.create` con los métodos de la caja.
+
+    Con Scalapay, en la versión de la API que lo conoce; si Stripe lo rechaza,
+    otra vez sin él. Cualquier otro fallo sale tal cual (lo recoge quien llama).
+    """
+    # Importado aquí, no el `stripe` del módulo: las pruebas de la señal y de
+    # los plazos cambian el módulo entero por uno falso y tiene que valer.
+    import stripe as _stripe
+
+    metodos = metodos_de_pago(importe_cents, moneda)
+    if "scalapay" in metodos:
+        try:
+            return _stripe.checkout.Session.create(
+                payment_method_types=metodos,
+                stripe_version=VERSION_API_SCALAPAY,
+                **datos,
+            )
+        except stripe.InvalidRequestError as exc:
+            logger.warning("Stripe no deja ofrecer Scalapay en esta caja; va sin él. Motivo: %s", exc)
+            metodos = [m for m in metodos if m != "scalapay"]
+    return _stripe.checkout.Session.create(payment_method_types=metodos, **datos)
+
+
 def _webhook_secret() -> str:
     cfg = get_learnhouse_config()
     key = getattr(
@@ -667,7 +725,9 @@ async def enroll_and_checkout_session(data, db_session: AsyncSession, precio_id:
     }
 
     try:
-        session = stripe.checkout.Session.create(
+        session = crear_sesion_de_pago(
+            amount,
+            currency,
             # `embedded_page`, no `embedded`: Stripe renombró el valor y el
             # viejo ya no lo acepta ("The ui_mode value `embedded` is no longer
             # supported"). Es el mismo modo — la caja pintada dentro de nuestra
@@ -693,11 +753,9 @@ async def enroll_and_checkout_session(data, db_session: AsyncSession, precio_id:
             # y parte de la gente se va a buscarlo y no vuelve. Los cupones van
             # en el enlace y aplicados solos.
             allow_promotion_codes=False,
-            # Lista explícita en vez de automática, para decidir nosotros qué
-            # sale: sin `link` (mete una cuenta en mitad del pago) y sin
-            # `sepa_debit` (lento y raro aquí). La tarjeta ya arrastra Apple Pay
+            # Los métodos los pone `crear_sesion_de_pago` (tarjeta, iDEAL,
+            # Klarna, Bancontact y Scalapay). La tarjeta ya arrastra Apple Pay
             # y Google Pay sola en los dispositivos que los tienen.
-            payment_method_types=["card", "ideal", "klarna", "bancontact"],
             metadata=metadatos,
             payment_intent_data={"metadata": metadatos},
         )

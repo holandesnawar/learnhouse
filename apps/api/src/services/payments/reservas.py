@@ -352,6 +352,7 @@ async def abrir_pago(token: str, db_session: AsyncSession) -> str:
         _academy_url,
         _stripe_publishable,
         _usar_stripe,
+        crear_sesion_de_pago,
         ensure_matricula_abierta,
     )
 
@@ -435,7 +436,9 @@ async def abrir_pago(token: str, db_session: AsyncSession) -> str:
     if falta_despues > 0:
         vuelta += f"&reserva=1&pag={pagado_despues}&pend={falta_despues}&cur={reserva.currency or 'eur'}"
     try:
-        sesion = stripe.checkout.Session.create(
+        sesion = crear_sesion_de_pago(
+            importe,
+            reserva.currency or "eur",
             ui_mode="embedded_page",
             mode="payment",
             line_items=[
@@ -470,7 +473,7 @@ async def abrir_pago(token: str, db_session: AsyncSession) -> str:
                 },
             },
             allow_promotion_codes=False,
-            payment_method_types=["card", "ideal", "klarna", "bancontact"],
+            # Métodos: los de la caja (`crear_sesion_de_pago`), Scalapay incluido.
             metadata=metadatos,
             payment_intent_data={"metadata": metadatos},
         )
