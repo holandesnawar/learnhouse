@@ -144,7 +144,7 @@ def test_quien_no_paso_por_black_friday_no_tiene_bloque():
 
 
 def test_asuntos_de_los_correos():
-    assert bf.asunto_de("sys-c5") == "«No tengo tiempo», «a mi edad», «ya lo intenté»"
+    assert bf.asunto_de("sys-c5") == "Te apuntaste a la lista... pero falta lo más importante"
     # Los de la campaña que mandaba la escuela también se reconocen.
     assert bf.asunto_de("c1") == "Cómo sacarle partido a tu ebook"
     assert bf.asunto_de("otro") == ""
