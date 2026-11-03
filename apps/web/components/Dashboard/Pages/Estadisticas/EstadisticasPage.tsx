@@ -203,8 +203,8 @@ export default function EstadisticasPage() {
   const esCloserRef = React.useRef(false)
   esCloserRef.current = isCloser
   const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'gastos' | 'guion' | 'paginas' | 'utm' | 'matriculas' | 'tareas' | 'clientes' | 'anuncios' | 'progreso' | 'recursos' | 'vision' | 'kpis' | 'plazos' | 'tandas' | 'enfoque' | 'camino' | 'seguimiento' | 'correos'>('numeros')
-  // El closer arranca en Matrículas, que es lo suyo (08/10: Contactos es solo
-  // del administrador).
+  // El closer arranca en Matrículas, que es lo suyo. Contactos también lo ve
+  // desde el 03/11 (del 08/10 al 03/11 era solo del administrador).
   useEffect(() => {
     if (isCloser) setTab('matriculas')
   }, [isCloser])
@@ -231,7 +231,7 @@ export default function EstadisticasPage() {
   }, [])
   // El closer sin Números no se queda nunca en esa sección.
   useEffect(() => {
-    if (isCloser && tab !== 'llamadas' && tab !== 'guion' && tab !== 'enfoque' && tab !== 'recursos' && tab !== 'paginas' && tab !== 'matriculas' && tab !== 'tareas' && tab !== 'kpis' && !(tab === 'numeros' && closerVeNumeros === true)) {
+    if (isCloser && tab !== 'contactos' && tab !== 'llamadas' && tab !== 'guion' && tab !== 'enfoque' && tab !== 'recursos' && tab !== 'paginas' && tab !== 'matriculas' && tab !== 'tareas' && tab !== 'kpis' && !(tab === 'numeros' && closerVeNumeros === true)) {
       setTab('matriculas')
     }
   }, [isCloser, tab, closerVeNumeros])
@@ -856,7 +856,7 @@ function QueVeElCloser({
     try {
       await updateOrgAccesoCloser(orgId, !numeros, accessToken)
       onChange(!numeros)
-      toast.success(!numeros ? 'El closer ya ve también los Números.' : 'El closer ve solo Contactos.')
+      toast.success(!numeros ? 'El closer ya ve también los Números.' : 'El closer ya no ve los Números.')
     } catch {
       toast.error('No se pudo guardar')
     } finally {
@@ -869,8 +869,8 @@ function QueVeElCloser({
         <p className="text-[13.5px] font-semibold text-gray-900">Qué ve el closer</p>
         <p className="text-[12.5px] text-gray-500">
           Quien está en el grupo <strong>Closers</strong> (Usuarios → Grupos) entra al panel y ve
-          Contactos (solo las matrículas), Llamadas, el Guion de llamada y las Páginas de la web.
-          Aquí decides si además ve los Números.
+          Matrículas, Contactos, Llamadas, KPIs (sin el dinero), Tareas, el Guion y las Páginas de
+          la web. Aquí decides si además ve los Números.
         </p>
       </div>
       <button
