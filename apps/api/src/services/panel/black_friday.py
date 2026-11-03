@@ -51,7 +51,7 @@ CAMPANAS: dict[str, list[tuple[str, str, int]]] = {
         ("sys-c1", "Ya tienes tu ebook. Ahora, lo que de verdad hemos preparado", 1),
         # 02/11: la historia de Maite (alumna) en lugar de los «cuatro motivos».
         ("sys-c3", "«7 años en Holanda y por fin…»", 3),
-        ("sys-c5", "«No tengo tiempo», «a mi edad», «ya lo intenté»", 5),
+        ("sys-c5", "Te apuntaste a la lista... pero falta lo más importante", 5),
         ("sys-c7", "Así es una semana dentro de la escuela", 7),
     ],
 }
