@@ -147,16 +147,16 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
 ]
 
 /**
- * Lo que ve el closer: Contactos (solo las matrículas) y Llamadas. Nada de
- * "Estadísticas" salvo que el administrador le abra los Números: con esa
+ * Lo que ve el closer: Matrículas, Contactos, Llamadas y lo de vender. Nada
+ * de "Estadísticas" salvo que el administrador le abra los Números: con esa
  * entrada delante no sabía qué era cada cosa.
  */
 export function gruposDelCloser(veNumeros: boolean): Grupo[] {
   const todos = GRUPOS_DEL_PANEL.flatMap((g) => g.items)
   const por = (label: string) => todos.find((i) => i.label === label) as Item
-  // Sin Contactos (08/10): el closer trabaja desde Matrículas y Llamadas.
-  // Contactos (todos los leads, también los de las guías) es del administrador.
-  const items = [por('Matrículas'), por('Llamadas'), por('KPIs'), por('Tareas'), por('Enfoque'), por('Guion de llamada'), por('Recursos'), por('Páginas de la web')]
+  // Contactos otra vez (03/11, usuario: "lo deberían ver los closers
+  // también"), los mismos que el administrador. Del 08/10 al 03/11 no lo tenía.
+  const items = [por('Matrículas'), por('Contactos'), por('Llamadas'), por('KPIs'), por('Tareas'), por('Enfoque'), por('Guion de llamada'), por('Recursos'), por('Páginas de la web')]
   if (veNumeros) {
     items.push({ ...por('Estadísticas'), href: '/dash/estadisticas?tab=numeros', label: 'Números', match: undefined })
   }
@@ -212,7 +212,7 @@ export default function NawarSidebar() {
 
   if (!org || !session) return null
 
-  // El closer: solo Ventas → Contactos (y Estadísticas si se lo abren).
+  // El closer: lo suyo (gruposDelCloser), y Números si se los abren.
   const grupos = isCloser ? gruposDelCloser(closerVeNumeros) : GRUPOS_DEL_PANEL
 
   return (

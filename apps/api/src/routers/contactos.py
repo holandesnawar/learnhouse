@@ -161,9 +161,13 @@ async def api_contactos(
 ):
     # Administradores y el closer (CONTACTOS_ROLE_IDS). El profe no: no vende.
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
-    # Al closer solo le llegan las matrículas: quién bajó una guía no es cosa suya.
-    es_closer = (await rol_en_la_escuela(current_user.id, org_id, db_session)) == CLOSER_ROLE_ID
-    return await listar_contactos(q, min(max(limit, 1), 2000), db_session, solo_matriculas=es_closer)
+    # El closer ve los mismos contactos que el administrador (03/11, usuario:
+    # "lo de contactos lo deberían ver los closers también"). Del 24/09 al
+    # 03/11 solo le llegaban las matrículas (`solo_matriculas`, que sigue en
+    # `listar_contactos` por si se vuelve a querer). Lo que es de
+    # administradores (borrar, quitar de los números) lo siguen cerrando sus
+    # propias rutas.
+    return await listar_contactos(q, min(max(limit, 1), 2000), db_session)
 
 
 @router.get(

@@ -361,6 +361,41 @@ function UltimasNotas({
   )
 }
 
+/**
+ * «Para llamar hoy» (lo que toca hoy y lo que se pasó de fecha), plegable
+ * (03/11, usuario: "que se pueda esconder ese banner, si no da pereza
+ * entrar"). Plegado de serie: queda una línea con cuántos son, y se abre con
+ * un toque. Lo que elija cada uno se recuerda en su navegador.
+ */
+function ParaLlamarHoy({ n, children }: { n: number; children: React.ReactNode }) {
+  const [abierto, setAbierto] = useState(false)
+  useEffect(() => {
+    try {
+      setAbierto(localStorage.getItem('nawar.contactos.llamar-hoy') === 'abierto')
+    } catch {}
+  }, [])
+  function alternar() {
+    const v = !abierto
+    setAbierto(v)
+    try {
+      localStorage.setItem('nawar.contactos.llamar-hoy', v ? 'abierto' : 'plegado')
+    } catch {}
+  }
+  return (
+    <div className="rounded-lg border border-red-200 bg-red-50/60 px-3.5 sm:px-4 py-3">
+      <button onClick={alternar} aria-expanded={abierto} className="w-full flex items-center gap-1.5 text-left">
+        <BellRing size={15} className="text-red-700 shrink-0" />
+        <span className="text-[13.5px] font-bold text-red-700 flex-1">Para llamar hoy · {n}</span>
+        <span className="text-[12.5px] font-semibold text-red-700/80 inline-flex items-center gap-1">
+          {abierto ? 'Ocultar' : 'Ver'}
+          {abierto ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+        </span>
+      </button>
+      {abierto ? <div className="mt-2.5 space-y-1.5">{children}</div> : null}
+    </div>
+  )
+}
+
 export default function ContactosPanel() {
   const org = useOrg() as any
   const session = useLHSession() as any
@@ -375,15 +410,16 @@ export default function ContactosPanel() {
   const [guardando, setGuardando] = useState<string | null>(null)
   const [verFuera, setVerFuera] = useState(false)
   // "Matrículas hechas": solo quien rellenó la matrícula (pidió plaza o llegó
-  // al pago), por día de matrícula. Es lo que ve siempre el closer. Se puede
-  // abrir directo con ?vista=matriculas (el enlace de Estadísticas).
+  // al pago), por día de matrícula. Se puede abrir directo con
+  // ?vista=matriculas (el enlace de Estadísticas). Desde el 03/11 el closer
+  // elige igual que el administrador (antes veía solo las matrículas).
   const [soloMatriculasElegido, setSoloMatriculas] = useState(false)
   useEffect(() => {
     try {
       if (new URLSearchParams(window.location.search).get('vista') === 'matriculas') setSoloMatriculas(true)
     } catch {}
   }, [])
-  const soloMatriculas = isCloser || soloMatriculasElegido
+  const soloMatriculas = soloMatriculasElegido
 
   const [resumen, setResumen] = useState<ResumenSeguimiento>({ recordatorios: {}, notas_por_email: {}, ultimas_notas: [] })
   const recordatorios = resumen.recordatorios
@@ -523,8 +559,8 @@ export default function ContactosPanel() {
 
   return (
     <section className="space-y-4">
-      {/* Administrador: todos los contactos o solo las matrículas hechas. */}
-      {isCloser ? null : (
+      {/* Todos los contactos o solo las matrículas hechas (administrador y closer). */}
+      {(
         <div className="inline-flex rounded-lg bg-[#F3F4F6] p-1">
           {[
             { id: false, label: 'Todos los contactos', n: totalTodos },
@@ -559,18 +595,7 @@ export default function ContactosPanel() {
           .filter((c) => c.etapa !== 'alumno' && recordatorios[c.email.toLowerCase()]?.fecha && recordatorios[c.email.toLowerCase()].fecha <= hoy)
           .sort((a, b) => recordatorios[a.email.toLowerCase()].fecha.localeCompare(recordatorios[b.email.toLowerCase()].fecha))
         if (!tocan.length) return null
-        return (
-          <div className="rounded-lg border border-red-200 bg-red-50/60 p-3.5 sm:p-4">
-            <p className="text-[13.5px] font-bold text-red-700 flex items-center gap-1.5">
-              <BellRing size={15} /> Para llamar hoy · {tocan.length}
-            </p>
-            <div className="mt-2 space-y-1.5">
-              {tocan.map((c) => (
-                <React.Fragment key={c.email}>{fila(c)}</React.Fragment>
-              ))}
-            </div>
-          </div>
-        )
+        return <ParaLlamarHoy n={tocan.length}>{tocan.map((c) => <React.Fragment key={c.email}>{fila(c)}</React.Fragment>)}</ParaLlamarHoy>
       })()}
 
       {/* El administrador ve lo que va apuntando el closer. */}
@@ -636,7 +661,7 @@ export default function ContactosPanel() {
         ) : visibles.length === 0 ? (
           <p className="text-[13.5px] text-gray-700 py-2">
             {lista.length === 0
-              ? isCloser
+              ? soloMatriculas
                 ? 'Todavía no se ha matriculado nadie.'
                 : 'Todavía no hay ningún contacto guardado.'
               : 'Nadie coincide con esa búsqueda.'}
@@ -657,7 +682,7 @@ export default function ContactosPanel() {
             render={fila}
           />
         )}
-        {datos && datos.total > datos.mostrados && !isCloser ? (
+        {datos && datos.total > datos.mostrados ? (
           <p className="text-[12px] text-[#9CA3AF] mt-3">
             Se enseñan los {datos.mostrados} más recientes de {datos.total}. Usa el buscador para el
             resto.
