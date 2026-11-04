@@ -611,8 +611,24 @@ async def emails_que_pagaron(db_session: AsyncSession) -> set[str]:
     return pagaron
 
 
+def con_origen(fichas: list[dict], nombres_anuncios: Optional[dict] = None) -> None:
+    """De dónde viene cada persona, para el tablero de Contactos (04/11/2026,
+    usuario: "estilo kanban para saber de dónde viene el tráfico y poder
+    filtrar quién viene por esto"). Es la MISMA cuenta que la etiqueta «Ads» /
+    «Orgánico» de la ficha (`pipeline.canal_de`), hecha con todas sus visitas
+    antes de quitarlas de la lista. En blando: si falla con una ficha, esa va
+    sin origen y la lista sale igual."""
+    from src.services.panel.pipeline import canal_de
+
+    for f in fichas:
+        try:
+            f["canal"] = canal_de(f, nombres_anuncios)
+        except Exception:
+            f["canal"] = {"canal": "organico", "detalle": "", "antes": ""}
+
+
 async def listar_contactos(
-    q: str, limit: int, db_session: AsyncSession, solo_matriculas: bool = False
+    q: str, limit: int, db_session: AsyncSession, solo_matriculas: bool = False, nombres_anuncios: Optional[dict] = None
 ) -> dict:
     fichas = fusionar_contactos(await _todos_los_eventos(db_session), await _emails_con_cuenta(db_session))
     from src.services.contactos.metricas import emails_excluidos
@@ -620,6 +636,7 @@ async def listar_contactos(
     fuera = await emails_excluidos(db_session)
     for f in fichas:
         f["fuera_de_metricas"] = f["email"] in fuera
+    con_origen(fichas, nombres_anuncios)
     if solo_matriculas:
         # El closer: solo quien se matriculó, lo más reciente arriba. Se filtra
         # AQUÍ y no en la pantalla, para que los demás no le lleguen nunca.

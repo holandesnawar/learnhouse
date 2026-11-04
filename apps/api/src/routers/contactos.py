@@ -167,7 +167,15 @@ async def api_contactos(
     # `listar_contactos` por si se vuelve a querer). Lo que es de
     # administradores (borrar, quitar de los números) lo siguen cerrando sus
     # propias rutas.
-    return await listar_contactos(q, min(max(limit, 1), 2000), db_session)
+    # Los nombres de la escuela para los anuncios (Panel → Anuncios), para
+    # que el origen de cada contacto diga el mismo nombre que la ficha.
+    try:
+        from src.services.panel.ads import leer_nombres
+
+        nombres = await leer_nombres(org_id, db_session)
+    except Exception:
+        nombres = None
+    return await listar_contactos(q, min(max(limit, 1), 2000), db_session, nombres_anuncios=nombres)
 
 
 @router.get(

@@ -324,13 +324,13 @@ export default function NawarSidebar() {
           title={isCollapsed ? it.label : undefined}
           onClick={() => setBuscar('')}
           className={cn(
-            'flex items-center rounded-lg text-[13.5px] transition-colors',
+            'flex items-center rounded-lg text-[14px] transition-colors',
             isCollapsed ? 'justify-center h-10' : 'gap-2.5 px-3 py-[7px]',
-            on ? 'text-white font-semibold' : 'text-white/80 hover:text-white hover:bg-white/[0.07]'
+            on ? 'text-white font-semibold' : 'text-white font-medium hover:bg-white/[0.08]'
           )}
           style={on ? { backgroundColor: ACTIVO_SOBRE_MARCA } : undefined}
         >
-          <span className={on ? 'text-[#9CCBFF]' : 'text-white/55'}>{it.icon}</span>
+          <span className={on ? 'text-[#9CCBFF]' : 'text-white/85'}>{it.icon}</span>
           {!isCollapsed && <span className="truncate">{it.label}</span>}
         </Link>
       </li>
@@ -357,7 +357,7 @@ export default function NawarSidebar() {
           {!isCollapsed && (
             <span className="flex flex-col min-w-0">
               <span className="text-[13.5px] font-semibold text-white truncate">{org?.name}</span>
-              <span className="text-[11px] text-white/60">Panel de control</span>
+              <span className="text-[11px] text-white/75">Panel de control</span>
             </span>
           )}
         </Link>
@@ -372,12 +372,12 @@ export default function NawarSidebar() {
       {!isCollapsed && (
         <div className="px-3 pb-2">
           <label className="flex items-center gap-2 h-9 px-2.5 rounded-lg bg-white/10 focus-within:bg-white/15 border border-white/10 focus-within:border-white/30 transition-colors">
-            <MagnifyingGlass size={15} className="text-white/60 shrink-0" />
+            <MagnifyingGlass size={15} className="text-white/80 shrink-0" />
             <input
               value={buscar}
               onChange={(e) => setBuscar(e.target.value)}
               placeholder="Buscar en el panel"
-              className="flex-1 min-w-0 bg-transparent text-[13px] text-white placeholder:text-white/50 outline-none"
+              className="flex-1 min-w-0 bg-transparent text-[13px] text-white placeholder:text-white/70 outline-none"
             />
             {buscar ? (
               <button aria-label="Borrar" onClick={() => setBuscar('')} className="text-white/60 hover:text-white">
@@ -405,7 +405,7 @@ export default function NawarSidebar() {
                 {g.titulo && !isCollapsed ? (
                   <button
                     onClick={() => plegar(g.titulo)}
-                    className="w-full flex items-center justify-between px-3 mb-0.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-white/45 hover:text-white/75"
+                    className="w-full flex items-center justify-between px-3 mb-0.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-white/70 hover:text-white"
                     aria-expanded={!cerrado}
                   >
                     {g.titulo}
@@ -423,10 +423,10 @@ export default function NawarSidebar() {
       <div className="border-t border-white/10 p-2 space-y-0.5">
         <Link
           href="/"
-          className={cn('flex items-center rounded-lg text-[13px] text-white/80 hover:text-white hover:bg-white/[0.07]', isCollapsed ? 'justify-center h-10' : 'gap-2.5 px-3 py-2')}
+          className={cn('flex items-center rounded-lg text-[13px] text-white font-medium hover:bg-white/[0.08]', isCollapsed ? 'justify-center h-10' : 'gap-2.5 px-3 py-2')}
           title="Ver la escuela como la ve un alumno"
         >
-          <ArrowSquareOut size={18} className="text-white/55" />
+          <ArrowSquareOut size={18} className="text-white/85" />
           {!isCollapsed && <span>Ver la escuela</span>}
         </Link>
         <div className={cn('flex items-center', isCollapsed ? 'justify-center h-10' : 'gap-2.5 px-3 py-2')}>
@@ -437,7 +437,7 @@ export default function NawarSidebar() {
           {!isCollapsed && (
             <span className="flex-1 min-w-0">
               <span className="block text-[13px] font-medium text-white truncate">{session?.data?.user?.username}</span>
-              <span className="block text-[11px] text-white/55 truncate">{session?.data?.user?.email}</span>
+              <span className="block text-[11px] text-white/75 truncate">{session?.data?.user?.email}</span>
             </span>
           )}
           <button onClick={salir} aria-label="Salir" title="Salir" className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10">
