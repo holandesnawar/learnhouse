@@ -174,3 +174,11 @@ test('enlaceWhatsApp', () => {
   expect(enlaceWhatsApp('31612345678', 'Hola Ana')).toBe('https://wa.me/31612345678?text=Hola%20Ana')
   expect(enlaceWhatsApp('', 'Hola')).toBe('https://wa.me/?text=Hola')
 })
+
+test('{plataforma}: Google Meet o Zoom, el de esa llamada; si no se sabe, «videollamada»', () => {
+  const plantilla = 'La llamada es por {plataforma}.'
+  const base = { nombre: 'Ana', inicio: '2026-11-05T17:00:00Z' }
+  expect(mensajeRecordatorio(plantilla, { ...base, plataforma: 'Zoom' })).toBe('La llamada es por Zoom.')
+  expect(mensajeRecordatorio(plantilla, { ...base, plataforma: 'Google Meet' })).toBe('La llamada es por Google Meet.')
+  expect(mensajeRecordatorio(plantilla, base)).toBe('La llamada es por videollamada.')
+})

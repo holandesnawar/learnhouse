@@ -204,6 +204,8 @@ export interface Cita {
   email: string
   telefono: string
   enlace: string
+  /** «Google Meet», «Zoom»… según el closer de esa llamada (04/11); vacío si no se sabe. */
+  plataforma?: string
   cancelar_url: string
   cambiar_url: string
   /** uuid del evento + correo: a esto se cuelga el resultado. */
