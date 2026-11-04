@@ -37,9 +37,12 @@ el 27/10 que el seteo lo haga el closer a mano). Lo que hace la escuela:
 - El orden y cuándo toca cada uno los calcula la pantalla
   (`lib/nawar/recordatorioLlamada.ts`, con test): aquí solo se guarda.
 
-El enlace de Google Meet sale de la cita de Calendly (`agenda.py`,
-`location.join_url`): con Calendly Teams cada closer lleva su Meet, y la
-escuela lo une a la persona por el correo de la reserva.
+El enlace de la videollamada sale de la cita de Calendly (`agenda.py`,
+`location.join_url`): con Calendly Teams cada closer lleva la suya, y la
+escuela lo une a la persona por el correo de la reserva. Desde el 04/11 un
+closer va por Google Meet y otro por Zoom: el hueco `{plataforma}` dice cuál
+(`agenda.plataforma_de`), y un «Google Meet» escrito a mano en un texto
+guardado se cambia solo por el hueco.
 """
 
 import json
@@ -71,7 +74,7 @@ DE_FABRICA: dict[str, str] = {
         "Vi que tienes una llamada agendada con nosotros {dia} a las {hora}. En ella vamos a conocer tu situación: "
         "para qué necesitas el neerlandés, cómo vas ahora y qué te gustaría conseguir. Y te contamos cómo te "
         "podemos ayudar.\n\n"
-        "La llamada es por Google Meet. Unas horas antes te mando por aquí el enlace para entrar.\n\n"
+        "La llamada es por {plataforma}. Unas horas antes te mando por aquí el enlace para entrar.\n\n"
         "¿Me confirmas que te viene bien esa hora?"
     ),
     "recurso": (
@@ -89,7 +92,7 @@ DE_FABRICA: dict[str, str] = {
 
 #: Los huecos que entiende la pantalla. Uno mal escrito no deja guardar: si
 #: no, saldría tal cual («{Nombre}») en el WhatsApp de alguien.
-HUECOS = ("nombre", "yo", "dia", "hora", "falta", "enlace", "pdf", "cuando")
+HUECOS = ("nombre", "yo", "dia", "hora", "falta", "enlace", "pdf", "cuando", "plataforma")
 
 HORAS_ANTES = 3
 MAX_PDF = 25 * 1024 * 1024
@@ -126,7 +129,9 @@ def config_limpia(guardado: Optional[dict]) -> dict:
     """Lo guardado, con todo en su sitio. Función pura."""
     g = guardado if isinstance(guardado, dict) else {}
     textos_g = g.get("textos") if isinstance(g.get("textos"), dict) else {}
-    textos = {i: str(textos_g.get(i) or "").strip()[:4000] for i in IDS}
+    # «Google Meet» escrito a mano pasa a ser el hueco (04/11: un closer va por
+    # Meet y otro por Zoom; con el hueco, cada WhatsApp dice el suyo).
+    textos = {i: str(textos_g.get(i) or "").strip()[:4000].replace("Google Meet", "{plataforma}") for i in IDS}
     try:
         horas = int(g.get("horas_antes") or HORAS_ANTES)
     except (TypeError, ValueError):

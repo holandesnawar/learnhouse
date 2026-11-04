@@ -710,7 +710,7 @@ export default function FichaCliente({
                             Cambiar hora
                           </button>
                         ) : null}
-                        {/* El enlace de Google Meet de su llamada (02/11): sale de la
+                        {/* El enlace de la videollamada (Meet o Zoom) de su llamada (02/11): sale de la
                             reserva de Calendly, unido a la persona por su correo. */}
                         {c.enlace && !cancelada && !pasada ? (
                           <div className="basis-full sm:pl-[152px] flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-gray-600">
@@ -726,7 +726,7 @@ export default function FichaCliente({
                             </button>
                           </div>
                         ) : !cancelada && !pasada ? (
-                          <p className={`basis-full sm:pl-[152px] ${META}`}>Aún sin enlace de Google Meet en Calendly.</p>
+                          <p className={`basis-full sm:pl-[152px] ${META}`}>Aún sin enlace de {c.plataforma || 'videollamada'} en Calendly.</p>
                         ) : null}
                         {/* Sus tres WhatsApp, en orden (02/11). */}
                         {!cancelada && !pasada ? (

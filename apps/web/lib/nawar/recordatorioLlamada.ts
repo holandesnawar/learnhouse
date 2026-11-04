@@ -19,7 +19,8 @@
  *
  * Huecos: {nombre}, {yo}, {dia} (hoy, mañana, el lunes, el lunes 10 de
  * noviembre), {hora}, {falta} (en 3 horas, en una hora y media, en 40
- * minutos, mañana), {enlace}, {pdf} y el viejo {cuando} (de hoy, de mañana,
+ * minutos, mañana), {enlace}, {plataforma} (Google Meet o Zoom: el del closer
+ * de esa llamada), {pdf} y el viejo {cuando} (de hoy, de mañana,
  * del jueves 16 de octubre). Una línea con {enlace} o {pdf} desaparece si no
  * lo hay.
  *
@@ -88,7 +89,7 @@ export function horaEscuela(inicio: Date): string {
 
 export function mensajeRecordatorio(
   plantilla: string,
-  datos: { nombre: string; inicio: string; enlace?: string; yo?: string; pdf?: string },
+  datos: { nombre: string; inicio: string; enlace?: string; yo?: string; pdf?: string; plataforma?: string },
   ahora: Date = new Date()
 ): string {
   const inicio = new Date(datos.inicio)
@@ -109,6 +110,8 @@ export function mensajeRecordatorio(
     .replace(/\{falta\}/g, vale ? faltaPara(inicio, ahora) : '')
     .replace(/\{hora\}/g, vale ? horaEscuela(inicio) : '')
     .replace(/\{enlace\}/g, enlace)
+    // «Google Meet» o «Zoom», el del closer de esa llamada (04/11); si no se sabe, «videollamada».
+    .replace(/\{plataforma\}/g, (datos.plataforma || '').trim() || 'videollamada')
     .replace(/\{pdf\}/g, pdf)
   // Sin nombre en su cuenta, firma el equipo.
   texto = yo

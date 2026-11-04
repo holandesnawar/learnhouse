@@ -59,6 +59,8 @@ export interface CitaWhatsApp {
   telefono: string
   inicio: string
   enlace?: string
+  /** «Google Meet», «Zoom»… según el closer de esa llamada (04/11). */
+  plataforma?: string
   whatsapp?: EnviadosWhatsApp | null
 }
 
@@ -131,14 +133,14 @@ function useMandar(cita: CitaWhatsApp, onCambio: (w: EnviadosWhatsApp) => void) 
 
   function texto(paso: PasoWhatsApp) {
     const plantilla = mensajes?.pasos.find((p) => p.id === paso)?.texto || ''
-    return mensajeRecordatorio(plantilla, { nombre: cita.nombre, inicio: cita.inicio, enlace: cita.enlace, yo, pdf: mensajes?.pdf })
+    return mensajeRecordatorio(plantilla, { nombre: cita.nombre, inicio: cita.inicio, enlace: cita.enlace, yo, pdf: mensajes?.pdf, plataforma: cita.plataforma })
   }
 
   /** Qué falta para poder mandarlo (sin PDF no hay mensaje 2; sin enlace, no hay 3). */
   function falta(paso: PasoWhatsApp): string {
     if (!mensajes) return 'Cargando los mensajes…'
     if (paso === 'recurso' && !mensajes.pdf) return 'Falta el PDF del método: súbelo en «Mensajes».'
-    if (paso === 'enlace' && !cita.enlace) return 'Esta llamada aún no tiene enlace de Google Meet en Calendly.'
+    if (paso === 'enlace' && !cita.enlace) return `Esta llamada aún no tiene enlace de ${cita.plataforma || 'videollamada'} en Calendly.`
     return ''
   }
 
@@ -334,7 +336,7 @@ export default function SecuenciaWhatsApp({
       {conMeet && cita.enlace ? (
         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-gray-600">
           <Video size={13} className="text-gray-400" />
-          <span>Google Meet:</span>
+          <span>{cita.plataforma || 'Videollamada'}:</span>
           <a href={cita.enlace} target="_blank" rel="noreferrer" className="text-[#025dc7] hover:underline break-all">
             {enlaceCorto(cita.enlace)}
           </a>
@@ -404,6 +406,7 @@ const EJEMPLO = {
     return d.toISOString()
   })(),
   enlace: 'https://meet.google.com/abc-defg-hij',
+  plataforma: 'Google Meet',
 }
 
 export function EditorMensajes({ cerrar }: { cerrar: () => void }) {
@@ -583,7 +586,8 @@ export function EditorMensajes({ cerrar }: { cerrar: () => void }) {
             })}
             <p className={`${META} !whitespace-normal`}>
               Huecos: {'{nombre}'}, {'{yo}'} (quien lo manda), {'{dia}'} (hoy, mañana, el lunes…), {'{hora}'}, {'{falta}'} (en 3 horas, en 40
-              minutos…), {'{enlace}'} (el Google Meet de la llamada) y {'{pdf}'}. Una línea con {'{enlace}'} o {'{pdf}'} desaparece si no lo hay.
+              minutos…), {'{enlace}'} (el de la videollamada),{' '}
+              {'{plataforma}'} (Google Meet o Zoom, el del closer que la lleva) y {'{pdf}'}. Una línea con {'{enlace}'} o {'{pdf}'} desaparece si no lo hay.
             </p>
             <div className="flex gap-2 pt-1">
               <button onClick={guardar} disabled={guardando} className={`${BOTON_PRINCIPAL} h-9 flex-1 sm:flex-none`}>

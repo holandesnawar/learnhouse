@@ -81,6 +81,34 @@ def anfitrion_de(evento: dict) -> tuple[str, str]:
     return "", ""
 
 
+#: El nombre de la videollamada por el tipo de ubicación de Calendly (04/11,
+#: «un closer con Meet y otro con Zoom»): el WhatsApp dice el que toca.
+_PLATAFORMAS = {
+    "google_conference": "Google Meet",
+    "zoom_conference": "Zoom",
+    "microsoft_teams_conference": "Microsoft Teams",
+    "webex_conference": "Webex",
+    "gotomeeting_conference": "GoToMeeting",
+}
+
+
+def plataforma_de(ubicacion: dict) -> str:
+    """«Google Meet», «Zoom»… de la ubicación de una cita de Calendly; vacío si
+    no se sabe. Por el tipo y, si no, por el enlace. Función pura (con test)."""
+    u = ubicacion if isinstance(ubicacion, dict) else {}
+    tipo = str(u.get("type") or "")
+    if tipo in _PLATAFORMAS:
+        return _PLATAFORMAS[tipo]
+    enlace = str(u.get("join_url") or u.get("location") or "").lower()
+    if "meet.google." in enlace:
+        return "Google Meet"
+    if "zoom.us" in enlace:
+        return "Zoom"
+    if "teams.microsoft." in enlace or "teams.live." in enlace:
+        return "Microsoft Teams"
+    return ""
+
+
 def cita_desde_calendly(evento: dict, invitados: list[dict]) -> list[dict]:
     """Una cita del panel por invitado. Función pura (con test): recibe lo
     que devuelve Calendly y lo deja en lo que el panel necesita."""
@@ -110,6 +138,7 @@ def cita_desde_calendly(evento: dict, invitados: list[dict]) -> list[dict]:
                 "email": (inv.get("email") or "").strip().lower(),
                 "telefono": telefono or "",
                 "enlace": enlace,
+                "plataforma": plataforma_de(ubicacion),
                 "cancelar_url": inv.get("cancel_url") or "",
                 "cambiar_url": inv.get("reschedule_url") or "",
                 # Una por persona y cita: el id sirve para colgarle el resultado.

@@ -22,14 +22,38 @@ async def _con_config(db, org):
 def test_los_textos_de_fabrica_llevan_lo_que_pidio_el_usuario():
     assert [p["id"] for p in W.PASOS] == ["presentacion", "recurso", "enlace"]
     uno, dos, tres = (W.DE_FABRICA[i] for i in W.IDS)
-    # 1: quién es, «vi que tienes una llamada agendada mañana», qué se hace y que es por Meet.
-    assert "soy {yo}" in uno and "agendada" in uno and "{dia}" in uno and "Google Meet" in uno
+    # 1: quién es, «vi que tienes una llamada agendada mañana», qué se hace y
+    # por dónde es (Meet o Zoom, el del closer: {plataforma}, desde el 04/11).
+    assert "soy {yo}" in uno and "agendada" in uno and "{dia}" in uno and "{plataforma}" in uno
+    assert "Google Meet" not in uno
     # 2: «soy yo otra vez» y el PDF del método.
     assert "otra vez" in dos and "{pdf}" in dos
     # 3: «nuestra llamada es en 3 horas» y el enlace.
     assert "{falta}" in tres and "{enlace}" in tres
     for t in W.DE_FABRICA.values():
         assert W.huecos_que_no_valen(t) == []
+
+
+def test_un_google_meet_escrito_a_mano_pasa_a_ser_el_de_cada_closer():
+    """04/11: un closer va por Meet y otro por Zoom. Un texto guardado que
+    dice «Google Meet» pasa a decir el de la llamada; el de fábrica viejo,
+    tal cual, vuelve a ser el de fábrica (no se guarda)."""
+    viejo = W.DE_FABRICA["presentacion"].replace("{plataforma}", "Google Meet")
+    c = W.config_limpia({"textos": {"presentacion": viejo, "enlace": "Entra por Google Meet: {enlace}"}})
+    assert c["textos"] == {"enlace": "Entra por {plataforma}: {enlace}"}
+
+
+def test_la_plataforma_sale_de_la_ubicacion_de_calendly():
+    from src.services.contactos.agenda import cita_desde_calendly, plataforma_de
+
+    assert plataforma_de({"type": "google_conference", "join_url": "https://meet.google.com/abc"}) == "Google Meet"
+    assert plataforma_de({"type": "zoom_conference", "join_url": "https://us02web.zoom.us/j/1"}) == "Zoom"
+    assert plataforma_de({"type": "custom", "location": "https://zoom.us/j/9"}) == "Zoom"
+    assert plataforma_de({}) == ""
+    ev = {"uri": "https://api.calendly.com/scheduled_events/E1", "start_time": "2026-11-05T17:00:00Z",
+          "location": {"type": "zoom_conference", "join_url": "https://zoom.us/j/1"}}
+    cita = cita_desde_calendly(ev, [{"name": "Ana", "email": "ana@x.com"}])[0]
+    assert cita["plataforma"] == "Zoom" and cita["enlace"] == "https://zoom.us/j/1"
 
 
 def test_config_limpia_no_guarda_lo_de_fabrica():

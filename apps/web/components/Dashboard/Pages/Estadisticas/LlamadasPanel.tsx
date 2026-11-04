@@ -337,7 +337,7 @@ export default function LlamadasPanel() {
           }
         >
           <p className={`${META} !whitespace-normal mt-2 mb-2.5`}>
-            Tres por llamada, en orden: 1, presentarte en cuanto reserva; 2, el método en PDF (la víspera); 3, el enlace de Google Meet unas
+            Tres por llamada, en orden: 1, presentarte en cuanto reserva; 2, el método en PDF (la víspera); 3, el enlace de la videollamada (Google Meet o Zoom, según el closer) unas
             horas antes. Si no contesta, llámale; cuando diga que viene, «Confirmada».
           </p>
           {aEnviar.length ? (
