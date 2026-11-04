@@ -58,10 +58,10 @@ export default function NawarMobileMenu() {
         key={it.href + it.label}
         href={it.href}
         onClick={() => setOpen(false)}
-        className={cn('flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[14px]', on ? 'text-white font-semibold' : 'text-white/85')}
+        className={cn('flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[14px]', on ? 'text-white font-semibold' : 'text-white font-medium')}
         style={on ? { backgroundColor: ACTIVO_SOBRE_MARCA } : undefined}
       >
-        <span className={on ? 'text-[#9CCBFF]' : 'text-white/55'}>{it.icon}</span>
+        <span className={on ? 'text-[#9CCBFF]' : 'text-white/85'}>{it.icon}</span>
         {it.label}
       </Link>
     )
@@ -107,7 +107,7 @@ export default function NawarMobileMenu() {
                 value={buscar}
                 onChange={(e) => setBuscar(e.target.value)}
                 placeholder="Buscar en el panel"
-                className="flex-1 min-w-0 bg-transparent text-[14px] text-white placeholder:text-white/50 outline-none"
+                className="flex-1 min-w-0 bg-transparent text-[14px] text-white placeholder:text-white/70 outline-none"
               />
             </label>
             {buscar.trim() ? (
@@ -120,7 +120,7 @@ export default function NawarMobileMenu() {
               grupos.map((g) => (
                 <div key={g.titulo || 'inicio'} className="mb-3">
                   {g.titulo ? (
-                    <p className="px-2.5 mb-1 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-white/45">{g.titulo}</p>
+                    <p className="px-2.5 mb-1 text-[10.5px] font-bold uppercase tracking-[0.12em] text-white/70">{g.titulo}</p>
                   ) : null}
                   {g.items.map(fila)}
                 </div>
@@ -128,7 +128,7 @@ export default function NawarMobileMenu() {
             )}
             <div className="border-t border-white/10 pt-2 flex items-center justify-between">
               <Link href="/" className="flex items-center gap-2 px-2 py-2 text-[13.5px] text-white/85">
-                <ArrowSquareOut size={17} className="text-white/55" /> Ver la escuela
+                <ArrowSquareOut size={17} className="text-white/85" /> Ver la escuela
               </Link>
               <button onClick={salir} className="flex items-center gap-2 px-2 py-2 text-[13.5px] text-white/85">
                 <SignOut size={17} /> Salir

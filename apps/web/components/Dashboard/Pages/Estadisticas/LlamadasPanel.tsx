@@ -68,12 +68,12 @@ import {
   type VolverALlamar,
 } from '@services/stats/contactos'
 import { marcarSolicitud } from '@services/stats/school'
-import { CalendarClock, CalendarPlus, CalendarX2, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Loader2, NotebookPen, Phone, Plus, RotateCcw, Trash2, Video, X } from 'lucide-react'
+import { CalendarClock, CalendarPlus, CalendarX2, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Loader2, MessageCircle, NotebookPen, Phone, Plus, RotateCcw, Trash2, Video, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { confirmar } from '@lib/nawar/confirmar'
-import { BOTON, BOTON_PELIGRO, BOTON_PRINCIPAL, ENLACE, Estado, META, Meta, Seccion, TARJETA, filtro, type Tono } from '../Panel/ui'
+import { BOTON, BOTON_PELIGRO, BOTON_PRINCIPAL, ENLACE, Estado, META, Meta, Plegable, Seccion, TARJETA, filtro, type Tono } from '../Panel/ui'
 import { numeroWhatsApp } from '@/lib/nawar/telefono'
-import { porEnviar } from '@/lib/nawar/recordatorioLlamada'
+import { PASOS_WHATSAPP, estadoPasos, porEnviar } from '@/lib/nawar/recordatorioLlamada'
 
 // ── Fechas ────────────────────────────────────────────────────────────────
 
@@ -86,6 +86,17 @@ function fecha(iso: string) {
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
 const diaLargo = (d: Date) => d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
 /** "jue 25 sep · 18:00", en la hora del que mira. */
+/** Lo que se lee con los recordatorios plegados: cuántos y el más urgente. */
+function resumenWhatsApp(citas: Cita[], horasAntes?: number): string {
+  if (!citas.length) return 'Al día: ninguna llamada espera un WhatsApp ahora mismo.'
+  const c = citas[0]
+  const sig = estadoPasos(c, new Date(), horasAntes).siguiente
+  const paso = sig && sig.estado === 'toca' ? PASOS_WHATSAPP.find((p) => p.id === sig.id) : null
+  const quien = (c.nombre || c.email || '').split(' ')[0]
+  const primero = paso ? `Ahora toca: ${paso.numero} · ${paso.nombre.toLowerCase()} a ${quien}` : `Confirmar la llamada de ${quien}`
+  return citas.length === 1 ? primero : `${primero} · y ${citas.length - 1} más`
+}
+
 function diaHora(iso: string) {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ''
@@ -306,15 +317,26 @@ export default function LlamadasPanel() {
   return (
     <div className="space-y-8">
       {agenda?.configurado && !agenda.error ? (
-        <Seccion
-          titulo={aEnviar.length ? `Recordatorios por WhatsApp · ${aEnviar.length}` : 'Recordatorios por WhatsApp · al día'}
+        // Plegable (04/11, usuario: "que se pueda abrir y cerrar para que no
+        // moleste en llamadas"). Plegado dice cuántos tocan y el más urgente.
+        <Plegable
+          titulo="Recordatorios por WhatsApp"
+          icono={<MessageCircle size={16} />}
+          cifra={aEnviar.length || undefined}
+          aviso={aEnviar.some((c) => {
+            const sig = estadoPasos(c, new Date(), mensajes?.horas_antes).siguiente
+            return sig?.id === 'enlace' && sig.estado === 'toca'
+          })}
+          resumen={resumenWhatsApp(aEnviar, mensajes?.horas_antes)}
+          recordarComo="llamadas.whatsapp"
+          color="#15803D"
           extra={
             <button onClick={() => setEditorMensajes(true)} className={`${ENLACE} !text-[12.5px]`}>
               Mensajes
             </button>
           }
         >
-          <p className={`${META} !whitespace-normal`}>
+          <p className={`${META} !whitespace-normal mt-2 mb-2.5`}>
             Tres por llamada, en orden: 1, presentarte en cuanto reserva; 2, el método en PDF (la víspera); 3, el enlace de Google Meet unas
             horas antes. Si no contesta, llámale; cuando diga que viene, «Confirmada».
           </p>
@@ -354,7 +376,7 @@ export default function LlamadasPanel() {
               <p className="text-[13.5px] text-gray-600">Ninguna llamada espera un WhatsApp ahora mismo, y las de hoy y mañana están confirmadas.</p>
             </div>
           )}
-        </Seccion>
+        </Plegable>
       ) : null}
 
       <AgendaVista

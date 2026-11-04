@@ -108,3 +108,22 @@ def test_quien_pasa_por_agendar_cuenta_como_matricula():
     assert por["ana@x.com"]["matricula_at"].startswith("2026-09-29")
     assert por["ana@x.com"]["etapa"] == "pidio"
     assert por["leo@x.com"]["matricula_at"] == ""
+
+
+def test_cada_contacto_lleva_de_donde_viene_aunque_luego_volviera_por_otro_sitio():
+    """El tablero de Contactos (04/11): «Ads» si un anuncio lo trajo alguna
+    vez, aunque su última visita fuera por un DM; si no, por dónde llegó."""
+    from src.services.contactos.contactos import con_origen
+
+    eventos = [
+        _ev("guia-bases", "2026-10-01T10:00:00", "ana@x.com", utm_source="facebook", utm_medium="paid", utm_content="VSL A"),
+        _ev("instagram", "2026-10-05T10:00:00", "ana@x.com", utm_source="instagram", utm_medium="dm"),
+        _ev("guia-bases", "2026-10-02T10:00:00", "eva@x.com", utm_source="instagram", utm_medium="stories"),
+        _ev("guia-bases", "2026-10-03T10:00:00", "luz@x.com"),
+    ]
+    fichas = {f["email"]: f for f in fusionar_contactos(eventos, set())}
+    con_origen(list(fichas.values()))
+    assert fichas["ana@x.com"]["canal"]["canal"] == "ads"
+    assert fichas["ana@x.com"]["canal"]["detalle"] == "Meta · VSL A"
+    assert fichas["eva@x.com"]["canal"] == {"canal": "organico", "detalle": "Instagram · historias", "antes": ""}
+    assert fichas["luz@x.com"]["canal"]["canal"] == "organico"

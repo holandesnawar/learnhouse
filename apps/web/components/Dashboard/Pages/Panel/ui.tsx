@@ -84,3 +84,86 @@ export function Seccion({ titulo, extra, children }: { titulo: string; extra?: R
     </section>
   )
 }
+
+/**
+ * Una sección que se abre y se cierra con un clic (04/11/2026, usuario: "que
+ * se puedan esconder con un clic como otras secciones"). Plegada, queda una
+ * línea con el título, la cifra y `resumen`. Lo que elige cada uno se
+ * recuerda en su navegador (`recordarComo`).
+ */
+export function Plegable({
+  titulo,
+  icono,
+  cifra,
+  resumen,
+  extra,
+  recordarComo,
+  abiertoDeSerie = false,
+  color = '#025dc7',
+  aviso = false,
+  children,
+}: {
+  titulo: string
+  icono?: React.ReactNode
+  cifra?: React.ReactNode
+  /** Lo que se lee con la sección plegada. */
+  resumen?: React.ReactNode
+  /** Algo a la derecha que no pliega (un enlace, un botón). */
+  extra?: React.ReactNode
+  recordarComo: string
+  abiertoDeSerie?: boolean
+  /** El color del icono. */
+  color?: string
+  /** Punto rojo junto al título: hay algo que toca ya. */
+  aviso?: boolean
+  children: React.ReactNode
+}) {
+  const clave = `nawar.plegable.${recordarComo}`
+  const [abierto, setAbierto] = React.useState(abiertoDeSerie)
+  React.useEffect(() => {
+    try {
+      const g = localStorage.getItem(clave)
+      if (g === 'abierto' || g === 'plegado') setAbierto(g === 'abierto')
+    } catch {}
+  }, [clave])
+  function alternar() {
+    const v = !abierto
+    setAbierto(v)
+    try {
+      localStorage.setItem(clave, v ? 'abierto' : 'plegado')
+    } catch {}
+  }
+  return (
+    <section className={`${TARJETA} overflow-hidden`}>
+      <div className="flex items-center gap-2 pr-3 sm:pr-4">
+        <button onClick={alternar} aria-expanded={abierto} className="flex-1 min-w-0 flex items-center gap-2.5 px-3.5 sm:px-4 py-3 text-left hover:bg-[#F7F9FE] transition-colors">
+          {icono ? (
+            <span className="relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${color}14`, color }}>
+              {icono}
+              {aviso ? <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#DC2626] ring-2 ring-white" /> : null}
+            </span>
+          ) : null}
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-2 min-w-0">
+              <span className="text-[14.5px] font-bold text-[#0a1656] truncate" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+                {titulo}
+              </span>
+              {cifra !== undefined && cifra !== null && cifra !== '' ? (
+                <span className="shrink-0 rounded-full bg-[#EEF3FD] px-2 py-0.5 text-[11.5px] font-bold text-[#1D0084] tabular-nums">{cifra}</span>
+              ) : null}
+            </span>
+            {!abierto && resumen ? <span className="block text-[12.5px] text-[#6B7280] truncate mt-0.5">{resumen}</span> : null}
+          </span>
+          <span className="shrink-0 text-[12.5px] font-semibold text-[#025dc7] inline-flex items-center gap-1">
+            {abierto ? 'Ocultar' : 'Ver'}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${abierto ? 'rotate-180' : ''}`}>
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </span>
+        </button>
+        {extra ? <div className="shrink-0">{extra}</div> : null}
+      </div>
+      {abierto ? <div className="px-3.5 sm:px-4 pb-4 pt-1 border-t border-[#EEF2F9]">{children}</div> : null}
+    </section>
+  )
+}

@@ -48,6 +48,12 @@ export interface Contacto {
   atendida?: boolean
   /** Quitado de los números (prueba). Sigue pudiendo entrar a la escuela. */
   fuera_de_metricas?: boolean
+  /** Las páginas por las que pasó, en orden (marcas de `recorrido.ts`). */
+  pasos?: string[]
+  utm_content?: string
+  /** «Ads» u «Orgánico» y el detalle ("Meta · VSL A", "Instagram · DM"…): lo
+   *  mismo que la etiqueta de la ficha. Lo usa el tablero de Contactos. */
+  canal?: { canal: 'ads' | 'organico'; detalle: string; antes?: string } | null
 }
 
 export type EtapaContacto = 'lead' | 'pidio' | 'en-pago' | 'alumno'
