@@ -235,7 +235,13 @@ export const asignarCloser = (orgId: number, email: string, closerId: number, t:
 
 /** Quién reparte las llamadas (0 = nadie: avisa a los administradores) y el equipo. */
 export const getReparto = (orgId: number, t: string) =>
-  pedir<{ repartidor_id: number; calendly?: Record<string, string>; equipo: MiembroEquipo[]; yo: number }>(
+  pedir<{
+    repartidor_id: number
+    calendly?: Record<string, string>
+    avisar?: Record<string, string>
+    equipo: MiembroEquipo[]
+    yo: number
+  }>(
     `panel/org/${orgId}/reparto`,
     'GET',
     null,
@@ -246,9 +252,21 @@ export const guardarReparto = (orgId: number, repartidorId: number, t: string) =
   pedir<{ ok: boolean }>(`panel/org/${orgId}/reparto`, 'PUT', { repartidor_id: repartidorId }, t)
 
 /** El correo de Calendly de cada closer (31/10, Calendly Teams): {id: correo}.
- *  Con eso la escuela sabe a quién le dio Calendly cada llamada. */
-export const guardarCorreosCalendly = (orgId: number, calendly: Record<string, string>, t: string) =>
-  pedir<{ ok: boolean; calendly: Record<string, string> }>(`panel/org/${orgId}/reparto`, 'PUT', { calendly }, t)
+ *  Con eso la escuela sabe a quién le dio Calendly cada llamada. Y `avisar`
+ *  (04/11): a qué correo le escribe la escuela a ese closer cuando Calendly le
+ *  da una llamada, solo para quien no recibe el aviso de Calendly. */
+export const guardarCorreosCalendly = (
+  orgId: number,
+  calendly: Record<string, string>,
+  avisar: Record<string, string>,
+  t: string
+) =>
+  pedir<{ ok: boolean; calendly: Record<string, string>; avisar: Record<string, string> }>(
+    `panel/org/${orgId}/reparto`,
+    'PUT',
+    { calendly, avisar },
+    t
+  )
 
 /** Quitar del tablero (o devolver) sin borrar nada. Solo administradores. */
 export const ocultarTarjeta = (orgId: number, email: string, oculto: boolean, t: string) =>

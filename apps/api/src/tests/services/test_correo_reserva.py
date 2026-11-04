@@ -435,9 +435,48 @@ async def test_la_reserva_por_turnos_queda_para_su_closer_sin_repartela(db, escu
     assert (g["ana@x.com"]["closer_id"], g["ana@x.com"]["closer"]) == (5, "Belén Soto")
     assert "leo@x.com" not in g
     assert agendadas == [("rida@x.com", "Belén Soto"), ("rida@x.com", "")]
-    # Y a Belén, su propio aviso, con el enlace (04/11: el de Calendly va al
-    # correo de la cuenta de Calendly, que puede no ser el suyo).
-    assert [(d, x.get("calendly"), x.get("enlace")) for d, x in suyas] == [("belen@x.com", True, "https://zoom.us/j/1")]
+    # A Belén la escuela no le escribe: ya le avisa Calendly (04/11).
+    assert suyas == []
+
+
+async def test_al_closer_solo_se_le_avisa_si_tiene_puesto_a_quien(db, escuela):
+    """Diego usa la cuenta de Calendly del administrador: el aviso de Calendly
+    le llega al administrador, no a él. Con «Avisarle a» puesto, la escuela le
+    escribe a ese correo; a quien no lo tiene puesto, nada (04/11)."""
+    from src.services.panel import reparto
+
+    async def _equipo(_db):
+        return 1, EQUIPO_TEAMS
+
+    async def _admins(_db):
+        return ["rida@x.com"]
+
+    async def _leer(_db, org_id=None):
+        return {"repartidor_id": 0, "calendly": {"4": "rida.calendly@x.com"}, "avisar": {"4": "diego@nawar.es"}}
+
+    agendadas, suyas = [], []
+    with patch.object(reparto, "_equipo_de_la_escuela", _equipo), patch.object(reparto, "leer", _leer), patch(
+        "src.services.contactos.llamadas.emails_de_administradores", _admins
+    ), patch("src.core.redis.get_redis_client", lambda: None), patch(
+        "src.services.crm.systeme.marcar_llamada_reservada", lambda *a, **k: None
+    ), patch.object(E, "send_llamada_agendada_email", lambda d, x: agendadas.append((d, x.get("closer", "")))), patch.object(
+        E, "send_llamada_asignada_email", lambda d, x: suyas.append((d, x))
+    ):
+        await C._avisar_reparto(
+            {"email": "ana@x.com", "nombre": "Ana", "anfitrion_email": "rida.calendly@x.com", "enlace": "https://meet.google.com/a"},
+            db,
+        )
+        await C._avisar_reparto({"email": "leo@x.com", "nombre": "Leo", "anfitrion_email": "belen@x.com"}, db)
+    assert agendadas == [("rida@x.com", "Diego Ruiz"), ("rida@x.com", "Belén Soto")]
+    assert [(d, x.get("calendly"), x.get("enlace")) for d, x in suyas] == [
+        ("diego@nawar.es", True, "https://meet.google.com/a")
+    ]
+
+
+def test_avisarle_a_se_guarda_limpio():
+    from src.services.panel.reparto import correos_calendly
+
+    assert correos_calendly({"4": " Diego@Nawar.es ", "5": ""}) == {"4": "diego@nawar.es"}
 
 
 def test_el_aviso_al_closer_de_calendly():

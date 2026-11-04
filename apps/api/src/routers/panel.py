@@ -223,6 +223,9 @@ class Reparto(BaseModel):
     repartidor_id: Optional[int] = None
     # {id del usuario: su correo en Calendly} (31/10, Calendly Teams).
     calendly: Optional[dict] = None
+    # {id del usuario: correo al que la escuela le avisa de sus llamadas}
+    # (04/11): solo para quien no recibe el aviso de Calendly.
+    avisar: Optional[dict] = None
 
 
 @router.put("/org/{org_id}/reparto", summary="Quién reparte las llamadas (administradores).")
@@ -239,13 +242,16 @@ async def api_guardar_reparto(
     eq = await tareas.equipo(org_id, db_session)
     if data.repartidor_id and not any(m["id"] == data.repartidor_id for m in eq):
         raise HTTPException(status_code=400, detail="Esa persona no está en el equipo del panel")
+    ids = {str(m["id"]) for m in eq}
     calendly = None
     if data.calendly is not None:
-        ids = {str(m["id"]) for m in eq}
         calendly = {k: v for k, v in data.calendly.items() if str(k) in ids}
+    avisar = None
+    if data.avisar is not None:
+        avisar = {k: v for k, v in data.avisar.items() if str(k) in ids}
     from src.services.panel import reparto
 
-    r = await reparto.guardar(org_id, data.repartidor_id, db_session, calendly=calendly)
+    r = await reparto.guardar(org_id, data.repartidor_id, db_session, calendly=calendly, avisar=avisar)
     if not r.get("ok"):
         raise HTTPException(status_code=400, detail=r.get("motivo"))
     return r
