@@ -1125,14 +1125,20 @@ def send_llamada_asignada_email(email: EmailStr, datos: dict, preview: bool = Fa
     la videollamada, si se sabe). Con `vuelve` (28/10): alguien que ya llevaba
     ha reservado otra llamada (tras un No show, o agendada desde el panel).
     Con `lead` (31/10): le han pasado una matrícula de Leads, aún sin llamada:
-    hay que llamarla, no entrar a una videollamada."""
+    hay que llamarla, no entrar a una videollamada. Con `calendly` (04/11):
+    Calendly le dio la llamada por turnos; la escuela le avisa también, porque
+    el aviso de Calendly va al correo de SU cuenta de Calendly, que puede no
+    ser el suyo (la de Diego es la cuenta del administrador)."""
     nombre, contacto, wa = _llamada_datos(datos)
     cuando = html.escape(datos.get("cuando") or "")
     por = html.escape(datos.get("por") or "")
     vuelve = bool(datos.get("vuelve"))
     lead = bool(datos.get("lead")) and not vuelve
+    calendly = bool(datos.get("calendly")) and not vuelve and not lead
     if lead:
         titulo = "Te han pasado una matrícula"
+    elif calendly:
+        titulo = "Te ha tocado una llamada"
     else:
         titulo = "Ha reservado una llamada contigo" if vuelve else "Te han pasado una llamada"
     enlace = datos.get("enlace") or ""
@@ -1149,6 +1155,11 @@ def send_llamada_asignada_email(email: EmailStr, datos: dict, preview: bool = Fa
             + (f"Te la ha pasado {por}. " if por else "")
             + "Aún no tiene llamada: está en Leads con tu nombre. Llámala o escríbele cuanto antes.</p>"
         )
+    elif calendly:
+        quien = (
+            '<p style="' + STYLES['p'] + '">Te la ha dado Calendly por turnos: ya está en tu calendario'
+            " y en Matrículas → Ventas con tu nombre.</p>"
+        )
     else:
         quien = ('<p style="' + STYLES['p'] + '">Te la ha pasado ' + por + '.</p>') if por else ''
     mesa = "leads" if lead else "ventas"
@@ -1164,7 +1175,10 @@ def send_llamada_asignada_email(email: EmailStr, datos: dict, preview: bool = Fa
         {wa}
     """
     asunto = (
-        "Te han pasado una matrícula" if lead else "Ha reservado llamada contigo" if vuelve else "Te han pasado una llamada"
+        "Te han pasado una matrícula" if lead
+        else "Ha reservado llamada contigo" if vuelve
+        else "Te ha tocado una llamada" if calendly
+        else "Te han pasado una llamada"
     )
     return send_email(
         dry_run=preview,

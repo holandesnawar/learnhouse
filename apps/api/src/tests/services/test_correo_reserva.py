@@ -419,17 +419,37 @@ async def test_la_reserva_por_turnos_queda_para_su_closer_sin_repartela(db, escu
         return ["rida@x.com"]
 
     agendadas = []
+    suyas = []
     with patch.object(reparto, "_equipo_de_la_escuela", _equipo), patch(
         "src.services.contactos.llamadas.emails_de_administradores", _admins
     ), patch("src.core.redis.get_redis_client", lambda: None), patch(
         "src.services.crm.systeme.marcar_llamada_reservada", lambda *a, **k: None
-    ), patch.object(E, "send_llamada_agendada_email", lambda d, x: agendadas.append((d, x.get("closer", "")))):
-        await C._avisar_reparto({"email": "ana@x.com", "nombre": "Ana", "anfitrion_email": "belen@x.com"}, db)
+    ), patch.object(E, "send_llamada_agendada_email", lambda d, x: agendadas.append((d, x.get("closer", "")))), patch.object(
+        E, "send_llamada_asignada_email", lambda d, x: suyas.append((d, x))
+    ):
+        await C._avisar_reparto(
+            {"email": "ana@x.com", "nombre": "Ana", "anfitrion_email": "belen@x.com", "enlace": "https://zoom.us/j/1"}, db
+        )
         await C._avisar_reparto({"email": "leo@x.com", "nombre": "Leo", "anfitrion_email": "rida@x.com"}, db)
     g = await pipeline.guardadas(db)
     assert (g["ana@x.com"]["closer_id"], g["ana@x.com"]["closer"]) == (5, "Belén Soto")
     assert "leo@x.com" not in g
     assert agendadas == [("rida@x.com", "Belén Soto"), ("rida@x.com", "")]
+    # Y a Belén, su propio aviso, con el enlace (04/11: el de Calendly va al
+    # correo de la cuenta de Calendly, que puede no ser el suyo).
+    assert [(d, x.get("calendly"), x.get("enlace")) for d, x in suyas] == [("belen@x.com", True, "https://zoom.us/j/1")]
+
+
+def test_el_aviso_al_closer_de_calendly():
+    r = E.send_llamada_asignada_email(
+        "diego@x.com",
+        {"nombre": "Ana", "email": "ana@x.com", "telefono": "+31612345678", "cuando": "jue 6 nov · 18:00",
+         "enlace": "https://meet.google.com/abc", "calendly": True},
+        preview=True,
+    )
+    assert r["subject"] == "Te ha tocado una llamada: Ana · jue 6 nov · 18:00"
+    assert "Te la ha dado Calendly" in r["html"] and "meet.google.com/abc" in r["html"]
+    assert "wa.me/31612345678" in r["html"]
 
 
 def test_el_aviso_de_la_lleva_x():
