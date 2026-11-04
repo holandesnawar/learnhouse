@@ -42,6 +42,7 @@
  * por asignar, que son de todos).
  */
 
+import { COLOR_COLUMNA } from '@/lib/nawar/coloresTablero'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DragDropContext, Draggable, Droppable, type DropResult } from '@hello-pangea/dnd'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
@@ -86,19 +87,9 @@ type Mesa = 'leads' | 'ventas'
 /** Una columna de la pantalla: una etapa, o «Por asignar» (agendada sin closer). */
 type ColumnaId = EtapaTablero | 'por-asignar'
 
-const COLOR: Record<ColumnaId, string> = {
-  'por-asignar': '#64748B',
-  nuevo: '#5B8DEF',
-  llamar: '#E07AA8',
-  'no-contesta': '#8FA03C',
-  contactado: '#9B87F5',
-  agendado: '#D4A24C',
-  seguimiento: '#3E9BB0',
-  'pendiente-pago': '#D9826A',
-  'no-show': '#9A5296',
-  descartado: '#B4413C',
-  alumno: '#2BA67A',
-}
+// Los colores viven en lib/nawar/coloresTablero.ts (04/11/2026): el inicio
+// del panel pinta las mismas columnas con el mismo color.
+const COLOR = COLOR_COLUMNA as Record<ColumnaId, string>
 
 // Columnas plegadas: una tira estrecha con el nombre y la cuenta. Descartado
 // nace plegada (es la que obligaba a desplazarse a la derecha) y lo que se

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import ContactosPanel from './ContactosPanel'
 import LlamadasPanel from './LlamadasPanel'
@@ -22,6 +23,8 @@ import KpisPanel from '../Panel/KpisPanel'
 import CorreosPanel from '../Panel/CorreosPanel'
 import PlazosPanel from '../Panel/PlazosPanel'
 import TandasPanel from '../Panel/TandasPanel'
+import CabeceraPagina from '../Panel/Cabecera'
+import ClasesProfes from '@components/Pages/Profes/ClasesProfes'
 import { getContactos, type Contacto } from '@services/stats/contactos'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { updateOrgAccesoCloser } from '@services/settings/org'
@@ -75,19 +78,53 @@ import {
   Compass,
   Route,
   ClipboardCheck,
+  Presentation,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-const CARD = 'rounded-lg border border-[#E5E7EB] bg-white p-3.5 sm:p-5'
+const CARD = 'rounded-xl border border-[#E2E8F4] bg-white p-3.5 sm:p-5'
 // En móvil las etiquetas son de dos palabras ("ACTIVOS 30 DÍAS") y en tres
 // columnas se cortaban: letra más pequeña y sin `tracking` para que quepan.
 const LABEL =
   'text-[10px] sm:text-[11px] font-semibold text-[#6B7280] uppercase tracking-normal sm:tracking-[0.08em] leading-tight'
-const BIG = 'text-[22px] sm:text-[28px] font-semibold text-gray-900 leading-tight mt-1 tabular-nums'
+const BIG = 'text-[22px] sm:text-[28px] font-semibold text-[#1D0084] leading-tight mt-1 tabular-nums'
 const INPUT =
   'h-9 bg-white rounded-md px-3 text-[13.5px] text-gray-900 placeholder:text-[#9CA3AF] border border-[#E5E7EB] outline-none focus:border-[#025dc7] transition-colors w-full'
 const BTN =
   'inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-md bg-[#025dc7] hover:bg-[#014fa9] text-white text-[13.5px] font-medium transition-colors disabled:opacity-60'
+
+/**
+ * Cada sección del panel que vive en esta página: su icono, su título y para
+ * qué sirve, en una línea (04/11/2026, "da pereza encontrar todo y dónde están
+ * las cosas"). El título es el de la barra.
+ */
+const ICONO = { size: 20 }
+const SECCIONES: Record<string, { titulo: string; icono: React.ReactNode; que: string }> = {
+  numeros: { titulo: 'Estadísticas', icono: <BarChart3 {...ICONO} />, que: 'Ventas, ingresos, el embudo del pago y la asistencia a la clase en vivo.' },
+  kpis: { titulo: 'KPIs', icono: <Gauge {...ICONO} />, que: 'Cuánta gente entra, ve el vídeo, reserva, se presenta a la llamada y paga.' },
+  vision: { titulo: 'Visión', icono: <Telescope {...ICONO} />, que: 'El mapa del negocio, el tablero de trabajo y las cuentas de cada campaña.' },
+  anuncios: { titulo: 'Anuncios', icono: <Megaphone {...ICONO} />, que: 'Qué trae cada campaña y cuánto cuesta cada lead y cada venta.' },
+  matriculas: { titulo: 'Matrículas', icono: <KanbanSquare {...ICONO} />, que: 'Cada persona interesada, de Nuevo a Alumno. Arrastra la tarjeta para moverla.' },
+  llamadas: { titulo: 'Llamadas', icono: <PhoneCall {...ICONO} />, que: 'La agenda de Calendly, los WhatsApp de cada llamada y a quién toca llamar.' },
+  contactos: { titulo: 'Contactos', icono: <Users {...ICONO} />, que: 'Todo el que ha dejado sus datos, con lo que ha visto y hecho.' },
+  tareas: { titulo: 'Tareas', icono: <ListChecks {...ICONO} />, que: 'Lo tuyo y lo del equipo, con su fecha.' },
+  guion: { titulo: 'Guion', icono: <ScrollText {...ICONO} />, que: '' },
+  enfoque: { titulo: 'Enfoque', icono: <Compass {...ICONO} />, que: '' },
+  recursos: { titulo: 'Recursos', icono: <FolderOpen {...ICONO} />, que: '' },
+  clientes: { titulo: 'Clientes', icono: <UserCheck {...ICONO} />, que: 'Quién ha pagado, cuánto, si sigue entrando y la comisión del closer.' },
+  plazos: { titulo: 'Pagos a plazos', icono: <CalendarClock {...ICONO} />, que: 'Quién paga a plazos, en qué pago va y los cobros que fallan.' },
+  facturas: { titulo: 'Facturas', icono: <Receipt {...ICONO} />, que: 'Las facturas de los alumnos (Stripe) y las de la empresa.' },
+  gastos: { titulo: 'Gastos', icono: <Wallet {...ICONO} />, que: 'Lo que gastas cada mes, el margen y el coste por matrícula.' },
+  progreso: { titulo: 'Progreso de los alumnos', icono: <GraduationCap {...ICONO} />, que: 'Por dónde va cada alumno y cuándo entró por última vez.' },
+  seguimiento: { titulo: 'Seguimiento semanal', icono: <ClipboardCheck {...ICONO} />, que: 'Cada semana de las clases: quién va al día y qué hay por corregir.' },
+  camino: { titulo: 'Camino de 16 semanas', icono: <Route {...ICONO} />, que: 'Las 16 semanas de cada alumno y las clases en directo a las que fue.' },
+  tandas: { titulo: 'Tandas y grupos', icono: <Tags {...ICONO} />, que: 'La beta y el programa nuevo: el grupo de cada alumno y quién ve qué.' },
+  paginas: { titulo: 'Páginas de la web', icono: <Globe {...ICONO} />, que: 'Las páginas de la web y lo que ya sabe quien llega desde cada una.' },
+  correos: { titulo: 'Correos', icono: <Mails {...ICONO} />, que: 'Quién está en cada campaña y a quién le ha llegado cada correo.' },
+  profes: { titulo: 'Clases de los profes', icono: <Presentation {...ICONO} />, que: 'Las próximas clases con su presentación, lo que falta preparar y los recursos. Lo mismo que ven los profes en la escuela.' },
+}
+/** Las pestañas de «Material de venta», en este orden. */
+const MATERIAL = ['guion', 'enfoque', 'recursos']
 
 /** Nombre bonito para el identificador de producto. */
 function productName(id: string): string {
@@ -202,7 +239,7 @@ export default function EstadisticasPage() {
   // ?tab= va a Matrículas, no a Números, o saltaría de una a otra sin parar.
   const esCloserRef = React.useRef(false)
   esCloserRef.current = isCloser
-  const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'gastos' | 'guion' | 'paginas' | 'utm' | 'matriculas' | 'tareas' | 'clientes' | 'anuncios' | 'progreso' | 'recursos' | 'vision' | 'kpis' | 'plazos' | 'tandas' | 'enfoque' | 'camino' | 'seguimiento' | 'correos'>('numeros')
+  const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'gastos' | 'guion' | 'paginas' | 'utm' | 'matriculas' | 'tareas' | 'clientes' | 'anuncios' | 'progreso' | 'recursos' | 'vision' | 'kpis' | 'plazos' | 'tandas' | 'enfoque' | 'camino' | 'seguimiento' | 'correos' | 'profes'>('numeros')
   // El closer arranca en Matrículas, que es lo suyo. Contactos también lo ve
   // desde el 03/11 (del 08/10 al 03/11 era solo del administrador).
   useEffect(() => {
@@ -214,7 +251,7 @@ export default function EstadisticasPage() {
   useEffect(() => {
     const leer = () => {
       const pedida = new URLSearchParams(window.location.search).get('tab')
-      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'llamadas' || pedida === 'facturas' || pedida === 'gastos' || pedida === 'guion' || pedida === 'paginas' || pedida === 'utm' || pedida === 'matriculas' || pedida === 'tareas' || pedida === 'clientes' || pedida === 'anuncios' || pedida === 'progreso' || pedida === 'recursos' || pedida === 'vision' || pedida === 'kpis' || pedida === 'plazos' || pedida === 'tandas' || pedida === 'enfoque' || pedida === 'camino' || pedida === 'seguimiento' || pedida === 'correos') setTab(pedida)
+      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'llamadas' || pedida === 'facturas' || pedida === 'gastos' || pedida === 'guion' || pedida === 'paginas' || pedida === 'utm' || pedida === 'matriculas' || pedida === 'tareas' || pedida === 'clientes' || pedida === 'anuncios' || pedida === 'progreso' || pedida === 'recursos' || pedida === 'vision' || pedida === 'kpis' || pedida === 'plazos' || pedida === 'tandas' || pedida === 'enfoque' || pedida === 'camino' || pedida === 'seguimiento' || pedida === 'correos' || pedida === 'profes') setTab(pedida)
       // Sin ?tab= (el enlace «Estadísticas» de la barra) = los números.
       else if (!pedida) setTab(esCloserRef.current ? 'matriculas' : 'numeros')
     }
@@ -235,6 +272,12 @@ export default function EstadisticasPage() {
       setTab('matriculas')
     }
   }, [isCloser, tab, closerVeNumeros])
+  // «Correos» vive en Correos y avisos desde el 04/11 (pestaña «Quién recibe
+  // qué»): la dirección vieja lleva allí.
+  const router = useRouter()
+  useEffect(() => {
+    if (tab === 'correos' && !isCloser) router.replace('/dash/avisos?tab=campana')
+  }, [tab, isCloser, router])
   const [period, setPeriod] = useState<'month' | 'quarter'>('month')
   const [stats, setStats] = useState<SchoolStats | null>(null)
   const [contactosResumen, setContactosResumen] = useState<Contacto[] | null>(null)
@@ -275,108 +318,32 @@ export default function EstadisticasPage() {
     // Mismo marco que el resto del panel (Avisos, Cursos): sin esto el
     // contenido se pegaba a los bordes de la pantalla en el móvil. El hueco
     // de abajo para la barra del navegador ya lo pone el layout del panel.
-    <div className="h-full w-full bg-[#f8f8f8] px-4 sm:px-9 py-6 sm:py-9 pb-10 space-y-5 sm:space-y-6">
-      <div className="flex items-center justify-between gap-2">
-        {/* El título es el de la sección que se ha abierto en la barra. Antes
-            todo se llamaba "Estadísticas" con pestañas debajo que repetían la
-            barra, y el closer no sabía dónde estaba. */}
-        <div className="flex items-center gap-2 min-w-0">
-          {tab === 'contactos' ? (
-            <Users size={22} className="text-[#025dc7] shrink-0" />
-          ) : tab === 'llamadas' ? (
-            <PhoneCall size={22} className="text-[#025dc7] shrink-0" />
-          ) : tab === 'facturas' ? (
-            <Receipt size={22} className="text-[#025dc7] shrink-0" />
-          ) : tab === 'gastos' ? (
-            <Wallet size={22} className="text-[#025dc7] shrink-0" />
-          ) : tab === 'guion' ? (
-            <ScrollText size={22} className="text-[#025dc7] shrink-0" />
-          ) : tab === 'enfoque' ? (
-            <Compass size={22} className="text-[#025dc7] shrink-0" />
-          ) : tab === 'recursos' ? (
-            <FolderOpen size={22} className="text-[#025dc7] shrink-0" />
-          ) : tab === 'paginas' ? (
-            <Globe size={22} className="text-[#025dc7] shrink-0" />
-          ) : tab === 'matriculas' ? (
-            <KanbanSquare size={22} className="text-[#025dc7] shrink-0" />
-          ) : tab === 'tareas' ? (
-            <ListChecks size={22} className="text-[#025dc7] shrink-0" />
-          ) : tab === 'clientes' ? (
-            <UserCheck size={22} className="text-[#025dc7] shrink-0" />
-          ) : tab === 'anuncios' ? (
-            <Megaphone size={22} className="text-[#025dc7] shrink-0" />
-          ) : tab === 'progreso' ? (
-            <GraduationCap size={22} className="text-[#025dc7] shrink-0" />
-          ) : tab === 'camino' ? (
-            <Route size={22} className="text-[#025dc7] shrink-0" />
-          ) : tab === 'seguimiento' ? (
-            <ClipboardCheck size={22} className="text-[#025dc7] shrink-0" />
-          ) : tab === 'vision' ? (
-            <Telescope size={22} className="text-[#025dc7] shrink-0" />
-          ) : tab === 'kpis' ? (
-            <Gauge size={22} className="text-[#025dc7] shrink-0" />
-          ) : tab === 'correos' ? (
-            <Mails size={22} className="text-[#025dc7] shrink-0" />
-          ) : tab === 'plazos' ? (
-            <CalendarClock size={22} className="text-[#025dc7] shrink-0" />
-          ) : tab === 'tandas' ? (
-            <Tags size={22} className="text-[#025dc7] shrink-0" />
-          ) : (
-            <BarChart3 size={22} className="text-[#025dc7] shrink-0" />
-          )}
-          <h1 className="text-xl sm:text-3xl font-bold text-gray-900 truncate">
-            {tab === 'contactos'
-              ? 'Contactos'
-              : tab === 'llamadas'
-                ? 'Llamadas'
-                : tab === 'facturas'
-                  ? 'Facturas'
-                  : tab === 'gastos'
-                    ? 'Gastos'
-                    : tab === 'guion'
-                      ? 'Guion de llamada'
-                      : tab === 'enfoque'
-                      ? 'Enfoque'
-                      : tab === 'recursos'
-                      ? 'Recursos'
-                      : tab === 'paginas'
-                        ? 'Páginas de la web'
-                        : tab === 'matriculas'
-                          ? 'Matrículas'
-                          : tab === 'tareas'
-                            ? 'Tareas'
-                            : tab === 'clientes'
-                              ? 'Clientes'
-                              : tab === 'anuncios'
-                                ? 'Anuncios'
-                                : tab === 'progreso'
-                                  ? 'Progreso de los alumnos'
-                                  : tab === 'camino'
-                                  ? 'Camino de 16 semanas'
-                                  : tab === 'seguimiento'
-                                  ? 'Seguimiento semanal'
-                                  : tab === 'vision'
-                                    ? 'Visión'
-                                    : tab === 'kpis'
-                                      ? 'KPIs'
-                                      : tab === 'correos'
-                                      ? 'Correos'
-                                      : tab === 'plazos'
-                                        ? 'Pagos a plazos'
-                                        : tab === 'tandas'
-                                          ? 'Tandas y grupos'
-                                        : 'Estadísticas'}
-          </h1>
-        </div>
-        <button
-          onClick={refresh}
-          aria-label="Actualizar"
-          className="shrink-0 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-[13px] font-semibold text-[#025dc7] hover:bg-[#EAF3FF] transition-colors"
-        >
-          <RefreshCw size={15} className={reloading ? 'animate-spin' : ''} />
-          <span className="hidden sm:inline">Actualizar</span>
-        </button>
-      </div>
+    <div className="h-full w-full bg-[#F4F7FD] px-4 sm:px-9 py-6 sm:py-9 pb-10 space-y-5 sm:space-y-6">
+      {/* El título es el de la sección que se ha abierto en la barra, con una
+          línea que dice para qué sirve (04/11/2026). Antes todo se llamaba
+          "Estadísticas" con pestañas debajo que repetían la barra, y el closer
+          no sabía dónde estaba. Guion, Enfoque y Recursos van juntos como
+          «Material de venta», con sus pestañas. */}
+      <CabeceraPagina
+        icono={SECCIONES[tab]?.icono ?? <BarChart3 size={20} />}
+        titulo={MATERIAL.includes(tab) ? 'Material de venta' : SECCIONES[tab]?.titulo ?? 'Estadísticas'}
+        descripcion={MATERIAL.includes(tab) ? 'Lo que hace falta para la llamada: el guion, el enfoque del programa y los recursos.' : SECCIONES[tab]?.que}
+        pestanas={
+          MATERIAL.includes(tab)
+            ? MATERIAL.map((m) => ({ href: `/dash/estadisticas?tab=${m}`, label: SECCIONES[m].titulo, activa: tab === m }))
+            : undefined
+        }
+        acciones={
+          <button
+            onClick={refresh}
+            aria-label="Actualizar"
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-[13px] font-semibold text-[#025dc7] hover:bg-[#E9EFFB] transition-colors"
+          >
+            <RefreshCw size={15} className={reloading ? 'animate-spin' : ''} />
+            <span className="hidden sm:inline">Actualizar</span>
+          </button>
+        }
+      />
 
       {tab === 'contactos' ? (
         <>
@@ -425,7 +392,11 @@ export default function EstadisticasPage() {
       ) : tab === 'kpis' ? (
         <KpisPanel key={vuelta} />
       ) : tab === 'correos' ? (
+        // Vive en Correos y avisos desde el 04/11 (allí lleva a «Quién recibe
+        // qué»); esta dirección se queda por los enlaces viejos.
         <CorreosPanel key={vuelta} />
+      ) : tab === 'profes' ? (
+        <ClasesProfes key={vuelta} enPanel />
       ) : tab === 'plazos' ? (
         <PlazosPanel key={vuelta} />
       ) : tab === 'tandas' ? (

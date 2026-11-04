@@ -34,7 +34,10 @@ const AdminAuthorization: React.FC<AuthorizationProps> = ({ children, authorizat
   // le abre, Números). Cualquier otra ruta del panel le manda allí. Es la
   // misma idea que "el panel se protege entero": la lista de lo que el
   // closer puede ver es de UNA ruta, y todo lo demás nace cerrado para él.
-  const rutaDelCloser = pathname.includes('/dash/estadisticas')
+  // Y el inicio del panel (04/11/2026): «Inicio» está en su barra y le enseña
+  // sus cifras (nuevas, por llamar, agendadas, sus tareas). Lo que pide el
+  // inicio para el closer ya se lo deja el servidor; los números, no se piden.
+  const rutaDelCloser = pathname.includes('/dash/estadisticas') || /\/dash\/?$/.test(pathname)
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   const isUserAuthenticated = useMemo(() => session.status === 'authenticated', [session.status]);
