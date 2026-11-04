@@ -31,7 +31,7 @@ function ClientAdminLayout({
             <AdminAuthorization authorizationMode="page">
                 <CommandPaletteProvider>
                     {isMobile && <NawarMobileMenu />}
-                    <div className="flex flex-col lg:flex-row bg-[#F7F8FB] min-h-screen">
+                    <div className="flex flex-col lg:flex-row bg-[#F4F7FD] min-h-screen">
                         {!isMobile && <NawarSidebar />}
                         {/* min-w-0: sin él esta caja crecía hasta el ancho de lo más ancho de
                             dentro (el tablero de Matrículas) y la PÁGINA entera se desplazaba de

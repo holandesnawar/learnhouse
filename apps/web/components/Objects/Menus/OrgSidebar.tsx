@@ -42,6 +42,7 @@ import {
   List,
   X,
   ClipboardText,
+  Kanban,
 } from '@phosphor-icons/react'
 // Iconos del "modo enfoque" — los mismos que el sidebar de lecciones del curso,
 // para que abrir/cerrar la barra se vea igual dentro y fuera de una lección.
@@ -166,6 +167,11 @@ export const OrgSidebar = (props: { orgslug: string }) => {
 
   const navItems: NavItem[] = [
     { key: 'home', href: '/', label: 'Inicio', icon: <House size={20} weight="fill" />, show: true },
+    // El tablero de los profes (04/11/2026), justo debajo de Inicio: sus
+    // próximas clases con la presentación, lo que falta preparar y los
+    // recursos. Para el equipo sin panel; el administrador lo tiene en el
+    // panel (Formación → Clases de los profes).
+    { key: 'mis-clases', href: '/mis-clases', label: 'Mis clases', icon: <Kanban size={20} weight="fill" />, show: isStaff && !isAdmin },
     { key: 'courses', href: '/course/8a1d1fab-ffbb-44ef-8f21-04ef63676d6e', label: 'Formación', icon: <Books size={20} weight="fill" />, show: isEnabled('courses') },
     // "Repasar" escondido (sept 2026), NO borrado. Dos motivos: (1) su progreso
     // se guarda en localStorage (`lib/exercises-app/progress.ts`) y el de la

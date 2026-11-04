@@ -14,6 +14,7 @@
  * - UTM: el bloc de enlaces con utm_* de siempre.
  */
 
+import CabeceraPagina from '../Panel/Cabecera'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
@@ -57,11 +58,12 @@ export default function WebsPage() {
     return () => window.clearInterval(id)
   }, [])
   return (
-    <div className="h-full w-full bg-[#f8f8f8] px-4 sm:px-9 py-6 sm:py-9 pb-24 lg:pb-10 space-y-5 sm:space-y-6">
-      <div className="flex items-center gap-2 min-w-0">
-        <Globe size={22} className="text-[#025dc7] shrink-0" />
-        <h1 className="text-xl sm:text-3xl font-bold text-gray-900 truncate">Webs</h1>
-      </div>
+    <div className="h-full w-full bg-[#F4F7FD] px-4 sm:px-9 py-6 sm:py-9 pb-24 lg:pb-10 space-y-5 sm:space-y-6">
+      <CabeceraPagina
+        icono={<Globe size={20} />}
+        titulo="Enlaces y UTM"
+        descripcion="Los enlaces cortos y redirecciones de la web, y los enlaces con UTM de cada campaña."
+      />
       <div className="flex gap-1 border-b border-[#DDE6F5] overflow-x-auto">
         {[
           { id: 'enlaces' as const, label: 'Enlaces y redirecciones' },

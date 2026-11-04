@@ -5,29 +5,35 @@
  *
  * Decidido el 29/09 mirando Calendly: "tiene que parecer un software, no IA".
  * Lo que lo hacía parecer barato eran las etiquetas en cajitas pastel, las
- * sombras y los fondos tintados. Reglas:
- * - Blanco, gris y negro. Bordes finos (#E5E7EB), sin sombras.
- * - El color solo para lo que se toca (el azul de la marca) y para lo que
+ * sombras y los fondos tintados. Eso sigue fuera.
+ *
+ * Repaso del 04/11/2026 (usuario: "colores y diseños sin vida, mira nuestra
+ * escuela por dentro, cómo tiene vida"): el gris y negro de entonces se pasa
+ * a los colores de la escuela, sin volver a las cajitas pastel:
+ * - Bordes con un punto de azul (#E2E8F4) y esquinas como las de la escuela.
+ * - Lo elegido (un filtro, una pestaña) en el azul oscuro de la marca, no en negro.
+ * - Los títulos de sección en Poppins y azul muy oscuro, como en la escuela.
+ * - El color, como antes, solo para lo que se toca (el azul) y para lo que
  *   importa de verdad: rojo si algo está vencido, verde si ya pagó.
- * - Las "etiquetas" son texto gris pequeño separado por puntos, no cajitas.
- *   Si hace falta señalar un estado, un punto de color de 6 px al lado.
+ * - Las "etiquetas" siguen siendo texto pequeño separado por puntos, no
+ *   cajitas. Si hace falta señalar un estado, un punto de color de 6 px.
  */
 
 import React from 'react'
 
-export const TARJETA = 'rounded-lg border border-[#E5E7EB] bg-white'
+export const TARJETA = 'rounded-xl border border-[#E2E8F4] bg-white'
 export const META = 'text-[12.5px] text-[#6B7280]'
 export const BOTON =
-  'inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md border border-[#D1D5DB] bg-white text-[13px] font-medium text-gray-800 hover:bg-[#F9FAFB] disabled:opacity-50 transition-colors'
+  'inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg border border-[#D5DDEC] bg-white text-[13px] font-medium text-[#1F2A44] hover:bg-[#F3F6FD] hover:border-[#B9CBEA] disabled:opacity-50 transition-colors'
 export const BOTON_PRINCIPAL =
-  'inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md bg-[#025dc7] text-white text-[13px] font-medium hover:bg-[#014fa9] disabled:opacity-50 transition-colors'
+  'inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg bg-[#025dc7] text-white text-[13px] font-semibold hover:bg-[#014fa9] disabled:opacity-50 transition-colors'
 export const BOTON_PELIGRO =
-  'inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md border border-[#FCA5A5] bg-white text-[13px] font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors'
+  'inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg border border-[#FCA5A5] bg-white text-[13px] font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors'
 export const ENLACE = 'text-[13px] font-medium text-[#025dc7] hover:underline'
-/** Filtro tipo "pastilla" (Todos, WhatsApp…): gris; el elegido, negro. */
+/** Filtro tipo "pastilla" (Todos, WhatsApp…): blanco; el elegido, en el azul de la marca. */
 export const filtro = (activo: boolean) =>
-  `shrink-0 h-8 px-3 rounded-md text-[13px] font-medium border transition-colors ${
-    activo ? 'bg-gray-900 border-gray-900 text-white' : 'bg-white border-[#E5E7EB] text-gray-700 hover:bg-[#F9FAFB]'
+  `shrink-0 h-8 px-3 rounded-lg text-[13px] font-medium border transition-colors ${
+    activo ? 'bg-[#1D0084] border-[#1D0084] text-white' : 'bg-white border-[#E2E8F4] text-[#374151] hover:border-[#B9CBEA] hover:text-[#1D0084]'
   }`
 
 export type Tono = 'gris' | 'verde' | 'rojo' | 'azul' | 'ambar'
@@ -64,12 +70,14 @@ export function Meta({ partes, className = '' }: { partes: React.ReactNode[]; cl
   )
 }
 
-/** Título de sección: texto negro, sin icono de color. */
+/** Título de sección: en Poppins y azul muy oscuro, como los de la escuela. */
 export function Seccion({ titulo, extra, children }: { titulo: string; extra?: React.ReactNode; children: React.ReactNode }) {
   return (
     <section className="space-y-2.5">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-[15px] font-semibold text-gray-900">{titulo}</h2>
+        <h2 className="text-[15px] font-bold text-[#0a1656]" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+          {titulo}
+        </h2>
         {extra}
       </div>
       {children}
