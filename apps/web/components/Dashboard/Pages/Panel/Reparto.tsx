@@ -27,6 +27,8 @@ export interface Reparto {
   repartidorId: number
   /** {id del usuario: su correo en Calendly} (Calendly Teams, 31/10). */
   calendly: Record<string, string>
+  /** {id del usuario: a qué correo le avisa la escuela de sus llamadas} (04/11). */
+  avisar: Record<string, string>
   recargar: () => void
 }
 
@@ -40,17 +42,25 @@ export function useReparto(): Reparto {
     yo: number
     repartidorId: number
     calendly: Record<string, string>
+    avisar: Record<string, string>
   }>({
     equipo: [],
     yo: 0,
     repartidorId: 0,
     calendly: {},
+    avisar: {},
   })
   const cargar = useCallback(async () => {
     if (!org?.id || !accessToken) return
     const r = await getReparto(org.id, accessToken)
     if (r.ok && r.datos)
-      setDatos({ equipo: r.datos.equipo, yo: r.datos.yo, repartidorId: r.datos.repartidor_id, calendly: r.datos.calendly ?? {} })
+      setDatos({
+        equipo: r.datos.equipo,
+        yo: r.datos.yo,
+        repartidorId: r.datos.repartidor_id,
+        calendly: r.datos.calendly ?? {},
+        avisar: r.datos.avisar ?? {},
+      })
   }, [org?.id, accessToken])
   useEffect(() => {
     cargar()
@@ -319,6 +329,11 @@ export function EtiquetaCloser({
  * Calendly elige el closer de cada reserva y la escuela lo reconoce por ese
  * correo: la tarjeta sale ya con su nombre, sin pasar por «Por asignar». Si
  * es el mismo que el de su cuenta de la escuela, no hace falta escribirlo.
+ *
+ * «La escuela le avisa a» (04/11): Calendly le manda el aviso de cada reserva
+ * al correo de la cuenta de Calendly. Diego usa la del administrador, así que
+ * ese aviso no le llega a él: con un correo aquí, la escuela le escribe
+ * «Te ha tocado una llamada». Vacío = nada, ya le avisa Calendly.
  */
 export function CorreosCalendly({ reparto }: { reparto: Reparto }) {
   const org = useOrg() as any
@@ -326,22 +341,27 @@ export function CorreosCalendly({ reparto }: { reparto: Reparto }) {
   const accessToken = session?.data?.tokens?.access_token
   const [abierto, setAbierto] = useState(false)
   const [valores, setValores] = useState<Record<string, string>>({})
+  const [avisos, setAvisos] = useState<Record<string, string>>({})
   const [guardando, setGuardando] = useState(false)
   useEffect(() => {
     setValores(reparto.calendly || {})
   }, [reparto.calendly])
+  useEffect(() => {
+    setAvisos(reparto.avisar || {})
+  }, [reparto.avisar])
   // Los closers primero; los administradores, por si alguno también atiende.
   const personas = [...reparto.equipo].sort((a, b) => Number(b.rol === 'Closer') - Number(a.rol === 'Closer'))
   const apuntados = Object.keys(reparto.calendly || {}).length
 
   async function guardar() {
     setGuardando(true)
-    const limpio = Object.fromEntries(
-      Object.entries(valores)
-        .map(([k, v]) => [k, (v || '').trim().toLowerCase()])
-        .filter(([, v]) => v.includes('@'))
-    )
-    const r = await guardarCorreosCalendly(org?.id, limpio, accessToken)
+    const limpiar = (o: Record<string, string>) =>
+      Object.fromEntries(
+        Object.entries(o)
+          .map(([k, v]) => [k, (v || '').trim().toLowerCase()])
+          .filter(([, v]) => v.includes('@'))
+      )
+    const r = await guardarCorreosCalendly(org?.id, limpiar(valores), limpiar(avisos), accessToken)
     setGuardando(false)
     if (!r.ok) return toast.error(r.error || 'No se ha podido guardar')
     toast.success('Guardado')
@@ -367,20 +387,39 @@ export function CorreosCalendly({ reparto }: { reparto: Reparto }) {
         correo con el que cada uno está en Calendly y la tarjeta saldrá ya con su nombre. Si es el mismo que el de su cuenta de la
         escuela, déjalo vacío.
       </p>
+      <p className="text-[12.5px] text-[#6B7280] leading-relaxed">
+        <strong className="text-gray-900">La escuela le avisa a</strong>: solo para quien no recibe el aviso de Calendly (porque
+        su cuenta de Calendly lleva otro correo). Con un correo aquí, la escuela le escribe «Te ha tocado una llamada» con el
+        teléfono, el WhatsApp y el enlace. Vacío: nada, ya le avisa Calendly.
+      </p>
+      <div className="hidden sm:flex gap-2 text-[11.5px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF]">
+        <span className="w-28 shrink-0" />
+        <span className="flex-1">Su correo en Calendly</span>
+        <span className="flex-1">La escuela le avisa a (opcional)</span>
+      </div>
       {personas.map((m) => (
-        <label key={m.id} className="flex flex-wrap items-center gap-2 text-[12.5px]">
+        <div key={m.id} className="flex flex-wrap sm:flex-nowrap items-center gap-2 text-[12.5px]">
           <span className="w-28 shrink-0 inline-flex items-center gap-1.5 font-semibold text-gray-900 truncate">
             <span className="w-2 h-2 rounded-full shrink-0" style={{ background: colorCloser(m.id, reparto.equipo, m.nombre) }} />
             {nombreCorto(m.nombre)}
           </span>
           <input
             type="email"
+            aria-label={`Correo en Calendly de ${m.nombre}`}
             value={valores[String(m.id)] ?? ''}
             onChange={(e) => setValores((v) => ({ ...v, [String(m.id)]: e.target.value }))}
             placeholder={m.rol === 'Closer' ? m.email : 'Solo si también atiende llamadas'}
-            className="min-w-0 flex-1 h-8 rounded-md border border-[#E5E7EB] bg-white px-2 text-[12.5px] text-gray-900 outline-none focus:border-gray-900"
+            className="min-w-0 basis-full sm:basis-0 flex-1 h-8 rounded-md border border-[#E5E7EB] bg-white px-2 text-[12.5px] text-gray-900 outline-none focus:border-gray-900"
           />
-        </label>
+          <input
+            type="email"
+            aria-label={`La escuela le avisa a ${m.nombre} en`}
+            value={avisos[String(m.id)] ?? ''}
+            onChange={(e) => setAvisos((v) => ({ ...v, [String(m.id)]: e.target.value }))}
+            placeholder="Avisarle a… (opcional)"
+            className="min-w-0 basis-full sm:basis-0 flex-1 h-8 rounded-md border border-[#E5E7EB] bg-white px-2 text-[12.5px] text-gray-900 outline-none focus:border-gray-900"
+          />
+        </div>
       ))}
       <div className="flex gap-2 pt-1">
         <button
@@ -395,6 +434,7 @@ export function CorreosCalendly({ reparto }: { reparto: Reparto }) {
           type="button"
           onClick={() => {
             setValores(reparto.calendly || {})
+            setAvisos(reparto.avisar || {})
             setAbierto(false)
           }}
           className="h-8 px-3 rounded-md border border-[#E5E7EB] bg-white text-[12.5px] font-semibold text-gray-800"

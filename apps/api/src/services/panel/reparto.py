@@ -75,25 +75,37 @@ def correos_calendly(valor) -> dict[str, str]:
 
 
 async def leer(db_session: AsyncSession, org_id: Optional[int] = None) -> dict:
-    """{"repartidor_id": int, "calendly": {id: correo}} (0 = nadie: avisa a
-    los administradores). Sin `org_id`, la de la escuela (single-tenancy): así
-    lo puede leer el aviso que llega de la web, que no sabe de escuelas."""
+    """{"repartidor_id": int, "calendly": {id: correo}, "avisar": {id: correo}}
+    (0 = nadie: avisa a los administradores). `avisar` (04/11): a qué correo
+    le escribe la escuela a ese closer cuando Calendly le da una llamada; solo
+    para quien no recibe el aviso de Calendly (Diego: su cuenta de Calendly es
+    la del administrador, con su correo). Vacío = nada, ya le avisa Calendly.
+    Sin `org_id`, la de la escuela (single-tenancy): así lo puede leer el
+    aviso que llega de la web, que no sabe de escuelas."""
     fila = await _fila_config(db_session, org_id)
     guardado = (fila.config or {}).get(CLAVE) if fila and isinstance(fila.config, dict) else None
     if not isinstance(guardado, dict):
-        return {"repartidor_id": 0, "calendly": {}}
+        return {"repartidor_id": 0, "calendly": {}, "avisar": {}}
     try:
         repartidor = int(guardado.get("repartidor_id") or 0)
     except (TypeError, ValueError):
         repartidor = 0
-    return {"repartidor_id": repartidor, "calendly": correos_calendly(guardado.get("calendly"))}
+    return {
+        "repartidor_id": repartidor,
+        "calendly": correos_calendly(guardado.get("calendly")),
+        "avisar": correos_calendly(guardado.get("avisar")),
+    }
 
 
 async def guardar(
-    org_id: int, repartidor_id: Optional[int], db_session: AsyncSession, calendly: Optional[dict] = None
+    org_id: int,
+    repartidor_id: Optional[int],
+    db_session: AsyncSession,
+    calendly: Optional[dict] = None,
+    avisar: Optional[dict] = None,
 ) -> dict:
-    """Guarda quién reparte y/o los correos de Calendly de cada closer (lo
-    que venga a None se queda como estaba)."""
+    """Guarda quién reparte, los correos de Calendly de cada closer y/o a qué
+    correo avisarle (lo que venga a None se queda como estaba)."""
     fila = await _fila_config(db_session, org_id)
     if fila is None:
         return {"ok": False, "motivo": "La escuela no tiene configuración"}
@@ -102,6 +114,7 @@ async def guardar(
     nuevo = {
         "repartidor_id": int(repartidor_id or 0) if repartidor_id is not None else int(antes.get("repartidor_id") or 0),
         "calendly": correos_calendly(calendly) if calendly is not None else correos_calendly(antes.get("calendly")),
+        "avisar": correos_calendly(avisar) if avisar is not None else correos_calendly(antes.get("avisar")),
     }
     config[CLAVE] = nuevo
     fila.config = config
@@ -258,8 +271,9 @@ async def avisar_llamada_nueva(datos: dict, db_session: AsyncSession) -> int:
 
 def destinos_con_closer(closer: dict, repartidor_id: int, equipo: list[dict], administradores: list[str]) -> list[str]:
     """A quién mandar «la lleva X» de una llamada que Calendly ya le dio a un
-    closer: los administradores y quien reparte, menos ese closer (a él le va
-    su propio «Te ha tocado una llamada»). Función pura."""
+    closer: los administradores y quien reparte, menos ese closer (a él ya le
+    avisa Calendly, o la escuela con «Te ha tocado una llamada» si tiene
+    puesto a quién). Función pura."""
     salida: list[str] = []
     for correo in [*administradores, *destinos(repartidor_id, equipo, [])]:
         correo = (correo or "").strip().lower()
@@ -273,10 +287,12 @@ async def avisar_llamada_con_closer(datos: dict, closer: dict, db_session: Async
     tanto, sin nada que repartir. Misma marca en Redis que el «repártela», así
     el aviso de la web no lo repite. Devuelve cuántos salieron.
 
-    Y al closer, «Te ha tocado una llamada» (04/11): Calendly avisa al correo
-    de la cuenta de Calendly del anfitrión, y la de Diego es la del
-    administrador (con su correo), así que ese aviso no le llegaba a él. Va a
-    su correo de la escuela, con el teléfono, el WhatsApp y el enlace."""
+    Y al closer, «Te ha tocado una llamada» (04/11), SOLO si tiene puesto un
+    correo en «Avisarle a» (`avisar`): Calendly avisa al correo de la cuenta
+    de Calendly del anfitrión, y la de Diego es la del administrador (con su
+    correo), así que ese aviso no le llegaba a él. A quien no lo tiene puesto
+    (Belén) no se le manda nada: ya le avisa Calendly (usuario, 04/11: "que
+    le llegue solo a Diego")."""
     from src.services.contactos.llamadas import emails_de_administradores
     from src.services.users.emails import send_llamada_agendada_email, send_llamada_asignada_email
 
@@ -293,9 +309,9 @@ async def avisar_llamada_con_closer(datos: dict, closer: dict, db_session: Async
             r = None
     try:
         _, eq = await _equipo_de_la_escuela(db_session)
-        a_quien = destinos_con_closer(
-            closer, (await leer(db_session))["repartidor_id"], eq, await emails_de_administradores(db_session)
-        )
+        ajustes = await leer(db_session)
+        a_quien = destinos_con_closer(closer, ajustes["repartidor_id"], eq, await emails_de_administradores(db_session))
+        suyo = ajustes["avisar"].get(str(closer.get("id")), "")
     except Exception:  # noqa: BLE001
         logger.exception("No se pudo leer a quién avisar de la llamada")
         return 0
@@ -306,7 +322,6 @@ async def avisar_llamada_con_closer(datos: dict, closer: dict, db_session: Async
             enviados += 1
         except Exception:  # noqa: BLE001
             logger.exception("No se pudo avisar de la llamada nueva")
-    suyo = str(closer.get("email") or "").strip().lower()
     if suyo:
         try:
             send_llamada_asignada_email(suyo, {**datos, "calendly": True})
