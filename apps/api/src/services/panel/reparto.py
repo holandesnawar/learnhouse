@@ -257,9 +257,9 @@ async def avisar_llamada_nueva(datos: dict, db_session: AsyncSession) -> int:
 
 
 def destinos_con_closer(closer: dict, repartidor_id: int, equipo: list[dict], administradores: list[str]) -> list[str]:
-    """A quién avisar de una llamada que Calendly ya le dio a un closer: los
-    administradores y quien reparte, menos ese closer (a él ya le avisó
-    Calendly). Función pura."""
+    """A quién mandar «la lleva X» de una llamada que Calendly ya le dio a un
+    closer: los administradores y quien reparte, menos ese closer (a él le va
+    su propio «Te ha tocado una llamada»). Función pura."""
     salida: list[str] = []
     for correo in [*administradores, *destinos(repartidor_id, equipo, [])]:
         correo = (correo or "").strip().lower()
@@ -271,9 +271,14 @@ def destinos_con_closer(closer: dict, repartidor_id: int, equipo: list[dict], ad
 async def avisar_llamada_con_closer(datos: dict, closer: dict, db_session: AsyncSession) -> int:
     """«Ana ha reservado una llamada · la lleva Belén» (31/10): para estar al
     tanto, sin nada que repartir. Misma marca en Redis que el «repártela», así
-    el aviso de la web no lo repite. Devuelve cuántos salieron."""
+    el aviso de la web no lo repite. Devuelve cuántos salieron.
+
+    Y al closer, «Te ha tocado una llamada» (04/11): Calendly avisa al correo
+    de la cuenta de Calendly del anfitrión, y la de Diego es la del
+    administrador (con su correo), así que ese aviso no le llegaba a él. Va a
+    su correo de la escuela, con el teléfono, el WhatsApp y el enlace."""
     from src.services.contactos.llamadas import emails_de_administradores
-    from src.services.users.emails import send_llamada_agendada_email
+    from src.services.users.emails import send_llamada_agendada_email, send_llamada_asignada_email
 
     email = str(datos.get("email") or "").strip().lower()
     r = None
@@ -301,6 +306,13 @@ async def avisar_llamada_con_closer(datos: dict, closer: dict, db_session: Async
             enviados += 1
         except Exception:  # noqa: BLE001
             logger.exception("No se pudo avisar de la llamada nueva")
+    suyo = str(closer.get("email") or "").strip().lower()
+    if suyo:
+        try:
+            send_llamada_asignada_email(suyo, {**datos, "calendly": True})
+            enviados += 1
+        except Exception:  # noqa: BLE001
+            logger.exception("No se pudo avisar al closer de su llamada")
     if not enviados and r is not None:
         try:
             r.delete(f"llamada-nueva:{email}")

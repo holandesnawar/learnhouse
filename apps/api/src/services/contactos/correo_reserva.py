@@ -583,8 +583,8 @@ async def _avisar_reparto(reserva: dict, db_session: AsyncSession) -> None:
     en Calendly. Si la web ya avisó de esta reserva, `avisar_llamada_nueva`
     no lo repite. Si Calendly se la dio a un closer (evento por turnos), la
     tarjeta pasa a ser suya y a los administradores (y a quien reparte) les
-    llega solo un aviso de «la lleva X» (31/10, "yo me quiero enterar"): al
-    closer ya le avisó Calendly."""
+    llega solo un aviso de «la lleva X» (31/10, "yo me quiero enterar"), y al
+    closer, «Te ha tocado una llamada» (04/11)."""
     from src.services.crm.systeme import marcar_llamada_reservada
     from src.services.panel.reparto import asignar_por_anfitrion, avisar_llamada_con_closer, avisar_llamada_nueva
 
@@ -601,6 +601,7 @@ async def _avisar_reparto(reserva: dict, db_session: AsyncSession) -> None:
             "email": reserva["email"],
             "telefono": telefono,
             "cuando": _cuando_corto(reserva.get("inicio", "")),
+            "enlace": reserva.get("enlace") or "",
         }
         if closer:
             await avisar_llamada_con_closer(datos, closer, db_session)
