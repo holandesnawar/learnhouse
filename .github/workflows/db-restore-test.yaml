@@ -241,6 +241,27 @@ jobs:
               WHERE g1.name = 'Beta' AND g2.name ILIKE 'Beta - %'
               GROUP BY 1 ORDER BY 1;"
 
+          echo "== Alumnos (rol 4) que están en dos grupos a la vez =="
+          # Los eventos del calendario van por grupo: quien está en dos ve los
+          # de los dos (05/11: una alumna nueva veía la clase de Rood).
+          q "SELECT g1.name AS grupo, g2.name AS tambien_en, count(*) AS alumnos
+               FROM usergroupuser a JOIN usergroup g1 ON g1.id = a.usergroup_id
+               JOIN usergroupuser b ON b.user_id = a.user_id AND b.usergroup_id > a.usergroup_id
+               JOIN usergroup g2 ON g2.id = b.usergroup_id
+               JOIN userorganization uo ON uo.user_id = a.user_id AND uo.org_id = g1.org_id AND uo.role_id = 4
+              GROUP BY 1, 2 ORDER BY 1, 2;"
+
+          echo "== Alumnos (rol 4) de los grupos de clase que entraron desde el 26/10 =="
+          # Solo fechas y nombres de grupos, nunca de personas: el repo es público.
+          q "SELECT g.name AS grupo, left(uo.creation_date, 10) AS entro_en_la_escuela,
+                    left(gu.creation_date, 16) AS en_el_grupo_desde,
+                    (SELECT string_agg(o.name, ', ' ORDER BY o.name) FROM usergroupuser x JOIN usergroup o ON o.id = x.usergroup_id
+                      WHERE x.user_id = gu.user_id AND o.id <> g.id) AS otros_grupos
+               FROM usergroup g JOIN usergroupuser gu ON gu.usergroup_id = g.id
+               JOIN userorganization uo ON uo.user_id = gu.user_id AND uo.org_id = g.org_id AND uo.role_id = 4
+              WHERE g.name ILIKE 'Beta - %' AND left(uo.creation_date, 10) >= '2026-10-26'
+              ORDER BY 1, 2;"
+
       - name: Resumen
         if: always()
         run: |
