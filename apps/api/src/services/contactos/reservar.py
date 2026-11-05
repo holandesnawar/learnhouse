@@ -592,6 +592,74 @@ async def lo_cambio_el_equipo(email: str, inicio: str, db_session: AsyncSession)
     return es_el_cambio(cambios, inicio)
 
 
+#: Los eventos de la ficha que dejan las llamadas agendadas o movidas desde la
+#: escuela, con quién lo hizo y la hora (en `extra`).
+TIPOS_DESDE_LA_ESCUELA = ("llamada-equipo", TIPO_CAMBIO)
+
+
+def quien_la_agendo(eventos: list[dict], inicio: str) -> Optional[dict]:
+    """¿Esta cita (su hora de inicio) la agendó o la movió alguien desde la
+    escuela? `eventos`: los `llamada-equipo` y `llamada-cambiada` de esa
+    persona ({kind, created_at, extra}). Devuelve {autor, cuando, como}
+    (`como` = "agendo" o "cambio") del último que coincide con la hora (un
+    minuto de margen), o None: entonces la reservaron en Calendly (la persona
+    desde la web, o alguien en Calendly). Para saber, al mirar una llamada,
+    si la ubicación la puso la escuela (05/11). Función pura, con test."""
+    hora = _utc(inicio)
+    if hora is None:
+        return None
+    mejor: Optional[dict] = None
+    for e in eventos:
+        extra = e.get("extra") or {}
+        suya = _utc(str(extra.get("inicio") or ""))
+        if suya is None or abs((suya - hora).total_seconds()) > 60:
+            continue
+        cuando = str(e.get("created_at") or "")
+        if mejor is None or cuando > mejor["cuando"]:
+            mejor = {
+                "autor": str(extra.get("autor") or "").strip(),
+                "cuando": cuando,
+                "como": "cambio" if e.get("kind") == TIPO_CAMBIO else "agendo",
+            }
+    return mejor
+
+
+async def agendadas_desde_la_escuela(emails: set[str], db_session: AsyncSession) -> dict[str, list[dict]]:
+    """Los eventos «agendada / movida desde la escuela» de esos correos, por
+    correo, para `quien_la_agendo`. En blando: si falla, vacío."""
+    import json
+
+    from sqlmodel import select
+
+    from src.db.contact_event import ContactEvent
+
+    limpios = {(e or "").strip().lower() for e in emails if e}
+    if not limpios:
+        return {}
+    try:
+        filas = (
+            await db_session.execute(
+                select(ContactEvent.email, ContactEvent.kind, ContactEvent.created_at, ContactEvent.extra).where(
+                    ContactEvent.email.in_(limpios), ContactEvent.kind.in_(TIPOS_DESDE_LA_ESCUELA)
+                )
+            )
+        ).all()
+    except Exception:  # noqa: BLE001
+        logger.exception("No se pudo mirar qué llamadas se agendaron desde la escuela")
+        await db_session.rollback()
+        return {}
+    salida: dict[str, list[dict]] = {}
+    for email, kind, creado, extra in filas:
+        try:
+            datos = json.loads(extra) if isinstance(extra, str) and extra else (extra or {})
+        except ValueError:
+            datos = {}
+        salida.setdefault((email or "").lower(), []).append(
+            {"kind": kind, "created_at": str(creado or ""), "extra": datos if isinstance(datos, dict) else {}}
+        )
+    return salida
+
+
 def _evento_de_ficha(email: str, nombre: str, telefono: str, kind: str, extra: dict):
     import json
 

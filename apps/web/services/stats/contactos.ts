@@ -224,6 +224,11 @@ export interface Cita {
   confirmada?: { autor: string; cuando: string } | null
   /** Cuándo se reservó en Calendly. */
   reservada?: string
+  /** A quién se la dio Calendly (el anfitrión de la cita). */
+  anfitrion?: string
+  anfitrion_email?: string
+  /** Si la agendó o la movió alguien desde la escuela (05/11); null = en Calendly. */
+  desde_la_escuela?: { autor: string; cuando: string; como: 'agendo' | 'cambio' } | null
   /** Sus tres WhatsApp (02/11): cuál se le ha mandado, quién y cuándo. */
   whatsapp?: Partial<Record<'presentacion' | 'recurso' | 'enlace', { autor: string; cuando: string }>> | null
 }

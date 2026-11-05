@@ -789,6 +789,29 @@ function CitaBloque({ c, onClick, notas }: { c: Cita; onClick: () => void; notas
   )
 }
 
+/** De qué evento de Calendly es la cita, por dónde va, a quién se la dio
+ *  Calendly y si la agendó alguien desde la escuela. Sin cortar. */
+function OrigenCita({ cita }: { cita: Cita }) {
+  const anfitrion = (cita.anfitrion || '').split(/\s+/)[0] || cita.anfitrion_email || ''
+  const d = cita.desde_la_escuela
+  const quien = d ? (d.autor || '').split(/\s+/)[0] || 'Alguien del equipo' : ''
+  const dia = d?.cuando ? new Date(d.cuando).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', timeZone: 'Europe/Amsterdam' }) : ''
+  const lineas = [
+    cita.titulo ? `Evento: ${cita.titulo}` : '',
+    [cita.plataforma ? `por ${cita.plataforma}` : '', anfitrion ? `Calendly se la dio a ${anfitrion}` : ''].filter(Boolean).join(' · '),
+    d
+      ? `${quien} la ${d.como === 'cambio' ? 'cambió de hora' : 'agendó'} desde la escuela${dia ? ` el ${dia}` : ''}`
+      : 'Reservada en Calendly, no desde la escuela',
+  ].filter(Boolean)
+  return (
+    <div className={`${META} mt-1.5 space-y-0.5 break-words`}>
+      {lineas.map((l, i) => (
+        <p key={i}>{l}</p>
+      ))}
+    </div>
+  )
+}
+
 /** El closer que lleva la llamada; «Sin asignar» en las que vienen y no tiene nadie. */
 function QuienLaLleva({ c }: { c: Cita }) {
   if (c.closer) return <span className="block text-[11.5px] text-gray-500 truncate">{c.closer.split(/\s+/)[0]}</span>
@@ -969,7 +992,10 @@ function CitaDialogo({
               <X size={18} />
             </button>
           </div>
-          <Meta className="mt-2" partes={[cita.email, cita.telefono, cita.titulo]} />
+          <Meta className="mt-2" partes={[cita.email, cita.telefono]} />
+          {/* De qué evento es, por dónde va y quién la agendó (05/11): entero,
+              sin cortar, para saber de dónde sale Zoom o Meet. */}
+          <OrigenCita cita={cita} />
           <Estado tono={e.tono} className="mt-2">
             {e.texto}
           </Estado>
