@@ -211,10 +211,13 @@ async def api_reparto(
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
     from src.services.panel import reparto
 
+    from src.services.contactos.correo_reserva import ultima_reserva
+
     return {
         **(await reparto.leer(db_session, org_id)),
         "equipo": await tareas.equipo(org_id, db_session),
         "yo": current_user.id,
+        "ultima_reserva": ultima_reserva(),
     }
 
 
@@ -736,6 +739,7 @@ async def _estado_correo_reserva(org_id: int, db_session: AsyncSession, conexion
         **estado,
         "conexion": conexion if conexion is not None else await C.estado_conexion(),
         "ultimo_aviso": C.ultimo_aviso(),
+        "ultima_reserva": C.ultima_reserva(),
         "enviados": len(enviados),
     }
 

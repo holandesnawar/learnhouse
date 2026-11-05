@@ -209,6 +209,17 @@ export default function CorreoReserva() {
               ? `Le ha llegado a ${estado.enviados === 1 ? '1 persona' : `${estado.enviados} personas`}.`
               : 'Todavía no le ha llegado a nadie.'}
           </p>
+          {estado.ultima_reserva ? (
+            <p className="mt-2 text-[13px] leading-relaxed text-gray-900">
+              <span className="font-semibold">
+                Última reserva: {estado.ultima_reserva.persona}
+                {estado.ultima_reserva.cuando ? ` · ${estado.ultima_reserva.cuando}` : ''}
+              </span>{' '}
+              <span className="text-[#6B7280]">(llegó el {fecha(estado.ultima_reserva.at)})</span>
+              <br />
+              {estado.ultima_reserva.texto}
+            </p>
+          ) : null}
         </div>
       </div>
 

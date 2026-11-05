@@ -241,6 +241,7 @@ export const getReparto = (orgId: number, t: string) =>
     avisar?: Record<string, string>
     equipo: MiembroEquipo[]
     yo: number
+    ultima_reserva?: UltimaReserva | null
   }>(
     `panel/org/${orgId}/reparto`,
     'GET',
@@ -495,7 +496,18 @@ export interface CorreoReserva {
   huecos: string[]
   conexion: { conectado: boolean; motivo: string; plan?: boolean; alcance?: 'organization' | 'user' }
   ultimo_aviso: { at: string; ok: boolean; que: string } | null
+  ultima_reserva?: UltimaReserva | null
   enviados: number
+}
+
+/** Qué hizo la escuela con la última reserva que avisó Calendly (05/11). */
+export interface UltimaReserva {
+  at: string
+  persona: string
+  cuando: string
+  /** El correo de la cuenta de Calendly que la atiende. */
+  anfitrion: string
+  texto: string
 }
 
 export const getCorreoReserva = (orgId: number, t: string) =>

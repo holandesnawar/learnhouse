@@ -37,6 +37,7 @@ def aviso(email="ana@x.com", nombre="ana lópez", tipo=LLAMADA, old_invitee=None
             "event_type": tipo,
             "start_time": "2026-10-29T17:00:00.000000Z",
             "location": {"type": "zoom", "join_url": "https://zoom.us/j/123"},
+            "event_memberships": [{"user_email": "rida@x.com", "user_name": "Rida"}],
         },
     }
     payload.update(mas)
@@ -367,7 +368,9 @@ def test_el_anfitrion_de_la_reserva():
         {"user": "https://api.calendly.com/users/BELEN", "user_email": "Belen@Nawar.com", "user_name": "Belén"}
     ]
     assert C.reserva_de(a)["anfitrion_email"] == "belen@nawar.com"
-    assert C.reserva_de(aviso())["anfitrion_email"] == ""
+    sin = aviso()
+    del sin["payload"]["scheduled_event"]["event_memberships"]
+    assert C.reserva_de(sin)["anfitrion_email"] == ""
 
 
 def test_que_closer_es_el_anfitrion():
@@ -471,6 +474,83 @@ async def test_al_closer_solo_se_le_avisa_si_tiene_puesto_a_quien(db, escuela):
     assert [(d, x.get("calendly"), x.get("enlace")) for d, x in suyas] == [
         ("diego@nawar.es", True, "https://meet.google.com/a")
     ]
+
+
+async def test_el_closer_recibe_su_aviso_aunque_la_web_avisara_antes(db, escuela):
+    """05/11, "no le llega nada a Diego": si la web había avisado antes de la
+    misma reserva, la marca del «la lleva» ya estaba puesta y el correo del
+    closer no salía. Ahora lleva su propia marca, y una sola vez."""
+    from src.services.panel import reparto
+
+    class RedisFalso:
+        def __init__(self):
+            self.claves = {"llamada-nueva:ana@x.com": "1"}  # la web avisó antes
+
+        def set(self, k, v, nx=False, ex=None):
+            if nx and k in self.claves:
+                return None
+            self.claves[k] = v
+            return True
+
+        def delete(self, k):
+            self.claves.pop(k, None)
+
+        def get(self, k):
+            return self.claves.get(k)
+
+    falso = RedisFalso()
+
+    async def _equipo(_db):
+        return 1, EQUIPO_TEAMS
+
+    async def _admins(_db):
+        return ["rida@x.com"]
+
+    async def _leer(_db, org_id=None):
+        return {"repartidor_id": 0, "calendly": {"4": "rida.calendly@x.com"}, "avisar": {"4": "diego@nawar.es"}}
+
+    agendadas, suyas = [], []
+    with patch.object(reparto, "_equipo_de_la_escuela", _equipo), patch.object(reparto, "leer", _leer), patch(
+        "src.services.contactos.llamadas.emails_de_administradores", _admins
+    ), patch("src.core.redis.get_redis_client", lambda: falso), patch.object(C, "_redis", lambda: falso), patch(
+        "src.services.crm.systeme.marcar_llamada_reservada", lambda *a, **k: None
+    ), patch.object(E, "send_llamada_agendada_email", lambda d, x: agendadas.append(d)), patch.object(
+        E, "send_llamada_asignada_email", lambda d, x: suyas.append(d)
+    ):
+        reserva = {"email": "ana@x.com", "nombre": "Ana", "anfitrion_email": "rida.calendly@x.com"}
+        await C._avisar_reparto(reserva, db)
+        await C._avisar_reparto(reserva, db)  # Calendly reintenta: no se repite
+        hecho = C.ultima_reserva()
+    assert suyas == ["diego@nawar.es"]
+    assert agendadas == []  # el «la lleva» ya lo había mandado la web
+    assert hecho["persona"] == "Ana" and "La lleva Diego" in hecho["texto"]
+
+
+def test_lo_que_hizo_la_escuela_en_una_frase():
+    diego = EQUIPO_TEAMS[1]
+    assert "no es de ningún closer" in C.texto_de_lo_hecho(None, "h@x.com", {})
+    assert "Por asignar" in C.texto_de_lo_hecho(None, "", {})
+    t = C.texto_de_lo_hecho(diego, "h@x.com", {"avisar_a": "diego@nawar.es", "closer_avisado": "diego@nawar.es", "avisados": ["rida@x.com"]})
+    assert t == "La lleva Diego. Se le avisó por correo a diego@nawar.es. «La lleva» a: rida@x.com."
+    assert "No tiene puesto «La escuela le avisa a»" in C.texto_de_lo_hecho(diego, "h@x.com", {})
+
+
+async def test_si_el_aviso_no_trae_anfitrion_se_pide_a_calendly():
+    async def _pedir(cliente, metodo, url, **kw):
+        return {"resource": {"start_time": "2026-11-06T17:00:00Z", "event_type": "https://api/et/1",
+                             "event_memberships": [{"user_email": "H@X.com", "user_name": "H"}]}}
+
+    class _Cliente:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            return False
+
+    with patch.object(C.R, "_pedir", _pedir), patch.object(C.R, "_cliente", lambda: _Cliente()):
+        r = await C._completar({"email": "a@x.com", "inicio": "2026-11-06T17:00:00Z", "tipo_evento": "https://api/et/1",
+                                "evento": "https://api/ev/1", "anfitrion_email": ""})
+    assert r["anfitrion_email"] == "h@x.com"
 
 
 def test_avisarle_a_se_guarda_limpio():
