@@ -358,12 +358,19 @@ async def api_agenda(
     except Exception:  # noqa: BLE001
         whatsapp = {}
 
+    # Si la agendó o la movió alguien desde la escuela (05/11): para saber, al
+    # mirar una llamada, de dónde salió su ubicación (Zoom o Meet).
+    from src.services.contactos.reservar import agendadas_desde_la_escuela, quien_la_agendo
+
+    desde_escuela = await agendadas_desde_la_escuela({c.get("email") or "" for c in visibles}, db_session)
+
     return {
         **datos,
         "citas": [
             {
                 **c,
                 "telefono": c.get("telefono") or tels.get((c.get("email") or "").lower(), ""),
+                "desde_la_escuela": quien_la_agendo(desde_escuela.get((c.get("email") or "").lower(), []), c.get("inicio") or ""),
                 "resultado": _resultado(c),
                 "confirmada": confirmada.get(c.get("id") or ""),
                 "whatsapp": whatsapp.get(c.get("id") or "") or {},

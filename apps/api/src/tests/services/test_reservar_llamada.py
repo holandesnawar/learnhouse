@@ -331,3 +331,20 @@ def test_el_anfitrion_de_una_cita():
     c = A.cita_desde_calendly(ev, [{"email": "ana@x.com", "status": "active"}])[0]
     assert (c["anfitrion_email"], c["anfitrion"]) == ("belen@x.com", "Belén Soto")
     assert A.anfitrion_de({}) == ("", "")
+
+
+def test_quien_la_agendo_desde_la_escuela():
+    """La ventana de la llamada dice si la agendó o la movió alguien desde la
+    escuela (por la hora de la cita) o si se reservó en Calendly (05/11)."""
+    from src.services.contactos.reservar import quien_la_agendo
+
+    eventos = [
+        {"kind": "llamada-equipo", "created_at": "2026-11-03T10:00:00+00:00", "extra": {"autor": "Diego Sosa", "inicio": "2026-11-05T17:00:00+00:00"}},
+        {"kind": "llamada-cambiada", "created_at": "2026-11-04T09:00:00+00:00", "extra": {"autor": "Belén", "inicio": "2026-11-06T18:00:00+00:00"}},
+    ]
+    assert quien_la_agendo(eventos, "2026-11-05T17:00:30Z") == {"autor": "Diego Sosa", "cuando": "2026-11-03T10:00:00+00:00", "como": "agendo"}
+    assert quien_la_agendo(eventos, "2026-11-06T18:00:00Z")["como"] == "cambio"
+    # Otra hora: la reservaron en Calendly.
+    assert quien_la_agendo(eventos, "2026-11-07T17:00:00Z") is None
+    assert quien_la_agendo([], "2026-11-05T17:00:00Z") is None
+    assert quien_la_agendo(eventos, "") is None
