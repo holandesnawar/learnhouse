@@ -234,11 +234,11 @@ export default function EstadisticasPage() {
       .then((r) => r.json())
       .then((d) => {
         setCloserVeNumeros(!!d?.numeros)
-        setAlcanceCloser((d?.alcance as AlcanceCloser) || 'suyo_y_libre')
+        setAlcanceCloser((d?.alcance as AlcanceCloser) || 'todo')
       })
       .catch(() => {
         setCloserVeNumeros(false)
-        setAlcanceCloser('suyo_y_libre')
+        setAlcanceCloser('todo')
       })
   }, [org?.id])
 
@@ -817,9 +817,9 @@ function ManualBlocks({ stats, onSaved }: { stats: SchoolStats; onSaved: () => v
 /* ── Bloc de notas de enlaces UTM ────────────────────────────────── */
 
 const ALCANCES: { id: AlcanceCloser; titulo: string; que: string }[] = [
+  { id: 'todo', titulo: 'Todo', que: 'Lo de todo el equipo, y cada uno filtra lo suyo con «Solo las mías».' },
   { id: 'suyo_y_libre', titulo: 'Lo suyo y lo libre', que: 'Sus leads y llamadas, y lo que aún no lleva nadie para poder cogerlo.' },
   { id: 'suyo', titulo: 'Solo lo suyo', que: 'Solo sus leads y sus llamadas. Lo que no lleva nadie lo repartes tú (o quien reparte).' },
-  { id: 'todo', titulo: 'Todo', que: 'Lo de todo el equipo, también lo de los otros closers.' },
 ]
 
 /**

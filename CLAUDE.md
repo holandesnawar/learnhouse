@@ -3065,10 +3065,14 @@ desde fuera… mover agarrando como Trello… y ver siempre de dónde viene".
 - **Qué ven los closers** (05/11, "que yo pueda elegir lo que ven los
   closers, que mejor ellos solo vean lo suyo"): debajo de Matrículas y en
   Contactos, «Qué ven los closers» con tres opciones (org_config
-  `acceso_closer.alcance`): **Lo suyo y lo libre** (de serie: sus leads y sus
-  llamadas, y lo que no lleva nadie para poder cogerlo), **Solo lo suyo** (lo
-  que no lleva nadie lo reparte el administrador; quien esté en «Reparte las
-  llamadas» sigue viendo lo libre) y **Todo**. «Lo suyo» = las personas con su
+  `acceso_closer.alcance`): **Todo** (de serie desde la tarde del 05/11:
+  "que puedan ver todas las llamadas de vuelta y con el botón solo las mías,
+  como antes"; cada uno filtra lo suyo con «Solo las mías» / «Mías»), **Lo
+  suyo y lo libre** (sus leads y sus llamadas, y lo que no lleva nadie para
+  poder cogerlo) y **Solo lo suyo** (lo que no lleva nadie lo reparte el
+  administrador; quien esté en «Reparte las llamadas» sigue viendo lo libre).
+  Hasta esa tarde lo de serie era «Lo suyo y lo libre» y nadie lo había
+  guardado, así que todos los closers estaban filtrados sin elegirlo. «Lo suyo» = las personas con su
   closer en la tarjeta (`lead_pipeline.closer_id`) y, en la agenda, las citas
   que Calendly le dio. Se filtra EN EL SERVIDOR (`services/panel/alcance.py`,
   con test `test_alcance_closer.py`): tablero, agenda, solicitudes y lista de
