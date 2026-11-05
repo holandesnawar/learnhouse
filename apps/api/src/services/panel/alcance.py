@@ -6,9 +6,11 @@ ellos solo vean lo suyo, sus leads que eligieron, en Llamadas sus cosas". Lo
 elige el administrador en Matrículas → «Qué ve el closer» (org_config
 `acceso_closer.alcance`):
 
-- `todo`: lo de todo el equipo, como hasta el 05/11.
-- `suyo_y_libre` (de serie): lo suyo y lo que aún no lleva nadie, para que
-  pueda cogerlo («Asignarme»). Lo de otro closer no le sale.
+- `todo` (de serie): lo de todo el equipo, y cada uno se filtra lo suyo con
+  «Solo las mías». El usuario, el mismo 05/11: "que puedan ver todas las
+  llamadas de vuelta y con el botón solo las mías, como antes".
+- `suyo_y_libre`: lo suyo y lo que aún no lleva nadie, para que pueda cogerlo
+  («Asignarme»). Lo de otro closer no le sale.
 - `suyo`: solo lo suyo. Lo que no lleva nadie lo reparte el administrador (o
   quien esté puesto en «Reparte las llamadas», que sí lo sigue viendo).
 
@@ -27,7 +29,7 @@ from typing import Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 ALCANCES = ("todo", "suyo_y_libre", "suyo")
-DE_SERIE = "suyo_y_libre"
+DE_SERIE = "todo"
 
 
 def alcance_valido(valor: Optional[str]) -> str:

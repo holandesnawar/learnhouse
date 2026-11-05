@@ -1340,7 +1340,7 @@ async def get_org_acceso_closer_config(org_id: int, db_session: AsyncSession) ->
         guardado = fila.config.get("acceso_closer") or {}
         return {"numeros": bool(guardado.get("numeros")), "alcance": alcance_valido(guardado.get("alcance"))}
     except Exception:  # noqa: BLE001
-        return {"numeros": False, "alcance": "suyo_y_libre"}
+        return {"numeros": False, "alcance": "todo"}
 
 
 async def get_org_email_texts(org_id: int, db_session: AsyncSession) -> dict:

@@ -23,8 +23,11 @@ def test_solo_lo_suyo():
 
 def test_valores_raros_van_al_de_serie():
     assert AL.alcance_valido("todo") == "todo"
-    assert AL.alcance_valido("") == AL.DE_SERIE == "suyo_y_libre"
-    assert AL.alcance_valido("lo que sea") == "suyo_y_libre"
+    assert AL.alcance_valido("suyo_y_libre") == "suyo_y_libre"
+    # De serie, todo (05/11: "que vean todas las llamadas, como antes").
+    assert AL.alcance_valido("") == AL.DE_SERIE == "todo"
+    assert AL.alcance_valido(None) == "todo"
+    assert AL.alcance_valido("lo que sea") == "todo"
 
 
 @pytest.mark.asyncio

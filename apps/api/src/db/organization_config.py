@@ -92,7 +92,7 @@ class AccesoCloserConfig(BaseModel):
     """
 
     numeros: Optional[bool] = None
-    #: Qué personas ve (05/11): «todo», «suyo_y_libre» (de serie) o «suyo».
+    #: Qué personas ve (05/11): «todo» (de serie), «suyo_y_libre» o «suyo».
     #: Ver `services/panel/alcance.py`. Vacío = no se cambia.
     alcance: Optional[str] = None
 
