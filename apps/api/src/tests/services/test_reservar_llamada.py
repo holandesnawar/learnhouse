@@ -348,3 +348,106 @@ def test_quien_la_agendo_desde_la_escuela():
     assert quien_la_agendo(eventos, "2026-11-07T17:00:00Z") is None
     assert quien_la_agendo([], "2026-11-05T17:00:00Z") is None
     assert quien_la_agendo(eventos, "") is None
+
+
+# ── quién la lleva y por dónde (05/11) ─────────────────────────────────────
+
+TURNOS = {"uri": "https://api.calendly.com/event_types/TURNOS", "slug": "llamada-de-consultoria-hn", "active": True,
+          "name": "Llamada de Consultoría HN", "pooling_type": "round_robin", "duration": 45,
+          "profile": {"type": "Team", "owner": "https://api.calendly.com/organizations/ORG"},
+          "scheduling_url": "https://calendly.com/d/x/llamada-de-consultoria-hn", "locations": []}
+DE_DIEGO = {"uri": "https://api.calendly.com/event_types/DIEGO", "slug": "llamada-equipo", "active": True, "secret": True,
+            "name": "Llamada de Consultoría HN (equipo)", "duration": 45,
+            "profile": {"type": "User", "owner": "https://api.calendly.com/users/H", "name": "Holandés Nawar"},
+            "scheduling_url": "https://calendly.com/holandesnawar/llamada-equipo",
+            "locations": [{"kind": "zoom_conference"}, {"kind": "google_conference"}]}
+VIEJO_DE_DIEGO = {**TIPOS[1], "profile": {"type": "User", "owner": "https://api.calendly.com/users/H"}}
+DE_BELEN = {"uri": "https://api.calendly.com/event_types/BELEN", "slug": "llamada-de-consultoria-hn-belen", "active": True,
+            "name": "Llamada de Consultoría HN · Belén", "duration": 45,
+            "profile": {"type": "User", "owner": "https://api.calendly.com/users/B"},
+            "scheduling_url": "https://calendly.com/belen/llamada", "locations": [{"kind": "google_conference"}]}
+MIEMBROS = {
+    "https://api.calendly.com/users/H": {"email": "h@nawar.es", "nombre": "Holandés Nawar"},
+    "https://api.calendly.com/users/B": {"email": "belen@nawar.es", "nombre": "Belén Soto"},
+}
+
+
+def test_el_evento_de_cada_closer():
+    tipos = [TURNOS, DE_DIEGO, VIEJO_DE_DIEGO, DE_BELEN, TIPOS[0]]
+    eventos = R.eventos_de_closers(tipos, MIEMBROS)
+    # Uno por persona: el de Diego es el «(equipo)» (nombre bueno), no el viejo.
+    assert [(e["email"], e["uri"].rsplit("/", 1)[-1]) for e in eventos] == [("belen@nawar.es", "BELEN"), ("h@nawar.es", "DIEGO")]
+    assert eventos[1]["ubicaciones"] == [{"kind": "zoom_conference", "nombre": "Zoom"}, {"kind": "google_conference", "nombre": "Google Meet"}]
+    # Sin dueño conocido, no sale; el por turnos nunca es «de un closer».
+    assert R.eventos_de_closers(tipos, {}) == []
+    # Los avisos de Calendly de esos eventos cuentan como la llamada.
+    llamadas = R.tipos_de_llamada(tipos)
+    assert {DE_DIEGO["uri"], DE_BELEN["uri"], TURNOS["uri"]} <= llamadas
+    assert TIPOS[0]["uri"] not in llamadas
+
+
+def test_quien_puede_elegir_a_quien():
+    marcados = [
+        {**e, "closer_id": cid, "closer": nombre}
+        for e, cid, nombre in zip(R.eventos_de_closers([TURNOS, DE_DIEGO, DE_BELEN], MIEMBROS), (5, 4), ("Belén Soto", "Diego Sosa"))
+    ]
+    # Administrador: por turnos y los dos; se propone el closer que la lleva.
+    r = R.opciones_para(TURNOS, marcados, lleva=5, actor_id=1, es_admin=True)
+    assert [o["quien"] for o in r["opciones"]] == ["Por turnos", "Belén", "Diego"]
+    assert r["propuesta"] == DE_BELEN["uri"]
+    assert r["opciones"][0]["ubicaciones"] == [] and r["opciones"][0]["por_turnos"]
+    # Diego (closer), con un lead que no lleva nadie: él o por turnos; se propone él.
+    r = R.opciones_para(TURNOS, marcados, lleva=0, actor_id=4, es_admin=False)
+    assert [o["quien"] for o in r["opciones"]] == ["Por turnos", "Diego"] and r["propuesta"] == DE_DIEGO["uri"]
+    # Diego con un lead de Belén: puede ponerla con Belén (la lleva ella), no quitársela.
+    r = R.opciones_para(TURNOS, marcados, lleva=5, actor_id=4, es_admin=False)
+    assert [o["quien"] for o in r["opciones"]] == ["Por turnos", "Belén", "Diego"] and r["propuesta"] == DE_BELEN["uri"]
+    # Nadie con evento propio: solo por turnos.
+    assert R.opciones_para(TURNOS, [], 0, 4, False) == {"opciones": [R.opciones_para(TURNOS, [], 0, 4, False)["opciones"][0]], "propuesta": "turnos"}
+
+
+class CalendlyConClosers(CalendlyFalso):
+    def __call__(self):
+        falso = self
+        base = super().__call__()
+
+        class Cliente(type(base)):
+            async def request(self, metodo, url, **kw):
+                if "/organization_memberships" in url:
+                    falso.pedidos.append((metodo, url, kw))
+                    return httpx.Response(200, json={"collection": [
+                        {"user": {"uri": u, "email": m["email"], "name": m["nombre"]}} for u, m in MIEMBROS.items()
+                    ]}, request=httpx.Request(metodo, url))
+                if url.endswith("/users/me"):
+                    falso.pedidos.append((metodo, url, kw))
+                    return httpx.Response(200, json={"resource": {"uri": "https://api.calendly.com/users/H",
+                                                                  "current_organization": "https://api.calendly.com/organizations/ORG"}},
+                                          request=httpx.Request(metodo, url))
+                return await base.request(metodo, url, **kw)
+
+        return Cliente()
+
+
+@pytest.mark.asyncio
+async def test_agenda_con_el_closer_y_la_herramienta_elegidos(db):
+    R._eventos_cache.update(datos=None, hasta=0.0)
+    falso = CalendlyConClosers(tipos=[TURNOS, DE_DIEGO, DE_BELEN])
+    with patch.object(A, "_token", lambda: "tok"), patch.object(R, "_cliente", falso):
+        h = await R.huecos("2099-10-16", DE_DIEGO["uri"])
+        r = await R.reservar(nombre="Ana", email="ana@x.com", telefono="", inicio=MANANA.isoformat(), url_hueco="",
+                             autor="Rida", db_session=db, evento=DE_DIEGO["uri"], ubicacion="zoom_conference")
+        # Una herramienta que su evento no tiene: no se agenda con otra.
+        mal = await R.reservar(nombre="Eva", email="eva@x.com", telefono="", inicio=MANANA.isoformat(), url_hueco="",
+                               autor="Rida", db_session=db, evento=DE_BELEN["uri"], ubicacion="zoom_conference")
+        # Un evento que no es de ningún closer: no.
+        raro = await R.huecos("2099-10-16", "https://api.calendly.com/event_types/OTRO")
+    assert h["evento"] == "Llamada de Consultoría HN (equipo)"
+    pedido = [p for p in falso.pedidos if p[1].endswith("/event_type_available_times")][0]
+    assert pedido[2]["params"]["event_type"] == DE_DIEGO["uri"]
+    assert r["modo"] == "reservada"
+    invitado = [p for p in falso.pedidos if p[1].endswith("/invitees")][0][2]["json"]
+    assert invitado["event_type"] == DE_DIEGO["uri"] and invitado["location"] == {"kind": "zoom_conference"}
+    assert mal["modo"] == "enlace" and "no ofrece Zoom" in mal["motivo"]
+    assert len([p for p in falso.pedidos if p[1].endswith("/invitees")]) == 1
+    assert "evento de ese closer" in raro["error"]
+    R._eventos_cache.update(datos=None, hasta=0.0)

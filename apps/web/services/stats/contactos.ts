@@ -308,10 +308,44 @@ export interface Huecos {
   error?: string
 }
 
-export async function getHuecos(orgId: number, dia: string, accessToken: string): Promise<Huecos | null> {
+/** Quién puede llevar la llamada y por dónde (05/11): «Por turnos» o el evento
+ *  propio de cada closer en Calendly, con sus videollamadas. */
+export interface OpcionAgenda {
+  id: string
+  closer_id: number
+  quien: string
+  evento: string
+  uri: string
+  por_turnos: boolean
+  ubicaciones: { kind: string; nombre: string }[]
+}
+
+export interface OpcionesAgenda {
+  configurado: boolean
+  opciones: OpcionAgenda[]
+  propuesta: string
+  /** Closers sin evento propio en Calendly. */
+  faltan: string[]
+  error?: string
+}
+
+export async function getOpcionesAgenda(orgId: number, email: string, accessToken: string): Promise<OpcionesAgenda | null> {
   try {
     const res = await fetch(
-      `${getAPIUrl()}contactos/org/${orgId}/agenda/huecos?dia=${encodeURIComponent(dia)}`,
+      `${getAPIUrl()}contactos/org/${orgId}/agenda/opciones?email=${encodeURIComponent(email || '')}`,
+      RequestBodyWithAuthHeader('GET', null, null, accessToken)
+    )
+    if (!res.ok) return null
+    return await res.json()
+  } catch {
+    return null
+  }
+}
+
+export async function getHuecos(orgId: number, dia: string, accessToken: string, evento = ''): Promise<Huecos | null> {
+  try {
+    const res = await fetch(
+      `${getAPIUrl()}contactos/org/${orgId}/agenda/huecos?dia=${encodeURIComponent(dia)}${evento ? `&evento=${encodeURIComponent(evento)}` : ''}`,
       RequestBodyWithAuthHeader('GET', null, null, accessToken)
     )
     if (!res.ok) return null
@@ -329,7 +363,7 @@ export async function getHuecos(orgId: number, dia: string, accessToken: string)
  */
 export async function reservarLlamada(
   orgId: number,
-  datos: { nombre: string; email: string; telefono?: string; inicio: string; url?: string },
+  datos: { nombre: string; email: string; telefono?: string; inicio: string; url?: string; evento?: string; ubicacion?: string },
   accessToken: string
 ): Promise<{ ok: boolean; modo?: 'reservada' | 'enlace'; url?: string; motivo?: string; plan?: boolean; codigo?: number; error?: string }> {
   try {
@@ -353,7 +387,17 @@ export async function reservarLlamada(
  */
 export const cambiarHoraLlamada = (
   orgId: number,
-  datos: { cita_id: string; email: string; nombre: string; telefono?: string; antes: string; inicio: string; confirmada: boolean },
+  datos: {
+    cita_id: string
+    email: string
+    nombre: string
+    telefono?: string
+    antes: string
+    inicio: string
+    confirmada: boolean
+    evento?: string
+    ubicacion?: string
+  },
   accessToken: string
 ) => pedir<{ ok: boolean; cita_id: string; inicio: string; aviso: string }>(`contactos/org/${orgId}/agenda/cambiar`, 'POST', datos, accessToken)
 

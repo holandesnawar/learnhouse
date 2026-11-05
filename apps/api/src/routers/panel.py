@@ -84,6 +84,12 @@ async def api_tablero(
             c["ultima_nota"] = notas.get(c["email"], {}).get("ultima", "")
         r = recordatorios.get(c["email"]) if c["email"] else None
         c["volver_a_llamar"] = r if r and c["etapa"] != "alumno" else None
+    # Qué ve cada closer (05/11, `alcance.py`): lo suyo y, si toca, lo libre.
+    from src.services.panel.alcance import filtro_de
+
+    filtro = await filtro_de(current_user.id, org_id, db_session)
+    if filtro:
+        datos["tarjetas"] = [c for c in datos["tarjetas"] if filtro.ve_closer(int(c.get("closer_id") or 0))]
     return datos
 
 
@@ -292,6 +298,11 @@ async def api_cliente(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    from src.services.panel.alcance import filtro_de
+
+    filtro = await filtro_de(current_user.id, org_id, db_session)
+    if filtro and not filtro.ve_correo(email):
+        raise HTTPException(status_code=403, detail="Esta persona la lleva otro closer")
     ficha = await ficha_cliente(
         email,
         current_user.id,

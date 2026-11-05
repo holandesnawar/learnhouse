@@ -27,7 +27,7 @@ import CabeceraPagina from '../Panel/Cabecera'
 import ClasesProfes from '@components/Pages/Profes/ClasesProfes'
 import { getContactos, type Contacto } from '@services/stats/contactos'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
-import { updateOrgAccesoCloser } from '@services/settings/org'
+import { updateOrgAccesoCloser, updateOrgAlcanceCloser, type AlcanceCloser } from '@services/settings/org'
 import { getAPIUrl } from '@services/config/config'
 import { useOrg } from '@components/Contexts/OrgContext'
 import {
@@ -227,12 +227,19 @@ export default function EstadisticasPage() {
   // esta misma pantalla; el closer lo lee para saber qué pestañas enseñar.
   // El servidor lo exige igual: esto solo evita enseñar una pestaña que daría 403.
   const [closerVeNumeros, setCloserVeNumeros] = useState<boolean | null>(null)
+  const [alcanceCloser, setAlcanceCloser] = useState<AlcanceCloser | null>(null)
   useEffect(() => {
     if (!org?.id) return
     fetch(`${getAPIUrl()}orgs/${org.id}/config/acceso_closer`)
       .then((r) => r.json())
-      .then((d) => setCloserVeNumeros(!!d?.numeros))
-      .catch(() => setCloserVeNumeros(false))
+      .then((d) => {
+        setCloserVeNumeros(!!d?.numeros)
+        setAlcanceCloser((d?.alcance as AlcanceCloser) || 'suyo_y_libre')
+      })
+      .catch(() => {
+        setCloserVeNumeros(false)
+        setAlcanceCloser('suyo_y_libre')
+      })
   }, [org?.id])
 
   // Para el relector de la dirección (efecto sin dependencias): el closer sin
@@ -350,12 +357,15 @@ export default function EstadisticasPage() {
           <ContactosPanel key={vuelta} />
           {/* Un ajuste que se toca una vez: abajo, no encima de la lista. */}
           {isAdmin ? (
-            <QueVeElCloser
-              orgId={org?.id}
-              accessToken={accessToken}
-              numeros={closerVeNumeros}
-              onChange={setCloserVeNumeros}
-            />
+            <>
+              <QueVenLosClosers orgId={org?.id} accessToken={accessToken} alcance={alcanceCloser} onChange={setAlcanceCloser} />
+              <QueVeElCloser
+                orgId={org?.id}
+                accessToken={accessToken}
+                numeros={closerVeNumeros}
+                onChange={setCloserVeNumeros}
+              />
+            </>
           ) : null}
         </>
       ) : tab === 'llamadas' ? (
@@ -374,7 +384,12 @@ export default function EstadisticasPage() {
       ) : tab === 'paginas' ? (
         <PaginasPanel key={vuelta} />
       ) : tab === 'matriculas' ? (
-        <KanbanPanel key={vuelta} />
+        <>
+          <KanbanPanel key={vuelta} />
+          {isAdmin ? (
+            <QueVenLosClosers orgId={org?.id} accessToken={accessToken} alcance={alcanceCloser} onChange={setAlcanceCloser} />
+          ) : null}
+        </>
       ) : tab === 'tareas' ? (
         <TareasPanel key={vuelta} />
       ) : tab === 'clientes' ? (
@@ -800,6 +815,78 @@ function ManualBlocks({ stats, onSaved }: { stats: SchoolStats; onSaved: () => v
 }
 
 /* ── Bloc de notas de enlaces UTM ────────────────────────────────── */
+
+const ALCANCES: { id: AlcanceCloser; titulo: string; que: string }[] = [
+  { id: 'suyo_y_libre', titulo: 'Lo suyo y lo libre', que: 'Sus leads y llamadas, y lo que aún no lleva nadie para poder cogerlo.' },
+  { id: 'suyo', titulo: 'Solo lo suyo', que: 'Solo sus leads y sus llamadas. Lo que no lleva nadie lo repartes tú (o quien reparte).' },
+  { id: 'todo', titulo: 'Todo', que: 'Lo de todo el equipo, también lo de los otros closers.' },
+]
+
+/**
+ * Qué personas ve cada closer (05/11): en Matrículas, Llamadas, Contactos y
+ * la ficha. Lo filtra el servidor (`services/panel/alcance.py`); esto es el
+ * interruptor. Solo administradores.
+ */
+function QueVenLosClosers({
+  orgId,
+  accessToken,
+  alcance,
+  onChange,
+}: {
+  orgId: number | undefined
+  accessToken: string
+  alcance: AlcanceCloser | null
+  onChange: (v: AlcanceCloser) => void
+}) {
+  const [guardando, setGuardando] = useState<AlcanceCloser | null>(null)
+  const elegir = async (v: AlcanceCloser) => {
+    if (!orgId || v === alcance) return
+    setGuardando(v)
+    try {
+      await updateOrgAlcanceCloser(orgId, v, accessToken)
+      onChange(v)
+      toast.success('Guardado: los closers lo verán así al recargar.')
+    } catch {
+      toast.error('No se pudo guardar')
+    } finally {
+      setGuardando(null)
+    }
+  }
+  return (
+    <div className={`${CARD} mt-4`}>
+      <p className="text-[13.5px] font-semibold text-gray-900">Qué ven los closers</p>
+      <p className="text-[12.5px] text-gray-500 mt-0.5">
+        En Matrículas, Llamadas, Contactos y la ficha. «Lo suyo» son las personas que llevan (su etiqueta en la tarjeta) y las
+        llamadas que Calendly les dio. Tú lo sigues viendo todo.
+      </p>
+      <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+        {ALCANCES.map((a) => {
+          const activo = alcance === a.id
+          return (
+            <button
+              key={a.id}
+              onClick={() => elegir(a.id)}
+              disabled={alcance === null || guardando !== null}
+              className={`text-left rounded-lg border px-3 py-2.5 transition-colors disabled:opacity-60 ${
+                activo ? 'border-[#1D0084] bg-[#F0F5FF]' : 'border-[#E2E8F4] hover:bg-[#F7F9FD]'
+              }`}
+            >
+              <span className="flex items-center gap-1.5 text-[13px] font-semibold text-gray-900">
+                {guardando === a.id ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <Check size={13} className={activo ? 'text-[#1D0084]' : 'opacity-0'} strokeWidth={3} />
+                )}
+                {a.titulo}
+              </span>
+              <span className="block text-[12px] text-gray-600 mt-0.5 leading-snug">{a.que}</span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 /**
  * Lo que ve el closer, decidido por el administrador. Contactos lo ve

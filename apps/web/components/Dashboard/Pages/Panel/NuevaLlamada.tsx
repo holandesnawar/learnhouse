@@ -19,7 +19,15 @@
 import React, { useEffect, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
-import { cambiarHoraLlamada, getHuecos, reservarLlamada, type Cita, type Huecos } from '@services/stats/contactos'
+import {
+  cambiarHoraLlamada,
+  getHuecos,
+  getOpcionesAgenda,
+  reservarLlamada,
+  type Cita,
+  type Huecos,
+  type OpcionesAgenda,
+} from '@services/stats/contactos'
 import { CalendarClock, CalendarPlus, ExternalLink, Loader2, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { ZONA_ESCUELA, horaEscuela } from '@/lib/nawar/recordatorioLlamada'
@@ -35,6 +43,83 @@ const diaDe = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: ZONA_ESCUEL
 const diaYHora = (iso: string) => {
   const d = new Date(iso)
   return `${d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', timeZone: ZONA_ESCUELA })}, ${horaEscuela(d)}`
+}
+
+const CHIP = (activo: boolean) =>
+  `h-8 px-3 rounded-md border text-[13px] font-medium transition-colors ${
+    activo ? 'bg-gray-900 border-gray-900 text-white' : 'border-[#E5E7EB] text-gray-800 hover:bg-[#F9FAFB]'
+  }`
+
+/** «Quién la lleva» y «Por dónde» (05/11). Con el evento por turnos, Calendly
+ *  elige el closer y la herramienta va con él; con el evento propio de un
+ *  closer, se elige entre las videollamadas que tenga ese evento. */
+function QuienYDonde({
+  opciones,
+  quien,
+  setQuien,
+  ubicacion,
+  setUbicacion,
+}: {
+  opciones: OpcionesAgenda | null
+  quien: string
+  setQuien: (v: string) => void
+  ubicacion: string
+  setUbicacion: (v: string) => void
+}) {
+  if (!opciones) return <p className={`${META} inline-flex items-center gap-1.5`}><Loader2 size={13} className="animate-spin" /> Cargando quién puede llevarla…</p>
+  if (!opciones.configurado || opciones.opciones.length === 0) return null
+  const elegida = opciones.opciones.find((o) => o.id === quien)
+  const base = opciones.opciones.find((o) => o.id === 'turnos')?.evento || 'Llamada de Consultoría HN'
+  return (
+    <div className="space-y-2.5">
+      <div>
+        <p className="text-[12.5px] font-medium text-gray-700 mb-1.5">Quién la lleva</p>
+        <div className="flex flex-wrap gap-1.5">
+          {opciones.opciones.map((o) => (
+            <button key={o.id} onClick={() => setQuien(o.id)} className={CHIP(quien === o.id)} title={o.evento}>
+              {o.quien}
+            </button>
+          ))}
+        </div>
+        {elegida?.por_turnos ? (
+          <p className={`${META} mt-1 !whitespace-normal`}>Calendly elige quién está libre a esa hora.</p>
+        ) : elegida ? (
+          <p className={`${META} mt-1 !whitespace-normal`}>Con su evento «{elegida.evento}»: salen las horas libres de {elegida.quien}.</p>
+        ) : null}
+        {opciones.faltan.length > 0 ? (
+          <p className={`${META} mt-1 !whitespace-normal`}>
+            Sin evento propio en Calendly: {opciones.faltan.join(' y ')}. Para poder elegir a {opciones.faltan.length > 1 ? 'cada uno' : opciones.faltan[0]}{' '}
+            aquí, crea en su Calendly un evento 1 a 1 cuyo nombre empiece por «{base}» (por ejemplo «{base} (equipo)»).
+          </p>
+        ) : null}
+      </div>
+      {elegida && !elegida.por_turnos ? (
+        <div>
+          <p className="text-[12.5px] font-medium text-gray-700 mb-1.5">Por dónde</p>
+          {elegida.ubicaciones.length > 1 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {elegida.ubicaciones.map((u) => (
+                <button key={u.kind} onClick={() => setUbicacion(u.kind)} className={CHIP(ubicacion === u.kind)}>
+                  {u.nombre}
+                </button>
+              ))}
+            </div>
+          ) : elegida.ubicaciones.length === 1 ? (
+            <p className="text-[13px] text-gray-800">
+              {elegida.ubicaciones[0].nombre}{' '}
+              <span className="text-gray-500">(es la única que tiene su evento; añade otra en Calendly para poder elegir)</span>
+            </p>
+          ) : (
+            <p className="text-[13px] text-gray-700">La que ponga su evento de Calendly.</p>
+          )}
+        </div>
+      ) : elegida?.por_turnos ? (
+        <p className="text-[13px] text-gray-700">
+          <span className="font-medium">Por dónde:</span> la de quien le toque (en Calendly, cada closer tiene la suya).
+        </p>
+      ) : null}
+    </div>
+  )
 }
 
 export default function NuevaLlamada({
@@ -71,6 +156,13 @@ export default function NuevaLlamada({
   const [hueco, setHueco] = useState<{ inicio: string; url: string } | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [confirmar, setConfirmar] = useState<{ url: string; motivo: string; plan: boolean } | null>(null)
+  // Quién la lleva y por dónde (05/11): «turnos» = Calendly elige; si no, el
+  // evento propio de ese closer, con su Zoom o su Meet.
+  const [opciones, setOpciones] = useState<OpcionesAgenda | null>(null)
+  const [quien, setQuien] = useState('')
+  const [ubicacion, setUbicacion] = useState('')
+  const elegida = opciones?.opciones.find((o) => o.id === quien) || null
+  const evento = elegida && !(elegida.id === 'turnos') ? elegida.uri : ''
 
   useEffect(() => {
     const f = (ev: KeyboardEvent) => ev.key === 'Escape' && onClose()
@@ -78,12 +170,36 @@ export default function NuevaLlamada({
     return () => window.removeEventListener('keydown', f)
   }, [onClose])
 
+  // Las opciones, una vez (con la persona, para proponer a quien ya la lleva).
+  const personaEmail = (cambiar?.email || inicial?.email || '').trim().toLowerCase()
   useEffect(() => {
-    if (!org?.id || !accessToken || !fecha) return
+    if (!org?.id || !accessToken) return
+    let vivo = true
+    getOpcionesAgenda(org.id, personaEmail, accessToken).then((r) => {
+      if (!vivo) return
+      const ops = r || { configurado: false, opciones: [], propuesta: '', faltan: [] }
+      setOpciones(ops)
+      // Al cambiar la hora, se propone el closer que ya tiene la llamada.
+      const suya = cambiar?.closer_id ? ops.opciones.find((o) => o.closer_id === cambiar.closer_id) : undefined
+      setQuien(suya?.id || ops.propuesta || ops.opciones[0]?.id || 'turnos')
+    })
+    return () => {
+      vivo = false
+    }
+  }, [org?.id, accessToken, personaEmail, cambiar?.closer_id])
+
+  // Por dónde: si el evento elegido ofrece varias, la primera; con una, esa.
+  useEffect(() => {
+    const ub = elegida?.ubicaciones || []
+    setUbicacion((antes) => (ub.some((u) => u.kind === antes) ? antes : ub[0]?.kind || ''))
+  }, [elegida?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!org?.id || !accessToken || !fecha || !quien) return
     let vivo = true
     setCargando(true)
     setHueco(null)
-    getHuecos(org.id, fecha, accessToken).then((r) => {
+    getHuecos(org.id, fecha, accessToken, evento).then((r) => {
       if (!vivo) return
       setHuecos(r)
       setCargando(false)
@@ -91,7 +207,7 @@ export default function NuevaLlamada({
     return () => {
       vivo = false
     }
-  }, [org?.id, accessToken, fecha])
+  }, [org?.id, accessToken, fecha, quien, evento])
 
   const listo = nombre.trim() && email.includes('@') && hueco
   const pila = (nombre.trim().split(' ')[0] || 'la persona').replace(/^./, (l) => l.toUpperCase())
@@ -110,6 +226,8 @@ export default function NuevaLlamada({
         antes: cambiar.inicio,
         inicio: hueco.inicio,
         confirmada: yaHablado,
+        evento,
+        ubicacion: evento ? ubicacion : '',
       },
       accessToken
     )
@@ -129,7 +247,19 @@ export default function NuevaLlamada({
     if (!hueco) return
     if (cambiar) return cambiarHora()
     setEnviando(true)
-    const r = await reservarLlamada(org?.id, { nombre: nombre.trim(), email: email.trim(), telefono: telefono.trim(), inicio: hueco.inicio, url: hueco.url }, accessToken)
+    const r = await reservarLlamada(
+      org?.id,
+      {
+        nombre: nombre.trim(),
+        email: email.trim(),
+        telefono: telefono.trim(),
+        inicio: hueco.inicio,
+        url: hueco.url,
+        evento,
+        ubicacion: evento ? ubicacion : '',
+      },
+      accessToken
+    )
     setEnviando(false)
     if (!r.ok) {
       toast.error(r.error || 'No se ha podido agendar')
@@ -220,6 +350,13 @@ export default function NuevaLlamada({
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={CAMPO} />
               <span className={`${META} block mt-0.5`}>Ahí le llega el correo de Calendly con el enlace de la llamada.</span>
             </label>
+            <QuienYDonde
+              opciones={opciones}
+              quien={quien}
+              setQuien={setQuien}
+              ubicacion={ubicacion}
+              setUbicacion={setUbicacion}
+            />
             <label className="block">
               <span className="text-[12.5px] font-medium text-gray-700">Día</span>
               <input type="date" value={fecha} min={hoy} onChange={(e) => setFecha(e.target.value)} className={CAMPO} />

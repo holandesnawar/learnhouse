@@ -11,10 +11,11 @@
  * - Cada paso dice si ya se mandó (quién y cuándo), si toca ahora o desde
  *   cuándo toca, y el que toca va resaltado. El orden y los tiempos, con
  *   test, en `lib/nawar/recordatorioLlamada.ts` (`estadoPasos`).
- * - «Enviar» abre WhatsApp con el texto puesto, a su número, y lo apunta como
- *   mandado (en la escuela, para todo el equipo: `whatsapp_llamada.py`).
- *   Desde aquí no se sabe si luego pulsó «enviar» en WhatsApp: si no lo
- *   mandó, «No lo envié» lo quita.
+ * - «Enviar» abre WhatsApp con el texto puesto, a su número, y PREGUNTA
+ *   «¿Lo has enviado?»: solo con «Sí, enviado» se apunta (en la escuela, para
+ *   todo el equipo: `whatsapp_llamada.py`). Hasta el 05/11 se apuntaba al
+ *   pulsar, y salía «Enviado por Diego» en mensajes que Diego solo había
+ *   abierto. Si se apuntó por error, «No lo envié» lo quita.
  * - Los textos son de todo el equipo y firman con el nombre de quien los manda
  *   (`{yo}`). Se cambian en «Mensajes» (`EditorMensajes`), donde también se
  *   sube el PDF del método.
@@ -129,6 +130,8 @@ function useMandar(cita: CitaWhatsApp, onCambio: (w: EnviadosWhatsApp) => void) 
   const yo = session?.data?.user?.first_name || ''
   const { mensajes } = useMensajesLlamada()
   const [ocupado, setOcupado] = useState<PasoWhatsApp | null>(null)
+  // El que se ha abierto en WhatsApp y falta decir si se mandó (05/11).
+  const [pendiente, setPendiente] = useState<PasoWhatsApp | null>(null)
   const enviados: EnviadosWhatsApp = cita.whatsapp || {}
 
   function texto(paso: PasoWhatsApp) {
@@ -146,6 +149,7 @@ function useMandar(cita: CitaWhatsApp, onCambio: (w: EnviadosWhatsApp) => void) 
 
   async function apuntar(paso: PasoWhatsApp) {
     if (!orgId || !token) return
+    setPendiente(null)
     setOcupado(paso)
     const r = await marcarWhatsApp(orgId, { cita_id: cita.id, email: cita.email, paso, inicio: cita.inicio }, token)
     setOcupado(null)
@@ -172,10 +176,36 @@ function useMandar(cita: CitaWhatsApp, onCambio: (w: EnviadosWhatsApp) => void) 
     onCambio(nuevo)
   }
 
-  return { mensajes, texto, falta, apuntar, quitar, ocupado, numero: numeroWhatsApp(cita.telefono) }
+  return {
+    mensajes,
+    texto,
+    falta,
+    apuntar,
+    quitar,
+    ocupado,
+    numero: numeroWhatsApp(cita.telefono),
+    pendiente,
+    abierto: (paso: PasoWhatsApp) => setPendiente(paso),
+    noEnviado: () => setPendiente(null),
+  }
 }
 
-/** El botón que abre WhatsApp con el texto y, a la vez, lo apunta. */
+/** Tras abrir WhatsApp: ¿se ha mandado de verdad? Solo «Sí» lo apunta. */
+function PreguntaEnviado({ numero, si, no, ocupado }: { numero: number; si: () => void; no: () => void; ocupado: boolean }) {
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-md bg-[#F0F5FF] px-3 py-2">
+      <span className="text-[13px] text-gray-900">¿Has enviado el mensaje {numero} en WhatsApp?</span>
+      <button onClick={si} disabled={ocupado} className={`${BOTON_PRINCIPAL} !h-7`}>
+        {ocupado ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} strokeWidth={3} />} Sí, enviado
+      </button>
+      <button onClick={no} className={`${ENLACE} !text-[12.5px] !text-gray-600`}>
+        No
+      </button>
+    </div>
+  )
+}
+
+/** El botón que abre WhatsApp con el texto (y luego pregunta si se mandó). */
 function BotonEnviar({
   paso,
   texto,
@@ -243,7 +273,7 @@ export default function SecuenciaWhatsApp({
   /** La ficha ya lo enseña encima, con «Copiar». */
   conMeet?: boolean
 }) {
-  const { mensajes, texto, falta, apuntar, quitar, ocupado, numero } = useMandar(cita, onCambio)
+  const { mensajes, texto, falta, apuntar, quitar, ocupado, numero, pendiente, abierto, noEnviado } = useMandar(cita, onCambio)
   const [viendo, setViendo] = useState<PasoWhatsApp | null>(null)
   const [editor, setEditor] = useState(false)
   const { pasos, siguiente } = estadoPasos(cita, new Date(), mensajes?.horas_antes)
@@ -303,7 +333,7 @@ export default function SecuenciaWhatsApp({
                         falta={falta(p.id)}
                         ocupado={ocupado === p.id}
                         etiqueta="Reenviar"
-                        apuntar={() => apuntar(p.id)}
+                        apuntar={() => abierto(p.id)}
                       />
                       <button onClick={() => quitar(p.id)} disabled={ocupado === p.id} className={`${ENLACE} !text-[12px] !text-gray-500`}>
                         No lo envié
@@ -318,12 +348,17 @@ export default function SecuenciaWhatsApp({
                       falta={motivo}
                       ocupado={ocupado === p.id}
                       etiqueta={es ? 'Enviar' : 'Enviar ya'}
-                      apuntar={() => apuntar(p.id)}
+                      apuntar={() => abierto(p.id)}
                     />
                   )}
                 </div>
               </div>
               {motivo ? <p className="text-[12px] text-[#92400E] mt-1.5 sm:pl-9">{motivo}</p> : null}
+              {pendiente === p.id ? (
+                <div className="sm:ml-9">
+                  <PreguntaEnviado numero={p.numero} si={() => apuntar(p.id)} no={noEnviado} ocupado={ocupado === p.id} />
+                </div>
+              ) : null}
               {viendo === p.id ? (
                 <p className="mt-2 sm:ml-9 rounded-md bg-[#F3F4F6] px-3 py-2 text-[13px] text-gray-900 whitespace-pre-wrap break-words">
                   {mensajes ? texto(p.id) : 'Cargando…'}
@@ -352,7 +387,7 @@ export default function SecuenciaWhatsApp({
  * el botón del que toca.
  */
 export function SiguienteWhatsApp({ cita, onCambio }: { cita: CitaWhatsApp; onCambio: (w: EnviadosWhatsApp) => void }) {
-  const { mensajes, texto, falta, apuntar, ocupado, numero } = useMandar(cita, onCambio)
+  const { mensajes, texto, falta, apuntar, ocupado, numero, pendiente, abierto, noEnviado } = useMandar(cita, onCambio)
   const { pasos, siguiente } = estadoPasos(cita, new Date(), mensajes?.horas_antes)
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
@@ -382,7 +417,7 @@ export function SiguienteWhatsApp({ cita, onCambio }: { cita: CitaWhatsApp; onCa
           falta={falta(siguiente.id)}
           ocupado={ocupado === siguiente.id}
           etiqueta={`Enviar ${siguiente.numero} · ${siguiente.nombre}`}
-          apuntar={() => apuntar(siguiente.id)}
+          apuntar={() => abierto(siguiente.id)}
         />
       ) : siguiente ? (
         <span className={META}>
@@ -391,6 +426,11 @@ export function SiguienteWhatsApp({ cita, onCambio }: { cita: CitaWhatsApp; onCa
       ) : (
         <span className={META}>Los 3 enviados</span>
       )}
+      {pendiente && siguiente && pendiente === siguiente.id ? (
+        <div className="w-full">
+          <PreguntaEnviado numero={siguiente.numero} si={() => apuntar(siguiente.id)} no={noEnviado} ocupado={ocupado === siguiente.id} />
+        </div>
+      ) : null}
     </div>
   )
 }
