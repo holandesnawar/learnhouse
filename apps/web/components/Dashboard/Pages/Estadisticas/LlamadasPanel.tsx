@@ -814,6 +814,12 @@ function OrigenCita({ cita }: { cita: Cita }) {
 
 /** El closer que lleva la llamada; «Sin asignar» en las que vienen y no tiene nadie. */
 function QuienLaLleva({ c }: { c: Cita }) {
+  if (c.closer && c.choca_con)
+    return (
+      <span className="block text-[11.5px] font-semibold text-[#B91C1C] truncate" title={`A la misma hora que la de ${c.choca_con}`}>
+        {c.closer.split(/\s+/)[0]} · otra a la vez
+      </span>
+    )
   if (c.closer) return <span className="block text-[11.5px] text-gray-500 truncate">{c.closer.split(/\s+/)[0]}</span>
   if (c.estado === 'activa' && new Date(c.inicio).getTime() > Date.now())
     return <span className="block text-[11.5px] text-[#B45309] truncate">Sin asignar</span>
@@ -996,6 +1002,12 @@ function CitaDialogo({
           {/* De qué evento es, por dónde va y quién la agendó (05/11): entero,
               sin cortar, para saber de dónde sale Zoom o Meet. */}
           <OrigenCita cita={cita} />
+          {cita.choca_con ? (
+            <p className="mt-2 text-[12.5px] leading-snug text-[#B91C1C]">
+              {(cita.closer || 'Este closer').split(/\s+/)[0]} tiene otra llamada a la misma hora, con {cita.choca_con}. Cambia una de las dos
+              de hora.
+            </p>
+          ) : null}
           <Estado tono={e.tono} className="mt-2">
             {e.texto}
           </Estado>
