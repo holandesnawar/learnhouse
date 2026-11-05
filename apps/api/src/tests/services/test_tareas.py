@@ -233,6 +233,87 @@ async def test_aviso_de_presentacion_nueva(db, org, monkeypatch, contenido):
     assert T.dia_largo("2026-11-02") == "lunes 2 de noviembre"
 
 
+def test_casillas_de_la_campana():
+    ahora = "2026-11-05T10:00:00+00:00"
+    assert T.marca_aviso("", True, ahora) == ahora          # se marca: desde ahora
+    assert T.marca_aviso("si", True, ahora) == "si"         # ya estaba: no cambia
+    assert T.marca_aviso("2026-11-01T09:00:00+00:00", None, ahora) == "2026-11-01T09:00:00+00:00"
+    assert T.marca_aviso("si", False, ahora) == ""          # se desmarca
+    # La fecha del aviso: la subida o, si se marcó después, cuando se marcó.
+    assert T.desde_cuando("si", "2026-11-02T08:00:00+00:00") == "2026-11-02T08:00:00+00:00"
+    assert T.desde_cuando(ahora, "2026-11-02T08:00:00+00:00") == ahora
+    assert T.desde_cuando("2026-11-01T09:00:00+00:00", "2026-11-02T08:00:00+00:00") == "2026-11-02T08:00:00+00:00"
+
+
+async def _grabacion(db, org, aid=73):
+    ahora = str(datetime.now())
+    db.add(Activity(id=aid, name="Grabación", activity_type=ActivityTypeEnum.TYPE_VIDEO,
+                    activity_sub_type=ActivitySubTypeEnum.SUBTYPE_VIDEO_HOSTED, content={}, published=True,
+                    org_id=org.id, course_id=50, activity_uuid=f"activity_{aid}", creation_date=ahora, update_date=ahora))
+    db.add(ChapterActivity(order=9, chapter_id=60, activity_id=aid, course_id=50, org_id=org.id,
+                           creation_date=ahora, update_date=ahora))
+    await db.commit()
+
+
+async def test_sin_la_casilla_no_avisa_de_la_presentacion(db, org, monkeypatch, contenido):
+    c = await _clase_con_semana(db, org)
+    monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-10-30")
+    r = await T.crear_semana(org.id, c, {"chapter_uuid": "chapter_kleding", "tema": "De kleding", "fecha": "2026-11-02",
+                                         "avisar_presentacion": False}, "Rida", db)
+    assert r["semana"]["avisar_presentacion"] is False
+    assert await T.avisos_alumno(8, db) == []
+    # Marcarla después: el aviso sale, con la fecha de cuando se marcó.
+    s = await T.tarea(r["semana"]["id"], db)
+    r = await T.editar_semana(s, {"avisar_presentacion": True}, db)
+    assert r["semana"]["avisar_presentacion"] is True
+    avisos = await T.avisos_alumno(8, db)
+    assert [a["kind"] for a in avisos] == ["semana"] and avisos[0]["date"] == s.aviso_presentacion
+    # Tocar otra cosa de la semana no la cambia.
+    await T.editar_semana(s, {"tema": "De kleding (2)"}, db)
+    assert s.aviso_presentacion and (await T.avisos_alumno(8, db))[0]["title"] == "Nueva clase: De kleding (2)"
+
+
+async def test_aviso_de_la_grabacion(db, org, monkeypatch, contenido):
+    c = await _clase_con_semana(db, org)
+    monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-10-30")
+    r = await T.crear_semana(org.id, c, {"chapter_uuid": "chapter_kleding", "tema": "De kleding", "fecha": "2026-11-02",
+                                         "avisar_presentacion": False, "avisar_grabacion": True}, "Rida", db)
+    sid = r["semana"]["id"]
+    assert r["semana"]["avisar_grabacion"] is True
+    await _grabacion(db, org)
+    # Antes del día de la clase, nada (el alumno aún no la ve).
+    assert await T.avisos_alumno(8, db) == []
+    # Pasada la clase, a los de su grupo que no la han visto.
+    monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-11-03")
+    avisos = await T.avisos_alumno(8, db)
+    assert [a["kind"] for a in avisos] == ["grabacion"]
+    a = avisos[0]
+    assert a["id"] == f"grabacion:{sid}:activity_73" and a["title"] == "Ya está la grabación: De kleding"
+    assert a["url"] == "/course/mc/activity/73" and "lunes 2 de noviembre" in a["excerpt"]
+    assert await T.avisos_alumno(9, db) == []  # otra clase, fuera del grupo
+    # Quien ya la vio, no.
+    db.add(TrailStep(complete=True, teacher_verified=False, grade="", data={}, trailrun_id=1, trail_id=1,
+                     activity_id=73, course_id=50, org_id=org.id, user_id=8, creation_date="x", update_date="x"))
+    await db.commit()
+    assert await T.avisos_alumno(8, db) == []
+    # Sin la casilla, no avisa.
+    assert [a["kind"] for a in await T.avisos_alumno(7, db)] == ["grabacion"]
+    await T.editar_semana(await T.tarea(sid, db), {"avisar_grabacion": False}, db)
+    assert await T.avisos_alumno(7, db) == []
+
+
+async def test_las_semanas_de_antes_avisan_como_siempre(db, org, monkeypatch, contenido):
+    """Una semana creada sin decir nada (las de antes del 05/11, o una pantalla
+    vieja): la presentación avisa y la grabación no."""
+    c = await _clase_con_semana(db, org)
+    monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-11-03")
+    r = await T.crear_semana(org.id, c, {"chapter_uuid": "chapter_kleding", "tema": "De kleding", "fecha": "2026-11-02"},
+                             "Rida", db)
+    assert r["semana"]["avisar_presentacion"] is True and r["semana"]["avisar_grabacion"] is False
+    await _grabacion(db, org)
+    assert [a["kind"] for a in await T.avisos_alumno(8, db)] == ["semana"]
+
+
 async def test_antes_de_la_clase_solo_la_presentacion(db, org, monkeypatch, contenido):
     assert T.abierta("2026-11-02", "2026-11-01") is False
     assert T.abierta("2026-11-02", "2026-11-02") is True  # el día de la clase, ya

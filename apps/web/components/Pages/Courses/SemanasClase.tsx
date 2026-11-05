@@ -30,14 +30,16 @@ import {
 } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { getUriWithOrg } from '@services/config/config'
+import toast from 'react-hot-toast'
 import {
   diaCorto,
+  editarSemana,
   getSemanas,
   type ClaseSemana,
   type Semana,
   type SemanasClase as DatosSemanas,
 } from '@services/tareas/tareas'
-import { EditarSemana, NuevaSemana } from './SemanaModales'
+import { CasillasCampana, EditarSemana, NuevaSemana } from './SemanaModales'
 
 export const claveSemanas = (courseUuid: string) => ['tareas', 'semanas', String(courseUuid || '').replace(/^course_/, '')]
 
@@ -251,10 +253,47 @@ function ContenidoSemana({
   )
 }
 
-function CabeceraAdmin({ semana, courseUuid, orgslug, onEditar }: { semana: Semana; courseUuid: string; orgslug: string; onEditar: () => void }) {
+function CabeceraAdmin({
+  semana,
+  courseUuid,
+  orgslug,
+  onEditar,
+  onCambio,
+}: {
+  semana: Semana
+  courseUuid: string
+  orgslug: string
+  onEditar: () => void
+  onCambio: () => void
+}) {
   const limpio = courseUuid.replace(/^course_/, '')
+  const session = useLHSession() as any
+  const token: string = session?.data?.tokens?.access_token || ''
+  const [guardando, setGuardando] = useState(false)
+  // Las casillas de la campana, a mano desde la propia semana (05/11/2026).
+  async function avisar(datos: { avisar_presentacion?: boolean; avisar_grabacion?: boolean }) {
+    setGuardando(true)
+    try {
+      await editarSemana(semana.id, datos, token)
+      const marcada = datos.avisar_presentacion ?? datos.avisar_grabacion
+      toast.success(marcada ? 'Les saldrá en la campana a los alumnos de esta clase' : 'Ya no les avisa en la campana')
+      onCambio()
+    } catch (e: any) {
+      toast.error(e?.message || 'No se pudo guardar')
+    } finally {
+      setGuardando(false)
+    }
+  }
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 bg-[#F9FAFB] border-t border-[#EEF2F9] text-[12.5px] font-semibold">
+      <CasillasCampana
+        compacto
+        presentacion={semana.avisar_presentacion ?? true}
+        grabacion={semana.avisar_grabacion ?? false}
+        onPresentacion={(v) => avisar({ avisar_presentacion: v })}
+        onGrabacion={(v) => avisar({ avisar_grabacion: v })}
+        disabled={guardando}
+      />
       <button onClick={onEditar} className="inline-flex items-center gap-1 text-[#5A6480] hover:text-[#025dc7]">
         <Pencil size={12} /> Editar semana
       </button>
@@ -310,7 +349,7 @@ export default function SemanasClase({ courseUuid, courseuuid, orgslug, curso }:
       </div>
       <div className="rounded-2xl border border-[#DDE6F5] bg-white overflow-hidden">
         <ContenidoSemana semana={semana} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={equipo} />
-        {equipo ? <CabeceraAdmin semana={semana} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(semana)} /> : null}
+        {equipo ? <CabeceraAdmin semana={semana} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(semana)} onCambio={recargar} /> : null}
       </div>
     </div>
   )
@@ -348,7 +387,7 @@ export default function SemanasClase({ courseUuid, courseuuid, orgslug, curso }:
                 {abierta ? (
                   <div className="border-t border-[#EEF2F9]">
                     <ContenidoSemana semana={s} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={equipo} />
-                    {equipo ? <CabeceraAdmin semana={s} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(s)} /> : null}
+                    {equipo ? <CabeceraAdmin semana={s} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(s)} onCambio={recargar} /> : null}
                   </div>
                 ) : null}
               </div>

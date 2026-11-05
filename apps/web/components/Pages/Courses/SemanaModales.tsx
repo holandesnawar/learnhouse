@@ -63,6 +63,58 @@ function Ventana({ titulo, onClose, children }: { titulo: string; onClose: () =>
   )
 }
 
+/**
+ * Las casillas de la campana de una semana (05/11/2026): avisar a los alumnos
+ * de ESTA clase (los de su grupo) cuando esté la presentación y cuando esté la
+ * grabación. Sale en la campana de la escuela, sin correo.
+ */
+export function CasillasCampana({
+  presentacion,
+  grabacion,
+  onPresentacion,
+  onGrabacion,
+  disabled = false,
+  compacto = false,
+}: {
+  presentacion: boolean
+  grabacion: boolean
+  onPresentacion: (v: boolean) => void
+  onGrabacion: (v: boolean) => void
+  disabled?: boolean
+  compacto?: boolean
+}) {
+  const casilla = 'h-4 w-4 accent-[#025dc7] shrink-0'
+  if (compacto) {
+    return (
+      <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 text-[#5A6480]">
+        <span>Avisar en la campana:</span>
+        <label className="inline-flex items-center gap-1.5 cursor-pointer">
+          <input type="checkbox" className={casilla} checked={presentacion} disabled={disabled} onChange={(e) => onPresentacion(e.target.checked)} />
+          presentación
+        </label>
+        <label className="inline-flex items-center gap-1.5 cursor-pointer">
+          <input type="checkbox" className={casilla} checked={grabacion} disabled={disabled} onChange={(e) => onGrabacion(e.target.checked)} />
+          grabación
+        </label>
+      </span>
+    )
+  }
+  return (
+    <div className="rounded-lg bg-[#F0F5FF] px-3 py-2.5 space-y-1.5">
+      <p className="text-[12px] font-semibold text-[#5A6480]">Avisar a los alumnos de esta clase en la campana</p>
+      <label className="flex items-start gap-2 text-[13.5px] text-gray-900 cursor-pointer">
+        <input type="checkbox" className={casilla + ' mt-0.5'} checked={presentacion} disabled={disabled} onChange={(e) => onPresentacion(e.target.checked)} />
+        Cuando esté la presentación, para repasarla antes de la clase
+      </label>
+      <label className="flex items-start gap-2 text-[13.5px] text-gray-900 cursor-pointer">
+        <input type="checkbox" className={casilla + ' mt-0.5'} checked={grabacion} disabled={disabled} onChange={(e) => onGrabacion(e.target.checked)} />
+        Cuando esté la grabación, después de la clase
+      </label>
+      <p className="text-[11.5px] text-[#6B7280]">Solo les sale a los alumnos que ven esta clase (su grupo). No manda ningún correo.</p>
+    </div>
+  )
+}
+
 function sumarDias(dia: string, n: number): string {
   if (!dia) return ''
   const [a, m, d] = dia.split('-').map(Number)
@@ -102,6 +154,8 @@ export function NuevaSemana({
   const [leccion, setLeccion] = useState('')
   const [enunciado, setEnunciado] = useState('')
   const [limite, setLimite] = useState('')
+  const [avisarP, setAvisarP] = useState(true)
+  const [avisarG, setAvisarG] = useState(true)
   const [paso, setPaso] = useState('')
 
   const modulos = useMemo(() => getModules(), [])
@@ -154,7 +208,15 @@ export function NuevaSemana({
       setPaso('Guardando la tarea…')
       await crearSemana(
         courseUuid,
-        { chapter_uuid: capitulo.chapter_uuid, tema: tema.trim(), fecha, enunciado: enunciado.trim(), fecha_limite: limite },
+        {
+          chapter_uuid: capitulo.chapter_uuid,
+          tema: tema.trim(),
+          fecha,
+          enunciado: enunciado.trim(),
+          fecha_limite: limite,
+          avisar_presentacion: avisarP,
+          avisar_grabacion: avisarG,
+        },
         token
       )
       await queryClient.invalidateQueries({ queryKey: queryKeys.courses.meta(String(courseUuid).replace(/^course_/, '')) })
@@ -237,6 +299,14 @@ export function NuevaSemana({
           </div>
         </div>
 
+        <CasillasCampana
+          presentacion={avisarP}
+          grabacion={avisarG}
+          onPresentacion={setAvisarP}
+          onGrabacion={setAvisarG}
+          disabled={!!paso}
+        />
+
         <button
           onClick={crear}
           disabled={!!paso}
@@ -273,12 +343,18 @@ export function EditarSemana({
   const [fecha, setFecha] = useState(semana.fecha)
   const [enunciado, setEnunciado] = useState(semana.enunciado)
   const [limite, setLimite] = useState(semana.fecha_limite)
+  const [avisarP, setAvisarP] = useState(semana.avisar_presentacion ?? true)
+  const [avisarG, setAvisarG] = useState(semana.avisar_grabacion ?? false)
   const [guardando, setGuardando] = useState(false)
 
   async function guardar() {
     setGuardando(true)
     try {
-      await editarSemana(semana.id, { tema, fecha, enunciado, fecha_limite: limite }, token)
+      await editarSemana(
+        semana.id,
+        { tema, fecha, enunciado, fecha_limite: limite, avisar_presentacion: avisarP, avisar_grabacion: avisarG },
+        token
+      )
       toast.success('Semana guardada')
       onGuardada()
     } catch (e: any) {
@@ -325,6 +401,7 @@ export function EditarSemana({
             <span className="text-[12px] text-[#9CA3AF]">{limite ? '' : 'Vacío = el domingo'}</span>
           </div>
         </div>
+        <CasillasCampana presentacion={avisarP} grabacion={avisarG} onPresentacion={setAvisarP} onGrabacion={setAvisarG} />
         <p className="text-[12px] text-[#6B7280]">
           La presentación, la grabación y los ejercicios se cambian en el editor del curso («Añadir clases»).
         </p>

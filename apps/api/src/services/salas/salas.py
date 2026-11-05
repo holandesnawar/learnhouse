@@ -495,6 +495,11 @@ async def copiar_a_la_copia(org_id: int, viejo: str, nuevo: str, capitulos: dict
                     org_id=org_id, course_uuid=uuid_curso(nuevo), chapter_uuid=capitulos[s.chapter_uuid],
                     tema=s.tema, fecha=s.fecha, enunciado=s.enunciado, fecha_limite=s.fecha_limite,
                     creada_por=s.creada_por, created_at=ahora, updated_at=ahora,
+                    # Sin las casillas de la campana: las clases copiadas nacen
+                    # con fecha de hoy y avisarían otra vez de lo que esos
+                    # alumnos ya vieron en el original. Se marcan a mano.
+                    aviso_presentacion="",
+                    aviso_grabacion="",
                 )
             )
     await db_session.commit()

@@ -36,6 +36,12 @@ class TareaSemana(SQLModel, table=True):
     creada_por: str = Field(default="", max_length=120)
     created_at: str = ""
     updated_at: str = ""
+    # Avisar a los alumnos en la campana (05/11/2026): "" = no; si no, sí, y
+    # si es una fecha, desde cuándo (al marcar la casilla). Las semanas de
+    # antes avisan de la presentación ("si", como desde el 28/10) y no de la
+    # grabación.
+    aviso_presentacion: str = Field(default="si", max_length=40)
+    aviso_grabacion: str = Field(default="", max_length=40)
 
 
 class TareaEntrega(SQLModel, table=True):

@@ -284,6 +284,8 @@ def _semana_dict(s: TareaSemana) -> dict:
         "limite": limite_de(s.fecha, s.fecha_limite),
         "enunciado": s.enunciado,
         "tiene_tarea": bool((s.enunciado or "").strip()),
+        "avisar_presentacion": bool(getattr(s, "aviso_presentacion", "si") or ""),
+        "avisar_grabacion": bool(getattr(s, "aviso_grabacion", "") or ""),
     }
 
 
@@ -948,6 +950,26 @@ def _limpiar_semana(datos: dict) -> dict:
     return salida
 
 
+def marca_aviso(actual: str, quiere: Any, ahora: str) -> str:
+    """La casilla «avisar en la campana» de una semana: lo que se guarda.
+    `quiere` None = no se tocó (se queda como estaba); falso = "" (no avisar);
+    verdadero = se queda la marca que hubiera o, si no había, `ahora` (desde
+    cuándo avisa: así, marcarla más tarde le enciende el punto de la campana).
+    Función pura."""
+    if quiere is None:
+        return actual or ""
+    if not quiere:
+        return ""
+    return actual or ahora
+
+
+def desde_cuando(marca: str, subida: str) -> str:
+    """La fecha del aviso: cuando se subió la clase o, si la casilla se marcó
+    después, cuando se marcó. Función pura."""
+    m = _iso(marca) if marca and marca not in ("si",) else ""
+    return max(subida or "", m)
+
+
 async def crear_semana(org_id: int, course: Course, datos: dict, autor: str, db_session: AsyncSession) -> dict:
     limpio = _limpiar_semana(datos)
     capitulo = str(datos.get("chapter_uuid") or "").strip()
@@ -973,6 +995,11 @@ async def crear_semana(org_id: int, course: Course, datos: dict, autor: str, db_
         updated_at=ahora,
         **limpio,
     )
+    # Sin decir nada (una pantalla vieja): la presentación avisa y la
+    # grabación no, como hasta el 05/11.
+    quiere_p, quiere_g = datos.get("avisar_presentacion"), datos.get("avisar_grabacion")
+    s.aviso_presentacion = marca_aviso("", True if quiere_p is None else quiere_p, ahora)
+    s.aviso_grabacion = marca_aviso("", False if quiere_g is None else quiere_g, ahora)
     db_session.add(s)
     await db_session.commit()
     await db_session.refresh(s)
@@ -987,7 +1014,10 @@ async def editar_semana(s: TareaSemana, datos: dict, db_session: AsyncSession) -
         raise TareaError("Falta el día de la clase")
     for k, v in limpio.items():
         setattr(s, k, v)
-    s.updated_at = _ahora()
+    ahora = _ahora()
+    s.aviso_presentacion = marca_aviso(s.aviso_presentacion or "", datos.get("avisar_presentacion"), ahora)
+    s.aviso_grabacion = marca_aviso(s.aviso_grabacion or "", datos.get("avisar_grabacion"), ahora)
+    s.updated_at = ahora
     db_session.add(s)
     await db_session.commit()
     await db_session.refresh(s)
@@ -1155,6 +1185,20 @@ def aviso_presentacion(semana: dict, presentacion: dict, curso: str, course_uuid
     }
 
 
+def aviso_grabacion(semana: dict, grabacion: dict, curso: str, course_uuid: str, desde: str) -> dict:
+    """El aviso de la campana de una grabación nueva (05/11/2026)."""
+    fecha = semana.get("fecha") or ""
+    texto = f"Ya puedes ver la grabación de la clase del {dia_largo(fecha)}." if fecha else "Ya puedes ver la grabación de la clase."
+    return {
+        "id": f"grabacion:{semana['id']}:{grabacion['activity_uuid']}",
+        "kind": "grabacion",
+        "title": f"Ya está la grabación: {semana['tema']}",
+        "excerpt": f"{curso} · {texto}" if curso else texto,
+        "url": f"/course/{course_uuid}/activity/{grabacion['activity_uuid'].replace('activity_', '')}",
+        "date": desde,
+    }
+
+
 async def _ve_el_curso(user_id: int, course: Course, db_session: AsyncSession) -> bool:
     """Lo mismo que `alumnos_del_curso`, para una persona: con grupos y sin ser
     pública, solo la ven los de sus grupos; si no, todos."""
@@ -1181,12 +1225,15 @@ async def _ve_el_curso(user_id: int, course: Course, db_session: AsyncSession) -
 
 
 async def presentaciones_nuevas(user_id: int, db_session: AsyncSession) -> list[dict]:
-    """La campana del alumno cuando se abre una semana con su presentación
+    """La campana del alumno con lo nuevo de su clase: la presentación
     (usuario, 28/10: "lo importante es cuando abro nueva semana y meto
-    presentación, y cuando se le corrige algo"). Solo a los alumnos (rol 4) y de
-    las clases que ven; de las semanas cuya clase es de los últimos 7 días o
-    está por venir, y de presentaciones subidas en las últimas 3 semanas. En
-    cuanto la abre, el aviso se va, como el de la corrección al escucharla."""
+    presentación, y cuando se le corrige algo") y la grabación (05/11). Cada
+    semana tiene su casilla para cada una (`aviso_presentacion`,
+    `aviso_grabacion`): sin marcar, no avisa. Solo a los alumnos (rol 4) y de
+    las clases que ven (su grupo). La presentación, de las semanas cuya clase
+    es de los últimos 7 días o está por venir; la grabación, de las clases ya
+    dadas de las últimas 3 semanas. Las dos, si se subieron (o se marcó la
+    casilla) en las últimas 3 semanas. En cuanto la abre, el aviso se va."""
     from src.services.panel.tandas import hoy_nl
 
     orgs = [
@@ -1203,17 +1250,20 @@ async def presentaciones_nuevas(user_id: int, db_session: AsyncSession) -> list[
         return []
     hoy = hoy_nl()
     desde_clase = (date.fromisoformat(hoy) - timedelta(days=7)).isoformat()
+    desde_grabada = (date.fromisoformat(hoy) - timedelta(days=DIAS_AVISO)).isoformat()
     desde_subida = (datetime.now(timezone.utc) - timedelta(days=DIAS_AVISO)).isoformat()
     filas = (
         await db_session.execute(
             select(TareaSemana).where(
                 TareaSemana.org_id.in_(orgs),  # type: ignore[attr-defined]
-                TareaSemana.fecha >= desde_clase,
+                TareaSemana.fecha >= desde_grabada,
             )
         )
     ).scalars().all()
     por_curso: dict[str, list[TareaSemana]] = {}
     for s in filas:
+        if not (s.aviso_presentacion or s.aviso_grabacion):
+            continue
         por_curso.setdefault(s.course_uuid, []).append(s)
     salida: list[dict] = []
     for u, semanas in por_curso.items():
@@ -1221,19 +1271,25 @@ async def presentaciones_nuevas(user_id: int, db_session: AsyncSession) -> list[
         if course is None or not await _ve_el_curso(user_id, course, db_session):
             continue
         clases = await _clases([s.chapter_uuid for s in semanas], db_session)
-        presentaciones = {
-            s.id: next((c for c in clases.get(s.chapter_uuid, []) if c["tipo"] == "presentacion"), None)
-            for s in semanas
-        }
-        ids = [p["id"] for p in presentaciones.values() if p]
+        ids = [c["id"] for s in semanas for c in clases.get(s.chapter_uuid, []) if c["tipo"] in ("presentacion", "grabacion")]
         vistas = (await _hechas(course.id or 0, [user_id], ids, db_session)).get(user_id, set())
+        nombre, cu = course.name or "", uuid_curso(course.course_uuid)
         for s in semanas:
-            p = presentaciones.get(s.id)
-            if not p or p["id"] in vistas:
-                continue
-            aviso = aviso_presentacion({**_semana_dict(s), "created_at": s.created_at}, p, course.name or "", uuid_curso(course.course_uuid), hoy)
-            if aviso["date"] >= desde_subida:
-                salida.append(aviso)
+            de_la_semana = clases.get(s.chapter_uuid, [])
+            p = next((c for c in de_la_semana if c["tipo"] == "presentacion"), None)
+            if s.aviso_presentacion and p and p["id"] not in vistas and (s.fecha or "") >= desde_clase:
+                aviso = aviso_presentacion({**_semana_dict(s), "created_at": s.created_at}, p, nombre, cu, hoy)
+                aviso["date"] = desde_cuando(s.aviso_presentacion, aviso["date"])
+                if aviso["date"] >= desde_subida:
+                    salida.append(aviso)
+            # La grabación, solo de una clase que ya se ha dado (antes del día
+            # de la clase el alumno no la ve).
+            g = next((c for c in de_la_semana if c["tipo"] == "grabacion"), None)
+            if s.aviso_grabacion and g and g["id"] not in vistas and abierta(s.fecha, hoy):
+                subida = _iso(g.get("creada") or "") or (s.updated_at or "")
+                aviso = aviso_grabacion(_semana_dict(s), g, nombre, cu, desde_cuando(s.aviso_grabacion, subida))
+                if aviso["date"] >= desde_subida:
+                    salida.append(aviso)
     return salida
 
 
