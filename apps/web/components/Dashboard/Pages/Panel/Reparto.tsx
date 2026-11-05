@@ -17,7 +17,7 @@ import { Check, ChevronDown, Plus } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
-import { asignarCloser, getReparto, guardarCorreosCalendly, type MiembroEquipo } from '@services/panel/panel'
+import { asignarCloser, getReparto, guardarCorreosCalendly, type MiembroEquipo, type UltimaReserva } from '@services/panel/panel'
 import { colorCloser } from '@lib/nawar/colorCloser'
 import toast from 'react-hot-toast'
 
@@ -29,6 +29,8 @@ export interface Reparto {
   calendly: Record<string, string>
   /** {id del usuario: a qué correo le avisa la escuela de sus llamadas} (04/11). */
   avisar: Record<string, string>
+  /** Qué hizo la escuela con la última reserva que avisó Calendly (05/11). */
+  ultimaReserva: UltimaReserva | null
   recargar: () => void
 }
 
@@ -43,12 +45,14 @@ export function useReparto(): Reparto {
     repartidorId: number
     calendly: Record<string, string>
     avisar: Record<string, string>
+    ultimaReserva: UltimaReserva | null
   }>({
     equipo: [],
     yo: 0,
     repartidorId: 0,
     calendly: {},
     avisar: {},
+    ultimaReserva: null,
   })
   const cargar = useCallback(async () => {
     if (!org?.id || !accessToken) return
@@ -60,6 +64,7 @@ export function useReparto(): Reparto {
         repartidorId: r.datos.repartidor_id,
         calendly: r.datos.calendly ?? {},
         avisar: r.datos.avisar ?? {},
+        ultimaReserva: r.datos.ultima_reserva ?? null,
       })
   }, [org?.id, accessToken])
   useEffect(() => {
@@ -392,6 +397,25 @@ export function CorreosCalendly({ reparto }: { reparto: Reparto }) {
         su cuenta de Calendly lleva otro correo). Con un correo aquí, la escuela le escribe «Te ha tocado una llamada» con el
         teléfono, el WhatsApp y el enlace. Vacío: nada, ya le avisa Calendly.
       </p>
+      {reparto.ultimaReserva ? (
+        <div className="rounded-md bg-[#F4F7FD] px-3 py-2 text-[12.5px] leading-relaxed text-gray-900">
+          <span className="font-semibold">
+            Última reserva que avisó Calendly: {reparto.ultimaReserva.persona}
+            {reparto.ultimaReserva.cuando ? ` · ${reparto.ultimaReserva.cuando}` : ''}
+          </span>
+          {reparto.ultimaReserva.anfitrion ? (
+            <>
+              <br />
+              Correo de Calendly de quien la atiende:{' '}
+              <span className="font-mono text-[12px]">{reparto.ultimaReserva.anfitrion}</span>
+            </>
+          ) : null}
+          <br />
+          {reparto.ultimaReserva.texto}
+        </div>
+      ) : (
+        <p className="text-[12.5px] text-[#6B7280]">Todavía no ha llegado ninguna reserva de Calendly desde este cambio.</p>
+      )}
       <div className="hidden sm:flex gap-2 text-[11.5px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF]">
         <span className="w-28 shrink-0" />
         <span className="flex-1">Su correo en Calendly</span>

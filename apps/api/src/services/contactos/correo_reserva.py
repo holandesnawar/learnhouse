@@ -404,6 +404,73 @@ def _apuntar_ultimo(ok: bool, que: str) -> None:
         pass
 
 
+_ULTIMA_RESERVA = "calendly:ultima-reserva"
+
+
+def apuntar_reserva(reserva: dict, texto: str) -> None:
+    """Qué hizo la escuela con la última reserva que avisó Calendly (05/11,
+    "no le llega nada a Diego": sin esto, desde fuera no se sabía si el aviso
+    no llegaba, si el closer no estaba apuntado o si el correo salía). En
+    Redis y en blando."""
+    r = _redis()
+    if r is None:
+        return
+    try:
+        r.set(
+            _ULTIMA_RESERVA,
+            json.dumps(
+                {
+                    "at": datetime.now(timezone.utc).isoformat(),
+                    "persona": (reserva.get("nombre") or reserva.get("email") or "")[:120],
+                    "cuando": _cuando_corto(reserva.get("inicio", "")),
+                    "anfitrion": (reserva.get("anfitrion_email") or "")[:200],
+                    "texto": texto[:600],
+                }
+            ),
+        )
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def ultima_reserva() -> Optional[dict]:
+    r = _redis()
+    if r is None:
+        return None
+    try:
+        return json.loads(r.get(_ULTIMA_RESERVA) or "null")
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def texto_de_lo_hecho(closer: Optional[dict], anfitrion: str, informe: dict) -> str:
+    """Lo que hizo la escuela con una reserva, en una frase para el panel.
+    Función pura."""
+    if not closer:
+        if anfitrion:
+            return (
+                f"Calendly se la dio a {anfitrion}, y ese correo no es de ningún closer en "
+                "«Correos de Calendly»: la tarjeta queda en «Por asignar» y no se avisó a ningún closer."
+            )
+        return "Calendly no dijo quién la atiende: la tarjeta queda en «Por asignar»."
+    nombre = (closer.get("nombre") or "el closer").split(" ")[0]
+    partes = [f"La lleva {nombre}."]
+    if informe.get("closer_avisado"):
+        partes.append(f"Se le avisó por correo a {informe['closer_avisado']}.")
+    elif informe.get("fallo_closer"):
+        partes.append(f"Falló el correo a {informe['fallo_closer']}.")
+    elif informe.get("avisar_a"):
+        partes.append(f"Ya se le había avisado a {informe['avisar_a']} de esta reserva.")
+    else:
+        partes.append("No tiene puesto «La escuela le avisa a»: solo le avisa Calendly.")
+    if informe.get("avisados"):
+        partes.append("«La lleva» a: " + ", ".join(informe["avisados"]) + ".")
+    elif informe.get("repetido"):
+        partes.append("El «la lleva» ya había salido.")
+    if informe.get("fallo"):
+        partes.append(informe["fallo"] + ".")
+    return " ".join(partes)
+
+
 def ultimo_aviso() -> Optional[dict]:
     """El último aviso. Uno con la firma mal solo cuenta si es posterior al
     último bueno (al conectar se borra): cualquiera puede llamar a esa
@@ -551,13 +618,23 @@ async def _completar(reserva: dict) -> dict:
     """Si el aviso no trae la cita dentro (día, evento), se le pide a Calendly."""
     # El aviso trae la cita entera (con `event_memberships`, el anfitrión):
     # solo se pide a Calendly si le falta el día o el evento.
-    if reserva.get("inicio") and reserva.get("tipo_evento"):
+    # Si falta el anfitrión también se pide (05/11): sin él no se sabe qué
+    # closer la lleva y no se avisa a ninguno. Eso, en blando: si Calendly no
+    # contesta, se sigue con lo que trae el aviso.
+    falta_la_cita = not (reserva.get("inicio") and reserva.get("tipo_evento"))
+    if not falta_la_cita and reserva.get("anfitrion_email"):
         return reserva
     uri = reserva.get("evento") or ""
     if not uri.startswith("http"):
         return reserva
-    async with R._cliente() as cliente:
-        ev = (await R._pedir(cliente, "GET", uri)).get("resource") or {}
+    try:
+        async with R._cliente() as cliente:
+            ev = (await R._pedir(cliente, "GET", uri)).get("resource") or {}
+    except Exception:
+        if falta_la_cita:
+            raise
+        logger.warning("No se pudo pedir a Calendly el anfitrión de %s", uri, exc_info=True)
+        return reserva
     ubicacion = ev.get("location") or {}
     return {
         **reserva,
@@ -604,12 +681,15 @@ async def _avisar_reparto(reserva: dict, db_session: AsyncSession) -> None:
             "cuando": _cuando_corto(reserva.get("inicio", "")),
             "enlace": reserva.get("enlace") or "",
         }
+        informe: dict = {}
         if closer:
-            await avisar_llamada_con_closer(datos, closer, db_session)
+            await avisar_llamada_con_closer(datos, closer, db_session, informe)
         else:
             await avisar_llamada_nueva(datos, db_session)
+        apuntar_reserva(reserva, texto_de_lo_hecho(closer, reserva.get("anfitrion_email") or "", informe))
     except Exception:  # noqa: BLE001
         logger.exception("No se pudo avisar al equipo de la reserva de Calendly")
+        apuntar_reserva(reserva, "Falló al avisar al equipo (mira el registro de Railway).")
 
 
 async def mandar_una_vez(reserva: dict, estado: dict, db_session: AsyncSession) -> str:
@@ -678,15 +758,18 @@ async def atender_aviso(cuerpo: bytes, cabecera: str, db_session: AsyncSession) 
     if reserva is None:
         return "ignorado"
     if reserva["cambio_de_hora"]:
+        apuntar_reserva(reserva, "Era un cambio de hora hecho en Calendly: no se avisa a nadie.")
         return "cambio-de-hora"
     reserva = await _completar(reserva)
     # (Después de `_completar`, que trae la hora si el aviso no la traía.)
     # Un cambio de hora hecho desde la escuela (31/10, `reservar.cambiar_hora`)
     # llega como una reserva nueva, sin `old_invitee`: tampoco se repite nada.
     if await R.lo_cambio_el_equipo(reserva["email"], reserva.get("inicio") or "", db_session):
+        apuntar_reserva(reserva, "Era un cambio de hora hecho desde la escuela: no se avisa a nadie.")
         return "cambio-de-hora"
     tipos = await _tipos_de_llamada()
     if tipos and reserva.get("tipo_evento") and reserva["tipo_evento"] not in tipos:
+        apuntar_reserva(reserva, "Era de otro evento de Calendly, no de la llamada: no se hizo nada.")
         return "otro-evento"
 
     await _avisar_reparto(reserva, db_session)
