@@ -451,3 +451,28 @@ async def test_agenda_con_el_closer_y_la_herramienta_elegidos(db):
     assert len([p for p in falso.pedidos if p[1].endswith("/invitees")]) == 1
     assert "evento de ese closer" in raro["error"]
     R._eventos_cache.update(datos=None, hasta=0.0)
+
+
+def test_el_clon_con_zoom_y_meet():
+    """05/11: el usuario duplicó el evento en Calendly («…-hn-clon», oculto, con
+    Zoom y Google Meet). La escuela lo reconoce por el slug y, con varios del
+    mismo closer, se queda con el que deja elegir más videollamadas."""
+    clon = {"uri": "https://api.calendly.com/event_types/CLON", "slug": "llamada-de-consultoria-hn-clon", "active": True,
+            "secret": True, "name": "Clon de la llamada", "duration": 45,
+            "profile": {"type": "User", "owner": "https://api.calendly.com/users/H"},
+            "locations": [{"kind": "zoom_conference"}, {"kind": "google_conference"}]}
+    solo_meet = {**DE_DIEGO, "locations": [{"kind": "google_conference"}]}
+    eventos = R.eventos_de_closers([TURNOS, solo_meet, clon, DE_BELEN], MIEMBROS)
+    diego = [e for e in eventos if e["email"] == "h@nawar.es"][0]
+    assert diego["uri"] == clon["uri"]
+    assert [u["nombre"] for u in diego["ubicaciones"]] == ["Zoom", "Google Meet"]
+    assert clon["uri"] in R.tipos_de_llamada([TURNOS, clon])
+    # Si el clon es del MISMO tipo que el público (por turnos y secreto), es la
+    # copia del equipo y la opción «Por turnos» deja elegir Zoom o Meet.
+    clon_turnos = {**clon, "pooling_type": "round_robin", "profile": {"type": "Team"}}
+    base = R.evento_elegido([TURNOS, clon_turnos])
+    assert base["uri"] == clon["uri"]
+    turnos = R.opciones_para(base, [], 0, 1, True)["opciones"][0]
+    assert turnos["por_turnos"] and [u["kind"] for u in turnos["ubicaciones"]] == ["zoom_conference", "google_conference"]
+    # El por turnos con una sola (o con ubicación por anfitrión), sin elegir.
+    assert R.opciones_para(TURNOS, [], 0, 1, True)["opciones"][0]["ubicaciones"] == []
