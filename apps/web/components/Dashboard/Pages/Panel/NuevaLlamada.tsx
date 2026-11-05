@@ -45,6 +45,9 @@ const diaYHora = (iso: string) => {
   return `${d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', timeZone: ZONA_ESCUELA })}, ${horaEscuela(d)}`
 }
 
+/** Lo último elegido en «Por dónde», por evento, en este navegador. */
+const CLAVE_DONDE = 'nawar.llamada.donde'
+
 const CHIP = (activo: boolean) =>
   `h-8 px-3 rounded-md border text-[13px] font-medium transition-colors ${
     activo ? 'bg-gray-900 border-gray-900 text-white' : 'border-[#E5E7EB] text-gray-800 hover:bg-[#F9FAFB]'
@@ -93,29 +96,34 @@ function QuienYDonde({
           </p>
         ) : null}
       </div>
-      {elegida && !elegida.por_turnos ? (
+      {elegida && elegida.ubicaciones.length > 1 ? (
         <div>
           <p className="text-[12.5px] font-medium text-gray-700 mb-1.5">Por dónde</p>
-          {elegida.ubicaciones.length > 1 ? (
-            <div className="flex flex-wrap gap-1.5">
-              {elegida.ubicaciones.map((u) => (
-                <button key={u.kind} onClick={() => setUbicacion(u.kind)} className={CHIP(ubicacion === u.kind)}>
-                  {u.nombre}
-                </button>
-              ))}
-            </div>
-          ) : elegida.ubicaciones.length === 1 ? (
-            <p className="text-[13px] text-gray-800">
-              {elegida.ubicaciones[0].nombre}{' '}
-              <span className="text-gray-500">(es la única que tiene su evento; añade otra en Calendly para poder elegir)</span>
-            </p>
-          ) : (
-            <p className="text-[13px] text-gray-700">La que ponga su evento de Calendly.</p>
-          )}
+          <div className="flex flex-wrap gap-1.5">
+            {elegida.por_turnos ? (
+              <button onClick={() => setUbicacion('')} className={CHIP(ubicacion === '')}>
+                La de quien le toque
+              </button>
+            ) : null}
+            {elegida.ubicaciones.map((u) => (
+              <button key={u.kind} onClick={() => setUbicacion(u.kind)} className={CHIP(ubicacion === u.kind)}>
+                {u.nombre}
+              </button>
+            ))}
+          </div>
         </div>
+      ) : elegida && elegida.ubicaciones.length === 1 ? (
+        <p className="text-[13px] text-gray-800">
+          <span className="font-medium">Por dónde:</span> {elegida.ubicaciones[0].nombre}{' '}
+          <span className="text-gray-500">(es la única que tiene su evento)</span>
+        </p>
       ) : elegida?.por_turnos ? (
         <p className="text-[13px] text-gray-700">
           <span className="font-medium">Por dónde:</span> la de quien le toque (en Calendly, cada closer tiene la suya).
+        </p>
+      ) : elegida ? (
+        <p className="text-[13px] text-gray-700">
+          <span className="font-medium">Por dónde:</span> la que ponga su evento de Calendly.
         </p>
       ) : null}
     </div>
@@ -188,11 +196,27 @@ export default function NuevaLlamada({
     }
   }, [org?.id, accessToken, personaEmail, cambiar?.closer_id])
 
-  // Por dónde: si el evento elegido ofrece varias, la primera; con una, esa.
+  // Por dónde (05/11): lo último que se eligió con ese evento (se recuerda en
+  // este navegador); si no, en el por turnos «La de quien le toque» y en el
+  // de un closer la primera que ofrezca.
   useEffect(() => {
     const ub = elegida?.ubicaciones || []
-    setUbicacion((antes) => (ub.some((u) => u.kind === antes) ? antes : ub[0]?.kind || ''))
+    let guardada = ''
+    try {
+      guardada = (JSON.parse(localStorage.getItem(CLAVE_DONDE) || '{}') || {})[elegida?.id || ''] || ''
+    } catch {}
+    if (ub.some((u) => u.kind === guardada)) setUbicacion(guardada)
+    else setUbicacion(elegida?.por_turnos ? '' : ub[0]?.kind || '')
   }, [elegida?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function elegirDonde(v: string) {
+    setUbicacion(v)
+    try {
+      const todas = JSON.parse(localStorage.getItem(CLAVE_DONDE) || '{}') || {}
+      todas[elegida?.id || ''] = v
+      localStorage.setItem(CLAVE_DONDE, JSON.stringify(todas))
+    } catch {}
+  }
 
   useEffect(() => {
     if (!org?.id || !accessToken || !fecha || !quien) return
@@ -227,7 +251,7 @@ export default function NuevaLlamada({
         inicio: hueco.inicio,
         confirmada: yaHablado,
         evento,
-        ubicacion: evento ? ubicacion : '',
+        ubicacion,
       },
       accessToken
     )
@@ -256,7 +280,7 @@ export default function NuevaLlamada({
         inicio: hueco.inicio,
         url: hueco.url,
         evento,
-        ubicacion: evento ? ubicacion : '',
+        ubicacion,
       },
       accessToken
     )
@@ -355,7 +379,7 @@ export default function NuevaLlamada({
               quien={quien}
               setQuien={setQuien}
               ubicacion={ubicacion}
-              setUbicacion={setUbicacion}
+              setUbicacion={elegirDonde}
             />
             <label className="block">
               <span className="text-[12.5px] font-medium text-gray-700">Día</span>

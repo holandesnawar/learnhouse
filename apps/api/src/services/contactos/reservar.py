@@ -135,8 +135,11 @@ def copia_del_equipo(tipos: list[dict], base: Optional[dict]) -> Optional[dict]:
         and str(t.get("uri") or "") != str(base.get("uri") or "")
         and str(t.get("pooling_type") or "").lower() == tipo
     ]
+    slug = str(base.get("slug") or "").lower()
     for t in candidatas:
         if nombre and _normal(t.get("name") or "").startswith(nombre):
+            return t
+        if slug and str(t.get("slug") or "").lower().startswith(slug):
             return t
     if es_por_turnos(base) and candidatas:
         return candidatas[0]
@@ -223,7 +226,13 @@ def _rango_de_llamada(t: dict, base: Optional[dict], preferido: str) -> Optional
     if str((t.get("profile") or {}).get("type") or "User") != "User":
         return None
     nombre = _normal((base or {}).get("name") or "")
-    if nombre and str((base or {}).get("uri") or "") != str(t.get("uri") or "") and _normal(t.get("name") or "").startswith(nombre):
+    otro = str((base or {}).get("uri") or "") != str(t.get("uri") or "")
+    if nombre and otro and _normal(t.get("name") or "").startswith(nombre):
+        return 0
+    # Un duplicado de Calendly lleva el slug del original con algo detrás
+    # («llamada-de-consultoria-hn-clon», 05/11).
+    slug = str((base or {}).get("slug") or "").lower()
+    if slug and otro and str(t.get("slug") or "").lower().startswith(slug):
         return 0
     if _es_el_preferido(t, _clave(preferido)):
         return 1
@@ -248,7 +257,10 @@ def eventos_de_closers(
         email = str(dueno.get("email") or "").strip().lower()
         if "@" not in email:
             continue
-        orden = (rango, 0 if es_secreto(t) else 1)
+        # Con varios: el de nombre bueno, el que deja elegir más videollamadas
+        # (el clon con Zoom y Meet antes que la copia solo con Meet) y el
+        # secreto antes que el público.
+        orden = (rango, -len(videollamadas(t)), 0 if es_secreto(t) else 1)
         if email not in mejor or orden < mejor[email][0]:
             mejor[email] = (orden, t)
     salida = []
@@ -287,7 +299,10 @@ def opciones_para(
             "evento": str(base.get("name") or ""),
             "uri": str(base.get("uri") or ""),
             "por_turnos": es_por_turnos(base),
-            "ubicaciones": [] if es_por_turnos(base) else videollamadas(base),
+            # En el por turnos, solo si el evento deja elegir entre varias
+            # (con una sola, va la del closer que le toque; la pantalla añade
+            # «La de quien le toque» y es lo de serie).
+            "ubicaciones": videollamadas(base) if (not es_por_turnos(base) or len(videollamadas(base)) > 1) else [],
         })
     for e in de_closers:
         cid = int(e.get("closer_id") or 0)
