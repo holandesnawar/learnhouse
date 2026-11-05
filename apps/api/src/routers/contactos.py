@@ -328,9 +328,10 @@ async def api_agenda(
     # por turnos es suya, aunque el aviso de la reserva no haya llegado (p.
     # ej. si aún avisa solo de las del usuario principal). Solo se pone si no
     # tenía closer: lo que el equipo cambió a mano no se toca.
-    from src.services.panel.reparto import asignar_citas_por_anfitrion
+    from src.services.panel.reparto import asignar_citas_por_anfitrion, choques, closers_de_anfitriones
 
-    await asignar_citas_por_anfitrion(visibles, db_session)
+    closer_de = await closers_de_anfitriones(visibles, db_session)
+    await asignar_citas_por_anfitrion(visibles, db_session, closer_de)
     # El closer que lleva cada llamada (22/10), para «Solo las mías».
     from src.services.panel.pipeline import guardadas
 
@@ -340,6 +341,11 @@ async def api_agenda(
         repartidas = {}
 
     def _closer(c: dict) -> dict:
+        # La llamada es de quien la tiene en Calendly (su calendario y su
+        # enlace), si es un closer; si no se sabe, el closer de la persona.
+        suyo = closer_de.get(str(c.get("anfitrion_email") or "").strip().lower())
+        if suyo:
+            return {"closer_id": suyo["id"], "closer": suyo.get("nombre") or ""}
         g = repartidas.get((c.get("email") or "").lower()) or {}
         return {"closer_id": g.get("closer_id", 0), "closer": g.get("closer", "") if g.get("closer_id") else ""}
 
@@ -364,20 +370,26 @@ async def api_agenda(
 
     desde_escuela = await agendadas_desde_la_escuela({c.get("email") or "" for c in visibles}, db_session)
 
+    citas = [
+        {
+            **c,
+            "telefono": c.get("telefono") or tels.get((c.get("email") or "").lower(), ""),
+            "desde_la_escuela": quien_la_agendo(desde_escuela.get((c.get("email") or "").lower(), []), c.get("inicio") or ""),
+            "resultado": _resultado(c),
+            "confirmada": confirmada.get(c.get("id") or ""),
+            "whatsapp": whatsapp.get(c.get("id") or "") or {},
+            **_closer(c),
+        }
+        for c in visibles
+    ]
+    # Dos llamadas del mismo closer a la vez (05/11): se avisa en las dos.
+    pisadas = choques(citas)
+    for c in citas:
+        c["choca_con"] = pisadas.get(c.get("id") or "", "")
+
     return {
         **datos,
-        "citas": [
-            {
-                **c,
-                "telefono": c.get("telefono") or tels.get((c.get("email") or "").lower(), ""),
-                "desde_la_escuela": quien_la_agendo(desde_escuela.get((c.get("email") or "").lower(), []), c.get("inicio") or ""),
-                "resultado": _resultado(c),
-                "confirmada": confirmada.get(c.get("id") or ""),
-                "whatsapp": whatsapp.get(c.get("id") or "") or {},
-                **_closer(c),
-            }
-            for c in visibles
-        ],
+        "citas": citas,
         "quitadas": quitadas,
         "yo": current_user.id,
     }

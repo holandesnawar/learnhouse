@@ -42,7 +42,7 @@ no puede devolver un error a la pantalla ni a la web.
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from sqlmodel import select
@@ -141,34 +141,115 @@ def closer_del_anfitrion(anfitrion_email: str, equipo: list[dict], calendly: dic
     return None
 
 
-async def asignar_citas_por_anfitrion(citas: list[dict], db_session: AsyncSession) -> int:
-    """Lo mismo para toda la agenda al leerla, de una vez: a quien tiene una
-    cita activa con un closer como anfitrión y aún no tiene closer, se le pone
-    ese. Lo ya puesto (a mano o por un aviso) no se toca. Devuelve cuántas.
-    En blando."""
-    from src.services.panel.pipeline import asignar, guardadas
+def _instante(texto: str) -> Optional[datetime]:
+    try:
+        d = datetime.fromisoformat(str(texto or "").replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+    return (d if d.tzinfo else d.replace(tzinfo=timezone.utc)).astimezone(timezone.utc)
 
+
+def cambios_por_anfitrion(
+    citas: list[dict], ya: dict[str, dict], closer_de: dict[str, dict], ahora: Optional[datetime] = None
+) -> dict[str, dict]:
+    """A quién hay que ponerle closer al leer la agenda, y cuál: {correo:
+    closer}. `ya` = lo guardado por correo (`pipeline.guardadas`), `closer_de`
+    = {correo de Calendly del anfitrión: closer}. Función pura, con test.
+
+    - Sin closer: el de su cita activa (la última reservada).
+    - Con OTRO closer: solo si es una cita que aún no ha pasado y se reservó
+      DESPUÉS de que se le pusiera ese closer (lo último que pasó manda, 05/11:
+      "mañana hay dos llamadas a las 12 y las dos las tiene Diego"). Pasa
+      cuando el aviso de esa reserva no llegó, o cuando el equipo cambió la
+      hora y Calendly se la dio al otro closer: la llamada está en el
+      calendario de ese closer, con su enlace. Si el equipo la pasó a otro
+      DESPUÉS de reservar, eso se queda."""
+    ahora = ahora or datetime.now(timezone.utc)
+    ultima: dict[str, tuple[dict, dict]] = {}
+    for c in citas:
+        email = str(c.get("email") or "").strip().lower()
+        if c.get("estado") != "activa" or not email:
+            continue
+        closer = closer_de.get(str(c.get("anfitrion_email") or "").strip().lower())
+        if not closer:
+            continue
+        antes = ultima.get(email)
+        if antes is None or str(c.get("reservada") or "") > str(antes[0].get("reservada") or ""):
+            ultima[email] = (c, closer)
+    salida: dict[str, dict] = {}
+    for email, (c, closer) in ultima.items():
+        g = ya.get(email) or {}
+        actual = int(g.get("closer_id") or 0)
+        if not actual:
+            salida[email] = closer
+            continue
+        if actual == closer.get("id"):
+            continue
+        inicio, reservada, asignado = _instante(c.get("inicio")), _instante(c.get("reservada")), _instante(g.get("asignado_at"))
+        if inicio and inicio > ahora and reservada and asignado and reservada > asignado + timedelta(minutes=2):
+            salida[email] = closer
+    return salida
+
+
+def choques(citas: list[dict]) -> dict[str, str]:
+    """Las citas activas de un mismo closer que se pisan en el tiempo: {id de
+    la cita: nombre (o correo) de la otra}. Las citas llevan ya su `closer_id`
+    (el de Calendly si se sabe). Sin fin, se cuentan 45 minutos. Función pura,
+    con test (05/11)."""
+    activas = []
+    for c in citas:
+        if c.get("estado") != "activa" or not int(c.get("closer_id") or 0) or not c.get("id"):
+            continue
+        ini = _instante(c.get("inicio"))
+        if ini is None:
+            continue
+        fin = _instante(c.get("fin")) or ini + timedelta(minutes=45)
+        activas.append((c, ini, max(fin, ini + timedelta(minutes=1))))
+    salida: dict[str, str] = {}
+    for i, (a, ia, fa) in enumerate(activas):
+        for b, ib, fb in activas[i + 1 :]:
+            if a["closer_id"] != b["closer_id"] or not (ia < fb and ib < fa):
+                continue
+            salida.setdefault(a["id"], b.get("nombre") or b.get("email") or "otra persona")
+            salida.setdefault(b["id"], a.get("nombre") or a.get("email") or "otra persona")
+    return salida
+
+
+async def closers_de_anfitriones(citas: list[dict], db_session: AsyncSession) -> dict[str, dict]:
+    """{correo de Calendly del anfitrión: closer} de los anfitriones de esas
+    citas que son closers de la escuela. En blando: si falla, vacío."""
     try:
         org_id, eq = await _equipo_de_la_escuela(db_session)
         mapa = (await leer(db_session, org_id or None))["calendly"]
-        pendientes: dict[str, dict] = {}
-        for c in citas:
-            email = str(c.get("email") or "").strip().lower()
-            if c.get("estado") != "activa" or not email or email in pendientes:
-                continue
-            closer = closer_del_anfitrion(str(c.get("anfitrion_email") or ""), eq, mapa)
+    except Exception:  # noqa: BLE001
+        logger.exception("No se pudieron leer los closers de Calendly")
+        return {}
+    salida: dict[str, dict] = {}
+    for c in citas:
+        correo = str(c.get("anfitrion_email") or "").strip().lower()
+        if correo and correo not in salida:
+            closer = closer_del_anfitrion(correo, eq, mapa)
             if closer:
-                pendientes[email] = closer
-        if not pendientes:
+                salida[correo] = closer
+    return salida
+
+
+async def asignar_citas_por_anfitrion(
+    citas: list[dict], db_session: AsyncSession, closer_de: Optional[dict[str, dict]] = None
+) -> int:
+    """Lo mismo para toda la agenda al leerla, de una vez (reglas en
+    `cambios_por_anfitrion`). Devuelve cuántas cambia. En blando."""
+    from src.services.panel.pipeline import asignar, guardadas
+
+    try:
+        if closer_de is None:
+            closer_de = await closers_de_anfitriones(citas, db_session)
+        if not closer_de:
             return 0
-        ya = await guardadas(db_session)
-        hechas = 0
-        for email, closer in pendientes.items():
-            if int((ya.get(email) or {}).get("closer_id") or 0):
-                continue
+        cambios = cambios_por_anfitrion(citas, await guardadas(db_session), closer_de)
+        for email, closer in cambios.items():
             await asignar(email, closer["id"], closer.get("nombre") or "", "Calendly", db_session)
-            hechas += 1
-        return hechas
+        return len(cambios)
     except Exception:  # noqa: BLE001
         logger.exception("No se pudieron poner los closers de Calendly")
         return 0

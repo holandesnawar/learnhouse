@@ -675,6 +675,7 @@ async def guardadas(db_session: AsyncSession) -> dict[str, dict]:
             "updated_at": f.updated_at, "updated_by": f.updated_by,
             "closer_id": int(getattr(asignada, "closer_id", 0) or 0),
             "closer": getattr(asignada, "closer", "") or "",
+            "asignado_at": getattr(asignada, "asignado_at", "") or "",
         }
     return salida
 

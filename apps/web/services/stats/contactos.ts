@@ -229,6 +229,8 @@ export interface Cita {
   anfitrion_email?: string
   /** Si la agendó o la movió alguien desde la escuela (05/11); null = en Calendly. */
   desde_la_escuela?: { autor: string; cuando: string; como: 'agendo' | 'cambio' } | null
+  /** Otra llamada del mismo closer a la misma hora (05/11): con quién; vacío si no. */
+  choca_con?: string
   /** Sus tres WhatsApp (02/11): cuál se le ha mandado, quién y cuándo. */
   whatsapp?: Partial<Record<'presentacion' | 'recurso' | 'enlace', { autor: string; cuando: string }>> | null
 }
