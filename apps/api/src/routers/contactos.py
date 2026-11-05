@@ -357,13 +357,16 @@ async def api_agenda(
         repartidas = {}
 
     def _closer(c: dict) -> dict:
-        # La llamada es de quien la tiene en Calendly (su calendario y su
-        # enlace), si es un closer; si no se sabe, el closer de la persona.
-        suyo = closer_de.get(str(c.get("anfitrion_email") or "").strip().lower())
-        if suyo:
-            return {"closer_id": suyo["id"], "closer": suyo.get("nombre") or ""}
+        # Quien la lleva es lo que decidió el equipo (el closer de la tarjeta).
+        # El 05/11 se puso aquí el anfitrión de Calendly por encima y le dio la
+        # vuelta a dos llamadas: no volver a hacerlo. Lo de Calendly va aparte,
+        # en `calendly_closer`, solo para enseñarlo.
         g = repartidas.get((c.get("email") or "").lower()) or {}
-        return {"closer_id": g.get("closer_id", 0), "closer": g.get("closer", "") if g.get("closer_id") else ""}
+        suyo = closer_de.get(str(c.get("anfitrion_email") or "").strip().lower()) or {}
+        lleva = {"closer_id": g.get("closer_id", 0), "closer": g.get("closer", "") if g.get("closer_id") else ""}
+        if not lleva["closer_id"] and suyo:
+            lleva = {"closer_id": suyo["id"], "closer": suyo.get("nombre") or ""}
+        return {**lleva, "calendly_closer": suyo.get("nombre") or "", "calendly_closer_id": int(suyo.get("id") or 0)}
 
     # Quien ya ha dicho que viene (27/10, `confirmar_llamada.py`).
     from src.services.contactos.confirmar_llamada import confirmadas

@@ -168,10 +168,10 @@ def test_el_correo_de_un_lead_no_habla_de_llamada():
     assert "mesa=ventas" in r["html"] and "Enlace de la videollamada" in r["html"]
 
 
-def test_al_leer_la_agenda_manda_la_reserva_mas_nueva():
-    """«Mañana hay dos llamadas a las 12 y las dos las tiene Diego» (05/11):
-    la llamada es de quien la tiene en Calendly si se reservó después de que
-    se le pusiera closer; si el equipo la cambió después, se queda."""
+def test_al_leer_la_agenda_no_se_toca_lo_que_decidio_el_equipo():
+    """05/11: pasar la tarjeta al anfitrión de Calendly le dio la vuelta a dos
+    llamadas (Marylin era de Diego y la otra de Belén). Al leer la agenda solo
+    se le pone closer a quien no tiene; lo que ya tiene closer se queda."""
     from datetime import datetime, timezone
 
     from src.services.panel.reparto import cambios_por_anfitrion
@@ -181,20 +181,11 @@ def test_al_leer_la_agenda_manda_la_reserva_mas_nueva():
     closer_de = {"h@x.com": diego, "belen@x.com": belen}
     cita = {"email": "ana@x.com", "estado": "activa", "anfitrion_email": "belen@x.com",
             "inicio": "2026-11-06T11:00:00Z", "reservada": "2026-11-05T10:00:00Z"}
-    # Se la puso Diego en Leads antes de reservar: pasa a Belén.
+    # Ya la lleva Diego (aunque se reservara después): no se toca.
     ya = {"ana@x.com": {"closer_id": 4, "asignado_at": "2026-11-04T09:00:00+00:00"}}
-    assert cambios_por_anfitrion([cita], ya, closer_de, ahora) == {"ana@x.com": belen}
-    # El equipo se la pasó a Diego DESPUÉS de reservar: se queda con Diego.
-    ya = {"ana@x.com": {"closer_id": 4, "asignado_at": "2026-11-05T12:00:00+00:00"}}
     assert cambios_por_anfitrion([cita], ya, closer_de, ahora) == {}
-    # Ya era de Belén: nada.
-    assert cambios_por_anfitrion([cita], {"ana@x.com": {"closer_id": 5}}, closer_de, ahora) == {}
     # Sin closer: el de su cita.
     assert cambios_por_anfitrion([cita], {}, closer_de, ahora) == {"ana@x.com": belen}
-    # Una cita que ya pasó no le cambia el closer.
-    vieja = {**cita, "inicio": "2026-11-05T09:00:00Z", "reservada": "2026-11-04T10:00:00Z"}
-    ya = {"ana@x.com": {"closer_id": 4, "asignado_at": "2026-11-01T09:00:00+00:00"}}
-    assert cambios_por_anfitrion([vieja], ya, closer_de, ahora) == {}
     # Cancelada o con un anfitrión que no es closer: nada.
     assert cambios_por_anfitrion([{**cita, "estado": "cancelada"}], {}, closer_de, ahora) == {}
     assert cambios_por_anfitrion([{**cita, "anfitrion_email": "otro@x.com"}], {}, closer_de, ahora) == {}
