@@ -27,6 +27,9 @@ export interface Semana {
   limite: string
   enunciado: string
   tiene_tarea: boolean
+  /** Las casillas de la campana (05/11/2026): avisar a los alumnos de la clase. */
+  avisar_presentacion?: boolean
+  avisar_grabacion?: boolean
   /** false = la clase aún no ha llegado: el alumno solo ve la presentación. */
   abierta?: boolean
   /** Cuántas clases se le abrirán al alumno el día de la clase (ejercicios…). */
@@ -214,6 +217,8 @@ export interface DatosSemana {
   fecha?: string
   enunciado?: string
   fecha_limite?: string
+  avisar_presentacion?: boolean
+  avisar_grabacion?: boolean
 }
 
 export const crearSemana = (courseUuid: string, datos: DatosSemana, token: string) =>

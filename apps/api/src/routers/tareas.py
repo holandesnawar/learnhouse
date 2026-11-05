@@ -195,6 +195,9 @@ class SemanaIn(BaseModel):
     fecha: Optional[str] = None
     enunciado: Optional[str] = None
     fecha_limite: Optional[str] = None
+    # Las casillas «avisar en la campana» (05/11/2026).
+    avisar_presentacion: Optional[bool] = None
+    avisar_grabacion: Optional[bool] = None
 
 
 @router.post("/course/{course_uuid}/semanas", summary="Convierte un capítulo de la clase en una semana con su tarea (equipo).")
