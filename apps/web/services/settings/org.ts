@@ -195,6 +195,17 @@ export async function updateOrgAccesoCloser(
   return await errorHandling(result)
 }
 
+/** Qué personas ve cada closer (05/11): «todo», «suyo_y_libre» o «suyo». */
+export type AlcanceCloser = 'todo' | 'suyo_y_libre' | 'suyo'
+
+export async function updateOrgAlcanceCloser(org_id: number, alcance: AlcanceCloser, access_token: string) {
+  const result: any = await fetch(
+    `${getAPIUrl()}orgs/${org_id}/config/acceso_closer`,
+    RequestBodyWithAuthHeader('PUT', { alcance }, null, access_token)
+  )
+  return await errorHandling(result)
+}
+
 export async function updateOrgFontConfig(
   org_id: string,
   font: string,

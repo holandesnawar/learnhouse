@@ -175,7 +175,14 @@ async def api_contactos(
         nombres = await leer_nombres(org_id, db_session)
     except Exception:
         nombres = None
-    return await listar_contactos(q, min(max(limit, 1), 2000), db_session, nombres_anuncios=nombres)
+    datos = await listar_contactos(q, min(max(limit, 1), 2000), db_session, nombres_anuncios=nombres)
+    # Qué ve cada closer (05/11, `alcance.py`).
+    filtro = await _filtro(current_user, org_id, db_session)
+    if filtro:
+        datos["contactos"] = [c for c in datos.get("contactos") or [] if filtro.ve_correo(c.get("email") or "")]
+        datos["mostrados"] = len(datos["contactos"])
+        datos["total"] = min(int(datos.get("total") or 0), datos["mostrados"]) if q else datos["mostrados"]
+    return datos
 
 
 @router.get(
@@ -189,7 +196,11 @@ async def api_llamadas(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
-    return {"llamadas": await listar_llamadas(db_session)}
+    llamadas = await listar_llamadas(db_session)
+    filtro = await _filtro(current_user, org_id, db_session)
+    if filtro:
+        llamadas = [l for l in llamadas if filtro.ve_correo(l.get("email") or "")]
+    return {"llamadas": llamadas}
 
 
 # ── Llamadas templadas (closer y administradores) ──────────────────────────
@@ -203,7 +214,12 @@ async def api_templadas(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
-    return await listar_templadas(db_session)
+    datos = await listar_templadas(db_session)
+    filtro = await _filtro(current_user, org_id, db_session)
+    if filtro:
+        for clave in ("pendientes", "cerradas"):
+            datos[clave] = [t for t in datos.get(clave) or [] if filtro.ve_correo(t.get("email") or "")]
+    return datos
 
 
 class Templada(BaseModel):
@@ -386,6 +402,12 @@ async def api_agenda(
     pisadas = choques(citas)
     for c in citas:
         c["choca_con"] = pisadas.get(c.get("id") or "", "")
+    # Qué ve cada closer (05/11, `alcance.py`): sus llamadas (las que le dio
+    # Calendly o lleva) y, si toca, las que no tienen closer.
+    filtro = await _filtro(current_user, org_id, db_session)
+    if filtro:
+        citas = [c for c in citas if filtro.ve_closer(int(c.get("closer_id") or 0))]
+        quitadas = [c for c in quitadas if filtro.ve_correo(c.get("email") or "")]
 
     return {
         **datos,
@@ -395,18 +417,69 @@ async def api_agenda(
     }
 
 
+async def _filtro(current_user, org_id: int, db_session: AsyncSession):
+    """Qué ve este closer (05/11, `services/panel/alcance.py`); None = todo."""
+    from src.services.panel.alcance import filtro_de
+
+    return await filtro_de(current_user.id, org_id, db_session)
+
+
+async def _quien_lleva(email: str, db_session: AsyncSession) -> int:
+    """El closer que lleva a esa persona (0 si nadie). En blando."""
+    if "@" not in (email or ""):
+        return 0
+    try:
+        from src.services.panel.pipeline import _la_asignada, filas_de
+
+        filas = await filas_de(email, db_session)
+        return int(getattr(_la_asignada(filas), "closer_id", 0) or 0) if filas else 0
+    except Exception:  # noqa: BLE001
+        return 0
+
+
+async def _opciones_de(email: str, current_user, org_id: int, db_session: AsyncSession) -> dict:
+    from src.services.contactos.reservar import opciones
+
+    return await opciones(
+        await _quien_lleva(email, db_session), current_user.id, await _es_admin(current_user, org_id, db_session), db_session
+    )
+
+
+async def _comprobar_evento(evento: str, email: str, current_user, org_id: int, db_session: AsyncSession) -> None:
+    """Un closer solo agenda con su evento o con el del closer que lleva a esa
+    persona (05/11, `reservar.opciones_para`)."""
+    if not evento or evento == "turnos":
+        return
+    ops = await _opciones_de(email, current_user, org_id, db_session)
+    if evento not in {o["id"] for o in ops.get("opciones") or []}:
+        raise HTTPException(status_code=403, detail="Con ese closer no puedes agendar esta llamada")
+
+
+@router.get("/org/{org_id}/agenda/opciones", summary="Quién puede llevar la llamada y por dónde (Zoom, Meet), para agendar.")
+async def api_opciones_agenda(
+    request: Request,
+    org_id: int,
+    email: str = "",
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    return await _opciones_de(email.strip().lower(), current_user, org_id, db_session)
+
+
 @router.get("/org/{org_id}/agenda/huecos", summary="Las horas libres de un día en Calendly, para agendar desde la escuela.")
 async def api_huecos(
     request: Request,
     org_id: int,
     dia: str,
+    evento: str = "",
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ):
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
     from src.services.contactos.reservar import huecos
 
-    return await huecos(dia)
+    return await huecos(dia, evento)
 
 
 class PedidoReservar(BaseModel):
@@ -417,6 +490,11 @@ class PedidoReservar(BaseModel):
     inicio: str
     #: La página de Calendly de esa hora (por si hay que confirmar allí).
     url: str = ""
+    #: Quién la lleva (05/11): «turnos» o vacío = el evento de siempre; si no,
+    #: la dirección del evento de ese closer (de /agenda/opciones).
+    evento: str = ""
+    #: Por dónde: «zoom_conference», «google_conference»… (vacío = la del evento).
+    ubicacion: str = ""
 
 
 @router.post("/org/{org_id}/agenda/reservar", summary="Agenda una llamada en Calendly desde la escuela (closer y administradores).")
@@ -430,9 +508,10 @@ async def api_reservar(
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
     from src.services.contactos.reservar import reservar
 
+    await _comprobar_evento(data.evento, data.email.strip().lower(), current_user, org_id, db_session)
     r = await reservar(
         nombre=data.nombre, email=data.email, telefono=data.telefono, inicio=data.inicio, url_hueco=data.url,
-        autor=_nombre(current_user), db_session=db_session,
+        autor=_nombre(current_user), db_session=db_session, evento=data.evento, ubicacion=data.ubicacion,
     )
     if not r.get("ok"):
         raise HTTPException(status_code=400, detail=r.get("motivo") or "No se ha podido agendar")
@@ -472,6 +551,9 @@ class PedidoCambiarHora(BaseModel):
     inicio: str
     #: El closer ya lo ha hablado con la persona: la hora nueva, confirmada.
     confirmada: bool = False
+    #: Quién la lleva y por dónde (05/11), como en «Nueva llamada».
+    evento: str = ""
+    ubicacion: str = ""
 
 
 @router.post("/org/{org_id}/agenda/cambiar", summary="Cambia la hora de una llamada en Calendly (closer y administradores).")
@@ -488,9 +570,11 @@ async def api_cambiar_hora(
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
     from src.services.contactos.reservar import cambiar_hora
 
+    await _comprobar_evento(data.evento, data.email.strip().lower(), current_user, org_id, db_session)
     r = await cambiar_hora(
         cita_id=data.cita_id, nombre=data.nombre, email=data.email, telefono=data.telefono, antes=data.antes,
         inicio=data.inicio, autor=_nombre(current_user), confirmada=data.confirmada, db_session=db_session,
+        evento=data.evento, ubicacion=data.ubicacion,
     )
     if not r.get("ok"):
         raise HTTPException(status_code=400, detail=r.get("motivo") or "No se ha podido cambiar la hora")
@@ -1028,6 +1112,9 @@ async def api_seguimiento(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    filtro = await _filtro(current_user, org_id, db_session)
+    if filtro and not filtro.ve_correo(email):
+        raise HTTPException(status_code=403, detail="Esta persona la lleva otro closer")
     return await seguimiento_de(email, db_session)
 
 
@@ -1097,7 +1184,13 @@ async def api_seguimiento_resumen(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
-    return await resumen_seguimiento(db_session)
+    datos = await resumen_seguimiento(db_session)
+    filtro = await _filtro(current_user, org_id, db_session)
+    if filtro:
+        datos["recordatorios"] = {e: r for e, r in (datos.get("recordatorios") or {}).items() if filtro.ve_correo(e)}
+        datos["notas_por_email"] = {e: n for e, n in (datos.get("notas_por_email") or {}).items() if filtro.ve_correo(e)}
+        datos["ultimas_notas"] = [n for n in datos.get("ultimas_notas") or [] if filtro.ve_correo(n.get("email") or "")]
+    return datos
 
 
 @router.get("/org/{org_id}/agendar-embudo", summary="Números de /agendar: empiezan, terminan, encajan, reservan.")
@@ -1158,7 +1251,11 @@ async def api_recordatorios(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
-    return {"recordatorios": await todos_los_recordatorios(db_session)}
+    recordatorios = await todos_los_recordatorios(db_session)
+    filtro = await _filtro(current_user, org_id, db_session)
+    if filtro:
+        recordatorios = {e: r for e, r in recordatorios.items() if filtro.ve_correo(e)}
+    return {"recordatorios": recordatorios}
 
 
 # ── Guion de llamada ────────────────────────────────────────────────────────

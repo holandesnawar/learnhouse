@@ -91,7 +91,10 @@ class AccesoCloserConfig(BaseModel):
     salvo que el administrador lo decida.
     """
 
-    numeros: bool = False
+    numeros: Optional[bool] = None
+    #: Qué personas ve (05/11): «todo», «suyo_y_libre» (de serie) o «suyo».
+    #: Ver `services/panel/alcance.py`. Vacío = no se cambia.
+    alcance: Optional[str] = None
 
 
 class DirectWelcomeConfig(BaseModel):

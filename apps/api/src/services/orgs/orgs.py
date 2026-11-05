@@ -1304,7 +1304,16 @@ async def update_org_acceso_closer_config(
         raise HTTPException(status_code=404, detail="Organization config not found")
 
     updated_config = _deep_copy_config(org_config)
-    updated_config["acceso_closer"] = {"numeros": bool(payload.get("numeros"))}
+    # Se mezcla con lo que había: cada interruptor de la pantalla manda solo
+    # lo suyo (`numeros`, o `alcance` desde el 05/11).
+    from src.services.panel.alcance import alcance_valido
+
+    antes = updated_config.get("acceso_closer") or {}
+    nuevo = {
+        "numeros": bool(payload.get("numeros")) if payload.get("numeros") is not None else bool(antes.get("numeros")),
+        "alcance": alcance_valido(payload.get("alcance") if payload.get("alcance") is not None else antes.get("alcance")),
+    }
+    updated_config["acceso_closer"] = nuevo
 
     org_config.config = updated_config
     org_config.update_date = str(datetime.now())
@@ -1313,7 +1322,7 @@ async def update_org_acceso_closer_config(
     await db_session.commit()
     await db_session.refresh(org_config)
 
-    return {"numeros": bool(payload.get("numeros"))}
+    return nuevo
 
 
 async def get_org_acceso_closer_config(org_id: int, db_session: AsyncSession) -> dict:
@@ -1324,11 +1333,14 @@ async def get_org_acceso_closer_config(org_id: int, db_session: AsyncSession) ->
                 select(OrganizationConfig).where(OrganizationConfig.org_id == org_id)
             )
         ).scalars().first()
+        from src.services.panel.alcance import alcance_valido
+
         if not fila or not isinstance(fila.config, dict):
-            return {"numeros": False}
-        return {"numeros": bool((fila.config.get("acceso_closer") or {}).get("numeros"))}
+            return {"numeros": False, "alcance": alcance_valido(None)}
+        guardado = fila.config.get("acceso_closer") or {}
+        return {"numeros": bool(guardado.get("numeros")), "alcance": alcance_valido(guardado.get("alcance"))}
     except Exception:  # noqa: BLE001
-        return {"numeros": False}
+        return {"numeros": False, "alcance": "suyo_y_libre"}
 
 
 async def get_org_email_texts(org_id: int, db_session: AsyncSession) -> dict:

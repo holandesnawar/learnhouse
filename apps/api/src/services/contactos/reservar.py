@@ -157,12 +157,159 @@ def tipos_de_llamada(tipos: list[dict], preferido: str = EVENTO_POR_DEFECTO) -> 
     slug, y el viejo durante el cambio). Lo usa el aviso de Calendly para no
     tratar como llamada una reunión cualquiera. Función pura."""
     clave = _clave(preferido)
-    salida = {str(t.get("uri") or "") for t in tipos if es_por_turnos(t) or _es_el_preferido(t, clave)}
     base = evento_publico(tipos, preferido)
+    # Y el evento 1 a 1 de las llamadas de cada closer (05/11): lo que se
+    # agenda eligiendo closer en la escuela también es la llamada.
+    salida = {
+        str(t.get("uri") or "")
+        for t in tipos
+        if es_por_turnos(t) or _es_el_preferido(t, clave) or _rango_de_llamada(t, base, preferido) is not None
+    }
     for t in (base, copia_del_equipo(tipos, base)):
         if t:
             salida.add(str(t.get("uri") or ""))
     return {u for u in salida if u}
+
+
+# ── quién la lleva y por dónde (05/11/2026) ─────────────────────────────────
+#
+# Pedido: "para crear una llamada manual, tenemos que poder elegir dónde
+# quieres que salga, si Zoom o Meet, y quién lleva la llamada". En el evento
+# por turnos eso no se puede: la API de Calendly (`POST /invitees`) no tiene
+# ningún campo para elegir anfitrión, lo elige Calendly; y con «ubicación por
+# anfitrión», la herramienta va con el closer.
+#
+# La salida, sin crear nada en Calendly desde la escuela (eso fue la «Agenda
+# del equipo» del 02/11 y se quitó): cada closer tiene en SU Calendly un
+# evento 1 a 1 de las llamadas, con el nombre del evento por turnos delante
+# («Llamada de Consultoría HN (equipo)»; lo más cómodo, un «evento gestionado»
+# del administrador asignado a cada closer) y con las ubicaciones que quiera
+# ofrecer (Zoom, Google Meet). La escuela lo encuentra sola (`eventos_de_closers`)
+# y, al agendar, se elige «Por turnos» (Calendly decide, como siempre) o el
+# closer; y, en el suyo, la herramienta entre las que tenga el evento. Las
+# horas que salen son las de ESE closer: Calendly ya quita las que tiene ocupadas.
+#
+# Quién puede elegir a quién (`opciones_para`): un administrador, cualquiera;
+# un closer, él mismo o el closer que ya lleva a esa persona (nadie le quita la
+# llamada al otro).
+
+#: El nombre de cada videollamada de Calendly, para la pantalla.
+NOMBRE_VIDEO = {
+    "zoom_conference": "Zoom",
+    "google_conference": "Google Meet",
+    "microsoft_teams_conference": "Microsoft Teams",
+    "webex_conference": "Webex",
+    "gotomeeting_conference": "GoToMeeting",
+}
+
+
+def videollamadas(tipo: dict) -> list[dict]:
+    """Las videollamadas que ofrece un evento: [{kind, nombre}], sin repetir.
+    Función pura."""
+    salida: list[dict] = []
+    for lugar in (tipo or {}).get("locations") or []:
+        kind = str((lugar or {}).get("kind") or "")
+        if kind in NOMBRE_VIDEO and all(v["kind"] != kind for v in salida):
+            salida.append({"kind": kind, "nombre": NOMBRE_VIDEO[kind]})
+    return salida
+
+
+def _rango_de_llamada(t: dict, base: Optional[dict], preferido: str) -> Optional[int]:
+    """¿Es un evento 1 a 1 de las llamadas? 0 = su nombre empieza por el del
+    evento de las llamadas (el bueno), 1 = lleva el slug de siempre (el viejo),
+    None = no lo es. Función pura."""
+    if es_por_turnos(t) or not t.get("active", True):
+        return None
+    if str((t.get("profile") or {}).get("type") or "User") != "User":
+        return None
+    nombre = _normal((base or {}).get("name") or "")
+    if nombre and str((base or {}).get("uri") or "") != str(t.get("uri") or "") and _normal(t.get("name") or "").startswith(nombre):
+        return 0
+    if _es_el_preferido(t, _clave(preferido)):
+        return 1
+    return None
+
+
+def eventos_de_closers(
+    tipos: list[dict], miembros: dict[str, dict], preferido: str = EVENTO_POR_DEFECTO
+) -> list[dict]:
+    """El evento 1 a 1 de las llamadas de cada persona de Calendly: [{email,
+    nombre, uri, evento, ubicaciones, tipo}], uno por dueño (`profile.owner`
+    → `miembros`). Si tiene varios, el de nombre bueno antes que el del slug
+    viejo, y el secreto antes que el público. Sin dueño conocido, no sale.
+    Función pura, con test."""
+    base = evento_publico(tipos, preferido)
+    mejor: dict[str, tuple[tuple[int, int], dict]] = {}
+    for t in tipos:
+        rango = _rango_de_llamada(t, base, preferido)
+        if rango is None:
+            continue
+        dueno = miembros.get(str((t.get("profile") or {}).get("owner") or "")) or {}
+        email = str(dueno.get("email") or "").strip().lower()
+        if "@" not in email:
+            continue
+        orden = (rango, 0 if es_secreto(t) else 1)
+        if email not in mejor or orden < mejor[email][0]:
+            mejor[email] = (orden, t)
+    salida = []
+    for email, (_, t) in mejor.items():
+        dueno = next((m for m in miembros.values() if str(m.get("email") or "").strip().lower() == email), {})
+        salida.append({
+            "email": email,
+            "nombre": str(dueno.get("nombre") or (t.get("profile") or {}).get("name") or email.split("@")[0]),
+            "uri": str(t.get("uri") or ""),
+            "evento": str(t.get("name") or ""),
+            "ubicaciones": videollamadas(t),
+            "tipo": t,
+        })
+    return sorted(salida, key=lambda e: e["nombre"].lower())
+
+
+def opciones_para(
+    base: Optional[dict],
+    de_closers: list[dict],
+    lleva: int,
+    actor_id: int,
+    es_admin: bool,
+) -> dict:
+    """Lo que puede elegir quien agenda (ver arriba). `de_closers` lleva ya
+    `closer_id` y `closer` (el nombre en la escuela) o 0 si su dueño no es un
+    closer. Devuelve {"opciones": [...], "propuesta": id}: la opción «turnos»
+    (el evento de siempre) y una por closer permitido. Se propone la del closer
+    que lleva a la persona; si no la lleva nadie, la de quien agenda si tiene;
+    si no, «turnos». Función pura, con test."""
+    opciones: list[dict] = []
+    if base:
+        opciones.append({
+            "id": "turnos",
+            "closer_id": 0,
+            "quien": "Por turnos" if es_por_turnos(base) else (base.get("name") or "El evento de siempre"),
+            "evento": str(base.get("name") or ""),
+            "uri": str(base.get("uri") or ""),
+            "por_turnos": es_por_turnos(base),
+            "ubicaciones": [] if es_por_turnos(base) else videollamadas(base),
+        })
+    for e in de_closers:
+        cid = int(e.get("closer_id") or 0)
+        if not cid:
+            continue
+        if not es_admin and cid not in {actor_id, lleva} - {0}:
+            continue
+        opciones.append({
+            "id": e["uri"],
+            "closer_id": cid,
+            "quien": (e.get("closer") or e.get("nombre") or "").split(" ")[0],
+            "evento": e.get("evento") or "",
+            "uri": e["uri"],
+            "por_turnos": False,
+            "ubicaciones": e.get("ubicaciones") or [],
+        })
+    propuesta = "turnos" if base else ""
+    for quien in ([lleva] if lleva else [actor_id]):
+        for o in opciones:
+            if quien and o["closer_id"] == quien:
+                propuesta = o["id"]
+    return {"opciones": opciones, "propuesta": propuesta}
 
 
 def telefono_e164(telefono: str) -> str:
@@ -360,6 +507,92 @@ async def _tipo(cliente: httpx.AsyncClient) -> dict:
     return tipo
 
 
+async def _miembros(cliente: httpx.AsyncClient) -> dict[str, dict]:
+    """{uri del usuario de Calendly: {email, nombre}} de la organización. Si el
+    token no puede listarla, al menos él."""
+    yo = (await _pedir(cliente, "GET", f"{A.API}/users/me")).get("resource") or {}
+    salida: dict[str, dict] = {}
+    if yo.get("uri"):
+        salida[str(yo["uri"])] = {"email": str(yo.get("email") or ""), "nombre": str(yo.get("name") or "")}
+    if yo.get("current_organization"):
+        try:
+            datos = await _pedir(
+                cliente, "GET", f"{A.API}/organization_memberships",
+                params={"organization": yo["current_organization"], "count": 100},
+            )
+            for m in datos.get("collection") or []:
+                u = (m or {}).get("user") or {}
+                if u.get("uri"):
+                    salida[str(u["uri"])] = {"email": str(u.get("email") or ""), "nombre": str(u.get("name") or "")}
+        except FalloCalendly as exc:
+            logger.info("Calendly no deja listar la organización (%s): %s", exc.codigo, exc.motivo)
+    return salida
+
+
+#: Los eventos y las personas de Calendly, 5 minutos (se piden al abrir la
+#: ventana de agendar y en cada día que se mira).
+_eventos_cache: dict = {"hasta": 0.0, "datos": None}
+
+
+async def _eventos(cliente: httpx.AsyncClient, forzar: bool = False) -> tuple[list[dict], list[dict]]:
+    """(todos los tipos de evento, el de cada closer)."""
+    import time
+
+    if not forzar and _eventos_cache["datos"] is not None and _eventos_cache["hasta"] > time.time():
+        return _eventos_cache["datos"]
+    tipos = await _tipos(cliente)
+    preferido = _preferido()
+    base = evento_publico(tipos, preferido)
+    de_closers: list[dict] = []
+    if any(_rango_de_llamada(t, base, preferido) is not None for t in tipos):
+        de_closers = eventos_de_closers(tipos, await _miembros(cliente), preferido)
+    _eventos_cache.update(datos=(tipos, de_closers), hasta=time.time() + 300)
+    return tipos, de_closers
+
+
+async def _tipo_para(cliente: httpx.AsyncClient, evento: str = "") -> dict:
+    """El evento en el que se agenda: sin `evento` (o «turnos»), el de siempre
+    (`_tipo`); si no, el de ese closer, que tiene que ser uno de los suyos."""
+    evento = (evento or "").strip()
+    if not evento or evento == "turnos":
+        return await _tipo(cliente)
+    _, de_closers = await _eventos(cliente)
+    for e in de_closers:
+        if e["uri"] == evento:
+            return e["tipo"]
+    raise FalloCalendly("No encuentro en Calendly el evento de ese closer. Vuelve a abrir la ventana.", 404)
+
+
+async def opciones(lleva: int, actor_id: int, es_admin: bool, db_session: AsyncSession) -> dict:
+    """Para la ventana de agendar: quién puede llevar la llamada (por turnos o
+    cada closer con su evento) y por dónde. `faltan`: los closers de la
+    escuela sin evento propio en Calendly (para decirlo en la pantalla)."""
+    if not A._token():
+        return {"configurado": False, "opciones": [], "propuesta": "", "faltan": []}
+    try:
+        async with _cliente() as cliente:
+            tipos, de_closers = await _eventos(cliente)
+    except FalloCalendly as exc:
+        return {"configurado": True, "opciones": [], "propuesta": "", "faltan": [], "error": exc.motivo}
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("No se pudieron leer los eventos de Calendly")
+        return {"configurado": True, "opciones": [], "propuesta": "", "faltan": [], "error": f"Calendly no contesta: {exc}"}
+    from src.services.panel.reparto import _equipo_de_la_escuela, closer_del_anfitrion, leer
+
+    org_id, eq = await _equipo_de_la_escuela(db_session)
+    mapa = (await leer(db_session, org_id or None))["calendly"]
+    marcados = []
+    for e in de_closers:
+        closer = closer_del_anfitrion(e["email"], eq, mapa)
+        marcados.append({**e, "closer_id": int((closer or {}).get("id") or 0), "closer": (closer or {}).get("nombre") or ""})
+    base = evento_elegido(tipos, _preferido())
+    r = opciones_para(base, marcados, lleva, actor_id, es_admin)
+    con_evento = {m["closer_id"] for m in marcados if m["closer_id"]}
+    r["faltan"] = [m["nombre"].split(" ")[0] for m in eq if m.get("rol") == "Closer" and m["id"] not in con_evento]
+    r["configurado"] = True
+    return r
+
+
 async def anfitrion_del_evento(cliente: httpx.AsyncClient, uri: str) -> str:
     """El correo de quien atiende ese evento en Calendly (el closer que le tocó
     por turnos). Vacío si no se sabe: en blando."""
@@ -372,7 +605,9 @@ async def anfitrion_del_evento(cliente: httpx.AsyncClient, uri: str) -> str:
     return A.anfitrion_de(ev)[0]
 
 
-async def _crear_invitado(cliente: httpx.AsyncClient, tipo: dict, nombre: str, email: str, telefono: str, cuando: datetime) -> dict:
+async def _crear_invitado(
+    cliente: httpx.AsyncClient, tipo: dict, nombre: str, email: str, telefono: str, cuando: datetime, ubicacion: str = ""
+) -> dict:
     """`POST /invitees`: la reserva en Calendly, como si la hubiera hecho la
     persona. Devuelve el invitado creado; lanza FalloCalendly si no se puede."""
     base: dict[str, Any] = {
@@ -388,9 +623,17 @@ async def _crear_invitado(cliente: httpx.AsyncClient, tipo: dict, nombre: str, e
     if respuestas:
         base["questions_and_answers"] = respuestas
     # Se prueba cada ubicación del evento y, al final, sin ninguna: solo se
-    # pasa a la siguiente si lo que Calendly rechaza es ESO.
+    # pasa a la siguiente si lo que Calendly rechaza es ESO. Si el equipo ha
+    # ELEGIDO Zoom o Meet (05/11), solo esa: con otra, la llamada saldría por
+    # donde no se quería.
     ultimo: Optional[FalloCalendly] = None
-    for lugar in ubicaciones_para(tipo, telefono):
+    if ubicacion:
+        if ubicacion not in {v["kind"] for v in videollamadas(tipo)}:
+            raise FalloCalendly(f"El evento «{tipo.get('name') or ''}» no ofrece {NOMBRE_VIDEO.get(ubicacion, ubicacion)}", 400)
+        lugares: list[Optional[dict]] = [{"kind": ubicacion}]
+    else:
+        lugares = ubicaciones_para(tipo, telefono)
+    for lugar in lugares:
         cuerpo = {**base, **({"location": lugar} if lugar else {})}
         try:
             return (await _pedir(cliente, "POST", f"{A.API}/invitees", json=cuerpo)).get("resource") or {}
@@ -404,8 +647,9 @@ async def _crear_invitado(cliente: httpx.AsyncClient, tipo: dict, nombre: str, e
     raise ultimo or FalloCalendly("Calendly no aceptó ninguna ubicación", 400)
 
 
-async def huecos(dia: str) -> dict:
-    """Las horas libres de ese día en el evento de las llamadas."""
+async def huecos(dia: str, evento: str = "") -> dict:
+    """Las horas libres de ese día en el evento de las llamadas (o en el de
+    ese closer, `evento`)."""
     if not A._token():
         return {"configurado": False, "huecos": []}
     try:
@@ -416,7 +660,7 @@ async def huecos(dia: str) -> dict:
         return {"configurado": True, "huecos": [], "duracion": 0}
     try:
         async with _cliente() as cliente:
-            tipo = await _tipo(cliente)
+            tipo = await _tipo_para(cliente, evento)
             datos = await _pedir(
                 cliente, "GET", f"{A.API}/event_type_available_times",
                 params={"event_type": tipo.get("uri", ""), "start_time": _z(desde), "end_time": _z(hasta)},
@@ -441,7 +685,8 @@ async def huecos(dia: str) -> dict:
 
 
 async def reservar(
-    *, nombre: str, email: str, telefono: str, inicio: str, url_hueco: str, autor: str, db_session: AsyncSession
+    *, nombre: str, email: str, telefono: str, inicio: str, url_hueco: str, autor: str, db_session: AsyncSession,
+    evento: str = "", ubicacion: str = "",
 ) -> dict:
     """Agenda la llamada. `modo`: "reservada" (Calendly ya la tiene y le ha
     escrito a la persona) o "enlace" (hay que confirmar en Calendly con la
@@ -460,9 +705,9 @@ async def reservar(
     plan_b = url_hueco or ""
     try:
         async with _cliente() as cliente:
-            tipo = await _tipo(cliente)
+            tipo = await _tipo_para(cliente, evento)
             plan_b = plan_b or enlace_de_hora(str(tipo.get("scheduling_url") or ""), cuando)
-            creada = await _crear_invitado(cliente, tipo, nombre, email, telefono, cuando)
+            creada = await _crear_invitado(cliente, tipo, nombre, email, telefono, cuando, ubicacion)
             # Con el evento por turnos, a quién se la dio Calendly (31/10).
             anfitrion = await anfitrion_del_evento(cliente, str(creada.get("event") or ""))
     except FalloCalendly as exc:
@@ -689,6 +934,8 @@ async def cambiar_hora(
     autor: str,
     confirmada: bool,
     db_session: AsyncSession,
+    evento: str = "",
+    ubicacion: str = "",
 ) -> dict:
     """Mueve una llamada a otra hora (ver arriba). Devuelve `ok`, la cita
     nueva (`cita_id`) y, si la vieja no se pudo cancelar, `aviso`."""
@@ -722,8 +969,8 @@ async def cambiar_hora(
     aviso = ""
     try:
         async with _cliente() as cliente:
-            tipo = await _tipo(cliente)
-            creada = await _crear_invitado(cliente, tipo, nombre, email, telefono, cuando)
+            tipo = await _tipo_para(cliente, evento)
+            creada = await _crear_invitado(cliente, tipo, nombre, email, telefono, cuando, ubicacion)
             # La vieja solo se cancela si aún no ha empezado: Calendly no deja
             # cancelar lo que ya pasó (y entonces solo se agenda la nueva).
             if viejo is None or viejo > ahora:
