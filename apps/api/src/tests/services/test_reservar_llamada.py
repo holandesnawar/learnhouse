@@ -235,6 +235,15 @@ def test_las_ubicaciones_que_se_prueban():
     assert R.ubicaciones_para({}, "") == [None]
 
 
+def test_en_el_por_turnos_primero_sin_ubicacion():
+    """05/11: en el por turnos cada closer tiene su ubicación (Diego Zoom,
+    Belén Meet). Mandar la primera la imponía a todos."""
+    tipo = {"pooling_type": "round_robin",
+            "locations": [{"kind": "google_conference"}, {"kind": "zoom_conference"}]}
+    assert R.ubicaciones_para(tipo) == [None, {"kind": "google_conference"}, {"kind": "zoom_conference"}]
+    assert R.ubicaciones_para({"pooling_type": "round_robin"}) == [None]
+
+
 @pytest.mark.asyncio
 async def test_si_calendly_rechaza_la_ubicacion_prueba_sin_ella(db):
     tipos = [{**TIPOS[1], "custom_questions": [

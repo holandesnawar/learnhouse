@@ -194,13 +194,23 @@ def ubicaciones_para(tipo: dict, telefono: str = "") -> list[Optional[dict]]:
     una de las del tipo de evento y, al final, ninguna. Si Calendly rechaza una
     ubicación (`invalid_location_choice`), se prueba la siguiente en vez de
     rendirse. Sin ubicaciones en el evento, solo «ninguna»: Calendly rechaza
-    una que el evento no tiene."""
+    una que el evento no tiene.
+
+    ⚠️ En el evento POR TURNOS se prueba primero SIN ubicación (05/11, "Diego
+    tiene Zoom y le salió Meet"): ahí cada closer tiene la suya («ubicación por
+    anfitrión» en Calendly) y la escuela no sabe a quién le va a tocar. Mandar
+    la primera de la lista la imponía a todos: la llamada de Diego salía con
+    el Meet que era de Belén. Sin ubicación, Calendly pone la del closer que
+    le toque; si la pide sí o sí, se prueban las del evento como antes."""
     salida: list[Optional[dict]] = []
+    if es_por_turnos(tipo):
+        salida.append(None)
     for lugar in tipo.get("locations") or []:
         u = _una_ubicacion(lugar, telefono)
         if u and u not in salida:
             salida.append(u)
-    salida.append(None)
+    if None not in salida:
+        salida.append(None)
     return salida
 
 
