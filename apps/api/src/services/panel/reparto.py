@@ -156,15 +156,13 @@ def cambios_por_anfitrion(
     closer}. `ya` = lo guardado por correo (`pipeline.guardadas`), `closer_de`
     = {correo de Calendly del anfitrión: closer}. Función pura, con test.
 
-    - Sin closer: el de su cita activa (la última reservada).
-    - Con OTRO closer: solo si es una cita que aún no ha pasado y se reservó
-      DESPUÉS de que se le pusiera ese closer (lo último que pasó manda, 05/11:
-      "mañana hay dos llamadas a las 12 y las dos las tiene Diego"). Pasa
-      cuando el aviso de esa reserva no llegó, o cuando el equipo cambió la
-      hora y Calendly se la dio al otro closer: la llamada está en el
-      calendario de ese closer, con su enlace. Si el equipo la pasó a otro
-      DESPUÉS de reservar, eso se queda."""
-    ahora = ahora or datetime.now(timezone.utc)
+    SOLO a quien aún no tiene closer: el del anfitrión de su cita activa (la
+    última reservada). Lo que ya tiene closer NO se toca nunca al leer la
+    agenda. ⚠️ El 05/11 se probó a pasar la tarjeta al anfitrión de Calendly
+    si la reserva era posterior al reparto, y le dio la vuelta a lo que había
+    decidido el equipo (Marylin era de Diego y la otra de Belén; salieron al
+    revés). Lo que decide el equipo manda; lo que diga Calendly se ENSEÑA
+    («Calendly se la dio a…»), no se impone."""
     ultima: dict[str, tuple[dict, dict]] = {}
     for c in citas:
         email = str(c.get("email") or "").strip().lower()
@@ -176,19 +174,11 @@ def cambios_por_anfitrion(
         antes = ultima.get(email)
         if antes is None or str(c.get("reservada") or "") > str(antes[0].get("reservada") or ""):
             ultima[email] = (c, closer)
-    salida: dict[str, dict] = {}
-    for email, (c, closer) in ultima.items():
-        g = ya.get(email) or {}
-        actual = int(g.get("closer_id") or 0)
-        if not actual:
-            salida[email] = closer
-            continue
-        if actual == closer.get("id"):
-            continue
-        inicio, reservada, asignado = _instante(c.get("inicio")), _instante(c.get("reservada")), _instante(g.get("asignado_at"))
-        if inicio and inicio > ahora and reservada and asignado and reservada > asignado + timedelta(minutes=2):
-            salida[email] = closer
-    return salida
+    return {
+        email: closer
+        for email, (_c, closer) in ultima.items()
+        if not int((ya.get(email) or {}).get("closer_id") or 0)
+    }
 
 
 def choques(citas: list[dict]) -> dict[str, str]:

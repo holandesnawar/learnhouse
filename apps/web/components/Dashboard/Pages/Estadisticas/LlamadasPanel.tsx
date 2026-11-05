@@ -1002,6 +1002,12 @@ function CitaDialogo({
           {/* De qué evento es, por dónde va y quién la agendó (05/11): entero,
               sin cortar, para saber de dónde sale Zoom o Meet. */}
           <OrigenCita cita={cita} />
+          {cita.closer_id && cita.calendly_closer_id && cita.calendly_closer_id !== cita.closer_id ? (
+            <p className="mt-2 text-[12.5px] leading-snug text-[#92400E]">
+              La lleva {(cita.closer || '').split(/\s+/)[0]}, pero en Calendly está en el calendario de{' '}
+              {(cita.calendly_closer || '').split(/\s+/)[0]}: el enlace de la llamada es el suyo.
+            </p>
+          ) : null}
           {cita.choca_con ? (
             <p className="mt-2 text-[12.5px] leading-snug text-[#B91C1C]">
               {(cita.closer || 'Este closer').split(/\s+/)[0]} tiene otra llamada a la misma hora, con {cita.choca_con}. Cambia una de las dos
