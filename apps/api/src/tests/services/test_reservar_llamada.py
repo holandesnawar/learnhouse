@@ -535,3 +535,22 @@ async def test_el_por_turnos_que_no_sale_en_la_lista_se_busca_por_sus_citas():
     assert pedidos.count(TURNOS["uri"]) == 1
     assert R.evento_publico(tipos)["uri"] == TURNOS["uri"]
     assert TURNOS["uri"] in R.tipos_de_llamada(tipos)
+
+
+def test_por_que_estas_horas():
+    """06/11: «puse de 9 a 20 y solo salen desde las 14:30». La pantalla dice el
+    horario con su zona (pasado a hora de Países Bajos), lo ocupado y el aviso."""
+    horario = {"nombre": "del evento", "timezone": "America/Caracas",
+               "rules": [{"type": "wday", "wday": "saturday", "intervals": [{"from": "09:00", "to": "20:00"}]}]}
+    ocupado = [{"type": "external", "start_time": "2026-11-07T08:00:00Z", "end_time": "2026-11-07T09:00:00Z"}]
+    ahora = datetime(2026, 11, 6, 13, 30, tzinfo=timezone.utc)
+    frases = R.explicar_horas("2026-11-07", [horario], ocupado, ["2026-11-07T13:30:00Z"], ahora)
+    texto = " ".join(frases)
+    assert "09:00–20:00 en su zona, que en Países Bajos son 14:00–01:00" in texto
+    assert "Ocupado de 09:00 a 10:00: algo en su calendario" in texto
+    assert "la primera a las 14:30" in texto
+    assert "aviso mínimo" in texto
+    # Misma zona: sin conversión; un día sin reglas lo dice.
+    nl = {**horario, "timezone": "Europe/Madrid"}
+    assert "Horario «del evento» (zona horaria Europe/Madrid): 09:00–20:00." in R.explicar_horas("2026-11-07", [nl], [], [], ahora)
+    assert "no tiene horas el domingo" in " ".join(R.explicar_horas("2026-11-08", [nl], [], [], ahora))

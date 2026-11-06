@@ -23,6 +23,7 @@ import {
   cambiarHoraLlamada,
   getEventosAgenda,
   getHuecos,
+  getPorQueHoras,
   getOpcionesAgenda,
   reservarLlamada,
   type Cita,
@@ -53,6 +54,49 @@ const CHIP = (activo: boolean) =>
   `h-8 px-3 rounded-md border text-[13px] font-medium transition-colors ${
     activo ? 'bg-gray-900 border-gray-900 text-white' : 'border-[#E5E7EB] text-gray-800 hover:bg-[#F9FAFB]'
   }`
+
+/** «Puse de 9 a 20 y solo salen desde las 14:30» (06/11): le pregunta a
+ *  Calendly el horario del evento, su zona horaria y lo ocupado ese día. */
+function PorQueEstasHoras({ dia, evento }: { dia: string; evento: string }) {
+  const org = useOrg() as any
+  const session = useLHSession() as any
+  const accessToken = session?.data?.tokens?.access_token
+  const [abierto, setAbierto] = useState(false)
+  const [datos, setDatos] = useState<Awaited<ReturnType<typeof getPorQueHoras>> | undefined>(undefined)
+  useEffect(() => {
+    setDatos(undefined)
+  }, [dia, evento])
+  useEffect(() => {
+    if (!abierto || datos !== undefined || !org?.id || !accessToken || !dia) return
+    getPorQueHoras(org.id, dia, accessToken, evento).then((r) => setDatos(r))
+  }, [abierto, datos, org?.id, accessToken, dia, evento])
+  return (
+    <div className="mt-2">
+      <button onClick={() => setAbierto((v) => !v)} className="text-[12px] font-semibold text-[#025dc7] hover:underline">
+        {abierto ? 'Ocultar' : '¿Por qué no salen más horas?'}
+      </button>
+      {abierto ? (
+        datos === undefined ? (
+          <p className={`${META} mt-1 inline-flex items-center gap-1.5`}>
+            <Loader2 size={12} className="animate-spin" /> Preguntando a Calendly…
+          </p>
+        ) : !datos ? (
+          <p className="mt-1 text-[12px] text-[#B91C1C]">No se ha podido leer.</p>
+        ) : (
+          <div className="mt-1.5 space-y-1 rounded-lg border border-[#E2E8F4] bg-[#F8FAFE] p-2.5 text-[12px] leading-snug text-gray-800">
+            {datos.evento ? <p className="font-semibold text-gray-900">Evento: {datos.evento}</p> : null}
+            {datos.frases.map((f, i) => (
+              <p key={i}>{f}</p>
+            ))}
+            {datos.avisos.map((f, i) => (
+              <p key={`a${i}`} className="text-[#92400E]">No se pudo leer · {f}</p>
+            ))}
+          </div>
+        )
+      ) : null}
+    </div>
+  )
+}
 
 /** «No sale Belén» (06/11): lo que ve la escuela de Calendly, evento a
  *  evento, con el motivo por el que cuenta o no. Solo lee. */
@@ -515,6 +559,7 @@ export default function NuevaLlamada({
                   ))}
                 </div>
               )}
+              {huecos?.configurado && fecha ? <PorQueEstasHoras dia={fecha} evento={evento} /> : null}
               {/* 19/10: "¿por qué no puedo agendar hoy a las 18:00 si tengo
                   hueco?". Calendly no ofrece horas que empiecen antes de su
                   «aviso mínimo» (de serie, 4 horas), y la escuela solo puede

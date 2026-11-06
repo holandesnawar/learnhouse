@@ -483,6 +483,21 @@ async def api_eventos_agenda(
     return await revisar_eventos(db_session)
 
 
+@router.get("/org/{org_id}/agenda/por-que-horas", summary="Por qué Calendly da esas horas libres ese día (horario, zona y ocupado).")
+async def api_por_que_horas(
+    request: Request,
+    org_id: int,
+    dia: str,
+    evento: str = "",
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    from src.services.contactos.reservar import por_que_estas_horas
+
+    return await por_que_estas_horas(dia, evento)
+
+
 @router.get("/org/{org_id}/agenda/huecos", summary="Las horas libres de un día en Calendly, para agendar desde la escuela.")
 async def api_huecos(
     request: Request,
