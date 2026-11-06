@@ -3936,7 +3936,20 @@ el closer principal, y diga esta para mí o esta para el otro". Se hizo como
     ruta `GET /contactos/org/{id}/agenda/eventos`, lee sin la copia de 5 min;
     test `test_por_que_cada_evento`). Lo más probable: el correo de Calendly
     de Belén no es el de su cuenta de la escuela y no está apuntado en Ventas
-    → «Correos de Calendly». Si un closer tiene dos llamadas
+    → «Correos de Calendly».
+    ⚠️ **Lo que salió de verdad (06/11, captura): Calendly NO devuelve el
+    evento «por turnos» al listar los eventos de la organización**
+    (`event_types?organization=` solo dio el gestionado de Belén, la copia
+    morada de Diego y otro de Belén). Sin él, la escuela tomaba como «evento
+    de las llamadas» el primero que veía (el gestionado de Belén) y como «Por
+    turnos» la copia morada «(equipo)», que es de Diego: **por eso «Cambiar
+    hora» mandaba las llamadas al calendario de Diego**, y los avisos de las
+    reservas del por turnos podían quedar como «otro evento». Arreglo:
+    `_tipos_de_las_citas` en `reservar.py` mira las 100 citas más recientes
+    de la organización y pide por su dirección los eventos que no salían
+    (hasta 10, en blando). Test
+    `test_el_por_turnos_que_no_sale_en_la_lista_se_busca_por_sus_citas`.
+    Si un closer tiene dos llamadas
     activas que se pisan, las dos lo dicen en rojo («Diego · otra a la vez» y,
     en la ventana, «tiene otra llamada a la misma hora, con Ana»;
     `choques`, pura con test). Tests en `test_reparto_llamadas.py`.

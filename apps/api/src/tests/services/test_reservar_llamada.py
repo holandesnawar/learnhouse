@@ -503,3 +503,35 @@ def test_por_que_cada_evento():
     # Con su correo apuntado, vale.
     filas = R.por_que_cada_evento(tipos, miembros, eq, {"4": "h@x.com", "5": "belen@nawar.es"})
     assert [f["vale"] for f in filas if f["de"] == "belen@nawar.es"] == [True]
+
+
+@pytest.mark.asyncio
+async def test_el_por_turnos_que_no_sale_en_la_lista_se_busca_por_sus_citas():
+    """06/11: Calendly no devolvía el evento por turnos al listar los de la
+    organización. La escuela lo saca de las citas y lo pide por su dirección."""
+    gestionado = {**DE_BELEN, "uri": "https://api.calendly.com/event_types/GEST", "name": "Llamada de Consultoría HN"}
+    pedidos = []
+
+    class Cliente:
+        async def request(self, metodo, url, **kw):
+            pedidos.append(url)
+            pedido = httpx.Request(metodo, url)
+            if url.endswith("/users/me"):
+                return httpx.Response(200, json={"resource": {"uri": "https://api.calendly.com/users/YO",
+                                                              "current_organization": "https://api.calendly.com/organizations/ORG"}},
+                                      request=pedido)
+            if url.endswith("/event_types"):
+                return httpx.Response(200, json={"collection": [gestionado, DE_DIEGO]}, request=pedido)
+            if url.endswith("/scheduled_events"):
+                return httpx.Response(200, json={"collection": [
+                    {"event_type": TURNOS["uri"]}, {"event_type": TURNOS["uri"]}, {"event_type": DE_DIEGO["uri"]},
+                ]}, request=pedido)
+            if url == TURNOS["uri"]:
+                return httpx.Response(200, json={"resource": TURNOS}, request=pedido)
+            return httpx.Response(404, json={"message": "no"}, request=pedido)
+
+    tipos = await R._tipos(Cliente())
+    assert [t["uri"] for t in tipos] == [gestionado["uri"], DE_DIEGO["uri"], TURNOS["uri"]]
+    assert pedidos.count(TURNOS["uri"]) == 1
+    assert R.evento_publico(tipos)["uri"] == TURNOS["uri"]
+    assert TURNOS["uri"] in R.tipos_de_llamada(tipos)
