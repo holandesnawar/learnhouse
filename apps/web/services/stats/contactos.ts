@@ -628,6 +628,23 @@ export async function getSeguimiento(orgId: number, email: string, accessToken: 
   )
 }
 
+/**
+ * Corrige el nombre y el teléfono de una persona desde su ficha (06/11/2026).
+ * No borra lo que dejó: se apunta como un cambio más, con quién lo hizo.
+ */
+export async function corregirDatos(
+  orgId: number,
+  datos: { email: string; nombre: string; telefono: string },
+  accessToken: string
+) {
+  return pedir<{ ok: boolean; cambios: string[]; nombre: string; telefono: string }>(
+    `contactos/org/${orgId}/contacto/datos`,
+    'PUT',
+    { email: datos.email, nombre: datos.nombre, apellidos: '', telefono: datos.telefono },
+    accessToken
+  )
+}
+
 export async function anadirNota(orgId: number, email: string, texto: string, accessToken: string) {
   return pedir<NotaContacto>(`contactos/org/${orgId}/notas`, 'POST', { email, texto }, accessToken)
 }

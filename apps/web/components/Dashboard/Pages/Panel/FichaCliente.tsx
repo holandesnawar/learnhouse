@@ -29,6 +29,7 @@ import { quitarPersona } from './quitarPersona'
 import EnlacePago from './EnlacePago'
 import PlanPagosFicha from './PlanPagosFicha'
 import NuevaLlamada from './NuevaLlamada'
+import EditarDatos from './EditarDatos'
 import SecuenciaWhatsApp, { enlaceCorto } from './SecuenciaWhatsApp'
 import ReservaPlaza from './ReservaPlaza'
 import { BotonesReparto, useReparto } from './Reparto'
@@ -46,6 +47,7 @@ import {
   Loader2,
   Mail,
   MessageCircle,
+  Pencil,
   NotebookPen,
   Phone,
   PhoneCall,
@@ -233,6 +235,8 @@ export default function FichaCliente({
   const [agendar, setAgendar] = useState(false)
   // «Cambiar hora» de una de sus llamadas (31/10): la misma ventana.
   const [cambiarCita, setCambiarCita] = useState<import('@services/stats/contactos').Cita | null>(null)
+  // «Editar» los datos (06/11): nombre y teléfono mal escritos.
+  const [editando, setEditando] = useState(false)
   const reparto = useReparto()
 
   const cargar = useCallback(async () => {
@@ -382,6 +386,11 @@ export default function FichaCliente({
             <a href={`mailto:${email}`} className={BOTON}>
               <Mail size={13} /> Correo
             </a>
+            {ficha ? (
+              <button onClick={() => setEditando((v) => !v)} className={BOTON} title="Corregir el nombre o el teléfono">
+                <Pencil size={13} /> {ficha.telefono ? 'Editar' : 'Añadir teléfono'}
+              </button>
+            ) : null}
             {ficha?.fuera_de_metricas && (isAdmin || onQuitar) ? (
               // Fuera de los números (una prueba): volver a contar es lo
               // contrario de borrar, así que va en gris y sin papelera; y al
@@ -458,6 +467,19 @@ export default function FichaCliente({
               </span>
             ) : null}
           </div>
+          {editando && ficha ? (
+            <EditarDatos
+              email={ficha.email}
+              nombre={ficha.nombre}
+              telefono={ficha.telefono}
+              onCancelar={() => setEditando(false)}
+              onGuardado={() => {
+                setEditando(false)
+                cargar()
+                onCambio?.()
+              }}
+            />
+          ) : null}
         </div>
 
         {!ficha ? (
