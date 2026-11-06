@@ -3902,7 +3902,15 @@ el closer principal, y diga esta para mí o esta para el otro". Se hizo como
     a imponer el anfitrión de Calendly sobre la tarjeta.** (El aviso de una
     reserva NUEVA sigue asignando al anfitrión, como desde el 31/10.) Las
     tarjetas que la versión deshecha cambió no se pueden devolver solas (no se
-    guarda el closer de antes): se cambian a mano con la etiqueta. Si un closer tiene dos llamadas
+    guarda el closer de antes): se cambian a mano con la etiqueta. **Desde el 06/11, en ese aviso naranja de la ventana de la cita
+    hay un botón «Que la lleve Diego»** (solo para quien la lleva y para los
+    administradores; el servidor lo comprueba): pasa la tarjeta al closer de
+    Calendly con un clic y a él le llega «Te han pasado una llamada». Nada
+    se cambia solo. Por qué siguen saliendo: un **cambio de hora hecho en
+    Calendly** (el enlace «Reprogramar» que le llega a la persona) puede caer
+    en el otro closer con el evento por turnos, y la escuela no toca la
+    tarjeta en ese caso; lo mismo «Cambiar hora» desde la escuela con el por
+    turnos, o alguien que se la asignó a mano después de reservar. Si un closer tiene dos llamadas
     activas que se pisan, las dos lo dicen en rojo («Diego · otra a la vez» y,
     en la ventana, «tiene otra llamada a la misma hora, con Ana»;
     `choques`, pura con test). Tests en `test_reparto_llamadas.py`.
