@@ -1269,3 +1269,155 @@ async def revisar_eventos(db_session: AsyncSession) -> dict:
         "fuente": _eventos_cache.get("fuente") or "",
         "filas": por_que_cada_evento(tipos, miembros, eq, mapa, _preferido()),
     }
+
+
+# ── por qué no salen más horas (06/11/2026) ────────────────────────────────
+#
+# "Puse el evento de Belén de 9 a 20 y con poca antelación, y la escuela sigue
+# enseñando desde las 14:30". La escuela enseña tal cual lo que da Calendly,
+# así que esto le pregunta a Calendly por qué: el horario del evento (con su
+# zona horaria: un 9:00 de otra zona es otra hora aquí), el horario por
+# defecto de su dueño y lo que tiene ocupado ese día en sus calendarios. Solo
+# lee y todo en blando: lo que Calendly no deje leer sale como aviso.
+
+_DIAS_EN = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+_DIAS_ES = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+
+
+def _hora_nl(iso: str) -> str:
+    d = _utc(iso)
+    return d.astimezone(ZONA).strftime("%H:%M") if d else ""
+
+
+def _intervalos_del_dia(horario: dict, dia: str) -> Optional[list[tuple[str, str]]]:
+    """Las franjas de ese día en un horario de Calendly (`rules`: por día de
+    la semana o por fecha concreta, que gana). None si no dice nada. Pura."""
+    reglas = horario.get("rules") or []
+    d = datetime.strptime(dia, "%Y-%m-%d")
+    por_fecha = [r for r in reglas if (r or {}).get("type") == "date" and (r or {}).get("date") == dia]
+    por_dia = [r for r in reglas if (r or {}).get("type") == "wday" and (r or {}).get("wday") == _DIAS_EN[d.weekday()]]
+    elegidas = por_fecha or por_dia
+    if not elegidas:
+        return None
+    return [
+        (str(i.get("from") or ""), str(i.get("to") or ""))
+        for r in elegidas for i in (r.get("intervals") or []) if isinstance(i, dict)
+    ]
+
+
+def _en_hora_nl(dia: str, hhmm: str, zona: str) -> str:
+    try:
+        z = ZoneInfo(zona) if zona else ZONA
+        h, m = (int(x) for x in hhmm.split(":")[:2])
+        d = datetime.strptime(dia, "%Y-%m-%d").replace(hour=h % 24, minute=m, tzinfo=z)
+        return d.astimezone(ZONA).strftime("%H:%M")
+    except Exception:  # noqa: BLE001
+        return hhmm
+
+
+def explicar_horas(dia: str, horarios: list[dict], ocupado: list[dict], libres: list[str], ahora: Optional[datetime] = None) -> list[str]:
+    """Frases para la pantalla. `horarios`: [{nombre, timezone, rules}],
+    `ocupado`: [{start_time, end_time, type}], `libres`: inicios ISO. Pura."""
+    d = datetime.strptime(dia, "%Y-%m-%d")
+    nombre_dia = _DIAS_ES[d.weekday()]
+    frases: list[str] = []
+    for h in horarios:
+        zona = str(h.get("timezone") or "")
+        franjas = _intervalos_del_dia(h, dia)
+        que = f"Horario «{h.get('nombre') or 'del evento'}»"
+        if zona:
+            que += f" (zona horaria {zona})"
+        if franjas is None:
+            frases.append(f"{que}: no tiene horas el {nombre_dia}.")
+        elif not franjas:
+            frases.append(f"{que}: el {nombre_dia} está marcado como no disponible.")
+        else:
+            texto = ", ".join(f"{a}–{b}" for a, b in franjas)
+            try:
+                otra_zona = bool(zona) and ZoneInfo(zona).utcoffset(d) != ZONA.utcoffset(d)
+            except Exception:  # noqa: BLE001
+                otra_zona = False
+            if otra_zona:
+                nl = ", ".join(f"{_en_hora_nl(dia, a, zona)}–{_en_hora_nl(dia, b, zona)}" for a, b in franjas)
+                frases.append(f"{que}: {texto} en su zona, que en Países Bajos son {nl}.")
+            else:
+                frases.append(f"{que}: {texto}.")
+    for o in ocupado:
+        a, b = _hora_nl(str(o.get("start_time") or "")), _hora_nl(str(o.get("end_time") or ""))
+        if not a:
+            continue
+        origen = "otra llamada de Calendly" if o.get("type") == "calendly" else "algo en su calendario"
+        frases.append(f"Ocupado de {a} a {b}: {origen}.")
+    if libres:
+        primera = _utc(sorted(libres)[0])
+        frases.append(f"Calendly da {len(libres)} horas libres, la primera a las {_hora_nl(sorted(libres)[0])}.")
+        ahora = ahora or datetime.now(timezone.utc)
+        if primera and primera - ahora < timedelta(hours=48):
+            horas = (primera - ahora).total_seconds() / 3600
+            frases.append(
+                f"La primera hora libre cae a {horas:.0f} h de ahora: si antes no hay nada ocupado y el horario empieza "
+                "antes, lo que la corta es el «aviso mínimo» del evento."
+            )
+    else:
+        frases.append("Calendly no da ninguna hora libre ese día.")
+    return frases
+
+
+async def por_que_estas_horas(dia: str, evento: str = "") -> dict:
+    """Para la ventana: {evento, frases, avisos} del día y evento elegidos."""
+    if not A._token():
+        return {"configurado": False, "frases": [], "avisos": []}
+    try:
+        desde, hasta = limites_del_dia(dia)
+    except ValueError:
+        return {"configurado": True, "frases": [], "avisos": ["Fecha no válida"]}
+    avisos: list[str] = []
+    horarios: list[dict] = []
+    ocupado: list[dict] = []
+    libres: list[str] = []
+    try:
+        async with _cliente() as cliente:
+            tipo = await _tipo_para(cliente, evento)
+            uri = str(tipo.get("uri") or "")
+            dueno = str((tipo.get("profile") or {}).get("owner") or "")
+            try:
+                datos = await _pedir(cliente, "GET", f"{A.API}/event_type_available_times",
+                                     params={"event_type": uri, "start_time": _z(desde), "end_time": _z(hasta)})
+                libres = [str(h.get("start_time")) for h in datos.get("collection") or [] if h.get("start_time")]
+            except FalloCalendly as exc:
+                avisos.append(f"Horas libres: {exc.motivo}")
+            try:
+                datos = await _pedir(cliente, "GET", f"{A.API}/event_type_availability_schedules", params={"event_type": uri})
+                for s in datos.get("collection") or []:
+                    regla = (s or {}).get("availability_rule") or s or {}
+                    horarios.append({"nombre": "del evento", "timezone": regla.get("timezone") or s.get("timezone"),
+                                     "rules": regla.get("rules") or []})
+            except FalloCalendly as exc:
+                avisos.append(f"Horario del evento: {exc.motivo}")
+            if dueno.startswith("http") and "/users/" in dueno:
+                if not horarios:
+                    try:
+                        datos = await _pedir(cliente, "GET", f"{A.API}/user_availability_schedules", params={"user": dueno})
+                        for s in datos.get("collection") or []:
+                            if s.get("default"):
+                                horarios.append({"nombre": f"{s.get('name') or 'por defecto'} (el de su cuenta)",
+                                                 "timezone": s.get("timezone"), "rules": s.get("rules") or []})
+                    except FalloCalendly as exc:
+                        avisos.append(f"Horario de su cuenta: {exc.motivo}")
+                try:
+                    datos = await _pedir(cliente, "GET", f"{A.API}/user_busy_times",
+                                         params={"user": dueno, "start_time": _z(desde), "end_time": _z(hasta)})
+                    ocupado = list(datos.get("collection") or [])
+                except FalloCalendly as exc:
+                    avisos.append(f"Ocupado en su calendario: {exc.motivo}")
+    except FalloCalendly as exc:
+        return {"configurado": True, "frases": [], "avisos": [exc.motivo]}
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("No se pudo explicar las horas de Calendly")
+        return {"configurado": True, "frases": [], "avisos": [f"Calendly no contesta: {exc}"]}
+    return {
+        "configurado": True,
+        "evento": str(tipo.get("name") or ""),
+        "frases": explicar_horas(dia, horarios, ocupado, libres),
+        "avisos": avisos,
+    }

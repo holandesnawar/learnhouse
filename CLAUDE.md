@@ -3949,6 +3949,19 @@ el closer principal, y diga esta para mí o esta para el otro". Se hizo como
     de la organización y pide por su dirección los eventos que no salían
     (hasta 10, en blando). Test
     `test_el_por_turnos_que_no_sale_en_la_lista_se_busca_por_sus_citas`.
+    **«¿Por qué no salen más horas?»** (06/11, "puse el evento de Belén de 9
+    a 20 y la escuela sigue enseñando desde las 14:30"): debajo de las horas
+    de «Nueva llamada», la escuela le pregunta a Calendly el horario del
+    evento con su ZONA HORARIA (pasado a hora de Países Bajos si es otra), el
+    horario por defecto de su dueño si el evento no tiene uno propio, lo que
+    tiene ocupado ese día en sus calendarios (`user_busy_times`) y a cuántas
+    horas de ahora cae la primera hora libre (el aviso mínimo).
+    `por_que_estas_horas` / `explicar_horas` (pura, test
+    `test_por_que_estas_horas`) en `reservar.py`, ruta
+    `GET /contactos/org/{id}/agenda/por-que-horas`. La escuela NO quita
+    horas: enseña tal cual `event_type_available_times`. Las rutas de
+    Calendly de horarios y ocupado no se han probado contra el de verdad: lo
+    que no deje leer sale como «No se pudo leer · …».
     Si un closer tiene dos llamadas
     activas que se pisan, las dos lo dicen en rojo («Diego · otra a la vez» y,
     en la ventana, «tiene otra llamada a la misma hora, con Ana»;

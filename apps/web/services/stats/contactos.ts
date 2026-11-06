@@ -362,6 +362,25 @@ export async function getOpcionesAgenda(orgId: number, email: string, accessToke
   }
 }
 
+/** Por qué Calendly da esas horas ese día: horario, zona horaria y ocupado (06/11). */
+export async function getPorQueHoras(
+  orgId: number,
+  dia: string,
+  accessToken: string,
+  evento = ''
+): Promise<{ configurado: boolean; evento?: string; frases: string[]; avisos: string[] } | null> {
+  try {
+    const res = await fetch(
+      `${getAPIUrl()}contactos/org/${orgId}/agenda/por-que-horas?dia=${encodeURIComponent(dia)}${evento ? `&evento=${encodeURIComponent(evento)}` : ''}`,
+      RequestBodyWithAuthHeader('GET', null, null, accessToken)
+    )
+    if (!res.ok) return null
+    return await res.json()
+  } catch {
+    return null
+  }
+}
+
 export async function getHuecos(orgId: number, dia: string, accessToken: string, evento = ''): Promise<Huecos | null> {
   try {
     const res = await fetch(
