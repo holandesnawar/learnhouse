@@ -333,6 +333,22 @@ export interface OpcionesAgenda {
   error?: string
 }
 
+export type EventoVisto = { evento: string; como: string; de: string; gestionado: boolean; secreto: boolean; vale: boolean; motivo: string }
+
+/** Qué eventos de Calendly ve la escuela y por qué cuenta o no cada uno (06/11). */
+export async function getEventosAgenda(
+  orgId: number,
+  accessToken: string
+): Promise<{ configurado: boolean; fuente: string; filas: EventoVisto[]; error?: string } | null> {
+  try {
+    const res = await fetch(`${getAPIUrl()}contactos/org/${orgId}/agenda/eventos`, RequestBodyWithAuthHeader('GET', null, null, accessToken))
+    if (!res.ok) return null
+    return await res.json()
+  } catch {
+    return null
+  }
+}
+
 export async function getOpcionesAgenda(orgId: number, email: string, accessToken: string): Promise<OpcionesAgenda | null> {
   try {
     const res = await fetch(

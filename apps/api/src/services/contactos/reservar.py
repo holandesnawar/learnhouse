@@ -506,10 +506,12 @@ async def _tipos(cliente: httpx.AsyncClient) -> list[dict]:
                 )
             ).get("collection") or []
             if tipos:
+                _eventos_cache["fuente"] = "organizacion"
                 return tipos
         except FalloCalendly as exc:
             if exc.codigo not in (400, 403, 404):
                 raise
+    _eventos_cache["fuente"] = "usuario"
     return (
         await _pedir(cliente, "GET", f"{A.API}/event_types", params={"user": yo.get("uri", ""), "active": "true", "count": 100})
     ).get("collection") or []
@@ -546,7 +548,7 @@ async def _miembros(cliente: httpx.AsyncClient) -> dict[str, dict]:
 
 #: Los eventos y las personas de Calendly, 5 minutos (se piden al abrir la
 #: ventana de agendar y en cada día que se mira).
-_eventos_cache: dict = {"hasta": 0.0, "datos": None}
+_eventos_cache: dict = {"hasta": 0.0, "datos": None, "fuente": ""}
 
 
 async def _eventos(cliente: httpx.AsyncClient, forzar: bool = False) -> tuple[list[dict], list[dict]]:
@@ -1148,3 +1150,85 @@ async def telefonos_por_email(emails: set[str], db_session: AsyncSession) -> dic
             if k not in salida or str(cuando or "") > salida[k][1]:
                 salida[k] = (tel, str(cuando or ""))
     return {k: v[0] for k, v in salida.items()}
+
+
+# ── por qué no sale un closer en «Quién la lleva» (06/11/2026) ─────────────
+#
+# "No sale lo de Belén, y el evento gestionado lo tengo bien". Desde aquí no se
+# puede ver Calendly, así que la ventana enseña qué eventos ve la escuela y
+# por qué cuenta o descarta cada uno. Solo lee.
+
+_TIPO_LEGIBLE = {"round_robin": "por turnos", "collective": "colectivo"}
+
+
+def por_que_cada_evento(
+    tipos: list[dict], miembros: dict[str, dict], equipo: list[dict], mapa: dict[str, str],
+    preferido: str = EVENTO_POR_DEFECTO,
+) -> list[dict]:
+    """Una fila por tipo de evento de Calendly: {evento, como, de, gestionado,
+    secreto, vale, motivo}. Mismas reglas que `eventos_de_closers` y
+    `opciones`. Función pura, con test."""
+    from src.services.panel.reparto import closer_del_anfitrion
+
+    base = evento_publico(tipos, preferido)
+    nombre_base = str((base or {}).get("name") or "Llamada de Consultoría HN")
+    filas = []
+    for t in tipos:
+        perfil = t.get("profile") or {}
+        dueno = miembros.get(str(perfil.get("owner") or "")) or {}
+        email = str(dueno.get("email") or "").strip().lower()
+        fila = {
+            "evento": str(t.get("name") or ""),
+            "como": _TIPO_LEGIBLE.get(str(t.get("pooling_type") or "").lower(), "1 a 1"),
+            "de": email or str(perfil.get("name") or ""),
+            "gestionado": bool(t.get("admin_managed")),
+            "secreto": es_secreto(t),
+            "vale": False,
+            "motivo": "",
+        }
+        if base and t.get("uri") == base.get("uri"):
+            fila["motivo"] = "Es el evento de las llamadas de la web («Por turnos»)."
+        elif not t.get("active", True):
+            fila["motivo"] = "Está apagado en Calendly."
+        elif es_por_turnos(t):
+            fila["motivo"] = "Es por turnos: no es el evento de un closer."
+        elif str(perfil.get("type") or "User") != "User":
+            fila["motivo"] = f"Calendly lo da como de «{perfil.get('type')}», no de una persona."
+        elif _rango_de_llamada(t, base, preferido) is None:
+            fila["motivo"] = f"Su nombre no empieza por «{nombre_base}»."
+        elif "@" not in email:
+            fila["motivo"] = "Calendly no dice de quién es (su dueño no sale en la organización)."
+        else:
+            closer = closer_del_anfitrion(email, equipo, mapa)
+            if not closer:
+                fila["motivo"] = (
+                    f"Es de {email}, que no es ningún closer de la escuela: apunta ese correo junto a su closer "
+                    "en Ventas → «Correos de Calendly»."
+                )
+            else:
+                fila["vale"] = True
+                fila["motivo"] = f"Vale: es el evento propio de {(closer.get('nombre') or '').split(' ')[0]}."
+        filas.append(fila)
+    return filas
+
+
+async def revisar_eventos(db_session: AsyncSession) -> dict:
+    """Para la ventana: {fuente, filas} con lo que ve la escuela AHORA (sin la
+    copia de 5 minutos, por si se acaba de crear el evento)."""
+    if not A._token():
+        return {"configurado": False, "fuente": "", "filas": []}
+    from src.services.panel.reparto import _equipo_de_la_escuela, leer
+
+    try:
+        async with _cliente() as cliente:
+            tipos, _ = await _eventos(cliente, forzar=True)
+            miembros = await _miembros(cliente)
+    except FalloCalendly as exc:
+        return {"configurado": True, "fuente": "", "filas": [], "error": exc.motivo}
+    org_id, eq = await _equipo_de_la_escuela(db_session)
+    mapa = (await leer(db_session, org_id or None))["calendly"]
+    return {
+        "configurado": True,
+        "fuente": _eventos_cache.get("fuente") or "",
+        "filas": por_que_cada_evento(tipos, miembros, eq, mapa, _preferido()),
+    }
