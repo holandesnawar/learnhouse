@@ -542,15 +542,28 @@ def test_por_que_estas_horas():
     horario con su zona (pasado a hora de Países Bajos), lo ocupado y el aviso."""
     horario = {"nombre": "del evento", "timezone": "America/Caracas",
                "rules": [{"type": "wday", "wday": "saturday", "intervals": [{"from": "09:00", "to": "20:00"}]}]}
-    ocupado = [{"type": "external", "start_time": "2026-11-07T08:00:00Z", "end_time": "2026-11-07T09:00:00Z"}]
+    ocupado = [{"type": "external", "start_time": "2026-11-07T15:00:00Z", "end_time": "2026-11-07T16:00:00Z"}]
     ahora = datetime(2026, 11, 6, 13, 30, tzinfo=timezone.utc)
     frases = R.explicar_horas("2026-11-07", [horario], ocupado, ["2026-11-07T13:30:00Z"], ahora)
     texto = " ".join(frases)
     assert "09:00–20:00 en su zona, que en Países Bajos son 14:00–01:00" in texto
-    assert "Ocupado de 09:00 a 10:00: algo en su calendario" in texto
+    assert "Ocupado de 16:00 a 17:00: algo en su calendario" in texto
     assert "la primera a las 14:30" in texto
     assert "aviso mínimo" in texto
     # Misma zona: sin conversión; un día sin reglas lo dice.
     nl = {**horario, "timezone": "Europe/Madrid"}
     assert "Horario «del evento» (zona horaria Europe/Madrid): 09:00–20:00." in R.explicar_horas("2026-11-07", [nl], [], [], ahora)
     assert "no tiene horas el domingo" in " ".join(R.explicar_horas("2026-11-08", [nl], [], [], ahora))
+
+
+def test_si_hay_llamadas_antes_no_culpa_al_aviso_minimo():
+    """Si lo que tapa las primeras horas son otras llamadas, no se habla del
+    aviso mínimo; y una regla de ese día concreto se dice."""
+    horario = {"nombre": "del evento", "timezone": "Europe/Berlin",
+               "rules": [{"type": "wday", "wday": "saturday", "intervals": [{"from": "09:00", "to": "20:00"}]},
+                         {"type": "date", "date": "2026-11-07", "intervals": [{"from": "13:00", "to": "20:00"}]}]}
+    ocupado = [{"type": "calendly", "start_time": "2026-11-07T12:30:00Z", "end_time": "2026-11-07T13:15:00Z"}]
+    ahora = datetime(2026, 11, 6, 17, 0, tzinfo=timezone.utc)
+    texto = " ".join(R.explicar_horas("2026-11-07", [horario], ocupado, ["2026-11-07T15:00:00Z"], ahora))
+    assert "13:00–20:00" in texto and "solo para ese día" in texto
+    assert "aviso mínimo" not in texto

@@ -1327,6 +1327,8 @@ def explicar_horas(dia: str, horarios: list[dict], ocupado: list[dict], libres: 
         que = f"Horario «{h.get('nombre') or 'del evento'}»"
         if zona:
             que += f" (zona horaria {zona})"
+        if any((r or {}).get("type") == "date" and (r or {}).get("date") == dia for r in h.get("rules") or []):
+            que += ", con horas puestas solo para ese día («horas para una fecha concreta»)"
         if franjas is None:
             frases.append(f"{que}: no tiene horas el {nombre_dia}.")
         elif not franjas:
@@ -1352,7 +1354,8 @@ def explicar_horas(dia: str, horarios: list[dict], ocupado: list[dict], libres: 
         primera = _utc(sorted(libres)[0])
         frases.append(f"Calendly da {len(libres)} horas libres, la primera a las {_hora_nl(sorted(libres)[0])}.")
         ahora = ahora or datetime.now(timezone.utc)
-        if primera and primera - ahora < timedelta(hours=48):
+        ocupado_antes = any((_utc(str(o.get("start_time") or "")) or primera) < primera for o in ocupado)
+        if primera and not ocupado_antes and primera - ahora < timedelta(hours=48):
             horas = (primera - ahora).total_seconds() / 3600
             frases.append(
                 f"La primera hora libre cae a {horas:.0f} h de ahora: si antes no hay nada ocupado y el horario empieza "
