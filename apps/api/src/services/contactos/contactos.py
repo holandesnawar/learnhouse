@@ -317,6 +317,10 @@ def _que(kind: str, campos: dict) -> str:
         from src.services.contactos.whatsapp_llamada import texto_linea_de_tiempo
 
         return texto_linea_de_tiempo(extra, _dia_y_hora)
+    if kind == KIND_DATOS:
+        quien = extra.get("autor") or "El equipo"
+        cambios = [c for c in (extra.get("cambios") or []) if c]
+        return f"{quien} corrigió sus datos" + (f": {'; '.join(cambios)}" if cambios else "")
     if kind == "check-in":
         texto = f"Check-in de la semana {extra.get('hito')}" if extra.get("hito") else "Check-in con el equipo"
         if extra.get("autor"):
@@ -395,7 +399,56 @@ def _evento(kind: str, when: str, email: str, **campos) -> dict:
 
 #: Lo que no hace la persona sino la escuela, a diario: no cuenta como "lo
 #: último que hizo" (sigue en su línea de tiempo).
-_LOS_MANDA_LA_ESCUELA = {"correo-bf", "whatsapp-llamada"}
+_LOS_MANDA_LA_ESCUELA = {"correo-bf", "whatsapp-llamada", "datos-editados"}
+
+#: Datos corregidos a mano desde la ficha (06/11/2026, "modificar datos del
+#: lead, por ejemplo el teléfono si lo pusieron mal"). Es un evento más, con
+#: el nombre y el teléfono buenos: no se reescribe nada de lo que dejó la
+#: persona (sus formularios se quedan como los mandó). `fusionar_contactos`
+#: le da preferencia: ver `_datos_buenos`.
+KIND_DATOS = "datos-editados"
+#: Los que llevan una fecha posterior pero datos escritos ANTES (el pago
+#: guarda el teléfono de la matrícula, la señal el de la reserva): después de
+#: una corrección, no la deshacen.
+_DATOS_VIEJOS = {"pago", "senal"}
+
+
+def _datos_buenos(lista: list[dict]) -> Optional[dict]:
+    """Nombre, apellidos y teléfono tras la última corrección a mano, o None
+    si no hay ninguna. `lista` va ordenada por fecha.
+
+    Manda la corrección, salvo lo que la persona vuelva a escribir DESPUÉS
+    (otro formulario, una reserva de Calendly con su teléfono): eso es más
+    nuevo que la corrección y gana, campo a campo. Los pagos y las señales no
+    cuentan como «después» (`_DATOS_VIEJOS`), ni lo que manda la escuela."""
+    idx = next((i for i in range(len(lista) - 1, -1, -1) if lista[i].get("kind") == KIND_DATOS), None)
+    if idx is None:
+        return None
+    corr = lista[idx]
+    despues = [
+        e for e in lista[idx + 1:]
+        if e.get("kind") not in _DATOS_VIEJOS and e.get("kind") not in _LOS_MANDA_LA_ESCUELA
+    ]
+
+    def nuevo(campo: str) -> str:
+        for e in reversed(despues):
+            v = e.get(campo)
+            if isinstance(v, str) and v.strip():
+                return v.strip()
+        return ""
+
+    # El nombre va en pareja: si alguien escribe el nombre otra vez, su
+    # nombre y apellido; si no, los de la corrección (aunque el apellido se
+    # haya dejado vacío a propósito).
+    if nuevo("first_name"):
+        nombre, apellido = nuevo("first_name"), nuevo("last_name")
+    else:
+        nombre, apellido = (corr.get("first_name") or "").strip(), (corr.get("last_name") or "").strip()
+    return {
+        "first_name": nombre,
+        "last_name": apellido,
+        "phone": nuevo("phone") or (corr.get("phone") or "").strip(),
+    }
 
 
 def fusionar_contactos(eventos: list[dict], con_cuenta: set[str]) -> list[dict]:
@@ -456,13 +509,18 @@ def fusionar_contactos(eventos: list[dict], con_cuenta: set[str]) -> list[dict]:
         solicitudes = [e for e in lista if e["kind"] == "solicitud"]
         ultima_solicitud = solicitudes[-1] if solicitudes else None
         nombre = f"{ultimo('first_name')} {ultimo('last_name')}".strip()
+        telefono = ultimo("phone")
+        buenos = _datos_buenos(lista)
+        if buenos is not None:
+            nombre = f"{buenos['first_name']} {buenos['last_name']}".strip() or nombre
+            telefono = buenos["phone"]
         resumen = resumen_del_lead(",".join(pasos), ultimo("referrer"), ultimo("source"))
 
         fichas.append(
             {
                 "email": email,
                 "nombre": nombre,
-                "telefono": ultimo("phone"),
+                "telefono": telefono,
                 "estado": estado,
                 "vio_precio": vio_precio,
                 "vino_de": resumen.get("vino_de", ""),
@@ -754,3 +812,111 @@ async def borrar_contacto(email: str, db_session: AsyncSession) -> dict:
     await db_session.commit()
     tiene_cuenta = clave in await _emails_con_cuenta(db_session)
     return {"ok": True, "borrados": borrados, "quedan": {"pagadas": pagadas, "cuenta": tiene_cuenta}}
+
+
+# ── Corregir los datos de una persona a mano (06/11/2026) ──────────────────
+
+
+def limpiar_telefono(texto: str) -> str:
+    """Lo mismo que hacen los formularios de la web: fuera espacios, guiones,
+    puntos y paréntesis, y 00 delante se convierte en +. No se le pone
+    prefijo: hay números de muchos países (29/09)."""
+    t = "".join(ch for ch in str(texto or "").strip() if ch.isdigit() or ch == "+")
+    if t.startswith("00"):
+        t = "+" + t[2:]
+    if "+" in t[1:]:
+        t = t[0] + t[1:].replace("+", "")
+    return t[:40]
+
+
+async def corregir_datos(
+    email: str, nombre: str, apellidos: str, telefono: str, autor: str, db_session: AsyncSession
+) -> dict:
+    """
+    Corrige el nombre y el teléfono de una persona desde su ficha.
+
+    No reescribe lo que dejó la persona: se apunta un evento `datos-editados`
+    con los datos buenos y quién los cambió, y `fusionar_contactos` le da
+    preferencia (`_datos_buenos`). Así la ficha, el tablero, Contactos,
+    Llamadas y los WhatsApp enseñan el bueno, y en la línea de tiempo queda
+    qué había antes. Lo único que se cambia directamente es la copia que
+    guarda la lista de Llamadas (`llamada_templada`), que no se recalcula.
+    El correo NO se cambia aquí: es lo que une todo lo de esa persona.
+    """
+    from src.db.llamadas_templadas import LlamadaTemplada
+
+    clave = (email or "").strip().lower()
+    nombre = " ".join(str(nombre or "").split())[:80]
+    apellidos = " ".join(str(apellidos or "").split())[:80]
+    tel = limpiar_telefono(telefono)
+    if "@" not in clave:
+        raise ValueError("Falta el correo")
+    if not nombre and not tel:
+        raise ValueError("Pon al menos el nombre o el teléfono")
+    if tel and len("".join(ch for ch in tel if ch.isdigit())) < 6:
+        raise ValueError("Ese teléfono es demasiado corto. Ponlo con el prefijo del país, por ejemplo +31 6 12345678")
+
+    eventos = [e for e in await _todos_los_eventos(db_session) if (e.get("email") or "").strip().lower() == clave]
+    fichas = fusionar_contactos(eventos, set())
+    if not fichas:
+        raise LookupError("No hay nadie con ese correo")
+    antes = fichas[0]
+    ahora_nombre = f"{nombre} {apellidos}".strip()
+
+    cambios = []
+    if ahora_nombre != (antes.get("nombre") or ""):
+        cambios.append(f"nombre «{antes.get('nombre') or '—'}» → «{ahora_nombre or '—'}»")
+    if tel != (antes.get("telefono") or ""):
+        cambios.append(f"teléfono «{antes.get('telefono') or '—'}» → «{tel or '—'}»")
+    if not cambios:
+        return {"ok": True, "cambios": [], "nombre": antes.get("nombre") or "", "telefono": antes.get("telefono") or ""}
+
+    db_session.add(
+        ContactEvent(
+            email=clave,
+            kind=KIND_DATOS,
+            first_name=nombre,
+            last_name=apellidos,
+            phone=tel,
+            source="panel",
+            created_at=_ahora(),
+            extra=json.dumps(
+                {"autor": autor, "cambios": cambios, "antes": {"nombre": antes.get("nombre") or "", "telefono": antes.get("telefono") or ""}},
+                ensure_ascii=False,
+            ),
+        )
+    )
+    # La lista de Llamadas guarda su propia copia del nombre y el móvil.
+    for fila in (
+        await db_session.execute(select(LlamadaTemplada).where(func.lower(LlamadaTemplada.email) == clave))
+    ).scalars().all():
+        if ahora_nombre:
+            fila.nombre = ahora_nombre[:160]
+        fila.telefono = tel
+        db_session.add(fila)
+    await db_session.commit()
+    return {"ok": True, "cambios": cambios, "nombre": ahora_nombre or antes.get("nombre") or "", "telefono": tel}
+
+
+async def correcciones_por_email(emails: set[str], db_session: AsyncSession) -> dict[str, dict]:
+    """La última corrección a mano de cada correo: {correo: {telefono,
+    nombre, when}}. Para las citas de Calendly, que traen el teléfono que
+    escribió la persona al reservar (si era el malo, el WhatsApp iría mal)."""
+    claves = {e.strip().lower() for e in emails if e}
+    if not claves:
+        return {}
+    filas = (
+        await db_session.execute(
+            select(ContactEvent)
+            .where(ContactEvent.kind == KIND_DATOS)
+            .where(func.lower(ContactEvent.email).in_(claves))  # type: ignore[attr-defined]
+        )
+    ).scalars().all()
+    salida: dict[str, dict] = {}
+    for f in sorted(filas, key=lambda f: str(f.created_at or "")):
+        salida[(f.email or "").strip().lower()] = {
+            "telefono": (f.phone or "").strip(),
+            "nombre": f"{f.first_name or ''} {f.last_name or ''}".strip(),
+            "when": str(f.created_at or ""),
+        }
+    return salida

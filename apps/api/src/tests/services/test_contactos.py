@@ -127,3 +127,28 @@ def test_cada_contacto_lleva_de_donde_viene_aunque_luego_volviera_por_otro_sitio
     assert fichas["ana@x.com"]["canal"]["detalle"] == "Meta · VSL A"
     assert fichas["eva@x.com"]["canal"] == {"canal": "organico", "detalle": "Instagram · historias", "antes": ""}
     assert fichas["luz@x.com"]["canal"]["canal"] == "organico"
+
+
+def test_los_datos_corregidos_a_mano_mandan():
+    from src.services.contactos.contactos import limpiar_telefono
+
+    base = [
+        _ev("solicitud", "2026-11-01T10:00:00", "ana@x.com", first_name="ANA", last_name="Pérez", phone="0612"),
+        _ev("datos-editados", "2026-11-02T10:00:00", "ana@x.com", first_name="Ana", last_name="", phone="+31612345678"),
+        # Un pago después lleva el teléfono viejo de la matrícula: no deshace la corrección.
+        _ev("pago", "2026-11-03T10:00:00", "ana@x.com", first_name="ANA", last_name="Pérez", phone="0612"),
+    ]
+    f = fusionar_contactos(base, set())[0]
+    assert f["telefono"] == "+31612345678"
+    assert f["nombre"] == "Ana"  # el apellido vacío de la corrección se respeta
+    # La corrección no es «lo último que hizo» ella.
+    assert f["ultimo_contacto"]["kind"] != "datos-editados"
+
+    # Si después vuelve a escribir un teléfono en un formulario, ese gana.
+    mas = base + [_ev("admision", "2026-11-04T10:00:00", "ana@x.com", first_name="Ana", last_name="Gómez", phone="+32470000000")]
+    g = fusionar_contactos(mas, set())[0]
+    assert g["telefono"] == "+32470000000"
+    assert g["nombre"] == "Ana Gómez"
+
+    assert limpiar_telefono(" 0031 6-12 34.56 78 ") == "+31612345678"
+    assert limpiar_telefono("+34 (641) 09 26 38") == "+34641092638"

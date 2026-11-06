@@ -250,3 +250,31 @@ async def test_descartada_antes_de_entrar_en_llamadas_no_vuelve(db):
     t = await _tablero(db)
     assert t["mia@x.com"]["etapa"] == "descartado"
     assert await _llamadas(db, "mia@x.com") == ["descartada"]
+
+
+async def test_corregir_el_telefono_desde_la_ficha(db):
+    import pytest as _pytest
+
+    from src.services.contactos.contactos import corregir_datos
+
+    db.add(ContactEvent(email="leo@x.com", kind="admision", first_name="leo", phone="0612", created_at=_hace(5)))
+    db.add(LlamadaTemplada(clave="auto:leo@x.com", email="leo@x.com", nombre="leo", telefono="0612", estado="pendiente", origen="admision"))
+    await db.commit()
+
+    r = await corregir_datos("LEO@x.com", "Leo", "Martín", "0031 6 1234 5678", "Diego", db)
+    assert r["telefono"] == "+31612345678"
+    assert len(r["cambios"]) == 2
+
+    ficha = fusionar_contactos([e for e in await _todos_los_eventos(db) if e["email"] == "leo@x.com"], set())[0]
+    assert (ficha["nombre"], ficha["telefono"]) == ("Leo Martín", "+31612345678")
+    fila = (await db.execute(select(LlamadaTemplada).where(LlamadaTemplada.email == "leo@x.com"))).scalars().first()
+    assert (fila.nombre, fila.telefono) == ("Leo Martín", "+31612345678")
+    linea = (await db.execute(select(ContactEvent).where(ContactEvent.kind == "datos-editados"))).scalars().first()
+    assert "Diego" in json.loads(linea.extra)["autor"]
+
+    # Sin cambios no se apunta nada; un teléfono que no lo es, no se guarda.
+    assert (await corregir_datos("leo@x.com", "Leo", "Martín", "+31612345678", "Diego", db))["cambios"] == []
+    with _pytest.raises(ValueError):
+        await corregir_datos("leo@x.com", "Leo", "", "123", "Diego", db)
+    with _pytest.raises(LookupError):
+        await corregir_datos("nadie@x.com", "X", "", "+31612345678", "Diego", db)

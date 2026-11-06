@@ -340,6 +340,18 @@ async def api_agenda(
         tels = await telefonos_por_email({c.get("email") or "" for c in visibles if not c.get("telefono")}, db_session)
     except Exception:  # noqa: BLE001
         tels = {}
+    # Lo corregido a mano en la ficha (06/11) gana al teléfono que escribió
+    # al reservar, salvo que reservara DESPUÉS de la corrección.
+    try:
+        from src.services.contactos.contactos import correcciones_por_email
+
+        corregidos = await correcciones_por_email({c.get("email") or "" for c in visibles}, db_session)
+    except Exception:  # noqa: BLE001
+        corregidos = {}
+    for c in visibles:
+        corr = corregidos.get((c.get("email") or "").strip().lower())
+        if corr and corr.get("telefono") and str(c.get("reservada") or "") <= corr["when"]:
+            c["telefono"] = corr["telefono"]
     # Con Calendly Teams (31/10): la llamada que Calendly le dio a un closer
     # por turnos es suya, aunque el aviso de la reserva no haya llegado (p.
     # ej. si aún avisa solo de las del usuario principal). Solo se pone si no
@@ -1147,6 +1159,39 @@ async def api_seguimiento(
     if filtro and not filtro.ve_correo(email):
         raise HTTPException(status_code=403, detail="Esta persona la lleva otro closer")
     return await seguimiento_de(email, db_session)
+
+
+class DatosContacto(BaseModel):
+    email: str
+    nombre: str = ""
+    apellidos: str = ""
+    telefono: str = ""
+
+
+@router.put("/org/{org_id}/contacto/datos", summary="Corrige el nombre y el teléfono de una persona (closer y administradores).")
+async def api_corregir_datos(
+    request: Request,
+    org_id: int,
+    data: DatosContacto,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    """Desde la ficha: el teléfono mal escrito, el nombre en mayúsculas… Se
+    apunta como un evento más (`corregir_datos`), no se borra lo de antes."""
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    filtro = await _filtro(current_user, org_id, db_session)
+    if filtro and not filtro.ve_correo(data.email):
+        raise HTTPException(status_code=403, detail="Esta persona la lleva otro closer")
+    from src.services.contactos.contactos import corregir_datos
+
+    try:
+        return await corregir_datos(
+            data.email, data.nombre, data.apellidos, data.telefono, _nombre(current_user), db_session
+        )
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 class NuevaNota(BaseModel):
