@@ -89,8 +89,15 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html className={`${wixMadeforText.variable} ${poppins.variable} ${inter.variable} ${notoEmoji.variable}`} lang="en" suppressHydrationWarning>
+    <html className={`${wixMadeforText.variable} ${poppins.variable} ${inter.variable} ${notoEmoji.variable}`} lang="es" translate="no" suppressHydrationWarning>
       <head>
+        {/* La escuela NO se deja traducir por el navegador. Con lang="en" y
+            lecciones llenas de neerlandés, Chrome ofrecía traducirla y quien
+            aceptaba se encontraba «¡Algo salió mal!» con «removeChild…»: el
+            traductor cambia el texto por debajo de React y React se rompe al
+            actualizar la pantalla. Además, traducida, la lección dejaría de
+            estar en neerlandés. */}
+        <meta name="google" content="notranslate" />
         {/* Synchronous script — blocks parsing to guarantee window.__RUNTIME_CONFIG__ exists before any JS runs.
             Next.js <Script strategy="beforeInteractive"> is not truly blocking in all browsers (Safari). */}
         {/* eslint-disable-next-line @next/next/no-sync-scripts */}

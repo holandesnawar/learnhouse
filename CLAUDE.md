@@ -92,6 +92,16 @@ Usuario `admin`, email **holandesnawar@gmail.com** (superadmin). Creado vía cli
 - Patrón: glow radial azul + puntos blancos sutiles `rgba(255,255,255,0.06)`.
 - **Regla:** secciones dark (#1D0084) o light (blanco/#F0F5FF), nunca mezclar. Contenido principal SIEMPRE blanco.
 
+### La escuela no se deja traducir (06/11/2026)
+Un alumno mandó «¡Algo salió mal!» con «Error al ejecutar 'removeChild' en
+'Node'…» (el mensaje ya venía TRADUCIDO: señal de que tenía la página pasada
+por el traductor de Chrome). El `<html>` decía `lang="en"` y las lecciones
+están llenas de neerlandés, así que Chrome ofrecía traducir; el traductor
+cambia el texto por debajo de React y React revienta al actualizar. Ahora
+`app/layout.tsx` y `global-error.tsx` llevan `lang="es" translate="no"` y
+`<meta name="google" content="notranslate">`. Si vuelve a salir ese error,
+lo primero: ¿tiene la página traducida o una extensión que toque la página?
+
 ### El icono de la pestaña (ago 2026)
 **Manda el favicon subido en el panel** (Organización → personalización); si no
 hay, el logo de la organización. Lo leen el layout de `/orgs/[orgslug]` y las
