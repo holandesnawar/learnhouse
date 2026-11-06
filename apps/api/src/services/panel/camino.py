@@ -35,6 +35,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.courses.courses import Course
 from src.db.organization_config import OrganizationConfig
+from src.db.tareas import TareaSemana
 from src.db.user_organizations import UserOrganization
 from src.db.usergroup_user import UserGroupUser
 from src.db.usergroups import UserGroup
@@ -107,6 +108,46 @@ def asistencias(sesiones: Iterable[dict], minimo_seg: int = MINIMO_SEG) -> dict[
         if seg >= minimo_seg:
             salida.setdefault(uid, set()).add(sid)
     return salida
+
+
+def dias_en_sala(sesiones: Iterable[dict], minimo_seg: int = MINIMO_SEG) -> dict[str, set[str]]:
+    """{id del alumno: {días (AAAA-MM-DD, hora NL) en que estuvo en la sala}}.
+    Mismo criterio que `asistencias` (10 min por sesión), pero por DÍA: así se
+    puede juntar con la lista que pasa el profe, que es por clase y día, sin
+    contar dos veces la misma clase (07/11/2026)."""
+    from datetime import datetime, timezone
+
+    dia_de: dict[str, str] = {}
+    for s in sesiones or []:
+        if not isinstance(s, dict) or not s.get("id"):
+            continue
+        inicio = s.get("start_time")
+        try:
+            cuando = datetime.fromtimestamp(int(inicio), tz=timezone.utc).isoformat() if inicio else ""
+        except (TypeError, ValueError, OverflowError, OSError):
+            cuando = str(inicio or "")
+        # Sin hora de inicio, la sesión cuenta igual, una vez (por su id).
+        dia_de[str(s["id"])] = dia_nl(cuando) or f"sesion:{s['id']}"
+    salida: dict[str, set[str]] = {}
+    for uid, sids in asistencias(sesiones, minimo_seg).items():
+        dias = {dia_de.get(sid, "") for sid in sids} - {""}
+        if dias:
+            salida[uid] = dias
+    return salida
+
+
+def juntar_con_la_lista(en_sala: dict[str, set[str]], listas: dict[str, dict[str, bool]]) -> dict[str, set[str]]:
+    """Los días que fue cada alumno: los de la sala y, por encima, lo que marcó
+    el profe en la lista de cada clase (`listas` = {día: {id: fue}}). Si el
+    profe dice que no vino, no cuenta aunque la sala le viera."""
+    salida = {uid: set(dias) for uid, dias in (en_sala or {}).items()}
+    for dia, marcas in (listas or {}).items():
+        for uid, fue in (marcas or {}).items():
+            if fue:
+                salida.setdefault(str(uid), set()).add(dia)
+            elif str(uid) in salida:
+                salida[str(uid)].discard(dia)
+    return {uid: dias for uid, dias in salida.items() if dias}
 
 
 # ── Daily ───────────────────────────────────────────────────────────────────
@@ -202,19 +243,47 @@ async def camino(org_id: int, db_session: AsyncSession) -> dict:
         ).all():
             grupos.setdefault(int(uid), []).append(str(nombre))
 
-    # Asistencia a las clases en directo, curso a curso.
+    # Asistencia a las clases en directo, curso a curso: la sala de Daily y,
+    # por encima, la lista que pasa el profe (07/11/2026). Por días.
+    from src.services.tareas.tareas import leer_asistencia
+
     cursos = await _cursos_con_sala(org_id, db_session)
+    listas: dict[str, dict[str, dict[str, bool]]] = {}
+    for sem in (
+        await db_session.execute(select(TareaSemana).where(TareaSemana.org_id == org_id))
+    ).scalars().all():
+        marcas = leer_asistencia(getattr(sem, "asistencia", ""))
+        if marcas and sem.fecha:
+            del_dia = listas.setdefault(salas.uuid_curso(sem.course_uuid), {}).setdefault(sem.fecha, {})
+            del_dia.update({uid: bool(m["fue"]) for uid, m in marcas.items()})
+    # Las clases con lista pero sin sala (las de Zoom) también cuentan.
+    con_sala = {c["uuid"] for c in cursos}
+    faltan = [u for u in listas if u not in con_sala]
+    if faltan:
+        fila_cfg = (
+            await db_session.execute(select(OrganizationConfig).where(OrganizationConfig.org_id == org_id))
+        ).scalars().first()
+        for c in (
+            await db_session.execute(
+                select(Course).where(Course.org_id == org_id, Course.course_uuid.in_([f"course_{u}" for u in faltan]))  # type: ignore[attr-defined]
+            )
+        ).scalars().all():
+            u = salas.uuid_curso(c.course_uuid)
+            cursos.append({"uuid": u, "nombre": salas.nombre_con_etiqueta(fila_cfg.config if fila_cfg else {}, u, c.name), "sala": ""})
     por_curso: dict[str, dict[str, set[str]]] = {}
     aviso = ""
-    if cursos and not salas.clave_api():
-        aviso = "Falta la clave de Daily en Railway: no se pueden contar las clases en directo."
-    elif cursos:
-        for c in cursos:
+    sin_clave = bool([c for c in cursos if c["sala"]]) and not salas.clave_api()
+    if sin_clave:
+        aviso = "Falta la clave de Daily en Railway: solo cuentan las clases con la lista pasada por el profe."
+    for c in cursos:
+        en_sala: dict[str, set[str]] = {}
+        if c["sala"] and not sin_clave:
             try:
-                por_curso[c["uuid"]] = asistencias(await _sesiones_de(c["sala"]))
+                en_sala = dias_en_sala(await _sesiones_de(c["sala"]))
             except salas.SalaError as exc:
                 logger.info("Asistencia de %s: %s", c["sala"], exc.mensaje)
                 aviso = f"No se pudo leer la asistencia de Daily: {exc.mensaje}"
+        por_curso[c["uuid"]] = juntar_con_la_lista(en_sala, listas.get(c["uuid"], {}))
 
     hoy = hoy_nl()
     alumnos = []
@@ -247,5 +316,6 @@ async def camino(org_id: int, db_session: AsyncSession) -> dict:
         "alumnos": alumnos,
         "cursos": [{"uuid": c["uuid"], "nombre": c["nombre"]} for c in cursos],
         "minimo_min": MINIMO_SEG // 60,
+        "con_lista": bool(listas),
         "aviso": aviso,
     }

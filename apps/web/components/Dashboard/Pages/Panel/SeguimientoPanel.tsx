@@ -17,7 +17,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
-import { Check, Loader2, Megaphone, MessageCircle, RefreshCw, X } from 'lucide-react'
+import { Check, ListChecks, Loader2, Megaphone, MessageCircle, RefreshCw, X } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import VoiceRecorder from '@components/Pages/Messages/VoiceRecorder'
@@ -41,6 +41,7 @@ import {
   type Seguimiento,
 } from '@services/tareas/tareas'
 import { AvisarClase } from '@components/Pages/Courses/AvisarClase'
+import { PasarLista } from '@components/Pages/Profes/ListaYGrupo'
 import { confirmar } from '@lib/nawar/confirmar'
 import { BOTON, BOTON_PRINCIPAL, Estado, META, TARJETA } from './ui'
 import { FichaAlumno } from './ProgresoPanel'
@@ -373,6 +374,7 @@ export default function SeguimientoPanel({ enEscuela = false }: { enEscuela?: bo
   const [ficha, setFicha] = useState<FilaSeguimiento | null>(null)
   const [resumen, setResumen] = useState<ResumenClase[]>([])
   const [avisando, setAvisando] = useState(false)
+  const [pasandoLista, setPasandoLista] = useState(false)
 
   // Las clases, y la que pide la dirección (desde «Seguimiento» de una semana).
   useEffect(() => {
@@ -453,6 +455,11 @@ export default function SeguimientoPanel({ enEscuela = false }: { enEscuela?: bo
             <Megaphone size={13} /> Avisar a la clase
           </button>
         ) : null}
+        {datos?.semana && datos.semana.fecha && datos.semana.fecha <= datos.hoy ? (
+          <button onClick={() => setPasandoLista(true)} className={datos.lista_pasada ? BOTON : BOTON_PRINCIPAL}>
+            <ListChecks size={13} /> {datos.lista_pasada ? 'Ver la lista' : 'Pasar lista'}
+          </button>
+        ) : null}
         {/* En el panel ya está el «Actualizar» de arriba. */}
         {enEscuela ? (
           <button onClick={cargar} className={BOTON} disabled={cargando}>
@@ -474,6 +481,19 @@ export default function SeguimientoPanel({ enEscuela = false }: { enEscuela?: bo
 
       <Checkins lista={checkins} onHecho={cargar} />
       {avisando && datos?.semana ? <AvisarClase semana={datos.semana} onClose={() => setAvisando(false)} /> : null}
+      {pasandoLista && datos?.semana ? (
+        <PasarLista
+          semanaId={datos.semana.id}
+          tema={datos.semana.tema}
+          curso={datos.curso}
+          token={token}
+          onCerrar={() => setPasandoLista(false)}
+          onGuardada={() => {
+            setPasandoLista(false)
+            cargar()
+          }}
+        />
+      ) : null}
 
       {datos && !datos.semanas.length ? (
         <div className={`${TARJETA} px-4 py-6 text-center`}>
@@ -487,7 +507,11 @@ export default function SeguimientoPanel({ enEscuela = false }: { enEscuela?: bo
           <Cifra k="Alumnos" n={c.alumnos} />
           <Cifra k="Vieron la presentación" n={c.con_presentacion ? c.presentacion : '—'} />
           <Cifra k="Vieron la grabación" n={c.con_grabacion ? c.grabacion ?? 0 : '—'} />
-          <Cifra k="Fueron a la clase" n={c.sabe_clase ? c.clase : '—'} />
+          <Cifra
+            k="Fueron a la clase"
+            n={c.sabe_clase ? c.clase : '—'}
+            extra={datos?.lista_pasada ? <span className="text-[12px] text-[#6B7280]">· lista de {(datos.lista_por || []).join(', ') || 'el profe'}</span> : null}
+          />
           <Cifra k="Hicieron los ejercicios" n={c.con_ejercicios ? c.ejercicios : '—'} />
           <Cifra
             k="Entregaron la tarea"
@@ -529,7 +553,9 @@ export default function SeguimientoPanel({ enEscuela = false }: { enEscuela?: bo
                         {f.grupos.length ? <p className="text-[11.5px] text-[#9CA3AF] truncate max-w-[200px]">{f.grupos.join(' · ')}</p> : null}
                       </td>
                       <td className="px-3 py-2.5">{f.presentacion === null ? <No /> : f.presentacion ? <Si /> : <No />}</td>
-                      <td className="px-3 py-2.5">{f.clase === null ? <span className="text-[#D1D5DB]">?</span> : f.clase ? <Si /> : <No />}</td>
+                      <td className="px-3 py-2.5" title={f.clase_origen === 'lista' ? 'Lo marcó el profe en la lista' : f.clase_origen === 'sala' ? 'Lo vio la sala de la escuela' : ''}>
+                        {f.clase === null ? <span className="text-[#D1D5DB]">?</span> : f.clase ? <Si /> : <No />}
+                      </td>
                       <td className="px-3 py-2.5">{f.grabacion ? <Si /> : <No />}</td>
                       <td className="px-3 py-2.5 tabular-nums">
                         {f.ejercicios.total ? (

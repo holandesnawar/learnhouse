@@ -51,7 +51,7 @@ export function cuandoCae(fecha: string, hoy: string): string {
 
 export type Preparacion = {
   /** Lo que se comprueba en esta tarjeta, en orden. */
-  pasos: { id: 'presentacion' | 'tarea' | 'grabacion' | 'correcciones'; hecho: boolean; texto: string }[]
+  pasos: { id: 'presentacion' | 'tarea' | 'grabacion' | 'correcciones' | 'lista'; hecho: boolean; texto: string }[]
   hechos: number
   total: number
   /** Lo primero que falta, para el aviso de la tarjeta. */
@@ -64,9 +64,17 @@ export type Preparacion = {
  * - Tarea: si la semana la lleva (sin ella, no cuenta: hay semanas sin tarea).
  * - Grabación: solo cuando la clase ya pasó.
  * - Correcciones: solo cuando hay tareas entregadas sin corregir.
+ * - Lista: desde el día de la clase, si se sabe (07/11/2026): quién vino.
  */
 export function preparacion(
-  s: { fecha: string; presentaciones: number; grabaciones: number; tieneTarea: boolean; porCorregir: number },
+  s: {
+    fecha: string
+    presentaciones: number
+    grabaciones: number
+    tieneTarea: boolean
+    porCorregir: number
+    lista?: { pasada: boolean; vinieron: number } | null
+  },
   hoy: string
 ): Preparacion {
   const pasos: Preparacion['pasos'] = []
@@ -82,6 +90,15 @@ export function preparacion(
       id: 'grabacion',
       hecho: s.grabaciones > 0,
       texto: s.grabaciones > 0 ? 'Grabación subida' : 'Falta subir la grabación',
+    })
+  }
+  if (s.lista && !!s.fecha && s.fecha <= hoy) {
+    pasos.push({
+      id: 'lista',
+      hecho: s.lista.pasada,
+      texto: s.lista.pasada
+        ? `Lista pasada · ${s.lista.vinieron === 1 ? 'vino 1' : `vinieron ${s.lista.vinieron}`}`
+        : 'Falta pasar lista',
     })
   }
   if (s.porCorregir > 0) {

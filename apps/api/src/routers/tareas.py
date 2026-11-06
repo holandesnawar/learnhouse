@@ -344,6 +344,56 @@ async def api_avisar(
     return {"ok": True, "alumnos": r["alumnos"], "campana": r["campana"], "correos": len(r.get("destinos") or [])}
 
 
+class ListaIn(BaseModel):
+    # {user_id: true (vino) / false (no vino) / null (quitar la marca)}
+    marcas: dict[str, Optional[bool]]
+
+
+@router.get("/semana/{semana_id}/lista", summary="La lista de la clase de esa semana, para marcar quién vino (equipo).")
+async def api_lista(
+    semana_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    try:
+        s = await T.tarea(semana_id, db_session)
+        await _equipo(current_user, s.org_id, db_session)
+        return await T.lista_de_clase(s.org_id, s, db_session)
+    except T.TareaError as exc:
+        raise _error(exc)
+
+
+@router.put("/semana/{semana_id}/lista", summary="Guarda quién vino a la clase (equipo).")
+async def api_pasar_lista(
+    semana_id: int,
+    data: ListaIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    try:
+        s = await T.tarea(semana_id, db_session)
+        await _equipo(current_user, s.org_id, db_session)
+        return await T.pasar_lista(s.org_id, s, data.marcas, _nombre_para_el_alumno(current_user) or _nombre(current_user), db_session)
+    except T.TareaError as exc:
+        raise _error(exc)
+
+
+@router.get("/org/{org_id}/grupo", summary="«Tu grupo esta semana»: por dónde va, qué falla, sus consultas (equipo).")
+async def api_grupo(
+    org_id: int,
+    course_uuid: str,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _equipo(current_user, org_id, db_session)
+    from src.services.tareas.grupo import grupo_de_la_clase
+
+    try:
+        return await grupo_de_la_clase(org_id, course_uuid, db_session)
+    except T.TareaError as exc:
+        raise _error(exc)
+
+
 @router.get("/org/{org_id}/resumen-clases", summary="Las clases lado a lado: la semana en curso de cada una (equipo).")
 async def api_resumen_clases(
     org_id: int,

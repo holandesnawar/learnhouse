@@ -73,6 +73,8 @@ export interface Semana {
   ocultas?: number
   clases?: ClaseSemana[]
   tarea?: { estado: EstadoTarea; corregida_at: string; vista: boolean }
+  /** Solo al equipo: si ya se pasó la lista y cuántos vinieron (07/11/2026). */
+  lista?: { pasada: boolean; vinieron: number }
 }
 
 export interface SemanasClase {
@@ -133,8 +135,10 @@ export interface FilaSeguimiento {
   presentacion: boolean | null
   /** null = esa semana aún no tiene grabación (06/11/2026). */
   grabacion?: boolean | null
-  /** null = no se sabe (la clase no es en la sala de la escuela). */
+  /** null = no se sabe (ni lista pasada ni sala de la escuela). */
   clase: boolean | null
+  /** De dónde sale «clase»: la lista del profe o la sala de Daily (07/11/2026). */
+  clase_origen?: 'lista' | 'sala' | ''
   ejercicios: { hechos: number; total: number }
   tarea: EstadoTarea
   entrega_id: number | null
@@ -165,7 +169,43 @@ export interface Seguimiento {
     con_tarea: boolean
   } | null
   aviso: string
+  lista_pasada?: boolean
+  lista_por?: string[]
 }
+
+/** La lista de una clase, para marcar quién vino (07/11/2026). */
+export interface ListaClase {
+  semana: { id: number; tema: string; fecha: string }
+  /** Solo el día de la clase o después. */
+  se_puede: boolean
+  alumnos: { user_id: number; nombre: string; fue: boolean | null; en_sala: boolean | null }[]
+  pasada: boolean
+  por: string
+  at: string
+  vinieron: number
+  sala_conocida: boolean
+}
+
+export const getLista = (semanaId: number, token: string) => pedir<ListaClase>(`${base()}/semana/${semanaId}/lista`, token)
+export const pasarLista = (semanaId: number, marcas: Record<string, boolean | null>, token: string) =>
+  pedir<ListaClase>(`${base()}/semana/${semanaId}/lista`, token, 'PUT', { marcas })
+
+/** «Tu grupo esta semana»: por dónde va, qué falla, sus consultas (07/11/2026). */
+export interface GrupoClase {
+  alumnos: number
+  mayoria: { modulo: string; n: number; clase: string } | null
+  detras: { nombre: string; modulo: string; clase?: string }[]
+  delante: { nombre: string; modulo: string }[]
+  fallos: { palabra: string; alumnos: number }[]
+  nuevos: { nombre: string; entro: string }[]
+  sin_entrar: { nombre: string; dias: number | null }[]
+  consultas: { titulo: string; texto: string; nombre: string; fecha: string; respondida: boolean }[]
+  aviso_consultas: string
+  hoy: string
+}
+
+export const getGrupo = (orgId: number, courseUuid: string, token: string) =>
+  pedir<GrupoClase>(`${base()}/org/${orgId}/grupo?course_uuid=${encodeURIComponent(courseUuid)}`, token)
 
 export interface PorCorregir {
   entrega: Entrega
