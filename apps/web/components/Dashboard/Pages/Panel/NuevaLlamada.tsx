@@ -62,12 +62,17 @@ function QuienYDonde({
   setQuien,
   ubicacion,
   setUbicacion,
+  deQuien = 0,
+  deQuienNombre = '',
 }: {
   opciones: OpcionesAgenda | null
   quien: string
   setQuien: (v: string) => void
   ubicacion: string
   setUbicacion: (v: string) => void
+  /** Al cambiar la hora (06/11): el closer de esa llamada y su nombre. */
+  deQuien?: number
+  deQuienNombre?: string
 }) {
   if (!opciones) return <p className={`${META} inline-flex items-center gap-1.5`}><Loader2 size={13} className="animate-spin" /> Cargando quién puede llevarla…</p>
   if (!opciones.configurado || opciones.opciones.length === 0) return null
@@ -88,6 +93,21 @@ function QuienYDonde({
           <p className={`${META} mt-1 !whitespace-normal`}>Calendly elige quién está libre a esa hora.</p>
         ) : elegida ? (
           <p className={`${META} mt-1 !whitespace-normal`}>Con su evento «{elegida.evento}»: salen las horas libres de {elegida.quien}.</p>
+        ) : null}
+        {/* «Una llamada de Belén acabó en el calendario de Diego al cambiarle
+            la hora» (06/11): que se vea ANTES de confirmar a qué calendario va. */}
+        {deQuien > 0 && elegida && !elegida.por_turnos && elegida.closer_id !== deQuien ? (
+          <p className="mt-1.5 text-[12.5px] leading-snug text-[#B91C1C]">
+            Esta llamada es de {deQuienNombre || 'otro closer'}: así pasa al calendario de {elegida.quien}, con su enlace.
+          </p>
+        ) : null}
+        {deQuien > 0 && elegida?.por_turnos ? (
+          <p className="mt-1.5 text-[12.5px] leading-snug text-[#92400E]">
+            Con «Por turnos», Calendly puede ponerla en el calendario de otro closer.{' '}
+            {opciones.opciones.some((o) => o.closer_id === deQuien)
+              ? `Para que siga con ${deQuienNombre || 'su closer'}, elige «${deQuienNombre}».`
+              : `${deQuienNombre || 'Su closer'} no tiene evento propio en Calendly: créale uno para que la hora nueva vaya a su calendario.`}
+          </p>
         ) : null}
         {opciones.faltan.length > 0 ? (
           <p className={`${META} mt-1 !whitespace-normal`}>
@@ -178,6 +198,11 @@ export default function NuevaLlamada({
     return () => window.removeEventListener('keydown', f)
   }, [onClose])
 
+  // Al cambiar la hora: el closer de esa llamada (el de su tarjeta; si no
+  // tiene, a quien se la dio Calendly).
+  const deQuien = cambiar ? Number(cambiar.closer_id || cambiar.calendly_closer_id || 0) : 0
+  const deQuienNombre = cambiar ? ((cambiar.closer_id ? cambiar.closer : cambiar.calendly_closer) || '').split(/\s+/)[0] : ''
+
   // Las opciones, una vez (con la persona, para proponer a quien ya la lleva).
   const personaEmail = (cambiar?.email || inicial?.email || '').trim().toLowerCase()
   useEffect(() => {
@@ -187,14 +212,18 @@ export default function NuevaLlamada({
       if (!vivo) return
       const ops = r || { configurado: false, opciones: [], propuesta: '', faltan: [] }
       setOpciones(ops)
-      // Al cambiar la hora, se propone el closer que ya tiene la llamada.
-      const suya = cambiar?.closer_id ? ops.opciones.find((o) => o.closer_id === cambiar.closer_id) : undefined
-      setQuien(suya?.id || ops.propuesta || ops.opciones[0]?.id || 'turnos')
+      // Al cambiar la hora, se propone el closer que ya tiene la llamada. Si
+      // ese closer no tiene evento propio, «Por turnos» (y la ventana lo
+      // avisa), NUNCA el de quien agenda: así una llamada de Belén acababa en
+      // el calendario de Diego (06/11, Oriannys).
+      const suya = deQuien ? ops.opciones.find((o) => o.closer_id === deQuien) : undefined
+      if (cambiar && deQuien) setQuien(suya?.id || (ops.opciones.some((o) => o.id === 'turnos') ? 'turnos' : ops.opciones[0]?.id || 'turnos'))
+      else setQuien(suya?.id || ops.propuesta || ops.opciones[0]?.id || 'turnos')
     })
     return () => {
       vivo = false
     }
-  }, [org?.id, accessToken, personaEmail, cambiar?.closer_id])
+  }, [org?.id, accessToken, personaEmail, deQuien]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Por dónde (05/11): lo último que se eligió con ese evento (se recuerda en
   // este navegador); si no, en el por turnos «La de quien le toque» y en el
@@ -380,6 +409,8 @@ export default function NuevaLlamada({
               setQuien={setQuien}
               ubicacion={ubicacion}
               setUbicacion={elegirDonde}
+              deQuien={deQuien}
+              deQuienNombre={deQuienNombre}
             />
             <label className="block">
               <span className="text-[12.5px] font-medium text-gray-700">Día</span>

@@ -3915,7 +3915,20 @@ el closer principal, y diga esta para mí o esta para el otro". Se hizo como
     del cambio, pasa la tarjeta al anfitrión si es un closer, sin correos.
     Al leer la agenda sigue mandando el equipo. Test
     `test_en_un_cambio_de_hora_la_tarjeta_sigue_a_calendly`. Lo de antes
-    del 06/11 (Carlos y compañía) se arregla con el botón. Si un closer tiene dos llamadas
+    del 06/11 (Carlos y compañía) se arregla con el botón.
+    ⚠️ **«Cambiar hora» ya no manda la llamada al calendario de quien la
+    cambia** (06/11, Oriannys: era de Belén, al cambiarle la hora acabó en
+    el evento morado «(equipo)» de Diego). La ventana propone el evento del
+    closer de ESA llamada (el de la tarjeta; si no tiene, el de Calendly);
+    si ese closer no tiene evento propio, «Por turnos», nunca el de quien
+    agenda. Y avisa antes de confirmar: en rojo si se elige a otro closer
+    («así pasa al calendario de Diego») y en ámbar con «Por turnos» (Calendly
+    puede dársela al otro). `deQuien` en `Panel/NuevaLlamada.tsx`. Belén
+    tiene desde el 06/11 un **evento gestionado** «Llamada de Consultoría HN»
+    1 a 1 con Meet: si «Nueva llamada» enseña «Belén» como opción, la escuela
+    lo reconoce; si dice «Sin evento propio: Belén», Calendly no lo da como
+    suyo (mirar `eventos_de_closers`: pide `profile.type` User y dueño en
+    `organization_memberships`). Si un closer tiene dos llamadas
     activas que se pisan, las dos lo dicen en rojo («Diego · otra a la vez» y,
     en la ventana, «tiene otra llamada a la misma hora, con Ana»;
     `choques`, pura con test). Tests en `test_reparto_llamadas.py`.
