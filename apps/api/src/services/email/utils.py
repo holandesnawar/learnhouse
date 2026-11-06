@@ -198,7 +198,7 @@ def send_email(to: EmailStr, subject: str, body: str, dry_run: bool = False, rep
 
     lh_config = get_learnhouse_config()
     mailing = lh_config.mailing_config
-    sender = f"Holandés Nawar <{mailing.system_email_address}>"
+    sender = remitente(mailing.system_email_address)
 
     # Resend (and most providers) require a plain `email@example.com` string.
     # Pydantic's EmailStr is a str subclass, but third-party JSON serializers
@@ -220,6 +220,29 @@ def send_email(to: EmailStr, subject: str, body: str, dry_run: bool = False, rep
         raise
     _apuntar_correo(to_addr, subject, ok=True)
     return resultado
+
+
+NOMBRE_REMITENTE = "Holandés Nawar"
+
+
+def remitente(direccion: str, nombre: str = "") -> str:
+    """El «De:» de todos los correos de la escuela: «Holandés Nawar» y la
+    dirección de envío (06/11/2026: el correo de Rida llegaba solo con
+    noreply@… y sin nombre). Pura.
+
+    - El nombre va ENTRE COMILLAS (`"Holandés Nawar" <noreply@…>`): es la forma
+      que no deja dudas a Resend ni a los programas de correo con la tilde.
+    - Si la variable de la dirección trae ya un nombre («Algo <noreply@…>»),
+      se queda solo con la dirección: si no, saldría «Holandés Nawar <Algo
+      <noreply@…>>», que no es una dirección válida y el nombre se pierde.
+    - `LEARNHOUSE_SYSTEM_EMAIL_NAME` cambia el nombre sin tocar código."""
+    import os
+    from email.utils import parseaddr
+
+    direccion = parseaddr(str(direccion or "").strip())[1] or str(direccion or "").strip()
+    nombre = (nombre or os.environ.get("LEARNHOUSE_SYSTEM_EMAIL_NAME") or NOMBRE_REMITENTE).strip()
+    nombre = nombre.replace('"', "").replace("\\", "").replace("\n", " ").replace("\r", " ").strip()
+    return f'"{nombre}" <{direccion}>' if nombre else direccion
 
 
 def _apuntar_correo(to: str, subject: str, ok: bool) -> None:
@@ -282,7 +305,10 @@ _SMTP_TIMEOUT = 15
 def _send_email_smtp(sender: str, to: str, subject: str, body: str, mailing, reply_to: str = ""):
     from fastapi import HTTPException
     msg = MIMEMultipart("alternative")
-    msg["From"] = sender
+    from email.utils import formataddr, parseaddr
+
+    nombre, direccion = parseaddr(sender)
+    msg["From"] = formataddr((nombre, direccion)) if nombre else direccion
     msg["To"] = to
     msg["Subject"] = subject
     if reply_to:
