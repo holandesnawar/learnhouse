@@ -507,7 +507,7 @@ async def _tipos(cliente: httpx.AsyncClient) -> list[dict]:
             ).get("collection") or []
             if tipos:
                 _eventos_cache["fuente"] = "organizacion"
-                return tipos
+                return tipos + await _tipos_de_las_citas(cliente, yo["current_organization"], tipos)
         except FalloCalendly as exc:
             if exc.codigo not in (400, 403, 404):
                 raise
@@ -515,6 +515,43 @@ async def _tipos(cliente: httpx.AsyncClient) -> list[dict]:
     return (
         await _pedir(cliente, "GET", f"{A.API}/event_types", params={"user": yo.get("uri", ""), "active": "true", "count": 100})
     ).get("collection") or []
+
+
+async def _tipos_de_las_citas(cliente: httpx.AsyncClient, organizacion: str, conocidos: list[dict]) -> list[dict]:
+    """Los tipos de evento de las citas de la organización que NO salen al
+    listar sus eventos (06/11/2026, con la captura de «¿Por qué no sale?»):
+    Calendly no devuelve en `event_types?organization=` el evento «por turnos»
+    del equipo. Sin él, la escuela tomaba como evento de las llamadas el
+    primero que encontraba (el gestionado de Belén) y como «Por turnos» la
+    copia morada de Diego: por eso «Cambiar hora» mandaba las llamadas a su
+    calendario. Aquí se piden por su dirección los eventos de las citas
+    recientes. En blando: si algo falla, la lista de siempre."""
+    vistos = {str(t.get("uri") or "") for t in conocidos}
+    try:
+        citas = (
+            await _pedir(
+                cliente, "GET", f"{A.API}/scheduled_events",
+                params={"organization": organizacion, "count": 100, "sort": "start_time:desc"},
+            )
+        ).get("collection") or []
+    except Exception as exc:  # noqa: BLE001
+        logger.info("No se pudieron leer las citas para buscar sus eventos: %s", exc)
+        return []
+    nuevos: list[str] = []
+    for ev in citas:
+        uri = str((ev or {}).get("event_type") or "")
+        if uri.startswith("http") and uri not in vistos and uri not in nuevos:
+            nuevos.append(uri)
+    salida: list[dict] = []
+    for uri in nuevos[:10]:
+        try:
+            t = (await _pedir(cliente, "GET", uri)).get("resource") or {}
+        except Exception as exc:  # noqa: BLE001
+            logger.info("Calendly no deja leer el evento %s: %s", uri, exc)
+            continue
+        if t.get("uri") and t.get("active", True):
+            salida.append(t)
+    return salida
 
 
 async def _tipo(cliente: httpx.AsyncClient) -> dict:
