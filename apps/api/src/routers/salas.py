@@ -117,6 +117,9 @@ class SalaIn(BaseModel):
     # Una etiqueta que solo ven los administradores («Groep rood»), para
     # distinguir dos copias de la misma clase (29/10). Vacía = sin etiqueta.
     etiqueta: Optional[str] = None
+    # «Mira también» en el lateral: las grabaciones de la otra clase con el
+    # mismo nombre (06/11/2026). Sin guardar, sí.
+    mira_tambien: Optional[bool] = None
 
 
 @router.put("/course/{course_uuid}", summary="Encender o apagar la sala de un curso y si se graba (equipo; la etiqueta, administradores).")
@@ -136,7 +139,7 @@ async def api_guardar(
     try:
         return await salas.guardar_config(
             curso.org_id, curso.course_uuid, body.activo, body.grabar, db_session, grabadas=body.grabadas,
-            etiqueta=body.etiqueta,
+            etiqueta=body.etiqueta, mira_tambien=body.mira_tambien,
         )
     except salas.SalaError as exc:
         raise _error(exc) from exc

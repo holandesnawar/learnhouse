@@ -23,8 +23,9 @@ import { createActivity, createFileActivity, updateActivity } from '@services/co
 import { revalidateTags } from '@services/utils/ts/requests'
 import { queryKeys } from '@/lib/query/keys'
 import { getAllLessonsForModule, getLessonSections, getModules } from '@/lib/exercises-app/courseService'
-import { borrarSemana, crearSemana, editarSemana, type Semana } from '@services/tareas/tareas'
+import { borrarSemana, crearSemana, diaCorto, editarSemana, type Hermana, type Semana } from '@services/tareas/tareas'
 import { confirmar } from '@lib/nawar/confirmar'
+import { diaEnLaOtraClase } from '@/lib/nawar/otraClase'
 
 // Las partes de una lección que se cuelgan como ejercicios, en este orden y
 // con el nombre que ve el alumno (los mismos que NativeExercisePicker).
@@ -132,6 +133,7 @@ export function NuevaSemana({
   curso,
   orgslug,
   ultima,
+  hermanas = [],
   onClose,
   onCreada,
 }: {
@@ -139,6 +141,8 @@ export function NuevaSemana({
   curso: any
   orgslug: string
   ultima: Semana | null
+  /** La otra clase con el mismo nombre (el otro grupo): la semana se puede crear en las dos (06/11/2026). */
+  hermanas?: Hermana[]
   onClose: () => void
   onCreada: () => void
 }) {
@@ -157,6 +161,10 @@ export function NuevaSemana({
   const [avisarP, setAvisarP] = useState(true)
   const [avisarG, setAvisarG] = useState(true)
   const [paso, setPaso] = useState('')
+  // En la otra clase, de serie sí (el mismo tema), con su día en la misma semana.
+  const [enOtras, setEnOtras] = useState<Record<string, boolean>>(() => Object.fromEntries(hermanas.map((h) => [h.course_uuid, true])))
+  const [diaOtras, setDiaOtras] = useState<Record<string, string>>({})
+  const diaDe = (h: Hermana) => diaOtras[h.course_uuid] || diaEnLaOtraClase(fecha, h)
 
   const modulos = useMemo(() => getModules(), [])
   const lecciones = useMemo(() => (modulo ? getAllLessonsForModule(modulo) : []), [modulo])
@@ -166,66 +174,83 @@ export function NuevaSemana({
     return PARTES.filter((p) => tiene.has(p.id))
   }, [modulo, leccion])
 
+  /** Crea la semana entera en una clase: capítulo, presentación, ejercicios y tarea. */
+  async function crearEn(destino: { id: number; org_id: number }, uuidDestino: string, dia: string, quien: string) {
+    setPaso(`Creando la semana${quien}…`)
+    const capitulo: any = await createChapter(
+      { name: tema.trim(), description: '', course_id: destino.id, org_id: destino.org_id },
+      token
+    )
+    if (!capitulo?.id || !capitulo?.chapter_uuid) throw new Error('No se pudo crear el capítulo')
+
+    if (pdf) {
+      setPaso(`Subiendo la presentación${quien}…`)
+      const act: any = await createFileActivity(pdf, 'documentpdf', { name: 'Presentación' }, capitulo.id, token)
+      if (!act?.activity_uuid) throw new Error('No se pudo subir la presentación')
+      await updateActivity({ published: true }, act.activity_uuid, token)
+    }
+
+    for (const p of partes) {
+      setPaso(`Añadiendo ${p.nombre}${quien}…`)
+      const act: any = await createActivity(
+        {
+          name: p.nombre,
+          chapter_id: capitulo.id,
+          activity_type: 'TYPE_DYNAMIC',
+          activity_sub_type: 'SUBTYPE_DYNAMIC_EMBED',
+          content: { embed_url: `nawar:${modulo}/${leccion}/${p.id}` },
+          published_version: 1,
+          version: 1,
+          course_id: destino.id,
+        },
+        capitulo.id,
+        destino.org_id,
+        token
+      )
+      if (act?.activity_uuid) await updateActivity({ published: true }, act.activity_uuid, token)
+    }
+
+    setPaso(`Guardando la tarea${quien}…`)
+    await crearSemana(
+      uuidDestino,
+      {
+        chapter_uuid: capitulo.chapter_uuid,
+        tema: tema.trim(),
+        fecha: dia,
+        enunciado: enunciado.trim(),
+        fecha_limite: limite,
+        avisar_presentacion: avisarP,
+        avisar_grabacion: avisarG,
+      },
+      token
+    )
+    await queryClient.invalidateQueries({ queryKey: queryKeys.courses.meta(String(uuidDestino).replace(/^course_/, '')) })
+  }
+
   async function crear() {
     if (!tema.trim()) return toast.error('Ponle un tema a la semana')
     if (!fecha) return toast.error('Falta el día de la clase')
     if (pdf && !/\.pdf$/i.test(pdf.name)) return toast.error('La presentación tiene que ser un PDF')
+    const otras = hermanas.filter((h) => enOtras[h.course_uuid])
+    if (otras.some((h) => !diaDe(h))) return toast.error('Falta el día de la clase en la otra clase')
+    let hecha = false
     try {
-      setPaso('Creando la semana…')
-      const capitulo: any = await createChapter(
-        { name: tema.trim(), description: '', course_id: curso.id, org_id: curso.org_id },
-        token
-      )
-      if (!capitulo?.id || !capitulo?.chapter_uuid) throw new Error('No se pudo crear el capítulo')
-
-      if (pdf) {
-        setPaso('Subiendo la presentación…')
-        const act: any = await createFileActivity(pdf, 'documentpdf', { name: 'Presentación' }, capitulo.id, token)
-        if (!act?.activity_uuid) throw new Error('No se pudo subir la presentación')
-        await updateActivity({ published: true }, act.activity_uuid, token)
+      await crearEn({ id: curso.id, org_id: curso.org_id }, courseUuid, fecha, otras.length ? ' en esta clase' : '')
+      hecha = true
+      for (const h of otras) {
+        try {
+          await crearEn({ id: h.id, org_id: h.org_id }, h.course_uuid, diaDe(h), ` en ${h.nombre}`)
+        } catch (e: any) {
+          toast.error(`En ${h.nombre} no se pudo crear: ${e?.message || 'error'}. Créala desde su página.`)
+        }
       }
-
-      for (const p of partes) {
-        setPaso(`Añadiendo ${p.nombre}…`)
-        const act: any = await createActivity(
-          {
-            name: p.nombre,
-            chapter_id: capitulo.id,
-            activity_type: 'TYPE_DYNAMIC',
-            activity_sub_type: 'SUBTYPE_DYNAMIC_EMBED',
-            content: { embed_url: `nawar:${modulo}/${leccion}/${p.id}` },
-            published_version: 1,
-            version: 1,
-            course_id: curso.id,
-          },
-          capitulo.id,
-          curso.org_id,
-          token
-        )
-        if (act?.activity_uuid) await updateActivity({ published: true }, act.activity_uuid, token)
-      }
-
-      setPaso('Guardando la tarea…')
-      await crearSemana(
-        courseUuid,
-        {
-          chapter_uuid: capitulo.chapter_uuid,
-          tema: tema.trim(),
-          fecha,
-          enunciado: enunciado.trim(),
-          fecha_limite: limite,
-          avisar_presentacion: avisarP,
-          avisar_grabacion: avisarG,
-        },
-        token
-      )
-      await queryClient.invalidateQueries({ queryKey: queryKeys.courses.meta(String(courseUuid).replace(/^course_/, '')) })
       revalidateTags(['courses'], orgslug).catch(() => {})
       router.refresh()
-      toast.success('Semana creada')
+      toast.success(otras.length ? `Semana creada en ${otras.length + 1} clases` : 'Semana creada')
       onCreada()
     } catch (e: any) {
       toast.error(e?.message || 'No se pudo crear la semana')
+      if (hecha) onCreada()
     } finally {
       setPaso('')
     }
@@ -306,6 +331,38 @@ export function NuevaSemana({
           onGrabacion={setAvisarG}
           disabled={!!paso}
         />
+
+        {hermanas.length ? (
+          <div className="rounded-lg border border-[#DDE6F5] px-3 py-2.5 space-y-2">
+            <p className="text-[12px] font-semibold text-[#5A6480]">El mismo tema en el otro grupo</p>
+            {hermanas.map((h) => (
+              <div key={h.course_uuid} className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                <label className="flex items-center gap-2 text-[13.5px] text-gray-900 cursor-pointer flex-1 min-w-[200px]">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-[#025dc7] shrink-0"
+                    checked={!!enOtras[h.course_uuid]}
+                    disabled={!!paso}
+                    onChange={(e) => setEnOtras((o) => ({ ...o, [h.course_uuid]: e.target.checked }))}
+                  />
+                  Crearla también en «{h.nombre}»
+                </label>
+                {enOtras[h.course_uuid] ? (
+                  <input
+                    type="date"
+                    value={diaDe(h)}
+                    disabled={!!paso}
+                    onChange={(e) => setDiaOtras((o) => ({ ...o, [h.course_uuid]: e.target.value }))}
+                    className={CAMPO + ' max-w-[170px]'}
+                  />
+                ) : null}
+              </div>
+            ))}
+            <p className="text-[11.5px] text-[#6B7280]">
+              Misma presentación, ejercicios y tarea. Cada grupo con su día{hermanas[0] && diaDe(hermanas[0]) ? ` (${diaCorto(diaDe(hermanas[0]))})` : ''}, su grabación y sus entregas.
+            </p>
+          </div>
+        ) : null}
 
         <button
           onClick={crear}

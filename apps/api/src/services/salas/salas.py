@@ -364,6 +364,7 @@ async def guardar_config(
     db_session: AsyncSession,
     grabadas: Optional[bool] = None,
     etiqueta: Optional[str] = None,
+    mira_tambien: Optional[bool] = None,
 ) -> dict:
     """Encender/apagar la sala y la grabación. Encenderla marca además el curso
     como de clases en directo (`directo`), y eso se queda al apagarla: así el
@@ -388,12 +389,18 @@ async def guardar_config(
         cambios["grabadas"] = bool(grabadas)
     if etiqueta is not None:
         cambios["etiqueta"] = limpiar_etiqueta(etiqueta)
+    if mira_tambien is not None:
+        # «Mira también» (06/11/2026): las grabaciones de la otra clase con el
+        # mismo nombre, en el lateral. Sin guardar, sí.
+        cambios["mira_tambien"] = bool(mira_tambien)
     guardado = await _escribir(org_id, course_uuid, cambios, db_session)
     salida = {"activo": bool(guardado.get("activo")), "grabar": True}
     if isinstance(guardado.get("grabadas"), bool):
         salida["grabadas"] = guardado["grabadas"]
     if etiqueta is not None or guardado.get("etiqueta"):
         salida["etiqueta"] = str(guardado.get("etiqueta") or "")
+    if "mira_tambien" in guardado:
+        salida["mira_tambien"] = guardado.get("mira_tambien") is not False
     return salida
 
 

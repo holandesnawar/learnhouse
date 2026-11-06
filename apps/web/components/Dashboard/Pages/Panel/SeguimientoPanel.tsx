@@ -6,6 +6,10 @@
  * sin nada), lo que queda por corregir con el corrector al lado, y a quién le
  * toca el check-in de las semanas 4, 8 y 12.
  *
+ * Desde el 06/11/2026: arriba, las clases lado a lado (la semana en curso de
+ * cada una), la columna «Grabación» (quién la ha visto) y «Avisar a la clase»
+ * con la semana elegida.
+ *
  * Vive en el panel (administradores) y en la escuela (`/seguimiento`, para los
  * profes, que no entran al panel). La lógica, en
  * apps/api/src/services/tareas/tareas.py.
@@ -13,7 +17,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
-import { Check, Loader2, MessageCircle, RefreshCw, X } from 'lucide-react'
+import { Check, Loader2, Megaphone, MessageCircle, RefreshCw, X } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import VoiceRecorder from '@components/Pages/Messages/VoiceRecorder'
@@ -26,14 +30,17 @@ import {
   getClasesEnDirecto,
   getEntrega,
   getPorCorregir,
+  getResumenClases,
   getSeguimiento,
   marcarCheckin,
   reabrirEntrega,
   type CheckinToca,
   type FilaSeguimiento,
   type PorCorregir,
+  type ResumenClase,
   type Seguimiento,
 } from '@services/tareas/tareas'
+import { AvisarClase } from '@components/Pages/Courses/AvisarClase'
 import { confirmar } from '@lib/nawar/confirmar'
 import { BOTON, BOTON_PRINCIPAL, Estado, META, TARJETA } from './ui'
 import { FichaAlumno } from './ProgresoPanel'
@@ -295,6 +302,61 @@ function leerUrl(nombre: string): string {
   return new URLSearchParams(window.location.search).get(nombre) || ''
 }
 
+/** Las clases lado a lado: la semana en curso de cada una, en cifras. Tocar una la abre abajo. */
+function ClasesLadoALado({ clases, elegida, onElegir }: { clases: ResumenClase[]; elegida: string; onElegir: (uuid: string) => void }) {
+  if (clases.length < 2) return null
+  const parte = (n: number | undefined, total: number, hay: boolean | undefined) =>
+    hay ? (
+      <span className="tabular-nums">
+        <span className="font-semibold text-gray-900">{n || 0}</span>
+        <span className="text-[#9CA3AF]">/{total}</span>
+      </span>
+    ) : (
+      <span className="text-[#D1D5DB]">—</span>
+    )
+  return (
+    <div>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B7280] mb-1.5">Las clases esta semana</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
+        {clases.map((x) => {
+          const c = x.cifras
+          return (
+            <button
+              key={x.course_uuid}
+              onClick={() => onElegir(x.course_uuid)}
+              className={`${TARJETA} text-left px-4 py-3 transition-colors ${elegida === x.course_uuid ? 'border-[#1D0084] ring-1 ring-[#1D0084]' : 'hover:border-[#9cc7ff]'}`}
+            >
+              <p className="text-[13.5px] font-semibold text-gray-900 truncate">{x.nombre}</p>
+              <p className={`${META} truncate`}>
+                {x.semana.tema} · {diaCorto(x.semana.fecha)}
+              </p>
+              <div className="mt-2 grid grid-cols-4 gap-1 text-[12px] text-[#5A6480]">
+                <div>
+                  <p className="text-[10.5px]">Presentación</p>
+                  {parte(c.presentacion, c.alumnos, c.con_presentacion)}
+                </div>
+                <div>
+                  <p className="text-[10.5px]">Grabación</p>
+                  {parte(c.grabacion, c.alumnos, c.con_grabacion)}
+                </div>
+                <div>
+                  <p className="text-[10.5px]">Ejercicios</p>
+                  {parte(c.ejercicios, c.alumnos, c.con_ejercicios)}
+                </div>
+                <div>
+                  <p className="text-[10.5px]">Tarea</p>
+                  {parte(c.entregadas, c.alumnos, c.con_tarea)}
+                </div>
+              </div>
+              {c.por_corregir ? <p className="mt-1 text-[12px] font-semibold text-[#B45309]">{c.por_corregir} por corregir</p> : null}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function SeguimientoPanel({ enEscuela = false }: { enEscuela?: boolean }) {
   const org = useOrg() as any
   const session = useLHSession() as any
@@ -309,6 +371,8 @@ export default function SeguimientoPanel({ enEscuela = false }: { enEscuela?: bo
   const [cargando, setCargando] = useState(false)
   const [corrigiendo, setCorrigiendo] = useState<number | null>(null)
   const [ficha, setFicha] = useState<FilaSeguimiento | null>(null)
+  const [resumen, setResumen] = useState<ResumenClase[]>([])
+  const [avisando, setAvisando] = useState(false)
 
   // Las clases, y la que pide la dirección (desde «Seguimiento» de una semana).
   useEffect(() => {
@@ -331,6 +395,10 @@ export default function SeguimientoPanel({ enEscuela = false }: { enEscuela?: bo
       const [p, c] = await Promise.all([getPorCorregir(org.id, token), getCheckins(org.id, token)])
       setPendientes(p.entregas)
       setCheckins(c.toca)
+      // Las clases lado a lado: en blando, que no pare lo demás.
+      getResumenClases(org.id, token)
+        .then((r) => setResumen(r.clases))
+        .catch(() => setResumen([]))
       if (clase) setDatos(await getSeguimiento(org.id, clase, semanaId, token))
       setError('')
     } catch (e: any) {
@@ -380,6 +448,11 @@ export default function SeguimientoPanel({ enEscuela = false }: { enEscuela?: bo
             ))}
           </select>
         ) : null}
+        {datos?.semana ? (
+          <button onClick={() => setAvisando(true)} className={BOTON}>
+            <Megaphone size={13} /> Avisar a la clase
+          </button>
+        ) : null}
         {/* En el panel ya está el «Actualizar» de arriba. */}
         {enEscuela ? (
           <button onClick={cargar} className={BOTON} disabled={cargando}>
@@ -390,7 +463,17 @@ export default function SeguimientoPanel({ enEscuela = false }: { enEscuela?: bo
         ) : null}
       </div>
 
+      <ClasesLadoALado
+        clases={resumen}
+        elegida={clase}
+        onElegir={(u) => {
+          setClase(u)
+          setSemanaId(null)
+        }}
+      />
+
       <Checkins lista={checkins} onHecho={cargar} />
+      {avisando && datos?.semana ? <AvisarClase semana={datos.semana} onClose={() => setAvisando(false)} /> : null}
 
       {datos && !datos.semanas.length ? (
         <div className={`${TARJETA} px-4 py-6 text-center`}>
@@ -400,9 +483,10 @@ export default function SeguimientoPanel({ enEscuela = false }: { enEscuela?: bo
       ) : null}
 
       {c ? (
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5">
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-2.5">
           <Cifra k="Alumnos" n={c.alumnos} />
           <Cifra k="Vieron la presentación" n={c.con_presentacion ? c.presentacion : '—'} />
+          <Cifra k="Vieron la grabación" n={c.con_grabacion ? c.grabacion ?? 0 : '—'} />
           <Cifra k="Fueron a la clase" n={c.sabe_clase ? c.clase : '—'} />
           <Cifra k="Hicieron los ejercicios" n={c.con_ejercicios ? c.ejercicios : '—'} />
           <Cifra
@@ -425,6 +509,7 @@ export default function SeguimientoPanel({ enEscuela = false }: { enEscuela?: bo
                     <th className="px-3 py-2.5">Alumno</th>
                     <th className="px-3 py-2.5">Presentación</th>
                     <th className="px-3 py-2.5">Clase</th>
+                    <th className="px-3 py-2.5">Grabación</th>
                     <th className="px-3 py-2.5">Ejercicios</th>
                     <th className="px-3 py-2.5">Tarea</th>
                     <th className="px-3 py-2.5">Semanas</th>
@@ -445,6 +530,7 @@ export default function SeguimientoPanel({ enEscuela = false }: { enEscuela?: bo
                       </td>
                       <td className="px-3 py-2.5">{f.presentacion === null ? <No /> : f.presentacion ? <Si /> : <No />}</td>
                       <td className="px-3 py-2.5">{f.clase === null ? <span className="text-[#D1D5DB]">?</span> : f.clase ? <Si /> : <No />}</td>
+                      <td className="px-3 py-2.5">{f.grabacion ? <Si /> : <No />}</td>
                       <td className="px-3 py-2.5 tabular-nums">
                         {f.ejercicios.total ? (
                           <span className={f.ejercicios.hechos >= f.ejercicios.total ? 'text-[#15803D] font-medium' : f.ejercicios.hechos ? 'text-[#025dc7]' : 'text-[#9CA3AF]'}>
@@ -474,7 +560,8 @@ export default function SeguimientoPanel({ enEscuela = false }: { enEscuela?: bo
                     <EstadoTarea f={f} onCorregir={setCorrigiendo} />
                   </div>
                   <p className={META}>
-                    Presentación {f.presentacion ? '✓' : '—'} · Clase {f.clase === null ? '?' : f.clase ? '✓' : '—'} · Ejercicios{' '}
+                    Presentación {f.presentacion ? '✓' : '—'} · Clase {f.clase === null ? '?' : f.clase ? '✓' : '—'} · Grabación{' '}
+                    {f.grabacion ? '✓' : '—'} · Ejercicios{' '}
                     {f.ejercicios.total ? `${f.ejercicios.hechos}/${f.ejercicios.total}` : '—'}
                   </p>
                   <Semanas f={f} />

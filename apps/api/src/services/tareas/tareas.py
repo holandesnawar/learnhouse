@@ -47,6 +47,8 @@ from __future__ import annotations
 
 import json
 import logging
+import re
+import unicodedata
 import uuid as _uuid
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -393,20 +395,155 @@ def _orden_reciente(semanas: list[dict]) -> list[dict]:
     return sorted(semanas, key=lambda s: (s.get("fecha") or "", s.get("id") or 0), reverse=True)
 
 
+# ── Las grabaciones de antes de las semanas (06/11/2026) ────────────────────
+#
+# Usuario: "lo de sesiones grabadas está bien, pero ahora no sirve de mucho,
+# debe ser estilo próxima semana y esta semana como ahora". Antes del 28/10 las
+# grabaciones iban en un capítulo por mes («OCTUBRE - 2026») con el día en el
+# nombre («14-10 Het Weer | Paul Plaat»). Ahora todo va por semanas: cada
+# grabación suelta se coloca en la semana de su día (o de su tema, la misma
+# semana) y la que no tiene semana sale como una clase más de la lista, con su
+# día, su tema y su profe. Nada se mueve en el curso: solo cambia cómo se pinta.
+
+_RE_DIA = re.compile(r"^\s*(\d{1,2})\s*[-/.]\s*(\d{1,2})(?:\s*[-/.]\s*(\d{2,4}))?\b\s*[-–—·|:,]*\s*(.*)$")
+_MESES_NUM = {
+    "enero": 1, "febrero": 2, "marzo": 3, "abril": 4, "mayo": 5, "junio": 6, "julio": 7, "agosto": 8,
+    "septiembre": 9, "setiembre": 9, "octubre": 10, "noviembre": 11, "diciembre": 12,
+}
+
+
+def normal(texto: Any) -> str:
+    """Para comparar temas: sin mayúsculas, sin acentos, solo letras y números. Pura."""
+    t = unicodedata.normalize("NFD", str(texto or "").lower())
+    t = "".join(c for c in t if unicodedata.category(c) != "Mn")
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", t).split())
+
+
+def anio_del_capitulo(nombre: Any) -> Optional[int]:
+    """«OCTUBRE - 2026» → 2026 (None si el nombre no es un mes con su año). Pura."""
+    m = re.search(r"([a-z]+)\s*[-–—·/,]?\s*(\d{4})", normal(nombre))
+    if not m or m.group(1) not in _MESES_NUM:
+        return None
+    return int(m.group(2))
+
+
+def fecha_en_titulo(nombre: Any, anio: int) -> dict:
+    """«14-10 Het Weer | Paul Plaat» → fecha 2026-10-14, tema «Het Weer»,
+    profe «Paul Plaat». Sin día en el nombre, fecha vacía. Pura."""
+    texto = " ".join(str(nombre or "").split())
+    fecha = ""
+    m = _RE_DIA.match(texto)
+    if m:
+        dia, mes, a, resto = m.group(1), m.group(2), m.group(3), m.group(4)
+        y = int(a) if a else anio
+        if y < 100:
+            y += 2000
+        try:
+            fecha = date(y, int(mes), int(dia)).isoformat()
+            texto = resto
+        except ValueError:
+            fecha = ""
+    partes = [p.strip() for p in texto.split("|")]
+    return {"fecha": fecha, "tema": partes[0] if partes else "", "profe": partes[1] if len(partes) > 1 else ""}
+
+
+def _misma_semana(a: str, b: str) -> bool:
+    try:
+        return date.fromisoformat(a).isocalendar()[:2] == date.fromisoformat(b).isocalendar()[:2]
+    except (TypeError, ValueError):
+        return False
+
+
+def _dias_entre(a: str, b: str) -> int:
+    try:
+        return abs((date.fromisoformat(a) - date.fromisoformat(b)).days)
+    except (TypeError, ValueError):
+        return 999
+
+
+def mismo_tema(a: Any, b: Any) -> bool:
+    """«De kleding» y «Kleding» son el mismo tema. Pura."""
+    x, y = normal(a), normal(b)
+    if not x or not y:
+        return False
+    if x == y:
+        return True
+    corto, largo = sorted((x, y), key=len)
+    return len(corto) >= 4 and corto in largo
+
+
+def semana_de_la_grabacion(semanas: list[dict], suelta: dict) -> Optional[dict]:
+    """La semana a la que pertenece una grabación suelta: la de su mismo día o,
+    con el mismo tema, la de su misma semana (±6 días). Pura."""
+    f = suelta.get("fecha") or ""
+    if not f:
+        return None
+    for s in semanas:
+        if s.get("fecha") == f:
+            return s
+    for s in semanas:
+        if mismo_tema(s.get("tema"), suelta.get("tema")) and (
+            _misma_semana(s.get("fecha") or "", f) or _dias_entre(s.get("fecha") or "", f) <= 6
+        ):
+            return s
+    return None
+
+
+def colocar_sueltas(semanas: list[dict], sueltas: list[dict]) -> list[dict]:
+    """Mete cada grabación suelta en su semana (en `clases`, marcada `suelta`)
+    y devuelve las que no tienen semana: el archivo, la más nueva primero (las
+    que no dicen su día, al final). Cambia `semanas` en el sitio. Pura."""
+    archivo = []
+    for c in sueltas:
+        destino = semana_de_la_grabacion(semanas, c) if c.get("tipo") == "grabacion" else None
+        if destino is not None:
+            destino.setdefault("clases", []).append({**c, "suelta": True})
+        else:
+            archivo.append(c)
+    return sorted(archivo, key=lambda c: (bool(c.get("fecha")), c.get("fecha") or "", c.get("id") or 0), reverse=True)
+
+
+async def _sueltas(course: Course, de_semanas: set[str], db_session: AsyncSession) -> list[dict]:
+    """Las clases publicadas de los capítulos que NO son semanas (los meses de
+    antes), con el día, el tema y el profe que dice su nombre."""
+    capitulos = (
+        await db_session.execute(select(Chapter.chapter_uuid, Chapter.name).where(Chapter.course_id == course.id))
+    ).all()
+    fuera = {cu: nombre for cu, nombre in capitulos if cu and cu not in de_semanas}
+    if not fuera:
+        return []
+    clases = await _clases(list(fuera.keys()), db_session)
+    salida = []
+    for cu, lista in clases.items():
+        anio_cap = anio_del_capitulo(fuera.get(cu))
+        for c in lista:
+            anio = anio_cap or (int(str(c.get("creada") or "")[:4]) if str(c.get("creada") or "")[:4].isdigit() else date.today().year)
+            datos = fecha_en_titulo(c["nombre"], anio)
+            salida.append({**c, **datos, "capitulo": fuera.get(cu) or ""})
+    return salida
+
+
 # ── El alumno ───────────────────────────────────────────────────────────────
 
 
-async def semanas_para_alumno(course: Course, user_id: int, db_session: AsyncSession, equipo: bool = False) -> dict:
+async def semanas_para_alumno(
+    course: Course, user_id: int, db_session: AsyncSession, equipo: bool = False, con_archivo: bool = False
+) -> dict:
     """Las semanas de una clase para la página del curso: sus clases con «hecha»
     o no, y el estado de su tarea. Al alumno, de las semanas cuya clase aún no
-    ha llegado, solo la presentación (`solo_antes_de_la_clase`); al equipo, todo."""
+    ha llegado, solo la presentación (`solo_antes_de_la_clase`); al equipo, todo.
+
+    Con `con_archivo` (la página del curso, 06/11/2026), además las grabaciones
+    de los meses de antes: cada una en su semana y, la que no tiene, en
+    `archivo` (`colocar_sueltas`)."""
     from src.services.panel.tandas import hoy_nl
 
     hoy = hoy_nl()
     filas = await semanas_de(course.org_id, course.course_uuid, db_session)
     semanas = [_semana_dict(s) for s in filas]
     clases = await _clases([s["chapter_uuid"] for s in semanas], db_session)
-    ids = [c["id"] for lista in clases.values() for c in lista]
+    sueltas = await _sueltas(course, {s["chapter_uuid"] for s in semanas}, db_session) if con_archivo else []
+    ids = [c["id"] for lista in clases.values() for c in lista] + [c["id"] for c in sueltas]
     hechas = (await _hechas(course.id or 0, [user_id], ids, db_session)).get(user_id, set())
     suyas = {e.tarea_id: e for e in await _entregas([s["id"] for s in semanas], db_session, [user_id])}
     for s in semanas:
@@ -423,14 +560,32 @@ async def semanas_para_alumno(course: Course, user_id: int, db_session: AsyncSes
             "vista": bool((e or {}).get("vista_at")),
         }
     actual, proxima = semana_actual(semanas, hoy)
+    archivo = colocar_sueltas(
+        semanas,
+        [
+            {
+                "id": c["id"], "activity_uuid": c["activity_uuid"], "nombre": c["nombre"], "tipo": c["tipo"],
+                "hecha": c["id"] in hechas, "fecha": c["fecha"], "tema": c["tema"], "profe": c["profe"],
+            }
+            for c in sueltas
+        ],
+    )
     if not equipo:
         semanas = [s if s["abierta"] else solo_antes_de_la_clase(s) for s in semanas]
-    return {
+    for s in semanas:
+        for c in s.get("clases") or []:
+            c.pop("id", None)
+    for c in archivo:
+        c.pop("id", None)
+    salida = {
         "hoy": hoy,
         "actual": actual,
         "proxima": proxima,
         "semanas": _orden_reciente(semanas),
     }
+    if con_archivo:
+        salida["archivo"] = archivo
+    return salida
 
 
 async def mi_semana(
@@ -774,7 +929,12 @@ async def seguimiento(org_id: int, course_uuid: str, semana_id: Optional[int], d
     alumnos = await alumnos_del_curso(org_id, course, db_session)
     ids = [a["user_id"] for a in alumnos]
     clases = await _clases([s["chapter_uuid"] for s in semanas], db_session)
-    todas = [c["id"] for lista in clases.values() for c in lista]
+    # Las grabaciones de los meses de antes que caen en una semana (06/11).
+    sueltas = await _sueltas(course, {s["chapter_uuid"] for s in semanas}, db_session)
+    colocadas = [{"id": s["id"], "fecha": s["fecha"], "tema": s["tema"], "clases": []} for s in semanas]
+    colocar_sueltas(colocadas, [dict(c) for c in sueltas])
+    grab_sueltas = {s["id"]: [c["id"] for c in s["clases"]] for s in colocadas}
+    todas = [c["id"] for lista in clases.values() for c in lista] + [c["id"] for c in sueltas]
     hechas = await _hechas(course.id or 0, ids, todas, db_session)
     entregas: dict[tuple[int, int], TareaEntrega] = {
         (e.tarea_id, e.user_id): e for e in await _entregas([s["id"] for s in semanas], db_session, ids)
@@ -798,7 +958,8 @@ async def seguimiento(org_id: int, course_uuid: str, semana_id: Optional[int], d
         aviso = "Falta la clave de Daily en Railway: no se sabe quién fue a la clase."
 
     def de_tipo(s: dict, tipo: str) -> list[int]:
-        return [c["id"] for c in clases.get(s["chapter_uuid"], []) if c["tipo"] == tipo]
+        propias = [c["id"] for c in clases.get(s["chapter_uuid"], []) if c["tipo"] == tipo]
+        return propias + (grab_sueltas.get(s["id"], []) if tipo == "grabacion" else [])
 
     cerradas = [s for s in semanas if s["limite"] < hoy]
     filas = []
@@ -806,6 +967,7 @@ async def seguimiento(org_id: int, course_uuid: str, semana_id: Optional[int], d
         uid = a["user_id"]
         suyas = hechas.get(uid, set())
         pres = de_tipo(elegida, "presentacion")
+        grab = de_tipo(elegida, "grabacion")
         ejer = de_tipo(elegida, "ejercicios")
         e = entregas.get((elegida["id"], uid))
         fue = None
@@ -824,6 +986,7 @@ async def seguimiento(org_id: int, course_uuid: str, semana_id: Optional[int], d
             {
                 **a,
                 "presentacion": (any(i in suyas for i in pres) if pres else None),
+                "grabacion": (any(i in suyas for i in grab) if grab else None),
                 "clase": fue,
                 "ejercicios": {"hechos": sum(1 for i in ejer if i in suyas), "total": len(ejer)},
                 "tarea": estado_entrega(elegida["tiene_tarea"], _entrega_dict(e)),
@@ -837,6 +1000,8 @@ async def seguimiento(org_id: int, course_uuid: str, semana_id: Optional[int], d
         "alumnos": len(filas),
         "presentacion": sum(1 for f in filas if f["presentacion"]),
         "con_presentacion": bool(de_tipo(elegida, "presentacion")),
+        "grabacion": sum(1 for f in filas if f["grabacion"]),
+        "con_grabacion": bool(de_tipo(elegida, "grabacion")),
         "clase": sum(1 for f in filas if f["clase"]),
         "sabe_clase": elegida["id"] in asistencia,
         "ejercicios": sum(1 for f in filas if f["ejercicios"]["total"] and f["ejercicios"]["hechos"] >= f["ejercicios"]["total"]),
@@ -1262,7 +1427,7 @@ async def presentaciones_nuevas(user_id: int, db_session: AsyncSession) -> list[
     ).scalars().all()
     por_curso: dict[str, list[TareaSemana]] = {}
     for s in filas:
-        if not (s.aviso_presentacion or s.aviso_grabacion):
+        if not (s.aviso_presentacion or s.aviso_grabacion or getattr(s, "avisos", "")):
             continue
         por_curso.setdefault(s.course_uuid, []).append(s)
     salida: list[dict] = []
@@ -1275,6 +1440,8 @@ async def presentaciones_nuevas(user_id: int, db_session: AsyncSession) -> list[
         vistas = (await _hechas(course.id or 0, [user_id], ids, db_session)).get(user_id, set())
         nombre, cu = course.name or "", uuid_curso(course.course_uuid)
         for s in semanas:
+            # Lo que el equipo le mandó a la clase desde esta semana (06/11).
+            salida.extend(avisos_de_clase_para(s, user_id, nombre, cu, desde_subida))
             de_la_semana = clases.get(s.chapter_uuid, [])
             p = next((c for c in de_la_semana if c["tipo"] == "presentacion"), None)
             if s.aviso_presentacion and p and p["id"] not in vistas and (s.fecha or "") >= desde_clase:
@@ -1351,3 +1518,370 @@ async def avisos_equipo(org_id: int, admin: bool, db_session: AsyncSession) -> l
                 }
             )
     return out
+
+
+# ── «Mira también»: la clase del otro grupo (06/11/2026) ────────────────────
+#
+# Usuario: "algunos alumnos quieren ver la clase grabada de los otros… es el
+# mismo tema para ambas clases. Que no se vea tan claro la grabación del otro
+# grupo, que esté en el lateral como: mira también esto". Las dos clases
+# semanales (Groep rood y Groep blauw) son dos cursos con el mismo nombre,
+# cada uno cerrado a su grupo: son «hermanas». En el lateral de la página de
+# una clase salen las grabaciones de la hermana, y se ven en una ventana de la
+# misma página: del otro grupo no se abre nada más (ni su tarea, ni su sala,
+# ni sus clases). Se apaga por clase en sus ajustes (`salas[uuid].mira_tambien`
+# = false).
+
+_RE_BUNNY = re.compile(r"mediadelivery\.net/embed/(\d+)/([0-9a-fA-F-]{8,})")
+_RE_YOUTUBE = re.compile(r"(?:youtube\.com/(?:watch\?v=|embed/|live/|shorts/)|youtu\.be/)([A-Za-z0-9_-]{6,})")
+_RE_VIMEO = re.compile(r"vimeo\.com/(?:video/)?(\d+)")
+
+
+def video_de(activity_type: Any, sub_type: Any, content: Any) -> Optional[dict]:
+    """Cómo se ve una grabación fuera de su curso: el reproductor de Bunny, de
+    YouTube o de Vimeo, o el archivo subido a la escuela (`archivo`). None si
+    no se reconoce. Pura."""
+    t = str(getattr(activity_type, "value", activity_type) or "")
+    st = str(getattr(sub_type, "value", sub_type) or "")
+    datos = content if isinstance(content, dict) else {}
+    if t == "TYPE_VIDEO" and st == "SUBTYPE_VIDEO_HOSTED":
+        return {"tipo": "archivo", "url": ""}
+    crudo = json.dumps(datos, ensure_ascii=False) if datos else ""
+    m = _RE_BUNNY.search(crudo)
+    if m:
+        return {"tipo": "bunny", "url": f"https://iframe.mediadelivery.net/embed/{m.group(1)}/{m.group(2)}?responsive=true&preload=true"}
+    m = _RE_YOUTUBE.search(crudo)
+    if m:
+        return {"tipo": "youtube", "url": f"https://www.youtube-nocookie.com/embed/{m.group(1)}"}
+    m = _RE_VIMEO.search(crudo)
+    if m:
+        return {"tipo": "vimeo", "url": f"https://player.vimeo.com/video/{m.group(1)}"}
+    return None
+
+
+def es_hermana(nombre_a: Any, nombre_b: Any) -> bool:
+    """Dos clases con el mismo nombre (sin mayúsculas ni acentos). Pura."""
+    a, b = normal(nombre_a), normal(nombre_b)
+    return bool(a) and a == b
+
+
+def dia_habitual(fechas: Iterable[str]) -> str:
+    """El día de la semana en que más se da una clase («jueves»). Pura."""
+    cuenta: dict[int, int] = {}
+    for f in fechas:
+        try:
+            d = date.fromisoformat(str(f or "")[:10]).weekday()
+        except (TypeError, ValueError):
+            continue
+        cuenta[d] = cuenta.get(d, 0) + 1
+    if not cuenta:
+        return ""
+    return _DIAS[max(cuenta, key=lambda d: (cuenta[d], -d))]
+
+
+def _ajustes_sala(config: Any, course_uuid: str) -> dict:
+    from src.services.salas import salas
+
+    todas = (config or {}).get(salas.CLAVE) if isinstance(config, dict) else None
+    propia = (todas or {}).get(uuid_curso(course_uuid)) if isinstance(todas, dict) else None
+    return propia if isinstance(propia, dict) else {}
+
+
+def comparte(config: Any, course_uuid: str) -> bool:
+    """¿Enseña esta clase «Mira también»? Sí, salvo que se haya apagado. Pura."""
+    return _ajustes_sala(config, course_uuid).get("mira_tambien") is not False
+
+
+async def _config(org_id: int, db_session: AsyncSession) -> dict:
+    fila = (
+        await db_session.execute(select(OrganizationConfig).where(OrganizationConfig.org_id == org_id))
+    ).scalars().first()
+    return fila.config if fila and isinstance(fila.config, dict) else {}
+
+
+async def hermanas(course: Course, db_session: AsyncSession, config: Optional[dict] = None) -> list[Course]:
+    """Las otras clases en directo de la escuela que se llaman igual."""
+    from src.services.salas.salas import es_clase_en_directo
+
+    config = config if config is not None else await _config(course.org_id, db_session)
+    if not es_clase_en_directo(config, course.course_uuid):
+        return []
+    otras = (
+        await db_session.execute(select(Course).where(Course.org_id == course.org_id, Course.id != course.id))
+    ).scalars().all()
+    return [c for c in otras if es_hermana(c.name, course.name) and es_clase_en_directo(config, c.course_uuid)]
+
+
+async def hermanas_para_el_equipo(course: Course, db_session: AsyncSession) -> list[dict]:
+    """Para «Nueva semana» (crear también en la otra clase) y los ajustes: cada
+    hermana con su id, su etiqueta y el día en que se da."""
+    from src.services.salas.salas import nombre_con_etiqueta
+
+    config = await _config(course.org_id, db_session)
+    salida = []
+    for h in await hermanas(course, db_session, config):
+        fechas = [s.fecha for s in await semanas_de(h.org_id, h.course_uuid, db_session)]
+        banner = _ajustes_sala(config, h.course_uuid).get("banner") or {}
+        salida.append(
+            {
+                "id": h.id,
+                "org_id": h.org_id,
+                "course_uuid": uuid_curso(h.course_uuid),
+                "nombre": nombre_con_etiqueta(config, h.course_uuid, h.name),
+                "dia": dia_habitual(fechas),
+                "weekday": str(banner.get("next_weekday") or "") if isinstance(banner, dict) else "",
+            }
+        )
+    return salida
+
+
+async def mira_tambien(course: Course, db_session: AsyncSession, limite: int = 8) -> dict:
+    """Las grabaciones de las clases hermanas, ya dadas, la más nueva primero:
+    tema, día, profe (el del recuadro de esa clase) y cómo se ven."""
+    from src.services.panel.tandas import hoy_nl
+
+    config = await _config(course.org_id, db_session)
+    if not comparte(config, course.course_uuid):
+        return {"clases": []}
+    hoy = hoy_nl()
+    salida = []
+    for h in await hermanas(course, db_session, config):
+        semanas = [_semana_dict(s) for s in await semanas_de(h.org_id, h.course_uuid, db_session)]
+        dadas = [s for s in semanas if s["fecha"] and s["fecha"] <= hoy]
+        clases = await _clases([s["chapter_uuid"] for s in dadas], db_session)
+        uuids = [c["activity_uuid"] for s in dadas for c in clases.get(s["chapter_uuid"], []) if c["tipo"] == "grabacion"]
+        contenido = {}
+        if uuids:
+            for a in (await db_session.execute(select(Activity).where(Activity.activity_uuid.in_(uuids)))).scalars().all():  # type: ignore[attr-defined]
+                contenido[a.activity_uuid] = video_de(a.activity_type, a.activity_sub_type, a.content)
+        grabaciones = []
+        for s in _orden_reciente(dadas):
+            for c in clases.get(s["chapter_uuid"], []):
+                v = contenido.get(c["activity_uuid"]) if c["tipo"] == "grabacion" else None
+                if v:
+                    grabaciones.append(
+                        {"tema": s["tema"], "fecha": s["fecha"], "activity_uuid": c["activity_uuid"], "nombre": c["nombre"], "video": v}
+                    )
+        banner = _ajustes_sala(config, h.course_uuid).get("banner") or {}
+        if grabaciones:
+            salida.append(
+                {
+                    "course_uuid": uuid_curso(h.course_uuid),
+                    "dia": dia_habitual(s["fecha"] for s in semanas),
+                    "profe": str(banner.get("teacher") or "").strip() if isinstance(banner, dict) else "",
+                    "grabaciones": grabaciones[:limite],
+                }
+            )
+    return {"clases": salida}
+
+
+async def archivo_de_hermana(course: Course, activity_uuid: str, db_session: AsyncSession) -> Optional[Path]:
+    """El archivo de vídeo de una grabación de una clase hermana, si lo es (y
+    es de una semana ya dada). None si no."""
+    from src.services.panel.tandas import hoy_nl
+
+    a = (await db_session.execute(select(Activity).where(Activity.activity_uuid == activity_uuid))).scalars().first()
+    if a is None or (video_de(a.activity_type, a.activity_sub_type, a.content) or {}).get("tipo") != "archivo":
+        return None
+    config = await _config(course.org_id, db_session)
+    if not comparte(config, course.course_uuid):
+        return None
+    hoy = hoy_nl()
+    for h in await hermanas(course, db_session, config):
+        if h.id != a.course_id:
+            continue
+        semanas = [s for s in await semanas_de(h.org_id, h.course_uuid, db_session) if s.fecha and s.fecha <= hoy]
+        clases = await _clases([s.chapter_uuid for s in semanas], db_session)
+        if not any(c["activity_uuid"] == activity_uuid for lista in clases.values() for c in lista):
+            return None
+        from src.db.organizations import Organization
+
+        org = (await db_session.execute(select(Organization).where(Organization.id == h.org_id))).scalars().first()
+        nombre = str((a.content or {}).get("filename") or "") if isinstance(a.content, dict) else ""
+        if org is None or not nombre or "/" in nombre or ".." in nombre:
+            return None
+        ruta = CONTENT_DIR / "orgs" / org.org_uuid / "courses" / h.course_uuid / "activities" / a.activity_uuid / "video" / nombre
+        return ruta if ruta.is_file() else None
+    return None
+
+
+# ── «Avisar a la clase» desde cada semana (06/11/2026) ──────────────────────
+#
+# Usuario: "poder yo ver todo más claro para las clases, estilo enviar mail o
+# avisos sobre lo que hacemos, y tener más control sobre lo que los alumnos van
+# viendo". Desde cada semana, el equipo escribe un aviso y elige a quién (toda
+# la clase o los que aún no han hecho algo de ESA semana: la presentación, la
+# grabación, los ejercicios, la tarea, o no fueron a la clase) y por dónde: la
+# campana de la escuela y/o el correo. Nunca sale nada solo, y «Mandármelo a
+# mí» lo enseña antes. Lo de la campana se guarda en la propia semana
+# (`tarea_semana.avisos`, con los alumnos a los que fue), así cada aviso sale
+# solo a esos.
+
+FILTROS = {
+    "todos": "Toda la clase",
+    "sin_presentacion": "Los que no han abierto la presentación",
+    "sin_grabacion": "Los que no han visto la grabación",
+    "sin_ejercicios": "Los que no han terminado los ejercicios",
+    "sin_tarea": "Los que no han entregado la tarea",
+    "sin_clase": "Los que no fueron a la clase",
+}
+MAX_AVISOS = 30
+
+
+def quien_recibe(filas: Iterable[dict], filtro: str) -> list[dict]:
+    """De la tabla del seguimiento, a quién le llega un aviso. Pura."""
+    def entra(f: dict) -> bool:
+        if filtro == "sin_presentacion":
+            return f.get("presentacion") is False
+        if filtro == "sin_grabacion":
+            return f.get("grabacion") is False
+        if filtro == "sin_ejercicios":
+            e = f.get("ejercicios") or {}
+            return bool(e.get("total")) and (e.get("hechos") or 0) < e["total"]
+        if filtro == "sin_tarea":
+            return f.get("tarea") == "pendiente"
+        if filtro == "sin_clase":
+            return f.get("clase") is False
+        return True
+
+    return [f for f in filas if entra(f)]
+
+
+def leer_avisos(texto: Any) -> list[dict]:
+    try:
+        datos = json.loads(texto) if texto else []
+    except (TypeError, ValueError):
+        return []
+    return [a for a in datos if isinstance(a, dict)] if isinstance(datos, list) else []
+
+
+def aviso_de_clase(semana: dict, aviso: dict, curso: str, course_uuid: str) -> dict:
+    """El aviso de la campana de un «Avisar a la clase». Pura."""
+    texto = " ".join(str(aviso.get("texto") or "").split())
+    return {
+        "id": f"clase:{semana['id']}:{aviso.get('id')}",
+        "kind": "clase",
+        "title": aviso.get("titulo") or f"Aviso de la clase: {semana.get('tema') or ''}",
+        "excerpt": (f"{curso} · {texto}" if curso else texto)[:280],
+        "url": f"/course/{course_uuid}",
+        "date": aviso.get("at") or "",
+    }
+
+
+def _cuerpo_html(texto: str) -> str:
+    import html as _html
+
+    parrafos = [p.strip() for p in str(texto or "").split("\n\n") if p.strip()]
+    return "".join(f"<p>{_html.escape(p).replace(chr(10), '<br>')}</p>" for p in parrafos)
+
+
+async def destinatarios(org_id: int, s: TareaSemana, db_session: AsyncSession) -> dict:
+    """Cuántos y quiénes recibirían un aviso con cada filtro, y los avisos ya
+    mandados desde esta semana."""
+    seg = await seguimiento(org_id, s.course_uuid, s.id, db_session)
+    filas = seg["alumnos"]
+    cifras = seg.get("cifras") or {}
+    disponibles = {"todos": True, "sin_presentacion": cifras.get("con_presentacion"), "sin_grabacion": cifras.get("con_grabacion"),
+                   "sin_ejercicios": cifras.get("con_ejercicios"), "sin_tarea": cifras.get("con_tarea"), "sin_clase": cifras.get("sabe_clase")}
+    return {
+        "filtros": [
+            {
+                "id": k,
+                "nombre": nombre,
+                "alumnos": [{"user_id": f["user_id"], "nombre": f["nombre"]} for f in quien_recibe(filas, k)],
+            }
+            for k, nombre in FILTROS.items()
+            if disponibles.get(k)
+        ],
+        "avisos": [
+            {k: a.get(k) for k in ("id", "titulo", "texto", "filtro", "at", "por", "campana", "correos")}
+            | {"alumnos": len(a.get("user_ids") or [])}
+            for a in reversed(leer_avisos(s.avisos))
+        ],
+    }
+
+
+async def avisar_clase(org_id: int, s: TareaSemana, datos: dict, autor: str, db_session: AsyncSession) -> dict:
+    """Prepara un aviso a la clase. Apunta lo de la campana y devuelve a quién
+    hay que mandar el correo (lo manda el router, en segundo plano)."""
+    from src.services.users.emails import ACADEMY_URL
+
+    filtro = str(datos.get("filtro") or "todos")
+    if filtro not in FILTROS:
+        raise TareaError("No sé a quién mandarlo")
+    titulo = " ".join(str(datos.get("titulo") or "").split())[:140]
+    texto = str(datos.get("texto") or "").strip()[:3000]
+    if not titulo:
+        raise TareaError("Ponle un título al aviso")
+    if not texto:
+        raise TareaError("Escribe el aviso")
+    campana, correo = bool(datos.get("campana")), bool(datos.get("correo"))
+    if not campana and not correo:
+        raise TareaError("Elige por dónde: la campana, el correo o los dos")
+    course = await curso_de(s.course_uuid, db_session)
+    if course is None or course.org_id != org_id:
+        raise TareaError("No existe esa clase", 404)
+    url = f"{ACADEMY_URL.rstrip('/')}/course/{uuid_curso(course.course_uuid)}"
+    correo_de = {"titulo": titulo, "html": _cuerpo_html(texto), "boton": "Ver la clase", "url": url}
+    if datos.get("prueba"):
+        return {"ok": True, "prueba": True, "correo": correo_de, "alumnos": 0}
+    seg = await seguimiento(org_id, s.course_uuid, s.id, db_session)
+    filas = quien_recibe(seg["alumnos"], filtro)
+    if not filas:
+        raise TareaError("No hay ningún alumno a quien mandarlo con ese filtro")
+    ahora = _ahora()
+    aviso = {
+        "id": _uuid.uuid4().hex[:10],
+        "titulo": titulo,
+        "texto": texto,
+        "filtro": filtro,
+        "at": ahora,
+        "por": (autor or "")[:120],
+        "campana": campana,
+        "correos": len(filas) if correo else 0,
+        "user_ids": [f["user_id"] for f in filas] if campana else [],
+    }
+    lista = (leer_avisos(s.avisos) + [aviso])[-MAX_AVISOS:]
+    s.avisos = json.dumps(lista, ensure_ascii=False)
+    s.updated_at = ahora
+    db_session.add(s)
+    await db_session.commit()
+    return {
+        "ok": True,
+        "alumnos": len(filas),
+        "campana": campana,
+        "correo": correo_de if correo else None,
+        "destinos": [(f["email"], (f["nombre"] or "").split(" ")[0]) for f in filas if f.get("email")] if correo else [],
+    }
+
+
+def avisos_de_clase_para(semana: TareaSemana, user_id: int, curso: str, course_uuid: str, desde: str) -> list[dict]:
+    """Los avisos de la campana de esta semana que le tocan a un alumno. Pura."""
+    d = {"id": semana.id, "tema": semana.tema}
+    return [
+        aviso_de_clase(d, a, curso, course_uuid)
+        for a in leer_avisos(getattr(semana, "avisos", ""))
+        if a.get("campana") and user_id in (a.get("user_ids") or []) and (a.get("at") or "") >= desde
+    ]
+
+
+async def resumen_clases(org_id: int, db_session: AsyncSession) -> list[dict]:
+    """Las clases lado a lado (06/11/2026): la semana en curso de cada una con
+    sus cifras, para ver de un vistazo cómo va cada grupo."""
+    salida = []
+    for c in await clases_en_directo(org_id, db_session):
+        try:
+            seg = await seguimiento(org_id, c["uuid"], None, db_session)
+        except TareaError:
+            continue
+        if not seg.get("semana"):
+            continue
+        salida.append(
+            {
+                "course_uuid": c["uuid"],
+                "nombre": c["nombre"],
+                "semana": {k: seg["semana"].get(k) for k in ("id", "tema", "fecha", "limite", "tiene_tarea")},
+                "cifras": seg["cifras"],
+            }
+        )
+    return salida

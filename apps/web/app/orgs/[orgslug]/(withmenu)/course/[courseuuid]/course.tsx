@@ -28,6 +28,7 @@ import EtiquetaCurso from '@components/Pages/Courses/EtiquetaCurso'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import VideoPortada from '@components/Pages/Courses/VideoPortada'
 import SemanasClase, { useSemanasClase } from '@components/Pages/Courses/SemanasClase'
+import MiraTambien from '@components/Pages/Courses/MiraTambien'
 import { CURSO_CLASE_SEMANAL_UUID, CURSO_FORMACION_UUID, ajustesDirecto, conGrabadas, esCursoEnDirecto, uuidDeCurso } from '@/lib/nawar/cursos'
 import { sesionesVisibles } from '@/lib/course/weeklyClass'
 import { getLessonIcon } from '@components/Pages/Activity/CourseLessonsSidebar'
@@ -521,7 +522,7 @@ const CourseClient = (props: any) => {
                 {/* Las semanas: «Esta semana» con su presentación, grabación,
                     ejercicios y tarea (28/10). */}
                 {enDirecto ? (
-                  <SemanasClase courseUuid={course.course_uuid} courseuuid={courseuuid} orgslug={orgslug} curso={course} />
+                  <SemanasClase courseUuid={course.course_uuid} courseuuid={courseuuid} orgslug={orgslug} curso={course} conGrabadas={grabadas} />
                 ) : null}
 
                 {/* La descripción no sale en las clases en directo nuevas (Spreekclub,
@@ -540,7 +541,11 @@ const CourseClient = (props: any) => {
                   // Session-library courses: no enrolment/progress — surface the
                   // community channel cards in the right rail, stacked one per row.
                   // The FAQ moves down next to "Sesiones grabadas".
-                  <CommunityChannelsCards orgslug={orgslug} title="Comunidades" singleColumn />
+                  <>
+                    {/* La misma clase del otro grupo, discreta (06/11/2026). */}
+                    <MiraTambien courseUuid={course.course_uuid} />
+                    <CommunityChannelsCards orgslug={orgslug} title="Comunidades" singleColumn />
+                  </>
                 ) : (
                   <CoursesActions courseuuid={courseuuid} orgslug={orgslug} course={course} trailData={trailData} />
                 )}
@@ -593,7 +598,10 @@ const CourseClient = (props: any) => {
               )
             })()}
 
-            {grabadas ? (
+            {/* En las clases en directo ya no hay «Sesiones grabadas» por meses
+                (06/11/2026): las grabaciones van en su semana, arriba, y las
+                que no tienen, en «Clases anteriores» (SemanasClase). */}
+            {grabadas && !enDirecto ? (
             <div id="sesiones-grabadas" className="w-full mt-10 mb-12 scroll-mt-24">
               <h2 className="pb-5 text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2.5" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
                 {enDirecto ? (
