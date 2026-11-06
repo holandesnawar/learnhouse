@@ -46,6 +46,10 @@ class TareaSemana(SQLModel, table=True):
     # «Avisar a la clase»): una lista en JSON, cada uno con su texto y a qué
     # alumnos fue. Salen en la campana de esos alumnos. Vacío = ninguno.
     avisos: str = ""
+    # Quién vino a la clase de esa semana, apuntado por el profe (07/11/2026,
+    # «pasar lista»): JSON {user_id: {"fue": true/false, "por": nombre, "at":
+    # iso}}. Manda sobre lo que diga la sala de Daily. Vacío = nadie lo apuntó.
+    asistencia: str = ""
 
 
 class TareaEntrega(SQLModel, table=True):

@@ -57,6 +57,18 @@ describe('preparacion', () => {
   })
 })
 
+describe('preparacion: la lista', () => {
+  test('desde el día de la clase pide pasar lista y luego dice cuántos vinieron', () => {
+    const antes = preparacion({ fecha: '2026-11-09', presentaciones: 1, grabaciones: 0, tieneTarea: false, porCorregir: 0, lista: { pasada: false, vinieron: 0 } }, HOY)
+    expect(antes.pasos.map((x) => x.id)).toEqual(['presentacion'])
+    const hoy = preparacion({ fecha: HOY, presentaciones: 1, grabaciones: 0, tieneTarea: false, porCorregir: 0, lista: { pasada: false, vinieron: 0 } }, HOY)
+    expect(hoy.falta).toBe('Falta pasar lista')
+    const pasada = preparacion({ fecha: HOY, presentaciones: 1, grabaciones: 0, tieneTarea: false, porCorregir: 0, lista: { pasada: true, vinieron: 5 } }, HOY)
+    expect(pasada.pasos[1].texto).toBe('Lista pasada · vinieron 5')
+    expect(pasada.falta).toBe('')
+  })
+})
+
 describe('esDe', () => {
   test('el nombre de pila en el profe del recuadro, sin mayúsculas ni tildes', () => {
     expect(esDe('Paul', 'Paul Plaat')).toBe(true)

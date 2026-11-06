@@ -261,6 +261,43 @@ def asistentes_el_dia(sesiones: Iterable[dict], dia: str, minimo_seg: int = 600)
     return set(asistencias(del_dia, minimo_seg).keys())
 
 
+# ── La lista que pasa el profe (07/11/2026) ─────────────────────────────────
+#
+# Usuario: "que puedan poner ellos quien asistió a la clase, con check, así veo
+# quien asiste y se guarda en la escuela como progreso para saber cuándo
+# terminó su camino de clases". La sala de Daily ya decía quién estuvo, pero
+# solo si la clase es en la sala de la escuela (con Zoom no lo sabe nadie) y
+# no distingue a quien entró con la cámara apagada y se fue a hacer la cena.
+# Lo que marca el profe MANDA sobre la sala; donde no ha marcado, vale la sala.
+# Se guarda en `tarea_semana.asistencia` (JSON por alumno, con quién lo marcó)
+# y lo leen el Seguimiento semanal y el Camino de 16 semanas.
+
+
+def leer_asistencia(texto: Any) -> dict[str, dict]:
+    """{user_id: {"fue": bool, "por", "at"}} de la columna; lo raro se tira."""
+    try:
+        datos = json.loads(texto) if texto else {}
+    except (TypeError, ValueError):
+        return {}
+    if not isinstance(datos, dict):
+        return {}
+    return {
+        str(k): v for k, v in datos.items()
+        if isinstance(v, dict) and isinstance(v.get("fue"), bool)
+    }
+
+
+def fue_a_clase(user_id: Any, marcas: dict, sala: Optional[set]) -> Optional[bool]:
+    """Si fue: lo que marcó el profe y, si no marcó, lo que diga la sala.
+    None = no se sabe (ni lista ni sala)."""
+    m = (marcas or {}).get(str(user_id))
+    if m is not None:
+        return bool(m.get("fue"))
+    if sala is None:
+        return None
+    return str(user_id) in sala
+
+
 # ── Lectura ─────────────────────────────────────────────────────────────────
 
 
@@ -584,6 +621,12 @@ async def semanas_para_alumno(
     )
     if not equipo:
         semanas = [s if s["abierta"] else solo_antes_de_la_clase(s) for s in semanas]
+    else:
+        # Al equipo, si ya se pasó la lista y cuántos vinieron (07/11/2026).
+        listas = {f.id: leer_asistencia(getattr(f, "asistencia", "")) for f in filas}
+        for s in semanas:
+            m = listas.get(s["id"]) or {}
+            s["lista"] = {"pasada": bool(m), "vinieron": sum(1 for x in m.values() if x.get("fue"))}
     for s in semanas:
         for c in s.get("clases") or []:
             c.pop("id", None)
@@ -928,7 +971,9 @@ async def seguimiento(org_id: int, course_uuid: str, semana_id: Optional[int], d
     if course is None or course.org_id != org_id:
         raise TareaError("No existe esa clase", 404)
     hoy = hoy_nl()
-    semanas = _orden_reciente([_semana_dict(s) for s in await semanas_de(org_id, course.course_uuid, db_session)])
+    filas_semana = await semanas_de(org_id, course.course_uuid, db_session)
+    marcas: dict[int, dict] = {int(s.id or 0): leer_asistencia(getattr(s, "asistencia", "")) for s in filas_semana}
+    semanas = _orden_reciente([_semana_dict(s) for s in filas_semana])
     base = {"curso": course.name, "course_uuid": uuid_curso(course.course_uuid), "hoy": hoy}
     if not semanas:
         return {**base, "semanas": [], "semana": None, "alumnos": [], "cifras": None, "aviso": ""}
@@ -982,16 +1027,15 @@ async def seguimiento(org_id: int, course_uuid: str, semana_id: Optional[int], d
         grab = de_tipo(elegida, "grabacion")
         ejer = de_tipo(elegida, "ejercicios")
         e = entregas.get((elegida["id"], uid))
-        fue = None
-        if elegida["id"] in asistencia:
-            fue = str(uid) in asistencia[elegida["id"]]
+        fue = fue_a_clase(uid, marcas.get(elegida["id"], {}), asistencia.get(elegida["id"]))
+        marca = marcas.get(elegida["id"], {}).get(str(uid))
 
         def hizo_algo(s: dict) -> bool:
             ids_semana = [c["id"] for c in clases.get(s["chapter_uuid"], [])]
             return (
                 any(i in suyas for i in ids_semana)
                 or (s["id"], uid) in entregas
-                or str(uid) in asistencia.get(s["id"], set())
+                or fue_a_clase(uid, marcas.get(s["id"], {}), asistencia.get(s["id"])) is True
             )
 
         filas.append(
@@ -1000,6 +1044,8 @@ async def seguimiento(org_id: int, course_uuid: str, semana_id: Optional[int], d
                 "presentacion": (any(i in suyas for i in pres) if pres else None),
                 "grabacion": (any(i in suyas for i in grab) if grab else None),
                 "clase": fue,
+                # Quién lo dice: el profe (la lista) o la sala de Daily.
+                "clase_origen": ("lista" if marca is not None else ("sala" if fue is not None else "")),
                 "ejercicios": {"hechos": sum(1 for i in ejer if i in suyas), "total": len(ejer)},
                 "tarea": estado_entrega(elegida["tiene_tarea"], _entrega_dict(e)),
                 "entrega_id": e.id if e else None,
@@ -1015,17 +1061,23 @@ async def seguimiento(org_id: int, course_uuid: str, semana_id: Optional[int], d
         "grabacion": sum(1 for f in filas if f["grabacion"]),
         "con_grabacion": bool(de_tipo(elegida, "grabacion")),
         "clase": sum(1 for f in filas if f["clase"]),
-        "sabe_clase": elegida["id"] in asistencia,
+        "sabe_clase": elegida["id"] in asistencia or bool(marcas.get(elegida["id"])),
         "ejercicios": sum(1 for f in filas if f["ejercicios"]["total"] and f["ejercicios"]["hechos"] >= f["ejercicios"]["total"]),
         "con_ejercicios": bool(de_tipo(elegida, "ejercicios")),
         "entregadas": sum(1 for f in filas if f["tarea"] in ("entregada", "corregida")) if con_tarea else 0,
         "por_corregir": sum(1 for f in filas if f["tarea"] == "entregada"),
         "con_tarea": con_tarea,
     }
+    lista = marcas.get(elegida["id"], {})
+    if lista:
+        # Con la lista pasada, ya se sabe quién fue aunque la clase fuera por Zoom.
+        aviso = ""
     return {
         **base,
         "semanas": [{"id": s["id"], "tema": s["tema"], "fecha": s["fecha"]} for s in semanas],
         "actual": actual,
+        "lista_pasada": bool(lista),
+        "lista_por": sorted({str(m.get("por") or "") for m in lista.values() if m.get("por")}),
         "proxima": proxima,
         "semana": elegida,
         "alumnos": filas,
@@ -1897,3 +1949,85 @@ async def resumen_clases(org_id: int, db_session: AsyncSession) -> list[dict]:
             }
         )
     return salida
+
+
+
+# ── Pasar lista ─────────────────────────────────────────────────────────────
+
+
+async def lista_de_clase(org_id: int, s: TareaSemana, db_session: AsyncSession) -> dict:
+    """La lista de una semana para marcarla: cada alumno de la clase con lo que
+    marcó el profe y, como pista, si la sala de Daily le vio."""
+    from src.services.panel.camino import _sesiones_de
+    from src.services.panel.tandas import hoy_nl
+    from src.services.salas import salas
+
+    course = await curso_de(s.course_uuid, db_session)
+    if course is None or course.org_id != org_id:
+        raise TareaError("No existe esa clase", 404)
+    hoy = hoy_nl()
+    marcas = leer_asistencia(getattr(s, "asistencia", ""))
+    en_sala: Optional[set] = None
+    if s.fecha and s.fecha <= hoy:
+        sala = await _sala_del_curso(org_id, course, db_session)
+        if sala and salas.clave_api():
+            try:
+                en_sala = asistentes_el_dia(await _sesiones_de(sala), s.fecha)
+            except salas.SalaError:
+                en_sala = None
+    alumnos = await alumnos_del_curso(org_id, course, db_session)
+    filas = []
+    for a in alumnos:
+        m = marcas.get(str(a["user_id"]))
+        filas.append(
+            {
+                "user_id": a["user_id"],
+                "nombre": a["nombre"],
+                "fue": (bool(m["fue"]) if m is not None else None),
+                "en_sala": (None if en_sala is None else str(a["user_id"]) in en_sala),
+            }
+        )
+    ultima = max((m.get("at") or "" for m in marcas.values()), default="")
+    por = next((m.get("por") for m in marcas.values() if (m.get("at") or "") == ultima), "") if ultima else ""
+    return {
+        "semana": {"id": s.id, "tema": s.tema, "fecha": s.fecha},
+        "se_puede": bool(s.fecha) and s.fecha <= hoy,
+        "alumnos": filas,
+        "pasada": bool(marcas),
+        "por": por or "",
+        "at": ultima,
+        "vinieron": sum(1 for f in filas if f["fue"]),
+        "sala_conocida": en_sala is not None,
+    }
+
+
+async def pasar_lista(org_id: int, s: TareaSemana, marcas: dict, autor: str, db_session: AsyncSession) -> dict:
+    """Guarda quién vino. `marcas`: {user_id: True/False/None}; None quita la
+    marca (vuelve a valer la sala). Solo alumnos de esa clase y solo el día de
+    la clase o después."""
+    from src.services.panel.tandas import hoy_nl
+
+    if not s.fecha or s.fecha > hoy_nl():
+        raise TareaError("La lista se pasa el día de la clase o después", 409)
+    course = await curso_de(s.course_uuid, db_session)
+    if course is None or course.org_id != org_id:
+        raise TareaError("No existe esa clase", 404)
+    de_la_clase = {a["user_id"] for a in await alumnos_del_curso(org_id, course, db_session)}
+    actual = leer_asistencia(getattr(s, "asistencia", ""))
+    ahora = _ahora()
+    for k, v in (marcas or {}).items():
+        try:
+            uid = int(k)
+        except (TypeError, ValueError):
+            continue
+        if uid not in de_la_clase:
+            continue
+        if v is None:
+            actual.pop(str(uid), None)
+        else:
+            actual[str(uid)] = {"fue": bool(v), "por": (autor or "Equipo")[:80], "at": ahora}
+    s.asistencia = json.dumps(actual, ensure_ascii=False)
+    db_session.add(s)
+    await db_session.commit()
+    await db_session.refresh(s)
+    return await lista_de_clase(org_id, s, db_session)

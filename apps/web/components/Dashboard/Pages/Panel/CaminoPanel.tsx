@@ -3,8 +3,8 @@
 /**
  * Panel → Alumnos → Camino (27/10/2026): el camino de 16 semanas de cada
  * alumno, en una tabla. Cuándo entró, en qué semana va, cuándo termina y a
- * cuántas clases en directo ha ido de verdad (las cuenta la sala de la
- * escuela). Lo de dentro está en apps/api/src/services/panel/camino.py.
+ * cuántas clases en directo ha ido de verdad (las cuenta la lista que pasa
+ * el profe y, si no la pasó, la sala de la escuela; 07/11/2026). Lo de dentro está en apps/api/src/services/panel/camino.py.
  *
  * Pedido del usuario: "ver en columnas cada alumno: cuándo entró y cuántas
  * clases tomó ya, así veo cuál es cuál y cuándo se termina su camino".
@@ -84,10 +84,13 @@ function Termina({ a }: { a: AlumnoCamino }) {
   )
 }
 
-function Clases({ a }: { a: AlumnoCamino }) {
+function Clases({ a, total }: { a: AlumnoCamino; total: number }) {
+  // Una clase por semana: «7 de 16» dice cuánto le queda del camino de clases.
   return (
     <div className="min-w-0">
-      <p className="text-[13px] tabular-nums text-gray-900">{a.clases_directo}</p>
+      <p className="text-[13px] tabular-nums text-gray-900">
+        {a.clases_directo} <span className="text-[#6B7280]">de {total}</span>
+      </p>
       {a.clases_por_curso.length > 0 && (
         <p className="text-[12px] text-[#6B7280] truncate">{a.clases_por_curso.map((c) => `${c.curso} ${c.n}`).join(' · ')}</p>
       )}
@@ -273,7 +276,7 @@ export default function CaminoPanel() {
                     <Barra semana={a.semana} semanas={semanas} estado={a.estado} />
                     <Estado tono={ESTADO[a.estado].tono}>{ESTADO[a.estado].texto}</Estado>
                   </div>
-                  <Clases a={a} />
+                  <Clases a={a} total={semanas} />
                   <Termina a={a} />
                 </div>
                 {/* Móvil: una tarjeta. */}
@@ -289,8 +292,7 @@ export default function CaminoPanel() {
                   </div>
                   <Barra semana={a.semana} semanas={semanas} estado={a.estado} />
                   <p className="text-[12.5px] text-[#4B5563]">
-                    Entró el {dia(a.entro)} · termina el {dia(a.termina)} · {a.clases_directo}{' '}
-                    {a.clases_directo === 1 ? 'clase en directo' : 'clases en directo'}
+                    Entró el {dia(a.entro)} · termina el {dia(a.termina)} · {a.clases_directo} de {semanas} clases en directo
                   </p>
                 </div>
               </div>
@@ -305,9 +307,9 @@ export default function CaminoPanel() {
 
       <p className="text-[12px] text-[#9CA3AF] leading-relaxed">
         Las {semanas} semanas cuentan desde el día que pagó; termina el último día de la semana {semanas}. Las clases en
-        directo las cuenta la sala de la escuela (masterclass, Spreken Club, clase semanal) cuando la persona estuvo dentro{' '}
-        {datos.minimo_min} minutos o más, una vez por sesión. Empezó a contar el 27/10/2026: lo que se hizo antes por Zoom no
-        aparece. No salen las cuentas de prueba ni el grupo Testers.
+        directo cuentan una por día: la lista que pasa el profe en «Mis clases» manda y, si no la pasó, la sala de la
+        escuela cuando la persona estuvo dentro {datos.minimo_min} minutos o más. Con la lista cuentan también las
+        clases por Zoom. Antes del 27/10/2026 no hay datos. No salen las cuentas de prueba ni el grupo Testers.
       </p>
 
       {ficha ? <FichaAlumno userId={ficha.user_id} nombre={ficha.nombre} onClose={() => setFicha(null)} /> : null}

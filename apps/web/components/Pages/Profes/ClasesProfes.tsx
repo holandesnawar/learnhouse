@@ -39,6 +39,7 @@ import {
   Presentation,
   Film,
   Video,
+  ListChecks,
 } from 'lucide-react'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
@@ -46,6 +47,7 @@ import { getUriWithOrg } from '@services/config/config'
 import { diaCorto, getClasesEnDirecto, getPorCorregir, getSemanas, type ClaseSemana, type Semana } from '@services/tareas/tareas'
 import { abrirUrl, getRecursos, type Carpeta } from '@services/recursos/recursos'
 import { ajustesDirecto, colorDeEtiqueta, CURSO_CLASE_SEMANAL_UUID } from '@/lib/nawar/cursos'
+import { PasarLista, TuGrupo } from './ListaYGrupo'
 import { COLUMNAS, columnaDe, cuandoCae, esDe, ordenar, preparacion, type Columna } from '@/lib/nawar/clasesProfes'
 
 const POPPINS = { fontFamily: 'var(--font-poppins), system-ui, sans-serif' }
@@ -79,6 +81,8 @@ type Tarjeta = {
   limite: string
   porCorregir: number
   sala: boolean
+  /** Si ya se pasó la lista y cuántos vinieron (07/11/2026). */
+  lista: { pasada: boolean; vinieron: number } | null
 }
 
 function hoyNL(): string {
@@ -112,6 +116,7 @@ export default function ClasesProfes({ enPanel = false }: { enPanel?: boolean })
   const [soloMias, setSoloMias] = useState(false)
   const [columnaMovil, setColumnaMovil] = useState<Columna>('esta')
   const [verDadas, setVerDadas] = useState(4)
+  const [lista, setLista] = useState<Tarjeta | null>(null)
 
   useEffect(() => {
     if (!org?.id || !token) return
@@ -165,6 +170,7 @@ export default function ClasesProfes({ enPanel = false }: { enPanel?: boolean })
               limite: s.limite || '',
               porCorregir: porSemana[s.id] || 0,
               sala: ajustes.activo || ajustes.directo,
+              lista: s.lista || null,
             })
           }
         })
@@ -199,6 +205,10 @@ export default function ClasesProfes({ enPanel = false }: { enPanel?: boolean })
   )[0]
 
   const ruta = (p: string) => getUriWithOrg(orgslug, p)
+  // «Tu grupo esta semana»: el de la clase elegida o, si no, el de la próxima.
+  const cursoGrupo =
+    cursos.find((c) => c.uuid === filtro) || cursos.find((c) => c.uuid === siguiente?.courseUuid) || (cursos.length === 1 ? cursos[0] : null)
+  const abrirLista = (t: Tarjeta) => setLista(t)
 
   return (
     <div className="space-y-6">
@@ -209,7 +219,11 @@ export default function ClasesProfes({ enPanel = false }: { enPanel?: boolean })
         <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-[14px] text-red-700">{error}</div>
       ) : (
         <>
-          {siguiente ? <Siguiente t={siguiente} hoy={hoy} ruta={ruta} /> : null}
+          {siguiente ? <Siguiente t={siguiente} hoy={hoy} ruta={ruta} onLista={abrirLista} /> : null}
+
+          {cursoGrupo && org?.id ? (
+            <TuGrupo orgId={org.id} courseUuid={cursoGrupo.uuid} curso={cursoGrupo.nombre} color={cursoGrupo.color} token={token} />
+          ) : null}
 
           {/* Filtros: por clase y, si las hay, solo las suyas. */}
           {cursos.length > 1 || hayMias ? (
@@ -278,7 +292,7 @@ export default function ClasesProfes({ enPanel = false }: { enPanel?: boolean })
                     {lista.length === 0 ? (
                       <p className="px-2 py-6 text-center text-[13px] text-[#8A94AD]">{c.vacio}</p>
                     ) : (
-                      lista.map((t) => <TarjetaClase key={t.key} t={t} hoy={hoy} ruta={ruta} />)
+                      lista.map((t) => <TarjetaClase key={t.key} t={t} hoy={hoy} ruta={ruta} onLista={abrirLista} />)
                     )}
                     {c.id === 'dadas' && todas.length > lista.length ? (
                       <button
@@ -306,6 +320,21 @@ export default function ClasesProfes({ enPanel = false }: { enPanel?: boolean })
       )}
 
       <Recursos carpetas={carpetas} ruta={ruta} enPanel={enPanel} />
+
+      {lista ? (
+        <PasarLista
+          semanaId={lista.semanaId}
+          tema={lista.tema}
+          curso={lista.curso}
+          token={token}
+          onCerrar={() => setLista(null)}
+          onGuardada={(vinieron) => {
+            const id = lista.semanaId
+            setTarjetas((ts) => (ts || []).map((x) => (x.semanaId === id ? { ...x, lista: { pasada: true, vinieron } } : x)))
+            setLista(null)
+          }}
+        />
+      ) : null}
     </div>
   )
 }
@@ -330,9 +359,16 @@ function Linea({ t }: { t: Tarjeta }) {
 }
 
 /** La próxima clase en grande, con lo que hay que hacer antes. */
-function Siguiente({ t, hoy, ruta }: { t: Tarjeta; hoy: string; ruta: (p: string) => string }) {
+function Siguiente({ t, hoy, ruta, onLista }: { t: Tarjeta; hoy: string; ruta: (p: string) => string; onLista: (t: Tarjeta) => void }) {
   const prep = preparacion(
-    { fecha: t.fecha, presentaciones: t.presentaciones.length, grabaciones: t.grabaciones.length, tieneTarea: t.tieneTarea, porCorregir: t.porCorregir },
+    {
+      fecha: t.fecha,
+      presentaciones: t.presentaciones.length,
+      grabaciones: t.grabaciones.length,
+      tieneTarea: t.tieneTarea,
+      porCorregir: t.porCorregir,
+      lista: t.lista,
+    },
     hoy
   )
   const cuando = cuandoCae(t.fecha, hoy)
@@ -391,6 +427,14 @@ function Siguiente({ t, hoy, ruta }: { t: Tarjeta; hoy: string; ruta: (p: string
               <Video size={16} /> Entrar a la sala
             </Link>
           ) : null}
+          {cuando === 'Hoy' ? (
+            <button
+              onClick={() => onLista(t)}
+              className="inline-flex items-center gap-2 rounded-lg bg-white/15 hover:bg-white/25 px-4 py-2.5 text-[14px] font-bold text-white"
+            >
+              <ListChecks size={16} /> {t.lista?.pasada ? 'Ver la lista' : 'Pasar lista'}
+            </button>
+          ) : null}
           <Link
             href={ruta(`/course/${t.courseUuid}`)}
             className="inline-flex items-center gap-2 rounded-lg bg-white/15 hover:bg-white/25 px-4 py-2.5 text-[14px] font-bold text-white"
@@ -403,12 +447,20 @@ function Siguiente({ t, hoy, ruta }: { t: Tarjeta; hoy: string; ruta: (p: string
   )
 }
 
-function TarjetaClase({ t, hoy, ruta }: { t: Tarjeta; hoy: string; ruta: (p: string) => string }) {
+function TarjetaClase({ t, hoy, ruta, onLista }: { t: Tarjeta; hoy: string; ruta: (p: string) => string; onLista: (t: Tarjeta) => void }) {
   const [abierta, setAbierta] = useState(false)
   const prep = preparacion(
-    { fecha: t.fecha, presentaciones: t.presentaciones.length, grabaciones: t.grabaciones.length, tieneTarea: t.tieneTarea, porCorregir: t.porCorregir },
+    {
+      fecha: t.fecha,
+      presentaciones: t.presentaciones.length,
+      grabaciones: t.grabaciones.length,
+      tieneTarea: t.tieneTarea,
+      porCorregir: t.porCorregir,
+      lista: t.lista,
+    },
     hoy
   )
+  const sePasaLista = !!t.fecha && t.fecha <= hoy
   const cuando = cuandoCae(t.fecha, hoy)
   const pct = prep.total ? Math.round((prep.hechos / prep.total) * 100) : 0
   const actividad = (c: ClaseSemana) => ruta(`/course/${t.courseUuid}/activity/${c.activity_uuid.replace('activity_', '')}`)
@@ -471,6 +523,14 @@ function TarjetaClase({ t, hoy, ruta }: { t: Tarjeta; hoy: string; ruta: (p: str
           <Link href={ruta(`/sala/${t.courseUuid}`)} className={`${BOTON_SUAVE} !bg-[#4da3ff] !text-[#0a1656]`}>
             <Video size={13} /> Sala
           </Link>
+        ) : null}
+        {sePasaLista ? (
+          <button
+            onClick={() => onLista(t)}
+            className={`${BOTON_SUAVE} ${t.lista?.pasada ? '' : '!bg-[#4da3ff] !text-[#0a1656]'}`}
+          >
+            <ListChecks size={13} /> {t.lista?.pasada ? 'Ver la lista' : 'Pasar lista'}
+          </button>
         ) : null}
         {t.porCorregir > 0 ? (
           <Link href={ruta('/seguimiento')} className={BOTON_SUAVE}>

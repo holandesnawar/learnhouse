@@ -4572,6 +4572,42 @@ pueda romper la escuela". **Todo es pantalla: ni servidor ni base de datos.**
   publicar** y entonces no cuenta (ni aquí ni en la semana del alumno):
   publicarla en el contenido del curso.
 
+### Pasar lista y «Tu grupo esta semana» (07/11/2026)
+Pedido: "donde puedan poner ellos quién asistió a la clase, con check, así veo
+quién asiste y se guarda en la escuela como progreso para saber cuándo terminó
+su camino de clases" + «Tu grupo esta semana» (de las cinco ideas para los
+profes, la 1 y la lista; la 3, «corregir rápido», NO).
+- **Pasar lista**: botón «Pasar lista» (azul) / «Ver la lista» en cada tarjeta
+  de «Mis clases» desde el día de la clase, en la próxima clase si es hoy y en
+  Seguimiento semanal. Ventana con una casilla por alumno de ESA clase (sus
+  grupos), «Vinieron todos», «Ninguno» y «No vino»; la sala de Daily sale como
+  pista («La sala le vio dentro») y, sin lista, viene marcado lo que vio la
+  sala. Al guardar, quien queda sin marcar cuenta como que no vino.
+  `Pages/Profes/ListaYGrupo.tsx` (`PasarLista`).
+- Columna **`tarea_semana.asistencia`** (TEXT, JSON `{user_id: {fue, por,
+  at}}`, en `_ADDED_COLUMNS`). `leer_asistencia`, `fue_a_clase` (la marca del
+  profe manda sobre la sala; sin marca, la sala; sin nada, no se sabe),
+  `lista_de_clase`, `pasar_lista` (409 antes del día de la clase; solo sus
+  alumnos; `None` quita una marca) en `tareas.py`. Rutas `GET/PUT
+  /tareas/semana/{id}/lista` (equipo). `/semanas` da al equipo `lista:
+  {pasada, vinieron}` por semana; la tarjeta enseña «Lista pasada · vinieron
+  5» o «Falta pasar lista» (`preparacion`, paso `lista`).
+- **Seguimiento**: la columna «Clase» usa la lista (`clase_origen` = `lista`
+  o `sala`, al pasar el ratón), «Fueron a la clase» dice «· lista de Paul».
+- **Camino**: cuenta DÍAS con clase (`dias_en_sala` + `juntar_con_la_lista`
+  en `camino.py`): la lista manda sobre la sala ese día y las clases con lista
+  pero sin sala (Zoom) también cuentan. Se ve «7 de 16» (una por semana).
+  Sin clave de Daily, cuentan solo las listas.
+- **«Tu grupo esta semana»** (`TuGrupo`, encima del tablero; el grupo de la
+  clase elegida en el filtro o, si no, el de la próxima clase):
+  `services/tareas/grupo.py` (cabecera), `GET /tareas/org/{id}/grupo?course_uuid=`.
+  Dónde va la mayoría en la formación (`avance_formacion`), quién va por
+  detrás o por delante, las palabras que fallan VARIOS alumnos en 3 semanas
+  (`failed_labels`, por alumno distinto; con 4 o más alumnos, solo las de 2 o
+  más), sus consultas de 2 semanas (Supabase, en blando), nuevos (< 7 días) y
+  más de una semana sin entrar. Nada de dinero.
+- Tests `test_lista_y_grupo.py`, `clasesProfes.test.ts`.
+
 ### El panel, repasado (barra, cabeceras, inicio)
 - **La barra** (`NawarSidebar.tsx`, y el móvil `NawarMobileMenu.tsx`) lleva el
   **mismo fondo azul que la barra de la escuela** (`lib/nawar/marca.ts`,

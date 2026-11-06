@@ -351,6 +351,8 @@ _ADDED_COLUMNS = [
     "ALTER TABLE IF EXISTS tarea_semana ADD COLUMN IF NOT EXISTS aviso_grabacion VARCHAR(40) DEFAULT ''",
     # Los avisos a la clase desde cada semana (06/11/2026): JSON con a quién y qué.
     "ALTER TABLE IF EXISTS tarea_semana ADD COLUMN IF NOT EXISTS avisos TEXT DEFAULT ''",
+    # La lista que pasa el profe en cada clase (07/11/2026): JSON de quién vino.
+    "ALTER TABLE IF EXISTS tarea_semana ADD COLUMN IF NOT EXISTS asistencia TEXT DEFAULT ''",
     # Conversaciones con una persona concreta (antes solo existía "el equipo").
     'ALTER TABLE IF EXISTS direct_thread ADD COLUMN IF NOT EXISTS staff_id INTEGER',
     'ALTER TABLE IF EXISTS direct_thread DROP CONSTRAINT IF EXISTS uq_thread_org_student',
