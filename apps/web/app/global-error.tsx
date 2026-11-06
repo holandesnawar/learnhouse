@@ -20,7 +20,7 @@ export default function GlobalError({
   }, [error])
 
   return (
-    <html lang="en">
+    <html lang="es" translate="no">
       <body className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
         <div className="flex flex-col items-center space-y-6 max-w-md text-center">
             <div className="bg-rose-100 p-4 rounded-full">
