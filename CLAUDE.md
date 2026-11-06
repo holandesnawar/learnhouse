@@ -3906,11 +3906,16 @@ el closer principal, y diga esta para mí o esta para el otro". Se hizo como
     hay un botón «Que la lleve Diego»** (solo para quien la lleva y para los
     administradores; el servidor lo comprueba): pasa la tarjeta al closer de
     Calendly con un clic y a él le llega «Te han pasado una llamada». Nada
-    se cambia solo. Por qué siguen saliendo: un **cambio de hora hecho en
-    Calendly** (el enlace «Reprogramar» que le llega a la persona) puede caer
-    en el otro closer con el evento por turnos, y la escuela no toca la
-    tarjeta en ese caso; lo mismo «Cambiar hora» desde la escuela con el por
-    turnos, o alguien que se la asignó a mano después de reservar. Si un closer tiene dos llamadas
+    se cambia solo. Por qué salían: un **cambio de hora** (el enlace
+    «Reprogramar» de Calendly, o «Cambiar hora» de la escuela con el por
+    turnos) puede caer en el otro closer, y la escuela no tocaba la tarjeta.
+    ⚠️ **Desde el 06/11 (más tarde), en un cambio de hora la tarjeta SIGUE A
+    CALENDLY** (usuario: "que en un cambio de hora la tarjeta siga a
+    Calendly"): `_seguir_al_anfitrion` en `correo_reserva.py`, con el aviso
+    del cambio, pasa la tarjeta al anfitrión si es un closer, sin correos.
+    Al leer la agenda sigue mandando el equipo. Test
+    `test_en_un_cambio_de_hora_la_tarjeta_sigue_a_calendly`. Lo de antes
+    del 06/11 (Carlos y compañía) se arregla con el botón. Si un closer tiene dos llamadas
     activas que se pisan, las dos lo dicen en rojo («Diego · otra a la vez» y,
     en la ventana, «tiene otra llamada a la misma hora, con Ana»;
     `choques`, pura con test). Tests en `test_reparto_llamadas.py`.
