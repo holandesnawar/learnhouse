@@ -470,6 +470,19 @@ async def api_opciones_agenda(
     return await _opciones_de(email.strip().lower(), current_user, org_id, db_session)
 
 
+@router.get("/org/{org_id}/agenda/eventos", summary="Qué eventos de Calendly ve la escuela y por qué cuenta o no cada uno.")
+async def api_eventos_agenda(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    from src.services.contactos.reservar import revisar_eventos
+
+    return await revisar_eventos(db_session)
+
+
 @router.get("/org/{org_id}/agenda/huecos", summary="Las horas libres de un día en Calendly, para agendar desde la escuela.")
 async def api_huecos(
     request: Request,

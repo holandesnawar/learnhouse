@@ -3928,7 +3928,15 @@ el closer principal, y diga esta para mí o esta para el otro". Se hizo como
     1 a 1 con Meet: si «Nueva llamada» enseña «Belén» como opción, la escuela
     lo reconoce; si dice «Sin evento propio: Belén», Calendly no lo da como
     suyo (mirar `eventos_de_closers`: pide `profile.type` User y dueño en
-    `organization_memberships`). Si un closer tiene dos llamadas
+    `organization_memberships`).
+    **«¿Por qué no sale?»** (06/11, "no sale lo de Belén y el evento
+    gestionado lo tengo bien"): debajo de «Sin evento propio…», la ventana
+    enseña cada evento de Calendly que ve la escuela con el motivo por el que
+    cuenta o no (`por_que_cada_evento` / `revisar_eventos` en `reservar.py`,
+    ruta `GET /contactos/org/{id}/agenda/eventos`, lee sin la copia de 5 min;
+    test `test_por_que_cada_evento`). Lo más probable: el correo de Calendly
+    de Belén no es el de su cuenta de la escuela y no está apuntado en Ventas
+    → «Correos de Calendly». Si un closer tiene dos llamadas
     activas que se pisan, las dos lo dicen en rojo («Diego · otra a la vez» y,
     en la ventana, «tiene otra llamada a la misma hora, con Ana»;
     `choques`, pura con test). Tests en `test_reparto_llamadas.py`.

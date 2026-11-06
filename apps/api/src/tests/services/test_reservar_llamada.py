@@ -476,3 +476,30 @@ def test_el_clon_con_zoom_y_meet():
     assert turnos["por_turnos"] and [u["kind"] for u in turnos["ubicaciones"]] == ["zoom_conference", "google_conference"]
     # El por turnos con una sola (o con ubicación por anfitrión), sin elegir.
     assert R.opciones_para(TURNOS, [], 0, 1, True)["opciones"][0]["ubicaciones"] == []
+
+
+def test_por_que_cada_evento():
+    """06/11: «no sale Belén». La ventana dice por qué cuenta o no cada evento."""
+    from src.services.contactos import reservar as R
+
+    tipos = [
+        {"uri": "T", "name": "Llamada de Consultoría HN", "pooling_type": "round_robin", "active": True, "profile": {"type": "Team"}},
+        {"uri": "D", "name": "Llamada de Consultoría HN (equipo)", "active": True, "secret": True,
+         "profile": {"type": "User", "owner": "u/diego"}},
+        {"uri": "B", "name": "Llamada de Consultoría HN", "active": True, "admin_managed": True,
+         "profile": {"type": "User", "owner": "u/belen"}},
+        {"uri": "X", "name": "Otra cosa", "active": True, "profile": {"type": "User", "owner": "u/diego"}},
+    ]
+    miembros = {"u/diego": {"email": "h@x.com"}, "u/belen": {"email": "belen@nawar.es"}}
+    eq = [{"id": 4, "nombre": "Diego Ruiz", "rol": "Closer", "email": "diego@x.com"},
+          {"id": 5, "nombre": "Belén Soto", "rol": "Closer", "email": "belen@gmail.com"}]
+    filas = {f["evento"] + f["de"]: f for f in R.por_que_cada_evento(tipos, miembros, eq, {"4": "h@x.com"})}
+    assert "web" in filas["Llamada de Consultoría HN"]["motivo"]
+    assert filas["Llamada de Consultoría HN (equipo)h@x.com"]["vale"]
+    # El de Belén: su correo de Calendly no es el de su cuenta y no está apuntado.
+    b = filas["Llamada de Consultoría HNbelen@nawar.es"]
+    assert not b["vale"] and "Correos de Calendly" in b["motivo"] and b["gestionado"]
+    assert "no empieza" in filas["Otra cosah@x.com"]["motivo"]
+    # Con su correo apuntado, vale.
+    filas = R.por_que_cada_evento(tipos, miembros, eq, {"4": "h@x.com", "5": "belen@nawar.es"})
+    assert [f["vale"] for f in filas if f["de"] == "belen@nawar.es"] == [True]

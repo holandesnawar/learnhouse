@@ -21,6 +21,7 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import {
   cambiarHoraLlamada,
+  getEventosAgenda,
   getHuecos,
   getOpcionesAgenda,
   reservarLlamada,
@@ -52,6 +53,62 @@ const CHIP = (activo: boolean) =>
   `h-8 px-3 rounded-md border text-[13px] font-medium transition-colors ${
     activo ? 'bg-gray-900 border-gray-900 text-white' : 'border-[#E5E7EB] text-gray-800 hover:bg-[#F9FAFB]'
   }`
+
+/** «No sale Belén» (06/11): lo que ve la escuela de Calendly, evento a
+ *  evento, con el motivo por el que cuenta o no. Solo lee. */
+function PorQueNoSale() {
+  const org = useOrg() as any
+  const session = useLHSession() as any
+  const accessToken = session?.data?.tokens?.access_token
+  const [abierto, setAbierto] = useState(false)
+  const [datos, setDatos] = useState<Awaited<ReturnType<typeof getEventosAgenda>> | undefined>(undefined)
+  useEffect(() => {
+    if (!abierto || datos !== undefined || !org?.id || !accessToken) return
+    getEventosAgenda(org.id, accessToken).then((r) => setDatos(r))
+  }, [abierto, datos, org?.id, accessToken])
+  return (
+    <div className="mt-1">
+      <button onClick={() => setAbierto((v) => !v)} className="text-[12px] font-semibold text-[#025dc7] hover:underline">
+        {abierto ? 'Ocultar' : '¿Por qué no sale? Ver los eventos que ve la escuela'}
+      </button>
+      {abierto ? (
+        datos === undefined ? (
+          <p className={`${META} mt-1 inline-flex items-center gap-1.5`}>
+            <Loader2 size={12} className="animate-spin" /> Preguntando a Calendly…
+          </p>
+        ) : !datos ? (
+          <p className="mt-1 text-[12px] text-[#B91C1C]">No se ha podido leer.</p>
+        ) : datos.error ? (
+          <p className="mt-1 text-[12px] text-[#B91C1C]">Lo que dijo Calendly: {datos.error}</p>
+        ) : (
+          <div className="mt-1.5 space-y-1.5 rounded-lg border border-[#E2E8F4] bg-[#F8FAFE] p-2.5">
+            {datos.fuente === 'usuario' ? (
+              <p className="text-[12px] text-[#92400E]">
+                Calendly solo deja leer los eventos de la cuenta conectada, no los de toda la organización: el token tiene que
+                ser de un administrador de la organización de Calendly.
+              </p>
+            ) : null}
+            {datos.filas.length === 0 ? <p className="text-[12px] text-gray-600">Calendly no devuelve ningún evento activo.</p> : null}
+            {datos.filas.map((f, i) => (
+              <div key={i} className="text-[12px] leading-snug">
+                <p className="font-semibold text-gray-900">
+                  {f.evento}{' '}
+                  <span className="font-normal text-gray-500">
+                    · {f.como}
+                    {f.gestionado ? ' · gestionado' : ''}
+                    {f.secreto ? ' · secreto' : ''}
+                    {f.de ? ` · de ${f.de}` : ''}
+                  </span>
+                </p>
+                <p className={f.vale ? 'text-[#15803D]' : 'text-gray-700'}>{f.motivo}</p>
+              </div>
+            ))}
+          </div>
+        )
+      ) : null}
+    </div>
+  )
+}
 
 /** «Quién la lleva» y «Por dónde» (05/11). Con el evento por turnos, Calendly
  *  elige el closer y la herramienta va con él; con el evento propio de un
@@ -110,10 +167,13 @@ function QuienYDonde({
           </p>
         ) : null}
         {opciones.faltan.length > 0 ? (
-          <p className={`${META} mt-1 !whitespace-normal`}>
-            Sin evento propio en Calendly: {opciones.faltan.join(' y ')}. Para poder elegir a {opciones.faltan.length > 1 ? 'cada uno' : opciones.faltan[0]}{' '}
-            aquí, crea en su Calendly un evento 1 a 1 cuyo nombre empiece por «{base}» (por ejemplo «{base} (equipo)»).
-          </p>
+          <>
+            <p className={`${META} mt-1 !whitespace-normal`}>
+              Sin evento propio en Calendly: {opciones.faltan.join(' y ')}. Para poder elegir a {opciones.faltan.length > 1 ? 'cada uno' : opciones.faltan[0]}{' '}
+              aquí, crea en su Calendly un evento 1 a 1 cuyo nombre empiece por «{base}» (por ejemplo «{base} (equipo)»).
+            </p>
+            <PorQueNoSale />
+          </>
         ) : null}
       </div>
       {elegida && elegida.ubicaciones.length > 1 ? (
