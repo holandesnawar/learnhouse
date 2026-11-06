@@ -12,7 +12,7 @@ explicación entera está en `src/services/tareas/tareas.py`.
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -93,8 +93,35 @@ async def api_semanas(
 ):
     curso = await _curso(request, course_uuid, current_user, db_session)
     equipo, admin = await _roles(current_user, curso.org_id, db_session)
-    datos = await T.semanas_para_alumno(curso, current_user.id, db_session, equipo=equipo)
-    return {**datos, "equipo": equipo, "admin": admin}
+    datos = await T.semanas_para_alumno(curso, current_user.id, db_session, equipo=equipo, con_archivo=True)
+    hermanas = await T.hermanas_para_el_equipo(curso, db_session) if equipo else []
+    return {**datos, "equipo": equipo, "admin": admin, "hermanas": hermanas}
+
+
+@router.get("/course/{course_uuid}/mira-tambien", summary="Las grabaciones de la otra clase con el mismo nombre (el otro grupo).")
+async def api_mira_tambien(
+    request: Request,
+    course_uuid: str,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    curso = await _curso(request, course_uuid, current_user, db_session)
+    return await T.mira_tambien(curso, db_session)
+
+
+@router.get("/course/{course_uuid}/mira-tambien/{activity_uuid}/video", summary="El vídeo subido de una grabación de la otra clase.")
+async def api_mira_tambien_video(
+    request: Request,
+    course_uuid: str,
+    activity_uuid: str,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    curso = await _curso(request, course_uuid, current_user, db_session)
+    ruta = await T.archivo_de_hermana(curso, activity_uuid, db_session)
+    if ruta is None:
+        raise HTTPException(status_code=404, detail="No existe esa grabación")
+    return FileResponse(ruta)
 
 
 @router.get("/mi-semana", summary="«Tu semana» del Inicio: la semana en curso de cada clase que ve y las correcciones sin escuchar.")
@@ -248,6 +275,83 @@ async def api_borrar_semana(
 
 
 # ── El equipo ───────────────────────────────────────────────────────────────
+
+
+class AvisoIn(BaseModel):
+    filtro: str = "todos"
+    titulo: str = ""
+    texto: str = ""
+    campana: bool = True
+    correo: bool = False
+    prueba: bool = False
+
+
+def _mandar_correos(destinos: list, correo: dict) -> None:
+    """En segundo plano: un fallo no tumba nada."""
+    import logging
+
+    from src.services.users.emails import send_news_email
+
+    enviados = 0
+    for email, nombre in destinos:
+        try:
+            send_news_email(
+                email=email, name=nombre or "", title=correo["titulo"], body_html=correo["html"],
+                cta_label=correo["boton"], cta_url=correo["url"],
+            )
+            enviados += 1
+        except Exception as exc:  # noqa: BLE001
+            logging.getLogger(__name__).warning("Aviso de clase no enviado: %s", exc)
+    logging.getLogger(__name__).info("Aviso de clase: %s de %s correos", enviados, len(destinos))
+
+
+@router.get("/semana/{semana_id}/destinatarios", summary="A quién le llegaría un aviso con cada filtro, y los avisos ya mandados (equipo).")
+async def api_destinatarios(
+    semana_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    try:
+        s = await T.tarea(semana_id, db_session)
+        await _equipo(current_user, s.org_id, db_session)
+        return await T.destinatarios(s.org_id, s, db_session)
+    except T.TareaError as exc:
+        raise _error(exc)
+
+
+@router.post("/semana/{semana_id}/avisar", summary="Avisa a la clase (o a parte) por la campana y/o por correo (equipo).")
+async def api_avisar(
+    semana_id: int,
+    data: AvisoIn,
+    background: BackgroundTasks,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    try:
+        s = await T.tarea(semana_id, db_session)
+        await _equipo(current_user, s.org_id, db_session)
+        r = await T.avisar_clase(s.org_id, s, data.model_dump(), _nombre(current_user), db_session)
+    except T.TareaError as exc:
+        raise _error(exc)
+    if r.get("prueba"):
+        email = (getattr(current_user, "email", "") or "").strip()
+        if not email:
+            raise HTTPException(status_code=400, detail="Tu cuenta no tiene correo")
+        _mandar_correos([(email, getattr(current_user, "first_name", "") or "")], r["correo"])
+        return {"ok": True, "prueba": True, "a": email}
+    if r.get("destinos"):
+        background.add_task(_mandar_correos, r["destinos"], r["correo"])
+    return {"ok": True, "alumnos": r["alumnos"], "campana": r["campana"], "correos": len(r.get("destinos") or [])}
+
+
+@router.get("/org/{org_id}/resumen-clases", summary="Las clases lado a lado: la semana en curso de cada una (equipo).")
+async def api_resumen_clases(
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _equipo(current_user, org_id, db_session)
+    return {"clases": await T.resumen_clases(org_id, db_session)}
 
 
 @router.get("/org/{org_id}/clases", summary="Las clases en directo que pueden tener semanas (equipo).")

@@ -13,6 +13,43 @@ export interface ClaseSemana {
   nombre: string
   tipo: TipoClase
   hecha: boolean
+  /** Una grabación de los meses de antes colocada en su semana (06/11/2026). */
+  suelta?: boolean
+  fecha?: string
+  tema?: string
+  profe?: string
+}
+
+/** Una grabación de los meses de antes sin semana: sale como una clase más. */
+export interface ClaseArchivo extends ClaseSemana {
+  fecha: string
+  tema: string
+  profe: string
+}
+
+/** La otra clase con el mismo nombre (el otro grupo), para el equipo. */
+export interface Hermana {
+  id: number
+  org_id: number
+  course_uuid: string
+  nombre: string
+  /** «jueves»: el día en que más se da. */
+  dia: string
+  weekday: string
+}
+
+export interface VideoGrabacion {
+  tipo: 'bunny' | 'youtube' | 'vimeo' | 'archivo'
+  url: string
+}
+
+export interface MiraTambien {
+  clases: {
+    course_uuid: string
+    dia: string
+    profe: string
+    grabaciones: { tema: string; fecha: string; activity_uuid: string; nombre: string; video: VideoGrabacion }[]
+  }[]
 }
 
 export interface Semana {
@@ -43,6 +80,10 @@ export interface SemanasClase {
   actual: number | null
   proxima: number | null
   semanas: Semana[]
+  /** Las grabaciones de antes que no tienen semana (06/11/2026). */
+  archivo?: ClaseArchivo[]
+  /** Solo al equipo: la otra clase con el mismo nombre. */
+  hermanas?: Hermana[]
   equipo: boolean
   admin: boolean
 }
@@ -90,6 +131,8 @@ export interface FilaSeguimiento {
   grupos: string[]
   /** null = esa semana no tiene presentación. */
   presentacion: boolean | null
+  /** null = esa semana aún no tiene grabación (06/11/2026). */
+  grabacion?: boolean | null
   /** null = no se sabe (la clase no es en la sala de la escuela). */
   clase: boolean | null
   ejercicios: { hechos: number; total: number }
@@ -111,6 +154,8 @@ export interface Seguimiento {
     alumnos: number
     presentacion: number
     con_presentacion: boolean
+    grabacion?: number
+    con_grabacion?: boolean
     clase: number
     sabe_clase: boolean
     ejercicios: number
@@ -169,6 +214,13 @@ const curso = (uuid: string) => encodeURIComponent(String(uuid || '').replace(/^
 
 export const getSemanas = (courseUuid: string, token: string) =>
   pedir<SemanasClase>(`${base()}/course/${curso(courseUuid)}/semanas`, token)
+
+export const getMiraTambien = (courseUuid: string, token: string) =>
+  pedir<MiraTambien>(`${base()}/course/${curso(courseUuid)}/mira-tambien`, token)
+
+/** El vídeo subido de una grabación de la otra clase (va con la sesión). */
+export const urlVideoHermana = (courseUuid: string, activityUuid: string) =>
+  `${base()}/course/${curso(courseUuid)}/mira-tambien/${encodeURIComponent(activityUuid)}/video`
 
 export const getMiSemana = (orgId: number, token: string) => pedir<MiSemana>(`${base()}/mi-semana?org_id=${orgId}`, token)
 
@@ -262,6 +314,32 @@ export const getCheckins = (orgId: number, token: string) =>
 
 export const marcarCheckin = (orgId: number, datos: { user_id: number; hito: number; nota: string }, token: string) =>
   pedir<{ ok: boolean }>(`${base()}/org/${orgId}/checkins`, token, 'POST', datos)
+
+// ── Avisar a la clase (06/11/2026) ─────────────────────────────────────────
+
+export interface Destinatarios {
+  filtros: { id: string; nombre: string; alumnos: { user_id: number; nombre: string }[] }[]
+  avisos: { id: string; titulo: string; texto: string; filtro: string; at: string; por: string; campana: boolean; correos: number; alumnos: number }[]
+}
+
+export const getDestinatarios = (semanaId: number, token: string) =>
+  pedir<Destinatarios>(`${base()}/semana/${semanaId}/destinatarios`, token)
+
+export const avisarClase = (
+  semanaId: number,
+  datos: { filtro: string; titulo: string; texto: string; campana: boolean; correo: boolean; prueba?: boolean },
+  token: string
+) => pedir<{ ok: boolean; prueba?: boolean; a?: string; alumnos?: number; correos?: number }>(`${base()}/semana/${semanaId}/avisar`, token, 'POST', datos)
+
+export interface ResumenClase {
+  course_uuid: string
+  nombre: string
+  semana: { id: number; tema: string; fecha: string; limite: string; tiene_tarea: boolean }
+  cifras: NonNullable<Seguimiento['cifras']>
+}
+
+export const getResumenClases = (orgId: number, token: string) =>
+  pedir<{ clases: ResumenClase[] }>(`${base()}/org/${orgId}/resumen-clases`, token)
 
 /** «lunes 3 nov» a partir de AAAA-MM-DD (sin desfases de zona: es un día, no un instante). */
 export function diaCorto(dia: string): string {

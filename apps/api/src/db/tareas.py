@@ -42,6 +42,10 @@ class TareaSemana(SQLModel, table=True):
     # grabación.
     aviso_presentacion: str = Field(default="si", max_length=40)
     aviso_grabacion: str = Field(default="", max_length=40)
+    # Los avisos que el equipo mandó a la clase desde esta semana (06/11/2026,
+    # «Avisar a la clase»): una lista en JSON, cada uno con su texto y a qué
+    # alumnos fue. Salen en la campana de esos alumnos. Vacío = ninguno.
+    avisos: str = ""
 
 
 class TareaEntrega(SQLModel, table=True):

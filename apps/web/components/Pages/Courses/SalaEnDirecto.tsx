@@ -116,6 +116,8 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
   const curso = String(courseUuid || '').replace(/^course_/, '')
   const grabadas = conGrabadas(org?.config?.config, curso)
   const etiquetaGuardada = ajustesDirecto(org?.config?.config, curso).etiqueta
+  // «Mira también» (06/11/2026): sin guardar, sí.
+  const miraTambien = (org?.config?.config?.salas?.[curso] || {}).mira_tambien !== false
   const [etiqueta, setEtiqueta] = useState(etiquetaGuardada)
   // La configuración de la escuela puede llegar después de pintar.
   useEffect(() => setEtiqueta(etiquetaGuardada), [etiquetaGuardada])
@@ -159,16 +161,21 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
     }
   }
 
-  async function cambiar(cambios: { activo?: boolean; grabadas?: boolean }) {
+  async function cambiar(cambios: { activo?: boolean; grabadas?: boolean; mira_tambien?: boolean }) {
     setGuardando(true)
     try {
       const r = await guardarSala(curso, cambios, token)
       setSala((s) => (s ? { ...s, ...r } : s))
       // Encender o apagar cambia cómo se pinta el curso entero (su recuadro,
       // «Ir a la clase»): se recarga para que lo coja de la escuela.
-      if (cambios.activo !== undefined || cambios.grabadas !== undefined) window.setTimeout(() => window.location.reload(), 700)
+      if (cambios.activo !== undefined || cambios.grabadas !== undefined || cambios.mira_tambien !== undefined)
+        window.setTimeout(() => window.location.reload(), 700)
       toast.success(
-        cambios.grabadas !== undefined
+        cambios.mira_tambien !== undefined
+          ? cambios.mira_tambien
+            ? '«Mira también» vuelve a salir en el lateral'
+            : '«Mira también» ya no sale en el lateral'
+          : cambios.grabadas !== undefined
           ? cambios.grabadas
             ? 'Las clases grabadas vuelven a salir en esta página'
             : 'Las clases grabadas ya no salen en esta página'
@@ -202,6 +209,16 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
           className="accent-[#025dc7]"
         />
         Enseñar las clases grabadas en esta página
+      </label>
+      <label className="inline-flex items-center gap-2 text-[13px] text-gray-900 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={miraTambien}
+          disabled={guardando}
+          onChange={(e) => cambiar({ mira_tambien: e.target.checked })}
+          className="accent-[#025dc7]"
+        />
+        «Mira también» en el lateral: las grabaciones de la otra clase con el mismo nombre (el otro grupo)
       </label>
       {/* La etiqueta, solo administradores (02/11: "que no la pueda cambiar el profe"). */}
       {sala.admin ? (

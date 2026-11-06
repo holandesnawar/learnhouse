@@ -9,6 +9,11 @@
  * presentación ya está; y abajo las semanas anteriores, plegadas. Cada semana
  * es un capítulo del curso marcado como semana (apps/api/src/services/tareas).
  * El administrador ve además «Nueva semana», «Editar» y el seguimiento.
+ *
+ * Desde el 06/11/2026 ya no hay «Sesiones grabadas» por meses debajo (usuario:
+ * "debe ser estilo próxima semana y esta semana"): las grabaciones de antes
+ * van en su semana y, la que no tiene, sale en «Clases anteriores» como una
+ * clase más, con su día y su profe (lo coloca el servidor, `colocar_sueltas`).
  */
 
 import React, { useState } from 'react'
@@ -21,6 +26,7 @@ import {
   ChevronRight,
   FileText,
   Layers,
+  Megaphone,
   Mic,
   PenLine,
   Pencil,
@@ -35,11 +41,13 @@ import {
   diaCorto,
   editarSemana,
   getSemanas,
+  type ClaseArchivo,
   type ClaseSemana,
   type Semana,
   type SemanasClase as DatosSemanas,
 } from '@services/tareas/tareas'
 import { CasillasCampana, EditarSemana, NuevaSemana } from './SemanaModales'
+import { AvisarClase } from './AvisarClase'
 
 export const claveSemanas = (courseUuid: string) => ['tareas', 'semanas', String(courseUuid || '').replace(/^course_/, '')]
 
@@ -195,8 +203,8 @@ function ContenidoSemana({
           <Fila
             key={c.activity_uuid}
             tipo="grabacion"
-            titulo={c.nombre || 'Grabación'}
-            detalle="La clase grabada"
+            titulo={c.suelta ? 'Grabación' : c.nombre || 'Grabación'}
+            detalle={c.profe ? `La clase grabada · con ${c.profe}` : 'La clase grabada'}
             estado={c.hecha ? <Hecho texto="Vista" /> : null}
             href={rutaClase(c)}
           />
@@ -266,6 +274,7 @@ function CabeceraAdmin({
   onEditar: () => void
   onCambio: () => void
 }) {
+  const [avisando, setAvisando] = useState(false)
   const limpio = courseUuid.replace(/^course_/, '')
   const session = useLHSession() as any
   const token: string = session?.data?.tokens?.access_token || ''
@@ -294,6 +303,9 @@ function CabeceraAdmin({
         onGrabacion={(v) => avisar({ avisar_grabacion: v })}
         disabled={guardando}
       />
+      <button onClick={() => setAvisando(true)} className="inline-flex items-center gap-1 text-[#025dc7] hover:underline">
+        <Megaphone size={12} /> Avisar a la clase
+      </button>
       <button onClick={onEditar} className="inline-flex items-center gap-1 text-[#5A6480] hover:text-[#025dc7]">
         <Pencil size={12} /> Editar semana
       </button>
@@ -312,14 +324,51 @@ function CabeceraAdmin({
         <Users size={12} /> Seguimiento
       </Link>
       <span className="text-[#9CA3AF] font-medium">Solo lo ves tú</span>
+      {avisando ? <AvisarClase semana={semana} onClose={() => setAvisando(false)} /> : null}
     </div>
   )
 }
 
-export default function SemanasClase({ courseUuid, courseuuid, orgslug, curso }: { courseUuid: string; courseuuid: string; orgslug: string; curso: any }) {
+/** Una grabación de antes sin semana, como una línea más de «Clases anteriores». */
+function FilaArchivo({ c, href }: { c: ClaseArchivo; href: string }) {
+  return (
+    <Link href={href} prefetch={false} className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#F8FAFF]">
+      <Video size={16} className="shrink-0 text-[#025dc7]" />
+      <span className="flex-1 min-w-0 text-[14px] font-semibold text-gray-900 truncate">
+        {c.tema || c.nombre}{' '}
+        <span className="font-medium text-[#6B7280]">
+          {c.fecha ? `· ${diaCorto(c.fecha)}` : ''}
+          {c.profe ? ` · con ${c.profe}` : ''}
+        </span>
+      </span>
+      <span className="shrink-0 text-[12.5px] font-bold">
+        {c.hecha ? <Hecho texto="Vista" /> : <span className="text-[#025dc7]">Ver</span>}
+      </span>
+    </Link>
+  )
+}
+
+/** Cuántas clases anteriores se ven antes de «Ver todas». */
+const ANTERIORES_A_LA_VISTA = 6
+
+export default function SemanasClase({
+  courseUuid,
+  courseuuid,
+  orgslug,
+  curso,
+  conGrabadas = true,
+}: {
+  courseUuid: string
+  courseuuid: string
+  orgslug: string
+  curso: any
+  /** Si la clase enseña sus grabaciones de antes (Spreekclub y Masterclass, no). */
+  conGrabadas?: boolean
+}) {
   const { data } = useSemanasClase(courseUuid)
   const queryClient = useQueryClient()
   const [abiertas, setAbiertas] = useState<Record<number, boolean>>({})
+  const [todas, setTodas] = useState(false)
   const [nueva, setNueva] = useState(false)
   const [editando, setEditando] = useState<Semana | null>(null)
 
@@ -328,7 +377,8 @@ export default function SemanasClase({ courseUuid, courseuuid, orgslug, curso }:
   // quitar una semana entera (borra las entregas), solo un administrador.
   const { semanas, hoy, actual, proxima, admin } = data
   const equipo = Boolean(data.equipo || admin)
-  if (!semanas.length && !equipo) return null
+  const archivo = conGrabadas ? data.archivo || [] : []
+  if (!semanas.length && !archivo.length && !equipo) return null
 
   const rutaClase = (c: ClaseSemana) =>
     getUriWithOrg(orgslug, '') + `/course/${courseuuid}/activity/${c.activity_uuid.replace('activity_', '')}`
@@ -338,6 +388,16 @@ export default function SemanasClase({ courseUuid, courseuuid, orgslug, curso }:
   const semanaProxima = semanas.find((s) => s.id === proxima && s.id !== actual) || null
   const masAdelante = semanas.filter((s) => s.fecha > hoy && s.id !== proxima)
   const anteriores = semanas.filter((s) => s.id !== actual && s.fecha <= hoy)
+  // Las semanas pasadas y las grabaciones de antes, juntas y por día.
+  const lineas: ({ semana: Semana } | { suelta: ClaseArchivo })[] = [
+    ...anteriores.map((semana) => ({ semana })),
+    ...archivo.map((suelta) => ({ suelta })),
+  ].sort((a, b) => {
+    const fa = 'semana' in a ? a.semana.fecha : a.suelta.fecha
+    const fb = 'semana' in b ? b.semana.fecha : b.suelta.fecha
+    return (fb || '').localeCompare(fa || '')
+  })
+  const visibles = todas ? lineas : lineas.slice(0, ANTERIORES_A_LA_VISTA)
 
   const bloque = (titulo: string, semana: Semana) => (
     <div key={`b-${semana.id}`}>
@@ -354,48 +414,75 @@ export default function SemanasClase({ courseUuid, courseuuid, orgslug, curso }:
     </div>
   )
 
+  const filaSemana = (s: Semana) => {
+    const abierta = !!abiertas[s.id]
+    const est = s.tarea?.estado || 'sin-tarea'
+    return (
+      <div key={s.id}>
+        <button
+          onClick={() => setAbiertas((a) => ({ ...a, [s.id]: !abierta }))}
+          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#F8FAFF]"
+        >
+          <ChevronDown size={16} className={`shrink-0 text-[#025dc7] transition-transform ${abierta ? '' : '-rotate-90'}`} />
+          <span className="flex-1 min-w-0 text-[14px] font-semibold text-gray-900 truncate">
+            {s.tema} <span className="font-medium text-[#6B7280]">· {diaCorto(s.fecha)}</span>
+          </span>
+          <span className="shrink-0 text-[12.5px] font-bold">
+            {est === 'corregida' ? (
+              <Hecho texto="Corregida" />
+            ) : est === 'entregada' ? (
+              <span className="text-[#025dc7]">Entregada</span>
+            ) : est === 'pendiente' ? (
+              <span className="text-[#9CA3AF]">{s.limite < hoy ? 'Sin entregar' : 'Pendiente'}</span>
+            ) : null}
+          </span>
+        </button>
+        {abierta ? (
+          <div className="border-t border-[#EEF2F9]">
+            <ContenidoSemana semana={s} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={equipo} />
+            {equipo ? <CabeceraAdmin semana={s} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(s)} onCambio={recargar} /> : null}
+          </div>
+        ) : null}
+      </div>
+    )
+  }
+
   const plegables = (titulo: string, lista: Semana[]) =>
     lista.length ? (
       <div key={`p-${titulo}`}>
         <h2 className="text-[18px] font-bold text-gray-900 mt-6 mb-2.5" style={POPPINS}>
           {titulo}
         </h2>
-        <div className="rounded-2xl border border-[#DDE6F5] bg-white overflow-hidden divide-y divide-[#EEF2F9]">
-          {lista.map((s) => {
-            const abierta = !!abiertas[s.id]
-            const est = s.tarea?.estado || 'sin-tarea'
-            return (
-              <div key={s.id}>
-                <button
-                  onClick={() => setAbiertas((a) => ({ ...a, [s.id]: !abierta }))}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#F8FAFF]"
-                >
-                  <ChevronDown size={16} className={`shrink-0 text-[#025dc7] transition-transform ${abierta ? '' : '-rotate-90'}`} />
-                  <span className="flex-1 min-w-0 text-[14px] font-semibold text-gray-900 truncate">
-                    {s.tema} <span className="font-medium text-[#6B7280]">· {diaCorto(s.fecha)}</span>
-                  </span>
-                  <span className="shrink-0 text-[12.5px] font-bold">
-                    {est === 'corregida' ? (
-                      <Hecho texto="Corregida" />
-                    ) : est === 'entregada' ? (
-                      <span className="text-[#025dc7]">Entregada</span>
-                    ) : est === 'pendiente' ? (
-                      <span className="text-[#9CA3AF]">{s.limite < hoy ? 'Sin entregar' : 'Pendiente'}</span>
-                    ) : null}
-                  </span>
-                </button>
-                {abierta ? (
-                  <div className="border-t border-[#EEF2F9]">
-                    <ContenidoSemana semana={s} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={equipo} />
-                    {equipo ? <CabeceraAdmin semana={s} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(s)} onCambio={recargar} /> : null}
-                  </div>
-                ) : null}
-              </div>
-            )
-          })}
-        </div>
+        <div className="rounded-2xl border border-[#DDE6F5] bg-white overflow-hidden divide-y divide-[#EEF2F9]">{lista.map(filaSemana)}</div>
       </div>
     ) : null
+
+  // «Clases anteriores»: las semanas pasadas y las grabaciones de antes, por
+  // día. Lleva el ancla de «Clases anteriores» de la franja de arriba.
+  const anterioresBloque = lineas.length ? (
+    <div id="sesiones-grabadas" className="scroll-mt-24">
+      <h2 className="text-[18px] font-bold text-gray-900 mt-6 mb-2.5" style={POPPINS}>
+        Clases anteriores
+      </h2>
+      <div className="rounded-2xl border border-[#DDE6F5] bg-white overflow-hidden divide-y divide-[#EEF2F9]">
+        {visibles.map((l) =>
+          'semana' in l ? (
+            filaSemana(l.semana)
+          ) : (
+            <FilaArchivo key={l.suelta.activity_uuid} c={l.suelta} href={rutaClase(l.suelta)} />
+          )
+        )}
+        {lineas.length > ANTERIORES_A_LA_VISTA ? (
+          <button
+            onClick={() => setTodas((v) => !v)}
+            className="w-full px-4 py-2.5 text-center text-[13px] font-semibold text-[#025dc7] hover:bg-[#F8FAFF]"
+          >
+            {todas ? 'Ver menos' : `Ver todas (${lineas.length})`}
+          </button>
+        ) : null}
+      </div>
+    </div>
+  ) : null
 
   return (
     <div className="w-full">
@@ -417,7 +504,7 @@ export default function SemanasClase({ courseUuid, courseuuid, orgslug, curso }:
 
       {semanaActual ? bloque('Esta semana', semanaActual) : null}
       {semanaProxima ? bloque('Próxima clase', semanaProxima) : null}
-      {plegables('Semanas anteriores', anteriores)}
+      {anterioresBloque}
       {equipo ? plegables('Más adelante', masAdelante) : null}
 
       {nueva ? (
@@ -426,6 +513,7 @@ export default function SemanasClase({ courseUuid, courseuuid, orgslug, curso }:
           curso={curso}
           orgslug={orgslug}
           ultima={semanas[0] || null}
+          hermanas={data.hermanas || []}
           onClose={() => setNueva(false)}
           onCreada={() => {
             setNueva(false)

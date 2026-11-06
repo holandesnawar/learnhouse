@@ -41,6 +41,8 @@ const KIND_STYLE: Record<string, { icon: any; color: string }> = {
   semana: { icon: Presentation, color: 'text-[#025dc7]' },
   // La grabación de su clase, ya subida (05/11).
   grabacion: { icon: PlayCircle, color: 'text-[#025dc7]' },
+  // «Avisar a la clase» desde una semana (06/11/2026).
+  clase: { icon: Megaphone, color: 'text-[#025dc7]' },
   tarea: { icon: Mic, color: 'text-emerald-500' },
   corregir: { icon: ClipboardCheck, color: 'text-[#025dc7]' },
   checkin: { icon: PhoneCall, color: 'text-[#025dc7]' },
