@@ -628,3 +628,27 @@ def test_el_aviso_de_la_web_cede_al_de_calendly():
         assert not C.calendly_avisa()
     with patch.object(C, "ultimo_aviso", lambda: None):
         assert not C.calendly_avisa()
+
+
+async def test_en_un_cambio_de_hora_la_tarjeta_sigue_a_calendly(db, escuela):
+    """06/11: la llevaba Diego, la persona cambia la hora con el enlace de
+    Calendly y el por turnos se la da a Belén: la tarjeta pasa a Belén. Sin
+    correos. Si el anfitrión no es un closer, la tarjeta no se toca."""
+    from src.services.panel import pipeline, reparto
+
+    async def _equipo(_db):
+        return 1, EQUIPO_TEAMS
+
+    await pipeline.asignar("ana@x.com", 4, "Diego Ruiz", "Rida", db)
+    await pipeline.asignar("leo@x.com", 4, "Diego Ruiz", "Rida", db)
+    envios = Envios()
+    with patch.object(reparto, "_equipo_de_la_escuela", _equipo):
+        cambio = aviso(old_invitee="https://api.calendly.com/x/OLD")
+        cambio["payload"]["scheduled_event"]["event_memberships"] = [{"user_email": "belen@x.com", "user_name": "Belén"}]
+        assert await _atender(db, cambio, envios) == "cambio-de-hora"
+        otro = aviso(email="leo@x.com", old_invitee="https://api.calendly.com/x/OLD2")
+        assert await _atender(db, otro, envios) == "cambio-de-hora"  # anfitrión rida@x.com: no es closer
+    g = await pipeline.guardadas(db)
+    assert g["ana@x.com"]["closer_id"] == 5
+    assert g["leo@x.com"]["closer_id"] == 4
+    assert envios.a == []

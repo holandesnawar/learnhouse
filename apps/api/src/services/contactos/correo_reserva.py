@@ -742,6 +742,34 @@ async def mandar_una_vez(reserva: dict, estado: dict, db_session: AsyncSession) 
     return "enviado"
 
 
+async def _seguir_al_anfitrion(reserva: dict, db_session: AsyncSession) -> str:
+    """En un CAMBIO DE HORA la tarjeta sigue a Calendly (06/11/2026; usuario:
+    "que en un cambio de hora la tarjeta siga a Calendly"). Con el evento por
+    turnos, la hora nueva puede caer en el calendario del otro closer, y
+    entonces la llamada (y su enlace) es suya: la tarjeta pasa a él. Vale
+    para los dos caminos: «Reprogramar» desde el enlace de Calendly
+    (`old_invitee`) y «Cambiar hora» desde la escuela.
+
+    Solo el evento de las llamadas, y solo si el anfitrión es un closer (el
+    usuario principal de Calendly sin apuntar no cambia nada). Al leer la
+    agenda NO se hace esto (ahí manda lo que decide el equipo, 05/11): solo
+    con el aviso de un cambio de hora. No manda correos. En blando: devuelve
+    una frase para «qué hizo la escuela» o ""."""
+    from src.services.panel.reparto import asignar_por_anfitrion
+
+    try:
+        tipos = await _tipos_de_llamada()
+        if tipos and reserva.get("tipo_evento") and reserva["tipo_evento"] not in tipos:
+            return ""
+        closer = await asignar_por_anfitrion(reserva.get("email") or "", reserva.get("anfitrion_email") or "", db_session)
+    except Exception:  # noqa: BLE001
+        logger.exception("No se pudo pasar la tarjeta al closer del cambio de hora")
+        return ""
+    if not closer:
+        return ""
+    return f" La lleva {(closer.get('nombre') or 'el closer').split(' ')[0]} (en Calendly está en su calendario)."
+
+
 async def atender_aviso(cuerpo: bytes, cabecera: str, db_session: AsyncSession) -> str:
     """Lo que hace la escuela con un aviso de Calendly. Devuelve qué pasó;
     lanza PermissionError si la firma no vale (→ 401) y cualquier otro error si
@@ -758,14 +786,20 @@ async def atender_aviso(cuerpo: bytes, cabecera: str, db_session: AsyncSession) 
     if reserva is None:
         return "ignorado"
     if reserva["cambio_de_hora"]:
-        apuntar_reserva(reserva, "Era un cambio de hora hecho en Calendly: no se avisa a nadie.")
+        try:
+            reserva = await _completar(reserva)
+        except Exception:  # noqa: BLE001
+            logger.warning("No se pudo completar el cambio de hora de Calendly", exc_info=True)
+        quien = await _seguir_al_anfitrion(reserva, db_session)
+        apuntar_reserva(reserva, "Era un cambio de hora hecho en Calendly: no se avisa a nadie." + quien)
         return "cambio-de-hora"
     reserva = await _completar(reserva)
     # (Después de `_completar`, que trae la hora si el aviso no la traía.)
     # Un cambio de hora hecho desde la escuela (31/10, `reservar.cambiar_hora`)
     # llega como una reserva nueva, sin `old_invitee`: tampoco se repite nada.
     if await R.lo_cambio_el_equipo(reserva["email"], reserva.get("inicio") or "", db_session):
-        apuntar_reserva(reserva, "Era un cambio de hora hecho desde la escuela: no se avisa a nadie.")
+        quien = await _seguir_al_anfitrion(reserva, db_session)
+        apuntar_reserva(reserva, "Era un cambio de hora hecho desde la escuela: no se avisa a nadie." + quien)
         return "cambio-de-hora"
     tipos = await _tipos_de_llamada()
     if tipos and reserva.get("tipo_evento") and reserva["tipo_evento"] not in tipos:
