@@ -489,6 +489,10 @@ def semana_de_la_grabacion(semanas: list[dict], suelta: dict) -> Optional[dict]:
     return None
 
 
+#: Nombres que no dicen de qué clase es una grabación de antes sin día.
+_NOMBRES_SUELTOS = {"presentacion", "grabacion", "clase", "video", "la clase grabada", "clase grabada", "sesion"}
+
+
 def colocar_sueltas(semanas: list[dict], sueltas: list[dict]) -> list[dict]:
     """Mete cada grabación suelta en su semana (en `clases`, marcada `suelta`)
     y devuelve las que no tienen semana: el archivo, la más nueva primero (las
@@ -497,7 +501,15 @@ def colocar_sueltas(semanas: list[dict], sueltas: list[dict]) -> list[dict]:
     for c in sueltas:
         destino = semana_de_la_grabacion(semanas, c) if c.get("tipo") == "grabacion" else None
         if destino is not None:
-            destino.setdefault("clases", []).append({**c, "suelta": True})
+            # 06/11: «salen dobles». Si la semana ya tiene su grabación, la de
+            # los meses de antes es la misma clase subida dos veces: no se
+            # añade (ni se deja suelta en «Clases anteriores»).
+            if not any((x or {}).get("tipo") == "grabacion" for x in destino.get("clases") or []):
+                destino.setdefault("clases", []).append({**c, "suelta": True})
+        elif not c.get("fecha") and normal(c.get("tema") or c.get("nombre")) in _NOMBRES_SUELTOS:
+            # Una «Presentación» o «Grabación» sin día no dice de qué clase es:
+            # en «Clases anteriores» solo ensucia. Sigue en el editor.
+            continue
         else:
             archivo.append(c)
     return sorted(archivo, key=lambda c: (bool(c.get("fecha")), c.get("fecha") or "", c.get("id") or 0), reverse=True)

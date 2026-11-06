@@ -329,21 +329,68 @@ function CabeceraAdmin({
   )
 }
 
-/** Una grabación de antes sin semana, como una línea más de «Clases anteriores». */
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+const MESES_LARGOS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+
+/** El día en una ficha pequeña, como en un calendario: «14 / OCT». */
+function ChipFecha({ fecha }: { fecha: string }) {
+  const [, m, d] = (fecha || '').split('-').map(Number)
+  if (!m || !d) {
+    return (
+      <div className="w-11 h-11 rounded-xl bg-[#F0F5FF] flex items-center justify-center shrink-0">
+        <Video size={16} className="text-[#025dc7]" />
+      </div>
+    )
+  }
+  return (
+    <div className="w-11 h-11 rounded-xl bg-[#F0F5FF] flex flex-col items-center justify-center shrink-0 leading-none">
+      <span className="text-[16px] font-semibold text-[#1D0084] tabular-nums" style={POPPINS}>
+        {d}
+      </span>
+      <span className="mt-0.5 text-[9.5px] font-semibold uppercase tracking-[0.08em] text-[#025dc7]">{MESES[m - 1]}</span>
+    </div>
+  )
+}
+
+/** Lo de la derecha de cada línea, siempre con la misma forma. */
+function Etiqueta({ tono, children }: { tono: 'hecho' | 'azul' | 'gris'; children: React.ReactNode }) {
+  const color =
+    tono === 'hecho' ? 'bg-[#ECFDF3] text-[#15803D]' : tono === 'azul' ? 'bg-[#EEF4FF] text-[#025dc7]' : 'bg-[#F3F4F6] text-[#6B7280]'
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-semibold ${color}`}>{children}</span>
+  )
+}
+
+/** Qué tuvo una semana, en una línea: «Presentación · Grabación · Tarea». */
+function queTuvo(s: Semana): string {
+  const tipos = new Set((s.clases || []).map((c) => c.tipo))
+  const partes = [
+    tipos.has('presentacion') ? 'Presentación' : '',
+    tipos.has('grabacion') ? 'Grabación' : '',
+    tipos.has('ejercicios') ? 'Ejercicios' : '',
+    s.tiene_tarea ? 'Tarea' : '',
+  ].filter(Boolean)
+  const profe = (s.clases || []).find((c) => c.profe)?.profe
+  return [partes.join(' · '), profe ? `con ${profe}` : ''].filter(Boolean).join(' · ')
+}
+
+/** Una grabación de antes sin semana, con la misma forma que una semana. */
 function FilaArchivo({ c, href }: { c: ClaseArchivo; href: string }) {
   return (
-    <Link href={href} prefetch={false} className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#F8FAFF]">
-      <Video size={16} className="shrink-0 text-[#025dc7]" />
-      <span className="flex-1 min-w-0 text-[14px] font-semibold text-gray-900 truncate">
-        {c.tema || c.nombre}{' '}
-        <span className="font-medium text-[#6B7280]">
-          {c.fecha ? `· ${diaCorto(c.fecha)}` : ''}
-          {c.profe ? ` · con ${c.profe}` : ''}
-        </span>
-      </span>
-      <span className="shrink-0 text-[12.5px] font-bold">
-        {c.hecha ? <Hecho texto="Vista" /> : <span className="text-[#025dc7]">Ver</span>}
-      </span>
+    <Link href={href} prefetch={false} className="flex items-center gap-3.5 px-4 py-3 hover:bg-[#F8FAFF] transition-colors">
+      <ChipFecha fecha={c.fecha} />
+      <div className="min-w-0 flex-1">
+        <p className="text-[14.5px] font-semibold text-gray-900 truncate">{c.tema || c.nombre}</p>
+        <p className="text-[12.5px] text-[#6B7280] truncate">{['Grabación', c.profe ? `con ${c.profe}` : ''].filter(Boolean).join(' · ')}</p>
+      </div>
+      {c.hecha ? (
+        <Etiqueta tono="hecho">
+          <Check size={12} strokeWidth={3} /> Vista
+        </Etiqueta>
+      ) : (
+        <Etiqueta tono="azul">Ver</Etiqueta>
+      )}
+      <ChevronRight size={15} className="shrink-0 text-[#B9C6DC]" />
     </Link>
   )
 }
@@ -417,28 +464,35 @@ export default function SemanasClase({
   const filaSemana = (s: Semana) => {
     const abierta = !!abiertas[s.id]
     const est = s.tarea?.estado || 'sin-tarea'
+    const grabacionVista = (s.clases || []).some((c) => c.tipo === 'grabacion' && c.hecha)
     return (
       <div key={s.id}>
         <button
           onClick={() => setAbiertas((a) => ({ ...a, [s.id]: !abierta }))}
-          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#F8FAFF]"
+          className="w-full flex items-center gap-3.5 px-4 py-3 text-left hover:bg-[#F8FAFF] transition-colors"
         >
-          <ChevronDown size={16} className={`shrink-0 text-[#025dc7] transition-transform ${abierta ? '' : '-rotate-90'}`} />
-          <span className="flex-1 min-w-0 text-[14px] font-semibold text-gray-900 truncate">
-            {s.tema} <span className="font-medium text-[#6B7280]">· {diaCorto(s.fecha)}</span>
-          </span>
-          <span className="shrink-0 text-[12.5px] font-bold">
-            {est === 'corregida' ? (
-              <Hecho texto="Corregida" />
-            ) : est === 'entregada' ? (
-              <span className="text-[#025dc7]">Entregada</span>
-            ) : est === 'pendiente' ? (
-              <span className="text-[#9CA3AF]">{s.limite < hoy ? 'Sin entregar' : 'Pendiente'}</span>
-            ) : null}
-          </span>
+          <ChipFecha fecha={s.fecha} />
+          <div className="min-w-0 flex-1">
+            <p className="text-[14.5px] font-semibold text-gray-900 truncate">{s.tema}</p>
+            <p className="text-[12.5px] text-[#6B7280] truncate">{queTuvo(s) || 'Clase'}</p>
+          </div>
+          {est === 'corregida' ? (
+            <Etiqueta tono="hecho">
+              <Check size={12} strokeWidth={3} /> Corregida
+            </Etiqueta>
+          ) : est === 'entregada' ? (
+            <Etiqueta tono="azul">Entregada</Etiqueta>
+          ) : est === 'pendiente' ? (
+            <Etiqueta tono="gris">{s.limite < hoy ? 'Sin entregar' : 'Pendiente'}</Etiqueta>
+          ) : grabacionVista ? (
+            <Etiqueta tono="hecho">
+              <Check size={12} strokeWidth={3} /> Vista
+            </Etiqueta>
+          ) : null}
+          <ChevronDown size={16} className={`shrink-0 text-[#B9C6DC] transition-transform ${abierta ? '' : '-rotate-90'}`} />
         </button>
         {abierta ? (
-          <div className="border-t border-[#EEF2F9]">
+          <div className="mx-4 mb-3 rounded-xl border border-[#EEF2F9] overflow-hidden">
             <ContenidoSemana semana={s} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={equipo} />
             {equipo ? <CabeceraAdmin semana={s} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(s)} onCambio={recargar} /> : null}
           </div>
@@ -459,25 +513,44 @@ export default function SemanasClase({
 
   // «Clases anteriores»: las semanas pasadas y las grabaciones de antes, por
   // día. Lleva el ancla de «Clases anteriores» de la franja de arriba.
+  const mesDe = (l: (typeof lineas)[number]) => {
+    const f = 'semana' in l ? l.semana.fecha : l.suelta.fecha
+    return (f || '').slice(0, 7)
+  }
   const anterioresBloque = lineas.length ? (
     <div id="sesiones-grabadas" className="scroll-mt-24">
-      <h2 className="text-[18px] font-bold text-gray-900 mt-6 mb-2.5" style={POPPINS}>
-        Clases anteriores
-      </h2>
-      <div className="rounded-2xl border border-[#DDE6F5] bg-white overflow-hidden divide-y divide-[#EEF2F9]">
-        {visibles.map((l) =>
-          'semana' in l ? (
-            filaSemana(l.semana)
-          ) : (
-            <FilaArchivo key={l.suelta.activity_uuid} c={l.suelta} href={rutaClase(l.suelta)} />
+      <div className="flex items-baseline justify-between gap-3 mt-8 mb-2.5">
+        <h2 className="text-[18px] font-bold text-gray-900" style={POPPINS}>
+          Clases anteriores
+        </h2>
+        <span className="text-[12.5px] font-semibold text-[#6B7280]">
+          {lineas.length} {lineas.length === 1 ? 'clase' : 'clases'}
+        </span>
+      </div>
+      <div className="rounded-2xl border border-[#DDE6F5] bg-white overflow-hidden">
+        {visibles.map((l, i) => {
+          const mes = mesDe(l)
+          const cambia = i === 0 || mes !== mesDe(visibles[i - 1])
+          const [y, m] = mes.split('-').map(Number)
+          return (
+            <React.Fragment key={'semana' in l ? `s${l.semana.id}` : l.suelta.activity_uuid}>
+              {cambia ? (
+                <p
+                  className={`px-4 pt-3 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8A94A8] ${i ? 'border-t border-[#EEF2F9]' : ''}`}
+                >
+                  {m ? `${MESES_LARGOS[m - 1]} ${y}` : 'Otras'}
+                </p>
+              ) : null}
+              {'semana' in l ? filaSemana(l.semana) : <FilaArchivo c={l.suelta} href={rutaClase(l.suelta)} />}
+            </React.Fragment>
           )
-        )}
+        })}
         {lineas.length > ANTERIORES_A_LA_VISTA ? (
           <button
             onClick={() => setTodas((v) => !v)}
-            className="w-full px-4 py-2.5 text-center text-[13px] font-semibold text-[#025dc7] hover:bg-[#F8FAFF]"
+            className="w-full border-t border-[#EEF2F9] px-4 py-3 text-center text-[13px] font-semibold text-[#025dc7] hover:bg-[#F8FAFF]"
           >
-            {todas ? 'Ver menos' : `Ver todas (${lineas.length})`}
+            {todas ? 'Ver menos' : `Ver todas las clases (${lineas.length})`}
           </button>
         ) : null}
       </div>
