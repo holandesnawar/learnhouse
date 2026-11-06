@@ -68,6 +68,7 @@ import {
   type VolverALlamar,
 } from '@services/stats/contactos'
 import { marcarSolicitud } from '@services/stats/school'
+import { asignarCloser } from '@services/panel/panel'
 import { CalendarClock, CalendarPlus, CalendarX2, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Loader2, MessageCircle, NotebookPen, Phone, Plus, RotateCcw, Trash2, Video, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { confirmar } from '@lib/nawar/confirmar'
@@ -927,6 +928,25 @@ function CitaDialogo({
   const e = estadoDe(cita)
   const cerrar = useCallback(() => (sinVenir ? onGuardado(sinVenir) : onClose()), [sinVenir, onGuardado, onClose])
   const primerNombre = (cita.nombre || '').trim().split(' ')[0]
+  // «La lleva Belén, pero en Calendly está en el calendario de Diego» (06/11):
+  // un botón para pasársela al de Calendly. Solo al pulsarlo; la escuela no la
+  // cambia sola (lo que decide el equipo manda). Lo pueden hacer quien la
+  // lleva y un administrador (el servidor lo comprueba).
+  const miId = Number(session?.data?.user?.id || 0)
+  const [pasando, setPasando] = useState(false)
+  const deCalendly = (cita.calendly_closer || '').split(/\s+/)[0]
+  async function pasarAlDeCalendly() {
+    if (!cita.calendly_closer_id) return
+    setPasando(true)
+    const r = await asignarCloser(org?.id, cita.email, cita.calendly_closer_id, accessToken, 'ventas')
+    setPasando(false)
+    if (!r.ok) {
+      toast.error(r.error || 'No se ha podido cambiar')
+      return
+    }
+    toast.success(`Ahora la lleva ${deCalendly || 'el closer de Calendly'}`)
+    onGuardado({ ...cita, closer_id: cita.calendly_closer_id, closer: cita.calendly_closer || '' })
+  }
 
   useEffect(() => {
     const f = (ev: KeyboardEvent) => ev.key === 'Escape' && cerrar()
@@ -1005,7 +1025,17 @@ function CitaDialogo({
           {cita.closer_id && cita.calendly_closer_id && cita.calendly_closer_id !== cita.closer_id ? (
             <p className="mt-2 text-[12.5px] leading-snug text-[#92400E]">
               La lleva {(cita.closer || '').split(/\s+/)[0]}, pero en Calendly está en el calendario de{' '}
-              {(cita.calendly_closer || '').split(/\s+/)[0]}: el enlace de la llamada es el suyo.
+              {deCalendly}: el enlace de la llamada es el suyo.
+              {isAdmin || miId === cita.closer_id ? (
+                <button
+                  onClick={pasarAlDeCalendly}
+                  disabled={pasando}
+                  className="mt-1.5 flex items-center gap-1.5 font-semibold text-[#025dc7] hover:underline disabled:opacity-60"
+                >
+                  {pasando ? <Loader2 size={13} className="animate-spin" /> : null}
+                  Que la lleve {deCalendly}
+                </button>
+              ) : null}
             </p>
           ) : null}
           {cita.choca_con ? (
