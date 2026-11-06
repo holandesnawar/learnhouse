@@ -50,6 +50,14 @@ def test_cada_grabacion_en_su_semana():
     assert semanas[1]["clases"][1]["suelta"] is True
     # Lo que no tiene semana: el más nuevo primero y lo que no dice su día, al final.
     assert [c["id"] for c in archivo] == [14, 12, 13]
+    # Una semana que ya tiene su grabación no recibe otra (salían dobles), y
+    # una «Presentación» sin día no sale en «Clases anteriores».
+    con_la_suya = [{"id": 3, "fecha": "2026-11-02", "tema": "De kleding", "clases": [{"tipo": "grabacion"}]}]
+    resto = T.colocar_sueltas(con_la_suya, [
+        {"id": 20, "tipo": "grabacion", "fecha": "2026-11-02", "tema": "De kleding"},
+        {"id": 21, "tipo": "grabacion", "fecha": "", "tema": "Presentación", "nombre": "Presentación"},
+    ])
+    assert len(con_la_suya[0]["clases"]) == 1 and resto == []
     # Otro tema en otra semana no se mete.
     assert T.semana_de_la_grabacion(semanas, {"fecha": "2026-11-04", "tema": "Het Weer"}) is None
 

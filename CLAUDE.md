@@ -4925,6 +4925,15 @@ nuevas (una columna, abajo). Tests `test_clases_por_semanas.py` y
    (los alumnos son los del Seguimiento). Rutas
    `GET /tareas/semana/{id}/destinatarios` y `POST …/avisar` (equipo).
    ⚠️ Solo semanas de las últimas 3 semanas salen en la campana.
+- ⚠️ **«Salen dobles» (06/11, tarde)**: una semana que ya tiene su grabación
+  no recibe además la del mes de antes (era la misma clase subida dos veces;
+  `colocar_sueltas` la tira), y una grabación sin día con nombre que no dice
+  nada («Presentación», «Grabación»: `_NOMBRES_SUELTOS`) no sale en «Clases
+  anteriores» (sigue en el editor). «Clases anteriores», rehecha: por meses
+  («OCTUBRE 2026»), cada línea con la fecha en una ficha de calendario, el
+  tema, debajo lo que tuvo («Presentación · Grabación · Tarea» o «Grabación
+  · con Paul Plaat») y a la derecha una pastilla (Vista, Corregida,
+  Entregada, Sin entregar, Ver). Semanas y grabaciones sueltas, misma forma.
 - **Seguimiento semanal**: columna y cifra «Grabación» (quién la vio) y, arriba,
   **«Las clases esta semana»**: cada clase con su semana en curso y
   presentación / grabación / ejercicios / tarea en cifras, lado a lado; tocar
