@@ -276,9 +276,14 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     </div>
   )
 
-  const logo = org?.logo_image
-    ? getOrgLogoMediaDirectory(org.org_uuid, org.logo_image)
-    : 'https://d1yei2z3i6k35z.cloudfront.net/9533860/671a9c9265e23_Logo_Nawar_2.png'
+  const LOGO_NAWAR = 'https://d1yei2z3i6k35z.cloudfront.net/9533860/671a9c9265e23_Logo_Nawar_2.png'
+  const logo = org?.logo_image ? getOrgLogoMediaDirectory(org.org_uuid, org.logo_image) : LOGO_NAWAR
+  // Si el logo de la escuela no carga, el de Nawar (nunca el icono roto).
+  const sinRomper = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget
+    if (img.src !== LOGO_NAWAR) img.src = LOGO_NAWAR
+    else img.style.visibility = 'hidden'
+  }
 
   return (
     <>
@@ -295,7 +300,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
           <List size={22} weight="bold" />
         </button>
         <Link href={ruta('/')} className="flex items-center h-8 shrink-0 md:w-[236px]">
-          <img src={logo} alt={org?.name || 'Holandés Nawar'} className="h-full w-auto rounded-md" />
+          <img src={logo} alt="" onError={sinRomper} className="h-full w-auto rounded-md" />
         </Link>
         <nav className="hidden md:flex flex-1 items-center justify-center gap-1">
           {arriba.map((it) => {
@@ -330,7 +335,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
           <div className="absolute inset-0 bg-[#0a1656]/40" onClick={() => setAbierta(false)} />
           <aside className="absolute left-0 top-0 h-full w-[280px] max-w-[85%] bg-white flex flex-col shadow-xl">
             <div className="h-14 flex items-center justify-between px-3 border-b border-[#E6EAF3]">
-              <img src={logo} alt="" className="h-8 w-auto rounded-md" />
+              <img src={logo} alt="" onError={sinRomper} className="h-8 w-auto rounded-md" />
               <button onClick={() => setAbierta(false)} aria-label="Cerrar" className="p-2 rounded-lg text-[#6B7393] hover:bg-[#EEF2FA]">
                 <X size={20} weight="bold" />
               </button>

@@ -38,6 +38,26 @@ function haceCuanto(iso: string): string {
 }
 
 function textoPlano(html: string | null): string {
+  // Las publicaciones se guardan como documento del editor (JSON): se sacan
+  // sus textos, un párrafo por línea. Si no lo es, se trata como HTML.
+  try {
+    const doc = JSON.parse(String(html || ''))
+    if (doc && Array.isArray(doc.content)) {
+      const lineas = doc.content.map((b: any) => {
+        const partes: string[] = []
+        const recorrer = (n: any) => {
+          if (!n) return
+          if (n.type === 'text' && typeof n.text === 'string') partes.push(n.text)
+          if (Array.isArray(n.content)) n.content.forEach(recorrer)
+        }
+        recorrer(b)
+        return partes.join('')
+      })
+      return lineas.join('\n').trim()
+    }
+  } catch {
+    /* no es JSON: HTML o texto */
+  }
   return String(html || '')
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/p>/gi, '\n')
