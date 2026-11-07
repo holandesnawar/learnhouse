@@ -28,6 +28,7 @@ import { getUriWithOrg } from '@services/config/config'
 import { getOrgLogoMediaDirectory } from '@services/media/media'
 import { getCommunities, type Community } from '@services/communities/communities'
 import { splitChannelEmoji } from '@/lib/communities/channelEmoji'
+import { esCanalDeInicio, ordenDeInicio } from '@/lib/nawar/empiezaAqui'
 import { CURSO_FORMACION_UUID as FORMACION_UUID } from '@/lib/nawar/cursos'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
@@ -39,6 +40,7 @@ import { PANEL_EN_LA_ESCUELA, DashboardMenuItem } from '@/lib/dashboard-menu-ite
 import { isFeatureAvailable } from '@services/plans/plans'
 import {
   House,
+  Flag,
   Books,
   ChartLineUp,
   NotePencil,
@@ -119,8 +121,31 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const sinLeerDe = (uuid: string) => (sinLeer || []).find((r) => r.community_uuid === uuid)
   const tieneClases = (enDirecto || []).length > 0 || isStaff
 
+  const itemCanal = (c: Community): Item => {
+    const { emoji, text } = splitChannelEmoji(c.name)
+    const u = sinLeerDe(c.community_uuid)
+    return {
+      key: c.community_uuid,
+      href: `/community/${canalId(c.community_uuid)}`,
+      label: text,
+      emoji,
+      icon: <Hash size={16} weight="bold" />,
+      badge: u?.unread || 0,
+      alerta: (u?.mentions || 0) > 0,
+    }
+  }
+  const canalesInicio = (canales || []).filter((c) => esCanalDeInicio(c.name)).sort((a, b) => ordenDeInicio(a.name) - ordenDeInicio(b.name))
+  const canalesComunidad = (canales || []).filter((c) => !esCanalDeInicio(c.name))
+
   const bloques: Bloque[] = [
     { items: [{ key: 'inicio', href: '/', label: 'Inicio', icon: <House size={18} weight="duotone" /> }] },
+    {
+      titulo: 'Empieza aquí',
+      items: [
+        { key: 'bienvenida', href: '/empieza-aqui', label: 'Bienvenida', icon: <Flag size={18} weight="duotone" /> },
+        ...canalesInicio.map(itemCanal),
+      ],
+    },
     {
       titulo: 'Formación',
       items: [
@@ -148,26 +173,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
           },
         ]
       : []),
-    ...((canales || []).length
-      ? [
-          {
-            titulo: 'Comunidad',
-            items: (canales || []).map((c) => {
-              const { emoji, text } = splitChannelEmoji(c.name)
-              const u = sinLeerDe(c.community_uuid)
-              return {
-                key: c.community_uuid,
-                href: `/community/${canalId(c.community_uuid)}`,
-                label: text,
-                emoji,
-                icon: <Hash size={16} weight="bold" />,
-                badge: u?.unread || 0,
-                alerta: (u?.mentions || 0) > 0,
-              }
-            }),
-          },
-        ]
-      : []),
+    ...(canalesComunidad.length ? [{ titulo: 'Comunidad', items: canalesComunidad.map(itemCanal) }] : []),
     {
       titulo: 'Ayuda',
       items: [

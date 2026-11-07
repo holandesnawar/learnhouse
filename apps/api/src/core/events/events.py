@@ -55,6 +55,11 @@ def startup_app(app: FastAPI) -> Callable:
         # Check if auto-installation is needed
         await auto_install()
 
+        # Solo en la escuela de pruebas, con LEARNHOUSE_DATOS_DE_PRUEBA=si:
+        # alumnos, clases y comunidad inventados (src/services/demo/datos_prueba.py).
+        from src.services.demo.datos_prueba import sembrar_si_toca
+        await sembrar_si_toca()
+
         # Reconcile pack credits (Redis ↔ DB)
         await _reconcile_packs()
 

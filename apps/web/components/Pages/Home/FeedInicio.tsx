@@ -19,6 +19,7 @@ import { getDiscussions, type DiscussionWithAuthor } from '@services/communities
 import { getMiSemana, diaCorto, type MiSemana } from '@services/tareas/tareas'
 import { getUserAvatarMediaDirectory } from '@services/media/media'
 import { splitChannelEmoji } from '@/lib/communities/channelEmoji'
+import { esCanalEsencial } from '@/lib/nawar/empiezaAqui'
 import { ajustesDirecto, CURSO_CLASE_SEMANAL_UUID } from '@/lib/nawar/cursos'
 import { Vienes } from '@components/Pages/Clases/MisClasesAlumno'
 
@@ -155,7 +156,7 @@ export function FeedComunidad({ orgslug }: { orgslug: string }) {
     queryKey: ['comunidad', 'feed', org?.id],
     queryFn: async () => {
       const canales: Community[] = (await getCommunities(org.id, 1, 50, null, token)) || []
-      const tablones = canales.filter((c) => c.kind === 'posts')
+      const tablones = canales.filter((c) => c.kind === 'posts' && !esCanalEsencial(c.name))
       const listas = await Promise.all(
         tablones.map((c) =>
           getDiscussions(c.community_uuid, 'recent', 1, 8, null, token)
@@ -173,6 +174,8 @@ export function FeedComunidad({ orgslug }: { orgslug: string }) {
   const canalHref = (c: Community) => ruta(`/community/${c.community_uuid.replace('community_', '')}`)
   const primero = data?.tablones?.[0]
   const miNombre: string = session?.data?.user?.first_name || session?.data?.user?.username || ''
+  const [filtro, setFiltro] = React.useState('')
+  const entradas = (data?.entradas || []).filter((d) => !filtro || d.canal.community_uuid === filtro)
 
   return (
     <section>
@@ -191,16 +194,35 @@ export function FeedComunidad({ orgslug }: { orgslug: string }) {
           <span className="h-8 px-3 rounded-lg bg-[#1D0084] text-white text-[13px] font-semibold flex items-center">Publicar</span>
         </Link>
       ) : null}
+      {(data?.tablones || []).length > 1 ? (
+        <div className="flex gap-2 overflow-x-auto pb-1 mb-3 -mx-1 px-1">
+          {[{ community_uuid: '', name: 'Todo' } as Community, ...(data?.tablones || [])].map((c) => {
+            const { emoji, text } = splitChannelEmoji(c.name)
+            const on = filtro === c.community_uuid
+            return (
+              <button
+                key={c.community_uuid || 'todo'}
+                type="button"
+                onClick={() => setFiltro(c.community_uuid)}
+                className={`shrink-0 h-8 px-3 rounded-full text-[13px] font-semibold border ${on ? 'bg-[#1D0084] border-[#1D0084] text-white' : 'bg-white border-[#DDE3F0] text-[#3B4262] hover:border-[#C9D4EC]'}`}
+              >
+                {emoji ? `${emoji} ` : ''}
+                {text}
+              </button>
+            )
+          })}
+        </div>
+      ) : null}
       {isLoading ? (
         <div className="space-y-3">
           <div className={`${TARJETA} h-[150px] animate-pulse`} />
           <div className={`${TARJETA} h-[150px] animate-pulse`} />
         </div>
-      ) : !data?.entradas.length ? (
+      ) : !entradas.length ? (
         <div className={`${TARJETA} px-5 py-10 text-center text-[14px] text-[#6B7393]`}>Todavía no hay publicaciones. ¡Sé el primero!</div>
       ) : (
         <div className="space-y-3">
-          {data.entradas.map((d) => {
+          {entradas.map((d) => {
             const { emoji, text } = splitChannelEmoji(d.canal.name)
             const autor = [d.author?.first_name, d.author?.last_name].filter(Boolean).join(' ') || d.author?.username || 'Alguien'
             const cuerpo = textoPlano(d.content)

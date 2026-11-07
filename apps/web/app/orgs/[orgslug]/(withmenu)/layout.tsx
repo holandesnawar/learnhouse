@@ -4,7 +4,6 @@ import '@styles/globals.css'
 import Watermark from '@components/Objects/Watermark'
 import { SessionGate } from '@components/Contexts/LHSessionContext'
 import { OrgSidebar } from '@components/Objects/Menus/OrgSidebar'
-import StudentOnboarding from '@components/Pages/Home/StudentOnboarding'
 import AmbitoRepaso from '@components/exercises-app/AmbitoRepaso'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { OrgJoinBanner, OrgJoinBannerProvider } from '@components/Objects/Banners/OrgJoinBanner'
@@ -161,7 +160,7 @@ function LayoutContent({ children, orgslug }: { children: React.ReactNode; orgsl
       {/* Widget flotante "Primeros pasos" del alumno (se auto-oculta en lecciones,
           sin sesión, o cuando se completan todos los pasos). */}
       <AmbitoRepaso />
-            <StudentOnboarding orgslug={orgslug} />
+            {/* Rediseño (diseno): los primeros pasos viven en «Empieza aquí» → Bienvenida. */}
     </div>
   )
 }

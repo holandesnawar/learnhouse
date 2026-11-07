@@ -21,7 +21,6 @@ import { fechasDeClases, semanaConClases } from '@services/student/insights'
 import { isWeeklyClassCourse } from '@/lib/course/formacionProgress'
 import { CURSO_CLASE_SEMANAL_UUID, conGrabadas } from '@/lib/nawar/cursos'
 import SafeArea from '@components/Objects/StyledElements/Error/SafeArea'
-import StudentOnboarding from '@components/Pages/Home/StudentOnboarding'
 
 // Las tarjetas que dependen del temario (courseData, ~350KB de fuente) se
 // cargan en un chunk aparte: el Inicio pinta antes y el temario llega detrás.
@@ -146,7 +145,17 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
       </div>
 
       <SafeArea nombre="Empieza aquí" fallback={null}>
-        <StudentOnboarding orgslug={orgslug} modo="panel" />
+        <Link
+          href={getUriWithOrg(orgslug, '/empieza-aqui')}
+          className="flex items-center gap-4 rounded-2xl border border-[#E4E8F2] bg-white px-4 sm:px-5 py-4 hover:border-[#C9D4EC]"
+        >
+          <span className="w-10 h-10 shrink-0 rounded-xl bg-[#EEF3FF] text-[#1D0084] flex items-center justify-center text-[18px]">🚩</span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[15px] font-semibold text-[#0B1033]">Empieza aquí</span>
+            <span className="block text-[13.5px] text-[#4A5272]">Tus primeros pasos en la escuela: preséntate, mira tu clase y empieza el módulo 1.</span>
+          </span>
+          <span className="shrink-0 text-[13.5px] font-semibold text-[#025dc7]">Ver →</span>
+        </Link>
       </SafeArea>
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">

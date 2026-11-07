@@ -5054,6 +5054,24 @@ la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
     mezclado por fecha; a la derecha tu semana, el repaso y los eventos.
   - Chat: todos los mensajes a la izquierda y sin globo azul
     (`aLaDerecha = false` en `ChannelChat.tsx`).
+- **Datos inventados** (`services/demo/datos_prueba.py`, cabecera: leerla): al
+  arrancar, SOLO con `LEARNHOUSE_DATOS_DE_PRUEBA=si`, la escuela con 3 usuarios
+  o menos y sin la marca `datos_prueba` en la configuración. Crea la profe
+  «Sanne de Vries», 10 alumnos (@ejemplo.com) en Groep rood / Groep blauw /
+  Programa nuevo, la formación (módulos 1-3 con su avance), dos «Clase
+  semanal» hermanas (martes y jueves) con 5 semanas (PDF de ejemplo,
+  ejercicios, tarea, grabación de relleno, entregas, lista y «¿vienes?») y
+  grabaciones viejas en su capítulo del mes, 6 canales con publicaciones,
+  comentarios y chat, y 3 eventos. No llama a nada de fuera ni manda correos.
+  La alumna `marta@ejemplo.com` entra con `LEARNHOUSE_DATOS_DE_PRUEBA_CLAVE`
+  (sin ella, contraseña al azar). Para rehacerlos: base de datos nueva.
+- **«Empieza aquí»**: primer bloque de la barra con «Bienvenida»
+  (`/empieza-aqui`, `Pages/EmpiezaAqui/EmpiezaAqui.tsx`: 5 pasos con check,
+  «Preséntate» se marca solo si publicó, los demás en el navegador; lo que hay
+  que saber = el canal «Lo esencial») y los canales de quien llega
+  (`lib/nawar/empiezaAqui.ts`: lo esencial, preséntate, noticias). Sustituye al
+  «Primeros pasos» viejo (`StudentOnboarding`, quitado del Inicio y del layout
+  en esta rama). El feed del Inicio filtra por canal y no enseña «Lo esencial».
 - Pendiente (v2): mover a un alumno al otro grupo UNA semana sin romper sus
   tareas, una pantalla de grupos para el administrador (quién está en qué y
   qué ve), el calendario rehecho, datos inventados en la escuela de pruebas.
