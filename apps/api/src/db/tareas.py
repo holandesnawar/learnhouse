@@ -50,6 +50,8 @@ class TareaSemana(SQLModel, table=True):
     # «pasar lista»): JSON {user_id: {"fue": true/false, "por": nombre, "at":
     # iso}}. Manda sobre lo que diga la sala de Daily. Vacío = nadie lo apuntó.
     asistencia: str = ""
+    # «¿Vienes a la clase?» (rediseño, 07/11/2026): {user_id: {va, at}}.
+    confirmaciones: str = ""
 
 
 class TareaEntrega(SQLModel, table=True):

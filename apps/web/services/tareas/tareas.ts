@@ -75,6 +75,10 @@ export interface Semana {
   tarea?: { estado: EstadoTarea; corregida_at: string; vista: boolean }
   /** Solo al equipo: si ya se pasó la lista y cuántos vinieron (07/11/2026). */
   lista?: { pasada: boolean; vinieron: number }
+  /** «¿Vienes a la clase?» de quien pregunta: true, false o sin contestar. */
+  voy?: boolean | null
+  /** Solo al equipo: cuántos dijeron que vienen y cuántos que no. */
+  confirmaciones?: { si: number; no: number }
 }
 
 export interface SemanasClase {
@@ -178,13 +182,16 @@ export interface ListaClase {
   semana: { id: number; tema: string; fecha: string }
   /** Solo el día de la clase o después. */
   se_puede: boolean
-  alumnos: { user_id: number; nombre: string; fue: boolean | null; en_sala: boolean | null }[]
+  alumnos: { user_id: number; nombre: string; fue: boolean | null; en_sala: boolean | null; voy?: boolean | null }[]
   pasada: boolean
   por: string
   at: string
   vinieron: number
   sala_conocida: boolean
 }
+
+export const confirmarVoy = (semanaId: number, va: boolean | null, token: string) =>
+  pedir<{ voy: boolean | null; si: number; no: number }>(`${base()}/semana/${semanaId}/voy`, token, 'PUT', { va })
 
 export const getLista = (semanaId: number, token: string) => pedir<ListaClase>(`${base()}/semana/${semanaId}/lista`, token)
 export const pasarLista = (semanaId: number, marcas: Record<string, boolean | null>, token: string) =>

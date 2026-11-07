@@ -122,3 +122,24 @@ def test_consultas_del_grupo():
     ]
     r = G.consultas_del_grupo(consultas, {"ana@x.com"}, "2026-11-07")
     assert [c["titulo"] for c in r] == ["¿hij wil o hij wilt?"] and r[0]["respondida"] is False
+
+
+async def test_vienes_a_la_clase(db, org, monkeypatch, contenido):  # noqa: F811
+    monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-11-01")
+    c = await _clase_con_semana(db, org)
+    r = await T.crear_semana(org.id, c, {"chapter_uuid": "chapter_kleding", "tema": "De kleding", "fecha": "2026-11-02"}, "Rida", db)
+    s = await T.tarea(r["semana"]["id"], db)
+    assert (await T.confirmar_asistencia(s, 7, True, db)) == {"voy": True, "si": 1, "no": 0}
+    assert (await T.confirmar_asistencia(s, 8, False, db))["no"] == 1
+    al = await T.semanas_para_alumno(c, 7, db)
+    assert al["semanas"][0]["voy"] is True and "confirmaciones" not in al["semanas"][0]
+    eq = await T.semanas_para_alumno(c, 1, db, equipo=True)
+    assert eq["semanas"][0]["confirmaciones"] == {"si": 1, "no": 1}
+    # Se puede quitar, y el día de después ya no.
+    assert (await T.confirmar_asistencia(s, 8, None, db))["no"] == 0
+    monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-11-02")
+    lista = await T.lista_de_clase(org.id, s, db)
+    assert [(a["nombre"], a["voy"]) for a in lista["alumnos"]] == [("Ana", True), ("Luis", None)]
+    monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-11-03")
+    with pytest.raises(T.TareaError):
+        await T.confirmar_asistencia(s, 7, True, db)

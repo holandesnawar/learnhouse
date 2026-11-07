@@ -1,15 +1,34 @@
 'use client'
+/**
+ * La barra de la escuela, rediseño de noviembre de 2026 (rama `diseno`).
+ *
+ * Como Circle o ICO: arriba una franja azul con el logo, las secciones
+ * principales y los avisos; a la izquierda una barra CLARA con todo ordenado
+ * por bloques, y cada bloque con sus subpáginas a la vista:
+ *
+ *   Inicio (el feed)
+ *   Formación   → la formación, mi progreso, mis notas
+ *   Mis clases  → esta semana, tareas, clases grabadas, calendario
+ *   Comunidad   → cada canal, con su emoji y sus mensajes sin leer
+ *   Ayuda       → consultas, mensajes, recursos
+ *   Equipo / Panel, solo a quien le toca.
+ *
+ * Antes todo lo de la clase en directo vivía dentro de la página del curso
+ * (la masterclass, la clase semanal, Groep rood…) y el alumno tenía que saber
+ * cuál era la suya. Ahora «Mis clases» enseña SOLO las suyas y nunca el
+ * nombre del grupo.
+ */
 import React, { useEffect, useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 import { useUnreadCommunity } from '@/hooks/queries/useUnreadCommunity'
 import { useCursosEnDirecto } from '@/hooks/queries/useCursosEnDirecto'
-import { ajustesDirecto } from '@/lib/nawar/cursos'
-import EtiquetaCurso from '@components/Pages/Courses/EtiquetaCurso'
 import { getUriWithOrg } from '@services/config/config'
 import { getOrgLogoMediaDirectory } from '@services/media/media'
+import { getCommunities, type Community } from '@services/communities/communities'
+import { splitChannelEmoji } from '@/lib/communities/channelEmoji'
+import { CURSO_FORMACION_UUID as FORMACION_UUID } from '@/lib/nawar/cursos'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
@@ -19,434 +38,304 @@ import MessagesBell from '@components/Objects/Menus/MessagesBell'
 import { PANEL_EN_LA_ESCUELA, DashboardMenuItem } from '@/lib/dashboard-menu-items'
 import { isFeatureAvailable } from '@services/plans/plans'
 import {
-  Books,
-  ChartBar,
   House,
-  CalendarBlank,
-  Barbell,
-  SquaresFour,
-  ChatsCircle,
-  Headphones,
-  Cube,
-  ShoppingBag,
-  Signpost,
-  ChalkboardSimple,
-  ChatCircle,
-  Question,
-  VideoCamera,
-  NotePencil,
+  Books,
   ChartLineUp,
-  FolderSimple,
+  NotePencil,
+  VideoCamera,
+  ClipboardText,
+  PlayCircle,
+  CalendarBlank,
+  Question,
   ChatCircleDots,
   Envelope,
+  FolderSimple,
+  Kanban,
+  ChartBar,
+  Hash,
   List,
   X,
-  ClipboardText,
-  Kanban,
 } from '@phosphor-icons/react'
-// Iconos del "modo enfoque" — los mismos que el sidebar de lecciones del curso,
-// para que abrir/cerrar la barra se vea igual dentro y fuera de una lección.
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 
-// Holandés Nawar — superficie de la barra: AZUL NAVY profundo (no morado).
-// El #1D0084 de marca tira a violeta en plano; aquí usamos un azul más
-// limpio + glow azul (#0b6df0) como las secciones oscuras de holandesnawar.com.
-// Si hay que afinar el tono, se cambian estos valores.
-const SIDE_BASE = '#120081' // azul Nawar — base/bordes del degradado (igual que Canva)
-const SIDE_SOLID = '#120081' // superficies finas (botón flotante)
-const ACTIVE_BG = 'rgba(77,163,255,0.20)' // #4da3ff (ítem activo)
-const THEME_DARK = SIDE_BASE // color oscuro para subcomponentes (texto blanco)
+const NAVY = '#1D0084'
 
-type NavItem = {
+type Item = {
   key: string
   href: string
   label: string
-  icon: React.ReactNode
-  show: boolean
-  /** Solo administradores: «Groep rood» junto a una clase en directo (29/10). */
-  etiqueta?: string
+  icon?: React.ReactNode
+  emoji?: string | null
+  badge?: number
+  alerta?: boolean
+  /** Activo solo con la ruta exacta (no con las que empiezan igual). */
+  exacta?: boolean
+}
+
+type Bloque = { titulo?: string; items: Item[] }
+
+const canalId = (uuid: string) => String(uuid || '').replace('community_', '')
+
+/** Los canales que ve esta persona (el servidor ya filtra por grupos). */
+function useCanales() {
+  const org = useOrg() as any
+  const session = useLHSession() as any
+  const token = session?.data?.tokens?.access_token as string | undefined
+  return useQuery<Community[]>({
+    queryKey: ['comunidad', 'canales', org?.id],
+    queryFn: async () => {
+      const r = await getCommunities(org.id, 1, 50, null, token)
+      return Array.isArray(r) ? r : []
+    },
+    enabled: !!org?.id && !!token,
+    staleTime: 5 * 60_000,
+  })
 }
 
 export const OrgSidebar = (props: { orgslug: string }) => {
   const orgslug = props.orgslug
   const org = useOrg() as any
   const session = useLHSession() as any
-  const pathname = usePathname()
-  const { t } = useTranslation()
-  // Punto rojo en Comunidad: lo que hace que el alumno entre sin que nadie se
-  // lo pida. Se refresca cada 30 s en segundo plano.
-  const { data: unreadRows } = useUnreadCommunity()
+  const pathname = usePathname() || ''
+  const [abierta, setAbierta] = useState(false)
+  const { data: sinLeer } = useUnreadCommunity()
   const { data: enDirecto } = useCursosEnDirecto()
-  const unreadTotal = (unreadRows || []).reduce((acc, r) => acc + (r.unread || 0), 0)
-  const mentionTotal = (unreadRows || []).reduce((acc, r) => acc + (r.mentions || 0), 0)
+  const { data: canales } = useCanales()
   const { isProfe, isAdmin: puedeEntrarAlPanel, isStaff, isCloser } = useAdminStatus()
-  const [isOpen, setIsOpen] = useState(false) // mobile drawer
-  const [collapsed, setCollapsed] = useState(false) // desktop collapse
-  const [isFocusMode, setIsFocusMode] = useState(false)
+  const autenticado = session?.status === 'authenticated'
+  const isAdmin = autenticado && puedeEntrarAlPanel
+  const rf = org?.config?.config?.resolved_features
 
-  const config = org?.config?.config
+  useEffect(() => setAbierta(false), [pathname])
 
-  const surfaceStyle: React.CSSProperties = {
-    // Fondo = imagen de marca + una capa de azul profundo encima que la unifica
-    // hacia el azul vivo del vídeo (el `cover` recortaba solo el centro claro y
-    // se veía lavado). La opacidad de la capa = cuánto "azul rico" tiene.
-    backgroundColor: '#0b2da0',
-    backgroundImage:
-      'radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px), ' + // puntitos suaves
-      'linear-gradient(rgba(9,30,150,0.45), rgba(9,30,150,0.45)), ' +
-      "url('/fondo-barra.png')",
-    backgroundSize: '22px 22px, cover, cover',
-    backgroundPosition: '0 0, center, center',
-    backgroundRepeat: 'repeat, no-repeat, no-repeat',
+  const ruta = (href: string) => getUriWithOrg(orgslug, href)
+  const base = ruta('/').replace(/\/$/, '')
+  const actual = pathname.replace(base, '') || '/'
+  const activo = (it: Item) => {
+    const h = it.href.split('#')[0].split('?')[0]
+    if (h === '/') return actual === '/'
+    return it.exacta ? actual === h : actual === h || actual.startsWith(h + '/')
   }
 
-  const rf = config?.resolved_features
-  const isEnabled = (f: string) => rf?.[f]?.enabled === true
-  const isAuthenticated = session?.status === 'authenticated'
-  // Se pregunta al hook en vez de mirar el permiso a pelo: el hook es donde se
-  // decide que un profe NO entra al panel, y calcularlo otra vez aquí por su
-  // cuenta era justo lo que hacía que la sección "Panel" le siguiera saliendo.
-  const isAdmin = isAuthenticated && puedeEntrarAlPanel
+  const sinLeerDe = (uuid: string) => (sinLeer || []).find((r) => r.community_uuid === uuid)
+  const tieneClases = (enDirecto || []).length > 0 || isStaff
 
-  // Load the collapse preference (desktop only)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setCollapsed(localStorage.getItem('lh-sidebar-collapsed') === 'true')
-    }
-  }, [])
-
-  const toggleCollapsed = () => {
-    setCollapsed((prev) => {
-      const next = !prev
-      try {
-        localStorage.setItem('lh-sidebar-collapsed', String(next))
-      } catch {}
-      return next
-    })
-  }
-
-  // Focus mode (desktop): when the sidebar is collapsed, reserve a little space
-  // on the left so the floating "show sidebar" button doesn't cover the page
-  // title. The layout reads --org-collapsed-pad for the content padding.
-  useEffect(() => {
-    if (typeof document === 'undefined') return
-    const root = document.documentElement
-    root.style.setProperty('--org-collapsed-pad', collapsed ? '56px' : '0px')
-    return () => root.style.setProperty('--org-collapsed-pad', '0px')
-  }, [collapsed])
-
-  // Hide the nav while reading an activity in focus mode (mirrors OrgMenu behaviour)
-  useEffect(() => {
-    if (typeof window !== 'undefined' && pathname?.includes('/activity/')) {
-      setIsFocusMode(localStorage.getItem('globalFocusMode') === 'true')
-    } else {
-      setIsFocusMode(false)
-    }
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === 'globalFocusMode' && pathname?.includes('/activity/')) {
-        setIsFocusMode(e.newValue === 'true')
-      }
-    }
-    const onFocus = (e: any) => {
-      if (pathname?.includes('/activity/')) setIsFocusMode(e.detail.isFocusMode)
-    }
-    window.addEventListener('storage', onStorage)
-    window.addEventListener('focusModeChange', onFocus as EventListener)
-    return () => {
-      window.removeEventListener('storage', onStorage)
-      window.removeEventListener('focusModeChange', onFocus as EventListener)
-    }
-  }, [pathname])
-
-  // Close the mobile drawer whenever the route changes
-  useEffect(() => {
-    setIsOpen(false)
-  }, [pathname])
-
-  if (pathname?.includes('/activity/') && isFocusMode) return null
-
-  const navItems: NavItem[] = [
-    { key: 'home', href: '/', label: 'Inicio', icon: <House size={20} weight="fill" />, show: true },
-    // El tablero de los profes (04/11/2026), justo debajo de Inicio: sus
-    // próximas clases con la presentación, lo que falta preparar y los
-    // recursos. Para el equipo sin panel; el administrador lo tiene en el
-    // panel (Formación → Clases de los profes).
-    { key: 'mis-clases', href: '/mis-clases', label: 'Mis clases', icon: <Kanban size={20} weight="fill" />, show: isStaff && !isAdmin },
-    { key: 'courses', href: '/course/8a1d1fab-ffbb-44ef-8f21-04ef63676d6e', label: 'Formación', icon: <Books size={20} weight="fill" />, show: isEnabled('courses') },
-    // "Repasar" escondido (sept 2026), NO borrado. Dos motivos: (1) su progreso
-    // se guarda en localStorage (`lib/exercises-app/progress.ts`) y el de la
-    // formación en el servidor (`trail_step`, `lesson_completion`), así que
-    // quien terminaba el módulo 1 entraba aquí y lo veía TODO a cero; (2) desde
-    // que en junio se quitaron los candados, la formación ya deja saltar a
-    // cualquier sección, que era lo único que esta pantalla hacía mejor.
-    // Las rutas siguen vivas: los botones "Repasar fallos" de /ejercicios/progreso
-    // llevan aquí y funcionan. Volver a poner `true` si en enero, con datos de
-    // alumnos reales, se ve que hace falta un modo repaso — y entonces
-    // guardando en el servidor.
-    { key: 'ejercicios', href: '/ejercicios', label: 'Repasar', icon: <Barbell size={20} weight="fill" />, show: false },
-    { key: 'calendario', href: '/calendario', label: 'Eventos', icon: <CalendarBlank size={20} weight="fill" />, show: true },
-    // Las clases en directo de cada uno (25/10/2026): la beta ve «Clase
-    // semanal» y el programa nuevo su masterclass y sus spreekuren. Salen de
-    // los cursos que le deja ver el servidor, según sus grupos.
-    ...(enDirecto || []).map((c) => ({
-      key: `directo-${c.uuid}`,
-      href: `/course/${c.uuid}`,
-      label: c.nombre,
-      icon: <VideoCamera size={20} weight="fill" />,
-      show: true,
-      // Dos copias de la misma clase (Groep rood / Groep blauw) se llaman
-      // igual: al administrador las distingue su etiqueta (29/10).
-      // La etiqueta (Groep rood…) la ve el equipo, también los profes; la cambia solo un administrador (02/11).
-      etiqueta: isStaff ? ajustesDirecto(config, c.uuid).etiqueta : '',
-    })),
-    { key: 'collections', href: '/collections', label: t('collections.collections'), icon: <SquaresFour size={20} weight="fill" />, show: isEnabled('collections') },
-    { key: 'podcasts', href: '/podcasts', label: t('podcasts.podcasts'), icon: <Headphones size={20} weight="fill" />, show: isEnabled('podcasts') },
-    { key: 'communities', href: '/communities', label: t('communities.title'), icon: <ChatsCircle size={20} weight="fill" />, show: isEnabled('communities') },
-    { key: 'playgrounds', href: '/playgrounds', label: 'Playgrounds', icon: <Cube size={20} weight="fill" />, show: false },
-    { key: 'store', href: '/store', label: 'Store', icon: <ShoppingBag size={20} weight="fill" />, show: isEnabled('payments') },
-    { key: 'consultas', href: '/consultas', label: 'Consultas', icon: <Question size={20} weight="fill" />, show: true },
-    // Lo que el equipo comparte: apuntes, audios, carpetas de Drive, enlaces.
-    // Quien tiene panel (administrador, closer) lo ve allí, debajo del guion.
-    { key: 'recursos', href: '/recursos', label: 'Recursos', icon: <FolderSimple size={20} weight="fill" />, show: isAuthenticated && !isAdmin && !isCloser },
-    // Para el equipo: redactar la respuesta, que el tablón de arriba solo la
-    // enseña. Vive fuera del panel a propósito, porque el profe no entra ahí.
-    { key: 'responder-consultas', href: '/responder-consultas', label: 'Responder consultas', icon: <Question size={20} weight="bold" />, show: isStaff },
-    // Las tareas por corregir y la semana de cada clase (28/10/2026). El
-    // administrador lo tiene en el panel; el profe, aquí.
-    { key: 'seguimiento', href: '/seguimiento', label: 'Seguimiento semanal', icon: <ClipboardText size={20} weight="fill" />, show: isStaff && !isAdmin },
+  const bloques: Bloque[] = [
+    { items: [{ key: 'inicio', href: '/', label: 'Inicio', icon: <House size={18} weight="duotone" /> }] },
+    {
+      titulo: 'Formación',
+      items: [
+        { key: 'formacion', href: `/course/${FORMACION_UUID}`, label: 'Formación A0-A1', icon: <Books size={18} weight="duotone" /> },
+        { key: 'progreso', href: '/ejercicios/progreso', label: 'Mi progreso', icon: <ChartLineUp size={18} weight="duotone" /> },
+        { key: 'notas', href: '/mis-notas', label: 'Mis notas', icon: <NotePencil size={18} weight="duotone" /> },
+      ],
+    },
+    ...(tieneClases
+      ? [
+          {
+            titulo: 'Mis clases',
+            items: [
+              { key: 'clases', href: '/clases', label: 'Esta semana', icon: <VideoCamera size={18} weight="duotone" />, exacta: true },
+              { key: 'tareas', href: '/clases/tareas', label: 'Tareas', icon: <ClipboardText size={18} weight="duotone" /> },
+              { key: 'grabadas', href: '/clases/grabadas', label: 'Clases grabadas', icon: <PlayCircle size={18} weight="duotone" /> },
+              { key: 'calendario', href: '/calendario', label: 'Calendario', icon: <CalendarBlank size={18} weight="duotone" /> },
+              ...(isStaff && !isAdmin
+                ? [
+                    { key: 'tablero', href: '/mis-clases', label: 'Preparar clases', icon: <Kanban size={18} weight="duotone" /> },
+                    { key: 'seguimiento', href: '/seguimiento', label: 'Seguimiento', icon: <ChartBar size={18} weight="duotone" /> },
+                  ]
+                : []),
+            ] as Item[],
+          },
+        ]
+      : []),
+    ...((canales || []).length
+      ? [
+          {
+            titulo: 'Comunidad',
+            items: (canales || []).map((c) => {
+              const { emoji, text } = splitChannelEmoji(c.name)
+              const u = sinLeerDe(c.community_uuid)
+              return {
+                key: c.community_uuid,
+                href: `/community/${canalId(c.community_uuid)}`,
+                label: text,
+                emoji,
+                icon: <Hash size={16} weight="bold" />,
+                badge: u?.unread || 0,
+                alerta: (u?.mentions || 0) > 0,
+              }
+            }),
+          },
+        ]
+      : []),
+    {
+      titulo: 'Ayuda',
+      items: [
+        { key: 'consultas', href: '/consultas', label: 'Consultas', icon: <Question size={18} weight="duotone" /> },
+        { key: 'mis-consultas', href: '/mis-consultas', label: 'Mis consultas', icon: <ChatCircleDots size={18} weight="duotone" /> },
+        { key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={18} weight="duotone" /> },
+        ...(!isAdmin && !isCloser ? [{ key: 'recursos', href: '/recursos', label: 'Recursos', icon: <FolderSimple size={18} weight="duotone" /> }] : []),
+        ...(isStaff ? [{ key: 'responder', href: '/responder-consultas', label: 'Responder consultas', icon: <Question size={18} weight="duotone" /> }] : []),
+      ],
+    },
   ]
 
-  // "Tu espacio" — zona personal del alumno (separada de las páginas generales).
-  const personalItems: NavItem[] = [
-    { key: 'mi-progreso', href: '/ejercicios/progreso', label: 'Mi progreso', icon: <ChartLineUp size={20} weight="fill" />, show: isAuthenticated },
-    { key: 'mensajes', href: '/mensajes', label: 'Mis mensajes', icon: <Envelope size={20} weight="fill" />, show: isAuthenticated },
-    { key: 'mis-consultas', href: '/mis-consultas', label: 'Mis consultas', icon: <ChatCircleDots size={20} weight="fill" />, show: isAuthenticated },
-    { key: 'mis-notas', href: '/mis-notas', label: 'Mis notas', icon: <NotePencil size={20} weight="fill" />, show: isAuthenticated },
+  const panel = isAdmin
+    ? PANEL_EN_LA_ESCUELA.filter((item: DashboardMenuItem) => {
+        if (isProfe && !item.forProfe) return false
+        if (!item.featureKey) return true
+        if (rf?.[item.featureKey]) return rf[item.featureKey].enabled
+        return isFeatureAvailable(item.featureKey)
+      })
+    : []
+
+  // Las secciones de arriba: lo mismo que la barra, en grande.
+  const arriba: Item[] = [
+    { key: 'inicio', href: '/', label: 'Inicio' },
+    { key: 'formacion', href: `/course/${FORMACION_UUID}`, label: 'Formación' },
+    ...(tieneClases ? [{ key: 'clases', href: '/clases', label: 'Clases' }] : []),
+    { key: 'comunidad', href: '/communities', label: 'Comunidad' },
+    { key: 'calendario', href: '/calendario', label: 'Calendario' },
   ]
+  const arribaActivo = (it: Item) =>
+    it.key === 'comunidad' ? actual.startsWith('/communit') : it.key === 'clases' ? actual.startsWith('/clases') : activo(it)
 
-  const authItems: NavItem[] = [
-    // Progreso antiguo (/trail) retirado: sustituido por 'Mi progreso' en Tu espacio.
-    { key: 'trail', href: '/trail', label: t('courses.progress'), icon: <Signpost size={20} weight="fill" />, show: false },
-    { key: 'boards', href: '/boards', label: 'Boards', icon: <ChalkboardSimple size={20} weight="fill" />, show: false },
-    { key: 'copilot', href: '/copilot', label: 'Copilot', icon: <ChatCircle size={20} weight="fill" />, show: false },
-  ]
-
-  // Solo lo de cada día (06/10): el resto vive en la barra del propio panel.
-  const dashItems = PANEL_EN_LA_ESCUELA.filter((item: DashboardMenuItem) => {
-    // El profe entra al panel, pero solo a lo suyo.
-    if (isProfe && !item.forProfe) return false
-    if (!item.featureKey) return true
-    if (rf?.[item.featureKey]) return rf[item.featureKey].enabled
-    return isFeatureAvailable(item.featureKey)
-  })
-
-  const isActive = (href: string) => {
-    if (!pathname) return false
-    if (href === '/') return pathname === '/' || pathname === getUriWithOrg(orgslug, '/')
-    return pathname.includes(href)
-  }
-
-  const itemClass = (active: boolean) =>
-    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-medium transition-colors ${
-      active ? 'text-white' : 'text-white/95 hover:text-white hover:bg-white/[0.06]'
-    }`
-  const itemStyle = (active: boolean) => (active ? { backgroundColor: ACTIVE_BG } : undefined)
-
-  const NavLink = ({ item }: { item: NavItem }) => {
-    const active = isActive(item.href)
+  const Fila = ({ it }: { it: Item }) => {
+    const on = activo(it)
     return (
-      <Link href={getUriWithOrg(orgslug, item.href)} className={itemClass(active)} style={itemStyle(active)}>
-        <span className="shrink-0">{item.icon}</span>
-        <span className="truncate">{item.label}</span>
-        {item.etiqueta ? <EtiquetaCurso texto={item.etiqueta} oscuro /> : null}
-        {item.key === 'communities' && unreadTotal > 0 && (
+      <Link
+        href={ruta(it.href)}
+        className={`group flex items-center gap-2.5 h-9 px-2.5 rounded-lg text-[14px] transition-colors ${
+          on ? 'bg-[#1D0084] text-white font-semibold' : 'text-[#2B3150] hover:bg-[#EEF2FA] font-medium'
+        }`}
+      >
+        <span className={`w-5 shrink-0 flex justify-center ${on ? 'text-white' : 'text-[#6B7393] group-hover:text-[#1D0084]'}`}>
+          {it.emoji ? <span className="text-[15px] leading-none">{it.emoji}</span> : it.icon}
+        </span>
+        <span className="truncate flex-1">{it.label}</span>
+        {it.badge ? (
           <span
-            className={`ml-auto shrink-0 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold flex items-center justify-center ${
-              mentionTotal > 0 ? 'bg-rose-500 text-white' : 'bg-[#4da3ff] text-[#0a1656]'
+            className={`shrink-0 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold flex items-center justify-center ${
+              it.alerta ? 'bg-rose-500 text-white' : on ? 'bg-white/20 text-white' : 'bg-[#E3EBFA] text-[#1D0084]'
             }`}
-            title={
-              mentionTotal > 0
-                ? `${mentionTotal} mensaje(s) te mencionan`
-                : `${unreadTotal} mensaje(s) sin leer`
-            }
           >
-            {unreadTotal > 99 ? '99+' : unreadTotal}
+            {it.badge > 99 ? '99+' : it.badge}
           </span>
-        )}
+        ) : null}
       </Link>
     )
   }
 
-  const Logo = ({ height }: { height: number }) => (
-    <Link href={getUriWithOrg(orgslug, '/')} className="flex items-center" style={{ height }}>
-      {org?.logo_image ? (
-        <img
-          src={`${getOrgLogoMediaDirectory(org.org_uuid, org?.logo_image)}`}
-          alt={org?.name || 'Logo'}
-          style={{ height: '100%', width: 'auto' }}
-          className="rounded-md"
-        />
-      ) : (
-        <img
-          src="https://d1yei2z3i6k35z.cloudfront.net/9533860/671a9c9265e23_Logo_Nawar_2.png"
-          alt="Holandés Nawar"
-          style={{ height: '100%', width: 'auto' }}
-          className="rounded-md"
-        />
-      )}
-    </Link>
-  )
-
-  // Se llama como función, no como etiqueta JSX: así React no lo trata como un
-  // componente nuevo en cada render y lo de dentro (la campana abierta, por
-  // ejemplo) no se reinicia solo.
-  const SidebarInner = () => (
+  const Barra = () => (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 pt-5 pb-3">
-        <Logo height={34} />
-        <div className="flex items-center gap-0.5">
-        <MessagesBell orgslug={orgslug} />
-        <NotificationsBell orgslug={orgslug} />
-        <button
-          onClick={toggleCollapsed}
-          className="hidden md:flex p-1.5 rounded-lg text-white/55 hover:text-white hover:bg-white/[0.06] transition-colors"
-          aria-label="Ocultar barra lateral"
-          title="Modo enfoque"
-        >
-          <PanelLeftClose size={18} />
-        </button>
-        </div>
-      </div>
-      <nav className="lh-scroll-light flex-1 overflow-y-auto px-3 space-y-1 pb-3 pt-1">
-        {navItems.filter((i) => i.show).map((i) => (
-          <NavLink key={i.key} item={i} />
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
+        {bloques.map((b, i) => (
+          <div key={b.titulo || i}>
+            {b.titulo ? (
+              <p className="px-2.5 pb-1.5 text-[12px] font-semibold text-[#8A91AD]">{b.titulo}</p>
+            ) : null}
+            <div className="space-y-0.5">
+              {b.items.map((it) => (
+                <Fila key={it.key} it={it} />
+              ))}
+            </div>
+          </div>
         ))}
-        {personalItems.some((i) => i.show) && (
-          <>
-            <div className="my-2 border-t border-white/10" />
-            {/* `pt-3` y no `pt-1`: encima del rótulo había 4 px y debajo casi
-                el doble, así que el título parecía pegado a la línea de arriba
-                y suelto del grupo que encabeza. Ahora respira igual por los
-                dos lados. Mismo ajuste en "Panel de control". */}
-            <p className="px-3 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/75">
-              Tu espacio
-            </p>
-            {personalItems.filter((i) => i.show).map((i) => (
-              <NavLink key={i.key} item={i} />
-            ))}
-          </>
+        {panel.length > 0 && (
+          <div>
+            <p className="px-2.5 pb-1.5 text-[12px] font-semibold text-[#8A91AD]">Panel</p>
+            <div className="space-y-0.5">
+              {panel.map((item) => {
+                const Icon = item.icon
+                const on = pathname.includes(item.href)
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    className={`group flex items-center gap-2.5 h-9 px-2.5 rounded-lg text-[14px] transition-colors ${
+                      on ? 'bg-[#1D0084] text-white font-semibold' : 'text-[#2B3150] hover:bg-[#EEF2FA] font-medium'
+                    }`}
+                  >
+                    <span className={`w-5 shrink-0 flex justify-center ${on ? 'text-white' : 'text-[#6B7393]'}`}>
+                      <Icon size={18} weight="duotone" />
+                    </span>
+                    <span className="truncate">{item.label}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
         )}
-        {authItems.some((i) => i.show) && <div className="my-2 border-t border-white/10" />}
-        {authItems.filter((i) => i.show).map((i) => (
-          <NavLink key={i.key} item={i} />
-        ))}
-        {isAdmin && dashItems.length > 0 && (
-          <>
-            <div className="my-2 border-t border-white/10" />
-            <p className="px-3 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/75">
-              {t('common.dashboard')}
-            </p>
-            {dashItems.map((item) => {
-              const Icon = item.icon
-              const active = !!pathname?.includes(item.href)
-              return (
-                <Link key={item.id} href={item.href} className={itemClass(active)} style={itemStyle(active)}>
-                  <span className="shrink-0">
-                    <Icon size={20} weight="fill" />
-                  </span>
-                  <span className="truncate">{item.label ?? t(item.labelKey)}</span>
-                </Link>
-              )
-            })}
-          </>
-        )}
-        {/* El closer no dirige la escuela, así que no le sale el bloque del
-            panel de arriba. Le sale UNA entrada que lleva a lo suyo: las
-            matrículas (el tablero) y sus llamadas. */}
-        {isAuthenticated && isCloser && (
-          <>
-            <div className="my-2 border-t border-white/10" />
-            <NavLink
-              item={{
-                key: 'panel-closer',
-                href: '/dash/estadisticas?tab=matriculas',
-                label: 'Panel',
-                icon: <ChartBar size={20} weight="fill" />,
-                show: true,
-              }}
-            />
-          </>
+        {autenticado && isCloser && (
+          <Fila it={{ key: 'panel-closer', href: '/dash/estadisticas?tab=matriculas', label: 'Panel de ventas', icon: <ChartBar size={18} weight="duotone" /> }} />
         )}
       </nav>
-      <div className="px-3 py-3 border-t border-white/10">
-        <HeaderProfileBox primaryColor={THEME_DARK} />
+      <div className="px-2 py-2 border-t border-[#E6EAF3]">
+        <HeaderProfileBox />
       </div>
     </div>
   )
 
+  const logo = org?.logo_image
+    ? getOrgLogoMediaDirectory(org.org_uuid, org.logo_image)
+    : 'https://d1yei2z3i6k35z.cloudfront.net/9533860/671a9c9265e23_Logo_Nawar_2.png'
+
   return (
     <>
-      {/* Desktop sidebar */}
-      <aside
-        className={`${collapsed ? 'hidden' : 'hidden md:flex'} flex-col w-64 shrink-0 sticky top-0 h-screen border-r border-white/10`}
-        style={surfaceStyle}
-      >
-        {SidebarInner()}
-      </aside>
-
-      {/* Desktop "show sidebar" button (visible when collapsed) — same look and
-          icon as the course lesson focus mode. */}
-      {collapsed && (
-        <button
-          onClick={toggleCollapsed}
-          className="hidden md:flex fixed top-4 left-4 items-center justify-center text-[#025dc7] hover:text-[#4da3ff] transition-colors"
-          style={{ zIndex: 'var(--z-nav)' }}
-          aria-label="Mostrar barra lateral"
-          title="Salir del modo enfoque"
-        >
-          <PanelLeftOpen size={22} />
-        </button>
-      )}
-
-      {/* Mobile top bar */}
+      {/* Franja de arriba, en todas las pantallas. */}
       <header
-        className="md:hidden fixed top-0 inset-x-0 h-14 flex items-center justify-between px-4 border-b border-white/10"
-        style={{ ...surfaceStyle, zIndex: 'var(--z-nav)' }}
+        className="fixed top-0 inset-x-0 h-14 flex items-center gap-3 px-3 md:px-5"
+        style={{ backgroundColor: NAVY, zIndex: 'var(--z-nav)' }}
       >
-        <Logo height={32} />
-        <div className="flex items-center gap-1">
+        <button
+          onClick={() => setAbierta(true)}
+          aria-label="Menú"
+          className="md:hidden p-1.5 -ml-1 rounded-lg text-white/85 hover:bg-white/10"
+        >
+          <List size={22} weight="bold" />
+        </button>
+        <Link href={ruta('/')} className="flex items-center h-8 shrink-0 md:w-[236px]">
+          <img src={logo} alt={org?.name || 'Holandés Nawar'} className="h-full w-auto rounded-md" />
+        </Link>
+        <nav className="hidden md:flex flex-1 items-center justify-center gap-1">
+          {arriba.map((it) => {
+            const on = arribaActivo(it)
+            return (
+              <Link
+                key={it.key}
+                href={ruta(it.href)}
+                className={`h-8 px-3.5 rounded-lg text-[13.5px] font-semibold flex items-center transition-colors ${
+                  on ? 'bg-white text-[#1D0084]' : 'text-white/85 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                {it.label}
+              </Link>
+            )
+          })}
+        </nav>
+        <div className="ml-auto md:ml-0 flex items-center gap-1 shrink-0">
           <MessagesBell orgslug={orgslug} />
           <NotificationsBell orgslug={orgslug} />
-          <button
-            onClick={() => setIsOpen(true)}
-            aria-label="Menu"
-            className="p-2 rounded-lg text-white/80 hover:bg-white/[0.06]"
-          >
-            <List size={24} weight="bold" />
-          </button>
         </div>
       </header>
 
-      {/* Mobile drawer */}
-      {isOpen && (
+      {/* La barra clara del ordenador. */}
+      <aside className="hidden md:flex flex-col w-[260px] shrink-0 sticky top-14 h-[calc(100dvh-3.5rem)] bg-white border-r border-[#E6EAF3]">
+        {Barra()}
+      </aside>
+
+      {/* La misma barra en el móvil, por encima. */}
+      {abierta && (
         <div className="md:hidden fixed inset-0" style={{ zIndex: 'var(--z-nav-menu)' }}>
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsOpen(false)} />
-          <aside
-            className="absolute left-0 top-0 h-full w-72 max-w-[80%] shadow-xl flex flex-col"
-            style={surfaceStyle}
-          >
-            <div className="flex justify-end p-2">
-              <button
-                onClick={() => setIsOpen(false)}
-                aria-label="Close"
-                className="p-2 rounded-lg text-white/80 hover:bg-white/[0.06]"
-              >
-                <X size={22} weight="bold" />
+          <div className="absolute inset-0 bg-[#0a1656]/40" onClick={() => setAbierta(false)} />
+          <aside className="absolute left-0 top-0 h-full w-[280px] max-w-[85%] bg-white flex flex-col shadow-xl">
+            <div className="h-14 flex items-center justify-between px-3 border-b border-[#E6EAF3]">
+              <img src={logo} alt="" className="h-8 w-auto rounded-md" />
+              <button onClick={() => setAbierta(false)} aria-label="Cerrar" className="p-2 rounded-lg text-[#6B7393] hover:bg-[#EEF2FA]">
+                <X size={20} weight="bold" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto">
-              {SidebarInner()}
-            </div>
+            <div className="flex-1 min-h-0">{Barra()}</div>
           </aside>
         </div>
       )}

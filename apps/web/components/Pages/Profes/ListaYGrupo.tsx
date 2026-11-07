@@ -154,9 +154,15 @@ export function PasarLista({
                         </button>
                         <button onClick={() => poner(a.user_id, true)} className="min-w-0 flex-1 text-left">
                           <span className="block truncate text-[14px] font-medium text-gray-900">{a.nombre}</span>
-                          {a.en_sala !== null ? (
+                          {a.en_sala !== null || a.voy != null ? (
                             <span className="block text-[11.5px] text-[#8A94AD]">
-                              {a.en_sala ? 'La sala le vio dentro' : 'La sala no le vio'}
+                              {[
+                                a.voy === true ? 'Dijo que venía' : a.voy === false ? 'Dijo que no podía' : '',
+                                a.en_sala === null ? '' : a.en_sala ? 'la sala le vio dentro' : 'la sala no le vio',
+                              ]
+                                .filter(Boolean)
+                                .join(' · ')
+                                .replace(/^./, (x) => x.toUpperCase())}
                             </span>
                           ) : null}
                         </button>

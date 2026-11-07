@@ -287,6 +287,41 @@ def leer_asistencia(texto: Any) -> dict[str, dict]:
     }
 
 
+
+def leer_confirmaciones(texto: Any) -> dict[str, dict]:
+    """«¿Vienes a la clase?» de cada alumno: {user_id: {"va": bool, "at": iso}}.
+    Lo que no tenga forma se tira (como `leer_asistencia`)."""
+    try:
+        datos = json.loads(texto or "{}")
+    except (TypeError, ValueError):
+        return {}
+    if not isinstance(datos, dict):
+        return {}
+    return {str(k): v for k, v in datos.items() if isinstance(v, dict) and isinstance(v.get("va"), bool)}
+
+
+def resumen_confirmaciones(conf: dict[str, dict]) -> dict:
+    return {"si": sum(1 for v in conf.values() if v["va"]), "no": sum(1 for v in conf.values() if not v["va"])}
+
+
+async def confirmar_asistencia(s: TareaSemana, user_id: int, va: Optional[bool], db_session: AsyncSession) -> dict:
+    """El alumno dice si viene a la clase de esa semana (o lo quita con None).
+    Solo hasta el día de la clase: después, lo que cuenta es la lista."""
+    from src.services.panel.tandas import hoy_nl
+
+    if not s.fecha or s.fecha < hoy_nl():
+        raise TareaError("Esa clase ya pasó", 409)
+    conf = leer_confirmaciones(getattr(s, "confirmaciones", ""))
+    clave = str(user_id)
+    if va is None:
+        conf.pop(clave, None)
+    else:
+        conf[clave] = {"va": bool(va), "at": datetime.now(timezone.utc).isoformat()}
+    s.confirmaciones = json.dumps(conf)
+    db_session.add(s)
+    await db_session.commit()
+    return {"voy": conf.get(clave, {}).get("va"), **resumen_confirmaciones(conf)}
+
 def fue_a_clase(user_id: Any, marcas: dict, sala: Optional[set]) -> Optional[bool]:
     """Si fue: lo que marcó el profe y, si no marcó, lo que diga la sala.
     None = no se sabe (ni lista ni sala)."""
@@ -619,6 +654,11 @@ async def semanas_para_alumno(
             for c in sueltas
         ],
     )
+    confs = {f.id: leer_confirmaciones(getattr(f, "confirmaciones", "")) for f in filas}
+    for s in semanas:
+        s["voy"] = (confs.get(s["id"]) or {}).get(str(user_id), {}).get("va")
+        if equipo:
+            s["confirmaciones"] = resumen_confirmaciones(confs.get(s["id"]) or {})
     if not equipo:
         semanas = [s if s["abierta"] else solo_antes_de_la_clase(s) for s in semanas]
     else:
@@ -1967,6 +2007,7 @@ async def lista_de_clase(org_id: int, s: TareaSemana, db_session: AsyncSession) 
         raise TareaError("No existe esa clase", 404)
     hoy = hoy_nl()
     marcas = leer_asistencia(getattr(s, "asistencia", ""))
+    confs = leer_confirmaciones(getattr(s, "confirmaciones", ""))
     en_sala: Optional[set] = None
     if s.fecha and s.fecha <= hoy:
         sala = await _sala_del_curso(org_id, course, db_session)
@@ -1985,6 +2026,7 @@ async def lista_de_clase(org_id: int, s: TareaSemana, db_session: AsyncSession) 
                 "nombre": a["nombre"],
                 "fue": (bool(m["fue"]) if m is not None else None),
                 "en_sala": (None if en_sala is None else str(a["user_id"]) in en_sala),
+                "voy": confs.get(str(a["user_id"]), {}).get("va"),
             }
         )
     ultima = max((m.get("at") or "" for m in marcas.values()), default="")

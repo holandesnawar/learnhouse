@@ -344,9 +344,28 @@ async def api_avisar(
     return {"ok": True, "alumnos": r["alumnos"], "campana": r["campana"], "correos": len(r.get("destinos") or [])}
 
 
+class VoyIn(BaseModel):
+    va: Optional[bool] = None
+
+
 class ListaIn(BaseModel):
     # {user_id: true (vino) / false (no vino) / null (quitar la marca)}
     marcas: dict[str, Optional[bool]]
+
+
+@router.put("/semana/{semana_id}/voy", summary="«¿Vienes a la clase?»: el alumno dice si va (o lo quita).")
+async def api_voy(
+    request: Request,
+    semana_id: int,
+    data: VoyIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    t, _curso_ok = await _tarea_y_curso(request, semana_id, current_user, db_session)
+    try:
+        return await T.confirmar_asistencia(t, current_user.id, data.va, db_session)
+    except T.TareaError as exc:
+        raise _error(exc)
 
 
 @router.get("/semana/{semana_id}/lista", summary="La lista de la clase de esa semana, para marcar quién vino (equipo).")

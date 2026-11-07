@@ -142,15 +142,15 @@ function LayoutContent({ children, orgslug }: { children: React.ReactNode; orgsl
       data-platform-bg
       className="min-h-[100dvh]"
       style={{
-        backgroundColor: primaryColor ? hexToRgba(primaryColor, 0.05) : 'transparent',
+        backgroundColor: '#F5F7FB',
         ...(customFont ? { fontFamily: `'${customFont}', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")` } : {}),
       }}
     >
       <PageViewTracker />
       <OrgJoinBanner />
-      <div className="flex min-h-[100dvh]">
+      <div className={`flex min-h-[100dvh] ${isLessonPage ? '' : 'pt-14'}`}>
         {!isLessonPage && <OrgSidebar orgslug={orgslug} />}
-        <div className={`flex flex-1 min-w-0 flex-col ${isLessonPage ? 'lg:pl-[var(--course-sidebar-w,340px)] transition-[padding] duration-200' : 'pt-14 md:pt-0 md:pl-[var(--org-collapsed-pad,0px)]'}`}>
+        <div className={`flex flex-1 min-w-0 flex-col ${isLessonPage ? 'lg:pl-[var(--course-sidebar-w,340px)] transition-[padding] duration-200' : ''}`}>
           <div className="flex-1 relative" style={{ zIndex: 'var(--z-content)' }}>
             {children}
           </div>

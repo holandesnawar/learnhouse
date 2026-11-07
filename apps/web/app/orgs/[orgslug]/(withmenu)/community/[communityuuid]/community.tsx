@@ -147,7 +147,7 @@ const CommunityClient = ({ community, orgslug }: CommunityClientProps) => {
   const sidePanelOpen = Boolean(threadUuid) || pinnedOpen
 
   return (
-    <div className="h-[calc(100dvh-3.5rem)] md:h-[100dvh] flex flex-col overflow-hidden bg-white">
+    <div className="h-[calc(100dvh-3.5rem)] flex flex-col overflow-hidden bg-white">
       {/* Cabecera del canal */}
       <header className="shrink-0 border-b border-[#EEF3FB] px-4 sm:px-6 py-3">
         <div className="mb-2">{backLink}</div>

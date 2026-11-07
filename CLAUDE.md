@@ -5017,6 +5017,47 @@ nuevas (una columna, abajo). Tests `test_clases_por_semanas.py` y
   `_ADDED_COLUMNS` y no se añade ninguna columna: aplicarlas a mano. En
   producción no pasa (tiene pgvector).
 
+## Rediseño estilo Circle: la escuela de pruebas y la rama `diseno` (07/11/2026)
+Pedido: "una versión no pública de la escuela para hacer cambios de diseño…
+estilo Circle… que se vea profesional de verdad y no IA". **Todo esto vive en
+la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
+- **La escuela de pruebas**: Railway → entorno `pruebas` (duplicado de
+  production) → learnhouse con Source = rama `diseno`, dirección
+  `learnhouse-pruebas.up.railway.app` (el proxy de aquí NO la alcanza: las
+  capturas se hacen en local). Base de datos PROPIA y vacía: la escuela se crea
+  sola al arrancar con `LEARNHOUSE_INITIAL_ORG_*` y
+  `LEARNHOUSE_INITIAL_ADMIN_*`. Sin claves de fuera (Resend, Stripe, Calendly,
+  systeme, Daily, Supabase de consultas, R2, ElevenLabs) y con otro secreto
+  JWT. ⚠️ El primer arranque falló con «password authentication failed for
+  user postgres»: `LEARNHOUSE_SQL_CONNECTION_STRING` (y Redis) se habían
+  duplicado como TEXTO con la contraseña de producción; tienen que ser
+  referencias (`${{Postgres.DATABASE_URL}}`, `${{Redis.REDIS_URL}}`).
+- **v1 (rama diseno)**:
+  - `OrgSidebar.tsx` rehecho: franja azul arriba en todas las pantallas
+    (logo, Inicio · Formación · Clases · Comunidad · Calendario, avisos) y
+    barra CLARA a la izquierda por bloques: Formación, Mis clases (Esta
+    semana, Tareas, Clases grabadas, Calendario), Comunidad (cada canal con su
+    emoji y sin leer, `getCommunities`), Ayuda, Panel. El layout lleva
+    `pt-14` siempre; el chat y los mensajes miden `100dvh-3.5rem` también en
+    el ordenador.
+  - `/clases`, `/clases/tareas`, `/clases/grabadas`
+    (`Pages/Clases/MisClasesAlumno.tsx`): las clases en directo de cada uno,
+    SIN nombre de grupo; el equipo elige la clase con chips (con etiqueta).
+    Mismos datos de siempre (`/tareas/course/{uuid}/semanas`).
+  - **«¿Vienes a la clase?»** (Voy / No puedo): columna
+    `tarea_semana.confirmaciones` (JSON, `_ADDED_COLUMNS`),
+    `confirmar_asistencia` (hasta el día de la clase), `PUT
+    /tareas/semana/{id}/voy`. El alumno ve el suyo (`voy`), el equipo
+    `confirmaciones: {si, no}`, y al pasar lista sale «Dijo que venía».
+  - Inicio = feed (`Pages/Home/FeedInicio.tsx`): la clase de la semana con
+    «¿Vienes?», «Continúa», y lo último de los tablones (canales `posts`)
+    mezclado por fecha; a la derecha tu semana, el repaso y los eventos.
+  - Chat: todos los mensajes a la izquierda y sin globo azul
+    (`aLaDerecha = false` en `ChannelChat.tsx`).
+- Pendiente (v2): mover a un alumno al otro grupo UNA semana sin romper sus
+  tareas, una pantalla de grupos para el administrador (quién está en qué y
+  qué ve), el calendario rehecho, datos inventados en la escuela de pruebas.
+
 ## Black Friday 2026: ebook a 1 €, landing y campaña (28/10/2026)
 Pedido: "la página del ebook, dos (orgánico y ads); compran y en la de gracias
 van a blackfriday.holandesnawar.com, la landing de la formación muy top como

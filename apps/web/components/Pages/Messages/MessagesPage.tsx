@@ -363,7 +363,7 @@ export default function MessagesPage() {
   }
 
   // Alto de la pantalla menos la barra superior del móvil, igual que un canal.
-  const pageHeight = 'h-[calc(100dvh-3.5rem)] md:h-[100dvh]'
+  const pageHeight = 'h-[calc(100dvh-3.5rem)]'
 
   if (!accessToken) {
     return <p className="p-8 text-sm text-gray-500">Entra a tu cuenta para ver tus mensajes.</p>

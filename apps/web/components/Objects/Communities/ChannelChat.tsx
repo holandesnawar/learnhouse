@@ -825,17 +825,20 @@ export function ChannelChat({
                 !prev.is_pinned
               // Mensajes propios → a la derecha (estilo WhatsApp).
               const isOwn = !!currentUserId && m.author?.id === currentUserId
+              // Rediseño (07/11/2026): todos los mensajes a la izquierda y sin
+              // globo de color, como Slack o Circle. El azul con letra blanca
+              // de los propios no se leía bien.
+              const aLaDerecha = false
               // Primer mensaje que el alumno no había leído al entrar.
               const isFirstUnread =
                 !!lastReadAt &&
                 !isOwn &&
                 msOf(m.creation_date) > msOf(lastReadAt) &&
                 (!prev || msOf(prev.creation_date) <= msOf(lastReadAt))
+              // Sin globo: el texto en negro sobre blanco. Solo el fijado lleva marco.
               const bubbleBg = m.is_pinned
-                ? 'bg-white ring-1 ring-[#025dc7]/30 text-gray-800'
-                : isOwn
-                ? 'bg-[#025dc7] text-white'
-                : 'bg-[#F0F5FF] text-gray-800'
+                ? 'bg-[#F5F8FF] ring-1 ring-[#025dc7]/25 text-[#1F2440] px-3 py-2'
+                : 'text-[#1F2440] px-0 py-0.5'
               return (
                 <React.Fragment key={m.discussion_uuid}>
                   {isFirstUnread && (
@@ -858,7 +861,7 @@ export function ChannelChat({
                   )}
                   <div
                     data-msg={m.discussion_uuid}
-                    className={`group/msg relative flex gap-2.5 px-4 ${grouped ? 'mt-0.5' : 'mt-2'} ${isOwn ? 'flex-row-reverse' : ''} ${
+                    className={`group/msg relative flex gap-3 px-4 py-1 hover:bg-[#F7F9FD] ${grouped ? 'mt-0' : 'mt-2'} ${aLaDerecha ? 'flex-row-reverse' : ''} ${
                       flashUuid === m.discussion_uuid ? 'bg-[#4da3ff]/15 rounded-xl transition-colors' : ''
                     }`}
                   >
@@ -882,9 +885,9 @@ export function ChannelChat({
                         </span>
                       )}
                     </div>
-                    <div className={`min-w-0 flex-1 flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
+                    <div className={`min-w-0 flex-1 flex flex-col ${aLaDerecha ? 'items-end' : 'items-start'}`}>
                       {!grouped && (
-                        <div className={`flex items-baseline gap-2 mb-0.5 ${isOwn ? 'flex-row-reverse' : ''}`}>
+                        <div className={`flex items-baseline gap-2 mb-0.5 ${aLaDerecha ? 'flex-row-reverse' : ''}`}>
                           <span className="text-sm font-semibold text-gray-900">
                             {isOwn ? 'Tú' : authorName(m.author)}
                           </span>
@@ -934,10 +937,10 @@ export function ChannelChat({
                           </div>
                         </div>
                       ) : (
-                      <div className={`relative flex items-center gap-1.5 ${isOwn ? 'flex-row-reverse' : ''}`}>
+                      <div className={`relative flex items-center gap-1.5 ${aLaDerecha ? 'flex-row-reverse' : ''}`}>
                         <div
-                          className={`inline-block max-w-full rounded-2xl px-3 py-2 ${bubbleBg} ${
-                            isOwn
+                          className={`inline-block max-w-full rounded-2xl text-[14.5px] leading-relaxed ${bubbleBg} ${
+                            aLaDerecha
                               ? grouped ? 'rounded-tr-md' : 'rounded-tr-sm'
                               : grouped ? 'rounded-tl-md' : 'rounded-tl-sm'
                           }`}
@@ -952,14 +955,14 @@ export function ChannelChat({
                                   jumpTo(rm.uuid)
                                 }}
                                 title={rm.uuid ? 'Ir al mensaje original' : undefined}
-                                className={`mb-1 border-l-2 pl-2 py-0.5 ${isOwn ? 'border-white/50' : 'border-[#4da3ff]'} ${
+                                className={`mb-1 border-l-2 pl-2 py-0.5 ${aLaDerecha ? 'border-white/50' : 'border-[#4da3ff]'} ${
                                   rm.uuid ? 'cursor-pointer hover:opacity-80' : ''
                                 }`}
                               >
-                                <span className={`block text-[11px] font-semibold leading-tight ${isOwn ? 'text-white' : 'text-[#025dc7]'}`}>
+                                <span className={`block text-[11px] font-semibold leading-tight ${aLaDerecha ? 'text-white' : 'text-[#025dc7]'}`}>
                                   {rm.author}
                                 </span>
-                                <span className={`block text-[11px] line-clamp-1 leading-tight ${isOwn ? 'text-white/75' : 'text-gray-500'}`}>
+                                <span className={`block text-[11px] line-clamp-1 leading-tight ${aLaDerecha ? 'text-white/75' : 'text-gray-500'}`}>
                                   {rm.text}
                                 </span>
                               </div>
@@ -1064,7 +1067,7 @@ export function ChannelChat({
                                         // suspensivos en vez de estirar el globo
                                         // y sacar el texto fuera de la pantalla.
                                         className={`inline-flex max-w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12.5px] transition-colors ${
-                                          isOwn
+                                          aLaDerecha
                                             ? 'bg-white/15 hover:bg-white/25 text-white'
                                             : 'bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7]'
                                         }`}
@@ -1080,7 +1083,7 @@ export function ChannelChat({
                                 </span>
                               )
                             })()}
-                            {renderMessageBody(messageText(m), isOwn)}
+                            {renderMessageBody(messageText(m), aLaDerecha)}
                             {m.edit_count > 0 && (
                               <span className="text-[10px] opacity-60 ml-1.5">· editado</span>
                             )}
@@ -1105,7 +1108,7 @@ export function ChannelChat({
                             // ratón es mucho menos molesto que tapar el tuyo, y
                             // es lo que hacen los chats de siempre.
                             className={`absolute bottom-full mb-1 z-10 flex items-center gap-0.5 rounded-lg border border-[#E3E8EF] bg-white px-0.5 py-0.5 shadow-sm transition-opacity ${
-                              isOwn ? 'right-0' : 'left-0'
+                              aLaDerecha ? 'right-0' : 'left-0'
                             } ${
                               pickerUuid === m.discussion_uuid || activeUuid === m.discussion_uuid
                                 ? 'opacity-100'
@@ -1114,7 +1117,7 @@ export function ChannelChat({
                           >
                             <MessageAction
                               label="Reaccionar"
-                              align={isOwn ? 'right' : 'left'}
+                              align={aLaDerecha ? 'right' : 'left'}
                               onClick={() =>
                                 setPickerUuid((cur) =>
                                   cur === m.discussion_uuid ? null : m.discussion_uuid
@@ -1125,14 +1128,14 @@ export function ChannelChat({
                             </MessageAction>
                             <MessageAction
                               label="Responder en un hilo"
-                              align={isOwn ? 'right' : 'left'}
+                              align={aLaDerecha ? 'right' : 'left'}
                               onClick={() => onOpenThread?.(m.discussion_uuid)}
                             >
                               <MessageSquare size={15} />
                             </MessageAction>
                             <MessageAction
                               label="Citar en el canal"
-                              align={isOwn ? 'right' : 'left'}
+                              align={aLaDerecha ? 'right' : 'left'}
                               onClick={() =>
                                 setReplyingTo({
                                   author: authorName(m.author),
@@ -1146,7 +1149,7 @@ export function ChannelChat({
                             {canEdit(m) && (
                               <MessageAction
                                 label="Editar"
-                                align={isOwn ? 'right' : 'left'}
+                                align={aLaDerecha ? 'right' : 'left'}
                                 onClick={() => startEdit(m)}
                               >
                                 <Pencil size={14} />
@@ -1156,7 +1159,7 @@ export function ChannelChat({
                               <MessageAction
                                 label="Eliminar"
                                 danger
-                                align={isOwn ? 'right' : 'left'}
+                                align={aLaDerecha ? 'right' : 'left'}
                                 onClick={() => setPendingDelete(m.discussion_uuid)}
                               >
                                 <Trash2 size={14} />
@@ -1169,7 +1172,7 @@ export function ChannelChat({
                             {isStaff && (
                               <MessageAction
                                 label={m.is_pinned ? 'Desfijar' : 'Fijar en el canal'}
-                                align={isOwn ? 'right' : 'left'}
+                                align={aLaDerecha ? 'right' : 'left'}
                                 onClick={() => togglePin(m.discussion_uuid, !m.is_pinned)}
                               >
                                 {pinningUuid === m.discussion_uuid ? (
