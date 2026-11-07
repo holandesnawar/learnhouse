@@ -56,10 +56,11 @@ import {
   ChartBar,
   Hash,
   List,
+  CaretDown,
   X,
 } from '@phosphor-icons/react'
 
-const NAVY = '#1D0084'
+import { FONDO_MARCA } from '@/lib/nawar/marca'
 
 type Item = {
   key: string
@@ -109,6 +110,23 @@ export const OrgSidebar = (props: { orgslug: string }) => {
 
   useEffect(() => setAbierta(false), [pathname])
 
+  // Bloques plegados: abiertos de serie; cada uno decide y se recuerda en el navegador.
+  const [plegados, setPlegados] = useState<string[]>([])
+  useEffect(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem('nawar.barra.plegados') || '[]')
+      if (Array.isArray(v)) setPlegados(v)
+    } catch {}
+  }, [])
+  const plegar = (t: string) =>
+    setPlegados((p) => {
+      const n = p.includes(t) ? p.filter((x) => x !== t) : [...p, t]
+      try {
+        localStorage.setItem('nawar.barra.plegados', JSON.stringify(n))
+      } catch {}
+      return n
+    })
+
   const ruta = (href: string) => getUriWithOrg(orgslug, href)
   const base = ruta('/').replace(/\/$/, '')
   const actual = pathname.replace(base, '') || '/'
@@ -138,20 +156,21 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const canalesComunidad = (canales || []).filter((c) => !esCanalDeInicio(c.name))
 
   const bloques: Bloque[] = [
-    { items: [{ key: 'inicio', href: '/', label: 'Inicio', icon: <House size={18} weight="duotone" /> }] },
+    { items: [{ key: 'inicio', href: '/', label: 'Inicio', icon: <House size={18} weight="regular" /> }] },
     {
       titulo: 'Empieza aquí',
       items: [
-        { key: 'bienvenida', href: '/empieza-aqui', label: 'Bienvenida', icon: <Flag size={18} weight="duotone" /> },
+        { key: 'bienvenida', href: '/empieza-aqui', label: 'Bienvenida', icon: <Flag size={18} weight="regular" /> },
         ...canalesInicio.map(itemCanal),
+        { key: 'recursos', href: '/recursos', label: 'Recursos', icon: <FolderSimple size={18} weight="regular" /> },
       ],
     },
     {
       titulo: 'Formación',
       items: [
-        { key: 'formacion', href: `/course/${FORMACION_UUID}`, label: 'Formación A0-A1', icon: <Books size={18} weight="duotone" /> },
-        { key: 'progreso', href: '/ejercicios/progreso', label: 'Mi progreso', icon: <ChartLineUp size={18} weight="duotone" /> },
-        { key: 'notas', href: '/mis-notas', label: 'Mis notas', icon: <NotePencil size={18} weight="duotone" /> },
+        { key: 'formacion', href: `/course/${FORMACION_UUID}`, label: 'Formación A0-A1', icon: <Books size={18} weight="regular" /> },
+        { key: 'progreso', href: '/ejercicios/progreso', label: 'Mi progreso', icon: <ChartLineUp size={18} weight="regular" /> },
+        { key: 'notas', href: '/mis-notas', label: 'Mis notas', icon: <NotePencil size={18} weight="regular" /> },
       ],
     },
     ...(tieneClases
@@ -159,14 +178,14 @@ export const OrgSidebar = (props: { orgslug: string }) => {
           {
             titulo: 'Mis clases',
             items: [
-              { key: 'clases', href: '/clases', label: 'Esta semana', icon: <VideoCamera size={18} weight="duotone" />, exacta: true },
-              { key: 'tareas', href: '/clases/tareas', label: 'Tareas', icon: <ClipboardText size={18} weight="duotone" /> },
-              { key: 'grabadas', href: '/clases/grabadas', label: 'Clases grabadas', icon: <PlayCircle size={18} weight="duotone" /> },
-              { key: 'calendario', href: '/calendario', label: 'Calendario', icon: <CalendarBlank size={18} weight="duotone" /> },
+              { key: 'clases', href: '/clases', label: 'Esta semana', icon: <VideoCamera size={18} weight="regular" />, exacta: true },
+              { key: 'tareas', href: '/clases/tareas', label: 'Tareas', icon: <ClipboardText size={18} weight="regular" /> },
+              { key: 'grabadas', href: '/clases/grabadas', label: 'Clases grabadas', icon: <PlayCircle size={18} weight="regular" /> },
+              { key: 'calendario', href: '/calendario', label: 'Calendario', icon: <CalendarBlank size={18} weight="regular" /> },
               ...(isStaff && !isAdmin
                 ? [
-                    { key: 'tablero', href: '/mis-clases', label: 'Preparar clases', icon: <Kanban size={18} weight="duotone" /> },
-                    { key: 'seguimiento', href: '/seguimiento', label: 'Seguimiento', icon: <ChartBar size={18} weight="duotone" /> },
+                    { key: 'tablero', href: '/mis-clases', label: 'Preparar clases', icon: <Kanban size={18} weight="regular" /> },
+                    { key: 'seguimiento', href: '/seguimiento', label: 'Seguimiento', icon: <ChartBar size={18} weight="regular" /> },
                   ]
                 : []),
             ] as Item[],
@@ -177,11 +196,10 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     {
       titulo: 'Ayuda',
       items: [
-        { key: 'consultas', href: '/consultas', label: 'Consultas', icon: <Question size={18} weight="duotone" /> },
-        { key: 'mis-consultas', href: '/mis-consultas', label: 'Mis consultas', icon: <ChatCircleDots size={18} weight="duotone" /> },
-        { key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={18} weight="duotone" /> },
-        ...(!isAdmin && !isCloser ? [{ key: 'recursos', href: '/recursos', label: 'Recursos', icon: <FolderSimple size={18} weight="duotone" /> }] : []),
-        ...(isStaff ? [{ key: 'responder', href: '/responder-consultas', label: 'Responder consultas', icon: <Question size={18} weight="duotone" /> }] : []),
+        { key: 'consultas', href: '/consultas', label: 'Consultas', icon: <Question size={18} weight="regular" /> },
+        { key: 'mis-consultas', href: '/mis-consultas', label: 'Mis consultas', icon: <ChatCircleDots size={18} weight="regular" /> },
+        { key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={18} weight="regular" /> },
+        ...(isStaff ? [{ key: 'responder', href: '/responder-consultas', label: 'Responder consultas', icon: <Question size={18} weight="regular" /> }] : []),
       ],
     },
   ]
@@ -212,17 +230,17 @@ export const OrgSidebar = (props: { orgslug: string }) => {
       <Link
         href={ruta(it.href)}
         className={`group flex items-center gap-2.5 h-9 px-2.5 rounded-lg text-[14px] transition-colors ${
-          on ? 'bg-[#1D0084] text-white font-semibold' : 'text-[#2B3150] hover:bg-[#EEF2FA] font-medium'
+          on ? 'bg-[#EAF0FE] text-[#0b2da0] font-semibold' : 'text-[#2B3150] hover:bg-[#F2F5FB] font-medium'
         }`}
       >
-        <span className={`w-5 shrink-0 flex justify-center ${on ? 'text-white' : 'text-[#6B7393] group-hover:text-[#1D0084]'}`}>
+        <span className={`w-5 shrink-0 flex justify-center ${on ? 'text-[#0b2da0]' : 'text-[#7A819C] group-hover:text-[#0b2da0]'}`}>
           {it.emoji ? <span className="text-[15px] leading-none">{it.emoji}</span> : it.icon}
         </span>
         <span className="truncate flex-1">{it.label}</span>
         {it.badge ? (
           <span
             className={`shrink-0 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold flex items-center justify-center ${
-              it.alerta ? 'bg-rose-500 text-white' : on ? 'bg-white/20 text-white' : 'bg-[#E3EBFA] text-[#1D0084]'
+              it.alerta ? 'bg-rose-500 text-white' : 'bg-[#E6ECFA] text-[#0b2da0]'
             }`}
           >
             {it.badge > 99 ? '99+' : it.badge}
@@ -235,18 +253,31 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const Barra = () => (
     <div className="flex flex-col h-full">
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
-        {bloques.map((b, i) => (
-          <div key={b.titulo || i}>
-            {b.titulo ? (
-              <p className="px-2.5 pb-1.5 text-[12px] font-semibold text-[#8A91AD]">{b.titulo}</p>
-            ) : null}
-            <div className="space-y-0.5">
-              {b.items.map((it) => (
-                <Fila key={it.key} it={it} />
-              ))}
+        {bloques.map((b, i) => {
+          const cerrado = !!b.titulo && plegados.includes(b.titulo) && !b.items.some(activo)
+          return (
+            <div key={b.titulo || i}>
+              {b.titulo ? (
+                <button
+                  type="button"
+                  onClick={() => plegar(b.titulo!)}
+                  aria-expanded={!cerrado}
+                  className="group w-full flex items-center justify-between px-2.5 pb-1.5 text-[12px] font-semibold text-[#8A91AD] hover:text-[#2B3150]"
+                >
+                  <span>{b.titulo}</span>
+                  <CaretDown size={12} weight="bold" className={`transition-transform ${cerrado ? '-rotate-90' : ''} opacity-60 group-hover:opacity-100`} />
+                </button>
+              ) : null}
+              {!cerrado && (
+                <div className="space-y-0.5">
+                  {b.items.map((it) => (
+                    <Fila key={it.key} it={it} />
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          )
+        })}
         {panel.length > 0 && (
           <div>
             <p className="px-2.5 pb-1.5 text-[12px] font-semibold text-[#8A91AD]">Panel</p>
@@ -259,11 +290,11 @@ export const OrgSidebar = (props: { orgslug: string }) => {
                     key={item.id}
                     href={item.href}
                     className={`group flex items-center gap-2.5 h-9 px-2.5 rounded-lg text-[14px] transition-colors ${
-                      on ? 'bg-[#1D0084] text-white font-semibold' : 'text-[#2B3150] hover:bg-[#EEF2FA] font-medium'
+                      on ? 'bg-[#EAF0FE] text-[#0b2da0] font-semibold' : 'text-[#2B3150] hover:bg-[#F2F5FB] font-medium'
                     }`}
                   >
-                    <span className={`w-5 shrink-0 flex justify-center ${on ? 'text-white' : 'text-[#6B7393]'}`}>
-                      <Icon size={18} weight="duotone" />
+                    <span className={`w-5 shrink-0 flex justify-center ${on ? 'text-[#0b2da0]' : 'text-[#7A819C]'}`}>
+                      <Icon size={18} weight="regular" />
                     </span>
                     <span className="truncate">{item.label}</span>
                   </Link>
@@ -273,7 +304,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
           </div>
         )}
         {autenticado && isCloser && (
-          <Fila it={{ key: 'panel-closer', href: '/dash/estadisticas?tab=matriculas', label: 'Panel de ventas', icon: <ChartBar size={18} weight="duotone" /> }} />
+          <Fila it={{ key: 'panel-closer', href: '/dash/estadisticas?tab=matriculas', label: 'Panel de ventas', icon: <ChartBar size={18} weight="regular" /> }} />
         )}
       </nav>
       <div className="px-2 py-2 border-t border-[#E6EAF3]">
@@ -296,7 +327,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
       {/* Franja de arriba, en todas las pantallas. */}
       <header
         className="fixed top-0 inset-x-0 h-14 flex items-center gap-3 px-3 md:px-5"
-        style={{ backgroundColor: NAVY, zIndex: 'var(--z-nav)' }}
+        style={{ ...FONDO_MARCA, zIndex: 'var(--z-nav)' }}
       >
         <button
           onClick={() => setAbierta(true)}
@@ -316,7 +347,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
                 key={it.key}
                 href={ruta(it.href)}
                 className={`h-8 px-3.5 rounded-lg text-[13.5px] font-semibold flex items-center transition-colors ${
-                  on ? 'bg-white text-[#1D0084]' : 'text-white/85 hover:text-white hover:bg-white/10'
+                  on ? 'bg-white text-[#0b2da0]' : 'text-white/90 hover:text-white hover:bg-white/10'
                 }`}
               >
                 {it.label}

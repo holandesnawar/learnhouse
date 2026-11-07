@@ -184,13 +184,22 @@ async def sembrar(db: AsyncSession) -> str:
     org = (await db.execute(select(Organization))).scalars().first()
     if org is None:
         return "sin escuela"
-    n_usuarios = (await db.execute(select(func.count()).select_from(UserOrganization).where(UserOrganization.org_id == org.id))).scalar() or 0
-    if n_usuarios > 3:
-        return f"la escuela ya tiene {n_usuarios} usuarios: no se toca"
     fila = (await db.execute(select(OrganizationConfig).where(OrganizationConfig.org_id == org.id))).scalars().first()
     config = json.loads(json.dumps((fila.config if fila else None) or {}))
     if config.get("datos_prueba"):
+        # Lo que se añadió después (07/11): las carpetas de Recursos.
+        if not (config.get("datos_prueba") or {}).get("recursos"):
+            await _recursos(db, int(org.id or 0))
+            config["datos_prueba"] = {**config["datos_prueba"], "recursos": True}
+            fila.config = config
+            fila.update_date = _ahora()
+            db.add(fila)
+            await db.commit()
+            return "añadidas las carpetas de Recursos"
         return "ya estaban"
+    n_usuarios = (await db.execute(select(func.count()).select_from(UserOrganization).where(UserOrganization.org_id == org.id))).scalar() or 0
+    if n_usuarios > 3:
+        return f"la escuela ya tiene {n_usuarios} usuarios: no se toca"
 
     rnd = random.Random(7)
     hoy = date.today()
@@ -453,7 +462,8 @@ async def sembrar(db: AsyncSession) -> str:
     ]
     custom["events"] = {"events": eventos}
     config["customization"] = custom
-    config["datos_prueba"] = {"creados": _ahora(), "alumna": "marta@ejemplo.com"}
+    await _recursos(db, org_id)
+    config["datos_prueba"] = {"creados": _ahora(), "alumna": "marta@ejemplo.com", "recursos": True}
     if fila is None:
         fila = OrganizationConfig(org_id=org_id, config=config, creation_date=_ahora(), update_date=_ahora())
     else:
@@ -462,6 +472,34 @@ async def sembrar(db: AsyncSession) -> str:
     db.add(fila)
     await db.commit()
     return f"creados {len(alumnos)} alumnos, 2 clases con {len(SEMANAS)} semanas, la formación y 6 canales"
+
+
+RECURSOS = [
+    ("Para la clase en directo", "Lo que necesitas para entrar y seguir la clase.", [
+        ("Cómo entrar a la sala desde el móvil", "https://www.holandesnawar.com"),
+        ("Normas de la clase", "https://www.holandesnawar.com"),
+    ]),
+    ("Diccionarios y traductores", "Los que usamos en la escuela.", [
+        ("Van Dale (diccionario)", "https://www.vandale.nl"),
+        ("Woordenlijst (cómo se escribe)", "https://woordenlijst.org"),
+        ("Forvo (cómo se pronuncia)", "https://forvo.com/languages/nl/"),
+    ]),
+    ("Vivir en Países Bajos", "Trámites y exámenes.", [
+        ("Inburgering: lo que tienes que saber", "https://www.inburgeren.nl"),
+        ("DUO: exámenes de neerlandés", "https://www.duo.nl"),
+    ]),
+]
+
+
+async def _recursos(db: AsyncSession, org_id: int) -> None:
+    from src.db.recursos import ResourceFolder, ResourceItem
+
+    for i, (nombre, descripcion, items) in enumerate(RECURSOS):
+        f = ResourceFolder(org_id=org_id, name=nombre, description=descripcion, position=i, created_at=_ahora(), private=False, grupos="")
+        db.add(f)
+        await db.flush()
+        for j, (titulo, url) in enumerate(items):
+            db.add(ResourceItem(org_id=org_id, folder_id=f.id, kind="link", title=titulo, url=url, file_name="", size=0, position=j, created_at=_ahora()))
 
 
 async def sembrar_si_toca() -> None:

@@ -6,6 +6,7 @@ import { ArrowLeft, Hash, MoreHorizontal, Pin, Search, X } from 'lucide-react'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import { ChannelChat } from '@components/Objects/Communities/ChannelChat'
 import ChannelPosts from '@components/Objects/Communities/ChannelPosts'
+import Portada from '@components/Pages/Espacios/Portada'
 import ThreadPanel from '@components/Objects/Communities/ThreadPanel'
 import PinnedFeed from '@components/Objects/Communities/PinnedFeed'
 import { getUriWithOrg } from '@services/config/config'
@@ -132,8 +133,9 @@ const CommunityClient = ({ community, orgslug }: CommunityClientProps) => {
   if (isBoard) {
     return (
       <GeneralWrapperStyled>
-        <div className="mb-3">{backLink}</div>
-        <div className="mb-5">{title}</div>
+        <div className="mb-4">
+          <Portada clave={community.community_uuid} titulo={`${emoji ? emoji + ' ' : ''}${text}`} subtitulo={community.description || ''} pequena />
+        </div>
         <ChannelPosts
           communityUuid={community.community_uuid}
           channelName={text}

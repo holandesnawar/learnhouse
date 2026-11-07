@@ -1,5 +1,5 @@
 from typing import List, Literal, Optional, Union
-from fastapi import APIRouter, Depends, Request, UploadFile, Query
+from fastapi import APIRouter, Depends, Request, UploadFile, Query, Body
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.services.orgs.invites import (
     create_invite_code,
@@ -52,6 +52,7 @@ from src.services.orgs.orgs import (
     update_org_font_config,
     update_org_footer_text_config,
     update_org_community_panel_config,
+    update_org_portada_config,
     update_org_direct_welcome_config,
     update_org_acceso_profes_config,
     get_org_acceso_profes_config,
@@ -681,6 +682,22 @@ async def api_update_org_community_panel_config(
     return await update_org_community_panel_config(
         request, panel.model_dump(), org_id, current_user, db_session
     )
+
+
+@router.put(
+    "/{org_id}/config/portadas/{clave}",
+    summary="Portada de un espacio (Recursos o un canal)",
+    description="Título, frase e imagen del banner de un espacio. Admin only.",
+)
+async def api_update_org_portada_config(
+    request: Request,
+    org_id: int,
+    clave: str,
+    datos: dict = Body(...),
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    return await update_org_portada_config(request, clave, datos, org_id, current_user, db_session)
 
 
 @router.put(

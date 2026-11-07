@@ -5072,6 +5072,31 @@ la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
   (`lib/nawar/empiezaAqui.ts`: lo esencial, preséntate, noticias). Sustituye al
   «Primeros pasos» viejo (`StudentOnboarding`, quitado del Inicio y del layout
   en esta rama). El feed del Inicio filtra por canal y no enseña «Lo esencial».
+- **v2 (07/11, tras verla el usuario)**: «la parte de arriba se rompe»,
+  «Esta semana demasiado IA», «el azul tan oscuro no, el de la escuela de
+  ahora», «Recursos con banner limpio como ICO», «abrir y cerrar las pestañas
+  de la barra», «la campana antigua». Hecho:
+  - Franja de arriba con `FONDO_MARCA` (el azul con imagen de la escuela
+    actual); elegido en la barra = fondo `#EAF0FE` y letra `#0b2da0`; iconos
+    finos (phosphor `regular`); bloques plegables (`nawar.barra.plegados`);
+    «Recursos» dentro de «Empieza aquí».
+  - **Portadas tipo Circle** (`Pages/Espacios/Portada.tsx`): banner con título
+    y raya, frase y lo que vaya debajo; el administrador la cambia con
+    «Editar portada» (título, frase, imagen https). org_config
+    `portadas[clave]`, `PUT /orgs/{id}/config/portadas/{clave}`
+    (`update_org_portada_config`, `limpiar_portada`). En Recursos (clave
+    `recursos`, con las carpetas como pestañas) y en cada tablón (clave =
+    `community_uuid`).
+  - «Esta semana» y el Inicio: la semana es una LISTA con círculos (hecho /
+    por hacer / cerrado), sin baldosas de iconos ni fecha en tarjeta
+    (`pasosDeSemana` + `FilaPaso` en `MisClasesAlumno.tsx`, compartidos).
+  - Inicio: saludo por la hora, «Lo que te toca esta semana», Continúa,
+    «Destacado en la comunidad» (fijado o más gustado en 14 días), el feed; a
+    la derecha Empieza aquí, Próximos eventos (lista), racha, repaso, dudas.
+  - Campana: sin iconos de colores, punto azul en lo no leído y «Todas / Sin
+    leer».
+  - Los datos inventados traen también 3 carpetas de Recursos; en una escuela
+    ya sembrada se añaden solas al arrancar (marca `datos_prueba.recursos`).
 - Pendiente (v2): mover a un alumno al otro grupo UNA semana sin romper sus
   tareas, una pantalla de grupos para el administrador (quién está en qué y
   qué ve), el calendario rehecho, datos inventados en la escuela de pruebas.

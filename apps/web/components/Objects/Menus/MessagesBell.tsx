@@ -34,7 +34,7 @@ export default function MessagesBell(props: { orgslug: string }) {
       href={getUriWithOrg(props.orgslug, '/mensajes')}
       aria-label="Mensajes"
       title="Mensajes"
-      className="relative p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/[0.08] transition-colors inline-flex"
+      className="relative p-1.5 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-colors inline-flex"
     >
       <Mail size={19} />
       {!!unread && unread > 0 && (

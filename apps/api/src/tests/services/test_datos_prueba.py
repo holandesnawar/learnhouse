@@ -20,3 +20,11 @@ def test_el_pdf_de_ejemplo_se_lee():
     assert len(r.pages) == 3
     assert "Eten en drinken" in r.pages[0].extract_text()
     assert "útiles" in r.pages[1].extract_text()
+
+
+def test_la_portada_se_limpia():
+    from src.services.orgs.orgs import limpiar_portada
+
+    assert limpiar_portada({"titulo": "Recursos", "imagen": "javascript:alert(1)"}) == {"titulo": "Recursos", "subtitulo": "", "imagen": ""}
+    assert limpiar_portada({"imagen": "https://x.com/a.png"})["imagen"] == "https://x.com/a.png"
+    assert limpiar_portada(None)["titulo"] == ""

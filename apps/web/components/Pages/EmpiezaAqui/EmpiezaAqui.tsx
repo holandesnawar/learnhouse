@@ -113,7 +113,7 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
 
   return (
     <div className="max-w-[880px] mx-auto px-4 sm:px-8 py-6 sm:py-10 space-y-6">
-      <section className="rounded-2xl bg-[#1D0084] text-white px-5 sm:px-8 py-7 sm:py-9 relative overflow-hidden">
+      <section className="rounded-2xl bg-[#0b2da0] text-white px-5 sm:px-8 py-7 sm:py-9 relative overflow-hidden">
         <div aria-hidden className="absolute inset-0 opacity-60" style={{ backgroundImage: 'radial-gradient(circle 420px at 100% 0%, rgba(77,163,255,0.35), transparent 70%), radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)', backgroundSize: 'auto, 26px 26px' }} />
         <div className="relative">
           <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#9CC9FF]">Empieza aquí</p>
@@ -169,12 +169,12 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
                   <Link
                     href={p.href}
                     onClick={() => p.id !== 'presentate' && !p.href.startsWith('#') && marcar(p.id)}
-                    className="shrink-0 hidden sm:inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-[#DDE3F0] text-[13.5px] font-semibold text-[#1D0084] hover:bg-[#F5F8FF]"
+                    className="shrink-0 hidden sm:inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-[#DDE3F0] text-[13.5px] font-semibold text-[#0b2da0] hover:bg-[#F5F8FF]"
                   >
                     {p.boton} <ArrowRight size={14} />
                   </Link>
                 ) : (
-                  <button type="button" onClick={() => marcar(p.id)} className="shrink-0 hidden sm:inline-flex items-center h-9 px-3.5 rounded-lg border border-[#DDE3F0] text-[13.5px] font-semibold text-[#1D0084] hover:bg-[#F5F8FF]">
+                  <button type="button" onClick={() => marcar(p.id)} className="shrink-0 hidden sm:inline-flex items-center h-9 px-3.5 rounded-lg border border-[#DDE3F0] text-[13.5px] font-semibold text-[#0b2da0] hover:bg-[#F5F8FF]">
                     {p.boton}
                   </button>
                 )
@@ -218,7 +218,7 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
             { icono: <MessagesSquare size={20} />, t: 'Comunidad', d: 'Preséntate, comparte tus victorias y pregunta tus dudas.', href: ruta('/communities') },
           ].map((x) => (
             <Link key={x.t} href={x.href} onClick={() => marcar('conoce')} className={`${TARJETA} p-4 sm:p-5 hover:border-[#C9D4EC] block`}>
-              <span className="w-10 h-10 rounded-xl bg-[#EEF3FF] text-[#1D0084] flex items-center justify-center">{x.icono}</span>
+              <span className="w-10 h-10 rounded-xl bg-[#EEF3FF] text-[#0b2da0] flex items-center justify-center">{x.icono}</span>
               <h3 className="mt-3 text-[15.5px] font-bold text-[#0B1033]">{x.t}</h3>
               <p className="mt-1 text-[14px] text-[#4A5272] leading-relaxed">{x.d}</p>
             </Link>

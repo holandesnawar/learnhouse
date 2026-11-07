@@ -9,7 +9,7 @@ import { useTrail } from '@/hooks/queries/useTrail'
 import { useCourses } from '@/hooks/queries/useCourses'
 import TuSemana from '@components/Pages/Home/TuSemana'
 import UpcomingEvents from '@components/Pages/Home/UpcomingEvents'
-import { ProximaClase, FeedComunidad } from '@components/Pages/Home/FeedInicio'
+import { ProximaClase, FeedComunidad, DestacadosComunidad } from '@components/Pages/Home/FeedInicio'
 import { getUriWithOrg } from '@services/config/config'
 import CommunityChannelsCards from '@components/Objects/Communities/CommunityChannelsCards'
 import StreakBadge from '@components/Pages/Home/StreakBadge'
@@ -128,35 +128,23 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
   // A la izquierda lo que toca hoy (la clase, seguir, la comunidad); a la
   // derecha lo de un vistazo (tu semana, el repaso, los eventos). La lista de
   // cursos y los canales salen de aquí: están siempre en la barra.
+  const hora = new Date().getHours()
+  const saludo = hora < 13 ? 'Buenos días' : hora < 20 ? 'Buenas tardes' : 'Buenas noches'
   return (
     <div className="max-w-[1180px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
-      <div className="pb-5 flex items-start justify-between gap-3">
+      <div className="pb-6 flex items-end justify-between gap-3">
         <div>
           <h1 className="text-[26px] sm:text-[30px] font-bold text-[#0B1033] tracking-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
-            Hola{firstName ? `, ${firstName}` : ''}
+            {saludo}{firstName ? `, ${firstName}` : ''}
           </h1>
-          <p className="text-[14.5px] text-[#5B6382] mt-1">Esto es lo que toca hoy.</p>
+          <p className="text-[14.5px] text-[#5B6382] mt-1">Esto es lo que tienes esta semana en la escuela.</p>
         </div>
         {visit && (
-          <div className="pt-1 shrink-0">
+          <div className="shrink-0">
             <StreakBadge current={visit.current_streak} longest={visit.longest_streak} />
           </div>
         )}
       </div>
-
-      <SafeArea nombre="Empieza aquí" fallback={null}>
-        <Link
-          href={getUriWithOrg(orgslug, '/empieza-aqui')}
-          className="flex items-center gap-4 rounded-2xl border border-[#E4E8F2] bg-white px-4 sm:px-5 py-4 hover:border-[#C9D4EC]"
-        >
-          <span className="w-10 h-10 shrink-0 rounded-xl bg-[#EEF3FF] text-[#1D0084] flex items-center justify-center text-[18px]">🚩</span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[15px] font-semibold text-[#0B1033]">Empieza aquí</span>
-            <span className="block text-[13.5px] text-[#4A5272]">Tus primeros pasos en la escuela: preséntate, mira tu clase y empieza el módulo 1.</span>
-          </span>
-          <span className="shrink-0 text-[13.5px] font-semibold text-[#025dc7]">Ver →</span>
-        </Link>
-      </SafeArea>
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
         <div className="min-w-0 space-y-6">
@@ -173,22 +161,32 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
           ) : (
             <HomeSkeleton className="h-[188px]" />
           )}
+          <SafeArea nombre="Destacado" fallback={null}>
+            <DestacadosComunidad orgslug={orgslug} />
+          </SafeArea>
           <SafeArea nombre="Comunidad" fallback={null}>
             <FeedComunidad orgslug={orgslug} />
           </SafeArea>
         </div>
 
         <aside className="space-y-4 lg:sticky lg:top-20">
+          <Link
+            href={getUriWithOrg(orgslug, '/empieza-aqui')}
+            className="block rounded-2xl border border-[#E4E8F2] bg-white px-4 py-3.5 hover:border-[#C9D4EC]"
+          >
+            <span className="block text-[14.5px] font-semibold text-[#0B1033]">Empieza aquí</span>
+            <span className="block text-[13px] text-[#6B7393]">Tus primeros pasos en la escuela</span>
+          </Link>
+          <SafeArea nombre="Próximos eventos" fallback={null}>
+            <UpcomingEvents orgslug={orgslug} />
+          </SafeArea>
           {insights ? (
             <>
               <SafeArea nombre="Tu semana" fallback={null}>
                 <div className="rounded-2xl border border-[#E4E8F2] bg-white p-4">
-                  <p className="text-[13px] font-semibold text-[#0B1033] mb-2">Tu semana</p>
+                  <p className="text-[14.5px] font-semibold text-[#0B1033] mb-2">Tu racha esta semana</p>
                   <WeekStrip activeDays={insights.week.activeDays} />
                 </div>
-              </SafeArea>
-              <SafeArea nombre="Esta semana">
-                <WeekCard insights={insights} />
               </SafeArea>
               <SafeArea nombre="Tu repaso de hoy">
                 <RepasoCard orgslug={orgslug} insights={insights} />
@@ -197,19 +195,12 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
           ) : (
             <HomeSkeleton className="h-[164px]" />
           )}
-          <SafeArea nombre="Próximos eventos" fallback={null}>
-            <UpcomingEvents orgslug={orgslug} />
-          </SafeArea>
           <Link
             href={getUriWithOrg(orgslug, '/consultas')}
-            className="flex items-center gap-3 rounded-2xl border border-[#E4E8F2] bg-white p-4 hover:border-[#C9D4EC]"
+            className="block rounded-2xl border border-[#E4E8F2] bg-white px-4 py-3.5 hover:border-[#C9D4EC]"
           >
-            <HelpCircle size={22} className="text-[#025dc7] shrink-0" />
-            <span className="flex-1 min-w-0">
-              <span className="block text-[14px] font-semibold text-[#0B1033]">¿Tienes una duda?</span>
-              <span className="block text-[12.5px] text-[#6B7393]">Pregúntala en Consultas y te respondemos.</span>
-            </span>
-            <ArrowRight size={16} className="text-[#9AA1BC]" />
+            <span className="block text-[14.5px] font-semibold text-[#0B1033]">¿Tienes una duda?</span>
+            <span className="block text-[13px] text-[#6B7393]">Pregúntala en Consultas y te respondemos.</span>
           </Link>
         </aside>
       </div>

@@ -21,7 +21,7 @@ import { getUserAvatarMediaDirectory } from '@services/media/media'
 import { splitChannelEmoji } from '@/lib/communities/channelEmoji'
 import { esCanalEsencial } from '@/lib/nawar/empiezaAqui'
 import { ajustesDirecto, CURSO_CLASE_SEMANAL_UUID } from '@/lib/nawar/cursos'
-import { Vienes } from '@components/Pages/Clases/MisClasesAlumno'
+import { Vienes, pasosDeSemana, FilaPaso } from '@components/Pages/Clases/MisClasesAlumno'
 
 const POPPINS = { fontFamily: 'var(--font-poppins), system-ui, sans-serif' }
 const TARJETA = 'rounded-2xl border border-[#E4E8F2] bg-white'
@@ -73,7 +73,7 @@ function Avatar({ a, size = 38 }: { a: DiscussionWithAuthor['author']; size?: nu
   const src = a?.avatar_image ? getUserAvatarMediaDirectory(a.user_uuid, a.avatar_image) : ''
   if (src) return <img src={src} alt="" className="rounded-full object-cover shrink-0" style={{ width: size, height: size }} />
   return (
-    <span className="rounded-full bg-[#E3EBFA] text-[#1D0084] font-bold flex items-center justify-center shrink-0 text-[14px]" style={{ width: size, height: size }}>
+    <span className="rounded-full bg-[#E3EBFA] text-[#0b2da0] font-bold flex items-center justify-center shrink-0 text-[14px]" style={{ width: size, height: size }}>
       {nombre.slice(0, 1).toUpperCase()}
     </span>
   )
@@ -94,53 +94,130 @@ export function ProximaClase({ orgslug }: { orgslug: string }) {
   })
   if (!data || !data.clases.length) return null
   const config = org?.config?.config
+  const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Amsterdam' }).format(new Date())
+  const ruta = (p: string) => getUriWithOrg(orgslug, p)
   return (
-    <div className="space-y-3">
+    <section className={TARJETA}>
+      <div className="flex items-center justify-between px-5 pt-4">
+        <h2 className="text-[16px] font-bold text-[#0B1033]" style={POPPINS}>
+          Lo que te toca esta semana
+        </h2>
+        <Link href={ruta('/clases')} className="text-[13px] font-semibold text-[#0b2da0] hover:underline">
+          Mis clases
+        </Link>
+      </div>
       {data.clases.map((c) => {
         const s = c.semana
         const a = ajustesDirecto(config, c.course_uuid)
         const r: any = a.banner || (c.course_uuid === CURSO_CLASE_SEMANAL_UUID ? config?.weekly_class_banner : null) || {}
-        const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Amsterdam' }).format(new Date())
         const porVenir = !!s.fecha && s.fecha >= hoy
         const esHoy = s.fecha === hoy
         const linea = [s.fecha ? diaCorto(s.fecha) : '', String(r.schedule || '').trim(), r.teacher ? `con ${r.teacher}` : ''].filter(Boolean).join(' · ')
+        const pasos = pasosDeSemana(s, c.course_uuid, ruta, hoy)
+        const quedan = pasos.filter((p) => p.estado === 'pendiente').length
         return (
-          <section
-            key={c.course_uuid}
-            className="rounded-2xl p-5 text-white overflow-hidden relative"
-            style={{
-              backgroundColor: '#1D0084',
-              backgroundImage:
-                'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), radial-gradient(circle 380px at 100% 0%, rgba(77,163,255,0.35) 0%, transparent 70%)',
-              backgroundSize: '22px 22px, auto',
-            }}
-          >
-            <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-[#9CC9FF]">
-              {esHoy ? 'Hoy hay clase' : porVenir ? 'Tu próxima clase' : 'Esta semana'} · {c.curso}
-            </p>
-            <h2 className="mt-1 text-[22px] font-bold leading-tight" style={POPPINS}>
-              {s.tema || 'Clase de la semana'}
-            </h2>
-            {linea && <p className="mt-0.5 text-[14px] text-white/80 first-letter:uppercase">{linea}</p>}
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              {porVenir ? (
-                <div className="rounded-xl bg-white px-2.5 py-2">
-                  <Vienes semana={s} courseUuid={c.course_uuid} compacto />
-                </div>
+          <div key={c.course_uuid} className="mt-3 border-t border-[#EEF1F7] first:border-t-0">
+            <div className="px-5 pt-4 pb-3 flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-[12.5px] font-semibold text-[#0b2da0] first-letter:uppercase">
+                  {esHoy ? 'Hoy hay clase' : porVenir ? 'Tu próxima clase' : 'Clase de esta semana'}
+                  {linea ? <span className="text-[#8A91AD] font-medium"> · {linea}</span> : null}
+                </p>
+                <h3 className="mt-1 text-[19px] font-bold text-[#0B1033] leading-tight" style={POPPINS}>
+                  {s.tema || 'Clase de la semana'}
+                </h3>
+                <p className="mt-0.5 text-[13px] text-[#8A91AD]">
+                  {quedan ? `Te ${quedan === 1 ? 'queda 1 cosa' : `quedan ${quedan} cosas`} por hacer` : '¡Lo tienes todo hecho esta semana!'}
+                </p>
+              </div>
+              {esHoy ? (
+                <Link
+                  href={ruta(`/course/${c.course_uuid}`)}
+                  className="shrink-0 inline-flex items-center h-9 px-4 rounded-lg bg-[#0b2da0] text-white text-[13.5px] font-semibold hover:bg-[#0a2690]"
+                >
+                  Entrar a la clase
+                </Link>
               ) : null}
-              <Link
-                href={getUriWithOrg(orgslug, esHoy ? `/course/${c.course_uuid}` : '/clases')}
-                className="ml-auto inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] text-[14px] font-bold"
-              >
-                {esHoy ? <Video size={16} /> : null}
-                {esHoy ? 'Entrar a la clase' : 'Ver mi semana'}
-                {!esHoy ? <ArrowRight size={15} /> : null}
-              </Link>
             </div>
-          </section>
+            {porVenir ? (
+              <div className="px-5 pb-3">
+                <Vienes semana={s} courseUuid={c.course_uuid} />
+              </div>
+            ) : null}
+            <div className="pb-2">
+              {pasos.map((p) => (
+                <FilaPaso key={p.key} p={p} />
+              ))}
+            </div>
+          </div>
         )
       })}
-    </div>
+    </section>
+  )
+}
+
+/** Lo destacado: lo fijado por el equipo y lo que más gustó en dos semanas. */
+export function DestacadosComunidad({ orgslug }: { orgslug: string }) {
+  const org = useOrg() as any
+  const session = useLHSession() as any
+  const token: string = session?.data?.tokens?.access_token || ''
+  const { data } = useQuery<Entrada[]>({
+    queryKey: ['comunidad', 'destacados', org?.id],
+    queryFn: async () => {
+      const canales: Community[] = ((await getCommunities(org.id, 1, 50, null, token)) || []).filter((c: Community) => c.kind === 'posts' && !esCanalEsencial(c.name))
+      const listas = await Promise.all(
+        canales.map((c) =>
+          getDiscussions(c.community_uuid, 'recent', 1, 15, null, token)
+            .then((ds) => (ds || []).map((d) => ({ ...d, canal: c })))
+            .catch(() => [] as Entrada[])
+        )
+      )
+      const hace = new Date(Date.now() - 14 * 864e5).toISOString()
+      const puntos = (d: Entrada) => (d.is_pinned ? 1000 : 0) + (d.upvote_count || 0) + (d.reactions || []).reduce((n, r) => n + r.count, 0)
+      return listas
+        .flat()
+        .filter((d) => d.is_pinned || (d.creation_date || '') >= hace)
+        .sort((a, b) => puntos(b) - puntos(a))
+        .slice(0, 2)
+    },
+    enabled: !!org?.id && !!token,
+    staleTime: 60_000,
+  })
+  if (!data?.length) return null
+  const canalHref = (c: Community) => getUriWithOrg(orgslug, `/community/${c.community_uuid.replace('community_', '')}`)
+  return (
+    <section>
+      <h2 className="text-[16px] font-bold text-[#0B1033] mb-3" style={POPPINS}>
+        Destacado en la comunidad
+      </h2>
+      <div className="grid sm:grid-cols-2 gap-3">
+        {data.map((d) => {
+          const { emoji, text } = splitChannelEmoji(d.canal.name)
+          const autor = [d.author?.first_name, d.author?.last_name].filter(Boolean).join(' ') || d.author?.username || 'Alguien'
+          return (
+            <Link
+              key={d.discussion_uuid}
+              href={`${canalHref(d.canal)}/discussion/${d.discussion_uuid.replace('discussion_', '')}`}
+              className={`${TARJETA} p-4 hover:border-[#C9D4EC] flex flex-col`}
+            >
+              <span className="text-[12px] font-semibold text-[#8A91AD]">
+                {emoji ? `${emoji} ` : ''}
+                {text}
+              </span>
+              <span className="mt-1.5 text-[15px] font-bold text-[#0B1033] leading-snug line-clamp-2">{d.title || textoPlano(d.content).slice(0, 80)}</span>
+              <span className="mt-1 text-[13.5px] text-[#4A5272] line-clamp-2">{textoPlano(d.content)}</span>
+              <span className="mt-auto pt-3 flex items-center gap-2 text-[12.5px] text-[#8A91AD]">
+                <Avatar a={d.author} size={22} />
+                <span className="truncate">{autor}</span>
+                <span className="ml-auto inline-flex items-center gap-1">
+                  <Heart size={13} /> {(d.upvote_count || 0) + (d.reactions || []).reduce((n, r) => n + r.count, 0)}
+                </span>
+              </span>
+            </Link>
+          )
+        })}
+      </div>
+    </section>
   )
 }
 
@@ -189,9 +266,9 @@ export function FeedComunidad({ orgslug }: { orgslug: string }) {
       </div>
       {primero ? (
         <Link href={canalHref(primero)} className={`${TARJETA} flex items-center gap-3 px-4 py-3 mb-4 hover:border-[#C9D4EC]`}>
-          <span className="w-9 h-9 rounded-full bg-[#E3EBFA] text-[#1D0084] font-bold flex items-center justify-center">{(miNombre || '?').slice(0, 1).toUpperCase()}</span>
+          <span className="w-9 h-9 rounded-full bg-[#E3EBFA] text-[#0b2da0] font-bold flex items-center justify-center">{(miNombre || '?').slice(0, 1).toUpperCase()}</span>
           <span className="flex-1 text-[14px] text-[#8A91AD]">Comparte algo con la comunidad…</span>
-          <span className="h-8 px-3 rounded-lg bg-[#1D0084] text-white text-[13px] font-semibold flex items-center">Publicar</span>
+          <span className="h-8 px-3 rounded-lg bg-[#0b2da0] text-white text-[13px] font-semibold flex items-center">Publicar</span>
         </Link>
       ) : null}
       {(data?.tablones || []).length > 1 ? (
@@ -204,7 +281,7 @@ export function FeedComunidad({ orgslug }: { orgslug: string }) {
                 key={c.community_uuid || 'todo'}
                 type="button"
                 onClick={() => setFiltro(c.community_uuid)}
-                className={`shrink-0 h-8 px-3 rounded-full text-[13px] font-semibold border ${on ? 'bg-[#1D0084] border-[#1D0084] text-white' : 'bg-white border-[#DDE3F0] text-[#3B4262] hover:border-[#C9D4EC]'}`}
+                className={`shrink-0 h-8 px-3 rounded-full text-[13px] font-semibold border ${on ? 'bg-[#0b2da0] border-[#0b2da0] text-white' : 'bg-white border-[#DDE3F0] text-[#3B4262] hover:border-[#C9D4EC]'}`}
               >
                 {emoji ? `${emoji} ` : ''}
                 {text}
@@ -245,14 +322,14 @@ export function FeedComunidad({ orgslug }: { orgslug: string }) {
                   </div>
                 </div>
                 <Link href={href} className="block mt-3 group">
-                  {d.title ? <h3 className="text-[16.5px] font-bold text-[#0B1033] group-hover:text-[#1D0084]">{d.title}</h3> : null}
+                  {d.title ? <h3 className="text-[16.5px] font-bold text-[#0B1033] group-hover:text-[#0b2da0]">{d.title}</h3> : null}
                   {cuerpo ? <p className="mt-1 text-[14.5px] leading-relaxed text-[#2B3150] line-clamp-3 whitespace-pre-line">{cuerpo}</p> : null}
                 </Link>
                 <div className="mt-3 pt-3 border-t border-[#EEF1F7] flex items-center gap-5 text-[13px] text-[#6B7393]">
                   <span className="inline-flex items-center gap-1.5">
                     <Heart size={15} /> {reacciones || 'Me gusta'}
                   </span>
-                  <Link href={href} className="inline-flex items-center gap-1.5 hover:text-[#1D0084]">
+                  <Link href={href} className="inline-flex items-center gap-1.5 hover:text-[#0b2da0]">
                     <MessageCircle size={15} /> Comentar
                   </Link>
                 </div>

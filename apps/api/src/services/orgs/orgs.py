@@ -1088,6 +1088,58 @@ async def update_org_community_panel_config(
     return {"detail": "Community panel configuration updated"}
 
 
+def limpiar_portada(datos: dict) -> dict:
+    """La portada de un espacio (Recursos, un canal): título, frase e imagen
+    (una dirección https). Sin imagen se pinta el degradado de la escuela."""
+    datos = datos if isinstance(datos, dict) else {}
+    imagen = str(datos.get("imagen") or "").strip()[:500]
+    if imagen and not imagen.startswith(("https://", "/")):
+        imagen = ""
+    return {
+        "titulo": str(datos.get("titulo") or "").strip()[:80],
+        "subtitulo": str(datos.get("subtitulo") or "").strip()[:200],
+        "imagen": imagen,
+    }
+
+
+async def update_org_portada_config(
+    request: Request,
+    clave: str,
+    datos: dict,
+    org_id: int,
+    current_user: PublicUser | AnonymousUser,
+    db_session: AsyncSession,
+):
+    """Guarda la portada de un espacio en org_config `portadas[clave]`
+    (rediseño, rama diseno). Solo administradores."""
+    clave = str(clave or "").strip()[:80]
+    if not clave:
+        raise HTTPException(status_code=400, detail="Falta el espacio")
+    org = (await db_session.execute(select(Organization).where(Organization.id == org_id))).scalars().first()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    await rbac_check(request, org.org_uuid, current_user, "update", db_session)
+    org_config = (await db_session.execute(select(OrganizationConfig).where(OrganizationConfig.org_id == org.id))).scalars().first()
+    if org_config is None:
+        raise HTTPException(status_code=404, detail="Organization config not found")
+    updated_config = _deep_copy_config(org_config)
+    portadas = updated_config.get("portadas") if isinstance(updated_config.get("portadas"), dict) else {}
+    portadas[clave] = limpiar_portada(datos)
+    updated_config["portadas"] = portadas
+    org_config.config = updated_config
+    org_config.update_date = str(datetime.now())
+    db_session.add(org_config)
+    await db_session.commit()
+    try:
+        from src.services.orgs.cache import invalidate_org_cache, invalidate_org_config_cache
+
+        invalidate_org_config_cache(org.id)
+        invalidate_org_cache(org.slug)
+    except Exception:  # noqa: BLE001
+        pass
+    return portadas[clave]
+
+
 async def update_org_staff_titles_config(
     request: Request,
     payload: dict,

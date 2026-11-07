@@ -95,7 +95,7 @@ function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; chi
     <button
       onClick={onClick}
       className={`h-8 px-3.5 rounded-full text-[13px] font-semibold border transition-colors ${
-        on ? 'bg-[#1D0084] border-[#1D0084] text-white' : 'bg-white border-[#DDE3F0] text-[#3B4262] hover:border-[#1D0084]/40'
+        on ? 'bg-[#0b2da0] border-[#0b2da0] text-white' : 'bg-white border-[#DDE3F0] text-[#3B4262] hover:border-[#0b2da0]/40'
       }`}
     >
       {children}
@@ -156,7 +156,7 @@ export function Vienes({ semana, courseUuid, compacto = false }: { semana: Seman
             ? va
               ? 'bg-[#E9F7EF] border-[#86D3A6] text-[#13703D]'
               : 'bg-[#FDF0F0] border-[#F1B2B2] text-[#B42323]'
-            : 'bg-white border-[#DDE3F0] text-[#2B3150] hover:border-[#1D0084]/40'
+            : 'bg-white border-[#DDE3F0] text-[#2B3150] hover:border-[#0b2da0]/40'
         }`}
       >
         {va ? <Check size={15} strokeWidth={2.6} /> : <X size={15} strokeWidth={2.6} />}
@@ -177,50 +177,86 @@ export function Vienes({ semana, courseUuid, compacto = false }: { semana: Seman
 
 // ── Esta semana ─────────────────────────────────────────────────────────────
 
-const ICONO: Record<string, React.ReactNode> = {
-  presentacion: <FileText size={17} />,
-  grabacion: <Film size={17} />,
-  ejercicios: <Dumbbell size={17} />,
-}
 const NOMBRE: Record<string, string> = {
-  presentacion: 'Presentación',
-  grabacion: 'Grabación de la clase',
-  ejercicios: 'Ejercicios',
+  presentacion: 'Mira la presentación',
+  grabacion: 'Mira la grabación',
+  ejercicios: 'Haz los ejercicios',
 }
 
-function Paso({ href, icono, titulo, detalle, hecho }: { href?: string; icono: React.ReactNode; titulo: string; detalle?: string; hecho?: boolean }) {
+export type PasoSemana = { key: string; titulo: string; detalle?: string; href?: string; estado: 'hecho' | 'pendiente' | 'cerrado' }
+
+/** Lo que toca en una semana, en orden: lo usan «Esta semana» y el Inicio. */
+export function pasosDeSemana(semana: Semana, courseUuid: string, ruta: (p: string) => string, hoy: string): PasoSemana[] {
+  const actividad = (c: ClaseSemana) => ruta(`/course/${sinPrefijo(courseUuid)}/activity/${c.activity_uuid.replace('activity_', '')}`)
+  const clases = semana.clases || []
+  const ejercicios = clases.filter((c) => c.tipo === 'ejercicios')
+  const pres = clases.filter((c) => c.tipo === 'presentacion')
+  const grab = clases.filter((c) => c.tipo === 'grabacion')
+  const out: PasoSemana[] = []
+  for (const c of pres)
+    out.push({ key: c.activity_uuid, titulo: NOMBRE.presentacion, detalle: 'Antes de la clase, para llegar con el tema visto', href: actividad(c), estado: c.hecha ? 'hecho' : 'pendiente' })
+  if (semana.fecha) {
+    const pasada = semana.fecha < hoy
+    out.push({
+      key: 'clase',
+      titulo: semana.fecha === hoy ? 'Ven a la clase, es hoy' : pasada ? 'Clase en directo' : 'Ven a la clase en directo',
+      detalle: `${DIAS[dia(semana.fecha).getDay()]} ${diaCorto(semana.fecha).replace(/^\S+\s/, '')}`,
+      href: ruta(`/course/${sinPrefijo(courseUuid)}`),
+      estado: pasada ? 'hecho' : 'pendiente',
+    })
+  }
+  for (const c of grab) out.push({ key: c.activity_uuid, titulo: NOMBRE.grabacion, detalle: 'Por si no pudiste venir o quieres repasar', href: actividad(c), estado: c.hecha ? 'hecho' : 'pendiente' })
+  if (ejercicios.length) {
+    const n = ejercicios.filter((c) => c.hecha).length
+    out.push({
+      key: 'ejercicios',
+      titulo: NOMBRE.ejercicios,
+      detalle: `${n} de ${ejercicios.length} hechos`,
+      href: actividad(ejercicios.find((c) => !c.hecha) || ejercicios[0]),
+      estado: n === ejercicios.length ? 'hecho' : 'pendiente',
+    })
+  }
+  if (semana.ocultas) out.push({ key: 'ocultas', titulo: 'Ejercicios', detalle: 'Se abren el día de la clase', estado: 'cerrado' })
+  if (semana.tiene_tarea) {
+    const t = semana.tarea?.estado
+    out.push({
+      key: 'tarea',
+      titulo: t === 'corregida' ? 'Escucha la corrección de tu tarea' : 'Entrega la tarea',
+      detalle: t === 'corregida' ? 'Ya está corregida' : t === 'entregada' ? 'Entregada, pendiente de corregir' : semana.abierta ? `Hasta el ${diaCorto(semana.limite)}` : 'Se abre el día de la clase',
+      href: semana.abierta ? ruta(`/tarea/${semana.id}`) : undefined,
+      estado: t === 'entregada' || t === 'corregida' ? 'hecho' : semana.abierta ? 'pendiente' : 'cerrado',
+    })
+  }
+  return out
+}
+
+/** Una línea de la lista: un círculo (vacío, con check o gris), el texto y «Abrir». */
+export function FilaPaso({ p }: { p: PasoSemana }) {
+  const circulo =
+    p.estado === 'hecho' ? (
+      <span className="w-[22px] h-[22px] rounded-full bg-[#16A34A] text-white flex items-center justify-center shrink-0">
+        <Check size={13} strokeWidth={3} />
+      </span>
+    ) : (
+      <span className={`w-[22px] h-[22px] rounded-full border-2 shrink-0 ${p.estado === 'cerrado' ? 'border-dashed border-[#C9CFDE]' : 'border-[#B8C2DA]'}`} />
+    )
   const dentro = (
     <>
-      <span className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${hecho ? 'bg-[#E9F7EF] text-[#13703D]' : 'bg-[#EEF2FA] text-[#1D0084]'}`}>
-        {hecho ? <Check size={17} strokeWidth={2.6} /> : icono}
-      </span>
+      {circulo}
       <span className="flex-1 min-w-0">
-        <span className="block text-[14.5px] font-semibold text-[#0B1033] truncate">{titulo}</span>
-        {detalle ? <span className="block text-[12.5px] text-[#6B7393] truncate">{detalle}</span> : null}
+        <span className={`block text-[14.5px] font-medium ${p.estado === 'hecho' ? 'text-[#6B7393]' : p.estado === 'cerrado' ? 'text-[#8A91AD]' : 'text-[#0B1033]'}`}>{p.titulo}</span>
+        {p.detalle ? <span className="block text-[12.5px] text-[#8A91AD] first-letter:uppercase">{p.detalle}</span> : null}
       </span>
-      {href ? <ArrowRight size={16} className="text-[#9AA1BC] shrink-0" /> : null}
+      {p.href ? <span className="shrink-0 text-[13px] font-semibold text-[#0b2da0] opacity-0 group-hover:opacity-100 transition-opacity">Abrir</span> : null}
     </>
   )
-  const cls = 'flex items-center gap-3 px-4 py-3 border-t border-[#EEF1F7] first:border-t-0'
-  return href ? (
-    <Link href={href} className={`${cls} hover:bg-[#F7F9FD] transition-colors`}>
+  const cls = 'group flex items-center gap-3.5 px-5 py-3'
+  return p.href ? (
+    <Link href={p.href} className={`${cls} hover:bg-[#F7F9FD]`}>
       {dentro}
     </Link>
   ) : (
     <div className={cls}>{dentro}</div>
-  )
-}
-
-function FechaGrande({ fecha }: { fecha: string }) {
-  const d = dia(fecha)
-  return (
-    <div className="w-[64px] shrink-0 rounded-xl overflow-hidden border border-[#E4E8F2] text-center bg-white">
-      <div className="bg-[#1D0084] text-white text-[11px] font-bold uppercase tracking-wide py-1">{MESES[d.getMonth()]}</div>
-      <div className="text-[26px] font-bold text-[#0B1033] leading-none pt-1.5" style={POPPINS}>
-        {d.getDate()}
-      </div>
-      <div className="text-[11px] text-[#6B7393] pb-1.5 pt-0.5 capitalize">{DIAS[d.getDay()].slice(0, 3)}</div>
-    </div>
   )
 }
 
@@ -242,73 +278,63 @@ function TarjetaSemana({
   const org = useOrg() as any
   const { hora, profe, duracion } = useRecuadro(courseUuid)
   const ruta = (p: string) => getUriWithOrg(org?.slug || '', p)
-  const actividad = (c: ClaseSemana) => ruta(`/course/${sinPrefijo(courseUuid)}/activity/${c.activity_uuid.replace('activity_', '')}`)
   const esHoy = semana.fecha === hoy
   const porVenir = !!semana.fecha && semana.fecha >= hoy
-  const clases = semana.clases || []
-  const ejercicios = clases.filter((c) => c.tipo === 'ejercicios')
-  const tarea = semana.tarea?.estado
-  const textoTarea =
-    tarea === 'corregida' ? 'Corregida: escucha la corrección' : tarea === 'entregada' ? 'Entregada' : semana.abierta ? `Hasta el ${diaCorto(semana.limite)}` : 'Se abre el día de la clase'
-  const linea = [semana.fecha ? `${DIAS[dia(semana.fecha).getDay()]} ${diaCorto(semana.fecha).replace(/^\S+\s/, '')}` : '', hora, profe ? `con ${profe}` : '', duracion]
-    .filter(Boolean)
-    .join(' · ')
+  const pasos = pasosDeSemana(semana, courseUuid, ruta, hoy)
+  const hechos = pasos.filter((p) => p.estado === 'hecho').length
+  const cuando = semana.fecha ? `${DIAS[dia(semana.fecha).getDay()]} ${dia(semana.fecha).getDate()} ${MESES[dia(semana.fecha).getMonth()]}` : ''
+  const meta = [curso, hora, profe ? `con ${profe}` : '', duracion].filter(Boolean).join(' · ')
 
   return (
     <section className={`${TARJETA} overflow-hidden`}>
-      <div className="p-5 sm:p-6 flex gap-4">
-        {semana.fecha ? <FechaGrande fecha={semana.fecha} /> : null}
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#025dc7]">{rotulo}</span>
-            {esHoy && <span className="px-2 py-0.5 rounded-full bg-[#4da3ff] text-[#0a1656] text-[11px] font-bold">Hoy</span>}
+      <div className="px-5 sm:px-6 pt-5 pb-4">
+        <div className="flex items-center gap-2 text-[12.5px] font-semibold text-[#0b2da0]">
+          <span className="uppercase tracking-[0.08em]">{rotulo}</span>
+          {cuando ? <span className="text-[#8A91AD] font-medium first-letter:uppercase">· {cuando}</span> : null}
+          {esHoy && <span className="ml-1 px-2 py-0.5 rounded-md bg-[#EAF0FE] text-[#0b2da0] text-[11px] font-bold">Hoy</span>}
+        </div>
+        <div className="mt-1.5 flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="text-[21px] sm:text-[23px] font-bold text-[#0B1033] leading-tight" style={POPPINS}>
+              {semana.tema || 'Clase de la semana'}
+            </h2>
+            <p className="mt-1 text-[13.5px] text-[#5B6382]">{meta}</p>
           </div>
-          <h2 className="mt-1 text-[21px] sm:text-[23px] font-bold text-[#0B1033] leading-tight" style={POPPINS}>
-            {semana.tema || 'Clase de la semana'}
-          </h2>
-          <p className="mt-1 text-[13.5px] text-[#5B6382] first-letter:uppercase">
-            {curso}
-            {linea ? ` · ${linea}` : ''}
-          </p>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Link
+            href={ruta(`/course/${sinPrefijo(courseUuid)}`)}
+            className={`shrink-0 inline-flex items-center h-9 px-4 rounded-lg text-[13.5px] font-semibold ${
+              esHoy ? 'bg-[#0b2da0] text-white hover:bg-[#0a2690]' : 'border border-[#DDE3F0] text-[#0B1033] hover:bg-[#F7F9FD]'
+            }`}
+          >
+            {esHoy ? 'Entrar a la clase' : 'Ver la clase'}
+          </Link>
+        </div>
+        {(porVenir && !equipo) || (equipo && semana.confirmaciones) ? (
+          <div className="mt-4">
             {porVenir && !equipo ? <Vienes semana={semana} courseUuid={courseUuid} /> : null}
             {equipo && semana.confirmaciones ? (
-              <span className="inline-flex items-center gap-1.5 text-[13px] text-[#3B4262]">
-                <Users size={15} className="text-[#025dc7]" />
-                {semana.confirmaciones.si} vienen · {semana.confirmaciones.no} no pueden
+              <span className="text-[13px] text-[#3B4262]">
+                <b>{semana.confirmaciones.si}</b> vienen · <b>{semana.confirmaciones.no}</b> no pueden
               </span>
             ) : null}
-            <Link
-              href={ruta(`/course/${sinPrefijo(courseUuid)}`)}
-              className={`ml-auto inline-flex items-center gap-2 h-9 px-4 rounded-lg text-[13.5px] font-bold ${
-                esHoy ? 'bg-[#4da3ff] text-[#0a1656] hover:bg-[#5eb4ff]' : 'bg-[#EEF2FA] text-[#1D0084] hover:bg-[#E3EAF8]'
-              }`}
-            >
-              <Video size={16} /> {esHoy ? 'Entrar a la clase' : 'Ver la clase'}
-            </Link>
+          </div>
+        ) : null}
+      </div>
+      {pasos.length ? (
+        <div className="border-t border-[#EEF1F7]">
+          <div className="flex items-center justify-between px-5 pt-3 pb-1">
+            <span className="text-[12px] font-semibold text-[#8A91AD]">Tu semana</span>
+            <span className="text-[12px] text-[#8A91AD]">
+              {hechos} de {pasos.length}
+            </span>
+          </div>
+          <div className="pb-2">
+            {pasos.map((p) => (
+              <FilaPaso key={p.key} p={p} />
+            ))}
           </div>
         </div>
-      </div>
-      <div className="border-t border-[#EEF1F7] bg-[#FBFCFE]">
-        {clases
-          .filter((c) => c.tipo !== 'ejercicios')
-          .map((c) => (
-            <Paso key={c.activity_uuid} href={actividad(c)} icono={ICONO[c.tipo] || <FileText size={17} />} titulo={NOMBRE[c.tipo] || c.nombre} detalle={c.tipo === 'presentacion' ? 'Para repasar antes de la clase' : undefined} hecho={c.hecha} />
-          ))}
-        {ejercicios.length ? (
-          <Paso
-            href={actividad(ejercicios.find((c) => !c.hecha) || ejercicios[0])}
-            icono={ICONO.ejercicios}
-            titulo="Ejercicios"
-            detalle={`${ejercicios.filter((c) => c.hecha).length} de ${ejercicios.length} hechos`}
-            hecho={ejercicios.every((c) => c.hecha)}
-          />
-        ) : null}
-        {semana.ocultas ? <Paso icono={<Clock size={17} />} titulo="Ejercicios y tarea" detalle="Se abren el día de la clase" /> : null}
-        {semana.tiene_tarea ? (
-          <Paso href={ruta(`/tarea/${semana.id}`)} icono={<PenLine size={17} />} titulo="Tarea" detalle={textoTarea} hecho={tarea === 'entregada' || tarea === 'corregida'} />
-        ) : null}
-      </div>
+      ) : null}
     </section>
   )
 }
@@ -356,7 +382,7 @@ export function ClasesEstaSemana() {
 
 const ESTADO: Record<string, { texto: string; cls: string }> = {
   pendiente: { texto: 'Por entregar', cls: 'bg-[#FFF6E5] text-[#8A5A00]' },
-  entregada: { texto: 'Entregada', cls: 'bg-[#EEF2FA] text-[#1D0084]' },
+  entregada: { texto: 'Entregada', cls: 'bg-[#EEF2FA] text-[#0b2da0]' },
   corregida: { texto: 'Corregida', cls: 'bg-[#E9F7EF] text-[#13703D]' },
 }
 
@@ -378,7 +404,7 @@ function TareasDeUnaClase({ uuid, nombre, mostrarNombre }: { uuid: string; nombr
             href={getUriWithOrg(org?.slug || '', `/tarea/${s.id}`)}
             className="flex items-center gap-3 px-4 py-3.5 border-t border-[#EEF1F7] first:border-t-0 hover:bg-[#F7F9FD]"
           >
-            <PenLine size={17} className="text-[#1D0084] shrink-0" />
+            <PenLine size={17} className="text-[#0b2da0] shrink-0" />
             <span className="flex-1 min-w-0">
               <span className="block text-[14.5px] font-semibold text-[#0B1033] truncate">{s.tema}</span>
               <span className="block text-[12.5px] text-[#6B7393]">

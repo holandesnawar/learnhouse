@@ -61,6 +61,7 @@ export default function NotificationsBell(props: { orgslug: string }) {
   const [open, setOpen] = useState(false)
   // Quitadas en esta pantalla: se ocultan sin esperar al servidor.
   const [hidden, setHidden] = useState<string[]>([])
+  const [filtro, setFiltro] = useState<'todas' | 'nuevas'>('todas')
   const boxRef = useRef<HTMLDivElement>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -79,6 +80,7 @@ export default function NotificationsBell(props: { orgslug: string }) {
   })
 
   const items = (data?.items || []).filter((n) => !hidden.includes(n.id))
+  const lista = filtro === 'nuevas' ? items.filter((n) => n.is_new) : items
   const unseen = data?.unseen || 0
 
   /** Debajo de la campana, pegado a su derecha y siempre dentro de la pantalla. */
@@ -143,11 +145,11 @@ export default function NotificationsBell(props: { orgslug: string }) {
         onClick={toggle}
         aria-label="Notificaciones"
         title="Notificaciones"
-        className="relative p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/[0.08] transition-colors"
+        className="relative p-1.5 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-colors"
       >
         <Bell size={19} />
         {unseen > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
+          <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 rounded-full bg-rose-500 ring-2 ring-[#0b2da0] text-white text-[10px] font-bold flex items-center justify-center">
             {unseen > 9 ? '9+' : unseen}
           </span>
         )}
@@ -159,7 +161,7 @@ export default function NotificationsBell(props: { orgslug: string }) {
       {open && pos && typeof document !== 'undefined' && createPortal(
         <div
           ref={panelRef}
-          className="lh-thin-scroll fixed overflow-y-auto bg-white rounded-xl shadow-2xl border border-[#DDE6F5]"
+          className="lh-thin-scroll fixed overflow-y-auto bg-white rounded-xl shadow-[0_12px_40px_rgba(10,22,86,0.16)] border border-[#E4E8F2]"
           style={{
             top: pos.top,
             left: pos.left,
@@ -168,23 +170,31 @@ export default function NotificationsBell(props: { orgslug: string }) {
             zIndex: 'var(--z-modal-content, 220)',
           }}
         >
-          <div className="px-4 py-3 border-b border-[#EEF2FB]">
-            <p className="text-[14px] font-bold text-[#0a1656]">Notificaciones</p>
-            <p className="text-[12px] text-gray-500">Lo que ha pasado en la escuela</p>
+          <div className="px-4 pt-3.5 pb-2 border-b border-[#EEF1F7]">
+            <p className="text-[15px] font-bold text-[#0B1033]">Notificaciones</p>
+            <div className="mt-2 flex gap-1">
+              {(['todas', 'nuevas'] as const).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setFiltro(f)}
+                  className={`h-7 px-2.5 rounded-md text-[12.5px] font-semibold ${filtro === f ? 'bg-[#EAF0FE] text-[#0b2da0]' : 'text-[#6B7393] hover:bg-[#F2F5FB]'}`}
+                >
+                  {f === 'todas' ? 'Todas' : 'Sin leer'}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {items.length === 0 ? (
-            <div className="px-4 py-8 text-center">
-              <Bell size={22} className="mx-auto text-[#4da3ff] mb-2" />
-              <p className="text-[13px] text-gray-500 leading-relaxed">
-                Todavía no hay nada. Aquí te avisamos cuando haya mensajes
-                nuevos en los canales, te mencionen, la escuela mande un aviso o
-                se te abra un módulo nuevo.
+          {lista.length === 0 ? (
+            <div className="px-4 py-10 text-center">
+              <p className="text-[13.5px] text-[#6B7393] leading-relaxed">
+                {filtro === 'nuevas' ? 'No tienes nada sin leer.' : 'Todavía no hay nada. Aquí te avisamos de mensajes nuevos, menciones, avisos de la escuela y módulos que se abren.'}
               </p>
             </div>
           ) : (
             <ul>
-              {items.map((n) => {
+              {lista.map((n) => {
                 const style = KIND_STYLE[n.kind] || KIND_STYLE.mention
                 const Icon = style.icon
                 return (
@@ -202,26 +212,25 @@ export default function NotificationsBell(props: { orgslug: string }) {
                     <Link
                       href={buildHref(props.orgslug, n.url)}
                       onClick={() => setOpen(false)}
-                      className={`flex gap-3 pl-4 pr-10 py-3 hover:bg-[#F7FAFF] transition-colors ${
-                        n.is_new ? 'bg-[#F0F5FF]' : ''
-                      }`}
+                      className="flex gap-3 pl-4 pr-10 py-3 hover:bg-[#F7F9FD] transition-colors"
                     >
-                      <span className={`mt-0.5 shrink-0 ${style.color}`}>
-                        <Icon size={16} />
+                      <span className="mt-0.5 w-8 h-8 rounded-full bg-[#F2F5FB] text-[#6B7393] flex items-center justify-center shrink-0">
+                        <Icon size={15} />
                       </span>
-                      <span className="min-w-0">
-                        <span className="block text-[12.5px] font-bold text-[#0a1656] leading-snug">
+                      <span className="min-w-0 flex-1">
+                        <span className={`block text-[13.5px] leading-snug ${n.is_new ? 'font-semibold text-[#0B1033]' : 'font-medium text-[#3B4262]'}`}>
                           {n.title}
                         </span>
                         {n.excerpt && (
-                          <span className="block mt-0.5 text-[13px] text-gray-600 leading-snug line-clamp-2">
+                          <span className="block mt-0.5 text-[13px] text-[#6B7393] leading-snug line-clamp-2">
                             {n.excerpt}
                           </span>
                         )}
-                        <span className="block mt-1 text-[11.5px] text-gray-400">
+                        <span className="block mt-1 text-[12px] text-[#A3AAC2]">
                           {formatWhen(n.date)}
                         </span>
                       </span>
+                      {n.is_new ? <span className="mt-2 w-2 h-2 rounded-full bg-[#0b2da0] shrink-0" aria-label="Sin leer" /> : null}
                     </Link>
                   </li>
                 )
