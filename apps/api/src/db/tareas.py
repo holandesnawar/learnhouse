@@ -52,6 +52,10 @@ class TareaSemana(SQLModel, table=True):
     asistencia: str = ""
     # «¿Vienes a la clase?» (rediseño, 07/11/2026): {user_id: {va, at}}.
     confirmaciones: str = ""
+    # Alumnos que ESA semana van a la clase del otro grupo (08/11/2026,
+    # services/tareas/cambio_semana.py): {user_id: {"destino": id de la
+    # semana del otro grupo, "por", "at"}}. Va en la semana de SU clase.
+    cambios: str = ""
 
 
 class TareaEntrega(SQLModel, table=True):

@@ -77,6 +77,8 @@ export interface Semana {
   lista?: { pasada: boolean; vinieron: number }
   /** «¿Vienes a la clase?» de quien pregunta: true, false o sin contestar. */
   voy?: boolean | null
+  /** Esa semana va a la clase del otro grupo (08/11/2026, solo al alumno). */
+  cambio?: { semana_id: number; course_uuid: string; curso: string; fecha: string; dia: string } | null
   /** Solo al equipo: cuántos dijeron que vienen y cuántos que no. */
   confirmaciones?: { si: number; no: number }
 }
@@ -182,7 +184,17 @@ export interface ListaClase {
   semana: { id: number; tema: string; fecha: string }
   /** Solo el día de la clase o después. */
   se_puede: boolean
-  alumnos: { user_id: number; nombre: string; fue: boolean | null; en_sala: boolean | null; voy?: boolean | null }[]
+  alumnos: {
+    user_id: number
+    nombre: string
+    fue: boolean | null
+    en_sala: boolean | null
+    voy?: boolean | null
+    /** Viene esta semana de la otra clase («martes 10 nov»). */
+    viene_de?: string
+    /** Esta semana va a la clase del otro grupo. */
+    va_a_otra?: boolean
+  }[]
   pasada: boolean
   por: string
   at: string

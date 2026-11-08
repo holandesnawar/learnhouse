@@ -154,6 +154,9 @@ export function PasarLista({
                         </button>
                         <button onClick={() => poner(a.user_id, true)} className="min-w-0 flex-1 text-left">
                           <span className="block truncate text-[14px] font-medium text-gray-900">{a.nombre}</span>
+                          {/* Una semana en la otra clase (08/11): quién viene y quién se va. */}
+                          {a.viene_de ? <span className="block text-[12px] font-medium text-[#0b2da0]">Viene esta semana de la clase del {a.viene_de}</span> : null}
+                          {a.va_a_otra ? <span className="block text-[12px] font-medium text-[#8A6A2A]">Esta semana va a la clase del otro grupo</span> : null}
                           {a.en_sala !== null || a.voy != null ? (
                             <span className="block text-[11.5px] text-[#8A94AD]">
                               {[

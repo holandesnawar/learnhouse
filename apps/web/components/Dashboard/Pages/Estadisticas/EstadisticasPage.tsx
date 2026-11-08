@@ -126,6 +126,28 @@ const SECCIONES: Record<string, { titulo: string; icono: React.ReactNode; que: s
 /** Las pestañas de «Material de venta», en este orden. */
 const MATERIAL = ['guion', 'enfoque', 'recursos']
 
+/**
+ * Secciones que van juntas en una sola entrada de la barra, con sus pestañas
+ * arriba (08/11/2026, limpieza del panel: «que no esté todo separado»).
+ * Las direcciones (`?tab=…`) no cambian: los enlaces guardados siguen.
+ */
+const PAQUETES: { tabs: string[]; titulo: string; que: string; nombres?: Record<string, string> }[] = [
+  { tabs: MATERIAL, titulo: 'Material de venta', que: 'Lo que hace falta para la llamada: el guion, el enfoque del programa y los recursos.' },
+  {
+    tabs: ['clientes', 'plazos'],
+    titulo: 'Clientes',
+    que: 'Quién ha pagado, cuánto, la comisión del closer y quién paga a plazos.',
+    nombres: { clientes: 'Clientes', plazos: 'Pagos a plazos' },
+  },
+  {
+    tabs: ['seguimiento', 'camino'],
+    titulo: 'Seguimiento',
+    que: 'Cada semana de las clases (quién va al día y qué hay por corregir) y el camino de 16 semanas de cada alumno.',
+    nombres: { seguimiento: 'Semana a semana', camino: 'Camino de 16 semanas' },
+  },
+]
+const paqueteDe = (t: string) => PAQUETES.find((p) => p.tabs.includes(t))
+
 /** Nombre bonito para el identificador de producto. */
 function productName(id: string): string {
   const known: Record<string, string> = {
@@ -333,13 +355,13 @@ export default function EstadisticasPage() {
           «Material de venta», con sus pestañas. */}
       <CabeceraPagina
         icono={SECCIONES[tab]?.icono ?? <BarChart3 size={20} />}
-        titulo={MATERIAL.includes(tab) ? 'Material de venta' : SECCIONES[tab]?.titulo ?? 'Estadísticas'}
-        descripcion={MATERIAL.includes(tab) ? 'Lo que hace falta para la llamada: el guion, el enfoque del programa y los recursos.' : SECCIONES[tab]?.que}
-        pestanas={
-          MATERIAL.includes(tab)
-            ? MATERIAL.map((m) => ({ href: `/dash/estadisticas?tab=${m}`, label: SECCIONES[m].titulo, activa: tab === m }))
-            : undefined
-        }
+        titulo={paqueteDe(tab)?.titulo ?? SECCIONES[tab]?.titulo ?? 'Estadísticas'}
+        descripcion={paqueteDe(tab)?.que ?? SECCIONES[tab]?.que}
+        pestanas={(() => {
+          const pq = paqueteDe(tab)
+          // El closer solo ve las pestañas que puede abrir (el Material de venta entero).
+          return pq ? pq.tabs.map((m) => ({ href: `/dash/estadisticas?tab=${m}`, label: pq.nombres?.[m] ?? SECCIONES[m].titulo, activa: tab === m })) : undefined
+        })()}
         acciones={
           <button
             onClick={refresh}

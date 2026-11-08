@@ -34,13 +34,16 @@ export function pasosDeSemana(semana: Semana, courseUuid: string, ruta: (p: stri
   const out: PasoSemana[] = []
   for (const c of pres)
     out.push({ key: c.activity_uuid, titulo: NOMBRE.presentacion, detalle: 'Antes de la clase, para llegar con el tema visto', href: actividad(c), estado: c.hecha ? 'hecho' : 'pendiente' })
-  if (semana.fecha) {
-    const pasada = semana.fecha < hoy
+  // Si esa semana va a la clase del otro grupo (08/11/2026), su día y su sala.
+  const fechaClase = semana.cambio?.fecha || semana.fecha
+  if (fechaClase) {
+    const pasada = fechaClase < hoy
     out.push({
       key: 'clase',
-      titulo: semana.fecha === hoy ? 'Ven a la clase, es hoy' : pasada ? 'Clase en directo' : 'Ven a la clase en directo',
-      detalle: `${DIAS[dia(semana.fecha).getDay()]} ${diaCorto(semana.fecha).replace(/^\S+\s/, '')}`,
-      href: ruta(`/course/${sinPrefijo(courseUuid)}`),
+      titulo: fechaClase === hoy ? 'Ven a la clase, es hoy' : pasada ? 'Clase en directo' : 'Ven a la clase en directo',
+      detalle:
+        `${DIAS[dia(fechaClase).getDay()]} ${diaCorto(fechaClase).replace(/^\S+\s/, '')}` + (semana.cambio ? ' · con el otro grupo' : ''),
+      href: semana.cambio && fechaClase === hoy ? ruta(`/sala/${sinPrefijo(semana.cambio.course_uuid)}`) : ruta(`/course/${sinPrefijo(courseUuid)}`),
       estado: pasada ? 'hecho' : 'pendiente',
     })
   }

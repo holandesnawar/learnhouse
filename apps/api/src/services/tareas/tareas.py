@@ -655,8 +655,14 @@ async def semanas_para_alumno(
         ],
     )
     confs = {f.id: leer_confirmaciones(getattr(f, "confirmaciones", "")) for f in filas}
+    # Si esa semana va a la clase del otro grupo (08/11, cambio_semana.py).
+    from src.services.tareas.cambio_semana import cambio_de
+
+    por_id = {f.id: f for f in filas}
     for s in semanas:
         s["voy"] = (confs.get(s["id"]) or {}).get(str(user_id), {}).get("va")
+        if not equipo and por_id.get(s["id"]) is not None and getattr(por_id[s["id"]], "cambios", ""):
+            s["cambio"] = await cambio_de(por_id[s["id"]], user_id, db_session)
         if equipo:
             s["confirmaciones"] = resumen_confirmaciones(confs.get(s["id"]) or {})
     if not equipo:
@@ -2017,6 +2023,24 @@ async def lista_de_clase(org_id: int, s: TareaSemana, db_session: AsyncSession) 
             except salas.SalaError:
                 en_sala = None
     alumnos = await alumnos_del_curso(org_id, course, db_session)
+    # Una semana en la clase del otro grupo (08/11/2026, cambio_semana.py):
+    # los que vienen de la otra clase se añaden aquí; los de aquí que esta
+    # semana van a la otra salen marcados.
+    from src.services.tareas.cambio_semana import invitados, leer_cambios
+
+    vienen = await invitados(s, db_session)
+    se_van = leer_cambios(getattr(s, "cambios", ""))
+    ya = {a["user_id"] for a in alumnos}
+    if vienen:
+        from src.db.users import User
+
+        for uid, info in vienen.items():
+            if uid in ya:
+                continue
+            u = await db_session.get(User, uid)
+            if u is not None:
+                nombre = " ".join(x for x in [u.first_name or "", u.last_name or ""] if x).strip() or u.username or u.email
+                alumnos.append({"user_id": uid, "nombre": nombre, "invitado": info})
     filas = []
     for a in alumnos:
         m = marcas.get(str(a["user_id"]))
@@ -2027,6 +2051,9 @@ async def lista_de_clase(org_id: int, s: TareaSemana, db_session: AsyncSession) 
                 "fue": (bool(m["fue"]) if m is not None else None),
                 "en_sala": (None if en_sala is None else str(a["user_id"]) in en_sala),
                 "voy": confs.get(str(a["user_id"]), {}).get("va"),
+                # «Viene del martes» / «Esta semana va al jueves».
+                "viene_de": (a.get("invitado") or {}).get("dia", ""),
+                "va_a_otra": str(a["user_id"]) in se_van,
             }
         )
     ultima = max((m.get("at") or "" for m in marcas.values()), default="")
@@ -2054,7 +2081,10 @@ async def pasar_lista(org_id: int, s: TareaSemana, marcas: dict, autor: str, db_
     course = await curso_de(s.course_uuid, db_session)
     if course is None or course.org_id != org_id:
         raise TareaError("No existe esa clase", 404)
+    from src.services.tareas.cambio_semana import invitados
+
     de_la_clase = {a["user_id"] for a in await alumnos_del_curso(org_id, course, db_session)}
+    de_la_clase |= set(await invitados(s, db_session))
     actual = leer_asistencia(getattr(s, "asistencia", ""))
     ahora = _ahora()
     for k, v in (marcas or {}).items():

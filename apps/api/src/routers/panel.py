@@ -121,6 +121,46 @@ async def api_mover(
     return r
 
 
+class Intento(BaseModel):
+    email: str
+    intento: int
+    que: str  # "llamada" | "whatsapp"
+    nota: str = ""
+
+
+@router.post("/org/{org_id}/intentos", summary="Apunta una llamada o un WhatsApp de un intento de contacto (closer y administradores).")
+async def api_apuntar_intento(
+    request: Request,
+    org_id: int,
+    data: Intento,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.panel.intentos import apuntar
+
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    r = await apuntar(data.email, data.intento, data.que, data.nota, _nombre(current_user), db_session)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    return r
+
+
+@router.delete("/org/{org_id}/intentos", summary="Quita una llamada o un WhatsApp apuntado (closer y administradores).")
+async def api_quitar_intento(
+    request: Request,
+    org_id: int,
+    email: str,
+    intento: int,
+    que: str,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.panel.intentos import quitar
+
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    return await quitar(email, intento, que, db_session)
+
+
 class Asignacion(BaseModel):
     email: str
     # 0 = quitarle el closer (vuelve a «Por asignar»).
@@ -830,6 +870,27 @@ async def _solo_admin(request: Request, org_id: int, current_user, db_session: A
         raise HTTPException(status_code=403, detail="Solo administradores")
 
 
+class VerComo(BaseModel):
+    user_id: int
+
+
+@router.post("/org/{org_id}/ver-como", summary="Sesión de solo lectura para ver la escuela como un alumno (solo administradores).")
+async def api_ver_como(
+    request: Request,
+    org_id: int,
+    data: VerComo,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.panel.ver_como import entrada
+
+    await _solo_admin(request, org_id, current_user, db_session)
+    r = await entrada(org_id, current_user.id, data.user_id, db_session)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    return r
+
+
 @router.get("/org/{org_id}/ads", summary="Campañas de anuncios con los leads, matrículas y ventas que trajo cada una.")
 async def api_ads(
     request: Request,
@@ -1099,3 +1160,45 @@ async def api_organizar_mover(
         return await organizar.mover_alumno(org_id, data.user_id, data.sacar_de, data.meter_en, db_session)
     except organizar.OrganizarError as exc:
         raise _org_error(exc)
+
+
+# ── Una semana en la clase del otro grupo (08/11/2026) ──
+# Ver services/tareas/cambio_semana.py. Solo administradores.
+
+
+class OrgCambioIn(BaseModel):
+    user_id: int
+    semana_id: int
+    # 0 = deshacer (vuelve a su clase).
+    destino_id: int = 0
+
+
+@router.get("/org/{org_id}/organizar/alumno/{user_id}/semanas", summary="Las semanas que vienen de un alumno y a qué clase del otro grupo podría ir.")
+async def api_organizar_semanas_alumno(
+    org_id: int,
+    user_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.routers.tareas import _admin
+    from src.services.tareas.cambio_semana import opciones
+
+    await _admin(current_user, org_id, db_session)
+    return {"semanas": await opciones(org_id, user_id, db_session)}
+
+
+@router.put("/org/{org_id}/organizar/alumno/cambio", summary="Esta semana va a la clase del otro grupo (o deshacerlo).")
+async def api_organizar_cambio(
+    org_id: int,
+    data: OrgCambioIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.routers.tareas import _admin
+    from src.services.tareas.cambio_semana import CambioError, cambiar
+
+    await _admin(current_user, org_id, db_session)
+    try:
+        return await cambiar(org_id, data.semana_id, data.user_id, data.destino_id or None, _nombre(current_user), db_session)
+    except CambioError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.mensaje)

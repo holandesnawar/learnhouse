@@ -144,8 +144,14 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
     // El dinero aparte de las ventas: lo cobrado (facturas) y lo gastado.
     titulo: 'Dinero',
     items: [
-      { href: '/dash/estadisticas?tab=clientes', label: 'Clientes', icon: I(UserCheck), claves: 'pagos comisiones alumnos que pagaron' },
-      { href: '/dash/estadisticas?tab=plazos', label: 'Pagos a plazos', icon: I(CalendarDots), claves: 'cuotas suscripcion fallidos' },
+      // Clientes y Pagos a plazos en una entrada, con sus pestañas (08/11/2026).
+      {
+        href: '/dash/estadisticas?tab=clientes',
+        label: 'Clientes',
+        icon: I(UserCheck),
+        tambien: ['/dash/estadisticas?tab=plazos'],
+        claves: 'pagos comisiones alumnos que pagaron plazos cuotas suscripcion fallidos',
+      },
       { href: '/dash/estadisticas?tab=facturas', label: 'Facturas', icon: I(Receipt), claves: 'stripe dar de alta a mano gestoria' },
       { href: '/dash/estadisticas?tab=gastos', label: 'Gastos', icon: I(Wallet), claves: 'margen coste software' },
     ],
@@ -154,8 +160,14 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
     titulo: 'Alumnos',
     items: [
       { href: '/dash/estadisticas?tab=progreso', label: 'Progreso', icon: I(ChartLineUp), claves: 'recordatorio sin entrar modulos' },
-      { href: '/dash/estadisticas?tab=seguimiento', label: 'Seguimiento semanal', icon: I(ClipboardText), claves: 'tareas corregir check-in deberes' },
-      { href: '/dash/estadisticas?tab=camino', label: 'Camino (16 semanas)', icon: I(Path), claves: 'asistencia directo semanas' },
+      // Seguimiento semanal y Camino de 16 semanas en una entrada (08/11/2026).
+      {
+        href: '/dash/estadisticas?tab=seguimiento',
+        label: 'Seguimiento',
+        icon: I(ClipboardText),
+        tambien: ['/dash/estadisticas?tab=camino'],
+        claves: 'tareas corregir check-in deberes camino 16 semanas asistencia directo',
+      },
       { href: '/dash/estadisticas?tab=tandas', label: 'Tandas y grupos', icon: I(Tag), claves: 'beta programa nuevo quien ve que' },
       { href: '/dash/users/settings/users', label: 'Usuarios', icon: I(UserCircle), es: (p) => p.includes('/dash/users') && !p.includes('/usergroups'), claves: 'cuentas roles' },
     ],
@@ -189,15 +201,15 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
   {
     titulo: 'Web',
     items: [
-      { href: '/dash/estadisticas?tab=paginas', label: 'Páginas de la web', icon: I(Globe), claves: 'landing embudo admision' },
       {
-        // Una sola entrada (04/11): la página ya tiene sus pestañas, «Enlaces y
-        // redirecciones», «Lista técnica» y «Enlaces UTM».
+        // Una sola entrada para la web (08/11/2026): las páginas, los enlaces
+        // cortos, la lista técnica y los UTM, como pestañas de /dash/webs.
         href: '/dash/webs',
-        label: 'Enlaces y UTM',
-        icon: I(LinkSimple, { weight: 'bold' }),
+        label: 'Web',
+        icon: I(Globe),
+        tambien: ['/dash/estadisticas?tab=paginas'],
         es: (p) => p.includes('/dash/webs'),
-        claves: 'redirecciones utm enlaces cortos',
+        claves: 'paginas landing embudo admision redirecciones utm enlaces cortos',
       },
     ],
   },
@@ -228,7 +240,8 @@ export function gruposDelCloser(veNumeros: boolean): Grupo[] {
     { titulo: '', items: [INICIO] },
     { titulo: 'Vender', items: [por('Matrículas'), por('Llamadas'), por('Contactos'), por('Tareas'), por('Material de venta')] },
     { titulo: 'Números', items: numeros },
-    { titulo: 'Web', items: [por('Páginas de la web')] },
+    // El closer no entra en /dash/webs: ve solo las páginas de la web, en Estadísticas.
+    { titulo: 'Web', items: [{ href: '/dash/estadisticas?tab=paginas', label: 'Páginas de la web', icon: I(Globe), claves: 'landing embudo admision' }] },
   ]
 }
 

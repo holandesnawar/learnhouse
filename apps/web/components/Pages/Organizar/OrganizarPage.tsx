@@ -19,6 +19,7 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { getAPIUrl, getUriWithOrg } from '@services/config/config'
 import { colorDeEtiqueta } from '@/lib/nawar/cursos'
+import { BotonVerComo } from '@components/Objects/VerComo/VerComo'
 
 const POPPINS = { fontFamily: 'var(--font-poppins), system-ui, sans-serif' }
 const TARJETA = 'rounded-2xl border border-[#E4E8F2] bg-white'
@@ -366,8 +367,115 @@ function Grupos({ datos, recargar }: { datos: Datos; recargar: () => void }) {
   )
 }
 
+// ── Una semana en la clase del otro grupo (08/11/2026) ─────────────────────
+// services/tareas/cambio_semana.py: sus tareas siguen en su clase; solo ese
+// día va a la del otro grupo (lista y sala). La semana siguiente, la suya.
+
+type OpcionSemana = {
+  semana_id: number
+  curso: string
+  fecha: string
+  dia: string
+  tema: string
+  destinos: { id: number; fecha: string; dia: string; tema: string; curso: string }[]
+  cambio: number | null
+}
+
+function CambiarSemana({ alumno, onCerrar }: { alumno: Alumno; onCerrar: () => void }) {
+  const { llamar } = useApi()
+  const [lista, setLista] = useState<OpcionSemana[] | null>(null)
+  const [error, setError] = useState('')
+  const [ocupado, setOcupado] = useState(0)
+  const cargar = () =>
+    llamar(`/alumno/${alumno.id}/semanas`, 'GET')
+      .then((d) => setLista(d.semanas || []))
+      .catch((e) => setError(e?.message || 'No se ha podido cargar'))
+  React.useEffect(() => {
+    cargar()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alumno.id])
+  async function poner(semanaId: number, destinoId: number) {
+    setOcupado(semanaId)
+    try {
+      await llamar('/alumno/cambio', 'PUT', { user_id: alumno.id, semana_id: semanaId, destino_id: destinoId })
+      toast.success(destinoId ? 'Hecho: esa semana va a la otra clase' : 'Hecho: vuelve a su clase')
+      await cargar()
+    } catch (e: any) {
+      toast.error(e?.message || 'No se ha podido')
+    } finally {
+      setOcupado(0)
+    }
+  }
+  return (
+    <div className="fixed inset-0 flex items-end sm:items-center justify-center p-0 sm:p-6" style={{ zIndex: 'var(--z-modal, 1000)' as any }}>
+      <div className="absolute inset-0 bg-[#0a1656]/40" onClick={onCerrar} />
+      <div className="relative w-full sm:max-w-[560px] max-h-[85dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white p-5 sm:p-6">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-[18px] font-bold text-[#0B1033]" style={POPPINS}>
+              Cambiar una semana · {alumno.nombre}
+            </h3>
+            <p className="mt-1 text-[13.5px] text-[#5B6382]">
+              Esa semana va a la clase del otro grupo. Sus tareas siguen en su clase y la semana siguiente vuelve a la suya.
+            </p>
+          </div>
+          <button onClick={onCerrar} aria-label="Cerrar" className="p-1.5 rounded-lg text-[#6B7393] hover:bg-[#F2F5FB]">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="mt-4 space-y-3">
+          {error ? <p className="text-[13.5px] text-[#B42323]">{error}</p> : null}
+          {lista === null && !error ? <p className="text-[13.5px] text-[#6B7393]">Cargando…</p> : null}
+          {lista && !lista.length ? (
+            <p className="text-[13.5px] text-[#6B7393]">
+              No hay semanas que vengan con la misma clase en el otro grupo. Hace falta que la semana esté creada en las dos clases.
+            </p>
+          ) : null}
+          {(lista || []).map((o) => (
+            <div key={o.semana_id} className="rounded-xl border border-[#E4E8F2] p-3.5">
+              <p className="text-[12.5px] text-[#6B7393]">
+                {o.curso} · {o.dia}
+              </p>
+              <p className="text-[14.5px] font-semibold text-[#0B1033]">{o.tema || 'Clase de la semana'}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {o.cambio ? (
+                  <>
+                    <span className="inline-flex items-center h-8 px-3 rounded-lg bg-[#EAF0FE] text-[13px] font-semibold text-[#0b2da0]">
+                      Va a la del {o.destinos.find((d) => d.id === o.cambio)?.dia || 'otro grupo'}
+                    </span>
+                    <button
+                      disabled={ocupado === o.semana_id}
+                      onClick={() => poner(o.semana_id, 0)}
+                      className="h-8 px-3 rounded-lg border border-[#DDE3F0] text-[13px] font-semibold text-[#3B4262] hover:border-[#0b2da0]"
+                    >
+                      Deshacer
+                    </button>
+                  </>
+                ) : (
+                  o.destinos.map((d) => (
+                    <button
+                      key={d.id}
+                      disabled={ocupado === o.semana_id}
+                      onClick={() => poner(o.semana_id, d.id)}
+                      className="h-8 px-3 rounded-lg border border-[#DDE3F0] text-[13px] font-semibold text-[#0b2da0] hover:border-[#0b2da0]"
+                    >
+                      Ir a la del {d.dia}
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function Alumnos({ datos, recargar }: { datos: Datos; recargar: () => void }) {
   const mover = useMover(recargar)
+  const { org } = useApi()
+  const [cambiando, setCambiando] = useState<Alumno | null>(null)
   const [q, setQ] = useState('')
   const [grupo, setGrupo] = useState<number | 'avisos' | ''>('')
   const nombreGrupo = (id: number) => datos.grupos.find((g) => g.id === id)?.nombre || `#${id}`
@@ -436,10 +544,23 @@ function Alumnos({ datos, recargar }: { datos: Datos; recargar: () => void }) {
                 </p>
               ) : null}
             </div>
+            {/* Ver la escuela como la ve este alumno y cambiarle una semana (08/11). */}
+            {datos.admin && org?.id ? (
+              <div className="flex flex-wrap gap-2 shrink-0">
+                <button
+                  onClick={() => setCambiando(a)}
+                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-[#DDE3F0] bg-white text-[13px] font-semibold text-[#3B4262] hover:border-[#0b2da0]"
+                >
+                  Cambiar una semana
+                </button>
+                <BotonVerComo orgId={org.id} userId={a.id} nombre={a.nombre} />
+              </div>
+            ) : null}
           </div>
         ))}
         {!lista.length ? <p className="px-5 py-6 text-[14px] text-[#6B7393]">Nadie con ese filtro.</p> : null}
       </div>
+      {cambiando ? <CambiarSemana alumno={cambiando} onCerrar={() => setCambiando(null)} /> : null}
     </div>
   )
 }

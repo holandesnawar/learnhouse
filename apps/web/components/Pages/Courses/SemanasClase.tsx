@@ -481,6 +481,23 @@ export default function SemanasClase({
             </span>
           ) : null}
         </div>
+        {/* Esta semana va a la clase del otro grupo (08/11/2026): sus tareas
+            siguen aquí; solo cambia el día de la clase y la sala. */}
+        {!equipo && semana.cambio ? (
+          <div className="mx-5 sm:mx-6 mb-4 rounded-xl border border-[#CFE0FB] bg-[#F3F7FE] px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+            <p className="flex-1 text-[14px] text-[#0B1033]">
+              Esta semana vas a la clase del <b>{semana.cambio.dia}</b>, con el otro grupo. Tu tarea y tus ejercicios siguen aquí.
+            </p>
+            {semana.cambio.fecha === hoy ? (
+              <Link
+                href={rutaOrg(`/sala/${semana.cambio.course_uuid.replace(/^course_/, '')}`)}
+                className="shrink-0 inline-flex items-center justify-center h-9 px-4 rounded-lg bg-[#0b2da0] text-white text-[13.5px] font-semibold hover:bg-[#0a2690]"
+              >
+                Entrar a la sala
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
         <div className="border-t border-[#EEF1F7]">
           {equipo ? (
             <>

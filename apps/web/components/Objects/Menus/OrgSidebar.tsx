@@ -34,6 +34,7 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import MenuPerfil from '@components/Objects/Menus/MenuPerfil'
+import { FranjaVerComo } from '@components/Objects/VerComo/VerComo'
 import NotificationsBell from '@components/Objects/Menus/NotificationsBell'
 import MessagesBell from '@components/Objects/Menus/MessagesBell'
 import { PANEL_EN_LA_ESCUELA, DashboardMenuItem } from '@/lib/dashboard-menu-items'
@@ -486,6 +487,8 @@ export const OrgSidebar = (props: { orgslug: string }) => {
 
   return (
     <>
+      {/* Mirando la escuela como un alumno (08/11): para volver a tu cuenta. */}
+      <FranjaVerComo />
       {/* Franja de arriba en el móvil: siempre azul, con el menú. */}
       <header className="md:hidden fixed top-0 inset-x-0 h-14 flex items-center gap-3 px-3" style={{ ...FONDO_MARCA, zIndex: 'var(--z-nav)' }}>
         <button onClick={() => setAbierta(true)} aria-label="Menú" className="p-1.5 -ml-1 rounded-lg text-white/85 hover:bg-white/10">

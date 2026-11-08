@@ -334,7 +334,10 @@ function partesModulo(t: string): { num: number | null; nombre: string } {
 function nombreLeccion(c: ClassRow): string {
   if (!c.leccion) return ''
   const l = getLesson(c.leccion.moduleId, c.leccion.lessonId)
-  return l ? String(l.title || '').replace(/^\s*les\s*\d+\s*[-–—:.]\s*/i, '').trim() : ''
+  if (!l) return ''
+  // «Grammatica | De werkwoorden» → «De werkwoorden»: el tema, sin el tipo de lección.
+  const t = String(l.title || '').replace(/^\s*les\s*\d+\s*[-–—:.]\s*/i, '').trim()
+  return t.split('|').pop()!.trim()
 }
 
 function nombreModulo(t: string): string {

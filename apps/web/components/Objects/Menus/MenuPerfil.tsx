@@ -12,6 +12,7 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import UserAvatar from '@components/Objects/UserAvatar'
 import { signOut } from '@components/Contexts/AuthContext'
+import { nombreVerComo, volverDeVerComo } from '@components/Objects/VerComo/VerComo'
 import { getUriWithOrg } from '@services/config/config'
 import { UserCircle, GearSix, LockKey, ChatCircleDots, SquaresFour, SignOut, CaretDown } from '@phosphor-icons/react'
 import {
@@ -94,8 +95,12 @@ export default function MenuPerfil({ claro = false }: { claro?: boolean }) {
           </>
         ) : null}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/login' })} className={`${item} text-[#B42323] focus:text-[#B42323]`}>
-          <SignOut size={18} /> Cerrar sesión
+        {/* Mirando como un alumno (08/11): «salir» es volver a tu cuenta. */}
+        <DropdownMenuItem
+          onClick={() => (nombreVerComo() ? volverDeVerComo() : signOut({ callbackUrl: '/login' }))}
+          className={`${item} text-[#B42323] focus:text-[#B42323]`}
+        >
+          <SignOut size={18} /> {typeof document !== 'undefined' && nombreVerComo() ? 'Volver a mi cuenta' : 'Cerrar sesión'}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

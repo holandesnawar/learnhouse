@@ -5308,6 +5308,46 @@ la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
   Recursos y los canales de tablón con el mismo ancho (1040 px) y la misma
   portada; los canales de «Empieza aquí» llevan la etiqueta «Empieza aquí».
   «Conoce la escuela» lleva a la formación (su módulo 0 es la introducción).
+- **v11 (08/11): limpieza del panel, intentos de contacto, «Ver como» y una
+  semana en la otra clase.**
+  - **Panel, menos entradas**: «Clientes» junta Clientes y Pagos a plazos;
+    «Seguimiento» junta Semana a semana y Camino de 16 semanas (pestañas
+    arriba, `PAQUETES` en `EstadisticasPage.tsx`; las direcciones `?tab=` no
+    cambian); «Web» (`/dash/webs`) junta Páginas de la web (primera pestaña,
+    `PaginasPanel`), Enlaces y redirecciones, Enlaces UTM y Lista técnica. El
+    closer sigue con «Páginas de la web» suelta (no entra en `/dash/webs`).
+  - **Intentos de contacto en «Contactado»** (`services/panel/intentos.py`,
+    test `test_intentos_contacto.py`): tres intentos, cada uno con llamada y
+    WhatsApp, apuntados en la ficha (`Panel/IntentosContacto.tsx`, bloque bajo
+    las columnas cuando está en Contactado). Cada cosa es un evento
+    `intento-contacto` (sin tabla nueva; sale en la línea de tiempo). La
+    columna Contactado agrupa por intento y la tarjeta dice «Intento 2 de 3».
+    Tras el tercero, «Descartar» (mover a Descartado). Rutas
+    `POST/DELETE /panel/org/{id}/intentos`. Se solapa con la columna «No
+    contesta»: si se usa esto, esa columna sobra (sin quitar todavía).
+  - **«Ver como Marta»** (Organizar → Alumnos, solo administradores):
+    `services/panel/ver_como.py` (cabecera: leerla) + rutas de Next
+    `app/api/auth/ver-como` y `ver-como/salir`. La sesión del admin se guarda
+    en cookies del servidor (`LH_vercomo_*`) y se pone una del alumno de 2 h
+    con `ver_como` en el token: `get_current_user` rechaza TODO lo que no sea
+    GET (403 «solo se puede mirar»), y salir no cierra las sesiones del alumno
+    de verdad (logout). Solo de administrador a alumno (rol 4 y nada más).
+    Abajo sale la franja «Estás viendo la escuela como… · Volver a mi cuenta»
+    (`Objects/VerComo/VerComo.tsx`); «Cerrar sesión» del perfil también
+    vuelve. Probado en local (ver, 403 al escribir, volver).
+  - **Una semana en la clase del otro grupo** (Organizar → Alumnos →
+    «Cambiar una semana»; `services/tareas/cambio_semana.py`, columna
+    `tarea_semana.cambios` en `_ADDED_COLUMNS`, test `test_cambio_semana.py`):
+    solo a la clase hermana y de la misma semana del calendario. Sus tareas
+    siguen en su clase; su página dice «Esta semana vas a la clase del
+    jueves…» con «Entrar a la sala» de la otra (el servidor le deja pasar ese
+    día: `invitado_hoy` en `routers/salas.py`); la lista de la otra clase le
+    incluye («Viene esta semana de la clase del…») y en la suya sale «Esta
+    semana va a la clase del otro grupo». Se deshace desde la misma ventana.
+    ⚠️ La franja de arriba de la clase («Próxima emisión») sigue diciendo el
+    día de su grupo: es la misma para todos.
+  - Canales por grupo: ya existía (canal → Acceso → «Solo usuarios» → grupo;
+    la barra, la campana y los «sin leer» lo respetan).
 - **Pasar el diseño nuevo a la escuela de verdad = mezclar `diseno` en `dev`**
   (un PR, un botón «Merge»). Lo que lleva y ya está pensado para los datos
   reales: los datos inventados solo se crean con `LEARNHOUSE_DATOS_DE_PRUEBA=si`

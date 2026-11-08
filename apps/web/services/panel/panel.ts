@@ -77,6 +77,37 @@ export interface Tarjeta {
   closer?: string
   /** Viene de Black Friday (29/10): compró el ebook o solo desbloqueó la oferta. */
   black_friday?: '' | 'ebook' | 'lista'
+  /** En qué intento de contacto va (08/11): 0 = ninguno apuntado, 1-3. */
+  intentos?: number
+}
+
+/** Los intentos de contacto de «Contactado» (08/11, services/panel/intentos.py). */
+export type PasoIntento = { autor: string; cuando: string; nota: string } | null
+export interface Intentos {
+  nivel: number
+  intentos: { intento: number; llamada: PasoIntento; whatsapp: PasoIntento }[]
+}
+
+export async function apuntarIntento(orgId: number, token: string, email: string, intento: number, que: 'llamada' | 'whatsapp', nota = '') {
+  const r = await fetch(`${getAPIUrl()}panel/org/${orgId}/intentos`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    credentials: 'include',
+    body: JSON.stringify({ email, intento, que, nota }),
+  })
+  if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.detail || 'No se ha podido apuntar')
+  return r.json()
+}
+
+export async function quitarIntento(orgId: number, token: string, email: string, intento: number, que: 'llamada' | 'whatsapp') {
+  const q = new URLSearchParams({ email, intento: String(intento), que })
+  const r = await fetch(`${getAPIUrl()}panel/org/${orgId}/intentos?${q}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include',
+  })
+  if (!r.ok) throw new Error('No se ha podido quitar')
+  return r.json()
 }
 
 export interface Tablero {
@@ -156,6 +187,8 @@ export interface ProcesoAdmision {
 }
 
 export interface FichaCliente {
+  /** Los intentos de contacto de «Contactado» (08/11). */
+  intentos?: Intentos
   email: string
   nombre: string
   telefono: string
