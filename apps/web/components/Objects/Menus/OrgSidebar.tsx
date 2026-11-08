@@ -105,6 +105,26 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const org = useOrg() as any
   const session = useLHSession() as any
   const pathname = usePathname() || ''
+  // La pestaña de la sala de profes que está abierta (?vista=). Sin
+  // useSearchParams (pediría un Suspense en todo el layout): se lee de la
+  // dirección y la sala avisa al cambiarla (evento `nawar-vista`).
+  const [vistaActual, setVistaActual] = useState('')
+  useEffect(() => {
+    const leer = () => {
+      try {
+        setVistaActual(new URLSearchParams(window.location.search).get('vista') || '')
+      } catch {
+        setVistaActual('')
+      }
+    }
+    leer()
+    window.addEventListener('nawar-vista', leer)
+    window.addEventListener('popstate', leer)
+    return () => {
+      window.removeEventListener('nawar-vista', leer)
+      window.removeEventListener('popstate', leer)
+    }
+  }, [pathname])
   const [abierta, setAbierta] = useState(false)
   const { data: sinLeer } = useUnreadCommunity()
   const { data: enDirecto } = useCursosEnDirecto()
@@ -139,6 +159,9 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const activo = (it: Item) => {
     if (it.fuera) return !it.href.includes('?') && pathname.includes(it.href)
     const h = it.href.split('#')[0].split('?')[0]
+    // Las pestañas de la sala de profes (`/equipo?vista=tareas`): por la vista.
+    const v = it.href.match(/[?&]vista=([\w-]+)/)
+    if (v) return (actual === h || actual === '/') && vistaActual === v[1]
     if (h === '/') return actual === '/'
     return it.exacta ? actual === h : actual === h || actual.startsWith(h + '/')
   }
@@ -206,6 +229,9 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         items: [
           { key: 'organizar', href: '/organizar', label: 'Organizar clases', icon: <SquaresFour size={20} weight="regular" /> },
           { key: 'tablero', href: '/mis-clases', label: 'Preparar clases', icon: <Kanban size={20} weight="regular" /> },
+          { key: 'eq-tareas', href: '/equipo?vista=tareas', label: 'Tareas del equipo', icon: <ClipboardText size={20} weight="regular" /> },
+          { key: 'eq-archivo', href: '/equipo?vista=archivo', label: 'Archivo de clases', icon: <PlayCircle size={20} weight="regular" /> },
+          { key: 'eq-manual', href: '/equipo?vista=manual', label: 'Manual del equipo', icon: <NotePencil size={20} weight="regular" /> },
           { key: 'seguimiento', href: '/seguimiento', label: 'Seguimiento', icon: <ChartBar size={20} weight="regular" /> },
           { key: 'responder', href: '/responder-consultas', label: 'Responder consultas', icon: <Question size={20} weight="regular" /> },
           ...panel.map((item) => {
@@ -227,6 +253,9 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         titulo: 'Dar clase',
         items: [
           { key: 'tablero', href: '/mis-clases', label: 'Preparar clases', icon: <Kanban size={20} weight="regular" /> },
+          { key: 'eq-tareas', href: '/equipo?vista=tareas', label: 'Tareas del equipo', icon: <ClipboardText size={20} weight="regular" /> },
+          { key: 'eq-archivo', href: '/equipo?vista=archivo', label: 'Archivo de clases', icon: <PlayCircle size={20} weight="regular" /> },
+          { key: 'eq-manual', href: '/equipo?vista=manual', label: 'Manual del equipo', icon: <NotePencil size={20} weight="regular" /> },
           { key: 'seguimiento', href: '/seguimiento', label: 'Seguimiento y tareas', icon: <ChartBar size={20} weight="regular" /> },
           { key: 'responder', href: '/responder-consultas', label: 'Responder consultas', icon: <Question size={20} weight="regular" /> },
           { key: 'organizar', href: '/organizar', label: 'Clases y grupos', icon: <SquaresFour size={20} weight="regular" /> },

@@ -7,7 +7,7 @@ from src.routers import health
 from src.routers import instance
 from src.routers import plans
 from src.routers import usergroups
-from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs, panel, vision, salas, tareas, ebook, correos
+from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs, panel, vision, salas, tareas, ebook, correos, equipo
 from src.routers import notifications as notifications_router_module
 from src.routers import stream
 from src.routers import api_tokens
@@ -414,6 +414,14 @@ v1_router.include_router(
     tareas.router,
     prefix="/tareas",
     tags=["tareas"],
+)
+
+# La sala de profes (08/11/2026): el tablero de tareas del equipo de clases y
+# su manual. Solo el equipo. Ver `src/services/equipo/equipo.py`.
+v1_router.include_router(
+    equipo.router,
+    prefix="/equipo",
+    tags=["equipo"],
 )
 
 # El ebook de Black Friday a 1 € y su campaña de correos (28/10/2026). Pagar,

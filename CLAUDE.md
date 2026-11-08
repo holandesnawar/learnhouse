@@ -5214,6 +5214,49 @@ la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
   aquí»). **Recursos**: el administrador crea secciones («Nueva sección», la ven
   todos), añade a cada una un enlace o un archivo y quita lo que sobre desde la
   propia página; quién ve cada sección y el orden, en el panel.
+- **v8 (08/11): la sala de profes, salas pequeñas y el aviso de salir.**
+  - **Sala de profes** = el Inicio del equipo (profes, monitores y
+    administradores; `InicioEquipo` → `Pages/Equipo/SalaProfes.tsx`) y
+    `/equipo`. Pedido: "ser profe no es ser alumno… como Teams… ver clases
+    anteriores, presentaciones, mejor orden de cómo pasó todo, SOPs, mejor
+    kanban, tareas". Cabecera de equipo (quiénes son, con su cara) y pestañas
+    en `?vista=`: **Hoy** (la próxima clase; «Lo que toca con las clases»:
+    presentación de las clases de los próximos 7 días, pasar lista de los
+    últimos 7, grabación de los últimos 14, correcciones y check-in, calculado
+    de lo que tiene cada semana, `loQueToca` en `lib/nawar/salaProfes.ts` con
+    test; mis tareas; el equipo; cada clase esta semana; el manual), **Tareas**
+    (tablero por hacer · en curso · hecho, se arrastra en el ordenador; filtro
+    por persona y por clase), **Preparar clases** (el `ClasesProfes` de
+    siempre), **Archivo** (todas las semanas de todas las clases mes a mes, con
+    presentación, grabación, tarea y cuántos vinieron, y las grabaciones de
+    antes sin semana) y **Manual** (los SOP). En la barra, «Tareas del
+    equipo», «Archivo de clases» y «Manual del equipo» (la barra sabe la
+    pestaña por el evento `nawar-vista`, sin `useSearchParams`).
+  - Servidor: tablas nuevas **`equipo_tarea`** y **`equipo_documento`**
+    (`src/db/equipo.py`), `services/equipo/equipo.py` (cabecera: leerla),
+    rutas `/api/v1/equipo/org/{id}` (todo de una vez), `…/tareas` y
+    `…/manual`. Lo ve el equipo de clases (`STAFF_ROLE_IDS`); el closer y los
+    alumnos, no. Tareas: crea y mueve cualquiera, borra quien la creó o un
+    administrador. Manual: lo escribe un administrador; «Empezar con la
+    plantilla» crea seis páginas con el proceso que ya se sigue (solo con el
+    manual vacío). No son las tareas del panel (`panel_task`, ventas). Test
+    `test_sala_profes.py`.
+  - **Salas pequeñas en el Spreekclub**: las salas de Daily llevan
+    `enable_breakout_rooms` (opción de Daily Prebuilt, en beta): quien entra
+    como anfitrión (el equipo) reparte a la gente en salas, la mueve y la
+    vuelve a juntar desde la llamada; los alumnos no ven el botón. Las salas
+    de antes se arreglan solas al entrar. Si Daily la rechaza, la sala sigue
+    sin ella. No probado contra Daily de verdad (no se alcanza desde aquí);
+    tampoco se sabe si la grabación sigue dentro de las salas pequeñas.
+  - **Aviso antes de salir de la clase** (`SalaPage.tsx`): dentro de la
+    llamada, cualquier enlace de la escuela pregunta «Vas a salir de la
+    clase… ¿Quieres salir?», y cerrar o recargar la pestaña lo pregunta el
+    navegador. «Salir» dentro de la llamada no pregunta. Probado en local
+    simulando la llamada (Daily no conecta aquí).
+  - Escuela de pruebas: los profes Sanne (`sanne.de@ejemplo.com`) y Tom
+    (`tom.bakker@ejemplo.com`) entran ya con la misma contraseña que Marta
+    (`LEARNHOUSE_DATOS_DE_PRUEBA_CLAVE`, `CUENTAS_DE_PRUEBA`), y la sala de
+    profes trae tareas y el manual de ejemplo (marca `datos_prueba.equipo`).
 - **Pasar el diseño nuevo a la escuela de verdad = mezclar `diseno` en `dev`**
   (un PR, un botón «Merge»). Lo que lleva y ya está pensado para los datos
   reales: los datos inventados solo se crean con `LEARNHOUSE_DATOS_DE_PRUEBA=si`

@@ -201,8 +201,12 @@ async def sembrar(db: AsyncSession) -> str:
             await _spreekclub(db, int(org.id or 0), config)
             config["datos_prueba"] = {**config["datos_prueba"], "spreekclub": True}
             hecho.append("el Spreekclub y su monitor")
+        if not (config.get("datos_prueba") or {}).get("equipo"):
+            await _equipo(db, int(org.id or 0))
+            config["datos_prueba"] = {**config["datos_prueba"], "equipo": True}
+            hecho.append("la sala de profes (tareas y manual)")
         if await _clave_de_marta(db):
-            hecho.append("la contraseña de Marta")
+            hecho.append("la contraseña de las cuentas de prueba")
         if not hecho:
             return "ya estaban"
         fila.config = config
@@ -478,7 +482,9 @@ async def sembrar(db: AsyncSession) -> str:
     _en_espanol(config)
     await _recursos(db, org_id)
     await _spreekclub(db, org_id, config)
-    config["datos_prueba"] = {"creados": _ahora(), "alumna": "marta@ejemplo.com", "recursos": True, "spreekclub": True}
+    await _equipo(db, org_id)
+    await _clave_de_marta(db)
+    config["datos_prueba"] = {"creados": _ahora(), "alumna": "marta@ejemplo.com", "recursos": True, "spreekclub": True, "equipo": True}
     if fila is None:
         fila = OrganizationConfig(org_id=org_id, config=config, creation_date=_ahora(), update_date=_ahora())
     else:
@@ -569,30 +575,74 @@ async def _recursos(db: AsyncSession, org_id: int) -> None:
             db.add(ResourceItem(org_id=org_id, folder_id=f.id, kind="link", title=titulo, url=url, file_name="", size=0, position=j, created_at=_ahora()))
 
 
+#: Las cuentas de prueba que entran con la contraseña de
+#: `LEARNHOUSE_DATOS_DE_PRUEBA_CLAVE`: la alumna y los dos profes (08/11:
+#: "¿cómo veo la parte de los profes?").
+CUENTAS_DE_PRUEBA = ("marta@ejemplo.com", "sanne.de@ejemplo.com", "tom.bakker@ejemplo.com")
+
+
 async def _clave_de_marta(db: AsyncSession) -> bool:
-    """Pone a Marta la contraseña de `LEARNHOUSE_DATOS_DE_PRUEBA_CLAVE` si
-    no la tiene ya (08/11: «que alguien pueda probar la escuela con ella»).
-    La contraseña solo se ponía al crear los datos; si la variable llegó
-    después, Marta se quedaba con una al azar. Solo toca a
-    marta@ejemplo.com, y solo en la escuela de pruebas (la llama `sembrar`
-    cuando ya están los datos). Devuelve si ha cambiado algo."""
+    """Pone a las cuentas de prueba (Marta y los profes Sanne y Tom) la
+    contraseña de `LEARNHOUSE_DATOS_DE_PRUEBA_CLAVE` si no la tienen ya
+    (08/11: «que alguien pueda probar la escuela con ella»). La contraseña
+    solo se ponía al crear los datos; si la variable llegó después, se
+    quedaban con una al azar. Solo toca esas tres cuentas @ejemplo.com, y solo
+    en la escuela de pruebas (la llama `sembrar` cuando ya están los datos).
+    Devuelve si ha cambiado algo."""
     from src.db.users import User
     from src.security.security import security_hash_password, security_verify_password
 
     clave = (os.environ.get("LEARNHOUSE_DATOS_DE_PRUEBA_CLAVE") or "").strip()
     if not clave:
         return False
-    marta = (await db.execute(select(User).where(User.email == "marta@ejemplo.com"))).scalars().first()
-    if marta is None:
-        return False
-    try:
-        if marta.password and security_verify_password(clave, marta.password):
-            return False
-    except Exception:  # noqa: BLE001
-        pass
-    marta.password = security_hash_password(clave)
-    db.add(marta)
-    return True
+    cambio = False
+    for correo in CUENTAS_DE_PRUEBA:
+        u = (await db.execute(select(User).where(User.email == correo))).scalars().first()
+        if u is None:
+            continue
+        try:
+            if u.password and security_verify_password(clave, u.password):
+                continue
+        except Exception:  # noqa: BLE001
+            pass
+        u.password = security_hash_password(clave)
+        db.add(u)
+        cambio = True
+    return cambio
+
+
+async def _equipo(db: AsyncSession, org_id: int) -> None:
+    """La sala de profes de ejemplo: el manual con su plantilla y unas tareas
+    del equipo repartidas por el tablero (08/11)."""
+    from src.db.equipo import EquipoDocumento, EquipoTarea
+    from src.db.users import User
+    from src.services.equipo import equipo as E
+
+    hay = (await db.execute(select(EquipoDocumento).where(EquipoDocumento.org_id == org_id))).scalars().first()
+    if hay is None:
+        for i, (seccion, titulo, texto) in enumerate(E.PLANTILLA):
+            db.add(EquipoDocumento(org_id=org_id, titulo=titulo, seccion=seccion, texto=texto, orden=float(i + 1),
+                                   creado_por="Dirección", actualizado_por="Dirección", created_at=_ahora(), updated_at=_ahora()))
+    sanne = (await db.execute(select(User).where(User.email == "sanne.de@ejemplo.com"))).scalars().first()
+    tom = (await db.execute(select(User).where(User.email == "tom.bakker@ejemplo.com"))).scalars().first()
+    hoy = date.today()
+    tareas = [
+        ("Subir la presentación de la próxima semana", "por-hacer", "alta", 1, sanne, "Recuerda marcar la casilla de la campana."),
+        ("Corregir las tareas de «Eten en drinken»", "en-curso", "alta", 0, sanne, ""),
+        ("Preparar las parejas del Spreekclub del lunes", "por-hacer", "normal", 2, tom, "Mezclar a los que hablan más con los que hablan menos."),
+        ("Check-in con Lucía (semana 4)", "por-hacer", "normal", -1, sanne, "El WhatsApp ya está escrito en Seguimiento."),
+        ("Revisar la lista de vocabulario del módulo 3", "por-hacer", "normal", 6, None, ""),
+        ("Subir la grabación del martes", "hecho", "normal", -2, sanne, ""),
+    ]
+    for i, (titulo, estado, prioridad, dias, quien, notas) in enumerate(tareas):
+        db.add(EquipoTarea(
+            org_id=org_id, titulo=titulo, notas=notas, estado=estado, prioridad=prioridad,
+            fecha=(hoy + timedelta(days=dias)).isoformat(),
+            asignado_id=(quien.id if quien else 0) or 0,
+            asignado=(f"{quien.first_name} {quien.last_name}".strip() if quien else ""),
+            orden=float(i), creado_por_id=(sanne.id if sanne else 0) or 0, creado_por="Sanne de Vries",
+            created_at=_ahora(), updated_at=_ahora(), done_at=_ahora() if estado == "hecho" else "",
+        ))
 
 
 async def sembrar_si_toca() -> None:

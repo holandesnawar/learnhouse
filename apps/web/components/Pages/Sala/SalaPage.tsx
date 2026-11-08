@@ -31,6 +31,14 @@
  *   (anfitrión) ve el motivo, y el alumno nada. Si a los 6 s de entrar nadie ha
  *   empezado a grabar y quien entra es anfitrión, la empieza él
  *   (`startRecording`).
+ *
+ * 08/11/2026 ("cuando estás en la sala y tocas una pestaña te saca de la clase
+ * directo: un aviso, ¿quieres salir?"): mientras se está DENTRO de la llamada,
+ * cualquier enlace de la escuela (la barra, «Volver al curso», la campana…)
+ * pregunta antes «Vas a salir de la clase». Se escucha el clic en la fase de
+ * captura del documento, antes que el `Link` de Next, y solo si el «sí» se
+ * navega. Cerrar la pestaña o recargar lo pregunta el navegador
+ * (`beforeunload`). «Salir» dentro de la llamada no pregunta: ya se ha elegido.
  */
 
 import React, { useEffect, useRef, useState } from 'react'
@@ -39,6 +47,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, AlertTriangle, Loader2, Maximize2, Minimize2 } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { entrarSala, type EntradaSala } from '@services/salas/salas'
+import { confirmar } from '@/lib/nawar/confirmar'
 
 // Los colores de la sala, los de la marca: el azul de los botones (#4da3ff
 // con letra #0a1656) sobre el azul oscuro (#1D0084). Daily deja cambiar diez.
@@ -79,6 +88,51 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
     setGrabacionEstado(g)
   }
   const volver = `/course/${curso}`
+  // Dentro de la llamada (entre «joined-meeting» y «left-meeting»).
+  const [dentro, setDentro] = useState(false)
+
+  // Salir de la página estando en la llamada: se pregunta antes.
+  useEffect(() => {
+    if (!dentro) return
+    let preguntando = false
+    const alClic = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+      const a = (e.target as HTMLElement | null)?.closest?.('a[href]') as HTMLAnchorElement | null
+      if (!a || (a.target && a.target !== '_self') || a.hasAttribute('download')) return
+      let destino: URL
+      try {
+        destino = new URL(a.href, window.location.href)
+      } catch {
+        return
+      }
+      if (destino.origin !== window.location.origin) return
+      if (destino.pathname === window.location.pathname && destino.search === window.location.search) return
+      e.preventDefault()
+      e.stopPropagation()
+      if (preguntando) return
+      preguntando = true
+      confirmar('Vas a salir de la clase.\nSi sales, se corta tu llamada. ¿Quieres salir?', {
+        boton: 'Sí, salir de la clase',
+        peligro: true,
+      }).then((ok) => {
+        preguntando = false
+        if (ok) {
+          setDentro(false)
+          router.push(destino.pathname + destino.search + destino.hash)
+        }
+      })
+    }
+    const alCerrar = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    document.addEventListener('click', alClic, true)
+    window.addEventListener('beforeunload', alCerrar)
+    return () => {
+      document.removeEventListener('click', alClic, true)
+      window.removeEventListener('beforeunload', alCerrar)
+    }
+  }, [dentro, router])
 
   // Pantalla completa: la caja de la sala a toda la ventana y, si el
   // navegador deja, la pantalla entera. Esc (o salir del modo del navegador)
@@ -178,8 +232,11 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
         // «Salir» dentro de la llamada = de vuelta al curso. Solo con la sala
         // en pantalla: al irse a otra página por la barra, cerrar la llamada
         // también avisa de «left-meeting», y no hay que mandarle al curso.
+        llamada.on('joined-meeting', () => vivo && setDentro(true))
         llamada.on('left-meeting', () => {
-          if (vivo) router.push(volver)
+          if (!vivo) return
+          setDentro(false)
+          router.push(volver)
         })
         // ¿Se está grabando? (02/11/2026)
         llamada.on('recording-started', () => vivo && setGrabacion({ estado: 'grabando' }))
@@ -280,6 +337,7 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
           <div className={grande ? 'fixed inset-0 z-[100] bg-[#070B33]' : 'relative'}>
             {sinLibreria ? (
               <iframe
+                onLoad={() => setDentro(true)}
                 title="Sala en directo"
                 src={`${entrada.url}?t=${encodeURIComponent(entrada.token)}`}
                 allow="camera; microphone; fullscreen; display-capture; autoplay; clipboard-write"
