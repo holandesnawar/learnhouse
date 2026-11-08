@@ -489,18 +489,27 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     <>
       {/* Mirando la escuela como un alumno (08/11): para volver a tu cuenta. */}
       <FranjaVerComo />
-      {/* Franja de arriba en el móvil: siempre azul, con el menú. */}
-      <header className="md:hidden fixed top-0 inset-x-0 h-14 flex items-center gap-3 px-3" style={{ ...FONDO_MARCA, zIndex: 'var(--z-nav)' }}>
-        <button onClick={() => setAbierta(true)} aria-label="Menú" className="p-1.5 -ml-1 rounded-lg text-white/85 hover:bg-white/10">
+      {/* Franja de arriba en el móvil (08/11: con el botón de color, como en el
+          ordenador): con la barra azul, la franja blanca; con la blanca, azul. */}
+      <header
+        className={`md:hidden fixed top-0 inset-x-0 h-14 flex items-center gap-3 px-3 ${azul ? 'bg-white border-b border-[#E6EAF3]' : ''}`}
+        style={azul ? { zIndex: 'var(--z-nav)' } : { ...FONDO_MARCA, zIndex: 'var(--z-nav)' }}
+      >
+        <button
+          onClick={() => setAbierta(true)}
+          aria-label="Menú"
+          className={`p-1.5 -ml-1 rounded-lg ${azul ? 'text-[#3B4262] hover:text-[#0B1033]' : 'text-white/85 hover:text-white'}`}
+        >
           <List size={22} weight="bold" />
         </button>
         <Link href={ruta('/')} className="flex items-center h-8 shrink-0">
           <img src={logo} alt="" onError={sinRomper} className="h-full w-auto rounded-md" />
         </Link>
-        <div className="ml-auto flex items-center gap-1 shrink-0">
-          <MessagesBell orgslug={orgslug} />
-          <NotificationsBell orgslug={orgslug} />
-          <MenuPerfil />
+        <div className="ml-auto flex items-center gap-0.5 shrink-0">
+          <BotonColor claro={azul} />
+          <MessagesBell orgslug={orgslug} claro={azul} />
+          <NotificationsBell orgslug={orgslug} claro={azul} />
+          <MenuPerfil claro={azul} />
         </div>
       </header>
 
