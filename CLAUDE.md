@@ -5065,6 +5065,9 @@ la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
   comentarios y chat, y 3 eventos. No llama a nada de fuera ni manda correos.
   La alumna `marta@ejemplo.com` entra con `LEARNHOUSE_DATOS_DE_PRUEBA_CLAVE`
   (sin ella, contraseña al azar). Para rehacerlos: base de datos nueva.
+  Si la variable se pone o se cambia DESPUÉS, al siguiente arranque se le
+  pone a Marta (`_clave_de_marta`): basta con cambiarla en Railway (eso ya
+  redespliega). Solo toca a marta@ejemplo.com.
 - **«Empieza aquí»**: primer bloque de la barra con «Bienvenida»
   (`/empieza-aqui`, `Pages/EmpiezaAqui/EmpiezaAqui.tsx`: 5 pasos con check,
   «Preséntate» se marca solo si publicó, los demás en el navegador; lo que hay

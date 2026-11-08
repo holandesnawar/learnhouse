@@ -21,7 +21,8 @@ volumen de la escuela.
 
 La alumna de ejemplo es `marta@ejemplo.com`. Su contraseña sale de
 `LEARNHOUSE_DATOS_DE_PRUEBA_CLAVE` (si no está, una al azar: entonces solo
-se puede mirar como administrador).
+se puede mirar como administrador). Si la variable se pone o se cambia
+después, al siguiente arranque se le pone a Marta (`_clave_de_marta`).
 """
 
 from __future__ import annotations
@@ -200,6 +201,8 @@ async def sembrar(db: AsyncSession) -> str:
             await _spreekclub(db, int(org.id or 0), config)
             config["datos_prueba"] = {**config["datos_prueba"], "spreekclub": True}
             hecho.append("el Spreekclub y su monitor")
+        if await _clave_de_marta(db):
+            hecho.append("la contraseña de Marta")
         if not hecho:
             return "ya estaban"
         fila.config = config
@@ -564,6 +567,32 @@ async def _recursos(db: AsyncSession, org_id: int) -> None:
         await db.flush()
         for j, (titulo, url) in enumerate(items):
             db.add(ResourceItem(org_id=org_id, folder_id=f.id, kind="link", title=titulo, url=url, file_name="", size=0, position=j, created_at=_ahora()))
+
+
+async def _clave_de_marta(db: AsyncSession) -> bool:
+    """Pone a Marta la contraseña de `LEARNHOUSE_DATOS_DE_PRUEBA_CLAVE` si
+    no la tiene ya (08/11: «que alguien pueda probar la escuela con ella»).
+    La contraseña solo se ponía al crear los datos; si la variable llegó
+    después, Marta se quedaba con una al azar. Solo toca a
+    marta@ejemplo.com, y solo en la escuela de pruebas (la llama `sembrar`
+    cuando ya están los datos). Devuelve si ha cambiado algo."""
+    from src.db.users import User
+    from src.security.security import security_hash_password, security_verify_password
+
+    clave = (os.environ.get("LEARNHOUSE_DATOS_DE_PRUEBA_CLAVE") or "").strip()
+    if not clave:
+        return False
+    marta = (await db.execute(select(User).where(User.email == "marta@ejemplo.com"))).scalars().first()
+    if marta is None:
+        return False
+    try:
+        if marta.password and security_verify_password(clave, marta.password):
+            return False
+    except Exception:  # noqa: BLE001
+        pass
+    marta.password = security_hash_password(clave)
+    db.add(marta)
+    return True
 
 
 async def sembrar_si_toca() -> None:
