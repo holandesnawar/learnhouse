@@ -131,6 +131,14 @@ const columnaDe = (t: Tarjeta): ColumnaId =>
 
 const POR_COLUMNA = 6
 
+/** Los niveles dentro de «Contactado» (08/11/2026): en qué intento va cada uno. */
+const NIVEL_CONTACTO: Record<number, string> = {
+  0: 'Sin intentos apuntados',
+  1: 'Intento 1 · llamada y 1.er mensaje',
+  2: 'Intento 2 · llamada y 2.º mensaje',
+  3: 'Intento 3 · última llamada',
+}
+
 // En Nuevo, Por llamar y No contesta, la más caliente arriba (como en Llamadas).
 const A_LLAMAR: EtapaTablero[] = ['nuevo', 'llamar', 'no-contesta']
 const ORDEN_TEMPERATURA: Record<string, number> = { caliente: 0, templado: 1, frio: 2 }
@@ -275,6 +283,14 @@ function TarjetaVista({
           {t.reserva.pagado_cents > 0
             ? `Señal ${euros(t.reserva.pagado_cents)} · faltan ${euros(t.reserva.pendiente_cents)}`
             : 'Enlace de pago enviado, sin pagar'}
+        </p>
+      ) : null}
+      {/* En qué intento de contacto va (08/11): «Intento 2 de 3». */}
+      {t.etapa === 'contactado' && (t.intentos ?? 0) > 0 ? (
+        <p className="mt-1">
+          <span className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] px-2 py-0.5 text-[11px] font-semibold text-gray-700">
+            Intento {t.intentos} de 3{t.intentos === 3 ? ' · si no responde, descartar' : ''}
+          </span>
         </p>
       ) : null}
       {t.black_friday || t.origen || t.canal || t.vio_precio || t.notas > 1 || t.tareas ? (
@@ -545,6 +561,9 @@ export default function KanbanPanel() {
       m[k]?.sort(
         (a, b) => (ORDEN_TEMPERATURA[a.temperatura ?? 'frio'] ?? 2) - (ORDEN_TEMPERATURA[b.temperatura ?? 'frio'] ?? 2) || cuando(b) - cuando(a)
       )
+    // Contactado, por intentos (08/11): primero quien va más avanzado (a
+    // punto de descartar), y dentro, lo más nuevo arriba.
+    m['contactado']?.sort((a, b) => (b.intentos ?? 0) - (a.intentos ?? 0) || cuando(b) - cuando(a))
     return m
   }, [columnas, filtradas])
 
@@ -902,8 +921,14 @@ export default function KanbanPanel() {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      {(porColumna[e.id] ?? []).slice(0, verCuantas(e.id)).map((t, i) => (
-                        <Draggable draggableId={t.id} index={i} key={t.id} isDragDisabled={t.etapa === 'alumno' || Boolean(t.suelta)}>
+                      {(porColumna[e.id] ?? []).slice(0, verCuantas(e.id)).map((t, i, lista) => (
+                        <React.Fragment key={t.id}>
+                        {e.id === 'contactado' && (i === 0 || (lista[i - 1].intentos ?? 0) !== (t.intentos ?? 0)) ? (
+                          <p className="px-1.5 pt-2 pb-0.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6B7280]">
+                            {NIVEL_CONTACTO[t.intentos ?? 0] ?? NIVEL_CONTACTO[0]}
+                          </p>
+                        ) : null}
+                        <Draggable draggableId={t.id} index={i} isDragDisabled={t.etapa === 'alumno' || Boolean(t.suelta)}>
                           {(p) => (
                             <div ref={p.innerRef} {...p.draggableProps} {...p.dragHandleProps}>
                               <TarjetaVista
@@ -915,6 +940,7 @@ export default function KanbanPanel() {
                             </div>
                           )}
                         </Draggable>
+                        </React.Fragment>
                       ))}
                       {prov.placeholder}
                       <VerMas id={e.id} total={n} vistas={verCuantas(e.id)} onMas={verMas} />

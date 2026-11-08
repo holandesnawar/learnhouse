@@ -71,6 +71,8 @@ NOMBRES_TIPO = {
     # Es además la marca de que ya le llegó: no se le vuelve a mandar.
     "correo-reserva": "Le llegó el correo de Rida (al reservar la llamada)",
     "llamada-confirmada": "Confirmó que viene a su llamada",
+    # Los intentos de contacto de «Contactado» (08/11, services/panel/intentos.py).
+    "intento-contacto": "El equipo intentó contactarle",
     # Los tres WhatsApp de la llamada (02/11, services/contactos/whatsapp_llamada.py).
     "whatsapp-llamada": "El equipo le mandó un WhatsApp de su llamada",
     # El equipo le movió o le canceló la llamada desde la escuela (31/10,
@@ -313,6 +315,10 @@ def _que(kind: str, campos: dict) -> str:
         cuando = _dia_y_hora(extra.get("inicio") or "")
         texto = "Confirmó que viene a su llamada" + (f" del {cuando}" if cuando else "")
         return texto + (f" (lo apuntó {extra['autor']})" if extra.get("autor") else "")
+    if kind == "intento-contacto":
+        from src.services.panel.intentos import texto_linea_de_tiempo as texto_intento
+
+        return texto_intento(extra)
     if kind == "whatsapp-llamada":
         from src.services.contactos.whatsapp_llamada import texto_linea_de_tiempo
 
@@ -399,7 +405,7 @@ def _evento(kind: str, when: str, email: str, **campos) -> dict:
 
 #: Lo que no hace la persona sino la escuela, a diario: no cuenta como "lo
 #: último que hizo" (sigue en su línea de tiempo).
-_LOS_MANDA_LA_ESCUELA = {"correo-bf", "whatsapp-llamada", "datos-editados"}
+_LOS_MANDA_LA_ESCUELA = {"correo-bf", "whatsapp-llamada", "datos-editados", "intento-contacto"}
 
 #: Datos corregidos a mano desde la ficha (06/11/2026, "modificar datos del
 #: lead, por ejemplo el teléfono si lo pusieron mal"). Es un evento más, con
