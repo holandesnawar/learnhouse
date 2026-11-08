@@ -83,12 +83,12 @@ export function WeekStrip({ activeDays }: { activeDays: string[] }) {
             <span className={`text-[11px] ${isToday ? 'font-semibold text-[#0B1033]' : 'text-[#8A91AD]'}`}>{label}</span>
             <div
               className={[
-                'w-[22px] h-[22px] rounded-full border-[1.5px] flex items-center justify-center',
+                'w-[22px] h-[22px] rounded-full border-2 flex items-center justify-center',
                 active ? 'border-[#16A34A] text-[#16A34A]' : isToday ? 'border-[#0b2da0]' : 'border-[#D5DBEA]',
               ].join(' ')}
               title={active ? `${iso} · ¡día cumplido!` : iso}
             >
-              {active && <Check size={12} strokeWidth={2.5} />}
+              {active && <Check size={12} strokeWidth={3.4} />}
             </div>
           </div>
         )

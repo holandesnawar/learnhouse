@@ -75,11 +75,11 @@ export function FilaPaso({ p }: { p: PasoSemana }) {
   // aún no se abre. Sin rellenos (08/11: «los checks se ven IA»).
   const circulo =
     p.estado === 'hecho' ? (
-      <span className="w-[22px] h-[22px] rounded-full border-[1.5px] border-[#16A34A] text-[#16A34A] flex items-center justify-center shrink-0">
-        <Check size={13} strokeWidth={2.5} />
+      <span className="w-[22px] h-[22px] rounded-full border-2 border-[#16A34A] text-[#16A34A] flex items-center justify-center shrink-0">
+        <Check size={13} strokeWidth={3.4} />
       </span>
     ) : (
-      <span className={`w-[22px] h-[22px] rounded-full border-[1.5px] shrink-0 ${p.estado === 'cerrado' ? 'border-dashed border-[#C9CFDE]' : 'border-[#B8C2DA]'}`} />
+      <span className={`w-[22px] h-[22px] rounded-full border-2 shrink-0 ${p.estado === 'cerrado' ? 'border-dashed border-[#C9CFDE]' : 'border-[#B8C2DA]'}`} />
     )
   const dentro = (
     <>

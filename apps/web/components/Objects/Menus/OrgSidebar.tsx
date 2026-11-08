@@ -62,6 +62,9 @@ import {
   SquaresFour,
   Phone,
   AddressBook,
+  SidebarSimple,
+  CircleHalf,
+  Gauge,
 } from '@phosphor-icons/react'
 
 import { FONDO_MARCA, ACTIVO_SOBRE_MARCA } from '@/lib/nawar/marca'
@@ -191,7 +194,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     key: `clase-${c.uuid}`,
     href: `/course/${String(c.uuid).replace(/^course_/, '')}`,
     label: isStaff || isAdmin ? conEtiqueta(c) : c.nombre,
-    icon: <ChalkboardTeacher size={20} weight="regular" />,
+    icon: <ChalkboardTeacher size={20} weight="fill" />,
   }))
   const panel = isAdmin
     ? PANEL_EN_LA_ESCUELA.filter((item: DashboardMenuItem) => {
@@ -200,17 +203,17 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         return isFeatureAvailable(item.featureKey)
       })
     : []
-  const inicio: Bloque = { items: [{ key: 'inicio', href: '/', label: 'Inicio', icon: <House size={20} weight="regular" /> }] }
+  const inicio: Bloque = { items: [{ key: 'inicio', href: '/', label: 'Inicio', icon: <House size={20} weight="fill" /> }] }
   const empieza: Bloque = {
     titulo: 'Empieza aquí',
     items: [
-      { key: 'bienvenida', href: '/empieza-aqui', label: 'Bienvenida', icon: <Flag size={20} weight="regular" /> },
+      { key: 'bienvenida', href: '/empieza-aqui', label: 'Bienvenida', icon: <Flag size={20} weight="fill" /> },
       ...canalesInicio.map(itemCanal),
-      { key: 'recursos', href: '/recursos', label: 'Recursos', icon: <FolderSimple size={20} weight="regular" /> },
+      { key: 'recursos', href: '/recursos', label: 'Recursos', icon: <FolderSimple size={20} weight="fill" /> },
     ],
   }
   const comunidad: Bloque[] = canalesComunidad.length ? [{ titulo: 'Comunidad', items: canalesComunidad.map(itemCanal) }] : []
-  const verFormacion: Item = { key: 'formacion', href: `/course/${FORMACION_UUID}`, label: 'Formación A0-A1', icon: <Books size={20} weight="regular" /> }
+  const verFormacion: Item = { key: 'formacion', href: `/course/${FORMACION_UUID}`, label: 'Formación A0-A1', icon: <Books size={20} weight="fill" /> }
 
   let bloques: Bloque[]
   if (isAdmin) {
@@ -219,29 +222,31 @@ export const OrgSidebar = (props: { orgslug: string }) => {
       {
         titulo: 'Gestión',
         items: [
-          { key: 'organizar', href: '/organizar', label: 'Organizar clases', icon: <SquaresFour size={20} weight="regular" /> },
-          { key: 'sala', href: '/equipo', label: 'Sala de profesores', icon: <ChalkboardTeacher size={20} weight="regular" /> },
-          { key: 'seguimiento', href: '/seguimiento', label: 'Seguimiento', icon: <ChartBar size={20} weight="regular" /> },
-          { key: 'responder', href: '/responder-consultas', label: 'Responder consultas', icon: <Question size={20} weight="regular" /> },
+          // El panel entero, como en la escuela de antes (08/11/2026: «falta el general con todo, llamado Panel»).
+          { key: 'panel', href: '/dash', label: 'Panel', icon: <Gauge size={20} weight="fill" />, fuera: true },
+          { key: 'organizar', href: '/organizar', label: 'Organizar clases', icon: <SquaresFour size={20} weight="fill" /> },
+          { key: 'sala', href: '/equipo', label: 'Sala de profesores', icon: <ChalkboardTeacher size={20} weight="fill" /> },
+          { key: 'seguimiento', href: '/seguimiento', label: 'Seguimiento', icon: <ChartBar size={20} weight="fill" /> },
+          { key: 'responder', href: '/responder-consultas', label: 'Responder consultas', icon: <Question size={20} weight="fill" /> },
           ...panel.map((item) => {
             const Icon = item.icon as any
-            return { key: `panel-${item.id}`, href: item.href, label: item.label || ({ estadisticas: 'Estadísticas', users: 'Usuarios', courses: 'Cursos' } as Record<string, string>)[item.id] || item.id, icon: <Icon size={20} weight="regular" />, fuera: true } as Item
+            return { key: `panel-${item.id}`, href: item.href, label: item.label || ({ estadisticas: 'Estadísticas', users: 'Usuarios', courses: 'Cursos' } as Record<string, string>)[item.id] || item.id, icon: <Icon size={20} weight="fill" />, fuera: true } as Item
           }),
         ],
       },
-      { titulo: 'Clases', items: [...itemsClases, { key: 'calendario', href: '/calendario', label: 'Calendario', icon: <CalendarBlank size={20} weight="regular" /> }] },
+      { titulo: 'Clases', items: [...itemsClases, { key: 'calendario', href: '/calendario', label: 'Calendario', icon: <CalendarBlank size={20} weight="fill" /> }] },
       { titulo: 'Formación', items: [verFormacion] },
       empieza,
       ...comunidad,
-      { titulo: 'Ayuda', items: [{ key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={20} weight="regular" /> }] },
+      { titulo: 'Ayuda', items: [{ key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={20} weight="fill" /> }] },
     ]
   } else if (esProfe) {
     // Profes y monitores (08/11/2026, segunda vuelta: "quita que vean tantos
     // links en la barra, solo Sala de profesores y ahí dentro ya ir tocando").
     // Su Inicio ES la sala. El monitor (grupo «Monitores») solo la sala y
     // los mensajes: solo tiene el Spreekclub.
-    const sala: Bloque = { items: [{ key: 'inicio', href: '/', label: 'Sala de profesores', icon: <ChalkboardTeacher size={20} weight="regular" /> }] }
-    const ayuda: Bloque = { titulo: 'Ayuda', items: [{ key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={20} weight="regular" /> }] }
+    const sala: Bloque = { items: [{ key: 'inicio', href: '/', label: 'Sala de profesores', icon: <ChalkboardTeacher size={20} weight="fill" /> }] }
+    const ayuda: Bloque = { titulo: 'Ayuda', items: [{ key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={20} weight="fill" /> }] }
     bloques = monitor ? [sala, ayuda] : [sala, { titulo: 'Formación', items: [verFormacion] }, ...comunidad, ayuda]
   } else if (esCloser) {
     const venta = (tab: string) => `/dash/estadisticas?tab=${tab}`
@@ -250,15 +255,15 @@ export const OrgSidebar = (props: { orgslug: string }) => {
       {
         titulo: 'Ventas',
         items: [
-          { key: 'v-matriculas', href: venta('matriculas'), label: 'Matrículas', icon: <Kanban size={20} weight="regular" />, fuera: true },
-          { key: 'v-llamadas', href: venta('llamadas'), label: 'Llamadas', icon: <Phone size={20} weight="regular" />, fuera: true },
-          { key: 'v-contactos', href: venta('contactos'), label: 'Contactos', icon: <AddressBook size={20} weight="regular" />, fuera: true },
-          { key: 'v-guion', href: venta('guion'), label: 'Material de venta', icon: <FolderSimple size={20} weight="regular" />, fuera: true },
+          { key: 'v-matriculas', href: venta('matriculas'), label: 'Matrículas', icon: <Kanban size={20} weight="fill" />, fuera: true },
+          { key: 'v-llamadas', href: venta('llamadas'), label: 'Llamadas', icon: <Phone size={20} weight="fill" />, fuera: true },
+          { key: 'v-contactos', href: venta('contactos'), label: 'Contactos', icon: <AddressBook size={20} weight="fill" />, fuera: true },
+          { key: 'v-guion', href: venta('guion'), label: 'Material de venta', icon: <FolderSimple size={20} weight="fill" />, fuera: true },
         ],
       },
       { titulo: 'La escuela', items: [verFormacion, ...itemsClases] },
       ...comunidad,
-      { titulo: 'Ayuda', items: [{ key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={20} weight="regular" /> }] },
+      { titulo: 'Ayuda', items: [{ key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={20} weight="fill" /> }] },
     ]
   } else {
     bloques = [
@@ -268,8 +273,8 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         titulo: 'Formación',
         items: [
           verFormacion,
-          { key: 'progreso', href: '/ejercicios/progreso', label: 'Mi progreso', icon: <ChartLineUp size={20} weight="regular" /> },
-          { key: 'notas', href: '/mis-notas', label: 'Mis notas', icon: <NotePencil size={20} weight="regular" /> },
+          { key: 'progreso', href: '/ejercicios/progreso', label: 'Mi progreso', icon: <ChartLineUp size={20} weight="fill" /> },
+          { key: 'notas', href: '/mis-notas', label: 'Mis notas', icon: <NotePencil size={20} weight="fill" /> },
         ],
       },
       ...(tieneClases
@@ -281,7 +286,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
                 ...itemsClases,
                 // Una sola página por clase (08/11): «Esta semana», «Tareas» y
                 // «Clases grabadas» ya están dentro de la página de cada clase.
-                { key: 'calendario', href: '/calendario', label: 'Calendario', icon: <CalendarBlank size={20} weight="regular" /> },
+                { key: 'calendario', href: '/calendario', label: 'Calendario', icon: <CalendarBlank size={20} weight="fill" /> },
               ] as Item[],
             },
           ]
@@ -290,8 +295,8 @@ export const OrgSidebar = (props: { orgslug: string }) => {
       {
         titulo: 'Ayuda',
         items: [
-          { key: 'consultas', href: '/consultas', label: 'Consultas', icon: <Question size={20} weight="regular" /> },
-          { key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={20} weight="regular" /> },
+          { key: 'consultas', href: '/consultas', label: 'Consultas', icon: <Question size={20} weight="fill" /> },
+          { key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={20} weight="fill" /> },
         ],
       },
     ]
@@ -336,6 +341,51 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     return () => window.removeEventListener('nawar-barra', alCambiar)
   }, [])
   const azul = estilo === 'azul'
+  // Un clic para cambiar el color de la barra (arriba, al lado de los avisos).
+  const cambiarColor = () => {
+    const v = azul ? 'blanca' : 'azul'
+    setEstilo(v)
+    try {
+      localStorage.setItem('nawar.barra.estilo', v)
+    } catch {}
+  }
+
+  // Cerrar la barra en el ordenador (como en la escuela de antes). Se recuerda.
+  const [cerrada, setCerrada] = useState(false)
+  useEffect(() => {
+    try {
+      setCerrada(localStorage.getItem('nawar.barra.cerrada') === 'si')
+    } catch {}
+  }, [])
+  const alternarBarra = () =>
+    setCerrada((c) => {
+      try {
+        localStorage.setItem('nawar.barra.cerrada', c ? 'no' : 'si')
+      } catch {}
+      return !c
+    })
+  const BotonBarra = ({ claro }: { claro: boolean }) => (
+    <button
+      type="button"
+      onClick={alternarBarra}
+      aria-label={cerrada ? 'Abrir la barra lateral' : 'Cerrar la barra lateral'}
+      title={cerrada ? 'Abrir la barra lateral' : 'Cerrar la barra lateral'}
+      className={`p-2 rounded-lg shrink-0 transition-colors ${claro ? 'text-[#5B6382] hover:text-[#0B1033]' : 'text-white/85 hover:text-white'}`}
+    >
+      <SidebarSimple size={20} weight="fill" />
+    </button>
+  )
+  const BotonColor = ({ claro }: { claro: boolean }) => (
+    <button
+      type="button"
+      onClick={cambiarColor}
+      aria-label="Cambiar el color de la barra"
+      title={azul ? 'Barra blanca' : 'Barra azul'}
+      className={`p-2 rounded-lg shrink-0 transition-colors ${claro ? 'text-[#5B6382] hover:text-[#0B1033]' : 'text-white/85 hover:text-white'}`}
+    >
+      <CircleHalf size={20} weight="fill" />
+    </button>
+  )
 
   const filaCls = (on: boolean) =>
     azul
@@ -371,10 +421,11 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const Barra = ({ conLogo = false }: { conLogo?: boolean }) => (
     <div className="flex flex-col h-full">
       {conLogo ? (
-        <div className="h-16 shrink-0 flex items-center px-5">
+        <div className="h-16 shrink-0 flex items-center justify-between pl-3.5 pr-2">
           <Link href={ruta('/')} className="flex items-center h-9">
             <img src={logo} alt="" onError={sinRomper} className="h-full w-auto rounded-md" />
           </Link>
+          <BotonBarra claro={false} />
         </div>
       ) : null}
       <nav className={`${azul ? 'lh-scroll-light' : ''} flex-1 overflow-y-auto px-3 ${conLogo ? 'pt-2' : 'pt-5'} pb-5 space-y-6`}>
@@ -453,23 +504,36 @@ export const OrgSidebar = (props: { orgslug: string }) => {
       {/* Franja de arriba en el ordenador: blanca al lado de la barra azul, o azul de lado a lado con la barra blanca. */}
       {azul ? (
         <header
-          className="hidden md:flex fixed top-0 right-0 left-[260px] h-14 items-center gap-3 px-5 bg-white border-b border-[#E6EAF3]"
+          className={`hidden md:flex fixed top-0 right-0 ${cerrada ? 'left-0 pl-2.5' : 'left-[260px] pl-5'} h-14 items-center gap-3 pr-5 bg-white border-b border-[#E6EAF3]`}
           style={{ zIndex: 'var(--z-nav)' }}
         >
+          {cerrada ? (
+            <div className="flex items-center gap-1 shrink-0">
+              <BotonBarra claro />
+              <Link href={ruta('/')} className="flex items-center h-8">
+                <img src={logo} alt="" onError={sinRomper} className="h-full w-auto rounded-md" />
+              </Link>
+            </div>
+          ) : null}
           <nav className="flex-1 flex items-center justify-center gap-2.5">{enlacesArriba(true)}</nav>
           <div className="flex items-center gap-1 shrink-0">
+            <BotonColor claro />
             <MessagesBell orgslug={orgslug} claro />
             <NotificationsBell orgslug={orgslug} claro />
             <MenuPerfil claro />
           </div>
         </header>
       ) : (
-        <header className="hidden md:flex fixed top-0 inset-x-0 h-14 items-center gap-3 px-5" style={{ ...FONDO_MARCA, zIndex: 'var(--z-nav)' }}>
-          <Link href={ruta('/')} className="flex items-center h-8 shrink-0 w-[236px]">
-            <img src={logo} alt="" onError={sinRomper} className="h-full w-auto rounded-md" />
-          </Link>
+        <header className="hidden md:flex fixed top-0 inset-x-0 h-14 items-center gap-3 pl-2.5 pr-5" style={{ ...FONDO_MARCA, zIndex: 'var(--z-nav)' }}>
+          <div className="flex items-center gap-1 shrink-0 w-[246px]">
+            <BotonBarra claro={false} />
+            <Link href={ruta('/')} className="flex items-center h-8">
+              <img src={logo} alt="" onError={sinRomper} className="h-full w-auto rounded-md" />
+            </Link>
+          </div>
           <nav className="flex-1 flex items-center justify-center gap-2.5">{enlacesArriba(false)}</nav>
           <div className="flex items-center gap-1 shrink-0">
+            <BotonColor claro={false} />
             <MessagesBell orgslug={orgslug} />
             <NotificationsBell orgslug={orgslug} />
             <MenuPerfil />
@@ -477,8 +541,8 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         </header>
       )}
 
-      {/* La barra del ordenador. */}
-      {azul ? (
+      {/* La barra del ordenador (nada si está cerrada). */}
+      {cerrada ? null : azul ? (
         <aside className="hidden md:flex flex-col w-[260px] shrink-0 sticky top-0 -mt-14 h-[100dvh] border-r border-white/10" style={FONDO_MARCA}>
           {Barra({ conLogo: true })}
         </aside>

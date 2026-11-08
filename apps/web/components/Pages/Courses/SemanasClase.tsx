@@ -388,7 +388,7 @@ function FilaArchivo({ c, href }: { c: ClaseArchivo; href: string }) {
       </div>
       {c.hecha ? (
         <Etiqueta tono="hecho">
-          <Check size={14} strokeWidth={2.5} /> Vista
+          <Check size={14} strokeWidth={3} /> Vista
         </Etiqueta>
       ) : (
         <Etiqueta tono="azul">Ver</Etiqueta>
@@ -516,7 +516,7 @@ export default function SemanasClase({
           </div>
           {est === 'corregida' ? (
             <Etiqueta tono="hecho">
-              <Check size={14} strokeWidth={2.5} /> Corregida
+              <Check size={14} strokeWidth={3} /> Corregida
             </Etiqueta>
           ) : est === 'entregada' ? (
             <Etiqueta tono="azul">Entregada</Etiqueta>
@@ -524,7 +524,7 @@ export default function SemanasClase({
             <Etiqueta tono="gris">{s.limite < hoy ? 'Sin entregar' : 'Pendiente'}</Etiqueta>
           ) : grabacionVista ? (
             <Etiqueta tono="hecho">
-              <Check size={14} strokeWidth={2.5} /> Vista
+              <Check size={14} strokeWidth={3} /> Vista
             </Etiqueta>
           ) : null}
           <ChevronDown size={16} className={`shrink-0 text-[#B9C6DC] transition-transform ${abierta ? '' : '-rotate-90'}`} />

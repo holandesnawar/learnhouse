@@ -97,7 +97,8 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
 
   const pasos: Paso[] = useMemo(
     () => [
-      { id: 'conoce', titulo: 'Conoce la escuela', texto: 'Dos minutos para saber dónde está cada cosa.', href: '#asi-es', boton: 'Ver cómo es', icono: <Compass size={18} /> },
+      // Lleva a la formación: su módulo 0 es la introducción, que lo explica todo (08/11/2026).
+      { id: 'conoce', titulo: 'Conoce la escuela', texto: 'La introducción de la formación te explica cómo funciona todo.', href: ruta(`/course/${CURSO_FORMACION_UUID}`), boton: 'Ver la introducción', icono: <Compass size={18} /> },
       { id: 'presentate', titulo: 'Preséntate', texto: 'Cuéntanos quién eres, dónde vives y para qué quieres el neerlandés.', href: canalHref(presentaciones), boton: 'Presentarme', icono: <Hand size={18} /> },
       { id: 'clase', titulo: 'Mira tu clase de esta semana', texto: 'La presentación, el día y la hora. Dinos si vienes.', href: ruta('/clases'), boton: 'Ver mi clase', icono: <Video size={18} /> },
       { id: 'formacion', titulo: 'Empieza el módulo 1', texto: 'Con 20 minutos al día basta. La escuela recuerda dónde lo dejas.', href: ruta(`/course/${CURSO_FORMACION_UUID}`), boton: 'Empezar', icono: <BookOpen size={18} /> },
@@ -112,7 +113,7 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
   const nombre = yo?.first_name || yo?.username || ''
 
   return (
-    <div className="max-w-[880px] mx-auto px-4 sm:px-8 py-6 sm:py-10 space-y-6">
+    <div className="max-w-[1040px] mx-auto px-4 sm:px-8 py-6 sm:py-8 space-y-6">
       <section className="rounded-2xl bg-[#0b2da0] text-white px-5 sm:px-8 py-7 sm:py-9 relative overflow-hidden">
         <div aria-hidden className="absolute inset-0 opacity-60" style={{ backgroundImage: 'radial-gradient(circle 420px at 100% 0%, rgba(77,163,255,0.35), transparent 70%), radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)', backgroundSize: 'auto, 26px 26px' }} />
         <div className="relative">
@@ -159,9 +160,9 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
                 type="button"
                 onClick={() => p.id !== 'presentate' && marcar(p.id, !ok)}
                 aria-label={ok ? 'Hecho' : 'Marcar como hecho'}
-                className={`mt-0.5 shrink-0 w-7 h-7 rounded-full flex items-center justify-center border-[1.5px] bg-white ${ok ? 'border-[#16A34A] text-[#16A34A]' : 'border-[#C9D2E6] text-[#8A91AD]'}`}
+                className={`mt-0.5 shrink-0 w-7 h-7 rounded-full flex items-center justify-center border-2 bg-white ${ok ? 'border-[#16A34A] text-[#16A34A]' : 'border-[#C9D2E6] text-[#8A91AD]'}`}
               >
-                {ok ? <Check size={14} strokeWidth={2.5} /> : <span className="text-[12px] font-semibold">{i + 1}</span>}
+                {ok ? <Check size={15} strokeWidth={3.2} /> : <span className="text-[12.5px] font-bold leading-none" style={{ textBox: 'trim-both cap alphabetic' } as React.CSSProperties}>{i + 1}</span>}
               </button>
               <div className="min-w-0 flex-1">
                 <p className={`text-[15.5px] font-semibold ${ok ? 'text-[#8A91AD] line-through decoration-[#C9D2E6]' : 'text-[#0B1033]'}`}>{p.titulo}</p>

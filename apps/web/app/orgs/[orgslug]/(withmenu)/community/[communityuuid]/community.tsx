@@ -3,7 +3,6 @@
 import React from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Hash, MoreHorizontal, Pin, Search, X } from 'lucide-react'
-import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import { ChannelChat } from '@components/Objects/Communities/ChannelChat'
 import ChannelPosts from '@components/Objects/Communities/ChannelPosts'
 import Portada from '@components/Pages/Espacios/Portada'
@@ -13,6 +12,7 @@ import { getUriWithOrg } from '@services/config/config'
 import { Community } from '@services/communities/communities'
 import { DiscussionWithAuthor } from '@services/communities/discussions'
 import { splitChannelEmoji } from '@/lib/communities/channelEmoji'
+import { esCanalDeInicio } from '@/lib/nawar/empiezaAqui'
 
 interface CommunityClientProps {
   community: Community
@@ -132,16 +132,20 @@ const CommunityClient = ({ community, orgslug }: CommunityClientProps) => {
   /* ── Tablón: una página normal, que se desplaza como cualquier lista ── */
   if (isBoard) {
     return (
-      <GeneralWrapperStyled>
-        <div className="mb-4">
-          <Portada clave={community.community_uuid} titulo={`${emoji ? emoji + ' ' : ''}${text}`} subtitulo={community.description || ''} etiqueta="Comunidad" pequena />
-        </div>
+      // Mismo ancho y misma portada que Bienvenida y Recursos (08/11/2026: «que sean todos iguales»).
+      <div className="max-w-[1040px] mx-auto px-4 sm:px-8 py-6 sm:py-8 space-y-5">
+        <Portada
+          clave={community.community_uuid}
+          titulo={`${emoji ? emoji + ' ' : ''}${text}`}
+          subtitulo={community.description || ''}
+          etiqueta={esCanalDeInicio(community.name) ? 'Empieza aquí' : 'Comunidad'}
+        />
         <ChannelPosts
           communityUuid={community.community_uuid}
           channelName={text}
           orgslug={orgslug}
         />
-      </GeneralWrapperStyled>
+      </div>
     )
   }
 

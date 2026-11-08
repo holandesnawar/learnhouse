@@ -277,7 +277,7 @@ function TareasDeUnaClase({ uuid, nombre, mostrarNombre }: { uuid: string; nombr
             </span>
             {e && !cerrada ? (
               <span className={`shrink-0 inline-flex items-center gap-1.5 text-[13px] font-medium ${e.cls}`}>
-                {s.tarea?.estado === 'corregida' ? <Check size={14} strokeWidth={2.5} className="text-[#16A34A]" /> : null}
+                {s.tarea?.estado === 'corregida' ? <Check size={14} strokeWidth={3} className="text-[#16A34A]" /> : null}
                 {e.texto}
               </span>
             ) : null}
@@ -359,7 +359,7 @@ function GrabadasDeUnaClase({ uuid, nombre, mostrarNombre }: { uuid: string; nom
                 </span>
                 {f.vista ? (
                   <span className="shrink-0 inline-flex items-center gap-1.5 text-[13px] font-medium text-[#5B6382]">
-                    <Check size={14} strokeWidth={2.5} className="text-[#16A34A]" /> Vista
+                    <Check size={14} strokeWidth={3} className="text-[#16A34A]" /> Vista
                   </span>
                 ) : (
                   <span className="shrink-0 text-[13px] font-semibold text-[#0b2da0]">Ver</span>

@@ -5,7 +5,7 @@
  * escuela y lo de su cuenta (perfil, ajustes, contraseña, cerrar sesión).
  * Sustituye a la caja del perfil que iba abajo en la barra.
  */
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import Link from 'next/link'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
@@ -40,22 +40,6 @@ export default function MenuPerfil({ claro = false }: { claro?: boolean }) {
   const nombre = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username || ''
   const ruta = (p: string) => getUriWithOrg(org?.slug || '', p)
   const item = 'flex items-center gap-2.5 px-2.5 py-2 text-[14px] text-[#2B3150] cursor-pointer'
-  // La barra lateral, azul o blanca: la elige cada uno (08/11/2026). Se guarda
-  // en este navegador y la barra se entera al momento (evento «nawar-barra»).
-  const [barra, setBarra] = useState<'azul' | 'blanca'>('azul')
-  useEffect(() => {
-    try {
-      const v = localStorage.getItem('nawar.barra.estilo')
-      if (v === 'azul' || v === 'blanca') setBarra(v)
-    } catch {}
-  }, [])
-  const elegirBarra = (v: 'azul' | 'blanca') => {
-    setBarra(v)
-    try {
-      localStorage.setItem('nawar.barra.estilo', v)
-    } catch {}
-    window.dispatchEvent(new CustomEvent('nawar-barra', { detail: v }))
-  }
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -99,28 +83,6 @@ export default function MenuPerfil({ claro = false }: { claro?: boolean }) {
             <ChatCircleDots size={18} /> Mis consultas
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <div className="px-2.5 py-2">
-          <p className="text-[12.5px] text-[#6B7393] mb-1.5">Barra lateral</p>
-          <div className="grid grid-cols-2 rounded-lg border border-[#DDE3F0] overflow-hidden divide-x divide-[#DDE3F0]">
-            {(['azul', 'blanca'] as const).map((v) => (
-              <button
-                key={v}
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault()
-                  elegirBarra(v)
-                }}
-                aria-pressed={barra === v}
-                className={`h-8 text-[13px] font-semibold capitalize transition-colors ${
-                  barra === v ? 'bg-[#0b2da0] text-white' : 'bg-white text-[#3B4262] hover:bg-[#F5F7FC]'
-                }`}
-              >
-                {v === 'azul' ? 'Azul' : 'Blanca'}
-              </button>
-            ))}
-          </div>
-        </div>
         {estado?.isAdmin || estado?.isCloser ? (
           <>
             <DropdownMenuSeparator />

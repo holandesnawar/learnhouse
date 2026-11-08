@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Check, ChevronDown, RotateCcw } from 'lucide-react'
 import { getUriWithOrg } from '@services/config/config'
@@ -18,6 +18,7 @@ import {
   type ModuleRow,
   type SectionRow,
 } from '@/lib/course/formacionProgress'
+import { getLesson } from '@/lib/exercises-app/courseService'
 
 /* Umbrales: ≥85% dominado · <60% flojo. */
 const MASTER = 85
@@ -234,16 +235,17 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
                   <div key={m.key}>
                     <button onClick={() => toggleModule(m.key)} className="w-full text-left px-5 py-4 flex items-center gap-3.5">
                       {m.completed ? (
-                        <span className="w-6 h-6 rounded-full border-[1.5px] border-[#16A34A] text-[#16A34A] flex items-center justify-center shrink-0">
-                          <Check size={12} strokeWidth={2.5} />
+                        <span className="w-7 h-7 rounded-full border-2 border-[#16A34A] text-[#16A34A] flex items-center justify-center shrink-0">
+                          <Check size={15} strokeWidth={3.2} />
                         </span>
                       ) : (
                         <span
-                          className={`w-6 h-6 rounded-full border-[1.5px] flex items-center justify-center shrink-0 text-[11.5px] font-semibold tabular-nums ${
+                          className={`w-7 h-7 rounded-full border-2 grid place-items-center shrink-0 text-[13px] font-bold tabular-nums leading-none ${
                             m.started ? 'border-[#0b2da0] text-[#0b2da0]' : 'border-[#D5DBE8] text-[#8A91AD]'
                           }`}
                         >
-                          {num ?? i}
+                          {/* «text-box» quita el aire de arriba y abajo de la letra: así el número queda en el centro de verdad. */}
+                          <span style={{ textBox: 'trim-both cap alphabetic' } as CSSProperties}>{num ?? i}</span>
                         </span>
                       )}
                       <span className="flex-1 min-w-0">
@@ -262,14 +264,17 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
                     </button>
 
                     {open && (
-                      <div className="pb-2">
+                      <div className="-mt-1.5 pb-2">
                         {m.classes.map((c: ClassRow) => {
                           const cOpen = openClasses.has(c.key)
                           return (
                             <div key={c.key}>
-                              <button onClick={() => toggleClass(c.key)} className="w-full text-left pl-[60px] pr-5 py-2.5 flex items-center gap-3">
+                              <button onClick={() => toggleClass(c.key)} className="w-full text-left pl-[62px] pr-5 py-2 flex items-center gap-3">
                                 <Circulo hecho={c.completed} empezado={c.started} />
-                                <span className={`flex-1 min-w-0 text-[14px] font-medium truncate ${c.started ? 'text-[#0B1033]' : 'text-[#8A91AD]'}`}>{c.title}</span>
+                                <span className={`flex-1 min-w-0 text-[14px] font-medium truncate ${c.started ? 'text-[#0B1033]' : 'text-[#8A91AD]'}`}>
+                                  {c.title}
+                                  {nombreLeccion(c) ? <span className={`font-normal ${c.started ? 'text-[#5B6382]' : 'text-[#A3AAC2]'}`}> · {nombreLeccion(c)}</span> : null}
+                                </span>
                                 {c.fails > 0 && (
                                   <span className="shrink-0 text-[12px] font-medium text-[#8A6A2A]">
                                     {c.fails} {c.fails === 1 ? 'fallo' : 'fallos'}
@@ -325,19 +330,26 @@ function partesModulo(t: string): { num: number | null; nombre: string } {
   return { num: Number(m[1]), nombre: bonito(m[2].trim()) || `Módulo ${m[1]}` }
 }
 
+/** «Les 1 — Jezelf voorstellen» → «Jezelf voorstellen»: el nombre de la lección, sacado de la escuela. */
+function nombreLeccion(c: ClassRow): string {
+  if (!c.leccion) return ''
+  const l = getLesson(c.leccion.moduleId, c.leccion.lessonId)
+  return l ? String(l.title || '').replace(/^\s*les\s*\d+\s*[-–—:.]\s*/i, '').trim() : ''
+}
+
 function nombreModulo(t: string): string {
   const { num, nombre } = partesModulo(t)
   return num ? `Módulo ${num} · ${nombre}` : nombre
 }
 
 function Circulo({ hecho, empezado = false, pequeno = false }: { hecho: boolean; empezado?: boolean; pequeno?: boolean }) {
-  const t = pequeno ? 'w-[16px] h-[16px]' : 'w-[20px] h-[20px]'
+  const t = pequeno ? 'w-[17px] h-[17px]' : 'w-[21px] h-[21px]'
   return hecho ? (
-    <span className={`${t} rounded-full border-[1.5px] border-[#16A34A] text-[#16A34A] flex items-center justify-center shrink-0`}>
-      <Check size={pequeno ? 10 : 12} strokeWidth={2.5} />
+    <span className={`${t} rounded-full border-2 border-[#16A34A] text-[#16A34A] flex items-center justify-center shrink-0`}>
+      <Check size={pequeno ? 10 : 12} strokeWidth={3.4} />
     </span>
   ) : (
-    <span className={`${t} rounded-full border-[1.5px] shrink-0 ${empezado ? 'border-[#0b2da0]' : 'border-[#C9CFDE]'}`} />
+    <span className={`${t} rounded-full border-2 shrink-0 ${empezado ? 'border-[#0b2da0]' : 'border-[#C9CFDE]'}`} />
   )
 }
 

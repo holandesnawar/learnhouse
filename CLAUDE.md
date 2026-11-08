@@ -5291,6 +5291,23 @@ la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
     `GET /equipo/org/{id}/yo`). En el equipo sale como «Monitor». La
     formación le da 403. Datos de prueba: Tom Bakker es monitor y da el
     Spreekclub (marca `datos_prueba.monitores`).
+- **v10 (08/11): barra y Mi progreso.** Iconos de la barra RELLENOS
+  (phosphor `fill`, como la escuela de antes). Botón para **cerrar la barra**
+  (icono `SidebarSimple` junto al logo; cerrada, sale arriba a la izquierda
+  para volver a abrirla; se recuerda en `nawar.barra.cerrada`). **Cambiar el
+  color de la barra con un clic** (icono `CircleHalf` al lado de los avisos;
+  ya no está en el menú del perfil). Logo un poco más a la izquierda. Al
+  administrador, **«Panel»** (`/dash`, el panel entero) el primero de Gestión.
+  Mi progreso: cada lección con su nombre («Lección 1 · Jezelf voorstellen»,
+  de `courseData` por el `nawar:` de sus clases: `leccionDe` y
+  `ClassRow.leccion` en `formacionProgress.ts`), menos hueco bajo la barra del
+  módulo y el número centrado (`text-box: trim-both cap alphabetic`).
+  **Checks verdes iguales en toda la escuela**: círculo con borde de 2 px y
+  check con trazo 3,2-3,4 (Mi progreso, la semana, Empieza aquí, la racha, la
+  sala de profes); los checks sueltos junto a un texto, trazo 3. Bienvenida,
+  Recursos y los canales de tablón con el mismo ancho (1040 px) y la misma
+  portada; los canales de «Empieza aquí» llevan la etiqueta «Empieza aquí».
+  «Conoce la escuela» lleva a la formación (su módulo 0 es la introducción).
 - **Pasar el diseño nuevo a la escuela de verdad = mezclar `diseno` en `dev`**
   (un PR, un botón «Merge»). Lo que lleva y ya está pensado para los datos
   reales: los datos inventados solo se crean con `LEARNHOUSE_DATOS_DE_PRUEBA=si`

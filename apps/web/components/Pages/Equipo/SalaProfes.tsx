@@ -61,11 +61,11 @@ function Paso({
   return (
     <li className="flex items-center gap-3 py-2.5">
       <span
-        className={`shrink-0 w-[20px] h-[20px] rounded-full border flex items-center justify-center ${
+        className={`shrink-0 w-[21px] h-[21px] rounded-full border-2 flex items-center justify-center ${
           hecho ? 'border-[#16A34A] text-[#16A34A]' : apagado ? 'border-dashed border-[#C9D4EC]' : 'border-[#AEB9D3]'
         }`}
       >
-        {hecho ? <Check size={12} strokeWidth={3} /> : null}
+        {hecho ? <Check size={12} strokeWidth={3.4} /> : null}
       </span>
       <div className="min-w-0 flex-1">
         <p className={`text-[14.5px] leading-snug ${apagado ? 'text-[#8A91AD]' : 'text-[#0B1033]'} ${hecho ? '' : 'font-semibold'}`}>{titulo}</p>
