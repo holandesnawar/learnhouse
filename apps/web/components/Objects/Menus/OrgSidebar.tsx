@@ -29,11 +29,11 @@ import { getOrgLogoMediaDirectory } from '@services/media/media'
 import { getCommunities, type Community } from '@services/communities/communities'
 import { splitChannelEmoji } from '@/lib/communities/channelEmoji'
 import { esCanalDeInicio, ordenDeInicio } from '@/lib/nawar/empiezaAqui'
-import { CURSO_FORMACION_UUID as FORMACION_UUID } from '@/lib/nawar/cursos'
+import { CURSO_FORMACION_UUID as FORMACION_UUID, ajustesDirecto } from '@/lib/nawar/cursos'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
-import { HeaderProfileBox } from '@components/Security/HeaderProfileBox'
+import MenuPerfil from '@components/Objects/Menus/MenuPerfil'
 import NotificationsBell from '@components/Objects/Menus/NotificationsBell'
 import MessagesBell from '@components/Objects/Menus/MessagesBell'
 import { PANEL_EN_LA_ESCUELA, DashboardMenuItem } from '@/lib/dashboard-menu-items'
@@ -59,6 +59,9 @@ import {
   CaretDown,
   X,
   ChalkboardTeacher,
+  SquaresFour,
+  Phone,
+  AddressBook,
 } from '@phosphor-icons/react'
 
 import { FONDO_MARCA, ACTIVO_SOBRE_MARCA } from '@/lib/nawar/marca'
@@ -73,6 +76,8 @@ type Item = {
   alerta?: boolean
   /** Activo solo con la ruta exacta (no con las que empiezan igual). */
   exacta?: boolean
+  /** Dirección entera (el panel), sin pasar por la escuela. */
+  fuera?: boolean
 }
 
 type Bloque = { titulo?: string; items: Item[] }
@@ -132,6 +137,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const base = ruta('/').replace(/\/$/, '')
   const actual = pathname.replace(base, '') || '/'
   const activo = (it: Item) => {
+    if (it.fuera) return !it.href.includes('?') && pathname.includes(it.href)
     const h = it.href.split('#')[0].split('?')[0]
     if (h === '/') return actual === '/'
     return it.exacta ? actual === h : actual === h || actual.startsWith(h + '/')
@@ -156,70 +162,141 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const canalesInicio = (canales || []).filter((c) => esCanalDeInicio(c.name)).sort((a, b) => ordenDeInicio(a.name) - ordenDeInicio(b.name))
   const canalesComunidad = (canales || []).filter((c) => !esCanalDeInicio(c.name))
 
-  const bloques: Bloque[] = [
-    { items: [{ key: 'inicio', href: '/', label: 'Inicio', icon: <House size={20} weight="regular" /> }] },
-    {
-      titulo: 'Empieza aquí',
-      items: [
-        { key: 'bienvenida', href: '/empieza-aqui', label: 'Bienvenida', icon: <Flag size={20} weight="regular" /> },
-        ...canalesInicio.map(itemCanal),
-        { key: 'recursos', href: '/recursos', label: 'Recursos', icon: <FolderSimple size={20} weight="regular" /> },
-      ],
-    },
-    {
-      titulo: 'Formación',
-      items: [
-        { key: 'formacion', href: `/course/${FORMACION_UUID}`, label: 'Formación A0-A1', icon: <Books size={20} weight="regular" /> },
-        { key: 'progreso', href: '/ejercicios/progreso', label: 'Mi progreso', icon: <ChartLineUp size={20} weight="regular" /> },
-        { key: 'notas', href: '/mis-notas', label: 'Mis notas', icon: <NotePencil size={20} weight="regular" /> },
-      ],
-    },
-    ...(tieneClases
-      ? [
-          {
-            titulo: 'Mis clases',
-            items: [
-              // La página de cada clase, a un clic (08/11: «es difícil llegar hasta ella»).
-              ...(enDirecto || []).map((c) => ({
-                key: `clase-${c.uuid}`,
-                href: `/course/${String(c.uuid).replace(/^course_/, '')}`,
-                label: c.nombre,
-                icon: <ChalkboardTeacher size={20} weight="regular" />,
-              })),
-              { key: 'clases', href: '/clases', label: 'Esta semana', icon: <VideoCamera size={20} weight="regular" />, exacta: true },
-              { key: 'tareas', href: '/clases/tareas', label: 'Tareas', icon: <ClipboardText size={20} weight="regular" /> },
-              { key: 'grabadas', href: '/clases/grabadas', label: 'Clases grabadas', icon: <PlayCircle size={20} weight="regular" /> },
-              { key: 'calendario', href: '/calendario', label: 'Calendario', icon: <CalendarBlank size={20} weight="regular" /> },
-              ...(isStaff && !isAdmin
-                ? [
-                    { key: 'tablero', href: '/mis-clases', label: 'Preparar clases', icon: <Kanban size={20} weight="regular" /> },
-                    { key: 'seguimiento', href: '/seguimiento', label: 'Seguimiento', icon: <ChartBar size={20} weight="regular" /> },
-                  ]
-                : []),
-            ] as Item[],
-          },
-        ]
-      : []),
-    ...(canalesComunidad.length ? [{ titulo: 'Comunidad', items: canalesComunidad.map(itemCanal) }] : []),
-    {
-      titulo: 'Ayuda',
-      items: [
-        { key: 'consultas', href: '/consultas', label: 'Consultas', icon: <Question size={20} weight="regular" /> },
-        { key: 'mis-consultas', href: '/mis-consultas', label: 'Mis consultas', icon: <ChatCircleDots size={20} weight="regular" /> },
-        { key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={20} weight="regular" /> },
-        ...(isStaff ? [{ key: 'responder', href: '/responder-consultas', label: 'Responder consultas', icon: <Question size={20} weight="regular" /> }] : []),
-      ],
-    },
-  ]
-
+  // La barra según quién entra (08/11/2026: «para admin, profe y closer
+  // también debería ser más fácil»). Alumno: su camino. Profe: dar clase.
+  // Closer: ventas. Administrador: organizar la escuela y todas las clases.
+  const esProfe = autenticado && isStaff && !isAdmin
+  const esCloser = autenticado && isCloser && !isAdmin && !isStaff
+  const conEtiqueta = (c: { uuid: string; nombre: string }) => {
+    const et = ajustesDirecto(org?.config?.config, c.uuid).etiqueta
+    // «Clase semanal · rood»: entero no cabía en la barra.
+    return et ? `${c.nombre} · ${et.replace(/^groep\s+/i, '')}` : c.nombre
+  }
+  const itemsClases: Item[] = (enDirecto || []).map((c) => ({
+    key: `clase-${c.uuid}`,
+    href: `/course/${String(c.uuid).replace(/^course_/, '')}`,
+    label: isStaff || isAdmin ? conEtiqueta(c) : c.nombre,
+    icon: <ChalkboardTeacher size={20} weight="regular" />,
+  }))
   const panel = isAdmin
     ? PANEL_EN_LA_ESCUELA.filter((item: DashboardMenuItem) => {
-        if (isProfe && !item.forProfe) return false
         if (!item.featureKey) return true
         if (rf?.[item.featureKey]) return rf[item.featureKey].enabled
         return isFeatureAvailable(item.featureKey)
       })
     : []
+  const inicio: Bloque = { items: [{ key: 'inicio', href: '/', label: 'Inicio', icon: <House size={20} weight="regular" /> }] }
+  const empieza: Bloque = {
+    titulo: 'Empieza aquí',
+    items: [
+      { key: 'bienvenida', href: '/empieza-aqui', label: 'Bienvenida', icon: <Flag size={20} weight="regular" /> },
+      ...canalesInicio.map(itemCanal),
+      { key: 'recursos', href: '/recursos', label: 'Recursos', icon: <FolderSimple size={20} weight="regular" /> },
+    ],
+  }
+  const comunidad: Bloque[] = canalesComunidad.length ? [{ titulo: 'Comunidad', items: canalesComunidad.map(itemCanal) }] : []
+  const verFormacion: Item = { key: 'formacion', href: `/course/${FORMACION_UUID}`, label: 'Formación A0-A1', icon: <Books size={20} weight="regular" /> }
+
+  let bloques: Bloque[]
+  if (isAdmin) {
+    bloques = [
+      inicio,
+      {
+        titulo: 'Gestión',
+        items: [
+          { key: 'organizar', href: '/organizar', label: 'Organizar clases', icon: <SquaresFour size={20} weight="regular" /> },
+          { key: 'tablero', href: '/mis-clases', label: 'Preparar clases', icon: <Kanban size={20} weight="regular" /> },
+          { key: 'seguimiento', href: '/seguimiento', label: 'Seguimiento', icon: <ChartBar size={20} weight="regular" /> },
+          { key: 'responder', href: '/responder-consultas', label: 'Responder consultas', icon: <Question size={20} weight="regular" /> },
+          ...panel.map((item) => {
+            const Icon = item.icon as any
+            return { key: `panel-${item.id}`, href: item.href, label: item.label || ({ estadisticas: 'Estadísticas', users: 'Usuarios', courses: 'Cursos' } as Record<string, string>)[item.id] || item.id, icon: <Icon size={20} weight="regular" />, fuera: true } as Item
+          }),
+        ],
+      },
+      { titulo: 'Clases', items: [...itemsClases, { key: 'calendario', href: '/calendario', label: 'Calendario', icon: <CalendarBlank size={20} weight="regular" /> }] },
+      { titulo: 'Formación', items: [verFormacion] },
+      empieza,
+      ...comunidad,
+      { titulo: 'Ayuda', items: [{ key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={20} weight="regular" /> }] },
+    ]
+  } else if (esProfe) {
+    bloques = [
+      inicio,
+      {
+        titulo: 'Dar clase',
+        items: [
+          { key: 'tablero', href: '/mis-clases', label: 'Preparar clases', icon: <Kanban size={20} weight="regular" /> },
+          { key: 'seguimiento', href: '/seguimiento', label: 'Seguimiento y tareas', icon: <ChartBar size={20} weight="regular" /> },
+          { key: 'responder', href: '/responder-consultas', label: 'Responder consultas', icon: <Question size={20} weight="regular" /> },
+          { key: 'organizar', href: '/organizar', label: 'Clases y grupos', icon: <SquaresFour size={20} weight="regular" /> },
+        ],
+      },
+      { titulo: 'Clases', items: [...itemsClases, { key: 'calendario', href: '/calendario', label: 'Calendario', icon: <CalendarBlank size={20} weight="regular" /> }] },
+      { titulo: 'Formación', items: [verFormacion] },
+      ...comunidad,
+      {
+        titulo: 'Ayuda',
+        items: [
+          { key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={20} weight="regular" /> },
+          { key: 'recursos', href: '/recursos', label: 'Recursos', icon: <FolderSimple size={20} weight="regular" /> },
+        ],
+      },
+    ]
+  } else if (esCloser) {
+    const venta = (tab: string) => `/dash/estadisticas?tab=${tab}`
+    bloques = [
+      inicio,
+      {
+        titulo: 'Ventas',
+        items: [
+          { key: 'v-matriculas', href: venta('matriculas'), label: 'Matrículas', icon: <Kanban size={20} weight="regular" />, fuera: true },
+          { key: 'v-llamadas', href: venta('llamadas'), label: 'Llamadas', icon: <Phone size={20} weight="regular" />, fuera: true },
+          { key: 'v-contactos', href: venta('contactos'), label: 'Contactos', icon: <AddressBook size={20} weight="regular" />, fuera: true },
+          { key: 'v-guion', href: venta('guion'), label: 'Material de venta', icon: <FolderSimple size={20} weight="regular" />, fuera: true },
+        ],
+      },
+      { titulo: 'La escuela', items: [verFormacion, ...itemsClases] },
+      ...comunidad,
+      { titulo: 'Ayuda', items: [{ key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={20} weight="regular" /> }] },
+    ]
+  } else {
+    bloques = [
+      inicio,
+      empieza,
+      {
+        titulo: 'Formación',
+        items: [
+          verFormacion,
+          { key: 'progreso', href: '/ejercicios/progreso', label: 'Mi progreso', icon: <ChartLineUp size={20} weight="regular" /> },
+          { key: 'notas', href: '/mis-notas', label: 'Mis notas', icon: <NotePencil size={20} weight="regular" /> },
+        ],
+      },
+      ...(tieneClases
+        ? [
+            {
+              titulo: 'Mis clases',
+              items: [
+                // La página de cada clase, a un clic (08/11: «es difícil llegar hasta ella»).
+                ...itemsClases,
+                { key: 'clases', href: '/clases', label: 'Esta semana', icon: <VideoCamera size={20} weight="regular" />, exacta: true },
+                { key: 'tareas', href: '/clases/tareas', label: 'Tareas', icon: <ClipboardText size={20} weight="regular" /> },
+                { key: 'grabadas', href: '/clases/grabadas', label: 'Clases grabadas', icon: <PlayCircle size={20} weight="regular" /> },
+                { key: 'calendario', href: '/calendario', label: 'Calendario', icon: <CalendarBlank size={20} weight="regular" /> },
+              ] as Item[],
+            },
+          ]
+        : []),
+      ...comunidad,
+      {
+        titulo: 'Ayuda',
+        items: [
+          { key: 'consultas', href: '/consultas', label: 'Consultas', icon: <Question size={20} weight="regular" /> },
+          { key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={20} weight="regular" /> },
+        ],
+      },
+    ]
+  }
 
   // Las secciones de arriba: lo mismo que la barra, en grande.
   const arriba: Item[] = [
@@ -273,7 +350,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const Fila = ({ it }: { it: Item }) => {
     const on = activo(it)
     return (
-      <Link href={ruta(it.href)} className={filaCls(on)} style={filaStyle(on)}>
+      <Link href={it.fuera ? it.href : ruta(it.href)} className={filaCls(on)} style={filaStyle(on)}>
         <span className={iconoCls(on)}>{it.emoji ? <span className="text-[16px] leading-none">{it.emoji}</span> : it.icon}</span>
         <span className="truncate flex-1">{it.label}</span>
         {it.badge ? (
@@ -319,35 +396,12 @@ export const OrgSidebar = (props: { orgslug: string }) => {
             </div>
           )
         })}
-        {panel.length > 0 && (
-          <div>
-            <p className={tituloCls.replace('group w-full flex items-center justify-between', 'block')}>Panel</p>
-            <div className="space-y-0.5">
-              {panel.map((item) => {
-                const Icon = item.icon
-                const on = pathname.includes(item.href)
-                return (
-                  <Link key={item.id} href={item.href} className={filaCls(on)} style={filaStyle(on)}>
-                    <span className={iconoCls(on)}>
-                      <Icon size={20} weight="regular" />
-                    </span>
-                    <span className="truncate">{item.label}</span>
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-        )}
-        {autenticado && isCloser && (
-          <Fila it={{ key: 'panel-closer', href: '/dash/estadisticas?tab=matriculas', label: 'Panel de ventas', icon: <ChartBar size={20} weight="regular" /> }} />
-        )}
       </nav>
-      <div className={`px-2 pt-2 pb-1 border-t ${azul ? 'border-white/10' : 'border-[#E6EAF3]'}`}>
-        <HeaderProfileBox primaryColor={azul ? '#0b2da0' : ''} />
+      <div className={`px-2 py-1.5 border-t ${azul ? 'border-white/10' : 'border-[#E6EAF3]'}`}>
         <button
           type="button"
           onClick={cambiarEstilo}
-          className={`mt-1 w-full text-left px-2 py-1 text-[11.5px] ${azul ? 'text-white/55 hover:text-white' : 'text-[#8A91AD] hover:text-[#0b2da0]'}`}
+          className={`w-full text-left px-2 py-1 text-[11.5px] ${azul ? 'text-white/55 hover:text-white' : 'text-[#8A91AD] hover:text-[#0b2da0]'}`}
         >
           Probar la barra {azul ? 'blanca' : 'azul'}
         </button>
@@ -399,6 +453,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         <div className="ml-auto flex items-center gap-1 shrink-0">
           <MessagesBell orgslug={orgslug} />
           <NotificationsBell orgslug={orgslug} />
+          <MenuPerfil />
         </div>
       </header>
 
@@ -412,6 +467,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
           <div className="flex items-center gap-1 shrink-0">
             <MessagesBell orgslug={orgslug} claro />
             <NotificationsBell orgslug={orgslug} claro />
+            <MenuPerfil claro />
           </div>
         </header>
       ) : (
@@ -423,6 +479,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
           <div className="flex items-center gap-1 shrink-0">
             <MessagesBell orgslug={orgslug} />
             <NotificationsBell orgslug={orgslug} />
+            <MenuPerfil />
           </div>
         </header>
       )}

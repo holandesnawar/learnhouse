@@ -196,6 +196,10 @@ async def sembrar(db: AsyncSession) -> str:
             hecho.append("las carpetas de Recursos")
         if _en_espanol(config):
             hecho.append("el idioma español")
+        if not (config.get("datos_prueba") or {}).get("spreekclub"):
+            await _spreekclub(db, int(org.id or 0), config)
+            config["datos_prueba"] = {**config["datos_prueba"], "spreekclub": True}
+            hecho.append("el Spreekclub y su monitor")
         if not hecho:
             return "ya estaban"
         fila.config = config
@@ -470,7 +474,8 @@ async def sembrar(db: AsyncSession) -> str:
     config["customization"] = custom
     _en_espanol(config)
     await _recursos(db, org_id)
-    config["datos_prueba"] = {"creados": _ahora(), "alumna": "marta@ejemplo.com", "recursos": True}
+    await _spreekclub(db, org_id, config)
+    config["datos_prueba"] = {"creados": _ahora(), "alumna": "marta@ejemplo.com", "recursos": True, "spreekclub": True}
     if fila is None:
         fila = OrganizationConfig(org_id=org_id, config=config, creation_date=_ahora(), update_date=_ahora())
     else:
@@ -508,6 +513,46 @@ def _en_espanol(config: dict) -> bool:
     custom["general"] = general
     config["customization"] = custom
     return True
+
+
+SPREEKCLUB_UUID = "course_5b1e7c3a-2d4f-4a8e-9c61-0f3e8a7b2c19"
+
+
+async def _spreekclub(db: AsyncSession, org_id: int, config: dict) -> None:
+    """Un Spreekclub para el programa nuevo, sin monitor puesto, y un monitor
+    (Tom Bakker, rol de profe) para poder dárselo desde «Organizar clases»."""
+    from src.db.courses.courses import Course
+    from src.db.usergroup_resources import UserGroupResource
+    from src.db.usergroups import UserGroup
+    from src.db.user_organizations import UserOrganization
+    from src.db.users import User
+    from src.security.security import security_hash_password
+
+    ya = (await db.execute(select(User).where(User.email == "tom.bakker@ejemplo.com"))).scalars().first()
+    if ya is None:
+        tom = User(username="tom.bakker", first_name="Tom", last_name="Bakker", email="tom.bakker@ejemplo.com",
+                   password=security_hash_password(secrets.token_urlsafe(18)), user_uuid=f"user_{uuid4()}",
+                   email_verified=True, creation_date=_ahora(), update_date=_ahora())
+        db.add(tom)
+        await db.flush()
+        db.add(UserOrganization(user_id=tom.id, org_id=org_id, role_id=5, creation_date=_ahora(), update_date=_ahora()))
+    c = (await db.execute(select(Course).where(Course.course_uuid == SPREEKCLUB_UUID))).scalars().first()
+    if c is None:
+        c = Course(name="Spreekclub", description="Media hora de conversación en grupos pequeños.", about="Spreekclub",
+                   public=False, published=True, open_to_contributors=False, org_id=org_id, course_uuid=SPREEKCLUB_UUID,
+                   creation_date=_ahora(), update_date=_ahora())
+        db.add(c)
+        await db.flush()
+        programa = (await db.execute(select(UserGroup).where(UserGroup.org_id == org_id, UserGroup.name == "Programa nuevo"))).scalars().first()
+        if programa is not None:
+            db.add(UserGroupResource(usergroup_id=programa.id, resource_uuid=SPREEKCLUB_UUID, org_id=org_id, creation_date=_ahora(), update_date=_ahora()))
+    salas = config.get("salas") if isinstance(config.get("salas"), dict) else {}
+    salas[SPREEKCLUB_UUID.replace("course_", "", 1)] = {
+        "directo": True, "activo": False, "grabadas": False,
+        "banner": {"next_weekday": "1", "schedule": "18:00", "teacher": "", "duration": "30 min",
+                   "subtitle": "", "live_url": "", "next_day": "", "next_date": ""},
+    }
+    config["salas"] = salas
 
 
 async def _recursos(db: AsyncSession, org_id: int) -> None:

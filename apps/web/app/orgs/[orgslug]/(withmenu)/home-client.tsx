@@ -3,6 +3,8 @@ import React from 'react'
 import { useOrg } from '@components/Contexts/OrgContext'
 import LandingCustom from '@components/Landings/LandingCustom'
 import StudentHome from '@components/Pages/Home/StudentHome'
+import InicioEquipo from '@components/Pages/Home/InicioEquipo'
+import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { JsonLd } from '@components/SEO/JsonLd'
 import { getUriWithOrg } from '@services/config/config'
 import { getOrgLogoMediaDirectory } from '@services/media/media'
@@ -10,6 +12,8 @@ import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/Ge
 
 export default function HomeClient({ orgslug }: { orgslug: string }) {
   const org = useOrg() as any
+  // El equipo (profes y administradores) tiene su propio Inicio (08/11/2026).
+  const { isStaff } = useAdminStatus() as any
 
   const landingConfig = org?.config?.config?.customization?.landing || org?.config?.config?.landing
   const hasCustomLanding = landingConfig?.enabled
@@ -58,6 +62,8 @@ export default function HomeClient({ orgslug }: { orgslug: string }) {
       {orgJsonLd && <JsonLd data={orgJsonLd} />}
       {hasCustomLanding ? (
         <LandingCustom landing={landingConfig} orgslug={orgslug} />
+      ) : isStaff ? (
+        <InicioEquipo orgslug={orgslug} />
       ) : (
         <StudentHome orgslug={orgslug} />
       )}

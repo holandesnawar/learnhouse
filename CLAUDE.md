@@ -5133,6 +5133,33 @@ la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
   «Probar la barra…» al pie de la barra o con `?barra=azul|blanca` (se
   recuerda en `nawar.barra.estilo`). Las campanas aceptan `claro` para la
   franja blanca. Cuando el usuario elija, quitar el otro estilo y el botón.
+- **Por papel y «Organizar clases» (08/11)**: «para admin, profe, closer
+  también debería ser más fácil… que la parte de atrás no se vuelva un caos».
+  - **Perfil arriba a la derecha** (`Menus/MenuPerfil.tsx`, como Circle): foto,
+    nombre, papel, Mi perfil, Ajustes, Contraseña, Mis consultas, Panel (admin
+    o closer) y Cerrar sesión. Fuera la caja del perfil de abajo de la barra.
+  - **La barra según quién entra** (`OrgSidebar`): alumno (lo de siempre);
+    profe («Dar clase»: Preparar clases, Seguimiento y tareas, Responder
+    consultas, Clases y grupos; «Clases»: cada clase en directo con su grupo);
+    closer («Ventas»: Matrículas, Llamadas, Contactos, Material de venta, con
+    enlace al panel); administrador («Gestión»: Organizar clases, Preparar,
+    Seguimiento, Responder, Estadísticas, Visión, Matrículas, Usuarios,
+    Cursos; «Clases»). Las clases salen como «Clase semanal · rood».
+  - **Inicio del equipo** (`Home/InicioEquipo.tsx`): profes y administradores
+    no ven el Inicio del alumno; ven atajos y el tablero de «Mis clases».
+  - **`/organizar` — Organizar clases** (`Pages/Organizar/OrganizarPage.tsx`,
+    servicio `services/panel/organizar.py`, rutas `/panel/org/{id}/organizar`
+    GET (equipo) y PUT `clase/{uuid}/grupos`, PUT `clase/{uuid}/profe`, POST
+    `alumno` (administradores); test `test_organizar.py`). Sin tablas nuevas.
+    Pestañas: **Clases** (las copias con el mismo nombre juntas, «Una clase, 2
+    grupos», cada grupo con su día, «La da» = el profe del recuadro, «La ven» =
+    sus grupos con quitar/añadir —con algún grupo la clase deja de ser pública—
+    y las cifras de su semana), **Grupos** (su gente, qué ven, «Mover a…») y
+    **Alumnos** (buscar, filtro por grupo, quitar/poner grupo, aviso si no ve
+    ninguna clase o ve dos copias). Las tareas y entregas cuelgan del alumno:
+    moverlo de grupo no las borra.
+  - Los datos de prueba añaden un **Spreekclub** sin monitor y a **Tom
+    Bakker** (rol profe) para dárselo.
 - Pendiente (v2): mover a un alumno al otro grupo UNA semana sin romper sus
   tareas, una pantalla de grupos para el administrador (quién está en qué y
   qué ve), el calendario rehecho, datos inventados en la escuela de pruebas.
