@@ -4,6 +4,7 @@ import {
   errorHandling,
   getResponseMetadata,
 } from '@services/utils/ts/requests'
+import { prepararFoto, subirConTope } from '@/lib/nawar/prepararFoto'
 
 // Discussion labels - must match backend
 export const DISCUSSION_LABELS = [
@@ -467,9 +468,10 @@ export async function uploadChatAttachment(
   file: File,
   access_token: string
 ): Promise<ChatAttachment> {
+  const lista = await prepararFoto(file)
   const body = new FormData()
-  body.append('file', file)
-  const res = await fetch(
+  body.append('file', lista, lista.name)
+  const res = await subirConTope(
     `${getAPIUrl()}communities/${community_uuid}/attachments`,
     {
       method: 'POST',

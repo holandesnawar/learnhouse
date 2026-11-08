@@ -1,6 +1,7 @@
 'use client'
 import { getAPIUrl, getBackendUrl } from '@services/config/config'
 import { RequestBodyWithAuthHeader } from '@services/utils/ts/requests'
+import { prepararFoto, subirConTope } from '@/lib/nawar/prepararFoto'
 
 /**
  * Mensajes directos entre el alumno y el equipo de la escuela.
@@ -165,9 +166,10 @@ export async function uploadMessageAttachment(
   accessToken: string | undefined
 ): Promise<DirectAttachment> {
   if (!accessToken) throw new Error('Entra a tu cuenta para adjuntar archivos')
+  const lista = await prepararFoto(file)
   const body = new FormData()
-  body.append('file', file)
-  const r = await fetch(`${base()}/attachments`, {
+  body.append('file', lista, lista.name)
+  const r = await subirConTope(`${base()}/attachments`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}` },
     credentials: 'include',

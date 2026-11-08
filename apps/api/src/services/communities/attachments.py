@@ -114,6 +114,59 @@ async def _put_in_r2(settings: dict, key: str, data: bytes, content_type: str) -
     return f"{settings['public']}/{key}"
 
 
+_FIRMAS_FOTO = (
+    (b"\xff\xd8\xff", "jpg"),
+    (b"\x89PNG\r\n\x1a\n", "png"),
+    (b"GIF87a", "gif"),
+    (b"GIF89a", "gif"),
+)
+
+
+def tipo_de_foto(data: bytes) -> str:
+    """La extensión que le toca a una foto por su CONTENIDO ("" si no vale)."""
+    for firma, ext in _FIRMAS_FOTO:
+        if data.startswith(firma):
+            return ext
+    if data[:4] == b"RIFF" and b"WEBP" in data[:16]:
+        return "webp"
+    return ""
+
+
+def es_heic(data: bytes) -> bool:
+    return data[4:8] == b"ftyp" and data[8:12] in (
+        b"heic", b"heix", b"hevc", b"hevx", b"mif1", b"msf1", b"heim", b"heis"
+    )
+
+
+def nombre_de_foto(original: str, data: bytes) -> str:
+    """
+    Comprueba la foto por lo que es de verdad, no por su nombre, y le pone la
+    extensión que toca.
+
+    Por qué (08/11/2026): una alumna con Chrome en el iPhone no podía mandar
+    fotos («File type not allowed»): el móvil la mandaba con un nombre sin
+    extensión o en HEIC. Un JPEG llamado «image» ahora pasa; un HEIC (que el
+    navegador de la mayoría no sabe pintar) se rechaza con un motivo claro.
+    """
+    ext = tipo_de_foto(data)
+    if not ext:
+        if es_heic(data):
+            raise HTTPException(
+                status_code=415,
+                detail=(
+                    "Esa foto está en formato HEIC del iPhone y no se puede ver en "
+                    "la escuela. Haz una captura de pantalla de la foto y manda la "
+                    "captura."
+                ),
+            )
+        raise HTTPException(
+            status_code=415,
+            detail="Ese archivo no parece una foto (vale JPG, PNG, GIF o WEBP).",
+        )
+    base = original.rsplit(".", 1)[0] if "." in original else original
+    return f"{base or 'foto'}.{ext}"
+
+
 async def upload_attachment(file: UploadFile, org_uuid: str) -> dict:
     """
     Guarda un adjunto y devuelve con qué pintarlo.
@@ -132,6 +185,14 @@ async def upload_attachment(file: UploadFile, org_uuid: str) -> dict:
         data = await file.read()
         if len(data) > max_size:
             raise HTTPException(status_code=400, detail="El audio pesa demasiado")
+    elif kind == "image":
+        data = await file.read()
+        original = nombre_de_foto(original, data)
+        if len(data) > max_size:
+            raise HTTPException(
+                status_code=413,
+                detail="La foto pesa demasiado. Prueba con una captura de pantalla o hazla otra vez.",
+            )
     else:
         _, data = validate_upload(file, allowed, max_size)
 
