@@ -295,8 +295,9 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
                     >
                       {/* Como en un calendario de verdad: punto, hora y título, sin pastilla (08/11). */}
                       <span className="w-1.5 h-1.5 rounded-full bg-[#0b2da0] shrink-0" />
-                      {ev.time ? <span className="text-[#6B7393] tabular-nums shrink-0">{ev.time}</span> : null}
-                      <span className="truncate font-medium">{ev.title}</span>
+                      {/* En el móvil la casilla es estrecha: solo el punto (el detalle va en la lista de abajo). */}
+                      {ev.time ? <span className="hidden sm:inline text-[#6B7393] tabular-nums shrink-0">{ev.time}</span> : null}
+                      <span className="hidden sm:inline truncate font-medium">{ev.title}</span>
                     </button>
                   ))}
                   {dayEvents.length > 3 && (

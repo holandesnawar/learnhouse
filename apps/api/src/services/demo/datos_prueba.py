@@ -429,14 +429,14 @@ async def sembrar(db: AsyncSession) -> str:
     ], 24 * 30, likes=9, fijado=True)
     await publicar(bienvenida, profe, "Cómo funciona una semana", [
         "Antes de la clase: mira la presentación. En la clase: hablamos y practicamos. Después: ejercicios y una tarea corta que te corregimos.",
-        "Todo está en Mis clases → Esta semana.",
+        "Todo está en Mis clases, en la página de tu clase.",
     ], 24 * 29, likes=6)
     await publicar(presentate, a["Luis"], "Hola, soy Luis 👋", ["Vivo en Utrecht desde hace 6 meses, trabajo en logística y quiero poder hablar con mis compañeros sin pasar al inglés."], 50, likes=5,
                    comentarios=[(profe, "Welkom, Luis! Verás que en pocas semanas ya te defiendes en el trabajo."), (a["Carla"], "¡Yo también estoy en Utrecht! 🙌")])
     await publicar(presentate, a["Elena"], "Elena, desde Rotterdam", ["Soy enfermera y necesito el neerlandés para homologar mi título. ¡Muchas ganas de empezar!"], 30, likes=7,
                    comentarios=[(a["Raúl"], "¡Mucho ánimo, Elena! Yo estoy en Den Haag.")])
     await publicar(presentate, a["Pablo"], "Hola a todos", ["Me llamo Pablo, vivo en Eindhoven con mi pareja holandesa y mis suegros solo hablan neerlandés 😅"], 12, likes=4)
-    await publicar(noticias, profe, "Esta semana: «Eten en drinken»", ["La presentación ya está en Mis clases → Esta semana. Mírala antes de la clase y trae una pregunta."], 20, likes=3, fijado=True)
+    await publicar(noticias, profe, "Esta semana: «Eten en drinken»", ["La presentación ya está en la página de tu clase, en Mis clases. Mírala antes de la clase y trae una pregunta."], 20, likes=3, fijado=True)
     await publicar(noticias, profe, "Nuevo: confirma si vienes a la clase", ["En la tarjeta de la clase tienes «Voy» o «No puedo». Así preparamos los grupos de práctica."], 70, likes=5)
     await publicar(victorias, a["Marta"], "Hoy pedí cita en el huisarts yo sola", ["Llevo 3 años en Holanda y siempre llamaba mi pareja. Hoy lo hice yo, con las frases del módulo 2. ¡Me entendió a la primera!"], 5, likes=8,
                    comentarios=[(profe, "¡Enorme, Marta! Esto es exactamente para lo que estamos aquí 💪"), (a["Lucía"], "¡Qué bien! A mí todavía me da miedo llamar por teléfono.")])
@@ -450,7 +450,7 @@ async def sembrar(db: AsyncSession) -> str:
             db.add(Discussion(title="", content=doc(txt), label="general", community_id=cm.id, org_id=org_id, author_id=autor.id,
                               discussion_uuid=f"discussion_{uuid4()}", creation_date=cuando, update_date=cuando))
 
-    await chat(general, [(a["Luis"], "¿Alguien sabe dónde está la presentación de esta semana?", 3.2), (a["Carla"], "En Mis clases → Esta semana, arriba del todo 🙂", 3.1),
+    await chat(general, [(a["Luis"], "¿Alguien sabe dónde está la presentación de esta semana?", 3.2), (a["Carla"], "En Mis clases, en la página de la clase, arriba del todo 🙂", 3.1),
                          (a["Luis"], "¡Gracias! Ya la tengo", 3.0), (a["Raúl"], "¿Quedamos un día para practicar en Den Haag?", 1.5), (a["Elena"], "¡Yo me apunto!", 1.2)])
     await chat(dudas, [(a["Sofía"], "¿Cuándo se dice «het» y cuándo «de»?", 26), (profe, "Buena pregunta: la mayoría son «de». Los diminutivos (-je) siempre «het». Lo vemos en el módulo 2, lección 4.", 25),
                        (a["Pablo"], "¿«Ik ben 30 jaar» o «Ik heb 30 jaar»?", 6), (profe, "«Ik ben dertig jaar». En neerlandés la edad va con «zijn», no con «hebben».", 5.5)])

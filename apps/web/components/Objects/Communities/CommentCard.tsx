@@ -19,7 +19,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@components/ui/dropdown-menu"
-import UserAvatar from '@components/Objects/UserAvatar'
+import AvatarPersona from '@components/Objects/Persona/AvatarPersona'
+import { haceCuanto } from '@/lib/nawar/haceCuanto'
 import { CommentUpvoteButton } from './CommentUpvoteButton'
 
 dayjs.extend(relativeTime)
@@ -61,7 +62,7 @@ export function CommentCard({ comment, canManage = false, onDeleted, onUpdated }
   const isAuthor = currentUserId === comment.author_id
   const canDelete = isAuthor || canManage
   const showMenu = isAuthor || canManage
-  const timeAgo = dayjs(comment.creation_date).fromNow()
+  const timeAgo = haceCuanto(comment.creation_date)
   const authorName = comment.author
     ? `${comment.author.first_name} ${comment.author.last_name}`.trim() || comment.author.username
     : t('common.unknown')
@@ -146,15 +147,7 @@ export function CommentCard({ comment, canManage = false, onDeleted, onUpdated }
         <div className="flex items-start gap-3">
           {/* Avatar */}
           <div className="flex-shrink-0">
-            <UserAvatar
-              width={32}
-              rounded="rounded-full"
-              avatar_url={getAvatarUrl(comment.author) || undefined}
-              predefined_avatar={comment.author?.avatar_image ? undefined : 'empty'}
-              showProfilePopup={true}
-              userId={comment.author?.id?.toString()}
-              shadow="shadow-none"
-            />
+            <AvatarPersona nombre={authorName || ''} src={getAvatarUrl(comment.author)} size={32} />
           </div>
 
           {/* Content */}
@@ -200,8 +193,8 @@ export function CommentCard({ comment, canManage = false, onDeleted, onUpdated }
             ) : (
               <>
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className="font-medium text-gray-900 text-sm">{authorName}</span>
-                  <span className="text-gray-400 text-xs">{timeAgo}</span>
+                  <span className="font-semibold text-[#0B1033] text-[13.5px]">{authorName}</span>
+                  <span className="text-[#8A91AD] text-xs">{timeAgo}</span>
                 </div>
                 <p className="text-sm text-gray-700 whitespace-pre-wrap">
                   {comment.content}

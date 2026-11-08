@@ -1,4 +1,5 @@
 'use client'
+import { haceCuanto } from '@/lib/nawar/haceCuanto'
 
 import React, { useMemo, useState } from 'react'
 import dayjs from 'dayjs'
@@ -22,9 +23,7 @@ dayjs.extend(relativeTime)
 dayjs.extend(utc)
 
 function relativeFromNow(date: string): string {
-  const hasTz = /[zZ]|[+-]\d{2}:?\d{2}$/.test(date)
-  const d = hasTz ? dayjs(date) : dayjs.utc(date).local()
-  return d.locale('es').fromNow()
+  return haceCuanto(date)
 }
 
 function avatarUrl(author: DiscussionAuthor | null): string | null {

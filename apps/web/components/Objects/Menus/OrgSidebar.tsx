@@ -279,9 +279,8 @@ export const OrgSidebar = (props: { orgslug: string }) => {
               items: [
                 // La página de cada clase, a un clic (08/11: «es difícil llegar hasta ella»).
                 ...itemsClases,
-                { key: 'clases', href: '/clases', label: 'Esta semana', icon: <VideoCamera size={20} weight="regular" />, exacta: true },
-                { key: 'tareas', href: '/clases/tareas', label: 'Tareas', icon: <ClipboardText size={20} weight="regular" /> },
-                { key: 'grabadas', href: '/clases/grabadas', label: 'Clases grabadas', icon: <PlayCircle size={20} weight="regular" /> },
+                // Una sola página por clase (08/11): «Esta semana», «Tareas» y
+                // «Clases grabadas» ya están dentro de la página de cada clase.
                 { key: 'calendario', href: '/calendario', label: 'Calendario', icon: <CalendarBlank size={20} weight="regular" /> },
               ] as Item[],
             },
@@ -302,7 +301,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const arriba: Item[] = [
     { key: 'inicio', href: '/', label: 'Inicio' },
     { key: 'formacion', href: `/course/${FORMACION_UUID}`, label: 'Formación' },
-    ...(tieneClases ? [{ key: 'clases', href: '/clases', label: 'Clases' }] : []),
+    ...(tieneClases ? [{ key: 'clases', href: itemsClases[0]?.href || '/clases', label: 'Clases' }] : []),
     { key: 'comunidad', href: '/communities', label: 'Comunidad' },
     { key: 'calendario', href: '/calendario', label: 'Calendario' },
   ]
@@ -316,23 +315,26 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   //    arriba abajo, con la franja de arriba en blanco a su lado.
   //  - «blanca»: blanca, con toques del azul (lo elegido con el fondo de marca,
   //    iconos y títulos en azul) y la franja de arriba azul.
-  // Se cambia abajo en la barra («Probar la barra…») o con ?barra=azul|blanca.
+  // Lo elige cada uno en su menú de perfil (arriba a la derecha, «Barra
+  // lateral»), o con ?barra=azul|blanca. Se guarda en ese navegador.
   const [estilo, setEstilo] = useState<'azul' | 'blanca'>('azul')
   useEffect(() => {
-    try {
-      const q = new URLSearchParams(window.location.search).get('barra')
-      const v = q === 'azul' || q === 'blanca' ? q : localStorage.getItem('nawar.barra.estilo')
+    const leer = () => {
+      try {
+        const q = new URLSearchParams(window.location.search).get('barra')
+        const v = q === 'azul' || q === 'blanca' ? q : localStorage.getItem('nawar.barra.estilo')
+        if (v === 'azul' || v === 'blanca') setEstilo(v)
+        if (q === 'azul' || q === 'blanca') localStorage.setItem('nawar.barra.estilo', q)
+      } catch {}
+    }
+    leer()
+    const alCambiar = (e: Event) => {
+      const v = (e as CustomEvent).detail
       if (v === 'azul' || v === 'blanca') setEstilo(v)
-      if (q === 'azul' || q === 'blanca') localStorage.setItem('nawar.barra.estilo', q)
-    } catch {}
+    }
+    window.addEventListener('nawar-barra', alCambiar)
+    return () => window.removeEventListener('nawar-barra', alCambiar)
   }, [])
-  const cambiarEstilo = () => {
-    const n = estilo === 'azul' ? 'blanca' : 'azul'
-    setEstilo(n)
-    try {
-      localStorage.setItem('nawar.barra.estilo', n)
-    } catch {}
-  }
   const azul = estilo === 'azul'
 
   const filaCls = (on: boolean) =>
@@ -397,15 +399,6 @@ export const OrgSidebar = (props: { orgslug: string }) => {
           )
         })}
       </nav>
-      <div className={`px-2 py-1.5 border-t ${azul ? 'border-white/10' : 'border-[#E6EAF3]'}`}>
-        <button
-          type="button"
-          onClick={cambiarEstilo}
-          className={`w-full text-left px-2 py-1 text-[11.5px] ${azul ? 'text-white/55 hover:text-white' : 'text-[#8A91AD] hover:text-[#0b2da0]'}`}
-        >
-          Probar la barra {azul ? 'blanca' : 'azul'}
-        </button>
-      </div>
     </div>
   )
 

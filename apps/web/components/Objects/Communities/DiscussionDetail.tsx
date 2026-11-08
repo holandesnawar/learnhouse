@@ -1,4 +1,5 @@
 'use client'
+import { haceCuanto } from '@/lib/nawar/haceCuanto'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import dayjs from 'dayjs'
@@ -79,7 +80,7 @@ export function DiscussionDetail({
   const accessToken = session?.data?.tokens?.access_token
   const currentUserId = session?.data?.user?.id
 
-  const timeAgo = dayjs(discussion.creation_date).fromNow()
+  const timeAgo = haceCuanto(discussion.creation_date)
   const isAuthor = currentUserId === discussion.author_id
   const labelInfo = getLabelInfo(discussion.label || 'general')
 

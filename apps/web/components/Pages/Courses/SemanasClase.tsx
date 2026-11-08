@@ -36,6 +36,7 @@ import {
 } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { pasosDeSemana, FilaPaso } from '@components/Pages/Clases/pasosSemana'
+import { Vienes } from '@components/Pages/Clases/Vienes'
 import { getUriWithOrg } from '@services/config/config'
 import toast from 'react-hot-toast'
 import {
@@ -457,7 +458,7 @@ export default function SemanasClase({
     const hechos = pasos.filter((p) => p.estado === 'hecho').length
     return (
       <section key={`b-${semana.id}`} className="mt-6 rounded-2xl border border-[#E4E8F2] bg-white overflow-hidden">
-        <div className="px-5 sm:px-6 pt-5 pb-4 flex items-start justify-between gap-4">
+        <div className="px-5 sm:px-6 pt-5 pb-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
           <div className="min-w-0">
             <p className="text-[12.5px] font-semibold text-[#0b2da0]">
               <span className="uppercase tracking-[0.08em]">{titulo}</span>
@@ -467,7 +468,14 @@ export default function SemanasClase({
               {semana.tema || 'Clase de la semana'}
             </h2>
           </div>
-          {pasos.length ? (
+          {/* La clase que aún no ha llegado: «¿Vienes?» en lugar de «0 de 4»
+              (08/11: una sola página por clase, como «Esta semana»). */}
+          {!equipo && (semana.fecha || '') >= hoy ? (
+            <div className="shrink-0 flex items-center gap-3">
+              <span className="text-[13px] text-[#6B7393]">¿Vienes?</span>
+              <Vienes semana={semana} courseUuid={courseUuid} segmento textos={['Asistiré', 'No puedo']} />
+            </div>
+          ) : pasos.length ? (
             <span className="shrink-0 mt-1 text-[13px] font-semibold text-[#8A91AD] tabular-nums">
               {hechos} de {pasos.length}
             </span>

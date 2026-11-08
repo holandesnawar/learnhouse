@@ -524,7 +524,7 @@ const CourseClient = (props: any) => {
                     Masterclass, 27/10): LearnHouse obliga a escribirla al crear el
                     curso, pero ahí presenta el recuadro. La clase semanal de
                     siempre sigue como estaba. */}
-                {course.about && course.about.trim() && (!enDirecto || uuidDeCurso(course) === CURSO_CLASE_SEMANAL_UUID) && (
+                {course.about && course.about.trim() && !enDirecto && (
                   <div className="course_metadata_left">
                     <p className="whitespace-pre-line break-words w-full leading-relaxed tracking-normal text-pretty hyphens-auto">{course.about}</p>
                   </div>
@@ -539,7 +539,10 @@ const CourseClient = (props: any) => {
                   <>
                     {/* La misma clase del otro grupo, discreta (06/11/2026). */}
                     <MiraTambien courseUuid={course.course_uuid} />
-                    <CommunityChannelsCards orgslug={orgslug} title="Comunidades" singleColumn />
+                    {/* En el móvil los canales ya están en el menú: aquí solo alargaban la página. */}
+                    <div className="hidden md:block">
+                      <CommunityChannelsCards orgslug={orgslug} title="Comunidades" singleColumn />
+                    </div>
                   </>
                 ) : (
                   <CoursesActions courseuuid={courseuuid} orgslug={orgslug} course={course} trailData={trailData} />

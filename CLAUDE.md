@@ -5174,6 +5174,22 @@ la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
   foto de quien escribe (o sus iniciales en color,
   `Objects/Persona/AvatarPersona.tsx`), su nombre y «hace 3 h» en español
   (`lib/nawar/haceCuanto.ts`; el dayjs de antes salía en inglés).
+- **v6 (08/11): una sola página por clase**. «Esta semana», «Tareas» y
+  «Clases grabadas» salen de la barra: todo vive en la página de cada clase
+  (la franja con la próxima clase, «Esta semana», «Próxima clase» con
+  «¿Vienes? Asistiré / No puedo», «Clases anteriores» con sus tareas y
+  grabaciones, «Mira también»). En la barra, bajo «Mis clases», solo el
+  nombre de cada clase y el Calendario; «Clases» de arriba lleva a la
+  primera. `/clases`, `/clases/tareas` y `/clases/grabadas` siguen existiendo
+  y llevan a la primera clase de la persona (`IrAMiClase`). «¿Vienes?» vive
+  en `Pages/Clases/Vienes.tsx` (lo usan el Inicio y SemanasClase). **La barra
+  azul o blanca la elige cada uno** en su menú de perfil («Barra lateral»;
+  se guarda en su navegador, `nawar.barra.estilo`, y avisa a la barra con el
+  evento `nawar-barra`). Los comentarios llevan foto o iniciales, nombre y
+  «hace X» en español, igual que los posts (y el resto de la comunidad deja
+  el dayjs en inglés). En el móvil: el calendario solo pinta el punto en
+  cada día, la página de la clase no repite la lista de canales y
+  «¿Vienes?» va debajo del tema.
 - Pendiente (v2): mover a un alumno al otro grupo UNA semana sin romper sus
   tareas, una pantalla de grupos para el administrador (quién está en qué y
   qué ve), el calendario rehecho, datos inventados en la escuela de pruebas.

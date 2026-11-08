@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getServerSession } from '@/lib/auth/server'
-import { ClasesTareas } from '@components/Pages/Clases/MisClasesAlumno'
+import { IrAMiClase } from '@components/Pages/Clases/MisClasesAlumno'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,5 +12,5 @@ export default async function Pagina() {
   if (!session?.tokens?.access_token) {
     redirect(`/login?redirect=${encodeURIComponent('/clases/tareas')}`)
   }
-  return <ClasesTareas />
+  return <IrAMiClase />
 }
