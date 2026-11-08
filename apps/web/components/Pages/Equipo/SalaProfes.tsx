@@ -2,386 +2,304 @@
 /**
  * La sala de profes (08/11/2026, rama diseno): el Inicio del equipo de clases.
  *
- * Pedido del usuario: "que los profes y monitores no tengan el mismo inicio que
- * los alumnos, que vean directamente lo que tienen que hacer y se vea más como
- * que están en el grupo de profes, como Teams… no solo preparar la clase, sino
- * ver clases anteriores, presentaciones antiguas, nuevas, mejor orden de cómo
- * pasó todo, SOPs, mejor kanban, tareas".
+ * Segunda vuelta, el mismo día: "el profe, su única tarea es preparar la clase
+ * y darla: eso es lo que tiene que salir bien… y ver de forma fácil el archivo
+ * de clases, y poco más… si al profe le toca esa semana x grupo y x clase, que
+ * solo vea eso… simple pero útil". Por eso solo hay tres pestañas (`?vista=`):
  *
- * Como un equipo de Teams: arriba el nombre del equipo y quién está, y debajo
- * pestañas.
- * - **Hoy**: la próxima clase, lo que toca con las clases (presentación,
- *   lista, grabación, correcciones, check-in; calculado de lo que cada semana
- *   tiene dentro), mis tareas, el equipo y cómo va cada clase esta semana.
- * - **Tareas**: el tablero del equipo (por hacer · en curso · hecho).
- * - **Clases**: el tablero de semanas de siempre («Preparar clases»).
- * - **Archivo**: todas las clases que se han dado, mes a mes.
- * - **Manual**: los SOP del equipo.
+ * - **Mis clases**: cada clase que da (la del recuadro de la clase con su
+ *   nombre) con su semana de esta semana, en pasos: presentación → dar la clase
+ *   → pasar lista → grabación → corregir. Y una línea con la semana que viene.
+ *   Si la semana aún no existe, «Crear la semana». El administrador ve todas;
+ *   el profe, las suyas (con «Ver todas» si quiere).
+ * - **Archivo**: todas las clases dadas, mes a mes, con quién la dio.
+ * - **Manual**: los SOP (no al monitor).
  *
- * La pestaña va en la dirección (`?vista=`), así se puede enlazar.
- * Servidor: apps/api/src/services/equipo/equipo.py (tareas y manual); lo de
- * las clases sale de apps/api/src/services/tareas/tareas.py.
+ * El monitor (grupo «Monitores», `services/equipo/monitores.py`) solo tiene el
+ * Spreekclub: el servidor ya le da solo esas clases.
+ *
+ * Lo demás (seguimiento, consultas, clases y grupos) va como enlaces pequeños
+ * abajo, no en la barra de la escuela.
  */
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { ArrowRight, Check, Plus } from 'lucide-react'
+import { ArrowRight, Check } from 'lucide-react'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
-import useAdminStatus from '@components/Hooks/useAdminStatus'
 import AvatarPersona from '@components/Objects/Persona/AvatarPersona'
 import { getUriWithOrg } from '@services/config/config'
 import { mediaSrc } from '@services/messages/direct'
-import { cambiarTareaEquipo, getSalaProfes, type DocManual, type Miembro, type TareaEquipo } from '@services/equipo/equipo'
-import ClasesProfes from '@components/Pages/Profes/ClasesProfes'
+import { getSalaProfes, type DocManual, type Miembro } from '@services/equipo/equipo'
 import { PasarLista } from '@components/Pages/Profes/ListaYGrupo'
+import { esDe } from '@/lib/nawar/clasesProfes'
 import { lunesDe } from '@/lib/nawar/semanasTrabajo'
-import { cuando, diaLegible, loQueToca, misTareas, proximaClase, semanaDeCadaClase, type Pendiente, type SemanaEquipo } from '@/lib/nawar/salaProfes'
+import { cuando, diaLegible, porClase, type SemanaEquipo } from '@/lib/nawar/salaProfes'
 import useClasesEquipo, { type ClaseEquipo } from './useClasesEquipo'
-import TableroEquipo, { POPPINS, TareaModal, TarjetaTarea } from './TableroEquipo'
 import ArchivoClases from './ArchivoClases'
 import ManualEquipo from './ManualEquipo'
+import { POPPINS } from './estilo'
 
-type Vista = 'hoy' | 'tareas' | 'clases' | 'archivo' | 'manual'
-const VISTAS: { id: Vista; titulo: string }[] = [
-  { id: 'hoy', titulo: 'Hoy' },
-  { id: 'tareas', titulo: 'Tareas' },
-  { id: 'clases', titulo: 'Preparar clases' },
-  { id: 'archivo', titulo: 'Archivo' },
-  { id: 'manual', titulo: 'Manual' },
-]
+type Vista = 'clases' | 'archivo' | 'manual'
 
 const TARJETA = 'rounded-2xl border border-[#E4E8F2] bg-white'
 
-function Equipo({ miembros, tareas }: { miembros: Miembro[]; tareas: TareaEquipo[] }) {
+/** Un paso de la semana: círculo fino (verde con check si está hecho). */
+function Paso({
+  hecho,
+  titulo,
+  detalle,
+  accion,
+  apagado = false,
+}: {
+  hecho: boolean
+  titulo: string
+  detalle?: string
+  accion?: React.ReactNode
+  apagado?: boolean
+}) {
   return (
-    <section className={`${TARJETA} px-4 py-4`}>
-      <h3 className="text-[15px] font-bold text-[#0B1033]" style={POPPINS}>
-        El equipo
-      </h3>
-      <ul className="mt-3 space-y-2.5">
-        {miembros.map((m) => {
-          const abiertas = tareas.filter((t) => t.asignado_id === m.id && t.estado !== 'hecho').length
-          return (
-            <li key={m.id} className="flex items-center gap-2.5">
-              <AvatarPersona nombre={m.nombre} src={m.avatar ? mediaSrc(m.avatar) : null} size={32} />
-              <div className="min-w-0 flex-1">
-                <p className="text-[14px] font-semibold text-[#0B1033] truncate">{m.nombre}</p>
-                <p className="text-[12px] text-[#6B7393]">{m.rol}</p>
-              </div>
-              {abiertas ? <span className="text-[12px] text-[#5B6382]">{abiertas === 1 ? '1 tarea' : `${abiertas} tareas`}</span> : null}
-            </li>
-          )
-        })}
-      </ul>
-    </section>
-  )
-}
-
-function Check0({ hecho }: { hecho: boolean }) {
-  return (
-    <span
-      className={`shrink-0 w-[18px] h-[18px] rounded-full border flex items-center justify-center ${hecho ? 'border-[#16A34A] text-[#16A34A]' : 'border-[#C9D4EC]'}`}
-    >
-      {hecho ? <Check size={11} strokeWidth={3} /> : null}
-    </span>
-  )
-}
-
-function EstaSemana({ semanas, hoy, ruta }: { semanas: SemanaEquipo[]; hoy: string; ruta: (p: string) => string }) {
-  const lista = semanaDeCadaClase(semanas, hoy, lunesDe(hoy))
-  return (
-    <section className={`${TARJETA} px-4 py-4`}>
-      <h3 className="text-[15px] font-bold text-[#0B1033]" style={POPPINS}>
-        Las clases esta semana
-      </h3>
-      {!lista.length ? (
-        <p className="mt-2 text-[13.5px] text-[#6B7393]">No hay clases esta semana.</p>
-      ) : (
-        <ul className="mt-3 space-y-3">
-          {lista.map((s) => {
-            const pasada = s.fecha < hoy
-            return (
-              <li key={s.key}>
-                <Link href={ruta(`/course/${s.courseUuid.replace(/^course_/, '')}`)} className="block group">
-                  <p className="flex items-center gap-1.5 text-[12px] font-semibold text-[#5B6382]">
-                    <span className="w-2 h-2 rounded-full" style={{ background: s.color }} />
-                    {s.curso} · {diaLegible(s.fecha)}
-                  </p>
-                  <p className="text-[14px] font-semibold text-[#0B1033] group-hover:text-[#0b2da0]">{s.tema || 'Sin tema'}</p>
-                </Link>
-                <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[12.5px] text-[#3B4262]">
-                  <span className="inline-flex items-center gap-1.5">
-                    <Check0 hecho={s.presentaciones.length > 0} /> Presentación
-                  </span>
-                  {s.tieneTarea ? (
-                    <span className="inline-flex items-center gap-1.5">
-                      <Check0 hecho /> Tarea
-                    </span>
-                  ) : null}
-                  {pasada || s.fecha === hoy ? (
-                    <span className="inline-flex items-center gap-1.5">
-                      <Check0 hecho={!!s.lista?.pasada} /> Lista
-                    </span>
-                  ) : null}
-                  {pasada ? (
-                    <span className="inline-flex items-center gap-1.5">
-                      <Check0 hecho={s.grabaciones.length > 0} /> Grabación
-                    </span>
-                  ) : null}
-                </div>
-              </li>
-            )
-          })}
-        </ul>
-      )}
-    </section>
-  )
-}
-
-function Proxima({ s, hoy, ruta, onLista }: { s: SemanaEquipo; hoy: string; ruta: (p: string) => string; onLista: () => void }) {
-  const curso = `/course/${s.courseUuid.replace(/^course_/, '')}`
-  const pres = s.presentaciones[0]
-  return (
-    <section className="rounded-2xl bg-[#0b2da0] text-white px-5 sm:px-6 py-5 relative overflow-hidden">
-      <div
-        aria-hidden
-        className="absolute inset-0 pointer-events-none"
-        style={{ background: 'radial-gradient(circle 360px at 100% 0%, rgba(77,163,255,0.35), transparent 70%)' }}
-      />
-      <div className="relative">
-        <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#B9D8FF]">Tu próxima clase · {cuando(s.fecha, hoy)}</p>
-        <h2 className="mt-1 text-[22px] sm:text-[24px] font-bold leading-tight" style={POPPINS}>
-          {s.tema || 'Sin tema todavía'}
-        </h2>
-        <p className="mt-1 text-[14px] text-white/90">
-          {s.curso}
-          {s.hora ? ` · ${s.hora}` : ''}
-          {s.profe ? ` · con ${s.profe}` : ''}
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {pres ? (
-            <Link
-              href={ruta(`${curso}/activity/${pres.activity_uuid.replace(/^activity_/, '')}`)}
-              className="h-9 inline-flex items-center px-3.5 rounded-lg bg-white text-[#0b2da0] text-[13.5px] font-semibold"
-            >
-              Ver la presentación
-            </Link>
-          ) : (
-            <Link href={ruta(curso)} className="h-9 inline-flex items-center px-3.5 rounded-lg bg-white text-[#0b2da0] text-[13.5px] font-semibold">
-              Subir la presentación
-            </Link>
-          )}
-          {s.fecha === hoy ? (
-            <Link href={ruta(`/sala/${s.courseUuid.replace(/^course_/, '')}`)} className="h-9 inline-flex items-center px-3.5 rounded-lg border border-white/40 text-[13.5px] font-semibold">
-              Entrar a la sala
-            </Link>
-          ) : null}
-          {s.fecha <= hoy && s.lista ? (
-            <button onClick={onLista} className="h-9 inline-flex items-center px-3.5 rounded-lg border border-white/40 text-[13.5px] font-semibold">
-              {s.lista.pasada ? `Lista · vinieron ${s.lista.vinieron}` : 'Pasar lista'}
-            </button>
-          ) : null}
-          <Link href={ruta(curso)} className="h-9 inline-flex items-center gap-1 px-3 text-[13.5px] font-semibold text-white/90 hover:text-white">
-            Abrir la clase <ArrowRight size={14} />
-          </Link>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function FilaPendiente({ p, ruta, onLista }: { p: Pendiente; ruta: (path: string) => string; onLista: (s: SemanaEquipo) => void }) {
-  const curso = p.semana ? `/course/${p.semana.courseUuid.replace(/^course_/, '')}` : ''
-  const destino = p.tipo === 'corregir' || p.tipo === 'checkin' ? ruta('/seguimiento') : ruta(curso)
-  const boton =
-    p.tipo === 'presentacion' ? 'Subir' : p.tipo === 'grabacion' ? 'Subir' : p.tipo === 'lista' ? 'Pasar lista' : p.tipo === 'corregir' ? 'Corregir' : 'Ver'
-  return (
-    <li className="flex items-center gap-3 px-4 py-3">
-      <span className={`shrink-0 w-[18px] h-[18px] rounded-full border ${p.urgente ? 'border-[#B42318]' : 'border-[#C9D4EC]'}`} />
+    <li className="flex items-center gap-3 py-2.5">
+      <span
+        className={`shrink-0 w-[20px] h-[20px] rounded-full border flex items-center justify-center ${
+          hecho ? 'border-[#16A34A] text-[#16A34A]' : apagado ? 'border-dashed border-[#C9D4EC]' : 'border-[#AEB9D3]'
+        }`}
+      >
+        {hecho ? <Check size={12} strokeWidth={3} /> : null}
+      </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[14.5px] font-semibold text-[#0B1033] leading-snug">{p.texto}</p>
-        <p className={`text-[12.5px] ${p.urgente ? 'text-[#B42318]' : 'text-[#6B7393]'}`}>{p.detalle}</p>
+        <p className={`text-[14.5px] leading-snug ${apagado ? 'text-[#8A91AD]' : 'text-[#0B1033]'} ${hecho ? '' : 'font-semibold'}`}>{titulo}</p>
+        {detalle ? <p className="text-[12.5px] text-[#6B7393]">{detalle}</p> : null}
       </div>
-      {p.tipo === 'lista' && p.semana ? (
-        <button
-          onClick={() => onLista(p.semana!)}
-          className="shrink-0 h-8 px-3 rounded-lg border border-[#DDE3EF] text-[13px] font-semibold text-[#0b2da0] hover:border-[#0b2da0]"
-        >
-          {boton}
-        </button>
-      ) : (
-        <Link href={destino} className="shrink-0 h-8 inline-flex items-center px-3 rounded-lg border border-[#DDE3EF] text-[13px] font-semibold text-[#0b2da0] hover:border-[#0b2da0]">
-          {boton}
-        </Link>
-      )}
+      {accion}
     </li>
   )
 }
 
-function Hoy({
-  orgId,
-  token,
-  yo,
-  admin,
-  miembros,
-  tareas,
-  setTareas,
-  clases,
-  semanas,
-  porCorregir,
-  checkins,
+const BOTON = 'shrink-0 h-8 inline-flex items-center px-3 rounded-lg border border-[#DDE3EF] text-[13px] font-semibold text-[#0b2da0] hover:border-[#0b2da0]'
+const BOTON_AZUL = 'shrink-0 h-8 inline-flex items-center px-3 rounded-lg bg-[#0b2da0] text-white text-[13px] font-semibold'
+
+function TarjetaClase({
+  clase,
+  esta,
+  proxima,
   hoy,
   ruta,
-  irA,
-  manual,
-  recargarClases,
+  onLista,
 }: {
-  orgId: number
-  token: string
-  yo: number
-  admin: boolean
-  miembros: Miembro[]
-  tareas: TareaEquipo[]
-  setTareas: React.Dispatch<React.SetStateAction<TareaEquipo[]>>
-  clases: ClaseEquipo[]
-  semanas: SemanaEquipo[] | null
-  porCorregir: number
-  checkins: number
+  clase: ClaseEquipo
+  esta: SemanaEquipo | null
+  proxima: SemanaEquipo | null
   hoy: string
   ruta: (p: string) => string
-  irA: (v: Vista, doc?: number) => void
-  manual: DocManual[]
-  recargarClases: () => void
+  onLista: (s: SemanaEquipo) => void
 }) {
-  const [abierta, setAbierta] = useState<TareaEquipo | null>(null)
-  const [nueva, setNueva] = useState(false)
-  const [lista, setLista] = useState<SemanaEquipo | null>(null)
-  const pendientes = semanas ? loQueToca(semanas, hoy, porCorregir, checkins) : []
-  const proxima = semanas ? proximaClase(semanas, hoy) : null
-  const mias = misTareas(tareas, yo)
-
-  async function hecha(t: TareaEquipo) {
-    setTareas((ts) => ts.map((x) => (x.id === t.id ? { ...x, estado: 'hecho', done_at: new Date().toISOString() } : x)))
-    try {
-      const c = await cambiarTareaEquipo(orgId, t.id, { estado: 'hecho' }, token)
-      setTareas((ts) => ts.map((x) => (x.id === c.id ? c : x)))
-    } catch {
-      setTareas((ts) => ts.map((x) => (x.id === t.id ? t : x)))
-    }
-  }
+  const curso = `/course/${clase.uuid.replace(/^course_/, '')}`
+  const actividad = (uuid: string) => ruta(`${curso}/activity/${uuid.replace(/^activity_/, '')}`)
+  const dia = esta?.fecha || ''
+  const antes = !!dia && dia > hoy
+  const esHoy = dia === hoy
+  const pasada = !!dia && dia < hoy
+  const pres = esta?.presentaciones[0]
+  const grab = esta?.grabaciones[0]
 
   return (
-    <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-5 items-start">
-      <div className="space-y-5 min-w-0">
-        {semanas === null ? (
-          <div className={`${TARJETA} px-5 py-6 text-[14px] text-[#6B7393]`}>Cargando las clases…</div>
-        ) : proxima ? (
-          <Proxima s={proxima} hoy={hoy} ruta={ruta} onLista={() => setLista(proxima)} />
-        ) : null}
-
-        <section className={TARJETA}>
-          <div className="flex items-center gap-2 px-4 pt-4 pb-2">
-            <h3 className="text-[16px] font-bold text-[#0B1033]" style={POPPINS}>
-              Lo que toca con las clases
-            </h3>
-            {pendientes.length ? <span className="text-[13px] text-[#6B7393]">{pendientes.length}</span> : null}
-          </div>
-          {semanas !== null && !pendientes.length ? (
-            <p className="px-4 pb-4 text-[14px] text-[#5B6382]">Todo al día: presentaciones, listas y grabaciones.</p>
-          ) : (
-            <ul className="divide-y divide-[#EEF1F7]">
-              {pendientes.map((p) => (
-                <FilaPendiente key={p.id} p={p} ruta={ruta} onLista={setLista} />
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section className={TARJETA}>
-          <div className="flex items-center gap-2 px-4 pt-4 pb-2">
-            <h3 className="text-[16px] font-bold text-[#0B1033]" style={POPPINS}>
-              Mis tareas
-            </h3>
-            {mias.length ? <span className="text-[13px] text-[#6B7393]">{mias.length}</span> : null}
-            <button onClick={() => setNueva(true)} className="ml-auto inline-flex items-center gap-1 text-[13px] font-semibold text-[#0b2da0]">
-              <Plus size={14} /> Nueva
-            </button>
-            <button onClick={() => irA('tareas')} className="text-[13px] font-semibold text-[#5B6382] hover:text-[#0b2da0]">
-              Ver el tablero
-            </button>
-          </div>
-          {!mias.length ? (
-            <p className="px-4 pb-4 text-[14px] text-[#5B6382]">No tienes tareas pendientes.</p>
-          ) : (
-            <ul className="divide-y divide-[#EEF1F7]">
-              {mias.slice(0, 8).map((t) => (
-                <li key={t.id} className="flex items-center gap-3 px-4 py-2.5">
-                  <button
-                    onClick={() => hecha(t)}
-                    aria-label="Marcar como hecha"
-                    className="shrink-0 w-[18px] h-[18px] rounded-full border border-[#C9D4EC] hover:border-[#16A34A] hover:text-[#16A34A] flex items-center justify-center text-transparent"
-                  >
-                    <Check size={11} strokeWidth={3} />
-                  </button>
-                  <div className="min-w-0 flex-1">
-                    <TarjetaTarea t={t} hoy={hoy} clases={clases} miembros={miembros} onAbrir={() => setAbierta(t)} compacta />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+    <section className={`${TARJETA} overflow-hidden`}>
+      <div className="flex items-start gap-3 px-5 pt-4">
+        <span className="mt-1.5 w-2.5 h-2.5 rounded-full shrink-0" style={{ background: clase.color }} />
+        <div className="min-w-0 flex-1">
+          <h3 className="text-[16px] font-bold text-[#0B1033] leading-tight" style={POPPINS}>
+            {clase.nombre}
+          </h3>
+          <p className="mt-0.5 text-[13px] text-[#5B6382]">
+            {[clase.profe ? `La da ${clase.profe}` : 'Sin profe puesto', clase.hora].filter(Boolean).join(' · ')}
+          </p>
+        </div>
+        <Link href={ruta(curso)} className="shrink-0 inline-flex items-center gap-1 text-[13px] font-semibold text-[#0b2da0]">
+          Abrir la clase <ArrowRight size={14} />
+        </Link>
       </div>
 
-      <div className="space-y-5">
-        <Equipo miembros={miembros} tareas={tareas} />
-        {semanas ? <EstaSemana semanas={semanas} hoy={hoy} ruta={ruta} /> : null}
-        {manual.length ? (
-          <section className={`${TARJETA} px-4 py-4`}>
-            <h3 className="text-[15px] font-bold text-[#0B1033]" style={POPPINS}>
-              Manual del equipo
-            </h3>
-            <ul className="mt-2 space-y-1">
-              {manual.slice(0, 6).map((d) => (
-                <li key={d.id}>
-                  <button onClick={() => irA('manual', d.id)} className="text-left text-[14px] text-[#1F2440] hover:text-[#0b2da0]">
-                    {d.titulo}
+      {esta ? (
+        <div className="px-5 pb-2 pt-3">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6B7393]">
+            Esta semana · {cuando(dia, hoy)}
+          </p>
+          <p className="mt-0.5 text-[18px] font-bold text-[#0B1033] leading-snug" style={POPPINS}>
+            {esta.tema || 'Sin tema'}
+          </p>
+          <ul className="mt-1 divide-y divide-[#EEF1F7]">
+            <Paso
+              hecho={!!pres}
+              titulo={pres ? 'Presentación subida' : 'Subir la presentación'}
+              detalle={pres ? 'Los alumnos ya la pueden mirar antes de la clase.' : 'Antes de la clase, para que los alumnos la vean.'}
+              accion={
+                pres ? (
+                  <Link href={actividad(pres.activity_uuid)} className={BOTON}>
+                    Ver
+                  </Link>
+                ) : (
+                  <Link href={ruta(curso)} className={BOTON_AZUL}>
+                    Subir
+                  </Link>
+                )
+              }
+            />
+            <Paso
+              hecho={pasada}
+              titulo={pasada ? 'Clase dada' : esHoy ? 'Dar la clase, hoy' : `Dar la clase, ${cuando(dia, hoy)}`}
+              detalle={clase.hora ? `A las ${clase.hora}` : undefined}
+              accion={
+                esHoy ? (
+                  <Link href={ruta(`/sala/${clase.uuid.replace(/^course_/, '')}`)} className={BOTON_AZUL}>
+                    Entrar a la sala
+                  </Link>
+                ) : null
+              }
+            />
+            <Paso
+              hecho={!!esta.lista?.pasada}
+              apagado={antes}
+              titulo={esta.lista?.pasada ? `Lista pasada · vinieron ${esta.lista.vinieron}` : 'Pasar lista'}
+              detalle={antes ? 'El día de la clase.' : undefined}
+              accion={
+                !antes ? (
+                  <button onClick={() => onLista(esta)} className={esta.lista?.pasada ? BOTON : BOTON_AZUL}>
+                    {esta.lista?.pasada ? 'Ver la lista' : 'Pasar lista'}
                   </button>
-                </li>
-              ))}
-            </ul>
-            <button onClick={() => irA('manual')} className="mt-2 text-[13px] font-semibold text-[#0b2da0]">
-              Abrir el manual
-            </button>
-          </section>
-        ) : null}
-      </div>
+                ) : null
+              }
+            />
+            <Paso
+              hecho={!!grab}
+              apagado={!pasada && !grab}
+              titulo={grab ? 'Grabación subida' : 'Subir la grabación'}
+              detalle={!pasada && !grab ? 'Después de la clase. Al subirla, publícala.' : undefined}
+              accion={
+                grab ? (
+                  <Link href={actividad(grab.activity_uuid)} className={BOTON}>
+                    Ver
+                  </Link>
+                ) : pasada ? (
+                  <Link href={ruta(curso)} className={BOTON_AZUL}>
+                    Subir
+                  </Link>
+                ) : null
+              }
+            />
+            {esta.tieneTarea ? (
+              <Paso
+                hecho={pasada && esta.porCorregir === 0}
+                apagado={!pasada}
+                titulo={esta.porCorregir ? `Corregir ${esta.porCorregir} ${esta.porCorregir === 1 ? 'tarea' : 'tareas'}` : 'Corregir las tareas'}
+                detalle={!pasada ? 'Cuando los alumnos las entreguen.' : esta.porCorregir ? undefined : 'Nada por corregir ahora.'}
+                accion={
+                  esta.porCorregir ? (
+                    <Link href={ruta('/seguimiento')} className={BOTON_AZUL}>
+                      Corregir
+                    </Link>
+                  ) : null
+                }
+              />
+            ) : null}
+          </ul>
+        </div>
+      ) : (
+        <div className="px-5 pt-3 pb-4">
+          <p className="text-[14.5px] text-[#3B4262]">Esta semana aún no está creada.</p>
+          <Link href={ruta(curso)} className={`${BOTON_AZUL} mt-2.5`}>
+            Crear la semana
+          </Link>
+        </div>
+      )}
 
-      {abierta || nueva ? (
-        <TareaModal
-          orgId={orgId}
-          token={token}
-          tarea={abierta}
-          miembros={miembros}
-          clases={clases}
-          yo={yo}
-          admin={admin}
-          onCerrar={() => {
-            setAbierta(null)
-            setNueva(false)
-          }}
-          onGuardada={(t) => {
-            setTareas((ts) => (ts.some((x) => x.id === t.id) ? ts.map((x) => (x.id === t.id ? t : x)) : [t, ...ts]))
-            setAbierta(null)
-            setNueva(false)
-          }}
-          onBorrada={(id) => {
-            setTareas((ts) => ts.filter((x) => x.id !== id))
-            setAbierta(null)
-          }}
-        />
+      <div className="px-5 py-3 border-t border-[#EEF1F7] bg-[#FAFBFE] text-[13px] text-[#5B6382] flex flex-wrap items-center gap-x-2 gap-y-1">
+        <span className="font-semibold text-[#3B4262]">La semana que viene:</span>
+        {proxima ? (
+          <>
+            <span>
+              {proxima.tema || 'Sin tema'} · {diaLegible(proxima.fecha)}
+            </span>
+            <span className={proxima.presentaciones.length ? 'text-[#15803D]' : 'text-[#8A6A2A]'}>
+              · {proxima.presentaciones.length ? 'presentación lista' : 'falta la presentación'}
+            </span>
+          </>
+        ) : (
+          <span>aún no está creada</span>
+        )}
+      </div>
+    </section>
+  )
+}
+
+function MisClases({
+  clases,
+  semanas,
+  hoy,
+  ruta,
+  miNombre,
+  admin,
+  monitor,
+  recargar,
+  token,
+}: {
+  clases: ClaseEquipo[]
+  semanas: SemanaEquipo[] | null
+  hoy: string
+  ruta: (p: string) => string
+  miNombre: string
+  admin: boolean
+  monitor: boolean
+  recargar: () => void
+  token: string
+}) {
+  const mias = clases.filter((c) => esDe(c.profe, miNombre))
+  // El profe ve las suyas; si no tiene ninguna a su nombre (o es administrador o
+  // monitor), todas las que le tocan ver.
+  const [todas, setTodas] = useState(false)
+  const soloMias = !admin && !monitor && mias.length > 0 && !todas
+  const visibles = soloMias ? mias : clases
+  const [lista, setLista] = useState<SemanaEquipo | null>(null)
+
+  if (semanas === null) return <div className={`${TARJETA} px-5 py-6 text-[14px] text-[#6B7393]`}>Cargando tus clases…</div>
+  if (!clases.length)
+    return (
+      <div className={`${TARJETA} px-5 py-6 text-[14.5px] text-[#3B4262]`}>
+        Todavía no hay clases en directo{monitor ? ' del Spreekclub' : ''}.
+      </div>
+    )
+  const filas = porClase(visibles, semanas, lunesDe(hoy))
+
+  return (
+    <div className="space-y-4">
+      {!admin && !monitor && mias.length === 0 ? (
+        <p className="text-[13.5px] text-[#5B6382]">
+          Ninguna clase lleva tu nombre en «La da», así que ves todas. Pide que te pongan en tus clases.
+        </p>
       ) : null}
+      {!admin && !monitor && mias.length > 0 && mias.length < clases.length ? (
+        <div className="flex gap-1.5">
+          {[
+            [false, `Mis clases · ${mias.length}`],
+            [true, `Todas · ${clases.length}`],
+          ].map(([v, t]) => (
+            <button
+              key={String(v)}
+              onClick={() => setTodas(v as boolean)}
+              className={`h-8 px-3 rounded-full text-[13px] font-semibold border ${
+                todas === v ? 'bg-[#0b2da0] border-[#0b2da0] text-white' : 'bg-white border-[#DDE3EF] text-[#3B4262]'
+              }`}
+            >
+              {t as string}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      <div className="grid gap-4 lg:grid-cols-2">
+        {filas.map((f) => (
+          <TarjetaClase key={f.clase.uuid} clase={f.clase} esta={f.esta} proxima={f.proxima} hoy={hoy} ruta={ruta} onLista={setLista} />
+        ))}
+      </div>
       {lista ? (
         <PasarLista
           semanaId={lista.semanaId}
@@ -391,7 +309,7 @@ function Hoy({
           onCerrar={() => setLista(null)}
           onGuardada={() => {
             setLista(null)
-            recargarClases()
+            recargar()
           }}
         />
       ) : null}
@@ -403,34 +321,40 @@ export default function SalaProfes() {
   const org = useOrg() as any
   const session = useLHSession() as any
   const token: string = session?.data?.tokens?.access_token || ''
-  const { isAdmin } = useAdminStatus() as any
   const orgslug: string = org?.slug || ''
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
-  const vistaUrl = (params?.get('vista') || 'hoy') as Vista
-  const vista: Vista = VISTAS.some((v) => v.id === vistaUrl) ? vistaUrl : 'hoy'
+
+  const [miembros, setMiembros] = useState<Miembro[]>([])
+  const [manual, setManual] = useState<DocManual[]>([])
+  const [yo, setYo] = useState<{ id: number; admin: boolean; monitor?: boolean }>({ id: 0, admin: false })
+  const [cargado, setCargado] = useState(false)
+  const [error, setError] = useState('')
   const [docAbrir, setDocAbrir] = useState<number | null>(null)
-  // La barra lateral marca la pestaña abierta: se le avisa al cambiar.
+  const { clases, semanas, hoy, recargar } = useClasesEquipo(org, token)
+
+  const monitor = !!yo.monitor
+  const vistas: { id: Vista; titulo: string }[] = [
+    { id: 'clases', titulo: 'Mis clases' },
+    { id: 'archivo', titulo: 'Archivo' },
+    ...(monitor ? [] : [{ id: 'manual' as Vista, titulo: 'Manual' }]),
+  ]
+  const pedida = (params?.get('vista') || 'clases') as Vista
+  const vista: Vista = vistas.some((v) => v.id === pedida) ? pedida : 'clases'
+
   useEffect(() => {
     window.dispatchEvent(new Event('nawar-vista'))
   }, [vista])
-
-  const [miembros, setMiembros] = useState<Miembro[]>([])
-  const [tareas, setTareas] = useState<TareaEquipo[]>([])
-  const [manual, setManual] = useState<DocManual[]>([])
-  const [yo, setYo] = useState<{ id: number; admin: boolean }>({ id: session?.data?.user?.id || 0, admin: !!isAdmin })
-  const [error, setError] = useState('')
-  const { clases, semanas, porCorregir, checkins, hoy, recargar } = useClasesEquipo(org, token)
 
   useEffect(() => {
     if (!org?.id || !token) return
     getSalaProfes(org.id, token)
       .then((d) => {
         setMiembros(d.miembros)
-        setTareas(d.tareas)
         setManual(d.manual)
         setYo(d.yo)
+        setCargado(true)
       })
       .catch((e) => setError(e?.message || 'No se ha podido cargar la sala de profes'))
   }, [org?.id, token])
@@ -439,7 +363,7 @@ export default function SalaProfes() {
   const irA = (v: Vista, doc?: number) => {
     setDocAbrir(doc ?? null)
     const q = new URLSearchParams(params?.toString() || '')
-    if (v === 'hoy') q.delete('vista')
+    if (v === 'clases') q.delete('vista')
     else q.set('vista', v)
     const s = q.toString()
     router.replace(`${pathname}${s ? `?${s}` : ''}`, { scroll: false })
@@ -449,13 +373,11 @@ export default function SalaProfes() {
   const nombre = u.first_name || u.username || ''
   const hora = new Date().getHours()
   const saludo = hora < 13 ? 'Buenos días' : hora < 20 ? 'Buenas tardes' : 'Buenas noches'
-  const urgentes = useMemo(() => (semanas ? loQueToca(semanas, hoy, porCorregir, checkins).filter((p) => p.urgente).length : 0), [semanas, hoy, porCorregir, checkins])
 
   return (
     <div className="max-w-[1180px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
-      {/* Como la cabecera de un equipo de Teams: quiénes somos y las pestañas. */}
       <header>
-        <p className="text-[12.5px] font-semibold uppercase tracking-[0.08em] text-[#0b2da0]">Sala de profes</p>
+        <p className="text-[12.5px] font-semibold uppercase tracking-[0.08em] text-[#0b2da0]">Sala de profesores</p>
         <div className="mt-1 flex flex-wrap items-end gap-x-6 gap-y-3">
           <div className="min-w-0">
             <h1 className="text-[26px] sm:text-[30px] font-bold text-[#0B1033] tracking-tight leading-tight" style={POPPINS}>
@@ -463,7 +385,7 @@ export default function SalaProfes() {
               {nombre ? `, ${nombre}` : ''}
             </h1>
             <p className="mt-1 text-[14.5px] text-[#5B6382]">
-              {urgentes ? `${urgentes === 1 ? 'Hay 1 cosa urgente' : `Hay ${urgentes} cosas urgentes`} con las clases.` : 'El equipo de clases de Holandés Nawar.'}
+              {monitor ? 'Tu Spreekclub: prepara la sesión y dala.' : 'Tus clases de esta semana: prepáralas y dalas.'}
             </p>
           </div>
           {miembros.length ? (
@@ -475,12 +397,12 @@ export default function SalaProfes() {
                   </span>
                 ))}
               </div>
-              <span className="text-[13px] text-[#5B6382]">{miembros.length === 1 ? '1 persona' : `${miembros.length} personas`}</span>
+              <span className="text-[13px] text-[#5B6382]">El equipo · {miembros.length}</span>
             </div>
           ) : null}
         </div>
         <nav className="mt-5 flex gap-1 overflow-x-auto border-b border-[#E4E8F2] -mx-4 px-4 sm:mx-0 sm:px-0">
-          {VISTAS.map((v) => (
+          {vistas.map((v) => (
             <button
               key={v.id}
               onClick={() => irA(v.id)}
@@ -489,9 +411,6 @@ export default function SalaProfes() {
               }`}
             >
               {v.titulo}
-              {v.id === 'tareas' && misTareas(tareas, yo.id).length ? (
-                <span className="ml-1.5 text-[12px] font-semibold text-[#6B7393]">{misTareas(tareas, yo.id).length}</span>
-              ) : null}
             </button>
           ))}
         </nav>
@@ -500,29 +419,18 @@ export default function SalaProfes() {
       {error ? <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[14px] text-red-700">{error}</p> : null}
 
       <div className="mt-6">
-        {vista === 'hoy' ? (
-          <Hoy
-            orgId={org?.id}
-            token={token}
-            yo={yo.id}
-            admin={yo.admin}
-            miembros={miembros}
-            tareas={tareas}
-            setTareas={setTareas}
+        {vista === 'clases' ? (
+          <MisClases
             clases={clases}
-            semanas={semanas}
-            porCorregir={porCorregir}
-            checkins={checkins}
+            semanas={cargado ? semanas : null}
             hoy={hoy}
             ruta={ruta}
-            irA={irA}
-            manual={manual}
-            recargarClases={recargar}
+            miNombre={nombre}
+            admin={yo.admin}
+            monitor={monitor}
+            recargar={recargar}
+            token={token}
           />
-        ) : vista === 'tareas' ? (
-          <TableroEquipo orgId={org?.id} token={token} tareas={tareas} setTareas={setTareas} miembros={miembros} clases={clases} yo={yo.id} admin={yo.admin} hoy={hoy} />
-        ) : vista === 'clases' ? (
-          <ClasesProfes />
         ) : vista === 'archivo' ? (
           semanas === null ? (
             <p className="text-[14px] text-[#6B7393]">Cargando las clases…</p>
@@ -533,6 +441,22 @@ export default function SalaProfes() {
           <ManualEquipo key={docAbrir ?? 'm'} orgId={org?.id} token={token} manual={manual} setManual={setManual} admin={yo.admin} abrir={docAbrir} />
         )}
       </div>
+
+      {/* Lo demás que hace el equipo, sin llenar la barra de la escuela. */}
+      {!monitor && cargado ? (
+        <footer className="mt-10 pt-5 border-t border-[#E4E8F2] flex flex-wrap gap-x-5 gap-y-2 text-[13.5px]">
+          <span className="text-[#6B7393]">También:</span>
+          <Link href={ruta('/seguimiento')} className="font-semibold text-[#0b2da0] hover:underline">
+            Seguimiento de alumnos
+          </Link>
+          <Link href={ruta('/responder-consultas')} className="font-semibold text-[#0b2da0] hover:underline">
+            Responder consultas
+          </Link>
+          <Link href={ruta('/organizar')} className="font-semibold text-[#0b2da0] hover:underline">
+            Clases y grupos
+          </Link>
+        </footer>
+      ) : null}
     </div>
   )
 }

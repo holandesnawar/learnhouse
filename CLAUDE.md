@@ -5257,6 +5257,40 @@ la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
     (`tom.bakker@ejemplo.com`) entran ya con la misma contraseña que Marta
     (`LEARNHOUSE_DATOS_DE_PRUEBA_CLAVE`, `CUENTAS_DE_PRUEBA`), y la sala de
     profes trae tareas y el manual de ejemplo (marca `datos_prueba.equipo`).
+- **v9 (08/11): la sala de profes, simple, y los monitores.** Usuario: "el
+  profe, su única tarea es preparar la clase y darla… ver fácil el archivo, y
+  poco más… la página de preparar clases es caótica… si al profe le toca esa
+  semana x grupo y x clase, que solo vea eso… quita tantos links de la barra,
+  solo Sala de profesores… el monitor solo Spreken Club; el grupo se llama
+  Monitores".
+  - **La sala, tres pestañas**: **Mis clases** (de serie), **Archivo** y
+    **Manual** (el monitor no lo tiene). Fuera el tablero de tareas del equipo
+    y la pestaña «Preparar clases» (el `ClasesProfes` sigue en `/mis-clases` y
+    en el panel, pero no se enlaza desde la escuela). Las tablas y rutas de las
+    tareas del equipo siguen ahí, sin pantalla.
+  - **Mis clases** (`MisClases` en `SalaProfes.tsx`, `porClase` en
+    `lib/nawar/salaProfes.ts`, con test): una tarjeta por clase con su semana
+    de ESTA semana en pasos (presentación → dar la clase, con «Entrar a la
+    sala» el día → pasar lista → grabación → corregir) y una línea con la
+    semana que viene; sin semana creada, «Crear la semana». El profe ve solo
+    las clases que llevan su nombre en «La da» (el recuadro; `esDe`), con
+    «Todas» al lado; si ninguna lleva su nombre, ve todas y se le dice. El
+    administrador y el monitor, todas las suyas. Abajo, enlaces pequeños:
+    Seguimiento de alumnos, Responder consultas, Clases y grupos.
+  - **Barra lateral del profe: solo «Sala de profesores»** (es su Inicio),
+    Formación, Comunidad y Mensajes. Del administrador, «Sala de profesores»
+    en Gestión en lugar de Preparar clases / Tareas / Archivo / Manual.
+  - **Monitores** (`services/equipo/monitores.py`, cabecera: leerla): cuenta
+    con rol **profe** + grupo de usuarios **«Monitores»** (vale «Monitor»; un
+    administrador nunca es monitor). Solo tiene las clases cuyo nombre lleva
+    «spreek» o «spreken» (Spreekclub, Spreken Club): la lista de cursos
+    (`get_courses_orgslug`), lo que el equipo puede abrir y cambiar
+    (`_equipo_en_curso`), las clases en directo de `/tareas/org/{id}/clases` y
+    la sala de profes (sin manual ni tareas). Su barra: Sala de profesores y
+    Mensajes; arriba, solo Inicio (la barra lo sabe por
+    `GET /equipo/org/{id}/yo`). En el equipo sale como «Monitor». La
+    formación le da 403. Datos de prueba: Tom Bakker es monitor y da el
+    Spreekclub (marca `datos_prueba.monitores`).
 - **Pasar el diseño nuevo a la escuela de verdad = mezclar `diseno` en `dev`**
   (un PR, un botón «Merge»). Lo que lleva y ya está pensado para los datos
   reales: los datos inventados solo se crean con `LEARNHOUSE_DATOS_DE_PRUEBA=si`

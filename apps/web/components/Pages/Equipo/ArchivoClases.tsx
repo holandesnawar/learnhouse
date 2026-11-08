@@ -12,7 +12,7 @@ import { Search } from 'lucide-react'
 import { getUriWithOrg } from '@services/config/config'
 import { diaLegible, porMeses, type SemanaEquipo } from '@/lib/nawar/salaProfes'
 import type { ClaseEquipo } from './useClasesEquipo'
-import { POPPINS } from './TableroEquipo'
+import { POPPINS } from './estilo'
 
 type Que = 'todo' | 'presentacion' | 'grabacion' | 'tarea'
 

@@ -83,3 +83,13 @@ async def test_el_manual_y_su_plantilla(db):
     await E.borrar_doc(1, nuevo["id"], db)
     assert len(await E.listar_docs(1, db)) == len(E.PLANTILLA)
     assert await E.listar_docs(2, db) == []
+
+
+def test_monitores_y_spreekclub():
+    from src.services.equipo import monitores as M
+
+    assert M.es_grupo_monitores("Monitores") and M.es_grupo_monitores(" monitor ") and M.es_grupo_monitores("Monitóres")
+    assert not M.es_grupo_monitores("Programa nuevo") and not M.es_grupo_monitores("Testers")
+    assert M.es_spreekclub("Spreekclub · Groep rood") and M.es_spreekclub("Spreek club")
+    assert M.es_spreekclub("Spreken Club") and M.es_spreekclub("Spreekuur")
+    assert not M.es_spreekclub("Clase semanal") and not M.es_spreekclub("Masterclass")

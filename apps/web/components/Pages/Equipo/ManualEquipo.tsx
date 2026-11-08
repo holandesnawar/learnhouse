@@ -11,7 +11,7 @@ import { Plus, Pencil, Trash2, ChevronLeft } from 'lucide-react'
 import { confirmar } from '@/lib/nawar/confirmar'
 import { bloquesDeTexto, trozosNegrita } from '@/lib/nawar/salaProfes'
 import { borrarDoc, cambiarDoc, crearDoc, plantillaManual, type DocManual } from '@services/equipo/equipo'
-import { POPPINS } from './TableroEquipo'
+import { POPPINS } from './estilo'
 
 function Linea({ texto }: { texto: string }) {
   return (

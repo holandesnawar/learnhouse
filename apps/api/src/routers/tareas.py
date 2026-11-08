@@ -430,7 +430,14 @@ async def api_clases(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     admin = await _equipo(current_user, org_id, db_session)
-    return {"clases": await T.clases_en_directo(org_id, db_session), "admin": admin}
+    clases = await T.clases_en_directo(org_id, db_session)
+    # Nawar (08/11/2026): un monitor solo tiene el Spreekclub.
+    from src.services.equipo.monitores import es_monitor, es_spreekclub
+
+    monitor = await es_monitor(current_user.id, org_id, db_session)
+    if monitor:
+        clases = [c for c in clases if es_spreekclub(c["nombre"])]
+    return {"clases": clases, "admin": admin, "monitor": monitor}
 
 
 @router.get("/org/{org_id}/seguimiento", summary="Seguimiento semanal de una clase: alumno a alumno (equipo).")

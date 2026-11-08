@@ -197,3 +197,34 @@ export function misTareas<T extends ConEstado>(tareas: T[], yo: number): T[] {
 export function vencida(t: { fecha: string; estado: string }, hoy: string): boolean {
   return !!t.fecha && t.fecha < hoy && t.estado !== 'hecho'
 }
+
+export type ClaseDeLaSemana<C> = { clase: C; esta: SemanaEquipo | null; proxima: SemanaEquipo | null }
+
+/**
+ * «Mis clases» (08/11/2026, segunda vuelta: "el profe su única tarea es
+ * preparar la clase y darla… si le toca esa semana x grupo y x clase, que solo
+ * vea eso"): cada clase con su semana de ESTA semana (lunes a domingo) y la de
+ * la que viene, o nada si aún no está creada. Primero las que tienen clase esta
+ * semana, por día; luego las demás.
+ */
+export function porClase<C extends { uuid: string; nombre: string }>(
+  clases: C[],
+  semanas: SemanaEquipo[],
+  lunes: string
+): ClaseDeLaSemana<C>[] {
+  const domingo = sumarDias(lunes, 6)
+  const lunes2 = sumarDias(lunes, 7)
+  const domingo2 = sumarDias(lunes, 13)
+  const en = (c: C, desde: string, hasta: string) =>
+    semanas
+      .filter((s) => !s.suelta && s.courseUuid === c.uuid && s.fecha && s.fecha >= desde && s.fecha <= hasta)
+      .sort((a, b) => a.fecha.localeCompare(b.fecha))[0] || null
+  return clases
+    .map((clase) => ({ clase, esta: en(clase, lunes, domingo), proxima: en(clase, lunes2, domingo2) }))
+    .sort(
+      (a, b) =>
+        Number(!a.esta) - Number(!b.esta) ||
+        (a.esta?.fecha || '').localeCompare(b.esta?.fecha || '') ||
+        a.clase.nombre.localeCompare(b.clase.nombre)
+    )
+}

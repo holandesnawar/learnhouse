@@ -201,6 +201,10 @@ async def sembrar(db: AsyncSession) -> str:
             await _spreekclub(db, int(org.id or 0), config)
             config["datos_prueba"] = {**config["datos_prueba"], "spreekclub": True}
             hecho.append("el Spreekclub y su monitor")
+        if not (config.get("datos_prueba") or {}).get("monitores"):
+            await _monitores(db, int(org.id or 0), config)
+            config["datos_prueba"] = {**config["datos_prueba"], "monitores": True}
+            hecho.append("el grupo Monitores con Tom")
         if not (config.get("datos_prueba") or {}).get("equipo"):
             await _equipo(db, int(org.id or 0))
             config["datos_prueba"] = {**config["datos_prueba"], "equipo": True}
@@ -483,8 +487,9 @@ async def sembrar(db: AsyncSession) -> str:
     await _recursos(db, org_id)
     await _spreekclub(db, org_id, config)
     await _equipo(db, org_id)
+    await _monitores(db, org_id, config)
     await _clave_de_marta(db)
-    config["datos_prueba"] = {"creados": _ahora(), "alumna": "marta@ejemplo.com", "recursos": True, "spreekclub": True, "equipo": True}
+    config["datos_prueba"] = {"creados": _ahora(), "alumna": "marta@ejemplo.com", "recursos": True, "spreekclub": True, "equipo": True, "monitores": True}
     if fila is None:
         fila = OrganizationConfig(org_id=org_id, config=config, creation_date=_ahora(), update_date=_ahora())
     else:
@@ -609,6 +614,37 @@ async def _clave_de_marta(db: AsyncSession) -> bool:
         db.add(u)
         cambio = True
     return cambio
+
+
+async def _monitores(db: AsyncSession, org_id: int, config: dict) -> None:
+    """El grupo «Monitores» con Tom dentro y Tom como quien da el Spreekclub
+    (08/11): así se ve la sala de profes de un monitor, que solo tiene el
+    Spreekclub (`services/equipo/monitores.py`)."""
+    from src.db.usergroup_user import UserGroupUser
+    from src.db.usergroups import UserGroup
+    from src.db.users import User
+
+    tom = (await db.execute(select(User).where(User.email == "tom.bakker@ejemplo.com"))).scalars().first()
+    if tom is None:
+        return
+    g = (await db.execute(select(UserGroup).where(UserGroup.org_id == org_id, UserGroup.name == "Monitores"))).scalars().first()
+    if g is None:
+        g = UserGroup(name="Monitores", description="Monitores del Spreekclub", org_id=org_id, usergroup_uuid=f"usergroup_{uuid4()}",
+                      creation_date=_ahora(), update_date=_ahora())
+        db.add(g)
+        await db.flush()
+    ya = (await db.execute(select(UserGroupUser).where(UserGroupUser.usergroup_id == g.id, UserGroupUser.user_id == tom.id))).scalars().first()
+    if ya is None:
+        db.add(UserGroupUser(usergroup_id=g.id, user_id=tom.id, org_id=org_id, creation_date=_ahora(), update_date=_ahora()))
+    salas = config.get("salas") if isinstance(config.get("salas"), dict) else {}
+    clave = SPREEKCLUB_UUID.replace("course_", "", 1)
+    sala = salas.get(clave) if isinstance(salas.get(clave), dict) else {}
+    banner = sala.get("banner") if isinstance(sala.get("banner"), dict) else {}
+    if not str(banner.get("teacher") or "").strip():
+        banner["teacher"] = "Tom"
+        sala["banner"] = banner
+        salas[clave] = sala
+        config["salas"] = salas
 
 
 async def _equipo(db: AsyncSession, org_id: int) -> None:

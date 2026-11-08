@@ -82,3 +82,24 @@ test('mis tareas', () => {
   ]
   expect(misTareas(t, 5).map((x) => x.id)).toEqual([5, 2, 1])
 })
+
+test('mis clases: la semana de esta semana y la de la que viene', async () => {
+  const { porClase } = await import('../salaProfes')
+  const clases = [
+    { uuid: 'a', nombre: 'Clase semanal · rood' },
+    { uuid: 'b', nombre: 'Spreekclub' },
+    { uuid: 'c', nombre: 'Clase semanal · blauw' },
+  ]
+  const semanas = [
+    s({ key: 'a1', courseUuid: 'a', fecha: '2026-11-10' }),
+    s({ key: 'a2', courseUuid: 'a', fecha: '2026-11-17' }),
+    s({ key: 'c1', courseUuid: 'c', fecha: '2026-11-12' }),
+    s({ key: 'viejo', courseUuid: 'b', fecha: '2026-11-03' }),
+  ]
+  const r = porClase(clases, semanas, '2026-11-09')
+  expect(r.map((x) => [x.clase.uuid, x.esta?.key || null, x.proxima?.key || null])).toEqual([
+    ['a', 'a1', 'a2'],
+    ['c', 'c1', null],
+    ['b', null, null],
+  ])
+})

@@ -37,6 +37,22 @@ async def _equipo(current_user, org_id: int, db_session: AsyncSession) -> bool:
     return admin
 
 
+@router.get("/org/{org_id}/yo", summary="Quién soy en el equipo: administrador, profe o monitor.")
+async def api_yo(
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    """Para la barra de la escuela: a un monitor solo se le enseña la sala de
+    profes (con su Spreekclub dentro)."""
+    if isinstance(current_user, AnonymousUser) or not getattr(current_user, "id", 0):
+        return {"equipo": False, "admin": False, "monitor": False}
+    equipo, admin = await _roles(current_user, org_id, db_session)
+    from src.services.equipo.monitores import es_monitor
+
+    return {"equipo": equipo, "admin": admin, "monitor": bool(equipo and await es_monitor(current_user.id, org_id, db_session))}
+
+
 class TareaIn(BaseModel):
     titulo: Optional[str] = None
     notas: Optional[str] = None
@@ -62,8 +78,15 @@ async def api_sala_profes(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     admin = await _equipo(current_user, org_id, db_session)
+    from src.services.equipo.monitores import es_monitor
+
+    monitor = await es_monitor(current_user.id, org_id, db_session)
+    yo = {"id": current_user.id, "admin": admin, "monitor": monitor, "nombre": E.nombre_de(current_user)}
+    if monitor:
+        # El monitor solo tiene el Spreekclub: ni el manual ni las tareas.
+        return {"yo": yo, "miembros": await E.miembros(org_id, db_session), "tareas": [], "manual": []}
     return {
-        "yo": {"id": current_user.id, "admin": admin},
+        "yo": yo,
         "miembros": await E.miembros(org_id, db_session),
         "tareas": await E.listar_tareas(org_id, db_session),
         "manual": await E.listar_docs(org_id, db_session),

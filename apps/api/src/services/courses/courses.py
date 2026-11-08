@@ -334,6 +334,14 @@ async def get_courses_orgslug(
                 )
             ).scalars().first()
             del_equipo = rol_equipo in STAFF_ROLE_IDS
+            # Nawar (08/11/2026): un monitor (profe en el grupo «Monitores»)
+            # solo ve las clases del Spreekclub. Ver services/equipo/monitores.py.
+            solo_monitor: set[str] | None = None
+            if del_equipo:
+                from src.services.equipo.monitores import cursos_del_monitor, es_monitor
+
+                if await es_monitor(acting_user_id, org.id, db_session):
+                    solo_monitor = await cursos_del_monitor(org.id, db_session)
             # Nawar (08/11/2026): el closer ve también las clases en directo
             # del programa nuevo (masterclass y Spreekclub), solo publicadas.
             from src.security.rbac.constants import CLOSER_ROLE_ID
@@ -364,6 +372,8 @@ async def get_courses_orgslug(
                     *([and_(Course.published == True, Course.course_uuid.in_(sorted(clases_closer)))] if clases_closer else []),  # Nawar: el closer, las del programa nuevo
                 ))
             )
+            if solo_monitor is not None:
+                query = query.where(Course.course_uuid.in_(sorted(solo_monitor) or [""]))
 
     # Apply ordering and pagination — only use DISTINCT when outerjoins may produce duplicates
     query = query.order_by(Course.creation_date.desc()).offset(offset).limit(limit)

@@ -114,11 +114,17 @@ async def miembros(org_id: int, db_session: AsyncSession) -> list[dict]:
             .where(UserOrganization.role_id.in_(list(STAFF_ROLE_IDS)))  # type: ignore[attr-defined]
         )
     ).all()
+    from src.services.equipo.monitores import es_monitor
+
     vistos: dict[int, dict] = {}
     for u, rol in filas:
-        vistos[u.id] = {"id": u.id, "nombre": nombre_de(u), "rol": nombre_rol(rol), "avatar": _avatar(u)}
-    # Primero la dirección, luego los profes; dentro, por nombre.
-    return sorted(vistos.values(), key=lambda m: (m["rol"] != "Dirección", m["nombre"].lower()))
+        papel = nombre_rol(rol)
+        if papel == "Profe" and await es_monitor(u.id, org_id, db_session):
+            papel = "Monitor"
+        vistos[u.id] = {"id": u.id, "nombre": nombre_de(u), "rol": papel, "avatar": _avatar(u)}
+    # Primero la dirección, luego los profes y los monitores; dentro, por nombre.
+    orden = {"Dirección": 0, "Profe": 1, "Monitor": 2}
+    return sorted(vistos.values(), key=lambda m: (orden.get(m["rol"], 3), m["nombre"].lower()))
 
 
 # ── Las tareas ───────────────────────────────────────────────────────────

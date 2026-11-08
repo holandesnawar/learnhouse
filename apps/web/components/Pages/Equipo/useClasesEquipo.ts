@@ -13,7 +13,7 @@ import type { SemanaEquipo } from '@/lib/nawar/salaProfes'
 const PALETA = ['#0b2da0', '#7C3AED', '#0E9F8E', '#DB2777', '#4da3ff', '#1D0084']
 const POR_ETIQUETA: Record<string, string> = { rojo: '#DC2626', azul: '#2563EB', verde: '#16A34A', amarillo: '#CA8A04', morado: '#7C3AED' }
 
-export type ClaseEquipo = { uuid: string; nombre: string; color: string; etiqueta: string }
+export type ClaseEquipo = { uuid: string; nombre: string; color: string; etiqueta: string; profe: string; hora: string }
 
 export function hoyNL(): string {
   try {
@@ -48,9 +48,18 @@ export default function useClasesEquipo(org: any, token: string) {
         const porSemana: Record<number, number> = {}
         for (const e of corregir.entregas || []) porSemana[e.tarea_id] = (porSemana[e.tarea_id] || 0) + 1
         const conColor: ClaseEquipo[] = lista.map((c, i) => {
-          const et = ajustesDirecto(config, c.uuid).etiqueta || ''
+          const ajustes = ajustesDirecto(config, c.uuid)
+          const et = ajustes.etiqueta || ''
           const tono = et ? POR_ETIQUETA[colorDeEtiqueta(et)] : ''
-          return { uuid: c.uuid, nombre: c.nombre, color: tono || PALETA[i % PALETA.length], etiqueta: et }
+          const recuadro: any = ajustes.banner || (c.uuid === CURSO_CLASE_SEMANAL_UUID ? config?.weekly_class_banner : null) || {}
+          return {
+            uuid: c.uuid,
+            nombre: c.nombre,
+            color: tono || PALETA[i % PALETA.length],
+            etiqueta: et,
+            profe: String(recuadro.teacher || '').trim(),
+            hora: String(recuadro.schedule || '').trim(),
+          }
         })
         const res = await Promise.allSettled(conColor.map((c) => getSemanas(c.uuid, token)))
         const todas: SemanaEquipo[] = []
