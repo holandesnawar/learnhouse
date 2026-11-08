@@ -218,7 +218,7 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
             { icono: <MessagesSquare size={20} />, t: 'Comunidad', d: 'Preséntate, comparte tus victorias y pregunta tus dudas.', href: ruta('/communities') },
           ].map((x) => (
             <Link key={x.t} href={x.href} onClick={() => marcar('conoce')} className={`${TARJETA} p-4 sm:p-5 hover:border-[#C9D4EC] block`}>
-              <span className="w-10 h-10 rounded-xl bg-[#EEF3FF] text-[#0b2da0] flex items-center justify-center">{x.icono}</span>
+              <span className="block text-[#0b2da0] [&_svg]:w-[30px] [&_svg]:h-[30px] [&_svg]:stroke-[1.6]">{x.icono}</span>
               <h3 className="mt-3 text-[15.5px] font-bold text-[#0B1033]">{x.t}</h3>
               <p className="mt-1 text-[14px] text-[#4A5272] leading-relaxed">{x.d}</p>
             </Link>

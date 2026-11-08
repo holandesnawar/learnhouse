@@ -10,7 +10,7 @@ import {
   getCourseBannerMediaDirectory,
   getCourseThumbnailMediaDirectory,
 } from '@services/media/media'
-import { ArrowRight, Backpack, BookOpen as Books, Check, File, StickyNote, Video, Square, Image as ImageIcon, Layers, Lock } from 'lucide-react'
+import { ArrowRight, Backpack, Check, File, StickyNote, Video, Square, Image as ImageIcon, Layers, Lock } from 'lucide-react'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useMediaQuery } from 'usehooks-ts'
 import CoursesActions from '@components/Objects/Courses/CourseActions/CoursesActions'
@@ -350,12 +350,7 @@ const CourseClient = (props: any) => {
                 igual que Mi progreso, Mis notas o Eventos. Antes el título del
                 curso iba suelto y era la única pantalla sin icono. */}
             <div className="flex items-center gap-2 pb-2 pt-2">
-              {enDirecto ? (
-                <Video size={24} className="text-[#025dc7] shrink-0" />
-              ) : (
-                <Books size={24} className="text-[#025dc7] shrink-0" />
-              )}
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{course.name}</h1>
+              <h1 className="text-[26px] sm:text-[30px] font-bold text-[#0B1033] tracking-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>{course.name}</h1>
               {/* El equipo: cuál de las copias es (Groep rood…), 29/10; también los profes desde el 02/11. */}
               {enDirecto && esDelEquipo ? (
                 <EtiquetaCurso texto={ajustesDirecto(org?.config?.config, course.course_uuid).etiqueta} />
@@ -606,14 +601,14 @@ const CourseClient = (props: any) => {
               <h2 className="pb-5 text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2.5" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
                 {enDirecto ? (
                   <>
-                    <Video size={22} className="text-[#025dc7]" />
+                    <Video size={22} className="text-[#0b2da0]" />
                     Sesiones grabadas
                   </>
                 ) : (
                   t('courses.course_lessons')
                 )}
               </h2>
-              <div className="bg-white nice-shadow rounded-2xl overflow-hidden border border-[#DDE6F5] divide-y divide-[#DDE6F5]">
+              <div className="bg-white rounded-2xl overflow-hidden border border-[#E4E8F2] divide-y divide-[#EEF1F7]">
                 {capitulosAVer(course, enDirecto, capitulosDeSemanas).map((chapter: any, idx: number) => {
                   const isExpanded = expandedChapters[chapter.chapter_uuid] ?? (idx === 0); // Default to expanded for first chapter
                   return (
@@ -627,7 +622,7 @@ const CourseClient = (props: any) => {
                       >
                         {/* Cerrado: un candado en lugar de la flecha. No hay
                             nada que desplegar, así que la flecha mentía. */}
-                        <div className="flex flex-col justify-center mr-3 pt-1 text-[#025dc7]">
+                        <div className="flex flex-col justify-center mr-3 pt-1 text-[#0b2da0]">
                           {chapter.is_locked ? (
                             <Lock size={18} className="text-gray-400" />
                           ) : (
@@ -674,7 +669,7 @@ const CourseClient = (props: any) => {
                                   {locked ? (
                                     <Lock size={16} className="stroke-[2] text-rose-400" />
                                   ) : (
-                                    getLessonIcon(activity.name, activity.activity_type, 'text-[#025dc7]')
+                                    getLessonIcon(activity.name, activity.activity_type, 'text-[#0b2da0]')
                                   )}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -687,7 +682,7 @@ const CourseClient = (props: any) => {
                                       </span>
                                     )}
                                     {!locked && isActivityCurrent(activity) && (
-                                      <div className="flex items-center space-x-1 text-[#025dc7] bg-[#025dc7]/10 px-2 py-0.5 rounded-full text-xs font-semibold">
+                                      <div className="flex items-center space-x-1 text-[#0b2da0] bg-[#0b2da0]/10 px-2 py-0.5 rounded-full text-xs font-semibold">
                                         <span>{t('activities.current')}</span>
                                       </div>
                                     )}

@@ -68,9 +68,9 @@ export function useSemanasClase(courseUuid: string, activo = true) {
 const POPPINS = { fontFamily: 'var(--font-poppins), system-ui, sans-serif' }
 
 function Icono({ tipo }: { tipo: string }) {
-  const props = { size: 18, className: 'text-[#0b2da0]' }
+  const props = { size: 22, strokeWidth: 1.6, className: 'text-[#0b2da0]' }
   return (
-    <div className="w-9 h-9 rounded-[10px] bg-[#F0F5FF] flex items-center justify-center shrink-0">
+    <div className="w-7 flex items-center justify-center shrink-0">
       {tipo === 'presentacion' ? (
         <FileText {...props} />
       ) : tipo === 'grabacion' ? (
@@ -338,13 +338,13 @@ function ChipFecha({ fecha }: { fecha: string }) {
   const [, m, d] = (fecha || '').split('-').map(Number)
   if (!m || !d) {
     return (
-      <div className="w-11 h-11 rounded-xl bg-[#F0F5FF] flex items-center justify-center shrink-0">
-        <Video size={16} className="text-[#0b2da0]" />
+      <div className="w-11 h-11 flex items-center justify-center shrink-0">
+        <Video size={24} strokeWidth={1.6} className="text-[#0b2da0]" />
       </div>
     )
   }
   return (
-    <div className="w-11 h-11 rounded-xl bg-[#F0F5FF] flex flex-col items-center justify-center shrink-0 leading-none">
+    <div className="w-11 h-11 rounded-xl border border-[#E4E8F2] flex flex-col items-center justify-center shrink-0 leading-none">
       <span className="text-[16px] font-semibold text-[#0B1033] tabular-nums" style={POPPINS}>
         {d}
       </span>

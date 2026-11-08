@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { getUriWithOrg } from '@services/config/config'
 import { listAllHighlights, HIGHLIGHT_COLORS, type LessonHighlight } from '@services/student/highlights'
-import { NotePencil } from '@phosphor-icons/react'
 import { Loader2, ArrowRight, StickyNote } from 'lucide-react'
 
 const MESES_ES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
@@ -48,8 +47,7 @@ export default function MyNotesBoard({ orgslug }: { orgslug: string }) {
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-2 pt-2">
-        <NotePencil size={24} weight="fill" className="text-[#0b2da0]" />
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Mis notas</h1>
+        <h1 className="text-[26px] sm:text-[30px] font-bold text-[#0B1033] tracking-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>Mis notas</h1>
       </div>
       <p className="text-sm text-gray-500 -mt-3 max-w-xl">
         Todo lo que has resaltado y anotado en las lecciones, en un solo sitio.

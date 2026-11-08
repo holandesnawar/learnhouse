@@ -187,16 +187,22 @@ async def sembrar(db: AsyncSession) -> str:
     fila = (await db.execute(select(OrganizationConfig).where(OrganizationConfig.org_id == org.id))).scalars().first()
     config = json.loads(json.dumps((fila.config if fila else None) or {}))
     if config.get("datos_prueba"):
-        # Lo que se añadió después (07/11): las carpetas de Recursos.
+        # Lo que se añadió después: las carpetas de Recursos (07/11) y la
+        # escuela en español (08/11; sin eso salía «Course Lessons»).
+        hecho = []
         if not (config.get("datos_prueba") or {}).get("recursos"):
             await _recursos(db, int(org.id or 0))
             config["datos_prueba"] = {**config["datos_prueba"], "recursos": True}
-            fila.config = config
-            fila.update_date = _ahora()
-            db.add(fila)
-            await db.commit()
-            return "añadidas las carpetas de Recursos"
-        return "ya estaban"
+            hecho.append("las carpetas de Recursos")
+        if _en_espanol(config):
+            hecho.append("el idioma español")
+        if not hecho:
+            return "ya estaban"
+        fila.config = config
+        fila.update_date = _ahora()
+        db.add(fila)
+        await db.commit()
+        return "añadido: " + ", ".join(hecho)
     n_usuarios = (await db.execute(select(func.count()).select_from(UserOrganization).where(UserOrganization.org_id == org.id))).scalar() or 0
     if n_usuarios > 3:
         return f"la escuela ya tiene {n_usuarios} usuarios: no se toca"
@@ -462,6 +468,7 @@ async def sembrar(db: AsyncSession) -> str:
     ]
     custom["events"] = {"events": eventos}
     config["customization"] = custom
+    _en_espanol(config)
     await _recursos(db, org_id)
     config["datos_prueba"] = {"creados": _ahora(), "alumna": "marta@ejemplo.com", "recursos": True}
     if fila is None:
@@ -489,6 +496,18 @@ RECURSOS = [
         ("DUO: exámenes de neerlandés", "https://www.duo.nl"),
     ]),
 ]
+
+
+def _en_espanol(config: dict) -> bool:
+    """La escuela de pruebas en español, como la de verdad. True si lo cambia."""
+    custom = config.get("customization") if isinstance(config.get("customization"), dict) else {}
+    general = custom.get("general") if isinstance(custom.get("general"), dict) else {}
+    if general.get("default_language") == "es":
+        return False
+    general["default_language"] = "es"
+    custom["general"] = general
+    config["customization"] = custom
+    return True
 
 
 async def _recursos(db: AsyncSession, org_id: int) -> None:

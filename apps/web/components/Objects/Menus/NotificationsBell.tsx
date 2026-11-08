@@ -214,8 +214,8 @@ export default function NotificationsBell(props: { orgslug: string }) {
                       onClick={() => setOpen(false)}
                       className="flex gap-3 pl-4 pr-10 py-3 hover:bg-[#F7F9FD] transition-colors"
                     >
-                      <span className="mt-0.5 w-8 h-8 rounded-full bg-[#F2F5FB] text-[#6B7393] flex items-center justify-center shrink-0">
-                        <Icon size={15} />
+                      <span className="mt-0.5 w-6 flex justify-center shrink-0 text-[#6B7393]">
+                        <Icon size={20} strokeWidth={1.7} />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className={`block text-[13.5px] leading-snug ${n.is_new ? 'font-semibold text-[#0B1033]' : 'font-medium text-[#3B4262]'}`}>

@@ -5113,6 +5113,17 @@ la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
   de escribir (`ComposerButton`): gris fino, fondo suave al pasar, etiqueta
   casi negra. Mi progreso rehecho: anillo con el %, «Vas por… · Seguir», «Te
   conviene repasar» (las 3 partes peores) y los módulos como lista con número.
+- **v4 (08/11)**: «iconos con fondo detrás = IA»: los iconos van sueltos,
+  más grandes y finos (Bienvenida → «Así es la escuela», campana, filas de la
+  semana del equipo; la fecha de «Clases anteriores» con borde, sin fondo).
+  Títulos de página sin icono delante y en Poppins (Formación, Eventos, Mis
+  notas, Consultas, Mensajes). Formación: círculo y botón en el azul de la
+  escuela, sin tarjeta dentro de tarjeta. Mensajes: la conversación elegida
+  con fondo suave, no con borde azul. **Calendario vacío arreglado**: leía los
+  eventos solo al abrirse y, si la escuela aún no había cargado, se quedaba
+  vacío (sincroniza con la configuración). La escuela de pruebas salía en
+  inglés («Course Lessons») porque su escuela nueva no tenía idioma: los datos
+  de prueba ponen `customization.general.default_language = "es"`.
 - Pendiente (v2): mover a un alumno al otro grupo UNA semana sin romper sus
   tareas, una pantalla de grupos para el administrador (quién está en qué y
   qué ve), el calendario rehecho, datos inventados en la escuela de pruebas.

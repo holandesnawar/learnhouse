@@ -382,8 +382,7 @@ export default function MessagesPage() {
     <div className="h-full min-h-0 flex flex-col">
       <div className="shrink-0 px-4 sm:px-5 pt-4 pb-3 border-b border-[#EEF3FB]">
         <div className="flex items-center gap-2">
-          <MessageSquare size={20} className="text-[#0b2da0] shrink-0" />
-          <h1 className="text-[19px] font-bold text-gray-900 flex-1 min-w-0 truncate">
+          <h1 className="text-[20px] font-bold text-[#0B1033] flex-1 min-w-0 truncate" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
             Mis mensajes
           </h1>
           {isStaff && (
@@ -473,8 +472,8 @@ export default function MessagesPage() {
               onClick={() => openThread(t.id, t.title, t.title_avatar, t.title_role)}
               className={`w-full text-left rounded-xl border px-3 py-2.5 transition-colors ${
                 activeId === t.id
-                  ? 'bg-[#F7FAFF] border-[#0b2da0]'
-                  : 'bg-white border-[#DDE6F5] hover:border-[#0b2da0]/60'
+                  ? 'bg-[#EAF0FE] border-transparent'
+                  : 'bg-white border-transparent hover:bg-[#F7F9FD]'
               }`}
             >
               <span className="flex items-center gap-2.5">

@@ -133,6 +133,12 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
   }
 
   const [events, setEvents] = useState<LhEvent[]>(() => readEvents(org))
+  // La escuela a veces aún no ha cargado al pintar la página: sin esto el
+  // calendario se quedaba vacío para siempre (08/11/2026).
+  const eventosGuardados = JSON.stringify(readEvents(org))
+  useEffect(() => {
+    setEvents(JSON.parse(eventosGuardados))
+  }, [eventosGuardados])
   const [cursor, setCursor] = useState(() => dayjs().startOf('month'))
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState<LhEvent | null>(null)
@@ -213,8 +219,7 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 pb-5">
         <div className="flex items-center gap-2">
-          <CalendarDays size={24} className="text-[#0b2da0]" />
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Eventos</h1>
+          <h1 className="text-[26px] sm:text-[30px] font-bold text-[#0B1033] tracking-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>Eventos</h1>
         </div>
         {canEdit && (
           <button

@@ -276,15 +276,15 @@ function CoursesActions({ courseuuid, orgslug, course, trailData }: CourseAction
 
     if (!isStarted) {
       return (
-        <div className="relative bg-white nice-shadow rounded-2xl overflow-hidden">
+        <div className="relative">
           <div
-            className="absolute inset-0 opacity-[0.05]"
+            className="hidden"
             style={{
               backgroundImage: 'radial-gradient(circle at center, #101010 1px, transparent 1px)',
               backgroundSize: '12px 12px'
             }}
           />
-          <div className="relative p-4">
+          <div className="relative">
             <div className="flex items-center gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-4">
@@ -318,15 +318,15 @@ function CoursesActions({ courseuuid, orgslug, course, trailData }: CourseAction
     }
 
     return (
-        <div className="relative bg-white nice-shadow rounded-2xl overflow-hidden">
+        <div className="relative">
           <div
-          className="absolute inset-0 opacity-[0.05]"
+          className="hidden"
           style={{
             backgroundImage: 'radial-gradient(circle at center, #000 1px, transparent 1px)',
             backgroundSize: '24px 24px'
           }}
         />
-        <div className="relative p-4">
+        <div className="relative">
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-4">
@@ -344,7 +344,7 @@ function CoursesActions({ courseuuid, orgslug, course, trailData }: CourseAction
                       cx="32"
                       cy="32"
                       r="28"
-                      stroke="#10b981"
+                      stroke="#0b2da0"
                       strokeWidth="6"
                       fill="none"
                       strokeLinecap="round"
@@ -354,7 +354,7 @@ function CoursesActions({ courseuuid, orgslug, course, trailData }: CourseAction
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-lg font-bold text-gray-800">
+                    <span className="text-lg font-bold text-[#0B1033]">
                       {progressPercentage}%
                     </span>
                   </div>
@@ -445,7 +445,7 @@ function CoursesActions({ courseuuid, orgslug, course, trailData }: CourseAction
   }
 
   return (
-    <div className="bg-white shadow-md shadow-gray-300/25 outline outline-1 outline-neutral-200/40 rounded-lg overflow-hidden p-4">
+    <div className="bg-white border border-[#E4E8F2] rounded-2xl overflow-hidden p-4">
       <div className="space-y-4">
         {/* Progress Section */}
         {renderProgressSection()}
@@ -458,7 +458,7 @@ function CoursesActions({ courseuuid, orgslug, course, trailData }: CourseAction
           return (
             <Link
               href={getUriWithOrg(orgslug, '') + `/course/${cleanCourseUuid}/activity/${cleanUuid}`}
-              className="w-full py-3 px-3 rounded-lg nice-shadow font-semibold text-sm leading-tight text-center transition-colors flex items-center justify-center gap-2 cursor-pointer bg-[#4da3ff] text-[#1D0084] hover:bg-[#6cb5ff]"
+              className="w-full py-3 px-3 rounded-lg font-semibold text-sm leading-tight text-center transition-colors flex items-center justify-center gap-2 cursor-pointer bg-[#0b2da0] text-white hover:bg-[#0a2690]"
             >
               <BookOpen className="w-4 h-4 shrink-0" />
               <span>Continuar donde lo dejaste</span>
@@ -472,7 +472,7 @@ function CoursesActions({ courseuuid, orgslug, course, trailData }: CourseAction
             onClick={handleCourseAction}
             disabled={isActionLoading}
             aria-label={t('courses.start_course')}
-            className="w-full py-3 px-3 rounded-lg nice-shadow font-semibold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer bg-[#4da3ff] text-[#1D0084] hover:bg-[#6cb5ff] disabled:opacity-70"
+            className="w-full py-3 px-3 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer bg-[#0b2da0] text-white hover:bg-[#0a2690] disabled:opacity-70"
           >
             {isActionLoading ? (
               <div className="w-5 h-5 border-2 border-[#1D0084] border-t-transparent rounded-full animate-spin" />
