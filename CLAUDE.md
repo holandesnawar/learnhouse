@@ -2189,6 +2189,22 @@ Ruta `PUT /contactos/org/{id}/contacto/datos` → `corregir_datos` en
   (`_NO_DICEN_DE_DONDE`). Tests en `test_contactos.py` y
   `test_tablero_llamadas.py`.
 
+## Fotos en Mensajes y en el chat: «File type not allowed» (08/11/2026)
+Una alumna (Chrome en el iPhone) no podía mandar fotos de sus ejercicios en
+Mensajes: rueda sin fin y «File type not allowed. Allowed: ['.jpg'…]». El
+servidor juzgaba la foto por la EXTENSIÓN del nombre, y el móvil la mandaba
+sin extensión («image») o en HEIC.
+- **En el navegador** (`lib/nawar/prepararFoto.ts`, en `uploadMessageAttachment`
+  y `uploadChatAttachment`): la foto se reduce a 1600 px y se pasa a JPEG
+  (`prepararFoto`; si falla, la original con la extensión de su tipo,
+  `conExtension`), y la subida se corta a los 90 s con un aviso en español
+  (`subirConTope`): la rueda ya no gira para siempre.
+- **En el servidor** (`nombre_de_foto` en `services/communities/attachments.py`,
+  test `test_adjunto_foto.py`): la foto se acepta por su CONTENIDO (JPEG, PNG,
+  GIF, WEBP) y se le pone la extensión que toca; un HEIC se rechaza diciendo que
+  mande una captura de pantalla (casi ningún navegador sabe pintarlo).
+- No se pudo probar en su iPhone: si vuelve a fallar, leer el mensaje que sale.
+
 ## Intentos de contacto dentro de «Contactado» (08/11/2026)
 Pedido: "en la columna de contactado, subcolumnas de qué nivel está el
 contacto: primera etapa, llamada y primer mensaje; segunda, llamada y segundo
