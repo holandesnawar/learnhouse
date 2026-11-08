@@ -109,20 +109,18 @@ function UnaSiguiente({ uuid, nombre, orgslug }: { uuid: string; nombre: string;
   const cuando = esHoy ? 'Hoy' : fechaLarga(semana.fecha)
   const detalle = [semana.tema, r.teacher ? `con ${r.teacher}` : ''].filter(Boolean).join(' · ')
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-4 px-5 py-4">
-      <div className="min-w-0 flex-1">
-        <p className="text-[12.5px] font-semibold text-[#0b2da0]">Siguiente {nombre.toLowerCase()}</p>
-        <Link href={getUriWithOrg(orgslug, `/course/${uuid.replace(/^course_/, '')}`)} className="block mt-0.5 hover:underline">
-          <span className="text-[20px] font-bold text-[#0B1033] leading-tight first-letter:uppercase inline-block" style={POPPINS}>
-            {cuando}
-            {hora ? ` · ${hora}` : ''}
-          </span>
-        </Link>
-        {detalle ? <p className="mt-0.5 text-[13.5px] text-[#5B6382] truncate">{detalle}</p> : null}
-      </div>
-      <div className="shrink-0">
-        <p className="text-[13px] font-semibold text-[#2B3150] mb-1.5">¿Vas a asistir?</p>
-        <Vienes semana={semana} courseUuid={uuid} compacto textos={['Sí', 'No']} />
+    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 px-5 py-4">
+      <Link href={getUriWithOrg(orgslug, `/course/${uuid.replace(/^course_/, '')}`)} className="group min-w-0 flex-1">
+        <p className="text-[12.5px] text-[#6B7393]">Tu próxima clase · {nombre}</p>
+        <p className="mt-0.5 text-[16.5px] font-semibold text-[#0B1033] first-letter:uppercase group-hover:text-[#0b2da0]">
+          {cuando}
+          {hora ? `, ${hora}` : ''}
+        </p>
+        {detalle ? <p className="text-[13.5px] text-[#5B6382] truncate">{detalle}</p> : null}
+      </Link>
+      <div className="shrink-0 flex items-center gap-3">
+        <span className="text-[13px] text-[#6B7393] hidden md:inline">¿Vienes?</span>
+        <Vienes semana={semana} courseUuid={uuid} segmento textos={['Asistiré', 'No puedo']} />
       </div>
     </div>
   )
@@ -134,7 +132,7 @@ export function SiguienteClase({ orgslug }: { orgslug: string }) {
   const { isStaff } = useAdminStatus() as any
   if (isStaff || !cursos?.length) return null
   return (
-    <section className={`${TARJETA} divide-y divide-[#EEF1F7] border-l-[3px] border-l-[#0b2da0]`}>
+    <section className={`${TARJETA} divide-y divide-[#EEF1F7]`}>
       {cursos.map((c) => (
         <UnaSiguiente key={c.uuid} uuid={c.uuid} nombre={c.nombre} orgslug={orgslug} />
       ))}

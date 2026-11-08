@@ -354,12 +354,13 @@ function ChipFecha({ fecha }: { fecha: string }) {
 }
 
 /** Lo de la derecha de cada línea, siempre con la misma forma. */
+/** Lo de la derecha de cada línea: texto suelto, sin pastilla (08/11: «Vista
+ * en una pastilla verde es lo que hace todo el mundo»). Hecho = marca verde
+ * pequeña y texto gris; pendiente = gris; «Ver» = enlace azul. */
 function Etiqueta({ tono, children }: { tono: 'hecho' | 'azul' | 'gris'; children: React.ReactNode }) {
   const color =
-    tono === 'hecho' ? 'bg-[#ECFDF3] text-[#15803D]' : tono === 'azul' ? 'bg-[#EEF4FF] text-[#0b2da0]' : 'bg-[#F3F4F6] text-[#6B7280]'
-  return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-semibold ${color}`}>{children}</span>
-  )
+    tono === 'hecho' ? 'text-[#5B6382] [&_svg]:text-[#16A34A]' : tono === 'azul' ? 'text-[#0b2da0] font-semibold' : 'text-[#8A91AD]'
+  return <span className={`shrink-0 inline-flex items-center gap-1.5 text-[13px] font-medium ${color}`}>{children}</span>
 }
 
 /** Qué tuvo una semana, en una línea: «Presentación · Grabación · Tarea». */
@@ -386,7 +387,7 @@ function FilaArchivo({ c, href }: { c: ClaseArchivo; href: string }) {
       </div>
       {c.hecha ? (
         <Etiqueta tono="hecho">
-          <Check size={12} strokeWidth={3} /> Vista
+          <Check size={14} strokeWidth={2.5} /> Vista
         </Etiqueta>
       ) : (
         <Etiqueta tono="azul">Ver</Etiqueta>
@@ -507,7 +508,7 @@ export default function SemanasClase({
           </div>
           {est === 'corregida' ? (
             <Etiqueta tono="hecho">
-              <Check size={12} strokeWidth={3} /> Corregida
+              <Check size={14} strokeWidth={2.5} /> Corregida
             </Etiqueta>
           ) : est === 'entregada' ? (
             <Etiqueta tono="azul">Entregada</Etiqueta>
@@ -515,7 +516,7 @@ export default function SemanasClase({
             <Etiqueta tono="gris">{s.limite < hoy ? 'Sin entregar' : 'Pendiente'}</Etiqueta>
           ) : grabacionVista ? (
             <Etiqueta tono="hecho">
-              <Check size={12} strokeWidth={3} /> Vista
+              <Check size={14} strokeWidth={2.5} /> Vista
             </Etiqueta>
           ) : null}
           <ChevronDown size={16} className={`shrink-0 text-[#B9C6DC] transition-transform ${abierta ? '' : '-rotate-90'}`} />

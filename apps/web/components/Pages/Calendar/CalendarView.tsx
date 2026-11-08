@@ -290,10 +290,13 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
                         if (canEdit) setEditing(ev)
                         else if (ev.link) window.open(ev.link, '_blank')
                       }}
-                      className="w-full text-left truncate rounded px-1.5 py-1 text-[11px] font-medium bg-[#0b2da0]/10 text-[#0b2da0] hover:bg-[#0b2da0]/20"
+                      className="w-full flex items-center gap-1.5 text-left rounded px-1 py-0.5 text-[12px] text-[#0B1033] hover:bg-[#F2F5FB]"
                       title={ev.title}
                     >
-                      {ev.time ? `${ev.time} ` : ''}{ev.title}
+                      {/* Como en un calendario de verdad: punto, hora y título, sin pastilla (08/11). */}
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#0b2da0] shrink-0" />
+                      {ev.time ? <span className="text-[#6B7393] tabular-nums shrink-0">{ev.time}</span> : null}
+                      <span className="truncate font-medium">{ev.title}</span>
                     </button>
                   ))}
                   {dayEvents.length > 3 && (

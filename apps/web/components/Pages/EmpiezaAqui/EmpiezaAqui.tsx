@@ -121,12 +121,18 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
             {nombre ? `Bienvenida a la escuela, ${nombre}` : 'Bienvenida a la escuela'}
           </h1>
           <p className="mt-2 text-[15px] text-white/90 max-w-[560px]">Cinco pasos para arrancar con buen pie. Hazlos a tu ritmo: esta página te espera aquí.</p>
-          <div className="mt-5 flex items-center gap-3">
-            <div className="flex-1 max-w-[320px] h-2 rounded-full bg-white/15 overflow-hidden">
+        </div>
+      </section>
+
+      <section className={`${TARJETA} divide-y divide-[#EEF1F7]`}>
+        {/* El progreso y el botón, fuera del azul (08/11: «no se ve que hay un botón»). */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 px-4 sm:px-6 py-4">
+          <div className="flex-1 flex items-center gap-3 min-w-0">
+            <div className="flex-1 max-w-[280px] h-1.5 rounded-full bg-[#EEF1F7] overflow-hidden">
               <div className="h-full rounded-full bg-[#0b2da0] transition-all" style={{ width: `${(n / pasos.length) * 100}%` }} />
             </div>
-            <span className="text-[13.5px] font-semibold text-white/90">
-              {n} de {pasos.length}
+            <span className="text-[13.5px] font-semibold text-[#3B4262] tabular-nums">
+              {n} de {pasos.length} hechos
             </span>
           </div>
           {siguiente ? (
@@ -134,20 +140,17 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
               <Link
                 href={siguiente.href}
                 onClick={() => siguiente.href.startsWith('#') || marcar(siguiente.id)}
-                className="mt-5 inline-flex items-center gap-2 h-11 px-5 rounded-lg bg-[#0b2da0] text-white text-[14.5px] font-bold hover:bg-[#0a2690]"
+                className="shrink-0 self-start sm:self-auto inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-[#0b2da0] text-white text-[14px] font-semibold hover:bg-[#0a2690]"
               >
                 Siguiente: {siguiente.titulo.toLowerCase()} <ArrowRight size={16} />
               </Link>
             ) : null
           ) : (
-            <p className="mt-5 inline-flex items-center gap-2 text-[14.5px] font-semibold text-[#9CC9FF]">
-              <Check size={18} /> ¡Listo! Ya tienes todo en marcha.
+            <p className="inline-flex items-center gap-2 text-[14px] font-semibold text-[#16A34A]">
+              <Check size={17} /> ¡Listo! Ya tienes todo en marcha.
             </p>
           )}
         </div>
-      </section>
-
-      <section className={`${TARJETA} divide-y divide-[#EEF1F7]`}>
         {pasos.map((p, i) => {
           const ok = hecho(p)
           return (
@@ -156,9 +159,9 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
                 type="button"
                 onClick={() => p.id !== 'presentate' && marcar(p.id, !ok)}
                 aria-label={ok ? 'Hecho' : 'Marcar como hecho'}
-                className={`mt-0.5 shrink-0 w-7 h-7 rounded-full flex items-center justify-center border-2 ${ok ? 'bg-[#16A34A] border-[#16A34A] text-white' : 'border-[#C9D2E6] text-[#8A91AD]'}`}
+                className={`mt-0.5 shrink-0 w-7 h-7 rounded-full flex items-center justify-center border-[1.5px] bg-white ${ok ? 'border-[#16A34A] text-[#16A34A]' : 'border-[#C9D2E6] text-[#8A91AD]'}`}
               >
-                {ok ? <Check size={15} strokeWidth={3} /> : <span className="text-[12px] font-bold">{i + 1}</span>}
+                {ok ? <Check size={14} strokeWidth={2.5} /> : <span className="text-[12px] font-semibold">{i + 1}</span>}
               </button>
               <div className="min-w-0 flex-1">
                 <p className={`text-[15.5px] font-semibold ${ok ? 'text-[#8A91AD] line-through decoration-[#C9D2E6]' : 'text-[#0B1033]'}`}>{p.titulo}</p>

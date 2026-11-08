@@ -72,7 +72,7 @@ export function WeekStrip({ activeDays }: { activeDays: string[] }) {
   const set = new Set(activeDays)
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center justify-between gap-1">
       {days.map((label, i) => {
         const d = new Date(monday)
         d.setDate(monday.getDate() + i)
@@ -80,17 +80,16 @@ export function WeekStrip({ activeDays }: { activeDays: string[] }) {
         const active = set.has(iso)
         const isToday = iso === todayIso
         return (
-          <div key={label} className="flex flex-col items-center gap-1">
-            <span className="text-[9px] font-semibold text-gray-400 dark:text-white/40">{label}</span>
+          <div key={label} className="flex flex-col items-center gap-1.5">
+            <span className={`text-[11px] ${isToday ? 'font-semibold text-[#0B1033]' : 'text-[#8A91AD]'}`}>{label}</span>
             <div
               className={[
-                'w-4 h-4 rounded-full transition-colors flex items-center justify-center',
-                active ? 'bg-[#0b2da0]' : 'bg-[#DDE6F5] dark:bg-white/15',
-                isToday ? 'ring-2 ring-[#0b2da0]/40' : '',
+                'w-[22px] h-[22px] rounded-full border-[1.5px] flex items-center justify-center',
+                active ? 'border-[#16A34A] text-[#16A34A]' : isToday ? 'border-[#0b2da0]' : 'border-[#D5DBEA]',
               ].join(' ')}
               title={active ? `${iso} · ¡día cumplido!` : iso}
             >
-              {active && <Check size={11} strokeWidth={4} className="text-white" />}
+              {active && <Check size={12} strokeWidth={2.5} />}
             </div>
           </div>
         )

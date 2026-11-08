@@ -35,7 +35,8 @@ import {
 } from '@services/communities/discussions'
 import { getUriWithOrg } from '@services/config/config'
 import { getUserAvatarMediaDirectory } from '@services/media/media'
-import UserAvatar from '@components/Objects/UserAvatar'
+import AvatarPersona from '@components/Objects/Persona/AvatarPersona'
+import { haceCuanto } from '@/lib/nawar/haceCuanto'
 import VoiceRecorder from '@components/Pages/Messages/VoiceRecorder'
 import ComposerButton from './ComposerButton'
 import ConfirmDialog from './ConfirmDialog'
@@ -265,31 +266,22 @@ export default function ChannelPosts({
             return (
               <article
                 key={d.discussion_uuid}
-                className="group rounded-2xl border border-[#DDE6F5] bg-white overflow-hidden hover:border-[#0b2da0] transition-colors"
+                className="group rounded-2xl border border-[#E4E8F2] bg-white overflow-hidden hover:border-[#C9D4EC] transition-colors"
               >
                 <div className="p-4 sm:p-5">
                   <div className="flex items-center gap-2.5 mb-2.5">
-                    <UserAvatar
-                      width={28}
-                      avatar_url={
+                    <AvatarPersona
+                      nombre={authorName(d)}
+                      size={36}
+                      src={
                         (d.author as any)?.avatar_image
-                          ? getUserAvatarMediaDirectory(
-                              (d.author as any).user_uuid,
-                              (d.author as any).avatar_image
-                            )
-                          : undefined
+                          ? getUserAvatarMediaDirectory((d.author as any).user_uuid, (d.author as any).avatar_image)
+                          : null
                       }
-                      predefined_avatar={(d.author as any)?.avatar_image ? undefined : 'empty'}
-                      userId={String((d.author as any)?.id ?? '')}
-                      rounded="rounded-full"
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-semibold text-gray-900 truncate">
-                        {authorName(d)}
-                      </p>
-                      <p className="text-[11.5px] text-[#8A96AB]">
-                        {localDay(d.creation_date).locale('es').fromNow()}
-                      </p>
+                      <p className="text-[14px] font-semibold text-[#0B1033] truncate">{authorName(d)}</p>
+                      <p className="text-[12px] text-[#8A91AD]">{haceCuanto(d.creation_date)}</p>
                     </div>
                     {(mine || isStaff) && (
                       <button

@@ -125,11 +125,14 @@ export function Vienes({
   courseUuid,
   compacto = false,
   textos = ['Voy', 'No puedo'],
+  segmento = false,
 }: {
   semana: Semana
   courseUuid: string
   compacto?: boolean
   textos?: [string, string]
+  /** Un solo control con dos mitades, sin mensajes (Inicio, 08/11). */
+  segmento?: boolean
 }) {
   const session = useLHSession() as any
   const token: string = session?.data?.tokens?.access_token || ''
@@ -168,6 +171,30 @@ export function Vienes({
         {va ? <Check size={15} strokeWidth={2.6} /> : <X size={15} strokeWidth={2.6} />}
         {texto}
       </button>
+    )
+  }
+  if (segmento) {
+    const parte = (va: boolean, texto: string) => {
+      const on = voy === va
+      return (
+        <button
+          type="button"
+          onClick={() => elegir(va)}
+          disabled={guardando}
+          aria-pressed={on}
+          className={`h-9 px-4 text-[13.5px] font-semibold transition-colors ${
+            on ? (va ? 'bg-[#0b2da0] text-white' : 'bg-[#EEF1F7] text-[#0B1033]') : 'bg-white text-[#3B4262] hover:bg-[#F5F7FC]'
+          }`}
+        >
+          {texto}
+        </button>
+      )
+    }
+    return (
+      <div className="inline-flex rounded-lg border border-[#DDE3F0] overflow-hidden divide-x divide-[#DDE3F0]">
+        {parte(true, textos[0])}
+        {parte(false, textos[1])}
+      </div>
     )
   }
   return (
@@ -305,9 +332,9 @@ export function ClasesEstaSemana() {
 // ── Tareas ──────────────────────────────────────────────────────────────────
 
 const ESTADO: Record<string, { texto: string; cls: string }> = {
-  pendiente: { texto: 'Por entregar', cls: 'bg-[#FFF6E5] text-[#8A5A00]' },
-  entregada: { texto: 'Entregada', cls: 'bg-[#EEF2FA] text-[#0b2da0]' },
-  corregida: { texto: 'Corregida', cls: 'bg-[#E9F7EF] text-[#13703D]' },
+  pendiente: { texto: 'Por entregar', cls: 'text-[#8A6A2A]' },
+  entregada: { texto: 'Entregada', cls: 'text-[#5B6382]' },
+  corregida: { texto: 'Corregida', cls: 'text-[#5B6382]' },
 }
 
 function TareasDeUnaClase({ uuid, nombre, mostrarNombre }: { uuid: string; nombre: string; mostrarNombre: boolean }) {
@@ -335,7 +362,12 @@ function TareasDeUnaClase({ uuid, nombre, mostrarNombre }: { uuid: string; nombr
                 {cerrada ? `Se abre el ${diaCorto(s.fecha)}` : `Entregar hasta el ${diaCorto(s.limite)}`}
               </span>
             </span>
-            {e && !cerrada ? <span className={`shrink-0 px-2.5 py-1 rounded-full text-[12px] font-semibold ${e.cls}`}>{e.texto}</span> : null}
+            {e && !cerrada ? (
+              <span className={`shrink-0 inline-flex items-center gap-1.5 text-[13px] font-medium ${e.cls}`}>
+                {s.tarea?.estado === 'corregida' ? <Check size={14} strokeWidth={2.5} className="text-[#16A34A]" /> : null}
+                {e.texto}
+              </span>
+            ) : null}
           </Link>
         )
       })}
@@ -412,7 +444,13 @@ function GrabadasDeUnaClase({ uuid, nombre, mostrarNombre }: { uuid: string; nom
                   <span className="block text-[14.5px] font-semibold text-[#0B1033] truncate">{f.tema}</span>
                   <span className="block text-[12.5px] text-[#6B7393]">{f.tiene}</span>
                 </span>
-                {f.vista ? <span className="shrink-0 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-[#E9F7EF] text-[#13703D]">Vista</span> : <Film size={16} className="text-[#9AA1BC]" />}
+                {f.vista ? (
+                  <span className="shrink-0 inline-flex items-center gap-1.5 text-[13px] font-medium text-[#5B6382]">
+                    <Check size={14} strokeWidth={2.5} className="text-[#16A34A]" /> Vista
+                  </span>
+                ) : (
+                  <span className="shrink-0 text-[13px] font-semibold text-[#0b2da0]">Ver</span>
+                )}
               </Link>
             ))}
           </div>

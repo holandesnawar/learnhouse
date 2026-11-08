@@ -5160,6 +5160,20 @@ la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
     moverlo de grupo no las borra.
   - Los datos de prueba añaden un **Spreekclub** sin monitor y a **Tom
     Bakker** (rol profe) para dárselo.
+- **v5 (08/11): fuera lo que «parece IA»**. Los checks de toda la escuela
+  del alumno son un círculo con borde fino (verde `#16A34A` con su check si
+  está hecho, gris si no, discontinuo si está cerrado): la semana, Mi
+  progreso, Empieza aquí y la racha. Nada de círculos rellenos. «Vista»,
+  «Corregida», «Entregada» ya no son pastillas de color: texto gris con un
+  check verde pequeño («Sin entregar» en ámbar apagado). El calendario pinta
+  cada evento como punto + hora + título, sin pastilla. La próxima clase del
+  Inicio es una línea: «Tu próxima clase · Clase semanal», la fecha, el tema y
+  a la derecha «¿Vienes?» con un control de dos mitades «Asistiré / No puedo»
+  (`Vienes segmento`). En Empieza aquí la barra de progreso y el botón van
+  fuera del azul, arriba de los pasos. Las publicaciones del tablón llevan la
+  foto de quien escribe (o sus iniciales en color,
+  `Objects/Persona/AvatarPersona.tsx`), su nombre y «hace 3 h» en español
+  (`lib/nawar/haceCuanto.ts`; el dayjs de antes salía en inglés).
 - Pendiente (v2): mover a un alumno al otro grupo UNA semana sin romper sus
   tareas, una pantalla de grupos para el administrador (quién está en qué y
   qué ve), el calendario rehecho, datos inventados en la escuela de pruebas.

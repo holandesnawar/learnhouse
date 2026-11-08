@@ -235,12 +235,12 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
                   <div key={m.key}>
                     <button onClick={() => toggleModule(m.key)} className="w-full text-left px-5 py-4 flex items-center gap-4 hover:bg-[#F7F9FD]">
                       {m.completed ? (
-                        <span className="w-9 h-9 rounded-full bg-[#16A34A] text-white flex items-center justify-center shrink-0">
-                          <Check size={17} strokeWidth={3} />
+                        <span className="w-9 h-9 rounded-full border-[1.5px] border-[#16A34A] text-[#16A34A] flex items-center justify-center shrink-0">
+                          <Check size={16} strokeWidth={2.5} />
                         </span>
                       ) : (
                         <span
-                          className={`w-9 h-9 rounded-full border-2 flex items-center justify-center shrink-0 text-[14px] font-bold tabular-nums ${
+                          className={`w-9 h-9 rounded-full border-[1.5px] flex items-center justify-center shrink-0 text-[14px] font-bold tabular-nums ${
                             m.started ? 'border-[#0b2da0] text-[#0b2da0]' : 'border-[#D5DBE8] text-[#8A91AD]'
                           }`}
                         >
@@ -334,11 +334,11 @@ function nombreModulo(t: string): string {
 function Circulo({ hecho, empezado = false, pequeno = false }: { hecho: boolean; empezado?: boolean; pequeno?: boolean }) {
   const t = pequeno ? 'w-[16px] h-[16px]' : 'w-[20px] h-[20px]'
   return hecho ? (
-    <span className={`${t} rounded-full bg-[#16A34A] text-white flex items-center justify-center shrink-0`}>
-      <Check size={pequeno ? 10 : 12} strokeWidth={3} />
+    <span className={`${t} rounded-full border-[1.5px] border-[#16A34A] text-[#16A34A] flex items-center justify-center shrink-0`}>
+      <Check size={pequeno ? 10 : 12} strokeWidth={2.5} />
     </span>
   ) : (
-    <span className={`${t} rounded-full border-2 shrink-0 ${empezado ? 'border-[#0b2da0]' : 'border-[#C9CFDE]'}`} />
+    <span className={`${t} rounded-full border-[1.5px] shrink-0 ${empezado ? 'border-[#0b2da0]' : 'border-[#C9CFDE]'}`} />
   )
 }
 
