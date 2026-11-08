@@ -191,6 +191,12 @@ def proceso_admision(eventos: list[dict]) -> dict | None:
     }
 
 
+def _intentos(eventos: list[dict]) -> dict:
+    from src.services.panel.intentos import resumen
+
+    return resumen(eventos)
+
+
 def linea_de_tiempo(eventos: list[dict], correos: list[dict], notas: list[dict], tareas: list[dict]) -> list[dict]:
     """Todo lo que ha pasado con esta persona, lo más reciente arriba."""
     items: list[dict] = []
@@ -410,6 +416,8 @@ async def ficha_cliente(
         # «Ads» u «Orgánico», arriba junto a sus datos (ver `canal_de`).
         "canal": canal_de(ficha, nombres_anuncios),
         "black_friday": black_friday,
+        # Los intentos de contacto de «Contactado» (08/11, services/panel/intentos.py).
+        "intentos": _intentos(eventos),
         "utm": {
             "source": ficha["utm_source"], "medium": ficha["utm_medium"], "campaign": ficha["utm_campaign"],
             # Si el último enlace era el botón de un correo, su asunto: la ficha

@@ -2189,6 +2189,25 @@ Ruta `PUT /contactos/org/{id}/contacto/datos` → `corregir_datos` en
   (`_NO_DICEN_DE_DONDE`). Tests en `test_contactos.py` y
   `test_tablero_llamadas.py`.
 
+## Intentos de contacto dentro de «Contactado» (08/11/2026)
+Pedido: "en la columna de contactado, subcolumnas de qué nivel está el
+contacto: primera etapa, llamada y primer mensaje; segunda, llamada y segundo
+mensaje… y si a la tercera nada, descarte… y en la ficha que ponga: se ha
+llamado una vez, se ha escrito el primer mensaje por WhatsApp, no responde…".
+Hecho primero en la rama `diseno` y traído a `dev` solo (sin el rediseño).
+- Tres intentos; en cada uno se apunta la **llamada** y el **WhatsApp** desde
+  la ficha (`Panel/IntentosContacto.tsx`, bloque bajo las columnas cuando está
+  en Contactado o ya tiene algo apuntado). Tras el tercero, «Descartar».
+- Cada cosa es un evento `intento-contacto` en su ficha (sin tabla nueva;
+  sale en la línea de tiempo: «Diego le llamó (intento 1): no contesta»). No
+  cuenta como «lo último que hizo» ni como origen.
+- La columna Contactado agrupa por intento (más avanzados arriba) y la
+  tarjeta dice «Intento 2 de 3». `services/panel/intentos.py` (`resumen`
+  puro), rutas `POST/DELETE /panel/org/{id}/intentos` (closer y
+  administradores), test `test_intentos_contacto.py`.
+- Se solapa con la columna «No contesta»: si se usa esto, esa columna sobra
+  (sin quitar todavía, decisión pendiente del usuario).
+
 ## Proceso de admisión: el embudo nuevo (02/10/2026)
 Pedido del usuario: "que entren ganas de rellenarlo, sin fricción, pero que
 filtre a los que quieren aprender". Se eligió el mix: **pedir poco al

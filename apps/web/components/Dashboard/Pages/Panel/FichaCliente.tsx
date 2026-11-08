@@ -24,6 +24,7 @@ import {
   type Tarea,
 } from '@services/panel/panel'
 import Seguimiento from '@components/Dashboard/Pages/Estadisticas/Seguimiento'
+import IntentosContacto from './IntentosContacto'
 import { FilaTarea, TareaForm } from './Tareas'
 import { quitarPersona } from './quitarPersona'
 import EnlacePago from './EnlacePago'
@@ -578,6 +579,20 @@ export default function FichaCliente({
                         </button>
                       ))}
                     </div>
+                  ) : null}
+                  {/* Los intentos de contacto (08/11): en Contactado, o si ya hay alguno apuntado. */}
+                  {ficha.intentos && ficha.tablero.etapa !== 'alumno' && (ficha.tablero.etapa === 'contactado' || ficha.intentos.nivel > 0) ? (
+                    <IntentosContacto
+                      orgId={org?.id}
+                      token={accessToken}
+                      email={ficha.email}
+                      datos={ficha.intentos}
+                      onCambio={() => {
+                        cargar()
+                        onCambio?.()
+                      }}
+                      onDescartar={() => mover('descartado')}
+                    />
                   ) : null}
                   <div className="mt-3 flex flex-wrap items-start gap-2">
                     <button onClick={() => setAgendar(true)} className={BOTON}>

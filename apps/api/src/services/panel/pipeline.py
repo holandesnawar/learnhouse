@@ -292,7 +292,7 @@ _MEDIOS = {
 #: Medios que no añaden nada.
 _MEDIOS_VACIOS = {"organic", "organico", "orgánico", "social", "referral", "none", "(none)", "web", "link"}
 #: Lo que hace el equipo o la escuela, no la persona: no dice por dónde llegó.
-_NO_DICEN_DE_DONDE = {"datos-editados", "enlace-pago", "llamada-equipo", "alta-manual", "pago", "senal", "correo-reserva", "llamada-confirmada", "whatsapp-llamada", "llamada-cambiada", "llamada-cancelada", "check-in", "correo-bf", "baja-bf"}
+_NO_DICEN_DE_DONDE = {"datos-editados", "enlace-pago", "llamada-equipo", "alta-manual", "pago", "senal", "correo-reserva", "llamada-confirmada", "whatsapp-llamada", "llamada-cambiada", "llamada-cancelada", "check-in", "correo-bf", "baja-bf", "intento-contacto"}
 #: Al buscar de qué web llegó, por el nombre de la dirección.
 _WEBS = (
     ("instagram", "Instagram"), ("facebook", "Facebook"), ("fb.", "Facebook"), ("tiktok", "TikTok"),
@@ -723,6 +723,10 @@ async def tablero(fichas: list[dict], db_session: AsyncSession, nombres_anuncios
             t["cita"]["confirmada"] = t["cita"].get("id", "") in confirmadas
             # Cuántos de sus tres WhatsApp se le han mandado (02/11).
             t["cita"]["whatsapp"] = len(whatsapp.get(t["cita"].get("id", ""), ()))
+        # En qué intento de contacto va (08/11, services/panel/intentos.py).
+        from src.services.panel.intentos import resumen as resumen_intentos
+
+        t["intentos"] = resumen_intentos(f.get("eventos") or [])["nivel"]
         t["suelta"] = False
         tarjetas.append(t)
     tarjetas += [tarjeta_suelta(s) for s in sueltas]

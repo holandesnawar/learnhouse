@@ -121,6 +121,46 @@ async def api_mover(
     return r
 
 
+class Intento(BaseModel):
+    email: str
+    intento: int
+    que: str  # "llamada" | "whatsapp"
+    nota: str = ""
+
+
+@router.post("/org/{org_id}/intentos", summary="Apunta una llamada o un WhatsApp de un intento de contacto (closer y administradores).")
+async def api_apuntar_intento(
+    request: Request,
+    org_id: int,
+    data: Intento,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.panel.intentos import apuntar
+
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    r = await apuntar(data.email, data.intento, data.que, data.nota, _nombre(current_user), db_session)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    return r
+
+
+@router.delete("/org/{org_id}/intentos", summary="Quita una llamada o un WhatsApp apuntado (closer y administradores).")
+async def api_quitar_intento(
+    request: Request,
+    org_id: int,
+    email: str,
+    intento: int,
+    que: str,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.panel.intentos import quitar
+
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    return await quitar(email, intento, que, db_session)
+
+
 class Asignacion(BaseModel):
     email: str
     # 0 = quitarle el closer (vuelve a «Por asignar»).
