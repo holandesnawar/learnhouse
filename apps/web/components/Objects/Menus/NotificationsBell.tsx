@@ -61,7 +61,6 @@ export default function NotificationsBell(props: { orgslug: string; claro?: bool
   const [open, setOpen] = useState(false)
   // Quitadas en esta pantalla: se ocultan sin esperar al servidor.
   const [hidden, setHidden] = useState<string[]>([])
-  const [filtro, setFiltro] = useState<'todas' | 'nuevas'>('todas')
   const boxRef = useRef<HTMLDivElement>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -80,7 +79,7 @@ export default function NotificationsBell(props: { orgslug: string; claro?: bool
   })
 
   const items = (data?.items || []).filter((n) => !hidden.includes(n.id))
-  const lista = filtro === 'nuevas' ? items.filter((n) => n.is_new) : items
+  const lista = items
   const unseen = data?.unseen || 0
 
   /** Debajo de la campana, pegado a su derecha y siempre dentro de la pantalla. */
@@ -145,7 +144,7 @@ export default function NotificationsBell(props: { orgslug: string; claro?: bool
         onClick={toggle}
         aria-label="Notificaciones"
         title="Notificaciones"
-        className={`relative p-1.5 rounded-lg transition-colors ${props.claro ? 'text-[#3B4262] hover:text-[#0B1033] hover:bg-[#F2F5FB]' : 'text-white/90 hover:text-white hover:bg-white/10'}`}
+        className={`relative p-1.5 rounded-lg transition-colors ${props.claro ? 'text-[#3B4262] hover:text-[#0B1033]' : 'text-white/90 hover:text-white'}`}
       >
         <Bell size={19} />
         {unseen > 0 && (
@@ -172,24 +171,12 @@ export default function NotificationsBell(props: { orgslug: string; claro?: bool
         >
           <div className="px-4 pt-3.5 pb-2 border-b border-[#EEF1F7]">
             <p className="text-[15px] font-bold text-[#0B1033]">Notificaciones</p>
-            <div className="mt-2 flex gap-1">
-              {(['todas', 'nuevas'] as const).map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => setFiltro(f)}
-                  className={`h-7 px-2.5 rounded-md text-[12.5px] font-semibold ${filtro === f ? 'bg-[#EAF0FE] text-[#0b2da0]' : 'text-[#6B7393] hover:bg-[#F2F5FB]'}`}
-                >
-                  {f === 'todas' ? 'Todas' : 'Sin leer'}
-                </button>
-              ))}
-            </div>
           </div>
 
           {lista.length === 0 ? (
             <div className="px-4 py-10 text-center">
               <p className="text-[13.5px] text-[#6B7393] leading-relaxed">
-                {filtro === 'nuevas' ? 'No tienes nada sin leer.' : 'Todavía no hay nada. Aquí te avisamos de mensajes nuevos, menciones, avisos de la escuela y módulos que se abren.'}
+                Todavía no hay nada. Aquí te avisamos de mensajes nuevos, menciones, avisos de la escuela y módulos que se abren.
               </p>
             </div>
           ) : (
@@ -212,7 +199,7 @@ export default function NotificationsBell(props: { orgslug: string; claro?: bool
                     <Link
                       href={buildHref(props.orgslug, n.url)}
                       onClick={() => setOpen(false)}
-                      className="flex gap-3 pl-4 pr-10 py-3 hover:bg-[#F7F9FD] transition-colors"
+                      className="flex gap-3 pl-4 pr-10 py-3 transition-colors"
                     >
                       <span className="mt-0.5 w-6 flex justify-center shrink-0 text-[#6B7393]">
                         <Icon size={20} strokeWidth={1.7} />

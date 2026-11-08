@@ -61,7 +61,7 @@ export default function MenuPerfil({ claro = false }: { claro?: boolean }) {
       <DropdownMenuTrigger asChild>
         <button
           aria-label="Tu perfil"
-          className={`ml-1 flex items-center gap-1.5 rounded-full pl-0.5 pr-1.5 py-0.5 transition-colors ${claro ? 'hover:bg-[#F2F5FB]' : 'hover:bg-white/10'}`}
+          className={`ml-1 flex items-center gap-1.5 rounded-full pl-0.5 pr-1.5 py-0.5 transition-colors `}
         >
           <UserAvatar border="border-2" rounded="rounded-full" width={32} />
           <CaretDown size={12} weight="bold" className={claro ? 'text-[#6B7393]' : 'text-white/80'} />

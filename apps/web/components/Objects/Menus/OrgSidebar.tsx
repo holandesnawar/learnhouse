@@ -339,14 +339,14 @@ export const OrgSidebar = (props: { orgslug: string }) => {
 
   const filaCls = (on: boolean) =>
     azul
-      ? `group flex items-center gap-3 h-10 px-3 rounded-lg text-[15px] transition-colors ${on ? 'text-white font-semibold' : 'text-white/95 hover:text-white hover:bg-white/[0.07] font-medium'}`
-      : `group flex items-center gap-3 h-10 px-3 rounded-lg text-[15px] transition-colors ${on ? 'text-white font-semibold' : 'text-[#2B3150] hover:bg-[#EEF3FF] font-medium'}`
+      ? `group flex items-center gap-3 h-10 px-3 rounded-lg text-[15px] transition-colors ${on ? 'text-white font-semibold' : 'text-white/95 hover:text-white font-medium'}`
+      : `group flex items-center gap-3 h-10 px-3 rounded-lg text-[15px] transition-colors ${on ? 'text-white font-semibold' : 'text-[#2B3150] hover:text-[#0b2da0] font-medium'}`
   const filaStyle = (on: boolean): React.CSSProperties | undefined =>
     on ? (azul ? { backgroundColor: ACTIVO_SOBRE_MARCA } : { ...FONDO_MARCA }) : undefined
   const iconoCls = (on: boolean) =>
     `w-5 shrink-0 flex justify-center ${on ? 'text-white' : azul ? 'text-white/80 group-hover:text-white' : 'text-[#0b2da0]'}`
   const tituloCls = azul
-    ? 'group w-full flex items-center justify-between px-3 pb-2 text-[13px] font-semibold uppercase tracking-[0.1em] text-white/70 hover:text-white'
+    ? 'group w-full flex items-center justify-between px-3 pb-2 text-[13px] font-semibold uppercase tracking-[0.1em] text-white/95 hover:text-white'
     : 'group w-full flex items-center justify-between px-3 pb-2 text-[13px] font-semibold uppercase tracking-[0.1em] text-[#0b2da0]/80 hover:text-[#0b2da0]'
 
   const Fila = ({ it }: { it: Item }) => {
@@ -422,10 +422,10 @@ export const OrgSidebar = (props: { orgslug: string }) => {
             claro
               ? on
                 ? 'bg-[#EAF0FE] text-[#0b2da0]'
-                : 'text-[#3B4262] hover:text-[#0B1033] hover:bg-[#F2F5FB]'
+                : 'text-[#3B4262] hover:text-[#0B1033]'
               : on
                 ? 'bg-white text-[#0b2da0]'
-                : 'text-white/90 hover:text-white hover:bg-white/10'
+                : 'text-white/90 hover:text-white'
           }`}
         >
           {it.label}

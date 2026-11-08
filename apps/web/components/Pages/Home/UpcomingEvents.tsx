@@ -44,7 +44,7 @@ export default function UpcomingEvents({ orgslug }: { orgslug: string }) {
   return (
     <div className="rounded-2xl border border-[#E4E8F2] bg-white">
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
-        <h2 className="text-[14.5px] font-semibold text-[#0B1033]">Próximos eventos</h2>
+        <h2 className="text-[15px] font-bold text-[#0B1033]">Próximos eventos</h2>
         <Link href={getUriWithOrg(orgslug, '/calendario')} className="text-[12.5px] font-semibold text-[#0b2da0] hover:underline">
           Calendario
         </Link>
@@ -58,11 +58,11 @@ export default function UpcomingEvents({ orgslug }: { orgslug: string }) {
             const dentro = (
               <>
                 <span className="shrink-0 w-11 text-center">
-                  <span className="block text-[11px] font-semibold text-[#0b2da0] uppercase leading-none">{MONTHS_SHORT[d.month()]}</span>
-                  <span className="block text-[19px] font-semibold text-[#0B1033] leading-tight">{d.date()}</span>
+                  <span className="block text-[11px] font-bold text-[#0b2da0] uppercase leading-none">{MONTHS_SHORT[d.month()]}</span>
+                  <span className="block text-[19px] font-bold text-[#0B1033] leading-tight">{d.date()}</span>
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[14px] font-medium text-[#0B1033] leading-snug line-clamp-2">{ev.title}</span>
+                  <span className="block text-[14px] font-semibold text-[#0B1033] leading-snug line-clamp-2">{ev.title}</span>
                   <span className="block text-[12.5px] text-[#8A91AD]">
                     {DIAS[d.day()]}
                     {ev.time ? ` · ${ev.time}` : ''}
@@ -70,7 +70,7 @@ export default function UpcomingEvents({ orgslug }: { orgslug: string }) {
                 </span>
               </>
             )
-            const cls = 'flex items-center gap-3 px-4 py-2.5 hover:bg-[#F7F9FD]'
+            const cls = 'flex items-center gap-3 px-4 py-2.5'
             return ev.link ? (
               <li key={ev.id}>
                 <a href={ev.link} target="_blank" rel="noopener noreferrer" className={cls}>

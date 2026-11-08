@@ -28,7 +28,6 @@ import EtiquetaCurso from '@components/Pages/Courses/EtiquetaCurso'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import VideoPortada from '@components/Pages/Courses/VideoPortada'
 import SemanasClase, { useSemanasClase } from '@components/Pages/Courses/SemanasClase'
-import MiraTambien from '@components/Pages/Courses/MiraTambien'
 import { CURSO_CLASE_SEMANAL_UUID, CURSO_FORMACION_UUID, ajustesDirecto, conGrabadas, esCursoEnDirecto, uuidDeCurso } from '@/lib/nawar/cursos'
 import { sesionesVisibles } from '@/lib/course/weeklyClass'
 import { getLessonIcon } from '@components/Pages/Activity/CourseLessonsSidebar'
@@ -545,8 +544,8 @@ const CourseClient = (props: any) => {
                   // community channel cards in the right rail, stacked one per row.
                   // The FAQ moves down next to "Sesiones grabadas".
                   <>
-                    {/* La misma clase del otro grupo, discreta (06/11/2026). */}
-                    <MiraTambien courseUuid={course.course_uuid} />
+                    {/* «Mira también» (la grabación del otro grupo) se quitó el
+                        08/11 en el rediseño: «hace ruido». El componente sigue. */}
                     {/* En el móvil los canales ya están en el menú: aquí solo alargaban la página. */}
                     <div className="hidden md:block">
                       <CommunityChannelsCards orgslug={orgslug} title="Comunidades" singleColumn />

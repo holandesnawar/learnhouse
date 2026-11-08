@@ -76,13 +76,12 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
 
   const totals = useMemo(() => summarize(modules), [modules])
 
-  // Abierto por defecto: el primer módulo empezado y sin terminar (donde vas).
+  // Abiertos de serie: todos los módulos (08/11, «que salga todo abierto»).
   const [openModules, setOpenModules] = useState<Set<string> | null>(null)
   const [openClasses, setOpenClasses] = useState<Set<string>>(new Set())
 
   const defaultOpen = useMemo(() => {
-    const current = modules.find((m) => m.started && !m.completed) ?? modules[0]
-    return new Set(current ? [current.key] : [])
+    return new Set(modules.map((m) => m.key))
   }, [modules])
 
   const moduleOpen = openModules ?? defaultOpen
@@ -233,14 +232,14 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
                 const { num, nombre } = partesModulo(m.title)
                 return (
                   <div key={m.key}>
-                    <button onClick={() => toggleModule(m.key)} className="w-full text-left px-5 py-4 flex items-center gap-4 hover:bg-[#F7F9FD]">
+                    <button onClick={() => toggleModule(m.key)} className="w-full text-left px-5 py-4 flex items-center gap-3.5">
                       {m.completed ? (
-                        <span className="w-9 h-9 rounded-full border-[1.5px] border-[#16A34A] text-[#16A34A] flex items-center justify-center shrink-0">
-                          <Check size={16} strokeWidth={2.5} />
+                        <span className="w-6 h-6 rounded-full border-[1.5px] border-[#16A34A] text-[#16A34A] flex items-center justify-center shrink-0">
+                          <Check size={12} strokeWidth={2.5} />
                         </span>
                       ) : (
                         <span
-                          className={`w-9 h-9 rounded-full border-[1.5px] flex items-center justify-center shrink-0 text-[14px] font-bold tabular-nums ${
+                          className={`w-6 h-6 rounded-full border-[1.5px] flex items-center justify-center shrink-0 text-[11.5px] font-semibold tabular-nums ${
                             m.started ? 'border-[#0b2da0] text-[#0b2da0]' : 'border-[#D5DBE8] text-[#8A91AD]'
                           }`}
                         >
@@ -268,7 +267,7 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
                           const cOpen = openClasses.has(c.key)
                           return (
                             <div key={c.key}>
-                              <button onClick={() => toggleClass(c.key)} className="w-full text-left pl-[72px] pr-5 py-2.5 flex items-center gap-3 hover:bg-[#F7F9FD]">
+                              <button onClick={() => toggleClass(c.key)} className="w-full text-left pl-[60px] pr-5 py-2.5 flex items-center gap-3">
                                 <Circulo hecho={c.completed} empezado={c.started} />
                                 <span className={`flex-1 min-w-0 text-[14px] font-medium truncate ${c.started ? 'text-[#0B1033]' : 'text-[#8A91AD]'}`}>{c.title}</span>
                                 {c.fails > 0 && (
@@ -282,7 +281,7 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
                                 <ChevronDown size={15} className={`shrink-0 text-[#C2C8D8] transition-transform ${cOpen ? 'rotate-180' : ''}`} />
                               </button>
                               {cOpen && (
-                                <div className="pl-[104px] pr-5 pb-2">
+                                <div className="pl-[92px] pr-5 pb-2">
                                   {c.sections.map((x) => (
                                     <Link key={x.activityId} href={activityHref(x)} className="group flex items-center gap-3 py-1.5">
                                       <Circulo hecho={x.done} pequeno />

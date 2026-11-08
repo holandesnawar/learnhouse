@@ -5202,6 +5202,28 @@ la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
   el dayjs en inglés). En el móvil: el calendario solo pinta el punto en
   cada día, la página de la clase no repite la lista de canales y
   «¿Vienes?» va debajo del tema.
+- **v7 (08/11)**: campana solo con «Todas» (fuera «Sin leer»); fuera «Mira
+  también» del lateral de la clase (el componente sigue, sin usar); sin color
+  pastel al pasar el ratón en la barra, el menú de arriba, la campana y el
+  perfil (solo cambia el color de la letra); «Próximos eventos» del Inicio en
+  negrita; sin el icono de «Nada pendiente de repaso»; en Mi progreso todos los
+  módulos abiertos de serie y el círculo del número en 24 px; títulos de bloque
+  de la barra azul más blancos (95 %). **Portadas** (`Espacios/Portada.tsx`): el
+  mismo banner que «Bienvenida» (azul `#0b2da0`, luz arriba a la derecha y
+  puntos, texto a la izquierda con `etiqueta` encima: «Comunidad», «Empieza
+  aquí»). **Recursos**: el administrador crea secciones («Nueva sección», la ven
+  todos), añade a cada una un enlace o un archivo y quita lo que sobre desde la
+  propia página; quién ve cada sección y el orden, en el panel.
+- **Pasar el diseño nuevo a la escuela de verdad = mezclar `diseno` en `dev`**
+  (un PR, un botón «Merge»). Lo que lleva y ya está pensado para los datos
+  reales: los datos inventados solo se crean con `LEARNHOUSE_DATOS_DE_PRUEBA=si`
+  y en una escuela con 3 usuarios o menos (producción: nada); las columnas
+  nuevas (`tarea_semana.confirmaciones`) se añaden solas al arrancar; los
+  canales de «Empieza aquí» se reconocen por el nombre (esencial, bienvenida,
+  normas, presenta, noticia, anuncio). Vuelta atrás: Railway → Deployments → el
+  despliegue anterior → ⋮ → Redeploy (las columnas añadidas no molestan al
+  código viejo). Antes de mezclar, traer `dev` a `diseno` (`git merge
+  origin/dev`) para no perder arreglos de producción.
 - Pendiente (v2): mover a un alumno al otro grupo UNA semana sin romper sus
   tareas, una pantalla de grupos para el administrador (quién está en qué y
   qué ve), el calendario rehecho, datos inventados en la escuela de pruebas.

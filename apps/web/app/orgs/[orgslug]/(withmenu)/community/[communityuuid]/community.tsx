@@ -134,7 +134,7 @@ const CommunityClient = ({ community, orgslug }: CommunityClientProps) => {
     return (
       <GeneralWrapperStyled>
         <div className="mb-4">
-          <Portada clave={community.community_uuid} titulo={`${emoji ? emoji + ' ' : ''}${text}`} subtitulo={community.description || ''} pequena />
+          <Portada clave={community.community_uuid} titulo={`${emoji ? emoji + ' ' : ''}${text}`} subtitulo={community.description || ''} etiqueta="Comunidad" pequena />
         </div>
         <ChannelPosts
           communityUuid={community.community_uuid}

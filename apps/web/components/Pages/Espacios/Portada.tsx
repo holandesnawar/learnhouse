@@ -5,7 +5,8 @@
  * poner (las carpetas de Recursos, la descripción de un canal).
  *
  * Lo pone el administrador con «Editar portada»: título, una frase y una
- * imagen (una dirección https). Sin imagen, el degradado azul de la escuela.
+ * imagen (una dirección https). Sin imagen, el azul de la escuela con su luz
+ * y sus puntos, igual que el banner de «Bienvenida» (08/11).
  * Se guarda en org_config `portadas[clave]` (`PUT /orgs/{id}/config/portadas/{clave}`).
  */
 import React, { useState } from 'react'
@@ -34,12 +35,15 @@ export default function Portada({
   titulo,
   subtitulo = '',
   pequena = false,
+  etiqueta = '',
   children,
 }: {
   clave: string
   titulo: string
   subtitulo?: string
   pequena?: boolean
+  /** La línea pequeña encima del título («Comunidad», «Empieza aquí»). */
+  etiqueta?: string
   children?: React.ReactNode
 }) {
   const org = useOrg() as any
@@ -72,17 +76,30 @@ export default function Portada({
     }
   }
 
-  const fondo = datos.imagen
-    ? { backgroundImage: `linear-gradient(rgba(6,18,80,0.35), rgba(6,18,80,0.35)), url('${datos.imagen}')`, backgroundSize: 'cover', backgroundPosition: 'center' }
-    : { backgroundImage: 'radial-gradient(circle 520px at 80% 120%, rgba(56,189,248,0.55), transparent 70%), linear-gradient(180deg, #0a1a6b 0%, #0b2da0 55%, #1d6ff2 100%)' }
+  const conImagen = !!datos.imagen
+  const fondo = conImagen
+    ? { backgroundImage: `linear-gradient(rgba(6,18,80,0.45), rgba(6,18,80,0.45)), url('${datos.imagen}')`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    : undefined
+  const frase = datos.subtitulo
 
   return (
-    <div className="rounded-2xl overflow-hidden border border-[#E4E8F2] bg-white">
-      <div className={`relative flex flex-col items-center justify-center text-center px-6 ${pequena ? 'h-[150px] sm:h-[170px]' : 'h-[190px] sm:h-[230px]'}`} style={fondo}>
-        <h1 className="text-white font-bold leading-tight text-[30px] sm:text-[44px]" style={POPPINS}>
-          {datos.titulo || titulo}
-        </h1>
-        <span className="mt-2 h-[2px] w-24 rounded-full bg-white/70" />
+    <div className={children ? 'rounded-2xl overflow-hidden border border-[#E4E8F2] bg-white' : ''}>
+      {/* El mismo banner que «Bienvenida» (Empieza aquí): azul de la escuela,
+          la luz arriba a la derecha y los puntos de la marca. */}
+      <section
+        className={`rounded-2xl ${children ? 'rounded-b-none' : ''} bg-[#0b2da0] text-white px-5 sm:px-8 ${pequena ? 'py-6 sm:py-7' : 'py-7 sm:py-9'} relative overflow-hidden`}
+        style={fondo}
+      >
+        {!conImagen ? (
+          <div aria-hidden className="absolute inset-0 opacity-60" style={{ backgroundImage: 'radial-gradient(circle 420px at 100% 0%, rgba(77,163,255,0.35), transparent 70%), radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)', backgroundSize: 'auto, 26px 26px' }} />
+        ) : null}
+        <div className="relative pr-28 sm:pr-36">
+          {etiqueta ? <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#9CC9FF]">{etiqueta}</p> : null}
+          <h1 className={`${etiqueta ? 'mt-2' : ''} text-[26px] sm:text-[32px] font-bold leading-tight`} style={POPPINS}>
+            {datos.titulo || titulo}
+          </h1>
+          {frase ? <p className="mt-2 text-[15px] text-white/90 max-w-[560px]">{frase}</p> : null}
+        </div>
         {isAdmin ? (
           <button
             type="button"
@@ -95,13 +112,8 @@ export default function Portada({
             <Pencil size={13} /> Editar portada
           </button>
         ) : null}
-      </div>
-      {datos.subtitulo || children ? (
-        <div className="px-5 sm:px-6 py-4">
-          {datos.subtitulo ? <p className="text-[14.5px] text-[#3B4262] leading-relaxed">{datos.subtitulo}</p> : null}
-          {children ? <div className={datos.subtitulo ? 'mt-3' : ''}>{children}</div> : null}
-        </div>
-      ) : null}
+      </section>
+      {children ? <div className="px-5 sm:px-6 py-4">{children}</div> : null}
 
       {editando ? (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-[#0a1656]/40" onClick={() => setEditando(false)}>
@@ -129,7 +141,7 @@ export default function Portada({
                 />
               </label>
             ))}
-            <p className="text-[12px] text-[#6B7393]">Sin imagen sale el degradado azul de la escuela.</p>
+            <p className="text-[12px] text-[#6B7393]">Sin imagen sale el azul de la escuela, como el de Bienvenida.</p>
             {error ? <p className="text-[13px] text-red-600">{error}</p> : null}
             <div className="flex justify-end gap-2 pt-1">
               <button type="button" onClick={() => setEditando(false)} className="h-9 px-3.5 rounded-lg text-[13.5px] font-semibold text-[#3B4262] hover:bg-[#F2F5FB]">

@@ -32,7 +32,6 @@ import {
   GraduationCap,
   Play,
   RotateCcw,
-  Sparkles,
   Target,
   TrendingUp,
   Trophy,
@@ -363,7 +362,6 @@ export function RepasoCard({
 
       {pending.length === 0 ? (
         <p className="text-[13px] text-gray-500 dark:text-white/60 leading-relaxed">
-          <Sparkles size={13} className="inline mr-1 text-[#0b2da0]" />
           Nada pendiente de repaso. Cuando falles ejercicios, aparecerán aquí para repetirlos.
         </p>
       ) : (
