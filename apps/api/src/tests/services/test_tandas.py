@@ -443,3 +443,15 @@ async def test_quien_ve_que_dice_los_colaboradores_y_las_clases_repetidas(db, or
     assert "También lo ve Alumno22" in spreken["aviso"]
     assert "1 alumno ve también «Clase semanal»" in cursos["original"]["aviso"]
     assert "1 alumno ve también «Clase semanal»" in cursos["copia"]["aviso"]
+
+
+def test_el_closer_ve_las_clases_en_directo_del_programa_nuevo():
+    """08/11/2026: el closer ve la masterclass y el Spreekclub (las clases en
+    directo abiertas a «Programa nuevo»), no la formación ni lo de otros grupos."""
+    from src.services.panel.tandas import clases_del_closer
+
+    config_org = {"salas": {"masterclass1": {"directo": True}, "spreek1": {"activo": True}}}
+    del_programa = {"course_masterclass1", "course_spreek1", "course_formacion"}
+    assert clases_del_closer(config_org, 7, del_programa) == {"course_masterclass1", "course_spreek1"}
+    # Sin grupo del programa apuntado, nada.
+    assert clases_del_closer(config_org, 0, del_programa) == set()

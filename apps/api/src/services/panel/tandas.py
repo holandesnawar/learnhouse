@@ -339,6 +339,38 @@ async def grupo_del_programa(org_id: int, db_session: AsyncSession, crear: bool 
     return grupo
 
 
+def clases_del_closer(config_org: Any, programa_id: int, cursos_del_programa: set[str]) -> set[str]:
+    """Nawar (08/11/2026): las clases en directo que ve el closer = las del
+    programa nuevo (la masterclass y el Spreekclub), las mismas que un alumno
+    de «Programa nuevo». Así sabe lo que vende. Solo cursos abiertos a ese
+    grupo que son clases en directo: la formación y las copias de la clase
+    semanal de la beta no. Pura."""
+    if not programa_id:
+        return set()
+    from src.services.salas.salas import es_clase_en_directo
+
+    return {u for u in cursos_del_programa if str(u).startswith("course_") and es_clase_en_directo(config_org, u)}
+
+
+async def clases_del_closer_de(org_id: int, db_session: AsyncSession) -> set[str]:
+    """Lo mismo, leyendo la escuela. Si algo falla, nada (las reglas de siempre)."""
+    try:
+        fila = await _fila_config(db_session, org_id)
+        datos = fila.config if fila and isinstance(fila.config, dict) else {}
+        programa_id = leer_config(datos.get(CLAVE))["programa_id"]
+        if not programa_id:
+            return set()
+        cursos = (
+            await db_session.execute(
+                select(UserGroupResource.resource_uuid).where(UserGroupResource.usergroup_id == programa_id)
+            )
+        ).scalars().all()
+        return clases_del_closer(datos, programa_id, {str(c) for c in cursos})
+    except Exception:  # noqa: BLE001
+        logger.exception("No se pudieron leer las clases del closer")
+        return set()
+
+
 async def _miembros(grupo_id: int, db_session: AsyncSession) -> set[int]:
     return {
         int(u)
