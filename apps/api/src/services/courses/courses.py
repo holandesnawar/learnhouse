@@ -334,6 +334,15 @@ async def get_courses_orgslug(
                 )
             ).scalars().first()
             del_equipo = rol_equipo in STAFF_ROLE_IDS
+            # Nawar (08/11/2026): el closer ve también las clases en directo
+            # del programa nuevo (masterclass y Spreekclub), solo publicadas.
+            from src.security.rbac.constants import CLOSER_ROLE_ID
+
+            clases_closer: set[str] = set()
+            if rol_equipo == CLOSER_ROLE_ID:
+                from src.services.panel.tandas import clases_del_closer_de
+
+                clases_closer = await clases_del_closer_de(org.id, db_session)
             query = (
                 query
                 .outerjoin(UserGroupResource, UserGroupResource.resource_uuid == Course.course_uuid)  # type: ignore
@@ -352,6 +361,7 @@ async def get_courses_orgslug(
                     UserGroupUser.user_id == acting_user_id,  # Courses in UserGroups where user is a member (including unpublished)
                     ResourceAuthor.user_id.isnot(None),  # Courses where user is an ACTIVE resource author
                     *([Course.published == True] if del_equipo else []),  # Nawar: el equipo, todos los publicados
+                    *([and_(Course.published == True, Course.course_uuid.in_(sorted(clases_closer)))] if clases_closer else []),  # Nawar: el closer, las del programa nuevo
                 ))
             )
 
