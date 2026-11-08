@@ -5124,6 +5124,15 @@ la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
   vacío (sincroniza con la configuración). La escuela de pruebas salía en
   inglés («Course Lessons») porque su escuela nueva no tenía idioma: los datos
   de prueba ponen `customization.general.default_language = "es"`.
+- **Dos barras para comparar (08/11)**: «me gustaba más la barra de la escuela
+  actual». `OrgSidebar` tiene dos estilos: **azul** (de serie: la de siempre,
+  fondo de marca de arriba abajo con el logo, letra blanca de 15 px, títulos
+  de bloque en mayúsculas y plegables; la franja de arriba pasa a BLANCA y
+  empieza a su lado) y **blanca** (barra blanca, iconos y títulos en azul, lo
+  elegido con el fondo de marca; franja azul de lado a lado). Se cambia con
+  «Probar la barra…» al pie de la barra o con `?barra=azul|blanca` (se
+  recuerda en `nawar.barra.estilo`). Las campanas aceptan `claro` para la
+  franja blanca. Cuando el usuario elija, quitar el otro estilo y el botón.
 - Pendiente (v2): mover a un alumno al otro grupo UNA semana sin romper sus
   tareas, una pantalla de grupos para el administrador (quién está en qué y
   qué ve), el calendario rehecho, datos inventados en la escuela de pruebas.

@@ -54,7 +54,7 @@ function buildHref(orgslug: string, url: string): string {
   if (url.startsWith('http://') || url.startsWith('https://')) return url
   return getUriWithOrg(orgslug, url.startsWith('/') ? url : `/${url}`)
 }
-export default function NotificationsBell(props: { orgslug: string }) {
+export default function NotificationsBell(props: { orgslug: string; claro?: boolean }) {
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token as string | undefined
   const queryClient = useQueryClient()
@@ -145,11 +145,11 @@ export default function NotificationsBell(props: { orgslug: string }) {
         onClick={toggle}
         aria-label="Notificaciones"
         title="Notificaciones"
-        className="relative p-1.5 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-colors"
+        className={`relative p-1.5 rounded-lg transition-colors ${props.claro ? 'text-[#3B4262] hover:text-[#0B1033] hover:bg-[#F2F5FB]' : 'text-white/90 hover:text-white hover:bg-white/10'}`}
       >
         <Bell size={19} />
         {unseen > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 rounded-full bg-rose-500 ring-2 ring-[#0b2da0] text-white text-[10px] font-bold flex items-center justify-center">
+          <span className={`absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 rounded-full bg-rose-500 ring-2 ${props.claro ? 'ring-white' : 'ring-[#0b2da0]'} text-white text-[10px] font-bold flex items-center justify-center`}>
             {unseen > 9 ? '9+' : unseen}
           </span>
         )}
