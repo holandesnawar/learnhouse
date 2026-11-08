@@ -19,7 +19,7 @@ export default function ChannelEmojiPicker({ value, onChange }: ChannelEmojiPick
         title="Sin emoji"
         className={`w-9 h-9 rounded-lg flex items-center justify-center border transition-colors ${
           !value
-            ? 'border-[#4da3ff] bg-[#F0F5FF] text-[#025dc7]'
+            ? 'border-[#0b2da0] bg-[#F0F5FF] text-[#0b2da0]'
             : 'border-gray-200 text-gray-400 hover:bg-gray-50'
         }`}
       >
@@ -32,7 +32,7 @@ export default function ChannelEmojiPicker({ value, onChange }: ChannelEmojiPick
           onClick={() => onChange(emoji)}
           className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg border transition-colors ${
             value === emoji
-              ? 'border-[#4da3ff] bg-[#F0F5FF]'
+              ? 'border-[#0b2da0] bg-[#F0F5FF]'
               : 'border-gray-200 hover:bg-gray-50'
           }`}
         >

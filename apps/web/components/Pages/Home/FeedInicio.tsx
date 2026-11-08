@@ -1,7 +1,9 @@
 'use client'
 /**
  * El Inicio como feed (rediseño, rama `diseno`, 07/11/2026), como en Circle:
- *  - `ProximaClase`: la clase en directo de esta semana con «¿Vienes?».
+ *  - `SiguienteClase`: arriba del todo, la próxima clase en directo con su
+ *    fecha y «¿Vas a asistir? Sí / No» (08/11: solo aquí, no en Esta semana).
+ *  - `ProximaClase`: lo que te toca esta semana, como lista.
  *  - `FeedComunidad`: lo último publicado en los tablones de la comunidad
  *    (Victorias, Noticias…), mezclado y por fecha, con un hueco para escribir.
  * Los datos son los de siempre: `/tareas/mi-semana` y las publicaciones de
@@ -22,6 +24,9 @@ import { splitChannelEmoji } from '@/lib/communities/channelEmoji'
 import { esCanalEsencial } from '@/lib/nawar/empiezaAqui'
 import { ajustesDirecto, CURSO_CLASE_SEMANAL_UUID } from '@/lib/nawar/cursos'
 import { Vienes, pasosDeSemana, FilaPaso } from '@components/Pages/Clases/MisClasesAlumno'
+import { useSemanasClase } from '@components/Pages/Courses/SemanasClase'
+import { useCursosEnDirecto } from '@/hooks/queries/useCursosEnDirecto'
+import useAdminStatus from '@components/Hooks/useAdminStatus'
 
 const POPPINS = { fontFamily: 'var(--font-poppins), system-ui, sans-serif' }
 const TARJETA = 'rounded-2xl border border-[#E4E8F2] bg-white'
@@ -76,6 +81,64 @@ function Avatar({ a, size = 38 }: { a: DiscussionWithAuthor['author']; size?: nu
     <span className="rounded-full bg-[#E3EBFA] text-[#0b2da0] font-bold flex items-center justify-center shrink-0 text-[14px]" style={{ width: size, height: size }}>
       {nombre.slice(0, 1).toUpperCase()}
     </span>
+  )
+}
+
+// ── La siguiente clase, con «¿Vas a asistir?» ──────────────────────────────
+
+const DIAS_LARGOS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
+const MESES_LARGOS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+
+function fechaLarga(f: string): string {
+  const d = new Date(`${f}T12:00:00`)
+  return `${DIAS_LARGOS[d.getDay()]} ${d.getDate()} de ${MESES_LARGOS[d.getMonth()]}`
+}
+
+function UnaSiguiente({ uuid, nombre, orgslug }: { uuid: string; nombre: string; orgslug: string }) {
+  const org = useOrg() as any
+  const { data } = useSemanasClase(uuid)
+  if (!data) return null
+  const { semanas, hoy, actual, proxima } = data
+  const enCurso = semanas.find((s) => s.id === actual)
+  const semana = enCurso && enCurso.fecha >= hoy ? enCurso : semanas.find((s) => s.id === proxima) || null
+  if (!semana || !semana.fecha) return null
+  const a = ajustesDirecto(org?.config?.config, uuid)
+  const r: any = a.banner || (uuid.replace(/^course_/, '') === CURSO_CLASE_SEMANAL_UUID ? org?.config?.config?.weekly_class_banner : null) || {}
+  const hora = String(r.schedule || '').trim()
+  const esHoy = semana.fecha === hoy
+  const cuando = esHoy ? 'Hoy' : fechaLarga(semana.fecha)
+  const detalle = [semana.tema, r.teacher ? `con ${r.teacher}` : ''].filter(Boolean).join(' · ')
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center gap-4 px-5 py-4">
+      <div className="min-w-0 flex-1">
+        <p className="text-[12.5px] font-semibold text-[#0b2da0]">Siguiente {nombre.toLowerCase()}</p>
+        <Link href={getUriWithOrg(orgslug, `/course/${uuid.replace(/^course_/, '')}`)} className="block mt-0.5 hover:underline">
+          <span className="text-[20px] font-bold text-[#0B1033] leading-tight first-letter:uppercase inline-block" style={POPPINS}>
+            {cuando}
+            {hora ? ` · ${hora}` : ''}
+          </span>
+        </Link>
+        {detalle ? <p className="mt-0.5 text-[13.5px] text-[#5B6382] truncate">{detalle}</p> : null}
+      </div>
+      <div className="shrink-0">
+        <p className="text-[13px] font-semibold text-[#2B3150] mb-1.5">¿Vas a asistir?</p>
+        <Vienes semana={semana} courseUuid={uuid} compacto textos={['Sí', 'No']} />
+      </div>
+    </div>
+  )
+}
+
+/** Arriba del Inicio: la próxima clase en directo de cada una que ve el alumno. */
+export function SiguienteClase({ orgslug }: { orgslug: string }) {
+  const { data: cursos } = useCursosEnDirecto()
+  const { isStaff } = useAdminStatus() as any
+  if (isStaff || !cursos?.length) return null
+  return (
+    <section className={`${TARJETA} divide-y divide-[#EEF1F7] border-l-[3px] border-l-[#0b2da0]`}>
+      {cursos.map((c) => (
+        <UnaSiguiente key={c.uuid} uuid={c.uuid} nombre={c.nombre} orgslug={orgslug} />
+      ))}
+    </section>
   )
 }
 
@@ -139,11 +202,6 @@ export function ProximaClase({ orgslug }: { orgslug: string }) {
                 </Link>
               ) : null}
             </div>
-            {porVenir ? (
-              <div className="px-5 pb-3">
-                <Vienes semana={s} courseUuid={c.course_uuid} />
-              </div>
-            ) : null}
             <div className="pb-2">
               {pasos.map((p) => (
                 <FilaPaso key={p.key} p={p} />

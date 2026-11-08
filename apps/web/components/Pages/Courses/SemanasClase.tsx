@@ -35,6 +35,7 @@ import {
   Video,
 } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
+import { pasosDeSemana, FilaPaso } from '@components/Pages/Clases/pasosSemana'
 import { getUriWithOrg } from '@services/config/config'
 import toast from 'react-hot-toast'
 import {
@@ -67,7 +68,7 @@ export function useSemanasClase(courseUuid: string, activo = true) {
 const POPPINS = { fontFamily: 'var(--font-poppins), system-ui, sans-serif' }
 
 function Icono({ tipo }: { tipo: string }) {
-  const props = { size: 18, className: 'text-[#025dc7]' }
+  const props = { size: 18, className: 'text-[#0b2da0]' }
   return (
     <div className="w-9 h-9 rounded-[10px] bg-[#F0F5FF] flex items-center justify-center shrink-0">
       {tipo === 'presentacion' ? (
@@ -164,7 +165,7 @@ function ContenidoSemana({
       tipo="presentacion"
       titulo={c.nombre || 'Presentación'}
       detalle="Para mirar antes de la clase"
-      estado={c.hecha ? <Hecho texto="Vista" /> : <span className="text-[#025dc7]">Ábrela</span>}
+      estado={c.hecha ? <Hecho texto="Vista" /> : <span className="text-[#0b2da0]">Ábrela</span>}
       href={rutaClase(c)}
     />
   ))
@@ -226,7 +227,7 @@ function ContenidoSemana({
             hechos >= ejercicios.length ? (
               <Hecho />
             ) : (
-              <span className="text-[#025dc7] tabular-nums">
+              <span className="text-[#0b2da0] tabular-nums">
                 {hechos} de {ejercicios.length}
               </span>
             )
@@ -246,7 +247,7 @@ function ContenidoSemana({
             estadoTarea === 'corregida' ? (
               <Hecho texto={semana.tarea?.vista ? 'Corregida' : 'Corregida · nueva'} />
             ) : estadoTarea === 'entregada' ? (
-              <span className="text-[#025dc7]">Entregada</span>
+              <span className="text-[#0b2da0]">Entregada</span>
             ) : (
               <span className="text-[#8A6A2A]">{semana.limite < hoy ? 'Sin entregar' : 'Pendiente'}</span>
             )
@@ -303,23 +304,23 @@ function CabeceraAdmin({
         onGrabacion={(v) => avisar({ avisar_grabacion: v })}
         disabled={guardando}
       />
-      <button onClick={() => setAvisando(true)} className="inline-flex items-center gap-1 text-[#025dc7] hover:underline">
+      <button onClick={() => setAvisando(true)} className="inline-flex items-center gap-1 text-[#0b2da0] hover:underline">
         <Megaphone size={12} /> Avisar a la clase
       </button>
-      <button onClick={onEditar} className="inline-flex items-center gap-1 text-[#5A6480] hover:text-[#025dc7]">
+      <button onClick={onEditar} className="inline-flex items-center gap-1 text-[#5A6480] hover:text-[#0b2da0]">
         <Pencil size={12} /> Editar semana
       </button>
       <Link
         href={getUriWithOrg(orgslug, `/dash/courses/course/${limpio}/content`)}
         prefetch={false}
-        className="inline-flex items-center gap-1 text-[#5A6480] hover:text-[#025dc7]"
+        className="inline-flex items-center gap-1 text-[#5A6480] hover:text-[#0b2da0]"
       >
         <Plus size={12} /> Añadir clases (grabación…)
       </Link>
       <Link
         href={getUriWithOrg(orgslug, `/dash/estadisticas?tab=seguimiento&clase=${limpio}&semana=${semana.id}`)}
         prefetch={false}
-        className="inline-flex items-center gap-1 text-[#5A6480] hover:text-[#025dc7]"
+        className="inline-flex items-center gap-1 text-[#5A6480] hover:text-[#0b2da0]"
       >
         <Users size={12} /> Seguimiento
       </Link>
@@ -338,16 +339,16 @@ function ChipFecha({ fecha }: { fecha: string }) {
   if (!m || !d) {
     return (
       <div className="w-11 h-11 rounded-xl bg-[#F0F5FF] flex items-center justify-center shrink-0">
-        <Video size={16} className="text-[#025dc7]" />
+        <Video size={16} className="text-[#0b2da0]" />
       </div>
     )
   }
   return (
     <div className="w-11 h-11 rounded-xl bg-[#F0F5FF] flex flex-col items-center justify-center shrink-0 leading-none">
-      <span className="text-[16px] font-semibold text-[#1D0084] tabular-nums" style={POPPINS}>
+      <span className="text-[16px] font-semibold text-[#0B1033] tabular-nums" style={POPPINS}>
         {d}
       </span>
-      <span className="mt-0.5 text-[9.5px] font-semibold uppercase tracking-[0.08em] text-[#025dc7]">{MESES[m - 1]}</span>
+      <span className="mt-0.5 text-[9.5px] font-semibold uppercase tracking-[0.08em] text-[#0b2da0]">{MESES[m - 1]}</span>
     </div>
   )
 }
@@ -355,7 +356,7 @@ function ChipFecha({ fecha }: { fecha: string }) {
 /** Lo de la derecha de cada línea, siempre con la misma forma. */
 function Etiqueta({ tono, children }: { tono: 'hecho' | 'azul' | 'gris'; children: React.ReactNode }) {
   const color =
-    tono === 'hecho' ? 'bg-[#ECFDF3] text-[#15803D]' : tono === 'azul' ? 'bg-[#EEF4FF] text-[#025dc7]' : 'bg-[#F3F4F6] text-[#6B7280]'
+    tono === 'hecho' ? 'bg-[#ECFDF3] text-[#15803D]' : tono === 'azul' ? 'bg-[#EEF4FF] text-[#0b2da0]' : 'bg-[#F3F4F6] text-[#6B7280]'
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-semibold ${color}`}>{children}</span>
   )
@@ -446,20 +447,48 @@ export default function SemanasClase({
   })
   const visibles = todas ? lineas : lineas.slice(0, ANTERIORES_A_LA_VISTA)
 
-  const bloque = (titulo: string, semana: Semana) => (
-    <div key={`b-${semana.id}`}>
-      <div className="flex items-baseline justify-between gap-3 mt-6 mb-2.5">
-        <h2 className="text-[18px] font-bold text-gray-900 leading-tight min-w-0" style={POPPINS}>
-          {titulo} · {semana.tema}
-        </h2>
-        <span className="text-[12.5px] font-semibold text-[#6B7280] shrink-0 first-letter:uppercase">{diaCorto(semana.fecha)}</span>
-      </div>
-      <div className="rounded-2xl border border-[#DDE6F5] bg-white overflow-hidden">
-        <ContenidoSemana semana={semana} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={equipo} />
-        {equipo ? <CabeceraAdmin semana={semana} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(semana)} onCambio={recargar} /> : null}
-      </div>
-    </div>
-  )
+  // Para el alumno, la semana es la misma lista que en «Esta semana» y en el
+  // Inicio (08/11/2026: «es diferente a esta otra»). El equipo sigue viendo
+  // las filas con lo que hay subido y sus botones.
+  const rutaOrg = (p: string) => getUriWithOrg(orgslug, p)
+  const bloque = (titulo: string, semana: Semana) => {
+    const pasos = equipo ? [] : pasosDeSemana(semana, courseUuid, rutaOrg, hoy)
+    const hechos = pasos.filter((p) => p.estado === 'hecho').length
+    return (
+      <section key={`b-${semana.id}`} className="mt-6 rounded-2xl border border-[#E4E8F2] bg-white overflow-hidden">
+        <div className="px-5 sm:px-6 pt-5 pb-4 flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-[12.5px] font-semibold text-[#0b2da0]">
+              <span className="uppercase tracking-[0.08em]">{titulo}</span>
+              <span className="text-[#8A91AD] font-medium"> · {diaCorto(semana.fecha)}</span>
+            </p>
+            <h2 className="mt-1.5 text-[21px] sm:text-[23px] font-bold text-[#0B1033] leading-tight" style={POPPINS}>
+              {semana.tema || 'Clase de la semana'}
+            </h2>
+          </div>
+          {pasos.length ? (
+            <span className="shrink-0 mt-1 text-[13px] font-semibold text-[#8A91AD] tabular-nums">
+              {hechos} de {pasos.length}
+            </span>
+          ) : null}
+        </div>
+        <div className="border-t border-[#EEF1F7]">
+          {equipo ? (
+            <>
+              <ContenidoSemana semana={semana} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={equipo} />
+              <CabeceraAdmin semana={semana} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(semana)} onCambio={recargar} />
+            </>
+          ) : (
+            <div className="py-2">
+              {pasos.map((p) => (
+                <FilaPaso key={p.key} p={p} />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+    )
+  }
 
   const filaSemana = (s: Semana) => {
     const abierta = !!abiertas[s.id]
@@ -548,7 +577,7 @@ export default function SemanasClase({
         {lineas.length > ANTERIORES_A_LA_VISTA ? (
           <button
             onClick={() => setTodas((v) => !v)}
-            className="w-full border-t border-[#EEF2F9] px-4 py-3 text-center text-[13px] font-semibold text-[#025dc7] hover:bg-[#F8FAFF]"
+            className="w-full border-t border-[#EEF2F9] px-4 py-3 text-center text-[13px] font-semibold text-[#0b2da0] hover:bg-[#F8FAFF]"
           >
             {todas ? 'Ver menos' : `Ver todas las clases (${lineas.length})`}
           </button>
@@ -568,7 +597,7 @@ export default function SemanasClase({
           </p>
           <button
             onClick={() => setNueva(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[#025dc7] px-3.5 py-2 text-[13.5px] font-semibold text-white hover:bg-[#0b6df0]"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-[#0b2da0] px-3.5 py-2 text-[13.5px] font-semibold text-white hover:bg-[#0a2690]"
           >
             <CalendarDays size={15} /> Nueva semana
           </button>

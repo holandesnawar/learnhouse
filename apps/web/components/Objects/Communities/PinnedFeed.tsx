@@ -112,7 +112,7 @@ export default function PinnedFeed({
     <aside className={hideHeader ? '' : 'bg-white nice-shadow rounded-2xl overflow-hidden'}>
       {!hideHeader && (
         <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
-          <Pin size={16} className="text-[#025dc7]" />
+          <Pin size={16} className="text-[#0b2da0]" />
           <h3 className="text-sm font-bold text-gray-900">Fijados</h3>
         </div>
       )}
@@ -167,7 +167,7 @@ export default function PinnedFeed({
                     // hay ratón, así que un botón que solo aparece al pasar por
                     // encima **no aparece nunca**. En el teléfono se ve siempre;
                     // en el escritorio sigue saliendo al acercarse.
-                    className={`absolute top-2 right-2 z-10 inline-flex items-center justify-center w-7 h-7 rounded-md text-gray-400 hover:text-[#025dc7] hover:bg-[#025dc7]/10 transition-all lg:opacity-0 lg:group-hover/pin:opacity-100 ${
+                    className={`absolute top-2 right-2 z-10 inline-flex items-center justify-center w-7 h-7 rounded-md text-gray-400 hover:text-[#0b2da0] hover:bg-[#0b2da0]/10 transition-all lg:opacity-0 lg:group-hover/pin:opacity-100 ${
                       unpinningUuid === m.discussion_uuid ? 'opacity-60 pointer-events-none' : ''
                     }`}
                   >
@@ -202,7 +202,7 @@ export default function PinnedFeed({
               onClick={(e) => e.stopPropagation()}
             >
               <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-[#EEF3FB]">
-                <Pin size={15} className="text-[#025dc7] shrink-0" />
+                <Pin size={15} className="text-[#0b2da0] shrink-0" />
                 <span className="text-[14px] font-bold text-gray-900">Mensaje fijado</span>
                 <button
                   type="button"

@@ -134,21 +134,21 @@ export default function WeeklyClassBanner({
             onChange={(e) => setDraft({ ...draft, [key]: e.target.value })}
             rows={3}
             placeholder={opts.placeholder}
-            className="w-full text-[13px] rounded-lg border border-[#DDE6F5] px-3 py-2 text-gray-800 focus:outline-none focus:border-[#025dc7] resize-y"
+            className="w-full text-[13px] rounded-lg border border-[#DDE6F5] px-3 py-2 text-gray-800 focus:outline-none focus:border-[#0b2da0] resize-y"
           />
         ) : (
           <input
             value={draft[key]}
             onChange={(e) => setDraft({ ...draft, [key]: e.target.value })}
             placeholder={opts.placeholder}
-            className="w-full text-[13px] rounded-lg border border-[#DDE6F5] px-3 py-2 text-gray-800 focus:outline-none focus:border-[#025dc7]"
+            className="w-full text-[13px] rounded-lg border border-[#DDE6F5] px-3 py-2 text-gray-800 focus:outline-none focus:border-[#0b2da0]"
           />
         )}
       </div>
     )
     return (
       <div className="w-full rounded-2xl bg-white nice-shadow border border-[#DDE6F5] p-4 sm:p-5 space-y-3">
-        <h3 className="text-sm font-bold text-[#1D0084]" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
+        <h3 className="text-sm font-bold text-[#0B1033]" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
           Editar el recuadro de esta clase
         </h3>
         {/* El título ya no vive aquí: es el nombre del curso, que se cambia
@@ -172,7 +172,7 @@ export default function WeeklyClassBanner({
             <select
               value={draft.next_weekday}
               onChange={(e) => setDraft({ ...draft, next_weekday: e.target.value })}
-              className="w-full text-[13px] rounded-lg border border-[#DDE6F5] px-3 py-2 text-gray-800 focus:outline-none focus:border-[#025dc7] bg-white"
+              className="w-full text-[13px] rounded-lg border border-[#DDE6F5] px-3 py-2 text-gray-800 focus:outline-none focus:border-[#0b2da0] bg-white"
             >
               <option value="">Sin día fijo</option>
               {WEEKDAYS.map((d) => (
@@ -190,7 +190,7 @@ export default function WeeklyClassBanner({
               type="date"
               value={draft.next_date}
               onChange={(e) => setDraft({ ...draft, next_date: e.target.value })}
-              className="w-full text-[13px] rounded-lg border border-[#DDE6F5] px-3 py-2 text-gray-800 focus:outline-none focus:border-[#025dc7]"
+              className="w-full text-[13px] rounded-lg border border-[#DDE6F5] px-3 py-2 text-gray-800 focus:outline-none focus:border-[#0b2da0]"
             />
           </div>
         </div>
@@ -211,14 +211,14 @@ export default function WeeklyClassBanner({
           <button
             onClick={handleSave}
             disabled={saving}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[13px] font-semibold hover:bg-[#6cb5ff] transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0b2da0] text-white text-[13px] font-semibold hover:bg-[#0a2690] transition-colors disabled:opacity-50"
           >
             <Check size={14} /> {saving ? 'Guardando…' : 'Guardar'}
           </button>
           <button
             onClick={() => setEditing(false)}
             disabled={saving}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-[#5A6480] hover:text-[#1D0084] transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-[#5A6480] hover:text-[#0B1033] transition-colors"
           >
             <X size={14} /> Cancelar
           </button>
@@ -273,7 +273,7 @@ export default function WeeklyClassBanner({
           <Circle size={8} className="fill-[#16A34A] text-[#16A34A]" /> En directo ahora
         </p>
       ) : (
-        <p className="flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-[0.08em] text-[#025dc7]">
+        <p className="flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-[0.08em] text-[#0b2da0]">
           <CalendarDays size={13} /> Próxima emisión
         </p>
       )}
@@ -287,12 +287,12 @@ export default function WeeklyClassBanner({
         <p className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-[15px] font-medium text-[#1F2937]">
           {profe && (
             <span className="inline-flex items-center gap-1.5">
-              <User size={16} className="text-[#025dc7]" /> Con {profe}
+              <User size={16} className="text-[#0b2da0]" /> Con {profe}
             </span>
           )}
           {duracion && (
             <span className="inline-flex items-center gap-1.5">
-              <Timer size={16} className="text-[#025dc7]" /> {duracion}
+              <Timer size={16} className="text-[#0b2da0]" /> {duracion}
             </span>
           )}
           {enDirecto && (
@@ -305,14 +305,14 @@ export default function WeeklyClassBanner({
 
       <div className="mt-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
         {botonEntrar(
-          'inline-flex items-center justify-center gap-2 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold py-3.5 px-8 rounded-lg text-[15px] transition-colors',
+          'inline-flex items-center justify-center gap-2 bg-[#0b2da0] hover:bg-[#0a2690] text-white font-bold py-3.5 px-8 rounded-lg text-[15px] transition-colors',
           enDirecto ? 'Entrar ahora' : 'Entrar a la clase'
         )}
         <div className="flex items-center justify-center sm:justify-start gap-4">
           {grabadas ? (
             <button
               onClick={goToRecordings}
-              className="inline-flex items-center gap-1.5 text-[14px] font-bold text-[#025dc7] hover:text-[#1D0084] transition-colors"
+              className="inline-flex items-center gap-1.5 text-[14px] font-bold text-[#0b2da0] hover:text-[#0B1033] transition-colors"
             >
               <ListVideo size={15} /> Clases anteriores
             </button>
@@ -321,7 +321,7 @@ export default function WeeklyClassBanner({
           {isStaff ? (
             <button
               onClick={startEdit}
-              className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#5A6480] hover:text-[#025dc7] transition-colors"
+              className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#5A6480] hover:text-[#0b2da0] transition-colors"
             >
               <Pencil size={13} /> Editar
             </button>

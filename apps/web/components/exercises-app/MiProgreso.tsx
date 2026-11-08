@@ -2,19 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import {
-  Loader2,
-  TrendingUp,
-  ArrowRight,
-  Sparkles,
-  Flame,
-  CheckCircle2,
-  ChevronRight,
-  RotateCcw,
-  Trophy,
-  Cloud,
-} from 'lucide-react'
-import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
+import { ArrowRight, Check, ChevronDown, RotateCcw } from 'lucide-react'
 import { getUriWithOrg } from '@services/config/config'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useStudentInsights } from '@/hooks/queries/useStudentInsights'
@@ -42,15 +30,15 @@ const REVIEW = 60
  * cupón de descuento.
  */
 function pctColor(pct: number): string {
-  return pct >= MASTER ? 'text-emerald-600' : pct < REVIEW ? 'text-[#9A6B1F]' : 'text-[#025dc7]'
+  return pct >= MASTER ? 'text-emerald-600' : pct < REVIEW ? 'text-[#9A6B1F]' : 'text-[#0b2da0]'
 }
 
 function Bar({ done, total }: { done: number; total: number }) {
   const pct = total ? Math.round((done / total) * 100) : 0
   return (
-    <div className="h-1.5 rounded-full bg-[#F0F5FF] overflow-hidden">
+    <div className="h-1.5 rounded-full bg-[#EEF1F7] overflow-hidden">
       <div
-        className="h-full bg-[#4da3ff] rounded-full transition-all duration-500"
+        className="h-full bg-[#0b2da0] rounded-full transition-all duration-500"
         style={{ width: `${pct}%` }}
       />
     </div>
@@ -121,230 +109,251 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
   // durante el render del servidor y volvería a colarse la vista vacía.
   const loading = !insightsFetched || !courseFetched
 
+  // Por dónde seguir: la primera parte sin hacer del módulo en curso.
+  const seguir = useMemo(() => {
+    const m = modules.find((x) => x.started && !x.completed) ?? modules.find((x) => !x.completed)
+    if (!m) return null
+    const c = m.classes.find((x) => !x.completed) ?? m.classes[0]
+    const sec = c?.sections.find((x) => !x.done) ?? c?.sections[0]
+    return c && sec ? { modulo: m, clase: c, seccion: sec } : null
+  }, [modules])
+
+  // Lo que más conviene repasar: las partes con fallos, las peores primero.
+  const repasar = useMemo(
+    () =>
+      modules
+        .flatMap((m) => m.classes.flatMap((c) => c.sections.filter((x) => x.fails > 0).map((x) => ({ m, c, s: x }))))
+        .sort((a, b) => (a.s.pct ?? 100) - (b.s.pct ?? 100) || b.s.fails - a.s.fails)
+        .slice(0, 3),
+    [modules]
+  )
+
+  const racha = insights?.progress?.current_streak ?? 0
+
   return (
-    <GeneralWrapperStyled>
-      <div className="flex items-center gap-2 pt-2">
-        <TrendingUp size={24} className="text-[#025dc7]" />
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Mi progreso</h1>
-      </div>
-      <p className="text-sm text-gray-500 mt-1 mb-6 max-w-lg">
-        Tu formación entera: abre un módulo, abre una clase y mira qué hiciste y qué fallaste.
-      </p>
+    <div className="max-w-[920px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <h1 className="text-[26px] sm:text-[30px] font-bold text-[#0B1033] tracking-tight" style={POPPINS}>
+        Mi progreso
+      </h1>
+      <p className="mt-1 text-[14.5px] text-[#5B6382]">Tu formación, módulo a módulo: lo que llevas hecho y lo que te conviene repasar.</p>
 
       {loading ? (
-        <div className="flex justify-center py-20">
-          <Loader2 className="animate-spin text-gray-400" size={28} />
+        <div className="mt-6 space-y-4">
+          <div className="h-[170px] rounded-2xl bg-white border border-[#E4E8F2] animate-pulse" />
+          <div className="h-[260px] rounded-2xl bg-white border border-[#E4E8F2] animate-pulse" />
         </div>
       ) : modules.length === 0 ? (
-        <div className="rounded-2xl border border-[#DDE6F5] bg-white p-10 text-center">
-          <Sparkles size={28} className="text-[#4da3ff] mx-auto mb-3" />
-          <p className="text-[16px] font-semibold text-gray-900">Todavía no hay nada que enseñarte</p>
-          <p className="text-[13px] text-[#9CA3AF] mt-1 max-w-sm mx-auto">
+        <div className="mt-6 rounded-2xl border border-[#E4E8F2] bg-white p-10 text-center">
+          <p className="text-[16px] font-semibold text-[#0B1033]">Todavía no hay nada que enseñarte</p>
+          <p className="text-[13.5px] text-[#6B7393] mt-1 max-w-sm mx-auto">
             Cuando se abra tu primer módulo, aquí verás tu camino completo, clase a clase.
           </p>
           <Link
             href={getUriWithOrg(orgslug, '/')}
-            className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#4da3ff] text-[#1D0084] text-sm font-bold hover:bg-[#6cb5ff] transition-colors"
+            className="mt-4 inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-[#0b2da0] text-white text-[14px] font-semibold hover:bg-[#0a2690]"
           >
-            Ir a la formación <ArrowRight size={16} />
+            Ir al inicio <ArrowRight size={16} />
           </Link>
         </div>
       ) : (
-        <div className="space-y-5">
-          {/* Resumen */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="rounded-2xl border border-[#DDE6F5] bg-white p-4">
-              <p className="text-[11px] font-semibold text-[#8A96AB] uppercase tracking-[0.08em]">Formación</p>
-              <p className="text-[26px] font-bold text-[#1D0084] leading-tight mt-0.5 tabular-nums">
-                {totals.pct}
-                <span className="text-[15px] text-[#8A96AB] font-semibold">%</span>
+        <div className="mt-6 space-y-6">
+          {/* Dónde vas */}
+          <section className="rounded-2xl border border-[#E4E8F2] bg-white p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-7">
+            <Anillo pct={totals.pct} />
+            <div className="flex-1 min-w-0">
+              <p className="text-[12.5px] font-semibold text-[#0b2da0] uppercase tracking-[0.08em]">Formación A0-A1</p>
+              <p className="mt-1 text-[20px] sm:text-[22px] font-bold text-[#0B1033] leading-tight" style={POPPINS}>
+                {totals.done} de {totals.total} clases hechas
               </p>
-              <div className="mt-1.5">
-                <Bar done={totals.done} total={totals.total} />
-              </div>
-              <p className="mt-1 text-[11px] font-medium text-[#8A96AB] tabular-nums">
-                {totals.done}/{totals.total} clases
-              </p>
-            </div>
-            <div className="rounded-2xl border border-[#DDE6F5] bg-white p-4">
-              <p className="text-[11px] font-semibold text-[#8A96AB] uppercase tracking-[0.08em]">Nota media</p>
-              <p className="text-[26px] font-bold text-[#1D0084] leading-tight mt-0.5 tabular-nums">
-                {totals.avgPct === null ? '—' : `${totals.avgPct}%`}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-[#DDE6F5] bg-white p-4">
-              <p className="text-[11px] font-semibold text-[#8A96AB] uppercase tracking-[0.08em] flex items-center gap-1.5">
-                <Flame size={12} className="text-[#025dc7]" /> Racha
-              </p>
-              <p className="text-[26px] font-bold text-[#1D0084] leading-tight mt-0.5 tabular-nums">
-                {insights?.progress?.current_streak ?? 0}
-                <span className="text-[13px] text-[#8A96AB] font-semibold">
-                  {' '}
-                  {insights?.progress?.current_streak === 1 ? 'día' : 'días'}
-                </span>
-              </p>
-            </div>
-            <div className="rounded-2xl border border-[#DDE6F5] bg-white p-4">
-              <p className="text-[11px] font-semibold text-[#8A96AB] uppercase tracking-[0.08em] flex items-center gap-1.5">
-                <Trophy size={12} className="text-[#025dc7]" /> Por repasar
-              </p>
-              {totals.fails > 0 ? (
-                <p className="text-[26px] font-bold text-[#1D0084] leading-tight mt-0.5 tabular-nums">
-                  {totals.fails}
-                  <span className="text-[13px] text-[#8A96AB] font-semibold">
-                    {' '}
-                    {totals.fails === 1 ? 'fallo' : 'fallos'}
-                  </span>
+              {seguir ? (
+                <p className="mt-1 text-[14px] text-[#5B6382] truncate">
+                  Vas por <b className="font-semibold text-[#2B3150]">{nombreModulo(seguir.modulo.title)}</b> · {seguir.clase.title}
                 </p>
               ) : (
-                <p className="text-[15px] font-bold text-emerald-600 leading-tight mt-2">
-                  Nada pendiente
-                </p>
+                <p className="mt-1 text-[14px] text-[#13703D] font-medium">Has terminado todo lo que tienes abierto.</p>
               )}
+              <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-[13.5px] text-[#5B6382]">
+                <span>
+                  Nota media <b className="font-semibold text-[#0B1033] tabular-nums">{totals.avgPct === null ? '—' : `${totals.avgPct}%`}</b>
+                </span>
+                <span>
+                  Racha <b className="font-semibold text-[#0B1033] tabular-nums">{racha} {racha === 1 ? 'día' : 'días'}</b>
+                </span>
+                <span>
+                  Por repasar <b className="font-semibold text-[#0B1033] tabular-nums">{totals.fails > 0 ? `${totals.fails} ${totals.fails === 1 ? 'fallo' : 'fallos'}` : 'nada'}</b>
+                </span>
+              </div>
             </div>
-          </div>
+            {seguir ? (
+              <Link
+                href={activityHref(seguir.seccion)}
+                className="shrink-0 self-start sm:self-center inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-[#0b2da0] text-white text-[14px] font-semibold hover:bg-[#0a2690]"
+              >
+                Seguir <ArrowRight size={16} />
+              </Link>
+            ) : null}
+          </section>
 
-          {/* Módulos → clases → secciones */}
-          {modules.map((m) => {
-            const open = moduleOpen.has(m.key)
-            return (
-              <div key={m.key} className="rounded-2xl border border-[#DDE6F5] bg-white overflow-hidden">
-                <button
-                  onClick={() => toggleModule(m.key)}
-                  className="w-full text-left px-4 sm:px-5 py-4 flex items-center gap-3 hover:bg-[#F8FAFF] transition-colors"
-                >
-                  <ChevronRight
-                    size={18}
-                    className={`shrink-0 text-[#9CA3AF] transition-transform ${open ? 'rotate-90' : ''}`}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[14px] sm:text-[15px] font-semibold text-gray-900 truncate">{m.title}</p>
-                    <div className="mt-1.5 max-w-xs">
-                      <Bar done={m.done} total={m.total} />
-                    </div>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="text-[12px] font-semibold text-[#9CA3AF] tabular-nums">
-                      {m.done}/{m.total}
-                    </p>
-                    {m.pct !== null && (
-                      <p className={`text-[13px] font-semibold tabular-nums ${pctColor(m.pct)}`}>{m.pct}%</p>
+          {/* Te conviene repasar */}
+          {repasar.length ? (
+            <section>
+              <h2 className="text-[17px] font-bold text-[#0B1033] mb-3" style={POPPINS}>
+                Te conviene repasar
+              </h2>
+              <div className="rounded-2xl border border-[#E4E8F2] bg-white divide-y divide-[#EEF1F7]">
+                {repasar.map(({ c, s: x }) => (
+                  <Link key={x.activityId} href={activityHref(x)} className="group flex items-center gap-4 px-5 py-3.5 hover:bg-[#F7F9FD]">
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-[14.5px] font-medium text-[#0B1033] truncate">
+                        {c.title} · {x.label}
+                      </span>
+                      <span className="block text-[12.5px] text-[#8A91AD] truncate">
+                        Fallaste {x.fails}
+                        {x.failedLabels.length ? `: ${x.failedLabels.slice(0, 4).join(', ')}${x.failedLabels.length > 4 ? '…' : ''}` : ''}
+                      </span>
+                    </span>
+                    {x.pct !== null ? <span className={`shrink-0 text-[13px] font-semibold tabular-nums ${pctColor(x.pct)}`}>{x.score}/{x.total}</span> : null}
+                    <span className="shrink-0 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#0b2da0]">
+                      <RotateCcw size={14} /> Repasar
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {/* Módulos → clases → partes */}
+          <section>
+            <h2 className="text-[17px] font-bold text-[#0B1033] mb-3" style={POPPINS}>
+              Tus módulos
+            </h2>
+            <div className="rounded-2xl border border-[#E4E8F2] bg-white divide-y divide-[#EEF1F7] overflow-hidden">
+              {modules.map((m, i) => {
+                const open = moduleOpen.has(m.key)
+                const { num, nombre } = partesModulo(m.title)
+                return (
+                  <div key={m.key}>
+                    <button onClick={() => toggleModule(m.key)} className="w-full text-left px-5 py-4 flex items-center gap-4 hover:bg-[#F7F9FD]">
+                      {m.completed ? (
+                        <span className="w-9 h-9 rounded-full bg-[#16A34A] text-white flex items-center justify-center shrink-0">
+                          <Check size={17} strokeWidth={3} />
+                        </span>
+                      ) : (
+                        <span
+                          className={`w-9 h-9 rounded-full border-2 flex items-center justify-center shrink-0 text-[14px] font-bold tabular-nums ${
+                            m.started ? 'border-[#0b2da0] text-[#0b2da0]' : 'border-[#D5DBE8] text-[#8A91AD]'
+                          }`}
+                        >
+                          {num ?? i}
+                        </span>
+                      )}
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-[15px] font-semibold text-[#0B1033] truncate">{nombre}</span>
+                        <span className="mt-1.5 flex items-center gap-3">
+                          <span className="flex-1 max-w-[260px]">
+                            <Bar done={m.done} total={m.total} />
+                          </span>
+                          <span className="text-[12.5px] text-[#8A91AD] tabular-nums">
+                            {m.done} de {m.total}
+                          </span>
+                        </span>
+                      </span>
+                      {m.pct !== null ? <span className={`shrink-0 text-[13.5px] font-semibold tabular-nums ${pctColor(m.pct)}`}>{m.pct}%</span> : null}
+                      <ChevronDown size={18} className={`shrink-0 text-[#A3AAC2] transition-transform ${open ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {open && (
+                      <div className="pb-2">
+                        {m.classes.map((c: ClassRow) => {
+                          const cOpen = openClasses.has(c.key)
+                          return (
+                            <div key={c.key}>
+                              <button onClick={() => toggleClass(c.key)} className="w-full text-left pl-[72px] pr-5 py-2.5 flex items-center gap-3 hover:bg-[#F7F9FD]">
+                                <Circulo hecho={c.completed} empezado={c.started} />
+                                <span className={`flex-1 min-w-0 text-[14px] font-medium truncate ${c.started ? 'text-[#0B1033]' : 'text-[#8A91AD]'}`}>{c.title}</span>
+                                {c.fails > 0 && (
+                                  <span className="shrink-0 text-[12px] font-medium text-[#8A6A2A]">
+                                    {c.fails} {c.fails === 1 ? 'fallo' : 'fallos'}
+                                  </span>
+                                )}
+                                <span className="shrink-0 text-[12.5px] text-[#8A91AD] tabular-nums">
+                                  {c.done}/{c.total}
+                                </span>
+                                <ChevronDown size={15} className={`shrink-0 text-[#C2C8D8] transition-transform ${cOpen ? 'rotate-180' : ''}`} />
+                              </button>
+                              {cOpen && (
+                                <div className="pl-[104px] pr-5 pb-2">
+                                  {c.sections.map((x) => (
+                                    <Link key={x.activityId} href={activityHref(x)} className="group flex items-center gap-3 py-1.5">
+                                      <Circulo hecho={x.done} pequeno />
+                                      <span className="flex-1 min-w-0 text-[13.5px] text-[#2B3150] group-hover:text-[#0b2da0] truncate">
+                                        {x.code ? <span className="text-[#8A91AD] mr-1.5 tabular-nums">{x.code}</span> : null}
+                                        {x.label}
+                                      </span>
+                                      {x.pct !== null ? (
+                                        <span className={`shrink-0 text-[12.5px] font-semibold tabular-nums ${pctColor(x.pct)}`}>
+                                          {x.score}/{x.total}
+                                        </span>
+                                      ) : null}
+                                    </Link>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
                     )}
                   </div>
-                </button>
-
-                {open && (
-                  <div className="border-t border-[#DDE6F5] divide-y divide-[#EEF3FB]">
-                    {m.classes.map((c: ClassRow) => {
-                      const cOpen = openClasses.has(c.key)
-                      return (
-                        <div key={c.key}>
-                          <button
-                            onClick={() => toggleClass(c.key)}
-                            className="w-full text-left px-4 sm:px-5 py-3 flex items-center gap-3 hover:bg-[#F8FAFF] transition-colors"
-                          >
-                            {c.completed ? (
-                              <CheckCircle2 size={17} className="text-emerald-500 shrink-0" />
-                            ) : (
-                              <div
-                                className={`w-[17px] h-[17px] rounded-full border-2 shrink-0 ${
-                                  c.started ? 'border-[#4da3ff]' : 'border-[#DDE6F5]'
-                                }`}
-                              />
-                            )}
-                            <span
-                              className={`flex-1 min-w-0 text-[13.5px] font-semibold truncate ${
-                                c.started ? 'text-gray-900' : 'text-gray-400'
-                              }`}
-                            >
-                              {c.title}
-                            </span>
-                            {c.fails > 0 && (
-                              <span className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-medium text-[#8A6A2A]">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#E4B252]" />
-                                {c.fails} {c.fails === 1 ? 'fallo' : 'fallos'}
-                              </span>
-                            )}
-                            <span className="shrink-0 text-[12px] font-medium text-[#8A96AB] tabular-nums">
-                              {c.done}/{c.total}
-                            </span>
-                            <ChevronRight
-                              size={15}
-                              className={`shrink-0 text-[#C6D2E6] transition-transform ${cOpen ? 'rotate-90' : ''}`}
-                            />
-                          </button>
-
-                          {cOpen && (
-                            <div className="px-4 sm:px-5 pb-3 space-y-1.5 bg-[#FBFDFF]">
-                              {c.sections.map((s) => (
-                                <div
-                                  key={s.activityId}
-                                  className="rounded-xl border border-[#E7EEF9] bg-white px-3 py-2.5"
-                                >
-                                  <div className="flex items-center gap-2.5">
-                                    {s.done ? (
-                                      <CheckCircle2 size={15} className="text-emerald-500 shrink-0" />
-                                    ) : (
-                                      <div className="w-[15px] h-[15px] rounded-full border-2 border-[#DDE6F5] shrink-0" />
-                                    )}
-                                    <Link
-                                      href={activityHref(s)}
-                                      className="flex-1 min-w-0 text-[13px] font-semibold text-gray-800 hover:text-[#025dc7] truncate"
-                                    >
-                                      {s.code && (
-                                        <span className="text-[#8A96AB] font-medium mr-1.5 tabular-nums">
-                                          {s.code}
-                                        </span>
-                                      )}
-                                      {s.label}
-                                    </Link>
-                                    {s.pct !== null && (
-                                      <span
-                                        className={`shrink-0 text-[12.5px] font-semibold tabular-nums ${pctColor(s.pct)}`}
-                                      >
-                                        {s.score}/{s.total}
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  {s.fails > 0 && (
-                                    <div className="mt-2 ml-[25px] flex flex-wrap items-center justify-between gap-2">
-                                      <p className="text-[12px] text-[#5A6480] min-w-0">
-                                        Fallaste {s.fails}
-                                        {s.failedLabels.length > 0 && (
-                                          <span className="text-[#8A6A2A]">
-                                            : {s.failedLabels.slice(0, 4).join(', ')}
-                                            {s.failedLabels.length > 4 && '…'}
-                                          </span>
-                                        )}
-                                      </p>
-                                      <Link
-                                        href={activityHref(s)}
-                                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#DDE6F5] hover:border-[#4da3ff] text-[#025dc7] text-[12px] font-semibold transition-colors"
-                                      >
-                                        <RotateCcw size={13} /> Repetir práctica
-                                      </Link>
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-
-          <p className="text-[11px] text-[#9CA3AF] flex items-center gap-1.5">
-            <Cloud size={12} /> Solo se ven los módulos que ya tienes abiertos. Tu progreso se
-            guarda en tu cuenta y se actualiza al momento.
-          </p>
+                )
+              })}
+            </div>
+            <p className="mt-3 text-[12.5px] text-[#8A91AD]">Solo salen los módulos que ya tienes abiertos.</p>
+          </section>
         </div>
       )}
-    </GeneralWrapperStyled>
+    </div>
+  )
+}
+
+const POPPINS = { fontFamily: 'var(--font-poppins), system-ui, sans-serif' }
+
+/** «MODULE 1 - Over jou» → número 1 y «Over jou». */
+function partesModulo(t: string): { num: number | null; nombre: string } {
+  const m = String(t || '').match(/^\s*(?:module|m[oó]dulo)\s*(\d+)\s*[-–:·.]?\s*(.*)$/i)
+  const bonito = (x: string) => (x && x === x.toUpperCase() ? x.charAt(0) + x.slice(1).toLowerCase() : x)
+  if (!m) return { num: null, nombre: bonito(String(t || '').trim()) }
+  return { num: Number(m[1]), nombre: bonito(m[2].trim()) || `Módulo ${m[1]}` }
+}
+
+function nombreModulo(t: string): string {
+  const { num, nombre } = partesModulo(t)
+  return num ? `Módulo ${num} · ${nombre}` : nombre
+}
+
+function Circulo({ hecho, empezado = false, pequeno = false }: { hecho: boolean; empezado?: boolean; pequeno?: boolean }) {
+  const t = pequeno ? 'w-[16px] h-[16px]' : 'w-[20px] h-[20px]'
+  return hecho ? (
+    <span className={`${t} rounded-full bg-[#16A34A] text-white flex items-center justify-center shrink-0`}>
+      <Check size={pequeno ? 10 : 12} strokeWidth={3} />
+    </span>
+  ) : (
+    <span className={`${t} rounded-full border-2 shrink-0 ${empezado ? 'border-[#0b2da0]' : 'border-[#C9CFDE]'}`} />
+  )
+}
+
+function Anillo({ pct }: { pct: number }) {
+  const r = 42
+  const largo = 2 * Math.PI * r
+  return (
+    <div className="relative w-[104px] h-[104px] shrink-0">
+      <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+        <circle cx="50" cy="50" r={r} fill="none" stroke="#EEF1F7" strokeWidth="8" />
+        <circle cx="50" cy="50" r={r} fill="none" stroke="#0b2da0" strokeWidth="8" strokeLinecap="round" strokeDasharray={largo} strokeDashoffset={largo * (1 - Math.min(100, Math.max(0, pct)) / 100)} />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-[22px] font-bold text-[#0B1033] tabular-nums" style={POPPINS}>
+        {pct}%
+      </span>
+    </div>
   )
 }

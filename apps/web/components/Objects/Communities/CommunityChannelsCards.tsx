@@ -45,7 +45,7 @@ export default function CommunityChannelsCards({ orgslug, title = 'Comunidad', s
   return (
     <div className={singleColumn ? '' : 'mb-10'}>
       <div className="flex items-center gap-2 mb-4">
-        <MessagesSquare size={20} className="text-[#025dc7]" />
+        <MessagesSquare size={20} className="text-[#0b2da0]" />
         <h2 className="text-lg font-bold text-gray-900">{title}</h2>
       </div>
       <div className={singleColumn ? 'flex flex-col gap-3' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'}>
@@ -55,13 +55,13 @@ export default function CommunityChannelsCards({ orgslug, title = 'Comunidad', s
             <Link
               key={c.community_uuid}
               href={getUriWithOrg(orgslug, `/community/${channelId(c.community_uuid)}`)}
-              className="group flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-white dark:bg-white/5 nice-shadow border border-transparent dark:border-white/10 hover:border-[#4da3ff]/40 transition-all"
+              className="group flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-white dark:bg-white/5 nice-shadow border border-transparent dark:border-white/10 hover:border-[#0b2da0]/40 transition-all"
             >
               <div className="w-11 h-11 flex items-center justify-center shrink-0">
                 {emoji ? (
                   <span className="text-2xl leading-none" aria-hidden>{emoji}</span>
                 ) : (
-                  <Hash size={24} className="text-[#025dc7]" />
+                  <Hash size={24} className="text-[#0b2da0]" />
                 )}
               </div>
               <div className="flex-1 min-w-0">
@@ -72,7 +72,7 @@ export default function CommunityChannelsCards({ orgslug, title = 'Comunidad', s
               </div>
               <ChevronRight
                 size={18}
-                className="text-gray-300 group-hover:text-[#025dc7] group-hover:translate-x-0.5 transition-all shrink-0"
+                className="text-gray-300 group-hover:text-[#0b2da0] group-hover:translate-x-0.5 transition-all shrink-0"
               />
             </Link>
           )

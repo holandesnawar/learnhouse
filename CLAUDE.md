@@ -5097,6 +5097,22 @@ la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
     leer».
   - Los datos inventados traen también 3 carpetas de Recursos; en una escuela
     ya sembrada se añaden solas al arrancar (marca `datos_prueba.recursos`).
+- **v3 (08/11)**: «¿Vas a asistir? Sí / No» solo arriba del Inicio
+  (`SiguienteClase` en `FeedInicio.tsx`, la próxima clase de cada clase en
+  directo, con fecha y hora), ya no en Esta semana ni en «Lo que te toca». La
+  página de la clase (`SemanasClase.tsx`) enseña al alumno la MISMA lista que
+  Esta semana (`pasosDeSemana` + `FilaPaso`, ahora en
+  `Pages/Clases/pasosSemana.tsx`; el equipo sigue con sus filas y botones) y
+  cada clase en directo sale en la barra, en «Mis clases»; «Clases» de arriba
+  se enciende también dentro de ella. Títulos de la barra a 14 px y más hueco
+  entre los botones de arriba. Barrido de colores en las pantallas del alumno
+  (comunidad, mensajes, consultas, calendario, clase, tareas…): el azul claro
+  `#4da3ff` con letra oscura y `#025dc7` pasan al azul de la escuela
+  `#0b2da0` con letra blanca (script en el scratchpad, `barrido.py`; NO toca
+  la barra de lecciones, que es oscura, ni los ejercicios). Botones de la barra
+  de escribir (`ComposerButton`): gris fino, fondo suave al pasar, etiqueta
+  casi negra. Mi progreso rehecho: anillo con el %, «Vas por… · Seguir», «Te
+  conviene repasar» (las 3 partes peores) y los módulos como lista con número.
 - Pendiente (v2): mover a un alumno al otro grupo UNA semana sin romper sus
   tareas, una pantalla de grupos para el administrador (quién está en qué y
   qué ve), el calendario rehecho, datos inventados en la escuela de pruebas.

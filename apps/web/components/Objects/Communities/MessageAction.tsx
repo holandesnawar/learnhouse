@@ -34,14 +34,14 @@ export default function MessageAction({
         onClick={onClick}
         aria-label={label}
         className={`inline-flex items-center justify-center w-7 h-7 transition-colors ${
-          danger ? 'text-[#6B7280] hover:text-rose-600' : 'text-[#4B5563] hover:text-[#025dc7]'
+          danger ? 'text-[#6B7280] hover:text-rose-600' : 'text-[#4B5563] hover:text-[#0b2da0]'
         }`}
       >
         {children}
       </button>
       <span
         role="tooltip"
-        className={`pointer-events-none absolute bottom-full mb-1.5 whitespace-nowrap rounded-md bg-[#025dc7] px-2 py-1 text-[11px] font-medium text-white opacity-0 group-hover/act:opacity-100 transition-opacity duration-150 hidden sm:block ${
+        className={`pointer-events-none absolute bottom-full mb-1.5 whitespace-nowrap rounded-md bg-[#0b2da0] px-2 py-1 text-[11px] font-medium text-white opacity-0 group-hover/act:opacity-100 transition-opacity duration-150 hidden sm:block ${
           align === 'right' ? 'right-0' : 'left-0'
         }`}
       >

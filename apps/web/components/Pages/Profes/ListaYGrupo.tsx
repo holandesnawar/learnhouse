@@ -126,7 +126,7 @@ export function PasarLista({
                   {alumnos.length === 1 ? '1 alumno' : `${alumnos.length} alumnos`} · marca quién vino
                 </p>
                 <div className="flex gap-1.5">
-                  <button onClick={() => todos(true)} className="h-7 px-2.5 rounded-md bg-[#EEF3FF] text-[12px] font-semibold text-[#025dc7]">
+                  <button onClick={() => todos(true)} className="h-7 px-2.5 rounded-md bg-[#EEF3FF] text-[12px] font-semibold text-[#0b2da0]">
                     Vinieron todos
                   </button>
                   <button onClick={() => todos(false)} className="h-7 px-2.5 rounded-md bg-[#F3F4F6] text-[12px] font-semibold text-[#4B5563]">
@@ -195,7 +195,7 @@ export function PasarLista({
             <button
               onClick={guardar}
               disabled={guardando}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[#4da3ff] hover:bg-[#5eb4ff] py-2.5 text-[14px] font-bold text-[#0a1656] disabled:opacity-60"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[#0b2da0] hover:bg-[#0a2690] py-2.5 text-[14px] font-bold text-white disabled:opacity-60"
             >
               {guardando ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} strokeWidth={3} />} Guardar la lista
             </button>
@@ -226,7 +226,7 @@ export function TuGrupo({ orgId, courseUuid, curso, color, token }: { orgId: num
     <section className="rounded-2xl border border-[#DDE6F5] bg-white p-4 sm:p-5">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-[17px] font-bold text-[#0a1656] flex items-center gap-2" style={POPPINS}>
-          <Users size={19} className="text-[#025dc7]" /> Tu grupo esta semana
+          <Users size={19} className="text-[#0b2da0]" /> Tu grupo esta semana
         </h2>
         <span className="inline-flex items-center gap-1.5 min-w-0 text-[12.5px] font-semibold text-[#5A6480]">
           <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
@@ -274,8 +274,8 @@ export function TuGrupo({ orgId, courseUuid, curso, color, token }: { orgId: num
               {g.fallos.length ? (
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {g.fallos.map((f) => (
-                    <span key={f.palabra} className="inline-flex items-center gap-1 rounded-md bg-[#EEF3FF] px-2 py-1 text-[12.5px] text-[#1D0084]">
-                      <AlertTriangle size={12} className="text-[#025dc7]" /> {f.palabra}
+                    <span key={f.palabra} className="inline-flex items-center gap-1 rounded-md bg-[#EEF3FF] px-2 py-1 text-[12.5px] text-[#0B1033]">
+                      <AlertTriangle size={12} className="text-[#0b2da0]" /> {f.palabra}
                       <span className="text-[#5A6480] tabular-nums">· {f.alumnos}</span>
                     </span>
                   ))}
@@ -292,7 +292,7 @@ export function TuGrupo({ orgId, courseUuid, curso, color, token }: { orgId: num
                 <ul className="mt-1.5 space-y-1.5">
                   {g.consultas.map((c, i) => (
                     <li key={i} className="flex gap-2 text-[13px]">
-                      <MessageCircleQuestion size={15} className="shrink-0 mt-0.5 text-[#025dc7]" />
+                      <MessageCircleQuestion size={15} className="shrink-0 mt-0.5 text-[#0b2da0]" />
                       <span className="min-w-0">
                         <b className="text-gray-900">{c.titulo || 'Sin título'}</b>
                         <span className="text-[#6B7280]">
@@ -315,7 +315,7 @@ export function TuGrupo({ orgId, courseUuid, curso, color, token }: { orgId: num
               <div>
                 <p className={ETIQUETA}>Nuevos esta semana</p>
                 <p className="mt-1 text-[13.5px] text-gray-900 flex items-center gap-1.5">
-                  <Sparkles size={14} className="text-[#025dc7] shrink-0" />
+                  <Sparkles size={14} className="text-[#0b2da0] shrink-0" />
                   {g.nuevos.map((n) => n.nombre).join(', ')}
                 </p>
               </div>

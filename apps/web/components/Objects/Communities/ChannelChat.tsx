@@ -206,7 +206,7 @@ function renderMessageBody(text: string, isOwn: boolean): React.ReactNode[] {
     if (!part) return <React.Fragment key={i} />
     if (part.startsWith('@')) {
       return (
-        <span key={i} className={`font-bold ${isOwn ? 'text-white underline' : 'text-[#025dc7]'}`}>
+        <span key={i} className={`font-bold ${isOwn ? 'text-white underline' : 'text-[#0b2da0]'}`}>
           {part}
         </span>
       )
@@ -220,7 +220,7 @@ function renderMessageBody(text: string, isOwn: boolean): React.ReactNode[] {
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className={`underline break-all ${isOwn ? 'text-white' : 'text-[#025dc7]'} font-semibold`}
+          className={`underline break-all ${isOwn ? 'text-white' : 'text-[#0b2da0]'} font-semibold`}
         >
           {part}
         </a>
@@ -765,7 +765,7 @@ export function ChannelChat({
               onSearchingChange?.(false)
             }}
             aria-label="Cerrar la búsqueda"
-            className="shrink-0 text-[#9CA3AF] hover:text-[#025dc7] transition-colors"
+            className="shrink-0 text-[#9CA3AF] hover:text-[#0b2da0] transition-colors"
           >
             <X size={15} />
           </button>
@@ -799,7 +799,7 @@ export function ChannelChat({
                       key={phrase}
                       type="button"
                       onClick={() => setText(phrase)}
-                      className="px-3 py-1.5 rounded-full border border-[#DDE6F5] text-[12.5px] text-[#025dc7] hover:bg-[#F0F5FF] transition-colors"
+                      className="px-3 py-1.5 rounded-full border border-[#DDE6F5] text-[12.5px] text-[#0b2da0] hover:bg-[#F0F5FF] transition-colors"
                     >
                       {phrase.trim()}
                     </button>
@@ -837,7 +837,7 @@ export function ChannelChat({
                 (!prev || msOf(prev.creation_date) <= msOf(lastReadAt))
               // Sin globo: el texto en negro sobre blanco. Solo el fijado lleva marco.
               const bubbleBg = m.is_pinned
-                ? 'bg-[#F5F8FF] ring-1 ring-[#025dc7]/25 text-[#1F2440] px-3 py-2'
+                ? 'bg-[#F5F8FF] ring-1 ring-[#0b2da0]/25 text-[#1F2440] px-3 py-2'
                 : 'text-[#1F2440] px-0 py-0.5'
               return (
                 <React.Fragment key={m.discussion_uuid}>
@@ -862,7 +862,7 @@ export function ChannelChat({
                   <div
                     data-msg={m.discussion_uuid}
                     className={`group/msg relative flex gap-3 px-4 py-1 hover:bg-[#F7F9FD] ${grouped ? 'mt-0' : 'mt-2'} ${aLaDerecha ? 'flex-row-reverse' : ''} ${
-                      flashUuid === m.discussion_uuid ? 'bg-[#4da3ff]/15 rounded-xl transition-colors' : ''
+                      flashUuid === m.discussion_uuid ? 'bg-[#0b2da0]/15 rounded-xl transition-colors' : ''
                     }`}
                   >
                     {/* Avatar a los dos lados: el propio también, para que el chat
@@ -893,7 +893,7 @@ export function ChannelChat({
                           </span>
                           <span className="text-[11px] text-gray-400 tabular-nums">{clockTime(m.creation_date)}</span>
                           {m.is_pinned && (
-                            <span className="inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wider text-[#025dc7]">
+                            <span className="inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wider text-[#0b2da0]">
                               <Pin size={10} /> Fijado
                             </span>
                           )}
@@ -917,13 +917,13 @@ export function ChannelChat({
                             }}
                             rows={2}
                             autoFocus
-                            className="w-full resize-y min-h-[80px] rounded-xl bg-white border border-[#4da3ff] px-3 py-2 text-sm leading-relaxed text-gray-900 outline-none focus:ring-2 focus:ring-[#4da3ff]/25"
+                            className="w-full resize-y min-h-[80px] rounded-xl bg-white border border-[#0b2da0] px-3 py-2 text-sm leading-relaxed text-gray-900 outline-none focus:ring-2 focus:ring-[#0b2da0]/25"
                           />
                           <div className="flex items-center gap-2 mt-1.5">
                             <button
                               type="button"
                               onClick={saveEdit}
-                              className="inline-flex items-center px-3 py-1.5 rounded-lg bg-[#025dc7] text-white text-xs font-semibold hover:bg-[#0b6df0]"
+                              className="inline-flex items-center px-3 py-1.5 rounded-lg bg-[#0b2da0] text-white text-xs font-semibold hover:bg-[#0a2690]"
                             >
                               Guardar
                             </button>
@@ -955,11 +955,11 @@ export function ChannelChat({
                                   jumpTo(rm.uuid)
                                 }}
                                 title={rm.uuid ? 'Ir al mensaje original' : undefined}
-                                className={`mb-1 border-l-2 pl-2 py-0.5 ${aLaDerecha ? 'border-white/50' : 'border-[#4da3ff]'} ${
+                                className={`mb-1 border-l-2 pl-2 py-0.5 ${aLaDerecha ? 'border-white/50' : 'border-[#0b2da0]'} ${
                                   rm.uuid ? 'cursor-pointer hover:opacity-80' : ''
                                 }`}
                               >
-                                <span className={`block text-[11px] font-semibold leading-tight ${aLaDerecha ? 'text-white' : 'text-[#025dc7]'}`}>
+                                <span className={`block text-[11px] font-semibold leading-tight ${aLaDerecha ? 'text-white' : 'text-[#0b2da0]'}`}>
                                   {rm.author}
                                 </span>
                                 <span className={`block text-[11px] line-clamp-1 leading-tight ${aLaDerecha ? 'text-white/75' : 'text-gray-500'}`}>
@@ -991,12 +991,12 @@ export function ChannelChat({
                                         }}
                                         className={`relative w-full text-left rounded-lg px-3 py-2 text-[13px] overflow-hidden border transition-colors ${
                                           mine
-                                            ? 'border-[#025dc7] bg-white/70'
-                                            : 'border-black/10 bg-white/50 hover:border-[#025dc7]/50'
+                                            ? 'border-[#0b2da0] bg-white/70'
+                                            : 'border-black/10 bg-white/50 hover:border-[#0b2da0]/50'
                                         }`}
                                       >
                                         <span
-                                          className="absolute inset-y-0 left-0 bg-[#4da3ff]/30"
+                                          className="absolute inset-y-0 left-0 bg-[#0b2da0]/30"
                                           style={{ width: `${pct}%` }}
                                         />
                                         <span className="relative flex items-center justify-between gap-2">
@@ -1069,7 +1069,7 @@ export function ChannelChat({
                                         className={`inline-flex max-w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12.5px] transition-colors ${
                                           aLaDerecha
                                             ? 'bg-white/15 hover:bg-white/25 text-white'
-                                            : 'bg-[#F0F5FF] hover:bg-[#e3edff] text-[#025dc7]'
+                                            : 'bg-[#F0F5FF] hover:bg-[#e3edff] text-[#0b2da0]'
                                         }`}
                                       >
                                         <FileText size={14} className="shrink-0" />
@@ -1200,8 +1200,8 @@ export function ChannelChat({
                             onClick={() => onOpenThread?.(open ? null : m.discussion_uuid)}
                             className={`mt-1 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[12px] font-semibold transition-colors ${
                               open
-                                ? 'bg-[#025dc7]/10 text-[#025dc7]'
-                                : 'text-[#025dc7] hover:bg-[#F0F5FF]'
+                                ? 'bg-[#0b2da0]/10 text-[#0b2da0]'
+                                : 'text-[#0b2da0] hover:bg-[#F0F5FF]'
                             }`}
                           >
                             <MessageSquare size={13} />
@@ -1238,7 +1238,7 @@ export function ChannelChat({
                               disabled={!accessToken}
                               className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${
                                 r.has_reacted
-                                  ? 'bg-[#025dc7]/10 border-[#025dc7]/40 text-[#025dc7]'
+                                  ? 'bg-[#0b2da0]/10 border-[#0b2da0]/40 text-[#0b2da0]'
                                   : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
                               } ${accessToken ? 'cursor-pointer' : 'cursor-default'}`}
                             >
@@ -1264,7 +1264,7 @@ export function ChannelChat({
         <button
           type="button"
           onClick={scrollToBottom}
-          className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-[#DDE6F5] text-[#025dc7] text-[12px] font-semibold shadow-md hover:border-[#4da3ff] transition-colors"
+          className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-[#DDE6F5] text-[#0b2da0] text-[12px] font-semibold shadow-md hover:border-[#0b2da0] transition-colors"
         >
           <ArrowDown size={14} />
           {unseenBelow > 0
@@ -1279,10 +1279,10 @@ export function ChannelChat({
       <AuthenticatedClientElement checkMethod="authentication">
         <div className="shrink-0 border-t border-[#EEF3FB] px-4 sm:px-6 py-3">
           {replyingTo && (
-            <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-[#F0F5FF] rounded-lg border-l-2 border-[#4da3ff]">
-              <Reply size={14} className="shrink-0 text-[#025dc7]" />
+            <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-[#F0F5FF] rounded-lg border-l-2 border-[#0b2da0]">
+              <Reply size={14} className="shrink-0 text-[#0b2da0]" />
               <div className="min-w-0 flex-1 text-xs">
-                <span className="font-semibold text-[#025dc7]">Respondiendo a {replyingTo.author}</span>
+                <span className="font-semibold text-[#0b2da0]">Respondiendo a {replyingTo.author}</span>
                 <p className="text-gray-500 truncate">{replyingTo.text}</p>
               </div>
               <button
@@ -1305,7 +1305,7 @@ export function ChannelChat({
                   type="button"
                   onClick={() => openTool(null)}
                   aria-label="Cerrar la grabadora"
-                  className="text-[#9CA3AF] hover:text-[#025dc7] transition-colors"
+                  className="text-[#9CA3AF] hover:text-[#0b2da0] transition-colors"
                 >
                   <X size={15} />
                 </button>
@@ -1327,9 +1327,9 @@ export function ChannelChat({
                   ) : (
                     <div className="h-16 px-3 flex items-center gap-2 text-[12px] text-[#5A6480] max-w-[200px]">
                       {f.kind === 'audio' ? (
-                        <Mic size={14} className="text-[#025dc7] shrink-0" />
+                        <Mic size={14} className="text-[#0b2da0] shrink-0" />
                       ) : (
-                        <FileText size={14} className="text-[#025dc7] shrink-0" />
+                        <FileText size={14} className="text-[#0b2da0] shrink-0" />
                       )}
                       <span className="truncate">{f.name}</span>
                     </div>
@@ -1347,7 +1347,7 @@ export function ChannelChat({
               ))}
               {uploading && (
                 <div className="h-16 w-16 rounded-lg border border-dashed border-[#DDE6F5] flex items-center justify-center">
-                  <Loader2 size={16} className="animate-spin text-[#025dc7]" />
+                  <Loader2 size={16} className="animate-spin text-[#0b2da0]" />
                 </div>
               )}
             </div>
@@ -1356,7 +1356,7 @@ export function ChannelChat({
           {pollDraft && (
             <div className="mb-2 rounded-xl border border-[#DDE6F5] bg-[#F8FAFF] p-3">
               <div className="flex items-center justify-between gap-2 mb-2">
-                <p className="text-[12px] font-bold text-[#025dc7] flex items-center gap-1.5">
+                <p className="text-[12px] font-bold text-[#0b2da0] flex items-center gap-1.5">
                   <BarChart3 size={14} /> Encuesta
                 </p>
                 <button
@@ -1372,7 +1372,7 @@ export function ChannelChat({
                 value={pollDraft.question}
                 onChange={(e) => setPollDraft({ ...pollDraft, question: e.target.value })}
                 placeholder="La pregunta — p. ej. ¿de of het huis?"
-                className="w-full mb-2 bg-white rounded-lg px-3 py-2 text-sm border border-[#DDE6F5] outline-none focus:border-[#4da3ff]"
+                className="w-full mb-2 bg-white rounded-lg px-3 py-2 text-sm border border-[#DDE6F5] outline-none focus:border-[#0b2da0]"
               />
               {pollDraft.options.map((opt, oi) => (
                 <input
@@ -1384,14 +1384,14 @@ export function ChannelChat({
                     setPollDraft({ ...pollDraft, options: next })
                   }}
                   placeholder={`Opción ${oi + 1}`}
-                  className="w-full mb-1.5 bg-white rounded-lg px-3 py-2 text-sm border border-[#DDE6F5] outline-none focus:border-[#4da3ff]"
+                  className="w-full mb-1.5 bg-white rounded-lg px-3 py-2 text-sm border border-[#DDE6F5] outline-none focus:border-[#0b2da0]"
                 />
               ))}
               {pollDraft.options.length < 5 && (
                 <button
                   type="button"
                   onClick={() => setPollDraft({ ...pollDraft, options: [...pollDraft.options, ''] })}
-                  className="text-[12px] font-semibold text-[#025dc7] hover:underline"
+                  className="text-[12px] font-semibold text-[#0b2da0] hover:underline"
                 >
                   + Añadir opción
                 </button>
@@ -1401,7 +1401,7 @@ export function ChannelChat({
 
           {/* Que se vea antes de enviar que @all avisará a todo el canal */}
           {avisaATodos(text) && (
-            <p className="mb-2 flex items-center gap-1.5 text-[12.5px] text-[#025dc7]">
+            <p className="mb-2 flex items-center gap-1.5 text-[12.5px] text-[#0b2da0]">
               <AtSign size={13} className="shrink-0" />
               Con @all, a todos los del canal les saldrá un aviso en la campana.
             </p>
@@ -1417,8 +1417,8 @@ export function ChannelChat({
                   onClick={() => applyMention(name)}
                   className="w-full text-left px-3 py-2 text-sm hover:bg-[#F0F5FF] flex items-center gap-2"
                 >
-                  <AtSign size={13} className="text-[#025dc7] shrink-0" />
-                  <span className={name === 'all' ? 'font-bold text-[#025dc7]' : ''}>
+                  <AtSign size={13} className="text-[#0b2da0] shrink-0" />
+                  <span className={name === 'all' ? 'font-bold text-[#0b2da0]' : ''}>
                     {name === 'all' ? 'all — avisar a todo el canal' : name}
                   </span>
                 </button>
@@ -1446,7 +1446,7 @@ export function ChannelChat({
 
           {/* La caja: el texto arriba, los iconos debajo — como en Circle.
               Borde suave que no compite con el contenido y foco en azul. */}
-          <div className="rounded-xl border border-[#E3E8EF] bg-white transition-colors focus-within:border-[#4da3ff] focus-within:ring-[3px] focus-within:ring-[#4da3ff]/15">
+          <div className="rounded-xl border border-[#E3E8EF] bg-white transition-colors focus-within:border-[#0b2da0] focus-within:ring-[3px] focus-within:ring-[#0b2da0]/15">
             <textarea
               value={text}
               onChange={(e) => onComposerChange(e.target.value)}
@@ -1524,7 +1524,7 @@ export function ChannelChat({
                 disabled={(!text.trim() && pending.length === 0 && !pollDraft) || sending}
                 title="Enviar"
                 aria-label={t('communities.create_discussion.submit')}
-                className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors bg-[#025dc7] text-white hover:bg-[#0b6df0] disabled:bg-[#EFF1F6] disabled:text-[#B6BECC] disabled:cursor-not-allowed"
+                className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors bg-[#0b2da0] text-white hover:bg-[#0a2690] disabled:bg-[#EFF1F6] disabled:text-[#B6BECC] disabled:cursor-not-allowed"
               >
                 {sending ? (
                   <Loader2 size={15} className="animate-spin" />
@@ -1543,10 +1543,10 @@ export function ChannelChat({
                 type="checkbox"
                 checked={alsoEmail}
                 onChange={(e) => setAlsoEmail(e.target.checked)}
-                className="w-3.5 h-3.5 rounded border-gray-300 text-[#025dc7] focus:ring-[#025dc7]/30 cursor-pointer"
+                className="w-3.5 h-3.5 rounded border-gray-300 text-[#0b2da0] focus:ring-[#0b2da0]/30 cursor-pointer"
               />
-              <Mail size={13} className={alsoEmail ? 'text-[#025dc7]' : 'text-gray-400'} />
-              <span className={alsoEmail ? 'text-[#025dc7] font-semibold' : ''}>
+              <Mail size={13} className={alsoEmail ? 'text-[#0b2da0]' : 'text-gray-400'} />
+              <span className={alsoEmail ? 'text-[#0b2da0] font-semibold' : ''}>
                 Avisar por email a todos los alumnos
               </span>
             </label>

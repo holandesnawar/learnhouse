@@ -27,25 +27,25 @@ import { Bell, AtSign, Pin, Megaphone, Unlock, Trash2, MessagesSquare, UserCheck
 // entrada por si queda alguno servido por una versión anterior mientras el
 // despliegue termina — un aviso sin icono se vería roto.
 const KIND_STYLE: Record<string, { icon: any; color: string }> = {
-  mention: { icon: AtSign, color: 'text-[#025dc7]' },
-  channel: { icon: MessagesSquare, color: 'text-[#025dc7]' },
-  pinned: { icon: Pin, color: 'text-[#025dc7]' },
-  announcement: { icon: Megaphone, color: 'text-[#4da3ff]' },
+  mention: { icon: AtSign, color: 'text-[#0b2da0]' },
+  channel: { icon: MessagesSquare, color: 'text-[#0b2da0]' },
+  pinned: { icon: Pin, color: 'text-[#0b2da0]' },
+  announcement: { icon: Megaphone, color: 'text-[#0b2da0]' },
   module: { icon: Unlock, color: 'text-emerald-500' },
   // Solo administradores: un alumno que ha pagado espera que se elija si va al
   // programa nuevo o a la beta (Tandas y grupos).
-  decidir: { icon: UserCheck, color: 'text-[#025dc7]' },
+  decidir: { icon: UserCheck, color: 'text-[#0b2da0]' },
   // Las tareas de las clases (28/10): al alumno, la presentación nueva de su
   // clase y su corrección; al equipo, lo que queda por corregir y los
   // check-in de la semana.
-  semana: { icon: Presentation, color: 'text-[#025dc7]' },
+  semana: { icon: Presentation, color: 'text-[#0b2da0]' },
   // La grabación de su clase, ya subida (05/11).
-  grabacion: { icon: PlayCircle, color: 'text-[#025dc7]' },
+  grabacion: { icon: PlayCircle, color: 'text-[#0b2da0]' },
   // «Avisar a la clase» desde una semana (06/11/2026).
-  clase: { icon: Megaphone, color: 'text-[#025dc7]' },
+  clase: { icon: Megaphone, color: 'text-[#0b2da0]' },
   tarea: { icon: Mic, color: 'text-emerald-500' },
-  corregir: { icon: ClipboardCheck, color: 'text-[#025dc7]' },
-  checkin: { icon: PhoneCall, color: 'text-[#025dc7]' },
+  corregir: { icon: ClipboardCheck, color: 'text-[#0b2da0]' },
+  checkin: { icon: PhoneCall, color: 'text-[#0b2da0]' },
 }
 
 /** El aviso puede traer una ruta de la escuela o una dirección completa. */

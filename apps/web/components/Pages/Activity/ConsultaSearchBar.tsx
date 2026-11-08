@@ -75,7 +75,7 @@ export default function ConsultaSearchBar({ initialQuery = '' }: ConsultaSearchB
   return (
     <div className="rounded-2xl border border-[#DDE6F5] bg-white p-4 sm:p-5 space-y-3">
       <div className="flex items-center gap-2">
-        <HelpCircle size={18} className="text-[#025dc7] shrink-0" />
+        <HelpCircle size={18} className="text-[#0b2da0] shrink-0" />
         <p className="text-[15px] font-semibold text-gray-900">
           ¿Tienes una duda sobre esta lección?
         </p>
@@ -109,13 +109,13 @@ export default function ConsultaSearchBar({ initialQuery = '' }: ConsultaSearchB
               if (e.target.value) ensureLoaded()
             }}
             placeholder={'p. ej. "zijn", "trabajar", "saludos"…'}
-            className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-[#F0F5FF] hover:bg-[#E5ECFF] focus:bg-white text-[#1D0084] placeholder:text-[#1D0084]/45 outline-none border border-transparent focus:border-[#4da3ff] focus:ring-[3px] focus:ring-[#4da3ff]/22 text-[14.5px] placeholder:text-[14px] transition-colors"
+            className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-[#F0F5FF] hover:bg-[#E5ECFF] focus:bg-white text-[#0B1033] placeholder:text-[#0B1033]/45 outline-none border border-transparent focus:border-[#0b2da0] focus:ring-[3px] focus:ring-[#0b2da0]/22 text-[14.5px] placeholder:text-[14px] transition-colors"
           />
         </div>
         <button
           type="submit"
           disabled={!query.trim()}
-          className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#1D0084] text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-[#0b2da0] hover:bg-[#0a2690] text-white text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Search size={14} />
           Buscar
@@ -132,7 +132,7 @@ export default function ConsultaSearchBar({ initialQuery = '' }: ConsultaSearchB
           )}
           {!loading && matches.length > 0 && (
             <>
-              <p className="text-[11px] font-semibold text-[#025dc7] uppercase tracking-wider px-1">
+              <p className="text-[11px] font-semibold text-[#0b2da0] uppercase tracking-wider px-1">
                 {matches.length} {matches.length === 1 ? 'resultado' : 'resultados'}
               </p>
               <ul className="space-y-1.5">
@@ -158,14 +158,14 @@ export default function ConsultaSearchBar({ initialQuery = '' }: ConsultaSearchB
                             )}
                           </div>
                           {cat && (
-                            <span className="text-[10px] text-[#025dc7] font-semibold uppercase tracking-wider">
+                            <span className="text-[10px] text-[#0b2da0] font-semibold uppercase tracking-wider">
                               {cat.short}
                             </span>
                           )}
                         </div>
                         <ArrowUpRight
                           size={14}
-                          className="text-gray-400 group-hover:text-[#025dc7] mt-0.5 shrink-0"
+                          className="text-gray-400 group-hover:text-[#0b2da0] mt-0.5 shrink-0"
                         />
                       </Link>
                     </li>
@@ -181,7 +181,7 @@ export default function ConsultaSearchBar({ initialQuery = '' }: ConsultaSearchB
               </span>
               <Link
                 href={consultasHref(`?q=${encodeURIComponent(query.trim())}&new=1`)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#1D0084] text-xs font-bold transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0b2da0] hover:bg-[#0a2690] text-white text-xs font-bold transition-colors"
               >
                 <Plus size={12} /> Crear consulta
               </Link>

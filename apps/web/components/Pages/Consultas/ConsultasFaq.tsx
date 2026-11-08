@@ -147,7 +147,7 @@ export default function ConsultasFaq() {
         className="w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 text-left hover:bg-[#F8FAFF] transition-colors"
       >
         <span className="flex items-center gap-2.5 min-w-0">
-          <HelpCircle size={22} className="text-[#025dc7] shrink-0" />
+          <HelpCircle size={22} className="text-[#0b2da0] shrink-0" />
           <span className="min-w-0">
             <span className="block text-[14.5px] font-bold text-gray-900 leading-tight">
               Consultas frecuentes
@@ -161,7 +161,7 @@ export default function ConsultasFaq() {
         </span>
         <ChevronDown
           size={20}
-          className={`text-[#025dc7] shrink-0 transition-transform ${panelOpen ? 'rotate-180' : ''}`}
+          className={`text-[#0b2da0] shrink-0 transition-transform ${panelOpen ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -171,7 +171,7 @@ export default function ConsultasFaq() {
           {canEdit && (
             <button
               onClick={() => setEditing({ id: newId(), question: '', answer: '' })}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#4da3ff] text-[#1D0084] text-sm font-semibold hover:bg-[#6cb5ff] transition-colors"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0b2da0] text-white text-sm font-semibold hover:bg-[#0a2690] transition-colors"
             >
               <Plus size={15} /> Añadir la primera
             </button>
@@ -191,13 +191,13 @@ export default function ConsultasFaq() {
                     <span className="text-[14px] font-semibold text-gray-900">{item.question}</span>
                     <ChevronDown
                       size={18}
-                      className={`text-[#025dc7] shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                      className={`text-[#0b2da0] shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
                     />
                   </button>
                   {canEdit && (
                     <button
                       onClick={() => setEditing(item)}
-                      className="shrink-0 p-2 mr-2 text-gray-400 hover:text-[#1D0084]"
+                      className="shrink-0 p-2 mr-2 text-gray-400 hover:text-[#0B1033]"
                       aria-label="Editar pregunta"
                     >
                       <Pencil size={15} />
@@ -217,7 +217,7 @@ export default function ConsultasFaq() {
             <button
               type="button"
               onClick={() => setEditing({ id: newId(), question: '', answer: '' })}
-              className="w-full px-5 py-3 text-[13.5px] font-semibold text-[#025dc7] hover:bg-[#F8FAFF] transition-colors flex items-center justify-center gap-1.5"
+              className="w-full px-5 py-3 text-[13.5px] font-semibold text-[#0b2da0] hover:bg-[#F8FAFF] transition-colors flex items-center justify-center gap-1.5"
             >
               <Plus size={15} /> Añadir una pregunta
             </button>
@@ -271,7 +271,7 @@ function FaqModal({
               value={form.question}
               onChange={(e) => set('question', e.target.value)}
               placeholder="¿Cómo entrego una consulta?"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#025dc7]/30"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#0b2da0]/30"
             />
           </div>
           <div>
@@ -281,7 +281,7 @@ function FaqModal({
               onChange={(e) => set('answer', e.target.value)}
               rows={5}
               placeholder="Escribe aquí la respuesta…"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#025dc7]/30 resize-y"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#0b2da0]/30 resize-y"
             />
           </div>
         </div>
@@ -304,7 +304,7 @@ function FaqModal({
             <button
               onClick={() => onSave(form)}
               disabled={saving}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] text-[#1D0084] text-sm font-semibold hover:bg-[#6cb5ff] disabled:opacity-60"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0b2da0] text-white text-sm font-semibold hover:bg-[#0a2690] disabled:opacity-60"
             >
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />} Guardar
             </button>

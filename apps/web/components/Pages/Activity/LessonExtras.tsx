@@ -88,7 +88,7 @@ export default function LessonExtras({ activity, activityid, orgslug, canEdit }:
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
               placeholder="Escribe una descripción para esta lección…"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#025dc7]/30 resize-y"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#0b2da0]/30 resize-y"
             />
           </div>
           <div>
@@ -100,7 +100,7 @@ export default function LessonExtras({ activity, activityid, orgslug, canEdit }:
                     value={task}
                     onChange={(e) => setTasks((prev) => prev.map((t, idx) => (idx === i ? e.target.value : t)))}
                     placeholder={`Tarea ${i + 1}`}
-                    className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#025dc7]/30"
+                    className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#0b2da0]/30"
                   />
                   <button
                     type="button"
@@ -114,7 +114,7 @@ export default function LessonExtras({ activity, activityid, orgslug, canEdit }:
               <button
                 type="button"
                 onClick={() => setTasks((prev) => [...prev, ''])}
-                className="inline-flex items-center gap-1.5 text-sm text-[#025dc7] font-medium hover:underline"
+                className="inline-flex items-center gap-1.5 text-sm text-[#0b2da0] font-medium hover:underline"
               >
                 <Plus size={14} /> Añadir tarea
               </button>
@@ -129,7 +129,7 @@ export default function LessonExtras({ activity, activityid, orgslug, canEdit }:
               onChange={(e) => setPdfUrl(e.target.value)}
               placeholder="https://…/presentacion.pdf"
               inputMode="url"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#025dc7]/30"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#0b2da0]/30"
             />
             <p className="mt-1 text-xs text-gray-400">
               Pega el enlace del PDF (Cloudflare, Drive…). Debe empezar por https. Al alumno le
@@ -140,7 +140,7 @@ export default function LessonExtras({ activity, activityid, orgslug, canEdit }:
             <button
               onClick={save}
               disabled={saving}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] text-[#1D0084] text-sm font-semibold hover:bg-[#6cb5ff] disabled:opacity-60"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0b2da0] text-white text-sm font-semibold hover:bg-[#0a2690] disabled:opacity-60"
             >
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />} Guardar
             </button>
@@ -169,7 +169,7 @@ export default function LessonExtras({ activity, activityid, orgslug, canEdit }:
                   href={safePdf}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#F0F5FF] border border-[#DDE6F5] text-[#025dc7] text-sm font-semibold hover:bg-[#e3edff] transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#F0F5FF] border border-[#DDE6F5] text-[#0b2da0] text-sm font-semibold hover:bg-[#e3edff] transition-colors"
                 >
                   <FileText size={16} className="shrink-0" />
                   Ver la presentación (PDF)

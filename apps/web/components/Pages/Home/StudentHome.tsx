@@ -9,7 +9,7 @@ import { useTrail } from '@/hooks/queries/useTrail'
 import { useCourses } from '@/hooks/queries/useCourses'
 import TuSemana from '@components/Pages/Home/TuSemana'
 import UpcomingEvents from '@components/Pages/Home/UpcomingEvents'
-import { ProximaClase, FeedComunidad, DestacadosComunidad } from '@components/Pages/Home/FeedInicio'
+import { SiguienteClase, ProximaClase, FeedComunidad, DestacadosComunidad } from '@components/Pages/Home/FeedInicio'
 import { getUriWithOrg } from '@services/config/config'
 import CommunityChannelsCards from '@components/Objects/Communities/CommunityChannelsCards'
 import StreakBadge from '@components/Pages/Home/StreakBadge'
@@ -148,6 +148,9 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
         <div className="min-w-0 space-y-6">
+          <SafeArea nombre="Siguiente clase" fallback={null}>
+            <SiguienteClase orgslug={orgslug} />
+          </SafeArea>
           {trailReady && runs.length === 0 && coursesReady && formacion && (
             <ArranqueFormacion course={formacion} orgslug={orgslug} grabaciones={null} />
           )}
@@ -253,7 +256,7 @@ function ArranqueFormacion({
         </div>
         <Link
           href={getUriWithOrg(orgslug, `/course/${uuid}`)}
-          className="shrink-0 inline-flex items-center justify-center gap-2.5 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold px-5 py-3 rounded-xl transition-colors text-[15px]"
+          className="shrink-0 inline-flex items-center justify-center gap-2.5 bg-[#0b2da0] hover:bg-[#0a2690] text-white font-bold px-5 py-3 rounded-xl transition-colors text-[15px]"
         >
           Empezar
           <ArrowRight size={16} strokeWidth={2.5} />
@@ -268,7 +271,7 @@ function ArranqueFormacion({
           Las grabaciones de las clases semanales están en{' '}
           <Link
             href={getUriWithOrg(orgslug, `/course/${grabaciones.uuid}`)}
-            className="text-[#025dc7] hover:underline font-medium"
+            className="text-[#0b2da0] hover:underline font-medium"
           >
             {grabaciones.nombre}
           </Link>

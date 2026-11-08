@@ -26,7 +26,7 @@ function rich(raw: string): React.ReactNode {
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
       return (
-        <strong key={i} className="font-semibold text-[#1D0084]">
+        <strong key={i} className="font-semibold text-[#0B1033]">
           {part.slice(2, -2)}
         </strong>
       )
@@ -67,7 +67,7 @@ function Block({ block }: { block: GuideBlock }) {
         <ul className="mb-4 space-y-2">
           {block.items.map((item, i) => (
             <li key={i} className="flex gap-2.5 text-[15px] text-[#3F4A61] leading-relaxed">
-              <span className="mt-[9px] w-1.5 h-1.5 rounded-full bg-[#4da3ff] shrink-0" />
+              <span className="mt-[9px] w-1.5 h-1.5 rounded-full bg-[#0b2da0] shrink-0" />
               <span className="min-w-0">{rich(item)}</span>
             </li>
           ))}
@@ -79,7 +79,7 @@ function Block({ block }: { block: GuideBlock }) {
         <ol className="mb-4 space-y-2.5">
           {block.items.map((item, i) => (
             <li key={i} className="flex gap-3 text-[15px] text-[#3F4A61] leading-relaxed">
-              <span className="shrink-0 w-6 h-6 rounded-full bg-[#F0F5FF] text-[#025dc7] text-[12px] font-semibold flex items-center justify-center tabular-nums">
+              <span className="shrink-0 w-6 h-6 rounded-full bg-[#F0F5FF] text-[#0b2da0] text-[12px] font-semibold flex items-center justify-center tabular-nums">
                 {i + 1}
               </span>
               <span className="min-w-0 pt-0.5">{rich(item)}</span>
@@ -91,7 +91,7 @@ function Block({ block }: { block: GuideBlock }) {
     case 'callout':
       return (
         <div className="my-5 flex gap-3 rounded-xl bg-[#F0F5FF] px-4 py-3.5">
-          <Lightbulb size={17} className="text-[#025dc7] shrink-0 mt-0.5" />
+          <Lightbulb size={17} className="text-[#0b2da0] shrink-0 mt-0.5" />
           <p className="text-[14px] text-[#0a1656] leading-relaxed min-w-0">{rich(block.text)}</p>
         </div>
       )
@@ -99,7 +99,7 @@ function Block({ block }: { block: GuideBlock }) {
     case 'quote':
       return (
         <p
-          className="my-6 text-[17px] sm:text-[19px] font-semibold text-[#1D0084] leading-snug border-l-[3px] border-[#4da3ff] pl-4"
+          className="my-6 text-[17px] sm:text-[19px] font-semibold text-[#0B1033] leading-snug border-l-[3px] border-[#0b2da0] pl-4"
           style={{
             fontFamily:
               'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")',
@@ -112,7 +112,7 @@ function Block({ block }: { block: GuideBlock }) {
     case 'item':
       return (
         <div className="mb-3 rounded-xl border border-[#DDE6F5] bg-white px-4 py-3.5">
-          <p className="text-[14.5px] font-semibold text-[#1D0084] leading-snug">{block.title}</p>
+          <p className="text-[14.5px] font-semibold text-[#0B1033] leading-snug">{block.title}</p>
           <p className="text-[14px] text-[#3F4A61] leading-relaxed mt-1">{rich(block.text)}</p>
         </div>
       )
@@ -142,7 +142,7 @@ function Block({ block }: { block: GuideBlock }) {
                     <td
                       key={j}
                       className={`py-2.5 px-3 text-[14px] leading-relaxed border-b border-[#EEF3FB] ${
-                        j === 0 ? 'font-semibold text-[#1D0084] whitespace-nowrap' : 'text-[#3F4A61]'
+                        j === 0 ? 'font-semibold text-[#0B1033] whitespace-nowrap' : 'text-[#3F4A61]'
                       }`}
                     >
                       {rich(cell)}
@@ -194,8 +194,8 @@ export default function SchoolGuide({
     return (
       <article className="max-w-3xl mx-auto pt-1 sm:pt-2">
         <div className="flex items-center gap-2 mb-1">
-          <HelpCircle size={15} className="text-[#025dc7]" />
-          <span className="text-[11px] font-semibold text-[#025dc7] uppercase tracking-[0.08em]">
+          <HelpCircle size={15} className="text-[#0b2da0]" />
+          <span className="text-[11px] font-semibold text-[#0b2da0] uppercase tracking-[0.08em]">
             Antes de empezar
           </span>
         </div>
@@ -219,7 +219,7 @@ export default function SchoolGuide({
               open={openFaq === i}
               onToggle={() => setOpenFaq((cur) => (cur === i ? null : i))}
               header={
-                <span className="text-[15px] font-semibold text-[#1D0084] leading-snug">
+                <span className="text-[15px] font-semibold text-[#0B1033] leading-snug">
                   {faq.q}
                 </span>
               }
@@ -232,7 +232,7 @@ export default function SchoolGuide({
         </div>
 
         <div className="mt-6 flex gap-3 rounded-xl bg-[#F0F5FF] px-4 py-3.5">
-          <Lightbulb size={17} className="text-[#025dc7] shrink-0 mt-0.5" />
+          <Lightbulb size={17} className="text-[#0b2da0] shrink-0 mt-0.5" />
           <p className="text-[14px] text-[#0a1656] leading-relaxed min-w-0">
             ¿Tu duda no está aquí? Abre una consulta desde cualquier lección o
             escríbenos por <strong className="font-semibold">Mis mensajes</strong>.
@@ -255,8 +255,8 @@ export default function SchoolGuide({
   return (
     <article className="max-w-3xl mx-auto pt-1 sm:pt-2">
       <div className="flex items-center gap-2 mb-1">
-        <BookOpen size={15} className="text-[#025dc7]" />
-        <span className="text-[11px] font-semibold text-[#025dc7] uppercase tracking-[0.08em]">
+        <BookOpen size={15} className="text-[#0b2da0]" />
+        <span className="text-[11px] font-semibold text-[#0b2da0] uppercase tracking-[0.08em]">
           {guide.eyebrow}
         </span>
       </div>

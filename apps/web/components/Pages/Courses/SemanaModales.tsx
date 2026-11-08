@@ -40,7 +40,7 @@ const PARTES: { id: string; nombre: string }[] = [
 const ENUNCIADO_EJEMPLO = '1. Escribe 5 frases sobre…\n2. Grábate 30 segundos contando…'
 
 const CAMPO =
-  'w-full rounded-lg border border-[#DDE6F5] px-3 py-2 text-[14px] text-gray-900 outline-none focus:border-[#025dc7] bg-white'
+  'w-full rounded-lg border border-[#DDE6F5] px-3 py-2 text-[14px] text-gray-900 outline-none focus:border-[#0b2da0] bg-white'
 const ETIQUETA = 'block text-[12px] font-semibold text-[#5A6480] mb-1'
 
 function Ventana({ titulo, onClose, children }: { titulo: string; onClose: () => void; children: React.ReactNode }) {
@@ -84,7 +84,7 @@ export function CasillasCampana({
   disabled?: boolean
   compacto?: boolean
 }) {
-  const casilla = 'h-4 w-4 accent-[#025dc7] shrink-0'
+  const casilla = 'h-4 w-4 accent-[#0b2da0] shrink-0'
   if (compacto) {
     return (
       <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 text-[#5A6480]">
@@ -276,7 +276,7 @@ export function NuevaSemana({
             type="file"
             accept="application/pdf"
             onChange={(e) => setPdf(e.target.files?.[0] || null)}
-            className="block w-full text-[13px] text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-[#F0F5FF] file:px-3 file:py-2 file:text-[13px] file:font-semibold file:text-[#025dc7]"
+            className="block w-full text-[13px] text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-[#F0F5FF] file:px-3 file:py-2 file:text-[13px] file:font-semibold file:text-[#0b2da0]"
           />
           <p className="mt-1 text-[12px] text-[#6B7280]">Los alumnos la ven en cuanto creas la semana: súbela antes de la clase.</p>
         </div>
@@ -340,7 +340,7 @@ export function NuevaSemana({
                 <label className="flex items-center gap-2 text-[13.5px] text-gray-900 cursor-pointer flex-1 min-w-[200px]">
                   <input
                     type="checkbox"
-                    className="h-4 w-4 accent-[#025dc7] shrink-0"
+                    className="h-4 w-4 accent-[#0b2da0] shrink-0"
                     checked={!!enOtras[h.course_uuid]}
                     disabled={!!paso}
                     onChange={(e) => setEnOtras((o) => ({ ...o, [h.course_uuid]: e.target.checked }))}
@@ -367,7 +367,7 @@ export function NuevaSemana({
         <button
           onClick={crear}
           disabled={!!paso}
-          className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[#4da3ff] py-3 text-[15px] font-bold text-[#0a1656] hover:bg-[#5eb4ff] disabled:opacity-60"
+          className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[#0b2da0] py-3 text-[15px] font-bold text-white hover:bg-[#0a2690] disabled:opacity-60"
         >
           {paso ? (
             <>
@@ -473,7 +473,7 @@ export function EditarSemana({
           <button
             onClick={guardar}
             disabled={guardando}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#4da3ff] px-5 py-2.5 text-[14px] font-bold text-[#0a1656] hover:bg-[#5eb4ff] disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-lg bg-[#0b2da0] px-5 py-2.5 text-[14px] font-bold text-white hover:bg-[#0a2690] disabled:opacity-60"
           >
             {guardando ? <Loader2 size={15} className="animate-spin" /> : null} Guardar
           </button>

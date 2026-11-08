@@ -88,10 +88,10 @@ export default function MyCertificatePage(props: { orgslug: string; uuid: string
 
   return (
     <div className="px-4 sm:px-8 py-8 max-w-4xl mx-auto">
-      <p className="text-[12px] font-semibold text-[#4da3ff] tracking-wider uppercase">
+      <p className="text-[12px] font-semibold text-[#0b2da0] tracking-wider uppercase">
         Holandés Nawar
       </p>
-      <h1 className="text-[24px] sm:text-[30px] font-bold text-[#1D0084] leading-tight mt-1 mb-1">
+      <h1 className="text-[24px] sm:text-[30px] font-bold text-[#0B1033] leading-tight mt-1 mb-1">
         Tu certificado
       </h1>
       <p className="text-[14px] text-gray-600 mb-6">
@@ -126,7 +126,7 @@ export default function MyCertificatePage(props: { orgslug: string; uuid: string
         <button
           onClick={download}
           disabled={downloading}
-          className={`mt-6 w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold px-6 py-3.5 rounded-xl text-[15px] transition-colors ${
+          className={`mt-6 w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-[#0b2da0] hover:bg-[#0a2690] text-white font-bold px-6 py-3.5 rounded-xl text-[15px] transition-colors ${
             downloading ? 'opacity-60 pointer-events-none' : ''
           }`}
         >
@@ -137,7 +137,7 @@ export default function MyCertificatePage(props: { orgslug: string; uuid: string
 
       <div className="mt-5 bg-[#F0F5FF] rounded-xl px-4 py-4">
         <p className="flex items-center gap-2 text-[13px] font-bold text-[#0a1656]">
-          <ShieldCheck size={16} className="text-[#4da3ff]" />
+          <ShieldCheck size={16} className="text-[#0b2da0]" />
           Código de verificación
         </p>
         <p className="mt-1.5 text-[13px] text-[#0a1656]/80 leading-relaxed">
@@ -146,12 +146,12 @@ export default function MyCertificatePage(props: { orgslug: string; uuid: string
           el QR del propio certificado) sale una página con tu nombre y la fecha.
           Nadie puede fabricarse uno por su cuenta.
         </p>
-        <code className="block mt-2 text-[12px] break-all text-[#025dc7]">
+        <code className="block mt-2 text-[12px] break-all text-[#0b2da0]">
           {data.certificate_user?.user_certification_uuid}
         </code>
         <a
           href={verifyUrl}
-          className="inline-block mt-2 text-[13px] font-bold text-[#025dc7] underline"
+          className="inline-block mt-2 text-[13px] font-bold text-[#0b2da0] underline"
         >
           Abrir la página de verificación
         </a>

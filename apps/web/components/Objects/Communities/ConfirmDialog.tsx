@@ -77,7 +77,7 @@ export default function ConfirmDialog({
             type="button"
             onClick={onCancel}
             disabled={busy}
-            className="px-4 py-2 rounded-lg text-[14px] font-semibold text-[#5A6480] hover:text-[#1D0084] transition-colors disabled:opacity-50"
+            className="px-4 py-2 rounded-lg text-[14px] font-semibold text-[#5A6480] hover:text-[#0B1033] transition-colors disabled:opacity-50"
           >
             {cancelLabel}
           </button>

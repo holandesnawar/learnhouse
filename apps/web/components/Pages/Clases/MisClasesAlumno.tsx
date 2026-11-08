@@ -42,11 +42,7 @@ import { confirmarVoy, diaCorto, type ClaseSemana, type Semana } from '@services
 
 const POPPINS = { fontFamily: 'var(--font-poppins), system-ui, sans-serif' }
 const TARJETA = 'rounded-2xl border border-[#E4E8F2] bg-white'
-const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
-const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
-
-const dia = (f: string) => new Date(`${f}T12:00:00`)
-const sinPrefijo = (u: string) => String(u || '').replace(/^course_/, '')
+import { DIAS, MESES, dia, sinPrefijo, pasosDeSemana, FilaPaso } from './pasosSemana'
 
 /** El recuadro de cada clase: hora, profe y duración (lo de siempre). */
 function useRecuadro(uuid: string) {
@@ -124,7 +120,17 @@ function Vacio({ texto }: { texto: string }) {
 
 // ── «¿Vienes a la clase?» ───────────────────────────────────────────────────
 
-export function Vienes({ semana, courseUuid, compacto = false }: { semana: Semana; courseUuid: string; compacto?: boolean }) {
+export function Vienes({
+  semana,
+  courseUuid,
+  compacto = false,
+  textos = ['Voy', 'No puedo'],
+}: {
+  semana: Semana
+  courseUuid: string
+  compacto?: boolean
+  textos?: [string, string]
+}) {
   const session = useLHSession() as any
   const token: string = session?.data?.tokens?.access_token || ''
   const qc = useQueryClient()
@@ -167,8 +173,8 @@ export function Vienes({ semana, courseUuid, compacto = false }: { semana: Seman
   return (
     <div className={`flex flex-wrap items-center gap-2 ${compacto ? '' : 'pt-1'}`}>
       {!compacto && <span className="text-[13.5px] font-semibold text-[#2B3150] mr-1">¿Vienes a la clase?</span>}
-      {boton(true, 'Voy')}
-      {boton(false, 'No puedo')}
+      {boton(true, textos[0])}
+      {boton(false, textos[1])}
       {voy === true && <span className="text-[12.5px] text-[#13703D]">¡Te esperamos!</span>}
       {voy === false && <span className="text-[12.5px] text-[#6B7393]">Tendrás la grabación después.</span>}
     </div>
@@ -177,88 +183,7 @@ export function Vienes({ semana, courseUuid, compacto = false }: { semana: Seman
 
 // ── Esta semana ─────────────────────────────────────────────────────────────
 
-const NOMBRE: Record<string, string> = {
-  presentacion: 'Mira la presentación',
-  grabacion: 'Mira la grabación',
-  ejercicios: 'Haz los ejercicios',
-}
-
-export type PasoSemana = { key: string; titulo: string; detalle?: string; href?: string; estado: 'hecho' | 'pendiente' | 'cerrado' }
-
-/** Lo que toca en una semana, en orden: lo usan «Esta semana» y el Inicio. */
-export function pasosDeSemana(semana: Semana, courseUuid: string, ruta: (p: string) => string, hoy: string): PasoSemana[] {
-  const actividad = (c: ClaseSemana) => ruta(`/course/${sinPrefijo(courseUuid)}/activity/${c.activity_uuid.replace('activity_', '')}`)
-  const clases = semana.clases || []
-  const ejercicios = clases.filter((c) => c.tipo === 'ejercicios')
-  const pres = clases.filter((c) => c.tipo === 'presentacion')
-  const grab = clases.filter((c) => c.tipo === 'grabacion')
-  const out: PasoSemana[] = []
-  for (const c of pres)
-    out.push({ key: c.activity_uuid, titulo: NOMBRE.presentacion, detalle: 'Antes de la clase, para llegar con el tema visto', href: actividad(c), estado: c.hecha ? 'hecho' : 'pendiente' })
-  if (semana.fecha) {
-    const pasada = semana.fecha < hoy
-    out.push({
-      key: 'clase',
-      titulo: semana.fecha === hoy ? 'Ven a la clase, es hoy' : pasada ? 'Clase en directo' : 'Ven a la clase en directo',
-      detalle: `${DIAS[dia(semana.fecha).getDay()]} ${diaCorto(semana.fecha).replace(/^\S+\s/, '')}`,
-      href: ruta(`/course/${sinPrefijo(courseUuid)}`),
-      estado: pasada ? 'hecho' : 'pendiente',
-    })
-  }
-  for (const c of grab) out.push({ key: c.activity_uuid, titulo: NOMBRE.grabacion, detalle: 'Por si no pudiste venir o quieres repasar', href: actividad(c), estado: c.hecha ? 'hecho' : 'pendiente' })
-  if (ejercicios.length) {
-    const n = ejercicios.filter((c) => c.hecha).length
-    out.push({
-      key: 'ejercicios',
-      titulo: NOMBRE.ejercicios,
-      detalle: `${n} de ${ejercicios.length} hechos`,
-      href: actividad(ejercicios.find((c) => !c.hecha) || ejercicios[0]),
-      estado: n === ejercicios.length ? 'hecho' : 'pendiente',
-    })
-  }
-  if (semana.ocultas) out.push({ key: 'ocultas', titulo: 'Ejercicios', detalle: 'Se abren el día de la clase', estado: 'cerrado' })
-  if (semana.tiene_tarea) {
-    const t = semana.tarea?.estado
-    out.push({
-      key: 'tarea',
-      titulo: t === 'corregida' ? 'Escucha la corrección de tu tarea' : 'Entrega la tarea',
-      detalle: t === 'corregida' ? 'Ya está corregida' : t === 'entregada' ? 'Entregada, pendiente de corregir' : semana.abierta ? `Hasta el ${diaCorto(semana.limite)}` : 'Se abre el día de la clase',
-      href: semana.abierta ? ruta(`/tarea/${semana.id}`) : undefined,
-      estado: t === 'entregada' || t === 'corregida' ? 'hecho' : semana.abierta ? 'pendiente' : 'cerrado',
-    })
-  }
-  return out
-}
-
-/** Una línea de la lista: un círculo (vacío, con check o gris), el texto y «Abrir». */
-export function FilaPaso({ p }: { p: PasoSemana }) {
-  const circulo =
-    p.estado === 'hecho' ? (
-      <span className="w-[22px] h-[22px] rounded-full bg-[#16A34A] text-white flex items-center justify-center shrink-0">
-        <Check size={13} strokeWidth={3} />
-      </span>
-    ) : (
-      <span className={`w-[22px] h-[22px] rounded-full border-2 shrink-0 ${p.estado === 'cerrado' ? 'border-dashed border-[#C9CFDE]' : 'border-[#B8C2DA]'}`} />
-    )
-  const dentro = (
-    <>
-      {circulo}
-      <span className="flex-1 min-w-0">
-        <span className={`block text-[14.5px] font-medium ${p.estado === 'hecho' ? 'text-[#6B7393]' : p.estado === 'cerrado' ? 'text-[#8A91AD]' : 'text-[#0B1033]'}`}>{p.titulo}</span>
-        {p.detalle ? <span className="block text-[12.5px] text-[#8A91AD] first-letter:uppercase">{p.detalle}</span> : null}
-      </span>
-      {p.href ? <span className="shrink-0 text-[13px] font-semibold text-[#0b2da0] opacity-0 group-hover:opacity-100 transition-opacity">Abrir</span> : null}
-    </>
-  )
-  const cls = 'group flex items-center gap-3.5 px-5 py-3'
-  return p.href ? (
-    <Link href={p.href} className={`${cls} hover:bg-[#F7F9FD]`}>
-      {dentro}
-    </Link>
-  ) : (
-    <div className={cls}>{dentro}</div>
-  )
-}
+export { pasosDeSemana, FilaPaso, type PasoSemana } from './pasosSemana'
 
 function TarjetaSemana({
   semana,
@@ -279,7 +204,6 @@ function TarjetaSemana({
   const { hora, profe, duracion } = useRecuadro(courseUuid)
   const ruta = (p: string) => getUriWithOrg(org?.slug || '', p)
   const esHoy = semana.fecha === hoy
-  const porVenir = !!semana.fecha && semana.fecha >= hoy
   const pasos = pasosDeSemana(semana, courseUuid, ruta, hoy)
   const hechos = pasos.filter((p) => p.estado === 'hecho').length
   const cuando = semana.fecha ? `${DIAS[dia(semana.fecha).getDay()]} ${dia(semana.fecha).getDate()} ${MESES[dia(semana.fecha).getMonth()]}` : ''
@@ -309,10 +233,10 @@ function TarjetaSemana({
             {esHoy ? 'Entrar a la clase' : 'Ver la clase'}
           </Link>
         </div>
-        {(porVenir && !equipo) || (equipo && semana.confirmaciones) ? (
+        {/* «¿Vas a asistir?» va arriba del Inicio (08/11); aquí solo el equipo ve las cuentas. */}
+        {equipo && semana.confirmaciones ? (
           <div className="mt-4">
-            {porVenir && !equipo ? <Vienes semana={semana} courseUuid={courseUuid} /> : null}
-            {equipo && semana.confirmaciones ? (
+            {semana.confirmaciones ? (
               <span className="text-[13px] text-[#3B4262]">
                 <b>{semana.confirmaciones.si}</b> vienen · <b>{semana.confirmaciones.no}</b> no pueden
               </span>

@@ -125,7 +125,7 @@ function Message({
               onClick={() => onEditar(m)}
               aria-label="Editar"
               title="Editar"
-              className="p-1.5 rounded-md text-[#8A96AB] hover:text-[#025dc7] hover:bg-[#F0F5FF] transition-colors"
+              className="p-1.5 rounded-md text-[#8A96AB] hover:text-[#0b2da0] hover:bg-[#F0F5FF] transition-colors"
             >
               <Pencil size={14} />
             </button>
@@ -175,7 +175,7 @@ function Message({
               href={f.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-1.5 inline-flex items-center gap-2 rounded-lg bg-[#F0F5FF] px-2.5 py-1.5 text-[12.5px] text-[#025dc7]"
+              className="mt-1.5 inline-flex items-center gap-2 rounded-lg bg-[#F0F5FF] px-2.5 py-1.5 text-[12.5px] text-[#0b2da0]"
             >
               <FileText size={14} /> <span className="truncate max-w-[160px]">{f.name}</span>
             </a>
@@ -365,7 +365,7 @@ export default function ThreadPanel({
     <div className="flex flex-col h-full min-h-0 bg-white">
       <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-b border-[#EEF3FB]">
         <div className="flex items-center gap-2 min-w-0">
-          <MessageSquare size={16} className="text-[#025dc7] shrink-0" />
+          <MessageSquare size={16} className="text-[#0b2da0] shrink-0" />
           <h2 className="text-[14px] font-bold text-gray-900">Hilo</h2>
         </div>
         <button
@@ -415,13 +415,13 @@ export default function ThreadPanel({
                       el.style.height = `${Math.min(el.scrollHeight, 320)}px`
                     }}
                     autoFocus
-                    className="w-full resize-y min-h-[72px] rounded-xl bg-white border border-[#4da3ff] px-3 py-2 text-[14px] leading-relaxed text-gray-900 outline-none focus:ring-2 focus:ring-[#4da3ff]/25"
+                    className="w-full resize-y min-h-[72px] rounded-xl bg-white border border-[#0b2da0] px-3 py-2 text-[14px] leading-relaxed text-gray-900 outline-none focus:ring-2 focus:ring-[#0b2da0]/25"
                   />
                   <div className="flex items-center gap-2 mt-1.5">
                     <button
                       type="button"
                       onClick={guardarEdicion}
-                      className="inline-flex items-center px-3 py-1.5 rounded-lg bg-[#025dc7] text-white text-xs font-semibold hover:bg-[#0b6df0]"
+                      className="inline-flex items-center px-3 py-1.5 rounded-lg bg-[#0b2da0] text-white text-xs font-semibold hover:bg-[#0a2690]"
                     >
                       Guardar
                     </button>
@@ -499,9 +499,9 @@ export default function ThreadPanel({
                   ) : (
                     <div className="h-14 px-2.5 flex items-center gap-1.5 text-[11.5px] text-[#5A6480] max-w-[150px]">
                       {f.kind === 'audio' ? (
-                        <Mic size={13} className="text-[#025dc7] shrink-0" />
+                        <Mic size={13} className="text-[#0b2da0] shrink-0" />
                       ) : (
-                        <FileText size={13} className="text-[#025dc7] shrink-0" />
+                        <FileText size={13} className="text-[#0b2da0] shrink-0" />
                       )}
                       <span className="truncate">{f.name}</span>
                     </div>
@@ -517,7 +517,7 @@ export default function ThreadPanel({
               ))}
               {uploading && (
                 <div className="h-14 w-14 rounded-lg border border-dashed border-[#DDE6F5] flex items-center justify-center">
-                  <Loader2 size={15} className="animate-spin text-[#025dc7]" />
+                  <Loader2 size={15} className="animate-spin text-[#0b2da0]" />
                 </div>
               )}
             </div>
@@ -525,7 +525,7 @@ export default function ThreadPanel({
 
           {/* La misma caja que abajo en el canal, para que no haya que aprender
               dos compositores distintos. */}
-          <div className="rounded-xl border border-[#E3E8EF] bg-white transition-colors focus-within:border-[#4da3ff] focus-within:ring-[3px] focus-within:ring-[#4da3ff]/15">
+          <div className="rounded-xl border border-[#E3E8EF] bg-white transition-colors focus-within:border-[#0b2da0] focus-within:ring-[3px] focus-within:ring-[#0b2da0]/15">
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -578,7 +578,7 @@ export default function ThreadPanel({
                 disabled={(!text.trim() && pending.length === 0) || sending}
                 title="Enviar"
                 aria-label="Enviar"
-                className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors bg-[#025dc7] text-white hover:bg-[#0b6df0] disabled:bg-[#EFF1F6] disabled:text-[#B6BECC] disabled:cursor-not-allowed"
+                className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors bg-[#0b2da0] text-white hover:bg-[#0a2690] disabled:bg-[#EFF1F6] disabled:text-[#B6BECC] disabled:cursor-not-allowed"
               >
                 {sending ? (
                   <Loader2 size={15} className="animate-spin" />

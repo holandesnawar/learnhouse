@@ -58,6 +58,7 @@ import {
   List,
   CaretDown,
   X,
+  ChalkboardTeacher,
 } from '@phosphor-icons/react'
 
 import { FONDO_MARCA } from '@/lib/nawar/marca'
@@ -178,6 +179,13 @@ export const OrgSidebar = (props: { orgslug: string }) => {
           {
             titulo: 'Mis clases',
             items: [
+              // La página de cada clase, a un clic (08/11: «es difícil llegar hasta ella»).
+              ...(enDirecto || []).map((c) => ({
+                key: `clase-${c.uuid}`,
+                href: `/course/${String(c.uuid).replace(/^course_/, '')}`,
+                label: c.nombre,
+                icon: <ChalkboardTeacher size={18} weight="regular" />,
+              })),
               { key: 'clases', href: '/clases', label: 'Esta semana', icon: <VideoCamera size={18} weight="regular" />, exacta: true },
               { key: 'tareas', href: '/clases/tareas', label: 'Tareas', icon: <ClipboardText size={18} weight="regular" /> },
               { key: 'grabadas', href: '/clases/grabadas', label: 'Clases grabadas', icon: <PlayCircle size={18} weight="regular" /> },
@@ -222,7 +230,9 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     { key: 'calendario', href: '/calendario', label: 'Calendario' },
   ]
   const arribaActivo = (it: Item) =>
-    it.key === 'comunidad' ? actual.startsWith('/communit') : it.key === 'clases' ? actual.startsWith('/clases') : activo(it)
+    it.key === 'comunidad' ? actual.startsWith('/communit') : it.key === 'clases'
+      ? actual.startsWith('/clases') || (enDirecto || []).some((c) => actual.startsWith(`/course/${String(c.uuid).replace(/^course_/, '')}`))
+      : activo(it)
 
   const Fila = ({ it }: { it: Item }) => {
     const on = activo(it)
@@ -252,7 +262,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
 
   const Barra = () => (
     <div className="flex flex-col h-full">
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
+      <nav className="flex-1 overflow-y-auto px-3 py-5 space-y-6">
         {bloques.map((b, i) => {
           const cerrado = !!b.titulo && plegados.includes(b.titulo) && !b.items.some(activo)
           return (
@@ -262,10 +272,10 @@ export const OrgSidebar = (props: { orgslug: string }) => {
                   type="button"
                   onClick={() => plegar(b.titulo!)}
                   aria-expanded={!cerrado}
-                  className="group w-full flex items-center justify-between px-2.5 pb-1.5 text-[12px] font-semibold text-[#8A91AD] hover:text-[#2B3150]"
+                  className="group w-full flex items-center justify-between px-2.5 pb-2 text-[14px] font-semibold text-[#3B4262] hover:text-[#0B1033]"
                 >
                   <span>{b.titulo}</span>
-                  <CaretDown size={12} weight="bold" className={`transition-transform ${cerrado ? '-rotate-90' : ''} opacity-60 group-hover:opacity-100`} />
+                  <CaretDown size={13} weight="bold" className={`transition-transform ${cerrado ? '-rotate-90' : ''} opacity-60 group-hover:opacity-100`} />
                 </button>
               ) : null}
               {!cerrado && (
@@ -339,14 +349,14 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         <Link href={ruta('/')} className="flex items-center h-8 shrink-0 md:w-[236px]">
           <img src={logo} alt="" onError={sinRomper} className="h-full w-auto rounded-md" />
         </Link>
-        <nav className="hidden md:flex flex-1 items-center justify-center gap-1">
+        <nav className="hidden md:flex flex-1 items-center justify-center gap-2.5">
           {arriba.map((it) => {
             const on = arribaActivo(it)
             return (
               <Link
                 key={it.key}
                 href={ruta(it.href)}
-                className={`h-8 px-3.5 rounded-lg text-[13.5px] font-semibold flex items-center transition-colors ${
+                className={`h-9 px-4 rounded-lg text-[14px] font-semibold flex items-center transition-colors ${
                   on ? 'bg-white text-[#0b2da0]' : 'text-white/90 hover:text-white hover:bg-white/10'
                 }`}
               >

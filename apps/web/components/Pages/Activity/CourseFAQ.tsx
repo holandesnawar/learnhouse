@@ -217,7 +217,7 @@ export default function CourseFAQ({ courseUuid, compact = false, enDirecto = fal
     return (
       <div>
         <div className="flex items-center gap-2.5 mb-3 px-1">
-          <HelpCircle size={22} className="text-[#025dc7] shrink-0" />
+          <HelpCircle size={22} className="text-[#0b2da0] shrink-0" />
           <h2 className="text-xl md:text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
             Preguntas frecuentes
           </h2>
@@ -238,7 +238,7 @@ export default function CourseFAQ({ courseUuid, compact = false, enDirecto = fal
                     <p className="text-[15px] text-gray-600 leading-relaxed mt-2.5 whitespace-pre-line">{faq.a}</p>
                   )}
                 </div>
-                <ChevronDown size={18} className={`shrink-0 mt-1 text-[#025dc7] transition-transform ${open ? 'rotate-180' : ''}`} />
+                <ChevronDown size={18} className={`shrink-0 mt-1 text-[#0b2da0] transition-transform ${open ? 'rotate-180' : ''}`} />
               </button>
             )
           })}
@@ -252,7 +252,7 @@ export default function CourseFAQ({ courseUuid, compact = false, enDirecto = fal
     <div className="my-6">
       <div className="flex items-center justify-between gap-3 mb-5">
         <div className="flex items-center gap-2.5">
-          <HelpCircle size={22} className="text-[#025dc7]" />
+          <HelpCircle size={22} className="text-[#0b2da0]" />
           <h2 className="text-xl md:text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}>
             Preguntas frecuentes
           </h2>
@@ -276,7 +276,7 @@ export default function CourseFAQ({ courseUuid, compact = false, enDirecto = fal
                   value={faq.q}
                   onChange={(e) => setDraft((d) => d.map((f, j) => (j === i ? { ...f, q: e.target.value } : f)))}
                   placeholder="Pregunta…"
-                  className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-[#025dc7]/30"
+                  className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-[#0b2da0]/30"
                 />
                 <button onClick={() => setDraft((d) => d.filter((_, j) => j !== i))} className="p-2 text-gray-400 hover:text-rose-500">
                   <Trash2 size={16} />
@@ -287,7 +287,7 @@ export default function CourseFAQ({ courseUuid, compact = false, enDirecto = fal
                 onChange={(e) => setDraft((d) => d.map((f, j) => (j === i ? { ...f, a: e.target.value } : f)))}
                 placeholder="Respuesta…"
                 rows={2}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#025dc7]/30 resize-none"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#0b2da0]/30 resize-none"
               />
             </div>
           ))}
@@ -301,7 +301,7 @@ export default function CourseFAQ({ courseUuid, compact = false, enDirecto = fal
             <button
               onClick={save}
               disabled={saving}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] text-[#0a1656] text-sm font-semibold hover:bg-[#6cb5ff] disabled:opacity-60"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0b2da0] text-white text-sm font-semibold hover:bg-[#0a2690] disabled:opacity-60"
             >
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />} Guardar
             </button>
@@ -327,7 +327,7 @@ export default function CourseFAQ({ courseUuid, compact = false, enDirecto = fal
                     <p className="text-[13px] sm:text-[14px] text-gray-600 leading-relaxed mt-2 whitespace-pre-line">{faq.a}</p>
                   )}
                 </div>
-                <ChevronDown size={18} className={`shrink-0 mt-1 text-[#025dc7] transition-transform ${open ? 'rotate-180' : ''}`} />
+                <ChevronDown size={18} className={`shrink-0 mt-1 text-[#0b2da0] transition-transform ${open ? 'rotate-180' : ''}`} />
               </button>
             )
           })}

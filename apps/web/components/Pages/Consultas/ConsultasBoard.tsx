@@ -247,7 +247,7 @@ export default function ConsultasBoard({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Buscar en consultas…"
-          className="w-full pl-10 pr-3 py-3 rounded-xl bg-white text-[#1D0084] placeholder:text-[#5A6480] outline-none border border-[#cdddf5] shadow-sm hover:border-[#4da3ff]/60 focus:border-[#4da3ff] focus:ring-[3px] focus:ring-[#4da3ff]/22 text-[15px] transition-colors"
+          className="w-full pl-10 pr-3 py-3 rounded-xl bg-white text-[#0B1033] placeholder:text-[#5A6480] outline-none border border-[#cdddf5] shadow-sm hover:border-[#0b2da0]/60 focus:border-[#0b2da0] focus:ring-[3px] focus:ring-[#0b2da0]/22 text-[15px] transition-colors"
         />
       </div>
 
@@ -259,7 +259,7 @@ export default function ConsultasBoard({
               key={p.id}
               onClick={() => setStatus(p.id)}
               className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
-                status === p.id ? 'bg-[#4da3ff] text-[#1D0084]' : 'text-[#5A6480] hover:text-[#025dc7]'
+                status === p.id ? 'bg-[#0b2da0] text-white' : 'text-[#5A6480] hover:text-[#0b2da0]'
               }`}
             >
               {p.label}
@@ -268,7 +268,7 @@ export default function ConsultasBoard({
         </div>
         <button
           onClick={openNew}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#1D0084] text-sm font-bold transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#0b2da0] hover:bg-[#0a2690] text-white text-sm font-bold transition-colors"
         >
           <Plus size={17} /> Nueva consulta
         </button>
@@ -279,7 +279,7 @@ export default function ConsultasBoard({
         <button
           onClick={() => setCategory('')}
           className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-            !category ? 'bg-[#4da3ff] text-[#1D0084] border-[#4da3ff]' : 'bg-white text-[#5A6480] border-[#DDE6F5] hover:border-[#4da3ff]'
+            !category ? 'bg-[#0b2da0] text-white border-[#0b2da0]' : 'bg-white text-[#5A6480] border-[#DDE6F5] hover:border-[#0b2da0]'
           }`}
         >
           Todas
@@ -289,7 +289,7 @@ export default function ConsultasBoard({
             key={c.id}
             onClick={() => setCategory(c.id === category ? '' : c.id)}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-              category === c.id ? `${catClasses(c.color)} ring-1 ring-current` : 'bg-white text-[#5A6480] border-[#DDE6F5] hover:border-[#4da3ff]'
+              category === c.id ? `${catClasses(c.color)} ring-1 ring-current` : 'bg-white text-[#5A6480] border-[#DDE6F5] hover:border-[#0b2da0]'
             }`}
           >
             {c.short}
@@ -305,7 +305,7 @@ export default function ConsultasBoard({
       ) : error ? (
         <div className="text-center py-16">
           <p className="text-red-600 font-medium">{error}</p>
-          <button onClick={loadFeed} className="mt-3 text-sm font-semibold text-[#025dc7] hover:underline">
+          <button onClick={loadFeed} className="mt-3 text-sm font-semibold text-[#0b2da0] hover:underline">
             Reintentar
           </button>
         </div>
@@ -334,7 +334,7 @@ export default function ConsultasBoard({
                   title: query.trim(),
                 })
               }}
-              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#1D0084] text-sm font-bold transition-colors"
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0b2da0] hover:bg-[#0a2690] text-white text-sm font-bold transition-colors"
             >
               <Plus size={15} /> Crear consulta sobre "{query.trim()}"
             </button>
@@ -348,14 +348,14 @@ export default function ConsultasBoard({
               <button
                 key={c.id}
                 onClick={() => setSelected(c)}
-                className="w-full text-left p-4 sm:p-5 rounded-2xl bg-white nice-shadow border border-transparent hover:border-[#4da3ff]/40 transition-all"
+                className="w-full text-left p-4 sm:p-5 rounded-2xl bg-white nice-shadow border border-transparent hover:border-[#0b2da0]/40 transition-all"
               >
                 <div className="flex items-center gap-2 mb-2">
                   <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${catClasses(cat?.color)}`}>
                     {cat?.name || c.category || 'General'}
                   </span>
                   {c.resolved ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#4da3ff]/12 text-[#025dc7]">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#0b2da0]/12 text-[#0b2da0]">
                       <CheckCircle2 size={12} /> Respondida
                     </span>
                   ) : (
@@ -413,7 +413,7 @@ export default function ConsultasBoard({
                 <select
                   value={form.category}
                   onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                  className="w-full h-10 px-3 text-sm rounded-lg border border-gray-200 outline-none focus:border-[#4da3ff] focus:ring-1 focus:ring-[#4da3ff]"
+                  className="w-full h-10 px-3 text-sm rounded-lg border border-gray-200 outline-none focus:border-[#0b2da0] focus:ring-1 focus:ring-[#0b2da0]"
                 >
                   <option value="">Elige una categoría…</option>
                   {CONSULTA_CATEGORIES.map((c) => (
@@ -430,7 +430,7 @@ export default function ConsultasBoard({
                   value={form.title}
                   onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                   placeholder="Resume tu duda en una frase"
-                  className="w-full h-10 px-3 text-sm rounded-lg border border-gray-200 outline-none focus:border-[#4da3ff] focus:ring-1 focus:ring-[#4da3ff]"
+                  className="w-full h-10 px-3 text-sm rounded-lg border border-gray-200 outline-none focus:border-[#0b2da0] focus:ring-1 focus:ring-[#0b2da0]"
                 />
               </div>
 
@@ -441,7 +441,7 @@ export default function ConsultasBoard({
                   value={form.content}
                   onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
                   placeholder="Cuéntanos con detalle qué necesitas…"
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 outline-none focus:border-[#4da3ff] focus:ring-1 focus:ring-[#4da3ff] resize-y"
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 outline-none focus:border-[#0b2da0] focus:ring-1 focus:ring-[#0b2da0] resize-y"
                 />
               </div>
 
@@ -453,7 +453,7 @@ export default function ConsultasBoard({
                       type="text"
                       value={form.name}
                       onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                      className="w-full h-10 px-3 text-sm rounded-lg border border-gray-200 outline-none focus:border-[#4da3ff] focus:ring-1 focus:ring-[#4da3ff]"
+                      className="w-full h-10 px-3 text-sm rounded-lg border border-gray-200 outline-none focus:border-[#0b2da0] focus:ring-1 focus:ring-[#0b2da0]"
                     />
                   </div>
                   <div>
@@ -463,7 +463,7 @@ export default function ConsultasBoard({
                       value={form.email}
                       onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                       placeholder="Para avisarte de la respuesta"
-                      className="w-full h-10 px-3 text-sm rounded-lg border border-gray-200 outline-none focus:border-[#4da3ff] focus:ring-1 focus:ring-[#4da3ff]"
+                      className="w-full h-10 px-3 text-sm rounded-lg border border-gray-200 outline-none focus:border-[#0b2da0] focus:ring-1 focus:ring-[#0b2da0]"
                     />
                   </div>
                 </div>
@@ -481,7 +481,7 @@ export default function ConsultasBoard({
               <button
                 onClick={submitForm}
                 disabled={submitting}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#1D0084] text-sm font-bold disabled:opacity-60"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0b2da0] hover:bg-[#0a2690] text-white text-sm font-bold disabled:opacity-60"
               >
                 {submitting && <Loader2 size={15} className="animate-spin" />}
                 {form.editingId ? 'Guardar cambios' : 'Publicar consulta'}
@@ -531,7 +531,7 @@ function DetailView({
             {cat?.name || consulta.category || 'General'}
           </span>
           {consulta.resolved ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#4da3ff]/12 text-[#025dc7]">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#0b2da0]/12 text-[#0b2da0]">
               <CheckCircle2 size={13} /> Respondida
             </span>
           ) : (
@@ -580,7 +580,7 @@ function DetailView({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <span className="font-bold text-gray-900 text-[15px]">Team Nawar</span>
-                <CheckCircle2 size={15} className="text-[#025dc7]" />
+                <CheckCircle2 size={15} className="text-[#0b2da0]" />
               </div>
               <div className="p-4 rounded-2xl rounded-tl-md bg-[#F0F5FF] border border-[#DDE6F5]">
                 <p className="text-[16px] text-gray-800 leading-relaxed whitespace-pre-wrap">{answer}</p>
@@ -594,7 +594,7 @@ function DetailView({
             {own && !consulta.resolved && (
             <button
               onClick={onEdit}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-[#025dc7] hover:bg-[#F0F5FF]"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-[#0b2da0] hover:bg-[#F0F5FF]"
             >
               <Pencil size={15} /> Editar
             </button>

@@ -123,7 +123,7 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
           <p className="mt-2 text-[15px] text-white/90 max-w-[560px]">Cinco pasos para arrancar con buen pie. Hazlos a tu ritmo: esta página te espera aquí.</p>
           <div className="mt-5 flex items-center gap-3">
             <div className="flex-1 max-w-[320px] h-2 rounded-full bg-white/15 overflow-hidden">
-              <div className="h-full rounded-full bg-[#4da3ff] transition-all" style={{ width: `${(n / pasos.length) * 100}%` }} />
+              <div className="h-full rounded-full bg-[#0b2da0] transition-all" style={{ width: `${(n / pasos.length) * 100}%` }} />
             </div>
             <span className="text-[13.5px] font-semibold text-white/90">
               {n} de {pasos.length}
@@ -134,7 +134,7 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
               <Link
                 href={siguiente.href}
                 onClick={() => siguiente.href.startsWith('#') || marcar(siguiente.id)}
-                className="mt-5 inline-flex items-center gap-2 h-11 px-5 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[14.5px] font-bold hover:bg-[#5eb4ff]"
+                className="mt-5 inline-flex items-center gap-2 h-11 px-5 rounded-lg bg-[#0b2da0] text-white text-[14.5px] font-bold hover:bg-[#0a2690]"
               >
                 Siguiente: {siguiente.titulo.toLowerCase()} <ArrowRight size={16} />
               </Link>
@@ -198,7 +198,7 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
               >
                 <h3 className="text-[15.5px] font-bold text-[#0B1033]">{d.title}</h3>
                 <p className="mt-1.5 text-[14px] text-[#4A5272] leading-relaxed line-clamp-4 whitespace-pre-line">{textoPlano(d.content)}</p>
-                <span className="mt-3 inline-flex items-center gap-1 text-[13px] font-semibold text-[#025dc7]">
+                <span className="mt-3 inline-flex items-center gap-1 text-[13px] font-semibold text-[#0b2da0]">
                   Leer <ArrowRight size={13} />
                 </span>
               </Link>

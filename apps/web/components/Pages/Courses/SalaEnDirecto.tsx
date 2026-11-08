@@ -94,7 +94,7 @@ function Grabaciones({ curso, token }: { curso: string; token: string }) {
           <button
             onClick={() => bajar(g.id)}
             disabled={!!bajando || g.estado === 'in-progress'}
-            className="shrink-0 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#025dc7] border border-[#E5E7EB] hover:border-[#025dc7] rounded-lg px-2.5 py-1.5 disabled:opacity-50"
+            className="shrink-0 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#0b2da0] border border-[#E5E7EB] hover:border-[#0b2da0] rounded-lg px-2.5 py-1.5 disabled:opacity-50"
           >
             <Download size={14} /> {bajando === g.id ? 'Preparando…' : 'Descargar'}
           </button>
@@ -206,7 +206,7 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
           checked={grabadas}
           disabled={guardando}
           onChange={(e) => cambiar({ grabadas: e.target.checked })}
-          className="accent-[#025dc7]"
+          className="accent-[#0b2da0]"
         />
         Enseñar las clases grabadas en esta página
       </label>
@@ -216,7 +216,7 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
           checked={miraTambien}
           disabled={guardando}
           onChange={(e) => cambiar({ mira_tambien: e.target.checked })}
-          className="accent-[#025dc7]"
+          className="accent-[#0b2da0]"
         />
         «Mira también» en el lateral: las grabaciones de la otra clase con el mismo nombre (el otro grupo)
       </label>
@@ -245,7 +245,7 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
       <div className="w-full rounded-2xl bg-white border border-[#E5E7EB] p-4 flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="flex-1 min-w-0">
           <p className="text-[14px] font-semibold text-gray-900 flex items-center gap-2">
-            <Video size={16} className="text-[#025dc7]" /> Sala en directo dentro de la escuela · apagada
+            <Video size={16} className="text-[#0b2da0]" /> Sala en directo dentro de la escuela · apagada
           </p>
           <p className="text-[13px] text-[#5A6480] mt-0.5">
             Al encenderla, quien ve este curso entra a la videollamada aquí mismo, sin otra pestaña y con su nombre
@@ -259,7 +259,7 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
         <button
           onClick={() => cambiar({ activo: true })}
           disabled={guardando}
-          className="shrink-0 inline-flex items-center justify-center gap-2 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold py-2 px-3.5 rounded-lg text-[13.5px] disabled:opacity-50"
+          className="shrink-0 inline-flex items-center justify-center gap-2 bg-[#0b2da0] hover:bg-[#0a2690] text-white font-bold py-2 px-3.5 rounded-lg text-[13.5px] disabled:opacity-50"
         >
           <Power size={15} /> Encender la sala
         </button>
@@ -278,7 +278,7 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
         {casillaGrabadas}
         <button
           onClick={() => setVerGrabaciones((v) => !v)}
-          className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#025dc7]"
+          className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#0b2da0]"
         >
           Grabaciones {verGrabaciones ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
@@ -300,7 +300,7 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
     return (
       <div className="w-full rounded-2xl bg-white border border-[#E5E7EB] p-4">
         <p className="text-[14px] font-semibold text-gray-900 flex items-center gap-2">
-          <Video size={16} className="text-[#025dc7]" /> Sala en directo · encendida
+          <Video size={16} className="text-[#0b2da0]" /> Sala en directo · encendida
           <span className="font-normal text-[#5A6480]">
             · {sala.presentes.length ? `${sala.presentes.length} dentro ahora` : 'nadie dentro ahora'}
           </span>
@@ -315,7 +315,7 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
     <div className="w-full rounded-2xl bg-white border border-[#DDE6F5] p-5 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#025dc7] flex items-center gap-1.5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#0b2da0] flex items-center gap-1.5">
             <Video size={14} /> Sala en directo
           </p>
           <p className="text-[15px] font-semibold text-gray-900 mt-1 flex items-center gap-2">
@@ -337,7 +337,7 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
         </div>
         <Link
           href={rutaSala(curso)}
-          className="shrink-0 inline-flex items-center justify-center gap-2 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold py-2.5 px-4 rounded-lg text-[14px]"
+          className="shrink-0 inline-flex items-center justify-center gap-2 bg-[#0b2da0] hover:bg-[#0a2690] text-white font-bold py-2.5 px-4 rounded-lg text-[14px]"
         >
           <Video size={16} strokeWidth={2.5} /> Entrar a la sala
         </Link>
