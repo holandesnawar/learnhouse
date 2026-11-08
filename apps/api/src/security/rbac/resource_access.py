@@ -837,6 +837,16 @@ class ResourceAccessChecker:
                     )
                 ).scalars().first()
                 resultado = rol in STAFF_ROLE_IDS
+                if not resultado and not escribir:
+                    # Nawar (08/11/2026): el closer ve (solo ve) las clases
+                    # en directo del programa nuevo: la masterclass y el
+                    # Spreekclub. Escribir, nunca.
+                    from src.security.rbac.constants import CLOSER_ROLE_ID
+
+                    if rol == CLOSER_ROLE_ID:
+                        from src.services.panel.tandas import clases_del_closer_de
+
+                        resultado = resource_uuid in await clases_del_closer_de(curso.org_id, self.db_session)
                 if resultado and escribir:
                     from src.services.salas.salas import es_clase_en_directo
 

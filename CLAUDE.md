@@ -4246,6 +4246,15 @@ el recibo de Stripe y no podría entrar), la comunidad **separada del todo** y
   `aviso_repetido`). Se arregla en el Acceso del curso (quitar «Beta» y dejar
   su grupo), con cuidado de no dejar sin clase a quien solo está en Beta.
   Tests en `test_tandas.py`.
+- **Los closers ven la Masterclass y el Spreekclub** (08/11/2026, "que los
+  closers vean el apartado de masterclass y spreken club"): solo VER, en su
+  barra de la escuela, las clases en directo abiertas al grupo «Programa
+  nuevo» (`clases_del_closer` en `tandas.py`, test en `test_tandas.py`): lo
+  mismo que ve un alumno nuevo, para saber lo que vende. Sale en la lista de
+  cursos (`get_courses_orgslug`) y en la regla de leer
+  (`_equipo_en_curso`, solo con `escribir=False`). La formación y las clases
+  semanales de la beta, no. No se les mete en el grupo (saldrían como alumnos
+  en Seguimiento y en los avisos). Pueden entrar a la sala si está encendida.
 - **Para mirar quién ve qué con los datos reales** sin entrar en producción:
   la prueba de restauración (`db-restore-test.yaml`, Actions → Run workflow)
   imprime cada curso con sus grupos y autores (por rol), cuántas cuentas de
