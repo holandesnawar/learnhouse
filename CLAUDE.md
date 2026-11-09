@@ -5123,6 +5123,32 @@ tarjeta por CADA clase a la vez (`TarjetaPreparar`, ya sin usar).
 - Iconos (usuario: "no me convencen victorias, bienvenida, presentaciones"):
   Bienvenida `Compass`, Presentaciones `UserCircle`, Victorias `Star`.
 
+### «Clases anteriores» más limpio, tareas de antes de entrar y «Nueva sesión» (10/11/2026)
+- **Quien entra hoy no ve «Sin entregar»** en las semanas de antes: el servidor
+  da a esas tareas el estado `antes-de-entrar` (`estado_para_alumno` en
+  `services/tareas/tareas.py`: plazo anterior al día en que entró,
+  `_dia_de_entrada` = `user_organization.creation_date` en hora NL; si la
+  entregó igual, cuenta). La línea sale con «Ver» y, dentro, «Era de antes de
+  que entraras: puedes hacerla si quieres». Test en `test_tareas.py`.
+- «Clases anteriores» (usuario: "el mes en bold, «Sin entregar» no… menos
+  cosas que hagan verlo IA"): el día en texto («2 nov»), sin la ficha de
+  calendario; el mes en texto normal gris, sin mayúsculas; un solo estado por
+  línea y todos con el mismo peso («Tarea corregida/entregada/sin entregar»,
+  «Vista» o «Ver»).
+- **«Nueva sesión» en la Masterclass y el Spreekclub** (usuario: "crear una
+  semana sin crear semana"): en esas clases (`tipoDeClase` ≠ semanal) el
+  botón y la ventana (`NuevaSemana` con `sencilla`) piden solo tema, día y,
+  si se quiere, la presentación. Sin ejercicios ni tarea. Por dentro es la
+  misma semana (capítulo + `tarea_semana`).
+- **Los closers ven la comunidad del programa nuevo** (usuario: "que los
+  closers vean la masterclass, el spreken club y el chat de la comunidad,
+  para enseñarlo"): `programa_del_closer` en `services/panel/tandas.py`; la
+  lista de canales, abrirlos (`_check_usergroup_membership`), la campana y los
+  «sin leer» los tratan como del grupo «Programa nuevo». **Solo miran**:
+  `closer_solo_mira` les da 403 al publicar y al comentar en esos canales. La
+  Masterclass y el Spreekclub ya los veían desde el 08/11
+  (`clases_del_closer`). Test en `test_tandas.py`.
+
 ## Rediseño estilo Circle: la escuela de pruebas y la rama `diseno` (07/11/2026)
 Pedido: "una versión no pública de la escuela para hacer cambios de diseño…
 estilo Circle… que se vea profesional de verdad y no IA". **Todo esto vive en

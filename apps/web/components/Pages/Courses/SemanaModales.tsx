@@ -134,6 +134,7 @@ export function NuevaSemana({
   orgslug,
   ultima,
   hermanas = [],
+  sencilla = false,
   onClose,
   onCreada,
 }: {
@@ -141,6 +142,10 @@ export function NuevaSemana({
   curso: any
   orgslug: string
   ultima: Semana | null
+  /** La Masterclass y el Spreekclub (10/11/2026, "crear una semana sin crear
+   *  semana"): solo tema, día y, si se quiere, la presentación. Sin ejercicios
+   *  ni tarea, y se llama «sesión». Por dentro es la misma semana de siempre. */
+  sencilla?: boolean
   /** La otra clase con el mismo nombre (el otro grupo): la semana se puede crear en las dos (06/11/2026). */
   hermanas?: Hermana[]
   onClose: () => void
@@ -159,8 +164,9 @@ export function NuevaSemana({
   const [enunciado, setEnunciado] = useState('')
   const [limite, setLimite] = useState('')
   const [avisarP, setAvisarP] = useState(true)
-  const [avisarG, setAvisarG] = useState(true)
+  const [avisarG, setAvisarG] = useState(!sencilla)
   const [paso, setPaso] = useState('')
+  const que = sencilla ? 'sesión' : 'semana'
   // En la otra clase, de serie sí (el mismo tema), con su día en la misma semana.
   const [enOtras, setEnOtras] = useState<Record<string, boolean>>(() => Object.fromEntries(hermanas.map((h) => [h.course_uuid, true])))
   const [diaOtras, setDiaOtras] = useState<Record<string, string>>({})
@@ -228,7 +234,7 @@ export function NuevaSemana({
   }
 
   async function crear() {
-    if (!tema.trim()) return toast.error('Ponle un tema a la semana')
+    if (!tema.trim()) return toast.error(`Ponle un tema a la ${que}`)
     if (!fecha) return toast.error('Falta el día de la clase')
     if (pdf && !/\.pdf$/i.test(pdf.name)) return toast.error('La presentación tiene que ser un PDF')
     const otras = hermanas.filter((h) => enOtras[h.course_uuid])
@@ -246,10 +252,10 @@ export function NuevaSemana({
       }
       revalidateTags(['courses'], orgslug).catch(() => {})
       router.refresh()
-      toast.success(otras.length ? `Semana creada en ${otras.length + 1} clases` : 'Semana creada')
+      toast.success(otras.length ? `Creada en ${otras.length + 1} clases` : sencilla ? 'Sesión creada' : 'Semana creada')
       onCreada()
     } catch (e: any) {
-      toast.error(e?.message || 'No se pudo crear la semana')
+      toast.error(e?.message || `No se pudo crear la ${que}`)
       if (hecha) onCreada()
     } finally {
       setPaso('')
@@ -257,7 +263,7 @@ export function NuevaSemana({
   }
 
   return (
-    <Ventana titulo="Nueva semana" onClose={paso ? () => {} : onClose}>
+    <Ventana titulo={sencilla ? 'Nueva sesión' : 'Nueva semana'} onClose={paso ? () => {} : onClose}>
       <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_170px] gap-3">
           <div>
@@ -278,9 +284,11 @@ export function NuevaSemana({
             onChange={(e) => setPdf(e.target.files?.[0] || null)}
             className="block w-full text-[13px] text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-[#F0F5FF] file:px-3 file:py-2 file:text-[13px] file:font-semibold file:text-[#0b2da0]"
           />
-          <p className="mt-1 text-[12px] text-[#6B7280]">Los alumnos la ven en cuanto creas la semana: súbela antes de la clase.</p>
+          <p className="mt-1 text-[12px] text-[#6B7280]">Los alumnos la ven en cuanto creas la {que}: súbela antes de la clase.</p>
         </div>
 
+        {sencilla ? null : (
+        <>
         <div>
           <label className={ETIQUETA}>Ejercicios de la escuela (opcional)</label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -323,6 +331,8 @@ export function NuevaSemana({
             <span className="text-[12px] text-[#9CA3AF]">{limite ? '' : 'Vacío = el domingo'}</span>
           </div>
         </div>
+        </>
+        )}
 
         <CasillasCampana
           presentacion={avisarP}
@@ -373,6 +383,8 @@ export function NuevaSemana({
             <>
               <Loader2 size={16} className="animate-spin" /> {paso}
             </>
+          ) : sencilla ? (
+            'Crear la sesión'
           ) : (
             'Crear semana'
           )}

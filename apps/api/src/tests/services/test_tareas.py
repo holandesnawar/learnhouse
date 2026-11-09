@@ -387,3 +387,17 @@ def test_la_ruta_de_las_notas_de_voz_no_sale_de_su_carpeta():
     assert T.ruta_segura("privado/tareas/../../etc/passwd") is None
     assert T.ruta_segura("/etc/passwd") is None
     assert TareaEntrega().estado == "entregada"
+
+
+def test_una_tarea_de_antes_de_entrar_no_sale_sin_entregar():
+    """10/11/2026: quien entra hoy no ve «Sin entregar» en las semanas de antes."""
+    from src.services.tareas.tareas import estado_para_alumno
+
+    assert estado_para_alumno(True, None, "2026-11-01", "2026-11-10") == "antes-de-entrar"
+    # El plazo sigue abierto el día que entra: le toca.
+    assert estado_para_alumno(True, None, "2026-11-10", "2026-11-10") == "pendiente"
+    # La entregó igual: cuenta.
+    assert estado_para_alumno(True, {"estado": "entregada"}, "2026-11-01", "2026-11-10") == "entregada"
+    assert estado_para_alumno(False, None, "2026-11-01", "2026-11-10") == "sin-tarea"
+    # Sin fecha de entrada, como siempre.
+    assert estado_para_alumno(True, None, "2026-11-01", "") == "pendiente"

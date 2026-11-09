@@ -6,7 +6,7 @@
 import { getAPIUrl } from '@services/config/config'
 
 export type TipoClase = 'presentacion' | 'grabacion' | 'ejercicios' | 'otra'
-export type EstadoTarea = 'sin-tarea' | 'pendiente' | 'entregada' | 'corregida'
+export type EstadoTarea = 'sin-tarea' | 'pendiente' | 'entregada' | 'corregida' | 'antes-de-entrar'
 
 export interface ClaseSemana {
   activity_uuid: string

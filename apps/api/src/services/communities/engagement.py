@@ -285,6 +285,13 @@ async def _canales_que_ve(user_id: int, org_ids: List[int], db_session: AsyncSes
             await db_session.execute(select(UserGroupUser.usergroup_id).where(UserGroupUser.user_id == user_id))
         ).scalars().all()
     )
+    # Nawar (10/11/2026): el closer ve los canales del programa nuevo.
+    from src.services.panel.tandas import programa_del_closer
+
+    for oid in org_ids:
+        programa = await programa_del_closer(user_id, oid, db_session)
+        if programa:
+            mis_grupos.add(programa)
     grupos_de: dict = {}
     for uuid, gid in (
         await db_session.execute(

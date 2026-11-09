@@ -209,6 +209,18 @@ def estado_entrega(tiene_tarea: bool, entrega: Optional[dict]) -> str:
     return "corregida" if entrega.get("estado") == "corregida" else "entregada"
 
 
+def estado_para_alumno(tiene_tarea: bool, entrega: Optional[dict], limite: str, entro: str) -> str:
+    """Como `estado_entrega`, pero una tarea cuyo plazo acabó ANTES de que el
+    alumno entrara en la escuela es «antes-de-entrar», no «pendiente»
+    (10/11/2026, usuario: "si alguien entra nuevo le sale «Sin entregar»"). Si
+    la entregó igual, se cuenta. `entro` y `limite` en AAAA-MM-DD; sin fecha de
+    entrada, como siempre. Pura."""
+    estado = estado_entrega(tiene_tarea, entrega)
+    if estado == "pendiente" and entro and limite and limite[:10] < entro[:10]:
+        return "antes-de-entrar"
+    return estado
+
+
 def racha(semanas: Iterable[bool]) -> dict:
     """Las semanas YA CERRADAS de un alumno, la más reciente primero: True si
     hizo algo (presentación, ejercicios, clase o tarea). Cuántas seguidas lleva
@@ -610,6 +622,26 @@ async def _sueltas(course: Course, de_semanas: set[str], db_session: AsyncSessio
 # ── El alumno ───────────────────────────────────────────────────────────────
 
 
+async def _dia_de_entrada(user_id: int, org_id: int, db_session: AsyncSession) -> str:
+    """El día (AAAA-MM-DD, hora de Países Bajos) en que entró en la escuela; ""
+    si no se sabe."""
+    try:
+        from src.db.user_organizations import UserOrganization
+        from src.services.panel.tandas import dia_nl
+
+        fecha = (
+            await db_session.execute(
+                select(UserOrganization.creation_date).where(
+                    UserOrganization.user_id == user_id, UserOrganization.org_id == org_id
+                )
+            )
+        ).scalars().first()
+        return dia_nl(fecha) if fecha else ""
+    except Exception:  # noqa: BLE001
+        logger.exception("No se pudo leer cuándo entró")
+        return ""
+
+
 async def semanas_para_alumno(
     course: Course, user_id: int, db_session: AsyncSession, equipo: bool = False, con_archivo: bool = False
 ) -> dict:
@@ -630,6 +662,7 @@ async def semanas_para_alumno(
     ids = [c["id"] for lista in clases.values() for c in lista] + [c["id"] for c in sueltas]
     hechas = (await _hechas(course.id or 0, [user_id], ids, db_session)).get(user_id, set())
     suyas = {e.tarea_id: e for e in await _entregas([s["id"] for s in semanas], db_session, [user_id])}
+    entro = "" if equipo else await _dia_de_entrada(user_id, course.org_id, db_session)
     for s in semanas:
         s["abierta"] = abierta(s["fecha"], hoy)
         s["ocultas"] = 0
@@ -639,7 +672,7 @@ async def semanas_para_alumno(
         ]
         e = _entrega_dict(suyas.get(s["id"]))
         s["tarea"] = {
-            "estado": estado_entrega(s["tiene_tarea"], e),
+            "estado": estado_entrega(s["tiene_tarea"], e) if equipo else estado_para_alumno(s["tiene_tarea"], e, s.get("limite", ""), entro),
             "corregida_at": (e or {}).get("corregida_at", ""),
             "vista": bool((e or {}).get("vista_at")),
         }
