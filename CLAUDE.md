@@ -5401,6 +5401,10 @@ la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
   entero: el servidor lo reemplaza) y en el navegador. Subir `VERSION_VISITA`
   hace que todos la vuelvan a ver. «Visita por la escuela» en el menú del
   perfil la abre a cualquiera. En «Ver como» no sale sola. Esc / flechas.
+  **En el móvil (10/11)**: los pasos de la barra ABREN el menú ☰ de verdad
+  (`onMenu` = `setAbierta` de `OrgSidebar`) y señalan la parte dentro,
+  subiéndola arriba del menú; si no se puede subir más (Comunidad, Ayuda), la
+  tarjeta pasa arriba de la pantalla. Al cerrar la visita, el menú se cierra.
 - **v13 (09/11): sala de profes para preparar la clase y presentaciones a
   tablón.**
   - **Mis clases ya no va por semana de calendario** ("la siguiente clase no
