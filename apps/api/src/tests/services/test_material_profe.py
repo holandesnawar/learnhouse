@@ -72,3 +72,11 @@ def test_quien_da_la_semana_y_el_mensaje_del_administrador():
     assert MP.para_la_pantalla(vuelta)["mensaje"]["por"] == "Rida"
     with pytest.raises(MP.TareaError):
         MP.leido(MP.leer(""), "Luna")
+
+
+def test_el_mensaje_es_para_quien_da_la_clase():
+    assert MP.es_para("Paul y Luna", "Luna")
+    assert MP.es_para("Paul", "Paúl Plaat")
+    assert not MP.es_para("Paul", "Luna")
+    assert not MP.es_para("", "Luna")
+    assert not MP.es_para("Paul", "")

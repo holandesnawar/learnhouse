@@ -76,19 +76,19 @@ def test_juntar_contenido():
 
     a = json.dumps({"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Hoi!"}]}]})
     b = json.dumps({"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Ik ben Ana en ik woon in Utrecht."}]}], "attachments": [{"url": "/foto.jpg", "kind": "image"}]})
-    contenido, titulo = juntar_contenido(a, b, "Hoi!", "Ik ben Ana en ik woon in Utrecht.")
-    d = json.loads(contenido)
+    d = json.loads(juntar_contenido(a, b, "Ik ben Ana"))
     assert [p["content"][0]["text"] for p in d["content"]] == ["Hoi!", "Ik ben Ana en ik woon in Utrecht."]
     assert d["attachments"] == [{"url": "/foto.jpg", "kind": "image"}]
-    # La de arriba era solo un saludo: manda el título de la de abajo.
-    assert titulo == "Ik ben Ana en ik woon in Utrecht."
-    # Con texto de verdad arriba, se queda su título.
-    largo = json.dumps({"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Hola a todos, soy Ana, de Sevilla, y llevo dos años aquí."}]}]})
-    assert juntar_contenido(largo, b, "Hola a todos", "Ik ben Ana")[1] == "Hola a todos"
+    # Con el orden al revés, lo de abajo va primero: el orden lo elige el administrador.
+    d2 = json.loads(juntar_contenido(b, a, "x"))
+    assert d2["content"][0]["content"][0]["text"].startswith("Ik ben Ana")
 
 
-async def test_juntar_con_la_anterior(db, org, monkeypatch):
+async def test_juntar_dos_elegidas(db, org, monkeypatch):
     import json
+
+    import pytest
+    from fastapi import HTTPException
 
     import src.security.rbac as rbac
     from src.db.communities.discussion_comments import DiscussionComment
@@ -106,22 +106,33 @@ async def test_juntar_con_la_anterior(db, org, monkeypatch):
         ("discussion_a", 1, "Hoi", doc("Hoi"), "2026-10-01 10:00:00"),
         ("discussion_b", 1, "Ik ben Ana", doc("Ik ben Ana"), "2026-10-01 10:01:00"),
         ("discussion_otro", 2, "Ik ben Piet", doc("Ik ben Piet"), "2026-10-01 10:00:30"),
-        ("discussion_r", 2, "Welkom!", doc("Welkom!", threadParent="discussion_b"), "2026-10-01 11:00:00"),
+        ("discussion_r", 2, "Welkom!", doc("Welkom!", threadParent="discussion_a"), "2026-10-01 11:00:00"),
     ]
     for uuid, autor, t, c, f in filas:
         db.add(Discussion(title=t, content=c, community_id=p.id, org_id=1, author_id=autor, discussion_uuid=uuid, creation_date=f, update_date=f))
     await db.commit()
-    b = (await db.execute(select(Discussion).where(Discussion.discussion_uuid == "discussion_b"))).scalars().first()
-    db.add(DiscussionComment(discussion_id=b.id, author_id=2, content="Leuk!", comment_uuid="c1", creation_date="x", update_date="x"))
-    await db.commit()
-
-    r = await J.juntar_con_la_anterior(None, "discussion_b", type("U", (), {"id": 9})(), db)
-    assert r == {"discussion_uuid": "discussion_a", "title": "Ik ben Ana"}
-    uuids = {d.discussion_uuid for d in (await db.execute(select(Discussion))).scalars().all()}
-    assert uuids == {"discussion_a", "discussion_otro", "discussion_r"}
     a = (await db.execute(select(Discussion).where(Discussion.discussion_uuid == "discussion_a"))).scalars().first()
-    assert "Ik ben Ana" in a.content and "Hoi" in a.content
+    db.add(DiscussionComment(discussion_id=a.id, author_id=2, content="Leuk!", comment_uuid="c1", creation_date="x", update_date="x"))
+    await db.commit()
+    yo = type("U", (), {"id": 9})()
+
+    # De dos personas distintas, no; la misma dos veces, tampoco; sin título, tampoco.
+    with pytest.raises(HTTPException):
+        await J.juntar(None, "discussion_a", "discussion_otro", "x y", yo, db)
+    with pytest.raises(HTTPException):
+        await J.juntar(None, "discussion_a", "discussion_a", "x y", yo, db)
+    with pytest.raises(HTTPException):
+        await J.juntar(None, "discussion_b", "discussion_a", " ", yo, db)
+
+    # Arriba la de «Ik ben Ana» (la más nueva), debajo el «Hoi», con el título elegido.
+    r = await J.juntar(None, "discussion_b", "discussion_a", "  Ik ben   Ana ", yo, db)
+    assert r == {"discussion_uuid": "discussion_b", "title": "Ik ben Ana"}
+    uuids = {d.discussion_uuid for d in (await db.execute(select(Discussion))).scalars().all()}
+    assert uuids == {"discussion_b", "discussion_otro", "discussion_r"}
+    b = (await db.execute(select(Discussion).where(Discussion.discussion_uuid == "discussion_b"))).scalars().first()
+    textos = [x["content"][0]["text"] for x in json.loads(b.content)["content"]]
+    assert textos == ["Ik ben Ana", "Hoi"]
     com = (await db.execute(select(DiscussionComment))).scalars().first()
-    assert com.discussion_id == a.id
+    assert com.discussion_id == b.id
     resp = (await db.execute(select(Discussion).where(Discussion.discussion_uuid == "discussion_r"))).scalars().first()
-    assert json.loads(resp.content)["threadParent"] == "discussion_a"
+    assert json.loads(resp.content)["threadParent"] == "discussion_b"

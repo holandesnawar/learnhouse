@@ -43,6 +43,7 @@ import { haceCuanto } from '@/lib/nawar/haceCuanto'
 import VoiceRecorder from '@components/Pages/Messages/VoiceRecorder'
 import ComposerButton from './ComposerButton'
 import ConfirmDialog from './ConfirmDialog'
+import JuntarPublicaciones, { type Pieza } from './JuntarPublicaciones'
 import { QUICK_EMOJIS } from '@/lib/chat/emojis'
 import {
   avisaATodos,
@@ -142,7 +143,12 @@ export default function ChannelPosts({
 }) {
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
-  const { isStaff } = (useAdminStatus() as any) || {}
+  const { isStaff, isAdmin } = (useAdminStatus() as any) || {}
+  // Juntar dos publicaciones (administradores): se eligen aquí y se ve el
+  // resultado en una ventana antes de juntar (JuntarPublicaciones.tsx).
+  const [eligiendo, setEligiendo] = useState(false)
+  const [elegidas, setElegidas] = useState<string[]>([])
+  const [verJuntar, setVerJuntar] = useState(false)
   // Qué post espera confirmación para borrarse.
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -252,6 +258,18 @@ export default function ChannelPosts({
             ? 'Todavía no hay ninguna publicación.'
             : `${publicaciones.length} ${publicaciones.length === 1 ? 'publicación' : 'publicaciones'}`}
         </p>
+        <div className="flex items-center gap-2">
+        {isAdmin && publicaciones.length > 1 && !eligiendo ? (
+          <button
+            onClick={() => {
+              setElegidas([])
+              setEligiendo(true)
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-[#DDE3EF] bg-white text-sm font-semibold text-[#3B4262] hover:border-[#0b2da0] hover:text-[#0b2da0] transition-colors"
+          >
+            Juntar dos
+          </button>
+        ) : null}
         {accessToken && (
           <button
             onClick={() => setComposing(true)}
@@ -262,7 +280,33 @@ export default function ChannelPosts({
             <Plus size={16} /> Publicar
           </button>
         )}
+        </div>
       </div>
+
+      {eligiendo ? (
+        <div className="sticky top-16 z-10 mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-[#0b2da0]/25 bg-[#F3F6FE] px-4 py-3">
+          <p className="min-w-0 flex-1 text-[13.5px] text-[#0B1033]">
+            <span className="font-semibold">Elige las dos publicaciones</span> que quieres juntar (de la misma persona) ·{' '}
+            {elegidas.length} de 2
+          </p>
+          <button
+            onClick={() => {
+              setEligiendo(false)
+              setElegidas([])
+            }}
+            className="h-9 px-3 rounded-lg border border-[#DDE3EF] bg-white text-[13px] font-semibold text-[#3B4262]"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={() => setVerJuntar(true)}
+            disabled={elegidas.length !== 2}
+            className="h-9 px-3.5 rounded-lg bg-[#0b2da0] text-white text-[13px] font-semibold disabled:opacity-50"
+          >
+            Ver cómo queda
+          </button>
+        </div>
+      ) : null}
 
       {isLoading && discussions.length === 0 ? (
         <div className="flex justify-center py-16">
@@ -295,11 +339,41 @@ export default function ChannelPosts({
               `/community/${communityUuid.replace('community_', '')}` +
                 `/discussion/${d.discussion_uuid.replace('discussion_', '')}`
             )
+            const elegida = elegidas.includes(d.discussion_uuid)
+            const autorElegido = elegidas.length
+              ? (publicaciones.find((x) => x.discussion_uuid === elegidas[0])?.author as any)?.id
+              : null
+            const deOtra = eligiendo && !elegida && autorElegido != null && (d.author as any)?.id !== autorElegido
+            const llena = eligiendo && !elegida && elegidas.length >= 2
             return (
               <article
                 key={d.discussion_uuid}
-                className="group rounded-2xl border border-[#E4E8F2] bg-white overflow-hidden hover:border-[#C9D4EC] transition-colors"
+                className={`group relative rounded-2xl border bg-white overflow-hidden transition-colors ${
+                  elegida ? 'border-[#0b2da0] ring-2 ring-[#0b2da0]/25' : 'border-[#E4E8F2] hover:border-[#C9D4EC]'
+                } ${deOtra || llena ? 'opacity-45' : ''}`}
               >
+                {eligiendo ? (
+                  <button
+                    type="button"
+                    disabled={deOtra || llena}
+                    onClick={() =>
+                      setElegidas((xs) =>
+                        xs.includes(d.discussion_uuid) ? xs.filter((x) => x !== d.discussion_uuid) : [...xs, d.discussion_uuid].slice(-2)
+                      )
+                    }
+                    aria-label={elegida ? 'Quitar de las elegidas' : 'Elegir para juntar'}
+                    title={deOtra ? 'Es de otra persona' : undefined}
+                    className="absolute inset-0 z-10 flex items-start justify-end p-3 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    <span
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-[12px] font-bold ${
+                        elegida ? 'border-[#0b2da0] bg-[#0b2da0] text-white' : 'border-[#AEB9D3] bg-white'
+                      }`}
+                    >
+                      {elegida ? elegidas.indexOf(d.discussion_uuid) + 1 : ''}
+                    </span>
+                  </button>
+                ) : null}
                 <div className="p-4 sm:p-5">
                   <div className="flex items-center gap-2.5 mb-2.5">
                     <AvatarPersona
@@ -406,6 +480,26 @@ export default function ChannelPosts({
         </div>
       )}
 
+      {verJuntar && elegidas.length === 2 && accessToken ? (
+        <JuntarPublicaciones
+          dos={
+            elegidas.map((u) => {
+              const d = publicaciones.find((x) => x.discussion_uuid === u) as DiscussionWithAuthor
+              return { d, texto: sinTituloRepetido(d.title, bodyOf(d)), fotos: attachmentsOf(d).length } as Pieza
+            }) as [Pieza, Pieza]
+          }
+          autor={authorName(publicaciones.find((x) => x.discussion_uuid === elegidas[0]) as DiscussionWithAuthor)}
+          token={accessToken}
+          onCerrar={() => setVerJuntar(false)}
+          onHecho={() => {
+            setVerJuntar(false)
+            setEligiendo(false)
+            setElegidas([])
+            mutateDiscussions(communityUuid)
+          }}
+        />
+      ) : null}
+
       {composing && (
         <PostComposer
           communityUuid={communityUuid}
@@ -445,6 +539,9 @@ function PostComposer({
   onClose: () => void
   onPublished: () => void
 }) {
+  // En el canal de presentaciones, que se presenten en UNA publicación
+  // (09/11/2026: algunos ponían «Hoi» en una y el resto en otra).
+  const esPresentacion = /presenta/.test((channelName || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase())
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
   const [title, setTitle] = useState('')
@@ -585,10 +682,15 @@ function PostComposer({
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4">
+          {esPresentacion ? (
+            <p className="mb-3 rounded-lg bg-[#F3F6FE] px-3 py-2 text-[13px] leading-relaxed text-[#2B3150]">
+              Cuéntalo todo en <b>una sola publicación</b>: cómo te llamas, de dónde eres, dónde vives y por qué aprendes neerlandés. Si quieres, añade una foto o una nota de voz.
+            </p>
+          ) : null}
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Título"
+            placeholder={esPresentacion ? 'Ej.: Hola, soy Ana, de Sevilla' : 'Título'}
             autoFocus
             className="w-full text-[19px] font-bold text-gray-900 placeholder:text-[#C6D2E6] outline-none"
             style={{
@@ -602,7 +704,7 @@ function PostComposer({
             onChange={(e) => escribirCuerpo(e.target.value, e.target.selectionStart)}
             onBlur={() => setTimeout(() => setMencion(null), 150)}
             rows={6}
-            placeholder="Cuenta lo que quieras…"
+            placeholder={esPresentacion ? 'Ej.: Vivo en Utrecht desde hace un año, trabajo en un hotel y quiero hablar con mis vecinos…' : 'Cuenta lo que quieras…'}
             className="w-full mt-2 resize-none text-[15px] text-[#3F4A61] leading-relaxed placeholder:text-[#9CA3AF] outline-none"
           />
 

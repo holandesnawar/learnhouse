@@ -7,13 +7,18 @@ ahora queda como dos posts diferentes".
 
 Pasa sobre todo con lo que venía del chat (presentaciones_posts.py): en un
 chat se escribe en varios mensajes seguidos, y en un tablón cada uno es una
-publicación. «Juntar con la anterior» (solo administradores) coge una
-publicación y la pega debajo de la anterior de la MISMA persona en el MISMO
-canal:
+publicación.
 
-- El texto de las dos, una detrás de otra, y las fotos y audios de las dos.
-- El título: el de la de arriba, salvo que la de arriba sea solo un saludo
-  (menos de 40 letras), que entonces se queda el de la de abajo.
+09/11/2026, segunda vuelta ("no quedó bien… no sé cuál iba en título y cuál
+de subtítulo… mejor elegir un post y otro y poder juntar dos"): el
+administrador ELIGE las dos en el tablón, ve cuál va arriba (puede darles la
+vuelta) y escribe o elige el título. Nada se adivina:
+
+- Solo dos publicaciones de la MISMA persona en el MISMO canal (juntar las de
+  dos personas pondría lo de una a nombre de otra).
+- Se queda la de ARRIBA (su fecha, sus «me gusta»), con su texto primero y el
+  de la de abajo después; las fotos y audios de las dos.
+- El título es el que se elige en la pantalla.
 - Los comentarios de la de abajo pasan a la de arriba; las respuestas en hilo
   del chat (`threadParent`) también. Los «me gusta» y reacciones de la de
   abajo se pierden (son de un mensaje que ya no existe).
@@ -28,9 +33,6 @@ from typing import Any
 from fastapi import HTTPException, Request
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
-_SALUDO = 40
-
 
 def _doc(content: Any) -> dict:
     if isinstance(content, dict):
@@ -62,8 +64,9 @@ def texto_plano(doc: dict) -> str:
     return " ".join(" ".join(partes).split())
 
 
-def juntar_contenido(a_content: Any, b_content: Any, a_titulo: str, b_titulo: str) -> tuple[str, str]:
-    """(contenido, título) de la publicación juntada. Función pura, con test."""
+def juntar_contenido(a_content: Any, b_content: Any, titulo: str) -> str:
+    """El contenido de la publicación juntada: la de arriba (a) y debajo la de
+    abajo (b), con las fotos y audios de las dos. Función pura, con test."""
     a, b = _doc(a_content), _doc(b_content)
     nuevo = {k: v for k, v in a.items() if k not in ("content", "attachments", "threadParent")}
     nuevo["type"] = a.get("type") or "doc"
@@ -73,17 +76,23 @@ def juntar_contenido(a_content: Any, b_content: Any, a_titulo: str, b_titulo: st
     ]
     if adjuntos:
         nuevo["attachments"] = adjuntos
-    titulo = a_titulo or b_titulo
-    if len(texto_plano(a)) < _SALUDO and (b_titulo or "").strip():
-        titulo = b_titulo
-    return json.dumps(nuevo, ensure_ascii=False), (titulo or "")[:200]
+    return json.dumps(nuevo, ensure_ascii=False)
+
+
+def titulo_valido(titulo: str) -> str:
+    t = " ".join((titulo or "").split())
+    if len(t) < 2:
+        raise HTTPException(status_code=400, detail="Escribe el título de la publicación")
+    return t[:200]
 
 
 def _es_respuesta(content: Any) -> bool:
     return bool(_doc(content).get("threadParent"))
 
 
-async def juntar_con_la_anterior(request: Request, discussion_uuid: str, current_user, db_session: AsyncSession) -> dict:
+async def juntar(
+    request: Request, arriba_uuid: str, abajo_uuid: str, titulo: str, current_user, db_session: AsyncSession
+) -> dict:
     from src.db.communities.communities import Community
     from src.db.communities.discussion_comments import DiscussionComment
     from src.db.communities.discussions import Discussion
@@ -91,31 +100,28 @@ async def juntar_con_la_anterior(request: Request, discussion_uuid: str, current
     from src.security.rbac import authorization_verify_based_on_org_admin_status
     from src.services.communities.discussions import _delete_discussion_children
 
+    if not arriba_uuid or arriba_uuid == abajo_uuid:
+        raise HTTPException(status_code=400, detail="Elige dos publicaciones distintas")
+    titulo = titulo_valido(titulo)
     yo = resolve_acting_user_id(current_user)
-    b = (await db_session.execute(select(Discussion).where(Discussion.discussion_uuid == discussion_uuid))).scalars().first()
-    if not b:
-        raise HTTPException(status_code=404, detail="Esa publicación ya no está")
-    canal = (await db_session.execute(select(Community).where(Community.id == b.community_id))).scalars().first()
+    a = (await db_session.execute(select(Discussion).where(Discussion.discussion_uuid == arriba_uuid))).scalars().first()
+    b = (await db_session.execute(select(Discussion).where(Discussion.discussion_uuid == abajo_uuid))).scalars().first()
+    if not a or not b:
+        raise HTTPException(status_code=404, detail="Alguna de las dos ya no está")
+    if a.community_id != b.community_id:
+        raise HTTPException(status_code=409, detail="Las dos tienen que ser del mismo canal")
+    if a.author_id != b.author_id:
+        raise HTTPException(status_code=409, detail="Las dos tienen que ser de la misma persona")
+    if _es_respuesta(a.content) or _es_respuesta(b.content):
+        raise HTTPException(status_code=409, detail="Una de las dos es una respuesta, no una publicación")
+    canal = (await db_session.execute(select(Community).where(Community.id == a.community_id))).scalars().first()
     if not canal:
         raise HTTPException(status_code=404, detail="Canal no encontrado")
     if not await authorization_verify_based_on_org_admin_status(request, yo, "update", canal.community_uuid, db_session):
         raise HTTPException(status_code=403, detail="Solo un administrador puede juntar publicaciones")
 
-    candidatas = (
-        await db_session.execute(
-            select(Discussion).where(
-                Discussion.community_id == b.community_id,
-                Discussion.author_id == b.author_id,
-                Discussion.id != b.id,
-            )
-        )
-    ).scalars().all()
-    anteriores = [d for d in candidatas if (d.creation_date or "") <= (b.creation_date or "") and not _es_respuesta(d.content)]
-    if not anteriores:
-        raise HTTPException(status_code=409, detail="No hay ninguna publicación anterior de esta persona en este canal")
-    a = max(anteriores, key=lambda d: d.creation_date or "")
-
-    a.content, a.title = juntar_contenido(a.content, b.content, a.title, b.title)
+    a.content = juntar_contenido(a.content, b.content, titulo)
+    a.title = titulo
     db_session.add(a)
 
     # Los comentarios de la de abajo, a la de arriba.
