@@ -32,7 +32,7 @@ import { mediaSrc } from '@services/messages/direct'
 import { getSalaProfes, type DocManual, type Miembro } from '@services/equipo/equipo'
 import { PasarLista } from '@components/Pages/Profes/ListaYGrupo'
 import { esDe } from '@/lib/nawar/clasesProfes'
-import { paraPreparar, type SemanaEquipo } from '@/lib/nawar/salaProfes'
+import { lasMias, paraPreparar, type SemanaEquipo } from '@/lib/nawar/salaProfes'
 import TarjetaPreparar, { EditarSemanaProfe } from './PrepararClase'
 import useClasesEquipo, { type ClaseEquipo } from './useClasesEquipo'
 import ArchivoClases from './ArchivoClases'
@@ -64,12 +64,10 @@ function MisClases({
   recargar: () => void
   token: string
 }) {
-  const mias = clases.filter((c) => esDe(c.profe, miNombre))
-  // El profe ve las suyas; si no tiene ninguna a su nombre (o es administrador o
-  // monitor), todas las que le tocan ver.
+  // Cada profe ve lo que tiene asignado (09/11/2026): la clase en la que es
+  // «La da» o la semana que le han puesto a él (la masterclass). El
+  // administrador y el monitor, todo lo suyo.
   const [todas, setTodas] = useState(false)
-  const soloMias = !admin && !monitor && mias.length > 0 && !todas
-  const visibles = soloMias ? mias : clases
   const [lista, setLista] = useState<SemanaEquipo | null>(null)
   const [editar, setEditar] = useState<SemanaEquipo | null>(null)
 
@@ -77,23 +75,32 @@ function MisClases({
   if (!clases.length)
     return (
       <div className={`${TARJETA} px-5 py-6 text-[14.5px] text-[#3B4262]`}>
-        Todavía no hay clases en directo{monitor ? ' del Spreekclub' : ''}.
+        Todavía no hay clases en directo{monitor ? ' del Spreekclub ni Masterclass' : ''}.
       </div>
     )
-  const filas = paraPreparar(visibles, semanas, hoy)
+  const todasLasFilas = paraPreparar(clases, semanas, hoy)
+  const misFilas = lasMias(todasLasFilas, (p) => esDe(p, miNombre))
+  const filtra = !admin && !monitor
+  const filas = filtra && !todas ? misFilas : todasLasFilas
 
   return (
     <div className="space-y-4">
-      {!admin && !monitor && mias.length === 0 ? (
-        <p className="text-[13.5px] text-[#5B6382]">
-          Ninguna clase lleva tu nombre en «La da», así que ves todas. Pide que te pongan en tus clases.
-        </p>
+      {filtra && misFilas.length === 0 && !todas ? (
+        <div className={`${TARJETA} px-5 py-5`}>
+          <p className="text-[15px] font-semibold text-[#0B1033]">Aún no tienes ninguna clase asignada</p>
+          <p className="mt-1 text-[13.5px] text-[#5B6382]">
+            Cuando te pongan en una clase («La da»), o en una semana de la masterclass, te saldrá aquí con todo lo que necesitas para prepararla.
+          </p>
+          <button onClick={() => setTodas(true)} className="mt-3 text-[13.5px] font-semibold text-[#0b2da0] hover:underline">
+            Ver todas las clases
+          </button>
+        </div>
       ) : null}
-      {!admin && !monitor && mias.length > 0 && mias.length < clases.length ? (
+      {filtra && (misFilas.length > 0 || todas) && misFilas.length < todasLasFilas.length ? (
         <div className="flex gap-1.5">
           {[
-            [false, `Mis clases · ${mias.length}`],
-            [true, `Todas · ${clases.length}`],
+            [false, `Mis clases · ${misFilas.length}`],
+            [true, `Todas · ${todasLasFilas.length}`],
           ].map(([v, t]) => (
             <button
               key={String(v)}
@@ -116,6 +123,8 @@ function MisClases({
             ruta={ruta}
             token={token}
             puedeEditar
+            admin={admin}
+            onLeido={recargar}
             onLista={setLista}
             onEditar={setEditar}
           />
@@ -124,6 +133,8 @@ function MisClases({
       {editar ? (
         <EditarSemanaProfe
           semana={editar}
+          profeDeLaClase={clases.find((c) => c.uuid === editar.courseUuid)?.profe || ''}
+          admin={admin}
           token={token}
           onCerrar={() => setEditar(null)}
           onGuardada={() => {
@@ -217,7 +228,7 @@ export default function SalaProfes() {
               {nombre ? `, ${nombre}` : ''}
             </h1>
             <p className="mt-1 text-[14.5px] text-[#5B6382]">
-              {monitor ? 'Tu Spreekclub: prepara la sesión y dala.' : 'Tus clases de esta semana: prepáralas y dalas.'}
+              {monitor ? 'Tu Spreekclub y la Masterclass: prepara la sesión y dala.' : 'Tus clases de esta semana: prepáralas y dalas.'}
             </p>
           </div>
           {miembros.length ? (

@@ -36,15 +36,16 @@ describe('lo que toca', () => {
     const ids = t.map((p) => p.id)
     expect(ids).toContain('p-futura')
     expect(ids).not.toContain('p-lejos')
-    expect(ids).toContain('l-ayer')
+    // Pasar lista ya no es tarea: la sala cuenta sola (09/11).
+    expect(ids).not.toContain('l-ayer')
     expect(ids).toContain('g-ayer')
     expect(ids).toContain('g-vieja')
     expect(ids).not.toContain('l-vieja')
     expect(ids.some((i) => i.endsWith('lista-ok'))).toBe(false)
     expect(ids).toContain('corregir')
     expect(ids).toContain('checkin')
-    // Urgente arriba: la presentación del martes (en 2 días), la lista de ayer, la grabación de hace 7 días.
-    expect(t.filter((p) => p.urgente).map((p) => p.id)).toEqual(['g-vieja', 'l-ayer', 'p-futura'])
+    // Urgente arriba: la presentación del martes (en 2 días) y la grabación de hace 7 días.
+    expect(t.filter((p) => p.urgente).map((p) => p.id)).toEqual(['g-vieja', 'p-futura'])
     expect(t.find((p) => p.id === 'p-futura')?.detalle).toBe('Clase semanal · el martes 10 nov')
   })
 

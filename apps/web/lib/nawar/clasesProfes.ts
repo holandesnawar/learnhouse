@@ -92,7 +92,8 @@ export function preparacion(
       texto: s.grabaciones > 0 ? 'Grabación subida' : 'Falta subir la grabación',
     })
   }
-  if (s.lista && !!s.fecha && s.fecha <= hoy) {
+  // Sin lista no falta nada (09/11/2026): la sala cuenta la asistencia sola.
+  if (s.lista?.pasada && !!s.fecha && s.fecha <= hoy) {
     pasos.push({
       id: 'lista',
       hecho: s.lista.pasada,

@@ -11,8 +11,10 @@ en el grupo de usuarios **«Monitores»** (Panel → Usuarios → Grupos; vale
 también «Monitor», sin mayúsculas ni acentos). Al monitor:
 
 - La lista de cursos solo le enseña las clases del **Spreekclub** (las clases
-  en directo cuyo nombre lleva «spreek» o «spreken»), ni la formación ni las clases
-  semanales ni la masterclass (`get_courses_orgslug`).
+  en directo cuyo nombre lleva «spreek» o «spreken») y, desde el 09/11/2026
+  ("en masterclass que el monitor también pueda ver"), la **Masterclass**
+  (`es_clase_del_monitor`). Ni la formación ni las clases semanales
+  (`get_courses_orgslug`).
 - Lo que el equipo puede ABRIR y CAMBIAR por ser equipo (`_equipo_en_curso`
   en `security/rbac/resource_access.py`) se le queda en esas clases.
 - La sala de profes le enseña solo esas clases y su archivo; ni el manual ni
@@ -20,6 +22,13 @@ también «Monitor», sin mayúsculas ni acentos). Al monitor:
 
 Nada se guarda: sale del nombre del grupo y del nombre del curso. Un
 administrador nunca es monitor, aunque esté en el grupo.
+
+**Que no vea nada antes de ser monitor** (09/11/2026, "antes de añadirlo al
+grupo tiene que crearse cuenta y entrar… ¿entonces ya habrá visto la clase
+semanal?"): quien entra con una invitación del grupo «Monitores» (Panel →
+Usuarios → invitaciones, eligiendo el grupo) nace ya como profe y monitor
+(`al_entrar_con_invitacion`, en `join.py` y `create_user_with_invite`), sin
+pasar ni un momento como alumno.
 """
 
 import unicodedata
@@ -46,6 +55,11 @@ def es_spreekclub(nombre: str) -> bool:
     Spreekuur…)."""
     junto = normalizar(nombre).replace(" ", "")
     return "spreek" in junto or "spreken" in junto
+
+
+def es_clase_del_monitor(nombre: str) -> bool:
+    """Lo que ve un monitor: el Spreekclub y la Masterclass."""
+    return es_spreekclub(nombre) or "master" in normalizar(nombre).replace(" ", "")
 
 
 async def es_monitor(user_id: int, org_id: int, db_session: AsyncSession) -> bool:
@@ -79,10 +93,45 @@ async def es_monitor(user_id: int, org_id: int, db_session: AsyncSession) -> boo
 
 
 async def cursos_del_monitor(org_id: int, db_session: AsyncSession) -> set[str]:
-    """Los `course_uuid` (con «course_») de las clases del Spreekclub."""
+    """Los `course_uuid` (con «course_») de las clases del monitor (Spreekclub y Masterclass)."""
     from src.db.courses.courses import Course
 
     filas = (
         await db_session.execute(select(Course.course_uuid, Course.name).where(Course.org_id == org_id))
     ).all()
-    return {u for u, n in filas if es_spreekclub(n)}
+    return {u for u, n in filas if es_clase_del_monitor(n)}
+
+
+async def al_entrar_con_invitacion(user_id: int, org_id: int, usergroup_id, db_session: AsyncSession) -> bool:
+    """Si la invitación era del grupo «Monitores», la cuenta pasa a profe
+    (rol 5) en ese momento. Solo sube a quien está como alumno (rol 4): nunca
+    toca a un administrador ni a otro papel. Devuelve si la cambió."""
+    if not user_id or not org_id or not usergroup_id:
+        return False
+    from src.db.user_organizations import UserOrganization
+    from src.db.usergroups import UserGroup
+
+    grupo = (
+        await db_session.execute(
+            select(UserGroup).where(UserGroup.id == int(usergroup_id), UserGroup.org_id == org_id)
+        )
+    ).scalars().first()
+    if not grupo or not es_grupo_monitores(grupo.name or ""):
+        return False
+    uo = (
+        await db_session.execute(
+            select(UserOrganization).where(UserOrganization.user_id == user_id, UserOrganization.org_id == org_id)
+        )
+    ).scalars().first()
+    if not uo or uo.role_id != 4:
+        return False
+    uo.role_id = 5
+    db_session.add(uo)
+    await db_session.commit()
+    try:
+        from src.routers.users import _invalidate_session_cache
+
+        _invalidate_session_cache(user_id)
+    except Exception:  # noqa: BLE001
+        pass
+    return True

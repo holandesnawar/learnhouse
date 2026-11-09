@@ -41,6 +41,23 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def como_fecha_de_mensaje(marca: str) -> str:
+    """La marca de «leído» (UTC con zona, «2026-11-09T07:00:00+00:00») en el
+    formato en que se guardan los mensajes (`str(datetime.now())`, hora del
+    servidor sin zona, «2026-11-09 07:00:00.123»), para poder compararlas
+    como texto (09/11/2026). Antes se comparaban tal cual y la «T» frente al
+    espacio hacía que un mensaje del mismo día nunca saliera como nuevo."""
+    if not marca:
+        return ""
+    try:
+        d = datetime.fromisoformat(str(marca).replace("Z", "+00:00"))
+        if d.tzinfo is not None:
+            d = d.astimezone().replace(tzinfo=None)
+        return str(d)
+    except (TypeError, ValueError):
+        return str(marca)
+
+
 def _user_id_or_401(current_user) -> int:
     uid = getattr(current_user, "id", None)
     if not uid:
@@ -213,7 +230,7 @@ async def get_unread(
             Discussion.author_id != user_id,  # lo tuyo no cuenta como no leído
         )
         if last_read:
-            statement = statement.where(Discussion.creation_date > last_read)  # type: ignore
+            statement = statement.where(Discussion.creation_date > como_fecha_de_mensaje(last_read))  # type: ignore
         rows = (await db_session.execute(statement)).scalars().all()
 
         if not rows:
@@ -392,7 +409,7 @@ async def _channel_items(
             Discussion.author_id != user.id,  # lo tuyo no cuenta como nuevo
         )
         if last_read:
-            statement = statement.where(Discussion.creation_date > last_read)  # type: ignore
+            statement = statement.where(Discussion.creation_date > como_fecha_de_mensaje(last_read))  # type: ignore
         rows = (await db_session.execute(statement)).scalars().all()
         if not rows:
             continue

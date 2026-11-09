@@ -20,18 +20,21 @@
 import React, { useRef, useState } from 'react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
-import { ArrowRight, Check, FileText, Link2, Paperclip, Pencil, X } from 'lucide-react'
+import { ArrowRight, Check, FileText, Link2, MessageSquare, Paperclip, Pencil, X } from 'lucide-react'
 import {
   abrirArchivoProfe,
   editarSemana,
   enlaceProfe,
   guardarNotasProfe,
+  mensajeLeido,
+  mensajeProfe,
+  quienProfe,
   quitarProfe,
   subirArchivoProfe,
   type ArchivoProfe,
   type MaterialProfe,
 } from '@services/tareas/tareas'
-import { cuando, diaLegible, type ClaseParaPreparar, type SemanaEquipo } from '@/lib/nawar/salaProfes'
+import { cuando, diaLegible, quienDa, type ClaseParaPreparar, type SemanaEquipo } from '@/lib/nawar/salaProfes'
 import type { ClaseEquipo } from './useClasesEquipo'
 import { POPPINS } from './estilo'
 
@@ -57,6 +60,56 @@ function Paso({ hecho, titulo, detalle, accion, apagado = false }: { hecho: bool
       </div>
       {accion}
     </li>
+  )
+}
+
+function fechaCorta(iso: string): string {
+  if (!iso) return ''
+  try {
+    return new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', timeZone: 'Europe/Amsterdam' })
+  } catch {
+    return ''
+  }
+}
+
+/** El mensaje del administrador para el profe de esa semana, con «Leído». */
+function MensajeDelAdmin({ semana, admin, token, onLeido }: { semana: SemanaEquipo; admin: boolean; token: string; onLeido: () => void }) {
+  const msg = semana.material?.mensaje
+  const [enviando, setEnviando] = useState(false)
+  if (!msg?.texto) return null
+  const leer = async () => {
+    setEnviando(true)
+    try {
+      await mensajeLeido(semana.semanaId, token)
+      onLeido()
+    } catch (e: any) {
+      toast.error(e?.message || 'No se ha podido marcar')
+    } finally {
+      setEnviando(false)
+    }
+  }
+  return (
+    <div className="mt-3 rounded-xl border border-[#0b2da0]/25 bg-white px-4 py-3">
+      <p className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-[#0b2da0]">
+        <MessageSquare size={14} /> Mensaje de {msg.por || 'la dirección'}
+        {msg.at ? <span className="normal-case tracking-normal font-medium text-[#6B7393]">· {fechaCorta(msg.at)}</span> : null}
+      </p>
+      <p className="mt-1.5 text-[14.5px] leading-relaxed text-[#0B1033] whitespace-pre-wrap">{msg.texto}</p>
+      <div className="mt-2 flex items-center gap-2 text-[12.5px]">
+        {msg.leido_por ? (
+          <span className="inline-flex items-center gap-1 text-[#3B4262]">
+            <Check size={13} strokeWidth={3} className="text-[#16A34A]" /> Leído por {msg.leido_por}
+            {msg.leido_at ? ` · ${fechaCorta(msg.leido_at)}` : ''}
+          </span>
+        ) : admin ? (
+          <span className="text-[#8A6A2A]">Aún sin leer</span>
+        ) : (
+          <button onClick={leer} disabled={enviando} className={BOTON_AZUL}>
+            <Check size={13} /> Leído
+          </button>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -91,11 +144,15 @@ function Material({ semana, token }: { semana: SemanaEquipo; token: string }) {
 
 export function EditarSemanaProfe({
   semana,
+  profeDeLaClase = '',
+  admin = false,
   token,
   onCerrar,
   onGuardada,
 }: {
   semana: SemanaEquipo
+  profeDeLaClase?: string
+  admin?: boolean
   token: string
   onCerrar: () => void
   onGuardada: () => void
@@ -103,6 +160,8 @@ export function EditarSemanaProfe({
   const [tema, setTema] = useState(semana.tema)
   const [fecha, setFecha] = useState(semana.fecha)
   const [notas, setNotas] = useState(semana.material?.notas || '')
+  const [profe, setProfe] = useState(semana.material?.profe || '')
+  const [mensaje, setMensaje] = useState(semana.material?.mensaje?.texto || '')
   const [material, setMaterial] = useState<MaterialProfe>(semana.material || { notas: '', archivos: [] })
   const [nombreEnlace, setNombreEnlace] = useState('')
   const [url, setUrl] = useState('')
@@ -153,6 +212,8 @@ export function EditarSemanaProfe({
     try {
       if (tema.trim() !== semana.tema || fecha !== semana.fecha) await editarSemana(semana.semanaId, { tema: tema.trim(), fecha }, token)
       if (notas.trim() !== (semana.material?.notas || '').trim()) await guardarNotasProfe(semana.semanaId, notas, token)
+      if (admin && profe.trim() !== (semana.material?.profe || '').trim()) await quienProfe(semana.semanaId, profe, token)
+      if (admin && mensaje.trim() !== (semana.material?.mensaje?.texto || '').trim()) await mensajeProfe(semana.semanaId, mensaje, token)
       toast.success('Guardado')
       onGuardada()
     } catch (e: any) {
@@ -191,6 +252,33 @@ export function EditarSemanaProfe({
             <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className={`${CAMPO} mt-1`} />
           </label>
         </div>
+
+        {admin ? (
+          <div className="mt-5 rounded-xl bg-[#F5F8FE] border border-[#E4EBF8] p-4 space-y-3">
+            <label className="block">
+              <span className="text-[13px] font-semibold text-[#3B4262]">La da esta semana</span>
+              <input
+                value={profe}
+                onChange={(e) => setProfe(e.target.value)}
+                placeholder={profeDeLaClase ? `Vacío = ${profeDeLaClase} (el de la clase)` : 'Nombre del profe'}
+                className={`${CAMPO} mt-1`}
+              />
+              <span className="block mt-1 text-[12.5px] text-[#6B7393]">
+                Su nombre de pila, como en su cuenta. Esta semana le sale a esa persona en su sala de profes.
+              </span>
+            </label>
+            <label className="block">
+              <span className="text-[13px] font-semibold text-[#3B4262]">Mensaje para el profe</span>
+              <textarea
+                value={mensaje}
+                onChange={(e) => setMensaje(e.target.value)}
+                rows={3}
+                placeholder="Lo verá arriba de esta clase, con tu nombre, y lo marcará como leído."
+                className={`${CAMPO} mt-1 resize-y`}
+              />
+            </label>
+          </div>
+        ) : null}
 
         <div className="mt-5">
           <p className="text-[13px] font-semibold text-[#3B4262]">Presentación completa (para dar la clase)</p>
@@ -269,6 +357,8 @@ export default function TarjetaPreparar({
   ruta,
   token,
   puedeEditar,
+  admin = false,
+  onLeido,
   onLista,
   onEditar,
 }: {
@@ -277,6 +367,8 @@ export default function TarjetaPreparar({
   ruta: (p: string) => string
   token: string
   puedeEditar: boolean
+  admin?: boolean
+  onLeido?: () => void
   onLista: (s: SemanaEquipo) => void
   onEditar: (s: SemanaEquipo) => void
 }) {
@@ -295,7 +387,7 @@ export default function TarjetaPreparar({
             {clase.nombre}
           </h3>
           <p className="mt-0.5 text-[13px] text-[#5B6382]">
-            {[clase.profe ? `La da ${clase.profe}` : 'Sin profe puesto', clase.hora].filter(Boolean).join(' · ')}
+            {[quienDa(sig, clase.profe) ? `La da ${quienDa(sig, clase.profe)}` : 'Sin profe puesto', clase.hora].filter(Boolean).join(' · ')}
           </p>
         </div>
         <Link href={ruta(curso)} className="shrink-0 inline-flex items-center gap-1 text-[13px] font-semibold text-[#0b2da0]">
@@ -322,6 +414,7 @@ export default function TarjetaPreparar({
             ) : null}
           </div>
 
+          <MensajeDelAdmin semana={sig} admin={admin} token={token} onLeido={() => onLeido?.()} />
           <Material semana={sig} token={token} />
 
           <ul className="mt-1 divide-y divide-[#EEF1F7]">
@@ -355,13 +448,13 @@ export default function TarjetaPreparar({
             />
             <Paso
               hecho={!!sig.lista?.pasada}
-              apagado={!esHoy}
-              titulo={sig.lista?.pasada ? `Lista pasada · vinieron ${sig.lista.vinieron}` : 'Pasar lista'}
-              detalle={!esHoy ? 'El día de la clase.' : undefined}
+              apagado={!sig.lista?.pasada}
+              titulo={sig.lista?.pasada ? `Lista pasada · vinieron ${sig.lista.vinieron}` : 'Asistencia: la cuenta la sala sola'}
+              detalle={esHoy ? 'Quien entra a la sala cuenta solo. Si alguien vino por otro sitio, corrígelo aquí.' : 'Quien entra a la sala cuenta solo.'}
               accion={
                 esHoy ? (
-                  <button onClick={() => onLista(sig)} className={sig.lista?.pasada ? BOTON : BOTON_AZUL}>
-                    {sig.lista?.pasada ? 'Ver la lista' : 'Pasar lista'}
+                  <button onClick={() => onLista(sig)} className={BOTON}>
+                    {sig.lista?.pasada ? 'Ver la lista' : 'Corregir'}
                   </button>
                 ) : null
               }

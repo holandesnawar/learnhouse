@@ -170,6 +170,10 @@ export default function ChannelPosts({
   const queryClient = useQueryClient()
   useEffect(() => {
     if (!communityUuid || !accessToken) return
+    // El número de la barra se quita en cuanto entras, sin esperar a la escuela.
+    queryClient.setQueryData(['community', 'unread'], (antes: any) =>
+      Array.isArray(antes) ? antes.filter((x: any) => x?.community_uuid !== communityUuid) : antes
+    )
     const leer = () =>
       markChannelRead(communityUuid, accessToken)
         .then(() => queryClient.invalidateQueries({ queryKey: ['community', 'unread'] }))

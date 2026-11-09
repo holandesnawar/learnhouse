@@ -93,3 +93,33 @@ def test_monitores_y_spreekclub():
     assert M.es_spreekclub("Spreekclub · Groep rood") and M.es_spreekclub("Spreek club")
     assert M.es_spreekclub("Spreken Club") and M.es_spreekclub("Spreekuur")
     assert not M.es_spreekclub("Clase semanal") and not M.es_spreekclub("Masterclass")
+    # Desde el 09/11: el monitor ve también la Masterclass, nunca la clase semanal.
+    assert M.es_clase_del_monitor("Masterclass") and M.es_clase_del_monitor("Spreken Club")
+    assert not M.es_clase_del_monitor("Clase semanal · Groep rood") and not M.es_clase_del_monitor("Formación Nawar A0-A1")
+
+
+async def test_la_invitacion_de_monitores_entra_ya_como_monitor(db):
+    """Quien entra con una invitación del grupo «Monitores» pasa a profe (rol 5)
+    en el acto: no ve la escuela como alumno ni un momento. Otra invitación,
+    un administrador o alguien que ya no es alumno, no se tocan."""
+    from src.db.user_organizations import UserOrganization
+    from src.db.usergroups import UserGroup
+    from src.services.equipo import monitores as M
+
+    mon = UserGroup(name="Monitores", description="", org_id=1)
+    otro = UserGroup(name="Programa nuevo", description="", org_id=1)
+    db.add(mon)
+    db.add(otro)
+    for uid, rol in ((10, 4), (11, 4), (12, 1)):
+        db.add(UserOrganization(user_id=uid, org_id=1, role_id=rol, creation_date="", update_date=""))
+    await db.commit()
+
+    assert await M.al_entrar_con_invitacion(10, 1, mon.id, db) is True
+    assert await M.al_entrar_con_invitacion(11, 1, otro.id, db) is False
+    assert await M.al_entrar_con_invitacion(12, 1, mon.id, db) is False
+    assert await M.al_entrar_con_invitacion(10, 1, None, db) is False
+
+    from sqlmodel import select
+
+    roles = {u.user_id: u.role_id for u in (await db.execute(select(UserOrganization))).scalars().all()}
+    assert roles == {10: 5, 11: 4, 12: 1}
