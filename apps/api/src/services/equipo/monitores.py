@@ -11,10 +11,10 @@ en el grupo de usuarios **«Monitores»** (Panel → Usuarios → Grupos; vale
 también «Monitor», sin mayúsculas ni acentos). Al monitor:
 
 - La lista de cursos solo le enseña las clases del **Spreekclub** (las clases
-  en directo cuyo nombre lleva «spreek» o «spreken») y, desde el 09/11/2026
-  ("en masterclass que el monitor también pueda ver"), la **Masterclass**
-  (`es_clase_del_monitor`). Ni la formación ni las clases semanales
-  (`get_courses_orgslug`).
+  en directo cuyo nombre lleva «spreek» o «spreken») (`es_clase_del_monitor`).
+  Ni la formación, ni las clases semanales, ni la Masterclass (se le abrió el
+  09/11/2026 y se quitó el 10/11: "la masterclass no es para el monitor, por
+  ahora solo el Spreken Club") (`get_courses_orgslug`).
 - Lo que el equipo puede ABRIR y CAMBIAR por ser equipo (`_equipo_en_curso`
   en `security/rbac/resource_access.py`) se le queda en esas clases.
 - La sala de profes le enseña solo esas clases y su archivo; ni el manual ni
@@ -58,8 +58,8 @@ def es_spreekclub(nombre: str) -> bool:
 
 
 def es_clase_del_monitor(nombre: str) -> bool:
-    """Lo que ve un monitor: el Spreekclub y la Masterclass."""
-    return es_spreekclub(nombre) or "master" in normalizar(nombre).replace(" ", "")
+    """Lo que ve un monitor: solo el Spreekclub (la Masterclass, no: 10/11/2026)."""
+    return es_spreekclub(nombre)
 
 
 async def es_monitor(user_id: int, org_id: int, db_session: AsyncSession) -> bool:
