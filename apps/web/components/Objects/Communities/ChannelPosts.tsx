@@ -24,6 +24,9 @@ import {
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { useDiscussions, useMutateDiscussions } from '@components/Hooks/useDiscussions'
+import { hiloDe, sinTituloRepetido } from '@/lib/communities/delChat'
+import { markChannelRead } from '@services/communities/engagement'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   createDiscussion,
   deleteDiscussion,
@@ -150,8 +153,32 @@ export default function ChannelPosts({
     communityUuid,
     sortBy: 'recent',
     page: 1,
-    limit: 50,
+    limit: 100,
   })
+  // Las respuestas en hilo de los mensajes que vienen del chat (09/11/2026:
+  // el canal de presentaciones pasó de chat a tablón): no son publicaciones
+  // sueltas, cuentan como respuestas de su presentación.
+  const respuestasDe: Record<string, number> = {}
+  for (const d of discussions as DiscussionWithAuthor[]) {
+    const p = hiloDe(d.content as any)
+    if (p) respuestasDe[p] = (respuestasDe[p] || 0) + 1
+  }
+  const publicaciones = (discussions as DiscussionWithAuthor[]).filter((d) => !hiloDe(d.content as any))
+
+  // Al entrar (y al salir), el tablón queda leído: si no, el número de «sin
+  // leer» de la barra y la campana no se apagaba nunca en los tablones.
+  const queryClient = useQueryClient()
+  useEffect(() => {
+    if (!communityUuid || !accessToken) return
+    const leer = () =>
+      markChannelRead(communityUuid, accessToken)
+        .then(() => queryClient.invalidateQueries({ queryKey: ['community', 'unread'] }))
+        .catch(() => {})
+    leer()
+    return () => {
+      leer()
+    }
+  }, [communityUuid, accessToken, queryClient])
 
   const [composing, setComposing] = useState(false)
   const [counts, setCounts] = useState<Record<string, number>>({})
@@ -171,7 +198,8 @@ export default function ChannelPosts({
     if (!discussions.length) return
     let alive = true
     Promise.all(
-      discussions.map(async (d: DiscussionWithAuthor) => {
+      // Solo las publicaciones: las respuestas en hilo no tienen comentarios.
+      (discussions as DiscussionWithAuthor[]).filter((d) => !hiloDe(d.content as any)).map(async (d: DiscussionWithAuthor) => {
         try {
           const n = await getCommentCount(d.discussion_uuid, accessToken)
           return [d.discussion_uuid, typeof n === 'number' ? n : 0] as const
@@ -216,9 +244,9 @@ export default function ChannelPosts({
     <div>
       <div className="flex items-center justify-between gap-3 mb-4">
         <p className="text-[13px] text-[#5A6480]">
-          {discussions.length === 0
+          {publicaciones.length === 0
             ? 'Todavía no hay ninguna publicación.'
-            : `${discussions.length} ${discussions.length === 1 ? 'publicación' : 'publicaciones'}`}
+            : `${publicaciones.length} ${publicaciones.length === 1 ? 'publicación' : 'publicaciones'}`}
         </p>
         {accessToken && (
           <button
@@ -236,7 +264,7 @@ export default function ChannelPosts({
         <div className="flex justify-center py-16">
           <Loader2 size={22} className="animate-spin text-gray-400" />
         </div>
-      ) : discussions.length === 0 ? (
+      ) : publicaciones.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[#DDE6F5] bg-white px-6 py-14 text-center">
           <MessageSquare size={26} className="text-[#C6D2E6] mx-auto mb-3" />
           <p className="text-[15px] font-semibold text-gray-900">
@@ -249,10 +277,10 @@ export default function ChannelPosts({
         </div>
       ) : (
         <div className="space-y-3">
-          {discussions.map((d: DiscussionWithAuthor) => {
+          {publicaciones.map((d: DiscussionWithAuthor) => {
             const files = attachmentsOf(d)
             const cover = files.find((f) => f.kind === 'image')
-            const body = bodyOf(d)
+            const body = sinTituloRepetido(d.title, bodyOf(d))
             const mine = (d.author as any)?.id === currentUserId
             // La página del post vuelve a añadir los prefijos `community_` y
             // `discussion_`, así que aquí van SIN ellos. Con el identificador
@@ -364,8 +392,8 @@ export default function ChannelPosts({
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12.5px] font-medium text-[#5A6480] hover:text-[#0b2da0] hover:bg-[#F0F5FF] transition-colors"
                   >
                     <MessageSquare size={14} />
-                    {counts[d.discussion_uuid] ?? 0}{' '}
-                    {counts[d.discussion_uuid] === 1 ? 'comentario' : 'comentarios'}
+                    {(counts[d.discussion_uuid] ?? 0) + (respuestasDe[d.discussion_uuid] || 0)}{' '}
+                    {(counts[d.discussion_uuid] ?? 0) + (respuestasDe[d.discussion_uuid] || 0) === 1 ? 'comentario' : 'comentarios'}
                   </Link>
                 </div>
               </article>

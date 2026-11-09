@@ -18,6 +18,7 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { getUriWithOrg } from '@services/config/config'
 import { getCommunities, type Community } from '@services/communities/communities'
 import { getDiscussions, type DiscussionWithAuthor } from '@services/communities/discussions'
+import { hiloDe, sinTituloRepetido } from '@/lib/communities/delChat'
 import { getMiSemana, diaCorto, type MiSemana } from '@services/tareas/tareas'
 import { getUserAvatarMediaDirectory } from '@services/media/media'
 import { splitChannelEmoji } from '@/lib/communities/channelEmoji'
@@ -224,7 +225,7 @@ export function DestacadosComunidad({ orgslug }: { orgslug: string }) {
       const listas = await Promise.all(
         canales.map((c) =>
           getDiscussions(c.community_uuid, 'recent', 1, 15, null, token)
-            .then((ds) => (ds || []).map((d) => ({ ...d, canal: c })))
+            .then((ds) => (ds || []).filter((d) => !hiloDe(d.content as any)).map((d) => ({ ...d, canal: c })))
             .catch(() => [] as Entrada[])
         )
       )
@@ -261,7 +262,7 @@ export function DestacadosComunidad({ orgslug }: { orgslug: string }) {
                 {text}
               </span>
               <span className="mt-1.5 text-[15px] font-bold text-[#0B1033] leading-snug line-clamp-2">{d.title || textoPlano(d.content).slice(0, 80)}</span>
-              <span className="mt-1 text-[13.5px] text-[#4A5272] line-clamp-2">{textoPlano(d.content)}</span>
+              <span className="mt-1 text-[13.5px] text-[#4A5272] line-clamp-2">{sinTituloRepetido(d.title || '', textoPlano(d.content))}</span>
               <span className="mt-auto pt-3 flex items-center gap-2 text-[12.5px] text-[#8A91AD]">
                 <Avatar a={d.author} size={22} />
                 <span className="truncate">{autor}</span>
@@ -293,7 +294,7 @@ export function FeedComunidad({ orgslug }: { orgslug: string }) {
       const listas = await Promise.all(
         tablones.map((c) =>
           getDiscussions(c.community_uuid, 'recent', 1, 8, null, token)
-            .then((ds) => (ds || []).map((d) => ({ ...d, canal: c })))
+            .then((ds) => (ds || []).filter((d) => !hiloDe(d.content as any)).map((d) => ({ ...d, canal: c })))
             .catch(() => [] as Entrada[])
         )
       )
@@ -358,7 +359,7 @@ export function FeedComunidad({ orgslug }: { orgslug: string }) {
           {entradas.map((d) => {
             const { emoji, text } = splitChannelEmoji(d.canal.name)
             const autor = [d.author?.first_name, d.author?.last_name].filter(Boolean).join(' ') || d.author?.username || 'Alguien'
-            const cuerpo = textoPlano(d.content)
+            const cuerpo = sinTituloRepetido(d.title || '', textoPlano(d.content))
             const reacciones = (d.reactions || []).reduce((n, r) => n + r.count, 0) + (d.upvote_count || 0)
             const href = `${canalHref(d.canal)}/discussion/${d.discussion_uuid.replace('discussion_', '')}`
             return (

@@ -60,6 +60,11 @@ def startup_app(app: FastAPI) -> Callable:
         from src.services.demo.datos_prueba import sembrar_si_toca
         await sembrar_si_toca()
 
+        # Las presentaciones de los alumnos, de chat a tablón, una sola vez
+        # (09/11/2026, src/services/communities/presentaciones_posts.py).
+        from src.services.communities.presentaciones_posts import pasar_si_toca
+        await pasar_si_toca()
+
         # Reconcile pack credits (Redis ↔ DB)
         await _reconcile_packs()
 

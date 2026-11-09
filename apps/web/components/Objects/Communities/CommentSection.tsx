@@ -18,9 +18,11 @@ interface CommentSectionProps {
   discussionUuid: string
   communityUuid?: string
   isLocked?: boolean
+  /** Ya hay respuestas de cuando el canal era chat: sin «Aún no hay respuestas». */
+  sinVacio?: boolean
 }
 
-export function CommentSection({ discussionUuid, communityUuid, isLocked = false }: CommentSectionProps) {
+export function CommentSection({ discussionUuid, communityUuid, isLocked = false, sinVacio = false }: CommentSectionProps) {
   const { t } = useTranslation()
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
@@ -107,7 +109,7 @@ export function CommentSection({ discussionUuid, communityUuid, isLocked = false
         <div className="flex items-center justify-center py-8">
           <Loader2 size={18} className="animate-spin text-gray-400" />
         </div>
-      ) : comments.length === 0 ? (
+      ) : comments.length === 0 && sinVacio ? null : comments.length === 0 ? (
         <div className="py-8 text-center">
           <p className="text-gray-400 text-sm">{t('communities.comments.no_replies')}</p>
         </div>

@@ -5401,6 +5401,39 @@ la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
   entero: el servidor lo reemplaza) y en el navegador. Subir `VERSION_VISITA`
   hace que todos la vuelvan a ver. «Visita por la escuela» en el menú del
   perfil la abre a cualquiera. En «Ver como» no sale sola. Esc / flechas.
+- **v13 (09/11): sala de profes para preparar la clase y presentaciones a
+  tablón.**
+  - **Mis clases ya no va por semana de calendario** ("la siguiente clase no
+    está bien del todo": el domingo, la clase del martes salía como «la semana
+    que viene»). `paraPreparar` (`lib/nawar/salaProfes.ts`, test
+    `paraPreparar.test.ts`): la PRÓXIMA clase de hoy en adelante, la de
+    después y la anterior de los últimos 10 días con lo que le falta (lista,
+    grabación, corregir). Tarjeta en `Equipo/PrepararClase.tsx`.
+  - **Material del profe** (`services/tareas/material_profe.py`, columna
+    `tarea_semana.material_profe` en `_ADDED_COLUMNS`, test
+    `test_material_profe.py`): la **presentación completa** para dar la clase
+    (archivos de hasta 80 MB en `content/privado/tareas/<org>/profe/`, o
+    enlaces) y **notas para el profe**. Solo el equipo: `/semanas` lo añade con
+    `equipo=True`; rutas `PUT /tareas/semana/{id}/profe/notas`, `POST
+    …/profe/enlace`, `POST …/profe/archivo`, `GET/DELETE …/profe/{archivo}`.
+    Lo añade cualquiera del equipo; lo quita quien lo subió o un
+    administrador. «Editar» en cada tarjeta (`EditarSemanaProfe`) cambia tema,
+    día, notas y material. Es distinta de la presentación de los alumnos (la
+    clase PDF de la semana, que miran antes).
+  - Archivo: la ficha de la fecha ya no se estira (`self-start`) y cada semana
+    enseña «Presentación completa». Manual: los enlaces pegados se pulsan.
+  - **Presentaciones de chat a tablón** (`services/communities/presentaciones_posts.py`,
+    test `test_presentaciones_posts.py`): al arrancar, UNA vez (marca
+    `migraciones.presentaciones_posts` en org_config, con los uuid cambiados),
+    los canales de chat cuyo nombre lleva «presenta» pasan a `kind=posts`. Los
+    mensajes NO se tocan (chat y tablón son la misma tabla `discussion`). Las
+    respuestas en hilo (`threadParent` en el contenido) salen debajo de su
+    presentación, no sueltas (`lib/communities/delChat.ts`, con test: también
+    quita la primera línea repetida del título). La página de cada publicación
+    enseña por fin sus fotos, audios y archivos (antes no, en ningún tablón).
+    Los tablones se marcan leídos al entrar (antes su «sin leer» no se apagaba
+    nunca). Vuelta atrás: `UPDATE community SET kind='chat' WHERE
+    community_uuid IN (…)` con los uuid de la marca.
 - **Pasar el diseño nuevo a la escuela de verdad = mezclar `diseno` en `dev`**
   (un PR, un botón «Merge»). Lo que lleva y ya está pensado para los datos
   reales: los datos inventados solo se crean con `LEARNHOUSE_DATOS_DE_PRUEBA=si`

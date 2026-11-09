@@ -15,6 +15,9 @@ import { DiscussionWithAuthor, DiscussionAuthor, deleteDiscussion, getLabelInfo 
 import { getUserAvatarMediaDirectory } from '@services/media/media'
 import { CommentSection } from './CommentSection'
 import { DiscussionContent } from './DiscussionContent'
+import { useDiscussions } from '@components/Hooks/useDiscussions'
+import { adjuntosDe, docSinTitulo, hiloDe, sinTituloRepetido } from '@/lib/communities/delChat'
+import AvatarPersona from '@components/Objects/Persona/AvatarPersona'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import ConfirmationModal from '@components/Objects/StyledElements/ConfirmationModal/ConfirmationModal'
 import {
@@ -67,6 +70,102 @@ function getAvatarUrl(author: DiscussionAuthor | null): string | null {
   return getUserAvatarMediaDirectory(author.user_uuid, author.avatar_image)
 }
 
+/**
+ * Las fotos, notas de voz y archivos de la publicación (09/11/2026): la página
+ * del post no los enseñaba, ni en los posts de los tablones ni en los mensajes
+ * que vienen del chat (las presentaciones).
+ */
+function Adjuntos({ content }: { content: string | null }) {
+  const archivos = adjuntosDe(content)
+  if (!archivos.length) return null
+  return (
+    <div className="mt-4 space-y-3">
+      {archivos.filter((a) => a.kind === 'image').map((a, i) => (
+        <a key={`i${i}`} href={a.url} target="_blank" rel="noopener noreferrer" className="block">
+          <img src={a.url} alt={a.name} loading="lazy" className="rounded-xl max-h-[520px] w-auto max-w-full object-contain border border-[#EEF1F7]" />
+        </a>
+      ))}
+      {archivos.filter((a) => a.kind === 'audio').map((a, i) => (
+        <audio key={`a${i}`} src={a.url} controls preload="none" className="w-full max-w-[360px] h-9" />
+      ))}
+      {archivos.filter((a) => a.kind === 'file').map((a, i) => (
+        <a key={`f${i}`} href={a.url} target="_blank" rel="noopener noreferrer" className="block text-[14px] font-semibold text-[#0b2da0] underline break-all">
+          {a.name}
+        </a>
+      ))}
+    </div>
+  )
+}
+
+/** Texto plano de un mensaje (tiptap en JSON o texto viejo). */
+function textoDe(content: string | null): string {
+  if (!content) return ''
+  try {
+    const doc = JSON.parse(content)
+    const partes: string[] = []
+    const walk = (n: any) => {
+      if (!n) return
+      if (n.type === 'text' && typeof n.text === 'string') partes.push(n.text)
+      if (n.type === 'paragraph' && partes.length) partes.push('\n')
+      if (Array.isArray(n.content)) n.content.forEach(walk)
+    }
+    walk(doc)
+    return partes.join('').trim()
+  } catch {
+    return content
+  }
+}
+
+/**
+ * Las respuestas que le dieron en el chat, cuando el canal era chat (las
+ * presentaciones, 09/11/2026): siguen siendo mensajes con `threadParent`, y
+ * aquí salen debajo de la publicación a la que respondían.
+ */
+function RespuestasDelChat({
+  discussionUuid,
+  communityUuid,
+  onHay,
+}: {
+  discussionUuid: string
+  communityUuid: string
+  onHay: (hay: boolean) => void
+}) {
+  const { discussions } = useDiscussions({ communityUuid, sortBy: 'recent', page: 1, limit: 100 })
+  const suyas = (discussions as DiscussionWithAuthor[])
+    .filter((d) => hiloDe(d.content as any) === discussionUuid)
+    .sort((a, b) => String(a.creation_date).localeCompare(String(b.creation_date)))
+  React.useEffect(() => onHay(suyas.length > 0), [suyas.length, onHay])
+  if (!suyas.length) return null
+  return (
+    <div className="border-t border-gray-100 px-6 py-5">
+      <p className="text-[13px] font-semibold text-[#5B6382] mb-3">
+        {suyas.length === 1 ? '1 respuesta' : `${suyas.length} respuestas`}
+      </p>
+      <ul className="space-y-4">
+        {suyas.map((r) => {
+          const a: any = r.author || {}
+          const nombre = [a.first_name, a.last_name].filter(Boolean).join(' ').trim() || a.username || 'Alguien'
+          return (
+            <li key={r.discussion_uuid} className="flex gap-3">
+              <AvatarPersona nombre={nombre} size={32} src={getAvatarUrl(r.author as any)} />
+              <div className="min-w-0 flex-1">
+                <p className="text-[13.5px]">
+                  <span className="font-semibold text-[#0B1033]">{nombre}</span>{' '}
+                  <span className="text-[#8A91AD]">· {haceCuanto(r.creation_date)}</span>
+                </p>
+                <p className="text-[14.5px] text-[#2B3150] leading-relaxed whitespace-pre-wrap">
+                  {sinTituloRepetido('', textoDe(r.content as any))}
+                </p>
+                <Adjuntos content={r.content as any} />
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
 export function DiscussionDetail({
   discussion,
   communityUuid,
@@ -80,6 +179,7 @@ export function DiscussionDetail({
   const accessToken = session?.data?.tokens?.access_token
   const currentUserId = session?.data?.user?.id
 
+  const [hayDelChat, setHayDelChat] = React.useState(false)
   const timeAgo = haceCuanto(discussion.creation_date)
   const isAuthor = currentUserId === discussion.author_id
   const labelInfo = getLabelInfo(discussion.label || 'general')
@@ -173,12 +273,15 @@ export function DiscussionDetail({
       <div className="p-6">
         {discussion.content ? (
           <div className="prose prose-gray max-w-none">
-            <DiscussionContent content={parseDiscussionContent(discussion.content)} />
+            <DiscussionContent content={docSinTitulo(parseDiscussionContent(discussion.content), discussion.title)} />
           </div>
         ) : (
           <p className="text-gray-500 italic">{t('communities.discussion_detail.no_details')}</p>
         )}
+        <Adjuntos content={discussion.content as any} />
       </div>
+
+      <RespuestasDelChat discussionUuid={discussion.discussion_uuid} communityUuid={communityUuid} onHay={setHayDelChat} />
 
       {/* Comments Section */}
       <div className="border-t border-gray-100">
@@ -186,6 +289,7 @@ export function DiscussionDetail({
           discussionUuid={discussion.discussion_uuid}
           communityUuid={communityUuid}
           isLocked={discussion.is_locked}
+          sinVacio={hayDelChat}
         />
       </div>
     </div>
