@@ -250,7 +250,10 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     // los mensajes: solo tiene el Spreekclub.
     const sala: Bloque = { items: [{ key: 'inicio', href: '/', label: 'Sala de profesores', icon: <ChalkboardTeacher size={20} weight="fill" /> }] }
     const ayuda: Bloque = { titulo: 'Ayuda', items: [{ key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={20} weight="fill" /> }] }
-    bloques = monitor ? [sala, ayuda] : [sala, { titulo: 'Formación', items: [verFormacion] }, ...comunidad, ayuda]
+    // El monitor (10/11/2026, "no puede ver nada… no es así el monitor"):
+    // como un profe, más su Spreekclub a la vista.
+    const susClases: Bloque[] = monitor && itemsClases.length ? [{ titulo: 'Mis clases', items: itemsClases }] : []
+    bloques = [sala, ...susClases, { titulo: 'Formación', items: [verFormacion] }, ...comunidad, ayuda]
   } else if (esCloser) {
     const venta = (tab: string) => `/dash/estadisticas?tab=${tab}`
     bloques = [
@@ -306,7 +309,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   }
 
   // Las secciones de arriba: lo mismo que la barra, en grande.
-  const arriba: Item[] = esProfe && monitor ? [{ key: 'inicio', href: '/', label: 'Inicio' }] : [
+  const arriba: Item[] = [
     { key: 'inicio', href: '/', label: 'Inicio' },
     { key: 'formacion', href: `/course/${FORMACION_UUID}`, label: 'Formación' },
     ...(tieneClases ? [{ key: 'clases', href: itemsClases[0]?.href || '/clases', label: 'Clases' }] : []),

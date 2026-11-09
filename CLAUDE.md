@@ -5461,7 +5461,13 @@ la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
     tarjeta, «Asistencia: la cuenta la sala sola» con «Corregir» el día de
     la clase (para quien vino por otro sitio).
   - **Monitores**: ~~ven también la Masterclass~~ — quitado el 10/11 («la
-    masterclass no es para el monitor»): solo el Spreekclub. **Invitación del grupo «Monitores»** (Panel → Usuarios
+    masterclass no es para el monitor»): solo el Spreekclub. ⚠️ **Desde la tarde
+    del 10/11 el monitor ve también la FORMACIÓN y la COMUNIDAD** ("no puede ver
+    nada ni abrir el Spreken Club ni ver la formación ni la comunidad; no es así
+    el monitor"): `cursos_del_monitor` = Spreekclub + formación (solo verla:
+    escribir sigue siendo solo en clases en directo), y su barra es la del profe
+    con «Mis clases» (su Spreekclub) encima de Formación y Comunidad. Fuera la
+    barra recortada de solo sala + mensajes. **Invitación del grupo «Monitores»** (Panel → Usuarios
     → invitaciones, eligiendo el grupo): quien entra con ella nace con rol de
     profe (`al_entrar_con_invitacion`, en `join.py` y
     `create_user_with_invite`), así nunca ve la escuela como alumno. Solo sube

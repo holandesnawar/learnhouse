@@ -11,14 +11,16 @@ en el grupo de usuarios **«Monitores»** (Panel → Usuarios → Grupos; vale
 también «Monitor», sin mayúsculas ni acentos). Al monitor:
 
 - La lista de cursos solo le enseña las clases del **Spreekclub** (las clases
-  en directo cuyo nombre lleva «spreek» o «spreken») (`es_clase_del_monitor`).
-  Ni la formación, ni las clases semanales, ni la Masterclass (se le abrió el
+  en directo cuyo nombre lleva «spreek» o «spreken») (`es_clase_del_monitor`)
+  y, desde el 10/11/2026, la **formación** (solo verla). Ni las clases
+  semanales, ni la Masterclass (se le abrió el
   09/11/2026 y se quitó el 10/11: "la masterclass no es para el monitor, por
   ahora solo el Spreken Club") (`get_courses_orgslug`).
 - Lo que el equipo puede ABRIR y CAMBIAR por ser equipo (`_equipo_en_curso`
   en `security/rbac/resource_access.py`) se le queda en esas clases.
 - La sala de profes le enseña solo esas clases y su archivo; ni el manual ni
-  el resto.
+  el resto. En la barra de la escuela tiene la sala, su Spreekclub, la
+  formación, la comunidad y los mensajes (10/11/2026).
 
 Nada se guarda: sale del nombre del grupo y del nombre del curso. Un
 administrador nunca es monitor, aunque esté en el grupo.
@@ -92,14 +94,22 @@ async def es_monitor(user_id: int, org_id: int, db_session: AsyncSession) -> boo
     return any(es_grupo_monitores(n) for n in nombres)
 
 
+#: La formación: el monitor también la ve (10/11/2026, "no puede ver nada ni
+#: abrir el Spreken Club ni ver la formación ni la comunidad; no es así el
+#: monitor"). Solo verla: cambiar contenido es solo de las clases en directo.
+FORMACION = "course_8a1d1fab-ffbb-44ef-8f21-04ef63676d6e"
+
+
 async def cursos_del_monitor(org_id: int, db_session: AsyncSession) -> set[str]:
-    """Los `course_uuid` (con «course_») de las clases del monitor (Spreekclub y Masterclass)."""
+    """Los `course_uuid` (con «course_») que ve el monitor: el Spreekclub y la
+    formación. Escribir solo puede en el Spreekclub (`_equipo_en_curso` solo
+    deja escribir en clases en directo)."""
     from src.db.courses.courses import Course
 
     filas = (
         await db_session.execute(select(Course.course_uuid, Course.name).where(Course.org_id == org_id))
     ).all()
-    return {u for u, n in filas if es_clase_del_monitor(n)}
+    return {u for u, n in filas if es_clase_del_monitor(n) or u == FORMACION}
 
 
 async def al_entrar_con_invitacion(user_id: int, org_id: int, usergroup_id, db_session: AsyncSession) -> bool:

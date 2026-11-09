@@ -123,3 +123,21 @@ async def test_la_invitacion_de_monitores_entra_ya_como_monitor(db):
 
     roles = {u.user_id: u.role_id for u in (await db.execute(select(UserOrganization))).scalars().all()}
     assert roles == {10: 5, 11: 4, 12: 1}
+
+
+async def test_el_monitor_ve_la_formacion_y_el_spreekclub(db):
+    """10/11/2026: «no puede ver nada… no es así el monitor»: ve su Spreekclub
+    y la formación (solo verla), nada más."""
+    from src.db.courses.courses import Course
+    from src.services.equipo import monitores as M
+
+    org_id = 1
+    for uuid, nombre in [
+        (M.FORMACION, "Formación Nawar A0-A1"),
+        ("course_spreek", "Spreken Club"),
+        ("course_master", "Masterclass"),
+        ("course_rood", "Clase semanal"),
+    ]:
+        db.add(Course(course_uuid=uuid, name=nombre, org_id=org_id, description="", about="", public=False, published=True, open_to_contributors=False))
+    await db.commit()
+    assert await M.cursos_del_monitor(org_id, db) == {M.FORMACION, "course_spreek"}
