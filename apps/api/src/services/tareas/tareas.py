@@ -673,6 +673,12 @@ async def semanas_para_alumno(
         for s in semanas:
             m = listas.get(s["id"]) or {}
             s["lista"] = {"pasada": bool(m), "vinieron": sum(1 for x in m.values() if x.get("fue"))}
+        # El material del profe (09/11/2026): solo al equipo.
+        from src.services.tareas import material_profe as MP
+
+        for s in semanas:
+            f = por_id.get(s["id"])
+            s["material_profe"] = MP.para_la_pantalla(MP.leer(getattr(f, "material_profe", "") if f is not None else ""))
     for s in semanas:
         for c in s.get("clases") or []:
             c.pop("id", None)

@@ -355,6 +355,8 @@ _ADDED_COLUMNS = [
     "ALTER TABLE IF EXISTS tarea_semana ADD COLUMN IF NOT EXISTS asistencia TEXT DEFAULT ''",
     "ALTER TABLE IF EXISTS tarea_semana ADD COLUMN IF NOT EXISTS confirmaciones TEXT DEFAULT ''",
     "ALTER TABLE IF EXISTS tarea_semana ADD COLUMN IF NOT EXISTS cambios TEXT DEFAULT ''",
+    # El material del profe de cada semana (09/11/2026, material_profe.py).
+    "ALTER TABLE IF EXISTS tarea_semana ADD COLUMN IF NOT EXISTS material_profe TEXT DEFAULT ''",
     # Conversaciones con una persona concreta (antes solo existía "el equipo").
     'ALTER TABLE IF EXISTS direct_thread ADD COLUMN IF NOT EXISTS staff_id INTEGER',
     'ALTER TABLE IF EXISTS direct_thread DROP CONSTRAINT IF EXISTS uq_thread_org_student',

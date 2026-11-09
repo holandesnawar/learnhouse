@@ -9,7 +9,9 @@
 import React, { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Search } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { getUriWithOrg } from '@services/config/config'
+import { abrirArchivoProfe } from '@services/tareas/tareas'
 import { diaLegible, porMeses, type SemanaEquipo } from '@/lib/nawar/salaProfes'
 import type { ClaseEquipo } from './useClasesEquipo'
 import { POPPINS } from './estilo'
@@ -21,11 +23,13 @@ export default function ArchivoClases({
   semanas,
   clases,
   hoy,
+  token = '',
 }: {
   orgslug: string
   semanas: SemanaEquipo[]
   clases: ClaseEquipo[]
   hoy: string
+  token?: string
 }) {
   const [clase, setClase] = useState('')
   const [que, setQue] = useState<Que>('todo')
@@ -110,7 +114,7 @@ export default function ArchivoClases({
                 const futura = !!s.fecha && s.fecha > hoy
                 return (
                   <div key={s.key} className="flex gap-3 sm:gap-4 px-4 py-3.5">
-                    <div className="shrink-0 w-12 text-center rounded-lg border border-[#E4E8F2] py-1.5">
+                    <div className="shrink-0 self-start w-12 text-center rounded-lg border border-[#E4E8F2] py-1.5">
                       <p className="text-[11px] font-semibold uppercase text-[#6B7393] leading-none">{diaLegible(s.fecha).split(' ')[2] || ''}</p>
                       <p className="text-[18px] font-bold text-[#0B1033] leading-tight" style={POPPINS}>
                         {s.fecha ? Number(s.fecha.slice(8, 10)) : '–'}
@@ -127,8 +131,18 @@ export default function ArchivoClases({
                       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
                         {s.presentaciones.map((p) => (
                           <Link key={p.activity_uuid} href={actividad(s, p.activity_uuid)} className="font-semibold text-[#0b2da0] hover:underline">
-                            Presentación
+                            {s.material?.archivos.length ? 'Presentación alumnos' : 'Presentación'}
                           </Link>
+                        ))}
+                        {(s.material?.archivos || []).map((a, i, todos) => (
+                          <button
+                            key={a.id}
+                            onClick={() => abrirArchivoProfe(s.semanaId, a, token).catch((e) => toast.error(e?.message || 'No se ha podido abrir'))}
+                            className="font-semibold text-[#0b2da0] hover:underline"
+                            title={a.nombre}
+                          >
+                            {todos.length > 1 ? `Presentación completa ${i + 1}` : 'Presentación completa'}
+                          </button>
                         ))}
                         {s.grabaciones.map((g, i) => (
                           <Link key={g.activity_uuid} href={actividad(s, g.activity_uuid)} className="font-semibold text-[#0b2da0] hover:underline">

@@ -24,7 +24,6 @@
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { ArrowRight, Check } from 'lucide-react'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import AvatarPersona from '@components/Objects/Persona/AvatarPersona'
@@ -33,8 +32,8 @@ import { mediaSrc } from '@services/messages/direct'
 import { getSalaProfes, type DocManual, type Miembro } from '@services/equipo/equipo'
 import { PasarLista } from '@components/Pages/Profes/ListaYGrupo'
 import { esDe } from '@/lib/nawar/clasesProfes'
-import { lunesDe } from '@/lib/nawar/semanasTrabajo'
-import { cuando, diaLegible, porClase, type SemanaEquipo } from '@/lib/nawar/salaProfes'
+import { paraPreparar, type SemanaEquipo } from '@/lib/nawar/salaProfes'
+import TarjetaPreparar, { EditarSemanaProfe } from './PrepararClase'
 import useClasesEquipo, { type ClaseEquipo } from './useClasesEquipo'
 import ArchivoClases from './ArchivoClases'
 import ManualEquipo from './ManualEquipo'
@@ -43,194 +42,6 @@ import { POPPINS } from './estilo'
 type Vista = 'clases' | 'archivo' | 'manual'
 
 const TARJETA = 'rounded-2xl border border-[#E4E8F2] bg-white'
-
-/** Un paso de la semana: círculo fino (verde con check si está hecho). */
-function Paso({
-  hecho,
-  titulo,
-  detalle,
-  accion,
-  apagado = false,
-}: {
-  hecho: boolean
-  titulo: string
-  detalle?: string
-  accion?: React.ReactNode
-  apagado?: boolean
-}) {
-  return (
-    <li className="flex items-center gap-3 py-2.5">
-      <span
-        className={`shrink-0 w-[21px] h-[21px] rounded-full border-2 flex items-center justify-center ${
-          hecho ? 'border-[#16A34A] text-[#16A34A]' : apagado ? 'border-dashed border-[#C9D4EC]' : 'border-[#AEB9D3]'
-        }`}
-      >
-        {hecho ? <Check size={12} strokeWidth={3.4} /> : null}
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className={`text-[14.5px] leading-snug ${apagado ? 'text-[#8A91AD]' : 'text-[#0B1033]'} ${hecho ? '' : 'font-semibold'}`}>{titulo}</p>
-        {detalle ? <p className="text-[12.5px] text-[#6B7393]">{detalle}</p> : null}
-      </div>
-      {accion}
-    </li>
-  )
-}
-
-const BOTON = 'shrink-0 h-8 inline-flex items-center px-3 rounded-lg border border-[#DDE3EF] text-[13px] font-semibold text-[#0b2da0] hover:border-[#0b2da0]'
-const BOTON_AZUL = 'shrink-0 h-8 inline-flex items-center px-3 rounded-lg bg-[#0b2da0] text-white text-[13px] font-semibold'
-
-function TarjetaClase({
-  clase,
-  esta,
-  proxima,
-  hoy,
-  ruta,
-  onLista,
-}: {
-  clase: ClaseEquipo
-  esta: SemanaEquipo | null
-  proxima: SemanaEquipo | null
-  hoy: string
-  ruta: (p: string) => string
-  onLista: (s: SemanaEquipo) => void
-}) {
-  const curso = `/course/${clase.uuid.replace(/^course_/, '')}`
-  const actividad = (uuid: string) => ruta(`${curso}/activity/${uuid.replace(/^activity_/, '')}`)
-  const dia = esta?.fecha || ''
-  const antes = !!dia && dia > hoy
-  const esHoy = dia === hoy
-  const pasada = !!dia && dia < hoy
-  const pres = esta?.presentaciones[0]
-  const grab = esta?.grabaciones[0]
-
-  return (
-    <section className={`${TARJETA} overflow-hidden`}>
-      <div className="flex items-start gap-3 px-5 pt-4">
-        <span className="mt-1.5 w-2.5 h-2.5 rounded-full shrink-0" style={{ background: clase.color }} />
-        <div className="min-w-0 flex-1">
-          <h3 className="text-[16px] font-bold text-[#0B1033] leading-tight" style={POPPINS}>
-            {clase.nombre}
-          </h3>
-          <p className="mt-0.5 text-[13px] text-[#5B6382]">
-            {[clase.profe ? `La da ${clase.profe}` : 'Sin profe puesto', clase.hora].filter(Boolean).join(' · ')}
-          </p>
-        </div>
-        <Link href={ruta(curso)} className="shrink-0 inline-flex items-center gap-1 text-[13px] font-semibold text-[#0b2da0]">
-          Abrir la clase <ArrowRight size={14} />
-        </Link>
-      </div>
-
-      {esta ? (
-        <div className="px-5 pb-2 pt-3">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6B7393]">
-            Esta semana · {cuando(dia, hoy)}
-          </p>
-          <p className="mt-0.5 text-[18px] font-bold text-[#0B1033] leading-snug" style={POPPINS}>
-            {esta.tema || 'Sin tema'}
-          </p>
-          <ul className="mt-1 divide-y divide-[#EEF1F7]">
-            <Paso
-              hecho={!!pres}
-              titulo={pres ? 'Presentación subida' : 'Subir la presentación'}
-              detalle={pres ? 'Los alumnos ya la pueden mirar antes de la clase.' : 'Antes de la clase, para que los alumnos la vean.'}
-              accion={
-                pres ? (
-                  <Link href={actividad(pres.activity_uuid)} className={BOTON}>
-                    Ver
-                  </Link>
-                ) : (
-                  <Link href={ruta(curso)} className={BOTON_AZUL}>
-                    Subir
-                  </Link>
-                )
-              }
-            />
-            <Paso
-              hecho={pasada}
-              titulo={pasada ? 'Clase dada' : esHoy ? 'Dar la clase, hoy' : `Dar la clase, ${cuando(dia, hoy)}`}
-              detalle={clase.hora ? `A las ${clase.hora}` : undefined}
-              accion={
-                esHoy ? (
-                  <Link href={ruta(`/sala/${clase.uuid.replace(/^course_/, '')}`)} className={BOTON_AZUL}>
-                    Entrar a la sala
-                  </Link>
-                ) : null
-              }
-            />
-            <Paso
-              hecho={!!esta.lista?.pasada}
-              apagado={antes}
-              titulo={esta.lista?.pasada ? `Lista pasada · vinieron ${esta.lista.vinieron}` : 'Pasar lista'}
-              detalle={antes ? 'El día de la clase.' : undefined}
-              accion={
-                !antes ? (
-                  <button onClick={() => onLista(esta)} className={esta.lista?.pasada ? BOTON : BOTON_AZUL}>
-                    {esta.lista?.pasada ? 'Ver la lista' : 'Pasar lista'}
-                  </button>
-                ) : null
-              }
-            />
-            <Paso
-              hecho={!!grab}
-              apagado={!pasada && !grab}
-              titulo={grab ? 'Grabación subida' : 'Subir la grabación'}
-              detalle={!pasada && !grab ? 'Después de la clase. Al subirla, publícala.' : undefined}
-              accion={
-                grab ? (
-                  <Link href={actividad(grab.activity_uuid)} className={BOTON}>
-                    Ver
-                  </Link>
-                ) : pasada ? (
-                  <Link href={ruta(curso)} className={BOTON_AZUL}>
-                    Subir
-                  </Link>
-                ) : null
-              }
-            />
-            {esta.tieneTarea ? (
-              <Paso
-                hecho={pasada && esta.porCorregir === 0}
-                apagado={!pasada}
-                titulo={esta.porCorregir ? `Corregir ${esta.porCorregir} ${esta.porCorregir === 1 ? 'tarea' : 'tareas'}` : 'Corregir las tareas'}
-                detalle={!pasada ? 'Cuando los alumnos las entreguen.' : esta.porCorregir ? undefined : 'Nada por corregir ahora.'}
-                accion={
-                  esta.porCorregir ? (
-                    <Link href={ruta('/seguimiento')} className={BOTON_AZUL}>
-                      Corregir
-                    </Link>
-                  ) : null
-                }
-              />
-            ) : null}
-          </ul>
-        </div>
-      ) : (
-        <div className="px-5 pt-3 pb-4">
-          <p className="text-[14.5px] text-[#3B4262]">Esta semana aún no está creada.</p>
-          <Link href={ruta(curso)} className={`${BOTON_AZUL} mt-2.5`}>
-            Crear la semana
-          </Link>
-        </div>
-      )}
-
-      <div className="px-5 py-3 border-t border-[#EEF1F7] bg-[#FAFBFE] text-[13px] text-[#5B6382] flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="font-semibold text-[#3B4262]">La semana que viene:</span>
-        {proxima ? (
-          <>
-            <span>
-              {proxima.tema || 'Sin tema'} · {diaLegible(proxima.fecha)}
-            </span>
-            <span className={proxima.presentaciones.length ? 'text-[#15803D]' : 'text-[#8A6A2A]'}>
-              · {proxima.presentaciones.length ? 'presentación lista' : 'falta la presentación'}
-            </span>
-          </>
-        ) : (
-          <span>aún no está creada</span>
-        )}
-      </div>
-    </section>
-  )
-}
 
 function MisClases({
   clases,
@@ -260,6 +71,7 @@ function MisClases({
   const soloMias = !admin && !monitor && mias.length > 0 && !todas
   const visibles = soloMias ? mias : clases
   const [lista, setLista] = useState<SemanaEquipo | null>(null)
+  const [editar, setEditar] = useState<SemanaEquipo | null>(null)
 
   if (semanas === null) return <div className={`${TARJETA} px-5 py-6 text-[14px] text-[#6B7393]`}>Cargando tus clases…</div>
   if (!clases.length)
@@ -268,7 +80,7 @@ function MisClases({
         Todavía no hay clases en directo{monitor ? ' del Spreekclub' : ''}.
       </div>
     )
-  const filas = porClase(visibles, semanas, lunesDe(hoy))
+  const filas = paraPreparar(visibles, semanas, hoy)
 
   return (
     <div className="space-y-4">
@@ -297,9 +109,29 @@ function MisClases({
       ) : null}
       <div className="grid gap-4 lg:grid-cols-2">
         {filas.map((f) => (
-          <TarjetaClase key={f.clase.uuid} clase={f.clase} esta={f.esta} proxima={f.proxima} hoy={hoy} ruta={ruta} onLista={setLista} />
+          <TarjetaPreparar
+            key={f.clase.uuid}
+            fila={f}
+            hoy={hoy}
+            ruta={ruta}
+            token={token}
+            puedeEditar
+            onLista={setLista}
+            onEditar={setEditar}
+          />
         ))}
       </div>
+      {editar ? (
+        <EditarSemanaProfe
+          semana={editar}
+          token={token}
+          onCerrar={() => setEditar(null)}
+          onGuardada={() => {
+            setEditar(null)
+            recargar()
+          }}
+        />
+      ) : null}
       {lista ? (
         <PasarLista
           semanaId={lista.semanaId}
@@ -435,7 +267,7 @@ export default function SalaProfes() {
           semanas === null ? (
             <p className="text-[14px] text-[#6B7393]">Cargando las clases…</p>
           ) : (
-            <ArchivoClases orgslug={orgslug} semanas={semanas} clases={clases} hoy={hoy} />
+            <ArchivoClases orgslug={orgslug} semanas={semanas} clases={clases} hoy={hoy} token={token} />
           )
         ) : (
           <ManualEquipo key={docAbrir ?? 'm'} orgId={org?.id} token={token} manual={manual} setManual={setManual} admin={yo.admin} abrir={docAbrir} />

@@ -56,6 +56,10 @@ class TareaSemana(SQLModel, table=True):
     # services/tareas/cambio_semana.py): {user_id: {"destino": id de la
     # semana del otro grupo, "por", "at"}}. Va en la semana de SU clase.
     cambios: str = ""
+    # El material del profe (09/11/2026, services/tareas/material_profe.py):
+    # la presentación completa (archivos o enlaces) y notas para preparar la
+    # clase. Solo lo ve el equipo. JSON {notas, archivos: [...]}.
+    material_profe: str = ""
 
 
 class TareaEntrega(SQLModel, table=True):

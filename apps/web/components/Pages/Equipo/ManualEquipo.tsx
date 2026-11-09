@@ -13,16 +13,34 @@ import { bloquesDeTexto, trozosNegrita } from '@/lib/nawar/salaProfes'
 import { borrarDoc, cambiarDoc, crearDoc, plantillaManual, type DocManual } from '@services/equipo/equipo'
 import { POPPINS } from './estilo'
 
+/** Los enlaces pegados en el texto (Google Docs, Loom…) se pueden pulsar (09/11/2026). */
+function ConEnlaces({ t }: { t: string }) {
+  const trozos = t.split(/(https?:\/\/[^\s<>()]+[^\s<>().,;:!?])/g)
+  return (
+    <>
+      {trozos.map((x, i) =>
+        i % 2 === 1 ? (
+          <a key={i} href={x} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#0b2da0] underline break-all">
+            {x.replace(/^https?:\/\/(www\.)?/, '').slice(0, 60)}
+          </a>
+        ) : (
+          <React.Fragment key={i}>{x}</React.Fragment>
+        )
+      )}
+    </>
+  )
+}
+
 function Linea({ texto }: { texto: string }) {
   return (
     <>
       {trozosNegrita(texto).map((t, i) =>
         t.negrita ? (
           <strong key={i} className="font-semibold text-[#0B1033]">
-            {t.t}
+            <ConEnlaces t={t.t} />
           </strong>
         ) : (
-          <React.Fragment key={i}>{t.t}</React.Fragment>
+          <ConEnlaces key={i} t={t.t} />
         )
       )}
     </>
@@ -122,7 +140,7 @@ function Editor({
           <label className="block text-[12.5px] font-semibold text-[#3B4262] mb-1">Texto</label>
           <textarea className={`${campo} min-h-[320px] font-mono text-[13px]`} value={texto} onChange={(e) => setTexto(e.target.value)} />
           <p className="mt-1.5 text-[12px] text-[#6B7393]">
-            <code>## </code> título · <code>### </code> subtítulo · <code>- </code> punto · <code>1. </code> paso · <code>**así**</code> en negrita
+            <code>## </code> título · <code>### </code> subtítulo · <code>- </code> punto · <code>1. </code> paso · <code>**así**</code> en negrita · los enlaces (Google Docs, Loom…) se pueden pulsar
           </p>
         </div>
         <div className="hidden lg:block">

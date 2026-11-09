@@ -260,6 +260,130 @@ async def api_editar_semana(
         raise _error(exc)
 
 
+# ── El material del profe (09/11/2026, material_profe.py) ──────────────────
+
+
+class NotasProfeIn(BaseModel):
+    notas: str = ""
+
+
+class EnlaceProfeIn(BaseModel):
+    nombre: str = ""
+    url: str
+
+
+async def _semana_equipo(semana_id: int, current_user, db_session: AsyncSession):
+    try:
+        s = await T.tarea(semana_id, db_session)
+    except T.TareaError as exc:
+        raise _error(exc)
+    admin = await _equipo(current_user, s.org_id, db_session)
+    return s, admin
+
+
+@router.put("/semana/{semana_id}/profe/notas", summary="Las notas para el profe de esa semana (equipo).")
+async def api_notas_profe(
+    semana_id: int,
+    data: NotasProfeIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.tareas import material_profe as MP
+
+    s, _admin_ok = await _semana_equipo(semana_id, current_user, db_session)
+    return await MP.guardar(s, MP.con_notas(MP.leer(s.material_profe), data.notas), db_session)
+
+
+@router.post("/semana/{semana_id}/profe/enlace", summary="Añade un enlace al material del profe (equipo).")
+async def api_enlace_profe(
+    semana_id: int,
+    data: EnlaceProfeIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.tareas import material_profe as MP
+
+    s, _admin_ok = await _semana_equipo(semana_id, current_user, db_session)
+    try:
+        m = MP.con_enlace(MP.leer(s.material_profe), data.nombre, data.url, _nombre(current_user))
+    except T.TareaError as exc:
+        raise _error(exc)
+    return await MP.guardar(s, m, db_session)
+
+
+@router.post("/semana/{semana_id}/profe/archivo", summary="Sube un archivo al material del profe (equipo).")
+async def api_archivo_profe(
+    semana_id: int,
+    archivo: UploadFile = File(...),
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.tareas import material_profe as MP
+
+    s, _admin_ok = await _semana_equipo(semana_id, current_user, db_session)
+    datos = await archivo.read(MP.MAX_BYTES + 1)
+    try:
+        m = MP.leer(s.material_profe)
+        if len(m["archivos"]) >= MP.MAX_ARCHIVOS:
+            raise T.TareaError(f"Como mucho {MP.MAX_ARCHIVOS} cosas por semana")
+        relativa, _ext = MP.guardar_archivo(s.org_id, archivo.filename or "archivo", datos)
+        m = MP.con_archivo(m, archivo.filename or "archivo", relativa, len(datos), _nombre(current_user))
+    except T.TareaError as exc:
+        raise _error(exc)
+    return await MP.guardar(s, m, db_session)
+
+
+@router.delete("/semana/{semana_id}/profe/{archivo_id}", summary="Quita algo del material del profe (quien lo subió o un administrador).")
+async def api_quitar_profe(
+    semana_id: int,
+    archivo_id: str,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.tareas import material_profe as MP
+
+    s, admin = await _semana_equipo(semana_id, current_user, db_session)
+    try:
+        m, ruta = MP.sin(MP.leer(s.material_profe), archivo_id, _nombre(current_user), admin)
+    except T.TareaError as exc:
+        raise _error(exc)
+    salida = await MP.guardar(s, m, db_session)
+    # Una copia de la semana (clase duplicada) puede apuntar al mismo archivo.
+    from sqlmodel import select
+    from src.db.tareas import TareaSemana
+
+    otras = (await db_session.execute(select(TareaSemana).where(TareaSemana.material_profe.contains(ruta or "~")))).scalars().all()  # type: ignore[attr-defined]
+    if ruta and not otras:
+        MP.borrar_del_disco(ruta)
+    return salida
+
+
+@router.get("/semana/{semana_id}/profe/{archivo_id}", summary="Baja un archivo del material del profe (equipo).")
+async def api_bajar_profe(
+    semana_id: int,
+    archivo_id: str,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from urllib.parse import quote
+
+    from src.services.tareas import material_profe as MP
+
+    s, _admin_ok = await _semana_equipo(semana_id, current_user, db_session)
+    encontrado = MP.archivo(MP.leer(s.material_profe), archivo_id)
+    if encontrado is None:
+        raise HTTPException(status_code=404, detail="Ese archivo ya no está")
+    ruta, mime, nombre = encontrado
+    return FileResponse(
+        ruta,
+        media_type=mime,
+        headers={
+            "Cache-Control": "private, no-store",
+            "Content-Disposition": f"inline; filename*=UTF-8''{quote(nombre)}",
+        },
+    )
+
+
 @router.delete("/semana/{semana_id}", summary="Deja de ser una semana: borra su tarea y las entregas (administradores).")
 async def api_borrar_semana(
     semana_id: int,

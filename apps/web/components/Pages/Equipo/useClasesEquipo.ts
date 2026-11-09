@@ -91,6 +91,7 @@ export default function useClasesEquipo(org: any, token: string) {
               enunciado: s.enunciado || '',
               lista: s.lista || null,
               porCorregir: porSemana[s.id] || 0,
+              material: s.material_profe || { notas: '', archivos: [] },
             })
           }
           for (const a of r.value.archivo || []) {

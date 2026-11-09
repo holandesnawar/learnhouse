@@ -32,6 +32,8 @@ export type SemanaEquipo = {
   porCorregir: number
   /** Una grabación de los meses de antes sin semana (06/11/2026). */
   suelta?: boolean
+  /** La presentación completa y las notas para el profe (09/11/2026). */
+  material?: { notas: string; archivos: { id: string; tipo: 'archivo' | 'enlace'; nombre: string; url?: string; por: string; at: string }[] }
 }
 
 export type Pendiente = {
@@ -225,6 +227,59 @@ export function porClase<C extends { uuid: string; nombre: string }>(
       (a, b) =>
         Number(!a.esta) - Number(!b.esta) ||
         (a.esta?.fecha || '').localeCompare(b.esta?.fecha || '') ||
+        a.clase.nombre.localeCompare(b.clase.nombre)
+    )
+}
+
+/**
+ * Para preparar cada clase (09/11/2026, "la siguiente clase no está bien del
+ * todo"): antes se miraba la semana del CALENDARIO (lunes a domingo), así que
+ * el domingo la clase del martes salía como «la semana que viene» y la de
+ * esta semana, ya dada, seguía arriba. Ahora:
+ * - `siguiente`: la primera clase de hoy en adelante (la que hay que preparar);
+ * - `despues`: la que va detrás;
+ * - `anterior`: la última ya dada en los últimos 10 días, con lo que le falta
+ *   (pasar lista, la grabación, corregir) en `pendiente`.
+ * Las clases con la próxima más cerca, arriba.
+ */
+export type Pendiente_ = 'lista' | 'grabacion' | 'corregir'
+
+export type ClaseParaPreparar<C> = {
+  clase: C
+  siguiente: SemanaEquipo | null
+  despues: SemanaEquipo | null
+  anterior: SemanaEquipo | null
+  pendiente: Pendiente_[]
+}
+
+export function paraPreparar<C extends { uuid: string; nombre: string }>(
+  clases: C[],
+  semanas: SemanaEquipo[],
+  hoy: string
+): ClaseParaPreparar<C>[] {
+  const hace10 = sumarDias(hoy, -10)
+  return clases
+    .map((clase) => {
+      const suyas = semanas
+        .filter((s) => !s.suelta && s.courseUuid === clase.uuid && s.fecha)
+        .sort((a, b) => a.fecha.localeCompare(b.fecha))
+      const i = suyas.findIndex((s) => s.fecha >= hoy)
+      const siguiente = i >= 0 ? suyas[i] : null
+      const despues = i >= 0 ? suyas[i + 1] || null : null
+      const pasadas = suyas.filter((s) => s.fecha < hoy && s.fecha >= hace10)
+      const anterior = pasadas.length ? pasadas[pasadas.length - 1] : null
+      const pendiente: Pendiente_[] = []
+      if (anterior) {
+        if (!anterior.lista?.pasada) pendiente.push('lista')
+        if (!anterior.grabaciones.length) pendiente.push('grabacion')
+        if (anterior.porCorregir > 0) pendiente.push('corregir')
+      }
+      return { clase, siguiente, despues, anterior, pendiente }
+    })
+    .sort(
+      (a, b) =>
+        Number(!a.siguiente) - Number(!b.siguiente) ||
+        (a.siguiente?.fecha || '').localeCompare(b.siguiente?.fecha || '') ||
         a.clase.nombre.localeCompare(b.clase.nombre)
     )
 }
