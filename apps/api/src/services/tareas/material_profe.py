@@ -214,3 +214,81 @@ async def guardar(s, m: dict, db_session) -> dict:
     await db_session.commit()
     await db_session.refresh(s)
     return para_la_pantalla(m)
+
+
+def _plano(t: str) -> str:
+    import unicodedata
+
+    t = unicodedata.normalize("NFD", t or "")
+    return "".join(c for c in t if unicodedata.category(c) != "Mn").lower()
+
+
+def es_para(quien_da: str, nombre_de_pila: str) -> bool:
+    """Si la clase la da esta persona: su nombre de pila está en «La da»
+    («Paul», «Paul y Luna»). Lo mismo que `esDe` de la pantalla."""
+    import re
+
+    n = (_plano(nombre_de_pila).split() or [""])[0]
+    if len(n) < 2:
+        return False
+    return n in re.split(r"[^a-z0-9]+", _plano(quien_da))
+
+
+async def avisos_de_mensajes(org_id: int, user_id: int, db_session) -> list[dict]:
+    """La campana del profe (09/11/2026): «Rida te ha dejado un mensaje» por
+    cada clase de esta semana o la que viene que da él, con el mensaje del
+    administrador sin leer. Se va sola al marcarlo «Leído»."""
+    from datetime import date, timedelta
+
+    from sqlmodel import select
+
+    from src.db.tareas import TareaSemana
+    from src.db.users import User
+    from src.services.panel.tandas import hoy_nl
+    from src.services.salas import salas as S
+
+    yo = (await db_session.execute(select(User).where(User.id == user_id))).scalars().first()
+    if not yo or not (yo.first_name or "").strip():
+        return []
+    hoy = date.fromisoformat(hoy_nl())
+    desde = (hoy - timedelta(days=7)).isoformat()
+    hasta = (hoy + timedelta(days=14)).isoformat()
+    filas = (
+        await db_session.execute(
+            select(TareaSemana).where(
+                TareaSemana.org_id == org_id,
+                TareaSemana.fecha >= desde,
+                TareaSemana.fecha <= hasta,
+                TareaSemana.material_profe.contains("mensaje"),  # type: ignore[attr-defined]
+            )
+        )
+    ).scalars().all()
+    out: list[dict] = []
+    recuadros: dict = {}
+    for s in filas:
+        m = leer(s.material_profe)
+        msg = m.get("mensaje")
+        if not msg or msg.get("leido_por"):
+            continue
+        quien = m.get("profe") or ""
+        if not quien:
+            if s.course_uuid not in recuadros:
+                try:
+                    cfg = await S.config_de(org_id, s.course_uuid, db_session)
+                    recuadros[s.course_uuid] = str((cfg.get("banner") or {}).get("teacher") or "")
+                except Exception:  # noqa: BLE001
+                    recuadros[s.course_uuid] = ""
+            quien = recuadros[s.course_uuid]
+        if not es_para(quien, yo.first_name or ""):
+            continue
+        out.append(
+            {
+                "id": f"msgprofe:{s.id}:{msg.get('at', '')}",
+                "kind": "clase",
+                "title": f"{msg.get('por') or 'La dirección'} te ha dejado un mensaje",
+                "excerpt": f"{s.tema or 'Tu próxima clase'}: {msg.get('texto', '')[:140]}",
+                "url": "/equipo",
+                "date": msg.get("at") or "",
+            }
+        )
+    return out

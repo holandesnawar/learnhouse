@@ -6,14 +6,13 @@ import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 
 dayjs.extend(relativeTime)
-import { Edit, Trash2, MoreVertical, Merge } from 'lucide-react'
+import { Edit, Trash2, MoreVertical } from 'lucide-react'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
-import { confirmar } from '@/lib/nawar/confirmar'
 import toast from 'react-hot-toast'
 import UserAvatar from '@components/Objects/UserAvatar'
 import { useRouter } from 'next/navigation'
 import { getUriWithOrg } from '@services/config/config'
-import { DiscussionWithAuthor, DiscussionAuthor, deleteDiscussion, getLabelInfo, juntarConLaAnterior } from '@services/communities/discussions'
+import { DiscussionWithAuthor, DiscussionAuthor, deleteDiscussion, getLabelInfo } from '@services/communities/discussions'
 import { getUserAvatarMediaDirectory } from '@services/media/media'
 import { CommentSection } from './CommentSection'
 import { DiscussionContent } from './DiscussionContent'
@@ -184,24 +183,9 @@ export function DiscussionDetail({
   const [hayDelChat, setHayDelChat] = React.useState(false)
   const timeAgo = haceCuanto(discussion.creation_date)
   const isAuthor = currentUserId === discussion.author_id
-  // Los administradores editan, borran y juntan cualquier publicación (09/11/2026).
+  // Los administradores editan y borran cualquier publicación (09/11/2026).
   const { isAdmin } = useAdminStatus() as any
   const puedeTocar = isAuthor || !!isAdmin
-  const juntar = async () => {
-    const ok = await confirmar(
-      '¿Juntar con su publicación anterior? Esta se pega debajo de la anterior de la misma persona en este canal, con sus fotos y comentarios. No se puede deshacer.',
-      { boton: 'Juntar' }
-    )
-    if (!ok) return
-    try {
-      const r = await juntarConLaAnterior(discussion.discussion_uuid, accessToken)
-      toast.success('Juntadas')
-      router.push(getUriWithOrg(orgslug, `/community/${communityId}/discussion/${r.discussion_uuid.replace('discussion_', '')}`))
-      router.refresh()
-    } catch (e: any) {
-      toast.error(e?.message || 'No se han podido juntar')
-    }
-  }
   const labelInfo = getLabelInfo(discussion.label || 'general')
 
   const authorName = discussion.author
@@ -252,12 +236,6 @@ export function DiscussionDetail({
                     {t('communities.discussion_detail.edit')}
                   </DropdownMenuItem>
                 )}
-                {isAdmin ? (
-                  <DropdownMenuItem onClick={juntar}>
-                    <Merge className="mr-2 h-4 w-4" />
-                    Juntar con la anterior
-                  </DropdownMenuItem>
-                ) : null}
                 <DropdownMenuItem asChild>
                   <ConfirmationModal
                     confirmationMessage={t('communities.discussion_detail.delete_confirm')}

@@ -507,6 +507,9 @@ export default function TarjetaPreparar({
           <>
             <span>
               {despues.tema || 'Sin tema'} · {diaLegible(despues.fecha)}
+              {quienDa(despues, clase.profe) !== quienDa(sig, clase.profe) && quienDa(despues, clase.profe)
+                ? ` · la da ${quienDa(despues, clase.profe)}`
+                : ''}
             </span>
             <span className={despues.material?.archivos.length ? 'text-[#15803D]' : 'text-[#8A6A2A]'}>
               · {despues.material?.archivos.length ? 'presentación completa lista' : 'sin presentación completa'}

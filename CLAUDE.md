@@ -5469,9 +5469,23 @@ la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
     la anterior»** (menú ⋮ de una publicación, solo administradores,
     `services/communities/juntar_posts.py`, `POST /discussions/{uuid}/juntar`):
     pega la publicación debajo de la anterior de la misma persona en el mismo
-    canal (texto, fotos, comentarios y respuestas en hilo); si la de arriba
-    era solo un saludo (< 40 letras), se queda el título de la de abajo. La
-    de abajo se borra (sus «me gusta» se pierden). No se deshace.
+    canal (texto, fotos, comentarios y respuestas en hilo). ⚠️ **Sustituido
+    el mismo día** ("no sé cuál iba en título y cuál de subtítulo… mejor
+    elegir un post y otro"): ahora en el tablón el administrador pulsa
+    **«Juntar dos»**, marca las dos (solo de la misma persona: las demás se
+    apagan), y en la ventana (`JuntarPublicaciones.tsx`) ve cuál va arriba
+    («Cambiar el orden»), elige o escribe el título y ve el texto antes de
+    «Juntar». Servidor `juntar` en `juntar_posts.py`, `POST
+    /discussions/juntar` {arriba, abajo, titulo}: se queda la de arriba; la de
+    abajo se borra (sus «me gusta» se pierden). No se deshace. Test
+    `test_juntar_dos_elegidas`.
+  - En el canal de presentaciones, la ventana de publicar pide «Cuéntalo
+    todo en una sola publicación…» con ejemplos (`esPresentacion` en
+    `ChannelPosts.tsx`).
+  - **Campana del profe**: «Rida te ha dejado un mensaje» por cada clase que
+    da (la semana o el «La da» de la clase, por su nombre de pila; de 7 días
+    atrás a 14 adelante) con el mensaje sin leer; se va al marcarlo «Leído»
+    (`avisos_de_mensajes` en `material_profe.py`, en `_tareas_items`).
   - **«Sin leer» que no se quitaba**: la marca de leído (UTC con «T») se
     comparaba como texto con la fecha de los mensajes (`str(datetime.now())`)
     → ahora `como_fecha_de_mensaje` (engagement.py, test en

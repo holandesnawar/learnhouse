@@ -208,19 +208,25 @@ async def api_update_discussion(
     )
 
 
+class JuntarIn(BaseModel):
+    arriba: str
+    abajo: str
+    titulo: str = ""
+
+
 @router.post(
-    "/discussions/{discussion_uuid}/juntar",
-    summary="Juntar con la publicación anterior de la misma persona (administradores)",
+    "/discussions/juntar",
+    summary="Juntar dos publicaciones de la misma persona, en el orden elegido (administradores)",
 )
-async def api_juntar_discussion(
+async def api_juntar_discussions(
     request: Request,
-    discussion_uuid: str,
+    data: JuntarIn,
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ) -> dict:
-    from src.services.communities.juntar_posts import juntar_con_la_anterior
+    from src.services.communities.juntar_posts import juntar
 
-    return await juntar_con_la_anterior(request, discussion_uuid, current_user, db_session)
+    return await juntar(request, data.arriba, data.abajo, data.titulo, current_user, db_session)
 
 
 @router.put(

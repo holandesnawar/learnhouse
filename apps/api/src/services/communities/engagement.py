@@ -655,6 +655,14 @@ async def _tareas_items(user_id: int, org_ids: List[int], db_session: AsyncSessi
         admin = superadmin or await is_org_admin(user_id, org_id, db_session)
         if admin or await is_org_staff(user_id, org_id, db_session):
             out.extend(await avisos_equipo(org_id, admin, db_session))
+            # El mensaje del administrador para el profe de esa clase (09/11/2026).
+            if not admin:
+                try:
+                    from src.services.tareas.material_profe import avisos_de_mensajes
+
+                    out.extend(await avisos_de_mensajes(org_id, user_id, db_session))
+                except Exception:  # noqa: BLE001
+                    pass
     return out
 
 
