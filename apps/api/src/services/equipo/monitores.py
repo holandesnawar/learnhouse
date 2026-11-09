@@ -135,3 +135,48 @@ async def al_entrar_con_invitacion(user_id: int, org_id: int, usergroup_id, db_s
     except Exception:  # noqa: BLE001
         pass
     return True
+
+
+async def subir_monitores(db_session: AsyncSession) -> list[int]:
+    """Los que están en «Monitores» con rol de alumno pasan a profe (10/11/2026).
+
+    Antes, meter a alguien en el grupo desde el panel no le cambiaba el rol
+    (solo la invitación lo hacía) y seguía viendo la escuela como alumno, sin
+    el Spreekclub. Desde ese día el grupo da el rol (`sync_roles_for_group`);
+    esto arregla a los que ya estaban dentro. Lo llama el arranque; repetirlo
+    no cambia nada. Devuelve los usuarios que ha subido."""
+    from src.db.user_organizations import UserOrganization
+    from src.db.usergroup_user import UserGroupUser
+    from src.db.usergroups import UserGroup
+
+    grupos = [
+        g for g in (await db_session.execute(select(UserGroup))).scalars().all()
+        if es_grupo_monitores(g.name or "")
+    ]
+    subidos: list[int] = []
+    for g in grupos:
+        ids = (
+            await db_session.execute(select(UserGroupUser.user_id).where(UserGroupUser.usergroup_id == g.id))
+        ).scalars().all()
+        for uid in ids:
+            uo = (
+                await db_session.execute(
+                    select(UserOrganization).where(
+                        UserOrganization.user_id == uid, UserOrganization.org_id == g.org_id
+                    )
+                )
+            ).scalars().first()
+            if uo and uo.role_id == 4:
+                uo.role_id = 5
+                db_session.add(uo)
+                subidos.append(uid)
+    if subidos:
+        await db_session.commit()
+        try:
+            from src.routers.users import _invalidate_session_cache
+
+            for uid in subidos:
+                _invalidate_session_cache(uid)
+        except Exception:  # noqa: BLE001
+            pass
+    return subidos

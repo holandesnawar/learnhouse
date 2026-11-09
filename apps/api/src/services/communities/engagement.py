@@ -221,6 +221,7 @@ async def get_unread(
         )
     ).all()
     read_map = {cid: last for cid, last in read_rows}
+    alta = await _alta(user_id, db_session)
 
     out: List[UnreadCount] = []
     for community in communities:
@@ -229,8 +230,9 @@ async def get_unread(
             Discussion.community_id == community.id,
             Discussion.author_id != user_id,  # lo tuyo no cuenta como no leído
         )
-        if last_read:
-            statement = statement.where(Discussion.creation_date > como_fecha_de_mensaje(last_read))  # type: ignore
+        desde = desde_cuando(last_read, alta)
+        if desde:
+            statement = statement.where(Discussion.creation_date > desde)  # type: ignore
         rows = (await db_session.execute(statement)).scalars().all()
 
         if not rows:
@@ -303,6 +305,35 @@ async def _canales_que_ve(user_id: int, org_ids: List[int], db_session: AsyncSes
 ####################################################
 # Campana de notificaciones
 ####################################################
+
+
+async def _alta(user_id: int, db_session: AsyncSession) -> str:
+    """Cuándo entró esta persona en la escuela, en el formato de los mensajes.
+
+    La campana y el «sin leer» cuentan desde aquí (10/11/2026, "¿por qué
+    alguien nuevo tiene tantas notificaciones?"): a quien entra hoy no le son
+    nuevos los 25 mensajes de hace semanas, los avisos de octubre ni un @all
+    de antes de llegar. Sin fecha, "" (cuenta todo, como antes)."""
+    fechas = [
+        f for f in (
+            await db_session.execute(
+                select(UserOrganization.creation_date).where(UserOrganization.user_id == user_id)
+            )
+        ).scalars().all() if f
+    ]
+    return como_fecha_de_mensaje(min(fechas)) if fechas else ""
+
+
+def desde_cuando(last_read: str, alta: str) -> str:
+    """Desde qué momento cuentan los mensajes de un canal: la última lectura o,
+    si nunca lo ha abierto, el día que entró (lo más reciente de las dos)."""
+    leido = como_fecha_de_mensaje(last_read) if last_read else ""
+    return max(leido, alta or "")
+
+
+def antes_de_entrar(fecha: str, alta: str) -> bool:
+    """Si algo pasó antes de que esta persona entrara en la escuela."""
+    return bool(alta and fecha and como_fecha_de_mensaje(fecha) < alta)
 
 
 async def _user_org_ids(user_id: int, db_session: AsyncSession) -> List[int]:
@@ -400,6 +431,7 @@ async def _channel_items(
         )
     ).all()
     read_map = {cid: last for cid, last in read_rows}
+    alta = await _alta(user.id, db_session)
 
     out: List[dict] = []
     for community in communities:
@@ -408,8 +440,9 @@ async def _channel_items(
             Discussion.community_id == community.id,
             Discussion.author_id != user.id,  # lo tuyo no cuenta como nuevo
         )
-        if last_read:
-            statement = statement.where(Discussion.creation_date > como_fecha_de_mensaje(last_read))  # type: ignore
+        desde = desde_cuando(last_read, alta)
+        if desde:
+            statement = statement.where(Discussion.creation_date > desde)  # type: ignore
         rows = (await db_session.execute(statement)).scalars().all()
         if not rows:
             continue
@@ -710,6 +743,16 @@ async def list_notifications(
             raw.extend(await source)
         except Exception as e:  # noqa: BLE001
             logger.warning("Fuente de notificaciones no disponible: %s", e)
+
+    # Lo de antes de entrar en la escuela no es nuevo para esta persona:
+    # menciones (un @all de octubre) y avisos del panel. Lo de las clases y
+    # tareas se calcula con su propia fecha y sigue saliendo.
+    alta = await _alta(user_id, db_session)
+    if alta:
+        raw = [
+            r for r in raw
+            if not (r["kind"] in ("mention", "announcement", "channel") and antes_de_entrar(r.get("date") or "", alta))
+        ]
 
     # Las que el alumno ha quitado a mano no vuelven.
     dismissed = set(

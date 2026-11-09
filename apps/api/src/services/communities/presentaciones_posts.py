@@ -123,6 +123,14 @@ async def pasar_si_toca() -> None:
                     logger.warning("Presentaciones a tablón: %s", hechos)
                 for org_id in await subtitulo_recursos(db):
                     hechos.setdefault(org_id, [])
+                try:
+                    from src.services.equipo.monitores import subir_monitores
+
+                    subidos = await subir_monitores(db)
+                    if subidos:
+                        logger.warning("Monitores que pasan a profe: %s", len(subidos))
+                except Exception:  # noqa: BLE001
+                    logger.exception("No se pudo revisar el grupo Monitores")
         finally:
             await motor.dispose()
         try:
