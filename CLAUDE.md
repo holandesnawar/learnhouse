@@ -5383,6 +5383,24 @@ la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
     día de su grupo: es la misma para todos.
   - Canales por grupo: ya existía (canal → Acceso → «Solo usuarios» → grupo;
     la barra, la campana y los «sin leer» lo respetan).
+- **v12 (09/11): visita guiada** ("un popup tipo bienvenido a tu nueva escuela,
+  estilo onboarding… siguiente y saltar… para los nuevos y los que ya están").
+  `components/Objects/VisitaGuiada/VisitaGuiada.tsx` (montada en `OrgSidebar`)
+  y los pasos en `lib/nawar/visitaGuiada.ts` (puro, test
+  `__tests__/visitaGuiada.test.ts`). Saludo («Hemos renovado la escuela…» a
+  quien ya la conocía; «En un minuto…» al nuevo, según `welcomed`/`dismissed`
+  de la bienvenida vieja), Empieza aquí, Formación, una por cada clase en
+  directo que ve ESE alumno (clase semanal / masterclass / conversación, por el
+  nombre: `tipoDeClase`), Comunidad, Ayuda y Perfil. En el ordenador oscurece
+  la pantalla e ilumina el bloque de la barra (`data-visita` en las filas, los
+  bloques —`claveDeBloque`—, los enlaces de arriba `top-…`, el ☰ `menu` y el
+  perfil `perfil`; si el bloque no se ve, el siguiente de la lista; si nada, la
+  tarjeta en el centro). En el móvil, tarjeta abajo e ilumina el ☰. Sale SOLA
+  una vez a cada alumno (no equipo ni closer), al entrar al Inicio; se guarda
+  en `student_progress.onboarding_state.visita = "v1"` (se manda el objeto
+  entero: el servidor lo reemplaza) y en el navegador. Subir `VERSION_VISITA`
+  hace que todos la vuelvan a ver. «Visita por la escuela» en el menú del
+  perfil la abre a cualquiera. En «Ver como» no sale sola. Esc / flechas.
 - **Pasar el diseño nuevo a la escuela de verdad = mezclar `diseno` en `dev`**
   (un PR, un botón «Merge»). Lo que lleva y ya está pensado para los datos
   reales: los datos inventados solo se crean con `LEARNHOUSE_DATOS_DE_PRUEBA=si`

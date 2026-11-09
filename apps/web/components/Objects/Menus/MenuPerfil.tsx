@@ -14,7 +14,8 @@ import UserAvatar from '@components/Objects/UserAvatar'
 import { signOut } from '@components/Contexts/AuthContext'
 import { nombreVerComo, volverDeVerComo } from '@components/Objects/VerComo/VerComo'
 import { getUriWithOrg } from '@services/config/config'
-import { UserCircle, GearSix, LockKey, ChatCircleDots, SquaresFour, SignOut, CaretDown } from '@phosphor-icons/react'
+import { UserCircle, GearSix, LockKey, ChatCircleDots, SquaresFour, SignOut, CaretDown, Signpost as SignpostIcon } from '@phosphor-icons/react'
+import { abrirVisita } from '@components/Objects/VisitaGuiada/VisitaGuiada'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,6 +47,7 @@ export default function MenuPerfil({ claro = false }: { claro?: boolean }) {
       <DropdownMenuTrigger asChild>
         <button
           aria-label="Tu perfil"
+          data-visita="perfil"
           className={`ml-1 flex items-center gap-1.5 rounded-full pl-0.5 pr-1.5 py-0.5 transition-colors `}
         >
           <UserAvatar border="border-2" rounded="rounded-full" width={32} />
@@ -83,6 +85,9 @@ export default function MenuPerfil({ claro = false }: { claro?: boolean }) {
           <Link href={ruta('/mis-consultas')} className={item}>
             <ChatCircleDots size={18} /> Mis consultas
           </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => abrirVisita()} className={item}>
+          <SignpostIcon size={18} /> Visita por la escuela
         </DropdownMenuItem>
         {estado?.isAdmin || estado?.isCloser ? (
           <>

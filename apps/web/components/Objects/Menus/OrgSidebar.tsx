@@ -35,6 +35,8 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import MenuPerfil from '@components/Objects/Menus/MenuPerfil'
 import { FranjaVerComo } from '@components/Objects/VerComo/VerComo'
+import VisitaGuiada from '@components/Objects/VisitaGuiada/VisitaGuiada'
+import { claveDeBloque } from '@/lib/nawar/visitaGuiada'
 import NotificationsBell from '@components/Objects/Menus/NotificationsBell'
 import MessagesBell from '@components/Objects/Menus/MessagesBell'
 import { PANEL_EN_LA_ESCUELA, DashboardMenuItem } from '@/lib/dashboard-menu-items'
@@ -403,7 +405,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const Fila = ({ it }: { it: Item }) => {
     const on = activo(it)
     return (
-      <Link href={it.fuera ? it.href : ruta(it.href)} className={filaCls(on)} style={filaStyle(on)}>
+      <Link href={it.fuera ? it.href : ruta(it.href)} className={filaCls(on)} style={filaStyle(on)} data-visita={it.key}>
         <span className={iconoCls(on)}>{it.emoji ? <span className="text-[16px] leading-none">{it.emoji}</span> : it.icon}</span>
         <span className="truncate flex-1">{it.label}</span>
         {it.badge ? (
@@ -433,7 +435,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         {bloques.map((b, i) => {
           const cerrado = !!b.titulo && plegados.includes(b.titulo) && !b.items.some(activo)
           return (
-            <div key={b.titulo || i}>
+            <div key={b.titulo || i} data-visita={b.titulo ? claveDeBloque(b.titulo) : undefined}>
               {b.titulo ? (
                 <button type="button" onClick={() => plegar(b.titulo!)} aria-expanded={!cerrado} className={tituloCls}>
                   <span>{b.titulo}</span>
@@ -469,6 +471,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
       return (
         <Link
           key={it.key}
+          data-visita={`top-${it.key}`}
           href={ruta(it.href)}
           className={`h-9 px-4 rounded-lg text-[14px] font-semibold flex items-center transition-colors ${
             claro
@@ -489,6 +492,12 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     <>
       {/* Mirando la escuela como un alumno (08/11): para volver a tu cuenta. */}
       <FranjaVerComo />
+      {/* Visita guiada (09/11): sola una vez a cada alumno, al entrar al Inicio. */}
+      <VisitaGuiada
+        clases={(enDirecto || []).map((c: any) => ({ uuid: c.uuid, nombre: c.nombre }))}
+        esAlumno={autenticado && !isStaff && !isAdmin && !isCloser}
+        enInicio={actual === '/'}
+      />
       {/* Franja de arriba en el móvil (08/11: con el botón de color, como en el
           ordenador): con la barra azul, la franja blanca; con la blanca, azul. */}
       <header
@@ -497,6 +506,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
       >
         <button
           onClick={() => setAbierta(true)}
+          data-visita="menu"
           aria-label="Menú"
           className={`p-1.5 -ml-1 rounded-lg ${azul ? 'text-[#3B4262] hover:text-[#0B1033]' : 'text-white/85 hover:text-white'}`}
         >
