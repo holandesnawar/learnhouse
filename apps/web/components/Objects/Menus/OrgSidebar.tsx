@@ -40,11 +40,11 @@ import VisitaGuiada from '@components/Objects/VisitaGuiada/VisitaGuiada'
 import { claveDeBloque, tipoDeClase } from '@/lib/nawar/visitaGuiada'
 import NotificationsBell from '@components/Objects/Menus/NotificationsBell'
 import MessagesBell from '@components/Objects/Menus/MessagesBell'
-import { PANEL_EN_LA_ESCUELA, DashboardMenuItem } from '@/lib/dashboard-menu-items'
-import { isFeatureAvailable } from '@services/plans/plans'
 import {
   House,
-  Flag,
+  Compass,
+  Phone,
+  UsersThree,
   Books,
   ChartLineUp,
   NotePencil,
@@ -56,12 +56,10 @@ import {
   ChatCircleDots,
   Envelope,
   FolderSimple,
-  ChartBar,
   List,
   CaretDown,
   X,
   ChalkboardTeacher,
-  SquaresFour,
   SidebarSimple,
   CircleHalf,
   Gauge,
@@ -132,7 +130,6 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     }
   }, [autenticado, isStaff, org?.id, tokenSesion])
   const isAdmin = autenticado && puedeEntrarAlPanel
-  const rf = org?.config?.config?.resolved_features
 
   useEffect(() => setAbierta(false), [pathname])
 
@@ -208,18 +205,11 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         <ChalkboardTeacher size={20} weight="fill" />
       ),
   }))
-  const panel = isAdmin
-    ? PANEL_EN_LA_ESCUELA.filter((item: DashboardMenuItem) => {
-        if (!item.featureKey) return true
-        if (rf?.[item.featureKey]) return rf[item.featureKey].enabled
-        return isFeatureAvailable(item.featureKey)
-      })
-    : []
   const inicio: Bloque = { items: [{ key: 'inicio', href: '/', label: 'Inicio', icon: <House size={20} weight="fill" /> }] }
   const empieza: Bloque = {
     titulo: 'Empieza aquí',
     items: [
-      { key: 'bienvenida', href: '/empieza-aqui', label: 'Bienvenida', icon: <Flag size={20} weight="fill" /> },
+      { key: 'bienvenida', href: '/empieza-aqui', label: 'Bienvenida', icon: <Compass size={20} weight="fill" /> },
       ...canalesInicio.map(itemCanal),
       { key: 'recursos', href: '/recursos', label: 'Recursos', icon: <FolderSimple size={20} weight="fill" /> },
     ],
@@ -234,16 +224,12 @@ export const OrgSidebar = (props: { orgslug: string }) => {
       {
         titulo: 'Gestión',
         items: [
-          // El panel entero, como en la escuela de antes (08/11/2026: «falta el general con todo, llamado Panel»).
+          // Solo lo de cada día (10/11/2026, usuario: "en mi barra de admin,
+          // déjalo como Panel, Llamadas y Usuarios"). Lo demás, dentro del panel
+          // o en la sala de profesores (su Inicio).
           { key: 'panel', href: '/dash', label: 'Panel', icon: <Gauge size={20} weight="fill" />, fuera: true },
-          { key: 'organizar', href: '/organizar', label: 'Organizar clases', icon: <SquaresFour size={20} weight="fill" /> },
-          { key: 'sala', href: '/equipo', label: 'Sala de profesores', icon: <ChalkboardTeacher size={20} weight="fill" /> },
-          { key: 'seguimiento', href: '/seguimiento', label: 'Seguimiento', icon: <ChartBar size={20} weight="fill" /> },
-          { key: 'responder', href: '/responder-consultas', label: 'Responder consultas', icon: <Question size={20} weight="fill" /> },
-          ...panel.map((item) => {
-            const Icon = item.icon as any
-            return { key: `panel-${item.id}`, href: item.href, label: item.label || ({ estadisticas: 'Estadísticas', users: 'Usuarios', courses: 'Cursos' } as Record<string, string>)[item.id] || item.id, icon: <Icon size={20} weight="fill" />, fuera: true } as Item
-          }),
+          { key: 'llamadas', href: '/dash/estadisticas?tab=llamadas', label: 'Llamadas', icon: <Phone size={20} weight="fill" />, fuera: true },
+          { key: 'usuarios', href: '/dash/users/settings/users', label: 'Usuarios', icon: <UsersThree size={20} weight="fill" />, fuera: true },
         ],
       },
       { titulo: 'Clases', items: [...itemsClases, { key: 'calendario', href: '/calendario', label: 'Calendario', icon: <CalendarBlank size={20} weight="fill" /> }] },

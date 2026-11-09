@@ -11,7 +11,7 @@
  * - `misTareas`: las tareas sin hacer de una persona (y las de todo el equipo).
  */
 
-import { diasEntre, sumarDias } from './semanasTrabajo'
+import { diasEntre, lunesDe, sumarDias } from './semanasTrabajo'
 
 export type SemanaEquipo = {
   key: string
@@ -310,4 +310,59 @@ export function lasMias<C extends { profe: string }>(
       esDeEsta(quienDa(f.despues, f.clase.profe)) ||
       (!f.siguiente && esDeEsta(f.clase.profe))
   )
+}
+
+/**
+ * La hora de una clase sacada del recuadro («Martes 19:00», «19.30 h»): «19:00».
+ * Sin hora, "".
+ */
+export function horaDe(texto: string): string {
+  const m = String(texto || '').match(/\b([01]?\d|2[0-3])\s*[:.h]\s*([0-5]\d)\b/)
+  return m ? `${m[1].padStart(2, '0')}:${m[2]}` : ''
+}
+
+export type ClaseEnAgenda = { semana: SemanaEquipo; profe: string; mia: boolean; hora: string }
+
+/**
+ * El calendario de la sala de profes (10/11/2026, "un calendario para que los
+ * profes vean las clases siguientes, con quién da cada una"): las semanas ya
+ * creadas de hoy a `dias` días, por fecha y hora, con quién la da (la semana
+ * o el «La da» de la clase) y si es de quien mira.
+ */
+export function agendaEquipo<C extends { uuid: string; profe: string }>(
+  clases: C[],
+  semanas: SemanaEquipo[],
+  hoy: string,
+  esMia: (profe: string) => boolean,
+  dias = 28
+): ClaseEnAgenda[] {
+  const hasta = sumarDias(hoy, dias)
+  const profeDe: Record<string, string> = {}
+  for (const c of clases) profeDe[c.uuid] = c.profe
+  return semanas
+    .filter((s) => !s.suelta && s.fecha && s.fecha >= hoy && s.fecha <= hasta && s.courseUuid in profeDe)
+    .map((s) => {
+      const profe = quienDa(s, profeDe[s.courseUuid] || '')
+      return { semana: s, profe, mia: !!profe && esMia(profe), hora: horaDe(s.hora) }
+    })
+    .sort((a, b) => a.semana.fecha.localeCompare(b.semana.fecha) || (a.hora || '99').localeCompare(b.hora || '99') || a.semana.curso.localeCompare(b.semana.curso))
+}
+
+/** El calendario por semanas: «Esta semana», «La semana que viene», «Semana del 23 nov». */
+export function porSemanasDeAgenda(items: ClaseEnAgenda[], hoy: string): { clave: string; titulo: string; items: ClaseEnAgenda[] }[] {
+  const lunesHoy = lunesDe(hoy)
+  const grupos: Record<string, ClaseEnAgenda[]> = {}
+  for (const it of items) (grupos[lunesDe(it.semana.fecha)] = grupos[lunesDe(it.semana.fecha)] || []).push(it)
+  return Object.keys(grupos)
+    .sort()
+    .map((lunes) => {
+      const d = diasEntre(lunesHoy, lunes)
+      const titulo = d <= 0 ? 'Esta semana' : d === 7 ? 'La semana que viene' : `Semana del ${diaLegible(lunes).replace(/^\S+ /, '')}`
+      return { clave: lunes, titulo, items: grupos[lunes] }
+    })
+}
+
+/** Las clases sin ninguna semana creada de hoy en adelante: no salen en el calendario. */
+export function sinSemanaPorDelante<C extends { uuid: string }>(clases: C[], semanas: SemanaEquipo[], hoy: string): C[] {
+  return clases.filter((c) => !semanas.some((s) => !s.suelta && s.courseUuid === c.uuid && s.fecha && s.fecha >= hoy))
 }

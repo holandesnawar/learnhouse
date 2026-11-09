@@ -5090,6 +5090,39 @@ iconos van en blanco entero, y las clases llevan icono por tipo
 (`tipoDeClase`): clase semanal la pizarra, masterclass `PresentationChart`,
 conversación (Spreekclub) `ChatsCircle`.
 
+### La sala de profesores: «Inicio» con tu próxima clase y «Calendario» (10/11/2026)
+Usuario: "está un poco caótico para el profe que entre… al asignar un profe a
+una clase (Clase semanal · Groep rood será de Paul), al entrar en la sala tiene
+que ver como inicio tu siguiente clase, poder ver la presentación… igual para
+la masterclass y el spreken uur (el monitor)… un calendario para que vean las
+clases siguientes, con quién da cada una". Antes «Mis clases» enseñaba una
+tarjeta por CADA clase a la vez (`TarjetaPreparar`, ya sin usar).
+- Pestañas de la sala: **Inicio** (`?vista` vacío; `InicioSala.tsx`),
+  **Calendario** (`?vista=calendario`, `CalendarioEquipo.tsx`), Archivo y Manual.
+- **Inicio**: «Tu próxima clase» en grande = la primera de hoy en adelante que
+  da esa persona (la semana o el «La da» de la clase, por su nombre de pila:
+  `agendaEquipo` + `esDe`), con día y hora, tema, «Entrar a la sala» el día,
+  «Preparar», «Abrir la clase», el mensaje del administrador, la presentación
+  completa y las notas, y la presentación de los alumnos con «Ver la
+  presentación». Debajo, «Tus siguientes clases» (4) y «Pendiente de clases
+  anteriores» (grabación, corregir). El administrador y el monitor ven la
+  próxima de todas las suyas. Sin clase asignada: «Aún no tienes ninguna clase
+  asignada» y el botón al calendario.
+- **Calendario**: las semanas ya creadas de las próximas 6 semanas, por semana
+  y día, con la hora (sacada del recuadro, `horaDe`), la clase, el tema, quién
+  la da (iniciales en su color) y si la presentación está. Lo suyo, con «Tú»;
+  «Todas / Las mías» para el profe. Tocar: lo suyo (o todo, el administrador)
+  abre «Preparar la clase» (el administrador pone ahí «La da esta semana»); lo
+  de otro profe lleva a su clase. Abajo, las clases sin semana por delante
+  (`sinSemanaPorDelante`). El «La da» de toda la clase sigue en Organizar
+  clases. Tests `lib/nawar/__tests__/agendaEquipo.test.ts`.
+- **Barra del administrador en la escuela**: «Gestión» = Panel, Llamadas
+  (`/dash/estadisticas?tab=llamadas`) y Usuarios, nada más (usuario: "déjalo
+  como panel, llamadas y usuarios"). La sala de profesores es su Inicio;
+  Organizar clases y Seguimiento, en los enlaces de abajo de la sala.
+- Iconos (usuario: "no me convencen victorias, bienvenida, presentaciones"):
+  Bienvenida `Compass`, Presentaciones `UserCircle`, Victorias `Star`.
+
 ## Rediseño estilo Circle: la escuela de pruebas y la rama `diseno` (07/11/2026)
 Pedido: "una versión no pública de la escuela para hacer cambios de diseño…
 estilo Circle… que se vea profesional de verdad y no IA". **Todo esto vive en

@@ -13,19 +13,19 @@ import {
   BookOpen,
   ChatsCircle,
   FolderSimple,
-  HandWaving,
   Hash,
   Megaphone,
   Microphone,
   Question,
-  Trophy,
+  Star,
+  UserCircle,
 } from '@phosphor-icons/react'
 
 export function IconoCanal({ nombre, size = 20, className }: { nombre: string; size?: number; className?: string }) {
   const n = (nombre || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
   const p = { size, weight: 'fill' as const, className }
-  if (/presenta/.test(n)) return <HandWaving {...p} />
-  if (/victori|logro/.test(n)) return <Trophy {...p} />
+  if (/presenta/.test(n)) return <UserCircle {...p} />
+  if (/victori|logro/.test(n)) return <Star {...p} />
   if (/noticia|anuncio|novedad/.test(n)) return <Megaphone {...p} />
   if (/esencial|norma|bienvenid|empieza/.test(n)) return <BookOpen {...p} />
   if (/spreek|spreken|convers|habla|pronunci/.test(n)) return <Microphone {...p} />

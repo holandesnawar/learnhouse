@@ -44,7 +44,7 @@ const BOTON =
 const BOTON_AZUL = 'shrink-0 h-8 inline-flex items-center gap-1.5 px-3 rounded-lg bg-[#0b2da0] text-white text-[13px] font-semibold'
 const CAMPO = 'w-full rounded-lg border border-[#DDE3EF] bg-white px-3 py-2 text-[14px] text-[#0B1033] outline-none focus:border-[#0b2da0]'
 
-function Paso({ hecho, titulo, detalle, accion, apagado = false }: { hecho: boolean; titulo: string; detalle?: string; accion?: React.ReactNode; apagado?: boolean }) {
+export function Paso({ hecho, titulo, detalle, accion, apagado = false }: { hecho: boolean; titulo: string; detalle?: string; accion?: React.ReactNode; apagado?: boolean }) {
   return (
     <li className="flex items-center gap-3 py-2.5">
       <span
@@ -73,7 +73,7 @@ function fechaCorta(iso: string): string {
 }
 
 /** El mensaje del administrador para el profe de esa semana, con «Leído». */
-function MensajeDelAdmin({ semana, admin, token, onLeido }: { semana: SemanaEquipo; admin: boolean; token: string; onLeido: () => void }) {
+export function MensajeDelAdmin({ semana, admin, token, onLeido }: { semana: SemanaEquipo; admin: boolean; token: string; onLeido: () => void }) {
   const msg = semana.material?.mensaje
   const [enviando, setEnviando] = useState(false)
   if (!msg?.texto) return null
@@ -113,7 +113,7 @@ function MensajeDelAdmin({ semana, admin, token, onLeido }: { semana: SemanaEqui
   )
 }
 
-function Material({ semana, token }: { semana: SemanaEquipo; token: string }) {
+export function Material({ semana, token }: { semana: SemanaEquipo; token: string }) {
   const m = semana.material || { notas: '', archivos: [] }
   const abrir = (a: ArchivoProfe) =>
     abrirArchivoProfe(semana.semanaId, a, token).catch((e) => toast.error(e?.message || 'No se ha podido abrir'))
