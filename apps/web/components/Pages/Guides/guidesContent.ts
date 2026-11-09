@@ -140,7 +140,7 @@ const GUIA_USO: Guide = {
     { t: 'h2', text: 'La clase en directo' },
     {
       t: 'p',
-      text: 'Todos los **jueves a las 19:00** (hora de Países Bajos) nos vemos en directo para repasar, resolver dudas y practicar hablando. La tienes en **Eventos**, con el enlace para entrar, y te avisamos por correo.',
+      text: '**Cada semana** nos vemos en directo para repasar, resolver dudas y practicar hablando. Tu próxima clase, con el día, la hora y el botón para entrar, la puedes ver en **Clase semanal**.',
     },
     {
       t: 'p',
@@ -229,7 +229,7 @@ const GUIA_ESTUDIO: Guide = {
         ['Lunes', 'Vídeo + Resumen de la lección nueva', '25 min'],
         ['Martes', 'Flashcards + Oefening', '20 min'],
         ['Miércoles', 'Lezen + Luisteren', '25 min'],
-        ['Jueves', 'Clase en directo (o la grabación)', '1 h'],
+        ['El día de tu clase', 'Clase en directo (o la grabación)', '1 h'],
         ['Viernes', 'Spreken + repasar tus fallos', '20 min'],
         ['Fin de semana', 'Un ratito de flashcards, sin presión', '10 min'],
       ],

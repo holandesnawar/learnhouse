@@ -382,6 +382,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     <button
       type="button"
       onClick={cambiarColor}
+      data-visita="color"
       aria-label="Cambiar el color de la barra"
       title={azul ? 'Barra blanca' : 'Barra azul'}
       className={`p-2 rounded-lg shrink-0 transition-colors ${claro ? 'text-[#5B6382] hover:text-[#0B1033]' : 'text-white/85 hover:text-white'}`}
