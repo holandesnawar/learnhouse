@@ -1,4 +1,5 @@
 'use client'
+import useAdminStatus from '@components/Hooks/useAdminStatus'
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
@@ -29,6 +30,22 @@ function getLabelIcon(iconName: string, size: number = 16) {
       return <Star size={size} />
     default:
       return <MessageSquare size={size} />
+  }
+}
+
+// Nawar (09/11/2026): el editor solo devuelve el texto. Lo que el chat guarda
+// dentro del contenido (fotos y audios en `attachments`, `threadParent`) se
+// conserva al editar; si no, editar una presentación le quitaba la foto.
+function conLoDelChat(nuevo: any, original: string | null | undefined): any {
+  if (!nuevo || typeof nuevo !== 'object') return nuevo
+  try {
+    const viejo = original ? JSON.parse(original) : null
+    if (!viejo || typeof viejo !== 'object') return nuevo
+    const extra: Record<string, any> = {}
+    for (const [k, v] of Object.entries(viejo)) if (k !== 'type' && k !== 'content') extra[k] = v
+    return { ...extra, ...nuevo }
+  } catch {
+    return nuevo
   }
 }
 
@@ -66,8 +83,10 @@ export function EditDiscussionModal({
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null)
 
   const accessToken = session?.data?.tokens?.access_token
+  // El administrador edita sin límite (también lo de los alumnos, 09/11/2026).
+  const { isAdmin } = useAdminStatus() as any
   const remainingEdits = MAX_EDITS - (discussion.edit_count || 0)
-  const canEdit = remainingEdits > 0
+  const canEdit = !!isAdmin || remainingEdits > 0
 
   // Initialize form with discussion data
   useEffect(() => {
@@ -121,7 +140,7 @@ export function EditDiscussionModal({
         discussion.discussion_uuid,
         {
           title: title.trim(),
-          content: content ? JSON.stringify(content) : null,
+          content: content ? JSON.stringify(conLoDelChat(content, discussion?.content)) : null,
           label: selectedLabel,
           emoji: selectedEmoji,
         },
@@ -161,7 +180,7 @@ export function EditDiscussionModal({
       dialogContent={
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Edit count warning */}
-          {canEdit ? (
+          {isAdmin ? null : canEdit ? (
             <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-100 rounded-lg text-blue-700 text-sm">
               <Info size={16} className="flex-shrink-0" />
               <span>

@@ -237,6 +237,13 @@ async def create_user_with_invite(
             int(inviteCode.get("usergroup_id")), # type: ignore / Convert to int since usergroup_id is expected to be int
             str(user.id),
         )
+        # Nawar: la invitación del grupo «Monitores» entra ya como monitor.
+        try:
+            from src.services.equipo.monitores import al_entrar_con_invitacion
+
+            await al_entrar_con_invitacion(user.id, org_id, inviteCode.get("usergroup_id"), db_session)  # type: ignore
+        except Exception:  # noqa: BLE001
+            pass
 
     await increase_feature_usage("members", org_id, db_session)
 

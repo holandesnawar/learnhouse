@@ -429,7 +429,8 @@ async def update_discussion(
     is_author = discussion.author_id == acting_user_id
     max_edits = 2
 
-    if is_author and discussion.edit_count >= max_edits:
+    # Nawar (09/11/2026): el administrador edita sin límite, también lo suyo.
+    if is_author and not is_admin and discussion.edit_count >= max_edits:
         raise HTTPException(
             status_code=403,
             detail={

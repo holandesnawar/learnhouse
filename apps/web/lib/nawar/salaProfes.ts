@@ -33,7 +33,12 @@ export type SemanaEquipo = {
   /** Una grabación de los meses de antes sin semana (06/11/2026). */
   suelta?: boolean
   /** La presentación completa y las notas para el profe (09/11/2026). */
-  material?: { notas: string; archivos: { id: string; tipo: 'archivo' | 'enlace'; nombre: string; url?: string; por: string; at: string }[] }
+  material?: {
+    notas: string
+    archivos: { id: string; tipo: 'archivo' | 'enlace'; nombre: string; url?: string; por: string; at: string }[]
+    profe?: string
+    mensaje?: { texto: string; por: string; at: string; leido_por: string; leido_at: string } | null
+  }
 }
 
 export type Pendiente = {
@@ -86,9 +91,8 @@ export function loQueToca(semanas: SemanaEquipo[], hoy: string, porCorregir: num
     if (d >= 0 && d <= 7 && !s.presentaciones.length) {
       lista.push({ id: `p-${s.key}`, tipo: 'presentacion', texto: `Subir la presentación de ${tema}`, detalle: de, urgente: d <= 2, fecha: s.fecha, semana: s })
     }
-    if (d <= 0 && d >= -7 && s.lista && !s.lista.pasada) {
-      lista.push({ id: `l-${s.key}`, tipo: 'lista', texto: `Pasar lista de ${tema}`, detalle: de, urgente: d < 0, fecha: s.fecha, semana: s })
-    }
+    // Pasar lista ya no es una tarea (09/11/2026): la sala cuenta sola quién
+    // entra. La lista queda para corregir a mano si hace falta.
     if (d < 0 && d >= -14 && !s.grabaciones.length) {
       lista.push({ id: `g-${s.key}`, tipo: 'grabacion', texto: `Subir la grabación de ${tema}`, detalle: de, urgente: d < -2, fecha: s.fecha, semana: s })
     }
@@ -270,7 +274,6 @@ export function paraPreparar<C extends { uuid: string; nombre: string }>(
       const anterior = pasadas.length ? pasadas[pasadas.length - 1] : null
       const pendiente: Pendiente_[] = []
       if (anterior) {
-        if (!anterior.lista?.pasada) pendiente.push('lista')
         if (!anterior.grabaciones.length) pendiente.push('grabacion')
         if (anterior.porCorregir > 0) pendiente.push('corregir')
       }
@@ -282,4 +285,29 @@ export function paraPreparar<C extends { uuid: string; nombre: string }>(
         (a.siguiente?.fecha || '').localeCompare(b.siguiente?.fecha || '') ||
         a.clase.nombre.localeCompare(b.clase.nombre)
     )
+}
+
+/**
+ * Quién da una semana (09/11/2026, "cada profe debe ver la clase que tiene
+ * asignada… en masterclass también su parte"): el profe puesto en ESA semana
+ * y, si no hay, el «La da» de la clase.
+ */
+export function quienDa(semana: SemanaEquipo | null | undefined, profeDeLaClase: string): string {
+  return (semana?.material?.profe || '').trim() || profeDeLaClase || ''
+}
+
+/**
+ * Las tarjetas que son de esta persona: la próxima clase o la de después la
+ * da ella (por la semana o por la clase). Lo de los demás no sale.
+ */
+export function lasMias<C extends { profe: string }>(
+  filas: ClaseParaPreparar<C>[],
+  esDeEsta: (profe: string) => boolean
+): ClaseParaPreparar<C>[] {
+  return filas.filter(
+    (f) =>
+      esDeEsta(quienDa(f.siguiente, f.clase.profe)) ||
+      esDeEsta(quienDa(f.despues, f.clase.profe)) ||
+      (!f.siguiente && esDeEsta(f.clase.profe))
+  )
 }

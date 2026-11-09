@@ -39,3 +39,20 @@ def test_sin_mencion_no_avisa():
 def test_por_nombre():
     d = SimpleNamespace(title="Pregunta", content=_doc("@lucía ¿lo has visto?"))
     assert mentions_user(texto_para_menciones(d), ALUMNA)
+
+
+def test_la_marca_de_leido_se_compara_con_el_formato_de_los_mensajes():
+    """09/11/2026: «leído» se guarda en UTC con «T» y zona; los mensajes, como
+    str(datetime.now()). Comparados tal cual, un mensaje del mismo día nunca
+    contaba como nuevo (el espacio va antes que la «T»)."""
+    from datetime import datetime, timedelta
+
+    from src.services.communities.engagement import como_fecha_de_mensaje
+
+    ahora = datetime.now()
+    marca = (ahora - timedelta(minutes=5)).astimezone().isoformat()
+    convertida = como_fecha_de_mensaje(marca)
+    assert "T" not in convertida
+    assert str(ahora) > convertida  # un mensaje de ahora es nuevo
+    assert str(ahora - timedelta(minutes=10)) < convertida  # uno de antes, leído
+    assert como_fecha_de_mensaje("") == ""

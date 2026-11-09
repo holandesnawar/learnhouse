@@ -123,6 +123,13 @@ async def join_org(
                     int(inviteCode.get("usergroup_id")),
                     str(user.id),
                 )
+                # Nawar: la invitación del grupo «Monitores» entra ya como monitor.
+                try:
+                    from src.services.equipo.monitores import al_entrar_con_invitacion
+
+                    await al_entrar_con_invitacion(user.id, org.id, inviteCode.get("usergroup_id"), db_session)
+                except Exception:  # noqa: BLE001
+                    pass
 
             await increase_feature_usage("members", org.id, db_session)
 

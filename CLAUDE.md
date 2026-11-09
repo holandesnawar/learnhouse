@@ -5434,6 +5434,55 @@ la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
     Los tablones se marcan leídos al entrar (antes su «sin leer» no se apagaba
     nunca). Vuelta atrás: `UPDATE community SET kind='chat' WHERE
     community_uuid IN (…)` con los uuid de la marca.
+- **v14 (09/11, ya en producción, `dev`)**:
+  - **Visita guiada**: último paso «Elige tu color» (ilumina el botón de la
+    barra azul/blanca, `data-visita="color"`). Las guías del módulo 0
+    (`guidesContent.ts`) y las preguntas de la clase semanal ya no dicen
+    «todos los jueves» (cada grupo tiene su día): «Cada semana… tu próxima
+    clase la puedes ver en Clase semanal».
+  - **Sala de profes, cada profe lo suyo**: además del «La da» de la clase,
+    el administrador pone **quién da ESA semana** («Editar» → «La da esta
+    semana», `material_profe.profe`; para la masterclass, donde cada semana
+    puede ser de un profe). La tarjeta sale a quien la da la próxima o la
+    siguiente clase (`quienDa`, `lasMias` en `salaProfes.ts`, con test); sin
+    ninguna asignada: «Aún no tienes ninguna clase asignada» + «Ver todas».
+    **Mensaje para el profe** (solo administradores, `material_profe.mensaje`):
+    sale arriba de la clase con el nombre de quien lo escribe; el profe lo
+    marca «Leído» y el administrador lo ve («Leído por Luna · 9 nov»).
+    Cambiar el texto lo deja sin leer. Rutas `PUT /tareas/semana/{id}/profe/quien`,
+    `PUT …/profe/mensaje` (403 a quien no es administrador) y
+    `POST …/profe/mensaje/leido`. Tests en `test_material_profe.py`.
+  - **Pasar lista ya no es tarea**: la sala cuenta sola quién entra. Fuera
+    de «lo que falta» (`paraPreparar`, `loQueToca`, `preparacion`); en la
+    tarjeta, «Asistencia: la cuenta la sala sola» con «Corregir» el día de
+    la clase (para quien vino por otro sitio).
+  - **Monitores**: ven también la **Masterclass** (`es_clase_del_monitor`:
+    spreek o master). **Invitación del grupo «Monitores»** (Panel → Usuarios
+    → invitaciones, eligiendo el grupo): quien entra con ella nace con rol de
+    profe (`al_entrar_con_invitacion`, en `join.py` y
+    `create_user_with_invite`), así nunca ve la escuela como alumno. Solo sube
+    a quien es alumno (rol 4). Test en `test_sala_profes.py`.
+  - **Tablones (Presentaciones)**: el administrador edita cualquier
+    publicación sin límite de ediciones (`update_discussion`, y el aviso de
+    «te quedan N ediciones» no le sale), y al editar se conservan las fotos y
+    audios del chat (`conLoDelChat` en `EditDiscussionModal`). **«Juntar con
+    la anterior»** (menú ⋮ de una publicación, solo administradores,
+    `services/communities/juntar_posts.py`, `POST /discussions/{uuid}/juntar`):
+    pega la publicación debajo de la anterior de la misma persona en el mismo
+    canal (texto, fotos, comentarios y respuestas en hilo); si la de arriba
+    era solo un saludo (< 40 letras), se queda el título de la de abajo. La
+    de abajo se borra (sus «me gusta» se pierden). No se deshace.
+  - **«Sin leer» que no se quitaba**: la marca de leído (UTC con «T») se
+    comparaba como texto con la fecha de los mensajes (`str(datetime.now())`)
+    → ahora `como_fecha_de_mensaje` (engagement.py, test en
+    `test_menciones.py`). Y al entrar a un tablón el número se quita al
+    momento en la barra (`setQueryData` en `ChannelPosts`).
+  - **Portadas**: «Editar portada» volvía a enseñar lo de antes al volver a
+    la página (la configuración de la escuela se guarda 5 min en el
+    navegador): ahora se invalida al guardar y la portada sigue a lo
+    guardado. Subtítulo de Recursos: «Materiales extra: vídeos, audios,
+    carpetas compartidas y enlaces útiles.» (de serie y, una vez al arrancar,
+    en lo guardado: `subtitulo_recursos`, marca `migraciones.recursos_subtitulo`).
 - **Pasar el diseño nuevo a la escuela de verdad = mezclar `diseno` en `dev`**
   (un PR, un botón «Merge»). Lo que lleva y ya está pensado para los datos
   reales: los datos inventados solo se crean con `LEARNHOUSE_DATOS_DE_PRUEBA=si`

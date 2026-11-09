@@ -267,6 +267,14 @@ class NotasProfeIn(BaseModel):
     notas: str = ""
 
 
+class QuienProfeIn(BaseModel):
+    profe: str = ""
+
+
+class MensajeProfeIn(BaseModel):
+    mensaje: str = ""
+
+
 class EnlaceProfeIn(BaseModel):
     nombre: str = ""
     url: str
@@ -292,6 +300,52 @@ async def api_notas_profe(
 
     s, _admin_ok = await _semana_equipo(semana_id, current_user, db_session)
     return await MP.guardar(s, MP.con_notas(MP.leer(s.material_profe), data.notas), db_session)
+
+
+@router.put("/semana/{semana_id}/profe/quien", summary="Quién da esa semana (solo administradores).")
+async def api_quien_profe(
+    semana_id: int,
+    data: QuienProfeIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.tareas import material_profe as MP
+
+    s, admin = await _semana_equipo(semana_id, current_user, db_session)
+    if not admin:
+        raise HTTPException(status_code=403, detail="Solo un administrador decide quién da la clase")
+    return await MP.guardar(s, MP.con_profe(MP.leer(s.material_profe), data.profe), db_session)
+
+
+@router.put("/semana/{semana_id}/profe/mensaje", summary="El mensaje del administrador para el profe (solo administradores).")
+async def api_mensaje_profe(
+    semana_id: int,
+    data: MensajeProfeIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.tareas import material_profe as MP
+
+    s, admin = await _semana_equipo(semana_id, current_user, db_session)
+    if not admin:
+        raise HTTPException(status_code=403, detail="Solo un administrador deja mensajes para el profe")
+    return await MP.guardar(s, MP.con_mensaje(MP.leer(s.material_profe), data.mensaje, _nombre(current_user)), db_session)
+
+
+@router.post("/semana/{semana_id}/profe/mensaje/leido", summary="El profe marca el mensaje como leído (equipo).")
+async def api_mensaje_leido(
+    semana_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.tareas import material_profe as MP
+
+    s, _admin = await _semana_equipo(semana_id, current_user, db_session)
+    try:
+        m = MP.leido(MP.leer(s.material_profe), _nombre(current_user))
+    except T.TareaError as exc:
+        raise _error(exc)
+    return await MP.guardar(s, m, db_session)
 
 
 @router.post("/semana/{semana_id}/profe/enlace", summary="Añade un enlace al material del profe (equipo).")
@@ -556,11 +610,11 @@ async def api_clases(
     admin = await _equipo(current_user, org_id, db_session)
     clases = await T.clases_en_directo(org_id, db_session)
     # Nawar (08/11/2026): un monitor solo tiene el Spreekclub.
-    from src.services.equipo.monitores import es_monitor, es_spreekclub
+    from src.services.equipo.monitores import es_clase_del_monitor, es_monitor
 
     monitor = await es_monitor(current_user.id, org_id, db_session)
     if monitor:
-        clases = [c for c in clases if es_spreekclub(c["nombre"])]
+        clases = [c for c in clases if es_clase_del_monitor(c["nombre"])]
     return {"clases": clases, "admin": admin, "monitor": monitor}
 
 

@@ -58,11 +58,11 @@ describe('preparacion', () => {
 })
 
 describe('preparacion: la lista', () => {
-  test('desde el día de la clase pide pasar lista y luego dice cuántos vinieron', () => {
+  test('la lista no se pide (la sala cuenta sola); si se pasó, dice cuántos vinieron', () => {
     const antes = preparacion({ fecha: '2026-11-09', presentaciones: 1, grabaciones: 0, tieneTarea: false, porCorregir: 0, lista: { pasada: false, vinieron: 0 } }, HOY)
     expect(antes.pasos.map((x) => x.id)).toEqual(['presentacion'])
     const hoy = preparacion({ fecha: HOY, presentaciones: 1, grabaciones: 0, tieneTarea: false, porCorregir: 0, lista: { pasada: false, vinieron: 0 } }, HOY)
-    expect(hoy.falta).toBe('Falta pasar lista')
+    expect(hoy.falta).toBe('')
     const pasada = preparacion({ fecha: HOY, presentaciones: 1, grabaciones: 0, tieneTarea: false, porCorregir: 0, lista: { pasada: true, vinieron: 5 } }, HOY)
     expect(pasada.pasos[1].texto).toBe('Lista pasada · vinieron 5')
     expect(pasada.falta).toBe('')

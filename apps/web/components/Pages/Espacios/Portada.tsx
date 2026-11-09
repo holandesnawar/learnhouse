@@ -9,7 +9,8 @@
  * y sus puntos, igual que el banner de «Bienvenida» (08/11).
  * Se guarda en org_config `portadas[clave]` (`PUT /orgs/{id}/config/portadas/{clave}`).
  */
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Pencil, X } from 'lucide-react'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
@@ -51,6 +52,15 @@ export default function Portada({
   const { isAdmin } = useAdminStatus() as any
   const inicial = usePortada(clave, { titulo, subtitulo })
   const [datos, setDatos] = useState<PortadaDatos>(inicial)
+  const queryClient = useQueryClient()
+  // Lo guardado puede llegar después de pintar (la escuela aún cargaba) o
+  // cambiar al guardar: la portada sigue a lo guardado (09/11/2026, "lo guardo
+  // y me lo pone como antes").
+  const huella = `${inicial.titulo}|${inicial.subtitulo}|${inicial.imagen}`
+  useEffect(() => {
+    setDatos(inicial)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [huella])
   const [editando, setEditando] = useState(false)
   const [borrador, setBorrador] = useState<PortadaDatos>(inicial)
   const [guardando, setGuardando] = useState(false)
@@ -69,6 +79,9 @@ export default function Portada({
       const d = await r.json()
       setDatos({ titulo: d.titulo || titulo, subtitulo: d.subtitulo ?? '', imagen: d.imagen || '' })
       setEditando(false)
+      // Que la escuela vuelva a leer su configuración: si no, al volver a
+      // esta página salía la portada de antes (la guardada en memoria 5 min).
+      queryClient.invalidateQueries({ queryKey: ['org'] })
     } catch (e: any) {
       setError(String(e?.message || 'No se pudo guardar'))
     } finally {

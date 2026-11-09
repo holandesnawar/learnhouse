@@ -185,7 +185,7 @@ export default function RecursosPage({ embebido = false }: { embebido?: boolean 
 
   return (
     <div className="max-w-[1040px] mx-auto px-4 sm:px-8 py-6 sm:py-8 space-y-5">
-      <Portada clave="recursos" titulo="Recursos" etiqueta="Empieza aquí" subtitulo="Materiales de la escuela: apuntes, audios, carpetas compartidas y enlaces útiles.">
+      <Portada clave="recursos" titulo="Recursos" etiqueta="Empieza aquí" subtitulo="Materiales extra: vídeos, audios, carpetas compartidas y enlaces útiles.">
         {lista.length > 1 ? (
           <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1">
             {[{ id: '', name: 'Todo' }, ...lista.map((c) => ({ id: String(c.id), name: c.name }))].map((c) => (

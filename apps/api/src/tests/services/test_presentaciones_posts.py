@@ -51,3 +51,77 @@ async def test_pasa_solo_las_presentaciones_y_una_vez(db, org):
     assert await pasar(db) == {}
     p = (await db.execute(select(Community).where(Community.community_uuid == "community_p"))).scalars().first()
     assert p.kind == "chat"
+
+
+async def test_subtitulo_de_recursos_una_vez(db, org):
+    from src.services.communities.presentaciones_posts import SUBTITULO_RECURSOS, subtitulo_recursos
+
+    db.add(OrganizationConfig(org_id=1, config={"portadas": {"recursos": {"titulo": "Recursos", "subtitulo": "Materiales de la escuela", "imagen": ""}}}))
+    await db.commit()
+    assert await subtitulo_recursos(db) == [1]
+    oc = (await db.execute(select(OrganizationConfig))).scalars().first()
+    assert oc.config["portadas"]["recursos"]["subtitulo"] == SUBTITULO_RECURSOS
+    assert oc.config["portadas"]["recursos"]["titulo"] == "Recursos"
+    # Si luego se cambia, no se vuelve a pisar.
+    oc.config = {**oc.config, "portadas": {"recursos": {"titulo": "Recursos", "subtitulo": "Otra", "imagen": ""}}}
+    db.add(oc)
+    await db.commit()
+    assert await subtitulo_recursos(db) == []
+
+
+def test_juntar_contenido():
+    import json
+
+    from src.services.communities.juntar_posts import juntar_contenido
+
+    a = json.dumps({"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Hoi!"}]}]})
+    b = json.dumps({"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Ik ben Ana en ik woon in Utrecht."}]}], "attachments": [{"url": "/foto.jpg", "kind": "image"}]})
+    contenido, titulo = juntar_contenido(a, b, "Hoi!", "Ik ben Ana en ik woon in Utrecht.")
+    d = json.loads(contenido)
+    assert [p["content"][0]["text"] for p in d["content"]] == ["Hoi!", "Ik ben Ana en ik woon in Utrecht."]
+    assert d["attachments"] == [{"url": "/foto.jpg", "kind": "image"}]
+    # La de arriba era solo un saludo: manda el título de la de abajo.
+    assert titulo == "Ik ben Ana en ik woon in Utrecht."
+    # Con texto de verdad arriba, se queda su título.
+    largo = json.dumps({"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Hola a todos, soy Ana, de Sevilla, y llevo dos años aquí."}]}]})
+    assert juntar_contenido(largo, b, "Hola a todos", "Ik ben Ana")[1] == "Hola a todos"
+
+
+async def test_juntar_con_la_anterior(db, org, monkeypatch):
+    import json
+
+    import src.security.rbac as rbac
+    from src.db.communities.discussion_comments import DiscussionComment
+    from src.services.communities import juntar_posts as J
+
+    async def si(*a, **k):
+        return True
+
+    monkeypatch.setattr(rbac, "authorization_verify_based_on_org_admin_status", si)
+    db.add(_canal("community_p", "👋 Presentaciones", "posts"))
+    await db.commit()
+    p = (await db.execute(select(Community))).scalars().first()
+    doc = lambda t, **x: json.dumps({"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": t}]}], **x})
+    filas = [
+        ("discussion_a", 1, "Hoi", doc("Hoi"), "2026-10-01 10:00:00"),
+        ("discussion_b", 1, "Ik ben Ana", doc("Ik ben Ana"), "2026-10-01 10:01:00"),
+        ("discussion_otro", 2, "Ik ben Piet", doc("Ik ben Piet"), "2026-10-01 10:00:30"),
+        ("discussion_r", 2, "Welkom!", doc("Welkom!", threadParent="discussion_b"), "2026-10-01 11:00:00"),
+    ]
+    for uuid, autor, t, c, f in filas:
+        db.add(Discussion(title=t, content=c, community_id=p.id, org_id=1, author_id=autor, discussion_uuid=uuid, creation_date=f, update_date=f))
+    await db.commit()
+    b = (await db.execute(select(Discussion).where(Discussion.discussion_uuid == "discussion_b"))).scalars().first()
+    db.add(DiscussionComment(discussion_id=b.id, author_id=2, content="Leuk!", comment_uuid="c1", creation_date="x", update_date="x"))
+    await db.commit()
+
+    r = await J.juntar_con_la_anterior(None, "discussion_b", type("U", (), {"id": 9})(), db)
+    assert r == {"discussion_uuid": "discussion_a", "title": "Ik ben Ana"}
+    uuids = {d.discussion_uuid for d in (await db.execute(select(Discussion))).scalars().all()}
+    assert uuids == {"discussion_a", "discussion_otro", "discussion_r"}
+    a = (await db.execute(select(Discussion).where(Discussion.discussion_uuid == "discussion_a"))).scalars().first()
+    assert "Ik ben Ana" in a.content and "Hoi" in a.content
+    com = (await db.execute(select(DiscussionComment))).scalars().first()
+    assert com.discussion_id == a.id
+    resp = (await db.execute(select(Discussion).where(Discussion.discussion_uuid == "discussion_r"))).scalars().first()
+    assert json.loads(resp.content)["threadParent"] == "discussion_a"

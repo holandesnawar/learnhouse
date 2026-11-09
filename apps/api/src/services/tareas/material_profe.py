@@ -22,6 +22,17 @@ Cada semana (`tarea_semana`) lleva en la columna `material_profe` (TEXT, JSON):
 - Lo añaden y cambian los administradores y los profes (el profe puede subir
   su propia presentación); quitar un archivo, quien lo subió o un
   administrador.
+
+Además (09/11/2026, "cada profe debe ver la clase que tiene asignada… en
+masterclass también su parte… y me gustaría dejar algún mensaje ahí para que
+el profe lea mi comentario"), solo para administradores:
+
+- `profe`: **quién da ESA semana** («Luna»), por encima del «La da» de la
+  clase. Sirve para la masterclass, donde cada semana puede darla un profe
+  distinto: la tarjeta le sale a esa persona en su sala.
+- `mensaje`: un mensaje del administrador para el profe de esa semana
+  (`{texto, por, at, leido_por, leido_at}`). El profe lo marca «Leído» y el
+  administrador lo ve. Cambiar el texto lo vuelve a dejar sin leer.
 """
 
 from __future__ import annotations
@@ -67,7 +78,13 @@ def leer(texto: Any) -> dict:
     if not isinstance(d, dict):
         d = {}
     archivos = [a for a in (d.get("archivos") or []) if isinstance(a, dict) and a.get("id")]
-    return {"notas": str(d.get("notas") or ""), "archivos": archivos}
+    msg = d.get("mensaje") if isinstance(d.get("mensaje"), dict) else {}
+    mensaje = (
+        {k: str(msg.get(k) or "") for k in ("texto", "por", "at", "leido_por", "leido_at")}
+        if (msg.get("texto") or "").strip()
+        else None
+    )
+    return {"notas": str(d.get("notas") or ""), "archivos": archivos, "profe": str(d.get("profe") or ""), "mensaje": mensaje}
 
 
 def para_la_pantalla(m: dict) -> dict:
@@ -75,7 +92,33 @@ def para_la_pantalla(m: dict) -> dict:
     return {
         "notas": m.get("notas", ""),
         "archivos": [{k: v for k, v in a.items() if k != "ruta"} for a in m.get("archivos", [])],
+        "profe": m.get("profe", ""),
+        "mensaje": m.get("mensaje"),
     }
+
+
+def con_profe(m: dict, profe: str) -> dict:
+    """Quién da esta semana (vacío = el de la clase)."""
+    return {**m, "profe": " ".join((profe or "").split())[:80]}
+
+
+def con_mensaje(m: dict, texto: str, por: str) -> dict:
+    """El mensaje del administrador. Vacío = sin mensaje. Si cambia, vuelve a
+    estar sin leer."""
+    t = (texto or "").strip()[:4000]
+    if not t:
+        return {**m, "mensaje": None}
+    viejo = m.get("mensaje") or {}
+    if (viejo.get("texto") or "").strip() == t:
+        return m
+    return {**m, "mensaje": {"texto": t, "por": (por or "")[:120], "at": _ahora(), "leido_por": "", "leido_at": ""}}
+
+
+def leido(m: dict, por: str) -> dict:
+    msg = m.get("mensaje")
+    if not msg:
+        raise TareaError("Esta semana no tiene mensaje", 404)
+    return {**m, "mensaje": {**msg, "leido_por": (por or "")[:120], "leido_at": _ahora()}}
 
 
 def con_notas(m: dict, notas: str) -> dict:

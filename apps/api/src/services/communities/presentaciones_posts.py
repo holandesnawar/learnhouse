@@ -77,6 +77,35 @@ async def pasar(db: AsyncSession) -> dict:
     return hechos
 
 
+SUBTITULO_RECURSOS = "Materiales extra: vídeos, audios, carpetas compartidas y enlaces útiles."
+_MARCA_RECURSOS = "recursos_subtitulo"
+
+
+async def subtitulo_recursos(db: AsyncSession) -> list:
+    """09/11/2026, "recursos subtítulo en banner lo guardo y me lo pone como
+    antes… pon: Materiales extra…". Una sola vez: si la portada de Recursos
+    está guardada, se le pone esta frase (si no lo está, ya sale de serie)."""
+    from src.db.organization_config import OrganizationConfig
+
+    hechos = []
+    for oc in (await db.execute(select(OrganizationConfig))).scalars().all():
+        config = dict(oc.config or {}) if isinstance(oc.config, dict) else {}
+        migraciones = dict(config.get("migraciones") or {}) if isinstance(config.get("migraciones"), dict) else {}
+        if migraciones.get(_MARCA_RECURSOS):
+            continue
+        portadas = dict(config.get("portadas") or {}) if isinstance(config.get("portadas"), dict) else {}
+        if isinstance(portadas.get("recursos"), dict):
+            portadas["recursos"] = {**portadas["recursos"], "subtitulo": SUBTITULO_RECURSOS}
+            config["portadas"] = portadas
+        migraciones[_MARCA_RECURSOS] = datetime.now().isoformat(timespec="seconds")
+        config["migraciones"] = migraciones
+        oc.config = config
+        db.add(oc)
+        hechos.append(oc.org_id)
+    await db.commit()
+    return hechos
+
+
 async def pasar_si_toca() -> None:
     """Lo llama el arranque. Nunca rompe el arranque."""
     try:
@@ -92,6 +121,8 @@ async def pasar_si_toca() -> None:
                 hechos = await pasar(db)
                 if any(hechos.values()):
                     logger.warning("Presentaciones a tablón: %s", hechos)
+                for org_id in await subtitulo_recursos(db):
+                    hechos.setdefault(org_id, [])
         finally:
             await motor.dispose()
         try:

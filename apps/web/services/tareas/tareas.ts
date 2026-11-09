@@ -95,9 +95,21 @@ export interface ArchivoProfe {
   at: string
 }
 
+export interface MensajeProfe {
+  texto: string
+  por: string
+  at: string
+  leido_por: string
+  leido_at: string
+}
+
 export interface MaterialProfe {
   notas: string
   archivos: ArchivoProfe[]
+  /** Quién da ESA semana (por encima del «La da» de la clase). Solo lo pone un administrador. */
+  profe?: string
+  /** El mensaje del administrador para el profe de esa semana. */
+  mensaje?: MensajeProfe | null
 }
 
 export interface SemanasClase {
@@ -362,6 +374,15 @@ export const borrarSemana = (id: number, token: string) =>
 
 export const guardarNotasProfe = (semanaId: number, notas: string, token: string) =>
   pedir<MaterialProfe>(`${base()}/semana/${semanaId}/profe/notas`, token, 'PUT', { notas })
+
+export const quienProfe = (semanaId: number, profe: string, token: string) =>
+  pedir<MaterialProfe>(`${base()}/semana/${semanaId}/profe/quien`, token, 'PUT', { profe })
+
+export const mensajeProfe = (semanaId: number, mensaje: string, token: string) =>
+  pedir<MaterialProfe>(`${base()}/semana/${semanaId}/profe/mensaje`, token, 'PUT', { mensaje })
+
+export const mensajeLeido = (semanaId: number, token: string) =>
+  pedir<MaterialProfe>(`${base()}/semana/${semanaId}/profe/mensaje/leido`, token, 'POST')
 
 export const enlaceProfe = (semanaId: number, nombre: string, url: string, token: string) =>
   pedir<MaterialProfe>(`${base()}/semana/${semanaId}/profe/enlace`, token, 'POST', { nombre, url })

@@ -164,6 +164,17 @@ export async function createDiscussion(
   return res.data
 }
 
+/** Junta una publicación con la anterior de la misma persona (administradores, 09/11/2026). */
+export async function juntarConLaAnterior(
+  discussion_uuid: string,
+  access_token: string
+): Promise<{ discussion_uuid: string; title: string }> {
+  const r = await fetch(`${getAPIUrl()}discussions/${discussion_uuid}/juntar`, RequestBodyWithAuthHeader('POST', null, null, access_token))
+  const d = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(typeof d?.detail === 'string' ? d.detail : 'No se han podido juntar')
+  return d
+}
+
 export async function updateDiscussion(
   discussion_uuid: string,
   data: DiscussionUpdate,

@@ -208,6 +208,21 @@ async def api_update_discussion(
     )
 
 
+@router.post(
+    "/discussions/{discussion_uuid}/juntar",
+    summary="Juntar con la publicación anterior de la misma persona (administradores)",
+)
+async def api_juntar_discussion(
+    request: Request,
+    discussion_uuid: str,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+) -> dict:
+    from src.services.communities.juntar_posts import juntar_con_la_anterior
+
+    return await juntar_con_la_anterior(request, discussion_uuid, current_user, db_session)
+
+
 @router.put(
     "/discussions/{discussion_uuid}/pin",
     response_model=DiscussionReadWithVoteStatus,
