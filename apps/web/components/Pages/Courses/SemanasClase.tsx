@@ -30,6 +30,7 @@ import {
   Mic,
   PenLine,
   Pencil,
+  PlayCircle,
   Plus,
   Users,
   Video,
@@ -50,6 +51,7 @@ import {
 } from '@services/tareas/tareas'
 import { CasillasCampana, EditarSemana, NuevaSemana } from './SemanaModales'
 import { AvisarClase } from './AvisarClase'
+import { deLaMismaSemana, Reproductor, useMiraTambien, type Grabacion } from './MiraTambien'
 
 export const claveSemanas = (courseUuid: string) => ['tareas', 'semanas', String(courseUuid || '').replace(/^course_/, '')]
 
@@ -421,6 +423,9 @@ export default function SemanasClase({
   const [todas, setTodas] = useState(false)
   const [nueva, setNueva] = useState(false)
   const [editando, setEditando] = useState<Semana | null>(null)
+  // La grabación del otro grupo (rood ↔ blauw), al final de cada semana.
+  const { data: hermanas } = useMiraTambien(courseUuid, !!data && !(data.equipo || data.admin))
+  const [viendo, setViendo] = useState<Grabacion | null>(null)
 
   if (!data) return null
   // El equipo (también los profes, 02/11/2026) prepara y cambia las semanas;
@@ -453,6 +458,38 @@ export default function SemanasClase({
   // Inicio (08/11/2026: «es diferente a esta otra»). El equipo sigue viendo
   // las filas con lo que hay subido y sus botones.
   const rutaOrg = (p: string) => getUriWithOrg(orgslug, p)
+  // 09/11/2026: «que ambos grupos puedan ver la grabación del otro grupo…
+  // al final de la semana un botón, algo más profesional».
+  const otroGrupo = (semana: Semana) => {
+    if (equipo || !semana.fecha || semana.fecha > hoy) return null
+    const encontradas = deLaMismaSemana(hermanas?.clases, semana.fecha)
+    if (!encontradas.length) return null
+    return encontradas.map(({ clase, g }) => {
+      const quien = [clase.dia ? `El ${clase.dia}` : 'En la otra clase', clase.profe ? `con ${clase.profe}` : '']
+        .filter(Boolean)
+        .join(', ')
+      return (
+        <div
+          key={`h-${semana.id}-${g.activity_uuid}`}
+          className="border-t border-[#EEF1F7] px-5 sm:px-6 py-3.5 flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-4"
+        >
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8A91AD]">La clase del otro grupo</p>
+            <p className="mt-0.5 text-[13.5px] text-[#3F4A61] leading-snug">
+              {quien}. El mismo tema, por si quieres repasarlo.
+            </p>
+          </div>
+          <button
+            onClick={() => setViendo(g)}
+            className="shrink-0 self-start sm:self-auto inline-flex items-center gap-2 h-9 px-3.5 rounded-lg border border-[#D5DEEE] bg-white text-[13.5px] font-semibold text-[#0b2da0] hover:border-[#0b2da0] hover:bg-[#F6F8FD]"
+          >
+            <PlayCircle size={16} strokeWidth={2} />
+            Ver la grabación
+          </button>
+        </div>
+      )
+    })
+  }
   const bloque = (titulo: string, semana: Semana) => {
     const pasos = equipo ? [] : pasosDeSemana(semana, courseUuid, rutaOrg, hoy)
     const hechos = pasos.filter((p) => p.estado === 'hecho').length
@@ -512,6 +549,7 @@ export default function SemanasClase({
             </div>
           )}
         </div>
+        {otroGrupo(semana)}
       </section>
     )
   }
@@ -549,6 +587,7 @@ export default function SemanasClase({
         {abierta ? (
           <div className="mx-4 mb-3 rounded-xl border border-[#EEF2F9] overflow-hidden">
             <ContenidoSemana semana={s} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={equipo} />
+            {otroGrupo(s)}
             {equipo ? <CabeceraAdmin semana={s} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(s)} onCambio={recargar} /> : null}
           </div>
         ) : null}
@@ -660,6 +699,7 @@ export default function SemanasClase({
           }}
         />
       ) : null}
+      {viendo ? <Reproductor courseUuid={courseUuid} g={viendo} onClose={() => setViendo(null)} /> : null}
     </div>
   )
 }

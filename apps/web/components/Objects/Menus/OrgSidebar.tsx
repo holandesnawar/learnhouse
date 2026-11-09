@@ -9,7 +9,7 @@
  *   Inicio (el feed)
  *   Formación   → la formación, mi progreso, mis notas
  *   Mis clases  → esta semana, tareas, clases grabadas, calendario
- *   Comunidad   → cada canal, con su emoji y sus mensajes sin leer
+ *   Comunidad   → cada canal, con su icono y sus mensajes sin leer
  *   Ayuda       → consultas, mensajes, recursos
  *   Equipo / Panel, solo a quien le toca.
  *
@@ -28,6 +28,7 @@ import { getAPIUrl, getUriWithOrg } from '@services/config/config'
 import { getOrgLogoMediaDirectory } from '@services/media/media'
 import { getCommunities, type Community } from '@services/communities/communities'
 import { splitChannelEmoji } from '@/lib/communities/channelEmoji'
+import { IconoCanal } from '@components/Objects/Communities/IconoCanal'
 import { esCanalDeInicio, ordenDeInicio } from '@/lib/nawar/empiezaAqui'
 import { CURSO_FORMACION_UUID as FORMACION_UUID, ajustesDirecto } from '@/lib/nawar/cursos'
 import { useOrg } from '@components/Contexts/OrgContext'
@@ -36,7 +37,7 @@ import useAdminStatus from '@components/Hooks/useAdminStatus'
 import MenuPerfil from '@components/Objects/Menus/MenuPerfil'
 import { FranjaVerComo } from '@components/Objects/VerComo/VerComo'
 import VisitaGuiada from '@components/Objects/VisitaGuiada/VisitaGuiada'
-import { claveDeBloque } from '@/lib/nawar/visitaGuiada'
+import { claveDeBloque, tipoDeClase } from '@/lib/nawar/visitaGuiada'
 import NotificationsBell from '@components/Objects/Menus/NotificationsBell'
 import MessagesBell from '@components/Objects/Menus/MessagesBell'
 import { PANEL_EN_LA_ESCUELA, DashboardMenuItem } from '@/lib/dashboard-menu-items'
@@ -56,7 +57,6 @@ import {
   Envelope,
   FolderSimple,
   ChartBar,
-  Hash,
   List,
   CaretDown,
   X,
@@ -65,6 +65,8 @@ import {
   SidebarSimple,
   CircleHalf,
   Gauge,
+  PresentationChart,
+  ChatsCircle,
 } from '@phosphor-icons/react'
 
 import { FONDO_MARCA, ACTIVO_SOBRE_MARCA } from '@/lib/nawar/marca'
@@ -164,15 +166,17 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const sinLeerDe = (uuid: string) => (sinLeer || []).find((r) => r.community_uuid === uuid)
   const tieneClases = (enDirecto || []).length > 0 || isStaff
 
+  // Sin emojis de Apple en la barra (10/11/2026: "está como mix, deja solo los
+  // nuestros"): cada canal lleva un icono de la escuela según su nombre.
+  const iconoCanal = (texto: string) => <IconoCanal nombre={texto} />
   const itemCanal = (c: Community): Item => {
-    const { emoji, text } = splitChannelEmoji(c.name)
+    const { text } = splitChannelEmoji(c.name)
     const u = sinLeerDe(c.community_uuid)
     return {
       key: c.community_uuid,
       href: `/community/${canalId(c.community_uuid)}`,
       label: text,
-      emoji,
-      icon: <Hash size={16} weight="bold" />,
+      icon: iconoCanal(text),
       badge: u?.unread || 0,
       alerta: (u?.mentions || 0) > 0,
     }
@@ -194,7 +198,15 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     key: `clase-${c.uuid}`,
     href: `/course/${String(c.uuid).replace(/^course_/, '')}`,
     label: isStaff || isAdmin ? conEtiqueta(c) : c.nombre,
-    icon: <ChalkboardTeacher size={20} weight="fill" />,
+    // Un icono por tipo de clase (10/11/2026: la Masterclass no lleva el del Spreken Club).
+    icon:
+      tipoDeClase(c.nombre) === 'masterclass' ? (
+        <PresentationChart size={20} weight="fill" />
+      ) : tipoDeClase(c.nombre) === 'conversacion' ? (
+        <ChatsCircle size={20} weight="fill" />
+      ) : (
+        <ChalkboardTeacher size={20} weight="fill" />
+      ),
   }))
   const panel = isAdmin
     ? PANEL_EN_LA_ESCUELA.filter((item: DashboardMenuItem) => {
@@ -392,7 +404,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const filaStyle = (on: boolean): React.CSSProperties | undefined =>
     on ? (azul ? { backgroundColor: ACTIVO_SOBRE_MARCA } : { ...FONDO_MARCA }) : undefined
   const iconoCls = (on: boolean) =>
-    `w-5 shrink-0 flex justify-center ${on ? 'text-white' : azul ? 'text-white/80 group-hover:text-white' : 'text-[#0b2da0]'}`
+    `w-5 shrink-0 flex justify-center ${on ? 'text-white' : azul ? 'text-white' : 'text-[#0b2da0]'}`
   const tituloCls = azul
     ? 'group w-full flex items-center justify-between px-3 pb-2 text-[13px] font-semibold uppercase tracking-[0.1em] text-white/95 hover:text-white'
     : 'group w-full flex items-center justify-between px-3 pb-2 text-[13px] font-semibold uppercase tracking-[0.1em] text-[#0b2da0]/80 hover:text-[#0b2da0]'

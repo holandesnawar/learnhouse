@@ -249,7 +249,7 @@ export function DestacadosComunidad({ orgslug }: { orgslug: string }) {
       </h2>
       <div className="grid sm:grid-cols-2 gap-3">
         {data.map((d) => {
-          const { emoji, text } = splitChannelEmoji(d.canal.name)
+          const { text } = splitChannelEmoji(d.canal.name)
           const autor = [d.author?.first_name, d.author?.last_name].filter(Boolean).join(' ') || d.author?.username || 'Alguien'
           return (
             <Link
@@ -258,7 +258,6 @@ export function DestacadosComunidad({ orgslug }: { orgslug: string }) {
               className={`${TARJETA} p-4 hover:border-[#C9D4EC] flex flex-col`}
             >
               <span className="text-[12px] font-semibold text-[#8A91AD]">
-                {emoji ? `${emoji} ` : ''}
                 {text}
               </span>
               <span className="mt-1.5 text-[15px] font-bold text-[#0B1033] leading-snug line-clamp-2">{d.title || textoPlano(d.content).slice(0, 80)}</span>
@@ -331,7 +330,7 @@ export function FeedComunidad({ orgslug }: { orgslug: string }) {
       {(data?.tablones || []).length > 1 ? (
         <div className="flex gap-2 overflow-x-auto pb-1 mb-3 -mx-1 px-1">
           {[{ community_uuid: '', name: 'Todo' } as Community, ...(data?.tablones || [])].map((c) => {
-            const { emoji, text } = splitChannelEmoji(c.name)
+            const { text } = splitChannelEmoji(c.name)
             const on = filtro === c.community_uuid
             return (
               <button
@@ -340,7 +339,6 @@ export function FeedComunidad({ orgslug }: { orgslug: string }) {
                 onClick={() => setFiltro(c.community_uuid)}
                 className={`shrink-0 h-8 px-3 rounded-full text-[13px] font-semibold border ${on ? 'bg-[#0b2da0] border-[#0b2da0] text-white' : 'bg-white border-[#DDE3F0] text-[#3B4262] hover:border-[#C9D4EC]'}`}
               >
-                {emoji ? `${emoji} ` : ''}
                 {text}
               </button>
             )
@@ -357,7 +355,7 @@ export function FeedComunidad({ orgslug }: { orgslug: string }) {
       ) : (
         <div className="space-y-3">
           {entradas.map((d) => {
-            const { emoji, text } = splitChannelEmoji(d.canal.name)
+            const { text } = splitChannelEmoji(d.canal.name)
             const autor = [d.author?.first_name, d.author?.last_name].filter(Boolean).join(' ') || d.author?.username || 'Alguien'
             const cuerpo = sinTituloRepetido(d.title || '', textoPlano(d.content))
             const reacciones = (d.reactions || []).reduce((n, r) => n + r.count, 0) + (d.upvote_count || 0)
@@ -371,7 +369,6 @@ export function FeedComunidad({ orgslug }: { orgslug: string }) {
                     <p className="text-[12.5px] text-[#8A91AD] truncate">
                       en{' '}
                       <Link href={canalHref(d.canal)} className="text-[#3B4262] hover:underline">
-                        {emoji ? `${emoji} ` : ''}
                         {text}
                       </Link>{' '}
                       · {haceCuanto(d.creation_date)}

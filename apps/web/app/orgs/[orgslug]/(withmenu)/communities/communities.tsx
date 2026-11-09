@@ -7,11 +7,12 @@ import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/Ge
 import { CreateCommunityModal } from '@components/Objects/Modals/Communities/CreateCommunityModal'
 import ContentPlaceHolderIfUserIsNotAdmin from '@components/Objects/ContentPlaceHolder'
 import { getUriWithOrg } from '@services/config/config'
-import { Plus, Hash, ChevronRight, MessagesSquare } from 'lucide-react'
+import { Plus, ChevronRight, MessagesSquare } from 'lucide-react'
 import Link from 'next/link'
 import { Community } from '@services/communities/communities'
 import FeatureGate from '@components/Dashboard/Shared/FeatureGate/FeatureGate'
 import { splitChannelEmoji } from '@/lib/communities/channelEmoji'
+import { IconoCanal } from '@components/Objects/Communities/IconoCanal'
 import CommunityInfoPanel from '@components/Objects/Communities/CommunityInfoPanel'
 import { useUnreadCommunity } from '@/hooks/queries/useUnreadCommunity'
 
@@ -78,7 +79,7 @@ const CommunitiesClient = ({ communities, orgslug, org_id }: CommunitiesClientPr
         ) : (
           <div className="space-y-2">
             {communities.map((community) => {
-              const { emoji, text } = splitChannelEmoji(community.name)
+              const { text } = splitChannelEmoji(community.name)
               return (
               <Link
                 key={community.community_uuid}
@@ -86,11 +87,7 @@ const CommunitiesClient = ({ communities, orgslug, org_id }: CommunitiesClientPr
                 className="group flex items-center gap-4 px-4 py-3.5 rounded-2xl bg-white nice-shadow border border-transparent hover:border-[#4da3ff]/40 transition-all"
               >
                 <div className="w-11 h-11 flex items-center justify-center shrink-0">
-                  {emoji ? (
-                    <span className="text-2xl leading-none" aria-hidden>{emoji}</span>
-                  ) : (
-                    <Hash size={20} className="text-[#025dc7]" />
-                  )}
+                  <IconoCanal nombre={text} size={22} className="text-[#0b2da0]" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[15px] font-bold text-gray-900 leading-tight truncate flex items-center gap-2">
