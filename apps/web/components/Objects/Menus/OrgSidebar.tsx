@@ -55,7 +55,6 @@ import {
   ChatCircleDots,
   Envelope,
   FolderSimple,
-  Kanban,
   ChartBar,
   Hash,
   List,
@@ -63,8 +62,6 @@ import {
   X,
   ChalkboardTeacher,
   SquaresFour,
-  Phone,
-  AddressBook,
   SidebarSimple,
   CircleHalf,
   Gauge,
@@ -255,18 +252,12 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     const susClases: Bloque[] = monitor && itemsClases.length ? [{ titulo: 'Mis clases', items: itemsClases }] : []
     bloques = [sala, ...susClases, { titulo: 'Formación', items: [verFormacion] }, ...comunidad, ayuda]
   } else if (esCloser) {
-    const venta = (tab: string) => `/dash/estadisticas?tab=${tab}`
+    // Solo «Panel» (10/11/2026, usuario: "que ponga solo Panel, para cuando
+    // enseñen la escuela por encima no se vea ventas"). Dentro del panel el
+    // closer tiene Matrículas, Llamadas, Contactos y lo demás.
     bloques = [
       inicio,
-      {
-        titulo: 'Ventas',
-        items: [
-          { key: 'v-matriculas', href: venta('matriculas'), label: 'Matrículas', icon: <Kanban size={20} weight="fill" />, fuera: true },
-          { key: 'v-llamadas', href: venta('llamadas'), label: 'Llamadas', icon: <Phone size={20} weight="fill" />, fuera: true },
-          { key: 'v-contactos', href: venta('contactos'), label: 'Contactos', icon: <AddressBook size={20} weight="fill" />, fuera: true },
-          { key: 'v-guion', href: venta('guion'), label: 'Material de venta', icon: <FolderSimple size={20} weight="fill" />, fuera: true },
-        ],
-      },
+      { items: [{ key: 'panel', href: '/dash', label: 'Panel', icon: <Gauge size={20} weight="fill" />, fuera: true }] },
       { titulo: 'La escuela', items: [verFormacion, ...itemsClases] },
       ...comunidad,
       { titulo: 'Ayuda', items: [{ key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={20} weight="fill" /> }] },
