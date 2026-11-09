@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Hash, MoreHorizontal, Pin, Search, X } from 'lucide-react'
+import { ArrowLeft, MoreHorizontal, Pin, Search, X } from 'lucide-react'
 import { ChannelChat } from '@components/Objects/Communities/ChannelChat'
 import ChannelPosts from '@components/Objects/Communities/ChannelPosts'
 import Portada from '@components/Pages/Espacios/Portada'
@@ -12,6 +12,7 @@ import { getUriWithOrg } from '@services/config/config'
 import { Community } from '@services/communities/communities'
 import { DiscussionWithAuthor } from '@services/communities/discussions'
 import { splitChannelEmoji } from '@/lib/communities/channelEmoji'
+import { IconoCanal } from '@components/Objects/Communities/IconoCanal'
 import { esCanalDeInicio } from '@/lib/nawar/empiezaAqui'
 
 interface CommunityClientProps {
@@ -41,7 +42,7 @@ interface CommunityClientProps {
 const PINNED_PREF_KEY = 'nawar_channel_pinned_open'
 
 const CommunityClient = ({ community, orgslug }: CommunityClientProps) => {
-  const { emoji, text } = splitChannelEmoji(community.name)
+  const { text } = splitChannelEmoji(community.name)
   const isBoard = community.kind === 'posts'
 
   // Qué enseña la columna derecha. El hilo manda sobre los fijados: si abres
@@ -110,13 +111,7 @@ const CommunityClient = ({ community, orgslug }: CommunityClientProps) => {
   const title = (
     <div className="flex items-center gap-2.5 min-w-0">
       <span className="w-8 h-8 flex items-center justify-center shrink-0">
-        {emoji ? (
-          <span className="text-[22px] leading-none" aria-hidden>
-            {emoji}
-          </span>
-        ) : (
-          <Hash size={19} className="text-[#025dc7]" />
-        )}
+        <IconoCanal nombre={text} size={21} className="text-[#0b2da0]" />
       </span>
       <div className="min-w-0">
         <h1 className="text-[17px] sm:text-[19px] font-bold text-gray-900 leading-tight truncate">
@@ -136,7 +131,7 @@ const CommunityClient = ({ community, orgslug }: CommunityClientProps) => {
       <div className="max-w-[1040px] mx-auto px-4 sm:px-8 py-6 sm:py-8 space-y-5">
         <Portada
           clave={community.community_uuid}
-          titulo={`${emoji ? emoji + ' ' : ''}${text}`}
+          titulo={text}
           subtitulo={community.description || ''}
           etiqueta={esCanalDeInicio(community.name) ? 'Empieza aquí' : 'Comunidad'}
         />

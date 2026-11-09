@@ -7,7 +7,8 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { getCommunities, Community } from '@services/communities/communities'
 import { getUriWithOrg } from '@services/config/config'
 import { splitChannelEmoji } from '@/lib/communities/channelEmoji'
-import { MessagesSquare, Hash, ChevronRight } from 'lucide-react'
+import { IconoCanal } from './IconoCanal'
+import { MessagesSquare, ChevronRight } from 'lucide-react'
 
 const channelId = (uuid: string) => uuid.replace('community_', '')
 
@@ -50,7 +51,7 @@ export default function CommunityChannelsCards({ orgslug, title = 'Comunidad', s
       </div>
       <div className={singleColumn ? 'flex flex-col gap-3' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'}>
         {channels.map((c) => {
-          const { emoji, text } = splitChannelEmoji(c.name)
+          const { text } = splitChannelEmoji(c.name)
           return (
             <Link
               key={c.community_uuid}
@@ -58,11 +59,7 @@ export default function CommunityChannelsCards({ orgslug, title = 'Comunidad', s
               className="group flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-white dark:bg-white/5 nice-shadow border border-transparent dark:border-white/10 hover:border-[#0b2da0]/40 transition-all"
             >
               <div className="w-11 h-11 flex items-center justify-center shrink-0">
-                {emoji ? (
-                  <span className="text-2xl leading-none" aria-hidden>{emoji}</span>
-                ) : (
-                  <Hash size={24} className="text-[#0b2da0]" />
-                )}
+                <IconoCanal nombre={text} size={24} className="text-[#0b2da0]" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[15px] font-bold text-gray-900 leading-tight truncate">{text}</p>

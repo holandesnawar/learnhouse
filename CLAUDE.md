@@ -5065,6 +5065,31 @@ nuevas (una columna, abajo). Tests `test_clases_por_semanas.py` y
   `_ADDED_COLUMNS` y no se añade ninguna columna: aplicarlas a mano. En
   producción no pasa (tiene pgvector).
 
+### La grabación del otro grupo, al final de cada semana (09/11/2026)
+Usuario: "que ambos grupos puedan ver las grabaciones del otro grupo… dentro
+de la semana que les toca, al final, un botón… algo más profesional". Para el
+ALUMNO, cada semana ya dada (la de «Esta semana» y las de «Clases anteriores»
+al abrirlas) acaba en una línea «La clase del otro grupo · El jueves, con
+Luna. El mismo tema, por si quieres repasarlo» con «Ver la grabación», que
+abre el vídeo en una ventana de la misma página (el `Reproductor` de
+`MiraTambien.tsx`, ahora exportado con `useMiraTambien` y `deLaMismaSemana`:
+la grabación de la clase hermana a 6 días o menos de esa semana). Los datos
+son los de «Mira también» (`/tareas/course/{uuid}/mira-tambien`), así que se
+apaga con el mismo ajuste de la clase y del otro grupo no se abre nada más. Sin
+grabación del otro grupo esa semana, no sale nada. El equipo no la ve.
+
+### Sin emojis de Apple en los canales; iconos blancos en la barra azul (09/11/2026)
+"Ahora está como mix, dejaría solo los nuestros." El emoji del nombre de un
+canal ya no se pinta: `components/Objects/Communities/IconoCanal.tsx` elige un
+icono de la escuela por de qué va el canal (presentaciones, victorias,
+noticias, lo esencial, conversación, preguntas, recursos, general; si no,
+#). Lo usan la barra, la lista de canales, las tarjetas de canales, la
+cabecera y la portada de cada canal y el Inicio (`FeedInicio`). El emoji sigue
+guardado en el nombre (el editor del canal lo enseña). En la barra azul los
+iconos van en blanco entero, y las clases llevan icono por tipo
+(`tipoDeClase`): clase semanal la pizarra, masterclass `PresentationChart`,
+conversación (Spreekclub) `ChatsCircle`.
+
 ## Rediseño estilo Circle: la escuela de pruebas y la rama `diseno` (07/11/2026)
 Pedido: "una versión no pública de la escuela para hacer cambios de diseño…
 estilo Circle… que se vea profesional de verdad y no IA". **Todo esto vive en

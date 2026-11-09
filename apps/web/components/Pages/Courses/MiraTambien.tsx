@@ -21,9 +21,47 @@ import { diaCorto, getMiraTambien, urlVideoHermana, type MiraTambien as Datos, t
 
 const A_LA_VISTA = 3
 
-type Grabacion = Datos['clases'][number]['grabaciones'][number]
+export type Grabacion = Datos['clases'][number]['grabaciones'][number]
+export type ClaseHermana = Datos['clases'][number]
 
-function Reproductor({ courseUuid, g, onClose }: { courseUuid: string; g: Grabacion; onClose: () => void }) {
+/** Las grabaciones de las clases hermanas, para quien está en esta clase. */
+export function useMiraTambien(courseUuid: string, activo = true) {
+  const session = useLHSession() as any
+  const token: string = session?.data?.tokens?.access_token || ''
+  return useQuery({
+    queryKey: ['tareas', 'mira-tambien', String(courseUuid || '').replace(/^course_/, '')],
+    queryFn: () => getMiraTambien(courseUuid, token),
+    enabled: !!courseUuid && !!token && activo,
+    staleTime: 60_000,
+    retry: 1,
+  })
+}
+
+const DIA_MS = 86_400_000
+const aDia = (f: string) => Date.parse(`${(f || '').slice(0, 10)}T12:00:00Z`)
+
+/**
+ * La grabación del otro grupo de ESA semana (09/11/2026): la de la clase
+ * hermana que cae a 6 días o menos de la nuestra. Rood y blauw dan el mismo
+ * tema la misma semana, en días distintos.
+ */
+export function deLaMismaSemana(clases: ClaseHermana[] | undefined, fecha: string) {
+  const f = aDia(fecha)
+  if (!clases || Number.isNaN(f)) return []
+  const out: { clase: ClaseHermana; g: Grabacion }[] = []
+  for (const clase of clases) {
+    let mejor: Grabacion | null = null
+    for (const g of clase.grabaciones) {
+      const d = Math.abs(aDia(g.fecha) - f)
+      if (Number.isNaN(d) || d > 6 * DIA_MS) continue
+      if (!mejor || d < Math.abs(aDia(mejor.fecha) - f)) mejor = g
+    }
+    if (mejor) out.push({ clase, g: mejor })
+  }
+  return out
+}
+
+export function Reproductor({ courseUuid, g, onClose }: { courseUuid: string; g: Grabacion; onClose: () => void }) {
   const v: VideoGrabacion = g.video
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-3 sm:p-6" onClick={onClose}>
@@ -61,17 +99,9 @@ function Reproductor({ courseUuid, g, onClose }: { courseUuid: string; g: Grabac
 }
 
 export default function MiraTambien({ courseUuid }: { courseUuid: string }) {
-  const session = useLHSession() as any
-  const token: string = session?.data?.tokens?.access_token || ''
   const [todas, setTodas] = useState(false)
   const [viendo, setViendo] = useState<{ curso: string; g: Grabacion } | null>(null)
-  const { data } = useQuery({
-    queryKey: ['tareas', 'mira-tambien', String(courseUuid || '').replace(/^course_/, '')],
-    queryFn: () => getMiraTambien(courseUuid, token),
-    enabled: !!courseUuid && !!token,
-    staleTime: 60_000,
-    retry: 1,
-  })
+  const { data } = useMiraTambien(courseUuid)
   const clases = (data?.clases || []).filter((c) => c.grabaciones.length)
   if (!clases.length) return null
 
