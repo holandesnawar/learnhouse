@@ -1,7 +1,6 @@
 import ConsultasBoard from '@components/Pages/Consultas/ConsultasBoard'
 import ConsultasFaq from '@components/Pages/Consultas/ConsultasFaq'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
-import { MessageCircleQuestion } from 'lucide-react'
 
 // Native Consultas — the Q&A board, rebuilt inside LearnHouse. It reads and
 // writes the same Supabase `consultas` data the old external app used, so it
@@ -25,8 +24,7 @@ export default async function ConsultasPage({
   return (
     <GeneralWrapperStyled>
       <div className="flex items-center gap-2 pt-2">
-        <MessageCircleQuestion size={24} className="text-[#025dc7]" />
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Consultas</h1>
+        <h1 className="text-[26px] sm:text-[30px] font-bold text-[#0B1033] tracking-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>Consultas</h1>
       </div>
       <p className="text-sm text-gray-500 mt-1 mb-6 max-w-xl">
         Resuelve tus dudas sobre el idioma o la formación. Publica tu consulta y

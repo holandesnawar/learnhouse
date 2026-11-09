@@ -870,6 +870,27 @@ async def _solo_admin(request: Request, org_id: int, current_user, db_session: A
         raise HTTPException(status_code=403, detail="Solo administradores")
 
 
+class VerComo(BaseModel):
+    user_id: int
+
+
+@router.post("/org/{org_id}/ver-como", summary="Sesión de solo lectura para ver la escuela como un alumno (solo administradores).")
+async def api_ver_como(
+    request: Request,
+    org_id: int,
+    data: VerComo,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.panel.ver_como import entrada
+
+    await _solo_admin(request, org_id, current_user, db_session)
+    r = await entrada(org_id, current_user.id, data.user_id, db_session)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    return r
+
+
 @router.get("/org/{org_id}/ads", summary="Campañas de anuncios con los leads, matrículas y ventas que trajo cada una.")
 async def api_ads(
     request: Request,
@@ -1050,3 +1071,134 @@ async def api_tandas_decidir(
     if not r.get("ok"):
         raise HTTPException(status_code=400, detail=r.get("motivo"))
     return r
+
+
+# ── Organizar clases (rediseño, rama diseno, 08/11/2026) ─────────────────────
+# Qué ve cada grupo, quién da cada clase y mover alumnos de grupo. Leer, el
+# equipo; cambiar, solo administradores. Ver services/panel/organizar.py.
+
+
+class OrgGruposIn(BaseModel):
+    grupos: list[int] = []
+
+
+class OrgProfeIn(BaseModel):
+    profe: str = ""
+
+
+class OrgMoverIn(BaseModel):
+    user_id: int
+    sacar_de: list[int] = []
+    meter_en: list[int] = []
+
+
+def _org_error(exc):
+    return HTTPException(status_code=exc.status, detail=exc.motivo)
+
+
+@router.get("/org/{org_id}/organizar", summary="Las clases en directo con sus grupos, quién las da y los alumnos de cada grupo.")
+async def api_organizar(
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.routers.tareas import _equipo
+    from src.services.panel import organizar
+
+    admin = await _equipo(current_user, org_id, db_session)
+    return {**await organizar.panel(org_id, db_session), "admin": bool(admin)}
+
+
+@router.put("/org/{org_id}/organizar/clase/{uuid}/grupos", summary="Qué grupos ven esta clase.")
+async def api_organizar_grupos(
+    org_id: int,
+    uuid: str,
+    data: OrgGruposIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.routers.tareas import _admin
+    from src.services.panel import organizar
+
+    await _admin(current_user, org_id, db_session)
+    try:
+        return await organizar.poner_grupos(org_id, uuid, data.grupos, db_session)
+    except organizar.OrganizarError as exc:
+        raise _org_error(exc)
+
+
+@router.put("/org/{org_id}/organizar/clase/{uuid}/profe", summary="Quién da la clase (profe o monitor).")
+async def api_organizar_profe(
+    org_id: int,
+    uuid: str,
+    data: OrgProfeIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.routers.tareas import _admin
+    from src.services.panel import organizar
+
+    await _admin(current_user, org_id, db_session)
+    try:
+        return await organizar.poner_profe(org_id, uuid, data.profe, db_session)
+    except organizar.OrganizarError as exc:
+        raise _org_error(exc)
+
+
+@router.post("/org/{org_id}/organizar/alumno", summary="Mueve a un alumno de unos grupos a otros.")
+async def api_organizar_mover(
+    org_id: int,
+    data: OrgMoverIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.routers.tareas import _admin
+    from src.services.panel import organizar
+
+    await _admin(current_user, org_id, db_session)
+    try:
+        return await organizar.mover_alumno(org_id, data.user_id, data.sacar_de, data.meter_en, db_session)
+    except organizar.OrganizarError as exc:
+        raise _org_error(exc)
+
+
+# ── Una semana en la clase del otro grupo (08/11/2026) ──
+# Ver services/tareas/cambio_semana.py. Solo administradores.
+
+
+class OrgCambioIn(BaseModel):
+    user_id: int
+    semana_id: int
+    # 0 = deshacer (vuelve a su clase).
+    destino_id: int = 0
+
+
+@router.get("/org/{org_id}/organizar/alumno/{user_id}/semanas", summary="Las semanas que vienen de un alumno y a qué clase del otro grupo podría ir.")
+async def api_organizar_semanas_alumno(
+    org_id: int,
+    user_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.routers.tareas import _admin
+    from src.services.tareas.cambio_semana import opciones
+
+    await _admin(current_user, org_id, db_session)
+    return {"semanas": await opciones(org_id, user_id, db_session)}
+
+
+@router.put("/org/{org_id}/organizar/alumno/cambio", summary="Esta semana va a la clase del otro grupo (o deshacerlo).")
+async def api_organizar_cambio(
+    org_id: int,
+    data: OrgCambioIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.routers.tareas import _admin
+    from src.services.tareas.cambio_semana import CambioError, cambiar
+
+    await _admin(current_user, org_id, db_session)
+    try:
+        return await cambiar(org_id, data.semana_id, data.user_id, data.destino_id or None, _nombre(current_user), db_session)
+    except CambioError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.mensaje)

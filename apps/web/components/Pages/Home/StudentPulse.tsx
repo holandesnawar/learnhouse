@@ -32,7 +32,6 @@ import {
   GraduationCap,
   Play,
   RotateCcw,
-  Sparkles,
   Target,
   TrendingUp,
   Trophy,
@@ -72,7 +71,7 @@ export function WeekStrip({ activeDays }: { activeDays: string[] }) {
   const set = new Set(activeDays)
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center justify-between gap-1">
       {days.map((label, i) => {
         const d = new Date(monday)
         d.setDate(monday.getDate() + i)
@@ -80,17 +79,16 @@ export function WeekStrip({ activeDays }: { activeDays: string[] }) {
         const active = set.has(iso)
         const isToday = iso === todayIso
         return (
-          <div key={label} className="flex flex-col items-center gap-1">
-            <span className="text-[9px] font-semibold text-gray-400 dark:text-white/40">{label}</span>
+          <div key={label} className="flex flex-col items-center gap-1.5">
+            <span className={`text-[11px] ${isToday ? 'font-semibold text-[#0B1033]' : 'text-[#8A91AD]'}`}>{label}</span>
             <div
               className={[
-                'w-4 h-4 rounded-full transition-colors flex items-center justify-center',
-                active ? 'bg-[#4da3ff]' : 'bg-[#DDE6F5] dark:bg-white/15',
-                isToday ? 'ring-2 ring-[#4da3ff]/40' : '',
+                'w-[22px] h-[22px] rounded-full border-2 flex items-center justify-center',
+                active ? 'border-[#16A34A] text-[#16A34A]' : isToday ? 'border-[#0b2da0]' : 'border-[#D5DBEA]',
               ].join(' ')}
               title={active ? `${iso} · ¡día cumplido!` : iso}
             >
-              {active && <Check size={11} strokeWidth={4} className="text-white" />}
+              {active && <Check size={12} strokeWidth={3.4} />}
             </div>
           </div>
         )
@@ -165,11 +163,11 @@ export function ContinueCard({
   return (
     <Link
       href={href}
-      className="block mb-6 group rounded-2xl overflow-hidden nice-shadow border border-[#DDE6F5] dark:border-white/10 bg-white dark:bg-white/5 hover:border-[#4da3ff]/70 transition-colors"
+      className="block mb-6 group rounded-2xl overflow-hidden nice-shadow border border-[#DDE6F5] dark:border-white/10 bg-white dark:bg-white/5 hover:border-[#0b2da0]/70 transition-colors"
     >
       <div className="p-5 sm:p-6">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-[11px] font-semibold text-[#025dc7] uppercase tracking-[0.08em] flex items-center gap-1.5">
+          <p className="text-[11px] font-semibold text-[#0b2da0] uppercase tracking-[0.08em] flex items-center gap-1.5">
             <Play size={12} strokeWidth={3} />
             {allDone && next ? 'Tu siguiente paso' : 'Continúa donde lo dejaste'}
           </p>
@@ -188,12 +186,12 @@ export function ContinueCard({
         </p>
 
         {!allDone && sectionId && SECTION_LABEL[sectionId] && (
-          <p className="text-[13px] text-[#025dc7] font-semibold mt-0.5">
+          <p className="text-[13px] text-[#0b2da0] font-semibold mt-0.5">
             Estabas en: {SECTION_LABEL[sectionId]}
           </p>
         )}
         {allDone && next && (
-          <p className="text-[13px] text-[#025dc7] font-semibold mt-0.5">
+          <p className="text-[13px] text-[#0b2da0] font-semibold mt-0.5">
             ¡Terminaste “{lessonTitle.replace(/^Les\s*\d+\s*[—-]\s*/i, '')}”! Esta es la siguiente.
           </p>
         )}
@@ -209,7 +207,7 @@ export function ContinueCard({
             </div>
             <div className="h-2 rounded-full bg-[#F0F5FF] dark:bg-white/10 overflow-hidden">
               <div
-                className="h-full bg-[#4da3ff] rounded-full transition-all duration-500"
+                className="h-full bg-[#0b2da0] rounded-full transition-all duration-500"
                 style={{ width: `${pct}%` }}
               />
             </div>
@@ -218,7 +216,7 @@ export function ContinueCard({
 
         {/* Mismo diseño de botón de marca que "Continuar donde lo dejaste" en
             Formación (colores, sombra, icono) — pero compacto, no a todo el ancho */}
-        <div className="mt-4 inline-flex items-center justify-center gap-2 py-3 px-5 rounded-lg nice-shadow font-semibold text-sm leading-tight transition-colors bg-[#4da3ff] text-[#1D0084] group-hover:bg-[#6cb5ff]">
+        <div className="mt-4 inline-flex items-center justify-center gap-2 py-3 px-5 rounded-lg nice-shadow font-semibold text-sm leading-tight transition-colors bg-[#0b2da0] text-white group-hover:bg-[#0a2690]">
           <BookOpen className="w-4 h-4 shrink-0" />
           <span>
             {allDone
@@ -254,7 +252,7 @@ export function WeekCard({ insights }: { insights: StudentInsights }) {
   return (
     <div className="rounded-2xl bg-white dark:bg-white/5 border border-[#DDE6F5] dark:border-white/10 nice-shadow p-5">
       <div className="flex items-center gap-2 mb-3">
-        <CalendarCheck2 size={18} className="text-[#025dc7]" />
+        <CalendarCheck2 size={18} className="text-[#0b2da0]" />
         <h2 className="text-[15px] font-bold text-gray-900 dark:text-white">Esta semana</h2>
       </div>
 
@@ -297,7 +295,7 @@ export function WeekCard({ insights }: { insights: StudentInsights }) {
             </div>
           </div>
           {deltaMsg && (
-            <p className="mt-2 text-[12px] font-semibold text-[#025dc7] flex items-center gap-1.5">
+            <p className="mt-2 text-[12px] font-semibold text-[#0b2da0] flex items-center gap-1.5">
               <TrendingUp size={13} /> {deltaMsg}
             </p>
           )}
@@ -358,13 +356,12 @@ export function RepasoCard({
   return (
     <div className="rounded-2xl bg-white dark:bg-white/5 border border-[#DDE6F5] dark:border-white/10 nice-shadow p-5">
       <div className="flex items-center gap-2 mb-3">
-        <Target size={18} className="text-[#025dc7]" />
+        <Target size={18} className="text-[#0b2da0]" />
         <h2 className="text-[15px] font-bold text-gray-900 dark:text-white">Tu repaso de hoy</h2>
       </div>
 
       {pending.length === 0 ? (
         <p className="text-[13px] text-gray-500 dark:text-white/60 leading-relaxed">
-          <Sparkles size={13} className="inline mr-1 text-[#4da3ff]" />
           Nada pendiente de repaso. Cuando falles ejercicios, aparecerán aquí para repetirlos.
         </p>
       ) : (
@@ -380,24 +377,24 @@ export function RepasoCard({
                   orgslug,
                   `/ejercicios/modulo/${f.moduleId}/leccion/${f.lessonId}?seccion=${f.secId}&repaso=1`
                 )}
-                className="flex items-center justify-between gap-2 rounded-xl bg-[#F8FAFF] dark:bg-white/5 border border-[#DDE6F5] dark:border-white/10 px-3 py-2 hover:border-[#4da3ff] transition-colors group"
+                className="flex items-center justify-between gap-2 rounded-xl bg-[#F8FAFF] dark:bg-white/5 border border-[#DDE6F5] dark:border-white/10 px-3 py-2 hover:border-[#0b2da0] transition-colors group"
               >
                 <div className="min-w-0">
                   <p className="text-[13px] font-semibold text-gray-900 dark:text-white truncate">
-                    {shortTitle(f.title)} · <span className="text-[#025dc7] dark:text-[#4da3ff]">{f.secLabel}</span>
+                    {shortTitle(f.title)} · <span className="text-[#0b2da0] dark:text-[#0b2da0]">{f.secLabel}</span>
                   </p>
                   <p className="text-[11px] text-[#5A6480] dark:text-white/60 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#E4B252]" />
                     {f.fails} {f.fails === 1 ? 'fallo' : 'fallos'} por repasar
                   </p>
                 </div>
-                <ArrowRight size={14} className="shrink-0 text-[#025dc7] group-hover:translate-x-0.5 transition-transform" />
+                <ArrowRight size={14} className="shrink-0 text-[#0b2da0] group-hover:translate-x-0.5 transition-transform" />
               </Link>
             ))}
           </div>
           <Link
             href={getUriWithOrg(orgslug, '/ejercicios/progreso')}
-            className="mt-3.5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#025dc7] hover:text-[#1D0084] transition-colors"
+            className="mt-3.5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#0b2da0] hover:text-[#0B1033] transition-colors"
           >
             <RotateCcw size={14} /> Ver todo mi progreso <ArrowRight size={14} />
           </Link>
@@ -437,7 +434,7 @@ export function FormacionCard({
   return (
     <div className="mb-8 bg-white dark:bg-white/5 rounded-2xl border border-[#DDE6F5] dark:border-white/10 nice-shadow p-5 sm:p-6">
       <div className="flex items-center gap-2.5 mb-4">
-        <TrendingUp size={22} className="text-[#025dc7]" />
+        <TrendingUp size={22} className="text-[#0b2da0]" />
         <h2
           className="text-lg font-bold text-gray-900 dark:text-white leading-tight"
           style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
@@ -448,7 +445,7 @@ export function FormacionCard({
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="rounded-xl bg-[#F0F5FF] dark:bg-white/5 p-4">
-          <div className="flex items-center gap-1.5 text-[#025dc7] mb-2">
+          <div className="flex items-center gap-1.5 text-[#0b2da0] mb-2">
             <BookOpenCheck size={14} />
             <span className="text-[10px] font-semibold uppercase tracking-[0.08em]">Progreso del curso</span>
           </div>
@@ -457,7 +454,7 @@ export function FormacionCard({
           </p>
           <div className="mt-2 h-1.5 rounded-full bg-white dark:bg-white/10 overflow-hidden">
             <div
-              className="h-full bg-[#4da3ff] rounded-full transition-all duration-500"
+              className="h-full bg-[#0b2da0] rounded-full transition-all duration-500"
               style={{ width: `${pct}%` }}
             />
           </div>
@@ -469,7 +466,7 @@ export function FormacionCard({
         </div>
 
         <div className="rounded-xl bg-[#F0F5FF] dark:bg-white/5 p-4">
-          <div className="flex items-center gap-1.5 text-[#025dc7] mb-2">
+          <div className="flex items-center gap-1.5 text-[#0b2da0] mb-2">
             <GraduationCap size={14} />
             <span className="text-[10px] font-semibold uppercase tracking-[0.08em]">Nota media</span>
           </div>
@@ -482,7 +479,7 @@ export function FormacionCard({
         </div>
 
         <div className="rounded-xl bg-[#F0F5FF] dark:bg-white/5 p-4">
-          <div className="flex items-center gap-1.5 text-[#025dc7] mb-2">
+          <div className="flex items-center gap-1.5 text-[#0b2da0] mb-2">
             <Flame size={14} />
             <span className="text-[10px] font-semibold uppercase tracking-[0.08em]">Racha</span>
           </div>
@@ -495,7 +492,7 @@ export function FormacionCard({
         </div>
 
         <div className="rounded-xl bg-[#F0F5FF] dark:bg-white/5 p-4">
-          <div className="flex items-center gap-1.5 text-[#025dc7] mb-2">
+          <div className="flex items-center gap-1.5 text-[#0b2da0] mb-2">
             <Trophy size={14} />
             <span className="text-[10px] font-semibold uppercase tracking-[0.08em]">Dominadas</span>
           </div>
@@ -509,7 +506,7 @@ export function FormacionCard({
       <div className="mt-4 flex justify-end">
         <Link
           href={getUriWithOrg(orgslug, '/ejercicios/progreso')}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-[#DDE6F5] dark:border-white/15 text-[#025dc7] text-[13px] font-semibold hover:bg-[#F0F5FF] dark:hover:bg-white/10 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-[#DDE6F5] dark:border-white/15 text-[#0b2da0] text-[13px] font-semibold hover:bg-[#F0F5FF] dark:hover:bg-white/10 transition-colors"
         >
           <Dumbbell size={14} /> Ver mi progreso completo <ArrowRight size={14} />
         </Link>

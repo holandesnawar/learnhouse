@@ -1,4 +1,5 @@
 'use client'
+import { haceCuanto } from '@/lib/nawar/haceCuanto'
 import React from 'react'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
@@ -111,7 +112,7 @@ export function DiscussionCard({
   const discussionId = removeDiscussionPrefix(discussion.discussion_uuid)
   const communityId = communityUuid.replace('community_', '')
 
-  const timeAgo = dayjs(discussion.creation_date).fromNow()
+  const timeAgo = haceCuanto(discussion.creation_date)
 
   const authorName = discussion.author
     ? `${discussion.author.first_name} ${discussion.author.last_name}`.trim() || discussion.author.username

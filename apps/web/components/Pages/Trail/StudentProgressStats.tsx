@@ -91,21 +91,21 @@ export default function StudentProgressStats() {
           label="Lecciones hechas"
           value={completedCount}
           icon={<BookCheck size={18} />}
-          accent="#025dc7"
+          accent="#0b2da0"
         />
         <StatTile
           label="Palabras flojas"
           value={weakWords.length}
           hint={weakWords.length > 0 ? 'revisa la lista' : 'aún sin fallos'}
           icon={<AlertCircle size={18} />}
-          accent="#4da3ff"
+          accent="#0b2da0"
         />
       </div>
 
       {weakWords.length > 0 && (
         <div className="bg-white nice-shadow rounded-2xl border border-[#DDE6F5] p-5">
           <div className="flex items-center justify-between gap-3 mb-3">
-            <h3 className="text-[14px] font-bold text-[#1D0084]">Repasa estas palabras</h3>
+            <h3 className="text-[14px] font-bold text-[#0B1033]">Repasa estas palabras</h3>
             <span className="text-[11px] text-[#9CA3AF] font-semibold uppercase tracking-wide">
               Top {weakWords.length}
             </span>
@@ -114,7 +114,7 @@ export default function StudentProgressStats() {
             {weakWords.map((w) => (
               <li key={w.label} className="flex items-center justify-between gap-3 text-[13px]">
                 <span className="text-gray-800 truncate min-w-0">{w.label}</span>
-                <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#F0F5FF] border border-[#DDE6F5] text-[#1D0084] font-semibold text-[11px] tabular-nums">
+                <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#F0F5FF] border border-[#DDE6F5] text-[#0B1033] font-semibold text-[11px] tabular-nums">
                   {w.fails} {w.fails === 1 ? 'fallo' : 'fallos'}
                 </span>
               </li>

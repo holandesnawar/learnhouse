@@ -1,4 +1,5 @@
 'use client'
+import { haceCuanto } from '@/lib/nawar/haceCuanto'
 import React from 'react'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
@@ -86,7 +87,7 @@ export function CourseCommunitySection({ courseUuid, orgslug }: CourseCommunityS
           ) : (
             discussions.map((discussion) => {
               const discussionId = discussion.discussion_uuid.replace('discussion_', '')
-              const timeAgo = dayjs(discussion.creation_date).fromNow()
+              const timeAgo = haceCuanto(discussion.creation_date)
               const authorName = discussion.author
                 ? `${discussion.author.first_name} ${discussion.author.last_name}`.trim() || discussion.author.username
                 : t('common.unknown')

@@ -29,11 +29,12 @@ CURSO = "course_8a1d1fab-ffbb-44ef-8f21-04ef63676d6e"
 class DailyFalso:
     """Apunta las llamadas y contesta como Daily."""
 
-    def __init__(self, sala_existe=False, falla_grabar=False):
+    def __init__(self, sala_existe=False, falla_grabar=False, sin_salas_pequenas=False):
         self.llamadas = []
         self.config_sala = {}
         self.sala_existe = sala_existe
         self.falla_grabar = falla_grabar
+        self.sin_salas_pequenas = sin_salas_pequenas
 
     async def __call__(self, metodo, ruta, cuerpo=None, params=None):
         self.llamadas.append((metodo, ruta, copy.deepcopy(cuerpo), params))
@@ -43,6 +44,8 @@ class DailyFalso:
             if not self.sala_existe:
                 raise salas.SalaError("Daily (404): not-found", 404)
             return {"url": "https://nawar.daily.co/" + ruta.split("/")[-1], "config": dict(self.config_sala)}
+        if metodo == "POST" and ruta.startswith("/rooms") and self.sin_salas_pequenas and "enable_breakout_rooms" in (cuerpo or {}).get("properties", {}):
+            raise salas.SalaError("Daily (400): invalid-request-error · enable_breakout_rooms not allowed", 400)
         if metodo == "POST" and ruta.startswith("/rooms/"):
             self.config_sala.update(cuerpo["properties"])
             return {"url": "https://nawar.daily.co/" + ruta.split("/")[-1]}
@@ -160,6 +163,39 @@ async def test_el_profe_graba_y_si_daily_no_deja_entra_sin_grabar(monkeypatch):
     assert "recording not allowed" in r["aviso"]
     entradas = [c[2]["properties"] for c in daily.llamadas if c[1] == "/meeting-tokens"]
     assert entradas[0].get("start_cloud_recording") is True and "start_cloud_recording" not in entradas[1]
+
+
+async def test_las_salas_llevan_salas_pequenas_y_si_daily_no_deja_siguen(monkeypatch):
+    # Sala nueva: se crea con las salas pequeñas de Daily.
+    daily = DailyFalso()
+    monkeypatch.setattr(salas, "_daily", daily)
+    await salas.entrar(CURSO, Persona(), anfitrion=True, grabar=True)
+    creada = [c for c in daily.llamadas if c[:2] == ("POST", "/rooms")]
+    assert creada[0][2]["properties"]["enable_breakout_rooms"] is True
+
+    # Sala de antes: se le pone, aparte de la grabación.
+    salas._salas.clear()
+    daily = DailyFalso(sala_existe=True)
+    daily.config_sala = {"enable_recording": "cloud"}
+    monkeypatch.setattr(salas, "_daily", daily)
+    await salas.entrar(CURSO, Persona(), anfitrion=True, grabar=True)
+    assert daily.config_sala["enable_breakout_rooms"] is True
+
+    # Si Daily no las deja (beta, plan), la sala se crea igual y se entra.
+    salas._salas.clear()
+    daily = DailyFalso(sin_salas_pequenas=True)
+    monkeypatch.setattr(salas, "_daily", daily)
+    r = await salas.entrar(CURSO, Persona(), anfitrion=True, grabar=True)
+    assert r["token"] == "tok-123"
+    creadas = [c[2]["properties"] for c in daily.llamadas if c[:2] == ("POST", "/rooms")]
+    assert "enable_breakout_rooms" in creadas[0] and "enable_breakout_rooms" not in creadas[1]
+
+    # Y en una sala vieja, si las salas pequeñas fallan, la grabación se pone igual.
+    salas._salas.clear()
+    daily = DailyFalso(sala_existe=True, sin_salas_pequenas=True)
+    monkeypatch.setattr(salas, "_daily", daily)
+    await salas.entrar(CURSO, Persona(), anfitrion=True, grabar=True)
+    assert daily.config_sala == {"enable_recording": "cloud"}
 
 
 async def test_sin_clave_lo_dice(monkeypatch):

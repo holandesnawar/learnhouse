@@ -93,14 +93,14 @@ export default function MiraTambien({ courseUuid }: { courseUuid: string }) {
                   onClick={() => setViendo({ curso: c.course_uuid, g })}
                   className="w-full flex items-center gap-2.5 rounded-lg px-2 py-1.5 -mx-2 text-left hover:bg-[#F4F7FD]"
                 >
-                  <PlayCircle size={16} className="shrink-0 text-[#025dc7]" />
+                  <PlayCircle size={16} className="shrink-0 text-[#0b2da0]" />
                   <span className="flex-1 min-w-0 truncate text-[13px] font-semibold text-gray-900">{g.tema}</span>
                   <span className="shrink-0 text-[11.5px] text-[#6B7280]">{diaCorto(g.fecha).replace(/^\w+\s/, '')}</span>
                 </button>
               ))}
             </div>
             {c.grabaciones.length > A_LA_VISTA ? (
-              <button onClick={() => setTodas((v) => !v)} className="mt-1.5 text-[12px] font-semibold text-[#025dc7] hover:underline">
+              <button onClick={() => setTodas((v) => !v)} className="mt-1.5 text-[12px] font-semibold text-[#0b2da0] hover:underline">
                 {todas ? 'Ver menos' : `Ver más (${c.grabaciones.length})`}
               </button>
             ) : null}

@@ -363,7 +363,7 @@ export default function MessagesPage() {
   }
 
   // Alto de la pantalla menos la barra superior del móvil, igual que un canal.
-  const pageHeight = 'h-[calc(100dvh-3.5rem)] md:h-[100dvh]'
+  const pageHeight = 'h-[calc(100dvh-3.5rem)]'
 
   if (!accessToken) {
     return <p className="p-8 text-sm text-gray-500">Entra a tu cuenta para ver tus mensajes.</p>
@@ -382,8 +382,7 @@ export default function MessagesPage() {
     <div className="h-full min-h-0 flex flex-col">
       <div className="shrink-0 px-4 sm:px-5 pt-4 pb-3 border-b border-[#EEF3FB]">
         <div className="flex items-center gap-2">
-          <MessageSquare size={20} className="text-[#025dc7] shrink-0" />
-          <h1 className="text-[19px] font-bold text-gray-900 flex-1 min-w-0 truncate">
+          <h1 className="text-[20px] font-bold text-[#0B1033] flex-1 min-w-0 truncate" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
             Mis mensajes
           </h1>
           {isStaff && (
@@ -392,7 +391,7 @@ export default function MessagesPage() {
               onClick={() => setSettingsOpen(true)}
               aria-label="Ajustes de los mensajes"
               title="Ajustes de los mensajes"
-              className="shrink-0 inline-flex items-center justify-center w-9 h-9 text-[#4B5563] hover:text-[#025dc7] transition-colors"
+              className="shrink-0 inline-flex items-center justify-center w-9 h-9 text-[#4B5563] hover:text-[#0b2da0] transition-colors"
             >
               <Settings size={18} />
             </button>
@@ -411,7 +410,7 @@ export default function MessagesPage() {
         {isStaff && (
           <button
             onClick={() => setPickerOpen(true)}
-            className="mt-3 inline-flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] font-bold text-[14px] transition-colors"
+            className="mt-3 inline-flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl bg-[#0b2da0] hover:bg-[#0a2690] text-white font-bold text-[14px] transition-colors"
           >
             <PenSquare size={15} />
             Escribir a un alumno
@@ -473,8 +472,8 @@ export default function MessagesPage() {
               onClick={() => openThread(t.id, t.title, t.title_avatar, t.title_role)}
               className={`w-full text-left rounded-xl border px-3 py-2.5 transition-colors ${
                 activeId === t.id
-                  ? 'bg-[#F7FAFF] border-[#4da3ff]'
-                  : 'bg-white border-[#DDE6F5] hover:border-[#4da3ff]/60'
+                  ? 'bg-[#EAF0FE] border-transparent'
+                  : 'bg-white border-transparent hover:bg-[#F7F9FD]'
               }`}
             >
               <span className="flex items-center gap-2.5">
@@ -484,7 +483,7 @@ export default function MessagesPage() {
                     {t.title || t.student_name}
                   </span>
                   {t.title_role && (
-                    <span className="block text-[11.5px] text-[#025dc7] font-semibold truncate leading-tight">
+                    <span className="block text-[11.5px] text-[#0b2da0] font-semibold truncate leading-tight">
                       {t.title_role}
                     </span>
                   )}
@@ -517,7 +516,7 @@ export default function MessagesPage() {
         <button
           onClick={() => setMobileView('list')}
           aria-label="Volver a mis mensajes"
-          className="lg:hidden shrink-0 w-8 h-8 inline-flex items-center justify-center text-[#4B5563] hover:text-[#025dc7] transition-colors"
+          className="lg:hidden shrink-0 w-8 h-8 inline-flex items-center justify-center text-[#4B5563] hover:text-[#0b2da0] transition-colors"
         >
           <ArrowLeft size={18} />
         </button>
@@ -527,7 +526,7 @@ export default function MessagesPage() {
             {activeTitle || 'Conversación'}
           </span>
           {activeRole && (
-            <span className="flex items-center gap-1 text-[11.5px] text-[#025dc7] font-semibold leading-tight">
+            <span className="flex items-center gap-1 text-[11.5px] text-[#0b2da0] font-semibold leading-tight">
               <BadgeCheck size={12} /> {activeRole}
             </span>
           )}
@@ -559,13 +558,13 @@ export default function MessagesPage() {
                     el.style.height = `${Math.min(el.scrollHeight, 280)}px`
                   }}
                   autoFocus
-                  className="w-full resize-y min-h-[72px] rounded-xl bg-white border border-[#4da3ff] px-3 py-2 text-sm leading-relaxed text-gray-900 outline-none focus:ring-2 focus:ring-[#4da3ff]/25"
+                  className="w-full resize-y min-h-[72px] rounded-xl bg-white border border-[#0b2da0] px-3 py-2 text-sm leading-relaxed text-gray-900 outline-none focus:ring-2 focus:ring-[#0b2da0]/25"
                 />
                 <div className="flex items-center gap-2 mt-1.5">
                   <button
                     type="button"
                     onClick={guardarEdicion}
-                    className="px-3 py-1.5 rounded-lg bg-[#025dc7] text-white text-xs font-semibold hover:bg-[#0b6df0]"
+                    className="px-3 py-1.5 rounded-lg bg-[#0b2da0] text-white text-xs font-semibold hover:bg-[#0a2690]"
                   >
                     Guardar
                   </button>
@@ -638,7 +637,7 @@ export default function MessagesPage() {
 
       {isStaff && notify && (
         <div className="shrink-0 mx-3 mb-1 flex items-center gap-2 rounded-xl bg-[#F0F5FF] px-3 py-2">
-          <BellRing size={14} className="text-[#025dc7] shrink-0" />
+          <BellRing size={14} className="text-[#0b2da0] shrink-0" />
           <p className="text-[12px] text-[#0a1656] leading-snug">
             Al enviar, el alumno recibirá un correo avisándole. No se le cuenta lo que dice el
             mensaje, solo que lo tiene.
@@ -655,9 +654,9 @@ export default function MessagesPage() {
             mensaje que ya no recuerdas. */}
         {citando && (
           <div className="mb-2 flex items-start gap-2 rounded-xl bg-[#F0F5FF] border border-[#DDE6F5] px-3 py-2">
-            <Reply size={14} className="shrink-0 mt-0.5 text-[#025dc7]" />
+            <Reply size={14} className="shrink-0 mt-0.5 text-[#0b2da0]" />
             <div className="min-w-0 flex-1">
-              <p className="text-[11.5px] font-bold text-[#025dc7]">
+              <p className="text-[11.5px] font-bold text-[#0b2da0]">
                 Respondes a {citando.from_staff ? citando.author_name : 'este mensaje'}
               </p>
               <p className="text-[12px] text-gray-500 line-clamp-2">
@@ -682,7 +681,7 @@ export default function MessagesPage() {
                 type="button"
                 onClick={() => setRecording(false)}
                 aria-label="Cerrar la grabadora"
-                className="text-[#9CA3AF] hover:text-[#025dc7] transition-colors"
+                className="text-[#9CA3AF] hover:text-[#0b2da0] transition-colors"
               >
                 <X size={15} />
               </button>
@@ -705,9 +704,9 @@ export default function MessagesPage() {
                 ) : (
                   <div className="h-16 px-3 flex items-center gap-2 text-[12px] text-[#5A6480] max-w-[200px]">
                     {f.kind === 'audio' ? (
-                      <Mic size={14} className="text-[#025dc7] shrink-0" />
+                      <Mic size={14} className="text-[#0b2da0] shrink-0" />
                     ) : (
-                      <FileText size={14} className="text-[#025dc7] shrink-0" />
+                      <FileText size={14} className="text-[#0b2da0] shrink-0" />
                     )}
                     <span className="truncate">{f.name}</span>
                   </div>
@@ -725,13 +724,13 @@ export default function MessagesPage() {
             ))}
             {uploading && (
               <div className="h-16 w-16 rounded-lg border border-dashed border-[#DDE6F5] flex items-center justify-center">
-                <Loader2 size={16} className="animate-spin text-[#025dc7]" />
+                <Loader2 size={16} className="animate-spin text-[#0b2da0]" />
               </div>
             )}
           </div>
         )}
 
-        <div className="rounded-xl border border-[#E3E8EF] bg-white transition-colors focus-within:border-[#4da3ff] focus-within:ring-[3px] focus-within:ring-[#4da3ff]/15">
+        <div className="rounded-xl border border-[#E3E8EF] bg-white transition-colors focus-within:border-[#0b2da0] focus-within:ring-[3px] focus-within:ring-[#0b2da0]/15">
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -811,7 +810,7 @@ export default function MessagesPage() {
               disabled={(!text.trim() && !pending.length) || sending || uploading}
               aria-label="Enviar"
               title="Enviar"
-              className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors bg-[#025dc7] text-white hover:bg-[#0b6df0] disabled:bg-[#EFF1F6] disabled:text-[#B6BECC] disabled:cursor-not-allowed"
+              className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors bg-[#0b2da0] text-white hover:bg-[#0a2690] disabled:bg-[#EFF1F6] disabled:text-[#B6BECC] disabled:cursor-not-allowed"
             >
               {sending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
             </button>
@@ -914,14 +913,14 @@ function SettingsPanel({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-[#EEF2FB]">
-          <Settings size={17} className="text-[#025dc7] shrink-0" />
+          <Settings size={17} className="text-[#0b2da0] shrink-0" />
           <span className="text-[14px] font-bold text-[#0a1656] flex-1">
             Ajustes de los mensajes
           </span>
           <button
             onClick={onClose}
             aria-label="Cerrar"
-            className="w-8 h-8 inline-flex items-center justify-center text-gray-400 hover:text-[#025dc7] transition-colors"
+            className="w-8 h-8 inline-flex items-center justify-center text-gray-400 hover:text-[#0b2da0] transition-colors"
           >
             <X size={16} />
           </button>
@@ -961,7 +960,7 @@ function PeoplePicker({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 px-4 py-3 border-b border-[#EEF2FB]">
-          <Users size={17} className="text-[#025dc7] shrink-0" />
+          <Users size={17} className="text-[#0b2da0] shrink-0" />
           <span className="text-[14px] font-bold text-[#0a1656] flex-1">
             {isStaff ? 'Escribir a un alumno' : 'Escribir a un moderador'}
           </span>
@@ -1034,7 +1033,7 @@ function Avatar({ src, name, size = 32 }: { src?: string; name: string; size?: n
   const initial = (name || '?').trim().charAt(0).toUpperCase()
   return (
     <span
-      className="relative shrink-0 inline-flex items-center justify-center rounded-full overflow-hidden bg-[#DDE6F5] text-[#025dc7] font-bold"
+      className="relative shrink-0 inline-flex items-center justify-center rounded-full overflow-hidden bg-[#DDE6F5] text-[#0b2da0] font-bold"
       style={{ width: size, height: size, fontSize: Math.round(size * 0.42) }}
     >
       {src ? (
@@ -1112,7 +1111,7 @@ function Bubble({
             onClick={onCitar}
             aria-label="Responder a este mensaje"
             title="Responder a este mensaje"
-            className="p-1.5 rounded-md text-[#8A96AB] hover:text-[#025dc7] hover:bg-[#F0F5FF] transition-colors"
+            className="p-1.5 rounded-md text-[#8A96AB] hover:text-[#0b2da0] hover:bg-[#F0F5FF] transition-colors"
           >
             <Reply size={14} />
           </button>
@@ -1122,7 +1121,7 @@ function Bubble({
               onClick={onEditar}
               aria-label="Editar"
               title="Editar"
-              className="p-1.5 rounded-md text-[#8A96AB] hover:text-[#025dc7] hover:bg-[#F0F5FF] transition-colors"
+              className="p-1.5 rounded-md text-[#8A96AB] hover:text-[#0b2da0] hover:bg-[#F0F5FF] transition-colors"
             >
               <Pencil size={14} />
             </button>
@@ -1142,12 +1141,12 @@ function Bubble({
         <div
           className={`rounded-2xl px-3.5 py-2.5 ${
             mine
-              ? 'bg-[#025dc7] text-white rounded-tr-sm'
+              ? 'bg-[#0b2da0] text-white rounded-tr-sm'
               : 'bg-[#F0F5FF] text-gray-800 rounded-tl-sm'
           }`}
         >
           {showName && (
-            <p className="text-[11.5px] font-bold mb-0.5 text-[#025dc7]">
+            <p className="text-[11.5px] font-bold mb-0.5 text-[#0b2da0]">
               {m.author_name}
               {m.author_title && (
                 <span className="ml-1.5 font-semibold text-[#0a1656]/55">· {m.author_title}</span>
@@ -1201,7 +1200,7 @@ function Bubble({
                     className={`inline-flex max-w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12.5px] transition-colors ${
                       mine
                         ? 'bg-white/15 hover:bg-white/25 text-white'
-                        : 'bg-white hover:bg-[#e3edff] text-[#025dc7]'
+                        : 'bg-white hover:bg-[#e3edff] text-[#0b2da0]'
                     }`}
                   >
                     <FileText size={14} className="shrink-0" />
@@ -1217,10 +1216,10 @@ function Bubble({
           {m.reply_to_text && (
             <div
               className={`mb-1.5 border-l-2 pl-2 py-0.5 ${
-                mine ? 'border-white/50' : 'border-[#4da3ff]'
+                mine ? 'border-white/50' : 'border-[#0b2da0]'
               }`}
             >
-              <p className={`text-[11px] font-bold ${mine ? 'text-white/80' : 'text-[#025dc7]'}`}>
+              <p className={`text-[11px] font-bold ${mine ? 'text-white/80' : 'text-[#0b2da0]'}`}>
                 {m.reply_to_author}
               </p>
               <p className={`text-[12px] line-clamp-2 ${mine ? 'text-white/70' : 'text-gray-500'}`}>
@@ -1282,7 +1281,7 @@ function WelcomeEditor({
   return (
     <div className="bg-[#F0F5FF] rounded-xl px-4 py-3.5">
       <div className="flex items-start gap-2">
-        <Sparkles size={16} className="text-[#4da3ff] mt-0.5 shrink-0" />
+        <Sparkles size={16} className="text-[#0b2da0] mt-0.5 shrink-0" />
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-bold text-[#0a1656]">Bienvenida automática</p>
           <p className="text-[12.5px] text-[#0a1656]/75 leading-relaxed">
@@ -1295,13 +1294,13 @@ function WelcomeEditor({
                 onChange={(e) => setValue(e.target.value)}
                 rows={4}
                 placeholder="¡Hola! Soy del equipo de Holandés Nawar…"
-                className="w-full mt-2 rounded-lg border border-[#DDE6F5] bg-white px-3 py-2 text-[13px] text-gray-800 outline-none focus:border-[#025dc7] resize-y"
+                className="w-full mt-2 rounded-lg border border-[#DDE6F5] bg-white px-3 py-2 text-[13px] text-gray-800 outline-none focus:border-[#0b2da0] resize-y"
               />
               <div className="flex items-center gap-2 mt-2">
                 <button
                   onClick={save}
                   disabled={saving}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[13px] font-bold hover:bg-[#6cb5ff] disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0b2da0] text-white text-[13px] font-bold hover:bg-[#0a2690] disabled:opacity-50"
                 >
                   <Check size={14} /> {saving ? 'Guardando…' : 'Guardar'}
                 </button>
@@ -1310,7 +1309,7 @@ function WelcomeEditor({
                     setEditing(false)
                     setValue(stored || '')
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-[#5A6480] hover:text-[#1D0084]"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-[#5A6480] hover:text-[#0B1033]"
                 >
                   <X size={14} /> Cancelar
                 </button>
@@ -1319,7 +1318,7 @@ function WelcomeEditor({
           ) : (
             <button
               onClick={() => setEditing(true)}
-              className="mt-1.5 inline-flex items-center gap-1.5 text-[12.5px] font-bold text-[#025dc7] hover:underline"
+              className="mt-1.5 inline-flex items-center gap-1.5 text-[12.5px] font-bold text-[#0b2da0] hover:underline"
             >
               <Pencil size={12} /> {stored ? 'Cambiar el texto' : 'Escribir el mío'}
             </button>
@@ -1382,7 +1381,7 @@ function StaffTitlesEditor({
   return (
     <div className="bg-[#F0F5FF] rounded-xl px-4 py-3.5">
       <div className="flex items-start gap-2">
-        <BadgeCheck size={16} className="text-[#4da3ff] mt-0.5 shrink-0" />
+        <BadgeCheck size={16} className="text-[#0b2da0] mt-0.5 shrink-0" />
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-bold text-[#0a1656]">Cargos del equipo</p>
           <p className="text-[12.5px] text-[#0a1656]/75 leading-relaxed">
@@ -1414,7 +1413,7 @@ function StaffTitlesEditor({
                           setTitles({ ...titles, [String(p.user_id)]: e.target.value })
                         }
                         placeholder="Director Académico"
-                        className="flex-1 min-w-0 rounded-lg border border-[#DDE6F5] bg-white px-2.5 py-1.5 text-[12.5px] text-gray-800 outline-none focus:border-[#025dc7]"
+                        className="flex-1 min-w-0 rounded-lg border border-[#DDE6F5] bg-white px-2.5 py-1.5 text-[12.5px] text-gray-800 outline-none focus:border-[#0b2da0]"
                       />
                     </div>
                   ))}
@@ -1424,7 +1423,7 @@ function StaffTitlesEditor({
                 <button
                   onClick={save}
                   disabled={saving || loading}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#4da3ff] text-[#0a1656] text-[13px] font-bold hover:bg-[#6cb5ff] disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0b2da0] text-white text-[13px] font-bold hover:bg-[#0a2690] disabled:opacity-50"
                 >
                   <Check size={14} /> {saving ? 'Guardando…' : 'Guardar'}
                 </button>
@@ -1433,7 +1432,7 @@ function StaffTitlesEditor({
                     setOpen(false)
                     setTitles(stored || {})
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-[#5A6480] hover:text-[#1D0084]"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-[#5A6480] hover:text-[#0B1033]"
                 >
                   <X size={14} /> Cancelar
                 </button>
@@ -1442,7 +1441,7 @@ function StaffTitlesEditor({
           ) : (
             <button
               onClick={() => setOpen(true)}
-              className="mt-1.5 inline-flex items-center gap-1.5 text-[12.5px] font-bold text-[#025dc7] hover:underline"
+              className="mt-1.5 inline-flex items-center gap-1.5 text-[12.5px] font-bold text-[#0b2da0] hover:underline"
             >
               <Pencil size={12} />
               {Object.keys(stored || {}).length ? 'Cambiar los cargos' : 'Poner los cargos'}

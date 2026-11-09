@@ -37,72 +37,55 @@ export default function UpcomingEvents({ orgslug }: { orgslug: string }) {
       .filter((e) => eventoParaMi(e, yo))
       .filter((e) => e?.date && e.date >= todayStr)
       .sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')))
-      .slice(0, 2) // solo los dos siguientes: el Inicio no es el calendario
+      .slice(0, 4) // los cuatro siguientes: el Inicio no es el calendario
   }, [org, todayStr, yo])
 
+  const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
   return (
-    <div className="mb-10">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <CalendarBlank size={20} weight="fill" className="text-[#025dc7]" />
-          <h2 className="text-lg font-bold text-gray-900">Próximos eventos</h2>
-        </div>
-        <Link
-          href={getUriWithOrg(orgslug, '/calendario')}
-          className="inline-flex items-center gap-1 text-sm font-semibold text-[#025dc7] hover:underline"
-        >
-          Ver calendario <ArrowRight size={14} />
+    <div className="rounded-2xl border border-[#E4E8F2] bg-white">
+      <div className="flex items-center justify-between px-4 pt-4 pb-2">
+        <h2 className="text-[15px] font-bold text-[#0B1033]">Próximos eventos</h2>
+        <Link href={getUriWithOrg(orgslug, '/calendario')} className="text-[12.5px] font-semibold text-[#0b2da0] hover:underline">
+          Calendario
         </Link>
       </div>
-
       {upcoming.length === 0 ? (
-        <div className="flex items-center gap-3 py-5 px-5 rounded-2xl border-2 border-dashed border-gray-100 bg-gray-50/30">
-          <CalendarDays size={22} className="text-gray-300 shrink-0" />
-          <p className="text-sm text-gray-400">No hay eventos próximos por ahora.</p>
-        </div>
+        <p className="px-4 pb-4 text-[13.5px] text-[#8A91AD]">No hay eventos próximos por ahora.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <ul className="pb-2">
           {upcoming.map((ev) => {
             const d = dayjs(ev.date)
-            const card = (
+            const dentro = (
               <>
-                <div className="flex items-center gap-3">
-                  <div className="shrink-0 w-12 text-center">
-                    <div className="text-[11px] font-semibold text-[#025dc7] uppercase">{MONTHS_SHORT[d.month()]}</div>
-                    <div className="text-xl font-bold text-gray-900 leading-none">{d.date()}</div>
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2">{ev.title}</h3>
-                    {ev.time && (
-                      <span className="mt-0.5 inline-flex items-center gap-1 text-xs text-gray-500">
-                        <Clock size={12} /> {ev.time}
-                      </span>
-                    )}
-                  </div>
-                </div>
+                <span className="shrink-0 w-11 text-center">
+                  <span className="block text-[11px] font-bold text-[#0b2da0] uppercase leading-none">{MONTHS_SHORT[d.month()]}</span>
+                  <span className="block text-[19px] font-bold text-[#0B1033] leading-tight">{d.date()}</span>
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[14px] font-semibold text-[#0B1033] leading-snug line-clamp-2">{ev.title}</span>
+                  <span className="block text-[12.5px] text-[#8A91AD]">
+                    {DIAS[d.day()]}
+                    {ev.time ? ` · ${ev.time}` : ''}
+                  </span>
+                </span>
               </>
             )
+            const cls = 'flex items-center gap-3 px-4 py-2.5'
             return ev.link ? (
-              <a
-                key={ev.id}
-                href={ev.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-white dark:bg-white/5 nice-shadow rounded-2xl p-4 border border-transparent dark:border-white/10 hover:border-[#4da3ff]/40 transition-all"
-              >
-                {card}
-              </a>
+              <li key={ev.id}>
+                <a href={ev.link} target="_blank" rel="noopener noreferrer" className={cls}>
+                  {dentro}
+                </a>
+              </li>
             ) : (
-              <Link
-                key={ev.id}
-                href={getUriWithOrg(orgslug, '/calendario')}
-                className="bg-white dark:bg-white/5 nice-shadow rounded-2xl p-4 border border-transparent dark:border-white/10 hover:border-[#4da3ff]/40 transition-all"
-              >
-                {card}
-              </Link>
+              <li key={ev.id}>
+                <Link href={getUriWithOrg(orgslug, '/calendario')} className={cls}>
+                  {dentro}
+                </Link>
+              </li>
             )
           })}
-        </div>
+        </ul>
       )}
     </div>
   )

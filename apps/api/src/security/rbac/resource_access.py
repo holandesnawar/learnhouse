@@ -837,6 +837,13 @@ class ResourceAccessChecker:
                     )
                 ).scalars().first()
                 resultado = rol in STAFF_ROLE_IDS
+                if resultado:
+                    # Nawar (08/11/2026): un monitor (profe en el grupo
+                    # «Monitores») solo tiene, como equipo, el Spreekclub.
+                    from src.services.equipo.monitores import cursos_del_monitor, es_monitor
+
+                    if await es_monitor(user_id, curso.org_id, self.db_session):
+                        resultado = resource_uuid in await cursos_del_monitor(curso.org_id, self.db_session)
                 if not resultado and not escribir:
                     # Nawar (08/11/2026): el closer ve (solo ve) las clases
                     # en directo del programa nuevo: la masterclass y el

@@ -75,6 +75,29 @@ export interface Semana {
   tarea?: { estado: EstadoTarea; corregida_at: string; vista: boolean }
   /** Solo al equipo: si ya se pasó la lista y cuántos vinieron (07/11/2026). */
   lista?: { pasada: boolean; vinieron: number }
+  /** «¿Vienes a la clase?» de quien pregunta: true, false o sin contestar. */
+  voy?: boolean | null
+  /** Esa semana va a la clase del otro grupo (08/11/2026, solo al alumno). */
+  cambio?: { semana_id: number; course_uuid: string; curso: string; fecha: string; dia: string } | null
+  /** Solo al equipo: cuántos dijeron que vienen y cuántos que no. */
+  confirmaciones?: { si: number; no: number }
+  /** Solo al equipo (09/11/2026): la presentación completa y las notas para el profe. */
+  material_profe?: MaterialProfe
+}
+
+export interface ArchivoProfe {
+  id: string
+  tipo: 'archivo' | 'enlace'
+  nombre: string
+  url?: string
+  tam?: number
+  por: string
+  at: string
+}
+
+export interface MaterialProfe {
+  notas: string
+  archivos: ArchivoProfe[]
 }
 
 export interface SemanasClase {
@@ -178,13 +201,26 @@ export interface ListaClase {
   semana: { id: number; tema: string; fecha: string }
   /** Solo el día de la clase o después. */
   se_puede: boolean
-  alumnos: { user_id: number; nombre: string; fue: boolean | null; en_sala: boolean | null }[]
+  alumnos: {
+    user_id: number
+    nombre: string
+    fue: boolean | null
+    en_sala: boolean | null
+    voy?: boolean | null
+    /** Viene esta semana de la otra clase («martes 10 nov»). */
+    viene_de?: string
+    /** Esta semana va a la clase del otro grupo. */
+    va_a_otra?: boolean
+  }[]
   pasada: boolean
   por: string
   at: string
   vinieron: number
   sala_conocida: boolean
 }
+
+export const confirmarVoy = (semanaId: number, va: boolean | null, token: string) =>
+  pedir<{ voy: boolean | null; si: number; no: number }>(`${base()}/semana/${semanaId}/voy`, token, 'PUT', { va })
 
 export const getLista = (semanaId: number, token: string) => pedir<ListaClase>(`${base()}/semana/${semanaId}/lista`, token)
 export const pasarLista = (semanaId: number, marcas: Record<string, boolean | null>, token: string) =>
@@ -321,6 +357,57 @@ export const editarSemana = (id: number, datos: DatosSemana, token: string) =>
 
 export const borrarSemana = (id: number, token: string) =>
   pedir<{ ok: boolean; entregas_borradas: number }>(`${base()}/semana/${id}`, token, 'DELETE')
+
+// ── El material del profe (09/11/2026) ──────────────────────────────────────
+
+export const guardarNotasProfe = (semanaId: number, notas: string, token: string) =>
+  pedir<MaterialProfe>(`${base()}/semana/${semanaId}/profe/notas`, token, 'PUT', { notas })
+
+export const enlaceProfe = (semanaId: number, nombre: string, url: string, token: string) =>
+  pedir<MaterialProfe>(`${base()}/semana/${semanaId}/profe/enlace`, token, 'POST', { nombre, url })
+
+export function subirArchivoProfe(semanaId: number, archivo: File, token: string) {
+  const f = new FormData()
+  f.append('archivo', archivo, archivo.name)
+  return pedir<MaterialProfe>(`${base()}/semana/${semanaId}/profe/archivo`, token, 'POST', f)
+}
+
+export const quitarProfe = (semanaId: number, id: string, token: string) =>
+  pedir<MaterialProfe>(`${base()}/semana/${semanaId}/profe/${encodeURIComponent(id)}`, token, 'DELETE')
+
+/** Abre un archivo del material del profe (va con la sesión: no es público). */
+export async function abrirArchivoProfe(semanaId: number, a: ArchivoProfe, token: string) {
+  if (a.tipo === 'enlace' && a.url) {
+    window.open(a.url, '_blank', 'noopener')
+    return
+  }
+  // La pestaña se abre YA (con el clic), si no el navegador la bloquea.
+  const ventana = window.open('', '_blank')
+  try {
+    const res = await fetch(`${base()}/semana/${semanaId}/profe/${encodeURIComponent(a.id)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
+      cache: 'no-store',
+    })
+    if (!res.ok) throw new Error(res.status === 404 ? 'Ese archivo ya no está' : `Error ${res.status}`)
+    const url = URL.createObjectURL(await res.blob())
+    const pdf = /\.pdf$/i.test(a.nombre)
+    if (pdf && ventana) ventana.location.href = url
+    else {
+      ventana?.close()
+      const link = document.createElement('a')
+      link.href = url
+      link.download = a.nombre
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  } catch (e) {
+    ventana?.close()
+    throw e
+  }
+}
 
 // ── El equipo ───────────────────────────────────────────────────────────────
 

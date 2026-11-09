@@ -287,6 +287,41 @@ def leer_asistencia(texto: Any) -> dict[str, dict]:
     }
 
 
+
+def leer_confirmaciones(texto: Any) -> dict[str, dict]:
+    """«¿Vienes a la clase?» de cada alumno: {user_id: {"va": bool, "at": iso}}.
+    Lo que no tenga forma se tira (como `leer_asistencia`)."""
+    try:
+        datos = json.loads(texto or "{}")
+    except (TypeError, ValueError):
+        return {}
+    if not isinstance(datos, dict):
+        return {}
+    return {str(k): v for k, v in datos.items() if isinstance(v, dict) and isinstance(v.get("va"), bool)}
+
+
+def resumen_confirmaciones(conf: dict[str, dict]) -> dict:
+    return {"si": sum(1 for v in conf.values() if v["va"]), "no": sum(1 for v in conf.values() if not v["va"])}
+
+
+async def confirmar_asistencia(s: TareaSemana, user_id: int, va: Optional[bool], db_session: AsyncSession) -> dict:
+    """El alumno dice si viene a la clase de esa semana (o lo quita con None).
+    Solo hasta el día de la clase: después, lo que cuenta es la lista."""
+    from src.services.panel.tandas import hoy_nl
+
+    if not s.fecha or s.fecha < hoy_nl():
+        raise TareaError("Esa clase ya pasó", 409)
+    conf = leer_confirmaciones(getattr(s, "confirmaciones", ""))
+    clave = str(user_id)
+    if va is None:
+        conf.pop(clave, None)
+    else:
+        conf[clave] = {"va": bool(va), "at": datetime.now(timezone.utc).isoformat()}
+    s.confirmaciones = json.dumps(conf)
+    db_session.add(s)
+    await db_session.commit()
+    return {"voy": conf.get(clave, {}).get("va"), **resumen_confirmaciones(conf)}
+
 def fue_a_clase(user_id: Any, marcas: dict, sala: Optional[set]) -> Optional[bool]:
     """Si fue: lo que marcó el profe y, si no marcó, lo que diga la sala.
     None = no se sabe (ni lista ni sala)."""
@@ -619,6 +654,17 @@ async def semanas_para_alumno(
             for c in sueltas
         ],
     )
+    confs = {f.id: leer_confirmaciones(getattr(f, "confirmaciones", "")) for f in filas}
+    # Si esa semana va a la clase del otro grupo (08/11, cambio_semana.py).
+    from src.services.tareas.cambio_semana import cambio_de
+
+    por_id = {f.id: f for f in filas}
+    for s in semanas:
+        s["voy"] = (confs.get(s["id"]) or {}).get(str(user_id), {}).get("va")
+        if not equipo and por_id.get(s["id"]) is not None and getattr(por_id[s["id"]], "cambios", ""):
+            s["cambio"] = await cambio_de(por_id[s["id"]], user_id, db_session)
+        if equipo:
+            s["confirmaciones"] = resumen_confirmaciones(confs.get(s["id"]) or {})
     if not equipo:
         semanas = [s if s["abierta"] else solo_antes_de_la_clase(s) for s in semanas]
     else:
@@ -627,6 +673,12 @@ async def semanas_para_alumno(
         for s in semanas:
             m = listas.get(s["id"]) or {}
             s["lista"] = {"pasada": bool(m), "vinieron": sum(1 for x in m.values() if x.get("fue"))}
+        # El material del profe (09/11/2026): solo al equipo.
+        from src.services.tareas import material_profe as MP
+
+        for s in semanas:
+            f = por_id.get(s["id"])
+            s["material_profe"] = MP.para_la_pantalla(MP.leer(getattr(f, "material_profe", "") if f is not None else ""))
     for s in semanas:
         for c in s.get("clases") or []:
             c.pop("id", None)
@@ -1967,6 +2019,7 @@ async def lista_de_clase(org_id: int, s: TareaSemana, db_session: AsyncSession) 
         raise TareaError("No existe esa clase", 404)
     hoy = hoy_nl()
     marcas = leer_asistencia(getattr(s, "asistencia", ""))
+    confs = leer_confirmaciones(getattr(s, "confirmaciones", ""))
     en_sala: Optional[set] = None
     if s.fecha and s.fecha <= hoy:
         sala = await _sala_del_curso(org_id, course, db_session)
@@ -1976,6 +2029,24 @@ async def lista_de_clase(org_id: int, s: TareaSemana, db_session: AsyncSession) 
             except salas.SalaError:
                 en_sala = None
     alumnos = await alumnos_del_curso(org_id, course, db_session)
+    # Una semana en la clase del otro grupo (08/11/2026, cambio_semana.py):
+    # los que vienen de la otra clase se añaden aquí; los de aquí que esta
+    # semana van a la otra salen marcados.
+    from src.services.tareas.cambio_semana import invitados, leer_cambios
+
+    vienen = await invitados(s, db_session)
+    se_van = leer_cambios(getattr(s, "cambios", ""))
+    ya = {a["user_id"] for a in alumnos}
+    if vienen:
+        from src.db.users import User
+
+        for uid, info in vienen.items():
+            if uid in ya:
+                continue
+            u = await db_session.get(User, uid)
+            if u is not None:
+                nombre = " ".join(x for x in [u.first_name or "", u.last_name or ""] if x).strip() or u.username or u.email
+                alumnos.append({"user_id": uid, "nombre": nombre, "invitado": info})
     filas = []
     for a in alumnos:
         m = marcas.get(str(a["user_id"]))
@@ -1985,6 +2056,10 @@ async def lista_de_clase(org_id: int, s: TareaSemana, db_session: AsyncSession) 
                 "nombre": a["nombre"],
                 "fue": (bool(m["fue"]) if m is not None else None),
                 "en_sala": (None if en_sala is None else str(a["user_id"]) in en_sala),
+                "voy": confs.get(str(a["user_id"]), {}).get("va"),
+                # «Viene del martes» / «Esta semana va al jueves».
+                "viene_de": (a.get("invitado") or {}).get("dia", ""),
+                "va_a_otra": str(a["user_id"]) in se_van,
             }
         )
     ultima = max((m.get("at") or "" for m in marcas.values()), default="")
@@ -2012,7 +2087,10 @@ async def pasar_lista(org_id: int, s: TareaSemana, marcas: dict, autor: str, db_
     course = await curso_de(s.course_uuid, db_session)
     if course is None or course.org_id != org_id:
         raise TareaError("No existe esa clase", 404)
+    from src.services.tareas.cambio_semana import invitados
+
     de_la_clase = {a["user_id"] for a in await alumnos_del_curso(org_id, course, db_session)}
+    de_la_clase |= set(await invitados(s, db_session))
     actual = leer_asistencia(getattr(s, "asistencia", ""))
     ahora = _ahora()
     for k, v in (marcas or {}).items():

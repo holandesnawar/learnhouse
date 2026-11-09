@@ -24,7 +24,7 @@ function Paso({ hecho, actual, children }: { hecho: boolean; actual?: boolean; c
     <div className="flex items-center gap-2.5 py-1.5 text-[14px]">
       <span
         className={`w-5 h-5 rounded-full shrink-0 flex items-center justify-center ${
-          hecho ? 'bg-[#16A34A]' : actual ? 'border-2 border-[#4da3ff]' : 'border-2 border-[#CBD5E1]'
+          hecho ? 'bg-[#16A34A]' : actual ? 'border-2 border-[#0b2da0]' : 'border-2 border-[#CBD5E1]'
         }`}
       >
         {hecho ? <Check size={12} strokeWidth={3} className="text-white" /> : null}
@@ -91,13 +91,13 @@ function Tarjeta({ curso, courseUuid, proxima, semana, orgslug }: { curso: strin
       <p className="text-[12.5px] text-[#6B7280] mt-0.5">{curso}</p>
       {pasos.length ? (
         <div className="h-1.5 rounded-full bg-[#EEF2F9] mt-3 overflow-hidden">
-          <div className="h-full bg-[#4da3ff] rounded-full" style={{ width: `${pct}%` }} />
+          <div className="h-full bg-[#0b2da0] rounded-full" style={{ width: `${pct}%` }} />
         </div>
       ) : null}
       <div className="mt-2.5">
         {presentacion ? <Paso hecho={pasos[0].hecho} actual={pasos[0] === siguiente}>{pasos[0].texto}</Paso> : null}
         <div className="flex items-center gap-2.5 py-1.5 text-[14px] text-gray-900">
-          <CalendarDays size={18} className="text-[#025dc7] shrink-0" />
+          <CalendarDays size={18} className="text-[#0b2da0] shrink-0" />
           <span>
             Clase en directo · <span className="first-letter:uppercase">{semana.fecha === hoy ? 'hoy' : diaCorto(semana.fecha)}</span>
           </span>
@@ -118,14 +118,14 @@ function Tarjeta({ curso, courseUuid, proxima, semana, orgslug }: { curso: strin
         {siguiente?.href ? (
           <Link
             href={siguiente.href}
-            className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-[#4da3ff] px-6 py-3 text-[15px] font-bold text-[#0a1656] hover:bg-[#5eb4ff]"
+            className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-[#0b2da0] px-6 py-3 text-[15px] font-bold text-white hover:bg-[#0a2690]"
           >
             {siguiente.boton} <ArrowRight size={15} strokeWidth={2.5} />
           </Link>
         ) : (
           <Link
             href={getUriWithOrg(orgslug, `/course/${courseUuid}`)}
-            className="inline-flex items-center gap-1.5 text-[14px] font-bold text-[#025dc7] hover:text-[#1D0084]"
+            className="inline-flex items-center gap-1.5 text-[14px] font-bold text-[#0b2da0] hover:text-[#0B1033]"
           >
             {pasos.length && hechos === pasos.length ? '¡Semana completa! Ver la clase' : 'Ver la clase'} <ArrowRight size={14} />
           </Link>

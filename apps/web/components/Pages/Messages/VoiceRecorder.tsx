@@ -133,7 +133,7 @@ export default function VoiceRecorder({
           type="button"
           onClick={send}
           disabled={sending}
-          className="shrink-0 inline-flex items-center gap-1.5 px-3 h-9 rounded-lg bg-[#025dc7] text-white text-[13px] font-semibold hover:bg-[#0b6df0] disabled:opacity-50"
+          className="shrink-0 inline-flex items-center gap-1.5 px-3 h-9 rounded-lg bg-[#0b2da0] text-white text-[13px] font-semibold hover:bg-[#0a2690] disabled:opacity-50"
         >
           {sending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
           {etiqueta}
@@ -164,7 +164,7 @@ export default function VoiceRecorder({
       <button
         type="button"
         onClick={start}
-        className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-dashed border-[#9cc7ff] px-4 py-3 text-[14px] font-bold text-[#025dc7] hover:bg-[#F0F5FF] transition-colors"
+        className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-dashed border-[#9cc7ff] px-4 py-3 text-[14px] font-bold text-[#0b2da0] hover:bg-[#F0F5FF] transition-colors"
       >
         <Mic size={17} /> {textoGrabar}
       </button>
@@ -177,7 +177,7 @@ export default function VoiceRecorder({
       onClick={start}
       title="Grabar nota de voz"
       aria-label="Grabar nota de voz"
-      className="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg text-gray-400 hover:text-[#025dc7] hover:bg-[#F0F5FF] transition-colors"
+      className="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg text-gray-400 hover:text-[#0b2da0] hover:bg-[#F0F5FF] transition-colors"
     >
       <Mic size={18} />
     </button>

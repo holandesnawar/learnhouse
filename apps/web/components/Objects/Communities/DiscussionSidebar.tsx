@@ -1,4 +1,5 @@
 'use client'
+import { haceCuanto } from '@/lib/nawar/haceCuanto'
 import React from 'react'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
@@ -40,7 +41,7 @@ export function DiscussionSidebar({
 }: DiscussionSidebarProps) {
   const { t } = useTranslation()
   const communityId = community.community_uuid.replace('community_', '')
-  const timeAgo = dayjs(discussion.creation_date).fromNow()
+  const timeAgo = haceCuanto(discussion.creation_date)
   const createdDate = dayjs(discussion.creation_date).format('MMM D, YYYY')
 
   const authorName = discussion.author

@@ -103,7 +103,7 @@ export function UpvoteButton({
       className={cn(
         'flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-all duration-200',
         hasVoted
-          ? 'bg-[#F0F5FF] text-[#025dc7] hover:bg-[#E5ECFF]'
+          ? 'bg-[#F0F5FF] text-[#0b2da0] hover:bg-[#E5ECFF]'
           : 'bg-gray-100 text-gray-500 hover:bg-gray-200',
         (!canVote || disabled) && 'opacity-50 cursor-not-allowed',
         isLoading && 'opacity-70'
@@ -114,7 +114,7 @@ export function UpvoteButton({
         size={20}
         className={cn(
           'transition-transform',
-          hasVoted && 'text-[#025dc7]',
+          hasVoted && 'text-[#0b2da0]',
           isLoading && 'animate-pulse'
         )}
       />

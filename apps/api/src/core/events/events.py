@@ -55,6 +55,16 @@ def startup_app(app: FastAPI) -> Callable:
         # Check if auto-installation is needed
         await auto_install()
 
+        # Solo en la escuela de pruebas, con LEARNHOUSE_DATOS_DE_PRUEBA=si:
+        # alumnos, clases y comunidad inventados (src/services/demo/datos_prueba.py).
+        from src.services.demo.datos_prueba import sembrar_si_toca
+        await sembrar_si_toca()
+
+        # Las presentaciones de los alumnos, de chat a tablón, una sola vez
+        # (09/11/2026, src/services/communities/presentaciones_posts.py).
+        from src.services.communities.presentaciones_posts import pasar_si_toca
+        await pasar_si_toca()
+
         # Reconcile pack credits (Redis ↔ DB)
         await _reconcile_packs()
 

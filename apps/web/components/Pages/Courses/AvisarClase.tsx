@@ -18,7 +18,7 @@ import { confirmar } from '@lib/nawar/confirmar'
 import { avisarClase, diaCorto, getDestinatarios, type Semana } from '@services/tareas/tareas'
 
 const CAMPO =
-  'w-full rounded-lg border border-[#DDE6F5] px-3 py-2 text-[14px] text-gray-900 outline-none focus:border-[#025dc7] bg-white'
+  'w-full rounded-lg border border-[#DDE6F5] px-3 py-2 text-[14px] text-gray-900 outline-none focus:border-[#0b2da0] bg-white'
 
 /** El texto de serie para cada filtro. El correo ya empieza con «Hola {nombre},». */
 export function textoDeSerie(filtro: string, s: Pick<Semana, 'tema' | 'limite'>): { titulo: string; texto: string } {
@@ -156,7 +156,7 @@ export function AvisarClase({ semana, onClose }: { semana: Semana; onClose: () =
                     <input
                       type="radio"
                       name="filtro"
-                      className="h-4 w-4 accent-[#025dc7]"
+                      className="h-4 w-4 accent-[#0b2da0]"
                       checked={filtro === f.id}
                       onChange={() => setFiltro(f.id)}
                     />
@@ -166,7 +166,7 @@ export function AvisarClase({ semana, onClose }: { semana: Semana; onClose: () =
                 ))}
               </div>
               {n ? (
-                <button onClick={() => setVerNombres((v) => !v)} className="mt-1.5 text-[12px] font-semibold text-[#025dc7] hover:underline">
+                <button onClick={() => setVerNombres((v) => !v)} className="mt-1.5 text-[12px] font-semibold text-[#0b2da0] hover:underline">
                   {verNombres ? 'Ocultar quiénes' : `Ver quiénes (${n})`}
                 </button>
               ) : (
@@ -206,12 +206,12 @@ export function AvisarClase({ semana, onClose }: { semana: Semana; onClose: () =
 
             <div className="flex flex-wrap gap-x-5 gap-y-2">
               <label className="inline-flex items-center gap-2 text-[13.5px] text-gray-900 cursor-pointer">
-                <input type="checkbox" className="h-4 w-4 accent-[#025dc7]" checked={campana} onChange={(e) => setCampana(e.target.checked)} />
-                <Bell size={14} className="text-[#025dc7]" /> En la campana
+                <input type="checkbox" className="h-4 w-4 accent-[#0b2da0]" checked={campana} onChange={(e) => setCampana(e.target.checked)} />
+                <Bell size={14} className="text-[#0b2da0]" /> En la campana
               </label>
               <label className="inline-flex items-center gap-2 text-[13.5px] text-gray-900 cursor-pointer">
-                <input type="checkbox" className="h-4 w-4 accent-[#025dc7]" checked={correo} onChange={(e) => setCorreo(e.target.checked)} />
-                <Mail size={14} className="text-[#025dc7]" /> Por correo
+                <input type="checkbox" className="h-4 w-4 accent-[#0b2da0]" checked={correo} onChange={(e) => setCorreo(e.target.checked)} />
+                <Mail size={14} className="text-[#0b2da0]" /> Por correo
               </label>
             </div>
 
@@ -219,14 +219,14 @@ export function AvisarClase({ semana, onClose }: { semana: Semana; onClose: () =
               <button
                 onClick={prueba}
                 disabled={!!enviando}
-                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#DDE6F5] px-4 py-2.5 text-[13.5px] font-semibold text-[#025dc7] hover:bg-[#F4F7FD] disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#DDE6F5] px-4 py-2.5 text-[13.5px] font-semibold text-[#0b2da0] hover:bg-[#F4F7FD] disabled:opacity-60"
               >
                 {enviando === 'prueba' ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />} Mandármelo a mí
               </button>
               <button
                 onClick={enviar}
                 disabled={!!enviando || !n}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#4da3ff] px-5 py-2.5 text-[14px] font-bold text-[#0a1656] hover:bg-[#5eb4ff] disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0b2da0] px-5 py-2.5 text-[14px] font-bold text-white hover:bg-[#0a2690] disabled:opacity-60"
               >
                 {enviando === 'enviar' ? <Loader2 size={15} className="animate-spin" /> : null}
                 Mandar a {n} {n === 1 ? 'alumno' : 'alumnos'}

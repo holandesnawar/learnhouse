@@ -116,11 +116,11 @@ export default function TareaPage({ tareaId }: { tareaId: string }) {
   return (
     <GeneralWrapperStyled>
       <div className="max-w-2xl">
-        <Link href={rutaClase} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#5A6480] hover:text-[#025dc7]">
+        <Link href={rutaClase} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#5A6480] hover:text-[#0b2da0]">
           <ArrowLeft size={14} /> {data.curso}
         </Link>
         <div className="flex items-center gap-2 pt-3">
-          <Mic size={24} className="text-[#025dc7] shrink-0" />
+          <Mic size={24} className="text-[#0b2da0] shrink-0" />
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Tarea · {data.tema}</h1>
         </div>
         <p className="mt-1 text-[14px] text-[#6B7280] first-letter:uppercase">
@@ -161,10 +161,10 @@ export default function TareaPage({ tareaId }: { tareaId: string }) {
             ) : null}
             {!corregida ? (
               <div className="mt-3 flex flex-wrap items-center gap-3">
-                <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#025dc7]">
+                <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#0b2da0]">
                   <Check size={14} strokeWidth={3} /> Entregada: tu profe la corregirá pronto
                 </span>
-                <button onClick={() => setEditando(true)} className="text-[13px] font-semibold text-[#5A6480] hover:text-[#025dc7] underline">
+                <button onClick={() => setEditando(true)} className="text-[13px] font-semibold text-[#5A6480] hover:text-[#0b2da0] underline">
                   Cambiar algo
                 </button>
               </div>
@@ -203,7 +203,7 @@ export default function TareaPage({ tareaId }: { tareaId: string }) {
                 onChange={(e) => setTexto(e.target.value)}
                 rows={6}
                 placeholder="Escribe aquí en neerlandés…"
-                className="w-full rounded-xl border border-[#DDE6F5] px-4 py-3 text-[15px] leading-relaxed text-gray-900 outline-none focus:border-[#4da3ff] focus:ring-[3px] focus:ring-[#4da3ff]/20 resize-y"
+                className="w-full rounded-xl border border-[#DDE6F5] px-4 py-3 text-[15px] leading-relaxed text-gray-900 outline-none focus:border-[#0b2da0] focus:ring-[3px] focus:ring-[#0b2da0]/20 resize-y"
               />
             </div>
             <div>
@@ -253,7 +253,7 @@ export default function TareaPage({ tareaId }: { tareaId: string }) {
               <button
                 onClick={entregar}
                 disabled={enviando}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#4da3ff] px-8 py-3.5 text-[15px] font-bold text-[#0a1656] hover:bg-[#5eb4ff] disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0b2da0] px-8 py-3.5 text-[15px] font-bold text-white hover:bg-[#0a2690] disabled:opacity-60"
               >
                 {enviando ? <Loader2 size={16} className="animate-spin" /> : null}
                 {entrega ? 'Guardar cambios' : 'Entregar la tarea'}

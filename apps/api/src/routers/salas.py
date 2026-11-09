@@ -48,6 +48,13 @@ async def _curso(request: Request, course_uuid: str, current_user, db_session: A
         context=AccessContext.DASHBOARD, raise_on_deny=False,
     )
     if not decision.allowed:
+        # Una semana en la clase del otro grupo (08/11/2026,
+        # services/tareas/cambio_semana.py): ese día puede entrar en su sala.
+        from src.services.panel.tandas import hoy_nl
+        from src.services.tareas.cambio_semana import invitado_hoy
+
+        if await invitado_hoy(curso.course_uuid, current_user.id, hoy_nl(), db_session):
+            return curso
         raise HTTPException(status_code=403, detail="No tienes acceso a este curso")
     return curso
 

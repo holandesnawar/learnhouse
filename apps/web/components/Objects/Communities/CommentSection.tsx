@@ -18,9 +18,11 @@ interface CommentSectionProps {
   discussionUuid: string
   communityUuid?: string
   isLocked?: boolean
+  /** Ya hay respuestas de cuando el canal era chat: sin «Aún no hay respuestas». */
+  sinVacio?: boolean
 }
 
-export function CommentSection({ discussionUuid, communityUuid, isLocked = false }: CommentSectionProps) {
+export function CommentSection({ discussionUuid, communityUuid, isLocked = false, sinVacio = false }: CommentSectionProps) {
   const { t } = useTranslation()
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
@@ -107,7 +109,7 @@ export function CommentSection({ discussionUuid, communityUuid, isLocked = false
         <div className="flex items-center justify-center py-8">
           <Loader2 size={18} className="animate-spin text-gray-400" />
         </div>
-      ) : comments.length === 0 ? (
+      ) : comments.length === 0 && sinVacio ? null : comments.length === 0 ? (
         <div className="py-8 text-center">
           <p className="text-gray-400 text-sm">{t('communities.comments.no_replies')}</p>
         </div>
@@ -170,7 +172,7 @@ export function CommentSection({ discussionUuid, communityUuid, isLocked = false
                     <button
                       type="submit"
                       disabled={!newComment.trim() || isSubmitting}
-                      className="px-3 py-1 text-xs font-medium text-white bg-[#025dc7] hover:bg-[#0b6df0] rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                      className="px-3 py-1 text-xs font-medium text-white bg-[#0b2da0] hover:bg-[#0a2690] rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                     >
                       {isSubmitting ? (
                         <Loader2 size={12} className="animate-spin" />

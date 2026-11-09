@@ -68,8 +68,8 @@ export default function CommunityInfoPanel({ org_id }: Props) {
       <div className="lg:sticky lg:top-24 bg-white nice-shadow rounded-2xl border border-[#DDE6F5] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-[#DDE6F5]">
-          <div className="flex items-center gap-2 text-[#1D0084]">
-            <Sparkles size={16} className="text-[#025dc7]" />
+          <div className="flex items-center gap-2 text-[#0B1033]">
+            <Sparkles size={16} className="text-[#0b2da0]" />
             <h3
               className="text-sm font-bold"
               style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")' }}
@@ -86,7 +86,7 @@ export default function CommunityInfoPanel({ org_id }: Props) {
             >
               <button
                 onClick={startEdit}
-                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#5A6480] hover:text-[#1D0084] transition-colors"
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#5A6480] hover:text-[#0B1033] transition-colors"
                 title="Editar panel"
               >
                 <Pencil size={13} /> Editar
@@ -104,7 +104,7 @@ export default function CommunityInfoPanel({ org_id }: Props) {
                 onChange={(e) => setDraft({ ...draft, welcome: e.target.value })}
                 rows={2}
                 placeholder={DEFAULTS.welcome}
-                className="w-full text-[13px] rounded-lg border border-[#DDE6F5] px-3 py-2 text-gray-800 focus:outline-none focus:border-[#025dc7] resize-y"
+                className="w-full text-[13px] rounded-lg border border-[#DDE6F5] px-3 py-2 text-gray-800 focus:outline-none focus:border-[#0b2da0] resize-y"
               />
             </div>
             <div>
@@ -114,7 +114,7 @@ export default function CommunityInfoPanel({ org_id }: Props) {
                 onChange={(e) => setDraft({ ...draft, rules: e.target.value })}
                 rows={4}
                 placeholder={DEFAULTS.rules}
-                className="w-full text-[13px] rounded-lg border border-[#DDE6F5] px-3 py-2 text-gray-800 focus:outline-none focus:border-[#025dc7] resize-y"
+                className="w-full text-[13px] rounded-lg border border-[#DDE6F5] px-3 py-2 text-gray-800 focus:outline-none focus:border-[#0b2da0] resize-y"
               />
             </div>
             <div>
@@ -124,21 +124,21 @@ export default function CommunityInfoPanel({ org_id }: Props) {
                 onChange={(e) => setDraft({ ...draft, tips: e.target.value })}
                 rows={4}
                 placeholder={DEFAULTS.tips}
-                className="w-full text-[13px] rounded-lg border border-[#DDE6F5] px-3 py-2 text-gray-800 focus:outline-none focus:border-[#025dc7] resize-y"
+                className="w-full text-[13px] rounded-lg border border-[#DDE6F5] px-3 py-2 text-gray-800 focus:outline-none focus:border-[#0b2da0] resize-y"
               />
             </div>
             <div className="flex items-center gap-2 pt-1">
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#4da3ff] text-[#1D0084] text-[13px] font-semibold hover:bg-[#6cb5ff] transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0b2da0] text-white text-[13px] font-semibold hover:bg-[#0a2690] transition-colors disabled:opacity-50"
               >
                 <Check size={14} /> {saving ? 'Guardando…' : 'Guardar'}
               </button>
               <button
                 onClick={() => setEditing(false)}
                 disabled={saving}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-[#5A6480] hover:text-[#1D0084] transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-[#5A6480] hover:text-[#0B1033] transition-colors"
               >
                 <X size={14} /> Cancelar
               </button>
@@ -150,13 +150,13 @@ export default function CommunityInfoPanel({ org_id }: Props) {
 
             <div>
               <div className="flex items-center gap-1.5 mb-1.5">
-                <ShieldCheck size={14} className="text-[#025dc7]" />
-                <h4 className="text-[12px] font-bold text-[#1D0084] uppercase tracking-wide">Reglas</h4>
+                <ShieldCheck size={14} className="text-[#0b2da0]" />
+                <h4 className="text-[12px] font-bold text-[#0B1033] uppercase tracking-wide">Reglas</h4>
               </div>
               <ul className="space-y-1">
                 {ruleLines.map((line, i) => (
                   <li key={i} className="flex gap-2 text-[13px] text-gray-700 leading-snug">
-                    <span className="text-[#025dc7] mt-px shrink-0">•</span>
+                    <span className="text-[#0b2da0] mt-px shrink-0">•</span>
                     <span>{line}</span>
                   </li>
                 ))}
@@ -165,13 +165,13 @@ export default function CommunityInfoPanel({ org_id }: Props) {
 
             <div>
               <div className="flex items-center gap-1.5 mb-1.5">
-                <Lightbulb size={14} className="text-[#025dc7]" />
-                <h4 className="text-[12px] font-bold text-[#1D0084] uppercase tracking-wide">Consejos</h4>
+                <Lightbulb size={14} className="text-[#0b2da0]" />
+                <h4 className="text-[12px] font-bold text-[#0B1033] uppercase tracking-wide">Consejos</h4>
               </div>
               <ul className="space-y-1">
                 {tipLines.map((line, i) => (
                   <li key={i} className="flex gap-2 text-[13px] text-gray-700 leading-snug">
-                    <span className="text-[#025dc7] mt-px shrink-0">•</span>
+                    <span className="text-[#0b2da0] mt-px shrink-0">•</span>
                     <span>{line}</span>
                   </li>
                 ))}

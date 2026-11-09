@@ -24,6 +24,9 @@ import {
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { useDiscussions, useMutateDiscussions } from '@components/Hooks/useDiscussions'
+import { hiloDe, sinTituloRepetido } from '@/lib/communities/delChat'
+import { markChannelRead } from '@services/communities/engagement'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   createDiscussion,
   deleteDiscussion,
@@ -35,7 +38,8 @@ import {
 } from '@services/communities/discussions'
 import { getUriWithOrg } from '@services/config/config'
 import { getUserAvatarMediaDirectory } from '@services/media/media'
-import UserAvatar from '@components/Objects/UserAvatar'
+import AvatarPersona from '@components/Objects/Persona/AvatarPersona'
+import { haceCuanto } from '@/lib/nawar/haceCuanto'
 import VoiceRecorder from '@components/Pages/Messages/VoiceRecorder'
 import ComposerButton from './ComposerButton'
 import ConfirmDialog from './ConfirmDialog'
@@ -109,7 +113,7 @@ function ConMenciones({ texto }: { texto: string }) {
     <>
       {trozosConMenciones(texto).map((t, i) =>
         t.mencion ? (
-          <span key={i} className="font-bold text-[#025dc7]">
+          <span key={i} className="font-bold text-[#0b2da0]">
             {t.texto}
           </span>
         ) : (
@@ -149,8 +153,32 @@ export default function ChannelPosts({
     communityUuid,
     sortBy: 'recent',
     page: 1,
-    limit: 50,
+    limit: 100,
   })
+  // Las respuestas en hilo de los mensajes que vienen del chat (09/11/2026:
+  // el canal de presentaciones pasó de chat a tablón): no son publicaciones
+  // sueltas, cuentan como respuestas de su presentación.
+  const respuestasDe: Record<string, number> = {}
+  for (const d of discussions as DiscussionWithAuthor[]) {
+    const p = hiloDe(d.content as any)
+    if (p) respuestasDe[p] = (respuestasDe[p] || 0) + 1
+  }
+  const publicaciones = (discussions as DiscussionWithAuthor[]).filter((d) => !hiloDe(d.content as any))
+
+  // Al entrar (y al salir), el tablón queda leído: si no, el número de «sin
+  // leer» de la barra y la campana no se apagaba nunca en los tablones.
+  const queryClient = useQueryClient()
+  useEffect(() => {
+    if (!communityUuid || !accessToken) return
+    const leer = () =>
+      markChannelRead(communityUuid, accessToken)
+        .then(() => queryClient.invalidateQueries({ queryKey: ['community', 'unread'] }))
+        .catch(() => {})
+    leer()
+    return () => {
+      leer()
+    }
+  }, [communityUuid, accessToken, queryClient])
 
   const [composing, setComposing] = useState(false)
   const [counts, setCounts] = useState<Record<string, number>>({})
@@ -170,7 +198,8 @@ export default function ChannelPosts({
     if (!discussions.length) return
     let alive = true
     Promise.all(
-      discussions.map(async (d: DiscussionWithAuthor) => {
+      // Solo las publicaciones: las respuestas en hilo no tienen comentarios.
+      (discussions as DiscussionWithAuthor[]).filter((d) => !hiloDe(d.content as any)).map(async (d: DiscussionWithAuthor) => {
         try {
           const n = await getCommentCount(d.discussion_uuid, accessToken)
           return [d.discussion_uuid, typeof n === 'number' ? n : 0] as const
@@ -215,16 +244,16 @@ export default function ChannelPosts({
     <div>
       <div className="flex items-center justify-between gap-3 mb-4">
         <p className="text-[13px] text-[#5A6480]">
-          {discussions.length === 0
+          {publicaciones.length === 0
             ? 'Todavía no hay ninguna publicación.'
-            : `${discussions.length} ${discussions.length === 1 ? 'publicación' : 'publicaciones'}`}
+            : `${publicaciones.length} ${publicaciones.length === 1 ? 'publicación' : 'publicaciones'}`}
         </p>
         {accessToken && (
           <button
             onClick={() => setComposing(true)}
-            // CTA de marca: #4da3ff con letra #0a1656. El #1D0084 que había es
+            // CTA de marca: #0b2da0 con letra #0a1656. El #1D0084 que había es
             // color de FONDO oscuro, no de botón sobre blanco.
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] text-sm font-bold transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#0b2da0] hover:bg-[#0a2690] text-white text-sm font-bold transition-colors"
           >
             <Plus size={16} /> Publicar
           </button>
@@ -235,7 +264,7 @@ export default function ChannelPosts({
         <div className="flex justify-center py-16">
           <Loader2 size={22} className="animate-spin text-gray-400" />
         </div>
-      ) : discussions.length === 0 ? (
+      ) : publicaciones.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[#DDE6F5] bg-white px-6 py-14 text-center">
           <MessageSquare size={26} className="text-[#C6D2E6] mx-auto mb-3" />
           <p className="text-[15px] font-semibold text-gray-900">
@@ -248,10 +277,10 @@ export default function ChannelPosts({
         </div>
       ) : (
         <div className="space-y-3">
-          {discussions.map((d: DiscussionWithAuthor) => {
+          {publicaciones.map((d: DiscussionWithAuthor) => {
             const files = attachmentsOf(d)
             const cover = files.find((f) => f.kind === 'image')
-            const body = bodyOf(d)
+            const body = sinTituloRepetido(d.title, bodyOf(d))
             const mine = (d.author as any)?.id === currentUserId
             // La página del post vuelve a añadir los prefijos `community_` y
             // `discussion_`, así que aquí van SIN ellos. Con el identificador
@@ -265,31 +294,22 @@ export default function ChannelPosts({
             return (
               <article
                 key={d.discussion_uuid}
-                className="group rounded-2xl border border-[#DDE6F5] bg-white overflow-hidden hover:border-[#4da3ff] transition-colors"
+                className="group rounded-2xl border border-[#E4E8F2] bg-white overflow-hidden hover:border-[#C9D4EC] transition-colors"
               >
                 <div className="p-4 sm:p-5">
                   <div className="flex items-center gap-2.5 mb-2.5">
-                    <UserAvatar
-                      width={28}
-                      avatar_url={
+                    <AvatarPersona
+                      nombre={authorName(d)}
+                      size={36}
+                      src={
                         (d.author as any)?.avatar_image
-                          ? getUserAvatarMediaDirectory(
-                              (d.author as any).user_uuid,
-                              (d.author as any).avatar_image
-                            )
-                          : undefined
+                          ? getUserAvatarMediaDirectory((d.author as any).user_uuid, (d.author as any).avatar_image)
+                          : null
                       }
-                      predefined_avatar={(d.author as any)?.avatar_image ? undefined : 'empty'}
-                      userId={String((d.author as any)?.id ?? '')}
-                      rounded="rounded-full"
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-semibold text-gray-900 truncate">
-                        {authorName(d)}
-                      </p>
-                      <p className="text-[11.5px] text-[#8A96AB]">
-                        {localDay(d.creation_date).locale('es').fromNow()}
-                      </p>
+                      <p className="text-[14px] font-semibold text-[#0B1033] truncate">{authorName(d)}</p>
+                      <p className="text-[12px] text-[#8A91AD]">{haceCuanto(d.creation_date)}</p>
                     </div>
                     {(mine || isStaff) && (
                       <button
@@ -305,7 +325,7 @@ export default function ChannelPosts({
 
                   <Link href={href} className="block">
                     <h3
-                      className="text-[16px] sm:text-[17px] font-bold text-gray-900 leading-snug hover:text-[#025dc7] transition-colors"
+                      className="text-[16px] sm:text-[17px] font-bold text-gray-900 leading-snug hover:text-[#0b2da0] transition-colors"
                       style={{
                         fontFamily:
                           'var(--font-poppins), system-ui, sans-serif, "Apple Color Emoji", var(--font-emoji, "Segoe UI Emoji")',
@@ -353,7 +373,7 @@ export default function ChannelPosts({
                         onClick={() => react(d.discussion_uuid, e)}
                         className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[13px] transition-colors ${
                           mine?.has_reacted
-                            ? 'bg-[#F0F5FF] text-[#025dc7]'
+                            ? 'bg-[#F0F5FF] text-[#0b2da0]'
                             : 'hover:bg-[#F0F5FF] text-[#5A6480]'
                         }`}
                       >
@@ -369,11 +389,11 @@ export default function ChannelPosts({
                   <div className="flex-1" />
                   <Link
                     href={href}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12.5px] font-medium text-[#5A6480] hover:text-[#025dc7] hover:bg-[#F0F5FF] transition-colors"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12.5px] font-medium text-[#5A6480] hover:text-[#0b2da0] hover:bg-[#F0F5FF] transition-colors"
                   >
                     <MessageSquare size={14} />
-                    {counts[d.discussion_uuid] ?? 0}{' '}
-                    {counts[d.discussion_uuid] === 1 ? 'comentario' : 'comentarios'}
+                    {(counts[d.discussion_uuid] ?? 0) + (respuestasDe[d.discussion_uuid] || 0)}{' '}
+                    {(counts[d.discussion_uuid] ?? 0) + (respuestasDe[d.discussion_uuid] || 0) === 1 ? 'comentario' : 'comentarios'}
                   </Link>
                 </div>
               </article>
@@ -593,8 +613,8 @@ function PostComposer({
                   onClick={() => elegirMencion(name)}
                   className="w-full text-left px-3 py-2 text-sm hover:bg-[#F0F5FF] flex items-center gap-2"
                 >
-                  <AtSign size={13} className="text-[#025dc7] shrink-0" />
-                  <span className={name === 'all' ? 'font-bold text-[#025dc7]' : ''}>
+                  <AtSign size={13} className="text-[#0b2da0] shrink-0" />
+                  <span className={name === 'all' ? 'font-bold text-[#0b2da0]' : ''}>
                     {name === 'all' ? 'all — avisar a todo el canal' : name}
                   </span>
                 </button>
@@ -603,7 +623,7 @@ function PostComposer({
           )}
 
           {paraTodos && (
-            <p className="mt-2 flex items-center gap-1.5 text-[12.5px] text-[#025dc7]">
+            <p className="mt-2 flex items-center gap-1.5 text-[12.5px] text-[#0b2da0]">
               <AtSign size={13} className="shrink-0" />
               Con @all, a todos los del canal les saldrá un aviso en la campana.
             </p>
@@ -627,9 +647,9 @@ function PostComposer({
                   ) : (
                     <div className="h-20 px-3 flex items-center gap-2 text-[12px] text-[#5A6480] max-w-[200px]">
                       {f.kind === 'audio' ? (
-                        <Mic size={14} className="text-[#025dc7] shrink-0" />
+                        <Mic size={14} className="text-[#0b2da0] shrink-0" />
                       ) : (
-                        <FileText size={14} className="text-[#025dc7] shrink-0" />
+                        <FileText size={14} className="text-[#0b2da0] shrink-0" />
                       )}
                       <span className="truncate">{f.name}</span>
                     </div>
@@ -645,7 +665,7 @@ function PostComposer({
               ))}
               {uploading && (
                 <div className="h-20 w-20 rounded-lg border border-dashed border-[#DDE6F5] flex items-center justify-center">
-                  <Loader2 size={16} className="animate-spin text-[#025dc7]" />
+                  <Loader2 size={16} className="animate-spin text-[#0b2da0]" />
                 </div>
               )}
             </div>
@@ -692,7 +712,7 @@ function PostComposer({
           <button
             onClick={publish}
             disabled={!title.trim() || saving}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#0a1656] text-sm font-bold transition-colors disabled:bg-[#EFF1F6] disabled:text-[#B6BECC]"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0b2da0] hover:bg-[#0a2690] text-white text-sm font-bold transition-colors disabled:bg-[#EFF1F6] disabled:text-[#B6BECC]"
           >
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Pencil size={15} />}
             Publicar

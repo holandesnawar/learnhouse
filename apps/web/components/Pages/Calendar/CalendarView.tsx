@@ -133,6 +133,12 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
   }
 
   const [events, setEvents] = useState<LhEvent[]>(() => readEvents(org))
+  // La escuela a veces aún no ha cargado al pintar la página: sin esto el
+  // calendario se quedaba vacío para siempre (08/11/2026).
+  const eventosGuardados = JSON.stringify(readEvents(org))
+  useEffect(() => {
+    setEvents(JSON.parse(eventosGuardados))
+  }, [eventosGuardados])
   const [cursor, setCursor] = useState(() => dayjs().startOf('month'))
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState<LhEvent | null>(null)
@@ -213,13 +219,12 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 pb-5">
         <div className="flex items-center gap-2">
-          <CalendarDays size={24} className="text-[#025dc7]" />
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Eventos</h1>
+          <h1 className="text-[26px] sm:text-[30px] font-bold text-[#0B1033] tracking-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>Eventos</h1>
         </div>
         {canEdit && (
           <button
             onClick={() => openNew()}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#1D0084] text-sm font-semibold transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#0b2da0] hover:bg-[#0a2690] text-white text-sm font-semibold transition-colors"
           >
             <Plus size={16} /> Añadir evento
           </button>
@@ -265,12 +270,12 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
                 onClick={canEdit ? () => openNew(dStr) : undefined}
                 className={`min-h-[84px] border-b border-r border-gray-100 p-1.5 ${
                   inMonth ? 'bg-white' : 'bg-gray-50/50'
-                } ${canEdit ? 'cursor-pointer hover:bg-[#025dc7]/5' : ''}`}
+                } ${canEdit ? 'cursor-pointer hover:bg-[#0b2da0]/5' : ''}`}
               >
                 <div className="flex justify-end">
                   <span
                     className={`inline-flex items-center justify-center w-6 h-6 text-xs rounded-full ${
-                      isToday ? 'bg-[#025dc7] text-white font-bold' : inMonth ? 'text-gray-700' : 'text-gray-300'
+                      isToday ? 'bg-[#0b2da0] text-white font-bold' : inMonth ? 'text-gray-700' : 'text-gray-300'
                     }`}
                   >
                     {day.date()}
@@ -285,10 +290,14 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
                         if (canEdit) setEditing(ev)
                         else if (ev.link) window.open(ev.link, '_blank')
                       }}
-                      className="w-full text-left truncate rounded px-1.5 py-1 text-[11px] font-medium bg-[#025dc7]/10 text-[#025dc7] hover:bg-[#025dc7]/20"
+                      className="w-full flex items-center gap-1.5 text-left rounded px-1 py-0.5 text-[12px] text-[#0B1033] hover:bg-[#F2F5FB]"
                       title={ev.title}
                     >
-                      {ev.time ? `${ev.time} ` : ''}{ev.title}
+                      {/* Como en un calendario de verdad: punto, hora y título, sin pastilla (08/11). */}
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#0b2da0] shrink-0" />
+                      {/* En el móvil la casilla es estrecha: solo el punto (el detalle va en la lista de abajo). */}
+                      {ev.time ? <span className="hidden sm:inline text-[#6B7393] tabular-nums shrink-0">{ev.time}</span> : null}
+                      <span className="hidden sm:inline truncate font-medium">{ev.title}</span>
                     </button>
                   ))}
                   {dayEvents.length > 3 && (
@@ -316,11 +325,11 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
                 key={ev.id}
                 id={`evento-${ev.id}`}
                 className={`bg-white nice-shadow rounded-lg p-4 flex items-start gap-4 transition-shadow ${
-                  focusedEvent === ev.id ? 'ring-2 ring-[#4da3ff]' : ''
+                  focusedEvent === ev.id ? 'ring-2 ring-[#0b2da0]' : ''
                 }`}
               >
                 <div className="shrink-0 w-12 text-center">
-                  <div className="text-[11px] font-semibold text-[#025dc7] uppercase">{MONTHS[dayjs(ev.date).month()].slice(0, 3)}</div>
+                  <div className="text-[11px] font-semibold text-[#0b2da0] uppercase">{MONTHS[dayjs(ev.date).month()].slice(0, 3)}</div>
                   <div className="text-xl font-bold text-gray-900 leading-none">{dayjs(ev.date).date()}</div>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -334,7 +343,7 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
                         <Clock size={12} /> {ev.time}
                       </span>
                     )}
-                    {canEdit && ev.grupos?.length ? <span className="text-[#025dc7]">{paraQuien(ev, yo?.todos)}</span> : null}
+                    {canEdit && ev.grupos?.length ? <span className="text-[#0b2da0]">{paraQuien(ev, yo?.todos)}</span> : null}
                   </div>
                   {ev.description && <p className="mt-1 text-sm text-gray-600 whitespace-pre-line">{ev.description}</p>}
                   {ev.link && (
@@ -342,7 +351,7 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
                       href={ev.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-[#025dc7] hover:underline"
+                      className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-[#0b2da0] hover:underline"
                     >
                       <ExternalLink size={14} /> Unirse / Abrir
                     </a>
@@ -356,7 +365,7 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
                       className={`px-2.5 py-1.5 rounded-lg text-[12px] font-semibold inline-flex items-center gap-1.5 transition-colors ${
                         notifying === ev.id
                           ? 'text-gray-400 cursor-not-allowed'
-                          : 'text-[#025dc7] hover:bg-[#F0F5FF]'
+                          : 'text-[#0b2da0] hover:bg-[#F0F5FF]'
                       }`}
                       title="Avisar a los alumnos por email"
                     >
@@ -365,7 +374,7 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
                     <button
                       onClick={() => notifyEvent(ev, true)}
                       disabled={notifying === ev.id}
-                      className="px-2.5 py-1.5 rounded-lg text-[12px] font-semibold text-gray-500 hover:text-[#025dc7] hover:bg-[#F0F5FF] transition-colors disabled:opacity-50"
+                      className="px-2.5 py-1.5 rounded-lg text-[12px] font-semibold text-gray-500 hover:text-[#0b2da0] hover:bg-[#F0F5FF] transition-colors disabled:opacity-50"
                       title="Enviarme este aviso solo a mí, para verlo antes"
                     >
                       Probar
@@ -427,21 +436,21 @@ function EventModal({
         <div className="space-y-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Título *</label>
-            <input value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="Clase semanal A0-A1" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#025dc7]/30" />
+            <input value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="Clase semanal A0-A1" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#0b2da0]/30" />
           </div>
           <div className="flex gap-3">
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">Fecha *</label>
-              <input type="date" value={form.date} onChange={(e) => set('date', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#025dc7]/30" />
+              <input type="date" value={form.date} onChange={(e) => set('date', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#0b2da0]/30" />
             </div>
             <div className="w-32">
               <label className="block text-sm font-medium text-gray-700 mb-1">Hora</label>
-              <input type="time" value={form.time || ''} onChange={(e) => set('time', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#025dc7]/30" />
+              <input type="time" value={form.time || ''} onChange={(e) => set('time', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#0b2da0]/30" />
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Enlace (Zoom, Meet…)</label>
-            <input value={form.link || ''} onChange={(e) => set('link', e.target.value)} placeholder="https://…" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#025dc7]/30" />
+            <input value={form.link || ''} onChange={(e) => set('link', e.target.value)} placeholder="https://…" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#0b2da0]/30" />
           </div>
           {grupos.length ? (
             <div>
@@ -449,7 +458,7 @@ function EventModal({
               <select
                 value={form.grupos?.[0] ? String(form.grupos[0]) : ''}
                 onChange={(e) => setForm((f) => ({ ...f, grupos: e.target.value ? [Number(e.target.value)] : [] }))}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#025dc7]/30 bg-white"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#0b2da0]/30 bg-white"
               >
                 <option value="">Todos los alumnos</option>
                 {grupos.map((g) => (
@@ -462,7 +471,7 @@ function EventModal({
           ) : null}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-            <textarea value={form.description || ''} onChange={(e) => set('description', e.target.value)} rows={3} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#025dc7]/30 resize-y" />
+            <textarea value={form.description || ''} onChange={(e) => set('description', e.target.value)} rows={3} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#0b2da0]/30 resize-y" />
           </div>
         </div>
         <div className="flex items-center justify-between pt-1">
@@ -475,7 +484,7 @@ function EventModal({
           )}
           <div className="flex items-center gap-2">
             <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100">Cancelar</button>
-            <button onClick={() => onSave(form)} disabled={saving} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4da3ff] text-[#1D0084] text-sm font-semibold hover:bg-[#6cb5ff] disabled:opacity-60">
+            <button onClick={() => onSave(form)} disabled={saving} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0b2da0] text-white text-sm font-semibold hover:bg-[#0a2690] disabled:opacity-60">
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />} Guardar
             </button>
           </div>

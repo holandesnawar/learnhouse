@@ -5061,6 +5061,393 @@ nuevas (una columna, abajo). Tests `test_clases_por_semanas.py` y
   `_ADDED_COLUMNS` y no se añade ninguna columna: aplicarlas a mano. En
   producción no pasa (tiene pgvector).
 
+## Rediseño estilo Circle: la escuela de pruebas y la rama `diseno` (07/11/2026)
+Pedido: "una versión no pública de la escuela para hacer cambios de diseño…
+estilo Circle… que se vea profesional de verdad y no IA". **Todo esto vive en
+la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
+- **La escuela de pruebas**: Railway → entorno `pruebas` (duplicado de
+  production) → learnhouse con Source = rama `diseno`, dirección
+  `learnhouse-pruebas.up.railway.app` (el proxy de aquí NO la alcanza: las
+  capturas se hacen en local). Base de datos PROPIA y vacía: la escuela se crea
+  sola al arrancar con `LEARNHOUSE_INITIAL_ORG_*` y
+  `LEARNHOUSE_INITIAL_ADMIN_*`. Sin claves de fuera (Resend, Stripe, Calendly,
+  systeme, Daily, Supabase de consultas, R2, ElevenLabs) y con otro secreto
+  JWT. ⚠️ El primer arranque falló con «password authentication failed for
+  user postgres»: `LEARNHOUSE_SQL_CONNECTION_STRING` (y Redis) se habían
+  duplicado como TEXTO con la contraseña de producción; tienen que ser
+  referencias (`${{Postgres.DATABASE_URL}}`, `${{Redis.REDIS_URL}}`).
+- **v1 (rama diseno)**:
+  - `OrgSidebar.tsx` rehecho: franja azul arriba en todas las pantallas
+    (logo, Inicio · Formación · Clases · Comunidad · Calendario, avisos) y
+    barra CLARA a la izquierda por bloques: Formación, Mis clases (Esta
+    semana, Tareas, Clases grabadas, Calendario), Comunidad (cada canal con su
+    emoji y sin leer, `getCommunities`), Ayuda, Panel. El layout lleva
+    `pt-14` siempre; el chat y los mensajes miden `100dvh-3.5rem` también en
+    el ordenador.
+  - `/clases`, `/clases/tareas`, `/clases/grabadas`
+    (`Pages/Clases/MisClasesAlumno.tsx`): las clases en directo de cada uno,
+    SIN nombre de grupo; el equipo elige la clase con chips (con etiqueta).
+    Mismos datos de siempre (`/tareas/course/{uuid}/semanas`).
+  - **«¿Vienes a la clase?»** (Voy / No puedo): columna
+    `tarea_semana.confirmaciones` (JSON, `_ADDED_COLUMNS`),
+    `confirmar_asistencia` (hasta el día de la clase), `PUT
+    /tareas/semana/{id}/voy`. El alumno ve el suyo (`voy`), el equipo
+    `confirmaciones: {si, no}`, y al pasar lista sale «Dijo que venía».
+  - Inicio = feed (`Pages/Home/FeedInicio.tsx`): la clase de la semana con
+    «¿Vienes?», «Continúa», y lo último de los tablones (canales `posts`)
+    mezclado por fecha; a la derecha tu semana, el repaso y los eventos.
+  - Chat: todos los mensajes a la izquierda y sin globo azul
+    (`aLaDerecha = false` en `ChannelChat.tsx`).
+- **Datos inventados** (`services/demo/datos_prueba.py`, cabecera: leerla): al
+  arrancar, SOLO con `LEARNHOUSE_DATOS_DE_PRUEBA=si`, la escuela con 3 usuarios
+  o menos y sin la marca `datos_prueba` en la configuración. Crea la profe
+  «Sanne de Vries», 10 alumnos (@ejemplo.com) en Groep rood / Groep blauw /
+  Programa nuevo, la formación (módulos 1-3 con su avance), dos «Clase
+  semanal» hermanas (martes y jueves) con 5 semanas (PDF de ejemplo,
+  ejercicios, tarea, grabación de relleno, entregas, lista y «¿vienes?») y
+  grabaciones viejas en su capítulo del mes, 6 canales con publicaciones,
+  comentarios y chat, y 3 eventos. No llama a nada de fuera ni manda correos.
+  La alumna `marta@ejemplo.com` entra con `LEARNHOUSE_DATOS_DE_PRUEBA_CLAVE`
+  (sin ella, contraseña al azar). Para rehacerlos: base de datos nueva.
+  Si la variable se pone o se cambia DESPUÉS, al siguiente arranque se le
+  pone a Marta (`_clave_de_marta`): basta con cambiarla en Railway (eso ya
+  redespliega). Solo toca a marta@ejemplo.com.
+- **«Empieza aquí»**: primer bloque de la barra con «Bienvenida»
+  (`/empieza-aqui`, `Pages/EmpiezaAqui/EmpiezaAqui.tsx`: 5 pasos con check,
+  «Preséntate» se marca solo si publicó, los demás en el navegador; lo que hay
+  que saber = el canal «Lo esencial») y los canales de quien llega
+  (`lib/nawar/empiezaAqui.ts`: lo esencial, preséntate, noticias). Sustituye al
+  «Primeros pasos» viejo (`StudentOnboarding`, quitado del Inicio y del layout
+  en esta rama). El feed del Inicio filtra por canal y no enseña «Lo esencial».
+- **v2 (07/11, tras verla el usuario)**: «la parte de arriba se rompe»,
+  «Esta semana demasiado IA», «el azul tan oscuro no, el de la escuela de
+  ahora», «Recursos con banner limpio como ICO», «abrir y cerrar las pestañas
+  de la barra», «la campana antigua». Hecho:
+  - Franja de arriba con `FONDO_MARCA` (el azul con imagen de la escuela
+    actual); elegido en la barra = fondo `#EAF0FE` y letra `#0b2da0`; iconos
+    finos (phosphor `regular`); bloques plegables (`nawar.barra.plegados`);
+    «Recursos» dentro de «Empieza aquí».
+  - **Portadas tipo Circle** (`Pages/Espacios/Portada.tsx`): banner con título
+    y raya, frase y lo que vaya debajo; el administrador la cambia con
+    «Editar portada» (título, frase, imagen https). org_config
+    `portadas[clave]`, `PUT /orgs/{id}/config/portadas/{clave}`
+    (`update_org_portada_config`, `limpiar_portada`). En Recursos (clave
+    `recursos`, con las carpetas como pestañas) y en cada tablón (clave =
+    `community_uuid`).
+  - «Esta semana» y el Inicio: la semana es una LISTA con círculos (hecho /
+    por hacer / cerrado), sin baldosas de iconos ni fecha en tarjeta
+    (`pasosDeSemana` + `FilaPaso` en `MisClasesAlumno.tsx`, compartidos).
+  - Inicio: saludo por la hora, «Lo que te toca esta semana», Continúa,
+    «Destacado en la comunidad» (fijado o más gustado en 14 días), el feed; a
+    la derecha Empieza aquí, Próximos eventos (lista), racha, repaso, dudas.
+  - Campana: sin iconos de colores, punto azul en lo no leído y «Todas / Sin
+    leer».
+  - Los datos inventados traen también 3 carpetas de Recursos; en una escuela
+    ya sembrada se añaden solas al arrancar (marca `datos_prueba.recursos`).
+- **v3 (08/11)**: «¿Vas a asistir? Sí / No» solo arriba del Inicio
+  (`SiguienteClase` en `FeedInicio.tsx`, la próxima clase de cada clase en
+  directo, con fecha y hora), ya no en Esta semana ni en «Lo que te toca». La
+  página de la clase (`SemanasClase.tsx`) enseña al alumno la MISMA lista que
+  Esta semana (`pasosDeSemana` + `FilaPaso`, ahora en
+  `Pages/Clases/pasosSemana.tsx`; el equipo sigue con sus filas y botones) y
+  cada clase en directo sale en la barra, en «Mis clases»; «Clases» de arriba
+  se enciende también dentro de ella. Títulos de la barra a 14 px y más hueco
+  entre los botones de arriba. Barrido de colores en las pantallas del alumno
+  (comunidad, mensajes, consultas, calendario, clase, tareas…): el azul claro
+  `#4da3ff` con letra oscura y `#025dc7` pasan al azul de la escuela
+  `#0b2da0` con letra blanca (script en el scratchpad, `barrido.py`; NO toca
+  la barra de lecciones, que es oscura, ni los ejercicios). Botones de la barra
+  de escribir (`ComposerButton`): gris fino, fondo suave al pasar, etiqueta
+  casi negra. Mi progreso rehecho: anillo con el %, «Vas por… · Seguir», «Te
+  conviene repasar» (las 3 partes peores) y los módulos como lista con número.
+- **v4 (08/11)**: «iconos con fondo detrás = IA»: los iconos van sueltos,
+  más grandes y finos (Bienvenida → «Así es la escuela», campana, filas de la
+  semana del equipo; la fecha de «Clases anteriores» con borde, sin fondo).
+  Títulos de página sin icono delante y en Poppins (Formación, Eventos, Mis
+  notas, Consultas, Mensajes). Formación: círculo y botón en el azul de la
+  escuela, sin tarjeta dentro de tarjeta. Mensajes: la conversación elegida
+  con fondo suave, no con borde azul. **Calendario vacío arreglado**: leía los
+  eventos solo al abrirse y, si la escuela aún no había cargado, se quedaba
+  vacío (sincroniza con la configuración). La escuela de pruebas salía en
+  inglés («Course Lessons») porque su escuela nueva no tenía idioma: los datos
+  de prueba ponen `customization.general.default_language = "es"`.
+- **Dos barras para comparar (08/11)**: «me gustaba más la barra de la escuela
+  actual». `OrgSidebar` tiene dos estilos: **azul** (de serie: la de siempre,
+  fondo de marca de arriba abajo con el logo, letra blanca de 15 px, títulos
+  de bloque en mayúsculas y plegables; la franja de arriba pasa a BLANCA y
+  empieza a su lado) y **blanca** (barra blanca, iconos y títulos en azul, lo
+  elegido con el fondo de marca; franja azul de lado a lado). Se cambia con
+  «Probar la barra…» al pie de la barra o con `?barra=azul|blanca` (se
+  recuerda en `nawar.barra.estilo`). Las campanas aceptan `claro` para la
+  franja blanca. Cuando el usuario elija, quitar el otro estilo y el botón.
+- **Por papel y «Organizar clases» (08/11)**: «para admin, profe, closer
+  también debería ser más fácil… que la parte de atrás no se vuelva un caos».
+  - **Perfil arriba a la derecha** (`Menus/MenuPerfil.tsx`, como Circle): foto,
+    nombre, papel, Mi perfil, Ajustes, Contraseña, Mis consultas, Panel (admin
+    o closer) y Cerrar sesión. Fuera la caja del perfil de abajo de la barra.
+  - **La barra según quién entra** (`OrgSidebar`): alumno (lo de siempre);
+    profe («Dar clase»: Preparar clases, Seguimiento y tareas, Responder
+    consultas, Clases y grupos; «Clases»: cada clase en directo con su grupo);
+    closer («Ventas»: Matrículas, Llamadas, Contactos, Material de venta, con
+    enlace al panel); administrador («Gestión»: Organizar clases, Preparar,
+    Seguimiento, Responder, Estadísticas, Visión, Matrículas, Usuarios,
+    Cursos; «Clases»). Las clases salen como «Clase semanal · rood».
+  - **Inicio del equipo** (`Home/InicioEquipo.tsx`): profes y administradores
+    no ven el Inicio del alumno; ven atajos y el tablero de «Mis clases».
+  - **`/organizar` — Organizar clases** (`Pages/Organizar/OrganizarPage.tsx`,
+    servicio `services/panel/organizar.py`, rutas `/panel/org/{id}/organizar`
+    GET (equipo) y PUT `clase/{uuid}/grupos`, PUT `clase/{uuid}/profe`, POST
+    `alumno` (administradores); test `test_organizar.py`). Sin tablas nuevas.
+    Pestañas: **Clases** (las copias con el mismo nombre juntas, «Una clase, 2
+    grupos», cada grupo con su día, «La da» = el profe del recuadro, «La ven» =
+    sus grupos con quitar/añadir —con algún grupo la clase deja de ser pública—
+    y las cifras de su semana), **Grupos** (su gente, qué ven, «Mover a…») y
+    **Alumnos** (buscar, filtro por grupo, quitar/poner grupo, aviso si no ve
+    ninguna clase o ve dos copias). Las tareas y entregas cuelgan del alumno:
+    moverlo de grupo no las borra.
+  - Los datos de prueba añaden un **Spreekclub** sin monitor y a **Tom
+    Bakker** (rol profe) para dárselo.
+- **v5 (08/11): fuera lo que «parece IA»**. Los checks de toda la escuela
+  del alumno son un círculo con borde fino (verde `#16A34A` con su check si
+  está hecho, gris si no, discontinuo si está cerrado): la semana, Mi
+  progreso, Empieza aquí y la racha. Nada de círculos rellenos. «Vista»,
+  «Corregida», «Entregada» ya no son pastillas de color: texto gris con un
+  check verde pequeño («Sin entregar» en ámbar apagado). El calendario pinta
+  cada evento como punto + hora + título, sin pastilla. La próxima clase del
+  Inicio es una línea: «Tu próxima clase · Clase semanal», la fecha, el tema y
+  a la derecha «¿Vienes?» con un control de dos mitades «Asistiré / No puedo»
+  (`Vienes segmento`). En Empieza aquí la barra de progreso y el botón van
+  fuera del azul, arriba de los pasos. Las publicaciones del tablón llevan la
+  foto de quien escribe (o sus iniciales en color,
+  `Objects/Persona/AvatarPersona.tsx`), su nombre y «hace 3 h» en español
+  (`lib/nawar/haceCuanto.ts`; el dayjs de antes salía en inglés).
+- **v6 (08/11): una sola página por clase**. «Esta semana», «Tareas» y
+  «Clases grabadas» salen de la barra: todo vive en la página de cada clase
+  (la franja con la próxima clase, «Esta semana», «Próxima clase» con
+  «¿Vienes? Asistiré / No puedo», «Clases anteriores» con sus tareas y
+  grabaciones, «Mira también»). En la barra, bajo «Mis clases», solo el
+  nombre de cada clase y el Calendario; «Clases» de arriba lleva a la
+  primera. `/clases`, `/clases/tareas` y `/clases/grabadas` siguen existiendo
+  y llevan a la primera clase de la persona (`IrAMiClase`). «¿Vienes?» vive
+  en `Pages/Clases/Vienes.tsx` (lo usan el Inicio y SemanasClase). **La barra
+  azul o blanca la elige cada uno** en su menú de perfil («Barra lateral»;
+  se guarda en su navegador, `nawar.barra.estilo`, y avisa a la barra con el
+  evento `nawar-barra`). Los comentarios llevan foto o iniciales, nombre y
+  «hace X» en español, igual que los posts (y el resto de la comunidad deja
+  el dayjs en inglés). En el móvil: el calendario solo pinta el punto en
+  cada día, la página de la clase no repite la lista de canales y
+  «¿Vienes?» va debajo del tema.
+- **v7 (08/11)**: campana solo con «Todas» (fuera «Sin leer»); fuera «Mira
+  también» del lateral de la clase (el componente sigue, sin usar); sin color
+  pastel al pasar el ratón en la barra, el menú de arriba, la campana y el
+  perfil (solo cambia el color de la letra); «Próximos eventos» del Inicio en
+  negrita; sin el icono de «Nada pendiente de repaso»; en Mi progreso todos los
+  módulos abiertos de serie y el círculo del número en 24 px; títulos de bloque
+  de la barra azul más blancos (95 %). **Portadas** (`Espacios/Portada.tsx`): el
+  mismo banner que «Bienvenida» (azul `#0b2da0`, luz arriba a la derecha y
+  puntos, texto a la izquierda con `etiqueta` encima: «Comunidad», «Empieza
+  aquí»). **Recursos**: el administrador crea secciones («Nueva sección», la ven
+  todos), añade a cada una un enlace o un archivo y quita lo que sobre desde la
+  propia página; quién ve cada sección y el orden, en el panel.
+- **v8 (08/11): la sala de profes, salas pequeñas y el aviso de salir.**
+  - **Sala de profes** = el Inicio del equipo (profes, monitores y
+    administradores; `InicioEquipo` → `Pages/Equipo/SalaProfes.tsx`) y
+    `/equipo`. Pedido: "ser profe no es ser alumno… como Teams… ver clases
+    anteriores, presentaciones, mejor orden de cómo pasó todo, SOPs, mejor
+    kanban, tareas". Cabecera de equipo (quiénes son, con su cara) y pestañas
+    en `?vista=`: **Hoy** (la próxima clase; «Lo que toca con las clases»:
+    presentación de las clases de los próximos 7 días, pasar lista de los
+    últimos 7, grabación de los últimos 14, correcciones y check-in, calculado
+    de lo que tiene cada semana, `loQueToca` en `lib/nawar/salaProfes.ts` con
+    test; mis tareas; el equipo; cada clase esta semana; el manual), **Tareas**
+    (tablero por hacer · en curso · hecho, se arrastra en el ordenador; filtro
+    por persona y por clase), **Preparar clases** (el `ClasesProfes` de
+    siempre), **Archivo** (todas las semanas de todas las clases mes a mes, con
+    presentación, grabación, tarea y cuántos vinieron, y las grabaciones de
+    antes sin semana) y **Manual** (los SOP). En la barra, «Tareas del
+    equipo», «Archivo de clases» y «Manual del equipo» (la barra sabe la
+    pestaña por el evento `nawar-vista`, sin `useSearchParams`).
+  - Servidor: tablas nuevas **`equipo_tarea`** y **`equipo_documento`**
+    (`src/db/equipo.py`), `services/equipo/equipo.py` (cabecera: leerla),
+    rutas `/api/v1/equipo/org/{id}` (todo de una vez), `…/tareas` y
+    `…/manual`. Lo ve el equipo de clases (`STAFF_ROLE_IDS`); el closer y los
+    alumnos, no. Tareas: crea y mueve cualquiera, borra quien la creó o un
+    administrador. Manual: lo escribe un administrador; «Empezar con la
+    plantilla» crea seis páginas con el proceso que ya se sigue (solo con el
+    manual vacío). No son las tareas del panel (`panel_task`, ventas). Test
+    `test_sala_profes.py`.
+  - **Salas pequeñas en el Spreekclub**: las salas de Daily llevan
+    `enable_breakout_rooms` (opción de Daily Prebuilt, en beta): quien entra
+    como anfitrión (el equipo) reparte a la gente en salas, la mueve y la
+    vuelve a juntar desde la llamada; los alumnos no ven el botón. Las salas
+    de antes se arreglan solas al entrar. Si Daily la rechaza, la sala sigue
+    sin ella. No probado contra Daily de verdad (no se alcanza desde aquí);
+    tampoco se sabe si la grabación sigue dentro de las salas pequeñas.
+  - **Aviso antes de salir de la clase** (`SalaPage.tsx`): dentro de la
+    llamada, cualquier enlace de la escuela pregunta «Vas a salir de la
+    clase… ¿Quieres salir?», y cerrar o recargar la pestaña lo pregunta el
+    navegador. «Salir» dentro de la llamada no pregunta. Probado en local
+    simulando la llamada (Daily no conecta aquí).
+  - Escuela de pruebas: los profes Sanne (`sanne.de@ejemplo.com`) y Tom
+    (`tom.bakker@ejemplo.com`) entran ya con la misma contraseña que Marta
+    (`LEARNHOUSE_DATOS_DE_PRUEBA_CLAVE`, `CUENTAS_DE_PRUEBA`), y la sala de
+    profes trae tareas y el manual de ejemplo (marca `datos_prueba.equipo`).
+- **v9 (08/11): la sala de profes, simple, y los monitores.** Usuario: "el
+  profe, su única tarea es preparar la clase y darla… ver fácil el archivo, y
+  poco más… la página de preparar clases es caótica… si al profe le toca esa
+  semana x grupo y x clase, que solo vea eso… quita tantos links de la barra,
+  solo Sala de profesores… el monitor solo Spreken Club; el grupo se llama
+  Monitores".
+  - **La sala, tres pestañas**: **Mis clases** (de serie), **Archivo** y
+    **Manual** (el monitor no lo tiene). Fuera el tablero de tareas del equipo
+    y la pestaña «Preparar clases» (el `ClasesProfes` sigue en `/mis-clases` y
+    en el panel, pero no se enlaza desde la escuela). Las tablas y rutas de las
+    tareas del equipo siguen ahí, sin pantalla.
+  - **Mis clases** (`MisClases` en `SalaProfes.tsx`, `porClase` en
+    `lib/nawar/salaProfes.ts`, con test): una tarjeta por clase con su semana
+    de ESTA semana en pasos (presentación → dar la clase, con «Entrar a la
+    sala» el día → pasar lista → grabación → corregir) y una línea con la
+    semana que viene; sin semana creada, «Crear la semana». El profe ve solo
+    las clases que llevan su nombre en «La da» (el recuadro; `esDe`), con
+    «Todas» al lado; si ninguna lleva su nombre, ve todas y se le dice. El
+    administrador y el monitor, todas las suyas. Abajo, enlaces pequeños:
+    Seguimiento de alumnos, Responder consultas, Clases y grupos.
+  - **Barra lateral del profe: solo «Sala de profesores»** (es su Inicio),
+    Formación, Comunidad y Mensajes. Del administrador, «Sala de profesores»
+    en Gestión en lugar de Preparar clases / Tareas / Archivo / Manual.
+  - **Monitores** (`services/equipo/monitores.py`, cabecera: leerla): cuenta
+    con rol **profe** + grupo de usuarios **«Monitores»** (vale «Monitor»; un
+    administrador nunca es monitor). Solo tiene las clases cuyo nombre lleva
+    «spreek» o «spreken» (Spreekclub, Spreken Club): la lista de cursos
+    (`get_courses_orgslug`), lo que el equipo puede abrir y cambiar
+    (`_equipo_en_curso`), las clases en directo de `/tareas/org/{id}/clases` y
+    la sala de profes (sin manual ni tareas). Su barra: Sala de profesores y
+    Mensajes; arriba, solo Inicio (la barra lo sabe por
+    `GET /equipo/org/{id}/yo`). En el equipo sale como «Monitor». La
+    formación le da 403. Datos de prueba: Tom Bakker es monitor y da el
+    Spreekclub (marca `datos_prueba.monitores`).
+- **v10 (08/11): barra y Mi progreso.** Iconos de la barra RELLENOS
+  (phosphor `fill`, como la escuela de antes). Botón para **cerrar la barra**
+  (icono `SidebarSimple` junto al logo; cerrada, sale arriba a la izquierda
+  para volver a abrirla; se recuerda en `nawar.barra.cerrada`). **Cambiar el
+  color de la barra con un clic** (icono `CircleHalf` al lado de los avisos;
+  ya no está en el menú del perfil). Logo un poco más a la izquierda. Al
+  administrador, **«Panel»** (`/dash`, el panel entero) el primero de Gestión.
+  Mi progreso: cada lección con su nombre («Lección 1 · Jezelf voorstellen»,
+  de `courseData` por el `nawar:` de sus clases: `leccionDe` y
+  `ClassRow.leccion` en `formacionProgress.ts`), menos hueco bajo la barra del
+  módulo y el número centrado (`text-box: trim-both cap alphabetic`).
+  **Checks verdes iguales en toda la escuela**: círculo con borde de 2 px y
+  check con trazo 3,2-3,4 (Mi progreso, la semana, Empieza aquí, la racha, la
+  sala de profes); los checks sueltos junto a un texto, trazo 3. Bienvenida,
+  Recursos y los canales de tablón con el mismo ancho (1040 px) y la misma
+  portada; los canales de «Empieza aquí» llevan la etiqueta «Empieza aquí».
+  «Conoce la escuela» lleva a la formación (su módulo 0 es la introducción).
+- **v11 (08/11): limpieza del panel, intentos de contacto, «Ver como» y una
+  semana en la otra clase.**
+  - **Panel, menos entradas**: «Clientes» junta Clientes y Pagos a plazos;
+    «Seguimiento» junta Semana a semana y Camino de 16 semanas (pestañas
+    arriba, `PAQUETES` en `EstadisticasPage.tsx`; las direcciones `?tab=` no
+    cambian); «Web» (`/dash/webs`) junta Páginas de la web (primera pestaña,
+    `PaginasPanel`), Enlaces y redirecciones, Enlaces UTM y Lista técnica. El
+    closer sigue con «Páginas de la web» suelta (no entra en `/dash/webs`).
+  - **Intentos de contacto en «Contactado»** (`services/panel/intentos.py`,
+    test `test_intentos_contacto.py`): tres intentos, cada uno con llamada y
+    WhatsApp, apuntados en la ficha (`Panel/IntentosContacto.tsx`, bloque bajo
+    las columnas cuando está en Contactado). Cada cosa es un evento
+    `intento-contacto` (sin tabla nueva; sale en la línea de tiempo). La
+    columna Contactado agrupa por intento y la tarjeta dice «Intento 2 de 3».
+    Tras el tercero, «Descartar» (mover a Descartado). Rutas
+    `POST/DELETE /panel/org/{id}/intentos`. Se solapa con la columna «No
+    contesta»: si se usa esto, esa columna sobra (sin quitar todavía).
+  - **«Ver como Marta»** (Organizar → Alumnos, solo administradores):
+    `services/panel/ver_como.py` (cabecera: leerla) + rutas de Next
+    `app/api/auth/ver-como` y `ver-como/salir`. La sesión del admin se guarda
+    en cookies del servidor (`LH_vercomo_*`) y se pone una del alumno de 2 h
+    con `ver_como` en el token: `get_current_user` rechaza TODO lo que no sea
+    GET (403 «solo se puede mirar»), y salir no cierra las sesiones del alumno
+    de verdad (logout). Solo de administrador a alumno (rol 4 y nada más).
+    Abajo sale la franja «Estás viendo la escuela como… · Volver a mi cuenta»
+    (`Objects/VerComo/VerComo.tsx`); «Cerrar sesión» del perfil también
+    vuelve. Probado en local (ver, 403 al escribir, volver).
+  - **Una semana en la clase del otro grupo** (Organizar → Alumnos →
+    «Cambiar una semana»; `services/tareas/cambio_semana.py`, columna
+    `tarea_semana.cambios` en `_ADDED_COLUMNS`, test `test_cambio_semana.py`):
+    solo a la clase hermana y de la misma semana del calendario. Sus tareas
+    siguen en su clase; su página dice «Esta semana vas a la clase del
+    jueves…» con «Entrar a la sala» de la otra (el servidor le deja pasar ese
+    día: `invitado_hoy` en `routers/salas.py`); la lista de la otra clase le
+    incluye («Viene esta semana de la clase del…») y en la suya sale «Esta
+    semana va a la clase del otro grupo». Se deshace desde la misma ventana.
+    ⚠️ La franja de arriba de la clase («Próxima emisión») sigue diciendo el
+    día de su grupo: es la misma para todos.
+  - Canales por grupo: ya existía (canal → Acceso → «Solo usuarios» → grupo;
+    la barra, la campana y los «sin leer» lo respetan).
+- **v12 (09/11): visita guiada** ("un popup tipo bienvenido a tu nueva escuela,
+  estilo onboarding… siguiente y saltar… para los nuevos y los que ya están").
+  `components/Objects/VisitaGuiada/VisitaGuiada.tsx` (montada en `OrgSidebar`)
+  y los pasos en `lib/nawar/visitaGuiada.ts` (puro, test
+  `__tests__/visitaGuiada.test.ts`). Saludo («Hemos renovado la escuela…» a
+  quien ya la conocía; «En un minuto…» al nuevo, según `welcomed`/`dismissed`
+  de la bienvenida vieja), Empieza aquí, Formación, una por cada clase en
+  directo que ve ESE alumno (clase semanal / masterclass / conversación, por el
+  nombre: `tipoDeClase`), Comunidad, Ayuda y Perfil. En el ordenador oscurece
+  la pantalla e ilumina el bloque de la barra (`data-visita` en las filas, los
+  bloques —`claveDeBloque`—, los enlaces de arriba `top-…`, el ☰ `menu` y el
+  perfil `perfil`; si el bloque no se ve, el siguiente de la lista; si nada, la
+  tarjeta en el centro). En el móvil, tarjeta abajo e ilumina el ☰. Sale SOLA
+  una vez a cada alumno (no equipo ni closer), al entrar al Inicio; se guarda
+  en `student_progress.onboarding_state.visita = "v1"` (se manda el objeto
+  entero: el servidor lo reemplaza) y en el navegador. Subir `VERSION_VISITA`
+  hace que todos la vuelvan a ver. «Visita por la escuela» en el menú del
+  perfil la abre a cualquiera. En «Ver como» no sale sola. Esc / flechas.
+- **v13 (09/11): sala de profes para preparar la clase y presentaciones a
+  tablón.**
+  - **Mis clases ya no va por semana de calendario** ("la siguiente clase no
+    está bien del todo": el domingo, la clase del martes salía como «la semana
+    que viene»). `paraPreparar` (`lib/nawar/salaProfes.ts`, test
+    `paraPreparar.test.ts`): la PRÓXIMA clase de hoy en adelante, la de
+    después y la anterior de los últimos 10 días con lo que le falta (lista,
+    grabación, corregir). Tarjeta en `Equipo/PrepararClase.tsx`.
+  - **Material del profe** (`services/tareas/material_profe.py`, columna
+    `tarea_semana.material_profe` en `_ADDED_COLUMNS`, test
+    `test_material_profe.py`): la **presentación completa** para dar la clase
+    (archivos de hasta 80 MB en `content/privado/tareas/<org>/profe/`, o
+    enlaces) y **notas para el profe**. Solo el equipo: `/semanas` lo añade con
+    `equipo=True`; rutas `PUT /tareas/semana/{id}/profe/notas`, `POST
+    …/profe/enlace`, `POST …/profe/archivo`, `GET/DELETE …/profe/{archivo}`.
+    Lo añade cualquiera del equipo; lo quita quien lo subió o un
+    administrador. «Editar» en cada tarjeta (`EditarSemanaProfe`) cambia tema,
+    día, notas y material. Es distinta de la presentación de los alumnos (la
+    clase PDF de la semana, que miran antes).
+  - Archivo: la ficha de la fecha ya no se estira (`self-start`) y cada semana
+    enseña «Presentación completa». Manual: los enlaces pegados se pulsan.
+  - **Presentaciones de chat a tablón** (`services/communities/presentaciones_posts.py`,
+    test `test_presentaciones_posts.py`): al arrancar, UNA vez (marca
+    `migraciones.presentaciones_posts` en org_config, con los uuid cambiados),
+    los canales de chat cuyo nombre lleva «presenta» pasan a `kind=posts`. Los
+    mensajes NO se tocan (chat y tablón son la misma tabla `discussion`). Las
+    respuestas en hilo (`threadParent` en el contenido) salen debajo de su
+    presentación, no sueltas (`lib/communities/delChat.ts`, con test: también
+    quita la primera línea repetida del título). La página de cada publicación
+    enseña por fin sus fotos, audios y archivos (antes no, en ningún tablón).
+    Los tablones se marcan leídos al entrar (antes su «sin leer» no se apagaba
+    nunca). Vuelta atrás: `UPDATE community SET kind='chat' WHERE
+    community_uuid IN (…)` con los uuid de la marca.
+- **Pasar el diseño nuevo a la escuela de verdad = mezclar `diseno` en `dev`**
+  (un PR, un botón «Merge»). Lo que lleva y ya está pensado para los datos
+  reales: los datos inventados solo se crean con `LEARNHOUSE_DATOS_DE_PRUEBA=si`
+  y en una escuela con 3 usuarios o menos (producción: nada); las columnas
+  nuevas (`tarea_semana.confirmaciones`) se añaden solas al arrancar; los
+  canales de «Empieza aquí» se reconocen por el nombre (esencial, bienvenida,
+  normas, presenta, noticia, anuncio). Vuelta atrás: Railway → Deployments → el
+  despliegue anterior → ⋮ → Redeploy (las columnas añadidas no molestan al
+  código viejo). Antes de mezclar, traer `dev` a `diseno` (`git merge
+  origin/dev`) para no perder arreglos de producción.
+- Pendiente (v2): mover a un alumno al otro grupo UNA semana sin romper sus
+  tareas, una pantalla de grupos para el administrador (quién está en qué y
+  qué ve), el calendario rehecho, datos inventados en la escuela de pruebas.
+
 ## Black Friday 2026: ebook a 1 €, landing y campaña (28/10/2026)
 Pedido: "la página del ebook, dos (orgánico y ads); compran y en la de gracias
 van a blackfriday.holandesnawar.com, la landing de la formación muy top como

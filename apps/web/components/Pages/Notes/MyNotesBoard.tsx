@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { getUriWithOrg } from '@services/config/config'
 import { listAllHighlights, HIGHLIGHT_COLORS, type LessonHighlight } from '@services/student/highlights'
-import { NotePencil } from '@phosphor-icons/react'
 import { Loader2, ArrowRight, StickyNote } from 'lucide-react'
 
 const MESES_ES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
@@ -48,8 +47,7 @@ export default function MyNotesBoard({ orgslug }: { orgslug: string }) {
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-2 pt-2">
-        <NotePencil size={24} weight="fill" className="text-[#025dc7]" />
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Mis notas</h1>
+        <h1 className="text-[26px] sm:text-[30px] font-bold text-[#0B1033] tracking-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>Mis notas</h1>
       </div>
       <p className="text-sm text-gray-500 -mt-3 max-w-xl">
         Todo lo que has resaltado y anotado en las lecciones, en un solo sitio.
@@ -59,7 +57,7 @@ export default function MyNotesBoard({ orgslug }: { orgslug: string }) {
         <div className="flex justify-center py-16"><Loader2 size={24} className="animate-spin text-gray-400" /></div>
       ) : groups.length === 0 ? (
         <div className="flex flex-col items-center justify-center text-center py-16 px-4 rounded-2xl border border-[#DDE6F5] bg-white">
-          <StickyNote size={30} className="text-[#025dc7] mb-3" />
+          <StickyNote size={30} className="text-[#0b2da0] mb-3" />
           <p className="text-sm text-gray-500 max-w-sm">
             Aún no has resaltado nada. Dentro de una lección, selecciona un texto y elige un color o añade una nota; aquí aparecerá todo guardado.
           </p>
@@ -73,7 +71,7 @@ export default function MyNotesBoard({ orgslug }: { orgslug: string }) {
                 <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-[#DDE6F5] bg-[#F0F5FF]/50">
                   <h2 className="text-[15px] font-bold text-gray-900 truncate">{g.name}</h2>
                   {href && (
-                    <Link href={href} className="shrink-0 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#025dc7] hover:underline">
+                    <Link href={href} className="shrink-0 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#0b2da0] hover:underline">
                       Ir a la lección <ArrowRight size={14} />
                     </Link>
                   )}
@@ -88,7 +86,7 @@ export default function MyNotesBoard({ orgslug }: { orgslug: string }) {
                       </p>
                       {h.note && h.note.trim() && (
                         <div className="mt-2 flex items-start gap-2">
-                          <StickyNote size={14} className="text-[#025dc7] mt-0.5 shrink-0" />
+                          <StickyNote size={14} className="text-[#0b2da0] mt-0.5 shrink-0" />
                           <p className="text-[13.5px] text-gray-600 leading-relaxed whitespace-pre-line">{h.note}</p>
                         </div>
                       )}

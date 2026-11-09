@@ -555,7 +555,9 @@ async def logout(
     # Best-effort resolve the user to revoke every session they have across
     # devices (not just the one tied to this cookie).
     payload = decode_jwt(token)
-    if payload and payload.get("sub"):
+    # «Ver como» un alumno (08/11/2026, services/panel/ver_como.py): salir de
+    # esa vista NO cierra las sesiones de la persona de verdad.
+    if payload and payload.get("sub") and not payload.get("ver_como"):
         try:
             user_record = await security_get_user(
                 request, db_session, email=payload["sub"]

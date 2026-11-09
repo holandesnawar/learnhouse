@@ -9,6 +9,7 @@ import { useTrail } from '@/hooks/queries/useTrail'
 import { useCourses } from '@/hooks/queries/useCourses'
 import TuSemana from '@components/Pages/Home/TuSemana'
 import UpcomingEvents from '@components/Pages/Home/UpcomingEvents'
+import { SiguienteClase, ProximaClase, FeedComunidad, DestacadosComunidad } from '@components/Pages/Home/FeedInicio'
 import { getUriWithOrg } from '@services/config/config'
 import CommunityChannelsCards from '@components/Objects/Communities/CommunityChannelsCards'
 import StreakBadge from '@components/Pages/Home/StreakBadge'
@@ -20,7 +21,6 @@ import { fechasDeClases, semanaConClases } from '@services/student/insights'
 import { isWeeklyClassCourse } from '@/lib/course/formacionProgress'
 import { CURSO_CLASE_SEMANAL_UUID, conGrabadas } from '@/lib/nawar/cursos'
 import SafeArea from '@components/Objects/StyledElements/Error/SafeArea'
-import StudentOnboarding from '@components/Pages/Home/StudentOnboarding'
 
 // Las tarjetas que dependen del temario (courseData, ~350KB de fuente) se
 // cargan en un chunk aparte: el Inicio pinta antes y el temario llega detrás.
@@ -124,209 +124,90 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
     ? { ...insightsCrudos, week: semanaConClases(insightsCrudos.week, fechasDeClases(runs)) }
     : insightsCrudos
 
+  // Rediseño (rama diseno, 07/11/2026): el Inicio es un feed, como Circle.
+  // A la izquierda lo que toca hoy (la clase, seguir, la comunidad); a la
+  // derecha lo de un vistazo (tu semana, el repaso, los eventos). La lista de
+  // cursos y los canales salen de aquí: están siempre en la barra.
+  const hora = new Date().getHours()
+  const saludo = hora < 13 ? 'Buenos días' : hora < 20 ? 'Buenas tardes' : 'Buenas noches'
   return (
-    <GeneralWrapperStyled>
-      {/* Welcome */}
-      <div className="pt-2 pb-6 flex items-start justify-between gap-3">
+    <div className="max-w-[1180px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <div className="pb-6 flex items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-            Hola{firstName ? `, ${firstName}` : ''} 👋
+          <h1 className="text-[26px] sm:text-[30px] font-bold text-[#0B1033] tracking-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+            {saludo}{firstName ? `, ${firstName}` : ''}
           </h1>
-          <p className="text-gray-500 dark:text-white/70 mt-1">Continúa tu aprendizaje donde lo dejaste.</p>
+          <p className="text-[14.5px] text-[#5B6382] mt-1">Esto es lo que tienes esta semana en la escuela.</p>
         </div>
-        <div className="pt-1 shrink-0 flex flex-col items-end gap-2">
-          {visit && (
+        {visit && (
+          <div className="shrink-0">
             <StreakBadge current={visit.current_streak} longest={visit.longest_streak} />
-          )}
-          {insights && (
-            <SafeArea nombre="Tu semana" fallback={null}>
-              <WeekStrip activeDays={insights.week.activeDays} />
-            </SafeArea>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Primeros pasos, fijos en el Inicio.
-          Vuelven a la página en vez de flotar encima de ella: en el móvil el
-          panel flotante tapaba el final del Inicio justo al alumno que acaba
-          de entrar. Se tacha solo y desaparece entero al completarlo. */}
-      <SafeArea nombre="Empieza aquí" fallback={null}>
-        <StudentOnboarding orgslug={orgslug} modo="panel" />
-      </SafeArea>
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
+        <div className="min-w-0 space-y-6">
+          <SafeArea nombre="Siguiente clase" fallback={null}>
+            <SiguienteClase orgslug={orgslug} />
+          </SafeArea>
+          {trailReady && runs.length === 0 && coursesReady && formacion && (
+            <ArranqueFormacion course={formacion} orgslug={orgslug} grabaciones={null} />
+          )}
+          <SafeArea nombre="Tu clase" fallback={null}>
+            <ProximaClase orgslug={orgslug} />
+          </SafeArea>
+          {insights ? (
+            <SafeArea nombre="Continúa donde lo dejaste">
+              <ContinueCard orgslug={orgslug} insights={insights} runs={runs} />
+            </SafeArea>
+          ) : (
+            <HomeSkeleton className="h-[188px]" />
+          )}
+          <SafeArea nombre="Destacado" fallback={null}>
+            <DestacadosComunidad orgslug={orgslug} />
+          </SafeArea>
+          <SafeArea nombre="Comunidad" fallback={null}>
+            <FeedComunidad orgslug={orgslug} />
+          </SafeArea>
+        </div>
 
-      {/* ── El alumno que entra por primera vez ──
-          Aquí NO se le enseña una rejilla con los cursos para que elija.
-          Acaba de pagar la formación: ponerle al lado las grabaciones de las
-          clases semanales convierte en una decisión algo que no lo es, y la
-          primera pantalla de un curso de pago no puede empezar con una duda.
-
-          Se le enseña la formación, grande y con un solo botón. Las
-          grabaciones siguen a un clic en «Cursos», pero como material, no
-          como alternativa. */}
-      {trailReady && runs.length === 0 && coursesReady && (
-        <div className="mb-6">
-          {formacion ? (
-            <ArranqueFormacion
-              course={formacion}
-              orgslug={orgslug}
-              grabaciones={claseEnDirecto}
-            />
-          ) : courseList.length === 0 ? (
+        <aside className="space-y-4 lg:sticky lg:top-20">
+          <Link
+            href={getUriWithOrg(orgslug, '/empieza-aqui')}
+            className="block rounded-2xl border border-[#E4E8F2] bg-white px-4 py-3.5 hover:border-[#C9D4EC]"
+          >
+            <span className="block text-[14.5px] font-semibold text-[#0B1033]">Empieza aquí</span>
+            <span className="block text-[13px] text-[#6B7393]">Tus primeros pasos en la escuela</span>
+          </Link>
+          <SafeArea nombre="Próximos eventos" fallback={null}>
+            <UpcomingEvents orgslug={orgslug} />
+          </SafeArea>
+          {insights ? (
             <>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Tus cursos</h2>
-              <div className="flex flex-col justify-center items-center py-12 px-4 border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/30">
-                <div className="p-4 bg-white rounded-full nice-shadow mb-4">
-                  <BookOpen className="w-8 h-8 text-gray-300" strokeWidth={1.5} />
+              <SafeArea nombre="Tu semana" fallback={null}>
+                <div className="rounded-2xl border border-[#E4E8F2] bg-white p-4">
+                  <p className="text-[14.5px] font-semibold text-[#0B1033] mb-2">Tu racha esta semana</p>
+                  <WeekStrip activeDays={insights.week.activeDays} />
                 </div>
-                <p className="text-md text-gray-400 text-center max-w-xs">
-                  Aún no hay cursos disponibles.
-                </p>
-              </div>
+              </SafeArea>
+              <SafeArea nombre="Tu repaso de hoy">
+                <RepasoCard orgslug={orgslug} insights={insights} />
+              </SafeArea>
             </>
           ) : (
-            // Red de seguridad: si no se reconoce cuál es la formación, se
-            // vuelve a la rejilla de siempre en vez de dejar el hueco vacío.
-            <>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Tus cursos</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {courseList.map((course: any) => (
-                  <div key={course.course_uuid} className="flex flex-col">
-                    <CourseThumbnail course={course} orgslug={orgslug} hideMeta />
-                  </div>
-                ))}
-              </div>
-            </>
+            <HomeSkeleton className="h-[164px]" />
           )}
-        </div>
-      )}
-
-      {/* "Sigue donde lo dejaste" — big primary card with section progress.
-          Mientras llegan los datos se reserva el hueco con un esqueleto: si no,
-          el Inicio se pintaba entero, luego aparecían las tarjetas y todo
-          saltaba hacia abajo, con pinta de estar cargando dos veces. */}
-      {insights ? (
-        <SafeArea nombre="Continúa donde lo dejaste">
-          <ContinueCard orgslug={orgslug} insights={insights} runs={runs} />
-        </SafeArea>
-      ) : (
-        <HomeSkeleton className="mb-8 h-[188px]" />
-      )}
-
-      {/* Tu semana de clase (28/10): la semana en curso de su clase en directo
-          y lo que le falta, en el sitio de la antigua «hoja de ruta» (que era
-          la misma lista para todos y había que cambiar a mano). */}
-      <SafeArea nombre="Tu semana de clase" fallback={null}>
-        <TuSemana orgslug={orgslug} />
-      </SafeArea>
-
-      {/* Esta semana + Tu repaso de hoy */}
-      {insights ? (
-        <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <SafeArea nombre="Esta semana">
-            <WeekCard insights={insights} />
-          </SafeArea>
-          <SafeArea nombre="Tu repaso de hoy">
-            <RepasoCard orgslug={orgslug} insights={insights} />
-          </SafeArea>
-        </div>
-      ) : (
-        <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <HomeSkeleton className="h-[164px]" />
-          <HomeSkeleton className="h-[164px]" />
-        </div>
-      )}
-
-      {/* Así estás progresando — real, server-side numbers */}
-      {insights ? (
-        <SafeArea nombre="Así estás progresando">
-          <FormacionCard orgslug={orgslug} insights={insights} runs={runs} />
-        </SafeArea>
-      ) : (
-        <HomeSkeleton className="mb-8 h-[168px]" />
-      )}
-
-      {/* Tus cursos. Ojo: `runs` llega vacío mientras el camino del alumno
-          está cargando, y sin esta guarda se pintaba PRIMERO la rejilla de
-          "cursos por empezar" (la vista antigua, con la foto del curso) y un
-          instante después se cambiaba por la tarjeta con tu progreso. Eso era
-          lo que parecía que el Inicio cargaba dos veces. */}
-      {!trailReady && (
-        <div className="mb-10">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Tus cursos</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <HomeSkeleton className="h-[232px]" />
-          </div>
-        </div>
-      )}
-
-      {/* Courses in progress */}
-      {trailReady && runs.length > 0 && (
-        <div className="mb-10">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Tus cursos</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {runs.map((run: any) => (
-              <TrailCourseCard
-                key={run.course.course_uuid}
-                run={run}
-                course={run.course}
-                orgslug={orgslug}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Courses — only shown to learners who haven't started yet, so they
-          can begin. Once a course is in progress, "Continúa donde lo dejaste"
-          covers it and we don't repeat the (currently single) course list. */}
-      {trailReady && runs.length === 0 && !coursesReady && (
-        <div className="mb-6">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Tus cursos</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <HomeSkeleton className="h-[232px]" />
-          </div>
-        </div>
-      )}
-
-      {/* Community channels — quick access to the chats */}
-      <SafeArea nombre="Comunidad" fallback={null}>
-        <CommunityChannelsCards orgslug={orgslug} />
-      </SafeArea>
-
-      {/* Upcoming events */}
-      <SafeArea nombre="Próximos eventos" fallback={null}>
-        <UpcomingEvents orgslug={orgslug} />
-      </SafeArea>
-
-
-      {/* Consultas — moved to the bottom (a quiet helper, not the headline) */}
-      <div
-        className="mt-2 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 text-white overflow-hidden"
-        style={{
-          backgroundColor: '#1D0084',
-          backgroundImage:
-            'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px), ' +
-            'radial-gradient(circle 420px at 100% 0%, rgba(11,109,240,0.40) 0%, transparent 65%), ' +
-            'radial-gradient(circle 360px at 0% 100%, rgba(11,109,240,0.18) 0%, transparent 65%)',
-          backgroundSize: '28px 28px, auto, auto',
-          backgroundRepeat: 'repeat, no-repeat, no-repeat',
-        }}
-      >
-        <div className="shrink-0 flex items-center justify-start">
-          <HelpCircle size={30} className="text-white" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-lg font-bold">¿Tienes dudas?</h2>
-          <p className="text-sm text-white/70">Crea tu consulta y te ayudamos a resolverla.</p>
-        </div>
-        <Link
-          href={getUriWithOrg(orgslug, '/consultas')}
-          className="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#4da3ff] hover:bg-[#6cb5ff] text-[#1D0084] font-bold text-sm transition-colors"
-        >
-          Ir a Consultas <ArrowRight size={16} />
-        </Link>
+          <Link
+            href={getUriWithOrg(orgslug, '/consultas')}
+            className="block rounded-2xl border border-[#E4E8F2] bg-white px-4 py-3.5 hover:border-[#C9D4EC]"
+          >
+            <span className="block text-[14.5px] font-semibold text-[#0B1033]">¿Tienes una duda?</span>
+            <span className="block text-[13px] text-[#6B7393]">Pregúntala en Consultas y te respondemos.</span>
+          </Link>
+        </aside>
       </div>
-    </GeneralWrapperStyled>
+    </div>
   )
 }
 
@@ -375,7 +256,7 @@ function ArranqueFormacion({
         </div>
         <Link
           href={getUriWithOrg(orgslug, `/course/${uuid}`)}
-          className="shrink-0 inline-flex items-center justify-center gap-2.5 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold px-5 py-3 rounded-xl transition-colors text-[15px]"
+          className="shrink-0 inline-flex items-center justify-center gap-2.5 bg-[#0b2da0] hover:bg-[#0a2690] text-white font-bold px-5 py-3 rounded-xl transition-colors text-[15px]"
         >
           Empezar
           <ArrowRight size={16} strokeWidth={2.5} />
@@ -390,7 +271,7 @@ function ArranqueFormacion({
           Las grabaciones de las clases semanales están en{' '}
           <Link
             href={getUriWithOrg(orgslug, `/course/${grabaciones.uuid}`)}
-            className="text-[#025dc7] hover:underline font-medium"
+            className="text-[#0b2da0] hover:underline font-medium"
           >
             {grabaciones.nombre}
           </Link>

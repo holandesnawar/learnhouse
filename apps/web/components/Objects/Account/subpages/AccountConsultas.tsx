@@ -51,7 +51,7 @@ export default function AccountConsultas() {
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-2 pt-2">
-        <MessageCircleQuestion size={24} className="text-[#025dc7]" />
+        <MessageCircleQuestion size={24} className="text-[#0b2da0]" />
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Mis consultas</h1>
       </div>
       <p className="text-sm text-gray-500 -mt-3 max-w-xl">
@@ -64,7 +64,7 @@ export default function AccountConsultas() {
         </div>
       ) : items.length === 0 ? (
         <div className="flex flex-col items-center justify-center text-center py-16 px-4 rounded-2xl bg-white nice-shadow">
-          <HelpCircle size={30} className="text-[#025dc7] mb-3" />
+          <HelpCircle size={30} className="text-[#0b2da0] mb-3" />
           <p className="text-sm text-gray-500 max-w-xs">
             Aún no has creado ninguna consulta. Cuando tengas una duda, créala
             desde una lección o desde la sección de Consultas.
@@ -80,7 +80,7 @@ export default function AccountConsultas() {
               <div
                 key={c.id}
                 className={`rounded-2xl bg-white nice-shadow border transition-all ${
-                  isOpen ? 'border-[#4da3ff]/40' : 'border-transparent hover:border-[#4da3ff]/40'
+                  isOpen ? 'border-[#0b2da0]/40' : 'border-transparent hover:border-[#0b2da0]/40'
                 }`}
               >
                 <button
@@ -94,7 +94,7 @@ export default function AccountConsultas() {
                       {cat?.name || c.category || 'General'}
                     </span>
                     {c.resolved ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#4da3ff]/12 text-[#025dc7]">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#0b2da0]/12 text-[#0b2da0]">
                         <CheckCircle2 size={12} /> Respondida
                       </span>
                     ) : (
@@ -143,7 +143,7 @@ export default function AccountConsultas() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 mb-1.5">
                             <span className="font-bold text-gray-900 text-[15px]">Team Nawar</span>
-                            <CheckCircle2 size={15} className="text-[#025dc7]" />
+                            <CheckCircle2 size={15} className="text-[#0b2da0]" />
                           </div>
                           <div className="p-4 rounded-2xl rounded-tl-md bg-[#F0F5FF] border border-[#DDE6F5]">
                             <p className="text-[15px] text-gray-800 leading-relaxed whitespace-pre-wrap">

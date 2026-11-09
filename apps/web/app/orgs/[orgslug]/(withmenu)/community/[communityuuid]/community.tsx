@@ -3,15 +3,16 @@
 import React from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Hash, MoreHorizontal, Pin, Search, X } from 'lucide-react'
-import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
 import { ChannelChat } from '@components/Objects/Communities/ChannelChat'
 import ChannelPosts from '@components/Objects/Communities/ChannelPosts'
+import Portada from '@components/Pages/Espacios/Portada'
 import ThreadPanel from '@components/Objects/Communities/ThreadPanel'
 import PinnedFeed from '@components/Objects/Communities/PinnedFeed'
 import { getUriWithOrg } from '@services/config/config'
 import { Community } from '@services/communities/communities'
 import { DiscussionWithAuthor } from '@services/communities/discussions'
 import { splitChannelEmoji } from '@/lib/communities/channelEmoji'
+import { esCanalDeInicio } from '@/lib/nawar/empiezaAqui'
 
 interface CommunityClientProps {
   community: Community
@@ -131,15 +132,20 @@ const CommunityClient = ({ community, orgslug }: CommunityClientProps) => {
   /* ── Tablón: una página normal, que se desplaza como cualquier lista ── */
   if (isBoard) {
     return (
-      <GeneralWrapperStyled>
-        <div className="mb-3">{backLink}</div>
-        <div className="mb-5">{title}</div>
+      // Mismo ancho y misma portada que Bienvenida y Recursos (08/11/2026: «que sean todos iguales»).
+      <div className="max-w-[1040px] mx-auto px-4 sm:px-8 py-6 sm:py-8 space-y-5">
+        <Portada
+          clave={community.community_uuid}
+          titulo={`${emoji ? emoji + ' ' : ''}${text}`}
+          subtitulo={community.description || ''}
+          etiqueta={esCanalDeInicio(community.name) ? 'Empieza aquí' : 'Comunidad'}
+        />
         <ChannelPosts
           communityUuid={community.community_uuid}
           channelName={text}
           orgslug={orgslug}
         />
-      </GeneralWrapperStyled>
+      </div>
     )
   }
 
@@ -147,7 +153,7 @@ const CommunityClient = ({ community, orgslug }: CommunityClientProps) => {
   const sidePanelOpen = Boolean(threadUuid) || pinnedOpen
 
   return (
-    <div className="h-[calc(100dvh-3.5rem)] md:h-[100dvh] flex flex-col overflow-hidden bg-white">
+    <div className="h-[calc(100dvh-3.5rem)] flex flex-col overflow-hidden bg-white">
       {/* Cabecera del canal */}
       <header className="shrink-0 border-b border-[#EEF3FB] px-4 sm:px-6 py-3">
         <div className="mb-2">{backLink}</div>

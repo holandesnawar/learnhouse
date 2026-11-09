@@ -102,8 +102,8 @@ export default function CourseIndex({ chapters }: { chapters: ChapterLike[] }) {
   return (
     <article className="max-w-3xl mx-auto pt-1 sm:pt-2">
       <div className="flex items-center gap-2 mb-1">
-        <ListTree size={15} className="text-[#025dc7]" />
-        <span className="text-[11px] font-semibold text-[#025dc7] uppercase tracking-[0.08em]">
+        <ListTree size={15} className="text-[#0b2da0]" />
+        <span className="text-[11px] font-semibold text-[#0b2da0] uppercase tracking-[0.08em]">
           El camino completo
         </span>
       </div>
@@ -136,7 +136,7 @@ export default function CourseIndex({ chapters }: { chapters: ChapterLike[] }) {
               onToggle={() => toggleModule(m.key)}
               header={
                 <>
-                  <span className="block text-[11px] font-semibold text-[#025dc7] uppercase tracking-[0.08em]">
+                  <span className="block text-[11px] font-semibold text-[#0b2da0] uppercase tracking-[0.08em]">
                     Módulo {number || i + 1}
                   </span>
                   <h2
@@ -191,11 +191,11 @@ export default function CourseIndex({ chapters }: { chapters: ChapterLike[] }) {
                             const hint = hintFor(s.label)
                             return (
                               <li key={s.activityId} className="flex gap-2.5">
-                                <span className="shrink-0 mt-[3px] w-5 h-5 rounded-full bg-[#F0F5FF] text-[#025dc7] text-[11px] font-semibold flex items-center justify-center tabular-nums">
+                                <span className="shrink-0 mt-[3px] w-5 h-5 rounded-full bg-[#F0F5FF] text-[#0b2da0] text-[11px] font-semibold flex items-center justify-center tabular-nums">
                                   {si + 1}
                                 </span>
                                 <div className="min-w-0">
-                                  <p className="text-[13.5px] font-semibold text-[#1D0084] leading-snug">
+                                  <p className="text-[13.5px] font-semibold text-[#0B1033] leading-snug">
                                     {s.label}
                                   </p>
                                   {hint && (
@@ -224,7 +224,7 @@ export default function CourseIndex({ chapters }: { chapters: ChapterLike[] }) {
 
       <p className="mt-6 text-[13px] text-[#5A6480] leading-relaxed">
         Para ver por dónde vas y qué te falta, entra en{' '}
-        <strong className="font-semibold text-[#1D0084]">Mi progreso</strong>.
+        <strong className="font-semibold text-[#0B1033]">Mi progreso</strong>.
       </p>
     </article>
   )

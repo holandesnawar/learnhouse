@@ -406,6 +406,16 @@ async def get_current_user(
             token_purpose = payload.get("purpose")
             if token_purpose is not None and token_purpose != "session":
                 raise credentials_exception
+            # «Ver como» un alumno (08/11/2026, services/panel/ver_como.py):
+            # el administrador mira la escuela con la cuenta de un alumno, pero
+            # SOLO MIRA. Cualquier cosa que no sea leer se rechaza aquí, antes
+            # de llegar a ninguna ruta: ni publicar, ni marcar clases, ni
+            # visitas que le cuenten al alumno.
+            if payload.get("ver_como") and request.method not in ("GET", "HEAD", "OPTIONS"):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Estás viendo la escuela como otra persona: solo se puede mirar.",
+                )
             username = payload.get("sub")
 
     token_data = TokenData(username=username)

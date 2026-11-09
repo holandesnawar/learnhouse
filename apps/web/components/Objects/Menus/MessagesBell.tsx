@@ -14,7 +14,7 @@ import { Mail } from 'lucide-react'
  * primera consulta también crea la conversación del alumno en el servidor, con
  * la bienvenida dentro — por eso el punto se enciende sin que nadie escriba.
  */
-export default function MessagesBell(props: { orgslug: string }) {
+export default function MessagesBell(props: { orgslug: string; claro?: boolean }) {
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token as string | undefined
 
@@ -34,7 +34,7 @@ export default function MessagesBell(props: { orgslug: string }) {
       href={getUriWithOrg(props.orgslug, '/mensajes')}
       aria-label="Mensajes"
       title="Mensajes"
-      className="relative p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/[0.08] transition-colors inline-flex"
+      className={`relative p-1.5 rounded-lg transition-colors inline-flex ${props.claro ? 'text-[#3B4262] hover:text-[#0B1033] hover:bg-[#F2F5FB]' : 'text-white/90 hover:text-white hover:bg-white/10'}`}
     >
       <Mail size={19} />
       {!!unread && unread > 0 && (

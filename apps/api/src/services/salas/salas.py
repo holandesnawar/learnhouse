@@ -204,6 +204,16 @@ async def _daily(metodo: str, ruta: str, cuerpo: Optional[dict] = None, params: 
     return datos if isinstance(datos, dict) else {}
 
 
+#: Las salas pequeñas de Daily Prebuilt (08/11/2026, para el Spreekclub:
+#: "dos alumnos que hablen entre ellos o grupos de 3, y que el monitor pueda
+#: mover salas"). Con `enable_breakout_rooms`, quien entra como anfitrión (el
+#: equipo: `is_owner`) ve en la llamada el botón de Daily para repartir a la
+#: gente en salas, moverla de una a otra y traerla de vuelta. Los alumnos no
+#: lo ven. Es una opción de Daily todavía en beta: si Daily la rechaza, la sala
+#: sigue funcionando sin ella (se crea y se arregla en blando).
+SALAS_PEQUENAS = {"enable_breakout_rooms": True}
+
+
 async def asegurar_sala(sala: str) -> str:
     """La dirección de la sala; la crea en Daily si aún no existe."""
     if sala in _salas:
@@ -213,30 +223,35 @@ async def asegurar_sala(sala: str) -> str:
     except SalaError as exc:
         if exc.status != 404:
             raise
-        datos = await _daily(
-            "POST",
-            "/rooms",
-            {
-                "name": sala,
-                "privacy": "private",
-                "properties": {
-                    "lang": "es",
-                    "enable_prejoin_ui": True,
-                    "enable_screenshare": True,
-                    "enable_chat": True,
-                    "enable_recording": "cloud",
-                },
-            },
-        )
+        base = {
+            "lang": "es",
+            "enable_prejoin_ui": True,
+            "enable_screenshare": True,
+            "enable_chat": True,
+            "enable_recording": "cloud",
+        }
+        try:
+            datos = await _daily("POST", "/rooms", {"name": sala, "privacy": "private", "properties": {**base, **SALAS_PEQUENAS}})
+        except SalaError as exc2:
+            if exc2.status >= 500:
+                raise
+            logger.warning("Daily no dejó crear la sala %s con salas pequeñas: %s", sala, exc2.mensaje)
+            datos = await _daily("POST", "/rooms", {"name": sala, "privacy": "private", "properties": base})
     else:
-        # Las salas creadas antes del 02/11 no tenían la grabación en la sala:
-        # se les pone una vez. En blando: si falla, la entrada la lleva igual.
+        # Las salas creadas antes del 02/11 no tenían la grabación en la sala,
+        # y las de antes del 08/11, las salas pequeñas: se les pone una vez.
+        # En blando y por separado: si una falla, la otra se pone igual.
         propiedades = datos.get("config") if isinstance(datos.get("config"), dict) else {}
+        faltan = []
         if propiedades.get("enable_recording") != "cloud":
+            faltan.append({"enable_recording": "cloud"})
+        if not propiedades.get("enable_breakout_rooms"):
+            faltan.append(dict(SALAS_PEQUENAS))
+        for cambio in faltan:
             try:
-                await _daily("POST", f"/rooms/{sala}", {"properties": {"enable_recording": "cloud"}})
+                await _daily("POST", f"/rooms/{sala}", {"properties": cambio})
             except SalaError as exc:
-                logger.warning("No se pudo poner la grabación en la sala %s: %s", sala, exc.mensaje)
+                logger.warning("No se pudo poner %s en la sala %s: %s", ", ".join(cambio), sala, exc.mensaje)
     url = str(datos.get("url") or "")
     if not url:
         raise SalaError("Daily no devolvió la dirección de la sala.")

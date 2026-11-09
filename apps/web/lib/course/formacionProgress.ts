@@ -57,6 +57,8 @@ export interface ClassRow {
   /** Número de clase dentro del módulo ("1", "2"…) o vacío para las sueltas. */
   number: string
   title: string
+  /** La lección de la escuela de la que salen sus partes (`nawar:<módulo>/<lección>/…`). */
+  leccion?: { moduleId: string; lessonId: string }
   sections: SectionRow[]
   done: number
   total: number
@@ -112,6 +114,14 @@ export function attemptKeyOf(activity: ActivityLike): string | null {
     return section ? `${lesson}-${section}` : null
   }
   return null
+}
+
+/** La lección de la escuela de una clase del curso, por su `nawar:<módulo>/<lección>/…`. */
+export function leccionDe(activity: ActivityLike): { moduleId: string; lessonId: string } | null {
+  const embed = activity?.content?.embed_url
+  if (typeof embed !== 'string') return null
+  const m = embed.match(/^nawar:([^/]+)\/([^/]+)/)
+  return m ? { moduleId: m[1], lessonId: m[2] } : null
 }
 
 /** ¿Es una práctica con nota? */
@@ -198,13 +208,16 @@ export function buildFormacionProgress(
       }
 
       const existing = groups.get(groupKey)
+      const ref = leccionDe(activity)
       if (existing) {
         existing.sections.push(section)
+        if (!existing.leccion && ref) existing.leccion = ref
       } else {
         groups.set(groupKey, {
           key: `${ci}-${groupKey}`,
           number,
           title: number ? `Lección ${number}` : label,
+          leccion: ref || undefined,
           sections: [section],
           done: 0,
           total: 0,
