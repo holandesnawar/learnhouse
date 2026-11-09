@@ -156,6 +156,15 @@ export function pasosDeLaVisita(opciones: {
     movil: ['perfil'],
   })
 
+  pasos.push({
+    id: 'color',
+    titulo: 'Elige tu color',
+    texto:
+      'Con este botón, al lado de tu perfil, cambias la barra lateral a azul o a blanca: la que más te guste. Se queda guardada para la próxima vez.',
+    objetivo: ['color', 'perfil'],
+    movil: ['color', 'perfil'],
+  })
+
   return pasos
 }
 

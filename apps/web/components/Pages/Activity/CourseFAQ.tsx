@@ -26,7 +26,7 @@ const COURSE_FAQS: Record<string, { intro?: string; items: FAQ[] }> = {
     items: [
       {
         q: '¿Cuándo es la clase?',
-        a: 'Todos los jueves a las 19:00, hora de Países Bajos. La tienes en Eventos con el enlace para entrar, y te avisamos por correo. Si no puedes venir, se graba y queda ahí.',
+        a: 'Cada semana. Tu próxima clase, con el día y la hora, la tienes arriba en esta página. Si no puedes venir, se graba y queda ahí.',
       },
       {
         q: '¿Y si no puedo venir?',

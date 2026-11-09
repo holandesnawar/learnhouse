@@ -4,7 +4,7 @@ import { colocarTarjeta, pasosDeLaVisita, tipoDeClase, yaLaVio, VERSION_VISITA }
 describe('visita guiada', () => {
   test('cada alumno ve solo sus clases', () => {
     const beta = pasosDeLaVisita({ clases: [{ uuid: 'a', nombre: 'Clase semanal' }] })
-    expect(beta.map((p) => p.id)).toEqual(['hola', 'empieza', 'formacion', 'clase-semanal', 'comunidad', 'ayuda', 'perfil'])
+    expect(beta.map((p) => p.id)).toEqual(['hola', 'empieza', 'formacion', 'clase-semanal', 'comunidad', 'ayuda', 'perfil', 'color'])
     expect(beta.find((p) => p.id === 'clase-semanal')!.titulo).toBe('Tu clase semanal')
 
     const nuevo = pasosDeLaVisita({
