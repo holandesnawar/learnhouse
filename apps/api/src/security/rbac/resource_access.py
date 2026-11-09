@@ -918,6 +918,16 @@ class ResourceAccessChecker:
         membership = (await self.db_session.execute(membership_stmt)).scalars().first()
 
         result = membership is not None
+        # Nawar (10/11/2026): el closer ve los canales de la comunidad abiertos
+        # al programa nuevo, para enseñarlos (no escribe: `closer_solo_mira`).
+        if not result and str(resource_uuid).startswith("community_"):
+            try:
+                from src.services.panel.tandas import programa_del_closer
+
+                programa = await programa_del_closer(user_id, usergroup_resources[0].org_id, self.db_session)
+                result = bool(programa) and programa in usergroup_ids
+            except Exception:  # noqa: BLE001
+                logger.exception("No se pudo comprobar el canal del closer (%s)", resource_uuid)
         self._usergroup_cache[cache_key] = result
         return result
 

@@ -51,6 +51,7 @@ import {
 } from '@services/tareas/tareas'
 import { CasillasCampana, EditarSemana, NuevaSemana } from './SemanaModales'
 import { AvisarClase } from './AvisarClase'
+import { tipoDeClase } from '@/lib/nawar/visitaGuiada'
 import { deLaMismaSemana, Reproductor, useMiraTambien, type Grabacion } from './MiraTambien'
 
 export const claveSemanas = (courseUuid: string) => ['tareas', 'semanas', String(courseUuid || '').replace(/^course_/, '')]
@@ -245,9 +246,15 @@ function ContenidoSemana({
         <Fila
           tipo="tarea"
           titulo="Tarea"
-          detalle={estadoTarea === 'corregida' ? 'Tu profe ya la ha corregido' : `Entrega hasta el ${diaCorto(semana.limite)}`}
+          detalle={
+            estadoTarea === 'corregida'
+              ? 'Tu profe ya la ha corregido'
+              : estadoTarea === 'antes-de-entrar'
+                ? 'Era de antes de que entraras: puedes hacerla si quieres'
+                : `Entrega hasta el ${diaCorto(semana.limite)}`
+          }
           estado={
-            estadoTarea === 'corregida' ? (
+            estadoTarea === 'antes-de-entrar' ? null : estadoTarea === 'corregida' ? (
               <Hecho texto={semana.tarea?.vista ? 'Corregida' : 'Corregida · nueva'} />
             ) : estadoTarea === 'entregada' ? (
               <span className="text-[#0b2da0]">Entregada</span>
@@ -336,33 +343,24 @@ function CabeceraAdmin({
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
 const MESES_LARGOS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
-/** El día en una ficha pequeña, como en un calendario: «14 / OCT». */
+/** El día, en texto: «2 nov». Sin ficha de calendario (10/11/2026: "menos
+ * cosas que hagan verlo IA"). */
 function ChipFecha({ fecha }: { fecha: string }) {
   const [, m, d] = (fecha || '').split('-').map(Number)
-  if (!m || !d) {
-    return (
-      <div className="w-11 h-11 flex items-center justify-center shrink-0">
-        <Video size={24} strokeWidth={1.6} className="text-[#0b2da0]" />
-      </div>
-    )
-  }
   return (
-    <div className="w-11 h-11 rounded-xl border border-[#E4E8F2] flex flex-col items-center justify-center shrink-0 leading-none">
-      <span className="text-[16px] font-semibold text-[#0B1033] tabular-nums" style={POPPINS}>
-        {d}
-      </span>
-      <span className="mt-0.5 text-[9.5px] font-semibold uppercase tracking-[0.08em] text-[#0b2da0]">{MESES[m - 1]}</span>
-    </div>
+    <span className="w-[52px] shrink-0 text-[13.5px] font-medium text-[#6B7280] tabular-nums">
+      {m && d ? `${d} ${MESES[m - 1].toLowerCase()}` : ''}
+    </span>
   )
 }
 
-/** Lo de la derecha de cada línea, siempre con la misma forma. */
 /** Lo de la derecha de cada línea: texto suelto, sin pastilla (08/11: «Vista
  * en una pastilla verde es lo que hace todo el mundo»). Hecho = marca verde
  * pequeña y texto gris; pendiente = gris; «Ver» = enlace azul. */
-function Etiqueta({ tono, children }: { tono: 'hecho' | 'azul' | 'gris'; children: React.ReactNode }) {
+function Etiqueta({ tono, children }: { tono: 'hecho' | 'azul' | 'gris' | 'ambar'; children: React.ReactNode }) {
   const color =
-    tono === 'hecho' ? 'text-[#5B6382] [&_svg]:text-[#16A34A]' : tono === 'azul' ? 'text-[#0b2da0] font-semibold' : 'text-[#8A91AD]'
+    tono === 'hecho' ? 'text-[#5B6382] [&_svg]:text-[#16A34A]' : tono === 'azul' ? 'text-[#0b2da0]' : tono === 'ambar' ? 'text-[#8A6A2A]' : 'text-[#8A91AD]'
+  // Todas con el mismo peso (10/11/2026: «el mes en bold, "Sin entregar" no»).
   return <span className={`shrink-0 inline-flex items-center gap-1.5 text-[13px] font-medium ${color}`}>{children}</span>
 }
 
@@ -432,6 +430,8 @@ export default function SemanasClase({
   // quitar una semana entera (borra las entregas), solo un administrador.
   const { semanas, hoy, actual, proxima, admin } = data
   const equipo = Boolean(data.equipo || admin)
+  // La Masterclass y el Spreekclub (10/11/2026): «Nueva sesión», sin ejercicios ni tarea.
+  const sencilla = tipoDeClase(String(curso?.name || '')) !== 'semanal'
   const archivo = conGrabadas ? data.archivo || [] : []
   if (!semanas.length && !archivo.length && !equipo) return null
 
@@ -569,19 +569,25 @@ export default function SemanasClase({
             <p className="text-[14.5px] font-semibold text-gray-900 truncate">{s.tema}</p>
             <p className="text-[12.5px] text-[#6B7280] truncate">{queTuvo(s) || 'Clase'}</p>
           </div>
+          {/* Un solo estado por línea. Lo de antes de que entrara no cuenta
+              como «Sin entregar» (10/11/2026): sale «Ver», como una grabación. */}
           {est === 'corregida' ? (
             <Etiqueta tono="hecho">
-              <Check size={14} strokeWidth={3} /> Corregida
+              <Check size={14} strokeWidth={3} /> Tarea corregida
             </Etiqueta>
           ) : est === 'entregada' ? (
-            <Etiqueta tono="azul">Entregada</Etiqueta>
+            <Etiqueta tono="hecho">
+              <Check size={14} strokeWidth={3} /> Tarea entregada
+            </Etiqueta>
           ) : est === 'pendiente' ? (
-            <Etiqueta tono="gris">{s.limite < hoy ? 'Sin entregar' : 'Pendiente'}</Etiqueta>
+            <Etiqueta tono="ambar">{s.limite < hoy ? 'Tarea sin entregar' : 'Tarea pendiente'}</Etiqueta>
           ) : grabacionVista ? (
             <Etiqueta tono="hecho">
               <Check size={14} strokeWidth={3} /> Vista
             </Etiqueta>
-          ) : null}
+          ) : (
+            <Etiqueta tono="azul">Ver</Etiqueta>
+          )}
           <ChevronDown size={16} className={`shrink-0 text-[#B9C6DC] transition-transform ${abierta ? '' : '-rotate-90'}`} />
         </button>
         {abierta ? (
@@ -629,9 +635,7 @@ export default function SemanasClase({
           return (
             <React.Fragment key={'semana' in l ? `s${l.semana.id}` : l.suelta.activity_uuid}>
               {cambia ? (
-                <p
-                  className={`px-4 pt-3 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8A94A8] ${i ? 'border-t border-[#EEF2F9]' : ''}`}
-                >
+                <p className={`px-4 pt-4 pb-1 text-[13px] font-medium text-[#8A94A8] ${i ? 'border-t border-[#EEF2F9]' : ''}`}>
                   {m ? `${MESES_LARGOS[m - 1]} ${y}` : 'Otras'}
                 </p>
               ) : null}
@@ -656,15 +660,17 @@ export default function SemanasClase({
       {equipo ? (
         <div className="flex flex-wrap items-center justify-between gap-3 mt-6 rounded-xl border border-dashed border-[#9cc7ff] px-4 py-3">
           <p className="text-[13px] text-[#3F4A61]">
-            {semanas.length
-              ? 'Cada semana: presentación, grabación, ejercicios y tarea.'
-              : 'Organiza esta clase por semanas: presentación antes, grabación y ejercicios después, y una tarea para entregar.'}
+            {sencilla
+              ? 'Cada sesión: tema, día y, si quieres, la presentación. Sin ejercicios ni tarea.'
+              : semanas.length
+                ? 'Cada semana: presentación, grabación, ejercicios y tarea.'
+                : 'Organiza esta clase por semanas: presentación antes, grabación y ejercicios después, y una tarea para entregar.'}
           </p>
           <button
             onClick={() => setNueva(true)}
             className="inline-flex items-center gap-1.5 rounded-lg bg-[#0b2da0] px-3.5 py-2 text-[13.5px] font-semibold text-white hover:bg-[#0a2690]"
           >
-            <CalendarDays size={15} /> Nueva semana
+            <CalendarDays size={15} /> {sencilla ? 'Nueva sesión' : 'Nueva semana'}
           </button>
         </div>
       ) : null}
@@ -681,6 +687,7 @@ export default function SemanasClase({
           orgslug={orgslug}
           ultima={semanas[0] || null}
           hermanas={data.hermanas || []}
+          sencilla={sencilla}
           onClose={() => setNueva(false)}
           onCreada={() => {
             setNueva(false)

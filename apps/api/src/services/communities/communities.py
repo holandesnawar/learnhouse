@@ -159,6 +159,11 @@ async def get_communities_by_org(
         communities = (await db_session.execute(query)).scalars().all()
         return [CommunityRead.model_validate(c.model_dump()) for c in communities]
 
+    # Nawar (10/11/2026): el closer ve también los canales del programa nuevo.
+    from src.services.panel.tandas import programa_del_closer
+
+    programa_closer = await programa_del_closer(acting_user_id, org_id, db_session)
+
     # For regular users, use a subquery approach to avoid DISTINCT with JSON columns
     # Get IDs of communities the user has access to
     accessible_community_ids_query = (
@@ -173,6 +178,7 @@ async def get_communities_by_org(
             Community.public == True,
             UserGroupResource.resource_uuid.is_(None),  # Not in any UserGroup
             UserGroupUser.user_id == acting_user_id,  # User in linked UserGroup
+            *([UserGroupResource.usergroup_id == programa_closer] if programa_closer else []),  # Nawar: el closer
         ))
         .distinct()
     )

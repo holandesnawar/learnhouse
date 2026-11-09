@@ -98,6 +98,11 @@ async def create_discussion(
     await check_resource_access(
         request, db_session, current_user, community_uuid, AccessAction.READ
     )
+    # Nawar (10/11/2026): el closer mira los canales del programa nuevo, no escribe.
+    from src.services.panel.tandas import closer_solo_mira
+
+    if await closer_solo_mira(current_user.id, community_uuid, db_session):
+        raise HTTPException(status_code=403, detail="Este canal lo puedes ver, pero no escribir en él.")
 
     # Get the community
     community_statement = select(Community).where(

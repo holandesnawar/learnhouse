@@ -64,9 +64,18 @@ export function pasosDeSemana(semana: Semana, courseUuid: string, ruta: (p: stri
     out.push({
       key: 'tarea',
       titulo: t === 'corregida' ? 'Escucha la corrección de tu tarea' : 'Entrega la tarea',
-      detalle: t === 'corregida' ? 'Ya está corregida' : t === 'entregada' ? 'Entregada, pendiente de corregir' : semana.abierta ? `Hasta el ${diaCorto(semana.limite)}` : 'Se abre el día de la clase',
+      detalle:
+        t === 'corregida'
+          ? 'Ya está corregida'
+          : t === 'entregada'
+            ? 'Entregada, pendiente de corregir'
+            : t === 'antes-de-entrar'
+              ? 'Era de antes de que entraras: opcional'
+              : semana.abierta
+                ? `Hasta el ${diaCorto(semana.limite)}`
+                : 'Se abre el día de la clase',
       href: semana.abierta ? ruta(`/tarea/${semana.id}`) : undefined,
-      estado: t === 'entregada' || t === 'corregida' ? 'hecho' : semana.abierta ? 'pendiente' : 'cerrado',
+      estado: t === 'entregada' || t === 'corregida' ? 'hecho' : t === 'antes-de-entrar' || !semana.abierta ? 'cerrado' : 'pendiente',
     })
   }
   return out

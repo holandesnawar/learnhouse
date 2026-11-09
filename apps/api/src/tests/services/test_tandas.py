@@ -455,3 +455,37 @@ def test_el_closer_ve_las_clases_en_directo_del_programa_nuevo():
     assert clases_del_closer(config_org, 7, del_programa) == {"course_masterclass1", "course_spreek1"}
     # Sin grupo del programa apuntado, nada.
     assert clases_del_closer(config_org, 0, del_programa) == set()
+
+
+async def test_el_closer_ve_los_canales_del_programa_nuevo_pero_no_escribe(db, org):
+    """10/11/2026: el closer ve (para enseñarlos) los canales abiertos al
+    programa nuevo; no los de la beta, y en ellos no publica."""
+    from src.db.communities.communities import Community
+    from src.db.usergroup_resources import UserGroupResource
+    from src.security.rbac.constants import CLOSER_ROLE_ID
+    from src.services.communities.engagement import _canales_que_ve
+
+    await _escuela(db, org, {"activo": True})
+    alumna = await _alumno(db, org, 10, "alumna@x.com")
+    await tandas.decidir(org.id, alumna.id, "nuevo", db)
+    await tandas.meter_en_beta(org.id, db)
+    closer = await _alumno(db, org, 20, "closer@x.com", rol=CLOSER_ROLE_ID)
+    beta = (await db.execute(select(UserGroup).where(UserGroup.name == "Beta"))).scalars().one()
+    cfg = await tandas.config(db, org.id)
+
+    ids = {}
+    for nombre in ("Programa", "Beta", "Abierto"):
+        c = Community(name=nombre, public=False, org_id=org.id, community_uuid=f"community_{nombre}")
+        db.add(c)
+        await db.commit()
+        await db.refresh(c)
+        ids[nombre] = c.id
+    db.add(UserGroupResource(usergroup_id=cfg["programa_id"], resource_uuid="community_Programa", org_id=org.id))
+    db.add(UserGroupResource(usergroup_id=beta.id, resource_uuid="community_Beta", org_id=org.id))
+    await db.commit()
+
+    assert await _canales_que_ve(closer.id, [org.id], db) == {ids["Programa"], ids["Abierto"]}
+    assert await tandas.closer_solo_mira(closer.id, "community_Programa", db) is True
+    # Donde no hay grupos escribe como cualquiera, y una alumna nunca es «solo mira».
+    assert await tandas.closer_solo_mira(closer.id, "community_Abierto", db) is False
+    assert await tandas.closer_solo_mira(alumna.id, "community_Programa", db) is False

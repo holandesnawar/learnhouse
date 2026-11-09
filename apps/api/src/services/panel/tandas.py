@@ -775,3 +775,71 @@ async def resumen(org_id: int, db_session: AsyncSession) -> dict:
         "cursos": sorted(cursos, key=lambda x: normalizar(x["nombre"])),
         "canales": sorted(canales, key=lambda x: normalizar(x["nombre"])),
     }
+
+
+async def programa_del_closer(user_id: int, org_id: int, db_session: AsyncSession) -> int:
+    """Nawar (10/11/2026, "que los closers vean la masterclass, el Spreken club
+    y el chat de la comunidad, para enseñarlo cuando alguien entra"): si esta
+    persona es closer en la escuela, el id del grupo «Programa nuevo»; si no, 0.
+
+    Con él, el closer VE (solo ve) los canales abiertos a ese grupo, como un
+    alumno nuevo: la lista de canales (communities.py), abrirlos
+    (resource_access.py), la campana y los «sin leer» (engagement.py).
+    Escribir no: `closer_solo_mira` lo para al publicar y al comentar.
+    Si algo falla, 0 (las reglas de siempre)."""
+    try:
+        from src.db.user_organizations import UserOrganization
+        from src.security.rbac.constants import CLOSER_ROLE_ID
+
+        rol = (
+            await db_session.execute(
+                select(UserOrganization.role_id).where(
+                    UserOrganization.user_id == user_id, UserOrganization.org_id == org_id
+                )
+            )
+        ).scalars().first()
+        if rol != CLOSER_ROLE_ID:
+            return 0
+        fila = await _fila_config(db_session, org_id)
+        datos = fila.config if fila and isinstance(fila.config, dict) else {}
+        return int(leer_config(datos.get(CLAVE))["programa_id"] or 0)
+    except Exception:  # noqa: BLE001
+        logger.exception("No se pudo saber si es closer")
+        return 0
+
+
+async def closer_solo_mira(user_id: int, community_uuid: str, db_session: AsyncSession) -> bool:
+    """¿Es un closer mirando un canal al que solo llega por ser closer? Entonces
+    no publica ni comenta (lo ve para enseñarlo). Si está en uno de los grupos
+    del canal, o el canal no tiene grupos, escribe como cualquiera."""
+    try:
+        from src.db.communities.communities import Community
+
+        canal = (
+            await db_session.execute(select(Community).where(Community.community_uuid == community_uuid))
+        ).scalars().first()
+        if canal is None or not await programa_del_closer(user_id, canal.org_id, db_session):
+            return False
+        grupos = {
+            int(g)
+            for g in (
+                await db_session.execute(
+                    select(UserGroupResource.usergroup_id).where(UserGroupResource.resource_uuid == community_uuid)
+                )
+            ).scalars().all()
+        }
+        if not grupos:
+            return False
+        return not (await _grupos_de(user_id, db_session)) & grupos
+    except Exception:  # noqa: BLE001
+        logger.exception("No se pudo comprobar el canal del closer")
+        return False
+
+
+async def _grupos_de(user_id: int, db_session: AsyncSession) -> set[int]:
+    return {
+        int(g)
+        for g in (
+            await db_session.execute(select(UserGroupUser.usergroup_id).where(UserGroupUser.user_id == user_id))
+        ).scalars().all()
+    }
