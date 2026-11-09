@@ -5460,8 +5460,8 @@ la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
     de «lo que falta» (`paraPreparar`, `loQueToca`, `preparacion`); en la
     tarjeta, «Asistencia: la cuenta la sala sola» con «Corregir» el día de
     la clase (para quien vino por otro sitio).
-  - **Monitores**: ven también la **Masterclass** (`es_clase_del_monitor`:
-    spreek o master). **Invitación del grupo «Monitores»** (Panel → Usuarios
+  - **Monitores**: ~~ven también la Masterclass~~ — quitado el 10/11 («la
+    masterclass no es para el monitor»): solo el Spreekclub. **Invitación del grupo «Monitores»** (Panel → Usuarios
     → invitaciones, eligiendo el grupo): quien entra con ella nace con rol de
     profe (`al_entrar_con_invitacion`, en `join.py` y
     `create_user_with_invite`), así nunca ve la escuela como alumno. Solo sube

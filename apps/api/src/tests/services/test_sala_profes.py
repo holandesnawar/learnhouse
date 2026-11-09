@@ -93,8 +93,8 @@ def test_monitores_y_spreekclub():
     assert M.es_spreekclub("Spreekclub · Groep rood") and M.es_spreekclub("Spreek club")
     assert M.es_spreekclub("Spreken Club") and M.es_spreekclub("Spreekuur")
     assert not M.es_spreekclub("Clase semanal") and not M.es_spreekclub("Masterclass")
-    # Desde el 09/11: el monitor ve también la Masterclass, nunca la clase semanal.
-    assert M.es_clase_del_monitor("Masterclass") and M.es_clase_del_monitor("Spreken Club")
+    # Solo el Spreekclub: ni la Masterclass (10/11) ni la clase semanal.
+    assert not M.es_clase_del_monitor("Masterclass") and M.es_clase_del_monitor("Spreken Club")
     assert not M.es_clase_del_monitor("Clase semanal · Groep rood") and not M.es_clase_del_monitor("Formación Nawar A0-A1")
 
 
