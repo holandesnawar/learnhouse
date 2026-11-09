@@ -5,13 +5,12 @@
  * Segunda vuelta, el mismo día: "el profe, su única tarea es preparar la clase
  * y darla: eso es lo que tiene que salir bien… y ver de forma fácil el archivo
  * de clases, y poco más… si al profe le toca esa semana x grupo y x clase, que
- * solo vea eso… simple pero útil". Por eso solo hay tres pestañas (`?vista=`):
+ * solo vea eso… simple pero útil". Pestañas (`?vista=`):
  *
- * - **Mis clases**: cada clase que da (la del recuadro de la clase con su
- *   nombre) con su semana de esta semana, en pasos: presentación → dar la clase
- *   → pasar lista → grabación → corregir. Y una línea con la semana que viene.
- *   Si la semana aún no existe, «Crear la semana». El administrador ve todas;
- *   el profe, las suyas (con «Ver todas» si quiere).
+ * - **Inicio** (10/11/2026, `InicioSala`): SU próxima clase en grande, sus
+ *   siguientes y lo pendiente de las anteriores.
+ * - **Calendario** (`CalendarioEquipo`): todas las clases de las próximas
+ *   semanas, con quién da cada una.
  * - **Archivo**: todas las clases dadas, mes a mes, con quién la dio.
  * - **Manual**: los SOP (no al monitor).
  *
@@ -30,135 +29,14 @@ import AvatarPersona from '@components/Objects/Persona/AvatarPersona'
 import { getUriWithOrg } from '@services/config/config'
 import { mediaSrc } from '@services/messages/direct'
 import { getSalaProfes, type DocManual, type Miembro } from '@services/equipo/equipo'
-import { PasarLista } from '@components/Pages/Profes/ListaYGrupo'
-import { esDe } from '@/lib/nawar/clasesProfes'
-import { lasMias, paraPreparar, type SemanaEquipo } from '@/lib/nawar/salaProfes'
-import TarjetaPreparar, { EditarSemanaProfe } from './PrepararClase'
-import useClasesEquipo, { type ClaseEquipo } from './useClasesEquipo'
+import useClasesEquipo from './useClasesEquipo'
+import InicioSala from './InicioSala'
+import CalendarioEquipo from './CalendarioEquipo'
 import ArchivoClases from './ArchivoClases'
 import ManualEquipo from './ManualEquipo'
 import { POPPINS } from './estilo'
 
-type Vista = 'clases' | 'archivo' | 'manual'
-
-const TARJETA = 'rounded-2xl border border-[#E4E8F2] bg-white'
-
-function MisClases({
-  clases,
-  semanas,
-  hoy,
-  ruta,
-  miNombre,
-  admin,
-  monitor,
-  recargar,
-  token,
-}: {
-  clases: ClaseEquipo[]
-  semanas: SemanaEquipo[] | null
-  hoy: string
-  ruta: (p: string) => string
-  miNombre: string
-  admin: boolean
-  monitor: boolean
-  recargar: () => void
-  token: string
-}) {
-  // Cada profe ve lo que tiene asignado (09/11/2026): la clase en la que es
-  // «La da» o la semana que le han puesto a él (la masterclass). El
-  // administrador y el monitor, todo lo suyo.
-  const [todas, setTodas] = useState(false)
-  const [lista, setLista] = useState<SemanaEquipo | null>(null)
-  const [editar, setEditar] = useState<SemanaEquipo | null>(null)
-
-  if (semanas === null) return <div className={`${TARJETA} px-5 py-6 text-[14px] text-[#6B7393]`}>Cargando tus clases…</div>
-  if (!clases.length)
-    return (
-      <div className={`${TARJETA} px-5 py-6 text-[14.5px] text-[#3B4262]`}>
-        Todavía no hay clases en directo{monitor ? ' del Spreekclub ni Masterclass' : ''}.
-      </div>
-    )
-  const todasLasFilas = paraPreparar(clases, semanas, hoy)
-  const misFilas = lasMias(todasLasFilas, (p) => esDe(p, miNombre))
-  const filtra = !admin && !monitor
-  const filas = filtra && !todas ? misFilas : todasLasFilas
-
-  return (
-    <div className="space-y-4">
-      {filtra && misFilas.length === 0 && !todas ? (
-        <div className={`${TARJETA} px-5 py-5`}>
-          <p className="text-[15px] font-semibold text-[#0B1033]">Aún no tienes ninguna clase asignada</p>
-          <p className="mt-1 text-[13.5px] text-[#5B6382]">
-            Cuando te pongan en una clase («La da»), o en una semana de la masterclass, te saldrá aquí con todo lo que necesitas para prepararla.
-          </p>
-          <button onClick={() => setTodas(true)} className="mt-3 text-[13.5px] font-semibold text-[#0b2da0] hover:underline">
-            Ver todas las clases
-          </button>
-        </div>
-      ) : null}
-      {filtra && (misFilas.length > 0 || todas) && misFilas.length < todasLasFilas.length ? (
-        <div className="flex gap-1.5">
-          {[
-            [false, `Mis clases · ${misFilas.length}`],
-            [true, `Todas · ${todasLasFilas.length}`],
-          ].map(([v, t]) => (
-            <button
-              key={String(v)}
-              onClick={() => setTodas(v as boolean)}
-              className={`h-8 px-3 rounded-full text-[13px] font-semibold border ${
-                todas === v ? 'bg-[#0b2da0] border-[#0b2da0] text-white' : 'bg-white border-[#DDE3EF] text-[#3B4262]'
-              }`}
-            >
-              {t as string}
-            </button>
-          ))}
-        </div>
-      ) : null}
-      <div className="grid gap-4 lg:grid-cols-2">
-        {filas.map((f) => (
-          <TarjetaPreparar
-            key={f.clase.uuid}
-            fila={f}
-            hoy={hoy}
-            ruta={ruta}
-            token={token}
-            puedeEditar
-            admin={admin}
-            onLeido={recargar}
-            onLista={setLista}
-            onEditar={setEditar}
-          />
-        ))}
-      </div>
-      {editar ? (
-        <EditarSemanaProfe
-          semana={editar}
-          profeDeLaClase={clases.find((c) => c.uuid === editar.courseUuid)?.profe || ''}
-          admin={admin}
-          token={token}
-          onCerrar={() => setEditar(null)}
-          onGuardada={() => {
-            setEditar(null)
-            recargar()
-          }}
-        />
-      ) : null}
-      {lista ? (
-        <PasarLista
-          semanaId={lista.semanaId}
-          tema={lista.tema}
-          curso={lista.curso}
-          token={token}
-          onCerrar={() => setLista(null)}
-          onGuardada={() => {
-            setLista(null)
-            recargar()
-          }}
-        />
-      ) : null}
-    </div>
-  )
-}
+type Vista = 'clases' | 'calendario' | 'archivo' | 'manual'
 
 export default function SalaProfes() {
   const org = useOrg() as any
@@ -179,7 +57,8 @@ export default function SalaProfes() {
 
   const monitor = !!yo.monitor
   const vistas: { id: Vista; titulo: string }[] = [
-    { id: 'clases', titulo: 'Mis clases' },
+    { id: 'clases', titulo: 'Inicio' },
+    { id: 'calendario', titulo: 'Calendario' },
     { id: 'archivo', titulo: 'Archivo' },
     ...(monitor ? [] : [{ id: 'manual' as Vista, titulo: 'Manual' }]),
   ]
@@ -228,7 +107,7 @@ export default function SalaProfes() {
               {nombre ? `, ${nombre}` : ''}
             </h1>
             <p className="mt-1 text-[14.5px] text-[#5B6382]">
-              {monitor ? 'Tu Spreekclub y la Masterclass: prepara la sesión y dala.' : 'Tus clases de esta semana: prepáralas y dalas.'}
+              {monitor ? 'Tu Spreekclub: tu próxima sesión y las que vienen.' : 'Tu próxima clase, lo que necesitas para darla y las que vienen.'}
             </p>
           </div>
           {miembros.length ? (
@@ -263,7 +142,7 @@ export default function SalaProfes() {
 
       <div className="mt-6">
         {vista === 'clases' ? (
-          <MisClases
+          <InicioSala
             clases={clases}
             semanas={cargado ? semanas : null}
             hoy={hoy}
@@ -273,6 +152,19 @@ export default function SalaProfes() {
             monitor={monitor}
             recargar={recargar}
             token={token}
+            verCalendario={() => irA('calendario')}
+          />
+        ) : vista === 'calendario' ? (
+          <CalendarioEquipo
+            clases={clases}
+            semanas={cargado ? semanas : null}
+            hoy={hoy}
+            ruta={ruta}
+            miNombre={nombre}
+            admin={yo.admin}
+            monitor={monitor}
+            token={token}
+            recargar={recargar}
           />
         ) : vista === 'archivo' ? (
           semanas === null ? (
