@@ -498,6 +498,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
         clases={(enDirecto || []).map((c: any) => ({ uuid: c.uuid, nombre: c.nombre }))}
         esAlumno={autenticado && !isStaff && !isAdmin && !isCloser}
         enInicio={actual === '/'}
+        onMenu={setAbierta}
       />
       {/* Franja de arriba en el móvil (08/11: con el botón de color, como en el
           ordenador): con la barra azul, la franja blanca; con la blanca, azul. */}

@@ -67,10 +67,13 @@ export default function VisitaGuiada({
   clases,
   esAlumno,
   enInicio,
+  onMenu,
 }: {
   clases: ClaseVisita[]
   esAlumno: boolean
   enInicio: boolean
+  /** En el móvil, abre o cierra el menú (☰) para señalar cada cosa dentro. */
+  onMenu?: (abierto: boolean) => void
 }) {
   const session = useLHSession() as any
   const token = session?.data?.tokens?.access_token as string | undefined
@@ -144,8 +147,18 @@ export default function VisitaGuiada({
 
   const cerrar = useCallback(() => {
     setAbierta(false)
+    onMenu?.(false)
     guardar()
-  }, [guardar])
+  }, [guardar, onMenu])
+
+  // En el móvil (10/11): los pasos de la barra abren el menú de verdad y se
+  // señala la cosa dentro, en lugar de solo iluminar el ☰.
+  const enElMenu = (m: boolean) => m && paso > 0 && !!actual && actual.movil[0] === 'menu'
+  useEffect(() => {
+    if (!abierta || !onMenu) return
+    onMenu(enElMenu(esMovil()))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abierta, paso, onMenu])
 
   const siguiente = useCallback(() => {
     if (paso >= pasos.length - 1) cerrar()
@@ -158,10 +171,14 @@ export default function VisitaGuiada({
     if (!actual) return
     const m = esMovil()
     setMovil(m)
-    const el = buscar(m ? actual.movil : actual.objetivo)
+    const menu = enElMenu(m) && !!onMenu
+    const el = buscar(m && !menu ? actual.movil : menu ? [...actual.objetivo, 'menu'] : actual.objetivo)
     if (el) {
       const r = el.getBoundingClientRect()
-      if (r.top < 0 || r.bottom > window.innerHeight) el.scrollIntoView({ block: 'nearest' })
+      // En el menú, arriba del todo: la tarjeta va abajo y no lo puede tapar.
+      if (menu && el.dataset.visita !== 'menu' && (r.top < 70 || r.bottom > window.innerHeight * 0.55))
+        el.scrollIntoView({ block: 'start' })
+      else if (r.top < 0 || r.bottom > window.innerHeight) el.scrollIntoView({ block: 'nearest' })
     }
     setCaja(cajaDe(el))
   }, [actual])
@@ -170,10 +187,12 @@ export default function VisitaGuiada({
     if (!abierta) return
     medir()
     const t = setTimeout(medir, 250) // por si la barra aún se estaba pintando
+    const t2 = setTimeout(medir, 600) // el menú del móvil, recién abierto
     window.addEventListener('resize', medir)
     window.addEventListener('scroll', medir, true)
     return () => {
       clearTimeout(t)
+      clearTimeout(t2)
       window.removeEventListener('resize', medir)
       window.removeEventListener('scroll', medir, true)
     }
@@ -205,6 +224,9 @@ export default function VisitaGuiada({
       ? null
       : colocarTarjeta(caja, { ancho: window.innerWidth, alto: window.innerHeight }, tam)
 
+  // En el móvil la tarjeta va abajo; si lo señalado queda debajo, arriba.
+  const arriba = !sitio && !!caja && caja.top + caja.height > window.innerHeight - tam.alto - 24
+
   return createPortal(
     <div className="fixed inset-0" style={{ zIndex: 2147483000 }} role="dialog" aria-modal="true" aria-label="Visita por la escuela">
       {/* Para que no se pueda tocar la escuela de detrás. */}
@@ -234,7 +256,9 @@ export default function VisitaGuiada({
         style={
           sitio
             ? { top: sitio.top, left: sitio.left, transition: 'top .3s ease, left .3s ease', boxShadow: '0 12px 40px rgba(10,22,86,0.22)' }
-            : { bottom: 'max(16px, env(safe-area-inset-bottom))', boxShadow: '0 12px 40px rgba(10,22,86,0.22)' }
+            : arriba
+              ? { top: 64, boxShadow: '0 12px 40px rgba(10,22,86,0.22)' }
+              : { bottom: 'max(16px, env(safe-area-inset-bottom))', boxShadow: '0 12px 40px rgba(10,22,86,0.22)' }
         }
       >
         <div className="flex items-center gap-1.5 mb-3" aria-hidden>
@@ -253,8 +277,8 @@ export default function VisitaGuiada({
         </div>
         <h2 className="font-[Poppins] text-[18px] font-bold leading-snug text-[#0a1656]">{actual.titulo}</h2>
         <p className="mt-1.5 text-[14.5px] leading-relaxed text-[#3B4262]">{actual.texto}</p>
-        {movil && !primero && actual.movil[0] === 'menu' ? (
-          <p className="mt-2 text-[13px] text-[#6B7393]">Lo tienes en el menú, arriba a la izquierda.</p>
+        {movil && !primero && actual.movil[0] === 'menu' && !onMenu ? (
+          <p className="mt-2 text-[13px] text-[#6B7393]">Lo encuentras en el menú ☰, arriba a la izquierda.</p>
         ) : null}
 
         <div className="mt-4 flex items-center gap-2">
