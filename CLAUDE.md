@@ -5483,6 +5483,17 @@ la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
     /discussions/juntar` {arriba, abajo, titulo}: se queda la de arriba; la de
     abajo se borra (sus «me gusta» se pierden). No se deshace. Test
     `test_juntar_dos_elegidas`.
+  - **(10/11) El grupo «Monitores» da el rol de profe** al meter a alguien
+    desde el panel (`sync_roles_for_group` en `orgs/groups.py`, como
+    «Profes»): antes solo lo daba la invitación y el monitor seguía de alumno,
+    sin Spreekclub. Al arrancar, `subir_monitores` pasa a profe a los que ya
+    estaban en el grupo con rol de alumno. Sacarlo del grupo lo devuelve a
+    alumno, salvo que siga en «Profes».
+  - **(10/11) La campana y el «sin leer» cuentan desde que la persona
+    entró** (`_alta`, `desde_cuando`, `antes_de_entrar` en
+    `engagement.py`, test en `test_menciones.py`): a alguien nuevo ya no le
+    salen 25 mensajes viejos, avisos de octubre ni un @all de antes de
+    llegar. Las clases, tareas y módulos siguen con su propia fecha.
   - En el canal de presentaciones, la ventana de publicar pide «Cuéntalo
     todo en una sola publicación…» con ejemplos (`esPresentacion` en
     `ChannelPosts.tsx`).

@@ -205,9 +205,20 @@ async def sync_roles_for_group(
         group = (
             await db_session.execute(select(UserGroup).where(UserGroup.id == usergroup_id))
         ).scalars().first()
-        if not group or group.name not in _ROL_POR_GRUPO:
+        if not group:
             return
-        rol_del_grupo = _ROL_POR_GRUPO[group.name]
+        rol_del_grupo = _ROL_POR_GRUPO.get(group.name)
+        # «Monitores» (10/11/2026): el monitor es una cuenta de profe dentro de
+        # ese grupo. Meterlo en el grupo desde el panel no le cambiaba el rol y
+        # seguía siendo alumno: no veía el Spreekclub.
+        es_monitores = False
+        if rol_del_grupo is None:
+            from src.services.equipo.monitores import es_grupo_monitores
+
+            if es_grupo_monitores(group.name or ""):
+                rol_del_grupo, es_monitores = PROFE_ROLE_ID, True
+        if rol_del_grupo is None:
+            return
 
         for user_id in user_ids:
             link = (
@@ -227,6 +238,11 @@ async def sync_roles_for_group(
             # de ESE grupo: sacar a un closer de "Profes" no le quita lo suyo.
             if not joining and link.role_id != rol_del_grupo:
                 continue
+            # Quien sale de «Monitores» y sigue en «Profes» sigue de profe.
+            if not joining and es_monitores:
+                profes = await _find_group(group.org_id, TEACHERS_GROUP_NAME, db_session)
+                if profes and profes.id and await _link_exists(profes.id, user_id, db_session):
+                    continue
             target = rol_del_grupo if joining else STUDENT_ROLE_ID
             if await _set_role(user_id, group.org_id, target, db_session):
                 logger.info(

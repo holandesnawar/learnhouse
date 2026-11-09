@@ -56,3 +56,19 @@ def test_la_marca_de_leido_se_compara_con_el_formato_de_los_mensajes():
     assert str(ahora) > convertida  # un mensaje de ahora es nuevo
     assert str(ahora - timedelta(minutes=10)) < convertida  # uno de antes, leído
     assert como_fecha_de_mensaje("") == ""
+
+
+def test_lo_de_antes_de_entrar_no_es_nuevo():
+    from src.services.communities.engagement import antes_de_entrar, desde_cuando
+
+    alta = "2026-11-09 10:00:00"
+    # Nunca abrió el canal: cuenta desde que entró.
+    assert desde_cuando("", alta) == alta
+    # Lo abrió después de entrar: cuenta desde la lectura.
+    assert desde_cuando("2026-11-09T12:00:00", alta) > alta
+    # Sin fecha de alta, como antes.
+    assert desde_cuando("", "") == ""
+    assert antes_de_entrar("2026-10-13 09:00:00.12", alta)
+    assert antes_de_entrar("2026-10-20T18:00:00", alta)
+    assert not antes_de_entrar("2026-11-09 11:00:00", alta)
+    assert not antes_de_entrar("2026-10-13 09:00:00", "")
