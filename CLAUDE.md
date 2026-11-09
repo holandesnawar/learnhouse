@@ -4281,6 +4281,10 @@ el recibo de Stripe y no podría entrar), la comunidad **separada del todo** y
   `aviso_repetido`). Se arregla en el Acceso del curso (quitar «Beta» y dejar
   su grupo), con cuidado de no dejar sin clase a quien solo está en Beta.
   Tests en `test_tandas.py`.
+- **En la barra de la escuela, el closer solo tiene «Panel»** (10/11/2026,
+  usuario: "que ponga solo Panel, para cuando enseñen la escuela por encima no
+  se vea ventas"): fuera el bloque «Ventas» (Matrículas, Llamadas, Contactos,
+  Material de venta) de `OrgSidebar`; todo eso sigue dentro del panel.
 - **Los closers ven la Masterclass y el Spreekclub** (08/11/2026, "que los
   closers vean el apartado de masterclass y spreken club"): solo VER, en su
   barra de la escuela, las clases en directo abiertas al grupo «Programa
