@@ -5149,6 +5149,23 @@ tarjeta por CADA clase a la vez (`TarjetaPreparar`, ya sin usar).
   Masterclass y el Spreekclub ya los veían desde el 08/11
   (`clases_del_closer`). Test en `test_tandas.py`.
 
+### El lunes ya es la semana nueva, el otro grupo con lo de los meses y «Descubre cómo» (10/11/2026)
+- **«Esta semana» cambia el lunes** (`semana_actual` en `tareas.py`, test
+  `test_el_lunes_ya_es_la_semana_nueva`): manda la semana cuya clase cae en
+  esta semana del calendario (lunes a domingo), aunque la clase aún no haya
+  llegado (antes seguía la pasada hasta el día de la clase). Sin clase esta
+  semana, la regla de antes (última dada con el plazo abierto). La de después
+  sale como «La semana que viene». Seguimiento sigue eligiendo la última clase
+  ya dada.
+- **«La clase del otro grupo» encuentra también las grabaciones de los
+  capítulos de los meses** (`_grabaciones_de_hermana`): antes solo las de las
+  semanas creadas, y las de blauw seguían en «OCTUBRE - 2026», así que no salía
+  nada. Y ahora lo ve también el equipo (antes nunca, por eso «no lo veo»).
+- **Empieza aquí → «Tenla en el móvil»**: «Descubre cómo» abre la ventana de
+  iPhone / Android de la pantalla de entrar (`VentanaInstalar` en
+  `PWA/InstallAppPrompt.tsx`, con `usePromptInstalar`: en Android/Chrome va
+  directo al diálogo de instalar). Abierta como app, el paso sale hecho solo.
+
 ## Rediseño estilo Circle: la escuela de pruebas y la rama `diseno` (07/11/2026)
 Pedido: "una versión no pública de la escuela para hacer cambios de diseño…
 estilo Circle… que se vea profesional de verdad y no IA". **Todo esto vive en

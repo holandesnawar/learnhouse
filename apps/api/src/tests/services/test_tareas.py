@@ -52,6 +52,22 @@ def test_semana_en_curso_y_proxima():
     assert T.semana_actual(semanas, "2026-11-20") == (None, None)
 
 
+def test_el_lunes_ya_es_la_semana_nueva():
+    # Clases los miércoles: el lunes 9 ya es la semana de la clase del 11,
+    # aunque la clase aún no haya llegado.
+    semanas = [
+        {"id": 1, "fecha": "2026-11-04"},
+        {"id": 2, "fecha": "2026-11-11"},
+        {"id": 3, "fecha": "2026-11-18"},
+    ]
+    assert T.semana_actual(semanas, "2026-11-08") == (1, 2)
+    assert T.semana_actual(semanas, "2026-11-09") == (2, 3)
+    assert T.semana_actual(semanas, "2026-11-11") == (2, 3)
+    # Un plazo largo de la semana pasada ya no la deja en curso.
+    semanas[0]["fecha_limite"] = "2026-11-12"
+    assert T.semana_actual(semanas, "2026-11-10") == (2, 3)
+
+
 def test_que_es_cada_clase():
     assert T.tipo_de_clase("TYPE_DOCUMENT", "SUBTYPE_DOCUMENT_PDF", {}) == "presentacion"
     assert T.tipo_de_clase("TYPE_VIDEO", "SUBTYPE_VIDEO_HOSTED", {}) == "grabacion"

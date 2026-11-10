@@ -422,7 +422,7 @@ export default function SemanasClase({
   const [nueva, setNueva] = useState(false)
   const [editando, setEditando] = useState<Semana | null>(null)
   // La grabación del otro grupo (rood ↔ blauw), al final de cada semana.
-  const { data: hermanas } = useMiraTambien(courseUuid, !!data && !(data.equipo || data.admin))
+  const { data: hermanas } = useMiraTambien(courseUuid, !!data)
   const [viendo, setViendo] = useState<Grabacion | null>(null)
 
   if (!data) return null
@@ -441,7 +441,7 @@ export default function SemanasClase({
 
   const semanaActual = semanas.find((s) => s.id === actual) || null
   const semanaProxima = semanas.find((s) => s.id === proxima && s.id !== actual) || null
-  const masAdelante = semanas.filter((s) => s.fecha > hoy && s.id !== proxima)
+  const masAdelante = semanas.filter((s) => s.fecha > hoy && s.id !== proxima && s.id !== actual)
   const anteriores = semanas.filter((s) => s.id !== actual && s.fecha <= hoy)
   // Las semanas pasadas y las grabaciones de antes, juntas y por día.
   const lineas: ({ semana: Semana } | { suelta: ClaseArchivo })[] = [
@@ -461,7 +461,8 @@ export default function SemanasClase({
   // 09/11/2026: «que ambos grupos puedan ver la grabación del otro grupo…
   // al final de la semana un botón, algo más profesional».
   const otroGrupo = (semana: Semana) => {
-    if (equipo || !semana.fecha || semana.fecha > hoy) return null
+    // También al equipo (10/11/2026: «no lo veo»): ve lo mismo que el alumno.
+    if (!semana.fecha || semana.fecha > hoy) return null
     const encontradas = deLaMismaSemana(hermanas?.clases, semana.fecha)
     if (!encontradas.length) return null
     return encontradas.map(({ clase, g }) => {
@@ -676,7 +677,7 @@ export default function SemanasClase({
       ) : null}
 
       {semanaActual ? bloque('Esta semana', semanaActual) : null}
-      {semanaProxima ? bloque('Próxima clase', semanaProxima) : null}
+      {semanaProxima ? bloque(semanaActual ? 'La semana que viene' : 'Próxima clase', semanaProxima) : null}
       {anterioresBloque}
       {equipo ? plegables('Más adelante', masAdelante) : null}
 

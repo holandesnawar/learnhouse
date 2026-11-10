@@ -21,6 +21,7 @@ import { getCommunities, type Community } from '@services/communities/communitie
 import { getDiscussions, type DiscussionWithAuthor } from '@services/communities/discussions'
 import { CURSO_FORMACION_UUID } from '@/lib/nawar/cursos'
 import { esCanalDePresentarse, esCanalEsencial } from '@/lib/nawar/empiezaAqui'
+import { VentanaInstalar, usePromptInstalar } from '@components/PWA/InstallAppPrompt'
 
 const POPPINS = { fontFamily: 'var(--font-poppins), system-ui, sans-serif' }
 const TARJETA = 'rounded-2xl border border-[#E4E8F2] bg-white'
@@ -102,12 +103,21 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
       { id: 'presentate', titulo: 'Preséntate', texto: 'Cuéntanos quién eres, dónde vives y para qué quieres el neerlandés.', href: canalHref(presentaciones), boton: 'Presentarme', icono: <Hand size={18} /> },
       { id: 'clase', titulo: 'Mira tu clase de esta semana', texto: 'La presentación, el día y la hora. Dinos si vienes.', href: ruta('/clases'), boton: 'Ver mi clase', icono: <Video size={18} /> },
       { id: 'formacion', titulo: 'Empieza el módulo 1', texto: 'Con 20 minutos al día basta. La escuela recuerda dónde lo dejas.', href: ruta(`/course/${CURSO_FORMACION_UUID}`), boton: 'Empezar', icono: <BookOpen size={18} /> },
-      { id: 'movil', titulo: 'Tenla en el móvil', texto: 'iPhone: Compartir → Ver más → Añadir a pantalla de inicio. Android: menú ⋮ → Instalar aplicación.', href: '', boton: 'Hecho', icono: <Smartphone size={18} /> },
+      { id: 'movil', titulo: 'Tenla en el móvil', texto: 'Añade la escuela a la pantalla de inicio y entra de un toque, como una app.', href: '', boton: 'Hecho', icono: <Smartphone size={18} /> },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [presentaciones?.community_uuid, orgslug]
   )
-  const hecho = (p: Paso) => (p.id === 'presentate' && data?.presentado) || !!hechos[p.id]
+  // «Tenla en el móvil»: «Descubre cómo» abre los pasos de iPhone y Android (la
+  // misma ventana de la pantalla de entrar) o, en Android/Chrome, el diálogo de
+  // instalar. Abierta ya como app, el paso sale hecho solo.
+  const [instalarAbierto, setInstalarAbierto] = useState(false)
+  const { instalada, instalar } = usePromptInstalar()
+  const descubreComo = async () => {
+    if (await instalar()) return
+    setInstalarAbierto(true)
+  }
+  const hecho = (p: Paso) => (p.id === 'presentate' && data?.presentado) || (p.id === 'movil' && instalada) || !!hechos[p.id]
   const n = pasos.filter(hecho).length
   const siguiente = pasos.find((p) => !hecho(p))
   const nombre = yo?.first_name || yo?.username || ''
@@ -145,6 +155,14 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
               >
                 Siguiente: {siguiente.titulo.toLowerCase()} <ArrowRight size={16} />
               </Link>
+            ) : siguiente.id === 'movil' ? (
+              <button
+                type="button"
+                onClick={descubreComo}
+                className="shrink-0 self-start sm:self-auto inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-[#0b2da0] text-white text-[14px] font-semibold hover:bg-[#0a2690]"
+              >
+                Siguiente: {siguiente.titulo.toLowerCase()} <ArrowRight size={16} />
+              </button>
             ) : null
           ) : (
             <p className="inline-flex items-center gap-2 text-[14px] font-semibold text-[#16A34A]">
@@ -167,6 +185,11 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
               <div className="min-w-0 flex-1">
                 <p className={`text-[15.5px] font-semibold ${ok ? 'text-[#8A91AD] line-through decoration-[#C9D2E6]' : 'text-[#0B1033]'}`}>{p.titulo}</p>
                 <p className="mt-0.5 text-[14px] text-[#4A5272] leading-relaxed">{p.texto}</p>
+                {p.id === 'movil' && !ok ? (
+                  <button type="button" onClick={descubreComo} className="mt-1.5 inline-flex items-center gap-1 text-[14px] font-semibold text-[#0b2da0] hover:underline">
+                    Descubre cómo <ArrowRight size={14} />
+                  </button>
+                ) : null}
               </div>
               {!ok ? (
                 p.href ? (
@@ -187,6 +210,8 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
           )
         })}
       </section>
+
+      {instalarAbierto ? <VentanaInstalar onCerrar={() => setInstalarAbierto(false)} /> : null}
 
       {data?.fijadas?.length ? (
         <section>
