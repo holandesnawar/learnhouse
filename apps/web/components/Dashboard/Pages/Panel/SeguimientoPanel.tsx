@@ -17,7 +17,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
-import { Check, ListChecks, Loader2, Megaphone, MessageCircle, RefreshCw, X } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, ListChecks, Loader2, Megaphone, MessageCircle, RefreshCw, X } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import VoiceRecorder from '@components/Pages/Messages/VoiceRecorder'
@@ -43,7 +43,7 @@ import {
 import { AvisarClase } from '@components/Pages/Courses/AvisarClase'
 import { PasarLista } from '@components/Pages/Profes/ListaYGrupo'
 import { confirmar } from '@lib/nawar/confirmar'
-import { BOTON, BOTON_PRINCIPAL, Estado, META, TARJETA } from './ui'
+import { BOTON, BOTON_PRINCIPAL, META, Plegable, TARJETA } from './ui'
 import { FichaAlumno } from './ProgresoPanel'
 
 function haceCuando(iso: string): string {
@@ -54,42 +54,43 @@ function haceCuando(iso: string): string {
     d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Amsterdam' })
 }
 
-function Cifra({ k, n, extra }: { k: string; n: React.ReactNode; extra?: React.ReactNode }) {
-  return (
-    <div className={`${TARJETA} px-3.5 py-3`}>
-      <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF]">{k}</p>
-      <p className="mt-0.5 text-[22px] font-semibold tabular-nums text-gray-900">
-        {n} {extra}
-      </p>
-    </div>
-  )
-}
-
 const Si = () => <Check size={16} strokeWidth={3} className="text-[#16A34A]" />
 const No = () => <span className="text-[#D1D5DB]">—</span>
+
+/** Fue a la clase: lo cuenta la sala de la escuela (o la lista del profe). */
+function Asistio({ f, futura }: { f: FilaSeguimiento; futura: boolean }) {
+  if (futura) return <span className="text-[12.5px] text-[#9CA3AF]">Aún no</span>
+  if (f.clase === null) return <span className="text-[12.5px] text-[#9CA3AF]" title="Ni la sala ni la lista lo saben">No se sabe</span>
+  return f.clase ? (
+    <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#15803D]" title={f.clase_origen === 'lista' ? 'Lo marcó el profe' : 'Lo vio la sala de la escuela'}>
+      <Check size={14} strokeWidth={3} /> Fue
+    </span>
+  ) : (
+    <span className="text-[13px] text-[#B91C1C]">No fue</span>
+  )
+}
 
 function EstadoTarea({ f, onCorregir }: { f: FilaSeguimiento; onCorregir: (id: number) => void }) {
   if (f.tarea === 'corregida')
     return (
-      <button onClick={() => f.entrega_id && onCorregir(f.entrega_id)} className="hover:underline">
-        <Estado tono="verde">Corregida</Estado>
+      <button onClick={() => f.entrega_id && onCorregir(f.entrega_id)} className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#15803D] hover:underline">
+        <Check size={14} strokeWidth={3} /> Corregida
       </button>
     )
   if (f.tarea === 'entregada')
     return (
-      <button onClick={() => f.entrega_id && onCorregir(f.entrega_id)} className="font-medium text-[#B45309] hover:underline">
-        <Estado tono="ambar">Por corregir</Estado>
+      <button
+        onClick={() => f.entrega_id && onCorregir(f.entrega_id)}
+        className="inline-flex items-center h-7 px-2.5 rounded-md bg-[#FEF3C7] text-[12.5px] font-semibold text-[#92400E] hover:bg-[#FDE68A]"
+      >
+        Corregir
       </button>
     )
-  if (f.tarea === 'pendiente') return <span className="text-[12.5px] text-[#9CA3AF]">Sin entregar</span>
+  if (f.tarea === 'pendiente') return <span className="text-[13px] text-[#B91C1C]">Sin entregar</span>
   return <No />
 }
 
-function Semanas({ f }: { f: FilaSeguimiento }) {
-  if (f.sin_nada >= 2) return <span className="text-[12.5px] font-semibold text-[#B91C1C]">{f.sin_nada} semanas sin nada</span>
-  if (f.sin_nada === 1) return <span className="text-[12.5px] text-[#B45309]">1 semana sin nada</span>
-  return <span className="text-[13px] tabular-nums text-gray-700">{f.seguidas ? `${f.seguidas} seguidas` : '—'}</span>
-}
+type Filtro = 'todos' | 'no-fue' | 'sin-entregar' | 'por-corregir' | 'sin-grabacion'
 
 // ── El corrector ────────────────────────────────────────────────────────────
 
@@ -241,14 +242,9 @@ function Checkins({ lista, onHecho }: { lista: CheckinToca[]; onHecho: () => voi
   }
 
   return (
-    <div className={`${TARJETA}`}>
-      <div className="px-4 pt-3.5 pb-2">
-        <p className="text-[14px] font-semibold text-gray-900">
-          Check-in de esta semana <span className="font-normal text-[#6B7280]">· {lista.length}</span>
-        </p>
-        <p className={META}>Semanas 4, 8 y 12 de su camino: un mensaje corto para ver cómo van y qué les cuesta.</p>
-      </div>
-      <div className="divide-y divide-[#F3F4F6]">
+    <div>
+      <p className={`${META} px-4 pb-2`}>Semanas 4, 8 y 12 de su camino: un mensaje corto para ver cómo van y qué les cuesta.</p>
+      <div className="divide-y divide-[#F3F4F6] border-t border-[#F3F4F6]">
         {lista.map((a) => {
           const nombre = a.nombre.split(' ')[0]
           const texto = encodeURIComponent(
@@ -301,61 +297,6 @@ function Checkins({ lista, onHecho }: { lista: CheckinToca[]; onHecho: () => voi
 function leerUrl(nombre: string): string {
   if (typeof window === 'undefined') return ''
   return new URLSearchParams(window.location.search).get(nombre) || ''
-}
-
-/** Las clases lado a lado: la semana en curso de cada una, en cifras. Tocar una la abre abajo. */
-function ClasesLadoALado({ clases, elegida, onElegir }: { clases: ResumenClase[]; elegida: string; onElegir: (uuid: string) => void }) {
-  if (clases.length < 2) return null
-  const parte = (n: number | undefined, total: number, hay: boolean | undefined) =>
-    hay ? (
-      <span className="tabular-nums">
-        <span className="font-semibold text-gray-900">{n || 0}</span>
-        <span className="text-[#9CA3AF]">/{total}</span>
-      </span>
-    ) : (
-      <span className="text-[#D1D5DB]">—</span>
-    )
-  return (
-    <div>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B7280] mb-1.5">Las clases esta semana</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
-        {clases.map((x) => {
-          const c = x.cifras
-          return (
-            <button
-              key={x.course_uuid}
-              onClick={() => onElegir(x.course_uuid)}
-              className={`${TARJETA} text-left px-4 py-3 transition-colors ${elegida === x.course_uuid ? 'border-[#1D0084] ring-1 ring-[#1D0084]' : 'hover:border-[#9cc7ff]'}`}
-            >
-              <p className="text-[13.5px] font-semibold text-gray-900 truncate">{x.nombre}</p>
-              <p className={`${META} truncate`}>
-                {x.semana.tema} · {diaCorto(x.semana.fecha)}
-              </p>
-              <div className="mt-2 grid grid-cols-4 gap-1 text-[12px] text-[#5A6480]">
-                <div>
-                  <p className="text-[10.5px]">Presentación</p>
-                  {parte(c.presentacion, c.alumnos, c.con_presentacion)}
-                </div>
-                <div>
-                  <p className="text-[10.5px]">Grabación</p>
-                  {parte(c.grabacion, c.alumnos, c.con_grabacion)}
-                </div>
-                <div>
-                  <p className="text-[10.5px]">Ejercicios</p>
-                  {parte(c.ejercicios, c.alumnos, c.con_ejercicios)}
-                </div>
-                <div>
-                  <p className="text-[10.5px]">Tarea</p>
-                  {parte(c.entregadas, c.alumnos, c.con_tarea)}
-                </div>
-              </div>
-              {c.por_corregir ? <p className="mt-1 text-[12px] font-semibold text-[#B45309]">{c.por_corregir} por corregir</p> : null}
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
 }
 
 export default function SeguimientoPanel({ enEscuela = false }: { enEscuela?: boolean }) {
@@ -415,9 +356,36 @@ export default function SeguimientoPanel({ enEscuela = false }: { enEscuela?: bo
   }, [cargar])
 
   const filas = datos?.alumnos ?? []
-  const sinEntregar = useMemo(() => filas.filter((f) => f.tarea === 'pendiente').length, [filas])
-  const descolgados = useMemo(() => filas.filter((f) => f.sin_nada >= 2).length, [filas])
+  const [filtro, setFiltro] = useState<Filtro>('todos')
+  useEffect(() => setFiltro('todos'), [clase, semanaId])
+  const semana = datos?.semana || null
+  const futura = !!semana?.fecha && !!datos?.hoy && semana.fecha > datos.hoy
+  const cuenta = useMemo(
+    () => ({
+      'no-fue': filas.filter((f) => f.clase === false).length,
+      'sin-entregar': filas.filter((f) => f.tarea === 'pendiente').length,
+      'por-corregir': filas.filter((f) => f.tarea === 'entregada').length,
+      'sin-grabacion': filas.filter((f) => f.grabacion === false).length,
+    }),
+    [filas]
+  )
+  const visibles = useMemo(() => {
+    if (filtro === 'no-fue') return filas.filter((f) => f.clase === false)
+    if (filtro === 'sin-entregar') return filas.filter((f) => f.tarea === 'pendiente')
+    if (filtro === 'por-corregir') return filas.filter((f) => f.tarea === 'entregada')
+    if (filtro === 'sin-grabacion') return filas.filter((f) => f.grabacion === false)
+    return filas
+  }, [filas, filtro])
   const c = datos?.cifras
+  const porCorregirDe = (uuid: string) => resumen.find((r) => r.course_uuid === uuid)?.cifras?.por_corregir || 0
+
+  // Las semanas vienen de la más nueva a la más vieja: ‹ es la anterior.
+  const lista = datos?.semanas || []
+  const idx = semana ? lista.findIndex((s) => s.id === semana.id) : -1
+  const irA = (i: number) => {
+    const s = lista[i]
+    if (s) setSemanaId(s.id)
+  }
 
   if (!clases) {
     return (
@@ -427,65 +395,107 @@ export default function SeguimientoPanel({ enEscuela = false }: { enEscuela?: bo
     )
   }
 
+  /** Una cifra grande que también filtra la lista de abajo. */
+  const Grande = ({ titulo, n, de, nota, f, rojo }: { titulo: string; n: React.ReactNode; de?: number; nota?: React.ReactNode; f?: Filtro; rojo?: string }) => (
+    <button
+      onClick={() => f && setFiltro(filtro === f ? 'todos' : f)}
+      disabled={!f}
+      className={`${TARJETA} text-left px-4 py-3.5 transition-colors ${f ? 'hover:border-[#9cc7ff]' : 'cursor-default'} ${f && filtro === f ? 'border-[#1D0084] ring-1 ring-[#1D0084]' : ''}`}
+    >
+      <p className="text-[13px] text-[#4B5563]">{titulo}</p>
+      <p className="mt-0.5 text-[24px] font-semibold tabular-nums text-gray-900 leading-tight">
+        {n}
+        {de !== undefined ? <span className="text-[16px] font-normal text-[#9CA3AF]"> de {de}</span> : null}
+      </p>
+      {rojo ? <p className="mt-0.5 text-[12.5px] font-medium text-[#B91C1C]">{rojo}</p> : nota ? <p className={`${META} mt-0.5`}>{nota}</p> : null}
+    </button>
+  )
+
+  const FILTROS: { k: Filtro; t: string; n: number; si: boolean }[] = [
+    { k: 'todos', t: 'Todos', n: filas.length, si: true },
+    { k: 'no-fue', t: 'No fueron a la clase', n: cuenta['no-fue'], si: !futura && !!c?.sabe_clase },
+    { k: 'sin-entregar', t: 'Sin entregar la tarea', n: cuenta['sin-entregar'], si: !!c?.con_tarea },
+    { k: 'por-corregir', t: 'Por corregir', n: cuenta['por-corregir'], si: !!c?.con_tarea },
+    { k: 'sin-grabacion', t: 'Sin ver la grabación', n: cuenta['sin-grabacion'], si: !!c?.con_grabacion },
+  ]
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <select value={clase} onChange={(e) => { setClase(e.target.value); setSemanaId(null) }} className="h-8 rounded-md border border-[#E5E7EB] bg-white px-2.5 text-[13px] font-medium">
-          {clases.map((x) => (
-            <option key={x.uuid} value={x.uuid}>
+    <div className="space-y-5">
+      {/* Las clases: una pestaña cada una, con lo que queda por corregir. */}
+      <div className="flex flex-wrap gap-2">
+        {clases.map((x) => {
+          const pc = porCorregirDe(x.uuid)
+          const activa = clase === x.uuid
+          return (
+            <button
+              key={x.uuid}
+              onClick={() => {
+                setClase(x.uuid)
+                setSemanaId(null)
+              }}
+              className={`inline-flex items-center gap-2 h-9 px-3.5 rounded-lg border text-[13.5px] font-medium transition-colors ${
+                activa ? 'bg-[#1D0084] border-[#1D0084] text-white' : 'bg-white border-[#E2E8F4] text-gray-800 hover:border-[#9cc7ff]'
+              }`}
+            >
               {x.nombre}
-            </option>
-          ))}
-        </select>
-        {datos?.semanas.length ? (
-          <select
-            value={datos.semana?.id ?? ''}
-            onChange={(e) => setSemanaId(Number(e.target.value) || null)}
-            className="h-8 rounded-md border border-[#E5E7EB] bg-white px-2.5 text-[13px] font-medium"
-          >
-            {datos.semanas.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.tema} · {diaCorto(s.fecha)}
-              </option>
-            ))}
-          </select>
-        ) : null}
-        {datos?.semana ? (
-          <button onClick={() => setAvisando(true)} className={BOTON}>
-            <Megaphone size={13} /> Avisar a la clase
-          </button>
-        ) : null}
-        {datos?.semana && datos.semana.fecha && datos.semana.fecha <= datos.hoy ? (
-          <button onClick={() => setPasandoLista(true)} className={datos.lista_pasada ? BOTON : BOTON_PRINCIPAL}>
-            <ListChecks size={13} /> {datos.lista_pasada ? 'Ver la lista' : 'Pasar lista'}
-          </button>
-        ) : null}
-        {/* En el panel ya está el «Actualizar» de arriba. */}
-        {enEscuela ? (
-          <button onClick={cargar} className={BOTON} disabled={cargando}>
-            {cargando ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Actualizar
-          </button>
-        ) : cargando ? (
-          <Loader2 size={14} className="animate-spin text-gray-400" />
-        ) : null}
+              {pc ? (
+                <span className={`rounded-full px-1.5 text-[11.5px] font-semibold ${activa ? 'bg-white/20 text-white' : 'bg-[#FEF3C7] text-[#92400E]'}`} title="Tareas por corregir">
+                  {pc}
+                </span>
+              ) : null}
+            </button>
+          )
+        })}
       </div>
 
-      <ClasesLadoALado
-        clases={resumen}
-        elegida={clase}
-        onElegir={(u) => {
-          setClase(u)
-          setSemanaId(null)
-        }}
-      />
+      {/* La semana, con flechas, y lo que se puede hacer con ella. */}
+      {lista.length ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex items-center rounded-lg border border-[#E2E8F4] bg-white">
+            <button onClick={() => irA(idx + 1)} disabled={idx < 0 || idx >= lista.length - 1} className="h-9 w-9 flex items-center justify-center text-gray-600 disabled:text-gray-300" aria-label="Semana anterior">
+              <ChevronLeft size={16} />
+            </button>
+            <select
+              value={semana?.id ?? ''}
+              onChange={(e) => setSemanaId(Number(e.target.value) || null)}
+              className="h-9 border-x border-[#E2E8F4] bg-white px-2.5 text-[14px] font-semibold text-gray-900 outline-none"
+            >
+              {lista.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.tema} · {diaCorto(s.fecha)}
+                </option>
+              ))}
+            </select>
+            <button onClick={() => irA(idx - 1)} disabled={idx <= 0} className="h-9 w-9 flex items-center justify-center text-gray-600 disabled:text-gray-300" aria-label="Semana siguiente">
+              <ChevronRight size={16} />
+            </button>
+          </div>
+          {semana ? (
+            <button onClick={() => setAvisando(true)} className={BOTON}>
+              <Megaphone size={13} /> Avisar a la clase
+            </button>
+          ) : null}
+          {semana && !futura ? (
+            <button onClick={() => setPasandoLista(true)} className={BOTON} title="La asistencia la cuenta la sala sola: esto es para corregirla">
+              <ListChecks size={13} /> Corregir asistencia
+            </button>
+          ) : null}
+          {enEscuela ? (
+            <button onClick={cargar} className={BOTON} disabled={cargando}>
+              {cargando ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Actualizar
+            </button>
+          ) : cargando ? (
+            <Loader2 size={14} className="animate-spin text-gray-400" />
+          ) : null}
+        </div>
+      ) : null}
 
-      <Checkins lista={checkins} onHecho={cargar} />
-      {avisando && datos?.semana ? <AvisarClase semana={datos.semana} onClose={() => setAvisando(false)} /> : null}
-      {pasandoLista && datos?.semana ? (
+      {avisando && semana ? <AvisarClase semana={semana} onClose={() => setAvisando(false)} /> : null}
+      {pasandoLista && semana ? (
         <PasarLista
-          semanaId={datos.semana.id}
-          tema={datos.semana.tema}
-          curso={datos.curso}
+          semanaId={semana.id}
+          tema={semana.tema}
+          curso={datos!.curso}
           token={token}
           onCerrar={() => setPasandoLista(false)}
           onGuardada={() => {
@@ -495,157 +505,195 @@ export default function SeguimientoPanel({ enEscuela = false }: { enEscuela?: bo
         />
       ) : null}
 
-      {datos && !datos.semanas.length ? (
+      {datos && !lista.length ? (
         <div className={`${TARJETA} px-4 py-6 text-center`}>
           <p className="text-[14px] font-medium text-gray-900">Esta clase aún no tiene semanas.</p>
           <p className={`${META} mt-1`}>Se crean en la página de la clase, con «Nueva semana».</p>
         </div>
       ) : null}
 
-      {c ? (
-        <div className="grid grid-cols-2 lg:grid-cols-6 gap-2.5">
-          <Cifra k="Alumnos" n={c.alumnos} />
-          <Cifra k="Vieron la presentación" n={c.con_presentacion ? c.presentacion : '—'} />
-          <Cifra k="Vieron la grabación" n={c.con_grabacion ? c.grabacion ?? 0 : '—'} />
-          <Cifra
-            k="Fueron a la clase"
-            n={c.sabe_clase ? c.clase : '—'}
-            extra={datos?.lista_pasada ? <span className="text-[12px] text-[#6B7280]">· lista de {(datos.lista_por || []).join(', ') || 'el profe'}</span> : null}
+      {/* Lo importante, en tres cifras. Tocar una filtra la lista. */}
+      {c && semana ? (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <Grande
+            titulo="Fueron a la clase"
+            n={futura ? '—' : c.sabe_clase ? c.clase : '—'}
+            de={futura || !c.sabe_clase ? undefined : c.alumnos}
+            nota={futura ? `La clase es el ${diaCorto(semana.fecha)}` : !c.sabe_clase ? 'La sala aún no ha contado a nadie' : datos?.lista_pasada ? `Corregida por ${(datos.lista_por || []).join(', ') || 'el profe'}` : 'Lo cuenta la sala de la escuela'}
+            f={!futura && c.sabe_clase ? 'no-fue' : undefined}
+            rojo={!futura && c.sabe_clase && cuenta['no-fue'] ? `${cuenta['no-fue']} no fueron` : undefined}
           />
-          <Cifra k="Hicieron los ejercicios" n={c.con_ejercicios ? c.ejercicios : '—'} />
-          <Cifra
-            k="Entregaron la tarea"
+          <Grande
+            titulo="Entregaron la tarea"
             n={c.con_tarea ? c.entregadas : '—'}
-            extra={c.por_corregir ? <span className="text-[13px] font-semibold text-[#B45309]">· {c.por_corregir} por corregir</span> : null}
+            de={c.con_tarea ? c.alumnos : undefined}
+            nota={!c.con_tarea ? 'Esta semana no tiene tarea' : c.por_corregir ? undefined : 'Nada por corregir'}
+            rojo={c.con_tarea && c.por_corregir ? `${c.por_corregir} por corregir` : undefined}
+            f={c.con_tarea ? 'sin-entregar' : undefined}
+          />
+          <Grande
+            titulo="Vieron la grabación"
+            n={c.con_grabacion ? c.grabacion ?? 0 : '—'}
+            de={c.con_grabacion ? c.alumnos : undefined}
+            nota={!c.con_grabacion ? 'Aún no hay grabación' : undefined}
+            f={c.con_grabacion ? 'sin-grabacion' : undefined}
           />
         </div>
       ) : null}
       {datos?.aviso ? <p className={META}>{datos.aviso}</p> : null}
 
       <div className="flex flex-col xl:flex-row gap-4 items-start">
-        {/* La tabla de la semana. */}
-        {datos?.semana ? (
+        {/* La lista de alumnos. */}
+        {semana ? (
           <div className={`${TARJETA} flex-1 min-w-0 w-full overflow-hidden`}>
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-[13.5px]">
-                <thead>
-                  <tr className="bg-[#F9FAFB] border-b border-[#E5E7EB] text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[#6B7280]">
-                    <th className="px-3 py-2.5">Alumno</th>
-                    <th className="px-3 py-2.5">Presentación</th>
-                    <th className="px-3 py-2.5">Clase</th>
-                    <th className="px-3 py-2.5">Grabación</th>
-                    <th className="px-3 py-2.5">Ejercicios</th>
-                    <th className="px-3 py-2.5">Tarea</th>
-                    <th className="px-3 py-2.5">Semanas</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filas.map((f) => (
-                    <tr key={f.user_id} className="border-b border-[#F3F4F6] last:border-0">
-                      <td className="px-3 py-2.5">
-                        {enEscuela ? (
-                          <span className="font-medium text-gray-900">{f.nombre}</span>
-                        ) : (
-                          <button onClick={() => setFicha(f)} className="font-medium text-gray-900 hover:underline text-left">
-                            {f.nombre}
-                          </button>
-                        )}
-                        {f.grupos.length ? <p className="text-[11.5px] text-[#9CA3AF] truncate max-w-[200px]">{f.grupos.join(' · ')}</p> : null}
-                      </td>
-                      <td className="px-3 py-2.5">{f.presentacion === null ? <No /> : f.presentacion ? <Si /> : <No />}</td>
-                      <td className="px-3 py-2.5" title={f.clase_origen === 'lista' ? 'Lo marcó el profe en la lista' : f.clase_origen === 'sala' ? 'Lo vio la sala de la escuela' : ''}>
-                        {f.clase === null ? <span className="text-[#D1D5DB]">?</span> : f.clase ? <Si /> : <No />}
-                      </td>
-                      <td className="px-3 py-2.5">{f.grabacion ? <Si /> : <No />}</td>
-                      <td className="px-3 py-2.5 tabular-nums">
-                        {f.ejercicios.total ? (
-                          <span className={f.ejercicios.hechos >= f.ejercicios.total ? 'text-[#15803D] font-medium' : f.ejercicios.hechos ? 'text-[#025dc7]' : 'text-[#9CA3AF]'}>
-                            {f.ejercicios.hechos} de {f.ejercicios.total}
-                          </span>
-                        ) : (
-                          <No />
-                        )}
-                      </td>
-                      <td className="px-3 py-2.5 whitespace-nowrap">
-                        <EstadoTarea f={f} onCorregir={setCorrigiendo} />
-                      </td>
-                      <td className="px-3 py-2.5 whitespace-nowrap">
-                        <Semanas f={f} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {/* Móvil: una tarjeta por alumno. */}
-            <div className="md:hidden divide-y divide-[#F3F4F6]">
-              {filas.map((f) => (
-                <div key={f.user_id} className="px-4 py-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[14px] font-medium text-gray-900 truncate">{f.nombre}</p>
-                    <EstadoTarea f={f} onCorregir={setCorrigiendo} />
-                  </div>
-                  <p className={META}>
-                    Presentación {f.presentacion ? '✓' : '—'} · Clase {f.clase === null ? '?' : f.clase ? '✓' : '—'} · Grabación{' '}
-                    {f.grabacion ? '✓' : '—'} · Ejercicios{' '}
-                    {f.ejercicios.total ? `${f.ejercicios.hechos}/${f.ejercicios.total}` : '—'}
-                  </p>
-                  <Semanas f={f} />
-                </div>
+            <div className="flex flex-wrap gap-1.5 px-3 py-2.5 border-b border-[#EEF1F7]">
+              {FILTROS.filter((x) => x.si).map((x) => (
+                <button
+                  key={x.k}
+                  onClick={() => setFiltro(x.k)}
+                  className={`h-7 px-2.5 rounded-full text-[12.5px] font-medium border ${
+                    filtro === x.k ? 'bg-[#1D0084] border-[#1D0084] text-white' : 'bg-white border-[#E2E8F4] text-[#374151] hover:border-[#9cc7ff]'
+                  }`}
+                >
+                  {x.t} <span className={filtro === x.k ? 'text-white/70' : 'text-[#9CA3AF]'}>{x.n}</span>
+                </button>
               ))}
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2.5 text-[12.5px] text-[#374151]">
-              <span>
-                {datos.semana.tiene_tarea ? `${sinEntregar} sin entregar` : 'Esta semana no tiene tarea'}
-                {descolgados ? ` · ${descolgados} llevan 2 semanas o más sin nada` : ''}
-              </span>
-              {!enEscuela ? <span className="text-[#6B7280]">Toca un nombre para abrir su ficha y mandarle un recordatorio.</span> : null}
-            </div>
+            {visibles.length ? (
+              <>
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-[13.5px]">
+                    <thead>
+                      <tr className="border-b border-[#EEF1F7] text-left text-[12px] font-medium text-[#6B7280]">
+                        <th className="px-4 py-2.5 font-medium">Alumno</th>
+                        <th className="px-3 py-2.5 font-medium">Clase</th>
+                        <th className="px-3 py-2.5 font-medium">Tarea</th>
+                        <th className="px-3 py-2.5 font-medium">Grabación</th>
+                        <th className="px-3 py-2.5 font-medium">Presentación</th>
+                        <th className="px-3 py-2.5 font-medium">Ejercicios</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visibles.map((f) => (
+                        <tr key={f.user_id} className="border-b border-[#F3F4F6] last:border-0">
+                          <td className="px-4 py-2.5">
+                            {enEscuela ? (
+                              <span className="font-medium text-gray-900">{f.nombre}</span>
+                            ) : (
+                              <button onClick={() => setFicha(f)} className="font-medium text-gray-900 hover:underline text-left">
+                                {f.nombre}
+                              </button>
+                            )}
+                            {f.sin_nada >= 2 ? <p className="text-[11.5px] font-medium text-[#B91C1C]">{f.sin_nada} semanas sin hacer nada</p> : null}
+                          </td>
+                          <td className="px-3 py-2.5 whitespace-nowrap">
+                            <Asistio f={f} futura={futura} />
+                          </td>
+                          <td className="px-3 py-2.5 whitespace-nowrap">
+                            <EstadoTarea f={f} onCorregir={setCorrigiendo} />
+                          </td>
+                          <td className="px-3 py-2.5">{f.grabacion ? <Si /> : <No />}</td>
+                          <td className="px-3 py-2.5">{f.presentacion ? <Si /> : <No />}</td>
+                          <td className="px-3 py-2.5 tabular-nums text-[13px]">
+                            {f.ejercicios.total ? (
+                              <span className={f.ejercicios.hechos >= f.ejercicios.total ? 'text-[#15803D] font-medium' : f.ejercicios.hechos ? 'text-gray-700' : 'text-[#9CA3AF]'}>
+                                {f.ejercicios.hechos} de {f.ejercicios.total}
+                              </span>
+                            ) : (
+                              <No />
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {/* Móvil: una línea por alumno, con lo importante. */}
+                <div className="md:hidden divide-y divide-[#F3F4F6]">
+                  {visibles.map((f) => (
+                    <div key={f.user_id} className="px-4 py-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <button onClick={() => !enEscuela && setFicha(f)} className="text-[14px] font-medium text-gray-900 truncate text-left">
+                          {f.nombre}
+                        </button>
+                        <EstadoTarea f={f} onCorregir={setCorrigiendo} />
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-[#6B7280]">
+                        <span className="inline-flex items-center gap-1">
+                          Clase: <Asistio f={f} futura={futura} />
+                        </span>
+                        {c?.con_grabacion ? <span>Grabación {f.grabacion ? '✓' : '—'}</span> : null}
+                        {f.ejercicios.total ? <span>Ejercicios {f.ejercicios.hechos}/{f.ejercicios.total}</span> : null}
+                      </div>
+                      {f.sin_nada >= 2 ? <p className="text-[11.5px] font-medium text-[#B91C1C]">{f.sin_nada} semanas sin hacer nada</p> : null}
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="px-4 py-6 text-center text-[13.5px] text-[#6B7280]">{filtro === 'todos' ? 'Esta clase no tiene alumnos.' : 'Nadie aquí. 🙌'}</p>
+            )}
+            {!enEscuela ? (
+              <p className="border-t border-[#EEF1F7] px-4 py-2.5 text-[12.5px] text-[#6B7280]">Toca un nombre para abrir su ficha y mandarle un recordatorio.</p>
+            ) : null}
           </div>
         ) : null}
 
-        {/* Por corregir (todas las clases) y el corrector. */}
-        <div className="w-full xl:w-[400px] shrink-0 space-y-3">
-          {corrigiendo ? (
-            <Corrector
-              entregaId={corrigiendo}
-              onClose={() => setCorrigiendo(null)}
-              onHecho={() => {
-                setCorrigiendo(null)
-                cargar()
-              }}
-            />
-          ) : null}
-          <div className={TARJETA}>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[#E5E7EB]">
-              <p className="text-[14px] font-semibold text-gray-900">Por corregir</p>
-              <span className={`text-[13px] font-semibold ${pendientes.length ? 'text-[#B45309]' : 'text-[#9CA3AF]'}`}>{pendientes.length}</span>
-            </div>
+        {/* Por corregir (todas las clases) y el corrector: solo si hay algo. */}
+        {corrigiendo || pendientes.length ? (
+          <div className="w-full xl:w-[400px] shrink-0 space-y-3">
+            {corrigiendo ? (
+              <Corrector
+                entregaId={corrigiendo}
+                onClose={() => setCorrigiendo(null)}
+                onHecho={() => {
+                  setCorrigiendo(null)
+                  cargar()
+                }}
+              />
+            ) : null}
             {pendientes.length ? (
-              <div className="divide-y divide-[#F3F4F6]">
-                {pendientes.map((p) => (
-                  <button
-                    key={p.entrega.id}
-                    onClick={() => setCorrigiendo(p.entrega.id)}
-                    className={`w-full text-left px-4 py-2.5 hover:bg-[#F9FAFB] ${corrigiendo === p.entrega.id ? 'bg-[#F9FAFB]' : ''}`}
-                  >
-                    <p className="text-[13.5px] font-medium text-gray-900 truncate">
-                      {p.nombre} · {p.tema}
-                    </p>
-                    <p className={META}>
-                      {p.curso ? `${p.curso} · ` : ''}
-                      {haceCuando(p.entrega.entregada_at)}
-                      {p.entrega.texto && p.entrega.tiene_audio ? ' · texto + voz' : p.entrega.tiene_audio ? ' · solo voz' : ' · solo texto'}
-                    </p>
-                  </button>
-                ))}
+              <div className={TARJETA}>
+                <div className="flex items-center justify-between px-4 py-3 border-b border-[#E5E7EB]">
+                  <p className="text-[14px] font-semibold text-gray-900">Por corregir, de todas las clases</p>
+                  <span className="text-[13px] font-semibold text-[#B45309]">{pendientes.length}</span>
+                </div>
+                <div className="divide-y divide-[#F3F4F6]">
+                  {pendientes.map((p) => (
+                    <button
+                      key={p.entrega.id}
+                      onClick={() => setCorrigiendo(p.entrega.id)}
+                      className={`w-full text-left px-4 py-2.5 hover:bg-[#F9FAFB] ${corrigiendo === p.entrega.id ? 'bg-[#F9FAFB]' : ''}`}
+                    >
+                      <p className="text-[13.5px] font-medium text-gray-900 truncate">
+                        {p.nombre} · {p.tema}
+                      </p>
+                      <p className={META}>
+                        {p.curso ? `${p.curso} · ` : ''}
+                        {haceCuando(p.entrega.entregada_at)}
+                        {p.entrega.texto && p.entrega.tiene_audio ? ' · texto + voz' : p.entrega.tiene_audio ? ' · solo voz' : ' · solo texto'}
+                      </p>
+                    </button>
+                  ))}
+                </div>
               </div>
-            ) : (
-              <p className="px-4 py-4 text-[13px] text-[#9CA3AF]">Nada por corregir.</p>
-            )}
+            ) : null}
           </div>
-        </div>
+        ) : null}
       </div>
+
+      {/* Check-in: abajo y plegado (10/11: «poder ocultarlo»). */}
+      {checkins.length ? (
+        <Plegable
+          titulo="Check-in de esta semana"
+          icono={<MessageCircle size={16} />}
+          cifra={checkins.length}
+          resumen={`${checkins.length} ${checkins.length === 1 ? 'alumno' : 'alumnos'} en su semana 4, 8 o 12`}
+          recordarComo="seguimiento-checkin"
+        >
+          <Checkins lista={checkins} onHecho={cargar} />
+        </Plegable>
+      ) : null}
 
       {ficha ? <FichaAlumno userId={ficha.user_id} nombre={ficha.nombre} onClose={() => setFicha(null)} /> : null}
     </div>

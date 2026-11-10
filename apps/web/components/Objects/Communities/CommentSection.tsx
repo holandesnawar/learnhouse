@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useEffect, useRef } from 'react'
+import { useCajaQueCrece } from '@/lib/nawar/cajaQueCrece'
 import { useTranslation } from 'react-i18next'
 import { MessageSquare, Send, Loader2, User, AlertCircle, Lock, UserPlus } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -39,6 +40,8 @@ export function CommentSection({ discussionUuid, communityUuid, isLocked = false
   const [isFocused, setIsFocused] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  // Crece con el texto; al enfocar pasa a dos líneas.
+  useCajaQueCrece(textareaRef, `${isFocused ? 1 : 0}|${newComment}`)
 
   const fetchComments = async () => {
     setIsLoading(true)

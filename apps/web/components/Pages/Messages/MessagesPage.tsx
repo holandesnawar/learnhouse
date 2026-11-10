@@ -1,5 +1,6 @@
 'use client'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { useCajaQueCrece } from '@/lib/nawar/cajaQueCrece'
 import { useQueryClient } from '@tanstack/react-query'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
@@ -111,6 +112,8 @@ export default function MessagesPage() {
   const [messages, setMessages] = useState<DirectMessage[]>([])
   const [loading, setLoading] = useState(true)
   const [text, setText] = useState('')
+  const cajaRef = useRef<HTMLTextAreaElement>(null)
+  useCajaQueCrece(cajaRef, text)
   const [sending, setSending] = useState(false)
   // Móvil: qué se ve ahora mismo.
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
@@ -732,6 +735,7 @@ export default function MessagesPage() {
 
         <div className="rounded-xl border border-[#E3E8EF] bg-white transition-colors focus-within:border-[#0b2da0] focus-within:ring-[3px] focus-within:ring-[#0b2da0]/15">
           <textarea
+            ref={cajaRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
@@ -742,7 +746,7 @@ export default function MessagesPage() {
             }}
             rows={1}
             placeholder="Escribe tu mensaje…"
-            className="w-full resize-none bg-transparent text-base sm:text-[14.5px] text-gray-900 placeholder:text-[#9CA3AF] outline-none max-h-40 px-3.5 pt-3 pb-1.5"
+            className="w-full resize-none bg-transparent text-base sm:text-[14.5px] text-gray-900 placeholder:text-[#9CA3AF] outline-none leading-relaxed px-3.5 pt-3 pb-1.5"
           />
 
           <div className="flex items-center gap-0.5 px-2 pb-2">

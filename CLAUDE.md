@@ -5166,6 +5166,28 @@ tarjeta por CADA clase a la vez (`TarjetaPreparar`, ya sin usar).
   `PWA/InstallAppPrompt.tsx`, con `usePromptInstalar`: en Android/Chrome va
   directo al diálogo de instalar). Abierta como app, el paso sale hecho solo.
 
+### Seguimiento semanal, más fácil, y las cajas de escribir que crecen (10/11/2026)
+Usuario: "el seguimiento semanal es un caos, no entiendo nada… ver más fácil
+quién entregó las tareas, poder ocultar lo del check-in… quién asistió y quién
+no (ahora es automático con Daily)". Solo pantalla (`Panel/SeguimientoPanel.tsx`):
+- Una pestaña por clase (con cuántas tareas quedan por corregir), la semana con
+  ‹ › y tres cifras grandes que filtran la lista: **Fueron a la clase**,
+  **Entregaron la tarea** (con «N por corregir») y **Vieron la grabación**.
+  Fuera «Las clases esta semana» y las seis cifras pequeñas.
+- Filtros encima de la lista: Todos · No fueron a la clase · Sin entregar la
+  tarea · Por corregir · Sin ver la grabación.
+- La tabla: Alumno · **Clase** («Fue» / «No fue» / «No se sabe» / «Aún no») ·
+  **Tarea** («Corregir» en ámbar, «Corregida», «Sin entregar») · Grabación ·
+  Presentación · Ejercicios. «N semanas sin hacer nada», en rojo bajo el nombre.
+- «Pasar lista» pasa a ser «Corregir asistencia» (la cuenta la sala sola). «Por
+  corregir» solo sale a la derecha si hay algo. **El check-in, abajo y
+  plegado** (`Plegable`, se recuerda en `nawar.plegable.seguimiento-checkin`).
+- **Las cajas de escribir crecen con el texto** hasta un tope (40 % de la
+  pantalla, entre 120 y 320 px) y luego hacen scroll; al mandar, se encogen
+  (`lib/nawar/cajaQueCrece.ts`, `useCajaQueCrece`). En el chat de los canales,
+  los hilos, Mensajes, los comentarios y el cuerpo de una publicación nueva
+  (este hasta el 60 %).
+
 ## Rediseño estilo Circle: la escuela de pruebas y la rama `diseno` (07/11/2026)
 Pedido: "una versión no pública de la escuela para hacer cambios de diseño…
 estilo Circle… que se vea profesional de verdad y no IA". **Todo esto vive en

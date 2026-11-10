@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
+import { useCajaQueCrece } from '@/lib/nawar/cajaQueCrece'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
@@ -553,6 +554,7 @@ function PostComposer({
   const imageInputRef = React.useRef<HTMLInputElement>(null)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const bodyRef = React.useRef<HTMLTextAreaElement>(null)
+  useCajaQueCrece(bodyRef, body, 0.6, 560)
   // Lo escrito tras la @ que se está tecleando en el cuerpo (null = ninguna).
   const [mencion, setMencion] = useState<string | null>(null)
   const candidatos = mencion === null ? [] : sugerencias(mencion, nombres)
