@@ -81,6 +81,7 @@ import {
   Path,
   ClipboardText,
   X,
+  Lightbulb,
 } from '@phosphor-icons/react'
 
 export type Item = {
@@ -106,8 +107,16 @@ const INICIO: Item = {
   claves: 'portada resumen hoy',
 }
 
+/** El Estudio (10/11/2026): la pizarra, el banco de ideas y los prompts. */
+const ESTUDIO: Item = {
+  href: '/dash/estadisticas?tab=estudio',
+  label: 'Estudio',
+  icon: I(Lightbulb),
+  claves: 'pizarra notas ideas contenido reels carrusel blog prompts apuntes',
+}
+
 export const GRUPOS_DEL_PANEL: Grupo[] = [
-  { titulo: '', items: [INICIO] },
+  { titulo: '', items: [INICIO, ESTUDIO] },
   {
     titulo: 'Vender',
     items: [
@@ -238,7 +247,7 @@ export function gruposDelCloser(veNumeros: boolean): Grupo[] {
   }
   return [
     { titulo: '', items: [INICIO] },
-    { titulo: 'Vender', items: [por('Matrículas'), por('Llamadas'), por('Contactos'), por('Tareas'), por('Material de venta')] },
+    { titulo: 'Vender', items: [por('Matrículas'), por('Llamadas'), por('Contactos'), por('Tareas'), por('Material de venta'), { ...ESTUDIO, label: 'Apuntes de ventas' }] },
     { titulo: 'Números', items: numeros },
     // El closer no entra en /dash/webs: ve solo las páginas de la web, en Estadísticas.
     { titulo: 'Web', items: [{ href: '/dash/estadisticas?tab=paginas', label: 'Páginas de la web', icon: I(Globe), claves: 'landing embudo admision' }] },

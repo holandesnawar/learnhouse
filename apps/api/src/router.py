@@ -7,7 +7,7 @@ from src.routers import health
 from src.routers import instance
 from src.routers import plans
 from src.routers import usergroups
-from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs, panel, vision, salas, tareas, ebook, correos, equipo
+from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs, panel, vision, salas, tareas, ebook, correos, equipo, estudio
 from src.routers import notifications as notifications_router_module
 from src.routers import stream
 from src.routers import api_tokens
@@ -414,6 +414,15 @@ v1_router.include_router(
     tareas.router,
     prefix="/tareas",
     tags=["tareas"],
+)
+
+# El Estudio (10/11/2026): la pizarra del negocio y el banco de ideas de
+# contenido. Administradores y closer (este, solo ventas), comprobado en cada
+# ruta. Ver `src/services/estudio/estudio.py`.
+v1_router.include_router(
+    estudio.router,
+    prefix="/estudio",
+    tags=["estudio"],
 )
 
 # La sala de profes (08/11/2026): el tablero de tareas del equipo de clases y

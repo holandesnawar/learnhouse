@@ -5188,6 +5188,66 @@ no (ahora es automático con Daily)". Solo pantalla (`Panel/SeguimientoPanel.tsx
   los hilos, Mensajes, los comentarios y el cuerpo de una publicación nueva
   (este hasta el 60 %).
 
+## El Estudio: pizarra, banco de ideas y prompts (10/11/2026, EN PRUEBAS)
+Pedido (con el "reset" de Fable 5.2): "algo que marque la diferencia en los
+procesos y operaciones, para mí y para el chico de operaciones… un área para
+contenido con generador de ideas (alcance, comunidad, ventas), reels y
+carruseles, y marcar: se subió a Instagram, check; TikTok, check; blog, check…
+todo en un sitio, que ventas pueda dejar cosas ahí, lo que falta en la
+formación, mi pizarra para escribir fácil (el mapa mental da pereza)".
+⚠️ **Está en la rama `diseno` (escuela de pruebas), NO en `dev`**: el usuario
+pidió que lo grande pase antes por pruebas. Se mezcla a `dev` cuando lo vea.
+- **Decidido**: todo sigue DENTRO de la escuela (no un admin.holandesnawar.com
+  aparte: sería otro programa, otro acceso y los datos duplicados). Lo único
+  que iría fuera es procesar vídeo, para no frenar la escuela.
+- **Sin clave de IA en la escuela** (usuario: "por ahora sin clave, con que
+  genere buen prompt"): la escuela arma el prompt y se pega en un proyecto
+  nuevo de Claude (o Claude Design).
+- Panel → **Estudio** (`?tab=estudio`, arriba, junto a Inicio;
+  `Panel/EstudioPanel.tsx`), tres pestañas:
+  - **Pizarra**: escribir e Intro (Mayús+Intro, otra línea). Cada nota en su
+    área (Contenido, Clases, Lo que falta en la formación, Próxima formación,
+    Ventas, Comunidad, Producto y procesos, Otros). Fijar, hecha, cambiar de
+    área, pasarla a idea, borrar. Se edita tocando el texto.
+  - **Ideas de contenido**: formato (reel, carrusel, historia, TikTok, blog,
+    YouTube, comunidad, correo), objetivo (alcance / comunidad / ventas),
+    guion, fecha y **dónde se publicó** (Instagram, TikTok, YouTube, Blog,
+    Comunidad: un toque lo marca con el día). «Pegar varias de golpe» (una por
+    línea; quita números y viñetas, y si la línea empieza por «Reel ·» o
+    «Carrusel ·» le pone ese formato: `formato_de_linea`).
+  - **Prompts** (`lib/nawar/estudioPrompts.ts`, puro, con test): ideas para
+    redes, guion de una idea, artículo del blog (SEO), ideas para la
+    comunidad, **presentación de una clase** (clase semanal = dossier A4,
+    masterclass = diapositivas 16:9, Spreekclub = guía; con el FORMATO DE LA
+    CASA sacado de los tres PDF que pasó el usuario, y el vocabulario y las
+    frases de la lección de `courseData.ts` que se elija) y recurso para
+    alumnos. Todos llevan `CONTEXTO` y `REGLAS` (nada inventado, sin precios,
+    neerlandés con artículo y traducción, «la escuela»). ⚠️ Si cambia la
+    oferta (16 semanas, 10 módulos, qué incluye), cambiar `CONTEXTO`.
+- Servidor: tabla nueva **`estudio_item`** (`src/db/estudio.py`),
+  `services/estudio/estudio.py` (cabecera: leerla), rutas
+  `/api/v1/estudio/org/{id}` (+ `/items`, `/items/varias`, `/items/{id}`).
+  Puerta de contactos. **El closer** ve y escribe solo el área de ventas (en
+  su barra: «Apuntes de ventas») y cambia solo lo suyo. Test `test_estudio.py`.
+- No es Visión (mapa y tablero de trabajo con fechas) ni las tareas del panel:
+  aquí se apunta y se guardan ideas.
+- Probado en local con capturas (ordenador y móvil).
+- **Lo que viene, en este orden** (acordado el 10/11): 1) el lead magnet de
+  Black Friday, si el usuario da el visto bueno: un **reto personalizado de 7
+  días** dentro de la escuela (4 preguntas → frases de SU situación con sus
+  datos, un día cada día, enlace personal sin contraseña, zona separada de la
+  de alumnos, botón de la llamada, y en la ficha del closer cuántos días hizo);
+  2) **clases**: una semana se edita UNA vez para los dos grupos (los dos
+  «Mijn huis» salen de que cada grupo es un curso y cada semana existe dos
+  veces; no es un fallo pequeño), el profe abre el PDF en la escuela, escribe
+  encima en los huecos y «Guardar» lo deja como la versión de después de
+  clase; grabaciones de Daily que aparecen solas, recortar principio y final
+  y publicar; 3) seguimiento contra el «me siento solo» y grupos de empresas;
+  4) reseñas en vídeo dentro de la escuela (incentivo recomendado: un mes de
+  Spreekclub, como agradecimiento y no a cambio de una reseña buena, con
+  permiso por escrito). El guion del vídeo de onboarding (10 bloques) está en
+  un documento de Claude que se le pasó el 10/11.
+
 ## Rediseño estilo Circle: la escuela de pruebas y la rama `diseno` (07/11/2026)
 Pedido: "una versión no pública de la escuela para hacer cambios de diseño…
 estilo Circle… que se vea profesional de verdad y no IA". **Todo esto vive en

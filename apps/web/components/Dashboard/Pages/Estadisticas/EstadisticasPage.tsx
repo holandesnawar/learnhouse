@@ -7,6 +7,7 @@ import ContactosPanel from './ContactosPanel'
 import LlamadasPanel from './LlamadasPanel'
 import GastosPanel from './GastosPanel'
 import GuionPanel from './GuionPanel'
+import EstudioPanel from '../Panel/EstudioPanel'
 import KanbanPanel from '../Panel/KanbanPanel'
 import TareasPanel from '../Panel/TareasPanel'
 import FacturasDosPartes from './FacturasDosPartes'
@@ -79,6 +80,7 @@ import {
   Route,
   ClipboardCheck,
   Presentation,
+  Lightbulb,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -121,6 +123,7 @@ const SECCIONES: Record<string, { titulo: string; icono: React.ReactNode; que: s
   tandas: { titulo: 'Tandas y grupos', icono: <Tags {...ICONO} />, que: 'La beta y el programa nuevo: el grupo de cada alumno y quién ve qué.' },
   paginas: { titulo: 'Páginas de la web', icono: <Globe {...ICONO} />, que: 'Las páginas de la web y lo que ya sabe quien llega desde cada una.' },
   correos: { titulo: 'Correos', icono: <Mails {...ICONO} />, que: 'Quién está en cada campaña y a quién le ha llegado cada correo.' },
+  estudio: { titulo: 'Estudio', icono: <Lightbulb {...ICONO} />, que: 'Tu pizarra para apuntar deprisa, el banco de ideas de contenido y los prompts ya preparados para Claude.' },
   profes: { titulo: 'Clases de los profes', icono: <Presentation {...ICONO} />, que: 'Las próximas clases con su presentación, lo que falta preparar y los recursos. Lo mismo que ven los profes en la escuela.' },
 }
 /** Las pestañas de «Material de venta», en este orden. */
@@ -268,7 +271,7 @@ export default function EstadisticasPage() {
   // ?tab= va a Matrículas, no a Números, o saltaría de una a otra sin parar.
   const esCloserRef = React.useRef(false)
   esCloserRef.current = isCloser
-  const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'gastos' | 'guion' | 'paginas' | 'utm' | 'matriculas' | 'tareas' | 'clientes' | 'anuncios' | 'progreso' | 'recursos' | 'vision' | 'kpis' | 'plazos' | 'tandas' | 'enfoque' | 'camino' | 'seguimiento' | 'correos' | 'profes'>('numeros')
+  const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'gastos' | 'guion' | 'paginas' | 'utm' | 'matriculas' | 'tareas' | 'clientes' | 'anuncios' | 'progreso' | 'recursos' | 'vision' | 'kpis' | 'plazos' | 'tandas' | 'enfoque' | 'camino' | 'seguimiento' | 'correos' | 'profes' | 'estudio'>('numeros')
   // El closer arranca en Matrículas, que es lo suyo. Contactos también lo ve
   // desde el 03/11 (del 08/10 al 03/11 era solo del administrador).
   useEffect(() => {
@@ -280,7 +283,7 @@ export default function EstadisticasPage() {
   useEffect(() => {
     const leer = () => {
       const pedida = new URLSearchParams(window.location.search).get('tab')
-      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'llamadas' || pedida === 'facturas' || pedida === 'gastos' || pedida === 'guion' || pedida === 'paginas' || pedida === 'utm' || pedida === 'matriculas' || pedida === 'tareas' || pedida === 'clientes' || pedida === 'anuncios' || pedida === 'progreso' || pedida === 'recursos' || pedida === 'vision' || pedida === 'kpis' || pedida === 'plazos' || pedida === 'tandas' || pedida === 'enfoque' || pedida === 'camino' || pedida === 'seguimiento' || pedida === 'correos' || pedida === 'profes') setTab(pedida)
+      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'llamadas' || pedida === 'facturas' || pedida === 'gastos' || pedida === 'guion' || pedida === 'paginas' || pedida === 'utm' || pedida === 'matriculas' || pedida === 'tareas' || pedida === 'clientes' || pedida === 'anuncios' || pedida === 'progreso' || pedida === 'recursos' || pedida === 'vision' || pedida === 'kpis' || pedida === 'plazos' || pedida === 'tandas' || pedida === 'enfoque' || pedida === 'camino' || pedida === 'seguimiento' || pedida === 'correos' || pedida === 'profes' || pedida === 'estudio') setTab(pedida)
       // Sin ?tab= (el enlace «Estadísticas» de la barra) = los números.
       else if (!pedida) setTab(esCloserRef.current ? 'matriculas' : 'numeros')
     }
@@ -297,7 +300,7 @@ export default function EstadisticasPage() {
   }, [])
   // El closer sin Números no se queda nunca en esa sección.
   useEffect(() => {
-    if (isCloser && tab !== 'contactos' && tab !== 'llamadas' && tab !== 'guion' && tab !== 'enfoque' && tab !== 'recursos' && tab !== 'paginas' && tab !== 'matriculas' && tab !== 'tareas' && tab !== 'kpis' && !(tab === 'numeros' && closerVeNumeros === true)) {
+    if (isCloser && tab !== 'contactos' && tab !== 'llamadas' && tab !== 'guion' && tab !== 'enfoque' && tab !== 'recursos' && tab !== 'paginas' && tab !== 'matriculas' && tab !== 'tareas' && tab !== 'kpis' && tab !== 'estudio' && !(tab === 'numeros' && closerVeNumeros === true)) {
       setTab('matriculas')
     }
   }, [isCloser, tab, closerVeNumeros])
@@ -432,6 +435,8 @@ export default function EstadisticasPage() {
         // Vive en Correos y avisos desde el 04/11 (allí lleva a «Quién recibe
         // qué»); esta dirección se queda por los enlaces viejos.
         <CorreosPanel key={vuelta} />
+      ) : tab === 'estudio' ? (
+        <EstudioPanel key={vuelta} />
       ) : tab === 'profes' ? (
         <ClasesProfes key={vuelta} enPanel />
       ) : tab === 'plazos' ? (
