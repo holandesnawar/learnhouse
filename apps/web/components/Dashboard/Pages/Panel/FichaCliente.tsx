@@ -94,6 +94,36 @@ function Bloque({ icono, titulo, children, derecha }: { icono: React.ReactNode; 
   )
 }
 
+/** «Mijn eerste week» (10/11): el reto de 7 días. Para qué quiere el
+ *  neerlandés, a qué se dedica y cuántos días ha hecho: con cinco o más, o si
+ *  pulsó el botón de la llamada, es a quien se llama primero. */
+function BloqueReto({ reto }: { reto: NonNullable<Ficha['reto']> }) {
+  const filas: { t: string; v: string }[] = [
+    { t: 'Para qué lo necesita', v: reto.motivo },
+    { t: 'A qué se dedica', v: reto.trabajo },
+    { t: 'Cuánto sabe', v: reto.nivel },
+    { t: 'Dónde vive', v: [reto.vive, reto.origen ? `de ${reto.origen}` : ''].filter(Boolean).join(' · ') },
+    { t: 'Empezó', v: fechaCorta(reto.empezo) + (reto.ultimo ? ` · último día hecho el ${fechaCorta(reto.ultimo)}` : '') },
+  ]
+  return (
+    <Bloque icono={<Tag size={15} />} titulo="Mijn eerste week · reto de 7 días">
+      <Estado tono={reto.caliente ? 'verde' : reto.hechos ? 'azul' : 'gris'} className="!text-[13px] !text-gray-900">
+        {reto.hechos} de {reto.de} días hechos
+        {reto.pulso_llamada ? ' · pulsó el botón de la llamada' : ''}
+        {reto.caliente ? ' · llamar primero' : ''}
+      </Estado>
+      <dl className="mt-2.5 divide-y divide-[#F3F4F6] border-t border-[#F3F4F6]">
+        {filas.map((f) => (
+          <div key={f.t} className="py-2 flex justify-between gap-3">
+            <dt className="text-[12.5px] text-[#6B7280] shrink-0">{f.t}</dt>
+            <dd className="text-[13px] text-gray-900 text-right">{f.v}</dd>
+          </div>
+        ))}
+      </dl>
+    </Bloque>
+  )
+}
+
 /** Black Friday (29/10, para los closers): de dónde vino, si tiene el ebook,
  *  en qué campaña de correos de systeme.io está y qué le ha llegado. Los
  *  correos salen del CALENDARIO de la campaña (services/panel/black_friday.py):
@@ -709,6 +739,7 @@ export default function FichaCliente({
 
             {/* Black Friday (29/10): de dónde vino, el ebook y sus correos. */}
             {ficha.black_friday ? <BloqueBlackFriday bf={ficha.black_friday} /> : null}
+            {ficha.reto ? <BloqueReto reto={ficha.reto} /> : null}
 
             {/* A un alumno, lo primero que interesa es lo que ha pagado. */}
             {esAlumno ? bloquePagos : null}

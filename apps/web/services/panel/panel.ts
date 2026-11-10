@@ -213,6 +213,8 @@ export interface FichaCliente {
   admision?: ProcesoAdmision | null
   /** Si pasó por la campaña de Black Friday (null si no). */
   black_friday?: BlackFridayFicha | null
+  /** «Mijn eerste week», el reto de 7 días (apps/api/src/services/reto/reto.py). */
+  reto?: RetoFicha | null
   pagos: { fecha: string; importe_cents: number; moneda: string; producto: string }[]
   total_pagado_cents: number
   correos: { asunto: string; ok: boolean; created_at: string }[]
@@ -711,3 +713,20 @@ export const getPorDecidir = (orgId: number, t: string) =>
 
 export const decidirPrograma = (orgId: number, userId: number, a: 'nuevo' | 'beta', t: string) =>
   pedir<{ ok: boolean; programa: string; grupos: string[] }>(`panel/org/${orgId}/tandas/decidir`, 'POST', { user_id: userId, a }, t)
+
+/** Lo que ve el closer del reto de 7 días de esa persona. */
+export interface RetoFicha {
+  empezo: string
+  hechos: number
+  de: number
+  dias: number[]
+  ultimo: string
+  motivo: string
+  trabajo: string
+  nivel: string
+  vive: string
+  origen: string
+  pulso_llamada: boolean
+  /** Cinco días o más, o pidió la llamada: a quién llamar primero. */
+  caliente: boolean
+}

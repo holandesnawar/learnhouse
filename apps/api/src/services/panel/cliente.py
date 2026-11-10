@@ -401,6 +401,13 @@ async def ficha_cliente(
         black_friday = resumen_bf(ficha, datetime.now(timezone.utc), (await leer_ebook(db_session)).get("systeme_desde", ""))
     except Exception:  # noqa: BLE001
         black_friday = None
+    # «Mijn eerste week» (10/11): para qué lo quiere y cuántos días ha hecho.
+    try:
+        from src.services.reto.reto import para_la_ficha as reto_de
+
+        reto = await reto_de(clave, db_session)
+    except Exception:
+        reto = None
 
     return {
         "reserva": reserva,
@@ -416,6 +423,7 @@ async def ficha_cliente(
         # «Ads» u «Orgánico», arriba junto a sus datos (ver `canal_de`).
         "canal": canal_de(ficha, nombres_anuncios),
         "black_friday": black_friday,
+        "reto": reto,
         # Los intentos de contacto de «Contactado» (08/11, services/panel/intentos.py).
         "intentos": _intentos(eventos),
         "utm": {

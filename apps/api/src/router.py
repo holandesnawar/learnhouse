@@ -7,7 +7,7 @@ from src.routers import health
 from src.routers import instance
 from src.routers import plans
 from src.routers import usergroups
-from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs, panel, vision, salas, tareas, ebook, correos, equipo, estudio
+from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs, panel, vision, salas, tareas, ebook, correos, equipo, estudio, reto
 from src.routers import notifications as notifications_router_module
 from src.routers import stream
 from src.routers import api_tokens
@@ -414,6 +414,15 @@ v1_router.include_router(
     tareas.router,
     prefix="/tareas",
     tags=["tareas"],
+)
+
+# «Mijn eerste week» (10/11/2026): el reto personalizado de 7 días para
+# captar leads. Público (con enlace personal firmado y tope por IP); la lista
+# de personas, con la puerta de contactos. Ver `src/services/reto/reto.py`.
+v1_router.include_router(
+    reto.router,
+    prefix="/reto",
+    tags=["reto"],
 )
 
 # El Estudio (10/11/2026): la pizarra del negocio y el banco de ideas de

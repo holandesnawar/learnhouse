@@ -5248,6 +5248,58 @@ pidió que lo grande pase antes por pruebas. Se mezcla a `dev` cuando lo vea.
   permiso por escrito). El guion del vídeo de onboarding (10 bloques) está en
   un documento de Claude que se le pasó el 10/11.
 
+## «Mijn eerste week»: el reto personalizado de 7 días (10/11/2026, EN PRUEBAS)
+Pedido: "crear algo brutal como lead magnet, que no sea un ebook, medio
+personalizado, que pase por la escuela, así cualificamos mucho más… ya con su
+mail, número y nombre listos… el dolor de que siempre hay que pagar para
+todo… créalo para ver si me gusta a mí primero". ⚠️ **Está en `diseno`
+(pruebas), no en `dev`**: es un prototipo para que el usuario lo pruebe. Sin
+enlazar desde ningún sitio.
+- **Dónde**: `/auth/primera-semana` (bajo /auth para verse sin sesión;
+  `app/auth/primera-semana/`). Sin enlace personal, la portada con las
+  preguntas; con él (`?t=…`, o el que recuerda el navegador), sus 7 días.
+  `?nuevo=1` empieza otra vez aunque el navegador recuerde un plan.
+- **Portada** (ángulo «gratis de verdad»): «Tu primera semana en neerlandés,
+  hecha a tu medida». Cinco toques (dónde vive, de dónde es + ciudad, para
+  qué lo necesita, a qué se dedica, cuánto sabe) y AL FINAL nombre, correo y
+  WhatsApp. Mientras contesta se escribe «Tu primera frase» con sus datos
+  (Hoi, ik ben… Ik kom uit Spanje. Ik woon in Rotterdam.). En el móvil la
+  primera pregunta se ve sin bajar (las ventajas van debajo de la tarjeta).
+- **Los 7 días** (`armar` en `services/reto/reto.py`, puro; cabecera: leerla):
+  1 Preséntate (sus datos) · 2 Frases salvavidas · 3 Tu día (su trabajo) ·
+  4 SU situación (trabajo, médico, trámites, colegio, pareja o el súper) ·
+  5 Quedar: días y horas · 6 El súper (o el médico, si eligió el súper) ·
+  7 Su presentación entera. Cada día: frases con audio (`/api/tts`, y si
+  falla la voz del navegador), «Ojo, si hablas español», una práctica (qué
+  significa y ordenar la frase, montada con sus frases), el reto de la calle
+  y «He terminado el día N» (pide hacer la práctica). **Un día cada día**
+  (hora NL; lo decide el servidor y de un día cerrado no manda ni las
+  frases). Un administrador con la sesión abierta ve los siete abiertos.
+- Es texto fijo con huecos: **sin IA en vivo**. ⚠️ El neerlandés lo escribí
+  yo: que lo repase un profe antes de abrirlo al público.
+- Debajo, «Esto es la primera semana. La formación son dieciséis» con los 10
+  módulos con candado y el botón de la llamada (hasta el 30/11 va al
+  formulario de Black Friday con nombre y correo; después, al proceso de
+  admisión; `url_de_la_llamada`). Con los 7 hechos, bloque grande de cierre.
+- Servidor: tabla nueva **`reto_semana`** (una fila por correo: respuestas,
+  días hechos, inicio; el plan no se guarda). Enlace firmado con el secreto
+  JWT, 120 días (rotarlo los invalida). Rutas `/api/v1/reto/…`: `opciones`,
+  `empezar` (público, 10/h por IP, campo trampa), `plan/{token}`,
+  `plan/{token}/hecho`, `plan/{token}/llamada`, `org/{id}/personas` (puerta
+  de contactos). Tests `test_reto.py`.
+- **Para el closer**: al apuntarse queda en Contactos (`contact_event`
+  `reto`, con sus utm) y la ficha tiene el bloque «Mijn eerste week»: para qué
+  lo necesita, a qué se dedica, cuánto sabe, días hechos y si pulsó el botón
+  de la llamada; con 5 de 7 o el botón pulsado, «llamar primero».
+- Al apuntarse sale un correo con su enlace (carta de Rida; en blando).
+- **Sin hacer, a decidir con el usuario**: los correos de cada día («tu día 3
+  está abierto»; propuesto por systeme.io con una etiqueta), que quien se
+  apunta entre en Matrículas, una lista en el panel de quién va por qué día,
+  la página en la WEB para anuncios y orgánico (hoy la portada vive en la
+  escuela), grabarse el día 7 y que el closer lo oiga, y el nombre definitivo.
+- Recomendado al usuario: que sea un regalo APARTE del Black Friday (sirve
+  todo el año); durante noviembre su botón de la llamada lleva a Black Friday.
+
 ## Rediseño estilo Circle: la escuela de pruebas y la rama `diseno` (07/11/2026)
 Pedido: "una versión no pública de la escuela para hacer cambios de diseño…
 estilo Circle… que se vea profesional de verdad y no IA". **Todo esto vive en

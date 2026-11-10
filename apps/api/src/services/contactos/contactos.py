@@ -88,6 +88,8 @@ NOMBRES_TIPO = {
     "bf-lista": "Se apuntó para desbloquear la oferta de Black Friday",
     "correo-bf": "Le llegó un correo de la campaña de Black Friday",
     "baja-bf": "Se dio de baja de la campaña de Black Friday",
+    # «Mijn eerste week», el reto de 7 días (10/11, services/reto/reto.py).
+    "reto": "Empezó «Mijn eerste week» (el reto de 7 días)",
 }
 
 #: Los tipos en los que la persona ha visto el precio con seguridad: llegar al
