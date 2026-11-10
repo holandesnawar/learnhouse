@@ -30,6 +30,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Share, Plus, Smartphone, X, MoreVertical, ExternalLink, Download } from 'lucide-react'
 
 type Plataforma = 'ios' | 'android' | 'escritorio'
@@ -87,11 +88,10 @@ function Paso({ numero, icono, children }: PasoProps) {
   )
 }
 
-export default function InstallAppPrompt() {
-  const [visible, setVisible] = useState(false)
-  const [abierto, setAbierto] = useState(false)
+/** Los pasos para instalarla en iPhone o Android, en una ventana. La usan la
+ * pantalla de entrar y «Empieza aquí» («Tenla en el móvil → Descubre cómo»). */
+export function VentanaInstalar({ onCerrar }: { onCerrar: () => void }) {
   const [dentroDeOtraApp, setDentroDeOtraApp] = useState(false)
-  const [promptNativo, setPromptNativo] = useState<PromptDeInstalacion | null>(null)
   // Qué pasos se enseñan. Arranca en el móvil que se detecta, pero el alumno
   // puede cambiarlo: se detecta bien casi siempre, y cuando falla (un iPad que
   // se hace pasar por Mac, un navegador raro) sin las pestañas se quedaba
@@ -99,90 +99,28 @@ export default function InstallAppPrompt() {
   const [pestana, setPestana] = useState<'ios' | 'android'>('ios')
 
   useEffect(() => {
-    if (yaInstalada()) return
-
-    const plat = detectarPlataforma()
-    const incrustado = esNavegadorDeOtraApp()
-    setPestana(plat === 'android' ? 'android' : 'ios')
-    setDentroDeOtraApp(incrustado)
-
-    // En escritorio solo se ofrece si el navegador dice que se puede instalar;
-    // no tiene sentido explicarle a nadie cómo instalar algo que su navegador
-    // no soporta. En móvil siempre hay un camino que enseñar.
-    if (plat === 'ios' || plat === 'android') setVisible(true)
-
-    const alPoderInstalar = (e: Event) => {
-      // Sin esto Chrome enseña su propia barra; queremos el botón nuestro.
-      e.preventDefault()
-      setPromptNativo(e as PromptDeInstalacion)
-      setVisible(true)
-    }
-    const alInstalar = () => {
-      setVisible(false)
-      setAbierto(false)
-    }
-
-    window.addEventListener('beforeinstallprompt', alPoderInstalar)
-    window.addEventListener('appinstalled', alInstalar)
-    return () => {
-      window.removeEventListener('beforeinstallprompt', alPoderInstalar)
-      window.removeEventListener('appinstalled', alInstalar)
-    }
+    setPestana(detectarPlataforma() === 'android' ? 'android' : 'ios')
+    setDentroDeOtraApp(esNavegadorDeOtraApp())
   }, [])
-
-  const instalarConDialogoNativo = useCallback(async () => {
-    if (!promptNativo) return
-    try {
-      await promptNativo.prompt()
-      await promptNativo.userChoice
-    } catch {
-      /* el diálogo solo se puede pedir una vez; si falla quedan los pasos */
-    }
-    // El prompt guardado ya no sirve una segunda vez.
-    setPromptNativo(null)
-    setAbierto(false)
-  }, [promptNativo])
-
-  const abrirModal = useCallback(() => {
-    // Si el navegador nos deja instalar de verdad, el toque va directo al
-    // diálogo nativo: abrir un popup para luego enseñar otro sería peor.
-    if (promptNativo) {
-      void instalarConDialogoNativo()
-      return
-    }
-    setAbierto(true)
-  }, [promptNativo, instalarConDialogoNativo])
 
   // Cerrar con Escape.
   useEffect(() => {
-    if (!abierto) return
     const alTeclear = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setAbierto(false)
+      if (e.key === 'Escape') onCerrar()
     }
     window.addEventListener('keydown', alTeclear)
     return () => window.removeEventListener('keydown', alTeclear)
-  }, [abierto])
+  }, [onCerrar])
 
-  if (!visible) return null
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={abrirModal}
-        className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 px-4 py-3 text-[13.5px] font-semibold text-white/85 hover:text-white transition-colors"
-      >
-        <Download size={16} strokeWidth={2.2} />
-        Instalar la escuela en tu móvil
-      </button>
-
-      {abierto && (
+  // Al body, por encima de la barra de la escuela (que tiene su propio z-index).
+  if (typeof document === 'undefined') return null
+  return createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 px-3 py-4 sm:p-6"
+          className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center bg-black/60 px-3 py-4 sm:p-6"
           role="dialog"
           aria-modal="true"
           aria-labelledby="titulo-instalar-app"
-          onClick={() => setAbierto(false)}
+          onClick={() => onCerrar()}
         >
           {/* Oscuro, con el mismo lenguaje que la web y que esta misma pantalla
               de entrar: fondo #1D0084, glow azul arriba y la trama de puntos.
@@ -233,7 +171,7 @@ export default function InstallAppPrompt() {
               </div>
               <button
                 type="button"
-                onClick={() => setAbierto(false)}
+                onClick={() => onCerrar()}
                 aria-label="Cerrar"
                 className="shrink-0 -mt-1 -mr-1 p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors"
               >
@@ -308,14 +246,88 @@ export default function InstallAppPrompt() {
 
             <button
               type="button"
-              onClick={() => setAbierto(false)}
+              onClick={() => onCerrar()}
               className="mt-5 w-full bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold py-3.5 rounded-xl text-[15px] transition-colors"
             >
               Entendido
             </button>
           </div>
-        </div>
-      )}
+        </div>,
+    document.body
+  )
+}
+
+/** El diálogo nativo de instalar (Android y Chrome), si el navegador lo ofrece. */
+export function usePromptInstalar() {
+  const [promptNativo, setPromptNativo] = useState<PromptDeInstalacion | null>(null)
+  const [instalada, setInstalada] = useState(false)
+  useEffect(() => {
+    setInstalada(yaInstalada())
+    const alPoderInstalar = (e: Event) => {
+      // Sin esto Chrome enseña su propia barra; queremos el botón nuestro.
+      e.preventDefault()
+      setPromptNativo(e as PromptDeInstalacion)
+    }
+    const alInstalar = () => setInstalada(true)
+    window.addEventListener('beforeinstallprompt', alPoderInstalar)
+    window.addEventListener('appinstalled', alInstalar)
+    return () => {
+      window.removeEventListener('beforeinstallprompt', alPoderInstalar)
+      window.removeEventListener('appinstalled', alInstalar)
+    }
+  }, [])
+  /** Abre el diálogo nativo; devuelve false si no lo hay (entonces, los pasos). */
+  const instalar = useCallback(async () => {
+    if (!promptNativo) return false
+    try {
+      await promptNativo.prompt()
+      await promptNativo.userChoice
+    } catch {
+      /* el diálogo solo se puede pedir una vez; si falla quedan los pasos */
+    }
+    setPromptNativo(null)
+    return true
+  }, [promptNativo])
+  return { instalada, instalar, hayNativo: !!promptNativo }
+}
+
+export default function InstallAppPrompt() {
+  const [visible, setVisible] = useState(false)
+  const [abierto, setAbierto] = useState(false)
+  const { instalada, instalar, hayNativo } = usePromptInstalar()
+
+  useEffect(() => {
+    // En escritorio solo se ofrece si el navegador dice que se puede instalar;
+    // no tiene sentido explicarle a nadie cómo instalar algo que su navegador
+    // no soporta. En móvil siempre hay un camino que enseñar.
+    const plat = detectarPlataforma()
+    if (plat === 'ios' || plat === 'android') setVisible(true)
+  }, [])
+  useEffect(() => {
+    if (hayNativo) setVisible(true)
+  }, [hayNativo])
+
+  const abrirModal = useCallback(async () => {
+    // Si el navegador nos deja instalar de verdad, el toque va directo al
+    // diálogo nativo: abrir un popup para luego enseñar otro sería peor.
+    if (await instalar()) return
+    setAbierto(true)
+  }, [instalar])
+
+  if (!visible || instalada) return null
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={abrirModal}
+        className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 px-4 py-3 text-[13.5px] font-semibold text-white/85 hover:text-white transition-colors"
+      >
+        <Download size={16} strokeWidth={2.2} />
+        Instalar la escuela en tu móvil
+      </button>
+
+      {abierto && <VentanaInstalar onCerrar={() => setAbierto(false)} />}
     </>
   )
 }
