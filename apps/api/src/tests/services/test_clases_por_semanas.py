@@ -173,6 +173,10 @@ async def test_mira_tambien_la_clase_del_otro_grupo(db, org, monkeypatch):
     assert otra["course_uuid"] == "rood" and otra["dia"] == "jueves"
     # Solo lo ya dado: la de Mijn huis (12 nov) aún no.
     assert [(g["tema"], g["fecha"], g["video"]["tipo"]) for g in otra["grabaciones"]] == [("Kleding", "2026-11-05", "bunny")]
+    # Desde rood se ve blauw, aunque sus grabaciones sigan en el capítulo del
+    # mes (10/11/2026: «no veo lo del otro grupo»).
+    desde_rood = (await T.mira_tambien(rood, db))["clases"]
+    assert [(g["tema"], g["fecha"]) for g in desde_rood[0]["grabaciones"]] == [("Kleding", "2026-11-02"), ("Het Weer", "2026-10-14")]
     # La Masterclass no es hermana de nadie.
     assert await T.mira_tambien(await T.curso_de("mc", db), db) == {"clases": []}
     # El equipo ve la otra clase para crear la semana en las dos.

@@ -148,14 +148,29 @@ def limite_de(fecha: str, fecha_limite: str = "") -> str:
 def semana_actual(semanas: Iterable[dict], hoy: str) -> tuple[Optional[int], Optional[int]]:
     """(la semana en curso, la próxima clase), por id.
 
-    En curso: la de la última clase ya dada (fecha ≤ hoy) cuyo plazo no ha
-    pasado. Próxima: la primera clase que aún no ha llegado."""
+    En curso: la que tiene su clase en ESTA semana del calendario, de lunes a
+    domingo, aunque la clase aún no haya llegado (10/11/2026: «al llegar el
+    lunes tendría que actualizar a la siguiente semana»; antes seguía la
+    pasada hasta el día de la clase). Si esta semana no hay clase, la de la
+    última clase ya dada cuyo plazo no ha pasado. Próxima: la primera clase
+    que aún no ha llegado, sin contar la que está en curso."""
     orden = sorted((s for s in semanas if s.get("fecha")), key=lambda s: (s["fecha"], s.get("id") or 0))
     actual = None
-    for s in orden:
-        if s["fecha"] <= hoy and limite_de(s["fecha"], s.get("fecha_limite", "")) >= hoy:
-            actual = s.get("id")
-    proxima = next((s.get("id") for s in orden if s["fecha"] > hoy), None)
+    try:
+        d = date.fromisoformat(str(hoy)[:10])
+        lunes = (d - timedelta(days=d.weekday())).isoformat()
+        domingo = (d + timedelta(days=6 - d.weekday())).isoformat()
+    except (TypeError, ValueError):
+        lunes = domingo = ""
+    en_esta = [s for s in orden if lunes and lunes <= s["fecha"][:10] <= domingo]
+    if en_esta:
+        dadas = [s for s in en_esta if s["fecha"] <= hoy]
+        actual = (dadas[-1] if dadas else en_esta[0]).get("id")
+    else:
+        for s in orden:
+            if s["fecha"] <= hoy and limite_de(s["fecha"], s.get("fecha_limite", "")) >= hoy:
+                actual = s.get("id")
+    proxima = next((s.get("id") for s in orden if s["fecha"] > hoy and s.get("id") != actual), None)
     return actual, proxima
 
 
@@ -1066,7 +1081,9 @@ async def seguimiento(org_id: int, course_uuid: str, semana_id: Optional[int], d
     elegida = next((s for s in semanas if s["id"] == semana_id), None)
     if elegida is None:
         pasadas = [s for s in semanas if s["fecha"] <= hoy]
-        elegida = next((s for s in semanas if s["id"] == actual), None) or (pasadas[0] if pasadas else semanas[-1])
+        # La última clase ya dada: la de esta semana, si aún no ha llegado, no tiene nada que seguir.
+        en_curso = next((s for s in semanas if s["id"] == actual and s["fecha"] <= hoy), None)
+        elegida = en_curso or (pasadas[0] if pasadas else semanas[-1])
 
     alumnos = await alumnos_del_curso(org_id, course, db_session)
     ids = [a["user_id"] for a in alumnos]
@@ -1784,6 +1801,28 @@ async def hermanas_para_el_equipo(course: Course, db_session: AsyncSession) -> l
     return salida
 
 
+async def _grabaciones_de_hermana(h: Course, semanas: list[dict], hoy: str, db_session: AsyncSession) -> list[dict]:
+    """Las grabaciones ya dadas de una clase hermana, la más nueva primero: las
+    de sus semanas y, desde el 10/11/2026, también las de los capítulos de los
+    meses de antes (con el día que dice su nombre). Antes solo contaban las de
+    las semanas, y con las grabaciones aún en los meses no salía nada."""
+    dadas = [s for s in semanas if s["fecha"] and s["fecha"] <= hoy]
+    clases = await _clases([s["chapter_uuid"] for s in dadas], db_session)
+    salida = []
+    for s in dadas:
+        for c in clases.get(s["chapter_uuid"], []):
+            if c["tipo"] == "grabacion":
+                salida.append({"tema": s["tema"], "fecha": s["fecha"], "activity_uuid": c["activity_uuid"], "nombre": c["nombre"]})
+    vistas = {g["activity_uuid"] for g in salida}
+    for c in await _sueltas(h, {s["chapter_uuid"] for s in semanas}, db_session):
+        f = str(c.get("fecha") or "")
+        if c.get("tipo") != "grabacion" or not f or f > hoy or c["activity_uuid"] in vistas:
+            continue
+        salida.append({"tema": c.get("tema") or c["nombre"], "fecha": f, "activity_uuid": c["activity_uuid"], "nombre": c["nombre"]})
+    salida.sort(key=lambda g: g["fecha"], reverse=True)
+    return salida
+
+
 async def mira_tambien(course: Course, db_session: AsyncSession, limite: int = 8) -> dict:
     """Las grabaciones de las clases hermanas, ya dadas, la más nueva primero:
     tema, día, profe (el del recuadro de esa clase) y cómo se ven."""
@@ -1796,21 +1835,13 @@ async def mira_tambien(course: Course, db_session: AsyncSession, limite: int = 8
     salida = []
     for h in await hermanas(course, db_session, config):
         semanas = [_semana_dict(s) for s in await semanas_de(h.org_id, h.course_uuid, db_session)]
-        dadas = [s for s in semanas if s["fecha"] and s["fecha"] <= hoy]
-        clases = await _clases([s["chapter_uuid"] for s in dadas], db_session)
-        uuids = [c["activity_uuid"] for s in dadas for c in clases.get(s["chapter_uuid"], []) if c["tipo"] == "grabacion"]
+        lista = await _grabaciones_de_hermana(h, semanas, hoy, db_session)
         contenido = {}
-        if uuids:
+        if lista:
+            uuids = [g["activity_uuid"] for g in lista]
             for a in (await db_session.execute(select(Activity).where(Activity.activity_uuid.in_(uuids)))).scalars().all():  # type: ignore[attr-defined]
                 contenido[a.activity_uuid] = video_de(a.activity_type, a.activity_sub_type, a.content)
-        grabaciones = []
-        for s in _orden_reciente(dadas):
-            for c in clases.get(s["chapter_uuid"], []):
-                v = contenido.get(c["activity_uuid"]) if c["tipo"] == "grabacion" else None
-                if v:
-                    grabaciones.append(
-                        {"tema": s["tema"], "fecha": s["fecha"], "activity_uuid": c["activity_uuid"], "nombre": c["nombre"], "video": v}
-                    )
+        grabaciones = [{**g, "video": contenido[g["activity_uuid"]]} for g in lista if contenido.get(g["activity_uuid"])]
         banner = _ajustes_sala(config, h.course_uuid).get("banner") or {}
         if grabaciones:
             salida.append(
@@ -1839,9 +1870,8 @@ async def archivo_de_hermana(course: Course, activity_uuid: str, db_session: Asy
     for h in await hermanas(course, db_session, config):
         if h.id != a.course_id:
             continue
-        semanas = [s for s in await semanas_de(h.org_id, h.course_uuid, db_session) if s.fecha and s.fecha <= hoy]
-        clases = await _clases([s.chapter_uuid for s in semanas], db_session)
-        if not any(c["activity_uuid"] == activity_uuid for lista in clases.values() for c in lista):
+        semanas = [_semana_dict(s) for s in await semanas_de(h.org_id, h.course_uuid, db_session)]
+        if not any(g["activity_uuid"] == activity_uuid for g in await _grabaciones_de_hermana(h, semanas, hoy, db_session)):
             return None
         from src.db.organizations import Organization
 
