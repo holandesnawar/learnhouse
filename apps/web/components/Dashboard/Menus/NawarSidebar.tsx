@@ -82,6 +82,8 @@ import {
   ClipboardText,
   X,
   Lightbulb,
+  VideoCamera,
+  Pulse,
 } from '@phosphor-icons/react'
 
 export type Item = {
@@ -178,6 +180,7 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
         claves: 'tareas corregir check-in deberes camino 16 semanas asistencia directo',
       },
       { href: '/dash/estadisticas?tab=tandas', label: 'Tandas y grupos', icon: I(Tag), claves: 'beta programa nuevo quien ve que' },
+      { href: '/dash/estadisticas?tab=resenas', label: 'Reseñas', icon: I(VideoCamera), claves: 'video testimonio opinion invitar regalo' },
       { href: '/dash/users/settings/users', label: 'Usuarios', icon: I(UserCircle), es: (p) => p.includes('/dash/users') && !p.includes('/usergroups'), claves: 'cuentas roles' },
     ],
   },
@@ -226,6 +229,7 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
     titulo: 'Escuela',
     items: [
       { href: '/dash/users/settings/usergroups', label: 'Equipo y grupos', icon: I(UsersThree), es: (p) => p.includes('/usergroups'), claves: 'profes closers testers' },
+      { href: '/dash/estadisticas?tab=estado', label: 'Estado de la escuela', icon: I(Pulse), claves: 'errores fallos lento caida algo salio mal velocidad' },
       { href: '/dash/org/settings/general', label: 'Ajustes', icon: I(GearSix), es: (p) => p.includes('/dash/org'), claves: 'logo favicon organizacion' },
     ],
   },

@@ -223,18 +223,11 @@ async def get_unread(
     read_map = {cid: last for cid, last in read_rows}
     alta = await _alta(user_id, db_session)
 
+    nuevos = await _nuevos_por_canal(user_id, communities, read_map, alta, db_session)
+
     out: List[UnreadCount] = []
     for community in communities:
-        last_read = read_map.get(community.id) or ""
-        statement = select(Discussion).where(
-            Discussion.community_id == community.id,
-            Discussion.author_id != user_id,  # lo tuyo no cuenta como no leído
-        )
-        desde = desde_cuando(last_read, alta)
-        if desde:
-            statement = statement.where(Discussion.creation_date > desde)  # type: ignore
-        rows = (await db_session.execute(statement)).scalars().all()
-
+        rows = nuevos.get(community.id) or []
         if not rows:
             continue
 
@@ -247,6 +240,46 @@ async def get_unread(
             )
         )
     return out
+
+
+async def _nuevos_por_canal(
+    user_id: int, communities, read_map: dict, alta: str, db_session: AsyncSession
+) -> dict:
+    """
+    Los mensajes de otros que esta persona aún no ha leído, por canal, en UNA
+    sola consulta (10/11/2026).
+
+    Antes se hacía una consulta por canal, y esto lo piden la barra («sin
+    leer») y la campana de cada pestaña abierta, cada minuto: con diez canales
+    eran veinte consultas por minuto y persona. El resultado es el mismo: la
+    fecha de cada canal se sigue comparando en la base de datos, como antes
+    (no en Python: el orden de los textos no es igual en los dos sitios).
+
+    Devuelve {id del canal: [mensajes]}; un canal sin nada nuevo no sale.
+    """
+    from sqlalchemy import and_, or_
+
+    condiciones = []
+    for community in communities:
+        desde = desde_cuando(read_map.get(community.id) or "", alta)
+        condicion = Discussion.community_id == community.id
+        if desde:
+            condicion = and_(condicion, Discussion.creation_date > desde)  # type: ignore
+        condiciones.append(condicion)
+    if not condiciones:
+        return {}
+    rows = (
+        await db_session.execute(
+            select(Discussion).where(
+                Discussion.author_id != user_id,  # lo tuyo no cuenta como nuevo
+                or_(*condiciones),
+            )
+        )
+    ).scalars().all()
+    por_canal: dict = {}
+    for d in rows:
+        por_canal.setdefault(d.community_id, []).append(d)
+    return por_canal
 
 
 ####################################################
@@ -440,17 +473,11 @@ async def _channel_items(
     read_map = {cid: last for cid, last in read_rows}
     alta = await _alta(user.id, db_session)
 
+    nuevos = await _nuevos_por_canal(user.id, communities, read_map, alta, db_session)
+
     out: List[dict] = []
     for community in communities:
-        last_read = read_map.get(community.id) or ""
-        statement = select(Discussion).where(
-            Discussion.community_id == community.id,
-            Discussion.author_id != user.id,  # lo tuyo no cuenta como nuevo
-        )
-        desde = desde_cuando(last_read, alta)
-        if desde:
-            statement = statement.where(Discussion.creation_date > desde)  # type: ignore
-        rows = (await db_session.execute(statement)).scalars().all()
+        rows = nuevos.get(community.id) or []
         if not rows:
             continue
 
@@ -703,6 +730,14 @@ async def _tareas_items(user_id: int, org_ids: List[int], db_session: AsyncSessi
                     out.extend(await avisos_de_mensajes(org_id, user_id, db_session))
                 except Exception:  # noqa: BLE001
                     pass
+        # Reseñas en vídeo (10/11/2026): al alumno invitado y, al
+        # administrador, las que quedan por revisar. En blando.
+        try:
+            from src.services.resenas.resenas import avisos_para
+
+            out.extend(await avisos_para(user_id, org_id, db_session))
+        except Exception:  # noqa: BLE001
+            pass
     return out
 
 

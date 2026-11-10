@@ -60,6 +60,11 @@ class TareaSemana(SQLModel, table=True):
     # la presentación completa (archivos o enlaces) y notas para preparar la
     # clase. Solo lo ve el equipo. JSON {notas, archivos: [...]}.
     material_profe: str = ""
+    # La grabación de la sala publicada en esta semana (10/11/2026,
+    # services/salas/estudio_grabaciones.py): la grabación se queda en Daily y
+    # aquí va QUÉ se enseña. JSON {partes: [{id, dur, trozos: [[desde, hasta]]}],
+    # titulo, publicada_at, por, vistas: {user_id: iso}}. Vacío = sin publicar.
+    grabacion_sala: str = ""
 
 
 class TareaEntrega(SQLModel, table=True):

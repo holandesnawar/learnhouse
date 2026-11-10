@@ -7,7 +7,7 @@ from src.routers import health
 from src.routers import instance
 from src.routers import plans
 from src.routers import usergroups
-from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs, panel, vision, salas, tareas, ebook, correos, equipo, estudio, reto
+from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs, panel, vision, salas, tareas, ebook, correos, equipo, estudio, reto, pizarra, resenas, grabaciones, estado
 from src.routers import notifications as notifications_router_module
 from src.routers import stream
 from src.routers import api_tokens
@@ -414,6 +414,41 @@ v1_router.include_router(
     tareas.router,
     prefix="/tareas",
     tags=["tareas"],
+)
+
+# Reseñas en vídeo (10/11/2026): invitar a alumnos, que graben o suban su
+# vídeo con permiso, revisarlo y bajarlo. Ver `src/services/resenas/resenas.py`.
+v1_router.include_router(
+    resenas.router,
+    prefix="/resenas",
+    tags=["resenas"],
+)
+
+# Grabaciones de la sala (10/11/2026): las de Daily aparecen solas, se
+# recortan sin procesar vídeo y se publican en su semana. Ver
+# `src/services/salas/estudio_grabaciones.py`.
+v1_router.include_router(
+    grabaciones.router,
+    prefix="/grabaciones",
+    tags=["grabaciones"],
+)
+
+# Estado de la escuela (10/11/2026): qué falla, qué va lento y las pantallas
+# rotas en el navegador. `POST /estado/pantalla` es pública (el aviso del
+# navegador); leer, solo administradores. Ver `src/services/estado/estado.py`.
+v1_router.include_router(
+    estado.router,
+    prefix="/estado",
+    tags=["estado"],
+)
+
+# La pizarra de clase (10/11/2026): el profe abre la presentación dentro de la
+# escuela, escribe encima y la guarda para los alumnos. Ver
+# `src/services/tareas/pizarra.py`.
+v1_router.include_router(
+    pizarra.router,
+    prefix="/pizarra",
+    tags=["pizarra"],
 )
 
 # «Mijn eerste week» (10/11/2026): el reto personalizado de 7 días para

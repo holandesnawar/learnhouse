@@ -17,13 +17,16 @@
  * - «Clase anterior»: lo que le falta (lista, grabación, corregir).
  * - «Después»: la que va detrás.
  */
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { ArrowRight, Check, FileText, Link2, MessageSquare, Paperclip, Pencil, X } from 'lucide-react'
 import {
   abrirArchivoProfe,
   editarSemana,
+  getGemela,
+  igualarGemela,
+  type Gemela,
   enlaceProfe,
   guardarNotasProfe,
   mensajeLeido,
@@ -138,6 +141,29 @@ export function Material({ semana, token }: { semana: SemanaEquipo; token: strin
         <p className="mt-1.5 text-[13.5px] text-[#5B6382]">Aún no hay presentación completa para dar la clase.</p>
       )}
       {m.notas ? <p className="mt-2.5 text-[13.5px] leading-relaxed text-[#2B3150] whitespace-pre-wrap">{m.notas}</p> : null}
+      <Pizarra semana={semana} />
+    </div>
+  )
+}
+
+/**
+ * La pizarra de clase (10/11/2026, components/Pages/Pizarra): abrir la
+ * presentación dentro de la escuela, escribir encima mientras se comparte
+ * pantalla y guardarla para los alumnos.
+ */
+function Pizarra({ semana }: { semana: SemanaEquipo }) {
+  const p = semana.material?.pizarra
+  const estado = p?.publicada_at
+    ? `Los alumnos ya tienen la presentación con las notas de la clase (${p.paginas || 0} páginas).`
+    : p?.guardada_at
+      ? 'Tienes cosas escritas, aún sin guardar para los alumnos.'
+      : 'Ábrela en clase mientras compartes pantalla, escribe encima y guárdala para los alumnos con un clic.'
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-[#E4EBF8] pt-3">
+      <a href={`/pizarra/${semana.semanaId}`} className={BOTON_AZUL}>
+        Abrir la pizarra de clase
+      </a>
+      <p className="min-w-0 flex-1 basis-[220px] text-[13px] leading-snug text-[#2B3150]">{estado}</p>
     </div>
   )
 }
@@ -168,6 +194,26 @@ export function EditarSemanaProfe({
   const [ocupado, setOcupado] = useState('')
   const archivo = useRef<HTMLInputElement>(null)
   const [cambios, setCambios] = useState(false)
+  // La misma semana en la clase del otro grupo (10/11/2026): se edita una vez.
+  const [gemela, setGemela] = useState<Gemela | null>(null)
+  const [tambien, setTambien] = useState(true)
+  useEffect(() => {
+    let vivo = true
+    getGemela(semana.semanaId, token)
+      .then((r) => vivo && setGemela(r.gemela))
+      .catch(() => undefined)
+    return () => {
+      vivo = false
+    }
+  }, [semana.semanaId, token])
+  const igualar = async () => {
+    if (!gemela || !tambien) return
+    try {
+      await igualarGemela(semana.semanaId, token)
+    } catch (e: any) {
+      toast.error(`Guardado aquí, pero no en ${gemela.curso}: ${e?.message || 'vuelve a intentarlo'}`)
+    }
+  }
 
   const subir = async (f?: File | null) => {
     if (!f) return
@@ -214,7 +260,8 @@ export function EditarSemanaProfe({
       if (notas.trim() !== (semana.material?.notas || '').trim()) await guardarNotasProfe(semana.semanaId, notas, token)
       if (admin && profe.trim() !== (semana.material?.profe || '').trim()) await quienProfe(semana.semanaId, profe, token)
       if (admin && mensaje.trim() !== (semana.material?.mensaje?.texto || '').trim()) await mensajeProfe(semana.semanaId, mensaje, token)
-      toast.success('Guardado')
+      await igualar()
+      toast.success(gemela && tambien ? `Guardado en las dos clases` : 'Guardado')
       onGuardada()
     } catch (e: any) {
       toast.error(e?.message || 'No se ha podido guardar')
@@ -222,7 +269,12 @@ export function EditarSemanaProfe({
       setOcupado('')
     }
   }
-  const cerrar = () => (cambios ? onGuardada() : onCerrar())
+  const cerrar = async () => {
+    if (!cambios) return onCerrar()
+    // Se añadió o quitó algún archivo: que el otro grupo tenga lo mismo.
+    await igualar()
+    onGuardada()
+  }
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center bg-[#0a1656]/40 p-0 sm:p-4" onClick={cerrar}>
@@ -337,6 +389,19 @@ export function EditarSemanaProfe({
             className={`${CAMPO} mt-1 resize-y`}
           />
         </label>
+
+        {gemela ? (
+          <label className="mt-5 flex items-start gap-2.5 rounded-xl border border-[#E4EBF8] bg-[#F5F8FE] px-3.5 py-3 cursor-pointer">
+            <input type="checkbox" checked={tambien} onChange={(e) => setTambien(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#0b2da0]" />
+            <span className="text-[13.5px] leading-snug text-[#2B3150]">
+              <span className="font-semibold text-[#0B1033]">
+                Guardar también en {gemela.curso} ({diaLegible(gemela.fecha)})
+              </span>
+              <br />
+              El tema, la tarea, las notas y la presentación completa. Cada grupo conserva su día, quién la da, su grabación y sus entregas.
+            </span>
+          </label>
+        ) : null}
 
         <div className="mt-5 flex justify-end gap-2">
           <button onClick={cerrar} className="h-10 px-4 rounded-lg border border-[#DDE3EF] text-[14px] font-semibold text-[#3B4262]">

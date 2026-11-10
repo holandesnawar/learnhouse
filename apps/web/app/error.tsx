@@ -2,6 +2,7 @@
 
 import ErrorUI from '@components/Objects/StyledElements/Error/Error'
 import { useEffect } from 'react'
+import { avisarPantallaRota } from '@/lib/nawar/avisarFallo'
 
 export default function Error({
   error,
@@ -12,6 +13,8 @@ export default function Error({
 }) {
   useEffect(() => {
     console.error(error)
+    // Que la escuela se entere (Panel → Estado). Nunca lanza.
+    avisarPantallaRota(error, 'pagina')
 
     if (
       error.message.includes('Failed to find Server Action') ||

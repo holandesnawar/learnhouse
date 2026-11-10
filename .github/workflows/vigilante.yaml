@@ -1,0 +1,123 @@
+# El vigilante: comprueba DESDE FUERA que la escuela responde.
+#
+# Lo que hay dentro de la escuela (Panel → Estado) no puede avisar de que la
+# escuela entera está caída: si está caída, no avisa nadie. Esto corre en
+# GitHub, cada 10 minutos, y si la escuela no contesta acaba en ROJO, que es
+# lo que hace que GitHub mande un correo.
+#
+# Qué mira (el «Diagnóstico rápido de un apagón» de CLAUDE.md):
+#   - /api/v1/health  → la API (y, por dentro, la base de datos)
+#   - /login          → la web (Next) pasando por nginx
+#
+# Para no avisar por el reinicio de un despliegue, lo intenta 3 veces con algo
+# más de un minuto entre una y otra: solo falla si falla las tres.
+#
+# ⚠️ GitHub solo dispara los `schedule` desde la rama por defecto (`dev`). En
+# cualquier otra rama (la de pruebas, `diseno`) esto NO corre solo; se puede
+# lanzar a mano desde Actions → «Vigilante» → Run workflow.
+#
+# ⚠️ El correo de GitHub le llega a quien tocó por última vez este archivo (o a
+# quien lo lanzó a mano), si tiene encendidos los avisos de Actions en
+# GitHub → Settings → Notifications → «Actions: Send notifications for failed
+# workflows only». Para un aviso al móvil sin depender de eso: el secreto
+# opcional VIGILANTE_AVISO_URL (una dirección a la que se manda el texto del
+# aviso con un POST; por ejemplo un tema de ntfy.sh).
+#
+# Solo números en el registro (el repositorio es público): códigos y segundos.
+#
+# Secretos:
+#   SCHOOL_URL            https://app.holandesnawar.com  (el mismo de las copias)
+#   VIGILANTE_AVISO_URL   opcional
+name: Vigilante
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+# Si una pasada se alarga, la siguiente espera: nunca dos a la vez.
+concurrency:
+  group: vigilante
+  cancel-in-progress: false
+
+jobs:
+  vigilar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Comprobar que la escuela responde
+        id: mirar
+        env:
+          SCHOOL_URL: ${{ secrets.SCHOOL_URL }}
+        run: |
+          set -uo pipefail
+          if [ -z "${SCHOOL_URL:-}" ]; then
+            echo "Falta el secreto SCHOOL_URL" >&2
+            exit 1
+          fi
+          base="${SCHOOL_URL%/}"
+          LENTO=8          # segundos: a partir de aquí cuenta como lenta
+          INTENTOS=3
+          ESPERA=75        # segundos entre intentos
+
+          # Imprime «código segundos». 000 = no hubo respuesta.
+          pedir() {
+            local salida
+            salida=$(curl --silent --output /dev/null --max-time 25 \
+              -w '%{http_code} %{time_total}' "$1" 2>/dev/null) || true
+            echo "${salida:-000 25}"
+          }
+          bien() { case "$1" in 2*|3*) return 0 ;; *) return 1 ;; esac; }
+          lenta() { awk -v t="$1" -v m="$LENTO" 'BEGIN { exit !(t > m) }'; }
+
+          motivo=""
+          for n in $(seq 1 "$INTENTOS"); do
+            read -r api_cod api_seg <<< "$(pedir "$base/api/v1/health")"
+            read -r web_cod web_seg <<< "$(pedir "$base/login")"
+            echo "Intento $n: API $api_cod en ${api_seg}s · web $web_cod en ${web_seg}s"
+
+            if bien "$api_cod" && bien "$web_cod"; then
+              if lenta "$api_seg" || lenta "$web_seg"; then
+                motivo="LENTA: la escuela responde, pero tarda más de ${LENTO} s (API ${api_seg}s, web ${web_seg}s). Mirar Panel → Estado → «Lo que va lento» y el uso de memoria y CPU en Railway."
+              else
+                echo "La escuela responde bien."
+                exit 0
+              fi
+            elif ! bien "$api_cod" && bien "$web_cod"; then
+              motivo="API CAÍDA, web y nginx bien (API $api_cod, web $web_cod). Los alumnos ven la escuela pero no carga nada. Mirar los logs de learnhouse-api en Railway; NO tocar nginx. Si acaba de publicarse un cambio: Railway → Deployments → el último en verde → ⋮ → Redeploy."
+            elif bien "$api_cod" && ! bien "$web_cod"; then
+              motivo="WEB CAÍDA, la API bien (API $api_cod, web $web_cod). El proceso de la web (Next, puerto 8000) no responde. Mirar los logs de learnhouse-web en Railway."
+            elif [ "$api_cod" = "503" ] || [ "$web_cod" = "503" ]; then
+              motivo="REINICIANDO demasiado tiempo (API $api_cod, web $web_cod): nginx responde con «Volvemos en un momento», pero la escuela no termina de arrancar. Mirar el despliegue en Railway."
+            else
+              motivo="TODO CAÍDO (API $api_cod, web $web_cod): no responde ni nginx. Es el contenedor o el dominio. Railway → Deployments → el último en verde → ⋮ → Redeploy."
+            fi
+
+            if [ "$n" -lt "$INTENTOS" ]; then sleep "$ESPERA"; fi
+          done
+
+          echo "motivo=$motivo" >> "$GITHUB_OUTPUT"
+          {
+            echo "## La escuela no responde bien"
+            echo ""
+            echo "$motivo"
+            echo ""
+            echo "Comprobado $INTENTOS veces, con $ESPERA segundos entre una y otra."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::error title=La escuela no responde bien::$motivo"
+          exit 1
+
+      - name: Avisar al móvil (opcional)
+        if: failure() && steps.mirar.outputs.motivo != ''
+        env:
+          AVISO_URL: ${{ secrets.VIGILANTE_AVISO_URL }}
+          MOTIVO: ${{ steps.mirar.outputs.motivo }}
+        run: |
+          if [ -z "${AVISO_URL:-}" ]; then
+            echo "Sin VIGILANTE_AVISO_URL: el aviso es el correo de GitHub."
+            exit 0
+          fi
+          curl --silent --show-error --max-time 20 --output /dev/null \
+            -H "Title: Holandes Nawar: la escuela no responde" \
+            -H "Priority: high" \
+            --data "$MOTIVO" "$AVISO_URL" || echo "No se pudo mandar el aviso al móvil."

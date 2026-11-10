@@ -84,7 +84,12 @@ def leer(texto: Any) -> dict:
         if (msg.get("texto") or "").strip()
         else None
     )
-    return {"notas": str(d.get("notas") or ""), "archivos": archivos, "profe": str(d.get("profe") or ""), "mensaje": mensaje}
+    salida = {"notas": str(d.get("notas") or ""), "archivos": archivos, "profe": str(d.get("profe") or ""), "mensaje": mensaje}
+    # La pizarra de clase (10/11/2026, pizarra.py) vive aquí dentro: se
+    # conserva tal cual para que guardar unas notas no la borre.
+    if isinstance(d.get("pizarra"), dict):
+        salida["pizarra"] = d["pizarra"]
+    return salida
 
 
 def para_la_pantalla(m: dict) -> dict:
@@ -94,6 +99,20 @@ def para_la_pantalla(m: dict) -> dict:
         "archivos": [{k: v for k, v in a.items() if k != "ruta"} for a in m.get("archivos", [])],
         "profe": m.get("profe", ""),
         "mensaje": m.get("mensaje"),
+        # De la pizarra, solo si hay algo escrito y si ya está publicada.
+        "pizarra": _pizarra_resumen(m),
+    }
+
+
+def _pizarra_resumen(m: dict) -> Optional[dict]:
+    p = m.get("pizarra")
+    if not isinstance(p, dict):
+        return None
+    pub = p.get("publicada") if isinstance(p.get("publicada"), dict) else None
+    return {
+        "guardada_at": str(p.get("guardada_at") or ""),
+        "publicada_at": str((pub or {}).get("at") or ""),
+        "paginas": int((pub or {}).get("paginas") or 0),
     }
 
 

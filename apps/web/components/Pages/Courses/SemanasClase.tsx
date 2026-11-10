@@ -53,6 +53,8 @@ import { CasillasCampana, EditarSemana, NuevaSemana } from './SemanaModales'
 import { AvisarClase } from './AvisarClase'
 import { tipoDeClase } from '@/lib/nawar/visitaGuiada'
 import { deLaMismaSemana, Reproductor, useMiraTambien, type Grabacion } from './MiraTambien'
+import GrabacionDeSala from '@components/Pages/Grabaciones/GrabacionDeSala'
+import FilaGrabacionAlumno from '@components/Pages/Grabaciones/FilaGrabacionAlumno'
 
 export const claveSemanas = (courseUuid: string) => ['tareas', 'semanas', String(courseUuid || '').replace(/^course_/, '')]
 
@@ -214,6 +216,17 @@ function ContenidoSemana({
             href={rutaClase(c)}
           />
         ))
+      ) : admin && semana.fecha && semana.fecha <= hoy ? (
+        // La grabación que hizo la sala ese día (10/11/2026): el equipo la
+        // recorta y la publica desde aquí, sin subir nada.
+        <div className="px-4 py-3">
+          <GrabacionDeSala semana={semana} courseUuid={semana.course_uuid} hoy={hoy} />
+          <p className="mt-1 text-[12px] text-[#8A91AD]">
+            {semana.grabacion_sala ? 'Los alumnos la ven en su semana.' : 'Lo que grabe la sala ese día aparece aquí solo.'}
+          </p>
+        </div>
+      ) : semana.grabacion_sala ? (
+        <FilaGrabacionAlumno courseUuid={semana.course_uuid} semana={semana} grabacion={semana.grabacion_sala} />
       ) : (
         <Fila
           tipo="grabacion"
@@ -369,7 +382,7 @@ function queTuvo(s: Semana): string {
   const tipos = new Set((s.clases || []).map((c) => c.tipo))
   const partes = [
     tipos.has('presentacion') ? 'Presentación' : '',
-    tipos.has('grabacion') ? 'Grabación' : '',
+    tipos.has('grabacion') || s.grabacion_sala ? 'Grabación' : '',
     tipos.has('ejercicios') ? 'Ejercicios' : '',
     s.tiene_tarea ? 'Tarea' : '',
   ].filter(Boolean)
@@ -558,7 +571,7 @@ export default function SemanasClase({
   const filaSemana = (s: Semana) => {
     const abierta = !!abiertas[s.id]
     const est = s.tarea?.estado || 'sin-tarea'
-    const grabacionVista = (s.clases || []).some((c) => c.tipo === 'grabacion' && c.hecha)
+    const grabacionVista = (s.clases || []).some((c) => c.tipo === 'grabacion' && c.hecha) || !!s.grabacion_sala?.vista
     return (
       <div key={s.id}>
         <button

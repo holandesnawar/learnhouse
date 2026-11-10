@@ -5,10 +5,16 @@
  * La usan «Esta semana», el Inicio y la página de la clase (rediseño, rama
  * diseno): las tres se tienen que ver igual.
  */
-import React from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import { Check } from 'lucide-react'
 import { diaCorto, type ClaseSemana, type Semana } from '@services/tareas/tareas'
+import type { GrabacionSala } from '@services/grabaciones/grabaciones'
+import { duracionCorta } from '@/lib/nawar/recorte'
+import VentanaGrabacionSala from '@components/Pages/Grabaciones/VentanaGrabacionSala'
+import toast from 'react-hot-toast'
+import { useLHSession } from '@components/Contexts/LHSessionContext'
+import { urlPdfConNotas } from '@services/pizarra/pizarra'
 
 export const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
 export const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
@@ -22,7 +28,17 @@ const NOMBRE: Record<string, string> = {
   ejercicios: 'Haz los ejercicios',
 }
 
-export type PasoSemana = { key: string; titulo: string; detalle?: string; href?: string; estado: 'hecho' | 'pendiente' | 'cerrado' }
+export type PasoSemana = {
+  key: string
+  titulo: string
+  detalle?: string
+  href?: string
+  estado: 'hecho' | 'pendiente' | 'cerrado'
+  /** La grabación de la sala (10/11/2026): no es una clase del curso, se ve en una ventana de esta página. */
+  sala?: { courseUuid: string; semana: { id: number; tema: string; fecha: string }; grabacion: GrabacionSala }
+  /** La presentación con las notas de la clase (10/11/2026, la pizarra): un PDF que se abre con la sesión. */
+  notas?: { semanaId: number }
+}
 
 /** Lo que toca en una semana, en orden: lo usan «Esta semana» y el Inicio. */
 export function pasosDeSemana(semana: Semana, courseUuid: string, ruta: (p: string) => string, hoy: string): PasoSemana[] {
@@ -48,6 +64,26 @@ export function pasosDeSemana(semana: Semana, courseUuid: string, ruta: (p: stri
     })
   }
   for (const c of grab) out.push({ key: c.activity_uuid, titulo: NOMBRE.grabacion, detalle: 'Por si no pudiste venir o quieres repasar', href: actividad(c), estado: c.hecha ? 'hecho' : 'pendiente' })
+  // La grabación que hizo la sala, publicada en esta semana (10/11/2026). Si ya
+  // hay una subida a mano, se enseña esa y no las dos.
+  const sala = semana.grabacion_sala
+  if (sala && !grab.length)
+    out.push({
+      key: 'grabacion-sala',
+      titulo: NOMBRE.grabacion,
+      detalle: `${sala.titulo || 'Por si no pudiste venir o quieres repasar'} · ${duracionCorta(sala.segundos)}`,
+      estado: sala.vista ? 'hecho' : 'pendiente',
+      sala: { courseUuid, semana: { id: semana.id, tema: semana.tema, fecha: semana.fecha }, grabacion: sala },
+    })
+  // Lo que el profe escribió encima de la presentación en clase (10/11/2026).
+  if (semana.notas_clase)
+    out.push({
+      key: 'notas-clase',
+      titulo: 'Repasa la presentación con las notas de la clase',
+      detalle: `Con lo que se escribió en clase · ${semana.notas_clase.paginas} páginas`,
+      estado: 'pendiente',
+      notas: { semanaId: semana.id },
+    })
   if (ejercicios.length) {
     const n = ejercicios.filter((c) => c.hecha).length
     out.push({
@@ -100,15 +136,56 @@ export function FilaPaso({ p }: { p: PasoSemana }) {
         <span className={`block text-[14.5px] font-medium ${p.estado === 'hecho' ? 'text-[#6B7393]' : p.estado === 'cerrado' ? 'text-[#8A91AD]' : 'text-[#0B1033]'}`}>{p.titulo}</span>
         {p.detalle ? <span className="block text-[12.5px] text-[#8A91AD] first-letter:uppercase">{p.detalle}</span> : null}
       </span>
-      {p.href ? <span className="shrink-0 text-[13px] font-semibold text-[#0b2da0] opacity-0 group-hover:opacity-100 transition-opacity">Abrir</span> : null}
+      {p.href || p.sala || p.notas ? <span className="shrink-0 text-[13px] font-semibold text-[#0b2da0] opacity-0 group-hover:opacity-100 transition-opacity">{p.sala ? 'Ver' : 'Abrir'}</span> : null}
     </>
   )
   const cls = 'group flex items-center gap-3.5 px-5 py-3'
+  if (p.sala) return <FilaSala p={p} cls={cls} dentro={dentro} />
+  if (p.notas) return <FilaNotas semanaId={p.notas.semanaId} cls={cls} dentro={dentro} />
   return p.href ? (
     <Link href={p.href} className={`${cls} hover:bg-[#F7F9FD]`}>
       {dentro}
     </Link>
   ) : (
     <div className={cls}>{dentro}</div>
+  )
+}
+
+/** La fila de la grabación de la sala: un botón que abre el vídeo aquí mismo. */
+function FilaSala({ p, cls, dentro }: { p: PasoSemana; cls: string; dentro: React.ReactNode }) {
+  const [viendo, setViendo] = useState(false)
+  if (!p.sala) return null
+  return (
+    <>
+      <button type="button" onClick={() => setViendo(true)} className={`${cls} w-full text-left hover:bg-[#F7F9FD]`}>
+        {dentro}
+      </button>
+      {viendo ? (
+        <VentanaGrabacionSala courseUuid={p.sala.courseUuid} semana={p.sala.semana} grabacion={p.sala.grabacion} onClose={() => setViendo(false)} />
+      ) : null}
+    </>
+  )
+}
+
+/** La presentación con las notas: se pide con la sesión y se abre en otra pestaña. */
+function FilaNotas({ semanaId, cls, dentro }: { semanaId: number; cls: string; dentro: React.ReactNode }) {
+  const session = useLHSession() as any
+  const token: string = session?.data?.tokens?.access_token || ''
+  const abrir = async () => {
+    // La pestaña se abre YA (con el clic), si no el navegador la bloquea.
+    const ventana = window.open('', '_blank')
+    try {
+      const url = await urlPdfConNotas(semanaId, token)
+      if (ventana) ventana.location.href = url
+      else window.location.href = url
+    } catch (e: any) {
+      ventana?.close()
+      toast.error(e?.message || 'No se ha podido abrir')
+    }
+  }
+  return (
+    <button type="button" onClick={abrir} className={`${cls} w-full text-left hover:bg-[#F7F9FD]`}>
+      {dentro}
+    </button>
   )
 }

@@ -184,6 +184,9 @@ export default function SalaProfes() {
           <Link href={ruta('/seguimiento')} className="font-semibold text-[#0b2da0] hover:underline">
             Seguimiento de alumnos
           </Link>
+          <Link href={ruta('/grabaciones')} className="font-semibold text-[#0b2da0] hover:underline">
+            Grabaciones de las clases
+          </Link>
           <Link href={ruta('/responder-consultas')} className="font-semibold text-[#0b2da0] hover:underline">
             Responder consultas
           </Link>

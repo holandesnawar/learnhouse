@@ -289,6 +289,57 @@ async def _semana_equipo(semana_id: int, current_user, db_session: AsyncSession)
     return s, admin
 
 
+# ── La misma semana en los dos grupos (10/11/2026, gemelas.py) ──────────────
+
+
+async def _gemela(s, db_session: AsyncSession):
+    """La semana gemela (la del otro grupo), su curso y su nombre con etiqueta."""
+    from src.services.salas.salas import nombre_con_etiqueta
+    from src.services.tareas import gemelas as G
+
+    curso = await T.curso_de(s.course_uuid, db_session)
+    if curso is None:
+        return None, ""
+    config = await T._config(curso.org_id, db_session)
+    candidatas: list = []
+    for h in await T.hermanas(curso, db_session, config):
+        for o in await T.semanas_de(h.org_id, h.course_uuid, db_session):
+            candidatas.append({"id": o.id, "tema": o.tema, "fecha": o.fecha, "fila": o, "curso": nombre_con_etiqueta(config, h.course_uuid, h.name)})
+    elegida = G.elegir_gemela({"id": s.id, "tema": s.tema, "fecha": s.fecha}, candidatas)
+    return (elegida["fila"], elegida["curso"]) if elegida else (None, "")
+
+
+@router.get("/semana/{semana_id}/gemela", summary="La misma semana en la clase del otro grupo, si la hay (equipo).")
+async def api_gemela(
+    semana_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    s, _admin_ok = await _semana_equipo(semana_id, current_user, db_session)
+    g, curso = await _gemela(s, db_session)
+    return {"gemela": {"id": g.id, "tema": g.tema, "fecha": g.fecha, "curso": curso} if g else None}
+
+
+@router.post("/semana/{semana_id}/gemela/igualar", summary="Copia a la semana del otro grupo el tema, la tarea, las notas y la presentación completa (equipo).")
+async def api_igualar_gemela(
+    semana_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.tareas import gemelas as G
+    from src.services.tareas import material_profe as MP
+
+    s, _admin_ok = await _semana_equipo(semana_id, current_user, db_session)
+    g, curso = await _gemela(s, db_session)
+    if g is None:
+        raise HTTPException(status_code=404, detail="Esta semana no tiene gemela en la clase del otro grupo")
+    cambios = G.igualar(s, g, MP._ahora())
+    if cambios:
+        db_session.add(g)
+        await db_session.commit()
+    return {"gemela": {"id": g.id, "tema": g.tema, "fecha": g.fecha, "curso": curso}, "cambios": cambios}
+
+
 @router.put("/semana/{semana_id}/profe/notas", summary="Las notas para el profe de esa semana (equipo).")
 async def api_notas_profe(
     semana_id: int,

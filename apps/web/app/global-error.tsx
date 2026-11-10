@@ -3,6 +3,7 @@
 import '../styles/globals.css'
 import { AlertTriangle, RefreshCcw } from 'lucide-react'
 import { useEffect } from 'react'
+import { avisarPantallaRota } from '@/lib/nawar/avisarFallo'
 
 export default function GlobalError({
   error,
@@ -12,6 +13,8 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
+    // Que la escuela se entere (Panel → Estado). Nunca lanza.
+    avisarPantallaRota(error, 'global')
     if (error.message.includes('Failed to find Server Action') ||
         error.message.includes('older or newer deployment')) {
       console.log('Version mismatch detected, reloading page...')

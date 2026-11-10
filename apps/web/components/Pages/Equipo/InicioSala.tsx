@@ -21,8 +21,9 @@ import Link from 'next/link'
 import { ArrowRight, CalendarDays, Check, Pencil } from 'lucide-react'
 import { PasarLista } from '@components/Pages/Profes/ListaYGrupo'
 import { esDe } from '@/lib/nawar/clasesProfes'
-import { agendaEquipo, cuando, diaLegible, paraPreparar, quienDa, type ClaseEnAgenda, type SemanaEquipo } from '@/lib/nawar/salaProfes'
+import { agendaEquipo, cuando, diaLegible, grupoDe, paraPreparar, quienDa, sinRepetirGemelas, type ClaseConGemela, type ClaseEnAgenda, type SemanaEquipo } from '@/lib/nawar/salaProfes'
 import { EditarSemanaProfe, Material, MensajeDelAdmin, Paso } from './PrepararClase'
+import GrabacionDeSala from '@components/Pages/Grabaciones/GrabacionDeSala'
 import type { ClaseEquipo } from './useClasesEquipo'
 import { POPPINS } from './estilo'
 
@@ -136,6 +137,8 @@ function Hero({
             }
           />
         </ul>
+        {/* Desde el día de la clase: lo que grabó la sala, para publicarlo (10/11/2026). */}
+        <GrabacionDeSala semana={{ id: s.semanaId, tema: s.tema, fecha: s.fecha }} courseUuid={uuid} hoy={hoy} />
       </div>
     </section>
   )
@@ -174,7 +177,9 @@ export default function InicioSala({
   const filtra = !admin && !monitor
   const esMia = (p: string) => esDe(p, miNombre)
   const agenda = agendaEquipo(clases, semanas, hoy, esMia, 60)
-  const suyas = filtra ? agenda.filter((a) => a.mia) : agenda
+  // Quien lo ve todo no ve dos veces la misma semana (una por grupo): una
+  // línea con sus dos días (10/11/2026).
+  const suyas: ClaseConGemela[] = filtra ? agenda.filter((a) => a.mia) : sinRepetirGemelas(agenda, semanas)
   const [primera, ...resto] = suyas
   const despues = resto.slice(0, 4)
 
@@ -239,6 +244,7 @@ export default function InicioSala({
                       <p className="flex items-center gap-1.5 text-[12.5px] text-[#5B6382] truncate">
                         <span className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
                         {s.curso}
+                        {a.gemela ? ` · y ${diaLegible(a.gemela.fecha)} en ${grupoDe(a.gemela.curso)}` : ''}
                         {!filtra || !a.mia ? ` · ${a.profe ? `la da ${a.profe}` : 'sin profe'}` : ''}
                       </p>
                     </div>
@@ -272,8 +278,8 @@ export default function InicioSala({
                     </p>
                   </div>
                   {f.pendiente.includes('grabacion') ? (
-                    <Link href={curso} className={BOTON}>
-                      Subir la grabación
+                    <Link href={ruta(`/grabaciones?clase=${f.clase.uuid.replace(/^course_/, '')}`)} className={BOTON}>
+                      Publicar la grabación
                     </Link>
                   ) : null}
                   {f.pendiente.includes('corregir') ? (

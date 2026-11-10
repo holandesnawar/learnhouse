@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { RefreshCcw } from 'lucide-react'
+import { avisarPantallaRota } from '@/lib/nawar/avisarFallo'
 
 /**
  * Corta el fuego alrededor de un trozo de pantalla.
@@ -41,6 +42,8 @@ export default class SafeArea extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error(`[SafeArea] "${this.props.nombre ?? 'sección'}" falló:`, error, info)
+    // Que la escuela se entere (Panel → Estado). Nunca lanza.
+    avisarPantallaRota(error, 'trozo', this.props.nombre)
   }
 
   render() {

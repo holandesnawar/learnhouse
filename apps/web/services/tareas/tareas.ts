@@ -4,6 +4,7 @@
  * apps/api/src/services/tareas/tareas.py.
  */
 import { getAPIUrl } from '@services/config/config'
+import type { GrabacionSala } from '@services/grabaciones/grabaciones'
 
 export type TipoClase = 'presentacion' | 'grabacion' | 'ejercicios' | 'otra'
 export type EstadoTarea = 'sin-tarea' | 'pendiente' | 'entregada' | 'corregida' | 'antes-de-entrar'
@@ -83,6 +84,10 @@ export interface Semana {
   confirmaciones?: { si: number; no: number }
   /** Solo al equipo (09/11/2026): la presentación completa y las notas para el profe. */
   material_profe?: MaterialProfe
+  /** La grabación de la sala publicada en esta semana (10/11/2026). Al alumno, solo con la clase ya dada. */
+  grabacion_sala?: GrabacionSala | null
+  /** La presentación con lo que el profe escribió en clase (10/11/2026, la pizarra). */
+  notas_clase?: { at: string; paginas: number } | null
 }
 
 export interface ArchivoProfe {
@@ -110,6 +115,8 @@ export interface MaterialProfe {
   profe?: string
   /** El mensaje del administrador para el profe de esa semana. */
   mensaje?: MensajeProfe | null
+  /** La pizarra de clase (10/11/2026): si hay algo escrito y si ya la tienen los alumnos. */
+  pizarra?: { guardada_at: string; publicada_at: string; paginas: number } | null
 }
 
 export interface SemanasClase {
@@ -366,6 +373,20 @@ export const crearSemana = (courseUuid: string, datos: DatosSemana, token: strin
 
 export const editarSemana = (id: number, datos: DatosSemana, token: string) =>
   pedir<{ ok: boolean; semana: Semana }>(`${base()}/semana/${id}`, token, 'PUT', datos)
+
+/** La misma semana en la clase del otro grupo (10/11/2026, gemelas.py). */
+export interface Gemela {
+  id: number
+  tema: string
+  fecha: string
+  curso: string
+}
+
+export const getGemela = (id: number, token: string) => pedir<{ gemela: Gemela | null }>(`${base()}/semana/${id}/gemela`, token)
+
+/** Copia a la gemela el tema, la tarea, las notas y la presentación completa. */
+export const igualarGemela = (id: number, token: string) =>
+  pedir<{ gemela: Gemela; cambios: string[] }>(`${base()}/semana/${id}/gemela/igualar`, token, 'POST')
 
 export const borrarSemana = (id: number, token: string) =>
   pedir<{ ok: boolean; entregas_borradas: number }>(`${base()}/semana/${id}`, token, 'DELETE')

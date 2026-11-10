@@ -22,7 +22,8 @@ import { getAPIUrl } from '@services/config/config'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { barajar } from '@/lib/exercises-app/barajar'
 
-const LOGO_URL = 'https://d1yei2z3i6k35z.cloudfront.net/9533860/671a9c9265e23_Logo_Nawar_2.png'
+import Armazon, { PaginaConCandado, useEscuela, type Seccion } from './armazon'
+
 const FONDO = {
   backgroundColor: '#1D0084',
   backgroundImage:
@@ -160,8 +161,44 @@ export default function PrimeraSemana() {
     setToken(null)
   }, [])
 
-  if (!listo) return <div className="fixed inset-0" style={FONDO} />
-  return token ? <MiSemana token={token} sesion={sesion} onCaducado={salir} /> : <Portada utm={params} onListo={entrar} />
+  // Lo que tiene candado sale de la escuela de verdad (nombres y cifras).
+  const escuela = useEscuela()
+  const [seccion, setSeccion] = useState<Seccion>('semana')
+  const [plan, setPlan] = useState<Plan | null>(null)
+  const [diaPedido, setDiaPedido] = useState<{ n: number; t: number } | null>(null)
+  const [diaVisto, setDiaVisto] = useState(0)
+  useEffect(() => {
+    if (!token) setPlan(null)
+  }, [token])
+  const llamar = useCallback(() => {
+    if (!plan || !token) return
+    pedir(`/plan/${encodeURIComponent(token)}/llamada`, { metodo: 'POST' }).catch(() => {})
+    window.open(plan.llamada, '_blank', 'noopener')
+  }, [plan, token])
+
+  if (!listo) return <div className="fixed inset-0 bg-[#F4F7FD]" />
+  return (
+    <Armazon
+      nombre={plan?.nombre || ''}
+      escuela={escuela}
+      seccion={seccion}
+      onSeccion={setSeccion}
+      dias={(plan?.dias || []).map((d) => ({ n: d.n, titulo: d.titulo, abierto: d.abierto, hecho: d.hecho }))}
+      diaElegido={diaVisto}
+      onDia={(n) => setDiaPedido({ n, t: Date.now() })}
+      onLlamada={plan ? llamar : undefined}
+    >
+      {/* La semana sigue montada mientras se mira lo que tiene candado: no pierde el día ni la práctica a medias. */}
+      <div className={seccion === 'semana' ? '' : 'hidden'}>
+        {token ? (
+          <MiSemana token={token} sesion={sesion} onCaducado={salir} onPlan={setPlan} irADia={diaPedido} onDia={setDiaVisto} onLlamada={llamar} />
+        ) : (
+          <Portada utm={params} onListo={entrar} />
+        )}
+      </div>
+      {seccion !== 'semana' ? <PaginaConCandado seccion={seccion} escuela={escuela} onLlamada={plan ? llamar : undefined} onEmpezar={() => setSeccion('semana')} /> : null}
+    </Armazon>
+  )
 }
 
 /* ── Portada y preguntas ─────────────────────────────────────────────── */
@@ -252,14 +289,12 @@ function Portada({ utm, onListo }: { utm: URLSearchParams; onListo: (token: stri
   )
 
   return (
-    <div className="nawar-auth-shell fixed inset-0 overflow-y-auto overscroll-none text-white" style={FONDO}>
-      <div className="mx-auto w-full max-w-5xl px-6 py-8 sm:py-12">
-        <img src={LOGO_URL} alt="Holandés Nawar" className="h-9 sm:h-10 w-auto" />
-
-        <div className="mt-6 sm:mt-12 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_440px] gap-6 lg:gap-14 items-start">
+    <div className="px-3 py-4 sm:px-6 sm:py-6">
+      <div className="mx-auto w-full max-w-[1080px] rounded-2xl px-5 py-7 text-white sm:px-9 sm:py-10" style={FONDO}>
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_420px] gap-6 lg:gap-12 items-start">
           <div>
-            <p className="text-[12px] font-bold tracking-[0.14em] uppercase text-[#4da3ff]">Mijn eerste week · gratis</p>
-            <h1 className="mt-3 text-[30px] sm:text-[46px] font-bold leading-[1.1] tracking-[-0.02em]" style={POPPINS}>
+            <p className="text-[12px] font-bold tracking-[0.14em] uppercase text-[#4da3ff]">Bienvenido a la escuela · tu regalo</p>
+            <h1 className="mt-3 text-[28px] sm:text-[40px] font-bold leading-[1.1] tracking-[-0.02em]" style={POPPINS}>
               Tu primera semana en neerlandés, <span className="text-[#4da3ff]">hecha a tu medida</span>
             </h1>
             <p className="mt-4 text-[16px] sm:text-[17px] leading-relaxed text-white/90 max-w-xl">
@@ -412,9 +447,25 @@ function Pregunta({ titulo, nota, children }: { titulo: string; nota?: string; c
 
 /* ── Sus siete días ──────────────────────────────────────────────────── */
 
-const MODULOS = ['Over jou', 'Familie & vrienden', 'Eten en drinken', 'Het werk', "Hobby's & vrije tijd", 'Thuis & wonen', 'Gezondheid', 'Vervoer & reizen', 'De stad & afspraken', 'Dagelijks leven']
 
-function MiSemana({ token, sesion, onCaducado }: { token: string; sesion: string; onCaducado: () => void }) {
+function MiSemana({
+  token,
+  sesion,
+  onCaducado,
+  onPlan,
+  irADia,
+  onDia,
+  onLlamada,
+}: {
+  token: string
+  sesion: string
+  onCaducado: () => void
+  onPlan: (p: Plan) => void
+  /** El día elegido en la barra de la escuela. */
+  irADia: { n: number; t: number } | null
+  onDia: (n: number) => void
+  onLlamada: () => void
+}) {
   const [plan, setPlan] = useState<Plan | null>(null)
   const [error, setError] = useState('')
   const [n, setN] = useState(0)
@@ -435,6 +486,18 @@ function MiSemana({ token, sesion, onCaducado }: { token: string; sesion: string
     }
   }, [token, sesion])
 
+  useEffect(() => {
+    if (plan) onPlan(plan)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan])
+  useEffect(() => {
+    if (irADia) setN(irADia.n)
+  }, [irADia])
+  useEffect(() => {
+    onDia(n)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [n])
+
   const irA = (dia: number) => {
     setN(dia)
     setTimeout(() => arriba.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30)
@@ -451,15 +514,11 @@ function MiSemana({ token, sesion, onCaducado }: { token: string; sesion: string
     }
   }
 
-  function llamada() {
-    if (!plan) return
-    pedir(`/plan/${encodeURIComponent(token)}/llamada`, { metodo: 'POST' }).catch(() => {})
-    window.open(plan.llamada, '_blank', 'noopener')
-  }
+  const llamada = onLlamada
 
   if (error && !plan)
     return (
-      <div className="nawar-auth-shell fixed inset-0 overflow-y-auto text-white flex items-center justify-center px-6" style={FONDO}>
+      <div className="flex min-h-[60vh] items-center justify-center px-6 text-[#0a1656]">
         <div className="max-w-sm text-center">
           <p className="text-[16px]">{error}</p>
           <button onClick={onCaducado} className={BOTON_CLARO + ' mt-5'}>
@@ -468,21 +527,18 @@ function MiSemana({ token, sesion, onCaducado }: { token: string; sesion: string
         </div>
       </div>
     )
-  if (!plan) return <div className="fixed inset-0" style={FONDO} />
+  if (!plan) return <div className="min-h-[60vh]" />
 
   const dia = plan.dias.find((d) => d.n === n) || plan.dias[0]
   const siguienteDia = plan.dias.find((d) => d.n === dia.n + 1)
   const completo = plan.hechos >= plan.dias.length
 
   return (
-    <div className="min-h-screen bg-[#F4F7FD] text-[#0a1656]">
-      <header className="text-white" style={FONDO}>
-        <div className="mx-auto max-w-3xl px-5 sm:px-6 pt-6 pb-7">
-          <div className="flex items-center justify-between">
-            <img src={LOGO_URL} alt="Holandés Nawar" className="h-8 w-auto" />
-            <span className="text-[12px] font-bold tracking-[0.12em] uppercase text-[#4da3ff]">Mijn eerste week</span>
-          </div>
-          <h1 className="mt-6 text-[26px] sm:text-[32px] font-bold leading-tight" style={POPPINS}>
+    <div className="text-[#0a1656]">
+      <header className="mx-auto mt-4 max-w-[920px] px-3 sm:mt-6 sm:px-6">
+        <div className="rounded-2xl px-5 pt-6 pb-6 text-white sm:px-7" style={FONDO}>
+          <span className="text-[12px] font-bold tracking-[0.12em] uppercase text-[#4da3ff]">Tu regalo · Mijn eerste week</span>
+          <h1 className="mt-2 text-[24px] sm:text-[30px] font-bold leading-tight" style={POPPINS}>
             {completo ? `¡Lo has hecho, ${plan.nombre}!` : `Hola, ${plan.nombre}. Esta es tu semana.`}
           </h1>
           <p className="mt-1.5 text-[14.5px] text-white/85">
@@ -509,7 +565,7 @@ function MiSemana({ token, sesion, onCaducado }: { token: string; sesion: string
         </div>
       </header>
 
-      <main ref={arriba} className="mx-auto max-w-3xl px-4 sm:px-6 py-6 space-y-4 scroll-mt-4">
+      <main ref={arriba} className="mx-auto max-w-[920px] px-3 sm:px-6 py-5 space-y-4 scroll-mt-20">
         {plan.todo_abierto ? (
           <p className="rounded-xl border border-[#E4D5A8] bg-[#FFFBF2] px-4 py-2.5 text-[13px] text-[#8A6A2A]">
             Vista de administrador: ves los siete días abiertos. Quien se apunta ve uno nuevo cada día.
@@ -537,7 +593,6 @@ function MiSemana({ token, sesion, onCaducado }: { token: string; sesion: string
           </section>
         )}
 
-        {!completo ? <Despues onLlamada={llamada} /> : null}
 
         <p className="pt-2 pb-8 text-center text-[12.5px] text-[#6B7896]">
           ¿Dudas? Escríbenos a info@holandesnawar.com · Guarda esta página: es tu enlace personal.
@@ -830,33 +885,6 @@ function Final({ plan, onLlamada }: { plan: Plan; onLlamada: () => void }) {
       </p>
       <button onClick={onLlamada} className={BOTON_CLARO + ' mt-5'}>
         Reservar mi llamada gratuita <ArrowRight size={15} strokeWidth={2.5} />
-      </button>
-    </section>
-  )
-}
-
-function Despues({ onLlamada }: { onLlamada: () => void }) {
-  return (
-    <section className="rounded-2xl border border-[#DDE6F5] bg-white p-5 sm:p-7">
-      <p className="text-[12px] font-bold tracking-[0.1em] uppercase text-[#025dc7]">Después de esta semana</p>
-      <h2 className="mt-1 text-[20px] font-bold text-[#1D0084] leading-tight" style={POPPINS}>
-        Esto es la primera semana. La formación son dieciséis.
-      </h2>
-      <p className="mt-2 text-[14.5px] leading-relaxed text-[#27324F]">
-        Lo que estás haciendo aquí es una muestra de cómo se aprende dentro de la escuela. Dentro te esperan diez módulos, una masterclass en directo cada semana,
-        grupos de conversación y profes que responden tus dudas.
-      </p>
-      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-        {MODULOS.map((m, i) => (
-          <div key={m} className="flex items-center gap-2.5 rounded-lg bg-[#F7F9FE] px-3 py-2 text-[14px] text-[#4B5878]">
-            <Lock size={13} className="shrink-0 text-[#8FA0C2]" />
-            <span className="font-semibold text-[#27324F]">Módulo {i + 1}</span>
-            <span className="truncate">{m}</span>
-          </div>
-        ))}
-      </div>
-      <button onClick={onLlamada} className="mt-4 inline-flex items-center gap-1.5 text-[14.5px] font-bold text-[#025dc7] hover:underline">
-        Quiero saber cómo sería en mi caso <ArrowRight size={15} strokeWidth={2.5} />
       </button>
     </section>
   )

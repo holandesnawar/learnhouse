@@ -186,7 +186,7 @@ def solo_antes_de_la_clase(semana: dict) -> dict:
     sin enunciado (sigue diciendo que hay tarea)."""
     clases = semana.get("clases") or []
     ver = [c for c in clases if c.get("tipo") == "presentacion"]
-    return {**semana, "clases": ver, "ocultas": len(clases) - len(ver), "enunciado": ""}
+    return {**semana, "clases": ver, "ocultas": len(clases) - len(ver), "enunciado": "", "grabacion_sala": None, "notas_clase": None}
 
 
 def tipo_de_clase(activity_type: Any, sub_type: Any, content: Any) -> str:
@@ -657,6 +657,21 @@ async def _dia_de_entrada(user_id: int, org_id: int, db_session: AsyncSession) -
         return ""
 
 
+def _notas_clase(material: Any) -> Optional[dict]:
+    """Si el profe guardó la presentación con lo escrito en clase (la pizarra,
+    `services/tareas/pizarra.py`): cuándo y cuántas páginas. Antes del día de
+    la clase no le llega al alumno (`solo_antes_de_la_clase`)."""
+    if not material or "publicada" not in str(material):
+        return None
+    try:
+        pub = (json.loads(material).get("pizarra") or {}).get("publicada") or {}
+    except (ValueError, TypeError, AttributeError):
+        return None
+    if not pub.get("ruta"):
+        return None
+    return {"at": str(pub.get("at") or ""), "paginas": int(pub.get("paginas") or 0)}
+
+
 async def semanas_para_alumno(
     course: Course, user_id: int, db_session: AsyncSession, equipo: bool = False, con_archivo: bool = False
 ) -> dict:
@@ -707,7 +722,13 @@ async def semanas_para_alumno(
     from src.services.tareas.cambio_semana import cambio_de
 
     por_id = {f.id: f for f in filas}
+    # La grabación de la sala publicada en la semana (10/11/2026).
+    from src.services.salas.estudio_grabaciones import para_la_semana as _grabacion_sala
+
     for s in semanas:
+        s["grabacion_sala"] = _grabacion_sala(getattr(por_id.get(s["id"]), "grabacion_sala", ""), user_id, equipo)
+        # La presentación con las notas de la clase (10/11/2026, pizarra.py).
+        s["notas_clase"] = _notas_clase(getattr(por_id.get(s["id"]), "material_profe", ""))
         s["voy"] = (confs.get(s["id"]) or {}).get(str(user_id), {}).get("va")
         if not equipo and por_id.get(s["id"]) is not None and getattr(por_id[s["id"]], "cambios", ""):
             s["cambio"] = await cambio_de(por_id[s["id"]], user_id, db_session)
@@ -1120,6 +1141,15 @@ async def seguimiento(org_id: int, course_uuid: str, semana_id: Optional[int], d
         propias = [c["id"] for c in clases.get(s["chapter_uuid"], []) if c["tipo"] == tipo]
         return propias + (grab_sueltas.get(s["id"], []) if tipo == "grabacion" else [])
 
+    # La grabación de la sala publicada en esa semana (10/11/2026): no es una
+    # clase del curso, así que quién la vio lo apunta su reproductor.
+    from src.services.salas.estudio_grabaciones import leer as _leer_sala, quienes_la_vieron
+
+    _fila_elegida = next((f for f in filas_semana if f.id == elegida["id"]), None)
+    _texto_sala = getattr(_fila_elegida, "grabacion_sala", "") if _fila_elegida is not None else ""
+    con_sala = bool(_leer_sala(_texto_sala))
+    vieron_sala = quienes_la_vieron(_texto_sala)
+
     cerradas = [s for s in semanas if s["limite"] < hoy]
     filas = []
     for a in alumnos:
@@ -1144,7 +1174,7 @@ async def seguimiento(org_id: int, course_uuid: str, semana_id: Optional[int], d
             {
                 **a,
                 "presentacion": (any(i in suyas for i in pres) if pres else None),
-                "grabacion": (any(i in suyas for i in grab) if grab else None),
+                "grabacion": ((any(i in suyas for i in grab) or uid in vieron_sala) if (grab or con_sala) else None),
                 "clase": fue,
                 # Quién lo dice: el profe (la lista) o la sala de Daily.
                 "clase_origen": ("lista" if marca is not None else ("sala" if fue is not None else "")),
@@ -1161,7 +1191,7 @@ async def seguimiento(org_id: int, course_uuid: str, semana_id: Optional[int], d
         "presentacion": sum(1 for f in filas if f["presentacion"]),
         "con_presentacion": bool(de_tipo(elegida, "presentacion")),
         "grabacion": sum(1 for f in filas if f["grabacion"]),
-        "con_grabacion": bool(de_tipo(elegida, "grabacion")),
+        "con_grabacion": bool(de_tipo(elegida, "grabacion")) or con_sala,
         "clase": sum(1 for f in filas if f["clase"]),
         "sabe_clase": elegida["id"] in asistencia or bool(marcas.get(elegida["id"])),
         "ejercicios": sum(1 for f in filas if f["ejercicios"]["total"] and f["ejercicios"]["hechos"] >= f["ejercicios"]["total"]),

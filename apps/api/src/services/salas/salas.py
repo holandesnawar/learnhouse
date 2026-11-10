@@ -70,7 +70,9 @@ from src.db.organization_config import OrganizationConfig
 
 logger = logging.getLogger(__name__)
 
-API = "https://api.daily.co/v1"
+# `LEARNHOUSE_DAILY_API_URL` solo sirve para probar en local contra un Daily
+# de mentira; sin ella (producción), el de verdad.
+API = (os.environ.get("LEARNHOUSE_DAILY_API_URL") or "https://api.daily.co/v1").rstrip("/")
 CLAVE = "salas"
 HORAS_ENTRADA = 4
 # La URL de cada sala, para no preguntársela a Daily en cada entrada.

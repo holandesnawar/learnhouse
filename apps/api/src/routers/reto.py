@@ -74,6 +74,16 @@ async def api_opciones():
     return R.opciones()
 
 
+@router.get("/escuela", summary="La escuela por dentro (nombres y cifras) para enseñarla con candado a los invitados (público).")
+async def api_escuela(request: Request, db_session: AsyncSession = Depends(get_db_session)):
+    from src.services.reto import escuela as E
+
+    permitido, _n, _espera = check_rate_limit(key=f"reto-escuela:{get_client_ip(request)}", max_attempts=120, window_seconds=3600)
+    if not permitido:
+        raise HTTPException(status_code=429, detail="Demasiadas peticiones. Prueba en un rato.")
+    return await E.por_dentro(db_session)
+
+
 @router.post("/empezar", summary="Apuntarse al reto y recibir el enlace personal (público).")
 async def api_empezar(request: Request, datos: EmpezarIn, db_session: AsyncSession = Depends(get_db_session)):
     permitido, _n, espera = check_rate_limit(key=f"reto:{get_client_ip(request)}", max_attempts=10, window_seconds=3600)

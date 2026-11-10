@@ -38,6 +38,15 @@ app = FastAPI(
 configure_cors(app)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 register_ee_middlewares(app)
+# Estado de la escuela (10/11/2026): apunta lo que falla y lo que tarda, en
+# blando y fuera de la petición. Se apaga con LEARNHOUSE_ESTADO=off.
+# Ver src/services/estado/estado.py.
+try:
+    from src.core.middleware.estado import registrar_estado
+
+    registrar_estado(app)
+except Exception:  # noqa: BLE001
+    logging.warning("Estado de la escuela: no se pudo cargar; la escuela sigue sin él", exc_info=True)
 
 # Lifecycle
 app.add_event_handler("startup", startup_app(app))

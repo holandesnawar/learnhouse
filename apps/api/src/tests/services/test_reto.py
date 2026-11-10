@@ -128,3 +128,28 @@ async def test_lo_que_no_vale(db, _sin_correo):
         await R.leer("enlace-inventado", db)
     assert exc.value.status == 404
     assert (await db.execute(__import__("sqlmodel").select(RetoSemana))).scalars().all() == []
+
+
+def test_la_escuela_por_dentro_solo_da_nombres_y_cifras():
+    from src.services.reto import escuela as E
+
+    clases = [
+        {"modulo": "MODULE 1 - Over jou", "clase": "1.1 Samenvatting"},
+        {"modulo": "MODULE 1 - Over jou", "clase": "1.2 Flashcards"},
+        {"modulo": "MODULE 2 - Familie", "clase": "1.1 Samenvatting"},
+        {"modulo": "", "clase": "suelta"},
+    ]
+    assert E.modulos_de(clases) == [
+        {"nombre": "MODULE 1 - Over jou", "total": 2, "clases": ["1.1 Samenvatting", "1.2 Flashcards"]},
+        {"nombre": "MODULE 2 - Familie", "total": 1, "clases": ["1.1 Samenvatting"]},
+    ]
+    assert E.sin_emoji("🏆 Victorias") == "Victorias"
+    assert E.tipo_de_clase("Masterclass") == "masterclass" and E.tipo_de_clase("Spreekclub") == "conversacion" and E.tipo_de_clase("Clase semanal") == "semanal"
+    # Los dos grupos de la clase semanal son una sola clase para quien mira desde fuera.
+    juntas = E.sin_repetir([
+        {"nombre": "Clase semanal", "tipo": "semanal", "proxima": {"fecha": "2026-11-12", "tema": "Mijn huis"}},
+        {"nombre": "Clase semanal", "tipo": "semanal", "proxima": {"fecha": "2026-11-10", "tema": "Mijn huis"}},
+        {"nombre": "Masterclass", "tipo": "masterclass", "proxima": None},
+    ])
+    assert [c["nombre"] for c in juntas] == ["Masterclass", "Clase semanal"]
+    assert juntas[1]["proxima"]["fecha"] == "2026-11-10"

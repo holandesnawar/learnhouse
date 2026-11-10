@@ -38,6 +38,8 @@ export type SemanaEquipo = {
     archivos: { id: string; tipo: 'archivo' | 'enlace'; nombre: string; url?: string; por: string; at: string }[]
     profe?: string
     mensaje?: { texto: string; por: string; at: string; leido_por: string; leido_at: string } | null
+    /** La pizarra de clase (10/11/2026). */
+    pizarra?: { guardada_at: string; publicada_at: string; paginas: number } | null
   }
 }
 
@@ -365,4 +367,68 @@ export function porSemanasDeAgenda(items: ClaseEnAgenda[], hoy: string): { clave
 /** Las clases sin ninguna semana creada de hoy en adelante: no salen en el calendario. */
 export function sinSemanaPorDelante<C extends { uuid: string }>(clases: C[], semanas: SemanaEquipo[], hoy: string): C[] {
   return clases.filter((c) => !semanas.some((s) => !s.suelta && s.courseUuid === c.uuid && s.fecha && s.fecha >= hoy))
+}
+
+
+// ── La misma semana en los dos grupos (10/11/2026) ──────────────────────────
+//
+// Cada grupo (Groep rood, Groep blauw) es una clase, y cada semana existe una
+// vez por grupo. Para quien lo ve todo (el administrador) eso eran dos «Mijn
+// huis» seguidos. Aquí se emparejan para enseñarlas como UNA con sus dos días.
+// El servidor hace lo mismo para «Guardar también en el otro grupo»
+// (apps/api/src/services/tareas/gemelas.py).
+
+const sinTildes = (t: string) =>
+  (t || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+
+/** «Clase semanal · Groep rood» y «Clase semanal · Groep blauw» son la misma clase. */
+export const familiaDe = (curso: string) => sinTildes((curso || '').split(' · ')[0])
+
+/** La etiqueta del grupo («Groep rood»), o el nombre entero si no la lleva. */
+export const grupoDe = (curso: string) => (curso || '').split(' · ').slice(1).join(' · ') || curso
+
+function mismoTema(a: string, b: string): boolean {
+  const x = sinTildes(a)
+  const y = sinTildes(b)
+  if (!x || !y) return false
+  if (x === y) return true
+  const [corto, largo] = x.length <= y.length ? [x, y] : [y, x]
+  return corto.length >= 4 && largo.includes(corto)
+}
+
+/** La misma semana en la clase del otro grupo: mismo tema a 6 días o menos; si no, la única de esa semana del calendario. */
+export function gemelaDe(s: SemanaEquipo, semanas: SemanaEquipo[]): SemanaEquipo | null {
+  if (s.suelta || !s.fecha) return null
+  const cerca = semanas.filter(
+    (o) => !o.suelta && o.courseUuid !== s.courseUuid && familiaDe(o.curso) === familiaDe(s.curso) && Math.abs(diasEntre(s.fecha, o.fecha)) <= 6
+  )
+  const conTema = cerca.filter((o) => mismoTema(s.tema, o.tema)).sort((a, b) => Math.abs(diasEntre(s.fecha, a.fecha)) - Math.abs(diasEntre(s.fecha, b.fecha)))
+  if (conTema.length) return conTema[0]
+  const misma = cerca.filter((o) => lunesDe(o.fecha) === lunesDe(s.fecha))
+  return misma.length === 1 ? misma[0] : null
+}
+
+export type ClaseConGemela = ClaseEnAgenda & { gemela?: SemanaEquipo }
+
+/**
+ * La agenda sin repetir: de cada pareja de semanas gemelas se queda la
+ * primera y lleva la otra dentro (`gemela`), para pintarlas en una sola línea.
+ */
+export function sinRepetirGemelas(items: ClaseEnAgenda[], semanas: SemanaEquipo[]): ClaseConGemela[] {
+  const dentro = new Set<string>()
+  const out: ClaseConGemela[] = []
+  for (const it of items) {
+    if (dentro.has(it.semana.key)) continue
+    const g = gemelaDe(it.semana, semanas)
+    if (g && !dentro.has(g.key) && !out.some((o) => o.semana.key === g.key)) {
+      dentro.add(g.key)
+      out.push({ ...it, gemela: g })
+    } else out.push(it)
+  }
+  return out
 }
