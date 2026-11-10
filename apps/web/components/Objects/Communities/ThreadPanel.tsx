@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useMemo, useRef, useState } from 'react'
+import { useCajaQueCrece } from '@/lib/nawar/cajaQueCrece'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import utc from 'dayjs/plugin/utc'
@@ -270,6 +271,8 @@ export default function ThreadPanel({
   }
 
   const [text, setText] = useState('')
+  const cajaRef = useRef<HTMLTextAreaElement>(null)
+  useCajaQueCrece(cajaRef, text)
   const [sending, setSending] = useState(false)
   const [pending, setPending] = useState<ChatAttachment[]>([])
   const [uploading, setUploading] = useState(false)
@@ -527,6 +530,7 @@ export default function ThreadPanel({
               dos compositores distintos. */}
           <div className="rounded-xl border border-[#E3E8EF] bg-white transition-colors focus-within:border-[#0b2da0] focus-within:ring-[3px] focus-within:ring-[#0b2da0]/15">
             <textarea
+              ref={cajaRef}
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => {
@@ -537,7 +541,7 @@ export default function ThreadPanel({
               }}
               rows={1}
               placeholder="Responder en el hilo…"
-              className="w-full resize-none bg-transparent text-base sm:text-[14px] text-gray-900 placeholder:text-[#9CA3AF] outline-none max-h-32 px-3 pt-2.5 pb-1.5"
+              className="w-full resize-none bg-transparent text-base sm:text-[14px] text-gray-900 placeholder:text-[#9CA3AF] outline-none leading-relaxed px-3 pt-2.5 pb-1.5"
             />
             <div className="flex items-center gap-0.5 px-1.5 pb-1.5">
               <input ref={fileInputRef} type="file" hidden onChange={(e) => attach(e.target.files)} />

@@ -1,5 +1,6 @@
 'use client'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useCajaQueCrece } from '@/lib/nawar/cajaQueCrece'
 import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import dayjs from 'dayjs'
@@ -425,6 +426,9 @@ export function ChannelChat({
   )
 
   const [text, setText] = useState('')
+  // La caja crece con lo que se escribe (10/11/2026).
+  const cajaRef = useRef<HTMLTextAreaElement>(null)
+  useCajaQueCrece(cajaRef, text)
   const [sending, setSending] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -1448,12 +1452,13 @@ export function ChannelChat({
               Borde suave que no compite con el contenido y foco en azul. */}
           <div className="rounded-xl border border-[#E3E8EF] bg-white transition-colors focus-within:border-[#0b2da0] focus-within:ring-[3px] focus-within:ring-[#0b2da0]/15">
             <textarea
+              ref={cajaRef}
               value={text}
               onChange={(e) => onComposerChange(e.target.value)}
               onKeyDown={onKeyDown}
               rows={1}
               placeholder={`Escribe en ${channelName}…`}
-              className="w-full resize-none bg-transparent text-base sm:text-[14.5px] text-gray-900 placeholder:text-[#9CA3AF] outline-none max-h-40 px-3.5 pt-3 pb-1.5"
+              className="w-full resize-none bg-transparent text-base sm:text-[14.5px] text-gray-900 placeholder:text-[#9CA3AF] outline-none leading-relaxed px-3.5 pt-3 pb-1.5"
             />
 
             <div className="flex items-center gap-0.5 px-2 pb-2">
