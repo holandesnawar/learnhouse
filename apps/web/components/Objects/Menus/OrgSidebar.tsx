@@ -217,6 +217,41 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const comunidad: Bloque[] = canalesComunidad.length ? [{ titulo: 'Comunidad', items: canalesComunidad.map(itemCanal) }] : []
   const verFormacion: Item = { key: 'formacion', href: `/course/${FORMACION_UUID}`, label: 'Formación A0-A1', icon: <Books size={20} weight="fill" /> }
 
+  const barraAlumno = (): Bloque[] => [
+      inicio,
+      empieza,
+      {
+        titulo: 'Formación',
+        items: [
+          verFormacion,
+          { key: 'progreso', href: '/ejercicios/progreso', label: 'Mi progreso', icon: <ChartLineUp size={20} weight="fill" /> },
+          { key: 'notas', href: '/mis-notas', label: 'Mis notas', icon: <NotePencil size={20} weight="fill" /> },
+        ],
+      },
+      ...(tieneClases
+        ? [
+            {
+              titulo: 'Mis clases',
+              items: [
+                // La página de cada clase, a un clic (08/11: «es difícil llegar hasta ella»).
+                ...itemsClases,
+                // Una sola página por clase (08/11): «Esta semana», «Tareas» y
+                // «Clases grabadas» ya están dentro de la página de cada clase.
+                { key: 'calendario', href: '/calendario', label: 'Calendario', icon: <CalendarBlank size={20} weight="fill" /> },
+              ] as Item[],
+            },
+          ]
+        : []),
+      ...comunidad,
+      {
+        titulo: 'Ayuda',
+        items: [
+          { key: 'consultas', href: '/consultas', label: 'Consultas', icon: <Question size={20} weight="fill" /> },
+          { key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={20} weight="fill" /> },
+        ],
+      },
+  ]
+
   let bloques: Bloque[]
   if (isAdmin) {
     bloques = [
@@ -250,51 +285,19 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     const susClases: Bloque[] = monitor && itemsClases.length ? [{ titulo: 'Mis clases', items: itemsClases }] : []
     bloques = [sala, ...susClases, { titulo: 'Formación', items: [verFormacion] }, ...comunidad, ayuda]
   } else if (esCloser) {
-    // Solo «Panel» (10/11/2026, usuario: "que ponga solo Panel, para cuando
-    // enseñen la escuela por encima no se vea ventas"). Dentro del panel el
-    // closer tiene Matrículas, Llamadas, Contactos y lo demás.
+    // El closer ve la escuela ENTERA como un alumno (11/11/2026, usuario:
+    // "que los closers vean todo como un alumno, pero al inicio lo de Panel
+    // para ir a su parte de matrículas"). Es la barra del alumno con «Panel»
+    // justo debajo de Inicio; dentro del panel tiene Matrículas, Llamadas,
+    // Contactos y lo demás.
+    const [primero, ...resto] = barraAlumno()
     bloques = [
-      inicio,
+      primero,
       { items: [{ key: 'panel', href: '/dash', label: 'Panel', icon: <Gauge size={20} weight="fill" />, fuera: true }] },
-      { titulo: 'La escuela', items: [verFormacion, ...itemsClases] },
-      ...comunidad,
-      { titulo: 'Ayuda', items: [{ key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={20} weight="fill" /> }] },
+      ...resto,
     ]
   } else {
-    bloques = [
-      inicio,
-      empieza,
-      {
-        titulo: 'Formación',
-        items: [
-          verFormacion,
-          { key: 'progreso', href: '/ejercicios/progreso', label: 'Mi progreso', icon: <ChartLineUp size={20} weight="fill" /> },
-          { key: 'notas', href: '/mis-notas', label: 'Mis notas', icon: <NotePencil size={20} weight="fill" /> },
-        ],
-      },
-      ...(tieneClases
-        ? [
-            {
-              titulo: 'Mis clases',
-              items: [
-                // La página de cada clase, a un clic (08/11: «es difícil llegar hasta ella»).
-                ...itemsClases,
-                // Una sola página por clase (08/11): «Esta semana», «Tareas» y
-                // «Clases grabadas» ya están dentro de la página de cada clase.
-                { key: 'calendario', href: '/calendario', label: 'Calendario', icon: <CalendarBlank size={20} weight="fill" /> },
-              ] as Item[],
-            },
-          ]
-        : []),
-      ...comunidad,
-      {
-        titulo: 'Ayuda',
-        items: [
-          { key: 'consultas', href: '/consultas', label: 'Consultas', icon: <Question size={20} weight="fill" /> },
-          { key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={20} weight="fill" /> },
-        ],
-      },
-    ]
+    bloques = barraAlumno()
   }
 
   // Las secciones de arriba: lo mismo que la barra, en grande.

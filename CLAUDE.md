@@ -4285,6 +4285,11 @@ el recibo de Stripe y no podría entrar), la comunidad **separada del todo** y
   usuario: "que ponga solo Panel, para cuando enseñen la escuela por encima no
   se vea ventas"): fuera el bloque «Ventas» (Matrículas, Llamadas, Contactos,
   Material de venta) de `OrgSidebar`; todo eso sigue dentro del panel.
+  ⚠️ **Desde el 11/11/2026 el closer ve la escuela ENTERA como un alumno** (usuario:
+  "que los closers vean todo como un alumno, pero al inicio lo de Panel para ir a
+  su parte de matrículas"): su barra es la del alumno (`barraAlumno()` en
+  `OrgSidebar.tsx`: Empieza aquí, Formación, Mis clases, Comunidad, Ayuda) con
+  «Panel» justo debajo de Inicio. Lo de ventas sigue solo dentro del panel.
 - **Los closers ven la Masterclass y el Spreekclub** (08/11/2026, "que los
   closers vean el apartado de masterclass y spreken club"): solo VER, en su
   barra de la escuela, las clases en directo abiertas al grupo «Programa
