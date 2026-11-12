@@ -249,7 +249,7 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
           </p>
           <p className="text-[13px] text-[#5A6480] mt-0.5">
             Al encenderla, quien ve este curso entra a la videollamada aquí mismo, sin otra pestaña y con su nombre
-            puesto{soloAjustes ? ', y «Ir a la clase» lleva a la sala en vez de a Zoom' : ''}. Solo lo ve el equipo.
+            puesto. Solo lo ve el equipo.
           </p>
           {!sala.con_clave && (
             <p className="text-[12.5px] text-[#8A6A2A] mt-1">Falta la clave de Daily en Railway (LEARNHOUSE_DAILY_API_KEY).</p>

@@ -5468,6 +5468,16 @@ en masterclass? no pueden entrar, no hay enlace configurado".
   sala apagada, al equipo le sale «Encender la sala y entrar» en la tarjeta
   de espera, y dentro, «Apagar la sala» arriba (con confirmación; quien está
   dentro sigue hasta que sale).
+- ⚠️ **Ya no se va a Zoom desde ninguna clase** (12/11, tarde; usuario:
+  "quita lo de enlace no configurado… pon «la clase aún no ha comenzado», y
+  que no redirija más a Zoom"). «Entrar a la clase» (`botonEntrar` en
+  `WeeklyClassBanner.tsx`) lleva SIEMPRE a `/sala/<curso>`, tenga o no la
+  sala encendida alguna vez; el campo «Enlace del directo» se quitó de «Editar
+  el recuadro» y un `live_url` guardado de antes ya no se usa. Con la sala
+  apagada, la tarjeta de espera dice **«La clase aún no ha comenzado»**. La
+  pregunta «¿Dónde se hace?» de la clase semanal ya no dice «Por Zoom» (si se
+  editó en la página, manda lo editado). Los eventos del calendario siguen
+  con su propio enlace libre.
 - **La sala espera** (12/11): «Entrar a la clase» de una clase con sala propia
   (`salas[uuid].directo`) va SIEMPRE a la sala, aunque esté apagada y no haya
   enlace de Zoom (antes salía «El enlace del directo aún no está

@@ -34,7 +34,7 @@ const COURSE_FAQS: Record<string, { intro?: string; items: FAQ[] }> = {
       },
       {
         q: '¿Dónde se hace?',
-        a: 'Por Zoom. El enlace para entrar lo tienes en la escuela, en Eventos: no hace falta que busques el correo cuando llegue la hora.',
+        a: 'Aquí, en la escuela, sin salir a otra aplicación. Cuando llegue la hora, pulsa «Entrar a la clase» arriba en esta página.',
       },
       {
         q: '¿Tengo que hablar?',

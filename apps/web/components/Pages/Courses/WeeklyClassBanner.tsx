@@ -42,8 +42,7 @@ export default function WeeklyClassBanner({
   const ajustes = ajustesDirecto(org?.config?.config, curso)
   const esLaDeSiempre = curso === CURSO_CLASE_SEMANAL_UUID
   const stored: any = ajustes.banner || (esLaDeSiempre ? org?.config?.config?.weekly_class_banner : null) || {}
-  // Con la sala encendida, «Ir a la clase» lleva a la sala de la escuela, no
-  // al enlace de Zoom. Y se enseña quién hay dentro.
+  // «Entrar a la clase» lleva a la sala de la escuela. Y se enseña quién hay dentro.
   const [dentro, setDentro] = useState<string[]>([])
   // Encendida o no, según la escuela AHORA (02/11/2026). La configuración se
   // lee al abrir la página: quien la tenía abierta cuando el profe encendió la
@@ -92,7 +91,6 @@ export default function WeeklyClassBanner({
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  const liveUrl = data.live_url.trim()
   const proxima = nextBroadcastLabel(data.next_weekday, data.next_date, data.next_day.trim() || POR_CONFIRMAR)
 
   function startEdit() {
@@ -156,13 +154,9 @@ export default function WeeklyClassBanner({
             siempre en dos títulos distintos, uno encima del otro. Tampoco el
             subtítulo: la franja no lo enseña (la clase semanal enseña la
             descripción del curso debajo). */}
-        {abierta ? (
-          <p className="text-[12px] text-[#5A6480] leading-relaxed">
-            «Ir a la clase» lleva a la sala de la escuela (está encendida), así que no hace falta enlace de Zoom.
-          </p>
-        ) : (
-          field('live_url', 'Enlace del directo (Ir a la clase)', { placeholder: 'https://… (Zoom, Meet, YouTube en directo)' })
-        )}
+        <p className="text-[12px] text-[#5A6480] leading-relaxed">
+          «Entrar a la clase» lleva siempre a la sala de la escuela. Si aún no está encendida, el alumno ve «La clase aún no ha comenzado» y entra solo cuando empiece.
+        </p>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -227,35 +221,15 @@ export default function WeeklyClassBanner({
     )
   }
 
-  // El mismo «Ir a la clase» en las dos formas: a la sala si está encendida,
-  // si no al enlace de Zoom, y si no hay nada, un aviso.
+  // «Entrar a la clase» lleva SIEMPRE a la sala de la escuela (12/11/2026:
+  // "que no redirija más a Zoom"). Si aún está apagada, la sala dice «La
+  // clase aún no ha comenzado» y entra sola en cuanto el profe la enciende.
+  // Un enlace de Zoom guardado de antes ya no se usa.
   function botonEntrar(className: string, texto: string) {
-    const contenido = (
-      <>
-        <Radio size={17} strokeWidth={2.5} /> {texto}
-      </>
-    )
-    // Una clase con sala propia va SIEMPRE a la sala (12/11/2026: "no pueden
-    // entrar, no hay enlace configurado"): si aún está apagada, la sala dice
-    // que espere y entra sola en cuanto el profe la enciende.
-    if (abierta || (ajustes.directo && !liveUrl)) {
-      return (
-        <Link href={rutaSala(curso)} className={className}>
-          {contenido}
-        </Link>
-      )
-    }
-    if (liveUrl) {
-      return (
-        <a href={liveUrl} target="_blank" rel="noopener noreferrer" className={className}>
-          {contenido}
-        </a>
-      )
-    }
     return (
-      <button onClick={() => toast('El enlace del directo aún no está configurado.')} className={className}>
-        {contenido}
-      </button>
+      <Link href={rutaSala(curso)} className={className}>
+        <Radio size={17} strokeWidth={2.5} /> {texto}
+      </Link>
     )
   }
 

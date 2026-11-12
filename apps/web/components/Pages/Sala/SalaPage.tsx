@@ -583,10 +583,10 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
       ) : !entrada && esperando ? (
         <div className="max-w-xl rounded-2xl border border-[#DDE6F5] bg-white px-5 py-6">
           <p className="flex items-center gap-2 text-[16px] font-semibold text-[#0a1656]">
-            <Loader2 size={18} className="animate-spin text-[#0b2da0]" /> La sala aún no está abierta
+            <Loader2 size={18} className="animate-spin text-[#0b2da0]" /> La clase aún no ha comenzado
           </p>
           <p className="mt-2 text-[14px] leading-relaxed text-[#171a2e]">
-            Se abre en cuanto el profe la encienda. No hace falta recargar: quédate en esta página y entrarás sola o solo.
+            Empieza en cuanto el profe abra la sala. No hace falta recargar: quédate en esta página y entrarás sola o solo.
           </p>
           {soyEquipo ? (
             <button
