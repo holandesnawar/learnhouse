@@ -2071,7 +2071,7 @@ const m2_les1: Lesson = {
         { id: 'm2l1p-7',  dutch: 'Zij is mijn vriendin.',      spanish: 'Ella es mi novia.',              context: 'Relaciones' },
         { id: 'm2l1p-8',  dutch: 'Dit is mijn gezin.',         spanish: 'Esta es mi familia (de casa).',  context: 'Familia' },
         { id: 'm2l1p-9',  dutch: 'Mijn familie is groot.',     spanish: 'Mi familia es grande.',          context: 'Familia' },
-        { id: 'm2l1p-10', dutch: 'Zij zijn mijn broers en zussen.', spanish: 'Ellos son mis hermanos.',   context: 'Familia' },
+        { id: 'm2l1p-10', dutch: 'Zij zijn mijn broers en zussen.', spanish: 'Ellos son mis hermanos y hermanas.', context: 'Familia' },
         { id: 'm2l1p-11', dutch: 'Dit is mijn opa.',           spanish: 'Este es mi abuelo.',             context: 'Presentar (1 persona)' },
         { id: 'm2l1p-12', dutch: 'Zij is mijn partner.',       spanish: 'Ella es mi pareja.',             context: 'Relaciones' },
       ],
@@ -2243,7 +2243,7 @@ El abuelo y la abuela no siempre viven en la misma ciudad. Mucha gente visita a 
         { id: 'm2l1e-35', type: 'listen_translate', prompt: 'Escucha y traduce: "Dit zijn mijn ouders"', options: ['Estos', 'son', 'mis', 'padres', 'hijos', 'Esta', 'es'], correctAnswer: 'Estos son mis padres' },
         { id: 'm2l1e-36', type: 'listen_translate', prompt: 'Escucha y traduce: "Zij is mijn vriendin"', options: ['Ella', 'es', 'mi', 'novia', 'amiga', 'Él', 'novio'], correctAnswer: 'Ella es mi novia' },
         { id: 'm2l1e-37', type: 'listen_translate', prompt: 'Escucha y traduce: "Dit is mijn opa"', options: ['Este', 'es', 'mi', 'abuelo', 'abuela', 'padre', 'Esta'], correctAnswer: 'Este es mi abuelo' },
-        { id: 'm2l1e-38', type: 'listen_translate', prompt: 'Escucha y traduce: "Zij zijn mijn broers en zussen"', options: ['Ellos', 'son', 'mis', 'hermanos', 'padres', 'hijos', 'Ellas'], correctAnswer: 'Ellos son mis hermanos' },
+        { id: 'm2l1e-38', type: 'listen_translate', prompt: 'Escucha y traduce: "Zij zijn mijn broers en zussen"', options: ['Ellos', 'son', 'mis', 'hermanos', 'y', 'hermanas', 'padres', 'Ellas'], correctAnswer: 'Ellos son mis hermanos y hermanas' },
         // ── Del pack de ejercicios del profe (Familie en relaties, parte 1) ──
         { id: 'm2l1e-39', type: 'match_pairs', prompt: 'Une cada palabra con su traducción', correctAnswer: '', pairs: [
           { left: 'de opa', right: 'el abuelo' },
@@ -2257,7 +2257,7 @@ El abuelo y la abuela no siempre viven en la misma ciudad. Mucha gente visita a 
         { id: 'm2l1e-41', type: 'fill_blank', prompt: 'Dit ___ mijn ouders. (is / zijn)', correctAnswer: 'zijn', hint: 'ouders es plural', explanation: 'Con plural: dit zijn.' },
         { id: 'm2l1e-42', type: 'multiple_choice', prompt: 'Zij is mijn ___', options: ['vriendin', 'vriend', 'ouders', 'broer'], correctAnswer: 'vriendin', explanation: 'Zij = ella → vriendin (con -in).' },
         { id: 'm2l1e-43', type: 'order_sentence', prompt: 'Ordena: "Esta es mi madre"', options: ['Dit', 'is', 'mijn', 'moeder'], correctAnswer: 'Dit is mijn moeder' },
-        { id: 'm2l1e-44', type: 'order_sentence', prompt: 'Ordena: "Él es mi amigo"', options: ['Hij', 'is', 'mijn', 'vriend'], correctAnswer: 'Hij is mijn vriend' },
+        { id: 'm2l1e-44', type: 'order_sentence', prompt: 'Ordena: "Él es mi novio"', options: ['Hij', 'is', 'mijn', 'vriend'], correctAnswer: 'Hij is mijn vriend' },
         { id: 'm2l1e-45', type: 'multiple_choice', prompt: '¿Cuál está bien?', options: ['Dit zijn mijn ouders', 'Dit is mijn ouders', 'Dit zijn mijn moeder', 'Dit is mijn ouder'], correctAnswer: 'Dit zijn mijn ouders', explanation: 'Ouders es plural → zijn.' },
         { id: 'm2l1e-46', type: 'multiple_choice', prompt: 'Corrige: "Hij is mijn vriendin"', options: ['Hij is mijn vriend', 'Zij is mijn vriend', 'Hij is mijn vriendinnen', 'Está bien así'], correctAnswer: 'Hij is mijn vriend', explanation: 'Hij (él) → vriend; zij (ella) → vriendin.' },
         { id: 'm2l1e-47', type: 'fill_blank', prompt: 'Het ___ = la familia con la que vives (padres e hijos)', correctAnswer: 'gezin', hint: 'palabra de "het"', explanation: 'Gezin = el núcleo; familie = toda la familia, primos incluidos.' },
@@ -2505,7 +2505,7 @@ Casi todo el mundo tiene una bici. En Países Bajos hay más bicis que personas:
         // ── Del pack de ejercicios del profe (parte 2: la frase-tren con la familia) ──
         { id: 'm2l2e-40', type: 'order_sentence', prompt: 'Ordena: "Mi hermano vive en Utrecht"', options: ['Mijn broer', 'woont', 'in Utrecht'], correctAnswer: 'Mijn broer woont in Utrecht' },
         { id: 'm2l2e-41', type: 'order_sentence', prompt: 'Ordena: "Mis padres trabajan en Países Bajos"', options: ['Mijn ouders', 'werken', 'in Nederland'], correctAnswer: 'Mijn ouders werken in Nederland' },
-        { id: 'm2l2e-42', type: 'order_sentence', prompt: 'Ordena: "Mi amigo estudia en Ámsterdam"', options: ['Mijn vriend', 'studeert', 'in Amsterdam'], correctAnswer: 'Mijn vriend studeert in Amsterdam' },
+        { id: 'm2l2e-42', type: 'order_sentence', prompt: 'Ordena: "Mi novio estudia en Ámsterdam"', options: ['Mijn vriend', 'studeert', 'in Amsterdam'], correctAnswer: 'Mijn vriend studeert in Amsterdam' },
         { id: 'm2l2e-43', type: 'multiple_choice', prompt: 'Mijn ouders ___ in Nederland.', options: ['werken', 'werkt', 'werk', 'werkte'], correctAnswer: 'werken', explanation: 'Ouders = plural → verbo entero.' },
         { id: 'm2l2e-44', type: 'fill_blank', prompt: 'Mijn broer ___ (wonen) in Utrecht.', correctAnswer: 'woont', hint: 'raíz + t' },
         { id: 'm2l2e-45', type: 'fill_blank', prompt: 'Jij ___ (wonen) in Spanje.', correctAnswer: 'woont', hint: 'jij también lleva -t' },
