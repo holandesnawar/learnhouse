@@ -1804,7 +1804,7 @@ function FillBlankExercise({
   initialAnswer?: string;
 }) {
   const hasOptions = (exercise.options?.length ?? 0) > 0;
-  const parts = exercise.prompt.split('___');
+  const parts = exercise.prompt.split(/_{3,}/);
 
   // ── Text-input mode state ──
   // Una caja por hueco. Antes solo se pintaba el primer `___` y el resto de la
@@ -1821,7 +1821,8 @@ function FillBlankExercise({
   const todosRellenos = values.every(v => v.trim());
   const [submitted, setSubmitted] = useState(initialAnswer !== undefined && initialAnswer !== '');
   const normaliza = (t: string) => t.trim().toLowerCase().replace(/\s+/g, ' ');
-  const isCorrect = normaliza(value) === normaliza(exercise.correctAnswer);
+  // También vale lo que traiga `alsoAccept` («Wij» y «We», «kunt» y «kan»).
+  const isCorrect = [exercise.correctAnswer, ...(exercise.alsoAccept ?? [])].some(r => normaliza(value) === normaliza(r));
 
   // ── Chip mode state ──
   const [chipSelected, setChipSelected] = useState<string | null>(initialAnswer ?? null);
@@ -2449,7 +2450,9 @@ function OrderSentenceExercise({
   // Comparación tolerante: ignora MAYÚSCULAS y espacios extra. (Las fichas
   // pueden incluir "Ik" y "ik"; con orden correcto fallaba por la mayúscula.)
   const norm = (s: string) => (s ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
-  const isCorrect = norm(sentence.join(' ')) === norm(exercise.correctAnswer);
+  // Si la frase admite otro orden igual de bueno («Ik bezoek morgen mijn oma»),
+  // va en `alsoAccept`.
+  const isCorrect = [exercise.correctAnswer, ...(exercise.alsoAccept ?? [])].some(r => norm(sentence.join(' ')) === norm(r));
 
   function addWord(word: string, idx: number) {
     if (submitted) return;

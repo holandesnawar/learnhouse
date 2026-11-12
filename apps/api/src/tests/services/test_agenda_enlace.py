@@ -69,3 +69,18 @@ def test_calendario_de_google_desde_el_codigo_pegado():
     # Lo que no es un calendario de Google no pasa.
     assert calendario_de_google('<iframe src="https://malo.com/x?src=a@b.c"></iframe>')["ids"] == []
     assert calendario_de_google("javascript:alert(1)")["ids"] == []
+
+
+def test_la_sala_fija_escrita_a_mano_en_calendly():
+    """Una ubicación «Personalizada» con la sala fija del closer: el enlace se
+    lee aunque vaya sin https o con texto alrededor (no cambia al reprogramar)."""
+    from src.services.contactos.agenda import cita_desde_calendly, enlace_en_texto
+
+    assert enlace_en_texto("meet.google.com/abc-defg-hij") == "https://meet.google.com/abc-defg-hij"
+    assert enlace_en_texto("Sala de Diego: https://us02web.zoom.us/j/123?pwd=x.") == "https://us02web.zoom.us/j/123?pwd=x"
+    assert enlace_en_texto("Te llamo yo") == ""
+    assert enlace_en_texto(None) == ""
+    evento = {"uri": "x/1", "start_time": "2026-11-13T10:00:00Z", "location": {"type": "custom", "location": "Sala fija: meet.google.com/abc-defg-hij"}}
+    cita = cita_desde_calendly(evento, [{"email": "a@b.c", "name": "Ana"}])[0]
+    assert cita["enlace"] == "https://meet.google.com/abc-defg-hij"
+    assert cita["plataforma"] == "Google Meet"

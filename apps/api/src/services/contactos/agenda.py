@@ -41,6 +41,7 @@ Calendly cada vez que alguien abre la pestaña.
 import asyncio
 import logging
 import os
+import re
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -109,14 +110,29 @@ def plataforma_de(ubicacion: dict) -> str:
     return ""
 
 
+_ENLACE = re.compile(r"(https?://\S+|(?:meet\.google\.com|[\w-]+\.zoom\.us|zoom\.us|teams\.microsoft\.com|teams\.live\.com)/\S+)", re.I)
+
+
+def enlace_en_texto(texto) -> str:
+    """El enlace de una ubicación escrita a mano en Calendly («Personalizada»):
+    la sala fija de un closer («meet.google.com/abc-defg-hij», con o sin
+    https, con texto alrededor). Así el enlace no cambia al reprogramar.
+    Función pura (con test)."""
+    if not isinstance(texto, str):
+        return ""
+    m = _ENLACE.search(texto)
+    if not m:
+        return ""
+    enlace = m.group(1).rstrip(".,;)")
+    return enlace if enlace.lower().startswith("http") else "https://" + enlace
+
+
 def cita_desde_calendly(evento: dict, invitados: list[dict]) -> list[dict]:
     """Una cita del panel por invitado. Función pura (con test): recibe lo
     que devuelve Calendly y lo deja en lo que el panel necesita."""
     ubicacion = evento.get("location") or {}
     anfitrion_email, anfitrion = anfitrion_de(evento)
-    enlace = ubicacion.get("join_url") or ""
-    if not enlace and isinstance(ubicacion.get("location"), str) and ubicacion["location"].startswith("http"):
-        enlace = ubicacion["location"]
+    enlace = ubicacion.get("join_url") or enlace_en_texto(ubicacion.get("location"))
     salida = []
     uuid = str(evento.get("uri", "")).rstrip("/").rsplit("/", 1)[-1]
     evento_cancelado = (evento.get("status") or "active") != "active"

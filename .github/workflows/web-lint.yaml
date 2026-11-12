@@ -24,3 +24,8 @@ jobs:
       - name: Lint
         run: bun run lint
         working-directory: ./apps/web
+      # El curso entero y la lógica de la escuela: un ejercicio que no se puede
+      # resolver o la regla de «mijn vriend» rota dejan esto en rojo.
+      - name: Tests
+        run: bun test lib
+        working-directory: ./apps/web
