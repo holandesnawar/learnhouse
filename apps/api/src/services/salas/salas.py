@@ -30,7 +30,8 @@ Cómo va
   pueda grabar o dejar de grabar ni ver esos botones… graba de principio a
   fin y listo"). La entrada de CUALQUIERA lleva `start_cloud_recording`: la
   grabación arranca con el primero que entra y se para cuando se vacía la
-  sala. Y lleva `enable_recording_ui: False`: Daily no le enseña a NADIE el
+  sala. ⚠️ Daily la corta también si nadie tiene cámara ni micro encendidos
+  un rato («idle-timeout»): ver `OPCIONES_GRABACION`. Y lleva `enable_recording_ui: False`: Daily no le enseña a NADIE el
   botón de grabar (ni alumnos, ni profes, ni administradores), así que nadie
   la para a mano. Ya no hay casilla «Grabar» en el curso: un `grabar: false`
   guardado de antes no cuenta. La sala tiene `enable_recording: "cloud"` (se
@@ -122,7 +123,21 @@ def nombre_visible(first_name: str, last_name: str, username: str) -> str:
     return (nombre or (username or "").strip() or "Alumno")[:60]
 
 
-def propiedades_entrada(sala: str, nombre: str, user_id: int, anfitrion: bool, grabar: bool, ahora: float) -> dict:
+#: Cómo se graba (12/11/2026). Daily CORTA la grabación cuando nadie en la
+#: sala tiene la cámara ni el micro encendidos durante un rato (de serie, 5
+#: minutos): avisa con «idle-timeout» y no vuelve a grabar sola. Pasó en una
+#: prueba (el profe solo, callado y sin cámara, enseñando la pizarra) y puede
+#: pasar en una clase de verdad: el profe abre la sala diez minutos antes y
+#: espera en silencio. Con una hora de margen no se corta en una clase, y una
+#: pestaña olvidada no graba toda la noche (además, la entrada caduca a las
+#: 4 h y la grabación se para al vaciarse la sala). Son las opciones de
+#: `startRecording` de Daily, con sus nombres tal cual.
+OPCIONES_GRABACION: dict = {"minIdleTimeOut": 3600}
+
+
+def propiedades_entrada(
+    sala: str, nombre: str, user_id: int, anfitrion: bool, grabar: bool, ahora: float, con_opciones: bool = True
+) -> dict:
     """Lo que lleva la entrada de Daily. Con la grabación puesta, la de
     CUALQUIERA arranca la grabación al entrar (02/11/2026): la empieza el
     primero que llega, sea quien sea. Y nadie ve el botón de grabar
@@ -140,6 +155,8 @@ def propiedades_entrada(sala: str, nombre: str, user_id: int, anfitrion: bool, g
     if grabar:
         props["enable_recording"] = "cloud"
         props["start_cloud_recording"] = True
+        if con_opciones:
+            props["start_cloud_recording_opts"] = dict(OPCIONES_GRABACION)
     return props
 
 
@@ -311,12 +328,29 @@ async def entrar(course_uuid: str, user, anfitrion: bool, grabar: bool) -> dict:
     except SalaError as exc:
         if not props.get("start_cloud_recording") or exc.status >= 500:
             raise
-        # Daily no deja grabar (plan, cuenta…): se entra igual, sin grabar, y
-        # se dice por qué. La clase no se queda sin sala por la grabación.
-        logger.warning("Daily no dejó grabar: %s", exc.mensaje)
-        aviso = f"No se está grabando. {exc.mensaje}"
-        props = {k: v for k, v in props.items() if k not in ("enable_recording", "start_cloud_recording")}
-        datos = await _daily("POST", "/meeting-tokens", {"properties": props})
+        datos = None
+        if "start_cloud_recording_opts" in props:
+            # Puede que lo que Daily rechaza sean solo las opciones (el margen
+            # antes de cortar): se prueba a grabar como siempre, sin ellas.
+            logger.warning("Daily no aceptó las opciones de la grabación: %s", exc.mensaje)
+            props = {k: v for k, v in props.items() if k != "start_cloud_recording_opts"}
+            try:
+                datos = await _daily("POST", "/meeting-tokens", {"properties": props})
+            except SalaError as otra:
+                if otra.status >= 500:
+                    raise
+                exc = otra
+        if datos is None:
+            # Daily no deja grabar (plan, cuenta…): se entra igual, sin grabar,
+            # y se dice por qué. La clase no se queda sin sala por la grabación.
+            logger.warning("Daily no dejó grabar: %s", exc.mensaje)
+            aviso = f"No se está grabando. {exc.mensaje}"
+            props = {
+                k: v
+                for k, v in props.items()
+                if k not in ("enable_recording", "start_cloud_recording", "start_cloud_recording_opts")
+            }
+            datos = await _daily("POST", "/meeting-tokens", {"properties": props})
     token = str(datos.get("token") or "")
     if not token:
         raise SalaError("Daily no devolvió la entrada a la sala.")
@@ -327,6 +361,9 @@ async def entrar(course_uuid: str, user, anfitrion: bool, grabar: bool) -> dict:
         "anfitrion": bool(anfitrion),
         "grabando": bool(props.get("start_cloud_recording")),
         "aviso": aviso,
+        # Con qué opciones graba: la sala las repite si tiene que volver a
+        # poner la grabación (`SalaPage.tsx`).
+        "opciones": dict(props.get("start_cloud_recording_opts") or {}),
     }
 
 

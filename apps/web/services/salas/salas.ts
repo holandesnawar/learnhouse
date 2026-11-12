@@ -27,6 +27,8 @@ export interface EntradaSala {
   grabando: boolean
   /** Si Daily no dejó grabar, por qué (su texto tal cual). */
   aviso: string
+  /** Con qué opciones graba Daily (el margen antes de cortar por silencio). */
+  opciones?: Record<string, any>
   curso: string
   /** El curso se graba (cuando entra el profe): se avisa también al alumno. */
   grabar: boolean

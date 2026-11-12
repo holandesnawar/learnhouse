@@ -31,6 +31,10 @@
  *   (anfitrión) ve el motivo, y el alumno nada. Si a los 6 s de entrar nadie ha
  *   empezado a grabar y quien entra es anfitrión, la empieza él
  *   (`startRecording`).
+ * - **«idle-timeout»** (12/11/2026): Daily corta la grabación cuando nadie
+ *   tiene cámara ni micro encendidos un rato. La entrada pide una hora de
+ *   margen (`OPCIONES_GRABACION` en `salas.py`) y, si aun así la corta, aquí
+ *   no es un fallo: el anfitrión la vuelve a poner.
  *
  * 08/11/2026 ("cuando estás en la sala y tocas una pestaña te saca de la clase
  * directo: un aviso, ¿quieres salir?"): mientras se está DENTRO de la llamada,
@@ -433,6 +437,12 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
     let intentos = 0
     let ultimo = 0
     let espera: number | undefined
+    // Las opciones con las que graba (el margen de una hora antes de que
+    // Daily la corte por silencio). Si Daily se queja al volver a grabar con
+    // ellas, se prueba una vez sin nada.
+    const opciones = entrada.opciones && Object.keys(entrada.opciones).length ? entrada.opciones : null
+    let conOpciones = !!opciones
+    let ultimaConOpciones = false
     const grabarDeNuevo = (ms: number) => {
       if (!entrada.grabar || !entrada.anfitrion) return
       window.clearTimeout(espera)
@@ -450,7 +460,9 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
         intentos += 1
         ultimo = Date.now()
         try {
-          llamada.startRecording()
+          ultimaConOpciones = conOpciones
+          if (conOpciones) llamada.startRecording(opciones)
+          else llamada.startRecording()
         } catch {
           /* lo dirá recording-error */
         }
@@ -506,7 +518,25 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
           const motivo = String(ev?.errorMsg || ev?.error || 'Daily no ha podido grabar')
           // Otra persona ya la había empezado: no es un fallo.
           if (/already|in progress|ya/i.test(motivo)) return
-          if (vivo) setGrabacion({ estado: 'error', motivo })
+          if (!vivo) return
+          // «idle-timeout» (12/11/2026): Daily la corta cuando nadie tiene la
+          // cámara ni el micro encendidos un rato. No es un fallo: se había
+          // quedado como error y ya no se volvía a grabar en toda la clase.
+          // Se vuelve a poner, como cuando se para.
+          if (/idle/i.test(motivo)) {
+            setGrabacion({ estado: 'parada' })
+            grabarDeNuevo(3000 + Math.random() * 3000)
+            return
+          }
+          // Se quejó al volver a grabar con las opciones: una vez más, sin ellas.
+          if (ultimaConOpciones && conOpciones) {
+            conOpciones = false
+            ultimo = 0
+            setGrabacion({ estado: 'parada' })
+            grabarDeNuevo(2000)
+            return
+          }
+          setGrabacion({ estado: 'error', motivo })
         })
         if (entrada.grabar) {
           // Si a los 6 s nadie la ha empezado, la empieza el anfitrión.

@@ -29,12 +29,13 @@ CURSO = "course_8a1d1fab-ffbb-44ef-8f21-04ef63676d6e"
 class DailyFalso:
     """Apunta las llamadas y contesta como Daily."""
 
-    def __init__(self, sala_existe=False, falla_grabar=False, sin_salas_pequenas=False):
+    def __init__(self, sala_existe=False, falla_grabar=False, sin_salas_pequenas=False, sin_opciones=False):
         self.llamadas = []
         self.config_sala = {}
         self.sala_existe = sala_existe
         self.falla_grabar = falla_grabar
         self.sin_salas_pequenas = sin_salas_pequenas
+        self.sin_opciones = sin_opciones
 
     async def __call__(self, metodo, ruta, cuerpo=None, params=None):
         self.llamadas.append((metodo, ruta, copy.deepcopy(cuerpo), params))
@@ -53,6 +54,8 @@ class DailyFalso:
             self.sala_existe = True
             return {"url": "https://nawar.daily.co/" + cuerpo["name"]}
         if metodo == "POST" and ruta == "/meeting-tokens":
+            if self.sin_opciones and "start_cloud_recording_opts" in cuerpo["properties"]:
+                raise salas.SalaError("Daily (400): invalid-request-error · start_cloud_recording_opts", 400)
             if self.falla_grabar and cuerpo["properties"].get("start_cloud_recording"):
                 raise salas.SalaError("Daily (400): invalid-request-error · recording not allowed on this plan", 400)
             return {"token": "tok-123"}
@@ -162,7 +165,33 @@ async def test_el_profe_graba_y_si_daily_no_deja_entra_sin_grabar(monkeypatch):
     assert r["token"] == "tok-123" and r["grabando"] is False
     assert "recording not allowed" in r["aviso"]
     entradas = [c[2]["properties"] for c in daily.llamadas if c[1] == "/meeting-tokens"]
-    assert entradas[0].get("start_cloud_recording") is True and "start_cloud_recording" not in entradas[1]
+    assert entradas[0].get("start_cloud_recording") is True and "start_cloud_recording" not in entradas[-1]
+    assert "start_cloud_recording_opts" not in entradas[-1]
+
+
+async def test_la_grabacion_no_se_corta_por_estar_callados(monkeypatch):
+    """12/11/2026: «No se está grabando. Lo que dice Daily: idle-timeout». Daily
+    corta la grabación si nadie tiene cámara ni micro encendidos 5 minutos; la
+    entrada pide una hora de margen. Y si Daily no aceptara esa opción, se
+    graba igual, como antes."""
+    props = salas.propiedades_entrada("nawar-x", "Paul", 3, True, True, 1_000.0)
+    assert props["start_cloud_recording_opts"] == {"minIdleTimeOut": 3600}
+    assert "start_cloud_recording_opts" not in salas.propiedades_entrada("nawar-x", "Paul", 3, True, False, 1_000.0)
+
+    daily = DailyFalso(sala_existe=True)
+    monkeypatch.setattr(salas, "_daily", daily)
+    r = await salas.entrar(CURSO, Persona(), anfitrion=True, grabar=True)
+    assert r["grabando"] is True and r["opciones"] == {"minIdleTimeOut": 3600}
+
+    salas._salas.clear()
+    daily = DailyFalso(sala_existe=True, sin_opciones=True)
+    monkeypatch.setattr(salas, "_daily", daily)
+    r = await salas.entrar(CURSO, Persona(), anfitrion=True, grabar=True)
+    assert r["grabando"] is True and r["aviso"] == "" and r["opciones"] == {}
+    entradas = [c[2]["properties"] for c in daily.llamadas if c[1] == "/meeting-tokens"]
+    assert len(entradas) == 2
+    assert "start_cloud_recording_opts" in entradas[0]
+    assert entradas[1].get("start_cloud_recording") is True and "start_cloud_recording_opts" not in entradas[1]
 
 
 async def test_las_salas_llevan_salas_pequenas_y_si_daily_no_deja_siguen(monkeypatch):
