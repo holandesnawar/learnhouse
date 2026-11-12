@@ -99,7 +99,8 @@ export interface EnSala {
 }
 
 /** El trozo de la página que se ve en pantalla, en píxeles del lienzo de
- * la página, y el tamaño con el que se manda (cabe en 1600 × 1000, pares). */
+ * la página, y el tamaño con el que se manda (cabe en 1920 × 1440, pares:
+ * una página A4 en vertical sale a 1018 × 1440, que se lee bien). */
 export function recorteEmision(
   hoja: { left: number; top: number; width: number; height: number },
   area: { left: number; top: number; right: number; bottom: number },
@@ -112,7 +113,7 @@ export function recorteEmision(
   if (x1 - x0 < 4 || y1 - y0 < 4 || !hoja.width) return null
   const k = anchoLienzo / hoja.width
   const asp = (x1 - x0) / (y1 - y0)
-  let W = Math.min(1600, 1000 * asp)
+  let W = Math.min(1920, 1440 * asp)
   let H = W / asp
   W = Math.max(2, Math.round(W / 2) * 2)
   H = Math.max(2, Math.round(H / 2) * 2)
@@ -314,7 +315,10 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
   )
   const pantallaDensidad = typeof window === 'undefined' ? 1 : Math.min(window.devicePixelRatio || 1, 2)
   // Con mucho zoom, menos detalle por píxel: si no, el lienzo no cabe en memoria.
-  const densidad = escena.w ? Math.min(pantallaDensidad, MAX_PX / escena.w) : pantallaDensidad
+  // En la sala, la página se pinta como mínimo al doble (aunque la pantalla
+  // del profe sea de las normales): de ese lienzo sale lo que ven los alumnos.
+  const densidadBase = enSala ? Math.max(pantallaDensidad, 2) : pantallaDensidad
+  const densidad = escena.w ? Math.min(densidadBase, MAX_PX / escena.w) : densidadBase
   // Lo mismo que «Ajustar al ancho»: la página a lo ancho de la pantalla.
   const zoomAncho = encaje.w ? Math.max(1, Math.min(ZOOM_MAX, (area.w - 24) / encaje.w)) : 1
 

@@ -192,7 +192,33 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
     const compartir = async () => {
       em.stream?.getTracks().forEach((t) => t.stop())
       em.stream = lienzo.captureStream(10) as MediaStream
-      await em.cliente.startScreenShare({ mediaStream: em.stream, screenVideoSendSettings: 'detail-optimized' })
+      // Es TEXTO, no vídeo en movimiento (12/11/2026: "se ve fatal lo
+      // compartido", salía borroso). Sin esto el navegador trata el lienzo
+      // como una cámara y, con poco ancho de banda, le BAJA LA RESOLUCIÓN;
+      // con la pista marcada como texto mantiene la resolución y baja los
+      // fotogramas, que aquí da igual.
+      for (const pista of em.stream.getVideoTracks()) {
+        try {
+          ;(pista as any).contentHint = 'text'
+          if ((pista as any).contentHint !== 'text') (pista as any).contentHint = 'detail'
+        } catch {
+          /* navegador sin contentHint */
+        }
+      }
+      // Una sola capa, al tamaño del lienzo (sin reducir) y con ancho de
+      // banda de sobra para que se lea la letra pequeña.
+      try {
+        await em.cliente.startScreenShare({
+          mediaStream: em.stream,
+          screenVideoSendSettings: {
+            maxQuality: 'low',
+            encodings: { low: { maxBitrate: 3000000, maxFramerate: 10, scaleResolutionDownBy: 1 } },
+          },
+        })
+      } catch {
+        // Si Daily no acepta esos ajustes, con su preajuste para texto.
+        await em.cliente.startScreenShare({ mediaStream: em.stream, screenVideoSendSettings: 'detail-optimized' })
+      }
     }
     try {
       const datos = await entrarPizarra(curso, token)

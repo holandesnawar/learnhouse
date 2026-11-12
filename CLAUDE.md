@@ -5462,6 +5462,16 @@ en masterclass? no pueden entrar, no hay enlace configurado".
   grabación; no sale en «quién hay dentro» y no cuenta como asistencia (las
   asistencias buscan ids de alumnos). Tests en `test_salas.py`. Probado en
   local (el lienzo que se manda, capturado); **NO contra Daily de verdad**.
+- ⚠️ **Probado contra Daily de verdad el 12/11: la pizarra entra y se ve,
+  pero salía BORROSA** (captura del usuario: "se ve fatal lo compartido").
+  Causa: el navegador trata un lienzo como una cámara y, al empezar con poco
+  ancho de banda, le baja la resolución; además se mandaba a 707 × 1000.
+  Arreglo: la pista lleva `contentHint = 'text'` (mantiene la resolución y
+  baja los fotogramas), una sola capa sin reducir y hasta 3 Mb/s
+  (`screenVideoSendSettings` a medida; si Daily no lo acepta,
+  `detail-optimized`), el lienzo cabe en 1920 × 1440 (una A4 sale a
+  1018 × 1440) y en la sala la página se pinta como mínimo al doble de
+  densidad. Sin volver a probar contra Daily tras el arreglo.
 - **Encender y apagar la sala desde la propia sala** (12/11, "que el profe
   pueda encender y apagar la sala"): el servidor ya lo dejaba al equipo desde
   el 02/11, pero el botón solo estaba en la página del curso. Ahora, con la
