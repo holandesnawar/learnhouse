@@ -235,7 +235,10 @@ export default function WeeklyClassBanner({
         <Radio size={17} strokeWidth={2.5} /> {texto}
       </>
     )
-    if (abierta) {
+    // Una clase con sala propia va SIEMPRE a la sala (12/11/2026: "no pueden
+    // entrar, no hay enlace configurado"): si aún está apagada, la sala dice
+    // que espere y entra sola en cuanto el profe la enciende.
+    if (abierta || (ajustes.directo && !liveUrl)) {
       return (
         <Link href={rutaSala(curso)} className={className}>
           {contenido}

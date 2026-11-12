@@ -168,15 +168,144 @@ export function deParte(partes: readonly Parte[], parte: number, real: number): 
   return r2(antes + (p ? aVisible(p.trozos, real) : 0))
 }
 
+// ── El editor: TODAS las partes en una sola línea (12/11/2026) ─────────────
+//
+// Usuario: "no veo el clip entero, solo 30 segundos". El editor abría la
+// primera parte (31 s) y había que adivinar que la clase estaba en otra. Ahora
+// trabaja con UNA línea de tiempo: las partes seguidas, cada una con su
+// duración de la grabación (sin cortar). Los cortes se marcan sobre esa línea
+// («global»), y una parte fuera es un corte que la cubre entera. Al publicar
+// se reparten por parte, que es lo que guarda el servidor (no cambia).
+
+/** Una parte en la línea: lo que dura su grabación. */
+export interface Tramo {
+  id: string
+  dur: number
+}
+
+/** El segundo de la línea en que empieza cada parte. */
+export function inicios(tramos: readonly Tramo[]): number[] {
+  const out: number[] = []
+  let n = 0
+  for (const p of tramos) {
+    out.push(r2(n))
+    n += Math.max(0, p.dur || 0)
+  }
+  return out
+}
+
+/** Lo que mide la línea entera. */
+export const totalDe = (tramos: readonly Tramo[]): number => r2(tramos.reduce((n, p) => n + Math.max(0, p.dur || 0), 0))
+
+/**
+ * De un segundo de la línea a (parte, segundo de esa grabación). En la raya
+ * entre dos partes cae al principio de la siguiente; al final de todo, al
+ * final de la última.
+ */
+export function deGlobal(tramos: readonly Tramo[], g: number): { parte: number; real: number } {
+  if (!tramos.length) return { parte: 0, real: 0 }
+  let antes = 0
+  const t = Math.max(0, g || 0)
+  for (let i = 0; i < tramos.length; i++) {
+    const d = Math.max(0, tramos[i].dur || 0)
+    if (t < antes + d || i === tramos.length - 1) return { parte: i, real: r2(Math.min(d, Math.max(0, t - antes))) }
+    antes += d
+  }
+  return { parte: 0, real: 0 }
+}
+
+/** Al revés: el segundo `real` de la parte `i` en la línea. */
+export const aGlobal = (tramos: readonly Tramo[], parte: number, real: number): number =>
+  r2((inicios(tramos)[parte] ?? 0) + Math.max(0, real || 0))
+
+/**
+ * Los cortes de la línea a partir de lo guardado por parte: los trozos que se
+ * enseñan de cada una (`null` = no tiene recorte) y si está fuera entera.
+ */
+export function cortesGlobales(
+  tramos: readonly Tramo[],
+  trozosPorParte: readonly (readonly (readonly number[])[] | null | undefined)[],
+  fuera: readonly boolean[]
+): Trozo[] {
+  const ini = inicios(tramos)
+  const todos: Trozo[] = []
+  tramos.forEach((p, i) => {
+    if (fuera[i]) {
+      todos.push([ini[i], ini[i] + p.dur])
+      return
+    }
+    for (const [a, b] of cortesDe(trozosPorParte[i], p.dur)) todos.push([ini[i] + a, ini[i] + b])
+  })
+  return ordenar(todos, totalDe(tramos))
+}
+
+/** Los cortes de la línea que caen en la parte `i`, en segundos de su grabación. */
+export function cortesDeLaParte(cortes: readonly (readonly number[])[], tramos: readonly Tramo[], i: number): Trozo[] {
+  const p = tramos[i]
+  if (!p) return []
+  const a0 = inicios(tramos)[i]
+  const b0 = a0 + p.dur
+  const out: Trozo[] = []
+  for (const [a, b] of cortes) {
+    const desde = Math.max(a, a0)
+    const hasta = Math.min(b, b0)
+    if (hasta > desde) out.push([desde - a0, hasta - a0])
+  }
+  return ordenar(out, p.dur)
+}
+
+/** ¿Se ve algo de la parte `i`? (Si está cortada entera, es como dejarla fuera.) */
+export const seVeLaParte = (cortes: readonly (readonly number[])[], tramos: readonly Tramo[], i: number): boolean =>
+  !!tramos[i] && trozosDe(cortesDeLaParte(cortes, tramos, i), tramos[i].dur).length > 0
+
+/** Lo que se publica: cada parte que se ve, con sus trozos. Las cortadas enteras no van. */
+export function trozosPorParte(cortes: readonly (readonly number[])[], tramos: readonly Tramo[]): { id: string; trozos: Trozo[] }[] {
+  return tramos
+    .map((p, i) => ({ id: p.id, trozos: trozosDe(cortesDeLaParte(cortes, tramos, i), p.dur) }))
+    .filter((p) => p.trozos.length > 0)
+}
+
+/** Volver a enseñar de `desde` a `hasta` (lo contrario de cortar). */
+export function descortar(cortes: readonly (readonly number[])[], desde: number, hasta: number, dur: number): Trozo[] {
+  const a = Math.min(desde, hasta)
+  const b = Math.max(desde, hasta)
+  return complemento(ordenar([...complemento(cortes, dur), [a, b]], dur), dur)
+}
+
+/** Las partes que un corte de la línea se lleva enteras. */
+export function partesEnteras(tramos: readonly Tramo[], corte: readonly number[]): number[] {
+  const ini = inicios(tramos)
+  const [a, b] = [Number(corte[0]), Number(corte[1])]
+  return tramos.map((p, i) => (p.dur > 0 && a <= ini[i] + 0.5 && b >= ini[i] + p.dur - 0.5 ? i : -1)).filter((i) => i >= 0)
+}
+
+/** La hora del reloj: «17:25» + 13 min → «17:38». Sin hora válida, «». */
+export function horaEn(hora: string | null | undefined, segundos: number): string {
+  const m = /^(\d{1,2}):(\d{2})/.exec(String(hora || ''))
+  if (!m) return ''
+  const total = Number(m[1]) * 60 + Number(m[2]) + Math.floor(Math.max(0, segundos || 0) / 60)
+  const h = Math.floor(total / 60) % 24
+  return `${String(h).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+}
+
+/** La parte con la grabación más larga (donde suele estar la clase). */
+export function parteMasLarga(tramos: readonly Tramo[]): number {
+  let mejor = 0
+  tramos.forEach((p, i) => {
+    if ((p.dur || 0) > (tramos[mejor]?.dur || 0)) mejor = i
+  })
+  return mejor
+}
+
 // ── Para pintar ────────────────────────────────────────────────────────────
 
-/** 75 → «1:15»; 3725 → «1:02:05». */
-export function reloj(seg: number): string {
+/** 75 → «1:15»; 3725 → «1:02:05». Con `conHoras`, siempre con hora: 750 → «0:12:30». */
+export function reloj(seg: number, conHoras = false): string {
   const s = Math.max(0, Math.floor(seg || 0))
   const h = Math.floor(s / 3600)
   const m = Math.floor((s % 3600) / 60)
   const ss = String(s % 60).padStart(2, '0')
-  return h ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`
+  return h || conHoras ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`
 }
 
 /** 3480 → «58 min»; 4500 → «1 h 15 min»; 40 → «40 s». */

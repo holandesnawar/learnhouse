@@ -126,3 +126,117 @@ describe('recorte de una grabación', () => {
     expect(pasoDeRegla(20)).toBe(5)
   })
 })
+
+// ── Una sola línea con todas las partes (12/11/2026) ───────────────────────
+import {
+  aGlobal,
+  cortesDeLaParte,
+  cortesGlobales,
+  deGlobal,
+  descortar,
+  horaEn,
+  inicios,
+  parteMasLarga,
+  partesEnteras,
+  seVeLaParte,
+  totalDe,
+  trozosPorParte,
+} from '../recorte'
+
+// El día de la captura: 31 s, 1 h 16 min, 2 min y 4 min.
+const DIA = [
+  { id: 'p1', dur: 31 },
+  { id: 'p2', dur: 4560 },
+  { id: 'p3', dur: 120 },
+  { id: 'p4', dur: 240 },
+]
+
+describe('la línea de tiempo con todas las partes', () => {
+  test('cada parte empieza donde acaba la anterior', () => {
+    expect(inicios(DIA)).toEqual([0, 31, 4591, 4711])
+    expect(totalDe(DIA)).toBe(4951)
+  })
+
+  test('de la línea a la parte y al revés', () => {
+    expect(deGlobal(DIA, 10)).toEqual({ parte: 0, real: 10 })
+    expect(deGlobal(DIA, 31)).toEqual({ parte: 1, real: 0 })
+    expect(deGlobal(DIA, 631)).toEqual({ parte: 1, real: 600 })
+    expect(deGlobal(DIA, 4951)).toEqual({ parte: 3, real: 240 })
+    expect(deGlobal(DIA, 99999)).toEqual({ parte: 3, real: 240 })
+    expect(aGlobal(DIA, 1, 600)).toBe(631)
+    expect(aGlobal(DIA, 3, 0)).toBe(4711)
+  })
+
+  test('la parte más larga es donde se abre', () => {
+    expect(parteMasLarga(DIA)).toBe(1)
+    expect(parteMasLarga([])).toBe(0)
+  })
+
+  test('sin nada publicado: lo de menos de un minuto nace fuera', () => {
+    const fuera = DIA.map((p) => p.dur < 60)
+    const cortes = cortesGlobales(DIA, DIA.map(() => null), fuera)
+    expect(cortes).toEqual([[0, 31]])
+    expect(seVeLaParte(cortes, DIA, 0)).toBe(false)
+    expect(seVeLaParte(cortes, DIA, 1)).toBe(true)
+    expect(trozosPorParte(cortes, DIA).map((p) => p.id)).toEqual(['p2', 'p3', 'p4'])
+  })
+
+  test('lo publicado se vuelve a pintar igual', () => {
+    const cortes = cortesGlobales(DIA, [null, [[300, 4500]], [[0, 120]], null], [true, false, false, true])
+    // Parte 1 fuera + principio de la 2 → un solo corte; final de la 2 y la 4 entera.
+    expect(cortes).toEqual([
+      [0, 331],
+      [4531, 4591],
+      [4711, 4951],
+    ])
+    expect(trozosPorParte(cortes, DIA)).toEqual([
+      { id: 'p2', trozos: [[300, 4500]] },
+      { id: 'p3', trozos: [[0, 120]] },
+    ])
+  })
+
+  test('«Empieza aquí» en la parte 2 deja fuera la 1 entera', () => {
+    const cortes = empiezaEn([], aGlobal(DIA, 1, 600), totalDe(DIA))
+    expect(cortes).toEqual([[0, 631]])
+    expect(seVeLaParte(cortes, DIA, 0)).toBe(false)
+    expect(cortesDeLaParte(cortes, DIA, 1)).toEqual([[0, 600]])
+    expect(partesEnteras(DIA, cortes[0])).toEqual([0])
+  })
+
+  test('«Termina aquí» en la parte 2 deja fuera la 3 y la 4', () => {
+    const cortes = terminaEn([], aGlobal(DIA, 1, 4000), totalDe(DIA))
+    expect(trozosPorParte(cortes, DIA)).toEqual([
+      { id: 'p1', trozos: [[0, 31]] },
+      { id: 'p2', trozos: [[0, 4000]] },
+    ])
+    expect(partesEnteras(DIA, cortes[0])).toEqual([2, 3])
+  })
+
+  test('un trozo de en medio puede abarcar dos partes', () => {
+    const cortes = cortar([], aGlobal(DIA, 1, 4500), aGlobal(DIA, 2, 60), totalDe(DIA))
+    expect(cortesDeLaParte(cortes, DIA, 1)).toEqual([[4500, 4560]])
+    expect(cortesDeLaParte(cortes, DIA, 2)).toEqual([[0, 60]])
+    expect(trozosPorParte(cortes, DIA)).toEqual([
+      { id: 'p1', trozos: [[0, 31]] },
+      { id: 'p2', trozos: [[0, 4500]] },
+      { id: 'p3', trozos: [[60, 120]] },
+      { id: 'p4', trozos: [[0, 240]] },
+    ])
+  })
+
+  test('volver a incluir una parte quita solo su corte', () => {
+    const total = totalDe(DIA)
+    let cortes = empiezaEn([], aGlobal(DIA, 1, 600), total)
+    cortes = descortar(cortes, 0, 31, total)
+    expect(cortes).toEqual([[31, 631]])
+    expect(seVeLaParte(cortes, DIA, 0)).toBe(true)
+  })
+
+  test('la hora del reloj de un punto de la grabación', () => {
+    expect(horaEn('17:25', 13 * 60 + 40)).toBe('17:38')
+    expect(horaEn('23:50', 20 * 60)).toBe('00:10')
+    expect(horaEn('', 100)).toBe('')
+    expect(reloj(750, true)).toBe('0:12:30')
+    expect(reloj(750)).toBe('12:30')
+  })
+})

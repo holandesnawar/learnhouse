@@ -1,44 +1,61 @@
 'use client'
 
 /**
- * Recortar la grabación de una clase y publicarla (10/11/2026).
+ * Recortar la grabación de una clase y publicarla (10/11/2026; rehecho el
+ * 12/11/2026).
  *
  * Usuario: "una línea de tiempo con zoom para cortar partes y un botón de
  * publicar". El recorte es VIRTUAL (no se procesa vídeo): aquí se marcan los
  * CORTES —lo que se quita— y al publicar se guarda lo que queda. Se puede
  * volver a abrir y cambiarlo las veces que haga falta.
  *
- * - «Empieza aquí» / «Termina aquí»: quitar el principio y el final.
- * - «Quitar un trozo»: marcar dónde empieza y dónde acaba un corte en medio.
- * - La línea de tiempo: se toca o se arrastra para moverse; con zoom se
- *   desplaza y sigue al cabezal. Lo cortado se ve rayado y se deshace corte a
- *   corte.
- * - «Ver cómo queda»: reproduce saltándose los cortes, como lo verá el alumno.
- * - Teclas: espacio (reproducir), ← → (5 s; con Mayús, 1 s), I y O (inicio y
- *   fin del trozo a quitar), + y − (zoom).
+ * ⚠️ 12/11: "no veo el clip entero, solo 30 segundos, y no se sabe bien dónde
+ * entrar para arreglarlo". Si la sala cortó y volvió a grabar, el día tiene
+ * varias PARTES, y el editor abría la primera (31 s, en negro). Ahora:
+ * - UNA sola línea de tiempo con todas las partes seguidas (la grabación
+ *   entera del día), con una raya y su hora donde empieza cada parte. Tocar
+ *   en cualquier sitio cambia de parte solo, y al reproducir sigue con la
+ *   siguiente.
+ * - Los cortes se marcan sobre esa línea (`lib/nawar/recorte.ts`: «la línea
+ *   con todas las partes»): «Empieza aquí» deja fuera todo lo de antes,
+ *   también las partes enteras; «Termina aquí», lo de después; un trozo de en
+ *   medio puede abarcar dos partes. Al publicar se reparten por parte: lo que
+ *   guarda el servidor no cambia.
+ * - Se abre en la parte MÁS LARGA, y sin nada publicado las partes de menos
+ *   de un minuto nacen fuera (casi siempre, alguien que entró antes).
+ * - Arriba, los tres pasos; junto a la línea, «Empieza aquí» y «Termina aquí».
  *
- * Si la sala cortó y volvió a grabar, el día tiene varias PARTES: cada una se
- * recorta por separado y se puede dejar fuera entera.
+ * Teclas: espacio (reproducir), ← → (5 s; con Mayús, 1 s), I y O (inicio y fin
+ * del trozo a quitar), + y − (zoom).
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import EnElCuerpo from '@components/Objects/EnElCuerpo'
-import { Loader2, Minus, Pause, Play, Plus, RotateCcw, Scissors, SkipBack, SkipForward, Undo2, X } from 'lucide-react'
+import { ChevronsLeft, ChevronsRight, Loader2, Minus, Pause, Play, Plus, RotateCcw, Scissors, SkipBack, SkipForward, Undo2, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { confirmar } from '@/lib/nawar/confirmar'
 import {
   cortar,
   corteEn,
-  cortesDe,
+  cortesGlobales,
+  deGlobal,
+  descortar,
   dondeSeguir,
   duracionCorta,
   duracionVisible,
   empiezaEn,
+  horaEn,
+  inicios,
+  parteMasLarga,
+  partesEnteras,
   pasoDeRegla,
   reloj,
+  seVeLaParte,
   sinCorte,
   terminaEn,
+  totalDe,
   trozosDe,
+  trozosPorParte,
   type Trozo,
 } from '@/lib/nawar/recorte'
 import { diaCorto } from '@services/tareas/tareas'
@@ -46,9 +63,13 @@ import { publicarGrabacion, quitarGrabacion, urlVideoSala, type DiaGrabado, type
 
 const PX_POR_SEGUNDO_MAX = 14
 const REINTENTOS = 3
+/** Las partes más cortas que esto nacen fuera si no hay nada publicado. */
+const PARTE_MINIMA = 60
 
 const BOTON =
   'inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-[#D5DEEE] bg-white text-[13px] font-semibold text-[#0B1033] hover:border-[#0b2da0] hover:text-[#0b2da0] disabled:opacity-40 disabled:hover:border-[#D5DEEE] disabled:hover:text-[#0B1033]'
+const BOTON_FUERTE =
+  'inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg border border-[#0b2da0] bg-[#EAF0FE] text-[13.5px] font-semibold text-[#0b2da0] hover:bg-[#dfe8fd]'
 
 const RAYAS: React.CSSProperties = {
   backgroundImage: 'repeating-linear-gradient(135deg, rgba(100,110,135,0.55) 0 6px, rgba(100,110,135,0.25) 6px 12px)',
@@ -70,6 +91,11 @@ function EditorRecorteDentro({
   onPublicado: () => void | Promise<void>
 }) {
   const listas = useMemo(() => dia.partes.filter((p) => p.lista), [dia.partes])
+  const tramos = useMemo(() => listas.map((p) => ({ id: p.id, dur: p.dur })), [listas])
+  const ini = useMemo(() => inicios(tramos), [tramos])
+  const total = useMemo(() => totalDe(tramos), [tramos])
+  const varias = listas.length > 1
+
   const video = useRef<HTMLVideoElement | null>(null)
   const carril = useRef<HTMLDivElement | null>(null)
   const pista = useRef<HTMLDivElement | null>(null)
@@ -77,16 +103,27 @@ function EditorRecorteDentro({
   const quiereSonar = useRef(false)
   const arrastrando = useRef(false)
 
-  // Lo que ya estaba publicado manda; si no, todo incluido y sin cortes.
-  const [cortes, setCortes] = useState<Record<string, Trozo[]>>(() =>
-    Object.fromEntries(listas.map((p) => [p.id, cortesDe(p.trozos, p.dur)]))
+  // Lo que ya estaba publicado manda; si no, todo dentro menos lo muy corto.
+  const sinPublicar = !dia.publicada
+  const fueraAlEmpezar = useMemo(
+    () => listas.map((p) => (dia.publicada ? p.trozos === null : varias && p.dur < PARTE_MINIMA)),
+    // Solo al abrir.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
   )
-  const [fuera, setFuera] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(listas.map((p) => [p.id, !!dia.publicada && p.trozos === null]))
+  const [cortes, setCortes] = useState<Trozo[]>(() =>
+    cortesGlobales(
+      tramos,
+      listas.map((p) => p.trozos),
+      fueraAlEmpezar
+    )
   )
+  const cortasFuera = sinPublicar ? listas.filter((_, i) => fueraAlEmpezar[i]).length : 0
+
+  const empiezaEnParte = useMemo(() => parteMasLarga(tramos), [tramos])
   const [tocado, setTocado] = useState(false)
-  const [iParte, setIParte] = useState(0)
-  const [t, setT] = useState(0)
+  const [iParte, setIParte] = useState(empiezaEnParte)
+  const [t, setT] = useState(() => ini[empiezaEnParte] || 0)
   const [sonando, setSonando] = useState(false)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState('')
@@ -103,16 +140,22 @@ function EditorRecorteDentro({
   const [guardando, setGuardando] = useState(false)
 
   const parte = listas[iParte]
-  const dur = parte?.dur || 0
-  const suyos = (parte && cortes[parte.id]) || []
-  const trozos = useMemo(() => trozosDe(suyos, dur), [suyos, dur])
-  const zoomMax = Math.max(1, (dur * PX_POR_SEGUNDO_MAX) / Math.max(1, ancho))
+  const trozos = useMemo(() => trozosDe(cortes, total), [cortes, total])
+  const zoomMax = Math.max(1, (total * PX_POR_SEGUNDO_MAX) / Math.max(1, ancho))
   const anchoPista = Math.max(ancho, ancho * zoom)
-  const px = dur > 0 ? anchoPista / dur : 0
-
-  const queda = listas.reduce((n, p) => (fuera[p.id] ? n : n + duracionVisible(trozosDe(cortes[p.id] || [], p.dur), 0)), 0)
-  const todo = listas.reduce((n, p) => n + p.dur, 0)
+  const px = total > 0 ? anchoPista / total : 0
+  const queda = duracionVisible(trozos, 0)
   const semana = semanas.find((s) => s.id === semanaId) || null
+  const conHoras = total >= 3600
+
+  /** La hora del reloj de un punto de la línea («17:38»). */
+  const horaDe = useCallback(
+    (g: number) => {
+      const { parte: i, real } = deGlobal(tramos, g)
+      return horaEn(listas[i]?.hora, real)
+    },
+    [tramos, listas]
+  )
 
   // ── El ancho del carril (para el zoom y las marcas de la regla) ──────────
   useEffect(() => {
@@ -139,25 +182,35 @@ function EditorRecorteDentro({
     // Con el zoom nuevo, el cabezal al centro.
     requestAnimationFrame(() => {
       const el = carril.current
-      if (el && dur > 0) el.scrollLeft = Math.max(0, (t / dur) * Math.max(ancho, ancho * nuevo) - ancho / 2)
+      if (el && total > 0) el.scrollLeft = Math.max(0, (t / total) * Math.max(ancho, ancho * nuevo) - ancho / 2)
     })
   }
 
-  // ── Moverse ──────────────────────────────────────────────────────────────
+  // ── Moverse por la línea (cambia de parte si hace falta) ─────────────────
   const irA = useCallback(
-    (seg: number) => {
-      const v = video.current
-      const destino = Math.max(0, Math.min(dur || seg, seg))
+    (g: number, seguirSonando?: boolean) => {
+      const destino = Math.max(0, Math.min(total || g, g))
+      const { parte: i, real } = deGlobal(tramos, destino)
       setT(destino)
-      if (v) {
+      const v = video.current
+      if (i === iParte && v) {
         try {
-          v.currentTime = destino
+          v.currentTime = real
         } catch {
-          pendiente.current = destino
+          pendiente.current = real
         }
+        return
       }
+      // Otra parte: otro vídeo. Se coloca (y sigue sonando) al cargar.
+      pendiente.current = real
+      quiereSonar.current = seguirSonando ?? (!!v && !v.paused)
+      v?.pause()
+      setIntento(0)
+      setError('')
+      setCargando(true)
+      setIParte(i)
     },
-    [dur]
+    [tramos, total, iParte]
   )
 
   const alternar = useCallback(() => {
@@ -166,13 +219,16 @@ function EditorRecorteDentro({
     if (v.paused) {
       // En «Ver cómo queda», empezar en algo que se vea.
       if (previa) {
-        const sitio = dondeSeguir(trozos, v.currentTime)
-        if (sitio === null) v.currentTime = trozos[0]?.[0] ?? 0
-        else if (sitio > v.currentTime) v.currentTime = sitio
+        const sitio = dondeSeguir(trozos, t)
+        const desde = sitio === null ? trozos[0]?.[0] ?? 0 : sitio
+        if (Math.abs(desde - t) > 0.1) {
+          irA(desde, true)
+          if (deGlobal(tramos, desde).parte !== iParte) return
+        }
       }
       void v.play().catch(() => undefined)
     } else v.pause()
-  }, [previa, trozos])
+  }, [previa, trozos, t, irA, tramos, iParte])
 
   function alCargar() {
     const v = video.current
@@ -194,18 +250,31 @@ function EditorRecorteDentro({
   function alAvanzar() {
     const v = video.current
     if (!v || arrastrando.current) return
+    const g = (ini[iParte] || 0) + v.currentTime
     if (previa && !v.paused) {
-      const sitio = dondeSeguir(trozos, v.currentTime)
+      const sitio = dondeSeguir(trozos, g)
       if (sitio === null) {
         v.pause()
         return
       }
-      if (sitio > v.currentTime + 0.05) {
-        v.currentTime = sitio
+      if (sitio > g + 0.05) {
+        irA(sitio, true)
         return
       }
     }
-    setT(v.currentTime)
+    setT(g)
+  }
+
+  /** Al acabar una parte, sigue con la siguiente (en «Ver cómo queda», con lo siguiente que se vea). */
+  function alAcabar() {
+    const fin = (ini[iParte] || 0) + (parte?.dur || 0)
+    if (iParte >= listas.length - 1) return
+    if (previa) {
+      const sitio = dondeSeguir(trozos, fin)
+      if (sitio !== null) irA(sitio, true)
+      return
+    }
+    irA(ini[iParte + 1], true)
   }
 
   function alFallar() {
@@ -215,35 +284,26 @@ function EditorRecorteDentro({
       setError('No se pudo cargar el vídeo de la sala. Puede que aún se esté procesando.')
       return
     }
-    pendiente.current = v && v.currentTime > 0 ? v.currentTime : t
+    pendiente.current = v && v.currentTime > 0 ? v.currentTime : deGlobal(tramos, t).real
     quiereSonar.current = sonando
     setCargando(true)
     setIntento((n) => n + 1)
   }
 
-  function cambiarParte(i: number) {
-    if (i === iParte) return
-    video.current?.pause()
-    pendiente.current = null
-    setIParte(i)
-    setT(0)
-    setMarcaA(null)
-    setMarcaB(null)
-    setIntento(0)
-    setCargando(true)
-    setError('')
-    setZoom(1)
-  }
-
   // ── Cortar ───────────────────────────────────────────────────────────────
   function ponerCortes(nuevos: Trozo[]) {
-    if (!parte) return
-    setCortes((c) => ({ ...c, [parte.id]: nuevos }))
+    setCortes(nuevos)
     setTocado(true)
   }
 
-  const empiezaAqui = () => ponerCortes(empiezaEn(suyos, t, dur))
-  const terminaAqui = () => ponerCortes(terminaEn(suyos, t, dur))
+  const empiezaAqui = () => ponerCortes(empiezaEn(cortes, t, total))
+  const terminaAqui = () => ponerCortes(terminaEn(cortes, t, total))
+
+  function incluirParte(i: number, si: boolean) {
+    const a = ini[i]
+    const b = a + (listas[i]?.dur || 0)
+    ponerCortes(si ? descortar(cortes, a, b, total) : cortar(cortes, a, b, total))
+  }
 
   const marcarInicio = useCallback(() => {
     setMarcaA(t)
@@ -260,7 +320,7 @@ function EditorRecorteDentro({
       toast.error('El trozo marcado dura menos de un segundo')
       return
     }
-    ponerCortes(cortar(suyos, marcaA, marcaB, dur))
+    ponerCortes(cortar(cortes, marcaA, marcaB, total))
     setMarcaA(null)
     setMarcaB(null)
   }
@@ -277,7 +337,7 @@ function EditorRecorteDentro({
         alternar()
       } else if (k === 'ArrowLeft' || k === 'ArrowRight') {
         e.preventDefault()
-        irA((video.current?.currentTime ?? t) + (k === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? 1 : 5))
+        irA(t + (k === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? 1 : 5))
       } else if (k === 'i' || k === 'I') marcarInicio()
       else if (k === 'o' || k === 'O') marcarFin()
       else if (k === '+' || k === '=') ponerZoom(zoom * 1.6)
@@ -287,21 +347,23 @@ function EditorRecorteDentro({
     return () => window.removeEventListener('keydown', tecla)
     // `ponerZoom` cambia en cada pintado; con lo que usa basta.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alternar, irA, marcarInicio, marcarFin, t, zoom, zoomMax, ancho, dur])
+  }, [alternar, irA, marcarInicio, marcarFin, t, zoom, zoomMax, ancho, total])
 
   // ── La línea de tiempo: tocar y arrastrar ────────────────────────────────
   function segundoEn(clientX: number): number {
     const el = pista.current
-    if (!el || !dur) return 0
+    if (!el || !total) return 0
     const caja = el.getBoundingClientRect()
-    return Math.max(0, Math.min(dur, ((clientX - caja.left) / caja.width) * dur))
+    return Math.max(0, Math.min(total, ((clientX - caja.left) / caja.width) * total))
   }
 
+  // Al arrastrar se mueve el cabezal; el vídeo se coloca al soltar (si no,
+  // cruzar de una parte a otra cargaría vídeos a cada paso).
   function alPulsar(e: React.PointerEvent<HTMLDivElement>) {
     if ((e.target as HTMLElement).closest('[data-no-mover]')) return
     arrastrando.current = true
     e.currentTarget.setPointerCapture(e.pointerId)
-    irA(segundoEn(e.clientX))
+    setT(segundoEn(e.clientX))
   }
   function alMover(e: React.PointerEvent<HTMLDivElement>) {
     if (!arrastrando.current) return
@@ -312,24 +374,39 @@ function EditorRecorteDentro({
       if (e.clientX > caja.right - 28) el.scrollLeft += 18
       else if (e.clientX < caja.left + 28) el.scrollLeft -= 18
     }
-    irA(segundoEn(e.clientX))
+    setT(segundoEn(e.clientX))
   }
   function alSoltar(e: React.PointerEvent<HTMLDivElement>) {
+    if (!arrastrando.current) return
     arrastrando.current = false
     try {
       e.currentTarget.releasePointerCapture(e.pointerId)
     } catch {
       /* ya suelto */
     }
+    irA(segundoEn(e.clientX))
   }
 
   const marcas = useMemo(() => {
-    if (!dur || !px) return []
+    if (!total || !px) return []
     const paso = pasoDeRegla(px)
     const out: number[] = []
-    for (let s = 0; s <= dur && out.length < 1500; s += paso) out.push(s)
+    for (let s = 0; s <= total && out.length < 1500; s += paso) out.push(s)
     return out
-  }, [dur, px])
+  }, [total, px])
+
+  // Las etiquetas de las partes: solo donde caben dentro de su parte y sin
+  // pisarse (una parte de 30 s es una raya sin etiqueta; la dicen los botones
+  // de arriba).
+  const etiquetas = useMemo(() => {
+    let ultima = -Infinity
+    return listas.map((p, i) => {
+      const x = ini[i] * px
+      const cabe = p.dur * px >= 110 && x - ultima >= 120
+      if (cabe) ultima = x
+      return { x, cabe, texto: `Parte ${i + 1} · ${p.hora}` }
+    })
+  }, [listas, ini, px])
 
   // ── Publicar y cerrar ────────────────────────────────────────────────────
   async function cerrar() {
@@ -342,10 +419,7 @@ function EditorRecorteDentro({
       toast.error('Elige en qué semana se publica')
       return
     }
-    const partes = listas
-      .filter((p) => !fuera[p.id])
-      .map((p) => ({ id: p.id, trozos: trozosDe(cortes[p.id] || [], p.dur) }))
-      .filter((p) => p.trozos.length)
+    const partes = trozosPorParte(cortes, tramos)
     if (!partes.length) {
       toast.error('Con ese recorte no queda nada que enseñar')
       return
@@ -379,8 +453,27 @@ function EditorRecorteDentro({
     )
   }
 
-  const enCorte = corteEn(suyos, t)
+  const enCorte = corteEn(cortes, t)
   const marcado = marcaA !== null && marcaB !== null
+  const hora = horaDe(t)
+
+  /** Cómo se llama un corte en la lista de «Lo que se quita». */
+  function nombreDelCorte([a, b]: Trozo): { titulo: string; detalle: string } {
+    const enteras = partesEnteras(tramos, [a, b])
+    const sola = enteras.length === 1 && Math.abs(a - ini[enteras[0]]) < 0.6 && Math.abs(b - (ini[enteras[0]] + listas[enteras[0]].dur)) < 0.6
+    const titulo = sola
+      ? `Parte ${enteras[0] + 1} entera`
+      : a <= 0.01
+        ? 'El principio'
+        : b >= total - 0.01
+          ? 'El final'
+          : 'Un trozo'
+    const horas = [horaDe(a), horaDe(Math.max(a, b - 0.01))].filter(Boolean)
+    const enteraTxt =
+      !sola && enteras.length ? ` · incluye ${enteras.length === 1 ? `la parte ${enteras[0] + 1} entera` : `las partes ${enteras.map((i) => i + 1).join(' y ')} enteras`}` : ''
+    const detalle = `${reloj(a, conHoras)} → ${reloj(b, conHoras)}${horas.length === 2 ? ` (${horas[0]} → ${horas[1]})` : ''} · ${duracionCorta(b - a)}${enteraTxt}`
+    return { titulo, detalle }
+  }
 
   return (
     <div className="fixed inset-0 z-[95] flex flex-col bg-[#F4F7FD]">
@@ -390,8 +483,8 @@ function EditorRecorteDentro({
         <div className="min-w-0 flex-1">
           <p className="truncate text-[15.5px] font-bold text-[#0B1033]">Recortar la grabación</p>
           <p className="truncate text-[12.5px] text-[#6B7393]">
-            {diaCorto(dia.dia)} · la sala grabó {duracionCorta(todo)}
-            {listas.length > 1 ? ` en ${listas.length} partes` : ''}
+            {diaCorto(dia.dia)} · la sala grabó {duracionCorta(total)}
+            {varias ? ` en ${listas.length} partes, aquí seguidas` : ''}
           </p>
         </div>
         <button onClick={cerrar} aria-label="Cerrar" className="flex h-9 w-9 items-center justify-center rounded-lg text-[#5A6480] hover:bg-[#F0F5FF]">
@@ -401,34 +494,57 @@ function EditorRecorteDentro({
 
       <div className="flex-1 overflow-y-auto pb-6">
         <div className="mx-auto w-full max-w-5xl px-3 sm:px-6 py-4 space-y-4">
+          {/* Los pasos */}
+          <ol className="grid gap-2 sm:grid-cols-3">
+            {[
+              <>
+                Busca dónde <b>empieza</b> la clase y pulsa <b>«Empieza aquí»</b>.
+              </>,
+              <>
+                Busca dónde <b>acaba</b> y pulsa <b>«Termina aquí»</b>.
+              </>,
+              <>
+                Si sobra algo en medio, márcalo y <b>«Quitar este trozo»</b>. Luego, <b>Publicar</b>.
+              </>,
+            ].map((txt, i) => (
+              <li key={i} className="flex items-start gap-2.5 rounded-lg border border-[#E2E8F4] bg-white px-3 py-2.5 text-[13px] leading-snug text-[#3F4A61]">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0b2da0] text-[12px] font-bold text-white">{i + 1}</span>
+                <span>{txt}</span>
+              </li>
+            ))}
+          </ol>
+
           {/* Partes */}
-          {listas.length > 1 ? (
-            <div className="flex flex-wrap gap-2">
-              {listas.map((p, i) => (
-                <div
-                  key={p.id}
-                  className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${i === iParte ? 'border-[#0b2da0] bg-white' : 'border-[#E2E8F4] bg-white/60'}`}
-                >
-                  <button onClick={() => cambiarParte(i)} className="text-left">
-                    <span className={`block text-[13px] font-semibold ${fuera[p.id] ? 'text-[#9CA3AF] line-through' : 'text-[#0B1033]'}`}>
-                      Parte {i + 1} · {p.hora}
-                    </span>
-                    <span className="block text-[11.5px] text-[#6B7393]">{duracionCorta(p.dur)}</span>
-                  </button>
-                  <label className="flex items-center gap-1.5 text-[12px] text-[#5A6480] cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={!fuera[p.id]}
-                      onChange={(e) => {
-                        setFuera((f) => ({ ...f, [p.id]: !e.target.checked }))
-                        setTocado(true)
-                      }}
-                      className="h-4 w-4 accent-[#0b2da0]"
-                    />
-                    Incluir
-                  </label>
-                </div>
-              ))}
+          {varias ? (
+            <div>
+              <div className="flex flex-wrap gap-2">
+                {listas.map((p, i) => {
+                  const dentro = seVeLaParte(cortes, tramos, i)
+                  return (
+                    <div
+                      key={p.id}
+                      className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${i === iParte ? 'border-[#0b2da0] bg-white' : 'border-[#E2E8F4] bg-white/60'}`}
+                    >
+                      <button onClick={() => irA(ini[i])} className="text-left" title="Ir a esta parte">
+                        <span className={`block text-[13px] font-semibold ${dentro ? 'text-[#0B1033]' : 'text-[#9CA3AF] line-through'}`}>
+                          Parte {i + 1} · {p.hora}
+                        </span>
+                        <span className="block text-[11.5px] text-[#6B7393]">{duracionCorta(p.dur)}</span>
+                      </button>
+                      <label className="flex items-center gap-1.5 text-[12px] text-[#5A6480] cursor-pointer">
+                        <input type="checkbox" checked={dentro} onChange={(e) => incluirParte(i, e.target.checked)} className="h-4 w-4 accent-[#0b2da0]" />
+                        Incluir
+                      </label>
+                    </div>
+                  )
+                })}
+              </div>
+              {cortasFuera ? (
+                <p className="mt-1.5 text-[12px] text-[#6B7393]">
+                  {cortasFuera === 1 ? 'Una parte de menos de 1 minuto se ha dejado fuera' : `${cortasFuera} partes de menos de 1 minuto se han dejado fuera`}{' '}
+                  (suele ser alguien que entró antes de la clase). Márcala si la quieres.
+                </p>
+              ) : null}
             </div>
           ) : null}
 
@@ -445,6 +561,7 @@ function EditorRecorteDentro({
                 onClick={alternar}
                 onLoadedMetadata={alCargar}
                 onTimeUpdate={alAvanzar}
+                onEnded={alAcabar}
                 onPlay={() => setSonando(true)}
                 onPause={() => setSonando(false)}
                 onWaiting={() => setCargando(true)}
@@ -455,7 +572,14 @@ function EditorRecorteDentro({
               {error ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
                   <p className="text-[14px] text-white/90">{error}</p>
-                  <button onClick={() => { setError(''); setCargando(true); setIntento(0) }} className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-white text-[13.5px] font-semibold text-[#0B1033]">
+                  <button
+                    onClick={() => {
+                      setError('')
+                      setCargando(true)
+                      setIntento(0)
+                    }}
+                    className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-white text-[13.5px] font-semibold text-[#0B1033]"
+                  >
                     <RotateCcw size={15} /> Volver a intentarlo
                   </button>
                 </div>
@@ -463,6 +587,11 @@ function EditorRecorteDentro({
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                   <Loader2 size={32} className="animate-spin text-white/80" />
                 </div>
+              ) : null}
+              {varias ? (
+                <span className="pointer-events-none absolute right-3 top-3 rounded-md bg-black/60 px-2 py-1 text-[12px] font-semibold text-white">
+                  Parte {iParte + 1} de {listas.length}
+                </span>
               ) : null}
               {enCorte >= 0 && !error ? (
                 <span className="pointer-events-none absolute left-3 top-3 rounded-md bg-black/70 px-2 py-1 text-[12px] font-semibold text-white">
@@ -490,8 +619,13 @@ function EditorRecorteDentro({
                 <SkipForward size={15} />
               </button>
               <span className="mx-1 text-[14px] font-semibold tabular-nums text-[#0B1033]">
-                {reloj(t)} <span className="font-normal text-[#8A91AD]">/ {reloj(dur)}</span>
+                {reloj(t, conHoras)} <span className="font-normal text-[#8A91AD]">/ {reloj(total, conHoras)}</span>
               </span>
+              {hora ? (
+                <span className="text-[12.5px] text-[#6B7393]" title="La hora del reloj de ese momento de la clase">
+                  · en la sala eran las <b className="font-semibold text-[#3F4A61]">{hora}</b>
+                </span>
+              ) : null}
               <label className="ml-auto flex items-center gap-2 text-[13px] text-[#3F4A61] cursor-pointer">
                 <input type="checkbox" checked={previa} onChange={(e) => setPrevia(e.target.checked)} className="h-4 w-4 accent-[#0b2da0]" />
                 Ver cómo queda
@@ -502,7 +636,7 @@ function EditorRecorteDentro({
             <div ref={carril} className="mt-3 overflow-x-auto overscroll-x-contain rounded-lg border border-[#E2E8F4] bg-[#F7F9FD]" style={{ touchAction: 'pan-x' }}>
               <div
                 ref={pista}
-                className="relative h-[92px] cursor-pointer select-none"
+                className="relative h-[112px] cursor-pointer select-none"
                 style={{ width: anchoPista, touchAction: 'none' }}
                 onPointerDown={alPulsar}
                 onPointerMove={alMover}
@@ -518,19 +652,29 @@ function EditorRecorteDentro({
                   ))}
                 </div>
                 {/* Lo que se ve */}
-                <div className="absolute inset-x-0 top-9 h-11 rounded bg-[#0b2da0]/85" />
+                <div className="absolute inset-x-0 top-[50px] h-11 rounded bg-[#0b2da0]/85" />
+                {/* Dónde empieza cada parte */}
+                {varias
+                  ? etiquetas.map((e, i) => (
+                      <div key={listas[i].id} className="pointer-events-none absolute top-6 bottom-0 border-l-2 border-[#0B1033]/70" style={{ left: e.x }}>
+                        {e.cabe ? (
+                          <span className="absolute left-1 top-1 whitespace-nowrap rounded bg-white/90 px-1 text-[10.5px] font-semibold text-[#0B1033]">{e.texto}</span>
+                        ) : null}
+                      </div>
+                    ))
+                  : null}
                 {/* Lo cortado */}
-                {suyos.map(([a, b], i) => (
+                {cortes.map(([a, b], i) => (
                   <div
                     key={`${a}-${b}`}
-                    className="absolute top-9 h-11 bg-[#EEF1F7]"
+                    className="absolute top-[50px] h-11 bg-[#EEF1F7]"
                     style={{ left: a * px, width: Math.max(2, (b - a) * px), ...RAYAS }}
-                    title={`Cortado: ${reloj(a)} → ${reloj(b)}`}
+                    title={`Cortado: ${reloj(a, conHoras)} → ${reloj(b, conHoras)}`}
                   >
                     {(b - a) * px > 30 ? (
                       <button
                         data-no-mover
-                        onClick={() => ponerCortes(sinCorte(suyos, i))}
+                        onClick={() => ponerCortes(sinCorte(cortes, i))}
                         className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded bg-white text-[#0B1033] shadow-sm hover:bg-[#F0F5FF]"
                         aria-label="Deshacer este corte"
                         title="Deshacer este corte"
@@ -542,18 +686,18 @@ function EditorRecorteDentro({
                 ))}
                 {/* El trozo que se está marcando */}
                 {marcaA !== null ? (
-                  <div className="absolute top-7 h-[60px] border-l-2 border-[#C2362F]" style={{ left: marcaA * px }}>
-                    <span className="absolute -top-0.5 left-1 text-[10px] font-bold text-[#C2362F]">INICIO</span>
+                  <div className="absolute top-[46px] h-[60px] border-l-2 border-[#C2362F]" style={{ left: marcaA * px }}>
+                    <span className="absolute -top-3 left-1 text-[10px] font-bold text-[#C2362F]">INICIO</span>
                   </div>
                 ) : null}
                 {marcaB !== null ? (
-                  <div className="absolute top-7 h-[60px] border-l-2 border-[#C2362F]" style={{ left: marcaB * px }}>
-                    <span className="absolute -top-0.5 right-1 text-[10px] font-bold text-[#C2362F]">FIN</span>
+                  <div className="absolute top-[46px] h-[60px] border-l-2 border-[#C2362F]" style={{ left: marcaB * px }}>
+                    <span className="absolute -top-3 right-1 text-[10px] font-bold text-[#C2362F]">FIN</span>
                   </div>
                 ) : null}
                 {marcado ? (
                   <div
-                    className="absolute top-9 h-11 bg-[#C2362F]/35"
+                    className="absolute top-[50px] h-11 bg-[#C2362F]/35"
                     style={{ left: Math.min(marcaA!, marcaB!) * px, width: Math.abs(marcaB! - marcaA!) * px }}
                   />
                 ) : null}
@@ -564,8 +708,21 @@ function EditorRecorteDentro({
               </div>
             </div>
 
+            {/* Principio y final: lo primero que se hace */}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <button onClick={empiezaAqui} className={BOTON_FUERTE} title="Se quita todo lo de antes de este punto">
+                <ChevronsRight size={16} /> Empieza aquí
+              </button>
+              <button onClick={terminaAqui} className={BOTON_FUERTE} title="Se quita todo lo de después de este punto">
+                Termina aquí <ChevronsLeft size={16} />
+              </button>
+              <span className="text-[12px] text-[#6B7393]">
+                En el punto naranja{hora ? ` (${hora})` : ''}. Lo que se quita queda rayado.
+              </span>
+            </div>
+
             {/* Zoom */}
-            <div className="mt-2.5 flex items-center gap-2">
+            <div className="mt-3 flex items-center gap-2">
               <span className="text-[12px] text-[#6B7393]">Zoom</span>
               <button onClick={() => ponerZoom(zoom / 1.6)} disabled={zoom <= 1} className={`${BOTON} h-8 w-8 px-0`} aria-label="Alejar" title="Alejar (−)">
                 <Minus size={14} />
@@ -586,65 +743,57 @@ function EditorRecorteDentro({
               <span className="hidden sm:inline text-[11.5px] text-[#8A91AD]">Toca o arrastra en la línea para moverte</span>
             </div>
 
-            {/* Cortar */}
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-lg border border-[#E2E8F4] p-3">
-                <p className="text-[12.5px] font-semibold text-[#0B1033]">Principio y final</p>
-                <p className="mt-0.5 text-[12px] text-[#6B7393]">Ponte donde empieza de verdad la clase (y donde acaba) y pulsa.</p>
-                <div className="mt-2.5 flex flex-wrap gap-2">
-                  <button onClick={empiezaAqui} className={BOTON}>
-                    Empieza aquí
-                  </button>
-                  <button onClick={terminaAqui} className={BOTON}>
-                    Termina aquí
-                  </button>
-                </div>
-              </div>
-              <div className="rounded-lg border border-[#E2E8F4] p-3">
-                <p className="text-[12.5px] font-semibold text-[#0B1033]">Quitar un trozo de en medio</p>
-                <p className="mt-0.5 text-[12px] text-[#6B7393]">Marca dónde empieza y dónde acaba lo que sobra (una pausa, un fallo).</p>
-                <div className="mt-2.5 flex flex-wrap gap-2">
-                  <button onClick={marcarInicio} className={BOTON} title="Tecla I">
-                    Inicio{marcaA !== null ? ` · ${reloj(marcaA)}` : ''}
-                  </button>
-                  <button onClick={marcarFin} className={BOTON} title="Tecla O">
-                    Fin{marcaB !== null ? ` · ${reloj(marcaB)}` : ''}
-                  </button>
+            {/* Quitar un trozo de en medio */}
+            <div className="mt-4 rounded-lg border border-[#E2E8F4] p-3">
+              <p className="text-[12.5px] font-semibold text-[#0B1033]">Quitar un trozo de en medio</p>
+              <p className="mt-0.5 text-[12px] text-[#6B7393]">Marca dónde empieza y dónde acaba lo que sobra (una pausa, un fallo). Puede pasar de una parte a otra.</p>
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                <button onClick={marcarInicio} className={BOTON} title="Tecla I">
+                  Inicio{marcaA !== null ? ` · ${reloj(marcaA, conHoras)}` : ''}
+                </button>
+                <button onClick={marcarFin} className={BOTON} title="Tecla O">
+                  Fin{marcaB !== null ? ` · ${reloj(marcaB, conHoras)}` : ''}
+                </button>
+                <button
+                  onClick={quitarTrozo}
+                  disabled={!marcado}
+                  className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-[#C2362F] text-[13px] font-semibold text-white hover:bg-[#A92D27] disabled:opacity-40"
+                >
+                  <Scissors size={14} /> Quitar este trozo
+                </button>
+                {marcaA !== null || marcaB !== null ? (
                   <button
-                    onClick={quitarTrozo}
-                    disabled={!marcado}
-                    className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-[#C2362F] text-[13px] font-semibold text-white hover:bg-[#A92D27] disabled:opacity-40"
+                    onClick={() => {
+                      setMarcaA(null)
+                      setMarcaB(null)
+                    }}
+                    className="h-9 px-2 text-[12.5px] font-semibold text-[#6B7393] hover:text-[#0B1033]"
                   >
-                    <Scissors size={14} /> Quitar este trozo
+                    Cancelar
                   </button>
-                  {marcaA !== null || marcaB !== null ? (
-                    <button onClick={() => { setMarcaA(null); setMarcaB(null) }} className="h-9 px-2 text-[12.5px] font-semibold text-[#6B7393] hover:text-[#0B1033]">
-                      Cancelar
-                    </button>
-                  ) : null}
-                </div>
+                ) : null}
               </div>
             </div>
 
             {/* Los cortes */}
-            {suyos.length ? (
+            {cortes.length ? (
               <div className="mt-3">
                 <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#8A91AD]">Lo que se quita</p>
                 <ul className="mt-1.5 divide-y divide-[#EEF2F9] rounded-lg border border-[#E2E8F4]">
-                  {suyos.map(([a, b], i) => (
-                    <li key={`${a}-${b}`} className="flex items-center gap-3 px-3 py-2">
-                      <button onClick={() => irA(a)} className="min-w-0 flex-1 text-left text-[13px] text-[#0B1033] hover:text-[#0b2da0]">
-                        <span className="font-semibold">{a <= 0 ? 'El principio' : b >= dur - 0.01 ? 'El final' : 'Un trozo'}</span>
-                        <span className="tabular-nums text-[#6B7393]">
-                          {' '}
-                          · {reloj(a)} → {reloj(b)} · {duracionCorta(b - a)}
-                        </span>
-                      </button>
-                      <button onClick={() => ponerCortes(sinCorte(suyos, i))} className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-[#0b2da0] hover:underline">
-                        <Undo2 size={13} /> Deshacer
-                      </button>
-                    </li>
-                  ))}
+                  {cortes.map((c, i) => {
+                    const n = nombreDelCorte(c)
+                    return (
+                      <li key={`${c[0]}-${c[1]}`} className="flex items-center gap-3 px-3 py-2">
+                        <button onClick={() => irA(c[0])} className="min-w-0 flex-1 text-left text-[13px] text-[#0B1033] hover:text-[#0b2da0]">
+                          <span className="font-semibold">{n.titulo}</span>
+                          <span className="tabular-nums text-[#6B7393]"> · {n.detalle}</span>
+                        </button>
+                        <button onClick={() => ponerCortes(sinCorte(cortes, i))} className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-[#0b2da0] hover:underline">
+                          <Undo2 size={13} /> Deshacer
+                        </button>
+                      </li>
+                    )
+                  })}
                 </ul>
               </div>
             ) : null}
@@ -660,7 +809,7 @@ function EditorRecorteDentro({
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-2.5 sm:flex-row sm:items-center">
           <p className="text-[13.5px] text-[#0B1033] sm:flex-1">
             Queda <b>{duracionCorta(queda)}</b>
-            <span className="text-[#6B7393]"> de {duracionCorta(todo)}</span>
+            <span className="text-[#6B7393]"> de {duracionCorta(total)}</span>
           </p>
           <input
             value={titulo}

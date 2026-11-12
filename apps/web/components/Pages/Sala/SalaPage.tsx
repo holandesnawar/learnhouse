@@ -39,15 +39,33 @@
  * captura del documento, antes que el `Link` de Next, y solo si el «sí» se
  * navega. Cerrar la pestaña o recargar lo pregunta el navegador
  * (`beforeunload`). «Salir» dentro de la llamada no pregunta: ya se ha elegido.
+ *
+ * 12/11/2026 ("con una pantalla no sirve… ¿cómo comparte el profe la
+ * pizarra?"): el equipo tiene «Pizarra». Se abre la pizarra de la semana AL
+ * LADO de la llamada (la llamada pasa a una columna estrecha, sin cortarse:
+ * su caja no se mueve en la página, solo cambia de tamaño) y «Enseñar a la
+ * clase» pone la pizarra a TODA la pestaña (encima de la llamada, que sigue
+ * sonando debajo) y comparte ESTA pestaña en la llamada
+ * (`startScreenShare` con `preferCurrentTab`: Chrome pregunta «¿Compartir
+ * esta pestaña?»). Los alumnos ven lo que ve el profe, con su zoom.
+ * ⚠️ Mandar un lienzo propio a la llamada (`startScreenShare({ mediaStream })`)
+ * NO vale aquí: Daily solo lo deja en su modo «call object», no en la sala
+ * ya hecha (Prebuilt) que usa la escuela. Comprobado en daily-js 0.93.
  */
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, AlertTriangle, Loader2, Maximize2, Minimize2 } from 'lucide-react'
+import { ArrowLeft, AlertTriangle, Loader2, Maximize2, Minimize2, PenLine } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { entrarSala, type EntradaSala } from '@services/salas/salas'
+import { getSemanas, diaCorto, type Semana } from '@services/tareas/tareas'
 import { confirmar } from '@/lib/nawar/confirmar'
+
+// La pizarra solo se carga si el profe la abre (pdf.js pesa).
+const PizarraClase = dynamic(() => import('@components/Pages/Pizarra/PizarraClase'), { ssr: false })
 
 // Los colores de la sala, los de la marca: el azul de los botones (#4da3ff
 // con letra #0a1656) sobre el azul oscuro (#1D0084). Daily deja cambiar diez.
@@ -90,6 +108,72 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
   const volver = `/course/${curso}`
   // Dentro de la llamada (entre «joined-meeting» y «left-meeting»).
   const [dentro, setDentro] = useState(false)
+  const llamadaRef = useRef<any>(null)
+
+  // ── La pizarra al lado de la llamada (equipo) ────────────────────────────
+  const [pizarra, setPizarra] = useState(false)
+  const [semanas, setSemanas] = useState<Semana[] | null>(null)
+  const [hoy, setHoy] = useState('')
+  const [semanaId, setSemanaId] = useState<number | null>(null)
+  const [ensenando, setEnsenando] = useState(false)
+
+  async function abrirPizarra() {
+    setPizarra(true)
+    if (semanas || !token) return
+    try {
+      const datos = await getSemanas(curso, token)
+      const lista = [...(datos.semanas || [])].sort((a, b) => (a.fecha < b.fecha ? -1 : 1))
+      setSemanas(lista)
+      setHoy(datos.hoy)
+      // La de hoy; si no, la próxima; si no, la de esta semana; si no, la última.
+      const deHoy = lista.find((x) => x.fecha === datos.hoy)
+      setSemanaId(deHoy?.id ?? datos.proxima ?? datos.actual ?? lista[lista.length - 1]?.id ?? null)
+    } catch (e: any) {
+      setSemanas([])
+      toast.error(e?.message || 'No se pudieron leer las semanas de esta clase')
+    }
+  }
+
+  function pararEmision() {
+    try {
+      llamadaRef.current?.stopScreenShare()
+    } catch {
+      /* ya parada */
+    }
+    setEnsenando(false)
+  }
+
+  // «Enseñar a la clase»: la pizarra a toda la pestaña y compartir esta pestaña.
+  function alternarEmision() {
+    if (ensenando) return pararEmision()
+    const llamada = llamadaRef.current
+    if (!llamada) {
+      toast.error('Entra primero en la llamada')
+      return
+    }
+    setEnsenando(true)
+    try {
+      llamada.startScreenShare({
+        displayMediaOptions: {
+          video: true,
+          audio: false,
+          preferCurrentTab: true,
+          selfBrowserSurface: 'include',
+          surfaceSwitching: 'exclude',
+        } as any,
+        screenVideoSendSettings: 'detail-optimized',
+      })
+    } catch (e: any) {
+      setEnsenando(false)
+      toast.error('No se pudo compartir: ' + (e?.message || 'el navegador no deja'))
+    }
+  }
+
+  // Las semanas que se pueden abrir: las de cerca de hoy primero.
+  const opcionesSemana = useMemo(() => {
+    if (!semanas) return []
+    return semanas.slice().reverse()
+  }, [semanas])
 
   // Salir de la página estando en la llamada: se pregunta antes.
   useEffect(() => {
@@ -162,11 +246,32 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
     }
   }, [])
 
+  // La sala aún apagada (12/11/2026): se espera y se vuelve a probar sola.
+  const [esperando, setEsperando] = useState(false)
   useEffect(() => {
     if (!token || !curso || entrada) return
-    entrarSala(curso, token)
-      .then(setEntrada)
-      .catch((e) => setError(e.message || 'No se pudo entrar a la sala'))
+    let vivo = true
+    let t: number | undefined
+    const probar = () =>
+      entrarSala(curso, token)
+        .then((e) => {
+          if (!vivo) return
+          setEsperando(false)
+          setEntrada(e)
+        })
+        .catch((e) => {
+          if (!vivo) return
+          const msg = String(e?.message || '')
+          if (/no est[aá] abierta/i.test(msg)) {
+            setEsperando(true)
+            t = window.setTimeout(probar, 10000)
+          } else setError(msg || 'No se pudo entrar a la sala')
+        })
+    probar()
+    return () => {
+      vivo = false
+      window.clearTimeout(t)
+    }
     // Una entrada por visita: pedir otra al cambiar la sesión volvería a
     // montar la sala en mitad de la llamada.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -232,7 +337,17 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
         // «Salir» dentro de la llamada = de vuelta al curso. Solo con la sala
         // en pantalla: al irse a otra página por la barra, cerrar la llamada
         // también avisa de «left-meeting», y no hay que mandarle al curso.
+        llamadaRef.current = llamada
         llamada.on('joined-meeting', () => vivo && setDentro(true))
+        // Compartir: si se cancela el cuadro de Chrome o se para (también desde
+        // el «Dejar de compartir» de Chrome o de Daily), la pizarra vuelve a su sitio.
+        llamada.on('local-screen-share-stopped', () => vivo && setEnsenando(false))
+        llamada.on('local-screen-share-canceled', () => vivo && setEnsenando(false))
+        llamada.on('nonfatal-error', (ev: any) => {
+          if (!vivo || !/screen/i.test(String(ev?.type || ''))) return
+          setEnsenando(false)
+          toast.error('No se pudo compartir la pestaña: ' + String(ev?.errorMsg || 'el navegador no deja'))
+        })
         llamada.on('left-meeting', () => {
           if (!vivo) return
           setDentro(false)
@@ -269,6 +384,7 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
     return () => {
       vivo = false
       window.clearTimeout(espera)
+      llamadaRef.current = null
       try {
         llamada?.destroy()
       } catch {
@@ -290,10 +406,25 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
         <h1 className="text-lg sm:text-xl font-bold text-gray-900 truncate">
           {entrada?.curso ? `Sala · ${entrada.curso}` : 'Sala en directo'}
         </h1>
+        {entrada?.anfitrion && !error && !sinLibreria ? (
+          <button
+            onClick={() => {
+              if (!pizarra) return abrirPizarra()
+              if (ensenando) pararEmision()
+              setPizarra(false)
+            }}
+            className={`ml-auto inline-flex items-center gap-1.5 h-8 px-3 rounded-md border text-[13px] font-semibold ${
+              pizarra ? 'border-[#0b2da0] bg-[#0b2da0] text-white' : 'border-[#0b2da0] bg-white text-[#0b2da0] hover:bg-[#F0F5FF]'
+            }`}
+            title="Abrir la presentación de la semana al lado de la llamada, escribir encima y enseñarla"
+          >
+            <PenLine size={14} /> {pizarra ? 'Cerrar la pizarra' : 'Pizarra'}
+          </button>
+        ) : null}
         {entrada && !error ? (
           <button
             onClick={alternarGrande}
-            className="ml-auto inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-[#D1D5DB] bg-white text-[13px] font-medium text-gray-800 hover:bg-[#F9FAFB]"
+            className={`${entrada?.anfitrion && !sinLibreria ? '' : 'ml-auto '}inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-[#D1D5DB] bg-white text-[13px] font-medium text-gray-800 hover:bg-[#F9FAFB]`}
           >
             <Maximize2 size={14} /> Pantalla completa
           </button>
@@ -327,6 +458,18 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
             </Link>
           </span>
         </div>
+      ) : !entrada && esperando ? (
+        <div className="max-w-xl rounded-2xl border border-[#DDE6F5] bg-white px-5 py-6">
+          <p className="flex items-center gap-2 text-[16px] font-semibold text-[#0a1656]">
+            <Loader2 size={18} className="animate-spin text-[#0b2da0]" /> La sala aún no está abierta
+          </p>
+          <p className="mt-2 text-[14px] leading-relaxed text-[#171a2e]">
+            Se abre en cuanto el profe la encienda. No hace falta recargar: quédate en esta página y entrarás sola o solo.
+          </p>
+          <p className="mt-3 text-[12.5px] text-[#5A6480]">
+            Si eres del equipo: la sala se enciende en la página de la clase («Encender la sala»).
+          </p>
+        </div>
       ) : !entrada ? (
         <div className="flex items-center gap-2 text-[14px] text-[#5A6480] py-10">
           <Loader2 size={18} className="animate-spin" /> Preparando la sala…
@@ -334,7 +477,70 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
       ) : (
         <>
           {/* Pantalla completa: la misma caja, a toda la ventana (la llamada no se corta). */}
-          <div className={grande ? 'fixed inset-0 z-[100] bg-[#070B33]' : 'relative'}>
+          <div
+            className={
+              (grande ? 'fixed inset-0 z-[100] bg-[#070B33] ' : 'relative ') +
+              (pizarra ? `grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px] ${grande ? 'p-3 pt-14 lg:grid-rows-1' : ''}` : '')
+            }
+          >
+            {pizarra ? (
+              <div
+                className={
+                  ensenando
+                    ? 'fixed inset-0 z-[150] overflow-hidden bg-white'
+                    : `min-w-0 overflow-hidden rounded-2xl border border-[#DDE6F5] bg-white ${grande ? 'h-[60vh] lg:h-full' : ALTO}`
+                }
+              >
+                {semanas === null ? (
+                  <div className="flex h-full items-center justify-center gap-2 text-[14px] text-[#5A6480]">
+                    <Loader2 size={18} className="animate-spin" /> Buscando la semana…
+                  </div>
+                ) : !semanaId ? (
+                  <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
+                    <p className="text-[15px] font-semibold text-[#0a1656]">Esta clase aún no tiene semanas</p>
+                    <p className="text-[13.5px] text-[#5A6480]">Crea la semana de hoy (con su presentación en PDF) desde la página de la clase y vuelve a abrir la pizarra.</p>
+                  </div>
+                ) : (
+                  <div className="flex h-full flex-col">
+                    {opcionesSemana.length > 1 && !ensenando ? (
+                      <div className="flex shrink-0 items-center gap-2 border-b border-[#E2E8F4] bg-[#F7F9FD] px-3 py-1.5 text-[12.5px] text-[#5A6480]">
+                        Semana:
+                        <select
+                          value={semanaId}
+                          onChange={(e) => {
+                            if (ensenando) pararEmision()
+                            setSemanaId(Number(e.target.value))
+                          }}
+                          className="rounded-md border border-[#D5DEEE] bg-white px-2 py-1 text-[12.5px] text-[#0a1656]"
+                        >
+                          {opcionesSemana.map((x) => (
+                            <option key={x.id} value={x.id}>
+                              {x.tema || 'Semana'} · {diaCorto(x.fecha)}
+                              {x.fecha === hoy ? ' (hoy)' : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : null}
+                    <div className="min-h-0 flex-1">
+                      <PizarraClase
+                        key={semanaId}
+                        semanaId={String(semanaId)}
+                        enSala={{
+                          ensenando,
+                          puede: dentro,
+                          alternar: alternarEmision,
+                          cerrar: () => {
+                            if (ensenando) pararEmision()
+                            setPizarra(false)
+                          },
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : null}
             {sinLibreria ? (
               <iframe
                 onLoad={() => setDentro(true)}
@@ -344,7 +550,10 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
                 className={`w-full bg-[#070B33] ${grande ? 'h-full' : `rounded-2xl border border-[#DDE6F5] ${ALTO}`}`}
               />
             ) : (
-              <div ref={contenedor} className={`w-full overflow-hidden bg-[#070B33] ${grande ? 'h-full' : `rounded-2xl ${ALTO}`}`} />
+              <div
+                ref={contenedor}
+                className={`w-full overflow-hidden bg-[#070B33] ${grande ? (pizarra ? 'h-[40vh] rounded-2xl lg:h-full' : 'h-full') : `rounded-2xl ${pizarra ? 'h-[360px] lg:h-[calc(100dvh-150px)] lg:min-h-[460px]' : ALTO}`}`}
+              />
             )}
             {grande ? (
               <button

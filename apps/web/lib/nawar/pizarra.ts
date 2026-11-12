@@ -9,7 +9,7 @@
  * se ve igual en un proyector, en el móvil y en el PDF que se guarda.
  */
 
-export type Herramienta = 'mover' | 'lapiz' | 'rotulador' | 'texto' | 'borrador'
+export type Herramienta = 'mover' | 'lapiz' | 'rotulador' | 'texto' | 'borrador' | 'mano'
 export type EstiloTexto = 'texto' | 'titulo' | 'nota'
 
 export interface TrazoLinea {

@@ -7,7 +7,9 @@ import {
   ArrowClockwise,
   ArrowCounterClockwise,
   ArrowsIn,
+  ArrowsHorizontal,
   ArrowsOut,
+  Broadcast,
   CaretLeft,
   CaretRight,
   Check,
@@ -16,12 +18,16 @@ import {
   Eye,
   EyeSlash,
   FilePdf,
+  Hand,
   Highlighter,
+  MagnifyingGlassMinus,
+  MagnifyingGlassPlus,
   PencilSimple,
   Plus,
   TextT,
   Trash,
   UploadSimple,
+  X,
 } from '@phosphor-icons/react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { confirmar } from '@/lib/nawar/confirmar'
@@ -66,7 +72,27 @@ type Guardado = 'guardado' | 'sin-guardar' | 'guardando' | 'error'
 const BLANCO = '#FFFFFF'
 const A4: Tam = { w: 595, h: 842 }
 
-export default function PizarraClase({ semanaId }: { semanaId: string }) {
+// El zoom (12/11/2026: "me falta un zoom aquí dentro"). 1 = la página entera
+// cabe; hasta 5 veces. Los lienzos no pasan de MAX_PX de ancho (si no, en el
+// iPad o con mucho zoom se queda sin memoria): por encima, el navegador estira.
+const ZOOM_MAX = 5
+const MAX_PX = 4200
+
+/**
+ * La pizarra metida en la sala (12/11/2026: "con una pantalla no sirve"). La
+ * sala le pasa esto y la pizarra va dentro de la página (sin cubrirlo todo),
+ * con «Enseñar a la clase»: la sala pone la pizarra a toda la pestaña y
+ * comparte ESA pestaña en la llamada. Ver components/Pages/Sala/SalaPage.tsx.
+ */
+export interface EnSala {
+  ensenando: boolean
+  alternar: () => void
+  cerrar: () => void
+  /** Si la llamada aún no está lista, el botón espera. */
+  puede: boolean
+}
+
+export default function PizarraClase({ semanaId, enSala }: { semanaId: string; enSala?: EnSala }) {
   const session = useLHSession() as any
   const token: string = session?.data?.tokens?.access_token || ''
   const id = Number(semanaId)
@@ -94,6 +120,9 @@ export default function PizarraClase({ semanaId }: { semanaId: string }) {
   const [historia, setHistoria] = useState({ atras: 0, adelante: 0 })
   const [subiendo, setSubiendo] = useState(false)
   const [falloPdf, setFalloPdf] = useState('')
+  const [zoom, setZoom] = useState(1)
+  const zoomRef = useRef(1)
+  zoomRef.current = zoom
 
   const pdfRef = useRef<any>(null)
   const docRef = useRef(doc)
@@ -103,6 +132,10 @@ export default function PizarraClase({ semanaId }: { semanaId: string }) {
   const editRef = useRef(editando)
   editRef.current = editando
   const areaRef = useRef<HTMLDivElement>(null)
+  const hojaRef = useRef<HTMLDivElement>(null)
+  // Dónde dejar el scroll después de cambiar el zoom (el punto que no se mueve).
+  const anclaZoom = useRef<{ fx: number; fy: number; px: number; py: number } | null>(null)
+  const manoRef = useRef<{ x: number; y: number; sl: number; st: number } | null>(null)
   const fondoRef = useRef<HTMLCanvasElement>(null)
   const notasRef = useRef<HTMLCanvasElement>(null)
   const letrasRef = useRef<Letras | null>(null)
@@ -241,13 +274,96 @@ export default function PizarraClase({ semanaId }: { semanaId: string }) {
   }, [!!info, pdfListo])
 
   const pagina = doc.paginas[idx] || null
-  const escena = useMemo<Tam>(() => {
+  // La página entera, sin zoom (lo que cabe en la pantalla).
+  const encaje = useMemo<Tam>(() => {
     const t = tamDe(pagina)
     if (!area.w || !area.h) return { w: 0, h: 0 }
     const w = Math.max(120, Math.min(area.w - 24, ((area.h - 24) * t.w) / t.h))
     return { w: Math.floor(w), h: Math.floor((w * t.h) / t.w) }
   }, [area, pagina, tamDe])
-  const densidad = typeof window === 'undefined' ? 1 : Math.min(window.devicePixelRatio || 1, 2)
+  const escena = useMemo<Tam>(
+    () => ({ w: Math.floor(encaje.w * zoom), h: Math.floor(encaje.h * zoom) }),
+    [encaje, zoom]
+  )
+  const pantallaDensidad = typeof window === 'undefined' ? 1 : Math.min(window.devicePixelRatio || 1, 2)
+  // Con mucho zoom, menos detalle por píxel: si no, el lienzo no cabe en memoria.
+  const densidad = escena.w ? Math.min(pantallaDensidad, MAX_PX / escena.w) : pantallaDensidad
+  // Lo mismo que «Ajustar al ancho»: la página a lo ancho de la pantalla.
+  const zoomAncho = encaje.w ? Math.max(1, Math.min(ZOOM_MAX, (area.w - 24) / encaje.w)) : 1
+
+  /** Cambia el zoom dejando quieto el punto (fx, fy) de la pantalla (0-1 del área). */
+  const ponerZoom = useCallback(
+    (z: number, fx = 0.5, fy = 0.5) => {
+      const nuevo = Math.max(1, Math.min(ZOOM_MAX, Math.round(z * 100) / 100))
+      const el = areaRef.current
+      const hoja = hojaRef.current
+      if (el && hoja) {
+        const r = el.getBoundingClientRect()
+        const h = hoja.getBoundingClientRect()
+        const px = r.left + fx * r.width
+        const py = r.top + fy * r.height
+        // Qué punto de la página está debajo (0-1 de la página).
+        anclaZoom.current = {
+          fx: h.width ? (px - h.left) / h.width : 0.5,
+          fy: h.height ? (py - h.top) / h.height : 0.5,
+          px: fx * r.width,
+          py: fy * r.height,
+        }
+      }
+      setZoom(nuevo)
+    },
+    []
+  )
+
+  // Después de cambiar el zoom: el mismo punto de la página, en el mismo sitio.
+  React.useLayoutEffect(() => {
+    const a = anclaZoom.current
+    const el = areaRef.current
+    const hoja = hojaRef.current
+    if (!a || !el || !hoja) return
+    anclaZoom.current = null
+    const x = hoja.offsetLeft + a.fx * hoja.offsetWidth - a.px
+    const y = hoja.offsetTop + a.fy * hoja.offsetHeight - a.py
+    el.scrollLeft = Math.max(0, x)
+    el.scrollTop = Math.max(0, y)
+  }, [escena.w, escena.h])
+
+  // Al cambiar de página, arriba del todo (el zoom se queda).
+  useEffect(() => {
+    const el = areaRef.current
+    if (el) {
+      el.scrollTop = 0
+      el.scrollLeft = Math.max(0, (el.scrollWidth - el.clientWidth) / 2)
+    }
+  }, [idx])
+
+  // Ctrl + rueda o el pellizco del trackpad: zoom donde está el ratón.
+  useEffect(() => {
+    const el = areaRef.current
+    if (!el) return
+    const rueda = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return
+      e.preventDefault()
+      const r = el.getBoundingClientRect()
+      const factor = Math.exp(-e.deltaY * 0.01)
+      setZoom((z) => {
+        const nuevo = Math.max(1, Math.min(ZOOM_MAX, z * factor))
+        const hoja = hojaRef.current
+        if (hoja) {
+          const h = hoja.getBoundingClientRect()
+          anclaZoom.current = {
+            fx: h.width ? (e.clientX - h.left) / h.width : 0.5,
+            fy: h.height ? (e.clientY - h.top) / h.height : 0.5,
+            px: e.clientX - r.left,
+            py: e.clientY - r.top,
+          }
+        }
+        return nuevo
+      })
+    }
+    el.addEventListener('wheel', rueda, { passive: false })
+    return () => el.removeEventListener('wheel', rueda)
+  }, [!!info, pdfListo])
 
   // ── El fondo: la página del PDF ─────────────────────────────────────────
   useEffect(() => {
@@ -471,6 +587,13 @@ export default function PizarraClase({ semanaId }: { semanaId: string }) {
 
   const alBajar = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (editRef.current || !pagina) return
+    if (herramienta === 'mano') {
+      const el = areaRef.current
+      if (!el) return
+      e.currentTarget.setPointerCapture(e.pointerId)
+      manoRef.current = { x: e.clientX, y: e.clientY, sl: el.scrollLeft, st: el.scrollTop }
+      return
+    }
     const [x, y] = donde(e)
     if (herramienta === 'lapiz' || herramienta === 'rotulador') {
       e.currentTarget.setPointerCapture(e.pointerId)
@@ -495,6 +618,15 @@ export default function PizarraClase({ semanaId }: { semanaId: string }) {
   }
 
   const alMover = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const m = manoRef.current
+    if (m) {
+      const el = areaRef.current
+      if (el) {
+        el.scrollLeft = m.sl - (e.clientX - m.x)
+        el.scrollTop = m.st - (e.clientY - m.y)
+      }
+      return
+    }
     const [x, y] = donde(e)
     const v = vivoRef.current
     if (v) {
@@ -518,6 +650,7 @@ export default function PizarraClase({ semanaId }: { semanaId: string }) {
   }
 
   const alSoltar = () => {
+    manoRef.current = null
     const v = vivoRef.current
     if (v) {
       vivoRef.current = null
@@ -594,15 +727,23 @@ export default function PizarraClase({ semanaId }: { semanaId: string }) {
       } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
         e.preventDefault()
         ir(idxRef.current - 1)
+      } else if (e.key === '+' || e.key === '=') {
+        e.preventDefault()
+        ponerZoom(zoomRef.current * 1.25)
+      } else if (e.key === '-' || e.key === '_') {
+        e.preventDefault()
+        ponerZoom(zoomRef.current / 1.25)
+      } else if (e.key === '0') {
+        ponerZoom(1)
       } else {
-        const atajo: Record<string, Herramienta> = { v: 'mover', l: 'lapiz', r: 'rotulador', t: 'texto', b: 'borrador' }
+        const atajo: Record<string, Herramienta> = { v: 'mover', l: 'lapiz', r: 'rotulador', t: 'texto', b: 'borrador', h: 'mano' }
         const h = atajo[e.key.toLowerCase()]
         if (h) setHerramienta(h)
       }
     }
     window.addEventListener('keydown', tecla)
     return () => window.removeEventListener('keydown', tecla)
-  }, [deshacer, rehacer, ir])
+  }, [deshacer, rehacer, ir, ponerZoom])
 
   // ── Pantalla completa ───────────────────────────────────────────────────
   useEffect(() => {
@@ -716,7 +857,7 @@ export default function PizarraClase({ semanaId }: { semanaId: string }) {
   // ── Pantalla ────────────────────────────────────────────────────────────
   if (fallo) {
     return (
-      <Marco>
+      <Marco dentro={!!enSala}>
         <div className="m-auto max-w-md px-6 text-center">
           <p className="text-[15px] font-semibold text-[#0a1656]">No se pudo abrir la pizarra</p>
           <p className="mt-2 text-[14px] text-[#171a2e]">{fallo}</p>
@@ -729,25 +870,38 @@ export default function PizarraClase({ semanaId }: { semanaId: string }) {
   }
   if (!info) {
     return (
-      <Marco>
+      <Marco dentro={!!enSala}>
         <p className="m-auto animate-pulse text-[14px] text-[#0a1656]/70">Abriendo la pizarra…</p>
       </Marco>
     )
   }
 
   const sinPdf = info.fuentes.length === 0
+  // Al lado de la llamada no caben las miniaturas: las páginas, con las flechas.
+  const apretada = !!enSala && !enSala.ensenando
   const total = doc.paginas.length
   const trazoColor = herramienta === 'rotulador' ? colorRot : color
   const despues = !!info.publicada && !!guardadaAt && guardadaAt > info.publicada.at
 
   return (
-    <Marco>
+    <Marco dentro={!!enSala}>
       {/* Arriba */}
       <header className="flex h-[52px] shrink-0 items-center gap-3 border-b border-[#E2E8F4] bg-white px-3 sm:px-4">
-        <Link href="/equipo" className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[13.5px] font-medium text-[#0a1656] hover:text-[#0b2da0]" title="Volver a la sala de profesores">
-          <CaretLeft size={16} weight="bold" />
-          <span className="hidden sm:inline">Sala de profesores</span>
-        </Link>
+        {enSala ? (
+          <button
+            onClick={() => enSala.cerrar()}
+            className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[13.5px] font-medium text-[#0a1656] hover:text-[#0b2da0]"
+            title="Cerrar la pizarra (la llamada sigue)"
+          >
+            <X size={16} weight="bold" />
+            <span className="hidden sm:inline">Cerrar</span>
+          </button>
+        ) : (
+          <Link href="/equipo" className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[13.5px] font-medium text-[#0a1656] hover:text-[#0b2da0]" title="Volver a la sala de profesores">
+            <CaretLeft size={16} weight="bold" />
+            <span className="hidden sm:inline">Sala de profesores</span>
+          </Link>
+        )}
         <div className="min-w-0 flex-1">
           <p className="truncate font-[family-name:var(--font-poppins)] text-[15px] font-semibold leading-tight text-[#0a1656]">{info.semana.tema || 'Clase'}</p>
           <p className="truncate text-[12px] leading-tight text-[#5B6B8C]">
@@ -775,9 +929,27 @@ export default function PizarraClase({ semanaId }: { semanaId: string }) {
             ))}
           </select>
         )}
-        <button onClick={pantallaCompleta} className="hidden rounded-lg p-2 text-[#0a1656] hover:text-[#0b2da0] sm:block" title={completa ? 'Salir de pantalla completa' : 'Pantalla completa'}>
-          {completa ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
-        </button>
+        {enSala && !sinPdf ? (
+          <button
+            onClick={() => {
+              cerrarTexto()
+              enSala.alternar()
+            }}
+            disabled={!enSala.ensenando && (!enSala.puede || !pdfListo || !!falloPdf)}
+            className={`flex shrink-0 items-center gap-2 rounded-lg px-3.5 py-2 text-[13.5px] font-semibold disabled:opacity-50 ${
+              enSala.ensenando ? 'bg-[#B4413C] text-white' : 'border border-[#0b2da0] text-[#0b2da0]'
+            }`}
+            title={enSala.ensenando ? 'Los alumnos están viendo la pizarra' : 'Que los alumnos vean la pizarra en la llamada'}
+          >
+            <Broadcast size={16} weight="bold" />
+            {enSala.ensenando ? 'Dejar de enseñar' : 'Enseñar a la clase'}
+          </button>
+        ) : null}
+        {!enSala && (
+          <button onClick={pantallaCompleta} className="hidden rounded-lg p-2 text-[#0a1656] hover:text-[#0b2da0] sm:block" title={completa ? 'Salir de pantalla completa' : 'Pantalla completa'}>
+            {completa ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
+          </button>
+        )}
         {!sinPdf && (
           <button
             onClick={publicar}
@@ -825,7 +997,7 @@ export default function PizarraClase({ semanaId }: { semanaId: string }) {
       ) : (
         <div className="flex min-h-0 flex-1">
           {/* Las páginas */}
-          <aside className="hidden w-[148px] shrink-0 flex-col border-r border-[#E2E8F4] bg-white lg:flex">
+          <aside className={`hidden w-[148px] shrink-0 flex-col border-r border-[#E2E8F4] bg-white ${apretada ? '' : 'lg:flex'}`}>
             <div className="flex-1 space-y-2 overflow-y-auto p-2.5">
               {doc.paginas.map((pg, k) => (
                 <Miniatura key={k} n={k + 1} pagina={pg} src={pg.origen ? miniaturas[pg.origen] : ''} tam={tamDe(pg)} elegida={k === idx} onClick={() => ir(k)} />
@@ -838,7 +1010,7 @@ export default function PizarraClase({ semanaId }: { semanaId: string }) {
 
           <div className="flex min-w-0 flex-1 flex-col">
             {/* La página */}
-            <div ref={areaRef} className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden">
+            <div ref={areaRef} className={`relative flex min-h-0 flex-1 ${zoom > 1 ? 'overflow-auto' : 'items-center justify-center overflow-hidden'}`}>
               {falloPdf ? (
                 <div className="max-w-md px-6 text-center">
                   <p className="text-[15px] font-semibold text-[#0a1656]">No se pudo abrir esta presentación</p>
@@ -854,14 +1026,18 @@ export default function PizarraClase({ semanaId }: { semanaId: string }) {
                 <p className="animate-pulse text-[14px] text-[#0a1656]/70">Abriendo la presentación…</p>
               ) : (
                 pagina && (
-                  <div className="relative bg-white" style={{ width: escena.w, height: escena.h, boxShadow: '0 0 0 1px #DDE6F5' }}>
+                  <div
+                    ref={hojaRef}
+                    className="relative m-auto shrink-0 bg-white"
+                    style={{ width: escena.w, height: escena.h, boxShadow: '0 0 0 1px #DDE6F5', marginTop: zoom > 1 ? 12 : undefined, marginBottom: zoom > 1 ? 12 : undefined }}
+                  >
                     <canvas ref={fondoRef} className="absolute inset-0 h-full w-full" />
                     <canvas
                       ref={notasRef}
                       className="absolute inset-0 h-full w-full"
                       style={{
                         touchAction: herramienta === 'mover' || herramienta === 'texto' ? 'manipulation' : 'none',
-                        cursor: herramienta === 'texto' ? 'text' : herramienta === 'mover' ? 'default' : 'crosshair',
+                        cursor: herramienta === 'texto' ? 'text' : herramienta === 'mover' ? 'default' : herramienta === 'mano' ? (zoom > 1 ? 'grab' : 'default') : 'crosshair',
                       }}
                       onPointerDown={alBajar}
                       onPointerMove={alMover}
@@ -891,7 +1067,7 @@ export default function PizarraClase({ semanaId }: { semanaId: string }) {
 
             {/* Las herramientas */}
             <div className="shrink-0 overflow-x-auto border-t border-[#E2E8F4] bg-white">
-              <div className="mx-auto flex w-max items-center gap-1 px-3 py-2">
+              <div className={`mx-auto flex items-center gap-1 px-3 py-2 ${apretada ? 'flex-wrap justify-center' : 'w-max'}`}>
                 <Boton activo={herramienta === 'mover'} onClick={() => setHerramienta('mover')} titulo="Mover un texto (V)">
                   <Cursor size={18} />
                 </Boton>
@@ -906,6 +1082,9 @@ export default function PizarraClase({ semanaId }: { semanaId: string }) {
                 </Boton>
                 <Boton activo={herramienta === 'borrador'} onClick={() => setHerramienta('borrador')} titulo="Borrador (B)">
                   <Eraser size={18} />
+                </Boton>
+                <Boton activo={herramienta === 'mano'} onClick={() => setHerramienta('mano')} titulo="Mano: mover la página con zoom (H)">
+                  <Hand size={18} />
                 </Boton>
                 <Raya />
                 {herramienta === 'rotulador'
@@ -952,13 +1131,32 @@ export default function PizarraClase({ semanaId }: { semanaId: string }) {
                 <Boton onClick={esconder} activo={!!pagina?.oculta} titulo={pagina?.oculta ? 'Volver a enseñar esta página a los alumnos' : 'Que los alumnos no vean esta página'}>
                   {pagina?.oculta ? <EyeSlash size={18} /> : <Eye size={18} />}
                 </Boton>
-                <button onClick={paginaEnBlanco} className="flex h-9 items-center gap-1.5 rounded-lg px-2 text-[12.5px] font-semibold text-[#0b2da0] lg:hidden" title="Añadir una página en blanco para notas">
+                <button onClick={paginaEnBlanco} className={`flex h-9 items-center gap-1.5 rounded-lg px-2 text-[12.5px] font-semibold text-[#0b2da0] ${apretada ? '' : 'lg:hidden'}`} title="Añadir una página en blanco para notas">
                   <Plus size={14} weight="bold" /> Página
                 </button>
                 {pagina?.origen == null && (
                   <button onClick={quitarPagina} className="h-9 rounded-lg px-2 text-[12.5px] font-medium text-[#5B6B8C] hover:text-[#B4413C]">
                     Quitar página
                   </button>
+                )}
+                <Raya />
+                <Boton onClick={() => ponerZoom(zoom / 1.25)} apagado={zoom <= 1} titulo="Alejar (−)">
+                  <MagnifyingGlassMinus size={18} />
+                </Boton>
+                <button
+                  onClick={() => ponerZoom(1)}
+                  title="Página entera (0)"
+                  className="h-9 min-w-[52px] rounded-lg px-1.5 text-[12.5px] font-semibold tabular-nums text-[#0a1656] hover:text-[#0b2da0]"
+                >
+                  {Math.round(zoom * 100)} %
+                </button>
+                <Boton onClick={() => ponerZoom(zoom * 1.25)} apagado={zoom >= ZOOM_MAX} titulo="Acercar (+)">
+                  <MagnifyingGlassPlus size={18} />
+                </Boton>
+                {zoomAncho > 1.02 && (
+                  <Boton onClick={() => ponerZoom(zoomAncho, 0.5, 0)} activo={Math.abs(zoom - zoomAncho) < 0.02} titulo="Ajustar al ancho de la pantalla">
+                    <ArrowsHorizontal size={18} />
+                  </Boton>
                 )}
                 <Raya />
                 <Boton onClick={() => ir(idx - 1)} apagado={idx === 0} titulo="Página anterior (←)">
@@ -992,9 +1190,11 @@ export default function PizarraClase({ semanaId }: { semanaId: string }) {
  * Toda la ventana. Va colgado del cuerpo de la página (no del marco de la
  * escuela): si no, la barra de arriba de la escuela queda por encima.
  */
-function Marco({ children }: { children: React.ReactNode }) {
+function Marco({ children, dentro }: { children: React.ReactNode; dentro?: boolean }) {
   const [listo, setListo] = useState(false)
   useEffect(() => setListo(true), [])
+  // Dentro de la sala: en su caja, al lado de la llamada.
+  if (dentro) return <div className="relative flex h-full w-full flex-col bg-[#EEF2F9]">{children}</div>
   if (!listo) return null
   return createPortal(<div className="fixed inset-0 z-[999] flex flex-col bg-[#EEF2F9]">{children}</div>, document.body)
 }
