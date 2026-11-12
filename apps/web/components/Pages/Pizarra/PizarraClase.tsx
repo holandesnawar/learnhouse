@@ -81,8 +81,9 @@ const MAX_PX = 4200
 /**
  * La pizarra metida en la sala (12/11/2026: "con una pantalla no sirve"). La
  * sala le pasa esto y la pizarra va dentro de la página (sin cubrirlo todo),
- * con «Enseñar a la clase»: la sala pone la pizarra a toda la pestaña y
- * comparte ESA pestaña en la llamada. Ver components/Pages/Sala/SalaPage.tsx.
+ * con «Enseñar a la clase» la pizarra entra en la llamada como otro
+ * participante y manda solo la página (el lienzo de `lienzo`). Ver
+ * components/Pages/Sala/SalaPage.tsx.
  */
 export interface EnSala {
   ensenando: boolean
@@ -90,6 +91,32 @@ export interface EnSala {
   cerrar: () => void
   /** Si la llamada aún no está lista, el botón espera. */
   puede: boolean
+  /** El lienzo que la sala manda a la llamada (12/11/2026): mientras se
+   * enseña, la pizarra copia en él, diez veces por segundo, lo que se ve de
+   * la página (con el zoom y lo que se está escribiendo). Solo la página: ni
+   * los botones ni la llamada. */
+  lienzo?: (c: HTMLCanvasElement | null) => void
+}
+
+/** El trozo de la página que se ve en pantalla, en píxeles del lienzo de
+ * la página, y el tamaño con el que se manda (cabe en 1600 × 1000, pares). */
+export function recorteEmision(
+  hoja: { left: number; top: number; width: number; height: number },
+  area: { left: number; top: number; right: number; bottom: number },
+  anchoLienzo: number
+) {
+  const x0 = Math.max(hoja.left, area.left)
+  const y0 = Math.max(hoja.top, area.top)
+  const x1 = Math.min(hoja.left + hoja.width, area.right)
+  const y1 = Math.min(hoja.top + hoja.height, area.bottom)
+  if (x1 - x0 < 4 || y1 - y0 < 4 || !hoja.width) return null
+  const k = anchoLienzo / hoja.width
+  const asp = (x1 - x0) / (y1 - y0)
+  let W = Math.min(1600, 1000 * asp)
+  let H = W / asp
+  W = Math.max(2, Math.round(W / 2) * 2)
+  H = Math.max(2, Math.round(H / 2) * 2)
+  return { sx: (x0 - hoja.left) * k, sy: (y0 - hoja.top) * k, sw: (x1 - x0) * k, sh: (y1 - y0) * k, W, H }
 }
 
 export default function PizarraClase({ semanaId, enSala }: { semanaId: string; enSala?: EnSala }) {
@@ -413,6 +440,82 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
     }
     repintar()
   }, [doc, idx, escena.w, escena.h, editando, densidad, repintar])
+
+  // ── Lo que ven los alumnos (en la sala, 12/11/2026) ───────────────────
+  // Un lienzo aparte que la sala manda a la llamada. Mientras se enseña, se
+  // copia en él lo que se ve de la página: el fondo, lo escrito, el trazo a
+  // medio hacer y el texto que se está escribiendo.
+  const salidaRef = useRef<HTMLCanvasElement | null>(null)
+  const avisarLienzo = enSala?.lienzo
+  useEffect(() => {
+    if (!avisarLienzo) return
+    const c = document.createElement('canvas')
+    c.width = 1280
+    c.height = 720
+    const ctx = c.getContext('2d')!
+    ctx.fillStyle = BLANCO
+    ctx.fillRect(0, 0, c.width, c.height)
+    salidaRef.current = c
+    avisarLienzo(c)
+    // Para las pruebas en local (no en producción).
+    if (process.env.NODE_ENV !== 'production') (window as any).__lienzoPizarra = c
+    return () => {
+      avisarLienzo(null)
+      salidaRef.current = null
+    }
+  }, [avisarLienzo])
+
+  const emitiendo = !!enSala?.ensenando
+  useEffect(() => {
+    if (!emitiendo) return
+    const pintar = () => {
+      const out = salidaRef.current
+      const f = fondoRef.current
+      const n = notasRef.current
+      const hoja = hojaRef.current
+      const area = areaRef.current
+      if (!out || !f || !n || !hoja || !area || !f.width || !n.width) return
+      const rh = hoja.getBoundingClientRect()
+      const ra = area.getBoundingClientRect()
+      const r = recorteEmision(rh, ra, f.width)
+      if (!r) return
+      if (Math.abs(out.width - r.W) > 4 || Math.abs(out.height - r.H) > 4) {
+        out.width = r.W
+        out.height = r.H
+      }
+      const ctx = out.getContext('2d')!
+      ctx.fillStyle = BLANCO
+      ctx.fillRect(0, 0, out.width, out.height)
+      const pg = docRef.current.paginas[idxRef.current]
+      if (pg?.oculta) {
+        ctx.fillStyle = '#5B6B8C'
+        ctx.font = `600 ${Math.round(out.height / 22)}px Inter, system-ui, sans-serif`
+        ctx.textAlign = 'center'
+        ctx.fillText('Un momento…', out.width / 2, out.height / 2)
+        return
+      }
+      ctx.drawImage(f, r.sx, r.sy, r.sw, r.sh, 0, 0, out.width, out.height)
+      const kn = n.width / f.width
+      ctx.drawImage(n, r.sx * kn, r.sy * kn, r.sw * kn, r.sh * kn, 0, 0, out.width, out.height)
+      // El texto que se está escribiendo (aún no está en el lienzo de las notas).
+      const e = editRef.current
+      if (e && e.texto.trim()) {
+        const ex = out.width / r.sw
+        const ey = out.height / r.sh
+        ctx.save()
+        ctx.translate(-r.sx * ex, -r.sy * ey)
+        try {
+          pintarTrazos(ctx, [{ t: 'texto', x: e.x, y: e.y, texto: e.texto, color: e.color, tam: e.tam, estilo: e.estilo } as Trazo], f.width * ex, f.height * ey, letras())
+        } catch {
+          /* sin el texto a medias */
+        }
+        ctx.restore()
+      }
+    }
+    pintar()
+    const t = window.setInterval(pintar, 100)
+    return () => window.clearInterval(t)
+  }, [emitiendo])
 
   // La letra de la escuela puede llegar después del primer pintado.
   useEffect(() => {
@@ -878,7 +981,7 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
 
   const sinPdf = info.fuentes.length === 0
   // Al lado de la llamada no caben las miniaturas: las páginas, con las flechas.
-  const apretada = !!enSala && !enSala.ensenando
+  const apretada = !!enSala
   const total = doc.paginas.length
   const trazoColor = herramienta === 'rotulador' ? colorRot : color
   const despues = !!info.publicada && !!guardadaAt && guardadaAt > info.publicada.at

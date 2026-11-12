@@ -5442,6 +5442,32 @@ en masterclass? no pueden entrar, no hay enlace configurado".
   «Quitar un trozo» puede abarcar dos partes. Al abrir, la parte más larga; sin
   nada publicado, las partes de menos de 1 minuto nacen fuera. Arriba, tres
   pasos numerados. Lo que se publica no cambia (cada parte con sus trozos).
+- ⚠️ **«Enseñar a la clase», segunda vuelta (12/11, tarde): ya NO comparte la
+  pestaña.** Usuario: "estando ya dentro de la llamada, compartir solo esa
+  parte de la página". La pizarra entra en la MISMA sala de Daily como un
+  segundo participante, **«Pizarra · Paul»**: un `createCallObject` aparte
+  (`allowMultipleCallInstances`, también en el `createFrame` de la sala; sin
+  cámara ni micro y sin escuchar a nadie) que comparte como pantalla
+  (`startScreenShare({ mediaStream })`, que en call object SÍ vale) un lienzo
+  donde `PizarraClase` copia diez veces por segundo SOLO lo que se ve de la
+  página: fondo, lo escrito, el trazo a medias y el texto que se está
+  escribiendo, con el zoom (`recorteEmision`, prop `lienzo` de `EnSala`). Sin
+  el cuadro de Chrome, también en Safari, y la llamada sigue a la vista al
+  lado (la pizarra ya no pasa a toda la pestaña; arriba sale en rojo «Los
+  alumnos ven esta página en la llamada»). Una página escondida sale como «Un
+  momento…». Si Daily le corta la pantalla, se vuelve a poner sola (5 veces);
+  si no entra en 20 s, se avisa. Servidor: `POST /salas/course/{uuid}/pizarra`
+  (equipo, sala encendida) → `entrar_pizarra` / `propiedades_pizarra` en
+  `salas.py`: `user_id` = `pizarra-<id>` (`es_pizarra`), sin anfitrión ni
+  grabación; no sale en «quién hay dentro» y no cuenta como asistencia (las
+  asistencias buscan ids de alumnos). Tests en `test_salas.py`. Probado en
+  local (el lienzo que se manda, capturado); **NO contra Daily de verdad**.
+- **Encender y apagar la sala desde la propia sala** (12/11, "que el profe
+  pueda encender y apagar la sala"): el servidor ya lo dejaba al equipo desde
+  el 02/11, pero el botón solo estaba en la página del curso. Ahora, con la
+  sala apagada, al equipo le sale «Encender la sala y entrar» en la tarjeta
+  de espera, y dentro, «Apagar la sala» arriba (con confirmación; quien está
+  dentro sigue hasta que sale).
 - **La sala espera** (12/11): «Entrar a la clase» de una clase con sala propia
   (`salas[uuid].directo`) va SIEMPRE a la sala, aunque esté apagada y no haya
   enlace de Zoom (antes salía «El enlace del directo aún no está

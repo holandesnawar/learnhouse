@@ -114,6 +114,29 @@ async def api_entrar(
     return {**datos, "curso": curso.name, "grabar": ajustes["grabar"]}
 
 
+@router.post(
+    "/course/{course_uuid}/pizarra",
+    summary="La entrada de la pizarra del profe: un participante más que solo comparte la pizarra (equipo).",
+)
+async def api_pizarra(
+    request: Request,
+    course_uuid: str,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    curso = await _curso(request, course_uuid, current_user, db_session)
+    equipo, _ = await _roles(current_user, curso.org_id, db_session)
+    if not equipo:
+        raise HTTPException(status_code=403, detail="Solo el equipo de la escuela")
+    ajustes = await salas.config_de(curso.org_id, curso.course_uuid, db_session)
+    if not ajustes["activo"]:
+        raise HTTPException(status_code=409, detail="La sala de este curso no está abierta")
+    try:
+        return await salas.entrar_pizarra(curso.course_uuid, current_user)
+    except salas.SalaError as exc:
+        raise _error(exc) from exc
+
+
 class SalaIn(BaseModel):
     activo: Optional[bool] = None
     # Ya no se usa (se graba siempre, 02/11/2026); se acepta para no romper

@@ -384,3 +384,16 @@ async def test_copiar_a_la_copia_con_sus_semanas(db, org):
     assert fila.config["salas"]["copia-1"]["directo"] is True
     # Un curso normal (la formación) no se toca.
     assert not await salas.copiar_a_la_copia(org.id, "course_otro", "course_copia-2", {}, db)
+
+
+def test_la_pizarra_entra_como_otro_participante_sin_grabar_ni_mandar():
+    p = salas.propiedades_pizarra("nawar-x", "Paul Plaat", 7, 1000.0)
+    assert p["user_name"] == "Pizarra · Paul Plaat"
+    assert p["user_id"] == "pizarra-7" and salas.es_pizarra(p["user_id"])
+    assert p["is_owner"] is False and "start_cloud_recording" not in p
+    assert p["start_video_off"] and p["start_audio_off"] and p["eject_at_token_exp"]
+
+
+def test_la_pizarra_no_sale_en_quien_hay_dentro():
+    r = {"data": [{"userName": "Ana", "userId": "3"}, {"userName": "Pizarra · Paul", "userId": "pizarra-7"}]}
+    assert salas.presentes_de(r) == ["Ana"]

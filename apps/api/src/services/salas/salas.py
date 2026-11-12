@@ -143,12 +143,50 @@ def propiedades_entrada(sala: str, nombre: str, user_id: int, anfitrion: bool, g
     return props
 
 
+#: Lo que lleva delante el `user_id` de la pizarra del profe en la llamada
+#: (12/11/2026): no es una persona, así que no sale en «quién hay dentro» ni
+#: cuenta como asistencia (las asistencias buscan ids de alumnos).
+PREFIJO_PIZARRA = "pizarra-"
+
+
+def es_pizarra(user_id: Any) -> bool:
+    return str(user_id or "").startswith(PREFIJO_PIZARRA)
+
+
+def propiedades_pizarra(sala: str, nombre: str, user_id: int, ahora: float) -> dict:
+    """La entrada de la PIZARRA del profe (12/11/2026). Usuario: "estando ya
+    dentro de la llamada, compartir solo esa parte de la página para que ellos
+    lo vean". La sala de la escuela es la de Daily hecha (Prebuilt) y ahí
+    Daily no deja mandar a la llamada un lienzo propio; lo deja en el modo
+    «call object». Así que la pizarra entra en la MISMA sala como un segundo
+    participante invisible para el profe («Pizarra · Paul»), sin cámara ni
+    micro, que solo comparte el lienzo de la pizarra como pantalla. Los
+    alumnos la ven como cualquier pantalla compartida y la grabación la
+    recoge. No es anfitrión, no arranca la grabación (ya la arranca quien
+    entra) y caduca como cualquier entrada."""
+    return {
+        "room_name": sala,
+        "user_name": f"Pizarra · {nombre}"[:60],
+        "user_id": f"{PREFIJO_PIZARRA}{user_id}",
+        "is_owner": False,
+        "lang": "es",
+        "exp": int(ahora) + HORAS_ENTRADA * 3600,
+        "eject_at_token_exp": True,
+        "enable_recording_ui": False,
+        "start_video_off": True,
+        "start_audio_off": True,
+    }
+
+
 def presentes_de(respuesta: Any) -> list[str]:
-    """Los nombres de quien está ahora en la sala (respuesta de `/presence`)."""
+    """Los nombres de quien está ahora en la sala (respuesta de `/presence`).
+    Sin la pizarra del profe: no es una persona."""
     filas = (respuesta or {}).get("data") if isinstance(respuesta, dict) else None
     nombres = []
     for f in filas or []:
         if isinstance(f, dict):
+            if es_pizarra(f.get("userId") or f.get("user_id")):
+                continue
             n = str(f.get("userName") or f.get("user_name") or "").strip()
             nombres.append(n or "Alguien")
     return nombres
@@ -290,6 +328,18 @@ async def entrar(course_uuid: str, user, anfitrion: bool, grabar: bool) -> dict:
         "grabando": bool(props.get("start_cloud_recording")),
         "aviso": aviso,
     }
+
+
+async def entrar_pizarra(course_uuid: str, user) -> dict:
+    """La entrada de la pizarra del profe a la sala (ver `propiedades_pizarra`)."""
+    sala = nombre_sala(course_uuid)
+    url = await asegurar_sala(sala)
+    nombre = nombre_visible(getattr(user, "first_name", ""), getattr(user, "last_name", ""), getattr(user, "username", ""))
+    datos = await _daily("POST", "/meeting-tokens", {"properties": propiedades_pizarra(sala, nombre, user.id, time.time())})
+    token = str(datos.get("token") or "")
+    if not token:
+        raise SalaError("Daily no devolvió la entrada de la pizarra.")
+    return {"url": url, "token": token, "nombre": f"Pizarra · {nombre}"[:60]}
 
 
 async def presentes(course_uuid: str) -> list[str]:

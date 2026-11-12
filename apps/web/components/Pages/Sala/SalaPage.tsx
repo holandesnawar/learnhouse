@@ -51,16 +51,27 @@
  * ⚠️ Mandar un lienzo propio a la llamada (`startScreenShare({ mediaStream })`)
  * NO vale aquí: Daily solo lo deja en su modo «call object», no en la sala
  * ya hecha (Prebuilt) que usa la escuela. Comprobado en daily-js 0.93.
+ *
+ * 12/11/2026, segunda vuelta ("estando ya dentro de la llamada, compartir solo
+ * esa parte de la página"): «Enseñar a la clase» ya NO comparte la pestaña.
+ * La pizarra entra en la MISMA sala como un segundo participante,
+ * «Pizarra · Paul» (un «call object» de Daily aparte, con
+ * `allowMultipleCallInstances`, sin cámara ni micro y sin escuchar a nadie),
+ * y comparte como pantalla un lienzo en el que la pizarra copia diez veces
+ * por segundo SOLO la página que se ve (`lienzo` de PizarraClase). Sin el
+ * cuadro de Chrome, también en Safari, y la llamada sigue a la vista al
+ * lado. La entrada la da `POST /salas/course/{curso}/pizarra`. Si su pantalla
+ * se corta (red), se vuelve a poner sola.
  */
 
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, AlertTriangle, Loader2, Maximize2, Minimize2, PenLine } from 'lucide-react'
+import { ArrowLeft, AlertTriangle, Loader2, Maximize2, Minimize2, PenLine, Power } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
-import { entrarSala, type EntradaSala } from '@services/salas/salas'
+import { entrarPizarra, entrarSala, getSala, guardarSala, type EntradaSala } from '@services/salas/salas'
 import { getSemanas, diaCorto, type Semana } from '@services/tareas/tareas'
 import { confirmar } from '@/lib/nawar/confirmar'
 
@@ -134,40 +145,110 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
     }
   }
 
-  function pararEmision() {
-    try {
-      llamadaRef.current?.stopScreenShare()
-    } catch {
-      /* ya parada */
-    }
+  // ── «Enseñar a la clase»: la pizarra como otro participante ──────────────
+  const lienzoRef = useRef<HTMLCanvasElement | null>(null)
+  const ponerLienzo = useCallback((c: HTMLCanvasElement | null) => {
+    lienzoRef.current = c
+  }, [])
+  const emisionRef = useRef<{ cliente: any; stream: MediaStream | null; parando: boolean } | null>(null)
+
+  async function pararEmision() {
+    const em = emisionRef.current
+    emisionRef.current = null
     setEnsenando(false)
+    if (!em) return
+    em.parando = true
+    try {
+      em.stream?.getTracks().forEach((t) => t.stop())
+    } catch {
+      /* ya parado */
+    }
+    try {
+      await em.cliente?.leave()
+    } catch {
+      /* ya fuera */
+    }
+    try {
+      em.cliente?.destroy()
+    } catch {
+      /* ya cerrado */
+    }
   }
 
-  // «Enseñar a la clase»: la pizarra a toda la pestaña y compartir esta pestaña.
-  function alternarEmision() {
-    if (ensenando) return pararEmision()
-    const llamada = llamadaRef.current
-    if (!llamada) {
+  async function alternarEmision() {
+    if (ensenando || emisionRef.current) return pararEmision()
+    if (!llamadaRef.current) {
       toast.error('Entra primero en la llamada')
       return
     }
-    setEnsenando(true)
+    const lienzo = lienzoRef.current as any
+    if (!lienzo?.captureStream) {
+      toast.error('Este navegador no deja enseñar la pizarra. Prueba con Chrome.')
+      return
+    }
+    setEnsenando(true) // la pizarra empieza a copiar la página en el lienzo
+    const em: { cliente: any; stream: MediaStream | null; parando: boolean } = { cliente: null, stream: null, parando: false }
+    emisionRef.current = em
+    const compartir = async () => {
+      em.stream?.getTracks().forEach((t) => t.stop())
+      em.stream = lienzo.captureStream(10) as MediaStream
+      await em.cliente.startScreenShare({ mediaStream: em.stream, screenVideoSendSettings: 'detail-optimized' })
+    }
     try {
-      llamada.startScreenShare({
-        displayMediaOptions: {
-          video: true,
-          audio: false,
-          preferCurrentTab: true,
-          selfBrowserSurface: 'include',
-          surfaceSwitching: 'exclude',
-        } as any,
-        screenVideoSendSettings: 'detail-optimized',
+      const datos = await entrarPizarra(curso, token)
+      const { default: DailyIframe } = await import('@daily-co/daily-js')
+      if (em.parando) return
+      em.cliente = DailyIframe.createCallObject({
+        allowMultipleCallInstances: true,
+        videoSource: false,
+        audioSource: false,
+        startVideoOff: true,
+        startAudioOff: true,
+        subscribeToTracksAutomatically: false,
+      } as any)
+      // Si Daily corta la pantalla de la pizarra (un corte de red…), se
+      // vuelve a poner sola; si la pizarra sale de la llamada, se avisa.
+      let reintentos = 0
+      em.cliente.on('local-screen-share-stopped', () => {
+        if (em.parando || emisionRef.current !== em || reintentos >= 5) return
+        reintentos += 1
+        window.setTimeout(() => {
+          if (!em.parando && emisionRef.current === em) compartir().catch(() => undefined)
+        }, 1500)
       })
+      em.cliente.on('left-meeting', () => {
+        if (em.parando || emisionRef.current !== em) return
+        pararEmision()
+        toast.error('La pizarra ha salido de la llamada. Pulsa «Enseñar a la clase» otra vez.')
+      })
+      await Promise.race([
+        em.cliente.join({ url: datos.url, token: datos.token }),
+        new Promise((_, no) => window.setTimeout(() => no(new Error('la llamada no contesta (20 s)')), 20000)),
+      ])
+      if (em.parando) return
+      await compartir()
     } catch (e: any) {
-      setEnsenando(false)
-      toast.error('No se pudo compartir: ' + (e?.message || 'el navegador no deja'))
+      if (em.parando) return
+      pararEmision()
+      toast.error('No se pudo enseñar la pizarra: ' + (e?.message || e?.errorMsg || 'inténtalo otra vez'))
     }
   }
+  // Al salir de la sala, la pizarra sale también de la llamada.
+  useEffect(
+    () => () => {
+      const em = emisionRef.current
+      emisionRef.current = null
+      if (!em) return
+      em.parando = true
+      try {
+        em.stream?.getTracks().forEach((t) => t.stop())
+        em.cliente?.destroy()
+      } catch {
+        /* ya cerrada */
+      }
+    },
+    []
+  )
 
   // Las semanas que se pueden abrir: las de cerca de hoy primero.
   const opcionesSemana = useMemo(() => {
@@ -248,6 +329,44 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
 
   // La sala aún apagada (12/11/2026): se espera y se vuelve a probar sola.
   const [esperando, setEsperando] = useState(false)
+  // El equipo (profes incluidos) la enciende y la apaga desde aquí mismo.
+  const [soyEquipo, setSoyEquipo] = useState(false)
+  const [cambiando, setCambiando] = useState(false)
+  const [reintento, setReintento] = useState(0)
+  useEffect(() => {
+    if (!token || !curso) return
+    getSala(curso, token)
+      .then((e) => setSoyEquipo(!!e.equipo))
+      .catch(() => undefined)
+  }, [token, curso])
+  async function encender() {
+    setCambiando(true)
+    try {
+      await guardarSala(curso, { activo: true }, token)
+      toast.success('Sala encendida. Entrando…')
+      setReintento((n) => n + 1)
+    } catch (e: any) {
+      toast.error(e?.message || 'No se pudo encender la sala')
+    } finally {
+      setCambiando(false)
+    }
+  }
+  async function apagar() {
+    const ok = await confirmar(
+      'Apagar la sala.\nQuien esté dentro sigue en la llamada hasta que salga, pero nadie más podrá entrar y «Entrar a la clase» dejará de llevar aquí. ¿Apagarla?',
+      { boton: 'Sí, apagar la sala', peligro: true }
+    )
+    if (!ok) return
+    setCambiando(true)
+    try {
+      await guardarSala(curso, { activo: false }, token)
+      toast.success('Sala apagada')
+    } catch (e: any) {
+      toast.error(e?.message || 'No se pudo apagar la sala')
+    } finally {
+      setCambiando(false)
+    }
+  }
   useEffect(() => {
     if (!token || !curso || entrada) return
     let vivo = true
@@ -273,9 +392,9 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
       window.clearTimeout(t)
     }
     // Una entrada por visita: pedir otra al cambiar la sesión volvería a
-    // montar la sala en mitad de la llamada.
+    // montar la sala en mitad de la llamada. `reintento`: al encenderla aquí.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, curso])
+  }, [token, curso, reintento])
 
   // La sala de Daily, con la librería y los colores de la marca.
   useEffect(() => {
@@ -316,8 +435,10 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
         const { default: DailyIframe } = await import('@daily-co/daily-js')
         if (!vivo || !contenedor.current) return
         // Una sola sala a la vez: Daily no deja dos en la misma página.
-        DailyIframe.getCallInstance()?.destroy()
+        if (!emisionRef.current) DailyIframe.getCallInstance()?.destroy()
         llamada = DailyIframe.createFrame(contenedor.current, {
+          // La pizarra del profe entra como otra instancia (12/11/2026).
+          allowMultipleCallInstances: true,
           iframeStyle: { width: '100%', height: '100%', border: '0', borderRadius: '16px' },
           showLeaveButton: true,
           showFullscreenButton: true,
@@ -339,15 +460,6 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
         // también avisa de «left-meeting», y no hay que mandarle al curso.
         llamadaRef.current = llamada
         llamada.on('joined-meeting', () => vivo && setDentro(true))
-        // Compartir: si se cancela el cuadro de Chrome o se para (también desde
-        // el «Dejar de compartir» de Chrome o de Daily), la pizarra vuelve a su sitio.
-        llamada.on('local-screen-share-stopped', () => vivo && setEnsenando(false))
-        llamada.on('local-screen-share-canceled', () => vivo && setEnsenando(false))
-        llamada.on('nonfatal-error', (ev: any) => {
-          if (!vivo || !/screen/i.test(String(ev?.type || ''))) return
-          setEnsenando(false)
-          toast.error('No se pudo compartir la pestaña: ' + String(ev?.errorMsg || 'el navegador no deja'))
-        })
         llamada.on('left-meeting', () => {
           if (!vivo) return
           setDentro(false)
@@ -421,10 +533,20 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
             <PenLine size={14} /> {pizarra ? 'Cerrar la pizarra' : 'Pizarra'}
           </button>
         ) : null}
+        {entrada && !error && soyEquipo ? (
+          <button
+            onClick={apagar}
+            disabled={cambiando}
+            className={`${entrada?.anfitrion && !sinLibreria ? '' : 'ml-auto '}inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-[#D1D5DB] bg-white text-[13px] font-medium text-gray-800 hover:bg-[#F9FAFB] disabled:opacity-60`}
+            title="Al acabar la clase: que nadie más pueda entrar"
+          >
+            <Power size={14} /> Apagar la sala
+          </button>
+        ) : null}
         {entrada && !error ? (
           <button
             onClick={alternarGrande}
-            className={`${entrada?.anfitrion && !sinLibreria ? '' : 'ml-auto '}inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-[#D1D5DB] bg-white text-[13px] font-medium text-gray-800 hover:bg-[#F9FAFB]`}
+            className={`${(entrada?.anfitrion && !sinLibreria) || soyEquipo ? '' : 'ml-auto '}inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-[#D1D5DB] bg-white text-[13px] font-medium text-gray-800 hover:bg-[#F9FAFB]`}
           >
             <Maximize2 size={14} /> Pantalla completa
           </button>
@@ -466,9 +588,15 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
           <p className="mt-2 text-[14px] leading-relaxed text-[#171a2e]">
             Se abre en cuanto el profe la encienda. No hace falta recargar: quédate en esta página y entrarás sola o solo.
           </p>
-          <p className="mt-3 text-[12.5px] text-[#5A6480]">
-            Si eres del equipo: la sala se enciende en la página de la clase («Encender la sala»).
-          </p>
+          {soyEquipo ? (
+            <button
+              onClick={encender}
+              disabled={cambiando}
+              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#0b2da0] px-4 py-2.5 text-[14px] font-semibold text-white disabled:opacity-60"
+            >
+              {cambiando ? <Loader2 size={16} className="animate-spin" /> : <Power size={16} />} Encender la sala y entrar
+            </button>
+          ) : null}
         </div>
       ) : !entrada ? (
         <div className="flex items-center gap-2 text-[14px] text-[#5A6480] py-10">
@@ -485,11 +613,7 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
           >
             {pizarra ? (
               <div
-                className={
-                  ensenando
-                    ? 'fixed inset-0 z-[150] overflow-hidden bg-white'
-                    : `min-w-0 overflow-hidden rounded-2xl border border-[#DDE6F5] bg-white ${grande ? 'h-[60vh] lg:h-full' : ALTO}`
-                }
+                className={`min-w-0 overflow-hidden rounded-2xl border bg-white ${ensenando ? 'border-[#B4413C] ring-2 ring-[#B4413C]/30' : 'border-[#DDE6F5]'} ${grande ? 'h-[60vh] lg:h-full' : ALTO}`}
               >
                 {semanas === null ? (
                   <div className="flex h-full items-center justify-center gap-2 text-[14px] text-[#5A6480]">
@@ -502,7 +626,11 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
                   </div>
                 ) : (
                   <div className="flex h-full flex-col">
-                    {opcionesSemana.length > 1 && !ensenando ? (
+                    {ensenando ? (
+                      <div className="flex shrink-0 items-center gap-2 border-b border-[#F3D3D1] bg-[#FDF3F2] px-3 py-1.5 text-[12.5px] font-semibold text-[#9B2C26]">
+                        <span className="h-2 w-2 animate-pulse rounded-full bg-[#B4413C]" /> Los alumnos ven esta página en la llamada
+                      </div>
+                    ) : opcionesSemana.length > 1 ? (
                       <div className="flex shrink-0 items-center gap-2 border-b border-[#E2E8F4] bg-[#F7F9FD] px-3 py-1.5 text-[12.5px] text-[#5A6480]">
                         Semana:
                         <select
@@ -528,8 +656,10 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
                         semanaId={String(semanaId)}
                         enSala={{
                           ensenando,
-                          puede: dentro,
+                          // En local no hay Daily: las pruebas fingen estar dentro.
+                          puede: dentro || (process.env.NODE_ENV !== 'production' && typeof window !== 'undefined' && !!(window as any).__salaDentro),
                           alternar: alternarEmision,
+                          lienzo: ponerLienzo,
                           cerrar: () => {
                             if (ensenando) pararEmision()
                             setPizarra(false)

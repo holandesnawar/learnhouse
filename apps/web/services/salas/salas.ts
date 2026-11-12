@@ -64,6 +64,11 @@ export const getSala = (curso: string, token: string) => pedir<EstadoSala>(base(
 export const entrarSala = (curso: string, token: string) =>
   pedir<EntradaSala>(`${base(curso)}/entrar`, token, 'POST', {})
 
+/** La entrada de la PIZARRA del profe (12/11/2026): un participante más de
+ * la llamada, «Pizarra · Paul», que solo comparte el lienzo de la pizarra. */
+export const entrarPizarra = (curso: string, token: string) =>
+  pedir<{ url: string; token: string; nombre: string }>(`${base(curso)}/pizarra`, token, 'POST', {})
+
 export const guardarSala = (
   curso: string,
   cambios: { activo?: boolean; grabar?: boolean; grabadas?: boolean; etiqueta?: string; mira_tambien?: boolean },
