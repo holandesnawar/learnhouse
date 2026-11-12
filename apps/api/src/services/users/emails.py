@@ -1135,7 +1135,14 @@ def send_llamada_asignada_email(email: EmailStr, datos: dict, preview: bool = Fa
     vuelve = bool(datos.get("vuelve"))
     lead = bool(datos.get("lead")) and not vuelve
     calendly = bool(datos.get("calendly")) and not vuelve and not lead
-    if lead:
+    # Cambio de hora (12/11): Calendly crea una reunión nueva con otro enlace y
+    # el del correo de antes deja de valer.
+    cambio = bool(datos.get("cambio")) and not lead
+    if cambio:
+        vuelve = calendly = False
+    if cambio:
+        titulo = "Ha cambiado la hora de una llamada"
+    elif lead:
         titulo = "Te han pasado una matrícula"
     elif calendly:
         titulo = "Te ha tocado una llamada"
@@ -1143,11 +1150,21 @@ def send_llamada_asignada_email(email: EmailStr, datos: dict, preview: bool = Fa
         titulo = "Ha reservado una llamada contigo" if vuelve else "Te han pasado una llamada"
     enlace = datos.get("enlace") or ""
     entrar = (
-        f'<p style="margin: 16px 0 0 0; font-size: 13px;"><a href="{html.escape(enlace)}" style="color: #025dc7; font-weight: 600;">Enlace de la videollamada</a></p>'
+f'<p style="margin: 16px 0 0 0; font-size: 13px;"><a href="{html.escape(enlace)}" style="color: #025dc7; font-weight: 600;">{"Enlace NUEVO de la videollamada" if datos.get("cambio") else "Enlace de la videollamada"}</a></p>'
         if enlace.startswith("http") and not lead
         else ""
     )
-    if vuelve:
+    if cambio:
+        quien = (
+            '<p style="' + STYLES['p'] + '">La hora nueva es la de arriba. <strong>El enlace de antes ya no vale</strong>: '
+            + (
+                "entra con el de abajo."
+                if enlace.startswith("http")
+                else "el nuevo aún no ha llegado de Calendly. Míralo en Llamadas, en la tarjeta de la hora nueva."
+            )
+            + "</p>"
+        )
+    elif vuelve:
         quien = '<p style="' + STYLES['p'] + '">Ya la llevabas tú, así que no pasa por «Por asignar».</p>'
     elif lead:
         quien = (
@@ -1175,7 +1192,8 @@ def send_llamada_asignada_email(email: EmailStr, datos: dict, preview: bool = Fa
         {wa}
     """
     asunto = (
-        "Te han pasado una matrícula" if lead
+        "Ha cambiado la hora de una llamada" if cambio
+        else "Te han pasado una matrícula" if lead
         else "Ha reservado llamada contigo" if vuelve
         else "Te ha tocado una llamada" if calendly
         else "Te han pasado una llamada"

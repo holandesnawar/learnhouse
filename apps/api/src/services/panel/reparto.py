@@ -463,6 +463,56 @@ async def _closer_que_la_lleva(email: str, equipo: list[dict], db_session: Async
     return next((m for m in equipo if m.get("id") == closer_id and m.get("email")), None)
 
 
+async def avisar_cambio_de_hora(datos: dict, db_session: AsyncSession) -> str:
+    """Al cambiar la hora de una llamada, Calendly crea una reunión NUEVA con
+    otro enlace y borra la de antes (12/11/2026, "al reprogramar, el link
+    anterior no vale y el closer no puede entrar"). La escuela no le decía
+    nada al closer, que se quedaba con el correo viejo y su enlace viejo.
+
+    Ahora, a quien lleva la llamada y tiene puesto «La escuela le avisa a»
+    (el mismo criterio que «Te ha tocado una llamada»: a los demás ya les
+    avisa Calendly en su correo), le llega «Ha cambiado la hora de una
+    llamada» con la hora y el enlace nuevos. Una vez por cambio (Redis,
+    30 min). En blando: devuelve a qué correo se mandó, o ""."""
+    from src.services.users.emails import send_llamada_asignada_email
+
+    email = str(datos.get("email") or "").strip().lower()
+    if not email:
+        return ""
+    try:
+        _, eq = await _equipo_de_la_escuela(db_session)
+        closer = await _closer_que_la_lleva(email, eq, db_session)
+        if not closer:
+            return ""
+        suyo = (await leer(db_session))["avisar"].get(str(closer.get("id")), "")
+    except Exception:  # noqa: BLE001
+        logger.exception("No se pudo leer a quién avisar del cambio de hora")
+        return ""
+    if not suyo:
+        return ""
+    clave = f"llamada-cambio:{email}:{datos.get('inicio') or datos.get('cuando') or ''}"
+    r = None
+    try:
+        from src.core.redis import get_redis_client
+
+        r = get_redis_client()
+        if r is not None and not r.set(clave, "1", nx=True, ex=1800):
+            return ""
+    except Exception:  # noqa: BLE001
+        r = None
+    try:
+        send_llamada_asignada_email(suyo, {**datos, "cambio": True})
+        return suyo
+    except Exception:  # noqa: BLE001
+        logger.exception("No se pudo avisar al closer del cambio de hora")
+        if r is not None:
+            try:
+                r.delete(clave)
+            except Exception:  # noqa: BLE001
+                pass
+        return ""
+
+
 def avisar_asignada(closer_email: str, datos: dict) -> bool:
     """Correo al closer al que le han pasado una llamada."""
     from src.services.users.emails import send_llamada_asignada_email

@@ -5636,6 +5636,24 @@ meet.google.com («Crear una reunión para más tarde») y ponerlo en Calendly
 como ubicación «Personalizada» de ese closer. La escuela lee ese enlace aunque
 vaya sin https o con texto alrededor (`enlace_en_texto` en `agenda.py`, test
 en `test_agenda_enlace.py`).
+- ⚠️ **La tarjeta nueva SÍ lleva el enlace nuevo** (usuario: "¿por qué no lee
+  la escuela el nuevo enlace y lo pone en la nueva tarjeta?"): cada cita
+  enseña el enlace de SU reserva de Calendly, leído al abrir Llamadas (copia
+  de 1 min), y la vieja («Reprogramada») no enseña ninguno. Lo que fallaba:
+  **en un cambio de hora la escuela no avisaba a nadie**, y el closer con «La
+  escuela le avisa a» (Diego; a su correo no le llega nada de Calendly) se
+  quedaba con el correo viejo y su enlace viejo. Ahora le llega «Ha cambiado
+  la hora de una llamada» con la hora y el **enlace nuevo**
+  (`avisar_cambio_de_hora` en `reparto.py`, `_avisar_del_cambio` en
+  `correo_reserva.py`, `cambio` en `send_llamada_asignada_email`; una vez por
+  cambio; los dos caminos: «Reprogramar» de Calendly y «Cambiar hora» de la
+  escuela). A quien no tiene ese correo puesto (Belén) le sigue avisando
+  Calendly. Necesita que el aviso de Calendly esté conectado (Avisos → «Al
+  reservar»). Tests en `test_correo_reserva.py`. Si el enlace nuevo aún no ha
+  llegado de Calendly (Meet tarda un momento), el correo lo dice y manda a la
+  tarjeta. El enlace que la persona ya recibió por WhatsApp sigue siendo el
+  viejo: en la cita nueva los tres WhatsApp salen sin enviar, así que el del
+  enlace vuelve a tocar.
 
 ## Rediseño estilo Circle: la escuela de pruebas y la rama `diseno` (07/11/2026)
 Pedido: "una versión no pública de la escuela para hacer cambios de diseño…

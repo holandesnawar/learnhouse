@@ -652,3 +652,48 @@ async def test_en_un_cambio_de_hora_la_tarjeta_sigue_a_calendly(db, escuela):
     assert g["ana@x.com"]["closer_id"] == 5
     assert g["leo@x.com"]["closer_id"] == 4
     assert envios.a == []
+
+
+async def test_al_cambiar_la_hora_el_closer_recibe_el_enlace_nuevo(db, escuela):
+    """12/11, "al reprogramar, el link anterior no vale y el closer no puede
+    entrar": Calendly crea otra reunión con otro enlace y la escuela no le
+    decía nada al closer. Ahora le llega el enlace nuevo a quien lleva la
+    llamada y tiene puesto «La escuela le avisa a». A los demás, nada (ya les
+    avisa Calendly)."""
+    from src.services.panel import pipeline, reparto
+
+    async def _equipo(_db):
+        return 1, EQUIPO_TEAMS
+
+    async def _leer(_db, org_id=None):
+        return {"repartidor_id": 0, "calendly": {"4": "rida@x.com"}, "avisar": {"4": "diego@nawar.es"}}
+
+    await pipeline.asignar("ana@x.com", 4, "Diego Ruiz", "Rida", db)
+    await pipeline.asignar("leo@x.com", 5, "Belén Soto", "Rida", db)
+    suyas = []
+    envios = Envios()
+    with patch.object(reparto, "_equipo_de_la_escuela", _equipo), patch.object(reparto, "leer", _leer), patch(
+        "src.core.redis.get_redis_client", lambda: None
+    ), patch.object(E, "send_llamada_asignada_email", lambda d, x: suyas.append((d, x))):
+        assert await _atender(db, aviso(old_invitee="https://api.calendly.com/x/OLD"), envios) == "cambio-de-hora"
+        de_belen = aviso(email="leo@x.com", old_invitee="https://api.calendly.com/x/OLD2")
+        de_belen["payload"]["scheduled_event"]["event_memberships"] = [{"user_email": "belen@x.com", "user_name": "Belén"}]
+        assert await _atender(db, de_belen, envios) == "cambio-de-hora"
+    assert envios.a == []  # el correo de Rida a la persona no se repite
+    assert len(suyas) == 1
+    destino, datos = suyas[0]
+    assert destino == "diego@nawar.es"
+    assert datos["cambio"] is True and datos["email"] == "ana@x.com"
+    assert datos["enlace"].startswith("http") and datos["cuando"]
+
+
+def test_el_correo_del_cambio_de_hora():
+    r = E.send_llamada_asignada_email(
+        "diego@nawar.es",
+        {"nombre": "Ana", "email": "ana@x.com", "cuando": "jue 13 nov · 18:00", "enlace": "https://meet.google.com/nuevo", "cambio": True},
+        preview=True,
+    )
+    assert r["subject"].startswith("Ha cambiado la hora de una llamada: Ana")
+    assert "ya no vale" in r["html"] and "https://meet.google.com/nuevo" in r["html"] and "Enlace NUEVO" in r["html"]
+    sin = E.send_llamada_asignada_email("d@x.com", {"nombre": "Ana", "email": "ana@x.com", "cuando": "jue", "cambio": True}, preview=True)
+    assert "aún no ha llegado de Calendly" in sin["html"]

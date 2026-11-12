@@ -770,6 +770,34 @@ async def _seguir_al_anfitrion(reserva: dict, db_session: AsyncSession) -> str:
     return f" La lleva {(closer.get('nombre') or 'el closer').split(' ')[0]} (en Calendly está en su calendario)."
 
 
+async def _avisar_del_cambio(reserva: dict, db_session: AsyncSession) -> str:
+    """El enlace NUEVO, al closer que lleva la llamada (12/11/2026): al
+    cambiar la hora Calendly crea otra reunión y el enlace de antes deja de
+    valer. Devuelve una frase para «qué hizo la escuela». En blando."""
+    from src.services.panel.reparto import avisar_cambio_de_hora
+
+    try:
+        email = reserva.get("email") or ""
+        telefono = reserva.get("telefono") or ""
+        if not telefono and email:
+            telefono = (await R.telefonos_por_email({email}, db_session)).get(email, "")
+        a_quien = await avisar_cambio_de_hora(
+            {
+                "nombre": reserva.get("nombre") or "",
+                "email": email,
+                "telefono": telefono,
+                "inicio": reserva.get("inicio") or "",
+                "cuando": _cuando_corto(reserva.get("inicio", "")),
+                "enlace": reserva.get("enlace") or "",
+            },
+            db_session,
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("No se pudo avisar del cambio de hora")
+        return ""
+    return f" Se le mandó el enlace nuevo a {a_quien}." if a_quien else ""
+
+
 async def atender_aviso(cuerpo: bytes, cabecera: str, db_session: AsyncSession) -> str:
     """Lo que hace la escuela con un aviso de Calendly. Devuelve qué pasó;
     lanza PermissionError si la firma no vale (→ 401) y cualquier otro error si
@@ -791,7 +819,8 @@ async def atender_aviso(cuerpo: bytes, cabecera: str, db_session: AsyncSession) 
         except Exception:  # noqa: BLE001
             logger.warning("No se pudo completar el cambio de hora de Calendly", exc_info=True)
         quien = await _seguir_al_anfitrion(reserva, db_session)
-        apuntar_reserva(reserva, "Era un cambio de hora hecho en Calendly: no se avisa a nadie." + quien)
+        quien += await _avisar_del_cambio(reserva, db_session)
+        apuntar_reserva(reserva, "Era un cambio de hora hecho en Calendly." + quien)
         return "cambio-de-hora"
     reserva = await _completar(reserva)
     # (Después de `_completar`, que trae la hora si el aviso no la traía.)
@@ -799,7 +828,8 @@ async def atender_aviso(cuerpo: bytes, cabecera: str, db_session: AsyncSession) 
     # llega como una reserva nueva, sin `old_invitee`: tampoco se repite nada.
     if await R.lo_cambio_el_equipo(reserva["email"], reserva.get("inicio") or "", db_session):
         quien = await _seguir_al_anfitrion(reserva, db_session)
-        apuntar_reserva(reserva, "Era un cambio de hora hecho desde la escuela: no se avisa a nadie." + quien)
+        quien += await _avisar_del_cambio(reserva, db_session)
+        apuntar_reserva(reserva, "Era un cambio de hora hecho desde la escuela." + quien)
         return "cambio-de-hora"
     tipos = await _tipos_de_llamada()
     if tipos and reserva.get("tipo_evento") and reserva["tipo_evento"] not in tipos:
