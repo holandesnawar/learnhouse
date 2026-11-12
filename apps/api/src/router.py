@@ -7,7 +7,7 @@ from src.routers import health
 from src.routers import instance
 from src.routers import plans
 from src.routers import usergroups
-from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs, panel, vision, salas, tareas, ebook, correos, equipo, estudio, reto, pizarra, resenas, grabaciones, estado
+from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs, panel, vision, salas, tareas, ebook, correos, equipo, estudio, reto, pizarra, resenas, grabaciones, estado, lecturas
 from src.routers import notifications as notifications_router_module
 from src.routers import stream
 from src.routers import api_tokens
@@ -500,6 +500,14 @@ v1_router.include_router(
     recursos.router,
     prefix="/recursos",
     tags=["recursos"],
+)
+
+# La lectura semanal (12/11/2026): la de esta semana y el archivo, en
+# Recursos y en el Inicio. Ver `src/routers/lecturas.py`.
+v1_router.include_router(
+    lecturas.router,
+    prefix="/lecturas",
+    tags=["lecturas"],
 )
 
 # Webs: enlaces cortos y redirecciones de holandesnawar.com, editables desde

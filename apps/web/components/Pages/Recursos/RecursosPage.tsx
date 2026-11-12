@@ -32,6 +32,7 @@ import {
 import { confirmar } from '@lib/nawar/confirmar'
 import IconoRecurso from './IconoRecurso'
 import Portada from '@components/Pages/Espacios/Portada'
+import LecturaSemanal from './LecturaSemanal'
 
 const ETIQUETA: Record<ReturnType<typeof tipoDe>, string> = {
   drive: 'Google Drive',
@@ -204,6 +205,8 @@ export default function RecursosPage({ embebido = false }: { embebido?: boolean 
           </div>
         ) : null}
       </Portada>
+      {/* La lectura de la semana y el archivo de lecturas (12/11/2026). */}
+      <LecturaSemanal />
       {contenido}
     </div>
   )
