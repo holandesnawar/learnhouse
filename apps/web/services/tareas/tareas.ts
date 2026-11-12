@@ -98,6 +98,8 @@ export interface Semana {
   confirmaciones?: { si: number; no: number }
   /** Solo al equipo (09/11/2026): la presentación completa y las notas para el profe. */
   material_profe?: MaterialProfe
+  /** Solo al equipo: el número del capítulo de la semana (para subirle la presentación). */
+  chapter_id?: number | null
   /** La grabación de la sala publicada en esta semana (10/11/2026). Al alumno, solo con la clase ya dada. */
   grabacion_sala?: GrabacionSala | null
   /** La presentación con lo que el profe escribió en clase (10/11/2026, la pizarra). */
@@ -131,6 +133,8 @@ export interface MaterialProfe {
   mensaje?: MensajeProfe | null
   /** La pizarra de clase (10/11/2026): si hay algo escrito y si ya la tienen los alumnos. */
   pizarra?: { guardada_at: string; publicada_at: string; paginas: number } | null
+  /** «Cómo fue la clase» (12/11/2026): dos líneas del profe después de darla. */
+  despues?: { texto: string; por: string; at: string } | null
 }
 
 export interface SemanasClase {
@@ -409,6 +413,29 @@ export const borrarSemana = (id: number, token: string) =>
 
 export const guardarNotasProfe = (semanaId: number, notas: string, token: string) =>
   pedir<MaterialProfe>(`${base()}/semana/${semanaId}/profe/notas`, token, 'PUT', { notas })
+
+export const despuesProfe = (semanaId: number, texto: string, token: string) =>
+  pedir<MaterialProfe>(`${base()}/semana/${semanaId}/profe/despues`, token, 'PUT', { texto })
+
+/** Crea una clase desde el calendario de la sala de profes (12/11/2026, clase_nueva.py). */
+export interface ClaseCreada {
+  semana_id: number
+  course_uuid: string
+  curso: string
+  fecha: string
+  tema: string
+}
+export const crearClase = (
+  courseUuid: string,
+  datos: { fecha: string; tema?: string; profe?: string; repetir?: number; tambien?: boolean },
+  token: string
+) =>
+  pedir<{ ok: boolean; creadas: ClaseCreada[]; saltadas: { curso: string; fecha: string }[] }>(
+    `${base()}/course/${curso(courseUuid)}/clase`,
+    token,
+    'POST',
+    datos
+  )
 
 export const quienProfe = (semanaId: number, profe: string, token: string) =>
   pedir<MaterialProfe>(`${base()}/semana/${semanaId}/profe/quien`, token, 'PUT', { profe })

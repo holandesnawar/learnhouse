@@ -13,12 +13,12 @@
  */
 import React, { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { Check } from 'lucide-react'
+import { Check, Plus } from 'lucide-react'
 import { esDe } from '@/lib/nawar/clasesProfes'
 import { colorPersona, iniciales } from '@/lib/nawar/semanasTrabajo'
-import { agendaEquipo, diaLegible, porSemanasDeAgenda, sinSemanaPorDelante, type SemanaEquipo } from '@/lib/nawar/salaProfes'
-import { EditarSemanaProfe } from './PrepararClase'
+import { agendaEquipo, diaLegible, estadoDeClase, porSemanasDeAgenda, sinSemanaPorDelante, type SemanaEquipo } from '@/lib/nawar/salaProfes'
+import FichaClase from './FichaClase'
+import NuevaClase from './NuevaClase'
 import type { ClaseEquipo } from './useClasesEquipo'
 import { POPPINS } from './estilo'
 
@@ -50,6 +50,7 @@ export default function CalendarioEquipo({
   monitor,
   token,
   recargar,
+  nombres = [],
 }: {
   clases: ClaseEquipo[]
   semanas: SemanaEquipo[] | null
@@ -60,10 +61,13 @@ export default function CalendarioEquipo({
   monitor: boolean
   token: string
   recargar: () => void
+  /** Los nombres de pila del equipo, para proponer quién da cada clase. */
+  nombres?: string[]
 }) {
-  const router = useRouter()
   const [soloMias, setSoloMias] = useState(false)
-  const [editar, setEditar] = useState<SemanaEquipo | null>(null)
+  // La ficha abierta (por su clave: así sigue al día cuando se recarga).
+  const [ficha, setFicha] = useState('')
+  const [nueva, setNueva] = useState<{ uuid?: string; fecha?: string } | null>(null)
   if (semanas === null) return <p className="text-[14px] text-[#6B7393]">Cargando el calendario…</p>
 
   const agenda = agendaEquipo(clases, semanas, hoy, (p) => esDe(p, miNombre), 42)
@@ -71,6 +75,7 @@ export default function CalendarioEquipo({
   const visibles = soloMias ? agenda.filter((a) => a.mia) : agenda
   const grupos = porSemanasDeAgenda(visibles, hoy)
   const sinSemana = sinSemanaPorDelante(clases, semanas, hoy)
+  const abierta: SemanaEquipo | null = (ficha && semanas.find((x) => x.key === ficha)) || null
 
   return (
     <div className="space-y-6">
@@ -93,14 +98,26 @@ export default function CalendarioEquipo({
             ))}
           </div>
         ) : null}
-        {admin ? (
-          <p className="text-[13px] text-[#5B6382]">
-            Quién da cada clase se pone en{' '}
-            <Link href={ruta('/organizar')} className="font-semibold text-[#0b2da0] hover:underline">
-              Organizar clases
-            </Link>
-            ; para una sola semana, toca la clase.
-          </p>
+        <p className="text-[13px] text-[#5B6382]">
+          {admin ? 'Crea aquí cada clase y di quién la da. Toca una clase para meterle el tema y el documento.' : 'Toca una clase para ver su ficha.'}
+          {admin ? (
+            <>
+              {' '}
+              Quien da siempre una clase se pone en{' '}
+              <Link href={ruta('/organizar')} className="font-semibold text-[#0b2da0] hover:underline">
+                Organizar clases
+              </Link>
+              .
+            </>
+          ) : null}
+        </p>
+        {clases.length ? (
+          <button
+            onClick={() => setNueva({})}
+            className="ml-auto shrink-0 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-[#0b2da0] text-white text-[13.5px] font-semibold hover:bg-[#0a2690]"
+          >
+            <Plus size={15} /> Nueva clase
+          </button>
         ) : null}
       </div>
 
@@ -110,9 +127,14 @@ export default function CalendarioEquipo({
           for (const it of g.items) (dias[it.semana.fecha] = dias[it.semana.fecha] || []).push(it)
           return (
             <section key={g.clave}>
-              <h2 className="text-[17px] font-bold text-[#0B1033] mb-2.5" style={POPPINS}>
-                {g.titulo}
-              </h2>
+              <div className="flex items-baseline justify-between gap-3 mb-2.5">
+                <h2 className="text-[17px] font-bold text-[#0B1033]" style={POPPINS}>
+                  {g.titulo}
+                </h2>
+                <button onClick={() => setNueva({ fecha: g.clave < hoy ? hoy : g.clave })} className="text-[13px] font-semibold text-[#0b2da0] hover:underline">
+                  + Añadir clase
+                </button>
+              </div>
               <div className={`${TARJETA} overflow-hidden`}>
                 {Object.keys(dias)
                   .sort()
@@ -125,13 +147,13 @@ export default function CalendarioEquipo({
                       <ul className="flex-1 min-w-0">
                         {dias[dia].map((a) => {
                           const s = a.semana
-                          const pres = !!s.presentaciones.length
+                          const est = estadoDeClase(s, hoy, clases.find((c) => c.uuid === s.courseUuid)?.profe || '')
+                          const bien = est.estado === 'lista' || (est.estado === 'hoy' && !est.faltan.length)
                           return (
                             <li key={s.key}>
                               <button
-                                // Lo suyo (o todo, el administrador) se prepara aquí; lo de otro profe, se mira en su clase.
-                                onClick={() => (admin || monitor || a.mia ? setEditar(s) : router.push(ruta(`/course/${s.courseUuid.replace(/^course_/, '')}`)))}
-                                className={`w-full grid grid-cols-[52px_1fr] sm:grid-cols-[52px_1fr_190px_150px] items-center gap-x-3 gap-y-1.5 px-4 sm:px-5 py-3 text-left hover:bg-[#F8FAFE] ${
+                                onClick={() => setFicha(s.key)}
+                                className={`w-full grid grid-cols-[52px_1fr] sm:grid-cols-[52px_1fr_190px_170px] items-center gap-x-3 gap-y-1.5 px-4 sm:px-5 py-3 text-left hover:bg-[#F8FAFE] ${
                                   a.mia ? 'bg-[#F5F8FF]' : ''
                                 }`}
                               >
@@ -141,16 +163,14 @@ export default function CalendarioEquipo({
                                     <span className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
                                     {s.curso}
                                   </span>
-                                  <span className="block text-[14.5px] font-semibold text-[#0B1033] truncate">{s.tema || 'Sin tema todavía'}</span>
+                                  <span className={`block text-[14.5px] font-semibold truncate ${s.tema ? 'text-[#0B1033]' : 'text-[#8A91AD]'}`}>{s.tema || 'Sin tema todavía'}</span>
                                 </span>
                                 <span className="col-start-2 sm:col-start-auto min-w-0">
                                   <Profe nombre={a.profe} tu={a.mia} />
                                 </span>
-                                <span
-                                  className={`col-start-2 sm:col-start-auto inline-flex items-center gap-1 text-[12.5px] ${pres ? 'text-[#3B4262]' : 'text-[#8A6A2A]'}`}
-                                >
-                                  {pres ? <Check size={13} strokeWidth={3} className="text-[#16A34A]" /> : null}
-                                  {pres ? 'Presentación lista' : 'Sin presentación'}
+                                <span className={`col-start-2 sm:col-start-auto inline-flex items-center gap-1 text-[12.5px] ${bien ? 'text-[#3B4262]' : 'text-[#8A6A2A]'}`}>
+                                  {bien ? <Check size={13} strokeWidth={3} className="text-[#16A34A]" /> : null}
+                                  <span className="truncate">{bien ? 'Lista' : `Falta ${est.faltan.join(', ')}`}</span>
                                 </span>
                               </button>
                             </li>
@@ -165,40 +185,59 @@ export default function CalendarioEquipo({
         })
       ) : (
         <div className={`${TARJETA} px-5 py-6 text-[14.5px] text-[#3B4262]`}>
-          {soloMias ? 'No tienes clases en las próximas semanas.' : 'No hay clases creadas en las próximas semanas.'}
+          {soloMias ? 'No tienes clases en las próximas semanas.' : 'No hay clases creadas en las próximas semanas. Pulsa «Nueva clase» para poner la primera.'}
         </div>
       )}
 
       {sinSemana.length ? (
         <section className="rounded-2xl border border-dashed border-[#D5DEEE] px-5 py-4">
-          <p className="text-[14px] font-semibold text-[#0B1033]">Sin semanas creadas por delante</p>
-          <p className="mt-0.5 text-[13px] text-[#5B6382]">Estas clases no salen en el calendario hasta que se crea su próxima semana, en la página de la clase.</p>
+          <p className="text-[14px] font-semibold text-[#0B1033]">Sin ninguna clase por delante</p>
+          <p className="mt-0.5 text-[13px] text-[#5B6382]">Toca una para crear su próxima clase.</p>
           <div className="mt-2.5 flex flex-wrap gap-2">
             {sinSemana.map((c) => (
-              <Link
+              <button
                 key={c.uuid}
-                href={ruta(`/course/${c.uuid.replace(/^course_/, '')}`)}
+                onClick={() => setNueva({ uuid: c.uuid })}
                 className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full border border-[#DDE3EF] text-[13px] font-semibold text-[#3B4262] hover:border-[#0b2da0]"
               >
                 <span className="w-2 h-2 rounded-full" style={{ background: c.color }} />
                 {c.nombre}
                 {c.profe ? <span className="font-normal text-[#6B7393]">· {c.profe}</span> : null}
-              </Link>
+                <Plus size={13} className="text-[#0b2da0]" />
+              </button>
             ))}
           </div>
         </section>
       ) : null}
 
-      {editar ? (
-        <EditarSemanaProfe
-          semana={editar}
-          profeDeLaClase={clases.find((c) => c.uuid === editar.courseUuid)?.profe || ''}
+      {abierta ? (
+        <FichaClase
+          semana={abierta}
+          clase={clases.find((c) => c.uuid === abierta.courseUuid)}
+          hoy={hoy}
+          ruta={ruta}
           admin={admin}
+          nombres={nombres}
           token={token}
-          onCerrar={() => setEditar(null)}
-          onGuardada={() => {
-            setEditar(null)
+          onCerrar={() => setFicha('')}
+          onCambio={recargar}
+        />
+      ) : null}
+      {nueva ? (
+        <NuevaClase
+          clases={clases}
+          semanas={semanas}
+          hoy={hoy}
+          admin={admin}
+          nombres={nombres}
+          token={token}
+          preset={nueva}
+          onCerrar={() => setNueva(null)}
+          onCreada={(creadas) => {
+            setNueva(null)
             recargar()
+            // Con una sola clase creada, se abre su ficha para meterle el documento.
+            if (creadas.length === 1) setFicha(`${creadas[0].course_uuid}-${creadas[0].semana_id}`)
           }}
         />
       ) : null}

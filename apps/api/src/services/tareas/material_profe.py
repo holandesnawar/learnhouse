@@ -89,6 +89,10 @@ def leer(texto: Any) -> dict:
     # conserva tal cual para que guardar unas notas no la borre.
     if isinstance(d.get("pizarra"), dict):
         salida["pizarra"] = d["pizarra"]
+    # «Cómo fue la clase» (12/11/2026): dos líneas del profe después de darla.
+    des = d.get("despues") if isinstance(d.get("despues"), dict) else {}
+    if (des.get("texto") or "").strip():
+        salida["despues"] = {k: str(des.get(k) or "") for k in ("texto", "por", "at")}
     return salida
 
 
@@ -101,6 +105,7 @@ def para_la_pantalla(m: dict) -> dict:
         "mensaje": m.get("mensaje"),
         # De la pizarra, solo si hay algo escrito y si ya está publicada.
         "pizarra": _pizarra_resumen(m),
+        "despues": m.get("despues"),
     }
 
 
@@ -138,6 +143,15 @@ def leido(m: dict, por: str) -> dict:
     if not msg:
         raise TareaError("Esta semana no tiene mensaje", 404)
     return {**m, "mensaje": {**msg, "leido_por": (por or "")[:120], "leido_at": _ahora()}}
+
+
+def con_despues(m: dict, texto: str, por: str) -> dict:
+    """«Cómo fue la clase»: lo escribe quien la dio (o cualquiera del equipo)
+    después de darla, para que quede en la ficha. Vacío = se quita."""
+    t = (texto or "").strip()[:2000]
+    if not t:
+        return {k: v for k, v in m.items() if k != "despues"}
+    return {**m, "despues": {"texto": t, "por": (por or "")[:120], "at": _ahora()}}
 
 
 def con_notas(m: dict, notas: str) -> dict:

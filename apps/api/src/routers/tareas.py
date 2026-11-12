@@ -245,6 +245,35 @@ async def api_crear_semana(
         raise _error(exc)
 
 
+class ClaseNuevaIn(BaseModel):
+    fecha: str
+    tema: Optional[str] = ""
+    profe: Optional[str] = ""
+    repetir: Optional[int] = 1
+    tambien: Optional[bool] = False
+
+
+@router.post("/course/{course_uuid}/clase", summary="Crea una clase desde el calendario: día, quién la da y, si se quiere, el tema (equipo).")
+async def api_clase_nueva(
+    request: Request,
+    course_uuid: str,
+    data: ClaseNuevaIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.security.rbac import AccessAction, check_resource_access
+    from src.services.tareas import clase_nueva as CN
+
+    curso = await _curso(request, course_uuid, current_user, db_session)
+    admin = await _equipo(current_user, curso.org_id, db_session)
+    # Lo mismo que pide crear un capítulo a mano: un monitor, solo en su Spreekclub.
+    await check_resource_access(request, db_session, current_user, curso.course_uuid, AccessAction.CREATE)
+    try:
+        return await CN.crear_clases(curso, data.model_dump(), _nombre(current_user), admin, db_session)
+    except T.TareaError as exc:
+        raise _error(exc)
+
+
 @router.put("/semana/{semana_id}", summary="Cambia el tema, el día o la tarea de una semana (equipo).")
 async def api_editar_semana(
     semana_id: int,
@@ -352,6 +381,23 @@ async def api_notas_profe(
 
     s, _admin_ok = await _semana_equipo(semana_id, current_user, db_session)
     return await MP.guardar(s, MP.con_notas(MP.leer(s.material_profe), data.notas), db_session)
+
+
+class DespuesIn(BaseModel):
+    texto: str = ""
+
+
+@router.put("/semana/{semana_id}/profe/despues", summary="Cómo fue la clase: dos líneas del profe después de darla (equipo).")
+async def api_despues_profe(
+    semana_id: int,
+    data: DespuesIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.tareas import material_profe as MP
+
+    s, _ = await _semana_equipo(semana_id, current_user, db_session)
+    return await MP.guardar(s, MP.con_despues(MP.leer(s.material_profe), data.texto, _nombre(current_user)), db_session)
 
 
 @router.put("/semana/{semana_id}/profe/quien", summary="Quién da esa semana (solo administradores).")

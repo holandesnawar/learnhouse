@@ -21,8 +21,9 @@ import Link from 'next/link'
 import { ArrowRight, CalendarDays, Check, Pencil } from 'lucide-react'
 import { PasarLista } from '@components/Pages/Profes/ListaYGrupo'
 import { esDe } from '@/lib/nawar/clasesProfes'
-import { agendaEquipo, cuando, diaLegible, grupoDe, paraPreparar, quienDa, sinRepetirGemelas, type ClaseConGemela, type ClaseEnAgenda, type SemanaEquipo } from '@/lib/nawar/salaProfes'
-import { EditarSemanaProfe, Material, MensajeDelAdmin, Paso } from './PrepararClase'
+import { agendaEquipo, cuando, diaLegible, estadoDeClase, grupoDe, paraPreparar, quienDa, sinRepetirGemelas, type ClaseConGemela, type ClaseEnAgenda, type SemanaEquipo } from '@/lib/nawar/salaProfes'
+import { Material, MensajeDelAdmin, Paso } from './PrepararClase'
+import FichaClase from './FichaClase'
 import GrabacionDeSala from '@components/Pages/Grabaciones/GrabacionDeSala'
 import type { ClaseEquipo } from './useClasesEquipo'
 import { POPPINS } from './estilo'
@@ -89,7 +90,7 @@ function Hero({
               </Link>
             ) : null}
             <button onClick={() => onEditar(s)} className={BOTON}>
-              <Pencil size={14} /> Preparar
+              <Pencil size={14} /> Abrir la ficha
             </button>
             <Link href={ruta(curso)} className={BOTON}>
               Abrir la clase
@@ -105,16 +106,16 @@ function Hero({
           <Paso
             hecho={!!pres}
             titulo={pres ? 'Presentación para los alumnos, subida' : 'Falta la presentación para los alumnos'}
-            detalle={pres ? 'La que miran antes de la clase.' : 'Se sube en la página de la clase, en su semana.'}
+            detalle={pres ? 'La que miran antes de la clase.' : 'Opcional. Se sube en la ficha de la clase.'}
             accion={
               pres ? (
                 <Link href={actividad(pres.activity_uuid)} className={BOTON}>
                   Ver la presentación
                 </Link>
               ) : (
-                <Link href={ruta(curso)} className={BOTON_AZUL}>
+                <button onClick={() => onEditar(s)} className={BOTON}>
                   Subir
-                </Link>
+                </button>
               )
             }
           />
@@ -155,6 +156,7 @@ export default function InicioSala({
   recargar,
   token,
   verCalendario,
+  nombres = [],
 }: {
   clases: ClaseEquipo[]
   semanas: SemanaEquipo[] | null
@@ -166,13 +168,16 @@ export default function InicioSala({
   recargar: () => void
   token: string
   verCalendario: () => void
+  nombres?: string[]
 }) {
-  const [editar, setEditar] = useState<SemanaEquipo | null>(null)
+  const [editarKey, setEditarKey] = useState('')
+  const setEditar = (s: SemanaEquipo | null) => setEditarKey(s ? s.key : '')
   const [lista, setLista] = useState<SemanaEquipo | null>(null)
 
   if (semanas === null) return <div className={`${TARJETA} px-5 py-6 text-[14px] text-[#6B7393]`}>Cargando tus clases…</div>
   if (!clases.length) return <div className={`${TARJETA} px-5 py-6 text-[14.5px] text-[#3B4262]`}>Todavía no hay clases en directo.</div>
 
+  const editar = (editarKey && semanas.find((x) => x.key === editarKey)) || null
   // El profe ve lo suyo; el administrador y el monitor, todo lo que tienen.
   const filtra = !admin && !monitor
   const esMia = (p: string) => esDe(p, miNombre)
@@ -210,7 +215,7 @@ export default function InicioSala({
           <p className="mt-1.5 text-[14px] text-[#5B6382] max-w-[560px]">
             {filtra
               ? 'Cuando te asignen una clase (o una semana de la masterclass), aparecerá aquí con su presentación y todo lo que necesitas para prepararla.'
-              : 'Crea la semana en la página de cada clase para que salga aquí y en el calendario.'}
+              : 'Crea la primera en el calendario: qué clase es, qué día y quién la da.'}
           </p>
           <button onClick={verCalendario} className={`${BOTON} mt-4`}>
             <CalendarDays size={15} /> Ver el calendario de clases
@@ -231,7 +236,8 @@ export default function InicioSala({
           <ul className={`${TARJETA} divide-y divide-[#EEF1F7]`}>
             {despues.map((a) => {
               const s = a.semana
-              const listo = !!s.presentaciones.length
+              const est = estadoDeClase(s, hoy, clases.find((c) => c.uuid === s.courseUuid)?.profe || '')
+              const listo = !est.faltan.length
               return (
                 <li key={s.key}>
                   <button onClick={() => setEditar(s)} className="w-full flex items-center gap-4 px-4 sm:px-5 py-3 text-left hover:bg-[#F8FAFE]">
@@ -250,7 +256,7 @@ export default function InicioSala({
                     </div>
                     <span className={`hidden sm:inline-flex shrink-0 items-center gap-1 text-[12.5px] ${listo ? 'text-[#3B4262]' : 'text-[#8A6A2A]'}`}>
                       {listo ? <Check size={13} strokeWidth={3} className="text-[#16A34A]" /> : null}
-                      {listo ? 'Presentación lista' : 'Sin presentación'}
+                      {listo ? 'Lista' : `Falta ${est.faltan.join(', ')}`}
                     </span>
                   </button>
                 </li>
@@ -295,16 +301,16 @@ export default function InicioSala({
       ) : null}
 
       {editar ? (
-        <EditarSemanaProfe
+        <FichaClase
           semana={editar}
-          profeDeLaClase={clases.find((c) => c.uuid === editar.courseUuid)?.profe || ''}
+          clase={clases.find((c) => c.uuid === editar.courseUuid)}
+          hoy={hoy}
+          ruta={ruta}
           admin={admin}
+          nombres={nombres}
           token={token}
           onCerrar={() => setEditar(null)}
-          onGuardada={() => {
-            setEditar(null)
-            recargar()
-          }}
+          onCambio={recargar}
         />
       ) : null}
       {lista ? (

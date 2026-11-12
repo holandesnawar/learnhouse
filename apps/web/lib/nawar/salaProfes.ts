@@ -40,7 +40,13 @@ export type SemanaEquipo = {
     mensaje?: { texto: string; por: string; at: string; leido_por: string; leido_at: string } | null
     /** La pizarra de clase (10/11/2026). */
     pizarra?: { guardada_at: string; publicada_at: string; paginas: number } | null
+    /** «Cómo fue la clase» (12/11/2026). */
+    despues?: { texto: string; por: string; at: string } | null
   }
+  /** El número del capítulo de la semana (12/11/2026): para subirle la presentación desde la ficha. */
+  chapterId?: number | null
+  /** La grabación de la sala ya está publicada en la semana. */
+  grabacionSala?: boolean
 }
 
 export type Pendiente = {
@@ -95,7 +101,7 @@ export function loQueToca(semanas: SemanaEquipo[], hoy: string, porCorregir: num
     }
     // Pasar lista ya no es una tarea (09/11/2026): la sala cuenta sola quién
     // entra. La lista queda para corregir a mano si hace falta.
-    if (d < 0 && d >= -14 && !s.grabaciones.length) {
+    if (d < 0 && d >= -14 && !s.grabaciones.length && !s.grabacionSala) {
       lista.push({ id: `g-${s.key}`, tipo: 'grabacion', texto: `Subir la grabación de ${tema}`, detalle: de, urgente: d < -2, fecha: s.fecha, semana: s })
     }
   }
@@ -276,7 +282,7 @@ export function paraPreparar<C extends { uuid: string; nombre: string }>(
       const anterior = pasadas.length ? pasadas[pasadas.length - 1] : null
       const pendiente: Pendiente_[] = []
       if (anterior) {
-        if (!anterior.grabaciones.length) pendiente.push('grabacion')
+        if (!anterior.grabaciones.length && !anterior.grabacionSala) pendiente.push('grabacion')
         if (anterior.porCorregir > 0) pendiente.push('corregir')
       }
       return { clase, siguiente, despues, anterior, pendiente }
@@ -431,4 +437,75 @@ export function sinRepetirGemelas(items: ClaseEnAgenda[], semanas: SemanaEquipo[
     } else out.push(it)
   }
   return out
+}
+
+
+// ── La ficha de la clase (12/11/2026) ───────────────────────────────────────
+//
+// Usuario: "primero me gustaría subir eso en eventos para que se vea qué le
+// toca a quién, luego ahí dentro ya meter yo el recurso… cada uno vea bien lo
+// que ha hecho". Cada clase tiene un estado que se calcula con lo que lleva
+// dentro (no se guarda): por preparar, lista, hoy o dada.
+
+export type EstadoClase = { estado: 'por-preparar' | 'lista' | 'hoy' | 'dada'; texto: string; faltan: string[] }
+
+const esPdf = (nombre: string) => /\.pdf$/i.test(nombre || '')
+
+/** ¿Tiene algo que abrir en la pizarra? Un PDF del profe o la presentación de los alumnos. */
+export function tieneDocumento(s: SemanaEquipo): boolean {
+  return (s.material?.archivos || []).some((a) => a.tipo === 'archivo' && esPdf(a.nombre)) || s.presentaciones.length > 0
+}
+
+/**
+ * El estado de una clase: `dada` si su día ya pasó, `hoy` si es hoy; si no,
+ * `lista` cuando tiene quién la da, tema y un documento para la pizarra, y
+ * `por-preparar` (con lo que falta) cuando no.
+ */
+export function estadoDeClase(s: SemanaEquipo, hoy: string, profeDeLaClase = ''): EstadoClase {
+  const faltan: string[] = []
+  if (!quienDa(s, profeDeLaClase)) faltan.push('quién la da')
+  if (!(s.tema || '').trim()) faltan.push('el tema')
+  if (!tieneDocumento(s)) faltan.push('el documento')
+  if (s.fecha && s.fecha < hoy) return { estado: 'dada', texto: 'Dada', faltan: [] }
+  if (s.fecha === hoy) return { estado: 'hoy', texto: 'Hoy', faltan }
+  return faltan.length ? { estado: 'por-preparar', texto: 'Por preparar', faltan } : { estado: 'lista', texto: 'Lista', faltan }
+}
+
+/**
+ * «Quién ha dado qué»: las clases ya dadas de cada persona, por mes (los
+ * `meses` últimos, el de hoy incluido). Quien no tiene nombre puesto sale como
+ * «Sin profe». Lo más reciente primero; dentro, quien más clases dio.
+ */
+export function clasesDadasPorProfe(
+  semanas: SemanaEquipo[],
+  profeDeClase: Record<string, string>,
+  hoy: string,
+  meses = 3
+): { mes: string; titulo: string; total: number; profes: { nombre: string; clases: number; porClase: { curso: string; clases: number }[] }[] }[] {
+  const por: Record<string, Record<string, Record<string, number>>> = {}
+  for (const s of semanas) {
+    if (s.suelta || !s.fecha || s.fecha >= hoy) continue
+    const mes = s.fecha.slice(0, 7)
+    const nombre = quienDa(s, profeDeClase[s.courseUuid] || '') || 'Sin profe'
+    por[mes] = por[mes] || {}
+    por[mes][nombre] = por[mes][nombre] || {}
+    por[mes][nombre][s.curso] = (por[mes][nombre][s.curso] || 0) + 1
+  }
+  return Object.keys(por)
+    .sort()
+    .reverse()
+    .slice(0, meses)
+    .map((mes) => {
+      const [y, m] = mes.split('-').map(Number)
+      const profes = Object.entries(por[mes])
+        .map(([nombre, cursos]) => ({
+          nombre,
+          clases: Object.values(cursos).reduce((a, b) => a + b, 0),
+          porClase: Object.entries(cursos)
+            .map(([curso, clases]) => ({ curso, clases }))
+            .sort((a, b) => b.clases - a.clases || a.curso.localeCompare(b.curso)),
+        }))
+        .sort((a, b) => b.clases - a.clases || a.nombre.localeCompare(b.nombre))
+      return { mes, titulo: `${MESES[m - 1]} ${y}`, total: profes.reduce((a, p) => a + p.clases, 0), profes }
+    })
 }

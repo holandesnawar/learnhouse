@@ -748,6 +748,15 @@ async def semanas_para_alumno(
         for s in semanas:
             f = por_id.get(s["id"])
             s["material_profe"] = MP.para_la_pantalla(MP.leer(getattr(f, "material_profe", "") if f is not None else ""))
+        # El número del capítulo (12/11/2026): la ficha de la clase sube ahí
+        # la presentación de los alumnos sin pasar por la página del curso.
+        uuids = [s["chapter_uuid"] for s in semanas if s.get("chapter_uuid")]
+        ids = {}
+        if uuids:
+            for c in (await db_session.execute(select(Chapter).where(Chapter.chapter_uuid.in_(uuids)))).scalars().all():  # type: ignore[attr-defined]
+                ids[c.chapter_uuid] = c.id
+        for s in semanas:
+            s["chapter_id"] = ids.get(s.get("chapter_uuid") or "")
     for s in semanas:
         for c in s.get("clases") or []:
             c.pop("id", None)
@@ -1331,12 +1340,16 @@ def desde_cuando(marca: str, subida: str) -> str:
     return max(subida or "", m)
 
 
-async def crear_semana(org_id: int, course: Course, datos: dict, autor: str, db_session: AsyncSession) -> dict:
+async def crear_semana(
+    org_id: int, course: Course, datos: dict, autor: str, db_session: AsyncSession, sin_tema: bool = False
+) -> dict:
+    """`sin_tema`: la clase creada desde el calendario de la sala de profes
+    (12/11/2026, `clase_nueva.py`) nace sin tema; se pone después."""
     limpio = _limpiar_semana(datos)
     capitulo = str(datos.get("chapter_uuid") or "").strip()
     if not capitulo:
         raise TareaError("Falta el capítulo de la semana")
-    if not limpio.get("tema"):
+    if not limpio.get("tema") and not sin_tema:
         raise TareaError("Ponle un tema a la semana")
     if not limpio.get("fecha"):
         raise TareaError("Falta el día de la clase")
@@ -1369,10 +1382,21 @@ async def crear_semana(org_id: int, course: Course, datos: dict, autor: str, db_
 
 async def editar_semana(s: TareaSemana, datos: dict, db_session: AsyncSession) -> dict:
     limpio = _limpiar_semana(datos)
-    if "tema" in limpio and not limpio["tema"]:
-        raise TareaError("Ponle un tema a la semana")
+    # El tema puede quedarse vacío (12/11/2026): una clase creada desde el
+    # calendario nace sin él y cambiarle solo el día no puede dar error.
     if "fecha" in limpio and not limpio["fecha"]:
         raise TareaError("Falta el día de la clase")
+    if "tema" in limpio or "fecha" in limpio:
+        # El capítulo se llama como el tema (o «Clase del 17 nov» sin él),
+        # salvo que alguien le haya puesto otro nombre en el editor del curso.
+        from src.services.tareas.clase_nueva import nombre_del_capitulo
+
+        cap = (await db_session.execute(select(Chapter).where(Chapter.chapter_uuid == s.chapter_uuid))).scalars().first()
+        if cap is not None:
+            nuevo = nombre_del_capitulo(cap.name, s.tema, limpio.get("tema", s.tema), limpio.get("fecha", s.fecha))
+            if nuevo:
+                cap.name = nuevo
+                db_session.add(cap)
     for k, v in limpio.items():
         setattr(s, k, v)
     ahora = _ahora()
@@ -1394,8 +1418,21 @@ async def borrar_semana(s: TareaSemana, db_session: AsyncSession) -> dict:
         _borrar(e.correccion_audio)
         await db_session.delete(e)
         n += 1
+    capitulo = s.chapter_uuid
     await db_session.delete(s)
     await db_session.commit()
+    # Una clase creada desde el calendario y quitada sin haberle subido nada
+    # (12/11/2026): su capítulo vacío no se queda de sobra en el curso.
+    cap = (await db_session.execute(select(Chapter).where(Chapter.chapter_uuid == capitulo))).scalars().first()
+    if cap is not None:
+        con_clases = (await db_session.execute(select(ChapterActivity).where(ChapterActivity.chapter_id == cap.id))).scalars().first()
+        if con_clases is None:
+            from src.db.courses.course_chapters import CourseChapter
+
+            for fila in (await db_session.execute(select(CourseChapter).where(CourseChapter.chapter_id == cap.id))).scalars().all():
+                await db_session.delete(fila)
+            await db_session.delete(cap)
+            await db_session.commit()
     return {"ok": True, "entregas_borradas": n}
 
 

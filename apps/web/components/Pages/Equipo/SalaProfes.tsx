@@ -11,7 +11,8 @@
  *   siguientes y lo pendiente de las anteriores.
  * - **Calendario** (`CalendarioEquipo`): todas las clases de las próximas
  *   semanas, con quién da cada una.
- * - **Archivo**: todas las clases dadas, mes a mes, con quién la dio.
+ * - **Clases dadas** (antes «Archivo»): todas las clases dadas, mes a mes,
+ *   con quién la dio; cada una abre su ficha (12/11/2026).
  * - **Manual**: los SOP (no al monitor).
  *
  * El monitor (grupo «Monitores», `services/equipo/monitores.py`) solo tiene el
@@ -56,10 +57,12 @@ export default function SalaProfes() {
   const { clases, semanas, hoy, recargar } = useClasesEquipo(org, token)
 
   const monitor = !!yo.monitor
+  // Los nombres de pila del equipo: para proponer quién da cada clase.
+  const nombres = Array.from(new Set(miembros.map((m) => (m.nombre || '').trim().split(/\s+/)[0]).filter(Boolean)))
   const vistas: { id: Vista; titulo: string }[] = [
     { id: 'clases', titulo: 'Inicio' },
     { id: 'calendario', titulo: 'Calendario' },
-    { id: 'archivo', titulo: 'Archivo' },
+    { id: 'archivo', titulo: 'Clases dadas' },
     ...(monitor ? [] : [{ id: 'manual' as Vista, titulo: 'Manual' }]),
   ]
   const pedida = (params?.get('vista') || 'clases') as Vista
@@ -153,6 +156,7 @@ export default function SalaProfes() {
             recargar={recargar}
             token={token}
             verCalendario={() => irA('calendario')}
+            nombres={nombres}
           />
         ) : vista === 'calendario' ? (
           <CalendarioEquipo
@@ -165,12 +169,13 @@ export default function SalaProfes() {
             monitor={monitor}
             token={token}
             recargar={recargar}
+            nombres={nombres}
           />
         ) : vista === 'archivo' ? (
           semanas === null ? (
             <p className="text-[14px] text-[#6B7393]">Cargando las clases…</p>
           ) : (
-            <ArchivoClases orgslug={orgslug} semanas={semanas} clases={clases} hoy={hoy} token={token} />
+            <ArchivoClases orgslug={orgslug} semanas={semanas} clases={clases} hoy={hoy} token={token} admin={yo.admin} nombres={nombres} recargar={recargar} />
           )
         ) : (
           <ManualEquipo key={docAbrir ?? 'm'} orgId={org?.id} token={token} manual={manual} setManual={setManual} admin={yo.admin} abrir={docAbrir} />

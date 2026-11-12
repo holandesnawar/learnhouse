@@ -1,5 +1,8 @@
 'use client'
 /**
+ * «Clases dadas» (antes «Archivo»; desde el 12/11/2026 cada clase abre su
+ * ficha y el administrador ve arriba «Quién ha dado qué»).
+ *
  * El archivo de las clases (08/11/2026): "ver clases anteriores, presentaciones
  * antiguas, nuevas, mejor orden de cómo pasó todo". Todas las semanas de todas
  * las clases en directo, mes a mes y lo más nuevo arriba, con su presentación,
@@ -12,7 +15,8 @@ import { Search } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { getUriWithOrg } from '@services/config/config'
 import { abrirArchivoProfe } from '@services/tareas/tareas'
-import { diaLegible, porMeses, type SemanaEquipo } from '@/lib/nawar/salaProfes'
+import { clasesDadasPorProfe, diaLegible, porMeses, quienDa, type SemanaEquipo } from '@/lib/nawar/salaProfes'
+import FichaClase from './FichaClase'
 import type { ClaseEquipo } from './useClasesEquipo'
 import { POPPINS } from './estilo'
 
@@ -24,13 +28,25 @@ export default function ArchivoClases({
   clases,
   hoy,
   token = '',
+  admin = false,
+  nombres = [],
+  recargar,
 }: {
   orgslug: string
   semanas: SemanaEquipo[]
   clases: ClaseEquipo[]
   hoy: string
   token?: string
+  admin?: boolean
+  nombres?: string[]
+  recargar?: () => void
 }) {
+  // La ficha abierta, por su clave (sigue al día al recargar).
+  const [ficha, setFicha] = useState('')
+  const abierta = (ficha && semanas.find((x) => x.key === ficha)) || null
+  const profeDe = useMemo(() => Object.fromEntries(clases.map((c) => [c.uuid, c.profe])), [clases])
+  // «Quién ha dado qué» (12/11/2026): solo el administrador, para sus cuentas.
+  const dadas = useMemo(() => (admin ? clasesDadasPorProfe(semanas, profeDe, hoy, 3) : []), [admin, semanas, profeDe, hoy])
   const [clase, setClase] = useState('')
   const [que, setQue] = useState<Que>('todo')
   const [buscar, setBuscar] = useState('')
@@ -45,12 +61,12 @@ export default function ArchivoClases({
       if (clase && s.courseUuid !== clase) return false
       if (cuando === 'pasadas' && s.fecha && s.fecha > hoy) return false
       if (que === 'presentacion' && !s.presentaciones.length) return false
-      if (que === 'grabacion' && !s.grabaciones.length) return false
+      if (que === 'grabacion' && !s.grabaciones.length && !s.grabacionSala) return false
       if (que === 'tarea' && !s.tieneTarea) return false
-      if (q && !`${s.tema} ${s.curso} ${s.profe}`.toLowerCase().includes(q)) return false
+      if (q && !`${s.tema} ${s.curso} ${quienDa(s, profeDe[s.courseUuid] || s.profe)}`.toLowerCase().includes(q)) return false
       return true
     })
-  }, [semanas, clase, que, buscar, cuando, hoy])
+  }, [semanas, clase, que, buscar, cuando, hoy, profeDe])
   const meses = porMeses(lista)
 
   const chip = (on: boolean) =>
@@ -60,6 +76,32 @@ export default function ArchivoClases({
 
   return (
     <div className="space-y-4">
+      {dadas.length ? (
+        <section className="rounded-2xl border border-[#E4E8F2] bg-white px-5 py-4">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#0b2da0]">Quién ha dado qué</p>
+          <div className="mt-2.5 grid gap-x-8 gap-y-4 sm:grid-cols-3">
+            {dadas.map((m) => (
+              <div key={m.mes} className="min-w-0">
+                <p className="text-[13.5px] font-semibold text-[#0B1033] first-letter:uppercase">
+                  {m.titulo} <span className="font-normal text-[#6B7393]">· {m.total} {m.total === 1 ? 'clase' : 'clases'}</span>
+                </p>
+                <ul className="mt-1.5 space-y-1.5">
+                  {m.profes.map((p) => (
+                    <li key={p.nombre} className="text-[13.5px] text-[#0B1033]">
+                      <span className="flex items-baseline justify-between gap-3">
+                        <span className={`font-semibold truncate ${p.nombre === 'Sin profe' ? 'text-[#8A6A2A]' : ''}`}>{p.nombre}</span>
+                        <span className="tabular-nums font-semibold">{p.clases}</span>
+                      </span>
+                      <span className="block text-[12.5px] text-[#6B7393] truncate">{p.porClase.map((c) => `${c.clases} ${c.curso}`).join(' · ')}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-[12.5px] text-[#6B7393]">Cuenta las clases ya dadas, por quién figura en cada una. Si una la dio otra persona, cámbialo en su ficha.</p>
+        </section>
+      ) : null}
       <div className="flex flex-wrap items-center gap-2">
         <label className="relative flex-1 min-w-[200px] max-w-[320px]">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8A91AD]" />
@@ -150,19 +192,30 @@ export default function ArchivoClases({
                           </Link>
                         ))}
                         {!s.suelta && !s.presentaciones.length ? <span className="text-[#8A91AD]">Sin presentación</span> : null}
-                        {!s.suelta && !futura && !s.grabaciones.length ? <span className="text-[#8A91AD]">Sin grabación</span> : null}
+                        {s.grabacionSala && !s.grabaciones.length ? <span className="text-[#3B4262]">Grabación publicada</span> : null}
+                        {!s.suelta && !futura && !s.grabaciones.length && !s.grabacionSala ? <span className="text-[#8A91AD]">Sin grabación</span> : null}
                         {s.tieneTarea ? <span className="text-[#3B4262]">Tarea</span> : null}
                         {s.lista?.pasada ? <span className="text-[#3B4262]">Vinieron {s.lista.vinieron}</span> : null}
-                        {s.profe ? <span className="text-[#6B7393]">con {s.profe}</span> : null}
+                        {quienDa(s, profeDe[s.courseUuid] || s.profe) ? <span className="text-[#6B7393]">con {quienDa(s, profeDe[s.courseUuid] || s.profe)}</span> : null}
                       </div>
+                      {s.material?.despues?.texto ? <p className="mt-1 text-[13px] text-[#3B4262] line-clamp-2">{s.material.despues.texto}</p> : null}
                       {s.enunciado ? <p className="mt-1 text-[13px] text-[#5B6382] line-clamp-2">{s.enunciado}</p> : null}
                     </div>
-                    <Link
-                      href={ruta(`/course/${s.courseUuid.replace(/^course_/, '')}`)}
-                      className="hidden sm:inline-flex self-center shrink-0 h-8 items-center px-3 rounded-lg border border-[#DDE3EF] text-[13px] font-semibold text-[#3B4262] hover:border-[#0b2da0]"
-                    >
-                      Abrir la clase
-                    </Link>
+                    {s.suelta ? (
+                      <Link
+                        href={ruta(`/course/${s.courseUuid.replace(/^course_/, '')}`)}
+                        className="hidden sm:inline-flex self-center shrink-0 h-8 items-center px-3 rounded-lg border border-[#DDE3EF] text-[13px] font-semibold text-[#3B4262] hover:border-[#0b2da0]"
+                      >
+                        Abrir la clase
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => setFicha(s.key)}
+                        className="self-center shrink-0 h-8 inline-flex items-center px-3 rounded-lg border border-[#DDE3EF] text-[13px] font-semibold text-[#0b2da0] hover:border-[#0b2da0]"
+                      >
+                        Ver la ficha
+                      </button>
+                    )}
                   </div>
                 )
               })}
@@ -170,6 +223,19 @@ export default function ArchivoClases({
           </section>
         ))
       )}
+      {abierta ? (
+        <FichaClase
+          semana={abierta}
+          clase={clases.find((c) => c.uuid === abierta.courseUuid)}
+          hoy={hoy}
+          ruta={ruta}
+          admin={admin}
+          nombres={nombres}
+          token={token}
+          onCerrar={() => setFicha('')}
+          onCambio={() => recargar?.()}
+        />
+      ) : null}
     </div>
   )
 }
