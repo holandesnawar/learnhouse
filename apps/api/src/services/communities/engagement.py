@@ -741,6 +741,16 @@ async def _tareas_items(user_id: int, org_ids: List[int], db_session: AsyncSessi
     return out
 
 
+async def _lectura_items(org_ids: List[int], db_session: AsyncSession) -> List[dict]:
+    """La lectura de la semana (Recursos), la semana en que sale (12/11/2026)."""
+    from src.services.lecturas.lecturas import avisos
+
+    out: List[dict] = []
+    for org_id in org_ids:
+        out.extend(await avisos(org_id, db_session))
+    return out
+
+
 async def list_notifications(
     current_user: PublicUser | AnonymousUser,
     db_session: AsyncSession,
@@ -780,6 +790,7 @@ async def list_notifications(
         _module_items(user_id, org_ids, db_session),
         _decidir_items(user_id, org_ids, db_session),
         _tareas_items(user_id, org_ids, db_session),
+        _lectura_items(org_ids, db_session),
     ):
         try:
             raw.extend(await source)

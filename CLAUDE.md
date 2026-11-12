@@ -5622,6 +5622,15 @@ también como lectura de esta semana". Los ejercicios se hacen en la comunidad
   (`/api/v1/lecturas/`). **Sin tabla**: org_config `lecturas` (lista). La hoja
   va al almacén de adjuntos (como Recursos). Tests `test_lecturas.py` y
   `lib/nawar/__tests__/lecturas.test.ts`.
+- **Aviso en la campana y filtro «Lecturas»** (12/11, tarde): la semana en
+  que sale una lectura, a todos les sale en la campana «Nueva lectura de la
+  semana: título» (`aviso_de` en `lecturas.py`, puro con test; kind
+  `lectura`, `_lectura_items` en `engagement.py`; como mucho 7 días; la fecha
+  es el lunes o, si se creó más tarde, cuándo se creó). Lleva a
+  `/recursos?ver=lecturas`. En Recursos, la fila de filtros de la portada
+  tiene «Lecturas» entre «Todo» y las carpetas: enseña solo la lectura y su
+  archivo; una carpeta elegida esconde la lectura. `#lectura` (la tarjeta del
+  Inicio) también abre ese filtro. Sin correo.
 - ⚠️ El texto de Nieuwsbegrip no se sube tal cual (licencia de colegio): la
   lectura la escribe la escuela con su tema de base.
 

@@ -56,3 +56,26 @@ def test_la_de_esta_semana_el_archivo_y_las_que_vienen():
     # El lunes de la semana siguiente, pasa a ser la actual.
     assert L.partir(lecturas, date(2026, 11, 16), equipo=False)["actual"]["id"] == "d"
     assert L.partir([], hoy, equipo=False) == {"actual": None, "archivo": [], "proximas": []}
+
+
+def test_el_aviso_de_la_campana_sale_la_semana_de_la_lectura():
+    from datetime import datetime
+    from src.services.lecturas.lecturas import NL, aviso_de
+
+    lecturas = [
+        {"id": "a", "semana": "2026-11-09", "titulo": "Fietsen in Nederland", "titulo_es": "La bici", "creada": "2026-11-05T10:00:00+01:00"},
+        {"id": "b", "semana": "2026-11-16", "titulo": "De markt", "creada": "2026-11-05T10:00:00+01:00"},
+    ]
+    # El jueves de su semana: avisa de la suya, con fecha del lunes.
+    aviso = aviso_de(lecturas, datetime(2026, 11, 12, 12, 0, tzinfo=NL))
+    assert aviso["id"] == "lectura:a" and aviso["kind"] == "lectura"
+    assert "Fietsen in Nederland" in aviso["title"]
+    assert aviso["date"].startswith("2026-11-08T23:00:00")
+    # El lunes siguiente ya es la otra: aviso nuevo.
+    assert aviso_de(lecturas, datetime(2026, 11, 16, 8, 0, tzinfo=NL))["id"] == "lectura:b"
+    # Dos semanas después de la última, ya no avisa.
+    assert aviso_de(lecturas, datetime(2026, 11, 24, 8, 0, tzinfo=NL)) is None
+    # Creada el miércoles de su propia semana: la fecha es la de crearla.
+    tarde = [{"id": "c", "semana": "2026-11-09", "titulo": "X", "creada": "2026-11-11T15:00:00+01:00"}]
+    assert aviso_de(tarde, datetime(2026, 11, 12, 12, 0, tzinfo=NL))["date"].startswith("2026-11-11T14:00:00")
+    assert aviso_de([], datetime(2026, 11, 12, 12, 0, tzinfo=NL)) is None

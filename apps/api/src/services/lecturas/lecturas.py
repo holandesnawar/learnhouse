@@ -173,6 +173,45 @@ async def para_mi(org_id: int, equipo: bool, db_session: AsyncSession) -> dict:
     return partir(await todas(org_id, db_session), hoy_nl(), equipo)
 
 
+def aviso_de(lecturas: list[dict], ahora: datetime) -> dict | None:
+    """El aviso de la campana: la lectura de ESTA semana, mientras lo sea y
+    como mucho 7 días. La fecha es el lunes en que salió (00:00 de Países
+    Bajos) o, si se creó más tarde, cuándo se creó: así enciende el punto de
+    la campana en el momento en que de verdad aparece. Pura."""
+    ahora = ahora.astimezone(NL)
+    actual = partir(lecturas, ahora.date(), False)["actual"]
+    if not actual:
+        return None
+    try:
+        lunes = datetime.fromisoformat(actual["semana"]).replace(tzinfo=NL)
+    except ValueError:
+        return None
+    salio = lunes
+    try:
+        creada = datetime.fromisoformat(actual.get("creada") or "")
+        if creada.tzinfo and creada > salio:
+            salio = creada
+    except ValueError:
+        pass
+    if (ahora - lunes).days >= 7:
+        return None
+    titulo = actual.get("titulo") or ""
+    es = actual.get("titulo_es") or ""
+    return {
+        "id": f"lectura:{actual.get('id')}",
+        "kind": "lectura",
+        "title": f"Nueva lectura de la semana: {titulo}",
+        "excerpt": (es + ". " if es else "") + "Está en Recursos, con su audio y sus palabras.",
+        "url": "/recursos?ver=lecturas",
+        "date": salio.astimezone(ZoneInfo("UTC")).isoformat(),
+    }
+
+
+async def avisos(org_id: int, db_session: AsyncSession) -> list[dict]:
+    aviso = aviso_de(await todas(org_id, db_session), datetime.now(NL))
+    return [aviso] if aviso else []
+
+
 async def crear(org_id: int, datos: dict, autor: str, db_session: AsyncSession) -> dict:
     lecturas = await todas(org_id, db_session)
     nueva = limpiar(datos)
