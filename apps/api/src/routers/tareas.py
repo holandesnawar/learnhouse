@@ -106,7 +106,8 @@ async def api_mira_tambien(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     curso = await _curso(request, course_uuid, current_user, db_session)
-    return await T.mira_tambien(curso, db_session)
+    equipo, _ = await _roles(current_user, curso.org_id, db_session)
+    return await T.mira_tambien(curso, db_session, equipo=equipo)
 
 
 @router.get("/course/{course_uuid}/mira-tambien/{activity_uuid}/video", summary="El vídeo subido de una grabación de la otra clase.")

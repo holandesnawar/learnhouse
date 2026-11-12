@@ -48,9 +48,12 @@ export default function ReproductorRecortado({
   clave,
   autoPlay = true,
   onMitad,
+  otroGrupo = false,
 }: {
   courseUuid: string
   partes: Parte[]
+  /** La grabación es de la clase del otro grupo: se pide con la clase propia. */
+  otroGrupo?: boolean
   /** Para recordar por dónde iba (p. ej. `semana-12`). Sin ella, no recuerda. */
   clave?: string
   autoPlay?: boolean
@@ -239,7 +242,7 @@ export default function ReproductorRecortado({
         <video
           ref={video}
           key={`${parte.id}-${intento}`}
-          src={urlVideoSala(courseUuid, parte.id, intento)}
+          src={urlVideoSala(courseUuid, parte.id, intento, otroGrupo)}
           playsInline
           preload="metadata"
           className="absolute inset-0 h-full w-full"

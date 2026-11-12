@@ -1831,58 +1831,137 @@ async def hermanas_para_el_equipo(course: Course, db_session: AsyncSession) -> l
     return salida
 
 
-async def _grabaciones_de_hermana(h: Course, semanas: list[dict], hoy: str, db_session: AsyncSession) -> list[dict]:
+async def _grabaciones_de_hermana(
+    h: Course, semanas: list[dict], hoy: str, db_session: AsyncSession, filas: Optional[Iterable[Any]] = None
+) -> list[dict]:
     """Las grabaciones ya dadas de una clase hermana, la más nueva primero: las
     de sus semanas y, desde el 10/11/2026, también las de los capítulos de los
     meses de antes (con el día que dice su nombre). Antes solo contaban las de
-    las semanas, y con las grabaciones aún en los meses no salía nada."""
+    las semanas, y con las grabaciones aún en los meses no salía nada.
+
+    Desde el 12/11/2026 cuenta también **lo que grabó la sala de la escuela**
+    y se publicó en la semana (`tarea_semana.grabacion_sala`). Usuario: "sigo
+    sin ver lo de las clases grabadas del otro grupo": desde que las clases se
+    dan en la sala (sin Zoom), la grabación ya no es una clase de vídeo del
+    curso sino lo publicado desde Grabaciones, y esto solo miraba las clases
+    de vídeo. La de la sala va PRIMERA dentro de su semana: es la que se elige
+    si la semana tiene las dos."""
+    from src.services.salas import estudio_grabaciones as EG
+
+    de_sala = {getattr(f, "id", None): getattr(f, "grabacion_sala", "") for f in (filas or [])}
     dadas = [s for s in semanas if s["fecha"] and s["fecha"] <= hoy]
     clases = await _clases([s["chapter_uuid"] for s in dadas], db_session)
     salida = []
     for s in dadas:
+        sala = EG.para_la_semana(de_sala.get(s["id"]))
+        if sala:
+            salida.append(
+                {
+                    "clave": f"sala-{s['id']}",
+                    "tema": s["tema"],
+                    "fecha": s["fecha"],
+                    "activity_uuid": "",
+                    "nombre": sala["titulo"] or s["tema"],
+                    "sala": {"partes": sala["partes"], "segundos": sala["segundos"], "titulo": sala["titulo"]},
+                }
+            )
         for c in clases.get(s["chapter_uuid"], []):
             if c["tipo"] == "grabacion":
-                salida.append({"tema": s["tema"], "fecha": s["fecha"], "activity_uuid": c["activity_uuid"], "nombre": c["nombre"]})
-    vistas = {g["activity_uuid"] for g in salida}
+                salida.append({"clave": c["activity_uuid"], "tema": s["tema"], "fecha": s["fecha"], "activity_uuid": c["activity_uuid"], "nombre": c["nombre"]})
+    vistas = {g["activity_uuid"] for g in salida if g["activity_uuid"]}
     for c in await _sueltas(h, {s["chapter_uuid"] for s in semanas}, db_session):
         f = str(c.get("fecha") or "")
         if c.get("tipo") != "grabacion" or not f or f > hoy or c["activity_uuid"] in vistas:
             continue
-        salida.append({"tema": c.get("tema") or c["nombre"], "fecha": f, "activity_uuid": c["activity_uuid"], "nombre": c["nombre"]})
+        salida.append({"clave": c["activity_uuid"], "tema": c.get("tema") or c["nombre"], "fecha": f, "activity_uuid": c["activity_uuid"], "nombre": c["nombre"]})
     salida.sort(key=lambda g: g["fecha"], reverse=True)
     return salida
 
 
-async def mira_tambien(course: Course, db_session: AsyncSession, limite: int = 8) -> dict:
+def sin_grabacion(semanas: list[dict], grabaciones: list[dict], hoy: str, dias: int = 21) -> list[dict]:
+    """Las semanas ya dadas de una clase (de las últimas 3 semanas) que aún no
+    tienen ninguna grabación que enseñar. Para decirle al EQUIPO por qué en la
+    otra clase no sale «la clase del otro grupo». Pura."""
+    def _dia(f: Any) -> Optional[date]:
+        try:
+            return date.fromisoformat(str(f or "")[:10])
+        except (TypeError, ValueError):
+            return None
+
+    hoy_d = _dia(hoy)
+    if hoy_d is None:
+        return []
+    con = [d for d in (_dia(g.get("fecha")) for g in grabaciones) if d]
+    salida = []
+    for s in semanas:
+        d = _dia(s.get("fecha"))
+        if d is None or d > hoy_d or (hoy_d - d).days > dias:
+            continue
+        # Una grabación de los meses de antes lleva su propio día: vale si cae a 3 días o menos.
+        if any(abs((d - c).days) <= 3 for c in con):
+            continue
+        salida.append({"semana_id": s["id"], "tema": s["tema"], "fecha": s["fecha"]})
+    return salida
+
+
+async def mira_tambien(course: Course, db_session: AsyncSession, limite: int = 8, equipo: bool = False) -> dict:
     """Las grabaciones de las clases hermanas, ya dadas, la más nueva primero:
-    tema, día, profe (el del recuadro de esa clase) y cómo se ven."""
+    tema, día, profe (el del recuadro de esa clase) y cómo se ven. Al equipo,
+    además, las semanas del otro grupo que aún no tienen grabación publicada
+    (`pendientes`), para que se entienda por qué no sale."""
     from src.services.panel.tandas import hoy_nl
+    from src.services.salas.salas import nombre_con_etiqueta
 
     config = await _config(course.org_id, db_session)
     if not comparte(config, course.course_uuid):
-        return {"clases": []}
+        return {"clases": [], "apagado": True} if equipo else {"clases": []}
     hoy = hoy_nl()
     salida = []
     for h in await hermanas(course, db_session, config):
-        semanas = [_semana_dict(s) for s in await semanas_de(h.org_id, h.course_uuid, db_session)]
-        lista = await _grabaciones_de_hermana(h, semanas, hoy, db_session)
+        filas = await semanas_de(h.org_id, h.course_uuid, db_session)
+        semanas = [_semana_dict(s) for s in filas]
+        lista = await _grabaciones_de_hermana(h, semanas, hoy, db_session, filas)
         contenido = {}
-        if lista:
-            uuids = [g["activity_uuid"] for g in lista]
+        uuids = [g["activity_uuid"] for g in lista if g["activity_uuid"]]
+        if uuids:
             for a in (await db_session.execute(select(Activity).where(Activity.activity_uuid.in_(uuids)))).scalars().all():  # type: ignore[attr-defined]
                 contenido[a.activity_uuid] = video_de(a.activity_type, a.activity_sub_type, a.content)
-        grabaciones = [{**g, "video": contenido[g["activity_uuid"]]} for g in lista if contenido.get(g["activity_uuid"])]
+        grabaciones = []
+        for g in lista:
+            if g.get("sala"):
+                grabaciones.append({**g, "video": {"tipo": "sala", "url": ""}})
+            elif contenido.get(g["activity_uuid"]):
+                grabaciones.append({**g, "video": contenido[g["activity_uuid"]]})
         banner = _ajustes_sala(config, h.course_uuid).get("banner") or {}
-        if grabaciones:
-            salida.append(
-                {
-                    "course_uuid": uuid_curso(h.course_uuid),
-                    "dia": dia_habitual(s["fecha"] for s in semanas),
-                    "profe": str(banner.get("teacher") or "").strip() if isinstance(banner, dict) else "",
-                    "grabaciones": grabaciones[:limite],
-                }
-            )
+        pendientes = sin_grabacion(semanas, grabaciones, hoy) if equipo else []
+        if grabaciones or pendientes:
+            clase = {
+                "course_uuid": uuid_curso(h.course_uuid),
+                "dia": dia_habitual(s["fecha"] for s in semanas),
+                "profe": str(banner.get("teacher") or "").strip() if isinstance(banner, dict) else "",
+                "grabaciones": grabaciones[:limite],
+            }
+            if equipo:
+                clase["nombre"] = nombre_con_etiqueta(config, h.course_uuid, h.name)
+                clase["pendientes"] = pendientes
+            salida.append(clase)
     return {"clases": salida}
+
+
+async def hermana_con_grabacion(course: Course, grabacion_id: str, db_session: AsyncSession) -> Optional[Course]:
+    """La clase hermana en cuya semana (ya dada) está publicada esa grabación
+    de la sala, si esta clase enseña «la clase del otro grupo». None si no."""
+    from src.services.panel.tandas import hoy_nl
+    from src.services.salas import estudio_grabaciones as EG
+
+    config = await _config(course.org_id, db_session)
+    if not comparte(config, course.course_uuid):
+        return None
+    hoy = hoy_nl()
+    for h in await hermanas(course, db_session, config):
+        if EG.publicada_para_alumnos(await semanas_de(h.org_id, h.course_uuid, db_session), grabacion_id, hoy):
+            return h
+    return None
 
 
 async def archivo_de_hermana(course: Course, activity_uuid: str, db_session: AsyncSession) -> Optional[Path]:

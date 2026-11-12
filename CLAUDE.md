@@ -5083,6 +5083,33 @@ son los de «Mira también» (`/tareas/course/{uuid}/mira-tambien`), así que se
 apaga con el mismo ajuste de la clase y del otro grupo no se abre nada más. Sin
 grabación del otro grupo esa semana, no sale nada. El equipo no la ve.
 
+### ⚠️ La grabación del otro grupo no salía: faltaban las de la sala (12/11/2026)
+Usuario: "sigo sin ver lo de las clases grabadas del otro grupo en la página de
+clase semanal rood y blauw, tiene que ser mejor". **Causa**: desde que las
+clases se dan en la sala de la escuela (sin Zoom), la grabación ya no es una
+clase de vídeo del curso sino lo publicado desde Grabaciones
+(`tarea_semana.grabacion_sala`), y «la clase del otro grupo» solo miraba las
+clases de vídeo (`_grabaciones_de_hermana`).
+- Ahora cuenta también la grabación de la sala publicada en la semana de la
+  clase hermana (va primera si la semana tiene las dos). Llega con
+  `video.tipo = "sala"` y sus `partes` (el recorte), y se ve con el mismo
+  reproductor que la propia (`ReproductorRecortado` con `otroGrupo`).
+- El vídeo se pide con la clase PROPIA: `/grabaciones/video/{id}?course=<la
+  mía>&otro=1` → `T.hermana_con_grabacion`: vale solo si está publicada en una
+  semana ya dada de la hermana y esta clase no tiene apagado «Mira también».
+- En la página de la clase es una fila más de la semana, **«La misma clase,
+  con el otro grupo»** (día, profe y duración, botón «Ver la grabación»), y en
+  «Clases anteriores» la línea dice «· Grabación del otro grupo» sin abrirla.
+- **Al equipo se le dice por qué no sale**: «La clase del otro grupo (…) aún no
+  tiene la grabación publicada → Publicarla en Grabaciones» (`sin_grabacion`,
+  `pendientes` en `mira_tambien(equipo=True)`), o que está apagada en los
+  ajustes. ⚠️ **Una grabación de la sala no se ve hasta que alguien pulsa
+  «Publicar»** en Grabaciones (o en la ficha de la clase): si el otro grupo no
+  la ha publicado, no hay nada que enseñar.
+- Ver la del otro grupo NO cuenta como «vio la grabación» en Seguimiento.
+- Tests en `test_clases_por_semanas.py`. Probado en local con la grabación de
+  ejemplo (alumna de rood viendo la de blauw).
+
 ### Sin emojis de Apple en los canales; iconos blancos en la barra azul (09/11/2026)
 "Ahora está como mix, dejaría solo los nuestros." El emoji del nombre de un
 canal ya no se pinta: `components/Objects/Communities/IconoCanal.tsx` elige un

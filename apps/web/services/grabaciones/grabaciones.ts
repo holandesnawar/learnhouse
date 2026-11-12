@@ -86,8 +86,8 @@ export const getEstudio = (courseUuid: string, token: string) => pedir<Estudio>(
  * redirige a un enlace fresco de Daily). `intento` > 0 pide uno nuevo: el
  * reproductor lo usa cuando el que tenía dejó de servir.
  */
-export const urlVideoSala = (courseUuid: string, grabacionId: string, intento = 0) =>
-  `${base()}/video/${encodeURIComponent(grabacionId)}?course=${sin(courseUuid)}${intento ? `&fresco=${intento}` : ''}`
+export const urlVideoSala = (courseUuid: string, grabacionId: string, intento = 0, otroGrupo = false) =>
+  `${base()}/video/${encodeURIComponent(grabacionId)}?course=${sin(courseUuid)}${intento ? `&fresco=${intento}` : ''}${otroGrupo ? '&otro=1' : ''}`
 
 export const publicarGrabacion = (
   semanaId: number,

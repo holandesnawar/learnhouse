@@ -13,10 +13,12 @@
  * clase en los ajustes de la sala.
  */
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { PlayCircle, X } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
+import EnElCuerpo from '@components/Objects/EnElCuerpo'
+import ReproductorRecortado from '@components/Pages/Grabaciones/ReproductorRecortado'
 import { diaCorto, getMiraTambien, urlVideoHermana, type MiraTambien as Datos, type VideoGrabacion } from '@services/tareas/tareas'
 
 const A_LA_VISTA = 3
@@ -61,8 +63,45 @@ export function deLaMismaSemana(clases: ClaseHermana[] | undefined, fecha: strin
   return out
 }
 
-export function Reproductor({ courseUuid, g, onClose }: { courseUuid: string; g: Grabacion; onClose: () => void }) {
+export const claveDe = (g: Grabacion) => g.clave || g.activity_uuid
+
+/** La semana del otro grupo que aún no tiene grabación (solo llega al equipo). */
+export function pendienteDeLaSemana(clases: ClaseHermana[] | undefined, fecha: string) {
+  const f = aDia(fecha)
+  if (!clases || Number.isNaN(f)) return null
+  for (const clase of clases) {
+    const p = (clase.pendientes || []).find((x) => Math.abs(aDia(x.fecha) - f) <= 6 * DIA_MS)
+    if (p) return { clase, p }
+  }
+  return null
+}
+
+function ReproductorDentro({ courseUuid, g, onClose }: { courseUuid: string; g: Grabacion; onClose: () => void }) {
   const v: VideoGrabacion = g.video
+  useEffect(() => {
+    const tecla = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', tecla)
+    return () => window.removeEventListener('keydown', tecla)
+  }, [onClose])
+  if (v.tipo === 'sala' && g.sala) {
+    // Lo que grabó la sala de la escuela con el otro grupo (12/11/2026): el
+    // mismo reproductor que la grabación propia, con su recorte.
+    return (
+      <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/75 p-2 sm:p-6" onClick={onClose}>
+        <div className="w-full max-w-4xl" onClick={(e) => e.stopPropagation()}>
+          <div className="mb-2 flex items-center justify-between gap-3 text-white">
+            <p className="truncate text-[14px] font-semibold">
+              {g.tema} <span className="font-normal text-white/70">· la clase del otro grupo · {diaCorto(g.fecha)}</span>
+            </p>
+            <button onClick={onClose} className="rounded-lg p-1.5 hover:bg-white/10" aria-label="Cerrar">
+              <X size={20} />
+            </button>
+          </div>
+          <ReproductorRecortado courseUuid={courseUuid} partes={g.sala.partes} clave={`otro-${claveDe(g)}`} otroGrupo />
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-3 sm:p-6" onClick={onClose}>
       <div className="w-full max-w-4xl" onClick={(e) => e.stopPropagation()}>
@@ -98,6 +137,15 @@ export function Reproductor({ courseUuid, g, onClose }: { courseUuid: string; g:
   )
 }
 
+/** A toda la ventana, por encima de la barra de la escuela (ver `EnElCuerpo`). */
+export function Reproductor(props: { courseUuid: string; g: Grabacion; onClose: () => void }) {
+  return (
+    <EnElCuerpo>
+      <ReproductorDentro {...props} />
+    </EnElCuerpo>
+  )
+}
+
 export default function MiraTambien({ courseUuid }: { courseUuid: string }) {
   const [todas, setTodas] = useState(false)
   const [viendo, setViendo] = useState<{ curso: string; g: Grabacion } | null>(null)
@@ -119,7 +167,7 @@ export default function MiraTambien({ courseUuid }: { courseUuid: string }) {
             <div className="mt-2.5 space-y-0.5">
               {lista.map((g) => (
                 <button
-                  key={g.activity_uuid}
+                  key={claveDe(g)}
                   onClick={() => setViendo({ curso: c.course_uuid, g })}
                   className="w-full flex items-center gap-2.5 rounded-lg px-2 py-1.5 -mx-2 text-left hover:bg-[#F4F7FD]"
                 >

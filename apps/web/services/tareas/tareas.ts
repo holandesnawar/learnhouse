@@ -40,7 +40,8 @@ export interface Hermana {
 }
 
 export interface VideoGrabacion {
-  tipo: 'bunny' | 'youtube' | 'vimeo' | 'archivo'
+  /** `sala`: lo que grabó la sala de la escuela (va en `sala`, con su recorte). */
+  tipo: 'bunny' | 'youtube' | 'vimeo' | 'archivo' | 'sala'
   url: string
 }
 
@@ -49,8 +50,21 @@ export interface MiraTambien {
     course_uuid: string
     dia: string
     profe: string
-    grabaciones: { tema: string; fecha: string; activity_uuid: string; nombre: string; video: VideoGrabacion }[]
+    grabaciones: {
+      clave?: string
+      tema: string
+      fecha: string
+      activity_uuid: string
+      nombre: string
+      video: VideoGrabacion
+      sala?: { partes: GrabacionSala['partes']; segundos: number; titulo: string }
+    }[]
+    /** Solo al equipo: el nombre con su etiqueta y las semanas ya dadas sin grabación. */
+    nombre?: string
+    pendientes?: { semana_id: number; tema: string; fecha: string }[]
   }[]
+  /** Solo al equipo: esta clase tiene apagado «la clase del otro grupo». */
+  apagado?: boolean
 }
 
 export interface Semana {

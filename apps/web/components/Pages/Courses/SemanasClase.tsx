@@ -52,7 +52,8 @@ import {
 import { CasillasCampana, EditarSemana, NuevaSemana } from './SemanaModales'
 import { AvisarClase } from './AvisarClase'
 import { tipoDeClase } from '@/lib/nawar/visitaGuiada'
-import { deLaMismaSemana, Reproductor, useMiraTambien, type Grabacion } from './MiraTambien'
+import { claveDe, deLaMismaSemana, pendienteDeLaSemana, Reproductor, useMiraTambien, type Grabacion } from './MiraTambien'
+import { duracionCorta } from '@/lib/nawar/recorte'
 import GrabacionDeSala from '@components/Pages/Grabaciones/GrabacionDeSala'
 import FilaGrabacionAlumno from '@components/Pages/Grabaciones/FilaGrabacionAlumno'
 
@@ -473,34 +474,64 @@ export default function SemanasClase({
   const rutaOrg = (p: string) => getUriWithOrg(orgslug, p)
   // 09/11/2026: «que ambos grupos puedan ver la grabación del otro grupo…
   // al final de la semana un botón, algo más profesional».
-  const otroGrupo = (semana: Semana) => {
+  const otroGrupo = (semana: Semana, enLista = false) => {
     // También al equipo (10/11/2026: «no lo veo»): ve lo mismo que el alumno.
     if (!semana.fecha || semana.fecha > hoy) return null
+    const margen = enLista ? 'px-4' : 'px-5'
     const encontradas = deLaMismaSemana(hermanas?.clases, semana.fecha)
-    if (!encontradas.length) return null
-    return encontradas.map(({ clase, g }) => {
-      const quien = [clase.dia ? `El ${clase.dia}` : 'En la otra clase', clase.profe ? `con ${clase.profe}` : '']
-        .filter(Boolean)
-        .join(', ')
+    if (!encontradas.length) {
+      // Al equipo se le dice POR QUÉ no sale (12/11/2026: «sigo sin verlo»).
+      if (!equipo) return null
+      if (hermanas?.apagado) {
+        return (
+          <p className={`border-t border-[#EEF1F7] ${margen} py-3 text-[12.5px] text-[#8A6A2A]`}>
+            La clase del otro grupo no se enseña aquí: está apagada en los ajustes de esta clase («Mira también»).
+          </p>
+        )
+      }
+      const falta = pendienteDeLaSemana(hermanas?.clases, semana.fecha)
+      if (!falta) return null
       return (
-        <div
-          key={`h-${semana.id}-${g.activity_uuid}`}
-          className="border-t border-[#EEF1F7] px-5 sm:px-6 py-3.5 flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-4"
-        >
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8A91AD]">La clase del otro grupo</p>
-            <p className="mt-0.5 text-[13.5px] text-[#3F4A61] leading-snug">
-              {quien}. El mismo tema, por si quieres repasarlo.
-            </p>
-          </div>
-          <button
-            onClick={() => setViendo(g)}
-            className="shrink-0 self-start sm:self-auto inline-flex items-center gap-2 h-9 px-3.5 rounded-lg border border-[#D5DEEE] bg-white text-[13.5px] font-semibold text-[#0b2da0] hover:border-[#0b2da0] hover:bg-[#F6F8FD]"
-          >
-            <PlayCircle size={16} strokeWidth={2} />
-            Ver la grabación
-          </button>
+        <div className={`border-t border-[#EEF1F7] ${margen} py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4`}>
+          <p className="flex-1 min-w-0 text-[12.5px] text-[#8A6A2A] leading-snug">
+            La clase del otro grupo ({falta.clase.nombre || 'la otra clase'}, {diaCorto(falta.p.fecha)}) aún no tiene la grabación publicada: por eso
+            aquí no sale.
+          </p>
+          <Link href={rutaOrg('/grabaciones')} className="shrink-0 self-start sm:self-auto text-[13px] font-semibold text-[#0b2da0] hover:underline">
+            Publicarla en Grabaciones
+          </Link>
         </div>
+      )
+    }
+    return encontradas.map(({ clase, g }) => {
+      const detalle = [
+        diaCorto(g.fecha),
+        clase.profe ? `con ${clase.profe}` : '',
+        g.sala?.segundos ? duracionCorta(g.sala.segundos) : '',
+      ]
+        .filter(Boolean)
+        .join(' · ')
+      return (
+        <button
+          type="button"
+          key={`h-${semana.id}-${claveDe(g)}`}
+          onClick={() => setViendo(g)}
+          className={`group w-full border-t border-[#EEF1F7] ${margen} py-3 flex items-center gap-3.5 text-left hover:bg-[#F7F9FD] transition-colors`}
+        >
+          <span className="w-[22px] flex items-center justify-center shrink-0">
+            <Users size={20} strokeWidth={1.7} className="text-[#0b2da0]" />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className="block text-[14.5px] font-medium text-[#0B1033]">La misma clase, con el otro grupo</span>
+            <span className="block text-[12.5px] text-[#8A91AD] first-letter:uppercase">{detalle}</span>
+          </span>
+          <span className="shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-[#D5DEEE] bg-white text-[13px] font-semibold text-[#0b2da0] group-hover:border-[#0b2da0]">
+            <PlayCircle size={15} strokeWidth={2} />
+            <span>
+              Ver<span className="hidden sm:inline"> la grabación</span>
+            </span>
+          </span>
+        </button>
       )
     })
   }
@@ -581,7 +612,9 @@ export default function SemanasClase({
           <ChipFecha fecha={s.fecha} />
           <div className="min-w-0 flex-1">
             <p className="text-[14.5px] font-semibold text-gray-900 truncate">{s.tema}</p>
-            <p className="text-[12.5px] text-[#6B7280] truncate">{queTuvo(s) || 'Clase'}</p>
+            <p className="text-[12.5px] text-[#6B7280] truncate">
+              {[queTuvo(s) || 'Clase', deLaMismaSemana(hermanas?.clases, s.fecha).length ? 'Grabación del otro grupo' : ''].filter(Boolean).join(' · ')}
+            </p>
           </div>
           {/* Un solo estado por línea. Lo de antes de que entrara no cuenta
               como «Sin entregar» (10/11/2026): sale «Ver», como una grabación. */}
@@ -607,7 +640,7 @@ export default function SemanasClase({
         {abierta ? (
           <div className="mx-4 mb-3 rounded-xl border border-[#EEF2F9] overflow-hidden">
             <ContenidoSemana semana={s} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={equipo} />
-            {otroGrupo(s)}
+            {otroGrupo(s, true)}
             {equipo ? <CabeceraAdmin semana={s} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(s)} onCambio={recargar} /> : null}
           </div>
         ) : null}

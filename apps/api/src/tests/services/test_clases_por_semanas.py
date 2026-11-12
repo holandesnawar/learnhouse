@@ -190,6 +190,54 @@ async def test_mira_tambien_la_clase_del_otro_grupo(db, org, monkeypatch):
     assert await T.mira_tambien(blauw, db) == {"clases": []}
 
 
+async def test_la_grabacion_de_la_sala_del_otro_grupo(db, org, monkeypatch):
+    """12/11/2026, «sigo sin ver las clases grabadas del otro grupo»: desde que
+    las clases se dan en la sala de la escuela, la grabación es lo publicado en
+    la semana (`grabacion_sala`), no una clase de vídeo del curso."""
+    import json as _json
+
+    monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-11-13")
+    blauw, rood = await _dos_grupos(db, org)
+    filas = await T.semanas_de(org.id, "rood", db)
+    huis = next(f for f in filas if f.tema == "Mijn huis")
+    huis.grabacion_sala = _json.dumps({"partes": [{"id": "rec-mijnhuis-1", "dur": 3600, "trozos": [[60, 3000]]}], "titulo": "Mijn huis"})
+    db.add(huis)
+    await db.commit()
+
+    otra = (await T.mira_tambien(blauw, db))["clases"][0]
+    primera = otra["grabaciones"][0]
+    # La de la sala va delante de la subida a mano de esa misma semana.
+    assert (primera["tema"], primera["fecha"], primera["video"]["tipo"], primera["clave"]) == ("Mijn huis", "2026-11-12", "sala", f"sala-{huis.id}")
+    assert primera["sala"]["segundos"] == 2940 and primera["sala"]["partes"][0]["id"] == "rec-mijnhuis-1"
+    assert "pendientes" not in otra and "nombre" not in otra
+
+    # El vídeo: quien está en blauw lo pide con SU clase y vale si está
+    # publicado en una semana ya dada de rood.
+    assert (await T.hermana_con_grabacion(blauw, "rec-mijnhuis-1", db)).id == rood.id
+    assert await T.hermana_con_grabacion(blauw, "rec-de-otra-cosa", db) is None
+    assert await T.hermana_con_grabacion(rood, "rec-mijnhuis-1", db) is None  # es la suya, no la del otro grupo
+    monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-11-10")
+    assert await T.hermana_con_grabacion(blauw, "rec-mijnhuis-1", db) is None  # la clase aún no ha llegado
+
+    # Al equipo se le dice qué semana del otro grupo sigue sin grabación.
+    monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-11-13")
+    huis.grabacion_sala = ""
+    db.add(huis)
+    await db.commit()
+    await db.execute(__import__("sqlmodel").delete(ChapterActivity).where(ChapterActivity.activity_id == 34))
+    await db.commit()
+    para_equipo = (await T.mira_tambien(blauw, db, equipo=True))["clases"][0]
+    assert [(p["tema"], p["fecha"]) for p in para_equipo["pendientes"]] == [("Mijn huis", "2026-11-12")]
+    assert para_equipo["nombre"] == "Clase semanal"
+
+
+def test_semanas_sin_grabacion():
+    semanas = [{"id": 1, "tema": "A", "fecha": "2026-11-12"}, {"id": 2, "tema": "B", "fecha": "2026-11-05"},
+               {"id": 3, "tema": "C", "fecha": "2026-11-19"}, {"id": 4, "tema": "D", "fecha": "2026-09-01"}]
+    # B tiene la suya (una de los meses, dos días después); C aún no se ha dado; D es vieja.
+    assert T.sin_grabacion(semanas, [{"fecha": "2026-11-07"}], "2026-11-13") == [{"semana_id": 1, "tema": "A", "fecha": "2026-11-12"}]
+
+
 async def test_avisar_a_la_clase(db, org, monkeypatch):
     monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-11-06")
     blauw, _ = await _dos_grupos(db, org)
