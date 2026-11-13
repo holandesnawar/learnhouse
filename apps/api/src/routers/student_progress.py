@@ -2,7 +2,7 @@
 
 from typing import List
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.core.events.database import get_db_session
@@ -266,6 +266,21 @@ async def api_course_modules(
 
 
 # ── grupos (25/10/2026: la beta y el programa nuevo) ───────────────────────
+
+
+@router.get(
+    "/insignias",
+    summary="Las insignias de la formación de quien pregunta: una por módulo superado.",
+)
+async def api_insignias(
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.insignias.insignias import mis_insignias
+
+    if not getattr(current_user, "id", None):
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return await mis_insignias(current_user.id, db_session)
 
 
 @router.get(

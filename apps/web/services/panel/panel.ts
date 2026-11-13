@@ -454,6 +454,10 @@ export interface AlumnoProgreso {
   /** La clase a la que lleva "Seguir donde lo dejé" en el recordatorio. */
   seguir_uuid: string
   ultimo_recordatorio: { sent_at: string; tipo: string; por: string } | null
+  /** El WhatsApp que dejó al matricularse. */
+  telefono?: string
+  /** ¿Lleva dos semanas o más sin terminar ninguna clase de la formación? */
+  sin_avanzar?: { atascado: boolean; dias: number | null; desde: string; sin_empezar: boolean; escrito_hace_poco?: boolean }
   /** Entró desde el 10/10/2026: la formación se le abre por avance. */
   por_avance: boolean
   /** Solo si va por avance: cada módulo con su candado. Ver apps/api/src/services/courses/avance_modulos.py. */
@@ -566,6 +570,10 @@ export const enviarRecordatorio = (
 
 export const getAlumnosProgreso = (orgId: number, t: string) =>
   pedir<{ alumnos: AlumnoProgreso[]; total_clases: number }>(`panel/org/${orgId}/alumnos`, 'GET', null, t)
+
+/** «Sí, se lo he mandado»: apunta el WhatsApp a un alumno que no avanza. */
+export const apuntarWhatsappAlumno = (orgId: number, userId: number, t: string) =>
+  pedir<{ sent_at: string; tipo: string; por: string }>(`panel/org/${orgId}/alumnos/${userId}/whatsapp`, 'POST', {}, t)
 
 /** El camino de 16 semanas de cada alumno (apps/api/src/services/panel/camino.py). */
 export type EstadoCamino = 'en-curso' | 'ultimas' | 'terminado' | 'sin-empezar' | 'sin-fecha'

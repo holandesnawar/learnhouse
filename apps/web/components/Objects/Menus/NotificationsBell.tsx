@@ -11,7 +11,7 @@ import {
   markNotificationsSeen,
   type NotificationFeed,
 } from '@services/communities/engagement'
-import { Bell, AtSign, Pin, Megaphone, Unlock, Trash2, MessagesSquare, UserCheck, Mic, ClipboardCheck, PhoneCall, Presentation, PlayCircle, BookOpenText } from 'lucide-react'
+import { Bell, AtSign, Pin, Megaphone, Unlock, Trash2, MessagesSquare, UserCheck, Mic, ClipboardCheck, PhoneCall, Presentation, PlayCircle, BookOpenText, Award } from 'lucide-react'
 
 /**
  * Campana del alumno. Recoge lo que se puede perder si no entra ese día:
@@ -43,6 +43,8 @@ const KIND_STYLE: Record<string, { icon: any; color: string }> = {
   grabacion: { icon: PlayCircle, color: 'text-[#0b2da0]' },
   // «Avisar a la clase» desde una semana (06/11/2026).
   clase: { icon: Megaphone, color: 'text-[#0b2da0]' },
+  // La insignia de un módulo superado (13/11/2026).
+  insignia: { icon: Award, color: 'text-[#0b2da0]' },
   // La lectura de la semana, en Recursos (12/11/2026).
   lectura: { icon: BookOpenText, color: 'text-[#0b2da0]' },
   tarea: { icon: Mic, color: 'text-emerald-500' },

@@ -28,6 +28,7 @@ import { Vienes, pasosDeSemana, FilaPaso } from '@components/Pages/Clases/MisCla
 import { useSemanasClase } from '@components/Pages/Courses/SemanasClase'
 import { useCursosEnDirecto } from '@/hooks/queries/useCursosEnDirecto'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
+import EscribirEnComunidad from './EscribirEnComunidad'
 
 const POPPINS = { fontFamily: 'var(--font-poppins), system-ui, sans-serif' }
 const TARJETA = 'rounded-2xl border border-[#E4E8F2] bg-white'
@@ -285,7 +286,7 @@ export function FeedComunidad({ orgslug }: { orgslug: string }) {
   const org = useOrg() as any
   const session = useLHSession() as any
   const token: string = session?.data?.tokens?.access_token || ''
-  const { data, isLoading } = useQuery<{ entradas: Entrada[]; tablones: Community[] }>({
+  const { data, isLoading, refetch } = useQuery<{ entradas: Entrada[]; tablones: Community[]; canales: Community[] }>({
     queryKey: ['comunidad', 'feed', org?.id],
     queryFn: async () => {
       const canales: Community[] = (await getCommunities(org.id, 1, 50, null, token)) || []
@@ -298,7 +299,7 @@ export function FeedComunidad({ orgslug }: { orgslug: string }) {
         )
       )
       const entradas = listas.flat().sort((a, b) => (b.creation_date || '').localeCompare(a.creation_date || '')).slice(0, 12)
-      return { entradas, tablones }
+      return { entradas, tablones, canales }
     },
     enabled: !!org?.id && !!token,
     staleTime: 60_000,
@@ -306,7 +307,6 @@ export function FeedComunidad({ orgslug }: { orgslug: string }) {
   const ruta = (p: string) => getUriWithOrg(orgslug, p)
   const canalHref = (c: Community) => ruta(`/community/${c.community_uuid.replace('community_', '')}`)
   const primero = data?.tablones?.[0]
-  const miNombre: string = session?.data?.user?.first_name || session?.data?.user?.username || ''
   const [filtro, setFiltro] = React.useState('')
   const entradas = (data?.entradas || []).filter((d) => !filtro || d.canal.community_uuid === filtro)
 
@@ -320,13 +320,7 @@ export function FeedComunidad({ orgslug }: { orgslug: string }) {
           Ver todo
         </Link>
       </div>
-      {primero ? (
-        <Link href={canalHref(primero)} className={`${TARJETA} flex items-center gap-3 px-4 py-3 mb-4 hover:border-[#C9D4EC]`}>
-          <span className="w-9 h-9 rounded-full bg-[#E3EBFA] text-[#0b2da0] font-bold flex items-center justify-center">{(miNombre || '?').slice(0, 1).toUpperCase()}</span>
-          <span className="flex-1 text-[14px] text-[#8A91AD]">Comparte algo con la comunidad…</span>
-          <span className="h-8 px-3 rounded-lg bg-[#0b2da0] text-white text-[13px] font-semibold flex items-center">Publicar</span>
-        </Link>
-      ) : null}
+      <EscribirEnComunidad canales={data?.canales || []} respaldo={primero} hrefDe={(c) => canalHref(c as Community)} onPublicado={() => refetch()} />
       {(data?.tablones || []).length > 1 ? (
         <div className="flex gap-2 overflow-x-auto pb-1 mb-3 -mx-1 px-1">
           {[{ community_uuid: '', name: 'Todo' } as Community, ...(data?.tablones || [])].map((c) => {

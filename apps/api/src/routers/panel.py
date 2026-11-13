@@ -546,6 +546,28 @@ async def api_alumnos(
     return await listar_alumnos(org_id, db_session)
 
 
+@router.post(
+    "/org/{org_id}/alumnos/{user_id}/whatsapp",
+    summary="Apuntar que se le ha escrito por WhatsApp a un alumno que no avanza (administradores).",
+)
+async def api_alumno_whatsapp(
+    request: Request,
+    org_id: int,
+    user_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.panel.alumnos import apuntar_whatsapp
+
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    if not await _es_admin(current_user, org_id, db_session):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    try:
+        return await apuntar_whatsapp(org_id, user_id, _nombre(current_user), db_session)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @router.get(
     "/org/{org_id}/camino",
     summary="El camino de 16 semanas de cada alumno: cuándo entró, en qué semana va y a cuántas clases en directo fue.",

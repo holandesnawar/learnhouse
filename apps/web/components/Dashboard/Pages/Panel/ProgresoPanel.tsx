@@ -28,6 +28,7 @@ import toast from 'react-hot-toast'
 import { confirmar } from '@lib/nawar/confirmar'
 import FichaCliente from './FichaCliente'
 import RecordatorioModal from './RecordatorioModal'
+import Atascados from './Atascados'
 import { BOTON, BOTON_PRINCIPAL, Estado, TARJETA, filtro, type Tono } from './ui'
 
 type Filtro = 'todos' | 'activo' | 'enfriando' | 'descolgado' | 'sin-empezar'
@@ -622,6 +623,16 @@ export default function ProgresoPanel() {
 
   return (
     <div className="space-y-5">
+      {/* Dos semanas o más sin terminar una clase de la formación (13/11/2026). */}
+      <Atascados
+        alumnos={alumnos}
+        orgId={org.id}
+        token={token}
+        yo={session?.data?.user?.first_name || ''}
+        onCorreo={(a) => setRecordar(a)}
+        onFicha={(a) => setAbierta(a.user_id)}
+        onCambio={cargar}
+      />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
         <Cifra label="Activos" valor={cuenta.activo} nota="Entraron en los últimos 3 días" activo={ver === 'activo'} onClick={() => cambiar('activo')} />
         <Cifra label="Se enfrían" valor={cuenta.enfriando} nota="De 4 a 7 días sin entrar" activo={ver === 'enfriando'} onClick={() => cambiar('enfriando')} />
