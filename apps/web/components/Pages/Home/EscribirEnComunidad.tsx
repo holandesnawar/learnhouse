@@ -125,8 +125,6 @@ export default function EscribirEnComunidad({
             Verlo
           </Link>
         </p>
-      ) : texto.trim() ? (
-        <p className="mt-1 pl-12 text-[12px] text-[#8A91AD]">Sale en {nombreCanal}, lo ven todos los alumnos.</p>
       ) : null}
     </div>
   )
