@@ -71,7 +71,7 @@ export function pasosDeSemana(semana: Semana, courseUuid: string, ruta: (p: stri
     out.push({
       key: 'grabacion-sala',
       titulo: NOMBRE.grabacion,
-      detalle: `${sala.titulo || 'Por si no pudiste venir o quieres repasar'} · ${duracionCorta(sala.segundos)}`,
+      detalle: `${sala.titulo || 'Por si no pudiste venir o quieres repasar'}${sala.segundos ? ` · ${duracionCorta(sala.segundos)}` : ''}`,
       estado: sala.vista ? 'hecho' : 'pendiente',
       sala: { courseUuid, semana: { id: semana.id, tema: semana.tema, fecha: semana.fecha }, grabacion: sala },
     })

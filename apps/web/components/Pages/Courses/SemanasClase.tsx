@@ -223,7 +223,7 @@ function ContenidoSemana({
         <div className="px-4 py-3">
           <GrabacionDeSala semana={semana} courseUuid={semana.course_uuid} hoy={hoy} />
           <p className="mt-1 text-[12px] text-[#8A91AD]">
-            {semana.grabacion_sala ? 'Los alumnos la ven en su semana.' : 'Lo que grabe la sala ese día aparece aquí solo.'}
+            {semana.grabacion_sala ? 'Los alumnos la ven en su semana.' : 'Publica lo que grabó la sala o pega el enlace de la grabación. Una semana, una grabación.'}
           </p>
         </div>
       ) : semana.grabacion_sala ? (
@@ -334,13 +334,6 @@ function CabeceraAdmin({
       <button onClick={onEditar} className="inline-flex items-center gap-1 text-[#5A6480] hover:text-[#0b2da0]">
         <Pencil size={12} /> Editar semana
       </button>
-      <Link
-        href={getUriWithOrg(orgslug, `/dash/courses/course/${limpio}/content`)}
-        prefetch={false}
-        className="inline-flex items-center gap-1 text-[#5A6480] hover:text-[#0b2da0]"
-      >
-        <Plus size={12} /> Añadir clases (grabación…)
-      </Link>
       <Link
         href={getUriWithOrg(orgslug, `/dash/estadisticas?tab=seguimiento&clase=${limpio}&semana=${semana.id}`)}
         prefetch={false}

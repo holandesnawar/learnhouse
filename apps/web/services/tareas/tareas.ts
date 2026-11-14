@@ -95,7 +95,7 @@ export interface Semana {
   /** Esa semana va a la clase del otro grupo (08/11/2026, solo al alumno). */
   cambio?: { semana_id: number; course_uuid: string; curso: string; fecha: string; dia: string } | null
   /** Solo al equipo: cuántos dijeron que vienen y cuántos que no. */
-  confirmaciones?: { si: number; no: number }
+  confirmaciones?: { si: number; no: number; vienen?: string[]; no_pueden?: string[] }
   /** Solo al equipo (09/11/2026): la presentación completa y las notas para el profe. */
   material_profe?: MaterialProfe
   /** Solo al equipo: el número del capítulo de la semana (para subirle la presentación). */

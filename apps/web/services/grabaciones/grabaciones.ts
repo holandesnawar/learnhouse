@@ -11,6 +11,8 @@ export type { Parte, Trozo }
 /** Lo publicado en una semana, tal como lo da la semana (`grabacion_sala`). */
 export interface GrabacionSala {
   partes: Parte[]
+  /** Un enlace pegado a mano (Bunny, YouTube, Vimeo) en vez de lo que grabó la sala (14/11/2026). */
+  enlace?: { tipo: string; url: string; original: string } | null
   titulo: string
   /** Lo que dura lo que se ve. */
   segundos: number
@@ -94,6 +96,10 @@ export const publicarGrabacion = (
   datos: { partes: { id: string; trozos: Trozo[] }[]; titulo?: string },
   token: string
 ) => pedir<GrabacionSala>(`${base()}/semana/${semanaId}`, token, 'PUT', datos)
+
+/** La grabación de la semana como un enlace pegado (Bunny, YouTube o Vimeo). */
+export const ponerEnlaceGrabacion = (semanaId: number, datos: { url: string; titulo?: string }, token: string) =>
+  pedir<GrabacionSala>(`${base()}/semana/${semanaId}/enlace`, token, 'PUT', datos)
 
 export const quitarGrabacion = (semanaId: number, token: string) =>
   pedir<{ ok: boolean }>(`${base()}/semana/${semanaId}`, token, 'DELETE')

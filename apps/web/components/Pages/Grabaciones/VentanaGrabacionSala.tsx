@@ -7,7 +7,7 @@
  * Seguimiento semanal).
  */
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import EnElCuerpo from '@components/Objects/EnElCuerpo'
 import { X } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -37,6 +37,21 @@ function VentanaGrabacionSalaDentro({
     return () => window.removeEventListener('keydown', tecla)
   }, [onClose])
 
+  // Con un enlace pegado no se sabe por dónde va: cuenta como vista al minuto
+  // y medio de tenerla abierta.
+  const apuntada = useRef(false)
+  useEffect(() => {
+    if (!grabacion.enlace?.url) return
+    const t = setTimeout(() => {
+      if (!apuntada.current) {
+        apuntada.current = true
+        vista()
+      }
+    }, 90_000)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grabacion.enlace?.url])
+
   function vista() {
     if (!token || grabacion.vista) return
     // En blando: si no se puede apuntar (p. ej. mirando «como un alumno»), el vídeo sigue.
@@ -57,7 +72,19 @@ function VentanaGrabacionSalaDentro({
             <X size={20} />
           </button>
         </div>
-        <ReproductorRecortado courseUuid={courseUuid} partes={grabacion.partes} clave={`semana-${semana.id}`} onMitad={vista} />
+        {grabacion.enlace?.url ? (
+          <div className="relative w-full overflow-hidden rounded-xl bg-black" style={{ paddingTop: '56.25%' }}>
+            <iframe
+              src={grabacion.enlace.url}
+              title={grabacion.titulo || semana.tema || 'La clase grabada'}
+              className="absolute inset-0 h-full w-full border-0"
+              allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen"
+              allowFullScreen
+            />
+          </div>
+        ) : (
+          <ReproductorRecortado courseUuid={courseUuid} partes={grabacion.partes} clave={`semana-${semana.id}`} onMitad={vista} />
+        )}
       </div>
     </div>
   )

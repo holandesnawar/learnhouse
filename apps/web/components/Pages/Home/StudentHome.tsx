@@ -23,7 +23,8 @@ import { CURSO_CLASE_SEMANAL_UUID, conGrabadas } from '@/lib/nawar/cursos'
 import SafeArea from '@components/Objects/StyledElements/Error/SafeArea'
 import { LecturaEnInicio } from '@components/Pages/Recursos/LecturaSemanal'
 import { InsigniaNueva } from '@components/Pages/Insignias/Insignias'
-import { PlanEnInicio } from '@components/Pages/Plan/PlanEstudio'
+import UltimaConsulta from '@components/Pages/Home/UltimaConsulta'
+import { PlanEnInicio, PlanLateral } from '@components/Pages/Plan/PlanEstudio'
 
 // Las tarjetas que dependen del temario (courseData, ~350KB de fuente) se
 // cargan en un chunk aparte: el Inicio pinta antes y el temario llega detrás.
@@ -173,6 +174,9 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
           ) : (
             <HomeSkeleton className="h-[188px]" />
           )}
+          <SafeArea nombre="Consulta respondida" fallback={null}>
+            <UltimaConsulta orgslug={orgslug} />
+          </SafeArea>
           <SafeArea nombre="Destacado" fallback={null}>
             <DestacadosComunidad orgslug={orgslug} />
           </SafeArea>
@@ -198,10 +202,14 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
           {insights ? (
             <>
               <SafeArea nombre="Tu semana" fallback={null}>
-                <div className="rounded-2xl border border-[#E4E8F2] bg-white p-4">
-                  <p className="text-[14.5px] font-semibold text-[#0B1033] mb-2">Tu racha esta semana</p>
-                  <WeekStrip activeDays={insights.week.activeDays} />
-                </div>
+                <PlanLateral
+                  sinPlan={
+                    <div className="rounded-2xl border border-[#E4E8F2] bg-white p-4">
+                      <p className="text-[14.5px] font-semibold text-[#0B1033] mb-2">Tu racha esta semana</p>
+                      <WeekStrip activeDays={insights.week.activeDays} />
+                    </div>
+                  }
+                />
               </SafeArea>
               <SafeArea nombre="Tu repaso de hoy">
                 <RepasoCard orgslug={orgslug} insights={insights} />

@@ -25,6 +25,7 @@
  * Los archivos se guardan al subirlos; lo demás, con «Guardar». Si la clase
  * tiene gemela (el otro grupo), la casilla de siempre lo copia allí.
  */
+import Confirmados from './Confirmados'
 import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
@@ -366,6 +367,11 @@ function FichaDentro({
               <X size={20} />
             </button>
           </div>
+          {!yaFue || esHoy ? (
+            <div className="mt-2">
+              <Confirmados c={semana.confirmaciones} compacto />
+            </div>
+          ) : null}
           {estado.faltan.length && estado.estado !== 'dada' ? (
             <p className="mt-2 text-[13px] text-[#8A6A2A]">Falta: {estado.faltan.join(', ')}.</p>
           ) : null}

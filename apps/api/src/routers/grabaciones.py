@@ -145,6 +145,29 @@ async def api_publicar(
         raise _error(exc) from exc
 
 
+class EnlaceIn(BaseModel):
+    url: str
+    titulo: Optional[str] = ""
+
+
+@router.put("/semana/{semana_id}/enlace", summary="Poner como grabación de la semana un enlace de Bunny, YouTube o Vimeo (equipo).")
+async def api_enlace(
+    request: Request,
+    semana_id: int,
+    body: EnlaceIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    s, curso = await _semana(request, semana_id, current_user, db_session)
+    equipo, _ = await _roles(current_user, curso.org_id, db_session)
+    if not equipo:
+        raise HTTPException(status_code=403, detail="Solo el equipo de la escuela")
+    try:
+        return await EG.poner_enlace(s, {"url": body.url, "titulo": body.titulo or ""}, _nombre(current_user), db_session)
+    except EG.GrabacionError as exc:
+        raise _error(exc) from exc
+
+
 @router.delete("/semana/{semana_id}", summary="Dejar de enseñar la grabación de la sala en esa semana (equipo). En Daily no se borra nada.")
 async def api_quitar(
     request: Request,
