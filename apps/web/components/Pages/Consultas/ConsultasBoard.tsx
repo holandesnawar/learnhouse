@@ -15,6 +15,7 @@ import {
   type Consulta, type StatusFilter,
 } from '@/lib/consultas/consultas'
 import { avisarConsultaNueva } from '@services/consultas/aviso'
+import EnElCuerpo from '@components/Objects/EnElCuerpo'
 
 function formatDate(iso: string): string {
   try {
@@ -499,15 +500,19 @@ export default function ConsultasBoard({
 }
 
 function Overlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+  // En el cuerpo de la página: dentro del marco de la escuela, la barra azul
+  // de arriba se quedaba por encima y tapaba el principio de la consulta.
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div onClick={(e) => e.stopPropagation()} className="w-full flex justify-center">
-        {children}
+    <EnElCuerpo>
+      <div
+        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm"
+        onClick={onClose}
+      >
+        <div onClick={(e) => e.stopPropagation()} className="w-full flex justify-center">
+          {children}
+        </div>
       </div>
-    </div>
+    </EnElCuerpo>
   )
 }
 

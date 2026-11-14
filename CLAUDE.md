@@ -5763,6 +5763,20 @@ títulos repetidos y no saber dónde estaba cada enlace).
   cada semana (`SemanasClase.tsx`). El editor del curso sigue en el panel.
 - Test en `test_consultas_aviso.py` (`test_enlace_de_grabacion_pegado`).
 
+### «Calendly no contesta: 429 Too Many Requests» y la consulta tapada (14/11/2026)
+- La agenda de Llamadas pedía a Calendly los invitados de TODAS las citas a
+  la vez, cada minuto y por cada pantalla abierta, y Calendly cortaba con 429.
+  Ahora (`agenda.py`): los invitados de cada cita se guardan mientras la cita
+  no cambie (`updated_at` + estado), «quién soy» una hora, como mucho 4
+  peticiones a la vez y, si Calendly falla y ya había una agenda leída, se
+  enseña esa (sin aviso rojo) y no se le pregunta en 90 s. Test
+  `test_agenda_429.py`.
+- La ventana de una consulta (tablón `/consultas`) se quedaba debajo de la
+  barra azul de arriba y se cortaba el principio: ahora va en el cuerpo de la
+  página (`EnElCuerpo`).
+- «Pegar enlace» acepta también el enlace de compartir de Bunny
+  (`player.mediadelivery.net/play/…`).
+
 ### Nieuwsbegrip: aparcado (12/11/2026)
 El usuario tiene licencias de Nieuwsbegrip (lectura por niveles AA-Alfa…D, con
 temas de dos semanas, ejercicios, woordenschat y vídeo) y quería meterlo en la
