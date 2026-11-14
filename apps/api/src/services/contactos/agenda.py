@@ -53,6 +53,21 @@ logger = logging.getLogger(__name__)
 API = "https://api.calendly.com"
 _CACHE_SEG = 60
 _cache: dict = {"hasta": 0.0, "datos": None}
+# Calendly corta con «429 Too Many Requests» si se le piden muchas cosas
+# seguidas. Cada lectura de la agenda pedía los invitados de TODAS las citas
+# (cien o más) a la vez, cada minuto y por cada pantalla abierta. Ahora:
+# - los invitados de una cita se guardan mientras la cita no cambie
+#   (`updated_at`): en cada lectura solo se piden los de las citas nuevas o
+#   cambiadas;
+# - «quién soy» se guarda una hora;
+# - como mucho 4 peticiones a la vez;
+# - si Calendly falla (429 u otra cosa) y ya había una agenda leída, se
+#   enseña esa en vez del aviso rojo, y no se le vuelve a preguntar durante
+#   un rato.
+_invitados: dict = {}
+_yo: dict = {"hasta": 0.0, "datos": None}
+_ESPERA_TRAS_FALLO = 90
+_A_LA_VEZ = 4
 
 
 def _token() -> str:
@@ -202,7 +217,11 @@ async def agenda(forzar: bool = False) -> dict:
         async with httpx.AsyncClient(
             timeout=10.0, headers={"Authorization": f"Bearer {token}"}
         ) as cliente:
-            yo = (await _get(cliente, f"{API}/users/me")).get("resource") or {}
+            if _yo["datos"] is not None and _yo["hasta"] > ahora:
+                yo = _yo["datos"]
+            else:
+                yo = (await _get(cliente, f"{API}/users/me")).get("resource") or {}
+                _yo["datos"], _yo["hasta"] = yo, ahora + 3600
             # Sin filtro de estado: salen también las canceladas. Se pagina
             # (100 por página) con tope, por si algún día hay muchas.
             eventos: list[dict] = []
@@ -226,18 +245,36 @@ async def agenda(forzar: bool = False) -> dict:
                     break
                 pagina = await _get(cliente, siguiente)
 
+            turno = asyncio.Semaphore(_A_LA_VEZ)
+
             async def invitados(ev: dict) -> list[dict]:
                 uuid = str(ev.get("uri", "")).rstrip("/").rsplit("/", 1)[-1]
-                datos = await _get(cliente, f"{API}/scheduled_events/{uuid}/invitees", {"count": 20})
-                return cita_desde_calendly(ev, datos.get("collection") or [])
+                clave = (uuid, str(ev.get("updated_at") or ""), str(ev.get("status") or ""))
+                guardados = _invitados.get(uuid)
+                if guardados is None or guardados[0] != clave:
+                    async with turno:
+                        datos = await _get(cliente, f"{API}/scheduled_events/{uuid}/invitees", {"count": 20})
+                    guardados = (clave, datos.get("collection") or [])
+                    _invitados[uuid] = guardados
+                return cita_desde_calendly(ev, guardados[1])
 
             listas = await asyncio.gather(*(invitados(e) for e in eventos))
     except PermissionError as exc:
         return {"configurado": True, "citas": [], "error": str(exc)}
     except Exception as exc:  # noqa: BLE001
-        logger.exception("No se pudo leer la agenda de Calendly")
+        logger.warning("No se pudo leer la agenda de Calendly: %s", exc)
+        if _cache["datos"] is not None:
+            # La última agenda buena, y no volver a preguntar en un rato.
+            _cache["hasta"] = ahora + _ESPERA_TRAS_FALLO
+            return _cache["datos"]
+        if isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 429:
+            return {"configurado": True, "citas": [], "error": "Calendly pide esperar un momento (demasiadas consultas seguidas). Vuelve a cargar en un minuto."}
         return {"configurado": True, "citas": [], "error": f"Calendly no contesta: {exc}"}
 
+    vivas = {str(e.get("uri", "")).rstrip("/").rsplit("/", 1)[-1] for e in eventos}
+    for uuid in list(_invitados):
+        if uuid not in vivas:
+            del _invitados[uuid]
     citas = sorted((c for lista in listas for c in lista), key=lambda c: c["inicio"])
     datos = {"configurado": True, "citas": citas}
     _cache["datos"] = datos
