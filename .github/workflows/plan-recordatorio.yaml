@@ -1,0 +1,31 @@
+# Recordatorio de los días de estudio que eligió cada alumno.
+#
+# Cada alumno dice qué días y a qué hora quiere estudiar. Una vez por hora se
+# le pregunta a la escuela a quién le toca ahora (su día, pasada su hora y sin
+# haber entrado hoy) y ella manda el correo. Uno al día como mucho por alumno,
+# y APAGADO de serie: se enciende en Avisos. Ver services/plan/plan.py.
+name: Recordatorio de los días de estudio
+
+on:
+  schedule:
+    # Al minuto 7 de cada hora: GitHub retrasa lo que cae en punto.
+    - cron: '7 * * * *'
+  workflow_dispatch:
+
+jobs:
+  recordar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pedirle a la escuela que recuerde
+        run: |
+          set -euo pipefail
+          respuesta=$(curl -sS -w '\n%{http_code}' -X POST \
+            -H "X-Cron-Token: ${{ secrets.SCHOOL_CRON_TOKEN }}" \
+            "${{ secrets.SCHOOL_URL }}/api/v1/notifications/plan-recordatorio")
+          cuerpo=$(echo "$respuesta" | head -n -1)
+          codigo=$(echo "$respuesta" | tail -n 1)
+          echo "$cuerpo"
+          if [ "$codigo" != "200" ]; then
+            echo "La escuela respondió $codigo" >&2
+            exit 1
+          fi

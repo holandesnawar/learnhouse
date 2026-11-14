@@ -15,7 +15,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
-import { FolderSimple } from '@phosphor-icons/react'
+import { BookOpenText, FolderSimple } from '@phosphor-icons/react'
 import { ExternalLink, Loader2, Plus, Trash2, Upload, X } from 'lucide-react'
 import {
   abrirUrl,
@@ -32,6 +32,7 @@ import {
 import { confirmar } from '@lib/nawar/confirmar'
 import IconoRecurso from './IconoRecurso'
 import Portada from '@components/Pages/Espacios/Portada'
+import LecturaSemanal, { useLecturas } from './LecturaSemanal'
 
 const ETIQUETA: Record<ReturnType<typeof tipoDe>, string> = {
   drive: 'Google Drive',
@@ -75,8 +76,20 @@ export default function RecursosPage({ embebido = false }: { embebido?: boolean 
   }
 
   const lista = carpetas || []
+  // Filtro de arriba: «Todo», «Lecturas» (la lectura de la semana y su
+  // archivo) o una carpeta. Se llega a «Lecturas» también con ?ver=lecturas
+  // (el aviso de la campana) o #lectura (la tarjeta del Inicio).
   const [filtro, setFiltro] = useState<string>('')
-  const vistas = filtro ? lista.filter((c) => String(c.id) === filtro) : lista
+  const lecturas = useLecturas().datos
+  const hayLecturas = !embebido && !!lecturas && (!!lecturas.actual || lecturas.archivo.length > 0 || lecturas.equipo)
+  useEffect(() => {
+    try {
+      const ver = new URLSearchParams(window.location.search).get('ver')
+      if (ver === 'lecturas' || window.location.hash === '#lectura') setFiltro('lecturas')
+    } catch {}
+  }, [])
+  const soloLecturas = filtro === 'lecturas' && hayLecturas
+  const vistas = filtro && filtro !== 'lecturas' ? lista.filter((c) => String(c.id) === filtro) : lista
 
   const contenido =
     carpetas === null ? (
@@ -186,9 +199,13 @@ export default function RecursosPage({ embebido = false }: { embebido?: boolean 
   return (
     <div className="max-w-[1040px] mx-auto px-4 sm:px-8 py-6 sm:py-8 space-y-5">
       <Portada clave="recursos" titulo="Recursos" etiqueta="Empieza aquí" subtitulo="Materiales extra: vídeos, audios, carpetas compartidas y enlaces útiles.">
-        {lista.length > 1 ? (
+        {lista.length + (hayLecturas ? 1 : 0) > 1 ? (
           <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1">
-            {[{ id: '', name: 'Todo' }, ...lista.map((c) => ({ id: String(c.id), name: c.name }))].map((c) => (
+            {[
+              { id: '', name: 'Todo' },
+              ...(hayLecturas ? [{ id: 'lecturas', name: 'Lecturas' }] : []),
+              ...lista.map((c) => ({ id: String(c.id), name: c.name })),
+            ].map((c) => (
               <button
                 key={c.id || 'todo'}
                 type="button"
@@ -197,14 +214,16 @@ export default function RecursosPage({ embebido = false }: { embebido?: boolean 
                   filtro === c.id ? 'bg-[#EAF0FE] border-[#C9D6F5] text-[#0b2da0]' : 'bg-white border-[#E4E8F2] text-[#3B4262] hover:border-[#C9D4EC]'
                 }`}
               >
-                {c.id ? <FolderSimple size={14} /> : null}
+                {c.id === 'lecturas' ? <BookOpenText size={14} /> : c.id ? <FolderSimple size={14} /> : null}
                 {c.name}
               </button>
             ))}
           </div>
         ) : null}
       </Portada>
-      {contenido}
+      {/* La lectura de la semana y el archivo de lecturas (12/11/2026). */}
+      {!filtro || soloLecturas ? <LecturaSemanal /> : null}
+      {soloLecturas ? null : contenido}
     </div>
   )
 }

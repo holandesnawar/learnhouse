@@ -359,6 +359,8 @@ _ADDED_COLUMNS = [
     "ALTER TABLE IF EXISTS tarea_semana ADD COLUMN IF NOT EXISTS material_profe TEXT DEFAULT ''",
     # La grabación de la sala publicada en la semana (10/11/2026, estudio_grabaciones.py).
     "ALTER TABLE IF EXISTS tarea_semana ADD COLUMN IF NOT EXISTS grabacion_sala TEXT DEFAULT ''",
+    # El objetivo y los días de estudio de cada alumno (14/11/2026, services/plan/plan.py).
+    "ALTER TABLE IF EXISTS student_progress ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT ''",
     # Conversaciones con una persona concreta (antes solo existía "el equipo").
     'ALTER TABLE IF EXISTS direct_thread ADD COLUMN IF NOT EXISTS staff_id INTEGER',
     'ALTER TABLE IF EXISTS direct_thread DROP CONSTRAINT IF EXISTS uq_thread_org_student',

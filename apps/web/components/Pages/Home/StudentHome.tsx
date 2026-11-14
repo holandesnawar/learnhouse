@@ -21,6 +21,9 @@ import { fechasDeClases, semanaConClases } from '@services/student/insights'
 import { isWeeklyClassCourse } from '@/lib/course/formacionProgress'
 import { CURSO_CLASE_SEMANAL_UUID, conGrabadas } from '@/lib/nawar/cursos'
 import SafeArea from '@components/Objects/StyledElements/Error/SafeArea'
+import { LecturaEnInicio } from '@components/Pages/Recursos/LecturaSemanal'
+import { InsigniaNueva } from '@components/Pages/Insignias/Insignias'
+import { PlanEnInicio } from '@components/Pages/Plan/PlanEstudio'
 
 // Las tarjetas que dependen del temario (courseData, ~350KB de fuente) se
 // cargan en un chunk aparte: el Inicio pinta antes y el temario llega detrás.
@@ -148,6 +151,12 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
         <div className="min-w-0 space-y-6">
+          <SafeArea nombre="Insignia nueva" fallback={null}>
+            <InsigniaNueva orgslug={orgslug} />
+          </SafeArea>
+          <SafeArea nombre="Tu plan" fallback={null}>
+            <PlanEnInicio />
+          </SafeArea>
           <SafeArea nombre="Siguiente clase" fallback={null}>
             <SiguienteClase orgslug={orgslug} />
           </SafeArea>
@@ -180,6 +189,9 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
             <span className="block text-[14.5px] font-semibold text-[#0B1033]">Empieza aquí</span>
             <span className="block text-[13px] text-[#6B7393]">Tus primeros pasos en la escuela</span>
           </Link>
+          <SafeArea nombre="Lectura de la semana" fallback={null}>
+            <LecturaEnInicio orgslug={orgslug} />
+          </SafeArea>
           <SafeArea nombre="Próximos eventos" fallback={null}>
             <UpcomingEvents orgslug={orgslug} />
           </SafeArea>

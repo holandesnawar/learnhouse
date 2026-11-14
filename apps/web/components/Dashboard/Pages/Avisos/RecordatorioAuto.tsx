@@ -18,11 +18,14 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import {
   getPlantillasRecordatorio,
+  getPlanEstudio,
   getRecordatorioAuto,
+  guardarPlanEstudio,
   guardarPlantillasRecordatorio,
   guardarRecordatorioAuto,
   vistaRecordatorioAuto,
   type PlantillasRecordatorio,
+  type PlanEstudioPanel,
   type RecordatorioAuto as Estado,
 } from '@services/panel/panel'
 import { confirmar } from '@lib/nawar/confirmar'
@@ -44,6 +47,56 @@ function Interruptor({ activo, onClick, ocupado }: { activo: boolean; onClick: (
     >
       <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${activo ? 'translate-x-6' : 'translate-x-1'}`} />
     </button>
+  )
+}
+
+/** El otro recordatorio: el de los días que eligió cada alumno en «Tu plan».
+ *  Apagado de serie. Servidor: apps/api/src/services/plan/plan.py */
+export function RecordatorioDelPlan() {
+  const org = useOrg() as any
+  const session = useLHSession() as any
+  const token = session?.data?.tokens?.access_token
+  const [d, setD] = useState<PlanEstudioPanel | null>(null)
+  const [ocupado, setOcupado] = useState(false)
+
+  useEffect(() => {
+    if (!org?.id || !token) return
+    getPlanEstudio(org.id, token).then((r) => r.ok && r.datos && setD(r.datos))
+  }, [org?.id, token])
+
+  const alternar = async () => {
+    if (!d) return
+    const activar = !d.recordatorios
+    if (activar) {
+      const ok = await confirmar(
+        'Cada alumno que haya hecho su plan recibirá un correo los días que eligió, a su hora, si ese día no ha entrado. Como mucho uno al día, y se calla tras tres seguidos sin que vuelva. ¿Encenderlo?',
+        { boton: 'Encender' }
+      )
+      if (!ok) return
+    }
+    setOcupado(true)
+    const r = await guardarPlanEstudio(org.id, activar, token)
+    setOcupado(false)
+    if (!r.ok || !r.datos) return toast.error(r.error || 'No se ha podido cambiar')
+    setD(r.datos)
+    toast.success(activar ? 'Recordatorio del plan encendido' : 'Recordatorio del plan apagado')
+  }
+
+  if (!d) return null
+  return (
+    <div className={`${TARJETA} p-4 sm:p-5 flex items-start justify-between gap-4`}>
+      <div className="min-w-0">
+        <p className="text-[15px] font-semibold text-gray-900">Recordatorio de los días de estudio</p>
+        <p className={`${META} mt-1`}>
+          Cada alumno elige en su Inicio para qué quiere el neerlandés y qué días va a estudiar. Con esto encendido, el día que le toca
+          y no ha entrado le llega un correo a su hora. Solo a quien lo pidió.
+        </p>
+        <p className="mt-2 text-[13.5px] text-gray-900">
+          {d.con_plan} de {d.alumnos} alumnos han hecho su plan · {d.recordatorios ? 'Encendido' : 'Apagado: no sale ningún correo'}
+        </p>
+      </div>
+      <Interruptor activo={d.recordatorios} onClick={alternar} ocupado={ocupado} />
+    </div>
   )
 }
 

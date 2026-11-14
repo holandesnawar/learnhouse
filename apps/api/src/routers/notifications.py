@@ -84,6 +84,31 @@ async def api_broadcast(
 
 
 @router.post(
+    "/plan-recordatorio",
+    summary="Recuerda a cada alumno sus días de estudio, a su hora. La llama una tarea cada hora.",
+)
+async def api_plan_recordatorio(
+    request: Request,
+    org_id: int = 1,
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    """Misma puerta que `/drip-diario` (secreto compartido). Apagado en Avisos
+    (de serie), no manda nada y solo dice a cuántos les tocaría. Ver
+    `services/plan/plan.py`."""
+    esperado = (os.environ.get("LEARNHOUSE_CRON_TOKEN") or "").strip()
+    if not esperado:
+        raise HTTPException(status_code=503, detail="Cron token not configured")
+    recibido = (request.headers.get(CABECERA_SECRETO) or "").strip()
+    if not recibido or not _mismo_secreto(recibido, esperado):
+        raise HTTPException(status_code=401, detail="Bad cron token")
+    from src.services.plan.plan import recordar_a_quien_toque
+
+    resultado = await recordar_a_quien_toque(org_id, db_session)
+    logger.info("Recordatorio del plan: %s", resultado)
+    return resultado
+
+
+@router.post(
     "/drip-diario",
     summary="Avisa por email de los módulos que se abren hoy. La llama una tarea diaria.",
 )

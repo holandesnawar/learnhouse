@@ -3,7 +3,7 @@
  * «Empieza aquí» → Bienvenida (rediseño, rama diseno, 07/11/2026).
  *
  * La primera página de quien acaba de entrar, como el «Start here» de las
- * comunidades de Circle: cinco pasos con su check, lo que hay que saber (las
+ * comunidades de Circle: seis pasos con su check, lo que hay que saber (las
  * publicaciones del canal «Empieza aquí») y cómo está montada la escuela.
  *
  * «Preséntate» se marca solo si ya publicó en el canal de presentaciones; los
@@ -13,7 +13,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
-import { Check, ArrowRight, BookOpen, Video, MessagesSquare, Smartphone, Compass, Hand } from 'lucide-react'
+import { Check, ArrowRight, BookOpen, Video, MessagesSquare, Smartphone, Compass, Hand, Target } from 'lucide-react'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { getUriWithOrg } from '@services/config/config'
@@ -22,6 +22,7 @@ import { getDiscussions, type DiscussionWithAuthor } from '@services/communities
 import { CURSO_FORMACION_UUID } from '@/lib/nawar/cursos'
 import { esCanalDePresentarse, esCanalEsencial } from '@/lib/nawar/empiezaAqui'
 import { VentanaInstalar, usePromptInstalar } from '@components/PWA/InstallAppPrompt'
+import { VentanaPlan, usePlan } from '@components/Pages/Plan/PlanEstudio'
 
 const POPPINS = { fontFamily: 'var(--font-poppins), system-ui, sans-serif' }
 const TARJETA = 'rounded-2xl border border-[#E4E8F2] bg-white'
@@ -101,6 +102,7 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
       // Lleva a la formación: su módulo 0 es la introducción, que lo explica todo (08/11/2026).
       { id: 'conoce', titulo: 'Conoce la escuela', texto: 'La introducción de la formación te explica cómo funciona todo.', href: ruta(`/course/${CURSO_FORMACION_UUID}`), boton: 'Ver la introducción', icono: <Compass size={18} /> },
       { id: 'presentate', titulo: 'Preséntate', texto: 'Cuéntanos quién eres, dónde vives y para qué quieres el neerlandés.', href: canalHref(presentaciones), boton: 'Presentarme', icono: <Hand size={18} /> },
+      { id: 'plan', titulo: 'Haz tu plan', texto: 'Dinos para qué quieres el neerlandés y qué días vas a estudiar. Son dos preguntas.', href: '', boton: 'Hacer mi plan', icono: <Target size={18} /> },
       { id: 'clase', titulo: 'Mira tu clase de esta semana', texto: 'La presentación, el día y la hora. Dinos si vienes.', href: ruta('/clases'), boton: 'Ver mi clase', icono: <Video size={18} /> },
       { id: 'formacion', titulo: 'Empieza el módulo 1', texto: 'Con 20 minutos al día basta. La escuela recuerda dónde lo dejas.', href: ruta(`/course/${CURSO_FORMACION_UUID}`), boton: 'Empezar', icono: <BookOpen size={18} /> },
       { id: 'movil', titulo: 'Tenla en el móvil', texto: 'Añade la escuela a la pantalla de inicio y entra de un toque, como una app.', href: '', boton: 'Hecho', icono: <Smartphone size={18} /> },
@@ -113,11 +115,13 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
   // instalar. Abierta ya como app, el paso sale hecho solo.
   const [instalarAbierto, setInstalarAbierto] = useState(false)
   const { instalada, instalar } = usePromptInstalar()
+  const { data: plan } = usePlan()
+  const [planAbierto, setPlanAbierto] = useState(false)
   const descubreComo = async () => {
     if (await instalar()) return
     setInstalarAbierto(true)
   }
-  const hecho = (p: Paso) => (p.id === 'presentate' && data?.presentado) || (p.id === 'movil' && instalada) || !!hechos[p.id]
+  const hecho = (p: Paso) => (p.id === 'plan' ? !!plan?.rellenado : false) || (p.id === 'presentate' && data?.presentado) || (p.id === 'movil' && instalada) || !!hechos[p.id]
   const n = pasos.filter(hecho).length
   const siguiente = pasos.find((p) => !hecho(p))
   const nombre = yo?.first_name || yo?.username || ''
@@ -131,7 +135,7 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
           <h1 className="mt-2 text-[26px] sm:text-[32px] font-bold leading-tight" style={POPPINS}>
             {nombre ? `Bienvenida a la escuela, ${nombre}` : 'Bienvenida a la escuela'}
           </h1>
-          <p className="mt-2 text-[15px] text-white/90 max-w-[560px]">Cinco pasos para arrancar con buen pie. Hazlos a tu ritmo: esta página te espera aquí.</p>
+          <p className="mt-2 text-[15px] text-white/90 max-w-[560px]">Seis pasos para arrancar con buen pie. Hazlos a tu ritmo: esta página te espera aquí.</p>
         </div>
       </section>
 
@@ -155,10 +159,10 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
               >
                 Siguiente: {siguiente.titulo.toLowerCase()} <ArrowRight size={16} />
               </Link>
-            ) : siguiente.id === 'movil' ? (
+            ) : siguiente.id === 'movil' || siguiente.id === 'plan' ? (
               <button
                 type="button"
-                onClick={descubreComo}
+                onClick={siguiente.id === 'plan' ? () => setPlanAbierto(true) : descubreComo}
                 className="shrink-0 self-start sm:self-auto inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-[#0b2da0] text-white text-[14px] font-semibold hover:bg-[#0a2690]"
               >
                 Siguiente: {siguiente.titulo.toLowerCase()} <ArrowRight size={16} />
@@ -176,7 +180,7 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
             <div key={p.id} className="flex items-start gap-4 px-4 sm:px-6 py-4">
               <button
                 type="button"
-                onClick={() => p.id !== 'presentate' && marcar(p.id, !ok)}
+                onClick={() => (p.id === 'plan' ? setPlanAbierto(true) : p.id !== 'presentate' && marcar(p.id, !ok))}
                 aria-label={ok ? 'Hecho' : 'Marcar como hecho'}
                 className={`mt-0.5 shrink-0 w-7 h-7 rounded-full flex items-center justify-center border-2 bg-white ${ok ? 'border-[#16A34A] text-[#16A34A]' : 'border-[#C9D2E6] text-[#8A91AD]'}`}
               >
@@ -185,6 +189,11 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
               <div className="min-w-0 flex-1">
                 <p className={`text-[15.5px] font-semibold ${ok ? 'text-[#8A91AD] line-through decoration-[#C9D2E6]' : 'text-[#0B1033]'}`}>{p.titulo}</p>
                 <p className="mt-0.5 text-[14px] text-[#4A5272] leading-relaxed">{p.texto}</p>
+                {p.id === 'plan' && !ok ? (
+                  <button type="button" onClick={() => setPlanAbierto(true)} className="mt-1.5 sm:hidden inline-flex items-center gap-1 text-[14px] font-semibold text-[#0b2da0] hover:underline">
+                    Hacer mi plan <ArrowRight size={14} />
+                  </button>
+                ) : null}
                 {p.id === 'movil' && !ok ? (
                   <button type="button" onClick={descubreComo} className="mt-1.5 inline-flex items-center gap-1 text-[14px] font-semibold text-[#0b2da0] hover:underline">
                     Descubre cómo <ArrowRight size={14} />
@@ -201,7 +210,7 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
                     {p.boton} <ArrowRight size={14} />
                   </Link>
                 ) : (
-                  <button type="button" onClick={() => marcar(p.id)} className="shrink-0 hidden sm:inline-flex items-center h-9 px-3.5 rounded-lg border border-[#DDE3F0] text-[13.5px] font-semibold text-[#0b2da0] hover:bg-[#F5F8FF]">
+                  <button type="button" onClick={() => (p.id === 'plan' ? setPlanAbierto(true) : marcar(p.id))} className="shrink-0 hidden sm:inline-flex items-center h-9 px-3.5 rounded-lg border border-[#DDE3F0] text-[13.5px] font-semibold text-[#0b2da0] hover:bg-[#F5F8FF]">
                     {p.boton}
                   </button>
                 )
@@ -212,6 +221,7 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
       </section>
 
       {instalarAbierto ? <VentanaInstalar onCerrar={() => setInstalarAbierto(false)} /> : null}
+      {planAbierto && plan ? <VentanaPlan inicial={plan} onCerrar={() => setPlanAbierto(false)} /> : null}
 
       {data?.fijadas?.length ? (
         <section>

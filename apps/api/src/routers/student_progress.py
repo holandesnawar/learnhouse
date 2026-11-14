@@ -2,7 +2,7 @@
 
 from typing import List
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.core.events.database import get_db_session
@@ -266,6 +266,49 @@ async def api_course_modules(
 
 
 # ── grupos (25/10/2026: la beta y el programa nuevo) ───────────────────────
+
+
+@router.get(
+    "/insignias",
+    summary="Las insignias de la formación de quien pregunta: una por módulo superado.",
+)
+async def api_insignias(
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.insignias.insignias import mis_insignias
+
+    if not getattr(current_user, "id", None):
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return await mis_insignias(current_user.id, db_session)
+
+
+@router.get("/plan", summary="Mi objetivo y mis días de estudio, y cómo va esta semana.")
+async def api_plan(
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.plan.plan import mi_plan
+
+    if not getattr(current_user, "id", None):
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return await mi_plan(current_user.id, db_session)
+
+
+@router.put("/plan", summary="Guardar mi objetivo y mis días de estudio.")
+async def api_plan_guardar(
+    datos: dict,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.plan.plan import guardar
+
+    if not getattr(current_user, "id", None):
+        raise HTTPException(status_code=401, detail="Authentication required")
+    try:
+        return await guardar(current_user.id, datos, db_session)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get(

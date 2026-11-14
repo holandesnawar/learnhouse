@@ -152,6 +152,67 @@ def estado_de(ultima_entrada: str, hechas: int, hoy: date) -> dict:
     return {"id": "descolgado", "texto": f"{dias} días sin entrar", "dias": dias}
 
 
+#: Días sin terminar ninguna clase de la formación para salir como «atascado».
+DIAS_ATASCO = 14
+#: Tras escribirle, no vuelve a pedir que se le escriba hasta pasados estos días.
+DIAS_ENTRE_TOQUES = 7
+
+
+def atasco(alta: str, ultima_terminada: str, hechas: int, total: int, hoy: date) -> dict:
+    """¿Lleva dos semanas o más sin terminar ninguna clase de la formación?
+    (13/11/2026: «entran, van a las clases en directo y no tocan la
+    formación»). Se cuenta desde la última clase terminada o, si no ha hecho
+    ninguna, desde el día en que entró en la escuela. Quien ya la terminó no
+    está atascado. Pura, con test."""
+    desde = (ultima_terminada or alta or "")[:10]
+    try:
+        dias = max(0, (hoy - date.fromisoformat(desde)).days)
+    except ValueError:
+        return {"atascado": False, "dias": None, "desde": "", "sin_empezar": hechas == 0}
+    terminada = total > 0 and hechas >= total
+    return {
+        "atascado": total > 0 and not terminada and dias >= DIAS_ATASCO,
+        "dias": dias,
+        "desde": desde,
+        "sin_empezar": hechas == 0,
+    }
+
+
+def toque_reciente(ultimo: Optional[dict], hoy: date) -> bool:
+    """¿Ya se le ha escrito (correo o WhatsApp) en la última semana? Pura."""
+    try:
+        return bool(ultimo) and (hoy - date.fromisoformat((ultimo or {}).get("sent_at", "")[:10])).days < DIAS_ENTRE_TOQUES
+    except ValueError:
+        return False
+
+
+async def apuntar_whatsapp(org_id: int, user_id: int, por: str, db_session: AsyncSession) -> dict:
+    """«Sí, se lo he mandado»: queda apuntado como un recordatorio más (tipo
+    `whatsapp`), para que la lista de atascados no lo vuelva a pedir esta
+    semana y Progreso diga «Recordado hace 2 días, por Rida»."""
+    es_alumno = (
+        await db_session.execute(
+            select(UserOrganization.id).where(
+                UserOrganization.org_id == org_id,
+                UserOrganization.user_id == user_id,
+                UserOrganization.role_id == STUDENT_ROLE_ID,
+            )
+        )
+    ).first()
+    if not es_alumno:
+        raise ValueError("Ese alumno no es de esta escuela")
+    fila = StudentReminder(
+        user_id=user_id,
+        tipo="whatsapp",
+        asunto="WhatsApp: sin avanzar en la formación",
+        sent_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        sent_by=(por or "")[:120],
+    )
+    db_session.add(fila)
+    await db_session.commit()
+    return {"sent_at": fila.sent_at, "tipo": fila.tipo, "por": fila.sent_by}
+
+
 async def listar_alumnos(org_id: int, db_session: AsyncSession) -> dict:
     from src.services.contactos.metricas import ids_excluidos
 
@@ -272,6 +333,13 @@ async def listar_alumnos(org_id: int, db_session: AsyncSession) -> dict:
                 "entradas_7d": entradas_7d,
                 "racha": int(p.current_streak or 0) if p else 0,
                 "estado": estado_de(dc["ultima_entrada"], avance["hechas"], hoy),
+                "sin_avanzar": atasco(
+                    (m.creation_date or "")[:10],
+                    max((f for f in suyas.values() if f), default=""),
+                    avance["hechas"],
+                    avance["total"],
+                    hoy,
+                ),
                 "por_avance": False,
                 "aperturas": [],
             }
@@ -290,8 +358,30 @@ async def listar_alumnos(org_id: int, db_session: AsyncSession) -> dict:
         )
     ).scalars().all():
         ultimos[int(r.user_id)] = {"sent_at": r.sent_at, "tipo": r.tipo, "por": r.sent_by}
+    # El WhatsApp de la matrícula, para escribirle con un toque.
+    telefonos: dict[str, str] = {}
+    correos = [a["email"] for a in alumnos if a["email"]]
+    if correos:
+        from src.db.enrollment import Enrollment
+
+        for email, tel in (
+            await db_session.execute(
+                select(Enrollment.email, Enrollment.phone).where(Enrollment.email.in_(correos))  # type: ignore[attr-defined]
+            )
+        ).all():
+            if tel and email:
+                telefonos[email.strip().lower()] = tel
+    try:
+        from src.services.plan.plan import planes_de
+
+        planes = await planes_de([a["user_id"] for a in alumnos], db_session)
+    except Exception:  # noqa: BLE001 — el objetivo es un extra: sin él, la lista sale igual
+        planes = {}
     for a in alumnos:
         a["ultimo_recordatorio"] = ultimos.get(a["user_id"])
+        a["telefono"] = telefonos.get(a["email"], "")
+        a["plan"] = planes.get(a["user_id"])
+        a["sin_avanzar"]["escrito_hace_poco"] = toque_reciente(a["ultimo_recordatorio"], hoy)
 
     # Lo más reciente arriba; quien no ha entrado nunca, al final.
     alumnos.sort(key=lambda a: _clave(a["ultima_entrada"]) if a["ultima_entrada"] else "", reverse=True)

@@ -1,5 +1,6 @@
 'use client'
 
+import { TusInsignias } from '@components/Pages/Insignias/Insignias'
 import { useMemo, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Check, ChevronDown, RotateCcw } from 'lucide-react'
@@ -193,6 +194,9 @@ export default function MiProgreso({ orgslug }: { orgslug: string }) {
               </Link>
             ) : null}
           </section>
+
+          {/* Una insignia por módulo superado (13/11/2026). */}
+          <TusInsignias />
 
           {/* Te conviene repasar */}
           {repasar.length ? (

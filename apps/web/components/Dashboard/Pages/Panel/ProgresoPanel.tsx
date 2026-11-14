@@ -28,6 +28,7 @@ import toast from 'react-hot-toast'
 import { confirmar } from '@lib/nawar/confirmar'
 import FichaCliente from './FichaCliente'
 import RecordatorioModal from './RecordatorioModal'
+import Atascados from './Atascados'
 import { BOTON, BOTON_PRINCIPAL, Estado, TARJETA, filtro, type Tono } from './ui'
 
 type Filtro = 'todos' | 'activo' | 'enfriando' | 'descolgado' | 'sin-empezar'
@@ -222,6 +223,22 @@ export function DetalleAlumno({
         <div>
           <dt className="text-[#6B7280]">Estado</dt>
           <dd className="text-gray-900">{a.estado.texto}</dd>
+        </div>
+        <div>
+          <dt className="text-[#6B7280]">Su objetivo</dt>
+          <dd className="text-gray-900">
+            {a.plan ? (
+              <>
+                {a.plan.texto || a.plan.objetivo}
+                {a.plan.texto && a.plan.texto !== a.plan.objetivo ? ` (${a.plan.objetivo})` : ''}
+                <span className="block text-[#6B7280]">
+                  Se propuso estudiar {a.plan.dias} a las {a.plan.hora}, {a.plan.minutos} minutos
+                </span>
+              </>
+            ) : (
+              'Aún no lo ha dicho'
+            )}
+          </dd>
         </div>
         <div>
           <dt className="text-[#6B7280]">Le falta primero</dt>
@@ -622,6 +639,16 @@ export default function ProgresoPanel() {
 
   return (
     <div className="space-y-5">
+      {/* Dos semanas o más sin terminar una clase de la formación (13/11/2026). */}
+      <Atascados
+        alumnos={alumnos}
+        orgId={org.id}
+        token={token}
+        yo={session?.data?.user?.first_name || ''}
+        onCorreo={(a) => setRecordar(a)}
+        onFicha={(a) => setAbierta(a.user_id)}
+        onCambio={cargar}
+      />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
         <Cifra label="Activos" valor={cuenta.activo} nota="Entraron en los últimos 3 días" activo={ver === 'activo'} onClick={() => cambiar('activo')} />
         <Cifra label="Se enfrían" valor={cuenta.enfriando} nota="De 4 a 7 días sin entrar" activo={ver === 'enfriando'} onClick={() => cambiar('enfriando')} />
