@@ -1779,7 +1779,7 @@ async def avisos_equipo(org_id: int, admin: bool, db_session: AsyncSession) -> l
 # ni sus clases). Se apaga por clase en sus ajustes (`salas[uuid].mira_tambien`
 # = false).
 
-_RE_BUNNY = re.compile(r"mediadelivery\.net/embed/(\d+)/([0-9a-fA-F-]{8,})")
+_RE_BUNNY = re.compile(r"mediadelivery\.net/(?:embed|play)/(\d+)/([0-9a-fA-F-]{8,})")
 _RE_YOUTUBE = re.compile(r"(?:youtube\.com/(?:watch\?v=|embed/|live/|shorts/)|youtu\.be/)([A-Za-z0-9_-]{6,})")
 _RE_VIMEO = re.compile(r"vimeo\.com/(?:video/)?(\d+)")
 

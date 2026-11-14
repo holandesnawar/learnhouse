@@ -548,7 +548,7 @@ async def poner_enlace(s: TareaSemana, datos: dict, autor: str, db_session: Asyn
     enlace = enlace_de(datos.get("url"))
     if not enlace:
         raise GrabacionError(
-            "No reconozco ese enlace. Pega el de Bunny (iframe.mediadelivery.net/embed/…), YouTube o Vimeo.", 400
+            "No reconozco ese enlace. Pega el enlace de Bunny, YouTube o Vimeo.", 400
         )
     antes = leer(getattr(s, "grabacion_sala", ""))
     misma = (antes.get("enlace") or {}).get("url") == enlace["url"]
