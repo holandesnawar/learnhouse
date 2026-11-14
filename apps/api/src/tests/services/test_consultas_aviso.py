@@ -32,3 +32,10 @@ def test_enlace_de_grabacion_pegado():
     assert g["enlace"]["url"] == b["url"]
     assert para_la_semana(g)["enlace"]["tipo"] == "bunny"
     assert leer({"partes": [], "enlace": {"original": "nada"}}) == {}
+
+
+def test_enlace_de_bunny_para_compartir():
+    from src.services.salas.estudio_grabaciones import enlace_de
+    e = enlace_de("https://player.mediadelivery.net/play/675650/a09b90df-445c-49b0-b79a-123456789abc")
+    assert e and e["tipo"] == "bunny"
+    assert e["url"].startswith("https://iframe.mediadelivery.net/embed/675650/a09b90df-445c-49b0-b79a-123456789abc")
