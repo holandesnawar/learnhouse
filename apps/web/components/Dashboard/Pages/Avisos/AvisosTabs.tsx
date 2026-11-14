@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react'
 import AvisosComposer from './AvisosComposer'
 import EmailCatalog from './EmailCatalog'
 import SeedCommunity from './SeedCommunity'
-import RecordatorioAuto from './RecordatorioAuto'
+import RecordatorioAuto, { RecordatorioDelPlan } from './RecordatorioAuto'
 import CorreoReserva from './CorreoReserva'
 import EbookBlackFriday from './EbookBlackFriday'
 import CorreosPanel from '../Panel/CorreosPanel'
@@ -87,7 +87,10 @@ export default function AvisosTabs() {
       ) : tab === 'automaticos' ? (
         <EmailCatalog />
       ) : tab === 'semana' ? (
-        <RecordatorioAuto />
+        <div className="space-y-4">
+          <RecordatorioDelPlan />
+          <RecordatorioAuto />
+        </div>
       ) : tab === 'reserva' ? (
         <CorreoReserva />
       ) : tab === 'ebook' ? (

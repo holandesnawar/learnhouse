@@ -10,7 +10,7 @@ the time spent on it — that powers the "real" /progreso page and the
 from typing import List, Optional
 
 from pydantic import BaseModel
-from sqlalchemy import Column, ForeignKey, Index, Integer, JSON, String
+from sqlalchemy import Column, ForeignKey, Index, Integer, JSON, String, Text
 from sqlmodel import Field, SQLModel
 
 
@@ -34,6 +34,8 @@ class StudentProgress(SQLModel, table=True):
     onboarding_state: dict = Field(default_factory=dict, sa_column=Column(JSON))
     theme: str = "light"  # "light" | "dark" | "system"
     time_seconds_total: int = 0
+    # Su objetivo y sus días de estudio (JSON en texto; services/plan/plan.py).
+    plan: Optional[str] = Field(default="", sa_column=Column(Text, default="", nullable=True))
     creation_date: str = ""
     update_date: str = ""
 

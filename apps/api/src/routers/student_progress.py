@@ -283,6 +283,34 @@ async def api_insignias(
     return await mis_insignias(current_user.id, db_session)
 
 
+@router.get("/plan", summary="Mi objetivo y mis días de estudio, y cómo va esta semana.")
+async def api_plan(
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.plan.plan import mi_plan
+
+    if not getattr(current_user, "id", None):
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return await mi_plan(current_user.id, db_session)
+
+
+@router.put("/plan", summary="Guardar mi objetivo y mis días de estudio.")
+async def api_plan_guardar(
+    datos: dict,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.plan.plan import guardar
+
+    if not getattr(current_user, "id", None):
+        raise HTTPException(status_code=401, detail="Authentication required")
+    try:
+        return await guardar(current_user.id, datos, db_session)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @router.get(
     "/mis-grupos",
     summary="Los grupos de usuarios de quien pregunta; al equipo, además, todos los de la escuela.",

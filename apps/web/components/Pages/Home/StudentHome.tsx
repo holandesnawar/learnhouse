@@ -23,6 +23,7 @@ import { CURSO_CLASE_SEMANAL_UUID, conGrabadas } from '@/lib/nawar/cursos'
 import SafeArea from '@components/Objects/StyledElements/Error/SafeArea'
 import { LecturaEnInicio } from '@components/Pages/Recursos/LecturaSemanal'
 import { InsigniaNueva } from '@components/Pages/Insignias/Insignias'
+import { PlanEnInicio } from '@components/Pages/Plan/PlanEstudio'
 
 // Las tarjetas que dependen del temario (courseData, ~350KB de fuente) se
 // cargan en un chunk aparte: el Inicio pinta antes y el temario llega detrás.
@@ -152,6 +153,9 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
         <div className="min-w-0 space-y-6">
           <SafeArea nombre="Insignia nueva" fallback={null}>
             <InsigniaNueva orgslug={orgslug} />
+          </SafeArea>
+          <SafeArea nombre="Tu plan" fallback={null}>
+            <PlanEnInicio />
           </SafeArea>
           <SafeArea nombre="Siguiente clase" fallback={null}>
             <SiguienteClase orgslug={orgslug} />

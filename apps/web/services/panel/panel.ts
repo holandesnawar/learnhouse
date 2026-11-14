@@ -456,6 +456,8 @@ export interface AlumnoProgreso {
   ultimo_recordatorio: { sent_at: string; tipo: string; por: string } | null
   /** El WhatsApp que dejó al matricularse. */
   telefono?: string
+  /** Su objetivo y sus días de estudio, si los ha rellenado. */
+  plan?: { objetivo: string; texto: string; dias: string; hora: string; minutos: number } | null
   /** ¿Lleva dos semanas o más sin terminar ninguna clase de la formación? */
   sin_avanzar?: { atascado: boolean; dias: number | null; desde: string; sin_empezar: boolean; escrito_hace_poco?: boolean }
   /** Entró desde el 10/10/2026: la formación se le abre por avance. */
@@ -523,6 +525,18 @@ export const guardarRecordatorioAuto = (orgId: number, activo: boolean, t: strin
 
 export const vistaRecordatorioAuto = (orgId: number, datos: { asunto: string; texto: string; a_mi?: boolean }, t: string) =>
   pedir<{ para: string; asunto: string; html: string }>(`panel/org/${orgId}/recordatorio-auto/vista`, 'POST', datos, t)
+
+/** El recordatorio del plan de estudio de cada alumno (apps/api/src/services/plan/plan.py). */
+export interface PlanEstudioPanel {
+  recordatorios: boolean
+  alumnos: number
+  con_plan: number
+}
+
+export const getPlanEstudio = (orgId: number, t: string) => pedir<PlanEstudioPanel>(`panel/org/${orgId}/plan-estudio`, 'GET', null, t)
+
+export const guardarPlanEstudio = (orgId: number, activo: boolean, t: string) =>
+  pedir<PlanEstudioPanel>(`panel/org/${orgId}/plan-estudio`, 'PUT', { activo }, t)
 
 /** El correo de Rida al reservar una llamada (apps/api/src/services/contactos/correo_reserva.py). */
 export interface CorreoReserva {

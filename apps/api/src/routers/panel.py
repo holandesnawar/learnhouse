@@ -782,6 +782,40 @@ async def api_recordatorio_auto_vista(
     return await recordatorio.vista_auto(org_id, datos.asunto, datos.texto, db_session, enviar_a=a_mi)
 
 
+# ── El recordatorio del plan de estudio de cada alumno (services/plan/plan.py).
+
+
+@router.get("/org/{org_id}/plan-estudio", summary="El interruptor del recordatorio del plan y cuántos alumnos lo tienen.")
+async def api_plan_estudio(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_progreso(request, org_id, current_user, db_session)
+    from src.services.plan import plan as plan_estudio
+
+    return await plan_estudio.resumen_panel(org_id, db_session)
+
+
+@router.put("/org/{org_id}/plan-estudio", summary="Encender o apagar el recordatorio del plan de estudio.")
+async def api_plan_estudio_guardar(
+    request: Request,
+    org_id: int,
+    datos: AutoIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_progreso(request, org_id, current_user, db_session)
+    from src.services.plan import plan as plan_estudio
+
+    try:
+        await plan_estudio.guardar_ajuste(org_id, datos.activo, _nombre(current_user), db_session)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return await plan_estudio.resumen_panel(org_id, db_session)
+
+
 # ── El correo de Rida al reservar una llamada (Avisos). Solo administradores.
 # services/contactos/correo_reserva.py
 

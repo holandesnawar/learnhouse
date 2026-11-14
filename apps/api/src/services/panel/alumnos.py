@@ -371,9 +371,16 @@ async def listar_alumnos(org_id: int, db_session: AsyncSession) -> dict:
         ).all():
             if tel and email:
                 telefonos[email.strip().lower()] = tel
+    try:
+        from src.services.plan.plan import planes_de
+
+        planes = await planes_de([a["user_id"] for a in alumnos], db_session)
+    except Exception:  # noqa: BLE001 — el objetivo es un extra: sin él, la lista sale igual
+        planes = {}
     for a in alumnos:
         a["ultimo_recordatorio"] = ultimos.get(a["user_id"])
         a["telefono"] = telefonos.get(a["email"], "")
+        a["plan"] = planes.get(a["user_id"])
         a["sin_avanzar"]["escrito_hace_poco"] = toque_reciente(a["ultimo_recordatorio"], hoy)
 
     # Lo más reciente arriba; quien no ha entrado nunca, al final.

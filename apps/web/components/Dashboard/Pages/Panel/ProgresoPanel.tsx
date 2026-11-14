@@ -225,6 +225,22 @@ export function DetalleAlumno({
           <dd className="text-gray-900">{a.estado.texto}</dd>
         </div>
         <div>
+          <dt className="text-[#6B7280]">Su objetivo</dt>
+          <dd className="text-gray-900">
+            {a.plan ? (
+              <>
+                {a.plan.texto || a.plan.objetivo}
+                {a.plan.texto && a.plan.texto !== a.plan.objetivo ? ` (${a.plan.objetivo})` : ''}
+                <span className="block text-[#6B7280]">
+                  Se propuso estudiar {a.plan.dias} a las {a.plan.hora}, {a.plan.minutos} minutos
+                </span>
+              </>
+            ) : (
+              'Aún no lo ha dicho'
+            )}
+          </dd>
+        </div>
+        <div>
           <dt className="text-[#6B7280]">Le falta primero</dt>
           <dd className="text-gray-900">
             {a.siguiente ? `${modulo(a.siguiente.modulo)} · ${a.siguiente.clase}` : a.total ? 'Nada: ha terminado la formación' : '—'}
