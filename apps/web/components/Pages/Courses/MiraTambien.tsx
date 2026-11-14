@@ -83,7 +83,7 @@ function ReproductorDentro({ courseUuid, g, onClose }: { courseUuid: string; g: 
     window.addEventListener('keydown', tecla)
     return () => window.removeEventListener('keydown', tecla)
   }, [onClose])
-  if (v.tipo === 'sala' && g.sala) {
+  if (v.tipo === 'sala' && g.sala && g.sala.partes?.length) {
     // Lo que grabó la sala de la escuela con el otro grupo (12/11/2026): el
     // mismo reproductor que la grabación propia, con su recorte.
     return (

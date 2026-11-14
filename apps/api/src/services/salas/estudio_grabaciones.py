@@ -221,16 +221,34 @@ def leer(texto: Any) -> dict:
             continue
         dur = max(0.0, float(p.get("dur") or 0))
         partes.append({"id": str(p["id"]), "dur": dur, "trozos": limpiar_trozos(p.get("trozos"), dur)})
-    if not partes:
+    enlace = enlace_de(datos.get("enlace")) if not partes else None
+    if not partes and not enlace:
         return {}
     vistas = datos.get("vistas") if isinstance(datos.get("vistas"), dict) else {}
     return {
         "partes": partes,
+        **({"enlace": enlace} if enlace else {}),
         "titulo": str(datos.get("titulo") or "")[:160],
         "publicada_at": str(datos.get("publicada_at") or ""),
         "por": str(datos.get("por") or "")[:120],
         "vistas": {str(k): str(v) for k, v in vistas.items()},
     }
+
+
+def enlace_de(valor: Any) -> Optional[dict]:
+    """Un enlace de grabación pegado a mano (14/11/2026): Bunny, YouTube o
+    Vimeo, ya como reproductor. Acepta lo guardado ({tipo, url, original}) o
+    el texto pegado. None si no se reconoce. Pura."""
+    from src.services.tareas.tareas import video_de
+
+    original = valor.get("original") if isinstance(valor, dict) else valor
+    original = str(original or "").strip()[:500]
+    if not original:
+        return None
+    v = video_de("", "", {"enlace": original})
+    if not v or v.get("tipo") == "archivo":
+        return None
+    return {"tipo": v["tipo"], "url": v["url"], "original": original}
 
 
 def segundos_de(g: dict) -> float:
@@ -247,6 +265,7 @@ def para_la_semana(texto: Any, user_id: Optional[int] = None, equipo: bool = Fal
         return None
     salida: dict = {
         "partes": g["partes"],
+        "enlace": g.get("enlace"),
         "titulo": g["titulo"],
         "segundos": segundos_de(g),
         "vista": str(user_id) in g["vistas"] if user_id else False,
@@ -512,6 +531,34 @@ async def publicar(s: TareaSemana, course: Course, datos: dict, autor: str, db_s
         "publicada_at": _ahora(),
         "por": (autor or "")[:120],
         "vistas": antes.get("vistas", {}) if mismas else {},
+    }
+    s.grabacion_sala = json.dumps(nuevo, ensure_ascii=False)
+    s.updated_at = _ahora()
+    db_session.add(s)
+    await db_session.commit()
+    return para_la_semana(nuevo, equipo=True) or {}
+
+
+async def poner_enlace(s: TareaSemana, datos: dict, autor: str, db_session: AsyncSession) -> dict:
+    """La grabación de la semana como un ENLACE pegado (14/11/2026; usuario:
+    "no sé cómo subir el link de la clase grabada… que no se duplique como un
+    capítulo y vea dos títulos iguales"). Va en el mismo sitio que la de la
+    sala (`grabacion_sala`): una semana, una grabación, sin crear clases en
+    el curso. Sustituye a lo que hubiera."""
+    enlace = enlace_de(datos.get("url"))
+    if not enlace:
+        raise GrabacionError(
+            "No reconozco ese enlace. Pega el de Bunny (iframe.mediadelivery.net/embed/…), YouTube o Vimeo.", 400
+        )
+    antes = leer(getattr(s, "grabacion_sala", ""))
+    misma = (antes.get("enlace") or {}).get("url") == enlace["url"]
+    nuevo = {
+        "partes": [],
+        "enlace": enlace,
+        "titulo": str(datos.get("titulo") or "").strip()[:160],
+        "publicada_at": _ahora(),
+        "por": (autor or "")[:120],
+        "vistas": antes.get("vistas", {}) if misma else {},
     }
     s.grabacion_sala = json.dumps(nuevo, ensure_ascii=False)
     s.updated_at = _ahora()

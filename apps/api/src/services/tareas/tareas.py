@@ -1913,7 +1913,7 @@ async def _grabaciones_de_hermana(
                     "fecha": s["fecha"],
                     "activity_uuid": "",
                     "nombre": sala["titulo"] or s["tema"],
-                    "sala": {"partes": sala["partes"], "segundos": sala["segundos"], "titulo": sala["titulo"]},
+                    "sala": {"partes": sala["partes"], "segundos": sala["segundos"], "titulo": sala["titulo"], "enlace": sala.get("enlace")},
                 }
             )
         for c in clases.get(s["chapter_uuid"], []):
@@ -1979,7 +1979,11 @@ async def mira_tambien(course: Course, db_session: AsyncSession, limite: int = 8
                 contenido[a.activity_uuid] = video_de(a.activity_type, a.activity_sub_type, a.content)
         grabaciones = []
         for g in lista:
-            if g.get("sala"):
+            if g.get("sala") and (g["sala"].get("enlace") or {}).get("url"):
+                # Un enlace pegado (Bunny, YouTube, Vimeo): su reproductor tal cual.
+                en = g["sala"]["enlace"]
+                grabaciones.append({**g, "video": {"tipo": en["tipo"], "url": en["url"]}})
+            elif g.get("sala"):
                 grabaciones.append({**g, "video": {"tipo": "sala", "url": ""}})
             elif contenido.get(g["activity_uuid"]):
                 grabaciones.append({**g, "video": contenido[g["activity_uuid"]]})

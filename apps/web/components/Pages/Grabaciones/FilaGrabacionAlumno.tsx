@@ -31,7 +31,7 @@ export default function FilaGrabacionAlumno({
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-[14.5px] font-semibold text-gray-900 truncate">{grabacion.titulo || 'Grabación'}</p>
-            <p className="text-[12.5px] text-[#6B7280] leading-snug">La clase grabada · {duracionCorta(grabacion.segundos)}</p>
+            <p className="text-[12.5px] text-[#6B7280] leading-snug">La clase grabada{grabacion.segundos ? ` · ${duracionCorta(grabacion.segundos)}` : ''}</p>
           </div>
           {grabacion.vista ? (
             <span className="shrink-0 inline-flex items-center gap-1 text-[12.5px] font-bold text-[#15803D]">

@@ -5741,6 +5741,28 @@ leerla), test `test_plan_estudio.py`.
   `nawar.consulta.vista`) hasta que se responda otra. Sin correo del autor.
   Test `test_consultas_aviso.py`.
 
+### La grabación de una semana: «Pegar enlace», sin crear clases (14/11/2026)
+Usuario: "con tantas funciones no sé cómo subir el link de la clase grabada
+del grupo azul… que no se duplique como un capítulo y vea dos títulos iguales".
+Antes había dos caminos: publicar lo que grabó la sala, o «Añadir clases
+(grabación…)», que abría el editor del curso y creaba otra clase (de ahí los
+títulos repetidos y no saber dónde estaba cada enlace).
+- **Una semana, una grabación.** En cada semana ya dada, junto a «Recortar /
+  Publicar» de la sala, **«Pegar enlace»** (Bunny, YouTube o Vimeo):
+  `GrabacionDeSala.tsx`, `PUT /grabaciones/semana/{id}/enlace` →
+  `poner_enlace` en `estudio_grabaciones.py`. Se guarda en el MISMO sitio que
+  la de la sala (`tarea_semana.grabacion_sala`, clave `enlace` = {tipo, url de
+  reproductor, original}; `enlace_de` reconoce el enlace con `video_de` de
+  `tareas.py`). Sustituye a lo que hubiera; «Cambiar enlace» y «Quitar». Sale
+  también si la sala no grabó ese día.
+- El alumno la ve en su semana como la de la sala (`VentanaGrabacionSala` pinta
+  el reproductor del enlace; cuenta como vista al minuto y medio de abrirla) y
+  el otro grupo la ve en «La misma clase, con el otro grupo» (`mira_tambien`
+  pasa el enlace como `video`).
+- **Fuera el enlace «Añadir clases (grabación…)»** de la franja del equipo de
+  cada semana (`SemanasClase.tsx`). El editor del curso sigue en el panel.
+- Test en `test_consultas_aviso.py` (`test_enlace_de_grabacion_pegado`).
+
 ### Nieuwsbegrip: aparcado (12/11/2026)
 El usuario tiene licencias de Nieuwsbegrip (lectura por niveles AA-Alfa…D, con
 temas de dos semanas, ejercicios, woordenschat y vídeo) y quería meterlo en la
