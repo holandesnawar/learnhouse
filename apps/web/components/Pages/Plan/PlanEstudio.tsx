@@ -178,12 +178,12 @@ export function VentanaPlan({ inicial, onCerrar }: { inicial: MiPlan; onCerrar: 
 }
 
 /** Los siete días de esta semana: los suyos marcados, los que entró con check. */
-function Semana({ d }: { d: MiPlan }) {
+function Semana({ d, repartida = false }: { d: MiPlan; repartida?: boolean }) {
   const hoy = new Date()
   const lunes = new Date(hoy)
   lunes.setDate(hoy.getDate() - ((hoy.getDay() + 6) % 7))
   return (
-    <div className="flex gap-1.5">
+    <div className={repartida ? 'flex justify-between' : 'flex gap-1.5'}>
       {DIAS_CORTOS.map((l, i) => {
         const f = new Date(lunes)
         f.setDate(lunes.getDate() + i)
@@ -251,41 +251,59 @@ export function PlanEnInicio({ soloAlumno = true }: { soloAlumno?: boolean }) {
     )
   }
 
+  // Rellenado, vive en el lateral, junto a la racha (PlanLateral, 14/11/2026:
+  // «quedaría mejor en el sitio de la racha, no tan arriba»).
+  return null
+}
+
+function fraseDe(data: MiPlan): string {
   const s = data.semana
-  const frase = s.cumplida
+  return s.cumplida
     ? 'Semana cumplida.'
     : s.hoy_toca
       ? `Hoy es uno de tus días: ${data.plan.minutos} minutos.`
       : s.proximo
         ? `Tu próximo día es el ${s.proximo}.`
         : `Te quedan ${Math.max(0, s.meta - s.hechos)} para llegar a tus ${s.meta}.`
+}
+
+/**
+ * La columna de la derecha del Inicio: el objetivo con sus días de la semana.
+ * Sustituye a «Tu racha esta semana» (las dos eran una fila de días con
+ * checks). Sin plan hecho, enseña la racha de siempre (`sinPlan`).
+ */
+export function PlanLateral({ sinPlan }: { sinPlan: React.ReactNode }) {
+  const { data } = usePlan()
+  const [abierta, setAbierta] = useState(false)
+  if (!data || !data.rellenado) return <>{sinPlan}</>
+  const s = data.semana
   return (
-    <div className="rounded-2xl border border-[#E4E8F2] bg-white p-4 sm:p-5">
+    <div className="rounded-2xl border border-[#E4E8F2] bg-white p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6B7393]">Tu objetivo</p>
-          <p className="mt-1 text-[16px] font-bold text-[#0B1033] leading-snug" style={POPPINS}>
+          <p className="mt-1 text-[15px] font-bold text-[#0B1033] leading-snug" style={POPPINS}>
             {data.plan.objetivo_texto || data.objetivo_nombre}
           </p>
         </div>
-        <button type="button" onClick={() => setAbierta(true)} className="shrink-0 text-[13.5px] font-semibold text-[#0b2da0] hover:underline">
+        <button type="button" onClick={() => setAbierta(true)} className="shrink-0 text-[13px] font-semibold text-[#0b2da0] hover:underline">
           Cambiar
         </button>
       </div>
-      <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
-        <Semana d={data} />
-        <p className="text-[14px] text-[#0B1033]">
-          <span className="font-semibold tabular-nums">
-            {Math.min(s.hechos, s.meta)} de {s.meta} días esta semana.
-          </span>{' '}
-          <span className={s.cumplida ? 'text-[#16A34A] font-semibold' : 'text-[#4A5272]'}>{frase}</span>
-        </p>
+      <div className="mt-3">
+        <Semana d={data} repartida />
       </div>
-      <p className="mt-3 text-[13px] text-[#6B7393]">
-        {diasEnTexto(data.plan.dias)} a las {data.plan.hora}, {data.plan.minutos} minutos
-        {data.plan.recordar ? ' · con recordatorio por correo' : ''}
+      <p className="mt-3 text-[13.5px] text-[#0B1033]">
+        <span className="font-semibold tabular-nums">
+          {Math.min(s.hechos, s.meta)} de {s.meta} días esta semana.
+        </span>{' '}
+        <span className={s.cumplida ? 'text-[#16A34A] font-semibold' : 'text-[#4A5272]'}>{fraseDe(data)}</span>
       </p>
-      {ventana}
+      <p className="mt-1.5 text-[12.5px] text-[#6B7393] leading-snug">
+        {diasEnTexto(data.plan.dias)} a las {data.plan.hora}, {data.plan.minutos} min
+        {data.plan.recordar ? ' · te lo recordamos por correo' : ''}
+      </p>
+      {abierta ? <VentanaPlan inicial={data} onCerrar={() => setAbierta(false)} /> : null}
     </div>
   )
 }

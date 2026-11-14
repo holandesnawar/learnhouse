@@ -14,6 +14,7 @@ import {
   catClasses, TEAM_LOGO,
   type Consulta, type StatusFilter,
 } from '@/lib/consultas/consultas'
+import { avisarConsultaNueva } from '@services/consultas/aviso'
 
 function formatDate(iso: string): string {
   try {
@@ -200,10 +201,13 @@ export default function ConsultasBoard({
       if (form.editingId) {
         await updateMyConsulta(form.editingId, { title, content, category: form.category })
       } else {
-        await createConsulta({
+        const nuevaId = await createConsulta({
           title, content, category: form.category,
           author_name: form.name.trim(), author_email: form.email.trim(),
         })
+        // Correo al equipo para responder rápido (14/11/2026). En blando:
+        // si falla, la consulta ya está publicada igual.
+        if (nuevaId && org?.id && accessToken) avisarConsultaNueva(org.id, nuevaId, accessToken)
       }
       setForm(EMPTY_FORM)
       await loadFeed()

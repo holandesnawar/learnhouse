@@ -5716,6 +5716,31 @@ leerla), test `test_plan_estudio.py`.
 - Sin hacer: usar el objetivo en la comunidad (retos por objetivo), en «Tu
   grupo esta semana» de los profes y en los check-in.
 
+### Objetivo en el lateral, «¿Quién viene?» y consultas (14/11/2026)
+- **«Tu objetivo» va en la columna de la derecha** del Inicio, en el sitio de
+  «Tu racha esta semana» (`PlanLateral` en `PlanEstudio.tsx`: las dos eran una
+  fila de días con checks). Sin plan hecho sale la racha de siempre y, arriba,
+  la tarjeta «¿Para qué quieres el neerlandés?» hasta rellenarlo.
+- **El cuadro de escribir del Inicio** buscaba un canal llamado «General» y en
+  la escuela se llama «Comunidad Alumnos»: seguía siendo un botón. Ahora
+  `canalGeneral` (`lib/communities/canales.ts`) acepta «General» o, si no hay,
+  el que lleva «alumnos», nunca victorias, presentaciones ni Spreekclub.
+- **«¿Quién viene?»** en la sala de profes («Tu próxima clase») y en la ficha de
+  la clase (hasta el día de la clase): cuántos dijeron «Asistiré» / «No puedo»
+  y «Ver quiénes» con los nombres (`Equipo/Confirmados.tsx`; el servidor da
+  `confirmaciones.vienen/no_pueden` solo al equipo, `resumen_confirmaciones`).
+- **Correo al equipo con cada consulta nueva**: el navegador del alumno, tras
+  guardarla en Supabase, avisa a `POST /consultas/org/{id}/nueva/{cid}`; la
+  escuela comprueba con la clave maestra que existe y es de hace menos de
+  15 min y escribe a los administradores una vez (Redis `consulta-nueva:`),
+  con botón «Responder la consulta». Si el alumno cierra la página justo al
+  publicar, puede no salir el aviso.
+- **«Consulta respondida» en el Inicio** (`Home/UltimaConsulta.tsx`,
+  `GET /consultas/org/{id}/ultima-respondida`): la última respondida de los
+  últimos 7 días, una sola; al abrirla o cerrarla no vuelve (navegador,
+  `nawar.consulta.vista`) hasta que se responda otra. Sin correo del autor.
+  Test `test_consultas_aviso.py`.
+
 ### Nieuwsbegrip: aparcado (12/11/2026)
 El usuario tiene licencias de Nieuwsbegrip (lectura por niveles AA-Alfa…D, con
 temas de dos semanas, ejercicios, woordenschat y vídeo) y quería meterlo en la

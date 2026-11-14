@@ -327,8 +327,16 @@ def leer_confirmaciones(texto: Any) -> dict[str, dict]:
     return {str(k): v for k, v in datos.items() if isinstance(v, dict) and isinstance(v.get("va"), bool)}
 
 
-def resumen_confirmaciones(conf: dict[str, dict]) -> dict:
-    return {"si": sum(1 for v in conf.values() if v["va"]), "no": sum(1 for v in conf.values() if not v["va"])}
+def resumen_confirmaciones(conf: dict[str, dict], nombres: Optional[dict[str, str]] = None) -> dict:
+    """Cuántos vienen y cuántos no; con `nombres` ({user_id: nombre}), también
+    quiénes (14/11/2026: el profe los ve en la sala de profes antes de la
+    clase). Lo más reciente primero."""
+    out = {"si": sum(1 for v in conf.values() if v["va"]), "no": sum(1 for v in conf.values() if not v["va"])}
+    if nombres is not None:
+        orden = sorted(conf.items(), key=lambda kv: str(kv[1].get("at") or ""), reverse=True)
+        out["vienen"] = [nombres[k] for k, v in orden if v["va"] and nombres.get(k)]
+        out["no_pueden"] = [nombres[k] for k, v in orden if not v["va"] and nombres.get(k)]
+    return out
 
 
 async def confirmar_asistencia(s: TareaSemana, user_id: int, va: Optional[bool], db_session: AsyncSession) -> dict:
@@ -718,6 +726,12 @@ async def semanas_para_alumno(
         ],
     )
     confs = {f.id: leer_confirmaciones(getattr(f, "confirmaciones", "")) for f in filas}
+    nombres_conf: dict[str, str] = {}
+    if equipo:
+        ids_conf = {int(k) for c in confs.values() for k in c if str(k).isdigit()}
+        if ids_conf:
+            for u in (await db_session.execute(select(User).where(User.id.in_(ids_conf)))).scalars().all():  # type: ignore[attr-defined]
+                nombres_conf[str(u.id)] = " ".join(x for x in [u.first_name or "", u.last_name or ""] if x).strip() or u.username or ""
     # Si esa semana va a la clase del otro grupo (08/11, cambio_semana.py).
     from src.services.tareas.cambio_semana import cambio_de
 
@@ -733,7 +747,7 @@ async def semanas_para_alumno(
         if not equipo and por_id.get(s["id"]) is not None and getattr(por_id[s["id"]], "cambios", ""):
             s["cambio"] = await cambio_de(por_id[s["id"]], user_id, db_session)
         if equipo:
-            s["confirmaciones"] = resumen_confirmaciones(confs.get(s["id"]) or {})
+            s["confirmaciones"] = resumen_confirmaciones(confs.get(s["id"]) or {}, nombres_conf)
     if not equipo:
         semanas = [s if s["abierta"] else solo_antes_de_la_clase(s) for s in semanas]
     else:

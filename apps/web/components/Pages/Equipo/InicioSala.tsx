@@ -16,6 +16,7 @@
  * El calendario de todas las clases, con quién da cada una, va en su pestaña.
  * El administrador y el monitor ven la próxima de todas las suyas.
  */
+import Confirmados from './Confirmados'
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, CalendarDays, Check, Pencil } from 'lucide-react'
@@ -102,6 +103,9 @@ function Hero({
       <div className="px-5 sm:px-6 py-4">
         <MensajeDelAdmin semana={s} admin={admin} token={token} onLeido={recargar} />
         <Material semana={s} token={token} />
+        <div className="border-b border-[#EEF1F7]">
+          <Confirmados c={s.confirmaciones} />
+        </div>
         <ul className="mt-1 divide-y divide-[#EEF1F7]">
           <Paso
             hecho={!!pres}

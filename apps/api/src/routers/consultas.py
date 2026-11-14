@@ -34,6 +34,8 @@ from src.security.auth import get_current_user
 from src.security.rbac.constants import STAFF_ROLE_IDS
 from src.security.superadmin import is_user_superadmin
 from src.services.consultas.admin import (
+    avisar_consulta_nueva,
+    ultima_respondida,
     answer_consulta,
     delete_consulta,
     list_consultas,
@@ -155,3 +157,52 @@ async def api_delete_consulta(
 ):
     await _admin_or_403(request, org_id, current_user, db_session)
     return await delete_consulta(consulta_id)
+
+
+async def _de_la_escuela_or_403(org_id: int, current_user, db_session: AsyncSession) -> None:
+    """Cualquiera con sesión y sitio en la escuela (alumno incluido)."""
+    await _org_or_404(org_id, db_session)
+    if not isinstance(current_user, PublicUser) or not getattr(current_user, "id", None):
+        raise HTTPException(status_code=401, detail="Tienes que iniciar sesión")
+    if await is_user_superadmin(current_user.id, db_session):
+        return
+    m = (
+        await db_session.execute(
+            select(UserOrganization).where(UserOrganization.user_id == current_user.id, UserOrganization.org_id == org_id)
+        )
+    ).scalars().first()
+    if not m:
+        raise HTTPException(status_code=403, detail="No eres de esta escuela")
+
+
+@router.post(
+    "/org/{org_id}/nueva/{consulta_id}",
+    summary="El navegador avisa de una consulta recién creada: correo a los administradores (una vez).",
+)
+async def api_consulta_nueva(
+    org_id: int,
+    consulta_id: str,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _de_la_escuela_or_403(org_id, current_user, db_session)
+    from src.services.contactos.llamadas import emails_de_administradores
+
+    destinos = await emails_de_administradores(db_session)
+    return await avisar_consulta_nueva(consulta_id, destinos)
+
+
+@router.get(
+    "/org/{org_id}/ultima-respondida",
+    summary="La última consulta respondida, si es de esta semana (para el Inicio).",
+)
+async def api_ultima_respondida(
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _de_la_escuela_or_403(org_id, current_user, db_session)
+    try:
+        return {"consulta": await ultima_respondida()}
+    except HTTPException:
+        return {"consulta": None}

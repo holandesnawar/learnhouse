@@ -13,6 +13,8 @@
 
 import { diasEntre, lunesDe, sumarDias } from './semanasTrabajo'
 
+export type Confirmaciones = { si: number; no: number; vienen?: string[]; no_pueden?: string[] }
+
 export type SemanaEquipo = {
   key: string
   semanaId: number
@@ -29,6 +31,8 @@ export type SemanaEquipo = {
   tieneTarea: boolean
   enunciado: string
   lista: { pasada: boolean; vinieron: number } | null
+  /** «¿Vienes?» de los alumnos, con sus nombres (14/11/2026). */
+  confirmaciones?: Confirmaciones | null
   porCorregir: number
   /** Una grabación de los meses de antes sin semana (06/11/2026). */
   suelta?: boolean

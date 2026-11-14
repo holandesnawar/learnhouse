@@ -99,7 +99,7 @@ export async function createConsulta(input: {
   category: string
   author_name: string
   author_email: string
-}): Promise<void> {
+}): Promise<string | null> {
   const { data, error } = await consultasClient
     .from('consultas')
     .insert([
@@ -116,6 +116,7 @@ export async function createConsulta(input: {
   if (error) throw error
   const row = data as { id?: string; edit_token?: string } | null
   if (row?.id && row?.edit_token) setMyToken(row.id, row.edit_token)
+  return row?.id || null
 }
 
 /**

@@ -13,6 +13,14 @@ describe('canales por lo que son', () => {
     expect(canalVictorias(CANALES)?.community_uuid).toBe('c3')
     expect(canalGeneral([CANALES[0]])).toBeNull()
   })
+  test('sin «General», el de alumnos (Comunidad Alumnos), nunca el Spreekclub ni victorias', () => {
+    const escuela = [
+      { community_uuid: 's', name: '🎙️ Spreek Club Chat', kind: 'chat' },
+      { community_uuid: 'v', name: 'Victorias', kind: 'posts' },
+      { community_uuid: 'a', name: 'Comunidad Alumnos', kind: 'chat' },
+    ]
+    expect(canalGeneral(escuela)?.community_uuid).toBe('a')
+  })
   test('el texto pasa a título y documento', () => {
     const p = comoPublicacion('Hoy pedí un café en neerlandés\n\nY me entendieron')
     expect(p.title).toBe('Hoy pedí un café en neerlandés')
