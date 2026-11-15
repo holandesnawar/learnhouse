@@ -1,6 +1,7 @@
 'use client'
 import { getAPIUrl } from '@services/config/config'
 import { RequestBodyWithAuthHeader } from '@services/utils/ts/requests'
+import type { EjercicioLectura } from '@lib/nawar/ejerciciosLectura'
 
 /** La lectura semanal (servidor: `services/lecturas/lecturas.py`). */
 
@@ -22,6 +23,8 @@ export interface Lectura {
   palabras?: Palabra[]
   video?: string
   comunidad?: string
+  /** Ejercicios sobre el texto, que se hacen en la escuela. */
+  ejercicios?: EjercicioLectura[]
   creada?: string
   por?: string
 }

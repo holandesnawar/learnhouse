@@ -5777,6 +5777,24 @@ títulos repetidos y no saber dónde estaba cada enlace).
 - «Pegar enlace» acepta también el enlace de compartir de Bunny
   (`player.mediadelivery.net/play/…`).
 
+### Los ejercicios de la lectura, dentro de la escuela (15/11/2026)
+Usuario: "en la lectura de la semana, un botón para ir a los ejercicios, ahí
+mismo hacerlos y ver la respuesta". Cada lectura lleva `ejercicios` (lista en
+su entrada de org_config `lecturas`, `leer_ejercicios` en `lecturas.py`, 30
+como mucho). El equipo los pega en «Nueva lectura» → «Ejercicios», una línea
+por ejercicio (`lib/nawar/ejerciciosLectura.ts`, con test):
+`VF | frase | waar/niet waar`, `OP | pregunta | buena | otra | otra`,
+`HU | frase con ___ | buena [| otras]` (sin otras, se escribe),
+`AB | pregunta | ejemplo`, y `>> explicación` al final. La primera opción es
+la buena; se baraja al enseñarla. Lo que no se entiende sale en rojo y no se
+guarda. El alumno pulsa «Hacer los ejercicios (N)» en la lectura, contesta en
+una ventana (`Recursos/EjerciciosLectura.tsx`) y ve al momento si está bien,
+con la buena y la explicación; al final, «Has acertado X de N». **No se guarda
+en el servidor**: el navegador recuerda el último resultado para el botón
+(«Ejercicios · 9 de 12 · Repetir»). El enlace a la comunidad sigue, como
+«Comentarlo en la comunidad». El proyecto de contenido de Claude (fuera del
+repo) entrega los ejercicios ya en este formato.
+
 ### Nieuwsbegrip: aparcado (12/11/2026)
 El usuario tiene licencias de Nieuwsbegrip (lectura por niveles AA-Alfa…D, con
 temas de dos semanas, ejercicios, woordenschat y vídeo) y quería meterlo en la

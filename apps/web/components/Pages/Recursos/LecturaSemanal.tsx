@@ -22,7 +22,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
-import { BookOpenText, ChatsCircle, SpeakerHigh } from '@phosphor-icons/react'
+import { BookOpenText, ChatsCircle, PencilSimpleLine, SpeakerHigh } from '@phosphor-icons/react'
 import { ChevronDown, Download, ExternalLink, FileText, Loader2, Pencil, Plus, Trash2, Upload, X } from 'lucide-react'
 import {
   borrarLectura,
@@ -40,6 +40,8 @@ import {
 import { mediaSrc } from '@services/messages/direct'
 import { getUriWithOrg } from '@services/config/config'
 import { confirmar } from '@lib/nawar/confirmar'
+import { aTexto, leerEjercicios } from '@lib/nawar/ejerciciosLectura'
+import EjerciciosLectura, { resultadoGuardado } from './EjerciciosLectura'
 
 const PaginasPdf = dynamic(() => import('@components/Objects/Activities/DocumentPdf/PaginasPdf'), { ssr: false })
 
@@ -138,11 +140,32 @@ export function CuerpoLectura({ l }: { l: Lectura }) {
   const hoja = l.hoja?.url ? mediaSrc(l.hoja.url) : ''
   const yt = l.video ? youtubeId(l.video) : ''
   const trozos = parrafos(l.texto || '')
+  const ejercicios = l.ejercicios || []
+  const [haciendo, setHaciendo] = useState(false)
+  const [resultado, setResultado] = useState<{ aciertos: number; total: number } | null>(null)
+  useEffect(() => setResultado(resultadoGuardado(l.id)), [l.id])
 
   return (
     <div className="space-y-6">
-      {hoja || l.comunidad ? (
+      {haciendo ? (
+        <EjerciciosLectura
+          id={l.id}
+          titulo={l.titulo}
+          ejercicios={ejercicios}
+          onCerrar={(r) => {
+            setHaciendo(false)
+            if (r) setResultado(r)
+          }}
+        />
+      ) : null}
+      {hoja || l.comunidad || ejercicios.length ? (
         <div className="flex flex-wrap gap-2">
+          {ejercicios.length ? (
+            <button type="button" onClick={() => setHaciendo(true)} className={BOTON_PRINCIPAL}>
+              <PencilSimpleLine size={16} />
+              {resultado ? `Ejercicios · ${resultado.aciertos} de ${resultado.total} · Repetir` : `Hacer los ejercicios (${ejercicios.length})`}
+            </button>
+          ) : null}
           {hoja ? (
             <>
               <button type="button" onClick={() => setHojaAbierta((v) => !v)} className={BOTON}>
@@ -154,8 +177,8 @@ export function CuerpoLectura({ l }: { l: Lectura }) {
             </>
           ) : null}
           {l.comunidad ? (
-            <a href={l.comunidad} className={BOTON_PRINCIPAL}>
-              <ChatsCircle size={16} /> Los ejercicios, en la comunidad
+            <a href={l.comunidad} className={ejercicios.length ? BOTON : BOTON_PRINCIPAL}>
+              <ChatsCircle size={16} /> {ejercicios.length ? 'Comentarlo en la comunidad' : 'Los ejercicios, en la comunidad'}
             </a>
           ) : null}
         </div>
@@ -411,6 +434,8 @@ function EditorLectura({
   const [palabras, setPalabras] = useState((lectura?.palabras || []).map((p) => [p.nl, p.es, p.ejemplo].filter(Boolean).join(' | ')).join('\n'))
   const [video, setVideo] = useState(lectura?.video || '')
   const [comunidad, setComunidad] = useState(lectura?.comunidad || '')
+  const [ejerciciosTexto, setEjerciciosTexto] = useState(aTexto(lectura?.ejercicios))
+  const leidos = leerEjercicios(ejerciciosTexto)
   const [archivo, setArchivo] = useState<File | null>(null)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
@@ -420,7 +445,7 @@ function EditorLectura({
     setGuardando(true)
     setError('')
     try {
-      const datos = { semana, titulo, titulo_es: tituloEs, texto, traduccion, palabras, video, comunidad }
+      const datos = { semana, titulo, titulo_es: tituloEs, texto, traduccion, palabras, video, comunidad, ejercicios: leidos.ejercicios }
       const hecha = lectura ? await editarLectura(orgId, lectura.id, datos, accessToken) : await crearLectura(orgId, datos, accessToken)
       if (archivo) await subirHoja(orgId, hecha.id, archivo, accessToken)
       onHecho()
@@ -488,6 +513,27 @@ function EditorLectura({
           className={AREA}
           placeholder={'Una por línea: palabra | traducción | ejemplo\nde fiets | la bici | Ik ga met de fiets naar mijn werk.'}
         />
+      </label>
+      <label className="block">
+        <span className="block text-[13px] font-semibold text-[#3B4262] mb-1">Ejercicios sobre el texto (se hacen aquí mismo)</span>
+        <textarea
+          value={ejerciciosTexto}
+          onChange={(e) => setEjerciciosTexto(e.target.value)}
+          rows={7}
+          className={`${AREA} font-mono text-[13px]`}
+          placeholder={
+            'Uno por línea:\nVF | Anna fietst naar haar werk. | niet waar >> Ze gaat met de bus.\nOP | Hoe laat staat Anna op? | om zeven uur | om acht uur | om zes uur\nHU | Anna drinkt ___ bij het ontbijt. | koffie | thee | melk\nHU | Ik sta om zeven uur ___. | op\nAB | Hoe laat sta jij op? | Ik sta om half zeven op.'
+          }
+        />
+        <span className="block text-[12px] text-[#6B7393] mt-1">
+          VF = verdadero o falso · OP = elegir (la primera es la buena) · HU = completar el ___ (la primera es la buena; sin más opciones, se escribe) · AB = escribir tú (con un ejemplo) · «&gt;&gt;» explicación.
+          {ejerciciosTexto.trim() ? ` ${leidos.ejercicios.length} ejercicios.` : ''}
+        </span>
+        {leidos.noEntendidas.length ? (
+          <span className="block text-[12.5px] text-red-600 mt-1">
+            No entiendo {leidos.noEntendidas.length === 1 ? 'esta línea' : 'estas líneas'} (no se guardarán): {leidos.noEntendidas.slice(0, 3).join(' · ')}
+          </span>
+        ) : null}
       </label>
       <div className="grid sm:grid-cols-2 gap-3">
         <input value={video} onChange={(e) => setVideo(e.target.value)} placeholder="Enlace del vídeo (YouTube, NOS…)" className={CAMPO} />

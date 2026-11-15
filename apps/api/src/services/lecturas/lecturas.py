@@ -46,6 +46,8 @@ CLAVE = "lecturas"
 NL = ZoneInfo("Europe/Amsterdam")
 MAX_TEXTO = 6000
 MAX_PALABRAS = 30
+MAX_EJERCICIOS = 30
+TIPOS_EJERCICIO = ("vf", "op", "hu", "ab")
 
 
 def hoy_nl() -> date:
@@ -94,6 +96,44 @@ def leer_palabras(valor: Any) -> list[dict]:
     return salida[:MAX_PALABRAS]
 
 
+def leer_ejercicios(valor: Any) -> list[dict]:
+    """Los ejercicios sobre el texto (14/11/2026: "en la lectura, un botón
+    para hacer los ejercicios ahí mismo y ver la respuesta"). La pantalla
+    del equipo pega el texto y lo convierte (`lib/nawar/ejerciciosLectura.ts`);
+    aquí se comprueba cada uno. Tipos:
+    - vf: verdadero o falso (correcta = «waar» / «niet waar»);
+    - op: elegir (correcta + otras opciones, se barajan al enseñarlas);
+    - hu: completar el hueco «___» (con opciones, se elige; sin, se escribe);
+    - ab: escribir tú (sin corrección: «correcta» es un ejemplo de respuesta).
+    No se guarda lo que contesta cada alumno: es para corregirse solo."""
+    salida: list[dict] = []
+    for e in valor if isinstance(valor, list) else []:
+        if not isinstance(e, dict):
+            continue
+        tipo = str(e.get("tipo") or "").strip().lower()
+        pregunta = _texto(e.get("pregunta"), 400)
+        correcta = _texto(e.get("correcta"), 200)
+        if tipo not in TIPOS_EJERCICIO or not pregunta or (tipo != "ab" and not correcta):
+            continue
+        if tipo == "vf":
+            correcta = "niet waar" if "niet" in correcta.lower() or correcta.lower() in ("falso", "no") else "waar"
+        opciones = []
+        for o in e.get("opciones") or []:
+            o = _texto(o, 200)
+            if o and o.lower() != correcta.lower() and o.lower() not in [x.lower() for x in opciones]:
+                opciones.append(o)
+        salida.append(
+            {
+                "tipo": tipo,
+                "pregunta": pregunta,
+                "correcta": correcta,
+                "opciones": opciones[:5] if tipo in ("op", "hu") else [],
+                "explicacion": _texto(e.get("explicacion"), 400),
+            }
+        )
+    return salida[:MAX_EJERCICIOS]
+
+
 def limpiar(datos: dict, antes: Optional[dict] = None) -> dict:
     """Una lectura lista para guardar. Lo que no venga se queda como estaba."""
     base = dict(antes or {})
@@ -115,6 +155,8 @@ def limpiar(datos: dict, antes: Optional[dict] = None) -> dict:
             base[campo] = _url(datos.get(campo))
     if "palabras" in datos:
         base["palabras"] = leer_palabras(datos.get("palabras"))
+    if "ejercicios" in datos:
+        base["ejercicios"] = leer_ejercicios(datos.get("ejercicios"))
     base.setdefault("id", uuid4().hex[:12])
     return base
 
