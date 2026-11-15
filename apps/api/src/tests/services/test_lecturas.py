@@ -79,3 +79,23 @@ def test_el_aviso_de_la_campana_sale_la_semana_de_la_lectura():
     tarde = [{"id": "c", "semana": "2026-11-09", "titulo": "X", "creada": "2026-11-11T15:00:00+01:00"}]
     assert aviso_de(tarde, datetime(2026, 11, 12, 12, 0, tzinfo=NL))["date"].startswith("2026-11-11T14:00:00")
     assert aviso_de([], datetime(2026, 11, 12, 12, 0, tzinfo=NL)) is None
+
+
+def test_ejercicios_de_la_lectura():
+    from src.services.lecturas.lecturas import leer_ejercicios, limpiar
+
+    ejs = leer_ejercicios(
+        [
+            {"tipo": "vf", "pregunta": "Anna fietst.", "correcta": "Niet waar"},
+            {"tipo": "op", "pregunta": "Hoe laat?", "correcta": "om zeven uur", "opciones": ["om acht uur", "om zeven uur", "", "om acht uur"]},
+            {"tipo": "hu", "pregunta": "Ik sta ___.", "correcta": "op"},
+            {"tipo": "ab", "pregunta": "Hoe laat sta jij op?", "correcta": ""},
+            {"tipo": "xx", "pregunta": "no vale", "correcta": "a"},
+            {"tipo": "op", "pregunta": "sin respuesta", "correcta": ""},
+        ]
+    )
+    assert [e["tipo"] for e in ejs] == ["vf", "op", "hu", "ab"]
+    assert ejs[0]["correcta"] == "niet waar"
+    assert ejs[1]["opciones"] == ["om acht uur"]
+    l = limpiar({"semana": "2026-11-18", "titulo": "Mijn dag", "ejercicios": ejs})
+    assert len(l["ejercicios"]) == 4 and l["semana"] == "2026-11-16"
