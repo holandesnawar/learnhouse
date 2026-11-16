@@ -434,12 +434,28 @@ _DATOS_UNA_VEZ = [
 ]
 
 
+async def _paso_aparte(conn, hacer) -> bool:
+    """Ejecuta un paso del arranque dentro de su propio SAVEPOINT.
+
+    Todo el arranque va en UNA transacción (``engine.begin()``). En Postgres,
+    una sentencia que falla deja la transacción entera «abortada»: las demás
+    fallan con «current transaction is aborted» y al final todo se deshace.
+    Así, un solo ALTER que fallara (o el CREATE EXTENSION de pgvector en un
+    Postgres sin él) se llevaba por delante TODAS las columnas nuevas. Con un
+    SAVEPOINT por paso, lo que falla se deshace solo y lo demás sigue.
+    Devuelve si salió bien; el fallo lo registra quien llama.
+    """
+    async with conn.begin_nested():
+        await hacer()
+    return True
+
+
 async def _ensure_added_columns(conn):
     from sqlalchemy import text
 
     for statement in _ADDED_COLUMNS + _DATOS_UNA_VEZ:
         try:
-            await conn.execute(text(statement))
+            await _paso_aparte(conn, lambda s=statement: conn.execute(text(s)))
         except Exception as e:  # noqa: BLE001
             logging.warning("No se pudo aplicar '%s': %s", statement, e)
 
@@ -459,7 +475,9 @@ async def _prepare_schema(conn):
 
     # pgvector: opcional (solo el chatbot del curso lo usa).
     try:
-        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        await _paso_aparte(
+            conn, lambda: conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        )
     except Exception as e:
         logging.warning(
             "pgvector extension not available — RAG features will be disabled. "
@@ -471,7 +489,7 @@ async def _prepare_schema(conn):
         return
 
     try:
-        await conn.run_sync(SQLModel.metadata.create_all)
+        await _paso_aparte(conn, lambda: conn.run_sync(SQLModel.metadata.create_all))
     except Exception:
         # Si esto falla con las tablas ya creadas (un índice a medias, un
         # permiso), la aplicación sigue sirviendo: lo que hay en la base ya
