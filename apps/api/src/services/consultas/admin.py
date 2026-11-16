@@ -211,7 +211,7 @@ async def answer_consulta(consulta_id: str, respuesta: str, respondido_por: str)
 
     fila = _recortar(filas[0])
     logger.info("Consulta %s respondida desde el panel por %s", clean_id, respondido_por)
-    _avisar_a_la_alumna(fila)
+    await en_hilo(_avisar_a_la_alumna, fila)
     return fila
 
 
