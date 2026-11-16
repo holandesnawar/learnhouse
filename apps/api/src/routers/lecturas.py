@@ -113,3 +113,35 @@ async def api_quitar_hoja(
 ):
     await _equipo(org_id, current_user, db_session)
     return await L.quitar_hoja(org_id, lectura_id, db_session)
+
+
+@router.post("/{lectura_id}/resultado", summary="Apuntar lo que sacó el alumno en los ejercicios.")
+async def api_resultado(
+    lectura_id: str,
+    datos: dict,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.lecturas import resultados as R
+
+    org_id = await org_del_usuario(current_user, db_session)
+    if not any(l.get("id") == lectura_id for l in await L.todas(org_id, db_session)):
+        raise HTTPException(status_code=404, detail="Esa lectura no existe")
+    try:
+        return await R.guardar(int(current_user.id), lectura_id, datos or {}, db_session)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/org/{org_id}/resultados", summary="Quién ha hecho los ejercicios de cada lectura (equipo).")
+async def api_resultados(
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.lecturas import resultados as R
+
+    mia = await org_del_usuario(current_user, db_session)
+    if mia != org_id or not await _es_equipo(int(current_user.id), org_id, db_session):
+        raise HTTPException(status_code=403, detail="Solo el equipo ve los resultados")
+    return {"lecturas": await R.por_lectura(org_id, db_session)}

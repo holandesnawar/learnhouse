@@ -5795,6 +5795,24 @@ en el servidor**: el navegador recuerda el último resultado para el botón
 «Comentarlo en la comunidad». El proyecto de contenido de Claude (fuera del
 repo) entrega los ejercicios ya en este formato.
 
+### Los resultados de los ejercicios de la lectura, para el equipo (16/11/2026)
+Usuario: "que pueda yo ver los resultados de cada uno en Progreso o en el
+panel". Al terminar los ejercicios, la pantalla manda aciertos, total y los
+números que falló (`POST /lecturas/{id}/resultado`) y se guarda en la columna
+nueva **`student_progress.lecturas`** (JSON, en `_ADDED_COLUMNS`; la última
+vez, la mejor, cuántas veces y cuándo; `services/lecturas/resultados.py`, test
+en `test_lecturas.py`). Los de escribir tú no cuentan. El equipo lo ve:
+- en **Progreso → abrir al alumno → «Lecturas de la semana»** («Sinterklaas: 9
+  de 12 · 2 veces, la mejor 11»);
+- en la propia lectura, botón **«Resultados de los alumnos»**
+  (`Recursos/ResultadosLectura.tsx`, `GET /lecturas/org/{id}/resultados`,
+  equipo): cuántos la hicieron y cuántos no, el % de aciertos, los ejercicios
+  que más se fallan con su respuesta, quién la hizo con su nota y quién no.
+Alumnos = rol de alumno sin pruebas ni Testers. El navegador sigue
+recordando el último resultado para el botón del alumno.
+- La hoja en PDF para imprimir ya existía (se sube al crear la lectura: «Ver la
+  hoja» y «Descargar para imprimir»): texto en la página Y PDF a la vez.
+
 ### Nieuwsbegrip: aparcado (12/11/2026)
 El usuario tiene licencias de Nieuwsbegrip (lectura por niveles AA-Alfa…D, con
 temas de dos semanas, ejercicios, woordenschat y vídeo) y quería meterlo en la

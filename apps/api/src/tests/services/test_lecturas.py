@@ -1,3 +1,4 @@
+import json
 """La lectura semanal: semanas, archivo y lo que se guarda."""
 
 from datetime import date
@@ -99,3 +100,35 @@ def test_ejercicios_de_la_lectura():
     assert ejs[1]["opciones"] == ["om acht uur"]
     l = limpiar({"semana": "2026-11-18", "titulo": "Mijn dag", "ejercicios": ejs})
     assert len(l["ejercicios"]) == 4 and l["semana"] == "2026-11-16"
+
+
+def test_resultados_de_los_ejercicios():
+    from datetime import datetime, timezone
+
+    import pytest
+
+    from src.services.lecturas import resultados as R
+
+    t1 = datetime(2026, 11, 16, 9, tzinfo=timezone.utc)
+    t2 = datetime(2026, 11, 17, 9, tzinfo=timezone.utc)
+    d = R.apuntar({}, "l1", 7, 10, [2, 5, 5, "x", 99], t1)
+    assert d["l1"]["aciertos"] == 7 and d["l1"]["fallos"] == [2, 5] and d["l1"]["veces"] == 1
+    d = R.apuntar(d, "l1", 5, 10, [1], t2)
+    assert d["l1"]["aciertos"] == 5 and d["l1"]["mejor"] == 7 and d["l1"]["veces"] == 2
+    assert d["l1"]["primera"].startswith("2026-11-16") and d["l1"]["ultima"].startswith("2026-11-17")
+    assert R.apuntar({}, "l2", 50, 10, [], t1)["l2"]["aciertos"] == 10
+    with pytest.raises(ValueError):
+        R.apuntar({}, "l3", 0, 0, [], t1)
+    assert R.leer("no es json") == {} and R.leer(json.dumps(d))["l1"]["mejor"] == 7
+
+    lectura = {"id": "l1", "ejercicios": [{"pregunta": "A?", "correcta": "a"}, {"pregunta": "B?", "correcta": "b"}]}
+    alumnos = [{"user_id": 1, "nombre": "Ana"}, {"user_id": 2, "nombre": "Bea"}, {"user_id": 3, "nombre": "Carla"}]
+    por = {1: {"l1": {"aciertos": 1, "total": 2, "fallos": [2], "ultima": "b"}}, 2: {"l1": {"aciertos": 2, "total": 2, "fallos": [], "ultima": "a"}}}
+    r = R.resumen_lectura(lectura, por, alumnos)
+    assert [h["nombre"] for h in r["hechos"]] == ["Ana", "Bea"]
+    assert [a["nombre"] for a in r["sin_hacer"]] == ["Carla"]
+    assert r["media_pct"] == 75
+    assert r["mas_fallados"] == [{"numero": 2, "veces": 1, "pregunta": "B?", "correcta": "b"}]
+
+    p = R.para_progreso(por[1], [{"id": "l1", "titulo": "Mijn huis", "semana": "2026-11-16"}, {"id": "otra"}])
+    assert p == [{"id": "l1", "titulo": "Mijn huis", "semana": "2026-11-16", "aciertos": 1, "total": 2, "mejor": None, "veces": None, "ultima": "b"}]

@@ -124,3 +124,43 @@ export function parrafos(texto: string, tope = 700): string[] {
   }
   return salida
 }
+
+/** Lo que sacó el alumno en los ejercicios (se guarda en la escuela, lo ve el equipo). */
+export async function guardarResultado(
+  lecturaId: string,
+  r: { aciertos: number; total: number; fallos: number[] },
+  accessToken: string
+): Promise<void> {
+  try {
+    await fetch(`${base()}/${lecturaId}/resultado`, RequestBodyWithAuthHeader('POST', r, null, accessToken))
+  } catch {
+    /* sin red: el resultado se queda en el navegador */
+  }
+}
+
+export interface HechoLectura {
+  user_id: number
+  nombre: string
+  aciertos: number
+  total: number
+  mejor?: number
+  fallos?: number[]
+  veces?: number
+  ultima?: string
+}
+
+export interface ResultadosLectura {
+  id: string
+  hechos: HechoLectura[]
+  sin_hacer: { user_id: number; nombre: string }[]
+  media_pct: number | null
+  mas_fallados: { numero: number; veces: number; pregunta: string; correcta: string }[]
+  alumnos: number
+}
+
+export async function getResultados(orgId: number, accessToken: string): Promise<ResultadosLectura[]> {
+  const d = await json<{ lecturas: ResultadosLectura[] }>(
+    await fetch(`${base()}/org/${orgId}/resultados`, RequestBodyWithAuthHeader('GET', null, null, accessToken))
+  )
+  return d.lecturas || []
+}

@@ -3,15 +3,17 @@
 /**
  * Los ejercicios de la lectura semanal, dentro de la escuela (14/11/2026).
  * Se abren con un botón en la lectura, se contestan ahí mismo y dicen al
- * momento si está bien, con la buena y su explicación. No se guarda en el
- * servidor: es para corregirse solo. El navegador recuerda el último
- * resultado para enseñarlo en el botón. Formato y corrección:
+ * momento si está bien, con la buena y su explicación. Al terminar, el
+ * resultado se guarda en la escuela (lo ve el equipo en Progreso y en la
+ * lectura) y el navegador lo recuerda para enseñarlo en el botón. Formato y corrección:
  * `lib/nawar/ejerciciosLectura.ts`.
  */
 
 import React, { useEffect, useMemo, useState } from 'react'
 import { Check, RotateCcw, X } from 'lucide-react'
 import EnElCuerpo from '@components/Objects/EnElCuerpo'
+import { useLHSession } from '@components/Contexts/LHSessionContext'
+import { guardarResultado } from '@services/lecturas/lecturas'
 import { esCorrecta, opcionesDe, TITULO_TIPO, type EjercicioLectura } from '@lib/nawar/ejerciciosLectura'
 
 const POPPINS = { fontFamily: 'var(--font-poppins), system-ui, sans-serif' }
@@ -178,6 +180,8 @@ export default function EjerciciosLectura({
   const terminado = corregibles.length > 0 && contestadas.length === corregibles.length
   const resultado = terminado ? { aciertos, total: corregibles.length } : null
 
+  const session = useLHSession() as any
+  const token = session?.data?.tokens?.access_token
   useEffect(() => {
     if (!resultado) return
     try {
@@ -185,7 +189,12 @@ export default function EjerciciosLectura({
     } catch {
       /* sin almacenamiento */
     }
-  }, [id, resultado?.aciertos, resultado?.total]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (token) {
+      // Los números de los que falló, contando desde 1 como en la pantalla.
+      const fallos = corregibles.filter((i) => !esCorrecta(ejercicios[i], respuestas[i])).map((i) => i + 1)
+      guardarResultado(id, { ...resultado, fallos }, token)
+    }
+  }, [id, resultado?.aciertos, resultado?.total, terminado]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const tecla = (ev: KeyboardEvent) => ev.key === 'Escape' && onCerrar(resultado)

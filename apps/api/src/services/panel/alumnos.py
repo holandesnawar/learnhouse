@@ -377,8 +377,17 @@ async def listar_alumnos(org_id: int, db_session: AsyncSession) -> dict:
         planes = await planes_de([a["user_id"] for a in alumnos], db_session)
     except Exception:  # noqa: BLE001 — el objetivo es un extra: sin él, la lista sale igual
         planes = {}
+    try:
+        from src.services.lecturas import resultados as R
+        from src.services.lecturas.lecturas import todas as todas_las_lecturas
+
+        lecturas_org = await todas_las_lecturas(org_id, db_session)
+        de_lecturas = await R.de_alumnos([a["user_id"] for a in alumnos], db_session)
+    except Exception:  # noqa: BLE001 — un extra: sin él, la lista sale igual
+        lecturas_org, de_lecturas = [], {}
     for a in alumnos:
         a["ultimo_recordatorio"] = ultimos.get(a["user_id"])
+        a["lecturas"] = R.para_progreso(de_lecturas.get(a["user_id"]), lecturas_org) if lecturas_org else []
         a["telefono"] = telefonos.get(a["email"], "")
         a["plan"] = planes.get(a["user_id"])
         a["sin_avanzar"]["escrito_hace_poco"] = toque_reciente(a["ultimo_recordatorio"], hoy)

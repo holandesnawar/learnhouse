@@ -241,6 +241,28 @@ export function DetalleAlumno({
           </dd>
         </div>
         <div>
+          <dt className="text-[#6B7280]">Lecturas de la semana</dt>
+          <dd className="text-gray-900">
+            {a.lecturas?.length ? (
+              <ul className="space-y-0.5">
+                {a.lecturas.slice(0, 6).map((l) => (
+                  <li key={l.id}>
+                    <span lang="nl">{l.titulo}</span>
+                    {': '}
+                    <span className={l.aciertos === l.total ? 'text-[#16A34A] font-semibold' : 'font-semibold'}>
+                      {l.aciertos} de {l.total}
+                    </span>
+                    {l.veces && l.veces > 1 ? <span className="text-[#6B7280]"> · {l.veces} veces, la mejor {l.mejor}</span> : null}
+                  </li>
+                ))}
+                {a.lecturas.length > 6 ? <li className="text-[#6B7280]">y {a.lecturas.length - 6} más</li> : null}
+              </ul>
+            ) : (
+              'Aún no ha hecho los ejercicios de ninguna'
+            )}
+          </dd>
+        </div>
+        <div>
           <dt className="text-[#6B7280]">Le falta primero</dt>
           <dd className="text-gray-900">
             {a.siguiente ? `${modulo(a.siguiente.modulo)} · ${a.siguiente.clase}` : a.total ? 'Nada: ha terminado la formación' : '—'}
