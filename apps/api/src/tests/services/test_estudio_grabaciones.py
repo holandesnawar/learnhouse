@@ -249,6 +249,11 @@ async def test_aparecen_solas_se_publican_recortadas_y_se_quitan(db, org, monkey
     assert seg["cifras"]["con_grabacion"] is False and seg["alumnos"][0]["grabacion"] is None
     with pytest.raises(EG.GrabacionError):
         await EG.marcar_vista(await T.tarea(s1, db), 7, db)
+    # Pero quién la vio se guarda (16/11/2026): al volver a ponerla (también
+    # con un enlace), Ana sigue contando.
+    assert EG.quienes_la_vieron((await T.tarea(s1, db)).grabacion_sala) == set()
+    await EG.poner_enlace(await T.tarea(s1, db), {"url": "https://youtu.be/dQw4w9WgXcQ"}, "Rida", db)
+    assert EG.quienes_la_vieron((await T.tarea(s1, db)).grabacion_sala) == {7}
 
 
 async def test_el_alumno_solo_ve_lo_publicado_y_con_la_clase_ya_dada(db, org, monkeypatch):

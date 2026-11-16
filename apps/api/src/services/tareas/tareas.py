@@ -346,6 +346,7 @@ async def confirmar_asistencia(s: TareaSemana, user_id: int, va: Optional[bool],
 
     if not s.fecha or s.fecha < hoy_nl():
         raise TareaError("Esa clase ya pasó", 409)
+    s = await bloquear_semana(s, db_session)
     conf = leer_confirmaciones(getattr(s, "confirmaciones", ""))
     clave = str(user_id)
     if va is None:
@@ -856,6 +857,25 @@ async def tarea(tarea_id: int, db_session: AsyncSession) -> TareaSemana:
     if t is None:
         raise TareaError("No existe esa tarea", 404)
     return t
+
+
+async def bloquear_semana(s: TareaSemana, db_session: AsyncSession) -> TareaSemana:
+    """La fila de la semana releída y BLOQUEADA hasta el commit (16/11/2026).
+
+    Varias cosas guardan un JSON entero en la misma fila (quién viene, la
+    lista, quién vio la grabación, el recorte): si dos escriben a la vez, el
+    segundo pisaba lo del primero. Se relee con `SELECT … FOR UPDATE` justo
+    antes de cambiarla: el segundo espera al primero y parte de lo suyo. En
+    SQLite (las pruebas) el bloqueo no existe y solo se relee."""
+    fila = (
+        await db_session.execute(
+            select(TareaSemana)
+            .where(TareaSemana.id == s.id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    ).scalars().first()
+    return fila if fila is not None else s
 
 
 async def tarea_para(t: TareaSemana, course: Course, user_id: int, db_session: AsyncSession, equipo: bool = False) -> dict:
@@ -2318,6 +2338,7 @@ async def pasar_lista(org_id: int, s: TareaSemana, marcas: dict, autor: str, db_
 
     de_la_clase = {a["user_id"] for a in await alumnos_del_curso(org_id, course, db_session)}
     de_la_clase |= set(await invitados(s, db_session))
+    s = await bloquear_semana(s, db_session)
     actual = leer_asistencia(getattr(s, "asistencia", ""))
     ahora = _ahora()
     for k, v in (marcas or {}).items():
