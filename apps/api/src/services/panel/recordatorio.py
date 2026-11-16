@@ -66,7 +66,7 @@ DE_FABRICA: dict = {
     # 🏆 Victorias de la comunidad (pedido del usuario, 04/10), no a la lista
     # de canales.
     "enlaces": {
-        "victoria": "/community/community_bbe57cb8-5197-4195-bc1f-6615aed4dcab",
+        "victoria": "/community/bbe57cb8-5197-4195-bc1f-6615aed4dcab",
         "consulta": "/consultas",
     },
 }

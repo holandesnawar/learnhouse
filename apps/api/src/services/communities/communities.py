@@ -477,6 +477,14 @@ async def get_community_user_rights(
     if has_access:
         rights["permissions"]["read"] = True
         rights["permissions"]["create_discussion"] = True
+        # El closer mira los canales del programa nuevo para enseñarlos, pero
+        # no escribe (16/11/2026): la pantalla lo sabe por aquí y no le pone
+        # la caja de escribir.
+        from src.services.panel.tandas import closer_solo_mira
+
+        if await closer_solo_mira(acting_user_id, community_uuid, db_session):
+            rights["permissions"]["create_discussion"] = False
+            rights["access"]["solo_lectura"] = True
 
     if is_admin_or_maintainer:
         rights["ownership"]["is_admin"] = True

@@ -57,7 +57,7 @@ export function CommentUpvoteButton({
         (err?.detail && typeof err.detail === 'object' && err.detail.message) ||
         (typeof err?.detail === 'string' && err.detail) ||
         err?.message ||
-        'Failed to vote.'
+        'No se pudo votar.'
       toast.error(message)
     } finally {
       setIsLoading(false)
@@ -76,7 +76,7 @@ export function CommentUpvoteButton({
         !canVote && 'opacity-50 cursor-not-allowed',
         isLoading && 'opacity-70'
       )}
-      title={canVote ? (hasVoted ? 'Remove upvote' : 'Upvote this reply') : 'Join organization to vote'}
+      title={canVote ? (hasVoted ? 'Quitar me gusta' : 'Me gusta') : 'Entra en la escuela para votar'}
     >
       <ChevronUp
         size={14}

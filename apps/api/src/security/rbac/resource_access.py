@@ -854,6 +854,14 @@ class ResourceAccessChecker:
                         from src.services.panel.tandas import clases_del_closer_de
 
                         resultado = resource_uuid in await clases_del_closer_de(curso.org_id, self.db_session)
+                        # Nawar (16/11/2026): y la formación, solo leerla. Su
+                        # barra es la del alumno (Formación A0-A1) y, si la
+                        # formación se cierra a grupos, le daría «no tienes
+                        # acceso».
+                        if not resultado:
+                            from src.services.panel.avance import FORMACION_UUID
+
+                            resultado = resource_uuid == f"course_{FORMACION_UUID}"
                 if resultado and escribir:
                     from src.services.salas.salas import es_clase_en_directo
 
