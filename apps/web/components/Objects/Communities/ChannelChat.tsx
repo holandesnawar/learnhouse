@@ -25,6 +25,7 @@ import {
 } from '@services/communities/discussions'
 import VoiceRecorder from '@components/Pages/Messages/VoiceRecorder'
 import ComposerButton from './ComposerButton'
+import { useCommunityRights } from '@components/Hooks/useCommunityRights'
 import MessageAction from './MessageAction'
 import ConfirmDialog from './ConfirmDialog'
 
@@ -285,6 +286,9 @@ export function ChannelChat({
   const imageInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const mutateDiscussions = useMutateDiscussions()
+  // El closer mira los canales del programa nuevo, pero no escribe (16/11/2026).
+  const { rights: derechosCanal } = useCommunityRights(communityUuid)
+  const soloLectura = derechosCanal?.permissions?.create_discussion === false
   const [pinningUuid, setPinningUuid] = useState<string | null>(null)
   const [pickerUuid, setPickerUuid] = useState<string | null>(null)
   // En el móvil no existe el "pasar el ratón": sin esto, responder, reaccionar,
@@ -1280,6 +1284,11 @@ export function ChannelChat({
       </div>
 
       {/* Composer */}
+      {soloLectura ? (
+        <div className="shrink-0 border-t border-[#EEF3FB] px-4 sm:px-6 py-4 text-center text-[13.5px] text-[#5A6480]">
+          Puedes leer este canal, pero no escribir.
+        </div>
+      ) : (
       <AuthenticatedClientElement checkMethod="authentication">
         <div className="shrink-0 border-t border-[#EEF3FB] px-4 sm:px-6 py-3">
           {replyingTo && (
@@ -1558,6 +1567,7 @@ export function ChannelChat({
           )}
         </div>
       </AuthenticatedClientElement>
+      )}
 
       <ConfirmDialog
         open={!!pendingDelete}

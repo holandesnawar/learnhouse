@@ -6,6 +6,7 @@ import { getCommunity } from '@services/communities/communities'
 import { getDiscussion } from '@services/communities/discussions'
 import { getOrgThumbnailMediaDirectory } from '@services/media/media'
 import DiscussionPageClient from './discussion'
+import { uuidCanal, uuidPublicacion } from '@/lib/communities/uuidCanal'
 
 /**
  * Extract plain text from discussion content for SEO metadata
@@ -46,7 +47,7 @@ export async function generateMetadata(props: MetadataProps): Promise<Metadata> 
     tags: ['organizations'],
   })
 
-  const discussionUuid = `discussion_${params.discussionuuid}`
+  const discussionUuid = uuidPublicacion(params.discussionuuid)
   let discussion = null
   try {
     discussion = await getDiscussion(discussionUuid, { revalidate: 120, tags: ['discussions'] })
@@ -91,8 +92,8 @@ const DiscussionPage = async (params: any) => {
   const session = await getServerSession()
   const access_token = session?.tokens?.access_token
   const { orgslug, communityuuid, discussionuuid } = await params.params
-  const communityUuid = `community_${communityuuid}`
-  const discussionUuid = `discussion_${discussionuuid}`
+  const communityUuid = uuidCanal(communityuuid)
+  const discussionUuid = uuidPublicacion(discussionuuid)
 
   const org = await getOrganizationContextInfo(orgslug, {
     revalidate: 120,
@@ -134,8 +135,8 @@ const DiscussionPage = async (params: any) => {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-600">You don't have access</h1>
-          <p className="text-gray-400 mt-2">You do not have permission to view this discussion.</p>
+          <h1 className="text-2xl font-bold text-gray-600">No tienes acceso</h1>
+          <p className="text-gray-400 mt-2">No tienes permiso para ver esta publicación.</p>
         </div>
       </div>
     )

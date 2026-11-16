@@ -25,6 +25,18 @@ router = APIRouter()
 CABECERA_SECRETO = "X-Cron-Token"
 
 
+async def _soltar_transaccion(db_session) -> None:
+    """Tras un fallo de una tarea, deshacer la transacción (16/11/2026).
+
+    Un error de SQL deja la transacción de la sesión abortada y TODAS las
+    tareas siguientes fallaban con «current transaction is aborted». Se
+    deshace lo pendiente para que la siguiente empiece limpia."""
+    try:
+        await db_session.rollback()
+    except Exception:  # noqa: BLE001
+        logger.exception("No se pudo deshacer la transacción")
+
+
 def _mismo_secreto(a: str, b: str) -> bool:
     """Compara sin filtrar por dónde dejan de parecerse ni cuánto miden."""
     ha = hashlib.sha256(a.encode("utf-8")).digest()
@@ -151,6 +163,7 @@ async def api_drip_diario(
         resultado["por_avance"] = await avisar_aperturas_por_avance(org_id, db_session)
     except Exception as e:  # noqa: BLE001
         logger.exception("Avisos por avance fallaron")
+        await _soltar_transaccion(db_session)
         resultado["por_avance"] = {"error": str(e)[:200]}
 
     # El recordatorio «1 semana sin entrar» va en la misma tarea diaria. Solo
@@ -162,6 +175,7 @@ async def api_drip_diario(
         resultado["recordatorio"] = await recordatorio_automatico(org_id, db_session)
     except Exception as e:  # noqa: BLE001
         logger.exception("Recordatorio automático falló")
+        await _soltar_transaccion(db_session)
         resultado["recordatorio"] = {"error": str(e)[:200]}
 
     # Los planes de pagos propios (3 plazos): se le pregunta a Stripe por los
@@ -172,6 +186,7 @@ async def api_drip_diario(
         resultado["plazos"] = await sincronizar_planes(db_session)
     except Exception as e:  # noqa: BLE001
         logger.exception("Revisión de planes de pagos falló")
+        await _soltar_transaccion(db_session)
         resultado["plazos"] = {"error": type(e).__name__}
 
     # La campaña del ebook de Black Friday (services/ebook/ebook.py): un correo
@@ -182,6 +197,7 @@ async def api_drip_diario(
         resultado["ebook"] = await enviar_campana(db_session, org_id)
     except Exception as e:  # noqa: BLE001
         logger.exception("Campaña del ebook falló")
+        await _soltar_transaccion(db_session)
         resultado["ebook"] = {"error": type(e).__name__}
 
     logger.info("Goteo diario: %s", resultado)

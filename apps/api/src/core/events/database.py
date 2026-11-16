@@ -434,10 +434,22 @@ _DATOS_UNA_VEZ = [
 ]
 
 
+# Índices de tablas que ya existen en producción (create_all no los añade).
+# El chat pide los mensajes de su canal cada 5 s y la campana y el «sin leer»
+# cuentan mensajes nuevos por canal y fecha (16/11/2026): sin índice, cada
+# petición recorría la tabla entera. Idempotentes.
+_INDICES = [
+    "CREATE INDEX IF NOT EXISTS ix_discussion_community_creation ON discussion (community_id, creation_date)",
+    "CREATE INDEX IF NOT EXISTS ix_discussion_uuid ON discussion (discussion_uuid)",
+    "CREATE INDEX IF NOT EXISTS ix_discussion_author ON discussion (author_id)",
+    "CREATE INDEX IF NOT EXISTS ix_discussioncomment_discussion ON discussioncomment (discussion_id)",
+]
+
+
 async def _ensure_added_columns(conn):
     from sqlalchemy import text
 
-    for statement in _ADDED_COLUMNS + _DATOS_UNA_VEZ:
+    for statement in _ADDED_COLUMNS + _DATOS_UNA_VEZ + _INDICES:
         try:
             await conn.execute(text(statement))
         except Exception as e:  # noqa: BLE001

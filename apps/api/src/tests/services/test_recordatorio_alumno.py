@@ -133,7 +133,7 @@ from src.services.panel.recordatorio import url_enlace  # noqa: E402
 
 
 def test_victoria_va_al_canal_de_victorias_por_defecto():
-    assert DE_FABRICA["enlaces"]["victoria"] == "/community/community_bbe57cb8-5197-4195-bc1f-6615aed4dcab"
+    assert DE_FABRICA["enlaces"]["victoria"] == "/community/bbe57cb8-5197-4195-bc1f-6615aed4dcab"
 
 
 def test_url_enlace():
