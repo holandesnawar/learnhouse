@@ -55,6 +55,21 @@ logger = logging.getLogger(__name__)
 
 #: Lo mínimo que Stripe deja cobrar en euros.
 MINIMO_CENTS = 50
+# «Otro importe» para un closer (16/11): como mínimo 100 €. Con 0,50 € se le
+# podía dar acceso completo a la formación. El administrador, sin límite.
+MINIMO_CLOSER_CENTS = 10000
+
+
+def minimo_para_closer(total_cents: int, es_admin: bool) -> None:
+    """Un pago único o un total a medida que fija un closer no baja de 100 €."""
+    if not es_admin and int(total_cents or 0) < MINIMO_CLOSER_CENTS:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Un closer puede cobrar como mínimo {MINIMO_CLOSER_CENTS // 100} € con «Otro importe». "
+                "Para menos, pídeselo a un administrador."
+            ),
+        )
 #: La señal que se propone por defecto en la pantalla.
 SENAL_POR_DEFECTO_CENTS = 5000
 
@@ -254,6 +269,8 @@ async def crear_enlace(
         pago_unico = bool(total_cents) and int(total_cents) == int(importe_cents or 0)
         if total_cents and (es_admin or pago_unico):
             total, moneda = int(total_cents), "eur"
+            if pago_unico:
+                minimo_para_closer(total, es_admin)
         else:
             total, moneda = await precio_formacion()
         if total < MINIMO_CENTS:
@@ -366,6 +383,13 @@ async def abrir_pago(token: str, db_session: AsyncSession) -> str:
         raise HTTPException(status_code=410, detail="Esta reserva ya no está activa")
     if reserva.estado == "completada":
         raise HTTPException(status_code=409, detail="Ya está todo pagado. ¡Revisa tu correo para entrar en la escuela!")
+    # Pagó la formación por otro camino mientras tenía la reserva abierta: no
+    # se le cobra otra vez (16/11). La reserva abierta no tiene aún matrícula
+    # pagada propia, así que esto solo salta con un pago de fuera de ella.
+    from src.services.payments.payments import ya_pago_la_formacion
+
+    if await ya_pago_la_formacion(reserva.email, db_session):
+        raise HTTPException(status_code=409, detail="Ya estás matriculado/a en la formación. ¡Revisa tu correo para entrar en la escuela!")
 
     importe = importe_a_cobrar(int(datos.get("i") or 0), reserva.total_cents, reserva.pagado_cents)
     if importe <= 0:

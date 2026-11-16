@@ -111,6 +111,18 @@ background:#1D0084;color:#fff;font-family:system-ui,sans-serif;padding:24px;text
 <div style="max-width:420px"><h1 style="font-size:22px;margin:0 0 12px">{titulo}</h1>
 <p style="font-size:16px;line-height:1.6;opacity:.9;margin:0">{texto}</p></div></body></html>"""
 
+# Quien ya pagó la formación y abre otra vez un enlace de pago (16/11): no se
+# le abre la caja, se le manda a entrar en la escuela.
+_PAGINA_YA_ALUMNA = """<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Ya estás en la escuela · Holandés Nawar</title></head>
+<body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+background:#1D0084;color:#fff;font-family:system-ui,sans-serif;padding:24px;text-align:center">
+<div style="max-width:420px"><h1 style="font-size:22px;margin:0 0 12px">Ya estás matriculado/a</h1>
+<p style="font-size:16px;line-height:1.6;opacity:.9;margin:0 0 24px">Tu pago de la formación ya está hecho: no tienes que pagar nada más.
+Entra en la escuela con tu correo y tu contraseña. Si no la tienes, mira el correo «Welkom» que te mandamos.</p>
+<a href="{url}" style="display:inline-block;background:#4da3ff;color:#0a1656;font-weight:700;text-decoration:none;
+padding:14px 24px;border-radius:8px;font-size:15px">Entrar en la escuela</a></div></body></html>"""
+
 
 @router.get(
     "/pagar/{token}",
@@ -145,6 +157,15 @@ async def api_pagar_enlace(
             ),
             status_code=410,
         )
+    # Ya pagó la formación: no se abre otra caja (16/11). Las cuotas de un
+    # plan las cobra Stripe solo y las señales van por /reserva, así que esto
+    # no les afecta.
+    from src.services.payments.payments import ya_pago_la_formacion
+
+    if await ya_pago_la_formacion(str(datos.get("e") or ""), db_session):
+        import html as _html
+
+        return HTMLResponse(_PAGINA_YA_ALUMNA.format(url=_html.escape(f"{_academy_url()}/login")), status_code=200)
     pedido = EnrollmentCreate(
         email=datos["e"],
         first_name=datos.get("f") or "",

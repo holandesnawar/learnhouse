@@ -263,3 +263,44 @@ async def test_la_ficha_enseña_cada_pago_y_no_cuenta_dos_veces(db, org):
     assert sorted(p["importe_cents"] for p in ficha["pagos"]) == [5000, 34700]
     assert ficha["total_pagado_cents"] == 39700
     assert ficha["reserva"]["estado"] == "completada"
+
+
+# ── 16/11: mínimo del closer y quien ya pagó por otro sitio ────────────────
+
+
+@pytest.mark.asyncio
+async def test_el_closer_no_da_acceso_por_50_centimos(db, org):
+    async def precio():
+        return 59700, "eur"
+
+    with patch.object(R, "precio_formacion", precio), patch(
+        "src.services.payments.payments._academy_url", lambda: "https://escuela.test"
+    ):
+        with pytest.raises(HTTPException) as e:
+            await R.crear_enlace(
+                email="b@x.com", first_name="B", last_name="", phone="", importe_cents=50,
+                total_cents=50, autor="Closer", es_admin=False, db_session=db,
+            )
+        assert e.value.status_code == 400 and "100 €" in e.value.detail
+        # El administrador sí puede.
+        a = await R.crear_enlace(
+            email="b@x.com", first_name="B", last_name="", phone="", importe_cents=50,
+            total_cents=50, autor="Admin", es_admin=True, db_session=db,
+        )
+    assert a["reserva"]["total_cents"] == 50
+
+
+@pytest.mark.asyncio
+async def test_abrir_la_reserva_de_quien_ya_pago_por_otro_sitio_no_cobra(db, org):
+    r, _ = await _reserva_con_pago(db, 5000, pagado=0)
+    db.add(Enrollment(email=r.email, status="paid", created_at="2026-11-16"))
+    await db.commit()
+    from src.services.payments.enlace import firmar
+
+    secreto = "s" * 40
+    token = firmar({"r": r.id, "i": 5000, "e": r.email}, secreto)
+    cfg = SimpleNamespace(security_config=SimpleNamespace(auth_jwt_secret_key=secreto))
+    with patch("config.config.get_learnhouse_config", lambda: cfg):
+        with pytest.raises(HTTPException) as e:
+            await R.abrir_pago(token, db)
+    assert e.value.status_code == 409 and "matriculado" in e.value.detail

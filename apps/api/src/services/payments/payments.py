@@ -343,6 +343,57 @@ async def get_seat_status(db_session: AsyncSession) -> dict:
     }
 
 
+async def ya_pago_la_formacion(email: str, db_session: AsyncSession) -> bool:
+    """¿Este correo tiene ya una matrícula PAGADA de la formación? (16/11).
+
+    Lo mira el enlace de pago del panel antes de abrir la caja: sin esto, quien
+    ya había pagado podía pagar otra vez con un enlace viejo o reenviado. Solo
+    cuenta el dinero (una matrícula `paid`), no la cuenta de alumno: las
+    cuotas 2 y 3 de un plan las cobra Stripe solo, y una señal no crea la
+    matrícula pagada hasta completarse, así que ninguna de las dos se bloquea."""
+    from sqlalchemy import func, or_
+
+    from src.db.enrollment import Enrollment
+
+    clave = (email or "").strip().lower()
+    if not clave:
+        return False
+    fila = (
+        await db_session.execute(
+            select(Enrollment.id)
+            .where(func.lower(Enrollment.email) == clave)
+            .where(Enrollment.status == "paid")
+            .where(or_(Enrollment.product == "formacion-a0-a1", Enrollment.product.is_(None), Enrollment.product == ""))  # type: ignore[union-attr]
+            .limit(1)
+        )
+    ).first()
+    return fila is not None
+
+
+async def es_alumna(email: str, db_session: AsyncSession) -> bool:
+    """Para avisar en el panel al crear un enlace: matrícula pagada o cuenta
+    con rol de alumno (lo mismo que `emails_que_pagaron`, para UNA persona)."""
+    from sqlalchemy import func
+
+    from src.security.rbac.constants import STUDENT_ROLE_ID
+
+    clave = (email or "").strip().lower()
+    if not clave:
+        return False
+    if await ya_pago_la_formacion(clave, db_session):
+        return True
+    fila = (
+        await db_session.execute(
+            select(User.id)
+            .join(UserOrganization, UserOrganization.user_id == User.id)
+            .where(func.lower(User.email) == clave)
+            .where(UserOrganization.role_id == STUDENT_ROLE_ID)
+            .limit(1)
+        )
+    ).first()
+    return fila is not None
+
+
 async def ensure_matricula_abierta(db_session: AsyncSession) -> None:
     """403 con un mensaje que la web puede enseñar tal cual."""
     status = await get_seat_status(db_session)
