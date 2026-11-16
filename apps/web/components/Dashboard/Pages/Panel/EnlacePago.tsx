@@ -69,6 +69,8 @@ type Hecho = {
   tipo: 'unico' | 'plazos' | 'otro' | 'medida'
   importe: number
   opciones: CondicionesPlazos[]
+  /** Ya es alumna: se avisa (no se bloquea). */
+  yaAlumna?: boolean
 }
 
 export default function EnlacePago({ email, nombre: nombreCompleto, telefono }: { email: string; nombre?: string; telefono?: string }) {
@@ -101,6 +103,7 @@ export default function EnlacePago({ email, nombre: nombreCompleto, telefono }: 
       tipo: plan === 'plazos' ? 'plazos' : 'unico',
       importe: r.precio_cents || PRECIO_UNICO_CENTS,
       opciones: r.opciones || [],
+      yaAlumna: !!r.ya_alumna,
     })
   }
 
@@ -120,7 +123,7 @@ export default function EnlacePago({ email, nombre: nombreCompleto, telefono }: 
         toast.error(r.error || 'No se ha podido crear el enlace')
         return
       }
-      setHecho({ url: r.url, dias: r.dias || 0, tipo: 'medida', importe: cents, opciones: r.opciones || [] })
+      setHecho({ url: r.url, dias: r.dias || 0, tipo: 'medida', importe: cents, opciones: r.opciones || [], yaAlumna: !!r.ya_alumna })
       setOtroAbierto(false)
       return
     }
@@ -195,7 +198,7 @@ export default function EnlacePago({ email, nombre: nombreCompleto, telefono }: 
     )
   }
 
-  const { url, dias, tipo, importe, opciones } = hecho
+  const { url, dias, tipo, importe, opciones, yaAlumna } = hecho
   const queEs =
     tipo === 'plazos' || tipo === 'medida'
       ? `a plazos: ${textoOpciones(opciones)}`
@@ -215,6 +218,11 @@ export default function EnlacePago({ email, nombre: nombreCompleto, telefono }: 
 
   return (
     <div className="w-full rounded-md border border-[#E5E7EB] px-3 py-2.5 space-y-2">
+      {yaAlumna ? (
+        <p className="text-[12.5px] text-[#8A6A2A] bg-[#FFFBF2] rounded-md px-2.5 py-1.5">
+          Esta persona ya es alumna. Si ya pagó la formación, al abrir el enlace no se le cobra: le sale que ya está matriculada.
+        </p>
+      ) : null}
       <p className={META}>
         Enlace <strong className="text-gray-900 font-semibold">{queEs}</strong>, con sus datos puestos. Vale {dias} días.{' '}
         {tipo === 'plazos' || tipo === 'medida'

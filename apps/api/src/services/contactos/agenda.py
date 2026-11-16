@@ -68,6 +68,61 @@ _invitados: dict = {}
 _yo: dict = {"hasta": 0.0, "datos": None}
 _ESPERA_TRAS_FALLO = 90
 _A_LA_VEZ = 4
+# Páginas de 100 citas como mucho (16/11: eran 5, y con más de 500 citas en la
+# ventana de 165 días se perdían las futuras lejanas, que van al final).
+_PAGINAS_MAX = 20
+# La última agenda buena también en Redis (16/11): tras un despliegue la de
+# memoria está vacía y, si Calendly falla justo entonces, el tablero se quedaba
+# sin citas y las tarjetas de Agendado saltaban de columna.
+_CLAVE_ULTIMA = "calendly:agenda-ultima-buena"
+_TTL_ULTIMA = 3 * 86400
+# Una sola petición a Calendly a la vez (16/11): al caducar la copia, varias
+# pantallas abiertas pedían la agenda entera a la vez. Uno por bucle de eventos.
+_cerrojos: dict[int, asyncio.Lock] = {}
+
+
+def _cerrojo() -> asyncio.Lock:
+    clave = id(asyncio.get_running_loop())
+    if clave not in _cerrojos:
+        _cerrojos[clave] = asyncio.Lock()
+    return _cerrojos[clave]
+
+
+def _redis():
+    try:
+        from src.core.redis import get_redis_client
+
+        return get_redis_client()
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _guardar_ultima(datos: dict) -> None:
+    r = _redis()
+    if r is None:
+        return
+    try:
+        import json
+
+        r.set(_CLAVE_ULTIMA, json.dumps(datos, ensure_ascii=False), ex=_TTL_ULTIMA)
+    except Exception:  # noqa: BLE001
+        logger.debug("No se pudo guardar la última agenda en Redis", exc_info=True)
+
+
+def _leer_ultima() -> Optional[dict]:
+    r = _redis()
+    if r is None:
+        return None
+    try:
+        import json
+
+        crudo = r.get(_CLAVE_ULTIMA)
+        if not crudo:
+            return None
+        datos = json.loads(crudo)
+        return datos if isinstance(datos, dict) and isinstance(datos.get("citas"), list) else None
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _token() -> str:
@@ -210,7 +265,17 @@ async def agenda(forzar: bool = False) -> dict:
     ahora = time.time()
     if not forzar and _cache["datos"] is not None and _cache["hasta"] > ahora:
         return _cache["datos"]
+    pedida_a = _cache.get("pedida", 0.0)
+    async with _cerrojo():
+        # Si mientras esperaba otra pantalla ya la ha pedido, se usa esa.
+        if _cache["datos"] is not None and _cache.get("pedida", 0.0) > pedida_a and (
+            not forzar or _cache["hasta"] > time.time()
+        ):
+            return _cache["datos"]
+        return await _pedir_agenda(token, ahora)
 
+
+async def _pedir_agenda(token: str, ahora: float) -> dict:
     desde = (datetime.now(timezone.utc) - timedelta(days=45)).strftime("%Y-%m-%dT%H:%M:%S.000000Z")
     hasta = (datetime.now(timezone.utc) + timedelta(days=DIAS_ADELANTE)).strftime("%Y-%m-%dT%H:%M:%S.000000Z")
     try:
@@ -238,10 +303,15 @@ async def agenda(forzar: bool = False) -> dict:
                     logger.info("Calendly no deja leer la organización (%s): solo las del usuario", exc.response.status_code)
             if pagina is None:
                 pagina = await _get(cliente, f"{API}/scheduled_events", {**filtro, "user": yo.get("uri", "")})
-            for _ in range(5):
+            for n in range(_PAGINAS_MAX):
                 eventos.extend(pagina.get("collection") or [])
                 siguiente = (pagina.get("pagination") or {}).get("next_page")
                 if not siguiente:
+                    break
+                if n == _PAGINAS_MAX - 1:
+                    logger.warning(
+                        "La agenda de Calendly tiene más de %s citas: faltan las más lejanas", _PAGINAS_MAX * 100
+                    )
                     break
                 pagina = await _get(cliente, siguiente)
 
@@ -263,9 +333,15 @@ async def agenda(forzar: bool = False) -> dict:
         return {"configurado": True, "citas": [], "error": str(exc)}
     except Exception as exc:  # noqa: BLE001
         logger.warning("No se pudo leer la agenda de Calendly: %s", exc)
+        if _cache["datos"] is None:
+            # Tras un despliegue no hay copia en memoria: la de Redis.
+            guardada = _leer_ultima()
+            if guardada is not None:
+                _cache["datos"] = guardada
         if _cache["datos"] is not None:
             # La última agenda buena, y no volver a preguntar en un rato.
             _cache["hasta"] = ahora + _ESPERA_TRAS_FALLO
+            _cache["pedida"] = time.time()
             return _cache["datos"]
         if isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 429:
             return {"configurado": True, "citas": [], "error": "Calendly pide esperar un momento (demasiadas consultas seguidas). Vuelve a cargar en un minuto."}
@@ -279,4 +355,6 @@ async def agenda(forzar: bool = False) -> dict:
     datos = {"configurado": True, "citas": citas}
     _cache["datos"] = datos
     _cache["hasta"] = ahora + _CACHE_SEG
+    _cache["pedida"] = time.time()
+    _guardar_ultima(datos)
     return datos

@@ -175,10 +175,21 @@ def cambios_por_anfitrion(
         antes = ultima.get(email)
         if antes is None or str(c.get("reservada") or "") > str(antes[0].get("reservada") or ""):
             ultima[email] = (c, closer)
+    def _quitado_a_mano_despues(email: str, cita: dict) -> bool:
+        # 16/11: quien QUITÓ el closer a mano (closer 0 con fecha de reparto)
+        # después de esa reserva no lo recupera al abrir Llamadas. Si la
+        # persona vuelve a reservar más tarde, sí.
+        guardado = ya.get(email) or {}
+        quitado = _instante(guardado.get("asignado_at") or "")
+        if quitado is None:
+            return False
+        reservada = _instante(cita.get("reservada") or "")
+        return reservada is None or reservada <= quitado
+
     return {
         email: closer
-        for email, (_c, closer) in ultima.items()
-        if not int((ya.get(email) or {}).get("closer_id") or 0)
+        for email, (c, closer) in ultima.items()
+        if not int((ya.get(email) or {}).get("closer_id") or 0) and not _quitado_a_mano_despues(email, c)
     }
 
 
@@ -289,6 +300,43 @@ async def _equipo_de_la_escuela(db_session: AsyncSession) -> tuple[int, list[dic
     return org_id, (await equipo(org_id, db_session) if org_id else [])
 
 
+def marca_de_aviso(prefijo: str, email: str, datos: dict) -> str:
+    """La marca de «ya avisado» en Redis, por CITA y no solo por correo
+    (16/11): quien cancela y vuelve a reservar en menos de 30 minutos es otra
+    llamada, y antes no se avisaba. Con la hora de la cita si se sabe (el aviso
+    de Calendly la trae); el de la web no la sabe y va solo por correo, como
+    antes. Función pura."""
+    cita = str(datos.get("inicio") or datos.get("cuando") or "").strip()
+    return f"{prefijo}:{email}:{cita}" if cita else f"{prefijo}:{email}"
+
+
+def _la_web_ya_aviso(r, email: str, datos: dict) -> bool:
+    """El aviso de Calendly (con hora) de una reserva de la que la web ya avisó
+    hace un rato (sin hora, marca solo por correo): es la misma reserva. Si la
+    marca por correo la puso Calendly (lleva la cita dentro), no cuenta: es
+    una reserva anterior de la misma persona."""
+    if r is None or not email or marca_de_aviso("llamada-nueva", email, datos) == f"llamada-nueva:{email}":
+        return False
+    try:
+        valor = r.get(f"llamada-nueva:{email}")
+    except Exception:  # noqa: BLE001
+        return False
+    if isinstance(valor, bytes):
+        valor = valor.decode("utf-8", "ignore")
+    return bool(valor) and not str(valor).startswith("cita:")
+
+
+def _marcar_para_la_web(r, email: str, datos: dict) -> None:
+    """Tras avisar desde Calendly, la marca por correo (sin hora) para que el
+    aviso de la web de la misma reserva no se repita. Lleva la cita dentro."""
+    if r is None or not email or marca_de_aviso("llamada-nueva", email, datos) == f"llamada-nueva:{email}":
+        return
+    try:
+        r.set(f"llamada-nueva:{email}", f"cita:{datos.get('inicio') or datos.get('cuando')}", ex=1800)
+    except Exception:  # noqa: BLE001
+        pass
+
+
 async def avisar_llamada_nueva(datos: dict, db_session: AsyncSession) -> int:
     """Correo de «llamada nueva, repártela». datos: nombre, email, telefono,
     cuando. Devuelve cuántos salieron."""
@@ -305,8 +353,11 @@ async def avisar_llamada_nueva(datos: dict, db_session: AsyncSession) -> int:
             from src.core.redis import get_redis_client
 
             r = get_redis_client()
-            if r is not None and not r.set(f"llamada-nueva:{email}", "1", nx=True, ex=1800):
+            if _la_web_ya_aviso(r, email, datos):
                 return 0
+            if r is not None and not r.set(marca_de_aviso("llamada-nueva", email, datos), "1", nx=True, ex=1800):
+                return 0
+            _marcar_para_la_web(r, email, datos)
         except Exception:  # noqa: BLE001
             r = None
 
@@ -335,7 +386,7 @@ async def avisar_llamada_nueva(datos: dict, db_session: AsyncSession) -> int:
     if not enviados and r is not None:
         # No salió ninguno: que el siguiente aviso de esta reserva lo intente.
         try:
-            r.delete(f"llamada-nueva:{email}")
+            r.delete(marca_de_aviso("llamada-nueva", email, datos))
         except Exception:  # noqa: BLE001
             pass
     return enviados
@@ -412,7 +463,7 @@ async def avisar_llamada_con_closer(
         return 0
     informe["avisar_a"] = suyo
     enviados = 0
-    if suyo and primera_vez(f"llamada-closer:{email}"):
+    if suyo and primera_vez(marca_de_aviso("llamada-closer", email, datos)):
         try:
             await en_hilo(send_llamada_asignada_email, suyo, {**datos, "calendly": True})
             enviados += 1
@@ -420,16 +471,17 @@ async def avisar_llamada_con_closer(
         except Exception:  # noqa: BLE001
             logger.exception("No se pudo avisar al closer de su llamada")
             informe["fallo_closer"] = suyo
-            soltar(f"llamada-closer:{email}")
+            soltar(marca_de_aviso("llamada-closer", email, datos))
 
-    if not primera_vez(f"llamada-nueva:{email}"):
+    if _la_web_ya_aviso(r, email, datos) or not primera_vez(marca_de_aviso("llamada-nueva", email, datos)):
         informe["repetido"] = True
         return enviados
+    _marcar_para_la_web(r, email, datos)
     try:
         a_quien = destinos_con_closer(closer, ajustes["repartidor_id"], eq, await emails_de_administradores(db_session))
     except Exception:  # noqa: BLE001
         logger.exception("No se pudo leer a quién avisar de la llamada")
-        soltar(f"llamada-nueva:{email}")
+        soltar(marca_de_aviso("llamada-nueva", email, datos))
         return enviados
     avisados = []
     for destino in a_quien:
@@ -441,7 +493,7 @@ async def avisar_llamada_con_closer(
     informe["avisados"] = avisados
     enviados += len(avisados)
     if not avisados:
-        soltar(f"llamada-nueva:{email}")
+        soltar(marca_de_aviso("llamada-nueva", email, datos))
     return enviados
 
 

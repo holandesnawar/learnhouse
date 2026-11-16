@@ -544,6 +544,9 @@ export async function crearEnlacePago(
   opciones?: CondicionesPlazos[]
   /** El total y los pagos los fijó el equipo: la persona no elige nada. */
   a_medida?: boolean
+  /** Ya es alumna (pagó o tiene cuenta de alumno). Si ya pagó, al abrir el
+   *  enlace no se le cobra: le sale «Ya estás matriculado/a». */
+  ya_alumna?: boolean
   error?: string
 }> {
   try {

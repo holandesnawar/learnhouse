@@ -561,10 +561,17 @@ def fusionar_contactos(eventos: list[dict], con_cuenta: set[str]) -> list[dict]:
     return fichas
 
 
-async def _todos_los_eventos(db_session: AsyncSession) -> list[dict]:
+async def _todos_los_eventos(db_session: AsyncSession, email: Optional[str] = None) -> list[dict]:
+    """Todo lo que la escuela sabe de cada persona. Con `email`, solo lo de
+    ESA persona, filtrado en la base de datos (16/11): abrir una ficha o
+    asignar un closer leía la tabla entera. Mismo resultado para esa persona."""
     eventos: list[dict] = []
+    clave = (email or "").strip().lower() if email is not None else None
 
-    for r in (await db_session.execute(select(ContactEvent))).scalars().all():
+    def de_ella(consulta, columna):
+        return consulta.where(func.lower(columna) == clave) if clave is not None else consulta
+
+    for r in (await db_session.execute(de_ella(select(ContactEvent), ContactEvent.email))).scalars().all():
         try:
             extra = json.loads(r.extra) if r.extra else {}
         except Exception:  # noqa: BLE001
@@ -582,7 +589,7 @@ async def _todos_los_eventos(db_session: AsyncSession) -> list[dict]:
             )
         )
 
-    for r in (await db_session.execute(select(EnrollmentRequest))).scalars().all():
+    for r in (await db_session.execute(de_ella(select(EnrollmentRequest), EnrollmentRequest.email))).scalars().all():
         eventos.append(
             _evento(
                 "solicitud", r.created_at, r.email,
@@ -597,7 +604,7 @@ async def _todos_los_eventos(db_session: AsyncSession) -> list[dict]:
             )
         )
 
-    for r in (await db_session.execute(select(Enrollment))).scalars().all():
+    for r in (await db_session.execute(de_ella(select(Enrollment), Enrollment.email))).scalars().all():
         comunes = dict(
             first_name=r.first_name, last_name=r.last_name, phone=r.phone,
             recorrido=getattr(r, "recorrido", ""), referrer=getattr(r, "referrer", ""),
@@ -622,9 +629,14 @@ async def _todos_los_eventos(db_session: AsyncSession) -> list[dict]:
             )
 
     # Los pagos de plazas reservadas (señal, a cuenta, el resto).
-    reservas = {r.id: r for r in (await db_session.execute(select(ReservaPlaza))).scalars().all()}
+    reservas = {
+        r.id: r for r in (await db_session.execute(de_ella(select(ReservaPlaza), ReservaPlaza.email))).scalars().all()
+    }
+    consulta_pagos = select(ReservaPago).where(ReservaPago.estado == "pagado")
+    if clave is not None:
+        consulta_pagos = consulta_pagos.where(ReservaPago.reserva_id.in_(list(reservas) or [-1]))  # type: ignore[union-attr]
     pagados = sorted(
-        (p for p in (await db_session.execute(select(ReservaPago).where(ReservaPago.estado == "pagado"))).scalars().all()),
+        (p for p in (await db_session.execute(consulta_pagos)).scalars().all()),
         key=lambda p: str(p.paid_at or ""),
     )
     acumulado: dict[int, int] = {}
@@ -648,19 +660,21 @@ async def _todos_los_eventos(db_session: AsyncSession) -> list[dict]:
     return eventos
 
 
-async def _emails_con_cuenta(db_session: AsyncSession) -> set[str]:
+async def _emails_con_cuenta(db_session: AsyncSession, email: Optional[str] = None) -> set[str]:
     """Los correos de quien tiene cuenta DE ALUMNO en la escuela.
 
     ⚠️ Antes contaba cualquier cuenta, así que el administrador, el closer y
     los profes (que dejan sus correos probando formularios) salían como
     "alumnos": el usuario vio 12 y no había 12. Ahora solo rol de alumno."""
-    filas = (
-        await db_session.execute(
-            select(User.email)
-            .join(UserOrganization, UserOrganization.user_id == User.id)
-            .where(UserOrganization.role_id == STUDENT_ROLE_ID)
-        )
-    ).all()
+    consulta = (
+        select(User.email)
+        .join(UserOrganization, UserOrganization.user_id == User.id)
+        .where(UserOrganization.role_id == STUDENT_ROLE_ID)
+    )
+    if email is not None:
+        # Solo esa persona (16/11), para la ficha.
+        consulta = consulta.where(func.lower(User.email) == (email or "").strip().lower())
+    filas = (await db_session.execute(consulta)).all()
     return {str(e[0]).strip().lower() for e in filas if e and e[0]}
 
 
@@ -725,10 +739,10 @@ async def detalle_contacto(email: str, db_session: AsyncSession) -> Optional[dic
     email = (email or "").strip().lower()
     if not email:
         return None
-    eventos = [e for e in await _todos_los_eventos(db_session) if e["email"] == email]
+    eventos = [e for e in await _todos_los_eventos(db_session, email) if e["email"] == email]
     if not eventos:
         return None
-    ficha = fusionar_contactos(eventos, await _emails_con_cuenta(db_session))[0]
+    ficha = fusionar_contactos(eventos, await _emails_con_cuenta(db_session, email))[0]
     ficha["systeme"] = await etiquetas_en_systeme(email)
     return ficha
 
@@ -818,7 +832,7 @@ async def borrar_contacto(email: str, db_session: AsyncSession) -> dict:
     await borrar_templadas_de(clave, db_session)
 
     await db_session.commit()
-    tiene_cuenta = clave in await _emails_con_cuenta(db_session)
+    tiene_cuenta = clave in await _emails_con_cuenta(db_session, clave)
     return {"ok": True, "borrados": borrados, "quedan": {"pagadas": pagadas, "cuenta": tiene_cuenta}}
 
 
@@ -864,7 +878,7 @@ async def corregir_datos(
     if tel and len("".join(ch for ch in tel if ch.isdigit())) < 6:
         raise ValueError("Ese teléfono es demasiado corto. Ponlo con el prefijo del país, por ejemplo +31 6 12345678")
 
-    eventos = [e for e in await _todos_los_eventos(db_session) if (e.get("email") or "").strip().lower() == clave]
+    eventos = [e for e in await _todos_los_eventos(db_session, clave) if (e.get("email") or "").strip().lower() == clave]
     fichas = fusionar_contactos(eventos, set())
     if not fichas:
         raise LookupError("No hay nadie con ese correo")

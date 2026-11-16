@@ -19,6 +19,7 @@ import logging
 import os
 import secrets
 from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 from typing import Optional, TYPE_CHECKING
 from urllib.parse import quote
 from uuid import uuid4
@@ -345,6 +346,57 @@ async def get_seat_status(db_session: AsyncSession) -> dict:
     }
 
 
+async def ya_pago_la_formacion(email: str, db_session: AsyncSession) -> bool:
+    """¿Este correo tiene ya una matrícula PAGADA de la formación? (16/11).
+
+    Lo mira el enlace de pago del panel antes de abrir la caja: sin esto, quien
+    ya había pagado podía pagar otra vez con un enlace viejo o reenviado. Solo
+    cuenta el dinero (una matrícula `paid`), no la cuenta de alumno: las
+    cuotas 2 y 3 de un plan las cobra Stripe solo, y una señal no crea la
+    matrícula pagada hasta completarse, así que ninguna de las dos se bloquea."""
+    from sqlalchemy import func, or_
+
+    from src.db.enrollment import Enrollment
+
+    clave = (email or "").strip().lower()
+    if not clave:
+        return False
+    fila = (
+        await db_session.execute(
+            select(Enrollment.id)
+            .where(func.lower(Enrollment.email) == clave)
+            .where(Enrollment.status == "paid")
+            .where(or_(Enrollment.product == "formacion-a0-a1", Enrollment.product.is_(None), Enrollment.product == ""))  # type: ignore[union-attr]
+            .limit(1)
+        )
+    ).first()
+    return fila is not None
+
+
+async def es_alumna(email: str, db_session: AsyncSession) -> bool:
+    """Para avisar en el panel al crear un enlace: matrícula pagada o cuenta
+    con rol de alumno (lo mismo que `emails_que_pagaron`, para UNA persona)."""
+    from sqlalchemy import func
+
+    from src.security.rbac.constants import STUDENT_ROLE_ID
+
+    clave = (email or "").strip().lower()
+    if not clave:
+        return False
+    if await ya_pago_la_formacion(clave, db_session):
+        return True
+    fila = (
+        await db_session.execute(
+            select(User.id)
+            .join(UserOrganization, UserOrganization.user_id == User.id)
+            .where(func.lower(User.email) == clave)
+            .where(UserOrganization.role_id == STUDENT_ROLE_ID)
+            .limit(1)
+        )
+    ).first()
+    return fila is not None
+
+
 async def ensure_matricula_abierta(db_session: AsyncSession) -> None:
     """403 con un mensaje que la web puede enseñar tal cual."""
     status = await get_seat_status(db_session)
@@ -662,27 +714,42 @@ async def enroll_and_checkout_session(data, db_session: AsyncSession, precio_id:
     if amount <= 0:
         raise HTTPException(status_code=500, detail="Configured price has empty unit_amount")
 
-    # Cliente primero: la factura y el recibo necesitan a quién ir dirigidos.
-    try:
-        customer = await asyncio.to_thread(
-            stripe.Customer.create,
-            email=email,
-            name=full_name,
-            phone=data.phone or None,
-            metadata={
-                "country": data.country or "",
-                "city": data.city or "",
-                "source": "matricula-form-checkout",
-            },
-        )
-    except Exception as exc:
-        logger.exception("No se pudo crear el cliente en Stripe: %s", exc)
-        raise HTTPException(status_code=502, detail=f"Could not create Stripe customer: {exc}")
-
-    now = datetime.now().isoformat()
     # Una persona = una fila: si dejó una matrícula sin pagar hace un rato, es
     # el mismo intento y se reaprovecha en vez de inflar el abandono del embudo.
     row = await _matricula_sin_pagar_reciente(email, db_session)
+
+    # Cliente primero: la factura y el recibo necesitan a quién ir dirigidos.
+    # Si ese intento ya tenía cliente en Stripe, se usa el mismo (16/11): cada
+    # vez que se abría el enlace (o lo abría la vista previa de WhatsApp) se
+    # creaba un cliente nuevo y Stripe se llenaba de repetidos.
+    customer = None
+    anterior_cliente = str(getattr(row, "stripe_customer_id", "") or "") if row is not None else ""
+    if anterior_cliente.startswith("cus_"):
+        try:
+            await asyncio.to_thread(
+                stripe.Customer.modify, anterior_cliente, name=full_name, phone=data.phone or None
+            )
+            customer = SimpleNamespace(id=anterior_cliente)
+        except Exception:  # noqa: BLE001
+            logger.warning("No se pudo reutilizar el cliente %s; se crea otro", anterior_cliente, exc_info=True)
+    if customer is None:
+        try:
+            customer = await asyncio.to_thread(
+                stripe.Customer.create,
+                email=email,
+                name=full_name,
+                phone=data.phone or None,
+                metadata={
+                    "country": data.country or "",
+                    "city": data.city or "",
+                    "source": "matricula-form-checkout",
+                },
+            )
+        except Exception as exc:
+            logger.exception("No se pudo crear el cliente en Stripe: %s", exc)
+            raise HTTPException(status_code=502, detail=f"Could not create Stripe customer: {exc}")
+
+    now = datetime.now().isoformat()
     if row is not None:
         anterior = row.stripe_session_id
         row.first_name = data.first_name
@@ -1654,6 +1721,18 @@ async def _soltar_matricula(enrollment, db_session: AsyncSession) -> None:
         logger.exception("No se pudo soltar la matrícula %s", getattr(enrollment, "id", "?"))
 
 
+def _reintentar_si_hace_falta(resultado: dict) -> None:
+    """Si el correo de bienvenida no salió, se contesta 503 a Stripe para que
+    vuelva a mandar el aviso (lo reintenta durante días). La marca de la
+    matrícula ya se soltó, así que el reintento manda el correo; la cuenta ya
+    existe y no se crea otra."""
+    if resultado.get("reintentar"):
+        raise HTTPException(
+            status_code=503,
+            detail=f"Correo de bienvenida sin enviar, reintentar: {resultado.get('detail', '')}",
+        )
+
+
 async def _provision_after_payment(
     email: str,
     name: str,
@@ -1712,6 +1791,9 @@ async def _provision_after_payment(
             "detail": "user created but reset email could not be sent",
             "created": created,
             "atendida_ahora": False,
+            # Quien nos llama suelta la marca y contesta error a Stripe para
+            # que reintente (16/11): si no, el alumno se quedaba sin correo.
+            "reintentar": True,
             **who,
         }
 
@@ -1724,8 +1806,26 @@ async def _provision_after_payment(
             reset_code=code,
             base_url=_academy_url(),
         )
-    except Exception:
+    except Exception as exc:  # noqa: BLE001
+        # Antes se tragaba el fallo y se daba por atendida: el alumno que
+        # acababa de pagar no recibía nunca su «crea tu contraseña» y Stripe
+        # no reintentaba (16/11). Ahora se dice que hay que reintentar: quien
+        # nos llama suelta la marca y contesta 503, y Stripe vuelve a avisar.
+        # La cuenta ya existe: el reintento no la crea otra vez.
         logger.exception("Welcome email send failed for %s", email)
+        motivo = getattr(exc, "detail", None) or f"{type(exc).__name__}: {exc}"
+        logger.error(
+            "El correo «crea tu contraseña» de %s no salió (%s): se pide a Stripe que reintente",
+            email,
+            motivo,
+        )
+        return {
+            "detail": f"welcome email failed: {motivo}",
+            "created": created,
+            "atendida_ahora": False,
+            "reintentar": True,
+            **who,
+        }
 
     try:
         from src.services.crm.systeme import mark_as_alumno
@@ -1826,12 +1926,15 @@ async def _handle_checkout_session(obj: dict, db_session: AsyncSession) -> dict:
 
     if enrollment is not None and not ya_atendida and not resultado.get("atendida_ahora"):
         await _soltar_matricula(enrollment, db_session)
+    _reintentar_si_hace_falta(resultado)
 
     # Y las automatizaciones de "cuando alguien paga", igual que en el otro
-    # camino. Se tragan sus errores: el cobro ya está hecho.
+    # camino. Se tragan sus errores: el cobro ya está hecho. Solo quien atendió
+    # la matrícula AHORA: Stripe manda dos avisos del mismo pago y, si no, las
+    # automatizaciones salían dos veces (16/11).
     user_id = resultado.get("user_id")
     org_id = resultado.get("org_id")
-    if user_id and org_id:
+    if user_id and org_id and resultado.get("atendida_ahora"):
         from src.services.automations.engine import run_trigger
 
         await run_trigger(
@@ -1897,6 +2000,7 @@ async def _handle_payment_intent(obj: dict, db_session: AsyncSession) -> dict:
     result = await _provision_after_payment(email, name, db_session, ya_atendida=ya_atendida)
     if not ya_atendida and not result.get("atendida_ahora"):
         await _soltar_matricula(enrollment, db_session)
+    _reintentar_si_hace_falta(result)
 
     # La factura NAWAR-XXXX que el Checkout de Stripe generaba solo. Best-effort:
     # nunca bloquea.
@@ -1926,7 +2030,8 @@ async def _handle_payment_intent(obj: dict, db_session: AsyncSession) -> dict:
     # propios errores: el cobro ya está hecho y la cuenta creada.
     user_id = result.get("user_id")
     org_id = result.get("org_id")
-    if user_id and org_id:
+    # Solo quien atendió la matrícula ahora (ver la sesión de pago, arriba).
+    if user_id and org_id and result.get("atendida_ahora"):
         from src.services.automations.engine import run_trigger
 
         await run_trigger(

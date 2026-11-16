@@ -1,7 +1,7 @@
 """Public endpoints driving Stripe checkout + webhook for the formación."""
 
 import logging
-from typing import Optional
+from typing import Annotated, Optional
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
@@ -111,6 +111,61 @@ background:#1D0084;color:#fff;font-family:system-ui,sans-serif;padding:24px;text
 <div style="max-width:420px"><h1 style="font-size:22px;margin:0 0 12px">{titulo}</h1>
 <p style="font-size:16px;line-height:1.6;opacity:.9;margin:0">{texto}</p></div></body></html>"""
 
+# Los robots que abren un enlace para pintar su vista previa (16/11). Al pegar
+# el enlace de pago en WhatsApp, WhatsApp lo abre él solo: eso creaba una
+# matrícula «llegó al pago», un cliente de Stripe y, en una reserva, caducaba
+# la sesión que la persona tenía abierta. A ellos se les da una página con el
+# título y no se crea nada.
+_ROBOTS_DE_VISTA_PREVIA = (
+    "whatsapp",
+    "facebookexternalhit",
+    "facebookcatalog",
+    "meta-externalagent",
+    "telegrambot",
+    "slackbot",
+    "twitterbot",
+    "discordbot",
+    "linkedinbot",
+    "googlebot",
+    "bingbot",
+    "applebot",
+    "skypeuripreview",
+    "pinterest",
+    "redditbot",
+    "embedly",
+    "vkshare",
+    "snapchat",
+    "viber",
+)
+
+
+def es_robot_de_vista_previa(user_agent: Optional[str]) -> bool:
+    ua = (user_agent or "").lower() if isinstance(user_agent, str) else ""
+    return any(r in ua for r in _ROBOTS_DE_VISTA_PREVIA)
+
+
+_PAGINA_VISTA_PREVIA = """<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pago de la Formación Nawar</title>
+<meta property="og:title" content="Pago de la Formación Nawar">
+<meta property="og:description" content="Tu enlace personal para matricularte en la Formación Nawar A0-A1.">
+<meta property="og:site_name" content="Holandés Nawar">
+<meta name="robots" content="noindex"></head>
+<body><h1>Pago de la Formación Nawar</h1></body></html>"""
+
+
+# Quien ya pagó la formación y abre otra vez un enlace de pago (16/11): no se
+# le abre la caja, se le manda a entrar en la escuela.
+_PAGINA_YA_ALUMNA = """<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Ya estás en la escuela · Holandés Nawar</title></head>
+<body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+background:#1D0084;color:#fff;font-family:system-ui,sans-serif;padding:24px;text-align:center">
+<div style="max-width:420px"><h1 style="font-size:22px;margin:0 0 12px">Ya estás matriculado/a</h1>
+<p style="font-size:16px;line-height:1.6;opacity:.9;margin:0 0 24px">Tu pago de la formación ya está hecho: no tienes que pagar nada más.
+Entra en la escuela con tu correo y tu contraseña. Si no la tienes, mira el correo «Welkom» que te mandamos.</p>
+<a href="{url}" style="display:inline-block;background:#4da3ff;color:#0a1656;font-weight:700;text-decoration:none;
+padding:14px 24px;border-radius:8px;font-size:15px">Entrar en la escuela</a></div></body></html>"""
+
 
 @router.get(
     "/pagar/{token}",
@@ -128,16 +183,20 @@ async def api_pagar_enlace(
     token: str,
     cuotas: Optional[int] = None,
     db_session: AsyncSession = Depends(get_db_session),
+    user_agent: Annotated[Optional[str], Header()] = None,
 ):
     from fastapi.responses import HTMLResponse
 
+    if es_robot_de_vista_previa(user_agent):
+        return HTMLResponse(_PAGINA_VISTA_PREVIA, headers={"X-Robots-Tag": "noindex"})
+
     from config.config import get_learnhouse_config
     from src.db.enrollment import EnrollmentCreate
-    from src.services.payments.enlace import verificar
+    from src.services.payments.enlace import TIPO_PAGAR, tipo_vale, verificar
     from src.services.payments.payments import _academy_url, _formacion_price_id
 
     datos = verificar(token, get_learnhouse_config().security_config.auth_jwt_secret_key)
-    if not datos:
+    if not datos or not tipo_vale(datos, TIPO_PAGAR) or not datos.get("e"):
         return HTMLResponse(
             _PAGINA_ENLACE.format(
                 titulo="Este enlace ya no vale",
@@ -145,6 +204,15 @@ async def api_pagar_enlace(
             ),
             status_code=410,
         )
+    # Ya pagó la formación: no se abre otra caja (16/11). Las cuotas de un
+    # plan las cobra Stripe solo y las señales van por /reserva, así que esto
+    # no les afecta.
+    from src.services.payments.payments import ya_pago_la_formacion
+
+    if await ya_pago_la_formacion(str(datos.get("e") or ""), db_session):
+        import html as _html
+
+        return HTMLResponse(_PAGINA_YA_ALUMNA.format(url=_html.escape(f"{_academy_url()}/login")), status_code=200)
     pedido = EnrollmentCreate(
         email=datos["e"],
         first_name=datos.get("f") or "",
@@ -224,8 +292,12 @@ async def api_pagar_enlace(
 async def api_pagar_reserva(
     token: str,
     db_session: AsyncSession = Depends(get_db_session),
+    user_agent: Annotated[Optional[str], Header()] = None,
 ):
     from fastapi.responses import HTMLResponse
+
+    if es_robot_de_vista_previa(user_agent):
+        return HTMLResponse(_PAGINA_VISTA_PREVIA, headers={"X-Robots-Tag": "noindex"})
 
     from src.services.payments.reservas import abrir_pago
 

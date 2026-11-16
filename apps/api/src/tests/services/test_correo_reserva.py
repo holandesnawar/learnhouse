@@ -697,3 +697,60 @@ def test_el_correo_del_cambio_de_hora():
     assert "ya no vale" in r["html"] and "https://meet.google.com/nuevo" in r["html"] and "Enlace NUEVO" in r["html"]
     sin = E.send_llamada_asignada_email("d@x.com", {"nombre": "Ana", "email": "ana@x.com", "cuando": "jue", "cambio": True}, preview=True)
     assert "aún no ha llegado de Calendly" in sin["html"]
+
+
+
+def test_la_marca_de_aviso_va_por_cita():
+    from src.services.panel.reparto import marca_de_aviso
+
+    assert marca_de_aviso("llamada-nueva", "ana@x.com", {}) == "llamada-nueva:ana@x.com"
+    a = marca_de_aviso("llamada-nueva", "ana@x.com", {"cuando": "jue 20 nov · 18:00"})
+    b = marca_de_aviso("llamada-nueva", "ana@x.com", {"cuando": "jue 20 nov · 18:30"})
+    assert a != b and a.startswith("llamada-nueva:ana@x.com:")
+
+
+async def test_cancelar_y_volver_a_reservar_en_media_hora_avisa_otra_vez(db, escuela):
+    """16/11: la marca iba por correo y quien cancelaba y volvía a reservar en
+    menos de 30 minutos no le llegaba al closer."""
+    from src.services.panel import reparto
+
+    class RedisFalso:
+        def __init__(self):
+            self.claves = {}
+
+        def set(self, k, v, nx=False, ex=None):
+            if nx and k in self.claves:
+                return None
+            self.claves[k] = v
+            return True
+
+        def delete(self, k):
+            self.claves.pop(k, None)
+
+        def get(self, k):
+            return self.claves.get(k)
+
+    falso = RedisFalso()
+
+    async def _equipo(_db):
+        return 1, EQUIPO_TEAMS
+
+    async def _admins(_db):
+        return ["rida@x.com"]
+
+    async def _leer(_db, org_id=None):
+        return {"repartidor_id": 0, "calendly": {"4": "rida.calendly@x.com"}, "avisar": {"4": "diego@nawar.es"}}
+
+    suyas = []
+    with patch.object(reparto, "_equipo_de_la_escuela", _equipo), patch.object(reparto, "leer", _leer), patch(
+        "src.services.contactos.llamadas.emails_de_administradores", _admins
+    ), patch("src.core.redis.get_redis_client", lambda: falso), patch.object(C, "_redis", lambda: falso), patch(
+        "src.services.crm.systeme.marcar_llamada_reservada", lambda *a, **k: None
+    ), patch.object(E, "send_llamada_agendada_email", lambda d, x: None), patch.object(
+        E, "send_llamada_asignada_email", lambda d, x: suyas.append(x.get("cuando"))
+    ):
+        base = {"email": "ana@x.com", "nombre": "Ana", "anfitrion_email": "rida.calendly@x.com"}
+        await C._avisar_reparto({**base, "inicio": "2026-11-20T17:00:00Z"}, db)
+        await C._avisar_reparto({**base, "inicio": "2026-11-20T17:00:00Z"}, db)  # reintento: no se repite
+        await C._avisar_reparto({**base, "inicio": "2026-11-21T17:00:00Z"}, db)  # otra cita
+    assert len(suyas) == 2 and suyas[0] != suyas[1]
