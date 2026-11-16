@@ -83,7 +83,10 @@ type Item = {
   fuera?: boolean
 }
 
-type Bloque = { titulo?: string; items: Item[] }
+// `fallo`: la lista de ese bloque no se pudo cargar (16/11/2026). En vez de
+// esconder el bloque entero (parecía que la persona no tenía clases ni
+// comunidad), sale una línea con «Reintentar».
+type Bloque = { titulo?: string; items: Item[]; fallo?: () => void }
 
 const canalId = (uuid: string) => String(uuid || '').replace('community_', '')
 
@@ -110,8 +113,12 @@ export const OrgSidebar = (props: { orgslug: string }) => {
   const pathname = usePathname() || ''
   const [abierta, setAbierta] = useState(false)
   const { data: sinLeer } = useUnreadCommunity()
-  const { data: enDirecto } = useCursosEnDirecto()
-  const { data: canales } = useCanales()
+  const clasesQ = useCursosEnDirecto()
+  const canalesQ = useCanales()
+  const enDirecto = clasesQ.data
+  const canales = canalesQ.data
+  const falloClases = clasesQ.isError && !(enDirecto || []).length ? () => void clasesQ.refetch() : undefined
+  const falloCanales = canalesQ.isError && !(canales || []).length ? () => void canalesQ.refetch() : undefined
   const { isProfe, isAdmin: puedeEntrarAlPanel, isStaff, isCloser } = useAdminStatus()
   const autenticado = session?.status === 'authenticated'
   // ¿Es monitor? (grupo «Monitores», 08/11/2026): solo tiene la sala de
@@ -214,7 +221,8 @@ export const OrgSidebar = (props: { orgslug: string }) => {
       { key: 'recursos', href: '/recursos', label: 'Recursos', icon: <FolderSimple size={20} weight="fill" /> },
     ],
   }
-  const comunidad: Bloque[] = canalesComunidad.length ? [{ titulo: 'Comunidad', items: canalesComunidad.map(itemCanal) }] : []
+  const comunidad: Bloque[] =
+    canalesComunidad.length || falloCanales ? [{ titulo: 'Comunidad', items: canalesComunidad.map(itemCanal), fallo: falloCanales }] : []
   const verFormacion: Item = { key: 'formacion', href: `/course/${FORMACION_UUID}`, label: 'Formación A0-A1', icon: <Books size={20} weight="fill" /> }
 
   const barraAlumno = (): Bloque[] => [
@@ -228,10 +236,11 @@ export const OrgSidebar = (props: { orgslug: string }) => {
           { key: 'notas', href: '/mis-notas', label: 'Mis notas', icon: <NotePencil size={20} weight="fill" /> },
         ],
       },
-      ...(tieneClases
+      ...(tieneClases || falloClases
         ? [
             {
               titulo: 'Mis clases',
+              fallo: falloClases,
               items: [
                 // La página de cada clase, a un clic (08/11: «es difícil llegar hasta ella»).
                 ...itemsClases,
@@ -267,7 +276,7 @@ export const OrgSidebar = (props: { orgslug: string }) => {
           { key: 'usuarios', href: '/dash/users/settings/users', label: 'Usuarios', icon: <UsersThree size={20} weight="fill" />, fuera: true },
         ],
       },
-      { titulo: 'Clases', items: [...itemsClases, { key: 'calendario', href: '/calendario', label: 'Calendario', icon: <CalendarBlank size={20} weight="fill" /> }] },
+      { titulo: 'Clases', items: [...itemsClases, { key: 'calendario', href: '/calendario', label: 'Calendario', icon: <CalendarBlank size={20} weight="fill" /> }], fallo: falloClases },
       { titulo: 'Formación', items: [verFormacion] },
       empieza,
       ...comunidad,
@@ -282,7 +291,8 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     const ayuda: Bloque = { titulo: 'Ayuda', items: [{ key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={20} weight="fill" /> }] }
     // El monitor (10/11/2026, "no puede ver nada… no es así el monitor"):
     // como un profe, más su Spreekclub a la vista.
-    const susClases: Bloque[] = monitor && itemsClases.length ? [{ titulo: 'Mis clases', items: itemsClases }] : []
+    const susClases: Bloque[] =
+      monitor && (itemsClases.length || falloClases) ? [{ titulo: 'Mis clases', items: itemsClases, fallo: falloClases }] : []
     if (monitor) {
       bloques = [sala, ...susClases, { titulo: 'Formación', items: [verFormacion] }, ...comunidad, ayuda]
     } else {
@@ -461,6 +471,18 @@ export const OrgSidebar = (props: { orgslug: string }) => {
                   {b.items.map((it) => (
                     <Fila key={it.key} it={it} />
                   ))}
+                  {b.fallo ? (
+                    <p className={`px-3 py-1.5 text-[13px] ${azul ? 'text-white/80' : 'text-[#5B6382]'}`}>
+                      No se han podido cargar ·{' '}
+                      <button
+                        type="button"
+                        onClick={b.fallo}
+                        className={`font-semibold underline-offset-2 hover:underline ${azul ? 'text-white' : 'text-[#0b2da0]'}`}
+                      >
+                        Reintentar
+                      </button>
+                    </p>
+                  ) : null}
                 </div>
               )}
             </div>
