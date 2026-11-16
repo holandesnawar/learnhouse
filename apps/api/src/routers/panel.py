@@ -7,6 +7,7 @@ administradores, moderadores y el closer. El closer ve en el tablero lo mismo
 que en su Contactos (las matrículas) y en Tareas solo las suyas.
 """
 
+from src.services.email.utils import en_hilo
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -231,7 +232,8 @@ async def api_asignar(
             ),
             {},
         )
-        r["avisado"] = avisar_asignada(
+        r["avisado"] = await en_hilo(
+            avisar_asignada,
             closer.get("email", ""),
             {
                 "nombre": ficha.get("nombre") or (cita or {}).get("nombre") or "",

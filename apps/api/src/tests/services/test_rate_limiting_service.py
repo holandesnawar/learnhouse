@@ -270,3 +270,10 @@ def test_email_based_wrappers_lowercase_inputs(func, input_value, expected_key):
     assert retry_after == 33
     mock_check.assert_called_once()
     assert mock_check.call_args.kwargs["key"] == expected_key
+
+
+def test_forma_de_xff_sin_ips():
+    from src.services.security.rate_limiting import forma_de_xff
+
+    assert forma_de_xff("1.2.3.4, 8.8.8.8, 100.64.0.7") == "g,g,n"
+    assert forma_de_xff("10.0.0.1, basura") == "n,x"

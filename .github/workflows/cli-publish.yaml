@@ -1,9 +1,10 @@
 name: Publish CLI to npm
 
+# Heredado de LearnHouse. Solo se lanza a mano (Actions → Run workflow):
+# publica la CLI de LearnHouse en npm; la escuela no la publica.
+# No se borra para poder volver a encenderlo si algún día hace falta.
 on:
-  push:
-    tags:
-      - 'cli-[0-9]*'
+  workflow_dispatch:
 
 permissions:
   contents: write

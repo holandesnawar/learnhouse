@@ -67,6 +67,8 @@ Lo que cuida
 """
 
 from __future__ import annotations
+import asyncio
+from src.services.email.utils import en_hilo
 
 import json
 import logging
@@ -511,7 +513,7 @@ async def abrir_plazos(
         n, total = cuotas(), total_valido(total_cents)
     cuota = reparto(total, n)[0]
     try:
-        precio = precio_plazos(cuota)
+        precio = await asyncio.to_thread(precio_plazos, cuota)
     except HTTPException:
         raise
     except Exception as exc:  # noqa: BLE001
@@ -519,7 +521,8 @@ async def abrir_plazos(
         raise HTTPException(status_code=502, detail=f"No se ha podido preparar el pago a plazos: {exc}")
 
     try:
-        cliente = stripe.Customer.create(
+        cliente = await asyncio.to_thread(
+            stripe.Customer.create,
             email=email, name=full_name, phone=data.phone or None,
             metadata={"source": "plan-plazos"},
         )
@@ -534,8 +537,8 @@ async def abrir_plazos(
         fila.stripe_customer_id = _id(cliente)
         fila.updated_at = ahora
         if anterior:
-            P._cerrar_sesion_anterior(anterior)
-            P._cancelar_intento_anterior(anterior)
+            await asyncio.to_thread(P._cerrar_sesion_anterior, anterior)
+            await asyncio.to_thread(P._cancelar_intento_anterior, anterior)
     else:
         fila = Enrollment(
             email=email, first_name=data.first_name, last_name=data.last_name, phone=data.phone or "",
@@ -574,11 +577,13 @@ async def abrir_plazos(
     # para los cobros siguientes). Sin Klarna: esto es justo la alternativa. Si
     # la cuenta de Stripe no admite iDEAL en suscripciones, solo tarjeta.
     try:
-        sesion = stripe.checkout.Session.create(payment_method_types=["card", "ideal", "bancontact"], **base)
+        sesion = await asyncio.to_thread(
+            stripe.checkout.Session.create, payment_method_types=["card", "ideal", "bancontact"], **base
+        )
     except Exception:  # noqa: BLE001
         logger.warning("Plazos sin iDEAL/Bancontact: se reintenta solo con tarjeta", exc_info=True)
         try:
-            sesion = stripe.checkout.Session.create(payment_method_types=["card"], **base)
+            sesion = await asyncio.to_thread(stripe.checkout.Session.create, payment_method_types=["card"], **base)
         except Exception as exc:  # noqa: BLE001
             logger.exception("No se pudo crear la sesión de los plazos")
             raise HTTPException(status_code=502, detail=f"No se ha podido abrir el pago a plazos: {exc}")
@@ -737,7 +742,7 @@ async def registrar_primer_pago(obj: dict, enrollment, db_session: AsyncSession)
     factura = _id(obj.get("invoice"))
     if not factura:
         try:
-            factura = _id(_v(stripe.Subscription.retrieve(sub_id), "latest_invoice"))
+            factura = _id(_v(await asyncio.to_thread(stripe.Subscription.retrieve, sub_id), "latest_invoice"))
         except Exception:  # noqa: BLE001
             logger.warning("No se pudo leer la primera factura de %s", sub_id, exc_info=True)
     plan.facturas = json.dumps(anotar_cobro(leer_facturas(plan.facturas), factura, int(obj.get("amount_total") or 0), _ahora()))
@@ -745,7 +750,7 @@ async def registrar_primer_pago(obj: dict, enrollment, db_session: AsyncSession)
     await _guardar(plan, db_session)
 
     try:
-        asegurar_final(plan)
+        await asyncio.to_thread(asegurar_final, plan)
         await _guardar(plan, db_session)
     except Exception:  # noqa: BLE001
         # La tarea diaria lo vuelve a intentar; y si nunca sale, al tercer
@@ -793,7 +798,7 @@ async def _avisar_fallo(plan: PlanPagos, numero: int, db_session: AsyncSession, 
         alumno_avisado = False
         if plan.email:
             try:
-                send_plazo_fallido_alumno_email(plan.email, {
+                await en_hilo(send_plazo_fallido_alumno_email, plan.email, {
                     "nombre": nombre,
                     "numero": numero,
                     "cuotas": plan.cuotas,
@@ -809,7 +814,7 @@ async def _avisar_fallo(plan: PlanPagos, numero: int, db_session: AsyncSession, 
                 logger.exception("No se pudo avisar a la persona del cobro fallido del plan %s", plan.id)
         for destino in await emails_de_administradores(db_session):
             try:
-                send_plazo_fallido_email(destino, {**resumen(plan), "email": plan.email,
+                await en_hilo(send_plazo_fallido_email, destino, {**resumen(plan), "email": plan.email,
                                                    "nombre": nombre, "alumno_avisado": alumno_avisado,
                                                    "telefono": plan.phone, "numero": numero, "fallo": plan.fallo})
                 enviados += 1
@@ -829,10 +834,11 @@ async def sincronizar(plan: PlanPagos, db_session: AsyncSession) -> dict:
     `_usar_stripe()`."""
     import stripe
 
-    sub = stripe.Subscription.retrieve(plan.stripe_subscription_id)
+    sub = await asyncio.to_thread(stripe.Subscription.retrieve, plan.stripe_subscription_id)
     facturas = leer_facturas(plan.facturas)
     fallidas = []
-    for inv in _lista(stripe.Invoice.list(subscription=plan.stripe_subscription_id, limit=24)):
+    lista = await asyncio.to_thread(stripe.Invoice.list, subscription=plan.stripe_subscription_id, limit=24)
+    for inv in _lista(lista):
         estado = _v(inv, "status", "")
         if estado == "paid" and int(_v(inv, "amount_paid", 0) or 0) > 0:
             pagada_el = _iso(_v(_v(inv, "status_transitions"), "paid_at")) or _ahora()
@@ -864,10 +870,10 @@ async def sincronizar(plan: PlanPagos, db_session: AsyncSession) -> dict:
 
     if plan.estado in VIVOS:
         try:
-            asegurar_final(plan)
+            await asyncio.to_thread(asegurar_final, plan)
         except Exception:  # noqa: BLE001
             logger.exception("No se pudo poner el calendario al plan %s", plan.id)
-    _red_de_seguridad(plan, sub)
+    await asyncio.to_thread(_red_de_seguridad, plan, sub)
 
     plan.sincronizado_at = _ahora()
     await _guardar(plan, db_session)

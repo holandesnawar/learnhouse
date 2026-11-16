@@ -14,6 +14,7 @@ Reglas del sitio:
   (pronunciar, corregir), no un adorno.
 """
 
+from src.services.email.utils import en_hilo
 import json
 import logging
 from datetime import datetime, timezone
@@ -617,7 +618,7 @@ async def _notify_student_by_email(thread: DirectThread, db_session: AsyncSessio
         name = (student.first_name or student.username or "").strip() or "alumno/a"
         textos = await get_org_email_texts(thread.org_id, db_session)
         with usar_textos(textos):
-            send_new_direct_message_email(email=student.email, name=name)
+            await en_hilo(send_new_direct_message_email, email=student.email, name=name)
         logger.info("Aviso de mensaje enviado a %s", student.email)
     except Exception:
         logger.exception("No se pudo avisar por correo del mensaje directo")

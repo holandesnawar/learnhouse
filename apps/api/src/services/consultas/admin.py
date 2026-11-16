@@ -21,6 +21,7 @@ consulta que guarda su navegador (`edit_token`). Eso no pasa por aquí.
 """
 
 from __future__ import annotations
+from src.services.email.utils import en_hilo
 
 import logging
 import os
@@ -210,7 +211,7 @@ async def answer_consulta(consulta_id: str, respuesta: str, respondido_por: str)
 
     fila = _recortar(filas[0])
     logger.info("Consulta %s respondida desde el panel por %s", clean_id, respondido_por)
-    _avisar_a_la_alumna(fila)
+    await en_hilo(_avisar_a_la_alumna, fila)
     return fila
 
 
@@ -344,7 +345,8 @@ async def avisar_consulta_nueva(consulta_id: str, destinos: list[str]) -> dict:
     avisados = 0
     for destino in destinos:
         try:
-            send_news_email(
+            await en_hilo(
+                send_news_email,
                 destino,
                 name="equipo",
                 title=asunto,

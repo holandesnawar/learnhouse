@@ -1,3 +1,4 @@
+from src.services.email.utils import en_hilo
 from datetime import datetime, timezone
 import json
 import secrets
@@ -164,7 +165,8 @@ async def send_reset_password_code(
 
     # Send reset code via email
     base_url = get_base_url_from_request(request)
-    isEmailSent = send_password_reset_email(
+    isEmailSent = await en_hilo(
+        send_password_reset_email,
         generated_reset_code=generated_reset_code,
         user=user_read,
         organization=org_read,
@@ -385,7 +387,8 @@ async def send_reset_password_code_platform(
     user_read = UserRead.model_validate(user)
 
     base_url = get_base_url_from_request(request)
-    isEmailSent = send_password_reset_email_platform(
+    isEmailSent = await en_hilo(
+        send_password_reset_email_platform,
         generated_reset_code=generated_reset_code,
         user=user_read,
         email=user_read.email,

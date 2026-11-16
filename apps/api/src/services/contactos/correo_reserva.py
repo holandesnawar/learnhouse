@@ -55,6 +55,7 @@ tiene test (`test_correo_reserva.py`).
 """
 
 from __future__ import annotations
+from src.services.email.utils import en_hilo
 
 import hashlib
 import hmac
@@ -728,7 +729,7 @@ async def mandar_una_vez(reserva: dict, estado: dict, db_session: AsyncSession) 
     db_session.add(marca)
     await db_session.commit()
     try:
-        armar(reserva, estado["asunto"], estado["texto"], preview=False)
+        await en_hilo(armar, reserva, estado["asunto"], estado["texto"], preview=False)
     except Exception:
         # Sin correo, sin marca: el reintento de Calendly lo vuelve a intentar.
         await db_session.delete(marca)

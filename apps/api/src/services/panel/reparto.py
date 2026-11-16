@@ -40,6 +40,7 @@ Los correos no lanzan nunca: el reparto ya está guardado y un fallo del correo
 no puede devolver un error a la pantalla ni a la web.
 """
 
+from src.services.email.utils import en_hilo
 import json
 import logging
 from datetime import datetime, timedelta, timezone
@@ -325,9 +326,9 @@ async def avisar_llamada_nueva(datos: dict, db_session: AsyncSession) -> int:
             if suyo:
                 from src.services.users.emails import send_llamada_asignada_email
 
-                send_llamada_asignada_email(destino, {**datos, "vuelve": True})
+                await en_hilo(send_llamada_asignada_email, destino, {**datos, "vuelve": True})
             else:
-                send_llamada_agendada_email(destino, datos)
+                await en_hilo(send_llamada_agendada_email, destino, datos)
             enviados += 1
         except Exception:  # noqa: BLE001
             logger.exception("No se pudo avisar de la llamada nueva")
@@ -413,7 +414,7 @@ async def avisar_llamada_con_closer(
     enviados = 0
     if suyo and primera_vez(f"llamada-closer:{email}"):
         try:
-            send_llamada_asignada_email(suyo, {**datos, "calendly": True})
+            await en_hilo(send_llamada_asignada_email, suyo, {**datos, "calendly": True})
             enviados += 1
             informe["closer_avisado"] = suyo
         except Exception:  # noqa: BLE001
@@ -433,7 +434,7 @@ async def avisar_llamada_con_closer(
     avisados = []
     for destino in a_quien:
         try:
-            send_llamada_agendada_email(destino, {**datos, "closer": closer.get("nombre") or ""})
+            await en_hilo(send_llamada_agendada_email, destino, {**datos, "closer": closer.get("nombre") or ""})
             avisados.append(destino)
         except Exception:  # noqa: BLE001
             logger.exception("No se pudo avisar de la llamada nueva")
@@ -501,7 +502,7 @@ async def avisar_cambio_de_hora(datos: dict, db_session: AsyncSession) -> str:
     except Exception:  # noqa: BLE001
         r = None
     try:
-        send_llamada_asignada_email(suyo, {**datos, "cambio": True})
+        await en_hilo(send_llamada_asignada_email, suyo, {**datos, "cambio": True})
         return suyo
     except Exception:  # noqa: BLE001
         logger.exception("No se pudo avisar al closer del cambio de hora")

@@ -16,6 +16,7 @@ texto según sea "esta semana" o "llevas 3 días".
   silencio al texto de fábrica).
 """
 
+from src.services.email.utils import en_hilo
 import json
 import re
 from datetime import datetime, timezone
@@ -381,7 +382,7 @@ async def recordatorio_automatico(org_id: int, db_session: AsyncSession) -> dict
     enviados = 0
     for a in candidatos[:TOPE_POR_DIA]:
         try:
-            r = _armar(a, plantillas, "semana", "", "", preview=False)
+            r = await en_hilo(_armar, a, plantillas, "semana", "", "", preview=False)
             await _apuntar(a["user_id"], "semana", r["asunto"], AUTOR_AUTO, db_session)
             enviados += 1
         except Exception:  # noqa: BLE001

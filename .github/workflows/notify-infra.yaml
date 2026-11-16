@@ -1,14 +1,10 @@
 name: Notify Infrastructure
 
+# Heredado de LearnHouse. Solo se lanza a mano (Actions → Run workflow):
+# avisa al repositorio de infraestructura de LearnHouse (secretos INFRA_REPO_PAT e INFRA_REPO que esta escuela no tiene) y fallaba en cada subida.
+# No se borra para poder volver a encenderlo si algún día hace falta.
 on:
-  push:
-    branches:
-      - main
-      - dev
-    tags:
-      - '[0-9]*'
-  pull_request:
-    types: [opened, synchronize, reopened, closed]
+  workflow_dispatch:
 
 permissions: {}
 
