@@ -253,7 +253,7 @@ async def crear_enlace(
     mantiene su total: el enlace nuevo cobra a cuenta de ella."""
     from config.config import get_learnhouse_config
     from src.services.contactos.contactos import emails_que_pagaron
-    from src.services.payments.enlace import DIAS_VALIDEZ, firmar
+    from src.services.payments.enlace import DIAS_VALIDEZ, TIPO_RESERVA, firmar
     from src.services.payments.payments import _academy_url
 
     clave = (email or "").strip().lower()
@@ -311,7 +311,7 @@ async def crear_enlace(
         )
 
     secreto = get_learnhouse_config().security_config.auth_jwt_secret_key
-    token = firmar({"r": reserva.id, "i": importe, "e": clave, "a": autor[:60]}, secreto)
+    token = firmar({"r": reserva.id, "i": importe, "e": clave, "a": autor[:60], "t": TIPO_RESERVA}, secreto)
 
     # En su línea de tiempo: quién le mandó el enlace y de cuánto.
     try:
@@ -364,7 +364,7 @@ async def abrir_pago(token: str, db_session: AsyncSession) -> str:
     import stripe
 
     from config.config import get_learnhouse_config
-    from src.services.payments.enlace import verificar
+    from src.services.payments.enlace import TIPO_RESERVA, tipo_vale, verificar
     from src.services.payments.payments import (
         _academy_url,
         _stripe_publishable,
@@ -374,7 +374,7 @@ async def abrir_pago(token: str, db_session: AsyncSession) -> str:
     )
 
     datos = verificar(token, get_learnhouse_config().security_config.auth_jwt_secret_key)
-    if not datos or not datos.get("r"):
+    if not datos or not datos.get("r") or not tipo_vale(datos, TIPO_RESERVA):
         raise HTTPException(status_code=410, detail="Este enlace ha caducado o no está completo")
     reserva = (
         await db_session.execute(select(ReservaPlaza).where(ReservaPlaza.id == int(datos["r"])))

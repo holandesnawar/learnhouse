@@ -1012,6 +1012,9 @@ async def api_enlace_pago(
         # sin él es de antes del 20/10 y respeta el de entonces (397 €).
         datos["pu"] = precio_panel_cents()
         respuesta["precio_cents"] = datos["pu"]
+    from src.services.payments.enlace import TIPO_PAGAR
+
+    datos["t"] = TIPO_PAGAR  # el tipo, para que no valga en otra puerta (16/11)
     token = firmar(datos, secreto)
     # Aviso para quien lo crea (16/11): esta persona ya es alumna. Al abrirlo,
     # si ya pagó, no se le cobra otra vez.

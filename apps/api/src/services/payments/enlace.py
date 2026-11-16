@@ -64,3 +64,20 @@ def verificar(token: str, secreto: str, ahora: Optional[float] = None) -> Option
     if int(datos.get("exp", 0)) < (ahora or time.time()):
         return None
     return datos
+
+
+# El tipo de cada enlace firmado (16/11). El mismo secreto firma los enlaces de
+# pago, los de señal, la descarga del ebook, la baja de sus correos y el reto:
+# sin tipo, un enlace de baja (que solo lleva el correo) se podía abrir en
+# /pagar. Los enlaces nuevos de pago llevan `t: "pagar"` y los de señal
+# `t: "reserva"`; los de ebook, baja y reto ya llevaban el suyo.
+TIPO_PAGAR = "pagar"
+TIPO_RESERVA = "reserva"
+
+
+def tipo_vale(datos: dict, tipo: str) -> bool:
+    """¿Sirve este enlace para `tipo`? Uno SIN tipo es un enlace de pago o de
+    señal de antes del 16/11 (14 días): se acepta, para no romper los ya
+    enviados. Uno con otro tipo (ebook, baja, reto…), no."""
+    t = datos.get("t") if isinstance(datos, dict) else None
+    return t is None or t == "" or t == tipo

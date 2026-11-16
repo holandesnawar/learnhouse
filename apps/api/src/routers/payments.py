@@ -192,11 +192,11 @@ async def api_pagar_enlace(
 
     from config.config import get_learnhouse_config
     from src.db.enrollment import EnrollmentCreate
-    from src.services.payments.enlace import verificar
+    from src.services.payments.enlace import TIPO_PAGAR, tipo_vale, verificar
     from src.services.payments.payments import _academy_url, _formacion_price_id
 
     datos = verificar(token, get_learnhouse_config().security_config.auth_jwt_secret_key)
-    if not datos:
+    if not datos or not tipo_vale(datos, TIPO_PAGAR) or not datos.get("e"):
         return HTMLResponse(
             _PAGINA_ENLACE.format(
                 titulo="Este enlace ya no vale",

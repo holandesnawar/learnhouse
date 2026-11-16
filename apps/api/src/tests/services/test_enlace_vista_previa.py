@@ -95,3 +95,35 @@ async def test_abrir_dos_veces_reutiliza_el_cliente_de_stripe(db):
 
     filas = (await db.execute(select(Enrollment).where(Enrollment.email == "ana@x.com"))).scalars().all()
     assert len(filas) == 1 and filas[0].stripe_customer_id == "cus_1"
+
+
+# ── el tipo de cada enlace firmado (16/11) ─────────────────────────────────
+
+
+def test_tipo_vale_acepta_los_viejos_y_rechaza_otros_tipos():
+    assert E.tipo_vale({"e": "a@x.com"}, E.TIPO_PAGAR)  # enlace de antes, sin tipo
+    assert E.tipo_vale({"e": "a@x.com", "t": "pagar"}, E.TIPO_PAGAR)
+    assert not E.tipo_vale({"e": "a@x.com", "t": "baja"}, E.TIPO_PAGAR)
+    assert not E.tipo_vale({"e": "a@x.com", "t": "ebook"}, E.TIPO_PAGAR)
+    assert not E.tipo_vale({"r": 1, "t": "reserva"}, E.TIPO_PAGAR)
+    assert E.tipo_vale({"r": 1, "t": "reserva"}, E.TIPO_RESERVA)
+    assert not E.tipo_vale({"r": 1, "t": "pagar"}, E.TIPO_RESERVA)
+
+
+@pytest.mark.asyncio
+async def test_un_enlace_de_baja_no_abre_la_caja():
+    secreto = "s" * 40
+    baja = E.firmar({"e": "ana@x.com", "t": "baja"}, secreto, dias=365)
+    cfg = SimpleNamespace(security_config=SimpleNamespace(auth_jwt_secret_key=secreto))
+    with patch("config.config.get_learnhouse_config", lambda: cfg):
+        r = await R.api_pagar_enlace(baja, cuotas=None, db_session=None, user_agent="Mozilla/5.0")
+    assert r.status_code == 410 and "ya no vale" in r.body.decode()
+
+    from fastapi import HTTPException
+
+    from src.services.payments import reservas as RS
+
+    with patch("config.config.get_learnhouse_config", lambda: cfg):
+        with pytest.raises(HTTPException) as e:
+            await RS.abrir_pago(E.firmar({"r": 1, "i": 5000, "e": "a@x.com", "t": "pagar"}, secreto), None)
+    assert e.value.status_code == 410
