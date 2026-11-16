@@ -1,9 +1,10 @@
 name: Release
 
+# Heredado de LearnHouse. Solo se lanza a mano (Actions → Run workflow):
+# publica la imagen de LearnHouse en ghcr.io al poner una etiqueta de versión; la escuela no publica imágenes (despliega en Railway).
+# No se borra para poder volver a encenderlo si algún día hace falta.
 on:
-  push:
-    tags:
-      - '[0-9]*'
+  workflow_dispatch:
 
 permissions:
   contents: write
