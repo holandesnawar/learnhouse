@@ -347,7 +347,11 @@ async def api_gemela(
 ):
     s, _admin_ok = await _semana_equipo(semana_id, current_user, db_session)
     g, curso = await _gemela(s, db_session)
-    return {"gemela": {"id": g.id, "tema": g.tema, "fecha": g.fecha, "curso": curso} if g else None}
+    if not g:
+        return {"gemela": None}
+    # Con temas distintos, la pantalla deja la casilla quitada (16/11/2026).
+    mismo = T.mismo_tema(s.tema, g.tema) or (T.normal(s.tema) == T.normal(g.tema))
+    return {"gemela": {"id": g.id, "tema": g.tema, "fecha": g.fecha, "curso": curso, "mismo_tema": mismo}}
 
 
 @router.post("/semana/{semana_id}/gemela/igualar", summary="Copia a la semana del otro grupo el tema, la tarea, las notas y la presentación completa (equipo).")
@@ -363,7 +367,22 @@ async def api_igualar_gemela(
     g, curso = await _gemela(s, db_session)
     if g is None:
         raise HTTPException(status_code=404, detail="Esta semana no tiene gemela en la clase del otro grupo")
+    tema_antes = g.tema or ""
     cambios = G.igualar(s, g, MP._ahora())
+    if "tema" in cambios:
+        # El capítulo del otro grupo también se llama como el tema (16/11/2026),
+        # salvo que alguien le haya puesto otro nombre a mano.
+        from sqlmodel import select
+
+        from src.db.courses.chapters import Chapter
+        from src.services.tareas.clase_nueva import nombre_del_capitulo
+
+        cap = (await db_session.execute(select(Chapter).where(Chapter.chapter_uuid == g.chapter_uuid))).scalars().first()
+        if cap is not None:
+            nuevo = nombre_del_capitulo(cap.name, tema_antes, g.tema, g.fecha)
+            if nuevo:
+                cap.name = nuevo
+                db_session.add(cap)
     if cambios:
         db_session.add(g)
         await db_session.commit()

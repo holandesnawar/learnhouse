@@ -132,7 +132,12 @@ function FichaDentro({
   useEffect(() => {
     let vivo = true
     getGemela(semana.semanaId, token)
-      .then((r) => vivo && setGemela(r.gemela))
+      .then((r) => {
+        if (!vivo) return
+        setGemela(r.gemela)
+        // Temas distintos: puede no ser la misma clase. La casilla nace quitada (16/11/2026).
+        setTambien(!!r.gemela && r.gemela.mismo_tema !== false)
+      })
       .catch(() => undefined)
     return () => {
       vivo = false
@@ -573,7 +578,12 @@ function FichaDentro({
                   Guardar también en {gemela.curso} ({diaLegible(gemela.fecha)})
                 </span>
                 <br />
-                El tema, la tarea, las notas y el documento. Cada grupo conserva su día, quién la da, su grabación y sus entregas.
+                {gemela.mismo_tema === false ? (
+                  <>
+                    Ojo: allí el tema es «{gemela.tema || 'sin tema'}». Márcalo solo si es la misma clase.{' '}
+                  </>
+                ) : null}
+                El tema, la tarea, las notas y el documento (lo que aquí está vacío no se borra allí). Cada grupo conserva su día, quién la da, su grabación y sus entregas.
               </span>
             </label>
           ) : null}

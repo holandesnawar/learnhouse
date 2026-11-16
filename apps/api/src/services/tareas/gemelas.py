@@ -68,24 +68,37 @@ def plazo_corrido(fecha_origen: str, limite_origen: str, fecha_destino: str) -> 
 
 def material_igualado(origen: str, destino: str) -> str:
     """El material del otro grupo con las notas y la presentación completa de
-    este, sin tocar lo que es suyo (quién la da, el mensaje, su pizarra)."""
+    este, sin tocar lo que es suyo (quién la da, el mensaje, su pizarra).
+
+    Nunca vacío sobre lleno (16/11/2026): unas notas vacías aquí no borran las
+    del otro grupo, y los archivos se SUMAN (los de aquí que allí no estén), no
+    sustituyen: si no, guardar con la casilla marcada podía dejar al otro grupo
+    sin su presentación."""
     o = MP.leer(origen)
     d = MP.leer(destino)
-    nuevo = {**d, "notas": o["notas"], "archivos": [dict(a) for a in o["archivos"]]}
+    nuevo = dict(d)
+    if (o["notas"] or "").strip():
+        nuevo["notas"] = o["notas"]
+    if o["archivos"]:
+        ya = {a.get("id") for a in d["archivos"]}
+        nuevo["archivos"] = [dict(a) for a in d["archivos"]] + [dict(a) for a in o["archivos"] if a.get("id") not in ya]
     return json.dumps(nuevo, ensure_ascii=False)
 
 
 def igualar(origen, destino, ahora: str) -> list[str]:
-    """Copia a `destino` (la gemela) lo que es de la clase. Devuelve qué cambió."""
+    """Copia a `destino` (la gemela) lo que es de la clase. Devuelve qué cambió.
+
+    Solo lo que aquí tiene valor (16/11/2026): un tema, una tarea o un plazo
+    vacíos aquí no vacían los del otro grupo."""
     cambios: list[str] = []
-    if (destino.tema or "") != (origen.tema or ""):
+    if (origen.tema or "").strip() and (destino.tema or "") != (origen.tema or ""):
         destino.tema = origen.tema
         cambios.append("tema")
-    if (destino.enunciado or "") != (origen.enunciado or ""):
+    if (origen.enunciado or "").strip() and (destino.enunciado or "") != (origen.enunciado or ""):
         destino.enunciado = origen.enunciado
         cambios.append("tarea")
     plazo = plazo_corrido(origen.fecha, origen.fecha_limite, destino.fecha)
-    if (destino.fecha_limite or "") != plazo:
+    if plazo and (destino.fecha_limite or "") != plazo:
         destino.fecha_limite = plazo
         cambios.append("plazo")
     material = material_igualado(origen.material_profe, destino.material_profe)
