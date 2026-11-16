@@ -4420,6 +4420,9 @@ blauw".
   equipo (Seguimiento semanal, Tandas → «Quién ve qué», Camino) va pegada al
   nombre («Clase semanal · Groep rood», `nombre_con_etiqueta`). La etiqueta
   NO se copia al duplicar: es lo que distingue una copia de otra.
+  ⚠️ **La ve todo el equipo, no solo el administrador** (16/11/2026: profes
+  y monitores, en el título de la clase, la sala de profesores y, desde ese
+  día, también arriba de la sala en directo, `SalaPage.tsx`). Los alumnos no.
 - Tests: `test_salas.py` (copia de la clase semanal, etiqueta, semanas).
   Probado en local clonando una clase en directo: nombre igual, recuadro,
   sala y semanas en la copia, y las dos etiquetas.
