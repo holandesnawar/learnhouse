@@ -36,6 +36,8 @@ class StudentProgress(SQLModel, table=True):
     time_seconds_total: int = 0
     # Su objetivo y sus días de estudio (JSON en texto; services/plan/plan.py).
     plan: Optional[str] = Field(default="", sa_column=Column(Text, default="", nullable=True))
+    # Lo que sacó en los ejercicios de cada lectura semanal (services/lecturas/resultados.py).
+    lecturas: Optional[str] = Field(default="", sa_column=Column(Text, default="", nullable=True))
     creation_date: str = ""
     update_date: str = ""
 

@@ -42,6 +42,7 @@ import { getUriWithOrg } from '@services/config/config'
 import { confirmar } from '@lib/nawar/confirmar'
 import { aTexto, leerEjercicios } from '@lib/nawar/ejerciciosLectura'
 import EjerciciosLectura, { resultadoGuardado } from './EjerciciosLectura'
+import ResultadosLectura from './ResultadosLectura'
 
 const PaginasPdf = dynamic(() => import('@components/Objects/Activities/DocumentPdf/PaginasPdf'), { ssr: false })
 
@@ -132,7 +133,7 @@ function Seccion({ titulo, children }: { titulo: string; children: React.ReactNo
   )
 }
 
-export function CuerpoLectura({ l }: { l: Lectura }) {
+export function CuerpoLectura({ l, orgId }: { l: Lectura; orgId?: number }) {
   const voz = useVoz()
   const [traduccion, setTraduccion] = useState(false)
   const [hojaAbierta, setHojaAbierta] = useState(!l.texto)
@@ -142,6 +143,7 @@ export function CuerpoLectura({ l }: { l: Lectura }) {
   const trozos = parrafos(l.texto || '')
   const ejercicios = l.ejercicios || []
   const [haciendo, setHaciendo] = useState(false)
+  const [viendoResultados, setViendoResultados] = useState(false)
   const [resultado, setResultado] = useState<{ aciertos: number; total: number } | null>(null)
   useEffect(() => setResultado(resultadoGuardado(l.id)), [l.id])
 
@@ -158,12 +160,20 @@ export function CuerpoLectura({ l }: { l: Lectura }) {
           }}
         />
       ) : null}
+      {viendoResultados && orgId ? (
+        <ResultadosLectura orgId={orgId} lecturaId={l.id} titulo={l.titulo} onCerrar={() => setViendoResultados(false)} />
+      ) : null}
       {hoja || l.comunidad || ejercicios.length ? (
         <div className="flex flex-wrap gap-2">
           {ejercicios.length ? (
             <button type="button" onClick={() => setHaciendo(true)} className={BOTON_PRINCIPAL}>
               <PencilSimpleLine size={16} />
               {resultado ? `Ejercicios · ${resultado.aciertos} de ${resultado.total} · Repetir` : `Hacer los ejercicios (${ejercicios.length})`}
+            </button>
+          ) : null}
+          {ejercicios.length && orgId ? (
+            <button type="button" onClick={() => setViendoResultados(true)} className={BOTON}>
+              Resultados de los alumnos
             </button>
           ) : null}
           {hoja ? (
@@ -340,7 +350,7 @@ export default function LecturaSemanal() {
         </div>
         {actual ? (
           <div className="px-5 py-5">
-            <CuerpoLectura l={actual} />
+            <CuerpoLectura l={actual} orgId={equipo ? org_id : undefined} />
           </div>
         ) : null}
       </section>
@@ -389,7 +399,7 @@ export default function LecturaSemanal() {
                   </div>
                   {abierto ? (
                     <div className="px-5 pb-5">
-                      <CuerpoLectura l={l} />
+                      <CuerpoLectura l={l} orgId={equipo ? org_id : undefined} />
                     </div>
                   ) : null}
                 </li>

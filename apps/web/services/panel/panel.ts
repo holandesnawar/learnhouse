@@ -458,6 +458,8 @@ export interface AlumnoProgreso {
   telefono?: string
   /** Su objetivo y sus días de estudio, si los ha rellenado. */
   plan?: { objetivo: string; texto: string; dias: string; hora: string; minutos: number } | null
+  /** Lo que sacó en los ejercicios de cada lectura semanal (la más nueva primero). */
+  lecturas?: { id: string; titulo: string; semana: string; aciertos: number; total: number; mejor?: number; veces?: number; ultima?: string }[]
   /** ¿Lleva dos semanas o más sin terminar ninguna clase de la formación? */
   sin_avanzar?: { atascado: boolean; dias: number | null; desde: string; sin_empezar: boolean; escrito_hace_poco?: boolean }
   /** Entró desde el 10/10/2026: la formación se le abre por avance. */
