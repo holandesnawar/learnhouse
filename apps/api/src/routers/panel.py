@@ -236,11 +236,14 @@ async def api_asignar(
             cita = pipeline.cita_que_manda(citas, "", datetime.now(timezone.utc))
         except Exception:  # noqa: BLE001
             cita = None
+        clave = data.email.strip().lower()
         ficha = next(
             (
                 f
-                for f in fusionar_contactos(await _todos_los_eventos(db_session), await _emails_con_cuenta(db_session))
-                if f["email"] == data.email.strip().lower()
+                for f in fusionar_contactos(
+                    await _todos_los_eventos(db_session, clave), await _emails_con_cuenta(db_session, clave)
+                )
+                if f["email"] == clave
             ),
             {},
         )
