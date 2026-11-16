@@ -17,6 +17,7 @@ import logging
 import os
 import secrets
 from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 from typing import Optional, TYPE_CHECKING
 from urllib.parse import quote
 from uuid import uuid4
@@ -711,26 +712,39 @@ async def enroll_and_checkout_session(data, db_session: AsyncSession, precio_id:
     if amount <= 0:
         raise HTTPException(status_code=500, detail="Configured price has empty unit_amount")
 
-    # Cliente primero: la factura y el recibo necesitan a quién ir dirigidos.
-    try:
-        customer = stripe.Customer.create(
-            email=email,
-            name=full_name,
-            phone=data.phone or None,
-            metadata={
-                "country": data.country or "",
-                "city": data.city or "",
-                "source": "matricula-form-checkout",
-            },
-        )
-    except Exception as exc:
-        logger.exception("No se pudo crear el cliente en Stripe: %s", exc)
-        raise HTTPException(status_code=502, detail=f"Could not create Stripe customer: {exc}")
-
-    now = datetime.now().isoformat()
     # Una persona = una fila: si dejó una matrícula sin pagar hace un rato, es
     # el mismo intento y se reaprovecha en vez de inflar el abandono del embudo.
     row = await _matricula_sin_pagar_reciente(email, db_session)
+
+    # Cliente primero: la factura y el recibo necesitan a quién ir dirigidos.
+    # Si ese intento ya tenía cliente en Stripe, se usa el mismo (16/11): cada
+    # vez que se abría el enlace (o lo abría la vista previa de WhatsApp) se
+    # creaba un cliente nuevo y Stripe se llenaba de repetidos.
+    customer = None
+    anterior_cliente = str(getattr(row, "stripe_customer_id", "") or "") if row is not None else ""
+    if anterior_cliente.startswith("cus_"):
+        try:
+            stripe.Customer.modify(anterior_cliente, name=full_name, phone=data.phone or None)
+            customer = SimpleNamespace(id=anterior_cliente)
+        except Exception:  # noqa: BLE001
+            logger.warning("No se pudo reutilizar el cliente %s; se crea otro", anterior_cliente, exc_info=True)
+    if customer is None:
+        try:
+            customer = stripe.Customer.create(
+                email=email,
+                name=full_name,
+                phone=data.phone or None,
+                metadata={
+                    "country": data.country or "",
+                    "city": data.city or "",
+                    "source": "matricula-form-checkout",
+                },
+            )
+        except Exception as exc:
+            logger.exception("No se pudo crear el cliente en Stripe: %s", exc)
+            raise HTTPException(status_code=502, detail=f"Could not create Stripe customer: {exc}")
+
+    now = datetime.now().isoformat()
     if row is not None:
         anterior = row.stripe_session_id
         row.first_name = data.first_name
