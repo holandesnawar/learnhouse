@@ -149,6 +149,88 @@ export function tocaLinea(l: TrazoLinea, x: number, y: number, radio: number, al
   return false
 }
 
+/** Un rectángulo en coordenadas de 0 a 1 de la página. */
+export interface Caja01 {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+/** El hueco de una línea dibujada (con su grosor), de 0 a 1. */
+export function cajaDeLinea(l: TrazoLinea, alto: number): Caja01 {
+  let x0 = 1
+  let y0 = 1
+  let x1 = 0
+  let y1 = 0
+  for (let i = 0; i + 1 < l.p.length; i += 2) {
+    x0 = Math.min(x0, l.p[i])
+    x1 = Math.max(x1, l.p[i])
+    y0 = Math.min(y0, l.p[i + 1])
+    y1 = Math.max(y1, l.p[i + 1])
+  }
+  const mx = l.grosor / 2
+  const my = alto > 0 ? l.grosor / 2 / alto : mx
+  return { x: x0 - mx, y: y0 - my, w: x1 - x0 + mx * 2, h: y1 - y0 + my * 2 }
+}
+
+/**
+ * Qué trazo hay en (x, y) para moverlo (16/11/2026): primero los textos (el de
+ * más arriba), luego lo dibujado a lápiz y por último el rotulador, que va
+ * debajo de todo. `cajaTexto` da el hueco de cada texto en 0-1 (lo mide la
+ * pantalla con la letra de verdad); `margen`, cuánto se perdona alrededor.
+ * Con `soloTextos`, las líneas no cuentan (la herramienta Texto). -1 = nada.
+ */
+export function trazoEnPunto(
+  trazos: Trazo[],
+  x: number,
+  y: number,
+  alto: number,
+  cajaTexto: (t: TrazoTexto) => Caja01 | null,
+  opciones: { margen?: number; radio?: number; soloTextos?: boolean } = {}
+): number {
+  const m = opciones.margen ?? 0.006
+  const my = alto > 0 ? m / alto : m
+  for (let i = trazos.length - 1; i >= 0; i--) {
+    const t = trazos[i]
+    if (t.t !== 'texto') continue
+    const c = cajaTexto(t)
+    if (c && x >= c.x - m && x <= c.x + c.w + m && y >= c.y - my && y <= c.y + c.h + my) return i
+  }
+  if (opciones.soloTextos) return -1
+  const radio = opciones.radio ?? 0.012
+  for (const tipo of ['lapiz', 'rotulador'] as const) {
+    for (let i = trazos.length - 1; i >= 0; i--) {
+      const t = trazos[i]
+      if (t.t === tipo && tocaLinea(t, x, y, radio, alto)) return i
+    }
+  }
+  return -1
+}
+
+/**
+ * El trazo movido (dx, dy) en 0-1, sin salirse de la página: un texto, por su
+ * esquina (como siempre, hasta 0,98); una línea, entera (ningún punto fuera).
+ */
+export function moverTrazo(t: Trazo, dx: number, dy: number): Trazo {
+  if (t.t === 'texto') {
+    return { ...t, x: r4(Math.max(0, Math.min(0.98, t.x + dx))), y: r4(Math.max(0, Math.min(0.98, t.y + dy))) }
+  }
+  let x0 = 1
+  let x1 = 0
+  let y0 = 1
+  let y1 = 0
+  for (let i = 0; i + 1 < t.p.length; i += 2) {
+    x0 = Math.min(x0, t.p[i])
+    x1 = Math.max(x1, t.p[i])
+    y0 = Math.min(y0, t.p[i + 1])
+    y1 = Math.max(y1, t.p[i + 1])
+  }
+  const ddx = Math.max(-x0, Math.min(1 - x1, dx))
+  const ddy = Math.max(-y0, Math.min(1 - y1, dy))
+  return { ...t, p: t.p.map((v, i) => r4(v + (i % 2 === 0 ? ddx : ddy))) }
+}
+
 /** Las líneas de un texto: las que escribió el profe con Intro. */
 export function lineasDe(texto: string): string[] {
   return (texto || '').replace(/\r/g, '').split('\n')

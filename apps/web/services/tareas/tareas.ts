@@ -398,6 +398,8 @@ export interface Gemela {
   tema: string
   fecha: string
   curso: string
+  /** Si las dos semanas tienen el mismo tema (si no, la casilla nace quitada). */
+  mismo_tema?: boolean
 }
 
 export const getGemela = (id: number, token: string) => pedir<{ gemela: Gemela | null }>(`${base()}/semana/${id}/gemela`, token)
@@ -430,7 +432,7 @@ export const crearClase = (
   datos: { fecha: string; tema?: string; profe?: string; repetir?: number; tambien?: boolean },
   token: string
 ) =>
-  pedir<{ ok: boolean; creadas: ClaseCreada[]; saltadas: { curso: string; fecha: string }[] }>(
+  pedir<{ ok: boolean; creadas: ClaseCreada[]; saltadas: { curso: string; fecha: string; motivo?: string }[] }>(
     `${base()}/course/${curso(courseUuid)}/clase`,
     token,
     'POST',

@@ -476,9 +476,50 @@ export function estadoDeClase(s: SemanaEquipo, hoy: string, profeDeLaClase = '')
 }
 
 /**
+ * El título de una clase en las listas: su tema o, sin tema, «Clase del 17 nov»
+ * (como su capítulo). Sin día, «Clase». (16/11/2026)
+ */
+export function tituloDeClase(tema: string | null | undefined, fecha: string | null | undefined): string {
+  const t = (tema || '').trim()
+  if (t) return t
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(fecha || '')
+  return m ? `Clase del ${Number(m[3])} ${MESES[Number(m[2]) - 1].slice(0, 3)}` : 'Clase'
+}
+
+/**
+ * Si hay algo que diga que la clase se dio (16/11/2026): la lista con alguien,
+ * una grabación, «Cómo fue la clase» o la pizarra guardada (las notas escritas
+ * en clase). La presentación de los alumnos NO cuenta: se sube antes.
+ */
+export function huboClase(s: SemanaEquipo): boolean {
+  return !!(
+    (s.lista?.pasada && s.lista.vinieron > 0) ||
+    s.grabaciones.length ||
+    s.grabacionSala ||
+    (s.material?.despues?.texto || '').trim() ||
+    s.material?.pizarra?.guardada_at ||
+    s.material?.pizarra?.publicada_at
+  )
+}
+
+/**
+ * Las clases pasadas sin ningún dato de que se dieran (de los `meses`
+ * últimos): no cuentan en «Quién ha dado qué» y el administrador decide.
+ */
+export function clasesSinDatos(semanas: SemanaEquipo[], hoy: string, meses = 3): SemanaEquipo[] {
+  const dadas = semanas.filter((s) => !s.suelta && s.fecha && s.fecha < hoy)
+  const ultimos = Array.from(new Set(dadas.map((s) => s.fecha.slice(0, 7)))).sort().reverse().slice(0, meses)
+  return dadas
+    .filter((s) => ultimos.includes(s.fecha.slice(0, 7)) && !huboClase(s))
+    .sort((a, b) => b.fecha.localeCompare(a.fecha))
+}
+
+/**
  * «Quién ha dado qué»: las clases ya dadas de cada persona, por mes (los
  * `meses` últimos, el de hoy incluido). Quien no tiene nombre puesto sale como
  * «Sin profe». Lo más reciente primero; dentro, quien más clases dio.
+ * Solo cuenta la clase de la que hay algún dato (`huboClase`, 16/11/2026):
+ * una clase creada en el calendario que no se dio no se paga.
  */
 export function clasesDadasPorProfe(
   semanas: SemanaEquipo[],
@@ -488,7 +529,7 @@ export function clasesDadasPorProfe(
 ): { mes: string; titulo: string; total: number; profes: { nombre: string; clases: number; porClase: { curso: string; clases: number }[] }[] }[] {
   const por: Record<string, Record<string, Record<string, number>>> = {}
   for (const s of semanas) {
-    if (s.suelta || !s.fecha || s.fecha >= hoy) continue
+    if (s.suelta || !s.fecha || s.fecha >= hoy || !huboClase(s)) continue
     const mes = s.fecha.slice(0, 7)
     const nombre = quienDa(s, profeDeClase[s.courseUuid] || '') || 'Sin profe'
     por[mes] = por[mes] || {}

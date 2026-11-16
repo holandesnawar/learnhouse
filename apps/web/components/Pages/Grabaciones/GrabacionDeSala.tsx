@@ -19,6 +19,7 @@ import { ponerEnlaceGrabacion, type GrabacionSala } from '@services/grabaciones/
 import { duracionCorta } from '@/lib/nawar/recorte'
 import EditorRecorte from './EditorRecorte'
 import { useEstudio } from './useEstudio'
+import { confirmar } from '@/lib/nawar/confirmar'
 
 const ENLACE = 'text-[13px] font-semibold text-[#0b2da0] hover:underline disabled:opacity-40 disabled:no-underline'
 
@@ -99,7 +100,7 @@ export default function GrabacionDeSala({
           <button disabled={ocupado} onClick={() => { setUrl(enlacePuesto.enlace!.original); setPegando(true) }} className={ENLACE}>
             Cambiar enlace
           </button>
-          <button disabled={ocupado} onClick={() => con(() => quitar(semana))} className="text-[13px] font-semibold text-[#6B7393] hover:text-[#B4413C] disabled:opacity-40">
+          <button disabled={ocupado} onClick={quitarConPregunta} className="text-[13px] font-semibold text-[#6B7393] hover:text-[#B4413C] disabled:opacity-40">
             Quitar
           </button>
         </div>
@@ -112,6 +113,16 @@ export default function GrabacionDeSala({
       <Link2 size={13} /> Pegar enlace
     </button>
   )
+
+  // Quitarla pide confirmación (16/11/2026): los alumnos dejan de verla en su
+  // semana. Quién la vio se guarda en el servidor por si se vuelve a poner.
+  async function quitarConPregunta() {
+    const ok = await confirmar('¿Quitar la grabación de esta semana? Los alumnos dejarán de verla en su semana.', {
+      boton: 'Quitar',
+      peligro: true,
+    })
+    if (ok) await con(() => quitar(semana))
+  }
 
   async function con(accion: () => Promise<unknown>) {
     setOcupado(true)
@@ -175,7 +186,7 @@ export default function GrabacionDeSala({
           <Scissors size={13} /> {publicada ? 'Cambiar' : 'Recortar'}
         </button>
         {publicada ? (
-          <button disabled={ocupado} onClick={() => con(() => quitar(semana))} className="text-[13px] font-semibold text-[#6B7393] hover:text-[#B4413C] disabled:opacity-40">
+          <button disabled={ocupado} onClick={quitarConPregunta} className="text-[13px] font-semibold text-[#6B7393] hover:text-[#B4413C] disabled:opacity-40">
             Quitar
           </button>
         ) : (

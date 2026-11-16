@@ -140,9 +140,25 @@ async def _crear_una(course: Course, fecha: str, tema: str, profe: str, autor: s
     return r["semana"]
 
 
-async def crear_clases(course: Course, datos: dict, autor: str, admin: bool, db_session: AsyncSession) -> dict:
+def _hoy_nl() -> str:
+    try:
+        from zoneinfo import ZoneInfo
+
+        return datetime.now(ZoneInfo("Europe/Amsterdam")).date().isoformat()
+    except Exception:  # noqa: BLE001
+        return date.today().isoformat()
+
+
+async def crear_clases(
+    course: Course, datos: dict, autor: str, admin: bool, db_session: AsyncSession, hoy: Optional[str] = None
+) -> dict:
     """Crea la clase (y sus repeticiones, y las de la clase del otro grupo si
-    se pide). Devuelve lo creado y lo que se saltó porque ya existía."""
+    se pide). Devuelve lo creado y lo que se saltó porque ya existía.
+
+    En el otro grupo, un día que ya pasó NO se crea (16/11/2026): saldría
+    «Dada» sin haberse dado y contaría para pagar. Va en `saltadas` con
+    `motivo: "pasada"`."""
+    hoy = hoy or _hoy_nl()
     from src.services.salas.salas import es_clase_en_directo, nombre_con_etiqueta
 
     config = await T._config(course.org_id, db_session)
@@ -165,6 +181,9 @@ async def crear_clases(course: Course, datos: dict, autor: str, admin: bool, db_
         nombre = nombre_con_etiqueta(config, curso.course_uuid, curso.name)
         for i, f in enumerate(fechas):
             dia = f if fechas_otra is None else dia_en_su_semana(f, fechas_otra)
+            if fechas_otra is not None and dia < hoy:
+                saltadas.append({"curso": nombre, "fecha": dia, "motivo": "pasada"})
+                continue
             if dia in ya:
                 saltadas.append({"curso": nombre, "fecha": dia})
                 continue

@@ -87,9 +87,13 @@ export default function NuevaClase({
         return
       }
       const n = r.creadas.length
+      const pasadas = r.saltadas.filter((x) => x.motivo === 'pasada')
+      const repetidas = r.saltadas.length - pasadas.length
       toast.success(
-        `${n === 1 ? 'Clase creada' : `${n} clases creadas`}${r.saltadas.length ? ` (${r.saltadas.length} ya ${r.saltadas.length === 1 ? 'existía' : 'existían'})` : ''}`
+        `${n === 1 ? 'Clase creada' : `${n} clases creadas`}${repetidas ? ` (${repetidas} ya ${repetidas === 1 ? 'existía' : 'existían'})` : ''}`
       )
+      // El otro grupo ya tuvo su clase esa semana: no se crea en un día pasado (16/11/2026).
+      if (pasadas.length) toast(`El otro grupo ya tuvo su clase esa semana (${pasadas.map((x) => x.curso).filter((c, i, a) => a.indexOf(c) === i).join(', ')}): allí no se ha creado.`)
       onCreada(r.creadas)
     } catch (e: any) {
       toast.error(e?.message || 'No se ha podido crear la clase')

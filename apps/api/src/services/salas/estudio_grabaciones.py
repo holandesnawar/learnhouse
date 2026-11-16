@@ -275,6 +275,17 @@ def para_la_semana(texto: Any, user_id: Optional[int] = None, equipo: bool = Fal
     return salida
 
 
+def vistas_guardadas(texto: Any) -> dict:
+    """Quién la vio, aunque la grabación ya no esté (16/11/2026): al quitarla
+    o cambiar el enlace no se pierde. Pura."""
+    try:
+        datos = json.loads(texto) if isinstance(texto, str) and texto else (texto if isinstance(texto, dict) else {})
+    except (TypeError, ValueError):
+        datos = {}
+    v = datos.get("vistas") if isinstance(datos, dict) and isinstance(datos.get("vistas"), dict) else {}
+    return {str(k): str(x) for k, x in v.items()}
+
+
 def quienes_la_vieron(texto: Any) -> set[int]:
     return {int(k) for k in leer(texto).get("vistas", {}) if str(k).isdigit()}
 
@@ -522,15 +533,17 @@ async def publicar(s: TareaSemana, course: Course, datos: dict, autor: str, db_s
         partes.append({"id": gid, "dur": dur, "trozos": trozos})
     if not partes:
         raise GrabacionError("No hay nada que publicar: elige al menos una parte de la grabación.", 400)
-    antes = leer(getattr(s, "grabacion_sala", ""))
-    # Si son las mismas grabaciones (solo cambia el recorte), quien ya la vio sigue contando.
-    mismas = {p["id"] for p in antes.get("partes", [])} == {p["id"] for p in partes}
+    from src.services.tareas.tareas import bloquear_semana
+
+    s = await bloquear_semana(s, db_session)
+    # Quien ya la vio sigue contando (16/11/2026: también al cambiarla; es la
+    # grabación de la misma clase).
     nuevo = {
         "partes": partes,
         "titulo": str(datos.get("titulo") or "").strip()[:160],
         "publicada_at": _ahora(),
         "por": (autor or "")[:120],
-        "vistas": antes.get("vistas", {}) if mismas else {},
+        "vistas": vistas_guardadas(getattr(s, "grabacion_sala", "")),
     }
     s.grabacion_sala = json.dumps(nuevo, ensure_ascii=False)
     s.updated_at = _ahora()
@@ -550,15 +563,16 @@ async def poner_enlace(s: TareaSemana, datos: dict, autor: str, db_session: Asyn
         raise GrabacionError(
             "No reconozco ese enlace. Pega el enlace de Bunny, YouTube o Vimeo.", 400
         )
-    antes = leer(getattr(s, "grabacion_sala", ""))
-    misma = (antes.get("enlace") or {}).get("url") == enlace["url"]
+    from src.services.tareas.tareas import bloquear_semana
+
+    s = await bloquear_semana(s, db_session)
     nuevo = {
         "partes": [],
         "enlace": enlace,
         "titulo": str(datos.get("titulo") or "").strip()[:160],
         "publicada_at": _ahora(),
         "por": (autor or "")[:120],
-        "vistas": antes.get("vistas", {}) if misma else {},
+        "vistas": vistas_guardadas(getattr(s, "grabacion_sala", "")),
     }
     s.grabacion_sala = json.dumps(nuevo, ensure_ascii=False)
     s.updated_at = _ahora()
@@ -568,8 +582,13 @@ async def poner_enlace(s: TareaSemana, datos: dict, autor: str, db_session: Asyn
 
 
 async def quitar(s: TareaSemana, db_session: AsyncSession) -> dict:
-    """Deja de enseñarla. En Daily no se toca nada."""
-    s.grabacion_sala = ""
+    """Deja de enseñarla. En Daily no se toca nada. Quién la vio se guarda
+    (16/11/2026): si se vuelve a poner, sigue contando."""
+    from src.services.tareas.tareas import bloquear_semana
+
+    s = await bloquear_semana(s, db_session)
+    vistas = vistas_guardadas(getattr(s, "grabacion_sala", ""))
+    s.grabacion_sala = json.dumps({"vistas": vistas}, ensure_ascii=False) if vistas else ""
     s.updated_at = _ahora()
     db_session.add(s)
     await db_session.commit()
@@ -578,6 +597,9 @@ async def quitar(s: TareaSemana, db_session: AsyncSession) -> dict:
 
 async def marcar_vista(s: TareaSemana, user_id: int, db_session: AsyncSession) -> dict:
     """El alumno pasó de la mitad: cuenta como vista (una vez)."""
+    from src.services.tareas.tareas import bloquear_semana
+
+    s = await bloquear_semana(s, db_session)
     g = leer(getattr(s, "grabacion_sala", ""))
     if not g:
         raise GrabacionError("Esa semana no tiene grabación publicada.", 404)
