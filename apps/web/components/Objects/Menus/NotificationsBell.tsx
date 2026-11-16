@@ -12,7 +12,7 @@ import {
   type NotificationFeed,
 } from '@services/communities/engagement'
 import { msDeFecha } from '@/lib/nawar/haceCuanto'
-import { Bell, AtSign, Pin, Megaphone, Unlock, Trash2, MessagesSquare, UserCheck, Mic, ClipboardCheck, PhoneCall, Presentation, PlayCircle, BookOpenText, Award } from 'lucide-react'
+import { Bell, AtSign, Pin, Megaphone, Unlock, Trash2, MessagesSquare, MessageCircle, UserCheck, Mic, ClipboardCheck, PhoneCall, Presentation, PlayCircle, BookOpenText, Award } from 'lucide-react'
 
 /**
  * Campana del alumno. Recoge lo que se puede perder si no entra ese día:
@@ -30,6 +30,8 @@ import { Bell, AtSign, Pin, Megaphone, Unlock, Trash2, MessagesSquare, UserCheck
 const KIND_STYLE: Record<string, { icon: any; color: string }> = {
   mention: { icon: AtSign, color: 'text-[#0b2da0]' },
   channel: { icon: MessagesSquare, color: 'text-[#0b2da0]' },
+  // «Ana ha comentado tu publicación» (16/11/2026).
+  comment: { icon: MessageCircle, color: 'text-[#0b2da0]' },
   pinned: { icon: Pin, color: 'text-[#0b2da0]' },
   announcement: { icon: Megaphone, color: 'text-[#0b2da0]' },
   module: { icon: Unlock, color: 'text-emerald-500' },
