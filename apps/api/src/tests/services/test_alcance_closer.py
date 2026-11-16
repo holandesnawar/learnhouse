@@ -70,3 +70,40 @@ async def test_quien_lo_ve_todo_y_quien_reparte():
         # Solo lo suyo, pero reparte él: sigue viendo lo libre.
         assert (await AL.filtro_de(4, 1, None)).libres
         assert not (await AL.filtro_de(5, 1, None)).libres
+
+
+
+@pytest.mark.asyncio
+async def test_un_closer_no_mueve_ni_reparte_lo_de_otro_por_la_api():
+    from types import SimpleNamespace
+
+    from fastapi import HTTPException
+
+    from src.routers import panel as RP
+
+    filtro = AL.Filtro(4, False, {"ana@x.com": 4, "eva@x.com": 5})
+
+    async def de(*_):
+        return filtro
+
+    async def acceso(*a, **k):
+        return None
+
+    movidos = []
+
+    async def mover(email, *a, **k):
+        movidos.append(email)
+        return {"ok": True}
+
+    yo = SimpleNamespace(id=4, first_name="Diego", last_name="", username="diego", email="d@x.com")
+    with patch.object(AL, "filtro_de", de), patch.object(RP, "exigir_acceso", acceso), patch.object(
+        RP.pipeline, "mover", mover
+    ):
+        with pytest.raises(HTTPException) as e:
+            await RP.api_mover(None, 1, RP.Movimiento(email="eva@x.com", etapa="contactado"), yo, None)
+        assert e.value.status_code == 403
+        with pytest.raises(HTTPException) as e:
+            await RP.api_asignar(None, 1, RP.Asignacion(email="Eva@x.com", closer_id=4), yo, None)
+        assert e.value.status_code == 403
+        await RP.api_mover(None, 1, RP.Movimiento(email="ana@x.com", etapa="contactado"), yo, None)
+    assert movidos == ["ana@x.com"]

@@ -103,6 +103,17 @@ class Movimiento(BaseModel):
     telefono: str = ""
 
 
+async def _solo_si_la_ve(email: str, user_id: int, org_id: int, db_session: AsyncSession) -> None:
+    """Con «Solo lo suyo» o «Lo suyo y lo libre» (alcance.py), un closer no
+    mueve ni reparte por la API una tarjeta que no le sale en el tablero
+    (16/11). A los administradores, y con «Todo», no les cambia nada."""
+    from src.services.panel.alcance import filtro_de
+
+    filtro = await filtro_de(user_id, org_id, db_session)
+    if filtro and not filtro.ve_correo(email):
+        raise HTTPException(status_code=403, detail="Esta persona la lleva otro closer")
+
+
 @router.put("/org/{org_id}/tablero", summary="Mueve a una persona de columna o cambia su canal.")
 async def api_mover(
     request: Request,
@@ -112,6 +123,7 @@ async def api_mover(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    await _solo_si_la_ve(data.email, current_user.id, org_id, db_session)
     r = await pipeline.mover(
         data.email, data.etapa, data.canal, data.motivo, _nombre(current_user), db_session,
         nombre=data.nombre, telefono=data.telefono,
@@ -193,6 +205,7 @@ async def api_asignar(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    await _solo_si_la_ve(data.email, current_user.id, org_id, db_session)
     closer = None
     eq = await tareas.equipo(org_id, db_session)
     if data.closer_id:
