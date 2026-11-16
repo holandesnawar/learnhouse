@@ -11,6 +11,7 @@ import {
   markNotificationsSeen,
   type NotificationFeed,
 } from '@services/communities/engagement'
+import { msDeFecha } from '@/lib/nawar/haceCuanto'
 import { Bell, AtSign, Pin, Megaphone, Unlock, Trash2, MessagesSquare, UserCheck, Mic, ClipboardCheck, PhoneCall, Presentation, PlayCircle, BookOpenText, Award } from 'lucide-react'
 
 /**
@@ -71,7 +72,7 @@ export default function NotificationsBell(props: { orgslug: string; claro?: bool
   // El panel se coloca a mano (position: fixed) en vez de colgar del botón:
   // la campana vive dentro de la barra lateral (256 px), así que un panel de
   // 340 px anclado a la derecha se salía de la pantalla por la izquierda.
-  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null)
+  const [pos, setPos] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null)
 
   const { data } = useQuery<NotificationFeed>({
     queryKey: ['community', 'notifications'],
@@ -97,24 +98,35 @@ export default function NotificationsBell(props: { orgslug: string; claro?: bool
       Math.max(margin, r.right - width),
       window.innerWidth - width - margin
     )
-    setPos({ top: r.bottom + 8, left, width })
+    // El alto que se VE de verdad: en el iPhone, 100vh mide también lo que
+    // tapa la barra de Safari y el final de la lista quedaba debajo de ella.
+    const alto = window.visualViewport?.height || window.innerHeight
+    setPos({ top: r.bottom + 8, left, width, maxHeight: Math.max(160, alto - (r.bottom + 8) - 16) })
   }, [])
 
   // Cerrar al pulsar fuera — en móvil el panel tapa media pantalla.
   useEffect(() => {
     if (!open) return
-    const onDown = (e: MouseEvent) => {
+    const onDown = (e: PointerEvent) => {
       const target = e.target as Node
       if (boxRef.current?.contains(target)) return
       if (panelRef.current?.contains(target)) return
       setOpen(false)
     }
-    const onMove = () => place()
-    document.addEventListener('mousedown', onDown)
+    // Con el scroll de DENTRO del panel no hay que recolocarlo.
+    const onMove = (e?: Event) => {
+      if (e && panelRef.current && e.target instanceof Node && panelRef.current.contains(e.target)) return
+      place()
+    }
+    // pointerdown y no mousedown: en el iPhone, tocar una zona que no es un
+    // enlace ni un botón no dispara mousedown, y el panel no se cerraba.
+    document.addEventListener('pointerdown', onDown)
     window.addEventListener('resize', onMove)
     window.addEventListener('scroll', onMove, true)
+    window.visualViewport?.addEventListener('resize', onMove)
     return () => {
-      document.removeEventListener('mousedown', onDown)
+      window.visualViewport?.removeEventListener('resize', onMove)
+      document.removeEventListener('pointerdown', onDown)
       window.removeEventListener('resize', onMove)
       window.removeEventListener('scroll', onMove, true)
     }
@@ -169,7 +181,8 @@ export default function NotificationsBell(props: { orgslug: string; claro?: bool
             top: pos.top,
             left: pos.left,
             width: pos.width,
-            maxHeight: `calc(100vh - ${pos.top + 16}px)`,
+            maxHeight: pos.maxHeight,
+            overscrollBehavior: 'contain',
             zIndex: 'var(--z-modal-content, 220)',
           }}
         >
@@ -238,7 +251,9 @@ export default function NotificationsBell(props: { orgslug: string; claro?: bool
 /** "hace 3 h", "ayer", o la fecha corta. */
 function formatWhen(iso: string): string {
   if (!iso) return ''
-  const d = new Date(iso)
+  // msDeFecha: las fechas sin zona del servidor son UTC (si no, salía una
+  // hora de más en Países Bajos) y Safari no entiende «2026-11-16 10:00».
+  const d = new Date(msDeFecha(iso))
   if (Number.isNaN(d.getTime())) return ''
   const mins = Math.round((Date.now() - d.getTime()) / 60000)
   if (mins < 1) return 'ahora mismo'

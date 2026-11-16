@@ -248,14 +248,26 @@ export default function MessagesPage() {
     refreshBadge()
   }
 
-  // Refresco en segundo plano de la conversación abierta.
+  // Refresco de la conversación abierta cada 10 s, solo con la pestaña a la
+  // vista (16/11/2026: seguía preguntando escondida). Al volver, al momento.
   useEffect(() => {
     if (!activeId || !accessToken) return
-    const id = setInterval(async () => {
+    let vivo = true
+    const pedir = async () => {
+      if (typeof document !== 'undefined' && document.hidden) return
       const detail = await getThread(activeId, accessToken)
-      if (detail) setMessages(detail.messages)
-    }, 10_000)
-    return () => clearInterval(id)
+      if (vivo && detail) setMessages(detail.messages)
+    }
+    const id = setInterval(pedir, 10_000)
+    const alVolver = () => {
+      if (!document.hidden) pedir()
+    }
+    document.addEventListener('visibilitychange', alVolver)
+    return () => {
+      vivo = false
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', alVolver)
+    }
   }, [activeId, accessToken])
 
   useEffect(() => {

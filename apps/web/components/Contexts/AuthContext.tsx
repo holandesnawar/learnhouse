@@ -14,6 +14,18 @@ import {
   getLEARNHOUSE_DOMAIN_VAL,
 } from '@services/config/config'
 import { isSubdomainOf, isSameHost, isLocalhost as isLocalhostCheck } from '@services/utils/ts/hostUtils'
+import { QueryClientContext } from '@tanstack/react-query'
+import {
+  ESPERA_ENTRE_FORZADAS_MS,
+  MARGEN_PETICION_MS,
+  esDeLaApi,
+  esperaReintento,
+  expiraDelJwt,
+  queHacerConRefresco,
+  sePuedeRepetir,
+  tocaRenovar,
+  tokenDeCabeceras,
+} from '@/lib/nawar/sesion'
 
 // Types matching NextAuth's session structure
 export interface Session {
@@ -72,6 +84,11 @@ const SESSION_CACHE_TTL = 10 * 60 * 1000 // 10 minutes
 const TOKEN_REFRESH_THRESHOLD = 60 * 1000 // 1 minute before expiry
 const AUTH_BROADCAST_CHANNEL = 'learnhouse_auth_sync'
 const OAUTH_STATE_COOKIE = 'LH_oauth_state'
+
+type ResultadoToken =
+  | { tipo: 'ok'; access_token: string; expiry: number | null }
+  | { tipo: 'fuera' }
+  | { tipo: 'reintentar' }
 
 // Context
 interface AuthContextValue {
@@ -166,41 +183,71 @@ export function SessionProvider({
   const sessionCacheRef = useRef<SessionCache | null>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const broadcastChannelRef = useRef<BroadcastChannel | null>(null)
+  // Puede no haberlo (fuera de <QueryClientProvider>): entonces no se invalida nada.
+  const queryClient = useContext(QueryClientContext)
 
-  // Use ref for refresh promise to avoid issues with stale closures
-  // but still deduplicate within the same tab
-  const refreshPromiseRef = useRef<Promise<{ access_token: string; expiry?: number } | null> | null>(null)
-  const isRefreshingRef = useRef(false)
+  // Lo último de verdad, para lo que vive fuera del render (los eventos de la
+  // ventana, el reloj y el vigilante de fetch). Se escriben al cambiar el
+  // permiso y se sincronizan con el estado en cada render.
+  const tokenRef = useRef<string | null>(null)
+  const expiryRef = useRef<number | null>(null)
+  const statusRef = useRef<SessionStatus>('loading')
 
-  // Set up BroadcastChannel for cross-tab communication
+  // Una sola petición a /api/auth/refresh a la vez en esta pestaña, y una sola
+  // renovación entera (permiso + sesión) a la vez.
+  const refreshPromiseRef = useRef<Promise<ResultadoToken> | null>(null)
+  const renovandoRef = useRef<Promise<string | null> | null>(null)
+  // Reintento tras un fallo de red (con espera creciente).
+  const reintentoRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const intentosRef = useRef(0)
+  // Cuándo se forzó la última renovación por un 401 (para no entrar en bucle).
+  const ultimaForzadaRef = useRef(0)
+  // El fetch del navegador SIN el vigilante: las peticiones de la propia sesión
+  // van por aquí (si fueran por el vigilante, una renovación se esperaría a sí misma).
+  const fetchCrudoRef = useRef<typeof fetch | null>(null)
+  const crudo = (input: string, init?: RequestInit): Promise<Response> =>
+    (fetchCrudoRef.current || fetch)(input, init)
+
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-      broadcastChannelRef.current = new BroadcastChannel(AUTH_BROADCAST_CHANNEL)
+    tokenRef.current = accessToken
+    expiryRef.current = tokenExpiry
+  }, [accessToken, tokenExpiry])
+  useEffect(() => {
+    statusRef.current = status
+  }, [status])
 
-      broadcastChannelRef.current.onmessage = (event) => {
-        if (event.data.type === 'LOGOUT') {
-          // Another tab logged out, clear our state too
-          setSession(null)
-          setAccessToken(null)
-          setTokenExpiry(null)
-          setStatus('unauthenticated')
-          sessionCacheRef.current = null
-        } else if (event.data.type === 'LOGIN') {
-          // Another tab logged in, refresh our session
-          refreshSessionInternal()
-        }
-      }
-    }
+  const ponerToken = (token: string, expiry?: number | null) => {
+    const exp = typeof expiry === 'number' ? expiry : expiraDelJwt(token)
+    tokenRef.current = token
+    expiryRef.current = exp
+    setAccessToken(token)
+    setTokenExpiry(exp)
+  }
 
-    return () => {
-      broadcastChannelRef.current?.close()
-    }
-  }, [])
+  const cancelarReintento = () => {
+    if (reintentoRef.current) clearTimeout(reintentoRef.current)
+    reintentoRef.current = null
+  }
 
-  // Fetch user session from backend
-  const fetchUserSession = useCallback(async (token: string, expiry?: number): Promise<Session | null> => {
+  // La sesión ya no vale de verdad: como siempre, a «sin sesión».
+  const cerrarLocal = () => {
+    cancelarReintento()
+    setSession(null)
+    setAccessToken(null)
+    setTokenExpiry(null)
+    setStatus('unauthenticated')
+    tokenRef.current = null
+    expiryRef.current = null
+    statusRef.current = 'unauthenticated'
+    sessionCacheRef.current = null
+  }
+
+  // Fetch user session from backend.
+  // Devuelve la sesión, 'fuera' si el servidor dice que el permiso no vale
+  // (401) o null si ha fallado otra cosa (red, 500…), que NO saca a nadie.
+  const fetchUserSession = useCallback(async (token: string, expiry?: number): Promise<Session | 'fuera' | null> => {
     try {
-      const response = await fetch(`${getAPIUrl()}users/session`, {
+      const response = await crudo(`${getAPIUrl()}users/session`, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -208,6 +255,7 @@ export function SessionProvider({
         credentials: 'include',
       })
 
+      if (response.status === 401) return 'fuera'
       if (!response.ok) {
         console.error(`Session fetch failed with status: ${response.status}`)
         return null
@@ -227,207 +275,193 @@ export function SessionProvider({
       console.error('Error fetching user session:', error)
       return null
     }
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Check if a session might exist (marker cookie is set alongside httpOnly auth cookies)
   const hasSessionMarker = useCallback((): boolean => {
     return typeof document !== 'undefined' && document.cookie.includes('LH_session')
   }, [])
 
-  // Refresh access token using refresh token cookie
-  const refreshAccessToken = useCallback(async (): Promise<{ access_token: string; expiry?: number } | null> => {
-    // Deduplicate refresh requests within this tab
-    if (isRefreshingRef.current && refreshPromiseRef.current) {
-      return refreshPromiseRef.current
-    }
-
-    isRefreshingRef.current = true
-    refreshPromiseRef.current = (async () => {
+  // Pide un permiso a /api/auth/refresh. `force` se salta el atajo del
+  // servidor de Next (que devuelve el permiso de la cookie si aún le quedan
+  // más de 2 minutos) y pide uno nuevo de verdad a la API.
+  const pedirToken = (force: boolean): Promise<ResultadoToken> => {
+    if (refreshPromiseRef.current) return refreshPromiseRef.current
+    refreshPromiseRef.current = (async (): Promise<ResultadoToken> => {
       try {
-        // Use Next.js API route to ensure cookies are set correctly
-        const response = await fetch('/api/auth/refresh', {
+        const response = await crudo(`/api/auth/refresh${force ? '?force=1' : ''}`, {
           method: 'GET',
           credentials: 'include',
         })
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            // Refresh token expired or invalid
-            return null
-          }
-          throw new Error(`Refresh failed with status: ${response.status}`)
-        }
-
-        const data = await response.json()
-
-        // Validate response structure
-        if (!data.access_token) {
+        const que = queHacerConRefresco(response.status)
+        if (que === 'fuera') return { tipo: 'fuera' }
+        if (que === 'reintentar') return { tipo: 'reintentar' }
+        const data = await response.json().catch(() => null)
+        if (!data?.access_token) {
           console.error('Invalid refresh response: missing access_token')
-          return null
+          return { tipo: 'reintentar' }
         }
-
         return {
+          tipo: 'ok',
           access_token: data.access_token,
-          expiry: typeof data.expiry === 'number' ? data.expiry : undefined,
+          expiry: typeof data.expiry === 'number' ? data.expiry : expiraDelJwt(data.access_token),
         }
       } catch (error) {
         console.error('Token refresh failed:', error)
-        return null
+        return { tipo: 'reintentar' }
       } finally {
-        isRefreshingRef.current = false
         refreshPromiseRef.current = null
       }
     })()
-
     return refreshPromiseRef.current
-  }, [])
+  }
 
-  // Check if token needs refresh
-  const isTokenExpiringSoon = useCallback((expiry?: number | null): boolean => {
-    if (!expiry) return false
-    return Date.now() + TOKEN_REFRESH_THRESHOLD >= expiry
-  }, [])
+  const renovarRef = useRef<(opciones?: { force?: boolean; conSesion?: boolean }) => Promise<string | null>>(
+    async () => null
+  )
 
-  // Internal refresh session function (used by broadcast channel)
-  const refreshSessionInternal = useCallback(async () => {
-    try {
-      const refreshResult = await refreshAccessToken()
-      if (refreshResult) {
-        setAccessToken(refreshResult.access_token)
-        setTokenExpiry(refreshResult.expiry || null)
+  const programarReintento = () => {
+    if (reintentoRef.current) return
+    const espera = esperaReintento(intentosRef.current)
+    intentosRef.current += 1
+    reintentoRef.current = setTimeout(() => {
+      reintentoRef.current = null
+      renovarRef.current({ conSesion: !sessionCacheRef.current })
+    }, espera)
+  }
 
-        const sessionData = await fetchUserSession(refreshResult.access_token, refreshResult.expiry)
-        if (sessionData) {
-          setSession(sessionData)
-          setStatus('authenticated')
-          sessionCacheRef.current = {
-            data: sessionData,
-            timestamp: Date.now(),
+  /**
+   * Renueva el permiso y, si cambia o no hay sesión, vuelve a pedir la sesión.
+   * Devuelve el permiso vigente o null. Un fallo de red deja todo como está y
+   * vuelve a probar sola; solo un 401 del refresco cierra la sesión.
+   */
+  renovarRef.current = (opciones = {}) => {
+    if (renovandoRef.current) return renovandoRef.current
+    renovandoRef.current = (async (): Promise<string | null> => {
+      try {
+        let r = await pedirToken(!!opciones.force)
+        // Otra pestaña puede haber dejado ya un permiso nuevo en la cookie; si
+        // el que llega sigue a punto de caducar, se pide uno nuevo de verdad.
+        if (r.tipo === 'ok' && !opciones.force && tocaRenovar(r.expiry)) r = await pedirToken(true)
+        if (r.tipo === 'fuera') {
+          cerrarLocal()
+          return null
+        }
+        if (r.tipo === 'reintentar') {
+          programarReintento()
+          return null
+        }
+        intentosRef.current = 0
+        cancelarReintento()
+        const cambio = r.access_token !== tokenRef.current
+        ponerToken(r.access_token, r.expiry)
+        if (cambio || opciones.conSesion || !sessionCacheRef.current) {
+          const s = await fetchUserSession(r.access_token, r.expiry ?? undefined)
+          if (s === 'fuera') {
+            cerrarLocal()
+            return null
+          }
+          if (s) {
+            setSession(s)
+            setStatus('authenticated')
+            statusRef.current = 'authenticated'
+            sessionCacheRef.current = { data: s, timestamp: Date.now() }
+          } else if (sessionCacheRef.current) {
+            // Sin red para la sesión, pero con permiso nuevo: se queda la
+            // sesión de antes con el permiso nuevo.
+            const conToken: Session = {
+              ...sessionCacheRef.current.data,
+              tokens: { ...sessionCacheRef.current.data.tokens, access_token: r.access_token, expiry: r.expiry ?? undefined },
+            }
+            sessionCacheRef.current = { data: conToken, timestamp: sessionCacheRef.current.timestamp }
+            setSession(conToken)
+          } else {
+            programarReintento()
           }
         }
+        return r.access_token
+      } finally {
+        renovandoRef.current = null
       }
-    } catch (error) {
-      console.error('Session refresh error:', error)
-    }
-  }, [refreshAccessToken, fetchUserSession])
+    })()
+    return renovandoRef.current
+  }
 
-  // Main session refresh function
+  // Set up BroadcastChannel for cross-tab communication
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      broadcastChannelRef.current = new BroadcastChannel(AUTH_BROADCAST_CHANNEL)
+
+      broadcastChannelRef.current.onmessage = (event) => {
+        if (event.data.type === 'LOGOUT') {
+          // Another tab logged out, clear our state too
+          cerrarLocal()
+        } else if (event.data.type === 'LOGIN') {
+          // Another tab logged in, refresh our session
+          renovarRef.current({ conSesion: true })
+        }
+      }
+    }
+
+    return () => {
+      broadcastChannelRef.current?.close()
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Main session refresh function. La copia guardada (10 min) solo se usa si
+  // el permiso NO está a punto de caducar: antes se devolvía la copia aunque
+  // el permiso ya hubiera caducado.
   const refreshSession = useCallback(async (force?: boolean) => {
-    // Check cache first (skip if force refresh requested)
     const now = Date.now()
-    if (
-      !force &&
-      sessionCacheRef.current &&
-      now - sessionCacheRef.current.timestamp < SESSION_CACHE_TTL
-    ) {
-      setSession(sessionCacheRef.current.data)
+    const cache = sessionCacheRef.current
+    if (!force && cache && now - cache.timestamp < SESSION_CACHE_TTL && !tocaRenovar(expiryRef.current, now)) {
+      setSession(cache.data)
       setStatus('authenticated')
       return
     }
+    if (force) sessionCacheRef.current = null
 
-    // Invalidate cache when forcing
-    if (force) {
-      sessionCacheRef.current = null
+    const token = tokenRef.current
+    if (!token || tocaRenovar(expiryRef.current, now)) {
+      await renovarRef.current({ conSesion: true })
+      return
     }
 
-    try {
-      // Try to refresh token if we don't have one or it's expiring
-      let currentToken = accessToken
-      let currentExpiry = tokenExpiry
-
-      if (!currentToken || isTokenExpiringSoon(currentExpiry)) {
-        const refreshResult = await refreshAccessToken()
-        if (refreshResult) {
-          currentToken = refreshResult.access_token
-          currentExpiry = refreshResult.expiry || null
-          setAccessToken(currentToken)
-          setTokenExpiry(currentExpiry)
-        } else {
-          // No valid token, user is unauthenticated
-          setSession(null)
-          setStatus('unauthenticated')
-          setAccessToken(null)
-          setTokenExpiry(null)
-          sessionCacheRef.current = null
-          return
-        }
-      }
-
-      // Fetch session data with the CURRENT expiry (from refresh, not stale state)
-      const sessionData = await fetchUserSession(currentToken, currentExpiry || undefined)
-      if (sessionData) {
-        setSession(sessionData)
-        setStatus('authenticated')
-        sessionCacheRef.current = {
-          data: sessionData,
-          timestamp: now,
-        }
-      } else {
-        setSession(null)
-        setStatus('unauthenticated')
-        sessionCacheRef.current = null
-      }
-    } catch (error) {
-      console.error('Session refresh error:', error)
-      setSession(null)
-      setStatus('unauthenticated')
+    const s = await fetchUserSession(token, expiryRef.current ?? undefined)
+    if (s === 'fuera') {
+      // El permiso aún no había caducado y el servidor lo rechaza (contraseña
+      // cambiada, sesión cerrada en otro sitio…): se pide uno nuevo y, si
+      // tampoco vale, la sesión se cierra.
+      await renovarRef.current({ force: true, conSesion: true })
+      return
     }
-  }, [accessToken, tokenExpiry, fetchUserSession, isTokenExpiringSoon, refreshAccessToken])
+    if (s) {
+      setSession(s)
+      setStatus('authenticated')
+      sessionCacheRef.current = { data: s, timestamp: now }
+    }
+    // null (sin red): se queda como estaba.
+  }, [fetchUserSession])
+  const refreshSessionRef = useRef(refreshSession)
+  refreshSessionRef.current = refreshSession
 
   // Initialize session on mount
   useEffect(() => {
-    let isMounted = true
-
-    const initSession = async () => {
-      // Skip entirely if no session marker — no httpOnly refresh token exists
-      if (!hasSessionMarker()) {
-        setStatus('unauthenticated')
-        return
-      }
-
-      setStatus('loading')
-
-      // Try to restore session from refresh token
-      const refreshResult = await refreshAccessToken()
-
-      if (!isMounted) return
-
-      if (refreshResult) {
-        setAccessToken(refreshResult.access_token)
-        setTokenExpiry(refreshResult.expiry || null)
-
-        // Fetch full session
-        const sessionData = await fetchUserSession(refreshResult.access_token, refreshResult.expiry)
-
-        if (!isMounted) return
-
-        if (sessionData) {
-          setSession(sessionData)
-          setStatus('authenticated')
-          sessionCacheRef.current = {
-            data: sessionData,
-            timestamp: Date.now(),
-          }
-        } else {
-          setStatus('unauthenticated')
-        }
-      } else {
-        setStatus('unauthenticated')
-      }
+    // Skip entirely if no session marker — no httpOnly refresh token exists
+    if (!hasSessionMarker()) {
+      setStatus('unauthenticated')
+      return
     }
-
-    initSession()
-
-    return () => {
-      isMounted = false
-    }
+    setStatus('loading')
+    renovarRef.current({ conSesion: true })
+    return () => cancelarReintento()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Set up refetch interval
   useEffect(() => {
     if (refetchInterval && status === 'authenticated') {
       intervalRef.current = setInterval(() => {
-        refreshSession()
+        refreshSessionRef.current()
       }, refetchInterval)
     }
 
@@ -436,7 +470,125 @@ export function SessionProvider({
         clearInterval(intervalRef.current)
       }
     }
-  }, [refetchInterval, status, refreshSession])
+  }, [refetchInterval, status])
+
+  // Volver a la pestaña, recuperar la red o despertar el portátil (16/11/2026).
+  // El reloj de arriba no corre con el portátil dormido ni casi con la pestaña
+  // escondida: al volver, se mira si al permiso le queda poco y se renueva.
+  // También cada minuto (es una cuenta local: no pide nada si no toca).
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const comprobar = () => {
+      if (typeof document !== 'undefined' && document.hidden) return
+      if (statusRef.current === 'unauthenticated') return
+      if (reintentoRef.current) {
+        // Esperando a reintentar tras un fallo de red: ahora, ya.
+        cancelarReintento()
+        renovarRef.current({ conSesion: !sessionCacheRef.current })
+        return
+      }
+      if (statusRef.current === 'authenticated' && tocaRenovar(expiryRef.current)) {
+        renovarRef.current({})
+      }
+    }
+    const reloj = setInterval(comprobar, 60_000)
+    document.addEventListener('visibilitychange', comprobar)
+    window.addEventListener('focus', comprobar)
+    window.addEventListener('online', comprobar)
+    window.addEventListener('pageshow', comprobar)
+    return () => {
+      clearInterval(reloj)
+      document.removeEventListener('visibilitychange', comprobar)
+      window.removeEventListener('focus', comprobar)
+      window.removeEventListener('online', comprobar)
+      window.removeEventListener('pageshow', comprobar)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // El vigilante de las peticiones a la API (16/11/2026). Sin tocar ningún
+  // servicio:
+  //  - Si una petición sale con un permiso caducado (o a 30 s de caducar),
+  //    antes se renueva y sale con el nuevo. Importa porque la API trata un
+  //    permiso caducado como un visitante anónimo y contesta 200 con solo lo
+  //    público (la barra sin clases, el chat vacío), sin ningún error.
+  //  - Si contesta 401, se renueva una vez (como mucho cada 30 s) y, si es una
+  //    lectura (GET), se repite con el permiso nuevo. Un POST no se repite: un
+  //    401 puede ser «contraseña actual incorrecta».
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.fetch !== 'function') return
+    const original = window.fetch
+    fetchCrudoRef.current = original.bind(window)
+
+    const tokenVigente = async (): Promise<string | null> => {
+      if (tokenRef.current && !tocaRenovar(expiryRef.current, Date.now(), MARGEN_PETICION_MS)) return tokenRef.current
+      return renovarRef.current({})
+    }
+    const trasRechazo = async (usado: string | null): Promise<string | null> => {
+      const ahora = Date.now()
+      const actual = tokenRef.current
+      // Otro ya lo ha renovado mientras tanto.
+      if (actual && actual !== usado && !tocaRenovar(expiryRef.current, ahora, MARGEN_PETICION_MS)) return actual
+      if (ahora - ultimaForzadaRef.current < ESPERA_ENTRE_FORZADAS_MS) return null
+      ultimaForzadaRef.current = ahora
+      return renovarRef.current({ force: true })
+    }
+    const conToken = (init: RequestInit | undefined, token: string): RequestInit => {
+      const headers = new Headers(init?.headers || undefined)
+      headers.set('Authorization', `Bearer ${token}`)
+      return { ...(init || {}), headers }
+    }
+
+    const vigilado = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      let usado: string | null = null
+      let opciones = init
+      try {
+        const url = typeof input === 'string' ? input : input instanceof URL ? input.href : null
+        if (url && statusRef.current === 'authenticated' && esDeLaApi(url, getAPIUrl(), window.location.origin)) {
+          usado = tokenDeCabeceras(init?.headers)
+        }
+        if (usado && tocaRenovar(expiraDelJwt(usado), Date.now(), MARGEN_PETICION_MS)) {
+          const nuevo = await tokenVigente()
+          if (nuevo && nuevo !== usado) opciones = conToken(init, nuevo)
+        }
+      } catch {
+        usado = null
+        opciones = init
+      }
+
+      const res = await original.call(window, input, opciones)
+      if (!usado || res.status !== 401) return res
+
+      try {
+        const enviado = tokenDeCabeceras(opciones?.headers) || usado
+        const nuevo = await trasRechazo(enviado)
+        const body: unknown = opciones?.body
+        const repetible = !(typeof ReadableStream !== 'undefined' && body instanceof ReadableStream)
+        if (!nuevo || nuevo === enviado || !repetible || !sePuedeRepetir(opciones?.method)) return res
+        return await original.call(window, input, conToken(opciones, nuevo))
+      } catch {
+        return res
+      }
+    }
+
+    window.fetch = vigilado as typeof fetch
+    return () => {
+      if (window.fetch === (vigilado as typeof fetch)) window.fetch = original
+      fetchCrudoRef.current = null
+    }
+  }, [])
+
+  // Con un permiso nuevo, todas las consultas se vuelven a pedir: las claves
+  // de react-query no llevan el permiso, así que lo que llegó con el caducado
+  // (como anónimo: sin clases, sin canales) se quedaba en pantalla.
+  const tokenDeLaSesion = session?.tokens?.access_token
+  const tokenAnteriorRef = useRef<string | undefined>(undefined)
+  useEffect(() => {
+    const antes = tokenAnteriorRef.current
+    tokenAnteriorRef.current = tokenDeLaSesion
+    if (antes && tokenDeLaSesion && antes !== tokenDeLaSesion) {
+      queryClient?.invalidateQueries()
+    }
+  }, [tokenDeLaSesion, queryClient])
 
   // Sign in function
   const handleSignIn = useCallback(
@@ -543,7 +695,7 @@ export function SessionProvider({
 
           // Fetch full session with roles
           const fullSession = await fetchUserSession(data.tokens.access_token, data.tokens.expiry)
-          if (fullSession) {
+          if (fullSession && fullSession !== 'fuera') {
             fullSession.tokens = newSession.tokens
             setSession(fullSession)
             sessionCacheRef.current = {
@@ -657,15 +809,11 @@ export function SessionProvider({
     }
 
     // Clear local state regardless of backend response
-    setSession(null)
-    setAccessToken(null)
-    setTokenExpiry(null)
-    setStatus('unauthenticated')
-    sessionCacheRef.current = null
+    cerrarLocal()
 
     // Clear refresh promise
     refreshPromiseRef.current = null
-    isRefreshingRef.current = false
+    renovandoRef.current = null
 
     // Clear any auth cookies on client side
     const { secureAttr, domainAttr, sameSiteAttr } = getCookieAttributes()

@@ -407,7 +407,7 @@ export function ChannelChat({
     }
   }
 
-  const { discussions, isLoading, mutate } = useDiscussions({
+  const { discussions, isLoading, error: errorMensajes, mutate } = useDiscussions({
     communityUuid,
     sortBy: 'recent',
     page: 1,
@@ -432,10 +432,21 @@ export function ChannelChat({
   const [sending, setSending] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Poll for new messages every few seconds.
+  // Mensajes nuevos cada 5 s, pero solo con la pestaña a la vista (16/11/2026:
+  // seguía preguntando escondida toda la noche). Al volver, se pide al momento.
   useEffect(() => {
-    const id = setInterval(() => mutateDiscussions(communityUuid), 5000)
-    return () => clearInterval(id)
+    const id = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return
+      mutateDiscussions(communityUuid)
+    }, 5000)
+    const alVolver = () => {
+      if (!document.hidden) mutateDiscussions(communityUuid)
+    }
+    document.addEventListener('visibilitychange', alVolver)
+    return () => {
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', alVolver)
+    }
   }, [communityUuid, mutateDiscussions])
 
   // Al entrar: se guarda la marca de lectura ANTERIOR (para la línea de nuevos)
@@ -779,9 +790,24 @@ export function ChannelChat({
       {/* Messages */}
       <div className="relative flex-1 min-h-0 flex flex-col">
       <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto overflow-x-hidden py-3">
-        {isLoading && messages.length === 0 ? (
+        {(isLoading || (!accessToken && session?.status === 'loading')) && messages.length === 0 ? (
           <div className="flex justify-center py-8">
             <Loader2 size={22} className="animate-spin text-gray-400" />
+          </div>
+        ) : errorMensajes && messages.length === 0 ? (
+          // Si la carga falla, decirlo: antes salía «Aquí no ha escrito nadie
+          // todavía» en un canal lleno de mensajes (16/11/2026).
+          <div className="flex flex-col items-center justify-center h-full text-center px-6">
+            <p className="text-sm text-gray-500 max-w-xs">
+              No se han podido cargar los mensajes ·{' '}
+              <button
+                type="button"
+                onClick={() => mutateDiscussions(communityUuid)}
+                className="font-semibold text-[#0b2da0] hover:underline"
+              >
+                Reintentar
+              </button>
+            </p>
           </div>
         ) : visibleMessages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-6">
