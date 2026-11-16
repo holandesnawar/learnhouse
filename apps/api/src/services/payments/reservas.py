@@ -37,6 +37,7 @@ Lo que cuida
 """
 
 from __future__ import annotations
+import asyncio
 
 import logging
 from datetime import datetime, timezone
@@ -380,7 +381,8 @@ async def abrir_pago(token: str, db_session: AsyncSession) -> str:
     nombre = f"{reserva.first_name} {reserva.last_name}".strip() or reserva.email.split("@")[0]
     if not reserva.stripe_customer_id:
         try:
-            cliente = stripe.Customer.create(
+            cliente = await asyncio.to_thread(
+                stripe.Customer.create,
                 email=reserva.email, name=nombre, phone=reserva.phone or None,
                 metadata={"source": "reserva-plaza", "reserva_id": str(reserva.id)},
             )
@@ -391,7 +393,7 @@ async def abrir_pago(token: str, db_session: AsyncSession) -> str:
     # Si ya se abrió antes y no se pagó, esa sesión se cierra: dos pestañas
     # abiertas no pueden acabar en dos cobros.
     for viejo in await _pagos_de(int(reserva.id or 0), db_session):
-        if viejo.estado == "pendiente" and _caducar(viejo.stripe_session_id):
+        if viejo.estado == "pendiente" and await asyncio.to_thread(_caducar, viejo.stripe_session_id):
             viejo.estado = "caducado"
             db_session.add(viejo)
 
@@ -436,7 +438,8 @@ async def abrir_pago(token: str, db_session: AsyncSession) -> str:
     if falta_despues > 0:
         vuelta += f"&reserva=1&pag={pagado_despues}&pend={falta_despues}&cur={reserva.currency or 'eur'}"
     try:
-        sesion = crear_sesion_de_pago(
+        sesion = await asyncio.to_thread(
+            crear_sesion_de_pago,
             importe,
             reserva.currency or "eur",
             ui_mode="embedded_page",

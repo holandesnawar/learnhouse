@@ -107,6 +107,8 @@ llamada), y los correos de la campaña le llevan a la llamada.
 """
 
 from __future__ import annotations
+import asyncio
+from src.services.email.utils import en_hilo
 
 import json
 import logging
@@ -1058,11 +1060,11 @@ async def crear_pago(datos: dict, db_session: AsyncSession) -> dict:
     # va puesto en el cliente y Stripe lo enseña relleno.
     telefono_previo = await _telefono_conocido(email, db_session)
     try:
-        precio = _precio_stripe(cfg["precio_cents"])
+        precio = await asyncio.to_thread(_precio_stripe, cfg["precio_cents"])
         datos_cliente = {"email": email, "name": nombre, "metadata": {"source": PRODUCTO}}
         if telefono_previo:
             datos_cliente["phone"] = telefono_previo
-        cliente = _plano(stripe.Customer.create(**datos_cliente))
+        cliente = _plano(await asyncio.to_thread(stripe.Customer.create, **datos_cliente))
     except Exception as exc:  # noqa: BLE001
         logger.exception("Ebook: no se pudo preparar el cobro")
         raise EbookError(f"No se pudo preparar el pago: {exc}", 502)
@@ -1106,12 +1108,14 @@ async def crear_pago(datos: dict, db_session: AsyncSession) -> dict:
     )
     try:
         try:
-            sesion = _plano(stripe.checkout.Session.create(**parametros, phone_number_collection={"enabled": True}))
+            sesion = _plano(await asyncio.to_thread(
+                stripe.checkout.Session.create, **parametros, phone_number_collection={"enabled": True}
+            ))
         except Exception as exc:  # noqa: BLE001
             # Si Stripe no aceptara pedir el teléfono, que se pueda comprar
             # igual: sin teléfono es mejor que sin venta. El motivo, al registro.
             logger.warning("Ebook: Stripe no aceptó pedir el teléfono (%s); la caja sale sin él", exc)
-            sesion = _plano(stripe.checkout.Session.create(**parametros))
+            sesion = _plano(await asyncio.to_thread(stripe.checkout.Session.create, **parametros))
     except Exception as exc:  # noqa: BLE001
         logger.exception("Ebook: no se pudo crear la sesión de pago")
         raise EbookError(f"No se pudo crear el pago: {exc}", 502)
@@ -1286,7 +1290,7 @@ async def al_pagar(sesion: dict, db_session: AsyncSession) -> str:
     await db_session.commit()
     try:
         cfg = await leer(db_session)
-        armar_entrega(cfg, email, nombre, preview=False)
+        await en_hilo(armar_entrega, cfg, email, nombre, preview=False)
     except Exception:
         # Sin correo, sin marca: el reintento de Stripe (o la página de
         # vuelta) lo vuelve a intentar.
@@ -1318,7 +1322,7 @@ async def estado_compra(session_id: str, db_session: AsyncSession) -> dict:
         raise EbookError("No existe esa compra", 404)
     _usar_stripe()
     try:
-        sesion = _plano(stripe.checkout.Session.retrieve(session_id))
+        sesion = _plano(await asyncio.to_thread(stripe.checkout.Session.retrieve, session_id))
     except Exception:  # noqa: BLE001
         raise EbookError("No existe esa compra", 404)
     meta = sesion.get("metadata") or {}
@@ -1405,7 +1409,7 @@ async def apuntar_lista(datos: dict, db_session: AsyncSession) -> dict:
         # El correo de acceso, una vez. Si falla, la persona ya está dentro y
         # ve el ebook en pantalla: se apunta en el registro y sigue.
         try:
-            armar_acceso(cfg, email, nombre, preview=False)
+            await en_hilo(armar_acceso, cfg, email, nombre, preview=False)
             db_session.add(
                 ContactEvent(
                     email=email,
@@ -1670,7 +1674,7 @@ async def enviar_campana(db_session: AsyncSession, org_id: Optional[int] = None)
         db_session.add(marca)
         await db_session.commit()
         try:
-            armar()
+            await en_hilo(armar)
             salida["enviados"] += 1
             return True
         except Exception:  # noqa: BLE001

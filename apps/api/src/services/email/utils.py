@@ -3,6 +3,7 @@ import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from contextvars import ContextVar
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -12,6 +13,35 @@ import resend
 from config.config import get_learnhouse_config
 
 logger = logging.getLogger(__name__)
+
+# El bucle de la API, para quien manda un correo desde un hilo (`en_hilo`):
+# así `_apuntar_correo` puede seguir guardando el envío en `email_log`.
+_BUCLE_PRINCIPAL: ContextVar = ContextVar("bucle_principal_correo", default=None)
+
+
+async def en_hilo(fn, /, *args, **kwargs):
+    """Ejecuta `fn` (síncrona: mandar un correo, hablar con Stripe) en un hilo
+    aparte y espera su resultado sin parar la escuela.
+
+    La API es UN solo proceso con UN bucle: una llamada síncrona a Resend,
+    SMTP o Stripe dentro de una ruta async congela TODAS las peticiones de
+    todos mientras espera la respuesta (segundos si el servicio va lento).
+    Con esto, solo espera quien la pidió.
+
+    Es `asyncio.to_thread` más una cosa: deja apuntado el bucle principal, para
+    que el registro del correo (`_apuntar_correo`) se pueda programar desde el
+    hilo. El resto del contexto (los textos de `usar_textos`, por ejemplo)
+    viaja igual que con `to_thread`: se copia el contexto entero. Las
+    excepciones salen tal cual, como si se hubiera llamado directamente.
+    """
+    import asyncio
+    import contextvars
+    import functools
+
+    bucle = asyncio.get_running_loop()
+    ctx = contextvars.copy_context()
+    ctx.run(_BUCLE_PRINCIPAL.set, bucle)
+    return await bucle.run_in_executor(None, functools.partial(ctx.run, fn, *args, **kwargs))
 
 
 def _is_allowed_base_url(url: str) -> bool:
@@ -255,8 +285,13 @@ def _apuntar_correo(to: str, subject: str, ok: bool) -> None:
 
     try:
         bucle = asyncio.get_running_loop()
+        en_otro_hilo = False
     except RuntimeError:
-        return
+        # Desde un hilo (`en_hilo`): se programa en el bucle de la API.
+        bucle = _BUCLE_PRINCIPAL.get()
+        en_otro_hilo = True
+        if bucle is None or bucle.is_closed():
+            return
 
     async def _guardar():
         try:
@@ -278,7 +313,13 @@ def _apuntar_correo(to: str, subject: str, ok: bool) -> None:
         except Exception:  # noqa: BLE001
             logger.warning("No se pudo apuntar el correo a %s", to, exc_info=True)
 
-    bucle.create_task(_guardar())
+    if en_otro_hilo:
+        try:
+            bucle.call_soon_threadsafe(lambda: bucle.create_task(_guardar()))
+        except RuntimeError:  # el bucle se cerró entretanto
+            pass
+    else:
+        bucle.create_task(_guardar())
 
 
 def _send_email_resend(sender: str, to: str, subject: str, body: str, mailing, reply_to: str = ""):

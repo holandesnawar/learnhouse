@@ -28,6 +28,7 @@ De dónde sale
   llamado" es el mismo que en Matrículas nuevas y no hay dos marcas distintas.
 """
 
+from src.services.email.utils import en_hilo
 import json
 import logging
 from typing import Optional
@@ -291,7 +292,7 @@ async def avisar_equipo_llamada(fila: ContactEvent, db_session: AsyncSession) ->
         return 0
     for destino in destinatarios:
         try:
-            send_llamada_pedida_email(destino, llamada)
+            await en_hilo(send_llamada_pedida_email, destino, llamada)
             enviados += 1
         except Exception:  # noqa: BLE001
             logger.exception("No se pudo avisar a %s de la llamada de %s", destino, fila.email)

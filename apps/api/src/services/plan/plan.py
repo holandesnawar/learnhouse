@@ -32,6 +32,7 @@ Es correo, no una notificación en el móvil: la escuela no tiene service worker
 (a propósito, ver CLAUDE.md → «Instalar la escuela como app»).
 """
 
+from src.services.email.utils import en_hilo
 import json
 import logging
 from datetime import date, datetime, timedelta, timezone
@@ -326,7 +327,8 @@ async def recordar_a_quien_toque(org_id: int, db_session: AsyncSession, ahora: O
             f.plan = json.dumps(plan, ensure_ascii=False)
             db_session.add(f)
             await db_session.commit()
-            send_news_email(
+            await en_hilo(
+                send_news_email,
                 a["email"], name=(a["nombre"] or "").split(" ")[0] or "alumno/a", title=c["asunto"],
                 body_html=c["html"], cta_label=c["boton"], cta_url=c["enlace"],
             )

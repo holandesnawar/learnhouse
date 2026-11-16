@@ -11,6 +11,8 @@ Flow:
 """
 
 from __future__ import annotations
+import asyncio
+from src.services.email.utils import en_hilo
 
 import json
 import logging
@@ -648,8 +650,8 @@ async def enroll_and_checkout_session(data, db_session: AsyncSession, precio_id:
     # del panel cobra el importe que lleva firmado (`precio_cents`, 597 € desde
     # el 01/11/2026).
     try:
-        precio = precio_id or _precio_base_id(precio_cents or None)
-        price = stripe.Price.retrieve(precio)
+        precio = precio_id or await asyncio.to_thread(_precio_base_id, precio_cents or None)
+        price = await asyncio.to_thread(stripe.Price.retrieve, precio)
         unit_amount = price.get("unit_amount") if hasattr(price, "get") else getattr(price, "unit_amount", None)
         currency_raw = price.get("currency") if hasattr(price, "get") else getattr(price, "currency", "eur")
     except Exception as exc:
@@ -662,7 +664,8 @@ async def enroll_and_checkout_session(data, db_session: AsyncSession, precio_id:
 
     # Cliente primero: la factura y el recibo necesitan a quién ir dirigidos.
     try:
-        customer = stripe.Customer.create(
+        customer = await asyncio.to_thread(
+            stripe.Customer.create,
             email=email,
             name=full_name,
             phone=data.phone or None,
@@ -690,8 +693,8 @@ async def enroll_and_checkout_session(data, db_session: AsyncSession, precio_id:
         row.stripe_customer_id = customer.id
         row.updated_at = now
         if anterior:
-            _cerrar_sesion_anterior(anterior)
-            _cancelar_intento_anterior(anterior)
+            await asyncio.to_thread(_cerrar_sesion_anterior, anterior)
+            await asyncio.to_thread(_cancelar_intento_anterior, anterior)
     else:
         row = Enrollment(
             email=email,
@@ -725,7 +728,8 @@ async def enroll_and_checkout_session(data, db_session: AsyncSession, precio_id:
     }
 
     try:
-        session = crear_sesion_de_pago(
+        session = await asyncio.to_thread(
+            crear_sesion_de_pago,
             amount,
             currency,
             # `embedded_page`, no `embedded`: Stripe renombró el valor y el
@@ -1130,7 +1134,8 @@ async def dar_de_alta_a_mano(
         enlace = f"{_academy_url()}/auth/crear-cuenta?email={quote(email)}&resetCode={code}"
 
         try:
-            send_payment_welcome_email(
+            await en_hilo(
+                send_payment_welcome_email,
                 email=email,
                 name=nombre or user.first_name or "",
                 reset_code=code,
@@ -1712,7 +1717,8 @@ async def _provision_after_payment(
 
     user_read = UserRead.model_validate(user)
     try:
-        send_payment_welcome_email(
+        await en_hilo(
+            send_payment_welcome_email,
             email=user_read.email,
             name=name or user.first_name or "",
             reset_code=code,
@@ -1908,7 +1914,8 @@ async def _handle_payment_intent(obj: dict, db_session: AsyncSession) -> dict:
     # es peor que no tener ninguna.
     factura_de_stripe = str((obj.get("metadata") or {}).get("factura_stripe") or "") == "1"
     if result.get("atendida_ahora") and customer_id and amount > 0 and not factura_de_stripe:
-        _create_post_hoc_invoice(
+        await asyncio.to_thread(
+            _create_post_hoc_invoice,
             customer_id=customer_id,
             amount=amount,
             currency=currency,
