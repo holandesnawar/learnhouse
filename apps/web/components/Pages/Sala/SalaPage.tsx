@@ -78,6 +78,9 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { entrarPizarra, entrarSala, getSala, guardarSala, type EntradaSala } from '@services/salas/salas'
 import { getSemanas, diaCorto, type Semana } from '@services/tareas/tareas'
 import { confirmar } from '@/lib/nawar/confirmar'
+import { useOrg } from '@components/Contexts/OrgContext'
+import EtiquetaCurso from '@components/Pages/Courses/EtiquetaCurso'
+import { ajustesDirecto } from '@/lib/nawar/cursos'
 
 // La pizarra solo se carga si el profe la abre (pdf.js pesa).
 const PizarraClase = dynamic(() => import('@components/Pages/Pizarra/PizarraClase'), { ssr: false })
@@ -121,6 +124,7 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
     setGrabacionEstado(g)
   }
   const volver = `/course/${curso}`
+  const org = useOrg() as any
   // Dentro de la llamada (entre «joined-meeting» y «left-meeting»).
   const [dentro, setDentro] = useState(false)
   const llamadaRef = useRef<any>(null)
@@ -574,6 +578,8 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
         <h1 className="text-lg sm:text-xl font-bold text-gray-900 truncate">
           {entrada?.curso ? `Sala · ${entrada.curso}` : 'Sala en directo'}
         </h1>
+        {/* El equipo ve de qué grupo es (Groep rood / blauw), 16/11/2026. */}
+        {soyEquipo || entrada?.anfitrion ? <EtiquetaCurso texto={ajustesDirecto(org?.config?.config, `course_${curso}`).etiqueta} /> : null}
         {entrada?.anfitrion && !error && !sinLibreria ? (
           <button
             onClick={() => {

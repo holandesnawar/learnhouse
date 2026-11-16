@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * La etiqueta de un curso que solo ven los administradores (29/10/2026:
+ * La etiqueta de un curso que ve el equipo, no los alumnos (29/10/2026:
  * «una mini etiqueta al lado del título, que solo vea yo, para saber cuál es
  * Groep rood y cuál Groep blauw»). Se escribe en los ajustes de la clase en
  * directo y sale junto al nombre en la barra lateral y en la página.
@@ -24,7 +24,7 @@ export default function EtiquetaCurso({ texto, oscuro = false }: { texto: string
   if (!texto) return null
   return (
     <span
-      title="Solo la ven los administradores"
+      title="La ve el equipo, no los alumnos"
       className={`inline-flex items-center gap-1 shrink-0 rounded-full px-1.5 py-[1px] text-[10.5px] font-semibold leading-[16px] whitespace-nowrap ${
         oscuro ? 'bg-white/15 text-white' : 'bg-[#F3F4F6] text-gray-700 border border-[#E5E7EB]'
       }`}
