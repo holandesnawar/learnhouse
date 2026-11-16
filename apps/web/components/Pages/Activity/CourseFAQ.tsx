@@ -88,7 +88,7 @@ const FAQ_DIRECTO: { intro?: string; items: FAQ[] } = {
     },
     {
       q: '¿Cómo entro?',
-      a: 'Aquí mismo: pulsa «Ir a la clase» y entras con tu nombre, sin otra pestaña y sin instalar nada. Vale el ordenador o el móvil. Si el navegador te pregunta por la cámara y el micrófono, dale a «Permitir».',
+      a: 'Aquí mismo: pulsa «Entrar a la clase» y entras con tu nombre, sin otra pestaña y sin instalar nada. Vale el ordenador o el móvil. Si el navegador te pregunta por la cámara y el micrófono, dale a «Permitir».',
     },
     {
       q: '¿Y si no puedo venir?',
@@ -151,7 +151,10 @@ export default function CourseFAQ({ courseUuid, compact = false, enDirecto = fal
     // 1) Su hueco propio (lo normal a partir de ahora).
     for (const root of roots) {
       const own = root?.courses?.[key]?.items
-      if (Array.isArray(own) && own.length) return own as FAQ[]
+      // El botón se llama «Entrar a la clase» (16/11/2026): lo guardado con el
+      // nombre viejo se lee con el nuevo.
+      if (Array.isArray(own) && own.length)
+        return (own as FAQ[]).map((f) => ({ ...f, a: String(f.a || '').replace(/«Ir a la clase»/g, '«Entrar a la clase»') }))
     }
     // 2) RESCATE: lo que se guardó cuando esta sección y las consultas
     //    frecuentes compartían `items`. Se reconoce porque usa q/a, y puede

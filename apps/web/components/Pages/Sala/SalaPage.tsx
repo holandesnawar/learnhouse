@@ -648,7 +648,7 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
             <Loader2 size={18} className="animate-spin text-[#0b2da0]" /> La clase aún no ha comenzado
           </p>
           <p className="mt-2 text-[14px] leading-relaxed text-[#171a2e]">
-            Empieza en cuanto el profe abra la sala. No hace falta recargar: quédate en esta página y entrarás sola o solo.
+            Empieza en cuanto el profe abra la sala. No hace falta recargar: quédate en esta página y entrarás automáticamente.
           </p>
           {soyEquipo ? (
             <button
