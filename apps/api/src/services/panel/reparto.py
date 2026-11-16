@@ -174,10 +174,21 @@ def cambios_por_anfitrion(
         antes = ultima.get(email)
         if antes is None or str(c.get("reservada") or "") > str(antes[0].get("reservada") or ""):
             ultima[email] = (c, closer)
+    def _quitado_a_mano_despues(email: str, cita: dict) -> bool:
+        # 16/11: quien QUITÓ el closer a mano (closer 0 con fecha de reparto)
+        # después de esa reserva no lo recupera al abrir Llamadas. Si la
+        # persona vuelve a reservar más tarde, sí.
+        guardado = ya.get(email) or {}
+        quitado = _instante(guardado.get("asignado_at") or "")
+        if quitado is None:
+            return False
+        reservada = _instante(cita.get("reservada") or "")
+        return reservada is None or reservada <= quitado
+
     return {
         email: closer
-        for email, (_c, closer) in ultima.items()
-        if not int((ya.get(email) or {}).get("closer_id") or 0)
+        for email, (c, closer) in ultima.items()
+        if not int((ya.get(email) or {}).get("closer_id") or 0) and not _quitado_a_mano_despues(email, c)
     }
 
 
