@@ -283,7 +283,25 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     // El monitor (10/11/2026, "no puede ver nada… no es así el monitor"):
     // como un profe, más su Spreekclub a la vista.
     const susClases: Bloque[] = monitor && itemsClases.length ? [{ titulo: 'Mis clases', items: itemsClases }] : []
-    bloques = [sala, ...susClases, { titulo: 'Formación', items: [verFormacion] }, ...comunidad, ayuda]
+    if (monitor) {
+      bloques = [sala, ...susClases, { titulo: 'Formación', items: [verFormacion] }, ...comunidad, ayuda]
+    } else {
+      // El profe (16/11/2026, una profe: "lo prefiero como lo estaba viendo
+      // antes… así veo quién hace clase cuándo y con qué material"): la barra
+      // del alumno, con la sala de profesores como Inicio y sin Mi progreso ni
+      // Mis notas. Todas las clases en directo, con su grupo (rood / blauw).
+      const [, ...resto] = barraAlumno()
+      bloques = [
+        sala,
+        ...resto.map((b) =>
+          b.titulo === 'Formación'
+            ? { ...b, items: b.items.filter((i) => i.key !== 'progreso' && i.key !== 'notas') }
+            : b.titulo === 'Ayuda'
+              ? { ...b, items: [{ key: 'responder', href: '/responder-consultas', label: 'Responder consultas', icon: <Question size={20} weight="fill" /> }, ...b.items.filter((i) => i.key !== 'consultas')] }
+              : b
+        ),
+      ]
+    }
   } else if (esCloser) {
     // El closer ve la escuela ENTERA como un alumno (11/11/2026, usuario:
     // "que los closers vean todo como un alumno, pero al inicio lo de Panel

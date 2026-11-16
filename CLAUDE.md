@@ -6146,6 +6146,13 @@ la rama `diseno`, NO en `dev`**: los alumnos no lo ven hasta que se mezcle.
     «Todas» al lado; si ninguna lleva su nombre, ve todas y se le dice. El
     administrador y el monitor, todas las suyas. Abajo, enlaces pequeños:
     Seguimiento de alumnos, Responder consultas, Clases y grupos.
+  - ⚠️ **Desde el 16/11/2026 la barra del profe es la del alumno** (una profe:
+    "lo prefiero como antes… así veo quién hace clase cuándo y con qué
+    material"): «Sala de profesores» como Inicio, Empieza aquí, Formación (sin
+    Mi progreso ni Mis notas), Mis clases (TODAS las clases en directo, con su
+    grupo: «Clase semanal · rood»), Comunidad y Ayuda (Responder consultas y
+    Mensajes). El MONITOR sigue igual: sala, su Spreekclub, Formación,
+    Comunidad y Mensajes. Lo de abajo describe cómo era antes.
   - **Barra lateral del profe: solo «Sala de profesores»** (es su Inicio),
     Formación, Comunidad y Mensajes. Del administrador, «Sala de profesores»
     en Gestión en lugar de Preparar clases / Tareas / Archivo / Manual.
