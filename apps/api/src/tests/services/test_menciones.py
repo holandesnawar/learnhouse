@@ -72,3 +72,14 @@ def test_lo_de_antes_de_entrar_no_es_nuevo():
     assert antes_de_entrar("2026-10-20T18:00:00", alta)
     assert not antes_de_entrar("2026-11-09 11:00:00", alta)
     assert not antes_de_entrar("2026-10-13 09:00:00", "")
+
+
+def test_all_no_avisa_al_equipo():
+    """Un @all es para los alumnos; al equipo solo le avisa su nombre (16/11/2026)."""
+    d = SimpleNamespace(title="", content="Hoy hay Spreekclub @all")
+    assert mentions_user(texto_para_menciones(d), ALUMNA)
+    assert not mentions_user(texto_para_menciones(d), ALUMNA, con_all=False)
+    d2 = SimpleNamespace(title="", content="@all y @ana mirad esto")
+    assert mentions_user(texto_para_menciones(d2), ALUMNA, con_all=False) == mentions_user(
+        texto_para_menciones(SimpleNamespace(title="", content="@ana mirad")), ALUMNA
+    )

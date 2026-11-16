@@ -109,9 +109,10 @@ def texto_para_menciones(discussion) -> str:
     return f"{getattr(discussion, 'title', '') or ''}\n{message_text(discussion.content)}"
 
 
-def mentions_user(text: str, user: User) -> bool:
+def mentions_user(text: str, user: User, con_all: bool = True) -> bool:
+    """`con_all=False`: un @all no cuenta (el equipo; solo avisa a alumnos)."""
     all_flag, names = mentions_in(text)
-    if all_flag:
+    if all_flag and con_all:
         return True
     candidates = {
         (user.username or "").lower(),
@@ -410,11 +411,23 @@ async def _mention_items(
     ).all()
 
     vistos = await _canales_que_ve(user.id, org_ids, db_session)
+    # Un @all es para los alumnos (16/11/2026, usuario: "cuando pongo @all no
+    # debe coger a profes, sino a alumnos"). Al equipo solo le avisa su nombre.
+    from src.security.rbac.constants import STUDENT_ROLE_ID
+
+    roles = (
+        await db_session.execute(
+            select(UserOrganization.role_id).where(
+                UserOrganization.user_id == user.id, UserOrganization.org_id.in_(org_ids)  # type: ignore
+            )
+        )
+    ).scalars().all()
+    es_alumno = any(r == STUDENT_ROLE_ID for r in roles)
     out: List[dict] = []
     for discussion, community, author in rows:
         if vistos is not None and community.id not in vistos:
             continue
-        if not mentions_user(texto_para_menciones(discussion), user):
+        if not mentions_user(texto_para_menciones(discussion), user, con_all=es_alumno):
             continue
         text = message_text(discussion.content)
         # En un tablón lo que se lee primero es el título de la publicación.
@@ -794,7 +807,9 @@ async def list_notifications(
         _mention_items(user, org_ids, db_session),
         _channel_items(user, org_ids, db_session),
         _announcement_items(org_ids, db_session),
-        _module_items(user_id, org_ids, db_session),
+        # Fuera los avisos de «Has desbloqueado el módulo N» (16/11/2026,
+        # usuario: "quita eso de las notificaciones de todos"). `_module_items`
+        # sigue aquí por si se quiere volver a encender.
         _decidir_items(user_id, org_ids, db_session),
         _tareas_items(user_id, org_ids, db_session),
         _lectura_items(org_ids, db_session),

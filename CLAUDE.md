@@ -1184,6 +1184,20 @@ y el usuario creyó que @all no funcionaba ("solo pasa en presentaciones").
   chat, la casilla «Avisar por email a todos los alumnos» (solo
   administradores; el tablón no la tiene).
 
+### @all solo a alumnos, el equipo lee todos los canales y sin avisos de módulos (16/11/2026)
+- **Un @all avisa solo a los ALUMNOS** (rol 4): al equipo solo le llega su
+  nombre (`mentions_user(..., con_all=False)` en `_mention_items`, test en
+  `test_menciones.py`). Una profe recibía el @all del Spreek Club Chat y al
+  pulsarlo le salía «no tienes acceso».
+- **El equipo (STAFF_ROLE_IDS) lee cualquier canal** aunque no esté en su
+  grupo (`_check_usergroup_membership` en `resource_access.py`): el canal le
+  salía en la barra y al abrirlo daba «no tienes acceso».
+- **La campana ya no avisa de módulos abiertos** («Has desbloqueado el
+  módulo 4»), a nadie: `_module_items` fuera de las fuentes. Al equipo y al
+  administrador les salía por las fechas fijas (no van por avance) y parecía
+  que se abría por fecha a los alumnos. Los candados de los alumnos siguen por
+  avance; el correo de módulo abierto (`drip-diario`) sigue igual.
+
 ### Mensajes directos: citar, editar, retirar, borrar el hilo
 `direct_message` gana `reply_to_id` y `edited_at` (en `_ADDED_COLUMNS`). Nuevas
 funciones en `services/messages/direct.py`: `edit_message`, `delete_message`,

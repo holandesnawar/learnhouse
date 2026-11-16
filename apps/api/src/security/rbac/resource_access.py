@@ -918,6 +918,25 @@ class ResourceAccessChecker:
         membership = (await self.db_session.execute(membership_stmt)).scalars().first()
 
         result = membership is not None
+        # Nawar (16/11/2026): el equipo de clases (profes y monitores) lee los
+        # canales aunque no esté en su grupo. Le salían en la barra (canal
+        # público con grupo) y al abrirlos, «no tienes acceso».
+        if not result and str(resource_uuid).startswith("community_"):
+            try:
+                from src.db.user_organizations import UserOrganization
+                from src.security.rbac.constants import STAFF_ROLE_IDS
+
+                rol = (
+                    await self.db_session.execute(
+                        select(UserOrganization.role_id).where(
+                            UserOrganization.user_id == user_id,
+                            UserOrganization.org_id == usergroup_resources[0].org_id,
+                        )
+                    )
+                ).scalars().first()
+                result = rol in STAFF_ROLE_IDS
+            except Exception:  # noqa: BLE001
+                logger.exception("No se pudo comprobar si es del equipo (%s)", resource_uuid)
         # Nawar (10/11/2026): el closer ve los canales de la comunidad abiertos
         # al programa nuevo, para enseñarlos (no escribe: `closer_solo_mira`).
         if not result and str(resource_uuid).startswith("community_"):
