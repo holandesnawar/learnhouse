@@ -532,6 +532,7 @@ async def atender_pago(pago_id: int, importe_cobrado: int, db_session: AsyncSess
     from src.services.payments.payments import (
         _provision_after_payment,
         _reclamar_matricula,
+        _reintentar_si_hace_falta,
         _soltar_matricula,
     )
 
@@ -617,6 +618,9 @@ async def atender_pago(pago_id: int, importe_cobrado: int, db_session: AsyncSess
     resultado = await _provision_after_payment(reserva.email, nombre, db_session, ya_atendida=ya_atendida)
     if not ya_atendida and not resultado.get("atendida_ahora"):
         await _soltar_matricula(matricula, db_session)
+    # Sin correo de bienvenida: 503 a Stripe para que reintente (16/11). El
+    # pago y la matrícula ya están apuntados; el reintento solo manda el correo.
+    _reintentar_si_hace_falta(resultado)
 
     if resultado.get("atendida_ahora") and resultado.get("user_id") and resultado.get("org_id"):
         from src.services.automations.engine import run_trigger

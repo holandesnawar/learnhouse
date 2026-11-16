@@ -1649,6 +1649,18 @@ async def _soltar_matricula(enrollment, db_session: AsyncSession) -> None:
         logger.exception("No se pudo soltar la matrícula %s", getattr(enrollment, "id", "?"))
 
 
+def _reintentar_si_hace_falta(resultado: dict) -> None:
+    """Si el correo de bienvenida no salió, se contesta 503 a Stripe para que
+    vuelva a mandar el aviso (lo reintenta durante días). La marca de la
+    matrícula ya se soltó, así que el reintento manda el correo; la cuenta ya
+    existe y no se crea otra."""
+    if resultado.get("reintentar"):
+        raise HTTPException(
+            status_code=503,
+            detail=f"Correo de bienvenida sin enviar, reintentar: {resultado.get('detail', '')}",
+        )
+
+
 async def _provision_after_payment(
     email: str,
     name: str,
@@ -1707,6 +1719,9 @@ async def _provision_after_payment(
             "detail": "user created but reset email could not be sent",
             "created": created,
             "atendida_ahora": False,
+            # Quien nos llama suelta la marca y contesta error a Stripe para
+            # que reintente (16/11): si no, el alumno se quedaba sin correo.
+            "reintentar": True,
             **who,
         }
 
@@ -1718,8 +1733,26 @@ async def _provision_after_payment(
             reset_code=code,
             base_url=_academy_url(),
         )
-    except Exception:
+    except Exception as exc:  # noqa: BLE001
+        # Antes se tragaba el fallo y se daba por atendida: el alumno que
+        # acababa de pagar no recibía nunca su «crea tu contraseña» y Stripe
+        # no reintentaba (16/11). Ahora se dice que hay que reintentar: quien
+        # nos llama suelta la marca y contesta 503, y Stripe vuelve a avisar.
+        # La cuenta ya existe: el reintento no la crea otra vez.
         logger.exception("Welcome email send failed for %s", email)
+        motivo = getattr(exc, "detail", None) or f"{type(exc).__name__}: {exc}"
+        logger.error(
+            "El correo «crea tu contraseña» de %s no salió (%s): se pide a Stripe que reintente",
+            email,
+            motivo,
+        )
+        return {
+            "detail": f"welcome email failed: {motivo}",
+            "created": created,
+            "atendida_ahora": False,
+            "reintentar": True,
+            **who,
+        }
 
     try:
         from src.services.crm.systeme import mark_as_alumno
@@ -1820,12 +1853,15 @@ async def _handle_checkout_session(obj: dict, db_session: AsyncSession) -> dict:
 
     if enrollment is not None and not ya_atendida and not resultado.get("atendida_ahora"):
         await _soltar_matricula(enrollment, db_session)
+    _reintentar_si_hace_falta(resultado)
 
     # Y las automatizaciones de "cuando alguien paga", igual que en el otro
-    # camino. Se tragan sus errores: el cobro ya está hecho.
+    # camino. Se tragan sus errores: el cobro ya está hecho. Solo quien atendió
+    # la matrícula AHORA: Stripe manda dos avisos del mismo pago y, si no, las
+    # automatizaciones salían dos veces (16/11).
     user_id = resultado.get("user_id")
     org_id = resultado.get("org_id")
-    if user_id and org_id:
+    if user_id and org_id and resultado.get("atendida_ahora"):
         from src.services.automations.engine import run_trigger
 
         await run_trigger(
@@ -1891,6 +1927,7 @@ async def _handle_payment_intent(obj: dict, db_session: AsyncSession) -> dict:
     result = await _provision_after_payment(email, name, db_session, ya_atendida=ya_atendida)
     if not ya_atendida and not result.get("atendida_ahora"):
         await _soltar_matricula(enrollment, db_session)
+    _reintentar_si_hace_falta(result)
 
     # La factura NAWAR-XXXX que el Checkout de Stripe generaba solo. Best-effort:
     # nunca bloquea.
@@ -1919,7 +1956,8 @@ async def _handle_payment_intent(obj: dict, db_session: AsyncSession) -> dict:
     # propios errores: el cobro ya está hecho y la cuenta creada.
     user_id = result.get("user_id")
     org_id = result.get("org_id")
-    if user_id and org_id:
+    # Solo quien atendió la matrícula ahora (ver la sesión de pago, arriba).
+    if user_id and org_id and result.get("atendida_ahora"):
         from src.services.automations.engine import run_trigger
 
         await run_trigger(
