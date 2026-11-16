@@ -39,10 +39,13 @@ import {
   INTERLINEADO,
   TAMANOS,
   ajustarAlPdf,
+  cajaDeLinea,
   horaCorta,
+  moverTrazo,
   paraLosAlumnos,
   simplificar,
   tocaLinea,
+  trazoEnPunto,
   type DocPizarra,
   type EstiloTexto,
   type Herramienta,
@@ -168,10 +171,27 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
   const notasRef = useRef<HTMLCanvasElement>(null)
   const letrasRef = useRef<Letras | null>(null)
   const vivoRef = useRef<TrazoLinea | null>(null)
-  const gestoRef = useRef<{ tipo: 'borrar' | 'mover'; i?: number; dx?: number; dy?: number; apuntado?: boolean } | null>(null)
+  // Mover (16/11/2026): `orig` es el trazo como estaba al bajar el dedo y
+  // (x0, y0) dónde se bajó; se mueve siempre desde ahí (sin ir acumulando
+  // errores). `pendiente`: con la herramienta Texto, hasta que el ratón se
+  // mueve un poco no es un arrastre (un clic abre el texto para cambiarlo).
+  const gestoRef = useRef<{
+    tipo: 'borrar' | 'mover'
+    i?: number
+    x0?: number
+    y0?: number
+    orig?: Trazo
+    pendiente?: boolean
+    apuntado?: boolean
+  } | null>(null)
+  // Lo que hay debajo del ratón o se está moviendo: para el cursor y el recuadro.
+  const [sobre, setSobre] = useState(-1)
+  const arrastradoAt = useRef(0)
+  useEffect(() => setSobre(-1), [idx, herramienta])
   const atras = useRef<{ idx: number; trazos: Trazo[] }[]>([])
   const adelante = useRef<{ idx: number; trazos: Trazo[] }[]>([])
   const sucio = useRef(0)
+  const reintentos = useRef(0)
   const guardandoRef = useRef(false)
   const cerradoAt = useRef(0)
   const cuadro = useRef(0)
@@ -540,10 +560,13 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
       const r = await guardarNotas(id, fuente, docRef.current, token)
       setGuardadaAt(r.guardada_at)
       setGuardado(sucio.current === marca ? 'guardado' : 'sin-guardar')
+      reintentos.current = 0
       return true
     } catch (e: any) {
       setGuardado('error')
-      toast.error(e?.message || 'No se pudo guardar lo escrito')
+      // Solo el primer fallo avisa: los reintentos van solos (16/11/2026).
+      if (reintentos.current === 0) toast.error(e?.message || 'No se pudo guardar lo escrito. Lo seguimos intentando.')
+      reintentos.current += 1
       return false
     } finally {
       guardandoRef.current = false
@@ -561,9 +584,22 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
     return () => clearTimeout(t)
   }, [guardado, doc, guardar])
 
+  // Tras un fallo (un corte de red), se vuelve a intentar solo, cada vez con
+  // más espera (3 s, 6 s, 12 s… hasta 1 min). Antes se quedaba sin guardar
+  // hasta que el profe escribía algo más (16/11/2026).
+  useEffect(() => {
+    if (guardado !== 'error') return
+    const espera = Math.min(60_000, 3000 * 2 ** Math.max(0, reintentos.current - 1))
+    const t = setTimeout(() => guardar(), espera)
+    return () => clearTimeout(t)
+  }, [guardado, guardar])
+
   useEffect(() => {
     const avisar = (e: BeforeUnloadEvent) => {
-      if (guardado === 'sin-guardar' || guardado === 'guardando') e.preventDefault()
+      if (guardado === 'sin-guardar' || guardado === 'guardando' || guardado === 'error') {
+        e.preventDefault()
+        e.returnValue = ''
+      }
     }
     window.addEventListener('beforeunload', avisar)
     return () => window.removeEventListener('beforeunload', avisar)
@@ -658,6 +694,23 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
     return -1
   }, [densidad])
 
+  // Qué trazo hay en (x, y) para moverlo: textos por su caja medida con la
+  // letra de verdad, líneas por su trazo (16/11/2026).
+  const trazoEn = useCallback(
+    (x: number, y: number, soloTextos = false): number => {
+      const c = notasRef.current
+      const trazos = docRef.current.paginas[idxRef.current]?.trazos || []
+      if (!c || !c.width) return -1
+      const ctx = c.getContext('2d')!
+      const caja = (t: TrazoTexto) => {
+        const k = cajaDeTexto(ctx, t, c.width, c.height, letras())
+        return { x: k.x / c.width, y: k.y / c.height, w: k.w / c.width, h: k.h / c.height }
+      }
+      return trazoEnPunto(trazos, x, y, c.height / c.width, caja, { soloTextos, margen: (6 * densidad) / c.width })
+    },
+    [densidad]
+  )
+
   const abrirTexto = useCallback(
     (x: number, y: number) => {
       const i = textoEn(x, y)
@@ -715,12 +768,14 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
       e.currentTarget.setPointerCapture(e.pointerId)
       gestoRef.current = { tipo: 'borrar' }
       borrarEn(x, y)
-    } else if (herramienta === 'mover') {
-      const i = textoEn(x, y)
+    } else if (herramienta === 'mover' || (herramienta === 'texto' && e.pointerType !== 'touch')) {
+      // Mover un texto o un dibujo arrastrándolo (16/11/2026). Con la
+      // herramienta Texto, solo los textos y solo si de verdad se arrastra.
+      const i = trazoEn(x, y, herramienta === 'texto')
       if (i < 0) return
-      const t = docRef.current.paginas[idx].trazos[i] as TrazoTexto
       e.currentTarget.setPointerCapture(e.pointerId)
-      gestoRef.current = { tipo: 'mover', i, dx: x - t.x, dy: y - t.y }
+      gestoRef.current = { tipo: 'mover', i, x0: x, y0: y, orig: docRef.current.paginas[idx].trazos[i], pendiente: herramienta === 'texto' }
+      setSobre(i)
     }
   }
 
@@ -743,15 +798,30 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
       return
     }
     const g = gestoRef.current
-    if (!g) return
+    if (!g) {
+      // Sin nada en marcha: ¿hay algo que mover debajo del ratón? (el cursor y el recuadro)
+      if (e.pointerType !== 'touch' && (herramienta === 'mover' || herramienta === 'texto') && !editRef.current) {
+        const i = trazoEn(x, y, herramienta === 'texto')
+        if (i !== sobre) setSobre(i)
+      }
+      return
+    }
     if (g.tipo === 'borrar') borrarEn(x, y)
-    else if (g.tipo === 'mover' && g.i != null) {
+    else if (g.tipo === 'mover' && g.i != null && g.orig) {
+      const dx = x - (g.x0 ?? x)
+      const dy = y - (g.y0 ?? y)
+      if (g.pendiente) {
+        if (Math.hypot(dx, dy) < 0.006) return
+        g.pendiente = false
+      }
       const trazos = docRef.current.paginas[idxRef.current].trazos
-      const t = trazos[g.i] as TrazoTexto
-      const nx = Math.max(0, Math.min(0.98, x - (g.dx || 0)))
-      const ny = Math.max(0, Math.min(0.98, y - (g.dy || 0)))
-      if (Math.abs(nx - t.x) + Math.abs(ny - t.y) < 0.001) return
-      poner(trazos.map((o, k) => (k === g.i ? { ...t, x: nx, y: ny } : o)), !g.apuntado)
+      if (!trazos[g.i]) return
+      const nuevo = moverTrazo(g.orig, dx, dy)
+      // Deshacer: el primer paso guarda cómo estaba; los demás no (un solo «Deshacer» lo devuelve).
+      poner(
+        trazos.map((o, k) => (k === g.i ? nuevo : o)),
+        !g.apuntado
+      )
       g.apuntado = true
     }
   }
@@ -764,6 +834,10 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
       const trazos = docRef.current.paginas[idxRef.current]?.trazos || []
       poner([...trazos, { ...v, p: simplificar(v.p) }])
     }
+    const g = gestoRef.current
+    // Tras arrastrar un texto con la herramienta Texto, el clic de soltar no lo abre.
+    if (g?.tipo === 'mover' && g.apuntado) arrastradoAt.current = Date.now()
+    if (g?.tipo === 'mover' && herramienta !== 'mover') setSobre(-1)
     gestoRef.current = null
   }
 
@@ -771,6 +845,7 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
     if (herramienta !== 'texto' || editRef.current) return
     // El clic que cierra un texto no abre otro.
     if (Date.now() - cerradoAt.current < 350) return
+    if (Date.now() - arrastradoAt.current < 350) return
     const [x, y] = donde(e)
     abrirTexto(x, y)
   }
@@ -1016,7 +1091,7 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
             {!sinPdf && (
               <>
                 {' · '}
-                <EstadoGuardado estado={guardado} at={guardadaAt} />
+                <EstadoGuardado estado={guardado} at={guardadaAt} onReintentar={() => guardar()} />
               </>
             )}
           </p>
@@ -1143,8 +1218,23 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
                       ref={notasRef}
                       className="absolute inset-0 h-full w-full"
                       style={{
-                        touchAction: herramienta === 'mover' || herramienta === 'texto' ? 'manipulation' : 'none',
-                        cursor: herramienta === 'texto' ? 'text' : herramienta === 'mover' ? 'default' : herramienta === 'mano' ? (zoom > 1 ? 'grab' : 'default') : 'crosshair',
+                        // Mover con el dedo: el navegador no puede quedarse el gesto para desplazar la página.
+                        touchAction: herramienta === 'texto' ? 'manipulation' : 'none',
+                        cursor:
+                          (herramienta === 'mover' || herramienta === 'texto') && sobre >= 0
+                            ? 'move'
+                            : herramienta === 'texto'
+                              ? 'text'
+                              : herramienta === 'mover'
+                                ? 'default'
+                                : herramienta === 'mano'
+                                  ? zoom > 1
+                                    ? 'grab'
+                                    : 'default'
+                                  : 'crosshair',
+                      }}
+                      onPointerLeave={() => {
+                        if (!gestoRef.current && sobre >= 0) setSobre(-1)
                       }}
                       onPointerDown={alBajar}
                       onPointerMove={alMover}
@@ -1153,6 +1243,9 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
                       onClick={alPulsar}
                       onDoubleClick={alDobleClic}
                     />
+                    {sobre >= 0 && !editando && (herramienta === 'mover' || herramienta === 'texto') ? (
+                      <RecuadroSeleccion trazo={pagina.trazos[sobre]} lienzo={notasRef.current} densidad={densidad} letras={letras()} />
+                    ) : null}
                     {editando && (
                       <CajaDeTexto
                         e={editando}
@@ -1175,7 +1268,7 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
             {/* Las herramientas */}
             <div className="shrink-0 overflow-x-auto border-t border-[#E2E8F4] bg-white">
               <div className={`mx-auto flex items-center gap-1 px-3 py-2 ${apretada ? 'flex-wrap justify-center' : 'w-max'}`}>
-                <Boton activo={herramienta === 'mover'} onClick={() => setHerramienta('mover')} titulo="Mover un texto (V)">
+                <Boton activo={herramienta === 'mover'} onClick={() => setHerramienta('mover')} titulo="Mover (V): arrastra un texto o un dibujo">
                   <Cursor size={18} />
                 </Boton>
                 <Boton activo={herramienta === 'lapiz'} onClick={() => setHerramienta('lapiz')} titulo="Lápiz (L)">
@@ -1306,10 +1399,43 @@ function Marco({ children, dentro }: { children: React.ReactNode; dentro?: boole
   return createPortal(<div className="fixed inset-0 z-[999] flex flex-col bg-[#EEF2F9]">{children}</div>, document.body)
 }
 
-function EstadoGuardado({ estado, at }: { estado: Guardado; at: string }) {
+/**
+ * El recuadro de lo que se va a mover (16/11/2026). Va en la página, no en el
+ * lienzo: así no sale en lo que ven los alumnos en la sala.
+ */
+function RecuadroSeleccion({ trazo, lienzo, densidad, letras }: { trazo?: Trazo; lienzo: HTMLCanvasElement | null; densidad: number; letras: Letras }) {
+  if (!trazo || !lienzo || !lienzo.width) return null
+  const W = lienzo.width / densidad
+  const H = lienzo.height / densidad
+  let c: { x: number; y: number; w: number; h: number }
+  if (trazo.t === 'texto') {
+    const k = cajaDeTexto(lienzo.getContext('2d')!, trazo, lienzo.width, lienzo.height, letras)
+    c = { x: k.x / densidad, y: k.y / densidad, w: k.w / densidad, h: k.h / densidad }
+  } else {
+    const k = cajaDeLinea(trazo, lienzo.height / lienzo.width)
+    c = { x: k.x * W, y: k.y * H, w: k.w * W, h: k.h * H }
+  }
+  const m = 4
+  return (
+    <div
+      className="pointer-events-none absolute rounded-[4px] border border-dashed border-[#0b2da0]"
+      style={{ left: c.x - m, top: c.y - m, width: c.w + m * 2, height: c.h + m * 2, background: 'rgba(11,45,160,0.04)' }}
+    />
+  )
+}
+
+function EstadoGuardado({ estado, at, onReintentar }: { estado: Guardado; at: string; onReintentar?: () => void }) {
   if (estado === 'guardando') return <span>Guardando…</span>
   if (estado === 'sin-guardar') return <span>Sin guardar</span>
-  if (estado === 'error') return <span className="text-[#B4413C]">No se pudo guardar</span>
+  if (estado === 'error')
+    return (
+      <span className="text-[#B4413C]">
+        Sin guardar ·{' '}
+        <button onClick={onReintentar} className="font-semibold underline">
+          Reintentar
+        </button>
+      </span>
+    )
   return <span>{at ? `Lo escrito está guardado (${horaCorta(at)})` : 'Aún no has escrito nada'}</span>
 }
 
