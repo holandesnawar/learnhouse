@@ -21,6 +21,7 @@ import {
   getLessonsForModule,
 } from '@/lib/exercises-app/courseService'
 import { masteredSectionsCount } from '@/lib/exercises-app/progressMap'
+import { rutaContinuar } from '@/lib/nawar/inicioFeed'
 import {
   ArrowRight,
   BookOpen,
@@ -140,30 +141,27 @@ export function ContinueCard({
   ).replace('course_', '') || undefined
 
   // ¿Volvemos a la formación o a la app de ejercicios? El texto del botón lo
-  // dice, para que no se confundan las dos cosas.
-  const goesToCourse = Boolean(
-    (!allDone && courseUuid && activityUuid) || (allDone && (courseUuid || runCourseUuid))
-  )
-
-  let href: string
-  if (!allDone && courseUuid && activityUuid) {
-    href = getUriWithOrg(orgslug, `/course/${courseUuid}/activity/${activityUuid}`)
-  } else if (courseUuid || runCourseUuid) {
-    // Terminó esa clase (o no sabemos cuál era): a la formación, que ella
-    // misma señala la siguiente.
-    href = getUriWithOrg(orgslug, `/course/${courseUuid || runCourseUuid}`)
-  } else if (target) {
-    href = getUriWithOrg(orgslug, `/ejercicios/modulo/${targetModule}/leccion/${target.id}`)
-  } else {
-    href = getUriWithOrg(orgslug, '/ejercicios')
-  }
+  // dice, para que no se confundan las dos cosas. Con la lección terminada y
+  // la siguiente conocida, el botón lleva a ESA lección (16/11/2026): antes
+  // iba a la portada del curso aunque la tarjeta la nombrara.
+  const destino = rutaContinuar({
+    terminada: allDone,
+    siguiente: next ? { id: next.id, moduleId: next.moduleId } : null,
+    leccionId: target?.id,
+    moduloId: targetModule,
+    courseUuid,
+    activityUuid,
+    cursoEnMarcha: runCourseUuid,
+  })
+  const goesToCourse = destino.formacion
+  const href = getUriWithOrg(orgslug, destino.ruta)
 
   const pct = sections.length > 0 ? Math.round((doneSections.length / sections.length) * 100) : 0
 
   return (
     <Link
       href={href}
-      className="block mb-6 group rounded-2xl overflow-hidden nice-shadow border border-[#DDE6F5] dark:border-white/10 bg-white dark:bg-white/5 hover:border-[#0b2da0]/70 transition-colors"
+      className="block group rounded-2xl overflow-hidden nice-shadow border border-[#DDE6F5] dark:border-white/10 bg-white dark:bg-white/5 hover:border-[#0b2da0]/70 transition-colors"
     >
       <div className="p-5 sm:p-6">
         <div className="flex items-center justify-between gap-3">
@@ -220,7 +218,7 @@ export function ContinueCard({
           <BookOpen className="w-4 h-4 shrink-0" />
           <span>
             {allDone
-              ? goesToCourse
+              ? goesToCourse && !next
                 ? 'Ir a la formación'
                 : 'Empezar la siguiente lección'
               : goesToCourse
