@@ -1744,13 +1744,19 @@ async def avisos_alumno(user_id: int, db_session: AsyncSession) -> list[dict]:
     ]
 
 
-async def avisos_equipo(org_id: int, admin: bool, db_session: AsyncSession) -> list[dict]:
+async def avisos_equipo(org_id: int, admin: bool, db_session: AsyncSession, user_id: Optional[int] = None) -> list[dict]:
     """Para el equipo: lo que queda por corregir y, a los administradores, los
     check-in que tocan. Una línea de cada; el id lleva la fecha de lo último,
-    para que quitarla no la silencie para siempre."""
+    para que quitarla no la silencie para siempre. Con `user_id` de un monitor,
+    solo lo de su clase (16/11/2026)."""
     url = "/dash/estadisticas?tab=seguimiento" if admin else "/seguimiento"
     out: list[dict] = []
     pendientes = await por_corregir(org_id, db_session)
+    if user_id and not admin and pendientes:
+        from src.services.equipo.monitores import es_clase_del_monitor, es_monitor
+
+        if await es_monitor(user_id, org_id, db_session):
+            pendientes = [p for p in pendientes if es_clase_del_monitor(p.get("curso") or "")]
     if pendientes:
         ultima = max(p["entrega"]["entregada_at"] or "" for p in pendientes)
         n = len(pendientes)

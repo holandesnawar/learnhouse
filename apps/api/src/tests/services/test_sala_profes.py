@@ -141,3 +141,70 @@ async def test_el_monitor_ve_la_formacion_y_el_spreekclub(db):
         db.add(Course(course_uuid=uuid, name=nombre, org_id=org_id, description="", about="", public=False, published=True, open_to_contributors=False))
     await db.commit()
     assert await M.cursos_del_monitor(org_id, db) == {M.FORMACION, "course_spreek"}
+
+
+async def test_el_monitor_no_toca_semanas_ni_entregas_de_otras_clases(db, monkeypatch):
+    """16/11/2026: por el número de una semana o de una entrega, un monitor
+    llegaba a cualquier clase (corregir, notas de voz, lista, avisar)."""
+    from fastapi import HTTPException
+
+    from src.db.courses.courses import Course
+    from src.db.user_organizations import UserOrganization
+    from src.db.usergroup_user import UserGroupUser
+    from src.db.usergroups import UserGroup
+    from src.routers import tareas as R
+    from src.services.equipo import monitores as M
+
+    for uuid, nombre in [("course_spreek", "Spreken Club"), ("course_rood", "Clase semanal")]:
+        db.add(Course(course_uuid=uuid, name=nombre, org_id=1, description="", about="", public=False, published=True, open_to_contributors=False))
+    mon = UserGroup(name="Monitores", description="", org_id=1)
+    db.add(mon)
+    db.add(UserOrganization(user_id=20, org_id=1, role_id=5, creation_date="", update_date=""))
+    db.add(UserOrganization(user_id=21, org_id=1, role_id=5, creation_date="", update_date=""))
+    await db.commit()
+    db.add(UserGroupUser(usergroup_id=mon.id, user_id=20, org_id=1))
+    await db.commit()
+
+    assert await M.fuera_de_sus_clases(20, 1, "course_rood", db) is True
+    assert await M.fuera_de_sus_clases(20, 1, "spreek", db) is False
+    assert await M.fuera_de_sus_clases(21, 1, "course_rood", db) is False  # un profe normal
+
+    async def roles(user, org_id, db_session):
+        return True, False
+
+    monkeypatch.setattr(R, "_roles", roles)
+    monitor, profe = Persona(id=20), Persona(id=21)
+    assert await R._equipo(monitor, 1, db, "course_spreek") is False
+    with pytest.raises(HTTPException) as e:
+        await R._equipo(monitor, 1, db, "course_rood")
+    assert e.value.status_code == 403
+    assert await R._equipo(profe, 1, db, "course_rood") is False
+
+
+async def test_un_profe_no_convierte_la_formacion_en_clase_en_directo(db, monkeypatch):
+    """16/11/2026: encender la sala o crear una semana en la formación es solo
+    de administradores."""
+    from types import SimpleNamespace
+
+    from fastapi import HTTPException
+
+    from src.routers import salas as RS
+    from src.routers import tareas as RT
+
+    formacion = SimpleNamespace(org_id=1, id=1, course_uuid="course_8a1d1fab-ffbb-44ef-8f21-04ef63676d6e")
+
+    async def curso(request, uuid, user, db_session):
+        return formacion
+
+    async def roles(user, org_id, db_session):
+        return True, False
+
+    for m in (RS, RT):
+        monkeypatch.setattr(m, "_curso", curso)
+        monkeypatch.setattr(m, "_roles", roles)
+    with pytest.raises(HTTPException) as e:
+        await RS.api_guardar(None, "x", RS.SalaIn(activo=True), current_user=Persona(id=21), db_session=db)
+    assert e.value.status_code == 403
+    with pytest.raises(HTTPException) as e:
+        await RT.api_crear_semana(None, "x", RT.SemanaIn(chapter_uuid="c", tema="t", fecha="2026-11-20"), current_user=Persona(id=21), db_session=db)
+    assert e.value.status_code == 403

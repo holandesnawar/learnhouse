@@ -49,12 +49,20 @@ def _con_sesion(current_user) -> None:
         raise HTTPException(status_code=401, detail="Entra en la escuela para ver tus tareas")
 
 
-async def _equipo(current_user, org_id: int, db_session: AsyncSession) -> bool:
-    """El equipo (o 403). Devuelve si además es administrador."""
+async def _equipo(current_user, org_id: int, db_session: AsyncSession, course_uuid: Optional[str] = None) -> bool:
+    """El equipo (o 403). Devuelve si además es administrador.
+
+    Con `course_uuid`, un monitor solo pasa si esa clase es suya (16/11/2026:
+    por el número de una semana o de una entrega llegaba a cualquier clase)."""
     _con_sesion(current_user)
     equipo, admin = await _roles(current_user, org_id, db_session)
     if not equipo:
         raise HTTPException(status_code=403, detail="Solo el equipo de la escuela")
+    if course_uuid and not admin:
+        from src.services.equipo.monitores import fuera_de_sus_clases
+
+        if await fuera_de_sus_clases(current_user.id, org_id, course_uuid, db_session):
+            raise HTTPException(status_code=403, detail="Esa clase no es tuya")
     return admin
 
 
@@ -207,6 +215,7 @@ async def api_audio(
         equipo, _admin_ok = await _roles(current_user, t.org_id, db_session)
         if not equipo:
             raise HTTPException(status_code=403, detail="Esa nota de voz no es tuya")
+        await _equipo(current_user, t.org_id, db_session, t.course_uuid)
     encontrado = T.audio_de(e, "correccion" if cual == "correccion" else "alumno")
     if encontrado is None:
         raise HTTPException(status_code=404, detail="No hay nota de voz")
@@ -238,7 +247,13 @@ async def api_crear_semana(
 ):
     curso = await _curso(request, course_uuid, current_user, db_session)
     # Desde el 02/11/2026 también los profes: preparan sus semanas.
-    await _equipo(current_user, curso.org_id, db_session)
+    admin = await _equipo(current_user, curso.org_id, db_session, curso.course_uuid)
+    if not admin:
+        # Solo en clases en directo (16/11/2026): nunca en la formación.
+        from src.services.salas.salas import es_clase_en_directo
+
+        if not es_clase_en_directo(await T._config(curso.org_id, db_session), curso.course_uuid):
+            raise HTTPException(status_code=403, detail="Las semanas solo se crean en las clases en directo")
     try:
         return await T.crear_semana(curso.org_id, curso, data.model_dump(exclude_unset=True), _nombre(current_user), db_session)
     except T.TareaError as exc:
@@ -265,7 +280,7 @@ async def api_clase_nueva(
     from src.services.tareas import clase_nueva as CN
 
     curso = await _curso(request, course_uuid, current_user, db_session)
-    admin = await _equipo(current_user, curso.org_id, db_session)
+    admin = await _equipo(current_user, curso.org_id, db_session, curso.course_uuid)
     # Lo mismo que pide crear un capítulo a mano: un monitor, solo en su Spreekclub.
     await check_resource_access(request, db_session, current_user, curso.course_uuid, AccessAction.CREATE)
     try:
@@ -284,7 +299,7 @@ async def api_editar_semana(
     try:
         s = await T.tarea(semana_id, db_session)
         # Los profes ajustan los deberes (02/11/2026).
-        await _equipo(current_user, s.org_id, db_session)
+        await _equipo(current_user, s.org_id, db_session, s.course_uuid)
         return await T.editar_semana(s, data.model_dump(exclude_unset=True, exclude={"chapter_uuid"}), db_session)
     except T.TareaError as exc:
         raise _error(exc)
@@ -315,7 +330,7 @@ async def _semana_equipo(semana_id: int, current_user, db_session: AsyncSession)
         s = await T.tarea(semana_id, db_session)
     except T.TareaError as exc:
         raise _error(exc)
-    admin = await _equipo(current_user, s.org_id, db_session)
+    admin = await _equipo(current_user, s.org_id, db_session, s.course_uuid)
     return s, admin
 
 
@@ -608,7 +623,7 @@ async def api_destinatarios(
 ):
     try:
         s = await T.tarea(semana_id, db_session)
-        await _equipo(current_user, s.org_id, db_session)
+        await _equipo(current_user, s.org_id, db_session, s.course_uuid)
         return await T.destinatarios(s.org_id, s, db_session)
     except T.TareaError as exc:
         raise _error(exc)
@@ -624,7 +639,7 @@ async def api_avisar(
 ):
     try:
         s = await T.tarea(semana_id, db_session)
-        await _equipo(current_user, s.org_id, db_session)
+        await _equipo(current_user, s.org_id, db_session, s.course_uuid)
         r = await T.avisar_clase(s.org_id, s, data.model_dump(), _nombre(current_user), db_session)
     except T.TareaError as exc:
         raise _error(exc)
@@ -671,7 +686,7 @@ async def api_lista(
 ):
     try:
         s = await T.tarea(semana_id, db_session)
-        await _equipo(current_user, s.org_id, db_session)
+        await _equipo(current_user, s.org_id, db_session, s.course_uuid)
         return await T.lista_de_clase(s.org_id, s, db_session)
     except T.TareaError as exc:
         raise _error(exc)
@@ -686,7 +701,7 @@ async def api_pasar_lista(
 ):
     try:
         s = await T.tarea(semana_id, db_session)
-        await _equipo(current_user, s.org_id, db_session)
+        await _equipo(current_user, s.org_id, db_session, s.course_uuid)
         return await T.pasar_lista(s.org_id, s, data.marcas, _nombre_para_el_alumno(current_user) or _nombre(current_user), db_session)
     except T.TareaError as exc:
         raise _error(exc)
@@ -699,7 +714,7 @@ async def api_grupo(
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ):
-    await _equipo(current_user, org_id, db_session)
+    await _equipo(current_user, org_id, db_session, course_uuid)
     from src.services.tareas.grupo import grupo_de_la_clase
 
     try:
@@ -743,7 +758,7 @@ async def api_seguimiento(
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ):
-    await _equipo(current_user, org_id, db_session)
+    await _equipo(current_user, org_id, db_session, course_uuid)
     try:
         return await T.seguimiento(org_id, course_uuid, semana_id, db_session)
     except T.TareaError as exc:
@@ -756,8 +771,15 @@ async def api_por_corregir(
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ):
-    await _equipo(current_user, org_id, db_session)
-    return {"entregas": await T.por_corregir(org_id, db_session)}
+    admin = await _equipo(current_user, org_id, db_session)
+    entregas = await T.por_corregir(org_id, db_session)
+    if not admin:
+        # Al monitor, solo las de su clase (16/11/2026).
+        from src.services.equipo.monitores import es_clase_del_monitor, es_monitor
+
+        if await es_monitor(current_user.id, org_id, db_session):
+            entregas = [e for e in entregas if es_clase_del_monitor(e.get("curso") or "")]
+    return {"entregas": entregas}
 
 
 async def _entrega_del_equipo(entrega_id: int, current_user, db_session: AsyncSession):
@@ -766,7 +788,7 @@ async def _entrega_del_equipo(entrega_id: int, current_user, db_session: AsyncSe
         t = await T.tarea(e.tarea_id, db_session)
     except T.TareaError as exc:
         raise _error(exc)
-    await _equipo(current_user, t.org_id, db_session)
+    await _equipo(current_user, t.org_id, db_session, t.course_uuid)
     return e
 
 

@@ -734,7 +734,7 @@ async def _tareas_items(user_id: int, org_ids: List[int], db_session: AsyncSessi
     for org_id in org_ids:
         admin = superadmin or await is_org_admin(user_id, org_id, db_session)
         if admin or await is_org_staff(user_id, org_id, db_session):
-            out.extend(await avisos_equipo(org_id, admin, db_session))
+            out.extend(await avisos_equipo(org_id, admin, db_session, user_id))
             # El mensaje del administrador para el profe de esa clase (09/11/2026).
             if not admin:
                 try:

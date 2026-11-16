@@ -112,6 +112,25 @@ async def cursos_del_monitor(org_id: int, db_session: AsyncSession) -> set[str]:
     return {u for u, n in filas if es_clase_del_monitor(n) or u == FORMACION}
 
 
+async def fuera_de_sus_clases(user_id: int, org_id: int, course_uuid: str, db_session: AsyncSession) -> bool:
+    """True si quien pregunta es monitor y esa clase NO es suya (16/11/2026).
+
+    Las rutas del equipo que llegan por el número de una semana o de una
+    entrega no pasan por el permiso del curso: sin esto, un monitor podía
+    corregir, oír notas de voz, pasar lista o avisar en cualquier clase. Para
+    tocar semanas, entregas y listas, lo suyo es solo el Spreekclub (la
+    formación la ve, pero no tiene semanas)."""
+    if not await es_monitor(user_id, org_id, db_session):
+        return False
+    from src.db.courses.courses import Course
+
+    uuid = course_uuid if str(course_uuid or "").startswith("course_") else f"course_{course_uuid}"
+    nombre = (
+        await db_session.execute(select(Course.name).where(Course.course_uuid == uuid))
+    ).scalars().first()
+    return not (nombre and es_clase_del_monitor(nombre))
+
+
 async def al_entrar_con_invitacion(user_id: int, org_id: int, usergroup_id, db_session: AsyncSession) -> bool:
     """Si la invitación era del grupo «Monitores», la cuenta pasa a profe
     (rol 5) en ese momento. Solo sube a quien está como alumno (rol 4): nunca
