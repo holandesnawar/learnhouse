@@ -64,8 +64,10 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
   // profe tiene que poder poner la clase semanal. El backend lo permite igual
   // (`_es_del_equipo` en `services/orgs/orgs.py`), así que el botón y el
   // permiso dicen lo mismo.
-  const { isStaff } = useAdminStatus() as any
+  const { isStaff, isAdmin } = useAdminStatus() as any
   const canEdit = !!isStaff
+  // Avisar por correo es de administradores (el servidor da 403 al profe, 16/11/2026).
+  const canNotify = !!isAdmin
   // Cada uno ve los eventos de su grupo (la beta, la clase semanal; el programa
   // nuevo, la masterclass y los spreekuren). El equipo, todos.
   const { data: yo } = useMisGrupos()
@@ -359,6 +361,8 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
                 </div>
                 {canEdit && (
                   <div className="shrink-0 flex items-center gap-1">
+                    {canNotify ? (
+                    <>
                     <button
                       onClick={() => notifyEvent(ev)}
                       disabled={notifying === ev.id}
@@ -379,6 +383,8 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
                     >
                       Probar
                     </button>
+                    </>
+                    ) : null}
                     <button onClick={() => setEditing(ev)} className="p-2 text-gray-400 hover:text-gray-700" aria-label="Editar evento">
                       <Pencil size={15} />
                     </button>

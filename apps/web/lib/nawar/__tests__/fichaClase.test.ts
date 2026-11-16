@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { clasesDadasPorProfe, estadoDeClase, tieneDocumento, type SemanaEquipo } from '../salaProfes'
+import { clasesDadasPorProfe, clasesSinDatos, estadoDeClase, huboClase, tieneDocumento, tituloDeClase, type SemanaEquipo } from '../salaProfes'
 import { diaQueToca } from '../../../components/Pages/Equipo/NuevaClase'
 
 const s = (o: Partial<SemanaEquipo>): SemanaEquipo => ({
@@ -34,10 +34,12 @@ describe('la ficha de la clase', () => {
   test('quién ha dado qué, por mes', () => {
     const r = clasesDadasPorProfe(
       [
-        s({ key: '1', courseUuid: 'rood', curso: 'Clase semanal · Groep rood', fecha: '2026-11-03' }),
-        s({ key: '2', courseUuid: 'rood', curso: 'Clase semanal · Groep rood', fecha: '2026-11-10' }),
-        s({ key: '3', courseUuid: 'mc', curso: 'Masterclass', fecha: '2026-11-06', material: { notas: '', archivos: [], profe: 'Luna' } }),
-        s({ key: '4', courseUuid: 'mc', curso: 'Masterclass', fecha: '2026-10-30' }),
+        s({ key: '1', courseUuid: 'rood', curso: 'Clase semanal · Groep rood', fecha: '2026-11-03', lista: { pasada: true, vinieron: 5 } }),
+        s({ key: '2', courseUuid: 'rood', curso: 'Clase semanal · Groep rood', fecha: '2026-11-10', grabacionSala: true }),
+        s({ key: '3', courseUuid: 'mc', curso: 'Masterclass', fecha: '2026-11-06', material: { notas: '', archivos: [], profe: 'Luna', despues: { texto: 'Bien', por: 'Luna', at: '' } } }),
+        s({ key: '4', courseUuid: 'mc', curso: 'Masterclass', fecha: '2026-10-30', grabaciones: [{ activity_uuid: 'g', nombre: 'Grabación' }] }),
+        // Sin ningún dato de que se diera: no cuenta (16/11/2026).
+        s({ key: '8', courseUuid: 'rood', curso: 'Clase semanal · Groep rood', fecha: '2026-11-11', lista: { pasada: true, vinieron: 0 } }),
         s({ key: '5', courseUuid: 'rood', curso: 'Clase semanal · Groep rood', fecha: HOY }), // hoy: aún no cuenta
         s({ key: '6', courseUuid: 'rood', curso: 'Clase semanal · Groep rood', fecha: '2026-11-19' }),
         s({ key: '7', courseUuid: 'rood', curso: 'x', fecha: '2026-11-01', suelta: true }),
@@ -52,6 +54,20 @@ describe('la ficha de la clase', () => {
       { nombre: 'Luna', clases: 1, porClase: [{ curso: 'Masterclass', clases: 1 }] },
     ])
     expect(r[1].profes[0].nombre).toBe('Sin profe')
+  })
+
+  test('solo cuenta como dada la clase de la que hay algún dato', () => {
+    expect(huboClase(s({ fecha: '2026-11-03' }))).toBe(false)
+    expect(huboClase(s({ fecha: '2026-11-03', presentaciones: [{ activity_uuid: 'p', nombre: 'P' }] }))).toBe(false)
+    expect(huboClase(s({ fecha: '2026-11-03', material: { notas: '', archivos: [], pizarra: { guardada_at: 'x', publicada_at: '', paginas: 3 } } }))).toBe(true)
+    const sin = clasesSinDatos([s({ key: 'a', fecha: '2026-11-03' }), s({ key: 'b', fecha: '2026-11-04', grabacionSala: true }), s({ key: 'c', fecha: '2026-11-20' })], HOY)
+    expect(sin.map((x) => x.key)).toEqual(['a'])
+  })
+
+  test('una clase sin tema se llama por su día', () => {
+    expect(tituloDeClase('', '2026-11-17')).toBe('Clase del 17 nov')
+    expect(tituloDeClase('  Mijn huis ', '2026-11-17')).toBe('Mijn huis')
+    expect(tituloDeClase('', '')).toBe('Clase')
   })
 
   test('«Nueva clase» propone el día que toca', () => {

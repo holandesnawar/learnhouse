@@ -54,6 +54,7 @@ import { AvisarClase } from './AvisarClase'
 import { tipoDeClase } from '@/lib/nawar/visitaGuiada'
 import { claveDe, deLaMismaSemana, pendienteDeLaSemana, Reproductor, useMiraTambien, type Grabacion } from './MiraTambien'
 import { duracionCorta } from '@/lib/nawar/recorte'
+import { tituloDeClase } from '@/lib/nawar/salaProfes'
 import GrabacionDeSala from '@components/Pages/Grabaciones/GrabacionDeSala'
 import FilaGrabacionAlumno from '@components/Pages/Grabaciones/FilaGrabacionAlumno'
 
@@ -292,12 +293,15 @@ function CabeceraAdmin({
   orgslug,
   onEditar,
   onCambio,
+  esAdmin = false,
 }: {
   semana: Semana
   courseUuid: string
   orgslug: string
   onEditar: () => void
   onCambio: () => void
+  /** El panel (/dash) es solo de administradores: el profe va a /seguimiento (16/11/2026). */
+  esAdmin?: boolean
 }) {
   const [avisando, setAvisando] = useState(false)
   const limpio = courseUuid.replace(/^course_/, '')
@@ -335,7 +339,10 @@ function CabeceraAdmin({
         <Pencil size={12} /> Editar semana
       </button>
       <Link
-        href={getUriWithOrg(orgslug, `/dash/estadisticas?tab=seguimiento&clase=${limpio}&semana=${semana.id}`)}
+        href={getUriWithOrg(
+          orgslug,
+          esAdmin ? `/dash/estadisticas?tab=seguimiento&clase=${limpio}&semana=${semana.id}` : `/seguimiento?clase=${limpio}&semana=${semana.id}`
+        )}
         prefetch={false}
         className="inline-flex items-center gap-1 text-[#5A6480] hover:text-[#0b2da0]"
       >
@@ -577,7 +584,7 @@ export default function SemanasClase({
           {equipo ? (
             <>
               <ContenidoSemana semana={semana} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={equipo} />
-              <CabeceraAdmin semana={semana} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(semana)} onCambio={recargar} />
+              <CabeceraAdmin semana={semana} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(semana)} onCambio={recargar} esAdmin={!!admin} />
             </>
           ) : (
             <div className="py-2">
@@ -604,7 +611,7 @@ export default function SemanasClase({
         >
           <ChipFecha fecha={s.fecha} />
           <div className="min-w-0 flex-1">
-            <p className="text-[14.5px] font-semibold text-gray-900 truncate">{s.tema}</p>
+            <p className="text-[14.5px] font-semibold text-gray-900 truncate">{tituloDeClase(s.tema, s.fecha)}</p>
             <p className="text-[12.5px] text-[#6B7280] truncate">
               {[queTuvo(s) || 'Clase', deLaMismaSemana(hermanas?.clases, s.fecha).length ? 'Grabación del otro grupo' : ''].filter(Boolean).join(' · ')}
             </p>
@@ -634,7 +641,7 @@ export default function SemanasClase({
           <div className="mx-4 mb-3 rounded-xl border border-[#EEF2F9] overflow-hidden">
             <ContenidoSemana semana={s} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={equipo} />
             {otroGrupo(s, true)}
-            {equipo ? <CabeceraAdmin semana={s} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(s)} onCambio={recargar} /> : null}
+            {equipo ? <CabeceraAdmin semana={s} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(s)} onCambio={recargar} esAdmin={!!admin} /> : null}
           </div>
         ) : null}
       </div>

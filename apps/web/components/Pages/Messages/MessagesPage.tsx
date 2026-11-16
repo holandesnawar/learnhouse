@@ -388,7 +388,8 @@ export default function MessagesPage() {
           <h1 className="text-[20px] font-bold text-[#0B1033] flex-1 min-w-0 truncate" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
             Mis mensajes
           </h1>
-          {isStaff && (
+          {/* Los ajustes guardan en la escuela: solo administradores (el servidor da 403 al profe, 16/11/2026). */}
+          {isStaff && isAdmin && (
             <button
               type="button"
               onClick={() => setSettingsOpen(true)}
@@ -875,7 +876,7 @@ export default function MessagesPage() {
         />
       )}
 
-      {settingsOpen && (
+      {settingsOpen && isAdmin && (
         <SettingsPanel onClose={() => setSettingsOpen(false)}>
           <WelcomeEditor
             orgId={org?.id}
